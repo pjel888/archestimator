@@ -27,3 +27,13 @@ test('project page shows proposal terms builder', async ({ page }) => {
   await expect(page.getByRole('textbox', { name: 'Subject' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Issue immutable proposal snapshot' })).toBeVisible();
 });
+
+test('estimate grid spike renders spreadsheet and library tray', async ({ page }) => {
+  await page.goto('/spikes/estimate-grid', { waitUntil: 'domcontentloaded' });
+  await page.waitForTimeout(1000);
+
+  await expect(page.getByRole('heading', { name: 'Estimate grid + library drag/drop' })).toBeVisible();
+  await expect(page.getByText('Glide estimate sheet spike')).toBeVisible();
+  await expect(page.getByText('Material library drag tray')).toBeVisible();
+  await expect(page.getByTestId('estimate-grid-spike')).toBeVisible();
+});
