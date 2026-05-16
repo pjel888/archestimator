@@ -16,6 +16,7 @@ export function createProjectWithInitialEstimate(
   const projectId = `project_${nanoid(10)}`;
   const estimateId = `estimate_${nanoid(10)}`;
   const firstSectionId = `section_${nanoid(10)}`;
+  const firstProposalSectionId = `proposal_section_${nanoid(10)}`;
   const project = {
     id: projectId,
     name: input.name.trim(),
@@ -38,6 +39,16 @@ export function createProjectWithInitialEstimate(
         name: "General Scope",
         outlineCode: "A",
         sectionType: "custom",
+      },
+    ],
+    proposalSections: [
+      {
+        id: firstProposalSectionId,
+        name: "General Requirements",
+        outlineCode: "A",
+        sectionType: "trade",
+        sortOrder: 0,
+        displayInProposal: true,
       },
     ],
     lineItems: [],
@@ -109,6 +120,42 @@ export function createProposalSnapshot(
   if (!project) throw new Error(`Project not found for estimate: ${estimateId}`);
 
   const totals = calculateEstimateTotals(estimate);
+  const proposalSections = estimate.proposalSections && estimate.proposalSections.length > 0
+    ? estimate.proposalSections
+    : estimate.sections.map((section, index) => ({
+        id: section.id,
+        name: section.name,
+        outlineCode: section.outlineCode,
+        sectionType: section.sectionType === "area" ? "custom" as const : section.sectionType,
+        sortOrder: index,
+        displayInProposal: true,
+      }));
+  const proposalSectionIds = new Set(proposalSections.map((section) => section.id));
+  const unassignedProposalTotal = totals.rows
+    .filter((row) => row.includedInTotal && !row.proposalSectionId && !proposalSectionIds.has(row.sectionId))
+    .reduce((sum, row) => sum + row.calculated.total, 0);
+  const sectionSummaries = [
+    ...proposalSections
+      .filter((section) => section.displayInProposal)
+      .map((section) => ({
+        proposalSectionId: section.id,
+        name: section.name,
+        outlineCode: section.outlineCode,
+        totalAmount: totals.rows
+          .filter((row) => (row.proposalSectionId ?? row.sectionId) === section.id && row.includedInTotal)
+          .reduce((sum, row) => sum + row.calculated.total, 0),
+      })),
+    ...(unassignedProposalTotal > 0
+      ? [
+          {
+            sectionId: "unassigned-proposal-section",
+            name: "Unassigned Proposal Section",
+            outlineCode: "UNASSIGNED",
+            totalAmount: unassignedProposalTotal,
+          },
+        ]
+      : []),
+  ];
   const snapshot: ProposalSnapshot = {
     id: `proposal_${nanoid(10)}`,
     projectId: project.id,
@@ -122,14 +169,7 @@ export function createProposalSnapshot(
     currency: database.workspace.defaultCurrency,
     totalAmount: totals.grandTotal,
     terms: normalizeProposalTerms(database, estimate, terms),
-    sectionSummaries: estimate.sections.map((section) => ({
-      sectionId: section.id,
-      name: section.name,
-      outlineCode: section.outlineCode,
-      totalAmount: totals.rows
-        .filter((row) => row.sectionId === section.id && row.includedInTotal)
-        .reduce((sum, row) => sum + row.calculated.total, 0),
-    })),
+    sectionSummaries,
   };
 
   return {

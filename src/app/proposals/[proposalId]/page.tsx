@@ -45,7 +45,7 @@ export default async function ProposalPage({ params }: ProposalPageProps) {
         <section className="border-b border-hairline py-8">
           <h2 className="text-lg font-semibold">Cost summary</h2>
           <div className="mt-4 overflow-hidden rounded-xl border border-hairline">
-            {snapshot.sectionSummaries.map((section) => <div key={section.sectionId} className="flex justify-between border-b border-hairline px-4 py-3 text-sm last:border-0"><span>{section.outlineCode}. {section.name}</span><span className="font-mono font-semibold">{formatMoney(section.totalAmount, snapshot.currency)}</span></div>)}
+            {snapshot.sectionSummaries.map((section) => <div key={section.proposalSectionId ?? section.sectionId ?? section.name} className="flex justify-between border-b border-hairline px-4 py-3 text-sm last:border-0"><span>{section.outlineCode}. {section.name}</span><span className="font-mono font-semibold">{formatMoney(section.totalAmount, snapshot.currency)}</span></div>)}
             <div className="flex justify-between bg-foreground px-4 py-4 text-white"><span className="font-semibold">Grand total</span><span className="font-mono text-lg font-semibold">{formatMoney(snapshot.totalAmount, snapshot.currency)}</span></div>
           </div>
         </section>

@@ -124,7 +124,14 @@ function applyEstimateGridEditToLineIndex(estimate: Estimate, columnIndex: numbe
   if (column === "unit" && typeof value === "string") nextLine.unit = value;
   if (column === "scopeStatus" && typeof value === "string") nextLine.scopeStatus = value as EstimateLineItem["scopeStatus"];
   if (column === "quantity") nextLine.quantity = toFiniteNumber(value, line.quantity);
-  if (column === "unitCost") nextLine.unitCost = toFiniteNumber(value, line.unitCost ?? line.materialUnitCost ?? 0);
+  if (column === "unitCost") {
+    const nextUnitCost = toFiniteNumber(value, line.unitCost ?? line.materialUnitCost ?? 0);
+    if (line.materialUnitCost !== undefined) {
+      nextLine.materialUnitCost = nextUnitCost;
+    } else {
+      nextLine.unitCost = nextUnitCost;
+    }
+  }
   if (column === "wastePercent") nextLine.wastePercent = toFiniteNumber(value, line.wastePercent ?? 0);
 
   return {

@@ -60,6 +60,22 @@ describe("estimate grid adapter", () => {
     expect(estimate.lineItems[0].quantity).toBe(2);
   });
 
+  test("applies unit cost edits to material cost when material cost drives totals", () => {
+    const materialBackedEstimate: Estimate = {
+      ...estimate,
+      lineItems: [{ ...estimate.lineItems[0], unitCost: undefined, materialUnitCost: 850 }],
+    };
+    const next = applyEstimateGridEdit(materialBackedEstimate, [4, 1], {
+      kind: GridCellKind.Number,
+      data: 900,
+      displayData: "900",
+      allowOverlay: true,
+    });
+    expect(next.lineItems[0].materialUnitCost).toBe(900);
+    expect(next.lineItems[0].unitCost).toBeUndefined();
+    expect(getEstimateGridCell(next, [6, 1]).displayData).toContain("1,980");
+  });
+
   test("ignores edits against section header rows", () => {
     const next = applyEstimateGridEdit(estimate, [1, 0], { kind: GridCellKind.Text, data: "Wrong", displayData: "Wrong", allowOverlay: true });
     expect(next).toBe(estimate);
