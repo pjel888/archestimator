@@ -11,7 +11,13 @@
 - 2026-05-16 — Data layer should be local-first JSON while the model changes rapidly, with repository boundaries prepared for future Supabase/Postgres migration; no Supabase connection until explicitly approved.
 - 2026-05-16 — Root `DESIGN.md` created as the agent-readable visual/design-system source of truth; Google DESIGN.md lint passes with 0 errors. Initial Tailwind/DTCG exports live in `.ai/07_design/`.
 - 2026-05-16 — GitHub repo created as private under `pjel888/archestimator`; use feature branches/PRs, do not merge to main automatically.
-- 2026-05-16 — First interactive MVP slice keeps edits in browser memory; persistent local writes/server actions are the next slice after mutation rules are designed.
+- 2026-05-16 — First interactive MVP slice prioritizes the estimating loop before polish: editable rows, library insertion, live totals, version/proposal side panels.
+- 2026-05-16 — Runtime local data uses ignored `data/local/runtime.json`, initialized from tracked `data/local/seed.json`; server-only persistence must stay behind repository/store APIs.
+- 2026-05-16 — Proposal issuance creates immutable `proposalSnapshots` and must not mutate the source estimate.
+- 2026-05-16 — UI money formatting must use workspace currency, not hard-coded PHP.
+- 2026-05-16 — Archestimator will grow an internal UI library from the MVP stage. Prefer shared primitives under `src/components/ui/` over one-off feature markup; do not install Storybook unless explicitly approved.
+- 2026-05-16 — Estimate sheet should eventually use a spreadsheet/grid package behind an adapter rather than building spreadsheet-grade UX fully natively. Leading spike candidates: `@glideapps/glide-data-grid` for the sheet and `@dnd-kit/core` for library-to-sheet drag/drop. Avoid Handsontable without license review.
+- 2026-05-16 — Proposal snapshots store editable commercial terms and route to print-ready `/proposals/[proposalId]` pages for browser print/PDF before adding a dedicated PDF engine.
 
 ## Working decisions / likely direction
 

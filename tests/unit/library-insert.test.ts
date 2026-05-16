@@ -10,6 +10,7 @@ const tile: CostLibraryItem = {
   unit: "sqm",
   defaultUnitCost: 800,
   defaultLaborUnitCost: 120,
+  defaultWastePercent: 10,
   pricingDate: "2026-05-16",
   source: "Demo library",
 };
@@ -23,6 +24,7 @@ describe("createLineItemFromLibraryItem", () => {
     expect(line.quantity).toBe(1);
     expect(line.materialUnitCost).toBe(800);
     expect(line.laborUnitCost).toBe(120);
+    expect(line.wastePercent).toBe(10);
     expect(line.sourceLibraryItemId).toBe(tile.id);
     expect(line.linkState).toBe("linked-clean");
   });

@@ -27,4 +27,15 @@ describe("EstimateWorkspace", () => {
 
     expect(screen.getAllByText("linked-clean").length).toBeGreaterThanOrEqual(2);
   });
+
+  it("edits proposal terms in the proposal package builder", async () => {
+    const user = userEvent.setup();
+    render(<EstimateWorkspace database={database} />);
+
+    await user.click(screen.getByRole("tab", { name: "proposal" }));
+    await user.clear(screen.getByLabelText("Subject"));
+    await user.type(screen.getByLabelText("Subject"), "Updated client proposal");
+
+    expect(screen.getByRole("heading", { name: "Updated client proposal" })).toBeInTheDocument();
+  });
 });
