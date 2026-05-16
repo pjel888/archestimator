@@ -1,0 +1,421 @@
+{
+  "$schema": "https://www.designtokens.org/schemas/2025.10/format.json",
+  "$description": "Precise, calm construction estimating software for contractors, architects, and design-build teams.",
+  "color": {
+    "$type": "color",
+    "primary": {
+      "$value": {
+        "colorSpace": "srgb",
+        "components": [
+          0.09,
+          0.09,
+          0.09
+        ],
+        "hex": "#171717"
+      }
+    },
+    "ink": {
+      "$value": {
+        "colorSpace": "srgb",
+        "components": [
+          0.09,
+          0.09,
+          0.09
+        ],
+        "hex": "#171717"
+      }
+    },
+    "slate": {
+      "$value": {
+        "colorSpace": "srgb",
+        "components": [
+          0.2,
+          0.255,
+          0.333
+        ],
+        "hex": "#334155"
+      }
+    },
+    "muted": {
+      "$value": {
+        "colorSpace": "srgb",
+        "components": [
+          0.392,
+          0.455,
+          0.545
+        ],
+        "hex": "#64748b"
+      }
+    },
+    "hairline": {
+      "$value": {
+        "colorSpace": "srgb",
+        "components": [
+          0.886,
+          0.91,
+          0.941
+        ],
+        "hex": "#e2e8f0"
+      }
+    },
+    "canvas": {
+      "$value": {
+        "colorSpace": "srgb",
+        "components": [
+          0.98,
+          0.98,
+          0.969
+        ],
+        "hex": "#fafaf7"
+      }
+    },
+    "surface": {
+      "$value": {
+        "colorSpace": "srgb",
+        "components": [
+          1,
+          1,
+          1
+        ],
+        "hex": "#ffffff"
+      }
+    },
+    "surfaceMuted": {
+      "$value": {
+        "colorSpace": "srgb",
+        "components": [
+          0.957,
+          0.945,
+          0.918
+        ],
+        "hex": "#f4f1ea"
+      }
+    },
+    "accent": {
+      "$value": {
+        "colorSpace": "srgb",
+        "components": [
+          0.573,
+          0.251,
+          0.055
+        ],
+        "hex": "#92400e"
+      }
+    },
+    "accentDark": {
+      "$value": {
+        "colorSpace": "srgb",
+        "components": [
+          0.471,
+          0.208,
+          0.059
+        ],
+        "hex": "#78350f"
+      }
+    },
+    "accentSoft": {
+      "$value": {
+        "colorSpace": "srgb",
+        "components": [
+          0.996,
+          0.953,
+          0.78
+        ],
+        "hex": "#fef3c7"
+      }
+    },
+    "info": {
+      "$value": {
+        "colorSpace": "srgb",
+        "components": [
+          0.145,
+          0.388,
+          0.922
+        ],
+        "hex": "#2563eb"
+      }
+    },
+    "infoSoft": {
+      "$value": {
+        "colorSpace": "srgb",
+        "components": [
+          0.859,
+          0.918,
+          0.996
+        ],
+        "hex": "#dbeafe"
+      }
+    },
+    "success": {
+      "$value": {
+        "colorSpace": "srgb",
+        "components": [
+          0.082,
+          0.502,
+          0.239
+        ],
+        "hex": "#15803d"
+      }
+    },
+    "successSoft": {
+      "$value": {
+        "colorSpace": "srgb",
+        "components": [
+          0.863,
+          0.988,
+          0.906
+        ],
+        "hex": "#dcfce7"
+      }
+    },
+    "warning": {
+      "$value": {
+        "colorSpace": "srgb",
+        "components": [
+          0.706,
+          0.325,
+          0.035
+        ],
+        "hex": "#b45309"
+      }
+    },
+    "warningSoft": {
+      "$value": {
+        "colorSpace": "srgb",
+        "components": [
+          0.996,
+          0.953,
+          0.78
+        ],
+        "hex": "#fef3c7"
+      }
+    },
+    "danger": {
+      "$value": {
+        "colorSpace": "srgb",
+        "components": [
+          0.725,
+          0.11,
+          0.11
+        ],
+        "hex": "#b91c1c"
+      }
+    },
+    "dangerSoft": {
+      "$value": {
+        "colorSpace": "srgb",
+        "components": [
+          0.996,
+          0.886,
+          0.886
+        ],
+        "hex": "#fee2e2"
+      }
+    },
+    "proposalPaper": {
+      "$value": {
+        "colorSpace": "srgb",
+        "components": [
+          1,
+          0.992,
+          0.973
+        ],
+        "hex": "#fffdf8"
+      }
+    }
+  },
+  "spacing": {
+    "$type": "dimension",
+    "xs": {
+      "$value": {
+        "value": 4,
+        "unit": "px"
+      }
+    },
+    "sm": {
+      "$value": {
+        "value": 8,
+        "unit": "px"
+      }
+    },
+    "md": {
+      "$value": {
+        "value": 12,
+        "unit": "px"
+      }
+    },
+    "lg": {
+      "$value": {
+        "value": 16,
+        "unit": "px"
+      }
+    },
+    "xl": {
+      "$value": {
+        "value": 24,
+        "unit": "px"
+      }
+    },
+    "xxl": {
+      "$value": {
+        "value": 32,
+        "unit": "px"
+      }
+    }
+  },
+  "rounded": {
+    "$type": "dimension",
+    "xs": {
+      "$value": {
+        "value": 3,
+        "unit": "px"
+      }
+    },
+    "sm": {
+      "$value": {
+        "value": 6,
+        "unit": "px"
+      }
+    },
+    "md": {
+      "$value": {
+        "value": 10,
+        "unit": "px"
+      }
+    },
+    "lg": {
+      "$value": {
+        "value": 16,
+        "unit": "px"
+      }
+    },
+    "xl": {
+      "$value": {
+        "value": 24,
+        "unit": "px"
+      }
+    }
+  },
+  "typography": {
+    "display": {
+      "$type": "typography",
+      "$value": {
+        "fontFamily": "Inter",
+        "fontSize": {
+          "value": 4,
+          "unit": "rem"
+        },
+        "fontWeight": 760,
+        "letterSpacing": {
+          "value": -0.055,
+          "unit": "em"
+        }
+      }
+    },
+    "h1": {
+      "$type": "typography",
+      "$value": {
+        "fontFamily": "Inter",
+        "fontSize": {
+          "value": 2.5,
+          "unit": "rem"
+        },
+        "fontWeight": 720,
+        "letterSpacing": {
+          "value": -0.04,
+          "unit": "em"
+        }
+      }
+    },
+    "h2": {
+      "$type": "typography",
+      "$value": {
+        "fontFamily": "Inter",
+        "fontSize": {
+          "value": 1.75,
+          "unit": "rem"
+        },
+        "fontWeight": 680,
+        "letterSpacing": {
+          "value": -0.025,
+          "unit": "em"
+        }
+      }
+    },
+    "body": {
+      "$type": "typography",
+      "$value": {
+        "fontFamily": "Inter",
+        "fontSize": {
+          "value": 1,
+          "unit": "rem"
+        },
+        "fontWeight": 400,
+        "letterSpacing": {
+          "value": -0.01,
+          "unit": "em"
+        }
+      }
+    },
+    "label": {
+      "$type": "typography",
+      "$value": {
+        "fontFamily": "Inter",
+        "fontSize": {
+          "value": 0.8125,
+          "unit": "rem"
+        },
+        "fontWeight": 620,
+        "letterSpacing": {
+          "value": -0.005,
+          "unit": "em"
+        }
+      }
+    },
+    "table-cell": {
+      "$type": "typography",
+      "$value": {
+        "fontFamily": "Inter",
+        "fontSize": {
+          "value": 0.8125,
+          "unit": "rem"
+        },
+        "fontWeight": 450,
+        "letterSpacing": {
+          "value": -0.005,
+          "unit": "em"
+        }
+      }
+    },
+    "numeric": {
+      "$type": "typography",
+      "$value": {
+        "fontFamily": "Roboto Mono",
+        "fontSize": {
+          "value": 0.8125,
+          "unit": "rem"
+        },
+        "fontWeight": 500,
+        "letterSpacing": {
+          "value": -0.02,
+          "unit": "em"
+        }
+      }
+    },
+    "proposal-body": {
+      "$type": "typography",
+      "$value": {
+        "fontFamily": "Source Serif 4",
+        "fontSize": {
+          "value": 0.9375,
+          "unit": "rem"
+        },
+        "fontWeight": 400,
+        "letterSpacing": {
+          "value": 0,
+          "unit": "em"
+        }
+      }
+    }
+  }
+}

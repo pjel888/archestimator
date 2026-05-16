@@ -1,0 +1,127 @@
+{
+  "theme": {
+    "extend": {
+      "colors": {
+        "primary": "#171717",
+        "ink": "#171717",
+        "slate": "#334155",
+        "muted": "#64748b",
+        "hairline": "#e2e8f0",
+        "canvas": "#fafaf7",
+        "surface": "#ffffff",
+        "surfaceMuted": "#f4f1ea",
+        "accent": "#92400e",
+        "accentDark": "#78350f",
+        "accentSoft": "#fef3c7",
+        "info": "#2563eb",
+        "infoSoft": "#dbeafe",
+        "success": "#15803d",
+        "successSoft": "#dcfce7",
+        "warning": "#b45309",
+        "warningSoft": "#fef3c7",
+        "danger": "#b91c1c",
+        "dangerSoft": "#fee2e2",
+        "proposalPaper": "#fffdf8"
+      },
+      "fontFamily": {
+        "display": [
+          "Inter"
+        ],
+        "h1": [
+          "Inter"
+        ],
+        "h2": [
+          "Inter"
+        ],
+        "body": [
+          "Inter"
+        ],
+        "label": [
+          "Inter"
+        ],
+        "table-cell": [
+          "Inter"
+        ],
+        "numeric": [
+          "Roboto Mono"
+        ],
+        "proposal-body": [
+          "Source Serif 4"
+        ]
+      },
+      "fontSize": {
+        "display": [
+          "4rem",
+          {
+            "letterSpacing": "-0.055em",
+            "fontWeight": "760"
+          }
+        ],
+        "h1": [
+          "2.5rem",
+          {
+            "letterSpacing": "-0.04em",
+            "fontWeight": "720"
+          }
+        ],
+        "h2": [
+          "1.75rem",
+          {
+            "letterSpacing": "-0.025em",
+            "fontWeight": "680"
+          }
+        ],
+        "body": [
+          "1rem",
+          {
+            "letterSpacing": "-0.01em",
+            "fontWeight": "400"
+          }
+        ],
+        "label": [
+          "0.8125rem",
+          {
+            "letterSpacing": "-0.005em",
+            "fontWeight": "620"
+          }
+        ],
+        "table-cell": [
+          "0.8125rem",
+          {
+            "letterSpacing": "-0.005em",
+            "fontWeight": "450"
+          }
+        ],
+        "numeric": [
+          "0.8125rem",
+          {
+            "letterSpacing": "-0.02em",
+            "fontWeight": "500"
+          }
+        ],
+        "proposal-body": [
+          "0.9375rem",
+          {
+            "letterSpacing": "0em",
+            "fontWeight": "400"
+          }
+        ]
+      },
+      "borderRadius": {
+        "xs": "3px",
+        "sm": "6px",
+        "md": "10px",
+        "lg": "16px",
+        "xl": "24px"
+      },
+      "spacing": {
+        "xs": "4px",
+        "sm": "8px",
+        "md": "12px",
+        "lg": "16px",
+        "xl": "24px",
+        "xxl": "32px"
+      }
+    }
+  }
+}

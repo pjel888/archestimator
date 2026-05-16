@@ -1,0 +1,795 @@
+Project: Unit 25B - Residential Interior Fit-Out  Owner: Mr. Albert Jocson, Mrs. Lolit Jocson Family  Designer: Echavez-Lewis Architectural Design Studio
+ Contractor: ASCKON  Ar. Louise Gabriel Caritativo  2/4/2026
+NO.
+TAG
+PARTICULARS
+ QTY
+UNIT
+ MATERIAL 
+UNIT COST
+ LABOR 
+UNIT COST
+ MATERIAL 
+SUBTOTAL
+ LABOR 
+SUBTOTAL
+ COST AMOUNT
+REMARKS
+Cost Proposal Summary
+A
+General Requirements and Preliminaries
+910,000.00
+                                 
+B
+Site Works and Architectural Fit-Out Works
+1,024,390.95
+                             
+C
+Architectural Finishes 
+1,684,255.96
+                             
+D
+Glass and Glazing 
+265,053.00
+                                 
+E
+Doors, Joineries and Specialty Works 
+1,034,796.00
+                             
+F
+Mechanical Works 
+48,000.00
+                                   
+G
+Electrical and Auxiliary Works 
+1,420,523.76
+                             
+H
+Plumbing Works 
+134,000.00
+                                 
+I
+Fire Protection and FDAS Works 
+49,250.00
+                                   
+J
+Furniture, Fixture and Equipment (FF&E) 
+38,900.00
+                                   
+Total Cost Amount 
+6,609,169.67
+                             
+Contingency 
+530,830.33
+                                 
+12% VAT 
+856,800.00
+                                 
+Discount
+-
+                                                  
+TOTAL ESTIMATED COST PROPOSAL
+7,996,800.00
+                             
+A
+GENERAL REQUIREMENTS AND PRELIMINARIES
+1
+Mobilization and Demobilization
+1.00
+                
+lot
+-
+                                 
+-
+                                 
+65,000.00
+                                 
+2
+Project Supervision and Site Management
+1.00
+                
+lot
+-
+                                 
+-
+                                 
+377,000.00
+                               
+3
+Insurance  and Bonds
+1.00
+                
+lot
+3.1.
+Construction Bond
+1.00
+                
+lot
+-
+                                 
+-
+                                 
+excluded
+3.2.
+Performance Bond
+1.00
+                
+lot
+-
+                                 
+-
+                                 
+excluded
+3.3.
+Contractor's All Risk Insurance (CARI)
+1.00
+                
+lot
+-
+                                 
+-
+                                 
+excluded
+4
+Permits, Certificates,  Clearances and other requirements
+1.00
+                
+lot
+-
+                                 
+-
+                                 
+19,500.00
+                                 
+Processing only
+5
+Temporary Facilities and Utilities 
+1.00
+                
+lot
+-
+                                 
+-
+                                 
+97,500.00
+                                 
+6
+Equipment, Material Handling and Deliveries
+1.00
+                
+lot
+-
+                                 
+-
+                                 
+32,500.00
+                                 
+7
+Safety, Security and Health Requirements (including fire ext.)
+1.00
+                
+lot
+-
+                                 
+-
+                                 
+39,000.00
+                                 
+8
+As-Built Plans (Architectural, MEPF) 
+1.00
+                
+lot
+-
+                                 
+-
+                                 
+84,500.00
+                                 
+9
+Shop Drawings, Coordination fees, and Project support
+1.00
+                
+lot
+-
+                                 
+-
+                                 
+71,500.00
+                                 
+10
+Clearing, Cleaning and Housekeeping
+1.00
+                
+lot
+-
+                                 
+-
+                                 
+26,000.00
+                                 
+11
+Testing & Commissioning 
+1.00
+                
+lot
+-
+                                 
+-
+                                 
+97,500.00
+                                 
+12
+Contractor Tax
+1.00
+                
+lot
+-
+                                 
+-
+                                 
+excluded
+Others, please specify: 
+-
+                                 
+-
+                                 
+-
+                                                
+-
+                                 
+-
+                                 
+-
+                                                
+SUBTOTAL "A"
+910,000.00
+                                 
+B
+SITE WORKS AND ARCHITECTURAL FIT-OUT WORKS 
+1
+Site Demolition Works 
+1.1.
+Demolition Works: drywalls, ceilings, floor finishes, etc. 
+1.00
+                
+lot
+75,600.00
+                  
+-
+                                 
+75,600.00
+                  
+75,600.00
+                                 
+1.2.
+Dismantling of equiment and devices
+1.00
+                
+lot
+25,200.00
+                  
+-
+                                 
+25,200.00
+                  
+25,200.00
+                                 
+1.3.
+Demolition Clearing, Hauling 
+1.00
+                
+lot
+30,000.00
+                  
+-
+                                 
+30,000.00
+                  
+30,000.00
+                                 
+1.4.
+Site markings, Layouts (color-coded by trade) 
+1.00
+                
+lot
+29,250.00
+                  
+-
+                                 
+29,250.00
+                  
+29,250.00
+                                 
+1.5.
+Chipping & Rectifications for Utilities
+1.00
+                
+lot
+22,500.00
+                  
+-
+                                 
+22,500.00
+                  
+22,500.00
+                                 
+2
+Site Preparations
+2.1.
+Concrete topping (with wire mesh, as needed) 
+n/a
+-
+                                 
+-
+                                 
+-
+                                                
+2.2.
+Flooring surface prep, ready to receive finish: self-leveling epoxy
+94.22
+             
+sqrm
+390.00
+                         
+300.00
+                         
+36,745.80
+                  
+28,266.00
+                  
+65,011.80
+                                 
+2.3.
+Rectifications of retained existing walls, ceilings
+1.00
+                
+lot
+-
+                                 
+-
+                                 
+45,000.00
+                                 
+3
+Thermal and Moisture Protection
+3.1.
+Kitchen: Torch-applied membrane with 300mm-ht return
+6.38
+                
+sqrm
+1,050.00
+                     
+450.00
+                         
+6,699.00
+                     
+2,871.00
+                     
+9,570.00
+                                    
+3.2.
+T&B : Torch-applied membrane with 300mm-ht return
+16.82
+             
+sqrm
+1,050.00
+                     
+450.00
+                         
+17,661.00
+                  
+7,569.00
+                     
+25,230.00
+                                 
+3.3.
+Shower walls: Cold-applied membrane at 2200mm 
+75.68
+             
+sqrm
+900.00
+                         
+300.00
+                         
+68,112.00
+                  
+22,704.00
+                  
+90,816.00
+                                 
+3.4.
+General areas: Self-leveling epoxy (verify)
+n/a
+-
+                                 
+-
+                                 
+-
+                                                
+Termite Protection treatment
+n/a
+-
+                                 
+-
+                                 
+-
+                                                
+4
+Architectural Walls 
+4.1.
+General: Gypsum drywall on standard metal studs framing 
+43.20
+             
+sqrm
+1,095.00
+                     
+675.00
+                         
+47,304.00
+                  
+29,160.00
+                  
+76,464.00
+                                 
+4.2.
+Finishes: Marine plywood substrate for wall laminate/wallpaper
+74.00
+             
+sqrm
+862.50
+                         
+450.00
+                         
+63,825.00
+                  
+33,300.00
+                  
+97,125.00
+                                 
+4.3.
+T&B: Fibre cement board drywall on standard metal studs framing
+1.12
+                
+sqrm
+1,245.00
+                     
+675.00
+                         
+1,394.40
+                     
+756.00
+                         
+2,150.40
+                                    
+4.4.
+T&B: 300mm-ht concrete zocalo (drywall base) 
+8.00
+                
+lm
+600.00
+                         
+300.00
+                         
+4,800.00
+                     
+2,400.00
+                     
+7,200.00
+                                    
+4.5.
+Bedrooms: Acoustic treatment using mineral wool insulation
+43.20
+             
+sqrm
+340.20
+                         
+150.00
+                         
+14,696.64
+                  
+6,480.00
+                     
+21,176.64
+                                 
+4.6.
+Reinforcement for wall-mounts (AC units, joineries, etc.) 
+1.00
+                
+lot
+-
+                                 
+-
+                                 
+-
+                                 
+15,000.00
+                                 
+4.7.
+20x20mm floor reveal using metal profile 
+1.00
+                
+lot
+-
+                                 
+-
+                                 
+22,500.00
+                                 
+4.8.
+Surface prep, ready to receive finishes: bead trims, skimcoat, etc. 
+1.00
+                
+lot
+-
+                                 
+-
+                                 
+127,500.00
+                               
+5
+Architectural Ceilings
+5.1.
+Gypsum drop-ceiling on standard metal framing
+42.70
+             
+sqrm
+870.00
+                         
+585.00
+                         
+37,152.34
+                  
+24,981.74
+                  
+62,134.08
+                                 
+5.2.
+Ceiling coves, curtain coves
+32.47
+             
+sqrm
+870.00
+                         
+585.00
+                         
+28,245.42
+                  
+18,992.61
+                  
+47,238.03
+                                 
+5.3.
+Marine plywood support, provisional 
+1.00
+                
+lot
+-
+                                 
+-
+                                 
+12,825.00
+                                 
+5.4.
+600x600mm hinge-type access panel (Storage Room)
+1.00
+                
+lot
+-
+                                 
+-
+                                 
+7,500.00
+                                    
+5.5.
+20x20mm Shadow line profile 
+n/a
+-
+                                 
+-
+                                 
+-
+                                                
+5.6.
+Reinforcements for curtain coves: marine plywood
+16.50
+             
+lm
+375.00
+                         
+225.00
+                         
+6,187.50
+                     
+3,712.50
+                     
+9,900.00
+                                    
+5.7.
+Surface prep, ready to receive finish: skimcoat, etc. 
+1.00
+                
+lot
+-
+                                 
+-
+                                 
+97,500.00
+                                 
+6
+Others, please specify: 
+SUBTOTAL "B"
+1,024,390.95
+                             
+C
+ARCHITECTURAL FINISHES
+NOTES:
+Contractor shall submit a sample / mock-up of the finish for Architect's / Owner's approval prior to purchase / fabrication and installation. 
+The installation of finishes shall include all necessary consumables to ensure its complete and satisfactory application, compliant to the design intent and manufacturer's standards. 
+1
+Ceiling Finishes
+1.1.
+GEN_134
+Off-white satin finish latex paint in "Dover White 6385" by The Sherwin-
+Williams Co. or approved equal (Verify Architect) 
+75.17
+               
+sqrm
+480.00
+                           
+375.00
+                           
+36,081.52
+                    
+28,188.69
+                    
+64,270.21
+                                   
+1.2.
+GEN_135
+High pressure laminate cladding in "Sheer Fabric 6126" by Formica 
+Corp. -or- wall covering / vinyl paper backing to match on marine 
+plywood substrate or approved equivalent (Verify Architect)
+21.42
+               
+sqrm
+1,616.67
+                       
+600.00
+                           
+34,625.77
+                    
+12,850.80
+                    
+47,476.57
+                                   
+Sheer Fabric only available 
+in US. Material used is 
+5875LM Neutral Weft
+1.4.
+Corner trim terminations, as needed (color to match)
+-
+                                 
+-
+                                 
+-
+                                                
+2
+Floor Finishes
+including adhesives, tile grouts, substrates, spacers, and other consumables
+2.1
+FLF_022
+126mm x 630mm Vinyl flooring in "Dark Norwegian Oak" by 
+Pergo / EuroKonzept or approved equal 
+(Verify Architect)
+96.98
+               
+sqrm
+4,560.00
+                       
+675.00
+                           
+442,228.80
+                  
+65,461.50
+                    
+507,690.30
+                                 
+2.2
+FLF_136
+450mm x 900mm x 9mm-thk Matte finish "Nordic Norvegia 
+Naturale" porcelain tile by Felport Internat'l Marketing or 
+approved equal, with tile grout to match (Verify Architect)
+6.38
+                  
+sqrm
+6,382.00
+                       
+585.00
+                           
+40,717.16
+                    
+3,732.30
+                       
+44,449.46
+                                   
+2.3
+FLF_143
+1200mm x 2400mm x 9mm-thk Matte finish "Van Gogh 
+Impression" porcelain tile by Felport Internat'l Marketing or 
+approved equal, with tile grout to match finish (Verify 
+Architect) 
+3.75
+                  
+sqrm
+8,704.00
+                       
+585.00
+                           
+32,640.00
+                    
+2,193.75
+                       
+34,833.75
+                                   
+2.4
+FLF_132
+600mm x 1200mm x 9mm-thk Matte finish "Isla Light Naturale" 
+porcelain tile by Felport Internat'l Marketing or approved 
+equal, with tile grout to match 
+ (Verify Architect) 
+3.59
+                  
+sqrm
+2,729.00
+                       
+585.00
+                           
+9,797.11
+                       
+2,100.15
+                       
+11,897.26
+                                   
+2.5
+FLF_119
+600mm x 1200mm x 9mm-thk Matte finish "Limestone Black 
+Anti-slip" porcelain tile by Felport Internat'l Marketing or 
+approved equal, with tile grout to match (Verify Architect) 
+8.15
+                  
+sqrm
+2,729.00
+                       
+585.00
+                           
+22,241.35
+                    
+4,767.75
+                       
+27,009.10
+                                   
+2.6
+6mm metal transition trim 
+-
+                                 
+-
+                                 
+-
+                                                
+3
+Wall Finishes
+3.1.
+Great Room: Entry, Living Area, Dining Area, Hallway
+-
+                                 
+-
+                                                
+To follow upon awarding of 
+contract
+for verification upon application of  
+building permit
+GENERAL REQUIREMENTS AND PRELIMINARIES
+SITE WORKS AND ARCHITECTURAL FIT-OUT WORKS 
+ALJ_25B_108%20FTD-Bid%20Form_1
+Page 1 of
