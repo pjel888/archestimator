@@ -18,6 +18,8 @@
 - 2026-05-16 — Archestimator will grow an internal UI library from the MVP stage. Prefer shared primitives under `src/components/ui/` over one-off feature markup; do not install Storybook unless explicitly approved.
 - 2026-05-16 — Estimate sheet should use Glide Data Grid behind an adapter for the sheet and dnd-kit overlay + explicit row hit-testing for premium library-card drag/drop. Avoid native HTML DataTransfer as the primary UX path because it gives weaker control over drag previews, drop intent, and no-layout-shift behavior. Avoid Handsontable without license review.
 - 2026-05-16 — Proposal snapshots store editable commercial terms and route to print-ready `/proposals/[proposalId]` pages for browser print/PDF before adding a dedicated PDF engine.
+- 2026-05-17 — Archestimator runs in autopilot mode within documented MVP scope: agents should continue implementation, verification, review, and concise updates without repeated permission asks, while never merging to `main`, deploying, connecting Supabase, or taking destructive actions without explicit approval.
+- 2026-05-17 — Production estimating model should separate working spaces/areas from client-facing proposal/BOQ sections. Current bridge: `Estimate.sections` is the working space axis, `Estimate.proposalSections` is the consolidation axis, and `EstimateLineItem.proposalSectionId` maps estimate rows into proposal summaries.
 
 ## Working decisions / likely direction
 

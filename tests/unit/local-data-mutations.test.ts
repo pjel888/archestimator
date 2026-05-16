@@ -73,6 +73,48 @@ describe("createProposalSnapshot", () => {
     expect(next.database.proposalSnapshots).toHaveLength(1);
     expect(next.database.estimates[0].status).toBe("draft");
   });
+
+  test("keeps unmapped working rows visible as unassigned instead of dropping totals", () => {
+    const estimateWithUnmappedRows: Estimate = {
+      ...estimate,
+      sections: [{ id: "space_bathroom", name: "Bathroom", outlineCode: "GF-01", sectionType: "area" }],
+      proposalSections: [
+        { id: "proposal_finishes", name: "Floor Finishes", outlineCode: "A", sectionType: "trade", sortOrder: 0, displayInProposal: true },
+      ],
+      lineItems: [{ ...estimate.lineItems[0], sectionId: "space_bathroom", proposalSectionId: undefined, quantity: 2, unitCost: 100 }],
+    };
+    const next = createProposalSnapshot({ ...database, estimates: [estimateWithUnmappedRows] }, "estimate_1");
+
+    expect(next.snapshot.totalAmount).toBe(200);
+    expect(next.snapshot.sectionSummaries).toHaveLength(2);
+    expect(next.snapshot.sectionSummaries[0].proposalSectionId).toBe("proposal_finishes");
+    expect(next.snapshot.sectionSummaries[0].totalAmount).toBe(0);
+    expect(next.snapshot.sectionSummaries[1].sectionId).toBe("unassigned-proposal-section");
+    expect(next.snapshot.sectionSummaries[1].totalAmount).toBe(200);
+  });
+
+  test("consolidates proposal summaries by proposal section across working spaces", () => {
+    const multiSpaceEstimate: Estimate = {
+      ...estimate,
+      sections: [
+        { id: "space_bathroom", name: "Bathroom", outlineCode: "GF-01", sectionType: "area" },
+        { id: "space_kitchen", name: "Kitchen", outlineCode: "GF-02", sectionType: "area" },
+      ],
+      proposalSections: [
+        { id: "proposal_finishes", name: "Floor Finishes", outlineCode: "A", sectionType: "trade", sortOrder: 0, displayInProposal: true },
+      ],
+      lineItems: [
+        { ...estimate.lineItems[0], id: "line_bath", sectionId: "space_bathroom", proposalSectionId: "proposal_finishes", quantity: 2, unitCost: 100 },
+        { ...estimate.lineItems[0], id: "line_kitchen", sectionId: "space_kitchen", proposalSectionId: "proposal_finishes", quantity: 3, unitCost: 200 },
+      ],
+    };
+    const next = createProposalSnapshot({ ...database, estimates: [multiSpaceEstimate] }, "estimate_1");
+
+    expect(next.snapshot.sectionSummaries).toHaveLength(1);
+    expect(next.snapshot.sectionSummaries[0].sectionId).toBeUndefined();
+    expect(next.snapshot.sectionSummaries[0].proposalSectionId).toBe("proposal_finishes");
+    expect(next.snapshot.sectionSummaries[0].totalAmount).toBe(800);
+  });
 });
 
 describe("createProjectWithInitialEstimate", () => {

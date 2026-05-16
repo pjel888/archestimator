@@ -26,22 +26,22 @@
       "pricingBasisDate": "2026-05-16",
       "sections": [
         {
-          "id": "section_floor_finishes",
-          "name": "Floor Finishes",
-          "outlineCode": "A",
-          "sectionType": "trade"
+          "id": "space_ground_floor_bathroom",
+          "name": "Ground Floor \u00b7 Bathroom",
+          "outlineCode": "GF-01",
+          "sectionType": "area"
         },
         {
-          "id": "section_general_conditions",
-          "name": "General Conditions",
-          "outlineCode": "B",
-          "sectionType": "trade"
+          "id": "space_general_conditions",
+          "name": "Project-wide",
+          "outlineCode": "GEN",
+          "sectionType": "custom"
         }
       ],
       "lineItems": [
         {
           "id": "line_tile_a_bathroom",
-          "sectionId": "section_floor_finishes",
+          "sectionId": "space_ground_floor_bathroom",
           "itemName": "Tile A - bathroom floor",
           "description": "Dropped from library; project quantity remains editable in the estimate sheet.",
           "quantity": 25,
@@ -51,11 +51,12 @@
           "scopeStatus": "included",
           "sourceLibraryItemId": "lib_tile_a_600",
           "linkState": "linked-clean",
-          "pricingDate": "2026-05-16"
+          "pricingDate": "2026-05-16",
+          "proposalSectionId": "proposal_section_floor_finishes"
         },
         {
           "id": "line_mobilization",
-          "sectionId": "section_general_conditions",
+          "sectionId": "space_general_conditions",
           "itemName": "Mobilization and site protection allowance",
           "description": "Manual project-specific row not linked to the material library.",
           "quantity": 1,
@@ -63,7 +64,26 @@
           "unitCost": 15000,
           "scopeStatus": "allowance",
           "linkState": "manual",
-          "pricingDate": "2026-05-16"
+          "pricingDate": "2026-05-16",
+          "proposalSectionId": "proposal_section_general_conditions"
+        }
+      ],
+      "proposalSections": [
+        {
+          "id": "proposal_section_floor_finishes",
+          "name": "Floor Finishes",
+          "outlineCode": "A",
+          "sectionType": "trade",
+          "sortOrder": 0,
+          "displayInProposal": true
+        },
+        {
+          "id": "proposal_section_general_conditions",
+          "name": "General Conditions",
+          "outlineCode": "B",
+          "sectionType": "trade",
+          "sortOrder": 1,
+          "displayInProposal": true
         }
       ]
     }

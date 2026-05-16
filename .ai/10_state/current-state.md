@@ -44,6 +44,12 @@ The emerging product wedge is:
 - Proposal package builder/UI system slice implemented: reusable UI primitives, editable proposal terms, immutable proposal snapshots with terms, and print-ready `/proposals/[proposalId]` route.
 - Project creation/proposal history/UI hardening slice implemented: dashboard create-project form, first empty draft estimate, reusable PageShell/ObjectCard/EmptyState primitives, project proposal history links, grid/drag-drop package ADR.
 - Estimate grid drop-targeting UX micro-spike implemented at `/spikes/estimate-grid`: chose dnd-kit overlay + explicit row hit-testing over native HTML DataTransfer for stronger micro-interactions, stable no-layout-shift library cards, visible grid drop intent, and space/area-oriented estimating inspired by legacy v4.
+- Autopilot documentation added/updated:
+  - `.ai/01_roadmap/README.md`
+  - `.ai/04_tasks/current-autopilot-board.md`
+  - `.ai/10_state/execution-ledger.md`
+- Production model bridge started: `Estimate.sections` remains the working space/area axis for now, `Estimate.proposalSections` is the client-facing BOQ/proposal consolidation axis, and `EstimateLineItem.proposalSectionId` maps rows into proposal summaries.
+- Codex/GitHub PR comments checked on PR #5 and PR #6; actionable PR #6 material-cost edit issue fixed in the grid adapter.
 - Root `DESIGN.md` has been created and validated with Google DESIGN.md lint: 0 errors.
 - Initial token exports created:
   - `.ai/07_design/tailwind.theme.json`
