@@ -1,56 +1,43 @@
 import "server-only";
 
-import { readFile } from "node:fs/promises";
-import path from "node:path";
-import { localDatabaseSchema, type LocalDatabase } from "./schemas";
+import * as path from "node:path";
+import { copyFile, mkdir } from "node:fs/promises";
+import { constants } from "node:fs";
+import { JsonFileStore, LocalDataRepositoryError } from "./json-file-store";
+import type { LocalDatabase } from "./schemas";
 
-const DEFAULT_DATA_PATH = path.join(process.cwd(), "data/local/seed.json");
+const SEED_DATA_PATH = path.join(process.cwd(), "data/local/seed.json");
+const RUNTIME_DATA_PATH = path.join(process.cwd(), "data/local/runtime.json");
 
 export type ArchestimatorRepository = {
   getDatabase(): Promise<LocalDatabase>;
+  saveDatabase(database: LocalDatabase): Promise<void>;
 };
 
-export class LocalDataRepositoryError extends Error {
-  constructor(message: string, options?: { cause?: unknown }) {
-    super(message, options);
-    this.name = "LocalDataRepositoryError";
+export { LocalDataRepositoryError };
+export class JsonFileRepository extends JsonFileStore {}
+
+async function ensureRuntimeDataFile(runtimePath: string, seedPath: string) {
+  await mkdir(path.dirname(runtimePath), { recursive: true });
+  try {
+    await copyFile(seedPath, runtimePath, constants.COPYFILE_EXCL);
+  } catch (error) {
+    if (error && typeof error === "object" && "code" in error && error.code === "EEXIST") return;
+    throw new LocalDataRepositoryError(`Unable to initialize mutable local data file: ${runtimePath}`, {
+      cause: error,
+    });
   }
 }
 
-export class JsonFileRepository implements ArchestimatorRepository {
-  constructor(private readonly filePath = DEFAULT_DATA_PATH) {}
-
-  async getDatabase(): Promise<LocalDatabase> {
-    let raw: string;
-
-    try {
-      raw = await readFile(this.filePath, "utf8");
-    } catch (error) {
-      throw new LocalDataRepositoryError(`Unable to read local data file: ${this.filePath}`, {
-        cause: error,
-      });
-    }
-
-    let parsed: unknown;
-    try {
-      parsed = JSON.parse(raw);
-    } catch (error) {
-      throw new LocalDataRepositoryError(`Local data file is not valid JSON: ${this.filePath}`, {
-        cause: error,
-      });
-    }
-
-    const result = localDatabaseSchema.safeParse(parsed);
-    if (!result.success) {
-      throw new LocalDataRepositoryError(`Local data file failed schema validation: ${this.filePath}`, {
-        cause: result.error,
-      });
-    }
-
-    return result.data;
-  }
+export function getRuntimeDataPath() {
+  return process.env.ARCHESTIMATOR_DATA_PATH ?? RUNTIME_DATA_PATH;
 }
 
-export function createLocalRepository(filePath?: string): ArchestimatorRepository {
+export async function createMutableLocalRepository(filePath = getRuntimeDataPath()): Promise<ArchestimatorRepository> {
+  await ensureRuntimeDataFile(filePath, SEED_DATA_PATH);
+  return new JsonFileRepository(filePath);
+}
+
+export function createLocalRepository(filePath = SEED_DATA_PATH): ArchestimatorRepository {
   return new JsonFileRepository(filePath);
 }
