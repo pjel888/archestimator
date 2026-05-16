@@ -9,8 +9,9 @@ Archestimator is a new application concept by Philip Echavez Lewis.
 ## Current stage
 
 - Repository folder exists: `/Users/philiplewis/archestimator`
-- Tech stack is intentionally not finalized yet.
-- Likely direction: Next.js with Bun, but this is not locked.
+- Tech stack baseline selected for MVP speed: Next.js 16, React 19, Bun, TypeScript, and Tailwind CSS v4.
+- Data is local-first JSON for now, using repository boundaries for future Supabase/Postgres migration.
+- Supabase is intentionally not connected yet.
 - `.ai/` operational-intelligence workspace has been initialized first so agents can collaborate from a single shared source of truth.
 
 ## Working product direction
@@ -36,6 +37,9 @@ The emerging product wedge is:
 
 ## Immediate next useful work
 
+- Next.js + Bun app shell has been scaffolded at the project root.
+- GitHub private repo created: `https://github.com/pjel888/archestimator`.
+- Interactive estimate workspace slice implemented: editable rows, cost library insertion, live totals, version tab, and proposal preview tab.
 - Root `DESIGN.md` has been created and validated with Google DESIGN.md lint: 0 errors.
 - Initial token exports created:
   - `.ai/07_design/tailwind.theme.json`

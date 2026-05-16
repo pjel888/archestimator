@@ -1,0 +1,96 @@
+{
+  "schemaVersion": 1,
+  "workspace": {
+    "id": "workspace_archestimator_demo",
+    "name": "Archestimator Demo Workspace",
+    "defaultCurrency": "PHP"
+  },
+  "projects": [
+    {
+      "id": "project_grand_hyatt_sample",
+      "name": "Fit-Out Proposal Sample",
+      "clientName": "Sample Client",
+      "location": "Metro Manila, Philippines",
+      "status": "draft",
+      "currentEstimateId": "estimate_initial_sample"
+    }
+  ],
+  "estimates": [
+    {
+      "id": "estimate_initial_sample",
+      "projectId": "project_grand_hyatt_sample",
+      "name": "Initial Fit-Out Estimate",
+      "versionLabel": "Initial",
+      "versionNumber": 1,
+      "status": "draft",
+      "pricingBasisDate": "2026-05-16",
+      "sections": [
+        {
+          "id": "section_floor_finishes",
+          "name": "Floor Finishes",
+          "outlineCode": "A",
+          "sectionType": "trade"
+        },
+        {
+          "id": "section_general_conditions",
+          "name": "General Conditions",
+          "outlineCode": "B",
+          "sectionType": "trade"
+        }
+      ],
+      "lineItems": [
+        {
+          "id": "line_tile_a_bathroom",
+          "sectionId": "section_floor_finishes",
+          "itemName": "Tile A - bathroom floor",
+          "description": "Dropped from library; project quantity remains editable in the estimate sheet.",
+          "quantity": 25,
+          "unit": "sqm",
+          "materialUnitCost": 800,
+          "laborUnitCost": 120,
+          "scopeStatus": "included",
+          "sourceLibraryItemId": "lib_tile_a_600",
+          "linkState": "linked-clean",
+          "pricingDate": "2026-05-16"
+        },
+        {
+          "id": "line_mobilization",
+          "sectionId": "section_general_conditions",
+          "itemName": "Mobilization and site protection allowance",
+          "description": "Manual project-specific row not linked to the material library.",
+          "quantity": 1,
+          "unit": "lot",
+          "unitCost": 15000,
+          "scopeStatus": "allowance",
+          "linkState": "manual",
+          "pricingDate": "2026-05-16"
+        }
+      ]
+    }
+  ],
+  "costLibraryItems": [
+    {
+      "id": "lib_tile_a_600",
+      "name": "Tile A 600 x 600",
+      "category": "Floor Finish",
+      "itemType": "material",
+      "unit": "sqm",
+      "defaultUnitCost": 800,
+      "defaultLaborUnitCost": 120,
+      "tagCode": "FLF-001",
+      "pricingDate": "2026-05-16",
+      "source": "Demo local library",
+      "defaultWastePercent": 10
+    },
+    {
+      "id": "lib_painter_day_rate",
+      "name": "Painter labor day rate",
+      "category": "Labor",
+      "itemType": "labor",
+      "unit": "day",
+      "defaultUnitCost": 1200,
+      "pricingDate": "2026-05-16",
+      "source": "Demo local library"
+    }
+  ]
+}
