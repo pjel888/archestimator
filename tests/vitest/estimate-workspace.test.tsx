@@ -38,6 +38,16 @@ describe("EstimateWorkspace", () => {
     expect(screen.getByLabelText(/Proposal section for Tile A/i)).toHaveValue("proposal_section_general_conditions");
   });
 
+  it("maps new rows to the proposal section used by the selected working section", async () => {
+    const user = userEvent.setup();
+    render(<EstimateWorkspace database={database} />);
+
+    await user.selectOptions(screen.getByLabelText("Selected estimate section for new rows"), "space_general_conditions");
+    await user.click(screen.getByRole("button", { name: /Add blank row/i }));
+
+    expect(screen.getAllByLabelText(/Proposal section for Untitled estimate item/i).at(-1)).toHaveValue("proposal_section_general_conditions");
+  });
+
   it("edits proposal terms in the proposal package builder", async () => {
     const user = userEvent.setup();
     render(<EstimateWorkspace database={database} />);

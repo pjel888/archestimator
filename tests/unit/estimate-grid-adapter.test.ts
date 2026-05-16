@@ -104,8 +104,29 @@ describe("estimate grid adapter", () => {
 
   test("maps inserted rows to the default proposal section", () => {
     expect(resolveDefaultProposalSectionId(estimate)).toBe("proposal_general");
+    expect(resolveDefaultProposalSectionId(estimate, "section_1")).toBe("proposal_general");
     const next = insertLibraryItemAtGridRow(estimate, libraryItem, 2);
     expect(next.lineItems[1].proposalSectionId).toBe("proposal_general");
+  });
+
+  test("infers proposal section from existing rows in the selected working section", () => {
+    const estimateWithGeneralRows: Estimate = {
+      ...estimate,
+      sections: [
+        ...estimate.sections,
+        { id: "space_general_conditions", name: "Project-wide", outlineCode: "GEN", sectionType: "custom" },
+      ],
+      proposalSections: [
+        { id: "proposal_section_floor_finishes", name: "Floor Finishes", outlineCode: "A", displayInProposal: true },
+        { id: "proposal_section_general_conditions", name: "General Conditions", outlineCode: "B", displayInProposal: true },
+      ],
+      lineItems: [
+        ...estimate.lineItems,
+        { ...estimate.lineItems[0], id: "line_gc", sectionId: "space_general_conditions", proposalSectionId: "proposal_section_general_conditions" },
+      ],
+    };
+
+    expect(resolveDefaultProposalSectionId(estimateWithGeneralRows, "space_general_conditions")).toBe("proposal_section_general_conditions");
   });
 
   test("section header totals use the same inclusion rules as grand totals", () => {

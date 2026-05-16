@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { Plus, RotateCcw, Trash2 } from "lucide-react";
 import type { CostLibraryItem, Estimate, EstimateLineItem, LocalDatabase, ProposalTerms } from "@/lib/local-data/schemas";
 import { calculateEstimateTotals } from "@/lib/estimates/totals";
@@ -84,7 +84,13 @@ function EstimateWorkspaceInner({ database, project, initialEstimate, onSaveEsti
   const [proposalTerms, setProposalTerms] = useState<ProposalTerms>(() => createDefaultProposalTerms(database, initialEstimate));
   const [activeTab, setActiveTab] = useState<WorkspaceTab>("library");
   const [savedVersions, setSavedVersions] = useState<Estimate[]>([initialEstimate]);
-  const [selectedSectionId, setSelectedSectionId] = useState(initialEstimate.sections[0]?.id ?? "section_default");
+  const [selectedSectionId, setSelectedSectionIdState] = useState(initialEstimate.sections[0]?.id ?? "section_default");
+  const selectedSectionIdRef = useRef(selectedSectionId);
+
+  function setSelectedSectionId(value: string) {
+    selectedSectionIdRef.current = value;
+    setSelectedSectionIdState(value);
+  }
 
   const totals = useMemo(() => calculateEstimateTotals(estimate), [estimate]);
   const currencyCode = database.workspace.defaultCurrency;
@@ -106,15 +112,15 @@ function EstimateWorkspaceInner({ database, project, initialEstimate, onSaveEsti
     }));
   }
 
-  function resolveSelectedProposalSectionId(current: Estimate) {
-    return resolveDefaultProposalSectionId(current);
+  function resolveSelectedProposalSectionId(current: Estimate, workingSectionId = selectedSectionIdRef.current) {
+    return resolveDefaultProposalSectionId(current, workingSectionId);
   }
 
-  function addBlankRow() {
+  function addBlankRow(targetSectionId = selectedSectionIdRef.current) {
     const newLine: EstimateLineItem = {
       id: `line_manual_${Date.now()}`,
-      sectionId: selectedSectionId,
-      proposalSectionId: resolveSelectedProposalSectionId(estimate),
+      sectionId: targetSectionId,
+      proposalSectionId: resolveDefaultProposalSectionId(estimate, targetSectionId),
       itemName: "Untitled estimate item",
       description: "Manual row — edit description, quantity, unit, and cost.",
       quantity: 1,
@@ -126,8 +132,8 @@ function EstimateWorkspaceInner({ database, project, initialEstimate, onSaveEsti
     setEstimate((current) => ({ ...current, lineItems: [...current.lineItems, newLine] }));
   }
 
-  function addLibraryItem(item: CostLibraryItem) {
-    const newLine = createLineItemFromLibraryItem(item, selectedSectionId, resolveSelectedProposalSectionId(estimate));
+  function addLibraryItem(item: CostLibraryItem, targetSectionId = selectedSectionIdRef.current) {
+    const newLine = createLineItemFromLibraryItem(item, targetSectionId, resolveSelectedProposalSectionId(estimate, targetSectionId));
     setEstimate((current) => ({ ...current, lineItems: [...current.lineItems, newLine] }));
   }
 
@@ -188,7 +194,7 @@ function EstimateWorkspaceInner({ database, project, initialEstimate, onSaveEsti
             <TabList className="grid-cols-3">
               {(["library", "versions", "proposal"] as WorkspaceTab[]).map((tab) => <TabButton key={tab} active={activeTab === tab} onClick={() => setActiveTab(tab)}>{tab}</TabButton>)}
             </TabList>
-            {activeTab === "library" ? <LibraryPanel items={database.costLibraryItems} currencyCode={currencyCode} onAdd={addLibraryItem} /> : null}
+            {activeTab === "library" ? <LibraryPanel items={database.costLibraryItems} currencyCode={currencyCode} getSelectedSectionId={() => selectedSectionIdRef.current} onAdd={addLibraryItem} /> : null}
             {activeTab === "versions" ? <VersionsPanel estimate={estimate} versions={savedVersions} onDuplicate={duplicateAsRevision} onServerDuplicate={onDuplicateRevision} /> : null}
             {activeTab === "proposal" ? <ProposalPanel project={project} estimate={estimate} totals={totals} currencyCode={currencyCode} terms={proposalTerms} onTermsChange={updateTerms} savedProposals={savedProposals} onSaveEstimate={onSaveEstimate} onIssueProposalSnapshot={onIssueProposalSnapshot} /> : null}
           </aside>
@@ -205,13 +211,15 @@ type EstimateSheetCardProps = {
   currencyCode: string;
   selectedSectionId: string;
   setSelectedSectionId: (value: string) => void;
-  addBlankRow: () => void;
+  addBlankRow: (targetSectionId?: string) => void;
   updateLine: (lineId: string, patch: Partial<EstimateLineItem>, changedField?: keyof EstimateLineItem) => void;
   resetFromLibrary: (line: EstimateLineItem) => void;
   deleteLine: (lineId: string) => void;
 };
 
 function EstimateSheetCard({ estimate, project, totals, currencyCode, selectedSectionId, setSelectedSectionId, addBlankRow, updateLine, resetFromLibrary, deleteLine }: EstimateSheetCardProps) {
+  const sectionSelectRef = useRef<HTMLSelectElement | null>(null);
+
   return (
     <Card className="overflow-hidden">
       <CardHeader className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
@@ -223,10 +231,10 @@ function EstimateSheetCard({ estimate, project, totals, currencyCode, selectedSe
           </div>
         </div>
         <div className="flex flex-wrap gap-2">
-          <select aria-label="Selected estimate section for new rows" className="rounded-xl border border-hairline bg-surface px-3 py-2 text-sm" value={selectedSectionId} onChange={(event) => setSelectedSectionId(event.target.value)}>
+          <select ref={sectionSelectRef} aria-label="Selected estimate section for new rows" className="rounded-xl border border-hairline bg-surface px-3 py-2 text-sm" value={selectedSectionId} onInput={(event) => setSelectedSectionId(event.currentTarget.value)} onChange={(event) => setSelectedSectionId(event.target.value)}>
             {estimate.sections.map((section) => <option key={section.id} value={section.id}>{section.outlineCode} · {section.name}</option>)}
           </select>
-          <Button variant="primary" onClick={addBlankRow}><Plus className="size-4" /> Add blank row</Button>
+          <Button variant="primary" onClick={() => addBlankRow(sectionSelectRef.current?.value ?? selectedSectionId)}><Plus className="size-4" /> Add blank row</Button>
         </div>
       </CardHeader>
       <div className="overflow-x-auto">
@@ -280,7 +288,7 @@ function LinkStateBadge({ state }: { state: EstimateLineItem["linkState"] }) {
   return <StatusPill tone={tone}>{state}</StatusPill>;
 }
 
-function LibraryPanel({ items, currencyCode, onAdd }: { items: CostLibraryItem[]; currencyCode: string; onAdd: (item: CostLibraryItem) => void }) {
+function LibraryPanel({ items, currencyCode, getSelectedSectionId, onAdd }: { items: CostLibraryItem[]; currencyCode: string; getSelectedSectionId: () => string; onAdd: (item: CostLibraryItem, targetSectionId?: string) => void }) {
   const [query, setQuery] = useState("");
   const filtered = items.filter((item) => `${item.name} ${item.category} ${item.itemType}`.toLowerCase().includes(query.toLowerCase()));
   return (
@@ -289,7 +297,7 @@ function LibraryPanel({ items, currencyCode, onAdd }: { items: CostLibraryItem[]
         <CardTitle>Cost library</CardTitle>
         <CardDescription>Click to insert a copied, editable row into the current estimate.</CardDescription>
         <TextInput aria-label="Search cost library" className="mt-4 w-full" placeholder="Search library…" value={query} onChange={(event) => setQuery(event.target.value)} />
-        <div className="mt-4 space-y-3">{filtered.map((item) => <div key={item.id} className="rounded-2xl border border-hairline p-4"><div className="flex items-start justify-between gap-3"><div><p className="font-medium">{item.name}</p><p className="mt-1 text-xs text-muted">{item.category} · {item.itemType} · {item.unit}</p><p className="mt-1 text-xs text-muted">Price date: {item.pricingDate}</p></div><p className="font-mono text-sm font-semibold">{formatMoney(item.defaultUnitCost, currencyCode)}</p></div><Button className="mt-3 w-full" variant="primary" onClick={() => onAdd(item)}>Add to estimate</Button></div>)}</div>
+        <div className="mt-4 space-y-3">{filtered.map((item) => <div key={item.id} className="rounded-2xl border border-hairline p-4"><div className="flex items-start justify-between gap-3"><div><p className="font-medium">{item.name}</p><p className="mt-1 text-xs text-muted">{item.category} · {item.itemType} · {item.unit}</p><p className="mt-1 text-xs text-muted">Price date: {item.pricingDate}</p></div><p className="font-mono text-sm font-semibold">{formatMoney(item.defaultUnitCost, currencyCode)}</p></div><Button className="mt-3 w-full" variant="primary" onClick={() => onAdd(item, getSelectedSectionId())}>Add to estimate</Button></div>)}</div>
       </CardContent>
     </Card>
   );
