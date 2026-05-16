@@ -149,7 +149,7 @@ export function insertLibraryItemAtGridRow(estimate: Estimate, libraryItem: Cost
   const target = resolveGridInsertionTarget(estimate, rows, visualRowIndex);
   if (!target.sectionId) return estimate;
 
-  const nextLine = createLineItemFromLibraryItem(libraryItem, target.sectionId, resolveDefaultProposalSectionId(estimate));
+  const nextLine = createLineItemFromLibraryItem(libraryItem, target.sectionId, resolveDefaultProposalSectionId(estimate, target.sectionId));
   return {
     ...estimate,
     lineItems: [
@@ -214,8 +214,35 @@ function cellToValue(cell: GridCell): string | number | undefined {
   return undefined;
 }
 
-export function resolveDefaultProposalSectionId(estimate: Estimate): string | undefined {
-  return estimate.proposalSections?.find((section) => section.displayInProposal)?.id ?? estimate.proposalSections?.[0]?.id;
+export function resolveDefaultProposalSectionId(estimate: Estimate, workingSectionId?: string): string | undefined {
+  const proposalSections = estimate.proposalSections ?? [];
+  if (!proposalSections.length) return undefined;
+
+  if (workingSectionId) {
+    const existingRows = estimate.lineItems.filter((line) => line.sectionId === workingSectionId && line.proposalSectionId);
+    const proposalIdCounts = existingRows.reduce<Record<string, number>>((counts, line) => {
+      if (line.proposalSectionId) counts[line.proposalSectionId] = (counts[line.proposalSectionId] ?? 0) + 1;
+      return counts;
+    }, {});
+    const inferredFromExistingRows = Object.entries(proposalIdCounts).sort((left, right) => Number(right[1]) - Number(left[1]))[0]?.[0];
+    if (inferredFromExistingRows) return inferredFromExistingRows;
+
+    const workingSection = estimate.sections.find((section) => section.id === workingSectionId);
+    const sectionTokens = tokenize(`${workingSection?.id ?? ""} ${workingSection?.name ?? ""} ${workingSection?.outlineCode ?? ""}`);
+    const bestMatch = proposalSections
+      .map((section) => ({
+        section,
+        score: Array.from(tokenize(`${section.id} ${section.name} ${section.outlineCode}`)).filter((token) => sectionTokens.has(token)).length,
+      }))
+      .sort((a, b) => b.score - a.score)[0];
+    if (bestMatch && bestMatch.score > 0) return bestMatch.section.id;
+  }
+
+  return proposalSections.find((section) => section.displayInProposal)?.id ?? proposalSections[0]?.id;
+}
+
+function tokenize(value: string): Set<string> {
+  return new Set(value.toLowerCase().split(/[^a-z0-9]+/).filter((token) => token.length > 2 && token !== "section" && token !== "space" && token !== "proposal"));
 }
 
 function toFiniteNumber(value: string | number | undefined, fallback: number): number {

@@ -34,14 +34,16 @@ export function EstimateGridSpike({ database, projectId }: EstimateGridSpikeProp
   const [dropRow, setDropRow] = useState(estimate.lineItems.length);
   const [activeLibraryId, setActiveLibraryId] = useState<string | null>(null);
   const [dropIntent, setDropIntent] = useState<"idle" | "valid" | "outside">("idle");
+  const [visibleRowOffset, setVisibleRowOffset] = useState(0);
   const gridFrameRef = useRef<HTMLDivElement | null>(null);
-  const initialPointerRef = useRef<{ x: number; y: number } | null>(null);
+  const visibleRowOffsetRef = useRef(0);
   const rows = useMemo(() => buildEstimateGridRows(estimate), [estimate]);
   const totals = useMemo(() => calculateEstimateTotals(estimate), [estimate]);
   const activeLibraryItem = database.costLibraryItems.find((item) => item.id === activeLibraryId);
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
   const target = resolveGridInsertionTarget(estimate, rows, dropRow);
   const targetSection = estimate.sections.find((section) => section.id === target.sectionId);
+  const visibleDropRow = Math.max(0, Math.min(rows.length, dropRow - visibleRowOffset));
 
   function handleCellEdited(cell: Item, newValue: EditableGridCell) {
     setEstimate((current) => applyEstimateGridEdit(current, cell, newValue));
@@ -49,23 +51,23 @@ export function EstimateGridSpike({ database, projectId }: EstimateGridSpikeProp
 
   function handleDragStart(event: DragStartEvent) {
     setActiveLibraryId(extractLibraryId(event.active.id));
-    initialPointerRef.current = getPointerCoordinates(event.activatorEvent);
   }
 
   function handleDragMove(event: DragMoveEvent) {
-    const initialPointer = initialPointerRef.current;
+    const pointer = getPointerCoordinates(event.activatorEvent);
     const gridRect = gridFrameRef.current?.getBoundingClientRect();
-    if (!initialPointer || !gridRect) return;
+    if (!pointer || !gridRect) return;
 
-    const pointerY = initialPointer.y + event.delta.y;
-    const pointerX = initialPointer.x + event.delta.x;
+    const pointerY = pointer.y + event.delta.y;
+    const pointerX = pointer.x + event.delta.x;
     const isInsideGrid = pointerX >= gridRect.left && pointerX <= gridRect.right && pointerY >= gridRect.top && pointerY <= gridRect.bottom;
     if (!isInsideGrid) {
       setDropIntent("outside");
       return;
     }
 
-    const nextRow = Math.max(0, Math.min(rows.length, Math.round((pointerY - gridRect.top - GRID_HEADER_HEIGHT) / GRID_ROW_HEIGHT)));
+    const visibleRow = Math.round((pointerY - gridRect.top - GRID_HEADER_HEIGHT) / GRID_ROW_HEIGHT);
+    const nextRow = Math.max(0, Math.min(rows.length, visibleRowOffsetRef.current + visibleRow));
     setDropRow(nextRow);
     setDropIntent("valid");
   }
@@ -77,14 +79,12 @@ export function EstimateGridSpike({ database, projectId }: EstimateGridSpikeProp
       setEstimate((current) => insertLibraryItemAtGridRow(current, libraryItem, dropRow));
     }
     setActiveLibraryId(null);
-    initialPointerRef.current = null;
     setDropIntent("idle");
   }
 
   return (
     <DndContext sensors={sensors} onDragStart={handleDragStart} onDragMove={handleDragMove} onDragEnd={handleDragEnd} onDragCancel={() => {
       setActiveLibraryId(null);
-      initialPointerRef.current = null;
       setDropIntent("idle");
     }}>
       <div className="grid min-h-[720px] gap-4 xl:grid-cols-[230px_minmax(0,1fr)_340px]">
@@ -122,7 +122,7 @@ export function EstimateGridSpike({ database, projectId }: EstimateGridSpikeProp
               </div>
             </div>
             <div ref={gridFrameRef} className="relative h-[590px] p-3" data-testid="estimate-grid-spike">
-              {dropIntent === "valid" ? <div className="pointer-events-none absolute left-3 right-3 z-10 h-1 rounded-full bg-accent shadow-[0_0_0_4px_rgba(254,243,199,0.85)]" style={{ top: 12 + GRID_HEADER_HEIGHT + dropRow * GRID_ROW_HEIGHT - 2 }} data-testid="grid-drop-indicator" /> : null}
+              {dropIntent === "valid" ? <div className="pointer-events-none absolute left-3 right-3 z-10 h-1 rounded-full bg-accent shadow-[0_0_0_4px_rgba(254,243,199,0.85)]" style={{ top: 12 + GRID_HEADER_HEIGHT + visibleDropRow * GRID_ROW_HEIGHT - 2 }} data-testid="grid-drop-indicator" /> : null}
               <DataEditor
                 columns={estimateGridColumns}
                 getCellContent={(cell) => getEstimateGridCellFromRows(estimate, rows, cell, database.workspace.defaultCurrency)}
@@ -133,6 +133,11 @@ export function EstimateGridSpike({ database, projectId }: EstimateGridSpikeProp
                 smoothScrollX
                 smoothScrollY
                 onCellEdited={handleCellEdited}
+                onVisibleRegionChanged={(range) => {
+                  const nextVisibleRowOffset = Math.max(0, range.y);
+                  visibleRowOffsetRef.current = nextVisibleRowOffset;
+                  setVisibleRowOffset(nextVisibleRowOffset);
+                }}
                 width="100%"
                 height="100%"
               />

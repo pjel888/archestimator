@@ -12,6 +12,30 @@
 
 ## Ledger entries
 
+### 2026-05-17 — All-routes feature coverage and Glide hardening
+
+**Status:** Implemented; full gates/review passing
+
+**Type:** test coverage + production mapping hardening + spike migration support
+
+**What changed:**
+
+- Expanded Playwright route coverage from a narrow home/project smoke test to all current app routes: `/`, `/projects/[projectId]`, `/proposals/[proposalId]`, `/spikes/estimate-grid`, and unknown project 404.
+- Added E2E coverage for key MVP features: section selection, blank row insertion, cost-library insertion, section-aware proposal mapping, live total recalculation, proposal issue, revision duplication, and spike fallback insertion.
+- Reset local runtime JSON from seed before each E2E test to prevent local-first test pollution.
+- Hardened workspace row creation so selected working section drives default proposal-section assignment for both blank rows and library rows.
+- Hardened Glide spike scroll/drop support by tracking visible row offset.
+
+**Verification:**
+
+- `bun run validate && bun run build && lsof -ti tcp:3020 | xargs -r kill; bun run test:e2e` — passed: type-check, lint, 27 unit tests, 6 DOM tests, production build, 7 Playwright E2E tests.
+- Independent re-review — PASS after visible drop indicator was changed to use `visibleDropRow` while data mutation keeps the absolute row target.
+
+**Follow-ups:**
+
+- Commit/push and update PR with route/feature coverage evidence.
+- Continue production Glide migration after this coverage baseline.
+
 ### 2026-05-17 — Production workspace proposal mapping slice
 
 **Status:** Implemented; full validation and independent re-review passing

@@ -49,7 +49,8 @@ The emerging product wedge is:
   - `.ai/04_tasks/current-autopilot-board.md`
   - `.ai/10_state/execution-ledger.md`
 - Production model bridge started: `Estimate.sections` remains the working space/area axis for now, `Estimate.proposalSections` is the client-facing BOQ/proposal consolidation axis, and `EstimateLineItem.proposalSectionId` maps rows into proposal summaries.
-- Production workspace proposal mapping slice implemented: blank/library row creation defaults to the first proposal section, each row exposes an editable proposal-section selector, proposal preview summarizes by proposal section, and unmapped billable rows show an issuance warning.
+- Production workspace proposal mapping slice implemented: blank/library row creation now uses the selected working section to infer/default the proposal section, each row exposes an editable proposal-section selector, proposal preview summarizes by proposal section, and unmapped billable rows show an issuance warning.
+- Full route/feature E2E baseline implemented for `/`, `/projects/[projectId]`, `/proposals/[proposalId]`, `/spikes/estimate-grid`, and unknown project 404; covered MVP flows include section selection, blank/library insertion, proposal-section mapping, live total recalculation, proposal issuance, revision duplication, and spike insertion.
 - Codex/GitHub PR comments checked on PR #5 and PR #6; actionable material-cost edit, default proposal-section mapping, and non-billable section-header total issues fixed in the grid/model path.
 - Root `DESIGN.md` has been created and validated with Google DESIGN.md lint: 0 errors.
 - Initial token exports created:
