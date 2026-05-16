@@ -16,7 +16,7 @@
 - 2026-05-16 — Proposal issuance creates immutable `proposalSnapshots` and must not mutate the source estimate.
 - 2026-05-16 — UI money formatting must use workspace currency, not hard-coded PHP.
 - 2026-05-16 — Archestimator will grow an internal UI library from the MVP stage. Prefer shared primitives under `src/components/ui/` over one-off feature markup; do not install Storybook unless explicitly approved.
-- 2026-05-16 — Estimate sheet should eventually use a spreadsheet/grid package behind an adapter rather than building spreadsheet-grade UX fully natively. Leading spike candidates: `@glideapps/glide-data-grid` for the sheet and `@dnd-kit/core` for library-to-sheet drag/drop. Avoid Handsontable without license review.
+- 2026-05-16 — Estimate sheet should use Glide Data Grid behind an adapter for the sheet and dnd-kit overlay + explicit row hit-testing for premium library-card drag/drop. Avoid native HTML DataTransfer as the primary UX path because it gives weaker control over drag previews, drop intent, and no-layout-shift behavior. Avoid Handsontable without license review.
 - 2026-05-16 — Proposal snapshots store editable commercial terms and route to print-ready `/proposals/[proposalId]` pages for browser print/PDF before adding a dedicated PDF engine.
 
 ## Working decisions / likely direction

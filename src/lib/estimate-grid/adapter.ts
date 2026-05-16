@@ -4,9 +4,25 @@ import type { CostLibraryItem, Estimate, EstimateLineItem } from "@/lib/local-da
 import { calculateEstimateLineTotal } from "@/lib/estimates/calculations";
 import { createLineItemFromLibraryItem } from "@/lib/estimates/library-insert";
 
+export type EstimateGridRow =
+  | {
+      kind: "section";
+      sectionId: string;
+      outlineCode: string;
+      name: string;
+      lineCount: number;
+      total: number;
+    }
+  | {
+      kind: "line";
+      sectionId: string;
+      lineItemId: string;
+      lineItemIndex: number;
+    };
+
 export const estimateGridColumns: GridColumn[] = [
-  { id: "section", title: "Section", width: 120 },
-  { id: "itemName", title: "Item", width: 260 },
+  { id: "section", title: "Space / section", width: 190 },
+  { id: "itemName", title: "Item", width: 280 },
   { id: "quantity", title: "Qty", width: 92 },
   { id: "unit", title: "Unit", width: 84 },
   { id: "unitCost", title: "Unit cost", width: 120 },
@@ -16,12 +32,52 @@ export const estimateGridColumns: GridColumn[] = [
   { id: "linkState", title: "Link", width: 150 },
 ];
 
-export function getEstimateGridCell(estimate: Estimate, item: Item): GridCell {
-  const [columnIndex, rowIndex] = item;
-  const line = estimate.lineItems[rowIndex];
-  const column = estimateGridColumns[columnIndex]?.id;
-  if (!line || !column) return textCell("");
+export function buildEstimateGridRows(estimate: Estimate): EstimateGridRow[] {
+  return estimate.sections.flatMap((section) => {
+    const lineIndexes = estimate.lineItems
+      .map((line, index) => ({ line, index }))
+      .filter(({ line }) => line.sectionId === section.id);
+    const total = lineIndexes.reduce((sum, { line }) => sum + calculateEstimateLineTotal(line).total, 0);
 
+    return [
+      {
+        kind: "section" as const,
+        sectionId: section.id,
+        outlineCode: section.outlineCode,
+        name: section.name,
+        lineCount: lineIndexes.length,
+        total,
+      },
+      ...lineIndexes.map(({ line, index }) => ({
+        kind: "line" as const,
+        sectionId: section.id,
+        lineItemId: line.id,
+        lineItemIndex: index,
+      })),
+    ];
+  });
+}
+
+export function getEstimateGridCell(estimate: Estimate, item: Item, currency = "PHP"): GridCell {
+  const rows = buildEstimateGridRows(estimate);
+  return getEstimateGridCellFromRows(estimate, rows, item, currency);
+}
+
+export function getEstimateGridCellFromRows(estimate: Estimate, rows: EstimateGridRow[], item: Item, currency = "PHP"): GridCell {
+  const [columnIndex, rowIndex] = item;
+  const row = rows[rowIndex];
+  const column = estimateGridColumns[columnIndex]?.id;
+  if (!row || !column) return textCell("");
+
+  if (row.kind === "section") {
+    if (column === "section") return sectionCell(`${row.outlineCode} · ${row.name}`);
+    if (column === "itemName") return sectionCell(`${row.lineCount} items`);
+    if (column === "total") return sectionCell(formatCurrency(row.total, currency));
+    return sectionCell("");
+  }
+
+  const line = estimate.lineItems[row.lineItemIndex];
+  if (!line) return textCell("");
   const section = estimate.sections.find((entry) => entry.id === line.sectionId);
   const calculated = calculateEstimateLineTotal(line);
 
@@ -35,11 +91,11 @@ export function getEstimateGridCell(estimate: Estimate, item: Item): GridCell {
     case "unit":
       return editableTextCell(line.unit);
     case "unitCost":
-      return numberCell(line.unitCost ?? 0);
+      return numberCell(line.unitCost ?? line.materialUnitCost ?? 0);
     case "wastePercent":
       return numberCell(line.wastePercent ?? 0);
     case "total":
-      return textCell(calculated.total.toLocaleString("en-PH", { style: "currency", currency: "PHP" }));
+      return textCell(formatCurrency(calculated.total, currency));
     case "scopeStatus":
       return editableTextCell(line.scopeStatus);
     case "linkState":
@@ -50,9 +106,15 @@ export function getEstimateGridCell(estimate: Estimate, item: Item): GridCell {
 }
 
 export function applyEstimateGridEdit(estimate: Estimate, item: Item, cell: GridCell): Estimate {
-  const [columnIndex, rowIndex] = item;
+  const rows = buildEstimateGridRows(estimate);
+  const row = rows[item[1]];
+  if (!row || row.kind !== "line") return estimate;
+  return applyEstimateGridEditToLineIndex(estimate, item[0], row.lineItemIndex, cell);
+}
+
+function applyEstimateGridEditToLineIndex(estimate: Estimate, columnIndex: number, lineItemIndex: number, cell: GridCell): Estimate {
   const column = estimateGridColumns[columnIndex]?.id;
-  const line = estimate.lineItems[rowIndex];
+  const line = estimate.lineItems[lineItemIndex];
   if (!line || !column || column === "section" || column === "total" || column === "linkState") return estimate;
 
   const value = cellToValue(cell);
@@ -62,29 +124,51 @@ export function applyEstimateGridEdit(estimate: Estimate, item: Item, cell: Grid
   if (column === "unit" && typeof value === "string") nextLine.unit = value;
   if (column === "scopeStatus" && typeof value === "string") nextLine.scopeStatus = value as EstimateLineItem["scopeStatus"];
   if (column === "quantity") nextLine.quantity = toFiniteNumber(value, line.quantity);
-  if (column === "unitCost") nextLine.unitCost = toFiniteNumber(value, line.unitCost ?? 0);
+  if (column === "unitCost") nextLine.unitCost = toFiniteNumber(value, line.unitCost ?? line.materialUnitCost ?? 0);
   if (column === "wastePercent") nextLine.wastePercent = toFiniteNumber(value, line.wastePercent ?? 0);
 
   return {
     ...estimate,
-    lineItems: estimate.lineItems.map((entry, index) => (index === rowIndex ? nextLine : entry)),
+    lineItems: estimate.lineItems.map((entry, index) => (index === lineItemIndex ? nextLine : entry)),
   };
 }
 
-export function insertLibraryItemAtGridRow(estimate: Estimate, libraryItem: CostLibraryItem, rowIndex: number): Estimate {
-  const targetSectionId = estimate.lineItems[rowIndex]?.sectionId ?? estimate.sections[0]?.id;
-  if (!targetSectionId) return estimate;
+export function insertLibraryItemAtGridRow(estimate: Estimate, libraryItem: CostLibraryItem, visualRowIndex: number): Estimate {
+  const rows = buildEstimateGridRows(estimate);
+  const target = resolveGridInsertionTarget(estimate, rows, visualRowIndex);
+  if (!target.sectionId) return estimate;
 
-  const nextLine = createLineItemFromLibraryItem(libraryItem, targetSectionId);
-  const insertionIndex = Math.max(0, Math.min(rowIndex, estimate.lineItems.length));
+  const nextLine = createLineItemFromLibraryItem(libraryItem, target.sectionId);
   return {
     ...estimate,
     lineItems: [
-      ...estimate.lineItems.slice(0, insertionIndex),
+      ...estimate.lineItems.slice(0, target.lineItemIndex),
       nextLine,
-      ...estimate.lineItems.slice(insertionIndex),
+      ...estimate.lineItems.slice(target.lineItemIndex),
     ],
   };
+}
+
+export function resolveGridInsertionTarget(
+  estimate: Estimate,
+  rows: EstimateGridRow[],
+  visualRowIndex: number,
+): { sectionId?: string; lineItemIndex: number } {
+  const clamped = Math.max(0, Math.min(visualRowIndex, rows.length));
+  const row = rows[clamped];
+  const previousRow = rows[Math.max(0, clamped - 1)];
+
+  if (row?.kind === "line") return { sectionId: row.sectionId, lineItemIndex: row.lineItemIndex };
+
+  if (row?.kind === "section") {
+    const firstLine = rows.slice(clamped + 1).find((entry) => entry.kind === "line" && entry.sectionId === row.sectionId);
+    return { sectionId: row.sectionId, lineItemIndex: firstLine?.kind === "line" ? firstLine.lineItemIndex : estimate.lineItems.length };
+  }
+
+  if (previousRow?.kind === "line") return { sectionId: previousRow.sectionId, lineItemIndex: previousRow.lineItemIndex + 1 };
+  if (previousRow?.kind === "section") return { sectionId: previousRow.sectionId, lineItemIndex: estimate.lineItems.length };
+
+  return { sectionId: estimate.sections[0]?.id, lineItemIndex: estimate.lineItems.length };
 }
 
 function textCell(value: string): GridCell {
@@ -93,6 +177,20 @@ function textCell(value: string): GridCell {
 
 function editableTextCell(value: string): GridCell {
   return { kind: GridCellKind.Text, data: value, displayData: value, allowOverlay: true };
+}
+
+function sectionCell(value: string): GridCell {
+  return {
+    kind: GridCellKind.Text,
+    data: value,
+    displayData: value,
+    allowOverlay: false,
+    themeOverride: {
+      bgCell: "#F4F1EA",
+      textDark: "#334155",
+      baseFontStyle: "600 13px Inter",
+    },
+  };
 }
 
 function numberCell(value: number): GridCell {
@@ -108,4 +206,8 @@ function cellToValue(cell: GridCell): string | number | undefined {
 function toFiniteNumber(value: string | number | undefined, fallback: number): number {
   const parsed = typeof value === "number" ? value : Number(value);
   return Number.isFinite(parsed) ? parsed : fallback;
+}
+
+function formatCurrency(value: number, currency: string): string {
+  return value.toLocaleString("en-PH", { style: "currency", currency });
 }
