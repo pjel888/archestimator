@@ -14,6 +14,7 @@ import { StatCard } from "@/components/ui/stat-card";
 import { TabButton, TabList } from "@/components/ui/tabs";
 import { formatMoney } from "@/lib/money/format";
 import { createDefaultProposalTerms } from "@/lib/proposals/terms";
+import { resolveDefaultProposalSectionId } from "@/lib/estimate-grid/adapter";
 
 type EstimateWorkspaceProps = {
   database: LocalDatabase;
@@ -105,10 +106,15 @@ function EstimateWorkspaceInner({ database, project, initialEstimate, onSaveEsti
     }));
   }
 
+  function resolveSelectedProposalSectionId(current: Estimate) {
+    return resolveDefaultProposalSectionId(current);
+  }
+
   function addBlankRow() {
     const newLine: EstimateLineItem = {
       id: `line_manual_${Date.now()}`,
       sectionId: selectedSectionId,
+      proposalSectionId: resolveSelectedProposalSectionId(estimate),
       itemName: "Untitled estimate item",
       description: "Manual row — edit description, quantity, unit, and cost.",
       quantity: 1,
@@ -121,14 +127,14 @@ function EstimateWorkspaceInner({ database, project, initialEstimate, onSaveEsti
   }
 
   function addLibraryItem(item: CostLibraryItem) {
-    const newLine = createLineItemFromLibraryItem(item, selectedSectionId);
+    const newLine = createLineItemFromLibraryItem(item, selectedSectionId, resolveSelectedProposalSectionId(estimate));
     setEstimate((current) => ({ ...current, lineItems: [...current.lineItems, newLine] }));
   }
 
   function resetFromLibrary(line: EstimateLineItem) {
     const source = database.costLibraryItems.find((item) => item.id === line.sourceLibraryItemId);
     if (!source) return;
-    const resetLine = createLineItemFromLibraryItem(source, line.sectionId);
+    const resetLine = createLineItemFromLibraryItem(source, line.sectionId, line.proposalSectionId ?? resolveSelectedProposalSectionId(estimate));
     updateLine(line.id, {
       itemName: resetLine.itemName,
       description: resetLine.description,
@@ -227,7 +233,7 @@ function EstimateSheetCard({ estimate, project, totals, currencyCode, selectedSe
         <table className="w-full min-w-[1180px] border-collapse text-sm">
           <caption className="sr-only">Editable estimate sheet with quantity, material, labor, scope status, and link state.</caption>
           <thead className="bg-surface-muted text-left text-xs uppercase tracking-[0.12em] text-muted">
-            <tr>{["Item", "Scope", "Qty", "Unit", "Material/unit", "Labor/unit", "Total", "Link", "Actions"].map((heading) => <th key={heading} scope="col" className="border-b border-hairline px-3 py-3">{heading}</th>)}</tr>
+            <tr>{["Item", "Proposal section", "Scope", "Qty", "Unit", "Material/unit", "Labor/unit", "Total", "Link", "Actions"].map((heading) => <th key={heading} scope="col" className="border-b border-hairline px-3 py-3">{heading}</th>)}</tr>
           </thead>
           <tbody>
             {totals.rows.map((row) => (
@@ -235,6 +241,13 @@ function EstimateSheetCard({ estimate, project, totals, currencyCode, selectedSe
                 <td className="w-[320px] px-3 py-3">
                   <input aria-label={`Item name for ${row.itemName}`} className="w-full rounded-lg border border-transparent bg-transparent px-2 py-1 font-medium focus:border-accent focus:bg-white focus:outline-none" value={row.itemName} onChange={(event) => updateLine(row.id, { itemName: event.target.value }, "itemName")} />
                   <textarea aria-label={`Description for ${row.itemName}`} className="mt-1 min-h-12 w-full resize-y rounded-lg border border-transparent bg-transparent px-2 py-1 text-xs leading-5 text-muted focus:border-accent focus:bg-white focus:outline-none" value={row.description ?? ""} onChange={(event) => updateLine(row.id, { description: event.target.value }, "description")} />
+                </td>
+                <td className="px-3 py-3">
+                  <select aria-label={`Proposal section for ${row.itemName}`} className={`w-52 rounded-lg border px-2 py-2 text-xs ${row.proposalSectionId ? "border-hairline bg-surface" : "border-amber-300 bg-amber-50"}`} value={row.proposalSectionId ?? ""} onChange={(event) => updateLine(row.id, { proposalSectionId: event.target.value || undefined }, "proposalSectionId")}>
+                    <option value="">Unassigned</option>
+                    {estimate.proposalSections.map((section) => <option key={section.id} value={section.id}>{section.outlineCode} · {section.name}</option>)}
+                  </select>
+                  {!row.proposalSectionId ? <p className="mt-2 text-xs font-medium text-amber-700">Needs proposal mapping</p> : null}
                 </td>
                 <td className="px-3 py-3">
                   <select aria-label={`Scope status for ${row.itemName}`} className="w-40 rounded-lg border border-hairline bg-surface px-2 py-2 text-xs" value={row.scopeStatus} onChange={(event) => updateLine(row.id, { scopeStatus: event.target.value as EstimateLineItem["scopeStatus"] }, "scopeStatus")}>
@@ -287,12 +300,21 @@ function VersionsPanel({ estimate, versions, onDuplicate, onServerDuplicate }: {
 }
 
 function ProposalPanel({ project, estimate, totals, currencyCode, terms, onTermsChange, savedProposals, onSaveEstimate, onIssueProposalSnapshot }: { project: Project; estimate: Estimate; totals: ReturnType<typeof calculateEstimateTotals>; currencyCode: string; terms: ProposalTerms; onTermsChange: (patch: Partial<ProposalTerms>) => void; savedProposals: LocalDatabase["proposalSnapshots"]; onSaveEstimate?: (estimate: Estimate) => Promise<void>; onIssueProposalSnapshot?: (estimate: Estimate, terms: ProposalTerms) => Promise<void> }) {
-  const sectionSummaries = estimate.sections.map((section) => ({ ...section, total: totals.rows.filter((row) => row.sectionId === section.id && row.includedInTotal).reduce((sum, row) => sum + row.calculated.total, 0) }));
+  const proposalSections = estimate.proposalSections.length ? estimate.proposalSections : estimate.sections.map((section) => ({ id: section.id, name: section.name, outlineCode: section.outlineCode, displayInProposal: true }));
+  const unassignedRows = totals.rows.filter((row) => row.includedInTotal && !row.proposalSectionId);
+  const sectionSummaries = proposalSections
+    .filter((section) => section.displayInProposal)
+    .map((section) => ({
+      ...section,
+      total: totals.rows
+        .filter((row) => row.includedInTotal && (row.proposalSectionId ?? row.sectionId) === section.id)
+        .reduce((sum, row) => sum + row.calculated.total, 0),
+    }));
 
   return (
     <Card className="bg-proposal-paper">
       <CardContent className="grid gap-4">
-        <div className="grid gap-2"><Button variant="secondary" onClick={() => void onSaveEstimate?.(estimate)}>Save estimate to local JSON</Button><Button variant="primary" onClick={() => void onIssueProposalSnapshot?.(estimate, terms)}>Issue immutable proposal snapshot</Button><p className="text-xs text-muted">Issued snapshots for this project: {savedProposals.length}</p></div>
+        <div className="grid gap-2"><Button variant="secondary" onClick={() => void onSaveEstimate?.(estimate)}>Save estimate to local JSON</Button><Button variant="primary" onClick={() => void onIssueProposalSnapshot?.(estimate, terms)}>Issue immutable proposal snapshot</Button><p className="text-xs text-muted">Issued snapshots for this project: {savedProposals.length}</p>{unassignedRows.length ? <p role="alert" className="rounded-xl border border-amber-300 bg-amber-50 p-3 text-xs font-medium text-amber-800">{unassignedRows.length} billable row{unassignedRows.length === 1 ? "" : "s"} need proposal-section mapping before issuance. They will be grouped as Unassigned Proposal Section if issued now.</p> : null}</div>
         <Card className="bg-white/75 shadow-none"><CardContent><CardTitle>Proposal history</CardTitle>{savedProposals.length ? <div className="mt-3 space-y-2">{savedProposals.map((snapshot) => <Link key={snapshot.id} className="block rounded-xl border border-hairline bg-white p-3 text-sm transition hover:border-accent" href={`/proposals/${snapshot.id}`}><span className="font-semibold">{snapshot.proposalVersionLabel}</span><span className="mt-1 block text-xs text-muted">{new Date(snapshot.issuedAt).toLocaleDateString()} · {formatMoney(snapshot.totalAmount, snapshot.currency)}</span></Link>)}</div> : <p className="mt-3 rounded-xl border border-dashed border-hairline bg-white/70 p-4 text-sm text-muted">No issued proposals yet. Save the estimate, review terms, then issue an immutable snapshot.</p>}</CardContent></Card>
         <Card className="bg-white/75 shadow-none"><CardContent className="grid gap-3"><CardTitle>Proposal terms builder</CardTitle><Field label="Subject"><TextInput value={terms.subject} onChange={(event) => onTermsChange({ subject: event.target.value })} /></Field><Field label="Through / attention"><TextInput value={terms.throughName ?? ""} onChange={(event) => onTermsChange({ throughName: event.target.value })} /></Field><Field label="Contractor/company"><TextInput value={terms.contractorName} onChange={(event) => onTermsChange({ contractorName: event.target.value })} /></Field><Field label="Tax/VAT statement"><Textarea value={terms.taxStatement} onChange={(event) => onTermsChange({ taxStatement: event.target.value })} /></Field><Field label="Validity days"><TextInput type="number" min={1} value={terms.validityDays} onChange={(event) => onTermsChange({ validityDays: Math.max(1, parseNumberInput(event.target.value)) })} /></Field><Field label="Payment terms"><Textarea value={terms.paymentTerms} onChange={(event) => onTermsChange({ paymentTerms: event.target.value })} /></Field><Field label="Warranty terms"><Textarea value={terms.warrantyTerms} onChange={(event) => onTermsChange({ warrantyTerms: event.target.value })} /></Field><Field label="Duration note"><Textarea value={terms.durationNote} onChange={(event) => onTermsChange({ durationNote: event.target.value })} /></Field><Field label="Inclusions"><Textarea value={terms.inclusions} onChange={(event) => onTermsChange({ inclusions: event.target.value })} /></Field><Field label="Exclusions"><Textarea value={terms.exclusions} onChange={(event) => onTermsChange({ exclusions: event.target.value })} /></Field></CardContent></Card>
         <div className="rounded-xl border border-hairline bg-white/70 p-5 font-serif"><p className="text-xs uppercase tracking-[0.16em] text-muted">Proposal Preview</p><h2 className="mt-2 text-2xl font-semibold tracking-[-0.03em]">{terms.subject}</h2><p className="mt-3 text-sm leading-6">We are pleased to submit this proposal for <strong>{project.name}</strong> located in {project.location}. This preview uses editable commercial terms and becomes immutable only after issuance.</p><div className="mt-5 rounded-xl bg-foreground p-4 text-white"><p className="text-xs text-white/70">Total proposed amount</p><p className="mt-1 font-mono text-2xl font-semibold">{formatMoney(totals.grandTotal, currencyCode)}</p></div><h3 className="mt-5 font-sans text-sm font-semibold uppercase tracking-[0.12em]">Section Summary</h3><div className="mt-2 space-y-2">{sectionSummaries.map((section) => <div key={section.id} className="flex justify-between border-b border-hairline py-2 text-sm"><span>{section.outlineCode}. {section.name}</span><span className="font-mono">{formatMoney(section.total, currencyCode)}</span></div>)}</div><h3 className="mt-5 font-sans text-sm font-semibold uppercase tracking-[0.12em]">Commercial terms</h3><dl className="mt-2 grid gap-2 text-sm"><div><dt className="font-sans font-semibold">Validity</dt><dd className="text-muted">{terms.validityDays} days</dd></div><div><dt className="font-sans font-semibold">Payment</dt><dd className="text-muted">{terms.paymentTerms}</dd></div><div><dt className="font-sans font-semibold">Exclusions</dt><dd className="text-muted">{terms.exclusions}</dd></div></dl></div>

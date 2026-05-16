@@ -4,10 +4,12 @@ import type { CostLibraryItem, EstimateLineItem } from "@/lib/local-data/schemas
 export function createLineItemFromLibraryItem(
   item: CostLibraryItem,
   sectionId: string,
+  proposalSectionId?: string,
 ): EstimateLineItem {
   return {
     id: `line_${nanoid(10)}`,
     sectionId,
+    proposalSectionId,
     itemName: item.name,
     description: item.source ? `From ${item.source}` : undefined,
     quantity: 1,

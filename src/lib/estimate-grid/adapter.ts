@@ -3,6 +3,7 @@ import { GridCellKind } from "@glideapps/glide-data-grid";
 import type { CostLibraryItem, Estimate, EstimateLineItem } from "@/lib/local-data/schemas";
 import { calculateEstimateLineTotal } from "@/lib/estimates/calculations";
 import { createLineItemFromLibraryItem } from "@/lib/estimates/library-insert";
+import { isLineIncludedInTotal } from "@/lib/estimates/totals";
 
 export type EstimateGridRow =
   | {
@@ -37,7 +38,10 @@ export function buildEstimateGridRows(estimate: Estimate): EstimateGridRow[] {
     const lineIndexes = estimate.lineItems
       .map((line, index) => ({ line, index }))
       .filter(({ line }) => line.sectionId === section.id);
-    const total = lineIndexes.reduce((sum, { line }) => sum + calculateEstimateLineTotal(line).total, 0);
+    const total = lineIndexes.reduce((sum, { line }) => {
+      if (!isLineIncludedInTotal(line)) return sum;
+      return sum + calculateEstimateLineTotal(line).total;
+    }, 0);
 
     return [
       {
@@ -145,7 +149,7 @@ export function insertLibraryItemAtGridRow(estimate: Estimate, libraryItem: Cost
   const target = resolveGridInsertionTarget(estimate, rows, visualRowIndex);
   if (!target.sectionId) return estimate;
 
-  const nextLine = createLineItemFromLibraryItem(libraryItem, target.sectionId);
+  const nextLine = createLineItemFromLibraryItem(libraryItem, target.sectionId, resolveDefaultProposalSectionId(estimate));
   return {
     ...estimate,
     lineItems: [
@@ -208,6 +212,10 @@ function cellToValue(cell: GridCell): string | number | undefined {
   if (cell.kind === GridCellKind.Text) return cell.data;
   if (cell.kind === GridCellKind.Number) return cell.data;
   return undefined;
+}
+
+export function resolveDefaultProposalSectionId(estimate: Estimate): string | undefined {
+  return estimate.proposalSections?.find((section) => section.displayInProposal)?.id ?? estimate.proposalSections?.[0]?.id;
 }
 
 function toFiniteNumber(value: string | number | undefined, fallback: number): number {
