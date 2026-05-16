@@ -26,6 +26,16 @@ describe("EstimateWorkspace", () => {
     await user.click(screen.getAllByRole("button", { name: /Add to estimate/i })[0]);
 
     expect(screen.getAllByText("linked-clean").length).toBeGreaterThanOrEqual(2);
+    expect(screen.getAllByLabelText(/Proposal section for/i).at(-1)).toHaveValue("proposal_section_floor_finishes");
+  });
+
+  it("lets users remap a row to a proposal section", async () => {
+    const user = userEvent.setup();
+    render(<EstimateWorkspace database={database} />);
+
+    await user.selectOptions(screen.getByLabelText(/Proposal section for Tile A/i), "proposal_section_general_conditions");
+
+    expect(screen.getByLabelText(/Proposal section for Tile A/i)).toHaveValue("proposal_section_general_conditions");
   });
 
   it("edits proposal terms in the proposal package builder", async () => {

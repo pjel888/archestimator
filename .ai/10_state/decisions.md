@@ -20,6 +20,7 @@
 - 2026-05-16 — Proposal snapshots store editable commercial terms and route to print-ready `/proposals/[proposalId]` pages for browser print/PDF before adding a dedicated PDF engine.
 - 2026-05-17 — Archestimator runs in autopilot mode within documented MVP scope: agents should continue implementation, verification, review, and concise updates without repeated permission asks, while never merging to `main`, deploying, connecting Supabase, or taking destructive actions without explicit approval.
 - 2026-05-17 — Production estimating model should separate working spaces/areas from client-facing proposal/BOQ sections. Current bridge: `Estimate.sections` is the working space axis, `Estimate.proposalSections` is the consolidation axis, and `EstimateLineItem.proposalSectionId` maps estimate rows into proposal summaries.
+- 2026-05-17 — Production workspace should expose row-level proposal-section mapping before full Glide/dnd-kit migration, because unmapped proposal rows are a commercial-output risk and should be visible before issuance.
 
 ## Working decisions / likely direction
 
