@@ -1,0 +1,30 @@
+import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { describe, expect, it } from "vitest";
+import { EstimateWorkspace } from "@/components/estimate-workspace";
+import seedData from "../../data/local/seed.json";
+import { localDatabaseSchema } from "@/lib/local-data/schemas";
+
+const database = localDatabaseSchema.parse(seedData);
+
+describe("EstimateWorkspace", () => {
+  it("updates totals when a quantity changes", async () => {
+    const user = userEvent.setup();
+    render(<EstimateWorkspace database={database} />);
+
+    const quantity = screen.getByLabelText(/Quantity for Tile A/i);
+    await user.clear(quantity);
+    await user.type(quantity, "30");
+
+    expect(screen.getByText("₱42,600")).toBeInTheDocument();
+  });
+
+  it("adds a linked row from the cost library", async () => {
+    const user = userEvent.setup();
+    render(<EstimateWorkspace database={database} />);
+
+    await user.click(screen.getAllByRole("button", { name: /Add to estimate/i })[0]);
+
+    expect(screen.getAllByText("linked-clean").length).toBeGreaterThanOrEqual(2);
+  });
+});

@@ -10,6 +10,8 @@
 - 2026-05-16 — Stack baseline selected for MVP speed: Next.js 16 + React 19 + Bun + TypeScript + Tailwind v4.
 - 2026-05-16 — Data layer should be local-first JSON while the model changes rapidly, with repository boundaries prepared for future Supabase/Postgres migration; no Supabase connection until explicitly approved.
 - 2026-05-16 — Root `DESIGN.md` created as the agent-readable visual/design-system source of truth; Google DESIGN.md lint passes with 0 errors. Initial Tailwind/DTCG exports live in `.ai/07_design/`.
+- 2026-05-16 — GitHub repo created as private under `pjel888/archestimator`; use feature branches/PRs, do not merge to main automatically.
+- 2026-05-16 — First interactive MVP slice keeps edits in browser memory; persistent local writes/server actions are the next slice after mutation rules are designed.
 
 ## Working decisions / likely direction
 

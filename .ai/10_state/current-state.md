@@ -38,6 +38,8 @@ The emerging product wedge is:
 ## Immediate next useful work
 
 - Next.js + Bun app shell has been scaffolded at the project root.
+- GitHub private repo created: `https://github.com/pjel888/archestimator`.
+- Interactive estimate workspace slice implemented: editable rows, cost library insertion, live totals, version tab, and proposal preview tab.
 - Root `DESIGN.md` has been created and validated with Google DESIGN.md lint: 0 errors.
 - Initial token exports created:
   - `.ai/07_design/tailwind.theme.json`
