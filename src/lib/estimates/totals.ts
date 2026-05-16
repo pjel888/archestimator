@@ -31,6 +31,7 @@ export function calculateEstimateTotals(estimate: Estimate): EstimateTotals {
       unitCost: line.unitCost,
       materialUnitCost: line.materialUnitCost,
       laborUnitCost: line.laborUnitCost,
+      wastePercent: line.wastePercent,
     });
 
     return {

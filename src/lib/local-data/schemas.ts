@@ -51,6 +51,7 @@ export const estimateLineItemSchema = z.object({
   sourceLibraryItemId: z.string().optional(),
   linkState: libraryLinkStateSchema,
   pricingDate: z.string().optional(),
+  wastePercent: z.number().finite().nonnegative().optional(),
 });
 
 export const estimateSectionSchema = z.object({
@@ -87,15 +88,53 @@ export const workspaceSchema = z.object({
   defaultCurrency: z.string(),
 });
 
+export const proposalTermsSchema = z.object({
+  subject: z.string(),
+  throughName: z.string().optional(),
+  contractorName: z.string(),
+  contractorTitle: z.string().optional(),
+  taxStatement: z.string(),
+  validityDays: z.number().int().positive(),
+  paymentTerms: z.string(),
+  warrantyTerms: z.string(),
+  durationNote: z.string(),
+  inclusions: z.string(),
+  exclusions: z.string(),
+});
+
+export const proposalSnapshotSchema = z.object({
+  id: z.string(),
+  projectId: z.string(),
+  estimateId: z.string(),
+  projectName: z.string(),
+  clientName: z.string(),
+  projectLocation: z.string(),
+  estimateName: z.string(),
+  proposalVersionLabel: z.string(),
+  issuedAt: z.string(),
+  currency: z.string(),
+  totalAmount: z.number().finite().nonnegative(),
+  terms: proposalTermsSchema,
+  sectionSummaries: z.array(z.object({
+    sectionId: z.string(),
+    name: z.string(),
+    outlineCode: z.string(),
+    totalAmount: z.number().finite().nonnegative(),
+  })),
+});
+
 export const localDatabaseSchema = z.object({
   schemaVersion: z.literal(1),
   workspace: workspaceSchema,
   projects: z.array(projectSchema),
   estimates: z.array(estimateSchema),
   costLibraryItems: z.array(costLibraryItemSchema),
+  proposalSnapshots: z.array(proposalSnapshotSchema).default([]),
 });
 
 export type LocalDatabase = z.infer<typeof localDatabaseSchema>;
 export type CostLibraryItem = z.infer<typeof costLibraryItemSchema>;
 export type Estimate = z.infer<typeof estimateSchema>;
 export type EstimateLineItem = z.infer<typeof estimateLineItemSchema>;
+export type ProposalSnapshot = z.infer<typeof proposalSnapshotSchema>;
+export type ProposalTerms = z.infer<typeof proposalTermsSchema>;

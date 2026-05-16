@@ -39,7 +39,10 @@ The emerging product wedge is:
 
 - Next.js + Bun app shell has been scaffolded at the project root.
 - GitHub private repo created: `https://github.com/pjel888/archestimator`.
-- Interactive estimate workspace slice implemented: editable rows, cost library insertion, live totals, version tab, and proposal preview tab.
+- Interactive estimate workspace slice implemented: editable rows, library insertion, live totals, versions panel, proposal preview.
+- Local persistence/project routing slice implemented: dashboard at `/`, project workspace at `/projects/[projectId]`, mutable ignored runtime JSON, save/revision/proposal snapshot server actions.
+- Proposal package builder/UI system slice implemented: reusable UI primitives, editable proposal terms, immutable proposal snapshots with terms, and print-ready `/proposals/[proposalId]` route.
+- Project creation/proposal history/UI hardening slice implemented: dashboard create-project form, first empty draft estimate, reusable PageShell/ObjectCard/EmptyState primitives, project proposal history links, grid/drag-drop package ADR.
 - Root `DESIGN.md` has been created and validated with Google DESIGN.md lint: 0 errors.
 - Initial token exports created:
   - `.ai/07_design/tailwind.theme.json`
