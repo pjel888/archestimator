@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createProposalSnapshot, duplicateEstimateRevision, saveEstimateInDatabase } from "@/lib/local-data/mutations";
 import { createMutableLocalRepository } from "@/lib/local-data/repository";
-import type { Estimate } from "@/lib/local-data/schemas";
+import type { Estimate, ProposalTerms } from "@/lib/local-data/schemas";
 
 export async function saveEstimateAction(estimate: Estimate) {
   const repository = await createMutableLocalRepository();
@@ -24,12 +24,13 @@ export async function duplicateRevisionAction(estimateId: string) {
   redirect(`/projects/${result.estimate.projectId}`);
 }
 
-export async function issueProposalSnapshotAction(estimate: Estimate) {
+export async function issueProposalSnapshotAction(estimate: Estimate, terms?: ProposalTerms) {
   const repository = await createMutableLocalRepository();
   const database = await repository.getDatabase();
   const savedDatabase = saveEstimateInDatabase(database, estimate);
-  const result = createProposalSnapshot(savedDatabase, estimate.id);
+  const result = createProposalSnapshot(savedDatabase, estimate.id, terms);
   await repository.saveDatabase(result.database);
   revalidatePath("/");
   revalidatePath(`/projects/${result.snapshot.projectId}`);
+  redirect(`/proposals/${result.snapshot.id}`);
 }

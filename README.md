@@ -9,7 +9,7 @@ Contractor-first construction estimating and proposal workspace.
 - Bun package manager/runtime
 - TypeScript
 - Tailwind CSS v4
-- Local-first JSON seed repository while the product/data model changes rapidly
+- Local-first JSON runtime repository while the product/data model changes rapidly
 
 Supabase/Postgres is intentionally deferred. The app uses repository boundaries under `src/lib/local-data/` so future migration can replace the storage backend without rewriting UI surfaces.
 
@@ -35,14 +35,6 @@ bun run test:dom
 bun run build
 bun run validate
 ```
-
-## Local data
-
-Tracked seed data:
-
-- `data/local/seed.json`
-
-Mutable local JSON files are ignored by git. Do not commit private client/project data.
 
 ## Validation baseline
 
@@ -77,16 +69,31 @@ data/local/runtime.json
 
 `runtime.json` is ignored by git. Delete it to reset from seed on the next app load, or set `ARCHESTIMATOR_DATA_PATH` to point the app at another local JSON file.
 
-Playwright smoke tests are configured under `e2e/`. Browser binaries may need to be installed with `npx playwright install chromium` on new machines/CI.
+## UI component system
+
+Archestimator should grow its own internal UI library early. Prefer shared primitives under `src/components/ui/` and token helpers under `src/lib/ui/` before creating one-off screen markup. Improve primitives as use cases evolve. Do not install Storybook unless Philip explicitly approves it.
+
+Current shared primitives:
+
+- `Button`
+- `Card`, `CardHeader`, `CardContent`, `CardTitle`, `CardDescription`
+- `Field`, `TextInput`, `Textarea`
+- `StatCard`
+- `TabList`, `TabButton`
+- `StatusPill`
 
 ## Current MVP surface
 
-The root app now renders an interactive estimate workspace:
+The app currently includes:
 
-- editable estimate rows
-- quantity/rate changes with immediate totals
+- `/` project dashboard
+- `/projects/[projectId]` editable estimate workspace
 - searchable cost library panel
 - click-to-insert linked library items
-- basic link-state badges
-- in-memory duplicate-as-revision action
-- proposal preview tab generated from the live estimate
+- local JSON save action
+- persisted revision action
+- proposal terms builder
+- immutable proposal snapshot issuing
+- `/proposals/[proposalId]` print-ready proposal package screen
+
+Playwright smoke tests are configured under `e2e/`. Browser binaries may need to be installed with `npx playwright install chromium` on new machines/CI.

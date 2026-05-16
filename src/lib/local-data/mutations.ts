@@ -1,6 +1,7 @@
 import { nanoid } from "nanoid";
 import { calculateEstimateTotals } from "@/lib/estimates/totals";
-import type { Estimate, LocalDatabase, ProposalSnapshot } from "./schemas";
+import type { Estimate, LocalDatabase, ProposalSnapshot, ProposalTerms } from "./schemas";
+import { normalizeProposalTerms } from "@/lib/proposals/terms";
 
 export function saveEstimateInDatabase(database: LocalDatabase, estimate: Estimate): LocalDatabase {
   const estimateExists = database.estimates.some((item) => item.id === estimate.id);
@@ -47,6 +48,7 @@ export function duplicateEstimateRevision(
 export function createProposalSnapshot(
   database: LocalDatabase,
   estimateId: string,
+  terms?: Partial<ProposalTerms>,
   now = new Date().toISOString(),
 ): { database: LocalDatabase; snapshot: ProposalSnapshot } {
   const estimate = database.estimates.find((item) => item.id === estimateId);
@@ -60,10 +62,15 @@ export function createProposalSnapshot(
     id: `proposal_${nanoid(10)}`,
     projectId: project.id,
     estimateId: estimate.id,
+    projectName: project.name,
+    clientName: project.clientName,
+    projectLocation: project.location,
+    estimateName: estimate.name,
     proposalVersionLabel: `${estimate.versionLabel} Proposal ${database.proposalSnapshots.length + 1}`,
     issuedAt: now,
     currency: database.workspace.defaultCurrency,
     totalAmount: totals.grandTotal,
+    terms: normalizeProposalTerms(database, estimate, terms),
     sectionSummaries: estimate.sections.map((section) => ({
       sectionId: section.id,
       name: section.name,

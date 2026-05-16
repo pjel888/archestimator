@@ -64,6 +64,12 @@ describe("createProposalSnapshot", () => {
     expect(next.snapshot.estimateId).toBe("estimate_1");
     expect(next.snapshot.totalAmount).toBe(200);
     expect(next.snapshot.currency).toBe("PHP");
+    expect(next.snapshot.projectName).toBe("Project");
+    expect(next.snapshot.clientName).toBe("Client");
+    expect(next.snapshot.projectLocation).toBe("Manila");
+    expect(next.snapshot.estimateName).toBe("Initial Estimate");
+    expect(next.snapshot.terms.subject).toBe("Cost proposal for Project");
+    expect(next.snapshot.terms.validityDays).toBe(30);
     expect(next.database.proposalSnapshots).toHaveLength(1);
     expect(next.database.estimates[0].status).toBe("draft");
   });
