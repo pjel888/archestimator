@@ -9,4 +9,4 @@ Primary Codex role:
 - PR-ready diffs
 - validation evidence
 
-Before code exists, avoid premature stack assumptions. Durable implementation decisions belong in `.ai/10_state/decisions.md` and specs/plans under `.ai/`.
+Stack baseline is now Next.js + Bun with local-first JSON data and repository boundaries for future Supabase/Postgres migration. Durable implementation decisions belong in `.ai/10_state/decisions.md` and specs/plans under `.ai/`.
