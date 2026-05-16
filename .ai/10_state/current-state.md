@@ -51,6 +51,8 @@ The emerging product wedge is:
 - Production model bridge started: `Estimate.sections` remains the working space/area axis for now, `Estimate.proposalSections` is the client-facing BOQ/proposal consolidation axis, and `EstimateLineItem.proposalSectionId` maps rows into proposal summaries.
 - Production workspace proposal mapping slice implemented: blank/library row creation now uses the selected working section to infer/default the proposal section, each row exposes an editable proposal-section selector, proposal preview summarizes by proposal section, and unmapped billable rows show an issuance warning.
 - Full route/feature E2E baseline implemented for `/`, `/projects/[projectId]`, `/proposals/[proposalId]`, `/spikes/estimate-grid`, and unknown project 404; covered MVP flows include section selection, blank/library insertion, proposal-section mapping, live total recalculation, proposal issuance, revision duplication, and spike insertion.
+- Production Glide workspace migration started: project estimate page now renders a client-only Glide Data Grid sheet backed by the shared adapter, while accessible proposal-section mapping/action controls remain available below during the incremental migration.
+- Code-intelligence cadence established: ChunkHound, GitNexus, and CodeGraph are installed/run for migration slices; generated indexes live under ignored `.ai/14_code_intelligence/`.
 - Codex/GitHub PR comments checked on PR #5 and PR #6; actionable material-cost edit, default proposal-section mapping, and non-billable section-header total issues fixed in the grid/model path.
 - Root `DESIGN.md` has been created and validated with Google DESIGN.md lint: 0 errors.
 - Initial token exports created:

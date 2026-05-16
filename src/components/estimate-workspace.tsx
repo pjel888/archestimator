@@ -1,7 +1,9 @@
 "use client";
 
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { useMemo, useRef, useState } from "react";
+import type { EditableGridCell, Item } from "@glideapps/glide-data-grid";
 import { Plus, RotateCcw, Trash2 } from "lucide-react";
 import type { CostLibraryItem, Estimate, EstimateLineItem, LocalDatabase, ProposalTerms } from "@/lib/local-data/schemas";
 import { calculateEstimateTotals } from "@/lib/estimates/totals";
@@ -14,7 +16,18 @@ import { StatCard } from "@/components/ui/stat-card";
 import { TabButton, TabList } from "@/components/ui/tabs";
 import { formatMoney } from "@/lib/money/format";
 import { createDefaultProposalTerms } from "@/lib/proposals/terms";
-import { resolveDefaultProposalSectionId } from "@/lib/estimate-grid/adapter";
+import {
+  applyEstimateGridEdit,
+  resolveDefaultProposalSectionId,
+} from "@/lib/estimate-grid/adapter";
+
+const ProductionEstimateGlideGrid = dynamic(
+  () => import("@/components/production-estimate-glide-grid").then((module) => module.ProductionEstimateGlideGrid),
+  {
+    ssr: false,
+    loading: () => <div className="h-[430px] rounded-2xl border border-dashed border-hairline bg-surface-muted p-4 text-sm text-muted">Loading production estimate grid…</div>,
+  },
+);
 
 type EstimateWorkspaceProps = {
   database: LocalDatabase;
@@ -112,6 +125,10 @@ function EstimateWorkspaceInner({ database, project, initialEstimate, onSaveEsti
     }));
   }
 
+  function updateGridCell(cell: Item, nextCell: EditableGridCell) {
+    setEstimate((current) => applyEstimateGridEdit(current, cell, nextCell));
+  }
+
   function resolveSelectedProposalSectionId(current: Estimate, workingSectionId = selectedSectionIdRef.current) {
     return resolveDefaultProposalSectionId(current, workingSectionId);
   }
@@ -188,7 +205,7 @@ function EstimateWorkspaceInner({ database, project, initialEstimate, onSaveEsti
         </header>
 
         <div className="grid gap-6 xl:grid-cols-[1fr_430px]">
-          <EstimateSheetCard estimate={estimate} project={project} totals={totals} currencyCode={currencyCode} selectedSectionId={selectedSectionId} setSelectedSectionId={setSelectedSectionId} addBlankRow={addBlankRow} updateLine={updateLine} resetFromLibrary={resetFromLibrary} deleteLine={(lineId) => setEstimate((current) => ({ ...current, lineItems: current.lineItems.filter((line) => line.id !== lineId) }))} />
+          <EstimateSheetCard estimate={estimate} project={project} totals={totals} currencyCode={currencyCode} selectedSectionId={selectedSectionId} setSelectedSectionId={setSelectedSectionId} addBlankRow={addBlankRow} updateLine={updateLine} updateGridCell={updateGridCell} resetFromLibrary={resetFromLibrary} deleteLine={(lineId) => setEstimate((current) => ({ ...current, lineItems: current.lineItems.filter((line) => line.id !== lineId) }))} />
 
           <aside className="flex flex-col gap-4">
             <TabList className="grid-cols-3">
@@ -213,11 +230,12 @@ type EstimateSheetCardProps = {
   setSelectedSectionId: (value: string) => void;
   addBlankRow: (targetSectionId?: string) => void;
   updateLine: (lineId: string, patch: Partial<EstimateLineItem>, changedField?: keyof EstimateLineItem) => void;
+  updateGridCell: (cell: Item, nextCell: EditableGridCell) => void;
   resetFromLibrary: (line: EstimateLineItem) => void;
   deleteLine: (lineId: string) => void;
 };
 
-function EstimateSheetCard({ estimate, project, totals, currencyCode, selectedSectionId, setSelectedSectionId, addBlankRow, updateLine, resetFromLibrary, deleteLine }: EstimateSheetCardProps) {
+function EstimateSheetCard({ estimate, project, totals, currencyCode, selectedSectionId, setSelectedSectionId, addBlankRow, updateLine, updateGridCell, resetFromLibrary, deleteLine }: EstimateSheetCardProps) {
   const sectionSelectRef = useRef<HTMLSelectElement | null>(null);
 
   return (
@@ -237,6 +255,16 @@ function EstimateSheetCard({ estimate, project, totals, currencyCode, selectedSe
           <Button variant="primary" onClick={() => addBlankRow(sectionSelectRef.current?.value ?? selectedSectionId)}><Plus className="size-4" /> Add blank row</Button>
         </div>
       </CardHeader>
+      <div className="border-y border-hairline bg-white p-3">
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <p className="text-sm font-semibold">Glide estimate grid</p>
+            <p className="text-xs text-muted">Primary spreadsheet surface. Proposal mapping and row actions remain in the accessible controls below during this migration slice.</p>
+          </div>
+          <span className="rounded-full bg-accentSoft px-3 py-1 text-xs font-semibold text-accentDark">Production grid migration</span>
+        </div>
+        <ProductionEstimateGlideGrid estimate={estimate} currencyCode={currencyCode} onCellEdited={updateGridCell} />
+      </div>
       <div className="overflow-x-auto">
         <table className="w-full min-w-[1180px] border-collapse text-sm">
           <caption className="sr-only">Editable estimate sheet with quantity, material, labor, scope status, and link state.</caption>

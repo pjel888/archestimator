@@ -6,11 +6,40 @@
 
 - **Date:** 2026-05-17
 - **Branch:** `spike/estimate-grid-drop-targeting-ux`
-- **Goal:** Continue production workspace integration: visible proposal-section assignment, unassigned-row warnings, and Codex/GitHub review remediation.
-- **Status:** Implementation complete; full gates/review passing
+- **Goal:** Continue production Glide workspace migration with code-intelligence cadence.
+- **Status:** Production Glide surface slice implemented; full gates/review passing
 - **Validation target:** `bun run validate && bun run build && bun run test:e2e`
 
 ## Ledger entries
+
+### 2026-05-17 — Production Glide workspace surface slice
+
+**Status:** Implemented; full gates/review passing
+
+**Type:** production UI migration + code intelligence + tests
+
+**What changed:**
+
+- Installed/verified the requested code-intelligence tools: ChunkHound, GitNexus, and CodeGraph.
+- Ran ChunkHound indexing/search, GitNexus repository analysis, and CodeGraph export at the start of the migration slice and again after substantive changes.
+- Added `.ai/03_plans/production-glide-workspace-migration-slice.md`.
+- Added `src/components/production-estimate-glide-grid.tsx`, a client-only Glide Data Grid production sheet backed by `src/lib/estimate-grid/adapter.ts`.
+- Updated `src/components/estimate-workspace.tsx` to dynamically render the production Glide sheet with `ssr: false`, while preserving the accessible row-level proposal-section mapping/actions below the grid during the incremental migration.
+- Updated E2E coverage to assert the production Glide grid and migration banner are present on the project page.
+- Updated Vitest setup with `ResizeObserver` and canvas mocks required by Glide under jsdom.
+- Added `.gitignore` coverage for generated `.ai/14_code_intelligence/` artifacts.
+
+**Verification:**
+
+- `bun run validate && bun run build && lsof -ti tcp:3020 | xargs -r kill; bun run test:e2e` — passed: type-check, lint, 27 unit tests, 6 DOM tests, production build, 7 Playwright E2E tests.
+- Independent review — PASS. Reviewer checked SSR safety, runtime/build risk, proposal-section mapping preservation, and E2E robustness.
+- GitNexus warnings for missing YAML parser were resolved by installing `tree-sitter-yaml`; follow-up GitNexus indexing passed without parser warnings.
+
+**Follow-ups:**
+
+- Continue migrating proposal-section/action controls into first-class grid side panels/custom cells.
+- Add production dnd-kit library insertion onto the Glide sheet using the existing adapter insertion target.
+- Check PR comments/CI after push.
 
 ### 2026-05-17 — All-routes feature coverage and Glide hardening
 
