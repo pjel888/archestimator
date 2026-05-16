@@ -23,6 +23,8 @@
 - 2026-05-17 — Production workspace should expose row-level proposal-section mapping before full Glide/dnd-kit migration, because unmapped proposal rows are a commercial-output risk and should be visible before issuance.
 - 2026-05-17 — New estimate rows should infer/default proposal-section mapping from the selected working space/area when possible; this applies to both blank row insertion and cost-library insertion.
 - 2026-05-17 — Route/feature confidence must be E2E-backed. Current baseline covers all app routes from `next build`, including unknown-project 404, plus MVP flows for library insertion, proposal issuance, revision duplication, and the Glide spike shell.
+- 2026-05-17 — Production Glide migration should be incremental: introduce the Glide-backed spreadsheet surface first, keep existing accessible proposal-section mapping/actions during the transition, then migrate specialized controls into custom grid cells/side panels only after tests stay green.
+- 2026-05-17 — ChunkHound, GitNexus, and CodeGraph should be run periodically during non-trivial code migration slices. Generated code-intelligence databases/exports are local-only unless a specific human-readable report is intentionally promoted into `.ai/`.
 
 ## Working decisions / likely direction
 

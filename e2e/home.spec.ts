@@ -39,6 +39,10 @@ test('project page presents editable estimate workspace', async ({ page }) => {
 test('project page covers library insert, section-aware proposal mapping, and live totals', async ({ page }) => {
   await page.goto('/projects/project_grand_hyatt_sample', { waitUntil: 'domcontentloaded' });
 
+  await expect(page.getByTestId('production-estimate-glide-grid')).toBeVisible();
+  await expect(page.getByText('Production grid migration')).toBeVisible();
+  await expect(page.getByText('Glide estimate grid')).toBeVisible();
+
   await page.getByLabel('Selected estimate section for new rows').selectOption('space_general_conditions');
   await expect(page.getByLabel('Selected estimate section for new rows')).toHaveValue('space_general_conditions');
   await page.getByRole('button', { name: /Add blank row/i }).click();
