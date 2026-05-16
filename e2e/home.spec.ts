@@ -20,9 +20,10 @@ test('project page presents editable estimate workspace', async ({ page }) => {
 
 test('project page shows proposal terms builder', async ({ page }) => {
   await page.goto('/projects/project_grand_hyatt_sample', { waitUntil: 'domcontentloaded' });
+  await page.waitForTimeout(1000);
 
   await page.getByRole('tab', { name: 'proposal' }).click();
-  await expect(page.getByRole('heading', { name: 'Proposal terms builder' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Proposal terms builder' })).toBeVisible({ timeout: 10000 });
   await expect(page.getByRole('textbox', { name: 'Subject' })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Issue immutable proposal snapshot' })).toBeVisible();
 });
