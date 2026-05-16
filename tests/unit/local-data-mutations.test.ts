@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import type { Estimate, LocalDatabase } from "@/lib/local-data/schemas";
-import { createProposalSnapshot, duplicateEstimateRevision, saveEstimateInDatabase } from "@/lib/local-data/mutations";
+import { createProjectWithInitialEstimate, createProposalSnapshot, duplicateEstimateRevision, saveEstimateInDatabase } from "@/lib/local-data/mutations";
 
 const estimate: Estimate = {
   id: "estimate_1",
@@ -72,5 +72,27 @@ describe("createProposalSnapshot", () => {
     expect(next.snapshot.terms.validityDays).toBe(30);
     expect(next.database.proposalSnapshots).toHaveLength(1);
     expect(next.database.estimates[0].status).toBe("draft");
+  });
+});
+
+describe("createProjectWithInitialEstimate", () => {
+  test("creates a project with a first empty draft estimate", () => {
+    const next = createProjectWithInitialEstimate(database, {
+      name: " New Project ",
+      clientName: " Owner ",
+      location: " Cebu ",
+    });
+
+    const project = next.database.projects[0];
+    const newEstimate = next.database.estimates[0];
+
+    expect(project.id).toBe(next.projectId);
+    expect(project.name).toBe("New Project");
+    expect(project.clientName).toBe("Owner");
+    expect(project.location).toBe("Cebu");
+    expect(project.currentEstimateId).toBe(next.estimateId);
+    expect(newEstimate.projectId).toBe(project.id);
+    expect(newEstimate.lineItems).toHaveLength(0);
+    expect(newEstimate.sections[0].name).toBe("General Scope");
   });
 });

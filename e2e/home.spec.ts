@@ -6,6 +6,7 @@ test('home page presents project dashboard', async ({ page }) => {
   await expect(page.getByRole('heading', { name: 'Projects' })).toBeVisible();
   await expect(page.getByText('Local-first project dashboard')).toBeVisible();
   await expect(page.getByRole('link').first()).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Create draft project' })).toBeVisible();
 });
 
 test('project page presents editable estimate workspace', async ({ page }) => {

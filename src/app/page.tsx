@@ -1,4 +1,8 @@
-import Link from "next/link";
+import { createProjectAction } from "@/app/actions";
+import { Button } from "@/components/ui/button";
+import { Field, TextInput } from "@/components/ui/field";
+import { ObjectCard } from "@/components/ui/object-card";
+import { PageContainer, PageShell, SectionHeader } from "@/components/ui/page-shell";
 import { createMutableLocalRepository } from "@/lib/local-data/repository";
 import { calculateEstimateTotals } from "@/lib/estimates/totals";
 import { formatMoney } from "@/lib/money/format";
@@ -9,36 +13,42 @@ export default async function ProjectsIndexPage() {
   const database = await (await createMutableLocalRepository()).getDatabase();
 
   return (
-    <main className="min-h-screen bg-background px-4 py-8 text-foreground lg:px-8">
-      <section className="mx-auto max-w-6xl">
-        <div className="rounded-3xl border border-hairline bg-surface p-6 shadow-sm">
-          <p className="text-sm font-semibold uppercase tracking-[0.16em] text-accent">Archestimator</p>
-          <h1 className="mt-2 text-4xl font-bold tracking-[-0.04em]">Projects</h1>
-          <p className="mt-3 max-w-2xl text-sm leading-6 text-muted">
-            Local-first project dashboard. Data is read from mutable local JSON and can later migrate behind the same repository boundary.
-          </p>
-        </div>
+    <PageShell>
+      <PageContainer>
+        <SectionHeader
+          eyebrow="Archestimator"
+          title="Projects"
+          description="Local-first project dashboard. Create a project, open its estimate sheet, pull cost-library items into the estimate, then issue proposal snapshots."
+          action={
+            <form action={createProjectAction} className="grid min-w-[320px] gap-3 rounded-2xl border border-hairline bg-surface-muted p-4">
+              <p className="text-sm font-semibold">Create project</p>
+              <Field label="Project name"><TextInput name="name" required placeholder="e.g. Makati condo fit-out" /></Field>
+              <Field label="Client name"><TextInput name="clientName" required placeholder="Client / owner" /></Field>
+              <Field label="Location"><TextInput name="location" required placeholder="Project location" /></Field>
+              <Button type="submit" variant="primary">Create draft project</Button>
+            </form>
+          }
+        />
 
         <div className="mt-6 grid gap-4 md:grid-cols-2">
           {database.projects.map((project) => {
             const estimate = database.estimates.find((item) => item.id === project.currentEstimateId);
             const totals = estimate ? calculateEstimateTotals(estimate) : null;
+            const proposalCount = database.proposalSnapshots.filter((snapshot) => snapshot.projectId === project.id).length;
             return (
-              <Link key={project.id} className="rounded-3xl border border-hairline bg-surface p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md" href={`/projects/${project.id}`}>
-                <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <p className="text-xs font-semibold uppercase tracking-[0.12em] text-muted">{project.status}</p>
-                    <h2 className="mt-2 text-2xl font-semibold tracking-[-0.03em]">{project.name}</h2>
-                    <p className="mt-1 text-sm text-muted">{project.clientName} · {project.location}</p>
-                  </div>
-                  <p className="font-mono text-lg font-semibold">{totals ? formatMoney(totals.grandTotal, database.workspace.defaultCurrency) : "No estimate"}</p>
-                </div>
-                {estimate ? <p className="mt-4 text-sm text-muted">Current estimate: {estimate.versionLabel} · {estimate.lineItems.length} rows</p> : null}
-              </Link>
+              <ObjectCard
+                key={project.id}
+                href={`/projects/${project.id}`}
+                eyebrow={project.status}
+                title={project.name}
+                meta={`${project.clientName} · ${project.location}`}
+                value={totals ? formatMoney(totals.grandTotal, database.workspace.defaultCurrency) : "No estimate"}
+                footer={estimate ? `Current estimate: ${estimate.versionLabel} · ${estimate.lineItems.length} rows · ${proposalCount} proposals` : "No estimate yet"}
+              />
             );
           })}
         </div>
-      </section>
-    </main>
+      </PageContainer>
+    </PageShell>
   );
 }

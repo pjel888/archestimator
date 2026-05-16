@@ -3,6 +3,57 @@ import { calculateEstimateTotals } from "@/lib/estimates/totals";
 import type { Estimate, LocalDatabase, ProposalSnapshot, ProposalTerms } from "./schemas";
 import { normalizeProposalTerms } from "@/lib/proposals/terms";
 
+type CreateProjectInput = {
+  name: string;
+  clientName: string;
+  location: string;
+};
+
+export function createProjectWithInitialEstimate(
+  database: LocalDatabase,
+  input: CreateProjectInput,
+): { database: LocalDatabase; projectId: string; estimateId: string } {
+  const projectId = `project_${nanoid(10)}`;
+  const estimateId = `estimate_${nanoid(10)}`;
+  const firstSectionId = `section_${nanoid(10)}`;
+  const project = {
+    id: projectId,
+    name: input.name.trim(),
+    clientName: input.clientName.trim(),
+    location: input.location.trim(),
+    status: "draft" as const,
+    currentEstimateId: estimateId,
+  };
+  const estimate: Estimate = {
+    id: estimateId,
+    projectId,
+    name: "Initial Estimate",
+    versionLabel: "Initial",
+    versionNumber: 1,
+    status: "draft",
+    pricingBasisDate: new Date().toISOString().slice(0, 10),
+    sections: [
+      {
+        id: firstSectionId,
+        name: "General Scope",
+        outlineCode: "A",
+        sectionType: "custom",
+      },
+    ],
+    lineItems: [],
+  };
+
+  return {
+    database: {
+      ...database,
+      projects: [project, ...database.projects],
+      estimates: [estimate, ...database.estimates],
+    },
+    projectId,
+    estimateId,
+  };
+}
+
 export function saveEstimateInDatabase(database: LocalDatabase, estimate: Estimate): LocalDatabase {
   const estimateExists = database.estimates.some((item) => item.id === estimate.id);
   const estimates = estimateExists
