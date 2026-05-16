@@ -18,6 +18,7 @@ export function createLineItemFromLibraryItem(
     sourceLibraryItemId: item.id,
     linkState: "linked-clean",
     pricingDate: item.pricingDate,
+    wastePercent: item.defaultWastePercent,
   };
 }
 

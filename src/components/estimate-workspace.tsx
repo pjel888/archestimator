@@ -6,15 +6,14 @@ import type { CostLibraryItem, Estimate, EstimateLineItem, LocalDatabase } from 
 import { calculateEstimateTotals } from "@/lib/estimates/totals";
 import { createLineItemFromLibraryItem, detectLinkStateAfterEdit } from "@/lib/estimates/library-insert";
 import { StatusPill } from "@/components/ui/status-pill";
-
-const currency = new Intl.NumberFormat("en-PH", {
-  style: "currency",
-  currency: "PHP",
-  maximumFractionDigits: 0,
-});
+import { formatMoney } from "@/lib/money/format";
 
 type EstimateWorkspaceProps = {
   database: LocalDatabase;
+  projectId?: string;
+  onSaveEstimate?: (estimate: Estimate) => Promise<void>;
+  onDuplicateRevision?: (estimateId: string) => Promise<void>;
+  onIssueProposalSnapshot?: (estimate: Estimate) => Promise<void>;
 };
 
 type WorkspaceTab = "library" | "versions" | "proposal";
@@ -41,8 +40,8 @@ function nextRevisionLabel(versionNumber: number) {
   return `Rev ${String(versionNumber).padStart(2, "0")}`;
 }
 
-export function EstimateWorkspace({ database }: EstimateWorkspaceProps) {
-  const project = database.projects[0];
+export function EstimateWorkspace({ database, projectId, onSaveEstimate, onDuplicateRevision, onIssueProposalSnapshot }: EstimateWorkspaceProps) {
+  const project = projectId ? database.projects.find((item) => item.id === projectId) : database.projects[0];
   const initialEstimate =
     database.estimates.find((item) => item.id === project?.currentEstimateId) ?? database.estimates[0];
 
@@ -50,7 +49,7 @@ export function EstimateWorkspace({ database }: EstimateWorkspaceProps) {
     return <EmptyLocalEstimateState />;
   }
 
-  return <EstimateWorkspaceInner database={database} project={project} initialEstimate={initialEstimate} />;
+  return <EstimateWorkspaceInner database={database} project={project} initialEstimate={initialEstimate} onSaveEstimate={onSaveEstimate} onDuplicateRevision={onDuplicateRevision} onIssueProposalSnapshot={onIssueProposalSnapshot} />;
 }
 
 type Project = LocalDatabase["projects"][number];
@@ -59,6 +58,9 @@ type EstimateWorkspaceInnerProps = {
   database: LocalDatabase;
   project: Project;
   initialEstimate: Estimate;
+  onSaveEstimate?: (estimate: Estimate) => Promise<void>;
+  onDuplicateRevision?: (estimateId: string) => Promise<void>;
+  onIssueProposalSnapshot?: (estimate: Estimate) => Promise<void>;
 };
 
 function EmptyLocalEstimateState() {
@@ -73,13 +75,15 @@ function EmptyLocalEstimateState() {
   );
 }
 
-function EstimateWorkspaceInner({ database, project, initialEstimate }: EstimateWorkspaceInnerProps) {
+function EstimateWorkspaceInner({ database, project, initialEstimate, onSaveEstimate, onDuplicateRevision, onIssueProposalSnapshot }: EstimateWorkspaceInnerProps) {
   const [estimate, setEstimate] = useState<Estimate>(initialEstimate);
   const [activeTab, setActiveTab] = useState<WorkspaceTab>("library");
   const [savedVersions, setSavedVersions] = useState<Estimate[]>([initialEstimate]);
   const [selectedSectionId, setSelectedSectionId] = useState(initialEstimate.sections[0]?.id ?? "section_default");
 
   const totals = useMemo(() => calculateEstimateTotals(estimate), [estimate]);
+  const currencyCode = database.workspace.defaultCurrency;
+  const savedProposalCount = database.proposalSnapshots.filter((snapshot) => snapshot.estimateId === estimate.id).length;
 
   function updateLine(lineId: string, patch: Partial<EstimateLineItem>, changedField?: keyof EstimateLineItem) {
     setEstimate((current) => ({
@@ -172,9 +176,9 @@ function EstimateWorkspaceInner({ database, project, initialEstimate }: Estimate
             </p>
           </div>
           <div className="grid gap-3 sm:grid-cols-3 xl:min-w-[620px]">
-            <Metric label="Draft total" value={currency.format(totals.grandTotal)} dark />
-            <Metric label="Material" value={currency.format(totals.materialSubtotal)} />
-            <Metric label="Labor" value={currency.format(totals.laborSubtotal)} />
+            <Metric label="Draft total" value={formatMoney(totals.grandTotal, currencyCode)} dark />
+            <Metric label="Material" value={formatMoney(totals.materialSubtotal, currencyCode)} />
+            <Metric label="Labor" value={formatMoney(totals.laborSubtotal, currencyCode)} />
           </div>
         </header>
 
@@ -251,7 +255,7 @@ function EstimateWorkspaceInner({ database, project, initialEstimate }: Estimate
                       </td>
                       <td className="px-3 py-3"><NumberInput label={`Material unit cost for ${row.itemName}`} value={row.materialUnitCost ?? row.unitCost ?? 0} onChange={(value) => updateLine(row.id, { materialUnitCost: value, unitCost: undefined }, "materialUnitCost")} /></td>
                       <td className="px-3 py-3"><NumberInput label={`Labor unit cost for ${row.itemName}`} value={row.laborUnitCost ?? 0} onChange={(value) => updateLine(row.id, { laborUnitCost: value }, "laborUnitCost")} /></td>
-                      <td className="px-3 py-3 text-right font-mono font-semibold">{currency.format(row.calculated.total)}</td>
+                      <td className="px-3 py-3 text-right font-mono font-semibold">{formatMoney(row.calculated.total, currencyCode)}</td>
                       <td className="px-3 py-3"><LinkStateBadge state={row.linkState} /></td>
                       <td className="px-3 py-3">
                         <div className="flex gap-1">
@@ -278,9 +282,9 @@ function EstimateWorkspaceInner({ database, project, initialEstimate }: Estimate
                 <button key={tab} className={`rounded-xl px-3 py-2 font-semibold capitalize ${activeTab === tab ? 'bg-foreground text-white' : 'text-muted hover:bg-surface-muted'}`} onClick={() => setActiveTab(tab)}>{tab}</button>
               ))}
             </div>
-            {activeTab === "library" ? <LibraryPanel items={database.costLibraryItems} onAdd={addLibraryItem} /> : null}
-            {activeTab === "versions" ? <VersionsPanel estimate={estimate} versions={savedVersions} onDuplicate={duplicateAsRevision} /> : null}
-            {activeTab === "proposal" ? <ProposalPanel project={project} estimate={estimate} totals={totals} /> : null}
+            {activeTab === "library" ? <LibraryPanel items={database.costLibraryItems} currencyCode={currencyCode} onAdd={addLibraryItem} /> : null}
+            {activeTab === "versions" ? <VersionsPanel estimate={estimate} versions={savedVersions} onDuplicate={duplicateAsRevision} onServerDuplicate={onDuplicateRevision} /> : null}
+            {activeTab === "proposal" ? <ProposalPanel project={project} estimate={estimate} totals={totals} currencyCode={currencyCode} savedProposalCount={savedProposalCount} onSaveEstimate={onSaveEstimate} onIssueProposalSnapshot={onIssueProposalSnapshot} /> : null}
           </aside>
         </div>
       </section>
@@ -301,20 +305,20 @@ function LinkStateBadge({ state }: { state: EstimateLineItem["linkState"] }) {
   return <StatusPill tone={tone}>{state}</StatusPill>;
 }
 
-function LibraryPanel({ items, onAdd }: { items: CostLibraryItem[]; onAdd: (item: CostLibraryItem) => void }) {
+function LibraryPanel({ items, currencyCode, onAdd }: { items: CostLibraryItem[]; currencyCode: string; onAdd: (item: CostLibraryItem) => void }) {
   const [query, setQuery] = useState("");
   const filtered = items.filter((item) => `${item.name} ${item.category} ${item.itemType}`.toLowerCase().includes(query.toLowerCase()));
-  return <section className="rounded-3xl border border-hairline bg-surface p-5 shadow-sm"><h2 className="text-lg font-semibold">Cost library</h2><p className="mt-1 text-sm text-muted">Click to insert a copied, editable row into the current estimate.</p><input aria-label="Search cost library" className="mt-4 w-full rounded-xl border border-hairline px-3 py-2 text-sm" placeholder="Search library…" value={query} onChange={(event) => setQuery(event.target.value)} /><div className="mt-4 space-y-3">{filtered.map((item) => <div key={item.id} className="rounded-2xl border border-hairline p-4"><div className="flex items-start justify-between gap-3"><div><p className="font-medium">{item.name}</p><p className="mt-1 text-xs text-muted">{item.category} · {item.itemType} · {item.unit}</p><p className="mt-1 text-xs text-muted">Price date: {item.pricingDate}</p></div><p className="font-mono text-sm font-semibold">{currency.format(item.defaultUnitCost)}</p></div><button className="mt-3 w-full rounded-xl bg-accent px-3 py-2 text-sm font-semibold text-white hover:bg-accent-dark" onClick={() => onAdd(item)}>Add to estimate</button></div>)}</div></section>;
+  return <section className="rounded-3xl border border-hairline bg-surface p-5 shadow-sm"><h2 className="text-lg font-semibold">Cost library</h2><p className="mt-1 text-sm text-muted">Click to insert a copied, editable row into the current estimate.</p><input aria-label="Search cost library" className="mt-4 w-full rounded-xl border border-hairline px-3 py-2 text-sm" placeholder="Search library…" value={query} onChange={(event) => setQuery(event.target.value)} /><div className="mt-4 space-y-3">{filtered.map((item) => <div key={item.id} className="rounded-2xl border border-hairline p-4"><div className="flex items-start justify-between gap-3"><div><p className="font-medium">{item.name}</p><p className="mt-1 text-xs text-muted">{item.category} · {item.itemType} · {item.unit}</p><p className="mt-1 text-xs text-muted">Price date: {item.pricingDate}</p></div><p className="font-mono text-sm font-semibold">{formatMoney(item.defaultUnitCost, currencyCode)}</p></div><button className="mt-3 w-full rounded-xl bg-accent px-3 py-2 text-sm font-semibold text-white hover:bg-accent-dark" onClick={() => onAdd(item)}>Add to estimate</button></div>)}</div></section>;
 }
 
-function VersionsPanel({ estimate, versions, onDuplicate }: { estimate: Estimate; versions: Estimate[]; onDuplicate: () => void }) {
-  return <section className="rounded-3xl border border-hairline bg-surface p-5 shadow-sm"><h2 className="text-lg font-semibold">Versions</h2><p className="mt-1 text-sm text-muted">Local draft versioning. Restore/diff persistence comes after the model stabilizes.</p><button className="mt-4 w-full rounded-xl bg-accent px-3 py-2 text-sm font-semibold text-white hover:bg-accent-dark" onClick={onDuplicate}>Duplicate as revision</button><div className="mt-4 space-y-3">{versions.map((version) => <div key={version.id} className={`rounded-2xl border p-4 ${version.id === estimate.id ? 'border-accent bg-amber-50' : 'border-hairline'}`}><p className="font-medium">{version.versionLabel}</p><p className="mt-1 text-xs text-muted">{version.name} · {version.status}</p></div>)}</div></section>;
+function VersionsPanel({ estimate, versions, onDuplicate, onServerDuplicate }: { estimate: Estimate; versions: Estimate[]; onDuplicate: () => void; onServerDuplicate?: (estimateId: string) => Promise<void> }) {
+  return <section className="rounded-3xl border border-hairline bg-surface p-5 shadow-sm"><h2 className="text-lg font-semibold">Versions</h2><p className="mt-1 text-sm text-muted">Create a revision copy before design changes so issued proposals are not silently mutated.</p><div className="mt-4 grid gap-2"><button className="w-full rounded-xl bg-accent px-3 py-2 text-sm font-semibold text-white hover:bg-accent-dark" onClick={onDuplicate}>Duplicate draft locally</button>{onServerDuplicate ? <button className="w-full rounded-xl border border-hairline px-3 py-2 text-sm font-semibold hover:bg-surface-muted" onClick={() => void onServerDuplicate(estimate.id)}>Save as persisted revision</button> : null}</div><div className="mt-4 space-y-3">{versions.map((version) => <div key={version.id} className={`rounded-2xl border p-4 ${version.id === estimate.id ? 'border-accent bg-amber-50' : 'border-hairline'}`}><p className="font-medium">{version.versionLabel}</p><p className="mt-1 text-xs text-muted">{version.name} · {version.status}</p></div>)}</div></section>;
 }
 
-function ProposalPanel({ project, estimate, totals }: { project: Project; estimate: Estimate; totals: ReturnType<typeof calculateEstimateTotals> }) {
+function ProposalPanel({ project, estimate, totals, currencyCode, savedProposalCount, onSaveEstimate, onIssueProposalSnapshot }: { project: Project; estimate: Estimate; totals: ReturnType<typeof calculateEstimateTotals>; currencyCode: string; savedProposalCount: number; onSaveEstimate?: (estimate: Estimate) => Promise<void>; onIssueProposalSnapshot?: (estimate: Estimate) => Promise<void> }) {
   const sectionSummaries = estimate.sections.map((section) => {
     const total = totals.rows.filter((row) => row.sectionId === section.id && row.includedInTotal).reduce((sum, row) => sum + row.calculated.total, 0);
     return { ...section, total };
   });
-  return <section className="rounded-3xl border border-hairline bg-proposal-paper p-5 shadow-sm"><div className="rounded-xl border border-hairline bg-white/70 p-5 font-serif"><p className="text-xs uppercase tracking-[0.16em] text-muted">Proposal Preview</p><h2 className="mt-2 text-2xl font-semibold tracking-[-0.03em]">Cost Proposal</h2><p className="mt-3 text-sm leading-6">We are pleased to submit this draft proposal for <strong>{project.name}</strong> located in {project.location}. This preview is generated from the current local estimate and is not yet an issued snapshot.</p><div className="mt-5 rounded-xl bg-foreground p-4 text-white"><p className="text-xs text-white/70">Total proposed amount</p><p className="mt-1 font-mono text-2xl font-semibold">{currency.format(totals.grandTotal)}</p></div><h3 className="mt-5 font-sans text-sm font-semibold uppercase tracking-[0.12em]">Section Summary</h3><div className="mt-2 space-y-2">{sectionSummaries.map((section) => <div key={section.id} className="flex justify-between border-b border-hairline py-2 text-sm"><span>{section.outlineCode}. {section.name}</span><span className="font-mono">{currency.format(section.total)}</span></div>)}</div><h3 className="mt-5 font-sans text-sm font-semibold uppercase tracking-[0.12em]">Commercial placeholders</h3><ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-muted"><li>Validity: 30 days unless revised.</li><li>Exclusions, OSCI, payment terms, warranty, and signature blocks remain editable before issuance.</li><li>Issued proposals must become immutable snapshots.</li></ul></div></section>;
+  return <section className="rounded-3xl border border-hairline bg-proposal-paper p-5 shadow-sm"><div className="mb-4 grid gap-2"><button className="rounded-xl bg-foreground px-3 py-2 text-sm font-semibold text-white hover:bg-neutral-800" onClick={() => void onSaveEstimate?.(estimate)}>Save estimate to local JSON</button><button className="rounded-xl border border-hairline bg-white px-3 py-2 text-sm font-semibold hover:bg-surface-muted" onClick={() => void onIssueProposalSnapshot?.(estimate)}>Issue immutable proposal snapshot</button><p className="text-xs text-muted">Issued snapshots for this estimate: {savedProposalCount}</p></div><div className="rounded-xl border border-hairline bg-white/70 p-5 font-serif"><p className="text-xs uppercase tracking-[0.16em] text-muted">Proposal Preview</p><h2 className="mt-2 text-2xl font-semibold tracking-[-0.03em]">Cost Proposal</h2><p className="mt-3 text-sm leading-6">We are pleased to submit this draft proposal for <strong>{project.name}</strong> located in {project.location}. This preview is generated from the current local estimate and is not yet an issued snapshot.</p><div className="mt-5 rounded-xl bg-foreground p-4 text-white"><p className="text-xs text-white/70">Total proposed amount</p><p className="mt-1 font-mono text-2xl font-semibold">{formatMoney(totals.grandTotal, currencyCode)}</p></div><h3 className="mt-5 font-sans text-sm font-semibold uppercase tracking-[0.12em]">Section Summary</h3><div className="mt-2 space-y-2">{sectionSummaries.map((section) => <div key={section.id} className="flex justify-between border-b border-hairline py-2 text-sm"><span>{section.outlineCode}. {section.name}</span><span className="font-mono">{formatMoney(section.total, currencyCode)}</span></div>)}</div><h3 className="mt-5 font-sans text-sm font-semibold uppercase tracking-[0.12em]">Commercial placeholders</h3><ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-muted"><li>Validity: 30 days unless revised.</li><li>Exclusions, OSCI, payment terms, warranty, and signature blocks remain editable before issuance.</li><li>Issued proposals become immutable snapshots in local JSON.</li></ul></div></section>;
 }

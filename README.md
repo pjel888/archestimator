@@ -61,6 +61,22 @@ bun run build
 bun run test:e2e
 ```
 
+## Local data
+
+Tracked starter data lives in:
+
+```text
+data/local/seed.json
+```
+
+Runtime edits are written to:
+
+```text
+data/local/runtime.json
+```
+
+`runtime.json` is ignored by git. Delete it to reset from seed on the next app load, or set `ARCHESTIMATOR_DATA_PATH` to point the app at another local JSON file.
+
 Playwright smoke tests are configured under `e2e/`. Browser binaries may need to be installed with `npx playwright install chromium` on new machines/CI.
 
 ## Current MVP surface
