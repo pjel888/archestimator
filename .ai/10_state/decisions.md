@@ -7,7 +7,11 @@
 - 2026-05-16 — Create `.ai/` before choosing the final tech stack.
 - 2026-05-16 — `.ai/` should be the shared intelligence folder for all AI agents, not only one tool.
 - 2026-05-16 — Product direction should focus on contractors making construction cost estimating fast, quick, and easy while managing multiple projects and design changes.
+- 2026-05-16 — Stack baseline selected for MVP speed: Next.js 16 + React 19 + Bun + TypeScript + Tailwind v4.
+- 2026-05-16 — Data layer should be local-first JSON while the model changes rapidly, with repository boundaries prepared for future Supabase/Postgres migration; no Supabase connection until explicitly approved.
 - 2026-05-16 — Root `DESIGN.md` created as the agent-readable visual/design-system source of truth; Google DESIGN.md lint passes with 0 errors. Initial Tailwind/DTCG exports live in `.ai/07_design/`.
+- 2026-05-16 — GitHub repo created as private under `pjel888/archestimator`; use feature branches/PRs, do not merge to main automatically.
+- 2026-05-16 — First interactive MVP slice keeps edits in browser memory; persistent local writes/server actions are the next slice after mutation rules are designed.
 
 ## Working decisions / likely direction
 
