@@ -27,6 +27,7 @@
 - 2026-05-17 — ChunkHound, GitNexus, and CodeGraph should be run periodically during non-trivial code migration slices. Generated code-intelligence databases/exports are local-only unless a specific human-readable report is intentionally promoted into `.ai/`.
 - 2026-05-17 — Cost library items are reusable source/templates with pricing metadata (`pricingDate`, `source`, `confidence`, waste, material/labor defaults). Editing a library item must not silently mutate estimate rows already copied from that item; those rows remain project-specific instances until an explicit reset/update workflow exists.
 - 2026-05-17 — Revision changes should be persisted as explicit local-first audit records when a newer estimate is saved against a prior project version; UI may compute draft diffs on demand, but saved revisions need durable summaries for client-facing explanations.
+- 2026-05-17 — Archestimator design direction is Intercom × legacy Archestimator frontend v4: public pages should use Intercom-like editorial SaaS clarity, black/white/off-white surfaces, large confident typography, flat thin-border cards, and product mockups; authenticated estimating routes should use a full-browser v4-style workspace with persistent left app navigation, central spreadsheet dominance, contextual right dock, and minimal centered-card layouts.
 
 ## Working decisions / likely direction
 

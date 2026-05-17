@@ -5,12 +5,44 @@
 ## Current active thread
 
 - **Date:** 2026-05-17
-- **Branch:** `feat/persisted-revision-change-records`
-- **Goal:** Persist revision change records and remediate Codex PR #8/#9 review comments.
-- **Status:** Implemented; local gates passing; independent review pending
+- **Branch:** `feat/intercom-v4-ui-shell`
+- **Goal:** Implement Intercom × Archestimator frontend v4 UX/UI foundation.
+- **Status:** Implemented; full local gates and independent review passing
 - **Validation target:** `bun run validate && bun run build && bun run test:e2e`
 
 ## Ledger entries
+
+### 2026-05-17 — Intercom × Archestimator v4 UI foundation
+
+**Status:** Implemented; local gates and independent review passing
+
+**Type:** design system + landing page + app shell + full-browser workspace UX
+
+**What changed:**
+
+- Updated `DESIGN.md` and exported Tailwind/DTCG tokens around an Intercom-inspired black/white/off-white SaaS design language plus legacy Archestimator v4 full-height workspace layout direction.
+- Added Intercom research/design references under `.ai/07_design/` and a UI improvement plan under `.ai/03_plans/`.
+- Restyled `/` into an editorial SaaS landing page with large typography, black CTAs, flat product mockup, off-white section rhythm, and workflow narrative.
+- Added reusable `AppWorkspaceShell` with persistent left navigation for authenticated workspace routes.
+- Rebuilt `/projects` into a full-browser project command center instead of a centered dashboard card.
+- Reworked `/projects/[projectId]` into a full-browser estimating workspace with dominant central Glide grid surface, right selected-row/workspace dock, and 2xl project-tree rail inspired by legacy v4.
+- Moved the production selected-row inspector into the right dock and added responsive overflow handling so smaller widths can scroll instead of clipping controls.
+- Updated UI primitives and DOM/E2E coverage for the new design language and layout shell.
+
+**Verification:**
+
+- `bun run validate` — passed: type-check, lint, 41 unit tests, 16 DOM/Vitest tests.
+- `bun run build` — passed.
+- `bun run test:e2e` — passed: 8 Playwright tests.
+- `git diff --check` — passed.
+- Browser QA reviewed landing and workspace; grid width improved after panel sizing adjustments.
+- Independent review — PASS after responsive dock overflow blocker was fixed.
+
+**Follow-ups:**
+
+- Add mobile/tablet app navigation for the shell.
+- Consider collapsible/resizable project tree and right dock so the grid can dominate across more laptop sizes.
+- Make the Glide grid height expand more dynamically beyond the current fixed-height sheet.
 
 ### 2026-05-17 — Persisted revision change records + Codex comment remediation
 
