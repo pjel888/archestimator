@@ -1,15 +1,15 @@
 import Link from "next/link";
-import { ArrowRight, CheckCircle, CircleDollarSign, FileText, GitBranch, Grid3X3, Sparkles } from "lucide-react";
+import { ArrowRight, CheckCircle, CurrencyCircleDollar, FileText, GitBranch, GridFour, Sparkle } from "@phosphor-icons/react/dist/ssr";
 import { Button } from "@/components/ui/button";
 
 const featureCards = [
   {
-    icon: Grid3X3,
+    icon: GridFour,
     title: "Estimate in the workspace, not a cramped card",
     description: "A full-browser sheet gives the grid priority while keeping project structure, library items, and proposal controls within reach.",
   },
   {
-    icon: CircleDollarSign,
+    icon: CurrencyCircleDollar,
     title: "Cost clarity from row to proposal",
     description: "Material, labor, scope, and location data stay structured so totals remain traceable as the estimate changes.",
   },
@@ -48,7 +48,7 @@ export default function LandingPage() {
           <div className="mx-auto grid w-full max-w-[1600px] gap-2 px-2 py-2 sm:px-2 lg:grid-cols-[minmax(0,0.95fr)_minmax(520px,1.05fr)] lg:px-2 lg:py-2">
             <div className="flex flex-col justify-center">
               <p className="inline-flex w-fit items-center gap-2 rounded-full border border-divider bg-surface px-2 py-1 text-xs font-medium text-secondary">
-                <Sparkles className="size-3.5 text-accent" /> Intercom-grade UX for construction estimating
+                <Sparkle className="size-3.5 text-accent" weight="duotone" /> Intercom-grade UX for construction estimating
               </p>
               <h1 className="mt-7 max-w-4xl text-4xl font-medium leading-[0.98] tracking-[-0.055em] text-ink sm:text-5xl lg:text-6xl">
                 Estimates that feel as focused as your best spreadsheet.
@@ -59,7 +59,7 @@ export default function LandingPage() {
               <div className="mt-8 flex flex-wrap gap-2">
                 <Link href="/projects">
                   <Button variant="primary" size="md">
-                    Start estimating <ArrowRight className="size-4" />
+                    Start estimating <ArrowRight className="size-4" weight="bold" />
                   </Button>
                 </Link>
                 <Link href="/projects">
@@ -69,7 +69,7 @@ export default function LandingPage() {
               <div className="mt-8 grid gap-2 text-sm text-secondary sm:grid-cols-3">
                 {['Full-browser workspace', 'Local-first data', 'Proposal snapshots'].map((item) => (
                   <div key={item} className="flex items-center gap-2">
-                    <CheckCircle className="size-4 text-success" />
+                    <CheckCircle className="size-4 text-success" weight="duotone" />
                     {item}
                   </div>
                 ))}
@@ -131,7 +131,7 @@ export default function LandingPage() {
             <div className="mt-10 grid gap-2 md:grid-cols-2 xl:grid-cols-4">
               {featureCards.map(({ icon: Icon, title, description }) => (
                 <article key={title} className="halftone-panel rounded-lg border border-divider bg-surface p-2">
-                  <Icon className="size-6 text-accent" />
+                  <Icon className="size-6 text-accent" weight="duotone" />
                   <h3 className="mt-5 text-lg font-medium tracking-[-0.025em] text-ink">{title}</h3>
                   <p className="mt-3 text-sm leading-6 text-secondary">{description}</p>
                 </article>

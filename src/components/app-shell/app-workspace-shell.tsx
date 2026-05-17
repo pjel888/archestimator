@@ -1,23 +1,23 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
-import type { LucideIcon } from "lucide-react";
-import { BookOpen, Copy, FileText, FolderOpen, Home, Settings, Users } from "lucide-react";
+import type { Icon } from "@phosphor-icons/react";
+import { Archive, Buildings, FileText, FolderOpen, HouseLine, Palette, SlidersHorizontal } from "@phosphor-icons/react/dist/ssr";
 import { cn } from "@/lib/ui/cn";
 
 type SidebarItem = {
   label: string;
   href?: string;
-  icon: LucideIcon;
+  icon: Icon;
 };
 
 const sidebarItems: SidebarItem[] = [
-  { label: "Dashboard", href: "/projects", icon: Home },
+  { label: "Dashboard", href: "/projects", icon: HouseLine },
   { label: "Projects", href: "/projects", icon: FolderOpen },
-  { label: "Cost Library", icon: BookOpen },
+  { label: "Library", icon: Archive },
   { label: "Proposals", icon: FileText },
-  { label: "Clients", icon: Users },
-  { label: "Templates", icon: Copy },
-  { label: "Settings", icon: Settings },
+  { label: "Clients", icon: Buildings },
+  { label: "Templates", icon: Palette },
+  { label: "Settings", icon: SlidersHorizontal },
 ];
 
 type AppWorkspaceShellProps = {
@@ -65,7 +65,7 @@ function SidebarNavItem({ item, active }: { item: SidebarItem; active: boolean }
 
   const content = (
     <>
-      <Icon className="size-3.5" aria-hidden="true" />
+      <Icon className="size-4" weight={active ? "fill" : "duotone"} aria-hidden="true" />
       <span className="max-w-full truncate">{item.label}</span>
     </>
   );
