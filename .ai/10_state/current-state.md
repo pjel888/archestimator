@@ -43,6 +43,22 @@ The emerging product wedge is:
 - Local persistence/project routing slice implemented: dashboard at `/`, project workspace at `/projects/[projectId]`, mutable ignored runtime JSON, save/revision/proposal snapshot server actions.
 - Proposal package builder/UI system slice implemented: reusable UI primitives, editable proposal terms, immutable proposal snapshots with terms, and print-ready `/proposals/[proposalId]` route.
 - Project creation/proposal history/UI hardening slice implemented: dashboard create-project form, first empty draft estimate, reusable PageShell/ObjectCard/EmptyState primitives, project proposal history links, grid/drag-drop package ADR.
+- Estimate grid drop-targeting UX micro-spike implemented at `/spikes/estimate-grid`: chose dnd-kit overlay + explicit row hit-testing over native HTML DataTransfer for stronger micro-interactions, stable no-layout-shift library cards, visible grid drop intent, and space/area-oriented estimating inspired by legacy v4.
+- Autopilot documentation added/updated:
+  - `.ai/01_roadmap/README.md`
+  - `.ai/04_tasks/current-autopilot-board.md`
+  - `.ai/10_state/execution-ledger.md`
+- Production model bridge started: `Estimate.sections` remains the working space/area axis for now, `Estimate.proposalSections` is the client-facing BOQ/proposal consolidation axis, and `EstimateLineItem.proposalSectionId` maps rows into proposal summaries.
+- Production workspace proposal mapping slice implemented: blank/library row creation now uses the selected working section to infer/default the proposal section, each row exposes an editable proposal-section selector, proposal preview summarizes by proposal section, and unmapped billable rows show an issuance warning.
+- Full route/feature E2E baseline implemented for `/`, `/projects/[projectId]`, `/proposals/[proposalId]`, `/spikes/estimate-grid`, and unknown project 404; covered MVP flows include section selection, blank/library insertion, proposal-section mapping, live total recalculation, proposal issuance, revision duplication, and spike insertion.
+- Production Glide workspace migration started: project estimate page now renders a client-only Glide Data Grid sheet backed by the shared adapter, while accessible proposal-section mapping/action controls remain available below during the incremental migration.
+- Production library-to-Glide insertion added: cost cards now have drag handles for dnd-kit grid targeting plus an accessible selected-item row fallback that inserts the intended library item through the shared grid adapter.
+- Production selected-row inspector added: proposal-section assignment, proposal-section mapping, scope, quantity/rate edits, reset, and delete now live in keyboard-accessible grid-side controls instead of the old full accessible table.
+- Floor/room/area hierarchy slice added: estimates now support explicit `floors` and `spaces`, line items can reference `spaceId`, the selected-row inspector can assign locations, proposal preview shows location-aware detail rows, issued proposal snapshots freeze detail rows with location references, `/proposals/[proposalId]` renders those detail rows, and Glide keyboard selection updates the inspector through `onGridSelectionChange`.
+- Cost Library Management v1 slice added: the project workspace library tab now creates/edits reusable cost items with source notes, pricing date, confidence, waste percent, material defaults, and labor defaults while preserving inserted estimate rows as copied project-specific data.
+- PR #7 Codex comments remediated: `next-env.d.ts` is no longer ignored, grid edits mark library-backed rows as `linked-overridden` when appropriate, and numeric Glide edits clamp to nonnegative values before persistence.
+- Code-intelligence cadence established: ChunkHound, GitNexus, and CodeGraph are installed/run for migration slices; generated indexes live under ignored `.ai/14_code_intelligence/`.
+- Codex/GitHub PR comments checked on PR #5 and PR #6; actionable material-cost edit, default proposal-section mapping, and non-billable section-header total issues fixed in the grid/model path.
 - Root `DESIGN.md` has been created and validated with Google DESIGN.md lint: 0 errors.
 - Initial token exports created:
   - `.ai/07_design/tailwind.theme.json`

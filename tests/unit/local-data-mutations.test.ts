@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import type { Estimate, LocalDatabase } from "@/lib/local-data/schemas";
-import { createProjectWithInitialEstimate, createProposalSnapshot, duplicateEstimateRevision, saveEstimateInDatabase } from "@/lib/local-data/mutations";
+import { createProjectWithInitialEstimate, createProposalSnapshot, duplicateEstimateRevision, saveEstimateInDatabase, upsertCostLibraryItem } from "@/lib/local-data/mutations";
 
 const estimate: Estimate = {
   id: "estimate_1",
@@ -11,10 +11,13 @@ const estimate: Estimate = {
   status: "draft",
   pricingBasisDate: "2026-05-16",
   sections: [{ id: "section_1", name: "Works", outlineCode: "A", sectionType: "trade" }],
+  floors: [{ id: "floor_1", name: "Ground Floor", outlineCode: "GF", sortOrder: 0 }],
+  spaces: [{ id: "space_1", floorId: "floor_1", name: "Bathroom", outlineCode: "GF-01", sortOrder: 0, spaceType: "room" }],
   lineItems: [
     {
       id: "line_1",
       sectionId: "section_1",
+      spaceId: "space_1",
       itemName: "Work item",
       quantity: 2,
       unit: "lot",
@@ -45,6 +48,71 @@ describe("saveEstimateInDatabase", () => {
   });
 });
 
+describe("upsertCostLibraryItem", () => {
+  test("creates a reusable cost library item with source and confidence metadata", () => {
+    const next = upsertCostLibraryItem(database, {
+      name: "Gypsum board partition",
+      category: "Drywall",
+      itemType: "material",
+      unit: "sqm",
+      defaultUnitCost: 650,
+      defaultLaborUnitCost: 180,
+      pricingDate: "2026-05-17",
+      source: "Supplier quote Q-101",
+      confidence: "medium",
+      defaultWastePercent: 8,
+    });
+
+    expect(next.costLibraryItems).toHaveLength(1);
+    expect(next.costLibraryItems[0]).toMatchObject({
+      name: "Gypsum board partition",
+      category: "Drywall",
+      source: "Supplier quote Q-101",
+      confidence: "medium",
+      defaultWastePercent: 8,
+    });
+    expect(next.costLibraryItems[0].id).toMatch(/^lib_/);
+  });
+
+  test("updates an existing cost library item without mutating estimate rows already inserted from it", () => {
+    const sourceDatabase: LocalDatabase = {
+      ...database,
+      costLibraryItems: [{
+        id: "lib_partition",
+        name: "Partition",
+        category: "Drywall",
+        itemType: "material",
+        unit: "sqm",
+        defaultUnitCost: 500,
+        pricingDate: "2026-05-16",
+        source: "Old quote",
+        confidence: "low",
+      }],
+      estimates: [{
+        ...estimate,
+        lineItems: [{ ...estimate.lineItems[0], sourceLibraryItemId: "lib_partition", materialUnitCost: 500, unitCost: undefined, linkState: "linked-clean" }],
+      }],
+    };
+
+    const next = upsertCostLibraryItem(sourceDatabase, {
+      id: "lib_partition",
+      name: "Partition - premium board",
+      category: "Drywall",
+      itemType: "material",
+      unit: "sqm",
+      defaultUnitCost: 720,
+      pricingDate: "2026-05-17",
+      source: "Updated quote",
+      confidence: "high",
+    });
+
+    expect(next.costLibraryItems).toHaveLength(1);
+    expect(next.costLibraryItems[0]).toMatchObject({ name: "Partition - premium board", defaultUnitCost: 720, confidence: "high" });
+    expect(next.estimates[0].lineItems[0].materialUnitCost).toBe(500);
+    expect(next.estimates[0].lineItems[0].linkState).toBe("linked-clean");
+  });
+});
+
 describe("duplicateEstimateRevision", () => {
   test("creates a new draft revision and points the project at it", () => {
     const next = duplicateEstimateRevision(database, "estimate_1", "Design change");
@@ -70,8 +138,74 @@ describe("createProposalSnapshot", () => {
     expect(next.snapshot.estimateName).toBe("Initial Estimate");
     expect(next.snapshot.terms.subject).toBe("Cost proposal for Project");
     expect(next.snapshot.terms.validityDays).toBe(30);
+    expect(next.snapshot.detailRows).toHaveLength(1);
+    expect(next.snapshot.detailRows[0]).toMatchObject({
+      lineItemId: "line_1",
+      spacePath: "Ground Floor / Bathroom",
+      itemName: "Work item",
+      quantity: 2,
+      adjustedQuantity: 2,
+      unit: "lot",
+      unitRate: 100,
+      totalAmount: 200,
+    });
     expect(next.database.proposalSnapshots).toHaveLength(1);
     expect(next.database.estimates[0].status).toBe("draft");
+  });
+
+  test("freezes proposal detail unit rates and adjusted quantity for split material and labor rows", () => {
+    const splitCostEstimate: Estimate = {
+      ...estimate,
+      lineItems: [{ ...estimate.lineItems[0], unitCost: undefined, materialUnitCost: 100, laborUnitCost: 40, quantity: 3, wastePercent: 10 }],
+    };
+    const next = createProposalSnapshot({ ...database, estimates: [splitCostEstimate] }, "estimate_1");
+
+    expect(next.snapshot.detailRows[0].unitRate).toBe(140);
+    expect(next.snapshot.detailRows[0].wastePercent).toBe(10);
+    expect(next.snapshot.detailRows[0].adjustedQuantity).toBe(3.3);
+    expect(next.snapshot.detailRows[0].totalAmount).toBe(462);
+  });
+
+  test("keeps unmapped working rows visible as unassigned instead of dropping totals", () => {
+    const estimateWithUnmappedRows: Estimate = {
+      ...estimate,
+      sections: [{ id: "space_bathroom", name: "Bathroom", outlineCode: "GF-01", sectionType: "area" }],
+      proposalSections: [
+        { id: "proposal_finishes", name: "Floor Finishes", outlineCode: "A", sectionType: "trade", sortOrder: 0, displayInProposal: true },
+      ],
+      lineItems: [{ ...estimate.lineItems[0], sectionId: "space_bathroom", proposalSectionId: undefined, quantity: 2, unitCost: 100 }],
+    };
+    const next = createProposalSnapshot({ ...database, estimates: [estimateWithUnmappedRows] }, "estimate_1");
+
+    expect(next.snapshot.totalAmount).toBe(200);
+    expect(next.snapshot.sectionSummaries).toHaveLength(2);
+    expect(next.snapshot.sectionSummaries[0].proposalSectionId).toBe("proposal_finishes");
+    expect(next.snapshot.sectionSummaries[0].totalAmount).toBe(0);
+    expect(next.snapshot.sectionSummaries[1].sectionId).toBe("unassigned-proposal-section");
+    expect(next.snapshot.sectionSummaries[1].totalAmount).toBe(200);
+  });
+
+  test("consolidates proposal summaries by proposal section across working spaces", () => {
+    const multiSpaceEstimate: Estimate = {
+      ...estimate,
+      sections: [
+        { id: "space_bathroom", name: "Bathroom", outlineCode: "GF-01", sectionType: "area" },
+        { id: "space_kitchen", name: "Kitchen", outlineCode: "GF-02", sectionType: "area" },
+      ],
+      proposalSections: [
+        { id: "proposal_finishes", name: "Floor Finishes", outlineCode: "A", sectionType: "trade", sortOrder: 0, displayInProposal: true },
+      ],
+      lineItems: [
+        { ...estimate.lineItems[0], id: "line_bath", sectionId: "space_bathroom", proposalSectionId: "proposal_finishes", quantity: 2, unitCost: 100 },
+        { ...estimate.lineItems[0], id: "line_kitchen", sectionId: "space_kitchen", proposalSectionId: "proposal_finishes", quantity: 3, unitCost: 200 },
+      ],
+    };
+    const next = createProposalSnapshot({ ...database, estimates: [multiSpaceEstimate] }, "estimate_1");
+
+    expect(next.snapshot.sectionSummaries).toHaveLength(1);
+    expect(next.snapshot.sectionSummaries[0].sectionId).toBeUndefined();
+    expect(next.snapshot.sectionSummaries[0].proposalSectionId).toBe("proposal_finishes");
+    expect(next.snapshot.sectionSummaries[0].totalAmount).toBe(800);
   });
 });
 
@@ -94,5 +228,6 @@ describe("createProjectWithInitialEstimate", () => {
     expect(newEstimate.projectId).toBe(project.id);
     expect(newEstimate.lineItems).toHaveLength(0);
     expect(newEstimate.sections[0].name).toBe("General Scope");
+    expect(newEstimate.spaces[0]).toMatchObject({ outlineCode: "A", name: "General Scope" });
   });
 });

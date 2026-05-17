@@ -1,6 +1,6 @@
 import { nanoid } from "nanoid";
 import { calculateEstimateTotals } from "@/lib/estimates/totals";
-import type { Estimate, LocalDatabase, ProposalSnapshot, ProposalTerms } from "./schemas";
+import type { CostLibraryItem, Estimate, LocalDatabase, ProposalSnapshot, ProposalTerms } from "./schemas";
 import { normalizeProposalTerms } from "@/lib/proposals/terms";
 
 type CreateProjectInput = {
@@ -16,6 +16,9 @@ export function createProjectWithInitialEstimate(
   const projectId = `project_${nanoid(10)}`;
   const estimateId = `estimate_${nanoid(10)}`;
   const firstSectionId = `section_${nanoid(10)}`;
+  const firstProposalSectionId = `proposal_section_${nanoid(10)}`;
+  const firstFloorId = `floor_${nanoid(10)}`;
+  const firstSpaceId = `space_${nanoid(10)}`;
   const project = {
     id: projectId,
     name: input.name.trim(),
@@ -40,6 +43,34 @@ export function createProjectWithInitialEstimate(
         sectionType: "custom",
       },
     ],
+    floors: [
+      {
+        id: firstFloorId,
+        name: "Project Level",
+        outlineCode: "L1",
+        sortOrder: 0,
+      },
+    ],
+    spaces: [
+      {
+        id: firstSpaceId,
+        floorId: firstFloorId,
+        name: "General Scope",
+        outlineCode: "A",
+        sortOrder: 0,
+        spaceType: "area",
+      },
+    ],
+    proposalSections: [
+      {
+        id: firstProposalSectionId,
+        name: "General Requirements",
+        outlineCode: "A",
+        sectionType: "trade",
+        sortOrder: 0,
+        displayInProposal: true,
+      },
+    ],
     lineItems: [],
   };
 
@@ -52,6 +83,30 @@ export function createProjectWithInitialEstimate(
     projectId,
     estimateId,
   };
+}
+
+type UpsertCostLibraryItemInput = Omit<CostLibraryItem, "id"> & { id?: string };
+
+export function upsertCostLibraryItem(database: LocalDatabase, input: UpsertCostLibraryItemInput): LocalDatabase {
+  const item: CostLibraryItem = {
+    id: input.id?.trim() || `lib_${nanoid(10)}`,
+    name: input.name.trim(),
+    category: input.category.trim(),
+    itemType: input.itemType,
+    unit: input.unit.trim(),
+    defaultUnitCost: Math.max(0, input.defaultUnitCost),
+    defaultLaborUnitCost: input.defaultLaborUnitCost === undefined ? undefined : Math.max(0, input.defaultLaborUnitCost),
+    tagCode: input.tagCode?.trim() || undefined,
+    pricingDate: input.pricingDate,
+    source: input.source?.trim() || undefined,
+    confidence: input.confidence ?? "medium",
+    defaultWastePercent: input.defaultWastePercent === undefined ? undefined : Math.max(0, input.defaultWastePercent),
+  };
+  const exists = database.costLibraryItems.some((entry) => entry.id === item.id);
+  const costLibraryItems = exists
+    ? database.costLibraryItems.map((entry) => (entry.id === item.id ? item : entry))
+    : [item, ...database.costLibraryItems];
+  return { ...database, costLibraryItems };
 }
 
 export function saveEstimateInDatabase(database: LocalDatabase, estimate: Estimate): LocalDatabase {
@@ -109,6 +164,69 @@ export function createProposalSnapshot(
   if (!project) throw new Error(`Project not found for estimate: ${estimateId}`);
 
   const totals = calculateEstimateTotals(estimate);
+  const proposalSections = estimate.proposalSections && estimate.proposalSections.length > 0
+    ? estimate.proposalSections
+    : estimate.sections.map((section, index) => ({
+        id: section.id,
+        name: section.name,
+        outlineCode: section.outlineCode,
+        sectionType: section.sectionType === "area" ? "custom" as const : section.sectionType,
+        sortOrder: index,
+        displayInProposal: true,
+      }));
+  const proposalSectionIds = new Set(proposalSections.map((section) => section.id));
+  const unassignedProposalTotal = totals.rows
+    .filter((row) => row.includedInTotal && !row.proposalSectionId && !proposalSectionIds.has(row.sectionId))
+    .reduce((sum, row) => sum + row.calculated.total, 0);
+  const formatSpacePath = (spaceId?: string) => {
+    if (!spaceId) return "Unassigned location";
+    const space = estimate.spaces.find((entry) => entry.id === spaceId);
+    if (!space) return "Unassigned location";
+    const floor = estimate.floors.find((entry) => entry.id === space.floorId);
+    return [floor?.name, space.name].filter(Boolean).join(" / ") || space.name;
+  };
+
+  const detailRows = totals.rows
+    .filter((row) => row.includedInTotal)
+    .map((row) => ({
+      lineItemId: row.id,
+      proposalSectionId: row.proposalSectionId,
+      sectionId: row.sectionId,
+      spaceId: row.spaceId,
+      spacePath: formatSpacePath(row.spaceId),
+      itemName: row.itemName,
+      description: row.description,
+      quantity: row.quantity,
+      adjustedQuantity: row.calculated.adjustedQuantity,
+      wastePercent: row.wastePercent,
+      unit: row.unit,
+      unitRate: row.unitCost ?? (row.materialUnitCost ?? 0) + (row.laborUnitCost ?? 0),
+      totalAmount: row.calculated.total,
+      scopeStatus: row.scopeStatus,
+    }));
+
+  const sectionSummaries = [
+    ...proposalSections
+      .filter((section) => section.displayInProposal)
+      .map((section) => ({
+        proposalSectionId: section.id,
+        name: section.name,
+        outlineCode: section.outlineCode,
+        totalAmount: totals.rows
+          .filter((row) => (row.proposalSectionId ?? row.sectionId) === section.id && row.includedInTotal)
+          .reduce((sum, row) => sum + row.calculated.total, 0),
+      })),
+    ...(unassignedProposalTotal > 0
+      ? [
+          {
+            sectionId: "unassigned-proposal-section",
+            name: "Unassigned Proposal Section",
+            outlineCode: "UNASSIGNED",
+            totalAmount: unassignedProposalTotal,
+          },
+        ]
+      : []),
+  ];
   const snapshot: ProposalSnapshot = {
     id: `proposal_${nanoid(10)}`,
     projectId: project.id,
@@ -122,14 +240,8 @@ export function createProposalSnapshot(
     currency: database.workspace.defaultCurrency,
     totalAmount: totals.grandTotal,
     terms: normalizeProposalTerms(database, estimate, terms),
-    sectionSummaries: estimate.sections.map((section) => ({
-      sectionId: section.id,
-      name: section.name,
-      outlineCode: section.outlineCode,
-      totalAmount: totals.rows
-        .filter((row) => row.sectionId === section.id && row.includedInTotal)
-        .reduce((sum, row) => sum + row.calculated.total, 0),
-    })),
+    sectionSummaries,
+    detailRows,
   };
 
   return {

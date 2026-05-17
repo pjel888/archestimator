@@ -45,10 +45,17 @@ export default async function ProposalPage({ params }: ProposalPageProps) {
         <section className="border-b border-hairline py-8">
           <h2 className="text-lg font-semibold">Cost summary</h2>
           <div className="mt-4 overflow-hidden rounded-xl border border-hairline">
-            {snapshot.sectionSummaries.map((section) => <div key={section.sectionId} className="flex justify-between border-b border-hairline px-4 py-3 text-sm last:border-0"><span>{section.outlineCode}. {section.name}</span><span className="font-mono font-semibold">{formatMoney(section.totalAmount, snapshot.currency)}</span></div>)}
+            {snapshot.sectionSummaries.map((section) => <div key={section.proposalSectionId ?? section.sectionId ?? section.name} className="flex justify-between border-b border-hairline px-4 py-3 text-sm last:border-0"><span>{section.outlineCode}. {section.name}</span><span className="font-mono font-semibold">{formatMoney(section.totalAmount, snapshot.currency)}</span></div>)}
             <div className="flex justify-between bg-foreground px-4 py-4 text-white"><span className="font-semibold">Grand total</span><span className="font-mono text-lg font-semibold">{formatMoney(snapshot.totalAmount, snapshot.currency)}</span></div>
           </div>
         </section>
+
+        {snapshot.detailRows.length ? <section className="border-b border-hairline py-8">
+          <h2 className="text-lg font-semibold">Scope detail by location</h2>
+          <div className="mt-4 overflow-hidden rounded-xl border border-hairline">
+            {snapshot.detailRows.map((row) => <div key={row.lineItemId} className="grid gap-1 border-b border-hairline px-4 py-3 text-sm last:border-0 sm:grid-cols-[1fr_auto]"><div><p className="font-semibold">{row.itemName}</p>{row.description ? <p className="mt-1 text-xs text-muted">{row.description}</p> : null}<p className="mt-1 text-xs text-muted">{row.spacePath} · {row.quantity} {row.unit}{row.wastePercent ? ` + ${row.wastePercent}% waste = ${row.adjustedQuantity} ${row.unit}` : ""} · {row.scopeStatus}</p></div><div className="font-mono font-semibold sm:text-right"><p>{formatMoney(row.totalAmount, snapshot.currency)}</p><p className="mt-1 text-xs font-normal text-muted">@ {formatMoney(row.unitRate, snapshot.currency)}</p></div></div>)}
+          </div>
+        </section> : null}
 
         <section className="grid gap-6 border-b border-hairline py-8 text-sm leading-7">
           <TermBlock title="Inclusions" value={snapshot.terms.inclusions} />
