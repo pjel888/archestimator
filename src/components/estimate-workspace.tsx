@@ -11,7 +11,7 @@ import { Plus, RotateCcw, Trash2 } from "lucide-react";
 import type { CostLibraryItem, Estimate, EstimateLineItem, EstimateSpace, LocalDatabase, ProposalTerms } from "@/lib/local-data/schemas";
 import { calculateEstimateTotals } from "@/lib/estimates/totals";
 import { createLineItemFromLibraryItem, detectLinkStateAfterEdit } from "@/lib/estimates/library-insert";
-import { upsertCostLibraryItem } from "@/lib/local-data/mutations";
+import { copyEstimateLineToSpace, moveEstimateLineToSpace, upsertCostLibraryItem } from "@/lib/local-data/mutations";
 import { StatusPill } from "@/components/ui/status-pill";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -288,9 +288,21 @@ function EstimateWorkspaceInner({ database, project, initialEstimate, onSaveEsti
   function saveLibraryItem(item: CostLibraryItem) {
     const nextDatabase = upsertCostLibraryItem({ ...database, costLibraryItems: libraryItems }, item);
     setLibraryItems(nextDatabase.costLibraryItems);
-    setSelectedLibraryId(item.id || nextDatabase.costLibraryItems[0]?.id || "");
-    const savedItem = nextDatabase.costLibraryItems.find((entry) => entry.id === item.id) ?? nextDatabase.costLibraryItems[0];
-    if (savedItem && onSaveCostLibraryItem) void onSaveCostLibraryItem(savedItem);
+    const savedItem = nextDatabase.costLibraryItems.find((entry) => entry.id === (item.id || nextDatabase.costLibraryItems[0]?.id));
+    if (savedItem) setSelectedLibraryId(savedItem.id);
+    void onSaveCostLibraryItem?.(savedItem ?? nextDatabase.costLibraryItems[0]);
+  }
+
+  function moveSelectedLineToSpace(targetSpaceId: string) {
+    if (!selectedGridLineId || !targetSpaceId) return;
+    setEstimate((current) => moveEstimateLineToSpace(current, selectedGridLineId, targetSpaceId));
+  }
+
+  function copySelectedLineToSpace(targetSpaceId: string) {
+    if (!selectedGridLineId || !targetSpaceId) return;
+    const nextLineId = `line_${Date.now()}`;
+    setEstimate((current) => copyEstimateLineToSpace(current, selectedGridLineId, targetSpaceId, nextLineId));
+    setSelectedGridLineId(nextLineId);
   }
 
   function duplicateAsRevision() {
@@ -328,7 +340,7 @@ function EstimateWorkspaceInner({ database, project, initialEstimate, onSaveEsti
         </header>
 
         <div className="grid gap-6 xl:grid-cols-[1fr_430px]">
-          <EstimateSheetCard estimate={estimate} project={project} currencyCode={currencyCode} selectedSectionId={selectedSectionId} setSelectedSectionId={setSelectedSectionId} addBlankRow={addBlankRow} updateLine={updateLine} updateGridCell={updateGridCell} onGridCellSelected={selectGridCell} resetFromLibrary={resetFromLibrary} deleteLine={deleteGridLine} gridFrameRef={gridFrameRef} dropIntent={dropIntent} visibleDropRow={visibleDropRow} onVisibleRowOffsetChange={handleVisibleRowOffsetChange} insertionTargetLabel={insertionTargetSection ? `${insertionTargetSection.outlineCode} · ${insertionTargetSection.name}` : "none"} dropRow={dropRow} setDropRow={setDropRow} maxDropRow={gridRows.length} selectedLibraryName={libraryItems.find((entry) => entry.id === selectedLibraryId)?.name ?? "first library item"} onFallbackLibraryInsert={insertLibraryItemAtCurrentDropRow} selectedGridLine={selectedGridLine} selectedGridLineId={selectedGridLine?.id ?? ""} onSelectedGridLineChange={setSelectedGridLineId} proposalSections={estimate.proposalSections} spaces={estimate.spaces} getSpacePath={(spaceId) => formatSpacePath(estimate, spaceId)} />
+          <EstimateSheetCard estimate={estimate} project={project} currencyCode={currencyCode} selectedSectionId={selectedSectionId} setSelectedSectionId={setSelectedSectionId} addBlankRow={addBlankRow} updateLine={updateLine} updateGridCell={updateGridCell} onGridCellSelected={selectGridCell} resetFromLibrary={resetFromLibrary} deleteLine={deleteGridLine} gridFrameRef={gridFrameRef} dropIntent={dropIntent} visibleDropRow={visibleDropRow} onVisibleRowOffsetChange={handleVisibleRowOffsetChange} insertionTargetLabel={insertionTargetSection ? `${insertionTargetSection.outlineCode} · ${insertionTargetSection.name}` : "none"} dropRow={dropRow} setDropRow={setDropRow} maxDropRow={gridRows.length} selectedLibraryName={libraryItems.find((entry) => entry.id === selectedLibraryId)?.name ?? "first library item"} onFallbackLibraryInsert={insertLibraryItemAtCurrentDropRow} selectedGridLine={selectedGridLine} selectedGridLineId={selectedGridLine?.id ?? ""} onSelectedGridLineChange={setSelectedGridLineId} proposalSections={estimate.proposalSections} spaces={estimate.spaces} getSpacePath={(spaceId) => formatSpacePath(estimate, spaceId)} onMoveSelectedLineToSpace={moveSelectedLineToSpace} onCopySelectedLineToSpace={copySelectedLineToSpace} />
 
           <aside className="flex flex-col gap-4">
             <TabList className="grid-cols-3">
@@ -376,9 +388,11 @@ type EstimateSheetCardProps = {
   proposalSections: Estimate["proposalSections"];
   spaces: EstimateSpace[];
   getSpacePath: (spaceId?: string) => string;
+  onMoveSelectedLineToSpace: (spaceId: string) => void;
+  onCopySelectedLineToSpace: (spaceId: string) => void;
 };
 
-function EstimateSheetCard({ estimate, project, currencyCode, selectedSectionId, setSelectedSectionId, addBlankRow, updateLine, updateGridCell, onGridCellSelected, resetFromLibrary, deleteLine, gridFrameRef, dropIntent, visibleDropRow, onVisibleRowOffsetChange, insertionTargetLabel, dropRow, setDropRow, maxDropRow, selectedLibraryName, onFallbackLibraryInsert, selectedGridLine, selectedGridLineId, onSelectedGridLineChange, proposalSections, spaces, getSpacePath }: EstimateSheetCardProps) {
+function EstimateSheetCard({ estimate, project, currencyCode, selectedSectionId, setSelectedSectionId, addBlankRow, updateLine, updateGridCell, onGridCellSelected, resetFromLibrary, deleteLine, gridFrameRef, dropIntent, visibleDropRow, onVisibleRowOffsetChange, insertionTargetLabel, dropRow, setDropRow, maxDropRow, selectedLibraryName, onFallbackLibraryInsert, selectedGridLine, selectedGridLineId, onSelectedGridLineChange, proposalSections, spaces, getSpacePath, onMoveSelectedLineToSpace, onCopySelectedLineToSpace }: EstimateSheetCardProps) {
   const sectionSelectRef = useRef<HTMLSelectElement | null>(null);
 
   return (
@@ -431,6 +445,8 @@ function EstimateSheetCard({ estimate, project, currencyCode, selectedSectionId,
         resetFromLibrary={resetFromLibrary}
         deleteLine={deleteLine}
         onSelectedLineChange={onSelectedGridLineChange}
+        onMoveToSpace={onMoveSelectedLineToSpace}
+        onCopyToSpace={onCopySelectedLineToSpace}
       />
     </Card>
   );
@@ -448,6 +464,8 @@ function ProductionRowInspector({
   resetFromLibrary,
   deleteLine,
   onSelectedLineChange,
+  onMoveToSpace,
+  onCopyToSpace,
 }: {
   lineItems: EstimateLineItem[];
   selectedLine?: EstimateLineItem;
@@ -460,8 +478,11 @@ function ProductionRowInspector({
   resetFromLibrary: (line: EstimateLineItem) => void;
   deleteLine: (lineId: string) => void;
   onSelectedLineChange: (lineId: string) => void;
+  onMoveToSpace: (spaceId: string) => void;
+  onCopyToSpace: (spaceId: string) => void;
 }) {
   const calculated = selectedLine ? calculateEstimateTotals({ sections: [], floors: [], spaces: [], lineItems: [selectedLine], proposalSections: [], id: "inspector", projectId: "inspector", name: "Inspector", versionLabel: "Inspector", versionNumber: 1, status: "draft", pricingBasisDate: "2026-01-01" }).rows[0]?.calculated.total ?? 0 : 0;
+  const [operationSpaceId, setOperationSpaceId] = useState(selectedLine?.spaceId ?? spaces[0]?.id ?? "");
 
   if (!selectedLine) {
     return <div className="border-t border-hairline p-4 text-sm text-muted">Select a line row in the production grid to edit proposal mapping, scope, and row actions.</div>;
@@ -522,6 +543,17 @@ function ProductionRowInspector({
           {selectedLine.sourceLibraryItemId ? <Button aria-label={`Reset ${selectedLine.itemName} from library`} variant="ghost" onClick={() => resetFromLibrary(selectedLine)}><RotateCcw className="size-4" /> Reset</Button> : null}
           <Button aria-label={`Delete ${selectedLine.itemName}`} variant="danger" onClick={() => deleteLine(selectedLine.id)}><Trash2 className="size-4" /> Delete</Button>
         </div>
+      </div>
+      <div className="mt-4 rounded-2xl border border-hairline bg-white p-3">
+        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">Move/copy between spaces</p>
+        <div className="mt-2 grid gap-2 md:grid-cols-[1fr_auto_auto]">
+          <select aria-label="Row operation target location" className="rounded-xl border border-hairline bg-white px-3 py-2 text-sm text-foreground" value={operationSpaceId} onChange={(event) => setOperationSpaceId(event.target.value)}>
+            {spaces.map((space) => <option key={space.id} value={space.id}>{getSpacePath(space.id)}</option>)}
+          </select>
+          <Button variant="secondary" aria-label={`Move ${selectedLine.itemName} to selected location`} onClick={() => onMoveToSpace(operationSpaceId)}>Move row</Button>
+          <Button variant="secondary" aria-label={`Copy ${selectedLine.itemName} to selected location`} onClick={() => onCopyToSpace(operationSpaceId)}>Copy row</Button>
+        </div>
+        <p className="mt-2 text-xs text-muted">Move or copy keeps proposal-section mapping stable unless you change it explicitly.</p>
       </div>
       {!selectedLine.proposalSectionId ? <p className="mt-3 text-xs font-medium text-amber-700">Needs proposal mapping before proposal issuance.</p> : null}
     </div>
