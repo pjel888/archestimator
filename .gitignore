@@ -28,6 +28,9 @@
 # legacy research clone working trees are local-only; reports remain tracked
 /.ai/13_research/github-legacy-repos/clones/
 
+# generated code intelligence indexes are local-only; plans/reports remain tracked
+/.ai/14_code_intelligence/
+
 # misc
 .DS_Store
 *.pem
@@ -47,4 +50,3 @@ yarn-error.log*
 
 # typescript
 *.tsbuildinfo
-next-env.d.ts

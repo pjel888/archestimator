@@ -15,6 +15,9 @@
     "validate": "bun run type-check && bun run lint && bun run test && bun run test:dom"
   },
   "dependencies": {
+    "@dnd-kit/core": "^6.3.1",
+    "@dnd-kit/utilities": "^3.2.2",
+    "@glideapps/glide-data-grid": "^6.0.3",
     "@tanstack/react-table": "^8.21.3",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",

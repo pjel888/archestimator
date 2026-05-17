@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { EstimateWorkspace } from "@/components/estimate-workspace";
 import { createMutableLocalRepository } from "@/lib/local-data/repository";
-import { duplicateRevisionAction, issueProposalSnapshotAction, saveEstimateAction } from "@/app/actions";
+import { duplicateRevisionAction, issueProposalSnapshotAction, saveCostLibraryItemAction, saveEstimateAction } from "@/app/actions";
 
 export const dynamic = "force-dynamic";
 
@@ -23,6 +23,7 @@ export default async function ProjectPage({ params }: ProjectPageProps) {
       onSaveEstimate={saveEstimateAction}
       onDuplicateRevision={duplicateRevisionAction}
       onIssueProposalSnapshot={issueProposalSnapshotAction}
+      onSaveCostLibraryItem={saveCostLibraryItemAction}
     />
   );
 }

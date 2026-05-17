@@ -2,9 +2,9 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { createProjectWithInitialEstimate, createProposalSnapshot, duplicateEstimateRevision, saveEstimateInDatabase } from "@/lib/local-data/mutations";
+import { createProjectWithInitialEstimate, createProposalSnapshot, duplicateEstimateRevision, saveEstimateInDatabase, upsertCostLibraryItem } from "@/lib/local-data/mutations";
 import { createMutableLocalRepository } from "@/lib/local-data/repository";
-import type { Estimate, ProposalTerms } from "@/lib/local-data/schemas";
+import type { CostLibraryItem, Estimate, ProposalTerms } from "@/lib/local-data/schemas";
 
 export async function createProjectAction(formData: FormData) {
   const name = String(formData.get("name") ?? "").trim();
@@ -29,6 +29,13 @@ export async function saveEstimateAction(estimate: Estimate) {
   await repository.saveDatabase(saveEstimateInDatabase(database, estimate));
   revalidatePath("/");
   revalidatePath(`/projects/${estimate.projectId}`);
+}
+
+export async function saveCostLibraryItemAction(item: CostLibraryItem) {
+  const repository = await createMutableLocalRepository();
+  const database = await repository.getDatabase();
+  await repository.saveDatabase(upsertCostLibraryItem(database, item));
+  revalidatePath("/");
 }
 
 export async function duplicateRevisionAction(estimateId: string) {

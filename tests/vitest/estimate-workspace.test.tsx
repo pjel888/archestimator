@@ -25,7 +25,56 @@ describe("EstimateWorkspace", () => {
 
     await user.click(screen.getAllByRole("button", { name: /Add to estimate/i })[0]);
 
-    expect(screen.getAllByText("linked-clean").length).toBeGreaterThanOrEqual(2);
+    expect(screen.getByTestId("production-row-inspector")).toHaveTextContent("linked-clean");
+    expect(screen.getAllByLabelText(/Proposal section for/i).at(-1)).toHaveValue("proposal_section_floor_finishes");
+  });
+
+  it("lets users remap a row to a proposal section", async () => {
+    const user = userEvent.setup();
+    render(<EstimateWorkspace database={database} />);
+
+    await user.selectOptions(screen.getByLabelText(/Proposal section for Tile A/i), "proposal_section_general_conditions");
+
+    expect(screen.getByLabelText(/Proposal section for Tile A/i)).toHaveValue("proposal_section_general_conditions");
+  });
+
+  it("maps new rows to the proposal section used by the selected working section", async () => {
+    const user = userEvent.setup();
+    render(<EstimateWorkspace database={database} />);
+
+    await user.selectOptions(screen.getByLabelText("Selected estimate section for new rows"), "space_general_conditions");
+    await user.click(screen.getByRole("button", { name: /Add blank row/i }));
+
+    expect(screen.getAllByLabelText(/Proposal section for Untitled estimate item/i).at(-1)).toHaveValue("proposal_section_general_conditions");
+  });
+
+  it("keeps the row inspector selection valid after deleting the selected row", async () => {
+    const user = userEvent.setup();
+    render(<EstimateWorkspace database={database} />);
+
+    await user.click(screen.getByRole("button", { name: /Delete Tile A - bathroom floor/i }));
+
+    expect(screen.getByLabelText("Selected production grid row")).not.toHaveValue("line_tile_a_bathroom");
+  });
+
+  it("lets users assign a selected row to a floor and room location", async () => {
+    const user = userEvent.setup();
+    render(<EstimateWorkspace database={database} />);
+
+    await user.selectOptions(screen.getByLabelText(/Location for Tile A/i), "space_bathroom_floor_area");
+
+    expect(screen.getByLabelText(/Location for Tile A/i)).toHaveValue("space_bathroom_floor_area");
+    expect(screen.getAllByText("Ground Floor / Bathroom / Floor Area").length).toBeGreaterThan(1);
+  });
+
+  it("shows proposal detail rows with space references", async () => {
+    const user = userEvent.setup();
+    render(<EstimateWorkspace database={database} />);
+
+    await user.click(screen.getByRole("tab", { name: "proposal" }));
+
+    expect(screen.getAllByText("Tile A - bathroom floor").length).toBeGreaterThan(1);
+    expect(screen.getAllByText("Ground Floor / Bathroom / Floor Area").length).toBeGreaterThan(1);
   });
 
   it("edits proposal terms in the proposal package builder", async () => {
@@ -37,5 +86,31 @@ describe("EstimateWorkspace", () => {
     await user.type(screen.getByLabelText("Subject"), "Updated client proposal");
 
     expect(screen.getByRole("heading", { name: "Updated client proposal" })).toBeInTheDocument();
+  });
+
+  it("creates and edits cost library items from the library management surface", async () => {
+    const user = userEvent.setup();
+    render(<EstimateWorkspace database={database} />);
+
+    await user.click(screen.getByRole("button", { name: "Create library item" }));
+    await user.clear(screen.getByLabelText("Library item name"));
+    await user.type(screen.getByLabelText("Library item name"), "Gypsum partition board");
+    await user.clear(screen.getByLabelText("Library category"));
+    await user.type(screen.getByLabelText("Library category"), "Drywall");
+    await user.selectOptions(screen.getByLabelText("Library item type"), "material");
+    await user.clear(screen.getByLabelText("Library unit"));
+    await user.type(screen.getByLabelText("Library unit"), "sqm");
+    await user.clear(screen.getByLabelText("Library material unit cost"));
+    await user.type(screen.getByLabelText("Library material unit cost"), "650");
+    await user.clear(screen.getByLabelText("Library labor unit cost"));
+    await user.type(screen.getByLabelText("Library labor unit cost"), "180");
+    await user.clear(screen.getByLabelText("Library source note"));
+    await user.type(screen.getByLabelText("Library source note"), "Supplier quote Q-101");
+    await user.selectOptions(screen.getByLabelText("Library confidence"), "medium");
+    await user.click(screen.getByRole("button", { name: "Save library item" }));
+
+    expect(screen.getAllByText("Gypsum partition board").length).toBeGreaterThan(0);
+    expect(screen.getByText(/Drywall · material · sqm/i)).toBeInTheDocument();
+    expect(screen.getByText(/Source: Supplier quote Q-101/i)).toBeInTheDocument();
   });
 });
