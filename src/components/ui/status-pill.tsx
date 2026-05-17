@@ -4,10 +4,10 @@ type StatusPillProps = {
 };
 
 const toneClasses = {
-  neutral: "bg-surface-muted text-slate-700",
-  approved: "bg-green-100 text-green-800",
-  review: "bg-amber-100 text-amber-800",
-  danger: "bg-red-100 text-red-800",
+  neutral: "bg-surfaceMuted text-secondary",
+  approved: "bg-successSoft text-success",
+  review: "bg-warningSoft text-warning",
+  danger: "bg-dangerSoft text-danger",
 };
 
 export function StatusPill({ children, tone = "neutral" }: StatusPillProps) {

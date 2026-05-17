@@ -1,21 +1,24 @@
 ---
 version: alpha
-name: Archestimator
-description: Precise, calm construction estimating software for contractors, architects, and design-build teams.
+name: Archestimator Intercom-Inspired Workspace
+description: Intercom-grade editorial SaaS design adapted to full-browser construction estimating workspaces.
 colors:
-  primary: "#171717"
-  ink: "#171717"
-  slate: "#334155"
-  muted: "#64748B"
-  hairline: "#E2E8F0"
-  canvas: "#FAFAF7"
+  primary: "#000000"
+  ink: "#111111"
+  secondary: "#313130"
+  tertiary: "#626260"
+  muted: "#6B7280"
+  hairline: "#E5E7EB"
+  divider: "#CECFCB"
+  background: "#FFFFFF"
+  canvas: "#F6F6F1"
+  warmCanvas: "#F4F3EC"
   surface: "#FFFFFF"
-  surfaceMuted: "#F4F1EA"
-  accent: "#92400E"
-  accentDark: "#78350F"
-  accentSoft: "#FEF3C7"
-  info: "#2563EB"
-  infoSoft: "#DBEAFE"
+  surfaceMuted: "#F6F6F1"
+  surfaceWarm: "#F4F3EC"
+  accent: "#000CE1"
+  accentSoft: "#EEF1FF"
+  focus: "#000CE1"
   success: "#15803D"
   successSoft: "#DCFCE7"
   warning: "#B45309"
@@ -25,39 +28,81 @@ colors:
   proposalPaper: "#FFFDF8"
 typography:
   display:
-    fontFamily: Inter
+    fontFamily: "Inter"
     fontSize: 4rem
-    fontWeight: 760
-    lineHeight: 1.02
+    fontWeight: 400
+    lineHeight: 1.04
     letterSpacing: "-0.055em"
-  h1:
-    fontFamily: Inter
-    fontSize: 2.5rem
-    fontWeight: 720
+  headline-lg:
+    fontFamily: "Inter"
+    fontSize: 2.8125rem
+    fontWeight: 400
     lineHeight: 1.08
+    letterSpacing: "-0.045em"
+  h1:
+    fontFamily: "Inter"
+    fontSize: 2.25rem
+    fontWeight: 430
+    lineHeight: 1.1
     letterSpacing: "-0.04em"
   h2:
-    fontFamily: Inter
+    fontFamily: "Inter"
     fontSize: 1.75rem
-    fontWeight: 680
+    fontWeight: 430
     lineHeight: 1.16
+    letterSpacing: "-0.035em"
+  h3:
+    fontFamily: "Inter"
+    fontSize: 1.4375rem
+    fontWeight: 450
+    lineHeight: 1.22
     letterSpacing: "-0.025em"
+  body-lg:
+    fontFamily: "Inter"
+    fontSize: 1.125rem
+    fontWeight: 350
+    lineHeight: 1.45
+    letterSpacing: "-0.015em"
   body:
-    fontFamily: Inter
+    fontFamily: "Inter"
     fontSize: 1rem
-    fontWeight: 400
-    lineHeight: 1.55
+    fontWeight: 350
+    lineHeight: 1.45
+    letterSpacing: "-0.01em"
+  body-sm:
+    fontFamily: "Inter"
+    fontSize: 0.875rem
+    fontWeight: 350
+    lineHeight: 1.42
     letterSpacing: "-0.01em"
   label:
-    fontFamily: Inter
-    fontSize: 0.8125rem
-    fontWeight: 620
-    lineHeight: 1.25
-    letterSpacing: "-0.005em"
+    fontFamily: "Inter"
+    fontSize: 0.875rem
+    fontWeight: 430
+    lineHeight: 1.2
+    letterSpacing: "-0.01em"
+  label-sm:
+    fontFamily: "Inter"
+    fontSize: 0.75rem
+    fontWeight: 500
+    lineHeight: 1.2
+    letterSpacing: "0.03em"
+  nav-link:
+    fontFamily: "Inter"
+    fontSize: 0.875rem
+    fontWeight: 400
+    lineHeight: 1.2
+    letterSpacing: "-0.01em"
+  button-text:
+    fontFamily: "Inter"
+    fontSize: 0.875rem
+    fontWeight: 500
+    lineHeight: 1.2
+    letterSpacing: "-0.01em"
   table-cell:
-    fontFamily: Inter
+    fontFamily: "Inter"
     fontSize: 0.8125rem
-    fontWeight: 450
+    fontWeight: 400
     lineHeight: 1.35
     letterSpacing: "-0.005em"
   numeric:
@@ -74,40 +119,86 @@ typography:
     lineHeight: 1.55
     letterSpacing: "0em"
 rounded:
+  none: 0px
   xs: 3px
-  sm: 6px
-  md: 10px
-  lg: 16px
-  xl: 24px
+  sm: 4px
+  md: 6px
+  lg: 8px
+  xl: 12px
+  full: 9999px
 spacing:
   xs: 4px
   sm: 8px
   md: 12px
-  lg: 16px
-  xl: 24px
-  xxl: 32px
+  lg: 20px
+  xl: 48px
+  xxl: 64px
+  section: 112px
 components:
   button-primary:
-    backgroundColor: "{colors.accent}"
-    textColor: "#FFFFFF"
-    typography: "{typography.label}"
+    backgroundColor: "{colors.primary}"
+    textColor: "{colors.surface}"
+    typography: "{typography.button-text}"
     rounded: "{rounded.md}"
-    padding: 12px
+    padding: 10px
     height: 40px
   button-primary-hover:
-    backgroundColor: "{colors.accentDark}"
-    textColor: "#FFFFFF"
-    typography: "{typography.label}"
+    backgroundColor: "{colors.secondary}"
+    textColor: "{colors.surface}"
+    typography: "{typography.button-text}"
     rounded: "{rounded.md}"
-    padding: 12px
+    padding: 10px
     height: 40px
   button-secondary:
     backgroundColor: "{colors.surface}"
     textColor: "{colors.ink}"
-    typography: "{typography.label}"
-    rounded: "{rounded.md}"
+    typography: "{typography.button-text}"
+    rounded: "{rounded.sm}"
+    padding: 10px
+    height: 40px
+  button-link:
+    backgroundColor: "{colors.surface}"
+    textColor: "{colors.ink}"
+    typography: "{typography.nav-link}"
+    rounded: "{rounded.none}"
+    padding: 0px
+  app-sidebar:
+    backgroundColor: "{colors.surface}"
+    textColor: "{colors.ink}"
+    typography: "{typography.nav-link}"
+    rounded: "{rounded.none}"
+    width: 248px
+  app-sidebar-collapsed:
+    backgroundColor: "{colors.surface}"
+    textColor: "{colors.ink}"
+    typography: "{typography.nav-link}"
+    rounded: "{rounded.none}"
+    width: 56px
+  workspace-panel:
+    backgroundColor: "{colors.surface}"
+    textColor: "{colors.ink}"
+    typography: "{typography.body-sm}"
+    rounded: "{rounded.lg}"
+    padding: 16px
+  product-card:
+    backgroundColor: "{colors.surface}"
+    textColor: "{colors.ink}"
+    typography: "{typography.body}"
+    rounded: "{rounded.lg}"
+    padding: 16px
+  input:
+    backgroundColor: "{colors.surface}"
+    textColor: "{colors.ink}"
+    typography: "{typography.body-sm}"
+    rounded: "{rounded.sm}"
     padding: 12px
     height: 40px
+  chip:
+    backgroundColor: "{colors.surface}"
+    textColor: "{colors.ink}"
+    typography: "{typography.label-sm}"
+    rounded: "{rounded.full}"
+    padding: 6px
   estimate-cell:
     backgroundColor: "{colors.surface}"
     textColor: "{colors.ink}"
@@ -115,21 +206,21 @@ components:
     padding: 8px
     height: 36px
   estimate-cell-selected:
-    backgroundColor: "{colors.infoSoft}"
+    backgroundColor: "{colors.accentSoft}"
     textColor: "{colors.ink}"
     typography: "{typography.table-cell}"
     padding: 8px
     height: 36px
   financial-total-card:
     backgroundColor: "{colors.primary}"
-    textColor: "#FFFFFF"
+    textColor: "{colors.surface}"
     typography: "{typography.numeric}"
     rounded: "{rounded.lg}"
     padding: 16px
   library-card:
     backgroundColor: "{colors.surface}"
     textColor: "{colors.ink}"
-    typography: "{typography.body}"
+    typography: "{typography.body-sm}"
     rounded: "{rounded.lg}"
     padding: 16px
   proposal-page:
@@ -141,141 +232,183 @@ components:
   status-approved:
     backgroundColor: "{colors.successSoft}"
     textColor: "{colors.success}"
-    typography: "{typography.label}"
-    rounded: "{rounded.sm}"
+    typography: "{typography.label-sm}"
+    rounded: "{rounded.full}"
     padding: 6px
   status-review:
     backgroundColor: "{colors.warningSoft}"
     textColor: "{colors.warning}"
-    typography: "{typography.label}"
-    rounded: "{rounded.sm}"
+    typography: "{typography.label-sm}"
+    rounded: "{rounded.full}"
     padding: 6px
   status-danger:
     backgroundColor: "{colors.dangerSoft}"
     textColor: "{colors.danger}"
-    typography: "{typography.label}"
-    rounded: "{rounded.sm}"
+    typography: "{typography.label-sm}"
+    rounded: "{rounded.full}"
     padding: 6px
 ---
 
 ## Overview
 
-Archestimator is precise, calm construction estimating software for contractors, architects, and design-build teams. The interface should feel professional enough for architect/client review and direct enough for contractors who need to produce estimates quickly.
+Archestimator adopts an **Intercom-grade editorial SaaS design language**: calm, high-contrast, spacious, precise, and product-led. Intercom is the external reference for marketing rhythm, typography scale, CTA hierarchy, monochrome restraint, product mockup treatment, and polished illustration style. Legacy Archestimator frontend v4 is the internal reference for the application shell: full-height workspace, persistent left navigation, project/area tree, central estimate sheet, and docked contextual panels.
 
-The design language is **architectural utility**: measured, legible, disciplined, and trustworthy. It should not feel like generic construction software, a playful startup dashboard, or a decorative blueprint mockup.
+The result should not be a generic construction dashboard. It should feel like premium SaaS for contractors and design-build teams: editorial on public/landing pages, efficient and full-browser in the authenticated app, and document-like in proposal output.
 
 Primary product surfaces:
 
-- estimate sheets with spreadsheet familiarity;
+- public landing and dashboard entry pages;
+- full-browser project/estimate workspaces;
+- spreadsheet-like estimate sheets with location hierarchy;
 - reusable material/cost/assembly libraries;
-- project and estimate version history;
-- revision delta views;
-- client-ready proposal packages;
-- controlled sharing views for clients, architects, trades, and internal users.
-
-Design for long work sessions. The UI must reduce fatigue, support dense financial scanning, and make risk/status distinctions obvious without visual noise.
+- row inspector, revision history, and proposal settings panels;
+- client-ready proposal packages.
 
 ## Colors
 
-- **Ink (`#171717`)** is the main text and high-emphasis surface color. Use it for totals, headings, and decisive actions where gravity is needed.
-- **Slate (`#334155`)** supports secondary headings and dense interface copy.
-- **Muted (`#64748B`)** is for metadata, descriptions, pricing dates, and secondary labels. Do not use it for critical quantities or totals.
-- **Canvas (`#FAFAF7`)** is the warm neutral app background. It should feel like a quiet studio/workbench, not a cold enterprise admin panel.
-- **Surface (`#FFFFFF`)** is for cards, grid cells, library panels, and dialogs.
-- **Surface muted (`#F4F1EA`)** supports grouped panels and subtle section separation.
-- **Accent (`#92400E`)** is the sole primary-action color. Use it for create/start/generate actions. Do not flood the UI with construction orange.
-- **Info blue (`#2563EB`)** means linked/source/reference information, not success.
-- **Success green (`#15803D`)** means approved, accepted, safe, or current.
-- **Warning amber (`#B45309`)** means provisional, allowance, review required, or source changed.
-- **Danger red (`#B91C1C`)** means excluded, error, destructive action, risk, or cost increase requiring attention.
-- **Proposal paper (`#FFFDF8`)** is for client-facing proposal previews. It should distinguish formal documents from app dashboards.
+- **Primary / ink (`#000000`, `#111111`)** anchor the brand, headings, decisive actions, totals, and high-emphasis UI. Public and dashboard chrome should be mostly monochrome.
+- **Tertiary / muted (`#626260`, `#6B7280`)** support navigation, metadata, descriptions, empty states, labels, and passive states. Do not use muted text for financial totals or critical risk indicators.
+- **Canvas / warm canvas (`#F6F6F1`, `#F4F3EC`)** create Intercom-like warm chapter backgrounds, dashboard bands, product mockup wells, and low-noise secondary surfaces.
+- **Surface (`#FFFFFF`)** is the dominant canvas for landing, cards, grid cells, forms, panels, and modals.
+- **Hairline / divider (`#E5E7EB`, `#CECFCB`)** replace heavy shadows. Use thin borders, crop marks, and whitespace for separation.
+- **Accent blue (`#000CE1`)** is the precise Intercom-like highlight. Use sparingly for focus rings, tiny decorative markers, selected-cell affordances, links, and technical emphasis. It is not the primary CTA color.
+- **Functional colors** retain meaning only: success for approved/current/safe, warning for provisional/source-review/cost-risk, danger for destructive/error/excluded/cost increase.
+- **Proposal paper (`#FFFDF8`)** distinguishes client-facing documents from app dashboards.
 
-Use color sparingly. In estimating software, color should clarify financial risk, status, source linkage, and proposal state—not decorate.
+Color discipline is mandatory: black/white/off-white are the visual system; blue is a tiny precision accent; construction orange is no longer the brand accent and should appear only if functionally meaningful.
 
 ## Typography
 
-Archestimator uses a practical sans-serif for the app and a document serif for proposal previews.
+Use the Intercom model: large editorial sans headlines, compact body copy, restrained labels, and clear numeric scanning.
 
-- **Display / H1 / H2:** Inter, strong weight, tight tracking. Use for marketing, major app page titles, and proposal package section headers.
-- **Body / Label / Table cell:** Inter. Keep labels crisp and compact.
-- **Numeric:** Roboto Mono with tabular numbers. Use for quantities, unit costs, subtotals, totals, variance deltas, percentages, and version comparison values.
-- **Proposal body:** Source Serif 4. Use in client-facing proposal letters, terms, assumptions, and formal document paragraphs.
+- **Preferred implementation font:** Inter for now, with future option to evaluate Saans/MediumLL-like licensed fonts. Do not block implementation on paid fonts.
+- **Display / headline:** light-to-regular weight, very tight tracking, intentional line breaks, generous surrounding whitespace. Use for landing hero, dashboard hero, major product statements, and empty-state moments.
+- **Body copy:** compact, calm, and short. Public pages should avoid dense paragraphs. App panels should use `body-sm` where useful but stay readable for long estimating sessions.
+- **Labels/navigation/buttons:** small sans-serif, high clarity, not over-bold. CTAs are compact and precise, not oversized marketing pills.
+- **Numeric:** Roboto Mono with tabular numbers for quantities, unit costs, subtotals, totals, deltas, percentages, and version comparison values.
+- **Proposal body:** Source Serif 4 remains for formal client-facing proposal paragraphs, terms, assumptions, and signature blocks.
 
-Do not use tiny low-contrast spreadsheet text. The estimate sheet can be dense, but it must stay readable during long sessions.
+Target text rhythm:
+
+- Landing H1: 64px desktop / 42–48px tablet / 34–38px mobile.
+- Section H2: 45px desktop / 34px tablet / 28px mobile.
+- Dashboard H1: 36px desktop, regular/medium weight.
+- App panel titles: 23–28px only when they define a work mode; otherwise 14–16px labels.
+- Estimate cells: 13px minimum with strong contrast; never tiny low-contrast spreadsheet text.
 
 ## Layout
 
-The app should use a disciplined grid with clear surface ownership.
+### Public landing and dashboard entry
 
-Core layout principles:
+Follow Intercom’s long-form product narrative:
 
-- Estimate sheet is the primary work surface. Do not shrink it unnecessarily for decorative sidebars.
-- Library and version panels should be docked or floating secondary surfaces, not separate dead-end pages.
-- Proposal previews should use document-like margins and rhythm, not dashboard-card clutter.
-- Keep primary actions visible: create estimate, add from library, duplicate as revision, compare versions, issue proposal, export.
-- Prefer compact, aligned controls over large padded marketing-style cards inside the app.
-- Preserve enough density to make professional estimating efficient.
+1. thin announcement/product-update bar when relevant;
+2. compact global nav with logo left, navigation center, CTAs right;
+3. oversized centered or split hero with black primary CTA and outlined secondary CTA;
+4. large product mockup/illustration panel below the hero;
+5. logo/proof band when real proof exists;
+6. alternating feature chapters: intro copy, product visual, supporting cards, testimonial/proof;
+7. final CTA and dense footer.
 
-Recommended app shell rhythm:
+Use wide responsive containers, strong vertical rhythm, and short copy blocks. Landing pages should feel spacious, editorial, and confident.
 
-- left: project/navigation context when needed;
-- center: estimate/proposal/version work surface;
-- right: library, row detail, assumptions, version history, or proposal settings depending on mode;
-- top bar: project, estimate version, status, last saved, issue/export actions.
+### Authenticated app and estimate workspace
+
+The current app must move away from centered page/form composition. It should become a true full-browser workspace:
+
+- **Shell:** `height: 100dvh`, no centered max-width cap for workspace routes.
+- **Left global sidebar:** persistent dashboard navigation inspired by legacy frontend v4 `PrivateNavBar`: collapsed width around 56px, expanded width around 248px; routes for Dashboard, Projects, Cost Library, Proposals, Clients, Templates, Settings.
+- **Top workspace bar:** project name, estimate/version status, saved state, grand total summary, issue/export actions.
+- **Secondary project/area rail:** project tree / floor-room-area navigator inspired by legacy frontend v4 `ProjectEstimateTreeNavigator`; collapsible around 240px expanded and 40–56px collapsed.
+- **Center work surface:** estimate grid owns the majority of width and height. It must not be squeezed by decorative cards or permanent forms.
+- **Right dock:** context-sensitive panel for Library, Selected Row, Versions, Proposal Settings. It should be collapsible/resizable and default to the user’s current task.
+- **Bottom/inline controls:** avoid long vertical stacking below the grid. Selected-row controls belong in the right dock or inline grid editing.
+
+Desktop target proportions:
+
+- global sidebar: 56–248px;
+- project tree: 240px when open;
+- right dock: 360–420px when open;
+- grid: flexible remaining width, never less than the dominant surface;
+- app gutters: 16–24px, not large centered margins.
+
+### Responsiveness
+
+- Large desktop: full multi-panel workspace.
+- Laptop: collapsed global sidebar by default, project tree collapsible, right dock may overlay or resize.
+- Tablet: left nav becomes drawer, right dock becomes drawer/sheet, grid remains primary.
+- Mobile: prioritize dashboard/project list/proposal preview; dense estimate editing can become simplified task flows, not a squeezed table.
 
 ## Elevation & Depth
 
-Depth should clarify layering, not create visual drama.
+Intercom’s flat system is the baseline. Prefer:
 
-Use subtle elevation for:
+- thin borders;
+- warm background bands;
+- product mockup wells;
+- crop marks / tiny corner markers;
+- selection/focus backgrounds;
+- whitespace.
 
-- floating library panel;
-- row detail drawer;
-- proposal preview sheet;
-- command/search palette;
-- modal confirmations for destructive or commercial actions.
-
-Avoid heavy shadows on dense estimating grids. In tables, use borders, selected-row background, and sticky headers more than card shadows.
+Avoid heavy drop shadows, glass effects, gradients, glossy cards, and generic dashboard depth. Use subtle elevation only for drawers, popovers, command palette, modals, and floating inspectors.
 
 ## Shapes
 
-Use modest radius for work surfaces and slightly larger radius for cards.
+Shapes are crisp and restrained:
 
-- `xs`/`sm`: cells, badges, small pills, proposal document edges.
-- `md`: buttons, inputs, compact controls.
-- `lg`: cards, library items, total cards, panels.
-- `xl`: marketing surfaces or major empty-state containers only.
+- `none`/`xs`: table lines, grid cells, dense controls;
+- `sm`/`md`: buttons, inputs, tabs;
+- `lg`: product cards, library cards, panels;
+- `xl`: marketing mockup blocks and major empty states only;
+- `full`: chips/status pills only.
 
-Do not over-round financial/proposal UI. The product should feel precise, not toy-like.
+Do not over-round estimating, financial, or proposal surfaces. The product should feel precise and architectural, not toy-like.
 
 ## Components
 
-### Buttons
+### Buttons and CTAs
 
-Primary buttons use the accent color and should be reserved for decisive actions:
+- Public and dashboard primary CTA: black filled button, 40px height, compact padding.
+- Secondary CTA: white/outlined button with dark text and thin border.
+- Tertiary CTA: text link, often underlined or arrowed.
+- App primary actions: still black unless a functional state requires warning/danger/success. Reserve primary emphasis for Create, Add selected item, Duplicate revision, Issue proposal, Export.
+- Destructive actions use danger styling and confirmation.
 
-- Create estimate
-- Add selected item
-- Generate proposal
-- Issue proposal
-- Export PDF/XLSX
+### Navigation
 
-Secondary buttons are neutral. Destructive actions must use danger styling and usually require confirmation.
+- Use Intercom-like compact top nav on public pages.
+- Use v4-inspired left app sidebar inside the dashboard/authenticated app.
+- Navigation labels must be explicit; avoid hiding primary product areas behind unlabeled icons unless the sidebar is collapsed and tooltips/accessible labels exist.
+
+### Product mockups and illustrations
+
+- Public pages should use large neutral product panels, screenshot-like UI compositions, and hand-drawn black line illustrations where useful.
+- Illustration style: monochrome, botanical/architectural/sketch-like, precise, light, and editorial. Avoid cartoon construction workers, blueprint clichés, heavy gradients, or stocky 3D mascots.
+- Product visuals should show real Archestimator surfaces: estimate grid, project tree, revision diff, proposal preview, and library dock.
+- Use small blue crop marks/dots sparingly to create a premium technical feel.
+
+### Cards and panels
+
+- Cards are flat, white, thin-bordered, and content-first.
+- Avoid nested card-on-card clutter in the app. One surface should own each work zone.
+- Dashboard cards can use Intercom whitespace, but estimate workspace panels must be compact and efficient.
 
 ### Estimate sheet cells
 
-Estimate cells should be compact, readable, and keyboard-friendly.
+Estimate cells should be compact, readable, keyboard-friendly, and spreadsheet-familiar.
 
 Rules:
 
 - numeric fields use tabular numeric typography;
-- selected rows/cells use info-soft background, not accent orange;
-- changed values in revision comparison use warning/danger/success depending on change direction and meaning;
-- hidden internal margin/client-facing totals must be visually distinct.
+- selected rows/cells use accent-soft background or clear outline, not decorative color;
+- changed values in revision comparison use warning/danger/success depending on commercial meaning;
+- sticky headers and useful frozen columns should be preferred over repeated controls;
+- inline editing is preferred for quantity/unit/rate fields;
+- selected row details move to the right dock, not below the grid.
 
 ### Library cards
 
-Library cards must expose the fields that build trust:
+Library cards must expose trust-building fields:
 
 - item name;
 - category/type;
@@ -285,13 +418,11 @@ Library cards must expose the fields that build trust:
 - supplier/source when available;
 - linked/overridden/detached/source-changed state when inserted.
 
-Search failures should reveal an obvious “Add custom item” path.
+Default right dock library mode should prioritize search, filter, and insertion. Create/edit library item should open a drawer/modal/editor state, not permanently consume the entire dock.
 
 ### Financial total cards
 
-Financial totals should have the strongest numeric hierarchy on estimating/proposal screens. Totals must not compete with decorative charts.
-
-Recommended hierarchy:
+Financial totals should have strong numeric hierarchy and minimal decoration:
 
 1. grand total;
 2. material/labor split;
@@ -301,7 +432,7 @@ Recommended hierarchy:
 
 ### Proposal pages
 
-Proposal previews should feel like professional contractor documents:
+Proposal previews remain document-like:
 
 - paper-like background;
 - clear title/date/client/project metadata;
@@ -309,51 +440,32 @@ Proposal previews should feel like professional contractor documents:
 - summary table before detailed BOQ when appropriate;
 - explicit exclusions, owner-supplied items, validity, duration, warranty, payment terms, and signature/conforme blocks.
 
-Do not make client-facing proposal pages look like raw admin dashboards.
-
-### Status badges
-
-Use status badges for meaningful workflow states only.
-
-Examples:
-
-- Draft
-- Current
-- Issued
-- Superseded
-- Approved
-- Source changed
-- Linked
-- Overridden
-- Detached
-- Provisional
-- Excluded
-- OSCI
-
-Do not create badges that merely restate that a calculation happened.
+Do not make client-facing proposal pages look like raw admin dashboards or Intercom marketing pages.
 
 ## Do's and Don'ts
 
 ### Do
 
-- Keep the estimate sheet familiar to Excel users while making it safer and richer.
-- Use tabular numbers everywhere financial comparison matters.
-- Make linked library state visible: linked, overridden, detached, source changed.
-- Preserve issued proposal snapshots as visually locked/official.
-- Make draft estimates visibly different from issued proposals.
-- Show assumptions, exclusions, owner-supplied items, and pricing dates clearly.
-- Use calm spacing and consistent controls for long estimating sessions.
-- Use one primary accent color and reserve it for decisive actions.
-- Treat proposal output as a first-class product surface, not a print afterthought.
-- Use DESIGN.md as the source of truth for agentic UI work before writing screen specs or code.
+- Use Intercom as the design-language benchmark for public landing, dashboard polish, typography scale, monochrome restraint, CTAs, art direction, and section rhythm.
+- Use legacy Archestimator frontend v4 as the layout benchmark for the authenticated app shell: full-height workspace, left nav, project tree, central estimate sheet, docked right panel.
+- Maximize the whole browser for app workflows; remove centered max-width caps from workspace routes.
+- Make the estimate grid the primary surface on estimate routes.
+- Keep public pages spacious, editorial, and proof-led.
+- Keep app pages compact, aligned, and efficient for long work sessions.
+- Use black primary CTAs and outlined secondary CTAs.
+- Use blue only as a precise focus/link/technical accent.
+- Use real product UI mockups and monochrome sketch-style illustrations.
+- Keep controls accessible with semantic buttons/links, visible focus rings, and full labels.
+- Update this DESIGN.md before introducing new visual language.
 
 ### Don't
 
-- Do not use generic construction-orange branding everywhere.
-- Do not use playful gradients or decorative blueprint clichés as the core product language.
-- Do not hide primary estimating, versioning, or proposal actions behind ambiguous icons.
-- Do not silently mutate issued proposals or old estimates because a library item changed.
-- Do not make client-facing views expose internal margin, markup, or cost assumptions by accident.
-- Do not let a dashboard card style overwhelm dense estimating workflows.
-- Do not invent one-off button, badge, table, or card styles outside this system without updating DESIGN.md first.
-- Do not treat AI-generated quantities, costs, or proposal wording as final without human review and visible source/confidence cues.
+- Do not keep dashboard/workspace content cramped in a centered card if the task needs a full-browser canvas.
+- Do not let the right library panel permanently steal width from the estimate grid.
+- Do not stack selected-row controls below the grid as a long form; move them into a contextual dock or inline grid editing.
+- Do not use construction-orange as the brand accent.
+- Do not use heavy shadows, gradients, glassmorphism, blueprint clichés, or decorative dashboard clutter.
+- Do not make buttons overly rounded, oversized, or visually loud.
+- Do not invent one-off button, badge, table, panel, or card styles outside this system.
+- Do not hide financial risk, source confidence, proposal state, or revision changes behind vague icons.
+- Do not imitate Intercom’s support/helpdesk content; only adapt its design standards to Archestimator’s estimating domain.

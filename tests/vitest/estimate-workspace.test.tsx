@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 import { EstimateWorkspace } from "@/components/estimate-workspace";
@@ -8,6 +8,19 @@ import { localDatabaseSchema } from "@/lib/local-data/schemas";
 const database = localDatabaseSchema.parse(seedData);
 
 describe("EstimateWorkspace", () => {
+  it("renders the estimate route as a full-browser workspace with docked row controls", async () => {
+    render(<EstimateWorkspace database={database} />);
+
+    expect(screen.getByTestId("app-workspace-shell")).toBeInTheDocument();
+    expect(screen.getByRole("navigation", { name: "Workspace navigation" })).toBeInTheDocument();
+    expect(screen.getByTestId("project-tree-rail")).toHaveTextContent("Ground Floor · Bathroom");
+    expect(screen.getByTestId("estimate-grid-surface")).toContainElement(await screen.findByTestId("production-estimate-glide-grid"));
+
+    const dock = screen.getByTestId("workspace-right-dock");
+    expect(within(dock).getByRole("heading", { name: "Cost library" })).toBeInTheDocument();
+    expect(dock).toContainElement(screen.getByTestId("production-row-inspector"));
+  });
+
   it("updates totals when a quantity changes", async () => {
     const user = userEvent.setup();
     render(<EstimateWorkspace database={database} />);

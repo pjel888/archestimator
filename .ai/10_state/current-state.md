@@ -63,11 +63,14 @@ The emerging product wedge is:
 - PR #7 Codex comments remediated: `next-env.d.ts` is no longer ignored, grid edits mark library-backed rows as `linked-overridden` when appropriate, and numeric Glide edits clamp to nonnegative values before persistence.
 - Code-intelligence cadence established: ChunkHound, GitNexus, and CodeGraph are installed/run for migration slices; generated indexes live under ignored `.ai/14_code_intelligence/`.
 - Codex/GitHub PR comments checked on PR #5 and PR #6; actionable material-cost edit, default proposal-section mapping, and non-billable section-header total issues fixed in the grid/model path.
-- Root `DESIGN.md` has been created and validated with Google DESIGN.md lint: 0 errors.
-- Initial token exports created:
+- Root `DESIGN.md` has been updated to use Intercom as the public SaaS design-language benchmark and legacy `archestimator-frontend-beta_v4` as the authenticated workspace-layout benchmark.
+- Intercom design references and token exports live under `.ai/07_design/`:
+  - `.ai/07_design/intercom-design.md`
+  - `.ai/07_design/intercom.com-design.md`
   - `.ai/07_design/tailwind.theme.json`
   - `.ai/07_design/tokens.dtcg.json`
-- Next: draft MVP screen architecture using `DESIGN.md`, proposal package spec, versioning spec, and library-linking model.
+- Intercom × Archestimator v4 UI implementation slice added: `/` now uses editorial SaaS landing structure, `/projects` uses a full-browser dashboard app shell, and `/projects/[projectId]` uses a full-browser estimating workspace with persistent left app navigation, central Glide grid surface, and right selected-row/workspace dock.
+- Next: deepen workspace responsiveness with mobile app navigation, optional/collapsible project tree on laptop widths, and a taller/resizable grid surface.
 - Decide first MVP project type: residential, renovation, fit-out, small commercial, or broader contractor work.
 - Define source/pricing policy: user-owned cost library first vs seeded local cost references.
 - Decide whether AI enters v1 as assistant, import/parser, reviewer, or not yet.

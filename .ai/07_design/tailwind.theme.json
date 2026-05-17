@@ -2,19 +2,22 @@
   "theme": {
     "extend": {
       "colors": {
-        "primary": "#171717",
-        "ink": "#171717",
-        "slate": "#334155",
-        "muted": "#64748b",
-        "hairline": "#e2e8f0",
-        "canvas": "#fafaf7",
+        "primary": "#000000",
+        "ink": "#111111",
+        "secondary": "#313130",
+        "tertiary": "#626260",
+        "muted": "#6b7280",
+        "hairline": "#e5e7eb",
+        "divider": "#cecfcb",
+        "background": "#ffffff",
+        "canvas": "#f6f6f1",
+        "warmCanvas": "#f4f3ec",
         "surface": "#ffffff",
-        "surfaceMuted": "#f4f1ea",
-        "accent": "#92400e",
-        "accentDark": "#78350f",
-        "accentSoft": "#fef3c7",
-        "info": "#2563eb",
-        "infoSoft": "#dbeafe",
+        "surfaceMuted": "#f6f6f1",
+        "surfaceWarm": "#f4f3ec",
+        "accent": "#000ce1",
+        "accentSoft": "#eef1ff",
+        "focus": "#000ce1",
         "success": "#15803d",
         "successSoft": "#dcfce7",
         "warning": "#b45309",
@@ -27,16 +30,37 @@
         "display": [
           "Inter"
         ],
+        "headline-lg": [
+          "Inter"
+        ],
         "h1": [
           "Inter"
         ],
         "h2": [
           "Inter"
         ],
+        "h3": [
+          "Inter"
+        ],
+        "body-lg": [
+          "Inter"
+        ],
         "body": [
           "Inter"
         ],
+        "body-sm": [
+          "Inter"
+        ],
         "label": [
+          "Inter"
+        ],
+        "label-sm": [
+          "Inter"
+        ],
+        "nav-link": [
+          "Inter"
+        ],
+        "button-text": [
           "Inter"
         ],
         "table-cell": [
@@ -54,42 +78,91 @@
           "4rem",
           {
             "letterSpacing": "-0.055em",
-            "fontWeight": "760"
+            "fontWeight": "400"
+          }
+        ],
+        "headline-lg": [
+          "2.8125rem",
+          {
+            "letterSpacing": "-0.045em",
+            "fontWeight": "400"
           }
         ],
         "h1": [
-          "2.5rem",
+          "2.25rem",
           {
             "letterSpacing": "-0.04em",
-            "fontWeight": "720"
+            "fontWeight": "430"
           }
         ],
         "h2": [
           "1.75rem",
           {
+            "letterSpacing": "-0.035em",
+            "fontWeight": "430"
+          }
+        ],
+        "h3": [
+          "1.4375rem",
+          {
             "letterSpacing": "-0.025em",
-            "fontWeight": "680"
+            "fontWeight": "450"
+          }
+        ],
+        "body-lg": [
+          "1.125rem",
+          {
+            "letterSpacing": "-0.015em",
+            "fontWeight": "350"
           }
         ],
         "body": [
           "1rem",
           {
             "letterSpacing": "-0.01em",
-            "fontWeight": "400"
+            "fontWeight": "350"
+          }
+        ],
+        "body-sm": [
+          "0.875rem",
+          {
+            "letterSpacing": "-0.01em",
+            "fontWeight": "350"
           }
         ],
         "label": [
-          "0.8125rem",
+          "0.875rem",
           {
-            "letterSpacing": "-0.005em",
-            "fontWeight": "620"
+            "letterSpacing": "-0.01em",
+            "fontWeight": "430"
+          }
+        ],
+        "label-sm": [
+          "0.75rem",
+          {
+            "letterSpacing": "0.03em",
+            "fontWeight": "500"
+          }
+        ],
+        "nav-link": [
+          "0.875rem",
+          {
+            "letterSpacing": "-0.01em",
+            "fontWeight": "400"
+          }
+        ],
+        "button-text": [
+          "0.875rem",
+          {
+            "letterSpacing": "-0.01em",
+            "fontWeight": "500"
           }
         ],
         "table-cell": [
           "0.8125rem",
           {
             "letterSpacing": "-0.005em",
-            "fontWeight": "450"
+            "fontWeight": "400"
           }
         ],
         "numeric": [
@@ -108,19 +181,22 @@
         ]
       },
       "borderRadius": {
+        "none": "0px",
         "xs": "3px",
-        "sm": "6px",
-        "md": "10px",
-        "lg": "16px",
-        "xl": "24px"
+        "sm": "4px",
+        "md": "6px",
+        "lg": "8px",
+        "xl": "12px",
+        "full": "9999px"
       },
       "spacing": {
         "xs": "4px",
         "sm": "8px",
         "md": "12px",
-        "lg": "16px",
-        "xl": "24px",
-        "xxl": "32px"
+        "lg": "20px",
+        "xl": "48px",
+        "xxl": "64px",
+        "section": "112px"
       }
     }
   }

@@ -8,6 +8,7 @@ import type { EditableGridCell, Item } from "@glideapps/glide-data-grid";
 import { DndContext, DragOverlay, type DragEndEvent, type DragMoveEvent, type DragStartEvent, PointerSensor, useDraggable, useSensor, useSensors } from "@dnd-kit/core";
 import { CSS } from "@dnd-kit/utilities";
 import { Plus, RotateCcw, Trash2 } from "lucide-react";
+import { AppWorkspaceShell, WorkspaceTopBar } from "@/components/app-shell/app-workspace-shell";
 import type { CostLibraryItem, Estimate, EstimateLineItem, EstimateSpace, LocalDatabase, ProposalTerms, RevisionChangeRecord } from "@/lib/local-data/schemas";
 import { compareEstimateRevisions } from "@/lib/estimates/revision-diff";
 import { calculateEstimateTotals } from "@/lib/estimates/totals";
@@ -17,7 +18,6 @@ import { StatusPill } from "@/components/ui/status-pill";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Field, Textarea, TextInput } from "@/components/ui/field";
-import { StatCard } from "@/components/ui/stat-card";
 import { TabButton, TabList } from "@/components/ui/tabs";
 import { formatMoney } from "@/lib/money/format";
 import { createDefaultProposalTerms } from "@/lib/proposals/terms";
@@ -327,27 +327,45 @@ function EstimateWorkspaceInner({ database, project, initialEstimate, onSaveEsti
 
   return (
     <DndContext id="archestimator-production-library-grid" sensors={sensors} onDragStart={handleLibraryDragStart} onDragMove={handleLibraryDragMove} onDragEnd={handleLibraryDragEnd} onDragCancel={clearLibraryDragState}>
-      <main className="min-h-screen bg-background px-4 py-6 text-foreground lg:px-8">
-      <section className="mx-auto flex max-w-[1500px] flex-col gap-6">
-        <header className="flex flex-col gap-5 rounded-3xl border border-hairline bg-surface p-5 shadow-sm xl:flex-row xl:items-end xl:justify-between">
-          <div>
-            <p className="text-sm font-semibold uppercase tracking-[0.16em] text-accent">Archestimator MVP</p>
-            <h1 className="mt-2 text-3xl font-bold tracking-[-0.04em] lg:text-5xl">Interactive estimate workspace</h1>
-            <p className="mt-3 max-w-3xl text-sm leading-6 text-muted lg:text-base">
-              Build a local-first estimate, insert cost-library items, revise rates, and issue a client-ready proposal package.
-            </p>
-          </div>
-          <div className="grid gap-3 sm:grid-cols-3 xl:min-w-[620px]">
-            <StatCard label="Draft total" value={formatMoney(totals.grandTotal, currencyCode)} dark />
-            <StatCard label="Material" value={formatMoney(totals.materialSubtotal, currencyCode)} />
-            <StatCard label="Labor" value={formatMoney(totals.laborSubtotal, currencyCode)} />
-          </div>
-        </header>
-
-        <div className="grid gap-6 xl:grid-cols-[1fr_430px]">
-          <EstimateSheetCard estimate={estimate} project={project} currencyCode={currencyCode} selectedSectionId={selectedSectionId} setSelectedSectionId={setSelectedSectionId} addBlankRow={addBlankRow} updateLine={updateLine} updateGridCell={updateGridCell} onGridCellSelected={selectGridCell} resetFromLibrary={resetFromLibrary} deleteLine={deleteGridLine} gridFrameRef={gridFrameRef} dropIntent={dropIntent} visibleDropRow={visibleDropRow} onVisibleRowOffsetChange={handleVisibleRowOffsetChange} insertionTargetLabel={insertionTargetSection ? `${insertionTargetSection.outlineCode} · ${insertionTargetSection.name}` : "none"} dropRow={dropRow} setDropRow={setDropRow} maxDropRow={gridRows.length} selectedLibraryName={libraryItems.find((entry) => entry.id === selectedLibraryId)?.name ?? "first library item"} onFallbackLibraryInsert={insertLibraryItemAtCurrentDropRow} selectedGridLine={selectedGridLine} selectedGridLineId={selectedGridLine?.id ?? ""} onSelectedGridLineChange={setSelectedGridLineId} proposalSections={estimate.proposalSections} spaces={estimate.spaces} getSpacePath={(spaceId) => formatSpacePath(estimate, spaceId)} onMoveSelectedLineToSpace={moveSelectedLineToSpace} onCopySelectedLineToSpace={copySelectedLineToSpace} />
-
-          <aside className="flex flex-col gap-4">
+      <AppWorkspaceShell
+        activeItem="Projects"
+        bodyClassName="overflow-auto xl:overflow-hidden"
+        topBar={
+          <WorkspaceTopBar
+            eyebrow={project.name}
+            title="Interactive estimate workspace"
+            meta={<span className="inline-flex items-center gap-2">{estimate.name}<StatusPill tone="review">{estimate.versionLabel} · {estimate.status}</StatusPill></span>}
+            stats={
+              <>
+                <TopBarMetric label="Draft total" value={formatMoney(totals.grandTotal, currencyCode)} dark />
+                <TopBarMetric label="Material" value={formatMoney(totals.materialSubtotal, currencyCode)} />
+                <TopBarMetric label="Labor" value={formatMoney(totals.laborSubtotal, currencyCode)} />
+              </>
+            }
+          />
+        }
+      >
+        <div className="flex h-full min-h-0 flex-col gap-3 p-3 xl:flex-row">
+          <ProjectTreeRail estimate={estimate} selectedSectionId={selectedSectionId} onSelectSection={setSelectedSectionId} />
+          <section data-testid="estimate-grid-surface" className="min-h-0 min-w-0 flex-1">
+            <EstimateSheetCard estimate={estimate} project={project} currencyCode={currencyCode} selectedSectionId={selectedSectionId} setSelectedSectionId={setSelectedSectionId} addBlankRow={addBlankRow} updateGridCell={updateGridCell} onGridCellSelected={selectGridCell} gridFrameRef={gridFrameRef} dropIntent={dropIntent} visibleDropRow={visibleDropRow} onVisibleRowOffsetChange={handleVisibleRowOffsetChange} insertionTargetLabel={insertionTargetSection ? `${insertionTargetSection.outlineCode} · ${insertionTargetSection.name}` : "none"} dropRow={dropRow} setDropRow={setDropRow} maxDropRow={gridRows.length} selectedLibraryName={libraryItems.find((entry) => entry.id === selectedLibraryId)?.name ?? "first library item"} onFallbackLibraryInsert={insertLibraryItemAtCurrentDropRow} />
+          </section>
+          <aside data-testid="workspace-right-dock" className="flex min-h-0 w-full shrink-0 flex-col gap-3 overflow-y-auto xl:w-[340px] 2xl:w-[360px]">
+            <ProductionRowInspector
+              lineItems={estimate.lineItems}
+              selectedLine={selectedGridLine}
+              selectedLineId={selectedGridLine?.id ?? ""}
+              proposalSections={estimate.proposalSections}
+              spaces={estimate.spaces}
+              getSpacePath={(spaceId) => formatSpacePath(estimate, spaceId)}
+              currencyCode={currencyCode}
+              updateLine={updateLine}
+              resetFromLibrary={resetFromLibrary}
+              deleteLine={deleteGridLine}
+              onSelectedLineChange={setSelectedGridLineId}
+              onMoveToSpace={moveSelectedLineToSpace}
+              onCopyToSpace={copySelectedLineToSpace}
+            />
             <TabList className="grid-cols-3">
               {(["library", "versions", "proposal"] as WorkspaceTab[]).map((tab) => <TabButton key={tab} active={activeTab === tab} onClick={() => setActiveTab(tab)}>{tab}</TabButton>)}
             </TabList>
@@ -356,12 +374,73 @@ function EstimateWorkspaceInner({ database, project, initialEstimate, onSaveEsti
             {activeTab === "proposal" ? <ProposalPanel project={project} estimate={estimate} totals={totals} currencyCode={currencyCode} terms={proposalTerms} onTermsChange={updateTerms} savedProposals={savedProposals} onSaveEstimate={onSaveEstimate} onIssueProposalSnapshot={onIssueProposalSnapshot} /> : null}
           </aside>
         </div>
-      </section>
-      </main>
+      </AppWorkspaceShell>
       <DragOverlay dropAnimation={{ duration: 140, easing: "cubic-bezier(0.2, 0, 0, 1)" }}>
         {activeLibraryItem ? <LibraryDragPreview item={activeLibraryItem} currency={currencyCode} /> : null}
       </DragOverlay>
     </DndContext>
+  );
+}
+
+function TopBarMetric({ label, value, dark = false }: { label: string; value: string; dark?: boolean }) {
+  return (
+    <div className={dark ? "rounded-md bg-primary px-3 py-2 text-white" : "rounded-md border border-hairline bg-surface px-3 py-2 text-ink"}>
+      <p className={dark ? "text-[11px] text-white/65" : "text-[11px] text-muted"}>{label}</p>
+      <p className="mt-0.5 font-mono text-sm font-medium">{value}</p>
+    </div>
+  );
+}
+
+function ProjectTreeRail({ estimate, selectedSectionId, onSelectSection }: { estimate: Estimate; selectedSectionId: string; onSelectSection: (sectionId: string) => void }) {
+  const floors = [...estimate.floors].sort((a, b) => a.sortOrder - b.sortOrder);
+  const spacesByFloor = floors.map((floor) => ({
+    floor,
+    spaces: estimate.spaces.filter((space) => space.floorId === floor.id).sort((a, b) => a.sortOrder - b.sortOrder),
+  }));
+
+  return (
+    <aside data-testid="project-tree-rail" className="hidden max-h-full w-[210px] shrink-0 overflow-y-auto rounded-lg border border-hairline bg-surface p-3 2xl:block">
+      <div className="border-b border-hairline pb-3">
+        <p className="text-xs font-medium uppercase tracking-[0.14em] text-muted">Project tree</p>
+        <p className="mt-1 text-sm font-medium text-ink">{estimate.name}</p>
+      </div>
+      <div className="mt-3">
+        <p className="px-2 text-xs font-medium uppercase tracking-[0.12em] text-muted">Working areas</p>
+        <div className="mt-2 grid gap-1">
+          {estimate.sections.map((section) => (
+            <button
+              key={section.id}
+              type="button"
+              aria-current={section.id === selectedSectionId ? "true" : undefined}
+              className={`rounded-md px-2 py-2 text-left text-sm transition ${section.id === selectedSectionId ? "bg-primary text-white" : "text-secondary hover:bg-surfaceMuted hover:text-ink"}`}
+              onClick={() => onSelectSection(section.id)}
+            >
+              <span className="block text-[11px] uppercase tracking-[0.08em] opacity-70">{section.outlineCode}</span>
+              {section.name}
+            </button>
+          ))}
+        </div>
+      </div>
+      {spacesByFloor.length ? (
+        <div className="mt-5">
+          <p className="px-2 text-xs font-medium uppercase tracking-[0.12em] text-muted">Locations</p>
+          <div className="mt-2 space-y-3">
+            {spacesByFloor.map(({ floor, spaces }) => (
+              <div key={floor.id} className="rounded-md border border-hairline bg-surfaceMuted p-2">
+                <p className="text-xs font-medium text-ink">{floor.outlineCode} · {floor.name}</p>
+                <div className="mt-2 grid gap-1">
+                  {spaces.map((space) => (
+                    <p key={space.id} className="rounded bg-white px-2 py-1.5 text-xs text-secondary">
+                      {space.outlineCode} · {space.name}
+                    </p>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : null}
+    </aside>
   );
 }
 
@@ -372,11 +451,8 @@ type EstimateSheetCardProps = {
   selectedSectionId: string;
   setSelectedSectionId: (value: string) => void;
   addBlankRow: (targetSectionId?: string) => void;
-  updateLine: (lineId: string, patch: Partial<EstimateLineItem>, changedField?: keyof EstimateLineItem) => void;
   updateGridCell: (cell: Item, nextCell: EditableGridCell) => void;
   onGridCellSelected: (cell: Item) => void;
-  resetFromLibrary: (line: EstimateLineItem) => void;
-  deleteLine: (lineId: string) => void;
   gridFrameRef: RefObject<HTMLDivElement | null>;
   dropIntent: "idle" | "valid" | "outside";
   visibleDropRow: number;
@@ -387,17 +463,9 @@ type EstimateSheetCardProps = {
   maxDropRow: number;
   selectedLibraryName: string;
   onFallbackLibraryInsert: () => void;
-  selectedGridLine?: EstimateLineItem;
-  selectedGridLineId: string;
-  onSelectedGridLineChange: (lineId: string) => void;
-  proposalSections: Estimate["proposalSections"];
-  spaces: EstimateSpace[];
-  getSpacePath: (spaceId?: string) => string;
-  onMoveSelectedLineToSpace: (spaceId: string) => void;
-  onCopySelectedLineToSpace: (spaceId: string) => void;
 };
 
-function EstimateSheetCard({ estimate, project, currencyCode, selectedSectionId, setSelectedSectionId, addBlankRow, updateLine, updateGridCell, onGridCellSelected, resetFromLibrary, deleteLine, gridFrameRef, dropIntent, visibleDropRow, onVisibleRowOffsetChange, insertionTargetLabel, dropRow, setDropRow, maxDropRow, selectedLibraryName, onFallbackLibraryInsert, selectedGridLine, selectedGridLineId, onSelectedGridLineChange, proposalSections, spaces, getSpacePath, onMoveSelectedLineToSpace, onCopySelectedLineToSpace }: EstimateSheetCardProps) {
+function EstimateSheetCard({ estimate, project, currencyCode, selectedSectionId, setSelectedSectionId, addBlankRow, updateGridCell, onGridCellSelected, gridFrameRef, dropIntent, visibleDropRow, onVisibleRowOffsetChange, insertionTargetLabel, dropRow, setDropRow, maxDropRow, selectedLibraryName, onFallbackLibraryInsert }: EstimateSheetCardProps) {
   const sectionSelectRef = useRef<HTMLSelectElement | null>(null);
 
   return (
@@ -438,21 +506,6 @@ function EstimateSheetCard({ estimate, project, currencyCode, selectedSectionId,
           <Button variant="secondary" onClick={onFallbackLibraryInsert}>Insert selected library item at row</Button>
         </div>
       </div>
-      <ProductionRowInspector
-        lineItems={estimate.lineItems}
-        selectedLine={selectedGridLine}
-        selectedLineId={selectedGridLineId}
-        proposalSections={proposalSections}
-        spaces={spaces}
-        getSpacePath={getSpacePath}
-        currencyCode={currencyCode}
-        updateLine={updateLine}
-        resetFromLibrary={resetFromLibrary}
-        deleteLine={deleteLine}
-        onSelectedLineChange={onSelectedGridLineChange}
-        onMoveToSpace={onMoveSelectedLineToSpace}
-        onCopyToSpace={onCopySelectedLineToSpace}
-      />
     </Card>
   );
 }
@@ -497,7 +550,7 @@ function ProductionRowInspector({
 
   return (
     <div className="border-t border-hairline bg-surface-muted/30 p-4" data-testid="production-row-inspector">
-      <div className="flex flex-col gap-2 lg:flex-row lg:items-end lg:justify-between">
+      <div className="flex flex-col gap-2">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">Selected grid row controls</p>
           <h3 className="mt-1 text-lg font-semibold tracking-[-0.02em]">{selectedLine.itemName}</h3>
@@ -505,12 +558,12 @@ function ProductionRowInspector({
         </div>
         <label className="grid gap-1 text-xs font-medium text-muted">
           Select estimate row
-          <select aria-label="Selected production grid row" className="min-w-72 rounded-xl border border-hairline bg-white px-3 py-2 text-sm text-foreground" value={selectedLineId} onChange={(event) => onSelectedLineChange(event.target.value)}>
+          <select aria-label="Selected production grid row" className="w-full rounded-xl border border-hairline bg-white px-3 py-2 text-sm text-foreground" value={selectedLineId} onChange={(event) => onSelectedLineChange(event.target.value)}>
             {lineItems.map((line) => <option key={line.id} value={line.id}>{line.itemName}</option>)}
           </select>
         </label>
       </div>
-      <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+      <div className="mt-4 grid gap-3">
         <label className="grid gap-1 text-xs font-medium text-muted">
           Proposal section
           <select aria-label={`Proposal section for ${selectedLine.itemName}`} className={`rounded-xl border px-3 py-2 text-sm text-foreground ${selectedLine.proposalSectionId ? "border-hairline bg-white" : "border-amber-300 bg-amber-50"}`} value={selectedLine.proposalSectionId ?? ""} onChange={(event) => updateLine(selectedLine.id, { proposalSectionId: event.target.value || undefined }, "proposalSectionId")}>
