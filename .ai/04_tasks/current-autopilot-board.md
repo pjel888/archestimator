@@ -12,17 +12,16 @@
 
 ## Now
 
-1. Resolve PR review comments on estimate grid/drop-targeting spike.
-2. Establish production model bridge: working spaces/areas separate from proposal/BOQ sections.
-3. Validate with tests/build/E2E and independent review.
+1. Production library-to-Glide insertion has been implemented with drag handles and selected-item fallback.
+2. Continue migrating proposal-section/action controls into first-class grid cells or side panels.
+3. Validate with tests/build/E2E and independent review after each migration slice.
 
 ## Next
 
-1. Promote the estimate-grid spike into the real project workspace.
-2. Add proposal-section assignment and warnings for unassigned rows.
-3. Add explicit floor/room/area hierarchy objects beyond current `sections` bridge.
-4. Improve proposal package detail mode with space/location references.
-5. Continue UX/UI hardening and visual QA.
+1. Move proposal-section assignment and row actions from the accessible table into grid-side controls without losing keyboard accessibility.
+2. Add explicit floor/room/area hierarchy objects beyond current `sections` bridge.
+3. Improve proposal package detail mode with space/location references.
+4. Continue UX/UI hardening and visual QA.
 
 ## Later
 

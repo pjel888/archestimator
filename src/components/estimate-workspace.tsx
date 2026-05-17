@@ -3,7 +3,10 @@
 import Link from "next/link";
 import dynamic from "next/dynamic";
 import { useMemo, useRef, useState } from "react";
+import type { RefObject } from "react";
 import type { EditableGridCell, Item } from "@glideapps/glide-data-grid";
+import { DndContext, DragOverlay, type DragEndEvent, type DragMoveEvent, type DragStartEvent, PointerSensor, useDraggable, useSensor, useSensors } from "@dnd-kit/core";
+import { CSS } from "@dnd-kit/utilities";
 import { Plus, RotateCcw, Trash2 } from "lucide-react";
 import type { CostLibraryItem, Estimate, EstimateLineItem, LocalDatabase, ProposalTerms } from "@/lib/local-data/schemas";
 import { calculateEstimateTotals } from "@/lib/estimates/totals";
@@ -18,8 +21,14 @@ import { formatMoney } from "@/lib/money/format";
 import { createDefaultProposalTerms } from "@/lib/proposals/terms";
 import {
   applyEstimateGridEdit,
+  buildEstimateGridRows,
+  insertLibraryItemAtGridRow,
   resolveDefaultProposalSectionId,
+  resolveGridInsertionTarget,
 } from "@/lib/estimate-grid/adapter";
+
+const GRID_HEADER_HEIGHT = 36;
+const GRID_ROW_HEIGHT = 36;
 
 const ProductionEstimateGlideGrid = dynamic(
   () => import("@/components/production-estimate-glide-grid").then((module) => module.ProductionEstimateGlideGrid),
@@ -98,7 +107,15 @@ function EstimateWorkspaceInner({ database, project, initialEstimate, onSaveEsti
   const [activeTab, setActiveTab] = useState<WorkspaceTab>("library");
   const [savedVersions, setSavedVersions] = useState<Estimate[]>([initialEstimate]);
   const [selectedSectionId, setSelectedSectionIdState] = useState(initialEstimate.sections[0]?.id ?? "section_default");
+  const [activeLibraryId, setActiveLibraryId] = useState<string | null>(null);
+  const [selectedLibraryId, setSelectedLibraryId] = useState(database.costLibraryItems[0]?.id ?? "");
+  const [dropRow, setDropRow] = useState(0);
+  const [dropIntent, setDropIntent] = useState<"idle" | "valid" | "outside">("idle");
+  const [visibleRowOffset, setVisibleRowOffset] = useState(0);
   const selectedSectionIdRef = useRef(selectedSectionId);
+  const gridFrameRef = useRef<HTMLDivElement | null>(null);
+  const visibleRowOffsetRef = useRef(0);
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
 
   function setSelectedSectionId(value: string) {
     selectedSectionIdRef.current = value;
@@ -106,8 +123,13 @@ function EstimateWorkspaceInner({ database, project, initialEstimate, onSaveEsti
   }
 
   const totals = useMemo(() => calculateEstimateTotals(estimate), [estimate]);
+  const gridRows = useMemo(() => buildEstimateGridRows(estimate), [estimate]);
   const currencyCode = database.workspace.defaultCurrency;
   const savedProposals = database.proposalSnapshots.filter((snapshot) => snapshot.projectId === project.id);
+  const activeLibraryItem = database.costLibraryItems.find((item) => item.id === activeLibraryId);
+  const insertionTarget = resolveGridInsertionTarget(estimate, gridRows, dropRow);
+  const insertionTargetSection = estimate.sections.find((section) => section.id === insertionTarget.sectionId);
+  const visibleDropRow = Math.max(0, Math.min(gridRows.length, dropRow - visibleRowOffset));
 
   function updateTerms(patch: Partial<ProposalTerms>) {
     setProposalTerms((current) => ({ ...current, ...patch }));
@@ -154,6 +176,55 @@ function EstimateWorkspaceInner({ database, project, initialEstimate, onSaveEsti
     setEstimate((current) => ({ ...current, lineItems: [...current.lineItems, newLine] }));
   }
 
+  function handleVisibleRowOffsetChange(rowOffset: number) {
+    visibleRowOffsetRef.current = rowOffset;
+    setVisibleRowOffset(rowOffset);
+  }
+
+  function handleLibraryDragStart(event: DragStartEvent) {
+    setActiveLibraryId(extractLibraryId(event.active.id));
+  }
+
+  function handleLibraryDragMove(event: DragMoveEvent) {
+    const pointer = getPointerCoordinates(event.activatorEvent);
+    const gridRect = gridFrameRef.current?.getBoundingClientRect();
+    if (!pointer || !gridRect) return;
+
+    const pointerY = pointer.y + event.delta.y;
+    const pointerX = pointer.x + event.delta.x;
+    const isInsideGrid = pointerX >= gridRect.left && pointerX <= gridRect.right && pointerY >= gridRect.top && pointerY <= gridRect.bottom;
+    if (!isInsideGrid) {
+      setDropIntent("outside");
+      return;
+    }
+
+    const visibleRow = Math.round((pointerY - gridRect.top - GRID_HEADER_HEIGHT) / GRID_ROW_HEIGHT);
+    setDropRow(Math.max(0, Math.min(gridRows.length, visibleRowOffsetRef.current + visibleRow)));
+    setDropIntent("valid");
+  }
+
+  function handleLibraryDragEnd(event: DragEndEvent) {
+    const libraryId = extractLibraryId(event.active.id);
+    const libraryItem = database.costLibraryItems.find((item) => item.id === libraryId);
+    if (libraryItem && dropIntent === "valid") {
+      setEstimate((current) => insertLibraryItemAtGridRow(current, libraryItem, dropRow));
+      setActiveTab("library");
+    }
+    setActiveLibraryId(null);
+    setDropIntent("idle");
+  }
+
+  function clearLibraryDragState() {
+    setActiveLibraryId(null);
+    setDropIntent("idle");
+  }
+
+  function insertLibraryItemAtCurrentDropRow() {
+    const item = database.costLibraryItems.find((entry) => entry.id === selectedLibraryId) ?? database.costLibraryItems[0];
+    if (!item) return;
+    setEstimate((current) => insertLibraryItemAtGridRow(current, item, dropRow));
+  }
+
   function resetFromLibrary(line: EstimateLineItem) {
     const source = database.costLibraryItems.find((item) => item.id === line.sourceLibraryItemId);
     if (!source) return;
@@ -187,7 +258,8 @@ function EstimateWorkspaceInner({ database, project, initialEstimate, onSaveEsti
   }
 
   return (
-    <main className="min-h-screen bg-background px-4 py-6 text-foreground lg:px-8">
+    <DndContext id="archestimator-production-library-grid" sensors={sensors} onDragStart={handleLibraryDragStart} onDragMove={handleLibraryDragMove} onDragEnd={handleLibraryDragEnd} onDragCancel={clearLibraryDragState}>
+      <main className="min-h-screen bg-background px-4 py-6 text-foreground lg:px-8">
       <section className="mx-auto flex max-w-[1500px] flex-col gap-6">
         <header className="flex flex-col gap-5 rounded-3xl border border-hairline bg-surface p-5 shadow-sm xl:flex-row xl:items-end xl:justify-between">
           <div>
@@ -205,19 +277,23 @@ function EstimateWorkspaceInner({ database, project, initialEstimate, onSaveEsti
         </header>
 
         <div className="grid gap-6 xl:grid-cols-[1fr_430px]">
-          <EstimateSheetCard estimate={estimate} project={project} totals={totals} currencyCode={currencyCode} selectedSectionId={selectedSectionId} setSelectedSectionId={setSelectedSectionId} addBlankRow={addBlankRow} updateLine={updateLine} updateGridCell={updateGridCell} resetFromLibrary={resetFromLibrary} deleteLine={(lineId) => setEstimate((current) => ({ ...current, lineItems: current.lineItems.filter((line) => line.id !== lineId) }))} />
+          <EstimateSheetCard estimate={estimate} project={project} totals={totals} currencyCode={currencyCode} selectedSectionId={selectedSectionId} setSelectedSectionId={setSelectedSectionId} addBlankRow={addBlankRow} updateLine={updateLine} updateGridCell={updateGridCell} resetFromLibrary={resetFromLibrary} deleteLine={(lineId) => setEstimate((current) => ({ ...current, lineItems: current.lineItems.filter((line) => line.id !== lineId) }))} gridFrameRef={gridFrameRef} dropIntent={dropIntent} visibleDropRow={visibleDropRow} onVisibleRowOffsetChange={handleVisibleRowOffsetChange} insertionTargetLabel={insertionTargetSection ? `${insertionTargetSection.outlineCode} · ${insertionTargetSection.name}` : "none"} dropRow={dropRow} setDropRow={setDropRow} maxDropRow={gridRows.length} selectedLibraryName={database.costLibraryItems.find((entry) => entry.id === selectedLibraryId)?.name ?? "first library item"} onFallbackLibraryInsert={insertLibraryItemAtCurrentDropRow} />
 
           <aside className="flex flex-col gap-4">
             <TabList className="grid-cols-3">
               {(["library", "versions", "proposal"] as WorkspaceTab[]).map((tab) => <TabButton key={tab} active={activeTab === tab} onClick={() => setActiveTab(tab)}>{tab}</TabButton>)}
             </TabList>
-            {activeTab === "library" ? <LibraryPanel items={database.costLibraryItems} currencyCode={currencyCode} getSelectedSectionId={() => selectedSectionIdRef.current} onAdd={addLibraryItem} /> : null}
+            {activeTab === "library" ? <LibraryPanel items={database.costLibraryItems} currencyCode={currencyCode} getSelectedSectionId={() => selectedSectionIdRef.current} onAdd={addLibraryItem} selectedLibraryId={selectedLibraryId} onSelectForGridInsert={setSelectedLibraryId} /> : null}
             {activeTab === "versions" ? <VersionsPanel estimate={estimate} versions={savedVersions} onDuplicate={duplicateAsRevision} onServerDuplicate={onDuplicateRevision} /> : null}
             {activeTab === "proposal" ? <ProposalPanel project={project} estimate={estimate} totals={totals} currencyCode={currencyCode} terms={proposalTerms} onTermsChange={updateTerms} savedProposals={savedProposals} onSaveEstimate={onSaveEstimate} onIssueProposalSnapshot={onIssueProposalSnapshot} /> : null}
           </aside>
         </div>
       </section>
-    </main>
+      </main>
+      <DragOverlay dropAnimation={{ duration: 140, easing: "cubic-bezier(0.2, 0, 0, 1)" }}>
+        {activeLibraryItem ? <LibraryDragPreview item={activeLibraryItem} currency={currencyCode} /> : null}
+      </DragOverlay>
+    </DndContext>
   );
 }
 
@@ -233,9 +309,19 @@ type EstimateSheetCardProps = {
   updateGridCell: (cell: Item, nextCell: EditableGridCell) => void;
   resetFromLibrary: (line: EstimateLineItem) => void;
   deleteLine: (lineId: string) => void;
+  gridFrameRef: RefObject<HTMLDivElement | null>;
+  dropIntent: "idle" | "valid" | "outside";
+  visibleDropRow: number;
+  onVisibleRowOffsetChange: (rowOffset: number) => void;
+  insertionTargetLabel: string;
+  dropRow: number;
+  setDropRow: (row: number) => void;
+  maxDropRow: number;
+  selectedLibraryName: string;
+  onFallbackLibraryInsert: () => void;
 };
 
-function EstimateSheetCard({ estimate, project, totals, currencyCode, selectedSectionId, setSelectedSectionId, addBlankRow, updateLine, updateGridCell, resetFromLibrary, deleteLine }: EstimateSheetCardProps) {
+function EstimateSheetCard({ estimate, project, totals, currencyCode, selectedSectionId, setSelectedSectionId, addBlankRow, updateLine, updateGridCell, resetFromLibrary, deleteLine, gridFrameRef, dropIntent, visibleDropRow, onVisibleRowOffsetChange, insertionTargetLabel, dropRow, setDropRow, maxDropRow, selectedLibraryName, onFallbackLibraryInsert }: EstimateSheetCardProps) {
   const sectionSelectRef = useRef<HTMLSelectElement | null>(null);
 
   return (
@@ -263,7 +349,18 @@ function EstimateSheetCard({ estimate, project, totals, currencyCode, selectedSe
           </div>
           <span className="rounded-full bg-accentSoft px-3 py-1 text-xs font-semibold text-accentDark">Production grid migration</span>
         </div>
-        <ProductionEstimateGlideGrid estimate={estimate} currencyCode={currencyCode} onCellEdited={updateGridCell} />
+        <div ref={gridFrameRef} className="relative">
+          {dropIntent === "valid" ? <div className="pointer-events-none absolute left-0 right-0 z-10 h-1 rounded-full bg-accent shadow-[0_0_0_4px_rgba(254,243,199,0.85)]" style={{ top: GRID_HEADER_HEIGHT + visibleDropRow * GRID_ROW_HEIGHT - 2 }} data-testid="production-grid-drop-indicator" /> : null}
+          <ProductionEstimateGlideGrid estimate={estimate} currencyCode={currencyCode} onCellEdited={updateGridCell} onVisibleRowOffsetChange={onVisibleRowOffsetChange} />
+        </div>
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-hairline bg-surface-muted/60 px-3 py-2 text-xs text-muted">
+          <span>Drag library cards into: <strong className="text-foreground">{insertionTargetLabel}</strong>. Selected fallback item: <strong className="text-foreground">{selectedLibraryName}</strong></span>
+          <label className="flex items-center gap-2">
+            <span>Fallback row</span>
+            <input aria-label="Production grid fallback insert row" className="w-20 rounded-lg border border-hairline bg-white px-2 py-1 font-mono" min={0} max={maxDropRow} type="number" value={dropRow} onChange={(event) => setDropRow(Math.max(0, Math.min(maxDropRow, Number(event.target.value))))} />
+          </label>
+          <Button variant="secondary" onClick={onFallbackLibraryInsert}>Insert selected library item at row</Button>
+        </div>
       </div>
       <div className="overflow-x-auto">
         <table className="w-full min-w-[1180px] border-collapse text-sm">
@@ -316,19 +413,72 @@ function LinkStateBadge({ state }: { state: EstimateLineItem["linkState"] }) {
   return <StatusPill tone={tone}>{state}</StatusPill>;
 }
 
-function LibraryPanel({ items, currencyCode, getSelectedSectionId, onAdd }: { items: CostLibraryItem[]; currencyCode: string; getSelectedSectionId: () => string; onAdd: (item: CostLibraryItem, targetSectionId?: string) => void }) {
+function LibraryPanel({ items, currencyCode, getSelectedSectionId, onAdd, selectedLibraryId, onSelectForGridInsert }: { items: CostLibraryItem[]; currencyCode: string; getSelectedSectionId: () => string; onAdd: (item: CostLibraryItem, targetSectionId?: string) => void; selectedLibraryId: string; onSelectForGridInsert: (itemId: string) => void }) {
   const [query, setQuery] = useState("");
   const filtered = items.filter((item) => `${item.name} ${item.category} ${item.itemType}`.toLowerCase().includes(query.toLowerCase()));
   return (
     <Card>
       <CardContent>
         <CardTitle>Cost library</CardTitle>
-        <CardDescription>Click to insert a copied, editable row into the current estimate.</CardDescription>
+        <CardDescription>Click to insert into the selected section, or drag a card directly into the Glide grid.</CardDescription>
         <TextInput aria-label="Search cost library" className="mt-4 w-full" placeholder="Search library…" value={query} onChange={(event) => setQuery(event.target.value)} />
-        <div className="mt-4 space-y-3">{filtered.map((item) => <div key={item.id} className="rounded-2xl border border-hairline p-4"><div className="flex items-start justify-between gap-3"><div><p className="font-medium">{item.name}</p><p className="mt-1 text-xs text-muted">{item.category} · {item.itemType} · {item.unit}</p><p className="mt-1 text-xs text-muted">Price date: {item.pricingDate}</p></div><p className="font-mono text-sm font-semibold">{formatMoney(item.defaultUnitCost, currencyCode)}</p></div><Button className="mt-3 w-full" variant="primary" onClick={() => onAdd(item, getSelectedSectionId())}>Add to estimate</Button></div>)}</div>
+        <div className="mt-4 space-y-3" data-testid="production-library-drag-tray">{filtered.map((item) => <DraggableLibraryCard key={item.id} item={item} currencyCode={currencyCode} selectedForGridInsert={item.id === selectedLibraryId} onSelectForGridInsert={() => onSelectForGridInsert(item.id)} onAdd={() => onAdd(item, getSelectedSectionId())} />)}</div>
       </CardContent>
     </Card>
   );
+}
+
+function DraggableLibraryCard({ item, currencyCode, selectedForGridInsert, onSelectForGridInsert, onAdd }: { item: CostLibraryItem; currencyCode: string; selectedForGridInsert: boolean; onSelectForGridInsert: () => void; onAdd: () => void }) {
+  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id: `library-item:${item.id}` });
+  const style = { transform: CSS.Translate.toString(transform) };
+
+  return (
+    <div ref={setNodeRef} style={style} className={`rounded-2xl border border-hairline p-4 transition-[border-color,box-shadow,opacity] ${isDragging ? "opacity-35" : "bg-white hover:border-accent hover:shadow-md"}`}>
+      <div className="flex items-start justify-between gap-3">
+        <LibraryCardContent item={item} currencyCode={currencyCode} />
+        <button type="button" className="shrink-0 cursor-grab rounded-lg border border-hairline px-2 py-1 text-xs font-semibold text-muted active:cursor-grabbing" aria-label={`Drag ${item.name} into estimate grid`} {...listeners} {...attributes}>Drag</button>
+      </div>
+      <div className="mt-3 grid gap-2 sm:grid-cols-2">
+        <Button className="w-full" variant="primary" onClick={onAdd}>Add to estimate</Button>
+        <Button className="w-full" variant={selectedForGridInsert ? "primary" : "secondary"} onClick={onSelectForGridInsert}>{selectedForGridInsert ? "Selected for row insert" : "Select for row insert"}</Button>
+      </div>
+    </div>
+  );
+}
+
+function LibraryDragPreview({ item, currency }: { item: CostLibraryItem; currency: string }) {
+  return (
+    <div className="w-[300px] rotate-1 rounded-2xl border border-accent bg-white p-4 text-left shadow-2xl ring-4 ring-accentSoft">
+      <LibraryCardContent item={item} currencyCode={currency} />
+      <p className="mt-3 rounded-lg bg-accentSoft px-2 py-1 text-xs font-semibold text-accentDark">Drop into the Glide estimate grid</p>
+    </div>
+  );
+}
+
+function LibraryCardContent({ item, currencyCode }: { item: CostLibraryItem; currencyCode: string }) {
+  return (
+    <div className="flex items-start justify-between gap-3">
+      <div>
+        <p className="font-medium">{item.name}</p>
+        <p className="mt-1 text-xs text-muted">{item.category} · {item.itemType} · {item.unit}</p>
+        <p className="mt-1 text-xs text-muted">Price date: {item.pricingDate}</p>
+      </div>
+      <p className="font-mono text-sm font-semibold">{formatMoney(item.defaultUnitCost, currencyCode)}</p>
+    </div>
+  );
+}
+
+function extractLibraryId(id: string | number): string {
+  return String(id).replace("library-item:", "");
+}
+
+function getPointerCoordinates(event: Event): { x: number; y: number } | null {
+  if (event instanceof MouseEvent) return { x: event.clientX, y: event.clientY };
+  if (event instanceof TouchEvent) {
+    const touch = event.touches[0] ?? event.changedTouches[0];
+    return touch ? { x: touch.clientX, y: touch.clientY } : null;
+  }
+  return null;
 }
 
 function VersionsPanel({ estimate, versions, onDuplicate, onServerDuplicate }: { estimate: Estimate; versions: Estimate[]; onDuplicate: () => void; onServerDuplicate?: (estimateId: string) => Promise<void> }) {

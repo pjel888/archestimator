@@ -12,6 +12,33 @@
 
 ## Ledger entries
 
+### 2026-05-17 — Production library-to-Glide insertion slice
+
+**Status:** Implemented; full gates/review passing
+
+**Type:** production grid interaction + accessibility fallback + E2E
+
+**What changed:**
+
+- Added dnd-kit production drag handles to cost-library cards for library-to-Glide grid insertion.
+- Added stable production `DndContext` id to avoid dnd-kit hydration id drift.
+- Added visible drop indicator and visible-row offset tracking around the production Glide grid.
+- Reused `insertLibraryItemAtGridRow` so production insertion stays behind the shared estimate-grid adapter.
+- Preserved click-to-add into the selected working section.
+- Added an accessible selected-library-item fallback: users can choose a specific library item, set a target grid row, and insert that intended item without drag gestures.
+- Updated E2E coverage to verify production tray visibility, selected-item fallback insertion, section-aware mapping, live totals, and all existing route flows.
+
+**Verification:**
+
+- `bun run validate && bun run build && lsof -ti tcp:3020 | xargs -r kill; bun run test:e2e` — passed: type-check, lint, 27 unit tests, 6 DOM tests, production build, 7 Playwright E2E tests.
+- Independent review initially failed the first-item-only fallback and weak integration assertion; remediation added selected-item fallback and stronger E2E verification.
+- Independent re-review: PASS.
+
+**Follow-ups:**
+
+- Move proposal-section assignment and row actions from the accessible table into grid-side controls/custom cells without losing keyboard accessibility.
+- Consider adding true keyboard drag semantics if drag remains a first-class production path.
+
 ### 2026-05-17 — Production Glide workspace surface slice
 
 **Status:** Implemented; full gates/review passing
