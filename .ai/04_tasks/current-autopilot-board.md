@@ -12,16 +12,16 @@
 
 ## Now
 
-1. PR #7 Codex comments have been checked and remediated: `next-env.d.ts` is trackable, grid edits mark library overrides, and numeric grid edits clamp nonnegative.
-2. Proposal-section assignment and row actions have moved from the accessible table into a keyboard-accessible selected-row inspector beside/below the production Glide grid.
-3. Validate with tests/build/E2E and independent review after each migration slice.
+1. Explicit floor/room/area hierarchy objects are in the local-first estimate schema and demo seed (`floors`, `spaces`, row-level `spaceId`).
+2. Selected-row inspector now exposes location assignment alongside proposal-section/scope/rate actions.
+3. Proposal preview includes a detail mode with line-level space/location references.
+4. Glide selection now listens to `onGridSelectionChange`, so keyboard selection changes can update the selected-row inspector.
 
 ## Next
 
-1. Add explicit floor/room/area hierarchy objects beyond current `sections` bridge.
-2. Improve proposal package detail mode with space/location references.
-3. Continue UX/UI hardening and visual QA.
-4. Consider richer grid custom cells only after the side-panel workflow proves stable.
+1. Add row move/copy operations between spaces and keep proposal-section mapping stable.
+2. Continue UX/UI hardening and visual QA.
+3. Consider richer grid custom cells only after the side-panel workflow proves stable.
 
 ## Later
 

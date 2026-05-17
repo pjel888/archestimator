@@ -11,10 +11,13 @@ const estimate: Estimate = {
   status: "draft",
   pricingBasisDate: "2026-05-16",
   sections: [{ id: "section_1", name: "Works", outlineCode: "A", sectionType: "trade" }],
+  floors: [{ id: "floor_1", name: "Ground Floor", outlineCode: "GF", sortOrder: 0 }],
+  spaces: [{ id: "space_1", floorId: "floor_1", name: "Bathroom", outlineCode: "GF-01", sortOrder: 0, spaceType: "room" }],
   lineItems: [
     {
       id: "line_1",
       sectionId: "section_1",
+      spaceId: "space_1",
       itemName: "Work item",
       quantity: 2,
       unit: "lot",
@@ -70,8 +73,32 @@ describe("createProposalSnapshot", () => {
     expect(next.snapshot.estimateName).toBe("Initial Estimate");
     expect(next.snapshot.terms.subject).toBe("Cost proposal for Project");
     expect(next.snapshot.terms.validityDays).toBe(30);
+    expect(next.snapshot.detailRows).toHaveLength(1);
+    expect(next.snapshot.detailRows[0]).toMatchObject({
+      lineItemId: "line_1",
+      spacePath: "Ground Floor / Bathroom",
+      itemName: "Work item",
+      quantity: 2,
+      adjustedQuantity: 2,
+      unit: "lot",
+      unitRate: 100,
+      totalAmount: 200,
+    });
     expect(next.database.proposalSnapshots).toHaveLength(1);
     expect(next.database.estimates[0].status).toBe("draft");
+  });
+
+  test("freezes proposal detail unit rates and adjusted quantity for split material and labor rows", () => {
+    const splitCostEstimate: Estimate = {
+      ...estimate,
+      lineItems: [{ ...estimate.lineItems[0], unitCost: undefined, materialUnitCost: 100, laborUnitCost: 40, quantity: 3, wastePercent: 10 }],
+    };
+    const next = createProposalSnapshot({ ...database, estimates: [splitCostEstimate] }, "estimate_1");
+
+    expect(next.snapshot.detailRows[0].unitRate).toBe(140);
+    expect(next.snapshot.detailRows[0].wastePercent).toBe(10);
+    expect(next.snapshot.detailRows[0].adjustedQuantity).toBe(3.3);
+    expect(next.snapshot.detailRows[0].totalAmount).toBe(462);
   });
 
   test("keeps unmapped working rows visible as unassigned instead of dropping totals", () => {
@@ -136,5 +163,6 @@ describe("createProjectWithInitialEstimate", () => {
     expect(newEstimate.projectId).toBe(project.id);
     expect(newEstimate.lineItems).toHaveLength(0);
     expect(newEstimate.sections[0].name).toBe("General Scope");
+    expect(newEstimate.spaces[0]).toMatchObject({ outlineCode: "A", name: "General Scope" });
   });
 });

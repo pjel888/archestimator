@@ -1,6 +1,6 @@
 "use client";
 
-import DataEditor, { type EditableGridCell, type Item } from "@glideapps/glide-data-grid";
+import DataEditor, { type EditableGridCell, type GridSelection, type Item } from "@glideapps/glide-data-grid";
 import "@glideapps/glide-data-grid/dist/index.css";
 import type { Estimate } from "@/lib/local-data/schemas";
 import {
@@ -20,6 +20,11 @@ type ProductionEstimateGlideGridProps = {
 export function ProductionEstimateGlideGrid({ estimate, currencyCode, onCellEdited, onCellSelected, onVisibleRowOffsetChange }: ProductionEstimateGlideGridProps) {
   const rows = buildEstimateGridRows(estimate);
 
+  function handleGridSelectionChange(selection: GridSelection) {
+    const cell = selection.current?.cell;
+    if (cell) onCellSelected?.(cell);
+  }
+
   return (
     <div className="h-[430px] rounded-2xl border border-hairline" data-testid="production-estimate-glide-grid">
       <DataEditor
@@ -33,6 +38,7 @@ export function ProductionEstimateGlideGrid({ estimate, currencyCode, onCellEdit
         smoothScrollY
         onCellEdited={onCellEdited}
         onCellClicked={(cell) => onCellSelected?.(cell)}
+        onGridSelectionChange={handleGridSelectionChange}
         onVisibleRegionChanged={(range) => onVisibleRowOffsetChange?.(Math.max(0, range.y))}
         width="100%"
         height="100%"

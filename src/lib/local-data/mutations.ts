@@ -17,6 +17,8 @@ export function createProjectWithInitialEstimate(
   const estimateId = `estimate_${nanoid(10)}`;
   const firstSectionId = `section_${nanoid(10)}`;
   const firstProposalSectionId = `proposal_section_${nanoid(10)}`;
+  const firstFloorId = `floor_${nanoid(10)}`;
+  const firstSpaceId = `space_${nanoid(10)}`;
   const project = {
     id: projectId,
     name: input.name.trim(),
@@ -39,6 +41,24 @@ export function createProjectWithInitialEstimate(
         name: "General Scope",
         outlineCode: "A",
         sectionType: "custom",
+      },
+    ],
+    floors: [
+      {
+        id: firstFloorId,
+        name: "Project Level",
+        outlineCode: "L1",
+        sortOrder: 0,
+      },
+    ],
+    spaces: [
+      {
+        id: firstSpaceId,
+        floorId: firstFloorId,
+        name: "General Scope",
+        outlineCode: "A",
+        sortOrder: 0,
+        spaceType: "area",
       },
     ],
     proposalSections: [
@@ -134,6 +154,33 @@ export function createProposalSnapshot(
   const unassignedProposalTotal = totals.rows
     .filter((row) => row.includedInTotal && !row.proposalSectionId && !proposalSectionIds.has(row.sectionId))
     .reduce((sum, row) => sum + row.calculated.total, 0);
+  const formatSpacePath = (spaceId?: string) => {
+    if (!spaceId) return "Unassigned location";
+    const space = estimate.spaces.find((entry) => entry.id === spaceId);
+    if (!space) return "Unassigned location";
+    const floor = estimate.floors.find((entry) => entry.id === space.floorId);
+    return [floor?.name, space.name].filter(Boolean).join(" / ") || space.name;
+  };
+
+  const detailRows = totals.rows
+    .filter((row) => row.includedInTotal)
+    .map((row) => ({
+      lineItemId: row.id,
+      proposalSectionId: row.proposalSectionId,
+      sectionId: row.sectionId,
+      spaceId: row.spaceId,
+      spacePath: formatSpacePath(row.spaceId),
+      itemName: row.itemName,
+      description: row.description,
+      quantity: row.quantity,
+      adjustedQuantity: row.calculated.adjustedQuantity,
+      wastePercent: row.wastePercent,
+      unit: row.unit,
+      unitRate: row.unitCost ?? (row.materialUnitCost ?? 0) + (row.laborUnitCost ?? 0),
+      totalAmount: row.calculated.total,
+      scopeStatus: row.scopeStatus,
+    }));
+
   const sectionSummaries = [
     ...proposalSections
       .filter((section) => section.displayInProposal)
@@ -170,6 +217,7 @@ export function createProposalSnapshot(
     totalAmount: totals.grandTotal,
     terms: normalizeProposalTerms(database, estimate, terms),
     sectionSummaries,
+    detailRows,
   };
 
   return {

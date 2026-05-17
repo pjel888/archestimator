@@ -9,7 +9,11 @@ test.beforeEach(() => {
 });
 
 async function openProposalTab(page: import('@playwright/test').Page) {
-  await page.getByRole('tab', { name: 'proposal' }).click();
+  const proposalTab = page.getByRole('tab', { name: /^proposal$/ });
+  await expect(proposalTab).toBeVisible({ timeout: 10000 });
+  await proposalTab.scrollIntoViewIfNeeded();
+  await proposalTab.click({ force: true });
+  await expect(proposalTab).toHaveAttribute('aria-selected', 'true');
   await expect(page.getByRole('heading', { name: 'Proposal terms builder' })).toBeVisible({ timeout: 10000 });
 }
 
@@ -83,6 +87,8 @@ test('project page covers proposal terms, proposal summary, and issued proposal 
   await expect(page.getByText('Issued proposal package')).toBeVisible();
   await expect(page.getByRole('heading', { name: 'E2E Proposal Package' })).toBeVisible();
   await expect(page.getByText('Cost summary')).toBeVisible();
+  await expect(page.getByText('Scope detail by location')).toBeVisible();
+  await expect(page.getByText(/Ground Floor \/ Bathroom \/ Floor Area/)).toBeVisible();
 });
 
 test('project page covers local revision controls', async ({ page }) => {

@@ -12,6 +12,33 @@
 
 ## Ledger entries
 
+### 2026-05-17 — Floor/room/area hierarchy and proposal detail slice
+
+**Status:** Implemented; local gates passing
+
+**Type:** production data model + selected-row inspector + proposal detail + keyboard UX
+
+**What changed:**
+
+- Added explicit `floors` and `spaces` arrays to the local-first estimate schema while keeping `sections` as the working grouping bridge.
+- Added optional `spaceId` on estimate line items so production rows can reference a real floor/room/area location separately from proposal/BOQ grouping.
+- Seed data now includes Ground Floor/Project-wide floor records and room/area space records; existing sample rows reference those spaces.
+- New projects now initialize with a default floor and space for future location-aware rows.
+- Selected-row inspector now exposes a location selector and location path, alongside proposal section, scope, quantity/rate, reset, and delete.
+- Proposal preview and issued proposal snapshots now include detail rows with line totals and frozen floor/room/area references; `/proposals/[proposalId]` renders those detail rows under "Scope detail by location".
+- Production Glide grid now listens to `onGridSelectionChange` so keyboard selection can update the selected-row inspector, reducing the prior keyboard-selection risk.
+
+**Verification:**
+
+- `bun run validate` — passed: type-check, lint, 30 unit tests, 9 DOM/Vitest tests.
+- `bun run build` — passed.
+- `bun run test:e2e` — passed: 7 Playwright tests.
+
+**Follow-ups:**
+
+- Add row move/copy operations between spaces and preserve proposal-section mapping behavior.
+- Continue visual QA on the production Glide workspace and issued proposal print route.
+
 ### 2026-05-17 — PR #7 Codex remediation and selected-row grid controls
 
 **Status:** Implemented; local gates passing
