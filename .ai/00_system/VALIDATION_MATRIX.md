@@ -1,28 +1,68 @@
 # Validation Matrix
 
-Archestimator has not selected its final stack yet. Until then, use this general validation contract.
+**Last updated:** 2026-05-17
+
+## Reset baseline code-change gate
+
+After the reset cleanup, the live product surface is only:
+
+```txt
+/
+/workshop
+```
+
+Use this gate for baseline code/docs changes:
+
+```bash
+bun run validate
+bun run build
+git diff --check
+```
+
+`bun run validate` covers type-check, lint, Bun unit tests, and Vitest DOM tests.
 
 ## Documentation-only changes
 
 - Verify referenced paths exist.
 - Ensure new files are in the correct `.ai` folder.
-- If git is initialized, run `git diff --check` before finalizing.
+- Run `git diff --check` before finalizing.
 
-## Future code changes
+## Deleted-route policy
 
-When the tech stack is selected, update this file with exact commands for:
-- format
-- lint
-- typecheck
-- unit tests
-- integration tests
-- build
-- preview/manual QA
+Do not recreate E2E or route coverage for deleted prototype routes. The following route families were intentionally removed and should stay absent unless Philip explicitly reapproves a fresh implementation:
+
+- `/login`
+- `/signup`
+- `/projects`
+- `/component-library`
+- `/proposals`
+- `/spikes`
+- `/workshop/projects`
+- `/workshop/components`
+
+## Manual browser QA
+
+For the reset baseline, manual QA is intentionally small:
+
+1. `/` loads the preserved landing page.
+2. Landing CTAs point to `/workshop`, not deleted sample/project/login/signup routes.
+3. `/workshop` loads as an empty page.
+4. A removed route such as `/workshop/projects` resolves through Next's not-found behavior, not a legacy redirect.
+
+## Future implementation gate
+
+Before rebuilding any app/workshop functionality:
+
+1. Write a small screen brief in `.ai/03_plans/`.
+2. State the exact user job, non-goals, route scope, and deletion criteria.
+3. Add tests only for approved behavior.
+4. Run `bun run validate`, `bun run build`, and `git diff --check`.
 
 ## Estimation-domain claims
 
 For cost, materials, labor, code, tax, or professional-practice claims:
-- cite source and date
-- separate assumptions from verified facts
-- preserve calculation inputs and formulas
-- record uncertainty ranges when exact values are not reliable
+
+- cite source and date;
+- separate assumptions from verified facts;
+- preserve calculation inputs and formulas;
+- record uncertainty ranges when exact values are not reliable.

@@ -1,103 +1,74 @@
-# Archestimator Roadmap
+# Roadmap
 
 **Last updated:** 2026-05-17
+**Status:** Reset baseline after rejected app/workshop prototype.
 
-## Product wedge
+## Current product baseline
 
-Archestimator is a contractor-first estimating workspace for producing, revising, and packaging construction estimates faster than Excel-heavy workflows without becoming a full enterprise construction suite.
+Archestimator currently preserves only:
 
-## Operating rules
+```txt
+/          landing page
+/workshop  intentionally empty page
+```
 
-- Philip is the principal decision-maker.
-- Agents may proceed in autopilot mode within documented scope.
-- Do not merge to `main`, deploy, connect Supabase, or push production data without explicit approval.
-- Keep `DESIGN.md`, `.ai/10_state/current-state.md`, `.ai/10_state/decisions.md`, and `.ai/10_state/execution-ledger.md` updated after meaningful slices.
-- Every implementation slice needs evidence: tests/build/lint/manual visual check or an explicit reason why a gate does not apply.
+The previous app/workshop prototype is not the active roadmap. Do not resume old project dashboard, estimate editor, component library, proposal, revision, shell, grid, or local-first data work unless Philip explicitly reapproves a fresh plan.
 
-## Phase 0 — Product definition and research
+## Phase 0 — Reset and cleanup
 
-**Status:** Mostly complete.
+Status: active/completing.
 
-Delivered:
+Done:
 
-- Product thesis.
-- Legacy repo lessons.
-- Competitor and package research.
-- MVP UX flow.
-- Proposal package system spec.
-- Estimate versioning system spec.
-- Design-system workflow and root `DESIGN.md`.
+- Audit recorded at `.ai/02_audits/2026-05-17-reset-cleanup-audit.md`.
+- Restart guardrails recorded at `.ai/06_specs/restart-guardrails.md`.
+- Live app reduced to landing page plus empty `/workshop`.
+- Validation baseline reduced to reset-appropriate tests.
 
-Remaining decisions:
+## Phase 1 — Fresh product definition
 
-- First MVP project type: residential, renovation, fit-out, small commercial, or broader contractor work.
-- Pricing/source policy: user-owned library first vs seeded demo/local references.
-- AI role in v1: assistant, import/parser, reviewer, or deferred.
-- First export priority: browser PDF, XLSX, CSV, branded quote, or BOQ.
+Status: next.
 
-## Phase 1 — MVP foundation
+Goal: define one focused first workflow before rebuilding UI.
 
-**Status:** Complete enough for active product slices.
+Required before implementation:
 
-Delivered:
+- Identify the first user job.
+- Define the first `/workshop` screen in plain language.
+- State non-goals explicitly.
+- Decide what data, if any, is needed for that screen.
+- Write a small screen brief in `.ai/03_plans/`.
 
-- Next.js 16 + React 19 + Bun + TypeScript + Tailwind v4 app shell.
-- Local-first JSON persistence behind repository/store APIs.
-- Project dashboard and project workspace route.
-- Create-project flow with initial draft estimate.
-- Reusable UI primitives under `src/components/ui/`.
-- Proposal snapshot model and print-ready proposal route.
-- Root `DESIGN.md` and token exports.
+Do not add routes, app shells, dashboards, libraries, proposal pages, revision history, grid packages, or persistence until the screen brief justifies them.
 
-## Phase 2 — Estimating core hardening
+## Phase 2 — First approved workshop slice
 
-**Status:** Active.
+Status: blocked until Phase 1 is complete.
 
-Delivered:
+Possible direction, not approved:
 
-- Editable estimate workspace.
-- Library insertion and link-state concepts.
-- Glide Data Grid + dnd-kit spike.
-- Drop-targeting UX micro-spike with pointer hit-testing and insertion-line feedback.
-- Production bridge separating working spaces from proposal sections.
-- Production Glide workspace with selected-row inspector controls.
-- Explicit floor/room/area hierarchy objects and row-level space references.
-- Proposal preview detail rows with location references.
-- Cost Library Management v1 panel for creating/editing reusable items with source, pricing date, confidence, waste, and material/labor defaults.
-- Row move/copy controls between floor/room/area spaces with stable proposal-section mapping.
-- Revision diff semantics that distinguish space moves from BOQ/proposal remaps, commercial edits, scope edits, additions, and removals.
+- One empty-canvas estimating interaction.
+- One manually editable estimate draft.
+- One contractor-facing concept demo.
 
-Next:
+The implementation must be small enough to delete if rejected.
 
-- Persist explicit revision diff records during saved revision workflows.
-- Harden revision summary and row operation UX with visual QA and eventual richer grid affordances.
+## Phase 3 — Data and persistence
 
-## Phase 3 — Proposal package v1
+Status: deferred.
 
-**Status:** Partially implemented, needs hardening.
+Do not rebuild the local-first repository/mutation layer until an accepted screen needs persistence.
 
-Delivered:
+## Phase 4 — Proposal/export/versioning/library systems
 
-- Editable proposal terms.
-- Immutable proposal snapshots.
-- Print-ready proposal route.
-- Proposal summaries now support consolidation by proposal section instead of only working space.
+Status: deferred.
 
-Next:
+These remain important product concepts, but they must not return as broad prototype modules. Reintroduce one capability at a time only after the first workflow is accepted.
 
-- Proposal detail mode with optional space/location column.
-- Exclusions/OSCI/by-others annexes.
-- Issue/supersede flow.
-- Browser print/PDF visual hardening.
+## Permanent guardrails
 
-## Phase 4 — MVP readiness
-
-**Status:** Later.
-
-Focus:
-
-- Library import/export and bulk pricing update workflows.
-- CSV/XLSX import/export.
-- QA matrix and sample workflow testing.
-- Landing page and onboarding narrative.
-- Deployment decision only after Philip approves.
+- No Supabase/Postgres until explicitly approved.
+- No merge/deploy until explicitly approved.
+- No compatibility redirects for deleted prototype routes.
+- No fake SaaS maturity.
+- Tests protect accepted behavior only.
