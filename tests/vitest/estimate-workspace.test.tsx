@@ -19,6 +19,10 @@ describe("EstimateWorkspace", () => {
     const dock = screen.getByTestId("workspace-right-dock");
     expect(within(dock).getByRole("heading", { name: "Cost library" })).toBeInTheDocument();
     expect(dock).toContainElement(screen.getByTestId("production-row-inspector"));
+
+    await userEvent.click(within(dock).getByRole("button", { name: "Collapse right dock" }));
+    expect(screen.getByRole("button", { name: "Expand right dock" })).toBeInTheDocument();
+    expect(screen.queryByTestId("production-row-inspector")).not.toBeInTheDocument();
   });
 
   it("filters and collapses the v4-style project tree navigator", async () => {

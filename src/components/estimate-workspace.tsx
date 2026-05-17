@@ -7,7 +7,7 @@ import type { RefObject } from "react";
 import type { EditableGridCell, Item } from "@glideapps/glide-data-grid";
 import { DndContext, DragOverlay, type DragEndEvent, type DragMoveEvent, type DragStartEvent, PointerSensor, useDraggable, useSensor, useSensors } from "@dnd-kit/core";
 import { CSS } from "@dnd-kit/utilities";
-import { ChevronLeft, ChevronRight, Layers3, Plus, RotateCcw, Search, Trash2 } from "lucide-react";
+import { CaretLeft, CaretRight, MagnifyingGlass, Plus, Stack, Trash, ArrowClockwise } from "@phosphor-icons/react/dist/ssr";
 import { AppWorkspaceShell, WorkspaceTopBar } from "@/components/app-shell/app-workspace-shell";
 import type { CostLibraryItem, Estimate, EstimateLineItem, EstimateSpace, LocalDatabase, ProposalTerms, RevisionChangeRecord } from "@/lib/local-data/schemas";
 import { compareEstimateRevisions } from "@/lib/estimates/revision-diff";
@@ -130,6 +130,7 @@ function EstimateWorkspaceInner({ database, project, initialEstimate, onSaveEsti
   const [dropIntent, setDropIntent] = useState<"idle" | "valid" | "outside">("idle");
   const [visibleRowOffset, setVisibleRowOffset] = useState(0);
   const [selectedGridLineId, setSelectedGridLineId] = useState(initialEstimate.lineItems[0]?.id ?? "");
+  const [isRightDockOpen, setIsRightDockOpen] = useState(true);
   const selectedSectionIdRef = useRef(selectedSectionId);
   const gridFrameRef = useRef<HTMLDivElement | null>(null);
   const visibleRowOffsetRef = useRef(0);
@@ -350,28 +351,38 @@ function EstimateWorkspaceInner({ database, project, initialEstimate, onSaveEsti
           <section data-testid="estimate-grid-surface" className="min-h-0 min-w-0 flex-1">
             <EstimateSheetCard estimate={estimate} project={project} currencyCode={currencyCode} selectedSectionId={selectedSectionId} setSelectedSectionId={setSelectedSectionId} addBlankRow={addBlankRow} updateGridCell={updateGridCell} onGridCellSelected={selectGridCell} gridFrameRef={gridFrameRef} dropIntent={dropIntent} visibleDropRow={visibleDropRow} onVisibleRowOffsetChange={handleVisibleRowOffsetChange} insertionTargetLabel={insertionTargetSection ? `${insertionTargetSection.outlineCode} · ${insertionTargetSection.name}` : "none"} dropRow={dropRow} setDropRow={setDropRow} maxDropRow={gridRows.length} selectedLibraryName={libraryItems.find((entry) => entry.id === selectedLibraryId)?.name ?? "first library item"} onFallbackLibraryInsert={insertLibraryItemAtCurrentDropRow} />
           </section>
-          <aside data-testid="workspace-right-dock" className="flex min-h-0 w-full shrink-0 flex-col gap-2 overflow-y-auto xl:w-[340px] 2xl:w-[360px]">
-            <ProductionRowInspector
-              lineItems={estimate.lineItems}
-              selectedLine={selectedGridLine}
-              selectedLineId={selectedGridLine?.id ?? ""}
-              proposalSections={estimate.proposalSections}
-              spaces={estimate.spaces}
-              getSpacePath={(spaceId) => formatSpacePath(estimate, spaceId)}
-              currencyCode={currencyCode}
-              updateLine={updateLine}
-              resetFromLibrary={resetFromLibrary}
-              deleteLine={deleteGridLine}
-              onSelectedLineChange={setSelectedGridLineId}
-              onMoveToSpace={moveSelectedLineToSpace}
-              onCopyToSpace={copySelectedLineToSpace}
-            />
-            <TabList className="grid-cols-3">
-              {(["library", "versions", "proposal"] as WorkspaceTab[]).map((tab) => <TabButton key={tab} active={activeTab === tab} onClick={() => setActiveTab(tab)}>{tab}</TabButton>)}
-            </TabList>
-            {activeTab === "library" ? <LibraryPanel items={libraryItems} currencyCode={currencyCode} getSelectedSectionId={() => selectedSectionIdRef.current} onAdd={addLibraryItem} selectedLibraryId={selectedLibraryId} onSelectForGridInsert={setSelectedLibraryId} onSaveItem={saveLibraryItem} /> : null}
-            {activeTab === "versions" ? <VersionsPanel estimate={estimate} versions={savedVersions} revisionRecords={savedRevisionRecords} onDuplicate={duplicateAsRevision} onServerDuplicate={onDuplicateRevision} /> : null}
-            {activeTab === "proposal" ? <ProposalPanel project={project} estimate={estimate} totals={totals} currencyCode={currencyCode} terms={proposalTerms} onTermsChange={updateTerms} savedProposals={savedProposals} onSaveEstimate={onSaveEstimate} onIssueProposalSnapshot={onIssueProposalSnapshot} /> : null}
+          <aside data-testid="workspace-right-dock" className={`${isRightDockOpen ? "flex w-full xl:w-[340px] 2xl:w-[360px]" : "flex w-full xl:w-10"} min-h-0 shrink-0 flex-col gap-2 overflow-y-auto`}>
+            <div className="flex items-center justify-between rounded-lg border border-hairline bg-surface px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-muted">
+              {isRightDockOpen ? <span>Right dock</span> : null}
+              <button type="button" aria-label={isRightDockOpen ? "Collapse right dock" : "Expand right dock"} className="grid size-7 place-items-center rounded text-secondary hover:bg-surfaceMuted hover:text-ink" onClick={() => setIsRightDockOpen((current) => !current)}>
+                {isRightDockOpen ? <CaretRight className="size-4" weight="bold" /> : <CaretLeft className="size-4" weight="bold" />}
+              </button>
+            </div>
+            {isRightDockOpen ? (
+              <>
+                <ProductionRowInspector
+                  lineItems={estimate.lineItems}
+                  selectedLine={selectedGridLine}
+                  selectedLineId={selectedGridLine?.id ?? ""}
+                  proposalSections={estimate.proposalSections}
+                  spaces={estimate.spaces}
+                  getSpacePath={(spaceId) => formatSpacePath(estimate, spaceId)}
+                  currencyCode={currencyCode}
+                  updateLine={updateLine}
+                  resetFromLibrary={resetFromLibrary}
+                  deleteLine={deleteGridLine}
+                  onSelectedLineChange={setSelectedGridLineId}
+                  onMoveToSpace={moveSelectedLineToSpace}
+                  onCopyToSpace={copySelectedLineToSpace}
+                />
+                <TabList className="grid-cols-3">
+                  {(["library", "versions", "proposal"] as WorkspaceTab[]).map((tab) => <TabButton key={tab} active={activeTab === tab} onClick={() => setActiveTab(tab)}>{tab}</TabButton>)}
+                </TabList>
+                {activeTab === "library" ? <LibraryPanel items={libraryItems} currencyCode={currencyCode} getSelectedSectionId={() => selectedSectionIdRef.current} onAdd={addLibraryItem} selectedLibraryId={selectedLibraryId} onSelectForGridInsert={setSelectedLibraryId} onSaveItem={saveLibraryItem} /> : null}
+                {activeTab === "versions" ? <VersionsPanel estimate={estimate} versions={savedVersions} revisionRecords={savedRevisionRecords} onDuplicate={duplicateAsRevision} onServerDuplicate={onDuplicateRevision} /> : null}
+                {activeTab === "proposal" ? <ProposalPanel project={project} estimate={estimate} totals={totals} currencyCode={currencyCode} terms={proposalTerms} onTermsChange={updateTerms} savedProposals={savedProposals} onSaveEstimate={onSaveEstimate} onIssueProposalSnapshot={onIssueProposalSnapshot} /> : null}
+              </>
+            ) : null}
           </aside>
         </div>
       </AppWorkspaceShell>
@@ -406,10 +417,10 @@ function ProjectTreeRail({ estimate, selectedSectionId, onSelectSection }: { est
     return (
       <aside data-testid="project-tree-rail" className="hidden max-h-full w-10 shrink-0 overflow-hidden rounded-lg border border-hairline bg-surface xl:block">
         <button type="button" aria-label="Expand project tree" className="grid size-10 place-items-center text-muted hover:bg-surfaceMuted hover:text-ink" onClick={() => setExpanded(true)}>
-          <ChevronRight className="size-4" />
+          <CaretRight className="size-4" weight="bold" />
         </button>
         <div className="mt-3 grid place-items-center text-primary">
-          <Layers3 className="size-4" />
+          <Stack className="size-4" weight="duotone" />
         </div>
       </aside>
     );
@@ -423,11 +434,11 @@ function ProjectTreeRail({ estimate, selectedSectionId, onSelectSection }: { est
           <p className="truncate text-xs font-medium text-ink">{estimate.name}</p>
         </div>
         <button type="button" aria-label="Collapse project tree" className="grid size-7 place-items-center rounded hover:bg-surfaceMuted" onClick={() => setExpanded(false)}>
-          <ChevronLeft className="size-4" />
+          <CaretLeft className="size-4" weight="bold" />
         </button>
       </div>
       <label className="mx-2 mt-2 flex h-8 items-center gap-2 rounded-md border border-hairline bg-white px-2 text-[11px] text-muted">
-        <Search className="size-3.5" />
+        <MagnifyingGlass className="size-3.5" weight="duotone" />
         <input aria-label="Search project tree" value={searchValue} onChange={(event) => setSearchValue(event.target.value)} placeholder="Search areas" className="min-w-0 flex-1 bg-transparent text-xs text-ink outline-none placeholder:text-muted" />
       </label>
       <div className="mt-3 px-2">
@@ -509,7 +520,7 @@ function EstimateSheetCard({ estimate, project, currencyCode, selectedSectionId,
           <select ref={sectionSelectRef} aria-label="Selected estimate section for new rows" className="rounded-xl border border-hairline bg-surface px-2 py-2 text-sm" value={selectedSectionId} onInput={(event) => setSelectedSectionId(event.currentTarget.value)} onChange={(event) => setSelectedSectionId(event.target.value)}>
             {estimate.sections.map((section) => <option key={section.id} value={section.id}>{section.outlineCode} · {section.name}</option>)}
           </select>
-          <Button variant="primary" onClick={() => addBlankRow(sectionSelectRef.current?.value ?? selectedSectionId)}><Plus className="size-4" /> Add blank row</Button>
+          <Button variant="primary" onClick={() => addBlankRow(sectionSelectRef.current?.value ?? selectedSectionId)}><Plus className="size-4" weight="bold" /> Add blank row</Button>
         </div>
       </CardHeader>
       <div className="border-y border-hairline bg-white p-2">
@@ -627,8 +638,8 @@ function ProductionRowInspector({
           <p className="mt-1 font-mono font-semibold">{formatMoney(calculated, currencyCode)}</p>
         </div>
         <div className="flex items-end gap-2">
-          {selectedLine.sourceLibraryItemId ? <Button aria-label={`Reset ${selectedLine.itemName} from library`} variant="ghost" onClick={() => resetFromLibrary(selectedLine)}><RotateCcw className="size-4" /> Reset</Button> : null}
-          <Button aria-label={`Delete ${selectedLine.itemName}`} variant="danger" onClick={() => deleteLine(selectedLine.id)}><Trash2 className="size-4" /> Delete</Button>
+          {selectedLine.sourceLibraryItemId ? <Button aria-label={`Reset ${selectedLine.itemName} from library`} variant="ghost" onClick={() => resetFromLibrary(selectedLine)}><ArrowClockwise className="size-4" weight="bold" /> Reset</Button> : null}
+          <Button aria-label={`Delete ${selectedLine.itemName}`} variant="danger" onClick={() => deleteLine(selectedLine.id)}><Trash className="size-4" weight="duotone" /> Delete</Button>
         </div>
       </div>
       <div className="mt-4 rounded-2xl border border-hairline bg-white p-2">
