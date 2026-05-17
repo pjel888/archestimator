@@ -17,8 +17,18 @@ async function openProposalTab(page: import('@playwright/test').Page) {
   await expect(page.getByRole('heading', { name: 'Proposal terms builder' })).toBeVisible({ timeout: 10000 });
 }
 
-test('home page presents project dashboard and project creation form', async ({ page }) => {
+test('landing page presents hero, features, and CTAs', async ({ page }) => {
   await page.goto('/', { waitUntil: 'domcontentloaded' });
+
+  await expect(page.getByRole('heading', { name: /Precise construction estimating/i })).toBeVisible();
+  await expect(page.getByRole('link', { name: /Start estimating/i })).toBeVisible();
+  await expect(page.getByRole('link', { name: /Open workspace/i })).toBeVisible();
+  await expect(page.getByRole('heading', { name: /Built for the way you build/i })).toBeVisible();
+  await expect(page.getByRole('heading', { name: /From takeoff to proposal/i })).toBeVisible();
+});
+
+test('projects page presents project dashboard and project creation form', async ({ page }) => {
+  await page.goto('/projects', { waitUntil: 'domcontentloaded' });
 
   await expect(page.getByRole('heading', { name: 'Projects' })).toBeVisible();
   await expect(page.getByText('Local-first project dashboard')).toBeVisible();
