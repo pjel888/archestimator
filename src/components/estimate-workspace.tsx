@@ -112,6 +112,7 @@ function EstimateWorkspaceInner({ database, project, initialEstimate, onSaveEsti
   const [dropRow, setDropRow] = useState(0);
   const [dropIntent, setDropIntent] = useState<"idle" | "valid" | "outside">("idle");
   const [visibleRowOffset, setVisibleRowOffset] = useState(0);
+  const [selectedGridLineId, setSelectedGridLineId] = useState(initialEstimate.lineItems[0]?.id ?? "");
   const selectedSectionIdRef = useRef(selectedSectionId);
   const gridFrameRef = useRef<HTMLDivElement | null>(null);
   const visibleRowOffsetRef = useRef(0);
@@ -130,6 +131,7 @@ function EstimateWorkspaceInner({ database, project, initialEstimate, onSaveEsti
   const insertionTarget = resolveGridInsertionTarget(estimate, gridRows, dropRow);
   const insertionTargetSection = estimate.sections.find((section) => section.id === insertionTarget.sectionId);
   const visibleDropRow = Math.max(0, Math.min(gridRows.length, dropRow - visibleRowOffset));
+  const selectedGridLine = estimate.lineItems.find((line) => line.id === selectedGridLineId) ?? estimate.lineItems[0];
 
   function updateTerms(patch: Partial<ProposalTerms>) {
     setProposalTerms((current) => ({ ...current, ...patch }));
@@ -148,7 +150,14 @@ function EstimateWorkspaceInner({ database, project, initialEstimate, onSaveEsti
   }
 
   function updateGridCell(cell: Item, nextCell: EditableGridCell) {
+    const row = gridRows[cell[1]];
+    if (row?.kind === "line") setSelectedGridLineId(row.lineItemId);
     setEstimate((current) => applyEstimateGridEdit(current, cell, nextCell));
+  }
+
+  function selectGridCell(cell: Item) {
+    const row = gridRows[cell[1]];
+    if (row?.kind === "line") setSelectedGridLineId(row.lineItemId);
   }
 
   function resolveSelectedProposalSectionId(current: Estimate, workingSectionId = selectedSectionIdRef.current) {
@@ -169,11 +178,13 @@ function EstimateWorkspaceInner({ database, project, initialEstimate, onSaveEsti
       linkState: "manual",
     };
     setEstimate((current) => ({ ...current, lineItems: [...current.lineItems, newLine] }));
+    setSelectedGridLineId(newLine.id);
   }
 
   function addLibraryItem(item: CostLibraryItem, targetSectionId = selectedSectionIdRef.current) {
     const newLine = createLineItemFromLibraryItem(item, targetSectionId, resolveSelectedProposalSectionId(estimate, targetSectionId));
     setEstimate((current) => ({ ...current, lineItems: [...current.lineItems, newLine] }));
+    setSelectedGridLineId(newLine.id);
   }
 
   function handleVisibleRowOffsetChange(rowOffset: number) {
@@ -207,7 +218,12 @@ function EstimateWorkspaceInner({ database, project, initialEstimate, onSaveEsti
     const libraryId = extractLibraryId(event.active.id);
     const libraryItem = database.costLibraryItems.find((item) => item.id === libraryId);
     if (libraryItem && dropIntent === "valid") {
-      setEstimate((current) => insertLibraryItemAtGridRow(current, libraryItem, dropRow));
+      setEstimate((current) => {
+        const next = insertLibraryItemAtGridRow(current, libraryItem, dropRow);
+        const inserted = next.lineItems.find((line) => !current.lineItems.some((existing) => existing.id === line.id));
+        if (inserted) setSelectedGridLineId(inserted.id);
+        return next;
+      });
       setActiveTab("library");
     }
     setActiveLibraryId(null);
@@ -222,7 +238,20 @@ function EstimateWorkspaceInner({ database, project, initialEstimate, onSaveEsti
   function insertLibraryItemAtCurrentDropRow() {
     const item = database.costLibraryItems.find((entry) => entry.id === selectedLibraryId) ?? database.costLibraryItems[0];
     if (!item) return;
-    setEstimate((current) => insertLibraryItemAtGridRow(current, item, dropRow));
+    setEstimate((current) => {
+      const next = insertLibraryItemAtGridRow(current, item, dropRow);
+      const inserted = next.lineItems.find((line) => !current.lineItems.some((existing) => existing.id === line.id));
+      if (inserted) setSelectedGridLineId(inserted.id);
+      return next;
+    });
+  }
+
+  function deleteGridLine(lineId: string) {
+    setEstimate((current) => {
+      const remaining = current.lineItems.filter((line) => line.id !== lineId);
+      if (selectedGridLineId === lineId) setSelectedGridLineId(remaining[0]?.id ?? "");
+      return { ...current, lineItems: remaining };
+    });
   }
 
   function resetFromLibrary(line: EstimateLineItem) {
@@ -277,7 +306,7 @@ function EstimateWorkspaceInner({ database, project, initialEstimate, onSaveEsti
         </header>
 
         <div className="grid gap-6 xl:grid-cols-[1fr_430px]">
-          <EstimateSheetCard estimate={estimate} project={project} totals={totals} currencyCode={currencyCode} selectedSectionId={selectedSectionId} setSelectedSectionId={setSelectedSectionId} addBlankRow={addBlankRow} updateLine={updateLine} updateGridCell={updateGridCell} resetFromLibrary={resetFromLibrary} deleteLine={(lineId) => setEstimate((current) => ({ ...current, lineItems: current.lineItems.filter((line) => line.id !== lineId) }))} gridFrameRef={gridFrameRef} dropIntent={dropIntent} visibleDropRow={visibleDropRow} onVisibleRowOffsetChange={handleVisibleRowOffsetChange} insertionTargetLabel={insertionTargetSection ? `${insertionTargetSection.outlineCode} · ${insertionTargetSection.name}` : "none"} dropRow={dropRow} setDropRow={setDropRow} maxDropRow={gridRows.length} selectedLibraryName={database.costLibraryItems.find((entry) => entry.id === selectedLibraryId)?.name ?? "first library item"} onFallbackLibraryInsert={insertLibraryItemAtCurrentDropRow} />
+          <EstimateSheetCard estimate={estimate} project={project} currencyCode={currencyCode} selectedSectionId={selectedSectionId} setSelectedSectionId={setSelectedSectionId} addBlankRow={addBlankRow} updateLine={updateLine} updateGridCell={updateGridCell} onGridCellSelected={selectGridCell} resetFromLibrary={resetFromLibrary} deleteLine={deleteGridLine} gridFrameRef={gridFrameRef} dropIntent={dropIntent} visibleDropRow={visibleDropRow} onVisibleRowOffsetChange={handleVisibleRowOffsetChange} insertionTargetLabel={insertionTargetSection ? `${insertionTargetSection.outlineCode} · ${insertionTargetSection.name}` : "none"} dropRow={dropRow} setDropRow={setDropRow} maxDropRow={gridRows.length} selectedLibraryName={database.costLibraryItems.find((entry) => entry.id === selectedLibraryId)?.name ?? "first library item"} onFallbackLibraryInsert={insertLibraryItemAtCurrentDropRow} selectedGridLine={selectedGridLine} selectedGridLineId={selectedGridLine?.id ?? ""} onSelectedGridLineChange={setSelectedGridLineId} proposalSections={estimate.proposalSections} />
 
           <aside className="flex flex-col gap-4">
             <TabList className="grid-cols-3">
@@ -300,13 +329,13 @@ function EstimateWorkspaceInner({ database, project, initialEstimate, onSaveEsti
 type EstimateSheetCardProps = {
   estimate: Estimate;
   project: Project;
-  totals: ReturnType<typeof calculateEstimateTotals>;
   currencyCode: string;
   selectedSectionId: string;
   setSelectedSectionId: (value: string) => void;
   addBlankRow: (targetSectionId?: string) => void;
   updateLine: (lineId: string, patch: Partial<EstimateLineItem>, changedField?: keyof EstimateLineItem) => void;
   updateGridCell: (cell: Item, nextCell: EditableGridCell) => void;
+  onGridCellSelected: (cell: Item) => void;
   resetFromLibrary: (line: EstimateLineItem) => void;
   deleteLine: (lineId: string) => void;
   gridFrameRef: RefObject<HTMLDivElement | null>;
@@ -319,9 +348,13 @@ type EstimateSheetCardProps = {
   maxDropRow: number;
   selectedLibraryName: string;
   onFallbackLibraryInsert: () => void;
+  selectedGridLine?: EstimateLineItem;
+  selectedGridLineId: string;
+  onSelectedGridLineChange: (lineId: string) => void;
+  proposalSections: Estimate["proposalSections"];
 };
 
-function EstimateSheetCard({ estimate, project, totals, currencyCode, selectedSectionId, setSelectedSectionId, addBlankRow, updateLine, updateGridCell, resetFromLibrary, deleteLine, gridFrameRef, dropIntent, visibleDropRow, onVisibleRowOffsetChange, insertionTargetLabel, dropRow, setDropRow, maxDropRow, selectedLibraryName, onFallbackLibraryInsert }: EstimateSheetCardProps) {
+function EstimateSheetCard({ estimate, project, currencyCode, selectedSectionId, setSelectedSectionId, addBlankRow, updateLine, updateGridCell, onGridCellSelected, resetFromLibrary, deleteLine, gridFrameRef, dropIntent, visibleDropRow, onVisibleRowOffsetChange, insertionTargetLabel, dropRow, setDropRow, maxDropRow, selectedLibraryName, onFallbackLibraryInsert, selectedGridLine, selectedGridLineId, onSelectedGridLineChange, proposalSections }: EstimateSheetCardProps) {
   const sectionSelectRef = useRef<HTMLSelectElement | null>(null);
 
   return (
@@ -345,13 +378,13 @@ function EstimateSheetCard({ estimate, project, totals, currencyCode, selectedSe
         <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
           <div>
             <p className="text-sm font-semibold">Glide estimate grid</p>
-            <p className="text-xs text-muted">Primary spreadsheet surface. Proposal mapping and row actions remain in the accessible controls below during this migration slice.</p>
+            <p className="text-xs text-muted">Primary spreadsheet surface. Use the selected-row controls beside the grid for proposal mapping and row actions.</p>
           </div>
           <span className="rounded-full bg-accentSoft px-3 py-1 text-xs font-semibold text-accentDark">Production grid migration</span>
         </div>
         <div ref={gridFrameRef} className="relative">
           {dropIntent === "valid" ? <div className="pointer-events-none absolute left-0 right-0 z-10 h-1 rounded-full bg-accent shadow-[0_0_0_4px_rgba(254,243,199,0.85)]" style={{ top: GRID_HEADER_HEIGHT + visibleDropRow * GRID_ROW_HEIGHT - 2 }} data-testid="production-grid-drop-indicator" /> : null}
-          <ProductionEstimateGlideGrid estimate={estimate} currencyCode={currencyCode} onCellEdited={updateGridCell} onVisibleRowOffsetChange={onVisibleRowOffsetChange} />
+          <ProductionEstimateGlideGrid estimate={estimate} currencyCode={currencyCode} onCellEdited={updateGridCell} onCellSelected={onGridCellSelected} onVisibleRowOffsetChange={onVisibleRowOffsetChange} />
         </div>
         <div className="mt-3 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-hairline bg-surface-muted/60 px-3 py-2 text-xs text-muted">
           <span>Drag library cards into: <strong className="text-foreground">{insertionTargetLabel}</strong>. Selected fallback item: <strong className="text-foreground">{selectedLibraryName}</strong></span>
@@ -362,45 +395,95 @@ function EstimateSheetCard({ estimate, project, totals, currencyCode, selectedSe
           <Button variant="secondary" onClick={onFallbackLibraryInsert}>Insert selected library item at row</Button>
         </div>
       </div>
-      <div className="overflow-x-auto">
-        <table className="w-full min-w-[1180px] border-collapse text-sm">
-          <caption className="sr-only">Editable estimate sheet with quantity, material, labor, scope status, and link state.</caption>
-          <thead className="bg-surface-muted text-left text-xs uppercase tracking-[0.12em] text-muted">
-            <tr>{["Item", "Proposal section", "Scope", "Qty", "Unit", "Material/unit", "Labor/unit", "Total", "Link", "Actions"].map((heading) => <th key={heading} scope="col" className="border-b border-hairline px-3 py-3">{heading}</th>)}</tr>
-          </thead>
-          <tbody>
-            {totals.rows.map((row) => (
-              <tr key={row.id} className="border-b border-hairline align-top last:border-0">
-                <td className="w-[320px] px-3 py-3">
-                  <input aria-label={`Item name for ${row.itemName}`} className="w-full rounded-lg border border-transparent bg-transparent px-2 py-1 font-medium focus:border-accent focus:bg-white focus:outline-none" value={row.itemName} onChange={(event) => updateLine(row.id, { itemName: event.target.value }, "itemName")} />
-                  <textarea aria-label={`Description for ${row.itemName}`} className="mt-1 min-h-12 w-full resize-y rounded-lg border border-transparent bg-transparent px-2 py-1 text-xs leading-5 text-muted focus:border-accent focus:bg-white focus:outline-none" value={row.description ?? ""} onChange={(event) => updateLine(row.id, { description: event.target.value }, "description")} />
-                </td>
-                <td className="px-3 py-3">
-                  <select aria-label={`Proposal section for ${row.itemName}`} className={`w-52 rounded-lg border px-2 py-2 text-xs ${row.proposalSectionId ? "border-hairline bg-surface" : "border-amber-300 bg-amber-50"}`} value={row.proposalSectionId ?? ""} onChange={(event) => updateLine(row.id, { proposalSectionId: event.target.value || undefined }, "proposalSectionId")}>
-                    <option value="">Unassigned</option>
-                    {estimate.proposalSections.map((section) => <option key={section.id} value={section.id}>{section.outlineCode} · {section.name}</option>)}
-                  </select>
-                  {!row.proposalSectionId ? <p className="mt-2 text-xs font-medium text-amber-700">Needs proposal mapping</p> : null}
-                </td>
-                <td className="px-3 py-3">
-                  <select aria-label={`Scope status for ${row.itemName}`} className="w-40 rounded-lg border border-hairline bg-surface px-2 py-2 text-xs" value={row.scopeStatus} onChange={(event) => updateLine(row.id, { scopeStatus: event.target.value as EstimateLineItem["scopeStatus"] }, "scopeStatus")}>
-                    {scopeOptions.map((option) => <option key={option} value={option}>{option}</option>)}
-                  </select>
-                  {!row.includedInTotal ? <p className="mt-2 text-xs text-muted">Excluded from total</p> : null}
-                </td>
-                <td className="px-3 py-3"><NumberInput label={`Quantity for ${row.itemName}`} value={row.quantity} onChange={(value) => updateLine(row.id, { quantity: value }, "quantity")} /></td>
-                <td className="px-3 py-3"><TextInput className="w-20" value={row.unit} onChange={(event) => updateLine(row.id, { unit: event.target.value }, "unit")} aria-label={`Unit for ${row.itemName}`} /></td>
-                <td className="px-3 py-3"><NumberInput label={`Material unit cost for ${row.itemName}`} value={row.materialUnitCost ?? row.unitCost ?? 0} onChange={(value) => updateLine(row.id, { materialUnitCost: value, unitCost: undefined }, "materialUnitCost")} /></td>
-                <td className="px-3 py-3"><NumberInput label={`Labor unit cost for ${row.itemName}`} value={row.laborUnitCost ?? 0} onChange={(value) => updateLine(row.id, { laborUnitCost: value }, "laborUnitCost")} /></td>
-                <td className="px-3 py-3 text-right font-mono font-semibold">{formatMoney(row.calculated.total, currencyCode)}</td>
-                <td className="px-3 py-3"><LinkStateBadge state={row.linkState} /></td>
-                <td className="px-3 py-3"><div className="flex gap-1">{row.sourceLibraryItemId ? <Button aria-label={`Reset ${row.itemName} from library`} variant="ghost" size="icon" onClick={() => resetFromLibrary(row)}><RotateCcw className="size-4" /></Button> : null}<Button aria-label={`Delete ${row.itemName}`} variant="danger" size="icon" onClick={() => deleteLine(row.id)}><Trash2 className="size-4" /></Button></div></td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <ProductionRowInspector
+        lineItems={estimate.lineItems}
+        selectedLine={selectedGridLine}
+        selectedLineId={selectedGridLineId}
+        proposalSections={proposalSections}
+        currencyCode={currencyCode}
+        updateLine={updateLine}
+        resetFromLibrary={resetFromLibrary}
+        deleteLine={deleteLine}
+        onSelectedLineChange={onSelectedGridLineChange}
+      />
     </Card>
+  );
+}
+
+function ProductionRowInspector({
+  lineItems,
+  selectedLine,
+  selectedLineId,
+  proposalSections,
+  currencyCode,
+  updateLine,
+  resetFromLibrary,
+  deleteLine,
+  onSelectedLineChange,
+}: {
+  lineItems: EstimateLineItem[];
+  selectedLine?: EstimateLineItem;
+  selectedLineId: string;
+  proposalSections: Estimate["proposalSections"];
+  currencyCode: string;
+  updateLine: (lineId: string, patch: Partial<EstimateLineItem>, changedField?: keyof EstimateLineItem) => void;
+  resetFromLibrary: (line: EstimateLineItem) => void;
+  deleteLine: (lineId: string) => void;
+  onSelectedLineChange: (lineId: string) => void;
+}) {
+  const calculated = selectedLine ? calculateEstimateTotals({ sections: [], lineItems: [selectedLine], proposalSections: [], id: "inspector", projectId: "inspector", name: "Inspector", versionLabel: "Inspector", versionNumber: 1, status: "draft", pricingBasisDate: "2026-01-01" }).rows[0]?.calculated.total ?? 0 : 0;
+
+  if (!selectedLine) {
+    return <div className="border-t border-hairline p-4 text-sm text-muted">Select a line row in the production grid to edit proposal mapping, scope, and row actions.</div>;
+  }
+
+  return (
+    <div className="border-t border-hairline bg-surface-muted/30 p-4" data-testid="production-row-inspector">
+      <div className="flex flex-col gap-2 lg:flex-row lg:items-end lg:justify-between">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">Selected grid row controls</p>
+          <h3 className="mt-1 text-lg font-semibold tracking-[-0.02em]">{selectedLine.itemName}</h3>
+          <div className="mt-2"><LinkStateBadge state={selectedLine.linkState} /></div>
+        </div>
+        <label className="grid gap-1 text-xs font-medium text-muted">
+          Select estimate row
+          <select aria-label="Selected production grid row" className="min-w-72 rounded-xl border border-hairline bg-white px-3 py-2 text-sm text-foreground" value={selectedLineId} onChange={(event) => onSelectedLineChange(event.target.value)}>
+            {lineItems.map((line) => <option key={line.id} value={line.id}>{line.itemName}</option>)}
+          </select>
+        </label>
+      </div>
+      <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+        <label className="grid gap-1 text-xs font-medium text-muted">
+          Proposal section
+          <select aria-label={`Proposal section for ${selectedLine.itemName}`} className={`rounded-xl border px-3 py-2 text-sm text-foreground ${selectedLine.proposalSectionId ? "border-hairline bg-white" : "border-amber-300 bg-amber-50"}`} value={selectedLine.proposalSectionId ?? ""} onChange={(event) => updateLine(selectedLine.id, { proposalSectionId: event.target.value || undefined }, "proposalSectionId")}>
+            <option value="">Unassigned</option>
+            {proposalSections.map((section) => <option key={section.id} value={section.id}>{section.outlineCode} · {section.name}</option>)}
+          </select>
+        </label>
+        <label className="grid gap-1 text-xs font-medium text-muted">
+          Scope status
+          <select aria-label={`Scope status for ${selectedLine.itemName}`} className="rounded-xl border border-hairline bg-white px-3 py-2 text-sm text-foreground" value={selectedLine.scopeStatus} onChange={(event) => updateLine(selectedLine.id, { scopeStatus: event.target.value as EstimateLineItem["scopeStatus"] }, "scopeStatus")}>
+            {scopeOptions.map((option) => <option key={option} value={option}>{option}</option>)}
+          </select>
+        </label>
+        <NumberInput label={`Quantity for ${selectedLine.itemName}`} value={selectedLine.quantity} onChange={(value) => updateLine(selectedLine.id, { quantity: value }, "quantity")} />
+        <label className="grid gap-1 text-xs font-medium text-muted">
+          Unit
+          <TextInput className="bg-white" value={selectedLine.unit} onChange={(event) => updateLine(selectedLine.id, { unit: event.target.value }, "unit")} aria-label={`Unit for ${selectedLine.itemName}`} />
+        </label>
+        <NumberInput label={`Material unit cost for ${selectedLine.itemName}`} value={selectedLine.materialUnitCost ?? selectedLine.unitCost ?? 0} onChange={(value) => updateLine(selectedLine.id, { materialUnitCost: value, unitCost: undefined }, "materialUnitCost")} />
+        <NumberInput label={`Labor unit cost for ${selectedLine.itemName}`} value={selectedLine.laborUnitCost ?? 0} onChange={(value) => updateLine(selectedLine.id, { laborUnitCost: value }, "laborUnitCost")} />
+        <div className="rounded-xl border border-hairline bg-white px-3 py-2">
+          <p className="text-xs font-medium text-muted">Selected row total</p>
+          <p className="mt-1 font-mono font-semibold">{formatMoney(calculated, currencyCode)}</p>
+        </div>
+        <div className="flex items-end gap-2">
+          {selectedLine.sourceLibraryItemId ? <Button aria-label={`Reset ${selectedLine.itemName} from library`} variant="ghost" onClick={() => resetFromLibrary(selectedLine)}><RotateCcw className="size-4" /> Reset</Button> : null}
+          <Button aria-label={`Delete ${selectedLine.itemName}`} variant="danger" onClick={() => deleteLine(selectedLine.id)}><Trash2 className="size-4" /> Delete</Button>
+        </div>
+      </div>
+      {!selectedLine.proposalSectionId ? <p className="mt-3 text-xs font-medium text-amber-700">Needs proposal mapping before proposal issuance.</p> : null}
+    </div>
   );
 }
 

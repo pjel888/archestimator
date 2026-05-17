@@ -56,6 +56,7 @@ test('project page covers library insert, section-aware proposal mapping, and li
   await expect(page.getByTestId('production-library-drag-tray')).toBeVisible();
   await expect(page.getByText(/Drag library cards into:/i)).toBeVisible();
 
+  await page.getByLabel('Selected production grid row').selectOption('line_tile_a_bathroom');
   const tileQuantity = page.getByLabel(/Quantity for Tile A - bathroom floor/i);
   await tileQuantity.fill('30');
   await expect(page.getByText(/₱43,612|PHP\s*43,612/i).first()).toBeVisible();

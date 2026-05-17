@@ -80,6 +80,33 @@ describe("estimate grid adapter", () => {
     expect(getEstimateGridCell(next, [6, 1]).displayData).toContain("1,980");
   });
 
+  test("marks library-backed grid edits as linked overrides", () => {
+    const libraryBackedEstimate: Estimate = {
+      ...estimate,
+      lineItems: [{ ...estimate.lineItems[0], sourceLibraryItemId: "library_flooring", linkState: "linked-clean" }],
+    };
+
+    const next = applyEstimateGridEdit(libraryBackedEstimate, [1, 1], {
+      kind: GridCellKind.Text,
+      data: "Custom flooring name",
+      displayData: "Custom flooring name",
+      allowOverlay: true,
+    });
+
+    expect(next.lineItems[0].itemName).toBe("Custom flooring name");
+    expect(next.lineItems[0].linkState).toBe("linked-overridden");
+  });
+
+  test("clamps grid numeric edits to nonnegative values", () => {
+    const nextQuantity = applyEstimateGridEdit(estimate, [2, 1], { kind: GridCellKind.Number, data: -5, displayData: "-5", allowOverlay: true });
+    const nextUnitCost = applyEstimateGridEdit(estimate, [4, 1], { kind: GridCellKind.Number, data: -900, displayData: "-900", allowOverlay: true });
+    const nextWaste = applyEstimateGridEdit(estimate, [5, 1], { kind: GridCellKind.Number, data: -10, displayData: "-10", allowOverlay: true });
+
+    expect(nextQuantity.lineItems[0].quantity).toBe(0);
+    expect(nextUnitCost.lineItems[0].unitCost).toBe(0);
+    expect(nextWaste.lineItems[0].wastePercent).toBe(0);
+  });
+
   test("ignores edits against section header rows", () => {
     const next = applyEstimateGridEdit(estimate, [1, 0], { kind: GridCellKind.Text, data: "Wrong", displayData: "Wrong", allowOverlay: true });
     expect(next).toBe(estimate);
