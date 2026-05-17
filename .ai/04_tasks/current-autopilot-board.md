@@ -12,15 +12,15 @@
 
 ## Now
 
-1. Main is the consolidated checkpoint branch; old stacked PR branches were closed/deleted after merging the checkpoint to `main`.
-2. Selected-row inspector supports moving or copying estimate rows between floor/room/area spaces while preserving proposal-section mapping.
-3. Cost Library Management v1 remains implemented inside the project workspace library tab.
-4. Explicit floor/room/area hierarchy objects remain in the local-first estimate schema and demo seed (`floors`, `spaces`, row-level `spaceId`).
+1. PR #8 row move/copy checkpoint has been merged to `main`; revision/diff semantics work is isolated on `feat/revision-diff-semantics`.
+2. Revision diff semantics now classify space moves, BOQ/proposal remaps, commercial edits, scope changes, added rows, and removed rows separately.
+3. The Versions panel surfaces the active revision's diff summary against the prior saved version when available.
+4. Cost Library Management v1, floor/room/area hierarchy, and row move/copy controls remain implemented.
 
 ## Next
 
-1. Add revision/diff semantics that distinguish moved spaces from changed BOQ/proposal grouping.
-2. Continue UX/UI hardening and visual QA for the row operation controls, Cost Library Management v1 panel, and issued proposal print route.
+1. Persist explicit revision diff records when saving duplicated revisions, not only compute them on demand in UI.
+2. Continue UX/UI hardening and visual QA for revision summaries, row operation controls, Cost Library Management v1 panel, and issued proposal print route.
 3. Consider richer grid custom cells only after the side-panel workflow proves stable.
 
 ## Later

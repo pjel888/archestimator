@@ -5,12 +5,38 @@
 ## Current active thread
 
 - **Date:** 2026-05-17
-- **Branch:** `feat/row-move-copy-spaces`
-- **Goal:** Add row move/copy operations between spaces while preserving proposal-section mapping.
-- **Status:** Row move/copy slice implemented; full gates/review pending
+- **Branch:** `feat/revision-diff-semantics`
+- **Goal:** Add revision/diff semantics for space moves vs BOQ/proposal remaps.
+- **Status:** Revision/diff semantics implemented; full gates/review pending
 - **Validation target:** `bun run validate && bun run build && bun run test:e2e`
 
 ## Ledger entries
+
+### 2026-05-17 — Revision/diff semantics
+
+**Status:** Implemented; local validation in progress
+
+**Type:** estimate revision domain semantics + Versions panel summary + tests
+
+**What changed:**
+
+- Added `compareEstimateRevisions` with explicit change categories for space moves, BOQ/proposal remaps, commercial changes, scope changes, added rows, and removed rows.
+- Added `revisionSourceLineItemId` lineage tracking so duplicated revisions with regenerated row ids still compare inherited rows correctly.
+- Space-only movement is now distinguishable from client-facing BOQ/proposal grouping changes.
+- Versions panel computes an active revision summary against the prior saved version when available.
+- Added unit coverage proving space moves, proposal remaps, and commercial edits are classified separately.
+- Merged PR #8 first so this slice started from a clean `main` checkpoint.
+
+**Verification:**
+
+- `bun test tests/unit/revision-diff.test.ts` — passed.
+- `bun run validate` — passed: type-check, lint, 37 unit tests, 11 DOM/Vitest tests.
+- Full build/E2E/review pending.
+
+**Follow-ups:**
+
+- Persist explicit revision-diff records when saved revisions are created server-side.
+- Add richer comparison UI and filters once revision records are persisted.
 
 ### 2026-05-17 — Row move/copy between spaces
 

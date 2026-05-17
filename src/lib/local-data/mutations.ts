@@ -144,7 +144,7 @@ export function duplicateEstimateRevision(
     versionNumber: nextVersionNumber,
     versionLabel: `Rev ${String(nextVersionNumber).padStart(2, "0")}`,
     status: "draft",
-    lineItems: source.lineItems.map((line) => ({ ...line, id: `line_${nanoid(10)}` })),
+    lineItems: source.lineItems.map((line) => ({ ...line, id: `line_${nanoid(10)}`, revisionSourceLineItemId: line.revisionSourceLineItemId ?? line.id })),
   };
 
   void changeReason;
@@ -166,7 +166,7 @@ export function copyEstimateLineToSpace(estimate: Estimate, lineId: string, targ
   if (!source) throw new Error(`Line item not found: ${lineId}`);
   return {
     ...estimate,
-    lineItems: [...estimate.lineItems, { ...source, id: newLineId, spaceId: targetSpaceId }],
+    lineItems: [...estimate.lineItems, { ...source, id: newLineId, revisionSourceLineItemId: undefined, spaceId: targetSpaceId }],
   };
 }
 
