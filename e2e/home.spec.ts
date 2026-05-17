@@ -53,9 +53,18 @@ test('project page covers library insert, section-aware proposal mapping, and li
   await insertedProposalSection.selectOption('proposal_section_general_conditions');
   await expect(insertedProposalSection).toHaveValue('proposal_section_general_conditions');
 
+  await expect(page.getByTestId('production-library-drag-tray')).toBeVisible();
+  await expect(page.getByText(/Drag library cards into:/i)).toBeVisible();
+
   const tileQuantity = page.getByLabel(/Quantity for Tile A - bathroom floor/i);
   await tileQuantity.fill('30');
   await expect(page.getByText(/₱43,612|PHP\s*43,612/i).first()).toBeVisible();
+
+  await page.getByRole('button', { name: 'Select for row insert' }).first().click();
+  await expect(page.getByText(/Selected fallback item: Painter labor day rate/i)).toBeVisible();
+  await page.getByLabel('Production grid fallback insert row').fill('2');
+  await page.getByRole('button', { name: 'Insert selected library item at row' }).click();
+  await expect(page.getByLabel(/Proposal section for Painter labor day rate/i).last()).toBeVisible();
 });
 
 test('project page covers proposal terms, proposal summary, and issued proposal route', async ({ page }) => {
