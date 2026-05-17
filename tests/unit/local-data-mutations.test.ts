@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import type { Estimate, LocalDatabase } from "@/lib/local-data/schemas";
-import { createProjectWithInitialEstimate, createProposalSnapshot, duplicateEstimateRevision, saveEstimateInDatabase, upsertCostLibraryItem } from "@/lib/local-data/mutations";
+import { copyEstimateLineToSpace, createProjectWithInitialEstimate, createProposalSnapshot, duplicateEstimateRevision, moveEstimateLineToSpace, saveEstimateInDatabase, upsertCostLibraryItem } from "@/lib/local-data/mutations";
 
 const estimate: Estimate = {
   id: "estimate_1",
@@ -12,7 +12,10 @@ const estimate: Estimate = {
   pricingBasisDate: "2026-05-16",
   sections: [{ id: "section_1", name: "Works", outlineCode: "A", sectionType: "trade" }],
   floors: [{ id: "floor_1", name: "Ground Floor", outlineCode: "GF", sortOrder: 0 }],
-  spaces: [{ id: "space_1", floorId: "floor_1", name: "Bathroom", outlineCode: "GF-01", sortOrder: 0, spaceType: "room" }],
+  spaces: [
+    { id: "space_1", floorId: "floor_1", name: "Bathroom", outlineCode: "GF-01", sortOrder: 0, spaceType: "room" },
+    { id: "space_2", floorId: "floor_1", name: "Kitchen", outlineCode: "GF-02", sortOrder: 1, spaceType: "room" },
+  ],
   lineItems: [
     {
       id: "line_1",
@@ -122,6 +125,25 @@ describe("duplicateEstimateRevision", () => {
     expect(next.estimate.versionLabel).toBe("Rev 02");
     expect(next.estimate.status).toBe("draft");
     expect(next.database.projects[0].currentEstimateId).toBe(next.estimate.id);
+  });
+});
+
+describe("space row operations", () => {
+  test("moves an estimate line to another space while preserving proposal mapping", () => {
+    const moved = moveEstimateLineToSpace(estimate, "line_1", "space_2");
+
+    expect(moved.lineItems).toHaveLength(1);
+    expect(moved.lineItems[0]).toMatchObject({ id: "line_1", spaceId: "space_2", sectionId: "section_1" });
+    expect(moved.lineItems[0].proposalSectionId).toBe(estimate.lineItems[0].proposalSectionId);
+  });
+
+  test("copies an estimate line to another space with a new id and preserved proposal mapping", () => {
+    const copied = copyEstimateLineToSpace(estimate, "line_1", "space_2", "line_copy_1");
+
+    expect(copied.lineItems).toHaveLength(2);
+    expect(copied.lineItems[0].id).toBe("line_1");
+    expect(copied.lineItems[1]).toMatchObject({ id: "line_copy_1", itemName: "Work item", spaceId: "space_2", sectionId: "section_1" });
+    expect(copied.lineItems[1].proposalSectionId).toBe(estimate.lineItems[0].proposalSectionId);
   });
 });
 
