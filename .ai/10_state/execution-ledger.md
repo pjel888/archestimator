@@ -12,6 +12,34 @@
 
 ## Ledger entries
 
+### 2026-05-17 — PR #7 Codex remediation and selected-row grid controls
+
+**Status:** Implemented; local gates passing
+
+**Type:** PR review remediation + production grid-side controls + accessibility
+
+**What changed:**
+
+- Checked PR #7 formal and inline Codex comments with `gh`; found three actionable items.
+- Removed `next-env.d.ts` from `.gitignore` so fresh checkouts keep Next ambient declarations before `tsc --noEmit`.
+- Hardened `applyEstimateGridEdit` so library-backed grid edits use `detectLinkStateAfterEdit` and pricing/name/unit edits surface as `linked-overridden`.
+- Clamped numeric Glide edits for quantity, unit cost, and waste percent to nonnegative values before they reach local persistence/schema validation.
+- Moved proposal-section assignment, scope editing, quantity/rate edits, reset, and delete into a keyboard-accessible selected-row inspector tied to the production Glide grid.
+- Removed the old full accessible row table from the production workspace surface.
+- Updated unit, DOM, and Playwright coverage for the new selected-row controls.
+
+**Verification:**
+
+- `bun run validate` — passed: type-check, lint, 29 unit tests, 6 DOM/Vitest tests.
+- `bun run build` — passed.
+- `bun run test:e2e` — passed: 7 Playwright tests.
+
+**Follow-ups:**
+
+- Add explicit floor/room/area hierarchy objects beyond the current `sections` bridge.
+- Improve proposal package detail mode with space/location references.
+- Consider richer Glide custom cells after the selected-row side-panel workflow is stable.
+
 ### 2026-05-17 — Production library-to-Glide insertion slice
 
 **Status:** Implemented; full gates/review passing

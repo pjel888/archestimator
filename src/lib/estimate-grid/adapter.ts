@@ -2,7 +2,7 @@ import type { GridCell, GridColumn, Item } from "@glideapps/glide-data-grid";
 import { GridCellKind } from "@glideapps/glide-data-grid";
 import type { CostLibraryItem, Estimate, EstimateLineItem } from "@/lib/local-data/schemas";
 import { calculateEstimateLineTotal } from "@/lib/estimates/calculations";
-import { createLineItemFromLibraryItem } from "@/lib/estimates/library-insert";
+import { createLineItemFromLibraryItem, detectLinkStateAfterEdit } from "@/lib/estimates/library-insert";
 import { isLineIncludedInTotal } from "@/lib/estimates/totals";
 
 export type EstimateGridRow =
@@ -124,19 +124,40 @@ function applyEstimateGridEditToLineIndex(estimate: Estimate, columnIndex: numbe
   const value = cellToValue(cell);
   const nextLine: EstimateLineItem = { ...line };
 
-  if (column === "itemName" && typeof value === "string") nextLine.itemName = value;
-  if (column === "unit" && typeof value === "string") nextLine.unit = value;
-  if (column === "scopeStatus" && typeof value === "string") nextLine.scopeStatus = value as EstimateLineItem["scopeStatus"];
-  if (column === "quantity") nextLine.quantity = toFiniteNumber(value, line.quantity);
+  let changedField: keyof EstimateLineItem | undefined;
+
+  if (column === "itemName" && typeof value === "string") {
+    nextLine.itemName = value;
+    changedField = "itemName";
+  }
+  if (column === "unit" && typeof value === "string") {
+    nextLine.unit = value;
+    changedField = "unit";
+  }
+  if (column === "scopeStatus" && typeof value === "string") {
+    nextLine.scopeStatus = value as EstimateLineItem["scopeStatus"];
+    changedField = "scopeStatus";
+  }
+  if (column === "quantity") {
+    nextLine.quantity = toNonnegativeFiniteNumber(value, line.quantity);
+    changedField = "quantity";
+  }
   if (column === "unitCost") {
-    const nextUnitCost = toFiniteNumber(value, line.unitCost ?? line.materialUnitCost ?? 0);
+    const nextUnitCost = toNonnegativeFiniteNumber(value, line.unitCost ?? line.materialUnitCost ?? 0);
     if (line.materialUnitCost !== undefined) {
       nextLine.materialUnitCost = nextUnitCost;
+      changedField = "materialUnitCost";
     } else {
       nextLine.unitCost = nextUnitCost;
+      changedField = "unitCost";
     }
   }
-  if (column === "wastePercent") nextLine.wastePercent = toFiniteNumber(value, line.wastePercent ?? 0);
+  if (column === "wastePercent") {
+    nextLine.wastePercent = toNonnegativeFiniteNumber(value, line.wastePercent ?? 0);
+    changedField = "wastePercent";
+  }
+
+  if (changedField) nextLine.linkState = detectLinkStateAfterEdit(line, changedField);
 
   return {
     ...estimate,
@@ -245,9 +266,10 @@ function tokenize(value: string): Set<string> {
   return new Set(value.toLowerCase().split(/[^a-z0-9]+/).filter((token) => token.length > 2 && token !== "section" && token !== "space" && token !== "proposal"));
 }
 
-function toFiniteNumber(value: string | number | undefined, fallback: number): number {
+function toNonnegativeFiniteNumber(value: string | number | undefined, fallback: number): number {
   const parsed = typeof value === "number" ? value : Number(value);
-  return Number.isFinite(parsed) ? parsed : fallback;
+  if (!Number.isFinite(parsed)) return fallback;
+  return Math.max(0, parsed);
 }
 
 function formatCurrency(value: number, currency: string): string {

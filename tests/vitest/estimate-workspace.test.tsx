@@ -25,7 +25,7 @@ describe("EstimateWorkspace", () => {
 
     await user.click(screen.getAllByRole("button", { name: /Add to estimate/i })[0]);
 
-    expect(screen.getAllByText("linked-clean").length).toBeGreaterThanOrEqual(2);
+    expect(screen.getByTestId("production-row-inspector")).toHaveTextContent("linked-clean");
     expect(screen.getAllByLabelText(/Proposal section for/i).at(-1)).toHaveValue("proposal_section_floor_finishes");
   });
 
@@ -46,6 +46,15 @@ describe("EstimateWorkspace", () => {
     await user.click(screen.getByRole("button", { name: /Add blank row/i }));
 
     expect(screen.getAllByLabelText(/Proposal section for Untitled estimate item/i).at(-1)).toHaveValue("proposal_section_general_conditions");
+  });
+
+  it("keeps the row inspector selection valid after deleting the selected row", async () => {
+    const user = userEvent.setup();
+    render(<EstimateWorkspace database={database} />);
+
+    await user.click(screen.getByRole("button", { name: /Delete Tile A - bathroom floor/i }));
+
+    expect(screen.getByLabelText("Selected production grid row")).not.toHaveValue("line_tile_a_bathroom");
   });
 
   it("edits proposal terms in the proposal package builder", async () => {

@@ -13,10 +13,11 @@ type ProductionEstimateGlideGridProps = {
   estimate: Estimate;
   currencyCode: string;
   onCellEdited: (cell: Item, nextCell: EditableGridCell) => void;
+  onCellSelected?: (cell: Item) => void;
   onVisibleRowOffsetChange?: (rowOffset: number) => void;
 };
 
-export function ProductionEstimateGlideGrid({ estimate, currencyCode, onCellEdited, onVisibleRowOffsetChange }: ProductionEstimateGlideGridProps) {
+export function ProductionEstimateGlideGrid({ estimate, currencyCode, onCellEdited, onCellSelected, onVisibleRowOffsetChange }: ProductionEstimateGlideGridProps) {
   const rows = buildEstimateGridRows(estimate);
 
   return (
@@ -31,6 +32,7 @@ export function ProductionEstimateGlideGrid({ estimate, currencyCode, onCellEdit
         smoothScrollX
         smoothScrollY
         onCellEdited={onCellEdited}
+        onCellClicked={(cell) => onCellSelected?.(cell)}
         onVisibleRegionChanged={(range) => onVisibleRowOffsetChange?.(Math.max(0, range.y))}
         width="100%"
         height="100%"
