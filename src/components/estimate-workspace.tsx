@@ -8,7 +8,7 @@ import type { EditableGridCell, Item } from "@glideapps/glide-data-grid";
 import { DndContext, DragOverlay, type DragEndEvent, type DragMoveEvent, type DragStartEvent, PointerSensor, useDraggable, useSensor, useSensors } from "@dnd-kit/core";
 import { CSS } from "@dnd-kit/utilities";
 import { Plus, RotateCcw, Trash2 } from "lucide-react";
-import type { CostLibraryItem, Estimate, EstimateLineItem, EstimateSpace, LocalDatabase, ProposalTerms } from "@/lib/local-data/schemas";
+import type { CostLibraryItem, Estimate, EstimateLineItem, EstimateSpace, LocalDatabase, ProposalTerms, RevisionChangeRecord } from "@/lib/local-data/schemas";
 import { compareEstimateRevisions } from "@/lib/estimates/revision-diff";
 import { calculateEstimateTotals } from "@/lib/estimates/totals";
 import { createLineItemFromLibraryItem, detectLinkStateAfterEdit } from "@/lib/estimates/library-insert";
@@ -118,7 +118,10 @@ function EstimateWorkspaceInner({ database, project, initialEstimate, onSaveEsti
   const [estimate, setEstimate] = useState<Estimate>(initialEstimate);
   const [proposalTerms, setProposalTerms] = useState<ProposalTerms>(() => createDefaultProposalTerms(database, initialEstimate));
   const [activeTab, setActiveTab] = useState<WorkspaceTab>("library");
-  const [savedVersions, setSavedVersions] = useState<Estimate[]>([initialEstimate]);
+  const [savedVersions, setSavedVersions] = useState<Estimate[]>(() => {
+    const projectVersions = database.estimates.filter((item) => item.projectId === project.id);
+    return projectVersions.length ? projectVersions : [initialEstimate];
+  });
   const [selectedSectionId, setSelectedSectionIdState] = useState(initialEstimate.sections[0]?.id ?? "section_default");
   const [activeLibraryId, setActiveLibraryId] = useState<string | null>(null);
   const [libraryItems, setLibraryItems] = useState<CostLibraryItem[]>(database.costLibraryItems);
@@ -141,6 +144,7 @@ function EstimateWorkspaceInner({ database, project, initialEstimate, onSaveEsti
   const gridRows = useMemo(() => buildEstimateGridRows(estimate), [estimate]);
   const currencyCode = database.workspace.defaultCurrency;
   const savedProposals = database.proposalSnapshots.filter((snapshot) => snapshot.projectId === project.id);
+  const savedRevisionRecords = (database.revisionChangeRecords ?? []).filter((record) => record.projectId === project.id);
   const activeLibraryItem = libraryItems.find((item) => item.id === activeLibraryId);
   const insertionTarget = resolveGridInsertionTarget(estimate, gridRows, dropRow);
   const insertionTargetSection = estimate.sections.find((section) => section.id === insertionTarget.sectionId);
@@ -348,7 +352,7 @@ function EstimateWorkspaceInner({ database, project, initialEstimate, onSaveEsti
               {(["library", "versions", "proposal"] as WorkspaceTab[]).map((tab) => <TabButton key={tab} active={activeTab === tab} onClick={() => setActiveTab(tab)}>{tab}</TabButton>)}
             </TabList>
             {activeTab === "library" ? <LibraryPanel items={libraryItems} currencyCode={currencyCode} getSelectedSectionId={() => selectedSectionIdRef.current} onAdd={addLibraryItem} selectedLibraryId={selectedLibraryId} onSelectForGridInsert={setSelectedLibraryId} onSaveItem={saveLibraryItem} /> : null}
-            {activeTab === "versions" ? <VersionsPanel estimate={estimate} versions={savedVersions} onDuplicate={duplicateAsRevision} onServerDuplicate={onDuplicateRevision} /> : null}
+            {activeTab === "versions" ? <VersionsPanel estimate={estimate} versions={savedVersions} revisionRecords={savedRevisionRecords} onDuplicate={duplicateAsRevision} onServerDuplicate={onDuplicateRevision} /> : null}
             {activeTab === "proposal" ? <ProposalPanel project={project} estimate={estimate} totals={totals} currencyCode={currencyCode} terms={proposalTerms} onTermsChange={updateTerms} savedProposals={savedProposals} onSaveEstimate={onSaveEstimate} onIssueProposalSnapshot={onIssueProposalSnapshot} /> : null}
           </aside>
         </div>
@@ -484,6 +488,8 @@ function ProductionRowInspector({
 }) {
   const calculated = selectedLine ? calculateEstimateTotals({ sections: [], floors: [], spaces: [], lineItems: [selectedLine], proposalSections: [], id: "inspector", projectId: "inspector", name: "Inspector", versionLabel: "Inspector", versionNumber: 1, status: "draft", pricingBasisDate: "2026-01-01" }).rows[0]?.calculated.total ?? 0 : 0;
   const [operationSpaceId, setOperationSpaceId] = useState(selectedLine?.spaceId ?? spaces[0]?.id ?? "");
+  const fallbackOperationSpaceId = selectedLine?.spaceId ?? spaces[0]?.id ?? "";
+  const effectiveOperationSpaceId = operationSpaceId && spaces.some((space) => space.id === operationSpaceId) ? operationSpaceId : fallbackOperationSpaceId;
 
   if (!selectedLine) {
     return <div className="border-t border-hairline p-4 text-sm text-muted">Select a line row in the production grid to edit proposal mapping, scope, and row actions.</div>;
@@ -548,11 +554,11 @@ function ProductionRowInspector({
       <div className="mt-4 rounded-2xl border border-hairline bg-white p-3">
         <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">Move/copy between spaces</p>
         <div className="mt-2 grid gap-2 md:grid-cols-[1fr_auto_auto]">
-          <select aria-label="Row operation target location" className="rounded-xl border border-hairline bg-white px-3 py-2 text-sm text-foreground" value={operationSpaceId} onChange={(event) => setOperationSpaceId(event.target.value)}>
+          <select aria-label="Row operation target location" className="rounded-xl border border-hairline bg-white px-3 py-2 text-sm text-foreground" value={effectiveOperationSpaceId} onChange={(event) => setOperationSpaceId(event.target.value)}>
             {spaces.map((space) => <option key={space.id} value={space.id}>{getSpacePath(space.id)}</option>)}
           </select>
-          <Button variant="secondary" aria-label={`Move ${selectedLine.itemName} to selected location`} onClick={() => onMoveToSpace(operationSpaceId)}>Move row</Button>
-          <Button variant="secondary" aria-label={`Copy ${selectedLine.itemName} to selected location`} onClick={() => onCopyToSpace(operationSpaceId)}>Copy row</Button>
+          <Button variant="secondary" aria-label={`Move ${selectedLine.itemName} to selected location`} onClick={() => onMoveToSpace(effectiveOperationSpaceId)}>Move row</Button>
+          <Button variant="secondary" aria-label={`Copy ${selectedLine.itemName} to selected location`} onClick={() => onCopyToSpace(effectiveOperationSpaceId)}>Copy row</Button>
         </div>
         <p className="mt-2 text-xs text-muted">Move or copy keeps proposal-section mapping stable unless you change it explicitly.</p>
       </div>
@@ -687,10 +693,13 @@ function getPointerCoordinates(event: Event): { x: number; y: number } | null {
   return null;
 }
 
-function VersionsPanel({ estimate, versions, onDuplicate, onServerDuplicate }: { estimate: Estimate; versions: Estimate[]; onDuplicate: () => void; onServerDuplicate?: (estimateId: string) => Promise<void> }) {
+function VersionsPanel({ estimate, versions, revisionRecords, onDuplicate, onServerDuplicate }: { estimate: Estimate; versions: Estimate[]; revisionRecords: RevisionChangeRecord[]; onDuplicate: () => void; onServerDuplicate?: (estimateId: string) => Promise<void> }) {
   const orderedVersions = [...versions].sort((a, b) => a.versionNumber - b.versionNumber);
+  const orderedRevisionRecords = [...revisionRecords].sort((a, b) => a.recordedAt.localeCompare(b.recordedAt));
+  const persistedActiveRecord = orderedRevisionRecords.find((record) => record.toEstimateId === estimate.id);
   const priorVersion = orderedVersions.filter((version) => version.id !== estimate.id && version.versionNumber < estimate.versionNumber).at(-1);
-  const activeDiff = priorVersion ? compareEstimateRevisions(priorVersion, estimate) : null;
+  const activeDiff = persistedActiveRecord ?? (priorVersion ? compareEstimateRevisions(priorVersion, estimate) : null);
+  const comparedWithLabel = persistedActiveRecord?.fromVersionLabel ?? priorVersion?.versionLabel;
 
   return (
     <Card>
@@ -704,7 +713,7 @@ function VersionsPanel({ estimate, versions, onDuplicate, onServerDuplicate }: {
         {activeDiff ? (
           <div className="mt-4 rounded-2xl border border-hairline bg-surface-muted p-4">
             <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">Revision diff semantics</p>
-            <p className="mt-2 text-sm font-medium">Compared with {priorVersion?.versionLabel}</p>
+            <p className="mt-2 text-sm font-medium">Compared with {comparedWithLabel}</p>
             <div className="mt-3 grid grid-cols-2 gap-2 text-xs md:grid-cols-3">
               <span className="rounded-xl bg-white px-3 py-2">Moved spaces: {activeDiff.summary.spaceMoves}</span>
               <span className="rounded-xl bg-white px-3 py-2">BOQ remaps: {activeDiff.summary.proposalRemaps}</span>
@@ -720,6 +729,19 @@ function VersionsPanel({ estimate, versions, onDuplicate, onServerDuplicate }: {
           </div>
         ) : null}
         <div className="mt-4 space-y-3">{orderedVersions.map((version) => <div key={version.id} className={`rounded-2xl border p-4 ${version.id === estimate.id ? "border-accent bg-amber-50" : "border-hairline"}`}><p className="font-medium">{version.versionLabel}</p><p className="mt-1 text-xs text-muted">{version.name} · {version.status}</p></div>)}</div>
+        {orderedRevisionRecords.length ? (
+          <div className="mt-4 rounded-2xl border border-hairline bg-white p-4">
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">Saved revision records</p>
+            <div className="mt-3 space-y-2">
+              {orderedRevisionRecords.slice(-3).reverse().map((record) => (
+                <div key={record.id} className="rounded-xl bg-surface-muted p-3 text-xs text-muted">
+                  <p className="font-semibold text-foreground">{record.fromVersionLabel} → {record.toVersionLabel}</p>
+                  <p className="mt-1">{record.summary.totalChanges} changes · {record.summary.spaceMoves} moves · {record.summary.proposalRemaps} BOQ remaps · {record.summary.commercialChanges} commercial edits · {record.summary.scopeChanges} scope edits</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : null}
       </CardContent>
     </Card>
   );

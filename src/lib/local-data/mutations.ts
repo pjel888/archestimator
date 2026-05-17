@@ -1,6 +1,7 @@
 import { nanoid } from "nanoid";
+import { compareEstimateRevisions } from "@/lib/estimates/revision-diff";
 import { calculateEstimateTotals } from "@/lib/estimates/totals";
-import type { CostLibraryItem, Estimate, LocalDatabase, ProposalSnapshot, ProposalTerms } from "./schemas";
+import type { CostLibraryItem, Estimate, LocalDatabase, ProposalSnapshot, ProposalTerms, RevisionChangeRecord } from "./schemas";
 import { normalizeProposalTerms } from "@/lib/proposals/terms";
 
 type CreateProjectInput = {
@@ -109,6 +110,28 @@ export function upsertCostLibraryItem(database: LocalDatabase, input: UpsertCost
   return { ...database, costLibraryItems };
 }
 
+function priorEstimateForRevision(database: LocalDatabase, estimate: Estimate) {
+  return database.estimates
+    .filter((candidate) => candidate.projectId === estimate.projectId && candidate.id !== estimate.id && candidate.versionNumber < estimate.versionNumber)
+    .sort((a, b) => b.versionNumber - a.versionNumber)[0];
+}
+
+function buildRevisionChangeRecord(fromEstimate: Estimate, toEstimate: Estimate): RevisionChangeRecord | undefined {
+  const diff = compareEstimateRevisions(fromEstimate, toEstimate);
+  if (diff.summary.totalChanges === 0) return undefined;
+  return {
+    id: `revision_change_${fromEstimate.id}_${toEstimate.id}`,
+    projectId: toEstimate.projectId,
+    fromEstimateId: fromEstimate.id,
+    toEstimateId: toEstimate.id,
+    fromVersionLabel: fromEstimate.versionLabel,
+    toVersionLabel: toEstimate.versionLabel,
+    recordedAt: new Date().toISOString(),
+    summary: diff.summary,
+    changes: diff.changes,
+  };
+}
+
 export function saveEstimateInDatabase(database: LocalDatabase, estimate: Estimate): LocalDatabase {
   const estimateExists = database.estimates.some((item) => item.id === estimate.id);
   const estimates = estimateExists
@@ -119,7 +142,13 @@ export function saveEstimateInDatabase(database: LocalDatabase, estimate: Estima
     project.id === estimate.projectId ? { ...project, currentEstimateId: estimate.id } : project,
   );
 
-  return { ...database, estimates, projects };
+  const priorEstimate = priorEstimateForRevision(database, estimate);
+  const revisionChangeRecord = priorEstimate ? buildRevisionChangeRecord(priorEstimate, estimate) : undefined;
+  const priorRecords = database.revisionChangeRecords ?? [];
+  const nextRecords = priorRecords.filter((record) => record.toEstimateId !== estimate.id);
+  const revisionChangeRecords = revisionChangeRecord ? [...nextRecords, revisionChangeRecord] : nextRecords;
+
+  return { ...database, estimates, projects, revisionChangeRecords };
 }
 
 export function duplicateEstimateRevision(

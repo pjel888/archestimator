@@ -26,6 +26,7 @@ export type RevisionDiffSummary = {
   proposalRemaps: number;
   commercialChanges: number;
   scopeChanges: number;
+  totalChanges: number;
 };
 
 export type RevisionDiff = {
@@ -35,14 +36,16 @@ export type RevisionDiff = {
   changes: RevisionChange[];
 };
 
-const commercialFields: (keyof EstimateLineItem)[] = [
+const commercialFields = [
   "quantity",
   "unit",
   "unitCost",
   "materialUnitCost",
   "laborUnitCost",
   "wastePercent",
-];
+] satisfies (keyof EstimateLineItem)[];
+
+const scopeFields = ["itemName", "description", "scopeStatus"] satisfies (keyof EstimateLineItem)[];
 
 function formatSpacePath(estimate: Estimate, spaceId?: string) {
   if (!spaceId) return "Unassigned location";
@@ -59,6 +62,7 @@ function proposalSectionName(estimate: Estimate, proposalSectionId?: string) {
 
 function summarize(changes: RevisionChange[]): RevisionDiffSummary {
   return {
+    totalChanges: changes.length,
     addedLines: changes.filter((change) => change.kind === "line-added").length,
     removedLines: changes.filter((change) => change.kind === "line-removed").length,
     spaceMoves: changes.filter((change) => change.kind === "space-moved").length,
@@ -120,12 +124,13 @@ export function compareEstimateRevisions(fromEstimate: Estimate, toEstimate: Est
       });
     }
 
-    if (fromLine.scopeStatus !== toLine.scopeStatus) {
+    const changedScopeFields = scopeFields.filter((field) => fromLine[field] !== toLine[field]);
+    if (changedScopeFields.length > 0) {
       changes.push({
         kind: "scope-changed",
         lineItemId: toLine.id,
         itemName: toLine.itemName,
-        changedFields: ["scopeStatus"],
+        changedFields: changedScopeFields,
       });
     }
   }
