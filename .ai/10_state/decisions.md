@@ -25,6 +25,7 @@
 - 2026-05-17 — Route/feature confidence must be E2E-backed. Current baseline covers all app routes from `next build`, including unknown-project 404, plus MVP flows for library insertion, proposal issuance, revision duplication, and the Glide spike shell.
 - 2026-05-17 — Production Glide migration should be incremental: introduce the Glide-backed spreadsheet surface first, keep existing accessible proposal-section mapping/actions during the transition, then migrate specialized controls into custom grid cells/side panels only after tests stay green.
 - 2026-05-17 — ChunkHound, GitNexus, and CodeGraph should be run periodically during non-trivial code migration slices. Generated code-intelligence databases/exports are local-only unless a specific human-readable report is intentionally promoted into `.ai/`.
+- 2026-05-17 — Cost library items are reusable source/templates with pricing metadata (`pricingDate`, `source`, `confidence`, waste, material/labor defaults). Editing a library item must not silently mutate estimate rows already copied from that item; those rows remain project-specific instances until an explicit reset/update workflow exists.
 
 ## Working decisions / likely direction
 

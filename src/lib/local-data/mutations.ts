@@ -1,6 +1,6 @@
 import { nanoid } from "nanoid";
 import { calculateEstimateTotals } from "@/lib/estimates/totals";
-import type { Estimate, LocalDatabase, ProposalSnapshot, ProposalTerms } from "./schemas";
+import type { CostLibraryItem, Estimate, LocalDatabase, ProposalSnapshot, ProposalTerms } from "./schemas";
 import { normalizeProposalTerms } from "@/lib/proposals/terms";
 
 type CreateProjectInput = {
@@ -83,6 +83,30 @@ export function createProjectWithInitialEstimate(
     projectId,
     estimateId,
   };
+}
+
+type UpsertCostLibraryItemInput = Omit<CostLibraryItem, "id"> & { id?: string };
+
+export function upsertCostLibraryItem(database: LocalDatabase, input: UpsertCostLibraryItemInput): LocalDatabase {
+  const item: CostLibraryItem = {
+    id: input.id?.trim() || `lib_${nanoid(10)}`,
+    name: input.name.trim(),
+    category: input.category.trim(),
+    itemType: input.itemType,
+    unit: input.unit.trim(),
+    defaultUnitCost: Math.max(0, input.defaultUnitCost),
+    defaultLaborUnitCost: input.defaultLaborUnitCost === undefined ? undefined : Math.max(0, input.defaultLaborUnitCost),
+    tagCode: input.tagCode?.trim() || undefined,
+    pricingDate: input.pricingDate,
+    source: input.source?.trim() || undefined,
+    confidence: input.confidence ?? "medium",
+    defaultWastePercent: input.defaultWastePercent === undefined ? undefined : Math.max(0, input.defaultWastePercent),
+  };
+  const exists = database.costLibraryItems.some((entry) => entry.id === item.id);
+  const costLibraryItems = exists
+    ? database.costLibraryItems.map((entry) => (entry.id === item.id ? item : entry))
+    : [item, ...database.costLibraryItems];
+  return { ...database, costLibraryItems };
 }
 
 export function saveEstimateInDatabase(database: LocalDatabase, estimate: Estimate): LocalDatabase {

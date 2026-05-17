@@ -5,12 +5,38 @@
 ## Current active thread
 
 - **Date:** 2026-05-17
-- **Branch:** `spike/estimate-grid-drop-targeting-ux`
-- **Goal:** Continue production Glide workspace migration with code-intelligence cadence.
-- **Status:** Production Glide surface slice implemented; full gates/review passing
+- **Branch:** `docs/mvp-screen-architecture`
+- **Goal:** Continue production workspace hardening and Cost Library Management v1.
+- **Status:** Cost Library Management v1 implemented; full gates/review pending
 - **Validation target:** `bun run validate && bun run build && bun run test:e2e`
 
 ## Ledger entries
+
+### 2026-05-17 — Cost Library Management v1
+
+**Status:** Implemented; local gates passing
+
+**Type:** local-first library management + workspace UI + tests
+
+**What changed:**
+
+- Added `confidence` metadata to cost-library items while preserving pricing date/source/waste defaults.
+- Added `upsertCostLibraryItem` so create/edit stays behind local repository mutation boundaries and does not mutate estimate rows already copied from library items.
+- Added `saveCostLibraryItemAction` for persisted local runtime JSON updates.
+- Expanded the workspace library tab into a management surface for creating/editing item name, category, type, unit, material/labor defaults, pricing date, source note, confidence, and waste percent.
+- Preserved existing add-to-estimate, selected-row fallback insertion, and drag-to-grid workflows.
+- Added unit and DOM coverage for library create/update behavior.
+
+**Verification:**
+
+- `bun run validate` — passed: type-check, lint, 32 unit tests, 10 DOM/Vitest tests.
+- `bun run build` — passed.
+- `bun run test:e2e` — passed: 7 Playwright tests.
+
+**Follow-ups:**
+
+- Add library import/export and bulk pricing update workflows.
+- Continue visual QA and density tuning for the right-side library management panel.
 
 ### 2026-05-17 — Floor/room/area hierarchy and proposal detail slice
 

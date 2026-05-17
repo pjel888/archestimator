@@ -63,6 +63,7 @@ Delivered:
 - Production Glide workspace with selected-row inspector controls.
 - Explicit floor/room/area hierarchy objects and row-level space references.
 - Proposal preview detail rows with location references.
+- Cost Library Management v1 panel for creating/editing reusable items with source, pricing date, confidence, waste, and material/labor defaults.
 
 Next:
 
@@ -93,7 +94,7 @@ Next:
 
 Focus:
 
-- Cost library management surface.
+- Library import/export and bulk pricing update workflows.
 - CSV/XLSX import/export.
 - QA matrix and sample workflow testing.
 - Landing page and onboarding narrative.
