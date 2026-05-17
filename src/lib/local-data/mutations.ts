@@ -151,6 +151,25 @@ export function duplicateEstimateRevision(
   return { database: saveEstimateInDatabase(database, estimate), estimate };
 }
 
+export function moveEstimateLineToSpace(estimate: Estimate, lineId: string, targetSpaceId: string): Estimate {
+  if (!estimate.spaces.some((space) => space.id === targetSpaceId)) throw new Error(`Space not found: ${targetSpaceId}`);
+  if (!estimate.lineItems.some((line) => line.id === lineId)) throw new Error(`Line item not found: ${lineId}`);
+  return {
+    ...estimate,
+    lineItems: estimate.lineItems.map((line) => (line.id === lineId ? { ...line, spaceId: targetSpaceId } : line)),
+  };
+}
+
+export function copyEstimateLineToSpace(estimate: Estimate, lineId: string, targetSpaceId: string, newLineId = `line_${nanoid(10)}`): Estimate {
+  if (!estimate.spaces.some((space) => space.id === targetSpaceId)) throw new Error(`Space not found: ${targetSpaceId}`);
+  const source = estimate.lineItems.find((line) => line.id === lineId);
+  if (!source) throw new Error(`Line item not found: ${lineId}`);
+  return {
+    ...estimate,
+    lineItems: [...estimate.lineItems, { ...source, id: newLineId, spaceId: targetSpaceId }],
+  };
+}
+
 export function createProposalSnapshot(
   database: LocalDatabase,
   estimateId: string,

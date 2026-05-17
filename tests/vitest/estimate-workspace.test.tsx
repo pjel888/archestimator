@@ -113,4 +113,22 @@ describe("EstimateWorkspace", () => {
     expect(screen.getByText(/Drywall · material · sqm/i)).toBeInTheDocument();
     expect(screen.getByText(/Source: Supplier quote Q-101/i)).toBeInTheDocument();
   });
+
+  it("moves and copies the selected row between spaces while preserving proposal mapping", async () => {
+    const user = userEvent.setup();
+    render(<EstimateWorkspace database={database} />);
+
+    await user.selectOptions(screen.getByLabelText("Row operation target location"), "space_project_wide");
+    await user.click(screen.getByRole("button", { name: /Move Tile A - bathroom floor to selected location/i }));
+
+    expect(screen.getByLabelText(/Location for Tile A/i)).toHaveValue("space_project_wide");
+    expect(screen.getByLabelText(/Proposal section for Tile A/i)).toHaveValue("proposal_section_floor_finishes");
+
+    await user.selectOptions(screen.getByLabelText("Row operation target location"), "space_bathroom_floor_area");
+    await user.click(screen.getByRole("button", { name: /Copy Tile A - bathroom floor to selected location/i }));
+
+    expect(screen.getAllByText("Tile A - bathroom floor").length).toBeGreaterThan(1);
+    expect(screen.getByLabelText("Selected production grid row")).not.toHaveValue("line_tile_a_bathroom");
+    expect(screen.getAllByLabelText(/Proposal section for Tile A/i).at(-1)).toHaveValue("proposal_section_floor_finishes");
+  });
 });

@@ -5,12 +5,36 @@
 ## Current active thread
 
 - **Date:** 2026-05-17
-- **Branch:** `docs/mvp-screen-architecture`
-- **Goal:** Continue production workspace hardening and Cost Library Management v1.
-- **Status:** Cost Library Management v1 implemented; full gates/review pending
+- **Branch:** `feat/row-move-copy-spaces`
+- **Goal:** Add row move/copy operations between spaces while preserving proposal-section mapping.
+- **Status:** Row move/copy slice implemented; full gates/review pending
 - **Validation target:** `bun run validate && bun run build && bun run test:e2e`
 
 ## Ledger entries
+
+### 2026-05-17 — Row move/copy between spaces
+
+**Status:** Implemented; local validation in progress
+
+**Type:** production selected-row inspector + domain mutations + tests
+
+**What changed:**
+
+- Added `moveEstimateLineToSpace` and `copyEstimateLineToSpace` domain helpers for floor/room/area row operations.
+- Move updates only the selected row `spaceId`; copy creates a new line id and preserves item, pricing, scope, working section, and proposal-section mapping.
+- Selected-row inspector now includes a target-location selector plus Move row and Copy row actions.
+- Added unit coverage for move/copy behavior and DOM coverage that proposal-section mapping remains stable.
+- Consolidated the prior stacked MVP PR branches into `main` first, then continued this slice from a short-lived feature branch.
+
+**Verification:**
+
+- `bun run validate` — passed: type-check, lint, 34 unit tests, 11 DOM/Vitest tests.
+- Full build/E2E/review pending.
+
+**Follow-ups:**
+
+- Add revision/diff semantics for moved-space-only changes vs proposal/BOQ grouping changes.
+- Continue visual QA/density tuning for row operation controls.
 
 ### 2026-05-17 — Cost Library Management v1
 

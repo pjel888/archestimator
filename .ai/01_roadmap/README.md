@@ -64,11 +64,12 @@ Delivered:
 - Explicit floor/room/area hierarchy objects and row-level space references.
 - Proposal preview detail rows with location references.
 - Cost Library Management v1 panel for creating/editing reusable items with source, pricing date, confidence, waste, and material/labor defaults.
+- Row move/copy controls between floor/room/area spaces with stable proposal-section mapping.
 
 Next:
 
-- Add row move/copy operations between spaces.
 - Add revision/diff semantics for moved spaces vs changed BOQ/proposal grouping.
+- Harden row operation UX with visual QA and eventual richer grid affordances.
 
 ## Phase 3 — Proposal package v1
 
