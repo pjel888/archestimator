@@ -54,6 +54,9 @@ The layout primarily utilizes a responsive CSS Grid and Flexbox system, ensuring
 ## 7. Visual Design Specification
 
 ### 7.1. Typography
+
+**Archestimator product/workshop typography override:** Intercom-style large typography is landing-page reference only. Outside the landing page (`/`), the maximum font size is **12px** unless Philip explicitly approves a one-off exception. Use 12px only for the strongest app title/card title, 11px for subtitles, 10px for body/control/button/table text, and 8–9px for meta/eyebrow labels. Do not use 14px/16px/18px+ in workshop, estimate, dashboard, sidebar, modal, or component-library surfaces.
+
 *   **Sans-serif:** `var(--wsc-font-sans)`, `var(--wsc-default-font-family, ui-sans-serif, system-ui, sans-serif, Apple Color Emoji, Segoe UI Emoji, Segoe UI Symbol, Noto Color Emoji)`
 *   **Monospace:** `var(--wsc-font-mono)`, `var(--wsc-default-mono-font-family, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace)`
 *   **Custom Fonts:** `MediumLL`, `IvoryLL` (with `Fallback` options).

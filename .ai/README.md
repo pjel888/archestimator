@@ -12,12 +12,13 @@ This folder is the project brain. It stores product thinking, implementation pla
 1. `.ai/README.md` — folder purpose and navigation.
 2. `.ai/00_system/DOCS_SOURCE_OF_TRUTH.md` — canonical source map.
 3. `.ai/00_system/AGENT_OPERATING_PROTOCOL.md` — safety and work rules.
-4. `.ai/10_state/current-state.md` — current project status.
-5. `.ai/02_audits/2026-05-17-reset-cleanup-audit.md` — why the previous prototype was rejected and deleted.
-6. `.ai/06_specs/restart-guardrails.md` — rules for restarting without repeating the same mistakes.
-7. `.ai/10_state/decisions.md` — durable decisions.
-8. `.ai/10_state/known-issues.md` — risks and unresolved decisions.
-9. `.ai/01_roadmap/README.md` — roadmap.
+4. `.ai/00_system/AGENT_SELF_DIAGNOSTIC_PROTOCOL.md` — mandatory recovery loop when agent performance degrades or context feels stale.
+5. `.ai/10_state/current-state.md` — current project status.
+6. `.ai/02_audits/2026-05-17-reset-cleanup-audit.md` — why the previous prototype was rejected and deleted.
+7. `.ai/06_specs/restart-guardrails.md` — rules for restarting without repeating the same mistakes.
+8. `.ai/10_state/decisions.md` — durable decisions.
+9. `.ai/10_state/known-issues.md` — risks and unresolved decisions.
+10. `.ai/01_roadmap/README.md` — roadmap.
 
 ---
 
@@ -61,3 +62,7 @@ This folder is the project brain. It stores product thinking, implementation pla
 - `99_inbox/` is temporary. Anything important must be promoted to a numbered folder.
 - Never store secrets, API keys, tokens, passwords, private client details, or production credentials in `.ai`.
 - Date time-sensitive claims, especially market, pricing, code, tax, labor, materials, and regulatory claims.
+
+## Agent performance recovery
+
+If Philip says the agent is getting worse, confused, stale, or not following the project direction, stop normal execution and run `.ai/00_system/AGENT_SELF_DIAGNOSTIC_PROTOCOL.md` before planning or coding. The recovery loop requires checking live git state, rereading the active source-of-truth chain, reducing scope, and verifying evidence before claiming completion.

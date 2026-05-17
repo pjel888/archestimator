@@ -85,6 +85,16 @@ typography:
     fontWeight: 400
     lineHeight: "1.2"
     letterSpacing: "-0.01em"
+
+# Product/workshop typography override
+# The large Intercom/editorial sizes above are landing-page reference only.
+# Outside `/`, app/workshop/product surfaces must use the compact Archestimator scale:
+# - app-title: 12px max
+# - app-subtitle: 11px
+# - app-body, controls, buttons, table cells: 10px
+# - eyebrow/meta labels: 8-9px
+# Do not use 14px, 16px, 18px, or larger type in app/workshop UI unless Philip explicitly approves a one-off exception.
+
 rounded:
   none: 0px
   sm: 4px

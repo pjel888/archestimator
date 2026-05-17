@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { Books, GearSix, House, SquaresFour } from "@phosphor-icons/react/dist/ssr";
 import type { Icon as PhosphorIcon } from "@phosphor-icons/react";
 
+import { Button } from "@/components/ui/button";
 import { SidebarHeader } from "./SidebarHeader";
 import { SidebarNavItemRow } from "./SidebarNavItemRow";
 import {
@@ -108,16 +109,20 @@ export function MainSidebar() {
   return (
     <>
       {expanded && (
-        <button
-          type="button"
+        <Button
+          variant="scrim"
+          size="scrim"
           aria-label="Close sidebar overlay"
-          className="fixed inset-0 z-30 hidden cursor-default bg-black/12 lg:block"
+          className="z-30 hidden lg:block"
           onClick={() => setExpanded(false)}
         />
       )}
       <nav
         aria-label="Main navigation"
-        className="fixed left-0 top-0 z-40 hidden h-[100dvh] flex-col overflow-hidden bg-white shadow-[1px_0_0_rgba(17,17,17,0.10),8px_0_14px_-14px_rgba(17,17,17,0.42)] will-change-[clip-path] lg:flex"
+        className={[
+          "fixed left-0 top-0 z-40 hidden h-[100dvh] flex-col overflow-hidden bg-white shadow-[8px_0_14px_-14px_rgba(17,17,17,0.42)] will-change-[clip-path] lg:flex",
+          expanded ? "border-r border-transparent" : "border-r border-hairline",
+        ].join(" ")}
         style={sidebarStyle}
       >
         <SidebarHeader expanded={expanded} onToggle={() => setExpanded((value) => !value)} />
@@ -127,7 +132,7 @@ export function MainSidebar() {
             <div aria-hidden="true" className="absolute bottom-0 border-b border-hairline" style={dividerStyle} />
             <div className="grid h-10 w-full grid-cols-[48px_minmax(0,1fr)] items-center gap-1 overflow-hidden rounded-md">
               <div className="flex h-10 w-12 shrink-0 items-center justify-center">
-                <div className="flex size-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-linear-to-br from-secondary to-primary text-[12px] font-semibold leading-none text-white">
+                <div className="flex size-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-linear-to-br from-secondary to-primary text-[10px] font-semibold leading-none text-white">
                   AE
                 </div>
               </div>
@@ -138,13 +143,13 @@ export function MainSidebar() {
                   expanded ? "translate-x-0 opacity-100" : "pointer-events-none translate-x-1 opacity-0",
                 ].join(" ")}
               >
-                <p className="truncate text-[12.5px] font-medium leading-none text-ink">Workspace</p>
-                <p className="mt-1 truncate text-[10px] leading-none text-tertiary">Archestimator</p>
+                <p className="truncate text-[10px] font-medium leading-none text-ink">Workspace</p>
+                <p className="mt-1 truncate text-[9px] leading-none text-tertiary">Archestimator</p>
               </div>
             </div>
           </div>
 
-          <div className="flex flex-col gap-3 pt-3" style={{ paddingInline: SIDEBAR_PADDING }}>
+          <div className="flex flex-col gap-3 pt-2" style={{ paddingInline: SIDEBAR_PADDING }}>
             <div className="flex flex-col gap-1">
               <SidebarNavItemRow item={dashboardItem} active={pathname === dashboardItem.href} expanded={expanded} />
             </div>
@@ -170,7 +175,7 @@ export function MainSidebar() {
             ))}
           </div>
 
-          <div className="mt-auto flex flex-col gap-1 pb-3 pt-4" style={{ paddingInline: SIDEBAR_PADDING }}>
+          <div className="mt-auto flex flex-col gap-1 pb-2 pt-2" style={{ paddingInline: SIDEBAR_PADDING }}>
             <div className="relative h-3">
               <div aria-hidden="true" className="absolute top-1/2 border-t border-hairline" style={dividerStyle} />
             </div>

@@ -8,10 +8,10 @@
   --secondary: #313130;
   --tertiary: #626260;
   --surface: #ffffff;
-  --surface-muted: #f6f6f1;
-  --surface-warm: #f4f3ec;
-  --canvas: #f6f6f1;
-  --warm-canvas: #f4f3ec;
+  --surface-muted: #f4f7fa;
+  --surface-warm: #f4f7fa;
+  --canvas: #f4f7fa;
+  --warm-canvas: #f4f7fa;
   --hairline: #e5e7eb;
   --divider: #cecfcb;
   --muted: #6b7280;
@@ -99,7 +99,7 @@ textarea {
   position: absolute;
   z-index: 2;
   color: var(--primary);
-  font-size: 18px;
+  font-size: 12px;
   line-height: 1;
   font-weight: 700;
 }

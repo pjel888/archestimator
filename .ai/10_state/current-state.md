@@ -70,3 +70,5 @@ git diff --check
 ```
 
 E2E route coverage for deleted routes is intentionally removed. Tests should only protect approved baseline behavior until the new app direction is accepted.
+
+- Typography correction: outside the landing page, Archestimator app/workshop UI now treats 12px as the maximum font size. Component-library/sidebar/table/modal/body/control text should generally be 8-10px, with 11px subtitles and 12px only for strongest app/card titles.

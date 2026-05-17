@@ -48,3 +48,5 @@ These concepts can be reconsidered later, but they must be reapproved through a 
 - What geography and pricing basis should v1 use?
 - Should v1 include AI generation, AI review, or no AI until the estimate sheet is strong?
 - What export format is mandatory first: PDF, Excel, CSV, branded quote, or BOQ?
+
+- 2026-05-18: Non-landing typography cap. App/workshop/product UI must not use large marketing typography; 12px is the maximum outside the landing page, with 10px as the normal body/control/table/button size and 8-9px for meta labels. Landing/editorial tokens remain landing-only.
