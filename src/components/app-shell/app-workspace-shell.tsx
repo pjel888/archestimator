@@ -31,18 +31,18 @@ export function AppWorkspaceShell({ children, activeItem = "Projects", topBar, b
   return (
     <div data-testid="app-workspace-shell" className="flex h-dvh min-h-screen overflow-hidden bg-canvas text-foreground">
       <aside className="hidden w-[84px] shrink-0 border-r border-divider bg-surface lg:flex lg:flex-col">
-        <div className="border-b border-hairline px-2 py-3 text-center">
+        <div className="border-b border-hairline px-2 py-2 text-center">
           <Link href="/projects" className="mx-auto grid size-9 place-items-center rounded-md bg-primary text-sm font-semibold text-white" aria-label="Archestimator">
             A
           </Link>
           <p className="mt-1 text-[8px] font-medium uppercase tracking-[0.08em] text-muted">Estimate</p>
         </div>
-        <nav aria-label="Workspace navigation" className="flex flex-1 flex-col gap-1 px-2 py-3">
+        <nav aria-label="Workspace navigation" className="flex flex-1 flex-col gap-1 px-2 py-2">
           {sidebarItems.map((item) => (
             <SidebarNavItem key={item.label} item={item} active={item.label === activeItem} />
           ))}
         </nav>
-        <div className="border-t border-hairline px-2 py-3 text-center text-[8px] font-medium uppercase tracking-[0.06em] text-muted">
+        <div className="border-t border-hairline px-2 py-2 text-center text-[8px] font-medium uppercase tracking-[0.06em] text-muted">
           Local
           <span className="mt-1 block normal-case tracking-normal text-ink">JSON</span>
         </div>
@@ -95,7 +95,7 @@ type WorkspaceTopBarProps = {
 
 export function WorkspaceTopBar({ eyebrow, title, meta, actions, stats }: WorkspaceTopBarProps) {
   return (
-    <div className="flex min-h-16 flex-col gap-3 px-4 py-3 lg:flex-row lg:items-center lg:justify-between lg:px-6">
+    <div className="flex min-h-16 flex-col gap-2 px-2 py-2 lg:flex-row lg:items-center lg:justify-between lg:px-2">
       <div className="min-w-0">
         {eyebrow ? <p className="text-xs font-medium uppercase tracking-[0.12em] text-muted">{eyebrow}</p> : null}
         <div className="mt-1 flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">

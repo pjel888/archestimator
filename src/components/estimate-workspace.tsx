@@ -37,7 +37,7 @@ const ProductionEstimateGlideGrid = dynamic(
   () => import("@/components/production-estimate-glide-grid").then((module) => module.ProductionEstimateGlideGrid),
   {
     ssr: false,
-    loading: () => <div className="h-[430px] rounded-2xl border border-dashed border-hairline bg-surface-muted p-4 text-sm text-muted">Loading production estimate grid…</div>,
+    loading: () => <div className="h-[430px] rounded-2xl border border-dashed border-hairline bg-surface-muted p-2 text-sm text-muted">Loading production estimate grid…</div>,
   },
 );
 
@@ -94,8 +94,8 @@ export function EstimateWorkspace({ database, projectId, onSaveEstimate, onDupli
 
 function EmptyLocalEstimateState() {
   return (
-    <main className="min-h-screen bg-background p-8 text-foreground">
-      <Card className="mx-auto max-w-3xl p-8">
+    <main className="min-h-screen bg-background p-2 text-foreground">
+      <Card className="mx-auto max-w-3xl p-2">
         <p className="text-sm font-semibold uppercase tracking-[0.16em] text-accent">Archestimator</p>
         <h1 className="mt-3 text-3xl font-bold tracking-[-0.04em]">No local estimate is available.</h1>
         <p className="mt-3 text-muted">Check `data/local/seed.json` and make sure it contains at least one project and estimate.</p>
@@ -345,12 +345,12 @@ function EstimateWorkspaceInner({ database, project, initialEstimate, onSaveEsti
           />
         }
       >
-        <div className="flex h-full min-h-0 flex-col gap-3 p-3 xl:flex-row">
+        <div className="flex h-full min-h-0 flex-col gap-2 p-2 xl:flex-row">
           <ProjectTreeRail estimate={estimate} selectedSectionId={selectedSectionId} onSelectSection={setSelectedSectionId} />
           <section data-testid="estimate-grid-surface" className="min-h-0 min-w-0 flex-1">
             <EstimateSheetCard estimate={estimate} project={project} currencyCode={currencyCode} selectedSectionId={selectedSectionId} setSelectedSectionId={setSelectedSectionId} addBlankRow={addBlankRow} updateGridCell={updateGridCell} onGridCellSelected={selectGridCell} gridFrameRef={gridFrameRef} dropIntent={dropIntent} visibleDropRow={visibleDropRow} onVisibleRowOffsetChange={handleVisibleRowOffsetChange} insertionTargetLabel={insertionTargetSection ? `${insertionTargetSection.outlineCode} · ${insertionTargetSection.name}` : "none"} dropRow={dropRow} setDropRow={setDropRow} maxDropRow={gridRows.length} selectedLibraryName={libraryItems.find((entry) => entry.id === selectedLibraryId)?.name ?? "first library item"} onFallbackLibraryInsert={insertLibraryItemAtCurrentDropRow} />
           </section>
-          <aside data-testid="workspace-right-dock" className="flex min-h-0 w-full shrink-0 flex-col gap-3 overflow-y-auto xl:w-[340px] 2xl:w-[360px]">
+          <aside data-testid="workspace-right-dock" className="flex min-h-0 w-full shrink-0 flex-col gap-2 overflow-y-auto xl:w-[340px] 2xl:w-[360px]">
             <ProductionRowInspector
               lineItems={estimate.lineItems}
               selectedLine={selectedGridLine}
@@ -384,7 +384,7 @@ function EstimateWorkspaceInner({ database, project, initialEstimate, onSaveEsti
 
 function TopBarMetric({ label, value, dark = false }: { label: string; value: string; dark?: boolean }) {
   return (
-    <div className={dark ? "rounded-md bg-primary px-3 py-2 text-white" : "rounded-md border border-hairline bg-surface px-3 py-2 text-ink"}>
+    <div className={dark ? "rounded-md bg-primary px-2 py-2 text-white" : "rounded-md border border-hairline bg-surface px-2 py-2 text-ink"}>
       <p className={dark ? "text-[11px] text-white/65" : "text-[11px] text-muted"}>{label}</p>
       <p className="mt-0.5 font-mono text-sm font-medium">{value}</p>
     </div>
@@ -441,7 +441,7 @@ function ProjectTreeRail({ estimate, selectedSectionId, onSelectSection }: { est
         <div className="mt-1 grid gap-0.5 border-l border-hairline pl-2">
           {filteredSections.map((section) => (
             <button key={section.id} type="button" aria-current={section.id === selectedSectionId ? "true" : undefined} className={`group relative rounded px-2 py-1.5 text-left text-xs leading-4 transition ${section.id === selectedSectionId ? "bg-primary text-white" : "text-secondary hover:bg-surfaceMuted hover:text-ink"}`} onClick={() => onSelectSection(section.id)}>
-              <span className={`absolute -left-[9px] top-3 size-1.5 rounded-full ${section.id === selectedSectionId ? "bg-primary" : "bg-divider group-hover:bg-primary"}`} />
+              <span className={`absolute -left-[9px] top-2 size-1.5 rounded-full ${section.id === selectedSectionId ? "bg-primary" : "bg-divider group-hover:bg-primary"}`} />
               <span className="block text-[9px] uppercase tracking-[0.08em] opacity-70">{section.outlineCode}</span>
               <span className="line-clamp-2">{section.name}</span>
             </button>
@@ -449,7 +449,7 @@ function ProjectTreeRail({ estimate, selectedSectionId, onSelectSection }: { est
         </div>
       </div>
       {spacesByFloor.length ? (
-        <div className="mt-4 px-2 pb-3">
+        <div className="mt-4 px-2 pb-2">
           <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted">Locations</p>
           <div className="mt-1 space-y-2">
             {spacesByFloor.map(({ floor, spaces }) => (
@@ -497,34 +497,34 @@ function EstimateSheetCard({ estimate, project, currencyCode, selectedSectionId,
 
   return (
     <Card className="overflow-hidden">
-      <CardHeader className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+      <CardHeader className="flex flex-col gap-2 lg:flex-row lg:items-end lg:justify-between">
         <div>
           <p className="text-sm font-semibold text-muted">{project.name} · {project.clientName}</p>
-          <div className="mt-1 flex flex-wrap items-center gap-3">
+          <div className="mt-1 flex flex-wrap items-center gap-2">
             <CardTitle className="text-2xl">{estimate.name}</CardTitle>
             <StatusPill tone="review">{estimate.versionLabel} · {estimate.status}</StatusPill>
           </div>
         </div>
         <div className="flex flex-wrap gap-2">
-          <select ref={sectionSelectRef} aria-label="Selected estimate section for new rows" className="rounded-xl border border-hairline bg-surface px-3 py-2 text-sm" value={selectedSectionId} onInput={(event) => setSelectedSectionId(event.currentTarget.value)} onChange={(event) => setSelectedSectionId(event.target.value)}>
+          <select ref={sectionSelectRef} aria-label="Selected estimate section for new rows" className="rounded-xl border border-hairline bg-surface px-2 py-2 text-sm" value={selectedSectionId} onInput={(event) => setSelectedSectionId(event.currentTarget.value)} onChange={(event) => setSelectedSectionId(event.target.value)}>
             {estimate.sections.map((section) => <option key={section.id} value={section.id}>{section.outlineCode} · {section.name}</option>)}
           </select>
           <Button variant="primary" onClick={() => addBlankRow(sectionSelectRef.current?.value ?? selectedSectionId)}><Plus className="size-4" /> Add blank row</Button>
         </div>
       </CardHeader>
-      <div className="border-y border-hairline bg-white p-3">
+      <div className="border-y border-hairline bg-white p-2">
         <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
           <div>
             <p className="text-sm font-semibold">Glide estimate grid</p>
             <p className="text-xs text-muted">Primary spreadsheet surface. Use the selected-row controls beside the grid for proposal mapping and row actions.</p>
           </div>
-          <span className="rounded-full bg-accentSoft px-3 py-1 text-xs font-semibold text-accentDark">Production grid migration</span>
+          <span className="rounded-full bg-accentSoft px-2 py-1 text-xs font-semibold text-accentDark">Production grid migration</span>
         </div>
         <div ref={gridFrameRef} className="relative">
           {dropIntent === "valid" ? <div className="pointer-events-none absolute left-0 right-0 z-10 h-1 rounded-full bg-accent shadow-[0_0_0_4px_rgba(254,243,199,0.85)]" style={{ top: GRID_HEADER_HEIGHT + visibleDropRow * GRID_ROW_HEIGHT - 2 }} data-testid="production-grid-drop-indicator" /> : null}
           <ProductionEstimateGlideGrid estimate={estimate} currencyCode={currencyCode} onCellEdited={updateGridCell} onCellSelected={onGridCellSelected} onVisibleRowOffsetChange={onVisibleRowOffsetChange} />
         </div>
-        <div className="mt-3 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-hairline bg-surface-muted/60 px-3 py-2 text-xs text-muted">
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-hairline bg-surface-muted/60 px-2 py-2 text-xs text-muted">
           <span>Drag library cards into: <strong className="text-foreground">{insertionTargetLabel}</strong>. Selected fallback item: <strong className="text-foreground">{selectedLibraryName}</strong></span>
           <label className="flex items-center gap-2">
             <span>Fallback row</span>
@@ -572,11 +572,11 @@ function ProductionRowInspector({
   const effectiveOperationSpaceId = operationSpaceId && spaces.some((space) => space.id === operationSpaceId) ? operationSpaceId : fallbackOperationSpaceId;
 
   if (!selectedLine) {
-    return <div className="border-t border-hairline p-4 text-sm text-muted">Select a line row in the production grid to edit proposal mapping, scope, and row actions.</div>;
+    return <div className="border-t border-hairline p-2 text-sm text-muted">Select a line row in the production grid to edit proposal mapping, scope, and row actions.</div>;
   }
 
   return (
-    <div className="border-t border-hairline bg-surface-muted/30 p-4" data-testid="production-row-inspector">
+    <div className="border-t border-hairline bg-surface-muted/30 p-2" data-testid="production-row-inspector">
       <div className="flex flex-col gap-2">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">Selected grid row controls</p>
@@ -585,34 +585,34 @@ function ProductionRowInspector({
         </div>
         <label className="grid gap-1 text-xs font-medium text-muted">
           Select estimate row
-          <select aria-label="Selected production grid row" className="w-full rounded-xl border border-hairline bg-white px-3 py-2 text-sm text-foreground" value={selectedLineId} onChange={(event) => onSelectedLineChange(event.target.value)}>
+          <select aria-label="Selected production grid row" className="w-full rounded-xl border border-hairline bg-white px-2 py-2 text-sm text-foreground" value={selectedLineId} onChange={(event) => onSelectedLineChange(event.target.value)}>
             {lineItems.map((line) => <option key={line.id} value={line.id}>{line.itemName}</option>)}
           </select>
         </label>
       </div>
-      <div className="mt-4 grid gap-3">
+      <div className="mt-4 grid gap-2">
         <label className="grid gap-1 text-xs font-medium text-muted">
           Proposal section
-          <select aria-label={`Proposal section for ${selectedLine.itemName}`} className={`rounded-xl border px-3 py-2 text-sm text-foreground ${selectedLine.proposalSectionId ? "border-hairline bg-white" : "border-amber-300 bg-amber-50"}`} value={selectedLine.proposalSectionId ?? ""} onChange={(event) => updateLine(selectedLine.id, { proposalSectionId: event.target.value || undefined }, "proposalSectionId")}>
+          <select aria-label={`Proposal section for ${selectedLine.itemName}`} className={`rounded-xl border px-2 py-2 text-sm text-foreground ${selectedLine.proposalSectionId ? "border-hairline bg-white" : "border-amber-300 bg-amber-50"}`} value={selectedLine.proposalSectionId ?? ""} onChange={(event) => updateLine(selectedLine.id, { proposalSectionId: event.target.value || undefined }, "proposalSectionId")}>
             <option value="">Unassigned</option>
             {proposalSections.map((section) => <option key={section.id} value={section.id}>{section.outlineCode} · {section.name}</option>)}
           </select>
         </label>
         <label className="grid gap-1 text-xs font-medium text-muted">
           Scope status
-          <select aria-label={`Scope status for ${selectedLine.itemName}`} className="rounded-xl border border-hairline bg-white px-3 py-2 text-sm text-foreground" value={selectedLine.scopeStatus} onChange={(event) => updateLine(selectedLine.id, { scopeStatus: event.target.value as EstimateLineItem["scopeStatus"] }, "scopeStatus")}>
+          <select aria-label={`Scope status for ${selectedLine.itemName}`} className="rounded-xl border border-hairline bg-white px-2 py-2 text-sm text-foreground" value={selectedLine.scopeStatus} onChange={(event) => updateLine(selectedLine.id, { scopeStatus: event.target.value as EstimateLineItem["scopeStatus"] }, "scopeStatus")}>
             {scopeOptions.map((option) => <option key={option} value={option}>{option}</option>)}
           </select>
         </label>
         <NumberInput label={`Quantity for ${selectedLine.itemName}`} value={selectedLine.quantity} onChange={(value) => updateLine(selectedLine.id, { quantity: value }, "quantity")} />
         <label className="grid gap-1 text-xs font-medium text-muted">
           Location
-          <select aria-label={`Location for ${selectedLine.itemName}`} className={`rounded-xl border px-3 py-2 text-sm text-foreground ${selectedLine.spaceId ? "border-hairline bg-white" : "border-amber-300 bg-amber-50"}`} value={selectedLine.spaceId ?? ""} onChange={(event) => updateLine(selectedLine.id, { spaceId: event.target.value || undefined }, "spaceId")}>
+          <select aria-label={`Location for ${selectedLine.itemName}`} className={`rounded-xl border px-2 py-2 text-sm text-foreground ${selectedLine.spaceId ? "border-hairline bg-white" : "border-amber-300 bg-amber-50"}`} value={selectedLine.spaceId ?? ""} onChange={(event) => updateLine(selectedLine.id, { spaceId: event.target.value || undefined }, "spaceId")}>
             <option value="">Unassigned location</option>
             {spaces.map((space) => <option key={space.id} value={space.id}>{getSpacePath(space.id)}</option>)}
           </select>
         </label>
-        <div className="rounded-xl border border-hairline bg-white px-3 py-2">
+        <div className="rounded-xl border border-hairline bg-white px-2 py-2">
           <p className="text-xs font-medium text-muted">Location path</p>
           <p className="mt-1 text-sm font-semibold">{getSpacePath(selectedLine.spaceId)}</p>
         </div>
@@ -622,7 +622,7 @@ function ProductionRowInspector({
         </label>
         <NumberInput label={`Material unit cost for ${selectedLine.itemName}`} value={selectedLine.materialUnitCost ?? selectedLine.unitCost ?? 0} onChange={(value) => updateLine(selectedLine.id, { materialUnitCost: value, unitCost: undefined }, "materialUnitCost")} />
         <NumberInput label={`Labor unit cost for ${selectedLine.itemName}`} value={selectedLine.laborUnitCost ?? 0} onChange={(value) => updateLine(selectedLine.id, { laborUnitCost: value }, "laborUnitCost")} />
-        <div className="rounded-xl border border-hairline bg-white px-3 py-2">
+        <div className="rounded-xl border border-hairline bg-white px-2 py-2">
           <p className="text-xs font-medium text-muted">Selected row total</p>
           <p className="mt-1 font-mono font-semibold">{formatMoney(calculated, currencyCode)}</p>
         </div>
@@ -631,10 +631,10 @@ function ProductionRowInspector({
           <Button aria-label={`Delete ${selectedLine.itemName}`} variant="danger" onClick={() => deleteLine(selectedLine.id)}><Trash2 className="size-4" /> Delete</Button>
         </div>
       </div>
-      <div className="mt-4 rounded-2xl border border-hairline bg-white p-3">
+      <div className="mt-4 rounded-2xl border border-hairline bg-white p-2">
         <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">Move/copy between spaces</p>
         <div className="mt-2 grid gap-2 md:grid-cols-[1fr_auto_auto]">
-          <select aria-label="Row operation target location" className="rounded-xl border border-hairline bg-white px-3 py-2 text-sm text-foreground" value={effectiveOperationSpaceId} onChange={(event) => setOperationSpaceId(event.target.value)}>
+          <select aria-label="Row operation target location" className="rounded-xl border border-hairline bg-white px-2 py-2 text-sm text-foreground" value={effectiveOperationSpaceId} onChange={(event) => setOperationSpaceId(event.target.value)}>
             {spaces.map((space) => <option key={space.id} value={space.id}>{getSpacePath(space.id)}</option>)}
           </select>
           <Button variant="secondary" aria-label={`Move ${selectedLine.itemName} to selected location`} onClick={() => onMoveToSpace(effectiveOperationSpaceId)}>Move row</Button>
@@ -681,34 +681,34 @@ function LibraryPanel({ items, currencyCode, getSelectedSectionId, onAdd, select
   return (
     <Card>
       <CardContent>
-        <div className="flex items-start justify-between gap-3">
+        <div className="flex items-start justify-between gap-2">
           <div>
             <CardTitle>Cost library</CardTitle>
             <CardDescription>Manage reusable cost items, source notes, pricing dates, and confidence before inserting rows into the estimate.</CardDescription>
           </div>
           <Button variant="secondary" onClick={startCreate}>Create library item</Button>
         </div>
-        <div className="mt-4 grid gap-3 rounded-2xl border border-hairline bg-surface-muted p-3">
+        <div className="mt-4 grid gap-2 rounded-2xl border border-hairline bg-surface-muted p-2">
           <Field label="Library item name"><TextInput aria-label="Library item name" value={draft.name} onChange={(event) => setDraft({ ...draft, name: event.target.value })} /></Field>
-          <div className="grid gap-3 sm:grid-cols-2">
+          <div className="grid gap-2 sm:grid-cols-2">
             <Field label="Category"><TextInput aria-label="Library category" value={draft.category} onChange={(event) => setDraft({ ...draft, category: event.target.value })} /></Field>
-            <Field label="Type"><select aria-label="Library item type" className="rounded-xl border border-hairline bg-surface px-3 py-2 text-sm" value={draft.itemType} onChange={(event) => setDraft({ ...draft, itemType: event.target.value as CostLibraryItem["itemType"] })}>{["material", "labor", "equipment", "subcontract", "assembly"].map((type) => <option key={type} value={type}>{type}</option>)}</select></Field>
+            <Field label="Type"><select aria-label="Library item type" className="rounded-xl border border-hairline bg-surface px-2 py-2 text-sm" value={draft.itemType} onChange={(event) => setDraft({ ...draft, itemType: event.target.value as CostLibraryItem["itemType"] })}>{["material", "labor", "equipment", "subcontract", "assembly"].map((type) => <option key={type} value={type}>{type}</option>)}</select></Field>
           </div>
-          <div className="grid gap-3 sm:grid-cols-3">
+          <div className="grid gap-2 sm:grid-cols-3">
             <Field label="Unit"><TextInput aria-label="Library unit" value={draft.unit} onChange={(event) => setDraft({ ...draft, unit: event.target.value })} /></Field>
             <Field label="Material unit cost"><TextInput aria-label="Library material unit cost" min={0} type="number" value={draft.defaultUnitCost} onChange={(event) => setDraft({ ...draft, defaultUnitCost: parseNumberInput(event.target.value) })} /></Field>
             <Field label="Labor unit cost"><TextInput aria-label="Library labor unit cost" min={0} type="number" value={draft.defaultLaborUnitCost ?? 0} onChange={(event) => setDraft({ ...draft, defaultLaborUnitCost: parseNumberInput(event.target.value) })} /></Field>
           </div>
-          <div className="grid gap-3 sm:grid-cols-3">
+          <div className="grid gap-2 sm:grid-cols-3">
             <Field label="Pricing date"><TextInput aria-label="Library pricing date" type="date" value={draft.pricingDate} onChange={(event) => setDraft({ ...draft, pricingDate: event.target.value })} /></Field>
-            <Field label="Confidence"><select aria-label="Library confidence" className="rounded-xl border border-hairline bg-surface px-3 py-2 text-sm" value={draft.confidence ?? "medium"} onChange={(event) => setDraft({ ...draft, confidence: event.target.value as CostLibraryItem["confidence"] })}>{["low", "medium", "high"].map((confidence) => <option key={confidence} value={confidence}>{confidence}</option>)}</select></Field>
+            <Field label="Confidence"><select aria-label="Library confidence" className="rounded-xl border border-hairline bg-surface px-2 py-2 text-sm" value={draft.confidence ?? "medium"} onChange={(event) => setDraft({ ...draft, confidence: event.target.value as CostLibraryItem["confidence"] })}>{["low", "medium", "high"].map((confidence) => <option key={confidence} value={confidence}>{confidence}</option>)}</select></Field>
             <Field label="Waste %"><TextInput aria-label="Library waste percent" min={0} type="number" value={draft.defaultWastePercent ?? 0} onChange={(event) => setDraft({ ...draft, defaultWastePercent: parseNumberInput(event.target.value) })} /></Field>
           </div>
           <Field label="Source note"><TextInput aria-label="Library source note" value={draft.source ?? ""} onChange={(event) => setDraft({ ...draft, source: event.target.value })} /></Field>
           <div className="flex flex-wrap gap-2"><Button variant="primary" onClick={saveDraft}>Save library item</Button>{editingItem ? <Button variant="secondary" onClick={startCreate}>Cancel edit</Button> : null}</div>
         </div>
         <TextInput aria-label="Search cost library" className="mt-4 w-full" placeholder="Search library…" value={query} onChange={(event) => setQuery(event.target.value)} />
-        <div className="mt-4 space-y-3" data-testid="production-library-drag-tray">{filtered.map((item) => <DraggableLibraryCard key={item.id} item={item} currencyCode={currencyCode} selectedForGridInsert={item.id === selectedLibraryId} onSelectForGridInsert={() => onSelectForGridInsert(item.id)} onAdd={() => onAdd(item, getSelectedSectionId())} onEdit={() => startEdit(item)} />)}</div>
+        <div className="mt-4 space-y-2" data-testid="production-library-drag-tray">{filtered.map((item) => <DraggableLibraryCard key={item.id} item={item} currencyCode={currencyCode} selectedForGridInsert={item.id === selectedLibraryId} onSelectForGridInsert={() => onSelectForGridInsert(item.id)} onAdd={() => onAdd(item, getSelectedSectionId())} onEdit={() => startEdit(item)} />)}</div>
       </CardContent>
     </Card>
   );
@@ -723,8 +723,8 @@ function DraggableLibraryCard({ item, currencyCode, selectedForGridInsert, onSel
   const style = { transform: CSS.Translate.toString(transform) };
 
   return (
-    <div ref={setNodeRef} style={style} className={`rounded-2xl border border-hairline p-4 transition-[border-color,box-shadow,opacity] ${isDragging ? "opacity-35" : "bg-white hover:border-accent hover:shadow-md"}`}>
-      <div className="flex items-start justify-between gap-3">
+    <div ref={setNodeRef} style={style} className={`rounded-2xl border border-hairline p-2 transition-[border-color,box-shadow,opacity] ${isDragging ? "opacity-35" : "bg-white hover:border-accent hover:shadow-md"}`}>
+      <div className="flex items-start justify-between gap-2">
         <LibraryCardContent item={item} currencyCode={currencyCode} />
         <button type="button" className="shrink-0 cursor-grab rounded-lg border border-hairline px-2 py-1 text-xs font-semibold text-muted active:cursor-grabbing" aria-label={`Drag ${item.name} into estimate grid`} {...listeners} {...attributes}>Drag</button>
       </div>
@@ -739,7 +739,7 @@ function DraggableLibraryCard({ item, currencyCode, selectedForGridInsert, onSel
 
 function LibraryDragPreview({ item, currency }: { item: CostLibraryItem; currency: string }) {
   return (
-    <div className="w-[300px] rotate-1 rounded-2xl border border-accent bg-white p-4 text-left shadow-2xl ring-4 ring-accentSoft">
+    <div className="w-[300px] rotate-1 rounded-2xl border border-accent bg-white p-2 text-left shadow-2xl ring-4 ring-accentSoft">
       <LibraryCardContent item={item} currencyCode={currency} />
       <p className="mt-3 rounded-lg bg-accentSoft px-2 py-1 text-xs font-semibold text-accentDark">Drop into the Glide estimate grid</p>
     </div>
@@ -748,7 +748,7 @@ function LibraryDragPreview({ item, currency }: { item: CostLibraryItem; currenc
 
 function LibraryCardContent({ item, currencyCode }: { item: CostLibraryItem; currencyCode: string }) {
   return (
-    <div className="flex items-start justify-between gap-3">
+    <div className="flex items-start justify-between gap-2">
       <div>
         <p className="font-medium">{item.name}</p>
         <p className="mt-1 text-xs text-muted">{item.category} · {item.itemType} · {item.unit}</p>
@@ -791,30 +791,30 @@ function VersionsPanel({ estimate, versions, revisionRecords, onDuplicate, onSer
           {onServerDuplicate ? <Button onClick={() => void onServerDuplicate(estimate.id)}>Save as persisted revision</Button> : null}
         </div>
         {activeDiff ? (
-          <div className="mt-4 rounded-2xl border border-hairline bg-surface-muted p-4">
+          <div className="mt-4 rounded-2xl border border-hairline bg-surface-muted p-2">
             <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">Revision diff semantics</p>
             <p className="mt-2 text-sm font-medium">Compared with {comparedWithLabel}</p>
             <div className="mt-3 grid grid-cols-2 gap-2 text-xs md:grid-cols-3">
-              <span className="rounded-xl bg-white px-3 py-2">Moved spaces: {activeDiff.summary.spaceMoves}</span>
-              <span className="rounded-xl bg-white px-3 py-2">BOQ remaps: {activeDiff.summary.proposalRemaps}</span>
-              <span className="rounded-xl bg-white px-3 py-2">Commercial edits: {activeDiff.summary.commercialChanges}</span>
-              <span className="rounded-xl bg-white px-3 py-2">Scope edits: {activeDiff.summary.scopeChanges}</span>
-              <span className="rounded-xl bg-white px-3 py-2">Added rows: {activeDiff.summary.addedLines}</span>
-              <span className="rounded-xl bg-white px-3 py-2">Removed rows: {activeDiff.summary.removedLines}</span>
+              <span className="rounded-xl bg-white px-2 py-2">Moved spaces: {activeDiff.summary.spaceMoves}</span>
+              <span className="rounded-xl bg-white px-2 py-2">BOQ remaps: {activeDiff.summary.proposalRemaps}</span>
+              <span className="rounded-xl bg-white px-2 py-2">Commercial edits: {activeDiff.summary.commercialChanges}</span>
+              <span className="rounded-xl bg-white px-2 py-2">Scope edits: {activeDiff.summary.scopeChanges}</span>
+              <span className="rounded-xl bg-white px-2 py-2">Added rows: {activeDiff.summary.addedLines}</span>
+              <span className="rounded-xl bg-white px-2 py-2">Removed rows: {activeDiff.summary.removedLines}</span>
             </div>
             <div className="mt-3 space-y-2">
-              {activeDiff.changes.slice(0, 4).map((change) => <p key={`${change.kind}-${change.lineItemId}`} className="rounded-xl bg-white p-3 text-xs text-muted"><span className="font-semibold text-foreground">{change.itemName}</span> · {describeRevisionChange(change)}</p>)}
-              {!activeDiff.changes.length ? <p className="rounded-xl bg-white p-3 text-xs text-muted">No revision deltas detected yet.</p> : null}
+              {activeDiff.changes.slice(0, 4).map((change) => <p key={`${change.kind}-${change.lineItemId}`} className="rounded-xl bg-white p-2 text-xs text-muted"><span className="font-semibold text-foreground">{change.itemName}</span> · {describeRevisionChange(change)}</p>)}
+              {!activeDiff.changes.length ? <p className="rounded-xl bg-white p-2 text-xs text-muted">No revision deltas detected yet.</p> : null}
             </div>
           </div>
         ) : null}
-        <div className="mt-4 space-y-3">{orderedVersions.map((version) => <div key={version.id} className={`rounded-2xl border p-4 ${version.id === estimate.id ? "border-accent bg-amber-50" : "border-hairline"}`}><p className="font-medium">{version.versionLabel}</p><p className="mt-1 text-xs text-muted">{version.name} · {version.status}</p></div>)}</div>
+        <div className="mt-4 space-y-2">{orderedVersions.map((version) => <div key={version.id} className={`rounded-2xl border p-2 ${version.id === estimate.id ? "border-accent bg-amber-50" : "border-hairline"}`}><p className="font-medium">{version.versionLabel}</p><p className="mt-1 text-xs text-muted">{version.name} · {version.status}</p></div>)}</div>
         {orderedRevisionRecords.length ? (
-          <div className="mt-4 rounded-2xl border border-hairline bg-white p-4">
+          <div className="mt-4 rounded-2xl border border-hairline bg-white p-2">
             <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">Saved revision records</p>
             <div className="mt-3 space-y-2">
               {orderedRevisionRecords.slice(-3).reverse().map((record) => (
-                <div key={record.id} className="rounded-xl bg-surface-muted p-3 text-xs text-muted">
+                <div key={record.id} className="rounded-xl bg-surface-muted p-2 text-xs text-muted">
                   <p className="font-semibold text-foreground">{record.fromVersionLabel} → {record.toVersionLabel}</p>
                   <p className="mt-1">{record.summary.totalChanges} changes · {record.summary.spaceMoves} moves · {record.summary.proposalRemaps} BOQ remaps · {record.summary.commercialChanges} commercial edits · {record.summary.scopeChanges} scope edits</p>
                 </div>
@@ -852,11 +852,11 @@ function ProposalPanel({ project, estimate, totals, currencyCode, terms, onTerms
 
   return (
     <Card className="bg-proposal-paper">
-      <CardContent className="grid gap-4">
-        <div className="grid gap-2"><Button variant="secondary" onClick={() => void onSaveEstimate?.(estimate)}>Save estimate to local JSON</Button><Button variant="primary" onClick={() => void onIssueProposalSnapshot?.(estimate, terms)}>Issue immutable proposal snapshot</Button><p className="text-xs text-muted">Issued snapshots for this project: {savedProposals.length}</p>{unassignedRows.length ? <p role="alert" className="rounded-xl border border-amber-300 bg-amber-50 p-3 text-xs font-medium text-amber-800">{unassignedRows.length} billable row{unassignedRows.length === 1 ? "" : "s"} need proposal-section mapping before issuance. They will be grouped as Unassigned Proposal Section if issued now.</p> : null}</div>
-        <Card className="bg-white/75 shadow-none"><CardContent><CardTitle>Proposal history</CardTitle>{savedProposals.length ? <div className="mt-3 space-y-2">{savedProposals.map((snapshot) => <Link key={snapshot.id} className="block rounded-xl border border-hairline bg-white p-3 text-sm transition hover:border-accent" href={`/proposals/${snapshot.id}`}><span className="font-semibold">{snapshot.proposalVersionLabel}</span><span className="mt-1 block text-xs text-muted">{new Date(snapshot.issuedAt).toLocaleDateString()} · {formatMoney(snapshot.totalAmount, snapshot.currency)}</span></Link>)}</div> : <p className="mt-3 rounded-xl border border-dashed border-hairline bg-white/70 p-4 text-sm text-muted">No issued proposals yet. Save the estimate, review terms, then issue an immutable snapshot.</p>}</CardContent></Card>
-        <Card className="bg-white/75 shadow-none"><CardContent className="grid gap-3"><CardTitle>Proposal terms builder</CardTitle><Field label="Subject"><TextInput value={terms.subject} onChange={(event) => onTermsChange({ subject: event.target.value })} /></Field><Field label="Through / attention"><TextInput value={terms.throughName ?? ""} onChange={(event) => onTermsChange({ throughName: event.target.value })} /></Field><Field label="Contractor/company"><TextInput value={terms.contractorName} onChange={(event) => onTermsChange({ contractorName: event.target.value })} /></Field><Field label="Tax/VAT statement"><Textarea value={terms.taxStatement} onChange={(event) => onTermsChange({ taxStatement: event.target.value })} /></Field><Field label="Validity days"><TextInput type="number" min={1} value={terms.validityDays} onChange={(event) => onTermsChange({ validityDays: Math.max(1, parseNumberInput(event.target.value)) })} /></Field><Field label="Payment terms"><Textarea value={terms.paymentTerms} onChange={(event) => onTermsChange({ paymentTerms: event.target.value })} /></Field><Field label="Warranty terms"><Textarea value={terms.warrantyTerms} onChange={(event) => onTermsChange({ warrantyTerms: event.target.value })} /></Field><Field label="Duration note"><Textarea value={terms.durationNote} onChange={(event) => onTermsChange({ durationNote: event.target.value })} /></Field><Field label="Inclusions"><Textarea value={terms.inclusions} onChange={(event) => onTermsChange({ inclusions: event.target.value })} /></Field><Field label="Exclusions"><Textarea value={terms.exclusions} onChange={(event) => onTermsChange({ exclusions: event.target.value })} /></Field></CardContent></Card>
-        <div className="rounded-xl border border-hairline bg-white/70 p-5 font-serif"><p className="text-xs uppercase tracking-[0.16em] text-muted">Proposal Preview</p><h2 className="mt-2 text-2xl font-semibold tracking-[-0.03em]">{terms.subject}</h2><p className="mt-3 text-sm leading-6">We are pleased to submit this proposal for <strong>{project.name}</strong> located in {project.location}. This preview uses editable commercial terms and becomes immutable only after issuance.</p><div className="mt-5 rounded-xl bg-foreground p-4 text-white"><p className="text-xs text-white/70">Total proposed amount</p><p className="mt-1 font-mono text-2xl font-semibold">{formatMoney(totals.grandTotal, currencyCode)}</p></div><h3 className="mt-5 font-sans text-sm font-semibold uppercase tracking-[0.12em]">Section Summary</h3><div className="mt-2 space-y-2">{sectionSummaries.map((section) => <div key={section.id} className="flex justify-between border-b border-hairline py-2 text-sm"><span>{section.outlineCode}. {section.name}</span><span className="font-mono">{formatMoney(section.total, currencyCode)}</span></div>)}</div><h3 className="mt-5 font-sans text-sm font-semibold uppercase tracking-[0.12em]">Proposal Detail</h3><div className="mt-2 space-y-2">{proposalDetailRows.map((row) => <div key={row.id} className="rounded-xl border border-hairline bg-white/70 p-3 text-sm"><div className="flex justify-between gap-3"><span className="font-semibold">{row.itemName}</span><span className="font-mono">{formatMoney(row.calculated.total, currencyCode)}</span></div><p className="mt-1 text-xs text-muted">{formatSpacePath(estimate, row.spaceId)} · {row.quantity} {row.unit}</p></div>)}</div><h3 className="mt-5 font-sans text-sm font-semibold uppercase tracking-[0.12em]">Commercial terms</h3><dl className="mt-2 grid gap-2 text-sm"><div><dt className="font-sans font-semibold">Validity</dt><dd className="text-muted">{terms.validityDays} days</dd></div><div><dt className="font-sans font-semibold">Payment</dt><dd className="text-muted">{terms.paymentTerms}</dd></div><div><dt className="font-sans font-semibold">Exclusions</dt><dd className="text-muted">{terms.exclusions}</dd></div></dl></div>
+      <CardContent className="grid gap-2">
+        <div className="grid gap-2"><Button variant="secondary" onClick={() => void onSaveEstimate?.(estimate)}>Save estimate to local JSON</Button><Button variant="primary" onClick={() => void onIssueProposalSnapshot?.(estimate, terms)}>Issue immutable proposal snapshot</Button><p className="text-xs text-muted">Issued snapshots for this project: {savedProposals.length}</p>{unassignedRows.length ? <p role="alert" className="rounded-xl border border-amber-300 bg-amber-50 p-2 text-xs font-medium text-amber-800">{unassignedRows.length} billable row{unassignedRows.length === 1 ? "" : "s"} need proposal-section mapping before issuance. They will be grouped as Unassigned Proposal Section if issued now.</p> : null}</div>
+        <Card className="bg-white/75 shadow-none"><CardContent><CardTitle>Proposal history</CardTitle>{savedProposals.length ? <div className="mt-3 space-y-2">{savedProposals.map((snapshot) => <Link key={snapshot.id} className="block rounded-xl border border-hairline bg-white p-2 text-sm transition hover:border-accent" href={`/proposals/${snapshot.id}`}><span className="font-semibold">{snapshot.proposalVersionLabel}</span><span className="mt-1 block text-xs text-muted">{new Date(snapshot.issuedAt).toLocaleDateString()} · {formatMoney(snapshot.totalAmount, snapshot.currency)}</span></Link>)}</div> : <p className="mt-3 rounded-xl border border-dashed border-hairline bg-white/70 p-2 text-sm text-muted">No issued proposals yet. Save the estimate, review terms, then issue an immutable snapshot.</p>}</CardContent></Card>
+        <Card className="bg-white/75 shadow-none"><CardContent className="grid gap-2"><CardTitle>Proposal terms builder</CardTitle><Field label="Subject"><TextInput value={terms.subject} onChange={(event) => onTermsChange({ subject: event.target.value })} /></Field><Field label="Through / attention"><TextInput value={terms.throughName ?? ""} onChange={(event) => onTermsChange({ throughName: event.target.value })} /></Field><Field label="Contractor/company"><TextInput value={terms.contractorName} onChange={(event) => onTermsChange({ contractorName: event.target.value })} /></Field><Field label="Tax/VAT statement"><Textarea value={terms.taxStatement} onChange={(event) => onTermsChange({ taxStatement: event.target.value })} /></Field><Field label="Validity days"><TextInput type="number" min={1} value={terms.validityDays} onChange={(event) => onTermsChange({ validityDays: Math.max(1, parseNumberInput(event.target.value)) })} /></Field><Field label="Payment terms"><Textarea value={terms.paymentTerms} onChange={(event) => onTermsChange({ paymentTerms: event.target.value })} /></Field><Field label="Warranty terms"><Textarea value={terms.warrantyTerms} onChange={(event) => onTermsChange({ warrantyTerms: event.target.value })} /></Field><Field label="Duration note"><Textarea value={terms.durationNote} onChange={(event) => onTermsChange({ durationNote: event.target.value })} /></Field><Field label="Inclusions"><Textarea value={terms.inclusions} onChange={(event) => onTermsChange({ inclusions: event.target.value })} /></Field><Field label="Exclusions"><Textarea value={terms.exclusions} onChange={(event) => onTermsChange({ exclusions: event.target.value })} /></Field></CardContent></Card>
+        <div className="rounded-xl border border-hairline bg-white/70 p-2 font-serif"><p className="text-xs uppercase tracking-[0.16em] text-muted">Proposal Preview</p><h2 className="mt-2 text-2xl font-semibold tracking-[-0.03em]">{terms.subject}</h2><p className="mt-3 text-sm leading-6">We are pleased to submit this proposal for <strong>{project.name}</strong> located in {project.location}. This preview uses editable commercial terms and becomes immutable only after issuance.</p><div className="mt-5 rounded-xl bg-foreground p-2 text-white"><p className="text-xs text-white/70">Total proposed amount</p><p className="mt-1 font-mono text-2xl font-semibold">{formatMoney(totals.grandTotal, currencyCode)}</p></div><h3 className="mt-5 font-sans text-sm font-semibold uppercase tracking-[0.12em]">Section Summary</h3><div className="mt-2 space-y-2">{sectionSummaries.map((section) => <div key={section.id} className="flex justify-between border-b border-hairline py-2 text-sm"><span>{section.outlineCode}. {section.name}</span><span className="font-mono">{formatMoney(section.total, currencyCode)}</span></div>)}</div><h3 className="mt-5 font-sans text-sm font-semibold uppercase tracking-[0.12em]">Proposal Detail</h3><div className="mt-2 space-y-2">{proposalDetailRows.map((row) => <div key={row.id} className="rounded-xl border border-hairline bg-white/70 p-2 text-sm"><div className="flex justify-between gap-2"><span className="font-semibold">{row.itemName}</span><span className="font-mono">{formatMoney(row.calculated.total, currencyCode)}</span></div><p className="mt-1 text-xs text-muted">{formatSpacePath(estimate, row.spaceId)} · {row.quantity} {row.unit}</p></div>)}</div><h3 className="mt-5 font-sans text-sm font-semibold uppercase tracking-[0.12em]">Commercial terms</h3><dl className="mt-2 grid gap-2 text-sm"><div><dt className="font-sans font-semibold">Validity</dt><dd className="text-muted">{terms.validityDays} days</dd></div><div><dt className="font-sans font-semibold">Payment</dt><dd className="text-muted">{terms.paymentTerms}</dd></div><div><dt className="font-sans font-semibold">Exclusions</dt><dd className="text-muted">{terms.exclusions}</dd></div></dl></div>
       </CardContent>
     </Card>
   );

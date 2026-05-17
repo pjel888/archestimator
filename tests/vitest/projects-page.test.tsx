@@ -4,7 +4,9 @@ import seedData from "../../data/local/seed.json";
 import { localDatabaseSchema } from "@/lib/local-data/schemas";
 
 const database = localDatabaseSchema.parse(seedData);
-const getDatabase = vi.fn(async () => database);
+const { getDatabase } = vi.hoisted(() => ({
+  getDatabase: vi.fn(),
+}));
 
 vi.mock("server-only", () => ({}));
 
@@ -18,7 +20,8 @@ vi.mock("@/app/actions", () => ({
 
 describe("ProjectsIndexPage", () => {
   beforeEach(() => {
-    getDatabase.mockClear();
+    getDatabase.mockReset();
+    getDatabase.mockResolvedValue(database);
   });
 
   it("renders the projects dashboard inside the full-browser app shell", async () => {

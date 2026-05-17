@@ -6,11 +6,11 @@ export function Field({ label, hint, children }: { label: string; hint?: string;
 }
 
 export function TextInput({ className, ...props }: InputHTMLAttributes<HTMLInputElement>) {
-  return <input className={cn("min-h-10 rounded-md border border-divider bg-white px-3 py-2 text-sm text-ink focus:border-focus focus:outline-none focus:ring-2 focus:ring-focus/15", className)} {...props} />;
+  return <input className={cn("min-h-10 rounded-md border border-divider bg-white px-2 py-2 text-sm text-ink focus:border-focus focus:outline-none focus:ring-2 focus:ring-focus/15", className)} {...props} />;
 }
 
 export function Textarea({ className, ...props }: TextareaHTMLAttributes<HTMLTextAreaElement>) {
-  return <textarea className={cn("min-h-24 rounded-md border border-divider bg-white px-3 py-2 text-sm leading-6 text-ink focus:border-focus focus:outline-none focus:ring-2 focus:ring-focus/15", className)} {...props} />;
+  return <textarea className={cn("min-h-24 rounded-md border border-divider bg-white px-2 py-2 text-sm leading-6 text-ink focus:border-focus focus:outline-none focus:ring-2 focus:ring-focus/15", className)} {...props} />;
 }
 
 export function FieldLabel({ className, ...props }: LabelHTMLAttributes<HTMLLabelElement>) {

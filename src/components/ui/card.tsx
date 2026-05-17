@@ -6,11 +6,11 @@ export function Card({ className, ...props }: HTMLAttributes<HTMLElement>) {
 }
 
 export function CardHeader({ className, ...props }: HTMLAttributes<HTMLDivElement>) {
-  return <div className={cn("border-b border-hairline p-4", className)} {...props} />;
+  return <div className={cn("border-b border-hairline p-2", className)} {...props} />;
 }
 
 export function CardContent({ className, ...props }: HTMLAttributes<HTMLDivElement>) {
-  return <div className={cn("p-4", className)} {...props} />;
+  return <div className={cn("p-2", className)} {...props} />;
 }
 
 export function CardTitle({ className, children, ...props }: HTMLAttributes<HTMLHeadingElement> & { children: ReactNode }) {

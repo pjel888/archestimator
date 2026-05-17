@@ -5,7 +5,7 @@ import { cn } from "@/lib/ui/cn";
 export function ObjectCard({ href, title, eyebrow, meta, value, footer, children, className }: { href?: string; title: string; eyebrow?: string; meta?: string; value?: ReactNode; footer?: ReactNode; children?: ReactNode; className?: string }) {
   const content = (
     <>
-      <div className="flex items-start justify-between gap-4">
+      <div className="flex items-start justify-between gap-2">
         <div>
           {eyebrow ? <p className="text-xs font-semibold uppercase tracking-[0.12em] text-muted">{eyebrow}</p> : null}
           <h2 className="mt-2 text-2xl font-medium tracking-[-0.03em]">{title}</h2>
@@ -18,6 +18,6 @@ export function ObjectCard({ href, title, eyebrow, meta, value, footer, children
     </>
   );
 
-  const classes = cn("rounded-lg border border-hairline bg-surface p-5 transition", href ? "hover:border-divider hover:bg-surfaceMuted/50" : null, className);
+  const classes = cn("rounded-lg border border-hairline bg-surface p-2 transition", href ? "hover:border-divider hover:bg-surfaceMuted/50" : null, className);
   return href ? <Link className={classes} href={href}>{content}</Link> : <article className={classes}>{content}</article>;
 }

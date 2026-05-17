@@ -26,9 +26,9 @@ export default async function ProjectsIndexPage() {
       activeItem="Projects"
       topBar={<WorkspaceTopBar eyebrow={database.workspace.name} title="Projects" meta="Local-first estimating dashboard" />}
     >
-      <div className="grid min-h-full gap-4 p-4 lg:p-6">
-        <section className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
-          <div className="rounded-lg border border-hairline bg-surface p-6">
+      <div className="grid min-h-full gap-2 p-2 lg:p-2">
+        <section className="grid gap-2 xl:grid-cols-[minmax(0,1fr)_360px]">
+          <div className="rounded-lg border border-hairline bg-surface p-2">
             <p className="text-sm font-medium uppercase tracking-[0.16em] text-accent">Archestimator</p>
             <h1 className="mt-3 max-w-4xl text-4xl font-medium tracking-[-0.045em] text-ink lg:text-6xl">
               Project command center
@@ -36,14 +36,14 @@ export default async function ProjectsIndexPage() {
             <p className="mt-5 max-w-3xl text-base leading-7 text-muted">
               Open estimates, track proposal snapshots, and start new local-first project work without leaving the app shell.
             </p>
-            <div className="mt-8 grid gap-3 md:grid-cols-3">
+            <div className="mt-8 grid gap-2 md:grid-cols-3">
               <StatCard label="Active projects" value={String(database.projects.length)} dark />
               <StatCard label="Portfolio total" value={formatMoney(portfolioTotal, database.workspace.defaultCurrency)} />
               <StatCard label="Estimate rows" value={String(rowCount)} />
             </div>
           </div>
 
-          <form action={createProjectAction} className="grid content-start gap-3 rounded-lg border border-hairline bg-surface p-4">
+          <form action={createProjectAction} className="grid content-start gap-2 rounded-lg border border-hairline bg-surface p-2">
             <div>
               <p className="text-lg font-medium tracking-[-0.02em] text-ink">Create project</p>
               <p className="mt-1 text-sm leading-6 text-muted">Start a draft estimate with local JSON persistence.</p>
@@ -55,15 +55,15 @@ export default async function ProjectsIndexPage() {
           </form>
         </section>
 
-        <section className="grid gap-4">
-          <div className="flex flex-wrap items-end justify-between gap-3">
+        <section className="grid gap-2">
+          <div className="flex flex-wrap items-end justify-between gap-2">
             <div>
               <h2 className="text-2xl font-medium tracking-[-0.03em] text-ink">Current projects</h2>
               <p className="mt-1 text-sm text-muted">Each card opens the full estimate workspace with library, version, and proposal tools docked.</p>
             </div>
-            <p className="rounded-full border border-divider bg-surface px-3 py-1 text-xs font-medium text-secondary">{database.proposalSnapshots.length} issued proposals</p>
+            <p className="rounded-full border border-divider bg-surface px-2 py-1 text-xs font-medium text-secondary">{database.proposalSnapshots.length} issued proposals</p>
           </div>
-          <div className="grid gap-4 md:grid-cols-2 2xl:grid-cols-3">
+          <div className="grid gap-2 md:grid-cols-2 2xl:grid-cols-3">
             {projectCards.map(({ project, estimate, totals, proposalCount }) => (
               <ObjectCard
                 key={project.id}
