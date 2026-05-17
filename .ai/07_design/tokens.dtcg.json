@@ -7,11 +7,11 @@
       "$value": {
         "colorSpace": "srgb",
         "components": [
-          0,
-          0,
-          0
+          1,
+          0.478,
+          0.102
         ],
-        "hex": "#000000"
+        "hex": "#ff7a1a"
       }
     },
     "ink": {
@@ -150,33 +150,33 @@
       "$value": {
         "colorSpace": "srgb",
         "components": [
-          0,
-          0.047,
-          0.882
+          1,
+          0.478,
+          0.102
         ],
-        "hex": "#000ce1"
+        "hex": "#ff7a1a"
       }
     },
     "accentSoft": {
       "$value": {
         "colorSpace": "srgb",
         "components": [
-          0.933,
-          0.945,
-          1
+          1,
+          0.941,
+          0.898
         ],
-        "hex": "#eef1ff"
+        "hex": "#fff0e5"
       }
     },
     "focus": {
       "$value": {
         "colorSpace": "srgb",
         "components": [
-          0,
-          0.047,
-          0.882
+          1,
+          0.478,
+          0.102
         ],
-        "hex": "#000ce1"
+        "hex": "#ff7a1a"
       }
     },
     "success": {

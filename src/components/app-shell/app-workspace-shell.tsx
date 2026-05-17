@@ -30,21 +30,21 @@ type AppWorkspaceShellProps = {
 export function AppWorkspaceShell({ children, activeItem = "Projects", topBar, bodyClassName }: AppWorkspaceShellProps) {
   return (
     <div data-testid="app-workspace-shell" className="flex h-dvh min-h-screen overflow-hidden bg-canvas text-foreground">
-      <aside className="hidden w-[220px] shrink-0 border-r border-divider bg-surface lg:flex lg:flex-col">
-        <div className="border-b border-hairline px-5 py-4">
-          <Link href="/projects" className="block text-base font-medium tracking-[-0.01em] text-ink">
-            Archestimator
+      <aside className="hidden w-[84px] shrink-0 border-r border-divider bg-surface lg:flex lg:flex-col">
+        <div className="border-b border-hairline px-2 py-3 text-center">
+          <Link href="/projects" className="mx-auto grid size-9 place-items-center rounded-md bg-primary text-sm font-semibold text-white" aria-label="Archestimator">
+            A
           </Link>
-          <p className="mt-1 text-xs text-muted">Estimate workspace</p>
+          <p className="mt-1 text-[8px] font-medium uppercase tracking-[0.08em] text-muted">Estimate</p>
         </div>
-        <nav aria-label="Workspace navigation" className="flex flex-1 flex-col gap-1 px-3 py-4">
+        <nav aria-label="Workspace navigation" className="flex flex-1 flex-col gap-1 px-2 py-3">
           {sidebarItems.map((item) => (
             <SidebarNavItem key={item.label} item={item} active={item.label === activeItem} />
           ))}
         </nav>
-        <div className="border-t border-hairline px-5 py-4 text-xs leading-5 text-muted">
-          Local-first MVP
-          <span className="mt-1 block text-ink">No cloud sync connected</span>
+        <div className="border-t border-hairline px-2 py-3 text-center text-[8px] font-medium uppercase tracking-[0.06em] text-muted">
+          Local
+          <span className="mt-1 block normal-case tracking-normal text-ink">JSON</span>
         </div>
       </aside>
       <div className="flex min-w-0 flex-1 flex-col">
@@ -58,15 +58,15 @@ export function AppWorkspaceShell({ children, activeItem = "Projects", topBar, b
 function SidebarNavItem({ item, active }: { item: SidebarItem; active: boolean }) {
   const Icon = item.icon;
   const classes = cn(
-    "flex min-h-10 items-center gap-3 rounded-md px-3 text-sm font-medium transition",
-    active ? "bg-ink text-white" : "text-secondary hover:bg-surfaceMuted hover:text-ink",
+    "flex min-h-12 flex-col items-center justify-center gap-1 rounded-md px-1 text-center text-[8px] font-semibold leading-none transition",
+    active ? "bg-primary text-white" : "text-secondary hover:bg-surfaceMuted hover:text-ink",
     !item.href ? "cursor-not-allowed opacity-45 hover:bg-transparent hover:text-secondary" : null,
   );
 
   const content = (
     <>
-      <Icon className="size-4" aria-hidden="true" />
-      <span>{item.label}</span>
+      <Icon className="size-3.5" aria-hidden="true" />
+      <span className="max-w-full truncate">{item.label}</span>
     </>
   );
 
@@ -99,8 +99,8 @@ export function WorkspaceTopBar({ eyebrow, title, meta, actions, stats }: Worksp
       <div className="min-w-0">
         {eyebrow ? <p className="text-xs font-medium uppercase tracking-[0.12em] text-muted">{eyebrow}</p> : null}
         <div className="mt-1 flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
-          <h1 className="truncate text-xl font-medium tracking-[-0.025em] text-ink">{title}</h1>
-          {meta ? <div className="text-sm text-muted">{meta}</div> : null}
+          <h1 className="truncate text-lg font-medium tracking-[-0.02em] text-ink">{title}</h1>
+          {meta ? <div className="text-xs text-muted">{meta}</div> : null}
         </div>
       </div>
       {(stats || actions) ? (

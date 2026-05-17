@@ -2,7 +2,7 @@
   "theme": {
     "extend": {
       "colors": {
-        "primary": "#000000",
+        "primary": "#ff7a1a",
         "ink": "#111111",
         "secondary": "#313130",
         "tertiary": "#626260",
@@ -15,9 +15,9 @@
         "surface": "#ffffff",
         "surfaceMuted": "#f6f6f1",
         "surfaceWarm": "#f4f3ec",
-        "accent": "#000ce1",
-        "accentSoft": "#eef1ff",
-        "focus": "#000ce1",
+        "accent": "#ff7a1a",
+        "accentSoft": "#fff0e5",
+        "focus": "#ff7a1a",
         "success": "#15803d",
         "successSoft": "#dcfce7",
         "warning": "#b45309",

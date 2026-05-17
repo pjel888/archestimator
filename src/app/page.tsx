@@ -30,7 +30,7 @@ export default function LandingPage() {
     <div className="min-h-screen bg-background text-ink">
       <header className="sticky top-0 z-50 border-b border-divider bg-background/90 backdrop-blur">
         <div className="mx-auto flex h-16 w-full max-w-[1600px] items-center justify-between px-4 sm:px-6 lg:px-8">
-          <Link href="/" className="text-lg font-medium tracking-[-0.02em] text-ink">
+          <Link href="/" className="text-base font-medium tracking-[-0.02em] text-ink">
             Archestimator
           </Link>
           <nav className="flex items-center gap-3 text-sm font-medium text-secondary">
@@ -50,10 +50,10 @@ export default function LandingPage() {
               <p className="inline-flex w-fit items-center gap-2 rounded-full border border-divider bg-surface px-3 py-1 text-xs font-medium text-secondary">
                 <Sparkles className="size-3.5 text-accent" /> Intercom-grade UX for construction estimating
               </p>
-              <h1 className="mt-7 max-w-4xl text-5xl font-medium leading-[0.95] tracking-[-0.065em] text-ink sm:text-6xl lg:text-7xl">
+              <h1 className="mt-7 max-w-4xl text-4xl font-medium leading-[0.98] tracking-[-0.055em] text-ink sm:text-5xl lg:text-6xl">
                 Estimates that feel as focused as your best spreadsheet.
               </h1>
-              <p className="mt-6 max-w-2xl text-lg leading-8 text-secondary">
+              <p className="mt-5 max-w-2xl text-base leading-7 text-secondary">
                 Archestimator combines a full-browser estimate workspace, local-first project data, revision tracking, and proposal snapshots for design-build teams that need precision without clutter.
               </p>
               <div className="mt-8 flex flex-wrap gap-3">
@@ -76,7 +76,9 @@ export default function LandingPage() {
               </div>
             </div>
 
-            <div className="relative min-h-[520px] rounded-[28px] border border-divider bg-surfaceWarm p-4 lg:min-h-[620px]">
+            <div className="halftone-panel relative min-h-[500px] rounded-[24px] border border-divider bg-surfaceWarm p-4 lg:min-h-[580px]">
+              <div className="halftone-field absolute right-4 top-6 h-56 w-28 opacity-80" aria-hidden="true" />
+              <div className="halftone-field absolute bottom-6 left-5 h-32 w-40 opacity-50" aria-hidden="true" />
               <div className="absolute -right-10 -top-10 size-40 rounded-full bg-accentSoft blur-2xl" />
               <div className="relative flex h-full flex-col overflow-hidden rounded-2xl border border-divider bg-white shadow-[0_28px_80px_rgba(17,17,17,0.12)]">
                 <div className="flex items-center justify-between border-b border-divider px-4 py-3">
@@ -89,7 +91,7 @@ export default function LandingPage() {
                     <p className="font-mono text-sm font-medium">₱4.82M</p>
                   </div>
                 </div>
-                <div className="grid min-h-0 flex-1 grid-cols-[150px_1fr_190px] gap-3 bg-canvas p-3">
+                <div className="grid min-h-0 flex-1 grid-cols-[140px_1fr_170px] gap-3 bg-canvas p-3">
                   <div className="rounded-lg border border-hairline bg-white p-3">
                     <p className="text-[11px] font-medium uppercase tracking-[0.12em] text-muted">Project tree</p>
                     {['Preliminaries', 'Architecture', 'MEPF', 'Bathroom', 'Kitchen'].map((item, index) => (
@@ -97,12 +99,12 @@ export default function LandingPage() {
                     ))}
                   </div>
                   <div className="rounded-lg border border-hairline bg-white p-3">
-                    <div className="grid grid-cols-5 border-b border-divider pb-2 text-[11px] font-medium uppercase tracking-[0.1em] text-muted">
-                      <span>Item</span><span>Qty</span><span>Unit</span><span>Rate</span><span>Total</span>
+                    <div className="grid grid-cols-[2fr_0.6fr_1fr] border-b border-divider pb-2 text-[10px] font-medium uppercase tracking-[0.1em] text-muted">
+                      <span>Item</span><span>Qty</span><span className="text-right">Total</span>
                     </div>
                     {['Wall framing', 'Gypsum board', 'Waterproofing', 'Floor tile', 'Ceiling paint', 'Vanity install', 'Lighting points'].map((item, index) => (
-                      <div key={item} className="grid grid-cols-5 border-b border-hairline py-3 text-xs text-secondary">
-                        <span className="font-medium text-ink">{item}</span><span>{index + 2}</span><span>lot</span><span>₱{(index + 18) * 1200}</span><span className="font-mono">₱{(index + 4) * 24800}</span>
+                      <div key={item} className="grid grid-cols-[2fr_0.6fr_1fr] items-center border-b border-hairline py-2.5 text-[11px] text-secondary">
+                        <span className="truncate pr-2 font-medium text-ink">{item}</span><span>{index + 2}</span><span className="text-right font-mono">₱{(index + 4) * 24800}</span>
                       </div>
                     ))}
                   </div>
@@ -123,14 +125,14 @@ export default function LandingPage() {
           <div className="mx-auto w-full max-w-[1600px] px-4 sm:px-6 lg:px-8">
             <div className="max-w-3xl">
               <p className="text-sm font-medium uppercase tracking-[0.14em] text-accent">Product system</p>
-              <h2 className="mt-3 text-4xl font-medium tracking-[-0.055em] text-ink lg:text-6xl">A calmer operating system for estimates.</h2>
-              <p className="mt-5 text-lg leading-8 text-secondary">Inspired by Intercom’s editorial SaaS clarity and Archestimator v4’s full-height workspace: fewer floating cards, more usable canvas.</p>
+              <h2 className="mt-3 text-3xl font-medium tracking-[-0.045em] text-ink lg:text-5xl">A calmer operating system for estimates.</h2>
+              <p className="mt-4 text-base leading-7 text-secondary">Inspired by Intercom’s editorial SaaS clarity and Archestimator v4’s full-height workspace: fewer floating cards, more usable canvas.</p>
             </div>
             <div className="mt-10 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
               {featureCards.map(({ icon: Icon, title, description }) => (
-                <article key={title} className="rounded-lg border border-divider bg-surface p-5">
+                <article key={title} className="halftone-panel rounded-lg border border-divider bg-surface p-5">
                   <Icon className="size-6 text-accent" />
-                  <h3 className="mt-5 text-xl font-medium tracking-[-0.03em] text-ink">{title}</h3>
+                  <h3 className="mt-5 text-lg font-medium tracking-[-0.025em] text-ink">{title}</h3>
                   <p className="mt-3 text-sm leading-6 text-secondary">{description}</p>
                 </article>
               ))}
@@ -142,7 +144,7 @@ export default function LandingPage() {
           <div className="mx-auto grid w-full max-w-[1600px] gap-10 px-4 sm:px-6 lg:grid-cols-[0.9fr_1.1fr] lg:px-8">
             <div>
               <p className="text-sm font-medium uppercase tracking-[0.14em] text-accent">Workflow</p>
-              <h2 className="mt-3 text-4xl font-medium tracking-[-0.055em] text-ink lg:text-6xl">From project setup to client proposal.</h2>
+              <h2 className="mt-3 text-3xl font-medium tracking-[-0.045em] text-ink lg:text-5xl">From project setup to client proposal.</h2>
             </div>
             <div className="grid gap-3">
               {[
@@ -162,11 +164,11 @@ export default function LandingPage() {
           </div>
         </section>
 
-        <section className="bg-primary py-16 text-white lg:py-24">
+        <section className="halftone-panel overflow-hidden bg-primary py-16 text-white lg:py-20">
           <div className="mx-auto flex w-full max-w-[1600px] flex-col items-start justify-between gap-8 px-4 sm:px-6 lg:flex-row lg:items-center lg:px-8">
             <div>
               <p className="text-sm font-medium uppercase tracking-[0.14em] text-white/60">Try the workspace</p>
-              <h2 className="mt-3 max-w-3xl text-4xl font-medium tracking-[-0.055em] lg:text-6xl">Stop squeezing estimates into the middle of the browser.</h2>
+              <h2 className="mt-3 max-w-3xl text-3xl font-medium tracking-[-0.045em] lg:text-5xl">Stop squeezing estimates into the middle of the browser.</h2>
             </div>
             <Link href="/projects">
               <Button variant="secondary" size="md" className="border-white bg-white text-ink hover:bg-white/90">Open Archestimator</Button>

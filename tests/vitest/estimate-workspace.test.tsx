@@ -21,6 +21,21 @@ describe("EstimateWorkspace", () => {
     expect(dock).toContainElement(screen.getByTestId("production-row-inspector"));
   });
 
+  it("filters and collapses the v4-style project tree navigator", async () => {
+    const user = userEvent.setup();
+    render(<EstimateWorkspace database={database} />);
+
+    const tree = screen.getByTestId("project-tree-rail");
+    expect(within(tree).getByRole("button", { name: /Ground Floor · Bathroom/i })).toBeInTheDocument();
+
+    await user.type(screen.getByLabelText("Search project tree"), "project-wide");
+    expect(within(tree).queryByRole("button", { name: /Ground Floor · Bathroom/i })).not.toBeInTheDocument();
+    expect(within(tree).getByRole("button", { name: /Project-wide/i })).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Collapse project tree" }));
+    expect(screen.getByRole("button", { name: "Expand project tree" })).toBeInTheDocument();
+  });
+
   it("updates totals when a quantity changes", async () => {
     const user = userEvent.setup();
     render(<EstimateWorkspace database={database} />);

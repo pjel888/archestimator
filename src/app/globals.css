@@ -3,7 +3,7 @@
 :root {
   --background: #ffffff;
   --foreground: #111111;
-  --primary: #000000;
+  --primary: #ff7a1a;
   --ink: #111111;
   --secondary: #313130;
   --tertiary: #626260;
@@ -15,10 +15,10 @@
   --hairline: #e5e7eb;
   --divider: #cecfcb;
   --muted: #6b7280;
-  --accent: #000ce1;
-  --accent-dark: #0008a8;
-  --accent-soft: #eef1ff;
-  --focus: #000ce1;
+  --accent: #ff7a1a;
+  --accent-dark: #c85100;
+  --accent-soft: #fff0e5;
+  --focus: #ff7a1a;
   --success: #15803d;
   --success-soft: #dcfce7;
   --warning: #b45309;
@@ -85,4 +85,44 @@ input,
 select,
 textarea {
   font: inherit;
+}
+
+
+.halftone-panel {
+  position: relative;
+  isolation: isolate;
+}
+
+.halftone-panel::before,
+.halftone-panel::after {
+  content: "✱";
+  position: absolute;
+  z-index: 2;
+  color: var(--primary);
+  font-size: 18px;
+  line-height: 1;
+  font-weight: 700;
+}
+
+.halftone-panel::before {
+  top: 14px;
+  left: 14px;
+}
+
+.halftone-panel::after {
+  right: 14px;
+  bottom: 14px;
+}
+
+.halftone-field {
+  background-image: radial-gradient(currentColor 1px, transparent 1.25px);
+  background-size: 10px 10px;
+  color: color-mix(in srgb, var(--primary) 36%, transparent);
+}
+
+.arch-sketch-line {
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  fill: none;
 }

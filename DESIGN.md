@@ -3,7 +3,7 @@ version: alpha
 name: Archestimator Intercom-Inspired Workspace
 description: Intercom-grade editorial SaaS design adapted to full-browser construction estimating workspaces.
 colors:
-  primary: "#000000"
+  primary: "#FF7A1A"
   ink: "#111111"
   secondary: "#313130"
   tertiary: "#626260"
@@ -16,9 +16,9 @@ colors:
   surface: "#FFFFFF"
   surfaceMuted: "#F6F6F1"
   surfaceWarm: "#F4F3EC"
-  accent: "#000CE1"
-  accentSoft: "#EEF1FF"
-  focus: "#000CE1"
+  accent: "#FF7A1A"
+  accentSoft: "#FFF0E5"
+  focus: "#FF7A1A"
   success: "#15803D"
   successSoft: "#DCFCE7"
   warning: "#B45309"
@@ -271,11 +271,11 @@ Primary product surfaces:
 - **Canvas / warm canvas (`#F6F6F1`, `#F4F3EC`)** create Intercom-like warm chapter backgrounds, dashboard bands, product mockup wells, and low-noise secondary surfaces.
 - **Surface (`#FFFFFF`)** is the dominant canvas for landing, cards, grid cells, forms, panels, and modals.
 - **Hairline / divider (`#E5E7EB`, `#CECFCB`)** replace heavy shadows. Use thin borders, crop marks, and whitespace for separation.
-- **Accent blue (`#000CE1`)** is the precise Intercom-like highlight. Use sparingly for focus rings, tiny decorative markers, selected-cell affordances, links, and technical emphasis. It is not the primary CTA color.
+- **Primary orange (`#FF7A1A`)** is the precise Intercom-inspired Archestimator highlight. Use it for primary CTAs, focus rings, orange asterisk markers, selected-cell affordances, links, and technical emphasis.
 - **Functional colors** retain meaning only: success for approved/current/safe, warning for provisional/source-review/cost-risk, danger for destructive/error/excluded/cost increase.
 - **Proposal paper (`#FFFDF8`)** distinguishes client-facing documents from app dashboards.
 
-Color discipline is mandatory: black/white/off-white are the visual system; blue is a tiny precision accent; construction orange is no longer the brand accent and should appear only if functionally meaningful.
+Color discipline is mandatory: black/white/off-white remain the visual system; orange is the primary Archestimator accent and should appear as deliberate asterisks, active states, CTAs, and precision marks rather than broad decoration.
 
 ## Typography
 
@@ -304,7 +304,7 @@ Follow Intercom’s long-form product narrative:
 
 1. thin announcement/product-update bar when relevant;
 2. compact global nav with logo left, navigation center, CTAs right;
-3. oversized centered or split hero with black primary CTA and outlined secondary CTA;
+3. editorial split hero with orange primary CTA, outlined secondary CTA, and warm halftone product framing;
 4. large product mockup/illustration panel below the hero;
 5. logo/proof band when real proof exists;
 6. alternating feature chapters: intro copy, product visual, supporting cards, testimonial/proof;
@@ -368,10 +368,10 @@ Do not over-round estimating, financial, or proposal surfaces. The product shoul
 
 ### Buttons and CTAs
 
-- Public and dashboard primary CTA: black filled button, 40px height, compact padding.
+- Public and dashboard primary CTA: orange filled button, 40px height, compact padding.
 - Secondary CTA: white/outlined button with dark text and thin border.
 - Tertiary CTA: text link, often underlined or arrowed.
-- App primary actions: still black unless a functional state requires warning/danger/success. Reserve primary emphasis for Create, Add selected item, Duplicate revision, Issue proposal, Export.
+- App primary actions use orange for Create, Add selected item, Duplicate revision, Issue proposal, and Export while preserving black for text/ink hierarchy.
 - Destructive actions use danger styling and confirmation.
 
 ### Navigation
@@ -385,7 +385,7 @@ Do not over-round estimating, financial, or proposal surfaces. The product shoul
 - Public pages should use large neutral product panels, screenshot-like UI compositions, and hand-drawn black line illustrations where useful.
 - Illustration style: monochrome, botanical/architectural/sketch-like, precise, light, and editorial. Avoid cartoon construction workers, blueprint clichés, heavy gradients, or stocky 3D mascots.
 - Product visuals should show real Archestimator surfaces: estimate grid, project tree, revision diff, proposal preview, and library dock.
-- Use small blue crop marks/dots sparingly to create a premium technical feel.
+- Use small orange asterisk markers and sparse halftone/dot fields sparingly to create a premium technical feel.
 
 ### Cards and panels
 
@@ -452,8 +452,8 @@ Do not make client-facing proposal pages look like raw admin dashboards or Inter
 - Make the estimate grid the primary surface on estimate routes.
 - Keep public pages spacious, editorial, and proof-led.
 - Keep app pages compact, aligned, and efficient for long work sessions.
-- Use black primary CTAs and outlined secondary CTAs.
-- Use blue only as a precise focus/link/technical accent.
+- Use orange primary CTAs and outlined secondary CTAs.
+- Use orange as the precise focus/link/technical accent.
 - Use real product UI mockups and monochrome sketch-style illustrations.
 - Keep controls accessible with semantic buttons/links, visible focus rings, and full labels.
 - Update this DESIGN.md before introducing new visual language.

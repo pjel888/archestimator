@@ -7,7 +7,7 @@ import type { RefObject } from "react";
 import type { EditableGridCell, Item } from "@glideapps/glide-data-grid";
 import { DndContext, DragOverlay, type DragEndEvent, type DragMoveEvent, type DragStartEvent, PointerSensor, useDraggable, useSensor, useSensors } from "@dnd-kit/core";
 import { CSS } from "@dnd-kit/utilities";
-import { Plus, RotateCcw, Trash2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, Layers3, Plus, RotateCcw, Search, Trash2 } from "lucide-react";
 import { AppWorkspaceShell, WorkspaceTopBar } from "@/components/app-shell/app-workspace-shell";
 import type { CostLibraryItem, Estimate, EstimateLineItem, EstimateSpace, LocalDatabase, ProposalTerms, RevisionChangeRecord } from "@/lib/local-data/schemas";
 import { compareEstimateRevisions } from "@/lib/estimates/revision-diff";
@@ -392,46 +392,73 @@ function TopBarMetric({ label, value, dark = false }: { label: string; value: st
 }
 
 function ProjectTreeRail({ estimate, selectedSectionId, onSelectSection }: { estimate: Estimate; selectedSectionId: string; onSelectSection: (sectionId: string) => void }) {
+  const [expanded, setExpanded] = useState(true);
+  const [searchValue, setSearchValue] = useState("");
   const floors = [...estimate.floors].sort((a, b) => a.sortOrder - b.sortOrder);
+  const query = searchValue.trim().toLowerCase();
+  const filteredSections = estimate.sections.filter((section) => !query || `${section.outlineCode} ${section.name}`.toLowerCase().includes(query));
   const spacesByFloor = floors.map((floor) => ({
     floor,
-    spaces: estimate.spaces.filter((space) => space.floorId === floor.id).sort((a, b) => a.sortOrder - b.sortOrder),
-  }));
+    spaces: estimate.spaces.filter((space) => space.floorId === floor.id && (!query || `${floor.outlineCode} ${floor.name} ${space.outlineCode} ${space.name}`.toLowerCase().includes(query))).sort((a, b) => a.sortOrder - b.sortOrder),
+  })).filter(({ floor, spaces }) => !query || spaces.length || `${floor.outlineCode} ${floor.name}`.toLowerCase().includes(query));
+
+  if (!expanded) {
+    return (
+      <aside data-testid="project-tree-rail" className="hidden max-h-full w-10 shrink-0 overflow-hidden rounded-lg border border-hairline bg-surface xl:block">
+        <button type="button" aria-label="Expand project tree" className="grid size-10 place-items-center text-muted hover:bg-surfaceMuted hover:text-ink" onClick={() => setExpanded(true)}>
+          <ChevronRight className="size-4" />
+        </button>
+        <div className="mt-3 grid place-items-center text-primary">
+          <Layers3 className="size-4" />
+        </div>
+      </aside>
+    );
+  }
 
   return (
-    <aside data-testid="project-tree-rail" className="hidden max-h-full w-[210px] shrink-0 overflow-y-auto rounded-lg border border-hairline bg-surface p-3 2xl:block">
-      <div className="border-b border-hairline pb-3">
-        <p className="text-xs font-medium uppercase tracking-[0.14em] text-muted">Project tree</p>
-        <p className="mt-1 text-sm font-medium text-ink">{estimate.name}</p>
+    <aside data-testid="project-tree-rail" className="hidden max-h-full w-[232px] shrink-0 overflow-y-auto rounded-lg border border-hairline bg-surface xl:block">
+      <div className="flex h-11 items-center justify-between border-b border-hairline px-2">
+        <div className="min-w-0">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.13em] text-muted">Project tree</p>
+          <p className="truncate text-xs font-medium text-ink">{estimate.name}</p>
+        </div>
+        <button type="button" aria-label="Collapse project tree" className="grid size-7 place-items-center rounded hover:bg-surfaceMuted" onClick={() => setExpanded(false)}>
+          <ChevronLeft className="size-4" />
+        </button>
       </div>
-      <div className="mt-3">
-        <p className="px-2 text-xs font-medium uppercase tracking-[0.12em] text-muted">Working areas</p>
-        <div className="mt-2 grid gap-1">
-          {estimate.sections.map((section) => (
-            <button
-              key={section.id}
-              type="button"
-              aria-current={section.id === selectedSectionId ? "true" : undefined}
-              className={`rounded-md px-2 py-2 text-left text-sm transition ${section.id === selectedSectionId ? "bg-primary text-white" : "text-secondary hover:bg-surfaceMuted hover:text-ink"}`}
-              onClick={() => onSelectSection(section.id)}
-            >
-              <span className="block text-[11px] uppercase tracking-[0.08em] opacity-70">{section.outlineCode}</span>
-              {section.name}
+      <label className="mx-2 mt-2 flex h-8 items-center gap-2 rounded-md border border-hairline bg-white px-2 text-[11px] text-muted">
+        <Search className="size-3.5" />
+        <input aria-label="Search project tree" value={searchValue} onChange={(event) => setSearchValue(event.target.value)} placeholder="Search areas" className="min-w-0 flex-1 bg-transparent text-xs text-ink outline-none placeholder:text-muted" />
+      </label>
+      <div className="mt-3 px-2">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted">Summary</p>
+        <button type="button" className="mt-1 flex h-7 w-full items-center gap-2 rounded px-2 text-left text-xs font-semibold text-secondary hover:bg-surfaceMuted hover:text-ink">
+          <span className="text-primary">✱</span> Estimate summary
+        </button>
+      </div>
+      <div className="mt-3 px-2">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted">Working areas</p>
+        <div className="mt-1 grid gap-0.5 border-l border-hairline pl-2">
+          {filteredSections.map((section) => (
+            <button key={section.id} type="button" aria-current={section.id === selectedSectionId ? "true" : undefined} className={`group relative rounded px-2 py-1.5 text-left text-xs leading-4 transition ${section.id === selectedSectionId ? "bg-primary text-white" : "text-secondary hover:bg-surfaceMuted hover:text-ink"}`} onClick={() => onSelectSection(section.id)}>
+              <span className={`absolute -left-[9px] top-3 size-1.5 rounded-full ${section.id === selectedSectionId ? "bg-primary" : "bg-divider group-hover:bg-primary"}`} />
+              <span className="block text-[9px] uppercase tracking-[0.08em] opacity-70">{section.outlineCode}</span>
+              <span className="line-clamp-2">{section.name}</span>
             </button>
           ))}
         </div>
       </div>
       {spacesByFloor.length ? (
-        <div className="mt-5">
-          <p className="px-2 text-xs font-medium uppercase tracking-[0.12em] text-muted">Locations</p>
-          <div className="mt-2 space-y-3">
+        <div className="mt-4 px-2 pb-3">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted">Locations</p>
+          <div className="mt-1 space-y-2">
             {spacesByFloor.map(({ floor, spaces }) => (
-              <div key={floor.id} className="rounded-md border border-hairline bg-surfaceMuted p-2">
-                <p className="text-xs font-medium text-ink">{floor.outlineCode} · {floor.name}</p>
-                <div className="mt-2 grid gap-1">
+              <div key={floor.id} className="rounded-md bg-surfaceMuted/70 p-2">
+                <p className="truncate text-[11px] font-semibold text-ink">{floor.outlineCode} · {floor.name}</p>
+                <div className="mt-1 grid gap-0.5 border-l border-divider pl-2">
                   {spaces.map((space) => (
-                    <p key={space.id} className="rounded bg-white px-2 py-1.5 text-xs text-secondary">
-                      {space.outlineCode} · {space.name}
+                    <p key={space.id} className="truncate rounded px-1.5 py-1 text-[11px] text-secondary hover:bg-white">
+                      <span className="font-medium text-tertiary">{space.outlineCode}</span> · {space.name}
                     </p>
                   ))}
                 </div>
