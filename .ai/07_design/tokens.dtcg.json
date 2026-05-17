@@ -572,6 +572,66 @@
           "unit": "em"
         }
       }
+    },
+    "app-title": {
+      "$type": "typography",
+      "$value": {
+        "fontFamily": "Inter",
+        "fontSize": "12px",
+        "fontWeight": 700,
+        "lineHeight": "16px",
+        "letterSpacing": "-0.01em"
+      }
+    },
+    "app-subtitle": {
+      "$type": "typography",
+      "$value": {
+        "fontFamily": "Inter",
+        "fontSize": "11px",
+        "fontWeight": 700,
+        "lineHeight": "14px",
+        "letterSpacing": "-0.01em"
+      }
+    },
+    "app-body": {
+      "$type": "typography",
+      "$value": {
+        "fontFamily": "Inter",
+        "fontSize": "10px",
+        "fontWeight": 500,
+        "lineHeight": "14px",
+        "letterSpacing": "-0.005em"
+      }
+    },
+    "app-label": {
+      "$type": "typography",
+      "$value": {
+        "fontFamily": "Inter",
+        "fontSize": "9px",
+        "fontWeight": 700,
+        "lineHeight": "12px",
+        "letterSpacing": "0.08em"
+      }
+    },
+    "app-label-sm": {
+      "$type": "typography",
+      "$value": {
+        "fontFamily": "Inter",
+        "fontSize": "8px",
+        "fontWeight": 700,
+        "lineHeight": "10px",
+        "letterSpacing": "0.08em"
+      }
+    },
+    "app-button": {
+      "$type": "typography",
+      "$value": {
+        "fontFamily": "Inter",
+        "fontSize": "10px",
+        "fontWeight": 700,
+        "lineHeight": "12px",
+        "letterSpacing": "-0.005em"
+      }
     }
   }
 }

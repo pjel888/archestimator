@@ -2,6 +2,7 @@
 
 import { SidebarSimple, Crown } from "@phosphor-icons/react/dist/ssr";
 
+import { Button } from "@/components/ui/button";
 import { ArchestimatorMark } from "./ArchestimatorMark";
 import {
   SIDEBAR_ICON_SLOT,
@@ -61,7 +62,7 @@ export function SidebarHeader({ expanded, onToggle }: SidebarHeaderProps) {
 
                 <div
                   className={[
-                    "min-w-0 overflow-hidden whitespace-nowrap text-[15px] font-bold leading-none tracking-[-0.01em] text-white drop-shadow-sm transition-[opacity,transform] duration-[180ms] ease-out motion-reduce:transform-none motion-reduce:transition-none",
+                    "min-w-0 overflow-hidden whitespace-nowrap text-[10px] font-bold leading-none tracking-[-0.01em] text-white drop-shadow-sm transition-[opacity,transform] duration-[180ms] ease-out motion-reduce:transform-none motion-reduce:transition-none",
                     expanded ? "translate-x-0 opacity-100" : "pointer-events-none translate-x-1 opacity-0",
                   ].join(" ")}
                 >
@@ -89,15 +90,16 @@ export function SidebarHeader({ expanded, onToggle }: SidebarHeaderProps) {
             </div>
 
             <div className={["flex", expanded ? "justify-end" : "justify-center"].join(" ")}>
-              <button
-                type="button"
+              <Button
+                variant="overlay"
+                size="icon-sm"
                 onClick={onToggle}
                 aria-expanded={expanded}
                 aria-label={expanded ? "Collapse sidebar" : "Expand sidebar"}
-                className="inline-flex h-8 w-8 items-center justify-center rounded-sm bg-white/[0.10] text-white/78 ring-1 ring-white/16 backdrop-blur-[1px] outline-none transition-[background-color,color] duration-[180ms] ease-out hover:bg-white/[0.16] hover:text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white/75 motion-reduce:transition-none"
+                className="outline-none motion-reduce:transition-none"
               >
                 <SidebarSimple size={16} weight="regular" className="shrink-0" />
-              </button>
+              </Button>
             </div>
           </div>
         </div>

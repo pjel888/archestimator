@@ -11,11 +11,11 @@ colors:
   hairline: "#E5E7EB"
   divider: "#CECFCB"
   background: "#FFFFFF"
-  canvas: "#F6F6F1"
-  warmCanvas: "#F4F3EC"
+  canvas: "#F4F7FA"
+  warmCanvas: "#F4F7FA"
   surface: "#FFFFFF"
-  surfaceMuted: "#F6F6F1"
-  surfaceWarm: "#F4F3EC"
+  surfaceMuted: "#F4F7FA"
+  surfaceWarm: "#F4F7FA"
   accent: "#FF7A1A"
   accentSoft: "#FFF0E5"
   focus: "#FF7A1A"
@@ -27,97 +27,166 @@ colors:
   dangerSoft: "#FEE2E2"
   proposalPaper: "#FFFDF8"
 typography:
+  # Landing/marketing-only scale. Do not use these tokens inside /workshop or product/app surfaces.
   display:
     fontFamily: "Inter"
     fontSize: 4rem
     fontWeight: 400
     lineHeight: 1.04
     letterSpacing: "-0.055em"
+    scope: "landing-only"
   headline-lg:
     fontFamily: "Inter"
     fontSize: 2.8125rem
     fontWeight: 400
     lineHeight: 1.08
     letterSpacing: "-0.045em"
+    scope: "landing-only"
   h1:
     fontFamily: "Inter"
     fontSize: 2.25rem
     fontWeight: 430
     lineHeight: 1.1
     letterSpacing: "-0.04em"
+    scope: "landing-only"
   h2:
     fontFamily: "Inter"
     fontSize: 1.75rem
     fontWeight: 430
     lineHeight: 1.16
     letterSpacing: "-0.035em"
+    scope: "landing-only"
   h3:
     fontFamily: "Inter"
     fontSize: 1.4375rem
     fontWeight: 450
     lineHeight: 1.22
     letterSpacing: "-0.025em"
+    scope: "landing-only"
   body-lg:
     fontFamily: "Inter"
     fontSize: 1.125rem
     fontWeight: 350
     lineHeight: 1.45
     letterSpacing: "-0.015em"
+    scope: "landing-only"
   body:
     fontFamily: "Inter"
     fontSize: 1rem
     fontWeight: 350
     lineHeight: 1.45
     letterSpacing: "-0.01em"
-  body-sm:
-    fontFamily: "Inter"
-    fontSize: 0.875rem
-    fontWeight: 350
-    lineHeight: 1.42
-    letterSpacing: "-0.01em"
-  label:
-    fontFamily: "Inter"
-    fontSize: 0.875rem
-    fontWeight: 430
-    lineHeight: 1.2
-    letterSpacing: "-0.01em"
-  label-sm:
-    fontFamily: "Inter"
-    fontSize: 0.75rem
-    fontWeight: 500
-    lineHeight: 1.2
-    letterSpacing: "0.03em"
-  nav-link:
-    fontFamily: "Inter"
-    fontSize: 0.875rem
-    fontWeight: 400
-    lineHeight: 1.2
-    letterSpacing: "-0.01em"
-  button-text:
-    fontFamily: "Inter"
-    fontSize: 0.875rem
-    fontWeight: 500
-    lineHeight: 1.2
-    letterSpacing: "-0.01em"
-  table-cell:
-    fontFamily: "Inter"
-    fontSize: 0.8125rem
-    fontWeight: 400
-    lineHeight: 1.35
-    letterSpacing: "-0.005em"
-  numeric:
-    fontFamily: "Roboto Mono"
-    fontSize: 0.8125rem
-    fontWeight: 500
-    lineHeight: 1.35
-    letterSpacing: "-0.02em"
-    fontFeature: "tnum"
+    scope: "landing-only"
   proposal-body:
     fontFamily: "Source Serif 4"
     fontSize: 0.9375rem
     fontWeight: 400
     lineHeight: 1.55
     letterSpacing: "0em"
+    scope: "proposal/export-only"
+
+  # Product/workshop/app scale. This is the default outside the landing page.
+  app-title:
+    fontFamily: "Inter"
+    fontSize: 12px
+    fontWeight: 700
+    lineHeight: 16px
+    letterSpacing: "-0.01em"
+    maxOutsideLanding: true
+  app-subtitle:
+    fontFamily: "Inter"
+    fontSize: 11px
+    fontWeight: 700
+    lineHeight: 14px
+    letterSpacing: "-0.01em"
+  app-body:
+    fontFamily: "Inter"
+    fontSize: 10px
+    fontWeight: 500
+    lineHeight: 14px
+    letterSpacing: "-0.005em"
+  app-body-muted:
+    fontFamily: "Inter"
+    fontSize: 10px
+    fontWeight: 500
+    lineHeight: 14px
+    letterSpacing: "-0.005em"
+  app-label:
+    fontFamily: "Inter"
+    fontSize: 9px
+    fontWeight: 700
+    lineHeight: 12px
+    letterSpacing: "0.08em"
+  app-label-sm:
+    fontFamily: "Inter"
+    fontSize: 8px
+    fontWeight: 700
+    lineHeight: 10px
+    letterSpacing: "0.08em"
+  app-button:
+    fontFamily: "Inter"
+    fontSize: 10px
+    fontWeight: 700
+    lineHeight: 12px
+    letterSpacing: "-0.005em"
+  app-table-cell:
+    fontFamily: "Inter"
+    fontSize: 10px
+    fontWeight: 500
+    lineHeight: 14px
+    letterSpacing: "-0.005em"
+  app-numeric:
+    fontFamily: "Roboto Mono"
+    fontSize: 10px
+    fontWeight: 700
+    lineHeight: 13px
+    letterSpacing: "-0.02em"
+    fontFeature: "tnum"
+
+  # Legacy aliases retained only for landing/proposal compatibility. Product UI must use app-* tokens above.
+  body-sm:
+    fontFamily: "Inter"
+    fontSize: 10px
+    fontWeight: 500
+    lineHeight: 14px
+    letterSpacing: "-0.005em"
+  label:
+    fontFamily: "Inter"
+    fontSize: 10px
+    fontWeight: 700
+    lineHeight: 12px
+    letterSpacing: "-0.005em"
+  label-sm:
+    fontFamily: "Inter"
+    fontSize: 9px
+    fontWeight: 700
+    lineHeight: 12px
+    letterSpacing: "0.08em"
+  nav-link:
+    fontFamily: "Inter"
+    fontSize: 10px
+    fontWeight: 700
+    lineHeight: 12px
+    letterSpacing: "-0.005em"
+  button-text:
+    fontFamily: "Inter"
+    fontSize: 10px
+    fontWeight: 700
+    lineHeight: 12px
+    letterSpacing: "-0.005em"
+  table-cell:
+    fontFamily: "Inter"
+    fontSize: 10px
+    fontWeight: 500
+    lineHeight: 14px
+    letterSpacing: "-0.005em"
+  numeric:
+    fontFamily: "Roboto Mono"
+    fontSize: 10px
+    fontWeight: 700
+    lineHeight: 13px
+    letterSpacing: "-0.02em"
+    fontFeature: "tnum"
 rounded:
   none: 0px
   xs: 3px
@@ -268,7 +337,7 @@ Primary product surfaces:
 
 - **Primary / ink (`#000000`, `#111111`)** anchor the brand, headings, decisive actions, totals, and high-emphasis UI. Public and dashboard chrome should be mostly monochrome.
 - **Tertiary / muted (`#626260`, `#6B7280`)** support navigation, metadata, descriptions, empty states, labels, and passive states. Do not use muted text for financial totals or critical risk indicators.
-- **Canvas / warm canvas (`#F6F6F1`, `#F4F3EC`)** create Intercom-like warm chapter backgrounds, dashboard bands, product mockup wells, and low-noise secondary surfaces.
+- **Canvas / cool muted surfaces (`#F4F7FA`)** create subtle blue-leaning gray chapter backgrounds, dashboard bands, product mockup wells, and low-noise secondary surfaces. Avoid older warm gray families inside app/workshop surfaces.
 - **Surface (`#FFFFFF`)** is the dominant canvas for landing, cards, grid cells, forms, panels, and modals.
 - **Hairline / divider (`#E5E7EB`, `#CECFCB`)** replace heavy shadows. Use thin borders, crop marks, and whitespace for separation.
 - **Primary orange (`#FF7A1A`)** is the precise Intercom-inspired Archestimator highlight. Use it for primary CTAs, focus rings, orange asterisk markers, selected-cell affordances, links, and technical emphasis.

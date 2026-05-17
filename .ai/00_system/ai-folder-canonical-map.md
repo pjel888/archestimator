@@ -9,6 +9,7 @@ All durable project-management, audit, planning, state, prompt, agent, skill, ar
 ## Top-level canonical folders
 
 - `00_system/` — governance, routing, structure, naming, validation, workflow
+- `00_system/AGENT_SELF_DIAGNOSTIC_PROTOCOL.md` — canonical recovery loop when agent quality degrades, context is stale, or repeated mistakes appear
 - `01_roadmap/` — roadmap, phases, milestones, launch cutline
 - `02_audits/` — audits, reviews, risk reports, quality checks
 - `03_plans/` — active and proposed plans
@@ -36,6 +37,7 @@ All durable project-management, audit, planning, state, prompt, agent, skill, ar
 - New prompt: `08_prompts/`
 - New archived/superseded material: `09_archive/store/`
 - New current-state update: `10_state/`
+- New agent performance/recovery protocol: `00_system/` if it governs all agents; otherwise keep model-specific notes thin under `12_agents/payloads/`
 - New reusable skill/playbook: `11_skills/` or `11_skills/payloads/`
 - New agent/model payload: `12_agents/payloads/`
 - New research pack: `13_research/`

@@ -27,6 +27,12 @@ git diff --check
 - Ensure new files are in the correct `.ai` folder.
 - Run `git diff --check` before finalizing.
 
+If the documentation change is meant to fix agent drift, degraded performance, stale context, or repeated mistakes, also verify:
+
+- `.ai/00_system/AGENT_SELF_DIAGNOSTIC_PROTOCOL.md` exists and is linked from `.ai/README.md` and `.ai/00_system/DOCS_SOURCE_OF_TRUTH.md`;
+- the change identifies the active source of truth rather than adding another parallel instruction set;
+- the final report states what remains unverified.
+
 ## Deleted-route policy
 
 Do not recreate E2E or route coverage for deleted prototype routes. The following route families were intentionally removed and should stay absent unless Philip explicitly reapproves a fresh implementation:

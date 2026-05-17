@@ -21,7 +21,7 @@ export function SidebarNavItemRow({ item, active, expanded }: SidebarNavItemProp
       aria-label={expanded ? undefined : item.label}
       className={[
         "group relative grid h-8 grid-cols-[48px_auto] items-center gap-1 overflow-visible rounded-md px-0 outline-none transition-colors duration-[120ms] ease-out",
-        expanded ? "w-full pr-3" : "w-full grid-cols-[48px_minmax(0,1fr)] pr-0",
+        expanded ? "w-full pr-2" : "w-full grid-cols-[48px_minmax(0,1fr)] pr-0",
         "before:absolute before:left-1.5 before:top-[-2px] before:z-0 before:h-9 before:w-9 before:rounded-md before:bg-accent-soft before:opacity-0 before:shadow-[inset_0_0_0_1px_rgba(255,122,26,0.12)] before:transition-opacity before:duration-[120ms] before:ease-out before:content-['']",
         "text-tertiary hover:text-primary hover:before:opacity-100 focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-primary",
         active ? "text-primary before:opacity-100" : "",
@@ -34,7 +34,7 @@ export function SidebarNavItemRow({ item, active, expanded }: SidebarNavItemProp
       <span
         aria-hidden={!expanded}
         className={[
-          "relative z-10 min-w-0 truncate whitespace-nowrap text-[12.5px] leading-none transition-[opacity,transform] duration-[180ms] ease-out motion-reduce:transform-none motion-reduce:transition-none",
+          "relative z-10 min-w-0 truncate whitespace-nowrap text-[10px] leading-none transition-[opacity,transform] duration-[180ms] ease-out motion-reduce:transform-none motion-reduce:transition-none",
           active ? "font-medium" : "font-normal",
           expanded ? "translate-x-0 opacity-100" : "pointer-events-none translate-x-1 opacity-0",
         ].join(" ")}

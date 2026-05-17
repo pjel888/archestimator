@@ -7,12 +7,13 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "lint:font-size": "node scripts/enforce-app-font-size.mjs",
     "type-check": "tsc --noEmit",
     "test": "bun test tests/unit",
     "test:dom": "vitest run",
     "test:dom:watch": "vitest",
     "test:e2e": "playwright test",
-    "validate": "bun run type-check && bun run lint && bun run test && bun run test:dom"
+    "validate": "bun run type-check && bun run lint && bun run lint:font-size && bun run test && bun run test:dom"
   },
   "dependencies": {
     "@phosphor-icons/react": "^2.1.10",

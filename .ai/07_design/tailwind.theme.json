@@ -198,6 +198,128 @@
         "xxl": "64px",
         "section": "112px"
       }
+    },
+    "fontSize": {
+      "app-title": [
+        "12px",
+        {
+          "lineHeight": "16px",
+          "letterSpacing": "-0.01em",
+          "fontWeight": "700"
+        }
+      ],
+      "app-subtitle": [
+        "11px",
+        {
+          "lineHeight": "14px",
+          "letterSpacing": "-0.01em",
+          "fontWeight": "700"
+        }
+      ],
+      "app-body": [
+        "10px",
+        {
+          "lineHeight": "14px",
+          "letterSpacing": "-0.005em",
+          "fontWeight": "500"
+        }
+      ],
+      "app-label": [
+        "9px",
+        {
+          "lineHeight": "12px",
+          "letterSpacing": "0.08em",
+          "fontWeight": "700"
+        }
+      ],
+      "app-label-sm": [
+        "8px",
+        {
+          "lineHeight": "10px",
+          "letterSpacing": "0.08em",
+          "fontWeight": "700"
+        }
+      ],
+      "app-button": [
+        "10px",
+        {
+          "lineHeight": "12px",
+          "letterSpacing": "-0.005em",
+          "fontWeight": "700"
+        }
+      ],
+      "app-table-cell": [
+        "10px",
+        {
+          "lineHeight": "14px",
+          "letterSpacing": "-0.005em",
+          "fontWeight": "500"
+        }
+      ],
+      "app-numeric": [
+        "10px",
+        {
+          "lineHeight": "13px",
+          "letterSpacing": "-0.02em",
+          "fontWeight": "700"
+        }
+      ],
+      "body-sm": [
+        "10px",
+        {
+          "lineHeight": "14px",
+          "letterSpacing": "-0.005em",
+          "fontWeight": "500"
+        }
+      ],
+      "label": [
+        "10px",
+        {
+          "lineHeight": "12px",
+          "letterSpacing": "-0.005em",
+          "fontWeight": "700"
+        }
+      ],
+      "label-sm": [
+        "9px",
+        {
+          "lineHeight": "12px",
+          "letterSpacing": "0.08em",
+          "fontWeight": "700"
+        }
+      ],
+      "nav-link": [
+        "10px",
+        {
+          "lineHeight": "12px",
+          "letterSpacing": "-0.005em",
+          "fontWeight": "700"
+        }
+      ],
+      "button-text": [
+        "10px",
+        {
+          "lineHeight": "12px",
+          "letterSpacing": "-0.005em",
+          "fontWeight": "700"
+        }
+      ],
+      "table-cell": [
+        "10px",
+        {
+          "lineHeight": "14px",
+          "letterSpacing": "-0.005em",
+          "fontWeight": "500"
+        }
+      ],
+      "numeric": [
+        "10px",
+        {
+          "lineHeight": "13px",
+          "letterSpacing": "-0.02em",
+          "fontWeight": "700"
+        }
+      ]
     }
   }
 }

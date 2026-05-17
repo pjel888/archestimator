@@ -1,10 +1,19 @@
-import { MainSidebar } from "@/components/sidebar/MainSidebar";
+import { WorkshopPageShell } from "@/components/workshop/WorkshopPageShell";
 
 export default function ComponentsPage() {
   return (
-    <main className="min-h-screen bg-white" aria-label="Components">
-      <MainSidebar />
-      <section className="min-h-screen bg-white lg:pl-[64px]" aria-label="Components canvas" />
-    </main>
+    <WorkshopPageShell
+      title="Components"
+      eyebrow="Library"
+      description="Shared header, body, and footer shell for the future component library. The library manager itself remains intentionally empty for this slice."
+      footer={
+        <>
+          <span>Component library shell</span>
+          <span>Content pending approved workflow</span>
+        </>
+      }
+    >
+      <div className="min-h-[360px] rounded-xl border border-dashed border-divider bg-white" aria-label="Components empty state" />
+    </WorkshopPageShell>
   );
 }
