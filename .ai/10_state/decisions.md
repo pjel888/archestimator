@@ -1,60 +1,49 @@
 # Decisions
 
-## Confirmed
+## Confirmed active decisions
 
 - 2026-05-16 — Project name: Archestimator.
 - 2026-05-16 — Project folder: `/Users/philiplewis/archestimator`.
-- 2026-05-16 — Create `.ai/` before choosing the final tech stack.
-- 2026-05-16 — `.ai/` should be the shared intelligence folder for all AI agents, not only one tool.
-- 2026-05-16 — Product direction should focus on contractors making construction cost estimating fast, quick, and easy while managing multiple projects and design changes.
-- 2026-05-16 — Stack baseline selected for MVP speed: Next.js 16 + React 19 + Bun + TypeScript + Tailwind v4.
-- 2026-05-16 — Data layer should be local-first JSON while the model changes rapidly, with repository boundaries prepared for future Supabase/Postgres migration; no Supabase connection until explicitly approved.
-- 2026-05-16 — Root `DESIGN.md` created as the agent-readable visual/design-system source of truth; Google DESIGN.md lint passes with 0 errors. Initial Tailwind/DTCG exports live in `.ai/07_design/`.
-- 2026-05-16 — GitHub repo created as private under `pjel888/archestimator`; use feature branches/PRs, do not merge to main automatically.
-- 2026-05-16 — First interactive MVP slice prioritizes the estimating loop before polish: editable rows, library insertion, live totals, version/proposal side panels.
-- 2026-05-16 — Runtime local data uses ignored `data/local/runtime.json`, initialized from tracked `data/local/seed.json`; server-only persistence must stay behind repository/store APIs.
-- 2026-05-16 — Proposal issuance creates immutable `proposalSnapshots` and must not mutate the source estimate.
-- 2026-05-16 — UI money formatting must use workspace currency, not hard-coded PHP.
-- 2026-05-16 — Archestimator will grow an internal UI library from the MVP stage. Prefer shared primitives under `src/components/ui/` over one-off feature markup; do not install Storybook unless explicitly approved.
-- 2026-05-16 — Estimate sheet should use Glide Data Grid behind an adapter for the sheet and dnd-kit overlay + explicit row hit-testing for premium library-card drag/drop. Avoid native HTML DataTransfer as the primary UX path because it gives weaker control over drag previews, drop intent, and no-layout-shift behavior. Avoid Handsontable without license review.
-- 2026-05-16 — Proposal snapshots store editable commercial terms and route to print-ready `/proposals/[proposalId]` pages for browser print/PDF before adding a dedicated PDF engine.
-- 2026-05-17 — Archestimator runs in autopilot mode within documented MVP scope: agents should continue implementation, verification, review, and concise updates without repeated permission asks, while never merging to `main`, deploying, connecting Supabase, or taking destructive actions without explicit approval.
-- 2026-05-17 — Production estimating model should separate working spaces/areas from client-facing proposal/BOQ sections. Current model: `Estimate.sections` remains the working grouping bridge, explicit `Estimate.floors`/`Estimate.spaces` store location hierarchy, `EstimateLineItem.spaceId` stores room/area references, `Estimate.proposalSections` is the consolidation axis, and `EstimateLineItem.proposalSectionId` maps estimate rows into proposal summaries.
-- 2026-05-17 — Production workspace should expose row-level proposal-section mapping before full Glide/dnd-kit migration, because unmapped proposal rows are a commercial-output risk and should be visible before issuance.
-- 2026-05-17 — New estimate rows should infer/default proposal-section mapping from the selected working space/area when possible; this applies to both blank row insertion and cost-library insertion.
-- 2026-05-17 — Route/feature confidence must be E2E-backed. Current baseline covers all app routes from `next build`, including unknown-project 404, plus MVP flows for library insertion, proposal issuance, revision duplication, and the Glide spike shell.
-- 2026-05-17 — Production Glide migration should be incremental: introduce the Glide-backed spreadsheet surface first, keep existing accessible proposal-section mapping/actions during the transition, then migrate specialized controls into custom grid cells/side panels only after tests stay green.
-- 2026-05-17 — ChunkHound, GitNexus, and CodeGraph should be run periodically during non-trivial code migration slices. Generated code-intelligence databases/exports are local-only unless a specific human-readable report is intentionally promoted into `.ai/`.
-- 2026-05-17 — Cost library items are reusable source/templates with pricing metadata (`pricingDate`, `source`, `confidence`, waste, material/labor defaults). Editing a library item must not silently mutate estimate rows already copied from that item; those rows remain project-specific instances until an explicit reset/update workflow exists.
-- 2026-05-17 — Revision changes should be persisted as explicit local-first audit records when a newer estimate is saved against a prior project version; UI may compute draft diffs on demand, but saved revisions need durable summaries for client-facing explanations.
-- 2026-05-17 — Archestimator design direction is Intercom × legacy Archestimator frontend v4: public pages should use Intercom-like editorial SaaS clarity, black/white/off-white surfaces, large confident typography, flat thin-border cards, and product mockups; authenticated estimating routes should use a full-browser v4-style workspace with persistent left app navigation, central spreadsheet dominance, contextual right dock, and minimal centered-card layouts.
+- 2026-05-16 — `.ai/` is the shared intelligence folder for all AI agents, not only one tool.
+- 2026-05-16 — Product direction should focus on contractors making construction cost estimating faster and easier while managing multiple projects and design changes.
+- 2026-05-16 — Stack baseline for now: Next.js 16 + React 19 + Bun + TypeScript + Tailwind v4.
+- 2026-05-16 — No Supabase/Postgres connection until Philip explicitly approves.
+- 2026-05-16 — Root `DESIGN.md` is the agent-readable visual/design-system source of truth.
+- 2026-05-16 — GitHub repo is private under `pjel888/archestimator`; use feature branches/PRs, do not merge to main automatically.
+- 2026-05-17 — Reset decision: Philip rejected the current Archestimator app/workshop prototype UX/UI. Preserve only the landing page and an intentionally empty `/workshop` page.
+- 2026-05-17 — Delete the previous project dashboard, estimate editor, component library, proposal, revision, local-first data, shell, and route-family implementation. Do not restore deleted prototype routes for compatibility.
+- 2026-05-17 — Future app work must begin from a small approved screen brief and one focused workflow.
+- 2026-05-17 — Do not add fake SaaS maturity: no broad route families, dashboards, module nav, settings, proposal systems, component libraries, complex data repositories, grid/drag-drop packages, or prototype tests until the new UX direction is accepted.
 
-## Working decisions / likely direction
+## Superseded decisions
 
-- Start with contractor-first estimating, not broad construction project management.
-- Salvage the legacy estimate-sheet, project/area/line-item, material library, and revision concepts.
-- Defer full supplier bidding, FF&E/specs/planner/viewer, and complex permissions until the estimating wedge is validated.
-- Treat the material/cost library as a first-class estimating surface, not just settings.
-- Library items should be reusable sources/templates; estimate rows should be editable instances with snapshots, local overrides, and unlink/detach behavior.
-- Support both a master workspace library and project-specific library items so one-off negotiated/project pricing does not pollute reusable company data.
-- Treat the client-ready proposal package as a core output, not an afterthought or simple printout.
-- Treat project/estimate versioning as a core product system because construction scope changes constantly; version history should feel Notion-like but use contractor-friendly labels.
-- Use separate concepts for autosave history, named estimate versions/revisions, issued proposal snapshots, library item versions, and project timeline events.
-- Restore should create a copy by default; issued proposals should never be silently mutated.
-- Before MVP screen architecture or implementation, create a root `DESIGN.md` as Archestimator's agent-readable visual/design-system source of truth and validate it with `npx -y @google/design.md lint DESIGN.md`.
-- Use Programa.design as conceptual inspiration for polished professional workflow software: modernized spreadsheets, reusable libraries, live source-of-truth links, client dashboards, and a calm design-system-driven interface; do not copy its interior-design domain or assume live updates can replace estimating audit snapshots.
-- Proposal exports should include estimate summary, detailed BOQ when needed, proposal letter, terms, exclusions, owner-supplied items, validity, duration, warranty, and signature/conforme blocks.
-- Estimate rows should support scope statuses such as included, excluded, owner-supplied, OSCI, by-others, N/A, provisional, to-follow, and verify-architect because these are contractor risk controls.
+The following earlier decisions are historical context only after the 2026-05-17 reset:
 
-## Assumptions to revisit
+- `/workshop` route family with project dashboard, estimate list, estimate workspace, project modules, and global Component Library.
+- Explicit estimate route selection at `/workshop/projects/:projectId/estimates/:estimateId`.
+- True selected-node estimate hierarchy state for section/floor/space.
+- Right-sidebar component picker and selected-context insertion rules.
+- Custom v4-style editable table/list as the active MVP editor.
+- Glide Data Grid / dnd-kit migration or spike direction.
+- Local-first JSON repository/mutation layer as active implementation.
+- Proposal snapshot route and revision/versioning UI as active implementation.
+- Login/signup visual prototype routes.
+- Legacy redirects for removed routes.
 
-- Stack will likely be Next.js with Bun, but this is not finalized.
-- The first MVP should likely target small-to-mid contractors rather than enterprise estimators.
-- Local cost libraries may be more valuable if user-editable than if presented as authoritative prices.
+These concepts can be reconsidered later, but they must be reapproved through a fresh plan before implementation.
+
+## Working product principles to preserve later
+
+- Contractor-first estimating remains the wedge.
+- Avoid broad construction project management until the estimating workflow is validated.
+- Estimates must preserve assumptions, pricing dates, confidence/source notes, and user editability once estimating functionality returns.
+- Issued proposals/exports must be immutable snapshots if proposal functionality returns.
+- Cost/library items should not silently mutate copied estimate rows if the library concept returns.
+- Proposal exports should clearly handle inclusions, exclusions, owner-supplied items, OSCI/by-others, validity, duration, warranty, and signature/conforme blocks if proposal functionality returns.
 
 ## Open questions
 
-- What is the first MVP estimation workflow?
+- What is the first restart workflow?
 - Who is the primary first user: residential contractors, fit-out contractors, small commercial contractors, general contractors, or design-build firms?
 - What geography and pricing basis should v1 use?
 - Should v1 include AI generation, AI review, or no AI until the estimate sheet is strong?
