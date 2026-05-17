@@ -12,16 +12,16 @@
 
 ## Now
 
-1. PR #8 row move/copy checkpoint has been merged to `main`; revision/diff semantics work is isolated on `feat/revision-diff-semantics`.
-2. Revision diff semantics now classify space moves, BOQ/proposal remaps, commercial edits, scope changes, added rows, and removed rows separately.
-3. The Versions panel surfaces the active revision's diff summary against the prior saved version when available.
-4. Cost Library Management v1, floor/room/area hierarchy, and row move/copy controls remain implemented.
+1. Persisted revision change records are being implemented on `feat/persisted-revision-change-records` after PR #9 was merged.
+2. Codex comments from PR #8/#9 are being remediated in this slice: row-operation target fallback, persisted prior-version diff lookup, and text-only scope revision detection.
+3. The Versions panel now uses project-level saved versions and persisted revision records when available.
+4. Kimi has a separate landing-page worktree/branch at `/Users/philiplewis/archestimator-kimi-landing` / `feat/landing-page-simple` for later review.
 
 ## Next
 
-1. Persist explicit revision diff records when saving duplicated revisions, not only compute them on demand in UI.
-2. Continue UX/UI hardening and visual QA for revision summaries, row operation controls, Cost Library Management v1 panel, and issued proposal print route.
-3. Consider richer grid custom cells only after the side-panel workflow proves stable.
+1. Finish validation, independent review, and PR for persisted revision records + Codex comment fixes.
+2. Review Kimi's simple SaaS landing page branch and decide whether to PR/merge after the revision-record slice lands.
+3. Continue UX/UI hardening and visual QA for revision summaries, row operation controls, Cost Library Management v1 panel, and issued proposal print route.
 
 ## Later
 

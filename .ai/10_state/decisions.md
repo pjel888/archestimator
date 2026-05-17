@@ -26,6 +26,7 @@
 - 2026-05-17 — Production Glide migration should be incremental: introduce the Glide-backed spreadsheet surface first, keep existing accessible proposal-section mapping/actions during the transition, then migrate specialized controls into custom grid cells/side panels only after tests stay green.
 - 2026-05-17 — ChunkHound, GitNexus, and CodeGraph should be run periodically during non-trivial code migration slices. Generated code-intelligence databases/exports are local-only unless a specific human-readable report is intentionally promoted into `.ai/`.
 - 2026-05-17 — Cost library items are reusable source/templates with pricing metadata (`pricingDate`, `source`, `confidence`, waste, material/labor defaults). Editing a library item must not silently mutate estimate rows already copied from that item; those rows remain project-specific instances until an explicit reset/update workflow exists.
+- 2026-05-17 — Revision changes should be persisted as explicit local-first audit records when a newer estimate is saved against a prior project version; UI may compute draft diffs on demand, but saved revisions need durable summaries for client-facing explanations.
 
 ## Working decisions / likely direction
 

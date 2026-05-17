@@ -172,6 +172,44 @@ export const proposalSnapshotSchema = z.object({
   })).default([]),
 });
 
+const revisionChangeKindSchema = z.enum([
+  "line-added",
+  "line-removed",
+  "space-moved",
+  "proposal-remapped",
+  "commercial-changed",
+  "scope-changed",
+]);
+
+const revisionChangeRecordSchema = z.object({
+  id: z.string(),
+  projectId: z.string(),
+  fromEstimateId: z.string(),
+  toEstimateId: z.string(),
+  fromVersionLabel: z.string(),
+  toVersionLabel: z.string(),
+  recordedAt: z.string(),
+  summary: z.object({
+    totalChanges: z.number().int().nonnegative(),
+    addedLines: z.number().int().nonnegative(),
+    removedLines: z.number().int().nonnegative(),
+    spaceMoves: z.number().int().nonnegative(),
+    proposalRemaps: z.number().int().nonnegative(),
+    commercialChanges: z.number().int().nonnegative(),
+    scopeChanges: z.number().int().nonnegative(),
+  }),
+  changes: z.array(z.object({
+    kind: revisionChangeKindSchema,
+    lineItemId: z.string(),
+    itemName: z.string(),
+    fromSpacePath: z.string().optional(),
+    toSpacePath: z.string().optional(),
+    fromProposalSectionName: z.string().optional(),
+    toProposalSectionName: z.string().optional(),
+    changedFields: z.array(z.string()).optional(),
+  })),
+});
+
 export const localDatabaseSchema = z.object({
   schemaVersion: z.literal(1),
   workspace: workspaceSchema,
@@ -179,6 +217,7 @@ export const localDatabaseSchema = z.object({
   estimates: z.array(estimateSchema),
   costLibraryItems: z.array(costLibraryItemSchema),
   proposalSnapshots: z.array(proposalSnapshotSchema).default([]),
+  revisionChangeRecords: z.array(revisionChangeRecordSchema).default([]),
 });
 
 export type LocalDatabase = z.infer<typeof localDatabaseSchema>;
@@ -189,3 +228,4 @@ export type EstimateSpace = z.infer<typeof estimateSpaceSchema>;
 export type ProposalSection = z.infer<typeof proposalSectionSchema>;
 export type ProposalSnapshot = z.infer<typeof proposalSnapshotSchema>;
 export type ProposalTerms = z.infer<typeof proposalTermsSchema>;
+export type RevisionChangeRecord = z.infer<typeof revisionChangeRecordSchema>;

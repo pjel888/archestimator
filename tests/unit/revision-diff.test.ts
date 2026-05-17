@@ -100,6 +100,22 @@ describe("compareEstimateRevisions", () => {
     expect(diff.summary.spaceMoves).toBe(1);
   });
 
+  test("classifies text-only item name and description edits as scope changes", () => {
+    const revised: Estimate = {
+      ...baseEstimate,
+      id: "estimate_rev_text",
+      versionNumber: 2,
+      lineItems: [{ ...baseEstimate.lineItems[0], itemName: "Premium tile", description: "Client-selected premium floor finish" }],
+    };
+
+    const diff = compareEstimateRevisions(baseEstimate, revised);
+
+    expect(diff.summary.scopeChanges).toBe(1);
+    expect(diff.changes).toEqual([
+      expect.objectContaining({ kind: "scope-changed", changedFields: ["itemName", "description"] }),
+    ]);
+  });
+
   test("classifies commercial quantity and pricing changes separately from location changes", () => {
     const revised: Estimate = {
       ...baseEstimate,
