@@ -34,6 +34,7 @@ export const costLibraryItemSchema = z.object({
   tagCode: z.string().optional(),
   pricingDate: z.string(),
   source: z.string().optional(),
+  confidence: z.enum(["low", "medium", "high"]).default("medium"),
   defaultWastePercent: z.number().optional(),
 });
 

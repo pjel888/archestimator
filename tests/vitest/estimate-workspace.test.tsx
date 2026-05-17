@@ -87,4 +87,30 @@ describe("EstimateWorkspace", () => {
 
     expect(screen.getByRole("heading", { name: "Updated client proposal" })).toBeInTheDocument();
   });
+
+  it("creates and edits cost library items from the library management surface", async () => {
+    const user = userEvent.setup();
+    render(<EstimateWorkspace database={database} />);
+
+    await user.click(screen.getByRole("button", { name: "Create library item" }));
+    await user.clear(screen.getByLabelText("Library item name"));
+    await user.type(screen.getByLabelText("Library item name"), "Gypsum partition board");
+    await user.clear(screen.getByLabelText("Library category"));
+    await user.type(screen.getByLabelText("Library category"), "Drywall");
+    await user.selectOptions(screen.getByLabelText("Library item type"), "material");
+    await user.clear(screen.getByLabelText("Library unit"));
+    await user.type(screen.getByLabelText("Library unit"), "sqm");
+    await user.clear(screen.getByLabelText("Library material unit cost"));
+    await user.type(screen.getByLabelText("Library material unit cost"), "650");
+    await user.clear(screen.getByLabelText("Library labor unit cost"));
+    await user.type(screen.getByLabelText("Library labor unit cost"), "180");
+    await user.clear(screen.getByLabelText("Library source note"));
+    await user.type(screen.getByLabelText("Library source note"), "Supplier quote Q-101");
+    await user.selectOptions(screen.getByLabelText("Library confidence"), "medium");
+    await user.click(screen.getByRole("button", { name: "Save library item" }));
+
+    expect(screen.getAllByText("Gypsum partition board").length).toBeGreaterThan(0);
+    expect(screen.getByText(/Drywall · material · sqm/i)).toBeInTheDocument();
+    expect(screen.getByText(/Source: Supplier quote Q-101/i)).toBeInTheDocument();
+  });
 });

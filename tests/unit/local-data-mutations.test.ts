@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import type { Estimate, LocalDatabase } from "@/lib/local-data/schemas";
-import { createProjectWithInitialEstimate, createProposalSnapshot, duplicateEstimateRevision, saveEstimateInDatabase } from "@/lib/local-data/mutations";
+import { createProjectWithInitialEstimate, createProposalSnapshot, duplicateEstimateRevision, saveEstimateInDatabase, upsertCostLibraryItem } from "@/lib/local-data/mutations";
 
 const estimate: Estimate = {
   id: "estimate_1",
@@ -45,6 +45,71 @@ describe("saveEstimateInDatabase", () => {
     expect(next.estimates).toHaveLength(1);
     expect(next.estimates[0].name).toBe("Changed Estimate");
     expect(next.projects[0].currentEstimateId).toBe("estimate_1");
+  });
+});
+
+describe("upsertCostLibraryItem", () => {
+  test("creates a reusable cost library item with source and confidence metadata", () => {
+    const next = upsertCostLibraryItem(database, {
+      name: "Gypsum board partition",
+      category: "Drywall",
+      itemType: "material",
+      unit: "sqm",
+      defaultUnitCost: 650,
+      defaultLaborUnitCost: 180,
+      pricingDate: "2026-05-17",
+      source: "Supplier quote Q-101",
+      confidence: "medium",
+      defaultWastePercent: 8,
+    });
+
+    expect(next.costLibraryItems).toHaveLength(1);
+    expect(next.costLibraryItems[0]).toMatchObject({
+      name: "Gypsum board partition",
+      category: "Drywall",
+      source: "Supplier quote Q-101",
+      confidence: "medium",
+      defaultWastePercent: 8,
+    });
+    expect(next.costLibraryItems[0].id).toMatch(/^lib_/);
+  });
+
+  test("updates an existing cost library item without mutating estimate rows already inserted from it", () => {
+    const sourceDatabase: LocalDatabase = {
+      ...database,
+      costLibraryItems: [{
+        id: "lib_partition",
+        name: "Partition",
+        category: "Drywall",
+        itemType: "material",
+        unit: "sqm",
+        defaultUnitCost: 500,
+        pricingDate: "2026-05-16",
+        source: "Old quote",
+        confidence: "low",
+      }],
+      estimates: [{
+        ...estimate,
+        lineItems: [{ ...estimate.lineItems[0], sourceLibraryItemId: "lib_partition", materialUnitCost: 500, unitCost: undefined, linkState: "linked-clean" }],
+      }],
+    };
+
+    const next = upsertCostLibraryItem(sourceDatabase, {
+      id: "lib_partition",
+      name: "Partition - premium board",
+      category: "Drywall",
+      itemType: "material",
+      unit: "sqm",
+      defaultUnitCost: 720,
+      pricingDate: "2026-05-17",
+      source: "Updated quote",
+      confidence: "high",
+    });
+
+    expect(next.costLibraryItems).toHaveLength(1);
+    expect(next.costLibraryItems[0]).toMatchObject({ name: "Partition - premium board", defaultUnitCost: 720, confidence: "high" });
+    expect(next.estimates[0].lineItems[0].materialUnitCost).toBe(500);
+    expect(next.estimates[0].lineItems[0].linkState).toBe("linked-clean");
   });
 });
 
