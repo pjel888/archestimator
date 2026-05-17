@@ -144,6 +144,7 @@ describe("space row operations", () => {
     expect(copied.lineItems[0].id).toBe("line_1");
     expect(copied.lineItems[1]).toMatchObject({ id: "line_copy_1", itemName: "Work item", spaceId: "space_2", sectionId: "section_1" });
     expect(copied.lineItems[1].proposalSectionId).toBe(estimate.lineItems[0].proposalSectionId);
+    expect(copied.lineItems[1].revisionSourceLineItemId).toBeUndefined();
   });
 });
 

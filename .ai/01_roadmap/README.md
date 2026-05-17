@@ -65,11 +65,12 @@ Delivered:
 - Proposal preview detail rows with location references.
 - Cost Library Management v1 panel for creating/editing reusable items with source, pricing date, confidence, waste, and material/labor defaults.
 - Row move/copy controls between floor/room/area spaces with stable proposal-section mapping.
+- Revision diff semantics that distinguish space moves from BOQ/proposal remaps, commercial edits, scope edits, additions, and removals.
 
 Next:
 
-- Add revision/diff semantics for moved spaces vs changed BOQ/proposal grouping.
-- Harden row operation UX with visual QA and eventual richer grid affordances.
+- Persist explicit revision diff records during saved revision workflows.
+- Harden revision summary and row operation UX with visual QA and eventual richer grid affordances.
 
 ## Phase 3 — Proposal package v1
 

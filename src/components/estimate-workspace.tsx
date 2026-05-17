@@ -9,6 +9,7 @@ import { DndContext, DragOverlay, type DragEndEvent, type DragMoveEvent, type Dr
 import { CSS } from "@dnd-kit/utilities";
 import { Plus, RotateCcw, Trash2 } from "lucide-react";
 import type { CostLibraryItem, Estimate, EstimateLineItem, EstimateSpace, LocalDatabase, ProposalTerms } from "@/lib/local-data/schemas";
+import { compareEstimateRevisions } from "@/lib/estimates/revision-diff";
 import { calculateEstimateTotals } from "@/lib/estimates/totals";
 import { createLineItemFromLibraryItem, detectLinkStateAfterEdit } from "@/lib/estimates/library-insert";
 import { copyEstimateLineToSpace, moveEstimateLineToSpace, upsertCostLibraryItem } from "@/lib/local-data/mutations";
@@ -314,7 +315,7 @@ function EstimateWorkspaceInner({ database, project, initialEstimate, onSaveEsti
       versionNumber,
       versionLabel: nextRevisionLabel(versionNumber),
       status: "draft",
-      lineItems: estimate.lineItems.map((line) => ({ ...line, id: `${line.id}_rev_${versionNumber}` })),
+      lineItems: estimate.lineItems.map((line) => ({ ...line, id: `${line.id}_rev_${versionNumber}`, revisionSourceLineItemId: line.revisionSourceLineItemId ?? line.id })),
     };
     setEstimate(revision);
     setSavedVersions((current) => [...current, revision]);
@@ -687,7 +688,51 @@ function getPointerCoordinates(event: Event): { x: number; y: number } | null {
 }
 
 function VersionsPanel({ estimate, versions, onDuplicate, onServerDuplicate }: { estimate: Estimate; versions: Estimate[]; onDuplicate: () => void; onServerDuplicate?: (estimateId: string) => Promise<void> }) {
-  return <Card><CardContent><CardTitle>Versions</CardTitle><CardDescription>Create a revision copy before design changes so issued proposals are not silently mutated.</CardDescription><div className="mt-4 grid gap-2"><Button variant="primary" onClick={onDuplicate}>Duplicate draft locally</Button>{onServerDuplicate ? <Button onClick={() => void onServerDuplicate(estimate.id)}>Save as persisted revision</Button> : null}</div><div className="mt-4 space-y-3">{versions.map((version) => <div key={version.id} className={`rounded-2xl border p-4 ${version.id === estimate.id ? "border-accent bg-amber-50" : "border-hairline"}`}><p className="font-medium">{version.versionLabel}</p><p className="mt-1 text-xs text-muted">{version.name} · {version.status}</p></div>)}</div></CardContent></Card>;
+  const orderedVersions = [...versions].sort((a, b) => a.versionNumber - b.versionNumber);
+  const priorVersion = orderedVersions.filter((version) => version.id !== estimate.id && version.versionNumber < estimate.versionNumber).at(-1);
+  const activeDiff = priorVersion ? compareEstimateRevisions(priorVersion, estimate) : null;
+
+  return (
+    <Card>
+      <CardContent>
+        <CardTitle>Versions</CardTitle>
+        <CardDescription>Create a revision copy before design changes so issued proposals are not silently mutated.</CardDescription>
+        <div className="mt-4 grid gap-2">
+          <Button variant="primary" onClick={onDuplicate}>Duplicate draft locally</Button>
+          {onServerDuplicate ? <Button onClick={() => void onServerDuplicate(estimate.id)}>Save as persisted revision</Button> : null}
+        </div>
+        {activeDiff ? (
+          <div className="mt-4 rounded-2xl border border-hairline bg-surface-muted p-4">
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-muted">Revision diff semantics</p>
+            <p className="mt-2 text-sm font-medium">Compared with {priorVersion?.versionLabel}</p>
+            <div className="mt-3 grid grid-cols-2 gap-2 text-xs md:grid-cols-3">
+              <span className="rounded-xl bg-white px-3 py-2">Moved spaces: {activeDiff.summary.spaceMoves}</span>
+              <span className="rounded-xl bg-white px-3 py-2">BOQ remaps: {activeDiff.summary.proposalRemaps}</span>
+              <span className="rounded-xl bg-white px-3 py-2">Commercial edits: {activeDiff.summary.commercialChanges}</span>
+              <span className="rounded-xl bg-white px-3 py-2">Scope edits: {activeDiff.summary.scopeChanges}</span>
+              <span className="rounded-xl bg-white px-3 py-2">Added rows: {activeDiff.summary.addedLines}</span>
+              <span className="rounded-xl bg-white px-3 py-2">Removed rows: {activeDiff.summary.removedLines}</span>
+            </div>
+            <div className="mt-3 space-y-2">
+              {activeDiff.changes.slice(0, 4).map((change) => <p key={`${change.kind}-${change.lineItemId}`} className="rounded-xl bg-white p-3 text-xs text-muted"><span className="font-semibold text-foreground">{change.itemName}</span> · {describeRevisionChange(change)}</p>)}
+              {!activeDiff.changes.length ? <p className="rounded-xl bg-white p-3 text-xs text-muted">No revision deltas detected yet.</p> : null}
+            </div>
+          </div>
+        ) : null}
+        <div className="mt-4 space-y-3">{orderedVersions.map((version) => <div key={version.id} className={`rounded-2xl border p-4 ${version.id === estimate.id ? "border-accent bg-amber-50" : "border-hairline"}`}><p className="font-medium">{version.versionLabel}</p><p className="mt-1 text-xs text-muted">{version.name} · {version.status}</p></div>)}</div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function describeRevisionChange(change: ReturnType<typeof compareEstimateRevisions>["changes"][number]) {
+  if (change.kind === "space-moved") return `moved from ${change.fromSpacePath} to ${change.toSpacePath}`;
+  if (change.kind === "proposal-remapped") return `remapped from ${change.fromProposalSectionName} to ${change.toProposalSectionName}`;
+  if (change.kind === "commercial-changed") return `commercial fields changed: ${change.changedFields?.join(", ")}`;
+  if (change.kind === "scope-changed") return "scope status changed";
+  if (change.kind === "line-added") return "added to this revision";
+  if (change.kind === "line-removed") return "removed from this revision";
+  return "changed";
 }
 
 function ProposalPanel({ project, estimate, totals, currencyCode, terms, onTermsChange, savedProposals, onSaveEstimate, onIssueProposalSnapshot }: { project: Project; estimate: Estimate; totals: ReturnType<typeof calculateEstimateTotals>; currencyCode: string; terms: ProposalTerms; onTermsChange: (patch: Partial<ProposalTerms>) => void; savedProposals: LocalDatabase["proposalSnapshots"]; onSaveEstimate?: (estimate: Estimate) => Promise<void>; onIssueProposalSnapshot?: (estimate: Estimate, terms: ProposalTerms) => Promise<void> }) {

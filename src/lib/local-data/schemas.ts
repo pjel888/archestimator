@@ -40,6 +40,7 @@ export const costLibraryItemSchema = z.object({
 
 export const estimateLineItemSchema = z.object({
   id: z.string(),
+  revisionSourceLineItemId: z.string().optional(),
   sectionId: z.string(),
   proposalSectionId: z.string().optional(),
   spaceId: z.string().optional(),
