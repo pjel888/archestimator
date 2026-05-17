@@ -170,7 +170,10 @@ export function insertLibraryItemAtGridRow(estimate: Estimate, libraryItem: Cost
   const target = resolveGridInsertionTarget(estimate, rows, visualRowIndex);
   if (!target.sectionId) return estimate;
 
-  const nextLine = createLineItemFromLibraryItem(libraryItem, target.sectionId, resolveDefaultProposalSectionId(estimate, target.sectionId));
+  const nextLine = {
+    ...createLineItemFromLibraryItem(libraryItem, target.sectionId, resolveDefaultProposalSectionId(estimate, target.sectionId)),
+    spaceId: resolveDefaultSpaceId(estimate, target.sectionId),
+  };
   return {
     ...estimate,
     lineItems: [
@@ -233,6 +236,14 @@ function cellToValue(cell: GridCell): string | number | undefined {
   if (cell.kind === GridCellKind.Text) return cell.data;
   if (cell.kind === GridCellKind.Number) return cell.data;
   return undefined;
+}
+
+export function resolveDefaultSpaceId(estimate: Estimate, workingSectionId?: string): string | undefined {
+  const matchingLine = estimate.lineItems.find((line) => line.sectionId === workingSectionId && line.spaceId);
+  if (matchingLine?.spaceId) return matchingLine.spaceId;
+  const workingSection = estimate.sections.find((section) => section.id === workingSectionId);
+  const matchingSpace = estimate.spaces.find((space) => space.id === workingSectionId || space.outlineCode === workingSection?.outlineCode);
+  return matchingSpace?.id ?? estimate.spaces.find((space) => space.spaceType === "project-wide")?.id;
 }
 
 export function resolveDefaultProposalSectionId(estimate: Estimate, workingSectionId?: string): string | undefined {

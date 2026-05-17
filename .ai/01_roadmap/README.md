@@ -60,13 +60,13 @@ Delivered:
 - Glide Data Grid + dnd-kit spike.
 - Drop-targeting UX micro-spike with pointer hit-testing and insertion-line feedback.
 - Production bridge separating working spaces from proposal sections.
+- Production Glide workspace with selected-row inspector controls.
+- Explicit floor/room/area hierarchy objects and row-level space references.
+- Proposal preview detail rows with location references.
 
 Next:
 
-- Promote spike grid into the production estimate workspace.
-- Add explicit row classification UI for proposal section assignment.
 - Add row move/copy operations between spaces.
-- Add validation warnings for unassigned proposal sections before issuing proposals.
 - Add revision/diff semantics for moved spaces vs changed BOQ/proposal grouping.
 
 ## Phase 3 — Proposal package v1

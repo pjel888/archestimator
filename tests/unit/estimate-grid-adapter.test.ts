@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { GridCellKind } from "@glideapps/glide-data-grid";
 import type { CostLibraryItem, Estimate } from "@/lib/local-data/schemas";
-import { applyEstimateGridEdit, buildEstimateGridRows, getEstimateGridCell, insertLibraryItemAtGridRow, resolveDefaultProposalSectionId, resolveGridInsertionTarget } from "@/lib/estimate-grid/adapter";
+import { applyEstimateGridEdit, buildEstimateGridRows, getEstimateGridCell, insertLibraryItemAtGridRow, resolveDefaultProposalSectionId, resolveDefaultSpaceId, resolveGridInsertionTarget } from "@/lib/estimate-grid/adapter";
 
 const estimate: Estimate = {
   id: "estimate_1",
@@ -14,6 +14,14 @@ const estimate: Estimate = {
   sections: [
     { id: "section_1", name: "Ground Floor · Living Room", outlineCode: "GF-01", sectionType: "area" },
     { id: "section_2", name: "Second Floor · Bedroom", outlineCode: "2F-01", sectionType: "area" },
+  ],
+  floors: [
+    { id: "floor_ground", name: "Ground Floor", outlineCode: "GF", sortOrder: 0 },
+    { id: "floor_second", name: "Second Floor", outlineCode: "2F", sortOrder: 1 },
+  ],
+  spaces: [
+    { id: "space_living", floorId: "floor_ground", name: "Living Room", outlineCode: "GF-01", sortOrder: 0, spaceType: "room" },
+    { id: "space_bedroom", floorId: "floor_second", name: "Bedroom", outlineCode: "2F-01", sortOrder: 1, spaceType: "room" },
   ],
   proposalSections: [
     { id: "proposal_general", name: "General Requirements", outlineCode: "A", displayInProposal: true },
@@ -127,9 +135,16 @@ describe("estimate grid adapter", () => {
     expect(next.lineItems[1].sourceLibraryItemId).toBe("library_flooring");
     expect(next.lineItems[1].wastePercent).toBe(7);
     expect(next.lineItems[1].proposalSectionId).toBe("proposal_general");
+    expect(next.lineItems[1].spaceId).toBe("space_bedroom");
   });
 
-  test("maps inserted rows to the default proposal section", () => {
+  test("maps working sections to default spaces", () => {
+    expect(resolveDefaultSpaceId(estimate, "section_1")).toBe("space_living");
+    expect(resolveDefaultSpaceId(estimate, "section_2")).toBe("space_bedroom");
+    expect(resolveDefaultSpaceId({
+      ...estimate,
+      spaces: [{ id: "space_unrelated", floorId: "floor_ground", name: "Unrelated", outlineCode: "ZZ-01", sortOrder: 0, spaceType: "room" }],
+    }, "section_2")).toBeUndefined();
     expect(resolveDefaultProposalSectionId(estimate)).toBe("proposal_general");
     expect(resolveDefaultProposalSectionId(estimate, "section_1")).toBe("proposal_general");
     const next = insertLibraryItemAtGridRow(estimate, libraryItem, 2);

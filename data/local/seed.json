@@ -52,7 +52,8 @@
           "sourceLibraryItemId": "lib_tile_a_600",
           "linkState": "linked-clean",
           "pricingDate": "2026-05-16",
-          "proposalSectionId": "proposal_section_floor_finishes"
+          "proposalSectionId": "proposal_section_floor_finishes",
+          "spaceId": "space_bathroom_floor_area"
         },
         {
           "id": "line_mobilization",
@@ -65,7 +66,8 @@
           "scopeStatus": "allowance",
           "linkState": "manual",
           "pricingDate": "2026-05-16",
-          "proposalSectionId": "proposal_section_general_conditions"
+          "proposalSectionId": "proposal_section_general_conditions",
+          "spaceId": "space_project_wide"
         }
       ],
       "proposalSections": [
@@ -84,6 +86,38 @@
           "sectionType": "trade",
           "sortOrder": 1,
           "displayInProposal": true
+        }
+      ],
+      "floors": [
+        {
+          "id": "floor_ground",
+          "name": "Ground Floor",
+          "outlineCode": "GF",
+          "sortOrder": 0
+        },
+        {
+          "id": "floor_project_wide",
+          "name": "Project-wide",
+          "outlineCode": "PW",
+          "sortOrder": 1
+        }
+      ],
+      "spaces": [
+        {
+          "id": "space_bathroom_floor_area",
+          "floorId": "floor_ground",
+          "name": "Bathroom / Floor Area",
+          "outlineCode": "GF-01",
+          "sortOrder": 0,
+          "spaceType": "room"
+        },
+        {
+          "id": "space_project_wide",
+          "floorId": "floor_project_wide",
+          "name": "Project-wide",
+          "outlineCode": "GEN",
+          "sortOrder": 1,
+          "spaceType": "project-wide"
         }
       ]
     }

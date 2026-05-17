@@ -57,6 +57,26 @@ describe("EstimateWorkspace", () => {
     expect(screen.getByLabelText("Selected production grid row")).not.toHaveValue("line_tile_a_bathroom");
   });
 
+  it("lets users assign a selected row to a floor and room location", async () => {
+    const user = userEvent.setup();
+    render(<EstimateWorkspace database={database} />);
+
+    await user.selectOptions(screen.getByLabelText(/Location for Tile A/i), "space_bathroom_floor_area");
+
+    expect(screen.getByLabelText(/Location for Tile A/i)).toHaveValue("space_bathroom_floor_area");
+    expect(screen.getAllByText("Ground Floor / Bathroom / Floor Area").length).toBeGreaterThan(1);
+  });
+
+  it("shows proposal detail rows with space references", async () => {
+    const user = userEvent.setup();
+    render(<EstimateWorkspace database={database} />);
+
+    await user.click(screen.getByRole("tab", { name: "proposal" }));
+
+    expect(screen.getAllByText("Tile A - bathroom floor").length).toBeGreaterThan(1);
+    expect(screen.getAllByText("Ground Floor / Bathroom / Floor Area").length).toBeGreaterThan(1);
+  });
+
   it("edits proposal terms in the proposal package builder", async () => {
     const user = userEvent.setup();
     render(<EstimateWorkspace database={database} />);

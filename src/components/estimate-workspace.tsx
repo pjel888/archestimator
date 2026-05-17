@@ -8,7 +8,7 @@ import type { EditableGridCell, Item } from "@glideapps/glide-data-grid";
 import { DndContext, DragOverlay, type DragEndEvent, type DragMoveEvent, type DragStartEvent, PointerSensor, useDraggable, useSensor, useSensors } from "@dnd-kit/core";
 import { CSS } from "@dnd-kit/utilities";
 import { Plus, RotateCcw, Trash2 } from "lucide-react";
-import type { CostLibraryItem, Estimate, EstimateLineItem, LocalDatabase, ProposalTerms } from "@/lib/local-data/schemas";
+import type { CostLibraryItem, Estimate, EstimateLineItem, EstimateSpace, LocalDatabase, ProposalTerms } from "@/lib/local-data/schemas";
 import { calculateEstimateTotals } from "@/lib/estimates/totals";
 import { createLineItemFromLibraryItem, detectLinkStateAfterEdit } from "@/lib/estimates/library-insert";
 import { StatusPill } from "@/components/ui/status-pill";
@@ -24,6 +24,7 @@ import {
   buildEstimateGridRows,
   insertLibraryItemAtGridRow,
   resolveDefaultProposalSectionId,
+  resolveDefaultSpaceId,
   resolveGridInsertionTarget,
 } from "@/lib/estimate-grid/adapter";
 
@@ -69,6 +70,14 @@ function parseNumberInput(value: string) {
 
 function nextRevisionLabel(versionNumber: number) {
   return `Rev ${String(versionNumber).padStart(2, "0")}`;
+}
+
+function formatSpacePath(estimate: Estimate, spaceId?: string) {
+  if (!spaceId) return "Unassigned location";
+  const space = estimate.spaces.find((entry) => entry.id === spaceId);
+  if (!space) return "Unassigned location";
+  const floor = estimate.floors.find((entry) => entry.id === space.floorId);
+  return [floor?.name, space.name].filter(Boolean).join(" / ") || space.name;
 }
 
 export function EstimateWorkspace({ database, projectId, onSaveEstimate, onDuplicateRevision, onIssueProposalSnapshot }: EstimateWorkspaceProps) {
@@ -169,6 +178,7 @@ function EstimateWorkspaceInner({ database, project, initialEstimate, onSaveEsti
       id: `line_manual_${Date.now()}`,
       sectionId: targetSectionId,
       proposalSectionId: resolveDefaultProposalSectionId(estimate, targetSectionId),
+      spaceId: resolveDefaultSpaceId(estimate, targetSectionId),
       itemName: "Untitled estimate item",
       description: "Manual row — edit description, quantity, unit, and cost.",
       quantity: 1,
@@ -182,7 +192,7 @@ function EstimateWorkspaceInner({ database, project, initialEstimate, onSaveEsti
   }
 
   function addLibraryItem(item: CostLibraryItem, targetSectionId = selectedSectionIdRef.current) {
-    const newLine = createLineItemFromLibraryItem(item, targetSectionId, resolveSelectedProposalSectionId(estimate, targetSectionId));
+    const newLine = { ...createLineItemFromLibraryItem(item, targetSectionId, resolveSelectedProposalSectionId(estimate, targetSectionId)), spaceId: resolveDefaultSpaceId(estimate, targetSectionId) };
     setEstimate((current) => ({ ...current, lineItems: [...current.lineItems, newLine] }));
     setSelectedGridLineId(newLine.id);
   }
@@ -306,7 +316,7 @@ function EstimateWorkspaceInner({ database, project, initialEstimate, onSaveEsti
         </header>
 
         <div className="grid gap-6 xl:grid-cols-[1fr_430px]">
-          <EstimateSheetCard estimate={estimate} project={project} currencyCode={currencyCode} selectedSectionId={selectedSectionId} setSelectedSectionId={setSelectedSectionId} addBlankRow={addBlankRow} updateLine={updateLine} updateGridCell={updateGridCell} onGridCellSelected={selectGridCell} resetFromLibrary={resetFromLibrary} deleteLine={deleteGridLine} gridFrameRef={gridFrameRef} dropIntent={dropIntent} visibleDropRow={visibleDropRow} onVisibleRowOffsetChange={handleVisibleRowOffsetChange} insertionTargetLabel={insertionTargetSection ? `${insertionTargetSection.outlineCode} · ${insertionTargetSection.name}` : "none"} dropRow={dropRow} setDropRow={setDropRow} maxDropRow={gridRows.length} selectedLibraryName={database.costLibraryItems.find((entry) => entry.id === selectedLibraryId)?.name ?? "first library item"} onFallbackLibraryInsert={insertLibraryItemAtCurrentDropRow} selectedGridLine={selectedGridLine} selectedGridLineId={selectedGridLine?.id ?? ""} onSelectedGridLineChange={setSelectedGridLineId} proposalSections={estimate.proposalSections} />
+          <EstimateSheetCard estimate={estimate} project={project} currencyCode={currencyCode} selectedSectionId={selectedSectionId} setSelectedSectionId={setSelectedSectionId} addBlankRow={addBlankRow} updateLine={updateLine} updateGridCell={updateGridCell} onGridCellSelected={selectGridCell} resetFromLibrary={resetFromLibrary} deleteLine={deleteGridLine} gridFrameRef={gridFrameRef} dropIntent={dropIntent} visibleDropRow={visibleDropRow} onVisibleRowOffsetChange={handleVisibleRowOffsetChange} insertionTargetLabel={insertionTargetSection ? `${insertionTargetSection.outlineCode} · ${insertionTargetSection.name}` : "none"} dropRow={dropRow} setDropRow={setDropRow} maxDropRow={gridRows.length} selectedLibraryName={database.costLibraryItems.find((entry) => entry.id === selectedLibraryId)?.name ?? "first library item"} onFallbackLibraryInsert={insertLibraryItemAtCurrentDropRow} selectedGridLine={selectedGridLine} selectedGridLineId={selectedGridLine?.id ?? ""} onSelectedGridLineChange={setSelectedGridLineId} proposalSections={estimate.proposalSections} spaces={estimate.spaces} getSpacePath={(spaceId) => formatSpacePath(estimate, spaceId)} />
 
           <aside className="flex flex-col gap-4">
             <TabList className="grid-cols-3">
@@ -352,9 +362,11 @@ type EstimateSheetCardProps = {
   selectedGridLineId: string;
   onSelectedGridLineChange: (lineId: string) => void;
   proposalSections: Estimate["proposalSections"];
+  spaces: EstimateSpace[];
+  getSpacePath: (spaceId?: string) => string;
 };
 
-function EstimateSheetCard({ estimate, project, currencyCode, selectedSectionId, setSelectedSectionId, addBlankRow, updateLine, updateGridCell, onGridCellSelected, resetFromLibrary, deleteLine, gridFrameRef, dropIntent, visibleDropRow, onVisibleRowOffsetChange, insertionTargetLabel, dropRow, setDropRow, maxDropRow, selectedLibraryName, onFallbackLibraryInsert, selectedGridLine, selectedGridLineId, onSelectedGridLineChange, proposalSections }: EstimateSheetCardProps) {
+function EstimateSheetCard({ estimate, project, currencyCode, selectedSectionId, setSelectedSectionId, addBlankRow, updateLine, updateGridCell, onGridCellSelected, resetFromLibrary, deleteLine, gridFrameRef, dropIntent, visibleDropRow, onVisibleRowOffsetChange, insertionTargetLabel, dropRow, setDropRow, maxDropRow, selectedLibraryName, onFallbackLibraryInsert, selectedGridLine, selectedGridLineId, onSelectedGridLineChange, proposalSections, spaces, getSpacePath }: EstimateSheetCardProps) {
   const sectionSelectRef = useRef<HTMLSelectElement | null>(null);
 
   return (
@@ -400,6 +412,8 @@ function EstimateSheetCard({ estimate, project, currencyCode, selectedSectionId,
         selectedLine={selectedGridLine}
         selectedLineId={selectedGridLineId}
         proposalSections={proposalSections}
+        spaces={spaces}
+        getSpacePath={getSpacePath}
         currencyCode={currencyCode}
         updateLine={updateLine}
         resetFromLibrary={resetFromLibrary}
@@ -415,6 +429,8 @@ function ProductionRowInspector({
   selectedLine,
   selectedLineId,
   proposalSections,
+  spaces,
+  getSpacePath,
   currencyCode,
   updateLine,
   resetFromLibrary,
@@ -425,13 +441,15 @@ function ProductionRowInspector({
   selectedLine?: EstimateLineItem;
   selectedLineId: string;
   proposalSections: Estimate["proposalSections"];
+  spaces: EstimateSpace[];
+  getSpacePath: (spaceId?: string) => string;
   currencyCode: string;
   updateLine: (lineId: string, patch: Partial<EstimateLineItem>, changedField?: keyof EstimateLineItem) => void;
   resetFromLibrary: (line: EstimateLineItem) => void;
   deleteLine: (lineId: string) => void;
   onSelectedLineChange: (lineId: string) => void;
 }) {
-  const calculated = selectedLine ? calculateEstimateTotals({ sections: [], lineItems: [selectedLine], proposalSections: [], id: "inspector", projectId: "inspector", name: "Inspector", versionLabel: "Inspector", versionNumber: 1, status: "draft", pricingBasisDate: "2026-01-01" }).rows[0]?.calculated.total ?? 0 : 0;
+  const calculated = selectedLine ? calculateEstimateTotals({ sections: [], floors: [], spaces: [], lineItems: [selectedLine], proposalSections: [], id: "inspector", projectId: "inspector", name: "Inspector", versionLabel: "Inspector", versionNumber: 1, status: "draft", pricingBasisDate: "2026-01-01" }).rows[0]?.calculated.total ?? 0 : 0;
 
   if (!selectedLine) {
     return <div className="border-t border-hairline p-4 text-sm text-muted">Select a line row in the production grid to edit proposal mapping, scope, and row actions.</div>;
@@ -467,6 +485,17 @@ function ProductionRowInspector({
           </select>
         </label>
         <NumberInput label={`Quantity for ${selectedLine.itemName}`} value={selectedLine.quantity} onChange={(value) => updateLine(selectedLine.id, { quantity: value }, "quantity")} />
+        <label className="grid gap-1 text-xs font-medium text-muted">
+          Location
+          <select aria-label={`Location for ${selectedLine.itemName}`} className={`rounded-xl border px-3 py-2 text-sm text-foreground ${selectedLine.spaceId ? "border-hairline bg-white" : "border-amber-300 bg-amber-50"}`} value={selectedLine.spaceId ?? ""} onChange={(event) => updateLine(selectedLine.id, { spaceId: event.target.value || undefined }, "spaceId")}>
+            <option value="">Unassigned location</option>
+            {spaces.map((space) => <option key={space.id} value={space.id}>{getSpacePath(space.id)}</option>)}
+          </select>
+        </label>
+        <div className="rounded-xl border border-hairline bg-white px-3 py-2">
+          <p className="text-xs font-medium text-muted">Location path</p>
+          <p className="mt-1 text-sm font-semibold">{getSpacePath(selectedLine.spaceId)}</p>
+        </div>
         <label className="grid gap-1 text-xs font-medium text-muted">
           Unit
           <TextInput className="bg-white" value={selectedLine.unit} onChange={(event) => updateLine(selectedLine.id, { unit: event.target.value }, "unit")} aria-label={`Unit for ${selectedLine.itemName}`} />
@@ -579,6 +608,7 @@ function ProposalPanel({ project, estimate, totals, currencyCode, terms, onTerms
         .filter((row) => row.includedInTotal && (row.proposalSectionId ?? row.sectionId) === section.id)
         .reduce((sum, row) => sum + row.calculated.total, 0),
     }));
+  const proposalDetailRows = totals.rows.filter((row) => row.includedInTotal);
 
   return (
     <Card className="bg-proposal-paper">
@@ -586,7 +616,7 @@ function ProposalPanel({ project, estimate, totals, currencyCode, terms, onTerms
         <div className="grid gap-2"><Button variant="secondary" onClick={() => void onSaveEstimate?.(estimate)}>Save estimate to local JSON</Button><Button variant="primary" onClick={() => void onIssueProposalSnapshot?.(estimate, terms)}>Issue immutable proposal snapshot</Button><p className="text-xs text-muted">Issued snapshots for this project: {savedProposals.length}</p>{unassignedRows.length ? <p role="alert" className="rounded-xl border border-amber-300 bg-amber-50 p-3 text-xs font-medium text-amber-800">{unassignedRows.length} billable row{unassignedRows.length === 1 ? "" : "s"} need proposal-section mapping before issuance. They will be grouped as Unassigned Proposal Section if issued now.</p> : null}</div>
         <Card className="bg-white/75 shadow-none"><CardContent><CardTitle>Proposal history</CardTitle>{savedProposals.length ? <div className="mt-3 space-y-2">{savedProposals.map((snapshot) => <Link key={snapshot.id} className="block rounded-xl border border-hairline bg-white p-3 text-sm transition hover:border-accent" href={`/proposals/${snapshot.id}`}><span className="font-semibold">{snapshot.proposalVersionLabel}</span><span className="mt-1 block text-xs text-muted">{new Date(snapshot.issuedAt).toLocaleDateString()} · {formatMoney(snapshot.totalAmount, snapshot.currency)}</span></Link>)}</div> : <p className="mt-3 rounded-xl border border-dashed border-hairline bg-white/70 p-4 text-sm text-muted">No issued proposals yet. Save the estimate, review terms, then issue an immutable snapshot.</p>}</CardContent></Card>
         <Card className="bg-white/75 shadow-none"><CardContent className="grid gap-3"><CardTitle>Proposal terms builder</CardTitle><Field label="Subject"><TextInput value={terms.subject} onChange={(event) => onTermsChange({ subject: event.target.value })} /></Field><Field label="Through / attention"><TextInput value={terms.throughName ?? ""} onChange={(event) => onTermsChange({ throughName: event.target.value })} /></Field><Field label="Contractor/company"><TextInput value={terms.contractorName} onChange={(event) => onTermsChange({ contractorName: event.target.value })} /></Field><Field label="Tax/VAT statement"><Textarea value={terms.taxStatement} onChange={(event) => onTermsChange({ taxStatement: event.target.value })} /></Field><Field label="Validity days"><TextInput type="number" min={1} value={terms.validityDays} onChange={(event) => onTermsChange({ validityDays: Math.max(1, parseNumberInput(event.target.value)) })} /></Field><Field label="Payment terms"><Textarea value={terms.paymentTerms} onChange={(event) => onTermsChange({ paymentTerms: event.target.value })} /></Field><Field label="Warranty terms"><Textarea value={terms.warrantyTerms} onChange={(event) => onTermsChange({ warrantyTerms: event.target.value })} /></Field><Field label="Duration note"><Textarea value={terms.durationNote} onChange={(event) => onTermsChange({ durationNote: event.target.value })} /></Field><Field label="Inclusions"><Textarea value={terms.inclusions} onChange={(event) => onTermsChange({ inclusions: event.target.value })} /></Field><Field label="Exclusions"><Textarea value={terms.exclusions} onChange={(event) => onTermsChange({ exclusions: event.target.value })} /></Field></CardContent></Card>
-        <div className="rounded-xl border border-hairline bg-white/70 p-5 font-serif"><p className="text-xs uppercase tracking-[0.16em] text-muted">Proposal Preview</p><h2 className="mt-2 text-2xl font-semibold tracking-[-0.03em]">{terms.subject}</h2><p className="mt-3 text-sm leading-6">We are pleased to submit this proposal for <strong>{project.name}</strong> located in {project.location}. This preview uses editable commercial terms and becomes immutable only after issuance.</p><div className="mt-5 rounded-xl bg-foreground p-4 text-white"><p className="text-xs text-white/70">Total proposed amount</p><p className="mt-1 font-mono text-2xl font-semibold">{formatMoney(totals.grandTotal, currencyCode)}</p></div><h3 className="mt-5 font-sans text-sm font-semibold uppercase tracking-[0.12em]">Section Summary</h3><div className="mt-2 space-y-2">{sectionSummaries.map((section) => <div key={section.id} className="flex justify-between border-b border-hairline py-2 text-sm"><span>{section.outlineCode}. {section.name}</span><span className="font-mono">{formatMoney(section.total, currencyCode)}</span></div>)}</div><h3 className="mt-5 font-sans text-sm font-semibold uppercase tracking-[0.12em]">Commercial terms</h3><dl className="mt-2 grid gap-2 text-sm"><div><dt className="font-sans font-semibold">Validity</dt><dd className="text-muted">{terms.validityDays} days</dd></div><div><dt className="font-sans font-semibold">Payment</dt><dd className="text-muted">{terms.paymentTerms}</dd></div><div><dt className="font-sans font-semibold">Exclusions</dt><dd className="text-muted">{terms.exclusions}</dd></div></dl></div>
+        <div className="rounded-xl border border-hairline bg-white/70 p-5 font-serif"><p className="text-xs uppercase tracking-[0.16em] text-muted">Proposal Preview</p><h2 className="mt-2 text-2xl font-semibold tracking-[-0.03em]">{terms.subject}</h2><p className="mt-3 text-sm leading-6">We are pleased to submit this proposal for <strong>{project.name}</strong> located in {project.location}. This preview uses editable commercial terms and becomes immutable only after issuance.</p><div className="mt-5 rounded-xl bg-foreground p-4 text-white"><p className="text-xs text-white/70">Total proposed amount</p><p className="mt-1 font-mono text-2xl font-semibold">{formatMoney(totals.grandTotal, currencyCode)}</p></div><h3 className="mt-5 font-sans text-sm font-semibold uppercase tracking-[0.12em]">Section Summary</h3><div className="mt-2 space-y-2">{sectionSummaries.map((section) => <div key={section.id} className="flex justify-between border-b border-hairline py-2 text-sm"><span>{section.outlineCode}. {section.name}</span><span className="font-mono">{formatMoney(section.total, currencyCode)}</span></div>)}</div><h3 className="mt-5 font-sans text-sm font-semibold uppercase tracking-[0.12em]">Proposal Detail</h3><div className="mt-2 space-y-2">{proposalDetailRows.map((row) => <div key={row.id} className="rounded-xl border border-hairline bg-white/70 p-3 text-sm"><div className="flex justify-between gap-3"><span className="font-semibold">{row.itemName}</span><span className="font-mono">{formatMoney(row.calculated.total, currencyCode)}</span></div><p className="mt-1 text-xs text-muted">{formatSpacePath(estimate, row.spaceId)} · {row.quantity} {row.unit}</p></div>)}</div><h3 className="mt-5 font-sans text-sm font-semibold uppercase tracking-[0.12em]">Commercial terms</h3><dl className="mt-2 grid gap-2 text-sm"><div><dt className="font-sans font-semibold">Validity</dt><dd className="text-muted">{terms.validityDays} days</dd></div><div><dt className="font-sans font-semibold">Payment</dt><dd className="text-muted">{terms.paymentTerms}</dd></div><div><dt className="font-sans font-semibold">Exclusions</dt><dd className="text-muted">{terms.exclusions}</dd></div></dl></div>
       </CardContent>
     </Card>
   );

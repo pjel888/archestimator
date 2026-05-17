@@ -41,6 +41,7 @@ export const estimateLineItemSchema = z.object({
   id: z.string(),
   sectionId: z.string(),
   proposalSectionId: z.string().optional(),
+  spaceId: z.string().optional(),
   itemName: z.string(),
   description: z.string().optional(),
   quantity: z.number().finite().nonnegative(),
@@ -62,6 +63,22 @@ export const estimateSectionSchema = z.object({
   sectionType: z.enum(["area", "trade", "phase", "custom"]),
 });
 
+export const estimateFloorSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  outlineCode: z.string(),
+  sortOrder: z.number().int().nonnegative().default(0),
+});
+
+export const estimateSpaceSchema = z.object({
+  id: z.string(),
+  floorId: z.string(),
+  name: z.string(),
+  outlineCode: z.string(),
+  sortOrder: z.number().int().nonnegative().default(0),
+  spaceType: z.enum(["room", "area", "project-wide", "custom"]).default("area"),
+});
+
 export const proposalSectionSchema = z.object({
   id: z.string(),
   name: z.string(),
@@ -80,6 +97,8 @@ export const estimateSchema = z.object({
   status: z.enum(["draft", "under-review", "proposal-issued", "approved", "superseded", "rejected", "archived"]),
   pricingBasisDate: z.string(),
   sections: z.array(estimateSectionSchema),
+  floors: z.array(estimateFloorSchema).default([]),
+  spaces: z.array(estimateSpaceSchema).default([]),
   proposalSections: z.array(proposalSectionSchema).default([]),
   lineItems: z.array(estimateLineItemSchema),
 });
@@ -133,6 +152,22 @@ export const proposalSnapshotSchema = z.object({
     outlineCode: z.string(),
     totalAmount: z.number().finite().nonnegative(),
   })),
+  detailRows: z.array(z.object({
+    lineItemId: z.string(),
+    proposalSectionId: z.string().optional(),
+    sectionId: z.string(),
+    spaceId: z.string().optional(),
+    spacePath: z.string(),
+    itemName: z.string(),
+    description: z.string().optional(),
+    quantity: z.number().finite().nonnegative(),
+    adjustedQuantity: z.number().finite().nonnegative(),
+    wastePercent: z.number().finite().nonnegative().optional(),
+    unit: z.string(),
+    unitRate: z.number().finite().nonnegative(),
+    totalAmount: z.number().finite().nonnegative(),
+    scopeStatus: scopeStatusSchema,
+  })).default([]),
 });
 
 export const localDatabaseSchema = z.object({
@@ -148,6 +183,7 @@ export type LocalDatabase = z.infer<typeof localDatabaseSchema>;
 export type CostLibraryItem = z.infer<typeof costLibraryItemSchema>;
 export type Estimate = z.infer<typeof estimateSchema>;
 export type EstimateLineItem = z.infer<typeof estimateLineItemSchema>;
+export type EstimateSpace = z.infer<typeof estimateSpaceSchema>;
 export type ProposalSection = z.infer<typeof proposalSectionSchema>;
 export type ProposalSnapshot = z.infer<typeof proposalSnapshotSchema>;
 export type ProposalTerms = z.infer<typeof proposalTermsSchema>;
