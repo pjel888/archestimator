@@ -49,6 +49,58 @@ describe("saveEstimateInDatabase", () => {
     expect(next.estimates[0].name).toBe("Changed Estimate");
     expect(next.projects[0].currentEstimateId).toBe("estimate_1");
   });
+
+  test("persists revision change records when a saved revision changes from the prior version", () => {
+    const revision: Estimate = {
+      ...estimate,
+      id: "estimate_2",
+      versionLabel: "Rev 02",
+      versionNumber: 2,
+      lineItems: [{ ...estimate.lineItems[0], id: "line_rev_1", revisionSourceLineItemId: "line_1", spaceId: "space_2", quantity: 3 }],
+    };
+    const sourceDatabase: LocalDatabase = {
+      ...database,
+      projects: [{ ...database.projects[0], currentEstimateId: "estimate_2" }],
+      estimates: [estimate, revision],
+      revisionChangeRecords: [],
+    };
+
+    const next = saveEstimateInDatabase(sourceDatabase, revision);
+
+    expect(next.revisionChangeRecords).toHaveLength(1);
+    expect(next.revisionChangeRecords?.[0]).toMatchObject({
+      projectId: "project_1",
+      fromEstimateId: "estimate_1",
+      toEstimateId: "estimate_2",
+      fromVersionLabel: "Initial",
+      toVersionLabel: "Rev 02",
+      summary: { spaceMoves: 1, commercialChanges: 1, proposalRemaps: 0 },
+    });
+    expect(next.revisionChangeRecords?.[0].changes.map((change) => change.kind)).toEqual(["space-moved", "commercial-changed"]);
+  });
+
+  test("clears a stale persisted revision change record when a saved revision has no remaining changes", () => {
+    const changedRevision: Estimate = {
+      ...estimate,
+      id: "estimate_2",
+      versionLabel: "Rev 02",
+      versionNumber: 2,
+      lineItems: [{ ...estimate.lineItems[0], id: "line_rev_1", revisionSourceLineItemId: "line_1", quantity: 3 }],
+    };
+    const changedDatabase = saveEstimateInDatabase(
+      { ...database, estimates: [estimate, changedRevision], revisionChangeRecords: [] },
+      changedRevision,
+    );
+
+    const revertedRevision: Estimate = {
+      ...changedRevision,
+      lineItems: [{ ...estimate.lineItems[0], id: "line_rev_1", revisionSourceLineItemId: "line_1" }],
+    };
+    const revertedDatabase = saveEstimateInDatabase(changedDatabase, revertedRevision);
+
+    expect(changedDatabase.revisionChangeRecords).toHaveLength(1);
+    expect(revertedDatabase.revisionChangeRecords).toHaveLength(0);
+  });
 });
 
 describe("upsertCostLibraryItem", () => {

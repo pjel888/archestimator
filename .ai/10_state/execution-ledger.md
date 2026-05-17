@@ -5,12 +5,38 @@
 ## Current active thread
 
 - **Date:** 2026-05-17
-- **Branch:** `feat/revision-diff-semantics`
-- **Goal:** Add revision/diff semantics for space moves vs BOQ/proposal remaps.
-- **Status:** Revision/diff semantics implemented; full gates/review pending
+- **Branch:** `feat/persisted-revision-change-records`
+- **Goal:** Persist revision change records and remediate Codex PR #8/#9 review comments.
+- **Status:** Implemented; local gates passing; independent review pending
 - **Validation target:** `bun run validate && bun run build && bun run test:e2e`
 
 ## Ledger entries
+
+### 2026-05-17 — Persisted revision change records + Codex comment remediation
+
+**Status:** Implemented; review in progress
+
+**Type:** local-first revision audit records + Versions panel history + review fixes
+
+**What changed:**
+
+- Added `revisionChangeRecords` to the local database schema for persisted revision audit summaries.
+- `saveEstimateInDatabase` now compares a saved newer estimate against the prior project version and records the revision diff summary/change list.
+- Versions panel initializes from all project estimates, shows persisted revision records when available, and falls back to computed on-demand diffs for unsaved local drafts.
+- Codex PR #8 row-operation target comment remediated by deriving the submitted move/copy target from the current selected row/space fallback instead of stale empty state.
+- Codex PR #9 comments remediated: persisted prior revisions are included in diff lookup, and item-name/description text-only revisions count as scope changes.
+- Kimi was delegated a separate SaaS landing page branch in `/Users/philiplewis/archestimator-kimi-landing`.
+
+**Verification:**
+
+- `bun run validate` — passed: type-check, lint, 40 unit tests, 11 DOM/Vitest tests.
+- `bun run build` — passed.
+- `bun run test:e2e` — passed: 7 Playwright tests.
+
+**Follow-ups:**
+
+- Independent review and PR for this slice.
+- Review/polish Kimi landing page worktree before opening or merging its PR.
 
 ### 2026-05-17 — Revision/diff semantics
 
