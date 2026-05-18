@@ -64,6 +64,7 @@
   --color-proposal-paper: var(--proposal-paper);
   --color-proposalPaper: var(--proposal-paper);
   --font-sans: var(--font-inter);
+  --font-poppins: var(--font-poppins);
   --font-mono: var(--font-roboto-mono);
   --font-serif: var(--font-source-serif);
 }
