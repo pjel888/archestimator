@@ -27,6 +27,7 @@ export { EstimateRightSidebar } from "./component-library";
 
 type EstimateSheetContentProps = {
   selectedNodeId: string;
+  nodes?: EstimateAreaNode[];
 };
 
 type EstimateSheetBranchProps = {
@@ -849,11 +850,11 @@ function EstimateSheetFooter({ projectTotal }: { projectTotal: number }) {
   );
 }
 
-export function EstimateSheetContent({ selectedNodeId }: EstimateSheetContentProps) {
-  const [estimateTree, setEstimateTree] = useState(sampleEstimateTree);
-  const [editableRows, setEditableRows] = useState<Record<string, EditableRowValue>>(() => collectEditableRows(sampleEstimateTree));
+export function EstimateSheetContent({ selectedNodeId, nodes = sampleEstimateTree }: EstimateSheetContentProps) {
+  const [estimateTree, setEstimateTree] = useState(nodes);
+  const [editableRows, setEditableRows] = useState<Record<string, EditableRowValue>>(() => collectEditableRows(nodes));
   const [insertTargetNodeId, setInsertTargetNodeId] = useState(() => {
-    const initialNode = findEstimateNode(sampleEstimateTree, selectedNodeId);
+    const initialNode = findEstimateNode(nodes, selectedNodeId);
     return initialNode?.kind === "area" ? initialNode.id : "";
   });
   const [pendingFocusRowId, setPendingFocusRowId] = useState("");

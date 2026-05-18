@@ -1,7 +1,8 @@
+import { notFound } from "next/navigation";
+
 import { EstimateRightSidebar, EstimateSheetContent } from "@/components/workshop/EstimateSheetContent";
 import { EstimateSheetTree } from "@/components/workshop/EstimateSheetTree";
-import { findEstimateNode, sampleEstimateTree } from "@/components/workshop/estimate-tree-data";
-import { sampleProjects } from "@/components/workshop/workshop-sample-projects";
+import { getProjectEstimateTreeByNode } from "@/lib/repositories/workspace-repository";
 
 type ProjectEstimateNodePageProps = {
   params: Promise<{ projectId: string; nodeId: string }>;
@@ -9,13 +10,14 @@ type ProjectEstimateNodePageProps = {
 
 export default async function ProjectEstimateNodePage({ params }: ProjectEstimateNodePageProps) {
   const { projectId, nodeId } = await params;
-  const project = sampleProjects.find((item) => item.id === projectId) ?? sampleProjects[0];
-  const selectedNodeId = findEstimateNode(sampleEstimateTree, nodeId)?.id ?? sampleEstimateTree[0]?.id ?? nodeId;
+  const { project, selectedNodeId, tree } = await getProjectEstimateTreeByNode(projectId, nodeId);
+
+  if (!project || !selectedNodeId || tree.length === 0) notFound();
 
   return (
     <section className="flex h-full min-h-0 overflow-hidden bg-white" aria-label={`${project.name} estimates`}>
-      <EstimateSheetTree projectId={project.id} projectName={project.name} selectedNodeId={selectedNodeId} />
-      <EstimateSheetContent selectedNodeId={selectedNodeId} />
+      <EstimateSheetTree projectId={project.id} projectName={project.name} selectedNodeId={selectedNodeId} nodes={tree} />
+      <EstimateSheetContent selectedNodeId={selectedNodeId} nodes={tree} />
       <EstimateRightSidebar />
     </section>
   );

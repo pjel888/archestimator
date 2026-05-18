@@ -2,7 +2,7 @@
 
 **Status:** Active implementation slice  
 **Last updated:** 2026-05-18  
-**Routes:** `/workshop/projects`, `/workshop/projects/[projectId]`, `/workshop/projects/[projectId]/estimates`
+**Routes:** `/workshop/projects`, `/workshop/projects/[projectId]`, `/workshop/projects/[projectId]/estimates`, `/workshop/projects/[projectId]/estimates/[nodeId]`
 
 ## Purpose
 
@@ -19,6 +19,17 @@ The current goal is intentionally narrow:
 7. user lands in the estimate workspace route for the first area node.
 
 ## Implemented behavior
+
+### `/workshop/projects/[projectId]/estimates/[nodeId]`
+
+- Calls `getProjectEstimateTreeByNode(projectId, nodeId)`.
+- Validates that the selected node belongs to an estimate under the requested project through a project-scoped Supabase join.
+- Returns `notFound()` when the project/node relationship is invalid.
+- Builds the estimate tree from live `estimate_nodes` and `estimate_row_items` records.
+- Passes live tree data into `EstimateSheetTree` and `EstimateSheetContent`.
+- Keeps the existing component-library sidebar and local row-editing behavior as a temporary client-side interaction layer until the row mutation slice persists edits.
+
+## Current behavior
 
 ### `/workshop/projects`
 
@@ -86,9 +97,10 @@ Current coverage:
   - verifies project creation UI uses shared primitives.
   - verifies live project card wiring.
 - Estimate bootstrap tests should verify `NewEstimateForm`, `EstimateListCard`, and `ButtonLink` primitive usage.
-- `e2e/auth.spec.ts`
-  - verifies signed-out protected-route redirect to login.
-  - verifies compact login form renders.
+- `tests/vitest/live-estimate-node-route.test.ts`
+  - verifies the node route loads project-scoped live Supabase tree data.
+  - verifies live tree nodes are passed into the tree/content components.
+  - verifies repository ownership checks use the project-scoped estimate join.
 
 Required gates after edits:
 
@@ -100,9 +112,9 @@ Required gates after edits:
 ## Known limitations
 
 - Hosted Supabase redirect URLs still require Dashboard verification.
-- Estimate detail route currently uses existing estimate workspace shell/data patterns; full live tree rendering/editing remains a follow-up slice.
+- Estimate detail route now reads live Supabase tree/rows with project-scoped node validation, but row edits remain local until the next mutation slice.
 - Estimate totals, proposal exports, recent activity, and estimate row CRUD UI are not in this slice.
 
 ## Next slice
 
-Wire `/workshop/projects/[projectId]/estimates/[nodeId]` to live Supabase estimate nodes and rows, replacing sample-node assumptions with project-scoped data from the repository.
+Persist estimate row insert/edit/delete mutations through repository/server-action/domain boundaries, starting with area-only insertion from the component library.
