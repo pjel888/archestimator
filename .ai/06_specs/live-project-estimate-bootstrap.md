@@ -35,7 +35,7 @@ The current goal is intentionally narrow:
 - Inserted library rows use `link_state = linked-clean`; manual/project rows use `unlinked`.
 - Replace, delete, and inline quantity/cost/discipline/designation edits persist through project-scoped server actions.
 - Mutations validate row ownership through estimate/node/project joins before modifying Supabase.
-- Client interactions remain optimistic, then refresh the route to reconcile with Supabase until the TanStack Query mutation layer lands.
+- Client interactions remain optimistic and route reload reconciliation has been replaced with TanStack Query mutation hooks plus compact save state (`Ready`, `Saving`, `Saved`, `Save failed`).
 
 ## Current behavior
 
@@ -125,4 +125,4 @@ Required gates after edits:
 
 ## Next slice
 
-Persist estimate mutations through TanStack Query/domain hooks instead of route reload reconciliation, then add visible pending/error states for failed saves.
+Implement explicit mutation error recovery/rollback UX and migrate the live estimate tree itself into a hydrated TanStack Query data source.

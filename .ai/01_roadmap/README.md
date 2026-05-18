@@ -89,12 +89,13 @@ Status: active/current.
 
 Done:
 
-- Insert/replace/delete/update row mutations now persist through server actions.
+- Insert/replace/delete/update row mutations now persist through TanStack Query mutation hooks backed by server actions.
+- The estimate sheet shows compact mutation save state: `Ready`, `Saving`, `Saved`, `Save failed`.
 - Mutations validate project/estimate/node/row ownership before writing.
 
 Target:
 
-- Move persistence to TanStack Query/domain hooks instead of route reload reconciliation.
+- Implement explicit mutation rollback/error recovery beyond the compact failed-save state.
 - Preserve route-backed node selection.
 - Keep area-only row insertion enforcement.
 - Keep component/library picker separate from full component-library admin.

@@ -1,6 +1,6 @@
 "use client";
 
-import { type Dispatch, type DragEvent, type InputHTMLAttributes, type KeyboardEvent, type SetStateAction, useCallback, useEffect, useMemo, useState, useTransition } from "react";
+import { type Dispatch, type DragEvent, type InputHTMLAttributes, type KeyboardEvent, type SetStateAction, useCallback, useEffect, useMemo, useState } from "react";
 import { ArrowsOutSimple, CaretDown, Cube, DotsSixVertical, FunnelSimple, HouseLine, Plus, SlidersHorizontal, Stack, Trash } from "@phosphor-icons/react/dist/ssr";
 
 import { Badge } from "@/components/ui/badge";
@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { ControlInput } from "@/components/ui/control-input";
 import { ControlSelect } from "@/components/ui/control-select";
 import { SearchInput } from "@/components/ui/search-input";
-import { deleteEstimateRowItem, insertEstimateRowItemFromLibrary, replaceEstimateRowItemWithLibrary, updateEstimateRowItem } from "@/lib/estimates/actions";
+import { useEstimateRowMutations, type EstimateSaveState } from "@/hooks/use-estimate-row-mutations";
 import { cn } from "@/lib/ui/cn";
 import { findEstimateNode, sampleEstimateTree, type EstimateAreaNode, type EstimateRowItem } from "./estimate-tree-data";
 
@@ -649,6 +649,28 @@ function EstimateRowItemsTable({
   );
 }
 
+function EstimateSaveStatus({ state }: { state: EstimateSaveState }) {
+  const statusCopy = {
+    idle: "Ready",
+    saving: "Saving",
+    saved: "Saved",
+    failed: "Save failed",
+  } satisfies Record<EstimateSaveState, string>;
+
+  return (
+    <span
+      className={cn(
+        "shrink-0 rounded-sm border px-1 py-0.5 text-[9px] font-bold uppercase tracking-[0.08em]",
+        state === "failed" ? "border-red-200 bg-red-50 text-red-700" : "border-hairline bg-white text-tertiary",
+        state === "saving" && "text-accent",
+      )}
+      aria-live="polite"
+    >
+      {statusCopy[state]}
+    </span>
+  );
+}
+
 function EmptyAreaMessage({ depth, nodeId, onInsertLibraryItem }: { depth: number; nodeId: string; onInsertLibraryItem: (targetNodeId: string, libraryItem: EstimateRowItem) => void }) {
   return (
     <div
@@ -870,7 +892,7 @@ function EstimateSheetFooter({ projectTotal }: { projectTotal: number }) {
 }
 
 export function EstimateSheetContent({ selectedNodeId, nodes = sampleEstimateTree, projectId, estimateId }: EstimateSheetContentProps) {
-  const [, startPersistTransition] = useTransition();
+  const { saveState, insertRow, replaceRow, deleteRow, updateRow } = useEstimateRowMutations(estimateId);
   const [estimateTree, setEstimateTree] = useState(nodes);
   const [editableRows, setEditableRows] = useState<Record<string, EditableRowValue>>(() => collectEditableRows(nodes));
   const [insertTargetNodeId, setInsertTargetNodeId] = useState(() => {
@@ -892,30 +914,18 @@ export function EstimateSheetContent({ selectedNodeId, nodes = sampleEstimateTre
     });
   }, [pendingFocusRowId]);
 
-  const persistMutation = useCallback((action: Promise<void>) => {
-    if (!projectId || !estimateId) return;
-    startPersistTransition(() => {
-      void action.then(
-        () => window.location.reload(),
-        () => window.location.reload(),
-      );
-    });
-  }, [estimateId, projectId]);
-
   function updateRowItem(rowItemId: string, values: Partial<EditableRowValue>) {
     if (!projectId || !estimateId) return;
-    persistMutation(
-      updateEstimateRowItem({
-        projectId,
-        estimateId,
-        rowId: rowItemId,
-        ...(values.quantity !== undefined ? { quantity: parseEditableNumber(values.quantity) } : {}),
-        ...(values.supplementaryCosts !== undefined ? { supplementaryCosts: parseEditableNumber(values.supplementaryCosts) } : {}),
-        ...(values.laborCost !== undefined ? { laborCost: parseEditableNumber(values.laborCost) } : {}),
-        ...(values.discipline !== undefined ? { discipline: values.discipline } : {}),
-        ...(values.designation !== undefined ? { designation: values.designation } : {}),
-      }),
-    );
+    updateRow({
+      projectId,
+      estimateId,
+      rowId: rowItemId,
+      ...(values.quantity !== undefined ? { quantity: parseEditableNumber(values.quantity) } : {}),
+      ...(values.supplementaryCosts !== undefined ? { supplementaryCosts: parseEditableNumber(values.supplementaryCosts) } : {}),
+      ...(values.laborCost !== undefined ? { laborCost: parseEditableNumber(values.laborCost) } : {}),
+      ...(values.discipline !== undefined ? { discipline: values.discipline } : {}),
+      ...(values.designation !== undefined ? { designation: values.designation } : {}),
+    });
   }
 
   const insertLibraryItem = useCallback((targetNodeId: string, libraryItem: EstimateRowItem) => {
@@ -938,9 +948,9 @@ export function EstimateSheetContent({ selectedNodeId, nodes = sampleEstimateTre
     setEditableRows((current) => ({ ...current, [newItem.id]: getInitialEditableRow(newItem) }));
 
     if (projectId && estimateId) {
-      persistMutation(insertEstimateRowItemFromLibrary({ projectId, estimateId, targetNodeId, rowId: newItem.id, libraryItem }));
+      insertRow({ projectId, estimateId, targetNodeId, rowId: newItem.id, libraryItem });
     }
-  }, [estimateId, estimateTree, persistMutation, projectId]);
+  }, [estimateId, estimateTree, insertRow, projectId]);
 
   useEffect(() => {
     function handleSidebarAdd(event: Event) {
@@ -967,7 +977,7 @@ export function EstimateSheetContent({ selectedNodeId, nodes = sampleEstimateTre
       }),
     );
     if (projectId && estimateId) {
-      persistMutation(replaceEstimateRowItemWithLibrary({ projectId, estimateId, rowId: rowItemId, libraryItem }));
+      replaceRow({ projectId, estimateId, rowId: rowItemId, libraryItem });
     }
   }
 
@@ -990,7 +1000,7 @@ export function EstimateSheetContent({ selectedNodeId, nodes = sampleEstimateTre
       return remainingRows;
     });
     if (projectId && estimateId) {
-      persistMutation(deleteEstimateRowItem({ projectId, estimateId, rowId: rowItemId }));
+      deleteRow({ projectId, estimateId, rowId: rowItemId });
     }
   }
 
@@ -1005,6 +1015,10 @@ export function EstimateSheetContent({ selectedNodeId, nodes = sampleEstimateTre
             onInsertTargetChange={setInsertTargetNodeId}
           />
           <EstimateActiveGroupContext node={selectedNode} editableRows={editableRows} />
+          <div className="flex items-center justify-between gap-2 border-b border-hairline bg-surfaceMuted px-2 py-1">
+            <p className="text-[10px] font-bold text-ink">Estimate workspace</p>
+            <EstimateSaveStatus state={saveState} />
+          </div>
           <div className="min-h-0 flex-1 overflow-auto p-2">
             <EstimateSheetBranch
               node={selectedNode}

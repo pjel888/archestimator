@@ -29,7 +29,7 @@ describe("live estimate node route", () => {
   });
 
   it("persists component-library area inserts through a project-scoped server action", () => {
-    expect(estimateContent).toContain("insertEstimateRowItemFromLibrary");
+    expect(estimateContent).toContain("useEstimateRowMutations");
     expect(estimateContent).toContain("projectId?: string");
     expect(estimateContent).toContain("estimateId?: string");
     expect(estimateNodePage).toContain("projectId={project.id} estimateId={estimate.id}");
@@ -41,7 +41,7 @@ describe("live estimate node route", () => {
     expect(estimateActions).toContain("replaceEstimateRowItemWithLibrary");
     expect(estimateActions).toContain("deleteEstimateRowItem");
     expect(estimateContent).toContain("onUpdateRowItem");
-    expect(estimateContent).toContain("replaceEstimateRowItemWithLibrary");
-    expect(estimateContent).toContain("deleteEstimateRowItem");
+    expect(estimateContent).toContain("replaceRow({ projectId, estimateId");
+    expect(estimateContent).toContain("deleteRow({ projectId, estimateId");
   });
 });
