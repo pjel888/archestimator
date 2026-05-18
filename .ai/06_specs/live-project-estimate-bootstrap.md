@@ -29,6 +29,12 @@ The current goal is intentionally narrow:
 - Passes live tree data into `EstimateSheetTree` and `EstimateSheetContent`.
 - Keeps the existing component-library sidebar and local row-editing behavior as a temporary client-side interaction layer until the row mutation slice persists edits.
 
+- `src/lib/estimates/actions.ts` now includes `insertEstimateRowItemFromLibrary()` for component-library inserts.
+- The action validates project ownership, estimate ownership, and `kind = area` before insertion.
+- Client insert remains optimistic for fast editing, then calls the server action and refreshes the route to reconcile with Supabase.
+- Inserted library rows use `link_state = linked-clean`; manual/project rows use `unlinked`.
+- Replace/delete/inline edits remain local until their mutation actions are implemented.
+
 ## Current behavior
 
 ### `/workshop/projects`
@@ -117,4 +123,4 @@ Required gates after edits:
 
 ## Next slice
 
-Persist estimate row insert/edit/delete mutations through repository/server-action/domain boundaries, starting with area-only insertion from the component library.
+Persist estimate row replace/delete and inline quantity/cost edits through repository/server-action/domain boundaries.

@@ -10,14 +10,14 @@ type ProjectEstimateNodePageProps = {
 
 export default async function ProjectEstimateNodePage({ params }: ProjectEstimateNodePageProps) {
   const { projectId, nodeId } = await params;
-  const { project, selectedNodeId, tree } = await getProjectEstimateTreeByNode(projectId, nodeId);
+  const { project, estimate, selectedNodeId, tree } = await getProjectEstimateTreeByNode(projectId, nodeId);
 
-  if (!project || !selectedNodeId || tree.length === 0) notFound();
+  if (!project || !estimate || !selectedNodeId || tree.length === 0) notFound();
 
   return (
     <section className="flex h-full min-h-0 overflow-hidden bg-white" aria-label={`${project.name} estimates`}>
       <EstimateSheetTree projectId={project.id} projectName={project.name} selectedNodeId={selectedNodeId} nodes={tree} />
-      <EstimateSheetContent selectedNodeId={selectedNodeId} nodes={tree} />
+      <EstimateSheetContent selectedNodeId={selectedNodeId} nodes={tree} projectId={project.id} estimateId={estimate.id} />
       <EstimateRightSidebar />
     </section>
   );
