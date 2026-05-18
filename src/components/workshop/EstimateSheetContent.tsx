@@ -1,6 +1,6 @@
 "use client";
 
-import { type Dispatch, type DragEvent, type InputHTMLAttributes, type KeyboardEvent, type SetStateAction, useCallback, useEffect, useMemo, useState } from "react";
+import { type Dispatch, type DragEvent, type InputHTMLAttributes, type KeyboardEvent, type SetStateAction, useCallback, useEffect, useMemo, useState, useTransition } from "react";
 import { ArrowsOutSimple, CaretDown, Cube, DotsSixVertical, FunnelSimple, HouseLine, Plus, SlidersHorizontal, Stack, Trash } from "@phosphor-icons/react/dist/ssr";
 
 import { Badge } from "@/components/ui/badge";
@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { ControlInput } from "@/components/ui/control-input";
 import { ControlSelect } from "@/components/ui/control-select";
 import { SearchInput } from "@/components/ui/search-input";
+import { insertEstimateRowItemFromLibrary } from "@/lib/estimates/actions";
 import { cn } from "@/lib/ui/cn";
 import { findEstimateNode, sampleEstimateTree, type EstimateAreaNode, type EstimateRowItem } from "./estimate-tree-data";
 
@@ -28,6 +29,8 @@ export { EstimateRightSidebar } from "./component-library";
 type EstimateSheetContentProps = {
   selectedNodeId: string;
   nodes?: EstimateAreaNode[];
+  projectId?: string;
+  estimateId?: string;
 };
 
 type EstimateSheetBranchProps = {
@@ -850,7 +853,8 @@ function EstimateSheetFooter({ projectTotal }: { projectTotal: number }) {
   );
 }
 
-export function EstimateSheetContent({ selectedNodeId, nodes = sampleEstimateTree }: EstimateSheetContentProps) {
+export function EstimateSheetContent({ selectedNodeId, nodes = sampleEstimateTree, projectId, estimateId }: EstimateSheetContentProps) {
+  const [, startPersistTransition] = useTransition();
   const [estimateTree, setEstimateTree] = useState(nodes);
   const [editableRows, setEditableRows] = useState<Record<string, EditableRowValue>>(() => collectEditableRows(nodes));
   const [insertTargetNodeId, setInsertTargetNodeId] = useState(() => {
@@ -890,7 +894,16 @@ export function EstimateSheetContent({ selectedNodeId, nodes = sampleEstimateTre
       }),
     );
     setEditableRows((current) => ({ ...current, [newItem.id]: getInitialEditableRow(newItem) }));
-  }, [estimateTree]);
+
+    if (projectId && estimateId) {
+      startPersistTransition(() => {
+        void insertEstimateRowItemFromLibrary({ projectId, estimateId, targetNodeId, rowId: newItem.id, libraryItem }).then(
+          () => window.location.reload(),
+          () => window.location.reload(),
+        );
+      });
+    }
+  }, [estimateId, estimateTree, projectId, startPersistTransition]);
 
   useEffect(() => {
     function handleSidebarAdd(event: Event) {
