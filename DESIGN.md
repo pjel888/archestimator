@@ -360,10 +360,26 @@ Use the Intercom model: large editorial sans headlines, compact body copy, restr
 Target text rhythm:
 
 - Landing H1: 64px desktop / 42–48px tablet / 34–38px mobile.
-- Section H2: 45px desktop / 34px tablet / 28px mobile.
-- Dashboard H1: 36px desktop, regular/medium weight.
-- App panel titles: 23–28px only when they define a work mode; otherwise 14–16px labels.
-- Estimate cells: 13px minimum with strong contrast; never tiny low-contrast spreadsheet text.
+- Landing section H2: 45px desktop / 34px tablet / 28px mobile.
+- Outside the public landing page, **12px is the hard maximum** for visible UI text unless Philip explicitly approves a one-off exception.
+- App/workshop/card titles: 12px maximum, bold enough for hierarchy but never marketing-sized.
+- App subtitles and secondary headings: around 11px.
+- App body, nav, controls, tables, inputs, tabs, chips, toolbar labels, and button text: normally 10px.
+- App meta/eyebrow labels: 8–9px.
+- Estimate cells: normally 10px with strong contrast and enough row height for scanning; do not solve readability by increasing beyond 12px.
+
+## Component reuse contract
+
+All app/workshop UI must be built from shared primitives and reusable product components. Before adding local markup, agents must check `src/components/ui/` and the relevant `src/components/workshop/` shared components, then reuse or extend them.
+
+Mandatory rules:
+
+- Do not create feature-local raw button class strings. Use and extend `src/components/ui/button.tsx` for buttons, icon buttons, toolbar buttons, ghost buttons, destructive buttons, and overlay/scrim buttons.
+- Do not create new one-off search inputs. Use and extend the shared search/input primitive, currently `src/components/ui/search-input.tsx` when present, or create it once under `src/components/ui/` and reuse it.
+- Do not create one-off icon-button patterns. Add a variant/size to the shared button primitive instead.
+- Do not duplicate card, chip, tab, filter, dropdown, field, toolbar, panel, empty-state, or inspector patterns inside route files. Extract a shared primitive or workshop component when the pattern appears more than once.
+- New UI primitives must encode this design scale internally: app text no larger than 12px, normal controls around 10px, compact padding, accessible states, and token-aligned colors.
+- A visible duplicated button/search/input/icon-button implementation is a blocking design-system defect, not harmless polish.
 
 ## Layout
 

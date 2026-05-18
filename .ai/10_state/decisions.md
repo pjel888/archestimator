@@ -18,6 +18,8 @@
 - 2026-05-18 — Current repo state supersedes the blank-workshop snapshot where they conflict. The reset remains the quality guardrail, but the repo now contains a small post-reset workshop slice under `/workshop/projects`, `/workshop/projects/[projectId]`, `/workshop/projects/[projectId]/estimates`, `/workshop/projects/[projectId]/estimates/[nodeId]`, and `/workshop/components`. Treat those as current implemented surfaces, not approval to restore the full deleted prototype.
 - 2026-05-18 — Current active orientation plan: `.ai/03_plans/current-post-reset-workshop-slice.md`.
 - 2026-05-18 — Estimate hierarchy model: a project can contain multiple Lot Groups. The canonical nesting is `Lot Group > Structure Group > Floor Group > Area Group > EstimateNodeRowItem`. Only Area Groups may contain estimate row items. Lot, Structure, and Floor groups may also contain Area Groups directly when the work scope does not need the intermediate levels.
+- 2026-05-18 — UI density is mandatory outside the landing page: visible app/workshop/product typography must not exceed 12px; normal controls/body/table/input/button text should be around 10px, subtitles around 11px, and meta labels around 8–9px.
+- 2026-05-18 — Reusable UI components are mandatory. Agents must check `src/components/ui` first, reuse or extend shared primitives/components for buttons, icon buttons, search inputs, cards, chips, tabs, filters, dropdowns, panels, and repeated controls, and create a shared primitive before adding a repeated feature-local control. `.ai/03_plans/ui-componentization-and-storybook-plan.md` is the active component matrix and Storybook organization plan.
 
 ## Superseded decisions
 
@@ -52,5 +54,3 @@ These concepts can be reconsidered later, but they must be reapproved through a 
 - What geography and pricing basis should v1 use?
 - Should v1 include AI generation, AI review, or no AI until the estimate sheet is strong?
 - What export format is mandatory first: PDF, Excel, CSV, branded quote, or BOQ?
-
-- 2026-05-18: Non-landing typography cap. App/workshop/product UI must not use large marketing typography; 12px is the maximum outside the landing page, with 10px as the normal body/control/table/button size and 8-9px for meta labels. Landing/editorial tokens remain landing-only.

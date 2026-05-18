@@ -50,6 +50,18 @@ Default roles:
 - Do not overwrite project decisions silently. Mark superseded decisions with dates.
 - Factual claims about code, costs, regulations, labor, or materials require cited sources or local evidence.
 
+## UI implementation contract
+
+- Outside the public landing page, visible app/workshop text must not exceed 12px unless Philip explicitly approves a named exception.
+- Default app/workshop scale is compact: body, table, nav, input, tab, toolbar, chip, and button text around 10px; subtitles around 11px; meta/eyebrow labels around 8–9px.
+- Before creating UI markup, inspect and reuse existing primitives/components. Extend shared primitives instead of creating feature-local controls.
+- If a repeated UI pattern is missing from the shared library, create or extend a reusable primitive first, then use it in the feature. Do not let feature screens become the first owner of generic controls.
+- Buttons, icon buttons, and toolbar buttons must go through `src/components/ui/button.tsx` or an explicitly shared wrapper built on it.
+- Search inputs must go through the shared search/input primitive, currently `src/components/ui/search-input.tsx` when present, instead of one-off local input markup.
+- Repeated cards, chips, tabs, filters, dropdowns, panels, empty states, and inspector controls must be extracted or reused as shared components.
+- UI component work must update or follow `.ai/03_plans/ui-componentization-and-storybook-plan.md`, including the component matrix and Storybook category plan. Do not install Storybook unless Philip explicitly approves setup/dependencies.
+- Treat oversized typography and duplicated controls as blocking defects during implementation and review.
+
 ## Completion discipline
 
 - Do not promise future work when a tool can do it now.
