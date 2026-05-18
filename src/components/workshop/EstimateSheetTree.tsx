@@ -15,9 +15,9 @@ type EstimateSheetTreeProps = {
   selectedNodeId: string;
 };
 
-function NodeIcon({ depth }: { depth: number }) {
-  if (depth === 0) return <HouseLine size={12} weight="bold" aria-hidden="true" />;
-  if (depth === 1) return <Stack size={12} weight="bold" aria-hidden="true" />;
+function NodeIcon({ kind }: { kind: "lot" | "structure" | "level" | "area" }) {
+  if (kind === "lot" || kind === "structure") return <HouseLine size={12} weight="bold" aria-hidden="true" />;
+  if (kind === "level") return <Stack size={12} weight="bold" aria-hidden="true" />;
   return <Cube size={12} weight="bold" aria-hidden="true" />;
 }
 
@@ -80,7 +80,7 @@ export function EstimateSheetTree({ projectId, projectName, selectedNodeId }: Es
                           />
                         ))}
                         <span className="mr-1 flex size-4 shrink-0 items-center justify-center rounded-sm border border-hairline bg-white text-tertiary" aria-hidden="true">
-                          <NodeIcon depth={node.depth} />
+                          <NodeIcon kind={node.kind} />
                         </span>
                         <span className="min-w-0 truncate text-left">{node.name}</span>
                       </span>

@@ -2,6 +2,7 @@
 
 import { type DragEvent, type KeyboardEvent as ReactKeyboardEvent } from "react";
 import { DotsSixVertical, DotsThreeVertical, Heart, Plus, PencilSimple, Trash } from "@phosphor-icons/react/dist/ssr";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/ui/cn";
 import type { EstimateRowItem } from "../estimate-tree-data";
@@ -103,30 +104,36 @@ export function LibraryItemCard({ item, viewMode, query, selected, onPreview, on
           <DotsThreeVertical size={11} weight="bold" />
         </summary>
         <div className="absolute right-0 z-20 mt-1 w-28 border border-hairline bg-white p-1 shadow-lg">
-          <button
+          <Button
             type="button"
-            className="flex w-full items-center gap-1.5 px-1.5 py-1 text-left text-[9px] font-bold hover:bg-surfaceMuted"
+            variant="ghost"
+            size="sm"
+            className="flex h-auto min-h-0 w-full justify-start gap-1.5 rounded-none px-1.5 py-1 text-left hover:bg-surfaceMuted"
             onClick={onPreview}
           >
             <PencilSimple size={10} />
             Edit
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
-            className="flex w-full items-center gap-1.5 px-1.5 py-1 text-left text-[9px] font-bold hover:bg-surfaceMuted"
+            variant="ghost"
+            size="sm"
+            className="flex h-auto min-h-0 w-full justify-start gap-1.5 rounded-none px-1.5 py-1 text-left hover:bg-surfaceMuted"
             onClick={onDuplicate}
           >
             <Plus size={10} />
             Duplicate
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
-            className="flex w-full items-center gap-1.5 px-1.5 py-1 text-left text-[9px] font-bold text-danger hover:bg-dangerSoft"
+            variant="ghost"
+            size="sm"
+            className="flex h-auto min-h-0 w-full justify-start gap-1.5 rounded-none px-1.5 py-1 text-left text-danger hover:bg-dangerSoft"
             onClick={onDelete}
           >
             <Trash size={10} />
             Delete
-          </button>
+          </Button>
         </div>
       </details>
     </span>
@@ -198,16 +205,16 @@ export function LibraryItemCard({ item, viewMode, query, selected, onPreview, on
           <>
             <span className="mt-1 block line-clamp-2 text-[9px] leading-3 text-secondary/60">{item.description}</span>
             <div className="mt-1 flex flex-wrap gap-1">
-              <span className="border border-hairline px-1 py-px text-[8px] font-bold uppercase tracking-[0.08em] text-tertiary">
+              <Badge size="xs">
                 {item.discipline || "Architectural"}
-              </span>
-              <span className="border border-hairline px-1 py-px text-[8px] font-bold uppercase tracking-[0.08em] text-tertiary">
+              </Badge>
+              <Badge size="xs">
                 {item.designation || "Floor"}
-              </span>
+              </Badge>
               {item.isCustom ? (
-                <span className="border border-accentSoft bg-accentSoft px-1 py-px text-[8px] font-bold uppercase tracking-[0.08em] text-ink">
+                <Badge size="xs" tone="accent">
                   Custom
-                </span>
+                </Badge>
               ) : null}
             </div>
           </>

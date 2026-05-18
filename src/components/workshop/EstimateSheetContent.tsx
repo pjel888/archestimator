@@ -1,9 +1,12 @@
 "use client";
 
-import { type Dispatch, type DragEvent, type SetStateAction, useEffect, useMemo, useState } from "react";
-import { ArrowsOutSimple, CaretDown, Cube, DotsSixVertical, HouseLine, Plus, Stack, Trash } from "@phosphor-icons/react/dist/ssr";
+import { type Dispatch, type DragEvent, type SetStateAction, useCallback, useEffect, useMemo, useState } from "react";
+import { ArrowsOutSimple, CaretDown, Cube, DotsSixVertical, FunnelSimple, HouseLine, Plus, SlidersHorizontal, Stack, Trash } from "@phosphor-icons/react/dist/ssr";
 
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { ControlSelect } from "@/components/ui/control-select";
+import { SearchInput } from "@/components/ui/search-input";
 import { cn } from "@/lib/ui/cn";
 import { findEstimateNode, sampleEstimateTree, type EstimateAreaNode, type EstimateRowItem } from "./estimate-tree-data";
 
@@ -40,9 +43,10 @@ export const pesoFormatter = new Intl.NumberFormat("en-PH", {
   minimumFractionDigits: 2,
 });
 
-function groupLabel(depth: number) {
-  if (depth === 0) return "Structure group";
-  if (depth === 1) return "Floor group";
+function groupLabel(kind: EstimateAreaNode["kind"]) {
+  if (kind === "lot") return "Lot group";
+  if (kind === "structure") return "Structure group";
+  if (kind === "level") return "Floor group";
   return "Area group";
 }
 
@@ -59,9 +63,10 @@ function groupGap(depth: number) {
   return "mt-4";
 }
 
-function NodeIcon({ depth }: { depth: number }) {
-  if (depth === 0) return <HouseLine size={13} weight="bold" aria-hidden="true" />;
-  if (depth === 1) return <Stack size={13} weight="bold" aria-hidden="true" />;
+function NodeIcon({ kind }: { kind: EstimateAreaNode["kind"] }) {
+  if (kind === "lot") return <HouseLine size={13} weight="bold" aria-hidden="true" />;
+  if (kind === "structure") return <HouseLine size={13} weight="bold" aria-hidden="true" />;
+  if (kind === "level") return <Stack size={13} weight="bold" aria-hidden="true" />;
   return <Cube size={13} weight="bold" aria-hidden="true" />;
 }
 
@@ -143,6 +148,16 @@ function computeNodeTotal(node: EstimateAreaNode, editableRows: Record<string, E
   return rowTotal + childTotal;
 }
 
+function countNodeRows(node: EstimateAreaNode): number {
+  const rowCount = node.estimateRowItems?.length ?? 0;
+  const childRowCount = (node.children ?? []).reduce((total, child) => total + countNodeRows(child), 0);
+  return rowCount + childRowCount;
+}
+
+function countNodeAreas(node: EstimateAreaNode): number {
+  return 1 + (node.children ?? []).reduce((total, child) => total + countNodeAreas(child), 0);
+}
+
 function EstimateSelect({
   value,
   options,
@@ -155,21 +170,19 @@ function EstimateSelect({
   onChange: (value: string) => void;
 }) {
   return (
-    <div className="relative w-full">
-      <select
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        aria-label={ariaLabel}
-        className="h-5 w-full appearance-none border-0 border-b border-hairline bg-transparent px-0 pr-4 text-[9px] font-semibold text-ink outline-none transition-colors hover:border-tertiary focus:border-accent"
-      >
-        {options.map((option) => (
-          <option key={option} value={option}>
-            {option}
-          </option>
-        ))}
-      </select>
-      <CaretDown size={10} weight="bold" className="pointer-events-none absolute right-0 top-1/2 -translate-y-1/2 text-tertiary" aria-hidden="true" />
-    </div>
+    <ControlSelect
+      value={value}
+      onChange={(event) => onChange(event.target.value)}
+      aria-label={ariaLabel}
+      wrapperClassName="w-full"
+      className="w-full pr-4 font-semibold"
+    >
+      {options.map((option) => (
+        <option key={option} value={option}>
+          {option}
+        </option>
+      ))}
+    </ControlSelect>
   );
 }
 
@@ -489,12 +502,12 @@ function EstimateSheetBranch({ node, editableRows, setEditableRows, onInsertLibr
   const childAreas = node.children ?? [];
   const estimateRowItems = node.estimateRowItems ?? [];
   const hasContents = childAreas.length > 0 || estimateRowItems.length > 0;
-  const canReceiveRows = node.kind === "area" || node.kind === "zone";
+  const canReceiveRows = node.kind === "area";
   const leftIndent = Math.min(depth * 18, 108);
   const total = computeNodeTotal(node, editableRows);
 
   return (
-    <section className={cn("space-y-1", groupGap(depth))} aria-label={`${node.name} ${groupLabel(depth).toLowerCase()}`}>
+    <section className={cn("space-y-1", groupGap(depth))} aria-label={`${node.name} ${groupLabel(node.kind).toLowerCase()}`}>
       <div className={cn("flex h-9 items-center gap-2 border px-1", groupTint())} style={{ paddingLeft: `${leftIndent + 8}px` }}>
         <Button
           variant="ghost"
@@ -507,11 +520,11 @@ function EstimateSheetBranch({ node, editableRows, setEditableRows, onInsertLibr
           <CaretDown size={13} weight="bold" aria-hidden="true" className={collapsed ? "-rotate-90" : ""} />
         </Button>
         <span className="flex size-6 shrink-0 items-center justify-center border border-hairline bg-white text-tertiary">
-          <NodeIcon depth={depth} />
+          <NodeIcon kind={node.kind} />
         </span>
         <div className="min-w-0 flex-1">
           <p className="truncate text-[10px] font-bold text-ink">{node.name}</p>
-          <p className="text-[9px] font-bold uppercase tracking-[0.12em] text-tertiary">{groupLabel(depth)}</p>
+          <p className="text-[9px] font-bold uppercase tracking-[0.12em] text-tertiary">{groupLabel(node.kind)}</p>
         </div>
         <span className="shrink-0 text-right text-[10px] font-bold tabular-nums text-ink">{pesoFormatter.format(total)}</span>
       </div>
@@ -575,12 +588,79 @@ function cloneLibraryItemForEstimate(libraryItem: EstimateRowItem, targetNodeId:
   };
 }
 
+function EstimateSheetHeader({
+  selectedNode,
+  projectNode,
+  editableRows,
+}: {
+  selectedNode: EstimateAreaNode;
+  projectNode: EstimateAreaNode;
+  editableRows: Record<string, EditableRowValue>;
+}) {
+  const projectTotal = computeNodeTotal(projectNode, editableRows);
+  const projectRowCount = countNodeRows(projectNode);
+  const projectAreaCount = countNodeAreas(projectNode);
+
+  return (
+    <header className="sticky top-0 z-20 border-b border-hairline bg-white/95 backdrop-blur" aria-label="Estimate sheet controls">
+      <div className="flex items-center gap-3 px-3 py-2.5">
+        {/* Left: Title and metadata */}
+        <div className="min-w-0 flex-shrink-0">
+          <p className="text-[9px] font-bold uppercase tracking-[0.08em] text-tertiary">Estimate sheet</p>
+          <div className="mt-0.5 flex min-w-0 items-center gap-2">
+            <h2 className="truncate text-[12px] font-bold leading-4 tracking-[-0.01em] text-ink">{selectedNode.name}</h2>
+            <Badge>
+              {selectedNode.kind}
+            </Badge>
+          </div>
+        </div>
+
+        {/* Right: Search and actions */}
+        <div className="ml-auto flex min-w-0 flex-1 items-center justify-end gap-1.5">
+          <SearchInput
+            wrapperClassName="h-8 w-full max-w-xs rounded-sm"
+            placeholder="Search rows, material, supplier"
+            aria-label="Search estimate rows"
+          />
+          <Button variant="secondary" size="sm" className="h-8 min-h-8 gap-1.5 px-2.5" aria-label="Filter estimate rows">
+            <FunnelSimple size={12} weight="bold" aria-hidden="true" />
+            Filter
+          </Button>
+          <Button variant="ghost" size="sm" className="h-8 min-h-8 gap-1.5 px-2.5" aria-label="Open estimate view options">
+            <SlidersHorizontal size={12} weight="bold" aria-hidden="true" />
+            View
+          </Button>
+        </div>
+      </div>
+
+      {/* Stats row */}
+      <div className="flex items-center gap-1.5 border-t border-hairline/60 px-3 py-1.5">
+        <Badge>
+          {projectRowCount} rows
+        </Badge>
+        <Badge>
+          {projectAreaCount} areas
+        </Badge>
+        <span className="ml-auto flex items-center gap-1.5 rounded-sm bg-accent-soft px-2 py-0.5">
+          <span className="text-[9px] font-bold tracking-[0.08em] uppercase text-accent-dark">Project total</span>
+          <span className="font-mono text-[10px] font-bold leading-none tracking-[-0.02em] text-ink">
+            {pesoFormatter.format(projectTotal)}
+          </span>
+        </span>
+      </div>
+    </header>
+  );
+}
+
 export function EstimateSheetContent({ selectedNodeId }: EstimateSheetContentProps) {
   const [estimateTree, setEstimateTree] = useState(sampleEstimateTree);
   const [editableRows, setEditableRows] = useState<Record<string, EditableRowValue>>(() => collectEditableRows(sampleEstimateTree));
   const selectedNode = findEstimateNode(estimateTree, selectedNodeId) ?? estimateTree[0];
 
-  function insertLibraryItem(targetNodeId: string, libraryItem: EstimateRowItem) {
+  const insertLibraryItem = useCallback((targetNodeId: string, libraryItem: EstimateRowItem) => {
+    const targetNode = findEstimateNode(estimateTree, targetNodeId);
+    if (targetNode?.kind !== "area") return;
+
     const newItem = cloneLibraryItemForEstimate(libraryItem, targetNodeId);
     setEstimateTree((current) =>
       current.map((node) => {
@@ -594,7 +674,7 @@ export function EstimateSheetContent({ selectedNodeId }: EstimateSheetContentPro
       }),
     );
     setEditableRows((current) => ({ ...current, [newItem.id]: getInitialEditableRow(newItem) }));
-  }
+  }, [estimateTree]);
 
   useEffect(() => {
     function handleSidebarAdd(event: Event) {
@@ -603,7 +683,7 @@ export function EstimateSheetContent({ selectedNodeId }: EstimateSheetContentPro
     }
     window.addEventListener("archestimator:add-library-item", handleSidebarAdd);
     return () => window.removeEventListener("archestimator:add-library-item", handleSidebarAdd);
-  }, [selectedNodeId]);
+  }, [insertLibraryItem, selectedNodeId]);
 
   function deleteRowItem(rowItemId: string) {
     setEstimateTree((current) =>
@@ -626,15 +706,20 @@ export function EstimateSheetContent({ selectedNodeId }: EstimateSheetContentPro
   }
 
   return (
-    <section className="min-h-0 min-w-0 flex-1 overflow-auto bg-white p-2" aria-label="Main estimate sheet">
+    <section className="min-h-0 min-w-0 flex-1 overflow-auto bg-white" aria-label="Main estimate sheet">
       {selectedNode ? (
-        <EstimateSheetBranch
-          node={selectedNode}
-          editableRows={editableRows}
-          setEditableRows={setEditableRows}
-          onInsertLibraryItem={insertLibraryItem}
-          onDeleteRowItem={deleteRowItem}
-        />
+        <>
+          <EstimateSheetHeader selectedNode={selectedNode} projectNode={estimateTree[0]} editableRows={editableRows} />
+          <div className="p-2">
+            <EstimateSheetBranch
+              node={selectedNode}
+              editableRows={editableRows}
+              setEditableRows={setEditableRows}
+              onInsertLibraryItem={insertLibraryItem}
+              onDeleteRowItem={deleteRowItem}
+            />
+          </div>
+        </>
       ) : null}
     </section>
   );

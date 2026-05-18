@@ -38,7 +38,7 @@ export type EstimateRowItem = {
 export type EstimateAreaNode = {
   id: string;
   name: string;
-  kind: "project" | "structure" | "level" | "area" | "zone";
+  kind: "lot" | "structure" | "level" | "area";
   total: string;
   children?: EstimateAreaNode[];
   estimateRowItems?: EstimateRowItem[];
@@ -266,7 +266,13 @@ export const estimateLibraryItems: EstimateRowItem[] = [
 
 export const sampleEstimateTree: EstimateAreaNode[] = [
   {
-    id: "main-house",
+    id: "lot-primary-residence",
+    name: "Lot A — Primary Residence",
+    kind: "lot",
+    total: "₱0.00",
+    children: [
+      {
+        id: "main-house",
     name: "Main House",
     kind: "structure",
     total: "₱0.00",
@@ -344,6 +350,42 @@ export const sampleEstimateTree: EstimateAreaNode[] = [
       },
     ],
   },
+    ],
+  },
+  {
+    id: "lot-site-works",
+    name: "Lot B — Site Works",
+    kind: "lot",
+    total: "₱0.00",
+    children: [
+      {
+        id: "front-yard",
+        name: "Front Yard",
+        kind: "area",
+        total: "₱0.00",
+        estimateRowItems: [
+          row({ id: "front-yard-pebble-washout", material: "Pebble Washout Floor Finish", description: "Direct lot-level area allowance for front yard hardscape finish.", supplier: "Local PH contractor / aggregate supplier", source: "supplier", unit: "sqm", itemCost: 950, quantity: 36, supplementaryCosts: 2500, laborCost: 5200, category: "Finishes", discipline: "Architectural", designation: "Floor Finish", pricingSource: "Local contractor allowance — verify site and aggregate quote", pricingDate: "2026-05-18" }),
+        ],
+      },
+      {
+        id: "gatehouse",
+        name: "Gatehouse",
+        kind: "structure",
+        total: "₱0.00",
+        children: [
+          {
+            id: "gatehouse-interior",
+            name: "Gatehouse Interior",
+            kind: "area",
+            total: "₱0.00",
+            estimateRowItems: [
+              row({ id: "gatehouse-epoxy-floor", material: "Epoxy Floor Coating System", description: "Small gatehouse floor coating allowance.", supplier: "Boysen / Davies / PH specialty coating contractor", source: "supplier", unit: "sqm", itemCost: 1650, quantity: 8, supplementaryCosts: 0, laborCost: 1200, category: "Finishes", discipline: "Architectural", designation: "Floor Finish", pricingSource: "Philippine coating brand/contractor allowance — verify product system and quote", pricingDate: "2026-05-18" }),
+            ],
+          },
+        ],
+      },
+    ],
+  },
 ];
 
 export function flattenVisibleNodes(nodes: EstimateAreaNode[], expandedIds: Set<string>, depth = 0, parentPath: string[] = []): FlatEstimateAreaNode[] {
@@ -375,4 +417,19 @@ export function findEstimateNode(nodes: EstimateAreaNode[], id: string): Estimat
     if (child) return child;
   }
   return undefined;
+}
+
+export function validateEstimateTreeHierarchy(nodes: EstimateAreaNode[]) {
+  const errors: string[] = [];
+
+  function visit(node: EstimateAreaNode, path: string[]) {
+    const nodePath = [...path, node.name];
+    if (node.kind !== "area" && node.estimateRowItems?.length) {
+      errors.push(`${nodePath.join(" > ")} is a ${node.kind} group but contains estimate row items`);
+    }
+    node.children?.forEach((child) => visit(child, nodePath));
+  }
+
+  nodes.forEach((node) => visit(node, []));
+  return errors;
 }
