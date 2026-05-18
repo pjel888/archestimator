@@ -32,7 +32,7 @@ If Philip reports degraded agent performance, stale behavior, or repeated mistak
 /login                                                -> Supabase magic-link auth route
 /auth/callback                                        -> Supabase auth callback route
 /workshop                                             -> protected workshop entry page
-/workshop/projects                                    -> protected post-reset project list/cards route with authenticated workspace bootstrap
+/workshop/projects                                    -> protected post-reset live project list/create route with authenticated workspace bootstrap
 /workshop/projects/[projectId]                        -> protected post-reset project dashboard/detail route
 /workshop/projects/[projectId]/estimates              -> protected post-reset estimates shell/list route
 /workshop/projects/[projectId]/estimates/[nodeId]     -> protected post-reset estimate node route
@@ -74,6 +74,7 @@ Proceed from the current small post-reset workshop slice, not from the deleted p
 ## Current feature specs
 
 - `.ai/06_specs/current-project-estimates-component-library-spec.md` is the canonical current-state feature spec for the implemented project estimate workspace and connected Component Library sidebar. Read it before expanding `/workshop/projects/[projectId]/estimates/[nodeId]`, `EstimateSheetContent`, `EstimateSheetTree`, or `src/components/workshop/component-library/*`.
+- `.ai/06_specs/supabase-auth-setup.md` documents active Supabase Auth/Profile/CEO access setup, hosted-dashboard redirect checks, and the manual magic-link smoke test.
 - `.ai/03_plans/project-estimates-component-library-improvement-plan.md` is the research-backed UX/UI improvement plan for that feature. Its immediate recommended next slice is target-aware insert + insert-and-edit + keyboard editing baseline.
 - `.ai/03_plans/ui-componentization-and-storybook-plan.md` is the active reusable UI primitive matrix and Storybook organization plan. Read it before creating app/workshop controls, component-library controls, toolbars, cards, filters, panels, or stories.
 

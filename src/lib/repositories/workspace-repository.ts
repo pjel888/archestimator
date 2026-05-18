@@ -57,3 +57,18 @@ export async function listCurrentWorkspaceProjects() {
   if (error) throw error;
   return { workspace, projects: data ?? [] };
 }
+
+export async function getCurrentWorkspaceProject(projectId: string) {
+  const { workspace } = await ensureDefaultWorkspace();
+  const supabase = await createSupabaseServerClient();
+
+  const { data: project, error } = await supabase
+    .from("projects")
+    .select("*")
+    .eq("workspace_id", workspace.id)
+    .eq("id", projectId)
+    .maybeSingle();
+
+  if (error) throw error;
+  return { workspace, project };
+}
