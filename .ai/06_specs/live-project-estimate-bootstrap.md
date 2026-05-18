@@ -35,7 +35,7 @@ The current goal is intentionally narrow:
 - Inserted library rows use `link_state = linked-clean`; manual/project rows use `unlinked`.
 - Replace, delete, and inline quantity/cost/discipline/designation edits persist through project-scoped server actions.
 - Mutations validate row ownership through estimate/node/project joins before modifying Supabase.
-- Client interactions remain optimistic; the live tree is hydrated into an `estimate/{id}/area-tree` TanStack Query cache, and failed mutations call local rollback before showing `Save failed`.
+- Client interactions remain optimistic; the live tree is hydrated into an `estimate/{id}/area-tree` TanStack Query cache, failed mutations call local rollback before showing row-specific `Save failed`, and successful mutations invalidate the active tree query so the client refetches the server tree instead of relying on route `initialData` only.
 
 ## Current behavior
 
@@ -120,9 +120,9 @@ Required gates after edits:
 ## Known limitations
 
 - Hosted Supabase redirect URLs still require Dashboard verification.
-- Estimate detail route now reads live Supabase tree/rows with project-scoped node validation, but row edits remain local until the next mutation slice.
+- Estimate detail route now reads live Supabase tree/rows with project-scoped node validation; row CRUD and inline edits persist through project-scoped server actions with optimistic local updates, row-level dirty/saving/saved/failed markers, rollback on failure, and active TanStack Query tree refetch after success.
 - Estimate totals, proposal exports, recent activity, and estimate row CRUD UI are not in this slice.
 
 ## Next slice
 
-Implement row-specific dirty/saved/error markers and migrate the live estimate tree fetch/refetch path to a real client fetcher or server hydration boundary instead of `initialData` only.
+Implement row creation affordances for adding new blank/manual rows, then add proposal totals/export coverage once the row mutation UX is stable.

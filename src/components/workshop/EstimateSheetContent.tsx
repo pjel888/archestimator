@@ -43,6 +43,8 @@ type EstimateSheetBranchProps = {
   onReplaceRowItem: (rowItemId: string, libraryItem: EstimateRowItem) => void;
   onDeleteRowItem: (rowItemId: string) => void;
   onUpdateRowItem: (rowItemId: string, values: Partial<EditableRowValue>) => void;
+  onMarkRowDirty: (rowItemId: string) => void;
+  rowSaveStates: Record<string, EstimateSaveState>;
   depth?: number;
 };
 
@@ -397,6 +399,8 @@ function EstimateRowItemsTable({
   onReplaceRowItem,
   onDeleteRowItem,
   onUpdateRowItem,
+  onMarkRowDirty,
+  rowSaveStates,
 }: {
   items: EstimateRowItem[];
   editableRows: Record<string, EditableRowValue>;
@@ -406,6 +410,8 @@ function EstimateRowItemsTable({
   onReplaceRowItem: (rowItemId: string, libraryItem: EstimateRowItem) => void;
   onDeleteRowItem: (rowItemId: string) => void;
   onUpdateRowItem: (rowItemId: string, values: Partial<EditableRowValue>) => void;
+  onMarkRowDirty: (rowItemId: string) => void;
+  rowSaveStates: Record<string, EstimateSaveState>;
 }) {
   const [focusedCell, setFocusedCell] = useState<{ rowId: string; cellIndex: number } | null>(null);
   const [replaceTargetRowId, setReplaceTargetRowId] = useState("");
@@ -507,6 +513,7 @@ function EstimateRowItemsTable({
                   ariaLabel={`${item.material} discipline`}
                   onChange={(value) => {
                     setEditableRows((current) => updateEditableRowValue(current, item, { discipline: value }));
+                    onMarkRowDirty(item.id);
                     onUpdateRowItem(item.id, { discipline: value });
                   }}
                 />
@@ -516,6 +523,7 @@ function EstimateRowItemsTable({
                   ariaLabel={`${item.material} designation`}
                   onChange={(value) => {
                     setEditableRows((current) => updateEditableRowValue(current, item, { designation: value }));
+                    onMarkRowDirty(item.id);
                     onUpdateRowItem(item.id, { designation: value });
                   }}
                 />
@@ -532,9 +540,10 @@ function EstimateRowItemsTable({
                   min="0"
                   step="0.01"
                   value={item.editableQuantity}
-                  onChange={(event) =>
-                    setEditableRows((current) => updateEditableRowValue(current, item, { quantity: event.target.value }))
-                  }
+                  onChange={(event) => {
+                    setEditableRows((current) => updateEditableRowValue(current, item, { quantity: event.target.value }));
+                    onMarkRowDirty(item.id);
+                  }}
                   onFocus={() => setFocusedCell({ rowId: item.id, cellIndex: 0 })}
                   onBlur={() => {
                     setFocusedCell((current) => (current?.rowId === item.id && current.cellIndex === 0 ? null : current));
@@ -560,7 +569,10 @@ function EstimateRowItemsTable({
               >
                 <MoneyInput
                   value={item.editableSupplementaryCosts}
-                  onChange={(value) => setEditableRows((current) => updateEditableRowValue(current, item, { supplementaryCosts: value }))}
+                  onChange={(value) => {
+                    setEditableRows((current) => updateEditableRowValue(current, item, { supplementaryCosts: value }));
+                    onMarkRowDirty(item.id);
+                  }}
                   ariaLabel={`${item.material} other costs`}
                   onFocus={() => setFocusedCell({ rowId: item.id, cellIndex: 1 })}
                   onBlur={() => {
@@ -581,7 +593,10 @@ function EstimateRowItemsTable({
               >
                 <MoneyInput
                   value={item.editableLaborCost}
-                  onChange={(value) => setEditableRows((current) => updateEditableRowValue(current, item, { laborCost: value }))}
+                  onChange={(value) => {
+                    setEditableRows((current) => updateEditableRowValue(current, item, { laborCost: value }));
+                    onMarkRowDirty(item.id);
+                  }}
                   ariaLabel={`${item.material} labor cost`}
                   onFocus={() => setFocusedCell({ rowId: item.id, cellIndex: 2 })}
                   onBlur={() => {
@@ -598,6 +613,7 @@ function EstimateRowItemsTable({
                 <p className="text-[10px] font-semibold text-tertiary">Total Item Cost</p>
               </td>
               <td className="flex flex-col items-center justify-between gap-1 py-1 text-tertiary">
+                <RowSaveStatus state={rowSaveStates[item.id]} />
                 <Button
                   type="button"
                   variant="ghost"
@@ -654,6 +670,7 @@ function EstimateRowItemsTable({
 function EstimateSaveStatus({ state }: { state: EstimateSaveState }) {
   const statusCopy = {
     idle: "Ready",
+    dirty: "Unsaved",
     saving: "Saving",
     saved: "Saved",
     failed: "Save failed",
@@ -665,12 +682,18 @@ function EstimateSaveStatus({ state }: { state: EstimateSaveState }) {
         "shrink-0 rounded-sm border px-1 py-0.5 text-[9px] font-bold uppercase tracking-[0.08em]",
         state === "failed" ? "border-red-200 bg-red-50 text-red-700" : "border-hairline bg-white text-tertiary",
         state === "saving" && "text-accent",
+        state === "dirty" && "text-amber-700",
       )}
       aria-live="polite"
     >
       {statusCopy[state]}
     </span>
   );
+}
+
+function RowSaveStatus({ state }: { state?: EstimateSaveState }) {
+  if (!state || state === "idle") return <span className="size-3" aria-hidden="true" />;
+  return <EstimateSaveStatus state={state} />;
 }
 
 function EmptyAreaMessage({ depth, nodeId, onInsertLibraryItem }: { depth: number; nodeId: string; onInsertLibraryItem: (targetNodeId: string, libraryItem: EstimateRowItem) => void }) {
@@ -695,7 +718,7 @@ function EmptyAreaMessage({ depth, nodeId, onInsertLibraryItem }: { depth: numbe
   );
 }
 
-function EstimateSheetBranch({ node, editableRows, setEditableRows, onInsertLibraryItem, onReplaceRowItem, onDeleteRowItem, onUpdateRowItem, depth = 0 }: EstimateSheetBranchProps) {
+function EstimateSheetBranch({ node, editableRows, setEditableRows, onInsertLibraryItem, onReplaceRowItem, onDeleteRowItem, onUpdateRowItem, onMarkRowDirty, rowSaveStates, depth = 0 }: EstimateSheetBranchProps) {
   const [collapsed, setCollapsed] = useState(false);
   const childAreas = node.children ?? [];
   const estimateRowItems = node.estimateRowItems ?? [];
@@ -739,6 +762,8 @@ function EstimateSheetBranch({ node, editableRows, setEditableRows, onInsertLibr
               onReplaceRowItem={onReplaceRowItem}
               onDeleteRowItem={onDeleteRowItem}
               onUpdateRowItem={onUpdateRowItem}
+              onMarkRowDirty={onMarkRowDirty}
+              rowSaveStates={rowSaveStates}
               depth={depth + 1}
             />
           ))}
@@ -751,6 +776,8 @@ function EstimateSheetBranch({ node, editableRows, setEditableRows, onInsertLibr
             onReplaceRowItem={onReplaceRowItem}
             onDeleteRowItem={onDeleteRowItem}
             onUpdateRowItem={onUpdateRowItem}
+            onMarkRowDirty={onMarkRowDirty}
+            rowSaveStates={rowSaveStates}
           />
           {!hasContents ? <EmptyAreaMessage depth={depth + 1} nodeId={node.id} onInsertLibraryItem={onInsertLibraryItem} /> : null}
           {hasContents && canReceiveRows ? (
@@ -896,11 +923,13 @@ function EstimateSheetFooter({ projectTotal }: { projectTotal: number }) {
 export function EstimateSheetContent({ selectedNodeId, nodes = sampleEstimateTree, projectId, estimateId }: EstimateSheetContentProps) {
   const queryClient = useQueryClient();
   const areaTreeQueryKey = estimateQueryKeys.areaTree(estimateId ?? "local-estimate");
-  const { saveState, insertRow, replaceRow, deleteRow, updateRow } = useEstimateRowMutations(estimateId);
+  const { saveState, rowSaveStates, markRowDirty, fetchTree, insertRow, replaceRow, deleteRow, updateRow } = useEstimateRowMutations(estimateId);
   const { data: queriedEstimateTree = nodes } = useQuery({
     queryKey: areaTreeQueryKey,
-    queryFn: async () => nodes,
+    queryFn: () => (projectId && estimateId ? fetchTree({ projectId, estimateId }) : Promise.resolve(nodes)),
     initialData: nodes,
+    enabled: Boolean(projectId && estimateId),
+    refetchOnWindowFocus: true,
     staleTime: 30_000,
   });
   const [estimateTree, setEstimateTreeState] = useState(queriedEstimateTree);
@@ -927,6 +956,14 @@ export function EstimateSheetContent({ selectedNodeId, nodes = sampleEstimateTre
     setEstimateTreeState(previousTree);
     setEditableRows(previousRows);
   }, [areaTreeQueryKey, queryClient]);
+
+  useEffect(() => {
+    if (saveState === "dirty" || saveState === "saving") return;
+    queueMicrotask(() => {
+      setEstimateTreeState(queriedEstimateTree);
+      setEditableRows(collectEditableRows(queriedEstimateTree));
+    });
+  }, [queriedEstimateTree, saveState]);
 
   useEffect(() => {
     if (!pendingFocusRowId) return;
@@ -1061,6 +1098,8 @@ export function EstimateSheetContent({ selectedNodeId, nodes = sampleEstimateTre
               onReplaceRowItem={replaceRowItem}
               onDeleteRowItem={deleteRowItem}
               onUpdateRowItem={updateRowItem}
+              onMarkRowDirty={markRowDirty}
+              rowSaveStates={rowSaveStates}
             />
           </div>
           <EstimateSheetFooter projectTotal={projectTotal} />

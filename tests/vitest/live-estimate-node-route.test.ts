@@ -47,4 +47,14 @@ describe("live estimate node route", () => {
     expect(estimateContent).toContain("estimateQueryKeys.areaTree");
     expect(estimateContent).toContain("rollback: () => restoreEstimateState");
   });
+
+  it("tracks row-level dirty/save status and refetches active live trees after persisted mutations", () => {
+    expect(estimateContent).toContain("rowSaveStates");
+    expect(estimateContent).toContain("onMarkRowDirty");
+    expect(estimateContent).toContain("<RowSaveStatus state={rowSaveStates[item.id]} />");
+    expect(estimateContent).toContain("refetchOnWindowFocus: true");
+    expect(estimateActions).toContain("fetchEstimateTree");
+    expect(estimateActions).toContain("getProjectEstimateTreeByEstimate");
+    expect(readFileSync("src/hooks/use-estimate-row-mutations.ts", "utf8")).toContain('refetchType: "active"');
+  });
 });
