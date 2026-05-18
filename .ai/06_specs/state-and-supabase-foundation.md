@@ -1,7 +1,7 @@
 # Archestimator State and Supabase Foundation
 
 **Date:** 2026-05-18
-**Status:** Approved direction / implementation foundation started
+**Status:** Approved direction / schema foundation added
 
 ## Decision
 
@@ -58,13 +58,45 @@ workspace
         estimate_row_item
 ```
 
-`estimate_node.kind` should support:
+`estimate_node.kind` supports:
 
 ```txt
 lot | structure | level | area | group | assembly
 ```
 
 Only `area` nodes may receive estimate row items unless Philip explicitly approves a broader receiving rule.
+
+## Migration files
+
+The first schema foundation is tracked in:
+
+- `supabase/migrations/20260518090000_archestimator_core_schema.sql`
+- `supabase/seed.sql`
+
+The schema includes:
+
+- `workspaces`
+- `workspace_members`
+- `projects`
+- `estimates`
+- `cost_library_items`
+- `estimate_nodes`
+- `estimate_row_items`
+
+RLS is enabled on all app tables from the first migration. Anonymous users should not receive application rows. Authenticated users can access records only through workspace membership policies. Workspace creation automatically inserts an owner membership for the creator through an insert trigger.
+
+## Generated/type boundary
+
+`src/lib/supabase/types.ts` mirrors the current migration schema until live type generation can be run against the linked Supabase database. After the migration is applied to the remote project, replace or confirm this file with generated Supabase types.
+
+## Repository boundary
+
+The estimate repository now has two implementations behind one public interface:
+
+- in-memory fallback when Supabase public env vars are missing;
+- Supabase-backed reads/writes when `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` are present.
+
+Screens/hooks should continue to call repository functions, not raw Supabase queries directly.
 
 ## Mutation boundary
 
@@ -77,3 +109,11 @@ Domain mutations are the only legal path for structural changes:
 - `updateEstimateRowValues`
 
 UI can optimistically update through TanStack Query, but persistence must be committed through repository/domain functions.
+
+## Next steps
+
+1. Apply the migration to the linked Supabase project once the database password or Supabase PAT/MCP path is available.
+2. Generate official Supabase TypeScript types from the remote schema.
+3. Add authenticated workspace/project creation flows.
+4. Expand repository functions for insert/update/delete row items and cost-library operations.
+5. Add tests around authenticated data access and RLS expectations.

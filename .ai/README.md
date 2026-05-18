@@ -28,7 +28,7 @@ This folder is the project brain. It stores product thinking, implementation pla
 - Mode: post-reset MVP exploration after rejected app/workshop prototype.
 - Preserved: `/` landing page.
 - Current implemented slice: `/workshop`, `/workshop/projects`, project detail/estimates routes, and `/workshop/components` exist in `src/app`.
-- Current state/data foundation: Supabase project `ebxxqidacheyapmmzavr` is linked locally; `.env.local` contains public Supabase URL/publishable key; TanStack Query, Supabase client packages, Zustand, and dnd-kit are installed for the approved state architecture.
+- Current state/data foundation: Supabase project `ebxxqidacheyapmmzavr` is linked locally; `.env.local` contains public Supabase URL/publishable key; TanStack Query, Supabase client packages, Zustand, and dnd-kit are installed for the approved state architecture. The first schema migration and seed file now define the workspace/project/estimate/library/tree/row tables with RLS from the start.
 - Superseded: the deleted full prototype dashboard, estimate editor, component library, proposal, revision, local-first data, shell, and broad route-family work. Do not resume those old plans unless Philip explicitly reapproves them.
 - Read first for restart and quality context: `.ai/00_system/AGENT_SELF_DIAGNOSTIC_PROTOCOL.md`, `.ai/10_state/current-state.md`, `.ai/03_plans/current-post-reset-workshop-slice.md`, `.ai/02_audits/2026-05-17-reset-cleanup-audit.md`, and `.ai/06_specs/restart-guardrails.md`.
 
