@@ -286,6 +286,44 @@ export type Database = {
           },
         ]
       }
+      profiles: {
+        Row: {
+          created_at: string
+          default_workspace_id: string | null
+          display_name: string | null
+          email: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          default_workspace_id?: string | null
+          display_name?: string | null
+          email: string
+          id: string
+          role?: Database["public"]["Enums"]["app_role"]
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          default_workspace_id?: string | null
+          display_name?: string | null
+          email?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "profiles_default_workspace_id_fkey"
+            columns: ["default_workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       projects: {
         Row: {
           client_name: string | null
@@ -400,6 +438,25 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      current_user_profile: {
+        Args: never
+        Returns: {
+          created_at: string
+          default_workspace_id: string | null
+          display_name: string | null
+          email: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "profiles"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      is_platform_admin: { Args: never; Returns: boolean }
       is_workspace_admin: {
         Args: { target_workspace_id: string }
         Returns: boolean
@@ -408,8 +465,13 @@ export type Database = {
         Args: { target_workspace_id: string }
         Returns: boolean
       }
+      resolve_app_role_for_email: {
+        Args: { raw_email: string }
+        Returns: Database["public"]["Enums"]["app_role"]
+      }
     }
     Enums: {
+      app_role: "ceo" | "admin" | "member"
       cost_library_item_kind:
         | "material"
         | "labor"
@@ -559,6 +621,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      app_role: ["ceo", "admin", "member"],
       cost_library_item_kind: [
         "material",
         "labor",

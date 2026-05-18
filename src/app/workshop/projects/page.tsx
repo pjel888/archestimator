@@ -4,13 +4,16 @@ import { Button } from "@/components/ui/button";
 import { ProjectCard } from "@/components/workshop/ProjectCard";
 import { WorkshopPageShell } from "@/components/workshop/WorkshopPageShell";
 import { sampleProjects } from "@/components/workshop/workshop-sample-projects";
+import { listCurrentWorkspaceProjects } from "@/lib/repositories/workspace-repository";
 
-export default function ProjectsPage() {
+export default async function ProjectsPage() {
+  const { workspace, projects } = await listCurrentWorkspaceProjects();
+
   return (
     <WorkshopPageShell
       title="Projects"
       eyebrow="Work"
-      description="Browse current estimate work by project. These are sample project cards only; persistence and project detail routes remain intentionally unbuilt until the workflow is approved."
+      description={`Workspace: ${workspace.name}. Live Supabase project records are connected; sample cards remain visible until the project creation form is approved.`}
       actions={
         <>
           <Button variant="secondary" size="md" className="hidden h-9 shadow-[0_1px_0_rgba(17,17,17,0.04)] sm:inline-flex">
@@ -25,8 +28,8 @@ export default function ProjectsPage() {
       }
       footer={
         <>
-          <span>{sampleProjects.length} sample projects</span>
-          <span>No persistence connected</span>
+          <span>{projects.length} live projects</span>
+          <span>{sampleProjects.length} sample cards visible</span>
         </>
       }
     >

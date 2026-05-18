@@ -3,10 +3,16 @@ import type { EstimateNode, EstimateRowItem, EstimateTree } from "@/lib/domain/e
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { hasSupabaseBrowserEnv, type Json, type Tables, type TablesInsert } from "@/lib/supabase/types";
 
-type EstimateRepository = {
+export type InsertEstimateRowItemInput = Omit<EstimateRowItem, "id" | "estimateId"> & { id?: string };
+export type UpdateEstimateRowItemInput = Partial<Omit<EstimateRowItem, "id" | "estimateId">>;
+
+export type EstimateRepository = {
   getEstimateTree(estimateId: string): Promise<EstimateTree>;
   moveEstimateNode(estimateId: string, input: MoveEstimateNodeInput): Promise<EstimateTree>;
   moveEstimateRowItem(estimateId: string, input: MoveEstimateRowItemInput): Promise<EstimateTree>;
+  insertEstimateRowItem(estimateId: string, input: InsertEstimateRowItemInput): Promise<EstimateTree>;
+  updateEstimateRowItem(estimateId: string, rowId: string, input: UpdateEstimateRowItemInput): Promise<EstimateTree>;
+  deleteEstimateRowItem(estimateId: string, rowId: string): Promise<EstimateTree>;
 };
 
 type EstimateNodeRow = Tables<"estimate_nodes">;
@@ -102,6 +108,28 @@ const inMemoryEstimateRepository: EstimateRepository = {
     inMemoryTrees.set(estimateId, next);
     return next;
   },
+
+  async insertEstimateRowItem(estimateId, input) {
+    const current = inMemoryTrees.get(estimateId) ?? getEmptyEstimateTree();
+    const row: EstimateRowItem = { ...input, id: input.id ?? globalThis.crypto.randomUUID(), estimateId };
+    const next = { ...current, rows: [...current.rows, row].sort((a, b) => a.sortOrder - b.sortOrder) };
+    inMemoryTrees.set(estimateId, next);
+    return next;
+  },
+
+  async updateEstimateRowItem(estimateId, rowId, input) {
+    const current = inMemoryTrees.get(estimateId) ?? getEmptyEstimateTree();
+    const next = { ...current, rows: current.rows.map((row) => (row.id === rowId ? { ...row, ...input } : row)) };
+    inMemoryTrees.set(estimateId, next);
+    return next;
+  },
+
+  async deleteEstimateRowItem(estimateId, rowId) {
+    const current = inMemoryTrees.get(estimateId) ?? getEmptyEstimateTree();
+    const next = { ...current, rows: current.rows.filter((row) => row.id !== rowId) };
+    inMemoryTrees.set(estimateId, next);
+    return next;
+  },
 };
 
 const supabaseEstimateRepository: EstimateRepository = {
@@ -153,6 +181,32 @@ const supabaseEstimateRepository: EstimateRepository = {
     if (error) throw error;
 
     return next;
+  },
+
+  async insertEstimateRowItem(estimateId, input) {
+    const supabase = createSupabaseBrowserClient();
+    const row: EstimateRowItem = { ...input, id: input.id ?? globalThis.crypto.randomUUID(), estimateId };
+    const { error } = await supabase.from("estimate_row_items").insert(toEstimateRowItemUpdate(row));
+    if (error) throw error;
+    return this.getEstimateTree(estimateId);
+  },
+
+  async updateEstimateRowItem(estimateId, rowId, input) {
+    const current = await this.getEstimateTree(estimateId);
+    const currentRow = current.rows.find((row) => row.id === rowId);
+    if (!currentRow) throw new Error("Estimate row item not found for update.");
+    const nextRow: EstimateRowItem = { ...currentRow, ...input };
+    const supabase = createSupabaseBrowserClient();
+    const { error } = await supabase.from("estimate_row_items").upsert(toEstimateRowItemUpdate(nextRow));
+    if (error) throw error;
+    return this.getEstimateTree(estimateId);
+  },
+
+  async deleteEstimateRowItem(estimateId, rowId) {
+    const supabase = createSupabaseBrowserClient();
+    const { error } = await supabase.from("estimate_row_items").delete().eq("id", rowId).eq("estimate_id", estimateId);
+    if (error) throw error;
+    return this.getEstimateTree(estimateId);
   },
 };
 

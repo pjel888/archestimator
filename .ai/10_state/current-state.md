@@ -15,9 +15,9 @@ The reset remains the baseline quality principle: do not blindly restore the del
 
 - Repository folder: `/Users/philiplewis/archestimator`.
 - Current live branch observed by git: `feat/state-supabase-foundation`.
-- Current working tree note: state/Supabase schema and repository integration are being prepared on an isolated feature branch.
+- Current working tree note: Supabase schema, auth bootstrap, repository expansion, and protected workshop bootstrap are implemented on the isolated feature branch.
 - Stack: Next.js 16.2.6, React 19.2.4, Bun, TypeScript, Tailwind CSS v4.
-- Backend: Supabase project `ebxxqidacheyapmmzavr` linked locally for Archestimator only; do not use SlateCamp Supabase resources.
+- Backend: Supabase project `ebxxqidacheyapmmzavr` linked locally for Archestimator only; do not use SlateCamp Supabase resources. Supabase Auth is active, with `philipjonlewis@gmail.com` assigned CEO/platform-wide access by database role resolver.
 
 ## Active mode
 
@@ -29,12 +29,14 @@ If Philip reports degraded agent performance, stale behavior, or repeated mistak
 
 ```txt
 /                                                     -> preserved landing page
-/workshop                                             -> workshop entry page
-/workshop/projects                                    -> post-reset project list/cards route
-/workshop/projects/[projectId]                        -> post-reset project dashboard/detail route
-/workshop/projects/[projectId]/estimates              -> post-reset estimates shell/list route
-/workshop/projects/[projectId]/estimates/[nodeId]     -> post-reset estimate node route
-/workshop/components                                  -> post-reset component/library surface
+/login                                                -> Supabase magic-link auth route
+/auth/callback                                        -> Supabase auth callback route
+/workshop                                             -> protected workshop entry page
+/workshop/projects                                    -> protected post-reset project list/cards route with authenticated workspace bootstrap
+/workshop/projects/[projectId]                        -> protected post-reset project dashboard/detail route
+/workshop/projects/[projectId]/estimates              -> protected post-reset estimates shell/list route
+/workshop/projects/[projectId]/estimates/[nodeId]     -> protected post-reset estimate node route
+/workshop/components                                  -> protected post-reset component/library surface
 ```
 
 These routes exist in the repo, but their presence does not reapprove the entire deleted prototype. Treat them as the current implemented slice only. Before expanding them, read the relevant active plan/spec and verify the route scope against Philip's latest direction.
