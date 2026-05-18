@@ -43,5 +43,8 @@ describe("live estimate node route", () => {
     expect(estimateContent).toContain("onUpdateRowItem");
     expect(estimateContent).toContain("replaceRow({ projectId, estimateId");
     expect(estimateContent).toContain("deleteRow({ projectId, estimateId");
+    expect(estimateContent).toContain("useQuery({");
+    expect(estimateContent).toContain("estimateQueryKeys.areaTree");
+    expect(estimateContent).toContain("rollback: () => restoreEstimateState");
   });
 });

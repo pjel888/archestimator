@@ -91,11 +91,12 @@ Done:
 
 - Insert/replace/delete/update row mutations now persist through TanStack Query mutation hooks backed by server actions.
 - The estimate sheet shows compact mutation save state: `Ready`, `Saving`, `Saved`, `Save failed`.
+- The route-loaded live estimate tree is seeded into a TanStack Query `area-tree` cache and optimistic failures restore the previous local tree/editable-row state.
 - Mutations validate project/estimate/node/row ownership before writing.
 
 Target:
 
-- Implement explicit mutation rollback/error recovery beyond the compact failed-save state.
+- Implement row-specific dirty/saved/error markers beyond the sheet-level compact failed-save state.
 - Preserve route-backed node selection.
 - Keep area-only row insertion enforcement.
 - Keep component/library picker separate from full component-library admin.

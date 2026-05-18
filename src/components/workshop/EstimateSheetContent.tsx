@@ -1,5 +1,6 @@
 "use client";
 
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { type Dispatch, type DragEvent, type InputHTMLAttributes, type KeyboardEvent, type SetStateAction, useCallback, useEffect, useMemo, useState } from "react";
 import { ArrowsOutSimple, CaretDown, Cube, DotsSixVertical, FunnelSimple, HouseLine, Plus, SlidersHorizontal, Stack, Trash } from "@phosphor-icons/react/dist/ssr";
 
@@ -9,6 +10,7 @@ import { ControlInput } from "@/components/ui/control-input";
 import { ControlSelect } from "@/components/ui/control-select";
 import { SearchInput } from "@/components/ui/search-input";
 import { useEstimateRowMutations, type EstimateSaveState } from "@/hooks/use-estimate-row-mutations";
+import { estimateQueryKeys } from "@/hooks/use-estimate-query";
 import { cn } from "@/lib/ui/cn";
 import { findEstimateNode, sampleEstimateTree, type EstimateAreaNode, type EstimateRowItem } from "./estimate-tree-data";
 
@@ -892,8 +894,16 @@ function EstimateSheetFooter({ projectTotal }: { projectTotal: number }) {
 }
 
 export function EstimateSheetContent({ selectedNodeId, nodes = sampleEstimateTree, projectId, estimateId }: EstimateSheetContentProps) {
+  const queryClient = useQueryClient();
+  const areaTreeQueryKey = estimateQueryKeys.areaTree(estimateId ?? "local-estimate");
   const { saveState, insertRow, replaceRow, deleteRow, updateRow } = useEstimateRowMutations(estimateId);
-  const [estimateTree, setEstimateTree] = useState(nodes);
+  const { data: queriedEstimateTree = nodes } = useQuery({
+    queryKey: areaTreeQueryKey,
+    queryFn: async () => nodes,
+    initialData: nodes,
+    staleTime: 30_000,
+  });
+  const [estimateTree, setEstimateTreeState] = useState(queriedEstimateTree);
   const [editableRows, setEditableRows] = useState<Record<string, EditableRowValue>>(() => collectEditableRows(nodes));
   const [insertTargetNodeId, setInsertTargetNodeId] = useState(() => {
     const initialNode = findEstimateNode(nodes, selectedNodeId);
@@ -903,6 +913,20 @@ export function EstimateSheetContent({ selectedNodeId, nodes = sampleEstimateTre
   const selectedNode = findEstimateNode(estimateTree, selectedNodeId) ?? estimateTree[0];
   const areaOptions = useMemo(() => collectAreaOptions(estimateTree), [estimateTree]);
   const projectTotal = computeNodeTotal(estimateTree[0], editableRows);
+
+  const setEstimateTree = useCallback((updater: (current: EstimateAreaNode[]) => EstimateAreaNode[]) => {
+    setEstimateTreeState((current) => {
+      const next = updater(current);
+      queryClient.setQueryData(areaTreeQueryKey, next);
+      return next;
+    });
+  }, [areaTreeQueryKey, queryClient]);
+
+  const restoreEstimateState = useCallback((previousTree: EstimateAreaNode[], previousRows: Record<string, EditableRowValue>) => {
+    queryClient.setQueryData(areaTreeQueryKey, previousTree);
+    setEstimateTreeState(previousTree);
+    setEditableRows(previousRows);
+  }, [areaTreeQueryKey, queryClient]);
 
   useEffect(() => {
     if (!pendingFocusRowId) return;
@@ -916,6 +940,8 @@ export function EstimateSheetContent({ selectedNodeId, nodes = sampleEstimateTre
 
   function updateRowItem(rowItemId: string, values: Partial<EditableRowValue>) {
     if (!projectId || !estimateId) return;
+    const previousTree = estimateTree;
+    const previousRows = collectEditableRows(estimateTree);
     updateRow({
       projectId,
       estimateId,
@@ -925,6 +951,7 @@ export function EstimateSheetContent({ selectedNodeId, nodes = sampleEstimateTre
       ...(values.laborCost !== undefined ? { laborCost: parseEditableNumber(values.laborCost) } : {}),
       ...(values.discipline !== undefined ? { discipline: values.discipline } : {}),
       ...(values.designation !== undefined ? { designation: values.designation } : {}),
+      rollback: () => restoreEstimateState(previousTree, previousRows),
     });
   }
 
@@ -932,6 +959,8 @@ export function EstimateSheetContent({ selectedNodeId, nodes = sampleEstimateTre
     const targetNode = findEstimateNode(estimateTree, targetNodeId);
     if (targetNode?.kind !== "area") return;
 
+    const previousTree = estimateTree;
+    const previousRows = editableRows;
     const newItem = cloneLibraryItemForEstimate(libraryItem, targetNodeId);
     setPendingFocusRowId(newItem.id);
     setEstimateTree((current) =>
@@ -948,9 +977,9 @@ export function EstimateSheetContent({ selectedNodeId, nodes = sampleEstimateTre
     setEditableRows((current) => ({ ...current, [newItem.id]: getInitialEditableRow(newItem) }));
 
     if (projectId && estimateId) {
-      insertRow({ projectId, estimateId, targetNodeId, rowId: newItem.id, libraryItem });
+      insertRow({ projectId, estimateId, targetNodeId, rowId: newItem.id, libraryItem, rollback: () => restoreEstimateState(previousTree, previousRows) });
     }
-  }, [estimateId, estimateTree, insertRow, projectId]);
+  }, [editableRows, estimateId, estimateTree, insertRow, projectId, restoreEstimateState, setEstimateTree]);
 
   useEffect(() => {
     function handleSidebarAdd(event: Event) {
@@ -962,6 +991,8 @@ export function EstimateSheetContent({ selectedNodeId, nodes = sampleEstimateTre
   }, [insertLibraryItem, insertTargetNodeId]);
 
   function replaceRowItem(rowItemId: string, libraryItem: EstimateRowItem) {
+    const previousTree = estimateTree;
+    const previousRows = editableRows;
     setEstimateTree((current) =>
       current.map((node) => {
         function visit(areaNode: EstimateAreaNode): EstimateAreaNode {
@@ -977,11 +1008,13 @@ export function EstimateSheetContent({ selectedNodeId, nodes = sampleEstimateTre
       }),
     );
     if (projectId && estimateId) {
-      replaceRow({ projectId, estimateId, rowId: rowItemId, libraryItem });
+      replaceRow({ projectId, estimateId, rowId: rowItemId, libraryItem, rollback: () => restoreEstimateState(previousTree, previousRows) });
     }
   }
 
   function deleteRowItem(rowItemId: string) {
+    const previousTree = estimateTree;
+    const previousRows = editableRows;
     setEstimateTree((current) =>
       current.map((node) => {
         function visit(areaNode: EstimateAreaNode): EstimateAreaNode {
@@ -1000,7 +1033,7 @@ export function EstimateSheetContent({ selectedNodeId, nodes = sampleEstimateTre
       return remainingRows;
     });
     if (projectId && estimateId) {
-      deleteRow({ projectId, estimateId, rowId: rowItemId });
+      deleteRow({ projectId, estimateId, rowId: rowItemId, rollback: () => restoreEstimateState(previousTree, previousRows) });
     }
   }
 
