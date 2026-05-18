@@ -2,6 +2,7 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { EstimateAreaNode, EstimateRowItem } from "@/components/workshop/estimate-tree-data";
 import type { Database, Tables } from "@/lib/supabase/types";
 import { requireCurrentUserContext } from "@/lib/auth/session";
+import { isUuid } from "@/lib/ids";
 
 export type WorkspaceBootstrap = {
   workspace: Tables<"workspaces">;
@@ -61,6 +62,9 @@ export async function listCurrentWorkspaceProjects() {
 
 export async function getCurrentWorkspaceProject(projectId: string) {
   const { workspace } = await ensureDefaultWorkspace();
+
+  if (!isUuid(projectId)) return { workspace, project: null };
+
   const supabase = await createSupabaseServerClient();
 
   const { data: project, error } = await supabase
@@ -199,6 +203,34 @@ function buildEstimateTree(nodes: EstimateNodeRow[], rows: EstimateRowItemRow[])
 
   roots.forEach(computeTotals);
   return roots;
+}
+
+export async function getProjectEstimateTreeByEstimate(projectId: string, estimateId: string): Promise<LiveEstimateTreeResult> {
+  const { workspace, project } = await getCurrentWorkspaceProject(projectId);
+  if (!project) return { workspace, project, estimate: null, selectedNodeId: null, tree: [] };
+
+  const supabase = await createSupabaseServerClient();
+  const { data: estimate, error: estimateError } = await supabase
+    .from("estimates")
+    .select("*")
+    .eq("id", estimateId)
+    .eq("project_id", project.id)
+    .maybeSingle();
+
+  if (estimateError) throw estimateError;
+  if (!estimate) return { workspace, project, estimate: null, selectedNodeId: null, tree: [] };
+
+  const [nodesResult, rowsResult] = await Promise.all([
+    supabase.from("estimate_nodes").select("*").eq("estimate_id", estimate.id).order("sort_order", { ascending: true }),
+    supabase.from("estimate_row_items").select("*").eq("estimate_id", estimate.id).order("sort_order", { ascending: true }),
+  ]);
+
+  if (nodesResult.error) throw nodesResult.error;
+  if (rowsResult.error) throw rowsResult.error;
+
+  const nodes = nodesResult.data ?? [];
+  const tree = buildEstimateTree(nodes, rowsResult.data ?? []);
+  return { workspace, project, estimate, selectedNodeId: tree[0]?.id ?? null, tree };
 }
 
 export async function getProjectEstimateTreeByNode(projectId: string, nodeId: string): Promise<LiveEstimateTreeResult> {
