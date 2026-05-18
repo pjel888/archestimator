@@ -2,7 +2,6 @@
 
 import {
   type Dispatch,
-  type KeyboardEvent as ReactKeyboardEvent,
   type SetStateAction,
   useCallback,
   useEffect,
@@ -15,15 +14,18 @@ import {
   Check,
   FunnelSimple,
   List,
-  MagnifyingGlass,
   Plus,
   SquaresFour,
   TextAa,
-  Trash,
   X,
 } from "@phosphor-icons/react/dist/ssr";
 
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Chip } from "@/components/ui/chip";
+import { ControlSelect } from "@/components/ui/control-select";
+import { EmptyState } from "@/components/ui/empty-state";
+import { SearchInput } from "@/components/ui/search-input";
 import { cn } from "@/lib/ui/cn";
 import { estimateLibraryItems, type EstimateRowItem } from "../estimate-tree-data";
 import { ResizableSidePanel } from "../ResizableSidePanel";
@@ -41,7 +43,6 @@ import {
   getComponentName,
   getComponentPrice,
   groupComponents,
-  itemLastUsedAt,
   LIBRARY_FAVORITES_KEY,
   LIBRARY_PREFS_KEY,
   LIBRARY_RECENTS_KEY,
@@ -74,19 +75,10 @@ function ToggleChip({
   onClick: () => void;
 }) {
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={cn(
-        "flex items-center gap-1 rounded-sm border px-1.5 py-px text-[9px] font-bold transition",
-        active
-          ? "border-ink bg-ink text-white"
-          : "border-hairline bg-white text-tertiary hover:border-tertiary hover:text-ink",
-      )}
-    >
+    <Chip active={active} onClick={onClick}>
       {active ? <Check size={9} weight="bold" /> : null}
       {label}
-    </button>
+    </Chip>
   );
 }
 
@@ -226,14 +218,16 @@ function PreviewPanel({
         <div className="min-w-0 flex-1">
           <div className="flex items-start justify-between gap-1">
             <h3 className="truncate text-[11px] font-bold text-ink">{getComponentName(item)}</h3>
-            <button
+            <Button
               type="button"
-              className="grid size-5 shrink-0 place-items-center rounded-sm text-tertiary hover:bg-surfaceMuted hover:text-ink"
+              variant="ghost"
+              size="icon-sm"
+              className="size-5 shrink-0 rounded-sm p-0 text-tertiary hover:bg-surfaceMuted hover:text-ink"
               aria-label="Close component preview"
               onClick={onClose}
             >
               <X size={11} />
-            </button>
+            </Button>
           </div>
           <p className="text-[9px] font-semibold text-tertiary">
             {item.category} · {item.supplier || "No supplier"}
@@ -246,19 +240,17 @@ function PreviewPanel({
       <div className="px-2 pb-2">
         <p className="line-clamp-3 text-[9px] leading-4 text-secondary/70">{item.description || "No description."}</p>
         <div className="mt-1.5 flex flex-wrap gap-1">
-          <span className="border border-hairline px-1 py-px text-[8px] font-bold uppercase tracking-[0.08em] text-tertiary">
+          <Badge size="xs">
             {getComponentDiscipline(item)}
-          </span>
-          <span className="border border-hairline px-1 py-px text-[8px] font-bold uppercase tracking-[0.08em] text-tertiary">
+          </Badge>
+          <Badge size="xs">
             {getComponentDesignation(item)}
-          </span>
-          {item.isCustom ? (
-            <span className="border border-accentSoft bg-accentSoft px-1 py-px text-[8px] font-bold uppercase tracking-[0.08em] text-ink">Custom</span>
-          ) : null}
+          </Badge>
+          {item.isCustom ? <Badge size="xs" tone="accent">Custom</Badge> : null}
           {item.tags?.map((tag) => (
-            <span key={tag} className="border border-hairline px-1 py-px text-[8px] font-bold uppercase tracking-[0.08em] text-tertiary">
+            <Badge key={tag} size="xs">
               {tag}
-            </span>
+            </Badge>
           ))}
         </div>
         <div className="mt-2 grid grid-cols-4 gap-1">
@@ -472,25 +464,17 @@ export function EstimateRightSidebar({ onInsertComponent }: { onInsertComponent?
 
           {/* Search bar */}
           <div className="mt-1.5 px-2">
-            <div className="flex h-7 items-center gap-1.5 border border-hairline bg-surfaceMuted px-2 transition focus-within:border-accent focus-within:bg-white">
-              <MagnifyingGlass size={12} weight="bold" className="text-tertiary" aria-hidden="true" />
-              <span className="sr-only">Search component library</span>
-              <input
+            <div className="flex h-7 items-center gap-1.5">
+              <SearchInput
                 ref={searchRef}
-                type="search"
                 value={searchQuery}
                 onChange={(event) => setSearchQuery(event.target.value)}
                 placeholder="Search components, suppliers, tags…"
                 aria-label="Search components, suppliers, tags"
-                className="min-w-0 flex-1 bg-transparent !text-[10px] font-semibold text-ink outline-none placeholder:text-tertiary"
+                shortcutKey="/"
+                onClear={() => setSearchQuery("")}
+                wrapperClassName="h-7 flex-1 rounded-sm"
               />
-              {searchQuery ? (
-                <button type="button" className="grid size-5 place-items-center rounded-sm text-tertiary hover:bg-surfaceMuted hover:text-ink" aria-label="Clear search" onClick={() => setSearchQuery("")}>
-                  <X size={11} />
-                </button>
-              ) : (
-                <kbd className="rounded-sm border border-hairline bg-white px-1 text-[9px] font-bold text-tertiary">/</kbd>
-              )}
               <Button
                 type="button"
                 variant={showFilters ? "primary" : "secondary"}
@@ -517,59 +501,50 @@ export function EstimateRightSidebar({ onInsertComponent }: { onInsertComponent?
             </span>
             <div className="flex items-center gap-1.5">
               {/* Group by */}
-              <div className="relative">
-                <select
-                  value={groupBy}
-                  onChange={(event) => setGroupBy(event.target.value as LibraryGroupBy)}
-                  aria-label="Group components by"
-                  className="h-5 appearance-none border-0 border-b border-hairline bg-transparent pr-3 pl-0 !text-[9px] font-bold text-ink outline-none transition-colors hover:border-tertiary focus:border-accent"
-                >
-                  <option value="none">Group: None</option>
-                  <option value="category">Group: Category</option>
-                  <option value="supplier">Group: Supplier</option>
-                  <option value="discipline">Group: Discipline</option>
-                  <option value="room">Group: Room/Area</option>
-                  <option value="recent">Group: Recently used</option>
-                </select>
-                <CaretDown size={8} weight="bold" className="pointer-events-none absolute right-0 top-1/2 -translate-y-1/2 text-tertiary" aria-hidden="true" />
-              </div>
+              <ControlSelect
+                value={groupBy}
+                onChange={(event) => setGroupBy(event.target.value as LibraryGroupBy)}
+                aria-label="Group components by"
+              >
+                <option value="none">Group: None</option>
+                <option value="category">Group: Category</option>
+                <option value="supplier">Group: Supplier</option>
+                <option value="discipline">Group: Discipline</option>
+                <option value="room">Group: Room/Area</option>
+                <option value="recent">Group: Recently used</option>
+              </ControlSelect>
               {/* Sort */}
-              <div className="relative">
-                <select
-                  value={sortMode}
-                  onChange={(event) => setSortMode(event.target.value as LibrarySortMode)}
-                  aria-label="Sort components"
-                  className="h-5 appearance-none border-0 border-b border-hairline bg-transparent pr-3 pl-0 !text-[9px] font-bold text-ink outline-none transition-colors hover:border-tertiary focus:border-accent"
-                >
-                  <option value="relevance">Sort: Relevance</option>
-                  <option value="name">Sort: Name A–Z</option>
-                  <option value="priceAsc">Sort: Price low-high</option>
-                  <option value="priceDesc">Sort: Price high-low</option>
-                  <option value="recentUsed">Sort: Recently used</option>
-                  <option value="recentAdded">Sort: Recently added</option>
-                  <option value="supplier">Sort: Supplier A–Z</option>
-                </select>
-                <CaretDown size={8} weight="bold" className="pointer-events-none absolute right-0 top-1/2 -translate-y-1/2 text-tertiary" aria-hidden="true" />
-              </div>
+              <ControlSelect
+                value={sortMode}
+                onChange={(event) => setSortMode(event.target.value as LibrarySortMode)}
+                aria-label="Sort components"
+              >
+                <option value="relevance">Sort: Relevance</option>
+                <option value="name">Sort: Name A–Z</option>
+                <option value="priceAsc">Sort: Price low-high</option>
+                <option value="priceDesc">Sort: Price high-low</option>
+                <option value="recentUsed">Sort: Recently used</option>
+                <option value="recentAdded">Sort: Recently added</option>
+                <option value="supplier">Sort: Supplier A–Z</option>
+              </ControlSelect>
             </div>
           </div>
 
           {/* View mode toggle */}
           <div className="flex gap-px px-2 pb-1.5" role="group" aria-label="Component library view mode">
             {viewModeIcons.map(({ value, label, icon }) => (
-              <button
+              <Button
                 key={value}
                 type="button"
+                variant={viewMode === value ? "primary" : "secondary"}
+                size="sm"
                 title={label}
                 onClick={() => setViewMode(value)}
-                className={cn(
-                  "flex h-6 items-center gap-1 border px-2 !text-[9px] font-bold transition first:rounded-l-sm last:rounded-r-sm",
-                  viewMode === value ? "border-ink bg-ink text-white" : "border-hairline bg-white text-tertiary hover:bg-surfaceMuted hover:text-ink",
-                )}
+                className="h-6 min-h-6 gap-1 rounded-none px-2 first:rounded-l-sm last:rounded-r-sm"
               >
                 {icon}
                 <span className="hidden !text-[9px] sm:inline">{label}</span>
-              </button>
+              </Button>
             ))}
           </div>
 
@@ -580,81 +555,52 @@ export function EstimateRightSidebar({ onInsertComponent }: { onInsertComponent?
           {(activeFilterCount > 0 || searchQuery) ? (
             <div className="flex flex-wrap gap-1 border-t border-hairline px-2 py-1.5">
               {searchQuery ? (
-                <button
-                  type="button"
-                  className="flex items-center gap-1 rounded-sm border border-hairline bg-surfaceMuted px-1.5 py-px text-[9px] font-bold text-ink hover:border-tertiary"
-                  onClick={() => setSearchQuery("")}
-                >
+                <Chip removable onClick={() => setSearchQuery("")}>
                   Search: {searchQuery}
-                  <X size={9} />
-                </button>
+                </Chip>
               ) : null}
               {chipData.map(([key, value]) => (
-                <button
-                  key={`${key}-${value}`}
-                  type="button"
-                  className="flex items-center gap-1 rounded-sm border border-hairline bg-surfaceMuted px-1.5 py-px text-[9px] font-bold text-ink hover:border-tertiary"
-                  onClick={() => removeFacet(key, value)}
-                >
+                <Chip key={`${key}-${value}`} removable onClick={() => removeFacet(key, value)}>
                   {value}
-                  <X size={9} />
-                </button>
+                </Chip>
               ))}
               {filters.favoritesOnly ? (
-                <button
-                  type="button"
-                  className="flex items-center gap-1 rounded-sm border border-hairline bg-surfaceMuted px-1.5 py-px text-[9px] font-bold text-ink hover:border-tertiary"
-                  onClick={() => setFilters((f) => ({ ...f, favoritesOnly: false }))}
-                >
-                  Favorites <X size={9} />
-                </button>
+                <Chip removable onClick={() => setFilters((f) => ({ ...f, favoritesOnly: false }))}>
+                  Favorites
+                </Chip>
               ) : null}
               {filters.recentOnly ? (
-                <button
-                  type="button"
-                  className="flex items-center gap-1 rounded-sm border border-hairline bg-surfaceMuted px-1.5 py-px text-[9px] font-bold text-ink hover:border-tertiary"
-                  onClick={() => setFilters((f) => ({ ...f, recentOnly: false }))}
-                >
-                  Recent <X size={9} />
-                </button>
+                <Chip removable onClick={() => setFilters((f) => ({ ...f, recentOnly: false }))}>
+                  Recent
+                </Chip>
               ) : null}
               {filters.customOnly ? (
-                <button
-                  type="button"
-                  className="flex items-center gap-1 rounded-sm border border-hairline bg-surfaceMuted px-1.5 py-px text-[9px] font-bold text-ink hover:border-tertiary"
-                  onClick={() => setFilters((f) => ({ ...f, customOnly: false }))}
-                >
-                  Custom <X size={9} />
-                </button>
+                <Chip removable onClick={() => setFilters((f) => ({ ...f, customOnly: false }))}>
+                  Custom
+                </Chip>
               ) : null}
               {filters.imageState !== "all" ? (
-                <button
-                  type="button"
-                  className="flex items-center gap-1 rounded-sm border border-hairline bg-surfaceMuted px-1.5 py-px text-[9px] font-bold text-ink hover:border-tertiary"
-                  onClick={() => setFilters((f) => ({ ...f, imageState: "all" }))}
-                >
-                  Image: {filters.imageState} <X size={9} />
-                </button>
+                <Chip removable onClick={() => setFilters((f) => ({ ...f, imageState: "all" }))}>
+                  Image: {filters.imageState}
+                </Chip>
               ) : null}
               {filters.supplierState !== "all" ? (
-                <button
-                  type="button"
-                  className="flex items-center gap-1 rounded-sm border border-hairline bg-surfaceMuted px-1.5 py-px text-[9px] font-bold text-ink hover:border-tertiary"
-                  onClick={() => setFilters((f) => ({ ...f, supplierState: "all" }))}
-                >
-                  Supplier: {filters.supplierState} <X size={9} />
-                </button>
+                <Chip removable onClick={() => setFilters((f) => ({ ...f, supplierState: "all" }))}>
+                  Supplier: {filters.supplierState}
+                </Chip>
               ) : null}
-              <button
+              <Button
                 type="button"
-                className="px-1.5 py-px text-[9px] font-bold text-danger hover:underline"
+                variant="ghost"
+                size="sm"
+                className="h-5 min-h-5 px-1.5 text-danger hover:underline"
                 onClick={() => {
                   setFilters(defaultFilters);
                   setSearchQuery("");
                 }}
               >
                 Clear all
-              </button>
+              </Button>
             </div>
           ) : null}
         </div>
@@ -662,30 +608,33 @@ export function EstimateRightSidebar({ onInsertComponent }: { onInsertComponent?
         {/* Scrollable list */}
         <div className="min-h-0 flex-1 overflow-auto px-2 py-1.5">
           {!libraryItems.length ? (
-            <div className="flex min-h-40 flex-col items-center justify-center border border-dashed border-divider bg-surfaceMuted/60 p-3 text-center">
-              <SquaresFour size={20} className="text-tertiary" />
-              <p className="mt-2 text-[11px] font-bold text-ink">Library is empty</p>
-              <p className="text-[9px] text-tertiary">Create a component to start building your estimate library.</p>
-            </div>
+            <EmptyState
+              icon={<SquaresFour size={20} />}
+              title="Library is empty"
+              description="Create a component to start building your estimate library."
+            />
           ) : !filteredSortedItems.length ? (
-            <div className="flex min-h-40 flex-col items-center justify-center border border-dashed border-divider bg-surfaceMuted/60 p-3 text-center">
-              <MagnifyingGlass size={20} className="text-tertiary" />
-              <p className="mt-2 text-[11px] font-bold text-ink">No components matched</p>
-              <p className="text-[9px] text-tertiary">Try clearing search or filters.</p>
-              <Button className="mt-2 h-6 min-h-6 text-[9px]" onClick={() => { setSearchQuery(""); setFilters(defaultFilters); }}>
-                Clear search and filters
-              </Button>
-            </div>
+            <EmptyState
+              icon={<SquaresFour size={20} />}
+              title="No components matched"
+              description="Try clearing search or filters."
+              action={(
+                <Button className="h-6 min-h-6" onClick={() => { setSearchQuery(""); setFilters(defaultFilters); }}>
+                  Clear search and filters
+                </Button>
+              )}
+            />
           ) : (
             <div className="space-y-1">
               {groupEntries.map(([group, items]) => {
                 const collapsed = collapsedGroups.has(group);
                 return (
                   <div key={group} className="overflow-hidden border border-hairline">
-                    <button
+                    <Button
                       type="button"
+                      variant="ghost"
                       onClick={() => toggleGroup(group)}
-                      className="flex w-full cursor-pointer items-center justify-between bg-white px-1.5 py-1 text-left transition hover:bg-surfaceMuted"
+                      className="flex h-auto min-h-0 w-full cursor-pointer items-center justify-between rounded-none bg-white px-1.5 py-1 text-left transition hover:bg-surfaceMuted"
                       aria-expanded={!collapsed}
                     >
                       <span className="truncate text-[9px] font-bold uppercase tracking-[0.06em] text-ink">{group}</span>
@@ -693,7 +642,7 @@ export function EstimateRightSidebar({ onInsertComponent }: { onInsertComponent?
                         <span className="text-[9px] font-bold tabular-nums text-tertiary">{items.length}</span>
                         <CaretDown size={10} weight="bold" className={cn("text-tertiary transition-transform", collapsed && "-rotate-90")} aria-hidden="true" />
                       </div>
-                    </button>
+                    </Button>
                     {!collapsed ? (
                       <div className={cn("bg-surfaceMuted/30", viewMode === "grid" ? "grid grid-cols-2 gap-1 p-1" : "space-y-1 p-1")}>
                         {items.map((item) => (

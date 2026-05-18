@@ -43,14 +43,16 @@ export function NewComponentForm({ form, formError, onChange, onSave, onSaveAndA
           <h3 id="new-component-title" className="text-[11px] font-bold text-ink">
             New component
           </h3>
-          <button
+          <Button
             type="button"
-            className="grid size-6 place-items-center rounded-sm text-tertiary hover:bg-surfaceMuted hover:text-ink"
+            variant="ghost"
+            size="icon-sm"
+            className="size-6 rounded-sm p-0 text-tertiary hover:bg-surfaceMuted hover:text-ink"
             aria-label="Cancel new component"
             onClick={onCancel}
           >
             <X size={13} />
-          </button>
+          </Button>
         </div>
 
         <div className="min-h-0 flex-1 overflow-auto p-3">
