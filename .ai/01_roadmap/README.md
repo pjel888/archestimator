@@ -81,15 +81,20 @@ Done:
 - Estimate list cards link to the first area node.
 - `/workshop/projects/[projectId]/estimates/[nodeId]` reads live Supabase `estimate_nodes` and `estimate_row_items`.
 - Node route validation is project-scoped through the selected node's parent estimate.
-- Component-library area insertion persists rows to Supabase via `insertEstimateRowItemFromLibrary()` with project/estimate/node validation.
+- Component-library area insertion, component replacement, row deletion, and inline row edits persist to Supabase via project-scoped server actions.
 
 ## Phase 4 — Live estimate workspace editing
 
-Status: active/next.
+Status: active/current.
+
+Done:
+
+- Insert/replace/delete/update row mutations now persist through server actions.
+- Mutations validate project/estimate/node/row ownership before writing.
 
 Target:
 
-- Persist estimate row replace/delete and inline quantity/cost edits through repository/server-action/domain boundaries.
+- Move persistence to TanStack Query/domain hooks instead of route reload reconciliation.
 - Preserve route-backed node selection.
 - Keep area-only row insertion enforcement.
 - Keep component/library picker separate from full component-library admin.
