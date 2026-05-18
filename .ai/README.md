@@ -24,12 +24,12 @@ This folder is the project brain. It stores product thinking, implementation pla
 
 ## Current active work
 
-- Branch: `feat/auth-component-library-workspace`.
-- Mode: pre-MVP reset after rejected app/workshop prototype.
+- Branch observed by latest state update: `feat/estimate-sheet-header`.
+- Mode: post-reset MVP exploration after rejected app/workshop prototype.
 - Preserved: `/` landing page.
-- Active app baseline: `/workshop` intentionally empty.
-- Superseded: previous project dashboard, estimate editor, component library, proposal, revision, local-first data, shell, and route-family work. Do not resume those old plans unless Philip explicitly reapproves them.
-- Read first for restart context: `.ai/02_audits/2026-05-17-reset-cleanup-audit.md` and `.ai/06_specs/restart-guardrails.md`.
+- Current implemented slice: `/workshop`, `/workshop/projects`, project detail/estimates routes, and `/workshop/components` exist in `src/app`.
+- Superseded: the deleted full prototype dashboard, estimate editor, component library, proposal, revision, local-first data, shell, and broad route-family work. Do not resume those old plans unless Philip explicitly reapproves them.
+- Read first for restart and quality context: `.ai/00_system/AGENT_SELF_DIAGNOSTIC_PROTOCOL.md`, `.ai/10_state/current-state.md`, `.ai/03_plans/current-post-reset-workshop-slice.md`, `.ai/02_audits/2026-05-17-reset-cleanup-audit.md`, and `.ai/06_specs/restart-guardrails.md`.
 
 ---
 

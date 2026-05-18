@@ -6,16 +6,11 @@
 
 Archestimator should help contractors produce and revise construction estimates faster, with clearer assumptions, scope boundaries, and client-ready outputs than ad hoc spreadsheets.
 
-## Current reset baseline
+## Current implementation baseline
 
-The live product is intentionally reduced to:
+The canonical live state is `.ai/10_state/current-state.md`.
 
-```txt
-/          landing page
-/workshop  blank page
-```
-
-The previous app/workshop prototype was rejected for poor UI/UX and deleted from the live implementation. Do not use old prototype details as active requirements.
+The previous app/workshop prototype was rejected for poor UI/UX and deleted from the live implementation. The immediate reset baseline was only `/` plus blank `/workshop`; the repo has since moved into a small post-reset workshop route slice. Do not use old prototype details as active requirements, and do not treat the current slice as approval to restore the full prototype.
 
 ## Product wedge to revalidate
 

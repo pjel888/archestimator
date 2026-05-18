@@ -10,10 +10,14 @@
 - 2026-05-16 — No Supabase/Postgres connection until Philip explicitly approves.
 - 2026-05-16 — Root `DESIGN.md` is the agent-readable visual/design-system source of truth.
 - 2026-05-16 — GitHub repo is private under `pjel888/archestimator`; use feature branches/PRs, do not merge to main automatically.
-- 2026-05-17 — Reset decision: Philip rejected the current Archestimator app/workshop prototype UX/UI. Preserve only the landing page and an intentionally empty `/workshop` page.
-- 2026-05-17 — Delete the previous project dashboard, estimate editor, component library, proposal, revision, local-first data, shell, and route-family implementation. Do not restore deleted prototype routes for compatibility.
+- 2026-05-17 — Reset decision: Philip rejected the then-current Archestimator app/workshop prototype UX/UI. The immediate reset preserved only the landing page and reduced `/workshop` to a reset placeholder before later scoped slices were added.
+- 2026-05-17 — Delete the previous project dashboard, estimate editor, component library, proposal, revision, local-first data, shell, and route-family implementation. Do not restore deleted prototype routes for compatibility; any post-reset routes must be treated as new scoped slices.
 - 2026-05-17 — Future app work must begin from a small approved screen brief and one focused workflow.
 - 2026-05-17 — Do not add fake SaaS maturity: no broad route families, dashboards, module nav, settings, proposal systems, component libraries, complex data repositories, grid/drag-drop packages, or prototype tests until the new UX direction is accepted.
+- 2026-05-18 — Agent performance recovery is now a canonical project rule. If Philip reports degraded quality, stale behavior, confusion, or repeated mistakes, agents must run `.ai/00_system/AGENT_SELF_DIAGNOSTIC_PROTOCOL.md` before planning or coding.
+- 2026-05-18 — Current repo state supersedes the blank-workshop snapshot where they conflict. The reset remains the quality guardrail, but the repo now contains a small post-reset workshop slice under `/workshop/projects`, `/workshop/projects/[projectId]`, `/workshop/projects/[projectId]/estimates`, `/workshop/projects/[projectId]/estimates/[nodeId]`, and `/workshop/components`. Treat those as current implemented surfaces, not approval to restore the full deleted prototype.
+- 2026-05-18 — Current active orientation plan: `.ai/03_plans/current-post-reset-workshop-slice.md`.
+- 2026-05-18 — Estimate hierarchy model: a project can contain multiple Lot Groups. The canonical nesting is `Lot Group > Structure Group > Floor Group > Area Group > EstimateNodeRowItem`. Only Area Groups may contain estimate row items. Lot, Structure, and Floor groups may also contain Area Groups directly when the work scope does not need the intermediate levels.
 
 ## Superseded decisions
 
