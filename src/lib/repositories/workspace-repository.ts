@@ -72,3 +72,38 @@ export async function getCurrentWorkspaceProject(projectId: string) {
   if (error) throw error;
   return { workspace, project };
 }
+
+export async function listProjectEstimates(projectId: string) {
+  const { workspace, project } = await getCurrentWorkspaceProject(projectId);
+  if (!project) return { workspace, project, estimates: [], firstNodeByEstimateId: new Map<string, string>() };
+
+  const supabase = await createSupabaseServerClient();
+  const { data: estimates, error } = await supabase
+    .from("estimates")
+    .select("*")
+    .eq("project_id", project.id)
+    .order("updated_at", { ascending: false });
+
+  if (error) throw error;
+
+  const estimateIds = (estimates ?? []).map((estimate) => estimate.id);
+  if (estimateIds.length === 0) return { workspace, project, estimates: [], firstNodeByEstimateId: new Map<string, string>() };
+
+  const { data: nodes, error: nodesError } = await supabase
+    .from("estimate_nodes")
+    .select("id, estimate_id, kind, sort_order")
+    .in("estimate_id", estimateIds)
+    .order("sort_order", { ascending: true });
+
+  if (nodesError) throw nodesError;
+
+  const firstNodeByEstimateId = new Map<string, string>();
+  for (const node of nodes ?? []) {
+    if (node.kind === "area" && !firstNodeByEstimateId.has(node.estimate_id)) firstNodeByEstimateId.set(node.estimate_id, node.id);
+  }
+  for (const node of nodes ?? []) {
+    if (!firstNodeByEstimateId.has(node.estimate_id)) firstNodeByEstimateId.set(node.estimate_id, node.id);
+  }
+
+  return { workspace, project, estimates: estimates ?? [], firstNodeByEstimateId };
+}

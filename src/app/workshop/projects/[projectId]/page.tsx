@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { FolderOpen, Plus } from "@phosphor-icons/react/dist/ssr";
 
-import { Button } from "@/components/ui/button";
+import { ButtonLink } from "@/components/ui/button-link";
 import { sampleProjects } from "@/components/workshop/workshop-sample-projects";
 import { getCurrentWorkspaceProject } from "@/lib/repositories/workspace-repository";
 
@@ -31,10 +31,10 @@ export default async function ProjectDashboardPage({ params }: ProjectDashboardP
             <h2 className="mt-1 text-[12px] font-semibold leading-tight tracking-[-0.035em] text-ink">{name}</h2>
             <p className="mt-1 text-[10px] leading-4 text-tertiary">{client} · {location}</p>
           </div>
-          <Button variant="primary" size="sm" className="h-8 gap-1">
+          <ButtonLink href={`/workshop/projects/${projectId}/estimates`} variant="primary" size="sm" className="h-8 shrink-0 gap-1">
             <Plus size={14} weight="bold" aria-hidden="true" />
-            Action
-          </Button>
+            Estimate
+          </ButtonLink>
         </div>
 
         <div className="mt-2 grid gap-2 md:grid-cols-3">
