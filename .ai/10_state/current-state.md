@@ -15,7 +15,7 @@ The reset remains the baseline quality principle: do not blindly restore the del
 
 - Repository folder: `/Users/philiplewis/archestimator`.
 - Current live branch observed by git: `feat/state-supabase-foundation`.
-- Current working tree note: state/Supabase foundation files are being prepared on an isolated feature branch.
+- Current working tree note: state/Supabase schema and repository integration are being prepared on an isolated feature branch.
 - Stack: Next.js 16.2.6, React 19.2.4, Bun, TypeScript, Tailwind CSS v4.
 - Backend: Supabase project `ebxxqidacheyapmmzavr` linked locally for Archestimator only; do not use SlateCamp Supabase resources.
 
