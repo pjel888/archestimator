@@ -1,74 +1,120 @@
 # Roadmap
 
-**Last updated:** 2026-05-17
-**Status:** Reset baseline after rejected app/workshop prototype.
+**Last updated:** 2026-05-18
+**Status:** Authenticated Supabase foundation is active; project and estimate bootstrap are now the current MVP path.
 
 ## Current product baseline
 
-Archestimator currently preserves only:
+Archestimator now preserves and actively builds on:
 
 ```txt
-/          landing page
-/workshop  intentionally empty page
+/                                                     landing page
+/login                                                Supabase magic-link auth
+/auth/callback                                        Supabase auth callback
+/workshop                                             protected workshop entry
+/workshop/projects                                    live project list/create route
+/workshop/projects/[projectId]                        live project dashboard shell
+/workshop/projects/[projectId]/estimates              live estimate list/create route
+/workshop/projects/[projectId]/estimates/[nodeId]     estimate workspace route, next live-tree focus
+/workshop/components                                  component library surface
 ```
 
-The previous app/workshop prototype is not the active roadmap. Do not resume old project dashboard, estimate editor, component library, proposal, revision, shell, grid, or local-first data work unless Philip explicitly reapproves a fresh plan.
+The reset-era blank-workshop baseline is no longer current. Supabase/Auth/Postgres have been explicitly approved for Archestimator through project `ebxxqidacheyapmmzavr`.
 
-## Phase 0 — Reset and cleanup
+## Phase 0 — Governance and design-system guardrails
 
-Status: active/completing.
+Status: active and continuous.
 
 Done:
 
-- Audit recorded at `.ai/02_audits/2026-05-17-reset-cleanup-audit.md`.
-- Restart guardrails recorded at `.ai/06_specs/restart-guardrails.md`.
-- Live app reduced to landing page plus empty `/workshop`.
-- Validation baseline reduced to reset-appropriate tests.
+- Non-landing font cap enforced by `bun run lint:font-size`.
+- App/workshop typography maximum: 12px.
+- Shared UI primitive reuse is mandatory.
+- `Button`, `ButtonLink`, `ControlInput`, cards/forms, and route-specific surfaces must remain compact.
 
-## Phase 1 — Fresh product definition
+Next:
 
-Status: next.
+- Continue moving repeated controls into `src/components/ui` before feature-local markup spreads.
+- Keep feature specs current with every implementation slice.
 
-Goal: define one focused first workflow before rebuilding UI.
+## Phase 1 — Authenticated workspace foundation
 
-Required before implementation:
+Status: implemented, needs manual hosted-dashboard verification.
 
-- Identify the first user job.
-- Define the first `/workshop` screen in plain language.
-- State non-goals explicitly.
-- Decide what data, if any, is needed for that screen.
-- Write a small screen brief in `.ai/03_plans/`.
+Done:
 
-Do not add routes, app shells, dashboards, libraries, proposal pages, revision history, grid packages, or persistence until the screen brief justifies them.
+- Supabase project linked: `ebxxqidacheyapmmzavr`.
+- Supabase Auth magic-link route added.
+- `/workshop/*` protected by `src/proxy.ts`.
+- Profiles/CEO role bootstrap implemented in database migration.
+- Default workspace bootstrap implemented.
+- Auth setup checklist documented in `.ai/06_specs/supabase-auth-setup.md`.
 
-## Phase 2 — First approved workshop slice
+Remaining:
 
-Status: blocked until Phase 1 is complete.
+- Verify hosted Supabase Auth redirect URLs in the Dashboard before broader tester use.
 
-Possible direction, not approved:
+## Phase 2 — Live project bootstrap
 
-- One empty-canvas estimating interaction.
-- One manually editable estimate draft.
-- One contractor-facing concept demo.
+Status: implemented.
 
-The implementation must be small enough to delete if rejected.
+Done:
 
-## Phase 3 — Data and persistence
+- `/workshop/projects` reads authenticated workspace projects.
+- Project creation server action inserts live Supabase project records.
+- Live project cards render Supabase rows.
+- Project dashboard route loads authenticated workspace project data.
 
-Status: deferred.
+Spec:
 
-Do not rebuild the local-first repository/mutation layer until an accepted screen needs persistence.
+- `.ai/06_specs/live-project-estimate-bootstrap.md`
 
-## Phase 4 — Proposal/export/versioning/library systems
+## Phase 3 — Live estimate bootstrap
 
-Status: deferred.
+Status: active/current.
 
-These remain important product concepts, but they must not return as broad prototype modules. Reintroduce one capability at a time only after the first workflow is accepted.
+Done/current slice:
+
+- `/workshop/projects/[projectId]/estimates` lists live Supabase estimates.
+- Estimate creation server action creates a draft estimate.
+- Estimate creation bootstraps initial hierarchy: lot → structure → level → area.
+- Estimate list cards link to the first area node.
+
+Next:
+
+- Wire `/workshop/projects/[projectId]/estimates/[nodeId]` to live Supabase estimate nodes and rows.
+- Remove sample-tree assumptions from the active estimate workspace path.
+- Keep tree routing project-scoped and RLS-backed.
+
+## Phase 4 — Live estimate workspace editing
+
+Status: next after Phase 3 route/data wiring.
+
+Target:
+
+- Load estimate tree/rows from Supabase.
+- Preserve route-backed node selection.
+- Insert/edit/delete estimate row items through repository/server-action/domain boundaries.
+- Keep area-only row insertion enforcement.
+- Keep component/library picker separate from full component-library admin.
+
+## Phase 5 — Proposal/export/versioning/library hardening
+
+Status: deferred until live estimate workspace editing is stable.
+
+Target capabilities:
+
+- proposal snapshots;
+- revision diff lineage;
+- cost-library management;
+- export package generation;
+- pricing/source trust metadata.
 
 ## Permanent guardrails
 
-- No Supabase/Postgres until explicitly approved.
-- No merge/deploy until explicitly approved.
-- No compatibility redirects for deleted prototype routes.
-- No fake SaaS maturity.
-- Tests protect accepted behavior only.
+- No merge to `main` without Philip approval.
+- No deploy without Philip approval.
+- Never touch SlateCamp Supabase resources.
+- No app/workshop font above 12px.
+- No duplicated feature-local buttons, search inputs, icon buttons, chips, cards, panels, dropdowns, or repeated controls; make/reuse shared UI primitives.
+- Tests protect accepted behavior and key governance rules.
