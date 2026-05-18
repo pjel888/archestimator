@@ -2,9 +2,19 @@ import { describe, expect, it } from "vitest";
 import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { EstimateSheetContent } from "@/components/workshop/EstimateSheetContent";
 import { WorkshopPageShell } from "@/components/workshop/WorkshopPageShell";
 import { estimateLibraryItems } from "@/components/workshop/estimate-tree-data";
+
+function renderEstimateSheet(selectedNodeId: string) {
+  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
+  return render(
+    <QueryClientProvider client={queryClient}>
+      <EstimateSheetContent selectedNodeId={selectedNodeId} />
+    </QueryClientProvider>,
+  );
+}
 
 describe("estimate shell chrome", () => {
   it("renders breadcrumbs in the upper-left project header", () => {
@@ -24,7 +34,7 @@ describe("estimate shell chrome", () => {
 describe("estimate sheet cost inputs", () => {
   it("displays cost inputs as pesos when idle but keeps focused typing uninterrupted", async () => {
     const user = userEvent.setup();
-    render(<EstimateSheetContent selectedNodeId="main-house" />);
+    renderEstimateSheet("main-house");
 
     const otherCostInput = screen.getByLabelText("HEMLINGBY Loveseat other costs");
     const laborCostInput = screen.getByLabelText("HEMLINGBY Loveseat labor cost");
@@ -56,7 +66,7 @@ describe("estimate sheet cost inputs", () => {
 
   it("uses an explicit area target when the selected node is not an area and focuses the inserted row quantity", async () => {
     const user = userEvent.setup();
-    render(<EstimateSheetContent selectedNodeId="main-house" />);
+    renderEstimateSheet("main-house");
 
     expect(screen.getByText("Target required: choose an area")).toBeInTheDocument();
 
@@ -75,7 +85,7 @@ describe("estimate sheet cost inputs", () => {
 
   it("supports baseline spreadsheet keyboard movement across editable row cells", async () => {
     const user = userEvent.setup();
-    render(<EstimateSheetContent selectedNodeId="living-area" />);
+    renderEstimateSheet("living-area");
 
     const firstQuantity = screen.getByLabelText("Hardwood Oak Flooring quantity");
     await user.click(firstQuantity);
@@ -94,7 +104,7 @@ describe("estimate sheet cost inputs", () => {
 
   it("marks estimate component cells as replaceable draggable sources and highlights focused row editing", async () => {
     const user = userEvent.setup();
-    render(<EstimateSheetContent selectedNodeId="living-area" />);
+    renderEstimateSheet("living-area");
 
     const materialCell = screen.getByLabelText("Hardwood Oak Flooring replaceable estimate component");
     expect(materialCell).toHaveAttribute("draggable", "true");
@@ -110,7 +120,7 @@ describe("estimate sheet cost inputs", () => {
   });
 
   it("keeps group context out of the action header and aligns the project total in the estimate footer", () => {
-    render(<EstimateSheetContent selectedNodeId="living-area" />);
+    renderEstimateSheet("living-area");
 
     const activeContext = screen.getByLabelText("Active estimate group context");
     expect(within(activeContext).getByText("Living Area")).toBeInTheDocument();
@@ -128,7 +138,7 @@ describe("estimate sheet cost inputs", () => {
 
   it("replaces the row estimate component on drop while preserving editable row fields", async () => {
     const user = userEvent.setup();
-    render(<EstimateSheetContent selectedNodeId="living-area" />);
+    renderEstimateSheet("living-area");
 
     const quantityInput = screen.getByLabelText("Hardwood Oak Flooring quantity");
     await user.click(quantityInput);
