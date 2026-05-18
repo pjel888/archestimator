@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import type { EstimateRowItem } from "@/components/workshop/estimate-tree-data";
-import { getCurrentWorkspaceProject } from "@/lib/repositories/workspace-repository";
+import { getCurrentWorkspaceProject, getProjectEstimateTreeByEstimate } from "@/lib/repositories/workspace-repository";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 function readRequiredText(formData: FormData, key: string) {
@@ -50,6 +50,11 @@ type DeleteEstimateRowItemInput = {
   rowId: string;
 };
 
+type FetchEstimateTreeInput = {
+  projectId: string;
+  estimateId: string;
+};
+
 async function getValidatedEstimateRow(projectId: string, estimateId: string, rowId: string) {
   const { project } = await getCurrentWorkspaceProject(projectId);
   if (!project) throw new Error("Project not found in the current workspace.");
@@ -78,6 +83,12 @@ function getSourceSnapshot(libraryItem: EstimateRowItem) {
     sourceUrl: libraryItem.sourceUrl ?? null,
     tags: libraryItem.tags ?? [],
   };
+}
+
+export async function fetchEstimateTree({ projectId, estimateId }: FetchEstimateTreeInput) {
+  const { project, estimate, tree } = await getProjectEstimateTreeByEstimate(projectId, estimateId);
+  if (!project || !estimate) throw new Error("Estimate not found in the current project.");
+  return tree;
 }
 
 export async function createEstimate(projectId: string, formData: FormData) {
