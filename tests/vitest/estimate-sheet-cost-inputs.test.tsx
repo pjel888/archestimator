@@ -1,9 +1,25 @@
 import { describe, expect, it } from "vitest";
-import { act, render, screen, waitFor, within } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
 import { EstimateSheetContent } from "@/components/workshop/EstimateSheetContent";
+import { WorkshopPageShell } from "@/components/workshop/WorkshopPageShell";
 import { estimateLibraryItems } from "@/components/workshop/estimate-tree-data";
+
+describe("estimate shell chrome", () => {
+  it("renders breadcrumbs in the upper-left project header", () => {
+    render(
+      <WorkshopPageShell title="Modern Bungalow" eyebrow="Project" breadcrumbs={["Workshop", "Projects", "Modern Bungalow"]}>
+        <div>Estimate workspace</div>
+      </WorkshopPageShell>,
+    );
+
+    const breadcrumbs = screen.getByLabelText("Project breadcrumbs");
+    expect(within(breadcrumbs).getByText("Workshop")).toBeInTheDocument();
+    expect(within(breadcrumbs).getByText("Projects")).toBeInTheDocument();
+    expect(within(breadcrumbs).getByText("Modern Bungalow")).toBeInTheDocument();
+  });
+});
 
 describe("estimate sheet cost inputs", () => {
   it("displays cost inputs as pesos when idle but keeps focused typing uninterrupted", async () => {
@@ -91,5 +107,50 @@ describe("estimate sheet cost inputs", () => {
     const activeRow = quantityInput.closest("tr");
     expect(activeRow).toHaveAttribute("data-estimate-row-active", "true");
     expect(quantityInput.closest("td")).toHaveAttribute("data-estimate-cell-active", "true");
+  });
+
+  it("keeps group context out of the action header and aligns the project total in the estimate footer", () => {
+    render(<EstimateSheetContent selectedNodeId="living-area" />);
+
+    const activeContext = screen.getByLabelText("Active estimate group context");
+    expect(within(activeContext).getByText("Living Area")).toBeInTheDocument();
+    expect(within(activeContext).getByText("Area group")).toBeInTheDocument();
+
+    const actionHeader = screen.getByLabelText("Estimate sheet controls");
+    expect(within(actionHeader).queryByRole("heading", { name: "Living Area" })).not.toBeInTheDocument();
+    expect(within(actionHeader).getByLabelText("Search estimate rows")).toBeInTheDocument();
+    expect(within(actionHeader).getByRole("button", { name: "Delete selected row items" })).toBeDisabled();
+
+    const footer = screen.getByLabelText("Estimate sheet running totals");
+    expect(within(footer).getByText("Ongoing total project cost")).toBeInTheDocument();
+    expect(within(footer).getByText("₱1,208,527.00")).toBeInTheDocument();
+  });
+
+  it("replaces the row estimate component on drop while preserving editable row fields", async () => {
+    const user = userEvent.setup();
+    render(<EstimateSheetContent selectedNodeId="living-area" />);
+
+    const quantityInput = screen.getByLabelText("Hardwood Oak Flooring quantity");
+    await user.click(quantityInput);
+    await user.clear(quantityInput);
+    await user.type(quantityInput, "7");
+
+    const replacement = estimateLibraryItems.find((item) => item.material === "HEMLINGBY Loveseat");
+    expect(replacement).toBeDefined();
+
+    const targetComponent = screen.getByLabelText("Hardwood Oak Flooring replaceable estimate component");
+    const dataTransfer = {
+      types: ["application/x-archestimator-library-item"],
+      dropEffect: "copy",
+      getData: (type: string) => (type === "application/x-archestimator-library-item" ? JSON.stringify(replacement) : ""),
+    };
+
+    fireEvent.dragOver(targetComponent, { dataTransfer });
+    expect(targetComponent).toHaveAttribute("data-replace-target-active", "true");
+    fireEvent.drop(targetComponent, { dataTransfer });
+
+    expect(screen.queryByLabelText("Hardwood Oak Flooring replaceable estimate component")).not.toBeInTheDocument();
+    expect(screen.getAllByLabelText("HEMLINGBY Loveseat replaceable estimate component").length).toBeGreaterThan(1);
+    expect(screen.getAllByLabelText("HEMLINGBY Loveseat quantity").some((input) => (input as HTMLInputElement).value === "7")).toBe(true);
   });
 });

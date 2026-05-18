@@ -71,12 +71,14 @@ data/local/runtime.json
 
 ## UI component system
 
-Archestimator should grow its own internal UI library early. Prefer shared primitives under `src/components/ui/` and token helpers under `src/lib/ui/` before creating one-off screen markup. Improve primitives as use cases evolve. Do not install Storybook unless Philip explicitly approves it.
+Archestimator should grow its own internal UI library early. **Always check and reuse shared primitives first** under `src/components/ui/` and token helpers under `src/lib/ui/` before creating screen markup. If a repeated UI pattern does not have a primitive yet, create or extend the shared primitive first, then use it in the feature. Never create one-off search inputs, raw buttons, icon-button patterns, badges/chips, filters, dropdowns, fields, toolbars, panels, or empty states inside feature files when they can be shared. Improve primitives as use cases evolve. Do not install Storybook unless Philip explicitly approves it.
 
 Current shared primitives:
 
 - `Button`
+- `Badge`
 - `Card`, `CardHeader`, `CardContent`, `CardTitle`, `CardDescription`
+- `ControlInput`, `ControlSelect`, `SearchInput`
 - `Field`, `TextInput`, `Textarea`
 - `StatCard`
 - `TabList`, `TabButton`

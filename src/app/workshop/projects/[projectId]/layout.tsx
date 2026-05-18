@@ -18,6 +18,7 @@ export default async function ProjectLayout({ children, params }: ProjectLayoutP
     <WorkshopPageShell
       title={title}
       eyebrow="Project"
+      breadcrumbs={["Workshop", "Projects", title]}
       footer={
         <>
           <span>{project?.client ?? projectId}</span>
