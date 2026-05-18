@@ -66,8 +66,14 @@ Proceed from the current small post-reset workshop slice, not from the deleted p
 2. state exact user job, route scope, non-goals, and deletion criteria;
 3. avoid fake SaaS maturity and broad module restoration;
 4. preserve the density correction: compact app/workshop UI, with 12px as the maximum non-landing font size unless Philip explicitly approves an exception;
-5. use the shared UI primitives where they exist, especially button density rules;
+5. use the shared UI primitives first; if no reusable primitive exists for a repeated UI pattern, create or extend a shared primitive before adding feature-local controls;
 6. keep data/persistence minimal until the UX earns a stable data boundary.
+
+## Current feature specs
+
+- `.ai/06_specs/current-project-estimates-component-library-spec.md` is the canonical current-state feature spec for the implemented project estimate workspace and connected Component Library sidebar. Read it before expanding `/workshop/projects/[projectId]/estimates/[nodeId]`, `EstimateSheetContent`, `EstimateSheetTree`, or `src/components/workshop/component-library/*`.
+- `.ai/03_plans/project-estimates-component-library-improvement-plan.md` is the research-backed UX/UI improvement plan for that feature. Its immediate recommended next slice is target-aware insert + insert-and-edit + keyboard editing baseline.
+- `.ai/03_plans/ui-componentization-and-storybook-plan.md` is the active reusable UI primitive matrix and Storybook organization plan. Read it before creating app/workshop controls, component-library controls, toolbars, cards, filters, panels, or stories.
 
 Read before implementation:
 
@@ -78,6 +84,7 @@ Read before implementation:
 5. `.ai/10_state/decisions.md`
 6. `.ai/10_state/known-issues.md`
 7. `DESIGN.md`
+8. `.ai/03_plans/ui-componentization-and-storybook-plan.md`
 
 ## Validation baseline
 
