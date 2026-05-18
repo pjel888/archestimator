@@ -7,7 +7,8 @@
 - 2026-05-16 — `.ai/` is the shared intelligence folder for all AI agents, not only one tool.
 - 2026-05-16 — Product direction should focus on contractors making construction cost estimating faster and easier while managing multiple projects and design changes.
 - 2026-05-16 — Stack baseline for now: Next.js 16 + React 19 + Bun + TypeScript + Tailwind v4.
-- 2026-05-16 — No Supabase/Postgres connection until Philip explicitly approves.
+- 2026-05-16 — Superseded on 2026-05-18: no Supabase/Postgres connection until Philip explicitly approves.
+- 2026-05-18 — Philip approved the state/database direction: Supabase/Postgres for canonical persisted data, TanStack Query for server/cache/optimistic mutation state, Zustand for high-frequency UI state, and dnd-kit for drag/drop mechanics. Archestimator must use its own Supabase project (`ebxxqidacheyapmmzavr`) and must not share the SlateCamp database.
 - 2026-05-16 — Root `DESIGN.md` is the agent-readable visual/design-system source of truth.
 - 2026-05-16 — GitHub repo is private under `pjel888/archestimator`; use feature branches/PRs, do not merge to main automatically.
 - 2026-05-17 — Reset decision: Philip rejected the then-current Archestimator app/workshop prototype UX/UI. The immediate reset preserved only the landing page and reduced `/workshop` to a reset placeholder before later scoped slices were added.
