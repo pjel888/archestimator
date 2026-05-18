@@ -5,6 +5,7 @@ import { estimateRepository } from "@/lib/repositories/estimate-repository";
 
 export const estimateQueryKeys = {
   detail: (estimateId: string) => ["estimate", estimateId] as const,
+  areaTree: (estimateId: string) => ["estimate", estimateId, "area-tree"] as const,
 };
 
 export function useEstimateQuery(estimateId: string) {
