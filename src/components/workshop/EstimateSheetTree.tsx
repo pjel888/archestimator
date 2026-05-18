@@ -7,13 +7,14 @@ import { CaretDown, Cube, DotsSixVertical, HouseLine, Plus, Stack } from "@phosp
 import { Button } from "@/components/ui/button";
 import { SearchInput } from "@/components/ui/search-input";
 import { cn } from "@/lib/ui/cn";
-import { getExpandedNodeIds, flattenVisibleNodes, sampleEstimateTree } from "./estimate-tree-data";
+import { getExpandedNodeIds, flattenVisibleNodes, type EstimateAreaNode } from "./estimate-tree-data";
 import { ResizableSidePanel } from "./ResizableSidePanel";
 
 type EstimateSheetTreeProps = {
   projectId: string;
   projectName: string;
   selectedNodeId: string;
+  nodes: EstimateAreaNode[];
 };
 
 function NodeIcon({ kind }: { kind: "lot" | "structure" | "level" | "area" }) {
@@ -22,9 +23,9 @@ function NodeIcon({ kind }: { kind: "lot" | "structure" | "level" | "area" }) {
   return <Cube size={12} weight="bold" aria-hidden="true" />;
 }
 
-export function EstimateSheetTree({ projectId, projectName, selectedNodeId }: EstimateSheetTreeProps) {
-  const [expandedIds, setExpandedIds] = useState<Set<string>>(() => new Set(getExpandedNodeIds(sampleEstimateTree)));
-  const visibleNodes = useMemo(() => flattenVisibleNodes(sampleEstimateTree, expandedIds), [expandedIds]);
+export function EstimateSheetTree({ projectId, projectName, selectedNodeId, nodes }: EstimateSheetTreeProps) {
+  const [expandedIds, setExpandedIds] = useState<Set<string>>(() => new Set(getExpandedNodeIds(nodes)));
+  const visibleNodes = useMemo(() => flattenVisibleNodes(nodes, expandedIds), [expandedIds, nodes]);
 
   function toggleNode(nodeId: string) {
     setExpandedIds((current) => {

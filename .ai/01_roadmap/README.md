@@ -15,7 +15,7 @@ Archestimator now preserves and actively builds on:
 /workshop/projects                                    live project list/create route
 /workshop/projects/[projectId]                        live project dashboard shell
 /workshop/projects/[projectId]/estimates              live estimate list/create route
-/workshop/projects/[projectId]/estimates/[nodeId]     estimate workspace route, next live-tree focus
+/workshop/projects/[projectId]/estimates/[nodeId]     live estimate workspace route with project-scoped tree/row data
 /workshop/components                                  component library surface
 ```
 
@@ -71,30 +71,26 @@ Spec:
 
 ## Phase 3 — Live estimate bootstrap
 
-Status: active/current.
+Status: implemented.
 
-Done/current slice:
+Done:
 
 - `/workshop/projects/[projectId]/estimates` lists live Supabase estimates.
 - Estimate creation server action creates a draft estimate.
 - Estimate creation bootstraps initial hierarchy: lot → structure → level → area.
 - Estimate list cards link to the first area node.
-
-Next:
-
-- Wire `/workshop/projects/[projectId]/estimates/[nodeId]` to live Supabase estimate nodes and rows.
-- Remove sample-tree assumptions from the active estimate workspace path.
-- Keep tree routing project-scoped and RLS-backed.
+- `/workshop/projects/[projectId]/estimates/[nodeId]` reads live Supabase `estimate_nodes` and `estimate_row_items`.
+- Node route validation is project-scoped through the selected node's parent estimate.
+- The tree/content components now receive route-loaded tree data instead of hardcoded sample tree data on the live route.
 
 ## Phase 4 — Live estimate workspace editing
 
-Status: next after Phase 3 route/data wiring.
+Status: active/next.
 
 Target:
 
-- Load estimate tree/rows from Supabase.
+- Persist estimate row insert/edit/delete mutations through repository/server-action/domain boundaries.
 - Preserve route-backed node selection.
-- Insert/edit/delete estimate row items through repository/server-action/domain boundaries.
 - Keep area-only row insertion enforcement.
 - Keep component/library picker separate from full component-library admin.
 
