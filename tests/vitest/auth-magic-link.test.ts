@@ -25,4 +25,17 @@ describe("magic-link auth callback", () => {
     expect(authActions).toContain("emailRedirectTo: `${origin}/auth/callback?next=${encodeURIComponent(next)}`");
     expect(authActions).toContain("sanitizeNextPath");
   });
+
+  it("supports Google OAuth through the same callback route while keeping email as fallback", () => {
+    const authActions = readProjectFile("src/lib/auth/actions.ts");
+    const loginPage = readProjectFile("src/app/login/page.tsx");
+
+    expect(authActions).toContain("signInWithGoogle");
+    expect(authActions).toContain("signInWithOAuth");
+    expect(authActions).toContain('provider: "google"');
+    expect(authActions).toContain("redirectTo: `${origin}/auth/callback?next=${encodeURIComponent(next)}`");
+    expect(loginPage).toContain("Continue with Google");
+    expect(loginPage).toContain("signInWithGoogle");
+    expect(loginPage).toContain("signInWithEmail");
+  });
 });

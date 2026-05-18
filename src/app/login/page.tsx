@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { ControlInput } from "@/components/ui/control-input";
-import { signInWithEmail } from "@/lib/auth/actions";
+import { signInWithEmail, signInWithGoogle } from "@/lib/auth/actions";
 
 export default async function LoginPage({ searchParams }: { searchParams: Promise<{ next?: string; sent?: string; email?: string; error?: string }> }) {
   const params = await searchParams;
@@ -13,7 +13,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
           <div className="border-b border-hairline pb-2">
             <p className="text-[8px] font-bold uppercase tracking-[0.18em] text-muted">Archestimator</p>
             <h1 className="mt-1 text-[12px] font-bold tracking-[-0.02em] text-ink">Sign in to workshop</h1>
-            <p className="mt-1 text-[10px] leading-4 text-muted">Use your email to receive a Supabase magic link.</p>
+            <p className="mt-1 text-[10px] leading-4 text-muted">Use Google sign-in first, or fall back to an email magic link.</p>
           </div>
 
           {params.sent ? (
@@ -28,7 +28,20 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
             </div>
           ) : null}
 
-          <form action={signInWithEmail} className="mt-2 space-y-2">
+          <form action={signInWithGoogle} className="mt-2">
+            <input type="hidden" name="next" value={next} />
+            <Button type="submit" variant="secondary" size="md" className="h-9 w-full">
+              Continue with Google
+            </Button>
+          </form>
+
+          <div className="my-2 flex items-center gap-2 text-[8px] font-bold uppercase tracking-[0.16em] text-muted">
+            <span className="h-px flex-1 bg-hairline" />
+            Email link
+            <span className="h-px flex-1 bg-hairline" />
+          </div>
+
+          <form action={signInWithEmail} className="space-y-2">
             <input type="hidden" name="next" value={next} />
             <label className="block space-y-1">
               <span className="text-[9px] font-bold uppercase tracking-[0.12em] text-muted">Email</span>
