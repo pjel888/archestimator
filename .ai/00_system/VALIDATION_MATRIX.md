@@ -95,7 +95,7 @@ For the current authenticated MVP path:
 6. Creating an estimate redirects to `/workshop/projects/{projectId}/estimates/{areaNodeId}`.
 7. Opening `/workshop/projects/{projectId}/estimates/{nodeId}` renders only a node from an estimate owned by that project; mismatched project/node pairs return 404.
 8. Tree items change the URL with `aria-current="page"` on the selected node, and content uses the route-loaded tree/rows.
-9. Adding a component-library item to an area persists an `estimate_row_items` record and survives route refresh.
+9. Adding, replacing, deleting, or editing an estimate row persists the `estimate_row_items` record and survives route refresh.
 
 ## Estimation-domain claims
 

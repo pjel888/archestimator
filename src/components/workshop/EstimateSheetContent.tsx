@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { ControlInput } from "@/components/ui/control-input";
 import { ControlSelect } from "@/components/ui/control-select";
 import { SearchInput } from "@/components/ui/search-input";
-import { insertEstimateRowItemFromLibrary } from "@/lib/estimates/actions";
+import { deleteEstimateRowItem, insertEstimateRowItemFromLibrary, replaceEstimateRowItemWithLibrary, updateEstimateRowItem } from "@/lib/estimates/actions";
 import { cn } from "@/lib/ui/cn";
 import { findEstimateNode, sampleEstimateTree, type EstimateAreaNode, type EstimateRowItem } from "./estimate-tree-data";
 
@@ -40,6 +40,7 @@ type EstimateSheetBranchProps = {
   onInsertLibraryItem: (targetNodeId: string, libraryItem: EstimateRowItem) => void;
   onReplaceRowItem: (rowItemId: string, libraryItem: EstimateRowItem) => void;
   onDeleteRowItem: (rowItemId: string) => void;
+  onUpdateRowItem: (rowItemId: string, values: Partial<EditableRowValue>) => void;
   depth?: number;
 };
 
@@ -393,6 +394,7 @@ function EstimateRowItemsTable({
   onInsertLibraryItem,
   onReplaceRowItem,
   onDeleteRowItem,
+  onUpdateRowItem,
 }: {
   items: EstimateRowItem[];
   editableRows: Record<string, EditableRowValue>;
@@ -401,6 +403,7 @@ function EstimateRowItemsTable({
   onInsertLibraryItem: (targetNodeId: string, libraryItem: EstimateRowItem) => void;
   onReplaceRowItem: (rowItemId: string, libraryItem: EstimateRowItem) => void;
   onDeleteRowItem: (rowItemId: string) => void;
+  onUpdateRowItem: (rowItemId: string, values: Partial<EditableRowValue>) => void;
 }) {
   const [focusedCell, setFocusedCell] = useState<{ rowId: string; cellIndex: number } | null>(null);
   const [replaceTargetRowId, setReplaceTargetRowId] = useState("");
@@ -500,17 +503,19 @@ function EstimateRowItemsTable({
                   value={item.discipline}
                   options={disciplineOptions}
                   ariaLabel={`${item.material} discipline`}
-                  onChange={(value) =>
-                    setEditableRows((current) => updateEditableRowValue(current, item, { discipline: value }))
-                  }
+                  onChange={(value) => {
+                    setEditableRows((current) => updateEditableRowValue(current, item, { discipline: value }));
+                    onUpdateRowItem(item.id, { discipline: value });
+                  }}
                 />
                 <EstimateSelect
                   value={item.designation}
                   options={designationOptions}
                   ariaLabel={`${item.material} designation`}
-                  onChange={(value) =>
-                    setEditableRows((current) => updateEditableRowValue(current, item, { designation: value }))
-                  }
+                  onChange={(value) => {
+                    setEditableRows((current) => updateEditableRowValue(current, item, { designation: value }));
+                    onUpdateRowItem(item.id, { designation: value });
+                  }}
                 />
               </td>
               <td
@@ -529,7 +534,10 @@ function EstimateRowItemsTable({
                     setEditableRows((current) => updateEditableRowValue(current, item, { quantity: event.target.value }))
                   }
                   onFocus={() => setFocusedCell({ rowId: item.id, cellIndex: 0 })}
-                  onBlur={() => setFocusedCell((current) => (current?.rowId === item.id && current.cellIndex === 0 ? null : current))}
+                  onBlur={() => {
+                    setFocusedCell((current) => (current?.rowId === item.id && current.cellIndex === 0 ? null : current));
+                    onUpdateRowItem(item.id, { quantity: item.editableQuantity });
+                  }}
                   onKeyDown={(event) => handleEstimateCellKeyDown(event, rowIndex, 0)}
                   data-estimate-row-index={rowIndex}
                   data-estimate-row-id={item.id}
@@ -553,7 +561,10 @@ function EstimateRowItemsTable({
                   onChange={(value) => setEditableRows((current) => updateEditableRowValue(current, item, { supplementaryCosts: value }))}
                   ariaLabel={`${item.material} other costs`}
                   onFocus={() => setFocusedCell({ rowId: item.id, cellIndex: 1 })}
-                  onBlur={() => setFocusedCell((current) => (current?.rowId === item.id && current.cellIndex === 1 ? null : current))}
+                  onBlur={() => {
+                    setFocusedCell((current) => (current?.rowId === item.id && current.cellIndex === 1 ? null : current));
+                    onUpdateRowItem(item.id, { supplementaryCosts: item.editableSupplementaryCosts });
+                  }}
                   onKeyDown={(event) => handleEstimateCellKeyDown(event, rowIndex, 1)}
                   data-estimate-row-index={rowIndex}
                   data-estimate-cell-index={1}
@@ -571,7 +582,10 @@ function EstimateRowItemsTable({
                   onChange={(value) => setEditableRows((current) => updateEditableRowValue(current, item, { laborCost: value }))}
                   ariaLabel={`${item.material} labor cost`}
                   onFocus={() => setFocusedCell({ rowId: item.id, cellIndex: 2 })}
-                  onBlur={() => setFocusedCell((current) => (current?.rowId === item.id && current.cellIndex === 2 ? null : current))}
+                  onBlur={() => {
+                    setFocusedCell((current) => (current?.rowId === item.id && current.cellIndex === 2 ? null : current));
+                    onUpdateRowItem(item.id, { laborCost: item.editableLaborCost });
+                  }}
                   onKeyDown={(event) => handleEstimateCellKeyDown(event, rowIndex, 2)}
                   data-estimate-row-index={rowIndex}
                   data-estimate-cell-index={2}
@@ -657,7 +671,7 @@ function EmptyAreaMessage({ depth, nodeId, onInsertLibraryItem }: { depth: numbe
   );
 }
 
-function EstimateSheetBranch({ node, editableRows, setEditableRows, onInsertLibraryItem, onReplaceRowItem, onDeleteRowItem, depth = 0 }: EstimateSheetBranchProps) {
+function EstimateSheetBranch({ node, editableRows, setEditableRows, onInsertLibraryItem, onReplaceRowItem, onDeleteRowItem, onUpdateRowItem, depth = 0 }: EstimateSheetBranchProps) {
   const [collapsed, setCollapsed] = useState(false);
   const childAreas = node.children ?? [];
   const estimateRowItems = node.estimateRowItems ?? [];
@@ -700,6 +714,7 @@ function EstimateSheetBranch({ node, editableRows, setEditableRows, onInsertLibr
               onInsertLibraryItem={onInsertLibraryItem}
               onReplaceRowItem={onReplaceRowItem}
               onDeleteRowItem={onDeleteRowItem}
+              onUpdateRowItem={onUpdateRowItem}
               depth={depth + 1}
             />
           ))}
@@ -711,6 +726,7 @@ function EstimateSheetBranch({ node, editableRows, setEditableRows, onInsertLibr
             onInsertLibraryItem={onInsertLibraryItem}
             onReplaceRowItem={onReplaceRowItem}
             onDeleteRowItem={onDeleteRowItem}
+            onUpdateRowItem={onUpdateRowItem}
           />
           {!hasContents ? <EmptyAreaMessage depth={depth + 1} nodeId={node.id} onInsertLibraryItem={onInsertLibraryItem} /> : null}
           {hasContents && canReceiveRows ? (
@@ -876,6 +892,32 @@ export function EstimateSheetContent({ selectedNodeId, nodes = sampleEstimateTre
     });
   }, [pendingFocusRowId]);
 
+  const persistMutation = useCallback((action: Promise<void>) => {
+    if (!projectId || !estimateId) return;
+    startPersistTransition(() => {
+      void action.then(
+        () => window.location.reload(),
+        () => window.location.reload(),
+      );
+    });
+  }, [estimateId, projectId]);
+
+  function updateRowItem(rowItemId: string, values: Partial<EditableRowValue>) {
+    if (!projectId || !estimateId) return;
+    persistMutation(
+      updateEstimateRowItem({
+        projectId,
+        estimateId,
+        rowId: rowItemId,
+        ...(values.quantity !== undefined ? { quantity: parseEditableNumber(values.quantity) } : {}),
+        ...(values.supplementaryCosts !== undefined ? { supplementaryCosts: parseEditableNumber(values.supplementaryCosts) } : {}),
+        ...(values.laborCost !== undefined ? { laborCost: parseEditableNumber(values.laborCost) } : {}),
+        ...(values.discipline !== undefined ? { discipline: values.discipline } : {}),
+        ...(values.designation !== undefined ? { designation: values.designation } : {}),
+      }),
+    );
+  }
+
   const insertLibraryItem = useCallback((targetNodeId: string, libraryItem: EstimateRowItem) => {
     const targetNode = findEstimateNode(estimateTree, targetNodeId);
     if (targetNode?.kind !== "area") return;
@@ -896,14 +938,9 @@ export function EstimateSheetContent({ selectedNodeId, nodes = sampleEstimateTre
     setEditableRows((current) => ({ ...current, [newItem.id]: getInitialEditableRow(newItem) }));
 
     if (projectId && estimateId) {
-      startPersistTransition(() => {
-        void insertEstimateRowItemFromLibrary({ projectId, estimateId, targetNodeId, rowId: newItem.id, libraryItem }).then(
-          () => window.location.reload(),
-          () => window.location.reload(),
-        );
-      });
+      persistMutation(insertEstimateRowItemFromLibrary({ projectId, estimateId, targetNodeId, rowId: newItem.id, libraryItem }));
     }
-  }, [estimateId, estimateTree, projectId, startPersistTransition]);
+  }, [estimateId, estimateTree, persistMutation, projectId]);
 
   useEffect(() => {
     function handleSidebarAdd(event: Event) {
@@ -929,6 +966,9 @@ export function EstimateSheetContent({ selectedNodeId, nodes = sampleEstimateTre
         return visit(node);
       }),
     );
+    if (projectId && estimateId) {
+      persistMutation(replaceEstimateRowItemWithLibrary({ projectId, estimateId, rowId: rowItemId, libraryItem }));
+    }
   }
 
   function deleteRowItem(rowItemId: string) {
@@ -949,6 +989,9 @@ export function EstimateSheetContent({ selectedNodeId, nodes = sampleEstimateTre
       delete remainingRows[rowItemId];
       return remainingRows;
     });
+    if (projectId && estimateId) {
+      persistMutation(deleteEstimateRowItem({ projectId, estimateId, rowId: rowItemId }));
+    }
   }
 
   return (
@@ -970,6 +1013,7 @@ export function EstimateSheetContent({ selectedNodeId, nodes = sampleEstimateTre
               onInsertLibraryItem={insertLibraryItem}
               onReplaceRowItem={replaceRowItem}
               onDeleteRowItem={deleteRowItem}
+              onUpdateRowItem={updateRowItem}
             />
           </div>
           <EstimateSheetFooter projectTotal={projectTotal} />

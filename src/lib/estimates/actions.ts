@@ -26,6 +26,60 @@ type InsertEstimateRowItemFromLibraryInput = {
   libraryItem: EstimateRowItem;
 };
 
+type UpdateEstimateRowItemInput = {
+  projectId: string;
+  estimateId: string;
+  rowId: string;
+  quantity?: number;
+  supplementaryCosts?: number;
+  laborCost?: number;
+  discipline?: string;
+  designation?: string;
+};
+
+type ReplaceEstimateRowItemInput = {
+  projectId: string;
+  estimateId: string;
+  rowId: string;
+  libraryItem: EstimateRowItem;
+};
+
+type DeleteEstimateRowItemInput = {
+  projectId: string;
+  estimateId: string;
+  rowId: string;
+};
+
+async function getValidatedEstimateRow(projectId: string, estimateId: string, rowId: string) {
+  const { project } = await getCurrentWorkspaceProject(projectId);
+  if (!project) throw new Error("Project not found in the current workspace.");
+
+  const supabase = await createSupabaseServerClient();
+  const { data: row, error } = await supabase
+    .from("estimate_row_items")
+    .select("id, node_id, estimate_id, estimate_nodes!inner(id, kind, estimates!inner(project_id))")
+    .eq("id", rowId)
+    .eq("estimate_id", estimateId)
+    .eq("estimate_nodes.estimates.project_id", project.id)
+    .maybeSingle();
+
+  if (error) throw error;
+  if (!row) throw new Error("Estimate row item not found in the current project.");
+
+  return { project, supabase, row };
+}
+
+function getSourceSnapshot(libraryItem: EstimateRowItem) {
+  return {
+    category: libraryItem.category,
+    imageUrl: libraryItem.imageUrl ?? null,
+    pricingDate: libraryItem.pricingDate,
+    pricingSource: libraryItem.pricingSource,
+    sourceUrl: libraryItem.sourceUrl ?? null,
+    tags: libraryItem.tags ?? [],
+  };
+}
+
 export async function createEstimate(projectId: string, formData: FormData) {
   const { project } = await getCurrentWorkspaceProject(projectId);
   if (!project) throw new Error("Project not found in the current workspace.");
@@ -145,14 +199,7 @@ export async function insertEstimateRowItemFromLibrary({ projectId, estimateId, 
 
   const nextSortOrder = (existingRows?.[0]?.sort_order ?? -1) + 1;
   const quantity = libraryItem.quantity || 1;
-  const sourceSnapshot = {
-    category: libraryItem.category,
-    imageUrl: libraryItem.imageUrl ?? null,
-    pricingDate: libraryItem.pricingDate,
-    pricingSource: libraryItem.pricingSource,
-    sourceUrl: libraryItem.sourceUrl ?? null,
-    tags: libraryItem.tags ?? [],
-  };
+  const sourceSnapshot = getSourceSnapshot(libraryItem);
 
   const { error: insertError } = await supabase.from("estimate_row_items").insert({
     id: rowId,
@@ -178,4 +225,57 @@ export async function insertEstimateRowItemFromLibrary({ projectId, estimateId, 
 
   revalidatePath(`/workshop/projects/${project.id}/estimates/${targetNodeId}`);
   revalidatePath(`/workshop/projects/${project.id}/estimates`);
+}
+
+export async function updateEstimateRowItem({ projectId, estimateId, rowId, quantity, supplementaryCosts, laborCost, discipline, designation }: UpdateEstimateRowItemInput) {
+  const { project, supabase, row } = await getValidatedEstimateRow(projectId, estimateId, rowId);
+  const updatePayload = {
+    ...(quantity !== undefined ? { quantity } : {}),
+    ...(supplementaryCosts !== undefined ? { supplementary_cost: supplementaryCosts } : {}),
+    ...(laborCost !== undefined ? { labor_cost: laborCost } : {}),
+    ...(discipline !== undefined ? { discipline } : {}),
+    ...(designation !== undefined ? { designation } : {}),
+    link_state: "linked-overridden" as const,
+  };
+
+  const { error } = await supabase.from("estimate_row_items").update(updatePayload).eq("id", row.id).eq("estimate_id", estimateId);
+  if (error) throw error;
+
+  revalidatePath(`/workshop/projects/${project.id}/estimates/${row.node_id}`);
+}
+
+export async function replaceEstimateRowItemWithLibrary({ projectId, estimateId, rowId, libraryItem }: ReplaceEstimateRowItemInput) {
+  const { project, supabase, row } = await getValidatedEstimateRow(projectId, estimateId, rowId);
+  const quantity = libraryItem.quantity || 1;
+  const { error } = await supabase
+    .from("estimate_row_items")
+    .update({
+      source_library_item_id: libraryItem.source === "library" ? libraryItem.id : null,
+      source_snapshot: getSourceSnapshot(libraryItem),
+      material: libraryItem.material,
+      description: libraryItem.description,
+      supplier: libraryItem.supplier,
+      unit: libraryItem.unit,
+      quantity,
+      unit_cost: libraryItem.itemCost,
+      supplementary_cost: libraryItem.supplementaryCosts,
+      labor_cost: libraryItem.laborCost,
+      discipline: libraryItem.discipline,
+      designation: libraryItem.designation,
+      link_state: libraryItem.source === "library" ? "linked-clean" : "unlinked",
+    })
+    .eq("id", row.id)
+    .eq("estimate_id", estimateId);
+
+  if (error) throw error;
+
+  revalidatePath(`/workshop/projects/${project.id}/estimates/${row.node_id}`);
+}
+
+export async function deleteEstimateRowItem({ projectId, estimateId, rowId }: DeleteEstimateRowItemInput) {
+  const { project, supabase, row } = await getValidatedEstimateRow(projectId, estimateId, rowId);
+  const { error } = await supabase.from("estimate_row_items").delete().eq("id", row.id).eq("estimate_id", estimateId);
+  if (error) throw error;
+
+  revalidatePath(`/workshop/projects/${project.id}/estimates/${row.node_id}`);
 }

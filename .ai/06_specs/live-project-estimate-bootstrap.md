@@ -33,7 +33,9 @@ The current goal is intentionally narrow:
 - The action validates project ownership, estimate ownership, and `kind = area` before insertion.
 - Client insert remains optimistic for fast editing, then calls the server action and refreshes the route to reconcile with Supabase.
 - Inserted library rows use `link_state = linked-clean`; manual/project rows use `unlinked`.
-- Replace/delete/inline edits remain local until their mutation actions are implemented.
+- Replace, delete, and inline quantity/cost/discipline/designation edits persist through project-scoped server actions.
+- Mutations validate row ownership through estimate/node/project joins before modifying Supabase.
+- Client interactions remain optimistic, then refresh the route to reconcile with Supabase until the TanStack Query mutation layer lands.
 
 ## Current behavior
 
@@ -123,4 +125,4 @@ Required gates after edits:
 
 ## Next slice
 
-Persist estimate row replace/delete and inline quantity/cost edits through repository/server-action/domain boundaries.
+Persist estimate mutations through TanStack Query/domain hooks instead of route reload reconciliation, then add visible pending/error states for failed saves.

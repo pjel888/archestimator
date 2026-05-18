@@ -37,5 +37,11 @@ describe("live estimate node route", () => {
     expect(estimateActions).toContain('.eq("kind", "area")');
     expect(estimateActions).toContain('.eq("estimates.project_id", project.id)');
     expect(estimateActions).toContain('link_state: libraryItem.source === "library" ? "linked-clean" : "unlinked"');
+    expect(estimateActions).toContain("updateEstimateRowItem");
+    expect(estimateActions).toContain("replaceEstimateRowItemWithLibrary");
+    expect(estimateActions).toContain("deleteEstimateRowItem");
+    expect(estimateContent).toContain("onUpdateRowItem");
+    expect(estimateContent).toContain("replaceEstimateRowItemWithLibrary");
+    expect(estimateContent).toContain("deleteEstimateRowItem");
   });
 });
