@@ -2,6 +2,7 @@
 
 import { X } from "@phosphor-icons/react/dist/ssr";
 import { Button } from "@/components/ui/button";
+import { ControlInput } from "@/components/ui/control-input";
 
 import type { NewComponentForm as NewComponentFormType } from "./types";
 
@@ -17,7 +18,7 @@ function Field({ label, children, required }: { label: string; children: React.R
   );
 }
 
-const inputClass = "h-7 border border-hairline bg-white px-2 text-[10px] font-semibold text-ink outline-none transition focus:border-accent";
+const inputClass = "h-7 border border-hairline bg-white px-2 !text-[10px] font-semibold text-ink outline-none transition focus:border-accent";
 
 export type NewComponentFormProps = {
   form: NewComponentFormType;
@@ -62,46 +63,46 @@ export function NewComponentForm({ form, formError, onChange, onSave, onSaveAndA
 
           <div className="grid grid-cols-2 gap-2">
             <Field label="Component name" required>
-              <input className={inputClass} value={form.material} onChange={(e) => update({ material: e.target.value })} autoFocus />
+              <ControlInput className={inputClass} value={form.material} onChange={(e) => update({ material: e.target.value })} autoFocus />
             </Field>
             <Field label="Category" required>
-              <input className={inputClass} value={form.category} onChange={(e) => update({ category: e.target.value })} />
+              <ControlInput className={inputClass} value={form.category} onChange={(e) => update({ category: e.target.value })} />
             </Field>
             <Field label="Supplier">
-              <input className={inputClass} value={form.supplier} onChange={(e) => update({ supplier: e.target.value })} />
+              <ControlInput className={inputClass} value={form.supplier} onChange={(e) => update({ supplier: e.target.value })} />
             </Field>
             <Field label="Unit" required>
-              <input className={inputClass} value={form.unit} onChange={(e) => update({ unit: e.target.value })} />
+              <ControlInput className={inputClass} value={form.unit} onChange={(e) => update({ unit: e.target.value })} />
             </Field>
             <Field label="Base price" required>
-              <input className={inputClass} inputMode="decimal" value={form.itemCost} onChange={(e) => update({ itemCost: e.target.value })} />
+              <ControlInput className={inputClass} inputMode="decimal" value={form.itemCost} onChange={(e) => update({ itemCost: e.target.value })} />
             </Field>
             <Field label="Currency">
-              <input className={inputClass} value={form.currency} onChange={(e) => update({ currency: e.target.value })} />
+              <ControlInput className={inputClass} value={form.currency} onChange={(e) => update({ currency: e.target.value })} />
             </Field>
             <Field label="Discipline">
-              <input className={inputClass} value={form.discipline} onChange={(e) => update({ discipline: e.target.value })} />
+              <ControlInput className={inputClass} value={form.discipline} onChange={(e) => update({ discipline: e.target.value })} />
             </Field>
             <Field label="Designation">
-              <input className={inputClass} value={form.designation} onChange={(e) => update({ designation: e.target.value })} />
+              <ControlInput className={inputClass} value={form.designation} onChange={(e) => update({ designation: e.target.value })} />
             </Field>
             <Field label="Labor default">
-              <input className={inputClass} inputMode="decimal" value={form.laborCost} onChange={(e) => update({ laborCost: e.target.value })} />
+              <ControlInput className={inputClass} inputMode="decimal" value={form.laborCost} onChange={(e) => update({ laborCost: e.target.value })} />
             </Field>
             <Field label="Other cost default">
-              <input className={inputClass} inputMode="decimal" value={form.supplementaryCosts} onChange={(e) => update({ supplementaryCosts: e.target.value })} />
+              <ControlInput className={inputClass} inputMode="decimal" value={form.supplementaryCosts} onChange={(e) => update({ supplementaryCosts: e.target.value })} />
             </Field>
             <Field label="SKU / Reference">
-              <input className={inputClass} value={form.sku} onChange={(e) => update({ sku: e.target.value })} />
+              <ControlInput className={inputClass} value={form.sku} onChange={(e) => update({ sku: e.target.value })} />
             </Field>
             <Field label="Source URL">
-              <input className={inputClass} value={form.sourceUrl} onChange={(e) => update({ sourceUrl: e.target.value })} />
+              <ControlInput className={inputClass} value={form.sourceUrl} onChange={(e) => update({ sourceUrl: e.target.value })} />
             </Field>
             <Field label="Image URL">
-              <input className={inputClass} value={form.imageUrl} onChange={(e) => update({ imageUrl: e.target.value })} />
+              <ControlInput className={inputClass} value={form.imageUrl} onChange={(e) => update({ imageUrl: e.target.value })} />
             </Field>
             <Field label="Tags">
-              <input className={inputClass} value={form.tags} placeholder="tag1, tag2, tag3" onChange={(e) => update({ tags: e.target.value })} />
+              <ControlInput className={inputClass} value={form.tags} placeholder="tag1, tag2, tag3" onChange={(e) => update({ tags: e.target.value })} />
             </Field>
           </div>
           <div className="mt-2 grid gap-2">

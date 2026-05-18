@@ -2,9 +2,10 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import { CaretDown, Cube, DotsSixVertical, HouseLine, MagnifyingGlass, Plus, Stack } from "@phosphor-icons/react/dist/ssr";
+import { CaretDown, Cube, DotsSixVertical, HouseLine, Plus, Stack } from "@phosphor-icons/react/dist/ssr";
 
 import { Button } from "@/components/ui/button";
+import { SearchInput } from "@/components/ui/search-input";
 import { cn } from "@/lib/ui/cn";
 import { getExpandedNodeIds, flattenVisibleNodes, sampleEstimateTree } from "./estimate-tree-data";
 import { ResizableSidePanel } from "./ResizableSidePanel";
@@ -37,10 +38,12 @@ export function EstimateSheetTree({ projectId, projectName, selectedNodeId }: Es
   return (
     <ResizableSidePanel side="left" ariaLabel="Estimate sheet tree" storageKey="estimate_sheet_tree_width" defaultWidth={272} minWidth={216} maxWidth={432}>
       <div className="h-full overflow-auto border-r border-hairline p-2">
-        <label className="flex h-8 items-center gap-1 border-b border-hairline p-2 text-[10px] font-bold text-tertiary">
-          <MagnifyingGlass size={13} aria-hidden="true" />
-          <input className="min-w-0 flex-1 bg-transparent text-[10px] font-bold outline-none placeholder:text-tertiary" placeholder="Search" aria-label="Search estimate areas" />
-        </label>
+        <SearchInput
+          wrapperClassName="h-8 rounded-none border-x-0 border-t-0 bg-transparent px-2"
+          className="font-bold"
+          placeholder="Search"
+          aria-label="Search estimate areas"
+        />
 
         <div className="flex h-10 items-center justify-end">
           <Button variant="ghost" size="icon-sm" aria-label="Add estimate area">

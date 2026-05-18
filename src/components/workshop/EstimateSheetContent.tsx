@@ -1,10 +1,11 @@
 "use client";
 
-import { type Dispatch, type DragEvent, type SetStateAction, useCallback, useEffect, useMemo, useState } from "react";
+import { type Dispatch, type DragEvent, type InputHTMLAttributes, type KeyboardEvent, type SetStateAction, useCallback, useEffect, useMemo, useState } from "react";
 import { ArrowsOutSimple, CaretDown, Cube, DotsSixVertical, FunnelSimple, HouseLine, Plus, SlidersHorizontal, Stack, Trash } from "@phosphor-icons/react/dist/ssr";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { ControlInput } from "@/components/ui/control-input";
 import { ControlSelect } from "@/components/ui/control-select";
 import { SearchInput } from "@/components/ui/search-input";
 import { cn } from "@/lib/ui/cn";
@@ -68,6 +69,41 @@ function NodeIcon({ kind }: { kind: EstimateAreaNode["kind"] }) {
   if (kind === "structure") return <HouseLine size={13} weight="bold" aria-hidden="true" />;
   if (kind === "level") return <Stack size={13} weight="bold" aria-hidden="true" />;
   return <Cube size={13} weight="bold" aria-hidden="true" />;
+}
+
+function collectAreaOptions(nodes: EstimateAreaNode[]) {
+  const options: Array<{ id: string; label: string }> = [];
+
+  function visit(node: EstimateAreaNode, path: string[]) {
+    const nextPath = [...path, node.name];
+    if (node.kind === "area") options.push({ id: node.id, label: nextPath.join(" / ") });
+    node.children?.forEach((child) => visit(child, nextPath));
+  }
+
+  nodes.forEach((node) => visit(node, []));
+  return options;
+}
+
+function focusEstimateCell(rowIndex: number, cellIndex: number) {
+  const nextCell = document.querySelector<HTMLInputElement | HTMLSelectElement>(
+    `[data-estimate-row-index="${rowIndex}"][data-estimate-cell-index="${cellIndex}"]`,
+  );
+  nextCell?.focus();
+  if (nextCell instanceof HTMLInputElement) nextCell.select();
+}
+
+function handleEstimateCellKeyDown(event: KeyboardEvent<HTMLInputElement | HTMLSelectElement>, rowIndex: number, cellIndex: number) {
+  const keyMap: Record<string, [number, number]> = {
+    ArrowRight: [rowIndex, cellIndex + 1],
+    ArrowLeft: [rowIndex, cellIndex - 1],
+    ArrowDown: [rowIndex + 1, cellIndex],
+    ArrowUp: [rowIndex - 1, cellIndex],
+    Enter: event.shiftKey ? [rowIndex - 1, cellIndex] : [rowIndex + 1, cellIndex],
+  };
+  const target = keyMap[event.key];
+  if (!target) return;
+  event.preventDefault();
+  focusEstimateCell(target[0], target[1]);
 }
 
 function toEditableNumber(value: number) {
@@ -227,9 +263,10 @@ function getComponentImageUrl(item: EstimateRowItem) {
 function EstimateMaterialCell({ item }: { item: EstimateRowItem }) {
   return (
     <div
-      className="group flex h-full min-h-24 overflow-hidden border-r border-hairline bg-white"
+      className="group flex h-full min-h-24 cursor-grab overflow-hidden border-r border-hairline border-l-2 border-l-accent/70 bg-[#EFF6FF] shadow-[inset_0_0_0_1px_rgba(37,99,235,0.10)] transition hover:bg-[#E7F0FF] active:cursor-grabbing"
       draggable
-      aria-label={`${item.material} material row item`}
+      aria-label={`${item.material} replaceable estimate component`}
+      title="Drag this source-linked estimate component to move or replace it"
     >
       <div className="flex aspect-square h-full min-h-24 shrink-0 items-stretch justify-center p-0">
         <div
@@ -240,17 +277,26 @@ function EstimateMaterialCell({ item }: { item: EstimateRowItem }) {
       </div>
 
       <div className="flex min-w-0 flex-1 flex-col px-1 py-1.5">
+        <div className="mb-1 flex min-w-0 flex-wrap items-center gap-1">
+          <span className="shrink-0 rounded-sm border border-accent/25 bg-white/80 px-1 py-0.5 text-[8px] font-bold uppercase tracking-[0.08em] text-accent">
+            Source-linked estimate component
+          </span>
+          <span className="shrink-0 rounded-sm border border-accent/20 bg-accent/10 px-1 py-0.5 text-[8px] font-bold uppercase tracking-[0.08em] text-accent">
+            Drag / replace component
+          </span>
+        </div>
         <p className="truncate text-[11px] font-bold leading-4 text-ink">{item.material}</p>
         <p className="truncate text-[10px] font-semibold leading-4 text-tertiary">{item.supplier}</p>
         <p className="mt-1 line-clamp-2 text-[10px] leading-4 text-secondary/60 transition-opacity group-hover:text-secondary">{item.description}</p>
       </div>
 
-      <div className="flex w-16 shrink-0 flex-col items-end justify-end gap-3 px-1 py-1.5 text-right">
+      <div className="flex w-16 shrink-0 flex-col items-end justify-between gap-2 px-1 py-1.5 text-right">
+        <DotsSixVertical size={14} weight="bold" className="text-accent" aria-hidden="true" />
         <div>
           <p className="whitespace-nowrap text-[9px] font-bold leading-4 tabular-nums text-ink">{pesoFormatter.format(item.itemCost)}</p>
           <p className="whitespace-nowrap text-[10px] font-semibold leading-3 text-tertiary">/ {item.unit}</p>
         </div>
-        <ArrowsOutSimple size={14} weight="bold" className="text-tertiary" aria-hidden="true" />
+        <ArrowsOutSimple size={14} weight="bold" className="text-accent" aria-hidden="true" />
       </div>
     </div>
   );
@@ -260,23 +306,40 @@ function MoneyInput({
   value,
   onChange,
   ariaLabel,
+  onFocus,
+  onBlur,
+  ...cellProps
 }: {
   value: string;
   onChange: (value: string) => void;
   ariaLabel: string;
+} & {
+  "data-estimate-row-index"?: number;
+  "data-estimate-cell-index"?: number;
+  onFocus?: InputHTMLAttributes<HTMLInputElement>["onFocus"];
+  onBlur?: InputHTMLAttributes<HTMLInputElement>["onBlur"];
+  onKeyDown?: InputHTMLAttributes<HTMLInputElement>["onKeyDown"];
 }) {
   const [isFocused, setIsFocused] = useState(false);
 
   return (
-    <input
+    <ControlInput
       type="text"
       inputMode="decimal"
       value={isFocused ? value : formatEditableMoney(value)}
-      onFocus={() => setIsFocused(true)}
-      onBlur={() => setIsFocused(false)}
+      onFocus={(event) => {
+        setIsFocused(true);
+        onFocus?.(event);
+      }}
+      onBlur={(event) => {
+        setIsFocused(false);
+        onBlur?.(event);
+      }}
       onChange={(event) => onChange(event.target.value)}
       aria-label={ariaLabel}
-      className="w-full rounded-sm border border-transparent bg-white/70 text-right text-[9px] font-bold tabular-nums text-ink outline-none hover:border-hairline focus:border-accent focus:bg-accentSoft"
+      align="right"
+      className="text-[9px] tabular-nums"
+      {...cellProps}
     />
   );
 }
@@ -296,6 +359,7 @@ function EstimateRowItemsTable({
   onInsertLibraryItem: (targetNodeId: string, libraryItem: EstimateRowItem) => void;
   onDeleteRowItem: (rowItemId: string) => void;
 }) {
+  const [focusedCell, setFocusedCell] = useState<{ rowId: string; cellIndex: number } | null>(null);
   const computedRows = useMemo(
     () =>
       items.map((item) => {
@@ -361,8 +425,18 @@ function EstimateRowItemsTable({
           </tr>
         </thead>
         <tbody>
-          {computedRows.map((item) => (
-            <tr key={item.id} className={cn("grid min-h-24 border-b border-hairline/70 last:border-b-0 hover:bg-neutral-50", rowColumns)}>
+          {computedRows.map((item, rowIndex) => {
+            const activeCellIndex = focusedCell?.rowId === item.id ? focusedCell.cellIndex : null;
+            return (
+            <tr
+              key={item.id}
+              className={cn(
+                "grid min-h-24 border-b border-hairline/70 last:border-b-0 hover:bg-neutral-50",
+                activeCellIndex !== null && "bg-[#F6FAFF] shadow-[inset_2px_0_0_rgba(37,99,235,0.70)]",
+                rowColumns,
+              )}
+              data-estimate-row-active={activeCellIndex !== null ? "true" : undefined}
+            >
               <td className="flex flex-col items-center justify-between border-r border-hairline py-2 text-tertiary">
                 <DotsSixVertical size={14} weight="bold" aria-label={`Drag material ${item.material}`} />
                 <input type="checkbox" aria-label={`Select ${item.material}`} />
@@ -389,8 +463,14 @@ function EstimateRowItemsTable({
                   }
                 />
               </td>
-              <td className="flex flex-col items-center justify-center border-r border-hairline px-1 text-center">
-                <input
+              <td
+                className={cn(
+                  "flex flex-col items-center justify-center border-r border-hairline px-1 text-center",
+                  activeCellIndex === 0 && "bg-accent/10 ring-1 ring-inset ring-accent/30",
+                )}
+                data-estimate-cell-active={activeCellIndex === 0 ? "true" : undefined}
+              >
+                <ControlInput
                   type="number"
                   min="0"
                   step="0.01"
@@ -398,24 +478,53 @@ function EstimateRowItemsTable({
                   onChange={(event) =>
                     setEditableRows((current) => updateEditableRowValue(current, item, { quantity: event.target.value }))
                   }
+                  onFocus={() => setFocusedCell({ rowId: item.id, cellIndex: 0 })}
+                  onBlur={() => setFocusedCell((current) => (current?.rowId === item.id && current.cellIndex === 0 ? null : current))}
+                  onKeyDown={(event) => handleEstimateCellKeyDown(event, rowIndex, 0)}
+                  data-estimate-row-index={rowIndex}
+                  data-estimate-row-id={item.id}
+                  data-estimate-cell-index={0}
                   aria-label={`${item.material} quantity`}
-                  className="w-full rounded-sm border border-transparent bg-white/70 text-center text-[11px] font-bold tabular-nums text-ink outline-none hover:border-hairline focus:border-accent focus:bg-accentSoft"
+                  align="center"
+                  className="text-[10px] tabular-nums"
                 />
                 <p className="text-[10px] font-semibold text-tertiary">{item.unit}</p>
               </td>
               <td className="flex items-center justify-end border-r border-hairline px-1 text-[9px] font-bold tabular-nums text-ink">{pesoFormatter.format(item.subTotal)}</td>
-              <td className="flex items-center justify-end border-r border-hairline px-1">
+              <td
+                className={cn(
+                  "flex items-center justify-end border-r border-hairline px-1",
+                  activeCellIndex === 1 && "bg-accent/10 ring-1 ring-inset ring-accent/30",
+                )}
+                data-estimate-cell-active={activeCellIndex === 1 ? "true" : undefined}
+              >
                 <MoneyInput
                   value={item.editableSupplementaryCosts}
                   onChange={(value) => setEditableRows((current) => updateEditableRowValue(current, item, { supplementaryCosts: value }))}
                   ariaLabel={`${item.material} other costs`}
+                  onFocus={() => setFocusedCell({ rowId: item.id, cellIndex: 1 })}
+                  onBlur={() => setFocusedCell((current) => (current?.rowId === item.id && current.cellIndex === 1 ? null : current))}
+                  onKeyDown={(event) => handleEstimateCellKeyDown(event, rowIndex, 1)}
+                  data-estimate-row-index={rowIndex}
+                  data-estimate-cell-index={1}
                 />
               </td>
-              <td className="flex items-center justify-end border-r border-hairline px-1">
+              <td
+                className={cn(
+                  "flex items-center justify-end border-r border-hairline px-1",
+                  activeCellIndex === 2 && "bg-accent/10 ring-1 ring-inset ring-accent/30",
+                )}
+                data-estimate-cell-active={activeCellIndex === 2 ? "true" : undefined}
+              >
                 <MoneyInput
                   value={item.editableLaborCost}
                   onChange={(value) => setEditableRows((current) => updateEditableRowValue(current, item, { laborCost: value }))}
                   ariaLabel={`${item.material} labor cost`}
+                  onFocus={() => setFocusedCell({ rowId: item.id, cellIndex: 2 })}
+                  onBlur={() => setFocusedCell((current) => (current?.rowId === item.id && current.cellIndex === 2 ? null : current))}
+                  onKeyDown={(event) => handleEstimateCellKeyDown(event, rowIndex, 2)}
+                  data-estimate-row-index={rowIndex}
+                  data-estimate-cell-index={2}
                 />
               </td>
               <td className="flex flex-col items-end justify-center border-r border-hairline px-1 text-right">
@@ -453,7 +562,8 @@ function EstimateRowItemsTable({
                 </Button>
               </td>
             </tr>
-          ))}
+          );
+          })}
           <tr className={cn("grid min-h-20 border-b border-dashed border-divider bg-surfaceWarm/50", rowColumns)}>
             <td className="flex items-center justify-center border-r border-dashed border-divider text-tertiary">
               <Plus size={14} weight="bold" aria-hidden="true" />
@@ -592,10 +702,16 @@ function EstimateSheetHeader({
   selectedNode,
   projectNode,
   editableRows,
+  areaOptions,
+  insertTargetNodeId,
+  onInsertTargetChange,
 }: {
   selectedNode: EstimateAreaNode;
   projectNode: EstimateAreaNode;
   editableRows: Record<string, EditableRowValue>;
+  areaOptions: Array<{ id: string; label: string }>;
+  insertTargetNodeId: string;
+  onInsertTargetChange: (targetNodeId: string) => void;
 }) {
   const projectTotal = computeNodeTotal(projectNode, editableRows);
   const projectRowCount = countNodeRows(projectNode);
@@ -641,6 +757,23 @@ function EstimateSheetHeader({
         <Badge>
           {projectAreaCount} areas
         </Badge>
+        {insertTargetNodeId ? (
+          <Badge>Target: {areaOptions.find((area) => area.id === insertTargetNodeId)?.label.split(" / ").at(-1)}</Badge>
+        ) : (
+          <Badge tone="warning">Target required: choose an area</Badge>
+        )}
+        <ControlSelect
+          value={insertTargetNodeId}
+          onChange={(event) => onInsertTargetChange(event.target.value)}
+          aria-label="Insert target area"
+          wrapperClassName="h-6 min-w-44"
+          className="h-6 pr-5 text-[9px]"
+        >
+          <option value="">Choose target area</option>
+          {areaOptions.map((area) => (
+            <option key={area.id} value={area.id}>{area.label}</option>
+          ))}
+        </ControlSelect>
         <span className="ml-auto flex items-center gap-1.5 rounded-sm bg-accent-soft px-2 py-0.5">
           <span className="text-[9px] font-bold tracking-[0.08em] uppercase text-accent-dark">Project total</span>
           <span className="font-mono text-[10px] font-bold leading-none tracking-[-0.02em] text-ink">
@@ -655,13 +788,30 @@ function EstimateSheetHeader({
 export function EstimateSheetContent({ selectedNodeId }: EstimateSheetContentProps) {
   const [estimateTree, setEstimateTree] = useState(sampleEstimateTree);
   const [editableRows, setEditableRows] = useState<Record<string, EditableRowValue>>(() => collectEditableRows(sampleEstimateTree));
+  const [insertTargetNodeId, setInsertTargetNodeId] = useState(() => {
+    const initialNode = findEstimateNode(sampleEstimateTree, selectedNodeId);
+    return initialNode?.kind === "area" ? initialNode.id : "";
+  });
+  const [pendingFocusRowId, setPendingFocusRowId] = useState("");
   const selectedNode = findEstimateNode(estimateTree, selectedNodeId) ?? estimateTree[0];
+  const areaOptions = useMemo(() => collectAreaOptions(estimateTree), [estimateTree]);
+
+  useEffect(() => {
+    if (!pendingFocusRowId) return;
+    window.requestAnimationFrame(() => {
+      const quantityInput = document.querySelector<HTMLInputElement>(`[data-estimate-row-id="${pendingFocusRowId}"][data-estimate-cell-index="0"]`);
+      quantityInput?.focus();
+      quantityInput?.select();
+      setPendingFocusRowId("");
+    });
+  }, [pendingFocusRowId]);
 
   const insertLibraryItem = useCallback((targetNodeId: string, libraryItem: EstimateRowItem) => {
     const targetNode = findEstimateNode(estimateTree, targetNodeId);
     if (targetNode?.kind !== "area") return;
 
     const newItem = cloneLibraryItemForEstimate(libraryItem, targetNodeId);
+    setPendingFocusRowId(newItem.id);
     setEstimateTree((current) =>
       current.map((node) => {
         function visit(areaNode: EstimateAreaNode): EstimateAreaNode {
@@ -679,11 +829,11 @@ export function EstimateSheetContent({ selectedNodeId }: EstimateSheetContentPro
   useEffect(() => {
     function handleSidebarAdd(event: Event) {
       const customEvent = event as CustomEvent<EstimateRowItem>;
-      if (customEvent.detail) insertLibraryItem(selectedNodeId, customEvent.detail);
+      if (customEvent.detail && insertTargetNodeId) insertLibraryItem(insertTargetNodeId, customEvent.detail);
     }
     window.addEventListener("archestimator:add-library-item", handleSidebarAdd);
     return () => window.removeEventListener("archestimator:add-library-item", handleSidebarAdd);
-  }, [insertLibraryItem, selectedNodeId]);
+  }, [insertLibraryItem, insertTargetNodeId]);
 
   function deleteRowItem(rowItemId: string) {
     setEstimateTree((current) =>
@@ -709,7 +859,14 @@ export function EstimateSheetContent({ selectedNodeId }: EstimateSheetContentPro
     <section className="min-h-0 min-w-0 flex-1 overflow-auto bg-white" aria-label="Main estimate sheet">
       {selectedNode ? (
         <>
-          <EstimateSheetHeader selectedNode={selectedNode} projectNode={estimateTree[0]} editableRows={editableRows} />
+          <EstimateSheetHeader
+            selectedNode={selectedNode}
+            projectNode={estimateTree[0]}
+            editableRows={editableRows}
+            areaOptions={areaOptions}
+            insertTargetNodeId={insertTargetNodeId}
+            onInsertTargetChange={setInsertTargetNodeId}
+          />
           <div className="p-2">
             <EstimateSheetBranch
               node={selectedNode}
