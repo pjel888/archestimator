@@ -4,6 +4,7 @@ import Link from "next/link";
 import { MainSidebar } from "@/components/sidebar/MainSidebar";
 import { cn } from "@/lib/ui/cn";
 import { getCurrentUserContext } from "@/lib/auth/session";
+import { ESTIMATE_CENTER_COLUMN_CSS_VARIABLES } from "./EstimateCenterColumnBoundary";
 import { WorkshopTitleHeader } from "./WorkshopTitleHeader";
 
 type WorkshopBreadcrumb = string | { label: string; href?: string };
@@ -64,7 +65,11 @@ export async function WorkshopPageShell({
   return (
     <main className="h-dvh overflow-hidden bg-canvas text-ink" aria-label={title}>
       <MainSidebar user={sidebarUser} />
-      <section className="flex h-full min-h-0 flex-col lg:pl-[64px]" aria-label={`${title} canvas`}>
+      <section
+        className="flex h-full min-h-0 flex-col lg:pl-[64px]"
+        style={ESTIMATE_CENTER_COLUMN_CSS_VARIABLES}
+        aria-label={`${title} canvas`}
+      >
         <WorkshopTitleHeader
           title={title}
           eyebrow={eyebrow}

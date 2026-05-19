@@ -21,6 +21,7 @@ import { Button } from "@/components/ui/button";
 import { Chip } from "@/components/ui/chip";
 import { EmptyState } from "@/components/ui/empty-state";
 import { HeaderIconToolbar } from "@/components/ui/header-icon-toolbar";
+import { Modal } from "@/components/ui/modal";
 import { SearchInput } from "@/components/ui/search-input";
 import { cn } from "@/lib/ui/cn";
 import { estimateLibraryItems, type EstimateRowItem } from "../estimate-tree-data";
@@ -447,7 +448,7 @@ export function EstimateRightSidebar({ onInsertComponent }: { onInsertComponent?
           <div className="flex h-10 items-center justify-between border-b border-hairline pl-4 pr-2">
             <h2 className="text-[9px] font-bold uppercase tracking-[0.14em] text-tertiary">Component library</h2>
           </div>
-          <div className="flex h-12 items-center">
+          <div className="flex h-[38px] items-center">
             <SearchInput
               ref={searchRef}
               value={searchQuery}
@@ -455,7 +456,7 @@ export function EstimateRightSidebar({ onInsertComponent }: { onInsertComponent?
               placeholder="Search component library"
               aria-label="Search component library"
               onClear={() => setSearchQuery("")}
-              wrapperClassName="h-12 w-full"
+              wrapperClassName="w-full"
             />
           </div>
 
@@ -464,6 +465,7 @@ export function EstimateRightSidebar({ onInsertComponent }: { onInsertComponent?
             labelPrefix="component library"
             onFilter={() => setShowFilters((value) => !value)}
             onGroup={() => setGroupBy((value) => (value === "category" ? "supplier" : "category"))}
+            onAdd={() => setShowNewComponent(true)}
           />
 
           {/* Filter panel */}
@@ -599,7 +601,20 @@ export function EstimateRightSidebar({ onInsertComponent }: { onInsertComponent?
         ) : null}
 
         {/* New component form */}
-        {showNewComponent ? (
+        <Modal
+          open={showNewComponent}
+          title="New component"
+          description="Add a reusable cost component to the local library."
+          closeLabel="Cancel new component"
+          className="max-w-3xl"
+          onOpenChange={(open) => {
+            setShowNewComponent(open);
+            if (!open) {
+              setForm(defaultForm);
+              setFormError("");
+            }
+          }}
+        >
           <NewComponentForm
             form={form}
             formError={formError}
@@ -612,7 +627,7 @@ export function EstimateRightSidebar({ onInsertComponent }: { onInsertComponent?
               setFormError("");
             }}
           />
-        ) : null}
+        </Modal>
 
         {/* Delete confirmation */}
         {deleteCandidate ? (

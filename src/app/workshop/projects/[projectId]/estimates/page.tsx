@@ -28,7 +28,7 @@ export default async function ProjectEstimatesPage({ params }: ProjectEstimatesP
         <SearchInput
           placeholder="Search estimate sheets"
           aria-label="Search estimate sheets"
-          wrapperClassName="h-12 w-full"
+          wrapperClassName="w-full"
         />
       </div>
 

@@ -22,7 +22,7 @@ export function HeaderIconToolbar({
   const addButtonLabel = addVisibleLabel ?? `Add ${labelPrefix}`;
 
   return (
-    <div className="flex min-h-10 items-center gap-1 border-y border-hairline bg-white p-2" aria-label={ariaLabel}>
+    <div className="flex h-[38px] min-h-[38px] items-center gap-1 bg-white px-2 py-0" aria-label={ariaLabel}>
       <ToolbarIconButton label={`Filter ${labelPrefix}`} onClick={onFilter}>
         <FunnelSimple size={12} weight="bold" aria-hidden="true" />
       </ToolbarIconButton>

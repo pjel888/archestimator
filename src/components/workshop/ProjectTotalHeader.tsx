@@ -58,7 +58,11 @@ export function ProjectTotalHeader({ plannedBudget = 0 }: { plannedBudget?: numb
   }, []);
 
   return (
-    <div className="flex h-full w-full items-center justify-between border-x border-hairline bg-white px-2" aria-label="Estimate sheet running totals">
+    <div
+      className="flex h-full w-full items-center justify-between bg-white px-2"
+      data-estimate-center-column="project-total-header"
+      aria-label="Estimate sheet running totals"
+    >
       <div className="flex w-fit flex-col items-start justify-center text-left">
         <span className="font-mono text-[12px] font-bold leading-4 tabular-nums text-ink">{formatPeso(budget)}</span>
         <span className="text-[6px] font-bold uppercase leading-3 tracking-[0.12em] text-gray-400">Planned project budget</span>

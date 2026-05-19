@@ -22,6 +22,32 @@ describe("live estimate node route", () => {
     expect(estimateContent).toContain("nodes = sampleEstimateTree");
   });
 
+  it("publishes estimate sheet metadata into the aligned project-code row strip", () => {
+    const metadataStrip = readFileSync("src/components/workshop/ProjectEstimateMetadataStrip.tsx", "utf8");
+    const estimateCenterColumnBoundary = readFileSync("src/components/workshop/EstimateCenterColumnBoundary.tsx", "utf8");
+
+    expect(estimateNodePage).toContain("ProjectEstimateMetadataPublisher");
+    expect(estimateNodePage).toContain("estimateName: estimate.name");
+    expect(estimateNodePage).toContain("estimateSheetCode: estimate.sheet_code");
+    expect(estimateNodePage).toContain("versionLabel: readEstimateVersionLabel(estimate.metadata)");
+    expect(metadataStrip).toContain('id="project-estimate-metadata-strip"');
+    expect(metadataStrip).toContain('className="pointer-events-none bg-white"');
+    expect(metadataStrip).toContain('data-estimate-center-column="metadata-strip"');
+    expect(metadataStrip).toContain("ProjectEstimateMetadataStripBoundary");
+    expect(metadataStrip).toContain("ProjectEstimateMetadataStripGrid");
+    expect(metadataStrip).toContain("ProjectWorkspaceProjectCode");
+    expect(metadataStrip).toContain("EstimateMetadataLeftCluster");
+    expect(metadataStrip).toContain('textClassName="font-normal"');
+    expect(metadataStrip).toContain('font-normal uppercase tracking-[0.14em] text-tertiary');
+    expect(metadataStrip).toContain("EstimateSheetCodeCell");
+    expect(metadataStrip).toContain("EstimateSheetNameCell");
+    expect(metadataStrip).toContain("EstimateVersionCell");
+    expect(metadataStrip).toContain("grid-cols-[1fr_minmax(0,2fr)_1fr]");
+    expect(estimateCenterColumnBoundary).toContain('"project-workspace-row"');
+    expect(estimateContent).toContain('className="flex h-10 items-center border-b border-hairline pl-2 pr-2"');
+    expect(estimateContent).toContain('id="estimate-sheet-center-column"');
+  });
+
   it("repository validates node ownership through project-scoped estimate join", () => {
     expect(workspaceRepository).toContain('select("*, estimates!inner(*)")');
     expect(workspaceRepository).toContain('.eq("estimates.project_id", project.id)');
@@ -50,6 +76,8 @@ describe("live estimate node route", () => {
     expect(estimateActions).toContain("updateEstimateRowItem");
     expect(estimateActions).toContain("replaceEstimateRowItemWithLibrary");
     expect(estimateActions).toContain("deleteEstimateRowItem");
+    expect(estimateActions).toContain("createEstimateNode");
+    expect(estimateActions).toContain('.from("estimate_nodes").insert');
     expect(estimateContent).toContain("onUpdateRowItem");
     expect(estimateContent).toContain("replaceRow({ projectId, estimateId");
     expect(estimateContent).toContain("deleteRow({ projectId, estimateId");
