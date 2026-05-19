@@ -2,8 +2,8 @@
 
 import { SidebarSimple, Crown } from "@phosphor-icons/react/dist/ssr";
 
+import { ArchestimatorLogo } from "@/components/brand/ArchestimatorLogo";
 import { Button } from "@/components/ui/button";
-import { ArchestimatorMark } from "./ArchestimatorMark";
 import {
   SIDEBAR_ICON_SLOT,
   SIDEBAR_PADDING,
@@ -41,7 +41,7 @@ export function SidebarHeader({ expanded, onToggle }: SidebarHeaderProps) {
           style={{
             width: frameWidth,
             height: frameHeight,
-            backgroundImage: 'url("/sidebar-image.png")',
+            backgroundImage: 'url("/sidebar-BG.png")',
             backgroundSize: "cover",
             backgroundPosition: "center",
           }}
@@ -51,23 +51,16 @@ export function SidebarHeader({ expanded, onToggle }: SidebarHeaderProps) {
           <div className="relative flex h-full flex-col justify-between p-2">
             <div className="min-w-0">
               <div className="flex min-w-0 items-center gap-2 border-b border-white/70 pb-2">
-                <div
-                  className={[
-                    "flex size-8 shrink-0 items-center justify-center rounded-sm text-white transition-[background-color,box-shadow,backdrop-filter] duration-[180ms] ease-out motion-reduce:transition-none",
-                    expanded ? "bg-transparent ring-0 backdrop-blur-none" : "bg-white/16 ring-1 ring-white/24 backdrop-blur-[1px]",
-                  ].join(" ")}
-                >
-                  <ArchestimatorMark className="size-[22px]" />
-                </div>
-
-                <div
-                  className={[
-                    "min-w-0 overflow-hidden whitespace-nowrap text-[10px] font-bold leading-none tracking-[-0.01em] text-white drop-shadow-sm transition-[opacity,transform] duration-[180ms] ease-out motion-reduce:transform-none motion-reduce:transition-none",
-                    expanded ? "translate-x-0 opacity-100" : "pointer-events-none translate-x-1 opacity-0",
-                  ].join(" ")}
-                >
-                  Archestimator
-                </div>
+                <ArchestimatorLogo
+                  tone="light"
+                  markSize={32}
+                  priority
+                  showWordmark={expanded}
+                  className="text-white transition-[opacity,transform] duration-[180ms] ease-out motion-reduce:transform-none motion-reduce:transition-none"
+                  markClassName="size-8"
+                  separatorClassName="hidden"
+                  wordmarkClassName="text-[12px] leading-none text-white drop-shadow-sm"
+                />
               </div>
 
               <div className={["flex w-full items-center overflow-hidden pt-2", expanded ? "justify-start" : "justify-center"].join(" ")}>
