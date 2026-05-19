@@ -8,6 +8,8 @@ export type CurrentUserContext = {
   email: string;
   role: Tables<"profiles">["role"];
   profile: Tables<"profiles">;
+  displayName: string;
+  avatarUrl: string | null;
 };
 
 export const getCurrentUserContext = cache(async (): Promise<CurrentUserContext | null> => {
@@ -19,10 +21,20 @@ export const getCurrentUserContext = cache(async (): Promise<CurrentUserContext 
   if (!user) return null;
 
   const email = user.email?.toLowerCase() ?? "";
+  const metadata = user.user_metadata ?? {};
+  const metadataName = typeof metadata.display_name === "string" ? metadata.display_name : typeof metadata.full_name === "string" ? metadata.full_name : typeof metadata.name === "string" ? metadata.name : null;
+  const avatarUrl = typeof metadata.avatar_url === "string" ? metadata.avatar_url : typeof metadata.picture === "string" ? metadata.picture : null;
   const { data: profile } = await supabase.from("profiles").select("*").eq("id", user.id).maybeSingle();
 
   if (profile) {
-    return { userId: user.id, email, role: profile.role, profile };
+    return {
+      userId: user.id,
+      email,
+      role: profile.role,
+      profile,
+      displayName: profile.display_name ?? metadataName ?? email,
+      avatarUrl,
+    };
   }
 
   const role = email === "philipjonlewis@gmail.com" ? "ceo" : "member";
@@ -33,7 +45,14 @@ export const getCurrentUserContext = cache(async (): Promise<CurrentUserContext 
     .single();
 
   if (error) throw error;
-  return { userId: user.id, email, role: createdProfile.role, profile: createdProfile };
+  return {
+    userId: user.id,
+    email,
+    role: createdProfile.role,
+    profile: createdProfile,
+    displayName: createdProfile.display_name ?? metadataName ?? email,
+    avatarUrl,
+  };
 });
 
 export async function requireCurrentUserContext() {

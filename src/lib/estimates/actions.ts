@@ -134,6 +134,25 @@ export async function createEstimate(projectId: string, formData: FormData) {
 
   if (lotError) throw lotError;
 
+  const { error: generalNodesError } = await supabase.from("estimate_nodes").insert([
+    {
+      estimate_id: estimate.id,
+      parent_id: lotNode.id,
+      kind: "general",
+      name: "General Requirements",
+      sort_order: 0,
+    },
+    {
+      estimate_id: estimate.id,
+      parent_id: lotNode.id,
+      kind: "general",
+      name: "Site Works",
+      sort_order: 10,
+    },
+  ]);
+
+  if (generalNodesError) throw generalNodesError;
+
   const { data: structureNode, error: structureError } = await supabase
     .from("estimate_nodes")
     .insert({
@@ -141,7 +160,7 @@ export async function createEstimate(projectId: string, formData: FormData) {
       parent_id: lotNode.id,
       kind: "structure",
       name: project.name,
-      sort_order: 0,
+      sort_order: 20,
     })
     .select("id")
     .single();

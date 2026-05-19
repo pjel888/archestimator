@@ -335,7 +335,6 @@ export type Database = {
           metadata: Json
           name: string
           project_code: string | null
-          status: string
           updated_at: string
           workspace_id: string
         }
@@ -349,7 +348,6 @@ export type Database = {
           metadata?: Json
           name: string
           project_code?: string | null
-          status?: string
           updated_at?: string
           workspace_id: string
         }
@@ -363,7 +361,6 @@ export type Database = {
           metadata?: Json
           name?: string
           project_code?: string | null
-          status?: string
           updated_at?: string
           workspace_id?: string
         }
@@ -481,6 +478,7 @@ export type Database = {
         | "allowance"
       estimate_node_kind:
         | "lot"
+        | "general"
         | "structure"
         | "level"
         | "area"
@@ -632,6 +630,7 @@ export const Constants = {
       ],
       estimate_node_kind: [
         "lot",
+        "general",
         "structure",
         "level",
         "area",
