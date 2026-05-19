@@ -15,7 +15,7 @@ export const SearchInput = forwardRef<HTMLInputElement, SearchInputProps>(
     return (
       <div
         className={cn(
-          "flex items-center gap-1.5 border border-hairline bg-surfaceMuted px-2 transition focus-within:border-accent focus-within:bg-white focus-within:ring-1 focus-within:ring-accent/20",
+          "flex items-center gap-1.5 bg-transparent px-2 transition hover:bg-surfaceMuted/60 focus-within:bg-surfaceMuted/60 [&:has(input:not(:placeholder-shown))]:bg-surfaceMuted/60",
           wrapperClassName,
         )}
       >

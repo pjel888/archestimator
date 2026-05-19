@@ -12,7 +12,7 @@ export default async function ProjectEstimateNodePage({ params }: ProjectEstimat
   const { projectId, nodeId } = await params;
   const { project, estimate, selectedNodeId, tree } = await getProjectEstimateTreeByNode(projectId, nodeId);
 
-  if (!project || !estimate || !selectedNodeId || tree.length === 0) notFound();
+  if (!project || !estimate) notFound();
 
   return (
     <section className="flex h-full min-h-0 overflow-hidden bg-white" aria-label={`${project.name} estimates`}>

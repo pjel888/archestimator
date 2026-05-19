@@ -1,10 +1,21 @@
-import { MainSidebar } from "@/components/sidebar/MainSidebar";
+import { WorkshopPageShell } from "@/components/workshop/WorkshopPageShell";
 
-export default function WorkshopPage() {
+export default async function WorkshopPage() {
   return (
-    <main className="min-h-screen bg-white" aria-label="Workshop">
-      <MainSidebar />
-      <section className="min-h-screen bg-white lg:pl-[64px]" aria-label="Workshop canvas" />
-    </main>
+    <WorkshopPageShell
+      title="Workshop"
+      eyebrow="Workspace"
+      showEyebrow={false}
+      breadcrumbs={["Workshop"]}
+      contentClassName=""
+      footer={
+        <>
+          <span>Workshop shell</span>
+          <span>Select Projects or Components from the sidebar</span>
+        </>
+      }
+    >
+      <div className="h-full bg-white" aria-label="Workshop empty canvas" />
+    </WorkshopPageShell>
   );
 }

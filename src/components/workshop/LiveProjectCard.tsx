@@ -1,50 +1,102 @@
 import Link from "next/link";
-import { ArrowRight, Buildings, Clock, MapPin } from "@phosphor-icons/react/dist/ssr";
+import { ArrowRight, ArrowsOutSimple, Clock, ImageSquare, MapPin } from "@phosphor-icons/react/dist/ssr";
 
-import type { Tables } from "@/lib/supabase/types";
+import { Button } from "@/components/ui/button";
+import type { Json, Tables } from "@/lib/supabase/types";
 
 type LiveProjectCardProps = {
   project: Tables<"projects">;
+  onExpand?: (project: Tables<"projects">) => void;
 };
 
 function formatUpdatedAt(value: string) {
   return new Intl.DateTimeFormat("en", { month: "short", day: "numeric" }).format(new Date(value));
 }
 
-export function LiveProjectCard({ project }: LiveProjectCardProps) {
+function getProjectImageUrl(metadata: Json) {
+  if (!metadata || typeof metadata !== "object" || Array.isArray(metadata)) return null;
+  const value = (metadata as Record<string, Json>).projectImageUrl;
+  return typeof value === "string" && value.trim() ? value : null;
+}
+
+function getProjectBudget(metadata: Json) {
+  if (!metadata || typeof metadata !== "object" || Array.isArray(metadata)) return null;
+  const value = (metadata as Record<string, Json>).projectBudget;
+  return typeof value === "number" ? value : null;
+}
+
+function formatBudget(value: number | null, currencyCode: string) {
+  if (value === null) return "No budget set";
+  return new Intl.NumberFormat("en-PH", {
+    style: "currency",
+    currency: currencyCode || "PHP",
+    maximumFractionDigits: 0,
+  }).format(value);
+}
+
+export function LiveProjectCard({ project, onExpand }: LiveProjectCardProps) {
+  const imageUrl = getProjectImageUrl(project.metadata);
+  const budget = getProjectBudget(project.metadata);
+
   return (
-    <Link
-      href={`/workshop/projects/${project.id}`}
-      className="group flex min-h-[184px] flex-col rounded-lg border border-hairline bg-white p-2 shadow-[0_14px_34px_-30px_rgba(17,17,17,0.42)] transition duration-150 hover:-translate-y-0.5 hover:border-divider hover:shadow-[0_22px_44px_-32px_rgba(17,17,17,0.5)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
-    >
-      <div className="flex items-start justify-between gap-2">
-        <div className="flex size-8 shrink-0 items-center justify-center rounded-md bg-accent-soft text-accent-dark">
-          <Buildings size={17} weight="duotone" aria-hidden="true" />
+    <article className="group flex min-h-[260px] flex-col overflow-hidden rounded-xl border border-hairline bg-white shadow-[0_16px_38px_-34px_rgba(17,17,17,0.5)] transition duration-150 hover:-translate-y-0.5 hover:border-divider hover:shadow-[0_24px_52px_-38px_rgba(17,17,17,0.58)]">
+      <div className="relative h-32 overflow-hidden border-b border-hairline bg-surfaceMuted">
+        {imageUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={imageUrl} alt="" className="h-full w-full object-cover transition duration-200 group-hover:scale-[1.02]" />
+        ) : (
+          <div className="flex h-full flex-col items-center justify-center gap-2 bg-[linear-gradient(135deg,#fff0e5_0%,#f4f7fa_55%,#ffffff_100%)] text-tertiary">
+            <ImageSquare size={24} weight="duotone" aria-hidden="true" />
+            <span className="text-[8px] font-bold uppercase tracking-[0.12em]">Add project image</span>
+          </div>
+        )}
+        <Button
+          type="button"
+          variant="secondary"
+          size="icon-sm"
+          className="absolute right-2 top-2 size-7 border-white/70 bg-white/86 text-ink shadow-sm backdrop-blur hover:bg-white"
+          aria-label={`Expand ${project.name} details`}
+          onClick={() => onExpand?.(project)}
+        >
+          <ArrowsOutSimple size={13} weight="bold" aria-hidden="true" />
+        </Button>
+      </div>
+
+      <div className="flex flex-1 flex-col p-2">
+        <div className="min-w-0">
+          <p className="truncate text-[10px] font-semibold text-tertiary">{project.client_name ?? "No client yet"}</p>
+          <h2 className="mt-1 line-clamp-2 text-[12px] font-bold leading-[1.12] tracking-[-0.02em] text-ink">
+            {project.name}
+          </h2>
         </div>
-        <span className="rounded-full bg-surface-muted p-1 text-[9px] font-bold uppercase tracking-[0.12em] text-tertiary ring-1 ring-hairline">
-          {project.status}
-        </span>
-      </div>
 
-      <div className="mt-3 min-w-0">
-        <p className="text-[10px] font-medium text-tertiary">{project.client_name ?? "No client yet"}</p>
-        <h2 className="mt-1 line-clamp-2 text-[12px] font-semibold leading-[1.1] tracking-[-0.025em] text-ink">{project.name}</h2>
-        <p className="mt-2 text-[10px] leading-4 text-tertiary">{project.project_code ?? "No project code"}</p>
-      </div>
-
-      <div className="mt-auto flex items-end justify-between gap-2 pt-3 text-[10px] text-tertiary">
-        <div className="min-w-0 space-y-1">
-          <p className="flex min-w-0 items-center gap-1">
+        <div className="mt-2 space-y-1">
+          <p className="flex items-center gap-1.5 text-[10px] text-tertiary">
             <MapPin size={12} aria-hidden="true" />
             <span className="truncate">{project.location ?? "No location"}</span>
           </p>
-          <p className="flex items-center gap-1">
+          <p className="flex items-center gap-1.5 text-[10px] text-tertiary">
             <Clock size={12} aria-hidden="true" />
             Updated {formatUpdatedAt(project.updated_at)}
           </p>
         </div>
-        <ArrowRight size={15} className="shrink-0 text-ink transition-transform group-hover:translate-x-0.5" aria-hidden="true" />
+
+        <div className="mt-2 rounded-md border border-hairline bg-surfaceMuted px-2 py-1.5">
+          <p className="text-[8px] font-bold uppercase tracking-[0.12em] text-tertiary">Project budget</p>
+          <p className="mt-0.5 font-mono text-[10px] font-bold text-ink">{formatBudget(budget, project.currency_code)}</p>
+        </div>
+
+        <div className="mt-auto flex items-center justify-between border-t border-hairline pt-2">
+          <span className="truncate font-mono text-[10px] font-medium text-tertiary">{project.project_code ?? "—"}</span>
+          <Link
+            href={`/workshop/projects/${project.id}`}
+            className="inline-flex h-7 items-center gap-1 rounded-sm px-1.5 text-[10px] font-bold text-ink hover:bg-surfaceMuted focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
+          >
+            Open
+            <ArrowRight size={13} className="shrink-0 transition-transform group-hover:translate-x-0.5" aria-hidden="true" />
+          </Link>
+        </div>
       </div>
-    </Link>
+    </article>
   );
 }

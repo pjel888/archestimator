@@ -1,59 +1,87 @@
 import type { ReactNode } from "react";
+import Link from "next/link";
 
 import { MainSidebar } from "@/components/sidebar/MainSidebar";
+import { cn } from "@/lib/ui/cn";
+import { getCurrentUserContext } from "@/lib/auth/session";
+import { WorkshopTitleHeader } from "./WorkshopTitleHeader";
+
+type WorkshopBreadcrumb = string | { label: string; href?: string };
 
 type WorkshopPageShellProps = {
   title: string;
   eyebrow?: string;
+  showEyebrow?: boolean;
   description?: string;
   actions?: ReactNode;
+  centerHeader?: ReactNode;
   footer?: ReactNode;
-  breadcrumbs?: string[];
+  breadcrumbs?: WorkshopBreadcrumb[];
+  alignChromeToProjectSidebar?: boolean;
+  contentClassName?: string;
   children: ReactNode;
 };
 
-export function WorkshopPageShell({
+export async function WorkshopPageShell({
   title,
   eyebrow = "Workshop",
+  showEyebrow = true,
   description,
   actions,
+  centerHeader,
   footer,
   breadcrumbs,
+  alignChromeToProjectSidebar = false,
+  contentClassName,
   children,
 }: WorkshopPageShellProps) {
+  const currentUser = await getCurrentUserContext();
+  const sidebarUser = currentUser
+    ? { displayName: currentUser.displayName, email: currentUser.email, avatarUrl: currentUser.avatarUrl }
+    : undefined;
   const resolvedBreadcrumbs = breadcrumbs ?? [eyebrow, title];
+  const chromePaddingClass = alignChromeToProjectSidebar ? "p-2 lg:py-2 lg:pr-2 lg:pl-[25px]" : "p-2";
+  const breadcrumbNav = (
+    <nav className="flex min-w-0 items-center gap-1 text-[9px] font-medium leading-3 text-tertiary" aria-label="Project breadcrumbs">
+      {resolvedBreadcrumbs.map((crumb, index) => {
+        const item = typeof crumb === "string" ? { label: crumb } : crumb;
+        return (
+          <span key={`${item.label}-${index}`} className="flex min-w-0 items-center gap-1">
+            {item.href ? (
+              <Link href={item.href} className="truncate hover:text-ink">
+                {item.label}
+              </Link>
+            ) : (
+              <span className="truncate">{item.label}</span>
+            )}
+            {index < resolvedBreadcrumbs.length - 1 ? <span className="text-divider" aria-hidden="true">/</span> : null}
+          </span>
+        );
+      })}
+    </nav>
+  );
 
   return (
     <main className="h-dvh overflow-hidden bg-canvas text-ink" aria-label={title}>
-      <MainSidebar />
+      <MainSidebar user={sidebarUser} />
       <section className="flex h-full min-h-0 flex-col lg:pl-[64px]" aria-label={`${title} canvas`}>
-        <header className="flex h-14 shrink-0 items-center justify-between border-b border-hairline bg-white p-2">
-          <div className="min-w-0">
-            <nav className="flex min-w-0 items-center gap-1 text-[9px] font-bold uppercase tracking-[0.12em] text-tertiary" aria-label="Project breadcrumbs">
-              {resolvedBreadcrumbs.map((crumb, index) => (
-                <span key={`${crumb}-${index}`} className="flex min-w-0 items-center gap-1">
-                  <span className={index === resolvedBreadcrumbs.length - 1 ? "truncate text-ink" : "truncate"}>{crumb}</span>
-                  {index < resolvedBreadcrumbs.length - 1 ? <span aria-hidden="true">/</span> : null}
-                </span>
-              ))}
-            </nav>
-            <h1 className="mt-0.5 truncate text-[12px] font-semibold tracking-[-0.025em] text-ink">{title}</h1>
-          </div>
-          {actions ? <div className="ml-2 flex shrink-0 items-center gap-2">{actions}</div> : null}
-        </header>
+        <WorkshopTitleHeader
+          title={title}
+          eyebrow={eyebrow}
+          showEyebrow={showEyebrow}
+          actions={actions}
+          centerHeader={centerHeader}
+          className={chromePaddingClass}
+        />
 
-        <div className="min-h-0 flex-1 overflow-hidden p-2">
+        <div className={cn("min-h-0 flex-1 overflow-hidden", contentClassName ?? "p-2")}>
           {description ? <p className="mb-2 max-w-2xl text-[10px] leading-4 text-tertiary">{description}</p> : null}
           {children}
         </div>
 
-        <footer className="flex min-h-12 shrink-0 items-center justify-between border-t border-hairline bg-white p-2 text-[10px] text-tertiary">
-          {footer ?? (
-            <>
-              <span>Archestimator workshop</span>
-              <span>Local sample workspace</span>
-            </>
-          )}
+        <footer className={["flex min-h-12 shrink-0 items-center justify-between gap-2 border-t border-hairline bg-white text-[10px] text-tertiary", chromePaddingClass].join(" ")}>
+          {breadcrumbNav}
+          {footer ? <div className="ml-auto flex shrink-0 items-center gap-2">{footer}</div> : <span className="ml-auto shrink-0">Local sample workspace</span>}
         </footer>
       </section>
     </main>
