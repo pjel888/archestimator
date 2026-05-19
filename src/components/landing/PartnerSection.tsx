@@ -2,9 +2,10 @@ import { PlaceholderMedia } from "./PlaceholderMedia";
 import { SectionIntro } from "./SectionIntro";
 
 const partnerCards = [
-  ["The company you can trust", "Built for contractors who need transparent assumptions, editable data, and proposal-grade traceability."],
-  ["Expert support, at every stage", "From setup to revision workflows, the product is shaped around how estimates become real project commitments."],
-  ["The estimating blueprint", "A repeatable path from project setup to hierarchy, cost library, revision review, and client-ready proposal issue."],
+  ["Faster setup", "Start from project structure and reusable cost components instead of rebuilding the same estimate logic every time."],
+  ["Safer revisions", "Keep versions, assumptions, issued files, and change history traceable as the project moves."],
+  ["Clearer client decisions", "Use proposal comparisons and visual cost breakdowns to explain what changed and why it matters."],
+  ["Cleaner handoff", "Export Excel and PDF files for the clients, consultants, and internal reviewers who still expect standard estimate formats."],
 ];
 
 export function PartnerSection() {
@@ -12,10 +13,10 @@ export function PartnerSection() {
     <section id="about" className="bg-white py-20 lg:py-28">
       <div className="w-full px-6">
         <SectionIntro
-          title="A true partner with deep estimating expertise"
-          body="We partner with construction teams to set up repeatable estimate workflows, component libraries, proposal structures, and revision practices that protect margin and client trust."
+          title="What this changes for the estimating team"
+          body="Archestimator is built around the moments that usually slow estimates down: setup, repeated cost logic, revisions, option comparison, client explanation, and standard-format handoff."
         />
-        <div className="mt-16 grid gap-4 lg:grid-cols-3">
+        <div className="mt-16 grid gap-4 lg:grid-cols-4">
           {partnerCards.map(([title, body]) => (
             <article key={title} className="rounded-[8px] border border-[#dedbd6] bg-[#faf9f6] p-6">
               <PlaceholderMedia label="support image" className="mb-6 min-h-[210px]" />

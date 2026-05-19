@@ -3,13 +3,13 @@ import { ProductPreview } from './ProductPreview'
 import { NeatWireframeBackground } from './NeatWireframeBackground'
 import { loginHref } from './constants'
 
-const trustBadges = ['Cost library', 'BOQ ready', 'Revision ready']
+const trustBadges = ['Component Library', 'BOQ ready', 'Revision ready']
 
 const productTabs = [
-  'Estimate workspace',
-  'Natively integrated cost library',
-  'AI-powered revision insights',
-  'Self-improving proposal system',
+  'Estimate Workspace',
+  'Component Library',
+  'Revision Intelligence',
+  'Proposal Comparisons',
 ]
 
 export function HeroSection() {
@@ -59,11 +59,11 @@ export function HeroSection() {
 
           <div className='mt-auto pt-10'>
             <p className='max-w-[500px] text-[15px] font-normal leading-[1.45] tracking-[-0.006em] text-white/92 sm:text-[16px]'>
-              Create in hours, not days. <br /> Revisions wont eat your weekends
+              Create in hours, not days. <br /> Revisions won&apos;t eat your weekends
               anymore.
             </p>
             <br />
-            <p>This is the archestimator way.</p>
+            <p>This is the Archestimator way.</p>
             <div className='mt-7 flex flex-wrap gap-3'>
               {trustBadges.map((badge) => (
                 <span

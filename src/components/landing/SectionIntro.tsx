@@ -8,8 +8,8 @@ export function SectionIntro({ eyebrow, title, body }: { eyebrow?: string; title
       <h2 className="text-[48px] font-normal leading-none tracking-[-0.055em] text-[#111111] sm:text-[64px]">{title}</h2>
       <p className="mx-auto mt-5 max-w-[650px] text-[18px] leading-[1.45] tracking-[-0.02em] text-[#313130]">{body}</p>
       <div className="mt-7 flex justify-center gap-3">
-        <CtaLink href={workshopHref}>Start free trial</CtaLink>
-        <CtaLink href="#demo" variant="secondary">View demo</CtaLink>
+        <CtaLink href={workshopHref}>See the workspace</CtaLink>
+        <CtaLink href="#product" variant="secondary">View product preview</CtaLink>
       </div>
     </div>
   );
