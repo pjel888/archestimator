@@ -34,7 +34,6 @@ create table public.projects (
   client_name text,
   project_code text,
   location text,
-  status text not null default 'draft',
   currency_code text not null default 'PHP' check (char_length(currency_code) = 3),
   metadata jsonb not null default '{}'::jsonb,
   created_by uuid references auth.users(id) on delete set null,
