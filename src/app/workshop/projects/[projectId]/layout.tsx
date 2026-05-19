@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 
 import { ProjectMiniSidebar } from "@/components/workshop/ProjectMiniSidebar";
 import { ProjectTotalHeader } from "@/components/workshop/ProjectTotalHeader";
+import { ProjectWorkspaceHeaderRow } from "@/components/workshop/ProjectWorkspaceHeaderRow";
 import { WorkshopPageShell } from "@/components/workshop/WorkshopPageShell";
 import { sampleProjects } from "@/components/workshop/workshop-sample-projects";
 import { getCurrentWorkspaceProject } from "@/lib/repositories/workspace-repository";
@@ -48,9 +49,7 @@ export default async function ProjectLayout({ children, params }: ProjectLayoutP
       <div className="flex h-full min-h-0 overflow-hidden rounded-xl border border-hairline bg-white">
         <ProjectMiniSidebar projectId={projectId} />
         <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-canvas">
-          <div className="flex h-10 shrink-0 items-center border-b border-hairline bg-white pl-4 pr-2">
-            <h2 className="truncate text-[9px] font-bold uppercase tracking-[0.14em] text-tertiary">{projectCode}</h2>
-          </div>
+          <ProjectWorkspaceHeaderRow projectCode={projectCode} />
           <div className="min-h-0 flex-1 overflow-hidden">{children}</div>
         </div>
       </div>

@@ -4,7 +4,7 @@ import { cn } from "@/lib/ui/cn";
 
 type SearchInputProps = Omit<InputHTMLAttributes<HTMLInputElement>, "type"> & {
   /**
-   * Styles the SearchInput root. The root owns the complete 48px search surface height.
+   * Styles the SearchInput root. The root owns the complete 38px search surface height.
    * Do not add vertical padding in parent rows around this component.
    */
   wrapperClassName?: string;
@@ -19,7 +19,7 @@ export const SearchInput = forwardRef<HTMLInputElement, SearchInputProps>(
     return (
       <div
         className={cn(
-          "box-border flex h-12 min-h-12 items-center gap-1.5 bg-transparent px-2 transition hover:bg-surfaceMuted/60 focus-within:bg-surfaceMuted/60 [&:has(input:not(:placeholder-shown))]:bg-surfaceMuted/60",
+          "box-border flex h-[38px] min-h-[38px] items-center gap-1.5 bg-transparent px-2 transition hover:bg-surfaceMuted/60 focus-within:bg-surfaceMuted/60 [&:has(input:not(:placeholder-shown))]:bg-surfaceMuted/60",
           wrapperClassName,
         )}
       >
@@ -44,7 +44,7 @@ export const SearchInput = forwardRef<HTMLInputElement, SearchInputProps>(
             <X size={11} />
           </button>
         ) : shortcutKey ? (
-          <kbd className="shrink-0 rounded-sm border border-hairline bg-white px-1 text-[9px] font-bold text-tertiary">
+          <kbd className="shrink-0 rounded-sm bg-white px-1 text-[9px] font-bold text-tertiary">
             {shortcutKey}
           </kbd>
         ) : null}

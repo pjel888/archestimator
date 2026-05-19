@@ -1,6 +1,10 @@
-import type { ComponentProps, ReactNode } from "react";
+"use client";
+
+import type { ComponentProps, FocusEvent, PointerEvent, ReactNode } from "react";
+import { useId, useRef, useState } from "react";
 
 import { Button } from "@/components/ui/button";
+import { ToolbarTooltip } from "@/components/ui/toolbar-tooltip";
 import { cn } from "@/lib/ui/cn";
 
 type ToolbarIconButtonProps = Omit<ComponentProps<typeof Button>, "children" | "size"> & {
@@ -9,34 +13,68 @@ type ToolbarIconButtonProps = Omit<ComponentProps<typeof Button>, "children" | "
   visibleLabel?: string;
 };
 
-export function ToolbarIconButton({ label, visibleLabel, className, children, ...props }: ToolbarIconButtonProps) {
+export function ToolbarIconButton({
+  label,
+  visibleLabel,
+  className,
+  children,
+  onBlur,
+  onFocus,
+  onPointerEnter,
+  onPointerLeave,
+  ...props
+}: ToolbarIconButtonProps) {
   const hasVisibleLabel = Boolean(visibleLabel);
+  const [tooltipOpen, setTooltipOpen] = useState(false);
+  const wrapperRef = useRef<HTMLSpanElement>(null);
+  const tooltipId = useId();
+  const describedBy = hasVisibleLabel
+    ? props["aria-describedby"]
+    : [props["aria-describedby"], tooltipId].filter(Boolean).join(" ");
+
+  function handlePointerEnter(event: PointerEvent<HTMLButtonElement>) {
+    onPointerEnter?.(event);
+    if (!hasVisibleLabel) setTooltipOpen(true);
+  }
+
+  function handlePointerLeave(event: PointerEvent<HTMLButtonElement>) {
+    onPointerLeave?.(event);
+    setTooltipOpen(false);
+  }
+
+  function handleFocus(event: FocusEvent<HTMLButtonElement>) {
+    onFocus?.(event);
+    if (!hasVisibleLabel) setTooltipOpen(true);
+  }
+
+  function handleBlur(event: FocusEvent<HTMLButtonElement>) {
+    onBlur?.(event);
+    setTooltipOpen(false);
+  }
 
   return (
-    <span className="group/toolbar-icon relative inline-flex">
+    <span ref={wrapperRef} className="relative inline-flex">
       <Button
+        {...props}
         size={hasVisibleLabel ? "sm" : "icon-sm"}
         variant="ghost"
         aria-label={label}
+        aria-describedby={describedBy || undefined}
         title={label}
         className={cn(
           hasVisibleLabel ? "h-8 min-h-8 w-auto gap-1.5 rounded-md px-2 py-0" : "size-6 rounded-sm p-0",
           "text-tertiary",
           className,
         )}
-        {...props}
+        onBlur={handleBlur}
+        onFocus={handleFocus}
+        onPointerEnter={handlePointerEnter}
+        onPointerLeave={handlePointerLeave}
       >
         {children}
         {visibleLabel ? <span className="whitespace-nowrap">{visibleLabel}</span> : null}
       </Button>
-      {!hasVisibleLabel ? (
-        <span
-          role="tooltip"
-          className="pointer-events-none absolute left-0 top-[calc(100%+4px)] z-50 whitespace-nowrap rounded-sm border border-hairline bg-ink px-1.5 py-1 text-[9px] font-bold leading-none text-white opacity-0 shadow-sm transition group-hover/toolbar-icon:opacity-100 group-focus-within/toolbar-icon:opacity-100"
-        >
-          {label}
-        </span>
-      ) : null}
+      <ToolbarTooltip id={tooltipId} label={label} open={!hasVisibleLabel && tooltipOpen} anchorRef={wrapperRef} />
     </span>
   );
 }

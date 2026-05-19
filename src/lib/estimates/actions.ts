@@ -55,6 +55,14 @@ type FetchEstimateTreeInput = {
   estimateId: string;
 };
 
+type CreateEstimateNodeKind = "general" | "area";
+
+function readEstimateNodeKind(formData: FormData): CreateEstimateNodeKind {
+  const value = readRequiredText(formData, "kind");
+  if (value !== "general" && value !== "area") throw new Error("Estimate node kind must be general or area.");
+  return value;
+}
+
 async function getValidatedEstimateRow(projectId: string, estimateId: string, rowId: string) {
   const { project } = await getCurrentWorkspaceProject(projectId);
   if (!project) throw new Error("Project not found in the current workspace.");
@@ -195,6 +203,66 @@ export async function createEstimate(projectId: string, formData: FormData) {
   revalidatePath(`/workshop/projects/${project.id}`);
   revalidatePath(`/workshop/projects/${project.id}/estimates`);
   redirect(`/workshop/projects/${project.id}/estimates/${areaNode.id}`);
+}
+
+export async function createEstimateNode(projectId: string, estimateId: string, formData: FormData) {
+  const { project } = await getCurrentWorkspaceProject(projectId);
+  if (!project) throw new Error("Project not found in the current workspace.");
+
+  const supabase = await createSupabaseServerClient();
+  const name = readRequiredText(formData, "name");
+  const kind = readEstimateNodeKind(formData);
+  const parentId = readOptionalText(formData, "parentId");
+
+  const { data: estimate, error: estimateError } = await supabase
+    .from("estimates")
+    .select("id, project_id")
+    .eq("id", estimateId)
+    .eq("project_id", project.id)
+    .maybeSingle();
+
+  if (estimateError) throw estimateError;
+  if (!estimate) throw new Error("Estimate not found in the current project.");
+
+  if (parentId) {
+    const { data: parentNode, error: parentError } = await supabase
+      .from("estimate_nodes")
+      .select("id, kind, estimate_id, estimates!inner(project_id)")
+      .eq("id", parentId)
+      .eq("estimate_id", estimate.id)
+      .eq("estimates.project_id", project.id)
+      .maybeSingle();
+
+    if (parentError) throw parentError;
+    if (!parentNode) throw new Error("Parent estimate node not found in the current project.");
+    if (parentNode.kind === "area") throw new Error("Area nodes cannot contain child tree nodes.");
+  }
+
+  const siblingQuery = supabase
+    .from("estimate_nodes")
+    .select("sort_order")
+    .eq("estimate_id", estimate.id)
+    .order("sort_order", { ascending: false })
+    .limit(1);
+  const { data: siblings, error: siblingsError } = parentId
+    ? await siblingQuery.eq("parent_id", parentId)
+    : await siblingQuery.is("parent_id", null);
+
+  if (siblingsError) throw siblingsError;
+
+  const { data: node, error: insertError } = await supabase.from("estimate_nodes").insert({
+    estimate_id: estimate.id,
+    parent_id: parentId,
+    kind,
+    name,
+    sort_order: (siblings?.[0]?.sort_order ?? -1) + 1,
+  }).select("id").single();
+
+  if (insertError) throw insertError;
+
+  revalidatePath(`/workshop/projects/${project.id}/estimates`);
+  revalidatePath(`/workshop/projects/${project.id}/estimates/${estimate.id}`);
+  redirect(`/workshop/projects/${project.id}/estimates/${node.id}`);
 }
 
 export async function insertEstimateRowItemFromLibrary({ projectId, estimateId, targetNodeId, rowId, libraryItem }: InsertEstimateRowItemFromLibraryInput) {

@@ -3,6 +3,7 @@ export { Button } from "./button";
 export { Chip } from "./chip";
 export { ControlSelect } from "./control-select";
 export { EmptyState } from "./empty-state";
+export { Modal } from "./modal";
 export { SearchInput } from "./search-input";
 export { HeaderIconToolbar } from "./header-icon-toolbar";
 export { ToolbarIconButton } from "./toolbar-icon-button";

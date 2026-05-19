@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 
 import { cn } from "@/lib/ui/cn";
+import { EstimateCenterColumnBoundary } from "./EstimateCenterColumnBoundary";
 
 type WorkshopTitleHeaderProps = {
   title: string;
@@ -26,12 +27,13 @@ export function WorkshopTitleHeader({
         {showEyebrow ? <p className="mt-0.5 truncate text-[9px] font-medium leading-3 text-tertiary">{eyebrow}</p> : null}
       </div>
       {centerHeader ? (
-        <div
+        <EstimateCenterColumnBoundary
           id="workshop-center-header"
-          className="absolute inset-y-2 left-[calc(8px+104px+var(--estimate-tree-panel-width,272px))] right-[calc(8px+var(--estimate-library-panel-width,380px))] flex min-w-0 items-center justify-center"
+          scope="workshop-title"
+          className="flex items-center justify-center"
         >
           {centerHeader}
-        </div>
+        </EstimateCenterColumnBoundary>
       ) : null}
       {actions ? <div className="ml-2 flex shrink-0 items-center gap-2">{actions}</div> : null}
     </header>

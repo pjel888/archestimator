@@ -34,6 +34,18 @@ describe("component library UI", () => {
     expect(screen.getByText("Category")).toBeInTheDocument();
   });
 
+  it("opens the new component form in a viewport modal from the plus tool", () => {
+    const { container } = render(<EstimateRightSidebar />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Add component library" }));
+
+    const dialog = screen.getByRole("dialog", { name: "New component" });
+    expect(dialog).toBeInTheDocument();
+    expect(dialog.closest("[data-archestimator-modal-root]")).toHaveClass("fixed", "inset-0", "z-[1000]");
+    expect(container.querySelector("[role='dialog']")).toBeNull();
+    expect(screen.getByLabelText("Component name")).toBeInTheDocument();
+  });
+
   it("shows empty state when search returns no results", () => {
     render(<EstimateRightSidebar />);
     const search = screen.getByPlaceholderText(/search component library/i);

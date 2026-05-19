@@ -803,12 +803,12 @@ function replaceRowItemWithLibraryItem(rowItemId: string, libraryItem: EstimateR
 function EstimateSheetHeader() {
   return (
     <header className="sticky top-0 z-20 bg-white/95 backdrop-blur" aria-label="Estimate sheet controls">
-      <div className="flex h-10 items-center border-b border-hairline pl-4 pr-2">
+      <div className="flex h-10 items-center border-b border-hairline pl-2 pr-2">
         <h2 className="truncate text-[9px] font-bold uppercase tracking-[0.14em] text-tertiary">Estimate sheet</h2>
       </div>
-      <div className="flex h-12 items-center">
+      <div className="flex h-[38px] items-center">
         <SearchInput
-          wrapperClassName="h-12 w-full"
+          wrapperClassName="w-full"
           placeholder="Search estimate sheet"
           aria-label="Search estimate sheet"
         />
@@ -978,7 +978,12 @@ export function EstimateSheetContent({ selectedNodeId, nodes = sampleEstimateTre
   }
 
   return (
-    <section className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-white" aria-label="Main estimate sheet">
+    <section
+      id="estimate-sheet-center-column"
+      className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-white"
+      data-estimate-center-column="sheet"
+      aria-label="Main estimate sheet"
+    >
       {selectedNode ? (
         <>
           <EstimateSheetHeader />

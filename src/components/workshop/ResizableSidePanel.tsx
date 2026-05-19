@@ -51,6 +51,7 @@ export function ResizableSidePanel({
   );
   const [dragWidth, setDragWidth] = useState<number | null>(null);
   const width = dragWidth ?? savedWidth;
+  const actualWidth = collapsed ? collapsedWidth : width;
   const dragging = useRef(false);
   const startX = useRef(0);
   const startWidth = useRef(defaultWidth);
@@ -58,8 +59,8 @@ export function ResizableSidePanel({
   useEffect(() => {
     if (storageKey !== "estimate_sheet_tree_width" && storageKey !== "estimate_component_library_width_v2") return;
     const cssVariable = storageKey === "estimate_sheet_tree_width" ? "--estimate-tree-panel-width" : "--estimate-library-panel-width";
-    document.documentElement.style.setProperty(cssVariable, `${width}px`);
-  }, [storageKey, width]);
+    document.documentElement.style.setProperty(cssVariable, `${actualWidth}px`);
+  }, [actualWidth, storageKey]);
 
   function startResize(event: React.MouseEvent) {
     if (collapsed) return;
@@ -116,10 +117,7 @@ export function ResizableSidePanel({
       size="icon-sm"
       aria-label={collapsed ? `Expand ${ariaLabel}` : `Collapse ${ariaLabel}`}
       aria-expanded={!collapsed}
-      className={[
-        "h-full rounded-none border-x border-hairline hover:bg-surface-muted",
-        collapsed ? "bg-surface-muted" : "bg-white",
-      ].join(" ")}
+      className="h-full rounded-none border-x border-hairline bg-white hover:bg-white"
       onClick={() => setCollapsed((value) => !value)}
     >
       <SidebarSimple size={14} aria-hidden="true" className={side === "left" ? "" : "rotate-180"} />
@@ -127,7 +125,7 @@ export function ResizableSidePanel({
   );
 
   return (
-    <div className="group flex h-full shrink-0" style={{ width: collapsed ? collapsedWidth : width }}>
+    <div className="group flex h-full shrink-0" style={{ width: actualWidth }}>
       {side === "right" ? toggle : null}
       {side === "right" ? resizer : null}
       <aside className="h-full min-w-0 flex-1 overflow-hidden bg-white !text-[10px]" aria-label={ariaLabel} aria-hidden={collapsed}>
