@@ -9,7 +9,7 @@ export function FinalCTASection() {
         <div>
           <p className="font-mono text-[11px] font-semibold uppercase tracking-[0.14em] text-white/50">Start estimating</p>
           <h2 className="mt-4 max-w-[820px] text-[48px] font-normal leading-none tracking-[-0.055em] sm:text-[72px]">
-            Perfect proposal experiences, powered by Archestimator
+            Build your next estimate the smart way.
           </h2>
         </div>
         <Link
