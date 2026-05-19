@@ -64,20 +64,14 @@ describe("estimate sheet cost inputs", () => {
     expect(within(row as HTMLElement).getByText("₱8,799.00")).toBeInTheDocument();
   });
 
-  it("uses an explicit area target when the selected node is not an area and focuses the inserted row quantity", async () => {
-    const user = userEvent.setup();
-    renderEstimateSheet("main-house");
-
-    expect(screen.getByText("Target required: choose an area")).toBeInTheDocument();
-
-    await user.selectOptions(screen.getByLabelText("Insert target area"), "kitchen");
-    expect(screen.getByText("Target: Kitchen")).toBeInTheDocument();
+  it("uses the selected area as the add target and focuses the inserted row quantity", async () => {
+    renderEstimateSheet("kitchen");
 
     await act(async () => {
       window.dispatchEvent(new CustomEvent("archestimator:add-library-item", { detail: estimateLibraryItems[0] }));
     });
 
-    const kitchenSection = screen.getByLabelText("Kitchen area group");
+    const kitchenSection = screen.getByLabelText("Kitchen");
     const insertedQuantity = await within(kitchenSection).findByLabelText("HEMLINGBY Loveseat quantity");
     await waitFor(() => expect(insertedQuantity).toHaveFocus());
     expect(within(kitchenSection).getAllByText("HEMLINGBY Loveseat")).toHaveLength(1);
@@ -119,21 +113,25 @@ describe("estimate sheet cost inputs", () => {
     expect(quantityInput.closest("td")).toHaveAttribute("data-estimate-cell-active", "true");
   });
 
-  it("keeps group context out of the action header and aligns the project total in the estimate footer", () => {
+  it("removes the active group context and moves the project total out of the estimate footer", () => {
     renderEstimateSheet("living-area");
 
-    const activeContext = screen.getByLabelText("Active estimate group context");
-    expect(within(activeContext).getByText("Living Area")).toBeInTheDocument();
-    expect(within(activeContext).getByText("Area group")).toBeInTheDocument();
+    expect(screen.queryByLabelText("Active estimate group context")).not.toBeInTheDocument();
 
     const actionHeader = screen.getByLabelText("Estimate sheet controls");
+    expect(within(actionHeader).getByRole("heading", { name: "Estimate sheet" })).toBeInTheDocument();
     expect(within(actionHeader).queryByRole("heading", { name: "Living Area" })).not.toBeInTheDocument();
-    expect(within(actionHeader).getByLabelText("Search estimate rows")).toBeInTheDocument();
-    expect(within(actionHeader).getByRole("button", { name: "Delete selected row items" })).toBeDisabled();
+    expect(within(actionHeader).getByLabelText("Search estimate sheet")).toBeInTheDocument();
+    const sheetTools = within(actionHeader).getByLabelText("Estimate sheet tools");
+    expect(sheetTools).toHaveClass("border-y");
+    expect(within(sheetTools).queryByText("Sheet tools")).not.toBeInTheDocument();
+    expect(within(sheetTools).getByRole("button", { name: "Filter estimate rows" })).toHaveAttribute("title", "Filter estimate rows");
+    expect(within(sheetTools).getByRole("button", { name: "Group estimate rows" })).toHaveAttribute("title", "Group estimate rows");
+    expect(within(sheetTools).queryByRole("button", { name: "Collapse all estimate rows" })).not.toBeInTheDocument();
+    expect(within(sheetTools).queryByRole("button", { name: "Expand all estimate rows" })).not.toBeInTheDocument();
+    expect(within(sheetTools).getByRole("button", { name: "Add estimate rows" })).toHaveAttribute("title", "Add estimate rows");
 
-    const footer = screen.getByLabelText("Estimate sheet running totals");
-    expect(within(footer).getByText("Ongoing total project cost")).toBeInTheDocument();
-    expect(within(footer).getByText("₱1,208,527.00")).toBeInTheDocument();
+    expect(screen.queryByLabelText("Estimate sheet running totals")).not.toBeInTheDocument();
   });
 
   it("replaces the row estimate component on drop while preserving editable row fields", async () => {

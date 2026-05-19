@@ -4,61 +4,39 @@ import { EstimateRightSidebar } from "@/components/workshop/component-library";
 import type { EstimateRowItem } from "@/components/workshop/estimate-tree-data";
 
 describe("component library UI", () => {
-  it("renders the sidebar with title and new button", () => {
+  it("renders the sidebar with title and full-width search", () => {
     render(<EstimateRightSidebar />);
     expect(screen.getByText("Component library")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /new/i })).toBeInTheDocument();
+    expect(screen.getByLabelText("Search component library")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /new/i })).not.toBeInTheDocument();
   });
 
   it("shows search input with placeholder", () => {
     render(<EstimateRightSidebar />);
-    expect(screen.getByPlaceholderText(/search components, suppliers, tags/i)).toBeInTheDocument();
+    expect(screen.getByPlaceholderText(/search component library/i)).toBeInTheDocument();
   });
 
-  it("shows component count", () => {
+  it("shows left-aligned icon-only tools with tooltips", () => {
     render(<EstimateRightSidebar />);
-    // Should show count of seeded library items
-    expect(screen.getByText(/\d+ components?/)).toBeInTheDocument();
-  });
-
-  it("toggles filter panel when filter button clicked", () => {
-    render(<EstimateRightSidebar />);
-    const filterButton = screen.getByRole("button", { name: /open component filters/i });
-    fireEvent.click(filterButton);
-    expect(screen.getByText("Category")).toBeInTheDocument();
-    expect(screen.getAllByText("Supplier").length).toBeGreaterThanOrEqual(1);
-    fireEvent.click(filterButton);
+    expect(screen.getByLabelText("Component library tools")).toBeInTheDocument();
+    expect(screen.queryByText(/\d+ components?/)).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Filter component library" })).toHaveAttribute("title", "Filter component library");
+    expect(screen.getByRole("button", { name: "Group component library" })).toHaveAttribute("title", "Group component library");
+    expect(screen.queryByRole("button", { name: "Collapse all component library" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Expand all component library" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Add component library" })).toHaveAttribute("title", "Add component library");
     expect(screen.queryByText("Category")).not.toBeInTheDocument();
   });
 
-  it("switches view mode between compact, detailed, and grid", () => {
+  it("opens filters from the icon-only filter tool", () => {
     render(<EstimateRightSidebar />);
-    const compact = screen.getByTitle("Compact");
-    const detailed = screen.getByTitle("Detailed");
-    const grid = screen.getByTitle("Grid");
-    expect(compact).toBeInTheDocument();
-    expect(detailed).toBeInTheDocument();
-    expect(grid).toBeInTheDocument();
-
-    // Click detailed view
-    fireEvent.click(detailed);
-    // Click grid view
-    fireEvent.click(grid);
-    // Click compact view
-    fireEvent.click(compact);
-  });
-
-  it("opens new component form when new button clicked", () => {
-    render(<EstimateRightSidebar />);
-    const newButton = screen.getByRole("button", { name: /new/i });
-    fireEvent.click(newButton);
-    expect(screen.getByRole("dialog")).toBeInTheDocument();
-    expect(screen.getByText("New component")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Filter component library" }));
+    expect(screen.getByText("Category")).toBeInTheDocument();
   });
 
   it("shows empty state when search returns no results", () => {
     render(<EstimateRightSidebar />);
-    const search = screen.getByPlaceholderText(/search components, suppliers, tags/i);
+    const search = screen.getByPlaceholderText(/search component library/i);
     fireEvent.change(search, { target: { value: "xyz-nonexistent-12345" } });
     expect(screen.getByText("No components matched")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /clear search and filters/i })).toBeInTheDocument();

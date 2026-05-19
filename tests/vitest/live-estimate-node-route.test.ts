@@ -12,7 +12,7 @@ describe("live estimate node route", () => {
     expect(estimateNodePage).toContain("getProjectEstimateTreeByNode");
     expect(estimateNodePage).not.toContain("sampleProjects");
     expect(estimateNodePage).not.toContain("sampleEstimateTree");
-    expect(estimateNodePage).toContain("notFound()");
+    expect(estimateNodePage).toContain("if (!project || !estimate) notFound()");
   });
 
   it("passes live tree nodes into the tree and sheet components", () => {
@@ -25,7 +25,17 @@ describe("live estimate node route", () => {
   it("repository validates node ownership through project-scoped estimate join", () => {
     expect(workspaceRepository).toContain('select("*, estimates!inner(*)")');
     expect(workspaceRepository).toContain('.eq("estimates.project_id", project.id)');
+    expect(workspaceRepository).toContain("return getProjectEstimateTreeByEstimate(projectId, nodeId)");
     expect(workspaceRepository).toContain("buildEstimateTree");
+  });
+
+  it("opens empty estimates by estimate id instead of looping back to the estimate list", () => {
+    expect(readFileSync("src/components/workshop/EstimateListCard.tsx", "utf8")).toContain('`/workshop/projects/${estimate.project_id}/estimates/${estimate.id}`');
+    expect(estimateTree).toContain("This estimate has no tree nodes yet");
+    expect(estimateTree).toContain("selectedNodeId: string | null");
+    expect(estimateContent).toContain("selectedNodeId: string | null");
+    expect(estimateContent).toContain("No estimate tree yet");
+    expect(estimateContent).toContain("estimateTree.reduce");
   });
 
   it("persists component-library area inserts through a project-scoped server action", () => {
