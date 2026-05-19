@@ -18,13 +18,12 @@ values (
 )
 on conflict (id) do nothing;
 
-insert into public.estimates (id, project_id, name, revision_label, status, currency_code, metadata)
+insert into public.estimates (id, project_id, name, sheet_code, currency_code, metadata)
 values (
   '33333333-3333-4333-8333-333333333333',
   '22222222-2222-4222-8222-222222222222',
   'Baseline Estimate',
   'Rev 0',
-  'draft',
   'PHP',
   '{"seeded": true}'::jsonb
 )

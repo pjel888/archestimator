@@ -97,8 +97,7 @@ export async function createEstimate(projectId: string, formData: FormData) {
 
   const supabase = await createSupabaseServerClient();
   const name = readRequiredText(formData, "name");
-  const revisionLabel = readOptionalText(formData, "revisionLabel") ?? "Rev 0";
-  const assumptions = readOptionalText(formData, "assumptions");
+  const sheetCode = readOptionalText(formData, "sheetCode") ?? readOptionalText(formData, "revisionLabel") ?? "Rev 0";
 
   const { data: userResult, error: userError } = await supabase.auth.getUser();
   if (userError) throw userError;
@@ -109,9 +108,7 @@ export async function createEstimate(projectId: string, formData: FormData) {
       project_id: project.id,
       created_by: userResult.user?.id ?? null,
       name,
-      revision_label: revisionLabel,
-      assumptions,
-      status: "draft",
+      sheet_code: sheetCode,
       currency_code: project.currency_code,
       metadata: {},
     })

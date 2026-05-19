@@ -21,18 +21,14 @@ export function NewEstimateForm({ projectId }: { projectId: string }) {
         </Button>
       </div>
 
-      <div className="grid gap-2 md:grid-cols-4">
+      <div className="grid gap-2 md:grid-cols-3">
         <label className="space-y-1 md:col-span-2">
           <span className="text-[9px] font-bold uppercase tracking-[0.12em] text-tertiary">Estimate name</span>
           <ControlInput name="name" placeholder="e.g. Baseline cost estimate" required className="h-8 px-2" />
         </label>
         <label className="space-y-1">
-          <span className="text-[9px] font-bold uppercase tracking-[0.12em] text-tertiary">Revision</span>
-          <ControlInput name="revisionLabel" placeholder="Rev 0" className="h-8 px-2" />
-        </label>
-        <label className="space-y-1">
-          <span className="text-[9px] font-bold uppercase tracking-[0.12em] text-tertiary">Assumptions</span>
-          <ControlInput name="assumptions" placeholder="Optional note" className="h-8 px-2" />
+          <span className="text-[9px] font-bold uppercase tracking-[0.12em] text-tertiary">Sheet Code</span>
+          <ControlInput name="sheetCode" placeholder="Rev 0" className="h-8 px-2" />
         </label>
       </div>
     </form>
