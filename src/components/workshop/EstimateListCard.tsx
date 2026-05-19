@@ -15,7 +15,7 @@ function formatUpdatedAt(value: string) {
 export function EstimateListCard({ estimate, firstNodeId }: EstimateListCardProps) {
   const href = firstNodeId
     ? `/workshop/projects/${estimate.project_id}/estimates/${firstNodeId}`
-    : `/workshop/projects/${estimate.project_id}/estimates`;
+    : `/workshop/projects/${estimate.project_id}/estimates/${estimate.id}`;
 
   return (
     <Link

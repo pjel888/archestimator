@@ -2,9 +2,10 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import { CaretDown, Cube, DotsSixVertical, HouseLine, Plus, Stack } from "@phosphor-icons/react/dist/ssr";
+import { CaretDown, Cube, DotsSixVertical, Files, HouseLine, Stack } from "@phosphor-icons/react/dist/ssr";
 
 import { Button } from "@/components/ui/button";
+import { HeaderIconToolbar } from "@/components/ui/header-icon-toolbar";
 import { SearchInput } from "@/components/ui/search-input";
 import { cn } from "@/lib/ui/cn";
 import { getExpandedNodeIds, flattenVisibleNodes, type EstimateAreaNode } from "./estimate-tree-data";
@@ -13,11 +14,12 @@ import { ResizableSidePanel } from "./ResizableSidePanel";
 type EstimateSheetTreeProps = {
   projectId: string;
   projectName: string;
-  selectedNodeId: string;
+  selectedNodeId: string | null;
   nodes: EstimateAreaNode[];
 };
 
-function NodeIcon({ kind }: { kind: "lot" | "structure" | "level" | "area" }) {
+function NodeIcon({ kind }: { kind: "lot" | "general" | "structure" | "level" | "area" }) {
+  if (kind === "general") return <Files size={12} weight="bold" aria-hidden="true" />;
   if (kind === "lot" || kind === "structure") return <HouseLine size={12} weight="bold" aria-hidden="true" />;
   if (kind === "level") return <Stack size={12} weight="bold" aria-hidden="true" />;
   return <Cube size={12} weight="bold" aria-hidden="true" />;
@@ -38,20 +40,27 @@ export function EstimateSheetTree({ projectId, projectName, selectedNodeId, node
 
   return (
     <ResizableSidePanel side="left" ariaLabel="Estimate sheet tree" storageKey="estimate_sheet_tree_width" defaultWidth={272} minWidth={216} maxWidth={432}>
-      <div className="h-full overflow-auto border-r border-hairline p-2">
-        <SearchInput
-          wrapperClassName="h-8 rounded-none border-x-0 border-t-0 bg-transparent px-2"
-          className="font-bold"
-          placeholder="Search"
-          aria-label="Search estimate areas"
-        />
-
-        <div className="flex h-10 items-center justify-end">
-          <Button variant="ghost" size="icon-sm" aria-label="Add estimate area">
-            <Plus size={14} weight="bold" aria-hidden="true" />
-          </Button>
+      <div className="flex h-full flex-col overflow-hidden border-r border-hairline bg-white">
+        <div className="sticky top-0 z-20 shrink-0 bg-white">
+          <div className="flex h-10 items-center border-b border-hairline pl-4 pr-2">
+            <h2 className="truncate text-[9px] font-normal uppercase tracking-[0.14em] text-tertiary">Estimate tree</h2>
+          </div>
+          <div className="flex items-center p-2">
+            <SearchInput
+              wrapperClassName="h-8 w-full"
+              placeholder="Search estimate tree"
+              aria-label="Search estimate tree"
+            />
+          </div>
+          <HeaderIconToolbar ariaLabel="Estimate tree tools" labelPrefix="estimate tree" />
         </div>
 
+        <div className="min-h-0 flex-1 overflow-auto p-2">
+        {visibleNodes.length === 0 ? (
+          <div className="rounded-md border border-dashed border-hairline bg-surface-muted p-2 text-[10px] leading-4 text-tertiary">
+            This estimate has no tree nodes yet. Add a General Node or Area Node to begin rebuilding the estimate structure.
+          </div>
+        ) : null}
         <nav aria-label={`${projectName} estimate areas`}>
           <ol className="space-y-1">
             {visibleNodes.map((node) => {
@@ -70,7 +79,7 @@ export function EstimateSheetTree({ projectId, projectName, selectedNodeId, node
                     href={href}
                     aria-current={isSelected ? "page" : undefined}
                     className={cn(
-                      "relative inline-flex h-7 min-w-0 items-center justify-start gap-0 overflow-hidden rounded-md p-1 !text-[10px] !font-bold leading-none text-ink transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2",
+                      "relative inline-flex h-7 min-w-0 items-center justify-start gap-0 overflow-hidden rounded-md p-1 !text-[10px] !font-normal leading-none text-ink transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2",
                       isSelected ? "bg-surface-muted" : "hover:bg-surface-muted",
                     )}
                   >
@@ -107,6 +116,7 @@ export function EstimateSheetTree({ projectId, projectName, selectedNodeId, node
             })}
           </ol>
         </nav>
+      </div>
       </div>
     </ResizableSidePanel>
   );

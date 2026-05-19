@@ -38,7 +38,7 @@ export type EstimateRowItem = {
 export type EstimateAreaNode = {
   id: string;
   name: string;
-  kind: "lot" | "structure" | "level" | "area";
+  kind: "lot" | "general" | "structure" | "level" | "area";
   total: string;
   children?: EstimateAreaNode[];
   estimateRowItems?: EstimateRowItem[];
@@ -272,6 +272,30 @@ export const sampleEstimateTree: EstimateAreaNode[] = [
     total: "₱0.00",
     children: [
       {
+        id: "general-requirements",
+        name: "General Requirements",
+        kind: "general",
+        total: "₱0.00",
+        children: [],
+      },
+      {
+        id: "site-works",
+        name: "Site Works",
+        kind: "general",
+        total: "₱0.00",
+        children: [
+          {
+            id: "site-works-front-yard",
+            name: "Front Yard",
+            kind: "area",
+            total: "₱0.00",
+            estimateRowItems: [
+              row({ id: "front-yard-pebble-washout", material: "Pebble Washout Floor Finish", description: "Site works hardscape allowance for front yard finish.", supplier: "Local PH contractor / aggregate supplier", source: "supplier", unit: "sqm", itemCost: 950, quantity: 36, supplementaryCosts: 2500, laborCost: 5200, category: "Finishes", discipline: "Architectural", designation: "Floor Finish", pricingSource: "Local contractor allowance — verify site and aggregate quote", pricingDate: "2026-05-18" }),
+            ],
+          },
+        ],
+      },
+      {
         id: "main-house",
     name: "Main House",
     kind: "structure",
@@ -354,7 +378,7 @@ export const sampleEstimateTree: EstimateAreaNode[] = [
   },
   {
     id: "lot-site-works",
-    name: "Lot B — Site Works",
+    name: "Lot B — External Works",
     kind: "lot",
     total: "₱0.00",
     children: [

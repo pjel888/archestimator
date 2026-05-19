@@ -2,13 +2,14 @@
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { type Dispatch, type DragEvent, type InputHTMLAttributes, type KeyboardEvent, type SetStateAction, useCallback, useEffect, useMemo, useState } from "react";
-import { ArrowsOutSimple, CaretDown, Cube, DotsSixVertical, FunnelSimple, HouseLine, Plus, SlidersHorizontal, Stack, Trash } from "@phosphor-icons/react/dist/ssr";
+import { ArrowsOutSimple, CaretDown, Cube, DotsSixVertical, Files, HouseLine, Plus, Stack, Trash } from "@phosphor-icons/react/dist/ssr";
 
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ControlInput } from "@/components/ui/control-input";
 import { ControlSelect } from "@/components/ui/control-select";
+import { HeaderIconToolbar } from "@/components/ui/header-icon-toolbar";
 import { SearchInput } from "@/components/ui/search-input";
+import { dispatchProjectTotalChange } from "@/components/workshop/ProjectTotalHeader";
 import { useEstimateRowMutations, type EstimateSaveState } from "@/hooks/use-estimate-row-mutations";
 import { estimateQueryKeys } from "@/hooks/use-estimate-query";
 import { cn } from "@/lib/ui/cn";
@@ -29,7 +30,7 @@ export {
 export { EstimateRightSidebar } from "./component-library";
 
 type EstimateSheetContentProps = {
-  selectedNodeId: string;
+  selectedNodeId: string | null;
   nodes?: EstimateAreaNode[];
   projectId?: string;
   estimateId?: string;
@@ -54,13 +55,6 @@ export const pesoFormatter = new Intl.NumberFormat("en-PH", {
   minimumFractionDigits: 2,
 });
 
-function groupLabel(kind: EstimateAreaNode["kind"]) {
-  if (kind === "lot") return "Lot group";
-  if (kind === "structure") return "Structure group";
-  if (kind === "level") return "Floor group";
-  return "Area group";
-}
-
 function groupTint() {
   return "border-hairline bg-surfaceMuted";
 }
@@ -75,23 +69,11 @@ function groupGap(depth: number) {
 }
 
 function NodeIcon({ kind }: { kind: EstimateAreaNode["kind"] }) {
+  if (kind === "general") return <Files size={13} weight="bold" aria-hidden="true" />;
   if (kind === "lot") return <HouseLine size={13} weight="bold" aria-hidden="true" />;
   if (kind === "structure") return <HouseLine size={13} weight="bold" aria-hidden="true" />;
   if (kind === "level") return <Stack size={13} weight="bold" aria-hidden="true" />;
   return <Cube size={13} weight="bold" aria-hidden="true" />;
-}
-
-function collectAreaOptions(nodes: EstimateAreaNode[]) {
-  const options: Array<{ id: string; label: string }> = [];
-
-  function visit(node: EstimateAreaNode, path: string[]) {
-    const nextPath = [...path, node.name];
-    if (node.kind === "area") options.push({ id: node.id, label: nextPath.join(" / ") });
-    node.children?.forEach((child) => visit(child, nextPath));
-  }
-
-  nodes.forEach((node) => visit(node, []));
-  return options;
 }
 
 function focusEstimateCell(rowIndex: number, cellIndex: number) {
@@ -192,16 +174,6 @@ function computeNodeTotal(node: EstimateAreaNode, editableRows: Record<string, E
   const rowTotal = (node.estimateRowItems ?? []).reduce((total, item) => total + computeRowTotal(item, editableRows), 0);
   const childTotal = (node.children ?? []).reduce((total, child) => total + computeNodeTotal(child, editableRows), 0);
   return rowTotal + childTotal;
-}
-
-function countNodeRows(node: EstimateAreaNode): number {
-  const rowCount = node.estimateRowItems?.length ?? 0;
-  const childRowCount = (node.children ?? []).reduce((total, child) => total + countNodeRows(child), 0);
-  return rowCount + childRowCount;
-}
-
-function countNodeAreas(node: EstimateAreaNode): number {
-  return 1 + (node.children ?? []).reduce((total, child) => total + countNodeAreas(child), 0);
 }
 
 function EstimateSelect({
@@ -699,7 +671,7 @@ function RowSaveStatus({ state }: { state?: EstimateSaveState }) {
 function EmptyAreaMessage({ depth, nodeId, onInsertLibraryItem }: { depth: number; nodeId: string; onInsertLibraryItem: (targetNodeId: string, libraryItem: EstimateRowItem) => void }) {
   return (
     <div
-      style={{ marginLeft: `${Math.min(depth * 18, 108)}px` }}
+      style={{ marginLeft: `${Math.min(depth * 32, 192)}px` }}
       onDragOver={(event) => {
         if (event.dataTransfer.types.includes("application/x-archestimator-library-item")) {
           event.preventDefault();
@@ -724,12 +696,12 @@ function EstimateSheetBranch({ node, editableRows, setEditableRows, onInsertLibr
   const estimateRowItems = node.estimateRowItems ?? [];
   const hasContents = childAreas.length > 0 || estimateRowItems.length > 0;
   const canReceiveRows = node.kind === "area";
-  const leftIndent = Math.min(depth * 18, 108);
+  const leftIndent = Math.min(depth * 32, 192);
   const total = computeNodeTotal(node, editableRows);
 
   return (
-    <section className={cn("space-y-1", groupGap(depth))} aria-label={`${node.name} ${groupLabel(node.kind).toLowerCase()}`}>
-      <div className={cn("flex h-9 items-center gap-2 border px-1", groupTint())} style={{ paddingLeft: `${leftIndent + 8}px` }}>
+    <section className={cn("space-y-1", groupGap(depth))} aria-label={node.name}>
+      <div className={cn("flex h-8 items-center gap-2 border px-1", groupTint())} style={{ paddingLeft: `${leftIndent + 8}px` }}>
         <Button
           variant="ghost"
           size="icon-sm"
@@ -740,14 +712,13 @@ function EstimateSheetBranch({ node, editableRows, setEditableRows, onInsertLibr
         >
           <CaretDown size={13} weight="bold" aria-hidden="true" className={collapsed ? "-rotate-90" : ""} />
         </Button>
-        <span className="flex size-6 shrink-0 items-center justify-center border border-hairline bg-white text-tertiary">
+        <span className="flex size-6 shrink-0 items-center justify-center text-tertiary">
           <NodeIcon kind={node.kind} />
         </span>
         <div className="min-w-0 flex-1">
-          <p className="truncate text-[10px] font-bold text-ink">{node.name}</p>
-          <p className="text-[9px] font-bold uppercase tracking-[0.12em] text-tertiary">{groupLabel(node.kind)}</p>
+          <p className="truncate text-[10px] font-normal text-ink">{node.name}</p>
         </div>
-        <span className="shrink-0 text-right text-[10px] font-bold tabular-nums text-ink">{pesoFormatter.format(total)}</span>
+        <span className="shrink-0 text-right text-[10px] font-normal tabular-nums text-ink">{pesoFormatter.format(total)}</span>
       </div>
 
       {!collapsed ? (
@@ -829,94 +800,21 @@ function replaceRowItemWithLibraryItem(rowItemId: string, libraryItem: EstimateR
   };
 }
 
-function EstimateSheetHeader({
-  projectNode,
-  areaOptions,
-  insertTargetNodeId,
-  onInsertTargetChange,
-}: {
-  projectNode: EstimateAreaNode;
-  areaOptions: Array<{ id: string; label: string }>;
-  insertTargetNodeId: string;
-  onInsertTargetChange: (targetNodeId: string) => void;
-}) {
-  const projectRowCount = countNodeRows(projectNode);
-  const projectAreaCount = countNodeAreas(projectNode);
-
+function EstimateSheetHeader() {
   return (
-    <header className="sticky top-0 z-20 border-b border-hairline bg-white/95 backdrop-blur" aria-label="Estimate sheet controls">
-      <div className="flex items-center gap-1.5 px-2 py-1.5">
+    <header className="sticky top-0 z-20 bg-white/95 backdrop-blur" aria-label="Estimate sheet controls">
+      <div className="flex h-10 items-center border-b border-hairline pl-4 pr-2">
+        <h2 className="truncate text-[9px] font-bold uppercase tracking-[0.14em] text-tertiary">Estimate sheet</h2>
+      </div>
+      <div className="flex items-center p-2">
         <SearchInput
-          wrapperClassName="h-8 w-full max-w-xs rounded-sm"
-          placeholder="Search rows, material, supplier"
-          aria-label="Search estimate rows"
+          wrapperClassName="h-8 w-full"
+          placeholder="Search estimate sheet"
+          aria-label="Search estimate sheet"
         />
-        <Button variant="secondary" size="sm" className="h-8 min-h-8 gap-1.5 px-2.5" aria-label="Filter estimate rows">
-          <FunnelSimple size={12} weight="bold" aria-hidden="true" />
-          Filter
-        </Button>
-        <Button variant="ghost" size="sm" className="h-8 min-h-8 gap-1.5 px-2.5" aria-label="Open estimate view options">
-          <SlidersHorizontal size={12} weight="bold" aria-hidden="true" />
-          Organize
-        </Button>
-        <Button variant="ghost" size="sm" className="h-8 min-h-8 gap-1.5 px-2.5 text-red-700 hover:bg-red-50" aria-label="Delete selected row items" disabled>
-          <Trash size={12} weight="bold" aria-hidden="true" />
-          Delete selected
-        </Button>
-        <div className="ml-auto flex items-center gap-1.5">
-          <Badge>{projectRowCount} rows</Badge>
-          <Badge>{projectAreaCount} areas</Badge>
-          {insertTargetNodeId ? (
-            <Badge>Target: {areaOptions.find((area) => area.id === insertTargetNodeId)?.label.split(" / ").at(-1)}</Badge>
-          ) : (
-            <Badge tone="warning">Target required: choose an area</Badge>
-          )}
-          <ControlSelect
-            value={insertTargetNodeId}
-            onChange={(event) => onInsertTargetChange(event.target.value)}
-            aria-label="Insert target area"
-            wrapperClassName="h-7 min-w-44"
-            className="h-7 pr-5 text-[9px]"
-          >
-            <option value="">Choose target area</option>
-            {areaOptions.map((area) => (
-              <option key={area.id} value={area.id}>{area.label}</option>
-            ))}
-          </ControlSelect>
-        </div>
       </div>
+      <HeaderIconToolbar ariaLabel="Estimate sheet tools" labelPrefix="estimate rows" />
     </header>
-  );
-}
-
-function EstimateActiveGroupContext({ node, editableRows }: { node: EstimateAreaNode; editableRows: Record<string, EditableRowValue> }) {
-  return (
-    <div className="border-b border-hairline bg-[#F8FAFC] px-2 py-1.5" aria-label="Active estimate group context">
-      <div className="mx-auto flex max-w-2xl items-center justify-center gap-2 text-center">
-        <span className="flex size-6 shrink-0 items-center justify-center border border-hairline bg-white text-tertiary">
-          <NodeIcon kind={node.kind} />
-        </span>
-        <div className="min-w-0">
-          <p className="text-[9px] font-bold uppercase tracking-[0.12em] text-tertiary">Currently active group node</p>
-          <div className="flex min-w-0 items-center justify-center gap-2">
-            <h2 className="truncate text-[12px] font-bold leading-4 text-ink">{node.name}</h2>
-            <Badge>{groupLabel(node.kind)}</Badge>
-            <span className="text-[10px] font-bold tabular-nums text-ink">{pesoFormatter.format(computeNodeTotal(node, editableRows))}</span>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function EstimateSheetFooter({ projectTotal }: { projectTotal: number }) {
-  return (
-    <footer className="shrink-0 border-t border-hairline bg-white px-2 py-1.5" aria-label="Estimate sheet running totals">
-      <div className="ml-auto flex w-fit items-center gap-2 text-right">
-        <span className="text-[9px] font-bold uppercase tracking-[0.12em] text-tertiary">Ongoing total project cost</span>
-        <span className="font-mono text-[12px] font-bold tabular-nums text-ink">{pesoFormatter.format(projectTotal)}</span>
-      </div>
-    </footer>
   );
 }
 
@@ -934,14 +832,19 @@ export function EstimateSheetContent({ selectedNodeId, nodes = sampleEstimateTre
   });
   const [estimateTree, setEstimateTreeState] = useState(queriedEstimateTree);
   const [editableRows, setEditableRows] = useState<Record<string, EditableRowValue>>(() => collectEditableRows(nodes));
-  const [insertTargetNodeId, setInsertTargetNodeId] = useState(() => {
-    const initialNode = findEstimateNode(nodes, selectedNodeId);
+  const [insertTargetNodeId] = useState(() => {
+    const initialSelectedNodeId = selectedNodeId;
+    if (!initialSelectedNodeId) return "";
+    const initialNode = findEstimateNode(nodes, initialSelectedNodeId);
     return initialNode?.kind === "area" ? initialNode.id : "";
   });
   const [pendingFocusRowId, setPendingFocusRowId] = useState("");
-  const selectedNode = findEstimateNode(estimateTree, selectedNodeId) ?? estimateTree[0];
-  const areaOptions = useMemo(() => collectAreaOptions(estimateTree), [estimateTree]);
-  const projectTotal = computeNodeTotal(estimateTree[0], editableRows);
+  const selectedNode = selectedNodeId ? findEstimateNode(estimateTree, selectedNodeId) ?? estimateTree[0] : estimateTree[0];
+  const projectTotal = estimateTree.reduce((total, node) => total + computeNodeTotal(node, editableRows), 0);
+
+  useEffect(() => {
+    dispatchProjectTotalChange(projectTotal);
+  }, [projectTotal]);
 
   const setEstimateTree = useCallback((updater: (current: EstimateAreaNode[]) => EstimateAreaNode[]) => {
     setEstimateTreeState((current) => {
@@ -1078,17 +981,7 @@ export function EstimateSheetContent({ selectedNodeId, nodes = sampleEstimateTre
     <section className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-white" aria-label="Main estimate sheet">
       {selectedNode ? (
         <>
-          <EstimateSheetHeader
-            projectNode={estimateTree[0]}
-            areaOptions={areaOptions}
-            insertTargetNodeId={insertTargetNodeId}
-            onInsertTargetChange={setInsertTargetNodeId}
-          />
-          <EstimateActiveGroupContext node={selectedNode} editableRows={editableRows} />
-          <div className="flex items-center justify-between gap-2 border-b border-hairline bg-surfaceMuted px-2 py-1">
-            <p className="text-[10px] font-bold text-ink">Estimate workspace</p>
-            <EstimateSaveStatus state={saveState} />
-          </div>
+          <EstimateSheetHeader />
           <div className="min-h-0 flex-1 overflow-auto p-2">
             <EstimateSheetBranch
               node={selectedNode}
@@ -1102,9 +995,21 @@ export function EstimateSheetContent({ selectedNodeId, nodes = sampleEstimateTre
               rowSaveStates={rowSaveStates}
             />
           </div>
-          <EstimateSheetFooter projectTotal={projectTotal} />
         </>
-      ) : null}
+      ) : (
+        <>
+          <EstimateSheetHeader />
+          <div className="flex min-h-0 flex-1 items-center justify-center overflow-auto p-2">
+            <div className="max-w-md rounded-lg border border-dashed border-hairline bg-surface-muted p-3 text-center">
+              <p className="text-[8px] font-bold uppercase tracking-[0.16em] text-tertiary">Empty estimate</p>
+              <h2 className="mt-1 text-[12px] font-bold tracking-[-0.02em] text-ink">No estimate tree yet</h2>
+              <p className="mt-1 text-[10px] leading-4 text-tertiary">
+                This estimate has no General Nodes, Area Nodes, or cost estimate rows. Rebuild the tree first, then place cost rows only inside Area Nodes.
+              </p>
+            </div>
+          </div>
+        </>
+      )}
     </section>
   );
 }
