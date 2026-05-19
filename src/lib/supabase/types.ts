@@ -238,7 +238,6 @@ export type Database = {
       }
       estimates: {
         Row: {
-          assumptions: string | null
           created_at: string
           created_by: string | null
           currency_code: string
@@ -246,12 +245,10 @@ export type Database = {
           metadata: Json
           name: string
           project_id: string
-          revision_label: string
-          status: Database["public"]["Enums"]["estimate_status"]
+          sheet_code: string
           updated_at: string
         }
         Insert: {
-          assumptions?: string | null
           created_at?: string
           created_by?: string | null
           currency_code?: string
@@ -259,12 +256,10 @@ export type Database = {
           metadata?: Json
           name: string
           project_id: string
-          revision_label?: string
-          status?: Database["public"]["Enums"]["estimate_status"]
+          sheet_code?: string
           updated_at?: string
         }
         Update: {
-          assumptions?: string | null
           created_at?: string
           created_by?: string | null
           currency_code?: string
@@ -272,8 +267,7 @@ export type Database = {
           metadata?: Json
           name?: string
           project_id?: string
-          revision_label?: string
-          status?: Database["public"]["Enums"]["estimate_status"]
+          sheet_code?: string
           updated_at?: string
         }
         Relationships: [
@@ -490,7 +484,6 @@ export type Database = {
         | "linked-overridden"
         | "detached"
         | "source-changed"
-      estimate_status: "draft" | "active" | "issued" | "archived"
       workspace_role: "owner" | "admin" | "member" | "viewer"
     }
     CompositeTypes: {
@@ -644,7 +637,6 @@ export const Constants = {
         "detached",
         "source-changed",
       ],
-      estimate_status: ["draft", "active", "issued", "archived"],
       workspace_role: ["owner", "admin", "member", "viewer"],
     },
   },

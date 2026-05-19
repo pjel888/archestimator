@@ -80,7 +80,7 @@ export async function getCurrentWorkspaceProject(projectId: string) {
 
 export async function listProjectEstimates(projectId: string) {
   const { workspace, project } = await getCurrentWorkspaceProject(projectId);
-  if (!project) return { workspace, project, estimates: [], firstNodeByEstimateId: new Map<string, string>() };
+  if (!project) return { workspace, project, estimates: [], firstNodeByEstimateId: new Map<string, string>(), totalCostByEstimateId: new Map<string, number>() };
 
   const supabase = await createSupabaseServerClient();
   const { data: estimates, error } = await supabase
@@ -92,25 +92,42 @@ export async function listProjectEstimates(projectId: string) {
   if (error) throw error;
 
   const estimateIds = (estimates ?? []).map((estimate) => estimate.id);
-  if (estimateIds.length === 0) return { workspace, project, estimates: [], firstNodeByEstimateId: new Map<string, string>() };
+  if (estimateIds.length === 0) return { workspace, project, estimates: [], firstNodeByEstimateId: new Map<string, string>(), totalCostByEstimateId: new Map<string, number>() };
 
-  const { data: nodes, error: nodesError } = await supabase
-    .from("estimate_nodes")
-    .select("id, estimate_id, kind, sort_order")
-    .in("estimate_id", estimateIds)
-    .order("sort_order", { ascending: true });
+  const [nodesResult, rowsResult] = await Promise.all([
+    supabase
+      .from("estimate_nodes")
+      .select("id, estimate_id, kind, sort_order")
+      .in("estimate_id", estimateIds)
+      .order("sort_order", { ascending: true }),
+    supabase
+      .from("estimate_row_items")
+      .select("estimate_id, quantity, unit_cost, supplementary_cost, labor_cost")
+      .in("estimate_id", estimateIds),
+  ]);
 
-  if (nodesError) throw nodesError;
+  if (nodesResult.error) throw nodesResult.error;
+  if (rowsResult.error) throw rowsResult.error;
 
   const firstNodeByEstimateId = new Map<string, string>();
-  for (const node of nodes ?? []) {
+  for (const node of nodesResult.data ?? []) {
     if (node.kind === "area" && !firstNodeByEstimateId.has(node.estimate_id)) firstNodeByEstimateId.set(node.estimate_id, node.id);
   }
-  for (const node of nodes ?? []) {
+  for (const node of nodesResult.data ?? []) {
     if (!firstNodeByEstimateId.has(node.estimate_id)) firstNodeByEstimateId.set(node.estimate_id, node.id);
   }
 
-  return { workspace, project, estimates: estimates ?? [], firstNodeByEstimateId };
+  const totalCostByEstimateId = new Map<string, number>();
+  for (const row of rowsResult.data ?? []) {
+    const quantity = Number(row.quantity);
+    const unitCost = Number(row.unit_cost);
+    const supplementaryCost = Number(row.supplementary_cost);
+    const laborCost = Number(row.labor_cost);
+    const rowTotal = quantity * unitCost + supplementaryCost + laborCost;
+    totalCostByEstimateId.set(row.estimate_id, (totalCostByEstimateId.get(row.estimate_id) ?? 0) + rowTotal);
+  }
+
+  return { workspace, project, estimates: estimates ?? [], firstNodeByEstimateId, totalCostByEstimateId };
 }
 
 type EstimateNodeKind = Database["public"]["Enums"]["estimate_node_kind"];
