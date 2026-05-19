@@ -126,7 +126,7 @@ type LiveEstimateTreeResult = {
 };
 
 function isDisplayNodeKind(kind: EstimateNodeKind): kind is EstimateAreaNode["kind"] {
-  return kind === "lot" || kind === "structure" || kind === "level" || kind === "area";
+  return kind === "lot" || kind === "general" || kind === "structure" || kind === "level" || kind === "area";
 }
 
 function formatPeso(value: number) {
@@ -246,7 +246,7 @@ export async function getProjectEstimateTreeByNode(projectId: string, nodeId: st
     .maybeSingle();
 
   if (selectedNodeError) throw selectedNodeError;
-  if (!selectedNode) return { workspace, project, estimate: null, selectedNodeId: null, tree: [] };
+  if (!selectedNode) return getProjectEstimateTreeByEstimate(projectId, nodeId);
 
   const estimate = selectedNode.estimates as Tables<"estimates">;
   const [nodesResult, rowsResult] = await Promise.all([
