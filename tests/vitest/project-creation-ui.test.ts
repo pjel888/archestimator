@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
 const projectsPage = readFileSync("src/app/workshop/projects/page.tsx", "utf8");
+const projectsPageClient = readFileSync("src/components/workshop/projects-page-client.tsx", "utf8");
 const newProjectForm = readFileSync("src/components/workshop/NewProjectForm.tsx", "utf8");
 const liveProjectCard = readFileSync("src/components/workshop/LiveProjectCard.tsx", "utf8");
 
@@ -14,8 +15,9 @@ describe("project creation UI governance", () => {
   });
 
   it("renders live Supabase project cards separately from sample references", () => {
-    expect(projectsPage).toContain("LiveProjectCard");
-    expect(projectsPage).toContain("NewProjectForm");
+    expect(projectsPage).toContain("ProjectsPageClient");
+    expect(projectsPageClient).toContain("LiveProjectCard");
+    expect(projectsPageClient).toContain("NewProjectModal");
     expect(liveProjectCard).toContain('project: Tables<"projects">');
   });
 });
