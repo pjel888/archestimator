@@ -1,7 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { useRef, useState, useSyncExternalStore } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { SidebarSimple } from "@phosphor-icons/react/dist/ssr";
 
 import { Button } from "@/components/ui/button";
@@ -55,6 +55,12 @@ export function ResizableSidePanel({
   const startX = useRef(0);
   const startWidth = useRef(defaultWidth);
 
+  useEffect(() => {
+    if (storageKey !== "estimate_sheet_tree_width" && storageKey !== "estimate_component_library_width_v2") return;
+    const cssVariable = storageKey === "estimate_sheet_tree_width" ? "--estimate-tree-panel-width" : "--estimate-library-panel-width";
+    document.documentElement.style.setProperty(cssVariable, `${width}px`);
+  }, [storageKey, width]);
+
   function startResize(event: React.MouseEvent) {
     if (collapsed) return;
     event.preventDefault();
@@ -96,7 +102,6 @@ export function ResizableSidePanel({
       onMouseDown={startResize}
       title="Drag to resize"
     >
-      <div className="absolute inset-y-0 left-1/2 w-px -translate-x-1/2 bg-divider transition-all group-hover:w-[3px] group-hover:bg-primary" />
       <div className="absolute left-1/2 top-1/2 grid -translate-x-1/2 -translate-y-1/2 grid-cols-2 gap-[3px]">
         {Array.from({ length: 6 }).map((_, index) => (
           <span key={index} className="size-[3px] rounded-full bg-divider" />
@@ -111,7 +116,10 @@ export function ResizableSidePanel({
       size="icon-sm"
       aria-label={collapsed ? `Expand ${ariaLabel}` : `Collapse ${ariaLabel}`}
       aria-expanded={!collapsed}
-      className="h-full rounded-none border-x border-hairline bg-surface-muted/60"
+      className={[
+        "h-full rounded-none border-x border-hairline hover:bg-surface-muted",
+        collapsed ? "bg-surface-muted" : "bg-white",
+      ].join(" ")}
       onClick={() => setCollapsed((value) => !value)}
     >
       <SidebarSimple size={14} aria-hidden="true" className={side === "left" ? "" : "rotate-180"} />

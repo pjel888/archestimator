@@ -1,11 +1,14 @@
 import { WorkshopPageShell } from "@/components/workshop/WorkshopPageShell";
+import { ComponentsPageClient } from "@/components/workshop/ComponentsPageClient";
 
 export default function ComponentsPage() {
   return (
     <WorkshopPageShell
       title="Components"
       eyebrow="Library"
-      description="Shared header, body, and footer shell for the future component library. The library manager itself remains intentionally empty for this slice."
+      showEyebrow={false}
+      breadcrumbs={["Components"]}
+      contentClassName=""
       footer={
         <>
           <span>Component library shell</span>
@@ -13,7 +16,7 @@ export default function ComponentsPage() {
         </>
       }
     >
-      <div className="min-h-[360px] rounded-xl border border-dashed border-divider bg-white" aria-label="Components empty state" />
+      <ComponentsPageClient />
     </WorkshopPageShell>
   );
 }

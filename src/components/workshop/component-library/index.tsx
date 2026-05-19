@@ -12,19 +12,15 @@ import {
 import {
   CaretDown,
   Check,
-  FunnelSimple,
-  List,
-  Plus,
   SquaresFour,
-  TextAa,
   X,
 } from "@phosphor-icons/react/dist/ssr";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Chip } from "@/components/ui/chip";
-import { ControlSelect } from "@/components/ui/control-select";
 import { EmptyState } from "@/components/ui/empty-state";
+import { HeaderIconToolbar } from "@/components/ui/header-icon-toolbar";
 import { SearchInput } from "@/components/ui/search-input";
 import { cn } from "@/lib/ui/cn";
 import { estimateLibraryItems, type EstimateRowItem } from "../estimate-tree-data";
@@ -299,8 +295,8 @@ export function EstimateRightSidebar({ onInsertComponent }: { onInsertComponent?
   const [searchQuery, setSearchQuery] = useState("");
   const [filters, setFilters] = useState<ComponentFilters>(defaultFilters);
   const [groupBy, setGroupBy] = useState<LibraryGroupBy>(prefs.groupBy ?? "category");
-  const [viewMode, setViewMode] = useState<LibraryViewMode>(prefs.viewMode ?? "compact");
-  const [sortMode, setSortMode] = useState<LibrarySortMode>(prefs.sortMode ?? "relevance");
+  const [viewMode] = useState<LibraryViewMode>(prefs.viewMode ?? "compact");
+  const [sortMode] = useState<LibrarySortMode>(prefs.sortMode ?? "relevance");
   const [showFilters, setShowFilters] = useState(false);
   const [previewItemId, setPreviewItemId] = useState<string | null>(null);
   const [showNewComponent, setShowNewComponent] = useState(false);
@@ -433,12 +429,6 @@ export function EstimateRightSidebar({ onInsertComponent }: { onInsertComponent?
     ...filters.units.map((value) => ["units", value] as const),
   ];
 
-  const viewModeIcons: { value: LibraryViewMode; label: string; icon: React.ReactNode }[] = [
-    { value: "compact", label: "Compact", icon: <List size={12} weight="bold" /> },
-    { value: "detailed", label: "Detailed", icon: <TextAa size={12} weight="bold" /> },
-    { value: "grid", label: "Grid", icon: <SquaresFour size={12} weight="bold" /> },
-  ];
-
   const toggleGroup = useCallback((group: string) => {
     setCollapsedGroups((prev) => {
       const next = new Set(prev);
@@ -454,99 +444,27 @@ export function EstimateRightSidebar({ onInsertComponent }: { onInsertComponent?
         {/* Sticky header */}
         <div className="sticky top-0 z-20 shrink-0 border-b border-hairline bg-white">
           {/* Title bar */}
-          <div className="flex items-center justify-between px-2 pt-2">
+          <div className="flex h-10 items-center justify-between border-b border-hairline pl-4 pr-2">
             <h2 className="text-[9px] font-bold uppercase tracking-[0.14em] text-tertiary">Component library</h2>
-            <Button type="button" variant="primary" size="sm" className="h-6 min-h-6 px-2" onClick={() => setShowNewComponent(true)}>
-              <Plus size={11} weight="bold" />
-              New
-            </Button>
+          </div>
+          <div className="flex items-center p-2">
+            <SearchInput
+              ref={searchRef}
+              value={searchQuery}
+              onChange={(event) => setSearchQuery(event.target.value)}
+              placeholder="Search component library"
+              aria-label="Search component library"
+              onClear={() => setSearchQuery("")}
+              wrapperClassName="h-8 w-full"
+            />
           </div>
 
-          {/* Search bar */}
-          <div className="mt-1.5 px-2">
-            <div className="flex h-7 items-center gap-1.5">
-              <SearchInput
-                ref={searchRef}
-                value={searchQuery}
-                onChange={(event) => setSearchQuery(event.target.value)}
-                placeholder="Search components, suppliers, tags…"
-                aria-label="Search components, suppliers, tags"
-                shortcutKey="/"
-                onClear={() => setSearchQuery("")}
-                wrapperClassName="h-7 flex-1 rounded-sm"
-              />
-              <Button
-                type="button"
-                variant={showFilters ? "primary" : "secondary"}
-                size="icon-sm"
-                className="size-6"
-                aria-label="Open component filters"
-                aria-expanded={showFilters}
-                onClick={() => setShowFilters((v) => !v)}
-              >
-                <FunnelSimple size={12} weight="bold" />
-                {activeFilterCount > 0 && !showFilters ? (
-                  <span className="absolute -right-1 -top-1 flex size-3.5 items-center justify-center rounded-full bg-accent text-[8px] font-bold text-white">
-                    {activeFilterCount}
-                  </span>
-                ) : null}
-              </Button>
-            </div>
-          </div>
-
-          {/* Results count + controls */}
-          <div className="flex items-center justify-between px-2 py-1">
-            <span className="text-[9px] font-bold tabular-nums text-tertiary">
-              {filteredSortedItems.length} component{filteredSortedItems.length !== 1 ? "s" : ""}
-            </span>
-            <div className="flex items-center gap-1.5">
-              {/* Group by */}
-              <ControlSelect
-                value={groupBy}
-                onChange={(event) => setGroupBy(event.target.value as LibraryGroupBy)}
-                aria-label="Group components by"
-              >
-                <option value="none">Group: None</option>
-                <option value="category">Group: Category</option>
-                <option value="supplier">Group: Supplier</option>
-                <option value="discipline">Group: Discipline</option>
-                <option value="room">Group: Room/Area</option>
-                <option value="recent">Group: Recently used</option>
-              </ControlSelect>
-              {/* Sort */}
-              <ControlSelect
-                value={sortMode}
-                onChange={(event) => setSortMode(event.target.value as LibrarySortMode)}
-                aria-label="Sort components"
-              >
-                <option value="relevance">Sort: Relevance</option>
-                <option value="name">Sort: Name A–Z</option>
-                <option value="priceAsc">Sort: Price low-high</option>
-                <option value="priceDesc">Sort: Price high-low</option>
-                <option value="recentUsed">Sort: Recently used</option>
-                <option value="recentAdded">Sort: Recently added</option>
-                <option value="supplier">Sort: Supplier A–Z</option>
-              </ControlSelect>
-            </div>
-          </div>
-
-          {/* View mode toggle */}
-          <div className="flex gap-px px-2 pb-1.5" role="group" aria-label="Component library view mode">
-            {viewModeIcons.map(({ value, label, icon }) => (
-              <Button
-                key={value}
-                type="button"
-                variant={viewMode === value ? "primary" : "secondary"}
-                size="sm"
-                title={label}
-                onClick={() => setViewMode(value)}
-                className="h-6 min-h-6 gap-1 rounded-none px-2 first:rounded-l-sm last:rounded-r-sm"
-              >
-                {icon}
-                <span className="hidden !text-[9px] sm:inline">{label}</span>
-              </Button>
-            ))}
-          </div>
+          <HeaderIconToolbar
+            ariaLabel="Component library tools"
+            labelPrefix="component library"
+            onFilter={() => setShowFilters((value) => !value)}
+            onGroup={() => setGroupBy((value) => (value === "category" ? "supplier" : "category"))}
+          />
 
           {/* Filter panel */}
           {showFilters ? <FilterPanel facets={facets} filters={filters} onChange={setFilters} /> : null}

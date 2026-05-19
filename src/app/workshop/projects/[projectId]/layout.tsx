@@ -1,34 +1,58 @@
 import type { ReactNode } from "react";
 
 import { ProjectMiniSidebar } from "@/components/workshop/ProjectMiniSidebar";
+import { ProjectTotalHeader } from "@/components/workshop/ProjectTotalHeader";
 import { WorkshopPageShell } from "@/components/workshop/WorkshopPageShell";
 import { sampleProjects } from "@/components/workshop/workshop-sample-projects";
+import { getCurrentWorkspaceProject } from "@/lib/repositories/workspace-repository";
+import type { Json } from "@/lib/supabase/types";
 
 type ProjectLayoutProps = {
   children: ReactNode;
   params: Promise<{ projectId: string }>;
 };
 
+function readProjectBudget(value: Json | undefined): number {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return 0;
+  const record = value as Record<string, Json>;
+  return typeof record.projectBudget === "number" ? record.projectBudget : 0;
+}
+
 export default async function ProjectLayout({ children, params }: ProjectLayoutProps) {
   const { projectId } = await params;
-  const project = sampleProjects.find((item) => item.id === projectId);
+  const { project: liveProject } = await getCurrentWorkspaceProject(projectId);
+  const sampleProject = sampleProjects.find((item) => item.id === projectId);
+  const project = liveProject ?? sampleProject;
   const title = project?.name ?? "Project";
+  const projectClient = liveProject?.client_name ?? sampleProject?.client ?? projectId;
+  const projectCode = liveProject?.project_code ?? projectId;
+  const plannedBudget = readProjectBudget(liveProject?.metadata);
 
   return (
     <WorkshopPageShell
       title={title}
-      eyebrow="Project"
-      breadcrumbs={["Workshop", "Projects", title]}
+      eyebrow={projectClient}
+      breadcrumbs={[
+        { label: "Workshop", href: "/workshop" },
+        { label: "Projects", href: "/workshop/projects" },
+        { label: title, href: `/workshop/projects/${projectId}` },
+      ]}
+      centerHeader={<ProjectTotalHeader plannedBudget={plannedBudget} />}
+      alignChromeToProjectSidebar
       footer={
         <>
-          <span>{project?.client ?? projectId}</span>
           <span>Dashboard + estimates shell</span>
         </>
       }
     >
       <div className="flex h-full min-h-0 overflow-hidden rounded-xl border border-hairline bg-white">
         <ProjectMiniSidebar projectId={projectId} />
-        <div className="min-h-0 min-w-0 flex-1 overflow-hidden bg-canvas">{children}</div>
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-canvas">
+          <div className="flex h-10 shrink-0 items-center border-b border-hairline bg-white pl-4 pr-2">
+            <h2 className="truncate text-[9px] font-bold uppercase tracking-[0.14em] text-tertiary">{projectCode}</h2>
+          </div>
+          <div className="min-h-0 flex-1 overflow-hidden">{children}</div>
+        </div>
       </div>
     </WorkshopPageShell>
   );

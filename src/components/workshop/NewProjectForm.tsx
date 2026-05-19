@@ -6,19 +6,7 @@ import { createProject } from "@/lib/projects/actions";
 
 export function NewProjectForm() {
   return (
-    <form action={createProject} className="rounded-lg border border-hairline bg-white p-2 shadow-[0_16px_42px_-36px_rgba(17,24,39,0.42)]">
-      <div className="mb-2 flex items-start justify-between gap-2 border-b border-hairline pb-2">
-        <div className="min-w-0">
-          <p className="text-[8px] font-bold uppercase tracking-[0.16em] text-tertiary">Live Supabase</p>
-          <h2 className="mt-0.5 text-[12px] font-bold tracking-[-0.025em] text-ink">Create project</h2>
-          <p className="mt-1 text-[10px] leading-4 text-tertiary">Adds a project to your authenticated workspace.</p>
-        </div>
-        <Button type="submit" variant="primary" size="md" className="h-8 shrink-0">
-          <Plus size={14} weight="bold" aria-hidden="true" />
-          Save
-        </Button>
-      </div>
-
+    <form action={createProject} className="space-y-2">
       <div className="grid gap-2 md:grid-cols-4">
         <label className="space-y-1 md:col-span-2">
           <span className="text-[9px] font-bold uppercase tracking-[0.12em] text-tertiary">Project name</span>
@@ -36,6 +24,13 @@ export function NewProjectForm() {
           <span className="text-[9px] font-bold uppercase tracking-[0.12em] text-tertiary">Location</span>
           <ControlInput name="location" placeholder="City / site location" className="h-8 px-2" />
         </label>
+      </div>
+
+      <div className="flex justify-end pt-2">
+        <Button type="submit" variant="primary" size="md" className="h-8 gap-1.5">
+          <Plus size={14} weight="bold" aria-hidden="true" />
+          Create project
+        </Button>
       </div>
     </form>
   );
