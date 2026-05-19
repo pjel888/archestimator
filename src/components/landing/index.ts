@@ -1,6 +1,6 @@
 export { AnnouncementBanner } from "./AnnouncementBanner";
 export { CtaLink } from "./CtaLink";
-export { CustomerLogosSection } from "./CustomerLogosSection";
+export { SecondaryClaimSection } from "./SecondaryClaimSection";
 export { EstimatorEngineSection } from "./EstimatorEngineSection";
 export { FeaturesSection } from "./FeaturesSection";
 export { FinalCTASection } from "./FinalCTASection";

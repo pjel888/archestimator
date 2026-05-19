@@ -1,16 +1,15 @@
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import {
-  CustomerLogosSection,
   EstimatorEngineSection,
   FeaturesSection,
   FinalCTASection,
   HeroSection,
   LandingHeader,
   ProductShowcaseSection,
+  SecondaryClaimSection,
   PartnerSection,
   PricingSection,
   SolutionSection,
-  TestimonialSection,
 } from "@/components/landing";
 
 async function getLandingAuthState() {
@@ -37,35 +36,13 @@ export default async function LandingPage() {
       <main>
         <HeroSection />
         <ProductShowcaseSection />
-        <CustomerLogosSection />
+        <SecondaryClaimSection />
         <SolutionSection />
         <EstimatorEngineSection />
 
-        <TestimonialSection
-          quote="If you're trying to replace spreadsheet chaos with a single estimating system, my advice would be to start where revisions and proposal risk actually happen."
-          name="Mara Santos"
-          role="Principal Estimator at Northpoint Build"
-          imageLabel="headshot placeholder"
-        />
-
         <FeaturesSection />
 
-        <TestimonialSection
-          quote="Our estimating team is dramatically faster when quantities, pricing assumptions, and proposal language stay connected in one workspace."
-          name="Luis Mercado"
-          role="Operations Lead at MasonWorks"
-          imageLabel="customer image placeholder"
-          reverse
-        />
-
         <PartnerSection />
-
-        <TestimonialSection
-          quote="The best part is not just producing a total faster. It is knowing what changed, why it changed, and what the client is actually agreeing to."
-          name="George Dilthey"
-          role="Head of Support at FieldOps Builders"
-          imageLabel="partner headshot"
-        />
 
         <PricingSection />
         <FinalCTASection />
