@@ -1,7 +1,7 @@
 # Live Project + Estimate Bootstrap Spec
 
 **Status:** Active implementation slice  
-**Last updated:** 2026-05-18  
+**Last updated:** 2026-05-19
 **Routes:** `/workshop/projects`, `/workshop/projects/[projectId]`, `/workshop/projects/[projectId]/estimates`, `/workshop/projects/[projectId]/estimates/[nodeId]`
 
 ## Purpose
@@ -24,9 +24,11 @@ The current goal is intentionally narrow:
 
 - Calls `getProjectEstimateTreeByNode(projectId, nodeId)`.
 - Validates that the selected node belongs to an estimate under the requested project through a project-scoped Supabase join.
-- Returns `notFound()` when the project/node relationship is invalid.
+- If `nodeId` is not a node id, falls back to treating it as an estimate id via `getProjectEstimateTreeByEstimate(projectId, nodeId)` so empty estimates can still open.
+- Returns `notFound()` only when the project/estimate relationship is invalid.
 - Builds the estimate tree from live `estimate_nodes` and `estimate_row_items` records.
 - Passes live tree data into `EstimateSheetTree` and `EstimateSheetContent`.
+- Empty estimates render an empty tree/sheet state instead of redirecting back to the estimate list or 404ing.
 - Keeps the existing component-library sidebar and local row-editing behavior as a temporary client-side interaction layer until the row mutation slice persists edits.
 
 - `src/lib/estimates/actions.ts` now includes `insertEstimateRowItemFromLibrary()` for component-library inserts.
@@ -43,15 +45,18 @@ The current goal is intentionally narrow:
 
 - Protected by `src/proxy.ts`.
 - Calls `listCurrentWorkspaceProjects()`.
+- Reads only the authenticated profile's default workspace. Remote seed data is attached to Philip's profile UUID `4e23801d-6fc2-4886-b980-d15ca2b164b8`; another email should receive an empty default workspace unless it creates records.
 - Shows `NewProjectForm`.
 - Creates project through `createProject` server action.
+- Project status is not part of the project data model; `projects.status` was removed and estimate status remains scoped to estimates only.
+- Project details can be updated or deleted through the project details modal. Budget and project image URL are stored in project metadata until dedicated columns are introduced.
 - Shows live Supabase project cards with `LiveProjectCard`.
 - Shows sample references only when no live projects exist.
 
 ### `/workshop/projects/[projectId]`
 
 - Calls `getCurrentWorkspaceProject(projectId)`.
-- Shows live project status, code, and source.
+- Shows live project code and source.
 - Provides a compact `ButtonLink` action to `/workshop/projects/[projectId]/estimates`.
 - Keeps sample fallback only for current reset-era sample routes.
 
@@ -68,6 +73,7 @@ The current goal is intentionally narrow:
   - one `area` node named `Project-wide`.
 - Redirects to `/workshop/projects/{projectId}/estimates/{areaNodeId}` after creation.
 - Shows `EstimateListCard` for live estimates.
+- If an estimate has no nodes, `EstimateListCard` links to `/workshop/projects/{projectId}/estimates/{estimateId}` so the empty estimate workspace opens.
 
 ## Data boundaries
 

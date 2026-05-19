@@ -17,7 +17,7 @@ The reset remains the baseline quality principle: do not blindly restore the del
 - Current live branch observed by git: `feat/state-supabase-foundation`.
 - Current working tree note: Supabase schema, auth bootstrap, repository expansion, and protected workshop bootstrap are implemented on the isolated feature branch.
 - Stack: Next.js 16.2.6, React 19.2.4, Bun, TypeScript, Tailwind CSS v4.
-- Backend: Supabase project `ebxxqidacheyapmmzavr` linked locally for Archestimator only; do not use SlateCamp Supabase resources. Supabase Auth is active, with `philipjonlewis@gmail.com` assigned CEO/platform-wide access by database role resolver.
+- Backend: Supabase project `ebxxqidacheyapmmzavr` linked locally for Archestimator only; do not use SlateCamp Supabase resources. Supabase Auth is active, with `philipjonlewis@gmail.com` assigned CEO/platform-wide access by database role resolver. Philip's authenticated profile UUID `4e23801d-6fc2-4886-b980-d15ca2b164b8` owns the remote demo seed project/library/estimate shell through the profile default workspace; other authenticated emails should start with an empty default workspace unless they create their own records. As of migration `20260518151743_reset_luna_heights_estimate_contents.sql`, Luna Heights Residence keeps the project and baseline estimate shell but has zero estimate tree nodes and zero estimate row items pending a clean rebuild under the refined node contract.
 
 ## Active mode
 
@@ -75,7 +75,7 @@ Proceed from the current small post-reset workshop slice, not from the deleted p
 
 - `.ai/06_specs/current-project-estimates-component-library-spec.md` is the canonical current-state feature spec for the implemented project estimate workspace and connected Component Library sidebar. Read it before expanding `/workshop/projects/[projectId]/estimates/[nodeId]`, `EstimateSheetContent`, `EstimateSheetTree`, or `src/components/workshop/component-library/*`.
 - `.ai/06_specs/supabase-auth-setup.md` documents active Supabase Auth/Profile/CEO access setup, hosted-dashboard redirect checks, and the manual magic-link smoke test.
-- `.ai/06_specs/live-project-estimate-bootstrap.md` is the canonical current-state spec for live project creation, live project dashboard loading, estimate creation/listing, initial estimate hierarchy bootstrap, project-scoped live estimate node tree/row loading, and TanStack Query-backed persisted/rollback-safe estimate row mutations with row-level dirty/saving/saved/failed status markers.
+- `.ai/06_specs/live-project-estimate-bootstrap.md` is the canonical current-state spec for live project creation, live project dashboard loading, estimate creation/listing, initial estimate hierarchy bootstrap, project-scoped live estimate node tree/row loading, empty-estimate fallback routing by estimate id, and TanStack Query-backed persisted/rollback-safe estimate row mutations with row-level dirty/saving/saved/failed status markers.
 - `.ai/03_plans/project-estimates-component-library-improvement-plan.md` is the research-backed UX/UI improvement plan for that feature. Its immediate recommended next slice is target-aware insert + insert-and-edit + keyboard editing baseline.
 - `.ai/03_plans/ui-componentization-and-storybook-plan.md` is the active reusable UI primitive matrix and Storybook organization plan. Read it before creating app/workshop controls, component-library controls, toolbars, cards, filters, panels, or stories.
 
