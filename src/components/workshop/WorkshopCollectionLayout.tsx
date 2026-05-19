@@ -36,14 +36,14 @@ export function WorkshopCollectionLayout({
 }: WorkshopCollectionLayoutProps) {
   return (
     <div className="flex h-full flex-col">
-      <div className="flex shrink-0 items-center gap-2 bg-white p-2">
+      <div className="flex h-12 shrink-0 items-center gap-2 bg-white">
         <SearchInput
           placeholder={searchPlaceholder}
           value={searchValue}
           onChange={(event) => onSearchChange(event.target.value)}
           onClear={() => onSearchChange("")}
           aria-label={searchLabel}
-          wrapperClassName="h-8 w-full"
+          wrapperClassName="h-12 w-full"
         />
         {searchActions}
       </div>

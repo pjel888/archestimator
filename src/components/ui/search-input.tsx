@@ -3,6 +3,10 @@ import { MagnifyingGlass, X } from "@phosphor-icons/react/dist/ssr";
 import { cn } from "@/lib/ui/cn";
 
 type SearchInputProps = Omit<InputHTMLAttributes<HTMLInputElement>, "type"> & {
+  /**
+   * Styles the SearchInput root. The root owns the complete 48px search surface height.
+   * Do not add vertical padding in parent rows around this component.
+   */
   wrapperClassName?: string;
   shortcutKey?: string;
   onClear?: () => void;
@@ -15,7 +19,7 @@ export const SearchInput = forwardRef<HTMLInputElement, SearchInputProps>(
     return (
       <div
         className={cn(
-          "flex items-center gap-1.5 bg-transparent px-2 transition hover:bg-surfaceMuted/60 focus-within:bg-surfaceMuted/60 [&:has(input:not(:placeholder-shown))]:bg-surfaceMuted/60",
+          "box-border flex h-12 min-h-12 items-center gap-1.5 bg-transparent px-2 transition hover:bg-surfaceMuted/60 focus-within:bg-surfaceMuted/60 [&:has(input:not(:placeholder-shown))]:bg-surfaceMuted/60",
           wrapperClassName,
         )}
       >
