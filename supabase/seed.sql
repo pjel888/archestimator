@@ -5,7 +5,7 @@ insert into public.workspaces (id, name, slug)
 values ('11111111-1111-4111-8111-111111111111', 'Archestimator Demo Workspace', 'demo-workspace')
 on conflict (id) do nothing;
 
-insert into public.projects (id, workspace_id, name, client_name, project_code, location, status, currency_code, metadata)
+insert into public.projects (id, workspace_id, name, client_name, project_code, location, currency_code, metadata)
 values (
   '22222222-2222-4222-8222-222222222222',
   '11111111-1111-4111-8111-111111111111',
@@ -13,7 +13,6 @@ values (
   'Demo Client',
   'AE-DEMO-001',
   'Metro Manila, Philippines',
-  'draft',
   'PHP',
   '{"seeded": true}'::jsonb
 )
