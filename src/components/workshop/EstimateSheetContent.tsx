@@ -806,9 +806,9 @@ function EstimateSheetHeader() {
       <div className="flex h-10 items-center border-b border-hairline pl-4 pr-2">
         <h2 className="truncate text-[9px] font-bold uppercase tracking-[0.14em] text-tertiary">Estimate sheet</h2>
       </div>
-      <div className="flex items-center p-2">
+      <div className="flex h-12 items-center">
         <SearchInput
-          wrapperClassName="h-8 w-full"
+          wrapperClassName="h-12 w-full"
           placeholder="Search estimate sheet"
           aria-label="Search estimate sheet"
         />

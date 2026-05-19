@@ -1,43 +1,52 @@
 import { notFound } from "next/navigation";
 
-import { EstimateListCard } from "@/components/workshop/EstimateListCard";
-import { NewEstimateForm } from "@/components/workshop/NewEstimateForm";
+import { HeaderIconToolbar } from "@/components/ui/header-icon-toolbar";
+import { SearchInput } from "@/components/ui/search-input";
+import { ProjectEstimatesTable } from "@/components/workshop/ProjectEstimatesTable";
 import { listProjectEstimates } from "@/lib/repositories/workspace-repository";
+import type { Json } from "@/lib/supabase/types";
 
 type ProjectEstimatesPageProps = {
   params: Promise<{ projectId: string }>;
 };
 
+function getProjectBudget(metadata: Json) {
+  if (!metadata || typeof metadata !== "object" || Array.isArray(metadata)) return null;
+  const value = (metadata as Record<string, Json>).projectBudget;
+  return typeof value === "number" ? value : null;
+}
+
 export default async function ProjectEstimatesPage({ params }: ProjectEstimatesPageProps) {
   const { projectId } = await params;
-  const { project, estimates, firstNodeByEstimateId } = await listProjectEstimates(projectId);
+  const { project, estimates, firstNodeByEstimateId, totalCostByEstimateId } = await listProjectEstimates(projectId);
 
   if (!project) notFound();
 
   return (
-    <section className="min-h-full p-2" aria-label={`${project.name} estimates`}>
-      <div className="space-y-2">
-        <div className="rounded-lg border border-hairline bg-white p-2">
-          <p className="text-[8px] font-bold uppercase tracking-[0.16em] text-tertiary">Project estimates</p>
-          <h1 className="mt-0.5 text-[12px] font-bold tracking-[-0.025em] text-ink">{project.name}</h1>
-          <p className="mt-1 text-[10px] leading-4 text-tertiary">
-            Create draft estimates, then open the first area node for the live estimate workspace.
-          </p>
-        </div>
+    <section className="flex h-full min-h-0 flex-col bg-white" aria-label={`${project.name} estimates`}>
+      <div className="flex shrink-0 items-center gap-2 bg-white">
+        <SearchInput
+          placeholder="Search estimate sheets"
+          aria-label="Search estimate sheets"
+          wrapperClassName="h-12 w-full"
+        />
+      </div>
 
-        <NewEstimateForm projectId={project.id} />
+      <HeaderIconToolbar
+        ariaLabel="Project estimate sheet tools"
+        labelPrefix="estimate sheets"
+        addVisibleLabel="Create Estimate Sheet"
+      />
 
-        {estimates.length > 0 ? (
-          <section aria-label="Live estimates" className="grid gap-2 md:grid-cols-2 xl:grid-cols-4">
-            {estimates.map((estimate) => (
-              <EstimateListCard key={estimate.id} estimate={estimate} firstNodeId={firstNodeByEstimateId.get(estimate.id)} />
-            ))}
-          </section>
-        ) : (
-          <div className="rounded-md border border-dashed border-hairline bg-white p-2 text-[10px] leading-4 text-tertiary">
-            No estimates yet. Create a draft estimate above to bootstrap the first lot/structure/level/area hierarchy.
-          </div>
-        )}
+      <div className="min-h-0 flex-1 bg-white">
+        <ProjectEstimatesTable
+          projectBudget={getProjectBudget(project.metadata)}
+          estimates={estimates.map((estimate) => ({
+            ...estimate,
+            firstNodeId: firstNodeByEstimateId.get(estimate.id) ?? null,
+            totalProjectCost: totalCostByEstimateId.get(estimate.id) ?? 0,
+          }))}
+        />
       </div>
     </section>
   );
