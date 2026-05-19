@@ -28,7 +28,7 @@ If Philip reports degraded agent performance, stale behavior, or repeated mistak
 ## Current live surfaces observed in `src/app`
 
 ```txt
-/                                                     -> preserved landing page
+/                                                     -> preserved landing page, with the below-hero secondary claim “The most intuitive way to create construction cost estimates” plus public feature-copy anchors for Estimate Workspace, Component Library, Revision Intelligence, Proposal Comparisons, Visual Cost Breakdowns, Proposal-Ready Outputs, and Industry Standard Export Formats
 /login                                                -> Supabase magic-link auth route
 /auth/callback                                        -> Supabase auth callback route
 /workshop                                             -> protected workshop entry page

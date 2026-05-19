@@ -29,6 +29,7 @@ All durable project-management, audit, planning, state, prompt, agent, skill, ar
 ## Placement rules
 
 - New project/product reference: `06_specs/`
+- New brand, narrative, positioning, messaging, or voice reference: `06_specs/brand/`
 - New long-form or detailed reference: `06_specs/deep/`
 - New audit/review report: `02_audits/`
 - New active plan: `03_plans/`

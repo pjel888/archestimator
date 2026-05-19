@@ -24,7 +24,7 @@
 - Historical `.ai` plans/specs/logs still describe the rejected prototype. Current-state, decisions, restart-guardrail, and self-diagnostic docs supersede them.
 - Tests should protect only currently approved behavior. Add coverage for the current post-reset route slice only when the behavior is accepted enough to preserve.
 - Removed or newly added dependencies may remain in `package.json` during exploration. Do not infer active product direction from installed packages alone.
-- The landing page still contains product mockup/copy from the previous direction because Philip said the landing page is acceptable. Treat that page as preserved, not as approval to restore the deleted app implementation.
+- The landing page copy has been recalibrated around public feature anchors and no longer renders fake logos/testimonials, but visual product areas still use placeholders/mockup labels. Treat the landing page as marketing copy direction, not as approval to restore the deleted app implementation.
 
 ## Product risk controls
 
