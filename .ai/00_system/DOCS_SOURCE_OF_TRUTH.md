@@ -29,6 +29,7 @@ Historical workshop-recovery plans/logs are not active instructions after the re
 - Tasks/boards: `.ai/04_tasks/`
 - Handoff logs: `.ai/05_logs/`
 - Specs: `.ai/06_specs/`
+- Brand, narrative, positioning, messaging, and voice: `.ai/06_specs/brand/`
 - Skills/playbooks: `.ai/11_skills/`
 - Agent contracts/model routing: `.ai/12_agents/`
 - Research: `.ai/13_research/`

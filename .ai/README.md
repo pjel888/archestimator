@@ -42,7 +42,7 @@ This folder is the project brain. It stores product thinking, implementation pla
 - `03_plans/` — approved or proposed plans before implementation.
 - `04_tasks/` — task packets and execution checklists.
 - `05_logs/` — human-readable run logs and handoff logs.
-- `06_specs/` — product, UX, technical, data, and domain specs; `deep/` for long references.
+- `06_specs/` — product, UX, technical, data, domain, brand/narrative/voice, and integration specs; `deep/` for long references; `brand/` for brand strategy.
 - `07_experiments/` — prototypes, spikes, discarded explorations.
 - `08_prompts/` — reusable prompt templates and agent instructions.
 - `09_archive/` — preserved historical material, not a deletion bin.

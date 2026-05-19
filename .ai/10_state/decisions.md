@@ -26,6 +26,7 @@
 - 2026-05-18 — Live project and estimate bootstrap is active MVP scope. Project creation, live project cards, project dashboard loading, estimate list/create, and initial estimate hierarchy bootstrap are implemented behind authenticated Supabase workspace boundaries. Keep `.ai/06_specs/live-project-estimate-bootstrap.md` and `.ai/01_roadmap/README.md` current after every slice.
 - 2026-05-19 — Project cards on `/workshop/projects` are vertical media cards, not icon cards. Project status is intentionally not part of the project model and the `projects.status` database column was removed by `supabase/migrations/20260519001000_remove_project_status.sql`; estimate status remains separate. Until dedicated schema columns are added, editable project budget and project image URL are stored in `projects.metadata.projectBudget` and `projects.metadata.projectImageUrl` through the project details modal.
 - 2026-05-18 — Remote demo seed data belongs to Philip's authenticated Archestimator profile only. Migration `supabase/migrations/20260518110000_attach_philip_seed_data.sql` attaches the seeded project, baseline estimate, cost-library items, estimate nodes, and estimate row item to profile UUID `4e23801d-6fc2-4886-b980-d15ca2b164b8` through that profile's default workspace. Do not make this seed global or visible to other emails.
+- 2026-05-19 — Public landing feature copy should use recognizable product-feature anchors plus plain benefit lines: Estimate Workspace, Component Library, Revision Intelligence, Proposal Comparisons, Visual Cost Breakdowns, Proposal-Ready Outputs, and Industry Standard Export Formats. Fake logos/testimonials should not appear on the public homepage until they are real; use workflow pillars, feature proof, honest MVP-preview framing, and the secondary below-hero claim “The most intuitive way to create construction cost estimates” supported by concrete workflow proof.
 
 ## Superseded decisions
 
@@ -59,4 +60,4 @@ These concepts can be reconsidered later, but they must be reapproved through a 
 - Who is the primary first user: residential contractors, fit-out contractors, small commercial contractors, general contractors, or design-build firms?
 - What geography and pricing basis should v1 use?
 - Should v1 include AI generation, AI review, or no AI until the estimate sheet is strong?
-- What export format is mandatory first: PDF, Excel, CSV, branded quote, or BOQ?
+- Which additional export formats beyond industry-standard Excel and PDF are needed later?
