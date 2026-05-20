@@ -1,6 +1,6 @@
 # Estimate Tree Drag/Drop Reorganization Plan
 
-Status: planning/audit package created 2026-05-20 18:51 PST; upgraded after two-node tree decision, current-state validation, independent review/hygiene, and assessment decision-closure at 2026-05-20 21:06 PST.
+Status: planning/audit package created 2026-05-20 18:51 PST; upgraded after two-node tree decision, current-state validation, independent review/hygiene, assessment decision-closure, and final minor hardening on 2026-05-20.
 Target route: `/workshop/projects/22222222-2222-4222-8222-222222222222/estimates/77777777-7777-4777-8777-777777777729`
 Primary package: `react-complex-tree` v2.6.1
 Implementation status: not implemented; this folder is the implementation-ready plan pack.
@@ -32,7 +32,8 @@ The plan preserves the current root invariant: the synthetic root accepts Group 
 6. `08-verification-runbook-and-readiness-gate.md`
 7. `09-independent-review-hygiene-memo.md`
 8. `10-assessment-response-decision-closure.md`
-9. `05-rollout-and-commit-plan.md`
+9. `11-final-assessment-hardening-notes.md`
+10. `05-rollout-and-commit-plan.md`
 
 Do not start by adding RCT drag/drop props. Start with the two-kind/read-path correction.
 
@@ -90,6 +91,10 @@ Do not start by adding RCT drag/drop props. Start with the two-kind/read-path co
 10. `10-assessment-response-decision-closure.md`
    - Response to two assessment reports.
    - Binding choices for store usage, cache sync, type rename, DB migration strategy, RCT root movement, and E2E data isolation.
+
+11. `11-final-assessment-hardening-notes.md`
+   - Response to the final 10/10 and A- reports.
+   - Closes minor implementation-friction edges: verified `cn()` import, desktop/keyboard MVP scope, explicit navigation-conflict gate, and Playwright DnD flake/retry policy.
 
 Related reusable skill payload:
 - `.ai/11_skills/payloads/react-complex-tree-dnd-archestimator.md`

@@ -59,7 +59,13 @@ For MVP:
 - Area Nodes cannot be parents;
 - Area Nodes cannot be root children;
 - cycle/self/descendant moves are invalid;
-- no-op drops should not call the server.
+- no-op drops should not call the server;
+- desktop pointer and keyboard DnD are required; touch/mobile DnD is out of Gate A-E scope unless Philip explicitly expands MVP scope.
+
+Class-name helper:
+
+- Use the verified utility `src/lib/ui/cn.ts` via `import { cn } from "@/lib/ui/cn"` for custom RCT renderer classes.
+- Do not create a second `cn()`/class-merge helper in the tree feature.
 
 ## RCT drop target translation
 
@@ -247,8 +253,17 @@ Playwright:
 - visual update immediate;
 - reload proves persistence;
 - no document navigation;
+- URL/selected route do not change during drop;
 - no blank/flicker frames;
-- invalid drops blocked.
+- invalid drops blocked;
+- first local DnD proof runs with retries disabled; retry-only passes remain open risks.
+
+Flake policy:
+
+- Inspect trace/video/error-context before rerunning a failed DnD spec.
+- Fix readiness/pointer precision with stable selectors or instrumentation waits, not broad sleeps.
+- CI may use `retries: process.env.CI ? 1 : 0` only after local no-retry proof, paired with `trace: "on-first-retry"` and `video: "retain-on-failure"`.
+- Use serial mode only for specs that mutate the same isolated estimate fixture; prefer cloned/reset per-test data.
 
 ## Pitfalls
 
