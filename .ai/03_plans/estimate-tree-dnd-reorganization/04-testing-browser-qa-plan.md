@@ -28,6 +28,20 @@ Result:
 
 This is a baseline only. It does not validate the future feature.
 
+## Two-kind domain coverage required before DnD tests
+
+Before any drag/drop test is enabled, add/update tests that prove the tree model is technically two-kind:
+
+- `EstimateNodeKind` source unions accept only `group` and `area`.
+- Static/sample tree data uses only `group` and `area` while names still express UX/domain organization such as Lot, House, Ground Floor, etc.
+- `canNestEstimateNodeKind("group", null)` is true.
+- `canNestEstimateNodeKind("area", null)` is false.
+- `canNestEstimateNodeKind("group", "group")` is true.
+- `canNestEstimateNodeKind("area", "group")` is true.
+- `canNestEstimateNodeKind("group", "area")` and `canNestEstimateNodeKind("area", "area")` are false.
+- SQL/migration tests enforce the same matrix.
+- Tests explicitly fail if `lot`, `general`, `structure`, `level`, or `assembly` remain active technical estimate node kinds.
+
 ## Unit tests: tree reorder domain
 
 New file:
@@ -45,23 +59,23 @@ Create a compact fixture that mirrors real hierarchy:
 ```txt
 General Requirements (group/root)
 Site Works (group/root)
-Lot (lot/root)
-  House (structure)
-    Ground Floor (level)
+Lot (group/root; name only, not kind)
+  House (group)
+    Ground Floor (group)
       Show Kitchen (area, has rows)
       Living Room (area, has rows)
     Roof + Attic (group)
   Services House (group)
 ```
 
-Use stable ids that are easy to read in failures.
+Use stable ids that are easy to read in failures. Every fixture node `kind` must be either `group` or `area`.
 
 ### Required unit cases
 
-1. Root sibling reorder
+1. Group root sibling reorder
    - Move `Site Works` before `General Requirements`.
    - Assert root order changes.
-   - Assert both keep `parentId: null`.
+   - Assert both keep `parentId: null` and `kind: "group"`.
    - Assert root sibling sort orders are unique and deterministic.
 
 2. Same-parent sibling reorder
@@ -151,7 +165,7 @@ vi.mock("next/navigation", () => ({
 }));
 ```
 
-Mock move action or inject a fake `onMoveNodes` prop.
+Mock reorder action or inject a fake `onReorderNodes` prop.
 
 Use deferred promises to test optimistic behavior before server resolution.
 
@@ -161,7 +175,7 @@ Use deferred promises to test optimistic behavior before server resolution.
    - Prefer behavior assertion; if string inspection remains, assert positive presence only as secondary.
    - Validate rendered tree contains draggable-capable rows if RCT exposes attributes.
 
-2. Valid drop calls move action once
+2. Valid drop calls reorder action once
    - Trigger the extracted drop handler if direct browser DnD is too brittle in JSDOM.
    - Assert action receives normalized updates with `id`, `parentId`, and `sortOrder`.
 
@@ -172,8 +186,10 @@ Use deferred promises to test optimistic behavior before server resolution.
    - Assert a saving status appears without replacing the tree.
 
 4. Successful persistence keeps order
-   - Resolve promise with returned tree or move result.
+   - Resolve promise with returned tree or reorder result.
    - Assert DOM remains in moved order.
+   - Re-render with stale pre-drop `nodes` props after the promise resolves and assert the DOM does not snap back.
+   - Re-render with server props matching the returned tree and assert local state converges without flicker.
    - Assert `router.push` and `router.refresh` were not called.
 
 5. Failure rolls back
@@ -210,7 +226,7 @@ Use deferred promises to test optimistic behavior before server resolution.
 
 New file options:
 
-- `tests/vitest/estimate-node-move-action.test.ts`
+- `tests/vitest/estimate-node-reorder-action.test.ts`
 - or colocate with existing action tests if a pattern exists.
 
 ### Cases
@@ -268,16 +284,18 @@ Add/adjust tests:
 
 Optional integration suite:
 
-- `tests/vitest/estimate-node-move-db.test.ts`
+- `tests/vitest/estimate-node-reorder-db.test.ts`
 - Gate behind `RUN_SUPABASE_INTEGRATION=1`.
 - Run against local Supabase/CI test database.
 - Use DB reset or cloned seed estimate per test.
 
 Integration cases:
 
-- Valid root reorder persists.
-- Valid area reparent persists.
-- Invalid area parent is rejected by DB.
+- Two-kind migration/enforcement accepts only `group` and `area` as active estimate node kinds.
+- Valid Group Node root reorder persists.
+- Valid Area Node reparent persists.
+- Invalid Area Node parent is rejected by DB.
+- Legacy values (`lot`, `general`, `structure`, `level`, `assembly`) are normalized or rejected according to the chosen migration strategy.
 - Duplicate sort order rejected.
 - Cycle rejected.
 
@@ -338,8 +356,8 @@ Do not run mutating DnD tests in parallel against the same estimate unless isola
    - Assert no `/login` redirect.
    - Assert tree has expected node titles.
 
-2. Root sibling reorder
-   - Drag one root node before another.
+2. Group root sibling reorder
+   - Drag one root Group Node before another.
    - Assert visual order updates immediately.
    - Assert no document navigation.
    - Reload page.
@@ -514,7 +532,7 @@ Targeted during development:
 bun run type-check
 bun run test:dom -- tests/vitest/estimate-tree-reorder.test.ts
 bun run test:dom -- tests/vitest/estimate-sheet-tree-dnd.test.tsx
-bun run test:dom -- tests/vitest/estimate-node-move-action.test.ts
+bun run test:dom -- tests/vitest/estimate-node-reorder-action.test.ts
 bun run test:dom -- tests/vitest/supabase-performance-migrations.test.ts
 bun run test:e2e -- e2e/estimate-tree-dnd.spec.ts
 ```
@@ -532,20 +550,26 @@ bun run test:e2e
 
 ## Pass/fail criteria
 
+Use `08-verification-runbook-and-readiness-gate.md` as the final gate. The summary below is the minimum local pass/fail checklist.
+
 ### Functional pass
 
+- 100% of active tree nodes render with technical kind `group | area`.
 - Valid moves update the UI immediately.
 - Valid moves persist and survive reload.
 - Invalid moves are visibly rejected or simply not accepted.
 - Row items remain attached to their area nodes.
-- Hierarchy rules match server and DB.
+- Hierarchy rules match client, server, and DB.
+- The new implementation never calls old `moveEstimateNode`/`move_estimate_nodes` paths.
 
 ### UX pass
 
-- No full-page reload.
-- No blank/flicker frames.
-- No `/login` flash.
-- No route change from drop.
+- 0 full-page reloads during drop.
+- 0 blank/flicker frames during drag/drop sampling.
+- 0 `/login` flashes in authenticated tests.
+- 0 route changes caused by drop.
+- Visual update occurs before server success is awaited.
+- Confirmed action result is not overwritten by stale route props.
 - Selection/focus/expansion remain stable.
 - Saving/failure state is visible and non-blocking.
 
@@ -555,4 +579,5 @@ bun run test:e2e
 - Server action validates ownership and does one atomic persistence call.
 - Migration adds deliberate new persistence function after prior removal.
 - Existing tests updated intentionally; no brittle absence assertions remain as primary coverage.
+- GitNexus `detect-changes` reports only expected affected scope.
 - Full validation gates pass.

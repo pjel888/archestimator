@@ -25,6 +25,7 @@ Stage only:
 
 - `.ai/03_plans/estimate-tree-dnd-reorganization/`
 - `.ai/11_skills/payloads/react-complex-tree-dnd-archestimator.md`
+- `.ai/10_state/current-state.md` and `.ai/10_state/decisions.md` only when this planning update records Philip's two-node tree decision
 
 Do not stage:
 
@@ -36,8 +37,8 @@ Do not stage:
 Suggested planning commit:
 
 ```bash
-git add .ai/03_plans/estimate-tree-dnd-reorganization .ai/11_skills/payloads/react-complex-tree-dnd-archestimator.md
-git commit -m "docs: plan estimate tree drag-drop reorganization"
+git add .ai/03_plans/estimate-tree-dnd-reorganization .ai/11_skills/payloads/react-complex-tree-dnd-archestimator.md .ai/10_state/current-state.md .ai/10_state/decisions.md
+git commit -m "docs: plan two-kind estimate tree drag-drop"
 git push -u origin docs/estimate-tree-rct-dnd-plan
 ```
 
@@ -68,31 +69,37 @@ bun run test:dom -- tests/vitest/estimate-tree-reorder.test.ts tests/vitest/live
 
 Expected initially: new target tests may fail before implementation if using strict TDD. If committing failing tests is not acceptable for the branch, mark them `it.todo` first, then enable in implementation commits.
 
-### Commit 2 — repository group-node visibility
+### Commit 2 — two-kind estimate tree domain
 
 Scope:
 
-- Fix `isDisplayNodeKind` to include `group`.
-- Add repository/tree build test.
+- Collapse active TypeScript/domain node-kind unions to `group | area`.
+- Convert sample/static tree data from legacy organizing kinds to `group` while preserving visible names.
+- Fix `isDisplayNodeKind` to accept only `group` and `area`.
+- Add/update migration to normalize legacy values and enforce the two-kind hierarchy matrix.
+- Regenerate/update Supabase types.
+- Update tests that currently assert legacy compatibility kinds.
 
 Message:
 
 ```bash
-git commit -m "fix: include group estimate nodes in live tree build"
+git commit -m "feat: simplify estimate tree node kinds"
 ```
 
 Verification:
 
 ```bash
 bun run type-check
-bun run test:dom -- tests/vitest/live-estimate-node-route.test.ts tests/vitest/estimate-tree-data.test.ts
+bun run test:dom -- tests/vitest/estimate-tree-data.test.ts tests/vitest/live-estimate-node-route.test.ts tests/vitest/supabase-performance-migrations.test.ts
 ```
 
 Risk review:
 
-- Confirm target route tree shape with browser after auth is available.
+- Confirm SQL and TypeScript hierarchy matrices match exactly.
+- Confirm Group Nodes render in the target route tree.
+- Confirm no active code still creates or persists `lot`, `general`, `structure`, `level`, or `assembly` as estimate tree node kinds.
 
-### Commit 3 — pure move planning helper
+### Commit 3 — pure reorder planning helper
 
 Scope:
 
@@ -125,7 +132,7 @@ Scope:
 
 - Add new Supabase migration.
 - Add Supabase type for new RPC.
-- Add `moveEstimateTreeNodes` server action.
+- Add `reorderEstimateTreeNodes` server action.
 - Add action/migration tests.
 
 Message:
@@ -138,20 +145,22 @@ Verification:
 
 ```bash
 bun run type-check
-bun run test:dom -- tests/vitest/estimate-node-move-action.test.ts tests/vitest/supabase-performance-migrations.test.ts
+bun run test:dom -- tests/vitest/estimate-node-reorder-action.test.ts tests/vitest/supabase-performance-migrations.test.ts
 ```
 
 If local Supabase integration is configured:
 
 ```bash
-RUN_SUPABASE_INTEGRATION=1 bun run test:dom -- tests/vitest/estimate-node-move-db.test.ts
+RUN_SUPABASE_INTEGRATION=1 bun run test:dom -- tests/vitest/estimate-node-reorder-db.test.ts
 ```
 
 Review focus:
 
 - One atomic RPC/function call, not independent row updates.
-- Project/estimate/user scope validation.
-- SQL validates duplicates, cycles, cross-estimate parents, and hierarchy.
+- Project/estimate/user scope validation in the server action.
+- Database-level authorization is not bypassed by the RPC: use `SECURITY INVOKER` or an explicit `auth.uid()` workspace-membership check for any `SECURITY DEFINER` function.
+- SQL validates duplicates, cycles, cross-estimate parents, and two-kind hierarchy.
+- SQL rejects Area Node parents and Area Node root children.
 - Historical removal migration remains intact; new migration is additive after it.
 
 ### Commit 5 — optimistic RCT integration
@@ -267,15 +276,17 @@ If database migration is unsafe:
 - Do not edit historical migrations after they have been applied/shared.
 - Re-run migration tests.
 
-If `group` visibility fix causes unintended tree changes:
+If the two-kind simplification causes unintended tree changes:
 
-- Do not revert blindly. First confirm whether hidden `group` nodes were a bug or a deliberate product simplification.
-- If product wants hidden groups, DnD scope must be reduced to visible kinds and creation UI must not create invisible nodes.
+- Do not revert blindly. First inspect whether old `lot`/`general`/`structure`/`level` values represented real product semantics or only labels.
+- Preserve user-facing names and organization; only technical kinds should collapse.
+- If product truly needs additional behavioral node classes later, that must be a new explicit domain decision and migration, not a silent reintroduction of legacy kinds.
 
 ## PR description template
 
 ```md
 ## What changed
+- Simplified the estimate tree technical domain to Group Nodes and Area Nodes.
 - Added optimistic drag/drop reorder/reparent support for estimate tree.
 - Added atomic server persistence for tree node moves.
 - Added browser coverage proving no reload/flicker.
@@ -293,6 +304,7 @@ If `group` visibility fix causes unintended tree changes:
 - [ ] Manual target route QA
 
 ## Risk
+- Two-kind domain/SQL migration alignment.
 - Database hierarchy/sort-order persistence.
 - Selection/expansion state stability.
 - Authenticated e2e setup.

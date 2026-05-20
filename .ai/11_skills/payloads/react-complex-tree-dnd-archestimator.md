@@ -53,9 +53,10 @@ Enable DnD intentionally:
 For MVP:
 
 - single-node drag only;
-- group-like nodes may be parents;
-- area nodes cannot be parents;
-- area nodes cannot be root children;
+- technical estimate node kinds are only `group` and `area`;
+- Group Nodes may be parents;
+- Area Nodes cannot be parents;
+- Area Nodes cannot be root children;
 - cycle/self/descendant moves are invalid;
 - no-op drops should not call the server.
 
@@ -105,31 +106,36 @@ File:
 
 - `src/lib/estimates/tree-hierarchy.ts`
 
-Current rule:
+Current rule after the two-kind simplification:
 
 ```ts
+export type EstimateNodeKind = "group" | "area";
+
 export function canNestEstimateNodeKind(childKind, parentKind) {
-  if (parentKind === null) return isEstimateGroupNodeKind(childKind);
-  return isEstimateGroupNodeKind(parentKind);
+  if (parentKind === null) return childKind === "group";
+  return parentKind === "group";
 }
 ```
 
 Meaning:
 
-- Root accepts only group-like nodes.
-- Group-like parents accept children.
-- Area parents reject children.
+- Root accepts only Group Nodes.
+- Group Nodes accept Group Nodes and Area Nodes.
+- Area Nodes reject children.
+- `lot`, `general`, `structure`, `level`, and `assembly` are not active technical estimate tree node kinds.
 
 Do not duplicate this matrix separately in component code.
 
 ## Critical current audit findings
 
-1. `EstimateSheetTree` already uses RCT controlled mode but DnD is disabled.
-2. `treeModel` is currently derived from server props; DnD needs optimistic local/shared state.
-3. `workspace-repository.ts` currently excludes `kind === "group"` from `isDisplayNodeKind` even though group is in the domain type and the create action stores group nodes.
-4. A previous migration created `public.move_estimate_nodes`; a later migration drops it because old tree DnD was removed. New implementation must deliberately add a new atomic function after the removal migration.
-5. Tests currently assert DnD is absent; they must be rewritten.
-6. Browser navigation to the target route redirects to `/login` unless dev auth/session is configured.
+1. Philip's technical model is exactly two node kinds: `group` and `area`.
+2. Current repo still contains legacy compatibility kinds in several files; implementation must collapse them before DnD.
+3. `EstimateSheetTree` already uses RCT controlled mode but DnD is disabled.
+4. `treeModel` is currently derived from server props; DnD needs optimistic local/shared state.
+5. `workspace-repository.ts` currently excludes `kind === "group"` from `isDisplayNodeKind` even though Group Nodes are the primary organizing nodes.
+6. A previous migration created `public.move_estimate_nodes`; a later migration drops it because old tree DnD was removed. New implementation must deliberately add a new atomic function after the removal migration.
+7. Tests currently assert DnD is absent; they must be rewritten.
+8. Browser navigation to the target route redirects to `/login` unless dev auth/session is configured.
 
 ## Required helper design
 
@@ -144,14 +150,14 @@ export function evaluateEstimateTreeDrop(args: {
   nodes: EstimateAreaNode[];
   draggedItemIds: TreeItemIndex[];
   target: DraggingPosition;
-}): EstimateTreeMoveEvaluation;
+}): EstimateTreeReorderEvaluation;
 
-export function buildEstimateNodeMovePlan(args: {
+export function buildEstimateNodeReorderPlan(args: {
   nodes: EstimateAreaNode[];
   draggedNodeId: string;
   targetParentId: string | null;
   targetIndex: number;
-}): EstimateTreeMoveEvaluation;
+}): EstimateTreeReorderEvaluation;
 ```
 
 Return a plan with:
@@ -183,7 +189,7 @@ Never call `router.refresh()` on drop.
 Add action:
 
 ```ts
-moveEstimateTreeNodes(projectId, estimateId, { updates })
+reorderEstimateTreeNodes(projectId, estimateId, { updates })
 ```
 
 The action must:
@@ -205,11 +211,13 @@ Reason: `move_estimate_nodes` was intentionally dropped by an existing migration
 
 Unit:
 
-- root reorder;
+- two-kind model enforced (`group | area` only);
+- Group Node root reorder;
 - same-parent reorder;
-- group reparent;
-- area reparent under group;
-- reject area as parent/root;
+- Group Node reparent;
+- Area Node reparent under Group Node;
+- reject Area Node as parent/root;
+- reject legacy node kinds as active tree kinds;
 - reject cycles/self;
 - reject no-op;
 - sort order uniqueness;
@@ -217,7 +225,7 @@ Unit:
 
 Component:
 
-- valid drop calls move action once;
+- valid drop calls reorder action once;
 - optimistic DOM order before server resolves;
 - failure rollback;
 - invalid drop no action;

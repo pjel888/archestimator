@@ -22,6 +22,8 @@ Sources inspected:
 
 Installed version: `2.6.1`
 
+Implementation rule: verify installed `node_modules/react-complex-tree/lib/*/types.d.ts` before coding if dependency versions change. This guide is locked to v2.6.1 and is consolidated for implementation in `07-implementation-reference.md`.
+
 Package entrypoints:
 
 - `main`: `lib/cjs/index.js`
@@ -32,6 +34,22 @@ Package entrypoints:
 RCT description from package: “Unopinionated Accessible Tree Component with Multi-Select and Drag-And-Drop”.
 
 RCT has zero runtime dependencies and peer dependency `react >=16.0.0`.
+
+## Archestimator two-node domain rule
+
+Philip's active technical decision for this feature is:
+
+```ts
+type EstimateNodeKind = "group" | "area";
+```
+
+React Complex Tree must not be used to encode domain-specific hierarchy labels as node kinds. Lot, General Requirements, House, Ground Floor, Phase, Trade, etc. are `group` node names/metadata/UI labels, not RCT or database kinds.
+
+RCT folder semantics therefore map directly:
+
+- `group` => folder item, can receive drops if hierarchy/cycle rules pass.
+- `area` => non-folder item, cannot receive child drops.
+- synthetic root => folder item, may receive Group Nodes only.
 
 ## Recommended Archestimator usage mode
 
@@ -100,14 +118,16 @@ Mapping rules:
 - Synthetic root item:
   - `index: ROOT_ITEM_ID`
   - `isFolder: true`
-  - `children: top-level node ids`
+  - `children: top-level Group Node ids`
   - `data: { node: null }`
-- Group-like nodes:
+- Group Nodes (`node.kind === "group"`):
   - `isFolder: true`
-  - `children: child node ids`
-- Area nodes:
+  - `children: child Group/Area node ids`
+- Area Nodes (`node.kind === "area"`):
   - `isFolder: false` or omitted
   - `children: undefined`
+
+Do not model Lot/Structure/Floor/etc. as folder kinds. Those are names/labels on Group Nodes.
 
 Do not expose the synthetic root as a visible rendered node. `renderItem` can return `null` for root-like data if needed, but current tree sets root item only as `Tree.rootItem`, so only its children render.
 
@@ -185,7 +205,7 @@ Meanings from RCT types/docs/source:
 |---|---|---|
 | `canDragAndDrop` | Master enable switch for drag/drop. | Enable. |
 | `canReorderItems` | Enables `between-items` drops. | Enable for sibling reorder. |
-| `canDropOnFolder` | Allows dropping onto folders/root-like folders. | Enable for reparenting into group-like nodes. |
+| `canDropOnFolder` | Allows dropping onto folders/root-like folders. | Enable for reparenting into Group Nodes and root-level Group Node reorder/drop. |
 | `canDropOnNonFolder` | Allows dropping onto non-folder items. | Keep false; area nodes cannot be parents. |
 | `canDrag(items)` | Gate dragged items. | Start with single item only unless multi-move is explicitly designed. |
 | `canDropAt(items, target)` | Gate target position. | Must enforce hierarchy, cycle, root constraints, and no-op rejection. |
@@ -249,7 +269,7 @@ Implement a pure function that both `canDropAt` and `onDrop` can use:
 
 ```ts
 type EstimateTreeDropEvaluation =
-  | { ok: true; plan: EstimateTreeMovePlan }
+  | { ok: true; plan: EstimateTreeReorderPlan }
   | { ok: false; reason: string };
 
 function evaluateEstimateTreeDrop(args: {
@@ -264,9 +284,9 @@ Validation must reject:
 - Multiple dragged ids if multi-move is not supported.
 - Dragged id not found.
 - Synthetic root as dragged item.
-- Area node as target parent.
-- Area node moved to root.
-- Root drop of any non-group-like node.
+- Area Node as target parent.
+- Area Node moved to root.
+- Root drop of any non-`group` node.
 - Moving a node into itself.
 - Moving a node into any descendant.
 - Cross-tree target ids.
@@ -278,14 +298,16 @@ Use current hierarchy source of truth:
 - `canNestEstimateNodeKind(childKind, parentKind)`
 - `isEstimateGroupNodeKind(kind)`
 
+Under the two-node decision, those helpers should become thin wrappers around `group | area` semantics, not compatibility shims for `lot` / `general` / `structure` / `level`.
+
 Do not duplicate a separate hierarchy matrix in the component.
 
-## Move plan and sort order
+## Reorder plan and sort order
 
 RCT provides only target position. The app must produce deterministic persistence updates:
 
 ```ts
-type EstimateNodeMoveUpdate = {
+type EstimateNodeReorderUpdate = {
   id: string;
   parentId: string | null;
   sortOrder: number;
@@ -413,8 +435,8 @@ Common causes in this codebase:
 5. Calling `router.refresh()` after every mutation.
    - Fix: use optimistic state and passive query invalidation/revalidate for future navigation.
 
-6. Reconciling server props by overwriting local state while a mutation is pending.
-   - Fix: keep a pending move id/version; only reconcile when returned/prop tree includes the confirmed move or when no pending mutation exists.
+6. Reconciling server props by overwriting local state after a successful mutation while route props are still stale.
+   - Fix: keep a local confirmed tree signature/version and do not sync from incoming props until they match the confirmed tree or there is no local confirmed mutation waiting to converge.
 
 ## Optimistic state pattern for `EstimateSheetTree`
 
@@ -422,24 +444,35 @@ Minimum tree-local version:
 
 ```ts
 const [optimisticNodes, setOptimisticNodes] = useState(nodes);
-const [pendingMove, setPendingMove] = useState<PendingMove | null>(null);
+const rollbackRef = useRef<EstimateTreeNode[] | null>(null);
+const localConfirmedTreeSignatureRef = useRef<string | null>(null);
+const [moveState, setMoveState] = useState<"idle" | "saving" | "failed">("idle");
 const [moveError, setMoveError] = useState<string | null>(null);
 
 useEffect(() => {
-  if (!pendingMove) setOptimisticNodes(nodes);
-}, [nodes, pendingMove]);
+  if (moveState === "saving") return;
+  const incomingSignature = getEstimateTreeStructureSignature(nodes);
+  if (
+    localConfirmedTreeSignatureRef.current !== null &&
+    localConfirmedTreeSignatureRef.current !== incomingSignature
+  ) {
+    return;
+  }
+  localConfirmedTreeSignatureRef.current = null;
+  setOptimisticNodes(nodes);
+}, [nodes, moveState]);
 
 const treeModel = useMemo(() => buildTreeModel(optimisticNodes), [optimisticNodes]);
 ```
 
 On drop:
 
-1. Evaluate move using current `optimisticNodes`.
+1. Evaluate reorder using current `optimisticNodes`.
 2. Save rollback snapshot.
 3. `setOptimisticNodes(plan.nextNodes)` immediately.
-4. Mark pending/saving.
+4. Mark saving.
 5. Call server action.
-6. On success, reconcile with returned tree or clear pending and wait for passive props.
+6. On success, set `optimisticNodes` to the returned fresh tree and store its structure signature before clearing saving state.
 7. On failure, restore rollback snapshot and show error.
 
 Better shared version:
@@ -468,10 +501,16 @@ If product wants multi-move later, add separate pure helpers/tests for:
 
 ## Keyboard accessibility
 
-RCT supports keyboard drag/drop:
+RCT supports keyboard drag/drop. Installed `react-complex-tree` v2.6.1 defaults are defined in `node_modules/react-complex-tree/lib/*/hotkeys/defaultKeyboardBindings.js`:
+
+- `startProgrammaticDnd: ["control+shift+d"]`
+- `completeProgrammaticDnd: ["enter"]`
+- `abortProgrammaticDnd: ["escape"]`
+
+Default user flow:
 
 - Select one/several items.
-- Press `CTRL + D` to start programmatic drag.
+- Press `Ctrl + Shift + D` to start programmatic drag, unless the implementation deliberately overrides `keyboardBindings`.
 - Use `UP`/`DOWN` to choose target.
 - Press `ENTER` to drop.
 - Press `ESCAPE` to abort.
