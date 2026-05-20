@@ -8,6 +8,9 @@ const scannedRoots = ["src/app", "src/components"];
 const landingAllowlist = new Set([
   "src/app/page.tsx",
 ]);
+const landingAllowlistPrefixes = [
+  "src/components/landing/",
+];
 const ignoredDirs = new Set(["node_modules", ".next", ".git"]);
 const scannedExtensions = new Set([".tsx", ".ts", ".jsx", ".js", ".css"]);
 const namedTextSizes = new Map([
@@ -51,7 +54,7 @@ const violations = [];
 for (const scannedRoot of scannedRoots) {
   for (const absolute of walk(join(root, scannedRoot))) {
     const rel = relative(root, absolute);
-    if (landingAllowlist.has(rel)) continue;
+    if (landingAllowlist.has(rel) || landingAllowlistPrefixes.some((prefix) => rel.startsWith(prefix))) continue;
     const text = readFileSync(absolute, "utf8");
     const lines = text.split(/\r?\n/);
     lines.forEach((line, index) => {
@@ -78,7 +81,7 @@ for (const scannedRoot of scannedRoots) {
 }
 
 if (violations.length) {
-  console.error(`App/workshop typography cap failed. Max allowed outside src/app/page.tsx is ${maxPx}px.`);
+  console.error(`App/workshop typography cap failed. Max allowed outside landing-approved surfaces is ${maxPx}px.`);
   console.error(violations.join("\n"));
   process.exit(1);
 }

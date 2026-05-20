@@ -81,6 +81,12 @@ body {
   font-feature-settings: "kern";
 }
 
+html:has([data-workshop-page-shell-root]),
+body:has([data-workshop-page-shell-root]) {
+  height: 100%;
+  overflow: hidden;
+}
+
 button,
 input,
 select,

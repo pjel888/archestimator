@@ -63,9 +63,10 @@ export async function WorkshopPageShell({
   );
 
   return (
-    <main className="h-dvh overflow-hidden bg-canvas text-ink" aria-label={title}>
+    <main data-workshop-page-shell-root className="h-[100dvh] overflow-hidden bg-canvas text-ink" aria-label={title}>
       <MainSidebar user={sidebarUser} />
       <section
+        data-workshop-page-shell-canvas
         className="flex h-full min-h-0 flex-col lg:pl-[64px]"
         style={ESTIMATE_CENTER_COLUMN_CSS_VARIABLES}
         aria-label={`${title} canvas`}

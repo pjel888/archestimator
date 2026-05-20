@@ -7,6 +7,7 @@ const projectDashboardClient = readFileSync("src/components/workshop/ProjectDash
 const projectTotalHeader = readFileSync("src/components/workshop/ProjectTotalHeader.tsx", "utf8");
 const projectMiniSidebar = readFileSync("src/components/workshop/ProjectMiniSidebar.tsx", "utf8");
 const workshopTitleHeader = readFileSync("src/components/workshop/WorkshopTitleHeader.tsx", "utf8");
+const workshopPageShell = readFileSync("src/components/workshop/WorkshopPageShell.tsx", "utf8");
 const projectWorkspaceHeaderRow = readFileSync("src/components/workshop/ProjectWorkspaceHeaderRow.tsx", "utf8");
 const projectWorkspaceProjectCode = readFileSync("src/components/workshop/ProjectWorkspaceProjectCode.tsx", "utf8");
 const estimateCenterColumnBoundary = readFileSync("src/components/workshop/EstimateCenterColumnBoundary.tsx", "utf8");
@@ -19,6 +20,8 @@ const estimateSheetTree = readFileSync("src/components/workshop/EstimateSheetTre
 const estimateSheetContent = readFileSync("src/components/workshop/EstimateSheetContent.tsx", "utf8");
 const estimateComponentLibrary = readFileSync("src/components/workshop/component-library/index.tsx", "utf8");
 const projectEstimatesPage = readFileSync("src/app/workshop/projects/[projectId]/estimates/page.tsx", "utf8");
+const projectEstimatesClient = readFileSync("src/components/workshop/ProjectEstimatesClient.tsx", "utf8");
+const globalsCss = readFileSync("src/app/globals.css", "utf8");
 
 describe("project dashboard UI governance", () => {
   it("keeps the project page focused on project data visualization instead of estimate creation", () => {
@@ -47,6 +50,21 @@ describe("project dashboard UI governance", () => {
     expect(projectWorkspaceProjectCode).toContain('{projectCode}');
   });
 
+  it("removes the project mini-sidebar only inside estimate sheet detail routes", () => {
+    expect(projectMiniSidebar).toContain("estimateSheetPathPrefix");
+    expect(projectMiniSidebar).toContain("pathname?.startsWith(estimateSheetPathPrefix)");
+    expect(projectMiniSidebar).toContain("if (isEstimateSheetRoute) return null;");
+    expect(projectDashboardLayout).toContain("<ProjectMiniSidebar projectId={projectId} />");
+  });
+
+  it("locks page-level scrolling only while the workshop shell is mounted", () => {
+    expect(workshopPageShell).toContain("data-workshop-page-shell-root");
+    expect(workshopPageShell).toContain("h-[100dvh] overflow-hidden");
+    expect(globalsCss).toContain("body:has([data-workshop-page-shell-root])");
+    expect(globalsCss).toContain("overflow: hidden");
+    expect(globalsCss).not.toContain("body {\\n  overflow: hidden;");
+  });
+
   it("uses one estimate center-column width contract for the totals header and estimate metadata strip", () => {
     expect(estimateCenterColumnBoundary).toContain('"workshop-title"');
     expect(estimateCenterColumnBoundary).toContain('"project-workspace-row"');
@@ -54,22 +72,42 @@ describe("project dashboard UI governance", () => {
     expect(estimateCenterColumnBoundary).toContain("--estimate-library-panel-width,380px");
     expect(estimateCenterColumnBoundary).toContain("--project-mini-sidebar-width,104px");
     expect(workshopTitleHeader).toContain("EstimateCenterColumnBoundary");
+    expect(workshopPageShell).toContain("data-workshop-page-shell-canvas");
     expect(projectDashboardLayout).toContain("ProjectWorkspaceHeaderRow");
     expect(projectWorkspaceHeaderRow).toContain("ProjectWorkspaceHeaderSurface");
     expect(projectWorkspaceHeaderRow).toContain("ProjectWorkspaceProjectCode");
     expect(projectWorkspaceHeaderRow).toContain("<ProjectEstimateMetadataStrip projectCode={projectCode} />");
     expect(projectEstimateMetadataStrip).toContain('scope="project-workspace-row"');
-    expect(projectEstimateMetadataStrip).toContain('className="pointer-events-none bg-white"');
+    expect(projectEstimateMetadataStrip).toContain('id="project-estimate-metadata-strip"');
+    expect(projectEstimateMetadataStrip).toContain('className="pointer-events-none absolute inset-0 bg-white');
+    expect(projectEstimateMetadataStrip).toContain('data-workshop-layout="project-estimate-metadata-row"');
     expect(projectEstimateMetadataStrip).toContain("<ProjectWorkspaceProjectCode projectCode={projectCode}");
-    expect(projectEstimateMetadataStrip).toContain('textClassName="font-normal"');
+    expect(projectEstimateMetadataStrip).toContain('textClassName="font-bold"');
     expect(projectEstimateMetadataStrip).toContain('font-normal uppercase tracking-[0.14em] text-tertiary');
     expect(projectEstimateMetadataStrip).toContain('data-estimate-center-column="metadata-strip"');
     expect(projectEstimateMetadataStrip).toContain("ProjectEstimateMetadataStripBoundary");
     expect(projectEstimateMetadataStrip).toContain("ProjectEstimateMetadataStripGrid");
+    expect(projectEstimateMetadataStrip).toContain("EstimateSheetCodeCell");
     expect(projectEstimateMetadataStrip).toContain("EstimateSheetNameCell");
+    expect(projectEstimateMetadataStrip).toContain("EstimateVersionCell");
+    expect(projectEstimateMetadataStrip.indexOf("<EstimateSheetCodeCell")).toBeLessThan(projectEstimateMetadataStrip.indexOf("<EstimateSheetNameCell"));
+    expect(projectEstimateMetadataStrip.indexOf("<EstimateSheetNameCell")).toBeLessThan(projectEstimateMetadataStrip.indexOf("<EstimateVersionCell"));
+    expect(projectEstimateMetadataStrip).toContain("items-center px-2");
     expect(projectTotalHeader).toContain('data-estimate-center-column="project-total-header"');
     expect(projectTotalHeader).toContain('className="flex h-full w-full items-center justify-between bg-white px-2"');
     expect(projectTotalHeader).not.toContain("border-x border-hairline bg-white px-2");
+  });
+
+  it("lets the estimate tree absorb the removed mini-sidebar width without moving its right edge", () => {
+    expect(estimateSheetTree).toContain("ESTIMATE_TREE_LEFT_EXTENSION_WIDTH = 104");
+    expect(estimateSheetTree).toContain("widthOffset={ESTIMATE_TREE_LEFT_EXTENSION_WIDTH}");
+    expect(resizableSidePanel).toContain("widthOffset?: number");
+    expect(resizableSidePanel).toContain("widthOffset = 0");
+    expect(resizableSidePanel).toContain("const actualWidth = (collapsed ? collapsedWidth : width) + widthOffset;");
+    expect(resizableSidePanel).toContain("const previousWidth = document.documentElement.style.getPropertyValue(cssVariable);");
+    expect(resizableSidePanel).toContain("document.documentElement.style.removeProperty(cssVariable);");
+    expect(projectEstimateMetadataStrip).toContain("PROJECT_MINI_SIDEBAR_WIDTH_CSS_VARIABLE");
+    expect(projectEstimateMetadataStrip).toContain('workshopCanvas?.style.setProperty(PROJECT_MINI_SIDEBAR_WIDTH_CSS_VARIABLE, "0px")');
   });
 
   it("keeps minimized estimate side-panel rails white instead of changing background color", () => {
@@ -85,6 +123,7 @@ describe("project dashboard UI governance", () => {
       estimateSheetContent,
       estimateComponentLibrary,
       projectEstimatesPage,
+      projectEstimatesClient,
     ].join("\n");
 
     expect(searchInput).toContain("complete 38px search surface height");

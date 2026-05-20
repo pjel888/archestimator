@@ -440,29 +440,25 @@ export function EstimateRightSidebar({ onInsertComponent }: { onInsertComponent?
   }, []);
 
   return (
-    <ResizableSidePanel side="right" ariaLabel="Component library" storageKey="estimate_component_library_width_v2" defaultWidth={380} minWidth={360} maxWidth={560}>
+    <ResizableSidePanel side="right" ariaLabel="Library" storageKey="estimate_component_library_width_v2" defaultWidth={380} minWidth={360} maxWidth={560}>
       <aside className="flex h-full min-h-0 min-w-[320px] flex-col border-l border-hairline bg-white !text-[10px]">
         {/* Sticky header */}
         <div className="sticky top-0 z-20 shrink-0 border-b border-hairline bg-white">
-          {/* Title bar */}
-          <div className="flex h-10 items-center justify-between border-b border-hairline pl-4 pr-2">
-            <h2 className="text-[9px] font-bold uppercase tracking-[0.14em] text-tertiary">Component library</h2>
-          </div>
           <div className="flex h-[38px] items-center">
             <SearchInput
               ref={searchRef}
               value={searchQuery}
               onChange={(event) => setSearchQuery(event.target.value)}
-              placeholder="Search component library"
-              aria-label="Search component library"
+              placeholder="Search Library"
+              aria-label="Search Library"
               onClear={() => setSearchQuery("")}
               wrapperClassName="w-full"
             />
           </div>
 
           <HeaderIconToolbar
-            ariaLabel="Component library tools"
-            labelPrefix="component library"
+            ariaLabel="Library tools"
+            labelPrefix="library"
             onFilter={() => setShowFilters((value) => !value)}
             onGroup={() => setGroupBy((value) => (value === "category" ? "supplier" : "category"))}
             onAdd={() => setShowNewComponent(true)}
