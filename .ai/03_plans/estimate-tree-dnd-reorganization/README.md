@@ -3,7 +3,7 @@
 Status: implemented on branch `feat/estimate-tree-dnd-gate-b`; this plan pack is now the closeout/audit source for follow-up verification.
 Target route: `/workshop/projects/22222222-2222-4222-8222-222222222222/estimates/77777777-7777-4777-8777-777777777729`
 Primary package: `react-complex-tree` v2.6.1
-Implementation status: code implemented. Gate E mutating browser proof is implemented as an env-gated Playwright matrix and remains unexecuted in shells without `SUPABASE_SERVICE_ROLE_KEY` plus dev-auth env.
+Implementation status: implemented and browser-proven. Gate E mutating browser proof ran successfully with local service-role/dev-auth env on 2026-05-21 PHT.
 
 ## Intent
 
@@ -30,9 +30,15 @@ Implemented:
 - Playwright matrix for root group reorder, same-parent area reorder, group reparent, area reparent with row attachment, invalid area-parent, invalid cycle/self drops, no document navigation, no blank tree frames, and persistence after reload.
 - Mutating Playwright data isolation: each test clones the seeded estimate tree into a disposable estimate, normalizes the known baseline node positions inside that clone, and deletes the clone after the test.
 
-Still gated:
+Verified Gate E:
 
-- The mutating Playwright matrix requires `ARCHESTIMATOR_E2E_MUTATING_DND=1`, `ARCHESTIMATOR_DEV_AUTH_BYPASS=1`, `ARCHESTIMATOR_DEV_AUTH_EMAIL`, `NEXT_PUBLIC_SUPABASE_URL`, and `SUPABASE_SERVICE_ROLE_KEY`. Without those, Playwright lists the full matrix but skips execution.
+- Command: `PLAYWRIGHT_PORT=3020 ARCHESTIMATOR_E2E_MUTATING_DND=1 ARCHESTIMATOR_DEV_AUTH_BYPASS=1 ARCHESTIMATOR_DEV_AUTH_ADMIN_DB=1 ARCHESTIMATOR_DEV_AUTH_EMAIL=philipjonlewis@gmail.com npx playwright test e2e/estimate-tree-dnd.spec.ts --project=chromium --reporter=list`
+- Result: 5/5 mutating browser DnD tests passed.
+- Coverage: root group reorder, same-parent area reorder, group reparent, area reparent with row attachment, invalid area-parent, invalid cycle/self drops, no document navigation, no blank tree frames, and persistence after reload.
+
+Future reruns remain env-gated:
+
+- The mutating Playwright matrix requires `ARCHESTIMATOR_E2E_MUTATING_DND=1`, `ARCHESTIMATOR_DEV_AUTH_BYPASS=1`, `ARCHESTIMATOR_DEV_AUTH_ADMIN_DB=1`, `ARCHESTIMATOR_DEV_AUTH_EMAIL`, `NEXT_PUBLIC_SUPABASE_URL`, and `SUPABASE_SERVICE_ROLE_KEY`. Without those, Playwright lists the full matrix but skips execution.
 - Live manual browser verification also requires authenticated/dev-auth access to the protected route.
 
 ## Active product/domain decision
@@ -149,15 +155,15 @@ Hermes user-local skill:
 - Earlier code contained legacy estimate node kinds in active TypeScript/read-path/sample data; active feature code now uses the two-kind `group | area` contract.
 - Earlier `workspace-repository.ts` excluded `kind === "group"` from display nodes; the active read path now exposes `group | area`.
 - Earlier `sampleEstimateTree` used `lot`, `general`, `structure`, and `level` as technical kinds; active sample tree nodes now use `group` while preserving visible labels.
-- Playwright browser proof is not complete until the env-gated mutating matrix is run with service-role/dev-auth credentials.
+- Playwright browser proof was completed on 2026-05-21 PHT with service-role/dev-auth credentials.
 - `useEstimateUiStore` and `useMoveEstimateRowItem` are currently dead code; the plan now explicitly avoids basing DnD on them.
 
 ## Readiness status
 
-The implementation slices are complete from Gate A through the app/unit/component/browser-spec surface. The only remaining plan gate is executing the mutating browser matrix in an environment with the required credentials.
+The implementation slices are complete from Gate A through Gate E. No implementation gate remains open in this plan pack.
 
-Next best implementation action:
+Next best maintenance action:
 
 ```txt
-Run Gate E — mutating Playwright DnD matrix with service-role/dev-auth env.
+Keep the Gate E browser matrix in CI/local smoke rotation wherever service-role/dev-auth credentials are available.
 ```

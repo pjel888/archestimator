@@ -236,4 +236,46 @@ describe("estimate tree reorder planning", () => {
     expect(getEstimateTreeStructureSignature(result.plan.nextNodes)).not.toBe(getEstimateTreeStructureSignature(initial));
     expect(getEstimateTreeStructureSignature(result.plan.nextNodes)).toContain("ground-floor/site-works:group");
   });
+
+  it("keeps Group Nodes before Area Nodes when mixed siblings are reordered", () => {
+    const result = buildEstimateNodeReorderPlan({
+      nodes: fixtureTree(),
+      draggedNodeId: "site-works",
+      targetParentId: "ground-floor",
+      targetIndex: 2,
+    });
+
+    expect(result.ok).toBe(true);
+    if (!result.ok) throw new Error(result.message);
+    expect(childIds(result.plan.nextNodes, "ground-floor")).toEqual(["site-works", "kitchen", "living"]);
+    expect(result.plan.updates).toEqual([
+      { id: "ground-floor", parentId: "project-scope", sortOrder: ESTIMATE_TREE_SORT_ORDER_STEP },
+      { id: "site-works", parentId: "ground-floor", sortOrder: ESTIMATE_TREE_SORT_ORDER_STEP },
+      { id: "kitchen", parentId: "ground-floor", sortOrder: ESTIMATE_TREE_SORT_ORDER_STEP * 2 },
+      { id: "living", parentId: "ground-floor", sortOrder: ESTIMATE_TREE_SORT_ORDER_STEP * 3 },
+    ]);
+  });
+
+  it("treats drops neutralized by group-before-area sorting as no-op drops", () => {
+    const nodes = [
+      node({
+        id: "main-house",
+        name: "Main House",
+        kind: "group",
+        children: [
+          node({ id: "first-floor", name: "First Floor", kind: "group", children: [] }),
+          node({ id: "kitchen", name: "Kitchen", kind: "area", children: [] }),
+        ],
+      }),
+    ];
+
+    const result = buildEstimateNodeReorderPlan({
+      nodes,
+      draggedNodeId: "kitchen",
+      targetParentId: "main-house",
+      targetIndex: 0,
+    });
+
+    expect(result).toMatchObject({ ok: false, code: "no-op" });
+  });
 });

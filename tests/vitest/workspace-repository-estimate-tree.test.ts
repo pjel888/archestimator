@@ -115,4 +115,18 @@ describe("workspace repository estimate tree projection", () => {
       expect.objectContaining({ id: "active-group", kind: "group" }),
     ]);
   });
+
+  it("projects Group Node siblings before Area Node siblings even when persisted sort orders are mixed", () => {
+    const tree = buildEstimateTree(
+      [
+        node({ id: "scope", parent_id: null, kind: "group", name: "Project Scope", sort_order: 0 }),
+        node({ id: "kitchen", parent_id: "scope", kind: "area", name: "Kitchen", sort_order: 10 }),
+        node({ id: "site-work", parent_id: "scope", kind: "group", name: "Site Work", sort_order: 20 }),
+        node({ id: "living", parent_id: "scope", kind: "area", name: "Living", sort_order: 30 }),
+      ],
+      [],
+    );
+
+    expect(tree[0]?.children?.map((child) => child.id)).toEqual(["site-work", "kitchen", "living"]);
+  });
 });

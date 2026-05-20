@@ -5,7 +5,13 @@ import { redirect } from "next/navigation";
 
 import { requireCurrentUserContext } from "@/lib/auth/session";
 import type { EstimateTreeNode, EstimateRowItem } from "@/components/workshop/estimate-tree-data";
-import { canNestEstimateNodeKind, getEstimateNodeNestingError, normalizeEstimateTreeNodeKind, type EstimateTreeNodeKind } from "@/lib/estimates/tree-hierarchy";
+import {
+  canNestEstimateNodeKind,
+  getEstimateNodeKindSortRank,
+  getEstimateNodeNestingError,
+  normalizeEstimateTreeNodeKind,
+  type EstimateTreeNodeKind,
+} from "@/lib/estimates/tree-hierarchy";
 import { isMissingColumnError, normalizeEstimateRecord, type EstimateRecordWithLegacy } from "@/lib/repositories/estimate-schema-compat";
 import { getCurrentWorkspaceProject, getProjectEstimateTreeByEstimate } from "@/lib/repositories/workspace-repository";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -82,11 +88,37 @@ type ReorderEstimateNodeRow = {
 
 type CreateEstimateNodeKind = "group" | "area";
 
+type CreateEstimateNodeSiblingRow = {
+  id: string;
+  kind: string;
+  sort_order: number;
+};
+
 function readEstimateNodeKind(formData: FormData): CreateEstimateNodeKind {
   const value = readRequiredText(formData, "kind");
   if (value === "group") return "group";
   if (value === "area") return "area";
   throw new Error("Estimate node kind must be group or area.");
+}
+
+function getCreateEstimateNodeSiblingRank(kind: string) {
+  const normalizedKind = normalizeEstimateTreeNodeKind(kind);
+  return normalizedKind ? getEstimateNodeKindSortRank(normalizedKind) : Number.MAX_SAFE_INTEGER;
+}
+
+function buildCreateEstimateNodeSiblingUpdates(parentId: string | null, siblings: CreateEstimateNodeSiblingRow[]) {
+  return siblings
+    .map((sibling, index) => ({ sibling, index }))
+    .sort((left, right) => (
+      getCreateEstimateNodeSiblingRank(left.sibling.kind) - getCreateEstimateNodeSiblingRank(right.sibling.kind) ||
+      left.sibling.sort_order - right.sibling.sort_order ||
+      left.index - right.index
+    ))
+    .map(({ sibling }, index) => ({
+      id: sibling.id,
+      parent_id: parentId,
+      sort_order: (index + 1) * 10,
+    }));
 }
 
 async function getValidatedEstimateRow(projectId: string, estimateId: string, rowId: string) {
@@ -594,25 +626,46 @@ export async function createEstimateNode(projectId: string, estimateId: string, 
 
   const siblingQuery = supabase
     .from("estimate_nodes")
-    .select("sort_order")
+    .select("id, kind, sort_order")
     .eq("estimate_id", estimate.id)
-    .order("sort_order", { ascending: false })
-    .limit(1);
+    .order("sort_order", { ascending: true });
   const { data: siblings, error: siblingsError } = parentId
     ? await siblingQuery.eq("parent_id", parentId)
     : await siblingQuery.is("parent_id", null);
 
   if (siblingsError) throw siblingsError;
 
+  const siblingRows = (siblings ?? []) as CreateEstimateNodeSiblingRow[];
+  const maxSiblingSortOrder = siblingRows.reduce((max, sibling) => Math.max(max, sibling.sort_order), -1);
   const { data: node, error: insertError } = await supabase.from("estimate_nodes").insert({
     estimate_id: estimate.id,
     parent_id: parentId,
     kind,
     name,
-    sort_order: (siblings?.[0]?.sort_order ?? -1) + 1,
+    sort_order: maxSiblingSortOrder + 1,
   }).select("id").single();
 
   if (insertError) throw insertError;
+
+  const moveUpdates = buildCreateEstimateNodeSiblingUpdates(parentId, [
+    ...siblingRows,
+    { id: node.id, kind, sort_order: maxSiblingSortOrder + 1 },
+  ]);
+  const { error: rpcError } = await supabase.rpc("reorder_estimate_nodes", {
+    target_estimate_id: estimate.id,
+    move_updates: moveUpdates,
+  });
+  if (rpcError) {
+    const { error: rollbackError } = await supabase
+      .from("estimate_nodes")
+      .delete()
+      .eq("id", node.id)
+      .eq("estimate_id", estimate.id);
+    if (rollbackError) {
+      throw new Error(`Could not order estimate tree siblings: ${rpcError.message}; rollback failed: ${rollbackError.message}`);
+    }
+    throw new Error(`Could not order estimate tree siblings: ${rpcError.message}`);
+  }
 
   revalidatePath(`/workshop/projects/${project.id}/estimates`);
   revalidatePath(`/workshop/projects/${project.id}/estimates/${estimate.id}`);

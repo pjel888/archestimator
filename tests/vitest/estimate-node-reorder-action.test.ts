@@ -40,6 +40,7 @@ function queryResult<T>(result: SupabaseQueryResult<T>) {
     in: vi.fn(() => builder),
     is: vi.fn(() => builder),
     insert: vi.fn(() => builder),
+    delete: vi.fn(() => builder),
     maybeSingle: vi.fn(async () => result),
     single: vi.fn(async () => result),
     then: (resolve: (value: SupabaseQueryResult<T>) => void) => Promise.resolve(result).then(resolve),
@@ -268,7 +269,7 @@ describe("createEstimateNode server action", () => {
       data: { id: "second-floor", kind: "level", estimate_id: "estimate-1", estimates: { project_id: "project-1" } },
       error: null,
     });
-    const siblingQuery = queryResult({ data: [{ sort_order: 7 }], error: null });
+    const siblingQuery = queryResult({ data: [{ id: "existing-bedroom", kind: "area", sort_order: 7 }], error: null });
     const insertQuery = queryResult({ data: { id: "new-bedroom" }, error: null });
     const estimateNodeQueries = [parentQuery, siblingQuery, insertQuery];
     const supabase = {
@@ -281,6 +282,7 @@ describe("createEstimateNode server action", () => {
         }
         throw new Error(`Unexpected table ${table}`);
       }),
+      rpc: vi.fn(async () => ({ data: 2, error: null })),
     };
     supabaseServerMocks.createSupabaseServerClient.mockResolvedValue(supabase);
     const formData = new FormData();
@@ -298,8 +300,102 @@ describe("createEstimateNode server action", () => {
       name: "New Bedroom",
       sort_order: 8,
     });
+    expect(supabase.rpc).toHaveBeenCalledWith("reorder_estimate_nodes", {
+      target_estimate_id: "estimate-1",
+      move_updates: [
+        { id: "existing-bedroom", parent_id: "second-floor", sort_order: 10 },
+        { id: "new-bedroom", parent_id: "second-floor", sort_order: 20 },
+      ],
+    });
     expect(nextCacheMocks.revalidatePath).toHaveBeenCalledWith("/workshop/projects/project-1/estimates");
     expect(nextCacheMocks.revalidatePath).toHaveBeenCalledWith("/workshop/projects/project-1/estimates/estimate-1");
     expect(nextNavigationMocks.redirect).toHaveBeenCalledWith("/workshop/projects/project-1/estimates/new-bedroom");
+  });
+
+  it("orders a new Group Node before existing Area Node siblings", async () => {
+    const estimateQuery = queryResult({ data: { id: "estimate-1", project_id: "project-1" }, error: null });
+    const parentQuery = queryResult({
+      data: { id: "main-house", kind: "group", estimate_id: "estimate-1", estimates: { project_id: "project-1" } },
+      error: null,
+    });
+    const siblingQuery = queryResult({ data: [{ id: "kitchen", kind: "area", sort_order: 10 }], error: null });
+    const insertQuery = queryResult({ data: { id: "new-group" }, error: null });
+    const estimateNodeQueries = [parentQuery, siblingQuery, insertQuery];
+    const supabase = {
+      from: vi.fn((table: string) => {
+        if (table === "estimates") return estimateQuery;
+        if (table === "estimate_nodes") {
+          const nextQuery = estimateNodeQueries.shift();
+          if (!nextQuery) throw new Error("Unexpected estimate_nodes query");
+          return nextQuery;
+        }
+        throw new Error(`Unexpected table ${table}`);
+      }),
+      rpc: vi.fn(async () => ({ data: 2, error: null })),
+    };
+    supabaseServerMocks.createSupabaseServerClient.mockResolvedValue(supabase);
+    const formData = new FormData();
+    formData.set("name", "New Group");
+    formData.set("kind", "group");
+    formData.set("parentId", "main-house");
+    const { createEstimateNode } = await import("@/lib/estimates/actions");
+
+    await createEstimateNode("project-1", "estimate-1", formData);
+
+    expect(insertQuery.insert).toHaveBeenCalledWith({
+      estimate_id: "estimate-1",
+      parent_id: "main-house",
+      kind: "group",
+      name: "New Group",
+      sort_order: 11,
+    });
+    expect(supabase.rpc).toHaveBeenCalledWith("reorder_estimate_nodes", {
+      target_estimate_id: "estimate-1",
+      move_updates: [
+        { id: "new-group", parent_id: "main-house", sort_order: 10 },
+        { id: "kitchen", parent_id: "main-house", sort_order: 20 },
+      ],
+    });
+    expect(nextNavigationMocks.redirect).toHaveBeenCalledWith("/workshop/projects/project-1/estimates/new-group");
+  });
+
+  it("removes the inserted node if sibling reordering fails", async () => {
+    const estimateQuery = queryResult({ data: { id: "estimate-1", project_id: "project-1" }, error: null });
+    const parentQuery = queryResult({
+      data: { id: "main-house", kind: "group", estimate_id: "estimate-1", estimates: { project_id: "project-1" } },
+      error: null,
+    });
+    const siblingQuery = queryResult({ data: [{ id: "kitchen", kind: "area", sort_order: 10 }], error: null });
+    const insertQuery = queryResult({ data: { id: "new-group" }, error: null });
+    const deleteQuery = queryResult({ data: null, error: null });
+    const estimateNodeQueries = [parentQuery, siblingQuery, insertQuery, deleteQuery];
+    const supabase = {
+      from: vi.fn((table: string) => {
+        if (table === "estimates") return estimateQuery;
+        if (table === "estimate_nodes") {
+          const nextQuery = estimateNodeQueries.shift();
+          if (!nextQuery) throw new Error("Unexpected estimate_nodes query");
+          return nextQuery;
+        }
+        throw new Error(`Unexpected table ${table}`);
+      }),
+      rpc: vi.fn(async () => ({ data: null, error: new Error("duplicate estimate node reorder slots") })),
+    };
+    supabaseServerMocks.createSupabaseServerClient.mockResolvedValue(supabase);
+    const formData = new FormData();
+    formData.set("name", "New Group");
+    formData.set("kind", "group");
+    formData.set("parentId", "main-house");
+    const { createEstimateNode } = await import("@/lib/estimates/actions");
+
+    await expect(createEstimateNode("project-1", "estimate-1", formData)).rejects.toThrow(
+      "Could not order estimate tree siblings: duplicate estimate node reorder slots",
+    );
+
+    expect(deleteQuery.delete).toHaveBeenCalledTimes(1);
+    expect(deleteQuery.eq).toHaveBeenCalledWith("id", "new-group");
+    expect(deleteQuery.eq).toHaveBeenCalledWith("estimate_id", "estimate-1");
+    expect(nextCacheMocks.revalidatePath).not.toHaveBeenCalled();
+    expect(nextNavigationMocks.redirect).not.toHaveBeenCalled();
   });
 });

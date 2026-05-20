@@ -5,7 +5,9 @@ import { create } from "zustand";
 
 type EstimateWorkspaceState = {
   selectedNodeIdByEstimateId: Record<string, string | null>;
+  expandedNodeIdsByEstimateId: Record<string, string[] | undefined>;
   setSelectedNodeId: (estimateId: string, nodeId: string | null) => void;
+  setExpandedNodeIds: (estimateId: string, nodeIds: string[]) => void;
 };
 
 type ResolveEstimateWorkspaceSelectionOptions<TNode extends { id: string }> = {
@@ -21,6 +23,7 @@ export type EstimateWorkspaceSelectionResolution<TNode> = {
 
 export const useEstimateWorkspaceState = create<EstimateWorkspaceState>((set) => ({
   selectedNodeIdByEstimateId: {},
+  expandedNodeIdsByEstimateId: {},
   setSelectedNodeId: (estimateId, nodeId) => {
     set((state) => {
       if (state.selectedNodeIdByEstimateId[estimateId] === nodeId) return state;
@@ -32,10 +35,27 @@ export const useEstimateWorkspaceState = create<EstimateWorkspaceState>((set) =>
       };
     });
   },
+  setExpandedNodeIds: (estimateId, nodeIds) => {
+    set((state) => {
+      const currentNodeIds = state.expandedNodeIdsByEstimateId[estimateId];
+      if (areNodeIdsEqual(currentNodeIds, nodeIds)) return state;
+      return {
+        expandedNodeIdsByEstimateId: {
+          ...state.expandedNodeIdsByEstimateId,
+          [estimateId]: nodeIds,
+        },
+      };
+    });
+  },
 }));
 
 export function resetEstimateWorkspaceState() {
-  useEstimateWorkspaceState.setState({ selectedNodeIdByEstimateId: {} });
+  useEstimateWorkspaceState.setState({ selectedNodeIdByEstimateId: {}, expandedNodeIdsByEstimateId: {} });
+}
+
+function areNodeIdsEqual(left: string[] | undefined, right: string[]) {
+  if (!left || left.length !== right.length) return false;
+  return left.every((value, index) => value === right[index]);
 }
 
 export function resolveEstimateWorkspaceSelection<TNode extends { id: string }>({
@@ -74,5 +94,23 @@ export function useEstimateWorkspaceSelection(estimateId: string | undefined, ro
   return {
     selectedNodeId: storeSelectedNodeId ?? routeSelectedNodeId,
     setSelectedNodeId,
+  };
+}
+
+export function useEstimateWorkspaceExpansion(estimateId: string | undefined, defaultExpandedNodeIds: string[]) {
+  const storeExpandedNodeIds = useEstimateWorkspaceState((state) => (estimateId ? state.expandedNodeIdsByEstimateId[estimateId] : undefined));
+  const setStoreExpandedNodeIds = useEstimateWorkspaceState((state) => state.setExpandedNodeIds);
+
+  const setExpandedNodeIds = useCallback(
+    (nodeIds: string[]) => {
+      if (!estimateId) return;
+      setStoreExpandedNodeIds(estimateId, nodeIds);
+    },
+    [estimateId, setStoreExpandedNodeIds],
+  );
+
+  return {
+    expandedNodeIds: storeExpandedNodeIds ?? defaultExpandedNodeIds,
+    setExpandedNodeIds,
   };
 }

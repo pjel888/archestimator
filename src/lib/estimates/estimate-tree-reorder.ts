@@ -1,7 +1,7 @@
 import type { DraggingPosition, TreeItemIndex } from "react-complex-tree";
 
 import type { EstimateTreeNode } from "@/components/workshop/estimate-tree-data";
-import { canNestEstimateNodeKind } from "@/lib/estimates/tree-hierarchy";
+import { canNestEstimateNodeKind, getEstimateNodeKindSortRank } from "@/lib/estimates/tree-hierarchy";
 
 export const ESTIMATE_TREE_ROOT_ITEM_ID = "estimate-tree-root";
 export const ESTIMATE_TREE_SORT_ORDER_STEP = 10;
@@ -111,12 +111,19 @@ function removeNode(nodes: EstimateTreeNode[], id: string): RemoveNodeResult {
   return { removed, nodes: nextNodes };
 }
 
+function sortEstimateTreeSiblings(nodes: EstimateTreeNode[]) {
+  return nodes
+    .map((node, index) => ({ node, index }))
+    .sort((left, right) => getEstimateNodeKindSortRank(left.node.kind) - getEstimateNodeKindSortRank(right.node.kind) || left.index - right.index)
+    .map(({ node }) => node);
+}
+
 function insertNode(nodes: EstimateTreeNode[], parentId: string | null, rawIndex: number, nodeToInsert: EstimateTreeNode): EstimateTreeNode[] {
   const targetIndex = Math.max(0, rawIndex);
   if (parentId === null) {
     const nextNodes = nodes.map(cloneNode);
     nextNodes.splice(Math.min(targetIndex, nextNodes.length), 0, cloneNode(nodeToInsert));
-    return nextNodes;
+    return sortEstimateTreeSiblings(nextNodes);
   }
 
   return nodes.map((node) => {
@@ -124,7 +131,7 @@ function insertNode(nodes: EstimateTreeNode[], parentId: string | null, rawIndex
     if (cloned.id === parentId) {
       const nextChildren = cloned.children?.map(cloneNode) ?? [];
       nextChildren.splice(Math.min(targetIndex, nextChildren.length), 0, cloneNode(nodeToInsert));
-      return { ...cloned, children: nextChildren };
+      return { ...cloned, children: sortEstimateTreeSiblings(nextChildren) };
     }
     if (cloned.children?.length) return { ...cloned, children: insertNode(cloned.children, parentId, targetIndex, nodeToInsert) };
     return cloned;
@@ -226,6 +233,10 @@ export function buildEstimateNodeReorderPlan({
   if (!removedResult.removed) return fail("unknown-dragged-node", "Dragged estimate tree node was not found.");
 
   const nextNodes = insertNode(removedResult.nodes, targetParentId, adjustedTargetIndex, removedResult.removed);
+  if (getEstimateTreeStructureSignature(nextNodes) === getEstimateTreeStructureSignature(nodes)) {
+    return fail("no-op", "Estimate tree node is already in that position.");
+  }
+
   const affectedParentIds = uniqueParentIds([sourceLocation.parentId, targetParentId]);
   const updates = buildSiblingUpdates(nextNodes, affectedParentIds);
 
