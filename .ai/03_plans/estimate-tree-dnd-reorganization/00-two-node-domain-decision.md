@@ -81,10 +81,10 @@ Exact findings from the live repo:
 
 Before enabling React Complex Tree drag/drop, the implementation must first make the technical model truly two-kind:
 
-1. Collapse TypeScript unions to `"group" | "area"`.
+1. Collapse TypeScript unions to `"group" | "area"` and introduce canonical nested view-model type `EstimateTreeNode`.
 2. Convert sample/static tree data to use only `group` and `area`.
 3. Ensure repository tree build accepts only `group` and `area`, and does not filter out `group`.
-4. Update add-node form/action so the only create choices are `group` and `area`; any old `general` alias must be removed unless kept as a temporary form-input compatibility shim.
+4. Update add-node form/action so the only create choices are `group` and `area`; remove the current `general -> group` form alias in `readEstimateNodeKind` during Gate A.
 5. Add a Supabase migration that normalizes any existing `lot`, `general`, `structure`, `level`, or `assembly` estimate nodes to `group` before narrowing/enforcing the active domain.
 6. Update SQL hierarchy validation so it allows only:
    - root -> group;
@@ -96,16 +96,16 @@ Before enabling React Complex Tree drag/drop, the implementation must first make
 
 ## Database migration note
 
-PostgreSQL enum values cannot be removed with a simple `ALTER TYPE ... DROP VALUE` in the same way values are added. The safe migration path is:
+PostgreSQL enum values cannot be removed with a simple `ALTER TYPE ... DROP VALUE` in the same way values are added. The chosen Gate A path is normalization plus a strict check constraint, not immediate enum replacement.
 
-1. Update existing rows with legacy estimate node kinds to `group`.
-2. Drop or update dependent functions/triggers that reference the old enum values.
-3. Create a replacement enum with only `group` and `area` or add a strict database check/domain if the enum cannot be narrowed in the current migration window.
-4. Alter `estimate_nodes.kind` through a text cast to the replacement enum, then rename types if needed.
-5. Recreate hierarchy and row-item triggers against the two-kind matrix.
-6. Re-run migration alignment tests and regenerate `src/lib/supabase/types.ts`.
+1. Update existing `estimate_nodes.kind` values `lot`, `general`, `structure`, `level`, and `assembly` to `group`; keep `area` as `area`.
+2. Add and validate a strict `estimate_nodes` check constraint requiring `kind in ('group', 'area')`.
+3. Replace hierarchy validation functions/triggers so SQL enforces only root -> group, group -> group/area, and area -> no children.
+4. Keep the physical enum values temporarily to avoid high-risk enum replacement inside the DnD feature branch.
+5. Expose only `group | area` through app/domain/view-model types and repository guards.
+6. Re-run migration alignment tests and regenerate `src/lib/supabase/types.ts` if the generated schema changes.
 
-If the team decides not to narrow the physical enum immediately, the code must still reject legacy values on create/move and SQL must enforce a `kind in ('group', 'area')` constraint. That is a temporary compatibility compromise, not the final desired model.
+Full enum replacement can be a later hardening migration after DnD ships and production data has been audited. The `assembly` estimate-node kind is not preserved as active tree semantics; any existing estimate node with that value is normalized to `group`. Cost-library item kind `assembly` is unrelated.
 
 ## Impact evidence
 

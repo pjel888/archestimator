@@ -130,7 +130,7 @@ export function canNestEstimateNodeKind(childKind: EstimateNodeKind, parentKind:
 Repository target:
 
 ```ts
-function isDisplayNodeKind(kind: EstimateNodeKind): kind is EstimateAreaNode["kind"] {
+function isDisplayNodeKind(kind: EstimateNodeKind): kind is EstimateTreeNode["kind"] {
   return kind === "group" || kind === "area";
 }
 ```
@@ -138,13 +138,15 @@ function isDisplayNodeKind(kind: EstimateNodeKind): kind is EstimateAreaNode["ki
 Required actions:
 
 - Remove legacy node-kind unions from source types.
-- Rename or alias the stale `EstimateAreaNode` view-model type if it continues to represent both Group Nodes and Area Nodes; do not let the type name imply every tree node is an Area Node.
+- Introduce canonical `EstimateTreeNode` for the nested tree view-model and update touched tree files to use it. A temporary `EstimateAreaNode = EstimateTreeNode` alias is allowed only as a short bridge; new DnD code must use `EstimateTreeNode`.
 - Convert sample/static tree records from `lot`, `general`, `structure`, and `level` to `group`.
 - Keep visible names such as `Lot`, `General Requirements`, `House`, etc. as `name` values.
 - Ensure the add-node form presents exactly Group Node and Area Node choices.
+- Remove the current `general -> group` compatibility alias in `readEstimateNodeKind`; the server action must accept only `group` and `area` form values.
 - Ensure the server action can create only `group` and `area` nodes.
-- Add or update a Supabase migration to normalize legacy rows to `group` and enforce the two-kind matrix.
-- Regenerate/update Supabase types after migration changes.
+- Add or update a Supabase migration to normalize legacy rows to `group` and enforce the two-kind matrix with a check constraint. Do not replace the PostgreSQL enum in this feature branch unless the implementation explicitly proves it is safe.
+- Normalize `assembly` estimate-node values to `group`; do not touch cost-library `assembly` item kind.
+- Regenerate/update Supabase types after migration changes when the generated schema changes.
 - Update tests to assert the two-kind hierarchy matrix.
 
 Tests:
@@ -178,7 +180,7 @@ Recommended types:
 
 ```ts
 import type { DraggingPosition, TreeItemIndex } from "react-complex-tree";
-import type { EstimateAreaNode } from "@/components/workshop/estimate-tree-data";
+import type { EstimateTreeNode } from "@/components/workshop/estimate-tree-data";
 
 export type EstimateNodeReorderUpdate = {
   id: string;
@@ -189,7 +191,7 @@ export type EstimateNodeReorderUpdate = {
 export type EstimateTreeReorderPlan = {
   movedIds: string[];
   targetParentId: string | null;
-  nextNodes: EstimateAreaNode[];
+  nextNodes: EstimateTreeNode[];
   updates: EstimateNodeReorderUpdate[];
   affectedParentIds: Array<string | null>;
 };
@@ -213,27 +215,27 @@ Recommended functions:
 
 ```ts
 export function evaluateEstimateTreeDrop(args: {
-  nodes: EstimateAreaNode[];
+  nodes: EstimateTreeNode[];
   draggedItemIds: TreeItemIndex[];
   target: DraggingPosition;
 }): EstimateTreeReorderEvaluation;
 
 export function buildEstimateNodeReorderPlan(args: {
-  nodes: EstimateAreaNode[];
+  nodes: EstimateTreeNode[];
   draggedNodeId: string;
   targetParentId: string | null;
   targetIndex: number;
 }): EstimateTreeReorderEvaluation;
 
 export function applyEstimateNodeReorder(args: {
-  nodes: EstimateAreaNode[];
+  nodes: EstimateTreeNode[];
   draggedNodeId: string;
   targetParentId: string | null;
   targetIndex: number;
 }): EstimateTreeReorderPlan;
 
-export function flattenEstimateTree(nodes: EstimateAreaNode[]): Array<{
-  node: EstimateAreaNode;
+export function flattenEstimateTree(nodes: EstimateTreeNode[]): Array<{
+  node: EstimateTreeNode;
   parentId: string | null;
   sortIndex: number;
 }>;
@@ -447,6 +449,8 @@ Or import the server action directly if the existing project pattern prefers dir
 Add local optimistic state with a stale-props guard:
 
 ```ts
+const queryClient = useQueryClient();
+const areaTreeQueryKey = estimateQueryKeys.areaTree(estimateId);
 const [optimisticNodes, setOptimisticNodes] = useState(nodes);
 const rollbackRef = useRef<EstimateTreeNode[] | null>(null);
 const localConfirmedTreeSignatureRef = useRef<string | null>(null);
@@ -524,24 +528,28 @@ const handleDrop = useCallback(async (items, target) => {
   setMoveError(null);
   setMoveState("saving");
   setOptimisticNodes(evaluation.plan.nextNodes);
+  queryClient.setQueryData(areaTreeQueryKey, evaluation.plan.nextNodes);
 
   try {
     const result = await reorderEstimateTreeNodes(projectId, estimateId, { updates: evaluation.plan.updates });
-    const confirmedTree = result.tree ?? evaluation.plan.nextNodes;
+    const confirmedTree = result.tree;
     localConfirmedTreeSignatureRef.current = getEstimateTreeStructureSignature(confirmedTree);
     setOptimisticNodes(confirmedTree);
+    queryClient.setQueryData(areaTreeQueryKey, confirmedTree);
     setMoveState("idle");
     rollbackRef.current = null;
   } catch (error) {
-    setOptimisticNodes(rollbackRef.current ?? nodes);
+    const rollbackTree = rollbackRef.current ?? nodes;
+    setOptimisticNodes(rollbackTree);
+    queryClient.setQueryData(areaTreeQueryKey, rollbackTree);
     rollbackRef.current = null;
     setMoveState("failed");
-    setMoveError(error instanceof Error ? error.message : "Could not move estimate node.");
+    setMoveError(error instanceof Error ? error.message : "Could not reorder estimate node.");
   }
-}, [estimateId, optimisticNodes, projectId, nodes]);
+}, [areaTreeQueryKey, estimateId, optimisticNodes, projectId, nodes, queryClient]);
 ```
 
-Use the actual action return shape once implemented.
+The server action return shape is not optional: `reorderEstimateTreeNodes` returns `{ tree: EstimateTreeNode[] }` after refetching the canonical nested tree. Do not fall back to `evaluation.plan.nextNodes` on success because that masks stale persistence reads.
 
 ### RCT props
 
@@ -591,9 +599,9 @@ Commit:
 
 Default MVP path:
 
-- Keep optimistic DnD state local to `EstimateSheetTree`.
-- Reconcile from the server action's returned fresh tree.
-- Update/invalidate TanStack Query area-tree cache after persistence succeeds if `EstimateSheetContent` depends on that tree snapshot.
+- Keep optimistic DnD state local to `EstimateSheetTree` unless browser tests prove a shared boundary is necessary.
+- Reconcile from the server action's returned fresh nested tree.
+- Mirror every optimistic/success/rollback tree change into `queryClient.setQueryData(estimateQueryKeys.areaTree(estimateId), tree)` so `EstimateSheetContent` sees the same nested tree snapshot. Do not blindly invalidate after a successful drop.
 
 After tree-local MVP implementation, test these cases in component tests and Playwright:
 
@@ -707,6 +715,8 @@ Manual browser checks:
 ### Code
 
 - `src/components/workshop/EstimateSheetTree.tsx`
+- `src/components/workshop/EstimateSheetContent.tsx` (query-cache synchronization tests/typing if touched)
+- `src/hooks/use-estimate-query.ts` (import query key only; do not base DnD on dead `useMoveEstimateRowItem`)
 - `src/lib/estimates/tree-hierarchy.ts`
 - `src/lib/domain/estimate-tree.ts`
 - `src/components/workshop/estimate-tree-data.ts`
@@ -742,6 +752,8 @@ Manual browser checks:
 ## Acceptance checklist
 
 - [ ] Technical estimate node kinds are only `group | area` in TypeScript/domain/sample data/tests.
+- [ ] Canonical nested view-model type is `EstimateTreeNode`; no new feature code imports stale `EstimateAreaNode`.
+- [ ] `readEstimateNodeKind` accepts only `group` and `area`; the old `general` alias is removed.
 - [ ] Database normalizes or rejects legacy estimate node kinds and enforces only Group/Area hierarchy.
 - [ ] Drag/drop is enabled in RCT.
 - [ ] Valid Group Node root sibling reorder works.
@@ -757,6 +769,9 @@ Manual browser checks:
 - [ ] Expanded/collapsed state remains stable.
 - [ ] No `router.refresh()` from drop.
 - [ ] No document request/frame navigation during drop.
+- [ ] Synthetic RCT root has `canMove: false`, and `canDrag` rejects `item.data.node === null`.
+- [ ] `estimateQueryKeys.areaTree(estimateId)` cache mirrors optimistic/success/rollback tree state.
+- [ ] `canInvokePrimaryActionOnItemContainer` does not fire route navigation during drag/drop.
 - [ ] Persistence survives reload.
 - [ ] New server function is atomic and tested.
 - [ ] Full validation gates pass.

@@ -1,6 +1,6 @@
 # Estimate Tree Drag/Drop Reorganization Plan
 
-Status: planning/audit package created 2026-05-20 18:51 PST; upgraded after two-node tree decision, current-state validation, and independent review/hygiene at 2026-05-20 19:59 PST.
+Status: planning/audit package created 2026-05-20 18:51 PST; upgraded after two-node tree decision, current-state validation, independent review/hygiene, and assessment decision-closure at 2026-05-20 21:06 PST.
 Target route: `/workshop/projects/22222222-2222-4222-8222-222222222222/estimates/77777777-7777-4777-8777-777777777729`
 Primary package: `react-complex-tree` v2.6.1
 Implementation status: not implemented; this folder is the implementation-ready plan pack.
@@ -31,7 +31,8 @@ The plan preserves the current root invariant: the synthetic root accepts Group 
 5. `04-testing-browser-qa-plan.md`
 6. `08-verification-runbook-and-readiness-gate.md`
 7. `09-independent-review-hygiene-memo.md`
-8. `05-rollout-and-commit-plan.md`
+8. `10-assessment-response-decision-closure.md`
+9. `05-rollout-and-commit-plan.md`
 
 Do not start by adding RCT drag/drop props. Start with the two-kind/read-path correction.
 
@@ -86,6 +87,10 @@ Do not start by adding RCT drag/drop props. Start with the two-kind/read-path co
    - Corrections applied after review.
    - Final markdown/name hygiene verdict.
 
+10. `10-assessment-response-decision-closure.md`
+   - Response to two assessment reports.
+   - Binding choices for store usage, cache sync, type rename, DB migration strategy, RCT root movement, and E2E data isolation.
+
 Related reusable skill payload:
 - `.ai/11_skills/payloads/react-complex-tree-dnd-archestimator.md`
 
@@ -95,6 +100,7 @@ Hermes user-local skill:
 ## Non-negotiable implementation requirements
 
 - The technical estimate node kind union must be `"group" | "area"` before drag/drop is enabled.
+- Gate A must introduce canonical `EstimateTreeNode`; new feature code must not use stale `EstimateAreaNode` naming.
 - `workspace-repository.ts` must display `group` nodes; the current `isDisplayNodeKind` asymmetry is the first blocker.
 - The tree must update optimistically in local/client state immediately on drop.
 - Drop must not call `router.refresh()` or cause a document navigation.
@@ -103,6 +109,7 @@ Hermes user-local skill:
 - Persistence must be atomic. Do not update multiple nodes with independent client-side requests.
 - Hierarchy rules must match `canNestEstimateNodeKind` and database enforcement.
 - Browser QA must prove no full reload and no blank/flicker frames during drag/drop.
+- Mutating Playwright DnD tests must use isolated/cloned estimate data, not the shared manual-QA target estimate.
 - Tests that currently assert DnD absence must be replaced with behavior coverage.
 
 ## Current blockers/risks discovered
@@ -114,10 +121,11 @@ Hermes user-local skill:
 - `workspace-repository.ts` currently excludes `kind === "group"` from `isDisplayNodeKind`, while seed data and the add-node action create `group` nodes. Under the two-node model, this must become an explicit `group | area` guard.
 - `sampleEstimateTree` currently uses `lot`, `general`, `structure`, and `level` as technical kinds. These must become `group` while preserving the visible labels.
 - Playwright browser proof is not credible until authenticated route setup exists and mutable test data is isolated/reset.
+- `useEstimateUiStore` and `useMoveEstimateRowItem` are currently dead code; the plan now explicitly avoids basing DnD on them.
 
 ## Readiness status
 
-After the added current-state memo, implementation reference, and verification runbook, the plan pack is ready for the first implementation slice with one condition: the slice must begin with Gate A from `08-verification-runbook-and-readiness-gate.md`.
+After the added current-state memo, implementation reference, verification runbook, and assessment decision-closure addendum, the plan pack is ready for the first implementation slice with one condition: the slice must begin with Gate A from `08-verification-runbook-and-readiness-gate.md` and apply the binding decisions in `10-assessment-response-decision-closure.md`.
 
 Next best implementation action:
 

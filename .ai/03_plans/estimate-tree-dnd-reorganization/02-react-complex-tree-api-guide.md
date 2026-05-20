@@ -102,7 +102,7 @@ Archestimator mapping should remain:
 
 ```ts
 type EstimateTreeItemData = {
-  node: EstimateAreaNode | null;
+  node: EstimateTreeNode | null;
 };
 ```
 
@@ -118,6 +118,7 @@ Mapping rules:
 - Synthetic root item:
   - `index: ROOT_ITEM_ID`
   - `isFolder: true`
+  - `canMove: false`
   - `children: top-level Group Node ids`
   - `data: { node: null }`
 - Group Nodes (`node.kind === "group"`):
@@ -273,7 +274,7 @@ type EstimateTreeDropEvaluation =
   | { ok: false; reason: string };
 
 function evaluateEstimateTreeDrop(args: {
-  nodes: EstimateAreaNode[];
+  nodes: EstimateTreeNode[];
   draggedIds: string[];
   target: DraggingPosition;
 }): EstimateTreeDropEvaluation;
@@ -528,5 +529,7 @@ Do not remove live descriptions or ARIA props accidentally. If custom status is 
 - [ ] Keep `InteractionMode.ClickArrowToExpand` unless product changes row-click behavior.
 - [ ] Preserve `data-estimate-tree-node-id` selectors.
 - [ ] Add stable selectors for drop line/status if needed.
+- [ ] Set `canMove: false` on the synthetic root item.
+- [ ] Preserve `canInvokePrimaryActionOnItemContainer` only if drag/drop tests prove it does not trigger navigation.
 - [ ] Test keyboard and pointer drag/drop.
 - [ ] Prove no document navigation/reload on drop.

@@ -54,6 +54,7 @@ For MVP:
 
 - single-node drag only;
 - technical estimate node kinds are only `group` and `area`;
+- canonical nested view-model type is `EstimateTreeNode`, not stale `EstimateAreaNode`;
 - Group Nodes may be parents;
 - Area Nodes cannot be parents;
 - Area Nodes cannot be root children;
@@ -136,6 +137,8 @@ Do not duplicate this matrix separately in component code.
 6. A previous migration created `public.move_estimate_nodes`; a later migration drops it because old tree DnD was removed. New implementation must deliberately add a new atomic function after the removal migration.
 7. Tests currently assert DnD is absent; they must be rewritten.
 8. Browser navigation to the target route redirects to `/login` unless dev auth/session is configured.
+9. Do not activate unused `useEstimateUiStore` for DnD MVP; use tree-local optimism plus `estimateQueryKeys.areaTree(estimateId)` cache mirroring.
+10. Gate A must remove the current `general -> group` form alias and normalize legacy estimate-node values, including `assembly`, to `group` with a DB check constraint.
 
 ## Required helper design
 
@@ -147,13 +150,13 @@ Functions:
 
 ```ts
 export function evaluateEstimateTreeDrop(args: {
-  nodes: EstimateAreaNode[];
+  nodes: EstimateTreeNode[];
   draggedItemIds: TreeItemIndex[];
   target: DraggingPosition;
 }): EstimateTreeReorderEvaluation;
 
 export function buildEstimateNodeReorderPlan(args: {
-  nodes: EstimateAreaNode[];
+  nodes: EstimateTreeNode[];
   draggedNodeId: string;
   targetParentId: string | null;
   targetIndex: number;
@@ -178,11 +181,13 @@ Inside `EstimateSheetTree` or a shared client boundary:
 3. On drop, evaluate move from current `optimisticNodes`.
 4. Save rollback snapshot.
 5. Apply `nextNodes` immediately.
-6. Call server action.
-7. On success, reconcile returned tree.
-8. On failure, rollback and show accessible error.
+6. Mirror `nextNodes` into `queryClient.setQueryData(estimateQueryKeys.areaTree(estimateId), nextNodes)`.
+7. Call server action.
+8. On success, reconcile returned nested tree and mirror it into the same query cache.
+9. On failure, rollback both local tree and query cache, then show accessible error.
+10. Use `localConfirmedTreeSignatureRef` so stale route props cannot overwrite the action-returned confirmed tree.
 
-Never call `router.refresh()` on drop.
+Never call `router.refresh()` on drop. Do not blindly invalidate the area-tree query after success unless tests prove it cannot disturb dirty/saving sheet edits.
 
 ## Server persistence pattern
 
@@ -198,7 +203,8 @@ The action must:
 - validate moved nodes and parents belong to same estimate;
 - validate hierarchy/cycles;
 - call one atomic DB function, not per-row updates;
-- return fresh tree or a normalized success result;
+- return `{ tree: EstimateTreeNode[] }`, where `tree` is the confirmed fresh nested tree consumed by the RCT client;
+- not return the flat domain `EstimateTree = { nodes, rows }`;
 - not redirect.
 
 Recommended DB function name:
@@ -229,8 +235,10 @@ Component:
 - optimistic DOM order before server resolves;
 - failure rollback;
 - invalid drop no action;
+- synthetic root has `canMove: false`, and `canDrag` rejects root/null-data items;
+- `canInvokePrimaryActionOnItemContainer` does not trigger `router.push` during drag/drop;
 - no `router.push` / `router.refresh` on drop;
-- selected/expanded/focused state preserved.
+- selected/expanded/focused state preserved;
 
 Playwright:
 

@@ -103,11 +103,22 @@ Minimum changed files:
 - `src/lib/estimates/tree-hierarchy.ts`
 - `src/lib/domain/estimate-tree.ts` or related view-model typing file
 - `src/components/workshop/estimate-tree-data.ts`
+- `src/components/workshop/EstimateSheetTree.tsx` add-node form/type imports
 - `src/lib/repositories/workspace-repository.ts`
 - `src/lib/estimates/actions.ts`
 - `src/lib/supabase/types.ts` if DB enum/function types changed
 - Supabase migration file if data normalization/enforcement is added
 - relevant tests
+
+Type regeneration after migration changes:
+
+```bash
+# local migrated DB
+npx supabase gen types typescript --local --schema public > src/lib/supabase/types.ts
+
+# remote project, only when intentionally regenerating from linked remote
+npx supabase gen types typescript --project-id ebxxqidacheyapmmzavr --schema public > src/lib/supabase/types.ts
+```
 
 Targeted checks:
 
@@ -123,7 +134,9 @@ Expected functional proof:
 - every rendered estimate tree node has `kind` `group` or `area`;
 - newly created Group Nodes remain visible after repository fetch;
 - `isDisplayNodeKind` accepts `group` and `area` only;
-- tests fail if `lot`, `general`, `structure`, `level`, or `assembly` remain active technical kinds;
+- tests fail if `lot`, `general`, `structure`, `level`, or `assembly` remain active technical estimate-node kinds;
+- `readEstimateNodeKind` rejects legacy `general` form input;
+- canonical nested view-model type is `EstimateTreeNode`;
 - hierarchy tests assert root -> `group`, `group` -> `group|area`, `area` -> none.
 
 Do not proceed to RCT drag/drop until Gate A passes.
@@ -134,6 +147,16 @@ Minimum changed files:
 
 - `src/lib/estimates/tree-reorder.ts`
 - `tests/vitest/estimate-tree-reorder.test.ts`
+
+Type regeneration after migration changes:
+
+```bash
+# local migrated DB
+npx supabase gen types typescript --local --schema public > src/lib/supabase/types.ts
+
+# remote project, only when intentionally regenerating from linked remote
+npx supabase gen types typescript --project-id ebxxqidacheyapmmzavr --schema public > src/lib/supabase/types.ts
+```
 
 Targeted checks:
 
@@ -159,6 +182,16 @@ Minimum changed files:
 - `src/lib/estimates/actions.ts`
 - server action/migration tests
 
+Type regeneration after migration changes:
+
+```bash
+# local migrated DB
+npx supabase gen types typescript --local --schema public > src/lib/supabase/types.ts
+
+# remote project, only when intentionally regenerating from linked remote
+npx supabase gen types typescript --project-id ebxxqidacheyapmmzavr --schema public > src/lib/supabase/types.ts
+```
+
 Targeted checks:
 
 ```bash
@@ -173,7 +206,7 @@ Expected proof:
 - old `move_estimate_nodes` removal migration remains historically true;
 - action calls one RPC for a valid move;
 - action does not redirect;
-- action returns a fresh tree or equivalent normalized result;
+- action returns `{ tree: EstimateTreeNode[] }`, where `tree` is the confirmed fresh nested tree consumed by the client;
 - database validates caller authorization, scope, duplicates, hierarchy, cycles, and update count;
 - if the RPC uses `SECURITY DEFINER`, direct RPC access by a non-member is rejected by an explicit `auth.uid()` workspace-membership check.
 
@@ -185,6 +218,16 @@ Minimum changed files:
 - possibly `src/components/workshop/EstimateWorkspaceClientBoundary.tsx` only if the conditional shared-state path is triggered
 - `tests/vitest/estimate-sheet-tree-dnd.test.tsx`
 - updated route/source tests that previously asserted DnD was absent
+
+Type regeneration after migration changes:
+
+```bash
+# local migrated DB
+npx supabase gen types typescript --local --schema public > src/lib/supabase/types.ts
+
+# remote project, only when intentionally regenerating from linked remote
+npx supabase gen types typescript --project-id ebxxqidacheyapmmzavr --schema public > src/lib/supabase/types.ts
+```
 
 Targeted checks:
 
@@ -202,7 +245,8 @@ Expected proof:
 - invalid drop does not call server action;
 - selected/focused/expanded state is stable by id;
 - stale route props do not overwrite the action-returned confirmed tree after `moveState` returns to idle;
-- `router.push` and `router.refresh` are not called by drop;
+- `estimateQueryKeys.areaTree(estimateId)` cache mirrors optimistic, success, and rollback state;
+- `router.push` and `router.refresh` are not called by drop, including with `canInvokePrimaryActionOnItemContainer` enabled;
 - `role="status"` communicates saving/error state;
 - RCT DnD props are configured in controlled mode.
 
@@ -228,6 +272,7 @@ Expected proof:
 
 - signed-out auth behavior still passes;
 - authenticated DnD route does not redirect to `/login`;
+- mutating tests use isolated/cloned/reset estimate data, not the shared manual-QA target estimate;
 - valid moves update visually immediately;
 - reload proves persistence;
 - invalid moves do not persist;
