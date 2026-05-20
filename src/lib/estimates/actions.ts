@@ -63,7 +63,7 @@ type CreateEstimateNodeKind = "group" | "area";
 
 function readEstimateNodeKind(formData: FormData): CreateEstimateNodeKind {
   const value = readRequiredText(formData, "kind");
-  if (value === "group" || value === "general") return "group";
+  if (value === "group") return "group";
   if (value === "area") return "area";
   throw new Error("Estimate node kind must be group or area.");
 }
