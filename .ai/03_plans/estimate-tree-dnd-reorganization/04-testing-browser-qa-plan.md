@@ -252,7 +252,8 @@ New file options:
    - No per-row client update loop.
 
 5. Return shape
-   - Action returns fresh tree or normalized success result.
+   - Action returns `{ tree: EstimateTreeNode[] }`, where `tree` is the confirmed fresh nested tree consumed by the RCT client.
+   - Action does not return the flat domain `EstimateTree = { nodes, rows }`.
    - Action does not call `redirect()`.
 
 6. Revalidation policy
@@ -295,7 +296,7 @@ Integration cases:
 - Valid Group Node root reorder persists.
 - Valid Area Node reparent persists.
 - Invalid Area Node parent is rejected by DB.
-- Legacy values (`lot`, `general`, `structure`, `level`, `assembly`) are normalized or rejected according to the chosen migration strategy.
+- Legacy estimate-node values (`lot`, `general`, `structure`, `level`, `assembly`) are normalized to `group` and blocked by a `kind in ('group', 'area')` check constraint. Cost-library `assembly` item kind is not changed.
 - Duplicate sort order rejected.
 - Cycle rejected.
 
@@ -341,11 +342,12 @@ Target route provided by user:
 
 Use stable seed ids from `supabase/seed.sql` if available. For mutating tests, avoid corrupting the shared seed:
 
-Preferred:
+Required for automated mutating DnD tests:
 
-- Clone seed estimate/tree into a per-test estimate id.
-- Or reset local DB before/after suite.
-- Or keep a dedicated e2e estimate branch of data.
+- Do not mutate the shared manual-QA target estimate directly.
+- Clone seed estimate/tree into a unique per-test or per-worker estimate id, or reset the local DB before/after the suite.
+- If using dev-admin DB access, read credentials only from environment/CI secrets.
+- Keep a dedicated e2e estimate branch of data if cloning is too expensive.
 
 Do not run mutating DnD tests in parallel against the same estimate unless isolated.
 
@@ -359,7 +361,7 @@ Do not run mutating DnD tests in parallel against the same estimate unless isola
 2. Group root sibling reorder
    - Drag one root Group Node before another.
    - Assert visual order updates immediately.
-   - Assert no document navigation.
+   - Assert no document navigation and no accidental `router.push` from `canInvokePrimaryActionOnItemContainer`.
    - Reload page.
    - Assert order persists.
 
@@ -397,7 +399,7 @@ Do not run mutating DnD tests in parallel against the same estimate unless isola
 9. Keyboard DnD smoke
    - Use RCT keyboard drag where feasible:
      - focus item
-     - `Control+D`
+     - `Control+Shift+D`
      - arrows
      - `Enter`
    - Assert same no-reload/optimistic behavior.

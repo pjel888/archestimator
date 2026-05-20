@@ -50,7 +50,7 @@ Examples:
 
 Current type name `EstimateAreaNode` is semantically stale because it represents both organizing nodes and row-owning area nodes.
 
-Preferred implementation path:
+Mandatory Gate A path:
 
 1. Introduce `EstimateTreeNode` as the canonical view-model type.
 2. Keep a temporary alias only if it reduces churn:
@@ -59,8 +59,9 @@ Preferred implementation path:
 export type EstimateAreaNode = EstimateTreeNode;
 ```
 
-3. Gradually update component imports to `EstimateTreeNode` during the same branch or a follow-up cleanup.
+3. Update touched feature-path imports to `EstimateTreeNode` in the same branch. New DnD files must not import `EstimateAreaNode`.
 4. Do not create a new type that reintroduces legacy kind names.
+5. The final implementation PR should either remove the alias or explicitly justify why any untouched compatibility import remains.
 
 Target shape:
 
@@ -192,6 +193,52 @@ Current line references from validation:
 - `kind: "level"`: current sample lines 305-307, 336-338, 365-367.
 - `kind: "area"`: row-owning leaves; keep as `area`.
 
+### `src/lib/estimates/actions.ts` and add-node form
+
+Gate A must simplify both creation entry points:
+
+- `AddEstimateNodeForm` / `EstimateSheetTree.tsx` presents exactly Group Node and Area Node.
+- `readEstimateNodeKind` accepts only `group` and `area`; remove the current `general -> group` compatibility alias.
+- Parent options are group-only after simplification: `node.kind === "group"`.
+
+```ts
+type CreateEstimateNodeKind = "group" | "area";
+
+function readEstimateNodeKind(formData: FormData): CreateEstimateNodeKind {
+  const value = readRequiredText(formData, "kind");
+  if (value === "group" || value === "area") return value;
+  throw new Error("Estimate node kind must be group or area.");
+}
+```
+
+### Gate A migration strategy
+
+Chosen path: normalize legacy data and add a check constraint first; defer physical enum replacement.
+
+Skeleton only; implementation must adapt names to the actual migration timestamp and existing function bodies:
+
+```sql
+update public.estimate_nodes
+set kind = 'group'::public.estimate_node_kind
+where kind in ('lot', 'general', 'structure', 'level', 'assembly');
+
+alter table public.estimate_nodes
+  drop constraint if exists estimate_nodes_kind_active_check;
+
+alter table public.estimate_nodes
+  add constraint estimate_nodes_kind_active_check
+  check (kind in ('group', 'area'))
+  not valid;
+
+alter table public.estimate_nodes
+  validate constraint estimate_nodes_kind_active_check;
+
+-- Replace validate_estimate_node_tree / reorder validation matrices so:
+-- root -> group; group -> group|area; area -> no children.
+```
+
+Do not alter `cost_library_item_kind = 'assembly'`; this decision applies only to `estimate_nodes.kind`.
+
 ## Reorder helper contract
 
 Add file:
@@ -209,7 +256,7 @@ export const ESTIMATE_TREE_ROOT_ID = "estimate-tree-root";
 export const ESTIMATE_TREE_SORT_ORDER_STEP = 10;
 ```
 
-If `EstimateSheetTree.tsx` already has a `ROOT_ITEM_ID` constant, export/reuse a shared constant or keep string values identical. Current component value is `"estimate-tree-root"`; root-level RCT `between-items` drops will break if helper and component disagree.
+If `EstimateSheetTree.tsx` already has a `ROOT_ITEM_ID` constant, export/reuse a shared constant or keep string values identical. Current component value is `"estimate-tree-root"`; root-level RCT `between-items` drops will break if helper and component disagree. The synthetic root `TreeItem` must also set `canMove: false`, while `canDrag` must reject `item.data.node === null`.
 
 ### Types
 
@@ -542,6 +589,25 @@ Two-kind hierarchy SQL check:
 or (parent.kind = 'group' and child.kind in ('group', 'area'))
 ```
 
+## Server action return boundary
+
+`reorderEstimateTreeNodes` must return the nested tree consumed by RCT, not the flat domain `EstimateTree = { nodes, rows }`.
+
+```ts
+export type ReorderEstimateTreeNodesResult = {
+  tree: EstimateTreeNode[];
+};
+```
+
+Recommended boundary:
+
+1. Client helper builds `updates`.
+2. Server action validates project/estimate scope and calls one atomic `rpc("reorder_estimate_nodes", ...)`.
+3. Server action refetches the nested tree through the same repository path used by the route.
+4. Server action returns `{ tree }`.
+
+The RPC may return update count/void; the action owns transformation to the nested view model.
+
 ## Client component contract
 
 File:
@@ -571,6 +637,8 @@ import {
 Reconciliation must not overwrite a confirmed local reorder with stale server props. Use a tree-structure signature guard:
 
 ```ts
+const queryClient = useQueryClient();
+const areaTreeQueryKey = estimateQueryKeys.areaTree(estimateId);
 const [optimisticNodes, setOptimisticNodes] = useState(nodes);
 const rollbackRef = useRef<EstimateTreeNode[] | null>(null);
 const localConfirmedTreeSignatureRef = useRef<string | null>(null);
@@ -631,6 +699,7 @@ const handleDrop = useCallback(async (items: TreeItem<EstimateTreeItemData>[], t
   setMoveError(null);
   setMoveState("saving");
   setOptimisticNodes(evaluation.plan.nextNodes);
+  queryClient.setQueryData(areaTreeQueryKey, evaluation.plan.nextNodes);
 
   try {
     const result = await reorderEstimateTreeNodes(projectId, estimateId, {
@@ -639,15 +708,18 @@ const handleDrop = useCallback(async (items: TreeItem<EstimateTreeItemData>[], t
     const confirmedTree = result.tree;
     localConfirmedTreeSignatureRef.current = getEstimateTreeStructureSignature(confirmedTree);
     setOptimisticNodes(confirmedTree);
+    queryClient.setQueryData(areaTreeQueryKey, confirmedTree);
     rollbackRef.current = null;
     setMoveState("idle");
   } catch (error) {
-    setOptimisticNodes(rollbackRef.current ?? nodes);
+    const rollbackTree = rollbackRef.current ?? nodes;
+    setOptimisticNodes(rollbackTree);
+    queryClient.setQueryData(areaTreeQueryKey, rollbackTree);
     rollbackRef.current = null;
     setMoveState("failed");
     setMoveError(error instanceof Error ? error.message : "Could not move estimate node.");
   }
-}, [estimateId, optimisticNodes, projectId, nodes]);
+}, [areaTreeQueryKey, estimateId, optimisticNodes, projectId, nodes, queryClient]);
 ```
 
 ### ControlledTreeEnvironment props
@@ -672,7 +744,7 @@ const handleDrop = useCallback(async (items: TreeItem<EstimateTreeItemData>[], t
 >
 ```
 
-Keep `onPrimaryAction` route navigation unchanged for click/keyboard activation. Do not call it from `onDrop`.
+Keep `onPrimaryAction` route navigation unchanged for click/keyboard activation. Do not call it from `onDrop`. Because the current environment uses `canInvokePrimaryActionOnItemContainer`, tests must prove drag/drop does not trigger `router.push`; if it does, add an explicit drag handle or disable container primary action during active drag.
 
 ### Required selectors/status
 
@@ -690,8 +762,9 @@ Add/preserve:
 Default MVP path:
 
 - Keep optimistic DnD state local to `EstimateSheetTree`.
-- Reconcile from action-returned fresh tree.
-- Invalidate/update any TanStack Query area-tree cache touched by `EstimateSheetContent` only after persistence succeeds.
+- Reconcile from action-returned fresh nested tree.
+- Mirror optimistic, success, and rollback tree snapshots into `queryClient.setQueryData(estimateQueryKeys.areaTree(estimateId), tree)`.
+- Do not activate unused `useEstimateUiStore`; if a broader state boundary is needed, use the route-scoped shared boundary below.
 
 Escalate to shared client boundary if any browser QA case shows visible mismatch between left tree and center sheet:
 
@@ -756,7 +829,8 @@ Must include:
 9. Selected node remains selected after moving itself.
 10. Selected descendant remains selected after moving its parent.
 11. Expanded groups remain expanded when ids are unchanged.
-12. `router.push` and `router.refresh` are not called by drop.
+12. `router.push` and `router.refresh` are not called by drop, including when `canInvokePrimaryActionOnItemContainer` is enabled.
+13. `estimateQueryKeys.areaTree(estimateId)` cache updates optimistically, confirms on success, and rolls back on failure.
 
 ### Server action tests: `tests/vitest/estimate-node-reorder-action.test.ts`
 

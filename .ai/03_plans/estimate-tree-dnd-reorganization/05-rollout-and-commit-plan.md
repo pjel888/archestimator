@@ -74,10 +74,12 @@ Expected initially: new target tests may fail before implementation if using str
 Scope:
 
 - Collapse active TypeScript/domain node-kind unions to `group | area`.
+- Introduce canonical `EstimateTreeNode`; remove stale `EstimateAreaNode` imports from touched feature paths.
 - Convert sample/static tree data from legacy organizing kinds to `group` while preserving visible names.
 - Fix `isDisplayNodeKind` to accept only `group` and `area`.
-- Add/update migration to normalize legacy values and enforce the two-kind hierarchy matrix.
-- Regenerate/update Supabase types.
+- Simplify the add-node form/action to exactly Group Node and Area Node; remove the `general -> group` form alias.
+- Add/update migration to normalize legacy values, including estimate-node `assembly`, to `group` and enforce the two-kind hierarchy matrix with a check constraint.
+- Regenerate/update Supabase types if the generated schema changes.
 - Update tests that currently assert legacy compatibility kinds.
 
 Message:
@@ -188,7 +190,7 @@ bun run test:dom -- tests/vitest/estimate-sheet-tree-dnd.test.tsx tests/vitest/e
 Review focus:
 
 - No `router.refresh()` after drop.
-- `router.push` only on primary action, not drop.
+- `router.push` only on primary action, not drop; drag/drop must not accidentally invoke `canInvokePrimaryActionOnItemContainer`.
 - `expandedItems`, `selectedItems`, and `focusedItem` preserved.
 - `canDropAt` blocks invalid targets.
 - Saving/failure status accessible.
@@ -219,7 +221,7 @@ Review focus:
 - No login redirect/flash while authenticated.
 - No blank tree frames.
 - Persistence survives reload.
-- Mutating tests isolate or reset seed data.
+- Mutating tests isolate or reset seed data and do not mutate the shared manual-QA estimate directly.
 
 ### Commit 7 — final cleanup/state docs
 

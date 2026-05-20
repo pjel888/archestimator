@@ -140,7 +140,7 @@ function isDisplayNodeKind(kind: EstimateNodeKind): kind is EstimateAreaNode["ki
 This excludes `kind === "group"` even though the current live seed/action path uses `group` heavily. Under Philip's two-node decision, this guard should no longer mention legacy values at all. It should accept only active technical kinds:
 
 ```ts
-function isDisplayNodeKind(kind: EstimateNodeKind): kind is EstimateAreaNode["kind"] {
+function isDisplayNodeKind(kind: EstimateNodeKind): kind is EstimateTreeNode["kind"] {
   return kind === "group" || kind === "area";
 }
 ```
@@ -252,7 +252,7 @@ It must:
 - verify all moved ids and target parents belong to the same estimate;
 - reject invalid hierarchy/cycles/no-ops;
 - call an atomic database function or transaction-safe server-side path;
-- return the fresh tree or a normalized move result;
+- return `{ tree: EstimateTreeNode[] }`, where `tree` is the confirmed fresh nested tree consumed by the client;
 - not redirect;
 - not require active route refresh for visual success.
 
@@ -333,7 +333,7 @@ Recommended database direction:
 
 - Add a new migration after the removal migration.
 - First normalize legacy estimate node values (`lot`, `general`, `structure`, `level`, and any active `assembly`) to `group`.
-- Then narrow/enforce active node kinds to only `group` and `area`. Preferred final state is a replacement `estimate_node_kind` enum containing only `group` and `area`; if enum narrowing is too risky for the immediate slice, add a strict check constraint as a temporary compatibility layer and document the enum cleanup as follow-up debt.
+- Then enforce active node kinds to only `group` and `area` with a strict check constraint. Do not replace the physical PostgreSQL enum inside the DnD feature branch unless implementation evidence proves it is low-risk; full enum replacement is follow-up hardening after data audit.
 - Recreate/update hierarchy validation so the database matrix exactly matches `root -> group`, `group -> group|area`, `area -> no children`.
 - Prefer a new function name, e.g. `public.reorder_estimate_nodes(target_estimate_id uuid, move_updates jsonb)`, to avoid confusion with the explicitly removed/deprecated `move_estimate_nodes` path.
 - Reuse the validation logic from the old migration where correct, but treat it as source material to audit, not as an unquestioned copy/paste.

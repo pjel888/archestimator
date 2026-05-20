@@ -63,7 +63,7 @@ Correction applied:
 Reviewer finding:
 
 - `07-implementation-reference.md` used a `getItemTitle` callback that read a nonexistent label field from `item.data`.
-- Current and planned `EstimateTreeItemData` shape is `{ node: EstimateAreaNode | null }`.
+- The current shape is `{ node: EstimateAreaNode | null }`; Gate A now requires the planned shape to become `{ node: EstimateTreeNode | null }`.
 
 Why this mattered:
 

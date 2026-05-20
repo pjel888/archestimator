@@ -262,6 +262,27 @@ Current tests explicitly assert the old or absent behavior:
 
 These tests are not failures in the current product; they are signposts. Implementation must replace them with behavior coverage for the new plan.
 
+
+## Additional assessment verification on 2026-05-20 21:06 PST
+
+Files checked:
+
+- `src/stores/estimate-ui-store.ts`
+- `src/hooks/use-estimate-query.ts`
+- `src/components/workshop/EstimateSheetTree.tsx`
+- `src/components/workshop/EstimateSheetContent.tsx`
+- `src/lib/estimates/actions.ts`
+- `node_modules/react-complex-tree/lib/*/types.d.ts`
+
+Facts confirmed:
+
+- `useEstimateUiStore` has prebuilt `dragState`, `expandedNodeIds`, and `selectedNodeId`, but it is unused by the app. It is not estimate-scoped and should not be activated for this MVP.
+- `useMoveEstimateRowItem` is also unused. It updates `estimateQueryKeys.detail(estimateId)`, while the live sheet tree cache is `estimateQueryKeys.areaTree(estimateId)`.
+- The live sheet optimistic pattern is in `EstimateSheetContent`: local `estimateTree` state plus `queryClient.setQueryData(areaTreeQueryKey, next)` and rollback through `restoreEstimateState`.
+- `EstimateSheetTree` keeps `ROOT_ITEM_ID = "estimate-tree-root"` and sets `canInvokePrimaryActionOnItemContainer`; DnD tests must prove drag/drop does not trigger route navigation.
+- `readEstimateNodeKind` currently accepts a legacy `general` form value and maps it to `group`; Gate A must remove that alias after the form offers only Group Node and Area Node.
+- RCT v2.6.1 installed types include `TreeItem.canMove`, `canInvokePrimaryActionOnItemContainer`, and `canDropBelowOpenFolders`.
+
 ## GitNexus blast-radius evidence
 
 ### `isDisplayNodeKind`
