@@ -9,6 +9,28 @@ export type WorkspaceBootstrap = {
   profile: Tables<"profiles">;
 };
 
+type ProjectEstimateSummaryMaps = {
+  firstNodeByEstimateId: Map<string, string>;
+  nodeCountByEstimateId: Map<string, number>;
+  rowCountByEstimateId: Map<string, number>;
+  totalCostByEstimateId: Map<string, number>;
+};
+
+type ProjectEstimatesListResult = {
+  workspace: Tables<"workspaces">;
+  project: Tables<"projects"> | null;
+  estimates: Tables<"estimates">[];
+} & ProjectEstimateSummaryMaps;
+
+function createEmptyProjectEstimateSummaryMaps(): ProjectEstimateSummaryMaps {
+  return {
+    firstNodeByEstimateId: new Map<string, string>(),
+    nodeCountByEstimateId: new Map<string, number>(),
+    rowCountByEstimateId: new Map<string, number>(),
+    totalCostByEstimateId: new Map<string, number>(),
+  };
+}
+
 export async function ensureDefaultWorkspace(): Promise<WorkspaceBootstrap> {
   const context = await requireCurrentUserContext();
   const supabase = await createSupabaseServerClient();
@@ -78,9 +100,16 @@ export async function getCurrentWorkspaceProject(projectId: string) {
   return { workspace, project };
 }
 
-export async function listProjectEstimates(projectId: string) {
+export async function listProjectEstimates(projectId: string): Promise<ProjectEstimatesListResult> {
   const { workspace, project } = await getCurrentWorkspaceProject(projectId);
-  if (!project) return { workspace, project, estimates: [], firstNodeByEstimateId: new Map<string, string>(), totalCostByEstimateId: new Map<string, number>() };
+  if (!project) {
+    return {
+      workspace,
+      project,
+      estimates: [],
+      ...createEmptyProjectEstimateSummaryMaps(),
+    };
+  }
 
   const supabase = await createSupabaseServerClient();
   const { data: estimates, error } = await supabase
@@ -92,7 +121,14 @@ export async function listProjectEstimates(projectId: string) {
   if (error) throw error;
 
   const estimateIds = (estimates ?? []).map((estimate) => estimate.id);
-  if (estimateIds.length === 0) return { workspace, project, estimates: [], firstNodeByEstimateId: new Map<string, string>(), totalCostByEstimateId: new Map<string, number>() };
+  if (estimateIds.length === 0) {
+    return {
+      workspace,
+      project,
+      estimates: [],
+      ...createEmptyProjectEstimateSummaryMaps(),
+    };
+  }
 
   const [nodesResult, rowsResult] = await Promise.all([
     supabase
@@ -110,7 +146,9 @@ export async function listProjectEstimates(projectId: string) {
   if (rowsResult.error) throw rowsResult.error;
 
   const firstNodeByEstimateId = new Map<string, string>();
+  const nodeCountByEstimateId = new Map<string, number>();
   for (const node of nodesResult.data ?? []) {
+    nodeCountByEstimateId.set(node.estimate_id, (nodeCountByEstimateId.get(node.estimate_id) ?? 0) + 1);
     if (node.kind === "area" && !firstNodeByEstimateId.has(node.estimate_id)) firstNodeByEstimateId.set(node.estimate_id, node.id);
   }
   for (const node of nodesResult.data ?? []) {
@@ -118,16 +156,18 @@ export async function listProjectEstimates(projectId: string) {
   }
 
   const totalCostByEstimateId = new Map<string, number>();
+  const rowCountByEstimateId = new Map<string, number>();
   for (const row of rowsResult.data ?? []) {
     const quantity = Number(row.quantity);
     const unitCost = Number(row.unit_cost);
     const supplementaryCost = Number(row.supplementary_cost);
     const laborCost = Number(row.labor_cost);
     const rowTotal = quantity * unitCost + supplementaryCost + laborCost;
+    rowCountByEstimateId.set(row.estimate_id, (rowCountByEstimateId.get(row.estimate_id) ?? 0) + 1);
     totalCostByEstimateId.set(row.estimate_id, (totalCostByEstimateId.get(row.estimate_id) ?? 0) + rowTotal);
   }
 
-  return { workspace, project, estimates: estimates ?? [], firstNodeByEstimateId, totalCostByEstimateId };
+  return { workspace, project, estimates: estimates ?? [], firstNodeByEstimateId, nodeCountByEstimateId, rowCountByEstimateId, totalCostByEstimateId };
 }
 
 type EstimateNodeKind = Database["public"]["Enums"]["estimate_node_kind"];
