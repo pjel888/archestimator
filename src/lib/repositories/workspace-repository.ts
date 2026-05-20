@@ -3,7 +3,7 @@ import type { EstimateRowItem, EstimateTreeNode } from "@/components/workshop/es
 import type { Tables } from "@/lib/supabase/types";
 import { requireCurrentUserContext } from "@/lib/auth/session";
 import { isUuid } from "@/lib/ids";
-import { normalizeEstimateTreeNodeKind } from "@/lib/estimates/tree-hierarchy";
+import { getEstimateNodeKindSortRank, normalizeEstimateTreeNodeKind } from "@/lib/estimates/tree-hierarchy";
 
 export type WorkspaceBootstrap = {
   workspace: Tables<"workspaces">;
@@ -252,6 +252,16 @@ export function buildEstimateTree(nodes: EstimateNodeRow[], rows: EstimateRowIte
     else roots.push(uiNode);
   }
 
+  function sortSiblings(currentNodes: EstimateTreeNode[]): EstimateTreeNode[] {
+    return currentNodes
+      .map((node, index) => ({ node, index }))
+      .sort((left, right) => getEstimateNodeKindSortRank(left.node.kind) - getEstimateNodeKindSortRank(right.node.kind) || left.index - right.index)
+      .map(({ node }) => {
+        node.children = sortSiblings(node.children ?? []);
+        return node;
+      });
+  }
+
   function computeTotals(node: EstimateTreeNode): number {
     const rowTotal = (node.estimateRowItems ?? []).reduce((total, row) => total + row.totalItemCosts, 0);
     const childTotal = (node.children ?? []).reduce((total, child) => total + computeTotals(child), 0);
@@ -260,8 +270,9 @@ export function buildEstimateTree(nodes: EstimateNodeRow[], rows: EstimateRowIte
     return total;
   }
 
-  roots.forEach(computeTotals);
-  return roots;
+  const sortedRoots = sortSiblings(roots);
+  sortedRoots.forEach(computeTotals);
+  return sortedRoots;
 }
 
 export async function getProjectEstimateTreeByEstimate(projectId: string, estimateId: string): Promise<LiveEstimateTreeResult> {

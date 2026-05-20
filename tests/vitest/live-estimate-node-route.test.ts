@@ -20,7 +20,9 @@ describe("live estimate node route", () => {
     expect(estimateNodePage).toContain("nodes={tree}");
     expect(estimateTree).toContain("nodes: EstimateTreeNode[]");
     expect(estimateTree).toContain("ControlledTreeEnvironment");
-    expect(estimateTree).toContain("canNestEstimateNodeKind");
+    expect(estimateTree).toContain("isEstimateGroupNodeKind");
+    expect(estimateTree).toContain("selectedGroupId");
+    expect(estimateTree).toContain("you must select a group first before adding an area node");
     expect(estimateTree).toContain("renderDepthOffset={TREE_INDENT_STEP}");
     expect(estimateTree).toContain("TREE_INDENT_STEP = 20");
     expect(estimateTree).toContain("onExpandAll={handleExpandAll}");

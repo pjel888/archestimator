@@ -22,6 +22,10 @@ export function getEstimateNodeDisplayKind(kind: EstimateTreeNodeKind): Estimate
   return kind;
 }
 
+export function getEstimateNodeKindSortRank(kind: EstimateTreeNodeKind) {
+  return kind === "group" ? 0 : 1;
+}
+
 export function canNestEstimateNodeKind(childKind: EstimateTreeNodeKind, parentKind: EstimateTreeNodeKind | null) {
   if (parentKind === null) return childKind === "group";
   return parentKind === "group";

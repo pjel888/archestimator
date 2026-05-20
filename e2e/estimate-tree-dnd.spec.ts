@@ -276,6 +276,7 @@ function trackNavigationAndActions(page: Page) {
   const documentRequests: string[] = [];
   const mainFrameNavigations: string[] = [];
   const serverActionPosts: string[] = [];
+  let clearUrl = page.url();
 
   page.on("request", (request) => {
     if (request.resourceType() === "document") documentRequests.push(request.url());
@@ -284,7 +285,8 @@ function trackNavigationAndActions(page: Page) {
     }
   });
   page.on("framenavigated", (frame) => {
-    if (frame === page.mainFrame()) mainFrameNavigations.push(frame.url());
+    const nextUrl = frame.url();
+    if (frame === page.mainFrame() && nextUrl !== clearUrl) mainFrameNavigations.push(nextUrl);
   });
 
   return {
@@ -292,6 +294,7 @@ function trackNavigationAndActions(page: Page) {
     mainFrameNavigations,
     serverActionPosts,
     clear: () => {
+      clearUrl = page.url();
       documentRequests.length = 0;
       mainFrameNavigations.length = 0;
       serverActionPosts.length = 0;
@@ -368,17 +371,23 @@ async function dragNodeOnto(page: Page, fixture: EstimateTreeFixture, sourceSeed
   const target = nodeLocator(page, getFixtureNodeId(fixture, targetSeedId));
 
   await source.scrollIntoViewIfNeeded();
-  await target.scrollIntoViewIfNeeded();
   await expect(source).toBeVisible();
-  await expect(target).toBeVisible();
-
   const sourceBox = await source.boundingBox();
-  const targetBox = await target.boundingBox();
-  if (!sourceBox || !targetBox) throw new Error("Could not measure estimate tree drag targets.");
+  if (!sourceBox) throw new Error("Could not measure estimate tree drag source.");
 
   await page.mouse.move(sourceBox.x + sourceBox.width / 2, sourceBox.y + sourceBox.height / 2);
   await page.mouse.down();
-  await page.mouse.move(sourceBox.x + sourceBox.width / 2 + 8, sourceBox.y + sourceBox.height / 2, { steps: 4 });
+  await page.mouse.move(sourceBox.x + sourceBox.width / 2 + 24, sourceBox.y + sourceBox.height / 2 + 12, { steps: 8 });
+
+  await target.scrollIntoViewIfNeeded();
+  await expect(target).toBeVisible();
+  const targetBox = await target.evaluate((element) => {
+    const targetRow = element.closest("[data-rct-item-container='true']") ?? element;
+    const rect = targetRow.getBoundingClientRect();
+    return { x: rect.x, y: rect.y, width: rect.width, height: rect.height };
+  });
+  if (!targetBox) throw new Error("Could not measure estimate tree drag target.");
+
   await page.mouse.move(targetBox.x + targetBox.width / 2, targetBox.y + targetBox.height / 2, { steps: 24 });
   await page.mouse.up();
 }
