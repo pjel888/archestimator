@@ -2,12 +2,13 @@ import { act, render, screen, waitFor, within } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import React from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { DraggingPosition, TreeItem, TreeItemIndex } from "react-complex-tree";
+import type { DraggingPosition, TreeItem, TreeItemIndex, TreeViewState } from "react-complex-tree";
 
 import { EstimateSheetTree } from "@/components/workshop/EstimateSheetTree";
 import type { EstimateAreaNode } from "@/components/workshop/estimate-tree-data";
 import { resetEstimateWorkspaceState } from "@/hooks/use-estimate-workspace-state";
 import { estimateQueryKeys } from "@/hooks/use-estimate-query";
+import { ESTIMATE_TREE_ROOT_ITEM_ID } from "@/lib/estimates/estimate-tree-reorder";
 
 const routerMock = vi.hoisted(() => ({
   push: vi.fn(),
@@ -22,6 +23,7 @@ const actionMocks = vi.hoisted(() => ({
 type CapturedEnvironmentProps = {
   items: Record<TreeItemIndex, TreeItem<{ node: EstimateAreaNode | null }>>;
   getItemTitle: (item: TreeItem<{ node: EstimateAreaNode | null }>) => string;
+  viewState?: TreeViewState;
   canDragAndDrop?: boolean;
   canReorderItems?: boolean;
   canDropOnFolder?: boolean;
@@ -268,6 +270,17 @@ describe("estimate sheet tree drag/drop", () => {
       canDropOnNonFolder: false,
       canDropBelowOpenFolders: true,
     });
+    expect(environment().items[ESTIMATE_TREE_ROOT_ITEM_ID]).toMatchObject({
+      isFolder: true,
+      canMove: false,
+      children: ["project-scope"],
+    });
+    expect(environment().items["project-scope"]).toMatchObject({ isFolder: true, children: ["ground-floor", "site-works"] });
+    expect(environment().items["ground-floor"]).toMatchObject({ isFolder: true, children: ["kitchen", "living"] });
+    expect(environment().items["kitchen"]).toMatchObject({ isFolder: false, children: undefined });
+    expect(environment().viewState?.["estimate-sheet-tree"]?.expandedItems).toEqual(
+      expect.arrayContaining(["project-scope", "ground-floor", "site-works"]),
+    );
     expect(environment().canDrag?.([item("kitchen")])).toBe(true);
     expect(environment().canDrag?.([item("project-scope"), item("site-works")])).toBe(false);
     expect(environment().canDropAt?.([item("kitchen")], dropKitchenOntoSiteWorks)).toBe(true);
