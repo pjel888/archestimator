@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { requireCurrentUserContext } from "@/lib/auth/session";
-import type { EstimateRowItem } from "@/components/workshop/estimate-tree-data";
+import type { EstimateAreaNode, EstimateRowItem } from "@/components/workshop/estimate-tree-data";
 import { canNestEstimateNodeKind, getEstimateNodeNestingError, isEstimateTreeNodeKind, type EstimateTreeNodeKind } from "@/lib/estimates/tree-hierarchy";
 import { isMissingColumnError, normalizeEstimateRecord, type EstimateRecordWithLegacy } from "@/lib/repositories/estimate-schema-compat";
 import { getCurrentWorkspaceProject, getProjectEstimateTreeByEstimate } from "@/lib/repositories/workspace-repository";
@@ -57,6 +57,27 @@ type DeleteEstimateRowItemInput = {
 type FetchEstimateTreeInput = {
   projectId: string;
   estimateId: string;
+};
+
+type ReorderEstimateTreeNodeUpdate = {
+  id: string;
+  parentId: string | null;
+  sortOrder: number;
+};
+
+type ReorderEstimateTreeNodesInput = {
+  updates: ReorderEstimateTreeNodeUpdate[];
+};
+
+type ReorderEstimateTreeNodesResult = {
+  tree: EstimateAreaNode[];
+};
+
+type ReorderEstimateNodeRow = {
+  id: string;
+  estimate_id: string;
+  parent_id: string | null;
+  kind: string;
 };
 
 type CreateEstimateNodeKind = "group" | "area";
@@ -372,6 +393,89 @@ export async function fetchEstimateTree({ projectId, estimateId }: FetchEstimate
   const { project, estimate, tree } = await getProjectEstimateTreeByEstimate(projectId, estimateId);
   if (!project || !estimate) throw new Error("Estimate not found in the current project.");
   return tree;
+}
+
+export async function reorderEstimateTreeNodes(
+  projectId: string,
+  estimateId: string,
+  input: ReorderEstimateTreeNodesInput,
+): Promise<ReorderEstimateTreeNodesResult> {
+  if (!input.updates.length) throw new Error("At least one estimate tree node update is required.");
+
+  const updateIds = new Set<string>();
+  for (const update of input.updates) {
+    if (updateIds.has(update.id)) throw new Error(`Duplicate estimate tree node update: ${update.id}.`);
+    updateIds.add(update.id);
+    if (!Number.isInteger(update.sortOrder) || update.sortOrder < 0) throw new Error("Estimate tree node sort order must be a non-negative integer.");
+  }
+
+  const { project } = await getCurrentWorkspaceProject(projectId);
+  if (!project) throw new Error("Project not found in the current workspace.");
+
+  const supabase = await createSupabaseServerClient();
+  const { data: estimate, error: estimateError } = await supabase
+    .from("estimates")
+    .select("id, project_id")
+    .eq("id", estimateId)
+    .eq("project_id", project.id)
+    .maybeSingle();
+
+  if (estimateError) throw estimateError;
+  if (!estimate) throw new Error("Estimate not found in the current project.");
+
+  const referencedNodeIds = Array.from(new Set([
+    ...input.updates.map((update) => update.id),
+    ...input.updates.flatMap((update) => (update.parentId ? [update.parentId] : [])),
+  ]));
+  const { data: referencedNodes, error: nodeError } = await supabase
+    .from("estimate_nodes")
+    .select("id, estimate_id, parent_id, kind")
+    .in("id", referencedNodeIds);
+
+  if (nodeError) throw nodeError;
+
+  const referencedNodeRows = (referencedNodes ?? []) as ReorderEstimateNodeRow[];
+  const nodesById = new Map(referencedNodeRows.map((node) => [node.id, node]));
+  for (const update of input.updates) {
+    const node = nodesById.get(update.id);
+    if (!node || node.estimate_id !== estimate.id) throw new Error("Estimate tree update node not found in the current estimate.");
+
+    const parentNode = update.parentId ? nodesById.get(update.parentId) : null;
+    if (update.parentId && (!parentNode || parentNode.estimate_id !== estimate.id)) {
+      throw new Error("Estimate tree update parent not found in the current estimate.");
+    }
+
+    const nodeKind = node.kind;
+    if (!isEstimateTreeNodeKind(nodeKind)) throw new Error("Unsupported estimate node kind.");
+
+    let parentKind: EstimateTreeNodeKind | null = null;
+    if (parentNode) {
+      if (!isEstimateTreeNodeKind(parentNode.kind)) throw new Error("Unsupported estimate node kind.");
+      parentKind = parentNode.kind;
+    }
+
+    if (!canNestEstimateNodeKind(nodeKind, parentKind)) throw new Error(getEstimateNodeNestingError(nodeKind, parentKind));
+  }
+
+  const moveUpdates = input.updates.map((update) => ({
+    id: update.id,
+    parent_id: update.parentId,
+    sort_order: update.sortOrder,
+  }));
+  const callReorderEstimateNodes = supabase.rpc as unknown as (
+    fn: string,
+    args: Record<string, unknown>,
+  ) => Promise<{ data: number | null; error: Error | null }>;
+  const { error: rpcError } = await callReorderEstimateNodes(
+    "reorder_estimate_nodes",
+    { target_estimate_id: estimate.id, move_updates: moveUpdates },
+  );
+
+  if (rpcError) throw new Error(`Could not reorder estimate tree: ${rpcError.message}`);
+
+  const { project: refreshedProject, estimate: refreshedEstimate, tree } = await getProjectEstimateTreeByEstimate(project.id, estimate.id);
+  if (!refreshedProject || !refreshedEstimate) throw new Error("Estimate not found after reordering the tree.");
+  return { tree };
 }
 
 export async function createEstimate(projectId: string, formData: FormData) {

@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { startTransition, useCallback, useMemo, useState, type ButtonHTMLAttributes, type HTMLAttributes, type ReactNode } from "react";
+import { startTransition, useCallback, useEffect, useMemo, useRef, useState, type ButtonHTMLAttributes, type HTMLAttributes, type ReactNode } from "react";
 import {
   ControlledTreeEnvironment,
   InteractionMode,
@@ -10,6 +10,7 @@ import {
   type TreeItemIndex,
   type TreeViewState,
 } from "react-complex-tree";
+import { useQueryClient } from "@tanstack/react-query";
 import { CaretDown, Cube, FolderSimple } from "@phosphor-icons/react/dist/ssr";
 
 import { Button } from "@/components/ui/button";
@@ -19,9 +20,15 @@ import { HeaderIconToolbar } from "@/components/ui/header-icon-toolbar";
 import { Modal } from "@/components/ui/modal";
 import { SearchInput } from "@/components/ui/search-input";
 import { canNestEstimateNodeKind, getEstimateNodeDisplayKind, isEstimateGroupNodeKind, type EstimateTreeNodeKind } from "@/lib/estimates/tree-hierarchy";
-import { createEstimateNode } from "@/lib/estimates/actions";
+import { createEstimateNode, reorderEstimateTreeNodes } from "@/lib/estimates/actions";
+import { estimateQueryKeys } from "@/hooks/use-estimate-query";
 import { useEstimateWorkspaceSelection } from "@/hooks/use-estimate-workspace-state";
 import { cn } from "@/lib/ui/cn";
+import {
+  ESTIMATE_TREE_ROOT_ITEM_ID,
+  evaluateEstimateTreeDrop,
+  getEstimateTreeStructureSignature,
+} from "@/lib/estimates/estimate-tree-reorder";
 import { getExpandedNodeIds, type EstimateAreaNode } from "./estimate-tree-data";
 import { ResizableSidePanel } from "./ResizableSidePanel";
 
@@ -35,7 +42,6 @@ type EstimateSheetTreeProps = {
 
 const ESTIMATE_TREE_LEFT_EXTENSION_WIDTH = 104;
 const ESTIMATE_TREE_ID = "estimate-sheet-tree";
-const ROOT_ITEM_ID = "estimate-tree-root";
 const TREE_INDENT_STEP = 20;
 const TREE_MAX_INDENT = 140;
 
@@ -55,6 +61,12 @@ type EstimateTreeModel = {
 };
 
 type CreateEstimateNodeKind = "group" | "area";
+
+type ReorderStatus =
+  | { state: "idle" }
+  | { state: "saving"; message: string }
+  | { state: "saved"; message: string }
+  | { state: "error"; message: string };
 
 function toStoredCreateNodeKind(kind: CreateEstimateNodeKind): EstimateTreeNodeKind {
   return kind === "group" ? "group" : "area";
@@ -97,8 +109,8 @@ function getDefaultParentId(nodes: EstimateAreaNode[], selectedNodeId: string | 
 
 function buildTreeModel(nodes: EstimateAreaNode[]): EstimateTreeModel {
   const items: Record<TreeItemIndex, TreeItem<EstimateTreeItemData>> = {
-    [ROOT_ITEM_ID]: {
-      index: ROOT_ITEM_ID,
+    [ESTIMATE_TREE_ROOT_ITEM_ID]: {
+      index: ESTIMATE_TREE_ROOT_ITEM_ID,
       isFolder: true,
       children: nodes.map((node) => node.id),
       data: { node: null },
@@ -207,16 +219,28 @@ function AddEstimateNodeForm({
 
 export function EstimateSheetTree({ projectId, estimateId, projectName, selectedNodeId, nodes }: EstimateSheetTreeProps) {
   const router = useRouter();
+  const queryClient = useQueryClient();
+  const pendingReordersRef = useRef(0);
+  const [localNodes, setLocalNodes] = useState<EstimateAreaNode[]>(nodes);
+  const [reorderStatus, setReorderStatus] = useState<ReorderStatus>({ state: "idle" });
   const { selectedNodeId: activeSelectedNodeId, setSelectedNodeId } = useEstimateWorkspaceSelection(estimateId, selectedNodeId);
-  const treeModel = useMemo(() => buildTreeModel(nodes), [nodes]);
-  const defaultExpandedItems = useMemo<TreeItemIndex[]>(() => Array.from(getExpandedNodeIds(nodes)), [nodes]);
+  const treeModel = useMemo(() => buildTreeModel(localNodes), [localNodes]);
+  const defaultExpandedItems = useMemo<TreeItemIndex[]>(() => Array.from(getExpandedNodeIds(localNodes)), [localNodes]);
   const [expandedOverrides, setExpandedOverrides] = useState<{ expanded: TreeItemIndex[]; collapsed: TreeItemIndex[] }>({ expanded: [], collapsed: [] });
   const [focusedOverride, setFocusedOverride] = useState<{ routeNodeId: string | null; item: TreeItemIndex } | null>(null);
   const [showAddNode, setShowAddNode] = useState(false);
-  const parentOptions = useMemo(() => getParentOptions(nodes), [nodes]);
-  const defaultParentId = useMemo(() => getDefaultParentId(nodes, activeSelectedNodeId), [activeSelectedNodeId, nodes]);
+  const parentOptions = useMemo(() => getParentOptions(localNodes), [localNodes]);
+  const defaultParentId = useMemo(() => getDefaultParentId(localNodes, activeSelectedNodeId), [activeSelectedNodeId, localNodes]);
   const createNodeAction = createEstimateNode.bind(null, projectId, estimateId);
   const allFolderItemIds = useMemo<TreeItemIndex[]>(() => Array.from(treeModel.folderIds).filter((itemId) => treeModel.items[itemId]), [treeModel.folderIds, treeModel.items]);
+
+  useEffect(() => {
+    if (pendingReordersRef.current > 0) return;
+    setLocalNodes((currentNodes) => {
+      if (getEstimateTreeStructureSignature(currentNodes) === getEstimateTreeStructureSignature(nodes)) return currentNodes;
+      return nodes;
+    });
+  }, [nodes]);
 
   const expandedItems = useMemo(() => {
     const next = new Set(defaultExpandedItems);
@@ -250,6 +274,53 @@ export function EstimateSheetTree({ projectId, estimateId, projectName, selected
     },
   }), [expandedItems, focusedItem, routeSelectedItems]);
 
+  const canReorderNow = reorderStatus.state !== "saving";
+  const handleCanDrag = useCallback((items: TreeItem<EstimateTreeItemData>[]) => (
+    canReorderNow && items.length === 1 && Boolean(items[0]?.data.node)
+  ), [canReorderNow]);
+
+  const handleCanDropAt = useCallback((items: TreeItem<EstimateTreeItemData>[], target: Parameters<typeof evaluateEstimateTreeDrop>[0]["target"]) => {
+    if (!handleCanDrag(items)) return false;
+    return evaluateEstimateTreeDrop({
+      nodes: localNodes,
+      draggedItemIds: items.map((item) => item.index),
+      target,
+    }).ok;
+  }, [handleCanDrag, localNodes]);
+
+  const handleDrop = useCallback((items: TreeItem<EstimateTreeItemData>[], target: Parameters<typeof evaluateEstimateTreeDrop>[0]["target"]) => {
+    if (!handleCanDrag(items)) return;
+
+    const result = evaluateEstimateTreeDrop({
+      nodes: localNodes,
+      draggedItemIds: items.map((item) => item.index),
+      target,
+    });
+    if (!result.ok) return;
+
+    const previousNodes = localNodes;
+    const nextNodes = result.plan.nextNodes as EstimateAreaNode[];
+    pendingReordersRef.current += 1;
+    setLocalNodes(nextNodes);
+    queryClient.setQueryData(estimateQueryKeys.areaTree(estimateId), nextNodes);
+    setReorderStatus({ state: "saving", message: "Saving tree order" });
+
+    void (async () => {
+      try {
+        const confirmed = await reorderEstimateTreeNodes(projectId, estimateId, { updates: result.plan.updates });
+        pendingReordersRef.current = Math.max(0, pendingReordersRef.current - 1);
+        setLocalNodes(confirmed.tree);
+        queryClient.setQueryData(estimateQueryKeys.areaTree(estimateId), confirmed.tree);
+        setReorderStatus({ state: "saved", message: "Tree order saved" });
+      } catch (error) {
+        pendingReordersRef.current = Math.max(0, pendingReordersRef.current - 1);
+        setLocalNodes(previousNodes);
+        queryClient.setQueryData(estimateQueryKeys.areaTree(estimateId), previousNodes);
+        setReorderStatus({ state: "error", message: error instanceof Error ? error.message : "Could not save tree order." });
+      }
+    })();
+  }, [estimateId, handleCanDrag, localNodes, projectId, queryClient]);
+
   return (
     <ResizableSidePanel
       side="left"
@@ -276,6 +347,18 @@ export function EstimateSheetTree({ projectId, estimateId, projectName, selected
             onCollapseAll={handleCollapseAll}
             onAdd={() => setShowAddNode(true)}
           />
+          {reorderStatus.state !== "idle" ? (
+            <div
+              role="status"
+              aria-live="polite"
+              className={cn(
+                "border-t border-hairline px-2 py-1 text-[10px] leading-4",
+                reorderStatus.state === "error" ? "text-red-700" : "text-tertiary",
+              )}
+            >
+              {reorderStatus.message}
+            </div>
+          ) : null}
         </div>
 
         <div className="min-h-0 flex-1 overflow-auto p-2">
@@ -291,6 +374,14 @@ export function EstimateSheetTree({ projectId, estimateId, projectName, selected
               defaultInteractionMode={InteractionMode.ClickArrowToExpand}
               canInvokePrimaryActionOnItemContainer
               canSearch={false}
+              canDragAndDrop
+              canReorderItems
+              canDropOnFolder
+              canDropOnNonFolder={false}
+              canDropBelowOpenFolders
+              canDrag={handleCanDrag}
+              canDropAt={handleCanDropAt}
+              onDrop={handleDrop}
               renderDepthOffset={TREE_INDENT_STEP}
               onPrimaryAction={(item) => {
                 const node = item.data.node;
@@ -406,7 +497,7 @@ export function EstimateSheetTree({ projectId, estimateId, projectName, selected
                 );
               }}
             >
-              <Tree treeId={ESTIMATE_TREE_ID} rootItem={ROOT_ITEM_ID} treeLabel={`${projectName} estimate areas`} />
+              <Tree treeId={ESTIMATE_TREE_ID} rootItem={ESTIMATE_TREE_ROOT_ITEM_ID} treeLabel={`${projectName} estimate areas`} />
             </ControlledTreeEnvironment>
           )}
         </div>
