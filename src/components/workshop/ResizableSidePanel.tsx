@@ -13,6 +13,7 @@ type ResizableSidePanelProps = {
   defaultWidth: number;
   minWidth: number;
   maxWidth: number;
+  widthOffset?: number;
   collapsedWidth?: number;
   children?: ReactNode;
 };
@@ -40,6 +41,7 @@ export function ResizableSidePanel({
   defaultWidth,
   minWidth,
   maxWidth,
+  widthOffset = 0,
   collapsedWidth = 32,
   children,
 }: ResizableSidePanelProps) {
@@ -51,7 +53,7 @@ export function ResizableSidePanel({
   );
   const [dragWidth, setDragWidth] = useState<number | null>(null);
   const width = dragWidth ?? savedWidth;
-  const actualWidth = collapsed ? collapsedWidth : width;
+  const actualWidth = (collapsed ? collapsedWidth : width) + widthOffset;
   const dragging = useRef(false);
   const startX = useRef(0);
   const startWidth = useRef(defaultWidth);
@@ -59,7 +61,13 @@ export function ResizableSidePanel({
   useEffect(() => {
     if (storageKey !== "estimate_sheet_tree_width" && storageKey !== "estimate_component_library_width_v2") return;
     const cssVariable = storageKey === "estimate_sheet_tree_width" ? "--estimate-tree-panel-width" : "--estimate-library-panel-width";
+    const previousWidth = document.documentElement.style.getPropertyValue(cssVariable);
     document.documentElement.style.setProperty(cssVariable, `${actualWidth}px`);
+
+    return () => {
+      if (previousWidth) document.documentElement.style.setProperty(cssVariable, previousWidth);
+      else document.documentElement.style.removeProperty(cssVariable);
+    };
   }, [actualWidth, storageKey]);
 
   function startResize(event: React.MouseEvent) {

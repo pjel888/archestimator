@@ -2,7 +2,7 @@
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { type Dispatch, type DragEvent, type InputHTMLAttributes, type KeyboardEvent, type SetStateAction, useCallback, useEffect, useMemo, useState } from "react";
-import { ArrowsOutSimple, CaretDown, Cube, DotsSixVertical, Files, HouseLine, Plus, Stack, Trash } from "@phosphor-icons/react/dist/ssr";
+import { ArrowsOutSimple, CaretDown, Cube, DotsSixVertical, FolderSimple, Plus, Trash } from "@phosphor-icons/react/dist/ssr";
 
 import { Button } from "@/components/ui/button";
 import { ControlInput } from "@/components/ui/control-input";
@@ -12,6 +12,8 @@ import { SearchInput } from "@/components/ui/search-input";
 import { dispatchProjectTotalChange } from "@/components/workshop/ProjectTotalHeader";
 import { useEstimateRowMutations, type EstimateSaveState } from "@/hooks/use-estimate-row-mutations";
 import { estimateQueryKeys } from "@/hooks/use-estimate-query";
+import { resolveEstimateWorkspaceSelection, useEstimateWorkspaceSelection } from "@/hooks/use-estimate-workspace-state";
+import { getEstimateNodeDisplayKind } from "@/lib/estimates/tree-hierarchy";
 import { cn } from "@/lib/ui/cn";
 import { findEstimateNode, sampleEstimateTree, type EstimateAreaNode, type EstimateRowItem } from "./estimate-tree-data";
 
@@ -69,10 +71,7 @@ function groupGap(depth: number) {
 }
 
 function NodeIcon({ kind }: { kind: EstimateAreaNode["kind"] }) {
-  if (kind === "general") return <Files size={13} weight="bold" aria-hidden="true" />;
-  if (kind === "lot") return <HouseLine size={13} weight="bold" aria-hidden="true" />;
-  if (kind === "structure") return <HouseLine size={13} weight="bold" aria-hidden="true" />;
-  if (kind === "level") return <Stack size={13} weight="bold" aria-hidden="true" />;
+  if (getEstimateNodeDisplayKind(kind) === "group") return <FolderSimple size={13} weight="bold" aria-hidden="true" />;
   return <Cube size={13} weight="bold" aria-hidden="true" />;
 }
 
@@ -802,18 +801,15 @@ function replaceRowItemWithLibraryItem(rowItemId: string, libraryItem: EstimateR
 
 function EstimateSheetHeader() {
   return (
-    <header className="sticky top-0 z-20 bg-white/95 backdrop-blur" aria-label="Estimate sheet controls">
-      <div className="flex h-10 items-center border-b border-hairline pl-2 pr-2">
-        <h2 className="truncate text-[9px] font-bold uppercase tracking-[0.14em] text-tertiary">Estimate sheet</h2>
-      </div>
+    <header className="sticky top-0 z-20 bg-white/95 backdrop-blur" aria-label="Sheet controls">
       <div className="flex h-[38px] items-center">
         <SearchInput
           wrapperClassName="w-full"
-          placeholder="Search estimate sheet"
-          aria-label="Search estimate sheet"
+          placeholder="Search Sheet"
+          aria-label="Search Sheet"
         />
       </div>
-      <HeaderIconToolbar ariaLabel="Estimate sheet tools" labelPrefix="estimate rows" />
+      <HeaderIconToolbar ariaLabel="Sheet tools" labelPrefix="sheet" />
     </header>
   );
 }
@@ -821,6 +817,7 @@ function EstimateSheetHeader() {
 export function EstimateSheetContent({ selectedNodeId, nodes = sampleEstimateTree, projectId, estimateId }: EstimateSheetContentProps) {
   const queryClient = useQueryClient();
   const areaTreeQueryKey = estimateQueryKeys.areaTree(estimateId ?? "local-estimate");
+  const { selectedNodeId: activeSelectedNodeId, setSelectedNodeId } = useEstimateWorkspaceSelection(estimateId, selectedNodeId);
   const { saveState, rowSaveStates, markRowDirty, fetchTree, insertRow, replaceRow, deleteRow, updateRow } = useEstimateRowMutations(estimateId);
   const { data: queriedEstimateTree = nodes } = useQuery({
     queryKey: areaTreeQueryKey,
@@ -832,19 +829,27 @@ export function EstimateSheetContent({ selectedNodeId, nodes = sampleEstimateTre
   });
   const [estimateTree, setEstimateTreeState] = useState(queriedEstimateTree);
   const [editableRows, setEditableRows] = useState<Record<string, EditableRowValue>>(() => collectEditableRows(nodes));
-  const [insertTargetNodeId] = useState(() => {
-    const initialSelectedNodeId = selectedNodeId;
-    if (!initialSelectedNodeId) return "";
-    const initialNode = findEstimateNode(nodes, initialSelectedNodeId);
-    return initialNode?.kind === "area" ? initialNode.id : "";
-  });
   const [pendingFocusRowId, setPendingFocusRowId] = useState("");
-  const selectedNode = selectedNodeId ? findEstimateNode(estimateTree, selectedNodeId) ?? estimateTree[0] : estimateTree[0];
+  const { selectedNodeId: resolvedSelectedNodeId, selectedNode } = useMemo(
+    () =>
+      resolveEstimateWorkspaceSelection({
+        selectedNodeId: activeSelectedNodeId,
+        fallbackNode: estimateTree[0],
+        findNode: (nodeId) => findEstimateNode(estimateTree, nodeId),
+      }),
+    [activeSelectedNodeId, estimateTree],
+  );
+  const insertTargetNodeId = selectedNode?.kind === "area" ? selectedNode.id : "";
   const projectTotal = estimateTree.reduce((total, node) => total + computeNodeTotal(node, editableRows), 0);
 
   useEffect(() => {
     dispatchProjectTotalChange(projectTotal);
   }, [projectTotal]);
+
+  useEffect(() => {
+    if (!estimateId || activeSelectedNodeId === resolvedSelectedNodeId) return;
+    setSelectedNodeId(resolvedSelectedNodeId);
+  }, [activeSelectedNodeId, estimateId, resolvedSelectedNodeId, setSelectedNodeId]);
 
   const setEstimateTree = useCallback((updater: (current: EstimateAreaNode[]) => EstimateAreaNode[]) => {
     setEstimateTreeState((current) => {
@@ -1009,7 +1014,7 @@ export function EstimateSheetContent({ selectedNodeId, nodes = sampleEstimateTre
               <p className="text-[8px] font-bold uppercase tracking-[0.16em] text-tertiary">Empty estimate</p>
               <h2 className="mt-1 text-[12px] font-bold tracking-[-0.02em] text-ink">No estimate tree yet</h2>
               <p className="mt-1 text-[10px] leading-4 text-tertiary">
-                This estimate has no General Nodes, Area Nodes, or cost estimate rows. Rebuild the tree first, then place cost rows only inside Area Nodes.
+                This estimate has no Group Nodes, Area Nodes, or cost estimate rows. Rebuild the tree first, then place cost rows only inside Area Nodes.
               </p>
             </div>
           </div>
