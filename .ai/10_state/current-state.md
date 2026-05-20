@@ -83,6 +83,7 @@ Proceed from the current small post-reset workshop slice, not from the deleted p
 - `.ai/06_specs/supabase-auth-setup.md` documents active Supabase Auth/Profile/CEO access setup, hosted-dashboard redirect checks, and the manual magic-link smoke test.
 - `.ai/06_specs/live-project-estimate-bootstrap.md` is the canonical current-state spec for live project creation, live project dashboard loading, estimate creation/listing, initial estimate hierarchy bootstrap, project-scoped live estimate node tree/row loading, empty-estimate fallback routing by estimate id, and TanStack Query-backed persisted/rollback-safe estimate row mutations with row-level dirty/saving/saved/failed status markers.
 - Estimate tree interaction now uses React Complex Tree for navigation, immediate Zustand-backed selected-node UI state, route reconciliation, expand/collapse, and add-node hierarchy creation. Drag/drop reorganization has been removed completely from the estimate tree: there are no tree drop zones, drag previews, reorder handlers, optimistic move pipeline, `moveEstimateNode` server action, or `public.move_estimate_nodes` RPC. The tree has two product node concepts: Group Nodes organize and may nest inside other Group Nodes; Area Nodes are leaves and are the only row-owning nodes. New organizing nodes use `kind = group`; existing `lot`, `general`, `structure`, and `level` values are compatibility Group Nodes and display with the same folder icon. The removed single-pointer Move modal/button must not be restored as-is; tree movement has no current UI path pending a replacement design. The tree toolbar exposes expand-all/collapse-all actions. Keep future tree changes aligned with the central hierarchy matrix and database-side invariants; `assembly` remains a non-active compatibility enum value for estimate nodes.
+- `.ai/03_plans/estimate-tree-dnd-reorganization/` is the active replacement-design audit/plan for reintroducing seamless drag/drop estimate-tree reorganization with React Complex Tree. It does not mean the feature is implemented yet; it supersedes only the “no current UI path pending a replacement design” gap above and must be read before implementing tree movement.
 - `.ai/03_plans/project-estimates-component-library-improvement-plan.md` is the research-backed UX/UI improvement plan for that feature. Its immediate recommended next slice is target-aware insert + insert-and-edit + keyboard editing baseline.
 - `.ai/03_plans/ui-componentization-and-storybook-plan.md` is the active reusable UI primitive matrix and Storybook organization plan. Read it before creating app/workshop controls, component-library controls, toolbars, cards, filters, panels, or stories.
 
@@ -96,6 +97,7 @@ Read before implementation:
 6. `.ai/10_state/known-issues.md`
 7. `DESIGN.md`
 8. `.ai/03_plans/ui-componentization-and-storybook-plan.md`
+9. `.ai/03_plans/estimate-tree-dnd-reorganization/README.md`
 
 ## Validation baseline
 
