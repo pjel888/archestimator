@@ -41,14 +41,22 @@ When enabled, it:
 
 ## Playwright evidence
 
-Command:
+Initial command:
 `PLAYWRIGHT_PORT=3000 npx playwright test e2e/auth.spec.ts e2e/estimate-tree-dnd.spec.ts --project=chromium --reporter=list`
 
-Result:
+Initial result:
 - 2 auth/browser tests passed.
-- 1 DnD seamlessness test skipped because mutating dev-auth/admin prerequisites are not configured.
+- 1 DnD seamlessness test skipped because mutating dev-auth/admin prerequisites were not configured.
 
-Evidence log:
-`.ai/03_plans/estimate-tree-dnd-reorganization/evidence/gate-b-playwright-auth-and-dnd-gate-port3000.txt`
+Follow-up opt-in command after Philip said to proceed:
+`ARCHESTIMATOR_E2E_MUTATING_DND=1 ARCHESTIMATOR_DEV_AUTH_BYPASS=1 ARCHESTIMATOR_DEV_AUTH_ADMIN_DB=1 ARCHESTIMATOR_DEV_AUTH_EMAIL=<configured local dev email> PLAYWRIGHT_PORT=3000 npx playwright test e2e/estimate-tree-dnd.spec.ts --project=chromium --retries=0`
 
-A first attempt against port 3020 failed because a Next dev server was already running for this repo on port 3000. The rerun used `PLAYWRIGHT_PORT=3000` against that existing server.
+Follow-up result:
+- 1 DnD seamlessness test skipped.
+- The Playwright process had the opt-in/dev-auth flags, but `SUPABASE_SERVICE_ROLE_KEY` is still not present in `.env.local` or the current shell environment. The spec therefore correctly refused to mutate/reset the seeded estimate tree.
+- This remains an environment/secret prerequisite, not evidence that the DnD implementation failed.
+
+Latest evidence log:
+`.ai/03_plans/estimate-tree-dnd-reorganization/evidence/playwright-dnd-opt-in-latest.txt`
+
+A first follow-up attempt against port 3020 failed because a Next dev server was already running for this repo on port 3000. The rerun used `PLAYWRIGHT_PORT=3000` against that existing server.
