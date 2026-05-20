@@ -2,8 +2,16 @@ export type EstimateTreeNodeKind = "group" | "area";
 export type EstimateTreeGroupNodeKind = "group";
 export type EstimateTreeDisplayNodeKind = EstimateTreeNodeKind;
 
+const LEGACY_ESTIMATE_GROUP_NODE_KINDS = new Set(["lot", "general", "structure", "level", "assembly"]);
+
 export function isEstimateTreeNodeKind(value: string): value is EstimateTreeNodeKind {
   return value === "group" || value === "area";
+}
+
+export function normalizeEstimateTreeNodeKind(value: string): EstimateTreeNodeKind | null {
+  if (isEstimateTreeNodeKind(value)) return value;
+  if (LEGACY_ESTIMATE_GROUP_NODE_KINDS.has(value)) return "group";
+  return null;
 }
 
 export function isEstimateGroupNodeKind(kind: EstimateTreeNodeKind | null | undefined): kind is EstimateTreeGroupNodeKind {

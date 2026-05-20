@@ -1,7 +1,14 @@
 import { describe, expect, it } from "vitest";
 
 import { findEstimateNode, sampleEstimateTree, validateEstimateTreeHierarchy, type EstimateTreeNode } from "@/components/workshop/estimate-tree-data";
-import { canNestEstimateNodeKind, getEstimateNodeDisplayKind, isEstimateGroupNodeKind, isEstimateTreeNodeKind, type EstimateTreeNodeKind } from "@/lib/estimates/tree-hierarchy";
+import {
+  canNestEstimateNodeKind,
+  getEstimateNodeDisplayKind,
+  isEstimateGroupNodeKind,
+  isEstimateTreeNodeKind,
+  normalizeEstimateTreeNodeKind,
+  type EstimateTreeNodeKind,
+} from "@/lib/estimates/tree-hierarchy";
 
 const activeNodeKinds = ["group", "area"] as const satisfies readonly EstimateTreeNodeKind[];
 const legacyTechnicalKinds = ["lot", "general", "structure", "level", "assembly"] as const;
@@ -30,6 +37,12 @@ describe("estimate tree hierarchy", () => {
     expect(isEstimateGroupNodeKind("group")).toBe(true);
     expect(getEstimateNodeDisplayKind("area")).toBe("area");
     expect(isEstimateGroupNodeKind("area")).toBe(false);
+  });
+
+  it("normalizes legacy organizing kinds to group during the remote migration transition", () => {
+    expect(activeNodeKinds.map((kind) => normalizeEstimateTreeNodeKind(kind))).toEqual(["group", "area"]);
+    expect(legacyTechnicalKinds.map((kind) => normalizeEstimateTreeNodeKind(kind))).toEqual(["group", "group", "group", "group", "group"]);
+    expect(normalizeEstimateTreeNodeKind("legacy")).toBeNull();
   });
 
   it("supports multiple top-level project parents as group nodes", () => {

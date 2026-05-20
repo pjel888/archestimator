@@ -3,6 +3,7 @@ import type { EstimateRowItem, EstimateTreeNode } from "@/components/workshop/es
 import type { Tables } from "@/lib/supabase/types";
 import { requireCurrentUserContext } from "@/lib/auth/session";
 import { isUuid } from "@/lib/ids";
+import { normalizeEstimateTreeNodeKind } from "@/lib/estimates/tree-hierarchy";
 
 export type WorkspaceBootstrap = {
   workspace: Tables<"workspaces">;
@@ -182,8 +183,8 @@ type LiveEstimateTreeResult = {
   tree: EstimateTreeNode[];
 };
 
-function isDisplayNodeKind(kind: EstimateNodeKind): kind is EstimateTreeNode["kind"] {
-  return kind === "group" || kind === "area";
+function getDisplayNodeKind(kind: EstimateNodeKind): EstimateTreeNode["kind"] | null {
+  return normalizeEstimateTreeNodeKind(kind);
 }
 
 function formatPeso(value: number) {
@@ -230,11 +231,12 @@ export function buildEstimateTree(nodes: EstimateNodeRow[], rows: EstimateRowIte
 
   const nodeMap = new Map<string, EstimateTreeNode>();
   for (const node of nodes) {
-    if (!isDisplayNodeKind(node.kind)) continue;
+    const kind = getDisplayNodeKind(node.kind);
+    if (!kind) continue;
     nodeMap.set(node.id, {
       id: node.id,
       name: node.name,
-      kind: node.kind,
+      kind,
       total: formatPeso(0),
       children: [],
       estimateRowItems: rowItemsByNode.get(node.id) ?? [],
