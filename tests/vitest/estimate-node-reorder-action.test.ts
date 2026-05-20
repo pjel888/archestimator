@@ -133,34 +133,44 @@ describe("reorderEstimateTreeNodes server action", () => {
     expect(nextNavigationMocks.redirect).not.toHaveBeenCalled();
   });
 
-  it("falls back to the legacy move_estimate_nodes RPC only when the new reorder RPC is not deployed yet", async () => {
-    const missingReorderRpc = Object.assign(new Error("Could not find the function public.reorder_estimate_nodes(target_estimate_id, move_updates)."), {
-      code: "PGRST202",
-    });
-    const supabase = makeSupabase({
-      nodes: [
+  it("calls Supabase rpc with the client receiver when nesting one Group Node under another", async () => {
+    const estimateQuery = queryResult({ data: { id: "estimate-1", project_id: "project-1" }, error: null });
+    const nodeQuery = queryResult({
+      data: [
+        { id: "project-scope", kind: "group", estimate_id: "estimate-1", parent_id: null },
+        { id: "site-works", kind: "group", estimate_id: "estimate-1", parent_id: "project-scope" },
         { id: "ground-floor", kind: "group", estimate_id: "estimate-1", parent_id: "project-scope" },
-        { id: "kitchen", kind: "area", estimate_id: "estimate-1", parent_id: "ground-floor" },
       ],
-      rpcResults: [
-        { data: null, error: missingReorderRpc },
-        { data: 1, error: null },
-      ],
+      error: null,
     });
+    const restRpc = vi.fn(async () => ({ data: 2, error: null }));
+    const supabase = {
+      rest: { rpc: restRpc },
+      from: vi.fn((table: string) => {
+        if (table === "estimates") return estimateQuery;
+        if (table === "estimate_nodes") return nodeQuery;
+        throw new Error(`Unexpected table ${table}`);
+      }),
+      rpc(fn: string, args: Record<string, unknown>) {
+        return this.rest.rpc(fn, args);
+      },
+    };
     supabaseServerMocks.createSupabaseServerClient.mockResolvedValue(supabase);
     const { reorderEstimateTreeNodes } = await import("@/lib/estimates/actions");
 
     await reorderEstimateTreeNodes("project-1", "estimate-1", {
-      updates: [{ id: "kitchen", parentId: "ground-floor", sortOrder: 20 }],
+      updates: [
+        { id: "site-works", parentId: "ground-floor", sortOrder: 10 },
+        { id: "ground-floor", parentId: "project-scope", sortOrder: 20 },
+      ],
     });
 
-    expect(supabase.rpc).toHaveBeenNthCalledWith(1, "reorder_estimate_nodes", {
+    expect(restRpc).toHaveBeenCalledWith("reorder_estimate_nodes", {
       target_estimate_id: "estimate-1",
-      move_updates: [{ id: "kitchen", parent_id: "ground-floor", sort_order: 20 }],
-    });
-    expect(supabase.rpc).toHaveBeenNthCalledWith(2, "move_estimate_nodes", {
-      target_estimate_id: "estimate-1",
-      move_updates: [{ id: "kitchen", parent_id: "ground-floor", sort_order: 20 }],
+      move_updates: [
+        { id: "site-works", parent_id: "ground-floor", sort_order: 10 },
+        { id: "ground-floor", parent_id: "project-scope", sort_order: 20 },
+      ],
     });
   });
 

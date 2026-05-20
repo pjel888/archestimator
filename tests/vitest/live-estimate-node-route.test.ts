@@ -18,7 +18,7 @@ describe("live estimate node route", () => {
 
   it("passes live tree nodes into the tree and sheet components", () => {
     expect(estimateNodePage).toContain("nodes={tree}");
-    expect(estimateTree).toContain("nodes: EstimateAreaNode[]");
+    expect(estimateTree).toContain("nodes: EstimateTreeNode[]");
     expect(estimateTree).toContain("ControlledTreeEnvironment");
     expect(estimateTree).toContain("canNestEstimateNodeKind");
     expect(estimateTree).toContain("renderDepthOffset={TREE_INDENT_STEP}");

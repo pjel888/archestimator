@@ -456,6 +456,10 @@ export type Database = {
         Args: { target_workspace_id: string }
         Returns: boolean
       }
+      reorder_estimate_nodes: {
+        Args: { target_estimate_id: string; move_updates: Json }
+        Returns: number
+      }
       resolve_app_role_for_email: {
         Args: { raw_email: string }
         Returns: Database["public"]["Enums"]["app_role"]

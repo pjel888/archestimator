@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { requireCurrentUserContext } from "@/lib/auth/session";
-import type { EstimateAreaNode, EstimateRowItem } from "@/components/workshop/estimate-tree-data";
+import type { EstimateTreeNode, EstimateRowItem } from "@/components/workshop/estimate-tree-data";
 import { canNestEstimateNodeKind, getEstimateNodeNestingError, normalizeEstimateTreeNodeKind, type EstimateTreeNodeKind } from "@/lib/estimates/tree-hierarchy";
 import { isMissingColumnError, normalizeEstimateRecord, type EstimateRecordWithLegacy } from "@/lib/repositories/estimate-schema-compat";
 import { getCurrentWorkspaceProject, getProjectEstimateTreeByEstimate } from "@/lib/repositories/workspace-repository";
@@ -70,7 +70,7 @@ type ReorderEstimateTreeNodesInput = {
 };
 
 type ReorderEstimateTreeNodesResult = {
-  tree: EstimateAreaNode[];
+  tree: EstimateTreeNode[];
 };
 
 type ReorderEstimateNodeRow = {
@@ -79,14 +79,6 @@ type ReorderEstimateNodeRow = {
   parent_id: string | null;
   kind: string;
 };
-
-type EstimateTreeReorderRpcError = Error & { code?: string };
-
-function isMissingEstimateTreeReorderRpc(error: EstimateTreeReorderRpcError) {
-  return error.code === "PGRST202" || (
-    /reorder_estimate_nodes/i.test(error.message) && /not\s+find|not\s+found|does\s+not\s+exist/i.test(error.message)
-  );
-}
 
 type CreateEstimateNodeKind = "group" | "area";
 
@@ -470,22 +462,9 @@ export async function reorderEstimateTreeNodes(
     parent_id: update.parentId,
     sort_order: update.sortOrder,
   }));
-  const callEstimateTreeReorderRpc = supabase.rpc as unknown as (
-    fn: string,
-    args: Record<string, unknown>,
-  ) => Promise<{ data: number | null; error: EstimateTreeReorderRpcError | null }>;
   const rpcPayload = { target_estimate_id: estimate.id, move_updates: moveUpdates };
-  const { error: rpcError } = await callEstimateTreeReorderRpc(
-    "reorder_estimate_nodes",
-    rpcPayload,
-  );
-
-  if (rpcError) {
-    if (!isMissingEstimateTreeReorderRpc(rpcError)) throw new Error(`Could not reorder estimate tree: ${rpcError.message}`);
-
-    const { error: fallbackRpcError } = await callEstimateTreeReorderRpc("move_estimate_nodes", rpcPayload);
-    if (fallbackRpcError) throw new Error(`Could not reorder estimate tree: ${fallbackRpcError.message}`);
-  }
+  const { error: rpcError } = await supabase.rpc("reorder_estimate_nodes", rpcPayload);
+  if (rpcError) throw new Error(`Could not reorder estimate tree: ${rpcError.message}`);
 
   const { project: refreshedProject, estimate: refreshedEstimate, tree } = await getProjectEstimateTreeByEstimate(project.id, estimate.id);
   if (!refreshedProject || !refreshedEstimate) throw new Error("Estimate not found after reordering the tree.");
