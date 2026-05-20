@@ -389,7 +389,7 @@ Keep this pattern. If adding a drag handle, do not move all interactive props on
 
 ## Drag indicator renderer
 
-Add `renderDragBetweenLine` to make target location visible and testable:
+Add `renderDragBetweenLine` to make target location visible and testable. The class-name helper is verified in `src/lib/ui/cn.ts`; import it with `import { cn } from "@/lib/ui/cn"` rather than creating a second utility:
 
 ```tsx
 renderDragBetweenLine={({ draggingPosition, lineProps }) => {
@@ -517,6 +517,10 @@ Default user flow:
 - Press `ESCAPE` to abort.
 
 Do not remove live descriptions or ARIA props accidentally. If custom status is added, use accessible status text, e.g. `role="status"` or `aria-live="polite"` for save/failure feedback.
+
+## Touch/mobile scope
+
+Desktop pointer drag/drop and keyboard drag/drop are the MVP acceptance target. Touch/mobile DnD is explicitly out of scope for Gates A-E unless Philip expands the route target. Do not claim touch support in the implementation PR. If a mobile viewport smoke is added, treat it as graceful non-breakage only; touch DnD parity needs a separate spike with real-device or reliable touch-emulation evidence.
 
 ## Archestimator implementation checklist
 

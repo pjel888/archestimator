@@ -246,6 +246,7 @@ Expected proof:
 - selected/focused/expanded state is stable by id;
 - stale route props do not overwrite the action-returned confirmed tree after `moveState` returns to idle;
 - `estimateQueryKeys.areaTree(estimateId)` cache mirrors optimistic, success, and rollback state;
+- named component regression exists for `canInvokePrimaryActionOnItemContainer`: dropping must not call `router.push`/`router.refresh` on valid, invalid/no-op, success, or rollback paths;
 - `router.push` and `router.refresh` are not called by drop, including with `canInvokePrimaryActionOnItemContainer` enabled;
 - `role="status"` communicates saving/error state;
 - RCT DnD props are configured in controlled mode.
@@ -277,7 +278,9 @@ Expected proof:
 - reload proves persistence;
 - invalid moves do not persist;
 - browser instrumentation records no full document navigation during drop;
-- browser instrumentation records zero blank tree frames during drag/drop window.
+- browser instrumentation records zero blank tree frames during drag/drop window;
+- URL and selected route remain unchanged during the drop action window unless a separate post-drop click/keyboard primary action is performed;
+- DnD spec is first proven locally with retries disabled; any retry-only pass remains an open risk, not final proof. See `04-testing-browser-qa-plan.md` and `11-final-assessment-hardening-notes.md` for the flake/retry policy.
 
 ## Full final validation
 

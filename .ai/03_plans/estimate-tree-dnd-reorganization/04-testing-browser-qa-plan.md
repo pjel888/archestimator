@@ -526,6 +526,28 @@ Add if needed:
 
 Selectors should not be visually noisy.
 
+## Playwright DnD flake/retry policy
+
+Current `playwright.config.ts` uses `trace: "on-first-retry"` but does not set a retry count. Treat local DnD evidence as no-retry evidence unless the implementation deliberately changes the config.
+
+Policy:
+
+1. Run the new DnD spec locally with `retries: 0` first.
+2. If it fails, inspect `test-results/**/error-context.md`, trace/video, console, and network evidence before rerunning.
+3. Fix readiness and pointer precision with stable selectors, visible status waits, or the no-reload/flicker instrumentation windows above; do not hide timing bugs with broad sleeps.
+4. A CI retry may be added only after the spec passes locally without retries:
+
+```ts
+retries: process.env.CI ? 1 : 0,
+use: {
+  trace: "on-first-retry",
+  video: "retain-on-failure",
+},
+```
+
+5. A DnD test that only passes on retry is not final seamlessness proof. Record the root cause as a blocker/open risk and fix it.
+6. Use `test.describe.configure({ mode: "serial" })` only for specs that mutate the same isolated estimate fixture. Prefer per-test/per-worker cloned estimate data so other E2E specs can stay parallel.
+
 ## Validation commands
 
 Targeted during development:

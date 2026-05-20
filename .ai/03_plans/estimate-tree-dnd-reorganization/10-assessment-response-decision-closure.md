@@ -160,4 +160,4 @@ Do not hard-code secrets. If the CLI needs authentication, use the developer's e
 
 ## Updated implementation confidence
 
-After these decisions, the plan pack is no longer at the 85-95% range described by the two reports. The remaining risk is implementation execution, not plan ambiguity. Gate A remains the correct first slice.
+After these decisions, the plan pack is no longer at the 85-95% range described by the earlier reports. The later 10/10 and A- reports found only minor implementation-friction notes, now closed in `11-final-assessment-hardening-notes.md`. The remaining risk is implementation execution, not plan ambiguity. Gate A remains the correct first slice.
