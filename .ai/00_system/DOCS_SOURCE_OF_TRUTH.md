@@ -36,7 +36,7 @@ Historical workshop-recovery plans/logs are not active instructions after the re
 
 ## Anti-duplication rule
 
-If two docs cover the same topic, one must be canonical and the other must point to it. Do not let Claude, Codex, OpenCode, Kimi, DeepSeek, or other agents maintain separate contradictory instructions.
+If two docs cover the same topic, one must be canonical and the other must point to it. Do not let Claude, Codex, OpenCode, CommandCode, Gemini, Kimi, DeepSeek, or other agents maintain separate contradictory instructions.
 
 ## Agent performance rule
 

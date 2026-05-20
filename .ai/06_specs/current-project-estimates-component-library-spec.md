@@ -108,14 +108,18 @@ Current behavior:
 
 - Left panel is resizable through `ResizableSidePanel`.
 - Width storage key: `estimate_sheet_tree_width`.
-- Default width: `272px`.
-- Min width: `216px`.
-- Max width: `432px`.
+- Persisted base width: default `272px`, min `216px`, max `432px`.
+- On the estimate sheet detail route, the removed `ProjectMiniSidebar` width (`104px`) is added as a left extension to the estimate tree so the tree's right resize/collapse edge stays aligned with its previous position.
 - Search input is present visually but not yet functionally wired.
-- Add-area button is present visually but not yet functionally wired.
-- Node links navigate to `/workshop/projects/${projectId}/estimates/${node.id}`.
-- Selected link uses `aria-current="page"`.
+- Add tree action opens the Add estimate tree node modal.
+- Tree header tools include expand-all and collapse-all icon actions for the visible hierarchy.
+- Node primary actions update scoped local selected-node state immediately, then navigate to `/workshop/projects/${projectId}/estimates/${node.id}` for deep-link/server reconciliation.
+- Selected tree rows use `aria-current="page"` when they match the active local/route-selected node.
 - Expand/collapse is separate from route navigation.
+- Group/folder nodes can be nested inside other group/folder nodes through add-node parent selection; Area Nodes remain leaves for estimate rows only.
+- Estimate-tree drag/drop reorganization has been removed. The tree has no reorder drop zones, drag previews, optimistic move pipeline, or active move action.
+- The temporary single-pointer `Move` modal/button has also been removed and must not be restored as-is. Tree movement has no current UI path pending a replacement design.
+- Tree indentation must align nested node icons with the parent row's text column; the current tree indent step is `20px`.
 
 #### Center: Estimate sheet
 
@@ -128,8 +132,9 @@ Purpose:
 
 Current behavior:
 
-- Owns local `estimateTree` state initialized from `sampleEstimateTree`.
+- Owns local `estimateTree` state initialized from the active TanStack Query area-tree cache.
 - Owns local `editableRows` state derived from existing estimate row items.
+- Uses scoped estimate workspace selection state so the visible branch changes immediately when the tree selection changes, before route props catch up.
 - Renders a sticky header with selected node, stats, search placeholder, Filter, View, and total.
 - Renders the selected node branch recursively.
 - Shows child groups before row tables.
@@ -163,7 +168,7 @@ Current behavior:
 
 ## 5. Estimate hierarchy model
 
-Source: `src/components/workshop/estimate-tree-data.ts`
+Source: `src/components/workshop/estimate-tree-data.ts` for display data, with durable nesting rules in `src/lib/estimates/tree-hierarchy.ts`.
 
 ### Types
 
@@ -171,7 +176,7 @@ Source: `src/components/workshop/estimate-tree-data.ts`
 export type EstimateAreaNode = {
   id: string;
   name: string;
-  kind: "lot" | "structure" | "level" | "area";
+  kind: "group" | "lot" | "general" | "structure" | "level" | "area";
   total: string;
   children?: EstimateAreaNode[];
   estimateRowItems?: EstimateRowItem[];
@@ -180,38 +185,39 @@ export type EstimateAreaNode = {
 
 ### Durable hierarchy rule
 
-The current hierarchy is:
+The product model has two node concepts:
 
-`Lot Group → Structure Group → Floor Group → Area Group → EstimateRowItem`
+- Group Nodes organize the estimate tree.
+- Area Nodes own estimate row items.
 
-Allowed simplification:
+Newly created organizing nodes use `kind: "group"`. Existing storage kinds (`lot`, `general`, `structure`, and `level`) remain compatibility values and are displayed/validated as Group Nodes. Root accepts Group Nodes. Group Nodes may contain other Group Nodes and Area Nodes. Area Nodes are leaves for estimate rows.
 
-- Parent groups may skip intermediate levels and contain Area Groups directly.
-- Example: a lot group may contain a site-work area directly when the work does not need a building/floor subdivision.
+Root placement remains part of the hierarchy model for created nodes, but there is no current tree-move UI. A future move workflow must define how valid group nodes can be moved back to the root without restoring the removed drag/drop behavior.
 
 Hard rule:
 
 - Only `kind: "area"` nodes may contain `estimateRowItems`.
 - Insertion must enforce this rule, not only hide UI affordances.
-- Tests must continue to confirm that rows exist only on area groups.
+- Tests and database constraints must continue to confirm that rows exist only on area groups.
 
 ### Existing validation
 
-`tests/vitest/estimate-tree-data.test.ts` currently verifies:
+`tests/vitest/estimate-tree-data.test.ts` and add-node/tree route tests currently verify:
 
-- multiple top-level lot groups are supported;
+- multiple top-level Group Nodes are supported;
 - parent groups may contain area groups directly;
-- estimate row items remain only on area groups.
+- non-area group nodes may be nested under other non-area group nodes;
+- estimate row items remain only on Area Nodes.
+- estimate tree drag/drop and move-server-action assertions are intentionally absent.
 
 ### Tree navigation requirements
 
 - Each visible node must have a stable route id.
 - Route selection must use the selected `nodeId`, not local-only selected state.
 - Expand/collapse state must not navigate.
-- Node icons must derive from `kind`, not from depth:
-  - lot / structure: house/building-like icon;
-  - level: stack/slab-like icon;
-  - area: cube/room-like icon.
+- Node icons must derive from the two product concepts, not storage compatibility kinds:
+  - Group Node: plain folder icon without icon background or border;
+  - Area Node: cube/box icon.
 
 ---
 
@@ -599,20 +605,22 @@ The estimate row table shows existing/inserted row items with:
 
 ### Current state boundary
 
-The current implementation is client-local and route-local:
+The current implementation is local-first with Supabase reconciliation:
 
-- estimate tree state lives in React state inside `EstimateSheetContent`;
-- editable row values live in React state inside `EstimateSheetContent`;
+- estimate tree and row data are read through server actions/repositories and cached in TanStack Query;
+- estimate row edits update the client cache optimistically, then reconcile with Supabase persistence;
+- selected estimate node state lives in a scoped Zustand store keyed by estimate id so tree selection and the center sheet update immediately before route navigation catches up;
+- route state remains the deep-link and server-render reconciliation boundary;
+- editable row values live in React state inside `EstimateSheetContent` while optimistic save state is in flight;
 - component library view state lives in React state inside `EstimateRightSidebar`;
-- library preferences/favorites/recents use browser localStorage;
-- no project estimate mutation is persisted to disk or backend.
+- library preferences/favorites/recents use browser localStorage.
 
 ### Current implications
 
-- Refreshing the page resets inserted estimate rows.
+- Tree selection must not wait for Supabase or route navigation before updating the sheet.
+- Supabase remains the canonical store after optimistic mutations settle.
 - Refreshing the page may preserve library preferences/favorites/recents because those use localStorage.
 - Custom components created in the sidebar are not persisted across refresh unless later storage is added.
-- The route uses shared demo estimate data for all projects, not project-specific estimate records.
 
 ### Future persistence requirement
 
@@ -654,8 +662,9 @@ Known current design-system debt to monitor:
 Current accessibility behaviors:
 
 - Estimate route section has an `aria-label` based on project name.
-- Tree nav uses `aria-label` and route links use `aria-current="page"` for selected node.
+- Tree nav uses `aria-label` and route-navigation row buttons use `aria-current="page"` for the selected node.
 - Expand/collapse buttons use `aria-expanded`.
+- Estimate tree drag/drop move controls have been removed; no replacement move UI is currently active.
 - Component cards use keyboard activation for preview with Enter/Space.
 - Add/favorite/delete buttons have item-specific `aria-label`s.
 - Delete confirmation uses `role="alertdialog"` and `aria-modal="true"`.

@@ -96,6 +96,7 @@ For the current authenticated MVP path:
 7. Opening `/workshop/projects/{projectId}/estimates/{nodeId}` renders only a node from an estimate owned by that project; mismatched project/node pairs return 404.
 8. Tree items change the URL with `aria-current="page"` on the selected node, and content uses the route-loaded tree/rows.
 9. Adding, replacing, deleting, or editing an estimate row persists the `estimate_row_items` record through TanStack Query mutation hooks, shows compact save state, and rolls back local optimistic state on failed saves.
+10. Estimate-tree drag/drop reorganization is absent: no tree drop zones, drag previews, reorder handlers, or move server action are exposed by `EstimateSheetTree`.
 
 ## Estimation-domain claims
 

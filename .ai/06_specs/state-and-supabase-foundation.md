@@ -9,9 +9,9 @@ Archestimator will use a three-layer state model:
 
 1. **Supabase/Postgres** for canonical persisted data.
 2. **TanStack Query** for server state, caching, optimistic mutations, retries, and invalidation.
-3. **Zustand** for high-frequency UI/interaction state: selected node, focused cell, selected rows, expanded tree nodes, drag state, panel state, search/filter state.
+3. **Zustand** for high-frequency UI/interaction state: selected node, focused cell, selected rows, expanded tree nodes, panel state, search/filter state.
 
-Drag/drop and editing must go through domain mutations, not feature-local array rewrites.
+Editing must go through domain mutations, not feature-local array rewrites. Estimate-tree drag/drop reorganization is no longer an active interaction path.
 
 ## Security note: TanStack package incident
 
@@ -31,8 +31,6 @@ New state/data packages should be pinned to exact versions where practical:
 - `@supabase/supabase-js`
 - `@supabase/ssr`
 - `zustand`
-- `@dnd-kit/core`
-- `@dnd-kit/sortable`
 
 ## Supabase project boundary
 
@@ -61,10 +59,10 @@ workspace
 `estimate_node.kind` supports:
 
 ```txt
-lot | structure | level | area | group | assembly
+group | lot | general | structure | level | area
 ```
 
-Only `area` nodes may receive estimate row items unless Philip explicitly approves a broader receiving rule.
+The active product model is two concepts: Group Nodes and Area Nodes. New organizing nodes use `group`; existing `lot`, `general`, `structure`, and `level` values remain compatibility Group Nodes. Only `area` nodes may receive estimate row items unless Philip explicitly approves a broader receiving rule. The original enum still contains `assembly`, but current tree validation rejects it for estimate-tree placement.
 
 ## Migration files
 
@@ -102,7 +100,6 @@ Screens/hooks should continue to call repository functions, not raw Supabase que
 
 Domain mutations are the only legal path for structural changes:
 
-- `moveEstimateNode`
 - `moveEstimateRowItem`
 - `insertLibraryItemIntoEstimate`
 - `replaceEstimateRowSource`

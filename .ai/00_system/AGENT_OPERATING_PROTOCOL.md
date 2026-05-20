@@ -39,9 +39,13 @@ Use the smallest number of agents needed. Avoid swarm work unless tasks are clea
 Default roles:
 - Claude: planning, architecture, critique, writing, strategy
 - Codex: implementation, refactoring, tests, PR-ready diffs
-- OpenCode/Kimi: exploration, fallback planning, long-context review
+- OpenCode: exploration, fallback planning/review, codebase traversal, flexible coding bench
+- CommandCode: taste-aware implementation/review, project-convention checks, PR work, and plan-mode codebase review
+- Gemini: multimodal review, broad synthesis, secondary audit/review, and long-context checks when useful
+- Kimi: frontend/product UI implementation and review, long-context synthesis, fallback planning/review, document analysis
 - DeepSeek: debugging, logic review, second-opinion critique
-- Hermes: orchestration, memory, routing, file/system operations
+- Ollama: not an approved agent LLM lane; only the nomic embedding model used by ChunkHound is approved for active use, and locally listed chat models must not be used for planning, review, or implementation unless explicitly approved and documented
+- Hermes: orchestration, memory, routing, task delegation across the AI bench, file/system operations, and final evidence verification
 
 ## Safety rules
 

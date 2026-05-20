@@ -1,6 +1,6 @@
 # Current State
 
-**Date:** 2026-05-18
+**Date:** 2026-05-20
 **Canonical reset audit:** `.ai/02_audits/2026-05-17-reset-cleanup-audit.md`
 **Active restart guardrails:** `.ai/06_specs/restart-guardrails.md`
 **Agent recovery protocol:** `.ai/00_system/AGENT_SELF_DIAGNOSTIC_PROTOCOL.md`
@@ -14,10 +14,16 @@ The reset remains the baseline quality principle: do not blindly restore the del
 ## Repository / branch
 
 - Repository folder: `/Users/philiplewis/archestimator`.
-- Current live branch observed by git: `feat/state-supabase-foundation`.
-- Current working tree note: Supabase schema, auth bootstrap, repository expansion, and protected workshop bootstrap are implemented on the isolated feature branch.
-- Stack: Next.js 16.2.6, React 19.2.4, Bun, TypeScript, Tailwind CSS v4.
-- Backend: Supabase project `ebxxqidacheyapmmzavr` linked locally for Archestimator only; do not use SlateCamp Supabase resources. Supabase Auth is active, with `philipjonlewis@gmail.com` assigned CEO/platform-wide access by database role resolver. Philip's authenticated profile UUID `4e23801d-6fc2-4886-b980-d15ca2b164b8` owns the remote demo seed project/library/estimate shell through the profile default workspace; other authenticated emails should start with an empty default workspace unless they create their own records. As of migration `20260518151743_reset_luna_heights_estimate_contents.sql`, Luna Heights Residence keeps the project and baseline estimate shell but has zero estimate tree nodes and zero estimate row items pending a clean rebuild under the refined node contract.
+- Current canonical branch after consolidation: `main`. Agents must still verify the live branch with `git status --short --branch` before editing.
+- Current working tree note: Supabase schema, auth bootstrap, repository expansion, protected workshop bootstrap, estimate tree/navigation, and local dev-auth inspection support are intended to land on `main` as the active branch.
+- Stack: Next.js 16.2.6, React 19.2.4, Bun, TypeScript, Tailwind CSS v4, React Complex Tree 2.6.1.
+- Backend: Supabase project `ebxxqidacheyapmmzavr` linked locally for Archestimator only; do not use SlateCamp Supabase resources. Supabase Auth is active, with `philipjonlewis@gmail.com` assigned CEO/platform-wide access by database role resolver. Philip's authenticated profile UUID `4e23801d-6fc2-4886-b980-d15ca2b164b8` owns the remote demo seed project/library/estimate shell through the profile default workspace; other authenticated emails should start with an empty default workspace unless they create their own records. As of migration `20260519173857_populate_lewis_residence_estimate_tree.sql`, the deterministic demo estimate is Lewis Residence and has a tree-only rebuild with top-level `General Requirements`, `Site Works`, and `Lot`; `Lot` contains `House` and `Services House`, with the requested house/service-room areas seeded as estimate nodes. Local browser/agent inspection can use the env-gated dev auth bypass (`ARCHESTIMATOR_DEV_AUTH_BYPASS=1`, `ARCHESTIMATOR_DEV_AUTH_EMAIL`, `SUPABASE_SERVICE_ROLE_KEY`) on localhost only; never commit or expose the service-role key.
+
+## AI/tooling bench
+
+- Available agent bench: Codex, Claude, OpenCode, CommandCode, Gemini, and Kimi.
+- Kimi is especially strong for frontend/product UI work and long-context synthesis; prefer it for independent frontend passes when a separate branch/worktree is available.
+- Ollama is not an approved agent LLM lane. Only the nomic embedding model used by ChunkHound is approved for active Ollama use; locally listed chat models must not be used for planning, review, writing, or coding unless Philip explicitly approves and documents them.
 
 ## Active mode
 
@@ -76,6 +82,7 @@ Proceed from the current small post-reset workshop slice, not from the deleted p
 - `.ai/06_specs/current-project-estimates-component-library-spec.md` is the canonical current-state feature spec for the implemented project estimate workspace and connected Component Library sidebar. Read it before expanding `/workshop/projects/[projectId]/estimates/[nodeId]`, `EstimateSheetContent`, `EstimateSheetTree`, or `src/components/workshop/component-library/*`.
 - `.ai/06_specs/supabase-auth-setup.md` documents active Supabase Auth/Profile/CEO access setup, hosted-dashboard redirect checks, and the manual magic-link smoke test.
 - `.ai/06_specs/live-project-estimate-bootstrap.md` is the canonical current-state spec for live project creation, live project dashboard loading, estimate creation/listing, initial estimate hierarchy bootstrap, project-scoped live estimate node tree/row loading, empty-estimate fallback routing by estimate id, and TanStack Query-backed persisted/rollback-safe estimate row mutations with row-level dirty/saving/saved/failed status markers.
+- Estimate tree interaction now uses React Complex Tree for navigation, immediate Zustand-backed selected-node UI state, route reconciliation, expand/collapse, and add-node hierarchy creation. Drag/drop reorganization has been removed completely from the estimate tree: there are no tree drop zones, drag previews, reorder handlers, optimistic move pipeline, `moveEstimateNode` server action, or `public.move_estimate_nodes` RPC. The tree has two product node concepts: Group Nodes organize and may nest inside other Group Nodes; Area Nodes are leaves and are the only row-owning nodes. New organizing nodes use `kind = group`; existing `lot`, `general`, `structure`, and `level` values are compatibility Group Nodes and display with the same folder icon. The removed single-pointer Move modal/button must not be restored as-is; tree movement has no current UI path pending a replacement design. The tree toolbar exposes expand-all/collapse-all actions. Keep future tree changes aligned with the central hierarchy matrix and database-side invariants; `assembly` remains a non-active compatibility enum value for estimate nodes.
 - `.ai/03_plans/project-estimates-component-library-improvement-plan.md` is the research-backed UX/UI improvement plan for that feature. Its immediate recommended next slice is target-aware insert + insert-and-edit + keyboard editing baseline.
 - `.ai/03_plans/ui-componentization-and-storybook-plan.md` is the active reusable UI primitive matrix and Storybook organization plan. Read it before creating app/workshop controls, component-library controls, toolbars, cards, filters, panels, or stories.
 
