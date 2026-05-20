@@ -25,10 +25,11 @@ describe("Supabase performance migrations", () => {
     expect(migration).toContain("on public.estimates(project_id, updated_at desc)");
   });
 
-  it("keeps hierarchy enforcement and removes the deprecated estimate node move RPC", () => {
+  it("keeps hierarchy enforcement, removes the deprecated move RPC, and introduces the audited reorder RPC", () => {
     const migration = readMigration("_atomic_estimate_node_moves.sql");
     const twoKindMigration = readMigration("_enforce_two_kind_estimate_nodes.sql");
     const removalMigration = readMigration("_remove_estimate_node_move_rpc.sql");
+    const reorderMigration = readMigration("_reorder_estimate_nodes_rpc.sql");
 
     expect(migration).toContain("create or replace function public.move_estimate_nodes");
     expect(migration).toContain("duplicate_root_estimates");
@@ -48,6 +49,18 @@ describe("Supabase performance migrations", () => {
     expect(twoKindMigration).toMatch(/create or replace function public\.enforce_estimate_node_tree\(\)\s+returns trigger\s+language plpgsql\s+security definer/i);
     expect(twoKindMigration).toMatch(/create or replace function public\.enforce_estimate_row_item_area_node\(\)\s+returns trigger\s+language plpgsql\s+security definer/i);
     expect(removalMigration).toContain("drop function if exists public.move_estimate_nodes(uuid, jsonb)");
+    expect(reorderMigration).toContain("create or replace function public.reorder_estimate_nodes");
+    expect(reorderMigration).toContain("jsonb_typeof(move_updates) <> 'array'");
+    expect(reorderMigration).toContain("duplicate estimate node reorder ids");
+    expect(reorderMigration).toContain("duplicate estimate node reorder slots");
+    expect(reorderMigration).toContain("all estimate node reorder ids must belong to the target estimate");
+    expect(reorderMigration).toContain("all estimate node reorder parents must belong to the target estimate");
+    expect(reorderMigration).toContain("child.parent_id is null and child.kind in ('group')");
+    expect(reorderMigration).toContain("parent.kind in ('group') and child.kind in ('group', 'area')");
+    expect(reorderMigration).toContain("validate_estimate_node_tree(target_estimate_id)");
+    expect(reorderMigration).toContain("revoke execute on function public.reorder_estimate_nodes(uuid, jsonb) from public");
+    expect(reorderMigration).toContain("grant execute on function public.validate_estimate_node_tree(uuid) to authenticated");
+    expect(reorderMigration).toContain("grant execute on function public.reorder_estimate_nodes(uuid, jsonb) to authenticated");
   });
 
   it("normalizes legacy estimate-node values before enforcing active group/area semantics", () => {
