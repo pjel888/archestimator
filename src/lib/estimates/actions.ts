@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 
 import { requireCurrentUserContext } from "@/lib/auth/session";
 import type { EstimateAreaNode, EstimateRowItem } from "@/components/workshop/estimate-tree-data";
-import { canNestEstimateNodeKind, getEstimateNodeNestingError, isEstimateTreeNodeKind, type EstimateTreeNodeKind } from "@/lib/estimates/tree-hierarchy";
+import { canNestEstimateNodeKind, getEstimateNodeNestingError, normalizeEstimateTreeNodeKind, type EstimateTreeNodeKind } from "@/lib/estimates/tree-hierarchy";
 import { isMissingColumnError, normalizeEstimateRecord, type EstimateRecordWithLegacy } from "@/lib/repositories/estimate-schema-compat";
 import { getCurrentWorkspaceProject, getProjectEstimateTreeByEstimate } from "@/lib/repositories/workspace-repository";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -79,6 +79,14 @@ type ReorderEstimateNodeRow = {
   parent_id: string | null;
   kind: string;
 };
+
+type EstimateTreeReorderRpcError = Error & { code?: string };
+
+function isMissingEstimateTreeReorderRpc(error: EstimateTreeReorderRpcError) {
+  return error.code === "PGRST202" || (
+    /reorder_estimate_nodes/i.test(error.message) && /not\s+find|not\s+found|does\s+not\s+exist/i.test(error.message)
+  );
+}
 
 type CreateEstimateNodeKind = "group" | "area";
 
@@ -445,13 +453,13 @@ export async function reorderEstimateTreeNodes(
       throw new Error("Estimate tree update parent not found in the current estimate.");
     }
 
-    const nodeKind = node.kind;
-    if (!isEstimateTreeNodeKind(nodeKind)) throw new Error("Unsupported estimate node kind.");
+    const nodeKind = normalizeEstimateTreeNodeKind(node.kind);
+    if (!nodeKind) throw new Error("Unsupported estimate node kind.");
 
     let parentKind: EstimateTreeNodeKind | null = null;
     if (parentNode) {
-      if (!isEstimateTreeNodeKind(parentNode.kind)) throw new Error("Unsupported estimate node kind.");
-      parentKind = parentNode.kind;
+      parentKind = normalizeEstimateTreeNodeKind(parentNode.kind);
+      if (!parentKind) throw new Error("Unsupported estimate node kind.");
     }
 
     if (!canNestEstimateNodeKind(nodeKind, parentKind)) throw new Error(getEstimateNodeNestingError(nodeKind, parentKind));
@@ -462,16 +470,22 @@ export async function reorderEstimateTreeNodes(
     parent_id: update.parentId,
     sort_order: update.sortOrder,
   }));
-  const callReorderEstimateNodes = supabase.rpc as unknown as (
+  const callEstimateTreeReorderRpc = supabase.rpc as unknown as (
     fn: string,
     args: Record<string, unknown>,
-  ) => Promise<{ data: number | null; error: Error | null }>;
-  const { error: rpcError } = await callReorderEstimateNodes(
+  ) => Promise<{ data: number | null; error: EstimateTreeReorderRpcError | null }>;
+  const rpcPayload = { target_estimate_id: estimate.id, move_updates: moveUpdates };
+  const { error: rpcError } = await callEstimateTreeReorderRpc(
     "reorder_estimate_nodes",
-    { target_estimate_id: estimate.id, move_updates: moveUpdates },
+    rpcPayload,
   );
 
-  if (rpcError) throw new Error(`Could not reorder estimate tree: ${rpcError.message}`);
+  if (rpcError) {
+    if (!isMissingEstimateTreeReorderRpc(rpcError)) throw new Error(`Could not reorder estimate tree: ${rpcError.message}`);
+
+    const { error: fallbackRpcError } = await callEstimateTreeReorderRpc("move_estimate_nodes", rpcPayload);
+    if (fallbackRpcError) throw new Error(`Could not reorder estimate tree: ${fallbackRpcError.message}`);
+  }
 
   const { project: refreshedProject, estimate: refreshedEstimate, tree } = await getProjectEstimateTreeByEstimate(project.id, estimate.id);
   if (!refreshedProject || !refreshedEstimate) throw new Error("Estimate not found after reordering the tree.");
@@ -591,8 +605,8 @@ export async function createEstimateNode(projectId: string, estimateId: string, 
 
     if (parentError) throw parentError;
     if (!parentNode) throw new Error("Parent estimate node not found in the current project.");
-    if (!isEstimateTreeNodeKind(parentNode.kind)) throw new Error("Unsupported estimate node kind.");
-    parentKind = parentNode.kind;
+    parentKind = normalizeEstimateTreeNodeKind(parentNode.kind);
+    if (!parentKind) throw new Error("Unsupported estimate node kind.");
   }
 
   if (!canNestEstimateNodeKind(kind, parentKind)) {
