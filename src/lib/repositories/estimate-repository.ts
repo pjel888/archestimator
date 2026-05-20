@@ -1,4 +1,4 @@
-import { moveEstimateNode as moveTreeNode, moveEstimateRowItem as moveTreeRowItem, type MoveEstimateNodeInput, type MoveEstimateRowItemInput } from "@/lib/domain/estimate-mutations";
+import { moveEstimateRowItem as moveTreeRowItem, type MoveEstimateRowItemInput } from "@/lib/domain/estimate-mutations";
 import type { EstimateNode, EstimateRowItem, EstimateTree } from "@/lib/domain/estimate-tree";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { hasSupabaseBrowserEnv, type Json, type Tables, type TablesInsert } from "@/lib/supabase/types";
@@ -8,15 +8,36 @@ export type UpdateEstimateRowItemInput = Partial<Omit<EstimateRowItem, "id" | "e
 
 export type EstimateRepository = {
   getEstimateTree(estimateId: string): Promise<EstimateTree>;
-  moveEstimateNode(estimateId: string, input: MoveEstimateNodeInput): Promise<EstimateTree>;
   moveEstimateRowItem(estimateId: string, input: MoveEstimateRowItemInput): Promise<EstimateTree>;
   insertEstimateRowItem(estimateId: string, input: InsertEstimateRowItemInput): Promise<EstimateTree>;
   updateEstimateRowItem(estimateId: string, rowId: string, input: UpdateEstimateRowItemInput): Promise<EstimateTree>;
   deleteEstimateRowItem(estimateId: string, rowId: string): Promise<EstimateTree>;
 };
 
-type EstimateNodeRow = Tables<"estimate_nodes">;
-type EstimateRowItemRow = Tables<"estimate_row_items">;
+type EstimateNodeRow = Pick<Tables<"estimate_nodes">, "id" | "estimate_id" | "parent_id" | "kind" | "name" | "sort_order">;
+type EstimateRowItemRow = Pick<
+  Tables<"estimate_row_items">,
+  | "description"
+  | "designation"
+  | "discipline"
+  | "estimate_id"
+  | "id"
+  | "labor_cost"
+  | "link_state"
+  | "material"
+  | "node_id"
+  | "quantity"
+  | "sort_order"
+  | "source_library_item_id"
+  | "source_snapshot"
+  | "supplementary_cost"
+  | "supplier"
+  | "unit"
+  | "unit_cost"
+>;
+
+const ESTIMATE_NODE_SELECT = "id, estimate_id, parent_id, kind, name, sort_order";
+const ESTIMATE_ROW_ITEM_SELECT = "id, estimate_id, node_id, sort_order, source_library_item_id, source_snapshot, material, description, supplier, unit, quantity, unit_cost, supplementary_cost, labor_cost, discipline, designation, link_state";
 
 const inMemoryTrees = new Map<string, EstimateTree>();
 
@@ -57,17 +78,6 @@ function toEstimateRowItem(row: EstimateRowItemRow): EstimateRowItem {
   };
 }
 
-function toEstimateNodeUpdate(node: EstimateNode): TablesInsert<"estimate_nodes"> {
-  return {
-    id: node.id,
-    estimate_id: node.estimateId,
-    parent_id: node.parentId,
-    kind: node.kind,
-    name: node.name,
-    sort_order: node.sortOrder,
-  };
-}
-
 function toEstimateRowItemUpdate(row: EstimateRowItem): TablesInsert<"estimate_row_items"> {
   return {
     id: row.id,
@@ -93,13 +103,6 @@ function toEstimateRowItemUpdate(row: EstimateRowItem): TablesInsert<"estimate_r
 const inMemoryEstimateRepository: EstimateRepository = {
   async getEstimateTree(estimateId) {
     return inMemoryTrees.get(estimateId) ?? getEmptyEstimateTree();
-  },
-
-  async moveEstimateNode(estimateId, input) {
-    const current = inMemoryTrees.get(estimateId) ?? getEmptyEstimateTree();
-    const next = moveTreeNode(current, input);
-    inMemoryTrees.set(estimateId, next);
-    return next;
   },
 
   async moveEstimateRowItem(estimateId, input) {
@@ -138,12 +141,12 @@ const supabaseEstimateRepository: EstimateRepository = {
     const [nodesResult, rowsResult] = await Promise.all([
       supabase
         .from("estimate_nodes")
-        .select("*")
+        .select(ESTIMATE_NODE_SELECT)
         .eq("estimate_id", estimateId)
         .order("sort_order", { ascending: true }),
       supabase
         .from("estimate_row_items")
-        .select("*")
+        .select(ESTIMATE_ROW_ITEM_SELECT)
         .eq("estimate_id", estimateId)
         .order("sort_order", { ascending: true }),
     ]);
@@ -155,19 +158,6 @@ const supabaseEstimateRepository: EstimateRepository = {
       nodes: (nodesResult.data ?? []).map(toEstimateNode),
       rows: (rowsResult.data ?? []).map(toEstimateRowItem),
     };
-  },
-
-  async moveEstimateNode(estimateId, input) {
-    const current = await this.getEstimateTree(estimateId);
-    const next = moveTreeNode(current, input);
-    const movedNode = next.nodes.find((node) => node.id === input.nodeId);
-    if (!movedNode) throw new Error("Estimate node not found after move.");
-
-    const supabase = createSupabaseBrowserClient();
-    const { error } = await supabase.from("estimate_nodes").upsert(toEstimateNodeUpdate(movedNode));
-    if (error) throw error;
-
-    return next;
   },
 
   async moveEstimateRowItem(estimateId, input) {

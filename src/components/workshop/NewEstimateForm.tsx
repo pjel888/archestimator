@@ -13,7 +13,7 @@ export function NewEstimateForm({ projectId }: { projectId: string }) {
         <div className="min-w-0">
           <p className="text-[8px] font-bold uppercase tracking-[0.16em] text-tertiary">Estimate setup</p>
           <h2 className="mt-0.5 text-[12px] font-bold tracking-[-0.025em] text-ink">Create estimate</h2>
-          <p className="mt-1 text-[10px] leading-4 text-tertiary">Creates a draft estimate with a lot, structure, ground floor, and project-wide area.</p>
+          <p className="mt-1 text-[10px] leading-4 text-tertiary">Creates a draft estimate with Group Nodes and one project-wide Area Node.</p>
         </div>
         <Button type="submit" variant="primary" size="md" className="h-8 shrink-0">
           <Plus size={14} weight="bold" aria-hidden="true" />

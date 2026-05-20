@@ -95,8 +95,8 @@ export function useEstimateRowMutations(estimateId?: string) {
       onMutate: (input: RollbackInput) => markSaving(input.rowId),
       onSuccess: (_result: void, input: RollbackInput) => {
         markSaved(input.rowId);
-        void queryClient.invalidateQueries({ queryKey: estimateQueryKeys.areaTree(input.estimateId), refetchType: "active" });
-        if (detailQueryKey) void queryClient.invalidateQueries({ queryKey: detailQueryKey });
+        void queryClient.invalidateQueries({ queryKey: estimateQueryKeys.areaTree(input.estimateId), refetchType: "none" });
+        if (detailQueryKey) void queryClient.invalidateQueries({ queryKey: detailQueryKey, refetchType: "none" });
       },
       onError: (_error: Error, input: RollbackInput) => {
         input.rollback?.();

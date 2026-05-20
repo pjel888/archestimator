@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { moveEstimateNode, moveEstimateRowItem, type MoveEstimateNodeInput, type MoveEstimateRowItemInput } from "@/lib/domain/estimate-mutations";
+import { moveEstimateRowItem, type MoveEstimateRowItemInput } from "@/lib/domain/estimate-mutations";
 import type { EstimateTree } from "@/lib/domain/estimate-tree";
 import { estimateRepository } from "@/lib/repositories/estimate-repository";
 
@@ -12,25 +12,6 @@ export function useEstimateQuery(estimateId: string) {
   return useQuery({
     queryKey: estimateQueryKeys.detail(estimateId),
     queryFn: () => estimateRepository.getEstimateTree(estimateId),
-  });
-}
-
-export function useMoveEstimateNode(estimateId: string) {
-  const queryClient = useQueryClient();
-  const queryKey = estimateQueryKeys.detail(estimateId);
-
-  return useMutation({
-    mutationFn: (input: MoveEstimateNodeInput) => estimateRepository.moveEstimateNode(estimateId, input),
-    onMutate: async (input) => {
-      await queryClient.cancelQueries({ queryKey });
-      const previous = queryClient.getQueryData<EstimateTree>(queryKey);
-      if (previous) queryClient.setQueryData(queryKey, moveEstimateNode(previous, input));
-      return { previous };
-    },
-    onError: (_error, _input, context) => {
-      if (context?.previous) queryClient.setQueryData(queryKey, context.previous);
-    },
-    onSettled: () => queryClient.invalidateQueries({ queryKey }),
   });
 }
 

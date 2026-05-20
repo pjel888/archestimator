@@ -18,6 +18,35 @@ describe("live estimate node route", () => {
   it("passes live tree nodes into the tree and sheet components", () => {
     expect(estimateNodePage).toContain("nodes={tree}");
     expect(estimateTree).toContain("nodes: EstimateAreaNode[]");
+    expect(estimateTree).toContain("ControlledTreeEnvironment");
+    expect(estimateTree).toContain("canNestEstimateNodeKind");
+    expect(estimateTree).toContain("renderDepthOffset={TREE_INDENT_STEP}");
+    expect(estimateTree).toContain("TREE_INDENT_STEP = 20");
+    expect(estimateTree).toContain("onExpandAll={handleExpandAll}");
+    expect(estimateTree).toContain("onCollapseAll={handleCollapseAll}");
+    expect(estimateTree).not.toContain("canDragAndDrop");
+    expect(estimateTree).not.toContain("canDropOnFolder");
+    expect(estimateTree).not.toContain("canReorderItems");
+    expect(estimateTree).not.toContain("renderDragBetweenLine");
+    expect(estimateTree).not.toContain("data-estimate-tree-insertion-zone");
+    expect(estimateTree).not.toContain("Drop at top level");
+    expect(estimateTree).not.toContain("Drop between rows");
+    expect(estimateTree).not.toContain("Drop inside");
+    expect(estimateTree).not.toContain("moveEstimateNode");
+    expect(estimateTree).not.toContain("Move tree node");
+    expect(estimateTree).not.toContain("MoveEstimateNodeForm");
+    expect(estimateTree).not.toContain("Move node");
+    expect(estimateTree).not.toContain("ArrowsOutSimple");
+    expect(estimateTree).toContain("FolderSimple");
+    expect(estimateTree).not.toContain("HouseLine");
+    expect(estimateTree).not.toContain("Stack");
+    expect(estimateTree).not.toContain("Files");
+    expect(estimateTree).not.toContain("border border-hairline bg-white text-tertiary");
+    expect(estimateTree).toContain("data-estimate-tree-active-node={isRouteSelected ? \"true\" : undefined}");
+    expect(estimateTree).not.toContain("context.isSelected || isRouteSelected");
+    expect(estimateTree).not.toContain("DotsSixVertical");
+    expect(estimateTree).not.toContain("size-1 rounded-full bg-tertiary");
+    expect(estimateTree).not.toContain("border-l border-divider");
     expect(estimateTree).not.toContain("sampleEstimateTree");
     expect(estimateContent).toContain("nodes = sampleEstimateTree");
   });
@@ -31,25 +60,30 @@ describe("live estimate node route", () => {
     expect(estimateNodePage).toContain("estimateSheetCode: estimate.sheet_code");
     expect(estimateNodePage).toContain("versionLabel: readEstimateVersionLabel(estimate.metadata)");
     expect(metadataStrip).toContain('id="project-estimate-metadata-strip"');
-    expect(metadataStrip).toContain('className="pointer-events-none bg-white"');
+    expect(metadataStrip).toContain('data-workshop-layout="project-estimate-metadata-row"');
+    expect(metadataStrip).toContain('className="pointer-events-none absolute inset-0 bg-white');
     expect(metadataStrip).toContain('data-estimate-center-column="metadata-strip"');
     expect(metadataStrip).toContain("ProjectEstimateMetadataStripBoundary");
     expect(metadataStrip).toContain("ProjectEstimateMetadataStripGrid");
     expect(metadataStrip).toContain("ProjectWorkspaceProjectCode");
     expect(metadataStrip).toContain("EstimateMetadataLeftCluster");
-    expect(metadataStrip).toContain('textClassName="font-normal"');
+    expect(metadataStrip).toContain('textClassName="font-bold"');
     expect(metadataStrip).toContain('font-normal uppercase tracking-[0.14em] text-tertiary');
     expect(metadataStrip).toContain("EstimateSheetCodeCell");
     expect(metadataStrip).toContain("EstimateSheetNameCell");
     expect(metadataStrip).toContain("EstimateVersionCell");
+    expect(metadataStrip.indexOf("<EstimateSheetCodeCell")).toBeLessThan(metadataStrip.indexOf("<EstimateSheetNameCell"));
+    expect(metadataStrip.indexOf("<EstimateSheetNameCell")).toBeLessThan(metadataStrip.indexOf("<EstimateVersionCell"));
     expect(metadataStrip).toContain("grid-cols-[1fr_minmax(0,2fr)_1fr]");
+    expect(metadataStrip).toContain("items-center px-2");
     expect(estimateCenterColumnBoundary).toContain('"project-workspace-row"');
-    expect(estimateContent).toContain('className="flex h-10 items-center border-b border-hairline pl-2 pr-2"');
+    expect(estimateContent).toContain('className="flex h-[38px] items-center"');
+    expect(estimateContent).toContain('placeholder="Search Sheet"');
     expect(estimateContent).toContain('id="estimate-sheet-center-column"');
   });
 
   it("repository validates node ownership through project-scoped estimate join", () => {
-    expect(workspaceRepository).toContain('select("*, estimates!inner(*)")');
+    expect(workspaceRepository).toContain("estimates!inner");
     expect(workspaceRepository).toContain('.eq("estimates.project_id", project.id)');
     expect(workspaceRepository).toContain("return getProjectEstimateTreeByEstimate(projectId, nodeId)");
     expect(workspaceRepository).toContain("buildEstimateTree");
@@ -77,7 +111,13 @@ describe("live estimate node route", () => {
     expect(estimateActions).toContain("replaceEstimateRowItemWithLibrary");
     expect(estimateActions).toContain("deleteEstimateRowItem");
     expect(estimateActions).toContain("createEstimateNode");
+    expect(estimateActions).toContain("canNestEstimateNodeKind(kind, parentKind)");
+    expect(estimateActions).toContain('return "group"');
+    expect(estimateActions).toContain('kind: "group"');
     expect(estimateActions).toContain('.from("estimate_nodes").insert');
+    expect(estimateActions).not.toContain("moveEstimateNode");
+    expect(estimateActions).not.toContain("buildEstimateNodeMovePlan");
+    expect(estimateActions).not.toContain('.rpc("move_estimate_nodes"');
     expect(estimateContent).toContain("onUpdateRowItem");
     expect(estimateContent).toContain("replaceRow({ projectId, estimateId");
     expect(estimateContent).toContain("deleteRow({ projectId, estimateId");
@@ -86,13 +126,13 @@ describe("live estimate node route", () => {
     expect(estimateContent).toContain("rollback: () => restoreEstimateState");
   });
 
-  it("tracks row-level dirty/save status and refetches active live trees after persisted mutations", () => {
+  it("tracks row-level dirty/save status with passive mutation invalidation and focus reconciliation", () => {
     expect(estimateContent).toContain("rowSaveStates");
     expect(estimateContent).toContain("onMarkRowDirty");
     expect(estimateContent).toContain("<RowSaveStatus state={rowSaveStates[item.id]} />");
     expect(estimateContent).toContain("refetchOnWindowFocus: true");
     expect(estimateActions).toContain("fetchEstimateTree");
     expect(estimateActions).toContain("getProjectEstimateTreeByEstimate");
-    expect(readFileSync("src/hooks/use-estimate-row-mutations.ts", "utf8")).toContain('refetchType: "active"');
+    expect(readFileSync("src/hooks/use-estimate-row-mutations.ts", "utf8")).toContain('refetchType: "none"');
   });
 });

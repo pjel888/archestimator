@@ -6,6 +6,7 @@ import { EstimateCenterColumnBoundary } from "./EstimateCenterColumnBoundary";
 import { ProjectWorkspaceProjectCode } from "./ProjectWorkspaceProjectCode";
 
 export const PROJECT_ESTIMATE_METADATA_CHANGE_EVENT = "archestimator:project-estimate-metadata-change";
+const PROJECT_MINI_SIDEBAR_WIDTH_CSS_VARIABLE = "--project-mini-sidebar-width";
 
 export type ProjectEstimateMetadata = {
   estimateName: string;
@@ -33,7 +34,6 @@ type ProjectEstimateMetadataStripGridProps = {
 
 type EstimateMetadataLeftClusterProps = {
   projectCode: string;
-  estimateSheetCode: string;
 };
 
 declare global {
@@ -66,8 +66,20 @@ export function ProjectEstimateMetadataPublisher({ metadata }: ProjectEstimateMe
   const { estimateName, estimateSheetCode, versionLabel } = metadata;
 
   useEffect(() => {
+    const workshopCanvas = document.querySelector<HTMLElement>("[data-workshop-page-shell-canvas]");
+    const previousProjectMiniSidebarWidth = workshopCanvas?.style.getPropertyValue(PROJECT_MINI_SIDEBAR_WIDTH_CSS_VARIABLE);
+
+    workshopCanvas?.style.setProperty(PROJECT_MINI_SIDEBAR_WIDTH_CSS_VARIABLE, "0px");
     dispatchProjectEstimateMetadataChange({ estimateName, estimateSheetCode, versionLabel });
-    return () => dispatchProjectEstimateMetadataChange(null);
+
+    return () => {
+      if (previousProjectMiniSidebarWidth) {
+        workshopCanvas?.style.setProperty(PROJECT_MINI_SIDEBAR_WIDTH_CSS_VARIABLE, previousProjectMiniSidebarWidth);
+      } else {
+        workshopCanvas?.style.removeProperty(PROJECT_MINI_SIDEBAR_WIDTH_CSS_VARIABLE);
+      }
+      dispatchProjectEstimateMetadataChange(null);
+    };
   }, [estimateName, estimateSheetCode, versionLabel]);
 
   return null;
@@ -81,32 +93,41 @@ export function ProjectEstimateMetadataStrip({ projectCode }: ProjectEstimateMet
 
 function ProjectEstimateMetadataStripBoundary({ projectCode, metadata }: ProjectEstimateMetadataStripBoundaryProps) {
   return (
-    <EstimateCenterColumnBoundary
-      id="project-estimate-metadata-strip"
-      scope="project-workspace-row"
-      className="pointer-events-none bg-white"
-      data-estimate-center-column="metadata-strip"
+    <div
+      className="pointer-events-none absolute inset-0 bg-white text-[9px] font-normal uppercase tracking-[0.14em] text-tertiary"
+      data-workshop-layout="project-estimate-metadata-row"
     >
       <ProjectEstimateMetadataStripGrid projectCode={projectCode} metadata={metadata} />
-    </EstimateCenterColumnBoundary>
+    </div>
   );
 }
 
 function ProjectEstimateMetadataStripGrid({ projectCode, metadata }: ProjectEstimateMetadataStripGridProps) {
   return (
-    <div className="grid h-full grid-cols-[1fr_minmax(0,2fr)_1fr] items-center px-3 text-[9px] font-normal uppercase tracking-[0.14em] text-tertiary">
-      <EstimateMetadataLeftCluster projectCode={projectCode} estimateSheetCode={metadata?.estimateSheetCode ?? ""} />
-      <EstimateSheetNameCell value={metadata?.estimateName ?? ""} />
-      <EstimateVersionCell value={metadata?.versionLabel ?? ""} />
-    </div>
+    <>
+      <div className="absolute inset-y-0 left-0 flex w-[var(--estimate-tree-panel-width,272px)] items-center pl-4 pr-2">
+        <EstimateMetadataLeftCluster projectCode={projectCode} />
+      </div>
+      <EstimateCenterColumnBoundary
+        id="project-estimate-metadata-strip"
+        scope="project-workspace-row"
+        className="pointer-events-none"
+        data-estimate-center-column="metadata-strip"
+      >
+        <div className="grid h-full grid-cols-[1fr_minmax(0,2fr)_1fr] items-center px-2">
+          <EstimateSheetCodeCell value={metadata?.estimateSheetCode ?? ""} />
+          <EstimateSheetNameCell value={metadata?.estimateName ?? ""} />
+          <EstimateVersionCell value={metadata?.versionLabel ?? ""} />
+        </div>
+      </EstimateCenterColumnBoundary>
+    </>
   );
 }
 
-function EstimateMetadataLeftCluster({ projectCode, estimateSheetCode }: EstimateMetadataLeftClusterProps) {
+function EstimateMetadataLeftCluster({ projectCode }: EstimateMetadataLeftClusterProps) {
   return (
-    <div className="flex min-w-0 items-center gap-4 text-left">
-      <ProjectWorkspaceProjectCode projectCode={projectCode} className="min-w-0 flex-1" textClassName="font-normal" />
-      <EstimateSheetCodeCell value={estimateSheetCode} />
+    <div className="flex w-full min-w-0 items-center text-left">
+      <ProjectWorkspaceProjectCode projectCode={projectCode} className="min-w-0 flex-1" textClassName="font-bold" />
     </div>
   );
 }

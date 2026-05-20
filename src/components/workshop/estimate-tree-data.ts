@@ -38,7 +38,7 @@ export type EstimateRowItem = {
 export type EstimateAreaNode = {
   id: string;
   name: string;
-  kind: "lot" | "general" | "structure" | "level" | "area";
+  kind: "group" | "lot" | "general" | "structure" | "level" | "area";
   total: string;
   children?: EstimateAreaNode[];
   estimateRowItems?: EstimateRowItem[];
@@ -449,7 +449,7 @@ export function validateEstimateTreeHierarchy(nodes: EstimateAreaNode[]) {
   function visit(node: EstimateAreaNode, path: string[]) {
     const nodePath = [...path, node.name];
     if (node.kind !== "area" && node.estimateRowItems?.length) {
-      errors.push(`${nodePath.join(" > ")} is a ${node.kind} group but contains estimate row items`);
+      errors.push(`${nodePath.join(" > ")} is a Group Node but contains estimate row items`);
     }
     node.children?.forEach((child) => visit(child, nodePath));
   }

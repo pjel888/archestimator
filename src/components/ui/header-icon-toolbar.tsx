@@ -1,4 +1,4 @@
-import { FunnelSimple, ListBullets, Plus } from "@phosphor-icons/react/dist/ssr";
+import { CaretDoubleDown, CaretDoubleUp, FunnelSimple, ListBullets, Plus } from "@phosphor-icons/react/dist/ssr";
 
 import { ToolbarIconButton } from "@/components/ui/toolbar-icon-button";
 
@@ -7,8 +7,11 @@ type HeaderIconToolbarProps = {
   labelPrefix: string;
   onFilter?: () => void;
   onGroup?: () => void;
+  onExpandAll?: () => void;
+  onCollapseAll?: () => void;
   onAdd?: () => void;
   addVisibleLabel?: string;
+  addDisabled?: boolean;
 };
 
 export function HeaderIconToolbar({
@@ -16,8 +19,11 @@ export function HeaderIconToolbar({
   labelPrefix,
   onFilter,
   onGroup,
+  onExpandAll,
+  onCollapseAll,
   onAdd,
   addVisibleLabel,
+  addDisabled = false,
 }: HeaderIconToolbarProps) {
   const addButtonLabel = addVisibleLabel ?? `Add ${labelPrefix}`;
 
@@ -29,11 +35,22 @@ export function HeaderIconToolbar({
       <ToolbarIconButton label={`Group ${labelPrefix}`} onClick={onGroup}>
         <ListBullets size={12} weight="bold" aria-hidden="true" />
       </ToolbarIconButton>
+      {onExpandAll ? (
+        <ToolbarIconButton label={`Expand all ${labelPrefix}`} onClick={onExpandAll}>
+          <CaretDoubleDown size={12} weight="bold" aria-hidden="true" />
+        </ToolbarIconButton>
+      ) : null}
+      {onCollapseAll ? (
+        <ToolbarIconButton label={`Collapse all ${labelPrefix}`} onClick={onCollapseAll}>
+          <CaretDoubleUp size={12} weight="bold" aria-hidden="true" />
+        </ToolbarIconButton>
+      ) : null}
       <div className="ml-auto flex items-center">
         <ToolbarIconButton
           label={addButtonLabel}
           visibleLabel={addVisibleLabel}
           onClick={onAdd}
+          disabled={addDisabled}
           className={
             addVisibleLabel
               ? "bg-primary text-white hover:bg-accentDark focus-visible:bg-accentDark focus-visible:text-white"

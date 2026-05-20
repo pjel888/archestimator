@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
@@ -6,6 +6,11 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { EstimateSheetContent } from "@/components/workshop/EstimateSheetContent";
 import { WorkshopPageShell } from "@/components/workshop/WorkshopPageShell";
 import { estimateLibraryItems } from "@/components/workshop/estimate-tree-data";
+import { resetEstimateWorkspaceState, useEstimateWorkspaceState } from "@/hooks/use-estimate-workspace-state";
+
+vi.mock("@/lib/auth/session", () => ({
+  getCurrentUserContext: vi.fn(async () => null),
+}));
 
 function renderEstimateSheet(selectedNodeId: string) {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
@@ -17,11 +22,16 @@ function renderEstimateSheet(selectedNodeId: string) {
 }
 
 describe("estimate shell chrome", () => {
-  it("renders breadcrumbs in the upper-left project header", () => {
+  it("renders breadcrumbs in the upper-left project header", async () => {
     render(
-      <WorkshopPageShell title="Modern Bungalow" eyebrow="Project" breadcrumbs={["Workshop", "Projects", "Modern Bungalow"]}>
+      await WorkshopPageShell({
+        title: "Modern Bungalow",
+        eyebrow: "Project",
+        breadcrumbs: ["Workshop", "Projects", "Modern Bungalow"],
+        children: (
         <div>Estimate workspace</div>
-      </WorkshopPageShell>,
+        ),
+      }),
     );
 
     const breadcrumbs = screen.getByLabelText("Project breadcrumbs");
@@ -32,6 +42,39 @@ describe("estimate shell chrome", () => {
 });
 
 describe("estimate sheet cost inputs", () => {
+  beforeEach(() => {
+    resetEstimateWorkspaceState();
+  });
+
+  it("renders the locally selected tree node before route props catch up", async () => {
+    render(
+      <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } })}>
+        <EstimateSheetContent selectedNodeId="living-area" estimateId="estimate-1" />
+      </QueryClientProvider>,
+    );
+
+    expect(screen.getByLabelText("Living Area")).toBeInTheDocument();
+
+    await act(async () => {
+      useEstimateWorkspaceState.getState().setSelectedNodeId("estimate-1", "kitchen");
+    });
+
+    expect(screen.getByLabelText("Kitchen")).toBeInTheDocument();
+  });
+
+  it("reconciles stale selected node ids to the first available tree node", async () => {
+    render(
+      <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } })}>
+        <EstimateSheetContent selectedNodeId="deleted-node" estimateId="estimate-1" />
+      </QueryClientProvider>,
+    );
+
+    expect(screen.getByLabelText(/^Lot A/)).toBeInTheDocument();
+    await waitFor(() => {
+      expect(useEstimateWorkspaceState.getState().selectedNodeIdByEstimateId["estimate-1"]).toBe("lot-primary-residence");
+    });
+  });
+
   it("displays cost inputs as pesos when idle but keeps focused typing uninterrupted", async () => {
     const user = userEvent.setup();
     renderEstimateSheet("main-house");
@@ -118,20 +161,21 @@ describe("estimate sheet cost inputs", () => {
 
     expect(screen.queryByLabelText("Active estimate group context")).not.toBeInTheDocument();
 
-    const actionHeader = screen.getByLabelText("Estimate sheet controls");
-    expect(within(actionHeader).getByRole("heading", { name: "Estimate sheet" })).toBeInTheDocument();
+    const actionHeader = screen.getByLabelText("Sheet controls");
+    expect(within(actionHeader).queryByRole("heading", { name: "Sheet" })).not.toBeInTheDocument();
     expect(within(actionHeader).queryByRole("heading", { name: "Living Area" })).not.toBeInTheDocument();
-    expect(within(actionHeader).getByLabelText("Search estimate sheet")).toBeInTheDocument();
-    const sheetTools = within(actionHeader).getByLabelText("Estimate sheet tools");
-    expect(sheetTools).toHaveClass("border-y");
+    expect(within(actionHeader).getByLabelText("Search Sheet")).toBeInTheDocument();
+    expect(within(actionHeader).getByPlaceholderText("Search Sheet")).toBeInTheDocument();
+    const sheetTools = within(actionHeader).getByLabelText("Sheet tools");
+    expect(sheetTools).not.toHaveClass("border-y");
     expect(within(sheetTools).queryByText("Sheet tools")).not.toBeInTheDocument();
-    expect(within(sheetTools).getByRole("button", { name: "Filter estimate rows" })).toHaveAttribute("title", "Filter estimate rows");
-    expect(within(sheetTools).getByRole("button", { name: "Group estimate rows" })).toHaveAttribute("title", "Group estimate rows");
-    expect(within(sheetTools).queryByRole("button", { name: "Collapse all estimate rows" })).not.toBeInTheDocument();
-    expect(within(sheetTools).queryByRole("button", { name: "Expand all estimate rows" })).not.toBeInTheDocument();
-    expect(within(sheetTools).getByRole("button", { name: "Add estimate rows" })).toHaveAttribute("title", "Add estimate rows");
+    expect(within(sheetTools).getByRole("button", { name: "Filter sheet" })).toHaveAttribute("title", "Filter sheet");
+    expect(within(sheetTools).getByRole("button", { name: "Group sheet" })).toHaveAttribute("title", "Group sheet");
+    expect(within(sheetTools).queryByRole("button", { name: "Collapse all sheet" })).not.toBeInTheDocument();
+    expect(within(sheetTools).queryByRole("button", { name: "Expand all sheet" })).not.toBeInTheDocument();
+    expect(within(sheetTools).getByRole("button", { name: "Add sheet" })).toHaveAttribute("title", "Add sheet");
 
-    expect(screen.queryByLabelText("Estimate sheet running totals")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Sheet running totals")).not.toBeInTheDocument();
   });
 
   it("replaces the row estimate component on drop while preserving editable row fields", async () => {

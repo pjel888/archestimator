@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useCallback, useEffect, useId, useMemo, useRef, useState, useTransition, type KeyboardEvent } from "react";
 import { ArrowSquareOut, CaretDown, CaretUp, CaretUpDown, ClockCounterClockwise, Trash } from "@phosphor-icons/react/dist/ssr";
 import {
   flexRender,
@@ -9,21 +10,32 @@ import {
   getSortedRowModel,
   useReactTable,
   type ColumnDef,
+  type ColumnSizingState,
+  type Header,
   type SortingState,
+  type Table,
 } from "@tanstack/react-table";
 
 import { Button } from "@/components/ui/button";
+import { regenerateEstimateSheetCode, updateEstimateDetails } from "@/lib/estimates/actions";
 import type { Tables } from "@/lib/supabase/types";
+import { cn } from "@/lib/ui/cn";
 
-type ProjectEstimateTableRow = Tables<"estimates"> & {
+export type ProjectEstimateTableRow = Tables<"estimates"> & {
   firstNodeId?: string | null;
+  nodeCount: number;
+  rowItemCount: number;
   totalProjectCost: number;
 };
 
 type ProjectEstimatesTableProps = {
   estimates: ProjectEstimateTableRow[];
   projectBudget: number | null;
+  projectId: string;
+  emptyMessage?: string;
 };
+
+type EditableEstimateTextField = "name" | "sheetCode";
 
 const pesoFormatter = new Intl.NumberFormat("en-PH", {
   style: "currency",
@@ -32,17 +44,39 @@ const pesoFormatter = new Intl.NumberFormat("en-PH", {
 });
 
 const EMPTY_TABLE_ROW_COUNT = 60;
+const COLUMN_WIDTH_STORAGE_KEY_PREFIX = "archestimator:project-estimates-column-widths";
 
-function ProjectEstimatesColGroup() {
+function readColumnSizingFromStorage(storageKey: string): ColumnSizingState {
+  if (typeof window === "undefined") return {};
+
+  try {
+    const saved = window.localStorage.getItem(storageKey);
+    return saved ? (JSON.parse(saved) as ColumnSizingState) : {};
+  } catch {
+    return {};
+  }
+}
+
+function writeColumnSizingToStorage(storageKey: string, columnSizing: ColumnSizingState) {
+  if (typeof window === "undefined") return;
+
+  try {
+    if (Object.keys(columnSizing).length === 0) {
+      window.localStorage.removeItem(storageKey);
+      return;
+    }
+    window.localStorage.setItem(storageKey, JSON.stringify(columnSizing));
+  } catch {
+    // Column sizing is a convenience preference; blocked storage should not break the table.
+  }
+}
+
+function ProjectEstimatesColGroup({ table }: { table: Table<ProjectEstimateTableRow> }) {
   return (
     <colgroup>
-      <col className="w-[112px]" />
-      <col className="w-[96px]" />
-      <col />
-      <col className="w-[160px]" />
-      <col className="w-[132px]" />
-      <col className="w-[112px]" />
-      <col className="w-[112px]" />
+      {table.getVisibleLeafColumns().map((column) => (
+        <col key={column.id} style={{ width: `${column.getSize()}px` }} />
+      ))}
     </colgroup>
   );
 }
@@ -72,10 +106,18 @@ function formatDateTime(value: string) {
   }).format(new Date(value));
 }
 
+function formatCount(value: number, singular: string, plural: string) {
+  return `${value} ${value === 1 ? singular : plural}`;
+}
+
 function getEstimateHref(estimate: ProjectEstimateTableRow) {
   return estimate.firstNodeId
     ? `/workshop/projects/${estimate.project_id}/estimates/${estimate.firstNodeId}`
     : `/workshop/projects/${estimate.project_id}/estimates/${estimate.id}`;
+}
+
+function getErrorMessage(error: unknown) {
+  return error instanceof Error ? error.message : "Update failed. Please try again.";
 }
 
 function SortIcon({ direction }: { direction: false | "asc" | "desc" }) {
@@ -84,13 +126,23 @@ function SortIcon({ direction }: { direction: false | "asc" | "desc" }) {
   return <CaretUpDown size={10} weight="bold" aria-hidden="true" />;
 }
 
-function ProjectEstimateFillerRows({ columnCount, rowCount, showEmptyMessage }: { columnCount: number; rowCount: number; showEmptyMessage: boolean }) {
+function ProjectEstimateFillerRows({
+  columnCount,
+  rowCount,
+  emptyMessage,
+  showEmptyMessage,
+}: {
+  columnCount: number;
+  rowCount: number;
+  emptyMessage: string;
+  showEmptyMessage: boolean;
+}) {
   return Array.from({ length: rowCount }, (_, rowIndex) => (
-    <tr key={`estimate-filler-row-${rowIndex}`} className="h-10 border-b border-hairline last:border-b-0">
+    <tr key={`estimate-filler-row-${rowIndex}`} className="h-8 border-b border-hairline last:border-b-0">
       {Array.from({ length: columnCount }, (_, columnIndex) => (
-        <td key={`estimate-filler-cell-${rowIndex}-${columnIndex}`} className="border-r border-hairline px-2 py-2 text-left last:border-r-0">
+        <td key={`estimate-filler-cell-${rowIndex}-${columnIndex}`} className="border-r border-hairline px-2 py-1 text-left last:border-r-0">
           {showEmptyMessage && rowIndex === 0 && columnIndex === 1 ? (
-            <span className="text-[10px] font-medium text-tertiary">No estimate sheets yet</span>
+            <span className="text-[10px] font-medium text-tertiary">{emptyMessage}</span>
           ) : null}
         </td>
       ))}
@@ -149,25 +201,267 @@ function ProjectEstimateRowActions({ estimate, isSelected, onToggleSelected }: P
 
 ProjectEstimateRowActions.displayName = "ProjectEstimateRowActions";
 
-function ProjectEstimatesTableComponent({ estimates, projectBudget }: ProjectEstimatesTableProps) {
+function ProjectEstimateEditableTextCell({
+  className,
+  estimate,
+  field,
+  inputClassName,
+  label,
+  placeholder,
+  projectId,
+}: {
+  className?: string;
+  estimate: ProjectEstimateTableRow;
+  field: EditableEstimateTextField;
+  inputClassName?: string;
+  label: string;
+  placeholder: string;
+  projectId: string;
+}) {
+  const router = useRouter();
+  const errorId = useId();
+  const savedValue = field === "sheetCode" ? estimate.sheet_code : estimate.name;
+  const [draft, setDraft] = useState(savedValue);
+  const [status, setStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [isPending, startTransition] = useTransition();
+  const skipNextBlurCommitRef = useRef(false);
+
+  const commitDraft = useCallback(() => {
+    const nextValue = draft.trim();
+    if (nextValue === savedValue.trim()) {
+      setDraft(savedValue);
+      setStatus("idle");
+      setErrorMessage(null);
+      return;
+    }
+
+    if (!nextValue) {
+      setStatus("error");
+      setErrorMessage(`${label} is required.`);
+      return;
+    }
+
+    setStatus("saving");
+    setErrorMessage(null);
+    startTransition(() => {
+      void updateEstimateDetails({
+        projectId,
+        estimateId: estimate.id,
+        ...(field === "sheetCode" ? { sheetCode: nextValue } : { name: nextValue }),
+      })
+        .then((updatedEstimate) => {
+          setDraft(field === "sheetCode" ? updatedEstimate.sheet_code : updatedEstimate.name);
+          setStatus("saved");
+          router.refresh();
+        })
+        .catch((error: unknown) => {
+          setStatus("error");
+          setErrorMessage(getErrorMessage(error));
+        });
+    });
+  }, [draft, estimate.id, field, label, projectId, router, savedValue]);
+
+  function handleBlur() {
+    if (skipNextBlurCommitRef.current) {
+      skipNextBlurCommitRef.current = false;
+      return;
+    }
+    commitDraft();
+  }
+
+  function handleKeyDown(event: KeyboardEvent<HTMLInputElement>) {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      event.currentTarget.blur();
+      return;
+    }
+
+    if (event.key === "Escape") {
+      event.preventDefault();
+      skipNextBlurCommitRef.current = true;
+      setDraft(savedValue);
+      setStatus("idle");
+      setErrorMessage(null);
+      event.currentTarget.blur();
+    }
+  }
+
+  return (
+    <div className={cn("min-w-0", className)}>
+      <div className="flex min-w-0 items-center gap-1">
+        <input
+          aria-describedby={errorMessage ? errorId : undefined}
+          aria-invalid={status === "error" ? "true" : undefined}
+          aria-label={`${label} for ${estimate.name}`}
+          className={cn(
+            "h-6 min-w-0 flex-1 rounded-sm border border-transparent bg-transparent px-1 !text-[10px] leading-none text-ink outline-none transition placeholder:text-tertiary hover:border-hairline focus:border-accent focus:bg-accentSoft disabled:opacity-60",
+            status === "error" && "border-danger bg-dangerSoft/40",
+            inputClassName,
+          )}
+          disabled={isPending}
+          onBlur={handleBlur}
+          onChange={(event) => {
+            setDraft(event.currentTarget.value);
+            if (status !== "idle") setStatus("idle");
+            if (errorMessage) setErrorMessage(null);
+          }}
+          onKeyDown={handleKeyDown}
+          placeholder={placeholder}
+          title="Edit inline. Press Enter or leave the cell to save. Press Esc to cancel."
+          value={draft}
+        />
+        {status === "saving" ? <span className="shrink-0 text-[8px] font-bold uppercase tracking-[0.12em] text-tertiary">Saving</span> : null}
+        {status === "saved" ? <span className="shrink-0 text-[8px] font-bold uppercase tracking-[0.12em] text-success">Saved</span> : null}
+        {status === "error" ? (
+          <span className="grid size-4 shrink-0 place-items-center rounded-full bg-dangerSoft text-[9px] font-bold text-danger" title={errorMessage ?? "Update failed"}>
+            !
+          </span>
+        ) : null}
+      </div>
+      {errorMessage ? (
+        <p id={errorId} className="sr-only">
+          {errorMessage}
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
+ProjectEstimateEditableTextCell.displayName = "ProjectEstimateEditableTextCell";
+
+function ProjectEstimateSheetCodeCell({ estimate, projectId }: { estimate: ProjectEstimateTableRow; projectId: string }) {
+  const router = useRouter();
+  const [isPending, startTransition] = useTransition();
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  function handleAutoGenerate() {
+    setErrorMessage(null);
+    startTransition(() => {
+      void regenerateEstimateSheetCode({ projectId, estimateId: estimate.id })
+        .then(() => {
+          router.refresh();
+        })
+        .catch((error: unknown) => setErrorMessage(getErrorMessage(error)));
+    });
+  }
+
+  return (
+    <div className="flex min-w-0 items-center gap-1">
+      <ProjectEstimateEditableTextCell
+        key={`estimate-sheet-code-${estimate.id}-${estimate.sheet_code}`}
+        estimate={estimate}
+        field="sheetCode"
+        inputClassName="font-semibold text-tertiary tabular-nums"
+        label="Sheet code"
+        placeholder="Auto Code"
+        projectId={projectId}
+      />
+      <button
+        type="button"
+        aria-label={`Auto-generate sheet code for ${estimate.name}`}
+        className="h-5 shrink-0 rounded-sm border border-hairline bg-white px-1.5 text-[8px] font-bold uppercase tracking-[0.1em] text-tertiary transition hover:border-accent hover:text-accent disabled:cursor-not-allowed disabled:opacity-50"
+        disabled={isPending}
+        onClick={handleAutoGenerate}
+        title={errorMessage ?? "Auto-generate the next sheet code"}
+      >
+        Auto
+      </button>
+      {errorMessage ? <span className="sr-only">{errorMessage}</span> : null}
+    </div>
+  );
+}
+
+ProjectEstimateSheetCodeCell.displayName = "ProjectEstimateSheetCodeCell";
+
+function ProjectEstimatesColumnResizeHandle({
+  header,
+  table,
+}: {
+  header: Header<ProjectEstimateTableRow, unknown>;
+  table: Table<ProjectEstimateTableRow>;
+}) {
+  if (!header.column.getCanResize()) return null;
+
+  function resizeBy(delta: number) {
+    const minSize = header.column.columnDef.minSize ?? 48;
+    const maxSize = header.column.columnDef.maxSize ?? 640;
+    const nextSize = Math.min(Math.max(header.column.getSize() + delta, minSize), maxSize);
+    table.setColumnSizing((current) => ({ ...current, [header.column.id]: nextSize }));
+  }
+
+  function handleKeyDown(event: KeyboardEvent<HTMLSpanElement>) {
+    if (event.key === "ArrowLeft") {
+      event.preventDefault();
+      resizeBy(-16);
+    }
+    if (event.key === "ArrowRight") {
+      event.preventDefault();
+      resizeBy(16);
+    }
+    if (event.key === "Home") {
+      event.preventDefault();
+      header.column.resetSize();
+    }
+  }
+
+  return (
+    <span
+      role="separator"
+      tabIndex={0}
+      aria-label={`Resize ${String(header.column.columnDef.header ?? "column")}`}
+      aria-orientation="vertical"
+      className={cn(
+        "absolute right-0 top-0 h-full w-2 translate-x-1/2 cursor-col-resize touch-none select-none",
+        "after:absolute after:right-1 after:top-1 after:h-[calc(100%-8px)] after:w-px after:bg-hairline after:content-['']",
+        "hover:after:bg-accent focus:outline-none focus:after:w-0.5 focus:after:bg-accent",
+        header.column.getIsResizing() && "after:w-0.5 after:bg-accent",
+      )}
+      onDoubleClick={() => header.column.resetSize()}
+      onKeyDown={handleKeyDown}
+      onMouseDown={header.getResizeHandler()}
+      onTouchStart={header.getResizeHandler()}
+      title="Drag to resize. Double-click or press Home to reset. Use Left/Right arrow keys for keyboard resizing."
+    />
+  );
+}
+
+ProjectEstimatesColumnResizeHandle.displayName = "ProjectEstimatesColumnResizeHandle";
+
+function ProjectEstimatesTableComponent({ estimates, projectBudget, projectId, emptyMessage = "No estimate sheets yet" }: ProjectEstimatesTableProps) {
+  const router = useRouter();
+  const columnWidthStorageKey = `${COLUMN_WIDTH_STORAGE_KEY_PREFIX}:${projectId}`;
   const [sorting, setSorting] = useState<SortingState>([{ id: "updated_at", desc: true }]);
+  const [columnSizing, setColumnSizing] = useState<ColumnSizingState>(() => readColumnSizingFromStorage(columnWidthStorageKey));
   const [selectedEstimateIds, setSelectedEstimateIds] = useState<Set<string>>(() => new Set());
 
-  function toggleEstimateSelection(estimateId: string) {
+  useEffect(() => {
+    setColumnSizing(readColumnSizingFromStorage(columnWidthStorageKey));
+  }, [columnWidthStorageKey]);
+
+  useEffect(() => {
+    writeColumnSizingToStorage(columnWidthStorageKey, columnSizing);
+  }, [columnSizing, columnWidthStorageKey]);
+
+  const toggleEstimateSelection = useCallback((estimateId: string) => {
     setSelectedEstimateIds((current) => {
       const next = new Set(current);
       if (next.has(estimateId)) next.delete(estimateId);
       else next.add(estimateId);
       return next;
     });
-  }
+  }, []);
 
   const columns = useMemo<ColumnDef<ProjectEstimateTableRow>[]>(
     () => [
       {
         id: "row_actions",
         header: "",
+        size: 112,
+        minSize: 96,
+        maxSize: 132,
         enableSorting: false,
+        enableResizing: false,
         cell: ({ row }) => {
           const estimate = row.original;
 
@@ -183,28 +477,43 @@ function ProjectEstimatesTableComponent({ estimates, projectBudget }: ProjectEst
       {
         accessorKey: "sheet_code",
         header: "Sheet Code",
-        cell: ({ row }) => <span className="font-semibold text-tertiary">{row.original.sheet_code}</span>,
+        size: 176,
+        minSize: 132,
+        maxSize: 260,
+        cell: ({ row }) => <ProjectEstimateSheetCodeCell estimate={row.original} projectId={projectId} />,
       },
       {
         accessorKey: "name",
         header: "Estimate Sheet Name",
+        size: 340,
+        minSize: 220,
+        maxSize: 520,
         cell: ({ row }) => (
-          <Link
-            href={getEstimateHref(row.original)}
-            className="font-bold text-ink hover:text-accent-dark focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
-          >
-            {row.original.name}
-          </Link>
+          <ProjectEstimateEditableTextCell
+            key={`estimate-name-${row.original.id}-${row.original.name}`}
+            estimate={row.original}
+            field="name"
+            inputClassName="font-bold tracking-[-0.01em]"
+            label="Estimate sheet name"
+            placeholder="Estimate Sheet Name"
+            projectId={projectId}
+          />
         ),
       },
       {
         accessorKey: "totalProjectCost",
         header: "Ongoing Project Cost",
+        size: 172,
+        minSize: 144,
+        maxSize: 240,
         cell: ({ row }) => <span className="font-mono font-bold tabular-nums text-ink">{formatPeso(row.original.totalProjectCost)}</span>,
       },
       {
         id: "overbudget",
-        header: "Overbudget",
+        header: "Budget Remaining",
+        size: 168,
+        minSize: 144,
+        maxSize: 240,
         accessorFn: (row) => (projectBudget ?? 0) - row.totalProjectCost,
         cell: ({ row }) => {
           if (projectBudget === null) return <span className="font-medium text-tertiary">No budget set</span>;
@@ -217,82 +526,111 @@ function ProjectEstimatesTableComponent({ estimates, projectBudget }: ProjectEst
         },
       },
       {
-        accessorKey: "created_at",
-        header: "Created",
-        cell: ({ row }) => <span className="whitespace-nowrap font-medium text-tertiary">{formatDateTime(row.original.created_at)}</span>,
-      },
-      {
         accessorKey: "updated_at",
         header: "Updated",
+        size: 150,
+        minSize: 132,
+        maxSize: 220,
         cell: ({ row }) => <span className="whitespace-nowrap font-medium text-tertiary">{formatDateTime(row.original.updated_at)}</span>,
       },
+      {
+        accessorKey: "created_at",
+        header: "Created",
+        size: 150,
+        minSize: 132,
+        maxSize: 220,
+        cell: ({ row }) => <span className="whitespace-nowrap font-medium text-tertiary">{formatDateTime(row.original.created_at)}</span>,
+      },
     ],
-    [projectBudget, selectedEstimateIds],
+    [projectBudget, projectId, selectedEstimateIds, toggleEstimateSelection],
   );
 
   const table = useReactTable({
     data: estimates,
     columns,
-    state: { sorting },
+    state: { sorting, columnSizing },
+    columnResizeMode: "onChange",
+    enableColumnResizing: true,
+    defaultColumn: {
+      minSize: 88,
+      size: 150,
+      maxSize: 520,
+    },
+    onColumnSizingChange: setColumnSizing,
     onSortingChange: setSorting,
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
   });
   const visibleRows = table.getRowModel().rows;
   const fillerRowCount = Math.max(EMPTY_TABLE_ROW_COUNT - visibleRows.length, 0);
+  const tableStyle = { width: `${table.getTotalSize()}px`, minWidth: "100%" };
 
   return (
     <div className="flex h-full min-h-0 flex-col border-t border-hairline">
-      <div className="shrink-0 overflow-hidden">
-        <table className="min-w-full table-fixed border-collapse text-left text-[10px]">
-          <ProjectEstimatesColGroup />
-        <thead className="bg-surface-muted text-[10px] font-bold text-tertiary">
-          {table.getHeaderGroups().map((headerGroup) => (
-            <tr key={headerGroup.id} className="h-16 border-b border-hairline">
-              {headerGroup.headers.map((header) => {
-                const canSort = header.column.getCanSort();
-                const sorted = header.column.getIsSorted();
-                return (
-                  <th key={header.id} scope="col" className="border-r border-hairline bg-surface-muted px-2 py-4 text-left text-[10px] font-bold last:border-r-0">
-                    {canSort ? (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="min-h-0 justify-start gap-1 rounded-sm p-0 text-left text-[10px] font-bold text-tertiary hover:bg-transparent"
-                        onClick={header.column.getToggleSortingHandler()}
-                      >
-                        {flexRender(header.column.columnDef.header, header.getContext())}
-                        <SortIcon direction={sorted} />
-                      </Button>
-                    ) : (
-                      flexRender(header.column.columnDef.header, header.getContext())
-                    )}
-                  </th>
-                );
-              })}
-            </tr>
-          ))}
-        </thead>
+      <div className="min-h-0 flex-1 overflow-auto [scrollbar-gutter:stable]">
+        <table className="table-fixed border-collapse text-left text-[10px]" style={tableStyle}>
+          <ProjectEstimatesColGroup table={table} />
+          <thead className="sticky top-0 z-10 bg-surface-muted text-[10px] font-bold text-tertiary">
+            {table.getHeaderGroups().map((headerGroup) => (
+              <tr key={headerGroup.id} className="h-9 border-b border-hairline">
+                {headerGroup.headers.map((header) => {
+                  const canSort = header.column.getCanSort();
+                  const sorted = header.column.getIsSorted();
+                  return (
+                    <th
+                      key={header.id}
+                      scope="col"
+                      className="relative border-r border-hairline bg-surface-muted px-2 py-2 text-left text-[10px] font-bold last:border-r-0"
+                      style={{ width: `${header.getSize()}px` }}
+                    >
+                      {canSort ? (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="min-h-0 justify-start gap-1 rounded-sm p-0 text-left text-[10px] font-bold text-tertiary hover:bg-transparent"
+                          onClick={header.column.getToggleSortingHandler()}
+                        >
+                          {flexRender(header.column.columnDef.header, header.getContext())}
+                          <SortIcon direction={sorted} />
+                        </Button>
+                      ) : (
+                        flexRender(header.column.columnDef.header, header.getContext())
+                      )}
+                      <ProjectEstimatesColumnResizeHandle header={header} table={table} />
+                    </th>
+                  );
+                })}
+              </tr>
+            ))}
+          </thead>
+          <tbody className="bg-white text-ink">
+            {visibleRows.map((row) => (
+              <tr key={row.id} className="h-8 border-b border-hairline transition hover:bg-surface-muted/60">
+                {row.getVisibleCells().map((cell) => (
+                  <td key={cell.id} className="border-r border-hairline px-2 py-1 text-left align-middle last:border-r-0">
+                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                  </td>
+                ))}
+              </tr>
+            ))}
+            {fillerRowCount > 0 ? (
+              <ProjectEstimateFillerRows columnCount={table.getAllLeafColumns().length} rowCount={fillerRowCount} emptyMessage={emptyMessage} showEmptyMessage={visibleRows.length === 0} />
+            ) : null}
+          </tbody>
         </table>
       </div>
-      <div className="min-h-0 flex-1 overflow-auto [scrollbar-gutter:stable]">
-        <table className="min-w-full table-fixed border-collapse text-left text-[10px]">
-          <ProjectEstimatesColGroup />
-        <tbody className="bg-white text-ink">
-          {visibleRows.map((row) => (
-            <tr key={row.id} className="h-10 border-b border-hairline transition hover:bg-surface-muted/60">
-              {row.getVisibleCells().map((cell) => (
-                <td key={cell.id} className="border-r border-hairline px-2 py-2 text-left last:border-r-0">
-                  {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                </td>
-              ))}
-            </tr>
-          ))}
-          {fillerRowCount > 0 ? (
-            <ProjectEstimateFillerRows columnCount={table.getAllLeafColumns().length} rowCount={fillerRowCount} showEmptyMessage={visibleRows.length === 0} />
-          ) : null}
-        </tbody>
-      </table>
+      <div className="flex h-6 shrink-0 items-center justify-between border-t border-hairline bg-white px-2 text-[9px] font-medium text-tertiary">
+        <span>{formatCount(estimates.length, "estimate sheet", "estimate sheets")}</span>
+        <button
+          type="button"
+          className="rounded-sm px-1.5 py-0.5 font-bold uppercase tracking-[0.1em] text-tertiary transition hover:bg-surface-muted hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
+          onClick={() => {
+            table.resetColumnSizing();
+            router.refresh();
+          }}
+        >
+          Reset Column Widths
+        </button>
       </div>
     </div>
   );
