@@ -5,7 +5,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { DraggingPosition, TreeItem, TreeItemIndex, TreeViewState } from "react-complex-tree";
 
 import { EstimateSheetTree } from "@/components/workshop/EstimateSheetTree";
-import type { EstimateAreaNode } from "@/components/workshop/estimate-tree-data";
+import type { EstimateTreeNode } from "@/components/workshop/estimate-tree-data";
 import { resetEstimateWorkspaceState } from "@/hooks/use-estimate-workspace-state";
 import { estimateQueryKeys } from "@/hooks/use-estimate-query";
 import { ESTIMATE_TREE_ROOT_ITEM_ID } from "@/lib/estimates/estimate-tree-reorder";
@@ -21,17 +21,17 @@ const actionMocks = vi.hoisted(() => ({
 }));
 
 type CapturedEnvironmentProps = {
-  items: Record<TreeItemIndex, TreeItem<{ node: EstimateAreaNode | null }>>;
-  getItemTitle: (item: TreeItem<{ node: EstimateAreaNode | null }>) => string;
+  items: Record<TreeItemIndex, TreeItem<{ node: EstimateTreeNode | null }>>;
+  getItemTitle: (item: TreeItem<{ node: EstimateTreeNode | null }>) => string;
   viewState?: TreeViewState;
   canDragAndDrop?: boolean;
   canReorderItems?: boolean;
   canDropOnFolder?: boolean;
   canDropOnNonFolder?: boolean;
   canDropBelowOpenFolders?: boolean;
-  canDrag?: (items: TreeItem<{ node: EstimateAreaNode | null }>[]) => boolean;
-  canDropAt?: (items: TreeItem<{ node: EstimateAreaNode | null }>[], target: DraggingPosition) => boolean;
-  onDrop?: (items: TreeItem<{ node: EstimateAreaNode | null }>[], target: DraggingPosition) => void | Promise<void>;
+  canDrag?: (items: TreeItem<{ node: EstimateTreeNode | null }>[]) => boolean;
+  canDropAt?: (items: TreeItem<{ node: EstimateTreeNode | null }>[], target: DraggingPosition) => boolean;
+  onDrop?: (items: TreeItem<{ node: EstimateTreeNode | null }>[], target: DraggingPosition) => void | Promise<void>;
 };
 
 const rctHarness = vi.hoisted(() => ({
@@ -91,7 +91,7 @@ function deferred<T>() {
   return { promise, resolve, reject };
 }
 
-function fixtureTree(): EstimateAreaNode[] {
+function fixtureTree(): EstimateTreeNode[] {
   return [
     {
       id: "project-scope",
@@ -144,7 +144,7 @@ function fixtureTree(): EstimateAreaNode[] {
   ];
 }
 
-function confirmedTree(): EstimateAreaNode[] {
+function confirmedTree(): EstimateTreeNode[] {
   return [
     {
       id: "project-scope",
@@ -189,6 +189,59 @@ function confirmedTree(): EstimateAreaNode[] {
               total: "₱0.00",
               estimateRowItems: [],
               children: [],
+            },
+          ],
+        },
+      ],
+    },
+  ];
+}
+
+function confirmedGroupReparentTree(): EstimateTreeNode[] {
+  return [
+    {
+      id: "project-scope",
+      name: "Project Scope",
+      kind: "group",
+      total: "₱0.00",
+      children: [
+        {
+          id: "ground-floor",
+          name: "Ground Floor",
+          kind: "group",
+          total: "₱0.00",
+          children: [
+            {
+              id: "kitchen",
+              name: "Kitchen",
+              kind: "area",
+              total: "₱0.00",
+              estimateRowItems: [],
+              children: [],
+            },
+            {
+              id: "living",
+              name: "Living Area",
+              kind: "area",
+              total: "₱0.00",
+              estimateRowItems: [],
+              children: [],
+            },
+            {
+              id: "site-works",
+              name: "Site Works",
+              kind: "group",
+              total: "₱0.00",
+              children: [
+                {
+                  id: "front-yard",
+                  name: "Front Yard",
+                  kind: "area",
+                  total: "₱0.00",
+                  estimateRowItems: [],
+                  children: [],
+                },
+              ],
             },
           ],
         },
@@ -200,19 +253,33 @@ function confirmedTree(): EstimateAreaNode[] {
 function renderTree(nodes = fixtureTree(), selectedNodeId: string | null = "kitchen") {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
 
-  render(
-    <QueryClientProvider client={queryClient}>
+  function TreeView({ nextNodes = nodes, nextSelectedNodeId = selectedNodeId }: { nextNodes?: EstimateTreeNode[]; nextSelectedNodeId?: string | null }) {
+    return (
       <EstimateSheetTree
         projectId="project-1"
         estimateId="estimate-1"
         projectName="Modern Bungalow"
-        selectedNodeId={selectedNodeId}
-        nodes={nodes}
+        selectedNodeId={nextSelectedNodeId}
+        nodes={nextNodes}
       />
+    );
+  }
+
+  const view = render(
+    <QueryClientProvider client={queryClient}>
+      <TreeView />
     </QueryClientProvider>,
   );
 
-  return queryClient;
+  return {
+    queryClient,
+    rerenderTree: (nextNodes: EstimateTreeNode[], nextSelectedNodeId: string | null = selectedNodeId) =>
+      view.rerender(
+        <QueryClientProvider client={queryClient}>
+          <TreeView nextNodes={nextNodes} nextSelectedNodeId={nextSelectedNodeId} />
+        </QueryClientProvider>,
+      ),
+  };
 }
 
 function environment() {
@@ -248,6 +315,15 @@ const dropLivingOntoKitchen: DraggingPosition = {
   parentItem: "ground-floor",
   linearIndex: 2,
   depth: 2,
+};
+
+const dropSiteWorksOntoGroundFloor: DraggingPosition = {
+  targetType: "item",
+  treeId: "estimate-sheet-tree",
+  targetItem: "ground-floor",
+  parentItem: "project-scope",
+  linearIndex: 1,
+  depth: 1,
 };
 
 describe("estimate sheet tree drag/drop", () => {
@@ -288,9 +364,9 @@ describe("estimate sheet tree drag/drop", () => {
   });
 
   it("updates the tree order optimistically, writes the query cache, and avoids route refresh while the server action is pending", async () => {
-    const pending = deferred<{ tree: EstimateAreaNode[] }>();
+    const pending = deferred<{ tree: EstimateTreeNode[] }>();
     actionMocks.reorderEstimateTreeNodes.mockReturnValue(pending.promise);
-    const queryClient = renderTree();
+    const { queryClient } = renderTree();
 
     expect(renderedIds()).toEqual(["project-scope", "ground-floor", "kitchen", "living", "site-works", "front-yard"]);
 
@@ -325,7 +401,7 @@ describe("estimate sheet tree drag/drop", () => {
   it("rolls back optimistic order and query cache when persistence fails", async () => {
     actionMocks.reorderEstimateTreeNodes.mockRejectedValue(new Error("Database rejected reorder."));
     const initialTree = fixtureTree();
-    const queryClient = renderTree(initialTree);
+    const { queryClient } = renderTree(initialTree);
 
     await act(async () => {
       await environment().onDrop?.([item("kitchen")], dropKitchenOntoSiteWorks);
@@ -336,6 +412,45 @@ describe("estimate sheet tree drag/drop", () => {
     expect(queryClient.getQueryData(estimateQueryKeys.areaTree("estimate-1"))).toEqual(initialTree);
     expect(routerMock.push).not.toHaveBeenCalled();
     expect(routerMock.refresh).not.toHaveBeenCalled();
+  });
+
+  it("persists Group Node nesting under another Group Node through the same RCT drop path", async () => {
+    actionMocks.reorderEstimateTreeNodes.mockResolvedValue({ tree: confirmedGroupReparentTree() });
+    const { queryClient } = renderTree();
+
+    await act(async () => {
+      await environment().onDrop?.([item("site-works")], dropSiteWorksOntoGroundFloor);
+    });
+
+    await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent("Tree order saved"));
+    expect(renderedIds()).toEqual(["project-scope", "ground-floor", "kitchen", "living", "site-works", "front-yard"]);
+    expect(actionMocks.reorderEstimateTreeNodes).toHaveBeenCalledWith("project-1", "estimate-1", {
+      updates: [
+        { id: "ground-floor", parentId: "project-scope", sortOrder: 10 },
+        { id: "kitchen", parentId: "ground-floor", sortOrder: 10 },
+        { id: "living", parentId: "ground-floor", sortOrder: 20 },
+        { id: "site-works", parentId: "ground-floor", sortOrder: 30 },
+      ],
+    });
+    expect(queryClient.getQueryData(estimateQueryKeys.areaTree("estimate-1"))).toEqual(confirmedGroupReparentTree());
+    expect(routerMock.push).not.toHaveBeenCalled();
+    expect(routerMock.refresh).not.toHaveBeenCalled();
+  });
+
+  it("does not let stale route props overwrite the confirmed server tree after a successful drop", async () => {
+    actionMocks.reorderEstimateTreeNodes.mockResolvedValue({ tree: confirmedTree() });
+    const staleInitialTree = fixtureTree();
+    const { queryClient, rerenderTree } = renderTree(staleInitialTree);
+
+    await act(async () => {
+      await environment().onDrop?.([item("kitchen")], dropKitchenOntoSiteWorks);
+    });
+
+    await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent("Tree order saved"));
+    rerenderTree(fixtureTree());
+
+    expect(renderedIds()).toEqual(["project-scope", "ground-floor", "living", "site-works", "front-yard", "kitchen"]);
+    expect(queryClient.getQueryData(estimateQueryKeys.areaTree("estimate-1"))).toEqual(confirmedTree());
   });
 
   it("does not call persistence for invalid or no-op drops", async () => {

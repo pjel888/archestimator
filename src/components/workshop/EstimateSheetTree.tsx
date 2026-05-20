@@ -29,7 +29,7 @@ import {
   evaluateEstimateTreeDrop,
   getEstimateTreeStructureSignature,
 } from "@/lib/estimates/estimate-tree-reorder";
-import { getExpandedNodeIds, type EstimateAreaNode } from "./estimate-tree-data";
+import { getExpandedNodeIds, type EstimateTreeNode } from "./estimate-tree-data";
 import { ResizableSidePanel } from "./ResizableSidePanel";
 
 type EstimateSheetTreeProps = {
@@ -37,7 +37,7 @@ type EstimateSheetTreeProps = {
   estimateId: string;
   projectName: string;
   selectedNodeId: string | null;
-  nodes: EstimateAreaNode[];
+  nodes: EstimateTreeNode[];
 };
 
 const ESTIMATE_TREE_LEFT_EXTENSION_WIDTH = 104;
@@ -52,7 +52,7 @@ type ParentOption = {
 };
 
 type EstimateTreeItemData = {
-  node: EstimateAreaNode | null;
+  node: EstimateTreeNode | null;
 };
 
 type EstimateTreeModel = {
@@ -72,15 +72,15 @@ function toStoredCreateNodeKind(kind: CreateEstimateNodeKind): EstimateTreeNodeK
   return kind === "group" ? "group" : "area";
 }
 
-function NodeIcon({ kind }: { kind: EstimateAreaNode["kind"] }) {
+function NodeIcon({ kind }: { kind: EstimateTreeNode["kind"] }) {
   if (getEstimateNodeDisplayKind(kind) === "group") return <FolderSimple size={12} weight="bold" aria-hidden="true" />;
   return <Cube size={12} weight="bold" aria-hidden="true" />;
 }
 
-function getParentOptions(nodes: EstimateAreaNode[]) {
+function getParentOptions(nodes: EstimateTreeNode[]) {
   const options: ParentOption[] = [{ id: "", label: "Estimate root", kind: null }];
 
-  function visit(node: EstimateAreaNode, path: string[]) {
+  function visit(node: EstimateTreeNode, path: string[]) {
     const nextPath = [...path, node.name];
     if (isEstimateGroupNodeKind(node.kind)) options.push({ id: node.id, label: nextPath.join(" / "), kind: node.kind });
     node.children?.forEach((child) => visit(child, nextPath));
@@ -90,11 +90,11 @@ function getParentOptions(nodes: EstimateAreaNode[]) {
   return options;
 }
 
-function getDefaultParentId(nodes: EstimateAreaNode[], selectedNodeId: string | null) {
+function getDefaultParentId(nodes: EstimateTreeNode[], selectedNodeId: string | null) {
   if (!selectedNodeId) return "";
   let parentId = "";
 
-  function visit(node: EstimateAreaNode, parent: EstimateAreaNode | null): boolean {
+  function visit(node: EstimateTreeNode, parent: EstimateTreeNode | null): boolean {
     if (node.id === selectedNodeId) {
       parentId = getEstimateNodeDisplayKind(node.kind) === "area" ? parent?.id ?? "" : node.id;
       return true;
@@ -107,7 +107,7 @@ function getDefaultParentId(nodes: EstimateAreaNode[], selectedNodeId: string | 
   return parentId;
 }
 
-function buildTreeModel(nodes: EstimateAreaNode[]): EstimateTreeModel {
+function buildTreeModel(nodes: EstimateTreeNode[]): EstimateTreeModel {
   const items: Record<TreeItemIndex, TreeItem<EstimateTreeItemData>> = {
     [ESTIMATE_TREE_ROOT_ITEM_ID]: {
       index: ESTIMATE_TREE_ROOT_ITEM_ID,
@@ -119,7 +119,7 @@ function buildTreeModel(nodes: EstimateAreaNode[]): EstimateTreeModel {
   };
   const folderIds = new Set<string>();
 
-  function visit(node: EstimateAreaNode) {
+  function visit(node: EstimateTreeNode) {
     const children = node.children?.map((child) => child.id) ?? [];
     const isFolder = isEstimateGroupNodeKind(node.kind);
     if (isFolder) folderIds.add(node.id);
@@ -222,7 +222,8 @@ export function EstimateSheetTree({ projectId, estimateId, projectName, selected
   const router = useRouter();
   const queryClient = useQueryClient();
   const pendingReordersRef = useRef(0);
-  const [localNodes, setLocalNodes] = useState<EstimateAreaNode[]>(nodes);
+  const lastAcceptedPropStructureRef = useRef(getEstimateTreeStructureSignature(nodes));
+  const [localNodes, setLocalNodes] = useState<EstimateTreeNode[]>(nodes);
   const [reorderStatus, setReorderStatus] = useState<ReorderStatus>({ state: "idle" });
   const { selectedNodeId: activeSelectedNodeId, setSelectedNodeId } = useEstimateWorkspaceSelection(estimateId, selectedNodeId);
   const treeModel = useMemo(() => buildTreeModel(localNodes), [localNodes]);
@@ -238,7 +239,14 @@ export function EstimateSheetTree({ projectId, estimateId, projectName, selected
   useEffect(() => {
     if (pendingReordersRef.current > 0) return;
     setLocalNodes((currentNodes) => {
-      if (getEstimateTreeStructureSignature(currentNodes) === getEstimateTreeStructureSignature(nodes)) return currentNodes;
+      const incomingStructure = getEstimateTreeStructureSignature(nodes);
+      const currentStructure = getEstimateTreeStructureSignature(currentNodes);
+      if (currentStructure === incomingStructure) {
+        lastAcceptedPropStructureRef.current = incomingStructure;
+        return currentNodes;
+      }
+      if (incomingStructure === lastAcceptedPropStructureRef.current) return currentNodes;
+      lastAcceptedPropStructureRef.current = incomingStructure;
       return nodes;
     });
   }, [nodes]);
@@ -300,7 +308,7 @@ export function EstimateSheetTree({ projectId, estimateId, projectName, selected
     if (!result.ok) return;
 
     const previousNodes = localNodes;
-    const nextNodes = result.plan.nextNodes as EstimateAreaNode[];
+    const nextNodes = result.plan.nextNodes;
     pendingReordersRef.current += 1;
     setLocalNodes(nextNodes);
     queryClient.setQueryData(estimateQueryKeys.areaTree(estimateId), nextNodes);

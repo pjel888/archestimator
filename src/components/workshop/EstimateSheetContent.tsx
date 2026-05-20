@@ -15,7 +15,7 @@ import { estimateQueryKeys } from "@/hooks/use-estimate-query";
 import { resolveEstimateWorkspaceSelection, useEstimateWorkspaceSelection } from "@/hooks/use-estimate-workspace-state";
 import { getEstimateNodeDisplayKind } from "@/lib/estimates/tree-hierarchy";
 import { cn } from "@/lib/ui/cn";
-import { findEstimateNode, sampleEstimateTree, type EstimateAreaNode, type EstimateRowItem } from "./estimate-tree-data";
+import { findEstimateNode, sampleEstimateTree, type EstimateTreeNode, type EstimateRowItem } from "./estimate-tree-data";
 
 
 /* Re-export component library helpers and sidebar so existing imports don't break */
@@ -33,13 +33,13 @@ export { EstimateRightSidebar } from "./component-library";
 
 type EstimateSheetContentProps = {
   selectedNodeId: string | null;
-  nodes?: EstimateAreaNode[];
+  nodes?: EstimateTreeNode[];
   projectId?: string;
   estimateId?: string;
 };
 
 type EstimateSheetBranchProps = {
-  node: EstimateAreaNode;
+  node: EstimateTreeNode;
   editableRows: Record<string, EditableRowValue>;
   setEditableRows: Dispatch<SetStateAction<Record<string, EditableRowValue>>>;
   onInsertLibraryItem: (targetNodeId: string, libraryItem: EstimateRowItem) => void;
@@ -70,7 +70,7 @@ function groupGap(depth: number) {
   return "mt-4";
 }
 
-function NodeIcon({ kind }: { kind: EstimateAreaNode["kind"] }) {
+function NodeIcon({ kind }: { kind: EstimateTreeNode["kind"] }) {
   if (getEstimateNodeDisplayKind(kind) === "group") return <FolderSimple size={13} weight="bold" aria-hidden="true" />;
   return <Cube size={13} weight="bold" aria-hidden="true" />;
 }
@@ -147,10 +147,10 @@ function getInitialEditableRow(item: EstimateRowItem): EditableRowValue {
   };
 }
 
-function collectEditableRows(nodes: EstimateAreaNode[]) {
+function collectEditableRows(nodes: EstimateTreeNode[]) {
   const rows: Record<string, EditableRowValue> = {};
 
-  function visit(node: EstimateAreaNode) {
+  function visit(node: EstimateTreeNode) {
     node.estimateRowItems?.forEach((item) => {
       rows[item.id] = getInitialEditableRow(item);
     });
@@ -169,7 +169,7 @@ function computeRowTotal(item: EstimateRowItem, editableRows: Record<string, Edi
   return item.itemCost * quantity + supplementaryCosts + laborCost;
 }
 
-function computeNodeTotal(node: EstimateAreaNode, editableRows: Record<string, EditableRowValue>): number {
+function computeNodeTotal(node: EstimateTreeNode, editableRows: Record<string, EditableRowValue>): number {
   const rowTotal = (node.estimateRowItems ?? []).reduce((total, item) => total + computeRowTotal(item, editableRows), 0);
   const childTotal = (node.children ?? []).reduce((total, child) => total + computeNodeTotal(child, editableRows), 0);
   return rowTotal + childTotal;
@@ -851,7 +851,7 @@ export function EstimateSheetContent({ selectedNodeId, nodes = sampleEstimateTre
     setSelectedNodeId(resolvedSelectedNodeId);
   }, [activeSelectedNodeId, estimateId, resolvedSelectedNodeId, setSelectedNodeId]);
 
-  const setEstimateTree = useCallback((updater: (current: EstimateAreaNode[]) => EstimateAreaNode[]) => {
+  const setEstimateTree = useCallback((updater: (current: EstimateTreeNode[]) => EstimateTreeNode[]) => {
     setEstimateTreeState((current) => {
       const next = updater(current);
       queryClient.setQueryData(areaTreeQueryKey, next);
@@ -859,7 +859,7 @@ export function EstimateSheetContent({ selectedNodeId, nodes = sampleEstimateTre
     });
   }, [areaTreeQueryKey, queryClient]);
 
-  const restoreEstimateState = useCallback((previousTree: EstimateAreaNode[], previousRows: Record<string, EditableRowValue>) => {
+  const restoreEstimateState = useCallback((previousTree: EstimateTreeNode[], previousRows: Record<string, EditableRowValue>) => {
     queryClient.setQueryData(areaTreeQueryKey, previousTree);
     setEstimateTreeState(previousTree);
     setEditableRows(previousRows);
@@ -910,7 +910,7 @@ export function EstimateSheetContent({ selectedNodeId, nodes = sampleEstimateTre
     setPendingFocusRowId(newItem.id);
     setEstimateTree((current) =>
       current.map((node) => {
-        function visit(areaNode: EstimateAreaNode): EstimateAreaNode {
+        function visit(areaNode: EstimateTreeNode): EstimateTreeNode {
           if (areaNode.id === targetNodeId) {
             return { ...areaNode, estimateRowItems: [...(areaNode.estimateRowItems ?? []), newItem] };
           }
@@ -940,7 +940,7 @@ export function EstimateSheetContent({ selectedNodeId, nodes = sampleEstimateTre
     const previousRows = editableRows;
     setEstimateTree((current) =>
       current.map((node) => {
-        function visit(areaNode: EstimateAreaNode): EstimateAreaNode {
+        function visit(areaNode: EstimateTreeNode): EstimateTreeNode {
           return {
             ...areaNode,
             estimateRowItems: areaNode.estimateRowItems?.map((item) =>
@@ -962,7 +962,7 @@ export function EstimateSheetContent({ selectedNodeId, nodes = sampleEstimateTre
     const previousRows = editableRows;
     setEstimateTree((current) =>
       current.map((node) => {
-        function visit(areaNode: EstimateAreaNode): EstimateAreaNode {
+        function visit(areaNode: EstimateTreeNode): EstimateTreeNode {
           return {
             ...areaNode,
             estimateRowItems: areaNode.estimateRowItems?.filter((item) => item.id !== rowItemId),

@@ -1,15 +1,39 @@
 # Estimate Tree Drag/Drop Reorganization Plan
 
-Status: planning/audit package created 2026-05-20 18:51 PST; upgraded after two-node tree decision, current-state validation, independent review/hygiene, assessment decision-closure, and final minor hardening on 2026-05-20.
+Status: implemented on branch `feat/estimate-tree-dnd-gate-b`; this plan pack is now the closeout/audit source for follow-up verification.
 Target route: `/workshop/projects/22222222-2222-4222-8222-222222222222/estimates/77777777-7777-4777-8777-777777777729`
 Primary package: `react-complex-tree` v2.6.1
-Implementation status: not implemented; this folder is the implementation-ready plan pack.
+Implementation status: code implemented. Gate E mutating browser proof is implemented as an env-gated Playwright matrix and remains unexecuted in shells without `SUPABASE_SERVICE_ROLE_KEY` plus dev-auth env.
 
 ## Intent
 
 Implement a seamless drag/drop reorganization tool for the live estimate tree without full-page reloads, route bounces, blank-tree flicker, state loss, or invalid hierarchy persistence.
 
-This folder does not change feature code. It records the exact current code paths, blast radius, React Complex Tree API guidance, implementation phases, helper contracts, and verification runbook so a builder can implement the feature safely and efficiently.
+This folder records the original plan, binding decisions, implementation references, and verification runbook. The live implementation now uses React Complex Tree with app-side hierarchy guards, optimistic local/query-cache updates, rollback, and the canonical `public.reorder_estimate_nodes` RPC.
+
+## Closeout status — 2026-05-21 PHT
+
+Implemented:
+
+- Two-kind active tree model: `group | area`.
+- Canonical nested view model: `EstimateTreeNode`; stale `EstimateAreaNode` compatibility alias removed from feature code.
+- React Complex Tree rendering, expansion, selection, add-node hierarchy creation, drag/drop props, root immovability, and package CSS import.
+- Drop validation through `evaluateEstimateTreeDrop` / `buildEstimateNodeReorderPlan`.
+- Optimistic local tree update plus TanStack Query cache mirror.
+- Failure rollback without `router.refresh()` after drop.
+- Atomic server persistence through `reorderEstimateTreeNodes` -> `public.reorder_estimate_nodes`.
+- Supabase function type entry for `reorder_estimate_nodes`.
+- Removed runtime fallback to the historical `move_estimate_nodes` RPC.
+- Regression for the real Supabase `rpc()` receiver crash that produced `Cannot read properties of undefined (reading 'rest')`.
+- Regression for stale route props not overwriting the confirmed post-drop tree.
+- Component coverage for Group Node reparenting through the RCT `onDrop` path.
+- Playwright matrix for root group reorder, same-parent area reorder, group reparent, area reparent with row attachment, invalid area-parent, invalid cycle/self drops, no document navigation, no blank tree frames, and persistence after reload.
+- Mutating Playwright data isolation: each test clones the seeded estimate tree into a disposable estimate, normalizes the known baseline node positions inside that clone, and deletes the clone after the test.
+
+Still gated:
+
+- The mutating Playwright matrix requires `ARCHESTIMATOR_E2E_MUTATING_DND=1`, `ARCHESTIMATOR_DEV_AUTH_BYPASS=1`, `ARCHESTIMATOR_DEV_AUTH_EMAIL`, `NEXT_PUBLIC_SUPABASE_URL`, and `SUPABASE_SERVICE_ROLE_KEY`. Without those, Playwright lists the full matrix but skips execution.
+- Live manual browser verification also requires authenticated/dev-auth access to the protected route.
 
 ## Active product/domain decision
 
@@ -117,25 +141,23 @@ Hermes user-local skill:
 - Mutating Playwright DnD tests must use isolated/cloned estimate data, not the shared manual-QA target estimate.
 - Tests that currently assert DnD absence must be replaced with behavior coverage.
 
-## Current blockers/risks discovered
+## Historical blockers/risks discovered
 
-- The target URL currently redirects to `/login` in the browser session unless dev auth/session is configured.
+- The target URL redirects to `/login` in browser sessions unless dev auth/session is configured.
 - A prior migration created `public.move_estimate_nodes`, but a later migration explicitly dropped it because tree drag/drop had been removed from the product.
-- Existing Vitest source-inspection tests currently assert that DnD props/actions are absent; those tests must be replaced with behavior coverage when implementing.
-- The current repo still contains legacy estimate node kinds in TypeScript unions, generated Supabase types, SQL hierarchy checks, sample tree data, and tests. This conflicts with Philip's two-node decision.
-- `workspace-repository.ts` currently excludes `kind === "group"` from `isDisplayNodeKind`, while seed data and the add-node action create `group` nodes. Under the two-node model, this must become an explicit `group | area` guard.
-- `sampleEstimateTree` currently uses `lot`, `general`, `structure`, and `level` as technical kinds. These must become `group` while preserving the visible labels.
-- Playwright browser proof is not credible until authenticated route setup exists and mutable test data is isolated/reset.
+- Older Vitest source-inspection tests asserted DnD props/actions were absent; these have been replaced with behavior coverage.
+- Earlier code contained legacy estimate node kinds in active TypeScript/read-path/sample data; active feature code now uses the two-kind `group | area` contract.
+- Earlier `workspace-repository.ts` excluded `kind === "group"` from display nodes; the active read path now exposes `group | area`.
+- Earlier `sampleEstimateTree` used `lot`, `general`, `structure`, and `level` as technical kinds; active sample tree nodes now use `group` while preserving visible labels.
+- Playwright browser proof is not complete until the env-gated mutating matrix is run with service-role/dev-auth credentials.
 - `useEstimateUiStore` and `useMoveEstimateRowItem` are currently dead code; the plan now explicitly avoids basing DnD on them.
 
 ## Readiness status
 
-After the added current-state memo, implementation reference, verification runbook, and assessment decision-closure addendum, the plan pack is ready for the first implementation slice with one condition: the slice must begin with Gate A from `08-verification-runbook-and-readiness-gate.md` and apply the binding decisions in `10-assessment-response-decision-closure.md`.
+The implementation slices are complete from Gate A through the app/unit/component/browser-spec surface. The only remaining plan gate is executing the mutating browser matrix in an environment with the required credentials.
 
 Next best implementation action:
 
 ```txt
-Implement Gate A — two-kind domain and read-path fix.
+Run Gate E — mutating Playwright DnD matrix with service-role/dev-auth env.
 ```
-
-Do not begin with UI drag/drop. That would build on a known incorrect tree read path.

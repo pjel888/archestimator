@@ -3,7 +3,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { EstimateSheetTree } from "@/components/workshop/EstimateSheetTree";
-import type { EstimateAreaNode } from "@/components/workshop/estimate-tree-data";
+import type { EstimateTreeNode } from "@/components/workshop/estimate-tree-data";
 import { resetEstimateWorkspaceState } from "@/hooks/use-estimate-workspace-state";
 
 const routerMock = vi.hoisted(() => ({
@@ -22,7 +22,7 @@ vi.mock("next/navigation", () => ({
 
 vi.mock("@/lib/estimates/actions", () => actionMocks);
 
-function fixtureTree(): EstimateAreaNode[] {
+function fixtureTree(): EstimateTreeNode[] {
   return [
     {
       id: "project-scope",
