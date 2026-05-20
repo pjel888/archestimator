@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
+const appLayout = readFileSync("src/app/layout.tsx", "utf8");
 const estimateNodePage = readFileSync("src/app/workshop/projects/[projectId]/estimates/[nodeId]/page.tsx", "utf8");
 const estimateTree = readFileSync("src/components/workshop/EstimateSheetTree.tsx", "utf8");
 const estimateContent = readFileSync("src/components/workshop/EstimateSheetContent.tsx", "utf8");
@@ -32,6 +33,7 @@ describe("live estimate node route", () => {
     expect(estimateTree).toContain("canDrag={handleCanDrag}");
     expect(estimateTree).toContain("canDropAt={handleCanDropAt}");
     expect(estimateTree).toContain("onDrop={handleDrop}");
+    expect(appLayout).toContain('import "react-complex-tree/lib/style-modern.css"');
     expect(estimateTree).toContain("queryClient.setQueryData(estimateQueryKeys.areaTree(estimateId), nextNodes)");
     expect(estimateTree).toContain("queryClient.setQueryData(estimateQueryKeys.areaTree(estimateId), confirmed.tree)");
     expect(estimateTree).toContain("setLocalNodes(previousNodes)");

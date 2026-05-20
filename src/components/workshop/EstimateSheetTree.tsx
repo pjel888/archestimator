@@ -112,6 +112,7 @@ function buildTreeModel(nodes: EstimateAreaNode[]): EstimateTreeModel {
     [ESTIMATE_TREE_ROOT_ITEM_ID]: {
       index: ESTIMATE_TREE_ROOT_ITEM_ID,
       isFolder: true,
+      canMove: false,
       children: nodes.map((node) => node.id),
       data: { node: null },
     },
