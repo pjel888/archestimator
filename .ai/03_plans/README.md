@@ -19,6 +19,7 @@ Active/current plan:
 
 - `.ai/03_plans/current-post-reset-workshop-slice.md` — narrow orientation plan for the current workshop/projects/components route slice.
 - `.ai/03_plans/project-estimates-component-library-improvement-plan.md` — research-backed UX/UI improvement plan for the current project estimate workspace and connected Component Library feature.
+- `.ai/03_plans/workshop-components-library-ux-ui/` — research pack, screen spec, and implementation plan for improving the global `/workshop/components` library manager.
 - `.ai/03_plans/ui-componentization-and-storybook-plan.md` — active UI component matrix, reusable-primitive pipeline, and Storybook organization plan.
 
 Read first before planning new work:

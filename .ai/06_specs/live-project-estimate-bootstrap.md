@@ -1,7 +1,7 @@
 # Live Project + Estimate Bootstrap Spec
 
 **Status:** Active implementation slice  
-**Last updated:** 2026-05-19
+**Last updated:** 2026-05-20
 **Routes:** `/workshop/projects`, `/workshop/projects/[projectId]`, `/workshop/projects/[projectId]/estimates`, `/workshop/projects/[projectId]/estimates/[nodeId]`
 
 ## Purpose
@@ -37,7 +37,7 @@ The current goal is intentionally narrow:
 - Inserted library rows use `link_state = linked-clean`; manual/project rows use `unlinked`.
 - Replace, delete, and inline quantity/cost/discipline/designation edits persist through project-scoped server actions.
 - Mutations validate row ownership through estimate/node/project joins before modifying Supabase.
-- Client interactions remain optimistic; the live tree is hydrated into an `estimate/{id}/area-tree` TanStack Query cache, failed mutations call local rollback before showing row-specific `Save failed`, and successful mutations invalidate the active tree query so the client refetches the server tree instead of relying on route `initialData` only.
+- Client interactions remain optimistic; the live tree is hydrated into an `estimate/{id}/area-tree` TanStack Query cache, selected-node interaction state is held in scoped Zustand UI state keyed by estimate id, failed mutations call local rollback before showing row-specific `Save failed`, and successful mutations invalidate the active tree query so the client can reconcile with server state instead of relying on route `initialData` only.
 
 ## Current behavior
 
@@ -67,9 +67,7 @@ The current goal is intentionally narrow:
 - Creates estimates through `createEstimate(projectId, formData)`.
 - Estimate creation inserts:
   - one `estimates` row;
-  - one `lot` node;
-  - one `structure` node;
-  - one `level` node;
+  - Group Nodes for project scope, general requirements, site works, the project/building scope, and ground floor;
   - one `area` node named `Project-wide`.
 - Redirects to `/workshop/projects/{projectId}/estimates/{areaNodeId}` after creation.
 - Shows `EstimateListCard` for live estimates.
@@ -82,7 +80,7 @@ The current goal is intentionally narrow:
 - Mutations go through server actions:
   - `src/lib/projects/actions.ts`
   - `src/lib/estimates/actions.ts`
-- Estimate-tree editing still remains a later slice; this feature only bootstraps an initial hierarchy.
+- Estimate-tree editing is limited to hierarchy creation and navigation. The durable product hierarchy has two concepts: Group Nodes organize the tree and Area Nodes own rows. New organizing nodes use `kind: "group"`; existing `lot`, `general`, `structure`, and `level` storage values remain compatibility Group Nodes. Group Nodes may contain other Group Nodes and Area Nodes; Area Nodes are leaves for row ownership. Estimate-tree drag/drop reorganization, the project-scoped `moveEstimateNode` server action, and the `public.move_estimate_nodes` RPC have been removed from the active code/database path. The removed single-pointer `Move` modal/button must not be restored as-is; tree movement has no current UI path pending a replacement design.
 
 ## Shared UI primitives
 
@@ -126,7 +124,7 @@ Required gates after edits:
 ## Known limitations
 
 - Hosted Supabase redirect URLs still require Dashboard verification.
-- Estimate detail route now reads live Supabase tree/rows with project-scoped node validation; row CRUD and inline edits persist through project-scoped server actions with optimistic local updates, row-level dirty/saving/saved/failed markers, rollback on failure, and active TanStack Query tree refetch after success.
+- Estimate detail route now reads live Supabase tree/rows with project-scoped node validation; node selection updates immediately through scoped Zustand UI state while route navigation reconciles in the background; Group Nodes can nest under other Group Nodes while Area Nodes remain row-owning leaves; row CRUD and inline edits persist through project-scoped server actions with optimistic local updates, row-level dirty/saving/saved/failed markers, rollback on failure, and active TanStack Query tree refetch after success.
 - Estimate totals, proposal exports, recent activity, and estimate row CRUD UI are not in this slice.
 
 ## Next slice
