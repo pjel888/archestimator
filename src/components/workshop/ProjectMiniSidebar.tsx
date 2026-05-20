@@ -18,6 +18,8 @@ type ProjectSectionLink = {
 
 export function ProjectMiniSidebar({ projectId }: ProjectMiniSidebarProps) {
   const pathname = usePathname();
+  const estimateSheetPathPrefix = `/workshop/projects/${projectId}/estimates/`;
+  const isEstimateSheetRoute = Boolean(pathname?.startsWith(estimateSheetPathPrefix));
   const links: ProjectSectionLink[] = [
     {
       href: `/workshop/projects/${projectId}`,
@@ -32,6 +34,8 @@ export function ProjectMiniSidebar({ projectId }: ProjectMiniSidebarProps) {
       exact: false,
     },
   ];
+
+  if (isEstimateSheetRoute) return null;
 
   return (
     <aside className="relative z-10 hidden w-[104px] shrink-0 border-r border-hairline bg-white lg:block" aria-label="Project navigation">

@@ -4,40 +4,40 @@ import { EstimateRightSidebar } from "@/components/workshop/component-library";
 import type { EstimateRowItem } from "@/components/workshop/estimate-tree-data";
 
 describe("component library UI", () => {
-  it("renders the sidebar with title and full-width search", () => {
+  it("renders the sidebar without a title bar and with full-width search", () => {
     render(<EstimateRightSidebar />);
-    expect(screen.getByText("Component library")).toBeInTheDocument();
-    expect(screen.getByLabelText("Search component library")).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Library" })).not.toBeInTheDocument();
+    expect(screen.getByLabelText("Search Library")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /new/i })).not.toBeInTheDocument();
   });
 
   it("shows search input with placeholder", () => {
     render(<EstimateRightSidebar />);
-    expect(screen.getByPlaceholderText(/search component library/i)).toBeInTheDocument();
+    expect(screen.getByPlaceholderText("Search Library")).toBeInTheDocument();
   });
 
   it("shows left-aligned icon-only tools with tooltips", () => {
     render(<EstimateRightSidebar />);
-    expect(screen.getByLabelText("Component library tools")).toBeInTheDocument();
+    expect(screen.getByLabelText("Library tools")).toBeInTheDocument();
     expect(screen.queryByText(/\d+ components?/)).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Filter component library" })).toHaveAttribute("title", "Filter component library");
-    expect(screen.getByRole("button", { name: "Group component library" })).toHaveAttribute("title", "Group component library");
-    expect(screen.queryByRole("button", { name: "Collapse all component library" })).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "Expand all component library" })).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Add component library" })).toHaveAttribute("title", "Add component library");
+    expect(screen.getByRole("button", { name: "Filter library" })).toHaveAttribute("title", "Filter library");
+    expect(screen.getByRole("button", { name: "Group library" })).toHaveAttribute("title", "Group library");
+    expect(screen.queryByRole("button", { name: "Collapse all library" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Expand all library" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Add library" })).toHaveAttribute("title", "Add library");
     expect(screen.queryByText("Category")).not.toBeInTheDocument();
   });
 
   it("opens filters from the icon-only filter tool", () => {
     render(<EstimateRightSidebar />);
-    fireEvent.click(screen.getByRole("button", { name: "Filter component library" }));
+    fireEvent.click(screen.getByRole("button", { name: "Filter library" }));
     expect(screen.getByText("Category")).toBeInTheDocument();
   });
 
   it("opens the new component form in a viewport modal from the plus tool", () => {
     const { container } = render(<EstimateRightSidebar />);
 
-    fireEvent.click(screen.getByRole("button", { name: "Add component library" }));
+    fireEvent.click(screen.getByRole("button", { name: "Add library" }));
 
     const dialog = screen.getByRole("dialog", { name: "New component" });
     expect(dialog).toBeInTheDocument();
@@ -48,7 +48,7 @@ describe("component library UI", () => {
 
   it("shows empty state when search returns no results", () => {
     render(<EstimateRightSidebar />);
-    const search = screen.getByPlaceholderText(/search component library/i);
+    const search = screen.getByPlaceholderText("Search Library");
     fireEvent.change(search, { target: { value: "xyz-nonexistent-12345" } });
     expect(screen.getByText("No components matched")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /clear search and filters/i })).toBeInTheDocument();

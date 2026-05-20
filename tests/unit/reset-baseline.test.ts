@@ -12,8 +12,11 @@ const forbiddenPrototypeReferences = [
 describe("workshop sidebar baseline", () => {
   test("workshop page keeps only the approved sidebar shell and blank canvas", async () => {
     const source = await Bun.file("src/app/workshop/page.tsx").text();
-    expect(source).toContain("MainSidebar");
-    expect(source).toContain("Workshop canvas");
+    const shell = await Bun.file("src/components/workshop/WorkshopPageShell.tsx").text();
+    expect(source).toContain("WorkshopPageShell");
+    expect(source).toContain("Workshop empty canvas");
+    expect(shell).toContain("MainSidebar");
+    expect(shell).toContain("aria-label={`${title} canvas`}");
 
     for (const forbidden of forbiddenPrototypeReferences) {
       expect(source).not.toContain(forbidden);
