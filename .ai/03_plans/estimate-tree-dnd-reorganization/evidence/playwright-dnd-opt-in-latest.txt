@@ -1,0 +1,7 @@
+npm warn Unknown user config "always-auth" (//skand-124087294415.d.codeartifact.ap-southeast-2.amazonaws.com/npm/core/:always-auth). This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.
+
+Running 1 test using 1 worker
+
+  -  1 [chromium] › e2e/estimate-tree-dnd.spec.ts:145:7 › estimate tree drag/drop seamlessness › reorders sibling area nodes without route reload, tree blanking, or lost persistence
+
+  1 skipped
