@@ -1,8 +1,14 @@
 import { createServerClient } from "@supabase/ssr";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
+import { createDevSupabaseAdminClient, isDevAdminDatabaseBypassRequest } from "@/lib/auth/dev-auth";
 import type { Database } from "./types";
 
 export async function createSupabaseServerClient() {
+  const hostHeader = (await headers()).get("host");
+  if (isDevAdminDatabaseBypassRequest(hostHeader)) {
+    return createDevSupabaseAdminClient();
+  }
+
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 

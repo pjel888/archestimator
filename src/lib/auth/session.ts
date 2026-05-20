@@ -1,5 +1,6 @@
 import { cache } from "react";
 import { redirect } from "next/navigation";
+import { getDevCurrentUserContext } from "@/lib/auth/dev-auth";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { Tables } from "@/lib/supabase/types";
 
@@ -13,6 +14,9 @@ export type CurrentUserContext = {
 };
 
 export const getCurrentUserContext = cache(async (): Promise<CurrentUserContext | null> => {
+  const devContext = await getDevCurrentUserContext();
+  if (devContext) return devContext;
+
   const supabase = await createSupabaseServerClient();
   const {
     data: { user },
