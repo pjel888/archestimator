@@ -1,6 +1,7 @@
 # 01 — Codebase Audit and Blast Radius
 
 Audit date: 2026-05-20 18:51 PST
+Updated: 2026-05-20 19:59 PST after Philip's two-node estimate tree decision and current-state revalidation
 Working branch at audit time: `docs/estimate-tree-rct-dnd-plan`
 Project root: `/Users/philiplewis/archestimator`
 
@@ -44,8 +45,9 @@ GitNexus was run before planning edits. Relevant upstream impact findings:
 | `EstimateSheetContent` | `src/components/workshop/EstimateSheetContent.tsx` | LOW | 1 impacted caller/process: `ProjectEstimateNodePage`; tests include `estimate-sheet-cost-inputs.test.tsx`. |
 | `getProjectEstimateTreeByNode` | `src/lib/repositories/workspace-repository.ts` | LOW | 1 impacted caller/process: `ProjectEstimateNodePage`. |
 | `getProjectEstimateTreeByEstimate` | `src/lib/repositories/workspace-repository.ts` | LOW | 3 impacted nodes; process affected: `ProjectEstimateNodePage`. |
-| `buildEstimateTree` | `src/lib/repositories/workspace-repository.ts` | LOW | 4 impacted nodes; direct callers are `getProjectEstimateTreeByEstimate` and `getProjectEstimateTreeByNode`. |
-| `canNestEstimateNodeKind` | `src/lib/estimates/tree-hierarchy.ts` | HIGH | Direct callers include `createEstimateNode`, `getDefaultNodeKind`, `validParentOptions`, and migration-alignment tests. Any hierarchy-rule change is high risk and must be tested against DB constraints. |
+| `buildEstimateTree` | `src/lib/repositories/workspace-repository.ts` | LOW | 4 impacted nodes; direct callers are `getProjectEstimateTreeByEstimate` and `getProjectEstimateTreeByNode`. Functionally critical because it decides which `group` / `area` nodes render. |
+| `canNestEstimateNodeKind` | `src/lib/estimates/tree-hierarchy.ts` | HIGH | Fresh GitNexus rerun: 5 impacted nodes; direct callers include `createEstimateNode`, `getDefaultNodeKind`, `validParentOptions`, and migration-alignment tests. A two-kind hierarchy change is high risk and must be tested against DB constraints. |
+| `isEstimateGroupNodeKind` | `src/lib/estimates/tree-hierarchy.ts` | LOW | Fresh GitNexus rerun: 14 impacted nodes; direct use through `getEstimateNodeDisplayKind`, tree/content icons, parent options, and RCT folder mapping. |
 | `useEstimateWorkspaceSelection` | `src/hooks/use-estimate-workspace-state.ts` | HIGH | Direct callers include `EstimateSheetTree` and `EstimateSheetContent`; changes can affect selected route state, row focus reconciliation, and tree highlighting. |
 | `getExpandedNodeIds` | `src/components/workshop/estimate-tree-data.ts` | LOW | Directly affects tree default expansion behavior. |
 | `createEstimateNode` | `src/lib/estimates/actions.ts` | LOW | No upstream callers detected by GitNexus due server-action binding pattern, but it is used in `EstimateSheetTree` via `createEstimateNode.bind(...)`. Treat as functionally critical despite low graph count. |
@@ -72,6 +74,32 @@ Important context output:
   - tests deriving root/folder child matrices
   - `getDefaultNodeKind`
   - `validParentOptions`
+
+## Two-node domain decision impact
+
+Philip's updated decision is now the technical source of truth for this plan:
+
+```ts
+type EstimateNodeKind = "group" | "area";
+```
+
+Required hierarchy semantics:
+
+- Root may contain only `group` nodes.
+- `group` nodes may contain `group` and `area` nodes.
+- `area` nodes may contain `EstimateRowItem` records and must not contain child nodes.
+- Domain labels such as Lot, General Requirements, Structure, Floor, Phase, or Trade must be represented by `name`/metadata/UI copy on a `group` node, not by separate node kinds.
+
+Current code is not fully aligned yet:
+
+- `src/lib/estimates/tree-hierarchy.ts` still includes `lot`, `general`, `structure`, and `level` as compatibility group-like technical kinds.
+- `src/lib/domain/estimate-tree.ts` still includes `lot`, `general`, `structure`, `level`, `group`, `area`, and `assembly`.
+- `src/components/workshop/estimate-tree-data.ts` still types and seeds sample data with `lot`, `general`, `structure`, and `level`.
+- `src/lib/supabase/types.ts` still exposes generated enum values `lot`, `general`, `structure`, `level`, `area`, `group`, and `assembly`.
+- SQL hierarchy validation in `20260519192045_atomic_estimate_node_moves.sql` still allows legacy group-like enum values.
+- Tests currently assert the legacy compatibility matrix.
+
+Conclusion: before DnD is enabled, implementation needs a domain simplification slice that collapses code, SQL enforcement, generated types, and tests to active `group | area` semantics. This is separate from, and must precede, the RCT drag/drop UI slice.
 
 ## Current route/data flow
 
@@ -109,13 +137,20 @@ function isDisplayNodeKind(kind: EstimateNodeKind): kind is EstimateAreaNode["ki
 }
 ```
 
-This excludes `kind === "group"` even though:
+This excludes `kind === "group"` even though the current live seed/action path uses `group` heavily. Under Philip's two-node decision, this guard should no longer mention legacy values at all. It should accept only active technical kinds:
 
-- `EstimateAreaNode.kind` includes `"group"`.
-- `createEstimateNode` stores add-form group nodes as `kind: "group"`.
-- seed/migration data contains many `group` nodes, including root nodes like `General Requirements`, `Site Works`, `Lot`, `House`, etc.
+```ts
+function isDisplayNodeKind(kind: EstimateNodeKind): kind is EstimateAreaNode["kind"] {
+  return kind === "group" || kind === "area";
+}
+```
 
-This must be fixed or explicitly re-decided before DnD implementation. If `group` stays hidden in `buildEstimateTree`, drag/drop cannot operate on the real hierarchy and reparenting can produce confusing visual roots.
+Why this matters:
+
+- Group Nodes are the primary organizing nodes.
+- Current seed/migration data contains many `group` nodes, including root nodes like `General Requirements`, `Site Works`, `Lot`, `House`, etc.
+- If `group` stays hidden in `buildEstimateTree`, drag/drop cannot operate on the real hierarchy and reparenting can produce confusing visual roots.
+- Keeping legacy values in the display guard would undermine the two-kind model and leave future DnD validation ambiguous.
 
 ## Current tree component behavior
 
@@ -125,7 +160,7 @@ Current RCT usage:
 
 - Imports `ControlledTreeEnvironment`, `InteractionMode`, `Tree`, `TreeItem`, `TreeItemIndex`, and `TreeViewState` from `react-complex-tree`.
 - Builds an RCT item map with synthetic root item `estimate-tree-root`.
-- Treats all group-like nodes as RCT folders using `isEstimateGroupNodeKind`.
+- Currently treats all group-like nodes as RCT folders using `isEstimateGroupNodeKind`; after the two-kind simplification this should mean only `node.kind === "group"`.
 - Uses controlled `viewState`:
   - `expandedItems`
   - `selectedItems`
@@ -203,12 +238,12 @@ Existing relevant action:
   - inserts into `estimate_nodes`;
   - calls `revalidatePath('/workshop/projects/${projectId}/estimates')`.
 
-No current tree-move action exists. Existing source-inspection tests assert this absence.
+No current tree-reorder action exists. Existing source-inspection tests assert this absence.
 
 Implementation needs a new action such as:
 
 ```ts
-moveEstimateTreeNodes(projectId, estimateId, payload)
+reorderEstimateTreeNodes(projectId, estimateId, payload)
 ```
 
 It must:
@@ -238,7 +273,9 @@ It must:
 
 `supabase/migrations/20260519192045_atomic_estimate_node_moves.sql`
 
-This migration:
+This migration is historically important but is no longer aligned with the two-node technical model.
+
+It currently:
 
 - normalized duplicate root sort orders;
 - added `estimate_nodes_unique_sort_with_root unique nulls not distinct (estimate_id, parent_id, sort_order) deferrable initially deferred`;
@@ -247,6 +284,20 @@ This migration:
 - created deferred constraint trigger `estimate_row_items_enforce_area_node`;
 - created `public.move_estimate_nodes(target_estimate_id uuid, move_updates jsonb)`;
 - granted execute to `authenticated`.
+
+The old hierarchy SQL allows legacy group-like kinds:
+
+```sql
+(child.parent_id is null and child.kind in ('group', 'lot', 'general', 'structure', 'level'))
+or (parent.kind in ('group', 'lot', 'general', 'structure', 'level') and child.kind in ('group', 'lot', 'general', 'structure', 'level', 'area'))
+```
+
+The new required hierarchy SQL must allow only:
+
+```sql
+(child.parent_id is null and child.kind = 'group')
+or (parent.kind = 'group' and child.kind in ('group', 'area'))
+```
 
 The old `move_estimate_nodes` function had useful validations:
 
@@ -281,9 +332,12 @@ This is a product decision recorded in code. The user has now requested the feat
 Recommended database direction:
 
 - Add a new migration after the removal migration.
+- First normalize legacy estimate node values (`lot`, `general`, `structure`, `level`, and any active `assembly`) to `group`.
+- Then narrow/enforce active node kinds to only `group` and `area`. Preferred final state is a replacement `estimate_node_kind` enum containing only `group` and `area`; if enum narrowing is too risky for the immediate slice, add a strict check constraint as a temporary compatibility layer and document the enum cleanup as follow-up debt.
+- Recreate/update hierarchy validation so the database matrix exactly matches `root -> group`, `group -> group|area`, `area -> no children`.
 - Prefer a new function name, e.g. `public.reorder_estimate_nodes(target_estimate_id uuid, move_updates jsonb)`, to avoid confusion with the explicitly removed/deprecated `move_estimate_nodes` path.
 - Reuse the validation logic from the old migration where correct, but treat it as source material to audit, not as an unquestioned copy/paste.
-- Regenerate/update `src/lib/supabase/types.ts` so the new RPC is typed under `Database.public.Functions`.
+- Regenerate/update `src/lib/supabase/types.ts` so the narrowed enum and new RPC are typed under `Database.public.Enums` and `Database.public.Functions`.
 
 ## Existing tests and required test changes
 
@@ -339,11 +393,21 @@ Recommended replacement: behavior tests for:
 
 `tests/vitest/supabase-performance-migrations.test.ts`
 
+Current test state:
+
 - Confirms the old atomic migration contains hierarchy enforcement and old move RPC.
 - Confirms the removal migration drops `move_estimate_nodes`.
-- Confirms DB hierarchy rules match `canNestEstimateNodeKind`.
+- Confirms DB hierarchy rules match the current legacy `canNestEstimateNodeKind` matrix.
+- Expects `ESTIMATE_TREE_NODE_KINDS = ["group", "lot", "general", "structure", "level", "area"]`.
 
-When reintroducing DnD persistence, add new assertions for the new migration/function rather than deleting hierarchy-enforcement coverage.
+Required update under the two-node decision:
+
+- Change the active node kind test fixture to `["group", "area"]`.
+- Expect root child kinds to be `["group"]`.
+- Expect folder parent kinds to be `["group"]`.
+- Expect folder child kinds to be `["group", "area"]`.
+- Keep the removal-migration assertion for old `move_estimate_nodes`, then add assertions for the new reorder function in the new migration.
+- Add coverage that legacy values are normalized/rejected, depending on the final database migration strategy.
 
 ## Browser audit result
 
@@ -408,15 +472,16 @@ Why high: unique sibling sort constraints and deferred triggers make partial or 
 ## Required implementation sequence from audit
 
 1. Replace source-inspection tests that assert DnD absence with behavior-oriented pending/target tests.
-2. Fix/decide `group` node visibility in `buildEstimateTree`.
-3. Add pure tree-reorder domain helpers and unit tests.
-4. Add atomic persistence migration/function and Supabase types.
-5. Add server action that validates project/estimate scope and calls persistence atomically.
-6. Add controlled RCT DnD props and custom drop indicators.
-7. Add local optimistic tree state and rollback handling.
-8. Add component tests for optimistic/no-refresh behavior.
-9. Add authenticated Playwright setup and browser DnD/no-flicker tests.
-10. Run full validation gates.
+2. Collapse the estimate tree technical domain to active `group | area` semantics across TypeScript, sample data, SQL constraints, generated Supabase types, and tests.
+3. Fix `buildEstimateTree` display filtering to accept only `group` and `area`, and confirm `group` nodes render.
+4. Add pure tree-reorder domain helpers and unit tests.
+5. Add atomic persistence migration/function and Supabase types.
+6. Add server action that validates project/estimate scope and calls persistence atomically.
+7. Add controlled RCT DnD props and custom drop indicators.
+8. Add local optimistic tree state and rollback handling.
+9. Add component tests for optimistic/no-refresh behavior.
+10. Add authenticated Playwright setup and browser DnD/no-flicker tests.
+11. Run full validation gates.
 
 ## Do not do
 
@@ -424,6 +489,7 @@ Why high: unique sibling sort constraints and deferred triggers make partial or 
 - Do not call `router.refresh()` after every drop.
 - Do not rely on RCT to enforce Archestimator hierarchy rules.
 - Do not allow area nodes to become parents.
+- Do not persist or create legacy estimate node kinds (`lot`, `general`, `structure`, `level`, `assembly`) for tree organization; use `group` plus name/metadata/UI labels.
 - Do not use `DraggingPosition.linearIndex` or `depth` as persisted order.
 - Do not update `canNestEstimateNodeKind` without also updating database tests/migrations.
 - Do not stage or commit pre-existing unrelated `AGENTS.md` / `CLAUDE.md` changes.

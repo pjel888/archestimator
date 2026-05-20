@@ -8,36 +8,45 @@ This plan is code-ready but does not itself implement feature code.
 
 A user can drag one estimate tree node to a valid new position and see the tree update immediately. The move persists atomically, survives reload, preserves selected/expanded/focused state, and never causes a full-page reload. Invalid drops are blocked before persistence.
 
+Before coding from this plan, read these companion files in order:
+
+1. `00-two-node-domain-decision.md`
+2. `06-current-state-validation-memo.md`
+3. `07-implementation-reference.md`
+4. `08-verification-runbook-and-readiness-gate.md`
+
+If any implementation detail here conflicts with `07-implementation-reference.md`, use `07` as the contract reference and update this file.
+
+## Quantified success metrics
+
+Implementation is not done until all of these are true:
+
+- 100% of active estimate tree nodes render with technical kind `group` or `area`; no Group Nodes are hidden by `isDisplayNodeKind`.
+- 100% of valid unit move cases produce deterministic `nextNodes` and atomic `updates` payloads.
+- 100% of invalid unit move cases produce no persistence payload.
+- 0 new DnD paths call `router.refresh()`, cause main-frame navigation, or use the removed `move_estimate_nodes` RPC.
+- 0 blank tree frames are recorded during the Playwright drag/drop sampling window.
+- Valid browser moves update visually before server success is observed and persist after reload.
+- Selection, focus, expansion, and row attachments remain stable by node id.
+
 ## Product rules to implement
 
 ### Node kinds
 
-Current hierarchy source:
-
-`src/lib/estimates/tree-hierarchy.ts`
+Active technical source of truth:
 
 ```ts
-export type EstimateNodeKind = "lot" | "general" | "structure" | "level" | "area" | "group";
-
-const GROUP_NODE_KINDS: ReadonlySet<EstimateNodeKind> = new Set(["lot", "general", "structure", "level", "group"]);
-
-export function isEstimateGroupNodeKind(kind: EstimateNodeKind) {
-  return GROUP_NODE_KINDS.has(kind);
-}
-
-export function canNestEstimateNodeKind(childKind: EstimateNodeKind, parentKind: EstimateNodeKind | null) {
-  if (parentKind === null) return isEstimateGroupNodeKind(childKind);
-  return isEstimateGroupNodeKind(parentKind);
-}
+export type EstimateNodeKind = "group" | "area";
 ```
 
 Interpretation:
 
-- Root may contain only group-like nodes: `lot`, `general`, `structure`, `level`, `group`.
-- Group-like nodes may contain group-like nodes and area nodes.
-- Area nodes cannot contain children.
+- Root may contain only Group Nodes (`kind: "group"`).
+- Group Nodes may contain other Group Nodes and Area Nodes.
+- Area Nodes may contain `EstimateRowItem` records and cannot contain child nodes.
+- Domain organization labels such as Lot, General Requirements, House, Floor, Trade, or Phase are `group` node names/metadata/UI labels, not technical node kinds.
 
-Do not create a separate divergent rule set in the DnD feature.
+The implementation must first collapse current compatibility code to this two-kind model. Do not add drag/drop on top of the old `lot | general | structure | level` compatibility matrix.
 
 ## Phase 0 — Preflight and branch hygiene
 
@@ -66,7 +75,7 @@ Current assertions explicitly block the feature:
 - `not.toContain("canReorderItems")`
 - `not.toContain("renderDragBetweenLine")`
 - `not.toContain("moveEstimateNode")`
-- `not.toContain("buildEstimateNodeMovePlan")`
+- `not.toContain("buildEstimateNodeReorderPlan")`
 - `not.toContain('.rpc("move_estimate_nodes"')`
 
 Action:
@@ -79,58 +88,81 @@ Recommended new tests start failing before implementation:
 
 - `tests/vitest/estimate-tree-reorder.test.ts`
 - `tests/vitest/estimate-sheet-tree-dnd.test.tsx`
-- `tests/vitest/estimate-node-move-action.test.ts`
+- `tests/vitest/estimate-node-reorder-action.test.ts`
 
 Commit after this phase if tests are intentionally failing only in the new target feature tests:
 
 `test: add estimate tree drag-drop target coverage`
 
-## Phase 2 — Fix displayed tree kind coverage
+## Phase 2 — Collapse tree domain to two technical node kinds
 
-File:
+Files:
 
+- `src/lib/estimates/tree-hierarchy.ts`
+- `src/lib/domain/estimate-tree.ts`
+- `src/components/workshop/estimate-tree-data.ts`
 - `src/lib/repositories/workspace-repository.ts`
+- `src/lib/estimates/actions.ts`
+- `src/lib/supabase/types.ts`
+- `supabase/migrations/*`
+- `tests/vitest/estimate-tree-data.test.ts`
+- `tests/vitest/supabase-performance-migrations.test.ts`
 
 Current issue:
 
+The codebase still treats `lot`, `general`, `structure`, and `level` as group-like technical kinds, and generated Supabase types still include `assembly`. Philip has now decided those must not be technical tree kinds. They are labels/names on `group` nodes.
+
+Required TypeScript target:
+
 ```ts
-function isDisplayNodeKind(kind: EstimateNodeKind): kind is EstimateAreaNode["kind"] {
-  return kind === "lot" || kind === "general" || kind === "structure" || kind === "level" || kind === "area";
+export type EstimateNodeKind = "group" | "area";
+
+export function isEstimateGroupNodeKind(kind: EstimateNodeKind) {
+  return kind === "group";
+}
+
+export function canNestEstimateNodeKind(childKind: EstimateNodeKind, parentKind: EstimateNodeKind | null) {
+  if (parentKind === null) return childKind === "group";
+  return parentKind === "group";
 }
 ```
 
-Problem:
-
-- `group` nodes are excluded from repository tree build.
-- Add-node action creates `kind: "group"`.
-- Type `EstimateAreaNode.kind` includes `"group"`.
-- Seed/migrations include group nodes.
-
-Required action:
-
-- Include `group` in `isDisplayNodeKind` or remove this custom filter and rely on the type guard over the known union.
-
-Recommended implementation:
+Repository target:
 
 ```ts
 function isDisplayNodeKind(kind: EstimateNodeKind): kind is EstimateAreaNode["kind"] {
-  return kind === "lot" || kind === "general" || kind === "structure" || kind === "level" || kind === "area" || kind === "group";
+  return kind === "group" || kind === "area";
 }
 ```
+
+Required actions:
+
+- Remove legacy node-kind unions from source types.
+- Rename or alias the stale `EstimateAreaNode` view-model type if it continues to represent both Group Nodes and Area Nodes; do not let the type name imply every tree node is an Area Node.
+- Convert sample/static tree records from `lot`, `general`, `structure`, and `level` to `group`.
+- Keep visible names such as `Lot`, `General Requirements`, `House`, etc. as `name` values.
+- Ensure the add-node form presents exactly Group Node and Area Node choices.
+- Ensure the server action can create only `group` and `area` nodes.
+- Add or update a Supabase migration to normalize legacy rows to `group` and enforce the two-kind matrix.
+- Regenerate/update Supabase types after migration changes.
+- Update tests to assert the two-kind hierarchy matrix.
 
 Tests:
 
+- `tests/vitest/estimate-tree-data.test.ts`: expected node kinds must be only `group | area`.
+- `tests/vitest/supabase-performance-migrations.test.ts`: active test fixture must use `["group", "area"]` and SQL expectations must match `root -> group`, `group -> group|area`.
 - Add a repository/unit test proving `group` nodes from DB appear in `buildEstimateTree` output.
-- Add a route/source or behavior test proving newly created group nodes are not hidden.
+- Add a route/source or behavior test proving newly created Group Nodes are not hidden.
 
 Risk:
 
-- Medium/high functional risk despite low GitNexus risk because it changes what tree nodes are visible.
-- Use browser QA to confirm expected route tree shape after this fix.
+- High hierarchy risk because GitNexus marks `canNestEstimateNodeKind` as HIGH impact and SQL constraints must stay exactly aligned.
+- Medium/high functional risk because `buildEstimateTree` controls the visible tree shape.
+- Database migration risk if narrowing a PostgreSQL enum after remote data already exists; normalize values before narrowing/enforcing.
 
 Commit:
 
-`fix: include group estimate nodes in live tree build`
+`feat: simplify estimate tree node kinds`
 
 ## Phase 3 — Add pure reorder domain helpers
 
@@ -148,21 +180,21 @@ Recommended types:
 import type { DraggingPosition, TreeItemIndex } from "react-complex-tree";
 import type { EstimateAreaNode } from "@/components/workshop/estimate-tree-data";
 
-export type EstimateNodeMoveUpdate = {
+export type EstimateNodeReorderUpdate = {
   id: string;
   parentId: string | null;
   sortOrder: number;
 };
 
-export type EstimateTreeMovePlan = {
+export type EstimateTreeReorderPlan = {
   movedIds: string[];
   targetParentId: string | null;
   nextNodes: EstimateAreaNode[];
-  updates: EstimateNodeMoveUpdate[];
+  updates: EstimateNodeReorderUpdate[];
   affectedParentIds: Array<string | null>;
 };
 
-export type EstimateTreeMoveErrorCode =
+export type EstimateTreeReorderErrorCode =
   | "empty-drag"
   | "multi-drag-not-supported"
   | "unknown-dragged-node"
@@ -172,9 +204,9 @@ export type EstimateTreeMoveErrorCode =
   | "cycle"
   | "no-op";
 
-export type EstimateTreeMoveEvaluation =
-  | { ok: true; plan: EstimateTreeMovePlan }
-  | { ok: false; code: EstimateTreeMoveErrorCode; message: string };
+export type EstimateTreeReorderEvaluation =
+  | { ok: true; plan: EstimateTreeReorderPlan }
+  | { ok: false; code: EstimateTreeReorderErrorCode; message: string };
 ```
 
 Recommended functions:
@@ -184,21 +216,21 @@ export function evaluateEstimateTreeDrop(args: {
   nodes: EstimateAreaNode[];
   draggedItemIds: TreeItemIndex[];
   target: DraggingPosition;
-}): EstimateTreeMoveEvaluation;
+}): EstimateTreeReorderEvaluation;
 
-export function buildEstimateNodeMovePlan(args: {
+export function buildEstimateNodeReorderPlan(args: {
   nodes: EstimateAreaNode[];
   draggedNodeId: string;
   targetParentId: string | null;
   targetIndex: number;
-}): EstimateTreeMoveEvaluation;
+}): EstimateTreeReorderEvaluation;
 
-export function applyEstimateNodeMove(args: {
+export function applyEstimateNodeReorder(args: {
   nodes: EstimateAreaNode[];
   draggedNodeId: string;
   targetParentId: string | null;
   targetIndex: number;
-}): EstimateTreeMovePlan;
+}): EstimateTreeReorderPlan;
 
 export function flattenEstimateTree(nodes: EstimateAreaNode[]): Array<{
   node: EstimateAreaNode;
@@ -241,12 +273,13 @@ Unit test file:
 
 Test cases:
 
-- Sibling root reorder.
-- Sibling reorder under same parent.
-- Reparent group into group.
-- Reparent area into group.
-- Reject area as parent.
-- Reject area at root.
+- Group root sibling reorder.
+- Sibling reorder under same Group Node.
+- Reparent Group Node into Group Node.
+- Reparent Area Node into Group Node.
+- Reject Area Node as parent.
+- Reject Area Node at root.
+- Reject legacy node kinds if fixture/data tries `lot`, `general`, `structure`, `level`, or `assembly`.
 - Reject cycle/descendant move.
 - Reject unknown node.
 - Reject no-op.
@@ -268,6 +301,17 @@ New file:
 
 Do not edit historical migration files.
 
+This phase depends on Phase 2. The new migration must either physically narrow `estimate_node_kind` to `group | area` or enforce that active `estimate_nodes.kind` values are only `group` and `area` after normalizing legacy rows.
+
+Required hierarchy enforcement:
+
+```sql
+(child.parent_id is null and child.kind = 'group')
+or (parent.kind = 'group' and child.kind in ('group', 'area'))
+```
+
+Area Nodes must remain leaf nodes for estimate tree children, and row ownership must remain restricted to Area Nodes.
+
 Recommended function name:
 
 - `public.reorder_estimate_nodes(target_estimate_id uuid, move_updates jsonb)`
@@ -279,6 +323,7 @@ Reason for new name:
 
 Function requirements:
 
+- owner/membership authorization is enforced at the database boundary; if `SECURITY INVOKER` is used, RLS remains active; if `SECURITY DEFINER` is used, the function checks `auth.uid()` against `workspace_members` via `estimates -> projects -> workspace_members` before any update;
 - `target_estimate_id` required.
 - `move_updates` must be a JSON array.
 - Each update requires:
@@ -290,7 +335,7 @@ Function requirements:
 - Reject moved ids not in `target_estimate_id`.
 - Reject parent ids not in `target_estimate_id`.
 - Lock affected estimate nodes with `for update`.
-- Defer relevant unique constraints if available.
+- Use `SECURITY INVOKER` by default. If `SECURITY DEFINER` is chosen, include the explicit workspace-membership check documented in `07-implementation-reference.md` and add a test that direct RPC access by a non-member fails.
 - Apply all row updates in one statement/transaction.
 - Reject if update count differs from payload count.
 - Run or rely on deferred `validate_estimate_node_tree` constraints to catch cycles/hierarchy/area row violations.
@@ -314,11 +359,11 @@ reorder_estimate_nodes: {
     target_estimate_id: string;
     move_updates: Json;
   };
-  Returns: undefined;
+  Returns: number;
 };
 ```
 
-Use actual generated type output if Supabase CLI is available.
+Use actual generated type output if Supabase CLI is available. Returning the updated row count is preferred because the action/tests can verify the RPC updated exactly the intended number of nodes.
 
 ### Server action
 
@@ -329,7 +374,7 @@ File:
 Add:
 
 ```ts
-export type MoveEstimateTreeNodesInput = {
+export type ReorderEstimateTreeNodesInput = {
   updates: Array<{
     id: string;
     parentId: string | null;
@@ -337,10 +382,10 @@ export type MoveEstimateTreeNodesInput = {
   }>;
 };
 
-export async function moveEstimateTreeNodes(
+export async function reorderEstimateTreeNodes(
   projectId: string,
   estimateId: string,
-  input: MoveEstimateTreeNodesInput,
+  input: ReorderEstimateTreeNodesInput,
 ) {
   // validate auth/project/estimate scope
   // validate updates are non-empty and scoped
@@ -354,9 +399,10 @@ Action validation must repeat important client rules:
 - updates array non-empty;
 - moved node ids unique;
 - all moved nodes exist and belong to the estimate;
+- all moved/parent nodes have active kind `group` or `area` only;
 - all parent ids exist and belong to the estimate;
-- no area parent;
-- no area root if root only group-like;
+- no Area Node parent;
+- no Area Node root child;
 - no cycles after move;
 - project-scoped estimate ownership via `estimates!inner` / `project_id` patterns already used elsewhere.
 
@@ -390,7 +436,7 @@ Add prop for server action if testability improves:
 ```ts
 type EstimateSheetTreeProps = {
   ...
-  onMoveNodes?: typeof moveEstimateTreeNodes;
+  onReorderNodes?: typeof reorderEstimateTreeNodes;
 };
 ```
 
@@ -398,11 +444,12 @@ Or import the server action directly if the existing project pattern prefers dir
 
 ### State
 
-Add local optimistic state:
+Add local optimistic state with a stale-props guard:
 
 ```ts
 const [optimisticNodes, setOptimisticNodes] = useState(nodes);
-const rollbackRef = useRef<EstimateAreaNode[] | null>(null);
+const rollbackRef = useRef<EstimateTreeNode[] | null>(null);
+const localConfirmedTreeSignatureRef = useRef<string | null>(null);
 const [moveState, setMoveState] = useState<"idle" | "saving" | "failed">("idle");
 const [moveError, setMoveError] = useState<string | null>(null);
 ```
@@ -411,11 +458,22 @@ Reconcile server props carefully:
 
 ```ts
 useEffect(() => {
-  if (moveState !== "saving") {
-    setOptimisticNodes(nodes);
+  if (moveState === "saving") return;
+
+  const incomingSignature = getEstimateTreeStructureSignature(nodes);
+  if (
+    localConfirmedTreeSignatureRef.current !== null &&
+    localConfirmedTreeSignatureRef.current !== incomingSignature
+  ) {
+    return;
   }
+
+  localConfirmedTreeSignatureRef.current = null;
+  setOptimisticNodes(nodes);
 }, [nodes, moveState]);
 ```
+
+This guard is mandatory. Without it, a successful `setOptimisticNodes(result.tree)` can be immediately overwritten by still-stale route props when `moveState` returns to `idle`, causing the exact flicker/stale-tree behavior this feature is meant to avoid.
 
 If multiple moves can happen before persistence returns, use a queue/version instead of a single pending state. MVP can disable or serialize new moves while saving.
 
@@ -468,8 +526,10 @@ const handleDrop = useCallback(async (items, target) => {
   setOptimisticNodes(evaluation.plan.nextNodes);
 
   try {
-    const result = await moveEstimateTreeNodes(projectId, estimateId, { updates: evaluation.plan.updates });
-    setOptimisticNodes(result.tree ?? evaluation.plan.nextNodes);
+    const result = await reorderEstimateTreeNodes(projectId, estimateId, { updates: evaluation.plan.updates });
+    const confirmedTree = result.tree ?? evaluation.plan.nextNodes;
+    localConfirmedTreeSignatureRef.current = getEstimateTreeStructureSignature(confirmedTree);
+    setOptimisticNodes(confirmedTree);
     setMoveState("idle");
     rollbackRef.current = null;
   } catch (error) {
@@ -529,15 +589,27 @@ Commit:
 
 ## Phase 6 — Shared tree state decision
 
-After tree-local MVP implementation, test these cases:
+Default MVP path:
+
+- Keep optimistic DnD state local to `EstimateSheetTree`.
+- Reconcile from the server action's returned fresh tree.
+- Update/invalidate TanStack Query area-tree cache after persistence succeeds if `EstimateSheetContent` depends on that tree snapshot.
+
+After tree-local MVP implementation, test these cases in component tests and Playwright:
 
 1. Move selected area under a different group while center sheet displays its rows.
 2. Move a parent group that contains selected area.
 3. Move non-selected node while center sheet displays another area.
+4. Trigger server failure while center sheet has dirty/saving row input state.
 
-If center sheet breadcrumbs/path/totals remain correct and no mismatch is visible, tree-local optimism is acceptable for MVP.
+Tree-local optimism remains acceptable only if all of these are true:
 
-If visible mismatch appears, introduce a client wrapper:
+- center sheet row data remains attached to the selected Area Node;
+- breadcrumbs/path/totals do not show stale parent context after successful move;
+- no query refetch reverts the left tree after the optimistic move;
+- no flicker appears because two components hold competing tree snapshots.
+
+Escalate to a shared client boundary if any visible mismatch appears.
 
 New file option:
 
@@ -545,9 +617,11 @@ New file option:
 
 Responsibilities:
 
-- Own `optimisticNodes`.
+- Own `optimisticNodes` once.
 - Pass nodes to `EstimateSheetTree` and `EstimateSheetContent`.
-- Own move action state or provide handler to tree.
+- Own reorder action state or provide handler to tree.
+- Reconcile TanStack Query cache after success.
+- Keep route selection state in the existing scoped Zustand store.
 
 Route page becomes:
 
@@ -562,7 +636,10 @@ Route page becomes:
 
 Risk:
 
-- This converts more of the page to client-rendered state, so only do it if needed for seamless UX.
+- This converts more of the page to client-rendered state, so only do it if tests prove tree-local state cannot meet seamless UX.
+- Do not introduce this boundary preemptively; simpler architecture wins unless a verified mismatch requires it.
+
+Reference: `07-implementation-reference.md` section “Shared state conditional path”.
 
 ## Phase 7 — Browser/auth setup
 
@@ -630,6 +707,9 @@ Manual browser checks:
 ### Code
 
 - `src/components/workshop/EstimateSheetTree.tsx`
+- `src/lib/estimates/tree-hierarchy.ts`
+- `src/lib/domain/estimate-tree.ts`
+- `src/components/workshop/estimate-tree-data.ts`
 - `src/lib/estimates/tree-reorder.ts` (new)
 - `src/lib/estimates/actions.ts`
 - `src/lib/repositories/workspace-repository.ts`
@@ -638,13 +718,15 @@ Manual browser checks:
 
 ### Database
 
+- `supabase/migrations/<timestamp>_simplify_estimate_node_kinds.sql` (new, if enum/check constraint narrowing is separated from reorder)
 - `supabase/migrations/<timestamp>_reintroduce_estimate_tree_reorder.sql` (new)
 
 ### Tests
 
+- `tests/vitest/estimate-tree-data.test.ts` (update)
 - `tests/vitest/estimate-tree-reorder.test.ts` (new)
 - `tests/vitest/estimate-sheet-tree-dnd.test.tsx` (new)
-- `tests/vitest/estimate-node-move-action.test.ts` (new or equivalent)
+- `tests/vitest/estimate-node-reorder-action.test.ts` (new or equivalent)
 - `tests/vitest/live-estimate-node-route.test.ts` (update)
 - `tests/vitest/estimate-tree-modal.test.tsx` (possibly update)
 - `tests/vitest/supabase-performance-migrations.test.ts` (update)
@@ -659,8 +741,10 @@ Manual browser checks:
 
 ## Acceptance checklist
 
+- [ ] Technical estimate node kinds are only `group | area` in TypeScript/domain/sample data/tests.
+- [ ] Database normalizes or rejects legacy estimate node kinds and enforces only Group/Area hierarchy.
 - [ ] Drag/drop is enabled in RCT.
-- [ ] Valid root sibling reorder works.
+- [ ] Valid Group Node root sibling reorder works.
 - [ ] Valid same-parent reorder works.
 - [ ] Valid group reparent works.
 - [ ] Valid area reparent under group works.
