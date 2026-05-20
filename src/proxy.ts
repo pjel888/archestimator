@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
+import { isDevAuthBypassRequest } from "@/lib/auth/dev-auth-gate";
 import type { Database } from "@/lib/supabase/types";
 
 const PROTECTED_PREFIXES = ["/workshop"];
@@ -9,6 +10,17 @@ export async function proxy(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
 
   if (pathname.includes(".") || pathname.startsWith("/_next") || pathname.startsWith("/api")) {
+    return NextResponse.next({ request });
+  }
+
+  const isProtected = PROTECTED_PREFIXES.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`));
+  const isAuthRoute = AUTH_ROUTES.includes(pathname);
+
+  if (isDevAuthBypassRequest(request.nextUrl.hostname)) {
+    if (isAuthRoute) {
+      return NextResponse.redirect(new URL("/workshop/projects", request.url));
+    }
+
     return NextResponse.next({ request });
   }
 
@@ -34,9 +46,6 @@ export async function proxy(request: NextRequest) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-
-  const isProtected = PROTECTED_PREFIXES.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`));
-  const isAuthRoute = AUTH_ROUTES.includes(pathname);
 
   if (!user && isProtected) {
     const loginUrl = new URL("/login", request.url);
