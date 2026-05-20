@@ -91,7 +91,7 @@ describe("estimate sheet tree modal flow", () => {
       {
         id: "general-requirements",
         name: "General Requirements",
-        kind: "general",
+        kind: "group",
         total: "PHP 0.00",
         children: [
           {

@@ -1,4 +1,4 @@
-export type EstimateNodeKind = "lot" | "general" | "structure" | "level" | "area" | "group" | "assembly";
+export type EstimateNodeKind = "group" | "area";
 
 export type EstimateNode = {
   id: string;

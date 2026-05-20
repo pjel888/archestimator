@@ -1,6 +1,6 @@
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import type { EstimateAreaNode, EstimateRowItem } from "@/components/workshop/estimate-tree-data";
-import type { Database, Tables } from "@/lib/supabase/types";
+import type { EstimateRowItem, EstimateTreeNode } from "@/components/workshop/estimate-tree-data";
+import type { Tables } from "@/lib/supabase/types";
 import { requireCurrentUserContext } from "@/lib/auth/session";
 import { isUuid } from "@/lib/ids";
 
@@ -170,7 +170,7 @@ export async function listProjectEstimates(projectId: string): Promise<ProjectEs
   return { workspace, project, estimates: estimates ?? [], firstNodeByEstimateId, nodeCountByEstimateId, rowCountByEstimateId, totalCostByEstimateId };
 }
 
-type EstimateNodeKind = Database["public"]["Enums"]["estimate_node_kind"];
+type EstimateNodeKind = Tables<"estimate_nodes">["kind"];
 type EstimateNodeRow = Tables<"estimate_nodes">;
 type EstimateRowItemRow = Tables<"estimate_row_items">;
 
@@ -179,11 +179,11 @@ type LiveEstimateTreeResult = {
   project: Tables<"projects"> | null;
   estimate: Tables<"estimates"> | null;
   selectedNodeId: string | null;
-  tree: EstimateAreaNode[];
+  tree: EstimateTreeNode[];
 };
 
-function isDisplayNodeKind(kind: EstimateNodeKind): kind is EstimateAreaNode["kind"] {
-  return kind === "lot" || kind === "general" || kind === "structure" || kind === "level" || kind === "area";
+function isDisplayNodeKind(kind: EstimateNodeKind): kind is EstimateTreeNode["kind"] {
+  return kind === "group" || kind === "area";
 }
 
 function formatPeso(value: number) {
@@ -220,7 +220,7 @@ function toUiRow(row: EstimateRowItemRow): EstimateRowItem {
   };
 }
 
-function buildEstimateTree(nodes: EstimateNodeRow[], rows: EstimateRowItemRow[]): EstimateAreaNode[] {
+export function buildEstimateTree(nodes: EstimateNodeRow[], rows: EstimateRowItemRow[]): EstimateTreeNode[] {
   const rowItemsByNode = new Map<string, EstimateRowItem[]>();
   for (const row of rows) {
     const current = rowItemsByNode.get(row.node_id) ?? [];
@@ -228,7 +228,7 @@ function buildEstimateTree(nodes: EstimateNodeRow[], rows: EstimateRowItemRow[])
     rowItemsByNode.set(row.node_id, current);
   }
 
-  const nodeMap = new Map<string, EstimateAreaNode>();
+  const nodeMap = new Map<string, EstimateTreeNode>();
   for (const node of nodes) {
     if (!isDisplayNodeKind(node.kind)) continue;
     nodeMap.set(node.id, {
@@ -241,7 +241,7 @@ function buildEstimateTree(nodes: EstimateNodeRow[], rows: EstimateRowItemRow[])
     });
   }
 
-  const roots: EstimateAreaNode[] = [];
+  const roots: EstimateTreeNode[] = [];
   for (const node of nodes) {
     const uiNode = nodeMap.get(node.id);
     if (!uiNode) continue;
@@ -250,7 +250,7 @@ function buildEstimateTree(nodes: EstimateNodeRow[], rows: EstimateRowItemRow[])
     else roots.push(uiNode);
   }
 
-  function computeTotals(node: EstimateAreaNode): number {
+  function computeTotals(node: EstimateTreeNode): number {
     const rowTotal = (node.estimateRowItems ?? []).reduce((total, row) => total + row.totalItemCosts, 0);
     const childTotal = (node.children ?? []).reduce((total, child) => total + computeTotals(child), 0);
     const total = rowTotal + childTotal;

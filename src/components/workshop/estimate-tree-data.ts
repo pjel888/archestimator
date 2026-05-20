@@ -35,16 +35,18 @@ export type EstimateRowItem = {
   pricingDate: string;
 };
 
-export type EstimateAreaNode = {
+export type EstimateTreeNode = {
   id: string;
   name: string;
-  kind: "group" | "lot" | "general" | "structure" | "level" | "area";
+  kind: "group" | "area";
   total: string;
-  children?: EstimateAreaNode[];
+  children?: EstimateTreeNode[];
   estimateRowItems?: EstimateRowItem[];
 };
 
-export type FlatEstimateAreaNode = EstimateAreaNode & {
+export type EstimateAreaNode = EstimateTreeNode;
+
+export type FlatEstimateAreaNode = EstimateTreeNode & {
   depth: number;
   path: string[];
 };
@@ -268,20 +270,20 @@ export const sampleEstimateTree: EstimateAreaNode[] = [
   {
     id: "lot-primary-residence",
     name: "Lot A — Primary Residence",
-    kind: "lot",
+    kind: "group",
     total: "₱0.00",
     children: [
       {
         id: "general-requirements",
         name: "General Requirements",
-        kind: "general",
+        kind: "group",
         total: "₱0.00",
         children: [],
       },
       {
         id: "site-works",
         name: "Site Works",
-        kind: "general",
+        kind: "group",
         total: "₱0.00",
         children: [
           {
@@ -298,13 +300,13 @@ export const sampleEstimateTree: EstimateAreaNode[] = [
       {
         id: "main-house",
     name: "Main House",
-    kind: "structure",
+    kind: "group",
     total: "₱0.00",
     children: [
       {
         id: "main-house-ground-floor",
         name: "Ground Floor",
-        kind: "level",
+        kind: "group",
         total: "₱0.00",
         children: [
           { id: "foyer", name: "Foyer", kind: "area", total: "₱0.00", estimateRowItems: [
@@ -335,7 +337,7 @@ export const sampleEstimateTree: EstimateAreaNode[] = [
       {
         id: "main-house-second-floor",
         name: "Second Floor",
-        kind: "level",
+        kind: "group",
         total: "₱0.00",
         children: [
           { id: "primary-bedroom", name: "Primary Bedroom", kind: "area", total: "₱0.00", estimateRowItems: [
@@ -364,7 +366,7 @@ export const sampleEstimateTree: EstimateAreaNode[] = [
       {
         id: "roof-deck",
         name: "Roof Deck",
-        kind: "level",
+        kind: "group",
         total: "₱0.00",
         children: [
           { id: "roof-lounge", name: "Lounge", kind: "area", total: "₱0.00", estimateRowItems: [row({ id: "roof-outdoor-lounge", material: "Outdoor Lounge Set", description: "Weather-resistant roof deck lounge set with cushions.", supplier: "Outdoor Living PH", source: "library", unit: "set", itemCost: 76000, quantity: 1, supplementaryCosts: 3000, laborCost: 1200, imageUrl: "https://images.unsplash.com/photo-1600210492486-724fe5c67fb0?auto=format&fit=crop&w=600&q=80" })] },
@@ -379,7 +381,7 @@ export const sampleEstimateTree: EstimateAreaNode[] = [
   {
     id: "lot-site-works",
     name: "Lot B — External Works",
-    kind: "lot",
+    kind: "group",
     total: "₱0.00",
     children: [
       {
@@ -394,7 +396,7 @@ export const sampleEstimateTree: EstimateAreaNode[] = [
       {
         id: "gatehouse",
         name: "Gatehouse",
-        kind: "structure",
+        kind: "group",
         total: "₱0.00",
         children: [
           {

@@ -1,5 +1,5 @@
 import { moveEstimateRowItem as moveTreeRowItem, type MoveEstimateRowItemInput } from "@/lib/domain/estimate-mutations";
-import type { EstimateNode, EstimateRowItem, EstimateTree } from "@/lib/domain/estimate-tree";
+import type { EstimateNode, EstimateNodeKind, EstimateRowItem, EstimateTree } from "@/lib/domain/estimate-tree";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { hasSupabaseBrowserEnv, type Json, type Tables, type TablesInsert } from "@/lib/supabase/types";
 
@@ -45,7 +45,13 @@ function getEmptyEstimateTree(): EstimateTree {
   return { nodes: [], rows: [] };
 }
 
-function toEstimateNode(row: EstimateNodeRow): EstimateNode {
+function isActiveEstimateNodeKind(kind: EstimateNodeRow["kind"]): kind is EstimateNodeKind {
+  return kind === "group" || kind === "area";
+}
+
+function toEstimateNode(row: EstimateNodeRow): EstimateNode | null {
+  if (!isActiveEstimateNodeKind(row.kind)) return null;
+
   return {
     id: row.id,
     estimateId: row.estimate_id,
@@ -155,7 +161,10 @@ const supabaseEstimateRepository: EstimateRepository = {
     if (rowsResult.error) throw rowsResult.error;
 
     return {
-      nodes: (nodesResult.data ?? []).map(toEstimateNode),
+      nodes: (nodesResult.data ?? []).flatMap((row) => {
+        const node = toEstimateNode(row);
+        return node ? [node] : [];
+      }),
       rows: (rowsResult.data ?? []).map(toEstimateRowItem),
     };
   },
