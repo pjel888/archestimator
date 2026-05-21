@@ -21,7 +21,10 @@ Active/current plan:
 - `.ai/03_plans/project-estimates-component-library-improvement-plan.md` — research-backed UX/UI improvement plan for the current project estimate workspace and connected Component Library feature.
 - `.ai/03_plans/workshop-components-library-ux-ui/` — research pack, screen spec, and implementation plan for improving the global `/workshop/components` library manager.
 - `.ai/03_plans/ui-componentization-and-storybook-plan.md` — active UI component matrix, reusable-primitive pipeline, and Storybook organization plan.
-- `.ai/03_plans/estimate-tree-dnd-reorganization/` — audit, React Complex Tree API guide, implementation plan, and QA strategy for seamless live estimate-tree drag/drop reorganization.
+
+Archived closeout plan:
+
+- `.ai/09_archive/store/2026-05-21-estimate-tree-dnd-reorganization-complete/` — completed audit, React Complex Tree API guide, implementation plan, QA strategy, and closeout evidence for seamless live estimate-tree drag/drop reorganization.
 
 Read first before planning new work:
 
@@ -32,7 +35,7 @@ Read first before planning new work:
 5. `.ai/03_plans/current-post-reset-workshop-slice.md`
 6. `.ai/03_plans/project-estimates-component-library-improvement-plan.md`
 7. `.ai/03_plans/ui-componentization-and-storybook-plan.md`
-8. `.ai/03_plans/estimate-tree-dnd-reorganization/README.md`
+8. `.ai/09_archive/store/2026-05-21-estimate-tree-dnd-reorganization-complete/README.md`
 9. `.ai/02_audits/2026-05-17-reset-cleanup-audit.md`
 10. `.ai/06_specs/restart-guardrails.md`
 

@@ -4,7 +4,7 @@ Use this payload when implementing, reviewing, or testing estimate-tree drag/dro
 
 Primary docs:
 
-- Plan folder: `.ai/03_plans/estimate-tree-dnd-reorganization/`
+- Archived closeout folder: `.ai/09_archive/store/2026-05-21-estimate-tree-dnd-reorganization-complete/`
 - Reusable Hermes skill: `software-development/react-complex-tree`
 - Package: `react-complex-tree` v2.6.1
 
