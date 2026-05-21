@@ -8,11 +8,10 @@ export default function ComponentsPage() {
       eyebrow="Library"
       showEyebrow={false}
       breadcrumbs={["Components"]}
-      contentClassName=""
       footer={
         <>
-          <span>Workspace library</span>
-          <span>Demo seed</span>
+          <span>Component workspace</span>
+          <span>Custom library</span>
         </>
       }
     >
