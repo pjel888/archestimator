@@ -6,44 +6,45 @@ import { ArchestimatorLogo } from "@/components/brand/ArchestimatorLogo";
 import { MotionReveal } from "./MotionReveal";
 import { loginHref, workshopHref } from "./constants";
 
-const footerLinkGroups = [
-  {
-    title: "Product",
-    links: [
-      { label: "Estimate Workspace", href: "#product" },
-      { label: "Component Library", href: "#product" },
-      { label: "Revision Intelligence", href: "#product" },
-      { label: "Proposal Comparisons", href: "#product" },
-    ],
-  },
-  {
-    title: "Workflow",
-    links: [
-      { label: "Project hierarchy", href: "#method" },
-      { label: "Visual cost breakdowns", href: "#solutions" },
-      { label: "Proposal-ready outputs", href: "#solutions" },
-      { label: "Excel and PDF handoff", href: "#pricing" },
-    ],
-  },
-  {
-    title: "Access",
-    links: [
-      { label: "Open workspace", href: workshopHref },
-      { label: "Get demo", href: loginHref },
-      { label: "Pricing", href: "#pricing" },
-      { label: "Contact", href: "#contact" },
-    ],
-  },
-] as const;
-
 const footerHighlights = [
   "Build around the project, not a blank spreadsheet.",
   "Keep quantities, costs, assumptions, and proposal context connected.",
   "See what changed before a revision becomes a client problem.",
 ] as const;
 
-export function LandingFooter() {
+export function LandingFooter({ isHomePage = true }: { isHomePage?: boolean }) {
   const currentYear = new Date().getFullYear();
+
+  const footerLinkGroups = [
+    {
+      title: "Product",
+      links: [
+        { label: "Estimate Workspace", href: isHomePage ? "#product" : "/features" },
+        { label: "Component Library", href: isHomePage ? "#product" : "/features" },
+        { label: "Revision Intelligence", href: isHomePage ? "#product" : "/features" },
+        { label: "Proposal Comparisons", href: isHomePage ? "#product" : "/features" },
+      ],
+    },
+    {
+      title: "Workflow",
+      links: [
+        { label: "Project hierarchy", href: isHomePage ? "#method" : "/#method" },
+        { label: "Visual cost breakdowns", href: isHomePage ? "#solutions" : "/#solutions" },
+        { label: "Proposal-ready outputs", href: isHomePage ? "#solutions" : "/#solutions" },
+        { label: "Excel and PDF handoff", href: isHomePage ? "#pricing" : "/#pricing" },
+      ],
+    },
+    {
+      title: "Access",
+      links: [
+        { label: "Open workspace", href: workshopHref },
+        { label: "Try Workspace", href: loginHref },
+        { label: "Pricing", href: isHomePage ? "#pricing" : "/pricing" },
+        { label: "About", href: "/about" },
+        { label: "Contact", href: isHomePage ? "#contact" : "/contact" },
+      ],
+    },
+  ];
 
   return (
     <footer
@@ -83,7 +84,7 @@ export function LandingFooter() {
                   href={loginHref}
                   className="inline-flex min-h-10 items-center justify-center rounded-[5px] border border-white/18 px-4 text-[12px] font-semibold leading-none text-white transition hover:border-white/36 hover:bg-white/8 active:scale-95 focus-visible:ring-2 focus-visible:ring-[#ff7a1a] focus-visible:ring-offset-2 focus-visible:ring-offset-[#111111] motion-reduce:transition-none"
                 >
-                  Get demo
+                  Try Workspace
                 </Link>
               </div>
             </div>

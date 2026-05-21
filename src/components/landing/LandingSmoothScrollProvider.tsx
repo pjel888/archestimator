@@ -4,8 +4,6 @@ import type { LenisOptions } from "lenis";
 import { ReactLenis } from "lenis/react";
 import { useEffect, useState, type ReactNode } from "react";
 
-import { LandingSnapController } from "./LandingSnapController";
-
 const REDUCED_MOTION_QUERY = "(prefers-reduced-motion: reduce)";
 
 const landingLenisOptions = {
@@ -38,7 +36,6 @@ export function LandingSmoothScrollProvider({ children }: { children: ReactNode 
 
   return (
     <ReactLenis root options={landingLenisOptions}>
-      <LandingSnapController />
       {children}
     </ReactLenis>
   );

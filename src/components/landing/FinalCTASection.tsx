@@ -8,7 +8,7 @@ export function FinalCTASection() {
     <section
       id="contact"
       data-landing-snap-section="true"
-      className="scroll-mt-[68px] bg-[#eeeeec] px-4 py-20 text-[#111111] sm:px-6 lg:flex lg:min-h-[calc(100svh-68px)] lg:items-center lg:px-8"
+      className="scroll-mt-[68px] bg-[#eeeeec] px-4 py-20 text-[#111111] sm:px-6 sm:py-28 lg:px-8"
     >
       <div className="mx-auto w-full max-w-[1120px]">
         <MotionReveal>

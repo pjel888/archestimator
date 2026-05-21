@@ -74,6 +74,8 @@ Brand and planning references:
 17. `17-public-subpages-claims-matrix.md` — claim-maturity source of truth for public pages, separating live MVP features from preview, planned, and unsafe claims.
 18. `18-scroll-snap-section-order-feature-icons-plan.md` — below-hero section order, focused container, Lenis snap, lag reduction, and five feature-icon implementation route.
 19. `19-cinematic-scroll-performance-correction-plan.md` — correction plan for replacing hard slideshow snap with Lenis-first cinematic smooth scrolling and soft section settling.
+20. `20-landing-page-audit-and-marketing-synthesis.md` — comprehensive performance, SEO, UX, UI, and marketing audit with actionable PLG recommendations.
+21. `21-b2b-saas-and-estimation-landing-page-best-practices.md` — detailed research and best-practices guide for tech startups and vertical B2B SaaS apps like Archestimator.
 
 ## Deletion criteria
 

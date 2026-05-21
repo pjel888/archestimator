@@ -63,7 +63,7 @@ describe("landing page below-hero interactivity", () => {
     expect(screen.getByText(/A clearer estimating workspace for construction cost estimators/i)).toBeInTheDocument();
     expect(screen.getByText(/Less file hunting/i)).toBeInTheDocument();
     expect(screen.getAllByRole("link", { name: /Open workspace/i }).map((link) => link.getAttribute("href"))).toContain("/workshop");
-    expect(screen.getAllByRole("link", { name: /Get demo/i }).map((link) => link.getAttribute("href"))).toContain("/login?next=/workshop/projects");
+    expect(screen.getAllByRole("link", { name: /Try Workspace/i }).map((link) => link.getAttribute("href"))).toContain("/login?next=/workshop/projects");
     expect(screen.getByRole("link", { name: "Estimate Workspace" })).toHaveAttribute("href", "#product");
     expect(screen.getByRole("link", { name: "Proposal-ready outputs" })).toHaveAttribute("href", "#solutions");
     expect(screen.getByText(new RegExp(`© ${new Date().getFullYear()} Archestimator`))).toBeInTheDocument();

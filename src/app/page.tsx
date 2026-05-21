@@ -1,15 +1,17 @@
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import {
   CompanyProofCarouselSection,
+  FAQSection,
   FinalCTASection,
   HeroSection,
-  LandingFooter,
-  LandingHeader,
-  LandingSmoothScrollProvider,
   ProductShowcaseSection,
   SecondaryClaimSection,
   PricingSection,
   SolutionSection,
+  PublicPageShell,
+  LandingHeader,
+  LandingFooter,
+  LandingSmoothScrollProvider,
 } from "@/components/landing";
 
 async function getLandingAuthState() {
@@ -28,11 +30,8 @@ export default async function LandingPage() {
   const isLoggedIn = await getLandingAuthState();
 
   return (
-    <div className="min-h-screen bg-[#eeeeec] text-[#111111]">
-      <style>{`@keyframes workspace-arrow-bounce { 0%, 100% { transform: translateX(0); } 50% { transform: translateX(4px); } }`}</style>
-
-      <LandingHeader isLoggedIn={isLoggedIn} />
-
+    <PublicPageShell isLoggedIn={isLoggedIn} isHomePage={true}>
+      <LandingHeader isLoggedIn={isLoggedIn} isHomePage={true} />
       <LandingSmoothScrollProvider>
         <main data-landing-page-root="true">
           <HeroSection />
@@ -41,10 +40,11 @@ export default async function LandingPage() {
           <ProductShowcaseSection />
           <SolutionSection />
           <PricingSection />
+          <FAQSection />
           <FinalCTASection />
-          <LandingFooter />
         </main>
       </LandingSmoothScrollProvider>
-    </div>
+      <LandingFooter />
+    </PublicPageShell>
   );
 }

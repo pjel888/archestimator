@@ -245,7 +245,12 @@ export type CompanyProofLogo = {
   logoSrc?: string;
   initials?: string;
   websiteHref?: string;
-  relationship: "placeholder" | "customer" | "pilot-user" | "design-partner" | "internal-team";
+  relationship:
+    | "placeholder"
+    | "customer"
+    | "pilot-user"
+    | "design-partner"
+    | "internal-team";
   permissionConfirmed: boolean;
   isPlaceholder?: boolean;
   publicLabel: string;

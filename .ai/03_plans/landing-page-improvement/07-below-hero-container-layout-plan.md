@@ -82,9 +82,7 @@ Use full-bleed sections with centered inner content:
 ```tsx
 <section className="... full-bleed background/border classes ...">
   <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-    <div className="mx-auto max-w-[1120px]">
-      {/* section content */}
-    </div>
+    <div className="mx-auto max-w-[1120px]">{/* section content */}</div>
   </div>
 </section>
 ```

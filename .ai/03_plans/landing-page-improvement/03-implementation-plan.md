@@ -75,7 +75,8 @@ Steps:
 5. Export it from `src/components/landing/index.ts`.
 6. Use CSS marquee behavior only; no GSAP or Lenis is needed for the horizontal carousel.
 7. Add a reduced-motion fallback that stops continuous auto-scroll.
-8. Before production launch, either replace placeholders with verified proof or keep neutral/non-proof wording approved by Philip.
+8. Refactor the `CompanyProofCarouselSection.tsx` logo headings from `<h3>` to simple `<span>` elements to prevent search engines indexing 12 redundant identical headings from the infinite marquee.
+9. Before production launch, either replace placeholders with verified proof or keep neutral/non-proof wording approved by Philip.
 
 Acceptance:
 
@@ -85,6 +86,7 @@ Acceptance:
 - No unverified companies, fake logos, fake customer claims, or mismatched relationship labels render as real proof.
 - Placeholder entries are explicitly marked and use neutral/non-proof wording until replaced.
 - Reduced-motion users are not forced into continuous scrolling.
+- Company/logo names are rendered as simple `<span>` elements instead of headings.
 
 ## Slice 2 — Landing-only Lenis smooth-scroll enhancement
 
@@ -100,7 +102,8 @@ Steps:
 4. Disable Lenis when `prefers-reduced-motion: reduce` is active.
 5. Keep the company carousel CSS-driven; do not use Lenis for the horizontal marquee.
 6. Do not mount Lenis on `/workshop` or authenticated app routes.
-7. Use `data-lenis-prevent` or Lenis `prevent` only if future landing nested-scroll elements require native scroll.
+7. Tune Lenis lerp parameters from `0.105` to `0.12` inside `LandingSmoothScrollProvider.tsx` for a punchier, more responsive vertical scroll.
+8. Use `data-lenis-prevent` or Lenis `prevent` only if future landing nested-scroll elements require native scroll.
 
 Acceptance:
 
@@ -110,6 +113,7 @@ Acceptance:
 - Header anchors still land correctly.
 - No workshop/app scroll behavior changes.
 - No hydration/runtime errors appear.
+- Scroll speed and vertical motion are responsive and snappy (`lerp: 0.12`).
 
 ## Slice 3 — Below-carousel container/focused-middle pass
 
@@ -188,13 +192,15 @@ Steps:
    - Why is it faster?
    - What outputs do I get?
    - Is it ready/preview?
-4. Avoid fake proof and unsupported market leadership.
+4. Optimize metadata configuration in `src/app/layout.tsx`. Update site title to `"Archestimator | Construction Estimating & Proposal Software"` (58 chars) and description to a highly relevant 163-char value targeting key estimation terms.
+5. Avoid fake proof and unsupported market leadership.
 
 Acceptance:
 
 - Copy is specific to construction cost estimating.
 - No fake logos/testimonials/metrics appear.
 - `MVP preview` remains honest.
+- Target metadata lengths are optimized for search engines (Title: ~58 chars, Description: ~163 chars).
 
 ## Slice 7 — Tests and static checks
 
@@ -205,7 +211,8 @@ Steps:
 1. Add focused tests for section order and key copy anchors if the testing setup can render the page/components cleanly.
 2. Add a guard that public rendered landing text does not include literal `placeholder` labels while allowing explicitly marked placeholder source data during the first carousel build.
 3. Add browser E2E route coverage for `/` only if approved as part of this slice.
-4. Run validation.
+4. Mitigate WebGL driver warnings/stalls by ensuring any background animation libraries (e.g. `@firecms/neat` in `NeatWireframeBackground.tsx`) are initialized cleanly, or context parameters are optimized to prevent GPU read-back stalls.
+5. Run validation.
 
 Commands:
 
@@ -225,6 +232,7 @@ Acceptance:
 
 - Validation passes, or failures are documented as pre-existing/unrelated.
 - Landing tests protect section order, company-carousel placeholder/truth gates, key copy, CTA destinations, reduced-motion behavior, and absence of visible literal placeholder labels.
+- WebGL console warnings and readPixels GPU stalls are investigated and mitigated.
 
 ## Slice 8 — Browser QA and review
 

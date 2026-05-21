@@ -7,11 +7,11 @@ export function PricingSection() {
     <section
       id="pricing"
       data-landing-snap-section="true"
-      className="scroll-mt-[68px] bg-[#eeeeec] px-4 py-20 sm:px-6 lg:flex lg:min-h-[calc(100svh-68px)] lg:items-center lg:px-8"
+      className="scroll-mt-[68px] bg-[#eeeeec] px-4 py-20 sm:px-6 sm:py-28 lg:px-8"
     >
-      <div className="mx-auto w-full max-w-[920px]">
+      <div className="mx-auto w-full max-w-[1120px]">
         <MotionReveal>
-          <div className="rounded-[14px] border border-[#dedbd6] bg-white p-7 shadow-[0_18px_46px_rgba(17,17,17,0.055)] sm:p-9">
+          <div className="rounded-[14px] border border-[#dedbd6] bg-white p-8 shadow-[0_18px_46px_rgba(17,17,17,0.055)] sm:p-10">
             <p className="font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-[#7b7b78]">
               MVP preview
             </p>
@@ -20,7 +20,7 @@ export function PricingSection() {
                 <h2 className="text-[38px] font-normal leading-[1.02] tracking-[-0.052em] text-[#111111] sm:text-[52px]">
                   Early access to the estimating workspace
                 </h2>
-                <p className="mt-5 max-w-[620px] text-[15px] leading-[1.55] tracking-[-0.015em] text-[#4f4f4d] sm:text-[16px]">
+                <p className="mt-5 max-w-[760px] text-[15px] leading-[1.55] tracking-[-0.015em] text-[#4f4f4d] sm:text-[16px]">
                   Explore the early flow for Estimate Workspace, Component Library, and connected estimate organization. Revision history, proposal comparisons, visual cost breakdowns, and Excel/PDF exports remain planned next-step workflows.
                 </p>
               </div>

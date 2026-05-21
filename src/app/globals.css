@@ -84,6 +84,30 @@ body {
   font-feature-settings: "kern";
 }
 
+/* Sleek thin scrollbars — global default */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--divider);
+  border-radius: 999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--muted);
+}
+
+html {
+  scrollbar-width: thin;
+  scrollbar-color: var(--divider) transparent;
+}
+
 html:has([data-workshop-page-shell-root]),
 body:has([data-workshop-page-shell-root]) {
   height: 100%;
@@ -147,19 +171,18 @@ textarea {
 }
 
 .landing-company-marquee {
-  --landing-company-marquee-gap: 0.75rem;
-  animation: landing-company-marquee 34s linear infinite;
+  --landing-company-marquee-gap: 3rem; /* matches gap-12 */
+  animation: landing-company-marquee 68s linear infinite;
   will-change: transform;
 }
 
-@media (width >= 40rem) {
+@media (min-width: 64rem) {
   .landing-company-marquee {
-    --landing-company-marquee-gap: 1rem;
+    --landing-company-marquee-gap: 4rem; /* matches lg:gap-16 */
   }
 }
 
 .landing-company-carousel-viewport:hover .landing-company-marquee,
-.landing-company-carousel-viewport[data-company-proof-paused="true"] .landing-company-marquee,
 .landing-company-carousel-viewport:focus-within .landing-company-marquee {
   animation-play-state: paused;
 }
