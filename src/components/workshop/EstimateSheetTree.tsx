@@ -1,6 +1,6 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import { unstable_rethrow, useRouter } from "next/navigation";
 import { startTransition, useCallback, useEffect, useMemo, useRef, useState, type ButtonHTMLAttributes, type DragEvent, type HTMLAttributes } from "react";
 import {
   ControlledTreeEnvironment,
@@ -12,11 +12,11 @@ import {
   type DraggingPosition,
 } from "react-complex-tree";
 import { useQueryClient } from "@tanstack/react-query";
-import { CaretDown, Cube, FolderSimple } from "@phosphor-icons/react/dist/ssr";
+import { CaretDown, Cube, FolderSimple, Plus } from "@phosphor-icons/react/dist/ssr";
 
 import { HeaderIconToolbar } from "@/components/ui/header-icon-toolbar";
 import { SearchInput } from "@/components/ui/search-input";
-import { getEstimateNodeDisplayKind, isEstimateGroupNodeKind } from "@/lib/estimates/tree-hierarchy";
+import { getEstimateNodeDisplayKind, getEstimateNodeKindSortRank, isEstimateGroupNodeKind } from "@/lib/estimates/tree-hierarchy";
 import { createEstimateNode, reorderEstimateTreeNodes } from "@/lib/estimates/actions";
 import { estimateQueryKeys } from "@/hooks/use-estimate-query";
 import { useEstimateWorkspaceExpansion, useEstimateWorkspaceSelection } from "@/hooks/use-estimate-workspace-state";
@@ -41,6 +41,7 @@ const ESTIMATE_TREE_LEFT_EXTENSION_WIDTH = 104;
 const ESTIMATE_TREE_ID = "estimate-sheet-tree";
 const TREE_INDENT_STEP = 20;
 const TREE_MAX_INDENT = 140;
+const ESTIMATE_TREE_DRAG_ITEM_DATA_TYPE = "application/x-archestimator-estimate-tree-item";
 
 type EstimateTreeItemData = {
   node: EstimateTreeNode | null;
@@ -57,9 +58,82 @@ type ReorderStatus =
   | { state: "saved"; message: string }
   | { state: "error"; message: string };
 
+type NestIntentHint = {
+  targetId: string;
+  targetName: string;
+  sourceName: string;
+};
+
 function NodeIcon({ kind }: { kind: EstimateTreeNode["kind"] }) {
   if (getEstimateNodeDisplayKind(kind) === "group") return <FolderSimple size={12} weight="bold" aria-hidden="true" />;
   return <Cube size={12} weight="bold" aria-hidden="true" />;
+}
+
+function AddTreeActionIcon({ kind }: { kind: EstimateTreeNode["kind"] }) {
+  const Icon = getEstimateNodeDisplayKind(kind) === "group" ? FolderSimple : Cube;
+  return (
+    <span className="relative flex size-4 items-center justify-center" aria-hidden="true">
+      <Icon size={13} weight="bold" className="absolute left-0 top-1/2 -translate-y-1/2" />
+      <Plus size={8} weight="bold" className="absolute right-0 top-0" />
+    </span>
+  );
+}
+
+function cloneEstimateTreeNode(node: EstimateTreeNode): EstimateTreeNode {
+  return {
+    ...node,
+    children: node.children?.map(cloneEstimateTreeNode),
+    estimateRowItems: node.estimateRowItems ? [...node.estimateRowItems] : node.estimateRowItems,
+  };
+}
+
+function sortLocalEstimateTreeSiblings(nodes: EstimateTreeNode[]) {
+  return nodes
+    .map((node, index) => ({ node, index }))
+    .sort((left, right) => getEstimateNodeKindSortRank(left.node.kind) - getEstimateNodeKindSortRank(right.node.kind) || left.index - right.index)
+    .map(({ node }) => node);
+}
+
+function insertLocalEstimateTreeNode(nodes: EstimateTreeNode[], parentId: string | null, nodeToInsert: EstimateTreeNode): EstimateTreeNode[] {
+  if (parentId === null) {
+    return sortLocalEstimateTreeSiblings([...nodes.map(cloneEstimateTreeNode), cloneEstimateTreeNode(nodeToInsert)]);
+  }
+
+  return nodes.map((node) => {
+    const cloned = cloneEstimateTreeNode(node);
+    if (cloned.id === parentId && isEstimateGroupNodeKind(cloned.kind)) {
+      return {
+        ...cloned,
+        children: sortLocalEstimateTreeSiblings([...(cloned.children ?? []), cloneEstimateTreeNode(nodeToInsert)]),
+      };
+    }
+    if (cloned.children?.length) return { ...cloned, children: insertLocalEstimateTreeNode(cloned.children, parentId, nodeToInsert) };
+    return cloned;
+  });
+}
+
+function removeLocalEstimateTreeNode(nodes: EstimateTreeNode[], nodeId: string): EstimateTreeNode[] {
+  return nodes.flatMap((node) => {
+    if (node.id === nodeId) return [];
+    const cloned = cloneEstimateTreeNode(node);
+    if (cloned.children?.length) return [{ ...cloned, children: removeLocalEstimateTreeNode(cloned.children, nodeId) }];
+    return [cloned];
+  });
+}
+
+function makeOptimisticTreeNodeId(kind: EstimateTreeNode["kind"]) {
+  return `optimistic-${kind}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
+function createOptimisticEstimateTreeNode(kind: EstimateTreeNode["kind"], id: string, name: string): EstimateTreeNode {
+  return {
+    id,
+    name,
+    kind,
+    total: "₱0.00",
+    children: [],
+    ...(kind === "area" ? { estimateRowItems: [] } : {}),
+  };
 }
 
 function buildTreeModel(nodes: EstimateTreeNode[]): EstimateTreeModel {
@@ -102,6 +176,7 @@ export function EstimateSheetTree({ projectId, estimateId, projectName, selected
   const lastAcceptedPropStructureRef = useRef(getEstimateTreeStructureSignature(nodes));
   const [localNodes, setLocalNodes] = useState<EstimateTreeNode[]>(nodes);
   const [reorderStatus, setReorderStatus] = useState<ReorderStatus>({ state: "idle" });
+  const [nestIntentHint, setNestIntentHint] = useState<NestIntentHint | null>(null);
   const { selectedNodeId: activeSelectedNodeId, setSelectedNodeId } = useEstimateWorkspaceSelection(estimateId, selectedNodeId);
   const treeModel = useMemo(() => buildTreeModel(localNodes), [localNodes]);
   const allFolderItemIds = useMemo(() => Array.from(treeModel.folderIds).filter((itemId) => treeModel.items[itemId]), [treeModel.folderIds, treeModel.items]);
@@ -168,6 +243,22 @@ export function EstimateSheetTree({ projectId, estimateId, projectName, selected
     }).ok;
   }, [handleCanDrag, localNodes]);
 
+  const clearNestIntentHint = useCallback(() => {
+    setNestIntentHint(null);
+  }, []);
+
+  const markNestIntentHint = useCallback((targetNode: EstimateTreeNode, draggedItem: TreeItem<EstimateTreeItemData>) => {
+    const sourceName = draggedItem.data.node?.name ?? "item";
+    setNestIntentHint((current) => {
+      if (current?.targetId === targetNode.id && current.sourceName === sourceName) return current;
+      return { targetId: targetNode.id, targetName: targetNode.name, sourceName };
+    });
+  }, []);
+
+  const clearNestIntentHintForTarget = useCallback((targetNode: EstimateTreeNode) => {
+    setNestIntentHint((current) => (current?.targetId === targetNode.id ? null : current));
+  }, []);
+
   const suppressPrimaryActionAfterDrag = useCallback(() => {
     suppressPrimaryActionUntilRef.current = Date.now() + 500;
   }, []);
@@ -183,12 +274,15 @@ export function EstimateSheetTree({ projectId, estimateId, projectName, selected
 
   const isMiddleRowDrop = useCallback((event: DragEvent<HTMLElement>) => {
     const rect = event.currentTarget.getBoundingClientRect();
-    const relativeY = (event.clientY - rect.top) / rect.height;
+    if (rect.height <= 0) return false;
+    const clientY = Number.isFinite(event.clientY) ? event.clientY : rect.top + rect.height / 2;
+    const relativeY = (clientY - rect.top) / rect.height;
     return relativeY > 0.25 && relativeY < 0.75;
   }, []);
 
   const handleDrop = useCallback((items: TreeItem<EstimateTreeItemData>[], target: Parameters<typeof evaluateEstimateTreeDrop>[0]["target"]) => {
     suppressPrimaryActionAfterDrag();
+    clearNestIntentHint();
     if (!handleCanDrag(items)) return;
 
     const result = evaluateEstimateTreeDrop({
@@ -219,7 +313,7 @@ export function EstimateSheetTree({ projectId, estimateId, projectName, selected
         setReorderStatus({ state: "error", message: error instanceof Error ? error.message : "Could not save tree order." });
       }
     })();
-  }, [estimateId, handleCanDrag, localNodes, projectId, queryClient, suppressPrimaryActionAfterDrag]);
+  }, [clearNestIntentHint, estimateId, handleCanDrag, localNodes, projectId, queryClient, suppressPrimaryActionAfterDrag]);
 
   const handleAddTreeNode = useCallback((kind: EstimateTreeNode["kind"]) => {
     if (kind === "area" && !selectedGroupId) {
@@ -227,16 +321,58 @@ export function EstimateSheetTree({ projectId, estimateId, projectName, selected
       return;
     }
 
+    const nodeName = kind === "group" ? "New Group" : "New Area Node";
+    const optimisticNodeId = makeOptimisticTreeNodeId(kind);
+    const optimisticNode = createOptimisticEstimateTreeNode(kind, optimisticNodeId, nodeName);
+    const nextNodes = insertLocalEstimateTreeNode(localNodes, selectedGroupId, optimisticNode);
+
+    setLocalNodes(nextNodes);
+    queryClient.setQueryData(estimateQueryKeys.areaTree(estimateId), nextNodes);
+    if (selectedGroupId) {
+      setExpandedNodeIds(Array.from(new Set([...expandedItems.map(String), selectedGroupId])));
+    }
+    setReorderStatus({ state: "saving", message: kind === "group" ? "Adding Group" : "Adding Node" });
+
     const formData = new FormData();
     formData.set("kind", kind);
-    formData.set("name", kind === "group" ? "New Group" : "New Area Node");
+    formData.set("name", nodeName);
     if (selectedGroupId) formData.set("parentId", selectedGroupId);
 
-    setReorderStatus({ state: "idle" });
-    startTransition(async () => {
-      await createEstimateNode(projectId, estimateId, formData);
+    startTransition(() => {
+      function handleCreateFailure(error: unknown) {
+        unstable_rethrow(error);
+        setLocalNodes((currentNodes) => {
+          const rolledBackNodes = removeLocalEstimateTreeNode(currentNodes, optimisticNodeId);
+          queryClient.setQueryData(estimateQueryKeys.areaTree(estimateId), rolledBackNodes);
+          return rolledBackNodes;
+        });
+        setReorderStatus({ state: "error", message: error instanceof Error ? error.message : "Could not add estimate tree node." });
+      }
+
+      try {
+        const result = createEstimateNode(projectId, estimateId, formData) as Promise<unknown> | undefined;
+        if (!result || typeof result.then !== "function") {
+          setReorderStatus({ state: "saved", message: kind === "group" ? "Group added" : "Node added" });
+          return;
+        }
+        void result
+          .then(() => {
+            setReorderStatus({ state: "saved", message: kind === "group" ? "Group added" : "Node added" });
+          })
+          .catch(handleCreateFailure);
+      } catch (error) {
+        handleCreateFailure(error);
+      }
     });
-  }, [estimateId, projectId, selectedGroupId]);
+  }, [
+    estimateId,
+    expandedItems,
+    localNodes,
+    projectId,
+    queryClient,
+    selectedGroupId,
+    setExpandedNodeIds,
+  ]);
 
   return (
     <ResizableSidePanel
@@ -265,14 +401,12 @@ export function EstimateSheetTree({ projectId, estimateId, projectName, selected
             addActions={[
               {
                 label: "Add Group",
-                visibleLabel: "Add Group",
-                icon: <FolderSimple size={12} weight="bold" aria-hidden="true" />,
+                icon: <AddTreeActionIcon kind="group" />,
                 onClick: () => handleAddTreeNode("group"),
               },
               {
                 label: "Add Node",
-                visibleLabel: "Add Node",
-                icon: <Cube size={12} weight="bold" aria-hidden="true" />,
+                icon: <AddTreeActionIcon kind="area" />,
                 onClick: () => handleAddTreeNode("area"),
               },
             ]}
@@ -292,7 +426,7 @@ export function EstimateSheetTree({ projectId, estimateId, projectName, selected
         </div>
 
         <div className="min-h-0 flex-1 overflow-auto p-2">
-          {nodes.length === 0 ? (
+          {localNodes.length === 0 ? (
             <div className="rounded-md border border-dashed border-hairline bg-surface-muted p-2 text-[10px] leading-4 text-tertiary">
               This estimate has no tree nodes yet. Add a Group Node or Area Node to begin rebuilding the estimate structure.
             </div>
@@ -393,29 +527,44 @@ export function EstimateSheetTree({ projectId, estimateId, projectName, selected
                 } = context.interactiveElementProps as ButtonHTMLAttributes<HTMLButtonElement>;
                 const isRouteSelected = activeSelectedNodeId === node.id;
                 const directFolderDropTarget = isEstimateGroupNodeKind(node.kind) ? createDirectFolderDropTarget(node, depth) : null;
+                const isNestIntentTarget = nestIntentHint?.targetId === node.id;
+                const handleDirectFolderNestDragOver = (event: DragEvent<HTMLElement>) => {
+                  const draggedItemId = event.dataTransfer.getData(ESTIMATE_TREE_DRAG_ITEM_DATA_TYPE);
+                  const draggedItem = draggedTreeItemRef.current ?? (draggedItemId ? treeModel.items[draggedItemId] : null);
+                  if (!draggedItem || !directFolderDropTarget || !isMiddleRowDrop(event) || !handleCanDropAt([draggedItem], directFolderDropTarget)) {
+                    if (directFolderDropTarget) clearNestIntentHintForTarget(node);
+                    return false;
+                  }
+                  draggedTreeItemRef.current = draggedItem;
+                  event.preventDefault();
+                  event.stopPropagation();
+                  event.dataTransfer.dropEffect = "move";
+                  markNestIntentHint(node, draggedItem);
+                  return true;
+                };
+                const handleDirectFolderNestDrop = (event: DragEvent<HTMLElement>) => {
+                  const draggedItemId = event.dataTransfer.getData(ESTIMATE_TREE_DRAG_ITEM_DATA_TYPE);
+                  const draggedItem = draggedTreeItemRef.current ?? (draggedItemId ? treeModel.items[draggedItemId] : null);
+                  if (!draggedItem || !directFolderDropTarget || !isMiddleRowDrop(event) || !handleCanDropAt([draggedItem], directFolderDropTarget)) return false;
+                  event.preventDefault();
+                  event.stopPropagation();
+                  clearNestIntentHint();
+                  handleDrop([draggedItem], directFolderDropTarget);
+                  draggedTreeItemRef.current = null;
+                  return true;
+                };
 
                 return (
                   <li {...liProps} className={cn("list-none", liClassName)}>
                     <div
                       {...rowProps}
                       onDragOver={(event) => {
+                        if (handleDirectFolderNestDragOver(event)) return;
                         rowOnDragOver?.(event);
-                        const draggedItem = draggedTreeItemRef.current;
-                        if (!draggedItem || !directFolderDropTarget || !isMiddleRowDrop(event)) return;
-                        if (!handleCanDropAt([draggedItem], directFolderDropTarget)) return;
-                        event.preventDefault();
-                        event.stopPropagation();
-                        event.dataTransfer.dropEffect = "move";
                       }}
                       onDrop={(event) => {
+                        if (handleDirectFolderNestDrop(event)) return;
                         rowOnDrop?.(event);
-                        const draggedItem = draggedTreeItemRef.current;
-                        if (!draggedItem || !directFolderDropTarget || !isMiddleRowDrop(event)) return;
-                        if (!handleCanDropAt([draggedItem], directFolderDropTarget)) return;
-                        event.preventDefault();
-                        event.stopPropagation();
-                        handleDrop([draggedItem], directFolderDropTarget);
-                        draggedTreeItemRef.current = null;
                       }}
                       className={cn(
                         "relative grid h-8 grid-cols-[minmax(0,1fr)_20px] items-center gap-1 py-0.5",
@@ -429,31 +578,23 @@ export function EstimateSheetTree({ projectId, estimateId, projectName, selected
                         data-estimate-tree-active-node={isRouteSelected ? "true" : undefined}
                         data-estimate-tree-node-id={node.id}
                         onDragStart={(event) => {
+                          clearNestIntentHint();
                           draggedTreeItemRef.current = item;
+                          event.dataTransfer.setData(ESTIMATE_TREE_DRAG_ITEM_DATA_TYPE, String(item.index));
                           suppressPrimaryActionAfterDrag();
                           onDragStart?.(event);
                         }}
                         onDragOver={(event) => {
+                          if (handleDirectFolderNestDragOver(event)) return;
                           onDragOver?.(event);
-                          const draggedItem = draggedTreeItemRef.current;
-                          if (!draggedItem || !directFolderDropTarget || !isMiddleRowDrop(event)) return;
-                          if (!handleCanDropAt([draggedItem], directFolderDropTarget)) return;
-                          event.preventDefault();
-                          event.stopPropagation();
-                          event.dataTransfer.dropEffect = "move";
                         }}
                         onDrop={(event) => {
+                          if (handleDirectFolderNestDrop(event)) return;
                           onDrop?.(event);
-                          const draggedItem = draggedTreeItemRef.current;
-                          if (!draggedItem || !directFolderDropTarget || !isMiddleRowDrop(event)) return;
-                          if (!handleCanDropAt([draggedItem], directFolderDropTarget)) return;
-                          event.preventDefault();
-                          event.stopPropagation();
-                          handleDrop([draggedItem], directFolderDropTarget);
-                          draggedTreeItemRef.current = null;
                         }}
                         onDragEnd={(event) => {
                           onDragEnd?.(event);
+                          clearNestIntentHint();
                           window.setTimeout(() => {
                             draggedTreeItemRef.current = null;
                           }, 0);
@@ -461,6 +602,7 @@ export function EstimateSheetTree({ projectId, estimateId, projectName, selected
                         className={cn(
                           "relative inline-flex h-7 min-w-0 items-center justify-start gap-0 overflow-hidden rounded-md p-1 !text-[10px] !font-normal leading-none text-ink transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c8d2df] focus-visible:ring-offset-2",
                           isRouteSelected ? "bg-surface-muted ring-1 ring-[#d7dee8]" : "hover:bg-surface-muted",
+                          isNestIntentTarget ? "bg-[#eef7ff] ring-1 ring-[#8bbce8] shadow-[inset_0_0_0_1px_rgba(44,120,180,0.18)]" : "",
                           buttonClassName,
                         )}
                       >
@@ -472,6 +614,15 @@ export function EstimateSheetTree({ projectId, estimateId, projectName, selected
                           {title}
                         </span>
                       </button>
+                      {isNestIntentTarget ? (
+                        <div
+                          role="status"
+                          aria-live="polite"
+                          className="pointer-events-none absolute right-7 top-1/2 z-10 max-w-[62%] -translate-y-1/2 truncate rounded-sm border border-[#8bbce8] bg-white px-1.5 py-0.5 text-[9px] leading-3 text-[#155f9f] shadow-sm"
+                        >
+                          Nest inside {nestIntentHint.targetName}
+                        </div>
+                      ) : null}
 
                       {arrow}
                     </div>
