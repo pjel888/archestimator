@@ -151,7 +151,7 @@ export function ResizableSidePanel({
   );
 
   return (
-    <div className="group flex h-full shrink-0 overflow-hidden" style={{ width: responsiveWidth }}>
+    <div className="group hidden h-full shrink-0 overflow-hidden lg:flex" style={{ width: responsiveWidth }}>
       {side === "right" ? toggle : null}
       {side === "right" ? resizer : null}
       <aside className="h-full min-w-0 flex-1 overflow-hidden bg-white !text-[10px]" aria-label={ariaLabel} aria-hidden={collapsed}>

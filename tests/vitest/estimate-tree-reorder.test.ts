@@ -9,6 +9,7 @@ import {
   evaluateEstimateTreeDrop,
   getDescendantEstimateNodeIds,
   getEstimateTreeStructureSignature,
+  mergeEstimateTreeStructureWithCachedNodes,
 } from "@/lib/estimates/estimate-tree-reorder";
 
 function node(input: Omit<EstimateTreeNode, "total"> & { total?: string }): EstimateTreeNode {
@@ -277,5 +278,61 @@ describe("estimate tree reorder planning", () => {
     });
 
     expect(result).toMatchObject({ ok: false, code: "no-op" });
+  });
+
+  it("applies confirmed tree structure while preserving cached node content", () => {
+    const planned = evaluateEstimateTreeDrop({
+      nodes: fixtureTree(),
+      draggedItemIds: ["kitchen"],
+      target: {
+        targetType: "item",
+        treeId: "estimate-sheet-tree",
+        targetItem: "site-works",
+        parentItem: "project-scope",
+        linearIndex: 0,
+        depth: 1,
+      },
+    });
+    expect(planned.ok).toBe(true);
+    if (!planned.ok) throw new Error(planned.message);
+
+    const cachedNodes = planned.plan.nextNodes.map((rootNode) => {
+      function visit(nodeToMap: EstimateTreeNode): EstimateTreeNode {
+        if (nodeToMap.id === "kitchen") {
+          return {
+            ...nodeToMap,
+            estimateRowItems: [
+              {
+                id: "cached-row-edit",
+                material: "Cached Row",
+                description: "Still in cache while reorder saves.",
+                supplier: "Local cache",
+                source: "project",
+                unit: "pc",
+                itemCost: 100,
+                quantity: 1,
+                subTotal: 100,
+                supplementaryCosts: 0,
+                laborCost: 0,
+                totalItemCosts: 100,
+                category: "General",
+                pricingSource: "Fixture",
+                pricingDate: "2026-05-21",
+              },
+            ],
+          };
+        }
+        return { ...nodeToMap, children: nodeToMap.children?.map(visit) };
+      }
+      return visit(rootNode);
+    });
+
+    const merged = mergeEstimateTreeStructureWithCachedNodes({
+      structureNodes: planned.plan.nextNodes,
+      cachedNodes,
+    });
+
+    expect(childIds(merged, "site-works")).toEqual(["front-yard", "kitchen"]);
+    expect(byId(merged, "kitchen").estimateRowItems?.map((row) => row.id)).toEqual(["cached-row-edit"]);
   });
 });

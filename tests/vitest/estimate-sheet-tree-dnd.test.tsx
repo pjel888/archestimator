@@ -256,6 +256,44 @@ function confirmedGroupReparentTree(): EstimateTreeNode[] {
   ];
 }
 
+function rowItem(id: string) {
+  return {
+    id,
+    material: "Cached row edit",
+    description: "Local cache row that should survive tree reorders.",
+    supplier: "Local cache",
+    source: "project" as const,
+    unit: "pc",
+    itemCost: 100,
+    quantity: 1,
+    subTotal: 100,
+    supplementaryCosts: 0,
+    laborCost: 0,
+    totalItemCosts: 100,
+    category: "General",
+    pricingSource: "Local cache",
+    pricingDate: "2026-05-21",
+  };
+}
+
+function mapTreeNode(nodes: EstimateTreeNode[], targetId: string, mapper: (node: EstimateTreeNode) => EstimateTreeNode): EstimateTreeNode[] {
+  return nodes.map((node) => {
+    const nextNode = node.id === targetId ? mapper(node) : node;
+    return {
+      ...nextNode,
+      children: nextNode.children ? mapTreeNode(nextNode.children, targetId, mapper) : nextNode.children,
+    };
+  });
+}
+
+function treeWithKitchenName(name: string) {
+  return mapTreeNode(fixtureTree(), "kitchen", (node) => ({ ...node, name }));
+}
+
+function treeWithKitchenRow(rowId: string) {
+  return mapTreeNode(fixtureTree(), "kitchen", (node) => ({ ...node, estimateRowItems: [rowItem(rowId)] }));
+}
+
 function renderTree(nodes = fixtureTree(), selectedNodeId: string | null = "kitchen") {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
 
@@ -488,6 +526,58 @@ describe("estimate sheet tree drag/drop", () => {
 
     expect(renderedIds()).toEqual(["project-scope", "ground-floor", "living", "site-works", "front-yard", "kitchen"]);
     expect(queryClient.getQueryData(estimateQueryKeys.areaTree("estimate-1"))).toEqual(confirmedTree());
+  });
+
+  it("syncs local tree rendering when route props change node content without changing topology", async () => {
+    const { queryClient, rerenderTree } = renderTree(fixtureTree());
+
+    rerenderTree(treeWithKitchenName("Kitchen Renamed"));
+
+    await waitFor(() => expect(screen.getByRole("button", { name: "Kitchen Renamed" })).toBeInTheDocument());
+    await waitFor(() => expect(queryClient.getQueryData(estimateQueryKeys.areaTree("estimate-1"))).toEqual(treeWithKitchenName("Kitchen Renamed")));
+  });
+
+  it("rebases optimistic reorder on the latest cached tree so row edits survive", async () => {
+    const pending = deferred<{ tree: EstimateTreeNode[] }>();
+    actionMocks.reorderEstimateTreeNodes.mockReturnValue(pending.promise);
+    const { queryClient } = renderTree();
+
+    queryClient.setQueryData(estimateQueryKeys.areaTree("estimate-1"), treeWithKitchenRow("cached-row-before-drop"));
+
+    await act(async () => {
+      await environment().onDrop?.([item("kitchen")], dropKitchenOntoSiteWorks);
+    });
+
+    await waitFor(() => expect(actionMocks.reorderEstimateTreeNodes).toHaveBeenCalledTimes(1));
+    expect(JSON.stringify(queryClient.getQueryData(estimateQueryKeys.areaTree("estimate-1")))).toContain("cached-row-before-drop");
+
+    await act(async () => {
+      pending.resolve({ tree: confirmedTree() });
+      await pending.promise;
+    });
+    expect(JSON.stringify(queryClient.getQueryData(estimateQueryKeys.areaTree("estimate-1")))).toContain("cached-row-before-drop");
+  });
+
+  it("does not let stale reorder completion overwrite newer local tree edits", async () => {
+    const pending = deferred<{ tree: EstimateTreeNode[] }>();
+    actionMocks.reorderEstimateTreeNodes.mockReturnValue(pending.promise);
+    const { queryClient } = renderTree(fixtureTree(), "ground-floor");
+
+    await act(async () => {
+      await environment().onDrop?.([item("kitchen")], dropKitchenOntoSiteWorks);
+    });
+    await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent("Saving tree order"));
+
+    fireEvent.click(screen.getByRole("button", { name: "Add Group" }));
+    expect(screen.getByRole("button", { name: "New Group" })).toBeInTheDocument();
+
+    await act(async () => {
+      pending.resolve({ tree: confirmedTree() });
+      await pending.promise;
+    });
+
+    expect(screen.getByRole("button", { name: "New Group" })).toBeInTheDocument();
+    expect(JSON.stringify(queryClient.getQueryData(estimateQueryKeys.areaTree("estimate-1")))).toContain("New Group");
   });
 
   it("does not call persistence for invalid or no-op drops", async () => {

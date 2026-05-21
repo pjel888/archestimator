@@ -28,7 +28,8 @@ import { cn } from "@/lib/ui/cn";
 import {
   ESTIMATE_TREE_ROOT_ITEM_ID,
   evaluateEstimateTreeDrop,
-  getEstimateTreeStructureSignature,
+  getEstimateTreeContentSignature,
+  mergeEstimateTreeStructureWithCachedNodes,
 } from "@/lib/estimates/estimate-tree-reorder";
 import { planEstimateTreeDelete, renameEstimateTreeNode } from "@/lib/estimates/estimate-tree-edit";
 import { findEstimateNode, type EstimateTreeNode } from "./estimate-tree-data";
@@ -211,7 +212,11 @@ export function EstimateSheetTree({ projectId, estimateId, projectName, selected
   const renameInputRef = useRef<HTMLInputElement | null>(null);
   const suppressContextMenuCloseAutoFocusRef = useRef(false);
   const ignoreRenameBlurDuringContextMenuCloseRef = useRef(false);
-  const lastAcceptedPropStructureRef = useRef(getEstimateTreeStructureSignature(nodes));
+  const lastAcceptedPropSignatureRef = useRef(getEstimateTreeContentSignature(nodes));
+  const lastObservedPropSignatureRef = useRef(getEstimateTreeContentSignature(nodes));
+  const lastObservedPropNodesRef = useRef(nodes);
+  const stalePropSignatureToIgnoreRef = useRef<string | null>(null);
+  const pendingPropNodesRef = useRef<EstimateTreeNode[] | null>(null);
   const [reorderStatus, setReorderStatus] = useState<ReorderStatus>({ state: "idle" });
   const [nestIntentHint, setNestIntentHint] = useState<NestIntentHint | null>(null);
   const [activeRootDropEdge, setActiveRootDropEdge] = useState<RootDropEdge | null>(null);
@@ -234,20 +239,47 @@ export function EstimateSheetTree({ projectId, estimateId, projectName, selected
     return selectedNode && isEstimateGroupNodeKind(selectedNode.kind) ? selectedNode.id : null;
   }, [activeSelectedNodeId, localNodes]);
 
-  useEffect(() => {
-    if (pendingReordersRef.current > 0) return;
+  const syncLocalNodesFromProps = useCallback((incomingNodes: EstimateTreeNode[]) => {
+    const incomingSignature = getEstimateTreeContentSignature(incomingNodes);
     setLocalNodes((currentNodes) => {
-      const incomingStructure = getEstimateTreeStructureSignature(nodes);
-      const currentStructure = getEstimateTreeStructureSignature(currentNodes);
-      if (currentStructure === incomingStructure) {
-        lastAcceptedPropStructureRef.current = incomingStructure;
+      if (stalePropSignatureToIgnoreRef.current === incomingSignature) {
+        stalePropSignatureToIgnoreRef.current = null;
         return currentNodes;
       }
-      if (incomingStructure === lastAcceptedPropStructureRef.current) return currentNodes;
-      lastAcceptedPropStructureRef.current = incomingStructure;
-      return nodes;
+
+      const currentSignature = getEstimateTreeContentSignature(currentNodes);
+      if (currentSignature === incomingSignature) {
+        lastAcceptedPropSignatureRef.current = incomingSignature;
+        return currentNodes;
+      }
+
+      lastAcceptedPropSignatureRef.current = incomingSignature;
+      stalePropSignatureToIgnoreRef.current = null;
+      return incomingNodes;
     });
-  }, [nodes, setLocalNodes]);
+  }, [setLocalNodes]);
+
+  const finishPendingReorder = useCallback(() => {
+    pendingReordersRef.current = Math.max(0, pendingReordersRef.current - 1);
+    if (pendingReordersRef.current > 0 || !pendingPropNodesRef.current) return;
+
+    const pendingPropNodes = pendingPropNodesRef.current;
+    pendingPropNodesRef.current = null;
+    syncLocalNodesFromProps(pendingPropNodes);
+  }, [syncLocalNodesFromProps]);
+
+  useEffect(() => {
+    const incomingSignature = getEstimateTreeContentSignature(nodes);
+    if (nodes === lastObservedPropNodesRef.current && incomingSignature === lastObservedPropSignatureRef.current) return;
+    lastObservedPropNodesRef.current = nodes;
+    lastObservedPropSignatureRef.current = incomingSignature;
+
+    if (pendingReordersRef.current > 0) {
+      pendingPropNodesRef.current = nodes;
+      return;
+    }
+    syncLocalNodesFromProps(nodes);
+  }, [nodes, syncLocalNodesFromProps]);
 
   useEffect(() => {
     if (!editingNodeId) {
@@ -394,14 +426,14 @@ export function EstimateSheetTree({ projectId, estimateId, projectName, selected
     clearRootDropActive();
     if (!handleCanDrag(items)) return;
 
+    const draggedItemIds = items.map((item) => item.index);
     const result = evaluateEstimateTreeDrop({
       nodes: localNodes,
-      draggedItemIds: items.map((item) => item.index),
+      draggedItemIds,
       target,
     });
     if (!result.ok) return;
 
-    const nextNodes = result.plan.nextNodes;
     pendingReordersRef.current += 1;
     setReorderStatus({ state: "saving", message: "Saving tree order" });
 
@@ -410,26 +442,45 @@ export function EstimateSheetTree({ projectId, estimateId, projectName, selected
       let optimisticRevision: number | null = null;
       try {
         previousNodes = await prepareAreaTreeOptimisticUpdate();
-        setLocalNodes(nextNodes);
+        const freshResult = evaluateEstimateTreeDrop({
+          nodes: previousNodes,
+          draggedItemIds,
+          target,
+        });
+        if (!freshResult.ok) {
+          setReorderStatus({ state: "error", message: freshResult.message });
+          return;
+        }
+
+        stalePropSignatureToIgnoreRef.current = lastAcceptedPropSignatureRef.current;
+        setLocalNodes(freshResult.plan.nextNodes);
         optimisticRevision = getLocalTreeRevision();
-        const confirmed = await reorderEstimateTreeNodes(projectId, estimateId, { updates: result.plan.updates });
-        pendingReordersRef.current = Math.max(0, pendingReordersRef.current - 1);
-        setLocalNodes(confirmed.tree);
+        const confirmed = await reorderEstimateTreeNodes(projectId, estimateId, { updates: freshResult.plan.updates });
+        if (getLocalTreeRevision() === optimisticRevision) {
+          setLocalNodes((currentNodes) =>
+            mergeEstimateTreeStructureWithCachedNodes({
+              structureNodes: confirmed.tree,
+              cachedNodes: currentNodes,
+            }),
+          );
+        }
         setReorderStatus({ state: "saved", message: "Tree order saved" });
       } catch (error) {
-        pendingReordersRef.current = Math.max(0, pendingReordersRef.current - 1);
         if (optimisticRevision === null) {
           setLocalNodes(previousNodes);
         } else {
           restoreLocalNodes(previousNodes, optimisticRevision);
         }
         setReorderStatus({ state: "error", message: error instanceof Error ? error.message : "Could not save tree order." });
+      } finally {
+        finishPendingReorder();
       }
     })();
   }, [
     clearNestIntentHint,
     clearRootDropActive,
     estimateId,
+    finishPendingReorder,
     getLocalTreeRevision,
     handleCanDrag,
     localNodes,

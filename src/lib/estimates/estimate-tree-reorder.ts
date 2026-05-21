@@ -190,6 +190,77 @@ export function getEstimateTreeStructureSignature(nodes: EstimateTreeNode[]): st
   return segments.join("|");
 }
 
+export function getEstimateTreeContentSignature(nodes: EstimateTreeNode[]): string {
+  const segments: unknown[] = [];
+
+  function visit(currentNodes: EstimateTreeNode[], parentPath: string) {
+    for (const node of currentNodes) {
+      const path = parentPath ? `${parentPath}/${node.id}` : node.id;
+      segments.push([
+        path,
+        node.kind,
+        node.name,
+        node.total,
+        (node.estimateRowItems ?? []).map((item) => [
+          item.id,
+          item.material,
+          item.description,
+          item.supplier,
+          item.source,
+          item.unit,
+          item.itemCost,
+          item.quantity,
+          item.subTotal,
+          item.supplementaryCosts,
+          item.laborCost,
+          item.totalItemCosts,
+          item.category,
+          item.discipline,
+          item.designation,
+          item.pricingSource,
+          item.pricingDate,
+          item.confidence,
+        ]),
+      ]);
+      visit(node.children ?? [], path);
+    }
+  }
+
+  visit(nodes, "");
+  return JSON.stringify(segments);
+}
+
+export function mergeEstimateTreeStructureWithCachedNodes({
+  structureNodes,
+  cachedNodes,
+}: {
+  structureNodes: EstimateTreeNode[];
+  cachedNodes: EstimateTreeNode[];
+}): EstimateTreeNode[] {
+  const cachedById = new Map<string, EstimateTreeNode>();
+
+  function indexCachedNodes(currentNodes: EstimateTreeNode[]) {
+    for (const node of currentNodes) {
+      cachedById.set(node.id, node);
+      indexCachedNodes(node.children ?? []);
+    }
+  }
+
+  function mergeNode(structureNode: EstimateTreeNode): EstimateTreeNode {
+    const cachedNode = cachedById.get(structureNode.id);
+    const mergedNode = cachedNode ? cloneNode(cachedNode) : cloneNode(structureNode);
+    return {
+      ...mergedNode,
+      id: structureNode.id,
+      kind: structureNode.kind,
+      children: structureNode.children?.map(mergeNode) ?? structureNode.children,
+    };
+  }
+
+  indexCachedNodes(cachedNodes);
+  return structureNodes.map(mergeNode);
+}
+
 export function buildEstimateNodeReorderPlan({
   nodes,
   draggedNodeId,
