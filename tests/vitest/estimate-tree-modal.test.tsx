@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { EstimateSheetTree } from "@/components/workshop/EstimateSheetTree";
 import { sampleEstimateTree } from "@/components/workshop/estimate-tree-data";
+import { estimateQueryKeys } from "@/hooks/use-estimate-query";
 import { resetEstimateWorkspaceState } from "@/hooks/use-estimate-workspace-state";
 
 const actionMocks = vi.hoisted(() => ({
@@ -12,6 +13,7 @@ const actionMocks = vi.hoisted(() => ({
 }));
 
 vi.mock("next/navigation", () => ({
+  unstable_rethrow: vi.fn(),
   useRouter: () => ({
     push: vi.fn(),
     refresh: vi.fn(),
@@ -30,7 +32,7 @@ describe("estimate sheet tree add-node toolbar flow", () => {
   function renderTree(nodes = sampleEstimateTree, selectedNodeId: string | null = "kitchen") {
     const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
 
-    return render(
+    const view = render(
       <QueryClientProvider client={queryClient}>
         <EstimateSheetTree
           projectId="project-1"
@@ -41,6 +43,7 @@ describe("estimate sheet tree add-node toolbar flow", () => {
         />
       </QueryClientProvider>,
     );
+    return { ...view, queryClient };
   }
 
   function submittedCreateFormData() {
@@ -70,6 +73,8 @@ describe("estimate sheet tree add-node toolbar flow", () => {
     expect(screen.getByRole("button", { name: "Collapse all tree" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Add Group" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Add Node" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Add Group" })).not.toHaveTextContent("Add Group");
+    expect(screen.getByRole("button", { name: "Add Node" })).not.toHaveTextContent("Add Node");
     expect(screen.queryByRole("button", { name: "Add tree" })).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "Add Group" }));
@@ -77,6 +82,29 @@ describe("estimate sheet tree add-node toolbar flow", () => {
     expect(screen.queryByRole("dialog", { name: "Add estimate tree node" })).not.toBeInTheDocument();
     expect(container.querySelector("[role='dialog']")).toBeNull();
     expect(actionMocks.createEstimateNode).toHaveBeenCalledTimes(1);
+  });
+
+  it("optimistically shows a new Group Node immediately and mirrors it into the tree cache", () => {
+    actionMocks.createEstimateNode.mockReturnValue(new Promise(() => {}));
+    const { queryClient } = renderTree(sampleEstimateTree, "main-house");
+
+    fireEvent.click(screen.getByRole("button", { name: "Add Group" }));
+
+    expect(screen.getByRole("button", { name: "New Group" })).toBeInTheDocument();
+    expect(screen.getByRole("status")).toHaveTextContent("Adding Group");
+    const optimisticTree = queryClient.getQueryData(estimateQueryKeys.areaTree("estimate-1"));
+    expect(JSON.stringify(optimisticTree)).toContain("New Group");
+  });
+
+  it("rolls back an optimistic Add Node when the server action fails", async () => {
+    actionMocks.createEstimateNode.mockRejectedValue(new Error("Create failed"));
+    renderTree(sampleEstimateTree, "main-house");
+
+    fireEvent.click(screen.getByRole("button", { name: "Add Node" }));
+
+    expect(screen.getByRole("button", { name: "New Area Node" })).toBeInTheDocument();
+    expect(await screen.findByText("Create failed")).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "New Area Node" })).not.toBeInTheDocument();
   });
 
   it("adds Group Nodes and Area Nodes inside the selected Group Node", () => {
