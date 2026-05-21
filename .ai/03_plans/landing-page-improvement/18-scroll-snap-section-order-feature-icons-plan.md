@@ -253,13 +253,13 @@ Use `@phosphor-icons/react/dist/ssr` because it is already installed and used in
 
 Recommended mapping:
 
-| Pillar | Icon candidate | Reason |
-| --- | --- | --- |
-| Project-shaped estimates | `TreeStructure` or `TreeView` | Communicates hierarchy/project structure. |
-| Reusable cost components | `Package` or `SquaresFour` | Communicates reusable assemblies/components. |
-| Traceable revisions | `GitBranch`, `GitDiff`, or `ClockCounterClockwise` | Communicates change history/revision trail. |
-| Proposal comparisons | `ChartBar`, `Columns`, or `PresentationChart` | Communicates option comparison and client explanation. |
-| Excel/PDF handoff | `Files`, `FileXls`, or paired `FileXls` + `FilePdf` | Communicates standard output formats. |
+| Pillar                   | Icon candidate                                      | Reason                                                 |
+| ------------------------ | --------------------------------------------------- | ------------------------------------------------------ |
+| Project-shaped estimates | `TreeStructure` or `TreeView`                       | Communicates hierarchy/project structure.              |
+| Reusable cost components | `Package` or `SquaresFour`                          | Communicates reusable assemblies/components.           |
+| Traceable revisions      | `GitBranch`, `GitDiff`, or `ClockCounterClockwise`  | Communicates change history/revision trail.            |
+| Proposal comparisons     | `ChartBar`, `Columns`, or `PresentationChart`       | Communicates option comparison and client explanation. |
+| Excel/PDF handoff        | `Files`, `FileXls`, or paired `FileXls` + `FilePdf` | Communicates standard output formats.                  |
 
 Claim-safety caution from `17-public-subpages-claims-matrix.md`:
 

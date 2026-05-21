@@ -138,10 +138,13 @@
 
 **Risk/opportunity:** Clear close. Ensure it uses the same conversion logic as earlier CTAs and does not conflict with auth state.
 
-## Immediate issues to solve
-
-1. Placeholder media labels are visible and too numerous for a polished public page.
-2. Several sections repeat the same feature anchors without a clearly escalating story.
-3. Navigation labels do not fully map to current section purposes.
-4. The page needs rendered/browser verification, not only source-level edits.
-5. CTA routing and auth-aware behavior should be checked after any content restructuring.
+141: ## Immediate issues to solve
+142:
+143: 1. Placeholder media labels are visible and too numerous for a polished public page.
+144: 2. Several sections repeat the same feature anchors without a clearly escalating story.
+145: 3. Navigation labels do not fully map to current section purposes.
+146: 4. The page needs rendered/browser verification, not only source-level edits.
+147: 5. CTA routing and auth-aware behavior should be checked after any content restructuring.
+148: 6. **Performance (WebGL Stalls):** WebGL rendering in `VoxelPaperBackground.tsx` triggers 4 GPU performance warnings/stalls on load (`readPixels` blocks).
+149: 7. **SEO Heading Pollution:** The infinite logo marquee duplicates company names inside `<h3>` tags, leading to 12 redundant headings in search crawls.
+150: 8. **Sub-optimal Metadata:** Page title (`Archestimator`) and meta description are too short to target key construction estimate search queries effectively.

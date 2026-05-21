@@ -30,7 +30,7 @@ const neatConfig: NeatConfig = {
   grainSparsity: 0,
   grainIntensity: 0,
   grainSpeed: 0.2,
-  resolution: 1.7,
+  resolution: 1.4,
   yOffset: 0,
   yOffsetWaveMultiplier: 1.8,
   yOffsetColorMultiplier: 1.2,
@@ -72,12 +72,25 @@ export function NeatWireframeBackground() {
     }
 
     const handleScroll = () => {
-      gradient.yOffset = window.scrollY * 0.18
+      if (!gradient.paused) {
+        gradient.yOffset = window.scrollY * 0.18
+      }
     }
 
     window.addEventListener('scroll', handleScroll, { passive: true })
 
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          gradient.paused = !entry.isIntersecting
+        })
+      },
+      { threshold: 0 }
+    )
+    observer.observe(canvas)
+
     return () => {
+      observer.disconnect()
       linkObserver.disconnect()
       window.removeEventListener('scroll', handleScroll)
       gradient.destroy()

@@ -71,7 +71,7 @@ export function ProductShowcaseSection() {
     <section
       id="product"
       data-landing-snap-section="true"
-      className="scroll-mt-[68px] bg-[#eeeeec] px-4 py-16 sm:px-6 lg:flex lg:min-h-[calc(100svh-68px)] lg:items-center lg:px-8"
+      className="scroll-mt-[68px] bg-[#eeeeec] px-4 py-16 sm:px-6 sm:py-24 lg:px-8"
     >
       <div className="mx-auto w-full max-w-[1120px] border-t border-[#dedbd6] pt-7">
         <div

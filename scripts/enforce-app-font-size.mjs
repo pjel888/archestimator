@@ -7,6 +7,10 @@ const maxPx = 12;
 const scannedRoots = ["src/app", "src/components"];
 const landingAllowlist = new Set([
   "src/app/page.tsx",
+  "src/app/about/page.tsx",
+  "src/app/contact/page.tsx",
+  "src/app/features/page.tsx",
+  "src/app/pricing/page.tsx",
 ]);
 const landingAllowlistPrefixes = [
   "src/components/landing/",

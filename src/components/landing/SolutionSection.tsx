@@ -31,7 +31,7 @@ function WorkflowVisual() {
   ];
 
   return (
-    <div className="relative flex min-h-[420px] flex-col justify-center rounded-[12px] border border-[#dedbd6] bg-[#f4f1ea] p-6 lg:min-h-[520px]">
+    <div className="relative flex h-full min-h-[420px] flex-col justify-center rounded-[12px] border border-[#dedbd6] bg-[#f4f1ea] p-6 lg:min-h-[520px]">
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_22%_18%,rgba(255,255,255,0.98),transparent_24%),linear-gradient(135deg,#f4f1ea,#fbfaf7_48%,#e5ded2)]" />
       <div className="relative">
         <p className="mb-5 font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-[#7b7b78]">
@@ -71,9 +71,9 @@ export function SolutionSection() {
     <section
       id="solutions"
       data-landing-snap-section="true"
-      className="scroll-mt-[68px] bg-white px-4 py-20 sm:px-6 lg:flex lg:min-h-[calc(100svh-68px)] lg:items-center lg:px-8 lg:py-24"
+      className="relative overflow-hidden scroll-mt-[68px] bg-white border-b border-[#dedbd6] px-4 py-20 sm:px-6 sm:py-28 lg:px-8"
     >
-      <div className="mx-auto w-full max-w-[1120px]">
+      <div className="relative z-10 mx-auto w-full max-w-[1120px]">
         <MotionReveal>
           <SectionIntro
             title="Less spreadsheet drift. More estimate control."
@@ -82,14 +82,14 @@ export function SolutionSection() {
         </MotionReveal>
 
         <div className="mt-14 grid gap-5 lg:grid-cols-[minmax(0,0.94fr)_minmax(360px,0.62fr)] lg:items-stretch">
-          <MotionReveal staggerIndex={1}>
+          <MotionReveal staggerIndex={1} className="h-full">
             <WorkflowVisual />
           </MotionReveal>
 
-          <div className="grid gap-3">
+          <div className="grid gap-3 lg:grid-rows-4 lg:h-full">
             {solutionFeatures.map(([title, body], index) => (
-              <MotionReveal key={title} staggerIndex={index + 2}>
-                <article className="rounded-[10px] border border-[#dedbd6] bg-[#faf9f6] p-5">
+              <MotionReveal key={title} staggerIndex={index + 2} className="h-full">
+                <article className="h-full rounded-[10px] border border-[#dedbd6] bg-[#faf9f6] p-5 flex flex-col justify-center">
                   <h3 className="text-[24px] font-normal leading-[1.02] tracking-[-0.045em] text-[#111111]">
                     {title}
                   </h3>

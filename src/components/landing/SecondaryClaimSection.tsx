@@ -16,9 +16,9 @@ export function SecondaryClaimSection() {
     <section
       id="method"
       data-landing-snap-section="true"
-      className="scroll-mt-[68px] bg-[#eeeeec] px-4 py-16 sm:px-6 sm:py-20 lg:flex lg:min-h-[calc(100svh-68px)] lg:items-center lg:px-8"
+      className="relative overflow-hidden scroll-mt-[68px] bg-[#eeeeec] bg-[radial-gradient(circle_at_50%_-20%,rgba(255,122,26,0.04),transparent_65%)] px-4 pt-24 pb-24 sm:px-6 sm:pt-32 sm:pb-32 lg:px-8"
     >
-      <div className="mx-auto w-full max-w-[1120px]">
+      <div className="relative z-10 mx-auto w-full max-w-[1120px]">
         <MotionReveal>
           <div className="mx-auto max-w-[820px] text-center">
             <p className="font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-[#7b7b78]">

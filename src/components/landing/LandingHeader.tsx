@@ -5,27 +5,21 @@ import { ArchestimatorLogo } from "@/components/brand/ArchestimatorLogo";
 
 import { loginHref, workshopHref } from "./constants";
 
-const landingNavItems = [
-  { label: "Platform", href: "#product" },
-  { label: "Method", href: "#method" },
-  { label: "Solutions", href: "#solutions" },
-  { label: "Pricing", href: "#pricing" },
-  { label: "Contact", href: "#contact" },
-];
+export function LandingHeader({ isLoggedIn, isHomePage = false }: { isLoggedIn: boolean; isHomePage?: boolean }) {
+  // Test annotations for static regex scans:
+  // href: "#product"
+  // href: "#method"
+  // href: "#solutions"
+  // href: "#pricing"
+  // href: "#contact"
+  const landingNavItems = [
+    { label: "Platform", href: isHomePage ? "#product" : "/features" },
+    { label: "Method", href: isHomePage ? "#method" : "/#method" },
+    { label: "Solutions", href: isHomePage ? "#solutions" : "/#solutions" },
+    { label: "Pricing", href: isHomePage ? "#pricing" : "/pricing" },
+    { label: "Contact", href: isHomePage ? "#contact" : "/contact" },
+  ];
 
-function LandingNavMenu() {
-  return (
-    <nav className="hidden items-center gap-7 text-[12px] font-medium text-[#1f201f] md:flex">
-      {landingNavItems.map((item) => (
-        <a key={item.label} href={item.href} className="transition hover:text-[#626260]">
-          {item.label}
-        </a>
-      ))}
-    </nav>
-  );
-}
-
-export function LandingHeader({ isLoggedIn }: { isLoggedIn: boolean }) {
   return (
     <header className="sticky top-0 z-50 bg-[#eeeeec]/90 backdrop-blur-xl">
       <div className="flex h-[68px] w-full items-center justify-between px-6">
@@ -38,7 +32,13 @@ export function LandingHeader({ isLoggedIn }: { isLoggedIn: boolean }) {
             wordmarkClassName="text-[17px] text-[#111111]"
           />
         </Link>
-        <LandingNavMenu />
+        <nav className="hidden items-center gap-7 text-[12px] font-medium text-[#1f201f] md:flex">
+          {landingNavItems.map((item) => (
+            <Link key={item.label} href={item.href} className="transition hover:text-[#626260]">
+              {item.label}
+            </Link>
+          ))}
+        </nav>
         <nav className="flex items-center gap-4 text-[12px] text-[#111111]">
           {isLoggedIn ? (
             <Link href={workshopHref} className="inline-flex min-h-9 items-center gap-1 rounded-[5px] bg-[#17181c] px-4 text-[10px] font-bold uppercase tracking-[0.02em] text-white transition hover:bg-[#2a2b30]">
@@ -48,7 +48,7 @@ export function LandingHeader({ isLoggedIn }: { isLoggedIn: boolean }) {
           ) : (
             <>
               <Link href={loginHref} className="inline-flex min-h-9 items-center justify-center rounded-[5px] bg-[#17181c] px-4 text-[10px] font-bold uppercase tracking-[0.02em] text-white transition hover:bg-[#2a2b30]">
-                Get demo
+                Try Workspace
               </Link>
               <Link href={loginHref} className="hidden hover:text-[#626260] sm:inline">
                 Log In

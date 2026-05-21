@@ -59,5 +59,8 @@
   "trustedDependencies": [
     "sharp",
     "unrs-resolver"
-  ]
+  ],
+  "patchedDependencies": {
+    "@firecms/neat@0.8.0": "patches/@firecms%2Fneat@0.8.0.patch"
+  }
 }

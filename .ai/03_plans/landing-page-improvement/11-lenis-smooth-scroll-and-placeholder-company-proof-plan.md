@@ -76,20 +76,24 @@ Authenticated workshop pages use dense nested panes, pinned headers/footers, sid
 Use a small client component so Lenis does not leak through all public/app surfaces:
 
 ```tsx
-'use client';
+"use client";
 
-import { ReactLenis } from 'lenis/react';
-import { useEffect, useState } from 'react';
+import { ReactLenis } from "lenis/react";
+import { useEffect, useState } from "react";
 
-export function LandingSmoothScrollProvider({ children }: { children: React.ReactNode }) {
+export function LandingSmoothScrollProvider({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   const [reducedMotion, setReducedMotion] = useState(false);
 
   useEffect(() => {
-    const query = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const query = window.matchMedia("(prefers-reduced-motion: reduce)");
     const update = () => setReducedMotion(query.matches);
     update();
-    query.addEventListener('change', update);
-    return () => query.removeEventListener('change', update);
+    query.addEventListener("change", update);
+    return () => query.removeEventListener("change", update);
   }, []);
 
   if (reducedMotion) return <>{children}</>;
@@ -135,7 +139,12 @@ export type CompanyProofLogo = {
   logoSrc?: string;
   initials?: string;
   websiteHref?: string;
-  relationship: 'placeholder' | 'customer' | 'pilot-user' | 'design-partner' | 'internal-team';
+  relationship:
+    | "placeholder"
+    | "customer"
+    | "pilot-user"
+    | "design-partner"
+    | "internal-team";
   permissionConfirmed: boolean;
   isPlaceholder?: boolean;
   publicLabel: string;
@@ -164,7 +173,7 @@ Placeholder examples should be visibly generic in source data, such as:
 During early implementation, allow placeholders only behind an explicit constant:
 
 ```ts
-const ALLOW_PLACEHOLDER_COMPANY_PROOF = process.env.NODE_ENV !== 'production';
+const ALLOW_PLACEHOLDER_COMPANY_PROOF = process.env.NODE_ENV !== "production";
 ```
 
 Production behavior:

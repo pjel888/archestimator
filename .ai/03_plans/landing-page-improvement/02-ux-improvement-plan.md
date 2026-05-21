@@ -120,6 +120,9 @@ Return to the method and route users cleanly:
 - If a company carousel uses real social-proof wording, the logos and relationship wording must be real, permission-safe, and non-inflated.
 - Do not imply completed exports/pricing beyond MVP-preview status unless the implementation exists and is verified.
 - Make assumptions, revisions, exports, and proposal outputs sound editable/traceable, not automated final truth.
+- **SEO/Metadata Guardrail:** Ensure page titles and meta descriptions meet recommended lengths (50-60 chars for title, 150-160 for description) and target key estimation terms.
+- **No Logo Headings:** Do not use `h1`-`h6` tags for logos in the infinite marquee. Use `span` or `p` tags to prevent heading duplication in search index crawls.
+- **Snappier Scroll:** Tune Lenis smooth scrolling (e.g. increase `lerp` to `0.12`) to eliminate perceived weight or scroll lag while settling.
 
 ## Success criteria
 
@@ -131,3 +134,4 @@ A first-time visitor should be able to state:
 4. Revisions/proposal comparisons remain connected to estimate logic.
 5. The expected outputs are practical: proposal-ready files plus Excel/PDF handoff.
 6. The product is honestly framed as MVP preview, not fake mature SaaS.
+7. Search engines index clean, non-repetitive heading hierarchies, and the landing page loads sub-second with no GPU console warnings.
