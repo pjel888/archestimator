@@ -95,6 +95,12 @@ function treeNodeButton(id: string) {
   return element;
 }
 
+function rootDropZone(edge: "top" | "bottom") {
+  const element = document.querySelector(`[data-estimate-tree-root-${edge}-drop='true']`);
+  if (!(element instanceof HTMLElement)) throw new Error(`Missing root ${edge} drop zone.`);
+  return element;
+}
+
 function setMiddleDropRect(element: HTMLElement) {
   element.getBoundingClientRect = () => ({
     x: 0,
@@ -179,6 +185,82 @@ describe("estimate sheet tree React Complex Tree DOM integration", () => {
     expect(screen.getByText("Nest inside Alternates")).toBeInTheDocument();
   });
 
+  it("shows a large top root drop target for moving a Group Node before the first root item", () => {
+    actionMocks.reorderEstimateTreeNodes.mockResolvedValue({
+      tree: [
+        {
+          id: "alternates",
+          name: "Alternates",
+          kind: "group",
+          total: "₱0.00",
+          children: [],
+        },
+        {
+          id: "project-scope",
+          name: "Project Scope",
+          kind: "group",
+          total: "₱0.00",
+          children: [
+            {
+              id: "ground-floor",
+              name: "Ground Floor",
+              kind: "group",
+              total: "₱0.00",
+              children: [
+                {
+                  id: "kitchen",
+                  name: "Kitchen",
+                  kind: "area",
+                  total: "₱0.00",
+                  estimateRowItems: [],
+                  children: [],
+                },
+              ],
+            },
+          ],
+        },
+        {
+          id: "phase-two",
+          name: "Phase Two",
+          kind: "group",
+          total: "₱0.00",
+          children: [],
+        },
+        {
+          id: "phase-three",
+          name: "Phase Three",
+          kind: "group",
+          total: "₱0.00",
+          children: [],
+        },
+      ],
+    });
+    renderTree();
+
+    const alternates = treeNodeButton("alternates");
+    const rootTopDropZone = rootDropZone("top");
+    const dataTransfer = mockDataTransfer();
+
+    expect(rootTopDropZone).toHaveClass("h-8");
+
+    fireEvent.dragStart(alternates, { dataTransfer });
+    fireEvent.dragOver(rootTopDropZone, { dataTransfer });
+
+    expect(rootTopDropZone).toHaveAttribute("data-estimate-tree-root-top-drop-active", "true");
+
+    fireEvent.drop(rootTopDropZone, { dataTransfer });
+
+    expect(actionMocks.reorderEstimateTreeNodes).toHaveBeenCalledWith("project-1", "estimate-1", {
+      updates: [
+        { id: "ground-floor", parentId: "project-scope", sortOrder: 10 },
+        { id: "alternates", parentId: null, sortOrder: 10 },
+        { id: "project-scope", parentId: null, sortOrder: 20 },
+        { id: "phase-two", parentId: null, sortOrder: 30 },
+        { id: "phase-three", parentId: null, sortOrder: 40 },
+      ],
+    });
+  });
+
   it("shows a bottom root drop line for moving a Group Node to the outermost level", () => {
     actionMocks.reorderEstimateTreeNodes.mockResolvedValue({
       tree: [
@@ -232,9 +314,10 @@ describe("estimate sheet tree React Complex Tree DOM integration", () => {
     renderTree();
 
     const alternates = treeNodeButton("alternates");
-    const rootBottomDropZone = document.querySelector("[data-estimate-tree-root-bottom-drop='true']");
-    if (!(rootBottomDropZone instanceof HTMLElement)) throw new Error("Missing root bottom drop zone.");
+    const rootBottomDropZone = rootDropZone("bottom");
     const dataTransfer = mockDataTransfer();
+
+    expect(rootBottomDropZone).toHaveClass("h-8");
 
     fireEvent.dragStart(alternates, { dataTransfer });
     fireEvent.dragOver(rootBottomDropZone, { dataTransfer });
