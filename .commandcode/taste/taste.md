@@ -3,6 +3,7 @@
 - Map blast radius (CRITICAL/LOW) and affected file references before implementing UI changes. Confidence: 0.80
 - Prefer reusable UI primitives (e.g., modal) over inline or feature-specific solutions. Confidence: 0.75
 - For planning audits, perform second and third passes on the same documents to catch gaps the first pass missed (e.g., frozen state, missing error handling, inference bugs). Confidence: 0.70
+- Integrate shadcn UI primitives (built on Radix) for new UI components; do not use shadcn add --all — add only the specific primitives needed per feature slice. Confidence: 0.85
 
 # dependencies
 - Use react-complex-tree (https://rct.lukasbach.com/) for estimate tree components. Confidence: 0.85
@@ -35,3 +36,4 @@ See [ui/taste.md](ui/taste.md)
 
 # estimate-tree
 - When group nodes and area nodes are siblings, group nodes must always be sorted before area nodes. Confidence: 0.70
+- Inline rename fields must stay active until explicitly committed (Enter/check button), explicitly cancelled (Escape/reset button), or blurred with valid changed value; use orange border + subtle orange background to indicate editing state, and show right-aligned check and reset icon buttons. Confidence: 0.80

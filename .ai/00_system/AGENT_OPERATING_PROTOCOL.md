@@ -41,7 +41,8 @@ Default roles:
 - Codex: implementation, refactoring, tests, PR-ready diffs
 - OpenCode: exploration, fallback planning/review, codebase traversal, flexible coding bench
 - CommandCode: taste-aware implementation/review, project-convention checks, PR work, and plan-mode codebase review
-- Gemini: multimodal review, broad synthesis, secondary audit/review, and long-context checks when useful
+- Antigravity CLI (`agy`): extra terminal-agent lane for independent planning, review, audit, implementation, and long-context checks when another agent should run in a separate terminal/task environment
+- Gemini: phased out; do not route new work to Gemini unless Philip explicitly reapproves it for a specific task
 - Kimi: frontend/product UI implementation and review, long-context synthesis, fallback planning/review, document analysis
 - DeepSeek: debugging, logic review, second-opinion critique
 - Ollama: not an approved agent LLM lane; only the nomic embedding model used by ChunkHound is approved for active use, and locally listed chat models must not be used for planning, review, or implementation unless explicitly approved and documented

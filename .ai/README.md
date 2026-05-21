@@ -1,7 +1,7 @@
 # Archestimator `.ai` Workspace
 
 **Project:** Archestimator
-**Purpose:** Shared operational-intelligence folder for every AI agent working on this project: Claude, Codex, OpenCode, CommandCode, Gemini, Kimi, DeepSeek, Cursor, Hermes, and future tools.
+**Purpose:** Shared operational-intelligence folder for every AI agent working on this project: Claude, Codex, OpenCode, CommandCode, Antigravity CLI (`agy`), Kimi, DeepSeek, Cursor, Hermes, and future tools.
 
 This folder is the project brain. It stores product thinking, implementation plans, decisions, handoffs, specs, prompts, audits, and agent payloads so work does not get scattered across chat history.
 
@@ -29,7 +29,7 @@ This folder is the project brain. It stores product thinking, implementation pla
 - Preserved: `/` landing page.
 - Current implemented slice: `/workshop`, `/workshop/projects`, project detail/estimates routes, and `/workshop/components` exist in `src/app`.
 - Current state/data foundation: Supabase project `ebxxqidacheyapmmzavr` is linked locally; `.env.local` contains public Supabase URL/publishable key; TanStack Query, Supabase client packages, Zustand, and React Complex Tree are installed for the approved state/tree architecture. The schema migrations and seed file define the workspace/project/estimate/library/tree/row tables with RLS from the start. Estimate-tree drag/drop reorganization is implemented with React Complex Tree, app-side hierarchy guards, optimistic local/query-cache updates, rollback on persistence failure, and the canonical `public.reorder_estimate_nodes` RPC. The mutating browser matrix remains gated by local dev-auth plus `SUPABASE_SERVICE_ROLE_KEY`.
-- Current AI bench: Codex, Claude, OpenCode, CommandCode, Gemini, and Kimi are available for agent work. Kimi is especially strong for frontend/product UI work and long-context synthesis. Ollama is not an approved agent lane. Only the nomic embedding model used by ChunkHound is approved for active Ollama use unless Philip explicitly approves a local chat model.
+- Current AI bench: Codex, Claude, OpenCode, CommandCode, Antigravity CLI (`agy`), and Kimi are available for agent work. Antigravity replaces Gemini as the extra terminal-agent lane for parallel agent work; do not route new work to Gemini unless Philip explicitly reapproves it. Kimi is especially strong for frontend/product UI work and long-context synthesis. Ollama is not an approved agent lane. Only the nomic embedding model used by ChunkHound is approved for active Ollama use unless Philip explicitly approves a local chat model.
 - Superseded: the deleted full prototype dashboard, estimate editor, component library, proposal, revision, local-first data, shell, and broad route-family work. Do not resume those old plans unless Philip explicitly reapproves them.
 - Read first for restart and quality context: `.ai/00_system/AGENT_SELF_DIAGNOSTIC_PROTOCOL.md`, `.ai/10_state/current-state.md`, `.ai/03_plans/current-post-reset-workshop-slice.md`, `.ai/02_audits/2026-05-17-reset-cleanup-audit.md`, and `.ai/06_specs/restart-guardrails.md`.
 

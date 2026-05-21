@@ -59,3 +59,7 @@ yarn-error.log*
 
 # generated agent/dev scratch backups are local-only
 /.ai/99_scratch/
+
+# local agent CLI state is machine-specific
+/.antigravitycli/
+/.gemini/
