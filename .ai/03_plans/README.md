@@ -18,14 +18,17 @@ Current planning baseline:
 Active/current plan:
 
 - `.ai/03_plans/current-post-reset-workshop-slice.md` — narrow orientation plan for the current workshop/projects/components route slice.
+- `.ai/03_plans/landing-page-improvement/` — active public `/` landing-page improvement plan; replaces the archived Intercom/v4 broad plan and starts from current source inventory. Current pass locks the accepted hero, preserves the placeholder-safe full-width light company carousel immediately after the hero, keeps Lenis landing-only smooth scrolling, focuses remaining content with Tailwind containers, uses brand-source synthesis, and now adds Kimi K2.6 frontend-design delegation plus functional-tabs/IntersectionObserver readiness planning with no new animation packages.
 - `.ai/03_plans/project-estimates-component-library-improvement-plan.md` — research-backed UX/UI improvement plan for the current project estimate workspace and connected Component Library feature.
-- `.ai/03_plans/workshop-components-library-ux-ui/` — research pack, screen spec, and implementation plan for improving the global `/workshop/components` library manager.
 - `.ai/03_plans/ui-componentization-and-storybook-plan.md` — active UI component matrix, reusable-primitive pipeline, and Storybook organization plan.
 
-Archived closeout plan:
+Archived closeout / superseded plans:
 
 - `.ai/09_archive/store/2026-05-21-estimate-tree-dnd-reorganization-complete/` — completed audit, React Complex Tree API guide, implementation plan, QA strategy, and closeout evidence for seamless live estimate-tree drag/drop reorganization.
+- `.ai/09_archive/store/2026-05-21-shadcn-context-menu-integration-complete/` — completed first shadcn/Radix integration closeout for estimate tree Group/Area row right-click Rename/Delete, inline optimistic rename, confirmed optimistic delete, route repair, shared action-menu foundation, and state-first rollback hardening.
 - `.ai/09_archive/store/2026-05-21-estimate-component-library-sidebar-audit-complete/` — completed P0-P4 closeout for the live estimate Component Library sidebar audit, including target-aware insertion, command palette, assemblies/templates, bulk actions, import/export, keyboard navigation, native card buttons, and verification evidence.
+- `.ai/09_archive/store/2026-05-21-workshop-components-library-ux-ui-complete/` — completed `/workshop/components` global manager plan pack and implementation evidence for the read-only seed-backed dense table, facets, price-health views, and inspector slice. Future persistence/CRUD remains deferred until the server action and schema boundary is explicitly approved.
+- `.ai/09_archive/store/2026-05-21-intercom-v4-ui-ux-improvement-plan-superseded/` — superseded broad Intercom/v4 UI/UX plan; historical context only, replaced for landing work by `.ai/03_plans/landing-page-improvement/`.
 
 Read first before planning new work:
 

@@ -2,6 +2,7 @@
 - Conduct read-only architecture/code reviews with CLEAR/WATCH/BLOCK status before committing feature changes. Confidence: 0.90
 - Map blast radius (CRITICAL/LOW) and affected file references before implementing UI changes. Confidence: 0.80
 - Prefer reusable UI primitives (e.g., modal) over inline or feature-specific solutions. Confidence: 0.75
+- For planning audits, perform second and third passes on the same documents to catch gaps the first pass missed (e.g., frozen state, missing error handling, inference bugs). Confidence: 0.70
 
 # dependencies
 - Use react-complex-tree (https://rct.lukasbach.com/) for estimate tree components. Confidence: 0.85
@@ -28,3 +29,9 @@ See [ui/taste.md](ui/taste.md)
 
 # research
 - When researching drag-and-drop or tree UI patterns, prefer primary/authoritative sources: WAI-ARIA APG, React Complex Tree docs, Atlassian/other design systems, NN/g. Confidence: 0.70
+
+# planning-audits
+- Structure feature audits as four documents: 01-current-inventory (code-level catalog), 02-feature-gap-analysis (ranked gaps with severity), 03-ux-paths-and-happy-paths (user journeys with cross-surface maps), 04-prioritized-improvement-roadmap (phased P0–P4 with concrete code snippets and file paths). Confidence: 0.70
+
+# estimate-tree
+- When group nodes and area nodes are siblings, group nodes must always be sorted before area nodes. Confidence: 0.70
