@@ -18,6 +18,7 @@ Current planning baseline:
 Active/current plan:
 
 - `.ai/03_plans/current-post-reset-workshop-slice.md` — narrow orientation plan for the current workshop/projects/components route slice.
+- `.ai/03_plans/component-category-library-taxonomy/` — active taxonomy research artifact for the `/workshop/components` category tree, supplier/category tabs, component metadata facets, standards crosswalks, and future custom-component organization.
 - `.ai/03_plans/landing-page-improvement/` — active public `/` landing-page improvement plan; replaces the archived Intercom/v4 broad plan and starts from current source inventory. Current pass locks the accepted hero, preserves the placeholder-safe full-width light company carousel immediately after the hero, keeps Lenis landing-only smooth scrolling, focuses remaining content with Tailwind containers, uses brand-source synthesis, and now adds Kimi K2.6 frontend-design delegation plus functional-tabs/IntersectionObserver readiness planning with no new animation packages.
 - `.ai/03_plans/project-estimates-component-library-improvement-plan.md` — research-backed UX/UI improvement plan for the current project estimate workspace and connected Component Library feature.
 - `.ai/03_plans/ui-componentization-and-storybook-plan.md` — active UI component matrix, reusable-primitive pipeline, and Storybook organization plan.
@@ -28,7 +29,9 @@ Archived closeout / superseded plans:
 - `.ai/09_archive/store/2026-05-21-shadcn-context-menu-integration-complete/` — completed first shadcn/Radix integration closeout for estimate tree Group/Area row right-click Rename/Delete, inline optimistic rename, confirmed optimistic delete, route repair, shared action-menu foundation, and state-first rollback hardening.
 - `.ai/09_archive/store/2026-05-21-estimate-component-library-sidebar-audit-complete/` — completed P0-P4 closeout for the live estimate Component Library sidebar audit, including target-aware insertion, command palette, assemblies/templates, bulk actions, import/export, keyboard navigation, native card buttons, and verification evidence.
 - `.ai/09_archive/store/2026-05-21-workshop-components-library-ux-ui-complete/` — completed `/workshop/components` global manager plan pack and implementation evidence for the read-only seed-backed dense table, facets, price-health views, and inspector slice. Future persistence/CRUD remains deferred until the server action and schema boundary is explicitly approved.
+- `.ai/09_archive/store/2026-05-21-workshop-components-library-redesign-complete/` — completed replacement `/workshop/components` redesign plan and implementation evidence for the estimate-workspace mirror: left category/supplier tree, center custom-component sheet, no right sidebar, no tree drag/drop/reorder, mobile component cards, classification helpers, Visual Verdict artifacts, and validation closeout.
 - `.ai/09_archive/store/2026-05-21-intercom-v4-ui-ux-improvement-plan-superseded/` — superseded broad Intercom/v4 UI/UX plan; historical context only, replaced for landing work by `.ai/03_plans/landing-page-improvement/`.
+- `.ai/09_archive/store/2026-05-21-implemented-plan-cleanup/` — implemented loose historical plans moved out of `.ai/03_plans` after the 2026-05-21 plan inventory cleanup. Includes pre-reset local MVP, proposal, Glide/dnd-kit spike, and completed estimate-tree stability planning files.
 
 Read first before planning new work:
 
@@ -58,4 +61,4 @@ Do not create broad route families, dashboards, proposal systems, component libr
 
 ## Superseded historical plans
 
-Older plans in this folder may mention Glide, local persistence, project dashboards, estimate workspaces, proposal snapshots, and workshop route families. Treat them as historical context only unless a future plan explicitly reactivates a specific piece.
+Remaining older plans in this folder may still mention Glide, proposal grouping, or broad MVP definition work. Treat them as proposed or incomplete historical context only unless a future plan explicitly reactivates a specific piece.
