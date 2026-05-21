@@ -64,6 +64,8 @@ type NestIntentHint = {
   sourceName: string;
 };
 
+type RootDropEdge = "top" | "bottom";
+
 function NodeIcon({ kind }: { kind: EstimateTreeNode["kind"] }) {
   if (getEstimateNodeDisplayKind(kind) === "group") return <FolderSimple size={12} weight="bold" aria-hidden="true" />;
   return <Cube size={12} weight="bold" aria-hidden="true" />;
@@ -177,7 +179,7 @@ export function EstimateSheetTree({ projectId, estimateId, projectName, selected
   const [localNodes, setLocalNodes] = useState<EstimateTreeNode[]>(nodes);
   const [reorderStatus, setReorderStatus] = useState<ReorderStatus>({ state: "idle" });
   const [nestIntentHint, setNestIntentHint] = useState<NestIntentHint | null>(null);
-  const [isRootBottomDropActive, setIsRootBottomDropActive] = useState(false);
+  const [activeRootDropEdge, setActiveRootDropEdge] = useState<RootDropEdge | null>(null);
   const { selectedNodeId: activeSelectedNodeId, setSelectedNodeId } = useEstimateWorkspaceSelection(estimateId, selectedNodeId);
   const treeModel = useMemo(() => buildTreeModel(localNodes), [localNodes]);
   const allFolderItemIds = useMemo(() => Array.from(treeModel.folderIds).filter((itemId) => treeModel.items[itemId]), [treeModel.folderIds, treeModel.items]);
@@ -248,8 +250,8 @@ export function EstimateSheetTree({ projectId, estimateId, projectName, selected
     setNestIntentHint(null);
   }, []);
 
-  const clearRootBottomDropActive = useCallback(() => {
-    setIsRootBottomDropActive(false);
+  const clearRootDropActive = useCallback(() => {
+    setActiveRootDropEdge(null);
   }, []);
 
   const getDraggedTreeItemFromEvent = useCallback((event: DragEvent<HTMLElement>) => {
@@ -282,14 +284,25 @@ export function EstimateSheetTree({ projectId, estimateId, projectName, selected
     linearIndex: 0,
   }), []);
 
-  const rootBottomDropTarget = useMemo<DraggingPosition>(() => ({
-    targetType: "between-items",
-    treeId: ESTIMATE_TREE_ID,
-    parentItem: ESTIMATE_TREE_ROOT_ITEM_ID,
-    childIndex: localNodes.length,
-    linePosition: "bottom",
-    linearIndex: localNodes.length,
-    depth: 0,
+  const rootDropTargets = useMemo<Record<RootDropEdge, DraggingPosition>>(() => ({
+    top: {
+      targetType: "between-items",
+      treeId: ESTIMATE_TREE_ID,
+      parentItem: ESTIMATE_TREE_ROOT_ITEM_ID,
+      childIndex: 0,
+      linePosition: "top",
+      linearIndex: 0,
+      depth: 0,
+    },
+    bottom: {
+      targetType: "between-items",
+      treeId: ESTIMATE_TREE_ID,
+      parentItem: ESTIMATE_TREE_ROOT_ITEM_ID,
+      childIndex: localNodes.length,
+      linePosition: "bottom",
+      linearIndex: localNodes.length,
+      depth: 0,
+    },
   }), [localNodes.length]);
 
   const isMiddleRowDrop = useCallback((event: DragEvent<HTMLElement>) => {
@@ -303,7 +316,7 @@ export function EstimateSheetTree({ projectId, estimateId, projectName, selected
   const handleDrop = useCallback((items: TreeItem<EstimateTreeItemData>[], target: Parameters<typeof evaluateEstimateTreeDrop>[0]["target"]) => {
     suppressPrimaryActionAfterDrag();
     clearNestIntentHint();
-    clearRootBottomDropActive();
+    clearRootDropActive();
     if (!handleCanDrag(items)) return;
 
     const result = evaluateEstimateTreeDrop({
@@ -334,12 +347,13 @@ export function EstimateSheetTree({ projectId, estimateId, projectName, selected
         setReorderStatus({ state: "error", message: error instanceof Error ? error.message : "Could not save tree order." });
       }
     })();
-  }, [clearNestIntentHint, clearRootBottomDropActive, estimateId, handleCanDrag, localNodes, projectId, queryClient, suppressPrimaryActionAfterDrag]);
+  }, [clearNestIntentHint, clearRootDropActive, estimateId, handleCanDrag, localNodes, projectId, queryClient, suppressPrimaryActionAfterDrag]);
 
-  const handleRootBottomDragOver = useCallback((event: DragEvent<HTMLDivElement>) => {
+  const handleRootDropZoneDragOver = useCallback((edge: RootDropEdge, event: DragEvent<HTMLDivElement>) => {
     const draggedItem = getDraggedTreeItemFromEvent(event);
-    if (!draggedItem || !handleCanDropAt([draggedItem], rootBottomDropTarget)) {
-      clearRootBottomDropActive();
+    const target = rootDropTargets[edge];
+    if (!draggedItem || !handleCanDropAt([draggedItem], target)) {
+      clearRootDropActive();
       return;
     }
 
@@ -347,21 +361,22 @@ export function EstimateSheetTree({ projectId, estimateId, projectName, selected
     event.preventDefault();
     event.stopPropagation();
     event.dataTransfer.dropEffect = "move";
-    setIsRootBottomDropActive(true);
-  }, [clearRootBottomDropActive, getDraggedTreeItemFromEvent, handleCanDropAt, rootBottomDropTarget]);
+    setActiveRootDropEdge(edge);
+  }, [clearRootDropActive, getDraggedTreeItemFromEvent, handleCanDropAt, rootDropTargets]);
 
-  const handleRootBottomDrop = useCallback((event: DragEvent<HTMLDivElement>) => {
+  const handleRootDropZoneDrop = useCallback((edge: RootDropEdge, event: DragEvent<HTMLDivElement>) => {
     const draggedItem = getDraggedTreeItemFromEvent(event);
-    if (!draggedItem || !handleCanDropAt([draggedItem], rootBottomDropTarget)) {
-      clearRootBottomDropActive();
+    const target = rootDropTargets[edge];
+    if (!draggedItem || !handleCanDropAt([draggedItem], target)) {
+      clearRootDropActive();
       return;
     }
 
     event.preventDefault();
     event.stopPropagation();
-    handleDrop([draggedItem], rootBottomDropTarget);
+    handleDrop([draggedItem], target);
     draggedTreeItemRef.current = null;
-  }, [clearRootBottomDropActive, getDraggedTreeItemFromEvent, handleCanDropAt, handleDrop, rootBottomDropTarget]);
+  }, [clearRootDropActive, getDraggedTreeItemFromEvent, handleCanDropAt, handleDrop, rootDropTargets]);
 
   const handleAddTreeNode = useCallback((kind: EstimateTreeNode["kind"]) => {
     if (kind === "area" && !selectedGroupId) {
@@ -641,7 +656,7 @@ export function EstimateSheetTree({ projectId, estimateId, projectName, selected
                         onDragEnd={(event) => {
                           onDragEnd?.(event);
                           clearNestIntentHint();
-                          clearRootBottomDropActive();
+                          clearRootDropActive();
                           window.setTimeout(() => {
                             draggedTreeItemRef.current = null;
                           }, 0);
@@ -679,20 +694,42 @@ export function EstimateSheetTree({ projectId, estimateId, projectName, selected
               }}
             >
               <>
-                <Tree treeId={ESTIMATE_TREE_ID} rootItem={ESTIMATE_TREE_ROOT_ITEM_ID} treeLabel={`${projectName} estimate areas`} />
                 <div
                   aria-hidden="true"
-                  data-estimate-tree-root-bottom-drop="true"
-                  data-estimate-tree-root-bottom-drop-active={isRootBottomDropActive ? "true" : undefined}
-                  onDragOver={handleRootBottomDragOver}
-                  onDrop={handleRootBottomDrop}
-                  onDragLeave={clearRootBottomDropActive}
-                  className="relative h-4 px-1"
+                  data-estimate-tree-root-top-drop="true"
+                  data-estimate-tree-root-top-drop-active={activeRootDropEdge === "top" ? "true" : undefined}
+                  onDragOver={(event) => handleRootDropZoneDragOver("top", event)}
+                  onDrop={(event) => handleRootDropZoneDrop("top", event)}
+                  onDragLeave={clearRootDropActive}
+                  className={cn(
+                    "relative h-8 px-1 py-2 transition-colors",
+                    activeRootDropEdge === "top" ? "rounded-md bg-[#eef7ff]" : "bg-transparent",
+                  )}
                 >
                   <div
                     className={cn(
                       "pointer-events-none absolute left-1 right-6 top-1/2 h-0.5 -translate-y-1/2 rounded-full transition-colors",
-                      isRootBottomDropActive ? "bg-[#1976d2]" : "bg-transparent",
+                      activeRootDropEdge === "top" ? "bg-[#1976d2] shadow-[0_0_0_1px_rgba(25,118,210,0.15)]" : "bg-transparent",
+                    )}
+                  />
+                </div>
+                <Tree treeId={ESTIMATE_TREE_ID} rootItem={ESTIMATE_TREE_ROOT_ITEM_ID} treeLabel={`${projectName} estimate areas`} />
+                <div
+                  aria-hidden="true"
+                  data-estimate-tree-root-bottom-drop="true"
+                  data-estimate-tree-root-bottom-drop-active={activeRootDropEdge === "bottom" ? "true" : undefined}
+                  onDragOver={(event) => handleRootDropZoneDragOver("bottom", event)}
+                  onDrop={(event) => handleRootDropZoneDrop("bottom", event)}
+                  onDragLeave={clearRootDropActive}
+                  className={cn(
+                    "relative h-8 px-1 py-2 transition-colors",
+                    activeRootDropEdge === "bottom" ? "rounded-md bg-[#eef7ff]" : "bg-transparent",
+                  )}
+                >
+                  <div
+                    className={cn(
+                      "pointer-events-none absolute left-1 right-6 top-1/2 h-0.5 -translate-y-1/2 rounded-full transition-colors",
+                      activeRootDropEdge === "bottom" ? "bg-[#1976d2] shadow-[0_0_0_1px_rgba(25,118,210,0.15)]" : "bg-transparent",
                     )}
                   />
                 </div>
