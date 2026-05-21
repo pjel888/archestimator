@@ -25,6 +25,7 @@ Active/current plan:
 Archived closeout plan:
 
 - `.ai/09_archive/store/2026-05-21-estimate-tree-dnd-reorganization-complete/` — completed audit, React Complex Tree API guide, implementation plan, QA strategy, and closeout evidence for seamless live estimate-tree drag/drop reorganization.
+- `.ai/09_archive/store/2026-05-21-estimate-component-library-sidebar-audit-complete/` — completed P0-P4 closeout for the live estimate Component Library sidebar audit, including target-aware insertion, command palette, assemblies/templates, bulk actions, import/export, keyboard navigation, native card buttons, and verification evidence.
 
 Read first before planning new work:
 

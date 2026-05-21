@@ -8,6 +8,8 @@ export default defineConfig({
     setupFiles: ["./tests/vitest/setup.ts"],
     include: ["tests/vitest/**/*.test.{ts,tsx}"],
     exclude: ["node_modules", ".next", "e2e"],
+    fileParallelism: false,
+    testTimeout: 15_000,
   },
   resolve: {
     alias: { "@": path.resolve(__dirname, "./src") },

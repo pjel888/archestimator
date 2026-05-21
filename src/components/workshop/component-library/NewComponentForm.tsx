@@ -1,6 +1,6 @@
 "use client";
 
-import type { ReactNode } from "react";
+import type { ChangeEvent, ReactNode } from "react";
 
 import { Button } from "@/components/ui/button";
 import { ControlInput } from "@/components/ui/control-input";
@@ -33,6 +33,16 @@ export type NewComponentFormProps = {
 
 export function NewComponentForm({ form, formError, onChange, onSave, onSaveAndAdd, onCancel }: NewComponentFormProps) {
   const update = (partial: Partial<NewComponentFormType>) => onChange({ ...form, ...partial });
+
+  function handleImageUpload(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === "string") update({ imageUrl: reader.result });
+    };
+    reader.readAsDataURL(file);
+  }
 
   return (
     <div className="grid gap-3">
@@ -77,6 +87,9 @@ export function NewComponentForm({ form, formError, onChange, onSave, onSaveAndA
         </Field>
         <Field label="Image URL">
           <ControlInput className={inputClass} value={form.imageUrl} onChange={(e) => update({ imageUrl: e.target.value })} />
+        </Field>
+        <Field label="Image file">
+          <ControlInput className={cn(inputClass, "pt-1")} type="file" accept="image/*" onChange={handleImageUpload} />
         </Field>
         <Field label="Tags">
           <ControlInput className={inputClass} value={form.tags} placeholder="tag1, tag2, tag3" onChange={(e) => update({ tags: e.target.value })} />

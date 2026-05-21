@@ -1,7 +1,6 @@
 "use client";
 
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { type Dispatch, type DragEvent, type InputHTMLAttributes, type KeyboardEvent, type SetStateAction, useCallback, useEffect, useMemo, useState } from "react";
+import { type Dispatch, type DragEvent, type InputHTMLAttributes, type KeyboardEvent, type SetStateAction, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ArrowsOutSimple, CaretDown, Cube, DotsSixVertical, FolderSimple, Plus, Trash } from "@phosphor-icons/react/dist/ssr";
 
 import { Button } from "@/components/ui/button";
@@ -11,21 +10,37 @@ import { HeaderIconToolbar } from "@/components/ui/header-icon-toolbar";
 import { SearchInput } from "@/components/ui/search-input";
 import { dispatchProjectTotalChange } from "@/components/workshop/ProjectTotalHeader";
 import { useEstimateRowMutations, type EstimateSaveState } from "@/hooks/use-estimate-row-mutations";
-import { estimateQueryKeys } from "@/hooks/use-estimate-query";
+import { useEstimateAreaTreeQuery } from "@/hooks/use-estimate-query";
 import { resolveEstimateWorkspaceSelection, useEstimateWorkspaceSelection } from "@/hooks/use-estimate-workspace-state";
 import { getEstimateNodeDisplayKind } from "@/lib/estimates/tree-hierarchy";
 import { cn } from "@/lib/ui/cn";
+import { EstimateRightSidebar } from "./component-library";
+import { CommandPalette } from "./component-library/CommandPalette";
 import { findEstimateNode, sampleEstimateTree, type EstimateTreeNode, type EstimateRowItem } from "./estimate-tree-data";
 
 
 /* Re-export component library helpers and sidebar so existing imports don't break */
 export {
   createComponent,
+  createDefaultLibraryBundles,
+  exportLibraryItemsToCsv,
+  expandLibraryBundle,
+  exportLibraryItemsToJson,
   filterComponents,
+  getComponentDesignation,
+  getComponentDiscipline,
   getComponentImageUrl,
+  getLibraryBundleTotal,
   getComponentName,
   getComponentPrice,
+  getStalenessLabel,
+  getStalenessTone,
   groupComponents,
+  parseLibraryCsv,
+  parseLibraryImportText,
+  parseLibraryJson,
+  readLibraryPreferences,
+  safeSetJsonStorage,
   searchComponents,
   sortComponents,
 } from "./component-library/helpers";
@@ -36,6 +51,7 @@ type EstimateSheetContentProps = {
   nodes?: EstimateTreeNode[];
   projectId?: string;
   estimateId?: string;
+  renderSidebar?: boolean;
 };
 
 type EstimateSheetBranchProps = {
@@ -142,8 +158,8 @@ function getInitialEditableRow(item: EstimateRowItem): EditableRowValue {
     quantity: toEditableNumber(item.quantity),
     supplementaryCosts: toEditableNumber(item.supplementaryCosts),
     laborCost: toEditableNumber(item.laborCost ?? 0),
-    discipline: item.source === "library" ? "Furniture" : "Architectural",
-    designation: item.material.toLowerCase().includes("wall") ? "Wall" : item.material.toLowerCase().includes("chandelier") ? "Ceiling" : "Floor",
+    discipline: item.discipline ?? "Architectural",
+    designation: item.designation ?? (item.material.toLowerCase().includes("wall") ? "Wall" : item.material.toLowerCase().includes("chandelier") ? "Ceiling" : "Floor"),
   };
 }
 
@@ -474,7 +490,14 @@ function EstimateRowItemsTable({
                   isReplaceTarget={replaceTargetRowId === item.id}
                   onReplaceDragOver={() => setReplaceTargetRowId(item.id)}
                   onReplaceDragLeave={() => setReplaceTargetRowId((current) => (current === item.id ? "" : current))}
-                  onReplace={(libraryItem) => onReplaceRowItem(item.id, libraryItem)}
+                  onReplace={(libraryItem) =>
+                    onReplaceRowItem(item.id, {
+                      ...libraryItem,
+                      quantity: item.quantity,
+                      supplementaryCosts: item.supplementaryCosts,
+                      laborCost: item.laborCost,
+                    })
+                  }
                 />
               </td>
               <td className="flex flex-col justify-center gap-1 border-r border-hairline px-1 py-1.5">
@@ -777,25 +800,53 @@ function EstimateSheetBranch({ node, editableRows, setEditableRows, onInsertLibr
 function cloneLibraryItemForEstimate(libraryItem: EstimateRowItem, targetNodeId: string): EstimateRowItem {
   const id = `${targetNodeId}-${libraryItem.id}-${Date.now()}`;
   const quantity = libraryItem.quantity || 1;
+  const supplementaryCosts = libraryItem.supplementaryCosts ?? 0;
+  const laborCost = libraryItem.laborCost ?? 0;
   const subTotal = libraryItem.itemCost * quantity;
   return {
     ...libraryItem,
     id,
     quantity,
     subTotal,
-    totalItemCosts: subTotal + libraryItem.supplementaryCosts + libraryItem.laborCost,
+    supplementaryCosts,
+    laborCost,
+    totalItemCosts: subTotal + supplementaryCosts + laborCost,
+  };
+}
+
+function applyEditableValuesToLibraryItem(libraryItem: EstimateRowItem, editableRow?: EditableRowValue): EstimateRowItem {
+  if (!editableRow) return libraryItem;
+
+  const quantity = parseEditableNumber(editableRow.quantity);
+  const supplementaryCosts = parseEditableNumber(editableRow.supplementaryCosts);
+  const laborCost = parseEditableNumber(editableRow.laborCost);
+  const subTotal = libraryItem.itemCost * quantity;
+
+  return {
+    ...libraryItem,
+    quantity,
+    subTotal,
+    supplementaryCosts,
+    laborCost,
+    totalItemCosts: subTotal + supplementaryCosts + laborCost,
+    discipline: editableRow.discipline,
+    designation: editableRow.designation,
   };
 }
 
 function replaceRowItemWithLibraryItem(rowItemId: string, libraryItem: EstimateRowItem): EstimateRowItem {
   const quantity = libraryItem.quantity || 1;
+  const supplementaryCosts = libraryItem.supplementaryCosts ?? 0;
+  const laborCost = libraryItem.laborCost ?? 0;
   const subTotal = libraryItem.itemCost * quantity;
   return {
     ...libraryItem,
     id: rowItemId,
     quantity,
     subTotal,
-    totalItemCosts: subTotal + libraryItem.supplementaryCosts + libraryItem.laborCost,
+    supplementaryCosts,
+    laborCost,
+    totalItemCosts: subTotal + supplementaryCosts + laborCost,
   };
 }
 
@@ -814,22 +865,18 @@ function EstimateSheetHeader() {
   );
 }
 
-export function EstimateSheetContent({ selectedNodeId, nodes = sampleEstimateTree, projectId, estimateId }: EstimateSheetContentProps) {
-  const queryClient = useQueryClient();
-  const areaTreeQueryKey = estimateQueryKeys.areaTree(estimateId ?? "local-estimate");
+export function EstimateSheetContent({ selectedNodeId, nodes = sampleEstimateTree, projectId, estimateId, renderSidebar = true }: EstimateSheetContentProps) {
   const { selectedNodeId: activeSelectedNodeId, setSelectedNodeId } = useEstimateWorkspaceSelection(estimateId, selectedNodeId);
-  const { saveState, rowSaveStates, markRowDirty, fetchTree, insertRow, replaceRow, deleteRow, updateRow } = useEstimateRowMutations(estimateId);
-  const { data: queriedEstimateTree = nodes } = useQuery({
-    queryKey: areaTreeQueryKey,
-    queryFn: () => (projectId && estimateId ? fetchTree({ projectId, estimateId }) : Promise.resolve(nodes)),
-    initialData: nodes,
-    enabled: Boolean(projectId && estimateId),
-    refetchOnWindowFocus: true,
-    staleTime: 30_000,
+  const { saveState, rowSaveStates, markRowDirty, insertRow, replaceRow, deleteRow, updateRow } = useEstimateRowMutations(estimateId);
+  const { tree: estimateTree, setTree: setEstimateTreeData, restore: restoreEstimateTree } = useEstimateAreaTreeQuery({
+    projectId,
+    estimateId,
+    initialNodes: nodes,
   });
-  const [estimateTree, setEstimateTreeState] = useState(queriedEstimateTree);
+  const skipEditableRowsSyncRef = useRef(0);
   const [editableRows, setEditableRows] = useState<Record<string, EditableRowValue>>(() => collectEditableRows(nodes));
   const [pendingFocusRowId, setPendingFocusRowId] = useState("");
+  const [showCommandPalette, setShowCommandPalette] = useState(false);
   const { selectedNodeId: resolvedSelectedNodeId, selectedNode } = useMemo(
     () =>
       resolveEstimateWorkspaceSelection({
@@ -840,6 +887,8 @@ export function EstimateSheetContent({ selectedNodeId, nodes = sampleEstimateTre
     [activeSelectedNodeId, estimateTree],
   );
   const insertTargetNodeId = selectedNode?.kind === "area" ? selectedNode.id : "";
+  const canInsertIntoSelectedNode = Boolean(insertTargetNodeId);
+  const insertionTargetLabel = selectedNode?.kind === "area" ? selectedNode.name : "selected area";
   const projectTotal = estimateTree.reduce((total, node) => total + computeNodeTotal(node, editableRows), 0);
 
   useEffect(() => {
@@ -852,35 +901,49 @@ export function EstimateSheetContent({ selectedNodeId, nodes = sampleEstimateTre
   }, [activeSelectedNodeId, estimateId, resolvedSelectedNodeId, setSelectedNodeId]);
 
   const setEstimateTree = useCallback((updater: (current: EstimateTreeNode[]) => EstimateTreeNode[]) => {
-    setEstimateTreeState((current) => {
-      const next = updater(current);
-      queryClient.setQueryData(areaTreeQueryKey, next);
-      return next;
-    });
-  }, [areaTreeQueryKey, queryClient]);
+    skipEditableRowsSyncRef.current += 1;
+    setEstimateTreeData(updater);
+  }, [setEstimateTreeData]);
 
   const restoreEstimateState = useCallback((previousTree: EstimateTreeNode[], previousRows: Record<string, EditableRowValue>) => {
-    queryClient.setQueryData(areaTreeQueryKey, previousTree);
-    setEstimateTreeState(previousTree);
+    skipEditableRowsSyncRef.current += 1;
+    restoreEstimateTree(previousTree);
     setEditableRows(previousRows);
-  }, [areaTreeQueryKey, queryClient]);
+  }, [restoreEstimateTree]);
 
   useEffect(() => {
     if (saveState === "dirty" || saveState === "saving") return;
+    if (skipEditableRowsSyncRef.current > 0) {
+      skipEditableRowsSyncRef.current -= 1;
+      return;
+    }
     queueMicrotask(() => {
-      setEstimateTreeState(queriedEstimateTree);
-      setEditableRows(collectEditableRows(queriedEstimateTree));
+      setEditableRows(collectEditableRows(estimateTree));
     });
-  }, [queriedEstimateTree, saveState]);
+  }, [estimateTree, saveState]);
 
   useEffect(() => {
     if (!pendingFocusRowId) return;
-    window.requestAnimationFrame(() => {
+    let attempts = 0;
+    let frameId = 0;
+
+    function tryFocus() {
       const quantityInput = document.querySelector<HTMLInputElement>(`[data-estimate-row-id="${pendingFocusRowId}"][data-estimate-cell-index="0"]`);
-      quantityInput?.focus();
-      quantityInput?.select();
-      setPendingFocusRowId("");
-    });
+      if (quantityInput) {
+        quantityInput.scrollIntoView?.({ block: "nearest", behavior: "smooth" });
+        quantityInput.focus();
+        quantityInput.select();
+        setPendingFocusRowId("");
+        return;
+      }
+
+      attempts += 1;
+      if (attempts < 5) frameId = window.requestAnimationFrame(tryFocus);
+      else setPendingFocusRowId("");
+    }
+
+    frameId = window.requestAnimationFrame(tryFocus);
+    return () => window.cancelAnimationFrame(frameId);
   }, [pendingFocusRowId]);
 
   function updateRowItem(rowItemId: string, values: Partial<EditableRowValue>) {
@@ -926,6 +989,41 @@ export function EstimateSheetContent({ selectedNodeId, nodes = sampleEstimateTre
     }
   }, [editableRows, estimateId, estimateTree, insertRow, projectId, restoreEstimateState, setEstimateTree]);
 
+  const insertIntoSelectedNode = useCallback(
+    (libraryItem: EstimateRowItem) => {
+      if (!insertTargetNodeId) return false;
+      insertLibraryItem(insertTargetNodeId, libraryItem);
+      return true;
+    },
+    [insertLibraryItem, insertTargetNodeId],
+  );
+
+  useEffect(() => {
+    function handleCommandPaletteShortcut(event: globalThis.KeyboardEvent) {
+      if (event.defaultPrevented) return;
+      const activeElement = document.activeElement as HTMLElement | null;
+      const activeTag = activeElement?.tagName;
+      const isTypingTarget = activeElement?.isContentEditable || activeTag === "INPUT" || activeTag === "TEXTAREA" || activeTag === "SELECT";
+      const hasBlockingDialog = Boolean(document.querySelector("[role='dialog'], [role='alertdialog']"));
+
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k" && !hasBlockingDialog) {
+        event.preventDefault();
+        setShowCommandPalette(true);
+        return;
+      }
+
+      if (event.key === "/" && !isTypingTarget && !hasBlockingDialog) {
+        const sheetHasFocus = activeElement?.closest?.("[data-estimate-center-column='sheet']") || activeElement === document.body;
+        if (!sheetHasFocus) return;
+        event.preventDefault();
+        setShowCommandPalette(true);
+      }
+    }
+
+    window.addEventListener("keydown", handleCommandPaletteShortcut);
+    return () => window.removeEventListener("keydown", handleCommandPaletteShortcut);
+  }, []);
+
   useEffect(() => {
     function handleSidebarAdd(event: Event) {
       const customEvent = event as CustomEvent<EstimateRowItem>;
@@ -938,13 +1036,16 @@ export function EstimateSheetContent({ selectedNodeId, nodes = sampleEstimateTre
   function replaceRowItem(rowItemId: string, libraryItem: EstimateRowItem) {
     const previousTree = estimateTree;
     const previousRows = editableRows;
+    const editableReplacement = previousRows[rowItemId];
+    const replacementLibraryItem = applyEditableValuesToLibraryItem(libraryItem, editableReplacement);
+    const replacementItem = replaceRowItemWithLibraryItem(rowItemId, replacementLibraryItem);
     setEstimateTree((current) =>
       current.map((node) => {
         function visit(areaNode: EstimateTreeNode): EstimateTreeNode {
           return {
             ...areaNode,
             estimateRowItems: areaNode.estimateRowItems?.map((item) =>
-              item.id === rowItemId ? replaceRowItemWithLibraryItem(rowItemId, libraryItem) : item,
+              item.id === rowItemId ? replacementItem : item,
             ),
             children: areaNode.children?.map(visit),
           };
@@ -952,8 +1053,12 @@ export function EstimateSheetContent({ selectedNodeId, nodes = sampleEstimateTre
         return visit(node);
       }),
     );
+    setEditableRows((current) => ({
+      ...current,
+      [rowItemId]: current[rowItemId] ?? previousRows[rowItemId] ?? getInitialEditableRow(replacementItem),
+    }));
     if (projectId && estimateId) {
-      replaceRow({ projectId, estimateId, rowId: rowItemId, libraryItem, rollback: () => restoreEstimateState(previousTree, previousRows) });
+      replaceRow({ projectId, estimateId, rowId: rowItemId, libraryItem: replacementLibraryItem, rollback: () => restoreEstimateState(previousTree, previousRows) });
     }
   }
 
@@ -983,43 +1088,62 @@ export function EstimateSheetContent({ selectedNodeId, nodes = sampleEstimateTre
   }
 
   return (
-    <section
-      id="estimate-sheet-center-column"
-      className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-white"
-      data-estimate-center-column="sheet"
-      aria-label="Main estimate sheet"
-    >
-      {selectedNode ? (
-        <>
-          <EstimateSheetHeader />
-          <div className="min-h-0 flex-1 overflow-auto p-2">
-            <EstimateSheetBranch
-              node={selectedNode}
-              editableRows={editableRows}
-              setEditableRows={setEditableRows}
-              onInsertLibraryItem={insertLibraryItem}
-              onReplaceRowItem={replaceRowItem}
-              onDeleteRowItem={deleteRowItem}
-              onUpdateRowItem={updateRowItem}
-              onMarkRowDirty={markRowDirty}
-              rowSaveStates={rowSaveStates}
-            />
-          </div>
-        </>
-      ) : (
-        <>
-          <EstimateSheetHeader />
-          <div className="flex min-h-0 flex-1 items-center justify-center overflow-auto p-2">
-            <div className="max-w-md rounded-lg border border-dashed border-hairline bg-surface-muted p-3 text-center">
-              <p className="text-[8px] font-bold uppercase tracking-[0.16em] text-tertiary">Empty estimate</p>
-              <h2 className="mt-1 text-[12px] font-bold tracking-[-0.02em] text-ink">No estimate tree yet</h2>
-              <p className="mt-1 text-[10px] leading-4 text-tertiary">
-                This estimate has no Group Nodes, Area Nodes, or cost estimate rows. Rebuild the tree first, then place cost rows only inside Area Nodes.
-              </p>
+    <>
+      <CommandPalette
+        open={showCommandPalette}
+        canInsert={canInsertIntoSelectedNode}
+        targetLabel={insertionTargetLabel}
+        onClose={() => setShowCommandPalette(false)}
+        onInsert={insertIntoSelectedNode}
+      />
+      <section
+        id="estimate-sheet-center-column"
+        className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-white"
+        data-estimate-center-column="sheet"
+        aria-label="Main estimate sheet"
+      >
+        {selectedNode ? (
+          <>
+            <EstimateSheetHeader />
+            <div className="min-h-0 flex-1 overflow-auto p-2">
+              <EstimateSheetBranch
+                node={selectedNode}
+                editableRows={editableRows}
+                setEditableRows={setEditableRows}
+                onInsertLibraryItem={insertLibraryItem}
+                onReplaceRowItem={replaceRowItem}
+                onDeleteRowItem={deleteRowItem}
+                onUpdateRowItem={updateRowItem}
+                onMarkRowDirty={markRowDirty}
+                rowSaveStates={rowSaveStates}
+              />
             </div>
-          </div>
-        </>
-      )}
-    </section>
+          </>
+        ) : (
+          <>
+            <EstimateSheetHeader />
+            <div className="flex min-h-0 flex-1 items-center justify-center overflow-auto p-2">
+              <div className="max-w-md rounded-lg border border-dashed border-hairline bg-surface-muted p-3 text-center">
+                <p className="text-[8px] font-bold uppercase tracking-[0.16em] text-tertiary">Empty estimate</p>
+                <h2 className="mt-1 text-[12px] font-bold tracking-[-0.02em] text-ink">No estimate tree yet</h2>
+                <p className="mt-1 text-[10px] leading-4 text-tertiary">
+                  This estimate has no Group Nodes, Area Nodes, or cost estimate rows. Rebuild the tree first, then place cost rows only inside Area Nodes.
+                </p>
+              </div>
+            </div>
+          </>
+        )}
+      </section>
+      {renderSidebar ? (
+        <EstimateRightSidebar
+          onInsertComponent={insertIntoSelectedNode}
+          estimateId={estimateId}
+          selectedNodeId={resolvedSelectedNodeId}
+          selectedNodeKind={selectedNode?.kind ?? null}
+          selectedNodeName={selectedNode?.name ?? null}
+          nodes={estimateTree}
+        />
+      ) : null}
+    </>
   );
 }

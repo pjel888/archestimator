@@ -1,8 +1,34 @@
 import type { EstimateRowItem } from "../estimate-tree-data";
 
+export type LibraryPanelTab = "components" | "assemblies" | "templates";
 export type LibraryGroupBy = "none" | "category" | "supplier" | "discipline" | "room" | "recent";
 export type LibraryViewMode = "compact" | "detailed" | "grid";
 export type LibrarySortMode = "relevance" | "name" | "priceAsc" | "priceDesc" | "recentUsed" | "recentAdded" | "supplier";
+
+export type LibraryBundleKind = "assembly" | "template";
+
+export type LibraryBundleItem = {
+  itemId: string;
+  quantity: number;
+};
+
+export type LibraryBundle = {
+  id: string;
+  kind: LibraryBundleKind;
+  name: string;
+  description: string;
+  items: LibraryBundleItem[];
+  tags?: string[];
+  isCustom?: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+};
+
+export type LibraryImportResult = {
+  items: EstimateRowItem[];
+  bundles: LibraryBundle[];
+  errors: string[];
+};
 
 export type ComponentFilters = {
   categories: string[];
