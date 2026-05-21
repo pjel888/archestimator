@@ -1,95 +1,136 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
-import { fireEvent, render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 
 import { ComponentsPageClient } from "@/components/workshop/ComponentsPageClient";
-import { ComponentLibraryInspector } from "@/components/workshop/component-library-manager/ComponentLibraryInspector";
-import type { ComponentLibraryManagerItem } from "@/components/workshop/component-library-manager/types";
 
 describe("component library manager UI", () => {
-  it("renders a dense manager table instead of the old card grid", () => {
-    const { container } = render(<ComponentsPageClient />);
+  it("renders the estimate-style component workspace without the retired standalone chrome", () => {
+    render(<ComponentsPageClient />);
 
-    expect(screen.getByRole("grid", { name: "Component library table" })).toBeInTheDocument();
-    expect(screen.getByRole("columnheader", { name: "Name" })).toHaveAttribute("aria-sort", "ascending");
-    expect(screen.getByRole("columnheader", { name: "Unit cost" })).toHaveAttribute("aria-sort", "none");
-    expect(screen.getByLabelText("Library filters")).toBeInTheDocument();
-    expect(screen.getByText("Dense table")).toBeInTheDocument();
-    expect(container.querySelector("article")).toBeNull();
+    expect(screen.getByLabelText("Component library workspace")).toBeInTheDocument();
+    expect(screen.getByLabelText("Component library tree")).toBeInTheDocument();
+    expect(screen.getByLabelText("Custom component sheet")).toBeInTheDocument();
+    expect(screen.getByLabelText("Search component library tree")).toBeInTheDocument();
+    expect(screen.getByLabelText("Search component sheet")).toBeInTheDocument();
+    expect(screen.getByLabelText("Search component library tree").compareDocumentPosition(screen.getByLabelText("Component tree tools"))).toBe(
+      Node.DOCUMENT_POSITION_FOLLOWING,
+    );
+    expect(screen.getByLabelText("Component tree tools").compareDocumentPosition(screen.getByRole("tablist", { name: "Component library tree views" }))).toBe(
+      Node.DOCUMENT_POSITION_FOLLOWING,
+    );
+    expect(screen.getByRole("tab", { name: "Categories" })).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByRole("tab", { name: "Suppliers" })).toHaveAttribute("aria-selected", "false");
+    expect(screen.getByRole("treeitem", { name: "Fixtures" })).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByRole("treeitem", { name: "Administration" })).toBeInTheDocument();
+    expect(screen.getByRole("treeitem", { name: "Architecture" })).toBeInTheDocument();
+    expect(screen.getByRole("treeitem", { name: "Materials" })).toBeInTheDocument();
+    expect(screen.getByRole("treeitem", { name: "Finishes" })).toBeInTheDocument();
+    expect(screen.getByRole("treeitem", { name: "Doors" })).toBeInTheDocument();
+    expect(screen.getByRole("treeitem", { name: "Windows" })).toBeInTheDocument();
+    expect(screen.getByRole("treeitem", { name: "Furniture" })).toBeInTheDocument();
+    expect(screen.getByRole("treeitem", { name: "Equipment" })).toBeInTheDocument();
+    expect(screen.getByRole("treeitem", { name: "Plumbing Systems" })).toBeInTheDocument();
+    expect(screen.getByRole("treeitem", { name: "Sanitary Systems" })).toBeInTheDocument();
+    expect(screen.getByRole("treeitem", { name: "Fire Alarm" })).toBeInTheDocument();
+    expect(screen.getByRole("treeitem", { name: "Life Safety" })).toBeInTheDocument();
+    expect(screen.getByRole("table", { name: "Custom user components" })).toBeInTheDocument();
+    expect(screen.getAllByText("LED Downlight 18W").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Lavatory Faucet").length).toBeGreaterThan(0);
+    expect(screen.queryByText("FF&E")).not.toBeInTheDocument();
+    expect(screen.queryByText("FFE")).not.toBeInTheDocument();
+    expect(screen.queryByText("Furniture, Fixtures, and Equipment")).not.toBeInTheDocument();
+    expect(screen.queryByText("Furniture, Furnishings & Equipment")).not.toBeInTheDocument();
+    expect(screen.queryByText("Furniture + Equipment")).not.toBeInTheDocument();
+    expect(screen.queryByText("Fixtures & Equipment")).not.toBeInTheDocument();
+    expect(screen.queryByText("Architecture & Interiors")).not.toBeInTheDocument();
+    expect(screen.queryByText("Fixture - Lighting")).not.toBeInTheDocument();
+    expect(screen.queryByText("Fixture - Plumbing")).not.toBeInTheDocument();
+    expect(screen.queryByText("Assemblies & Templates")).not.toBeInTheDocument();
+
+    expect(screen.queryByLabelText("Search library")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Library tools")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "New component" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("grid", { name: "Component library table" })).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Library filters")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(/details$/i)).not.toBeInTheDocument();
+    expect(screen.queryByText("Demo seed")).not.toBeInTheDocument();
   });
 
-  it("does not leave placeholder route copy in the page file", () => {
+  it("keeps the route wired to the component workspace shell copy", () => {
     const source = readFileSync(join(process.cwd(), "src/app/workshop/components/page.tsx"), "utf8");
 
-    expect(source).toContain("Workspace library");
+    expect(source).toContain("Component workspace");
+    expect(source).toContain("Custom library");
+    expect(source).not.toContain("Workspace library");
+    expect(source).not.toContain("Demo seed");
     expect(source).not.toContain("Component library shell");
     expect(source).not.toContain("Content pending approved workflow");
   });
 
-  it("searches visible rows", () => {
+  it("supports tree view tabs and sheet-local search in the estimate workspace positions", () => {
     render(<ComponentsPageClient />);
 
-    fireEvent.change(screen.getByLabelText("Search library"), { target: { value: "HEMLINGBY" } });
+    fireEvent.click(screen.getByRole("tab", { name: "Suppliers" }));
 
-    expect(screen.getByText("HEMLINGBY Loveseat")).toBeInTheDocument();
-    expect(screen.queryByText("Mandaue Foam Accent Chair")).not.toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "Suppliers" })).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByRole("treeitem", { name: /IKEA Philippines/ })).toHaveAttribute("aria-selected", "true");
+    expect(screen.getAllByText("HEMLINGBY Loveseat").length).toBeGreaterThan(0);
+    expect(screen.queryByText("LED Downlight 18W")).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("treeitem", { name: /Wilcon Depot/ }));
+
+    expect(screen.getAllByText("LED Downlight 18W").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Lavatory Faucet").length).toBeGreaterThan(0);
+    expect(screen.queryByText("HEMLINGBY Loveseat")).not.toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText("Search component sheet"), { target: { value: "faucet" } });
+
+    expect(screen.getByLabelText("Search component sheet")).toHaveValue("faucet");
+    expect(screen.getAllByText("Lavatory Faucet").length).toBeGreaterThan(0);
+    expect(screen.queryByText("LED Downlight 18W")).not.toBeInTheDocument();
   });
 
-  it("filters from the facet panel", () => {
+  it("searches taxonomy aliases without turning procurement scopes into category folders", () => {
     render(<ComponentsPageClient />);
 
-    fireEvent.click(screen.getByRole("button", { name: /Missing price/i }));
+    fireEvent.change(screen.getByLabelText("Search component library tree"), { target: { value: "luminaire" } });
 
-    expect(screen.getByText("No components matched")).toBeInTheDocument();
+    expect(screen.getByLabelText("Search component library tree")).toHaveValue("luminaire");
+    expect(screen.getByRole("treeitem", { name: "Lighting Fixtures" })).toBeInTheDocument();
+    expect(screen.queryByRole("treeitem", { name: "FF&E" })).not.toBeInTheDocument();
   });
 
-  it("updates facet counts to the visible filtered set", () => {
+  it("keeps organizer, category, and subcategory tree rows visually consistent", () => {
     render(<ComponentsPageClient />);
 
-    fireEvent.click(screen.getByRole("button", { name: /Finishes18/i }));
-
-    expect(screen.getByText("18 visible items")).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /Plumbing Fixtures10/i })).not.toBeInTheDocument();
+    expect(screen.getByRole("treeitem", { name: "Objects" })).toHaveClass("!text-[10px]");
+    expect(screen.getByRole("treeitem", { name: "Fixtures" })).toHaveClass("!text-[10px]");
+    expect(screen.getByRole("treeitem", { name: "Lighting Fixtures" })).toHaveClass("!text-[10px]");
+    expect(screen.getByRole("treeitem", { name: "Objects" }).className).not.toContain("uppercase");
+    expect(screen.getByRole("treeitem", { name: "Objects" }).className).not.toContain("tracking-[0.08em]");
   });
 
-  it("opens a read-only inspector from a row", () => {
-    render(<ComponentsPageClient />);
+  it("preserves the no-drag component tree contract and the estimate tree width target", () => {
+    const source = readFileSync(
+      join(process.cwd(), "src/components/workshop/component-library-manager/ComponentLibraryManager.tsx"),
+      "utf8",
+    );
 
-    fireEvent.click(screen.getByRole("row", { name: /HEMLINGBY Loveseat/i }));
-
-    const inspector = screen.getByLabelText("HEMLINGBY Loveseat details");
-    expect(inspector).toBeInTheDocument();
-    expect(within(inspector).getByText("Pricing")).toBeInTheDocument();
-    expect(within(inspector).getByText("IKEA PH sofa category page")).toBeInTheDocument();
-    expect(within(inspector).getByRole("button", { name: "Edit" })).toBeDisabled();
-    expect(within(inspector).getByRole("button", { name: "Duplicate" })).toBeDisabled();
-  });
-
-  it("does not render unsafe source URLs as external links", () => {
-    const unsafeItem: ComponentLibraryManagerItem = {
-      id: "unsafe",
-      name: "Unsafe Source",
-      kind: "material",
-      category: "Finishes",
-      supplier: "Supplier",
-      rawSupplier: "Supplier",
-      unit: "pc",
-      unitCost: 1,
-      laborCost: 0,
-      supplementaryCost: 0,
-      pricingSource: "Manual",
-      pricingDate: "2026-05-21",
-      confidence: "Demo seed",
-      description: "Unsafe URL fixture",
-      sourceUrl: "javascript:alert(1)",
-      health: "current",
-      healthIssues: [],
-    };
-
-    render(<ComponentLibraryInspector item={unsafeItem} onClose={() => undefined} />);
-
-    expect(screen.getByText("javascript:alert(1)")).toBeInTheDocument();
-    expect(screen.queryByRole("link", { name: "javascript:alert(1)" })).not.toBeInTheDocument();
+    expect(source).toContain("const COMPONENT_LIBRARY_TREE_WIDTH = 376");
+    expect(source).toContain("componentCategoryTree");
+    expect(source).not.toContain("kind === \"browse-section\"");
+    expect(source).not.toContain("node.code ? <span");
+    expect(source).toContain("defaultWidth={272}");
+    expect(source).toContain("minWidth={216}");
+    expect(source).toContain("maxWidth={432}");
+    expect(source).toContain("widthOffset={COMPONENT_LIBRARY_TREE_LEFT_EXTENSION_WIDTH}");
+    expect(source).not.toContain("canDragAndDrop");
+    expect(source).not.toContain("canReorderItems");
+    expect(source).not.toContain("onDrop");
+    expect(source).not.toContain("data-estimate-tree-root");
+    expect(source).not.toContain("EstimateRightSidebar");
+    expect(source).not.toContain("renderSidebar");
   });
 });
