@@ -7,7 +7,7 @@ export function ProductPreview() {
         <div className="flex h-12 items-center justify-between border-b border-[#dedbd6] px-4">
           <div className="flex items-center gap-2">
             <span className="size-2 rounded-full bg-[#ff5600]" />
-            <span className="text-[12px] font-semibold text-[#111111]">Grand Hyatt Renovation</span>
+            <span className="text-[12px] font-semibold text-[#111111]">Interior Fit-out Estimate</span>
           </div>
           <span className="rounded-[4px] bg-[#111111] px-3 py-1.5 font-mono text-[12px] font-semibold text-white">₱4.82M</span>
         </div>

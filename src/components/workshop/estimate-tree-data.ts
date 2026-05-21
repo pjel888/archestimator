@@ -33,6 +33,7 @@ export type EstimateRowItem = {
   lastUsedAt?: string;
   pricingSource: string;
   pricingDate: string;
+  confidence?: string;
 };
 
 export type EstimateTreeNode = {
@@ -44,9 +45,7 @@ export type EstimateTreeNode = {
   estimateRowItems?: EstimateRowItem[];
 };
 
-export type EstimateAreaNode = EstimateTreeNode;
-
-export type FlatEstimateAreaNode = EstimateTreeNode & {
+export type FlatEstimateTreeNode = EstimateTreeNode & {
   depth: number;
   path: string[];
 };
@@ -190,6 +189,7 @@ function row(input: Omit<EstimateRowItem, "subTotal" | "totalItemCosts" | "categ
     imageUrl: componentThumbnailUrls[input.id] ?? input.imageUrl ?? inferImageUrl(input.material, category),
     pricingSource: input.pricingSource ?? "Demo seed assumption — verify supplier quote before issuing",
     pricingDate: input.pricingDate ?? "2026-05-17",
+    confidence: input.confidence ?? "Demo seed",
     subTotal,
     totalItemCosts: subTotal + input.supplementaryCosts + input.laborCost,
   };
@@ -266,7 +266,7 @@ export const estimateLibraryItems: EstimateRowItem[] = [
   row({ id: "lib-wood-plastic-composite-deck", material: "Wood-Plastic Composite Decking Board", description: "WPC decking allowance for balconies, roof decks, and outdoor lounge areas; confirm board profile, clips, subframe, UV warranty, and drainage.", supplier: "Wilcon Depot / PH outdoor decking suppliers", source: "supplier", unit: "sqm", itemCost: 3600, quantity: 1, supplementaryCosts: 0, laborCost: 900, category: "Outdoor", discipline: "Architectural", designation: "Floor / Deck Finish", tags: ["flooring", "decking", "wpc", "outdoor"], pricingSource: "Philippine WPC decking supplier allowance — verify system quote", pricingDate: "2026-05-18", sourceUrl: "https://www.wilcon.com.ph/" }),
 ];
 
-export const sampleEstimateTree: EstimateAreaNode[] = [
+export const sampleEstimateTree: EstimateTreeNode[] = [
   {
     id: "lot-primary-residence",
     name: "Lot A — Primary Residence",
@@ -414,7 +414,7 @@ export const sampleEstimateTree: EstimateAreaNode[] = [
   },
 ];
 
-export function flattenVisibleNodes(nodes: EstimateAreaNode[], expandedIds: Set<string>, depth = 0, parentPath: string[] = []): FlatEstimateAreaNode[] {
+export function flattenVisibleNodes(nodes: EstimateTreeNode[], expandedIds: Set<string>, depth = 0, parentPath: string[] = []): FlatEstimateTreeNode[] {
   return nodes.flatMap((node) => {
     const path = [...parentPath, node.name];
     return [
@@ -424,10 +424,10 @@ export function flattenVisibleNodes(nodes: EstimateAreaNode[], expandedIds: Set<
   });
 }
 
-export function getExpandedNodeIds(nodes: EstimateAreaNode[]) {
+export function getExpandedNodeIds(nodes: EstimateTreeNode[]) {
   const ids = new Set<string>();
 
-  function visit(node: EstimateAreaNode) {
+  function visit(node: EstimateTreeNode) {
     ids.add(node.id);
     node.children?.forEach(visit);
   }
@@ -436,7 +436,7 @@ export function getExpandedNodeIds(nodes: EstimateAreaNode[]) {
   return ids;
 }
 
-export function findEstimateNode(nodes: EstimateAreaNode[], id: string): EstimateAreaNode | undefined {
+export function findEstimateNode(nodes: EstimateTreeNode[], id: string): EstimateTreeNode | undefined {
   for (const node of nodes) {
     if (node.id === id) return node;
     const child = node.children ? findEstimateNode(node.children, id) : undefined;
@@ -445,10 +445,10 @@ export function findEstimateNode(nodes: EstimateAreaNode[], id: string): Estimat
   return undefined;
 }
 
-export function validateEstimateTreeHierarchy(nodes: EstimateAreaNode[]) {
+export function validateEstimateTreeHierarchy(nodes: EstimateTreeNode[]) {
   const errors: string[] = [];
 
-  function visit(node: EstimateAreaNode, path: string[]) {
+  function visit(node: EstimateTreeNode, path: string[]) {
     const nodePath = [...path, node.name];
     if (node.kind !== "area" && node.estimateRowItems?.length) {
       errors.push(`${nodePath.join(" > ")} is a Group Node but contains estimate row items`);

@@ -1,4 +1,7 @@
 import { defineConfig, devices } from "@playwright/test";
+import { loadEnvConfig } from "@next/env";
+
+loadEnvConfig(process.cwd(), true);
 
 const port = process.env.PLAYWRIGHT_PORT ?? "3020";
 const baseURL = `http://127.0.0.1:${port}`;

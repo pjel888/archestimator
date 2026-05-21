@@ -1,0 +1,34 @@
+npm warn Unknown user config "always-auth" (//skand-124087294415.d.codeartifact.ap-southeast-2.amazonaws.com/npm/core/:always-auth). This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.
+Changes: 6 files, 37 symbols
+Affected processes: 25
+Risk level: critical
+
+Changed symbols:
+  undefined GitNexus — Code Intelligence → AGENTS.md
+  undefined GitNexus — Code Intelligence → CLAUDE.md
+  undefined items → src/components/workshop/EstimateSheetTree.tsx
+  undefined pendingReordersRef → src/components/workshop/EstimateSheetTree.tsx
+  undefined defaultExpandedItems → src/components/workshop/EstimateSheetTree.tsx
+  undefined defaultParentId → src/components/workshop/EstimateSheetTree.tsx
+  undefined createNodeAction → src/components/workshop/EstimateSheetTree.tsx
+  undefined expandedItems → src/components/workshop/EstimateSheetTree.tsx
+  undefined handleCanDrag → src/components/workshop/EstimateSheetTree.tsx
+  undefined handleCanDropAt → src/components/workshop/EstimateSheetTree.tsx
+  undefined handleDrop → src/components/workshop/EstimateSheetTree.tsx
+  undefined result → src/components/workshop/EstimateSheetTree.tsx
+  undefined previousNodes → src/components/workshop/EstimateSheetTree.tsx
+  undefined nextNodes → src/components/workshop/EstimateSheetTree.tsx
+  undefined confirmed → src/components/workshop/EstimateSheetTree.tsx
+  ... and 22 more
+
+Affected execution flows:
+  • ReorderEstimateTreeNodes → IsDevAuthBypassEnabled (8 steps) — changed: reorderEstimateTreeNodes
+  • ReorderEstimateTreeNodes → GetRequiredDevEnv (8 steps) — changed: reorderEstimateTreeNodes
+  • ReorderEstimateTreeNodes → GetHostnameFromHostHeader (7 steps) — changed: reorderEstimateTreeNodes
+  • CreateEstimate → GetRequiredDevEnv (6 steps) — changed: createEstimate
+  • CreateEstimate → IsDevAuthBypassEnabled (6 steps) — changed: createEstimate
+  • CreateEstimate → GetHostnameFromHostHeader (6 steps) — changed: createEstimate
+  • HandleDrop → GetRequiredDevEnv (6 steps) — changed: handleDrop, reorderEstimateTreeNodes
+  • HandleDrop → Visit (5 steps) — changed: handleDrop
+  • HandleCanDropAt → Visit (5 steps) — changed: handleCanDropAt
+  • ProjectEstimateNodePage → UseEstimateWorkspaceState (4 steps) — changed: EstimateSheetTree

@@ -1,16 +1,8 @@
 import Link from 'next/link'
-import { ProductPreview } from './ProductPreview'
 import { NeatWireframeBackground } from './NeatWireframeBackground'
 import { loginHref } from './constants'
 
 const trustBadges = ['Component Library', 'BOQ ready', 'Revision ready']
-
-const productTabs = [
-  'Estimate Workspace',
-  'Component Library',
-  'Revision Intelligence',
-  'Proposal Comparisons',
-]
 
 export function HeroSection() {
   return (
@@ -75,28 +67,6 @@ export function HeroSection() {
               ))}
             </div>
           </div>
-        </div>
-      </div>
-    </section>
-  )
-}
-
-export function ProductShowcaseSection() {
-  return (
-    <section id='product' className='bg-white px-4 py-16 sm:px-6 lg:px-8'>
-      <div className='w-full border-t border-[#dedbd6] pt-6'>
-        <div className='grid gap-3 text-[15px] font-semibold text-[#9c9fa5] md:grid-cols-4'>
-          {productTabs.map((tab, index) => (
-            <button
-              key={tab}
-              className={`border-b pb-4 text-left transition ${index === 0 ? 'border-[#111111] text-[#111111]' : 'border-[#dedbd6] hover:text-[#111111]'}`}
-            >
-              {tab}
-            </button>
-          ))}
-        </div>
-        <div className='mt-8'>
-          <ProductPreview />
         </div>
       </div>
     </section>

@@ -56,3 +56,6 @@ yarn-error.log*
 # generated code intelligence indexes are local-only
 .chunkhound/
 .chunkhound.json
+
+# generated agent/dev scratch backups are local-only
+/.ai/99_scratch/

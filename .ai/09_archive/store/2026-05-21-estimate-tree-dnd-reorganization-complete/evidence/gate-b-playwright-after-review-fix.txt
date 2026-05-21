@@ -1,0 +1,10 @@
+npm warn Unknown user config "always-auth" (//skand-124087294415.d.codeartifact.ap-southeast-2.amazonaws.com/npm/core/:always-auth). This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.
+
+Running 3 tests using 2 workers
+
+  -  1 [chromium] › e2e/estimate-tree-dnd.spec.ts:145:7 › estimate tree drag/drop seamlessness › reorders sibling area nodes without route reload, tree blanking, or lost persistence
+  ✓  2 [chromium] › e2e/auth.spec.ts:3:5 › protected workshop projects redirects signed-out users to login (438ms)
+  ✓  3 [chromium] › e2e/auth.spec.ts:10:5 › login page keeps compact shared-control UI visible (192ms)
+
+  1 skipped
+  2 passed (1.8s)
