@@ -8,15 +8,15 @@ $ next build
   Finished TypeScript in 3.7s ...
   Collecting page data using 7 workers ...
   Generating static pages using 7 workers (0/9) ...
-  Generating static pages using 7 workers (2/9) 
+  Generating static pages using 7 workers (2/9)
 🌈 Neat Gradients
 
 Licensed under MIT + The Commons Clause.
 Free for personal and commercial use.
 Selling this software or its derivatives is strictly prohibited.
 https://neat.firecms.co
-  Generating static pages using 7 workers (4/9) 
-  Generating static pages using 7 workers (6/9) 
+  Generating static pages using 7 workers (4/9)
+  Generating static pages using 7 workers (6/9)
 ✓ Generating static pages using 7 workers (9/9) in 128ms
   Finalizing page optimization ...
 
@@ -37,4 +37,3 @@ Route (app)
 
 ○  (Static)   prerendered as static content
 ƒ  (Dynamic)  server-rendered on demand
-

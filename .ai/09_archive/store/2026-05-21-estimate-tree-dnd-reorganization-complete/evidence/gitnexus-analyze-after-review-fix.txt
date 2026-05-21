@@ -2,11 +2,12 @@ npm warn Unknown user config "always-auth" (//skand-124087294415.d.codeartifact.
 
   GitNexus Analyzer
 
-[2KIncremental: changed=4, added=0, deleted=0 (skipping wipe + 167 unchanged file rows preserved)
-[2KParse cache: pruned 1 stale chunk entries
+[2K
+Incremental: changed=4, added=0, deleted=0 (skipping wipe + 167 unchanged file rows preserved)
+[2K
+Parse cache: pruned 1 stale chunk entries
 
   Repository indexed successfully (5.1s)
 
   1,870 nodes | 3,680 edges | 87 clusters | 154 flows
   /Users/philiplewis/archestimator
-

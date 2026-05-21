@@ -106,4 +106,3 @@ This ensures that you're testing the behavior the user would see in the browser.
 [2m      Tests [22m [1m[32m106 passed[39m[22m[90m (106)[39m
 [2m   Start at [22m 23:44:44
 [2m   Duration [22m 6.40s[2m (transform 1.47s, setup 1.02s, import 14.36s, tests 7.72s, environment 11.68s)[22m
-
