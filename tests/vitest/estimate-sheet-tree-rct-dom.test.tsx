@@ -56,6 +56,20 @@ function fixtureTree(): EstimateTreeNode[] {
         },
       ],
     },
+    {
+      id: "phase-two",
+      name: "Phase Two",
+      kind: "group",
+      total: "₱0.00",
+      children: [],
+    },
+    {
+      id: "phase-three",
+      name: "Phase Three",
+      kind: "group",
+      total: "₱0.00",
+      children: [],
+    },
   ];
 }
 
@@ -95,6 +109,19 @@ function setMiddleDropRect(element: HTMLElement) {
   });
 }
 
+function mockDataTransfer() {
+  const transferStore = new Map<string, string>();
+  return {
+    dropEffect: "move",
+    effectAllowed: "all",
+    getData: vi.fn((key: string) => transferStore.get(key) ?? ""),
+    setData: vi.fn((key: string, value: string) => {
+      transferStore.set(key, value);
+    }),
+    setDragImage: vi.fn(),
+  };
+}
+
 describe("estimate sheet tree React Complex Tree DOM integration", () => {
   beforeEach(() => {
     resetEstimateWorkspaceState();
@@ -110,12 +137,14 @@ describe("estimate sheet tree React Complex Tree DOM integration", () => {
     const tree = screen.getByRole("tree", { name: "Modern Bungalow estimate areas" });
     expect(
       Array.from(tree.querySelectorAll("[data-estimate-tree-node-id]")).map((item) => item.getAttribute("data-estimate-tree-node-id")),
-    ).toEqual(["project-scope", "ground-floor", "kitchen", "alternates"]);
+    ).toEqual(["project-scope", "ground-floor", "kitchen", "alternates", "phase-two", "phase-three"]);
 
     const projectScope = treeNodeButton("project-scope");
     const groundFloor = treeNodeButton("ground-floor");
     const kitchen = treeNodeButton("kitchen");
     const alternates = treeNodeButton("alternates");
+    const phaseTwo = treeNodeButton("phase-two");
+    const phaseThree = treeNodeButton("phase-three");
 
     expect(projectScope).toHaveAttribute("data-rct-item-interactive", "true");
     expect(projectScope).toHaveAttribute("data-rct-item-id", "project-scope");
@@ -124,11 +153,15 @@ describe("estimate sheet tree React Complex Tree DOM integration", () => {
     expect(kitchen).toHaveAttribute("draggable", "true");
     expect(alternates).toHaveAttribute("data-rct-item-interactive", "true");
     expect(alternates).toHaveAttribute("draggable", "true");
+    expect(phaseTwo).toHaveAttribute("data-rct-item-interactive", "true");
+    expect(phaseThree).toHaveAttribute("data-rct-item-interactive", "true");
 
     expect(projectScope.querySelector("[data-estimate-tree-title-offset]")).toHaveStyle({ paddingLeft: "0px" });
     expect(groundFloor.querySelector("[data-estimate-tree-title-offset]")).toHaveStyle({ paddingLeft: "20px" });
     expect(kitchen.querySelector("[data-estimate-tree-title-offset]")).toHaveStyle({ paddingLeft: "40px" });
     expect(alternates.querySelector("[data-estimate-tree-title-offset]")).toHaveStyle({ paddingLeft: "20px" });
+    expect(phaseTwo.querySelector("[data-estimate-tree-title-offset]")).toHaveStyle({ paddingLeft: "0px" });
+    expect(phaseThree.querySelector("[data-estimate-tree-title-offset]")).toHaveStyle({ paddingLeft: "0px" });
   });
 
   it("shows a nesting affordance when dragging a node over the middle of a valid Group Node", () => {
@@ -136,16 +169,7 @@ describe("estimate sheet tree React Complex Tree DOM integration", () => {
 
     const kitchen = treeNodeButton("kitchen");
     const alternates = treeNodeButton("alternates");
-    const transferStore = new Map<string, string>();
-    const dataTransfer = {
-      dropEffect: "move",
-      effectAllowed: "all",
-      getData: vi.fn((key: string) => transferStore.get(key) ?? ""),
-      setData: vi.fn((key: string, value: string) => {
-        transferStore.set(key, value);
-      }),
-      setDragImage: vi.fn(),
-    };
+    const dataTransfer = mockDataTransfer();
     setMiddleDropRect(alternates);
 
     fireEvent.dragStart(kitchen, { dataTransfer });
@@ -153,5 +177,80 @@ describe("estimate sheet tree React Complex Tree DOM integration", () => {
     fireEvent.dragOver(alternates, { clientY: 14, dataTransfer });
 
     expect(screen.getByText("Nest inside Alternates")).toBeInTheDocument();
+  });
+
+  it("shows a bottom root drop line for moving a Group Node to the outermost level", () => {
+    actionMocks.reorderEstimateTreeNodes.mockResolvedValue({
+      tree: [
+        {
+          id: "project-scope",
+          name: "Project Scope",
+          kind: "group",
+          total: "₱0.00",
+          children: [
+            {
+              id: "ground-floor",
+              name: "Ground Floor",
+              kind: "group",
+              total: "₱0.00",
+              children: [
+                {
+                  id: "kitchen",
+                  name: "Kitchen",
+                  kind: "area",
+                  total: "₱0.00",
+                  estimateRowItems: [],
+                  children: [],
+                },
+              ],
+            },
+          ],
+        },
+        {
+          id: "phase-two",
+          name: "Phase Two",
+          kind: "group",
+          total: "₱0.00",
+          children: [],
+        },
+        {
+          id: "phase-three",
+          name: "Phase Three",
+          kind: "group",
+          total: "₱0.00",
+          children: [],
+        },
+        {
+          id: "alternates",
+          name: "Alternates",
+          kind: "group",
+          total: "₱0.00",
+          children: [],
+        },
+      ],
+    });
+    renderTree();
+
+    const alternates = treeNodeButton("alternates");
+    const rootBottomDropZone = document.querySelector("[data-estimate-tree-root-bottom-drop='true']");
+    if (!(rootBottomDropZone instanceof HTMLElement)) throw new Error("Missing root bottom drop zone.");
+    const dataTransfer = mockDataTransfer();
+
+    fireEvent.dragStart(alternates, { dataTransfer });
+    fireEvent.dragOver(rootBottomDropZone, { dataTransfer });
+
+    expect(rootBottomDropZone).toHaveAttribute("data-estimate-tree-root-bottom-drop-active", "true");
+
+    fireEvent.drop(rootBottomDropZone, { dataTransfer });
+
+    expect(actionMocks.reorderEstimateTreeNodes).toHaveBeenCalledWith("project-1", "estimate-1", {
+      updates: [
+        { id: "ground-floor", parentId: "project-scope", sortOrder: 10 },
+        { id: "project-scope", parentId: null, sortOrder: 10 },
+        { id: "phase-two", parentId: null, sortOrder: 20 },
+        { id: "phase-three", parentId: null, sortOrder: 30 },
+        { id: "alternates", parentId: null, sortOrder: 40 },
+      ],
+    });
   });
 });

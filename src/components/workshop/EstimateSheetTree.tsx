@@ -177,6 +177,7 @@ export function EstimateSheetTree({ projectId, estimateId, projectName, selected
   const [localNodes, setLocalNodes] = useState<EstimateTreeNode[]>(nodes);
   const [reorderStatus, setReorderStatus] = useState<ReorderStatus>({ state: "idle" });
   const [nestIntentHint, setNestIntentHint] = useState<NestIntentHint | null>(null);
+  const [isRootBottomDropActive, setIsRootBottomDropActive] = useState(false);
   const { selectedNodeId: activeSelectedNodeId, setSelectedNodeId } = useEstimateWorkspaceSelection(estimateId, selectedNodeId);
   const treeModel = useMemo(() => buildTreeModel(localNodes), [localNodes]);
   const allFolderItemIds = useMemo(() => Array.from(treeModel.folderIds).filter((itemId) => treeModel.items[itemId]), [treeModel.folderIds, treeModel.items]);
@@ -247,6 +248,15 @@ export function EstimateSheetTree({ projectId, estimateId, projectName, selected
     setNestIntentHint(null);
   }, []);
 
+  const clearRootBottomDropActive = useCallback(() => {
+    setIsRootBottomDropActive(false);
+  }, []);
+
+  const getDraggedTreeItemFromEvent = useCallback((event: DragEvent<HTMLElement>) => {
+    const draggedItemId = event.dataTransfer.getData(ESTIMATE_TREE_DRAG_ITEM_DATA_TYPE);
+    return draggedTreeItemRef.current ?? (draggedItemId ? treeModel.items[draggedItemId] : null);
+  }, [treeModel.items]);
+
   const markNestIntentHint = useCallback((targetNode: EstimateTreeNode, draggedItem: TreeItem<EstimateTreeItemData>) => {
     const sourceName = draggedItem.data.node?.name ?? "item";
     setNestIntentHint((current) => {
@@ -272,6 +282,16 @@ export function EstimateSheetTree({ projectId, estimateId, projectName, selected
     linearIndex: 0,
   }), []);
 
+  const rootBottomDropTarget = useMemo<DraggingPosition>(() => ({
+    targetType: "between-items",
+    treeId: ESTIMATE_TREE_ID,
+    parentItem: ESTIMATE_TREE_ROOT_ITEM_ID,
+    childIndex: localNodes.length,
+    linePosition: "bottom",
+    linearIndex: localNodes.length,
+    depth: 0,
+  }), [localNodes.length]);
+
   const isMiddleRowDrop = useCallback((event: DragEvent<HTMLElement>) => {
     const rect = event.currentTarget.getBoundingClientRect();
     if (rect.height <= 0) return false;
@@ -283,6 +303,7 @@ export function EstimateSheetTree({ projectId, estimateId, projectName, selected
   const handleDrop = useCallback((items: TreeItem<EstimateTreeItemData>[], target: Parameters<typeof evaluateEstimateTreeDrop>[0]["target"]) => {
     suppressPrimaryActionAfterDrag();
     clearNestIntentHint();
+    clearRootBottomDropActive();
     if (!handleCanDrag(items)) return;
 
     const result = evaluateEstimateTreeDrop({
@@ -313,7 +334,34 @@ export function EstimateSheetTree({ projectId, estimateId, projectName, selected
         setReorderStatus({ state: "error", message: error instanceof Error ? error.message : "Could not save tree order." });
       }
     })();
-  }, [clearNestIntentHint, estimateId, handleCanDrag, localNodes, projectId, queryClient, suppressPrimaryActionAfterDrag]);
+  }, [clearNestIntentHint, clearRootBottomDropActive, estimateId, handleCanDrag, localNodes, projectId, queryClient, suppressPrimaryActionAfterDrag]);
+
+  const handleRootBottomDragOver = useCallback((event: DragEvent<HTMLDivElement>) => {
+    const draggedItem = getDraggedTreeItemFromEvent(event);
+    if (!draggedItem || !handleCanDropAt([draggedItem], rootBottomDropTarget)) {
+      clearRootBottomDropActive();
+      return;
+    }
+
+    draggedTreeItemRef.current = draggedItem;
+    event.preventDefault();
+    event.stopPropagation();
+    event.dataTransfer.dropEffect = "move";
+    setIsRootBottomDropActive(true);
+  }, [clearRootBottomDropActive, getDraggedTreeItemFromEvent, handleCanDropAt, rootBottomDropTarget]);
+
+  const handleRootBottomDrop = useCallback((event: DragEvent<HTMLDivElement>) => {
+    const draggedItem = getDraggedTreeItemFromEvent(event);
+    if (!draggedItem || !handleCanDropAt([draggedItem], rootBottomDropTarget)) {
+      clearRootBottomDropActive();
+      return;
+    }
+
+    event.preventDefault();
+    event.stopPropagation();
+    handleDrop([draggedItem], rootBottomDropTarget);
+    draggedTreeItemRef.current = null;
+  }, [clearRootBottomDropActive, getDraggedTreeItemFromEvent, handleCanDropAt, handleDrop, rootBottomDropTarget]);
 
   const handleAddTreeNode = useCallback((kind: EstimateTreeNode["kind"]) => {
     if (kind === "area" && !selectedGroupId) {
@@ -529,8 +577,7 @@ export function EstimateSheetTree({ projectId, estimateId, projectName, selected
                 const directFolderDropTarget = isEstimateGroupNodeKind(node.kind) ? createDirectFolderDropTarget(node, depth) : null;
                 const isNestIntentTarget = nestIntentHint?.targetId === node.id;
                 const handleDirectFolderNestDragOver = (event: DragEvent<HTMLElement>) => {
-                  const draggedItemId = event.dataTransfer.getData(ESTIMATE_TREE_DRAG_ITEM_DATA_TYPE);
-                  const draggedItem = draggedTreeItemRef.current ?? (draggedItemId ? treeModel.items[draggedItemId] : null);
+                  const draggedItem = getDraggedTreeItemFromEvent(event);
                   if (!draggedItem || !directFolderDropTarget || !isMiddleRowDrop(event) || !handleCanDropAt([draggedItem], directFolderDropTarget)) {
                     if (directFolderDropTarget) clearNestIntentHintForTarget(node);
                     return false;
@@ -543,8 +590,7 @@ export function EstimateSheetTree({ projectId, estimateId, projectName, selected
                   return true;
                 };
                 const handleDirectFolderNestDrop = (event: DragEvent<HTMLElement>) => {
-                  const draggedItemId = event.dataTransfer.getData(ESTIMATE_TREE_DRAG_ITEM_DATA_TYPE);
-                  const draggedItem = draggedTreeItemRef.current ?? (draggedItemId ? treeModel.items[draggedItemId] : null);
+                  const draggedItem = getDraggedTreeItemFromEvent(event);
                   if (!draggedItem || !directFolderDropTarget || !isMiddleRowDrop(event) || !handleCanDropAt([draggedItem], directFolderDropTarget)) return false;
                   event.preventDefault();
                   event.stopPropagation();
@@ -595,6 +641,7 @@ export function EstimateSheetTree({ projectId, estimateId, projectName, selected
                         onDragEnd={(event) => {
                           onDragEnd?.(event);
                           clearNestIntentHint();
+                          clearRootBottomDropActive();
                           window.setTimeout(() => {
                             draggedTreeItemRef.current = null;
                           }, 0);
@@ -631,7 +678,25 @@ export function EstimateSheetTree({ projectId, estimateId, projectName, selected
                 );
               }}
             >
-              <Tree treeId={ESTIMATE_TREE_ID} rootItem={ESTIMATE_TREE_ROOT_ITEM_ID} treeLabel={`${projectName} estimate areas`} />
+              <>
+                <Tree treeId={ESTIMATE_TREE_ID} rootItem={ESTIMATE_TREE_ROOT_ITEM_ID} treeLabel={`${projectName} estimate areas`} />
+                <div
+                  aria-hidden="true"
+                  data-estimate-tree-root-bottom-drop="true"
+                  data-estimate-tree-root-bottom-drop-active={isRootBottomDropActive ? "true" : undefined}
+                  onDragOver={handleRootBottomDragOver}
+                  onDrop={handleRootBottomDrop}
+                  onDragLeave={clearRootBottomDropActive}
+                  className="relative h-4 px-1"
+                >
+                  <div
+                    className={cn(
+                      "pointer-events-none absolute left-1 right-6 top-1/2 h-0.5 -translate-y-1/2 rounded-full transition-colors",
+                      isRootBottomDropActive ? "bg-[#1976d2]" : "bg-transparent",
+                    )}
+                  />
+                </div>
+              </>
             </ControlledTreeEnvironment>
           )}
         </div>
