@@ -52,23 +52,41 @@ export function ResizableSidePanel({
     () => defaultWidth,
   );
   const [dragWidth, setDragWidth] = useState<number | null>(null);
+  const [compactViewport, setCompactViewport] = useState(false);
   const width = dragWidth ?? savedWidth;
   const actualWidth = (collapsed ? collapsedWidth : width) + widthOffset;
+  const responsiveWidth = compactViewport ? 0 : actualWidth;
   const dragging = useRef(false);
   const startX = useRef(0);
   const startWidth = useRef(defaultWidth);
 
   useEffect(() => {
+    const mediaQuery = window.matchMedia("(max-width: 1023px)");
+    const updateCompactViewport = () => setCompactViewport(mediaQuery.matches);
+    updateCompactViewport();
+    mediaQuery.addEventListener("change", updateCompactViewport);
+    return () => mediaQuery.removeEventListener("change", updateCompactViewport);
+  }, []);
+
+  useEffect(() => {
     if (storageKey !== "estimate_sheet_tree_width" && storageKey !== "estimate_component_library_width_v2") return;
     const cssVariable = storageKey === "estimate_sheet_tree_width" ? "--estimate-tree-panel-width" : "--estimate-library-panel-width";
-    const previousWidth = document.documentElement.style.getPropertyValue(cssVariable);
-    document.documentElement.style.setProperty(cssVariable, `${actualWidth}px`);
+    const targets = [
+      document.documentElement,
+      document.querySelector<HTMLElement>("[data-workshop-page-shell-canvas]"),
+    ].filter((target): target is HTMLElement => Boolean(target));
+    const previousWidths = targets.map((target) => target.style.getPropertyValue(cssVariable));
+
+    targets.forEach((target) => target.style.setProperty(cssVariable, `${responsiveWidth}px`));
 
     return () => {
-      if (previousWidth) document.documentElement.style.setProperty(cssVariable, previousWidth);
-      else document.documentElement.style.removeProperty(cssVariable);
+      targets.forEach((target, index) => {
+        const previousWidth = previousWidths[index];
+        if (previousWidth) target.style.setProperty(cssVariable, previousWidth);
+        else target.style.removeProperty(cssVariable);
+      });
     };
-  }, [actualWidth, storageKey]);
+  }, [responsiveWidth, storageKey]);
 
   function startResize(event: React.MouseEvent) {
     if (collapsed) return;
@@ -133,7 +151,7 @@ export function ResizableSidePanel({
   );
 
   return (
-    <div className="group flex h-full shrink-0" style={{ width: actualWidth }}>
+    <div className="group flex h-full shrink-0 overflow-hidden" style={{ width: responsiveWidth }}>
       {side === "right" ? toggle : null}
       {side === "right" ? resizer : null}
       <aside className="h-full min-w-0 flex-1 overflow-hidden bg-white !text-[10px]" aria-label={ariaLabel} aria-hidden={collapsed}>

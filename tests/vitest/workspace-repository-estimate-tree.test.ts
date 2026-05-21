@@ -73,15 +73,60 @@ describe("workspace repository estimate tree projection", () => {
     ]);
   });
 
-  it("does not project unsupported legacy technical node kinds into the active tree", () => {
+  it("normalizes legacy organizing node kinds to visible group nodes while preserving nesting", () => {
     const tree = buildEstimateTree(
       [
-        node({ id: "legacy-lot", parent_id: null, kind: "lot" as Tables<"estimate_nodes">["kind"], name: "Legacy Lot", sort_order: 0 }),
+        node({ id: "legacy-lot", parent_id: null, kind: "lot", name: "Lot", sort_order: 0 }),
+        node({ id: "legacy-house", parent_id: "legacy-lot", kind: "structure", name: "House", sort_order: 10 }),
+        node({ id: "legacy-floor", parent_id: "legacy-house", kind: "level", name: "Second Floor", sort_order: 20 }),
+        node({ id: "master-bedroom", parent_id: "legacy-floor", kind: "area", name: "Master Bedroom", sort_order: 30 }),
         node({ id: "active-group", parent_id: null, kind: "group", name: "Active Group", sort_order: 10 }),
       ],
       [],
     );
 
-    expect(tree.map((item) => item.id)).toEqual(["active-group"]);
+    expect(tree).toEqual([
+      expect.objectContaining({
+        id: "legacy-lot",
+        kind: "group",
+        name: "Lot",
+        children: [
+          expect.objectContaining({
+            id: "legacy-house",
+            kind: "group",
+            name: "House",
+            children: [
+              expect.objectContaining({
+                id: "legacy-floor",
+                kind: "group",
+                name: "Second Floor",
+                children: [
+                  expect.objectContaining({
+                    id: "master-bedroom",
+                    kind: "area",
+                    name: "Master Bedroom",
+                  }),
+                ],
+              }),
+            ],
+          }),
+        ],
+      }),
+      expect.objectContaining({ id: "active-group", kind: "group" }),
+    ]);
+  });
+
+  it("projects Group Node siblings before Area Node siblings even when persisted sort orders are mixed", () => {
+    const tree = buildEstimateTree(
+      [
+        node({ id: "scope", parent_id: null, kind: "group", name: "Project Scope", sort_order: 0 }),
+        node({ id: "kitchen", parent_id: "scope", kind: "area", name: "Kitchen", sort_order: 10 }),
+        node({ id: "site-work", parent_id: "scope", kind: "group", name: "Site Work", sort_order: 20 }),
+        node({ id: "living", parent_id: "scope", kind: "area", name: "Living", sort_order: 30 }),
+      ],
+      [],
+    );
+
+    expect(tree[0]?.children?.map((child) => child.id)).toEqual(["site-work", "kitchen", "living"]);
   });
 });

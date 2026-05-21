@@ -1,4 +1,7 @@
 @import "tailwindcss";
+@source not "../../.next";
+@source not "../../.ai";
+@source not "../../.gitnexus";
 
 :root {
   --background: #ffffff;
@@ -132,4 +135,102 @@ textarea {
   stroke-linecap: round;
   stroke-linejoin: round;
   fill: none;
+}
+
+@keyframes landing-company-marquee {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+  to {
+    transform: translate3d(calc(-50% - var(--landing-company-marquee-gap) / 2), 0, 0);
+  }
+}
+
+.landing-company-marquee {
+  --landing-company-marquee-gap: 0.75rem;
+  animation: landing-company-marquee 34s linear infinite;
+  will-change: transform;
+}
+
+@media (width >= 40rem) {
+  .landing-company-marquee {
+    --landing-company-marquee-gap: 1rem;
+  }
+}
+
+.landing-company-carousel-viewport:hover .landing-company-marquee,
+.landing-company-carousel-viewport[data-company-proof-paused="true"] .landing-company-marquee,
+.landing-company-carousel-viewport:focus-within .landing-company-marquee {
+  animation-play-state: paused;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .landing-company-carousel-viewport {
+    overflow-x: auto;
+  }
+
+  .landing-company-marquee {
+    width: max-content;
+    animation: none;
+    transform: none;
+    will-change: auto;
+  }
+
+  .landing-company-marquee > [aria-hidden="true"] {
+    display: none;
+  }
+}
+
+@media (min-width: 64rem) {
+  html:has([data-landing-page-root="true"]),
+  body:has([data-landing-page-root="true"]) {
+    scroll-padding-top: 68px;
+    scroll-snap-type: none;
+  }
+
+  html:has([data-landing-page-root="true"]) [data-landing-page-root="true"] > :first-child,
+  [data-landing-snap-section="true"] {
+    scroll-margin-top: 68px;
+    scroll-snap-align: none;
+    scroll-snap-stop: normal;
+  }
+}
+
+@media (min-width: 64rem) and (prefers-reduced-motion: reduce) {
+  html:has([data-landing-page-root="true"]),
+  body:has([data-landing-page-root="true"]) {
+    scroll-snap-type: none;
+  }
+
+  html:has([data-landing-page-root="true"]) [data-landing-page-root="true"] > :first-child,
+  [data-landing-snap-section="true"] {
+    scroll-snap-align: none;
+    scroll-snap-stop: normal;
+  }
+}
+
+/* MotionReveal: no-JS safe, reduced-motion safe */
+[data-motion-reveal="idle"] {
+  opacity: 1;
+  transform: none;
+}
+
+[data-motion-reveal="active"] {
+  opacity: 0;
+  transform: translateY(1rem);
+  transition: opacity 700ms ease-out, transform 700ms ease-out;
+}
+
+[data-motion-reveal="revealed"] {
+  opacity: 1;
+  transform: translateY(0);
+  transition: opacity 700ms ease-out, transform 700ms ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-motion-reveal] {
+    opacity: 1 !important;
+    transform: none !important;
+    transition: none !important;
+  }
 }

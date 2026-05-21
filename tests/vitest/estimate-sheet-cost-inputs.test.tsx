@@ -16,7 +16,7 @@ function renderEstimateSheet(selectedNodeId: string) {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
   return render(
     <QueryClientProvider client={queryClient}>
-      <EstimateSheetContent selectedNodeId={selectedNodeId} />
+      <EstimateSheetContent selectedNodeId={selectedNodeId} renderSidebar={false} />
     </QueryClientProvider>,
   );
 }
@@ -49,7 +49,7 @@ describe("estimate sheet cost inputs", () => {
   it("renders the locally selected tree node before route props catch up", async () => {
     render(
       <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } })}>
-        <EstimateSheetContent selectedNodeId="living-area" estimateId="estimate-1" />
+        <EstimateSheetContent selectedNodeId="living-area" estimateId="estimate-1" renderSidebar={false} />
       </QueryClientProvider>,
     );
 
@@ -65,7 +65,7 @@ describe("estimate sheet cost inputs", () => {
   it("reconciles stale selected node ids to the first available tree node", async () => {
     render(
       <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } })}>
-        <EstimateSheetContent selectedNodeId="deleted-node" estimateId="estimate-1" />
+        <EstimateSheetContent selectedNodeId="deleted-node" estimateId="estimate-1" renderSidebar={false} />
       </QueryClientProvider>,
     );
 
@@ -118,6 +118,35 @@ describe("estimate sheet cost inputs", () => {
     const insertedQuantity = await within(kitchenSection).findByLabelText("HEMLINGBY Loveseat quantity");
     await waitFor(() => expect(insertedQuantity).toHaveFocus());
     expect(within(kitchenSection).getAllByText("HEMLINGBY Loveseat")).toHaveLength(1);
+  });
+
+  it("inserts from the production sidebar direct callback path", async () => {
+    render(
+      <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } })}>
+        <EstimateSheetContent selectedNodeId="kitchen" estimateId="estimate-sidebar-test" renderSidebar />
+      </QueryClientProvider>,
+    );
+
+    fireEvent.click(screen.getAllByLabelText(/add to kitchen: hemlingby loveseat/i)[0]);
+
+    const kitchenSection = screen.getByLabelText("Kitchen");
+    const insertedQuantity = await within(kitchenSection).findByLabelText("HEMLINGBY Loveseat quantity");
+    await waitFor(() => expect(insertedQuantity).toHaveFocus());
+    expect(within(kitchenSection).getAllByText("HEMLINGBY Loveseat")).toHaveLength(1);
+  });
+
+  it("opens command palette and inserts into the selected area from the keyboard", async () => {
+    renderEstimateSheet("kitchen");
+
+    fireEvent.keyDown(window, { key: "k", ctrlKey: true });
+    const palette = screen.getByRole("dialog", { name: "Command palette" });
+    fireEvent.change(screen.getByLabelText("Command palette search"), { target: { value: "LED Downlight" } });
+    fireEvent.keyDown(palette, { key: "Enter" });
+
+    const kitchenSection = screen.getByLabelText("Kitchen");
+    const insertedQuantity = await within(kitchenSection).findByLabelText("LED Downlight, Recessed, 18W Daylight quantity");
+    await waitFor(() => expect(insertedQuantity).toHaveFocus());
+    expect(screen.queryByRole("dialog", { name: "Command palette" })).not.toBeInTheDocument();
   });
 
   it("supports baseline spreadsheet keyboard movement across editable row cells", async () => {
@@ -201,7 +230,9 @@ describe("estimate sheet cost inputs", () => {
     expect(targetComponent).toHaveAttribute("data-replace-target-active", "true");
     fireEvent.drop(targetComponent, { dataTransfer });
 
-    expect(screen.queryByLabelText("Hardwood Oak Flooring replaceable estimate component")).not.toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.queryByLabelText("Hardwood Oak Flooring replaceable estimate component")).not.toBeInTheDocument();
+    });
     expect(screen.getAllByLabelText("HEMLINGBY Loveseat replaceable estimate component").length).toBeGreaterThan(1);
     expect(screen.getAllByLabelText("HEMLINGBY Loveseat quantity").some((input) => (input as HTMLInputElement).value === "7")).toBe(true);
   });

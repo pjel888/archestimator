@@ -82,6 +82,18 @@ Outside the landing page:
   - Used by: group/sort/view controls, facet dropdowns, compact toolbar options.
   - Storybook category: `UI/Inputs/ControlSelect`.
 
+- ContextMenu
+  - File: `src/components/ui/context-menu.tsx`
+  - Used by: estimate tree Group/Area row right-click actions.
+  - Rule: keep Radix/shadcn menu surfaces compact and portal-safe; do not replace existing modal/dialog primitives in this slice.
+  - Storybook category: `UI/Actions/ContextMenu`.
+
+- ActionMenu
+  - File: `src/components/ui/action-menu.tsx`
+  - Used by: context menu item/group definitions for estimate tree Rename/Delete.
+  - Rule: shared action model for future menu triggers; do not implement future filter/icon menus until their interaction contract is planned.
+  - Storybook category: `UI/Actions/ActionMenu`.
+
 - Badge
   - File: `src/components/ui/badge.tsx`
   - Used by: counts, pricing trust, scope status, category metadata.
@@ -140,6 +152,8 @@ UI/
   Actions/
     Button
     IconButton
+    ContextMenu
+    ActionMenu
   Inputs/
     SearchInput
     ControlSelect

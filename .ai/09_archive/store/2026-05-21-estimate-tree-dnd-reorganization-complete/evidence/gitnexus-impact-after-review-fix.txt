@@ -1,0 +1,157 @@
+## impact EstimateSheetTree
+npm warn Unknown user config "always-auth" (//skand-124087294415.d.codeartifact.ap-southeast-2.amazonaws.com/npm/core/:always-auth). This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.
+{
+  "target": {
+    "id": "Function:src/components/workshop/EstimateSheetTree.tsx:EstimateSheetTree",
+    "name": "EstimateSheetTree",
+    "type": "Function",
+    "filePath": "src/components/workshop/EstimateSheetTree.tsx"
+  },
+  "direction": "upstream",
+  "impactedCount": 1,
+  "risk": "LOW",
+  "summary": {
+    "direct": 1,
+    "processes_affected": 1,
+    "modules_affected": 1
+  },
+  "affected_processes": [
+    {
+      "name": "ProjectEstimateNodePage",
+      "type": "Function",
+      "filePath": "src/app/workshop/projects/[projectId]/estimates/[nodeId]/page.tsx",
+      "affected_process_count": 10,
+      "total_hits": 10,
+      "earliest_broken_step": 1
+    }
+  ],
+  "affected_modules": [
+    {
+      "name": "[nodeId]",
+      "hits": 1,
+      "impact": "direct"
+    }
+  ],
+  "byDepth": {
+    "1": [
+      {
+        "depth": 1,
+        "id": "Function:src/app/workshop/projects/[projectId]/estimates/[nodeId]/page.tsx:ProjectEstimateNodePage",
+        "name": "ProjectEstimateNodePage",
+        "filePath": "src/app/workshop/projects/[projectId]/estimates/[nodeId]/page.tsx",
+        "relationType": "CALLS",
+        "confidence": 0.85
+      }
+    ]
+  }
+}
+\n## impact reorderEstimateTreeNodes
+npm warn Unknown user config "always-auth" (//skand-124087294415.d.codeartifact.ap-southeast-2.amazonaws.com/npm/core/:always-auth). This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.
+{
+  "target": {
+    "id": "Function:src/lib/estimates/actions.ts:reorderEstimateTreeNodes",
+    "name": "reorderEstimateTreeNodes",
+    "type": "Function",
+    "filePath": "src/lib/estimates/actions.ts"
+  },
+  "direction": "upstream",
+  "impactedCount": 1,
+  "risk": "LOW",
+  "summary": {
+    "direct": 1,
+    "processes_affected": 1,
+    "modules_affected": 1
+  },
+  "affected_processes": [
+    {
+      "name": "handleDrop",
+      "type": "Function",
+      "filePath": "src/components/workshop/EstimateSheetTree.tsx",
+      "affected_process_count": 8,
+      "total_hits": 8,
+      "earliest_broken_step": 1
+    }
+  ],
+  "affected_modules": [
+    {
+      "name": "Estimates",
+      "hits": 1,
+      "impact": "direct"
+    }
+  ],
+  "byDepth": {
+    "1": [
+      {
+        "depth": 1,
+        "id": "Function:src/components/workshop/EstimateSheetTree.tsx:handleDrop",
+        "name": "handleDrop",
+        "filePath": "src/components/workshop/EstimateSheetTree.tsx",
+        "relationType": "CALLS",
+        "confidence": 0.85
+      }
+    ]
+  }
+}
+\n## impact evaluateEstimateTreeDrop
+npm warn Unknown user config "always-auth" (//skand-124087294415.d.codeartifact.ap-southeast-2.amazonaws.com/npm/core/:always-auth). This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.
+{
+  "target": {
+    "id": "Function:src/lib/estimates/estimate-tree-reorder.ts:evaluateEstimateTreeDrop",
+    "name": "evaluateEstimateTreeDrop",
+    "type": "Function",
+    "filePath": "src/lib/estimates/estimate-tree-reorder.ts"
+  },
+  "direction": "upstream",
+  "impactedCount": 2,
+  "risk": "LOW",
+  "summary": {
+    "direct": 2,
+    "processes_affected": 2,
+    "modules_affected": 1
+  },
+  "affected_processes": [
+    {
+      "name": "handleDrop",
+      "type": "Function",
+      "filePath": "src/components/workshop/EstimateSheetTree.tsx",
+      "affected_process_count": 8,
+      "total_hits": 8,
+      "earliest_broken_step": 1
+    },
+    {
+      "name": "handleCanDropAt",
+      "type": "Function",
+      "filePath": "src/components/workshop/EstimateSheetTree.tsx",
+      "affected_process_count": 5,
+      "total_hits": 5,
+      "earliest_broken_step": 1
+    }
+  ],
+  "affected_modules": [
+    {
+      "name": "Estimates",
+      "hits": 2,
+      "impact": "direct"
+    }
+  ],
+  "byDepth": {
+    "1": [
+      {
+        "depth": 1,
+        "id": "Function:src/components/workshop/EstimateSheetTree.tsx:handleCanDropAt",
+        "name": "handleCanDropAt",
+        "filePath": "src/components/workshop/EstimateSheetTree.tsx",
+        "relationType": "CALLS",
+        "confidence": 0.85
+      },
+      {
+        "depth": 1,
+        "id": "Function:src/components/workshop/EstimateSheetTree.tsx:handleDrop",
+        "name": "handleDrop",
+        "filePath": "src/components/workshop/EstimateSheetTree.tsx",
+        "relationType": "CALLS",
+        "confidence": 0.85
+      }
+    ]
+  }
+}

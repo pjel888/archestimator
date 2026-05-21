@@ -38,7 +38,7 @@ export default async function ProjectLayout({ children, params }: ProjectLayoutP
         { label: "Projects", href: "/workshop/projects" },
         { label: title, href: `/workshop/projects/${projectId}` },
       ]}
-      centerHeader={<ProjectTotalHeader plannedBudget={plannedBudget} />}
+      centerHeader={<ProjectTotalHeader projectId={projectId} plannedBudget={plannedBudget} />}
       alignChromeToProjectSidebar
       footer={
         <>
@@ -49,7 +49,7 @@ export default async function ProjectLayout({ children, params }: ProjectLayoutP
       <div className="flex h-full min-h-0 overflow-hidden rounded-xl border border-hairline bg-white">
         <ProjectMiniSidebar projectId={projectId} />
         <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-canvas">
-          <ProjectWorkspaceHeaderRow projectCode={projectCode} />
+          <ProjectWorkspaceHeaderRow projectId={projectId} projectCode={projectCode} />
           <div className="min-h-0 flex-1 overflow-hidden">{children}</div>
         </div>
       </div>

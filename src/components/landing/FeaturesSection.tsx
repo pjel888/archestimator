@@ -66,9 +66,9 @@ export function FeaturesSection() {
           {featureBlocks.map((block) => (
             <div
               key={block.title}
-              className={`grid gap-8 lg:grid-cols-2 lg:items-center ${block.reverse ? "lg:[&>*:first-child]:order-2" : ""}`}
+              className="grid gap-8 lg:grid-cols-2 lg:items-center"
             >
-              <PlaceholderMedia label={`${block.title} image placeholder`} className="min-h-[420px]" />
+              <PlaceholderMedia label={`${block.title} image placeholder`} className={`min-h-[420px] ${block.reverse ? "lg:order-2" : ""}`} />
               <article>
                 <h3 className="text-[44px] font-normal leading-none tracking-[-0.055em]">{block.title}</h3>
                 <p className="mt-5 text-[18px] leading-[1.45] tracking-[-0.02em] text-[#313130]">{block.body}</p>

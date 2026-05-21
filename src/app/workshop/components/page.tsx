@@ -11,8 +11,8 @@ export default function ComponentsPage() {
       contentClassName=""
       footer={
         <>
-          <span>Component library shell</span>
-          <span>Content pending approved workflow</span>
+          <span>Workspace library</span>
+          <span>Demo seed</span>
         </>
       }
     >

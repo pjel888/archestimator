@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 
 import { ProjectEstimateMetadataPublisher } from "@/components/workshop/ProjectEstimateMetadataStrip";
-import { EstimateRightSidebar, EstimateSheetContent } from "@/components/workshop/EstimateSheetContent";
+import { EstimateSheetContent } from "@/components/workshop/EstimateSheetContent";
 import { EstimateSheetTree } from "@/components/workshop/EstimateSheetTree";
 import { getProjectEstimateTreeByNode } from "@/lib/repositories/workspace-repository";
 import type { Json } from "@/lib/supabase/types";
@@ -40,7 +40,6 @@ export default async function ProjectEstimateNodePage({ params }: ProjectEstimat
       <section className="flex h-full min-h-0 overflow-hidden bg-white" aria-label={`${project.name} estimates`}>
         <EstimateSheetTree projectId={project.id} estimateId={estimate.id} projectName={project.name} selectedNodeId={selectedNodeId} nodes={tree} />
         <EstimateSheetContent selectedNodeId={selectedNodeId} nodes={tree} projectId={project.id} estimateId={estimate.id} />
-        <EstimateRightSidebar />
       </section>
     </>
   );

@@ -1,40 +1,55 @@
-const workflowPillars = [
-  "Project-Shaped Estimates",
-  "Component Library",
-  "Traceable Revisions",
-  "Proposal Comparisons",
-  "Visual Cost Breakdowns",
-  "Proposal-Ready Outputs",
-  "Industry Standard Export Formats",
+import type { Icon } from "@phosphor-icons/react";
+import { ChartBar, FileXls, GitDiff, Package, TreeStructure } from "@phosphor-icons/react/dist/ssr";
+
+import { MotionReveal } from "./MotionReveal";
+
+const workflowPillars: { label: string; icon: Icon }[] = [
+  { label: "Project-shaped estimates", icon: TreeStructure },
+  { label: "Reusable cost components", icon: Package },
+  { label: "Revision context", icon: GitDiff },
+  { label: "Proposal comparison path", icon: ChartBar },
+  { label: "Planned Excel/PDF handoff", icon: FileXls },
 ];
 
 export function SecondaryClaimSection() {
   return (
-    <section id="method" className="border-y border-[#dedbd6] bg-white py-14 sm:py-16">
-      <div className="w-full px-6">
-        <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(320px,0.46fr)] lg:items-end">
-          <div>
-            <p className="font-mono text-[11px] font-semibold uppercase tracking-[0.14em] text-[#7b7b78]">
+    <section
+      id="method"
+      data-landing-snap-section="true"
+      className="scroll-mt-[68px] bg-[#eeeeec] px-4 py-16 sm:px-6 sm:py-20 lg:flex lg:min-h-[calc(100svh-68px)] lg:items-center lg:px-8"
+    >
+      <div className="mx-auto w-full max-w-[1120px]">
+        <MotionReveal>
+          <div className="mx-auto max-w-[820px] text-center">
+            <p className="font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-[#7b7b78]">
               The Archestimator way
             </p>
-            <h2 className="mt-5 max-w-[980px] text-[48px] font-normal leading-[0.95] tracking-[-0.058em] text-[#111111] sm:text-[68px] lg:text-[82px]">
+            <h2 className="mt-4 text-[38px] font-normal leading-[1.02] tracking-[-0.052em] text-[#111111] sm:text-[56px]">
               The most intuitive way to create construction cost estimates
             </h2>
+            <p className="mx-auto mt-5 max-w-[640px] text-[15px] leading-[1.55] tracking-[-0.015em] text-[#4f4f4d] sm:text-[16px]">
+              Keep project hierarchy, reusable cost components, revision context, proposal comparison paths, and planned Excel/PDF handoff moving through one estimating workspace.
+            </p>
           </div>
-          <p className="max-w-[560px] text-[18px] leading-[1.45] tracking-[-0.025em] text-[#4f4f4d] lg:pb-2">
-            Archestimator turns the estimate into a structured workspace where project hierarchy, reusable cost components, revisions, proposal comparisons, and Excel/PDF handoff stay connected.
-          </p>
-        </div>
+        </MotionReveal>
 
-        <div className="mt-10 grid gap-3 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-7">
-          {workflowPillars.map((pillar) => (
-            <span
-              key={pillar}
-              className="flex min-h-[72px] items-center rounded-[8px] border border-[#dedbd6] bg-[#faf9f6] px-4 text-[12px] font-semibold leading-[1.15] tracking-[-0.02em] text-[#313130]"
-            >
-              {pillar}
-            </span>
-          ))}
+        <div className="mt-10 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+          {workflowPillars.map((pillar, index) => {
+            const IconComponent = pillar.icon;
+
+            return (
+              <MotionReveal key={pillar.label} staggerIndex={index + 1}>
+                <span className="group flex min-h-[92px] flex-col justify-between rounded-[10px] border border-[#dedbd6] bg-white p-4 text-[#313130] shadow-[0_10px_26px_rgba(17,17,17,0.04)] transition duration-300 hover:-translate-y-px hover:border-[#ff7a1a]/40 hover:shadow-[0_14px_34px_rgba(17,17,17,0.07)] motion-reduce:transition-none motion-reduce:hover:translate-y-0">
+                  <span className="flex size-9 items-center justify-center rounded-[8px] border border-[#dedbd6] bg-[#faf9f6] text-[#ff7a1a] transition duration-300 group-hover:border-[#ff7a1a]/35 group-hover:bg-[#fff3ea] motion-reduce:transition-none" aria-hidden="true">
+                    <IconComponent size={18} weight="bold" />
+                  </span>
+                  <span className="mt-4 text-[12px] font-semibold leading-[1.2] tracking-[-0.02em]">
+                    {pillar.label}
+                  </span>
+                </span>
+              </MotionReveal>
+            );
+          })}
         </div>
       </div>
     </section>
