@@ -36,8 +36,9 @@ describe("live estimate node route", () => {
     expect(estimateTree).toContain("canDropAt={handleCanDropAt}");
     expect(estimateTree).toContain("onDrop={handleDrop}");
     expect(appLayout).toContain('import "react-complex-tree/lib/style-modern.css"');
-    expect(estimateTree).toContain("queryClient.setQueryData(estimateQueryKeys.areaTree(estimateId), nextNodes)");
-    expect(estimateTree).toContain("queryClient.setQueryData(estimateQueryKeys.areaTree(estimateId), confirmed.tree)");
+    expect(estimateTree).toContain("useEstimateAreaTreeQuery");
+    expect(estimateContent).toContain("useEstimateAreaTreeQuery");
+    expect(estimateTree).toContain("setLocalNodes(nextNodes)");
     expect(estimateTree).toContain("setLocalNodes(previousNodes)");
     expect(estimateTree).toContain('role="status"');
     expect(estimateTree).not.toContain("router.refresh");
@@ -65,23 +66,36 @@ describe("live estimate node route", () => {
     expect(estimateContent).toContain("nodes = sampleEstimateTree");
   });
 
+  it("keeps scalar tree rename reconciliation client-local instead of full-tree route refresh", () => {
+    const renameStart = estimateTree.indexOf("const commitRenameNode = useCallback");
+    const deleteStart = estimateTree.indexOf("const replaceEstimateRoute = useCallback");
+    const renameBlock = estimateTree.slice(renameStart, deleteStart);
+    const renameActionStart = estimateActions.indexOf("export async function renameEstimateNode");
+    const deleteActionStart = estimateActions.indexOf("export async function deleteEstimateNode");
+    const renameActionBlock = estimateActions.slice(renameActionStart, deleteActionStart);
+
+    expect(renameBlock).toContain("renameEstimateNode(projectId, estimateId, node.id, nextName)");
+    expect(renameBlock).not.toContain("confirmed.tree");
+    expect(renameActionBlock).toContain("return { nodeId: node.id, name }");
+    expect(renameActionBlock).not.toContain("revalidatePath(");
+    expect(renameActionBlock).not.toContain("getProjectEstimateTreeByEstimate(");
+  });
+
   it("publishes estimate sheet metadata into the aligned project-code row strip", () => {
     const metadataStrip = readFileSync("src/components/workshop/ProjectEstimateMetadataStrip.tsx", "utf8");
+    const projectWorkspaceHeaderRow = readFileSync("src/components/workshop/ProjectWorkspaceHeaderRow.tsx", "utf8");
     const estimateCenterColumnBoundary = readFileSync("src/components/workshop/EstimateCenterColumnBoundary.tsx", "utf8");
 
     expect(estimateNodePage).toContain("ProjectEstimateMetadataPublisher");
     expect(estimateNodePage).toContain("estimateName: estimate.name");
     expect(estimateNodePage).toContain("estimateSheetCode: estimate.sheet_code");
     expect(estimateNodePage).toContain("versionLabel: readEstimateVersionLabel(estimate.metadata)");
-    expect(metadataStrip).toContain('id="project-estimate-metadata-strip"');
+    expect(projectWorkspaceHeaderRow).toContain('centerId="project-estimate-metadata-strip"');
+    expect(projectWorkspaceHeaderRow).toContain('centerDataColumn="metadata-strip"');
+    expect(projectWorkspaceHeaderRow).toContain('scope="project-workspace-row"');
+    expect(projectWorkspaceHeaderRow).toContain('data-estimate-center-column={centerDataColumn}');
     expect(metadataStrip).toContain('data-workshop-layout="project-estimate-metadata-row"');
-    expect(metadataStrip).toContain('className="pointer-events-none absolute inset-0 bg-white');
-    expect(metadataStrip).toContain('data-estimate-center-column="metadata-strip"');
-    expect(metadataStrip).toContain("ProjectEstimateMetadataStripBoundary");
     expect(metadataStrip).toContain("ProjectEstimateMetadataStripGrid");
-    expect(metadataStrip).toContain("ProjectWorkspaceProjectCode");
-    expect(metadataStrip).toContain("EstimateMetadataLeftCluster");
-    expect(metadataStrip).toContain('textClassName="font-bold"');
     expect(metadataStrip).toContain('font-normal uppercase tracking-[0.14em] text-tertiary');
     expect(metadataStrip).toContain("EstimateSheetCodeCell");
     expect(metadataStrip).toContain("EstimateSheetNameCell");
@@ -135,8 +149,8 @@ describe("live estimate node route", () => {
     expect(estimateContent).toContain("onUpdateRowItem");
     expect(estimateContent).toContain("replaceRow({ projectId, estimateId");
     expect(estimateContent).toContain("deleteRow({ projectId, estimateId");
-    expect(estimateContent).toContain("useQuery({");
-    expect(estimateContent).toContain("estimateQueryKeys.areaTree");
+    expect(estimateContent).toContain("useEstimateAreaTreeQuery");
+    expect(readFileSync("src/hooks/use-estimate-query.ts", "utf8")).toContain("estimateQueryKeys.areaTree");
     expect(estimateContent).toContain("rollback: () => restoreEstimateState");
   });
 
@@ -144,7 +158,8 @@ describe("live estimate node route", () => {
     expect(estimateContent).toContain("rowSaveStates");
     expect(estimateContent).toContain("onMarkRowDirty");
     expect(estimateContent).toContain("<RowSaveStatus state={rowSaveStates[item.id]} />");
-    expect(estimateContent).toContain("refetchOnWindowFocus: true");
+    expect(estimateContent).not.toContain("refetchOnWindowFocus: true");
+    expect(readFileSync("src/hooks/use-estimate-query.ts", "utf8")).toContain("prepareOptimisticUpdate");
     expect(estimateActions).toContain("fetchEstimateTree");
     expect(estimateActions).toContain("getProjectEstimateTreeByEstimate");
     expect(readFileSync("src/hooks/use-estimate-row-mutations.ts", "utf8")).toContain('refetchType: "none"');

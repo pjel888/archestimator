@@ -1,13 +1,13 @@
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import {
-  EstimatorEngineSection,
-  FeaturesSection,
+  CompanyProofCarouselSection,
   FinalCTASection,
   HeroSection,
+  LandingFooter,
   LandingHeader,
+  LandingSmoothScrollProvider,
   ProductShowcaseSection,
   SecondaryClaimSection,
-  PartnerSection,
   PricingSection,
   SolutionSection,
 } from "@/components/landing";
@@ -33,20 +33,18 @@ export default async function LandingPage() {
 
       <LandingHeader isLoggedIn={isLoggedIn} />
 
-      <main>
-        <HeroSection />
-        <ProductShowcaseSection />
-        <SecondaryClaimSection />
-        <SolutionSection />
-        <EstimatorEngineSection />
-
-        <FeaturesSection />
-
-        <PartnerSection />
-
-        <PricingSection />
-        <FinalCTASection />
-      </main>
+      <LandingSmoothScrollProvider>
+        <main data-landing-page-root="true">
+          <HeroSection />
+          <SecondaryClaimSection />
+          <CompanyProofCarouselSection />
+          <ProductShowcaseSection />
+          <SolutionSection />
+          <PricingSection />
+          <FinalCTASection />
+          <LandingFooter />
+        </main>
+      </LandingSmoothScrollProvider>
     </div>
   );
 }

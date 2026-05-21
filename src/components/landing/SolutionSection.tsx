@@ -1,71 +1,101 @@
-import { CtaLink } from "./CtaLink";
-import { PlaceholderMedia } from "./PlaceholderMedia";
 import { SectionIntro } from "./SectionIntro";
-import { workshopHref } from "./constants";
+import { MotionReveal } from "./MotionReveal";
 
 const solutionFeatures = [
   [
-    "Estimate Workspace",
-    "Build estimates around the project structure: lot, structure, level, area, scope, trade, cost component, and line item.",
+    "Project-shaped estimates",
+    "Organize the estimate with flexible groups and areas named for lots, structures, levels, scopes, trades, cost components, and line items.",
   ],
   [
-    "Component Library",
-    "Save repeated assemblies, materials, labor rates, and scope packages so every new estimate starts with proven cost logic.",
+    "Reusable cost components",
+    "Bring repeated assemblies, materials, labor rates, and scope packages into the next estimate without rebuilding them from scratch.",
   ],
   [
-    "Revision Intelligence",
-    "Track quantity, unit-rate, scope, assumption, and proposal changes before they disappear into duplicated spreadsheet files.",
+    "Revision context",
+    "Keep scope, assumption, quantity, and rate changes easier to review before they become client-facing confusion.",
   ],
   [
-    "Proposal Comparisons",
-    "Compare estimate sheets, alternates, and value-engineering options with visual breakdowns clients can actually understand.",
-  ],
-  [
-    "Industry Standard Export Formats",
-    "Export estimates and proposal packages to Excel and PDF so teams can review, price, approve, and share in the formats they already use.",
+    "Proposal handoff direction",
+    "Carry inclusions, exclusions, assumptions, and totals toward proposal-ready output while Excel/PDF handoff remains a planned workflow.",
   ],
 ];
 
+function WorkflowVisual() {
+  const steps = [
+    { label: "Project", sub: "Lot · Structure · Level" },
+    { label: "Area & Scope", sub: "Kitchen · Bathroom · Facade" },
+    { label: "Trade & Component", sub: "Tile · Waterproofing · Labor" },
+    { label: "Estimate Logic", sub: "Qty · Rate · Assumption" },
+    { label: "Revision", sub: "Delta · Approval" },
+    { label: "Proposal Handoff", sub: "Planned Excel · PDF" },
+  ];
+
+  return (
+    <div className="relative flex min-h-[420px] flex-col justify-center rounded-[12px] border border-[#dedbd6] bg-[#f4f1ea] p-6 lg:min-h-[520px]">
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_22%_18%,rgba(255,255,255,0.98),transparent_24%),linear-gradient(135deg,#f4f1ea,#fbfaf7_48%,#e5ded2)]" />
+      <div className="relative">
+        <p className="mb-5 font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-[#7b7b78]">
+          Connected estimate workflow
+        </p>
+        <div className="space-y-3">
+          {steps.map((step, i) => (
+            <div key={step.label} className="flex items-center gap-3">
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#111111] text-[10px] font-bold text-white">
+                {i + 1}
+              </div>
+              <div className="flex-1 rounded-[8px] border border-[#dedbd6] bg-white px-3 py-2 shadow-[0_2px_8px_rgba(17,17,17,0.04)]">
+                <p className="text-[13px] font-semibold text-[#111111]">{step.label}</p>
+                <p className="text-[11px] text-[#7b7b78]">{step.sub}</p>
+              </div>
+              {i < steps.length - 1 && (
+                <div className="hidden h-px w-4 bg-[#dedbd6] lg:block" aria-hidden="true" />
+              )}
+            </div>
+          ))}
+        </div>
+        <div className="mt-5 rounded-[8px] border border-[#ff7a1a]/20 bg-[#fff7ef] p-3">
+          <p className="text-[12px] font-semibold text-[#111111]">
+            Project hierarchy drives connected estimate logic
+          </p>
+          <p className="mt-1 text-[12px] text-[#626260]">
+            Every cost belongs to a place, a scope, and a trade. As the product matures, revision and proposal handoff should stay connected to the same estimate logic.
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export function SolutionSection() {
   return (
-    <section id="solutions" className="bg-[#faf9f6] py-20 lg:py-28">
-      <div className="w-full px-6">
-        <SectionIntro
-          title="The smarter way is not one feature. It is the whole estimating flow."
-          body="Archestimator keeps the estimate, Component Library, revisions, proposal comparisons, and Excel/PDF exports connected, so construction cost estimators can move faster without losing the logic behind the numbers."
-        />
-        <div className="mt-16 grid gap-8">
-          <div className="grid gap-8 lg:grid-cols-[1fr_0.9fr]">
-            <PlaceholderMedia label="workspace image placeholder" className="min-h-[520px]" />
-            <article className="self-end rounded-[8px] border border-[#dedbd6] bg-white p-7">
-              <h3 className="text-[32px] font-normal leading-none tracking-[-0.045em]">{solutionFeatures[0][0]}</h3>
-              <p className="mt-4 text-[16px] leading-[1.5] text-[#626260]">{solutionFeatures[0][1]}</p>
-            </article>
-          </div>
-          <div className="grid gap-8 lg:grid-cols-2">
-            {solutionFeatures.slice(1, 3).map(([title, body], i) => (
-              <article key={title} className="rounded-[8px] border border-[#dedbd6] bg-white p-7">
-                <PlaceholderMedia label={`feature image ${i + 1}`} className="mb-6 min-h-[260px]" />
-                <h3 className="text-[32px] font-normal leading-none tracking-[-0.045em]">{title}</h3>
-                <p className="mt-4 text-[16px] leading-[1.5] text-[#626260]">{body}</p>
-              </article>
-            ))}
-          </div>
-          <div className="grid gap-8 lg:grid-cols-2">
-            {solutionFeatures.slice(3).map(([title, body], i) => (
-              <article key={title} className="rounded-[8px] border border-[#dedbd6] bg-white p-7">
-                <PlaceholderMedia
-                  label={i === 0 ? "proposal comparisons preview" : "export formats preview"}
-                  className="mb-6 min-h-[260px]"
-                />
-                <h3 className="text-[32px] font-normal leading-none tracking-[-0.045em]">{title}</h3>
-                <p className="mt-4 text-[16px] leading-[1.5] text-[#626260]">{body}</p>
-                {i === 1 ? (
-                  <div className="mt-8">
-                    <CtaLink href={workshopHref}>See the workspace</CtaLink>
-                  </div>
-                ) : null}
-              </article>
+    <section
+      id="solutions"
+      data-landing-snap-section="true"
+      className="scroll-mt-[68px] bg-white px-4 py-20 sm:px-6 lg:flex lg:min-h-[calc(100svh-68px)] lg:items-center lg:px-8 lg:py-24"
+    >
+      <div className="mx-auto w-full max-w-[1120px]">
+        <MotionReveal>
+          <SectionIntro
+            title="Less spreadsheet drift. More estimate control."
+            body="Archestimator keeps the work around the estimate connected: the project structure, the reusable cost logic, the revision trail, and the proposal handoff."
+          />
+        </MotionReveal>
+
+        <div className="mt-14 grid gap-5 lg:grid-cols-[minmax(0,0.94fr)_minmax(360px,0.62fr)] lg:items-stretch">
+          <MotionReveal staggerIndex={1}>
+            <WorkflowVisual />
+          </MotionReveal>
+
+          <div className="grid gap-3">
+            {solutionFeatures.map(([title, body], index) => (
+              <MotionReveal key={title} staggerIndex={index + 2}>
+                <article className="rounded-[10px] border border-[#dedbd6] bg-[#faf9f6] p-5">
+                  <h3 className="text-[24px] font-normal leading-[1.02] tracking-[-0.045em] text-[#111111]">
+                    {title}
+                  </h3>
+                  <p className="mt-3 text-[14px] leading-[1.5] text-[#626260]">{body}</p>
+                </article>
+              </MotionReveal>
             ))}
           </div>
         </div>

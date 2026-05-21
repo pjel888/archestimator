@@ -1,6 +1,6 @@
 "use client";
 
-import { unstable_rethrow, useRouter } from "next/navigation";
+import { unstable_rethrow, usePathname, useRouter } from "next/navigation";
 import { startTransition, useCallback, useEffect, useMemo, useRef, useState, type ButtonHTMLAttributes, type DragEvent, type HTMLAttributes } from "react";
 import {
   ControlledTreeEnvironment,
@@ -11,14 +11,18 @@ import {
   type TreeViewState,
   type DraggingPosition,
 } from "react-complex-tree";
-import { useQueryClient } from "@tanstack/react-query";
-import { CaretDown, Cube, FolderSimple, Plus } from "@phosphor-icons/react/dist/ssr";
+import { ArrowCounterClockwise, CaretDown, Check, Cube, FolderSimple, Plus } from "@phosphor-icons/react/dist/ssr";
 
 import { HeaderIconToolbar } from "@/components/ui/header-icon-toolbar";
 import { SearchInput } from "@/components/ui/search-input";
+import { Button } from "@/components/ui/button";
+import { ContextActionMenuContent, type ActionMenuGroup } from "@/components/ui/action-menu";
+import { ContextMenu, ContextMenuContent, ContextMenuTrigger } from "@/components/ui/context-menu";
+import { ControlInput } from "@/components/ui/control-input";
+import { Modal } from "@/components/ui/modal";
 import { getEstimateNodeDisplayKind, getEstimateNodeKindSortRank, isEstimateGroupNodeKind } from "@/lib/estimates/tree-hierarchy";
-import { createEstimateNode, reorderEstimateTreeNodes } from "@/lib/estimates/actions";
-import { estimateQueryKeys } from "@/hooks/use-estimate-query";
+import { createEstimateNode, deleteEstimateNode, renameEstimateNode, reorderEstimateTreeNodes } from "@/lib/estimates/actions";
+import { useEstimateAreaTreeQuery } from "@/hooks/use-estimate-query";
 import { useEstimateWorkspaceExpansion, useEstimateWorkspaceSelection } from "@/hooks/use-estimate-workspace-state";
 import { cn } from "@/lib/ui/cn";
 import {
@@ -26,6 +30,7 @@ import {
   evaluateEstimateTreeDrop,
   getEstimateTreeStructureSignature,
 } from "@/lib/estimates/estimate-tree-reorder";
+import { planEstimateTreeDelete, renameEstimateTreeNode } from "@/lib/estimates/estimate-tree-edit";
 import { findEstimateNode, type EstimateTreeNode } from "./estimate-tree-data";
 import { ResizableSidePanel } from "./ResizableSidePanel";
 
@@ -169,18 +174,57 @@ function buildTreeModel(nodes: EstimateTreeNode[]): EstimateTreeModel {
   return { items, folderIds };
 }
 
+function resolveConfirmedDeleteFallbackNodeId(tree: EstimateTreeNode[], fallbackNodeId: string | null) {
+  if (fallbackNodeId && findEstimateNode(tree, fallbackNodeId)) return fallbackNodeId;
+  return tree[0]?.id ?? null;
+}
+
+function getEstimateRouteNodeIdFromPathname(pathname: string | null, estimateId: string) {
+  if (!pathname) return null;
+  const segments = pathname.split("/").filter(Boolean);
+  const estimatesSegmentIndex = segments.indexOf("estimates");
+  const routeSegment = estimatesSegmentIndex >= 0 ? segments[estimatesSegmentIndex + 1] : null;
+  if (!routeSegment || routeSegment === estimateId) return null;
+
+  try {
+    return decodeURIComponent(routeSegment);
+  } catch {
+    return routeSegment;
+  }
+}
+
 export function EstimateSheetTree({ projectId, estimateId, projectName, selectedNodeId, nodes }: EstimateSheetTreeProps) {
   const router = useRouter();
-  const queryClient = useQueryClient();
+  const pathname = usePathname();
+  const {
+    tree: localNodes,
+    setTree: setLocalNodes,
+    snapshot: snapshotLocalNodes,
+    restore: restoreLocalNodes,
+    getTreeRevision: getLocalTreeRevision,
+    prepareOptimisticUpdate: prepareAreaTreeOptimisticUpdate,
+  } = useEstimateAreaTreeQuery({ projectId, estimateId, initialNodes: nodes });
   const pendingReordersRef = useRef(0);
   const suppressPrimaryActionUntilRef = useRef(0);
   const draggedTreeItemRef = useRef<TreeItem<EstimateTreeItemData> | null>(null);
+  const renameCommitInFlightRef = useRef(false);
+  const renameInputRef = useRef<HTMLInputElement | null>(null);
+  const suppressContextMenuCloseAutoFocusRef = useRef(false);
+  const ignoreRenameBlurDuringContextMenuCloseRef = useRef(false);
   const lastAcceptedPropStructureRef = useRef(getEstimateTreeStructureSignature(nodes));
-  const [localNodes, setLocalNodes] = useState<EstimateTreeNode[]>(nodes);
   const [reorderStatus, setReorderStatus] = useState<ReorderStatus>({ state: "idle" });
   const [nestIntentHint, setNestIntentHint] = useState<NestIntentHint | null>(null);
   const [activeRootDropEdge, setActiveRootDropEdge] = useState<RootDropEdge | null>(null);
+  const [editingNodeId, setEditingNodeId] = useState<string | null>(null);
+  const [editingNodeName, setEditingNodeName] = useState("");
+  const [editingNodeError, setEditingNodeError] = useState<string | null>(null);
+  const [deleteTargetNode, setDeleteTargetNode] = useState<EstimateTreeNode | null>(null);
+  const [deletePending, setDeletePending] = useState(false);
   const { selectedNodeId: activeSelectedNodeId, setSelectedNodeId } = useEstimateWorkspaceSelection(estimateId, selectedNodeId);
+  const currentRouteNodeId = useMemo(
+    () => getEstimateRouteNodeIdFromPathname(pathname, estimateId) ?? selectedNodeId,
+    [estimateId, pathname, selectedNodeId],
+  );
   const treeModel = useMemo(() => buildTreeModel(localNodes), [localNodes]);
   const allFolderItemIds = useMemo(() => Array.from(treeModel.folderIds).filter((itemId) => treeModel.items[itemId]), [treeModel.folderIds, treeModel.items]);
   const { expandedNodeIds, setExpandedNodeIds } = useEstimateWorkspaceExpansion(estimateId, allFolderItemIds);
@@ -203,7 +247,37 @@ export function EstimateSheetTree({ projectId, estimateId, projectName, selected
       lastAcceptedPropStructureRef.current = incomingStructure;
       return nodes;
     });
-  }, [nodes]);
+  }, [nodes, setLocalNodes]);
+
+  useEffect(() => {
+    if (!editingNodeId) {
+      suppressContextMenuCloseAutoFocusRef.current = false;
+      ignoreRenameBlurDuringContextMenuCloseRef.current = false;
+      return undefined;
+    }
+    let focusAnimationFrame: number | null = null;
+    let focusTimeout: number | null = null;
+    const focusRenameInput = () => {
+      renameInputRef.current?.focus();
+      renameInputRef.current?.select();
+    };
+    const menuCloseAnimationFrame = window.requestAnimationFrame(() => {
+      focusAnimationFrame = window.requestAnimationFrame(() => {
+        focusRenameInput();
+        focusTimeout = window.setTimeout(() => {
+          focusRenameInput();
+          ignoreRenameBlurDuringContextMenuCloseRef.current = false;
+        }, 0);
+      });
+    });
+    return () => {
+      window.cancelAnimationFrame(menuCloseAnimationFrame);
+      if (focusAnimationFrame !== null) window.cancelAnimationFrame(focusAnimationFrame);
+      if (focusTimeout !== null) window.clearTimeout(focusTimeout);
+      suppressContextMenuCloseAutoFocusRef.current = false;
+      ignoreRenameBlurDuringContextMenuCloseRef.current = false;
+    };
+  }, [editingNodeId]);
 
   const expandedItems = useMemo(() => {
     return expandedNodeIds.filter((itemId) => treeModel.items[itemId]);
@@ -232,10 +306,11 @@ export function EstimateSheetTree({ projectId, estimateId, projectName, selected
     },
   }), [expandedItems, focusedItem, routeSelectedItems]);
 
-  const canReorderNow = reorderStatus.state !== "saving";
+  const isTreeMutationSaving = reorderStatus.state === "saving" || deletePending;
+  const canReorderNow = !isTreeMutationSaving;
   const handleCanDrag = useCallback((items: TreeItem<EstimateTreeItemData>[]) => (
-    canReorderNow && items.length === 1 && Boolean(items[0]?.data.node)
-  ), [canReorderNow]);
+    canReorderNow && !editingNodeId && items.length === 1 && Boolean(items[0]?.data.node)
+  ), [canReorderNow, editingNodeId]);
 
   const handleCanDropAt = useCallback((items: TreeItem<EstimateTreeItemData>[], target: Parameters<typeof evaluateEstimateTreeDrop>[0]["target"]) => {
     if (!handleCanDrag(items)) return false;
@@ -326,28 +401,44 @@ export function EstimateSheetTree({ projectId, estimateId, projectName, selected
     });
     if (!result.ok) return;
 
-    const previousNodes = localNodes;
     const nextNodes = result.plan.nextNodes;
     pendingReordersRef.current += 1;
-    setLocalNodes(nextNodes);
-    queryClient.setQueryData(estimateQueryKeys.areaTree(estimateId), nextNodes);
     setReorderStatus({ state: "saving", message: "Saving tree order" });
 
     void (async () => {
+      let previousNodes = localNodes;
+      let optimisticRevision: number | null = null;
       try {
+        previousNodes = await prepareAreaTreeOptimisticUpdate();
+        setLocalNodes(nextNodes);
+        optimisticRevision = getLocalTreeRevision();
         const confirmed = await reorderEstimateTreeNodes(projectId, estimateId, { updates: result.plan.updates });
         pendingReordersRef.current = Math.max(0, pendingReordersRef.current - 1);
         setLocalNodes(confirmed.tree);
-        queryClient.setQueryData(estimateQueryKeys.areaTree(estimateId), confirmed.tree);
         setReorderStatus({ state: "saved", message: "Tree order saved" });
       } catch (error) {
         pendingReordersRef.current = Math.max(0, pendingReordersRef.current - 1);
-        setLocalNodes(previousNodes);
-        queryClient.setQueryData(estimateQueryKeys.areaTree(estimateId), previousNodes);
+        if (optimisticRevision === null) {
+          setLocalNodes(previousNodes);
+        } else {
+          restoreLocalNodes(previousNodes, optimisticRevision);
+        }
         setReorderStatus({ state: "error", message: error instanceof Error ? error.message : "Could not save tree order." });
       }
     })();
-  }, [clearNestIntentHint, clearRootDropActive, estimateId, handleCanDrag, localNodes, projectId, queryClient, suppressPrimaryActionAfterDrag]);
+  }, [
+    clearNestIntentHint,
+    clearRootDropActive,
+    estimateId,
+    getLocalTreeRevision,
+    handleCanDrag,
+    localNodes,
+    prepareAreaTreeOptimisticUpdate,
+    projectId,
+    restoreLocalNodes,
+    setLocalNodes,
+    suppressPrimaryActionAfterDrag,
+  ]);
 
   const handleRootDropZoneDragOver = useCallback((edge: RootDropEdge, event: DragEvent<HTMLDivElement>) => {
     const draggedItem = getDraggedTreeItemFromEvent(event);
@@ -390,7 +481,6 @@ export function EstimateSheetTree({ projectId, estimateId, projectName, selected
     const nextNodes = insertLocalEstimateTreeNode(localNodes, selectedGroupId, optimisticNode);
 
     setLocalNodes(nextNodes);
-    queryClient.setQueryData(estimateQueryKeys.areaTree(estimateId), nextNodes);
     if (selectedGroupId) {
       setExpandedNodeIds(Array.from(new Set([...expandedItems.map(String), selectedGroupId])));
     }
@@ -406,7 +496,6 @@ export function EstimateSheetTree({ projectId, estimateId, projectName, selected
         unstable_rethrow(error);
         setLocalNodes((currentNodes) => {
           const rolledBackNodes = removeLocalEstimateTreeNode(currentNodes, optimisticNodeId);
-          queryClient.setQueryData(estimateQueryKeys.areaTree(estimateId), rolledBackNodes);
           return rolledBackNodes;
         });
         setReorderStatus({ state: "error", message: error instanceof Error ? error.message : "Could not add estimate tree node." });
@@ -432,22 +521,225 @@ export function EstimateSheetTree({ projectId, estimateId, projectName, selected
     expandedItems,
     localNodes,
     projectId,
-    queryClient,
     selectedGroupId,
     setExpandedNodeIds,
+    setLocalNodes,
   ]);
 
+  const beginRenameNode = useCallback((node: EstimateTreeNode) => {
+    if (isTreeMutationSaving) return;
+    suppressContextMenuCloseAutoFocusRef.current = true;
+    ignoreRenameBlurDuringContextMenuCloseRef.current = true;
+    setEditingNodeId(node.id);
+    setEditingNodeName(node.name);
+    setEditingNodeError(null);
+  }, [isTreeMutationSaving]);
+
+  const cancelRenameNode = useCallback(() => {
+    suppressContextMenuCloseAutoFocusRef.current = false;
+    ignoreRenameBlurDuringContextMenuCloseRef.current = false;
+    setEditingNodeId(null);
+    setEditingNodeName("");
+    setEditingNodeError(null);
+  }, []);
+
+  const resetRenameNode = useCallback((node: EstimateTreeNode) => {
+    setEditingNodeName(node.name);
+    setEditingNodeError(null);
+    renameInputRef.current?.focus();
+    renameInputRef.current?.select();
+    window.requestAnimationFrame(() => {
+      renameInputRef.current?.focus();
+      renameInputRef.current?.select();
+    });
+  }, []);
+
+  const commitRenameNode = useCallback((node: EstimateTreeNode) => {
+    if (renameCommitInFlightRef.current) return;
+    suppressContextMenuCloseAutoFocusRef.current = false;
+    ignoreRenameBlurDuringContextMenuCloseRef.current = false;
+
+    const nextName = editingNodeName.trim();
+    if (!nextName) {
+      setEditingNodeError("Name is required.");
+      window.requestAnimationFrame(() => {
+        renameInputRef.current?.focus();
+        renameInputRef.current?.select();
+      });
+      return;
+    }
+    if (nextName === node.name) {
+      cancelRenameNode();
+      return;
+    }
+
+    renameCommitInFlightRef.current = true;
+    setEditingNodeId(null);
+    setEditingNodeError(null);
+    setReorderStatus({ state: "saving", message: "Renaming node" });
+
+    void (async () => {
+      let previousNodes = localNodes;
+      try {
+        previousNodes = await prepareAreaTreeOptimisticUpdate();
+        const nextNodes = renameEstimateTreeNode(previousNodes, node.id, nextName);
+        setLocalNodes(nextNodes);
+        const confirmed = await renameEstimateNode(projectId, estimateId, node.id, nextName);
+        if (confirmed.nodeId !== node.id || confirmed.name !== nextName) {
+          setLocalNodes((currentNodes) => renameEstimateTreeNode(currentNodes, confirmed.nodeId, confirmed.name));
+        }
+        setReorderStatus({ state: "saved", message: "Node renamed" });
+      } catch (error) {
+        unstable_rethrow(error);
+        const currentNodes = snapshotLocalNodes();
+        const currentNode = findEstimateNode(currentNodes, node.id);
+        if (currentNode?.name === nextName) {
+          setLocalNodes(renameEstimateTreeNode(currentNodes, node.id, node.name));
+          setEditingNodeId(node.id);
+          setEditingNodeName(nextName);
+          setEditingNodeError(error instanceof Error ? error.message : "Could not rename node.");
+        } else {
+          setEditingNodeId(null);
+          setEditingNodeName("");
+          setEditingNodeError(null);
+        }
+        setReorderStatus({ state: "error", message: error instanceof Error ? error.message : "Could not rename node." });
+      } finally {
+        renameCommitInFlightRef.current = false;
+      }
+    })();
+  }, [
+    cancelRenameNode,
+    editingNodeName,
+    estimateId,
+    localNodes,
+    prepareAreaTreeOptimisticUpdate,
+    projectId,
+    setLocalNodes,
+    snapshotLocalNodes,
+  ]);
+
+  const replaceEstimateRoute = useCallback((nodeId: string | null) => {
+    const href = nodeId
+      ? `/workshop/projects/${projectId}/estimates/${nodeId}`
+      : `/workshop/projects/${projectId}/estimates/${estimateId}`;
+    startTransition(() => {
+      router.replace(href);
+    });
+  }, [estimateId, projectId, router]);
+
+  const handleConfirmDeleteNode = useCallback(() => {
+    if (!deleteTargetNode || isTreeMutationSaving) return;
+
+    const targetNode = deleteTargetNode;
+    const previousSelectedNodeId = activeSelectedNodeId;
+    const previousFocusedOverride = focusedOverride;
+    const routeNodeIdBeforeDelete = currentRouteNodeId;
+    let routeWasDeleted = false;
+
+    setDeletePending(true);
+    setDeleteTargetNode(null);
+    setReorderStatus({ state: "saving", message: "Deleting node" });
+
+    void (async () => {
+      let previousNodes = localNodes;
+      let optimisticRevision: number | null = null;
+      let optimisticRouteNodeId = routeNodeIdBeforeDelete;
+      try {
+        previousNodes = await prepareAreaTreeOptimisticUpdate();
+        const deletePlan = planEstimateTreeDelete(previousNodes, targetNode.id, activeSelectedNodeId);
+        routeWasDeleted = routeNodeIdBeforeDelete ? deletePlan.deletedNodeIds.has(routeNodeIdBeforeDelete) : false;
+        optimisticRouteNodeId = routeWasDeleted ? deletePlan.fallbackNodeId : routeNodeIdBeforeDelete;
+        const activeSelectionWasDeleted = activeSelectedNodeId ? deletePlan.deletedNodeIds.has(activeSelectedNodeId) : false;
+
+        setLocalNodes(deletePlan.nextNodes);
+        optimisticRevision = getLocalTreeRevision();
+        if (activeSelectionWasDeleted) {
+          setSelectedNodeId(deletePlan.fallbackNodeId);
+          setFocusedOverride(deletePlan.fallbackNodeId ? { routeNodeId: deletePlan.fallbackNodeId, item: deletePlan.fallbackNodeId } : null);
+        }
+        if (routeWasDeleted) replaceEstimateRoute(deletePlan.fallbackNodeId);
+
+        const confirmed = await deleteEstimateNode(projectId, estimateId, targetNode.id);
+        const confirmedDeletedNodeIds = new Set(confirmed.deletedNodeIds);
+        const confirmedFallbackNodeId = resolveConfirmedDeleteFallbackNodeId(confirmed.tree, confirmed.fallbackNodeId);
+        const confirmedActiveNodeStillExists = activeSelectedNodeId ? Boolean(findEstimateNode(confirmed.tree, activeSelectedNodeId)) : true;
+        const confirmedRouteNodeStillExists = routeNodeIdBeforeDelete ? Boolean(findEstimateNode(confirmed.tree, routeNodeIdBeforeDelete)) : true;
+        const activeSelectionWasDeletedOnServer = activeSelectedNodeId
+          ? confirmedDeletedNodeIds.has(activeSelectedNodeId) || !confirmedActiveNodeStillExists
+          : false;
+        const routeWasDeletedOnServer = routeNodeIdBeforeDelete
+          ? confirmedDeletedNodeIds.has(routeNodeIdBeforeDelete) || !confirmedRouteNodeStillExists
+          : false;
+        const serverRouteNodeId = routeWasDeletedOnServer ? confirmedFallbackNodeId : routeNodeIdBeforeDelete;
+
+        setLocalNodes(confirmed.tree);
+        if (activeSelectionWasDeletedOnServer) {
+          setSelectedNodeId(confirmedFallbackNodeId);
+          setFocusedOverride(confirmedFallbackNodeId ? { routeNodeId: confirmedFallbackNodeId, item: confirmedFallbackNodeId } : null);
+        }
+        if ((routeWasDeleted || routeWasDeletedOnServer) && optimisticRouteNodeId !== serverRouteNodeId) {
+          replaceEstimateRoute(serverRouteNodeId);
+        }
+        setReorderStatus({ state: "saved", message: "Node deleted" });
+      } catch (error) {
+        unstable_rethrow(error);
+        let didRestoreTree = true;
+        if (optimisticRevision === null) {
+          setLocalNodes(previousNodes);
+        } else {
+          didRestoreTree = restoreLocalNodes(previousNodes, optimisticRevision);
+        }
+        if (didRestoreTree) {
+          setSelectedNodeId(previousSelectedNodeId);
+          setFocusedOverride(previousFocusedOverride);
+          if (routeWasDeleted && routeNodeIdBeforeDelete) replaceEstimateRoute(routeNodeIdBeforeDelete);
+        }
+        setReorderStatus({ state: "error", message: error instanceof Error ? error.message : "Could not delete node." });
+      } finally {
+        setDeletePending(false);
+      }
+    })();
+  }, [
+    activeSelectedNodeId,
+    currentRouteNodeId,
+    deleteTargetNode,
+    estimateId,
+    focusedOverride,
+    getLocalTreeRevision,
+    isTreeMutationSaving,
+    localNodes,
+    prepareAreaTreeOptimisticUpdate,
+    projectId,
+    replaceEstimateRoute,
+    restoreLocalNodes,
+    setSelectedNodeId,
+    setLocalNodes,
+  ]);
+
+  const handleDeleteModalOpenChange = useCallback((open: boolean) => {
+    if (!open && !deletePending) setDeleteTargetNode(null);
+  }, [deletePending]);
+
+  const deleteTargetDisplayKind = deleteTargetNode ? getEstimateNodeDisplayKind(deleteTargetNode.kind) : null;
+  const deleteConfirmationDescription = deleteTargetNode
+    ? deleteTargetDisplayKind === "group"
+      ? "This removes the group, child groups, child areas, and descendant estimate rows."
+      : "This removes the area and its estimate rows."
+    : "";
+
   return (
-    <ResizableSidePanel
-      side="left"
-      ariaLabel="Tree"
-      storageKey="estimate_sheet_tree_width"
-      defaultWidth={272}
-      minWidth={216}
-      maxWidth={432}
-      widthOffset={ESTIMATE_TREE_LEFT_EXTENSION_WIDTH}
-    >
-      <div className="flex h-full flex-col overflow-hidden border-r border-hairline bg-white">
+    <>
+      <ResizableSidePanel
+        side="left"
+        ariaLabel="Tree"
+        storageKey="estimate_sheet_tree_width"
+        defaultWidth={272}
+        minWidth={216}
+        maxWidth={432}
+        widthOffset={ESTIMATE_TREE_LEFT_EXTENSION_WIDTH}
+      >
+        <div className="flex h-full flex-col overflow-hidden border-r border-hairline bg-white">
         <div className="sticky top-0 z-20 shrink-0 bg-white">
           <div className="flex h-[38px] items-center">
             <SearchInput
@@ -514,6 +806,7 @@ export function EstimateSheetTree({ projectId, estimateId, projectName, selected
                 if (Date.now() < suppressPrimaryActionUntilRef.current) {
                   return;
                 }
+                if (editingNodeId) return;
                 const node = item.data.node;
                 if (!node) return;
                 setSelectedNodeId(node.id);
@@ -552,12 +845,112 @@ export function EstimateSheetTree({ projectId, estimateId, projectName, selected
               renderItemTitle={({ title, item }) => {
                 const node = item.data.node;
                 if (!node) return null;
+                const isEditing = editingNodeId === node.id;
+                const errorId = `estimate-tree-rename-error-${node.id}`;
                 return (
                   <>
                     <span className="mr-1 flex size-4 shrink-0 items-center justify-center text-tertiary" aria-hidden="true">
                       <NodeIcon kind={node.kind} />
                     </span>
-                    <span className="min-w-0 truncate text-left">{title}</span>
+                    {isEditing ? (
+                      <span className="relative flex min-w-0 flex-1 items-center gap-1">
+                        <ControlInput
+                          ref={renameInputRef}
+                          value={editingNodeName}
+                          aria-label={`Rename ${node.name}`}
+                          aria-invalid={editingNodeError ? "true" : undefined}
+                          aria-describedby={editingNodeError ? errorId : undefined}
+                          draggable={false}
+                          onChange={(event) => {
+                            setEditingNodeName(event.currentTarget.value);
+                            if (editingNodeError) setEditingNodeError(null);
+                          }}
+                          onBlur={(event) => {
+                            if (event.relatedTarget instanceof HTMLElement && event.relatedTarget.closest("[data-estimate-tree-rename-control='true']")) return;
+                            if (ignoreRenameBlurDuringContextMenuCloseRef.current && editingNodeName === node.name) return;
+                            commitRenameNode(node);
+                          }}
+                          onPointerDown={(event) => event.stopPropagation()}
+                          onMouseDown={(event) => event.stopPropagation()}
+                          onClick={(event) => event.stopPropagation()}
+                          onDoubleClick={(event) => event.stopPropagation()}
+                          onDragStart={(event) => {
+                            event.preventDefault();
+                            event.stopPropagation();
+                          }}
+                          onKeyDown={(event) => {
+                            event.stopPropagation();
+                            if (event.key === "Enter") {
+                              event.preventDefault();
+                              commitRenameNode(node);
+                            }
+                            if (event.key === "Escape") {
+                              event.preventDefault();
+                              cancelRenameNode();
+                            }
+                          }}
+                          className={cn(
+                            "h-5 min-h-0 flex-1 rounded-sm border-accent bg-white px-1 py-0 font-normal leading-5 shadow-[inset_0_0_0_1px_rgba(255,122,26,0.14)] hover:border-accent focus:border-accent focus:bg-white focus-visible:ring-2 focus-visible:ring-accentSoft",
+                            editingNodeError ? "border-danger focus:border-danger focus-visible:ring-danger" : "",
+                          )}
+                        />
+                        <button
+                          type="button"
+                          data-estimate-tree-rename-control="true"
+                          aria-label={`Confirm rename ${node.name}`}
+                          title="Confirm rename"
+                          className="grid size-5 shrink-0 place-items-center rounded-sm border border-accent bg-white text-warning transition hover:bg-accentSoft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accentSoft"
+                          onPointerDown={(event) => {
+                            event.preventDefault();
+                            event.stopPropagation();
+                          }}
+                          onMouseDown={(event) => {
+                            event.preventDefault();
+                            event.stopPropagation();
+                          }}
+                          onClick={(event) => {
+                            event.preventDefault();
+                            event.stopPropagation();
+                            commitRenameNode(node);
+                          }}
+                        >
+                          <Check size={12} weight="bold" aria-hidden="true" />
+                        </button>
+                        <button
+                          type="button"
+                          data-estimate-tree-rename-control="true"
+                          aria-label={`Reset rename ${node.name}`}
+                          title="Reset name"
+                          className="grid size-5 shrink-0 place-items-center rounded-sm border border-accent/70 bg-white text-warning transition hover:bg-accentSoft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accentSoft"
+                          onPointerDown={(event) => {
+                            event.preventDefault();
+                            event.stopPropagation();
+                          }}
+                          onMouseDown={(event) => {
+                            event.preventDefault();
+                            event.stopPropagation();
+                          }}
+                          onClick={(event) => {
+                            event.preventDefault();
+                            event.stopPropagation();
+                            resetRenameNode(node);
+                          }}
+                        >
+                          <ArrowCounterClockwise size={12} weight="bold" aria-hidden="true" />
+                        </button>
+                        {editingNodeError ? (
+                          <span
+                            id={errorId}
+                            role="alert"
+                            className="absolute left-0 top-[22px] z-20 max-w-[180px] truncate rounded-sm border border-dangerSoft bg-white px-1 py-0.5 text-[9px] font-semibold leading-3 text-danger shadow-sm"
+                          >
+                            {editingNodeError}
+                          </span>
+                        ) : null}
+                      </span>
+                    ) : (
+                      <span className="min-w-0 truncate text-left">{title}</span>
+                    )}
                   </>
                 );
               }}
@@ -586,9 +979,33 @@ export function EstimateSheetTree({ projectId, estimateId, projectName, selected
                   onDragOver,
                   onDrop,
                   onDragEnd,
+                  onContextMenu,
                   ...interactiveProps
                 } = context.interactiveElementProps as ButtonHTMLAttributes<HTMLButtonElement>;
                 const isRouteSelected = activeSelectedNodeId === node.id;
+                const isEditing = editingNodeId === node.id;
+                const nodeActionGroups: ActionMenuGroup[] = [
+                  {
+                    id: "node-actions",
+                    items: [
+                      {
+                        id: "rename",
+                        label: "Rename",
+                        disabled: isTreeMutationSaving,
+                        disabledReason: "Finish the current tree save before renaming another node.",
+                        onSelect: () => beginRenameNode(node),
+                      },
+                      {
+                        id: "delete",
+                        label: "Delete",
+                        tone: "destructive",
+                        disabled: isTreeMutationSaving,
+                        disabledReason: "Finish the current tree save before deleting another node.",
+                        onSelect: () => setDeleteTargetNode(node),
+                      },
+                    ],
+                  },
+                ];
                 const directFolderDropTarget = isEstimateGroupNodeKind(node.kind) ? createDirectFolderDropTarget(node, depth) : null;
                 const isNestIntentTarget = nestIntentHint?.targetId === node.id;
                 const handleDirectFolderNestDragOver = (event: DragEvent<HTMLElement>) => {
@@ -614,6 +1031,100 @@ export function EstimateSheetTree({ projectId, estimateId, projectName, selected
                   draggedTreeItemRef.current = null;
                   return true;
                 };
+                const nodeInteractiveClassName = cn(
+                  "relative inline-flex h-7 min-w-0 items-center justify-start gap-0 rounded-md p-1 !text-[10px] !font-normal leading-none text-ink transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c8d2df] focus-visible:ring-offset-2",
+                  isEditing ? "overflow-visible" : "overflow-hidden",
+                  isRouteSelected ? "bg-surface-muted ring-1 ring-[#d7dee8]" : "hover:bg-surface-muted",
+                  isEditing ? "border border-accent bg-accentSoft ring-1 ring-accent shadow-[inset_0_0_0_1px_rgba(255,122,26,0.18)] hover:bg-accentSoft" : "",
+                  isNestIntentTarget ? "bg-[#eef7ff] ring-1 ring-[#8bbce8] shadow-[inset_0_0_0_1px_rgba(44,120,180,0.18)]" : "",
+                  buttonClassName,
+                );
+                const nodeTitleContent = (
+                  <span
+                    data-estimate-tree-title-offset
+                    className="flex h-full min-w-0 flex-1 items-center"
+                    style={{ paddingLeft: `${Math.min(depth * TREE_INDENT_STEP, TREE_MAX_INDENT)}px` }}
+                  >
+                    {title}
+                  </span>
+                );
+                const nodeButton = isEditing ? (
+                  <div
+                    aria-current={isRouteSelected ? "page" : undefined}
+                    data-estimate-tree-active-node={isRouteSelected ? "true" : undefined}
+                    data-estimate-tree-node-id={node.id}
+                    draggable={false}
+                    onContextMenu={(event) => {
+                      event.stopPropagation();
+                    }}
+                    onDragStart={(event) => {
+                      event.preventDefault();
+                      event.stopPropagation();
+                    }}
+                    onDragOver={(event) => {
+                      event.preventDefault();
+                    }}
+                    onDrop={(event) => {
+                      event.preventDefault();
+                    }}
+                    onDragEnd={() => {
+                      clearNestIntentHint();
+                      clearRootDropActive();
+                      window.setTimeout(() => {
+                        draggedTreeItemRef.current = null;
+                      }, 0);
+                    }}
+                    className={nodeInteractiveClassName}
+                  >
+                    {nodeTitleContent}
+                  </div>
+                ) : (
+                  <button
+                    {...interactiveProps}
+                    type="button"
+                    aria-current={isRouteSelected ? "page" : undefined}
+                    data-estimate-tree-active-node={isRouteSelected ? "true" : undefined}
+                    data-estimate-tree-node-id={node.id}
+                    draggable={interactiveProps.draggable}
+                    onContextMenu={(event) => {
+                      onContextMenu?.(event);
+                      event.stopPropagation();
+                    }}
+                    onDragStart={(event) => {
+                      if (isEditing) {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        return;
+                      }
+                      clearNestIntentHint();
+                      draggedTreeItemRef.current = item;
+                      event.dataTransfer.setData(ESTIMATE_TREE_DRAG_ITEM_DATA_TYPE, String(item.index));
+                      suppressPrimaryActionAfterDrag();
+                      onDragStart?.(event);
+                    }}
+                    onDragOver={(event) => {
+                      if (isEditing) return;
+                      if (handleDirectFolderNestDragOver(event)) return;
+                      onDragOver?.(event);
+                    }}
+                    onDrop={(event) => {
+                      if (isEditing) return;
+                      if (handleDirectFolderNestDrop(event)) return;
+                      onDrop?.(event);
+                    }}
+                    onDragEnd={(event) => {
+                      onDragEnd?.(event);
+                      clearNestIntentHint();
+                      clearRootDropActive();
+                      window.setTimeout(() => {
+                        draggedTreeItemRef.current = null;
+                      }, 0);
+                    }}
+                    className={nodeInteractiveClassName}
+                  >
+                    {nodeTitleContent}
+                  </button>
+                );
 
                 return (
                   <li {...liProps} className={cn("list-none", liClassName)}>
@@ -632,50 +1143,26 @@ export function EstimateSheetTree({ projectId, estimateId, projectName, selected
                         rowClassName,
                       )}
                     >
-                      <button
-                        {...interactiveProps}
-                        type="button"
-                        aria-current={isRouteSelected ? "page" : undefined}
-                        data-estimate-tree-active-node={isRouteSelected ? "true" : undefined}
-                        data-estimate-tree-node-id={node.id}
-                        onDragStart={(event) => {
-                          clearNestIntentHint();
-                          draggedTreeItemRef.current = item;
-                          event.dataTransfer.setData(ESTIMATE_TREE_DRAG_ITEM_DATA_TYPE, String(item.index));
-                          suppressPrimaryActionAfterDrag();
-                          onDragStart?.(event);
-                        }}
-                        onDragOver={(event) => {
-                          if (handleDirectFolderNestDragOver(event)) return;
-                          onDragOver?.(event);
-                        }}
-                        onDrop={(event) => {
-                          if (handleDirectFolderNestDrop(event)) return;
-                          onDrop?.(event);
-                        }}
-                        onDragEnd={(event) => {
-                          onDragEnd?.(event);
-                          clearNestIntentHint();
-                          clearRootDropActive();
-                          window.setTimeout(() => {
-                            draggedTreeItemRef.current = null;
-                          }, 0);
-                        }}
-                        className={cn(
-                          "relative inline-flex h-7 min-w-0 items-center justify-start gap-0 overflow-hidden rounded-md p-1 !text-[10px] !font-normal leading-none text-ink transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c8d2df] focus-visible:ring-offset-2",
-                          isRouteSelected ? "bg-surface-muted ring-1 ring-[#d7dee8]" : "hover:bg-surface-muted",
-                          isNestIntentTarget ? "bg-[#eef7ff] ring-1 ring-[#8bbce8] shadow-[inset_0_0_0_1px_rgba(44,120,180,0.18)]" : "",
-                          buttonClassName,
-                        )}
-                      >
-                        <span
-                          data-estimate-tree-title-offset
-                          className="flex h-full min-w-0 flex-1 items-center"
-                          style={{ paddingLeft: `${Math.min(depth * TREE_INDENT_STEP, TREE_MAX_INDENT)}px` }}
+                      <ContextMenu>
+                        <ContextMenuTrigger asChild>{nodeButton}</ContextMenuTrigger>
+                        <ContextMenuContent
+                          data-estimate-tree-context-menu="true"
+                          alignOffset={4}
+                          onCloseAutoFocus={(event) => {
+                            if (suppressContextMenuCloseAutoFocusRef.current) {
+                              event.preventDefault();
+                              window.setTimeout(() => {
+                                renameInputRef.current?.focus();
+                                renameInputRef.current?.select();
+                                suppressContextMenuCloseAutoFocusRef.current = false;
+                                ignoreRenameBlurDuringContextMenuCloseRef.current = false;
+                              }, 0);
+                            }
+                          }}
                         >
-                          {title}
-                        </span>
-                      </button>
+                          <ContextActionMenuContent groups={nodeActionGroups} />
+                        </ContextMenuContent>
+                      </ContextMenu>
                       {isNestIntentTarget ? (
                         <div
                           role="status"
@@ -737,7 +1224,46 @@ export function EstimateSheetTree({ projectId, estimateId, projectName, selected
             </ControlledTreeEnvironment>
           )}
         </div>
-      </div>
-    </ResizableSidePanel>
+        </div>
+      </ResizableSidePanel>
+      <Modal
+        open={Boolean(deleteTargetNode)}
+        title={deleteTargetNode ? `Delete ${deleteTargetNode.name}` : "Delete node"}
+        description={deleteConfirmationDescription}
+        onOpenChange={handleDeleteModalOpenChange}
+        closeLabel="Cancel delete"
+        className="max-w-sm"
+      >
+        <div className="space-y-3">
+          <p className="text-[10px] font-semibold leading-4 text-ink">
+            {deleteTargetNode ? (
+              <>
+                Delete <span className="font-bold">{deleteTargetNode.name}</span>? This action updates the tree immediately and can be undone only if the server rejects it.
+              </>
+            ) : null}
+          </p>
+          <div className="flex justify-end gap-2">
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              disabled={deletePending}
+              onClick={() => setDeleteTargetNode(null)}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              variant="danger"
+              size="sm"
+              disabled={deletePending}
+              onClick={handleConfirmDeleteNode}
+            >
+              Delete
+            </Button>
+          </div>
+        </div>
+      </Modal>
+    </>
   );
 }

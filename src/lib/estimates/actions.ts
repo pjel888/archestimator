@@ -12,6 +12,7 @@ import {
   normalizeEstimateTreeNodeKind,
   type EstimateTreeNodeKind,
 } from "@/lib/estimates/tree-hierarchy";
+import { planEstimateTreeDelete } from "@/lib/estimates/estimate-tree-edit";
 import { isMissingColumnError, normalizeEstimateRecord, type EstimateRecordWithLegacy } from "@/lib/repositories/estimate-schema-compat";
 import { getCurrentWorkspaceProject, getProjectEstimateTreeByEstimate } from "@/lib/repositories/workspace-repository";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -86,6 +87,24 @@ type ReorderEstimateNodeRow = {
   kind: string;
 };
 
+type ValidatedEstimateNodeRow = {
+  id: string;
+  estimate_id: string;
+  parent_id: string | null;
+  kind: string;
+};
+
+type RenameEstimateNodeResult = {
+  nodeId: string;
+  name: string;
+};
+
+type DeleteEstimateNodeResult = {
+  tree: EstimateTreeNode[];
+  deletedNodeIds: string[];
+  fallbackNodeId: string | null;
+};
+
 type CreateEstimateNodeKind = "group" | "area";
 
 type CreateEstimateNodeSiblingRow = {
@@ -138,6 +157,40 @@ async function getValidatedEstimateRow(projectId: string, estimateId: string, ro
   if (!row) throw new Error("Estimate row item not found in the current project.");
 
   return { project, supabase, row };
+}
+
+async function getValidatedEstimateNode(projectId: string, estimateId: string, nodeId: string) {
+  const { project } = await getCurrentWorkspaceProject(projectId);
+  if (!project) throw new Error("Project not found in the current workspace.");
+
+  const supabase = await createSupabaseServerClient();
+  const { data: estimate, error: estimateError } = await supabase
+    .from("estimates")
+    .select("id, project_id")
+    .eq("id", estimateId)
+    .eq("project_id", project.id)
+    .maybeSingle();
+
+  if (estimateError) throw estimateError;
+  if (!estimate) throw new Error("Estimate not found in the current project.");
+
+  const { data: node, error: nodeError } = await supabase
+    .from("estimate_nodes")
+    .select("id, estimate_id, parent_id, kind, estimates!inner(project_id)")
+    .eq("id", nodeId)
+    .eq("estimate_id", estimate.id)
+    .eq("estimates.project_id", project.id)
+    .maybeSingle();
+
+  if (nodeError) throw nodeError;
+  if (!node) throw new Error("Estimate tree node not found in the current project.");
+
+  return { project, estimate, supabase, node: node as ValidatedEstimateNodeRow };
+}
+
+function readEstimateNodeName(input: FormData | string) {
+  if (typeof input === "string") return normalizeEditableText(input, "Estimate tree node name");
+  return readRequiredText(input, "name");
 }
 
 function getSourceSnapshot(libraryItem: EstimateRowItem) {
@@ -670,6 +723,58 @@ export async function createEstimateNode(projectId: string, estimateId: string, 
   revalidatePath(`/workshop/projects/${project.id}/estimates`);
   revalidatePath(`/workshop/projects/${project.id}/estimates/${estimate.id}`);
   redirect(`/workshop/projects/${project.id}/estimates/${node.id}`);
+}
+
+export async function renameEstimateNode(
+  projectId: string,
+  estimateId: string,
+  nodeId: string,
+  formDataOrName: FormData | string,
+): Promise<RenameEstimateNodeResult> {
+  const name = readEstimateNodeName(formDataOrName);
+  const { estimate, supabase, node } = await getValidatedEstimateNode(projectId, estimateId, nodeId);
+
+  const { error } = await supabase
+    .from("estimate_nodes")
+    .update({ name })
+    .eq("id", node.id)
+    .eq("estimate_id", estimate.id);
+
+  if (error) throw error;
+
+  return { nodeId: node.id, name };
+}
+
+export async function deleteEstimateNode(
+  projectId: string,
+  estimateId: string,
+  nodeId: string,
+): Promise<DeleteEstimateNodeResult> {
+  const { project, estimate, supabase, node } = await getValidatedEstimateNode(projectId, estimateId, nodeId);
+  const { project: currentProject, estimate: currentEstimate, tree: currentTree } = await getProjectEstimateTreeByEstimate(project.id, estimate.id);
+  if (!currentProject || !currentEstimate) throw new Error("Estimate not found before deleting the tree node.");
+
+  const deletePlan = planEstimateTreeDelete(currentTree, node.id, node.id);
+  const { error } = await supabase
+    .from("estimate_nodes")
+    .delete()
+    .eq("id", node.id)
+    .eq("estimate_id", estimate.id);
+
+  if (error) throw error;
+
+  const { project: refreshedProject, estimate: refreshedEstimate, tree } = await getProjectEstimateTreeByEstimate(project.id, estimate.id);
+  if (!refreshedProject || !refreshedEstimate) throw new Error("Estimate not found after deleting the tree node.");
+
+  revalidatePath(`/workshop/projects/${project.id}/estimates`);
+  revalidatePath(`/workshop/projects/${project.id}/estimates/${estimate.id}`);
+  revalidatePath(`/workshop/projects/${project.id}/estimates/${node.id}`);
+
+  return {
+    tree,
+    deletedNodeIds: Array.from(deletePlan.deletedNodeIds),
+    fallbackNodeId: deletePlan.fallbackNodeId,
+  };
 }
 
 export async function insertEstimateRowItemFromLibrary({ projectId, estimateId, targetNodeId, rowId, libraryItem }: InsertEstimateRowItemFromLibraryInput) {
