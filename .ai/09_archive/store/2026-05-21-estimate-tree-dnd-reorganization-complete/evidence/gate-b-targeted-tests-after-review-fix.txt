@@ -12,4 +12,3 @@ $ vitest run tests/vitest/supabase-performance-migrations.test.ts tests/vitest/e
 [2m      Tests [22m [1m[32m28 passed[39m[22m[90m (28)[39m
 [2m   Start at [22m 23:44:29
 [2m   Duration [22m 1.89s[2m (transform 349ms, setup 360ms, import 1.10s, tests 208ms, environment 3.14s)[22m
-
