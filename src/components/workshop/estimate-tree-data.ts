@@ -33,6 +33,7 @@ export type EstimateRowItem = {
   lastUsedAt?: string;
   pricingSource: string;
   pricingDate: string;
+  confidence?: string;
 };
 
 export type EstimateTreeNode = {
@@ -188,6 +189,7 @@ function row(input: Omit<EstimateRowItem, "subTotal" | "totalItemCosts" | "categ
     imageUrl: componentThumbnailUrls[input.id] ?? input.imageUrl ?? inferImageUrl(input.material, category),
     pricingSource: input.pricingSource ?? "Demo seed assumption — verify supplier quote before issuing",
     pricingDate: input.pricingDate ?? "2026-05-17",
+    confidence: input.confidence ?? "Demo seed",
     subTotal,
     totalItemCosts: subTotal + input.supplementaryCosts + input.laborCost,
   };

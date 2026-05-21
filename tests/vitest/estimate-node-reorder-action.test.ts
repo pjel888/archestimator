@@ -1,4 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 
 const repositoryMocks = vi.hoisted(() => ({
   getCurrentWorkspaceProject: vi.fn(),
@@ -40,6 +42,7 @@ function queryResult<T>(result: SupabaseQueryResult<T>) {
     in: vi.fn(() => builder),
     is: vi.fn(() => builder),
     insert: vi.fn(() => builder),
+    update: vi.fn(() => builder),
     delete: vi.fn(() => builder),
     maybeSingle: vi.fn(async () => result),
     single: vi.fn(async () => result),
@@ -397,5 +400,162 @@ describe("createEstimateNode server action", () => {
     expect(deleteQuery.eq).toHaveBeenCalledWith("estimate_id", "estimate-1");
     expect(nextCacheMocks.revalidatePath).not.toHaveBeenCalled();
     expect(nextNavigationMocks.redirect).not.toHaveBeenCalled();
+  });
+});
+
+describe("renameEstimateNode and deleteEstimateNode server actions", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    repositoryMocks.getCurrentWorkspaceProject.mockResolvedValue({ project: { id: "project-1" } });
+  });
+
+  function scopedNodeSupabase({
+    nodeResult = {
+      data: { id: "kitchen", estimate_id: "estimate-1", parent_id: "ground-floor", kind: "area" },
+      error: null,
+    },
+    mutationQuery = queryResult({ data: null, error: null }),
+  }: {
+    nodeResult?: SupabaseQueryResult<unknown>;
+    mutationQuery?: ReturnType<typeof queryResult>;
+  } = {}) {
+    const estimateQuery = queryResult({ data: { id: "estimate-1", project_id: "project-1" }, error: null });
+    const nodeValidationQuery = queryResult(nodeResult);
+    const estimateNodeQueries = [nodeValidationQuery, mutationQuery];
+    const supabase = {
+      from: vi.fn((table: string) => {
+        if (table === "estimates") return estimateQuery;
+        if (table === "estimate_nodes") {
+          const nextQuery = estimateNodeQueries.shift();
+          if (!nextQuery) throw new Error("Unexpected estimate_nodes query");
+          return nextQuery;
+        }
+        throw new Error(`Unexpected table ${table}`);
+      }),
+      estimateQuery,
+      nodeValidationQuery,
+      mutationQuery,
+    };
+    return supabase;
+  }
+
+  it("trims names before updating and returns a minimal reconciliation patch", async () => {
+    const mutationQuery = queryResult({ data: null, error: null });
+    const supabase = scopedNodeSupabase({ mutationQuery });
+    supabaseServerMocks.createSupabaseServerClient.mockResolvedValue(supabase);
+    const { renameEstimateNode } = await import("@/lib/estimates/actions");
+
+    const result = await renameEstimateNode("project-1", "estimate-1", "kitchen", "  Chef Kitchen  ");
+
+    expect(mutationQuery.update).toHaveBeenCalledWith({ name: "Chef Kitchen" });
+    expect(mutationQuery.eq).toHaveBeenCalledWith("id", "kitchen");
+    expect(mutationQuery.eq).toHaveBeenCalledWith("estimate_id", "estimate-1");
+    expect(repositoryMocks.getProjectEstimateTreeByEstimate).not.toHaveBeenCalled();
+    expect(nextCacheMocks.revalidatePath).not.toHaveBeenCalled();
+    expect(result).toEqual({
+      nodeId: "kitchen",
+      name: "Chef Kitchen",
+    });
+  });
+
+  it("rejects empty rename values before touching workspace or database state", async () => {
+    const { renameEstimateNode } = await import("@/lib/estimates/actions");
+
+    await expect(renameEstimateNode("project-1", "estimate-1", "kitchen", "   ")).rejects.toThrow("Estimate tree node name is required.");
+    expect(repositoryMocks.getCurrentWorkspaceProject).not.toHaveBeenCalled();
+    expect(supabaseServerMocks.createSupabaseServerClient).not.toHaveBeenCalled();
+  });
+
+  it("scopes rename validation to project, estimate, and node", async () => {
+    const supabase = scopedNodeSupabase({
+      nodeResult: { data: null, error: null },
+      mutationQuery: queryResult({ data: null, error: null }),
+    });
+    supabaseServerMocks.createSupabaseServerClient.mockResolvedValue(supabase);
+    const { renameEstimateNode } = await import("@/lib/estimates/actions");
+
+    await expect(renameEstimateNode("project-1", "estimate-1", "other-node", "New Name")).rejects.toThrow(
+      "Estimate tree node not found in the current project.",
+    );
+
+    expect(supabase.estimateQuery.eq).toHaveBeenCalledWith("id", "estimate-1");
+    expect(supabase.estimateQuery.eq).toHaveBeenCalledWith("project_id", "project-1");
+    expect(supabase.nodeValidationQuery.eq).toHaveBeenCalledWith("id", "other-node");
+    expect(supabase.nodeValidationQuery.eq).toHaveBeenCalledWith("estimate_id", "estimate-1");
+    expect(supabase.nodeValidationQuery.eq).toHaveBeenCalledWith("estimates.project_id", "project-1");
+    expect(supabase.mutationQuery.update).not.toHaveBeenCalled();
+  });
+
+  it("scopes delete by project, estimate, and node and returns deleted ids with refreshed tree data", async () => {
+    const mutationQuery = queryResult({ data: null, error: null });
+    const supabase = scopedNodeSupabase({ mutationQuery });
+    supabaseServerMocks.createSupabaseServerClient.mockResolvedValue(supabase);
+    repositoryMocks.getProjectEstimateTreeByEstimate
+      .mockResolvedValueOnce({
+        project: { id: "project-1" },
+        estimate: { id: "estimate-1" },
+        tree: [
+          {
+            id: "ground-floor",
+            name: "Ground Floor",
+            kind: "group",
+            total: "₱0.00",
+            children: [
+              { id: "kitchen", name: "Kitchen", kind: "area", total: "₱0.00", children: [] },
+              { id: "living", name: "Living", kind: "area", total: "₱0.00", children: [] },
+            ],
+          },
+        ],
+      })
+      .mockResolvedValueOnce({
+        project: { id: "project-1" },
+        estimate: { id: "estimate-1" },
+        tree: [
+          {
+            id: "ground-floor",
+            name: "Ground Floor",
+            kind: "group",
+            total: "₱0.00",
+            children: [{ id: "living", name: "Living", kind: "area", total: "₱0.00", children: [] }],
+          },
+        ],
+      });
+    const { deleteEstimateNode } = await import("@/lib/estimates/actions");
+
+    const result = await deleteEstimateNode("project-1", "estimate-1", "kitchen");
+
+    expect(mutationQuery.delete).toHaveBeenCalledTimes(1);
+    expect(mutationQuery.eq).toHaveBeenCalledWith("id", "kitchen");
+    expect(mutationQuery.eq).toHaveBeenCalledWith("estimate_id", "estimate-1");
+    expect(result.deletedNodeIds).toEqual(["kitchen"]);
+    expect(result.fallbackNodeId).toBe("living");
+    expect(result.tree).toEqual([
+      {
+        id: "ground-floor",
+        name: "Ground Floor",
+        kind: "group",
+        total: "₱0.00",
+        children: [{ id: "living", name: "Living", kind: "area", total: "₱0.00", children: [] }],
+      },
+    ]);
+  });
+
+  it("does not redirect inside rename or delete server actions", () => {
+    const source = readFileSync(join(process.cwd(), "src/lib/estimates/actions.ts"), "utf8");
+    const renameStart = source.indexOf("export async function renameEstimateNode");
+    const deleteStart = source.indexOf("export async function deleteEstimateNode");
+    const afterDeleteStart = source.indexOf("export async function insertEstimateRowItemFromLibrary");
+
+    expect(source.slice(renameStart, deleteStart)).not.toContain("redirect(");
+    expect(source.slice(deleteStart, afterDeleteStart)).not.toContain("redirect(");
+  });
+
+  it("does not actively revalidate the current route for scalar rename patches", () => {
+    const source = readFileSync(join(process.cwd(), "src/lib/estimates/actions.ts"), "utf8");
+    const renameStart = source.indexOf("export async function renameEstimateNode");
+    const deleteStart = source.indexOf("export async function deleteEstimateNode");
+
+    expect(source.slice(renameStart, deleteStart)).not.toContain("revalidatePath(");
+    expect(source.slice(renameStart, deleteStart)).not.toContain("getProjectEstimateTreeByEstimate(");
   });
 });

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { usePathname } from "next/navigation";
 
 const pesoFormatter = new Intl.NumberFormat("en-PH", {
   style: "currency",
@@ -33,11 +34,17 @@ export function dispatchProjectBudgetChange(budget: number) {
   window.dispatchEvent(new CustomEvent<ProjectBudgetChangeDetail>(PROJECT_BUDGET_CHANGE_EVENT, { detail: { budget } }));
 }
 
-export function ProjectTotalHeader({ plannedBudget = 0 }: { plannedBudget?: number }) {
+export function ProjectTotalHeader({ plannedBudget = 0, projectId }: { plannedBudget?: number; projectId?: string }) {
+  const pathname = usePathname();
+  const isEstimateSheetRoute = projectId
+    ? Boolean(pathname?.startsWith(`/workshop/projects/${projectId}/estimates/`))
+    : true;
   const [budget, setBudget] = useState(plannedBudget);
   const [total, setTotal] = useState(0);
 
   useEffect(() => {
+    if (!isEstimateSheetRoute) return;
+
     function handleProjectTotalChange(event: Event) {
       const customEvent = event as CustomEvent<ProjectTotalChangeDetail>;
       if (typeof customEvent.detail?.total === "number") setTotal(customEvent.detail.total);
@@ -45,9 +52,11 @@ export function ProjectTotalHeader({ plannedBudget = 0 }: { plannedBudget?: numb
 
     window.addEventListener(PROJECT_TOTAL_CHANGE_EVENT, handleProjectTotalChange);
     return () => window.removeEventListener(PROJECT_TOTAL_CHANGE_EVENT, handleProjectTotalChange);
-  }, []);
+  }, [isEstimateSheetRoute]);
 
   useEffect(() => {
+    if (!isEstimateSheetRoute) return;
+
     function handleProjectBudgetChange(event: Event) {
       const customEvent = event as CustomEvent<ProjectBudgetChangeDetail>;
       if (typeof customEvent.detail?.budget === "number") setBudget(customEvent.detail.budget);
@@ -55,11 +64,13 @@ export function ProjectTotalHeader({ plannedBudget = 0 }: { plannedBudget?: numb
 
     window.addEventListener(PROJECT_BUDGET_CHANGE_EVENT, handleProjectBudgetChange);
     return () => window.removeEventListener(PROJECT_BUDGET_CHANGE_EVENT, handleProjectBudgetChange);
-  }, []);
+  }, [isEstimateSheetRoute]);
+
+  if (!isEstimateSheetRoute) return null;
 
   return (
     <div
-      className="flex h-full w-full items-center justify-between bg-white px-2"
+      className="mx-px flex h-full w-[calc(100%-2px)] items-center justify-between bg-white px-2"
       data-estimate-center-column="project-total-header"
       aria-label="Sheet running totals"
     >

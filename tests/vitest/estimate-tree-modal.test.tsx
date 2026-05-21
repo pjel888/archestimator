@@ -9,13 +9,18 @@ import { resetEstimateWorkspaceState } from "@/hooks/use-estimate-workspace-stat
 
 const actionMocks = vi.hoisted(() => ({
   createEstimateNode: vi.fn(),
+  deleteEstimateNode: vi.fn(),
+  fetchEstimateTree: vi.fn(),
+  renameEstimateNode: vi.fn(),
   reorderEstimateTreeNodes: vi.fn(),
 }));
 
 vi.mock("next/navigation", () => ({
   unstable_rethrow: vi.fn(),
+  usePathname: () => "/workshop/projects/project-1/estimates/kitchen",
   useRouter: () => ({
     push: vi.fn(),
+    replace: vi.fn(),
     refresh: vi.fn(),
   }),
 }));
@@ -26,7 +31,11 @@ describe("estimate sheet tree add-node toolbar flow", () => {
   beforeEach(() => {
     resetEstimateWorkspaceState();
     actionMocks.createEstimateNode.mockReset();
+    actionMocks.deleteEstimateNode.mockReset();
+    actionMocks.fetchEstimateTree.mockReset();
+    actionMocks.renameEstimateNode.mockReset();
     actionMocks.reorderEstimateTreeNodes.mockReset();
+    actionMocks.fetchEstimateTree.mockResolvedValue(sampleEstimateTree);
   });
 
   function renderTree(nodes = sampleEstimateTree, selectedNodeId: string | null = "kitchen") {

@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -8,16 +8,21 @@ import { resetEstimateWorkspaceState } from "@/hooks/use-estimate-workspace-stat
 
 const routerMock = vi.hoisted(() => ({
   push: vi.fn(),
+  replace: vi.fn(),
   refresh: vi.fn(),
 }));
 
 const actionMocks = vi.hoisted(() => ({
   createEstimateNode: vi.fn(),
+  deleteEstimateNode: vi.fn(),
+  fetchEstimateTree: vi.fn(),
+  renameEstimateNode: vi.fn(),
   reorderEstimateTreeNodes: vi.fn(),
 }));
 
 vi.mock("next/navigation", () => ({
   unstable_rethrow: vi.fn(),
+  usePathname: () => "/workshop/projects/project-1/estimates/kitchen",
   useRouter: () => routerMock,
 }));
 
@@ -132,9 +137,14 @@ describe("estimate sheet tree React Complex Tree DOM integration", () => {
   beforeEach(() => {
     resetEstimateWorkspaceState();
     routerMock.push.mockReset();
+    routerMock.replace.mockReset();
     routerMock.refresh.mockReset();
     actionMocks.createEstimateNode.mockReset();
+    actionMocks.deleteEstimateNode.mockReset();
+    actionMocks.fetchEstimateTree.mockReset();
+    actionMocks.renameEstimateNode.mockReset();
     actionMocks.reorderEstimateTreeNodes.mockReset();
+    actionMocks.fetchEstimateTree.mockResolvedValue(fixtureTree());
   });
 
   it("renders visible nested items with RCT interactive drag props on the node buttons", () => {
@@ -185,7 +195,7 @@ describe("estimate sheet tree React Complex Tree DOM integration", () => {
     expect(screen.getByText("Nest inside Alternates")).toBeInTheDocument();
   });
 
-  it("shows a large top root drop target for moving a Group Node before the first root item", () => {
+  it("shows a large top root drop target for moving a Group Node before the first root item", async () => {
     actionMocks.reorderEstimateTreeNodes.mockResolvedValue({
       tree: [
         {
@@ -248,9 +258,9 @@ describe("estimate sheet tree React Complex Tree DOM integration", () => {
 
     expect(rootTopDropZone).toHaveAttribute("data-estimate-tree-root-top-drop-active", "true");
 
-    fireEvent.drop(rootTopDropZone, { dataTransfer });
+    fireEvent.drop(rootDropZone("top"), { dataTransfer });
 
-    expect(actionMocks.reorderEstimateTreeNodes).toHaveBeenCalledWith("project-1", "estimate-1", {
+    await waitFor(() => expect(actionMocks.reorderEstimateTreeNodes).toHaveBeenCalledWith("project-1", "estimate-1", {
       updates: [
         { id: "ground-floor", parentId: "project-scope", sortOrder: 10 },
         { id: "alternates", parentId: null, sortOrder: 10 },
@@ -258,10 +268,10 @@ describe("estimate sheet tree React Complex Tree DOM integration", () => {
         { id: "phase-two", parentId: null, sortOrder: 30 },
         { id: "phase-three", parentId: null, sortOrder: 40 },
       ],
-    });
+    }));
   });
 
-  it("shows a bottom root drop line for moving a Group Node to the outermost level", () => {
+  it("shows a bottom root drop line for moving a Group Node to the outermost level", async () => {
     actionMocks.reorderEstimateTreeNodes.mockResolvedValue({
       tree: [
         {
@@ -324,9 +334,9 @@ describe("estimate sheet tree React Complex Tree DOM integration", () => {
 
     expect(rootBottomDropZone).toHaveAttribute("data-estimate-tree-root-bottom-drop-active", "true");
 
-    fireEvent.drop(rootBottomDropZone, { dataTransfer });
+    fireEvent.drop(rootDropZone("bottom"), { dataTransfer });
 
-    expect(actionMocks.reorderEstimateTreeNodes).toHaveBeenCalledWith("project-1", "estimate-1", {
+    await waitFor(() => expect(actionMocks.reorderEstimateTreeNodes).toHaveBeenCalledWith("project-1", "estimate-1", {
       updates: [
         { id: "ground-floor", parentId: "project-scope", sortOrder: 10 },
         { id: "project-scope", parentId: null, sortOrder: 10 },
@@ -334,6 +344,6 @@ describe("estimate sheet tree React Complex Tree DOM integration", () => {
         { id: "phase-three", parentId: null, sortOrder: 30 },
         { id: "alternates", parentId: null, sortOrder: 40 },
       ],
-    });
+    }));
   });
 });

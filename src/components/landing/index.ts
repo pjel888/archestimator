@@ -1,11 +1,16 @@
 export { AnnouncementBanner } from "./AnnouncementBanner";
+export { CompanyProofCarouselSection } from "./CompanyProofCarouselSection";
 export { CtaLink } from "./CtaLink";
 export { SecondaryClaimSection } from "./SecondaryClaimSection";
 export { EstimatorEngineSection } from "./EstimatorEngineSection";
 export { FeaturesSection } from "./FeaturesSection";
 export { FinalCTASection } from "./FinalCTASection";
-export { HeroSection, ProductShowcaseSection } from "./HeroSection";
+export { HeroSection } from "./HeroSection";
+export { LandingFooter } from "./LandingFooter";
+export { ProductShowcaseSection } from "./ProductShowcaseSection";
 export { LandingHeader } from "./LandingHeader";
+export { LandingSmoothScrollProvider } from "./LandingSmoothScrollProvider";
+export { LandingSnapController } from "./LandingSnapController";
 export { PartnerSection } from "./PartnerSection";
 export { PlaceholderMedia } from "./PlaceholderMedia";
 export { PricingSection } from "./PricingSection";

@@ -868,7 +868,12 @@ function EstimateSheetHeader() {
 export function EstimateSheetContent({ selectedNodeId, nodes = sampleEstimateTree, projectId, estimateId, renderSidebar = true }: EstimateSheetContentProps) {
   const { selectedNodeId: activeSelectedNodeId, setSelectedNodeId } = useEstimateWorkspaceSelection(estimateId, selectedNodeId);
   const { saveState, rowSaveStates, markRowDirty, insertRow, replaceRow, deleteRow, updateRow } = useEstimateRowMutations(estimateId);
-  const { tree: estimateTree, setTree: setEstimateTreeData, restore: restoreEstimateTree } = useEstimateAreaTreeQuery({
+  const {
+    tree: estimateTree,
+    setTree: setEstimateTreeData,
+    restore: restoreEstimateTree,
+    getTreeRevision: getEstimateTreeRevision,
+  } = useEstimateAreaTreeQuery({
     projectId,
     estimateId,
     initialNodes: nodes,
@@ -902,12 +907,13 @@ export function EstimateSheetContent({ selectedNodeId, nodes = sampleEstimateTre
 
   const setEstimateTree = useCallback((updater: (current: EstimateTreeNode[]) => EstimateTreeNode[]) => {
     skipEditableRowsSyncRef.current += 1;
-    setEstimateTreeData(updater);
+    return setEstimateTreeData(updater);
   }, [setEstimateTreeData]);
 
-  const restoreEstimateState = useCallback((previousTree: EstimateTreeNode[], previousRows: Record<string, EditableRowValue>) => {
+  const restoreEstimateState = useCallback((previousTree: EstimateTreeNode[], previousRows: Record<string, EditableRowValue>, expectedRevision?: number) => {
+    const didRestoreTree = restoreEstimateTree(previousTree, expectedRevision);
+    if (!didRestoreTree) return;
     skipEditableRowsSyncRef.current += 1;
-    restoreEstimateTree(previousTree);
     setEditableRows(previousRows);
   }, [restoreEstimateTree]);
 
@@ -950,6 +956,7 @@ export function EstimateSheetContent({ selectedNodeId, nodes = sampleEstimateTre
     if (!projectId || !estimateId) return;
     const previousTree = estimateTree;
     const previousRows = collectEditableRows(estimateTree);
+    const rollbackRevision = getEstimateTreeRevision();
     updateRow({
       projectId,
       estimateId,
@@ -959,7 +966,7 @@ export function EstimateSheetContent({ selectedNodeId, nodes = sampleEstimateTre
       ...(values.laborCost !== undefined ? { laborCost: parseEditableNumber(values.laborCost) } : {}),
       ...(values.discipline !== undefined ? { discipline: values.discipline } : {}),
       ...(values.designation !== undefined ? { designation: values.designation } : {}),
-      rollback: () => restoreEstimateState(previousTree, previousRows),
+      rollback: () => restoreEstimateState(previousTree, previousRows, rollbackRevision),
     });
   }
 
@@ -971,7 +978,7 @@ export function EstimateSheetContent({ selectedNodeId, nodes = sampleEstimateTre
     const previousRows = editableRows;
     const newItem = cloneLibraryItemForEstimate(libraryItem, targetNodeId);
     setPendingFocusRowId(newItem.id);
-    setEstimateTree((current) =>
+    const rollbackRevision = setEstimateTree((current) =>
       current.map((node) => {
         function visit(areaNode: EstimateTreeNode): EstimateTreeNode {
           if (areaNode.id === targetNodeId) {
@@ -985,7 +992,7 @@ export function EstimateSheetContent({ selectedNodeId, nodes = sampleEstimateTre
     setEditableRows((current) => ({ ...current, [newItem.id]: getInitialEditableRow(newItem) }));
 
     if (projectId && estimateId) {
-      insertRow({ projectId, estimateId, targetNodeId, rowId: newItem.id, libraryItem, rollback: () => restoreEstimateState(previousTree, previousRows) });
+      insertRow({ projectId, estimateId, targetNodeId, rowId: newItem.id, libraryItem, rollback: () => restoreEstimateState(previousTree, previousRows, rollbackRevision) });
     }
   }, [editableRows, estimateId, estimateTree, insertRow, projectId, restoreEstimateState, setEstimateTree]);
 
@@ -1039,7 +1046,7 @@ export function EstimateSheetContent({ selectedNodeId, nodes = sampleEstimateTre
     const editableReplacement = previousRows[rowItemId];
     const replacementLibraryItem = applyEditableValuesToLibraryItem(libraryItem, editableReplacement);
     const replacementItem = replaceRowItemWithLibraryItem(rowItemId, replacementLibraryItem);
-    setEstimateTree((current) =>
+    const rollbackRevision = setEstimateTree((current) =>
       current.map((node) => {
         function visit(areaNode: EstimateTreeNode): EstimateTreeNode {
           return {
@@ -1058,14 +1065,14 @@ export function EstimateSheetContent({ selectedNodeId, nodes = sampleEstimateTre
       [rowItemId]: current[rowItemId] ?? previousRows[rowItemId] ?? getInitialEditableRow(replacementItem),
     }));
     if (projectId && estimateId) {
-      replaceRow({ projectId, estimateId, rowId: rowItemId, libraryItem: replacementLibraryItem, rollback: () => restoreEstimateState(previousTree, previousRows) });
+      replaceRow({ projectId, estimateId, rowId: rowItemId, libraryItem: replacementLibraryItem, rollback: () => restoreEstimateState(previousTree, previousRows, rollbackRevision) });
     }
   }
 
   function deleteRowItem(rowItemId: string) {
     const previousTree = estimateTree;
     const previousRows = editableRows;
-    setEstimateTree((current) =>
+    const rollbackRevision = setEstimateTree((current) =>
       current.map((node) => {
         function visit(areaNode: EstimateTreeNode): EstimateTreeNode {
           return {
@@ -1083,7 +1090,7 @@ export function EstimateSheetContent({ selectedNodeId, nodes = sampleEstimateTre
       return remainingRows;
     });
     if (projectId && estimateId) {
-      deleteRow({ projectId, estimateId, rowId: rowItemId, rollback: () => restoreEstimateState(previousTree, previousRows) });
+      deleteRow({ projectId, estimateId, rowId: rowItemId, rollback: () => restoreEstimateState(previousTree, previousRows, rollbackRevision) });
     }
   }
 

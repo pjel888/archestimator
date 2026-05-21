@@ -12,11 +12,15 @@ import { ESTIMATE_TREE_ROOT_ITEM_ID } from "@/lib/estimates/estimate-tree-reorde
 
 const routerMock = vi.hoisted(() => ({
   push: vi.fn(),
+  replace: vi.fn(),
   refresh: vi.fn(),
 }));
 
 const actionMocks = vi.hoisted(() => ({
   createEstimateNode: vi.fn(),
+  deleteEstimateNode: vi.fn(),
+  fetchEstimateTree: vi.fn(),
+  renameEstimateNode: vi.fn(),
   reorderEstimateTreeNodes: vi.fn(),
 }));
 
@@ -40,6 +44,7 @@ const rctHarness = vi.hoisted(() => ({
 }));
 
 vi.mock("next/navigation", () => ({
+  usePathname: () => "/workshop/projects/project-1/estimates/kitchen",
   useRouter: () => routerMock,
 }));
 
@@ -332,9 +337,14 @@ describe("estimate sheet tree drag/drop", () => {
   beforeEach(() => {
     resetEstimateWorkspaceState();
     routerMock.push.mockReset();
+    routerMock.replace.mockReset();
     routerMock.refresh.mockReset();
     actionMocks.createEstimateNode.mockReset();
+    actionMocks.deleteEstimateNode.mockReset();
+    actionMocks.fetchEstimateTree.mockReset();
+    actionMocks.renameEstimateNode.mockReset();
     actionMocks.reorderEstimateTreeNodes.mockReset();
+    actionMocks.fetchEstimateTree.mockResolvedValue(fixtureTree());
     rctHarness.lastEnvironmentProps = null;
   });
 
@@ -389,8 +399,8 @@ describe("estimate sheet tree drag/drop", () => {
       await environment().onDrop?.([item("kitchen")], dropKitchenOntoSiteWorks);
     });
 
-    expect(renderedIds()).toEqual(["project-scope", "ground-floor", "living", "site-works", "front-yard", "kitchen"]);
-    expect(actionMocks.reorderEstimateTreeNodes).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(renderedIds()).toEqual(["project-scope", "ground-floor", "living", "site-works", "front-yard", "kitchen"]));
+    await waitFor(() => expect(actionMocks.reorderEstimateTreeNodes).toHaveBeenCalledTimes(1));
     expect(actionMocks.reorderEstimateTreeNodes).toHaveBeenCalledWith("project-1", "estimate-1", {
       updates: [
         { id: "living", parentId: "ground-floor", sortOrder: 10 },
@@ -398,7 +408,7 @@ describe("estimate sheet tree drag/drop", () => {
         { id: "kitchen", parentId: "site-works", sortOrder: 20 },
       ],
     });
-    expect(queryClient.getQueryData(estimateQueryKeys.areaTree("estimate-1"))).toEqual(confirmedTree());
+    await waitFor(() => expect(queryClient.getQueryData(estimateQueryKeys.areaTree("estimate-1"))).toEqual(confirmedTree()));
     expect(screen.getByRole("status")).toHaveTextContent("Saving tree order");
     expect(routerMock.push).not.toHaveBeenCalled();
     expect(routerMock.refresh).not.toHaveBeenCalled();

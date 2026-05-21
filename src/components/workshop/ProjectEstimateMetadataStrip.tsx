@@ -2,9 +2,6 @@
 
 import { useEffect, useSyncExternalStore } from "react";
 
-import { EstimateCenterColumnBoundary } from "./EstimateCenterColumnBoundary";
-import { ProjectWorkspaceProjectCode } from "./ProjectWorkspaceProjectCode";
-
 export const PROJECT_ESTIMATE_METADATA_CHANGE_EVENT = "archestimator:project-estimate-metadata-change";
 const PROJECT_MINI_SIDEBAR_WIDTH_CSS_VARIABLE = "--project-mini-sidebar-width";
 
@@ -18,22 +15,8 @@ type ProjectEstimateMetadataPublisherProps = {
   metadata: ProjectEstimateMetadata;
 };
 
-type ProjectEstimateMetadataStripProps = {
-  projectCode: string;
-};
-
-type ProjectEstimateMetadataStripBoundaryProps = {
-  projectCode: string;
-  metadata: ProjectEstimateMetadata | null;
-};
-
 type ProjectEstimateMetadataStripGridProps = {
-  projectCode: string;
   metadata: ProjectEstimateMetadata | null;
-};
-
-type EstimateMetadataLeftClusterProps = {
-  projectCode: string;
 };
 
 declare global {
@@ -85,49 +68,21 @@ export function ProjectEstimateMetadataPublisher({ metadata }: ProjectEstimateMe
   return null;
 }
 
-export function ProjectEstimateMetadataStrip({ projectCode }: ProjectEstimateMetadataStripProps) {
+export function ProjectEstimateMetadataStrip() {
   const metadata = useProjectEstimateMetadata();
 
-  return <ProjectEstimateMetadataStripBoundary projectCode={projectCode} metadata={metadata} />;
+  return <ProjectEstimateMetadataStripGrid metadata={metadata} />;
 }
 
-function ProjectEstimateMetadataStripBoundary({ projectCode, metadata }: ProjectEstimateMetadataStripBoundaryProps) {
+function ProjectEstimateMetadataStripGrid({ metadata }: ProjectEstimateMetadataStripGridProps) {
   return (
     <div
-      className="pointer-events-none absolute inset-0 bg-white text-[9px] font-normal uppercase tracking-[0.14em] text-tertiary"
+      className="grid h-full grid-cols-[1fr_minmax(0,2fr)_1fr] items-center px-2 bg-white text-[9px] font-normal uppercase tracking-[0.14em] text-tertiary"
       data-workshop-layout="project-estimate-metadata-row"
     >
-      <ProjectEstimateMetadataStripGrid projectCode={projectCode} metadata={metadata} />
-    </div>
-  );
-}
-
-function ProjectEstimateMetadataStripGrid({ projectCode, metadata }: ProjectEstimateMetadataStripGridProps) {
-  return (
-    <>
-      <div className="absolute inset-y-0 left-0 flex w-[var(--estimate-tree-panel-width,272px)] items-center pl-4 pr-2">
-        <EstimateMetadataLeftCluster projectCode={projectCode} />
-      </div>
-      <EstimateCenterColumnBoundary
-        id="project-estimate-metadata-strip"
-        scope="project-workspace-row"
-        className="pointer-events-none"
-        data-estimate-center-column="metadata-strip"
-      >
-        <div className="grid h-full grid-cols-[1fr_minmax(0,2fr)_1fr] items-center px-2">
-          <EstimateSheetCodeCell value={metadata?.estimateSheetCode ?? ""} />
-          <EstimateSheetNameCell value={metadata?.estimateName ?? ""} />
-          <EstimateVersionCell value={metadata?.versionLabel ?? ""} />
-        </div>
-      </EstimateCenterColumnBoundary>
-    </>
-  );
-}
-
-function EstimateMetadataLeftCluster({ projectCode }: EstimateMetadataLeftClusterProps) {
-  return (
-    <div className="flex w-full min-w-0 items-center text-left">
-      <ProjectWorkspaceProjectCode projectCode={projectCode} className="min-w-0 flex-1" textClassName="font-bold" />
+      <EstimateSheetCodeCell value={metadata?.estimateSheetCode ?? ""} />
+      <EstimateSheetNameCell value={metadata?.estimateName ?? ""} />
+      <EstimateVersionCell value={metadata?.versionLabel ?? ""} />
     </div>
   );
 }

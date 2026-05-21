@@ -7,10 +7,10 @@ import { loginHref, workshopHref } from "./constants";
 
 const landingNavItems = [
   { label: "Platform", href: "#product" },
+  { label: "Method", href: "#method" },
   { label: "Solutions", href: "#solutions" },
   { label: "Pricing", href: "#pricing" },
-  { label: "Resources", href: "#about" },
-  { label: "Company", href: "#contact" },
+  { label: "Contact", href: "#contact" },
 ];
 
 function LandingNavMenu() {
