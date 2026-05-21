@@ -1,6 +1,6 @@
 "use client";
 
-import { type Dispatch, type DragEvent, type InputHTMLAttributes, type KeyboardEvent, type SetStateAction, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { type Dispatch, type DragEvent, type InputHTMLAttributes, type KeyboardEvent, type SetStateAction, createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { ArrowsOutSimple, CaretDown, Cube, DotsSixVertical, FolderSimple, Plus, Trash } from "@phosphor-icons/react/dist/ssr";
 
 import { Button } from "@/components/ui/button";
@@ -54,8 +54,35 @@ type EstimateSheetContentProps = {
   renderSidebar?: boolean;
 };
 
+type BreadcrumbNode = { id: string; name: string };
+
+type EstimateSheetExpansionContextValue = {
+  collapsedNodeIds: Set<string>;
+  setCollapsedNodeIds: Dispatch<SetStateAction<Set<string>>>;
+};
+
+const EstimateSheetExpansionContext = createContext<EstimateSheetExpansionContextValue | null>(null);
+
+function useEstimateSheetExpansion() {
+  const context = useContext(EstimateSheetExpansionContext);
+  if (!context) throw new Error("useEstimateSheetExpansion must be used inside EstimateSheetExpansionContext.Provider");
+  return context;
+}
+
+function collectAllNodeIds(nodes: EstimateTreeNode[]): string[] {
+  const ids: string[] = [];
+  function visit(node: EstimateTreeNode) {
+    ids.push(node.id);
+    node.children?.forEach(visit);
+  }
+  nodes.forEach(visit);
+  return ids;
+}
+
 type EstimateSheetBranchProps = {
   node: EstimateTreeNode;
+  nodeCode: string;
+  ancestorPath: BreadcrumbNode[];
   editableRows: Record<string, EditableRowValue>;
   setEditableRows: Dispatch<SetStateAction<Record<string, EditableRowValue>>>;
   onInsertLibraryItem: (targetNodeId: string, libraryItem: EstimateRowItem) => void;
@@ -73,10 +100,6 @@ export const pesoFormatter = new Intl.NumberFormat("en-PH", {
   minimumFractionDigits: 2,
 });
 
-function groupTint() {
-  return "border-hairline bg-surfaceMuted";
-}
-
 const disciplineOptions = ["Architectural", "Furniture", "Decorative", "Mechanical", "Electrical", "Plumbing", "Fire Suppression", "Security"];
 const designationOptions = ["Floor", "Wall", "Ceiling"];
 
@@ -84,6 +107,51 @@ function groupGap(depth: number) {
   if (depth === 0) return "mt-0";
   if (depth === 1) return "mt-5";
   return "mt-4";
+}
+
+function findNodePath(nodes: EstimateTreeNode[], targetId: string): EstimateTreeNode[] {
+  for (const node of nodes) {
+    if (node.id === targetId) return [node];
+    if (node.children) {
+      const childPath = findNodePath(node.children, targetId);
+      if (childPath.length > 0) return [node, ...childPath];
+    }
+  }
+  return [];
+}
+
+function computeNodeCode(nodes: EstimateTreeNode[], targetId: string): string {
+  for (let i = 0; i < nodes.length; i++) {
+    const node = nodes[i];
+    if (node.id === targetId) return String(i + 1).padStart(2, "0");
+    if (node.children) {
+      const childCode = computeNodeCode(node.children, targetId);
+      if (childCode) return `${String(i + 1).padStart(2, "0")}.${childCode}`;
+    }
+  }
+  return "";
+}
+
+function getNodeCode(parentCode: string, siblingIndex: number): string {
+  const segment = String(siblingIndex + 1).padStart(2, "0");
+  return parentCode ? `${parentCode}.${segment}` : segment;
+}
+
+function nodeHeaderClasses(kind: EstimateTreeNode["kind"]) {
+  if (kind === "group") {
+    return "border border-hairline bg-surfaceMuted border-l-2 border-l-divider hover:bg-[#EAEEF3]";
+  }
+  return "hover:bg-surfaceMuted/40";
+}
+
+function nodeNameClasses(kind: EstimateTreeNode["kind"]) {
+  if (kind === "group") return "truncate text-[10px] font-semibold text-ink";
+  return "truncate text-[10px] font-semibold text-secondary";
+}
+
+function nodeTotalClasses(kind: EstimateTreeNode["kind"]) {
+  if (kind === "group") return "shrink-0 text-right text-[10px] font-semibold tabular-nums text-ink";
+  return "shrink-0 text-right text-[10px] font-normal tabular-nums text-ink";
 }
 
 function NodeIcon({ kind }: { kind: EstimateTreeNode["kind"] }) {
@@ -219,15 +287,30 @@ function EstimateSelect({
   );
 }
 
-function EstimateDropZone({ label, compact = false }: { label: string; compact?: boolean }) {
+function EstimateDropZone({ label, compact = false, isDragOver = false }: { label: string; compact?: boolean; isDragOver?: boolean }) {
   return (
-    <div className={cn("border border-dashed border-divider bg-surfaceWarm/80 text-tertiary", compact ? "flex min-h-20 items-center justify-center" : "mt-1 p-2")}>
-      <div className="flex flex-col items-center justify-center gap-1 text-center text-[10px] font-bold uppercase tracking-[0.12em]">
-        <span className="flex size-5 items-center justify-center rounded-full border border-dashed border-divider bg-white text-ink">
-          <Plus size={12} weight="bold" aria-hidden="true" />
-        </span>
-        <span>{label}</span>
-      </div>
+    <div
+      className={cn(
+        "border border-dashed text-tertiary transition-opacity",
+        compact
+          ? "flex min-h-20 items-center justify-center border-divider bg-surfaceWarm/80"
+          : "flex h-16 w-full items-center justify-center gap-1.5 border-hairline bg-surfaceMuted/30 opacity-50 hover:opacity-100",
+        !compact && isDragOver && "opacity-100"
+      )}
+    >
+      {compact ? (
+        <div className="flex flex-col items-center justify-center gap-1 text-center text-[10px] font-bold uppercase tracking-[0.12em]">
+          <span className="flex size-5 items-center justify-center rounded-full border border-dashed border-divider bg-white text-ink">
+            <Plus size={12} weight="bold" aria-hidden="true" />
+          </span>
+          <span>{label}</span>
+        </div>
+      ) : (
+        <div className="flex items-center gap-1.5 text-[10px] font-normal">
+          <Plus size={12} weight="regular" aria-hidden="true" />
+          <span>{label}</span>
+        </div>
+      )}
     </div>
   );
 }
@@ -429,7 +512,7 @@ function EstimateRowItemsTable({
 
   if (!items.length) return null;
 
-  const rowColumns = "grid-cols-[32px_minmax(134px,1fr)_104px_58px_92px_92px_92px_108px_30px]";
+  const rowColumns = "grid-cols-[24px_32px_minmax(134px,1fr)_104px_58px_92px_92px_92px_108px_30px]";
 
   function handleDragOver(event: DragEvent) {
     if (event.dataTransfer.types.includes("application/x-archestimator-library-item")) {
@@ -451,6 +534,7 @@ function EstimateRowItemsTable({
       <table className="w-full border-collapse text-[10px] text-ink">
         <thead className="sticky top-0 z-10 bg-white text-left text-[10px] font-bold text-ink">
           <tr className={cn("grid min-h-10 border-b border-hairline", rowColumns)}>
+            <th className="flex items-center justify-center border-r border-hairline text-[9px] font-mono text-tertiary">#</th>
             <th className="flex items-center justify-center border-r border-hairline">
               <input type="checkbox" aria-label="Select all estimate row items" />
             </th>
@@ -479,6 +563,9 @@ function EstimateRowItemsTable({
               )}
               data-estimate-row-active={activeCellIndex !== null ? "true" : undefined}
             >
+              <td className="flex items-center justify-center border-r border-hairline text-[9px] font-mono tabular-nums text-tertiary">
+                {String(rowIndex + 1).padStart(2, "0")}
+              </td>
               <td className="flex flex-col items-center justify-between border-r border-hairline py-2 text-tertiary">
                 <DotsSixVertical size={14} weight="bold" aria-label={`Drag material ${item.material}`} />
                 <input type="checkbox" aria-label={`Select ${item.material}`} />
@@ -641,6 +728,7 @@ function EstimateRowItemsTable({
           );
           })}
           <tr className={cn("grid min-h-20 border-b border-dashed border-divider bg-surfaceWarm/50", rowColumns)}>
+            <td className="border-r border-dashed border-divider" />
             <td className="flex items-center justify-center border-r border-dashed border-divider text-tertiary">
               <Plus size={14} weight="bold" aria-hidden="true" />
             </td>
@@ -690,10 +778,14 @@ function RowSaveStatus({ state }: { state?: EstimateSaveState }) {
   return <EstimateSaveStatus state={state} />;
 }
 
-function EmptyAreaMessage({ depth, nodeId, onInsertLibraryItem }: { depth: number; nodeId: string; onInsertLibraryItem: (targetNodeId: string, libraryItem: EstimateRowItem) => void }) {
+function EmptyAreaMessage({ nodeId, onInsertLibraryItem }: { nodeId: string; onInsertLibraryItem: (targetNodeId: string, libraryItem: EstimateRowItem) => void }) {
+  const [dragCount, setDragCount] = useState(0);
+  const isDragOver = dragCount > 0;
   return (
     <div
-      style={{ marginLeft: `${Math.min(depth * 32, 192)}px` }}
+      className="py-1"
+      onDragEnter={() => setDragCount((c) => c + 1)}
+      onDragLeave={() => setDragCount((c) => Math.max(0, c - 1))}
       onDragOver={(event) => {
         if (event.dataTransfer.types.includes("application/x-archestimator-library-item")) {
           event.preventDefault();
@@ -701,36 +793,76 @@ function EmptyAreaMessage({ depth, nodeId, onInsertLibraryItem }: { depth: numbe
         }
       }}
       onDrop={(event) => {
+        setDragCount(0);
         const payload = event.dataTransfer.getData("application/x-archestimator-library-item");
         if (!payload) return;
         event.preventDefault();
         onInsertLibraryItem(nodeId, JSON.parse(payload) as EstimateRowItem);
       }}
     >
-      <EstimateDropZone label="Drag and drop estimate component here" />
+      <EstimateDropZone label="Drag and drop estimate component here" isDragOver={isDragOver} />
     </div>
   );
 }
 
-function EstimateSheetBranch({ node, editableRows, setEditableRows, onInsertLibraryItem, onReplaceRowItem, onDeleteRowItem, onUpdateRowItem, onMarkRowDirty, rowSaveStates, depth = 0 }: EstimateSheetBranchProps) {
-  const [collapsed, setCollapsed] = useState(false);
+function InlineDropZone({ nodeId, onInsertLibraryItem }: { nodeId: string; onInsertLibraryItem: (targetNodeId: string, libraryItem: EstimateRowItem) => void }) {
+  const [dragCount, setDragCount] = useState(0);
+  const isDragOver = dragCount > 0;
+  return (
+    <div
+      onDragEnter={() => setDragCount((c) => c + 1)}
+      onDragLeave={() => setDragCount((c) => Math.max(0, c - 1))}
+      onDragOver={(event) => {
+        if (event.dataTransfer.types.includes("application/x-archestimator-library-item")) {
+          event.preventDefault();
+          event.dataTransfer.dropEffect = "copy";
+        }
+      }}
+      onDrop={(event) => {
+        setDragCount(0);
+        const payload = event.dataTransfer.getData("application/x-archestimator-library-item");
+        if (!payload) return;
+        event.preventDefault();
+        onInsertLibraryItem(nodeId, JSON.parse(payload) as EstimateRowItem);
+      }}
+    >
+      <EstimateDropZone label="Drag and drop here" isDragOver={isDragOver} />
+    </div>
+  );
+}
+
+function EstimateSheetBranch({ node, nodeCode, ancestorPath = [], editableRows, setEditableRows, onInsertLibraryItem, onReplaceRowItem, onDeleteRowItem, onUpdateRowItem, onMarkRowDirty, rowSaveStates, depth = 0 }: EstimateSheetBranchProps) {
+  const { collapsedNodeIds, setCollapsedNodeIds } = useEstimateSheetExpansion();
+  const collapsed = collapsedNodeIds.has(node.id);
   const childAreas = node.children ?? [];
   const estimateRowItems = node.estimateRowItems ?? [];
   const hasContents = childAreas.length > 0 || estimateRowItems.length > 0;
   const canReceiveRows = node.kind === "area";
+  const isGroup = node.kind === "group";
   const leftIndent = Math.min(depth * 32, 192);
   const total = computeNodeTotal(node, editableRows);
+  const displayKind = isGroup ? "group" : "area";
 
   return (
-    <section className={cn("space-y-1", groupGap(depth))} aria-label={node.name}>
-      <div className={cn("flex h-8 items-center gap-2 border px-1", groupTint())} style={{ paddingLeft: `${leftIndent + 8}px` }}>
+    <section className={cn("space-y-1", groupGap(depth), !isGroup && "rounded-sm border border-hairline bg-surfaceMuted/20")} aria-label={node.name}>
+      <div
+        className={cn("flex h-10 items-center gap-2 px-1", nodeHeaderClasses(node.kind))}
+        style={{ paddingLeft: `${leftIndent + 8}px` }}
+      >
         <Button
           variant="ghost"
           size="icon-sm"
-          aria-label={`${collapsed ? "Expand" : "Collapse"} ${node.name}`}
+          aria-label={`${collapsed ? "Expand" : "Collapse"} ${node.name} ${displayKind}`}
           aria-expanded={!collapsed}
           className="size-6 rounded-sm p-0 text-tertiary"
-          onClick={() => setCollapsed((value) => !value)}
+          onClick={() =>
+            setCollapsedNodeIds((prev) => {
+              const next = new Set(prev);
+              if (next.has(node.id)) next.delete(node.id);
+              else next.add(node.id);
+              return next;
+            })
+          }
         >
           <CaretDown size={13} weight="bold" aria-hidden="true" className={collapsed ? "-rotate-90" : ""} />
         </Button>
@@ -738,28 +870,57 @@ function EstimateSheetBranch({ node, editableRows, setEditableRows, onInsertLibr
           <NodeIcon kind={node.kind} />
         </span>
         <div className="min-w-0 flex-1">
-          <p className="truncate text-[10px] font-normal text-ink">{node.name}</p>
+          {nodeCode && (
+            <p className="text-[8px] font-mono leading-none tabular-nums text-tertiary">{nodeCode}</p>
+          )}
+          <p className={nodeNameClasses(node.kind)}>{node.name}</p>
         </div>
-        <span className="shrink-0 text-right text-[10px] font-normal tabular-nums text-ink">{pesoFormatter.format(total)}</span>
+        {!isGroup && estimateRowItems.length === 0 && (
+          <span className="ml-1.5 shrink-0 text-[9px] text-tertiary">(0 items)</span>
+        )}
+        <span className={nodeTotalClasses(node.kind)}>{pesoFormatter.format(total)}</span>
       </div>
+
+      {!collapsed && !isGroup && ancestorPath.length > 0 && (
+        <div
+          className="flex items-center gap-1 truncate text-[8px] text-muted"
+          style={{ paddingLeft: `${leftIndent + 40}px` }}
+        >
+          <FolderSimple size={10} weight="regular" className="shrink-0 text-hairline" aria-hidden="true" />
+          {ancestorPath.map((ancestor, index) => (
+            <span key={ancestor.id}>
+              {index > 0 && <span className="mx-0.5 text-hairline">›</span>}
+              {ancestor.name}
+            </span>
+          ))}
+          <span className="mx-0.5 text-hairline">›</span>
+          <span>{node.name}</span>
+        </div>
+      )}
 
       {!collapsed ? (
         <div className="space-y-4">
-          {childAreas.map((child) => (
-            <EstimateSheetBranch
-              key={child.id}
-              node={child}
-              editableRows={editableRows}
-              setEditableRows={setEditableRows}
-              onInsertLibraryItem={onInsertLibraryItem}
-              onReplaceRowItem={onReplaceRowItem}
-              onDeleteRowItem={onDeleteRowItem}
-              onUpdateRowItem={onUpdateRowItem}
-              onMarkRowDirty={onMarkRowDirty}
-              rowSaveStates={rowSaveStates}
-              depth={depth + 1}
-            />
-          ))}
+          {childAreas.map((child, childIndex) => {
+            const childCode = getNodeCode(nodeCode, childIndex);
+            const childPath = [...ancestorPath, { id: node.id, name: node.name }];
+            return (
+              <EstimateSheetBranch
+                key={child.id}
+                node={child}
+                nodeCode={childCode}
+                ancestorPath={childPath}
+                editableRows={editableRows}
+                setEditableRows={setEditableRows}
+                onInsertLibraryItem={onInsertLibraryItem}
+                onReplaceRowItem={onReplaceRowItem}
+                onDeleteRowItem={onDeleteRowItem}
+                onUpdateRowItem={onUpdateRowItem}
+                onMarkRowDirty={onMarkRowDirty}
+                rowSaveStates={rowSaveStates}
+                depth={depth + 1}
+              />
+            );
+          })}
           <EstimateRowItemsTable
             items={estimateRowItems}
             editableRows={editableRows}
@@ -772,24 +933,9 @@ function EstimateSheetBranch({ node, editableRows, setEditableRows, onInsertLibr
             onMarkRowDirty={onMarkRowDirty}
             rowSaveStates={rowSaveStates}
           />
-          {!hasContents ? <EmptyAreaMessage depth={depth + 1} nodeId={node.id} onInsertLibraryItem={onInsertLibraryItem} /> : null}
+          {!hasContents ? <EmptyAreaMessage nodeId={node.id} onInsertLibraryItem={onInsertLibraryItem} /> : null}
           {hasContents && canReceiveRows ? (
-            <div
-              onDragOver={(event) => {
-                if (event.dataTransfer.types.includes("application/x-archestimator-library-item")) {
-                  event.preventDefault();
-                  event.dataTransfer.dropEffect = "copy";
-                }
-              }}
-              onDrop={(event) => {
-                const payload = event.dataTransfer.getData("application/x-archestimator-library-item");
-                if (!payload) return;
-                event.preventDefault();
-                onInsertLibraryItem(node.id, JSON.parse(payload) as EstimateRowItem);
-              }}
-            >
-              <EstimateDropZone label="Drag and drop here" />
-            </div>
+            <InlineDropZone nodeId={node.id} onInsertLibraryItem={onInsertLibraryItem} />
           ) : null}
         </div>
       ) : null}
@@ -850,7 +996,7 @@ function replaceRowItemWithLibraryItem(rowItemId: string, libraryItem: EstimateR
   };
 }
 
-function EstimateSheetHeader() {
+function EstimateSheetHeader({ onExpandAll, onCollapseAll }: { onExpandAll?: () => void; onCollapseAll?: () => void }) {
   return (
     <header className="sticky top-0 z-20 bg-white/95 backdrop-blur" aria-label="Sheet controls">
       <div className="flex h-[38px] items-center">
@@ -858,9 +1004,11 @@ function EstimateSheetHeader() {
           wrapperClassName="w-full"
           placeholder="Search Sheet"
           aria-label="Search Sheet"
+          disabled
+          title="Coming soon"
         />
       </div>
-      <HeaderIconToolbar ariaLabel="Sheet tools" labelPrefix="sheet" />
+      <HeaderIconToolbar ariaLabel="Sheet tools" labelPrefix="sheet" onExpandAll={onExpandAll} onCollapseAll={onCollapseAll} />
     </header>
   );
 }
@@ -882,6 +1030,7 @@ export function EstimateSheetContent({ selectedNodeId, nodes = sampleEstimateTre
   const [editableRows, setEditableRows] = useState<Record<string, EditableRowValue>>(() => collectEditableRows(nodes));
   const [pendingFocusRowId, setPendingFocusRowId] = useState("");
   const [showCommandPalette, setShowCommandPalette] = useState(false);
+  const [collapsedNodeIds, setCollapsedNodeIds] = useState<Set<string>>(() => new Set());
   const { selectedNodeId: resolvedSelectedNodeId, selectedNode } = useMemo(
     () =>
       resolveEstimateWorkspaceSelection({
@@ -895,7 +1044,9 @@ export function EstimateSheetContent({ selectedNodeId, nodes = sampleEstimateTre
   const canInsertIntoSelectedNode = Boolean(insertTargetNodeId);
   const insertionTargetLabel = selectedNode?.kind === "area" ? selectedNode.name : "selected area";
   const projectTotal = estimateTree.reduce((total, node) => total + computeNodeTotal(node, editableRows), 0);
-
+  const allNodeIds = useMemo(() => (selectedNode ? collectAllNodeIds([selectedNode]) : []), [selectedNode]);
+  const expandAll = useCallback(() => setCollapsedNodeIds(new Set()), []);
+  const collapseAll = useCallback(() => setCollapsedNodeIds(new Set(allNodeIds)), [allNodeIds]);
   useEffect(() => {
     dispatchProjectTotalChange(projectTotal);
   }, [projectTotal]);
@@ -1111,24 +1262,28 @@ export function EstimateSheetContent({ selectedNodeId, nodes = sampleEstimateTre
       >
         {selectedNode ? (
           <>
-            <EstimateSheetHeader />
+            <EstimateSheetHeader onExpandAll={expandAll} onCollapseAll={collapseAll} />
             <div className="min-h-0 flex-1 overflow-auto p-2">
-              <EstimateSheetBranch
-                node={selectedNode}
-                editableRows={editableRows}
-                setEditableRows={setEditableRows}
-                onInsertLibraryItem={insertLibraryItem}
-                onReplaceRowItem={replaceRowItem}
-                onDeleteRowItem={deleteRowItem}
-                onUpdateRowItem={updateRowItem}
-                onMarkRowDirty={markRowDirty}
-                rowSaveStates={rowSaveStates}
-              />
+              <EstimateSheetExpansionContext.Provider value={{ collapsedNodeIds, setCollapsedNodeIds }}>
+                <EstimateSheetBranch
+                  node={selectedNode}
+                  nodeCode={resolvedSelectedNodeId ? computeNodeCode(estimateTree, resolvedSelectedNodeId) : ""}
+                  ancestorPath={resolvedSelectedNodeId ? findNodePath(estimateTree, resolvedSelectedNodeId).slice(0, -1).map((n) => ({ id: n.id, name: n.name })) : []}
+                  editableRows={editableRows}
+                  setEditableRows={setEditableRows}
+                  onInsertLibraryItem={insertLibraryItem}
+                  onReplaceRowItem={replaceRowItem}
+                  onDeleteRowItem={deleteRowItem}
+                  onUpdateRowItem={updateRowItem}
+                  onMarkRowDirty={markRowDirty}
+                  rowSaveStates={rowSaveStates}
+                />
+              </EstimateSheetExpansionContext.Provider>
             </div>
           </>
         ) : (
           <>
-            <EstimateSheetHeader />
+            <EstimateSheetHeader onExpandAll={expandAll} onCollapseAll={collapseAll} />
             <div className="flex min-h-0 flex-1 items-center justify-center overflow-auto p-2">
               <div className="max-w-md rounded-lg border border-dashed border-hairline bg-surface-muted p-3 text-center">
                 <p className="text-[8px] font-bold uppercase tracking-[0.16em] text-tertiary">Empty estimate</p>

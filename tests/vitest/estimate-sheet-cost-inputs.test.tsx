@@ -200,8 +200,8 @@ describe("estimate sheet cost inputs", () => {
     expect(within(sheetTools).queryByText("Sheet tools")).not.toBeInTheDocument();
     expect(within(sheetTools).getByRole("button", { name: "Filter sheet" })).toHaveAttribute("title", "Filter sheet");
     expect(within(sheetTools).getByRole("button", { name: "Group sheet" })).toHaveAttribute("title", "Group sheet");
-    expect(within(sheetTools).queryByRole("button", { name: "Collapse all sheet" })).not.toBeInTheDocument();
-    expect(within(sheetTools).queryByRole("button", { name: "Expand all sheet" })).not.toBeInTheDocument();
+    expect(within(sheetTools).getByRole("button", { name: "Collapse all sheet" })).toHaveAttribute("title", "Collapse all sheet");
+    expect(within(sheetTools).getByRole("button", { name: "Expand all sheet" })).toHaveAttribute("title", "Expand all sheet");
     expect(within(sheetTools).getByRole("button", { name: "Add sheet" })).toHaveAttribute("title", "Add sheet");
 
     expect(screen.queryByLabelText("Sheet running totals")).not.toBeInTheDocument();
