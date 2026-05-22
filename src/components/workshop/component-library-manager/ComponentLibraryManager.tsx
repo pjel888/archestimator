@@ -14,13 +14,25 @@ import {
 import { cn } from "@/lib/ui/cn";
 import { estimateLibraryItems, type EstimateRowItem } from "../estimate-tree-data";
 import {
-  buildLibraryTree,
+  buildComponentLibraryNavigationTree,
   filterTree,
+  getLibraryItemsForTreeNode,
   getAllNodeIds,
   LibraryTree,
 } from "../component-library/tree";
+import {
+  getComponentName,
+  getComponentPrice,
+  pesoFormatter,
+} from "../component-library/helpers";
 import type { LibraryTreeNode, LibraryTreeTab } from "../component-library/tree/types";
 import type { ComponentLibrarySupplierOption } from "../component-library/tree/buildLibraryTree";
+import {
+  buildTemplateNavigationTree,
+  getTemplatesForTreeNode,
+  summarizeEstimateTemplate,
+  type EstimateTemplate,
+} from "../component-library/templates";
 
 const COMPONENT_LIBRARY_TREE_WIDTH = 376;
 const COMPONENT_LIBRARY_TREE_LEFT_EXTENSION_WIDTH = 104;
@@ -28,7 +40,9 @@ const LIBRARY_TREE_TABS = [
   { id: "categories", label: "Categories" },
   { id: "suppliers", label: "Suppliers" },
   { id: "custom", label: "Custom" },
+  { id: "templates", label: "Templates" },
 ] as const;
+type ComponentLibraryManagerTab = (typeof LIBRARY_TREE_TABS)[number]["id"];
 
 function findNode(nodes: LibraryTreeNode[], nodeId: string): LibraryTreeNode | null {
   for (const node of nodes) {
@@ -39,6 +53,26 @@ function findNode(nodes: LibraryTreeNode[], nodeId: string): LibraryTreeNode | n
   return null;
 }
 
+function normalizeLabel(value: string): string {
+  return value.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+}
+
+function itemMatchesSheetQuery(item: EstimateRowItem, query: string): boolean {
+  const normalizedQuery = normalizeLabel(query);
+  if (!normalizedQuery) return true;
+
+  return [
+    getComponentName(item),
+    item.supplier,
+    item.category,
+    item.unit,
+    item.description,
+    ...(item.categoryPath ?? []),
+  ]
+    .filter(Boolean)
+    .some((value) => normalizeLabel(value).includes(normalizedQuery));
+}
+
 function ComponentLibraryTreePanel({
   activeTab,
   activeNodes,
@@ -46,17 +80,17 @@ function ComponentLibraryTreePanel({
   onTabChange,
   onSelectNode,
 }: {
-  activeTab: LibraryTreeTab;
+  activeTab: ComponentLibraryManagerTab;
   activeNodes: LibraryTreeNode[];
   selectedNodeId: string;
-  onTabChange: (tab: LibraryTreeTab) => void;
+  onTabChange: (tab: ComponentLibraryManagerTab) => void;
   onSelectNode: (nodeId: string) => void;
 }) {
   const [searchQuery, setSearchQuery] = useState("");
   const filteredNodes = filterTree(activeNodes, searchQuery);
   const [expandedNodeIds, setExpandedNodeIds] = useState(() => getAllNodeIds(activeNodes));
 
-  function handleTabChange(tab: LibraryTreeTab) {
+  function handleTabChange(tab: ComponentLibraryManagerTab) {
     onTabChange(tab);
     setSearchQuery("");
   }
@@ -126,10 +160,27 @@ function ComponentLibraryTreePanel({
 
 function ComponentLibrarySheet({
   selectedNode,
+  activeTab,
+  libraryItems,
+  categoryTree,
+  suppliers,
 }: {
   selectedNode: LibraryTreeNode | null;
+  activeTab: LibraryTreeTab;
+  libraryItems: EstimateRowItem[];
+  categoryTree: ComponentLibraryTaxonomyNode[];
+  suppliers: ComponentLibrarySupplierOption[];
 }) {
   const [searchQuery, setSearchQuery] = useState("");
+  const sheetItems = useMemo(
+    () => getLibraryItemsForTreeNode(activeTab, selectedNode?.id ?? null, libraryItems, [], [], { categoryTree, suppliers }),
+    [activeTab, categoryTree, libraryItems, selectedNode, suppliers],
+  );
+  const visibleItems = useMemo(
+    () => sheetItems.filter((item) => itemMatchesSheetQuery(item, searchQuery)),
+    [searchQuery, sheetItems],
+  );
+  const selectedLabel = selectedNode?.label ?? "All components";
 
   return (
     <section
@@ -160,21 +211,158 @@ function ComponentLibrarySheet({
               "z-10 bg-white text-ink border-hairline -mb-px",
             )}
           >
-            {selectedNode?.label ?? "All components"}
+            {selectedLabel}
           </button>
+          <span className="ml-auto self-center pr-2 text-[9px] font-bold text-tertiary">
+            {visibleItems.length} / {sheetItems.length}
+          </span>
         </div>
       </header>
 
       <div className="min-h-0 flex-1 overflow-auto p-2">
-        <div className="flex h-full items-center justify-center bg-white p-2 text-center">
-          <div>
-            <SquaresFour size={18} weight="bold" className="mx-auto mb-2 text-tertiary" aria-hidden="true" />
-            <p className="text-[11px] font-bold leading-4 text-ink">{selectedNode?.label ?? "All components"}</p>
-            <p className="mt-0.5 max-w-56 text-[9px] leading-4 text-tertiary">
-              Component details will appear here.
-            </p>
+        {visibleItems.length > 0 ? (
+          <ul className="space-y-1" aria-label={`${selectedLabel} component rows`}>
+            {visibleItems.map((item) => (
+              <li
+                key={item.id}
+                className="grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-2 border-b border-hairline px-2 py-1.5 last:border-b-0"
+              >
+                <div className="min-w-0">
+                  <p className="truncate text-[10px] font-bold leading-4 text-ink">{getComponentName(item)}</p>
+                  <p className="truncate text-[9px] font-semibold leading-3 text-tertiary">
+                    {item.supplier || "No supplier"} / {item.category}
+                  </p>
+                </div>
+                <span className="font-mono text-[10px] font-bold tabular-nums text-ink">
+                  {pesoFormatter.format(getComponentPrice(item))}
+                </span>
+                <span className="text-[9px] font-semibold text-tertiary">/{item.unit}</span>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <div className="flex h-full items-center justify-center bg-white p-2 text-center">
+            <div>
+              <SquaresFour size={18} weight="bold" className="mx-auto mb-2 text-tertiary" aria-hidden="true" />
+              <p className="text-[11px] font-bold leading-4 text-ink">{selectedLabel}</p>
+              <p className="mt-0.5 max-w-56 text-[9px] leading-4 text-tertiary">
+                {searchQuery ? `No components match "${searchQuery}".` : "No components in this folder yet."}
+              </p>
+            </div>
           </div>
+        )}
+      </div>
+    </section>
+  );
+}
+
+function templateMatchesSheetQuery(template: EstimateTemplate, query: string): boolean {
+  const normalizedQuery = normalizeLabel(query);
+  if (!normalizedQuery) return true;
+
+  return [
+    template.name,
+    template.description,
+    template.category,
+    ...template.nodes.flatMap((node) => [
+      node.name,
+      ...(node.children ?? []).map((child) => child.name),
+    ]),
+  ]
+    .filter(Boolean)
+    .some((value) => normalizeLabel(value).includes(normalizedQuery));
+}
+
+function TemplateLibrarySheet({
+  selectedNode,
+  templates,
+}: {
+  selectedNode: LibraryTreeNode | null;
+  templates: EstimateTemplate[];
+}) {
+  const [searchQuery, setSearchQuery] = useState("");
+  const sheetTemplates = useMemo(
+    () => getTemplatesForTreeNode(selectedNode?.id ?? null, templates),
+    [selectedNode, templates],
+  );
+  const visibleTemplates = useMemo(
+    () => sheetTemplates.filter((template) => templateMatchesSheetQuery(template, searchQuery)),
+    [searchQuery, sheetTemplates],
+  );
+  const selectedLabel = selectedNode?.label ?? "All Templates";
+
+  return (
+    <section
+      id="component-library-sheet-center-column"
+      className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-white !text-[10px]"
+      data-component-library-sheet="true"
+      aria-label="Custom component sheet"
+    >
+      <header className="sticky top-0 z-20 bg-white/95 backdrop-blur" aria-label="Component sheet controls">
+        <div className="flex h-[38px] items-center">
+          <SearchInput
+            wrapperClassName="w-full"
+            placeholder="Search Template Sheet"
+            aria-label="Search component sheet"
+            value={searchQuery}
+            onChange={(event) => setSearchQuery(event.target.value)}
+            onClear={() => setSearchQuery("")}
+          />
         </div>
+        <HeaderIconToolbar ariaLabel="Component sheet tools" labelPrefix="component sheet" />
+        <div className="flex h-[32px] items-end gap-0 border-b border-hairline bg-surfaceMuted" role="tablist" aria-label="Component sheet tabs">
+          <button
+            type="button"
+            role="tab"
+            aria-selected={true}
+            className={cn(
+              "relative h-full rounded-t-md border border-b-0 px-3 text-[10px] font-bold leading-none transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus",
+              "z-10 bg-white text-ink border-hairline -mb-px",
+            )}
+          >
+            {selectedLabel}
+          </button>
+          <span className="ml-auto self-center pr-2 text-[9px] font-bold text-tertiary">
+            {visibleTemplates.length} / {sheetTemplates.length}
+          </span>
+        </div>
+      </header>
+
+      <div className="min-h-0 flex-1 overflow-auto p-2">
+        {visibleTemplates.length > 0 ? (
+          <ul className="space-y-1" aria-label={`${selectedLabel} template rows`}>
+            {visibleTemplates.map((template) => {
+              const summary = summarizeEstimateTemplate(template);
+              return (
+                <li
+                  key={template.id}
+                  className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 border-b border-hairline px-2 py-1.5 last:border-b-0"
+                >
+                  <div className="min-w-0">
+                    <p className="truncate text-[10px] font-bold leading-4 text-ink">{template.name}</p>
+                    <p className="truncate text-[9px] font-semibold leading-3 text-tertiary">
+                      {summary.groupCount} groups / {summary.areaCount} areas / {summary.rowCount} rows
+                    </p>
+                    <p className="truncate text-[9px] leading-3 text-tertiary/80">{template.description}</p>
+                  </div>
+                  <span className="font-mono text-[10px] font-bold tabular-nums text-ink">
+                    {pesoFormatter.format(summary.total)}
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
+        ) : (
+          <div className="flex h-full items-center justify-center bg-white p-2 text-center">
+            <div>
+              <SquaresFour size={18} weight="bold" className="mx-auto mb-2 text-tertiary" aria-hidden="true" />
+              <p className="text-[11px] font-bold leading-4 text-ink">{selectedLabel}</p>
+              <p className="mt-0.5 max-w-56 text-[9px] leading-4 text-tertiary">
+                {searchQuery ? `No templates match "${searchQuery}".` : "No templates in this folder yet."}
+              </p>
+            </div>
+          </div>
+        )}
       </div>
     </section>
   );
@@ -184,22 +372,26 @@ export function ComponentLibraryManager({
   categoryTree = componentCategoryTree,
   suppliers = [],
   libraryItems = estimateLibraryItems,
+  templates = [],
 }: {
   categoryTree?: ComponentLibraryTaxonomyNode[];
   suppliers?: ComponentLibrarySupplierOption[];
   libraryItems?: EstimateRowItem[];
+  templates?: EstimateTemplate[];
 } = {}) {
-  const [activeTab, setActiveTab] = useState<LibraryTreeTab>("categories");
-  const [selectedNodeIdByTab, setSelectedNodeIdByTab] = useState<Record<LibraryTreeTab, string>>({
+  const [activeTab, setActiveTab] = useState<ComponentLibraryManagerTab>("categories");
+  const [selectedNodeIdByTab, setSelectedNodeIdByTab] = useState<Record<ComponentLibraryManagerTab, string>>({
     categories: "all-components",
     suppliers: "all-suppliers",
     custom: "custom-root",
+    templates: "all-templates",
   });
-  const libraryTrees = useMemo<Record<LibraryTreeTab, LibraryTreeNode[]>>(() => ({
-    categories: buildLibraryTree("categories", libraryItems, [], [], { categoryTree, suppliers }),
-    suppliers: buildLibraryTree("suppliers", libraryItems, [], [], { categoryTree, suppliers }),
-    custom: buildLibraryTree("custom", libraryItems, [], [], { categoryTree, suppliers }),
-  }), [categoryTree, libraryItems, suppliers]);
+  const libraryTrees = useMemo<Record<ComponentLibraryManagerTab, LibraryTreeNode[]>>(() => ({
+    categories: buildComponentLibraryNavigationTree("categories", libraryItems, [], [], { categoryTree, suppliers }),
+    suppliers: buildComponentLibraryNavigationTree("suppliers", libraryItems, [], [], { categoryTree, suppliers }),
+    custom: buildComponentLibraryNavigationTree("custom", libraryItems, [], [], { categoryTree, suppliers }),
+    templates: buildTemplateNavigationTree(templates),
+  }), [categoryTree, libraryItems, suppliers, templates]);
   const selectedNodeId = selectedNodeIdByTab[activeTab];
   const selectedNode = useMemo(() => findNode(libraryTrees[activeTab], selectedNodeId) ?? libraryTrees[activeTab][0] ?? null, [activeTab, libraryTrees, selectedNodeId]);
 
@@ -234,7 +426,17 @@ export function ComponentLibraryManager({
             onTabChange={setActiveTab}
             onSelectNode={selectNode}
           />
-          <ComponentLibrarySheet selectedNode={selectedNode} />
+          {activeTab === "templates" ? (
+            <TemplateLibrarySheet selectedNode={selectedNode} templates={templates} />
+          ) : (
+            <ComponentLibrarySheet
+              selectedNode={selectedNode}
+              activeTab={activeTab as LibraryTreeTab}
+              libraryItems={libraryItems}
+              categoryTree={categoryTree}
+              suppliers={suppliers}
+            />
+          )}
         </section>
       </div>
     </div>

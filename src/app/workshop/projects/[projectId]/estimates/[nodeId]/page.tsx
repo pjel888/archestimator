@@ -50,6 +50,7 @@ export default async function ProjectEstimateNodePage({ params }: ProjectEstimat
           projectId={project.id}
           estimateId={estimate.id}
           libraryItems={componentLibrary.libraryItems}
+          libraryTemplates={componentLibrary.templates}
           libraryCategoryTree={componentLibrary.categoryTree}
           librarySuppliers={componentLibrary.suppliers}
         />

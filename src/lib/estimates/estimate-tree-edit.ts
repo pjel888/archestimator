@@ -1,4 +1,4 @@
-import type { EstimateTreeNode } from "@/components/workshop/estimate-tree-data";
+import type { EstimateTreeNode } from "@/lib/estimates/types";
 
 export type EstimateTreeDeletePlan = {
   nextNodes: EstimateTreeNode[];

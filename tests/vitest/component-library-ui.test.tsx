@@ -197,6 +197,15 @@ describe("component library UI", () => {
     expect(screen.queryByRole("button", { name: "Export components as CSV" })).not.toBeInTheDocument();
   });
 
+  it("does not expose static estimate templates when no templates are provided", () => {
+    renderSidebar();
+
+    fireEvent.click(screen.getByRole("tab", { name: "Templates" }));
+
+    expect(screen.queryByText("Condo Fit-Out Starter")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Add template Condo Fit-Out Starter/i })).not.toBeInTheDocument();
+  });
+
   it("does not crash when localStorage writes fail", () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
     const originalLocalStorage = window.localStorage;
@@ -250,6 +259,15 @@ describe("component library UI", () => {
     expect(screen.getByRole("treeitem", { name: "Objects" })).toBeInTheDocument();
     expect(screen.getByRole("treeitem", { name: "Furniture" })).toBeInTheDocument();
     expect(screen.getByRole("treeitem", { name: "HEMLINGBY Loveseat" })).toBeInTheDocument();
+  });
+
+  it("keeps estimate sidebar category trees populated with draggable line-item leaves", () => {
+    renderSidebar();
+
+    const item = screen.getByRole("treeitem", { name: "HEMLINGBY Loveseat" });
+
+    expect(item).toHaveAttribute("draggable", "true");
+    expect(screen.getByRole("button", { name: /add to selected area: hemlingby loveseat/i })).toBeInTheDocument();
   });
 
   it("uses the same database taxonomy ids as the component workspace tree", () => {

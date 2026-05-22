@@ -14,6 +14,7 @@ const actionMocks = vi.hoisted(() => ({
   deleteEstimateRowItem: vi.fn(),
   fetchEstimateTree: vi.fn(),
   insertEstimateRowItemFromLibrary: vi.fn(),
+  insertEstimateTemplateIntoEstimate: vi.fn(),
   renameEstimateNode: vi.fn(),
   reorderEstimateTreeNodes: vi.fn(),
   replaceEstimateRowItemWithLibrary: vi.fn(),
@@ -25,6 +26,7 @@ vi.mock("@/lib/estimates/actions", () => actionMocks);
 const projectId = "22222222-2222-4222-8222-222222222222";
 const estimateId = "77777777-7777-4777-8777-777777777719";
 const targetNodeId = "55555555-5555-4555-8555-555555555561";
+const groupNodeId = "55555555-5555-4555-8555-555555555560";
 const cabinetRowId = "66666666-6666-4666-8666-666666666661";
 const sinkRowId = "66666666-6666-4666-8666-666666666662";
 
@@ -38,6 +40,57 @@ const nodes: EstimateTreeNode[] = [
     children: [],
   },
 ];
+
+const nodesWithGroup: EstimateTreeNode[] = [
+  {
+    id: groupNodeId,
+    name: "Ground Floor",
+    kind: "group",
+    total: "PHP 0.00",
+    children: nodes,
+  },
+];
+
+const starterTemplate = {
+  id: "template-condo-fit-out-starter",
+  name: "Condo Fit-Out Starter",
+  description: "Starter fit-out",
+  category: "Residential Rooms",
+  nodes: [
+    {
+      id: "template-interior",
+      name: "Interior Fit-Out",
+      kind: "group" as const,
+      total: "PHP 0.00",
+      children: [
+        {
+          id: "template-living",
+          name: "Living + Dining",
+          kind: "area" as const,
+          total: "PHP 0.00",
+          estimateRowItems: [
+            {
+              id: "lib-sofa",
+              material: "HEMLINGBY Loveseat",
+              description: "Sofa",
+              supplier: "IKEA Philippines",
+              source: "library" as const,
+              unit: "pc",
+              itemCost: 7999,
+              quantity: 1,
+              subTotal: 7999,
+              miscCost: 1200,
+              totalItemCosts: 9199,
+              category: "Furniture",
+              pricingSource: "test",
+              pricingDate: "2026-05-22",
+            },
+          ],
+        },
+      ],
+    },
+  ],
+};
 
 const nodesWithRow: EstimateTreeNode[] = [
   {
@@ -114,6 +167,7 @@ describe("estimate sheet library insertion persistence", () => {
     vi.clearAllMocks();
     actionMocks.fetchEstimateTree.mockResolvedValue(nodes);
     actionMocks.insertEstimateRowItemFromLibrary.mockResolvedValue(undefined);
+    actionMocks.insertEstimateTemplateIntoEstimate.mockResolvedValue({ tree: nodesWithGroup });
     actionMocks.updateEstimateRowItem.mockResolvedValue({
       rowId: cabinetRowId,
       nodeId: targetNodeId,
@@ -159,6 +213,86 @@ describe("estimate sheet library insertion persistence", () => {
       pricingSource: "Manual estimate row",
     });
     expect(input.libraryItem.tags).toContain("manual-row-placeholder");
+  });
+
+  it("adds estimate templates from the right sidebar to the selected group node", async () => {
+    const user = userEvent.setup();
+    const insertedTree: EstimateTreeNode[] = [
+      {
+        ...nodesWithGroup[0],
+        children: [...nodesWithGroup[0].children!, starterTemplate.nodes[0]],
+      },
+    ];
+    actionMocks.insertEstimateTemplateIntoEstimate.mockResolvedValue({ tree: insertedTree });
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
+
+    render(
+      <QueryClientProvider client={queryClient}>
+        <EstimateSheetContent
+          selectedNodeId={groupNodeId}
+          nodes={nodesWithGroup}
+          projectId={projectId}
+          estimateId={estimateId}
+          libraryItems={[]}
+          libraryTemplates={[starterTemplate]}
+        />
+      </QueryClientProvider>,
+    );
+
+    await user.click(screen.getByRole("tab", { name: "Templates" }));
+    await user.click(screen.getByRole("button", { name: "Add template Condo Fit-Out Starter to Ground Floor" }));
+
+    await waitFor(() => expect(actionMocks.insertEstimateTemplateIntoEstimate).toHaveBeenCalledTimes(1));
+    expect(actionMocks.insertEstimateTemplateIntoEstimate).toHaveBeenCalledWith({
+      projectId,
+      estimateId,
+      targetParentNodeId: groupNodeId,
+      templateId: starterTemplate.id,
+    });
+    expect(await screen.findByLabelText("Interior Fit-Out")).toBeInTheDocument();
+  });
+
+  it("drops estimate templates from the sidebar onto a group node", async () => {
+    const user = userEvent.setup();
+    const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
+    const data: Record<string, string> = {};
+    const dataTransfer = {
+      types: [] as string[],
+      effectAllowed: "",
+      dropEffect: "",
+      setDragImage: vi.fn(),
+      setData: vi.fn((type: string, value: string) => {
+        data[type] = value;
+        if (!dataTransfer.types.includes(type)) dataTransfer.types.push(type);
+      }),
+      getData: vi.fn((type: string) => data[type] ?? ""),
+    };
+
+    render(
+      <QueryClientProvider client={queryClient}>
+        <EstimateSheetContent
+          selectedNodeId={groupNodeId}
+          nodes={nodesWithGroup}
+          projectId={projectId}
+          estimateId={estimateId}
+          libraryItems={[]}
+          libraryTemplates={[starterTemplate]}
+        />
+      </QueryClientProvider>,
+    );
+
+    await user.click(screen.getByRole("tab", { name: "Templates" }));
+    fireEvent.dragStart(screen.getByLabelText("Condo Fit-Out Starter estimate template"), { dataTransfer });
+    fireEvent.drop(screen.getByLabelText("Ground Floor"), { dataTransfer });
+
+    await waitFor(() => expect(actionMocks.insertEstimateTemplateIntoEstimate).toHaveBeenCalledTimes(1));
+    expect(actionMocks.insertEstimateTemplateIntoEstimate.mock.calls[0][0]).toMatchObject({
+      projectId,
+      estimateId,
+      targetParentNodeId: groupNodeId,
+      templateId: starterTemplate.id,
+    });
+    expect(actionMocks.insertEstimateTemplateIntoEstimate.mock.calls[0][0]).not.toHaveProperty("template");
   });
 
   it("keeps a committed quantity edit visible while the server save is delayed", async () => {

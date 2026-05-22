@@ -1,10 +1,11 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { beforeAll, describe, expect, it } from "vitest";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 
 import { ComponentsPageClient } from "@/components/workshop/ComponentsPageClient";
 import type { EstimateRowItem } from "@/components/workshop/estimate-tree-data";
+import { estimateTemplates } from "@/lib/component-library/estimate-templates";
 import type { ComponentLibraryTaxonomyNode } from "@/lib/component-library/taxonomy";
 
 const sharedCategoryTree: ComponentLibraryTaxonomyNode[] = [
@@ -46,6 +47,75 @@ const sharedLibraryItems: EstimateRowItem[] = [
     pricingDate: "2026-05-22",
   },
 ];
+
+const unmatchedLibraryItem: EstimateRowItem = {
+  id: "db-library-custom-bronze-widget",
+  material: "Custom Bronze Widget",
+  name: "Custom Bronze Widget",
+  description: "Component without a matching taxonomy folder",
+  supplier: "Unmatched Supplier",
+  supplierId: "db-unmatched-supplier",
+  source: "library",
+  unit: "pc",
+  itemCost: 900,
+  price: 900,
+  currency: "PHP",
+  quantity: 1,
+  subTotal: 900,
+  miscCost: 0,
+  totalItemCosts: 900,
+  category: "Obscure specialty",
+  categoryNodeId: "missing-category-node",
+  categoryPath: ["Obscure specialty"],
+  pricingSource: "Unmatched Supplier",
+  pricingDate: "2026-05-22",
+};
+
+const customLibraryItem: EstimateRowItem = {
+  id: "db-library-custom-cabinet-pull",
+  material: "Custom Cabinet Pull",
+  name: "Custom Cabinet Pull",
+  description: "User-created component",
+  supplier: "Custom Maker",
+  supplierId: "db-custom-supplier",
+  source: "library",
+  unit: "pc",
+  itemCost: 75,
+  price: 75,
+  currency: "PHP",
+  quantity: 1,
+  subTotal: 75,
+  miscCost: 0,
+  totalItemCosts: 75,
+  category: "Fabrication",
+  categoryNodeId: "db-category-fabrication",
+  categoryPath: ["Database Components", "Fabrication"],
+  isCustom: true,
+  pricingSource: "Custom Maker",
+  pricingDate: "2026-05-22",
+};
+
+const unsourcedLibraryItem: EstimateRowItem = {
+  id: "db-library-owner-supplied-sink",
+  material: "Owner Supplied Sink",
+  name: "Owner Supplied Sink",
+  description: "Component without supplier metadata",
+  supplier: "",
+  source: "library",
+  unit: "pc",
+  itemCost: 500,
+  price: 500,
+  currency: "PHP",
+  quantity: 1,
+  subTotal: 500,
+  miscCost: 0,
+  totalItemCosts: 500,
+  category: "Fabrication",
+  categoryNodeId: "db-category-fabrication",
+  categoryPath: ["Database Components", "Fabrication"],
+  pricingSource: "Owner",
+  pricingDate: "2026-05-22",
+};
 
 describe("component library manager UI", () => {
   beforeAll(() => {
@@ -103,7 +173,7 @@ describe("component library manager UI", () => {
     expect(screen.queryByText("Demo seed")).not.toBeInTheDocument();
   });
 
-  it("places components from shared database taxonomy ids instead of legacy labels", () => {
+  it("keeps the left tree folder-only and shows selected category contents in the sheet", () => {
     render(
       <ComponentsPageClient
         categoryTree={sharedCategoryTree}
@@ -112,10 +182,123 @@ describe("component library manager UI", () => {
       />,
     );
 
-    expect(screen.getByRole("treeitem", { name: "Database Components" })).toBeInTheDocument();
-    expect(screen.getByRole("treeitem", { name: "Fabrication" })).toBeInTheDocument();
-    expect(screen.getByRole("treeitem", { name: "Database Steel Frame" })).toBeInTheDocument();
-    expect(screen.queryByRole("treeitem", { name: "Legacy category label" })).not.toBeInTheDocument();
+    const tree = screen.getByLabelText("Component library tree");
+    const sheet = screen.getByLabelText("Custom component sheet");
+
+    expect(within(tree).getByRole("treeitem", { name: "Database Components" })).toBeInTheDocument();
+    expect(within(tree).getByRole("treeitem", { name: "Fabrication" })).toBeInTheDocument();
+    expect(within(tree).queryByRole("treeitem", { name: "Database Steel Frame" })).not.toBeInTheDocument();
+    expect(within(tree).queryByRole("treeitem", { name: "Legacy category label" })).not.toBeInTheDocument();
+
+    fireEvent.click(within(tree).getByRole("treeitem", { name: "Fabrication" }));
+
+    expect(within(sheet).getByRole("tab", { name: "Fabrication" })).toHaveAttribute("aria-selected", "true");
+    expect(within(sheet).getByText("Database Steel Frame")).toBeInTheDocument();
+    expect(within(sheet).getByText(/Database Supplier/)).toBeInTheDocument();
+  });
+
+  it("keeps supplier folders navigation-only and shows selected supplier contents in the sheet", () => {
+    render(
+      <ComponentsPageClient
+        categoryTree={sharedCategoryTree}
+        suppliers={[{ id: "db-supplier", name: "Database Supplier", sort_order: 1 }]}
+        libraryItems={sharedLibraryItems}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("tab", { name: "Suppliers" }));
+
+    const tree = screen.getByLabelText("Component library tree");
+    const sheet = screen.getByLabelText("Custom component sheet");
+
+    expect(within(tree).getByRole("treeitem", { name: "Database Supplier" })).toBeInTheDocument();
+    expect(within(tree).queryByRole("treeitem", { name: "Database Steel Frame" })).not.toBeInTheDocument();
+
+    fireEvent.click(within(tree).getByRole("treeitem", { name: "Database Supplier" }));
+
+    expect(within(sheet).getByRole("tab", { name: "Database Supplier" })).toHaveAttribute("aria-selected", "true");
+    expect(within(sheet).getByText("Database Steel Frame")).toBeInTheDocument();
+  });
+
+  it("changes the center sheet dataset when switching tree view tabs", () => {
+    render(
+      <ComponentsPageClient
+        categoryTree={sharedCategoryTree}
+        suppliers={[
+          { id: "db-supplier", name: "Database Supplier", sort_order: 1 },
+          { id: "db-custom-supplier", name: "Custom Maker", sort_order: 2 },
+        ]}
+        libraryItems={[sharedLibraryItems[0], customLibraryItem, unsourcedLibraryItem]}
+      />,
+    );
+
+    const sheet = screen.getByLabelText("Custom component sheet");
+
+    expect(within(sheet).getByRole("tab", { name: "All Components" })).toHaveAttribute("aria-selected", "true");
+    expect(within(sheet).getByText("Database Steel Frame")).toBeInTheDocument();
+    expect(within(sheet).getByText("Custom Cabinet Pull")).toBeInTheDocument();
+    expect(within(sheet).getByText("Owner Supplied Sink")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("tab", { name: "Suppliers" }));
+
+    expect(within(sheet).getByRole("tab", { name: "All Suppliers" })).toHaveAttribute("aria-selected", "true");
+    expect(within(sheet).getByText("Database Steel Frame")).toBeInTheDocument();
+    expect(within(sheet).getByText("Custom Cabinet Pull")).toBeInTheDocument();
+    expect(within(sheet).queryByText("Owner Supplied Sink")).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("tab", { name: "Custom" }));
+
+    expect(within(sheet).getByRole("tab", { name: "My Components" })).toHaveAttribute("aria-selected", "true");
+    expect(within(sheet).queryByText("Database Steel Frame")).not.toBeInTheDocument();
+    expect(within(sheet).getByText("Custom Cabinet Pull")).toBeInTheDocument();
+    expect(within(sheet).queryByText("Owner Supplied Sink")).not.toBeInTheDocument();
+  });
+
+  it("shows estimate templates as their own tree tab with template sheet rows", () => {
+    render(<ComponentsPageClient templates={estimateTemplates} />);
+
+    fireEvent.click(screen.getByRole("tab", { name: "Templates" }));
+
+    const tree = screen.getByLabelText("Component library tree");
+    const sheet = screen.getByLabelText("Custom component sheet");
+
+    expect(screen.getByRole("tab", { name: "Templates" })).toHaveAttribute("aria-selected", "true");
+    expect(within(tree).getByRole("treeitem", { name: "All Templates" })).toHaveAttribute("aria-selected", "true");
+    expect(within(tree).getByRole("treeitem", { name: "Residential Rooms" })).toBeInTheDocument();
+    expect(within(sheet).getByRole("tab", { name: "All Templates" })).toHaveAttribute("aria-selected", "true");
+    expect(within(sheet).getByText("Condo Fit-Out Starter")).toBeInTheDocument();
+    expect(within(sheet).getByText("2 groups / 3 areas / 8 rows")).toBeInTheDocument();
+    expect(within(sheet).queryByText("Database Steel Frame")).not.toBeInTheDocument();
+  });
+
+  it("does not expose static templates when no templates are provided by the route", () => {
+    render(<ComponentsPageClient />);
+
+    fireEvent.click(screen.getByRole("tab", { name: "Templates" }));
+
+    expect(screen.queryByText("Condo Fit-Out Starter")).not.toBeInTheDocument();
+    expect(screen.getByLabelText("Component library tree")).toBeInTheDocument();
+  });
+
+  it("shows unmatched categories as an Uncategorized folder with sheet contents", () => {
+    render(
+      <ComponentsPageClient
+        categoryTree={sharedCategoryTree}
+        suppliers={[{ id: "db-unmatched-supplier", name: "Unmatched Supplier", sort_order: 1 }]}
+        libraryItems={[unmatchedLibraryItem]}
+      />,
+    );
+
+    const tree = screen.getByLabelText("Component library tree");
+    const sheet = screen.getByLabelText("Custom component sheet");
+
+    expect(within(tree).getByRole("treeitem", { name: "Uncategorized" })).toBeInTheDocument();
+    expect(within(tree).queryByRole("treeitem", { name: "Custom Bronze Widget" })).not.toBeInTheDocument();
+
+    fireEvent.click(within(tree).getByRole("treeitem", { name: "Uncategorized" }));
+
+    expect(within(sheet).getByRole("tab", { name: "Uncategorized" })).toHaveAttribute("aria-selected", "true");
+    expect(within(sheet).getByText("Custom Bronze Widget")).toBeInTheDocument();
   });
 
   it("keeps the route wired to the component workspace shell copy", () => {

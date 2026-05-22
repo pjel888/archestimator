@@ -1,4 +1,4 @@
-import type { EstimateRowItem, EstimateTreeNode } from "@/components/workshop/estimate-tree-data";
+import type { EstimateRowItem, EstimateTreeNode } from "@/lib/estimates/types";
 
 export type EstimateRowItemPatch = {
   quantity?: number;
