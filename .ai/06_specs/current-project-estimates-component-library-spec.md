@@ -32,8 +32,9 @@ This is not yet the full MVP estimating system. It is a post-reset, local-state 
 4. review existing estimate row items in that selected branch;
 5. search and filter reusable components from a right-side library;
 6. add a component to the selected estimate area by click or drag/drop;
-7. edit quantity and Misc Cost locally;
-8. see totals update in the visible estimate sheet.
+7. add reusable estimate templates into Group Nodes when a repeated room/scope structure should be copied at once;
+8. edit quantity and Misc Cost locally;
+9. see totals update in the visible estimate sheet.
 
 The feature exists to validate the project-estimate surface and the library-to-estimate connection without restoring the rejected full prototype.
 
@@ -162,10 +163,23 @@ Current behavior:
 - Contains a compact sticky search row and `HeaderIconToolbar` only.
 - Uses shared `SearchInput` and `Button` primitives in the main header controls.
 - Supports local library item state initialized from the shared Supabase Component Library dataset.
-- The Categories tree mirrors `/workshop/components`: `All Components` is the root, the V3 organizer/category/subcategory taxonomy stays in source order from `component_category_nodes`, empty taxonomy folders remain visible, and matching library line items render as draggable/click-insertable rows under their `category_node_id` folders.
-- The Suppliers tree mirrors `/workshop/components` from `component_suppliers`, with line items placed by `supplier_id` when available.
-- The area below `HeaderIconToolbar` now goes directly into grouped component rows; the estimate-page sidebar no longer renders Components/Assemblies/Templates tabs, import/export actions, view/sort controls, target-status strips, bulk-selection actions, or the recent-items strip.
+- The Categories tree shares `/workshop/components`' folder backbone: `All Components` is the root, the V3 organizer/category/subcategory taxonomy stays in source order from `component_category_nodes`, empty taxonomy folders remain visible, and the estimate sidebar adds matching library line items as draggable/click-insertable rows under their `category_node_id` folders.
+- The Suppliers tree shares `/workshop/components`' supplier folder backbone from `component_suppliers`, and the estimate sidebar adds matching line items under suppliers by `supplier_id` when available.
+- The area below `HeaderIconToolbar` goes directly into the active tab body. Categories, Suppliers, and Custom render grouped component rows. Templates renders reusable estimate templates only.
+- The estimate-page sidebar no longer renders the old Components/Assemblies/Templates bundle model, import/export actions, view/sort controls, target-status strips, bulk-selection actions, or the recent-items strip.
+- The Templates tab inserts reusable estimate-structure bundles into the selected Group Node or the selected Area Node's nearest ancestor Group Node. Template insertion sends only `templateId` to the server; the server copies persisted Group Nodes, Area Nodes, and row snapshots into the estimate through `public.insert_estimate_template_into_estimate` with fresh UUIDs. It never mutates template source data.
 - Supports local preference state via localStorage for grouping plus favorites/recents metadata; recents remain data for ranking/history, not a visible strip above the library rows.
+
+### Reusable estimate templates
+
+Current behavior:
+
+- `/workshop/components` has a Templates tree tab with folder-only category navigation and a center template sheet.
+- The estimate-page right sidebar has a Templates tab with compact template cards, add buttons, and native drag payloads.
+- Templates are stored separately from component rows. They use `estimate_templates`, `estimate_template_nodes`, and `estimate_template_row_items`; the migration seeds shipped templates into existing workspaces, and static seed templates are used only as a repository fallback before local/remote migration rollout when the template tables are missing. Component UI defaults must not expose static templates on their own.
+- Template rows inherit the active estimate-tree invariants: root template nodes are Group Nodes, Group Nodes may contain Group or Area Nodes, Area Nodes own rows and cannot parent children, and row items may attach only to Area Nodes.
+- Template nodes follow the active two-kind estimate tree model: `group` nodes may contain `group` or `area` children, and `area` nodes own estimate row item snapshots.
+- Inserting a template into an estimate is a single Postgres RPC boundary. `public.insert_estimate_template_into_estimate` validates workspace/project/estimate/template scope, validates the source template tree, writes copied `estimate_nodes` and `estimate_row_items` rows with fresh UUIDs and source snapshot metadata, and validates the target estimate tree before returning inserted root ids.
 
 ---
 
