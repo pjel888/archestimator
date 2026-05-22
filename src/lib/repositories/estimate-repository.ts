@@ -22,22 +22,21 @@ type EstimateRowItemRow = Pick<
   | "discipline"
   | "estimate_id"
   | "id"
-  | "labor_cost"
   | "link_state"
   | "material"
+  | "misc_cost"
   | "node_id"
   | "quantity"
   | "sort_order"
   | "source_library_item_id"
   | "source_snapshot"
-  | "supplementary_cost"
   | "supplier"
   | "unit"
   | "unit_cost"
 >;
 
 const ESTIMATE_NODE_SELECT = "id, estimate_id, parent_id, kind, name, sort_order";
-const ESTIMATE_ROW_ITEM_SELECT = "id, estimate_id, node_id, sort_order, source_library_item_id, source_snapshot, material, description, supplier, unit, quantity, unit_cost, supplementary_cost, labor_cost, discipline, designation, link_state";
+const ESTIMATE_ROW_ITEM_SELECT = "id, estimate_id, node_id, sort_order, source_library_item_id, source_snapshot, material, description, supplier, unit, quantity, unit_cost, misc_cost, discipline, designation, link_state";
 
 const inMemoryTrees = new Map<string, EstimateTree>();
 
@@ -76,8 +75,7 @@ function toEstimateRowItem(row: EstimateRowItemRow): EstimateRowItem {
     unit: row.unit,
     quantity: Number(row.quantity),
     unitCost: Number(row.unit_cost),
-    supplementaryCost: Number(row.supplementary_cost),
-    laborCost: Number(row.labor_cost),
+    miscCost: Number(row.misc_cost),
     discipline: row.discipline,
     designation: row.designation,
     linkState: row.link_state,
@@ -98,8 +96,7 @@ function toEstimateRowItemUpdate(row: EstimateRowItem): TablesInsert<"estimate_r
     unit: row.unit,
     quantity: row.quantity,
     unit_cost: row.unitCost,
-    supplementary_cost: row.supplementaryCost,
-    labor_cost: row.laborCost,
+    misc_cost: row.miscCost,
     discipline: row.discipline,
     designation: row.designation,
     link_state: row.linkState,

@@ -16,8 +16,7 @@ import { ArrowCounterClockwise, CaretDown, Check, Cube, FolderSimple, Plus } fro
 import { HeaderIconToolbar } from "@/components/ui/header-icon-toolbar";
 import { SearchInput } from "@/components/ui/search-input";
 import { Button } from "@/components/ui/button";
-import { ContextActionMenuContent, type ActionMenuGroup } from "@/components/ui/action-menu";
-import { ContextMenu, ContextMenuContent, ContextMenuTrigger } from "@/components/ui/context-menu";
+import type { ActionMenuGroup } from "@/components/ui/action-menu";
 import { ControlInput } from "@/components/ui/control-input";
 import { Modal } from "@/components/ui/modal";
 import { getEstimateNodeDisplayKind, getEstimateNodeKindSortRank, isEstimateGroupNodeKind } from "@/lib/estimates/tree-hierarchy";
@@ -25,6 +24,12 @@ import { createEstimateNode, deleteEstimateNode, renameEstimateNode, reorderEsti
 import { useEstimateAreaTreeQuery } from "@/hooks/use-estimate-query";
 import { useEstimateWorkspaceExpansion, useEstimateWorkspaceSelection } from "@/hooks/use-estimate-workspace-state";
 import { cn } from "@/lib/ui/cn";
+import {
+  WORKSHOP_TREE_ICON_SLOT_CLASS,
+  WORKSHOP_TREE_INDENT_STEP,
+  WORKSHOP_TREE_ROW_MIN_HEIGHT_CLASS,
+} from "./tree-visual-style";
+import { WorkshopTreeRow, WorkshopTreeTabs } from "./workshop-tree";
 import {
   ESTIMATE_TREE_ROOT_ITEM_ID,
   evaluateEstimateTreeDrop,
@@ -45,9 +50,8 @@ type EstimateSheetTreeProps = {
 
 const ESTIMATE_TREE_LEFT_EXTENSION_WIDTH = 104;
 const ESTIMATE_TREE_ID = "estimate-sheet-tree";
-const TREE_INDENT_STEP = 20;
-const TREE_MAX_INDENT = 140;
 const ESTIMATE_TREE_DRAG_ITEM_DATA_TYPE = "application/x-archestimator-estimate-tree-item";
+const ESTIMATE_TREE_TABS = [{ id: "sheets", label: "Sheets" }] as const;
 
 type EstimateTreeItemData = {
   node: EstimateTreeNode | null;
@@ -829,6 +833,7 @@ export function EstimateSheetTree({ projectId, estimateId, projectName, selected
               {reorderStatus.message}
             </div>
           ) : null}
+          <WorkshopTreeTabs tabs={ESTIMATE_TREE_TABS} activeTab="sheets" ariaLabel="Estimate tree views" />
         </div>
 
         <div className="min-h-0 flex-1 overflow-auto p-2">
@@ -852,7 +857,7 @@ export function EstimateSheetTree({ projectId, estimateId, projectName, selected
               canDrag={handleCanDrag}
               canDropAt={handleCanDropAt}
               onDrop={handleDrop}
-              renderDepthOffset={TREE_INDENT_STEP}
+              renderDepthOffset={WORKSHOP_TREE_INDENT_STEP}
               onPrimaryAction={(item) => {
                 if (Date.now() < suppressPrimaryActionUntilRef.current) {
                   return;
@@ -900,7 +905,7 @@ export function EstimateSheetTree({ projectId, estimateId, projectName, selected
                 const errorId = `estimate-tree-rename-error-${node.id}`;
                 return (
                   <>
-                    <span className="mr-1 flex size-4 shrink-0 items-center justify-center text-tertiary" aria-hidden="true">
+                    <span className={cn("mr-1", WORKSHOP_TREE_ICON_SLOT_CLASS)} aria-hidden="true">
                       <NodeIcon kind={node.kind} />
                     </span>
                     {isEditing ? (
@@ -1008,13 +1013,13 @@ export function EstimateSheetTree({ projectId, estimateId, projectName, selected
               renderItemArrow={({ item, context }) => {
                 const node = item.data.node;
                 const { className, ...arrowProps } = context.arrowProps as HTMLAttributes<HTMLSpanElement>;
-                if (!item.isFolder || !node) return <span className="size-5" aria-hidden="true" />;
+                if (!item.isFolder || !node) return <span className="size-4" aria-hidden="true" />;
                 return (
                   <span
                     {...arrowProps}
-                    className={cn("flex size-5 cursor-pointer items-center justify-center rounded-sm text-tertiary transition hover:bg-surface-muted", className)}
+                    className={cn(WORKSHOP_TREE_ICON_SLOT_CLASS, "cursor-pointer transition hover:bg-surface-muted", className)}
                   >
-                    <CaretDown size={12} aria-hidden="true" className={context.isExpanded ? "" : "-rotate-90"} />
+                    <CaretDown size={11} aria-hidden="true" className={context.isExpanded ? "" : "-rotate-90"} />
                   </span>
                 );
               }}
@@ -1023,7 +1028,7 @@ export function EstimateSheetTree({ projectId, estimateId, projectName, selected
                 if (!node) return null;
 
                 const { className: liClassName, ...liProps } = context.itemContainerWithChildrenProps as HTMLAttributes<HTMLLIElement>;
-                const { className: rowClassName, onDragOver: rowOnDragOver, onDrop: rowOnDrop, ...rowProps } = context.itemContainerWithoutChildrenProps as HTMLAttributes<HTMLDivElement>;
+                const { className: rowClassName, style: rowStyle, onDragOver: rowOnDragOver, onDrop: rowOnDrop, ...rowProps } = context.itemContainerWithoutChildrenProps as HTMLAttributes<HTMLDivElement>;
                 const {
                   className: buttonClassName,
                   onDragStart,
@@ -1083,28 +1088,51 @@ export function EstimateSheetTree({ projectId, estimateId, projectName, selected
                   return true;
                 };
                 const nodeInteractiveClassName = cn(
-                  "relative inline-flex h-7 min-w-0 items-center justify-start gap-0 rounded-md p-1 !text-[10px] !font-normal leading-none text-ink transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#c8d2df] focus-visible:ring-offset-2",
-                  isEditing ? "overflow-visible" : "overflow-hidden",
-                  isRouteSelected ? "bg-surface-muted ring-1 ring-[#d7dee8]" : "hover:bg-surface-muted",
-                  isEditing ? "border border-accent bg-accentSoft ring-1 ring-accent shadow-[inset_0_0_0_1px_rgba(255,122,26,0.18)] hover:bg-accentSoft" : "",
-                  isNestIntentTarget ? "bg-[#eef7ff] ring-1 ring-[#8bbce8] shadow-[inset_0_0_0_1px_rgba(44,120,180,0.18)]" : "",
+                  "relative justify-start gap-0 focus-visible:ring-[#c8d2df] focus-visible:ring-offset-2",
                   buttonClassName,
                 );
+                const nodeContextMenuContentProps = {
+                  "data-estimate-tree-context-menu": "true",
+                  alignOffset: 4,
+                  onCloseAutoFocus: (event: Event) => {
+                    if (suppressContextMenuCloseAutoFocusRef.current) {
+                      event.preventDefault();
+                      window.setTimeout(() => {
+                        renameInputRef.current?.focus();
+                        renameInputRef.current?.select();
+                        suppressContextMenuCloseAutoFocusRef.current = false;
+                        ignoreRenameBlurDuringContextMenuCloseRef.current = false;
+                      }, 0);
+                    }
+                  },
+                };
                 const nodeTitleContent = (
                   <span
                     data-estimate-tree-title-offset
                     className="flex h-full min-w-0 flex-1 items-center"
-                    style={{ paddingLeft: `${Math.min(depth * TREE_INDENT_STEP, TREE_MAX_INDENT)}px` }}
                   >
                     {title}
                   </span>
                 );
+                const nodeContent = (
+                  <>
+                    {arrow}
+                    {nodeTitleContent}
+                  </>
+                );
                 const nodeButton = isEditing ? (
-                  <div
+                  <WorkshopTreeRow
+                    as="div"
                     aria-current={isRouteSelected ? "page" : undefined}
                     data-estimate-tree-active-node={isRouteSelected ? "true" : undefined}
                     data-estimate-tree-node-id={node.id}
                     draggable={false}
+                    depth={depth}
+                    selected={isRouteSelected}
+                    editing
+                    intent={isNestIntentTarget}
+                    contextMenuGroups={nodeActionGroups}
+                    contextMenuContentProps={nodeContextMenuContentProps}
                     onContextMenu={(event) => {
                       event.stopPropagation();
                     }}
@@ -1127,16 +1155,21 @@ export function EstimateSheetTree({ projectId, estimateId, projectName, selected
                     }}
                     className={nodeInteractiveClassName}
                   >
-                    {nodeTitleContent}
-                  </div>
+                    {nodeContent}
+                  </WorkshopTreeRow>
                 ) : (
-                  <button
+                  <WorkshopTreeRow
                     {...interactiveProps}
                     type="button"
                     aria-current={isRouteSelected ? "page" : undefined}
                     data-estimate-tree-active-node={isRouteSelected ? "true" : undefined}
                     data-estimate-tree-node-id={node.id}
                     draggable={interactiveProps.draggable}
+                    depth={depth}
+                    selected={isRouteSelected}
+                    intent={isNestIntentTarget}
+                    contextMenuGroups={nodeActionGroups}
+                    contextMenuContentProps={nodeContextMenuContentProps}
                     onContextMenu={(event) => {
                       onContextMenu?.(event);
                       event.stopPropagation();
@@ -1173,8 +1206,8 @@ export function EstimateSheetTree({ projectId, estimateId, projectName, selected
                     }}
                     className={nodeInteractiveClassName}
                   >
-                    {nodeTitleContent}
-                  </button>
+                    {nodeContent}
+                  </WorkshopTreeRow>
                 );
 
                 return (
@@ -1189,31 +1222,15 @@ export function EstimateSheetTree({ projectId, estimateId, projectName, selected
                         if (handleDirectFolderNestDrop(event)) return;
                         rowOnDrop?.(event);
                       }}
+                      data-estimate-tree-row="true"
                       className={cn(
-                        "relative grid h-8 grid-cols-[minmax(0,1fr)_20px] items-center gap-1 py-0.5",
+                        "relative flex items-center gap-0.5 py-0",
+                        WORKSHOP_TREE_ROW_MIN_HEIGHT_CLASS,
                         rowClassName,
                       )}
+                      style={rowStyle}
                     >
-                      <ContextMenu>
-                        <ContextMenuTrigger asChild>{nodeButton}</ContextMenuTrigger>
-                        <ContextMenuContent
-                          data-estimate-tree-context-menu="true"
-                          alignOffset={4}
-                          onCloseAutoFocus={(event) => {
-                            if (suppressContextMenuCloseAutoFocusRef.current) {
-                              event.preventDefault();
-                              window.setTimeout(() => {
-                                renameInputRef.current?.focus();
-                                renameInputRef.current?.select();
-                                suppressContextMenuCloseAutoFocusRef.current = false;
-                                ignoreRenameBlurDuringContextMenuCloseRef.current = false;
-                              }, 0);
-                            }
-                          }}
-                        >
-                          <ContextActionMenuContent groups={nodeActionGroups} />
-                        </ContextMenuContent>
-                      </ContextMenu>
+                      <div className="min-w-0 flex-1">{nodeButton}</div>
                       {isNestIntentTarget ? (
                         <div
                           role="status"
@@ -1223,8 +1240,6 @@ export function EstimateSheetTree({ projectId, estimateId, projectName, selected
                           Nest inside {nestIntentHint.targetName}
                         </div>
                       ) : null}
-
-                      {arrow}
                     </div>
                     {children}
                   </li>

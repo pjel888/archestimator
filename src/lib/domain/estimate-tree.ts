@@ -22,8 +22,7 @@ export type EstimateRowItem = {
   unit: string;
   quantity: number;
   unitCost: number;
-  supplementaryCost: number;
-  laborCost: number;
+  miscCost: number;
   discipline: string;
   designation: string;
   linkState: "unlinked" | "linked-clean" | "linked-overridden" | "detached" | "source-changed";

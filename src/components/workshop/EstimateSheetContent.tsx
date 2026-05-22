@@ -5,17 +5,18 @@ import { ArrowsOutSimple, CaretDown, Cube, DotsSixVertical, FolderSimple, Plus, 
 
 import { Button } from "@/components/ui/button";
 import { ControlInput } from "@/components/ui/control-input";
-import { ControlSelect } from "@/components/ui/control-select";
 import { HeaderIconToolbar } from "@/components/ui/header-icon-toolbar";
 import { SearchInput } from "@/components/ui/search-input";
 import { dispatchProjectTotalChange } from "@/components/workshop/ProjectTotalHeader";
-import { useEstimateRowMutations, type EstimateSaveState } from "@/hooks/use-estimate-row-mutations";
+import { useEstimateRowMutations } from "@/hooks/use-estimate-row-mutations";
 import { useEstimateAreaTreeQuery } from "@/hooks/use-estimate-query";
 import { resolveEstimateWorkspaceSelection, useEstimateWorkspaceSelection } from "@/hooks/use-estimate-workspace-state";
 import { getEstimateNodeDisplayKind } from "@/lib/estimates/tree-hierarchy";
+import type { ComponentLibraryTaxonomyNode } from "@/lib/component-library/taxonomy";
 import { cn } from "@/lib/ui/cn";
 import { EstimateRightSidebar } from "./component-library";
 import { CommandPalette } from "./component-library/CommandPalette";
+import type { ComponentLibrarySupplierOption } from "./component-library/tree/buildLibraryTree";
 import { findEstimateNode, sampleEstimateTree, type EstimateTreeNode, type EstimateRowItem } from "./estimate-tree-data";
 
 
@@ -52,6 +53,9 @@ type EstimateSheetContentProps = {
   projectId?: string;
   estimateId?: string;
   renderSidebar?: boolean;
+  libraryItems?: EstimateRowItem[];
+  libraryCategoryTree?: ComponentLibraryTaxonomyNode[];
+  librarySuppliers?: ComponentLibrarySupplierOption[];
 };
 
 type BreadcrumbNode = { id: string; name: string };
@@ -86,12 +90,13 @@ type EstimateSheetBranchProps = {
   editableRows: Record<string, EditableRowValue>;
   setEditableRows: Dispatch<SetStateAction<Record<string, EditableRowValue>>>;
   onInsertLibraryItem: (targetNodeId: string, libraryItem: EstimateRowItem) => void;
+  onAddBlankRow: (targetNodeId: string) => void;
   onReplaceRowItem: (rowItemId: string, libraryItem: EstimateRowItem) => void;
   onDeleteRowItem: (rowItemId: string) => void;
   onUpdateRowItem: (rowItemId: string, values: Partial<EditableRowValue>) => void;
   onMarkRowDirty: (rowItemId: string) => void;
-  rowSaveStates: Record<string, EstimateSaveState>;
   depth?: number;
+  usesSiblingGroupRhythm?: boolean;
 };
 
 export const pesoFormatter = new Intl.NumberFormat("en-PH", {
@@ -100,10 +105,8 @@ export const pesoFormatter = new Intl.NumberFormat("en-PH", {
   minimumFractionDigits: 2,
 });
 
-const disciplineOptions = ["Architectural", "Furniture", "Decorative", "Mechanical", "Electrical", "Plumbing", "Fire Suppression", "Security"];
-const designationOptions = ["Floor", "Wall", "Ceiling"];
-
-function groupGap(depth: number) {
+function groupGap(depth: number, kind?: EstimateTreeNode["kind"], usesSiblingGroupRhythm = false) {
+  if (kind === "area" && depth > 0 && !usesSiblingGroupRhythm) return "mt-0";
   if (depth === 0) return "mt-0";
   if (depth === 1) return "mt-5";
   return "mt-4";
@@ -168,12 +171,17 @@ function focusEstimateCell(rowIndex: number, cellIndex: number) {
 }
 
 function handleEstimateCellKeyDown(event: KeyboardEvent<HTMLInputElement | HTMLSelectElement>, rowIndex: number, cellIndex: number) {
+  if (event.key === "Enter") {
+    event.preventDefault();
+    event.currentTarget.blur();
+    return;
+  }
+
   const keyMap: Record<string, [number, number]> = {
     ArrowRight: [rowIndex, cellIndex + 1],
     ArrowLeft: [rowIndex, cellIndex - 1],
     ArrowDown: [rowIndex + 1, cellIndex],
     ArrowUp: [rowIndex - 1, cellIndex],
-    Enter: event.shiftKey ? [rowIndex - 1, cellIndex] : [rowIndex + 1, cellIndex],
   };
   const target = keyMap[event.key];
   if (!target) return;
@@ -187,7 +195,7 @@ function toEditableNumber(value: number) {
 
 function updateEditableRowValue(
   current: Record<string, EditableRowValue>,
-  item: EstimateRowItem & Pick<EditableRowValue, "discipline" | "designation">,
+  item: EstimateRowItem,
   patchValue: Partial<EditableRowValue>,
 ) {
   const currentRow = current[item.id];
@@ -195,10 +203,7 @@ function updateEditableRowValue(
     ...current,
     [item.id]: {
       quantity: currentRow?.quantity ?? toEditableNumber(item.quantity),
-      supplementaryCosts: currentRow?.supplementaryCosts ?? toEditableNumber(item.supplementaryCosts),
-      laborCost: currentRow?.laborCost ?? toEditableNumber(item.laborCost),
-      discipline: currentRow?.discipline ?? item.discipline ?? "Architectural",
-      designation: currentRow?.designation ?? item.designation ?? "Floor",
+      miscCost: currentRow?.miscCost ?? toEditableNumber(item.miscCost),
       ...patchValue,
     },
   };
@@ -206,11 +211,11 @@ function updateEditableRowValue(
 
 type EditableRowValue = {
   quantity: string;
-  supplementaryCosts: string;
-  laborCost: string;
-  discipline: string;
-  designation: string;
+  miscCost: string;
 };
+
+const BLANK_ESTIMATE_ROW_COMPONENT_LABEL = "Drag or add a component here";
+const BLANK_ESTIMATE_ROW_TAG = "manual-row-placeholder";
 
 function parseEditableNumber(value: string) {
   const parsed = Number(value.replace(/[^0-9.-]/g, ""));
@@ -218,16 +223,50 @@ function parseEditableNumber(value: string) {
 }
 
 function formatEditableMoney(value: string) {
-  return pesoFormatter.format(parseEditableNumber(value));
+  return pesoFormatter.format(parseEditableNumber(value)).replace("₱", "₱ ");
 }
 
 function getInitialEditableRow(item: EstimateRowItem): EditableRowValue {
   return {
     quantity: toEditableNumber(item.quantity),
-    supplementaryCosts: toEditableNumber(item.supplementaryCosts),
-    laborCost: toEditableNumber(item.laborCost ?? 0),
-    discipline: item.discipline ?? "Architectural",
-    designation: item.designation ?? (item.material.toLowerCase().includes("wall") ? "Wall" : item.material.toLowerCase().includes("chandelier") ? "Ceiling" : "Floor"),
+    miscCost: toEditableNumber(item.miscCost),
+  };
+}
+
+function isBlankEstimateRowItem(item: EstimateRowItem) {
+  const isTaggedPlaceholder = item.tags?.includes(BLANK_ESTIMATE_ROW_TAG);
+  const isPersistedPlaceholder =
+    item.source === "project" &&
+    item.material === BLANK_ESTIMATE_ROW_COMPONENT_LABEL &&
+    item.itemCost === 0 &&
+    item.category === "Unassigned" &&
+    !item.imageUrl;
+
+  return (
+    item.source === "project" &&
+    item.material === BLANK_ESTIMATE_ROW_COMPONENT_LABEL &&
+    (isTaggedPlaceholder || isPersistedPlaceholder)
+  );
+}
+
+function createBlankEstimateRowTemplate(): EstimateRowItem {
+  return {
+    id: "manual-estimate-row-template",
+    material: BLANK_ESTIMATE_ROW_COMPONENT_LABEL,
+    description: "",
+    supplier: "",
+    source: "project",
+    unit: "unit",
+    itemCost: 0,
+    quantity: 1,
+    subTotal: 0,
+    miscCost: 0,
+    totalItemCosts: 0,
+    category: "Unassigned",
+    tags: [BLANK_ESTIMATE_ROW_TAG],
+    pricingSource: "Manual estimate row",
+    pricingDate: new Date().toISOString().slice(0, 10),
+    confidence: "unpriced",
   };
 }
 
@@ -248,9 +287,8 @@ function collectEditableRows(nodes: EstimateTreeNode[]) {
 function computeRowTotal(item: EstimateRowItem, editableRows: Record<string, EditableRowValue>) {
   const editableRow = editableRows[item.id] ?? getInitialEditableRow(item);
   const quantity = parseEditableNumber(editableRow.quantity);
-  const supplementaryCosts = parseEditableNumber(editableRow.supplementaryCosts);
-  const laborCost = parseEditableNumber(editableRow.laborCost);
-  return item.itemCost * quantity + supplementaryCosts + laborCost;
+  const miscCost = parseEditableNumber(editableRow.miscCost);
+  return item.itemCost * quantity + miscCost;
 }
 
 function computeNodeTotal(node: EstimateTreeNode, editableRows: Record<string, EditableRowValue>): number {
@@ -259,45 +297,30 @@ function computeNodeTotal(node: EstimateTreeNode, editableRows: Record<string, E
   return rowTotal + childTotal;
 }
 
-function EstimateSelect({
-  value,
-  options,
+function EstimateDropZone({
+  label,
+  compact = false,
+  isDragOver = false,
+  onActivate,
   ariaLabel,
-  onChange,
 }: {
-  value: string;
-  options: string[];
-  ariaLabel: string;
-  onChange: (value: string) => void;
+  label: string;
+  compact?: boolean;
+  isDragOver?: boolean;
+  onActivate?: () => void;
+  ariaLabel?: string;
 }) {
-  return (
-    <ControlSelect
-      value={value}
-      onChange={(event) => onChange(event.target.value)}
-      aria-label={ariaLabel}
-      wrapperClassName="w-full"
-      className="w-full pr-4 font-semibold"
-    >
-      {options.map((option) => (
-        <option key={option} value={option}>
-          {option}
-        </option>
-      ))}
-    </ControlSelect>
+  const className = cn(
+    "border border-dashed text-tertiary transition-opacity",
+    compact
+      ? "flex min-h-20 items-center justify-center border-divider bg-surfaceWarm/80"
+      : "flex h-16 w-full items-center justify-center gap-1.5 border-hairline bg-surfaceMuted/30 opacity-50 hover:opacity-100",
+    !compact && isDragOver && "opacity-100",
+    onActivate &&
+      "cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-1",
   );
-}
-
-function EstimateDropZone({ label, compact = false, isDragOver = false }: { label: string; compact?: boolean; isDragOver?: boolean }) {
-  return (
-    <div
-      className={cn(
-        "border border-dashed text-tertiary transition-opacity",
-        compact
-          ? "flex min-h-20 items-center justify-center border-divider bg-surfaceWarm/80"
-          : "flex h-16 w-full items-center justify-center gap-1.5 border-hairline bg-surfaceMuted/30 opacity-50 hover:opacity-100",
-        !compact && isDragOver && "opacity-100"
-      )}
-    >
+  const content = (
+    <>
       {compact ? (
         <div className="flex flex-col items-center justify-center gap-1 text-center text-[10px] font-bold uppercase tracking-[0.12em]">
           <span className="flex size-5 items-center justify-center rounded-full border border-dashed border-divider bg-white text-ink">
@@ -311,6 +334,25 @@ function EstimateDropZone({ label, compact = false, isDragOver = false }: { labe
           <span>{label}</span>
         </div>
       )}
+    </>
+  );
+
+  if (onActivate) {
+    return (
+      <button
+        type="button"
+        className={className}
+        onClick={onActivate}
+        aria-label={ariaLabel ?? label}
+      >
+        {content}
+      </button>
+    );
+  }
+
+  return (
+    <div className={className}>
+      {content}
     </div>
   );
 }
@@ -370,10 +412,32 @@ function EstimateMaterialCell({
     onReplace(JSON.parse(payload) as EstimateRowItem);
   }
 
+  if (isBlankEstimateRowItem(item)) {
+    return (
+      <div
+        className={cn(
+          "flex h-full min-h-24 flex-col items-center justify-center gap-1.5 overflow-hidden border border-dashed border-hairline bg-surfaceMuted/30 p-2 text-center text-tertiary opacity-50 transition hover:opacity-100",
+          isReplaceTarget && "bg-blue-100 ring-2 ring-inset ring-accent opacity-100",
+        )}
+        onDragOver={handleReplacementDragOver}
+        onDragLeave={onReplaceDragLeave}
+        onDrop={handleReplacementDrop}
+        data-replace-target-active={isReplaceTarget ? "true" : undefined}
+        aria-label={`${BLANK_ESTIMATE_ROW_COMPONENT_LABEL} empty estimate component slot`}
+        title="Drop a component here after entering row values"
+      >
+        <div className="flex items-center gap-1.5 text-[10px] font-normal">
+          <Plus size={12} weight="regular" aria-hidden="true" />
+          <span>{BLANK_ESTIMATE_ROW_COMPONENT_LABEL}</span>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div
       className={cn(
-        "group flex h-full min-h-24 cursor-grab overflow-hidden border-r border-hairline border-l-2 border-l-accent/70 bg-[#EFF6FF] shadow-[inset_0_0_0_1px_rgba(37,99,235,0.10)] transition hover:bg-[#E7F0FF] active:cursor-grabbing",
+        "group flex h-full cursor-grab flex-col gap-2 overflow-hidden bg-white p-2 transition hover:bg-neutral-50 active:cursor-grabbing",
         isReplaceTarget && "bg-blue-100 ring-2 ring-inset ring-accent",
       )}
       draggable
@@ -384,35 +448,27 @@ function EstimateMaterialCell({
       aria-label={`${item.material} replaceable estimate component`}
       title="Drag this source-linked estimate component to move or replace it"
     >
-      <div className="flex aspect-square h-full min-h-24 shrink-0 items-stretch justify-center p-0">
+      <div className="flex gap-2">
         <div
-          className="h-full w-full bg-neutral-100 bg-cover bg-center"
+          className="size-14 shrink-0 rounded-sm bg-neutral-100 bg-cover bg-center"
           style={{ backgroundImage: `url(${getComponentImageUrl(item)})` }}
           aria-label={`${item.material} reference image`}
         />
-      </div>
-
-      <div className="flex min-w-0 flex-1 flex-col px-1 py-1.5">
-        <div className="mb-1 flex min-w-0 flex-wrap items-center gap-1">
-          <span className="shrink-0 rounded-sm border border-accent/25 bg-white/80 px-1 py-0.5 text-[8px] font-bold uppercase tracking-[0.08em] text-accent">
-            Source-linked estimate component
-          </span>
-          <span className="shrink-0 rounded-sm border border-accent/20 bg-accent/10 px-1 py-0.5 text-[8px] font-bold uppercase tracking-[0.08em] text-accent">
-            Drag / replace component
-          </span>
+        <div className="flex min-w-0 flex-1 flex-col">
+          <div className="min-w-0">
+            <p className="truncate text-[11px] font-bold leading-4 text-ink">{item.material}</p>
+            <p className="truncate text-[10px] font-semibold leading-4 text-tertiary">{item.supplier}</p>
+          </div>
+          <div className="flex flex-1 items-start justify-end">
+            <p className="whitespace-nowrap text-[9px] font-bold leading-4 tabular-nums text-ink">{pesoFormatter.format(item.itemCost).replace("₱", "₱ ")}</p>
+          </div>
         </div>
-        <p className="truncate text-[11px] font-bold leading-4 text-ink">{item.material}</p>
-        <p className="truncate text-[10px] font-semibold leading-4 text-tertiary">{item.supplier}</p>
-        <p className="mt-1 line-clamp-2 text-[10px] leading-4 text-secondary/60 transition-opacity group-hover:text-secondary">{item.description}</p>
       </div>
-
-      <div className="flex w-16 shrink-0 flex-col items-end justify-between gap-2 px-1 py-1.5 text-right">
-        <DotsSixVertical size={14} weight="bold" className="text-accent" aria-hidden="true" />
-        <div>
-          <p className="whitespace-nowrap text-[9px] font-bold leading-4 tabular-nums text-ink">{pesoFormatter.format(item.itemCost)}</p>
-          <p className="whitespace-nowrap text-[10px] font-semibold leading-3 text-tertiary">/ {item.unit}</p>
-        </div>
-        <ArrowsOutSimple size={14} weight="bold" className="text-accent" aria-hidden="true" />
+      <div className="flex items-start justify-between gap-2">
+        <p className="truncate text-[10px] leading-4 text-secondary/60 transition-opacity group-hover:text-secondary" title={item.description}>
+          {item.description}
+        </p>
+        <p className="shrink-0 whitespace-nowrap text-[10px] font-semibold leading-3 text-tertiary">/ {item.unit}</p>
       </div>
     </div>
   );
@@ -422,6 +478,7 @@ function MoneyInput({
   value,
   onChange,
   ariaLabel,
+  align = "right",
   onFocus,
   onBlur,
   ...cellProps
@@ -429,6 +486,7 @@ function MoneyInput({
   value: string;
   onChange: (value: string) => void;
   ariaLabel: string;
+  align?: "left" | "center" | "right";
 } & {
   "data-estimate-row-index"?: number;
   "data-estimate-cell-index"?: number;
@@ -453,7 +511,7 @@ function MoneyInput({
       }}
       onChange={(event) => onChange(event.target.value)}
       aria-label={ariaLabel}
-      align="right"
+      align={align}
       className="text-[9px] tabular-nums"
       {...cellProps}
     />
@@ -470,7 +528,6 @@ function EstimateRowItemsTable({
   onDeleteRowItem,
   onUpdateRowItem,
   onMarkRowDirty,
-  rowSaveStates,
 }: {
   items: EstimateRowItem[];
   editableRows: Record<string, EditableRowValue>;
@@ -481,7 +538,6 @@ function EstimateRowItemsTable({
   onDeleteRowItem: (rowItemId: string) => void;
   onUpdateRowItem: (rowItemId: string, values: Partial<EditableRowValue>) => void;
   onMarkRowDirty: (rowItemId: string) => void;
-  rowSaveStates: Record<string, EstimateSaveState>;
 }) {
   const [focusedCell, setFocusedCell] = useState<{ rowId: string; cellIndex: number } | null>(null);
   const [replaceTargetRowId, setReplaceTargetRowId] = useState("");
@@ -490,21 +546,16 @@ function EstimateRowItemsTable({
       items.map((item) => {
         const editableRow = editableRows[item.id] ?? getInitialEditableRow(item);
         const quantity = parseEditableNumber(editableRow.quantity);
-        const supplementaryCosts = parseEditableNumber(editableRow.supplementaryCosts);
-        const laborCost = parseEditableNumber(editableRow.laborCost);
+        const miscCost = parseEditableNumber(editableRow.miscCost);
         const subTotal = item.itemCost * quantity;
         return {
           ...item,
           editableQuantity: editableRow.quantity,
-          editableSupplementaryCosts: editableRow.supplementaryCosts,
-          editableLaborCost: editableRow.laborCost,
-          discipline: editableRow.discipline,
-          designation: editableRow.designation,
+          editableMiscCost: editableRow.miscCost,
           quantity,
-          supplementaryCosts,
-          laborCost,
+          miscCost,
           subTotal,
-          totalItemCosts: subTotal + supplementaryCosts + laborCost,
+          totalItemCosts: subTotal + miscCost,
         };
       }),
     [editableRows, items],
@@ -512,7 +563,7 @@ function EstimateRowItemsTable({
 
   if (!items.length) return null;
 
-  const rowColumns = "grid-cols-[24px_32px_minmax(134px,1fr)_104px_58px_92px_92px_92px_108px_30px]";
+  const rowColumns = "grid-cols-[36px_32px_minmax(160px,1fr)_58px_92px_92px_108px_30px]";
 
   function handleDragOver(event: DragEvent) {
     if (event.dataTransfer.types.includes("application/x-archestimator-library-item")) {
@@ -539,12 +590,10 @@ function EstimateRowItemsTable({
               <input type="checkbox" aria-label="Select all estimate row items" />
             </th>
             <th className="flex items-center justify-center border-r border-hairline">Materials</th>
-            <th className="flex items-center justify-center border-r border-hairline text-center text-[9px] leading-3">Discipline / Designation</th>
             <th className="flex items-center justify-center border-r border-hairline">Qty</th>
             <th className="flex items-center justify-center border-r border-hairline">Subtotal</th>
-            <th className="flex items-center justify-center border-r border-hairline text-center text-[9px] leading-3">Other Costs</th>
-            <th className="flex items-center justify-center border-r border-hairline text-center text-[9px] leading-3">Labor Cost</th>
-            <th className="flex items-center justify-center border-r border-hairline">Costs</th>
+            <th className="flex items-center justify-center border-r border-hairline text-center text-[9px] leading-3">Misc Cost</th>
+            <th className="flex items-center justify-center border-r border-hairline text-center text-[9px] leading-3">Total Item Cost</th>
             <th className="flex items-center justify-center">
               <DotsSixVertical size={14} weight="bold" aria-hidden="true" />
             </th>
@@ -554,231 +603,154 @@ function EstimateRowItemsTable({
           {computedRows.map((item, rowIndex) => {
             const activeCellIndex = focusedCell?.rowId === item.id ? focusedCell.cellIndex : null;
             return (
-            <tr
-              key={item.id}
-              className={cn(
-                "grid min-h-24 border-b border-hairline/70 last:border-b-0 hover:bg-neutral-50",
-                activeCellIndex !== null && "bg-[#F6FAFF] shadow-[inset_2px_0_0_rgba(37,99,235,0.70)]",
-                rowColumns,
-              )}
-              data-estimate-row-active={activeCellIndex !== null ? "true" : undefined}
-            >
-              <td className="flex items-center justify-center border-r border-hairline text-[9px] font-mono tabular-nums text-tertiary">
-                {String(rowIndex + 1).padStart(2, "0")}
-              </td>
-              <td className="flex flex-col items-center justify-between border-r border-hairline py-2 text-tertiary">
-                <DotsSixVertical size={14} weight="bold" aria-label={`Drag material ${item.material}`} />
-                <input type="checkbox" aria-label={`Select ${item.material}`} />
-                <span className="size-3" aria-hidden="true" />
-              </td>
-              <td className="min-w-0">
-                <EstimateMaterialCell
-                  item={item}
-                  isReplaceTarget={replaceTargetRowId === item.id}
-                  onReplaceDragOver={() => setReplaceTargetRowId(item.id)}
-                  onReplaceDragLeave={() => setReplaceTargetRowId((current) => (current === item.id ? "" : current))}
-                  onReplace={(libraryItem) =>
-                    onReplaceRowItem(item.id, {
-                      ...libraryItem,
-                      quantity: item.quantity,
-                      supplementaryCosts: item.supplementaryCosts,
-                      laborCost: item.laborCost,
-                    })
-                  }
-                />
-              </td>
-              <td className="flex flex-col justify-center gap-1 border-r border-hairline px-1 py-1.5">
-                <EstimateSelect
-                  value={item.discipline}
-                  options={disciplineOptions}
-                  ariaLabel={`${item.material} discipline`}
-                  onChange={(value) => {
-                    setEditableRows((current) => updateEditableRowValue(current, item, { discipline: value }));
-                    onMarkRowDirty(item.id);
-                    onUpdateRowItem(item.id, { discipline: value });
-                  }}
-                />
-                <EstimateSelect
-                  value={item.designation}
-                  options={designationOptions}
-                  ariaLabel={`${item.material} designation`}
-                  onChange={(value) => {
-                    setEditableRows((current) => updateEditableRowValue(current, item, { designation: value }));
-                    onMarkRowDirty(item.id);
-                    onUpdateRowItem(item.id, { designation: value });
-                  }}
-                />
-              </td>
-              <td
+              <tr
+                key={item.id}
                 className={cn(
-                  "flex flex-col items-center justify-center border-r border-hairline px-1 text-center",
-                  activeCellIndex === 0 && "bg-accent/10 ring-1 ring-inset ring-accent/30",
+                  "grid min-h-24 border-b border-hairline/70 last:border-b-0 hover:bg-neutral-50",
+                  activeCellIndex !== null && "bg-[#F6FAFF] shadow-[inset_2px_0_0_rgba(37,99,235,0.70)]",
+                  rowColumns,
                 )}
-                data-estimate-cell-active={activeCellIndex === 0 ? "true" : undefined}
+                data-estimate-row-active={activeCellIndex !== null ? "true" : undefined}
               >
-                <ControlInput
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  value={item.editableQuantity}
-                  onChange={(event) => {
-                    setEditableRows((current) => updateEditableRowValue(current, item, { quantity: event.target.value }));
-                    onMarkRowDirty(item.id);
-                  }}
-                  onFocus={() => setFocusedCell({ rowId: item.id, cellIndex: 0 })}
-                  onBlur={() => {
-                    setFocusedCell((current) => (current?.rowId === item.id && current.cellIndex === 0 ? null : current));
-                    onUpdateRowItem(item.id, { quantity: item.editableQuantity });
-                  }}
-                  onKeyDown={(event) => handleEstimateCellKeyDown(event, rowIndex, 0)}
-                  data-estimate-row-index={rowIndex}
-                  data-estimate-row-id={item.id}
-                  data-estimate-cell-index={0}
-                  aria-label={`${item.material} quantity`}
-                  align="center"
-                  className="text-[10px] tabular-nums"
-                />
-                <p className="text-[10px] font-semibold text-tertiary">{item.unit}</p>
-              </td>
-              <td className="flex items-center justify-end border-r border-hairline px-1 text-[9px] font-bold tabular-nums text-ink">{pesoFormatter.format(item.subTotal)}</td>
-              <td
-                className={cn(
-                  "flex items-center justify-end border-r border-hairline px-1",
-                  activeCellIndex === 1 && "bg-accent/10 ring-1 ring-inset ring-accent/30",
-                )}
-                data-estimate-cell-active={activeCellIndex === 1 ? "true" : undefined}
-              >
-                <MoneyInput
-                  value={item.editableSupplementaryCosts}
-                  onChange={(value) => {
-                    setEditableRows((current) => updateEditableRowValue(current, item, { supplementaryCosts: value }));
-                    onMarkRowDirty(item.id);
-                  }}
-                  ariaLabel={`${item.material} other costs`}
-                  onFocus={() => setFocusedCell({ rowId: item.id, cellIndex: 1 })}
-                  onBlur={() => {
-                    setFocusedCell((current) => (current?.rowId === item.id && current.cellIndex === 1 ? null : current));
-                    onUpdateRowItem(item.id, { supplementaryCosts: item.editableSupplementaryCosts });
-                  }}
-                  onKeyDown={(event) => handleEstimateCellKeyDown(event, rowIndex, 1)}
-                  data-estimate-row-index={rowIndex}
-                  data-estimate-cell-index={1}
-                />
-              </td>
-              <td
-                className={cn(
-                  "flex items-center justify-end border-r border-hairline px-1",
-                  activeCellIndex === 2 && "bg-accent/10 ring-1 ring-inset ring-accent/30",
-                )}
-                data-estimate-cell-active={activeCellIndex === 2 ? "true" : undefined}
-              >
-                <MoneyInput
-                  value={item.editableLaborCost}
-                  onChange={(value) => {
-                    setEditableRows((current) => updateEditableRowValue(current, item, { laborCost: value }));
-                    onMarkRowDirty(item.id);
-                  }}
-                  ariaLabel={`${item.material} labor cost`}
-                  onFocus={() => setFocusedCell({ rowId: item.id, cellIndex: 2 })}
-                  onBlur={() => {
-                    setFocusedCell((current) => (current?.rowId === item.id && current.cellIndex === 2 ? null : current));
-                    onUpdateRowItem(item.id, { laborCost: item.editableLaborCost });
-                  }}
-                  onKeyDown={(event) => handleEstimateCellKeyDown(event, rowIndex, 2)}
-                  data-estimate-row-index={rowIndex}
-                  data-estimate-cell-index={2}
-                />
-              </td>
-              <td className="flex flex-col items-end justify-center border-r border-hairline px-1 text-right">
-                <p className="text-[10px] font-bold tabular-nums text-ink">{pesoFormatter.format(item.totalItemCosts)}</p>
-                <p className="text-[10px] font-semibold text-tertiary">Total Item Cost</p>
-              </td>
-              <td className="flex flex-col items-center justify-between gap-1 py-1 text-tertiary">
-                <RowSaveStatus state={rowSaveStates[item.id]} />
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon-sm"
-                  className="size-6 rounded-sm p-0 text-tertiary hover:bg-surfaceMuted hover:text-ink"
-                  aria-label={`Drag ${item.material}`}
+                <td className="flex items-center justify-center border-r border-hairline text-[9px] font-mono tabular-nums text-tertiary">
+                  {String(rowIndex + 1).padStart(2, "0")}
+                </td>
+                <td className="flex flex-col items-center justify-between border-r border-hairline py-2 text-tertiary">
+                  <span className="flex h-6 items-center justify-center">
+                    <DotsSixVertical size={14} weight="bold" aria-label={`Drag material ${item.material}`} />
+                  </span>
+                  <span className="flex h-6 items-center justify-center">
+                    <input type="checkbox" aria-label={`Select ${item.material}`} />
+                  </span>
+                  <span className="flex h-6 items-center justify-center">
+                    <span className="size-3" aria-hidden="true" />
+                  </span>
+                </td>
+                <td className="min-w-0">
+                  <EstimateMaterialCell
+                    item={item}
+                    isReplaceTarget={replaceTargetRowId === item.id}
+                    onReplaceDragOver={() => setReplaceTargetRowId(item.id)}
+                    onReplaceDragLeave={() => setReplaceTargetRowId((current) => (current === item.id ? "" : current))}
+                    onReplace={(libraryItem) =>
+                      onReplaceRowItem(item.id, {
+                        ...libraryItem,
+                        quantity: item.quantity,
+                        miscCost: item.miscCost,
+                      })
+                    }
+                  />
+                </td>
+                <td
+                  className={cn(
+                    "relative flex flex-col items-center justify-center border-x border-hairline px-1 text-center",
+                    activeCellIndex === 0 && "bg-accent/10 ring-1 ring-inset ring-accent/30",
+                  )}
+                  data-estimate-cell-active={activeCellIndex === 0 ? "true" : undefined}
                 >
-                  <DotsSixVertical size={14} weight="bold" aria-hidden="true" />
-                </Button>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon-sm"
-                  className="size-6 rounded-sm p-0 text-tertiary hover:bg-surfaceMuted hover:text-ink"
-                  aria-label={`Expand ${item.material}`}
+                  <ControlInput
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    value={item.editableQuantity}
+                    onChange={(event) => {
+                      setEditableRows((current) => updateEditableRowValue(current, item, { quantity: event.target.value }));
+                      onMarkRowDirty(item.id);
+                    }}
+                    onFocus={() => setFocusedCell({ rowId: item.id, cellIndex: 0 })}
+                    onBlur={() => {
+                      setFocusedCell((current) => (current?.rowId === item.id && current.cellIndex === 0 ? null : current));
+                      onUpdateRowItem(item.id, { quantity: item.editableQuantity });
+                    }}
+                    onKeyDown={(event) => handleEstimateCellKeyDown(event, rowIndex, 0)}
+                    data-estimate-row-index={rowIndex}
+                    data-estimate-row-id={item.id}
+                    data-estimate-cell-index={0}
+                    aria-label={`${item.material} quantity`}
+                    align="center"
+                    className="text-[10px] tabular-nums"
+                  />
+                  <p className="absolute top-18 right-1 text-[10px] font-semibold leading-3 text-tertiary">/ {item.unit}</p>
+                </td>
+                <td className="flex items-center justify-center border-r border-hairline px-1 text-center text-[9px] font-bold tabular-nums text-ink">{pesoFormatter.format(item.subTotal).replace("₱", "₱ ")}</td>
+                <td
+                  className={cn(
+                    "flex items-center justify-center border-r border-hairline px-1",
+                    activeCellIndex === 1 && "bg-accent/10 ring-1 ring-inset ring-accent/30",
+                  )}
+                  data-estimate-cell-active={activeCellIndex === 1 ? "true" : undefined}
                 >
-                  <ArrowsOutSimple size={14} weight="bold" aria-hidden="true" />
-                </Button>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon-sm"
-                  className="size-6 rounded-sm p-0 text-tertiary hover:bg-red-50 hover:text-red-700 focus-visible:text-red-700"
-                  aria-label={`Delete ${item.material}`}
-                  onClick={() => onDeleteRowItem(item.id)}
-                >
-                  <Trash size={14} weight="bold" aria-hidden="true" />
-                </Button>
-              </td>
-            </tr>
-          );
+                  <MoneyInput
+                    value={item.editableMiscCost}
+                    align="center"
+                    onChange={(value) => {
+                      setEditableRows((current) => updateEditableRowValue(current, item, { miscCost: value }));
+                      onMarkRowDirty(item.id);
+                    }}
+                    ariaLabel={`${item.material} misc cost`}
+                    onFocus={() => setFocusedCell({ rowId: item.id, cellIndex: 1 })}
+                    onBlur={() => {
+                      setFocusedCell((current) => (current?.rowId === item.id && current.cellIndex === 1 ? null : current));
+                      onUpdateRowItem(item.id, { miscCost: item.editableMiscCost });
+                    }}
+                    onKeyDown={(event) => handleEstimateCellKeyDown(event, rowIndex, 1)}
+                    data-estimate-row-index={rowIndex}
+                    data-estimate-cell-index={1}
+                  />
+                </td>
+                <td className="flex items-center justify-end border-r border-hairline px-1 text-right">
+                  <p className="text-[10px] font-bold tabular-nums text-ink">{pesoFormatter.format(item.totalItemCosts).replace("₱", "₱ ")}</p>
+                </td>
+                <td className="flex flex-col items-center justify-between py-2 text-tertiary">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon-sm"
+                    className="size-6 rounded-sm p-0 text-tertiary hover:bg-surfaceMuted hover:text-ink"
+                    aria-label={`Drag ${item.material}`}
+                  >
+                    <DotsSixVertical size={14} weight="bold" aria-hidden="true" />
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon-sm"
+                    className="size-6 rounded-sm p-0 text-tertiary hover:bg-surfaceMuted hover:text-ink"
+                    aria-label={`Expand ${item.material}`}
+                  >
+                    <ArrowsOutSimple size={14} weight="bold" aria-hidden="true" />
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon-sm"
+                    className="size-6 rounded-sm p-0 text-tertiary hover:bg-red-50 hover:text-red-700 focus-visible:text-red-700"
+                    aria-label={`Delete ${item.material}`}
+                    onClick={() => onDeleteRowItem(item.id)}
+                  >
+                    <Trash size={14} weight="bold" aria-hidden="true" />
+                  </Button>
+                </td>
+              </tr>
+            );
           })}
-          <tr className={cn("grid min-h-20 border-b border-dashed border-divider bg-surfaceWarm/50", rowColumns)}>
-            <td className="border-r border-dashed border-divider" />
-            <td className="flex items-center justify-center border-r border-dashed border-divider text-tertiary">
-              <Plus size={14} weight="bold" aria-hidden="true" />
-            </td>
-            <td className="min-w-0 border-r border-dashed border-divider">
-              <EstimateDropZone label="Add or drag estimate component" compact />
-            </td>
-            <td className="border-r border-dashed border-divider" />
-            <td className="border-r border-dashed border-divider" />
-            <td className="border-r border-dashed border-divider" />
-            <td className="border-r border-dashed border-divider" />
-            <td className="border-r border-dashed border-divider" />
-            <td className="border-r border-dashed border-divider" />
-            <td />
-          </tr>
         </tbody>
       </table>
     </div>
   );
 }
 
-function EstimateSaveStatus({ state }: { state: EstimateSaveState }) {
-  const statusCopy = {
-    idle: "Ready",
-    dirty: "Unsaved",
-    saving: "Saving",
-    saved: "Saved",
-    failed: "Save failed",
-  } satisfies Record<EstimateSaveState, string>;
-
-  return (
-    <span
-      className={cn(
-        "shrink-0 rounded-sm border px-1 py-0.5 text-[9px] font-bold uppercase tracking-[0.08em]",
-        state === "failed" ? "border-red-200 bg-red-50 text-red-700" : "border-hairline bg-white text-tertiary",
-        state === "saving" && "text-accent",
-        state === "dirty" && "text-amber-700",
-      )}
-      aria-live="polite"
-    >
-      {statusCopy[state]}
-    </span>
-  );
-}
-
-function RowSaveStatus({ state }: { state?: EstimateSaveState }) {
-  if (!state || state === "idle") return <span className="size-3" aria-hidden="true" />;
-  return <EstimateSaveStatus state={state} />;
-}
-
-function EmptyAreaMessage({ nodeId, onInsertLibraryItem }: { nodeId: string; onInsertLibraryItem: (targetNodeId: string, libraryItem: EstimateRowItem) => void }) {
+function EmptyAreaMessage({
+  nodeId,
+  nodeName,
+  onInsertLibraryItem,
+  onAddBlankRow,
+}: {
+  nodeId: string;
+  nodeName: string;
+  onInsertLibraryItem: (targetNodeId: string, libraryItem: EstimateRowItem) => void;
+  onAddBlankRow: (targetNodeId: string) => void;
+}) {
   const [dragCount, setDragCount] = useState(0);
   const isDragOver = dragCount > 0;
   return (
@@ -800,12 +772,27 @@ function EmptyAreaMessage({ nodeId, onInsertLibraryItem }: { nodeId: string; onI
         onInsertLibraryItem(nodeId, JSON.parse(payload) as EstimateRowItem);
       }}
     >
-      <EstimateDropZone label="Drag and drop estimate component here" isDragOver={isDragOver} />
+      <EstimateDropZone
+        label="Drag and drop estimate component here"
+        isDragOver={isDragOver}
+        onActivate={() => onAddBlankRow(nodeId)}
+        ariaLabel={`Add blank estimate row to ${nodeName}`}
+      />
     </div>
   );
 }
 
-function InlineDropZone({ nodeId, onInsertLibraryItem }: { nodeId: string; onInsertLibraryItem: (targetNodeId: string, libraryItem: EstimateRowItem) => void }) {
+function InlineDropZone({
+  nodeId,
+  nodeName,
+  onInsertLibraryItem,
+  onAddBlankRow,
+}: {
+  nodeId: string;
+  nodeName: string;
+  onInsertLibraryItem: (targetNodeId: string, libraryItem: EstimateRowItem) => void;
+  onAddBlankRow: (targetNodeId: string) => void;
+}) {
   const [dragCount, setDragCount] = useState(0);
   const isDragOver = dragCount > 0;
   return (
@@ -826,12 +813,17 @@ function InlineDropZone({ nodeId, onInsertLibraryItem }: { nodeId: string; onIns
         onInsertLibraryItem(nodeId, JSON.parse(payload) as EstimateRowItem);
       }}
     >
-      <EstimateDropZone label="Drag and drop here" isDragOver={isDragOver} />
+      <EstimateDropZone
+        label="Drag and drop estimate component here"
+        isDragOver={isDragOver}
+        onActivate={() => onAddBlankRow(nodeId)}
+        ariaLabel={`Add blank estimate row to ${nodeName}`}
+      />
     </div>
   );
 }
 
-function EstimateSheetBranch({ node, nodeCode, ancestorPath = [], editableRows, setEditableRows, onInsertLibraryItem, onReplaceRowItem, onDeleteRowItem, onUpdateRowItem, onMarkRowDirty, rowSaveStates, depth = 0 }: EstimateSheetBranchProps) {
+function EstimateSheetBranch({ node, nodeCode, ancestorPath = [], editableRows, setEditableRows, onInsertLibraryItem, onAddBlankRow, onReplaceRowItem, onDeleteRowItem, onUpdateRowItem, onMarkRowDirty, depth = 0, usesSiblingGroupRhythm = false }: EstimateSheetBranchProps) {
   const { collapsedNodeIds, setCollapsedNodeIds } = useEstimateSheetExpansion();
   const collapsed = collapsedNodeIds.has(node.id);
   const childAreas = node.children ?? [];
@@ -839,12 +831,14 @@ function EstimateSheetBranch({ node, nodeCode, ancestorPath = [], editableRows, 
   const hasContents = childAreas.length > 0 || estimateRowItems.length > 0;
   const canReceiveRows = node.kind === "area";
   const isGroup = node.kind === "group";
+  const hasMixedChildKinds = childAreas.some((child) => child.kind === "group") && childAreas.some((child) => child.kind === "area");
   const leftIndent = Math.min(depth * 32, 192);
   const total = computeNodeTotal(node, editableRows);
   const displayKind = isGroup ? "group" : "area";
+  const showBreadcrumbs = !collapsed && !isGroup && ancestorPath.length > 0;
 
   return (
-    <section className={cn("space-y-1", groupGap(depth), !isGroup && "rounded-sm border border-hairline bg-surfaceMuted/20")} aria-label={node.name}>
+    <section className={cn(groupGap(depth, node.kind, usesSiblingGroupRhythm), !isGroup && (depth > 0 ? "border border-hairline bg-surfaceMuted/20" : "rounded-sm border border-hairline bg-surfaceMuted/20"))} aria-label={node.name}>
       <div
         className={cn("flex h-10 items-center gap-2 px-1", nodeHeaderClasses(node.kind))}
         style={{ paddingLeft: `${leftIndent + 8}px` }}
@@ -875,18 +869,15 @@ function EstimateSheetBranch({ node, nodeCode, ancestorPath = [], editableRows, 
           )}
           <p className={nodeNameClasses(node.kind)}>{node.name}</p>
         </div>
-        {!isGroup && estimateRowItems.length === 0 && (
-          <span className="ml-1.5 shrink-0 text-[9px] text-tertiary">(0 items)</span>
-        )}
         <span className={nodeTotalClasses(node.kind)}>{pesoFormatter.format(total)}</span>
       </div>
 
-      {!collapsed && !isGroup && ancestorPath.length > 0 && (
+      {showBreadcrumbs && (
         <div
-          className="flex items-center gap-1 truncate text-[8px] text-muted"
-          style={{ paddingLeft: `${leftIndent + 40}px` }}
+          className="my-1 flex items-center gap-1 truncate pb-2 text-[8px] text-muted"
+          aria-label={`${node.name} breadcrumbs`}
+          style={{ paddingLeft: `${leftIndent + 72}px` }}
         >
-          <FolderSimple size={10} weight="regular" className="shrink-0 text-hairline" aria-hidden="true" />
           {ancestorPath.map((ancestor, index) => (
             <span key={ancestor.id}>
               {index > 0 && <span className="mx-0.5 text-hairline">›</span>}
@@ -899,7 +890,7 @@ function EstimateSheetBranch({ node, nodeCode, ancestorPath = [], editableRows, 
       )}
 
       {!collapsed ? (
-        <div className="space-y-4">
+        <div className={cn(isGroup ? "space-y-1" : "space-y-4", !showBreadcrumbs && "mt-1")}>
           {childAreas.map((child, childIndex) => {
             const childCode = getNodeCode(nodeCode, childIndex);
             const childPath = [...ancestorPath, { id: node.id, name: node.name }];
@@ -912,12 +903,13 @@ function EstimateSheetBranch({ node, nodeCode, ancestorPath = [], editableRows, 
                 editableRows={editableRows}
                 setEditableRows={setEditableRows}
                 onInsertLibraryItem={onInsertLibraryItem}
+                onAddBlankRow={onAddBlankRow}
                 onReplaceRowItem={onReplaceRowItem}
                 onDeleteRowItem={onDeleteRowItem}
                 onUpdateRowItem={onUpdateRowItem}
                 onMarkRowDirty={onMarkRowDirty}
-                rowSaveStates={rowSaveStates}
                 depth={depth + 1}
+                usesSiblingGroupRhythm={hasMixedChildKinds}
               />
             );
           })}
@@ -931,11 +923,22 @@ function EstimateSheetBranch({ node, nodeCode, ancestorPath = [], editableRows, 
             onDeleteRowItem={onDeleteRowItem}
             onUpdateRowItem={onUpdateRowItem}
             onMarkRowDirty={onMarkRowDirty}
-            rowSaveStates={rowSaveStates}
           />
-          {!hasContents ? <EmptyAreaMessage nodeId={node.id} onInsertLibraryItem={onInsertLibraryItem} /> : null}
+          {!hasContents ? (
+            <EmptyAreaMessage
+              nodeId={node.id}
+              nodeName={node.name}
+              onInsertLibraryItem={onInsertLibraryItem}
+              onAddBlankRow={onAddBlankRow}
+            />
+          ) : null}
           {hasContents && canReceiveRows ? (
-            <InlineDropZone nodeId={node.id} onInsertLibraryItem={onInsertLibraryItem} />
+            <InlineDropZone
+              nodeId={node.id}
+              nodeName={node.name}
+              onInsertLibraryItem={onInsertLibraryItem}
+              onAddBlankRow={onAddBlankRow}
+            />
           ) : null}
         </div>
       ) : null}
@@ -943,20 +946,35 @@ function EstimateSheetBranch({ node, nodeCode, ancestorPath = [], editableRows, 
   );
 }
 
-function cloneLibraryItemForEstimate(libraryItem: EstimateRowItem, targetNodeId: string): EstimateRowItem {
-  const id = `${targetNodeId}-${libraryItem.id}-${Date.now()}`;
+export function createEstimateRowItemId() {
+  if (typeof globalThis.crypto?.randomUUID === "function") return globalThis.crypto.randomUUID();
+
+  const bytes = new Uint8Array(16);
+  if (typeof globalThis.crypto?.getRandomValues === "function") {
+    globalThis.crypto.getRandomValues(bytes);
+  } else {
+    for (let index = 0; index < bytes.length; index += 1) {
+      bytes[index] = Math.floor(Math.random() * 256);
+    }
+  }
+  bytes[6] = (bytes[6] & 0x0f) | 0x40;
+  bytes[8] = (bytes[8] & 0x3f) | 0x80;
+  const hex = Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0"));
+  return `${hex.slice(0, 4).join("")}-${hex.slice(4, 6).join("")}-${hex.slice(6, 8).join("")}-${hex.slice(8, 10).join("")}-${hex.slice(10).join("")}`;
+}
+
+function cloneLibraryItemForEstimate(libraryItem: EstimateRowItem): EstimateRowItem {
+  const id = createEstimateRowItemId();
   const quantity = libraryItem.quantity || 1;
-  const supplementaryCosts = libraryItem.supplementaryCosts ?? 0;
-  const laborCost = libraryItem.laborCost ?? 0;
+  const miscCost = libraryItem.miscCost ?? 0;
   const subTotal = libraryItem.itemCost * quantity;
   return {
     ...libraryItem,
     id,
     quantity,
     subTotal,
-    supplementaryCosts,
-    laborCost,
-    totalItemCosts: subTotal + supplementaryCosts + laborCost,
+    miscCost,
+    totalItemCosts: subTotal + miscCost,
   };
 }
 
@@ -964,35 +982,29 @@ function applyEditableValuesToLibraryItem(libraryItem: EstimateRowItem, editable
   if (!editableRow) return libraryItem;
 
   const quantity = parseEditableNumber(editableRow.quantity);
-  const supplementaryCosts = parseEditableNumber(editableRow.supplementaryCosts);
-  const laborCost = parseEditableNumber(editableRow.laborCost);
+  const miscCost = parseEditableNumber(editableRow.miscCost);
   const subTotal = libraryItem.itemCost * quantity;
 
   return {
     ...libraryItem,
     quantity,
     subTotal,
-    supplementaryCosts,
-    laborCost,
-    totalItemCosts: subTotal + supplementaryCosts + laborCost,
-    discipline: editableRow.discipline,
-    designation: editableRow.designation,
+    miscCost,
+    totalItemCosts: subTotal + miscCost,
   };
 }
 
 function replaceRowItemWithLibraryItem(rowItemId: string, libraryItem: EstimateRowItem): EstimateRowItem {
   const quantity = libraryItem.quantity || 1;
-  const supplementaryCosts = libraryItem.supplementaryCosts ?? 0;
-  const laborCost = libraryItem.laborCost ?? 0;
+  const miscCost = libraryItem.miscCost ?? 0;
   const subTotal = libraryItem.itemCost * quantity;
   return {
     ...libraryItem,
     id: rowItemId,
     quantity,
     subTotal,
-    supplementaryCosts,
-    laborCost,
-    totalItemCosts: subTotal + supplementaryCosts + laborCost,
+    miscCost,
+    totalItemCosts: subTotal + miscCost,
   };
 }
 
@@ -1013,9 +1025,18 @@ function EstimateSheetHeader({ onExpandAll, onCollapseAll }: { onExpandAll?: () 
   );
 }
 
-export function EstimateSheetContent({ selectedNodeId, nodes = sampleEstimateTree, projectId, estimateId, renderSidebar = true }: EstimateSheetContentProps) {
+export function EstimateSheetContent({
+  selectedNodeId,
+  nodes = sampleEstimateTree,
+  projectId,
+  estimateId,
+  renderSidebar = true,
+  libraryItems,
+  libraryCategoryTree,
+  librarySuppliers,
+}: EstimateSheetContentProps) {
   const { selectedNodeId: activeSelectedNodeId, setSelectedNodeId } = useEstimateWorkspaceSelection(estimateId, selectedNodeId);
-  const { saveState, rowSaveStates, markRowDirty, insertRow, replaceRow, deleteRow, updateRow } = useEstimateRowMutations(estimateId);
+  const { saveState, markRowDirty, insertRow, replaceRow, deleteRow, updateRow } = useEstimateRowMutations(estimateId);
   const {
     tree: estimateTree,
     setTree: setEstimateTreeData,
@@ -1113,10 +1134,7 @@ export function EstimateSheetContent({ selectedNodeId, nodes = sampleEstimateTre
       estimateId,
       rowId: rowItemId,
       ...(values.quantity !== undefined ? { quantity: parseEditableNumber(values.quantity) } : {}),
-      ...(values.supplementaryCosts !== undefined ? { supplementaryCosts: parseEditableNumber(values.supplementaryCosts) } : {}),
-      ...(values.laborCost !== undefined ? { laborCost: parseEditableNumber(values.laborCost) } : {}),
-      ...(values.discipline !== undefined ? { discipline: values.discipline } : {}),
-      ...(values.designation !== undefined ? { designation: values.designation } : {}),
+      ...(values.miscCost !== undefined ? { miscCost: parseEditableNumber(values.miscCost) } : {}),
       rollback: () => restoreEstimateState(previousTree, previousRows, rollbackRevision),
     });
   }
@@ -1127,7 +1145,7 @@ export function EstimateSheetContent({ selectedNodeId, nodes = sampleEstimateTre
 
     const previousTree = estimateTree;
     const previousRows = editableRows;
-    const newItem = cloneLibraryItemForEstimate(libraryItem, targetNodeId);
+    const newItem = cloneLibraryItemForEstimate(libraryItem);
     setPendingFocusRowId(newItem.id);
     const rollbackRevision = setEstimateTree((current) =>
       current.map((node) => {
@@ -1143,7 +1161,14 @@ export function EstimateSheetContent({ selectedNodeId, nodes = sampleEstimateTre
     setEditableRows((current) => ({ ...current, [newItem.id]: getInitialEditableRow(newItem) }));
 
     if (projectId && estimateId) {
-      insertRow({ projectId, estimateId, targetNodeId, rowId: newItem.id, libraryItem, rollback: () => restoreEstimateState(previousTree, previousRows, rollbackRevision) });
+      insertRow({
+        projectId,
+        estimateId,
+        targetNodeId,
+        rowId: newItem.id,
+        libraryItem,
+        rollback: () => restoreEstimateState(previousTree, previousRows, rollbackRevision),
+      });
     }
   }, [editableRows, estimateId, estimateTree, insertRow, projectId, restoreEstimateState, setEstimateTree]);
 
@@ -1154,6 +1179,13 @@ export function EstimateSheetContent({ selectedNodeId, nodes = sampleEstimateTre
       return true;
     },
     [insertLibraryItem, insertTargetNodeId],
+  );
+
+  const insertBlankRow = useCallback(
+    (targetNodeId: string) => {
+      insertLibraryItem(targetNodeId, createBlankEstimateRowTemplate());
+    },
+    [insertLibraryItem],
   );
 
   useEffect(() => {
@@ -1249,6 +1281,7 @@ export function EstimateSheetContent({ selectedNodeId, nodes = sampleEstimateTre
     <>
       <CommandPalette
         open={showCommandPalette}
+        items={libraryItems}
         canInsert={canInsertIntoSelectedNode}
         targetLabel={insertionTargetLabel}
         onClose={() => setShowCommandPalette(false)}
@@ -1263,7 +1296,7 @@ export function EstimateSheetContent({ selectedNodeId, nodes = sampleEstimateTre
         {selectedNode ? (
           <>
             <EstimateSheetHeader onExpandAll={expandAll} onCollapseAll={collapseAll} />
-            <div className="min-h-0 flex-1 overflow-auto p-2">
+            <div className="min-h-0 flex-1 overflow-auto px-2 pb-2">
               <EstimateSheetExpansionContext.Provider value={{ collapsedNodeIds, setCollapsedNodeIds }}>
                 <EstimateSheetBranch
                   node={selectedNode}
@@ -1272,11 +1305,11 @@ export function EstimateSheetContent({ selectedNodeId, nodes = sampleEstimateTre
                   editableRows={editableRows}
                   setEditableRows={setEditableRows}
                   onInsertLibraryItem={insertLibraryItem}
+                  onAddBlankRow={insertBlankRow}
                   onReplaceRowItem={replaceRowItem}
                   onDeleteRowItem={deleteRowItem}
                   onUpdateRowItem={updateRowItem}
                   onMarkRowDirty={markRowDirty}
-                  rowSaveStates={rowSaveStates}
                 />
               </EstimateSheetExpansionContext.Provider>
             </div>
@@ -1284,7 +1317,7 @@ export function EstimateSheetContent({ selectedNodeId, nodes = sampleEstimateTre
         ) : (
           <>
             <EstimateSheetHeader onExpandAll={expandAll} onCollapseAll={collapseAll} />
-            <div className="flex min-h-0 flex-1 items-center justify-center overflow-auto p-2">
+            <div className="flex min-h-0 flex-1 items-center justify-center overflow-auto px-2 pb-2">
               <div className="max-w-md rounded-lg border border-dashed border-hairline bg-surface-muted p-3 text-center">
                 <p className="text-[8px] font-bold uppercase tracking-[0.16em] text-tertiary">Empty estimate</p>
                 <h2 className="mt-1 text-[12px] font-bold tracking-[-0.02em] text-ink">No estimate tree yet</h2>
@@ -1304,6 +1337,9 @@ export function EstimateSheetContent({ selectedNodeId, nodes = sampleEstimateTre
           selectedNodeKind={selectedNode?.kind ?? null}
           selectedNodeName={selectedNode?.name ?? null}
           nodes={estimateTree}
+          initialLibraryItems={libraryItems}
+          categoryTree={libraryCategoryTree}
+          suppliers={librarySuppliers}
         />
       ) : null}
     </>

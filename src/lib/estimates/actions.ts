@@ -1,5 +1,6 @@
 "use server";
 
+import { randomUUID } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
@@ -13,6 +14,7 @@ import {
   type EstimateTreeNodeKind,
 } from "@/lib/estimates/tree-hierarchy";
 import { planEstimateTreeDelete } from "@/lib/estimates/estimate-tree-edit";
+import { isUuid } from "@/lib/ids";
 import { isMissingColumnError, normalizeEstimateRecord, type EstimateRecordWithLegacy } from "@/lib/repositories/estimate-schema-compat";
 import { getCurrentWorkspaceProject, getProjectEstimateTreeByEstimate } from "@/lib/repositories/workspace-repository";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -42,10 +44,16 @@ type UpdateEstimateRowItemInput = {
   estimateId: string;
   rowId: string;
   quantity?: number;
-  supplementaryCosts?: number;
-  laborCost?: number;
-  discipline?: string;
-  designation?: string;
+  miscCost?: number;
+};
+
+export type UpdateEstimateRowItemResult = {
+  rowId: string;
+  nodeId: string;
+  quantity: number;
+  itemCost: number;
+  miscCost: number;
+  linkState: Tables<"estimate_row_items">["link_state"];
 };
 
 type ReplaceEstimateRowItemInput = {
@@ -196,12 +204,31 @@ function readEstimateNodeName(input: FormData | string) {
 function getSourceSnapshot(libraryItem: EstimateRowItem) {
   return {
     category: libraryItem.category,
+    categoryNodeId: libraryItem.categoryNodeId ?? null,
+    categoryPath: libraryItem.categoryPath ?? [],
     imageUrl: libraryItem.imageUrl ?? null,
     pricingDate: libraryItem.pricingDate,
     pricingSource: libraryItem.pricingSource,
     sourceUrl: libraryItem.sourceUrl ?? null,
+    supplier: libraryItem.supplier ?? null,
+    supplierId: libraryItem.supplierId ?? null,
+    tags: libraryItem.tags ?? [],
+    taxonomyVersion: "2026-05-22-draft-3",
+  };
+}
+
+function getEstimateRowMetadata(libraryItem: EstimateRowItem) {
+  return {
+    categoryNodeId: libraryItem.categoryNodeId ?? null,
+    categoryPath: libraryItem.categoryPath ?? [],
+    supplierId: libraryItem.supplierId ?? null,
+    sourceComponentId: libraryItem.id,
     tags: libraryItem.tags ?? [],
   };
+}
+
+function getSourceLibraryItemId(libraryItem: EstimateRowItem) {
+  return libraryItem.source === "library" && isUuid(libraryItem.id) ? libraryItem.id : null;
 }
 
 async function insertEstimateWithSheetCodeFallback(
@@ -807,25 +834,29 @@ export async function insertEstimateRowItemFromLibrary({ projectId, estimateId, 
   const nextSortOrder = (existingRows?.[0]?.sort_order ?? -1) + 1;
   const quantity = libraryItem.quantity || 1;
   const sourceSnapshot = getSourceSnapshot(libraryItem);
+  const sourceLibraryItemId = getSourceLibraryItemId(libraryItem);
+  const persistedRowId = isUuid(rowId) ? rowId : randomUUID();
 
   const { error: insertError } = await supabase.from("estimate_row_items").insert({
-    id: rowId,
+    id: persistedRowId,
     estimate_id: estimateId,
     node_id: targetNodeId,
     sort_order: nextSortOrder,
-    source_library_item_id: libraryItem.source === "library" ? libraryItem.id : null,
+    source_library_item_id: sourceLibraryItemId,
     source_snapshot: sourceSnapshot,
+    category_node_id: libraryItem.categoryNodeId ?? null,
+    supplier_id: libraryItem.supplierId ?? null,
     material: libraryItem.material,
     description: libraryItem.description,
     supplier: libraryItem.supplier,
     unit: libraryItem.unit,
     quantity,
     unit_cost: libraryItem.itemCost,
-    supplementary_cost: libraryItem.supplementaryCosts,
-    labor_cost: libraryItem.laborCost,
+    misc_cost: libraryItem.miscCost,
     discipline: libraryItem.discipline,
     designation: libraryItem.designation,
-    link_state: libraryItem.source === "library" ? "linked-clean" : "unlinked",
+    metadata: getEstimateRowMetadata(libraryItem),
+    link_state: sourceLibraryItemId ? "linked-clean" : "unlinked",
   });
 
   if (insertError) throw insertError;
@@ -834,42 +865,56 @@ export async function insertEstimateRowItemFromLibrary({ projectId, estimateId, 
   revalidatePath(`/workshop/projects/${project.id}/estimates`);
 }
 
-export async function updateEstimateRowItem({ projectId, estimateId, rowId, quantity, supplementaryCosts, laborCost, discipline, designation }: UpdateEstimateRowItemInput) {
+export async function updateEstimateRowItem({ projectId, estimateId, rowId, quantity, miscCost }: UpdateEstimateRowItemInput): Promise<UpdateEstimateRowItemResult> {
   const { project, supabase, row } = await getValidatedEstimateRow(projectId, estimateId, rowId);
   const updatePayload = {
     ...(quantity !== undefined ? { quantity } : {}),
-    ...(supplementaryCosts !== undefined ? { supplementary_cost: supplementaryCosts } : {}),
-    ...(laborCost !== undefined ? { labor_cost: laborCost } : {}),
-    ...(discipline !== undefined ? { discipline } : {}),
-    ...(designation !== undefined ? { designation } : {}),
+    ...(miscCost !== undefined ? { misc_cost: miscCost } : {}),
     link_state: "linked-overridden" as const,
   };
 
-  const { error } = await supabase.from("estimate_row_items").update(updatePayload).eq("id", row.id).eq("estimate_id", estimateId);
+  const { data: updatedRow, error } = await supabase
+    .from("estimate_row_items")
+    .update(updatePayload)
+    .eq("id", row.id)
+    .eq("estimate_id", estimateId)
+    .select("id, node_id, quantity, unit_cost, misc_cost, link_state")
+    .single();
   if (error) throw error;
 
   revalidatePath(`/workshop/projects/${project.id}/estimates/${row.node_id}`);
+  return {
+    rowId: updatedRow.id,
+    nodeId: updatedRow.node_id,
+    quantity: Number(updatedRow.quantity),
+    itemCost: Number(updatedRow.unit_cost),
+    miscCost: Number(updatedRow.misc_cost),
+    linkState: updatedRow.link_state,
+  };
 }
 
 export async function replaceEstimateRowItemWithLibrary({ projectId, estimateId, rowId, libraryItem }: ReplaceEstimateRowItemInput) {
   const { project, supabase, row } = await getValidatedEstimateRow(projectId, estimateId, rowId);
   const quantity = libraryItem.quantity || 1;
+  const sourceLibraryItemId = getSourceLibraryItemId(libraryItem);
   const { error } = await supabase
     .from("estimate_row_items")
     .update({
-      source_library_item_id: libraryItem.source === "library" ? libraryItem.id : null,
+      source_library_item_id: sourceLibraryItemId,
       source_snapshot: getSourceSnapshot(libraryItem),
+      category_node_id: libraryItem.categoryNodeId ?? null,
+      supplier_id: libraryItem.supplierId ?? null,
       material: libraryItem.material,
       description: libraryItem.description,
       supplier: libraryItem.supplier,
       unit: libraryItem.unit,
       quantity,
       unit_cost: libraryItem.itemCost,
-      supplementary_cost: libraryItem.supplementaryCosts,
-      labor_cost: libraryItem.laborCost,
+      misc_cost: libraryItem.miscCost,
       discipline: libraryItem.discipline,
       designation: libraryItem.designation,
-      link_state: libraryItem.source === "library" ? "linked-clean" : "unlinked",
+      metadata: getEstimateRowMetadata(libraryItem),
+      link_state: sourceLibraryItemId ? "linked-clean" : "unlinked",
     })
     .eq("id", row.id)
     .eq("estimate_id", estimateId);

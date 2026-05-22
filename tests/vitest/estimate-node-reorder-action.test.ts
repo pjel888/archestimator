@@ -559,3 +559,61 @@ describe("renameEstimateNode and deleteEstimateNode server actions", () => {
     expect(source.slice(renameStart, deleteStart)).not.toContain("getProjectEstimateTreeByEstimate(");
   });
 });
+
+describe("insertEstimateRowItemFromLibrary server action", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    repositoryMocks.getCurrentWorkspaceProject.mockResolvedValue({ project: { id: "project-1" } });
+  });
+
+  it("normalizes non-UUID row ids before inserting library rows", async () => {
+    const targetNodeQuery = queryResult({
+      data: { id: "55555555-5555-4555-8555-555555555561", estimate_id: "77777777-7777-4777-8777-777777777719", kind: "area" },
+      error: null,
+    });
+    const existingRowsQuery = queryResult({ data: [], error: null });
+    const insertQuery = queryResult({ data: null, error: null });
+    const supabase = {
+      from: vi.fn((table: string) => {
+        if (table === "estimate_nodes") return targetNodeQuery;
+        if (table === "estimate_row_items") return supabase.from.mock.calls.filter(([name]) => name === "estimate_row_items").length === 1 ? existingRowsQuery : insertQuery;
+        throw new Error(`Unexpected table ${table}`);
+      }),
+    };
+    supabaseServerMocks.createSupabaseServerClient.mockResolvedValue(supabase);
+    const { insertEstimateRowItemFromLibrary } = await import("@/lib/estimates/actions");
+
+    await insertEstimateRowItemFromLibrary({
+      projectId: "project-1",
+      estimateId: "77777777-7777-4777-8777-777777777719",
+      targetNodeId: "55555555-5555-4555-8555-555555555561",
+      rowId: "55555555-5555-4555-8555-555555555561-lib-sofa-1790000000000",
+      libraryItem: {
+        id: "lib-sofa",
+        material: "HEMLINGBY Loveseat",
+        description: "Sofa",
+        supplier: "IKEA Philippines",
+        source: "library",
+        unit: "pc",
+        itemCost: 7999,
+        quantity: 1,
+        subTotal: 7999,
+        miscCost: 1200,
+        totalItemCosts: 9199,
+        category: "Furniture",
+        pricingSource: "test",
+        pricingDate: "2026-05-22",
+      },
+    });
+
+    expect(insertQuery.insert).toHaveBeenCalledTimes(1);
+    const payload = insertQuery.insert.mock.calls[0][0];
+    expect(payload.id).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i);
+    expect(payload.id).not.toContain("lib-sofa");
+    expect(payload.source_library_item_id).toBeNull();
+    expect(payload.link_state).toBe("unlinked");
+    expect(payload.misc_cost).toBe(1200);
+    expect(payload).not.toHaveProperty("labor_cost");
+    expect(payload).not.toHaveProperty("supplementary_cost");
+  });
+});

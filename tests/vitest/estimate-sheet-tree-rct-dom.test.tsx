@@ -100,6 +100,12 @@ function treeNodeButton(id: string) {
   return element;
 }
 
+function treeNodeRow(id: string) {
+  const row = treeNodeButton(id).closest("[data-estimate-tree-row]");
+  if (!(row instanceof HTMLElement)) throw new Error(`Missing tree node row ${id}`);
+  return row;
+}
+
 function rootDropZone(edge: "top" | "bottom") {
   const element = document.querySelector(`[data-estimate-tree-root-${edge}-drop='true']`);
   if (!(element instanceof HTMLElement)) throw new Error(`Missing root ${edge} drop zone.`);
@@ -172,12 +178,25 @@ describe("estimate sheet tree React Complex Tree DOM integration", () => {
     expect(phaseTwo).toHaveAttribute("data-rct-item-interactive", "true");
     expect(phaseThree).toHaveAttribute("data-rct-item-interactive", "true");
 
-    expect(projectScope.querySelector("[data-estimate-tree-title-offset]")).toHaveStyle({ paddingLeft: "0px" });
-    expect(groundFloor.querySelector("[data-estimate-tree-title-offset]")).toHaveStyle({ paddingLeft: "20px" });
-    expect(kitchen.querySelector("[data-estimate-tree-title-offset]")).toHaveStyle({ paddingLeft: "40px" });
-    expect(alternates.querySelector("[data-estimate-tree-title-offset]")).toHaveStyle({ paddingLeft: "20px" });
-    expect(phaseTwo.querySelector("[data-estimate-tree-title-offset]")).toHaveStyle({ paddingLeft: "0px" });
-    expect(phaseThree.querySelector("[data-estimate-tree-title-offset]")).toHaveStyle({ paddingLeft: "0px" });
+    const kitchenRow = treeNodeRow("kitchen");
+    expect(kitchenRow).toHaveClass("min-h-7", "py-0");
+    expect(kitchenRow).not.toHaveClass("h-8");
+    expect(kitchen).toHaveClass("min-h-7", "w-full", "!text-[10px]", "leading-4", "rounded-sm");
+    expect(kitchen.closest("[data-workshop-tree-row]")).toBe(kitchen);
+
+    expect(projectScope).toHaveStyle({ paddingLeft: "0px" });
+    expect(groundFloor).toHaveStyle({ paddingLeft: "20px" });
+    expect(kitchen).toHaveStyle({ paddingLeft: "40px" });
+    expect(alternates).toHaveStyle({ paddingLeft: "20px" });
+    expect(phaseTwo).toHaveStyle({ paddingLeft: "0px" });
+    expect(phaseThree).toHaveStyle({ paddingLeft: "0px" });
+  });
+
+  it("renders the estimate tree under the shared Sheets tab strip", () => {
+    renderTree();
+
+    expect(screen.getByRole("tablist", { name: "Estimate tree views" })).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "Sheets" })).toHaveAttribute("aria-selected", "true");
   });
 
   it("shows a nesting affordance when dragging a node over the middle of a valid Group Node", () => {
