@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { isMissingColumnError, normalizeEstimateRecord } from "@/lib/repositories/estimate-schema-compat";
+import { isMissingColumnError, isMissingRelationError, normalizeEstimateRecord } from "@/lib/repositories/estimate-schema-compat";
 
 describe("estimate schema compatibility", () => {
   it("normalizes legacy revision_label rows to the sheet_code app contract", () => {
@@ -23,5 +23,11 @@ describe("estimate schema compatibility", () => {
     expect(isMissingColumnError({ code: "42703", message: "column estimates.sheet_code does not exist" }, "sheet_code")).toBe(true);
     expect(isMissingColumnError({ code: "PGRST204", message: "Could not find the 'sheet_code' column of 'estimates' in the schema cache" }, "sheet_code")).toBe(true);
     expect(isMissingColumnError({ code: "42703", message: "column estimates.name does not exist" }, "sheet_code")).toBe(false);
+  });
+
+  it("detects missing relation errors during staged migration rollout", () => {
+    expect(isMissingRelationError({ code: "42P01", message: "relation public.estimate_templates does not exist" }, "estimate_templates")).toBe(true);
+    expect(isMissingRelationError({ code: "PGRST205", message: "Could not find the table 'public.estimate_templates' in the schema cache" }, "estimate_templates")).toBe(true);
+    expect(isMissingRelationError({ code: "PGRST205", message: "Could not find the table 'public.estimates' in the schema cache" }, "estimate_templates")).toBe(false);
   });
 });
