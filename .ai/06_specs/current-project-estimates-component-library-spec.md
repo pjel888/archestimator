@@ -32,7 +32,7 @@ This is not yet the full MVP estimating system. It is a post-reset, local-state 
 4. review existing estimate row items in that selected branch;
 5. search and filter reusable components from a right-side library;
 6. add a component to the selected estimate area by click or drag/drop;
-7. edit quantity, supplementary cost, labor cost, discipline, and designation locally;
+7. edit quantity and Misc Cost locally;
 8. see totals update in the visible estimate sheet.
 
 The feature exists to validate the project-estimate surface and the library-to-estimate connection without restoring the rejected full prototype.
@@ -56,7 +56,7 @@ The following are intentionally not guaranteed by the current implementation:
 - destructive global library administration;
 - exact source-verified pricing.
 
-The current component and estimate data are local demo data. Pricing is allowed to be a demo allowance only when labeled as requiring supplier verification.
+The current Component Library taxonomy, suppliers, and seeded reusable rows are Supabase-backed through `component_category_nodes`, `component_suppliers`, and `cost_library_items`, with static `estimateLibraryItems` retained as a test/fallback fixture. Pricing is allowed to be a demo allowance only when labeled as requiring supplier verification.
 
 ---
 
@@ -159,10 +159,13 @@ Current behavior:
 - Default width: `380px`.
 - Min width: `360px`, with internal `min-w-[320px]`.
 - Max width: `560px`.
-- Contains sticky title/search/control header.
+- Contains a compact sticky search row and `HeaderIconToolbar` only.
 - Uses shared `SearchInput` and `Button` primitives in the main header controls.
-- Supports local library item state initialized from `estimateLibraryItems`.
-- Supports local preference state via localStorage for view/group/sort/favorites/recents.
+- Supports local library item state initialized from the shared Supabase Component Library dataset.
+- The Categories tree mirrors `/workshop/components`: `All Components` is the root, the V3 organizer/category/subcategory taxonomy stays in source order from `component_category_nodes`, empty taxonomy folders remain visible, and matching library line items render as draggable/click-insertable rows under their `category_node_id` folders.
+- The Suppliers tree mirrors `/workshop/components` from `component_suppliers`, with line items placed by `supplier_id` when available.
+- The area below `HeaderIconToolbar` now goes directly into grouped component rows; the estimate-page sidebar no longer renders Components/Assemblies/Templates tabs, import/export actions, view/sort controls, target-status strips, bulk-selection actions, or the recent-items strip.
+- Supports local preference state via localStorage for grouping plus favorites/recents metadata; recents remain data for ranking/history, not a visible strip above the library rows.
 
 ---
 
@@ -241,13 +244,14 @@ export type EstimateRowItem = {
   currency?: string;
   quantity: number;
   subTotal: number;
-  supplementaryCosts: number;
-  laborCost: number;
-  laborCostDefault?: number;
-  otherCostDefault?: number;
+  miscCost: number;
+  miscCostDefault?: number;
   totalItemCosts: number;
   imageUrl?: string;
   category: string;
+  categoryNodeId?: string;
+  categoryPath?: string[];
+  supplierId?: string;
   discipline?: string;
   designation?: string;
   tags?: string[];
@@ -269,7 +273,7 @@ export type EstimateRowItem = {
 The current display/calculation model is:
 
 - `subTotal = itemCost × quantity`
-- `totalItemCosts = subTotal + supplementaryCosts + laborCost`
+- `totalItemCosts = subTotal + miscCost`
 
 In the center estimate sheet, editable numeric fields are stored as strings in `editableRows`, parsed at calculation time, and formatted as PHP currency.
 
@@ -280,20 +284,14 @@ Local editable state stores:
 ```ts
 type EditableRowValue = {
   quantity: string;
-  supplementaryCosts: string;
-  laborCost: string;
-  discipline: string;
-  designation: string;
+  miscCost: string;
 };
 ```
 
 Editable fields in the current sheet:
 
 - quantity;
-- supplementary / other costs;
-- labor cost;
-- discipline;
-- designation.
+- Misc Cost.
 
 ### Source / trust metadata
 
@@ -315,21 +313,22 @@ This is correct for preliminary estimating and must not be reworded as final sup
 
 ## 7. Component Library inventory and facets
 
-Source: `estimateLibraryItems` in `estimate-tree-data.ts`
+Source: `getCurrentWorkspaceComponentLibrary()` reads the current workspace Component Library dataset from Supabase. Static `estimateLibraryItems` in `estimate-tree-data.ts` is the fallback/test fixture.
 
-Current inventory characteristics observed from the source file:
+Current inventory characteristics observed from the seeded Supabase source:
 
-- At least 72 seeded library `row(...)` entries with explicit categories.
+- 70 seeded `cost_library_items` rows are category- and supplier-linked.
 - Major categories include:
-  - Finishes;
   - Furniture;
-  - Plumbing Fixtures;
-  - Wall Paints / Interior Finishes;
+  - Storage Systems;
+  - Tile Flooring;
+  - Wall Paints;
   - Lighting Fixtures;
-  - Electrical Fixtures;
+  - Receptacles;
+  - Plumbing Fixtures;
   - Kitchen Fixtures;
-  - Outdoor;
-  - Cabinetry.
+  - Casework;
+  - Landscape / hardscape rows.
 - Many items are Philippine-context examples or allowances from brands/suppliers such as IKEA Philippines, Wilcon Depot, Mariwasa, Boysen, Davies, Floor Center, Matimco, American Standard, HCG, Grohe, Franke, Panasonic, Firefly, and similar PH retail/supplier contexts.
 - Thumbnails prefer local `/component-thumbnails/...` paths when mapped, then item image URL, then category fallback.
 
@@ -346,8 +345,7 @@ A reusable component should have, at minimum:
 - unit;
 - item cost;
 - default quantity;
-- default supplementary/other cost;
-- default labor cost;
+- default Misc Cost;
 - image URL or inferred image fallback;
 - pricing source;
 - pricing date.
@@ -413,7 +411,7 @@ Current filters:
 
 Implemented by `sortComponents`.
 
-Current sort modes:
+Helper-supported sort modes:
 
 - relevance;
 - name A–Z;
@@ -422,6 +420,8 @@ Current sort modes:
 - recently used;
 - recently added;
 - supplier A–Z.
+
+The estimate-page sidebar currently applies relevance sorting without rendering a sort selector.
 
 ### Grouping
 
@@ -436,15 +436,11 @@ Current group modes:
 - room/area designation;
 - recently used.
 
-### View modes
+### Card display
 
-Current view modes:
+The estimate-page sidebar currently renders the compact component-card layout only.
 
-- compact;
-- detailed;
-- grid.
-
-Preferences are stored locally through `archestimator_component_library_preferences_v1`.
+Detailed/grid card modes are not exposed in the estimate-page sidebar. Group preference is stored locally through `archestimator_component_library_preferences_v1`.
 
 ### Favorites and recents
 
@@ -453,7 +449,7 @@ Current localStorage keys:
 - `archestimator_component_library_favorites_v1`;
 - `archestimator_component_library_recents_v1`.
 
-Favorites are toggled locally. Recents are updated when an item is added.
+Favorites are toggled locally. Recents are updated when an item is added, but the estimate-page sidebar does not render a separate recent-items strip above the grouped rows.
 
 ### Preview panel
 
@@ -534,7 +530,7 @@ Implemented by `cloneLibraryItemForEstimate`.
 
 Current behavior:
 
-- New id is generated as `${targetNodeId}-${libraryItem.id}-${Date.now()}`.
+- New estimate row ids are generated as UUIDs before persistence.
 - Quantity defaults to `libraryItem.quantity || 1`.
 - Subtotal and total item costs are recalculated.
 - The clone preserves the source library item's descriptive, pricing, category, supplier, image, and metadata fields.
@@ -583,20 +579,23 @@ Totals are computed recursively from row totals and child node totals.
 The estimate row table shows existing/inserted row items with:
 
 - material thumbnail/name/supplier/description;
-- discipline selector;
-- designation selector;
 - quantity input;
 - unit;
 - item/base cost;
-- supplementary/other cost input;
-- labor cost input;
+- Misc Cost input;
 - computed total;
 - action strip including drag/open affordance and delete.
+
+Discipline belongs to the source library component metadata, not the editable estimate row item surface. Designation is not shown or editable on estimate row items in the current slice.
 
 ### Empty states and drop zones
 
 - Empty branches can show an empty-area message.
-- Area branches with contents can show a drag/drop zone.
+- Area branches with contents can show a drag/drop zone below the row table.
+- Populated estimate row tables must not include row-shaped add/drop placeholder rows.
+- Area drop-zone copy uses "Drag and drop estimate component here".
+- Clicking or keyboard-activating an Area drop zone appends a manual unlinked estimate row so users can fill quantity/Misc Cost before choosing a Component Library source.
+- Manual blank rows render the material/component cell as "Drag or add a component here" until the user drops a component onto that cell or otherwise replaces the row source; they must not render product thumbnails or category image fallbacks.
 - Drop zones must only insert into area nodes.
 
 ---
@@ -609,6 +608,9 @@ The current implementation is local-first with Supabase reconciliation:
 
 - estimate tree and row data are read through server actions/repositories and cached in TanStack Query;
 - estimate row edits update the client cache optimistically, then reconcile with Supabase persistence;
+- inserted estimate row ids must be UUIDs because `estimate_row_items.id` is a Supabase UUID column; the client generates UUIDs for optimistic row ids, and `insertEstimateRowItemFromLibrary()` normalizes stale/non-UUID client row ids to server-generated UUIDs before inserting;
+- static UI library ids such as `lib-sofa` are persisted through `source_snapshot`, not `source_library_item_id`; only UUID-backed `cost_library_items.id` sources can remain `linked-clean`;
+- blank rows created from the estimate drop zone are persisted as unlinked project/manual rows with no `source_library_item_id`;
 - selected estimate node state lives in a scoped Zustand store keyed by estimate id so tree selection and the center sheet update immediately before route navigation catches up;
 - route state remains the deep-link and server-render reconciliation boundary;
 - editable row values live in React state inside `EstimateSheetContent` while optimistic save state is in flight;
@@ -694,7 +696,7 @@ Required accessibility guardrails:
 
 - User can view the selected node branch.
 - User can collapse/expand branch sections.
-- User can edit quantity, supplementary/other cost, labor cost, discipline, and designation locally.
+- User can edit quantity and Misc Cost locally.
 - Row totals update from editable values.
 - Branch totals update recursively from row totals and child totals.
 - User can delete a row, and the row state is removed so totals update immediately.
@@ -703,12 +705,13 @@ Required accessibility guardrails:
 
 - User can search components by name, supplier, category, description, tags, discipline, designation, unit, and notes/source.
 - User can filter components by category, supplier, discipline, designation, unit, price, favorite/recent/custom state, image state, and supplier state.
-- User can sort by relevance, name, price, recency, and supplier.
-- User can group by none, category, supplier, discipline, room/area designation, and recency.
-- User can switch compact/detailed/grid view modes.
+- Sidebar list sorting is fixed to relevance in the current UI.
+- User can cycle grouping by none, category, supplier, discipline, room/area designation, and recency from the icon toolbar.
+- Sidebar component cards render in compact mode only.
 - User can favorite, duplicate, preview, delete, and create local components.
 - User can add a component by click.
 - User can drag a component into an eligible area drop zone.
+- User can click or keyboard-activate an eligible area drop zone to append a blank manual row before choosing a component.
 
 ### Library-to-estimate connection
 
@@ -768,7 +771,7 @@ bun run build
 3. **Click insertion target ambiguity:** selecting a non-area node makes click Add silently no-op because only areas receive rows.
 4. **Search/filter/view controls in estimate header are not fully wired.**
 5. **Tree search and add-area controls are visual only.**
-6. **No source-link snapshot model:** inserted rows copy fields, but there is no explicit `sourceLibraryItemId`, link state, or source-change review state yet.
+6. **Partial source-change review model:** inserted rows persist `sourceLibraryItemId`, category/supplier ids, and snapshots for UUID-backed library sources, but no source-change review UI exists yet.
 7. **LocalStorage only for preferences:** favorites and recents are browser-local, not workspace/account-level.
 8. **Raw controls remain:** some chips, pills, selects, and menu items should be moved into shared primitives.
 9. **Thumbnail/source quality varies:** seeded data uses a mix of local thumbnails, official/product URLs, and Unsplash/category fallbacks.
@@ -784,7 +787,7 @@ bun run build
 4. Add explicit selected target-area behavior when a lot/structure/level is selected:
    - either prompt/pick nearest eligible area;
    - or disable Add with a clear message until an area is selected.
-5. Add explicit `sourceLibraryItemId` and snapshot/link-state fields to inserted estimate rows.
+5. Add in-app mutation flows for database-backed Component Library categories, suppliers, and custom components after hierarchy-editing rules are specified.
 6. Introduce a local repository boundary for project-specific estimate data when the UX is stable enough to persist.
 7. Wire estimate header search/filter/view controls only after row filtering behavior is specified.
 8. Wire tree search/add-area only after hierarchy mutation rules are specified.

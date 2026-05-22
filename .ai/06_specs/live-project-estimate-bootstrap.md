@@ -33,11 +33,12 @@ The current goal is intentionally narrow:
 
 - `src/lib/estimates/actions.ts` now includes `insertEstimateRowItemFromLibrary()` for component-library inserts.
 - The action validates project ownership, estimate ownership, and `kind = area` before insertion.
-- Client insert remains optimistic for fast editing, then calls the server action and refreshes the route to reconcile with Supabase.
-- Inserted library rows use `link_state = linked-clean`; manual/project rows use `unlinked`.
-- Replace, delete, and inline quantity/cost/discipline/designation edits persist through project-scoped server actions.
+- Client insert remains optimistic for fast editing, then calls the server action and reconciles through the shared TanStack Query area-tree cache.
+- Inserted row ids are UUIDs. The client generates UUIDs for optimistic insert rows, and the server action normalizes stale/non-UUID client row ids to server-generated UUIDs before inserting. Static UI library ids such as `lib-sofa` are persisted through `source_snapshot`, not the `source_library_item_id` UUID foreign key; database-backed UUID library rows use `link_state = linked-clean`, while static/manual/project rows use `unlinked`.
+- Estimate area drop zones support both drag/drop library insertion and click/keyboard activation. Activating the drop zone appends an optimistic manual row whose component cell remains "Drag or add a component here" until a library component is dropped/replaced into that row.
+- Replace, delete, and inline quantity/cost edits persist through project-scoped server actions. Discipline is component-library metadata, and designation is not editable on estimate row items in the current slice.
 - Mutations validate row ownership through estimate/node/project joins before modifying Supabase.
-- Client interactions remain optimistic; the live tree is hydrated into an `estimate/{id}/area-tree` TanStack Query cache, selected-node interaction state is held in scoped Zustand UI state keyed by estimate id, failed mutations call local rollback before showing row-specific `Save failed`, and successful mutations invalidate the active tree query so the client can reconcile with server state instead of relying on route `initialData` only.
+- Client interactions remain optimistic; the live tree is hydrated into an `estimate/{id}/area-tree` TanStack Query cache, selected-node interaction state is held in scoped Zustand UI state keyed by estimate id, failed mutations call local rollback, and successful mutations invalidate the active tree query so the client can reconcile with server state instead of relying on route `initialData` only. Quantity and Misc Cost commits patch the area-tree cache immediately, persist through `updateEstimateRowItem()`, then reconcile from the Supabase-returned canonical row fields. Row mutation state remains internal and must not render row-level Saving/Saved/Unsaved pills in the estimate sheet.
 
 ## Current behavior
 
@@ -124,7 +125,7 @@ Required gates after edits:
 ## Known limitations
 
 - Hosted Supabase redirect URLs still require Dashboard verification.
-- Estimate detail route now reads live Supabase tree/rows with project-scoped node validation; node selection updates immediately through scoped Zustand UI state while route navigation reconciles in the background; Group Nodes can nest under other Group Nodes while Area Nodes remain row-owning leaves; row CRUD and inline edits persist through project-scoped server actions with optimistic local updates, row-level dirty/saving/saved/failed markers, rollback on failure, and active TanStack Query tree refetch after success.
+- Estimate detail route now reads live Supabase tree/rows with project-scoped node validation; node selection updates immediately through scoped Zustand UI state while route navigation reconciles in the background; Group Nodes can nest under other Group Nodes while Area Nodes remain row-owning leaves; row CRUD and inline edits persist through project-scoped server actions with optimistic local/cache updates, internal dirty/saving/saved/failed mutation state, rollback on failure, and canonical row patch reconciliation after success. Visible row save-state pills are intentionally absent so editing behaves like a stable spreadsheet.
 - Estimate totals, proposal exports, recent activity, and estimate row CRUD UI are not in this slice.
 
 ## Next slice

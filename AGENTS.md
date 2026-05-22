@@ -34,7 +34,7 @@ Archestimator is entering MVP implementation setup. Prioritize the estimating sh
 <!-- gitnexus:start -->
 # GitNexus — Code Intelligence
 
-This project is indexed by GitNexus as **archestimator** (2784 symbols, 5559 relationships, 235 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
+This project is indexed by GitNexus as **archestimator** (2922 symbols, 5820 relationships, 246 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
 
 > If any GitNexus tool warns the index is stale, run `npx gitnexus analyze` in terminal first.
 
