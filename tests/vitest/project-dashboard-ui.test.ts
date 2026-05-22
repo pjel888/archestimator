@@ -91,7 +91,13 @@ describe("project dashboard UI governance", () => {
     expect(projectEstimateMetadataStrip.indexOf("<EstimateSheetNameCell")).toBeLessThan(projectEstimateMetadataStrip.indexOf("<EstimateVersionCell"));
     expect(projectEstimateMetadataStrip).toContain("items-center px-2");
     expect(projectTotalHeader).toContain('data-estimate-center-column="project-total-header"');
-    expect(projectTotalHeader).toContain('className="mx-px flex h-full w-[calc(100%-2px)] items-center justify-between bg-white px-2"');
+    expect(projectTotalHeader).toContain('className="mx-px flex h-full w-[calc(100%-2px)] items-center gap-2 bg-white px-2"');
+    expect(projectTotalHeader).toContain("BUDGET_WARNING_THRESHOLD_PERCENT = 85");
+    expect(projectTotalHeader).toContain("function BudgetHealthMeter");
+    expect(projectTotalHeader).toContain('role="meter"');
+    expect(projectTotalHeader).toContain("data-budget-health-budget-tick");
+    expect(projectTotalHeader).toContain("data-budget-health-overflow");
+    expect(projectTotalHeader).toContain("scaleMax = hasBudget ? Math.max(safeBudget, safeTotal, 1)");
     expect(projectTotalHeader).not.toContain("border-x border-hairline bg-white px-2");
   });
 
