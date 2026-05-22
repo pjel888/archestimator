@@ -361,6 +361,212 @@ export type Database = {
           },
         ]
       }
+      estimate_template_nodes: {
+        Row: {
+          created_at: string
+          id: string
+          kind: Database["public"]["Enums"]["estimate_node_kind"]
+          metadata: Json
+          name: string
+          parent_id: string | null
+          sort_order: number
+          template_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          kind: Database["public"]["Enums"]["estimate_node_kind"]
+          metadata?: Json
+          name: string
+          parent_id?: string | null
+          sort_order?: number
+          template_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          kind?: Database["public"]["Enums"]["estimate_node_kind"]
+          metadata?: Json
+          name?: string
+          parent_id?: string | null
+          sort_order?: number
+          template_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "estimate_template_nodes_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "estimate_template_nodes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "estimate_template_nodes_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "estimate_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      estimate_template_row_items: {
+        Row: {
+          category_node_id: string | null
+          created_at: string
+          description: string
+          designation: string
+          discipline: string
+          id: string
+          link_state: Database["public"]["Enums"]["estimate_row_link_state"]
+          material: string
+          metadata: Json
+          misc_cost: number
+          quantity: number
+          sort_order: number
+          source_library_item_id: string | null
+          source_snapshot: Json | null
+          supplier: string
+          supplier_id: string | null
+          template_id: string
+          template_node_id: string
+          unit: string
+          unit_cost: number
+          updated_at: string
+        }
+        Insert: {
+          category_node_id?: string | null
+          created_at?: string
+          description?: string
+          designation?: string
+          discipline?: string
+          id?: string
+          link_state?: Database["public"]["Enums"]["estimate_row_link_state"]
+          material?: string
+          metadata?: Json
+          misc_cost?: number
+          quantity?: number
+          sort_order?: number
+          source_library_item_id?: string | null
+          source_snapshot?: Json | null
+          supplier?: string
+          supplier_id?: string | null
+          template_id: string
+          template_node_id: string
+          unit?: string
+          unit_cost?: number
+          updated_at?: string
+        }
+        Update: {
+          category_node_id?: string | null
+          created_at?: string
+          description?: string
+          designation?: string
+          discipline?: string
+          id?: string
+          link_state?: Database["public"]["Enums"]["estimate_row_link_state"]
+          material?: string
+          metadata?: Json
+          misc_cost?: number
+          quantity?: number
+          sort_order?: number
+          source_library_item_id?: string | null
+          source_snapshot?: Json | null
+          supplier?: string
+          supplier_id?: string | null
+          template_id?: string
+          template_node_id?: string
+          unit?: string
+          unit_cost?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "estimate_template_row_items_category_node_id_fkey"
+            columns: ["category_node_id"]
+            isOneToOne: false
+            referencedRelation: "component_category_nodes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "estimate_template_row_items_source_library_item_id_fkey"
+            columns: ["source_library_item_id"]
+            isOneToOne: false
+            referencedRelation: "cost_library_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "estimate_template_row_items_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "component_suppliers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "estimate_template_row_items_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "estimate_templates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "estimate_template_row_items_template_node_id_fkey"
+            columns: ["template_node_id"]
+            isOneToOne: false
+            referencedRelation: "estimate_template_nodes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      estimate_templates: {
+        Row: {
+          category: string
+          created_at: string
+          created_by: string | null
+          description: string
+          id: string
+          metadata: Json
+          name: string
+          sort_order: number
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          category?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string
+          id?: string
+          metadata?: Json
+          name: string
+          sort_order?: number
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string
+          id?: string
+          metadata?: Json
+          name?: string
+          sort_order?: number
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "estimate_templates_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       estimates: {
         Row: {
           created_at: string
@@ -580,6 +786,15 @@ export type Database = {
       is_workspace_member: {
         Args: { target_workspace_id: string }
         Returns: boolean
+      }
+      insert_estimate_template_into_estimate: {
+        Args: {
+          target_project_id: string
+          target_estimate_id: string
+          target_parent_node_id: string
+          source_template_id: string
+        }
+        Returns: Json
       }
       reorder_estimate_nodes: {
         Args: { target_estimate_id: string; move_updates: Json }

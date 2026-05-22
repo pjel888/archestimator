@@ -16,6 +16,12 @@ export function isMissingColumnError(error: MissingColumnErrorCandidate | null |
   return missingColumnCodes && message.includes(column.toLowerCase());
 }
 
+export function isMissingRelationError(error: MissingColumnErrorCandidate | null | undefined, relation: string) {
+  const message = error?.message?.toLowerCase() ?? "";
+  const missingRelationCodes = error?.code === "42P01" || error?.code === "PGRST205";
+  return missingRelationCodes && message.includes(relation.toLowerCase());
+}
+
 export function normalizeEstimateRecord(estimate: EstimateRecordWithLegacy): Tables<"estimates"> {
   const { revision_label: legacyRevisionLabel, sheet_code: sheetCode, ...rest } = estimate;
 
