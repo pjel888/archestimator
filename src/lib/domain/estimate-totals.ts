@@ -1,7 +1,7 @@
 import type { EstimateRowItem, EstimateTree } from "./estimate-tree";
 
 export function calculateEstimateRowTotal(row: EstimateRowItem) {
-  return row.quantity * row.unitCost + row.supplementaryCost + row.laborCost;
+  return row.quantity * row.unitCost + row.miscCost;
 }
 
 export function calculateEstimateTotal(tree: EstimateTree) {

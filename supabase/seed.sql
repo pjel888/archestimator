@@ -43,10 +43,10 @@ on conflict (id) do update
       currency_code = excluded.currency_code,
       metadata = public.estimates.metadata || excluded.metadata;
 
-insert into public.cost_library_items (id, workspace_id, kind, name, description, category, supplier, unit, unit_cost, labor_cost, supplementary_cost, pricing_source, confidence, metadata)
+insert into public.cost_library_items (id, workspace_id, kind, name, description, category, supplier, unit, unit_cost, misc_cost, pricing_source, confidence, metadata)
 values
-  ('44444444-4444-4444-8444-444444444441', '11111111-1111-4111-8111-111111111111', 'material', '600x600 Porcelain Floor Tile', 'Editable allowance for PH-available porcelain tile.', 'Finishes', 'Supplier quote required', 'sqm', 950.00, 250.00, 50.00, 'editable allowance', 'requires-quote-verification', '{"seeded": true}'::jsonb),
-  ('44444444-4444-4444-8444-444444444442', '11111111-1111-4111-8111-111111111111', 'material', 'Interior Latex Paint System', 'Primer plus two coats; verify brand and surface condition.', 'Finishes', 'Supplier quote required', 'sqm', 180.00, 120.00, 20.00, 'editable allowance', 'requires-quote-verification', '{"seeded": true}'::jsonb)
+  ('44444444-4444-4444-8444-444444444441', '11111111-1111-4111-8111-111111111111', 'material', '600x600 Porcelain Floor Tile', 'Editable allowance for PH-available porcelain tile.', 'Finishes', 'Supplier quote required', 'sqm', 950.00, 300.00, 'editable allowance', 'requires-quote-verification', '{"seeded": true}'::jsonb),
+  ('44444444-4444-4444-8444-444444444442', '11111111-1111-4111-8111-111111111111', 'material', 'Interior Latex Paint System', 'Primer plus two coats; verify brand and surface condition.', 'Finishes', 'Supplier quote required', 'sqm', 180.00, 140.00, 'editable allowance', 'requires-quote-verification', '{"seeded": true}'::jsonb)
 on conflict (id) do update
   set workspace_id = excluded.workspace_id,
       kind = excluded.kind,
@@ -56,8 +56,7 @@ on conflict (id) do update
       supplier = excluded.supplier,
       unit = excluded.unit,
       unit_cost = excluded.unit_cost,
-      labor_cost = excluded.labor_cost,
-      supplementary_cost = excluded.supplementary_cost,
+      misc_cost = excluded.misc_cost,
       pricing_source = excluded.pricing_source,
       confidence = excluded.confidence,
       metadata = public.cost_library_items.metadata || excluded.metadata;

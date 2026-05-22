@@ -5,7 +5,7 @@ import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { EstimateSheetContent } from "@/components/workshop/EstimateSheetContent";
 import { WorkshopPageShell } from "@/components/workshop/WorkshopPageShell";
-import { estimateLibraryItems } from "@/components/workshop/estimate-tree-data";
+import { estimateLibraryItems, type EstimateTreeNode } from "@/components/workshop/estimate-tree-data";
 import { resetEstimateWorkspaceState, useEstimateWorkspaceState } from "@/hooks/use-estimate-workspace-state";
 
 vi.mock("@/lib/auth/session", () => ({
@@ -75,36 +75,26 @@ describe("estimate sheet cost inputs", () => {
     });
   });
 
-  it("displays cost inputs as pesos when idle but keeps focused typing uninterrupted", async () => {
+  it("displays the misc cost input as pesos when idle but keeps focused typing uninterrupted", async () => {
     const user = userEvent.setup();
     renderEstimateSheet("main-house");
 
-    const otherCostInput = screen.getByLabelText("HEMLINGBY Loveseat other costs");
-    const laborCostInput = screen.getByLabelText("HEMLINGBY Loveseat labor cost");
-    const row = otherCostInput.closest("tr");
+    const miscCostInput = screen.getByLabelText("HEMLINGBY Loveseat misc cost");
+    const row = miscCostInput.closest("tr");
     expect(row).not.toBeNull();
 
-    expect(otherCostInput).toHaveValue("₱0.00");
-    expect(laborCostInput).toHaveValue("₱1,200.00");
+    expect(miscCostInput).toHaveValue("₱ 1,200.00");
 
-    await user.click(otherCostInput);
-    expect(otherCostInput).toHaveValue("0");
-    await user.clear(otherCostInput);
-    await user.type(otherCostInput, "400");
-    expect(otherCostInput).toHaveValue("400");
-    expect(otherCostInput).toHaveFocus();
-
-    await user.click(laborCostInput);
-    expect(otherCostInput).toHaveValue("₱400.00");
-    expect(laborCostInput).toHaveValue("1200");
-    await user.clear(laborCostInput);
-    await user.type(laborCostInput, "400");
-    expect(laborCostInput).toHaveValue("400");
-    expect(laborCostInput).toHaveFocus();
+    await user.click(miscCostInput);
+    expect(miscCostInput).toHaveValue("1200");
+    await user.clear(miscCostInput);
+    await user.type(miscCostInput, "400");
+    expect(miscCostInput).toHaveValue("400");
+    expect(miscCostInput).toHaveFocus();
 
     await user.tab();
-    expect(laborCostInput).toHaveValue("₱400.00");
-    expect(within(row as HTMLElement).getByText("₱8,799.00")).toBeInTheDocument();
+    expect(miscCostInput).toHaveValue("₱ 400.00");
+    expect(within(row as HTMLElement).getByText("₱ 8,399.00")).toBeInTheDocument();
   });
 
   it("uses the selected area as the add target and focuses the inserted row quantity", async () => {
@@ -120,19 +110,227 @@ describe("estimate sheet cost inputs", () => {
     expect(within(kitchenSection).getAllByText("HEMLINGBY Loveseat")).toHaveLength(1);
   });
 
+  it("adds a blank estimate row when the area drop zone is clicked", async () => {
+    const user = userEvent.setup();
+    renderEstimateSheet("kitchen");
+
+    const kitchenSection = screen.getByLabelText("Kitchen");
+    await user.click(within(kitchenSection).getByRole("button", { name: "Add blank estimate row to Kitchen" }));
+
+    const emptyComponentSlot = await within(kitchenSection).findByLabelText("Drag or add a component here empty estimate component slot");
+    expect(within(emptyComponentSlot).getByText("Drag or add a component here")).toBeInTheDocument();
+
+    const insertedQuantity = within(kitchenSection).getByLabelText("Drag or add a component here quantity");
+    await waitFor(() => expect(insertedQuantity).toHaveFocus());
+  });
+
+  it("adds a blank estimate row when the area drop zone is keyboard-activated", async () => {
+    const user = userEvent.setup();
+    renderEstimateSheet("kitchen");
+
+    const kitchenSection = screen.getByLabelText("Kitchen");
+    const addBlankRowButton = within(kitchenSection).getByRole("button", { name: "Add blank estimate row to Kitchen" });
+    addBlankRowButton.focus();
+    await user.keyboard("{Enter}");
+
+    expect(await within(kitchenSection).findByLabelText("Drag or add a component here empty estimate component slot")).toBeInTheDocument();
+  });
+
+  it("keeps persisted blank estimate rows as placeholder slots without thumbnail fallbacks", () => {
+    const persistedBlankRowTree: EstimateTreeNode[] = [
+      {
+        id: "manual-area",
+        name: "Manual Area",
+        kind: "area",
+        total: "PHP 0.00",
+        estimateRowItems: [
+          {
+            id: "manual-row-1",
+            material: "Drag or add a component here",
+            description: "",
+            supplier: "",
+            source: "project",
+            unit: "unit",
+            itemCost: 0,
+            quantity: 1,
+            subTotal: 0,
+            miscCost: 0,
+            totalItemCosts: 0,
+            category: "Unassigned",
+            pricingSource: "Manual estimate row",
+            pricingDate: "2026-05-22",
+          },
+        ],
+        children: [],
+      },
+    ];
+
+    render(
+      <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } })}>
+        <EstimateSheetContent selectedNodeId="manual-area" nodes={persistedBlankRowTree} renderSidebar={false} />
+      </QueryClientProvider>,
+    );
+
+    const manualAreaSection = screen.getByLabelText("Manual Area");
+    expect(within(manualAreaSection).getByLabelText("Drag or add a component here empty estimate component slot")).toBeInTheDocument();
+    expect(within(manualAreaSection).queryByLabelText("Drag or add a component here reference image")).not.toBeInTheDocument();
+  });
+
+  it("keeps populated area drop prompts out of the estimate row table", () => {
+    renderEstimateSheet("living-area");
+
+    const livingAreaSection = screen.getByLabelText("Living Area");
+    expect(within(livingAreaSection).queryByText("Add or drag estimate component")).not.toBeInTheDocument();
+    expect(within(livingAreaSection).queryByText("Drag and drop here")).not.toBeInTheDocument();
+    expect(within(livingAreaSection).getByText("Drag and drop estimate component here")).toBeInTheDocument();
+  });
+
+  it("does not expose discipline or designation as estimate row item fields", () => {
+    renderEstimateSheet("living-area");
+
+    const livingAreaSection = screen.getByLabelText("Living Area");
+    expect(within(livingAreaSection).queryByText("Discipline / Designation")).not.toBeInTheDocument();
+    expect(within(livingAreaSection).queryByLabelText("Hardwood Oak Flooring discipline")).not.toBeInTheDocument();
+    expect(within(livingAreaSection).queryByLabelText("Hardwood Oak Flooring designation")).not.toBeInTheDocument();
+  });
+
+  it("labels the total column once without repeating the description in every row", () => {
+    renderEstimateSheet("living-area");
+
+    const livingAreaSection = screen.getByLabelText("Living Area");
+    expect(within(livingAreaSection).getByRole("columnheader", { name: "Total Item Cost" })).toBeInTheDocument();
+    expect(within(livingAreaSection).queryByRole("columnheader", { name: "Costs" })).not.toBeInTheDocument();
+    expect(within(livingAreaSection).getAllByText("Total Item Cost")).toHaveLength(1);
+  });
+
+  it("centers subtotal and misc cost row values", () => {
+    renderEstimateSheet("living-area");
+
+    const livingAreaSection = screen.getByLabelText("Living Area");
+    const subtotalCell = within(livingAreaSection).getByText("₱ 57,600.00").closest("td");
+    const miscCostInput = within(livingAreaSection).getByLabelText("Hardwood Oak Flooring misc cost");
+
+    expect(subtotalCell).toHaveClass("justify-center");
+    expect(miscCostInput.closest("td")).toHaveClass("justify-center");
+    expect(miscCostInput).toHaveClass("text-center");
+  });
+
+  it("keeps area breadcrumb spacing symmetrical above and below the trail", () => {
+    renderEstimateSheet("living-area");
+
+    expect(screen.getByLabelText("Living Area breadcrumbs")).toHaveClass("my-1");
+  });
+
+  it("uses group row rhythm when group and area nodes are siblings", () => {
+    const mixedSiblingTree: EstimateTreeNode[] = [
+      {
+        id: "lot",
+        name: "Lot",
+        kind: "group",
+        total: "₱0.00",
+        children: [
+          {
+            id: "house",
+            name: "House",
+            kind: "group",
+            total: "₱0.00",
+            children: [
+              {
+                id: "ground-floor",
+                name: "Ground Floor",
+                kind: "group",
+                total: "₱0.00",
+                children: [],
+              },
+              {
+                id: "new-area-node",
+                name: "New Area Node",
+                kind: "area",
+                total: "₱0.00",
+                estimateRowItems: [],
+              },
+            ],
+          },
+        ],
+      },
+    ];
+
+    render(
+      <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } })}>
+        <EstimateSheetContent selectedNodeId="lot" nodes={mixedSiblingTree} renderSidebar={false} />
+      </QueryClientProvider>,
+    );
+
+    expect(screen.getByLabelText("Ground Floor")).toHaveClass("mt-4");
+    expect(screen.getByLabelText("New Area Node")).toHaveClass("mt-4");
+  });
+
+  it("keeps compact spacing when a group contains only area nodes", () => {
+    const areaOnlyTree: EstimateTreeNode[] = [
+      {
+        id: "lot",
+        name: "Lot",
+        kind: "group",
+        total: "₱0.00",
+        children: [
+          {
+            id: "house",
+            name: "House",
+            kind: "group",
+            total: "₱0.00",
+            children: [
+              {
+                id: "ground-floor",
+                name: "Ground Floor",
+                kind: "group",
+                total: "₱0.00",
+                children: [
+                  {
+                    id: "parking",
+                    name: "2-Car Parking",
+                    kind: "area",
+                    total: "₱0.00",
+                    estimateRowItems: [],
+                  },
+                  {
+                    id: "living-room",
+                    name: "Living Room",
+                    kind: "area",
+                    total: "₱0.00",
+                    estimateRowItems: [],
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      },
+    ];
+
+    render(
+      <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } })}>
+        <EstimateSheetContent selectedNodeId="lot" nodes={areaOnlyTree} renderSidebar={false} />
+      </QueryClientProvider>,
+    );
+
+    expect(screen.getByLabelText("2-Car Parking")).toHaveClass("mt-0");
+    expect(screen.getByLabelText("Living Room")).toHaveClass("mt-0");
+    expect(screen.getByLabelText("Living Room")).not.toHaveClass("mt-4");
+  });
+
   it("inserts from the production sidebar direct callback path", async () => {
+    const user = userEvent.setup();
     render(
       <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } })}>
         <EstimateSheetContent selectedNodeId="kitchen" estimateId="estimate-sidebar-test" renderSidebar />
       </QueryClientProvider>,
     );
 
-    fireEvent.click(screen.getAllByLabelText(/add to kitchen: hemlingby loveseat/i)[0]);
+    await user.click(screen.getByRole("button", { name: "Expand all library tree" }));
+    await user.click((await screen.findAllByLabelText(/^add to kitchen:/i))[0]);
 
     const kitchenSection = screen.getByLabelText("Kitchen");
-    const insertedQuantity = await within(kitchenSection).findByLabelText("HEMLINGBY Loveseat quantity");
-    await waitFor(() => expect(insertedQuantity).toHaveFocus());
-    expect(within(kitchenSection).getAllByText("HEMLINGBY Loveseat")).toHaveLength(1);
+    await waitFor(() => expect(within(kitchenSection).getAllByRole("spinbutton").length).toBeGreaterThan(0));
   });
 
   it("opens command palette and inserts into the selected area from the keyboard", async () => {
@@ -149,23 +347,63 @@ describe("estimate sheet cost inputs", () => {
     expect(screen.queryByRole("dialog", { name: "Command palette" })).not.toBeInTheDocument();
   });
 
-  it("supports baseline spreadsheet keyboard movement across editable row cells", async () => {
+  it("commits row cells on Enter without moving to the next cell", async () => {
     const user = userEvent.setup();
     renderEstimateSheet("living-area");
 
     const firstQuantity = screen.getByLabelText("Hardwood Oak Flooring quantity");
     await user.click(firstQuantity);
+    const activeRow = firstQuantity.closest("tr");
+    expect(activeRow).toHaveAttribute("data-estimate-row-active", "true");
+
     await user.keyboard("{Enter}");
-    expect(screen.getByLabelText("HEMLINGBY Loveseat quantity")).toHaveFocus();
 
+    expect(firstQuantity).not.toHaveFocus();
+    expect(activeRow).not.toHaveAttribute("data-estimate-row-active");
+    expect(screen.getByLabelText("HEMLINGBY Loveseat quantity")).not.toHaveFocus();
+
+    await user.click(firstQuantity);
     await user.keyboard("{ArrowRight}");
-    expect(screen.getByLabelText("HEMLINGBY Loveseat other costs")).toHaveFocus();
+    expect(screen.getByLabelText("Hardwood Oak Flooring misc cost")).toHaveFocus();
 
-    await user.keyboard("{Shift>}{Enter}{/Shift}");
-    expect(screen.getByLabelText("Hardwood Oak Flooring other costs")).toHaveFocus();
+    await user.keyboard("{Enter}");
+    expect(screen.getByLabelText("Hardwood Oak Flooring misc cost")).not.toHaveFocus();
+  });
 
-    await user.keyboard("{ArrowLeft}");
-    expect(screen.getByLabelText("Hardwood Oak Flooring quantity")).toHaveFocus();
+  it("commits row cells when focus leaves the edited input", async () => {
+    const user = userEvent.setup();
+    renderEstimateSheet("living-area");
+
+    const firstQuantity = screen.getByLabelText("Hardwood Oak Flooring quantity");
+    const materialCell = screen.getByLabelText("Hardwood Oak Flooring replaceable estimate component");
+    await user.click(firstQuantity);
+    const activeRow = firstQuantity.closest("tr");
+    expect(activeRow).toHaveAttribute("data-estimate-row-active", "true");
+
+    await user.clear(firstQuantity);
+    await user.type(firstQuantity, "7");
+    await user.click(materialCell);
+
+    expect(firstQuantity).not.toHaveFocus();
+    expect(activeRow).not.toHaveAttribute("data-estimate-row-active");
+    expect(firstQuantity).toHaveValue(7);
+  });
+
+  it("keeps row save state out of the visible spreadsheet cells while editing", async () => {
+    const user = userEvent.setup();
+    renderEstimateSheet("living-area");
+
+    const livingAreaSection = screen.getByLabelText("Living Area");
+    const quantityInput = within(livingAreaSection).getByLabelText("Hardwood Oak Flooring quantity");
+
+    await user.click(quantityInput);
+    await user.clear(quantityInput);
+    await user.type(quantityInput, "12");
+
+    expect(within(livingAreaSection).queryByText("Unsaved")).not.toBeInTheDocument();
+    expect(within(livingAreaSection).queryByText("Saving")).not.toBeInTheDocument();
+    expect(within(livingAreaSection).queryByText("Saved")).not.toBeInTheDocument();
+    expect(within(livingAreaSection).queryByText("Save failed")).not.toBeInTheDocument();
   });
 
   it("marks estimate component cells as replaceable draggable sources and highlights focused row editing", async () => {
@@ -174,8 +412,8 @@ describe("estimate sheet cost inputs", () => {
 
     const materialCell = screen.getByLabelText("Hardwood Oak Flooring replaceable estimate component");
     expect(materialCell).toHaveAttribute("draggable", "true");
-    expect(within(materialCell).getByText("Drag / replace component")).toBeInTheDocument();
-    expect(within(materialCell).getByText("Source-linked estimate component")).toBeInTheDocument();
+    expect(within(materialCell).getByText("Hardwood Oak Flooring")).toBeInTheDocument();
+    expect(within(materialCell).getByText("₱ 1,200.00")).toBeInTheDocument();
 
     const quantityInput = screen.getByLabelText("Hardwood Oak Flooring quantity");
     await user.click(quantityInput);

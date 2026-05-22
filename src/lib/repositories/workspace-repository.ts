@@ -139,7 +139,7 @@ export async function listProjectEstimates(projectId: string): Promise<ProjectEs
       .order("sort_order", { ascending: true }),
     supabase
       .from("estimate_row_items")
-      .select("estimate_id, quantity, unit_cost, supplementary_cost, labor_cost")
+      .select("estimate_id, quantity, unit_cost, misc_cost")
       .in("estimate_id", estimateIds),
   ]);
 
@@ -161,9 +161,8 @@ export async function listProjectEstimates(projectId: string): Promise<ProjectEs
   for (const row of rowsResult.data ?? []) {
     const quantity = Number(row.quantity);
     const unitCost = Number(row.unit_cost);
-    const supplementaryCost = Number(row.supplementary_cost);
-    const laborCost = Number(row.labor_cost);
-    const rowTotal = quantity * unitCost + supplementaryCost + laborCost;
+    const miscCost = Number(row.misc_cost);
+    const rowTotal = quantity * unitCost + miscCost;
     rowCountByEstimateId.set(row.estimate_id, (rowCountByEstimateId.get(row.estimate_id) ?? 0) + 1);
     totalCostByEstimateId.set(row.estimate_id, (totalCostByEstimateId.get(row.estimate_id) ?? 0) + rowTotal);
   }
@@ -191,31 +190,43 @@ function formatPeso(value: number) {
   return new Intl.NumberFormat("en-PH", { style: "currency", currency: "PHP", minimumFractionDigits: 2 }).format(value);
 }
 
+function readJsonRecord(value: unknown): Record<string, unknown> {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+  return value as Record<string, unknown>;
+}
+
 function toUiRow(row: EstimateRowItemRow): EstimateRowItem {
   const quantity = Number(row.quantity);
   const itemCost = Number(row.unit_cost);
-  const supplementaryCosts = Number(row.supplementary_cost);
-  const laborCost = Number(row.labor_cost);
-  const category = typeof row.source_snapshot === "object" && row.source_snapshot && !Array.isArray(row.source_snapshot) && "category" in row.source_snapshot
-    ? String(row.source_snapshot.category)
+  const miscCost = Number(row.misc_cost);
+  const sourceSnapshot = readJsonRecord(row.source_snapshot);
+  const metadata = readJsonRecord(row.metadata);
+  const category = typeof sourceSnapshot.category === "string" && sourceSnapshot.category
+    ? sourceSnapshot.category
     : "General";
+  const categoryNodeId = row.category_node_id ?? (typeof sourceSnapshot.categoryNodeId === "string" ? sourceSnapshot.categoryNodeId : undefined);
+  const supplierId = row.supplier_id ?? (typeof sourceSnapshot.supplierId === "string" ? sourceSnapshot.supplierId : undefined);
+  const tags = Array.isArray(metadata.tags) ? metadata.tags.filter((tag): tag is string => typeof tag === "string") : undefined;
 
   return {
     id: row.id,
     material: row.material,
     description: row.description,
-    supplier: row.supplier ?? "No supplier",
+    supplier: row.supplier || "No supplier",
+    supplierId: supplierId ?? undefined,
     source: row.source_library_item_id ? "library" : "project",
     unit: row.unit,
     itemCost,
     quantity,
     subTotal: itemCost * quantity,
-    supplementaryCosts,
-    laborCost,
-    totalItemCosts: itemCost * quantity + supplementaryCosts + laborCost,
+    miscCost,
+    totalItemCosts: itemCost * quantity + miscCost,
     category,
+    categoryNodeId: categoryNodeId ?? undefined,
     discipline: row.discipline ?? undefined,
     designation: row.designation ?? undefined,
+    tags,
+    imageUrl: typeof sourceSnapshot.imageUrl === "string" ? sourceSnapshot.imageUrl : undefined,
     pricingSource: "Estimate row snapshot",
     pricingDate: row.created_at.slice(0, 10),
   };

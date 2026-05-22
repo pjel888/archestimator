@@ -1,10 +1,11 @@
 "use client";
 
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 
-import type { EstimateRowItem } from "@/components/workshop/estimate-tree-data";
-import { deleteEstimateRowItem, fetchEstimateTree, insertEstimateRowItemFromLibrary, replaceEstimateRowItemWithLibrary, updateEstimateRowItem } from "@/lib/estimates/actions";
+import type { EstimateRowItem, EstimateTreeNode } from "@/components/workshop/estimate-tree-data";
+import { deleteEstimateRowItem, fetchEstimateTree, insertEstimateRowItemFromLibrary, replaceEstimateRowItemWithLibrary, updateEstimateRowItem, type UpdateEstimateRowItemResult } from "@/lib/estimates/actions";
+import { findEstimateRowItemInTree, patchEstimateRowItemInTree, type EstimateRowItemPatch } from "@/lib/estimates/estimate-row-tree-patch";
 import { estimateQueryKeys } from "./use-estimate-query";
 
 export type EstimateSaveState = "idle" | "dirty" | "saving" | "saved" | "failed";
@@ -35,10 +36,7 @@ type DeleteEstimateRowInput = SharedMutationInput & {
 type UpdateEstimateRowInput = SharedMutationInput & {
   rowId: string;
   quantity?: number;
-  supplementaryCosts?: number;
-  laborCost?: number;
-  discipline?: string;
-  designation?: string;
+  miscCost?: number;
   rollback?: () => void;
 };
 
@@ -48,34 +46,46 @@ type RollbackInput = {
   rollback?: () => void;
 };
 
+type UpdateMutationContext = {
+  operationId: number;
+  previousPatch?: EstimateRowItemPatch;
+};
+
+function toOptimisticRowPatch(input: UpdateEstimateRowInput): EstimateRowItemPatch {
+  return {
+    ...(input.quantity !== undefined ? { quantity: input.quantity } : {}),
+    ...(input.miscCost !== undefined ? { miscCost: input.miscCost } : {}),
+  };
+}
+
+function toServerRowPatch(result: UpdateEstimateRowItemResult, input: UpdateEstimateRowInput): EstimateRowItemPatch {
+  return {
+    itemCost: result.itemCost,
+    ...(input.quantity !== undefined ? { quantity: result.quantity } : {}),
+    ...(input.miscCost !== undefined ? { miscCost: result.miscCost } : {}),
+  };
+}
+
 function useSaveState() {
   const [saveState, setSaveState] = useState<EstimateSaveState>("idle");
-  const [rowSaveStates, setRowSaveStates] = useState<Record<string, EstimateSaveState>>({});
 
-  function markRow(rowId: string, state: EstimateSaveState) {
-    setRowSaveStates((current) => ({ ...current, [rowId]: state }));
+  function markRowDirty() {
+    setSaveState("dirty");
   }
 
-  function markRowDirty(rowId: string) {
-    markRow(rowId, "dirty");
-  }
-
-  function markSaving(rowId?: string) {
+  function markSaving() {
     setSaveState("saving");
-    if (rowId) markRow(rowId, "saving");
   }
 
-  function markSaved(rowId?: string) {
+  function markSaved() {
     setSaveState("saved");
-    if (rowId) markRow(rowId, "saved");
   }
 
-  function markFailed(rowId?: string) {
+  function markFailed() {
     setSaveState("failed");
-    if (rowId) markRow(rowId, "failed");
   }
 
-  return { saveState, rowSaveStates, markRowDirty, markSaving, markSaved, markFailed };
+  return { saveState, markRowDirty, markSaving, markSaved, markFailed };
 }
 
 function withoutRollback<T extends { rollback?: () => void }>(input: T): Omit<T, "rollback"> {
@@ -86,21 +96,22 @@ function withoutRollback<T extends { rollback?: () => void }>(input: T): Omit<T,
 
 export function useEstimateRowMutations(estimateId?: string) {
   const queryClient = useQueryClient();
-  const { saveState, rowSaveStates, markRowDirty, markSaving, markSaved, markFailed } = useSaveState();
+  const { saveState, markRowDirty, markSaving, markSaved, markFailed } = useSaveState();
+  const rowOperationIdsRef = useRef<Record<string, number>>({});
   const detailQueryKey = estimateId ? estimateQueryKeys.detail(estimateId) : undefined;
   const areaTreeQueryKey = estimateId ? estimateQueryKeys.areaTree(estimateId) : undefined;
 
   const mutationOptions = useMemo(
     () => ({
-      onMutate: (input: RollbackInput) => markSaving(input.rowId),
+      onMutate: () => markSaving(),
       onSuccess: (_result: void, input: RollbackInput) => {
-        markSaved(input.rowId);
+        markSaved();
         void queryClient.invalidateQueries({ queryKey: estimateQueryKeys.areaTree(input.estimateId), refetchType: "none" });
         if (detailQueryKey) void queryClient.invalidateQueries({ queryKey: detailQueryKey, refetchType: "none" });
       },
       onError: (_error: Error, input: RollbackInput) => {
         input.rollback?.();
-        markFailed(input.rowId);
+        markFailed();
         if (areaTreeQueryKey) void queryClient.invalidateQueries({ queryKey: areaTreeQueryKey, refetchType: "none" });
       },
     }),
@@ -124,12 +135,54 @@ export function useEstimateRowMutations(estimateId?: string) {
 
   const updateMutation = useMutation({
     mutationFn: (input: UpdateEstimateRowInput) => updateEstimateRowItem(withoutRollback(input)),
-    ...mutationOptions,
+    onMutate: async (input): Promise<UpdateMutationContext> => {
+      markSaving();
+      const operationId = (rowOperationIdsRef.current[input.rowId] ?? 0) + 1;
+      rowOperationIdsRef.current[input.rowId] = operationId;
+      const queryKey = estimateQueryKeys.areaTree(input.estimateId);
+      await queryClient.cancelQueries({ queryKey });
+      const previousTree = queryClient.getQueryData<EstimateTreeNode[]>(queryKey);
+      const previousRow = previousTree ? findEstimateRowItemInTree(previousTree, input.rowId) : null;
+      const previousPatch = previousRow
+        ? {
+            itemCost: previousRow.itemCost,
+            ...(input.quantity !== undefined ? { quantity: previousRow.quantity } : {}),
+            ...(input.miscCost !== undefined ? { miscCost: previousRow.miscCost } : {}),
+          }
+        : undefined;
+      if (previousTree) {
+        queryClient.setQueryData<EstimateTreeNode[]>(
+          queryKey,
+          patchEstimateRowItemInTree(previousTree, input.rowId, toOptimisticRowPatch(input)),
+        );
+      }
+      return { operationId, previousPatch };
+    },
+    onSuccess: (result: UpdateEstimateRowItemResult, input, context) => {
+      if (rowOperationIdsRef.current[input.rowId] !== context.operationId) return;
+      const queryKey = estimateQueryKeys.areaTree(input.estimateId);
+      queryClient.setQueryData<EstimateTreeNode[]>(queryKey, (currentTree) =>
+        currentTree ? patchEstimateRowItemInTree(currentTree, result.rowId, toServerRowPatch(result, input)) : currentTree,
+      );
+      markSaved();
+      void queryClient.invalidateQueries({ queryKey, refetchType: "none" });
+      if (detailQueryKey) void queryClient.invalidateQueries({ queryKey: detailQueryKey, refetchType: "none" });
+    },
+    onError: (_error: Error, input, context) => {
+      if (!context || rowOperationIdsRef.current[input.rowId] !== context.operationId) return;
+      const queryKey = estimateQueryKeys.areaTree(input.estimateId);
+      if (context.previousPatch) {
+        queryClient.setQueryData<EstimateTreeNode[]>(queryKey, (currentTree) =>
+          currentTree ? patchEstimateRowItemInTree(currentTree, input.rowId, context.previousPatch ?? {}) : currentTree,
+        );
+      } else input.rollback?.();
+      markFailed();
+      void queryClient.invalidateQueries({ queryKey, refetchType: "none" });
+    },
   });
 
   return {
     saveState,
-    rowSaveStates,
     markRowDirty,
     fetchTree: fetchEstimateTree,
     insertRow: insertMutation.mutate,

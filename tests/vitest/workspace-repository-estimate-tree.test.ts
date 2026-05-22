@@ -15,7 +15,7 @@ function node(input: Pick<Tables<"estimate_nodes">, "id" | "parent_id" | "kind" 
   };
 }
 
-function row(input: Pick<Tables<"estimate_row_items">, "id" | "node_id" | "material" | "quantity" | "unit_cost" | "supplementary_cost" | "labor_cost" | "sort_order">): Tables<"estimate_row_items"> {
+function row(input: Pick<Tables<"estimate_row_items">, "id" | "node_id" | "material" | "quantity" | "unit_cost" | "misc_cost" | "sort_order">): Tables<"estimate_row_items"> {
   return {
     estimate_id: "estimate-1",
     source_library_item_id: null,
@@ -42,7 +42,7 @@ describe("workspace repository estimate tree projection", () => {
         node({ id: "kitchen", parent_id: "floor", kind: "area", name: "Kitchen", sort_order: 20 }),
       ],
       [
-        row({ id: "row-1", node_id: "kitchen", material: "Tile", quantity: 2, unit_cost: 100, supplementary_cost: 25, labor_cost: 75, sort_order: 0 }),
+        row({ id: "row-1", node_id: "kitchen", material: "Tile", quantity: 2, unit_cost: 100, misc_cost: 100, sort_order: 0 }),
       ],
     );
 
@@ -64,7 +64,7 @@ describe("workspace repository estimate tree projection", () => {
                 kind: "area",
                 name: "Kitchen",
                 total: "₱300.00",
-                estimateRowItems: [expect.objectContaining({ id: "row-1", totalItemCosts: 300 })],
+                estimateRowItems: [expect.objectContaining({ id: "row-1", miscCost: 100, totalItemCosts: 300 })],
               }),
             ],
           }),

@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 const appLayout = readFileSync("src/app/layout.tsx", "utf8");
 const estimateNodePage = readFileSync("src/app/workshop/projects/[projectId]/estimates/[nodeId]/page.tsx", "utf8");
 const estimateTree = readFileSync("src/components/workshop/EstimateSheetTree.tsx", "utf8");
+const treeVisualStyle = readFileSync("src/components/workshop/tree-visual-style.ts", "utf8");
 const estimateContent = readFileSync("src/components/workshop/EstimateSheetContent.tsx", "utf8");
 const workspaceRepository = readFileSync("src/lib/repositories/workspace-repository.ts", "utf8");
 const estimateActions = readFileSync("src/lib/estimates/actions.ts", "utf8");
@@ -23,8 +24,8 @@ describe("live estimate node route", () => {
     expect(estimateTree).toContain("isEstimateGroupNodeKind");
     expect(estimateTree).toContain("selectedGroupId");
     expect(estimateTree).toContain("you must select a group first before adding an area node");
-    expect(estimateTree).toContain("renderDepthOffset={TREE_INDENT_STEP}");
-    expect(estimateTree).toContain("TREE_INDENT_STEP = 20");
+    expect(estimateTree).toContain("renderDepthOffset={WORKSHOP_TREE_INDENT_STEP}");
+    expect(treeVisualStyle).toContain("WORKSHOP_TREE_INDENT_STEP = 20");
     expect(estimateTree).toContain("onExpandAll={handleExpandAll}");
     expect(estimateTree).toContain("onCollapseAll={handleCollapseAll}");
     expect(estimateTree).toContain("canDragAndDrop");
@@ -134,7 +135,11 @@ describe("live estimate node route", () => {
     expect(estimateActions).toContain("insertEstimateRowItemFromLibrary");
     expect(estimateActions).toContain('.eq("kind", "area")');
     expect(estimateActions).toContain('.eq("estimates.project_id", project.id)');
-    expect(estimateActions).toContain('link_state: libraryItem.source === "library" ? "linked-clean" : "unlinked"');
+    expect(estimateActions).toContain("getSourceLibraryItemId");
+    expect(estimateActions).toContain("isUuid(libraryItem.id)");
+    expect(estimateActions).toContain("const persistedRowId = isUuid(rowId) ? rowId : randomUUID();");
+    expect(estimateActions).toContain("id: persistedRowId");
+    expect(estimateActions).toContain('link_state: sourceLibraryItemId ? "linked-clean" : "unlinked"');
     expect(estimateActions).toContain("updateEstimateRowItem");
     expect(estimateActions).toContain("replaceEstimateRowItemWithLibrary");
     expect(estimateActions).toContain("deleteEstimateRowItem");
@@ -154,10 +159,10 @@ describe("live estimate node route", () => {
     expect(estimateContent).toContain("rollback: () => restoreEstimateState");
   });
 
-  it("tracks row-level dirty/save status with passive mutation invalidation and focus reconciliation", () => {
-    expect(estimateContent).toContain("rowSaveStates");
+  it("keeps row save state out of the visible sheet while preserving passive mutation invalidation and focus reconciliation", () => {
     expect(estimateContent).toContain("onMarkRowDirty");
-    expect(estimateContent).toContain("<RowSaveStatus state={rowSaveStates[item.id]} />");
+    expect(estimateContent).not.toContain("RowSaveStatus");
+    expect(estimateContent).not.toContain("EstimateSaveStatus");
     expect(estimateContent).not.toContain("refetchOnWindowFocus: true");
     expect(readFileSync("src/hooks/use-estimate-query.ts", "utf8")).toContain("prepareOptimisticUpdate");
     expect(estimateActions).toContain("fetchEstimateTree");
