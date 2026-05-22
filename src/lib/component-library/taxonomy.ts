@@ -10,6 +10,16 @@ export type ComponentLibraryTaxonomyNode = {
   children?: ComponentLibraryTaxonomyNode[];
 };
 
+export type ComponentLibraryCategoryRow = {
+  id: string;
+  parent_id: string | null;
+  label: string;
+  node_type: "organizer" | "category" | "subcategory";
+  sort_order: number;
+  code: string | null;
+  metadata: unknown;
+};
+
 type RawTaxonomyChild = string | RawTaxonomyNode;
 
 type RawTaxonomyNode = {
@@ -103,3 +113,67 @@ export const componentCategoryTree: ComponentLibraryTaxonomyNode[] = componentTa
 }));
 
 export const componentCategoryTaxonomyVersion = componentTaxonomy.version;
+
+function readStringArray(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return value.filter((entry): entry is string => typeof entry === "string");
+}
+
+function readMetadataRecord(metadata: unknown): Record<string, unknown> {
+  if (!metadata || typeof metadata !== "object" || Array.isArray(metadata)) return {};
+  return metadata as Record<string, unknown>;
+}
+
+export function buildComponentCategoryTreeFromRows(rows: ComponentLibraryCategoryRow[]): ComponentLibraryTaxonomyNode[] {
+  if (rows.length === 0) return componentCategoryTree;
+
+  const nodesById = new Map<string, ComponentLibraryTaxonomyNode>();
+  const rowsByParentId = new Map<string | null, ComponentLibraryCategoryRow[]>();
+
+  for (const row of rows) {
+    const metadata = readMetadataRecord(row.metadata);
+    nodesById.set(row.id, {
+      id: row.id,
+      label: row.label,
+      code: row.code ?? undefined,
+      kind: row.node_type,
+      meta: typeof metadata.meta === "string" ? metadata.meta : undefined,
+      aliases: readStringArray(metadata.aliases),
+      children: [],
+    });
+    const siblings = rowsByParentId.get(row.parent_id) ?? [];
+    siblings.push(row);
+    rowsByParentId.set(row.parent_id, siblings);
+  }
+
+  for (const siblings of rowsByParentId.values()) {
+    siblings.sort((left, right) => left.sort_order - right.sort_order || left.label.localeCompare(right.label));
+  }
+
+  function attachChildren(parentId: string | null): ComponentLibraryTaxonomyNode[] {
+    return (rowsByParentId.get(parentId) ?? []).flatMap((row) => {
+      const node = nodesById.get(row.id);
+      if (!node) return [];
+      const children = attachChildren(row.id);
+      return [{ ...node, children: children.length ? children : undefined }];
+    });
+  }
+
+  const tree = attachChildren(null);
+  return tree.length ? tree : componentCategoryTree;
+}
+
+export function findComponentCategoryPath(
+  nodes: ComponentLibraryTaxonomyNode[],
+  nodeId: string,
+  currentPath: string[] = [],
+): string[] | null {
+  for (const node of nodes) {
+    const nextPath = [...currentPath, node.label];
+    if (node.id === nodeId) return nextPath;
+    const childPath = findComponentCategoryPath(node.children ?? [], nodeId, nextPath);
+    if (childPath) return childPath;
+  }
+
+  return null;
+}

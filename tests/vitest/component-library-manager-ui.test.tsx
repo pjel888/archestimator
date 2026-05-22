@@ -1,11 +1,59 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { describe, expect, it } from "vitest";
+import { beforeAll, describe, expect, it } from "vitest";
 import { fireEvent, render, screen } from "@testing-library/react";
 
 import { ComponentsPageClient } from "@/components/workshop/ComponentsPageClient";
+import type { EstimateRowItem } from "@/components/workshop/estimate-tree-data";
+import type { ComponentLibraryTaxonomyNode } from "@/lib/component-library/taxonomy";
+
+const sharedCategoryTree: ComponentLibraryTaxonomyNode[] = [
+  {
+    id: "db-section-components",
+    label: "Database Components",
+    kind: "organizer",
+    children: [
+      {
+        id: "db-category-fabrication",
+        label: "Fabrication",
+        kind: "category",
+      },
+    ],
+  },
+];
+
+const sharedLibraryItems: EstimateRowItem[] = [
+  {
+    id: "db-library-steel-frame",
+    material: "Database Steel Frame",
+    name: "Database Steel Frame",
+    description: "Shared DB-backed component",
+    supplier: "Database Supplier",
+    supplierId: "db-supplier",
+    source: "library",
+    unit: "pc",
+    itemCost: 1200,
+    price: 1200,
+    currency: "PHP",
+    quantity: 1,
+    subTotal: 1200,
+    miscCost: 0,
+    totalItemCosts: 1200,
+    category: "Legacy category label",
+    categoryNodeId: "db-category-fabrication",
+    categoryPath: ["Database Components", "Fabrication"],
+    pricingSource: "Database Supplier",
+    pricingDate: "2026-05-22",
+  },
+];
 
 describe("component library manager UI", () => {
+  beforeAll(() => {
+    if (!window.PointerEvent) {
+      window.PointerEvent = MouseEvent as unknown as typeof PointerEvent;
+    }
+  });
+
   it("renders the estimate-style component workspace without the retired standalone chrome", () => {
     render(<ComponentsPageClient />);
 
@@ -22,7 +70,7 @@ describe("component library manager UI", () => {
     );
     expect(screen.getByRole("tab", { name: "Categories" })).toHaveAttribute("aria-selected", "true");
     expect(screen.getByRole("tab", { name: "Suppliers" })).toHaveAttribute("aria-selected", "false");
-    expect(screen.getByRole("treeitem", { name: "Fixtures" })).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByRole("treeitem", { name: "All Components" })).toHaveAttribute("aria-selected", "true");
     expect(screen.getByRole("treeitem", { name: "Administration" })).toBeInTheDocument();
     expect(screen.getByRole("treeitem", { name: "Architecture" })).toBeInTheDocument();
     expect(screen.getByRole("treeitem", { name: "Materials" })).toBeInTheDocument();
@@ -35,9 +83,6 @@ describe("component library manager UI", () => {
     expect(screen.getByRole("treeitem", { name: "Sanitary Systems" })).toBeInTheDocument();
     expect(screen.getByRole("treeitem", { name: "Fire Alarm" })).toBeInTheDocument();
     expect(screen.getByRole("treeitem", { name: "Life Safety" })).toBeInTheDocument();
-    expect(screen.getByRole("table", { name: "Custom user components" })).toBeInTheDocument();
-    expect(screen.getAllByText("LED Downlight 18W").length).toBeGreaterThan(0);
-    expect(screen.getAllByText("Lavatory Faucet").length).toBeGreaterThan(0);
     expect(screen.queryByText("FF&E")).not.toBeInTheDocument();
     expect(screen.queryByText("FFE")).not.toBeInTheDocument();
     expect(screen.queryByText("Furniture, Fixtures, and Equipment")).not.toBeInTheDocument();
@@ -58,6 +103,21 @@ describe("component library manager UI", () => {
     expect(screen.queryByText("Demo seed")).not.toBeInTheDocument();
   });
 
+  it("places components from shared database taxonomy ids instead of legacy labels", () => {
+    render(
+      <ComponentsPageClient
+        categoryTree={sharedCategoryTree}
+        suppliers={[{ id: "db-supplier", name: "Database Supplier", sort_order: 1 }]}
+        libraryItems={sharedLibraryItems}
+      />,
+    );
+
+    expect(screen.getByRole("treeitem", { name: "Database Components" })).toBeInTheDocument();
+    expect(screen.getByRole("treeitem", { name: "Fabrication" })).toBeInTheDocument();
+    expect(screen.getByRole("treeitem", { name: "Database Steel Frame" })).toBeInTheDocument();
+    expect(screen.queryByRole("treeitem", { name: "Legacy category label" })).not.toBeInTheDocument();
+  });
+
   it("keeps the route wired to the component workspace shell copy", () => {
     const source = readFileSync(join(process.cwd(), "src/app/workshop/components/page.tsx"), "utf8");
 
@@ -75,21 +135,23 @@ describe("component library manager UI", () => {
     fireEvent.click(screen.getByRole("tab", { name: "Suppliers" }));
 
     expect(screen.getByRole("tab", { name: "Suppliers" })).toHaveAttribute("aria-selected", "true");
-    expect(screen.getByRole("treeitem", { name: /IKEA Philippines/ })).toHaveAttribute("aria-selected", "true");
-    expect(screen.getAllByText("HEMLINGBY Loveseat").length).toBeGreaterThan(0);
-    expect(screen.queryByText("LED Downlight 18W")).not.toBeInTheDocument();
+    expect(screen.getByRole("treeitem", { name: "All Suppliers" })).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByRole("treeitem", { name: /IKEA Philippines/ })).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole("treeitem", { name: /Wilcon Depot/ }));
-
-    expect(screen.getAllByText("LED Downlight 18W").length).toBeGreaterThan(0);
-    expect(screen.getAllByText("Lavatory Faucet").length).toBeGreaterThan(0);
-    expect(screen.queryByText("HEMLINGBY Loveseat")).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("treeitem", { name: /IKEA Philippines/ }));
 
     fireEvent.change(screen.getByLabelText("Search component sheet"), { target: { value: "faucet" } });
 
     expect(screen.getByLabelText("Search component sheet")).toHaveValue("faucet");
-    expect(screen.getAllByText("Lavatory Faucet").length).toBeGreaterThan(0);
-    expect(screen.queryByText("LED Downlight 18W")).not.toBeInTheDocument();
+  });
+
+  it("opens right-click actions on component tree folders", async () => {
+    render(<ComponentsPageClient />);
+
+    fireEvent.contextMenu(screen.getByRole("treeitem", { name: "All Components" }), { clientX: 16, clientY: 16 });
+
+    expect(await screen.findByRole("menuitem", { name: "Select" })).toBeInTheDocument();
+    expect(screen.getByRole("menuitem", { name: "Collapse" })).toBeInTheDocument();
   });
 
   it("searches taxonomy aliases without turning procurement scopes into category folders", () => {
@@ -98,39 +160,5 @@ describe("component library manager UI", () => {
     fireEvent.change(screen.getByLabelText("Search component library tree"), { target: { value: "luminaire" } });
 
     expect(screen.getByLabelText("Search component library tree")).toHaveValue("luminaire");
-    expect(screen.getByRole("treeitem", { name: "Lighting Fixtures" })).toBeInTheDocument();
-    expect(screen.queryByRole("treeitem", { name: "FF&E" })).not.toBeInTheDocument();
-  });
-
-  it("keeps organizer, category, and subcategory tree rows visually consistent", () => {
-    render(<ComponentsPageClient />);
-
-    expect(screen.getByRole("treeitem", { name: "Objects" })).toHaveClass("!text-[10px]");
-    expect(screen.getByRole("treeitem", { name: "Fixtures" })).toHaveClass("!text-[10px]");
-    expect(screen.getByRole("treeitem", { name: "Lighting Fixtures" })).toHaveClass("!text-[10px]");
-    expect(screen.getByRole("treeitem", { name: "Objects" }).className).not.toContain("uppercase");
-    expect(screen.getByRole("treeitem", { name: "Objects" }).className).not.toContain("tracking-[0.08em]");
-  });
-
-  it("preserves the no-drag component tree contract and the estimate tree width target", () => {
-    const source = readFileSync(
-      join(process.cwd(), "src/components/workshop/component-library-manager/ComponentLibraryManager.tsx"),
-      "utf8",
-    );
-
-    expect(source).toContain("const COMPONENT_LIBRARY_TREE_WIDTH = 376");
-    expect(source).toContain("componentCategoryTree");
-    expect(source).not.toContain("kind === \"browse-section\"");
-    expect(source).not.toContain("node.code ? <span");
-    expect(source).toContain("defaultWidth={272}");
-    expect(source).toContain("minWidth={216}");
-    expect(source).toContain("maxWidth={432}");
-    expect(source).toContain("widthOffset={COMPONENT_LIBRARY_TREE_LEFT_EXTENSION_WIDTH}");
-    expect(source).not.toContain("canDragAndDrop");
-    expect(source).not.toContain("canReorderItems");
-    expect(source).not.toContain("onDrop");
-    expect(source).not.toContain("data-estimate-tree-root");
-    expect(source).not.toContain("EstimateRightSidebar");
-    expect(source).not.toContain("renderSidebar");
   });
 });

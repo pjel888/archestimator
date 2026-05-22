@@ -57,8 +57,7 @@ export type NewComponentForm = {
   description: string;
   tags: string;
   imageUrl: string;
-  laborCost: string;
-  supplementaryCosts: string;
+  miscCost: string;
   sku: string;
   sourceUrl: string;
   notes: string;

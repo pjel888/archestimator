@@ -73,11 +73,8 @@ export function NewComponentForm({ form, formError, onChange, onSave, onSaveAndA
         <Field label="Designation">
           <ControlInput className={inputClass} value={form.designation} onChange={(e) => update({ designation: e.target.value })} />
         </Field>
-        <Field label="Labor default">
-          <ControlInput className={inputClass} inputMode="decimal" value={form.laborCost} onChange={(e) => update({ laborCost: e.target.value })} />
-        </Field>
-        <Field label="Other cost default">
-          <ControlInput className={inputClass} inputMode="decimal" value={form.supplementaryCosts} onChange={(e) => update({ supplementaryCosts: e.target.value })} />
+        <Field label="Misc cost default">
+          <ControlInput className={inputClass} inputMode="decimal" value={form.miscCost} onChange={(e) => update({ miscCost: e.target.value })} />
         </Field>
         <Field label="SKU / Reference">
           <ControlInput className={inputClass} value={form.sku} onChange={(e) => update({ sku: e.target.value })} />

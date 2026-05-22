@@ -14,24 +14,116 @@ export type Database = {
   }
   public: {
     Tables: {
+      component_category_nodes: {
+        Row: {
+          code: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          label: string
+          metadata: Json
+          node_type: "organizer" | "category" | "subcategory"
+          parent_id: string | null
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          code?: string | null
+          created_at?: string
+          created_by?: string | null
+          id: string
+          label: string
+          metadata?: Json
+          node_type: "organizer" | "category" | "subcategory"
+          parent_id?: string | null
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          code?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          label?: string
+          metadata?: Json
+          node_type?: "organizer" | "category" | "subcategory"
+          parent_id?: string | null
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "component_category_nodes_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "component_category_nodes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      component_suppliers: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          metadata: Json
+          name: string
+          normalized_name: string
+          sort_order: number
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          metadata?: Json
+          name: string
+          normalized_name: string
+          sort_order?: number
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          metadata?: Json
+          name?: string
+          normalized_name?: string
+          sort_order?: number
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "component_suppliers_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       cost_library_items: {
         Row: {
           brand: string | null
           category: string
+          category_node_id: string | null
           confidence: string | null
           created_at: string
           created_by: string | null
           description: string
           id: string
           kind: Database["public"]["Enums"]["cost_library_item_kind"]
-          labor_cost: number
           metadata: Json
+          misc_cost: number
           name: string
           pricing_date: string | null
           pricing_source: string | null
           sku: string | null
-          supplementary_cost: number
           supplier: string | null
+          supplier_id: string | null
           thumbnail_path: string | null
           unit: string
           unit_cost: number
@@ -41,20 +133,21 @@ export type Database = {
         Insert: {
           brand?: string | null
           category?: string
+          category_node_id?: string | null
           confidence?: string | null
           created_at?: string
           created_by?: string | null
           description?: string
           id?: string
           kind?: Database["public"]["Enums"]["cost_library_item_kind"]
-          labor_cost?: number
           metadata?: Json
+          misc_cost?: number
           name: string
           pricing_date?: string | null
           pricing_source?: string | null
           sku?: string | null
-          supplementary_cost?: number
           supplier?: string | null
+          supplier_id?: string | null
           thumbnail_path?: string | null
           unit?: string
           unit_cost?: number
@@ -64,20 +157,21 @@ export type Database = {
         Update: {
           brand?: string | null
           category?: string
+          category_node_id?: string | null
           confidence?: string | null
           created_at?: string
           created_by?: string | null
           description?: string
           id?: string
           kind?: Database["public"]["Enums"]["cost_library_item_kind"]
-          labor_cost?: number
           metadata?: Json
+          misc_cost?: number
           name?: string
           pricing_date?: string | null
           pricing_source?: string | null
           sku?: string | null
-          supplementary_cost?: number
           supplier?: string | null
+          supplier_id?: string | null
           thumbnail_path?: string | null
           unit?: string
           unit_cost?: number
@@ -85,6 +179,20 @@ export type Database = {
           workspace_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "cost_library_items_category_node_id_fkey"
+            columns: ["category_node_id"]
+            isOneToOne: false
+            referencedRelation: "component_category_nodes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cost_library_items_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "component_suppliers"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "cost_library_items_workspace_id_fkey"
             columns: ["workspace_id"]
@@ -147,72 +255,82 @@ export type Database = {
       }
       estimate_row_items: {
         Row: {
+          category_node_id: string | null
           created_at: string
           description: string
           designation: string
           discipline: string
           estimate_id: string
           id: string
-          labor_cost: number
           link_state: Database["public"]["Enums"]["estimate_row_link_state"]
           material: string
           metadata: Json
+          misc_cost: number
           node_id: string
           quantity: number
           sort_order: number
           source_library_item_id: string | null
           source_snapshot: Json | null
-          supplementary_cost: number
           supplier: string
+          supplier_id: string | null
           unit: string
           unit_cost: number
           updated_at: string
         }
         Insert: {
+          category_node_id?: string | null
           created_at?: string
           description?: string
           designation?: string
           discipline?: string
           estimate_id: string
           id?: string
-          labor_cost?: number
           link_state?: Database["public"]["Enums"]["estimate_row_link_state"]
           material?: string
           metadata?: Json
+          misc_cost?: number
           node_id: string
           quantity?: number
           sort_order?: number
           source_library_item_id?: string | null
           source_snapshot?: Json | null
-          supplementary_cost?: number
           supplier?: string
+          supplier_id?: string | null
           unit?: string
           unit_cost?: number
           updated_at?: string
         }
         Update: {
+          category_node_id?: string | null
           created_at?: string
           description?: string
           designation?: string
           discipline?: string
           estimate_id?: string
           id?: string
-          labor_cost?: number
           link_state?: Database["public"]["Enums"]["estimate_row_link_state"]
           material?: string
           metadata?: Json
+          misc_cost?: number
           node_id?: string
           quantity?: number
           sort_order?: number
           source_library_item_id?: string | null
           source_snapshot?: Json | null
-          supplementary_cost?: number
           supplier?: string
+          supplier_id?: string | null
           unit?: string
           unit_cost?: number
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "estimate_row_items_category_node_id_fkey"
+            columns: ["category_node_id"]
+            isOneToOne: false
+            referencedRelation: "component_category_nodes"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "estimate_row_items_estimate_id_fkey"
             columns: ["estimate_id"]
@@ -232,6 +350,13 @@ export type Database = {
             columns: ["source_library_item_id"]
             isOneToOne: false
             referencedRelation: "cost_library_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "estimate_row_items_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "component_suppliers"
             referencedColumns: ["id"]
           },
         ]

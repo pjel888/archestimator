@@ -1,10 +1,13 @@
 import { WorkshopPageShell } from "@/components/workshop/WorkshopPageShell";
 import { ComponentsPageClient } from "@/components/workshop/ComponentsPageClient";
+import { getCurrentWorkspaceComponentLibrary } from "@/lib/repositories/component-library-repository";
 
-export default function ComponentsPage() {
+export default async function ComponentsPage() {
+  const componentLibrary = await getCurrentWorkspaceComponentLibrary();
+
   return (
     <WorkshopPageShell
-      title="Components"
+      title="Component Library"
       eyebrow="Library"
       showEyebrow={false}
       breadcrumbs={["Components"]}
@@ -15,7 +18,11 @@ export default function ComponentsPage() {
         </>
       }
     >
-      <ComponentsPageClient />
+      <ComponentsPageClient
+        categoryTree={componentLibrary.categoryTree}
+        suppliers={componentLibrary.suppliers}
+        libraryItems={componentLibrary.libraryItems}
+      />
     </WorkshopPageShell>
   );
 }
