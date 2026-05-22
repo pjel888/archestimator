@@ -22,7 +22,7 @@ export default async function PricingPage() {
     "Create and organize unlimited projects",
     "Build custom multi-sheet estimates within projects",
     "Nest unlimited cost groups and work breakdown areas",
-    "Edit quantities, supplementary costs, labor rates, and designation info",
+    "Edit quantities and Misc Cost allowances",
     "Access and search the early Component Library flow",
     "Protected login and secure data persistence"
   ];

@@ -64,9 +64,9 @@ export default async function FeaturesPage() {
       description: "Perform itemized cost takeoffs directly within the designated sections of the project tree.",
       problem: "Replaces disconnected rows where you don't know which rate belongs to which scope.",
       details: [
-        "Edit quantities, supplementary costs, labor rates, and designations.",
+        "Edit quantities and Misc Cost allowances.",
         "Auto-calculating running totals that update instantly across the tree.",
-        "Separate material, labor, and subcontractor cost tracking."
+        "Track row-level base cost and miscellaneous allowances without extra columns."
       ]
     },
     {
