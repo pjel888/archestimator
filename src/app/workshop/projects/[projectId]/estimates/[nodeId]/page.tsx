@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { ProjectEstimateMetadataPublisher } from "@/components/workshop/ProjectEstimateMetadataStrip";
 import { EstimateSheetContent } from "@/components/workshop/EstimateSheetContent";
 import { EstimateSheetTree } from "@/components/workshop/EstimateSheetTree";
+import { getCurrentWorkspaceComponentLibrary } from "@/lib/repositories/component-library-repository";
 import { getProjectEstimateTreeByNode } from "@/lib/repositories/workspace-repository";
 import type { Json } from "@/lib/supabase/types";
 
@@ -24,7 +25,11 @@ function readEstimateVersionLabel(metadata: Json): string {
 
 export default async function ProjectEstimateNodePage({ params }: ProjectEstimateNodePageProps) {
   const { projectId, nodeId } = await params;
-  const { project, estimate, selectedNodeId, tree } = await getProjectEstimateTreeByNode(projectId, nodeId);
+  const [estimateTreeResult, componentLibrary] = await Promise.all([
+    getProjectEstimateTreeByNode(projectId, nodeId),
+    getCurrentWorkspaceComponentLibrary(),
+  ]);
+  const { project, estimate, selectedNodeId, tree } = estimateTreeResult;
 
   if (!project || !estimate) notFound();
 
@@ -39,7 +44,15 @@ export default async function ProjectEstimateNodePage({ params }: ProjectEstimat
       <ProjectEstimateMetadataPublisher metadata={estimateMetadata} />
       <section className="flex h-full min-h-0 overflow-hidden bg-white" aria-label={`${project.name} estimates`}>
         <EstimateSheetTree projectId={project.id} estimateId={estimate.id} projectName={project.name} selectedNodeId={selectedNodeId} nodes={tree} />
-        <EstimateSheetContent selectedNodeId={selectedNodeId} nodes={tree} projectId={project.id} estimateId={estimate.id} />
+        <EstimateSheetContent
+          selectedNodeId={selectedNodeId}
+          nodes={tree}
+          projectId={project.id}
+          estimateId={estimate.id}
+          libraryItems={componentLibrary.libraryItems}
+          libraryCategoryTree={componentLibrary.categoryTree}
+          librarySuppliers={componentLibrary.suppliers}
+        />
       </section>
     </>
   );

@@ -221,13 +221,10 @@ export function createComponent(form: NewComponentForm): { component?: EstimateR
   if (!form.unit.trim()) return { error: "Unit is required." };
   const itemCostResult = parseRequiredNonNegative(form.itemCost, "Base price");
   if (itemCostResult.error) return { error: itemCostResult.error };
-  const laborCostResult = parseOptionalNonNegative(form.laborCost, "Labor default");
-  if (laborCostResult.error) return { error: laborCostResult.error };
-  const supplementaryCostsResult = parseOptionalNonNegative(form.supplementaryCosts, "Other cost default");
-  if (supplementaryCostsResult.error) return { error: supplementaryCostsResult.error };
+  const miscCostResult = parseOptionalNonNegative(form.miscCost, "Misc cost default");
+  if (miscCostResult.error) return { error: miscCostResult.error };
   const itemCost = itemCostResult.value ?? 0;
-  const laborCost = laborCostResult.value ?? 0;
-  const supplementaryCosts = supplementaryCostsResult.value ?? 0;
+  const miscCost = miscCostResult.value ?? 0;
   const subTotal = itemCost;
   const now = new Date().toISOString();
   return {
@@ -243,11 +240,9 @@ export function createComponent(form: NewComponentForm): { component?: EstimateR
       currency: form.currency || "PHP",
       quantity: 1,
       subTotal,
-      supplementaryCosts,
-      laborCost,
-      laborCostDefault: laborCost,
-      otherCostDefault: supplementaryCosts,
-      totalItemCosts: subTotal + supplementaryCosts + laborCost,
+      miscCost,
+      miscCostDefault: miscCost,
+      totalItemCosts: subTotal + miscCost,
       description: form.description.trim(),
       source: "library",
       discipline: form.discipline,
@@ -264,10 +259,9 @@ export function createComponent(form: NewComponentForm): { component?: EstimateR
         unit: form.unit.trim(),
         itemCost,
         quantity: 1,
-        supplementaryCosts,
-        laborCost,
+        miscCost,
         subTotal,
-        totalItemCosts: subTotal + supplementaryCosts + laborCost,
+        totalItemCosts: subTotal + miscCost,
         description: form.description.trim(),
         id: "component-image-preview",
         pricingSource: "User-created component",
@@ -335,8 +329,7 @@ function normalizeImportRecord(record: Record<string, unknown>, index: number, s
   if (!Number.isFinite(itemCost)) return { error: `Row ${index + 1}: price is required.` };
 
   const quantity = Math.max(1, parseImportNumber(firstValue(record, ["quantity"]), 1));
-  const laborCost = parseImportNumber(firstValue(record, ["laborCost", "labor cost", "labor"]), 0);
-  const supplementaryCosts = parseImportNumber(firstValue(record, ["supplementaryCosts", "supplementary costs", "otherCost", "other cost"]), 0);
+  const miscCost = parseImportNumber(firstValue(record, ["miscCost", "misc cost", "misc"]), 0);
   const subTotal = itemCost * quantity;
   const now = new Date().toISOString();
   const tagsValue = firstValue(record, ["tags"]);
@@ -360,11 +353,9 @@ function normalizeImportRecord(record: Record<string, unknown>, index: number, s
     currency: firstString(record, ["currency"]) || "PHP",
     quantity,
     subTotal,
-    supplementaryCosts,
-    laborCost,
-    laborCostDefault: laborCost,
-    otherCostDefault: supplementaryCosts,
-    totalItemCosts: subTotal + supplementaryCosts + laborCost,
+    miscCost,
+    miscCostDefault: miscCost,
+    totalItemCosts: subTotal + miscCost,
     imageUrl: firstString(record, ["imageUrl", "image url", "image", "thumbnail"]) || undefined,
     category,
     discipline: firstString(record, ["discipline"]) || undefined,
@@ -495,8 +486,7 @@ export function exportLibraryItemsToCsv(items: EstimateRowItem[]) {
     "supplier",
     "discipline",
     "designation",
-    "laborCost",
-    "supplementaryCosts",
+    "miscCost",
     "pricingSource",
     "pricingDate",
     "tags",
@@ -515,8 +505,7 @@ export function exportLibraryItemsToCsv(items: EstimateRowItem[]) {
     item.supplier,
     getComponentDiscipline(item),
     getComponentDesignation(item),
-    item.laborCost,
-    item.supplementaryCosts,
+    item.miscCost,
     item.pricingSource,
     item.pricingDate,
     item.tags ?? [],
@@ -606,7 +595,7 @@ export function expandLibraryBundle(bundle: LibraryBundle, items: EstimateRowIte
 }
 
 export function getLibraryRowTotal(item: EstimateRowItem) {
-  return getComponentPrice(item) * Math.max(1, item.quantity || 1) + (item.supplementaryCosts ?? 0) + (item.laborCost ?? 0);
+  return getComponentPrice(item) * Math.max(1, item.quantity || 1) + (item.miscCost ?? 0);
 }
 
 export function getLibraryBundleTotal(bundle: LibraryBundle, items: EstimateRowItem[]) {
@@ -640,8 +629,7 @@ export const defaultForm: NewComponentForm = {
   description: "",
   tags: "",
   imageUrl: "",
-  laborCost: "0",
-  supplementaryCosts: "0",
+  miscCost: "0",
   sku: "",
   sourceUrl: "",
   notes: "",

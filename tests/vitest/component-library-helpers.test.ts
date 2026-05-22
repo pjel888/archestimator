@@ -28,8 +28,7 @@ const base = {
   source: "library" as const,
   quantity: 1,
   subTotal: 0,
-  supplementaryCosts: 0,
-  laborCost: 0,
+  miscCost: 0,
   totalItemCosts: 0,
   pricingSource: "test",
   pricingDate: "2026-05-18",
@@ -62,12 +61,13 @@ describe("component library helpers", () => {
   });
 
   it("validates and creates custom components", () => {
-    expect(createComponent({ material: "", category: "Finishes", supplier: "", unit: "pc", itemCost: "10", currency: "PHP", discipline: "Architectural", designation: "Floor", description: "", tags: "", imageUrl: "", laborCost: "0", supplementaryCosts: "0", sku: "", sourceUrl: "", notes: "" }).error).toMatch(/required/i);
-    expect(createComponent({ material: "Bad Cost", category: "Finishes", supplier: "", unit: "pc", itemCost: "abc", currency: "PHP", discipline: "Architectural", designation: "Floor", description: "", tags: "", imageUrl: "", laborCost: "0", supplementaryCosts: "0", sku: "", sourceUrl: "", notes: "" }).error).toMatch(/base price/i);
-    expect(createComponent({ material: "Bad Labor", category: "Finishes", supplier: "", unit: "pc", itemCost: "10", currency: "PHP", discipline: "Architectural", designation: "Floor", description: "", tags: "", imageUrl: "", laborCost: "-1", supplementaryCosts: "0", sku: "", sourceUrl: "", notes: "" }).error).toMatch(/labor default/i);
-    const result = createComponent({ material: "Custom Counter", category: "Cabinetry", supplier: "Project", unit: "lm", itemCost: "12500", currency: "PHP", discipline: "Architectural", designation: "Counter", description: "Counter allowance", tags: "counter, custom", imageUrl: "", laborCost: "1500", supplementaryCosts: "500", sku: "CC-1", sourceUrl: "https://example.com", notes: "Verify quote" });
+    expect(createComponent({ material: "", category: "Finishes", supplier: "", unit: "pc", itemCost: "10", currency: "PHP", discipline: "Architectural", designation: "Floor", description: "", tags: "", imageUrl: "", miscCost: "0", sku: "", sourceUrl: "", notes: "" }).error).toMatch(/required/i);
+    expect(createComponent({ material: "Bad Cost", category: "Finishes", supplier: "", unit: "pc", itemCost: "abc", currency: "PHP", discipline: "Architectural", designation: "Floor", description: "", tags: "", imageUrl: "", miscCost: "0", sku: "", sourceUrl: "", notes: "" }).error).toMatch(/base price/i);
+    expect(createComponent({ material: "Bad Misc", category: "Finishes", supplier: "", unit: "pc", itemCost: "10", currency: "PHP", discipline: "Architectural", designation: "Floor", description: "", tags: "", imageUrl: "", miscCost: "-1", sku: "", sourceUrl: "", notes: "" }).error).toMatch(/misc cost/i);
+    const result = createComponent({ material: "Custom Counter", category: "Cabinetry", supplier: "Project", unit: "lm", itemCost: "12500", currency: "PHP", discipline: "Architectural", designation: "Counter", description: "Counter allowance", tags: "counter, custom", imageUrl: "", miscCost: "2000", sku: "CC-1", sourceUrl: "https://example.com", notes: "Verify quote" });
     expect(result.component?.isCustom).toBe(true);
     expect(result.component?.totalItemCosts).toBe(14500);
+    expect(result.component?.miscCost).toBe(2000);
     expect(result.component?.tags).toEqual(["counter", "custom"]);
     expect(result.component?.imageUrl).toMatch(/^https:\/\//);
   });
@@ -100,9 +100,9 @@ describe("component library helpers", () => {
 
   it("parses CSV and JSON imports into complete library row items", () => {
     const csv = [
-      "name,category,unit,price,supplier,quantity,labor cost,other cost,tags",
-      "\"Imported Pendant\",Lighting Fixtures,pc,1500,Firefly,2,100,50,\"lighting,ceiling\"",
-      "Missing Price,Finishes,sqm,,Supplier,1,0,0,",
+      "name,category,unit,price,supplier,quantity,misc cost,tags",
+      "\"Imported Pendant\",Lighting Fixtures,pc,1500,Firefly,2,150,\"lighting,ceiling\"",
+      "Missing Price,Finishes,sqm,,Supplier,1,0,",
     ].join("\n");
     const csvResult = parseLibraryCsv(csv);
     expect(csvResult.items).toHaveLength(1);
@@ -127,6 +127,22 @@ describe("component library helpers", () => {
     expect(jsonResult.items[0].id).toBe("json-sink");
     expect(jsonResult.bundles[0]).toMatchObject({ id: "json-bath", kind: "assembly", name: "JSON bath" });
     expect(jsonResult.bundles[0].items).toEqual([{ itemId: "json-sink", quantity: 2 }]);
+  });
+
+  it("does not treat retired split cost import columns as misc cost", () => {
+    const csv = [
+      "name,category,unit,price,supplier,quantity,labor cost,other cost,tags",
+      "\"Legacy Pendant\",Lighting Fixtures,pc,1500,Firefly,2,100,50,\"lighting\"",
+    ].join("\n");
+
+    const csvResult = parseLibraryCsv(csv);
+
+    expect(csvResult.items).toHaveLength(1);
+    expect(csvResult.items[0]).toMatchObject({
+      material: "Legacy Pendant",
+      miscCost: 0,
+      totalItemCosts: 3000,
+    });
   });
 
   it("exports a versioned library payload with bundles", () => {
