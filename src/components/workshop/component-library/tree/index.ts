@@ -1,7 +1,11 @@
 export { LibraryTree } from "./LibraryTree";
 export { LibraryFolderRow } from "./LibraryFolderRow";
 export { LibraryItemRow } from "./LibraryItemRow";
-export { buildLibraryTree } from "./buildLibraryTree";
+export {
+  buildComponentLibraryNavigationTree,
+  buildLibraryTreeWithComponentRows,
+  getLibraryItemsForTreeNode,
+} from "./buildLibraryTree";
 export {
   matchesQuery,
   filterTree,

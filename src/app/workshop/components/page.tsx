@@ -22,6 +22,7 @@ export default async function ComponentsPage() {
         categoryTree={componentLibrary.categoryTree}
         suppliers={componentLibrary.suppliers}
         libraryItems={componentLibrary.libraryItems}
+        templates={componentLibrary.templates}
       />
     </WorkshopPageShell>
   );

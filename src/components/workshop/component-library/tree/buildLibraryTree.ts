@@ -8,9 +8,13 @@ export type ComponentLibrarySupplierOption = {
   sort_order?: number | null;
 };
 
-export type BuildLibraryTreeOptions = {
+export type ComponentLibraryTreeSourceOptions = {
   categoryTree?: ComponentLibraryTaxonomyNode[];
   suppliers?: ComponentLibrarySupplierOption[];
+};
+
+type BuildLibraryTreeOptions = ComponentLibraryTreeSourceOptions & {
+  includeComponentRows?: boolean;
 };
 
 function normalizeLabel(value: string): string {
@@ -68,6 +72,22 @@ function findNodeById(nodes: LibraryTreeNode[], nodeId: string): LibraryTreeNode
     if (child) return child;
   }
   return null;
+}
+
+function collectItemsFromNode(node: LibraryTreeNode): EstimateRowItem[] {
+  const itemsById = new Map<string, EstimateRowItem>();
+
+  function visit(current: LibraryTreeNode) {
+    if (current.item) {
+      itemsById.set(current.item.id, current.item);
+      return;
+    }
+
+    for (const child of current.children ?? []) visit(child);
+  }
+
+  visit(node);
+  return Array.from(itemsById.values());
 }
 
 function cloneTree(nodes: LibraryTreeNode[]): LibraryTreeNode[] {
@@ -165,13 +185,29 @@ function sortComponentRowsOnly(nodes: LibraryTreeNode[]): LibraryTreeNode[] {
   });
 }
 
+function stripComponentRows(nodes: LibraryTreeNode[]): LibraryTreeNode[] {
+  return nodes.flatMap((node) => {
+    if (node.item) return [];
+    return [
+      {
+        ...node,
+        children: node.children ? stripComponentRows(node.children) : undefined,
+      },
+    ];
+  });
+}
+
 /* ─── Suppliers tree ─── */
 
 function normalizeSupplierKey(value: string): string {
   return normalizeLabel(value).replace(/\s+/g, "-");
 }
 
-function buildSupplierTree(items: EstimateRowItem[], suppliers: ComponentLibrarySupplierOption[] = []): LibraryTreeNode[] {
+function buildSupplierTree(
+  items: EstimateRowItem[],
+  suppliers: ComponentLibrarySupplierOption[] = [],
+  includeComponentRows = true,
+): LibraryTreeNode[] {
   const suppliersByKey = new Map<string, ComponentLibrarySupplierOption>();
   for (const supplier of suppliers) {
     suppliersByKey.set(supplier.id, supplier);
@@ -201,12 +237,14 @@ function buildSupplierTree(items: EstimateRowItem[], suppliers: ComponentLibrary
           id: supplier.id.startsWith("supplier-") ? supplier.id : `supplier-${supplier.id}`,
           label: supplier.name,
           kind: "supplier",
-          children: supplierItems.map((item) => ({
-            id: item.id,
-            label: item.name ?? item.material,
-            kind: "component",
-            item,
-          })),
+          children: includeComponentRows
+            ? supplierItems.map((item) => ({
+                id: item.id,
+                label: item.name ?? item.material,
+                kind: "component",
+                item,
+              }))
+            : undefined,
         };
       }),
     },
@@ -218,7 +256,8 @@ function buildSupplierTree(items: EstimateRowItem[], suppliers: ComponentLibrary
 function buildCustomTree(
   items: EstimateRowItem[],
   favoriteIds: string[],
-  recentIds: string[]
+  recentIds: string[],
+  includeComponentRows = true,
 ): LibraryTreeNode[] {
   const favorites = items.filter((i) => i.isFavorite || favoriteIds.includes(i.id));
   const recents = items.filter((i) => recentIds.includes(i.id) || i.lastUsedAt);
@@ -243,25 +282,25 @@ function buildCustomTree(
           id: "custom-favorites",
           label: `Favorites (${favorites.length})`,
           kind: "group",
-          children: toNodes(favorites),
+          children: includeComponentRows ? toNodes(favorites) : undefined,
         },
         {
           id: "custom-recent",
           label: `Recent (${recents.length})`,
           kind: "group",
-          children: toNodes(recents),
+          children: includeComponentRows ? toNodes(recents) : undefined,
         },
         {
           id: "custom-all",
           label: `All Custom (${custom.length})`,
           kind: "group",
-          children: toNodes(custom),
+          children: includeComponentRows ? toNodes(custom) : undefined,
         },
         {
           id: "custom-library",
           label: `Library (${items.length})`,
           kind: "group",
-          children: toNodes(items),
+          children: includeComponentRows ? toNodes(items) : undefined,
         },
       ],
     },
@@ -270,22 +309,67 @@ function buildCustomTree(
 
 /* ─── Public API ─── */
 
-export function buildLibraryTree(
+function buildLibraryTree(
   tab: LibraryTreeTab,
   items: EstimateRowItem[],
   favoriteIds: string[],
   recentIds: string[],
   options: BuildLibraryTreeOptions = {},
 ): LibraryTreeNode[] {
+  const includeComponentRows = options.includeComponentRows ?? true;
+
   if (tab === "categories") {
     const tree = buildCategoryTreeShell(options.categoryTree);
     attachComponentsToTree(tree, items, (item) => item.category);
+    if (!includeComponentRows) return stripComponentRows(tree);
+
     return sortComponentRowsOnly(tree);
   }
 
   if (tab === "suppliers") {
-    return sortTreeNodes(buildSupplierTree(items, options.suppliers));
+    return sortTreeNodes(buildSupplierTree(items, options.suppliers, includeComponentRows));
   }
 
-  return sortTreeNodes(buildCustomTree(items, favoriteIds, recentIds));
+  return sortTreeNodes(buildCustomTree(items, favoriteIds, recentIds, includeComponentRows));
+}
+
+export function buildLibraryTreeWithComponentRows(
+  tab: LibraryTreeTab,
+  items: EstimateRowItem[],
+  favoriteIds: string[],
+  recentIds: string[],
+  options: ComponentLibraryTreeSourceOptions = {},
+): LibraryTreeNode[] {
+  return buildLibraryTree(tab, items, favoriteIds, recentIds, { ...options, includeComponentRows: true });
+}
+
+export function buildComponentLibraryNavigationTree(
+  tab: LibraryTreeTab,
+  items: EstimateRowItem[],
+  favoriteIds: string[],
+  recentIds: string[],
+  options: ComponentLibraryTreeSourceOptions = {},
+): LibraryTreeNode[] {
+  return buildLibraryTree(tab, items, favoriteIds, recentIds, { ...options, includeComponentRows: false });
+}
+
+export function getLibraryItemsForTreeNode(
+  tab: LibraryTreeTab,
+  selectedNodeId: string | null,
+  items: EstimateRowItem[],
+  favoriteIds: string[],
+  recentIds: string[],
+  options: ComponentLibraryTreeSourceOptions = {},
+): EstimateRowItem[] {
+  if (!selectedNodeId || selectedNodeId === "all-components") {
+    return items;
+  }
+
+  if (selectedNodeId === "custom-root") {
+    return items.filter((item) => item.isCustom);
+  }
+
+  const tree = buildLibraryTreeWithComponentRows(tab, items, favoriteIds, recentIds, options);
+  const node = findNodeById(tree, selectedNodeId);
+  return node ? collectItemsFromNode(node) : [];
 }

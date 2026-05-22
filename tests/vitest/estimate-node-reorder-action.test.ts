@@ -617,3 +617,83 @@ describe("insertEstimateRowItemFromLibrary server action", () => {
     expect(payload).not.toHaveProperty("supplementary_cost");
   });
 });
+
+describe("insertEstimateTemplateIntoEstimate server action", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    repositoryMocks.getCurrentWorkspaceProject.mockResolvedValue({ project: { id: "project-1" } });
+    repositoryMocks.getProjectEstimateTreeByEstimate.mockResolvedValue({
+      project: { id: "project-1" },
+      estimate: { id: "estimate-1" },
+      tree: [{ id: "parent-group", name: "Ground Floor", kind: "group", total: "₱0.00", children: [] }],
+    });
+  });
+
+  it("inserts a persisted estimate template by templateId through one RPC boundary", async () => {
+    const rpcResult = {
+      inserted_root_node_ids: ["new-root-node"],
+      inserted_node_count: 2,
+      inserted_row_item_count: 1,
+    };
+    const supabase = {
+      from: vi.fn((table: string) => {
+        throw new Error(`insertEstimateTemplateIntoEstimate must not query ${table} outside the RPC.`);
+      }),
+      rpc: vi.fn(async () => ({ data: rpcResult, error: null })),
+    };
+    supabaseServerMocks.createSupabaseServerClient.mockResolvedValue(supabase);
+    const { insertEstimateTemplateIntoEstimate } = await import("@/lib/estimates/actions");
+
+    const result = await insertEstimateTemplateIntoEstimate({
+      projectId: "project-1",
+      estimateId: "estimate-1",
+      targetParentNodeId: "parent-group",
+      templateId: "template-1",
+      template: {
+        id: "attacker-template",
+        name: "Client Forgery",
+        description: "Should be ignored",
+        category: "Unsafe",
+        nodes: [{ id: "forged-node", name: "Forged", kind: "area", total: "PHP 0.00" }],
+      },
+    } as never);
+
+    expect(supabase.rpc).toHaveBeenCalledTimes(1);
+    expect(supabase.rpc).toHaveBeenCalledWith("insert_estimate_template_into_estimate", {
+      target_project_id: "project-1",
+      target_estimate_id: "estimate-1",
+      target_parent_node_id: "parent-group",
+      source_template_id: "template-1",
+    });
+    expect(supabase.from).not.toHaveBeenCalled();
+    expect(repositoryMocks.getProjectEstimateTreeByEstimate).toHaveBeenCalledWith("project-1", "estimate-1");
+    expect(result).toEqual({
+      tree: [{ id: "parent-group", name: "Ground Floor", kind: "group", total: "₱0.00", children: [] }],
+      insertedRootNodeIds: ["new-root-node"],
+    });
+  });
+
+  it("surfaces template RPC failures without attempting best-effort table cleanup", async () => {
+    const supabase = {
+      from: vi.fn((table: string) => {
+        throw new Error(`insertEstimateTemplateIntoEstimate must not query ${table} outside the RPC.`);
+      }),
+      rpc: vi.fn(async () => ({ data: null, error: new Error("Template row items must belong to area nodes.") })),
+    };
+    supabaseServerMocks.createSupabaseServerClient.mockResolvedValue(supabase);
+    const { insertEstimateTemplateIntoEstimate } = await import("@/lib/estimates/actions");
+
+    await expect(
+      insertEstimateTemplateIntoEstimate({
+        projectId: "project-1",
+        estimateId: "estimate-1",
+        targetParentNodeId: "parent-group",
+        templateId: "template-1",
+      }),
+    ).rejects.toThrow("Could not insert estimate template: Template row items must belong to area nodes.");
+
+    expect(supabase.rpc).toHaveBeenCalledTimes(1);
+    expect(supabase.from).not.toHaveBeenCalled();
+    expect(repositoryMocks.getProjectEstimateTreeByEstimate).not.toHaveBeenCalled();
+  });
+});

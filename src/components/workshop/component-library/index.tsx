@@ -15,15 +15,19 @@ import { estimateLibraryItems, findEstimateNode, type EstimateRowItem, type Esti
 import { ResizableSidePanel } from "../ResizableSidePanel";
 import { WorkshopTreeTabs } from "../workshop-tree";
 import { NewComponentForm } from "./NewComponentForm";
+import {
+  ESTIMATE_TEMPLATE_DRAG_MIME_TYPE,
+  summarizeEstimateTemplate,
+  type EstimateTemplate,
+} from "./templates";
 import type { NewComponentForm as NewComponentFormType } from "./types";
 import {
-  buildLibraryTree,
+  buildLibraryTreeWithComponentRows,
   filterTree,
   getAllNodeIds,
   LibraryTree,
 } from "./tree";
 import type { ComponentLibrarySupplierOption } from "./tree/buildLibraryTree";
-import type { LibraryTreeTab } from "./tree/types";
 import {
   createComponent,
   defaultForm,
@@ -47,7 +51,10 @@ const LIBRARY_TREE_TABS = [
   { id: "categories", label: "Categories" },
   { id: "suppliers", label: "Suppliers" },
   { id: "custom", label: "Custom" },
+  { id: "templates", label: "Templates" },
 ] as const;
+
+type EstimateLibraryTab = (typeof LIBRARY_TREE_TABS)[number]["id"];
 
 /* ─── Preview Panel ─── */
 
@@ -174,16 +181,109 @@ function PreviewPanel({
   );
 }
 
+function templateMatchesQuery(template: EstimateTemplate, query: string) {
+  if (!query.trim()) return true;
+  const normalizedQuery = query.trim().toLowerCase();
+  const nodeNames: string[] = [];
+
+  function visit(node: EstimateTreeNode) {
+    nodeNames.push(node.name);
+    node.children?.forEach(visit);
+  }
+
+  template.nodes.forEach(visit);
+  return [template.name, template.description, template.category, ...nodeNames]
+    .some((value) => value.toLowerCase().includes(normalizedQuery));
+}
+
+function TemplateSidebarList({
+  templates,
+  searchQuery,
+  canInsertTemplate,
+  targetName,
+  onAddTemplate,
+  onTemplateDragStart,
+}: {
+  templates: EstimateTemplate[];
+  searchQuery: string;
+  canInsertTemplate: boolean;
+  targetName: string;
+  onAddTemplate: (template: EstimateTemplate) => void;
+  onTemplateDragStart: (event: React.DragEvent<HTMLElement>, template: EstimateTemplate) => void;
+}) {
+  const filteredTemplates = templates.filter((template) => templateMatchesQuery(template, searchQuery));
+  const categories = Array.from(new Set(filteredTemplates.map((template) => template.category))).sort();
+
+  if (!filteredTemplates.length) {
+    return (
+      <div className="flex min-h-24 items-center justify-center border border-dashed border-hairline bg-surfaceMuted/30 px-3 text-center text-[10px] font-semibold text-tertiary">
+        No templates match this search.
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-3" aria-label="Estimate templates">
+      {categories.map((category) => (
+        <section key={category} className="space-y-1" aria-label={`${category} templates`}>
+          <p className="px-1 text-[8px] font-bold uppercase tracking-[0.14em] text-tertiary">{category}</p>
+          {filteredTemplates.filter((template) => template.category === category).map((template) => {
+            const summary = summarizeEstimateTemplate(template);
+            return (
+              <div
+                key={template.id}
+                draggable
+                onDragStart={(event) => onTemplateDragStart(event, template)}
+                className="group border border-hairline bg-white p-2 text-left transition hover:bg-surfaceMuted/40"
+                aria-label={`${template.name} estimate template`}
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="truncate text-[11px] font-bold text-ink">{template.name}</p>
+                    <p className="mt-0.5 line-clamp-2 text-[9px] leading-3 text-tertiary">{template.description}</p>
+                  </div>
+                  <Button
+                    type="button"
+                    size="sm"
+                    className="h-6 min-h-6 shrink-0 px-2 text-[9px]"
+                    disabled={!canInsertTemplate}
+                    aria-label={`Add template ${template.name} to ${targetName}`}
+                    onClick={() => onAddTemplate(template)}
+                  >
+                    Add
+                  </Button>
+                </div>
+                <div className="mt-2 flex flex-wrap gap-1 text-[8px] font-bold uppercase tracking-[0.08em] text-tertiary">
+                  <span>{summary.groupCount} groups</span>
+                  <span>{summary.areaCount} areas</span>
+                  <span>{summary.rowCount} rows</span>
+                </div>
+                <p className="mt-1 font-mono text-[10px] font-bold tabular-nums text-ink">
+                  {pesoFormatter.format(summary.total)}
+                </p>
+              </div>
+            );
+          })}
+        </section>
+      ))}
+    </div>
+  );
+}
+
 /* ─── Main Sidebar ─── */
 
 type EstimateRightSidebarProps = {
   onInsertComponent?: (item: EstimateRowItem) => boolean | void;
+  onInsertTemplate?: (template: EstimateTemplate) => boolean | void;
   estimateId?: string;
   selectedNodeId?: string | null;
   selectedNodeKind?: EstimateTreeNode["kind"] | null;
   selectedNodeName?: string | null;
+  templateTargetName?: string | null;
+  canInsertTemplate?: boolean;
   nodes?: EstimateTreeNode[];
   initialLibraryItems?: EstimateRowItem[];
+  templates?: EstimateTemplate[];
   categoryTree?: ComponentLibraryTaxonomyNode[];
   suppliers?: ComponentLibrarySupplierOption[];
 };
@@ -210,12 +310,16 @@ function componentToForm(item: EstimateRowItem): NewComponentFormType {
 
 export function EstimateRightSidebar({
   onInsertComponent,
+  onInsertTemplate,
   estimateId,
   selectedNodeId = null,
   selectedNodeKind,
   selectedNodeName,
+  templateTargetName,
+  canInsertTemplate: canInsertTemplateProp,
   nodes,
   initialLibraryItems = estimateLibraryItems,
+  templates = [],
   categoryTree = componentCategoryTree,
   suppliers = [],
 }: EstimateRightSidebarProps = {}) {
@@ -235,19 +339,20 @@ export function EstimateRightSidebar({
     }));
   });
 
-  const [activeTab, setActiveTab] = useState<LibraryTreeTab>(() => {
+  const [activeTab, setActiveTab] = useState<EstimateLibraryTab>(() => {
     if (typeof window === "undefined") return "categories";
-    const stored = localStorage.getItem("estimate_library_active_tab") as LibraryTreeTab | null;
-    return stored ?? "categories";
+    const stored = localStorage.getItem("estimate_library_active_tab") as EstimateLibraryTab | null;
+    return LIBRARY_TREE_TABS.find((tab) => tab.id === stored)?.id ?? "categories";
   });
-  const [expandedNodeIdsByTab, setExpandedNodeIdsByTab] = useState<Record<LibraryTreeTab, string[]>>(() => {
+  const [expandedNodeIdsByTab, setExpandedNodeIdsByTab] = useState<Record<EstimateLibraryTab, string[]>>(() => {
     const favoriteIds = readJsonStorage<string[]>(LIBRARY_FAVORITES_KEY, []);
     const storedRecentIds = readJsonStorage<string[]>(LIBRARY_RECENTS_KEY, []);
 
     return {
-      categories: getAllNodeIds(buildLibraryTree("categories", initialLibraryItems, favoriteIds, storedRecentIds, { categoryTree, suppliers })),
+      categories: getAllNodeIds(buildLibraryTreeWithComponentRows("categories", initialLibraryItems, favoriteIds, storedRecentIds, { categoryTree, suppliers })),
       suppliers: [],
       custom: [],
+      templates: [],
     };
   });
   const [searchQuery, setSearchQuery] = useState("");
@@ -276,6 +381,8 @@ export function EstimateRightSidebar({
   const effectiveSelectedName = selectedTargetNode?.name ?? selectedNodeName ?? "";
   const hasTargetContext = Boolean(nodes || selectedNodeKind !== undefined || selectedNodeName !== undefined);
   const canInsert = !hasTargetContext || effectiveSelectedKind === "area";
+  const canInsertTemplate = canInsertTemplateProp ?? (!hasTargetContext || effectiveSelectedKind === "group");
+  const effectiveTemplateTargetName = templateTargetName ?? (effectiveSelectedKind === "group" ? effectiveSelectedName : "") ?? "";
   const targetLabel = canInsert
     ? effectiveSelectedName
       ? `Add to ${effectiveSelectedName}`
@@ -347,7 +454,8 @@ export function EstimateRightSidebar({
   const favoriteIds = useMemo(() => libraryItems.filter((item) => item.isFavorite).map((item) => item.id), [libraryItems]);
 
   const treeNodes = useMemo(() => {
-    const tree = buildLibraryTree(activeTab, libraryItems, favoriteIds, recentIds, { categoryTree, suppliers });
+    if (activeTab === "templates") return [];
+    const tree = buildLibraryTreeWithComponentRows(activeTab, libraryItems, favoriteIds, recentIds, { categoryTree, suppliers });
     return tree;
   }, [activeTab, libraryItems, favoriteIds, recentIds, categoryTree, suppliers]);
 
@@ -403,6 +511,27 @@ export function EstimateRightSidebar({
       return insertLibraryItems([{ ...item, quantity: Math.max(1, quantity) }], [item]);
     },
     [insertLibraryItems],
+  );
+
+  const addTemplate = useCallback(
+    (template: EstimateTemplate) => {
+      if (!canInsertTemplate) {
+        setLastActionMessage("Select a Group Node before adding estimate templates.");
+        return false;
+      }
+
+      const didInsert = onInsertTemplate
+        ? onInsertTemplate(template) !== false
+        : window.dispatchEvent(new CustomEvent("archestimator:add-estimate-template", { detail: template }));
+      if (!didInsert) {
+        setLastActionMessage(`${template.name} was not inserted. Select a Group Node and try again.`);
+        return false;
+      }
+
+      setLastActionMessage(`${template.name} added${effectiveTemplateTargetName ? ` to ${effectiveTemplateTargetName}` : ""}.`);
+      return true;
+    },
+    [canInsertTemplate, effectiveTemplateTargetName, onInsertTemplate],
   );
 
   const duplicateItem = useCallback((item: EstimateRowItem) => {
@@ -481,7 +610,7 @@ export function EstimateRightSidebar({
     if (deleteUndoTimerRef.current) window.clearTimeout(deleteUndoTimerRef.current);
   }, [deletedItems]);
 
-  const handleTabChange = useCallback((tab: LibraryTreeTab) => {
+  const handleTabChange = useCallback((tab: EstimateLibraryTab) => {
     setActiveTab(tab);
     setSearchQuery("");
     setPreviewItemId(null);
@@ -523,6 +652,19 @@ export function EstimateRightSidebar({
     window.setTimeout(() => dragGhost.remove(), 0);
   }, []);
 
+  const handleTemplateDragStart = useCallback((event: React.DragEvent<HTMLElement>, template: EstimateTemplate) => {
+    event.dataTransfer.effectAllowed = "copy";
+    event.dataTransfer.setData(ESTIMATE_TEMPLATE_DRAG_MIME_TYPE, JSON.stringify({ templateId: template.id }));
+    event.dataTransfer.setData("text/plain", template.name);
+
+    const dragGhost = document.createElement("div");
+    dragGhost.className = "fixed -top-96 left-0 border border-hairline bg-white px-2 py-1 text-[10px] font-bold text-ink shadow-lg";
+    dragGhost.textContent = `${template.name} · estimate template`;
+    document.body.appendChild(dragGhost);
+    event.dataTransfer.setDragImage(dragGhost, 12, 12);
+    window.setTimeout(() => dragGhost.remove(), 0);
+  }, []);
+
   return (
     <ResizableSidePanel side="right" ariaLabel="Library" storageKey="estimate_component_library_width_v2" defaultWidth={380} minWidth={360} maxWidth={560}>
       <aside className="flex h-full min-h-0 min-w-[320px] flex-col border-l border-hairline bg-white !text-[10px]">
@@ -559,19 +701,30 @@ export function EstimateRightSidebar({
         {/* Scrollable tree */}
         <div className="min-h-0 flex-1 overflow-auto p-2">
           <div className="h-6" />
-          <LibraryTree
-            nodes={filteredTreeNodes}
-            selectedNodeId={previewItemId}
-            expandedNodeIds={expandedNodeIdsByTab[activeTab]}
-            searchQuery={searchQuery}
-            onSelect={(nodeId) => handleToggleNode(nodeId)}
-            onToggle={handleToggleNode}
-            onItemAdd={(item) => { if (item) addComponent(item); }}
-            onItemPreview={(itemId) => setPreviewItemId(itemId)}
-            addDisabled={!canInsert}
-            addLabel={targetLabel}
-            onItemDragStart={handleItemDragStart}
-          />
+          {activeTab === "templates" ? (
+            <TemplateSidebarList
+              templates={templates}
+              searchQuery={searchQuery}
+              canInsertTemplate={canInsertTemplate}
+              targetName={effectiveTemplateTargetName || "selected group"}
+              onAddTemplate={addTemplate}
+              onTemplateDragStart={handleTemplateDragStart}
+            />
+          ) : (
+            <LibraryTree
+              nodes={filteredTreeNodes}
+              selectedNodeId={previewItemId}
+              expandedNodeIds={expandedNodeIdsByTab[activeTab]}
+              searchQuery={searchQuery}
+              onSelect={(nodeId) => handleToggleNode(nodeId)}
+              onToggle={handleToggleNode}
+              onItemAdd={(item) => { if (item) addComponent(item); }}
+              onItemPreview={(itemId) => setPreviewItemId(itemId)}
+              addDisabled={!canInsert}
+              addLabel={targetLabel}
+              onItemDragStart={handleItemDragStart}
+            />
+          )}
         </div>
 
         {/* Preview panel */}
@@ -579,13 +732,13 @@ export function EstimateRightSidebar({
           <PreviewPanel
             item={previewItem}
             onClose={() => setPreviewItemId(null)}
-            onAdd={(quantity) => addComponent(previewItem, quantity)}
+            onAdd={(quantity) => addComponent(previewItem, quantity ?? insertQuantity)}
             onEdit={() => startEditComponent(previewItem)}
             onDuplicate={() => duplicateItem(previewItem)}
             onFavorite={() => toggleFavorite(previewItem)}
             onDelete={() => setDeleteCandidate(previewItem)}
             addDisabled={!canInsert}
-            addLabel={canInsert ? `${targetLabel}: ${getComponentName(previewItem)}` : `Select an area before adding ${getComponentName(previewItem)}`}
+            addLabel={targetLabel}
             insertQuantity={insertQuantity}
             onInsertQuantityChange={setInsertQuantity}
           />

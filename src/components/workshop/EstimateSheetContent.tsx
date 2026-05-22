@@ -11,11 +11,13 @@ import { dispatchProjectTotalChange } from "@/components/workshop/ProjectTotalHe
 import { useEstimateRowMutations } from "@/hooks/use-estimate-row-mutations";
 import { useEstimateAreaTreeQuery } from "@/hooks/use-estimate-query";
 import { resolveEstimateWorkspaceSelection, useEstimateWorkspaceSelection } from "@/hooks/use-estimate-workspace-state";
+import { insertEstimateTemplateIntoEstimate } from "@/lib/estimates/actions";
 import { getEstimateNodeDisplayKind } from "@/lib/estimates/tree-hierarchy";
 import type { ComponentLibraryTaxonomyNode } from "@/lib/component-library/taxonomy";
 import { cn } from "@/lib/ui/cn";
 import { EstimateRightSidebar } from "./component-library";
 import { CommandPalette } from "./component-library/CommandPalette";
+import { ESTIMATE_TEMPLATE_DRAG_MIME_TYPE, type EstimateTemplate } from "./component-library/templates";
 import type { ComponentLibrarySupplierOption } from "./component-library/tree/buildLibraryTree";
 import { findEstimateNode, sampleEstimateTree, type EstimateTreeNode, type EstimateRowItem } from "./estimate-tree-data";
 
@@ -54,9 +56,12 @@ type EstimateSheetContentProps = {
   estimateId?: string;
   renderSidebar?: boolean;
   libraryItems?: EstimateRowItem[];
+  libraryTemplates?: EstimateTemplate[];
   libraryCategoryTree?: ComponentLibraryTaxonomyNode[];
   librarySuppliers?: ComponentLibrarySupplierOption[];
 };
+
+const EMPTY_ESTIMATE_TEMPLATES: EstimateTemplate[] = [];
 
 type BreadcrumbNode = { id: string; name: string };
 
@@ -90,6 +95,7 @@ type EstimateSheetBranchProps = {
   editableRows: Record<string, EditableRowValue>;
   setEditableRows: Dispatch<SetStateAction<Record<string, EditableRowValue>>>;
   onInsertLibraryItem: (targetNodeId: string, libraryItem: EstimateRowItem) => void;
+  onInsertTemplate: (targetParentNodeId: string, templateId: string) => void;
   onAddBlankRow: (targetNodeId: string) => void;
   onReplaceRowItem: (rowItemId: string, libraryItem: EstimateRowItem) => void;
   onDeleteRowItem: (rowItemId: string) => void;
@@ -823,7 +829,7 @@ function InlineDropZone({
   );
 }
 
-function EstimateSheetBranch({ node, nodeCode, ancestorPath = [], editableRows, setEditableRows, onInsertLibraryItem, onAddBlankRow, onReplaceRowItem, onDeleteRowItem, onUpdateRowItem, onMarkRowDirty, depth = 0, usesSiblingGroupRhythm = false }: EstimateSheetBranchProps) {
+function EstimateSheetBranch({ node, nodeCode, ancestorPath = [], editableRows, setEditableRows, onInsertLibraryItem, onInsertTemplate, onAddBlankRow, onReplaceRowItem, onDeleteRowItem, onUpdateRowItem, onMarkRowDirty, depth = 0, usesSiblingGroupRhythm = false }: EstimateSheetBranchProps) {
   const { collapsedNodeIds, setCollapsedNodeIds } = useEstimateSheetExpansion();
   const collapsed = collapsedNodeIds.has(node.id);
   const childAreas = node.children ?? [];
@@ -836,58 +842,87 @@ function EstimateSheetBranch({ node, nodeCode, ancestorPath = [], editableRows, 
   const total = computeNodeTotal(node, editableRows);
   const displayKind = isGroup ? "group" : "area";
   const showBreadcrumbs = !collapsed && !isGroup && ancestorPath.length > 0;
+  const canReceiveTemplates = isGroup;
+
+  function handleTemplateDragOver(event: DragEvent<HTMLElement>) {
+    if (!canReceiveTemplates || !event.dataTransfer.types.includes(ESTIMATE_TEMPLATE_DRAG_MIME_TYPE)) return;
+    event.preventDefault();
+    event.stopPropagation();
+    event.dataTransfer.dropEffect = "copy";
+  }
+
+  function handleTemplateDrop(event: DragEvent<HTMLElement>) {
+    if (!canReceiveTemplates) return;
+    const payload = event.dataTransfer.getData(ESTIMATE_TEMPLATE_DRAG_MIME_TYPE);
+    if (!payload) return;
+    event.preventDefault();
+    event.stopPropagation();
+    try {
+      const parsed = JSON.parse(payload) as { templateId?: unknown };
+      if (typeof parsed.templateId === "string") onInsertTemplate(node.id, parsed.templateId);
+    } catch {
+      // Ignore malformed drag payloads from outside the template sidebar.
+    }
+  }
 
   return (
-    <section className={cn(groupGap(depth, node.kind, usesSiblingGroupRhythm), !isGroup && (depth > 0 ? "border border-hairline bg-surfaceMuted/20" : "rounded-sm border border-hairline bg-surfaceMuted/20"))} aria-label={node.name}>
-      <div
-        className={cn("flex h-10 items-center gap-2 px-1", nodeHeaderClasses(node.kind))}
-        style={{ paddingLeft: `${leftIndent + 8}px` }}
-      >
-        <Button
-          variant="ghost"
-          size="icon-sm"
-          aria-label={`${collapsed ? "Expand" : "Collapse"} ${node.name} ${displayKind}`}
-          aria-expanded={!collapsed}
-          className="size-6 rounded-sm p-0 text-tertiary"
-          onClick={() =>
-            setCollapsedNodeIds((prev) => {
-              const next = new Set(prev);
-              if (next.has(node.id)) next.delete(node.id);
-              else next.add(node.id);
-              return next;
-            })
-          }
-        >
-          <CaretDown size={13} weight="bold" aria-hidden="true" className={collapsed ? "-rotate-90" : ""} />
-        </Button>
-        <span className="flex size-6 shrink-0 items-center justify-center text-tertiary">
-          <NodeIcon kind={node.kind} />
-        </span>
-        <div className="min-w-0 flex-1">
-          {nodeCode && (
-            <p className="text-[8px] font-mono leading-none tabular-nums text-tertiary">{nodeCode}</p>
-          )}
-          <p className={nodeNameClasses(node.kind)}>{node.name}</p>
-        </div>
-        <span className={nodeTotalClasses(node.kind)}>{pesoFormatter.format(total)}</span>
-      </div>
-
-      {showBreadcrumbs && (
+    <section
+      className={cn(groupGap(depth, node.kind, usesSiblingGroupRhythm), !isGroup && (depth > 0 ? "border border-hairline bg-surfaceMuted/20" : "rounded-sm border border-hairline bg-surfaceMuted/20"))}
+      aria-label={node.name}
+      onDragOver={handleTemplateDragOver}
+      onDrop={handleTemplateDrop}
+    >
+      <div className={cn("sticky top-0 z-[20]", !isGroup && "bg-white")}>
         <div
-          className="my-1 flex items-center gap-1 truncate pb-2 text-[8px] text-muted"
-          aria-label={`${node.name} breadcrumbs`}
-          style={{ paddingLeft: `${leftIndent + 72}px` }}
+          className={cn("flex h-10 items-center gap-2 px-1", nodeHeaderClasses(node.kind))}
+          style={{ paddingLeft: `${leftIndent + 8}px` }}
         >
-          {ancestorPath.map((ancestor, index) => (
-            <span key={ancestor.id}>
-              {index > 0 && <span className="mx-0.5 text-hairline">›</span>}
-              {ancestor.name}
-            </span>
-          ))}
-          <span className="mx-0.5 text-hairline">›</span>
-          <span>{node.name}</span>
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            aria-label={`${collapsed ? "Expand" : "Collapse"} ${node.name} ${displayKind}`}
+            aria-expanded={!collapsed}
+            className="size-6 rounded-sm p-0 text-tertiary"
+            onClick={() =>
+              setCollapsedNodeIds((prev) => {
+                const next = new Set(prev);
+                if (next.has(node.id)) next.delete(node.id);
+                else next.add(node.id);
+                return next;
+              })
+            }
+          >
+            <CaretDown size={13} weight="bold" aria-hidden="true" className={collapsed ? "-rotate-90" : ""} />
+          </Button>
+          <span className="flex size-6 shrink-0 items-center justify-center text-tertiary">
+            <NodeIcon kind={node.kind} />
+          </span>
+          <div className="min-w-0 flex-1">
+            {nodeCode && (
+              <p className="text-[8px] font-mono leading-none tabular-nums text-tertiary">{nodeCode}</p>
+            )}
+            <p className={nodeNameClasses(node.kind)}>{node.name}</p>
+          </div>
+          <span className={nodeTotalClasses(node.kind)}>{pesoFormatter.format(total)}</span>
         </div>
-      )}
+
+        {showBreadcrumbs && (
+          <div
+            className="my-1 flex items-center gap-1 truncate pb-2 text-[8px] text-muted"
+            aria-label={`${node.name} breadcrumbs`}
+            style={{ paddingLeft: `${leftIndent + 72}px` }}
+          >
+            {ancestorPath.map((ancestor, index) => (
+              <span key={ancestor.id}>
+                {index > 0 && <span className="mx-0.5 text-hairline">›</span>}
+                {ancestor.name}
+              </span>
+            ))}
+            <span className="mx-0.5 text-hairline">›</span>
+            <span>{node.name}</span>
+          </div>
+        )}
+      </div>
 
       {!collapsed ? (
         <div className={cn(isGroup ? "space-y-1" : "space-y-4", !showBreadcrumbs && "mt-1")}>
@@ -903,6 +938,7 @@ function EstimateSheetBranch({ node, nodeCode, ancestorPath = [], editableRows, 
                 editableRows={editableRows}
                 setEditableRows={setEditableRows}
                 onInsertLibraryItem={onInsertLibraryItem}
+                onInsertTemplate={onInsertTemplate}
                 onAddBlankRow={onAddBlankRow}
                 onReplaceRowItem={onReplaceRowItem}
                 onDeleteRowItem={onDeleteRowItem}
@@ -978,6 +1014,33 @@ function cloneLibraryItemForEstimate(libraryItem: EstimateRowItem): EstimateRowI
   };
 }
 
+function cloneTemplateNodesForEstimate(nodes: EstimateTreeNode[]): EstimateTreeNode[] {
+  function cloneNode(node: EstimateTreeNode): EstimateTreeNode {
+    return {
+      ...node,
+      id: createEstimateRowItemId(),
+      total: "PHP 0.00",
+      children: node.children?.map(cloneNode) ?? [],
+      estimateRowItems: node.estimateRowItems?.map(cloneLibraryItemForEstimate) ?? [],
+    };
+  }
+
+  return nodes.map(cloneNode);
+}
+
+function appendTemplateNodesToParent(nodes: EstimateTreeNode[], targetParentNodeId: string, templateNodes: EstimateTreeNode[]): EstimateTreeNode[] {
+  return nodes.map((node) => {
+    if (node.id === targetParentNodeId) {
+      return { ...node, children: [...(node.children ?? []), ...templateNodes] };
+    }
+
+    return {
+      ...node,
+      children: node.children ? appendTemplateNodesToParent(node.children, targetParentNodeId, templateNodes) : node.children,
+    };
+  });
+}
+
 function applyEditableValuesToLibraryItem(libraryItem: EstimateRowItem, editableRow?: EditableRowValue): EstimateRowItem {
   if (!editableRow) return libraryItem;
 
@@ -1032,6 +1095,7 @@ export function EstimateSheetContent({
   estimateId,
   renderSidebar = true,
   libraryItems,
+  libraryTemplates,
   libraryCategoryTree,
   librarySuppliers,
 }: EstimateSheetContentProps) {
@@ -1052,6 +1116,8 @@ export function EstimateSheetContent({
   const [pendingFocusRowId, setPendingFocusRowId] = useState("");
   const [showCommandPalette, setShowCommandPalette] = useState(false);
   const [collapsedNodeIds, setCollapsedNodeIds] = useState<Set<string>>(() => new Set());
+  const availableTemplates = libraryTemplates ?? EMPTY_ESTIMATE_TEMPLATES;
+  const templateById = useMemo(() => new Map(availableTemplates.map((template) => [template.id, template])), [availableTemplates]);
   const { selectedNodeId: resolvedSelectedNodeId, selectedNode } = useMemo(
     () =>
       resolveEstimateWorkspaceSelection({
@@ -1062,8 +1128,18 @@ export function EstimateSheetContent({
     [activeSelectedNodeId, estimateTree],
   );
   const insertTargetNodeId = selectedNode?.kind === "area" ? selectedNode.id : "";
+  const selectedNodePath = useMemo(
+    () => (resolvedSelectedNodeId ? findNodePath(estimateTree, resolvedSelectedNodeId) : []),
+    [estimateTree, resolvedSelectedNodeId],
+  );
+  const templateTargetParentNode = useMemo(() => {
+    if (selectedNode?.kind === "group") return selectedNode;
+    return [...selectedNodePath].reverse().find((node) => node.kind === "group") ?? null;
+  }, [selectedNode, selectedNodePath]);
   const canInsertIntoSelectedNode = Boolean(insertTargetNodeId);
+  const canInsertTemplateIntoSelectedNode = Boolean(templateTargetParentNode);
   const insertionTargetLabel = selectedNode?.kind === "area" ? selectedNode.name : "selected area";
+  const templateInsertionTargetLabel = templateTargetParentNode?.name ?? "selected group";
   const projectTotal = estimateTree.reduce((total, node) => total + computeNodeTotal(node, editableRows), 0);
   const allNodeIds = useMemo(() => (selectedNode ? collectAllNodeIds([selectedNode]) : []), [selectedNode]);
   const expandAll = useCallback(() => setCollapsedNodeIds(new Set()), []);
@@ -1179,6 +1255,55 @@ export function EstimateSheetContent({
       return true;
     },
     [insertLibraryItem, insertTargetNodeId],
+  );
+
+  const insertTemplateIntoParent = useCallback(
+    (targetParentNodeId: string, template: EstimateTemplate) => {
+      const targetParentNode = findEstimateNode(estimateTree, targetParentNodeId);
+      if (targetParentNode?.kind !== "group") return false;
+
+      const previousTree = estimateTree;
+      const previousRows = editableRows;
+      const rollbackRevision = getEstimateTreeRevision();
+      const optimisticTemplateNodes = cloneTemplateNodesForEstimate(template.nodes);
+      const nextEditableRows = collectEditableRows(optimisticTemplateNodes);
+      const nextRevision = setEstimateTree((current) => appendTemplateNodesToParent(current, targetParentNodeId, optimisticTemplateNodes));
+      setEditableRows((current) => ({ ...current, ...nextEditableRows }));
+      setSelectedNodeId(targetParentNodeId);
+
+      if (projectId && estimateId) {
+        insertEstimateTemplateIntoEstimate({
+          projectId,
+          estimateId,
+          targetParentNodeId,
+          templateId: template.id,
+        })
+          .then((result) => {
+            setEstimateTreeData(() => result.tree);
+          })
+          .catch(() => restoreEstimateState(previousTree, previousRows, nextRevision ?? rollbackRevision));
+      }
+
+      return true;
+    },
+    [editableRows, estimateId, estimateTree, getEstimateTreeRevision, projectId, restoreEstimateState, setEstimateTree, setEstimateTreeData, setSelectedNodeId],
+  );
+
+  const insertTemplateIntoParentById = useCallback(
+    (targetParentNodeId: string, templateId: string) => {
+      const template = templateById.get(templateId);
+      if (!template) return false;
+      return insertTemplateIntoParent(targetParentNodeId, template);
+    },
+    [insertTemplateIntoParent, templateById],
+  );
+
+  const insertTemplateIntoSelectedGroup = useCallback(
+    (template: EstimateTemplate) => {
+      if (!templateTargetParentNode) return false;
+      return insertTemplateIntoParent(templateTargetParentNode.id, template);
+    },
+    [insertTemplateIntoParent, templateTargetParentNode],
   );
 
   const insertBlankRow = useCallback(
@@ -1305,6 +1430,7 @@ export function EstimateSheetContent({
                   editableRows={editableRows}
                   setEditableRows={setEditableRows}
                   onInsertLibraryItem={insertLibraryItem}
+                  onInsertTemplate={insertTemplateIntoParentById}
                   onAddBlankRow={insertBlankRow}
                   onReplaceRowItem={replaceRowItem}
                   onDeleteRowItem={deleteRowItem}
@@ -1336,10 +1462,14 @@ export function EstimateSheetContent({
           selectedNodeId={resolvedSelectedNodeId}
           selectedNodeKind={selectedNode?.kind ?? null}
           selectedNodeName={selectedNode?.name ?? null}
+          templateTargetName={templateInsertionTargetLabel}
+          canInsertTemplate={canInsertTemplateIntoSelectedNode}
           nodes={estimateTree}
           initialLibraryItems={libraryItems}
+          templates={availableTemplates}
           categoryTree={libraryCategoryTree}
           suppliers={librarySuppliers}
+          onInsertTemplate={insertTemplateIntoSelectedGroup}
         />
       ) : null}
     </>

@@ -1,5 +1,5 @@
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import type { EstimateRowItem, EstimateTreeNode } from "@/components/workshop/estimate-tree-data";
+import type { EstimateRowItem, EstimateTreeNode } from "@/lib/estimates/types";
 import type { Tables } from "@/lib/supabase/types";
 import { requireCurrentUserContext } from "@/lib/auth/session";
 import { isUuid } from "@/lib/ids";

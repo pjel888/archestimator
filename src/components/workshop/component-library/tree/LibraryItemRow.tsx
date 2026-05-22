@@ -49,16 +49,28 @@ export function LibraryItemRow({
         }}
       >
         <Package size={12} weight="bold" className="shrink-0 text-tertiary" aria-hidden="true" />
-        <span data-component-library-tree-label className="min-w-0 flex-1 truncate text-[10px] font-semibold leading-4 text-ink">
-          {name}
-        </span>
-        <span className="hidden shrink-0 truncate text-[9px] text-tertiary lg:block">
-          {item.supplier}
-        </span>
-        <span className="shrink-0 text-[9px] font-bold tabular-nums text-ink">
-          {pesoFormatter.format(price)}
-        </span>
-        <span className="shrink-0 text-[9px] text-tertiary">/{item.unit}</span>
+
+        <div className="flex min-w-0 flex-1 items-center gap-2">
+          <div className="flex min-w-0 flex-1 flex-col">
+            <span
+              data-component-library-tree-label
+              className="truncate text-[10px] font-semibold leading-4 text-ink"
+            >
+              {name}
+            </span>
+            <span className="truncate text-[9px] leading-3 text-tertiary">
+              {item.supplier}
+            </span>
+          </div>
+
+          <div className="flex shrink-0 flex-col items-end">
+            <span className="text-[9px] font-bold tabular-nums text-ink">
+              {pesoFormatter.format(price)}
+            </span>
+            <span className="text-[9px] text-tertiary">/{item.unit}</span>
+          </div>
+        </div>
+
         <div className="flex shrink-0 items-center opacity-0 transition-opacity group-hover:opacity-100">
           <Button
             type="button"

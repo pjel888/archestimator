@@ -1,6 +1,6 @@
 import type { DraggingPosition, TreeItemIndex } from "react-complex-tree";
 
-import type { EstimateTreeNode } from "@/components/workshop/estimate-tree-data";
+import type { EstimateTreeNode } from "@/lib/estimates/types";
 import { canNestEstimateNodeKind, getEstimateNodeKindSortRank } from "@/lib/estimates/tree-hierarchy";
 
 export const ESTIMATE_TREE_ROOT_ITEM_ID = "estimate-tree-root";

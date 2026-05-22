@@ -5,7 +5,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { requireCurrentUserContext } from "@/lib/auth/session";
-import type { EstimateTreeNode, EstimateRowItem } from "@/components/workshop/estimate-tree-data";
+import type { EstimateTreeNode, EstimateRowItem } from "@/lib/estimates/types";
 import {
   canNestEstimateNodeKind,
   getEstimateNodeKindSortRank,
@@ -37,6 +37,18 @@ type InsertEstimateRowItemFromLibraryInput = {
   targetNodeId: string;
   rowId: string;
   libraryItem: EstimateRowItem;
+};
+
+type InsertEstimateTemplateIntoEstimateInput = {
+  projectId: string;
+  estimateId: string;
+  targetParentNodeId: string;
+  templateId: string;
+};
+
+type InsertEstimateTemplateIntoEstimateResult = {
+  tree: EstimateTreeNode[];
+  insertedRootNodeIds: string[];
 };
 
 type UpdateEstimateRowItemInput = {
@@ -120,6 +132,13 @@ type CreateEstimateNodeSiblingRow = {
   kind: string;
   sort_order: number;
 };
+
+function readInsertedRootNodeIds(value: unknown): string[] {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return [];
+  const rootNodeIds = (value as { inserted_root_node_ids?: unknown }).inserted_root_node_ids;
+  if (!Array.isArray(rootNodeIds)) return [];
+  return rootNodeIds.filter((id): id is string => typeof id === "string" && id.length > 0);
+}
 
 function readEstimateNodeKind(formData: FormData): CreateEstimateNodeKind {
   const value = readRequiredText(formData, "kind");
@@ -228,6 +247,7 @@ function getEstimateRowMetadata(libraryItem: EstimateRowItem) {
 }
 
 function getSourceLibraryItemId(libraryItem: EstimateRowItem) {
+  if (libraryItem.sourceLibraryItemId && isUuid(libraryItem.sourceLibraryItemId)) return libraryItem.sourceLibraryItemId;
   return libraryItem.source === "library" && isUuid(libraryItem.id) ? libraryItem.id : null;
 }
 
@@ -802,6 +822,35 @@ export async function deleteEstimateNode(
     deletedNodeIds: Array.from(deletePlan.deletedNodeIds),
     fallbackNodeId: deletePlan.fallbackNodeId,
   };
+}
+
+export async function insertEstimateTemplateIntoEstimate({
+  projectId,
+  estimateId,
+  targetParentNodeId,
+  templateId,
+}: InsertEstimateTemplateIntoEstimateInput): Promise<InsertEstimateTemplateIntoEstimateResult> {
+  const { project } = await getCurrentWorkspaceProject(projectId);
+  if (!project) throw new Error("Project not found in the current workspace.");
+
+  const supabase = await createSupabaseServerClient();
+  const { data: copyResult, error: copyError } = await supabase.rpc("insert_estimate_template_into_estimate", {
+    target_project_id: project.id,
+    target_estimate_id: estimateId,
+    target_parent_node_id: targetParentNodeId,
+    source_template_id: templateId,
+  });
+
+  if (copyError) throw new Error(`Could not insert estimate template: ${copyError.message}`);
+
+  const insertedRootNodeIds = readInsertedRootNodeIds(copyResult);
+  const { project: refreshedProject, estimate: refreshedEstimate, tree } = await getProjectEstimateTreeByEstimate(project.id, estimateId);
+  if (!refreshedProject || !refreshedEstimate) throw new Error("Estimate not found after inserting the template.");
+
+  revalidatePath(`/workshop/projects/${project.id}/estimates`);
+  revalidatePath(`/workshop/projects/${project.id}/estimates/${targetParentNodeId}`);
+
+  return { tree, insertedRootNodeIds };
 }
 
 export async function insertEstimateRowItemFromLibrary({ projectId, estimateId, targetNodeId, rowId, libraryItem }: InsertEstimateRowItemFromLibraryInput) {
