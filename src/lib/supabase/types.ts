@@ -116,6 +116,7 @@ export type Database = {
           description: string
           id: string
           kind: Database["public"]["Enums"]["cost_library_item_kind"]
+          library_folder_id: string | null
           metadata: Json
           misc_cost: number
           name: string
@@ -140,6 +141,7 @@ export type Database = {
           description?: string
           id?: string
           kind?: Database["public"]["Enums"]["cost_library_item_kind"]
+          library_folder_id?: string | null
           metadata?: Json
           misc_cost?: number
           name: string
@@ -164,6 +166,7 @@ export type Database = {
           description?: string
           id?: string
           kind?: Database["public"]["Enums"]["cost_library_item_kind"]
+          library_folder_id?: string | null
           metadata?: Json
           misc_cost?: number
           name?: string
@@ -187,6 +190,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "cost_library_items_library_folder_id_fkey"
+            columns: ["library_folder_id"]
+            isOneToOne: false
+            referencedRelation: "library_folders"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "cost_library_items_supplier_id_fkey"
             columns: ["supplier_id"]
             isOneToOne: false
@@ -195,6 +205,67 @@ export type Database = {
           },
           {
             foreignKeyName: "cost_library_items_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      library_folders: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          folder_kind: "taxonomy" | "custom"
+          id: string
+          name: string
+          parent_id: string | null
+          sort_order: number
+          source_category_node_id: string | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          folder_kind: "taxonomy" | "custom"
+          id?: string
+          name: string
+          parent_id?: string | null
+          sort_order?: number
+          source_category_node_id?: string | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          folder_kind?: "taxonomy" | "custom"
+          id?: string
+          name?: string
+          parent_id?: string | null
+          sort_order?: number
+          source_category_node_id?: string | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "library_folders_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "library_folders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "library_folders_source_category_node_id_fkey"
+            columns: ["source_category_node_id"]
+            isOneToOne: false
+            referencedRelation: "component_category_nodes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "library_folders_workspace_id_fkey"
             columns: ["workspace_id"]
             isOneToOne: false
             referencedRelation: "workspaces"
@@ -798,6 +869,10 @@ export type Database = {
       }
       reorder_estimate_nodes: {
         Args: { target_estimate_id: string; move_updates: Json }
+        Returns: number
+      }
+      reorder_library_folders: {
+        Args: { target_workspace_id: string; folder_updates: Json }
         Returns: number
       }
       resolve_app_role_for_email: {

@@ -1,3 +1,5 @@
+import { randomUUID } from "node:crypto";
+
 import type { EstimateRowItem, EstimateRowItemSource, EstimateTreeNode } from "@/lib/estimates/types";
 import { estimateTemplates, type EstimateTemplate } from "@/lib/component-library/estimate-templates";
 import {
@@ -9,15 +11,20 @@ import {
   type ComponentLibraryTaxonomyNode,
 } from "@/lib/component-library/taxonomy";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import type { Json, Tables } from "@/lib/supabase/types";
+import type { Json, Tables, TablesInsert } from "@/lib/supabase/types";
 import { isMissingRelationError } from "./estimate-schema-compat";
 import { ensureDefaultWorkspace } from "./workspace-repository";
 
 export type ComponentLibrarySupplier = Pick<Tables<"component_suppliers">, "id" | "name" | "normalized_name" | "sort_order">;
+export type ComponentLibraryFolder = Pick<
+  Tables<"library_folders">,
+  "id" | "workspace_id" | "parent_id" | "name" | "sort_order" | "source_category_node_id" | "folder_kind"
+>;
 
 export type ComponentLibraryDataset = {
   categoryTree: ComponentLibraryTaxonomyNode[];
   suppliers: ComponentLibrarySupplier[];
+  libraryFolders: ComponentLibraryFolder[];
   libraryItems: EstimateRowItem[];
   templates: EstimateTemplate[];
 };
@@ -95,6 +102,7 @@ function normalizeComponentLibraryItem(
     category: categoryNode?.label ?? row.category,
     categoryNodeId: row.category_node_id ?? undefined,
     categoryPath: row.category_node_id ? findComponentCategoryPath(categoryTree, row.category_node_id) ?? undefined : undefined,
+    libraryFolderId: row.library_folder_id ?? undefined,
     discipline: readString(metadata.discipline),
     designation: readString(metadata.designation),
     tags: readStringArray(metadata.tags),
@@ -106,6 +114,7 @@ function normalizeComponentLibraryItem(
     pricingSource: row.pricing_source ?? supplier?.name ?? "Component library",
     pricingDate,
     confidence: row.confidence ?? undefined,
+    isCustom: metadata.isCustom === true || metadata.source === "project" || metadata.folderKind === "custom",
   };
 }
 
@@ -116,6 +125,80 @@ function flattenCategoryTree(nodes: ComponentLibraryTaxonomyNode[]): ComponentLi
 function compareSortOrder(a: { sort_order: number; id: string }, b: { sort_order: number; id: string }) {
   if (a.sort_order !== b.sort_order) return a.sort_order - b.sort_order;
   return a.id.localeCompare(b.id);
+}
+
+function sortFolders(folders: ComponentLibraryFolder[]): ComponentLibraryFolder[] {
+  return [...folders].sort((left, right) => {
+    const leftParent = left.parent_id ?? "";
+    const rightParent = right.parent_id ?? "";
+    return leftParent.localeCompare(rightParent) || left.sort_order - right.sort_order || left.name.localeCompare(right.name);
+  });
+}
+
+async function fetchLibraryFolders(
+  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
+  workspaceId: string,
+): Promise<ComponentLibraryFolder[]> {
+  const { data, error } = await supabase
+    .from("library_folders")
+    .select("id, workspace_id, parent_id, name, sort_order, source_category_node_id, folder_kind")
+    .eq("workspace_id", workspaceId)
+    .order("sort_order", { ascending: true })
+    .order("name", { ascending: true });
+
+  if (error) throw error;
+  return sortFolders(data ?? []);
+}
+
+export async function ensureWorkspaceLibraryFolders({
+  supabase,
+  workspaceId,
+  categoryRows,
+}: {
+  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>;
+  workspaceId: string;
+  categoryRows: ComponentLibraryCategoryRow[];
+}): Promise<ComponentLibraryFolder[]> {
+  const existingFolders = await fetchLibraryFolders(supabase, workspaceId);
+  if (existingFolders.length > 0) return existingFolders;
+
+  const rowsByParentId = new Map<string | null, ComponentLibraryCategoryRow[]>();
+  for (const row of categoryRows) {
+    const siblings = rowsByParentId.get(row.parent_id) ?? [];
+    siblings.push(row);
+    rowsByParentId.set(row.parent_id, siblings);
+  }
+  for (const siblings of rowsByParentId.values()) {
+    siblings.sort((left, right) => left.sort_order - right.sort_order || left.label.localeCompare(right.label));
+  }
+
+  const folderIdByCategoryNodeId = new Map<string, string>();
+  const inserts: TablesInsert<"library_folders">[] = [];
+
+  function stage(parentCategoryNodeId: string | null, parentFolderId: string | null) {
+    for (const row of rowsByParentId.get(parentCategoryNodeId) ?? []) {
+      const folderId = randomUUID();
+      folderIdByCategoryNodeId.set(row.id, folderId);
+      inserts.push({
+        id: folderId,
+        workspace_id: workspaceId,
+        parent_id: parentFolderId,
+        name: row.label,
+        sort_order: row.sort_order,
+        source_category_node_id: row.id,
+        folder_kind: "taxonomy",
+      });
+      stage(row.id, folderId);
+    }
+  }
+
+  stage(null, null);
+  if (inserts.length === 0) return [];
+
+  const { error } = await supabase.from("library_folders").insert(inserts);
+  if (error) throw error;
+
+  return fetchLibraryFolders(supabase, workspaceId);
 }
 
 function getTemplateNodeKind(kind: EstimateTemplateNodeRow["kind"]): EstimateTreeNode["kind"] | null {
@@ -271,7 +354,9 @@ export async function getCurrentWorkspaceComponentLibrary(): Promise<ComponentLi
   if (itemsResult.error) throw itemsResult.error;
   if (templatesResult.error && !isMissingRelationError(templatesResult.error, "estimate_templates")) throw templatesResult.error;
 
-  const categoryTree = buildComponentCategoryTreeFromRows((categoriesResult.data ?? []) as ComponentLibraryCategoryRow[]);
+  const categoryRows = (categoriesResult.data ?? []) as ComponentLibraryCategoryRow[];
+  const categoryTree = buildComponentCategoryTreeFromRows(categoryRows);
+  const libraryFolders = await ensureWorkspaceLibraryFolders({ supabase, workspaceId: workspace.id, categoryRows });
   const suppliers = suppliersResult.data ?? [];
   const categoryById = new Map(flattenCategoryTree(categoryTree).map((node) => [node.id, node]));
   const supplierById = new Map(suppliers.map((supplier) => [supplier.id, supplier]));
@@ -307,6 +392,7 @@ export async function getCurrentWorkspaceComponentLibrary(): Promise<ComponentLi
   return {
     categoryTree,
     suppliers,
+    libraryFolders,
     libraryItems,
     templates: libraryTemplates,
   };
@@ -315,6 +401,7 @@ export async function getCurrentWorkspaceComponentLibrary(): Promise<ComponentLi
 export const fallbackComponentLibraryDataset: ComponentLibraryDataset = {
   categoryTree: componentCategoryTree,
   suppliers: [],
+  libraryFolders: [],
   libraryItems: [],
   templates: [],
 };

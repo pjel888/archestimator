@@ -20,6 +20,7 @@ export type EstimateRowItem = {
   category: string;
   categoryNodeId?: string;
   categoryPath?: string[];
+  libraryFolderId?: string;
   supplierId?: string;
   discipline?: string;
   designation?: string;
