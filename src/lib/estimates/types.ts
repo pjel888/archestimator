@@ -1,5 +1,36 @@
 export type EstimateRowItemSource = "project" | "supplier" | "library";
 
+export type ComponentLifecycleState = "draft" | "in_production" | "available" | "discontinued" | "archived";
+
+export type ComponentPriceOption = {
+  id: string;
+  label: string;
+  unit: string;
+  unitCost: number;
+  miscCost: number;
+  currency: string;
+  pricingSource?: string | null;
+  pricingDate?: string | null;
+  confidence?: string | null;
+  sourceUrl?: string | null;
+  notes?: string | null;
+  supplierId?: string | null;
+  isActive: boolean;
+  isDefault: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+};
+
+export type ComponentHistoryEntry = {
+  id: string;
+  type: "version" | "price" | "state";
+  label: string;
+  summary: string;
+  effectiveAt: string;
+  createdAt: string;
+  versionNumber?: number;
+};
+
 export type EstimateRowItem = {
   id: string;
   material: string;
@@ -28,6 +59,14 @@ export type EstimateRowItem = {
   sku?: string;
   sourceUrl?: string;
   sourceLibraryItemId?: string | null;
+  componentVersionId?: string | null;
+  componentVersionNumber?: number;
+  priceOptionId?: string | null;
+  priceOptionLabel?: string;
+  priceOptions?: ComponentPriceOption[];
+  lifecycleState?: ComponentLifecycleState;
+  lifecycleStateChangedAt?: string;
+  history?: ComponentHistoryEntry[];
   notes?: string;
   isFavorite?: boolean;
   isCustom?: boolean;

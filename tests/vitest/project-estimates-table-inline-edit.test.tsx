@@ -9,6 +9,7 @@ const routerMock = vi.hoisted(() => ({
 }));
 
 const actionMocks = vi.hoisted(() => ({
+  duplicateEstimateSheet: vi.fn(),
   regenerateEstimateSheetCode: vi.fn(),
   updateEstimateDetails: vi.fn(),
 }));
@@ -46,6 +47,7 @@ function renderTable(estimate = makeEstimate()) {
 
 describe("project estimates table inline editing", () => {
   beforeEach(() => {
+    actionMocks.duplicateEstimateSheet.mockReset();
     actionMocks.regenerateEstimateSheetCode.mockReset();
     actionMocks.updateEstimateDetails.mockReset();
     routerMock.refresh.mockReset();
@@ -118,5 +120,31 @@ describe("project estimates table inline editing", () => {
 
     expect(() => renderTable()).not.toThrow();
     expect(screen.getByLabelText("Estimate sheet name for Original Estimate")).toBeInTheDocument();
+  });
+
+  it("duplicates an estimate sheet from the row actions once and refreshes the table", async () => {
+    let resolveDuplicate: ((value: { estimateId: string; firstNodeId: string | null; sheetCode: string }) => void) | undefined;
+    actionMocks.duplicateEstimateSheet.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolveDuplicate = resolve;
+        }),
+    );
+    const user = userEvent.setup();
+
+    renderTable();
+
+    const duplicateButton = screen.getByRole("button", { name: "Duplicate Original Estimate" });
+    await user.dblClick(duplicateButton);
+
+    expect(actionMocks.duplicateEstimateSheet).toHaveBeenCalledTimes(1);
+    expect(actionMocks.duplicateEstimateSheet).toHaveBeenCalledWith({
+      projectId: "project-1",
+      estimateId: "estimate-1",
+    });
+    await waitFor(() => expect(duplicateButton).toBeDisabled());
+
+    resolveDuplicate?.({ estimateId: "estimate-2", firstNodeId: "node-2", sheetCode: "ES-002" });
+    await waitFor(() => expect(routerMock.refresh).toHaveBeenCalledTimes(1));
   });
 });
