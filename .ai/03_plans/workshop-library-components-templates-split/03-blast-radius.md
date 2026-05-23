@@ -72,7 +72,8 @@ Risk:
 #### `src/app/workshop/library/page.tsx`
 
 Expected changes:
-- Stop passing templates to the component route.
+- Use a component-only route data helper, not the combined component/template dataset.
+- Stop loading and passing templates to the component route.
 - Update shell copy: footer should not say `Categories and templates`.
 - Shift visible title and breadcrumb from `Library` to `Components`.
 
@@ -87,7 +88,7 @@ Expected new file:
 - Renders template-specific client/manager.
 
 Risk:
-- Accidentally loading full component dataset when template-only helper would be cleaner.
+- Accidentally bypassing the template-only helper and loading the full component dataset in the template route.
 - Auth/bootstrap behavior must match `/workshop/library`.
 
 #### `src/components/sidebar/MainSidebar.tsx`
@@ -104,13 +105,15 @@ Risk:
 #### `src/lib/repositories/component-library-repository.ts`
 
 Expected changes:
+- Add `getCurrentWorkspaceComponentRowsLibrary()` or an equivalently named component-only helper for `/workshop/library`.
 - Add `getCurrentWorkspaceEstimateTemplates()` as the single template-only helper name.
-- Keep existing `getCurrentWorkspaceComponentLibrary()` for component route and estimate route.
+- Keep existing `getCurrentWorkspaceComponentLibrary()` for estimate-route consumers that still need the combined component/template dataset.
 - Do not duplicate template row normalization.
 
 Risk:
 - Route split should not affect estimate sidebar, which still needs both component data and templates.
 - Static fallback behavior must remain: static seed templates only when template tables are missing.
+- `/workshop/library` should not retain accidental template coupling by continuing to call the combined helper.
 
 ### Test Code
 
@@ -124,6 +127,7 @@ Rewrite component route expectations:
 - dynamic folder labels such as `Administration` may still render in the tree or sheet context, but never as dropdown options or collection-select state.
 - folder selection changes sheet rows directly.
 - supplier view changes sheet rows directly.
+- source assertions prove `RowCollectionSelect`, `changeCollection`, `collectionOptions`, `activeCollectionId`, and dropdown-only `RowCollectionId` modes are gone from the component route.
 
 Add/import template manager tests separately.
 

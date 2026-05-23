@@ -23,6 +23,12 @@ Update current route tests to assert:
 - `Suppliers` is available as the second view mode.
 - Selecting `Details` folder updates sheet rows directly without a dropdown.
 - A dynamic folder label such as `Administration` can render as a tree selection/context label, but no collection select exists and it is not exposed as a dropdown option.
+- Source-level assertions prove removed dropdown functionality is not hiding:
+  - `RowCollectionSelect` is gone from the component route manager;
+  - `changeCollection` is gone;
+  - `collectionOptions` is gone;
+  - `activeCollectionId` is gone or no longer controls component route rows;
+  - dropdown-only `RowCollectionId` modes such as `estimate-row-items`, `custom-row-items`, `uncategorized`, and `supplier-row-items` are gone from `/workshop/library`.
 - Supplier view:
   - selecting `Suppliers` switches tree to supplier nodes;
   - selecting `Database Supplier` updates the sheet to supplier rows;
@@ -60,6 +66,7 @@ Assert:
 
 Update route-source assertions:
 
+- `/workshop/library/page.tsx` loads component-only route data and does not call the combined component/template helper.
 - `/workshop/library/page.tsx` loads component route client and does not pass templates into the component manager.
 - `/workshop/components/page.tsx` still redirects to `/workshop/library`.
 - `/workshop/templates/page.tsx` exists and loads template route client/manager.
@@ -88,7 +95,8 @@ Add/update `tests/vitest/component-library-templates-repository.test.ts` for `ge
 
 - helper returns persisted templates from template tables;
 - helper preserves static fallback only when table is missing;
-- existing `getCurrentWorkspaceComponentLibrary()` behavior remains unchanged.
+- existing `getCurrentWorkspaceComponentLibrary()` behavior remains unchanged for estimate-sidebar consumers that still need templates;
+- component-only helper does not return templates.
 
 ## Browser Smoke Assertions
 
@@ -130,7 +138,7 @@ HTTP/browser assertion:
 Focused:
 
 ```bash
-bunx vitest run tests/vitest/component-library-manager-ui.test.tsx tests/vitest/workshop-library-consolidation-ui.test.tsx
+bunx vitest run tests/vitest/component-library-manager-ui.test.tsx tests/vitest/template-library-manager-ui.test.tsx tests/vitest/workshop-library-consolidation-ui.test.tsx tests/vitest/component-library-templates-repository.test.ts tests/vitest/estimate-sheet-library-insert.test.tsx tests/vitest/component-library-ui.test.tsx
 bun test tests/unit/reset-baseline.test.ts
 ```
 

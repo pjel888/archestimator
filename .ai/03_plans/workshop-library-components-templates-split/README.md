@@ -1,7 +1,7 @@
 # Workshop Library Components/Templates Split Plan
 
 **Date:** 2026-05-23
-**Status:** Proposed plan pack. No product implementation has been done in this folder.
+**Status:** Consensus-approved plan pack, second-pass hardened. No product implementation has been done in this folder.
 **Route scope:** `/workshop/library`, new `/workshop/templates`, `/workshop/components` redirect, workshop main sidebar.
 
 ## Goal
@@ -38,6 +38,7 @@ Use route-scoped managers with a small shared layout shell:
 - Add `/workshop/templates` as a sibling route.
 - Remove template concerns from `ComponentLibraryManager`.
 - Move template browsing into a dedicated `TemplateLibraryManager`.
+- Add a component-only route data helper for `/workshop/library` so the component page does not load or pass template data.
 - Add a mandatory `getCurrentWorkspaceEstimateTemplates()` repository helper for the template route.
 - Delete or narrow `ComponentLibrarySheetPanel` so it no longer owns component/template switching.
 - Extract only the reusable frame/tree/sheet layout pieces that remove obvious duplication without creating a generic over-abstraction.

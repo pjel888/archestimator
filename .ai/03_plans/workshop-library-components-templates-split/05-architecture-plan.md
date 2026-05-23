@@ -100,7 +100,7 @@ UI:
 
 ## Repository Plan
 
-### Keep existing combined helper for estimate route
+### Keep existing combined helper for estimate route only
 
 `getCurrentWorkspaceComponentLibrary()` should remain because the estimate workspace still needs:
 
@@ -108,6 +108,23 @@ UI:
 - suppliers;
 - library items;
 - templates for estimate-sidebar insertion.
+
+`/workshop/library` should not use this combined helper after the split because it would keep template loading coupled to the component-only route.
+
+### Add mandatory component-only helper
+
+Use this helper name unless implementation finds an established repository naming pattern that is clearly better:
+
+```ts
+export async function getCurrentWorkspaceComponentRowsLibrary(): Promise<{
+  categoryTree: ComponentLibraryTaxonomyNode[];
+  suppliers: ComponentLibrarySupplierOption[];
+  libraryFolders: LibraryFolderRecord[];
+  libraryItems: EstimateRowItem[];
+}>
+```
+
+This helper should reuse the same component row, supplier, and folder query/build logic as the combined helper without returning templates.
 
 ### Add mandatory template-only helper
 
