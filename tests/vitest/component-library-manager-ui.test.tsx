@@ -1,10 +1,12 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+
 import { beforeAll, describe, expect, it } from "vitest";
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import type { ComponentProps } from "react";
 
 import { LibraryPageClient } from "@/components/workshop/LibraryPageClient";
 import type { EstimateRowItem } from "@/components/workshop/estimate-tree-data";
-import { estimateTemplates } from "@/lib/component-library/estimate-templates";
 import type { ComponentLibraryTaxonomyNode } from "@/lib/component-library/taxonomy";
 import type { LibraryFolderRecord } from "@/lib/component-library/library-folder-reorder";
 
@@ -172,7 +174,7 @@ describe("component library manager UI", () => {
 
     expect(screen.getByLabelText("Component library workspace")).toBeInTheDocument();
     expect(screen.getByLabelText("Component library tree")).toBeInTheDocument();
-    expect(screen.getByLabelText("Custom component sheet")).toBeInTheDocument();
+    expect(screen.getByLabelText("Component sheet")).toBeInTheDocument();
     expect(screen.getByLabelText("Search component library tree")).toBeInTheDocument();
     expect(screen.getByLabelText("Search component sheet")).toBeInTheDocument();
 
@@ -189,10 +191,12 @@ describe("component library manager UI", () => {
     expect(workspaceHeader?.getAttribute("style") ?? "").not.toContain("--component-library-tree-width");
 
     const tabs = screen.getByRole("tablist", { name: "Library views" });
-    expect(within(tabs).getByRole("tab", { name: "Categories" })).toHaveAttribute("aria-selected", "true");
-    expect(within(tabs).getByRole("tab", { name: "Templates" })).toHaveAttribute("aria-selected", "false");
+    expect(within(tabs).getAllByRole("tab").map((tab) => tab.textContent)).toEqual(["Components"]);
+    expect(within(tabs).getByRole("tab", { name: "Components" })).toHaveAttribute("aria-selected", "true");
+    expect(screen.queryByRole("tab", { name: "Templates" })).not.toBeInTheDocument();
     expect(screen.queryByRole("tab", { name: "Suppliers" })).not.toBeInTheDocument();
     expect(screen.queryByRole("tab", { name: "Custom" })).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Library row collection")).not.toBeInTheDocument();
 
     expect(screen.queryByLabelText("Search library")).not.toBeInTheDocument();
     expect(screen.queryByLabelText("Library tools")).not.toBeInTheDocument();
@@ -206,7 +210,7 @@ describe("component library manager UI", () => {
     renderLibrary();
 
     const tree = screen.getByLabelText("Component library tree");
-    const sheet = screen.getByLabelText("Custom component sheet");
+    const sheet = screen.getByLabelText("Component sheet");
 
     expect(within(tree).getByRole("treeitem", { name: "Fabrication" })).toHaveAttribute("aria-selected", "true");
     expect(getLibraryFolderButton("Details")).toBeInTheDocument();
@@ -224,11 +228,12 @@ describe("component library manager UI", () => {
   it("moves supplier organization under Categories instead of a top-level Suppliers tab", () => {
     renderLibrary();
 
-    const organizeBy = screen.getByRole("group", { name: "Organize categories by" });
-    fireEvent.click(within(organizeBy).getByRole("button", { name: "Suppliers" }));
+    const viewMode = screen.getByRole("group", { name: "Component view mode" });
+    expect(within(viewMode).getByRole("button", { name: "View By: Default" })).toHaveAttribute("aria-pressed", "true");
+    fireEvent.click(within(viewMode).getByRole("button", { name: "Suppliers" }));
 
     const tree = screen.getByLabelText("Component library tree");
-    const sheet = screen.getByLabelText("Custom component sheet");
+    const sheet = screen.getByLabelText("Component sheet");
 
     expect(screen.queryByRole("tab", { name: "Suppliers" })).not.toBeInTheDocument();
     expect(within(tree).getByRole("treeitem", { name: "All Suppliers" })).toHaveAttribute("aria-selected", "true");
@@ -239,52 +244,38 @@ describe("component library manager UI", () => {
     expect(within(sheet).getByRole("tab", { name: "Database Supplier" })).toHaveAttribute("aria-selected", "true");
     expect(within(sheet).getByText("Database Steel Frame")).toBeInTheDocument();
     expect(within(sheet).queryByText("Owner Supplied Sink")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("Library row collection")).not.toBeInTheDocument();
   });
 
-  it("keeps custom and uncategorized row collections in the Categories dropdown", () => {
+  it("removes collection dropdown behavior instead of hiding it", () => {
     renderLibrary({ libraryItems: [...sharedLibraryItems, unmatchedLibraryItem] });
 
-    const sheet = screen.getByLabelText("Custom component sheet");
-    const collection = screen.getByLabelText("Library row collection");
+    expect(screen.queryByLabelText("Library row collection")).not.toBeInTheDocument();
+    expect(screen.queryByRole("option", { name: "Estimate Row Items" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("option", { name: "Custom Row Items" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("option", { name: "Uncategorized" })).not.toBeInTheDocument();
+    expect(screen.queryByText("Custom Row Items")).not.toBeInTheDocument();
+    expect(screen.queryByText("Uncategorized")).not.toBeInTheDocument();
 
-    expect(within(collection).getByRole("option", { name: "Estimate Row Items" })).toBeInTheDocument();
-    expect(within(collection).getByRole("option", { name: "Custom Row Items" })).toBeInTheDocument();
-    expect(within(collection).getByRole("option", { name: "Uncategorized" })).toBeInTheDocument();
-
-    fireEvent.change(collection, { target: { value: "custom-row-items" } });
-    expect(within(sheet).getByRole("tab", { name: "Custom Row Items" })).toHaveAttribute("aria-selected", "true");
-    expect(within(sheet).getByText("Custom Cabinet Pull")).toBeInTheDocument();
-    expect(within(sheet).queryByText("Database Steel Frame")).not.toBeInTheDocument();
-
-    fireEvent.change(collection, { target: { value: "uncategorized" } });
-    expect(within(sheet).getByRole("tab", { name: "Uncategorized" })).toHaveAttribute("aria-selected", "true");
-    expect(within(sheet).getByText("Custom Bronze Widget")).toBeInTheDocument();
+    const source = readFileSync(join(process.cwd(), "src/components/workshop/component-library-manager/ComponentLibraryManager.tsx"), "utf8");
+    expect(source).not.toContain("RowCollectionSelect");
+    expect(source).not.toContain("changeCollection");
+    expect(source).not.toContain("collectionOptions");
+    expect(source).not.toContain("activeCollectionId");
+    expect(source).not.toContain("estimate-row-items");
+    expect(source).not.toContain("custom-row-items");
+    expect(source).not.toContain("uncategorized");
+    expect(source).not.toContain("Uncategorized");
+    expect(source).not.toContain("supplier-row-items");
   });
 
-  it("shows estimate templates as their own top-level tab with template sheet rows", () => {
-    renderLibrary({ templates: estimateTemplates });
-
-    fireEvent.click(screen.getByRole("tab", { name: "Templates" }));
-
-    const tree = screen.getByLabelText("Component library tree");
-    const sheet = screen.getByLabelText("Custom component sheet");
-
-    expect(screen.getByRole("tab", { name: "Templates" })).toHaveAttribute("aria-selected", "true");
-    expect(within(tree).getByRole("treeitem", { name: "All Templates" })).toHaveAttribute("aria-selected", "true");
-    expect(within(tree).getByRole("treeitem", { name: "Residential Rooms" })).toBeInTheDocument();
-    expect(within(sheet).getByRole("tab", { name: "All Templates" })).toHaveAttribute("aria-selected", "true");
-    expect(within(sheet).getByText("Condo Fit-Out Starter")).toBeInTheDocument();
-    expect(within(sheet).getByText("2 groups / 3 areas / 8 rows")).toBeInTheDocument();
-    expect(within(sheet).queryByText("Database Steel Frame")).not.toBeInTheDocument();
-  });
-
-  it("does not expose static templates when no templates are provided by the route", () => {
+  it("does not expose template UI inside the component route", () => {
     renderLibrary();
 
-    fireEvent.click(screen.getByRole("tab", { name: "Templates" }));
-
+    expect(screen.queryByRole("tab", { name: "Templates" })).not.toBeInTheDocument();
+    expect(screen.queryByText("All Templates")).not.toBeInTheDocument();
+    expect(screen.queryByText("Residential Rooms")).not.toBeInTheDocument();
     expect(screen.queryByText("Condo Fit-Out Starter")).not.toBeInTheDocument();
-    expect(screen.getByLabelText("Component library tree")).toBeInTheDocument();
   });
 
   it("opens right-click actions on editable library folders", async () => {

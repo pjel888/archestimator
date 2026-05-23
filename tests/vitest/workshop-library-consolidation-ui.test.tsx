@@ -186,10 +186,6 @@ const sharedLibraryItems: EstimateRowItem[] = [
   },
 ];
 
-function optionLabels(select: HTMLElement) {
-  return within(select).getAllByRole("option").map((option) => option.textContent);
-}
-
 describe("workshop library consolidation UI", () => {
   beforeEach(() => {
     actionMocks.createLibraryFolder.mockReset();
@@ -203,15 +199,22 @@ describe("workshop library consolidation UI", () => {
   it("uses /workshop/library as the canonical route and redirects the retired components route", () => {
     const libraryRoute = readFileSync(join(process.cwd(), "src/app/workshop/library/page.tsx"), "utf8");
     const componentsRoute = readFileSync(join(process.cwd(), "src/app/workshop/components/page.tsx"), "utf8");
+    const templatesRoute = readFileSync(join(process.cwd(), "src/app/workshop/templates/page.tsx"), "utf8");
 
     expect(libraryRoute).toContain("LibraryPageClient");
+    expect(libraryRoute).toContain("getCurrentWorkspaceComponentRowsLibrary");
+    expect(libraryRoute).not.toContain("getCurrentWorkspaceComponentLibrary");
+    expect(libraryRoute).not.toContain("templates=");
     expect(libraryRoute).toContain('breadcrumbs={["Library"]}');
     expect(libraryRoute).toContain("Workspace library");
+    expect(libraryRoute).not.toContain("Categories and templates");
     expect(componentsRoute).toContain('redirect("/workshop/library")');
     expect(componentsRoute).not.toContain("getCurrentWorkspaceComponentLibrary");
+    expect(templatesRoute).toContain("TemplatesPageClient");
+    expect(templatesRoute).toContain("getCurrentWorkspaceEstimateTemplates");
   });
 
-  it("keeps only Categories and Templates as top-level tabs with folder-mode row collections", () => {
+  it("renders Components as the only route tab with direct folder scoped rows", () => {
     render(
       <LibraryPageClient
         categoryTree={sharedCategoryTree}
@@ -222,21 +225,22 @@ describe("workshop library consolidation UI", () => {
     );
 
     const libraryTabs = screen.getByRole("tablist", { name: "Library views" });
-    expect(within(libraryTabs).getAllByRole("tab").map((tab) => tab.textContent)).toEqual(["Categories", "Templates"]);
+    expect(within(libraryTabs).getAllByRole("tab").map((tab) => tab.textContent)).toEqual(["Components"]);
+    expect(within(libraryTabs).getByRole("tab", { name: "Components" })).toHaveAttribute("aria-selected", "true");
+    expect(screen.queryByRole("tab", { name: "Templates" })).not.toBeInTheDocument();
     expect(screen.queryByRole("tab", { name: "Suppliers" })).not.toBeInTheDocument();
     expect(screen.queryByRole("tab", { name: "Custom" })).not.toBeInTheDocument();
 
-    const organizeBy = screen.getByRole("group", { name: "Organize categories by" });
-    expect(within(organizeBy).getByRole("button", { name: "Default folders" })).toHaveAttribute("aria-pressed", "true");
-    expect(within(organizeBy).getByRole("button", { name: "Suppliers" })).toHaveAttribute("aria-pressed", "false");
+    const viewMode = screen.getByRole("group", { name: "Component view mode" });
+    expect(within(viewMode).getByRole("button", { name: "View By: Default" })).toHaveAttribute("aria-pressed", "true");
+    expect(within(viewMode).getByRole("button", { name: "Suppliers" })).toHaveAttribute("aria-pressed", "false");
 
-    const collectionSelect = screen.getByLabelText("Library row collection");
-    expect(optionLabels(collectionSelect)).toEqual(expect.arrayContaining(["Estimate Row Items", "Fabrication", "Custom Row Items", "Uncategorized"]));
+    expect(screen.queryByLabelText("Library row collection")).not.toBeInTheDocument();
     expect(screen.getByRole("treeitem", { name: "Fabrication" })).toHaveAttribute("aria-selected", "true");
     expect(screen.getByText("Database Steel Frame")).toBeInTheDocument();
   });
 
-  it("keeps supplier organization inside Categories and scopes the sheet/dropdown to suppliers", () => {
+  it("keeps supplier organization inside Components and scopes the sheet directly to suppliers", () => {
     render(
       <LibraryPageClient
         categoryTree={sharedCategoryTree}
@@ -249,22 +253,20 @@ describe("workshop library consolidation UI", () => {
       />,
     );
 
-    const organizeBy = screen.getByRole("group", { name: "Organize categories by" });
-    fireEvent.click(within(organizeBy).getByRole("button", { name: "Suppliers" }));
-    const updatedOrganizeBy = screen.getByRole("group", { name: "Organize categories by" });
+    const viewMode = screen.getByRole("group", { name: "Component view mode" });
+    fireEvent.click(within(viewMode).getByRole("button", { name: "Suppliers" }));
+    const updatedViewMode = screen.getByRole("group", { name: "Component view mode" });
 
-    expect(within(updatedOrganizeBy).getByRole("button", { name: "Suppliers" })).toHaveAttribute("aria-pressed", "true");
+    expect(within(updatedViewMode).getByRole("button", { name: "Suppliers" })).toHaveAttribute("aria-pressed", "true");
     expect(screen.queryByRole("tab", { name: "Suppliers" })).not.toBeInTheDocument();
     expect(screen.getByRole("treeitem", { name: "All Suppliers" })).toHaveAttribute("aria-selected", "true");
 
     fireEvent.click(screen.getByRole("treeitem", { name: "Database Supplier" }));
 
-    const sheet = screen.getByLabelText("Custom component sheet");
+    const sheet = screen.getByLabelText("Component sheet");
     expect(within(sheet).getByText("Database Steel Frame")).toBeInTheDocument();
     expect(within(sheet).queryByText("Owner Supplied Sink")).not.toBeInTheDocument();
-    expect(optionLabels(screen.getByLabelText("Library row collection"))).toEqual(
-      expect.arrayContaining(["Estimate Row Items", "Supplier Row Items", "Database Supplier"]),
-    );
+    expect(screen.queryByLabelText("Library row collection")).not.toBeInTheDocument();
   });
 
   it("uses the shared drag/drop tree environment for editable library folders", async () => {
