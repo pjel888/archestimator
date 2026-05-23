@@ -21,6 +21,8 @@ Active/current plan:
 - `.ai/03_plans/component-category-library-taxonomy/` — active taxonomy research artifact for the `/workshop/components` category tree, supplier/category tabs, component metadata facets, standards crosswalks, and future custom-component organization.
 - `.ai/03_plans/landing-page-improvement/` — active public `/` landing-page improvement plan; replaces the archived Intercom/v4 broad plan and starts from current source inventory. Current pass locks the accepted hero, preserves the placeholder-safe full-width light company carousel immediately after the hero, keeps Lenis landing-only smooth scrolling, focuses remaining content with Tailwind containers, uses brand-source synthesis, and now adds Kimi K2.6 frontend-design delegation plus functional-tabs/IntersectionObserver readiness planning with no new animation packages.
 - `.ai/03_plans/project-estimates-component-library-improvement-plan.md` — research-backed UX/UI improvement plan for the current project estimate workspace and connected Component Library feature.
+- `.ai/03_plans/workshop-library-component-creation-versioning/` — active readiness pack for persisted Add Component on `/workshop/library`, including Supabase component shape, modal UX, pricing options, component lifecycle state, version history, blast radius, and QA gates.
+- `.ai/03_plans/industry-standard-excel-proposal-export/` — active research and implementation plan for contractor-standard consolidated Excel proposal export, read-only preview, ExcelJS package choice, and room/area source-breakdown traceability.
 - `.ai/03_plans/ui-componentization-and-storybook-plan.md` — active UI component matrix, reusable-primitive pipeline, and Storybook organization plan.
 
 Archived closeout / superseded plans:

@@ -379,6 +379,7 @@ Mandatory rules:
 - Do not create one-off icon-button patterns. Add a variant/size to the shared button primitive instead.
 - Do not duplicate card, chip, tab, filter, dropdown, field, toolbar, panel, empty-state, or inspector patterns inside route files. Extract a shared primitive or workshop component when the pattern appears more than once.
 - New UI primitives must encode this design scale internally: app text no larger than 12px, normal controls around 10px, compact padding, accessible states, and token-aligned colors.
+- Form-control font resets must live inside Tailwind `@layer base`; an unlayered `button { font: inherit; }` after `@import "tailwindcss"` can override app button text utilities and create anchor/button typography drift.
 - A visible duplicated button/search/input/icon-button implementation is a blocking design-system defect, not harmless polish.
 
 ## Layout
