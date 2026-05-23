@@ -2,7 +2,6 @@
 
 import {
   type ButtonHTMLAttributes,
-  type CSSProperties,
   type HTMLAttributes,
   useCallback,
   useMemo,
@@ -71,8 +70,7 @@ import {
   type EstimateTemplate,
 } from "../component-library/templates";
 
-const COMPONENT_LIBRARY_TREE_WIDTH = 376;
-const COMPONENT_LIBRARY_TREE_LEFT_EXTENSION_WIDTH = 104;
+const COMPONENT_LIBRARY_TREE_WIDTH_OFFSET = 104;
 const LIBRARY_TABS = [
   { id: "categories", label: "Categories" },
   { id: "templates", label: "Templates" },
@@ -618,15 +616,15 @@ function ComponentLibraryTreePanel({
 
   return (
     <ResizableSidePanel
-      side="left"
+      side="right"
       ariaLabel="Component library tree"
       storageKey="component_library_tree_width"
       defaultWidth={272}
       minWidth={216}
       maxWidth={432}
-      widthOffset={COMPONENT_LIBRARY_TREE_LEFT_EXTENSION_WIDTH}
+      widthOffset={COMPONENT_LIBRARY_TREE_WIDTH_OFFSET}
     >
-      <div className="flex h-full flex-col overflow-hidden border-r border-hairline bg-white" data-component-library-tree-panel="true">
+      <div className="flex h-full flex-col overflow-hidden border-l border-hairline bg-white" data-component-library-tree-panel="true">
         <div className="sticky top-0 z-20 shrink-0 bg-white">
           <SearchInput
             placeholder={isFolderMode ? "Search Library Folders" : "Search Library Tree"}
@@ -951,6 +949,54 @@ function TemplateLibrarySheet({
   );
 }
 
+function ComponentLibrarySheetPanel({
+  activeTab,
+  selectedTemplateNode,
+  templates,
+  selectedFolderNode,
+  selectedSupplierNode,
+  activeCollectionId,
+  collectionOptions,
+  libraryItems,
+  localFolders,
+  categoryTree,
+  suppliers,
+  onCollectionChange,
+}: {
+  activeTab: ComponentLibraryManagerTab;
+  selectedTemplateNode: LibraryTreeNode | null;
+  templates: EstimateTemplate[];
+  selectedFolderNode: LibraryFolderTreeNode | null;
+  selectedSupplierNode: LibraryTreeNode | null;
+  activeCollectionId: RowCollectionId;
+  collectionOptions: Array<{ id: RowCollectionId; label: string }>;
+  libraryItems: EstimateRowItem[];
+  localFolders: LibraryFolderRecord[];
+  categoryTree: ComponentLibraryTaxonomyNode[];
+  suppliers: ComponentLibrarySupplierOption[];
+  onCollectionChange: (value: RowCollectionId) => void;
+}) {
+  return (
+    <div className="flex min-h-0 min-w-0 flex-1" data-component-library-sheet-panel="true">
+      {activeTab === "templates" ? (
+        <TemplateLibrarySheet selectedNode={selectedTemplateNode} templates={templates} />
+      ) : (
+        <ComponentLibrarySheet
+          selectedFolderNode={selectedFolderNode}
+          selectedSupplierNode={selectedSupplierNode}
+          activeCollectionId={activeCollectionId}
+          collectionOptions={collectionOptions}
+          libraryItems={libraryItems}
+          localFolders={localFolders}
+          categoryTree={categoryTree}
+          suppliers={suppliers}
+          onCollectionChange={onCollectionChange}
+        />
+      )}
+    </div>
+  );
+}
+
 export function ComponentLibraryManager({
   categoryTree = componentCategoryTree,
   suppliers = [],
@@ -1102,19 +1148,28 @@ export function ComponentLibraryManager({
         <div
           className="relative h-10 shrink-0 border-b border-hairline bg-white"
           data-workshop-layout="component-library-workspace-header-row"
-          style={{ "--component-library-tree-width": `${COMPONENT_LIBRARY_TREE_WIDTH}px` } as CSSProperties}
         >
           <div
-            className="absolute inset-y-0 left-0 hidden items-center pl-4 pr-2 lg:flex"
-            style={{ width: `${COMPONENT_LIBRARY_TREE_WIDTH}px` }}
-          />
-          <div
-            className="absolute inset-y-0 left-0 right-0 flex min-w-0 items-center lg:left-[var(--component-library-tree-width)]"
+            className="absolute inset-y-0 left-0 right-0 flex min-w-0 items-center"
             data-component-library-center-header="true"
           />
         </div>
 
         <section className="flex h-full min-h-0 overflow-hidden bg-white" aria-label="Component library workspace">
+          <ComponentLibrarySheetPanel
+            activeTab={activeTab}
+            selectedTemplateNode={selectedTemplateNode}
+            templates={templates}
+            selectedFolderNode={selectedFolderNode}
+            selectedSupplierNode={selectedSupplierNode}
+            activeCollectionId={activeCollectionId}
+            collectionOptions={collectionOptions}
+            libraryItems={libraryItems}
+            localFolders={localFolders}
+            categoryTree={categoryTree}
+            suppliers={suppliers}
+            onCollectionChange={changeCollection}
+          />
           <ComponentLibraryTreePanel
             key={`${activeTab}:${organizeMode}`}
             activeTab={activeTab}
@@ -1143,21 +1198,6 @@ export function ComponentLibraryManager({
             onRenameFolder={renameFolder}
             onDeleteFolder={deleteFolder}
           />
-          {activeTab === "templates" ? (
-            <TemplateLibrarySheet selectedNode={selectedTemplateNode} templates={templates} />
-          ) : (
-            <ComponentLibrarySheet
-              selectedFolderNode={selectedFolderNode}
-              selectedSupplierNode={selectedSupplierNode}
-              activeCollectionId={activeCollectionId}
-              collectionOptions={collectionOptions}
-              libraryItems={libraryItems}
-              localFolders={localFolders}
-              categoryTree={categoryTree}
-              suppliers={suppliers}
-              onCollectionChange={changeCollection}
-            />
-          )}
         </section>
       </div>
     </div>

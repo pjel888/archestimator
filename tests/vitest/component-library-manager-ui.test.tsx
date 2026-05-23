@@ -176,6 +176,18 @@ describe("component library manager UI", () => {
     expect(screen.getByLabelText("Search component library tree")).toBeInTheDocument();
     expect(screen.getByLabelText("Search component sheet")).toBeInTheDocument();
 
+    const workspace = screen.getByLabelText("Component library workspace");
+    const sheetPanel = workspace.querySelector('[data-component-library-sheet-panel="true"]');
+    const treePanel = workspace.querySelector('[data-component-library-tree-panel="true"]');
+    expect(sheetPanel).not.toBeNull();
+    expect(treePanel).not.toBeNull();
+    expect(sheetPanel!.compareDocumentPosition(treePanel!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+
+    const centerHeader = document.querySelector('[data-component-library-center-header="true"]');
+    const workspaceHeader = document.querySelector('[data-workshop-layout="component-library-workspace-header-row"]');
+    expect(centerHeader).not.toHaveClass("lg:left-[var(--component-library-tree-width)]");
+    expect(workspaceHeader?.getAttribute("style") ?? "").not.toContain("--component-library-tree-width");
+
     const tabs = screen.getByRole("tablist", { name: "Library views" });
     expect(within(tabs).getByRole("tab", { name: "Categories" })).toHaveAttribute("aria-selected", "true");
     expect(within(tabs).getByRole("tab", { name: "Templates" })).toHaveAttribute("aria-selected", "false");
@@ -190,7 +202,7 @@ describe("component library manager UI", () => {
     expect(screen.queryByText("Demo seed")).not.toBeInTheDocument();
   });
 
-  it("uses editable folder navigation and keeps row items out of the left tree", () => {
+  it("uses editable folder navigation and keeps row items out of the library tree", () => {
     renderLibrary();
 
     const tree = screen.getByLabelText("Component library tree");
