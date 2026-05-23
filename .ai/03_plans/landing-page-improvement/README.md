@@ -76,6 +76,8 @@ Brand and planning references:
 19. `19-cinematic-scroll-performance-correction-plan.md` — correction plan for replacing hard slideshow snap with Lenis-first cinematic smooth scrolling and soft section settling.
 20. `20-landing-page-audit-and-marketing-synthesis.md` — comprehensive performance, SEO, UX, UI, and marketing audit with actionable PLG recommendations.
 21. `21-b2b-saas-and-estimation-landing-page-best-practices.md` — detailed research and best-practices guide for tech startups and vertical B2B SaaS apps like Archestimator.
+22. `22-current-execution-brief.md` — approved and active implementation guide for the current below-hero pass.
+23. `23-comprehensive-landing-page-research-and-strategy.md` — master landing page playbook consolidating general and vertical-specific best practices, competitor analysis, current audits, and the below-hero blueprint.
 
 ## Deletion criteria
 
