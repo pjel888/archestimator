@@ -14,6 +14,259 @@ export type Database = {
   }
   public: {
     Tables: {
+      ai_action_runs: {
+        Row: {
+          actor_user_id: string
+          blocked_reason: string | null
+          completed_at: string | null
+          created_at: string
+          error_class: string | null
+          id: string
+          metadata: Json
+          mode: Database["public"]["Enums"]["ai_interaction_mode"]
+          model: string
+          provider: string
+          provider_response_id: string | null
+          provider_send_categories: string[]
+          redaction_status: Database["public"]["Enums"]["ai_redaction_status"]
+          request_host: string | null
+          request_message_hash: string | null
+          route_context_hash: string | null
+          run_id: string
+          started_at: string
+          status: Database["public"]["Enums"]["ai_run_status"]
+          usage: Json
+          user_agent_hash: string | null
+          workspace_id: string
+        }
+        Insert: {
+          actor_user_id: string
+          blocked_reason?: string | null
+          completed_at?: string | null
+          created_at?: string
+          error_class?: string | null
+          id?: string
+          metadata?: Json
+          mode: Database["public"]["Enums"]["ai_interaction_mode"]
+          model?: string
+          provider?: string
+          provider_response_id?: string | null
+          provider_send_categories?: string[]
+          redaction_status?: Database["public"]["Enums"]["ai_redaction_status"]
+          request_host?: string | null
+          request_message_hash?: string | null
+          route_context_hash?: string | null
+          run_id?: string
+          started_at?: string
+          status?: Database["public"]["Enums"]["ai_run_status"]
+          usage?: Json
+          user_agent_hash?: string | null
+          workspace_id: string
+        }
+        Update: {
+          actor_user_id?: string
+          blocked_reason?: string | null
+          completed_at?: string | null
+          created_at?: string
+          error_class?: string | null
+          id?: string
+          metadata?: Json
+          mode?: Database["public"]["Enums"]["ai_interaction_mode"]
+          model?: string
+          provider?: string
+          provider_response_id?: string | null
+          provider_send_categories?: string[]
+          redaction_status?: Database["public"]["Enums"]["ai_redaction_status"]
+          request_host?: string | null
+          request_message_hash?: string | null
+          route_context_hash?: string | null
+          run_id?: string
+          started_at?: string
+          status?: Database["public"]["Enums"]["ai_run_status"]
+          usage?: Json
+          user_agent_hash?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_action_runs_actor_user_id_fkey"
+            columns: ["actor_user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_action_runs_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_data_access_events: {
+        Row: {
+          actor_user_id: string
+          blocked_attempt: boolean
+          blocked_reason: string | null
+          created_at: string
+          event_name: string
+          filter_hash: string | null
+          id: string
+          redaction_status: Database["public"]["Enums"]["ai_redaction_status"]
+          row_count: number
+          run_id: string
+          safe_summary: string
+          source_tables: string[]
+          target_estimate_id: string | null
+          target_node_id: string | null
+          target_project_id: string | null
+          target_row_id: string | null
+          tool_call_id: string | null
+          workspace_id: string
+        }
+        Insert: {
+          actor_user_id: string
+          blocked_attempt?: boolean
+          blocked_reason?: string | null
+          created_at?: string
+          event_name: string
+          filter_hash?: string | null
+          id?: string
+          redaction_status?: Database["public"]["Enums"]["ai_redaction_status"]
+          row_count?: number
+          run_id: string
+          safe_summary?: string
+          source_tables?: string[]
+          target_estimate_id?: string | null
+          target_node_id?: string | null
+          target_project_id?: string | null
+          target_row_id?: string | null
+          tool_call_id?: string | null
+          workspace_id: string
+        }
+        Update: {
+          actor_user_id?: string
+          blocked_attempt?: boolean
+          blocked_reason?: string | null
+          created_at?: string
+          event_name?: string
+          filter_hash?: string | null
+          id?: string
+          redaction_status?: Database["public"]["Enums"]["ai_redaction_status"]
+          row_count?: number
+          run_id?: string
+          safe_summary?: string
+          source_tables?: string[]
+          target_estimate_id?: string | null
+          target_node_id?: string | null
+          target_project_id?: string | null
+          target_row_id?: string | null
+          tool_call_id?: string | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_data_access_events_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "ai_action_runs"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "ai_data_access_events_tool_call_id_fkey"
+            columns: ["tool_call_id"]
+            isOneToOne: false
+            referencedRelation: "ai_tool_calls"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "ai_data_access_events_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ai_tool_calls: {
+        Row: {
+          actor_user_id: string
+          args_hash: string | null
+          completed_at: string | null
+          created_at: string
+          id: string
+          mode: Database["public"]["Enums"]["ai_interaction_mode"]
+          result_hash: string | null
+          run_id: string
+          safe_summary: string
+          started_at: string
+          status: Database["public"]["Enums"]["ai_run_status"]
+          target_estimate_id: string | null
+          target_node_id: string | null
+          target_project_id: string | null
+          target_row_id: string | null
+          tool_name: string
+          validation_errors: Json
+          workspace_id: string
+        }
+        Insert: {
+          actor_user_id: string
+          args_hash?: string | null
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          mode: Database["public"]["Enums"]["ai_interaction_mode"]
+          result_hash?: string | null
+          run_id: string
+          safe_summary?: string
+          started_at?: string
+          status?: Database["public"]["Enums"]["ai_run_status"]
+          target_estimate_id?: string | null
+          target_node_id?: string | null
+          target_project_id?: string | null
+          target_row_id?: string | null
+          tool_name: string
+          validation_errors?: Json
+          workspace_id: string
+        }
+        Update: {
+          actor_user_id?: string
+          args_hash?: string | null
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          mode?: Database["public"]["Enums"]["ai_interaction_mode"]
+          result_hash?: string | null
+          run_id?: string
+          safe_summary?: string
+          started_at?: string
+          status?: Database["public"]["Enums"]["ai_run_status"]
+          target_estimate_id?: string | null
+          target_node_id?: string | null
+          target_project_id?: string | null
+          target_row_id?: string | null
+          tool_name?: string
+          validation_errors?: Json
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_tool_calls_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "ai_action_runs"
+            referencedColumns: ["run_id"]
+          },
+          {
+            foreignKeyName: "ai_tool_calls_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       component_category_nodes: {
         Row: {
           code: string | null
@@ -116,7 +369,12 @@ export type Database = {
           description: string
           id: string
           kind: Database["public"]["Enums"]["cost_library_item_kind"]
+          active_price_option_id: string | null
+          current_version_number: number
           library_folder_id: string | null
+          lifecycle_state: Database["public"]["Enums"]["component_lifecycle_state"]
+          lifecycle_state_changed_at: string
+          lifecycle_state_changed_by: string | null
           metadata: Json
           misc_cost: number
           name: string
@@ -141,7 +399,12 @@ export type Database = {
           description?: string
           id?: string
           kind?: Database["public"]["Enums"]["cost_library_item_kind"]
+          active_price_option_id?: string | null
+          current_version_number?: number
           library_folder_id?: string | null
+          lifecycle_state?: Database["public"]["Enums"]["component_lifecycle_state"]
+          lifecycle_state_changed_at?: string
+          lifecycle_state_changed_by?: string | null
           metadata?: Json
           misc_cost?: number
           name: string
@@ -166,7 +429,12 @@ export type Database = {
           description?: string
           id?: string
           kind?: Database["public"]["Enums"]["cost_library_item_kind"]
+          active_price_option_id?: string | null
+          current_version_number?: number
           library_folder_id?: string | null
+          lifecycle_state?: Database["public"]["Enums"]["component_lifecycle_state"]
+          lifecycle_state_changed_at?: string
+          lifecycle_state_changed_by?: string | null
           metadata?: Json
           misc_cost?: number
           name?: string
@@ -211,6 +479,186 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      cost_library_item_price_history: {
+        Row: {
+          change_reason: string
+          created_at: string
+          created_by: string | null
+          effective_at: string
+          id: string
+          item_id: string
+          new_snapshot: Json
+          old_snapshot: Json | null
+          price_option_id: string
+          workspace_id: string
+        }
+        Insert: {
+          change_reason?: string
+          created_at?: string
+          created_by?: string | null
+          effective_at?: string
+          id?: string
+          item_id: string
+          new_snapshot: Json
+          old_snapshot?: Json | null
+          price_option_id: string
+          workspace_id: string
+        }
+        Update: {
+          change_reason?: string
+          created_at?: string
+          created_by?: string | null
+          effective_at?: string
+          id?: string
+          item_id?: string
+          new_snapshot?: Json
+          old_snapshot?: Json | null
+          price_option_id?: string
+          workspace_id?: string
+        }
+        Relationships: []
+      }
+      cost_library_item_price_options: {
+        Row: {
+          confidence: string | null
+          created_at: string
+          created_by: string | null
+          currency: string
+          id: string
+          is_active: boolean
+          is_default: boolean
+          item_id: string
+          label: string
+          misc_cost: number
+          notes: string
+          pricing_date: string | null
+          pricing_source: string | null
+          source_url: string | null
+          supplier_id: string | null
+          unit: string
+          unit_cost: number
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          confidence?: string | null
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          id?: string
+          is_active?: boolean
+          is_default?: boolean
+          item_id: string
+          label: string
+          misc_cost?: number
+          notes?: string
+          pricing_date?: string | null
+          pricing_source?: string | null
+          source_url?: string | null
+          supplier_id?: string | null
+          unit?: string
+          unit_cost?: number
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          confidence?: string | null
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          id?: string
+          is_active?: boolean
+          is_default?: boolean
+          item_id?: string
+          label?: string
+          misc_cost?: number
+          notes?: string
+          pricing_date?: string | null
+          pricing_source?: string | null
+          source_url?: string | null
+          supplier_id?: string | null
+          unit?: string
+          unit_cost?: number
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: []
+      }
+      cost_library_item_state_history: {
+        Row: {
+          change_reason: string
+          created_at: string
+          created_by: string | null
+          effective_at: string
+          from_state: Database["public"]["Enums"]["component_lifecycle_state"] | null
+          id: string
+          item_id: string
+          to_state: Database["public"]["Enums"]["component_lifecycle_state"]
+          workspace_id: string
+        }
+        Insert: {
+          change_reason?: string
+          created_at?: string
+          created_by?: string | null
+          effective_at?: string
+          from_state?: Database["public"]["Enums"]["component_lifecycle_state"] | null
+          id?: string
+          item_id: string
+          to_state: Database["public"]["Enums"]["component_lifecycle_state"]
+          workspace_id: string
+        }
+        Update: {
+          change_reason?: string
+          created_at?: string
+          created_by?: string | null
+          effective_at?: string
+          from_state?: Database["public"]["Enums"]["component_lifecycle_state"] | null
+          id?: string
+          item_id?: string
+          to_state?: Database["public"]["Enums"]["component_lifecycle_state"]
+          workspace_id?: string
+        }
+        Relationships: []
+      }
+      cost_library_item_versions: {
+        Row: {
+          change_reason: string
+          change_summary: string
+          created_at: string
+          created_by: string | null
+          effective_at: string
+          id: string
+          item_id: string
+          snapshot: Json
+          version_number: number
+          workspace_id: string
+        }
+        Insert: {
+          change_reason?: string
+          change_summary?: string
+          created_at?: string
+          created_by?: string | null
+          effective_at?: string
+          id?: string
+          item_id: string
+          snapshot: Json
+          version_number: number
+          workspace_id: string
+        }
+        Update: {
+          change_reason?: string
+          change_summary?: string
+          created_at?: string
+          created_by?: string | null
+          effective_at?: string
+          id?: string
+          item_id?: string
+          snapshot?: Json
+          version_number?: number
+          workspace_id?: string
+        }
+        Relationships: []
       }
       library_folders: {
         Row: {
@@ -831,6 +1279,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      create_cost_library_component: {
+        Args: { target_workspace_id: string; component: Json; price_options: Json }
+        Returns: Json
+      }
       current_user_profile: {
         Args: never
         Returns: {
@@ -867,6 +1319,25 @@ export type Database = {
         }
         Returns: Json
       }
+      set_cost_library_component_lifecycle_state: {
+        Args: {
+          target_workspace_id: string
+          target_item_id: string
+          next_state: Database["public"]["Enums"]["component_lifecycle_state"]
+          change_reason?: string
+          effective_at?: string
+          acting_user_id?: string
+        }
+        Returns: Json
+      }
+      update_cost_library_component: {
+        Args: { target_workspace_id: string; target_item_id: string; component: Json }
+        Returns: Json
+      }
+      upsert_cost_library_component_price_option: {
+        Args: { target_workspace_id: string; target_item_id: string; price_option: Json }
+        Returns: Json
+      }
       reorder_estimate_nodes: {
         Args: { target_estimate_id: string; move_updates: Json }
         Returns: number
@@ -881,7 +1352,16 @@ export type Database = {
       }
     }
     Enums: {
+      ai_interaction_mode: "ask" | "draft" | "apply" | "eval"
+      ai_redaction_status: "metadata_only" | "redacted" | "synthetic" | "blocked"
+      ai_run_status: "started" | "completed" | "failed" | "blocked"
       app_role: "ceo" | "admin" | "member"
+      component_lifecycle_state:
+        | "draft"
+        | "in_production"
+        | "available"
+        | "discontinued"
+        | "archived"
       cost_library_item_kind:
         | "material"
         | "labor"
@@ -1031,7 +1511,17 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      ai_interaction_mode: ["ask", "draft", "apply", "eval"],
+      ai_redaction_status: ["metadata_only", "redacted", "synthetic", "blocked"],
+      ai_run_status: ["started", "completed", "failed", "blocked"],
       app_role: ["ceo", "admin", "member"],
+      component_lifecycle_state: [
+        "draft",
+        "in_production",
+        "available",
+        "discontinued",
+        "archived",
+      ],
       cost_library_item_kind: [
         "material",
         "labor",

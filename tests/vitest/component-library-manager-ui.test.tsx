@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { beforeAll, describe, expect, it } from "vitest";
+import { beforeAll, describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen, within } from "@testing-library/react";
 import type { ComponentProps } from "react";
 
@@ -9,6 +9,16 @@ import { LibraryPageClient } from "@/components/workshop/LibraryPageClient";
 import type { EstimateRowItem } from "@/components/workshop/estimate-tree-data";
 import type { ComponentLibraryTaxonomyNode } from "@/lib/component-library/taxonomy";
 import type { LibraryFolderRecord } from "@/lib/component-library/library-folder-reorder";
+
+const navigationMocks = vi.hoisted(() => ({
+  refresh: vi.fn(),
+}));
+
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({
+    refresh: navigationMocks.refresh,
+  }),
+}));
 
 const sharedCategoryTree: ComponentLibraryTaxonomyNode[] = [
   {

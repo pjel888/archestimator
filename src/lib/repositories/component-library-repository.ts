@@ -1,6 +1,12 @@
 import { randomUUID } from "node:crypto";
 
-import type { EstimateRowItem, EstimateRowItemSource, EstimateTreeNode } from "@/lib/estimates/types";
+import type {
+  ComponentHistoryEntry,
+  ComponentPriceOption,
+  EstimateRowItem,
+  EstimateRowItemSource,
+  EstimateTreeNode,
+} from "@/lib/estimates/types";
 import { estimateTemplates, type EstimateTemplate } from "@/lib/component-library/estimate-templates";
 import {
   buildComponentCategoryTreeFromRows,
@@ -34,6 +40,10 @@ export type ComponentRowsLibraryDataset = Omit<ComponentLibraryDataset, "templat
 type EstimateTemplateRow = Tables<"estimate_templates">;
 type EstimateTemplateNodeRow = Tables<"estimate_template_nodes">;
 type EstimateTemplateRowItemRow = Tables<"estimate_template_row_items">;
+type ComponentPriceOptionRow = Tables<"cost_library_item_price_options">;
+type ComponentVersionRow = Tables<"cost_library_item_versions">;
+type ComponentPriceHistoryRow = Tables<"cost_library_item_price_history">;
+type ComponentStateHistoryRow = Tables<"cost_library_item_state_history">;
 
 type BuildEstimateTemplatesInput = {
   templates: EstimateTemplateRow[];
@@ -58,6 +68,15 @@ function readStringArray(value: Json | undefined): string[] | undefined {
   return strings.length ? strings : undefined;
 }
 
+function readNumber(value: Json | undefined): number | undefined {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  if (typeof value === "string" && value.trim()) {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : undefined;
+  }
+  return undefined;
+}
+
 function readSource(value: Json | undefined): EstimateRowItemSource {
   if (value === "project" || value === "supplier" || value === "library") return value;
   return "library";
@@ -77,13 +96,19 @@ function normalizeComponentLibraryItem(
   categoryById: Map<string, ComponentLibraryTaxonomyNode>,
   supplierById: Map<string, ComponentLibrarySupplier>,
   categoryTree: ComponentLibraryTaxonomyNode[],
+  priceOptions: ComponentPriceOption[] = [],
+  history: ComponentHistoryEntry[] = [],
+  latestVersion?: ComponentVersionRow,
 ): EstimateRowItem {
   const metadata = readMetadataRecord(row.metadata);
   const categoryNode = row.category_node_id ? categoryById.get(row.category_node_id) : undefined;
   const supplier = row.supplier_id ? supplierById.get(row.supplier_id) : undefined;
-  const itemCost = Number(row.unit_cost);
-  const miscCost = Number(row.misc_cost);
-  const pricingDate = row.pricing_date ?? row.created_at.slice(0, 10);
+  const defaultPriceOption = priceOptions.find((option) => option.isDefault && option.isActive) ?? priceOptions.find((option) => option.isActive);
+  const itemCost = Number(defaultPriceOption?.unitCost ?? row.unit_cost);
+  const miscCost = Number(defaultPriceOption?.miscCost ?? row.misc_cost);
+  const unit = defaultPriceOption?.unit ?? row.unit;
+  const pricingDate = defaultPriceOption?.pricingDate ?? row.pricing_date ?? row.created_at.slice(0, 10);
+  const pricingSource = defaultPriceOption?.pricingSource ?? row.pricing_source ?? supplier?.name ?? "Component library";
 
   return {
     id: row.id,
@@ -93,7 +118,7 @@ function normalizeComponentLibraryItem(
     supplier: supplier?.name ?? row.supplier ?? "",
     supplierId: row.supplier_id ?? undefined,
     source: readSource(metadata.source),
-    unit: row.unit,
+    unit,
     itemCost,
     price: itemCost,
     currency: "PHP",
@@ -112,13 +137,84 @@ function normalizeComponentLibraryItem(
     tags: readStringArray(metadata.tags),
     sku: row.sku ?? undefined,
     sourceUrl: readString(metadata.sourceUrl),
+    sourceLibraryItemId: row.id,
+    componentVersionId: latestVersion?.id ?? undefined,
+    componentVersionNumber: row.current_version_number,
+    priceOptionId: defaultPriceOption?.id ?? row.active_price_option_id ?? undefined,
+    priceOptionLabel: defaultPriceOption?.label,
+    priceOptions,
+    lifecycleState: row.lifecycle_state,
+    lifecycleStateChangedAt: row.lifecycle_state_changed_at,
+    history,
     notes: readString(metadata.notes),
     createdAt: row.created_at,
     updatedAt: row.updated_at,
-    pricingSource: row.pricing_source ?? supplier?.name ?? "Component library",
+    pricingSource,
     pricingDate,
-    confidence: row.confidence ?? undefined,
+    confidence: defaultPriceOption?.confidence ?? row.confidence ?? undefined,
     isCustom: metadata.isCustom === true || metadata.source === "project" || metadata.folderKind === "custom",
+  };
+}
+
+function normalizePriceOption(row: ComponentPriceOptionRow): ComponentPriceOption {
+  return {
+    id: row.id,
+    label: row.label,
+    unit: row.unit,
+    unitCost: Number(row.unit_cost),
+    miscCost: Number(row.misc_cost),
+    currency: row.currency,
+    pricingSource: row.pricing_source,
+    pricingDate: row.pricing_date,
+    confidence: row.confidence,
+    sourceUrl: row.source_url,
+    notes: row.notes,
+    supplierId: row.supplier_id,
+    isActive: row.is_active,
+    isDefault: row.is_default,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+}
+
+function normalizeVersionHistory(row: ComponentVersionRow): ComponentHistoryEntry {
+  return {
+    id: row.id,
+    type: "version",
+    label: `v${row.version_number}`,
+    summary: row.change_summary || "Component version recorded",
+    effectiveAt: row.effective_at,
+    createdAt: row.created_at,
+    versionNumber: row.version_number,
+  };
+}
+
+function normalizePriceHistory(row: ComponentPriceHistoryRow): ComponentHistoryEntry {
+  const newSnapshot = readMetadataRecord(row.new_snapshot);
+  const label = readString(newSnapshot.label) ?? "Price option";
+  const unitCost = readNumber(newSnapshot.unitCost);
+  const miscCost = readNumber(newSnapshot.miscCost);
+  const priceText = unitCost === undefined ? "" : ` (${formatPeso(unitCost + (miscCost ?? 0))})`;
+  return {
+    id: row.id,
+    type: "price",
+    label,
+    summary: `Price option changed${priceText}`,
+    effectiveAt: row.effective_at,
+    createdAt: row.created_at,
+  };
+}
+
+function normalizeStateHistory(row: ComponentStateHistoryRow): ComponentHistoryEntry {
+  const fromState = row.from_state ? row.from_state.replaceAll("_", " ") : "created";
+  const toState = row.to_state.replaceAll("_", " ");
+  return {
+    id: row.id,
+    type: "state",
+    label: "State",
+    summary: `${fromState} -> ${toState}`,
+    effectiveAt: row.effective_at,
+    createdAt: row.created_at,
   };
 }
 
@@ -246,6 +342,11 @@ function normalizeTemplateRowItem(row: EstimateTemplateRowItemRow): EstimateRowI
     sku: readString(sourceSnapshot.sku),
     sourceUrl: readString(sourceSnapshot.sourceUrl),
     sourceLibraryItemId: row.source_library_item_id,
+    componentVersionId: readString(sourceSnapshot.componentVersionId),
+    componentVersionNumber: readNumber(sourceSnapshot.componentVersionNumber),
+    priceOptionId: readString(sourceSnapshot.priceOptionId),
+    priceOptionLabel: readString(sourceSnapshot.priceOptionLabel),
+    lifecycleState: readString(sourceSnapshot.lifecycleState) as EstimateRowItem["lifecycleState"],
     notes: readString(sourceSnapshot.notes),
     createdAt: row.created_at,
     updatedAt: row.updated_at,
@@ -358,9 +459,94 @@ async function loadCurrentWorkspaceComponentRowsLibrary({
   const categoryTree = buildComponentCategoryTreeFromRows(categoryRows);
   const libraryFolders = await ensureWorkspaceLibraryFolders({ supabase, workspaceId, categoryRows });
   const suppliers = suppliersResult.data ?? [];
+  const itemRows = itemsResult.data ?? [];
+  const itemIds = itemRows.map((row) => row.id);
+  const [priceOptionsResult, versionsResult, priceHistoryResult, stateHistoryResult] = itemIds.length > 0
+    ? await Promise.all([
+        supabase
+          .from("cost_library_item_price_options")
+          .select("*")
+          .eq("workspace_id", workspaceId)
+          .in("item_id", itemIds)
+          .order("is_default", { ascending: false })
+          .order("created_at", { ascending: true }),
+        supabase
+          .from("cost_library_item_versions")
+          .select("*")
+          .eq("workspace_id", workspaceId)
+          .in("item_id", itemIds)
+          .order("version_number", { ascending: false }),
+        supabase
+          .from("cost_library_item_price_history")
+          .select("*")
+          .eq("workspace_id", workspaceId)
+          .in("item_id", itemIds)
+          .order("effective_at", { ascending: false }),
+        supabase
+          .from("cost_library_item_state_history")
+          .select("*")
+          .eq("workspace_id", workspaceId)
+          .in("item_id", itemIds)
+          .order("effective_at", { ascending: false }),
+      ])
+    : [
+        { data: [], error: null },
+        { data: [], error: null },
+        { data: [], error: null },
+        { data: [], error: null },
+      ];
+
+  if (priceOptionsResult.error && !isMissingRelationError(priceOptionsResult.error, "cost_library_item_price_options")) throw priceOptionsResult.error;
+  if (versionsResult.error && !isMissingRelationError(versionsResult.error, "cost_library_item_versions")) throw versionsResult.error;
+  if (priceHistoryResult.error && !isMissingRelationError(priceHistoryResult.error, "cost_library_item_price_history")) throw priceHistoryResult.error;
+  if (stateHistoryResult.error && !isMissingRelationError(stateHistoryResult.error, "cost_library_item_state_history")) throw stateHistoryResult.error;
+
+  const priceOptionsByItemId = new Map<string, ComponentPriceOption[]>();
+  for (const row of (priceOptionsResult.error ? [] : (priceOptionsResult.data ?? [])) as ComponentPriceOptionRow[]) {
+    const options = priceOptionsByItemId.get(row.item_id) ?? [];
+    options.push(normalizePriceOption(row));
+    priceOptionsByItemId.set(row.item_id, options);
+  }
+
+  const versionsByItemId = new Map<string, ComponentVersionRow[]>();
+  for (const row of (versionsResult.error ? [] : (versionsResult.data ?? [])) as ComponentVersionRow[]) {
+    const versions = versionsByItemId.get(row.item_id) ?? [];
+    versions.push(row);
+    versionsByItemId.set(row.item_id, versions);
+  }
+
+  const historyByItemId = new Map<string, ComponentHistoryEntry[]>();
+  function addHistory(itemId: string, entry: ComponentHistoryEntry) {
+    const entries = historyByItemId.get(itemId) ?? [];
+    entries.push(entry);
+    historyByItemId.set(itemId, entries);
+  }
+  for (const row of (versionsResult.error ? [] : (versionsResult.data ?? [])) as ComponentVersionRow[]) {
+    addHistory(row.item_id, normalizeVersionHistory(row));
+  }
+  for (const row of (priceHistoryResult.error ? [] : (priceHistoryResult.data ?? [])) as ComponentPriceHistoryRow[]) {
+    addHistory(row.item_id, normalizePriceHistory(row));
+  }
+  for (const row of (stateHistoryResult.error ? [] : (stateHistoryResult.data ?? [])) as ComponentStateHistoryRow[]) {
+    addHistory(row.item_id, normalizeStateHistory(row));
+  }
+
   const categoryById = new Map(flattenCategoryTree(categoryTree).map((node) => [node.id, node]));
   const supplierById = new Map(suppliers.map((supplier) => [supplier.id, supplier]));
-  const libraryItems = (itemsResult.data ?? []).map((row) => normalizeComponentLibraryItem(row, categoryById, supplierById, categoryTree));
+  const libraryItems = itemRows.map((row) => {
+    const history = [...(historyByItemId.get(row.id) ?? [])].sort((left, right) => (
+      right.effectiveAt.localeCompare(left.effectiveAt) || right.createdAt.localeCompare(left.createdAt)
+    ));
+    return normalizeComponentLibraryItem(
+      row,
+      categoryById,
+      supplierById,
+      categoryTree,
+      priceOptionsByItemId.get(row.id) ?? [],
+      history,
+      versionsByItemId.get(row.id)?.[0],
+    );
+  });
 
   return {
     categoryTree,
