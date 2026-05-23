@@ -34,7 +34,8 @@ git diff --check
 /workshop/projects/[projectId]
 /workshop/projects/[projectId]/estimates
 /workshop/projects/[projectId]/estimates/[nodeId]
-/workshop/components
+/workshop/library
+/workshop/components -> /workshop/library redirect
 ```
 
 Do not use the old reset-era assumption that `/workshop` is intentionally blank or that `/workshop/projects` is deleted. The authenticated Supabase-backed workshop path is now active.

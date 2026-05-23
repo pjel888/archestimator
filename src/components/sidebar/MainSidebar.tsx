@@ -50,7 +50,7 @@ const navGroups: NavGroup[] = [
     key: "library",
     label: "Library",
     items: [
-      { id: "components", href: "/workshop/components", label: "Components", icon: Books, shortcut: "⌘3" },
+      { id: "library", href: "/workshop/library", label: "Library", icon: Books, shortcut: "⌘3" },
     ],
   },
 ];

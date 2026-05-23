@@ -31,7 +31,8 @@ describe("workshop sidebar baseline", () => {
     expect(source).toContain("SIDEBAR_WIDTH_COLLAPSED = SIDEBAR_PADDING * 2 + SIDEBAR_ICON_SLOT");
     expect(sidebar).toContain("fixed left-0 top-0 z-[100]");
     expect(sidebar).toContain("href: \"/workshop/projects\"");
-    expect(sidebar).toContain("href: \"/workshop/components\"");
+    expect(sidebar).toContain("href: \"/workshop/library\"");
+    expect(sidebar).toContain("label: \"Library\"");
     expect(sidebar).not.toContain("Reports");
     expect(sidebar).not.toContain("Cost Library");
     expect(sidebar).not.toContain("grid-cols-[var(--sidebar-grid-columns)]");

@@ -7,6 +7,7 @@ import {
   evaluateLibraryFolderDrop,
   getLibraryItemsForFolderNode,
   LIBRARY_FOLDER_TREE_ROOT_ITEM_ID,
+  planLibraryFolderDelete,
   type LibraryFolderRecord,
 } from "@/lib/component-library/library-folder-reorder";
 
@@ -139,5 +140,17 @@ describe("library folder reorder planning", () => {
     ];
 
     expect(getLibraryItemsForFolderNode(structure, items).map((item) => item.id)).toEqual(["fallback"]);
+  });
+
+  it("lifts child folders into the deleted folder parent without sibling sort collisions", () => {
+    const result = planLibraryFolderDelete(folders, "folder-structure");
+
+    expect(result?.liftedChildUpdates).toEqual([
+      { id: "folder-concrete", parentId: null, sortOrder: 30 },
+    ]);
+    expect(result?.nextFolders.map((folder) => [folder.id, folder.parent_id, folder.sort_order])).toEqual([
+      ["folder-concrete", null, 30],
+      ["folder-custom", null, 20],
+    ]);
   });
 });
