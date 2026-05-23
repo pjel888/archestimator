@@ -5,9 +5,11 @@ import {
   type HTMLAttributes,
   useCallback,
   useMemo,
+  useRef,
   useState,
   useTransition,
 } from "react";
+import { useRouter } from "next/navigation";
 import {
   ControlledTreeEnvironment,
   InteractionMode,
@@ -20,6 +22,9 @@ import {
 import { CaretDown, CaretRight, FolderSimple, SquaresFour } from "@phosphor-icons/react/dist/ssr";
 
 import { HeaderIconToolbar } from "@/components/ui/header-icon-toolbar";
+import { Badge } from "@/components/ui/badge";
+import { ControlSelect } from "@/components/ui/control-select";
+import { EmptyState } from "@/components/ui/empty-state";
 import { SearchInput } from "@/components/ui/search-input";
 import type { ActionMenuGroup } from "@/components/ui/action-menu";
 import { ResizableSidePanel } from "@/components/workshop/ResizableSidePanel";
@@ -28,8 +33,11 @@ import { WORKSHOP_TREE_ICON_SLOT_CLASS, WORKSHOP_TREE_ROW_MIN_HEIGHT_CLASS } fro
 import {
   createLibraryFolder,
   deleteLibraryFolder,
+  changeCostLibraryComponentLifecycleState,
   renameLibraryFolder,
   reorderLibraryFolders,
+  upsertCostLibraryComponentPriceOption,
+  type ComponentLifecycleState,
 } from "@/lib/component-library/actions";
 import {
   buildLibraryFolderTree,
@@ -62,6 +70,7 @@ import {
 } from "../component-library/helpers";
 import type { LibraryTreeNode } from "../component-library/tree/types";
 import type { ComponentLibrarySupplierOption } from "../component-library/tree/buildLibraryTree";
+import { AddComponentModal } from "./AddComponentModal";
 
 const COMPONENT_LIBRARY_TREE_WIDTH_OFFSET = 104;
 const LIBRARY_TABS = [{ id: "components", label: "Components" }] as const;
@@ -69,6 +78,13 @@ const COMPONENT_VIEW_MODES = [
   { id: "default", label: "View By: Default" },
   { id: "suppliers", label: "Suppliers" },
 ] as const;
+const LIFECYCLE_META: Record<ComponentLifecycleState, { label: string; tone: "neutral" | "info" | "success" | "warning" | "danger" }> = {
+  draft: { label: "Draft", tone: "neutral" },
+  in_production: { label: "In production", tone: "info" },
+  available: { label: "Available", tone: "success" },
+  discontinued: { label: "Discontinued", tone: "warning" },
+  archived: { label: "Archived", tone: "danger" },
+};
 
 type ComponentViewMode = (typeof COMPONENT_VIEW_MODES)[number]["id"];
 
@@ -83,6 +99,12 @@ type LibraryFolderTreeModel = {
 };
 
 type ReorderStatus =
+  | { state: "idle" }
+  | { state: "saving"; message: string }
+  | { state: "saved"; message: string }
+  | { state: "error"; message: string };
+
+type SheetStatus =
   | { state: "idle" }
   | { state: "saving"; message: string }
   | { state: "saved"; message: string }
@@ -652,6 +674,10 @@ function ComponentLibrarySheet({
   libraryItems,
   categoryTree,
   suppliers,
+  status,
+  onAddComponent,
+  onItemChanged,
+  onStatusChange,
 }: {
   selectedFolderNode: LibraryFolderTreeNode | null;
   selectedSupplierNode: LibraryTreeNode | null;
@@ -659,8 +685,13 @@ function ComponentLibrarySheet({
   libraryItems: EstimateRowItem[];
   categoryTree: ComponentLibraryTaxonomyNode[];
   suppliers: ComponentLibrarySupplierOption[];
+  status: SheetStatus;
+  onAddComponent: () => void;
+  onItemChanged: (item: EstimateRowItem) => void;
+  onStatusChange: (status: SheetStatus) => void;
 }) {
   const [searchQuery, setSearchQuery] = useState("");
+  const [isPending, startTransition] = useTransition();
   const sheetItems = useMemo(() => {
     if (viewMode === "suppliers") {
       if (!selectedSupplierNode || selectedSupplierNode.id === "all-suppliers") return getSupplierBackedItems(libraryItems);
@@ -695,7 +726,17 @@ function ComponentLibrarySheet({
             onClear={() => setSearchQuery("")}
           />
         </div>
-        <HeaderIconToolbar ariaLabel="Component sheet tools" labelPrefix="component sheet" addActions={[]} />
+        <HeaderIconToolbar
+          ariaLabel="Component sheet tools"
+          labelPrefix="component sheet"
+          addActions={[
+            {
+              label: "Add Component",
+              visibleLabel: "Add Component",
+              onClick: onAddComponent,
+            },
+          ]}
+        />
         <div className="flex h-[32px] items-end gap-0 border-b border-hairline bg-surfaceMuted" role="tablist" aria-label="Component sheet tabs">
           <button
             type="button"
@@ -712,6 +753,18 @@ function ComponentLibrarySheet({
             {visibleItems.length} / {sheetItems.length}
           </span>
         </div>
+        {status.state !== "idle" ? (
+          <div
+            role="status"
+            aria-live="polite"
+            className={cn(
+              "border-b border-hairline px-2 py-1 text-[10px] leading-4",
+              status.state === "error" ? "text-red-700" : "text-tertiary",
+            )}
+          >
+            {status.message}
+          </div>
+        ) : null}
       </header>
 
       <div className="min-h-0 flex-1 overflow-auto p-2">
@@ -720,31 +773,143 @@ function ComponentLibrarySheet({
             {visibleItems.map((item) => (
               <li
                 key={item.id}
-                className="grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-2 border-b border-hairline px-2 py-1.5 last:border-b-0"
+                className={cn(
+                  "grid grid-cols-[minmax(0,1fr)_auto] items-start gap-2 border-b border-hairline px-2 py-1.5 last:border-b-0",
+                  item.lifecycleState === "archived" ? "opacity-60" : "",
+                )}
               >
                 <div className="min-w-0">
                   <p className="truncate text-[10px] font-bold leading-4 text-ink">{getComponentName(item)}</p>
-                  <p className="truncate text-[9px] font-semibold leading-3 text-tertiary">
-                    {item.supplier || "No supplier"} / {item.category}
-                  </p>
+                  <div className="flex min-w-0 items-center gap-1">
+                    <p className="truncate text-[9px] font-semibold leading-3 text-tertiary">
+                      {item.supplier || "No supplier"} / {item.category}
+                    </p>
+                    <Badge tone={LIFECYCLE_META[item.lifecycleState ?? "available"].tone} size="xs">
+                      {LIFECYCLE_META[item.lifecycleState ?? "available"].label}
+                    </Badge>
+                  </div>
+                  {item.history?.length ? (
+                    <details className="mt-1">
+                      <summary className="cursor-pointer text-[9px] font-bold leading-3 text-tertiary">
+                        History / v{item.componentVersionNumber ?? 1}
+                      </summary>
+                      <ol className="mt-1 space-y-1 rounded-sm border border-hairline bg-surfaceMuted p-1">
+                        {item.history.slice(0, 5).map((entry) => (
+                          <li key={`${entry.type}-${entry.id}`} className="grid grid-cols-[auto_minmax(0,1fr)] gap-1 text-[9px] leading-3 text-tertiary">
+                            <Badge tone={entry.type === "state" ? "info" : entry.type === "price" ? "warning" : "neutral"} size="xs">
+                              {entry.label}
+                            </Badge>
+                            <span className="min-w-0 truncate">{entry.summary} / {entry.effectiveAt.slice(0, 10)}</span>
+                          </li>
+                        ))}
+                      </ol>
+                    </details>
+                  ) : null}
                 </div>
-                <span className="font-mono text-[10px] font-bold tabular-nums text-ink">
-                  {pesoFormatter.format(getComponentPrice(item))}
-                </span>
-                <span className="text-[9px] font-semibold text-tertiary">/{item.unit}</span>
+                <div className="flex min-w-[148px] flex-col items-end gap-1">
+                  <span className="font-mono text-[10px] font-bold tabular-nums text-ink">
+                    {pesoFormatter.format(getComponentPrice(item))}
+                    <span className="ml-1 font-sans text-[9px] font-semibold text-tertiary">/{item.unit}</span>
+                  </span>
+                  {item.priceOptions && item.priceOptions.length > 1 ? (
+                    <ControlSelect
+                      aria-label={`Pricing option for ${getComponentName(item)}`}
+                      value={item.priceOptionId ?? ""}
+                      onChange={(event) => {
+                        const nextOption = item.priceOptions?.find((option) => option.id === event.target.value);
+                        if (!nextOption) return;
+                        startTransition(async () => {
+                          onStatusChange({ state: "saving", message: "Saving price option..." });
+                          try {
+                            await upsertCostLibraryComponentPriceOption(item.id, {
+                              id: nextOption.id,
+                              label: nextOption.label,
+                              unit: nextOption.unit,
+                              unitCost: nextOption.unitCost,
+                              miscCost: nextOption.miscCost,
+                              currency: nextOption.currency,
+                              pricingSource: nextOption.pricingSource ?? undefined,
+                              pricingDate: nextOption.pricingDate ?? undefined,
+                              confidence: nextOption.confidence ?? undefined,
+                              sourceUrl: nextOption.sourceUrl ?? undefined,
+                              notes: nextOption.notes ?? undefined,
+                              supplierId: nextOption.supplierId ?? undefined,
+                              isDefault: true,
+                              isActive: true,
+                              changeReason: "Default price option changed from workshop library.",
+                            });
+                            onItemChanged({
+                              ...item,
+                              unit: nextOption.unit,
+                              itemCost: nextOption.unitCost,
+                              price: nextOption.unitCost,
+                              subTotal: nextOption.unitCost,
+                              miscCost: nextOption.miscCost,
+                              miscCostDefault: nextOption.miscCost,
+                              totalItemCosts: nextOption.unitCost + nextOption.miscCost,
+                              pricingSource: nextOption.pricingSource ?? item.pricingSource,
+                              pricingDate: nextOption.pricingDate ?? item.pricingDate,
+                              confidence: nextOption.confidence ?? item.confidence,
+                              priceOptionId: nextOption.id,
+                              priceOptionLabel: nextOption.label,
+                              priceOptions: item.priceOptions?.map((option) => ({ ...option, isDefault: option.id === nextOption.id })),
+                            });
+                          } catch (error) {
+                            onStatusChange({ state: "error", message: error instanceof Error ? error.message : "Could not save price option." });
+                          }
+                        });
+                      }}
+                      disabled={isPending}
+                    >
+                      {item.priceOptions.map((option) => (
+                        <option key={option.id} value={option.id}>{option.label}</option>
+                      ))}
+                    </ControlSelect>
+                  ) : (
+                    <span className="max-w-32 truncate text-[9px] font-semibold text-tertiary">
+                      {item.priceOptionLabel ?? item.pricingDate}
+                    </span>
+                  )}
+                  <ControlSelect
+                    aria-label={`Lifecycle state for ${getComponentName(item)}`}
+                    value={item.lifecycleState ?? "available"}
+                    onChange={(event) => {
+                      const lifecycleState = event.target.value as ComponentLifecycleState;
+                      startTransition(async () => {
+                        onStatusChange({ state: "saving", message: "Saving component state..." });
+                        try {
+                          await changeCostLibraryComponentLifecycleState({
+                            itemId: item.id,
+                            lifecycleState,
+                            changeReason: "Lifecycle state changed from workshop library.",
+                          });
+                          onItemChanged({
+                            ...item,
+                            lifecycleState,
+                            lifecycleStateChangedAt: new Date().toISOString(),
+                          });
+                        } catch (error) {
+                          onStatusChange({ state: "error", message: error instanceof Error ? error.message : "Could not save component state." });
+                        }
+                      });
+                    }}
+                    disabled={isPending}
+                  >
+                    {Object.entries(LIFECYCLE_META).map(([value, meta]) => (
+                      <option key={value} value={value}>{meta.label}</option>
+                    ))}
+                  </ControlSelect>
+                </div>
               </li>
             ))}
           </ul>
         ) : (
-          <div className="flex h-full items-center justify-center bg-white p-2 text-center">
-            <div>
-              <SquaresFour size={18} weight="bold" className="mx-auto mb-2 text-tertiary" aria-hidden="true" />
-              <p className="text-[11px] font-bold leading-4 text-ink">{selectedLabel}</p>
-              <p className="mt-0.5 max-w-56 text-[9px] leading-4 text-tertiary">
-                {searchQuery ? `No components match "${searchQuery}".` : "No components in this view yet."}
-              </p>
-            </div>
-          </div>
+          <EmptyState
+            icon={<SquaresFour size={18} weight="bold" aria-hidden="true" />}
+            title={selectedLabel}
+            description={searchQuery ? `No components match "${searchQuery}".` : "No components in this view yet."}
+            className="h-full border-0 bg-white"
+          />
         )}
       </div>
     </section>
@@ -758,6 +923,10 @@ function ComponentLibrarySheetPanel({
   libraryItems,
   categoryTree,
   suppliers,
+  status,
+  onAddComponent,
+  onItemChanged,
+  onStatusChange,
 }: {
   selectedFolderNode: LibraryFolderTreeNode | null;
   selectedSupplierNode: LibraryTreeNode | null;
@@ -765,6 +934,10 @@ function ComponentLibrarySheetPanel({
   libraryItems: EstimateRowItem[];
   categoryTree: ComponentLibraryTaxonomyNode[];
   suppliers: ComponentLibrarySupplierOption[];
+  status: SheetStatus;
+  onAddComponent: () => void;
+  onItemChanged: (item: EstimateRowItem) => void;
+  onStatusChange: (status: SheetStatus) => void;
 }) {
   return (
     <div className="flex min-h-0 min-w-0 flex-1" data-component-library-sheet-panel="true">
@@ -775,6 +948,10 @@ function ComponentLibrarySheetPanel({
         libraryItems={libraryItems}
         categoryTree={categoryTree}
         suppliers={suppliers}
+        status={status}
+        onAddComponent={onAddComponent}
+        onItemChanged={onItemChanged}
+        onStatusChange={onStatusChange}
       />
     </div>
   );
@@ -791,6 +968,8 @@ export function ComponentLibraryManager({
   libraryFolders?: LibraryFolderRecord[];
   libraryItems?: EstimateRowItem[];
 } = {}) {
+  const router = useRouter();
+  const addButtonReturnRef = useRef<HTMLElement | null>(null);
   const fallbackFolders = useMemo(() => buildFallbackLibraryFolders(categoryTree), [categoryTree]);
   const normalizedPropFolders = useMemo(
     () => normalizeLibraryFolderRecords(libraryFolders?.length ? libraryFolders : fallbackFolders),
@@ -802,14 +981,26 @@ export function ComponentLibraryManager({
   const [selectedFolderId, setSelectedFolderId] = useState<string | null>(initialSelectedFolderId);
   const [selectedSupplierNodeId, setSelectedSupplierNodeId] = useState("all-suppliers");
   const [reorderStatus, setReorderStatus] = useState<ReorderStatus>({ state: "idle" });
+  const [sheetStatus, setSheetStatus] = useState<SheetStatus>({ state: "idle" });
+  const [addComponentOpen, setAddComponentOpen] = useState(false);
+  const [libraryItemState, setLibraryItemState] = useState<{ source: EstimateRowItem[]; items: EstimateRowItem[] }>(() => ({
+    source: libraryItems,
+    items: libraryItems,
+  }));
   const [isTreeMutationPending, startTreeMutation] = useTransition();
+
+  let localLibraryItems = libraryItemState.items;
+  if (libraryItemState.source !== libraryItems) {
+    localLibraryItems = libraryItems;
+    setLibraryItemState({ source: libraryItems, items: libraryItems });
+  }
 
   const folderNodes = useMemo(() => buildLibraryFolderTree(localFolders), [localFolders]);
   const firstFolderId = useMemo(() => getFirstFolderId(folderNodes), [folderNodes]);
 
   const supplierTree = useMemo(
-    () => buildComponentLibraryNavigationTree("suppliers", libraryItems, [], [], { categoryTree, suppliers }),
-    [categoryTree, libraryItems, suppliers],
+    () => buildComponentLibraryNavigationTree("suppliers", localLibraryItems, [], [], { categoryTree, suppliers }),
+    [categoryTree, localLibraryItems, suppliers],
   );
   const selectedSupplierNode = useMemo(() => findNode(supplierTree, selectedSupplierNodeId) ?? supplierTree[0] ?? null, [selectedSupplierNodeId, supplierTree]);
   const selectedFolderNode = useMemo(() => (
@@ -823,6 +1014,38 @@ export function ComponentLibraryManager({
 
   function selectSupplierNode(nodeId: string) {
     setSelectedSupplierNodeId(nodeId);
+  }
+
+  function openAddComponentModal() {
+    addButtonReturnRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    setAddComponentOpen(true);
+  }
+
+  function setAddComponentOpenWithFocus(open: boolean) {
+    setAddComponentOpen(open);
+    if (!open) {
+      requestAnimationFrame(() => addButtonReturnRef.current?.focus());
+    }
+  }
+
+  function handleComponentCreated(item: EstimateRowItem) {
+    setLibraryItemState((current) => ({
+      ...current,
+      items: [item, ...current.items.filter((entry) => entry.id !== item.id)],
+    }));
+    if (item.libraryFolderId) setSelectedFolderId(item.libraryFolderId);
+    if (item.supplierId) setSelectedSupplierNodeId(item.supplierId);
+    setSheetStatus({ state: "saved", message: "Component saved." });
+    router.refresh();
+  }
+
+  function handleComponentChanged(item: EstimateRowItem) {
+    setLibraryItemState((current) => ({
+      ...current,
+      items: current.items.map((entry) => (entry.id === item.id ? item : entry)),
+    }));
+    setSheetStatus({ state: "saved", message: "Component updated." });
+    router.refresh();
   }
 
   function createFolder(parentId: string | null) {
@@ -894,9 +1117,13 @@ export function ComponentLibraryManager({
             selectedFolderNode={selectedFolderNode}
             selectedSupplierNode={selectedSupplierNode}
             viewMode={viewMode}
-            libraryItems={libraryItems}
+            libraryItems={localLibraryItems}
             categoryTree={categoryTree}
             suppliers={suppliers}
+            status={sheetStatus}
+            onAddComponent={openAddComponentModal}
+            onItemChanged={handleComponentChanged}
+            onStatusChange={setSheetStatus}
           />
           <ComponentLibraryTreePanel
             key={viewMode}
@@ -919,6 +1146,18 @@ export function ComponentLibraryManager({
           />
         </section>
       </div>
+      {addComponentOpen ? (
+        <AddComponentModal
+          open={addComponentOpen}
+          folders={localFolders}
+          categoryTree={categoryTree}
+          suppliers={suppliers}
+          selectedFolderId={effectiveSelectedFolderId}
+          selectedSupplierId={viewMode === "suppliers" && selectedSupplierNodeId !== "all-suppliers" ? selectedSupplierNodeId : null}
+          onOpenChange={setAddComponentOpenWithFocus}
+          onComponentCreated={handleComponentCreated}
+        />
+      ) : null}
     </div>
   );
 }

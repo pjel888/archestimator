@@ -10,10 +10,17 @@ import type { EstimateRowItem } from "@/components/workshop/estimate-tree-data";
 import type { ComponentLibraryTaxonomyNode } from "@/lib/component-library/taxonomy";
 
 const actionMocks = vi.hoisted(() => ({
+  changeCostLibraryComponentLifecycleState: vi.fn(),
+  createCostLibraryComponent: vi.fn(),
   createLibraryFolder: vi.fn(),
   deleteLibraryFolder: vi.fn(),
   renameLibraryFolder: vi.fn(),
   reorderLibraryFolders: vi.fn(),
+  upsertCostLibraryComponentPriceOption: vi.fn(),
+}));
+
+const navigationMocks = vi.hoisted(() => ({
+  refresh: vi.fn(),
 }));
 
 type CapturedFolderEnvironmentProps = {
@@ -34,6 +41,12 @@ const rctHarness = vi.hoisted(() => ({
 }));
 
 vi.mock("@/lib/component-library/actions", () => actionMocks);
+
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({
+    refresh: navigationMocks.refresh,
+  }),
+}));
 
 vi.mock("react-complex-tree", () => ({
   InteractionMode: { ClickArrowToExpand: "ClickArrowToExpand" },
@@ -189,10 +202,14 @@ const sharedLibraryItems: EstimateRowItem[] = [
 describe("workshop library consolidation UI", () => {
   beforeEach(() => {
     actionMocks.createLibraryFolder.mockReset();
+    actionMocks.createCostLibraryComponent.mockReset();
     actionMocks.deleteLibraryFolder.mockReset();
+    actionMocks.changeCostLibraryComponentLifecycleState.mockReset();
     actionMocks.renameLibraryFolder.mockReset();
     actionMocks.reorderLibraryFolders.mockReset();
+    actionMocks.upsertCostLibraryComponentPriceOption.mockReset();
     actionMocks.reorderLibraryFolders.mockResolvedValue(undefined);
+    navigationMocks.refresh.mockReset();
     rctHarness.lastEnvironmentProps = null;
   });
 
@@ -238,6 +255,117 @@ describe("workshop library consolidation UI", () => {
     expect(screen.queryByLabelText("Library row collection")).not.toBeInTheDocument();
     expect(screen.getByRole("treeitem", { name: "Fabrication" })).toHaveAttribute("aria-selected", "true");
     expect(screen.getByText("Database Steel Frame")).toBeInTheDocument();
+  });
+
+  it("opens the Add Component modal and submits categorized versioned pricing", async () => {
+    actionMocks.createCostLibraryComponent.mockResolvedValue({
+      itemId: "new-component-id",
+      activePriceOptionId: "new-price-id",
+      versionNumber: 1,
+    });
+
+    render(
+      <LibraryPageClient
+        categoryTree={sharedCategoryTree}
+        suppliers={[{ id: "db-supplier", name: "Database Supplier", sort_order: 1 }]}
+        libraryFolders={sharedFolders}
+        libraryItems={sharedLibraryItems}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Add Component" }));
+
+    const dialog = await screen.findByRole("dialog", { name: "Add Component" });
+    fireEvent.change(within(dialog).getByLabelText("Name"), { target: { value: "Acoustic Wall Panel" } });
+    fireEvent.change(within(dialog).getByLabelText("Unit"), { target: { value: "sqm" } });
+
+    fireEvent.click(within(dialog).getByRole("tab", { name: "Classify" }));
+    fireEvent.change(within(dialog).getByLabelText("Supplier"), { target: { value: "db-supplier" } });
+
+    fireEvent.click(within(dialog).getByRole("tab", { name: "Pricing" }));
+    fireEvent.change(within(dialog).getByLabelText("Price option 1 unit cost"), { target: { value: "1250" } });
+    fireEvent.click(within(dialog).getByRole("button", { name: "Add price option" }));
+    fireEvent.change(within(dialog).getByLabelText("Price option 2 label"), { target: { value: "Installed" } });
+    fireEvent.change(within(dialog).getByLabelText("Price option 2 unit cost"), { target: { value: "1800" } });
+    fireEvent.change(within(dialog).getByLabelText("Price option 2 misc cost"), { target: { value: "150" } });
+
+    fireEvent.click(within(dialog).getByRole("tab", { name: "Lifecycle" }));
+    fireEvent.change(within(dialog).getByLabelText("Component state"), { target: { value: "in_production" } });
+
+    fireEvent.click(within(dialog).getByRole("button", { name: "Save" }));
+
+    await waitFor(() => expect(actionMocks.createCostLibraryComponent).toHaveBeenCalledTimes(1));
+    expect(actionMocks.createCostLibraryComponent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        name: "Acoustic Wall Panel",
+        unit: "sqm",
+        libraryFolderId: "folder-fabrication",
+        categoryNodeId: "db-category-fabrication",
+        supplierId: "db-supplier",
+        lifecycleState: "in_production",
+        priceOptions: [
+          expect.objectContaining({ label: "Retail", unit: "sqm", unitCost: 1250, miscCost: 0, isDefault: true }),
+          expect.objectContaining({ label: "Installed", unit: "sqm", unitCost: 1800, miscCost: 150, isDefault: false }),
+        ],
+      }),
+    );
+    await waitFor(() => expect(screen.queryByRole("dialog", { name: "Add Component" })).not.toBeInTheDocument());
+  });
+
+  it("exposes editable price-option and lifecycle controls on versioned rows", async () => {
+    actionMocks.upsertCostLibraryComponentPriceOption.mockResolvedValue({
+      itemId: "db-library-steel-frame",
+      priceOptionId: "installed-price",
+      versionNumber: 2,
+    });
+    actionMocks.changeCostLibraryComponentLifecycleState.mockResolvedValue({
+      itemId: "db-library-steel-frame",
+      lifecycleState: "discontinued",
+      versionNumber: 3,
+    });
+
+    render(
+      <LibraryPageClient
+        categoryTree={sharedCategoryTree}
+        suppliers={[{ id: "db-supplier", name: "Database Supplier", sort_order: 1 }]}
+        libraryFolders={sharedFolders}
+        libraryItems={[
+          {
+            ...sharedLibraryItems[0],
+            lifecycleState: "available",
+            componentVersionNumber: 1,
+            priceOptionId: "retail-price",
+            priceOptionLabel: "Retail",
+            priceOptions: [
+              { id: "retail-price", label: "Retail", unit: "pc", unitCost: 1200, miscCost: 0, currency: "PHP", isDefault: true, isActive: true },
+              { id: "installed-price", label: "Installed", unit: "pc", unitCost: 1600, miscCost: 100, currency: "PHP", isDefault: false, isActive: true },
+            ],
+            history: [
+              { id: "version-1", type: "version", label: "Version 1", summary: "Component created", effectiveAt: "2026-05-22T00:00:00.000Z" },
+            ],
+          },
+        ]}
+      />,
+    );
+
+    expect(screen.getAllByText("Available").length).toBeGreaterThan(0);
+    expect(screen.getByText("History / v1")).toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText("Pricing option for Database Steel Frame"), { target: { value: "installed-price" } });
+    await waitFor(() => expect(actionMocks.upsertCostLibraryComponentPriceOption).toHaveBeenCalledTimes(1));
+    expect(actionMocks.upsertCostLibraryComponentPriceOption).toHaveBeenCalledWith(
+      "db-library-steel-frame",
+      expect.objectContaining({ id: "installed-price", label: "Installed", isDefault: true }),
+    );
+
+    fireEvent.change(screen.getByLabelText("Lifecycle state for Database Steel Frame"), { target: { value: "discontinued" } });
+    await waitFor(() => expect(actionMocks.changeCostLibraryComponentLifecycleState).toHaveBeenCalledTimes(1));
+    expect(actionMocks.changeCostLibraryComponentLifecycleState).toHaveBeenCalledWith(
+      expect.objectContaining({
+        itemId: "db-library-steel-frame",
+        lifecycleState: "discontinued",
+      }),
+    );
   });
 
   it("keeps supplier organization inside Components and scopes the sheet directly to suppliers", () => {
