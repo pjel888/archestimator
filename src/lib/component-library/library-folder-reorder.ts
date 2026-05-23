@@ -45,6 +45,12 @@ export type LibraryFolderReorderPlan = {
   updates: LibraryFolderReorderUpdate[];
 };
 
+export type LibraryFolderDeletePlan = {
+  deletedFolder: LibraryFolderRecord;
+  nextFolders: LibraryFolderRecord[];
+  liftedChildUpdates: LibraryFolderReorderUpdate[];
+};
+
 type LibraryFolderReorderFailureCode =
   | "unknown-dragged-folder"
   | "unknown-target-parent"
@@ -196,6 +202,29 @@ function buildSiblingUpdates(folders: LibraryFolderRecord[], parentIds: Array<st
       sortOrder: (index + 1) * LIBRARY_FOLDER_SORT_ORDER_STEP,
     })),
   );
+}
+
+export function planLibraryFolderDelete(folders: LibraryFolderRecord[], folderId: string): LibraryFolderDeletePlan | null {
+  const deletedFolder = folders.find((folder) => folder.id === folderId);
+  if (!deletedFolder) return null;
+
+  const childFolders = getChildren(folders, folderId);
+  const targetSiblings = getChildren(folders, deletedFolder.parent_id).filter((folder) => folder.id !== folderId);
+  const baseSortOrder = targetSiblings.reduce((max, folder) => Math.max(max, folder.sort_order), 0);
+  const liftedChildUpdates = childFolders.map((folder, index) => ({
+    id: folder.id,
+    parentId: deletedFolder.parent_id,
+    sortOrder: baseSortOrder + (index + 1) * LIBRARY_FOLDER_SORT_ORDER_STEP,
+  }));
+  const updateById = new Map(liftedChildUpdates.map((update) => [update.id, update]));
+  const nextFolders = folders
+    .filter((folder) => folder.id !== folderId)
+    .map((folder) => {
+      const update = updateById.get(folder.id);
+      return update ? { ...folder, parent_id: update.parentId, sort_order: update.sortOrder } : folder;
+    });
+
+  return { deletedFolder, nextFolders, liftedChildUpdates };
 }
 
 function getFolderStructureSignature(folders: LibraryFolderRecord[]) {
