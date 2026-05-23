@@ -19,6 +19,7 @@ import { Button } from "@/components/ui/button";
 import type { ActionMenuGroup } from "@/components/ui/action-menu";
 import { ControlInput } from "@/components/ui/control-input";
 import { Modal } from "@/components/ui/modal";
+import { useToast } from "@/components/ui/toast";
 import { getEstimateNodeDisplayKind, getEstimateNodeKindSortRank, isEstimateGroupNodeKind } from "@/lib/estimates/tree-hierarchy";
 import { createEstimateNode, deleteEstimateNode, renameEstimateNode, reorderEstimateTreeNodes } from "@/lib/estimates/actions";
 import { useEstimateAreaTreeQuery } from "@/hooks/use-estimate-query";
@@ -201,6 +202,7 @@ function getEstimateRouteNodeIdFromPathname(pathname: string | null, estimateId:
 export function EstimateSheetTree({ projectId, estimateId, projectName, selectedNodeId, nodes }: EstimateSheetTreeProps) {
   const router = useRouter();
   const pathname = usePathname();
+  const { toast, dismissToast } = useToast();
   const {
     tree: localNodes,
     setTree: setLocalNodes,
@@ -238,6 +240,43 @@ export function EstimateSheetTree({ projectId, estimateId, projectName, selected
   const allFolderItemIds = useMemo(() => Array.from(treeModel.folderIds).filter((itemId) => treeModel.items[itemId]), [treeModel.folderIds, treeModel.items]);
   const { expandedNodeIds, setExpandedNodeIds } = useEstimateWorkspaceExpansion(estimateId, allFolderItemIds);
   const [focusedOverride, setFocusedOverride] = useState<{ routeNodeId: string | null; item: TreeItemIndex } | null>(null);
+
+  useEffect(() => {
+    if (reorderStatus.state === "saving") {
+      toast({
+        id: "estimate-tree-mutation",
+        message: reorderStatus.message,
+        tone: "loading",
+        durationMs: null,
+      });
+      return;
+    }
+
+    if (reorderStatus.state === "error") {
+      toast({
+        id: "estimate-tree-mutation",
+        message: reorderStatus.message,
+        tone: "error",
+      });
+      return;
+    }
+
+    if (reorderStatus.state === "saved") {
+      toast({
+        id: "estimate-tree-mutation",
+        message: reorderStatus.message,
+        tone: "success",
+      });
+      return;
+    }
+
+    dismissToast("estimate-tree-mutation");
+  }, [dismissToast, reorderStatus, toast]);
+
+  useEffect(() => {
+    return () => dismissToast("estimate-tree-mutation");
+  }, [dismissToast]);
+
   const selectedGroupId = useMemo(() => {
     const selectedNode = activeSelectedNodeId ? findEstimateNode(localNodes, activeSelectedNodeId) : undefined;
     return selectedNode && isEstimateGroupNodeKind(selectedNode.kind) ? selectedNode.id : null;
@@ -821,18 +860,6 @@ export function EstimateSheetTree({ projectId, estimateId, projectName, selected
               },
             ]}
           />
-          {reorderStatus.state !== "idle" ? (
-            <div
-              role="status"
-              aria-live="polite"
-              className={cn(
-                "border-t border-hairline px-2 py-1 text-[10px] leading-4",
-                reorderStatus.state === "error" ? "text-red-700" : "text-tertiary",
-              )}
-            >
-              {reorderStatus.message}
-            </div>
-          ) : null}
           <WorkshopTreeTabs tabs={ESTIMATE_TREE_TABS} activeTab="sheets" ariaLabel="Estimate tree views" />
         </div>
 
