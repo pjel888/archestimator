@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
-import { Books, GearSix, House, SquaresFour } from "@phosphor-icons/react/dist/ssr";
+import { Books, Copy, Folder, GearSix, SquaresFour } from "@phosphor-icons/react/dist/ssr";
 import type { Icon as PhosphorIcon } from "@phosphor-icons/react";
 
 import { Button } from "@/components/ui/button";
@@ -43,7 +43,7 @@ const navGroups: NavGroup[] = [
     key: "work",
     label: "Work",
     items: [
-      { id: "projects", href: "/workshop/projects", label: "Projects", icon: House, shortcut: "⌘2" },
+      { id: "projects", href: "/workshop/projects", label: "Projects", icon: Folder, shortcut: "⌘2" },
     ],
   },
   {
@@ -51,7 +51,7 @@ const navGroups: NavGroup[] = [
     label: "Library",
     items: [
       { id: "library", href: "/workshop/library", label: "Components", icon: Books, shortcut: "⌘3" },
-      { id: "templates", href: "/workshop/templates", label: "Templates", icon: Books, shortcut: "⌘4" },
+      { id: "templates", href: "/workshop/templates", label: "Templates", icon: Copy, shortcut: "⌘4" },
     ],
   },
 ];

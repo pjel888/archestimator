@@ -23,6 +23,7 @@ type HeaderIconToolbarProps = {
   addVisibleLabel?: string;
   addDisabled?: boolean;
   addActions?: HeaderIconToolbarAddAction[];
+  showDefaultActions?: boolean;
 };
 
 export function HeaderIconToolbar({
@@ -36,6 +37,7 @@ export function HeaderIconToolbar({
   addVisibleLabel,
   addDisabled = false,
   addActions,
+  showDefaultActions = true,
 }: HeaderIconToolbarProps) {
   const addButtonLabel = addVisibleLabel ?? `Add ${labelPrefix}`;
   const toolbarAddActions: HeaderIconToolbarAddAction[] = addActions ?? [
@@ -50,12 +52,16 @@ export function HeaderIconToolbar({
 
   return (
     <div className="flex h-[38px] min-h-[38px] items-center gap-1 bg-white px-2 py-0" aria-label={ariaLabel}>
-      <ToolbarIconButton label={`Filter ${labelPrefix}`} onClick={onFilter}>
-        <FunnelSimple size={12} weight="bold" aria-hidden="true" />
-      </ToolbarIconButton>
-      <ToolbarIconButton label={`Group ${labelPrefix}`} onClick={onGroup}>
-        <ListBullets size={12} weight="bold" aria-hidden="true" />
-      </ToolbarIconButton>
+      {showDefaultActions ? (
+        <>
+          <ToolbarIconButton label={`Filter ${labelPrefix}`} onClick={onFilter}>
+            <FunnelSimple size={12} weight="bold" aria-hidden="true" />
+          </ToolbarIconButton>
+          <ToolbarIconButton label={`Group ${labelPrefix}`} onClick={onGroup}>
+            <ListBullets size={12} weight="bold" aria-hidden="true" />
+          </ToolbarIconButton>
+        </>
+      ) : null}
       {onExpandAll ? (
         <ToolbarIconButton label={`Expand all ${labelPrefix}`} onClick={onExpandAll}>
           <CaretDoubleDown size={12} weight="bold" aria-hidden="true" />
