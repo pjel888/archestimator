@@ -21,6 +21,9 @@ const estimateSheetContent = readFileSync("src/components/workshop/EstimateSheet
 const estimateComponentLibrary = readFileSync("src/components/workshop/component-library/index.tsx", "utf8");
 const projectEstimatesPage = readFileSync("src/app/workshop/projects/[projectId]/estimates/page.tsx", "utf8");
 const projectEstimatesClient = readFileSync("src/components/workshop/ProjectEstimatesClient.tsx", "utf8");
+const projectChartsPage = readFileSync("src/app/workshop/projects/[projectId]/charts/page.tsx", "utf8");
+const projectChartsClient = readFileSync("src/components/workshop/project-charts/ProjectChartsClient.tsx", "utf8");
+const projectCostDonutChart = readFileSync("src/components/workshop/project-charts/ProjectCostDonutChart.tsx", "utf8");
 const globalsCss = readFileSync("src/app/globals.css", "utf8");
 
 describe("project dashboard UI governance", () => {
@@ -55,6 +58,28 @@ describe("project dashboard UI governance", () => {
     expect(projectMiniSidebar).toContain("pathname?.startsWith(estimateSheetPathPrefix)");
     expect(projectMiniSidebar).toContain("if (isEstimateSheetRoute) return null;");
     expect(projectDashboardLayout).toContain("<ProjectMiniSidebar projectId={projectId} />");
+  });
+
+  it("adds project charts as a first-class project section without hiding project navigation", () => {
+    expect(projectMiniSidebar).toContain('label: "Charts"');
+    expect(projectMiniSidebar).toContain("ChartPieSlice");
+    expect(projectMiniSidebar).toContain("`/workshop/projects/${projectId}/charts`");
+    expect(projectChartsPage).toContain("getProjectChartsData");
+    expect(projectChartsPage).toContain("ProjectChartsClient");
+  });
+
+  it("keeps the project charts route within the workshop fixed-shell scroll contract", () => {
+    expect(projectChartsClient).toContain("data-project-charts-page");
+    expect(projectChartsClient).toContain("flex h-full min-h-0 flex-col overflow-hidden bg-white");
+    expect(projectChartsClient).toContain("flex shrink-0 flex-wrap items-center gap-2");
+    expect(projectChartsClient).toContain("min-h-0 flex-1 overflow-auto p-1");
+  });
+
+  it("keeps D3 shape rendering isolated to the project charts feature", () => {
+    expect(projectCostDonutChart).toContain('from "d3"');
+    expect(projectDashboardClient).not.toContain('from "d3"');
+    expect(projectEstimatesClient).not.toContain('from "d3"');
+    expect(estimateSheetContent).not.toContain('from "d3"');
   });
 
   it("locks page-level scrolling only while the workshop shell is mounted", () => {

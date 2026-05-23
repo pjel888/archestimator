@@ -114,11 +114,13 @@ body:has([data-workshop-page-shell-root]) {
   overflow: hidden;
 }
 
-button,
-input,
-select,
-textarea {
-  font: inherit;
+@layer base {
+  button,
+  input,
+  select,
+  textarea {
+    font: inherit;
+  }
 }
 
 

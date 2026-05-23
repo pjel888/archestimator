@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useId, useMemo, useRef, useState, useTransition, type KeyboardEvent } from "react";
-import { ArrowSquareOut, CaretDown, CaretUp, CaretUpDown, ClockCounterClockwise, Trash } from "@phosphor-icons/react/dist/ssr";
+import { ArrowSquareOut, CaretDown, CaretUp, CaretUpDown, ClockCounterClockwise, CopySimple, Trash } from "@phosphor-icons/react/dist/ssr";
 import {
   flexRender,
   getCoreRowModel,
@@ -17,7 +17,7 @@ import {
 } from "@tanstack/react-table";
 
 import { Button } from "@/components/ui/button";
-import { regenerateEstimateSheetCode, updateEstimateDetails } from "@/lib/estimates/actions";
+import { duplicateEstimateSheet, regenerateEstimateSheetCode, updateEstimateDetails } from "@/lib/estimates/actions";
 import type { Tables } from "@/lib/supabase/types";
 import { cn } from "@/lib/ui/cn";
 
@@ -155,11 +155,32 @@ ProjectEstimateFillerRows.displayName = "ProjectEstimateFillerRows";
 type ProjectEstimateRowActionsProps = {
   estimate: ProjectEstimateTableRow;
   isSelected: boolean;
+  onDuplicateError: (message: string | null) => void;
   onToggleSelected: (estimateId: string) => void;
+  projectId: string;
 };
 
-function ProjectEstimateRowActions({ estimate, isSelected, onToggleSelected }: ProjectEstimateRowActionsProps) {
+function ProjectEstimateRowActions({ estimate, isSelected, onDuplicateError, onToggleSelected, projectId }: ProjectEstimateRowActionsProps) {
   const estimateHref = getEstimateHref(estimate);
+  const router = useRouter();
+  const [isDuplicating, setIsDuplicating] = useState(false);
+  const duplicateInFlightRef = useRef(false);
+
+  function handleDuplicate() {
+    if (duplicateInFlightRef.current) return;
+
+    duplicateInFlightRef.current = true;
+    setIsDuplicating(true);
+    onDuplicateError(null);
+
+    void duplicateEstimateSheet({ projectId, estimateId: estimate.id })
+      .then(() => router.refresh())
+      .catch((error: unknown) => onDuplicateError(error instanceof Error ? error.message : "Could not duplicate estimate sheet."))
+      .finally(() => {
+        duplicateInFlightRef.current = false;
+        setIsDuplicating(false);
+      });
+  }
 
   return (
     <div className="flex items-center gap-1">
@@ -178,6 +199,16 @@ function ProjectEstimateRowActions({ estimate, isSelected, onToggleSelected }: P
         disabled
       >
         <Trash size={12} weight="bold" aria-hidden="true" />
+      </button>
+      <button
+        type="button"
+        className="grid size-6 place-items-center rounded-sm text-tertiary transition hover:bg-surface-muted hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus disabled:cursor-not-allowed disabled:opacity-40"
+        aria-label={`Duplicate ${estimate.name}`}
+        disabled={isDuplicating}
+        onClick={handleDuplicate}
+        title={isDuplicating ? "Duplicating estimate sheet..." : "Duplicate estimate sheet"}
+      >
+        <CopySimple size={12} weight="bold" aria-hidden="true" />
       </button>
       <Link
         href={estimateHref}
@@ -434,6 +465,7 @@ function ProjectEstimatesTableComponent({ estimates, projectBudget, projectId, e
   const [sorting, setSorting] = useState<SortingState>([{ id: "updated_at", desc: true }]);
   const [columnSizing, setColumnSizing] = useState<ColumnSizingState>(() => readColumnSizingFromStorage(columnWidthStorageKey));
   const [selectedEstimateIds, setSelectedEstimateIds] = useState<Set<string>>(() => new Set());
+  const [duplicateError, setDuplicateError] = useState<string | null>(null);
 
   useEffect(() => {
     setColumnSizing(readColumnSizingFromStorage(columnWidthStorageKey));
@@ -457,9 +489,9 @@ function ProjectEstimatesTableComponent({ estimates, projectBudget, projectId, e
       {
         id: "row_actions",
         header: "",
-        size: 112,
-        minSize: 96,
-        maxSize: 132,
+        size: 140,
+        minSize: 124,
+        maxSize: 160,
         enableSorting: false,
         enableResizing: false,
         cell: ({ row }) => {
@@ -469,7 +501,9 @@ function ProjectEstimatesTableComponent({ estimates, projectBudget, projectId, e
             <ProjectEstimateRowActions
               estimate={estimate}
               isSelected={selectedEstimateIds.has(estimate.id)}
+              onDuplicateError={setDuplicateError}
               onToggleSelected={toggleEstimateSelection}
+              projectId={projectId}
             />
           );
         },
@@ -567,6 +601,11 @@ function ProjectEstimatesTableComponent({ estimates, projectBudget, projectId, e
 
   return (
     <div className="flex h-full min-h-0 flex-col border-t border-hairline">
+      {duplicateError ? (
+        <p className="shrink-0 border-b border-dangerSoft bg-dangerSoft/40 px-2 py-1 text-[10px] font-semibold text-danger" role="alert">
+          {duplicateError}
+        </p>
+      ) : null}
       <div className="min-h-0 flex-1 overflow-auto [scrollbar-gutter:stable]">
         <table className="table-fixed border-collapse text-left text-[10px]" style={tableStyle}>
           <ProjectEstimatesColGroup table={table} />

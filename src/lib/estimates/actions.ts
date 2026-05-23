@@ -225,14 +225,24 @@ function getSourceSnapshot(libraryItem: EstimateRowItem) {
     category: libraryItem.category,
     categoryNodeId: libraryItem.categoryNodeId ?? null,
     categoryPath: libraryItem.categoryPath ?? [],
+    componentVersionId: libraryItem.componentVersionId ?? null,
+    componentVersionNumber: libraryItem.componentVersionNumber ?? null,
     imageUrl: libraryItem.imageUrl ?? null,
+    lifecycleState: libraryItem.lifecycleState ?? null,
+    priceOptionId: libraryItem.priceOptionId ?? null,
+    priceOptionLabel: libraryItem.priceOptionLabel ?? null,
     pricingDate: libraryItem.pricingDate,
     pricingSource: libraryItem.pricingSource,
     sourceUrl: libraryItem.sourceUrl ?? null,
+    sourceLibraryItemId: getSourceLibraryItemId(libraryItem),
     supplier: libraryItem.supplier ?? null,
     supplierId: libraryItem.supplierId ?? null,
     tags: libraryItem.tags ?? [],
     taxonomyVersion: "2026-05-22-draft-3",
+    unit: libraryItem.unit,
+    unit_cost: libraryItem.itemCost,
+    misc_cost: libraryItem.miscCost,
+    currency: libraryItem.currency ?? "PHP",
   };
 }
 
@@ -242,6 +252,9 @@ function getEstimateRowMetadata(libraryItem: EstimateRowItem) {
     categoryPath: libraryItem.categoryPath ?? [],
     supplierId: libraryItem.supplierId ?? null,
     sourceComponentId: libraryItem.id,
+    componentVersionId: libraryItem.componentVersionId ?? null,
+    componentVersionNumber: libraryItem.componentVersionNumber ?? null,
+    priceOptionId: libraryItem.priceOptionId ?? null,
     tags: libraryItem.tags ?? [],
   };
 }
@@ -285,6 +298,14 @@ type UpdateEstimateDetailsInput = {
   name?: string;
   sheetCode?: string;
 };
+
+type DuplicateEstimateSheetInput = {
+  projectId: string;
+  estimateId: string;
+};
+
+type DuplicateEstimateNodeRow = Pick<Tables<"estimate_nodes">, "id" | "kind" | "metadata" | "name" | "parent_id" | "sort_order">;
+type DuplicateEstimateRowItemRow = Tables<"estimate_row_items">;
 
 const GENERATED_SHEET_CODE_PREFIX = "ES";
 
@@ -519,6 +540,7 @@ async function createEstimateWithDefaultTree({
 function revalidateProjectEstimatePaths(projectId: string) {
   revalidatePath(`/workshop/projects/${projectId}`);
   revalidatePath(`/workshop/projects/${projectId}/estimates`);
+  revalidatePath(`/workshop/projects/${projectId}/charts`);
 }
 
 export async function fetchEstimateTree({ projectId, estimateId }: FetchEstimateTreeInput) {
@@ -643,6 +665,118 @@ export async function createEstimateSheetDraft(projectId: string) {
 
   revalidateProjectEstimatePaths(project.id);
   return { estimateId: estimate.id, areaNodeId, sheetCode };
+}
+
+export async function duplicateEstimateSheet(input: DuplicateEstimateSheetInput) {
+  const { project } = await getCurrentWorkspaceProject(input.projectId);
+  if (!project) throw new Error("Project not found in the current workspace.");
+
+  const supabase = await createSupabaseServerClient();
+  const currentUser = await requireCurrentUserContext();
+
+  const { data: sourceEstimate, error: sourceEstimateError } = await supabase
+    .from("estimates")
+    .select("*")
+    .eq("id", input.estimateId)
+    .eq("project_id", project.id)
+    .maybeSingle();
+
+  if (sourceEstimateError) throw sourceEstimateError;
+  if (!sourceEstimate) throw new Error("Estimate not found in the current project.");
+
+  const sheetCode = await generateNextEstimateSheetCode(supabase, project.id);
+  const duplicatedEstimate = await insertEstimateWithSheetCodeFallback(
+    supabase,
+    {
+      project_id: project.id,
+      created_by: currentUser.userId,
+      name: `${sourceEstimate.name} Copy`,
+      sheet_code: sheetCode,
+      currency_code: sourceEstimate.currency_code,
+      metadata: sourceEstimate.metadata,
+    },
+    sheetCode,
+  );
+
+  const { data: sourceNodes, error: sourceNodesError } = await supabase
+    .from("estimate_nodes")
+    .select("id, kind, metadata, name, parent_id, sort_order")
+    .eq("estimate_id", sourceEstimate.id)
+    .order("sort_order", { ascending: true });
+
+  if (sourceNodesError) throw sourceNodesError;
+
+  const nodeIdBySourceId = new Map<string, string>();
+  const pendingNodes = [...((sourceNodes ?? []) as DuplicateEstimateNodeRow[])];
+
+  while (pendingNodes.length > 0) {
+    const nextIndex = pendingNodes.findIndex((node) => node.parent_id === null || nodeIdBySourceId.has(node.parent_id));
+    if (nextIndex === -1) throw new Error("Could not duplicate estimate tree because the source hierarchy is invalid.");
+
+    const [node] = pendingNodes.splice(nextIndex, 1);
+    const nextNodeId = randomUUID();
+    nodeIdBySourceId.set(node.id, nextNodeId);
+
+    const { error: insertNodeError } = await supabase.from("estimate_nodes").insert({
+      id: nextNodeId,
+      estimate_id: duplicatedEstimate.id,
+      parent_id: node.parent_id ? nodeIdBySourceId.get(node.parent_id) ?? null : null,
+      kind: node.kind,
+      metadata: node.metadata,
+      name: node.name,
+      sort_order: node.sort_order,
+    });
+
+    if (insertNodeError) throw insertNodeError;
+  }
+
+  const { data: sourceRows, error: sourceRowsError } = await supabase
+    .from("estimate_row_items")
+    .select("*")
+    .eq("estimate_id", sourceEstimate.id)
+    .order("sort_order", { ascending: true });
+
+  if (sourceRowsError) throw sourceRowsError;
+
+  const duplicatedRows = ((sourceRows ?? []) as DuplicateEstimateRowItemRow[]).map((row) => {
+    const nodeId = nodeIdBySourceId.get(row.node_id);
+    if (!nodeId) throw new Error("Could not duplicate estimate rows because a source row node is missing.");
+
+    return {
+      category_node_id: row.category_node_id,
+      description: row.description,
+      designation: row.designation,
+      discipline: row.discipline,
+      estimate_id: duplicatedEstimate.id,
+      id: randomUUID(),
+      link_state: row.link_state,
+      material: row.material,
+      metadata: row.metadata,
+      misc_cost: row.misc_cost,
+      node_id: nodeId,
+      quantity: row.quantity,
+      sort_order: row.sort_order,
+      source_library_item_id: row.source_library_item_id,
+      source_snapshot: row.source_snapshot,
+      supplier: row.supplier,
+      supplier_id: row.supplier_id,
+      unit: row.unit,
+      unit_cost: row.unit_cost,
+    } satisfies TablesInsert<"estimate_row_items">;
+  });
+
+  if (duplicatedRows.length > 0) {
+    const { error: insertRowsError } = await supabase.from("estimate_row_items").insert(duplicatedRows);
+    if (insertRowsError) throw insertRowsError;
+  }
+
+  revalidateProjectEstimatePaths(project.id);
+
+  return {
+    estimateId: duplicatedEstimate.id,
+    firstNodeId: duplicatedRows.length > 0 ? duplicatedRows[0]?.node_id ?? null : [...nodeIdBySourceId.values()][0] ?? null,
+    sheetCode,
+  };
 }
 
 export async function updateEstimateDetails(input: UpdateEstimateDetailsInput) {
