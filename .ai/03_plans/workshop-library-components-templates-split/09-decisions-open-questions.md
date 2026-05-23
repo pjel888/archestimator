@@ -55,6 +55,17 @@
 
 **Consequence:** Existing template query/build logic must be factored so `getCurrentWorkspaceComponentLibrary()` and `getCurrentWorkspaceEstimateTemplates()` share normalization.
 
+### ADR-005B: Component route uses component-only data
+
+**Decision:** `/workshop/library` should use a component-only helper, tentatively `getCurrentWorkspaceComponentRowsLibrary()`, instead of the combined component/template dataset helper.
+
+**Drivers:**
+- The user asked to move templates completely out of `/workshop/library`.
+- Loading templates on a component-only route preserves hidden coupling even if UI props are removed.
+- The estimate workspace still needs the combined helper, so replacing the helper globally would be riskier than adding a route-specific component helper.
+
+**Consequence:** Repository tests must prove the component-only helper excludes templates while the existing combined helper still supports estimate-sidebar insertion.
+
 ### ADR-006: View copy is locked for first implementation
 
 **Decision:** The component route uses `Components` as the route/surface label, and the view buttons are `View By: Default` and `Suppliers`.
@@ -70,8 +81,8 @@
 ### Q1: Should a one-tab `Components` tab remain visible?
 
 Assumption for implementation:
-- Keep a visible `Components` label/tab in the right sidebar for now because the user specifically requested renaming `Categories` to `Components`.
-- If the one-tab strip feels redundant after visual smoke, it can become a static header in a follow-up.
+- Keep a visible `Components` label in the right sidebar for now because the user specifically requested renaming `Categories` to `Components`.
+- This should be treated as a static/header label or visually tab-like single selection, not as a surviving multi-tab system.
 
 ### Q2: What should `All Suppliers` show after dropdown removal?
 

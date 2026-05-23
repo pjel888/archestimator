@@ -32,42 +32,48 @@ Update or add tests before product code:
 Rollback point:
 - No product code changed yet; revert test edits if the target contract changes.
 
-## Phase 2 - Component Route Cleanup
+## Phase 2 - Extract Template Route Before Deleting Template Branches
 
-In `ComponentLibraryManager`:
+Preserve template behavior before removing it from the component manager:
 
-1. Rename `LIBRARY_TABS` / active route label from `Categories` to `Components`.
-2. Remove `Templates` from component route tab state.
-3. Replace `CategoryOrganizeMode` copy with route-specific `ComponentViewMode`.
-4. Change visible control copy to `View By: Default` and `Suppliers`.
-5. Remove `RowCollectionSelect`.
-6. Remove collection-specific state and handlers.
-7. Delete or narrow `ComponentLibrarySheetPanel` so it no longer switches between component and template sheets.
-8. Change `ComponentLibrarySheet` so rows come from selected folder/supplier context directly.
-9. Keep folder CRUD/reorder behavior intact.
-10. Keep supplier tree behavior intact.
-
-Expected tests after phase:
-- Component route manager tests pass except template route tests.
-
-Rollback point:
-- Revert only `ComponentLibraryManager` if folder/supplier browsing breaks.
-
-## Phase 3 - Extract Template Route
-
-1. Move template-specific sheet/tree logic into a dedicated `TemplateLibraryManager`.
+1. Move or copy template-specific sheet/tree logic into a dedicated `TemplateLibraryManager`.
 2. Create `TemplatesPageClient`.
 3. Add `src/app/workshop/templates/page.tsx`.
 4. Add and use `getCurrentWorkspaceEstimateTemplates()` in `component-library-repository.ts`.
 5. Reuse the existing private template query/build logic; do not duplicate normalization.
+6. Keep existing estimate-sidebar template insertion behavior unchanged.
 
 Expected tests after phase:
 - `/workshop/templates` route source test passes.
 - Template manager UI test passes.
-- Component route does not expose template UI.
+- Template repository tests pass.
 
 Rollback point:
-- Keep component route cleanup and revert only new template route/client if needed.
+- Keep the existing component route untouched and revert only new template route/client/helper if needed.
+
+## Phase 3 - Component Route Cleanup
+
+In `ComponentLibraryManager` and `/workshop/library`:
+
+1. Add and use `getCurrentWorkspaceComponentRowsLibrary()` or the finalized component-only helper name.
+2. Rename `LIBRARY_TABS` / active route label from `Categories` to `Components`.
+3. Remove `Templates` from component route tab state.
+4. Replace `CategoryOrganizeMode` copy with route-specific `ComponentViewMode`.
+5. Change visible control copy to `View By: Default` and `Suppliers`.
+6. Remove `RowCollectionSelect`.
+7. Remove collection-specific state and handlers.
+8. Delete or narrow `ComponentLibrarySheetPanel` so it no longer switches between component and template sheets.
+9. Change `ComponentLibrarySheet` so rows come from selected folder/supplier context directly.
+10. Keep folder CRUD/reorder behavior intact.
+11. Keep supplier tree behavior intact.
+
+Expected tests after phase:
+- Component route manager tests pass.
+- Component route does not expose template UI.
+- Component route source assertions prove dropdown state/functionality is removed, not hidden.
+
+Rollback point:
+- Revert only `ComponentLibraryManager`, `LibraryPageClient`, and `/workshop/library` route changes if folder/supplier browsing breaks.
 
 ## Phase 4 - Sidebar Navigation
 
@@ -95,7 +101,8 @@ Do not update these during plan-only phase beyond this plan pack.
 Run:
 
 ```bash
-bunx vitest run tests/vitest/component-library-manager-ui.test.tsx tests/vitest/workshop-library-consolidation-ui.test.tsx tests/unit/reset-baseline.test.ts
+bunx vitest run tests/vitest/component-library-manager-ui.test.tsx tests/vitest/template-library-manager-ui.test.tsx tests/vitest/workshop-library-consolidation-ui.test.tsx tests/vitest/component-library-templates-repository.test.ts tests/vitest/estimate-sheet-library-insert.test.tsx tests/vitest/component-library-ui.test.tsx
+bun test tests/unit/reset-baseline.test.ts
 bun run validate
 git diff --check
 gitnexus detect-changes -r /Users/philiplewis/archestimator --scope staged

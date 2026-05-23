@@ -40,7 +40,7 @@ Keep the existing right-sidebar layout:
 | `Templates` | removed from this route |
 | `Default folders` | `View By: Default` |
 | `Suppliers` | `Suppliers` |
-| `Organize categories by` | `View components by` |
+| `Organize categories by` | removed as visible copy; use `View components by` only as an aria label if needed |
 
 Recommended exact control shape:
 
@@ -52,7 +52,7 @@ Components
 
 If the existing compact segmented control is kept, use:
 
-- group aria label: `View components by`
+- group aria label: `View components by`; this should not add visible text beyond the two buttons
 - first button visible text: `View By: Default`
 - second button visible text: `Suppliers`
 

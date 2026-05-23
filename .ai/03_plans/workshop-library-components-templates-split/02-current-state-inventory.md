@@ -98,10 +98,14 @@ Current behavior:
 - Template rows are read from `estimate_templates`, `estimate_template_nodes`, and `estimate_template_row_items`.
 - Static templates are used only when template tables are missing.
 
-Required future helper:
-- `getCurrentWorkspaceEstimateTemplates()` should reuse the template-building logic and return only `templates`.
-- Do not duplicate template normalization.
-- `/workshop/templates` should use this helper instead of loading the full component dataset.
+Required future helpers:
+- Add a component-only route helper, tentatively `getCurrentWorkspaceComponentRowsLibrary()`, for `/workshop/library`.
+  - It should return `categoryTree`, `suppliers`, `libraryFolders`, and `libraryItems`.
+  - It should not load or return estimate templates.
+- Add `getCurrentWorkspaceEstimateTemplates()` for `/workshop/templates`.
+  - It should reuse the template-building logic and return only `templates`.
+  - Do not duplicate template normalization.
+- Keep the existing combined `getCurrentWorkspaceComponentLibrary()` only for consumers that still need both component rows and templates, especially estimate-sidebar insertion.
 
 ## Existing Tests That Must Change
 
@@ -142,4 +146,4 @@ This must update when sidebar label becomes `Components` and `/workshop/template
 - `tests/vitest/estimate-sheet-library-insert.test.tsx`
 - `tests/vitest/component-library-ui.test.tsx`
 
-These protect template persistence and estimate-sidebar insertion behavior. The route split should not alter those contracts.
+These must stay mostly unchanged and run as regression guards. They protect template persistence, estimate-sidebar insertion behavior, and existing component-library sidebar affordances. The route split should not alter those contracts.

@@ -26,7 +26,9 @@
 - [ ] Workshop library consolidation tests pass.
 - [ ] Reset baseline test passes.
 - [ ] Template route/manager tests pass.
-- [ ] Repository helper tests pass if a helper is added.
+- [ ] Repository helper tests pass for component-only and template-only helpers.
+- [ ] Estimate sidebar template insertion regression passes.
+- [ ] Existing component-library sidebar guardrail test passes if sidebar controls or shared component-library utilities are touched.
 
 ## Full Verification
 
@@ -66,5 +68,6 @@ The implementation is done only when:
 - the wrong dropdown and all its state/functionality are removed.
 - right-sidebar copy matches the requested labels.
 - `/workshop/templates` exists and behaves as a template-focused sibling page.
+- estimate-sidebar template insertion remains intact.
 - tests and browser smoke prove the route split.
 - `.ai/10_state/current-state.md` and `.ai/10_state/decisions.md` reflect the new route truth.
