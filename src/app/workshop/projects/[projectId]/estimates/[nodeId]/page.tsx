@@ -38,6 +38,17 @@ export default async function ProjectEstimateNodePage({ params }: ProjectEstimat
     estimateSheetCode: estimate.sheet_code,
     versionLabel: readEstimateVersionLabel(estimate.metadata),
   };
+  const proposalExportMetadata = {
+    projectId: project.id,
+    estimateId: estimate.id,
+    projectName: project.name,
+    projectCode: project.project_code,
+    projectAddress: project.location,
+    estimateName: estimate.name,
+    estimateSheetCode: estimate.sheet_code,
+    versionLabel: estimateMetadata.versionLabel,
+    currency: estimate.currency_code || project.currency_code || "PHP",
+  };
 
   return (
     <>
@@ -49,6 +60,7 @@ export default async function ProjectEstimateNodePage({ params }: ProjectEstimat
           nodes={tree}
           projectId={project.id}
           estimateId={estimate.id}
+          proposalExportMetadata={proposalExportMetadata}
           libraryItems={componentLibrary.libraryItems}
           libraryTemplates={componentLibrary.templates}
           libraryCategoryTree={componentLibrary.categoryTree}

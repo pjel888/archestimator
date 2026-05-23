@@ -1,0 +1,204 @@
+import { describe, expect, it } from "vitest";
+
+import {
+  buildProposalExportModel,
+  consolidateProposalRows,
+  flattenEstimateTree,
+} from "@/lib/proposal-export/build-proposal-export-model";
+import type { ProposalExportMetadata } from "@/lib/proposal-export/types";
+import type { EstimateRowItem, EstimateTreeNode } from "@/lib/estimates/types";
+
+const metadata: ProposalExportMetadata = {
+  projectId: "project-1",
+  estimateId: "estimate-1",
+  projectName: "Grand Hyatt Fit-Out Study",
+  projectCode: "GH-001",
+  projectAddress: "Taguig City",
+  estimateName: "Interior Fit-Out Estimate",
+  estimateSheetCode: "EST-001",
+  versionLabel: "Draft v1",
+  currency: "PHP",
+};
+
+function row(overrides: Partial<EstimateRowItem> = {}): EstimateRowItem {
+  const itemCost = overrides.itemCost ?? 950;
+  const quantity = overrides.quantity ?? 1;
+  const miscCost = overrides.miscCost ?? 0;
+
+  return {
+    id: overrides.id ?? "row-1",
+    material: overrides.material ?? "Mariwasa 600 × 600 Porcelain Tile",
+    description: overrides.description ?? "Supply and install porcelain floor tile",
+    supplier: overrides.supplier ?? "Wilcon Depot / Mariwasa",
+    source: overrides.source ?? "supplier",
+    unit: overrides.unit ?? "sqm",
+    itemCost,
+    quantity,
+    subTotal: itemCost * quantity,
+    miscCost,
+    totalItemCosts: itemCost * quantity + miscCost,
+    category: overrides.category ?? "Finishes",
+    categoryNodeId: overrides.categoryNodeId,
+    categoryPath: overrides.categoryPath,
+    supplierId: overrides.supplierId,
+    discipline: overrides.discipline ?? "Architectural",
+    designation: overrides.designation ?? "Floor Finish",
+    tags: overrides.tags ?? ["flooring", "tile"],
+    pricingSource: overrides.pricingSource ?? "Supplier allowance — verify quote",
+    pricingDate: overrides.pricingDate ?? "2026-05-23",
+    confidence: overrides.confidence ?? "allowance",
+    notes: overrides.notes,
+  };
+}
+
+function treeWithBedrooms(rowsA: EstimateRowItem[], rowsB: EstimateRowItem[]): EstimateTreeNode[] {
+  return [
+    {
+      id: "main-house",
+      name: "Main House",
+      kind: "group",
+      total: "₱0.00",
+      children: [
+        {
+          id: "second-floor",
+          name: "Second Floor",
+          kind: "group",
+          total: "₱0.00",
+          children: [
+            {
+              id: "bedroom-a",
+              name: "Bedroom A",
+              kind: "area",
+              total: "₱0.00",
+              estimateRowItems: rowsA,
+            },
+            {
+              id: "bedroom-b",
+              name: "Bedroom B",
+              kind: "area",
+              total: "₱0.00",
+              estimateRowItems: rowsB,
+            },
+          ],
+        },
+      ],
+    },
+  ];
+}
+
+describe("proposal export model", () => {
+  it("flattens only area row items and preserves area path traceability", () => {
+    const nodes = treeWithBedrooms([row({ id: "bed-a-tile", quantity: 12 })], [row({ id: "bed-b-tile", quantity: 10 })]);
+
+    const flatRows = flattenEstimateTree(nodes);
+
+    expect(flatRows).toHaveLength(2);
+    expect(flatRows.map((flatRow) => flatRow.sourceRow.id)).toEqual(["bed-a-tile", "bed-b-tile"]);
+    expect(flatRows[0].areaPath).toEqual(["Main House", "Second Floor", "Bedroom A"]);
+    expect(flatRows[1].areaPathLabel).toBe("Main House / Second Floor / Bedroom B");
+    expect(flatRows[0].sortIndex).toBeLessThan(flatRows[1].sortIndex);
+  });
+
+  it("consolidates identical line items across rooms into one industry-standard proposal row", () => {
+    const nodes = treeWithBedrooms([row({ id: "bed-a-tile", quantity: 12 })], [row({ id: "bed-b-tile", quantity: 10 })]);
+    const flatRows = flattenEstimateTree(nodes);
+
+    const proposalRows = consolidateProposalRows(flatRows);
+
+    expect(proposalRows).toHaveLength(1);
+    expect(proposalRows[0]).toMatchObject({
+      rowNumber: "1",
+      sectionLabel: "Finishes",
+      tag: "Floor Finish",
+      particulars: "Mariwasa 600 × 600 Porcelain Tile — Supply and install porcelain floor tile",
+      quantity: 22,
+      unit: "sqm",
+      materialUnitCost: 950,
+      laborUnitCost: 0,
+      materialSubtotal: 20_900,
+      laborSubtotal: 0,
+      miscSubtotal: 0,
+      costAmount: 20_900,
+      includedInTotal: true,
+    });
+    expect(proposalRows[0].sourceRowIds).toEqual(["bed-a-tile", "bed-b-tile"]);
+    expect(proposalRows[0].sourceAreaPaths).toEqual([
+      "Main House / Second Floor / Bedroom A",
+      "Main House / Second Floor / Bedroom B",
+    ]);
+  });
+
+  it("does not consolidate rows with different unit costs, units, or scope-defining particulars", () => {
+    const nodes = treeWithBedrooms(
+      [row({ id: "bed-a-tile", quantity: 12, itemCost: 950 })],
+      [row({ id: "bed-b-tile-different-cost", quantity: 10, itemCost: 975 })],
+    );
+    const unitMismatchNodes = treeWithBedrooms(
+      [row({ id: "tile-sqm", unit: "sqm" })],
+      [row({ id: "tile-box", unit: "box" })],
+    );
+    const particularsMismatchNodes = treeWithBedrooms(
+      [row({ id: "tile-supply-install", description: "Supply and install porcelain floor tile" })],
+      [row({ id: "tile-supply-only", description: "Supply only porcelain floor tile" })],
+    );
+
+    expect(consolidateProposalRows(flattenEstimateTree(nodes))).toHaveLength(2);
+    expect(consolidateProposalRows(flattenEstimateTree(unitMismatchNodes))).toHaveLength(2);
+    expect(consolidateProposalRows(flattenEstimateTree(particularsMismatchNodes))).toHaveLength(2);
+  });
+
+  it("builds summary rows, source breakdown rows, totals, and compatibility validation issues", () => {
+    const nodes = treeWithBedrooms(
+      [row({ id: "bed-a-tile", quantity: 12, miscCost: 500 })],
+      [row({ id: "bed-b-tile", quantity: 10, miscCost: 300 })],
+    );
+
+    const model = buildProposalExportModel({ metadata, nodes, generatedAt: "2026-05-23T00:00:00.000Z" });
+
+    expect(model.metadata).toEqual(metadata);
+    expect(model.generatedAt).toBe("2026-05-23T00:00:00.000Z");
+    expect(model.proposalRows).toHaveLength(1);
+    expect(model.proposalRows[0].quantity).toBe(22);
+    expect(model.proposalRows[0].materialSubtotal).toBe(20_900);
+    expect(model.proposalRows[0].miscSubtotal).toBe(800);
+    expect(model.proposalRows[0].costAmount).toBe(21_700);
+    expect(model.totals.grandTotal).toBe(21_700);
+    expect(model.summaryRows).toEqual([
+      {
+        sectionKey: "finishes",
+        sectionLabel: "Finishes",
+        rowCount: 1,
+        totalQuantity: 22,
+        materialSubtotal: 20_900,
+        laborSubtotal: 0,
+        miscSubtotal: 800,
+        costAmount: 21_700,
+      },
+    ]);
+    expect(model.sourceBreakdownRows).toHaveLength(2);
+    expect(model.sourceBreakdownRows.map((sourceRow) => sourceRow.areaPathLabel)).toEqual([
+      "Main House / Second Floor / Bedroom A",
+      "Main House / Second Floor / Bedroom B",
+    ]);
+    expect(model.validationIssues).toContainEqual(
+      expect.objectContaining({
+        severity: "info",
+        code: "cost_split_compatibility_mode",
+      }),
+    );
+  });
+
+  it("returns an empty export model with validation notes instead of crashing", () => {
+    const model = buildProposalExportModel({ metadata, nodes: [], generatedAt: "2026-05-23T00:00:00.000Z" });
+
+    expect(model.proposalRows).toEqual([]);
+    expect(model.sourceBreakdownRows).toEqual([]);
+    expect(model.totals.grandTotal).toBe(0);
+    expect(model.validationIssues).toContainEqual(
+      expect.objectContaining({
+        severity: "warning",
+        code: "empty_estimate",
+      }),
+    );
+  });
+});

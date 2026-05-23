@@ -1,0 +1,129 @@
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+import type { EstimateTreeNode } from "@/lib/estimates/types";
+
+const mocks = vi.hoisted(() => ({
+  getProjectEstimateTreeByEstimate: vi.fn(),
+  createProposalWorkbookBuffer: vi.fn(),
+}));
+
+vi.mock("@/lib/repositories/workspace-repository", () => ({
+  getProjectEstimateTreeByEstimate: mocks.getProjectEstimateTreeByEstimate,
+}));
+
+vi.mock("@/lib/proposal-export/create-proposal-workbook", () => ({
+  createProposalWorkbookBuffer: mocks.createProposalWorkbookBuffer,
+}));
+
+import { GET, buildProposalWorkbookFilename } from "@/app/api/projects/[projectId]/estimates/[estimateId]/export/proposal.xlsx/route";
+
+const tree: EstimateTreeNode[] = [
+  {
+    id: "area-1",
+    name: "Bedroom A",
+    kind: "area",
+    total: "₱0.00",
+    estimateRowItems: [
+      {
+        id: "row-1",
+        material: "Porcelain Tile",
+        description: "Supply and install porcelain floor tile",
+        supplier: "Wilcon Depot",
+        source: "supplier",
+        unit: "sqm",
+        itemCost: 950,
+        quantity: 12,
+        subTotal: 11_400,
+        miscCost: 500,
+        totalItemCosts: 11_900,
+        category: "Finishes",
+        discipline: "Architectural",
+        designation: "Floor Finish",
+        pricingSource: "Supplier allowance",
+        pricingDate: "2026-05-23",
+      },
+    ],
+  },
+];
+
+function request() {
+  return new Request("http://localhost/api/projects/project-1/estimates/estimate-1/export/proposal.xlsx");
+}
+
+describe("proposal xlsx export route", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mocks.createProposalWorkbookBuffer.mockResolvedValue(Buffer.from("xlsx-bytes"));
+    mocks.getProjectEstimateTreeByEstimate.mockResolvedValue({
+      workspace: { id: "workspace-1" },
+      project: {
+        id: "project-1",
+        name: "Grand Hyatt Fit-Out Study",
+        project_code: "GH-001",
+        location: "Taguig City",
+        currency_code: "PHP",
+      },
+      estimate: {
+        id: "estimate-1",
+        name: "Interior Fit-Out Estimate",
+        sheet_code: "EST-001",
+        currency_code: "PHP",
+        metadata: { versionNumber: 3 },
+      },
+      selectedNodeId: "area-1",
+      tree,
+    });
+  });
+
+  it("returns an editable xlsx attachment scoped to the current project estimate", async () => {
+    const response = await GET(request(), {
+      params: Promise.resolve({ projectId: "project-1", estimateId: "estimate-1" }),
+    });
+
+    expect(mocks.getProjectEstimateTreeByEstimate).toHaveBeenCalledWith("project-1", "estimate-1");
+    expect(mocks.createProposalWorkbookBuffer).toHaveBeenCalledWith(
+      expect.objectContaining({
+        metadata: expect.objectContaining({
+          projectId: "project-1",
+          estimateId: "estimate-1",
+          projectName: "Grand Hyatt Fit-Out Study",
+          projectCode: "GH-001",
+          projectAddress: "Taguig City",
+          estimateName: "Interior Fit-Out Estimate",
+          estimateSheetCode: "EST-001",
+          versionLabel: "V3",
+          currency: "PHP",
+        }),
+        totals: expect.objectContaining({ grandTotal: 11_900 }),
+      }),
+    );
+    expect(response.status).toBe(200);
+    expect(response.headers.get("content-type")).toBe("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+    expect(response.headers.get("content-disposition")).toContain("attachment");
+    expect(response.headers.get("content-disposition")).toContain("GH-001-EST-001-proposal.xlsx");
+    expect(await response.text()).toBe("xlsx-bytes");
+  });
+
+  it("returns 404 when the project or estimate is outside the current workspace", async () => {
+    mocks.getProjectEstimateTreeByEstimate.mockResolvedValueOnce({
+      workspace: { id: "workspace-1" },
+      project: null,
+      estimate: null,
+      selectedNodeId: null,
+      tree: [],
+    });
+
+    const response = await GET(request(), {
+      params: Promise.resolve({ projectId: "missing-project", estimateId: "missing-estimate" }),
+    });
+
+    expect(response.status).toBe(404);
+    expect(await response.json()).toEqual({ error: "Estimate not found." });
+    expect(mocks.createProposalWorkbookBuffer).not.toHaveBeenCalled();
+  });
+
+  it("sanitizes workbook filenames for content-disposition", () => {
+    expect(buildProposalWorkbookFilename("Grand Hyatt / Tower?", "EST:001")).toBe("Grand-Hyatt-Tower-EST-001-proposal.xlsx");
+    expect(buildProposalWorkbookFilename("", "")).toBe("estimate-proposal.xlsx");
+  });
+});

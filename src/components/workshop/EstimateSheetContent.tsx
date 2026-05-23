@@ -1,7 +1,7 @@
 "use client";
 
 import { type Dispatch, type DragEvent, type InputHTMLAttributes, type KeyboardEvent, type SetStateAction, createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
-import { ArrowsOutSimple, CaretDown, Cube, DotsSixVertical, FolderSimple, Plus, Trash } from "@phosphor-icons/react/dist/ssr";
+import { ArrowsOutSimple, CaretDown, Cube, DotsSixVertical, FileXls, FolderSimple, Plus, Trash } from "@phosphor-icons/react/dist/ssr";
 
 import { Button } from "@/components/ui/button";
 import { ControlInput } from "@/components/ui/control-input";
@@ -13,6 +13,8 @@ import { useEstimateAreaTreeQuery } from "@/hooks/use-estimate-query";
 import { resolveEstimateWorkspaceSelection, useEstimateWorkspaceSelection } from "@/hooks/use-estimate-workspace-state";
 import { insertEstimateTemplateIntoEstimate } from "@/lib/estimates/actions";
 import { getEstimateNodeDisplayKind } from "@/lib/estimates/tree-hierarchy";
+import { buildProposalExportModel } from "@/lib/proposal-export/build-proposal-export-model";
+import type { ProposalExportMetadata, ProposalExportModel } from "@/lib/proposal-export/types";
 import type { ComponentLibraryTaxonomyNode } from "@/lib/component-library/taxonomy";
 import { cn } from "@/lib/ui/cn";
 import { EstimateRightSidebar } from "./component-library";
@@ -20,6 +22,7 @@ import { CommandPalette } from "./component-library/CommandPalette";
 import { ESTIMATE_TEMPLATE_DRAG_MIME_TYPE, type EstimateTemplate } from "./component-library/templates";
 import type { ComponentLibrarySupplierOption } from "./component-library/tree/buildLibraryTree";
 import { findEstimateNode, sampleEstimateTree, type EstimateTreeNode, type EstimateRowItem } from "./estimate-tree-data";
+import { ProposalExportPreviewDialog } from "./ProposalExportPreviewDialog";
 
 
 /* Re-export component library helpers and sidebar so existing imports don't break */
@@ -54,6 +57,7 @@ type EstimateSheetContentProps = {
   nodes?: EstimateTreeNode[];
   projectId?: string;
   estimateId?: string;
+  proposalExportMetadata?: ProposalExportMetadata;
   renderSidebar?: boolean;
   libraryItems?: EstimateRowItem[];
   libraryTemplates?: EstimateTemplate[];
@@ -301,6 +305,59 @@ function computeNodeTotal(node: EstimateTreeNode, editableRows: Record<string, E
   const rowTotal = (node.estimateRowItems ?? []).reduce((total, item) => total + computeRowTotal(item, editableRows), 0);
   const childTotal = (node.children ?? []).reduce((total, child) => total + computeNodeTotal(child, editableRows), 0);
   return rowTotal + childTotal;
+}
+
+function materializeEditableEstimateTree(nodes: EstimateTreeNode[], editableRows: Record<string, EditableRowValue>): EstimateTreeNode[] {
+  return nodes.map((node) => ({
+    ...node,
+    estimateRowItems: node.estimateRowItems?.map((item) => {
+      const editableRow = editableRows[item.id];
+      if (!editableRow) return item;
+
+      const quantity = parseEditableNumber(editableRow.quantity);
+      const miscCost = parseEditableNumber(editableRow.miscCost);
+      const subTotal = item.itemCost * quantity;
+
+      return {
+        ...item,
+        quantity,
+        miscCost,
+        subTotal,
+        totalItemCosts: subTotal + miscCost,
+      };
+    }),
+    children: node.children ? materializeEditableEstimateTree(node.children, editableRows) : node.children,
+  }));
+}
+
+function createProposalPreviewSignature(nodes: EstimateTreeNode[], editableRows: Record<string, EditableRowValue>, metadata: ProposalExportMetadata | null) {
+  const parts: string[] = [metadata ? `${metadata.projectId}|${metadata.estimateId}|${metadata.projectName}|${metadata.estimateName}|${metadata.versionLabel}|${metadata.currency}` : "no-metadata"];
+
+  function visit(node: EstimateTreeNode) {
+    parts.push(`node:${node.id}|${node.kind}|${node.name}`);
+    node.estimateRowItems?.forEach((item) => {
+      const editableRow = editableRows[item.id] ?? getInitialEditableRow(item);
+      parts.push([
+        "row",
+        item.id,
+        item.material,
+        item.description,
+        item.category,
+        item.designation,
+        item.unit,
+        item.itemCost,
+        editableRow.quantity,
+        editableRow.miscCost,
+        item.supplier,
+        item.pricingSource,
+        item.pricingDate,
+      ].join("|"));
+    });
+    node.children?.forEach(visit);
+  }
+
+  nodes.forEach(visit);
+  return parts.join("\n");
 }
 
 function EstimateDropZone({
@@ -1071,7 +1128,17 @@ function replaceRowItemWithLibraryItem(rowItemId: string, libraryItem: EstimateR
   };
 }
 
-function EstimateSheetHeader({ onExpandAll, onCollapseAll }: { onExpandAll?: () => void; onCollapseAll?: () => void }) {
+function EstimateSheetHeader({
+  onExpandAll,
+  onCollapseAll,
+  onPreviewProposalExport,
+  canPreviewProposalExport = false,
+}: {
+  onExpandAll?: () => void;
+  onCollapseAll?: () => void;
+  onPreviewProposalExport?: () => void;
+  canPreviewProposalExport?: boolean;
+}) {
   return (
     <header className="sticky top-0 z-20 bg-white/95 backdrop-blur" aria-label="Sheet controls">
       <div className="flex h-[38px] items-center">
@@ -1083,7 +1150,25 @@ function EstimateSheetHeader({ onExpandAll, onCollapseAll }: { onExpandAll?: () 
           title="Coming soon"
         />
       </div>
-      <HeaderIconToolbar ariaLabel="Sheet tools" labelPrefix="sheet" onExpandAll={onExpandAll} onCollapseAll={onCollapseAll} />
+      <HeaderIconToolbar
+        ariaLabel="Sheet tools"
+        labelPrefix="sheet"
+        onExpandAll={onExpandAll}
+        onCollapseAll={onCollapseAll}
+        addActions={[
+          {
+            label: "Add sheet",
+          },
+          {
+            label: "Preview Excel Export",
+            visibleLabel: "Preview Excel Export",
+            icon: <FileXls size={12} weight="bold" aria-hidden="true" />,
+            onClick: onPreviewProposalExport,
+            disabled: !canPreviewProposalExport,
+            className: "bg-emerald-50 text-emerald-700 hover:bg-emerald-100 hover:text-emerald-800 focus-visible:bg-emerald-100 focus-visible:text-emerald-800",
+          },
+        ]}
+      />
     </header>
   );
 }
@@ -1093,6 +1178,7 @@ export function EstimateSheetContent({
   nodes = sampleEstimateTree,
   projectId,
   estimateId,
+  proposalExportMetadata,
   renderSidebar = true,
   libraryItems,
   libraryTemplates,
@@ -1116,7 +1202,34 @@ export function EstimateSheetContent({
   const [pendingFocusRowId, setPendingFocusRowId] = useState("");
   const [showCommandPalette, setShowCommandPalette] = useState(false);
   const [collapsedNodeIds, setCollapsedNodeIds] = useState<Set<string>>(() => new Set());
+  const [isProposalPreviewOpen, setIsProposalPreviewOpen] = useState(false);
+  const [proposalPreviewModel, setProposalPreviewModel] = useState<ProposalExportModel | null>(null);
+  const [proposalPreviewSignature, setProposalPreviewSignature] = useState("");
   const availableTemplates = libraryTemplates ?? EMPTY_ESTIMATE_TEMPLATES;
+  const resolvedProposalExportMetadata = useMemo<ProposalExportMetadata | null>(() => {
+    if (proposalExportMetadata) return proposalExportMetadata;
+    if (!projectId || !estimateId) return null;
+
+    return {
+      projectId,
+      estimateId,
+      projectName: "Untitled project",
+      projectCode: null,
+      projectAddress: null,
+      estimateName: "Untitled estimate",
+      estimateSheetCode: estimateId,
+      versionLabel: "V1",
+      currency: "PHP",
+    };
+  }, [estimateId, projectId, proposalExportMetadata]);
+  const currentProposalPreviewSignature = useMemo(
+    () => createProposalPreviewSignature(estimateTree, editableRows, resolvedProposalExportMetadata),
+    [editableRows, estimateTree, resolvedProposalExportMetadata],
+  );
+  const proposalDownloadHref = useMemo(
+    () => (projectId && estimateId ? `/api/projects/${encodeURIComponent(projectId)}/estimates/${encodeURIComponent(estimateId)}/export/proposal.xlsx` : null),
+    [estimateId, projectId],
+  );
   const templateById = useMemo(() => new Map(availableTemplates.map((template) => [template.id, template])), [availableTemplates]);
   const { selectedNodeId: resolvedSelectedNodeId, selectedNode } = useMemo(
     () =>
@@ -1144,6 +1257,25 @@ export function EstimateSheetContent({
   const allNodeIds = useMemo(() => (selectedNode ? collectAllNodeIds([selectedNode]) : []), [selectedNode]);
   const expandAll = useCallback(() => setCollapsedNodeIds(new Set()), []);
   const collapseAll = useCallback(() => setCollapsedNodeIds(new Set(allNodeIds)), [allNodeIds]);
+  const buildProposalPreview = useCallback(() => {
+    if (!resolvedProposalExportMetadata) return null;
+
+    const model = buildProposalExportModel({
+      metadata: resolvedProposalExportMetadata,
+      nodes: materializeEditableEstimateTree(estimateTree, editableRows),
+    });
+    setProposalPreviewModel(model);
+    setProposalPreviewSignature(currentProposalPreviewSignature);
+    return model;
+  }, [currentProposalPreviewSignature, editableRows, estimateTree, resolvedProposalExportMetadata]);
+  const openProposalPreview = useCallback(() => {
+    const model = buildProposalPreview();
+    if (model) setIsProposalPreviewOpen(true);
+  }, [buildProposalPreview]);
+  const refreshProposalPreview = useCallback(() => {
+    buildProposalPreview();
+  }, [buildProposalPreview]);
+  const isProposalPreviewStale = Boolean(proposalPreviewModel && proposalPreviewSignature !== currentProposalPreviewSignature);
   useEffect(() => {
     dispatchProjectTotalChange(projectTotal);
   }, [projectTotal]);
@@ -1412,6 +1544,14 @@ export function EstimateSheetContent({
         onClose={() => setShowCommandPalette(false)}
         onInsert={insertIntoSelectedNode}
       />
+      <ProposalExportPreviewDialog
+        open={isProposalPreviewOpen}
+        model={proposalPreviewModel}
+        isStale={isProposalPreviewStale}
+        downloadHref={proposalDownloadHref}
+        onRefresh={refreshProposalPreview}
+        onClose={() => setIsProposalPreviewOpen(false)}
+      />
       <section
         id="estimate-sheet-center-column"
         className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-white"
@@ -1420,7 +1560,12 @@ export function EstimateSheetContent({
       >
         {selectedNode ? (
           <>
-            <EstimateSheetHeader onExpandAll={expandAll} onCollapseAll={collapseAll} />
+            <EstimateSheetHeader
+              onExpandAll={expandAll}
+              onCollapseAll={collapseAll}
+              onPreviewProposalExport={openProposalPreview}
+              canPreviewProposalExport={Boolean(resolvedProposalExportMetadata)}
+            />
             <div className="min-h-0 flex-1 overflow-auto px-2 pb-2">
               <EstimateSheetExpansionContext.Provider value={{ collapsedNodeIds, setCollapsedNodeIds }}>
                 <EstimateSheetBranch
@@ -1442,7 +1587,12 @@ export function EstimateSheetContent({
           </>
         ) : (
           <>
-            <EstimateSheetHeader onExpandAll={expandAll} onCollapseAll={collapseAll} />
+            <EstimateSheetHeader
+              onExpandAll={expandAll}
+              onCollapseAll={collapseAll}
+              onPreviewProposalExport={openProposalPreview}
+              canPreviewProposalExport={Boolean(resolvedProposalExportMetadata)}
+            />
             <div className="flex min-h-0 flex-1 items-center justify-center overflow-auto px-2 pb-2">
               <div className="max-w-md rounded-lg border border-dashed border-hairline bg-surface-muted p-3 text-center">
                 <p className="text-[8px] font-bold uppercase tracking-[0.16em] text-tertiary">Empty estimate</p>
