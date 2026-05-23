@@ -3,6 +3,10 @@ import { estimateTemplates } from "@/lib/component-library/estimate-templates";
 import {
   buildEstimateTemplatesFromRows,
   fallbackComponentLibraryDataset,
+  fallbackComponentRowsLibraryDataset,
+  getCurrentWorkspaceComponentLibrary,
+  getCurrentWorkspaceComponentRowsLibrary,
+  getCurrentWorkspaceEstimateTemplates,
   getTemplateTableFallbackTemplates,
 } from "@/lib/repositories/component-library-repository";
 
@@ -11,6 +15,20 @@ function collectTemplateNodeIds(nodes: Array<{ id: string; children?: Array<{ id
 }
 
 describe("component-library template repository helpers", () => {
+  it("exposes separate component-only, template-only, and combined helper contracts", () => {
+    expect(typeof getCurrentWorkspaceComponentRowsLibrary).toBe("function");
+    expect(typeof getCurrentWorkspaceEstimateTemplates).toBe("function");
+    expect(typeof getCurrentWorkspaceComponentLibrary).toBe("function");
+    expect("templates" in fallbackComponentRowsLibraryDataset).toBe(false);
+    expect(fallbackComponentLibraryDataset.templates).toEqual([]);
+    expect(getCurrentWorkspaceComponentRowsLibrary.toString()).not.toContain("estimate_templates");
+    const combinedHelperSource = getCurrentWorkspaceComponentLibrary.toString();
+    expect(combinedHelperSource).toContain("ensureDefaultWorkspace");
+    expect(combinedHelperSource).toContain("loadCurrentWorkspaceEstimateTemplates");
+    expect(combinedHelperSource).not.toContain("getCurrentWorkspaceComponentRowsLibrary");
+    expect(combinedHelperSource).not.toContain("getCurrentWorkspaceEstimateTemplates");
+  });
+
   it("uses static templates only when the persisted template table is missing", () => {
     expect(getTemplateTableFallbackTemplates({ isTemplateTableMissing: true })).toBe(estimateTemplates);
     expect(getTemplateTableFallbackTemplates({ isTemplateTableMissing: false })).toEqual([]);

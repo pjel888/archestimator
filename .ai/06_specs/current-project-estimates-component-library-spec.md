@@ -174,7 +174,9 @@ Current behavior:
 
 Current behavior:
 
-- `/workshop/library` has exactly two top-level tabs, Categories and Templates. Categories owns editable library folders, supplier organize mode, and the center sheet row-collection dropdown; Templates owns reusable estimate-structure bundles and a center template sheet. `/workshop/components` redirects to `/workshop/library`.
+- `/workshop/library` is component-only. It has one visible tree tab, `Components`, and two view modes: `View By: Default` for editable library folders and `Suppliers` for supplier organization. The center sheet is scoped directly by the selected folder or supplier; it no longer has a row-collection dropdown. `/workshop/components` redirects to `/workshop/library`.
+- `/workshop/templates` owns reusable estimate-structure bundles and a center template sheet. It visually mirrors the Library workspace for now but loads template data through the template-only repository helper.
+- The estimate workspace still uses the combined repository helper for the right sidebar, but that helper bootstraps the current workspace once and then calls private component/template loaders with the same workspace/client.
 - The estimate-page right sidebar has a Templates tab with compact template cards, add buttons, and native drag payloads.
 - Templates are stored separately from component rows. They use `estimate_templates`, `estimate_template_nodes`, and `estimate_template_row_items`; the migration seeds shipped templates into existing workspaces, and static seed templates are used only as a repository fallback before local/remote migration rollout when the template tables are missing. Component UI defaults must not expose static templates on their own.
 - Template rows inherit the active estimate-tree invariants: root template nodes are Group Nodes, Group Nodes may contain Group or Area Nodes, Area Nodes own rows and cannot parent children, and row items may attach only to Area Nodes.
@@ -327,7 +329,7 @@ This is correct for preliminary estimating and must not be reworded as final sup
 
 ## 7. Component Library inventory and facets
 
-Source: `getCurrentWorkspaceComponentLibrary()` reads the current workspace Component Library dataset from Supabase. Static `estimateLibraryItems` in `estimate-tree-data.ts` is the fallback/test fixture.
+Source: `/workshop/library` reads component rows through `getCurrentWorkspaceComponentRowsLibrary()`, `/workshop/templates` reads templates through `getCurrentWorkspaceEstimateTemplates()`, and the estimate workspace uses `getCurrentWorkspaceComponentLibrary()` for the combined right-sidebar dataset. Static `estimateLibraryItems` in `estimate-tree-data.ts` is the fallback/test fixture.
 
 Current inventory characteristics observed from the seeded Supabase source:
 

@@ -34,7 +34,6 @@ import {
 import {
   buildLibraryFolderTree,
   evaluateLibraryFolderDrop,
-  fromLibraryFolderTreeItemId,
   getLibraryItemsForFolderNode,
   LIBRARY_FOLDER_TREE_ID,
   LIBRARY_FOLDER_TREE_ROOT_ITEM_ID,
@@ -63,32 +62,15 @@ import {
 } from "../component-library/helpers";
 import type { LibraryTreeNode } from "../component-library/tree/types";
 import type { ComponentLibrarySupplierOption } from "../component-library/tree/buildLibraryTree";
-import {
-  buildTemplateNavigationTree,
-  getTemplatesForTreeNode,
-  summarizeEstimateTemplate,
-  type EstimateTemplate,
-} from "../component-library/templates";
 
 const COMPONENT_LIBRARY_TREE_WIDTH_OFFSET = 104;
-const LIBRARY_TABS = [
-  { id: "categories", label: "Categories" },
-  { id: "templates", label: "Templates" },
-] as const;
-const CATEGORY_ORGANIZE_MODES = [
-  { id: "folders", label: "Default folders" },
+const LIBRARY_TABS = [{ id: "components", label: "Components" }] as const;
+const COMPONENT_VIEW_MODES = [
+  { id: "default", label: "View By: Default" },
   { id: "suppliers", label: "Suppliers" },
 ] as const;
 
-type ComponentLibraryManagerTab = (typeof LIBRARY_TABS)[number]["id"];
-type CategoryOrganizeMode = (typeof CATEGORY_ORGANIZE_MODES)[number]["id"];
-type RowCollectionId =
-  | "estimate-row-items"
-  | "custom-row-items"
-  | "uncategorized"
-  | "supplier-row-items"
-  | `folder:${string}`
-  | `supplier:${string}`;
+type ComponentViewMode = (typeof COMPONENT_VIEW_MODES)[number]["id"];
 
 type LibraryFolderTreeItemData = {
   folderId: string | null;
@@ -144,23 +126,6 @@ function itemMatchesSheetQuery(item: EstimateRowItem, query: string): boolean {
     item.unit,
     item.description,
     ...(item.categoryPath ?? []),
-  ]
-    .filter(Boolean)
-    .some((value) => normalizeLabel(value).includes(normalizedQuery));
-}
-
-function templateMatchesSheetQuery(template: EstimateTemplate, query: string): boolean {
-  const normalizedQuery = normalizeLabel(query);
-  if (!normalizedQuery) return true;
-
-  return [
-    template.name,
-    template.description,
-    template.category,
-    ...template.nodes.flatMap((node) => [
-      node.name,
-      ...(node.children ?? []).map((child) => child.name),
-    ]),
   ]
     .filter(Boolean)
     .some((value) => normalizeLabel(value).includes(normalizedQuery));
@@ -249,28 +214,8 @@ function buildFolderTreeModel(nodes: LibraryFolderTreeNode[]): LibraryFolderTree
   return { items, folderItemIds };
 }
 
-function getUncategorizedItems(items: EstimateRowItem[], folders: LibraryFolderRecord[]) {
-  const folderIds = new Set(folders.map((folder) => folder.id));
-  const sourceCategoryNodeIds = new Set(folders.map((folder) => folder.source_category_node_id).filter(Boolean));
-  return items.filter((item) => {
-    if (item.libraryFolderId) return !folderIds.has(item.libraryFolderId);
-    if (item.categoryNodeId) return !sourceCategoryNodeIds.has(item.categoryNodeId);
-    return true;
-  });
-}
-
 function getSupplierBackedItems(items: EstimateRowItem[]) {
   return items.filter((item) => Boolean(item.supplierId || item.supplier?.trim()));
-}
-
-function getCollectionLabel(collectionId: RowCollectionId, selectedFolderNode: LibraryFolderTreeNode | null, selectedSupplierNode: LibraryTreeNode | null) {
-  if (collectionId === "estimate-row-items") return "Estimate Row Items";
-  if (collectionId === "custom-row-items") return "Custom Row Items";
-  if (collectionId === "uncategorized") return "Uncategorized";
-  if (collectionId === "supplier-row-items") return "Supplier Row Items";
-  if (collectionId.startsWith("folder:")) return selectedFolderNode?.label ?? "Selected Folder";
-  if (collectionId.startsWith("supplier:")) return selectedSupplierNode?.label ?? "Selected Supplier";
-  return "Estimate Row Items";
 }
 
 function FolderActionIcon() {
@@ -530,17 +475,17 @@ function LibraryFolderTree({
   );
 }
 
-function CategoryOrganizeControls({
+function ComponentViewControls({
   mode,
   onModeChange,
 }: {
-  mode: CategoryOrganizeMode;
-  onModeChange: (mode: CategoryOrganizeMode) => void;
+  mode: ComponentViewMode;
+  onModeChange: (mode: ComponentViewMode) => void;
 }) {
   return (
     <div className="border-b border-hairline bg-white px-2 py-1">
-      <div role="group" aria-label="Organize categories by" className="grid grid-cols-2 gap-1 rounded-md bg-surfaceMuted p-0.5">
-        {CATEGORY_ORGANIZE_MODES.map((item) => (
+      <div role="group" aria-label="Component view mode" className="grid grid-cols-2 gap-1 rounded-md bg-surfaceMuted p-0.5">
+        {COMPONENT_VIEW_MODES.map((item) => (
           <button
             key={item.id}
             type="button"
@@ -560,38 +505,34 @@ function CategoryOrganizeControls({
 }
 
 function ComponentLibraryTreePanel({
-  activeTab,
-  activeNodes,
+  supplierNodes,
   selectedNodeId,
   folderNodes,
   folders,
   selectedFolderId,
-  organizeMode,
+  viewMode,
   reorderStatus,
   treeMutationPending,
-  onTabChange,
   onSelectNode,
   onSelectFolder,
-  onFolderModeChange,
+  onViewModeChange,
   onFoldersChange,
   onReorderStatus,
   onCreateFolder,
   onRenameFolder,
   onDeleteFolder,
 }: {
-  activeTab: ComponentLibraryManagerTab;
-  activeNodes: LibraryTreeNode[];
+  supplierNodes: LibraryTreeNode[];
   selectedNodeId: string;
   folderNodes: LibraryFolderTreeNode[];
   folders: LibraryFolderRecord[];
   selectedFolderId: string | null;
-  organizeMode: CategoryOrganizeMode;
+  viewMode: ComponentViewMode;
   reorderStatus: ReorderStatus;
   treeMutationPending: boolean;
-  onTabChange: (tab: ComponentLibraryManagerTab) => void;
   onSelectNode: (nodeId: string) => void;
   onSelectFolder: (folderId: string) => void;
-  onFolderModeChange: (mode: CategoryOrganizeMode) => void;
+  onViewModeChange: (mode: ComponentViewMode) => void;
   onFoldersChange: (folders: LibraryFolderRecord[]) => void;
   onReorderStatus: (status: ReorderStatus) => void;
   onCreateFolder: (parentId: string | null) => void;
@@ -599,14 +540,9 @@ function ComponentLibraryTreePanel({
   onDeleteFolder: (folderId: string, currentName: string) => void;
 }) {
   const [searchQuery, setSearchQuery] = useState("");
-  const filteredNodes = filterTree(activeNodes, searchQuery);
-  const [expandedNodeIds, setExpandedNodeIds] = useState(() => getAllNodeIds(activeNodes));
-  const isFolderMode = activeTab === "categories" && organizeMode === "folders";
-
-  function handleTabChange(tab: ComponentLibraryManagerTab) {
-    onTabChange(tab);
-    setSearchQuery("");
-  }
+  const filteredNodes = filterTree(supplierNodes, searchQuery);
+  const [expandedNodeIds, setExpandedNodeIds] = useState(() => getAllNodeIds(supplierNodes));
+  const isFolderMode = viewMode === "default";
 
   function toggleNode(nodeId: string) {
     setExpandedNodeIds((current) =>
@@ -638,7 +574,7 @@ function ComponentLibraryTreePanel({
             ariaLabel="Component tree tools"
             labelPrefix={isFolderMode ? "library folder" : "component tree"}
             onExpandAll={() => {
-              if (!isFolderMode) setExpandedNodeIds(getAllNodeIds(activeNodes));
+              if (!isFolderMode) setExpandedNodeIds(getAllNodeIds(supplierNodes));
             }}
             onCollapseAll={() => {
               if (!isFolderMode) setExpandedNodeIds([]);
@@ -655,13 +591,10 @@ function ComponentLibraryTreePanel({
           />
           <WorkshopTreeTabs
             tabs={LIBRARY_TABS}
-            activeTab={activeTab}
+            activeTab="components"
             ariaLabel="Library views"
-            onTabChange={handleTabChange}
           />
-          {activeTab === "categories" ? (
-            <CategoryOrganizeControls mode={organizeMode} onModeChange={onFolderModeChange} />
-          ) : null}
+          <ComponentViewControls mode={viewMode} onModeChange={onViewModeChange} />
           {reorderStatus.state !== "idle" ? (
             <div
               role="status"
@@ -712,79 +645,44 @@ function ComponentLibraryTreePanel({
   );
 }
 
-function RowCollectionSelect({
-  value,
-  options,
-  onChange,
-}: {
-  value: RowCollectionId;
-  options: Array<{ id: RowCollectionId; label: string }>;
-  onChange: (value: RowCollectionId) => void;
-}) {
-  return (
-    <label className="ml-auto flex min-w-[184px] items-center gap-1 pr-2 text-[9px] font-bold uppercase tracking-wide text-tertiary">
-      <span className="sr-only">Library row collection</span>
-      <select
-        aria-label="Library row collection"
-        value={value}
-        onChange={(event) => onChange(event.target.value as RowCollectionId)}
-        className="h-6 min-w-0 flex-1 rounded-sm border border-hairline bg-white px-2 text-[10px] font-bold normal-case tracking-normal text-ink outline-none focus-visible:ring-2 focus-visible:ring-focus"
-      >
-        {options.map((option) => (
-          <option key={option.id} value={option.id}>
-            {option.label}
-          </option>
-        ))}
-      </select>
-    </label>
-  );
-}
-
 function ComponentLibrarySheet({
   selectedFolderNode,
   selectedSupplierNode,
-  activeCollectionId,
-  collectionOptions,
+  viewMode,
   libraryItems,
-  localFolders,
   categoryTree,
   suppliers,
-  onCollectionChange,
 }: {
   selectedFolderNode: LibraryFolderTreeNode | null;
   selectedSupplierNode: LibraryTreeNode | null;
-  activeCollectionId: RowCollectionId;
-  collectionOptions: Array<{ id: RowCollectionId; label: string }>;
+  viewMode: ComponentViewMode;
   libraryItems: EstimateRowItem[];
-  localFolders: LibraryFolderRecord[];
   categoryTree: ComponentLibraryTaxonomyNode[];
   suppliers: ComponentLibrarySupplierOption[];
-  onCollectionChange: (value: RowCollectionId) => void;
 }) {
   const [searchQuery, setSearchQuery] = useState("");
   const sheetItems = useMemo(() => {
-    if (activeCollectionId === "estimate-row-items") return libraryItems;
-    if (activeCollectionId === "custom-row-items") return libraryItems.filter((item) => item.isCustom);
-    if (activeCollectionId === "uncategorized") return getUncategorizedItems(libraryItems, localFolders);
-    if (activeCollectionId === "supplier-row-items") return getSupplierBackedItems(libraryItems);
-    if (activeCollectionId.startsWith("folder:")) return getLibraryItemsForFolderNode(selectedFolderNode, libraryItems);
-    if (activeCollectionId.startsWith("supplier:")) {
-      return getLibraryItemsForTreeNode("suppliers", activeCollectionId.slice("supplier:".length), libraryItems, [], [], { categoryTree, suppliers });
+    if (viewMode === "suppliers") {
+      if (!selectedSupplierNode || selectedSupplierNode.id === "all-suppliers") return getSupplierBackedItems(libraryItems);
+      return getLibraryItemsForTreeNode("suppliers", selectedSupplierNode.id, libraryItems, [], [], { categoryTree, suppliers });
     }
-    return libraryItems;
-  }, [activeCollectionId, categoryTree, libraryItems, localFolders, selectedFolderNode, suppliers]);
+
+    return selectedFolderNode ? getLibraryItemsForFolderNode(selectedFolderNode, libraryItems) : libraryItems;
+  }, [categoryTree, libraryItems, selectedFolderNode, selectedSupplierNode, suppliers, viewMode]);
   const visibleItems = useMemo(
     () => sheetItems.filter((item) => itemMatchesSheetQuery(item, searchQuery)),
     [searchQuery, sheetItems],
   );
-  const selectedLabel = getCollectionLabel(activeCollectionId, selectedFolderNode, selectedSupplierNode);
+  const selectedLabel = viewMode === "suppliers"
+    ? selectedSupplierNode?.label ?? "All Suppliers"
+    : selectedFolderNode?.label ?? "Components";
 
   return (
     <section
       id="component-library-sheet-center-column"
       className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-white !text-[10px]"
       data-component-library-sheet="true"
-      aria-label="Custom component sheet"
+      aria-label="Component sheet"
     >
       <header className="sticky top-0 z-20 bg-white/95 backdrop-blur" aria-label="Component sheet controls">
         <div className="flex h-[38px] items-center">
@@ -813,7 +711,6 @@ function ComponentLibrarySheet({
           <span className="self-center px-2 text-[9px] font-bold text-tertiary">
             {visibleItems.length} / {sheetItems.length}
           </span>
-          <RowCollectionSelect value={activeCollectionId} options={collectionOptions} onChange={onCollectionChange} />
         </div>
       </header>
 
@@ -844,102 +741,7 @@ function ComponentLibrarySheet({
               <SquaresFour size={18} weight="bold" className="mx-auto mb-2 text-tertiary" aria-hidden="true" />
               <p className="text-[11px] font-bold leading-4 text-ink">{selectedLabel}</p>
               <p className="mt-0.5 max-w-56 text-[9px] leading-4 text-tertiary">
-                {searchQuery ? `No components match "${searchQuery}".` : "No components in this collection yet."}
-              </p>
-            </div>
-          </div>
-        )}
-      </div>
-    </section>
-  );
-}
-
-function TemplateLibrarySheet({
-  selectedNode,
-  templates,
-}: {
-  selectedNode: LibraryTreeNode | null;
-  templates: EstimateTemplate[];
-}) {
-  const [searchQuery, setSearchQuery] = useState("");
-  const sheetTemplates = useMemo(
-    () => getTemplatesForTreeNode(selectedNode?.id ?? null, templates),
-    [selectedNode, templates],
-  );
-  const visibleTemplates = useMemo(
-    () => sheetTemplates.filter((template) => templateMatchesSheetQuery(template, searchQuery)),
-    [searchQuery, sheetTemplates],
-  );
-  const selectedLabel = selectedNode?.label ?? "All Templates";
-
-  return (
-    <section
-      id="component-library-sheet-center-column"
-      className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-white !text-[10px]"
-      data-component-library-sheet="true"
-      aria-label="Custom component sheet"
-    >
-      <header className="sticky top-0 z-20 bg-white/95 backdrop-blur" aria-label="Component sheet controls">
-        <div className="flex h-[38px] items-center">
-          <SearchInput
-            wrapperClassName="w-full"
-            placeholder="Search Template Sheet"
-            aria-label="Search component sheet"
-            value={searchQuery}
-            onChange={(event) => setSearchQuery(event.target.value)}
-            onClear={() => setSearchQuery("")}
-          />
-        </div>
-        <HeaderIconToolbar ariaLabel="Component sheet tools" labelPrefix="component sheet" addActions={[]} />
-        <div className="flex h-[32px] items-end gap-0 border-b border-hairline bg-surfaceMuted" role="tablist" aria-label="Component sheet tabs">
-          <button
-            type="button"
-            role="tab"
-            aria-selected={true}
-            className={cn(
-              "relative h-full rounded-t-md border border-b-0 px-3 text-[10px] font-bold leading-none transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus",
-              "z-10 -mb-px border-hairline bg-white text-ink",
-            )}
-          >
-            {selectedLabel}
-          </button>
-          <span className="ml-auto self-center pr-2 text-[9px] font-bold text-tertiary">
-            {visibleTemplates.length} / {sheetTemplates.length}
-          </span>
-        </div>
-      </header>
-
-      <div className="min-h-0 flex-1 overflow-auto p-2">
-        {visibleTemplates.length > 0 ? (
-          <ul className="space-y-1" aria-label={`${selectedLabel} template rows`}>
-            {visibleTemplates.map((template) => {
-              const summary = summarizeEstimateTemplate(template);
-              return (
-                <li
-                  key={template.id}
-                  className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 border-b border-hairline px-2 py-1.5 last:border-b-0"
-                >
-                  <div className="min-w-0">
-                    <p className="truncate text-[10px] font-bold leading-4 text-ink">{template.name}</p>
-                    <p className="truncate text-[9px] font-semibold leading-3 text-tertiary">
-                      {summary.groupCount} groups / {summary.areaCount} areas / {summary.rowCount} rows
-                    </p>
-                    <p className="truncate text-[9px] leading-3 text-tertiary/80">{template.description}</p>
-                  </div>
-                  <span className="font-mono text-[10px] font-bold tabular-nums text-ink">
-                    {pesoFormatter.format(summary.total)}
-                  </span>
-                </li>
-              );
-            })}
-          </ul>
-        ) : (
-          <div className="flex h-full items-center justify-center bg-white p-2 text-center">
-            <div>
-              <SquaresFour size={18} weight="bold" className="mx-auto mb-2 text-tertiary" aria-hidden="true" />
-              <p className="text-[11px] font-bold leading-4 text-ink">{selectedLabel}</p>
-              <p className="mt-0.5 max-w-56 text-[9px] leading-4 text-tertiary">
-                {searchQuery ? `No templates match "${searchQuery}".` : "No templates in this folder yet."}
+                {searchQuery ? `No components match "${searchQuery}".` : "No components in this view yet."}
               </p>
             </div>
           </div>
@@ -950,49 +752,30 @@ function TemplateLibrarySheet({
 }
 
 function ComponentLibrarySheetPanel({
-  activeTab,
-  selectedTemplateNode,
-  templates,
   selectedFolderNode,
   selectedSupplierNode,
-  activeCollectionId,
-  collectionOptions,
+  viewMode,
   libraryItems,
-  localFolders,
   categoryTree,
   suppliers,
-  onCollectionChange,
 }: {
-  activeTab: ComponentLibraryManagerTab;
-  selectedTemplateNode: LibraryTreeNode | null;
-  templates: EstimateTemplate[];
   selectedFolderNode: LibraryFolderTreeNode | null;
   selectedSupplierNode: LibraryTreeNode | null;
-  activeCollectionId: RowCollectionId;
-  collectionOptions: Array<{ id: RowCollectionId; label: string }>;
+  viewMode: ComponentViewMode;
   libraryItems: EstimateRowItem[];
-  localFolders: LibraryFolderRecord[];
   categoryTree: ComponentLibraryTaxonomyNode[];
   suppliers: ComponentLibrarySupplierOption[];
-  onCollectionChange: (value: RowCollectionId) => void;
 }) {
   return (
     <div className="flex min-h-0 min-w-0 flex-1" data-component-library-sheet-panel="true">
-      {activeTab === "templates" ? (
-        <TemplateLibrarySheet selectedNode={selectedTemplateNode} templates={templates} />
-      ) : (
-        <ComponentLibrarySheet
-          selectedFolderNode={selectedFolderNode}
-          selectedSupplierNode={selectedSupplierNode}
-          activeCollectionId={activeCollectionId}
-          collectionOptions={collectionOptions}
-          libraryItems={libraryItems}
-          localFolders={localFolders}
-          categoryTree={categoryTree}
-          suppliers={suppliers}
-          onCollectionChange={onCollectionChange}
-        />
-      )}
+      <ComponentLibrarySheet
+        selectedFolderNode={selectedFolderNode}
+        selectedSupplierNode={selectedSupplierNode}
+        viewMode={viewMode}
+        libraryItems={libraryItems}
+        categoryTree={categoryTree}
+        suppliers={suppliers}
+      />
     </div>
   );
 }
@@ -1002,13 +785,11 @@ export function ComponentLibraryManager({
   suppliers = [],
   libraryFolders,
   libraryItems = estimateLibraryItems,
-  templates = [],
 }: {
   categoryTree?: ComponentLibraryTaxonomyNode[];
   suppliers?: ComponentLibrarySupplierOption[];
   libraryFolders?: LibraryFolderRecord[];
   libraryItems?: EstimateRowItem[];
-  templates?: EstimateTemplate[];
 } = {}) {
   const fallbackFolders = useMemo(() => buildFallbackLibraryFolders(categoryTree), [categoryTree]);
   const normalizedPropFolders = useMemo(
@@ -1017,15 +798,9 @@ export function ComponentLibraryManager({
   );
   const initialSelectedFolderId = useMemo(() => getFirstFolderId(buildLibraryFolderTree(normalizedPropFolders)), [normalizedPropFolders]);
   const [localFolders, setLocalFolders] = useState<LibraryFolderRecord[]>(normalizedPropFolders);
-  const [activeTab, setActiveTab] = useState<ComponentLibraryManagerTab>("categories");
-  const [organizeMode, setOrganizeMode] = useState<CategoryOrganizeMode>("folders");
+  const [viewMode, setViewMode] = useState<ComponentViewMode>("default");
   const [selectedFolderId, setSelectedFolderId] = useState<string | null>(initialSelectedFolderId);
   const [selectedSupplierNodeId, setSelectedSupplierNodeId] = useState("all-suppliers");
-  const [selectedTemplateNodeId, setSelectedTemplateNodeId] = useState("all-templates");
-  const [folderCollectionId, setFolderCollectionId] = useState<RowCollectionId>(
-    initialSelectedFolderId ? `folder:${initialSelectedFolderId}` : "estimate-row-items",
-  );
-  const [supplierCollectionId, setSupplierCollectionId] = useState<RowCollectionId>("supplier-row-items");
   const [reorderStatus, setReorderStatus] = useState<ReorderStatus>({ state: "idle" });
   const [isTreeMutationPending, startTreeMutation] = useTransition();
 
@@ -1036,56 +811,18 @@ export function ComponentLibraryManager({
     () => buildComponentLibraryNavigationTree("suppliers", libraryItems, [], [], { categoryTree, suppliers }),
     [categoryTree, libraryItems, suppliers],
   );
-  const templateTree = useMemo(() => buildTemplateNavigationTree(templates), [templates]);
   const selectedSupplierNode = useMemo(() => findNode(supplierTree, selectedSupplierNodeId) ?? supplierTree[0] ?? null, [selectedSupplierNodeId, supplierTree]);
-  const selectedTemplateNode = useMemo(() => findNode(templateTree, selectedTemplateNodeId) ?? templateTree[0] ?? null, [selectedTemplateNodeId, templateTree]);
   const selectedFolderNode = useMemo(() => (
     findFolderNode(folderNodes, selectedFolderId) ?? findFolderNode(folderNodes, firstFolderId)
   ), [firstFolderId, folderNodes, selectedFolderId]);
   const effectiveSelectedFolderId = selectedFolderNode?.folderId ?? null;
-  const resolvedFolderCollectionId = folderCollectionId.startsWith("folder:") && !findFolderNode(folderNodes, fromLibraryFolderTreeItemId(folderCollectionId))
-    ? (effectiveSelectedFolderId ? `folder:${effectiveSelectedFolderId}` as RowCollectionId : "estimate-row-items")
-    : folderCollectionId;
-  const activeCollectionId = organizeMode === "suppliers" ? supplierCollectionId : resolvedFolderCollectionId;
-  const categoryTreeNodes = organizeMode === "suppliers" ? supplierTree : [];
-
-  const collectionOptions = useMemo<Array<{ id: RowCollectionId; label: string }>>(() => {
-    if (organizeMode === "suppliers") {
-      return [
-        { id: "estimate-row-items", label: "Estimate Row Items" },
-        { id: "supplier-row-items", label: "Supplier Row Items" },
-        ...(selectedSupplierNode && selectedSupplierNode.id !== "all-suppliers"
-          ? [{ id: `supplier:${selectedSupplierNode.id}` as RowCollectionId, label: selectedSupplierNode.label }]
-          : []),
-      ];
-    }
-
-    return [
-      { id: "estimate-row-items", label: "Estimate Row Items" },
-      ...(selectedFolderNode ? [{ id: `folder:${selectedFolderNode.folderId}` as RowCollectionId, label: selectedFolderNode.label }] : []),
-      { id: "custom-row-items", label: "Custom Row Items" },
-      { id: "uncategorized", label: "Uncategorized" },
-    ];
-  }, [organizeMode, selectedFolderNode, selectedSupplierNode]);
 
   function selectFolder(folderId: string) {
     setSelectedFolderId(folderId);
-    setFolderCollectionId(`folder:${folderId}`);
   }
 
   function selectSupplierNode(nodeId: string) {
     setSelectedSupplierNodeId(nodeId);
-    setSupplierCollectionId(nodeId === "all-suppliers" ? "supplier-row-items" : `supplier:${nodeId}`);
-  }
-
-  function changeCollection(value: RowCollectionId) {
-    if (organizeMode === "suppliers") {
-      setSupplierCollectionId(value);
-      if (value.startsWith("supplier:")) setSelectedSupplierNodeId(value.slice("supplier:".length));
-      return;
-    }
-    setFolderCollectionId(value);
-    if (value.startsWith("folder:")) setSelectedFolderId(fromLibraryFolderTreeItemId(value));
   }
 
   function createFolder(parentId: string | null) {
@@ -1122,7 +859,7 @@ export function ComponentLibraryManager({
   }
 
   function deleteFolder(folderId: string, currentName: string) {
-    if (!window.confirm(`Delete "${currentName}"? Row items will move to Uncategorized.`)) return;
+    if (!window.confirm(`Delete "${currentName}"? Row items assigned to it will stay in the library without a folder.`)) return;
     startTreeMutation(async () => {
       setReorderStatus({ state: "saving", message: "Deleting folder..." });
       try {
@@ -1131,7 +868,6 @@ export function ComponentLibraryManager({
         setLocalFolders((current) => planLibraryFolderDelete(current, folderId)?.nextFolders ?? current.filter((folder) => folder.id !== folderId));
         if (selectedFolderId === folderId) {
           setSelectedFolderId(deletedParentId);
-          setFolderCollectionId(deletedParentId ? `folder:${deletedParentId}` : "estimate-row-items");
         }
         setReorderStatus({ state: "saved", message: "Folder deleted." });
       } catch (error) {
@@ -1139,8 +875,6 @@ export function ComponentLibraryManager({
       }
     });
   }
-
-  const treeSelectedNodeId = activeTab === "templates" ? selectedTemplateNodeId : selectedSupplierNodeId;
 
   return (
     <div className="flex h-full min-h-0 overflow-hidden rounded-xl border border-hairline bg-white" data-component-library-workspace="true">
@@ -1157,41 +891,26 @@ export function ComponentLibraryManager({
 
         <section className="flex h-full min-h-0 overflow-hidden bg-white" aria-label="Component library workspace">
           <ComponentLibrarySheetPanel
-            activeTab={activeTab}
-            selectedTemplateNode={selectedTemplateNode}
-            templates={templates}
             selectedFolderNode={selectedFolderNode}
             selectedSupplierNode={selectedSupplierNode}
-            activeCollectionId={activeCollectionId}
-            collectionOptions={collectionOptions}
+            viewMode={viewMode}
             libraryItems={libraryItems}
-            localFolders={localFolders}
             categoryTree={categoryTree}
             suppliers={suppliers}
-            onCollectionChange={changeCollection}
           />
           <ComponentLibraryTreePanel
-            key={`${activeTab}:${organizeMode}`}
-            activeTab={activeTab}
-            activeNodes={activeTab === "templates" ? templateTree : categoryTreeNodes}
-            selectedNodeId={treeSelectedNodeId}
+            key={viewMode}
+            supplierNodes={supplierTree}
+            selectedNodeId={selectedSupplierNodeId}
             folderNodes={folderNodes}
             folders={localFolders}
             selectedFolderId={effectiveSelectedFolderId}
-            organizeMode={organizeMode}
+            viewMode={viewMode}
             reorderStatus={reorderStatus}
             treeMutationPending={isTreeMutationPending}
-            onTabChange={setActiveTab}
-            onSelectNode={(nodeId) => {
-              if (activeTab === "templates") setSelectedTemplateNodeId(nodeId);
-              else selectSupplierNode(nodeId);
-            }}
+            onSelectNode={selectSupplierNode}
             onSelectFolder={selectFolder}
-            onFolderModeChange={(mode) => {
-              setOrganizeMode(mode);
-              if (mode === "folders" && effectiveSelectedFolderId) setFolderCollectionId(`folder:${effectiveSelectedFolderId}`);
-              if (mode === "suppliers") setSupplierCollectionId(selectedSupplierNodeId === "all-suppliers" ? "supplier-row-items" : `supplier:${selectedSupplierNodeId}`);
-            }}
+            onViewModeChange={setViewMode}
             onFoldersChange={setLocalFolders}
             onReorderStatus={setReorderStatus}
             onCreateFolder={createFolder}

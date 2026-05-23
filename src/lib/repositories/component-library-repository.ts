@@ -29,6 +29,8 @@ export type ComponentLibraryDataset = {
   templates: EstimateTemplate[];
 };
 
+export type ComponentRowsLibraryDataset = Omit<ComponentLibraryDataset, "templates">;
+
 type EstimateTemplateRow = Tables<"estimate_templates">;
 type EstimateTemplateNodeRow = Tables<"estimate_template_nodes">;
 type EstimateTemplateRowItemRow = Tables<"estimate_template_row_items">;
@@ -38,6 +40,8 @@ type BuildEstimateTemplatesInput = {
   nodes: EstimateTemplateNodeRow[];
   rowItems: EstimateTemplateRowItemRow[];
 };
+
+type ComponentLibraryRepositoryClient = Awaited<ReturnType<typeof createSupabaseServerClient>>;
 
 function readMetadataRecord(metadata: Json): Record<string, Json> {
   if (!metadata || typeof metadata !== "object" || Array.isArray(metadata)) return {};
@@ -323,44 +327,65 @@ export function getTemplateTableFallbackTemplates({ isTemplateTableMissing }: { 
   return isTemplateTableMissing ? estimateTemplates : [];
 }
 
-export async function getCurrentWorkspaceComponentLibrary(): Promise<ComponentLibraryDataset> {
-  const { workspace } = await ensureDefaultWorkspace();
-  const supabase = await createSupabaseServerClient();
-
-  const [categoriesResult, suppliersResult, itemsResult, templatesResult] = await Promise.all([
+async function loadCurrentWorkspaceComponentRowsLibrary({
+  supabase,
+  workspaceId,
+}: {
+  supabase: ComponentLibraryRepositoryClient;
+  workspaceId: string;
+}): Promise<ComponentRowsLibraryDataset> {
+  const [categoriesResult, suppliersResult, itemsResult] = await Promise.all([
     supabase.from("component_category_nodes").select("*").order("sort_order", { ascending: true }),
     supabase
       .from("component_suppliers")
       .select("id, name, normalized_name, sort_order")
-      .eq("workspace_id", workspace.id)
+      .eq("workspace_id", workspaceId)
       .order("sort_order", { ascending: true })
       .order("name", { ascending: true }),
     supabase
       .from("cost_library_items")
       .select("*")
-      .eq("workspace_id", workspace.id)
+      .eq("workspace_id", workspaceId)
       .order("category", { ascending: true })
-      .order("name", { ascending: true }),
-    supabase
-      .from("estimate_templates")
-      .select("*")
-      .eq("workspace_id", workspace.id)
-      .order("sort_order", { ascending: true })
       .order("name", { ascending: true }),
   ]);
 
   if (categoriesResult.error) throw categoriesResult.error;
   if (suppliersResult.error) throw suppliersResult.error;
   if (itemsResult.error) throw itemsResult.error;
-  if (templatesResult.error && !isMissingRelationError(templatesResult.error, "estimate_templates")) throw templatesResult.error;
 
   const categoryRows = (categoriesResult.data ?? []) as ComponentLibraryCategoryRow[];
   const categoryTree = buildComponentCategoryTreeFromRows(categoryRows);
-  const libraryFolders = await ensureWorkspaceLibraryFolders({ supabase, workspaceId: workspace.id, categoryRows });
+  const libraryFolders = await ensureWorkspaceLibraryFolders({ supabase, workspaceId, categoryRows });
   const suppliers = suppliersResult.data ?? [];
   const categoryById = new Map(flattenCategoryTree(categoryTree).map((node) => [node.id, node]));
   const supplierById = new Map(suppliers.map((supplier) => [supplier.id, supplier]));
   const libraryItems = (itemsResult.data ?? []).map((row) => normalizeComponentLibraryItem(row, categoryById, supplierById, categoryTree));
+
+  return {
+    categoryTree,
+    suppliers,
+    libraryFolders,
+    libraryItems,
+  };
+}
+
+async function loadCurrentWorkspaceEstimateTemplates({
+  supabase,
+  workspaceId,
+}: {
+  supabase: ComponentLibraryRepositoryClient;
+  workspaceId: string;
+}): Promise<EstimateTemplate[]> {
+  const templatesResult = await supabase
+    .from("estimate_templates")
+    .select("*")
+    .eq("workspace_id", workspaceId)
+    .order("sort_order", { ascending: true })
+    .order("name", { ascending: true });
+
+  if (templatesResult.error && !isMissingRelationError(templatesResult.error, "estimate_templates")) throw templatesResult.error;
+
   const persistedTemplateRows = templatesResult.error ? [] : (templatesResult.data ?? []);
   let libraryTemplates = getTemplateTableFallbackTemplates({ isTemplateTableMissing: Boolean(templatesResult.error) });
 
@@ -389,20 +414,44 @@ export async function getCurrentWorkspaceComponentLibrary(): Promise<ComponentLi
     });
   }
 
+  return libraryTemplates;
+}
+
+export async function getCurrentWorkspaceComponentRowsLibrary(): Promise<ComponentRowsLibraryDataset> {
+  const { workspace } = await ensureDefaultWorkspace();
+  const supabase = await createSupabaseServerClient();
+  return loadCurrentWorkspaceComponentRowsLibrary({ supabase, workspaceId: workspace.id });
+}
+
+export async function getCurrentWorkspaceEstimateTemplates(): Promise<EstimateTemplate[]> {
+  const { workspace } = await ensureDefaultWorkspace();
+  const supabase = await createSupabaseServerClient();
+  return loadCurrentWorkspaceEstimateTemplates({ supabase, workspaceId: workspace.id });
+}
+
+export async function getCurrentWorkspaceComponentLibrary(): Promise<ComponentLibraryDataset> {
+  const { workspace } = await ensureDefaultWorkspace();
+  const supabase = await createSupabaseServerClient();
+  const [componentRows, templates] = await Promise.all([
+    loadCurrentWorkspaceComponentRowsLibrary({ supabase, workspaceId: workspace.id }),
+    loadCurrentWorkspaceEstimateTemplates({ supabase, workspaceId: workspace.id }),
+  ]);
+
   return {
-    categoryTree,
-    suppliers,
-    libraryFolders,
-    libraryItems,
-    templates: libraryTemplates,
+    ...componentRows,
+    templates,
   };
 }
 
-export const fallbackComponentLibraryDataset: ComponentLibraryDataset = {
+export const fallbackComponentRowsLibraryDataset: ComponentRowsLibraryDataset = {
   categoryTree: componentCategoryTree,
   suppliers: [],
   libraryFolders: [],
   libraryItems: [],
+};
+
+export const fallbackComponentLibraryDataset: ComponentLibraryDataset = {
+  ...fallbackComponentRowsLibraryDataset,
   templates: [],
 };
 

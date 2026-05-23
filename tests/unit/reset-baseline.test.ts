@@ -32,7 +32,9 @@ describe("workshop sidebar baseline", () => {
     expect(sidebar).toContain("fixed left-0 top-0 z-[100]");
     expect(sidebar).toContain("href: \"/workshop/projects\"");
     expect(sidebar).toContain("href: \"/workshop/library\"");
-    expect(sidebar).toContain("label: \"Library\"");
+    expect(sidebar).toContain("label: \"Components\"");
+    expect(sidebar).toContain("href: \"/workshop/templates\"");
+    expect(sidebar).toContain("label: \"Templates\"");
     expect(sidebar).not.toContain("Reports");
     expect(sidebar).not.toContain("Cost Library");
     expect(sidebar).not.toContain("grid-cols-[var(--sidebar-grid-columns)]");

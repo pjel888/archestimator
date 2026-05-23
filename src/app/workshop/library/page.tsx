@@ -1,9 +1,9 @@
 import { WorkshopPageShell } from "@/components/workshop/WorkshopPageShell";
 import { LibraryPageClient } from "@/components/workshop/LibraryPageClient";
-import { getCurrentWorkspaceComponentLibrary } from "@/lib/repositories/component-library-repository";
+import { getCurrentWorkspaceComponentRowsLibrary } from "@/lib/repositories/component-library-repository";
 
 export default async function LibraryPage() {
-  const componentLibrary = await getCurrentWorkspaceComponentLibrary();
+  const componentLibrary = await getCurrentWorkspaceComponentRowsLibrary();
 
   return (
     <WorkshopPageShell
@@ -14,7 +14,7 @@ export default async function LibraryPage() {
       footer={
         <>
           <span>Workspace library</span>
-          <span>Categories and templates</span>
+          <span>Components</span>
         </>
       }
     >
@@ -23,7 +23,6 @@ export default async function LibraryPage() {
         suppliers={componentLibrary.suppliers}
         libraryFolders={componentLibrary.libraryFolders}
         libraryItems={componentLibrary.libraryItems}
-        templates={componentLibrary.templates}
       />
     </WorkshopPageShell>
   );
