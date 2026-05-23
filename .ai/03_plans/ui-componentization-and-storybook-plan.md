@@ -58,6 +58,10 @@ Outside the landing page:
 - `src/components/ui/empty-state.tsx`
   - Purpose: consistent blank states in lists, panels, tables, search results.
 
+- `src/components/ui/toast.tsx`
+  - Purpose: fixed, non-layout-shifting app notifications for async saves, successes, failures, and transient UI responses.
+  - Rule: use `ToastProvider` at the app-provider layer and `useToast()` from feature components; do not render inline save/response banners that change panel height.
+
 - `src/components/ui/index.tsx`
   - Purpose: component barrel for intentional primitive imports.
 
@@ -108,6 +112,11 @@ Outside the landing page:
   - File: `src/components/ui/empty-state.tsx`
   - Used by: no search results, empty estimate nodes, empty component groups, missing project data.
   - Storybook category: `UI/Feedback/EmptyState`.
+
+- ToastProvider / useToast
+  - File: `src/components/ui/toast.tsx`
+  - Used by: async save state, success/failure confirmation, transient workspace feedback that must not shift panel layout.
+  - Storybook category: `UI/Feedback/Toast`.
 
 ### Next shared primitives to create when needed
 

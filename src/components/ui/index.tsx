@@ -8,6 +8,8 @@ export { SearchInput } from "./search-input";
 export { HeaderIconToolbar } from "./header-icon-toolbar";
 export { ToolbarIconButton } from "./toolbar-icon-button";
 export { ToolbarIconSelect } from "./toolbar-icon-select";
+export { ToastProvider, useToast } from "./toast";
+export type { ToastInput, ToastTone } from "./toast";
 export { ContextActionMenuContent } from "./action-menu";
 export type { ActionMenuGroup, ActionMenuItem } from "./action-menu";
 export {

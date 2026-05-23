@@ -9,6 +9,7 @@ import type { EstimateTreeNode } from "@/components/workshop/estimate-tree-data"
 import { resetEstimateWorkspaceState } from "@/hooks/use-estimate-workspace-state";
 import { estimateQueryKeys } from "@/hooks/use-estimate-query";
 import { ESTIMATE_TREE_ROOT_ITEM_ID } from "@/lib/estimates/estimate-tree-reorder";
+import { ToastProvider } from "@/components/ui/toast";
 
 const routerMock = vi.hoisted(() => ({
   push: vi.fn(),
@@ -310,7 +311,9 @@ function renderTree(nodes = fixtureTree(), selectedNodeId: string | null = "kitc
 
   const view = render(
     <QueryClientProvider client={queryClient}>
-      <TreeView />
+      <ToastProvider>
+        <TreeView />
+      </ToastProvider>
     </QueryClientProvider>,
   );
 
@@ -320,7 +323,9 @@ function renderTree(nodes = fixtureTree(), selectedNodeId: string | null = "kitc
     rerenderTree: (nextNodes: EstimateTreeNode[], nextSelectedNodeId: string | null = selectedNodeId) =>
       view.rerender(
         <QueryClientProvider client={queryClient}>
-          <TreeView nextNodes={nextNodes} nextSelectedNodeId={nextSelectedNodeId} />
+          <ToastProvider>
+            <TreeView nextNodes={nextNodes} nextSelectedNodeId={nextSelectedNodeId} />
+          </ToastProvider>
         </QueryClientProvider>,
       ),
   };
@@ -447,6 +452,7 @@ describe("estimate sheet tree drag/drop", () => {
     });
     await waitFor(() => expect(queryClient.getQueryData(estimateQueryKeys.areaTree("estimate-1"))).toEqual(confirmedTree()));
     expect(screen.getByRole("status")).toHaveTextContent("Saving tree order");
+    expect(screen.getByRole("status").closest("[data-toast-viewport='true']")).not.toBeNull();
     expect(routerMock.push).not.toHaveBeenCalled();
     expect(routerMock.refresh).not.toHaveBeenCalled();
 
@@ -481,7 +487,8 @@ describe("estimate sheet tree drag/drop", () => {
       await environment().onDrop?.([item("kitchen")], dropKitchenOntoSiteWorks);
     });
 
-    await waitFor(() => expect(screen.getByRole("status")).toHaveTextContent("Database rejected reorder."));
+    await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent("Database rejected reorder."));
+    expect(screen.getByRole("alert").closest("[data-toast-viewport='true']")).not.toBeNull();
     expect(renderedIds()).toEqual(["project-scope", "ground-floor", "kitchen", "living", "site-works", "front-yard"]);
     expect(queryClient.getQueryData(estimateQueryKeys.areaTree("estimate-1"))).toEqual(initialTree);
     expect(routerMock.push).not.toHaveBeenCalled();
