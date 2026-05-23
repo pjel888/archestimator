@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useState, type ReactNode } from "react";
 
 import { ToastProvider } from "@/components/ui/toast";
+import { EstimateCopilotFloatingButton } from "@/components/workshop/EstimateCopilotFloatingButton";
 
 function createQueryClient() {
   return new QueryClient({
@@ -26,7 +27,10 @@ export function AppProviders({ children }: { children: ReactNode }) {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <ToastProvider>{children}</ToastProvider>
+      <ToastProvider>
+        {children}
+        <EstimateCopilotFloatingButton />
+      </ToastProvider>
     </QueryClientProvider>
   );
 }
