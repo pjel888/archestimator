@@ -6,6 +6,7 @@ import { EstimateSheetTree } from "@/components/workshop/EstimateSheetTree";
 import { sampleEstimateTree } from "@/components/workshop/estimate-tree-data";
 import { estimateQueryKeys } from "@/hooks/use-estimate-query";
 import { resetEstimateWorkspaceState } from "@/hooks/use-estimate-workspace-state";
+import { ToastProvider } from "@/components/ui/toast";
 
 const actionMocks = vi.hoisted(() => ({
   createEstimateNode: vi.fn(),
@@ -43,13 +44,15 @@ describe("estimate sheet tree add-node toolbar flow", () => {
 
     const view = render(
       <QueryClientProvider client={queryClient}>
-        <EstimateSheetTree
-          projectId="project-1"
-          estimateId="estimate-1"
-          projectName="Modern Bungalow"
-          selectedNodeId={selectedNodeId}
-          nodes={nodes}
-        />
+        <ToastProvider>
+          <EstimateSheetTree
+            projectId="project-1"
+            estimateId="estimate-1"
+            projectName="Modern Bungalow"
+            selectedNodeId={selectedNodeId}
+            nodes={nodes}
+          />
+        </ToastProvider>
       </QueryClientProvider>,
     );
     return { ...view, queryClient };
@@ -101,6 +104,7 @@ describe("estimate sheet tree add-node toolbar flow", () => {
 
     expect(screen.getByRole("button", { name: "New Group" })).toBeInTheDocument();
     expect(screen.getByRole("status")).toHaveTextContent("Adding Group");
+    expect(screen.getByRole("status").closest("[data-toast-viewport='true']")).not.toBeNull();
     const optimisticTree = queryClient.getQueryData(estimateQueryKeys.areaTree("estimate-1"));
     expect(JSON.stringify(optimisticTree)).toContain("New Group");
   });

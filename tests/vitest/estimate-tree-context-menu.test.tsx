@@ -5,6 +5,7 @@ import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { EstimateSheetContent } from "@/components/workshop/EstimateSheetContent";
 import { EstimateSheetTree } from "@/components/workshop/EstimateSheetTree";
+import { ToastProvider } from "@/components/ui/toast";
 import type { EstimateTreeNode } from "@/components/workshop/estimate-tree-data";
 import { estimateQueryKeys } from "@/hooks/use-estimate-query";
 import { resetEstimateWorkspaceState } from "@/hooks/use-estimate-workspace-state";
@@ -238,15 +239,17 @@ function renderTree(nodes = fixtureTree(), selectedNodeId: string | null = "kitc
 
   const view = render(
     <QueryClientProvider client={queryClient}>
-      <div data-testid="clipped-sidebar" className="overflow-hidden">
-        <EstimateSheetTree
-          projectId="project-1"
-          estimateId="estimate-1"
-          projectName="Modern Bungalow"
-          selectedNodeId={selectedNodeId}
-          nodes={nodes}
-        />
-      </div>
+      <ToastProvider>
+        <div data-testid="clipped-sidebar" className="overflow-hidden">
+          <EstimateSheetTree
+            projectId="project-1"
+            estimateId="estimate-1"
+            projectName="Modern Bungalow"
+            selectedNodeId={selectedNodeId}
+            nodes={nodes}
+          />
+        </div>
+      </ToastProvider>
     </QueryClientProvider>,
   );
   return { ...view, queryClient };
@@ -258,14 +261,16 @@ function renderTreeWithSheet(nodes = fixtureTree(), selectedNodeId: string | nul
 
   const view = render(
     <QueryClientProvider client={queryClient}>
-      <EstimateSheetTree
-        projectId="project-1"
-        estimateId="estimate-1"
-        projectName="Modern Bungalow"
-        selectedNodeId={selectedNodeId}
-        nodes={nodes}
-      />
-      <EstimateSheetContent selectedNodeId={selectedNodeId} nodes={nodes} projectId="project-1" estimateId="estimate-1" />
+      <ToastProvider>
+        <EstimateSheetTree
+          projectId="project-1"
+          estimateId="estimate-1"
+          projectName="Modern Bungalow"
+          selectedNodeId={selectedNodeId}
+          nodes={nodes}
+        />
+        <EstimateSheetContent selectedNodeId={selectedNodeId} nodes={nodes} projectId="project-1" estimateId="estimate-1" />
+      </ToastProvider>
     </QueryClientProvider>,
   );
   return { ...view, queryClient };
@@ -519,7 +524,8 @@ describe("estimate tree context menu", () => {
       pending.reject(new Error("Rename failed"));
       await pending.promise.catch(() => undefined);
     });
-    expect(await screen.findByRole("alert")).toHaveTextContent("Rename failed");
+    const renameFailureAlerts = await screen.findAllByRole("alert");
+    expect(renameFailureAlerts.some((alert) => alert.textContent?.includes("Rename failed"))).toBe(true);
     expect(screen.getByLabelText("Rename Kitchen")).toHaveValue("Bad Name");
     expect(queryClient.getQueryData(estimateQueryKeys.areaTree("estimate-1"))).toEqual(initialTree);
   });
@@ -676,7 +682,9 @@ describe("estimate tree context menu", () => {
     fireEvent.click(within(screen.getByRole("dialog", { name: "Delete Kitchen" })).getByRole("button", { name: "Delete" }));
 
     await waitFor(() => expect(screen.queryByRole("button", { name: /Kitchen/ })).not.toBeInTheDocument());
-    await screen.findByText("Delete failed");
+    const deleteFailureAlert = await screen.findByRole("alert");
+    expect(deleteFailureAlert).toHaveTextContent("Delete failed");
+    expect(deleteFailureAlert.closest("[data-toast-viewport='true']")).not.toBeNull();
     expect(screen.getByRole("button", { name: /Kitchen/ })).toHaveAttribute("aria-current", "page");
     expect(queryClient.getQueryData(estimateQueryKeys.areaTree("estimate-1"))).toEqual(initialTree);
     expect(routerMock.replace).toHaveBeenNthCalledWith(1, "/workshop/projects/project-1/estimates/living");
