@@ -1,7 +1,8 @@
 "use client";
 
+import Image from "next/image";
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
-import { Plus, WarningCircle } from "@phosphor-icons/react/dist/ssr";
+import { ImageSquare, Plus, UploadSimple, WarningCircle } from "@phosphor-icons/react/dist/ssr";
 
 import { Badge } from "@/components/ui/badge";
 import { ControlSelect } from "@/components/ui/control-select";
@@ -49,6 +50,24 @@ type ComponentDraft = {
   prices: PriceDraft[];
 };
 
+type ImageUploadState =
+  | { state: "idle" }
+  | { state: "processing"; message: string }
+  | { state: "uploading"; message: string }
+  | { state: "uploaded"; message: string; optimizedBytes?: number; originalBytes?: number }
+  | { state: "error"; message: string };
+
+type UploadedComponentImage = {
+  url: string;
+  thumbnailUrl: string;
+  path: string;
+  thumbnailPath: string;
+  width: number;
+  height: number;
+  originalBytes: number;
+  optimizedBytes: number;
+};
+
 type AddComponentModalProps = {
   open: boolean;
   folders: LibraryFolderRecord[];
@@ -62,6 +81,10 @@ type AddComponentModalProps = {
 
 const SECTIONS = ["Identity", "Classify", "Pricing", "Lifecycle", "Review"] as const;
 const DEFAULT_PRICE_LABELS = ["Retail", "Supplier Quote", "Allowance", "Contractor Rate"];
+const MAX_CLIENT_SOURCE_IMAGE_BYTES = 20 * 1024 * 1024;
+const CLIENT_IMAGE_EDGE = 1600;
+const CLIENT_IMAGE_QUALITY = 0.82;
+const ALLOWED_UPLOAD_TYPES = new Set(["image/jpeg", "image/png", "image/webp", "image/avif"]);
 const LIFECYCLE_OPTIONS: Array<{ value: ComponentLifecycleState; label: string; tone: "neutral" | "info" | "success" | "warning" | "danger" }> = [
   { value: "draft", label: "Draft", tone: "neutral" },
   { value: "in_production", label: "In production", tone: "info" },
@@ -72,6 +95,54 @@ const LIFECYCLE_OPTIONS: Array<{ value: ComponentLifecycleState; label: string; 
 
 function today() {
   return new Date().toISOString().slice(0, 10);
+}
+
+function formatBytes(bytes: number | undefined) {
+  if (!bytes || bytes <= 0) return "0 KB";
+  if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+async function resizeImageForUpload(file: File): Promise<File> {
+  if (typeof document === "undefined" || typeof createImageBitmap === "undefined") return file;
+  const bitmap = await createImageBitmap(file);
+  try {
+    const scale = Math.min(1, CLIENT_IMAGE_EDGE / Math.max(bitmap.width, bitmap.height));
+    const width = Math.max(1, Math.round(bitmap.width * scale));
+    const height = Math.max(1, Math.round(bitmap.height * scale));
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+    const context = canvas.getContext("2d", { alpha: true });
+    if (!context) return file;
+    context.drawImage(bitmap, 0, 0, width, height);
+    const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, "image/webp", CLIENT_IMAGE_QUALITY));
+    if (!blob) return file;
+    if (blob.size >= file.size && file.size <= 12 * 1024 * 1024) return file;
+    const safeStem = file.name.replace(/\.[^.]+$/, "") || "component-image";
+    return new File([blob], `${safeStem}.webp`, { type: "image/webp", lastModified: Date.now() });
+  } finally {
+    bitmap.close();
+  }
+}
+
+async function uploadComponentImage(file: File): Promise<UploadedComponentImage> {
+  const formData = new FormData();
+  formData.set("file", file);
+  const response = await fetch("/api/component-library/images", {
+    method: "POST",
+    body: formData,
+  });
+  const result = await response.json().catch(() => null);
+  if (!response.ok) {
+    const message = result && typeof result.error === "string" ? result.error : "Could not upload image.";
+    throw new Error(message);
+  }
+  return result as UploadedComponentImage;
+}
+
+function isUsableUploadResponse(value: UploadedComponentImage): value is UploadedComponentImage {
+  return Boolean(value.url && value.thumbnailUrl && value.path && value.thumbnailPath);
 }
 
 function makePriceDraft(overrides: Partial<PriceDraft> = {}): PriceDraft {
@@ -177,6 +248,7 @@ export function AddComponentModal({
   const [activeSection, setActiveSection] = useState<(typeof SECTIONS)[number]>("Identity");
   const [error, setError] = useState("");
   const [savedMessage, setSavedMessage] = useState("");
+  const [imageUpload, setImageUpload] = useState<ImageUploadState>({ state: "idle" });
   const [isPending, startTransition] = useTransition();
   const initialFocusRef = useRef<HTMLInputElement>(null);
   const dirtyRef = useRef(false);
@@ -278,6 +350,44 @@ export function AddComponentModal({
     if (window.confirm("Discard this component draft?")) {
       dirtyRef.current = false;
       onOpenChange(false);
+    }
+  }
+
+  async function handleThumbnailUpload(file: File | null) {
+    if (!file) return;
+    if (!ALLOWED_UPLOAD_TYPES.has(file.type)) {
+      setImageUpload({ state: "error", message: "Upload a JPG, PNG, WebP, or AVIF image." });
+      return;
+    }
+    if (file.size > MAX_CLIENT_SOURCE_IMAGE_BYTES) {
+      setImageUpload({ state: "error", message: `Choose an image under ${formatBytes(MAX_CLIENT_SOURCE_IMAGE_BYTES)} before optimization.` });
+      return;
+    }
+
+    dirtyRef.current = true;
+    setSavedMessage("");
+    setError("");
+    setImageUpload({ state: "processing", message: "Optimizing image before upload..." });
+
+    try {
+      let optimizedFile = file;
+      try {
+        optimizedFile = await resizeImageForUpload(file);
+      } catch {
+        optimizedFile = file;
+      }
+      setImageUpload({ state: "uploading", message: "Uploading optimized WebP image..." });
+      const uploadedImage = await uploadComponentImage(optimizedFile);
+      if (!isUsableUploadResponse(uploadedImage)) throw new Error("Image upload returned an incomplete response.");
+      updateDraft({ thumbnailPath: uploadedImage.thumbnailUrl || uploadedImage.url });
+      setImageUpload({
+        state: "uploaded",
+        message: `Stored WebP thumbnail (${formatBytes(uploadedImage.originalBytes)} -> ${formatBytes(uploadedImage.optimizedBytes)}).`,
+        originalBytes: uploadedImage.originalBytes,
+        optimizedBytes: uploadedImage.optimizedBytes,
+      });
+    } catch (uploadError) {
+      setImageUpload({ state: "error", message: uploadError instanceof Error ? uploadError.message : "Could not upload image." });
     }
   }
 
@@ -402,6 +512,7 @@ export function AddComponentModal({
         if (addAnother) {
           const nextDraft = getInitialDraft({ folders, selectedFolderId: draft.libraryFolderId, selectedSupplierId: draft.supplierId, suppliers });
           setDraft(nextDraft);
+          setImageUpload({ state: "idle" });
           setActiveSection("Identity");
           setSavedMessage("Component saved. Ready for another.");
           requestAnimationFrame(() => initialFocusRef.current?.focus());
@@ -482,10 +593,55 @@ export function AddComponentModal({
                 Brand
                 <input value={draft.brand} onChange={(event) => updateDraft({ brand: event.target.value })} className={fieldClassName()} />
               </label>
-              <label className="grid gap-1 text-[9px] font-bold uppercase tracking-[0.06em] text-tertiary">
-                Image URL / Path
-                <input value={draft.thumbnailPath} onChange={(event) => updateDraft({ thumbnailPath: event.target.value })} className={fieldClassName()} />
-              </label>
+              <div className="grid gap-1 text-[9px] font-bold uppercase tracking-[0.06em] text-tertiary">
+                Thumbnail
+                <div className="rounded-md border border-dashed border-hairline bg-surfaceMuted p-2">
+                  <div className="relative mb-2 flex aspect-square max-h-36 items-center justify-center overflow-hidden rounded-sm border border-hairline bg-white">
+                    {draft.thumbnailPath ? (
+                      <Image
+                        src={draft.thumbnailPath}
+                        alt="Component thumbnail preview"
+                        fill
+                        sizes="144px"
+                        className="object-cover"
+                        unoptimized={draft.thumbnailPath.startsWith("blob:")}
+                      />
+                    ) : (
+                      <div className="grid place-items-center gap-1 text-center text-[9px] font-semibold normal-case tracking-normal text-tertiary">
+                        <ImageSquare size={22} weight="duotone" aria-hidden="true" />
+                        Upload a square reference image
+                      </div>
+                    )}
+                  </div>
+                  <label className="inline-flex h-7 cursor-pointer items-center gap-1 rounded-sm bg-ink px-2 text-[9px] font-bold normal-case tracking-normal text-white transition hover:bg-secondary">
+                    <UploadSimple size={11} weight="bold" aria-hidden="true" />
+                    {imageUpload.state === "processing" || imageUpload.state === "uploading" ? "Uploading..." : "Choose image"}
+                    <input
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp,image/avif"
+                      aria-label="Upload thumbnail"
+                      className="sr-only"
+                      disabled={isPending || imageUpload.state === "processing" || imageUpload.state === "uploading"}
+                      onChange={(event) => {
+                        void handleThumbnailUpload(event.target.files?.[0] ?? null);
+                        event.currentTarget.value = "";
+                      }}
+                    />
+                  </label>
+                  <p
+                    role={imageUpload.state === "error" ? "alert" : "status"}
+                    aria-live="polite"
+                    className={cn(
+                      "mt-1 text-[9px] font-semibold normal-case leading-4 tracking-normal",
+                      imageUpload.state === "error" ? "text-danger" : "text-tertiary",
+                    )}
+                  >
+                    {imageUpload.state === "idle"
+                      ? "JPG, PNG, WebP, or AVIF. Large files are converted to WebP before storage."
+                      : imageUpload.message}
+                  </p>
+                </div>
+              </div>
               <label className="grid gap-1 text-[9px] font-bold uppercase tracking-[0.06em] text-tertiary md:col-span-2">
                 Description
                 <textarea value={draft.description} onChange={(event) => updateDraft({ description: event.target.value })} className={textAreaClassName()} />
