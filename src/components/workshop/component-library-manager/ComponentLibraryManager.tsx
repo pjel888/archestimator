@@ -9,6 +9,7 @@ import {
   useState,
   useTransition,
 } from "react";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import {
   ControlledTreeEnvironment,
@@ -778,33 +779,53 @@ function ComponentLibrarySheet({
                   item.lifecycleState === "archived" ? "opacity-60" : "",
                 )}
               >
-                <div className="min-w-0">
-                  <p className="truncate text-[10px] font-bold leading-4 text-ink">{getComponentName(item)}</p>
-                  <div className="flex min-w-0 items-center gap-1">
-                    <p className="truncate text-[9px] font-semibold leading-3 text-tertiary">
-                      {item.supplier || "No supplier"} / {item.category}
-                    </p>
-                    <Badge tone={LIFECYCLE_META[item.lifecycleState ?? "available"].tone} size="xs">
-                      {LIFECYCLE_META[item.lifecycleState ?? "available"].label}
-                    </Badge>
+                <div className="grid min-w-0 grid-cols-[40px_minmax(0,1fr)] gap-2">
+                  {item.imageUrl ? (
+                    <div className="relative h-10 w-10 overflow-hidden rounded-md border border-hairline bg-surfaceMuted">
+                      <Image
+                        src={item.imageUrl}
+                        alt={`${getComponentName(item)} thumbnail`}
+                        fill
+                        sizes="40px"
+                        className="object-cover"
+                      />
+                    </div>
+                  ) : (
+                    <div
+                      className="flex h-10 w-10 items-center justify-center rounded-md border border-dashed border-hairline bg-surfaceMuted text-[8px] font-bold uppercase tracking-[0.08em] text-tertiary"
+                      aria-hidden="true"
+                    >
+                      No img
+                    </div>
+                  )}
+                  <div className="min-w-0">
+                    <p className="truncate text-[10px] font-bold leading-4 text-ink">{getComponentName(item)}</p>
+                    <div className="flex min-w-0 items-center gap-1">
+                      <p className="truncate text-[9px] font-semibold leading-3 text-tertiary">
+                        {item.supplier || "No supplier"} / {item.category}
+                      </p>
+                      <Badge tone={LIFECYCLE_META[item.lifecycleState ?? "available"].tone} size="xs">
+                        {LIFECYCLE_META[item.lifecycleState ?? "available"].label}
+                      </Badge>
+                    </div>
+                    {item.history?.length ? (
+                      <details className="mt-1">
+                        <summary className="cursor-pointer text-[9px] font-bold leading-3 text-tertiary">
+                          History / v{item.componentVersionNumber ?? 1}
+                        </summary>
+                        <ol className="mt-1 space-y-1 rounded-sm border border-hairline bg-surfaceMuted p-1">
+                          {item.history.slice(0, 5).map((entry) => (
+                            <li key={`${entry.type}-${entry.id}`} className="grid grid-cols-[auto_minmax(0,1fr)] gap-1 text-[9px] leading-3 text-tertiary">
+                              <Badge tone={entry.type === "state" ? "info" : entry.type === "price" ? "warning" : "neutral"} size="xs">
+                                {entry.label}
+                              </Badge>
+                              <span className="min-w-0 truncate">{entry.summary} / {entry.effectiveAt.slice(0, 10)}</span>
+                            </li>
+                          ))}
+                        </ol>
+                      </details>
+                    ) : null}
                   </div>
-                  {item.history?.length ? (
-                    <details className="mt-1">
-                      <summary className="cursor-pointer text-[9px] font-bold leading-3 text-tertiary">
-                        History / v{item.componentVersionNumber ?? 1}
-                      </summary>
-                      <ol className="mt-1 space-y-1 rounded-sm border border-hairline bg-surfaceMuted p-1">
-                        {item.history.slice(0, 5).map((entry) => (
-                          <li key={`${entry.type}-${entry.id}`} className="grid grid-cols-[auto_minmax(0,1fr)] gap-1 text-[9px] leading-3 text-tertiary">
-                            <Badge tone={entry.type === "state" ? "info" : entry.type === "price" ? "warning" : "neutral"} size="xs">
-                              {entry.label}
-                            </Badge>
-                            <span className="min-w-0 truncate">{entry.summary} / {entry.effectiveAt.slice(0, 10)}</span>
-                          </li>
-                        ))}
-                      </ol>
-                    </details>
-                  ) : null}
                 </div>
                 <div className="flex min-w-[148px] flex-col items-end gap-1">
                   <span className="font-mono text-[10px] font-bold tabular-nums text-ink">
