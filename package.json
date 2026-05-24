@@ -12,6 +12,7 @@
     "test": "bun test tests/unit",
     "test:dom": "vitest run --maxWorkers=1",
     "test:dom:watch": "vitest",
+    "component-images:ai-thumbnails": "bun scripts/generate-ai-component-thumbnails.mjs",
     "test:e2e": "playwright test",
     "validate": "bun run type-check && bun run lint && bun run lint:font-size && bun run test && bun run test:dom"
   },

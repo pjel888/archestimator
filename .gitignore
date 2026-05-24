@@ -57,6 +57,9 @@ yarn-error.log*
 .chunkhound/
 .chunkhound.json
 
+# generated AI thumbnail run logs can include large prompt/audit payloads; keep summaries in current-state instead
+/.ai/05_logs/component-thumbnail-generation/*.json
+
 # generated agent/dev scratch backups are local-only
 /.ai/99_scratch/
 
