@@ -44,7 +44,7 @@ function parseArgs(argv) {
 }
 
 function printHelp() {
-  console.log(`Seed product-like thumbnails from internet image search.\n\nUsage:\n  bun run component-images:internet-thumbnails -- --dry-run --limit 10\n  bun run component-images:internet-thumbnails -- --apply --limit 10\n  bun run component-images:internet-thumbnails -- --apply --force --id <uuid>\n\nRequired:\n  NEXT_PUBLIC_SUPABASE_URL\n  SUPABASE_SERVICE_ROLE_KEY\n\nNotes:\n  This is intentionally simple seed-data tooling: search image thumbnails, convert to WebP, upload to Supabase, and record source/landing URL metadata.\n`);
+  console.log(`Seed product-like thumbnails from internet image search.\n\nUsage:\n  bun run component-images:internet-thumbnails -- --dry-run --limit 10\n  bun run component-images:internet-thumbnails -- --apply --limit 10\n  bun run component-images:internet-thumbnails -- --apply --force --id <uuid>\n\nRequired:\n  NEXT_PUBLIC_SUPABASE_URL\n  SUPABASE_SERVICE_ROLE_KEY\n\nNotes:\n  This is intentionally simple seed-data tooling: search image thumbnails, convert to WebP, upload to Supabase, record source/landing URL metadata, and sync existing seed estimate row snapshot thumbnails so the estimate sheet does not keep stale placeholder images.\n`);
 }
 
 function loadDotEnvLocal() {
@@ -216,6 +216,53 @@ async function updateItemImage(supabase, item, metadata, thumbUrl) {
   if (error) throw new Error("Could not update cost_library_items image metadata.");
 }
 
+function estimateRowSourceId(row) {
+  return row.source_library_item_id ?? row.metadata?.sourceComponentId ?? row.source_snapshot?.sourceLibraryItemId ?? row.source_snapshot?.imageSyncedFromLibraryItemId ?? null;
+}
+
+async function syncEstimateSnapshotImages(supabase, itemIds) {
+  if (itemIds.length === 0) return 0;
+  const { data: items, error: itemError } = await supabase
+    .from("cost_library_items")
+    .select("id, thumbnail_path, metadata")
+    .in("id", itemIds);
+  if (itemError) throw new Error("Could not reload cost library thumbnails for estimate snapshot sync.");
+
+  const thumbnailByItemId = new Map(
+    (items ?? [])
+      .filter((item) => item.thumbnail_path)
+      .map((item) => [item.id, { thumbnailPath: item.thumbnail_path, imageSource: item.metadata?.imageSource ?? null }]),
+  );
+  if (thumbnailByItemId.size === 0) return 0;
+
+  const { data: rows, error: rowError } = await supabase
+    .from("estimate_row_items")
+    .select("id, source_library_item_id, source_snapshot, metadata");
+  if (rowError) throw new Error("Could not load estimate row snapshots for image sync.");
+
+  let syncedRows = 0;
+  const syncedAt = new Date().toISOString();
+  for (const row of rows ?? []) {
+    const sourceId = estimateRowSourceId(row);
+    const image = sourceId ? thumbnailByItemId.get(sourceId) : null;
+    if (!image || !row.source_snapshot || typeof row.source_snapshot !== "object") continue;
+    if (row.source_snapshot.imageUrl === image.thumbnailPath) continue;
+
+    const nextSnapshot = {
+      ...row.source_snapshot,
+      imageUrl: image.thumbnailPath,
+      imageSource: image.imageSource ?? row.source_snapshot.imageSource ?? null,
+      imageSyncedFromLibraryItemId: sourceId,
+      previousImageUrl: row.source_snapshot.imageUrl ?? null,
+      imageSyncedAt: syncedAt,
+    };
+    const { error } = await supabase.from("estimate_row_items").update({ source_snapshot: nextSnapshot }).eq("id", row.id);
+    if (error) throw new Error("Could not sync estimate row snapshot thumbnail.");
+    syncedRows += 1;
+  }
+  return syncedRows;
+}
+
 function writeAudit(record) {
   mkdirSync(OUTPUT_DIR, { recursive: true });
   const path = join(OUTPUT_DIR, `internet-component-thumbnails-${new Date().toISOString().replace(/[:.]/g, "-")}.json`);
@@ -248,6 +295,7 @@ async function main() {
     selectedRows: selected.length,
     updatedRows: 0,
     uploadedObjects: 0,
+    syncedEstimateRows: 0,
     skippedRows: loaded.length - selected.length,
     failures: [],
     items: [],
@@ -324,6 +372,10 @@ async function main() {
       run.failures.push({ id: item.id, name: item.name, message });
       console.error(JSON.stringify({ status: "failed", id: item.id, name: item.name, message }));
     }
+  }
+
+  if (args.apply) {
+    run.syncedEstimateRows = await syncEstimateSnapshotImages(supabase, loaded.map((item) => item.id));
   }
 
   const auditPath = writeAudit(run);
