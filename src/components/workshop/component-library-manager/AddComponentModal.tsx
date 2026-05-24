@@ -141,6 +141,19 @@ async function uploadComponentImage(file: File): Promise<UploadedComponentImage>
   return result as UploadedComponentImage;
 }
 
+async function removeComponentImageUpload(image: UploadedComponentImage | null) {
+  if (!image) return;
+  await fetch("/api/component-library/images", {
+    method: "DELETE",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ paths: [image.path, image.thumbnailPath] }),
+  }).catch(() => undefined);
+}
+
+function isImageUploadBusy(state: ImageUploadState["state"]) {
+  return state === "processing" || state === "uploading";
+}
+
 function isUsableUploadResponse(value: UploadedComponentImage): value is UploadedComponentImage {
   return Boolean(value.url && value.thumbnailUrl && value.path && value.thumbnailPath);
 }
@@ -249,6 +262,7 @@ export function AddComponentModal({
   const [error, setError] = useState("");
   const [savedMessage, setSavedMessage] = useState("");
   const [imageUpload, setImageUpload] = useState<ImageUploadState>({ state: "idle" });
+  const [uploadedImage, setUploadedImage] = useState<UploadedComponentImage | null>(null);
   const [isPending, startTransition] = useTransition();
   const initialFocusRef = useRef<HTMLInputElement>(null);
   const dirtyRef = useRef(false);
@@ -261,6 +275,7 @@ export function AddComponentModal({
   );
   const selectedSupplier = suppliers.find((supplier) => supplier.id === draft.supplierId);
   const defaultPrice = draft.prices.find((price) => price.isDefault) ?? draft.prices[0];
+  const imageBusy = isImageUploadBusy(imageUpload.state);
   const validation = useMemo(() => {
     const messages: string[] = [];
     if (!draft.name.trim()) messages.push("Name is required.");
@@ -342,12 +357,28 @@ export function AddComponentModal({
     });
   }
 
+  function cleanupUploadedDraftImage() {
+    const image = uploadedImage;
+    setUploadedImage(null);
+    void removeComponentImageUpload(image);
+  }
+
   function requestClose(openValue: boolean) {
-    if (openValue || !dirtyRef.current) {
+    if (openValue) {
       onOpenChange(openValue);
       return;
     }
+    if (imageBusy) {
+      setError("Wait for the thumbnail upload to finish before closing.");
+      return;
+    }
+    if (!dirtyRef.current) {
+      cleanupUploadedDraftImage();
+      onOpenChange(false);
+      return;
+    }
     if (window.confirm("Discard this component draft?")) {
+      cleanupUploadedDraftImage();
       dirtyRef.current = false;
       onOpenChange(false);
     }
@@ -355,7 +386,7 @@ export function AddComponentModal({
 
   async function handleThumbnailUpload(file: File | null) {
     if (!file) return;
-    if (!ALLOWED_UPLOAD_TYPES.has(file.type)) {
+    if (file.type && !ALLOWED_UPLOAD_TYPES.has(file.type)) {
       setImageUpload({ state: "error", message: "Upload a JPG, PNG, WebP, or AVIF image." });
       return;
     }
@@ -377,14 +408,17 @@ export function AddComponentModal({
         optimizedFile = file;
       }
       setImageUpload({ state: "uploading", message: "Uploading optimized WebP image..." });
-      const uploadedImage = await uploadComponentImage(optimizedFile);
-      if (!isUsableUploadResponse(uploadedImage)) throw new Error("Image upload returned an incomplete response.");
-      updateDraft({ thumbnailPath: uploadedImage.thumbnailUrl || uploadedImage.url });
+      const previousImage = uploadedImage;
+      const uploadedImageResponse = await uploadComponentImage(optimizedFile);
+      if (!isUsableUploadResponse(uploadedImageResponse)) throw new Error("Image upload returned an incomplete response.");
+      setUploadedImage(uploadedImageResponse);
+      updateDraft({ thumbnailPath: uploadedImageResponse.thumbnailUrl || uploadedImageResponse.url });
+      void removeComponentImageUpload(previousImage);
       setImageUpload({
         state: "uploaded",
-        message: `Stored WebP thumbnail (${formatBytes(uploadedImage.originalBytes)} -> ${formatBytes(uploadedImage.optimizedBytes)}).`,
-        originalBytes: uploadedImage.originalBytes,
-        optimizedBytes: uploadedImage.optimizedBytes,
+        message: `Stored WebP thumbnail (${formatBytes(uploadedImageResponse.originalBytes)} -> ${formatBytes(uploadedImageResponse.optimizedBytes)}).`,
+        originalBytes: uploadedImageResponse.originalBytes,
+        optimizedBytes: uploadedImageResponse.optimizedBytes,
       });
     } catch (uploadError) {
       setImageUpload({ state: "error", message: uploadError instanceof Error ? uploadError.message : "Could not upload image." });
@@ -463,10 +497,27 @@ export function AddComponentModal({
   }
 
   function submit(addAnother: boolean) {
+    if (imageBusy) {
+      setError("Wait for the thumbnail upload to finish before saving.");
+      return;
+    }
     if (validation.length > 0 || isPending) {
       setError(validation[0] ?? "Please resolve validation errors before saving.");
       return;
     }
+
+    const uploadedComponentImageMetadata = uploadedImage ? {
+      imageSource: "user-upload",
+      imageBucket: "component-images",
+      imageObjectPath: uploadedImage.path,
+      imageThumbnailPath: uploadedImage.thumbnailPath,
+      imageUrl: uploadedImage.url,
+      imageThumbnailUrl: uploadedImage.thumbnailUrl,
+      imageWidth: uploadedImage.width,
+      imageHeight: uploadedImage.height,
+      imageOriginalBytes: uploadedImage.originalBytes,
+      imageOptimizedBytes: uploadedImage.optimizedBytes,
+    } : undefined;
 
     const payload: CreateCostLibraryComponentInput = {
       kind: draft.kind,
@@ -480,6 +531,7 @@ export function AddComponentModal({
       sku: draft.sku || null,
       unit: draft.unit,
       thumbnailPath: draft.thumbnailPath || null,
+      metadata: uploadedComponentImageMetadata,
       libraryFolderId: draft.libraryFolderId,
       lifecycleState: draft.lifecycleState,
       effectiveAt: draft.effectiveAt,
@@ -507,6 +559,7 @@ export function AddComponentModal({
       setError("");
       try {
         const result = await createCostLibraryComponent(payload);
+        setUploadedImage(null);
         onComponentCreated(buildOptimisticItem(result));
         dirtyRef.current = false;
         if (addAnother) {
@@ -615,13 +668,13 @@ export function AddComponentModal({
                   </div>
                   <label className="inline-flex h-7 cursor-pointer items-center gap-1 rounded-sm bg-ink px-2 text-[9px] font-bold normal-case tracking-normal text-white transition hover:bg-secondary">
                     <UploadSimple size={11} weight="bold" aria-hidden="true" />
-                    {imageUpload.state === "processing" || imageUpload.state === "uploading" ? "Uploading..." : "Choose image"}
+                    {imageBusy ? "Uploading..." : "Choose image"}
                     <input
                       type="file"
                       accept="image/jpeg,image/png,image/webp,image/avif"
                       aria-label="Upload thumbnail"
                       className="sr-only"
-                      disabled={isPending || imageUpload.state === "processing" || imageUpload.state === "uploading"}
+                      disabled={isPending || imageBusy}
                       onChange={(event) => {
                         void handleThumbnailUpload(event.target.files?.[0] ?? null);
                         event.currentTarget.value = "";
@@ -794,9 +847,9 @@ export function AddComponentModal({
             {error ? <span className="text-danger">{error}</span> : savedMessage || `${validation.length} validation issue${validation.length === 1 ? "" : "s"}`}
           </div>
           <div className="flex shrink-0 items-center gap-1">
-            <button type="button" onClick={() => requestClose(false)} className="h-7 rounded-sm border border-hairline px-2 text-[9px] font-bold text-ink" disabled={isPending}>Cancel</button>
-            <button type="button" onClick={() => submit(true)} className="h-7 rounded-sm border border-hairline px-2 text-[9px] font-bold text-ink disabled:opacity-50" disabled={isPending || validation.length > 0}>Save and add another</button>
-            <button type="button" onClick={() => submit(false)} className="h-7 rounded-sm bg-ink px-2 text-[9px] font-bold text-white disabled:opacity-50" disabled={isPending || validation.length > 0}>{isPending ? "Saving..." : "Save"}</button>
+            <button type="button" onClick={() => requestClose(false)} className="h-7 rounded-sm border border-hairline px-2 text-[9px] font-bold text-ink" disabled={isPending || imageBusy}>Cancel</button>
+            <button type="button" onClick={() => submit(true)} className="h-7 rounded-sm border border-hairline px-2 text-[9px] font-bold text-ink disabled:opacity-50" disabled={isPending || imageBusy || validation.length > 0}>Save and add another</button>
+            <button type="button" onClick={() => submit(false)} className="h-7 rounded-sm bg-ink px-2 text-[9px] font-bold text-white disabled:opacity-50" disabled={isPending || imageBusy || validation.length > 0}>{isPending ? "Saving..." : imageBusy ? "Uploading..." : "Save"}</button>
           </div>
         </div>
       </div>

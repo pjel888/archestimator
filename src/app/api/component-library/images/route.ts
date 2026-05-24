@@ -18,9 +18,24 @@ const MAX_IMAGE_EDGE = 1600;
 const THUMBNAIL_EDGE = 512;
 const ALLOWED_MIME_TYPES = new Set(["image/jpeg", "image/png", "image/webp", "image/avif"]);
 const ALLOWED_SHARP_FORMATS = new Set(["jpeg", "png", "webp", "avif"]);
+const AVIF_FTYP_BRANDS = new Set(["avif", "avis"]);
 
 function jsonError(message: string, status = 400) {
   return NextResponse.json({ error: message }, { status });
+}
+
+function readAscii(bytes: Uint8Array, start: number, end: number) {
+  return String.fromCharCode(...bytes.subarray(start, end));
+}
+
+function readIsoBaseMediaBrands(bytes: Uint8Array) {
+  if (bytes.length < 16 || readAscii(bytes, 4, 8) !== "ftyp") return [];
+  const brands = [readAscii(bytes, 8, 12)];
+  const readableLength = Math.min(bytes.length, 64);
+  for (let index = 16; index + 4 <= readableLength; index += 4) {
+    brands.push(readAscii(bytes, index, index + 4));
+  }
+  return brands;
 }
 
 function readMagicMime(bytes: Uint8Array): string | null {
@@ -51,20 +66,17 @@ function readMagicMime(bytes: Uint8Array): string | null {
   ) {
     return "image/webp";
   }
-  if (
-    bytes.length >= 12
-    && bytes[4] === 0x66
-    && bytes[5] === 0x74
-    && bytes[6] === 0x79
-    && bytes[7] === 0x70
-    && bytes[8] === 0x61
-    && bytes[9] === 0x76
-    && bytes[10] === 0x69
-    && bytes[11] === 0x66
-  ) {
+  const brands = readIsoBaseMediaBrands(bytes);
+  if (brands.some((brand) => AVIF_FTYP_BRANDS.has(brand))) {
     return "image/avif";
   }
   return null;
+}
+
+function isAllowedSharpFormat(format: string | undefined, magicMime: string) {
+  if (!format) return false;
+  if (format === "heif" && magicMime === "image/avif") return true;
+  return ALLOWED_SHARP_FORMATS.has(format);
 }
 
 function safeUploadName(name: string) {
@@ -115,6 +127,17 @@ async function uploadWebp({
   return supabase.storage.from(COMPONENT_IMAGE_BUCKET).getPublicUrl(path).data.publicUrl;
 }
 
+function isOwnedUploadPath(path: string, workspaceId: string, userId: string) {
+  return path.startsWith(`${workspaceId}/${userId}/`) && path.endsWith(".webp") && !path.includes("..") && !path.includes("//");
+}
+
+function readStoragePaths(value: unknown) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return [];
+  const rawPaths = (value as { path?: unknown; paths?: unknown }).paths ?? (value as { path?: unknown }).path;
+  const paths = Array.isArray(rawPaths) ? rawPaths : [rawPaths];
+  return paths.filter((path): path is string => typeof path === "string" && path.trim().length > 0).map((path) => path.trim());
+}
+
 export async function POST(request: Request) {
   const contentLength = Number(request.headers.get("content-length") ?? 0);
   if (contentLength > MAX_UPLOAD_BYTES + 1024 * 1024) {
@@ -125,12 +148,12 @@ export async function POST(request: Request) {
   const formData = await request.formData();
   const file = formData.get("file");
   if (!(file instanceof File)) return jsonError("Image file is required.");
-  if (!ALLOWED_MIME_TYPES.has(file.type)) return jsonError("Use a JPG, PNG, WebP, or AVIF image.");
+  if (file.type && !ALLOWED_MIME_TYPES.has(file.type)) return jsonError("Use a JPG, PNG, WebP, or AVIF image.");
   if (file.size <= 0) return jsonError("Image file is empty.");
   if (file.size > MAX_UPLOAD_BYTES) return jsonError("Image upload is too large. Compress or choose an image under 12 MB.", 413);
 
   const sourceBuffer = Buffer.from(await file.arrayBuffer());
-  const magicMime = readMagicMime(sourceBuffer.subarray(0, 32));
+  const magicMime = readMagicMime(sourceBuffer.subarray(0, 64));
   if (!magicMime || !ALLOWED_MIME_TYPES.has(magicMime)) {
     return jsonError("The uploaded file does not look like a supported image.");
   }
@@ -141,7 +164,7 @@ export async function POST(request: Request) {
   try {
     const pipeline = sharp(sourceBuffer, { failOn: "warning", limitInputPixels: MAX_IMAGE_PIXELS }).rotate();
     const metadata = await pipeline.metadata();
-    if (!metadata.format || !ALLOWED_SHARP_FORMATS.has(metadata.format)) return jsonError("Unsupported image encoding.");
+    if (!isAllowedSharpFormat(metadata.format, magicMime)) return jsonError("Unsupported image encoding.");
     if (!metadata.width || !metadata.height) return jsonError("Could not read image dimensions.");
     if (metadata.width * metadata.height > MAX_IMAGE_PIXELS) return jsonError("Image dimensions are too large. Use an image under 24 megapixels.", 413);
 
@@ -194,4 +217,16 @@ export async function POST(request: Request) {
     }
     return jsonError("Could not store image.", 500);
   }
+}
+
+export async function DELETE(request: Request) {
+  const [{ workspace }, currentUser] = await Promise.all([ensureDefaultWorkspace(), requireCurrentUserContext()]);
+  const body = await request.json().catch(() => null);
+  const paths = readStoragePaths(body).filter((path) => isOwnedUploadPath(path, workspace.id, currentUser.userId));
+  if (paths.length === 0) return jsonError("No removable image paths were provided.");
+
+  const supabase = await createStorageSupabaseClient();
+  const { error } = await supabase.storage.from(COMPONENT_IMAGE_BUCKET).remove(paths);
+  if (error) return jsonError("Could not remove uploaded image.", 500);
+  return NextResponse.json({ removedPaths: paths });
 }

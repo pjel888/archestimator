@@ -74,6 +74,15 @@ import type { ComponentLibrarySupplierOption } from "../component-library/tree/b
 import { AddComponentModal } from "./AddComponentModal";
 
 const COMPONENT_LIBRARY_TREE_WIDTH_OFFSET = 104;
+const supabaseImageUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseImageHost = (() => {
+  if (!supabaseImageUrl) return null;
+  try {
+    return new URL(supabaseImageUrl).host;
+  } catch {
+    return null;
+  }
+})();
 const LIBRARY_TABS = [{ id: "components", label: "Components" }] as const;
 const COMPONENT_VIEW_MODES = [
   { id: "default", label: "View By: Default" },
@@ -110,6 +119,58 @@ type SheetStatus =
   | { state: "saving"; message: string }
   | { state: "saved"; message: string }
   | { state: "error"; message: string };
+
+function canUseNextImageForComponentThumbnail(src: string) {
+  if (src.startsWith("/") || src.startsWith("blob:") || src.startsWith("data:")) return true;
+  if (!supabaseImageHost) return false;
+  try {
+    const url = new URL(src);
+    return url.host === supabaseImageHost && url.pathname.startsWith("/storage/v1/object/public/component-images/");
+  } catch {
+    return false;
+  }
+}
+
+function ComponentThumbnail({ item }: { item: EstimateRowItem }) {
+  const imageUrl = item.imageUrl;
+  const label = getComponentName(item);
+  if (!imageUrl) {
+    return (
+      <div
+        className="flex h-10 w-10 items-center justify-center rounded-md border border-dashed border-hairline bg-surfaceMuted text-[8px] font-bold uppercase tracking-[0.08em] text-tertiary"
+        aria-hidden="true"
+      >
+        No img
+      </div>
+    );
+  }
+
+  const className = "object-cover";
+  return (
+    <div className="relative h-10 w-10 overflow-hidden rounded-md border border-hairline bg-surfaceMuted">
+      {canUseNextImageForComponentThumbnail(imageUrl) ? (
+        <Image
+          src={imageUrl}
+          alt={`${label} thumbnail`}
+          fill
+          sizes="40px"
+          className={className}
+          unoptimized={imageUrl.startsWith("blob:") || imageUrl.startsWith("data:")}
+        />
+      ) : (
+        // eslint-disable-next-line @next/next/no-img-element -- Legacy user-entered external URLs are intentionally not proxied through next/image remotePatterns.
+        <img
+          src={imageUrl}
+          alt={`${label} thumbnail`}
+          loading="lazy"
+          decoding="async"
+          referrerPolicy="no-referrer"
+          className="h-full w-full object-cover"
+        />
+      )}
+    </div>
+  );
+}
 
 function findNode(nodes: LibraryTreeNode[], nodeId: string): LibraryTreeNode | null {
   for (const node of nodes) {
@@ -780,24 +841,7 @@ function ComponentLibrarySheet({
                 )}
               >
                 <div className="grid min-w-0 grid-cols-[40px_minmax(0,1fr)] gap-2">
-                  {item.imageUrl ? (
-                    <div className="relative h-10 w-10 overflow-hidden rounded-md border border-hairline bg-surfaceMuted">
-                      <Image
-                        src={item.imageUrl}
-                        alt={`${getComponentName(item)} thumbnail`}
-                        fill
-                        sizes="40px"
-                        className="object-cover"
-                      />
-                    </div>
-                  ) : (
-                    <div
-                      className="flex h-10 w-10 items-center justify-center rounded-md border border-dashed border-hairline bg-surfaceMuted text-[8px] font-bold uppercase tracking-[0.08em] text-tertiary"
-                      aria-hidden="true"
-                    >
-                      No img
-                    </div>
-                  )}
+                  <ComponentThumbnail item={item} />
                   <div className="min-w-0">
                     <p className="truncate text-[10px] font-bold leading-4 text-ink">{getComponentName(item)}</p>
                     <div className="flex min-w-0 items-center gap-1">
