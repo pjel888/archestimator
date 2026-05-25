@@ -41,13 +41,13 @@ export function LibraryFolderRow({
         >
           {hasChildren ? (
             expanded ? (
-              <CaretDown size={11} weight="bold" aria-hidden="true" />
+              <CaretDown size={11} weight="regular" aria-hidden="true" />
             ) : (
-              <CaretRight size={11} weight="bold" aria-hidden="true" />
+              <CaretRight size={11} weight="regular" aria-hidden="true" />
             )
           ) : null}
         </span>
-        <FolderSimple size={12} weight="bold" className="shrink-0 text-tertiary" aria-hidden="true" />
+        <FolderSimple size={12} weight="regular" className="shrink-0 text-tertiary" aria-hidden="true" />
         <span className="min-w-0 flex-1 truncate">{node.label}</span>
       </WorkshopTreeRow>
     </li>

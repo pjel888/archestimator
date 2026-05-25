@@ -55,7 +55,7 @@ const CATALOGUE_BRANCH_INDENT_STEP = 32;
 const CATALOGUE_BRANCH_MAX_INDENT = 192;
 const CATALOGUE_CARD_GRID_CLASS = "mt-2 grid list-none grid-cols-[repeat(auto-fill,minmax(164px,1fr))] gap-2 p-0";
 const CATALOGUE_CARD_SHELL_CLASS =
-  "flex min-h-[236px] flex-col overflow-hidden rounded-md border border-hairline bg-white text-left shadow-[0_10px_24px_-22px_rgba(17,24,39,0.55)]";
+  "flex min-h-[236px] flex-col overflow-hidden rounded-xs border border-hairline bg-white text-left shadow-[0_10px_24px_-22px_rgba(17,24,39,0.55)]";
 const CATALOGUE_CARD_BODY_HEIGHT_CLASS = "h-[132px]";
 
 type CatalogueFolderMeta = {
@@ -298,15 +298,15 @@ function ComponentCatalogueCard({ card }: { card: CatalogueCard }) {
           />
         ) : (
           <div className="flex h-full w-full items-center justify-center bg-white text-tertiary" aria-hidden="true">
-            <ImageSquare size={24} weight="bold" />
+            <ImageSquare size={24} weight="regular" />
           </div>
         )}
       </div>
       <div className="flex min-h-0 flex-1 flex-col gap-1.5 p-2">
-        <p className="truncate text-[8px] font-normal uppercase leading-3 tracking-[0.04em] text-tertiary" title={card.pathLabel}>
+        <p className="truncate text-[8px] font-normal uppercase leading-3 tracking-normal text-tertiary" title={card.pathLabel}>
           {card.pathLabel}
         </p>
-        <h3 className="line-clamp-2 text-[10px] font-semibold leading-[1.25] text-ink" title={name}>
+        <h3 className="line-clamp-2 text-[10px] font-medium leading-[1.25] text-ink" title={name}>
           {name}
         </h3>
         <div className="flex flex-col gap-0.5">
@@ -318,7 +318,7 @@ function ComponentCatalogueCard({ card }: { card: CatalogueCard }) {
           </p>
         </div>
         <div className="mt-auto border-t border-hairline pt-1.5">
-          <p className="font-mono text-[11px] font-semibold leading-4 tabular-nums text-ink">
+          <p className="font-sans text-[11px] font-medium leading-4 tabular-nums text-ink">
             {pesoFormatter.format(getComponentPrice(item))}
           </p>
           <p className="truncate text-[9px] font-normal leading-3 text-tertiary">
@@ -392,22 +392,22 @@ function ComponentCatalogueBranch({
       >
         <button
           type="button"
-          className="grid size-5 shrink-0 place-items-center rounded-sm text-tertiary transition hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+          className="grid size-5 shrink-0 place-items-center rounded-xs text-tertiary transition hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
           aria-label={`${collapsed ? "Expand" : "Collapse"} ${branch.pathLabel}`}
           aria-expanded={!collapsed}
           onClick={() => onToggleBranch(branch.id)}
         >
-          {collapsed ? <CaretRight size={12} weight="bold" /> : <CaretDown size={12} weight="bold" />}
+          {collapsed ? <CaretRight size={12} weight="regular" /> : <CaretDown size={12} weight="regular" />}
         </button>
-        <FolderSimple size={13} weight="bold" className="shrink-0 text-tertiary" aria-hidden="true" />
+        <FolderSimple size={13} weight="regular" className="shrink-0 text-tertiary" aria-hidden="true" />
         <div className="min-w-0 flex-1">
           <div className="flex min-w-0 items-center gap-2">
-            <h2 className="truncate text-[10px] font-bold uppercase leading-3 tracking-[0.06em] text-ink">
+            <h2 className="truncate text-[10px] font-medium leading-3 tracking-normal text-ink">
               {branch.label}
             </h2>
           </div>
           {branch.depth > 0 ? (
-            <p className="mt-0.5 truncate text-[8px] font-normal uppercase leading-3 tracking-[0.04em] text-tertiary">
+            <p className="mt-0.5 truncate text-[8px] font-normal uppercase leading-3 tracking-normal text-tertiary">
               {branch.pathLabel}
             </p>
           ) : null}
@@ -682,13 +682,13 @@ function ComponentLibrarySheet({
             role="tab"
             aria-selected={true}
             className={cn(
-              "relative h-full rounded-t-md border border-b-0 px-3 text-[10px] font-bold leading-none transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus",
+              "relative h-full rounded-xs border border-b-0 px-3 text-[10px] font-medium leading-none transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus",
               "z-10 -mb-px border-hairline bg-white text-ink",
             )}
           >
             {selectedLabel}
           </button>
-          <span className="self-center px-2 text-[9px] font-bold text-tertiary">
+          <span className="self-center px-2 text-[9px] font-medium text-tertiary">
             {visibleItems.length} / {sheetItems.length}
           </span>
         </div>
@@ -720,8 +720,8 @@ function ComponentLibrarySheet({
             {catalogueOutline.items.length > 0 ? (
               <section aria-label={`${CATALOGUE_UNASSIGNED_LABEL} component catalogue branch`} data-component-catalogue-section="unassigned">
                 <div className="flex h-9 min-w-0 items-center gap-2 border-b border-hairline bg-surfaceMuted/70 px-2">
-                  <SquaresFour size={13} weight="bold" className="shrink-0 text-tertiary" aria-hidden="true" />
-                  <h2 className="min-w-0 flex-1 truncate text-[10px] font-bold uppercase leading-3 tracking-[0.06em] text-ink">
+                  <SquaresFour size={13} weight="regular" className="shrink-0 text-tertiary" aria-hidden="true" />
+                  <h2 className="min-w-0 flex-1 truncate text-[10px] font-medium leading-3 tracking-normal text-ink">
                     {CATALOGUE_UNASSIGNED_LABEL}
                   </h2>
                 </div>
@@ -731,7 +731,7 @@ function ComponentLibrarySheet({
           </div>
         ) : (
           <EmptyState
-            icon={<SquaresFour size={18} weight="bold" aria-hidden="true" />}
+            icon={<SquaresFour size={18} weight="regular" aria-hidden="true" />}
             title={selectedLabel}
             description={searchQuery ? `No components match "${searchQuery}".` : "No components in this view yet."}
             className="h-full border-0 bg-white"
@@ -948,7 +948,7 @@ export function ComponentLibraryManager({
   }
 
   return (
-    <div className="flex h-full min-h-0 overflow-hidden rounded-xl border border-hairline bg-white" data-component-library-workspace="true">
+    <div className="flex h-full min-h-0 overflow-hidden rounded-xs border border-hairline bg-white" data-component-library-workspace="true">
       <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-canvas">
         <div
           className="relative h-10 shrink-0 border-b border-hairline bg-white"

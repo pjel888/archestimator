@@ -276,7 +276,7 @@ function buildFolderTreeModel(nodes: LibraryFolderTreeNode[], itemsByFolderId: M
 }
 
 export function FolderActionIcon() {
-  return <FolderSimple size={12} weight="bold" aria-hidden="true" />;
+  return <FolderSimple size={12} weight="regular" aria-hidden="true" />;
 }
 
 export function ComponentViewControls({
@@ -290,8 +290,8 @@ export function ComponentViewControls({
 }) {
   return (
     <div className="border-b border-hairline bg-white px-2 py-1.5">
-      <div className="mb-1 text-[8px] font-bold uppercase leading-3 tracking-[0.06em] text-tertiary">View By</div>
-      <div role="group" aria-label={ariaLabel} className="grid grid-cols-3 gap-1 rounded-md bg-surfaceMuted p-0.5">
+      <div className="mb-1 text-[8px] font-medium uppercase leading-3 tracking-normal text-tertiary">View By</div>
+      <div role="group" aria-label={ariaLabel} className="grid grid-cols-3 gap-1 rounded-xs bg-surfaceMuted p-0.5">
         {COMPONENT_VIEW_MODES.map((item) => (
           <button
             key={item.id}
@@ -299,7 +299,7 @@ export function ComponentViewControls({
             aria-pressed={mode === item.id}
             onClick={() => onModeChange(item.id)}
             className={cn(
-              "h-6 rounded-sm px-2 text-[9px] font-bold leading-none transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus",
+              "h-6 rounded-xs px-2 text-[9px] font-medium leading-none transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus",
               mode === item.id ? "bg-white text-ink shadow-sm" : "text-tertiary hover:bg-white/70 hover:text-ink",
             )}
           >
@@ -494,7 +494,7 @@ export function LibraryFolderTree({
 
   if (filteredNodes.length === 0) {
     return (
-      <div className="rounded-md border border-dashed border-hairline bg-surfaceMuted p-2 text-[10px] leading-4 text-tertiary">
+      <div className="rounded-xs border border-dashed border-hairline bg-surfaceMuted p-2 text-[10px] leading-4 text-tertiary">
         No folders match &quot;{searchQuery}&quot;.
       </div>
     );
@@ -570,9 +570,9 @@ export function LibraryFolderTree({
             className={cn(WORKSHOP_TREE_ICON_SLOT_CLASS, "cursor-pointer transition hover:bg-surfaceMuted", className)}
           >
             {context.isExpanded ? (
-              <CaretDown size={11} weight="bold" aria-hidden="true" />
+              <CaretDown size={11} weight="regular" aria-hidden="true" />
             ) : (
-              <CaretRight size={11} weight="bold" aria-hidden="true" />
+              <CaretRight size={11} weight="regular" aria-hidden="true" />
             )}
           </span>
         );
@@ -609,14 +609,14 @@ export function LibraryFolderTree({
                     if (parentFolderId) onSelectFolder(parentFolderId);
                   }}
                 >
-                  <Package size={12} weight="bold" className="shrink-0 text-tertiary" aria-hidden="true" />
+                  <Package size={12} weight="regular" className="shrink-0 text-tertiary" aria-hidden="true" />
                   <div className="flex min-w-0 flex-1 items-center gap-2">
                     <div className="flex min-w-0 flex-1 flex-col">
-                      <span className="truncate text-[10px] font-semibold leading-4 text-ink">{componentName}</span>
+                      <span className="truncate text-[10px] font-medium leading-4 text-ink">{componentName}</span>
                       <span className="truncate text-[9px] leading-3 text-tertiary">{componentItem.supplier || "No supplier"}</span>
                     </div>
                     <div className="flex shrink-0 flex-col items-end">
-                      <span className="text-[9px] font-bold tabular-nums text-ink">{pesoFormatter.format(componentPrice)}</span>
+                      <span className="text-[9px] font-medium tabular-nums text-ink">{pesoFormatter.format(componentPrice)}</span>
                       <span className="text-[9px] text-tertiary">/{componentItem.unit}</span>
                     </div>
                   </div>
@@ -666,7 +666,7 @@ export function LibraryFolderTree({
                       <span className={cn("mr-1", WORKSHOP_TREE_ICON_SLOT_CLASS)} aria-hidden="true">
                         <FolderActionIcon />
                       </span>
-                      <span className={cn("min-w-0 flex-1 truncate", selected ? "font-bold text-ink" : "font-normal text-ink")}>
+                      <span className={cn("min-w-0 flex-1 truncate", selected ? "font-medium text-ink" : "font-normal text-ink")}>
                         {item.data.label}
                       </span>
                     </>
@@ -895,8 +895,8 @@ export function LibraryFolderTreeSurface({
             aria-label={supplier.name}
             onClick={() => onSelectSupplier?.(supplier.id, supplier.name)}
             className={cn(
-              "flex min-h-7 w-full items-center gap-1 rounded-sm px-2 text-left text-[10px] leading-4 transition hover:bg-surfaceMuted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus",
-              selected ? "bg-accentSoft font-bold text-ink" : "font-normal text-ink",
+              "flex min-h-7 w-full items-center gap-1 rounded-xs px-2 text-left text-[10px] leading-4 transition hover:bg-surfaceMuted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus",
+              selected ? "bg-accentSoft font-medium text-ink" : "font-normal text-ink",
             )}
           >
             <span className={cn("mr-1", WORKSHOP_TREE_ICON_SLOT_CLASS)} aria-hidden="true">
@@ -908,7 +908,7 @@ export function LibraryFolderTreeSurface({
       })}
     </div>
   ) : (
-    <div className="rounded-md border border-dashed border-hairline bg-surfaceMuted p-2 text-[10px] leading-4 text-tertiary">
+    <div className="rounded-xs border border-dashed border-hairline bg-surfaceMuted p-2 text-[10px] leading-4 text-tertiary">
       {noSupplierMatchesLabel ?? "No suppliers match"} &quot;{searchQuery}&quot;.
     </div>
   );
@@ -925,7 +925,7 @@ export function LibraryFolderTreeSurface({
         showItemAddAction={false}
       />
     ) : (
-      <div className="rounded-md border border-dashed border-hairline bg-surfaceMuted p-2 text-[10px] leading-4 text-tertiary">
+      <div className="rounded-xs border border-dashed border-hairline bg-surfaceMuted p-2 text-[10px] leading-4 text-tertiary">
         No tree matches for &quot;{searchQuery}&quot;.
       </div>
     )
@@ -944,8 +944,8 @@ export function LibraryFolderTreeSurface({
             aria-label={brand.name}
             onClick={() => onSelectBrand?.(brand.id, brand.name)}
             className={cn(
-              "flex min-h-7 w-full items-center gap-1 rounded-sm px-2 text-left text-[10px] leading-4 transition hover:bg-surfaceMuted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus",
-              selected ? "bg-accentSoft font-bold text-ink" : "font-normal text-ink",
+              "flex min-h-7 w-full items-center gap-1 rounded-xs px-2 text-left text-[10px] leading-4 transition hover:bg-surfaceMuted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus",
+              selected ? "bg-accentSoft font-medium text-ink" : "font-normal text-ink",
             )}
           >
             <span className={cn("mr-1", WORKSHOP_TREE_ICON_SLOT_CLASS)} aria-hidden="true">
@@ -957,7 +957,7 @@ export function LibraryFolderTreeSurface({
       })}
     </div>
   ) : (
-    <div className="rounded-md border border-dashed border-hairline bg-surfaceMuted p-2 text-[10px] leading-4 text-tertiary">
+    <div className="rounded-xs border border-dashed border-hairline bg-surfaceMuted p-2 text-[10px] leading-4 text-tertiary">
       {noBrandMatchesLabel ?? "No brands match"} &quot;{searchQuery}&quot;.
     </div>
   );
@@ -974,7 +974,7 @@ export function LibraryFolderTreeSurface({
         showItemAddAction={false}
       />
     ) : (
-      <div className="rounded-md border border-dashed border-hairline bg-surfaceMuted p-2 text-[10px] leading-4 text-tertiary">
+      <div className="rounded-xs border border-dashed border-hairline bg-surfaceMuted p-2 text-[10px] leading-4 text-tertiary">
         No tree matches for &quot;{searchQuery}&quot;.
       </div>
     )
