@@ -46,7 +46,7 @@ export function HeaderIconToolbar({
       visibleLabel: addVisibleLabel,
       onClick: onAdd,
       disabled: addDisabled,
-      icon: <Plus size={12} weight="bold" aria-hidden="true" />,
+      icon: <Plus size={12} weight="regular" aria-hidden="true" />,
     },
   ];
 
@@ -55,21 +55,21 @@ export function HeaderIconToolbar({
       {showDefaultActions ? (
         <>
           <ToolbarIconButton label={`Filter ${labelPrefix}`} onClick={onFilter}>
-            <FunnelSimple size={12} weight="bold" aria-hidden="true" />
+            <FunnelSimple size={12} weight="regular" aria-hidden="true" />
           </ToolbarIconButton>
           <ToolbarIconButton label={`Group ${labelPrefix}`} onClick={onGroup}>
-            <ListBullets size={12} weight="bold" aria-hidden="true" />
+            <ListBullets size={12} weight="regular" aria-hidden="true" />
           </ToolbarIconButton>
         </>
       ) : null}
       {onExpandAll ? (
         <ToolbarIconButton label={`Expand all ${labelPrefix}`} onClick={onExpandAll}>
-          <CaretDoubleDown size={12} weight="bold" aria-hidden="true" />
+          <CaretDoubleDown size={12} weight="regular" aria-hidden="true" />
         </ToolbarIconButton>
       ) : null}
       {onCollapseAll ? (
         <ToolbarIconButton label={`Collapse all ${labelPrefix}`} onClick={onCollapseAll}>
-          <CaretDoubleUp size={12} weight="bold" aria-hidden="true" />
+          <CaretDoubleUp size={12} weight="regular" aria-hidden="true" />
         </ToolbarIconButton>
       ) : null}
       <div className="ml-auto flex items-center gap-1">
@@ -90,7 +90,7 @@ export function HeaderIconToolbar({
                   : "bg-orange-50 text-orange-700 hover:bg-orange-100 hover:text-orange-800 focus-visible:bg-orange-100 focus-visible:text-orange-800")
               }
             >
-              {action.icon ?? <Plus size={12} weight="bold" aria-hidden="true" />}
+              {action.icon ?? <Plus size={12} weight="regular" aria-hidden="true" />}
             </ToolbarIconButton>
           );
         })}

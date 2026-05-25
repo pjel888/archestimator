@@ -31,6 +31,7 @@ type CreatableComboboxProps = {
   className?: string;
   inputClassName?: string;
   invalid?: boolean;
+  allowCreate?: boolean;
   preferSelectionOnEnter?: boolean;
   suppressCreateWhenSearchMatches?: boolean;
   optionPresentation?: "default" | "unit";
@@ -66,6 +67,7 @@ export function CreatableCombobox({
   className,
   inputClassName,
   invalid,
+  allowCreate = true,
   preferSelectionOnEnter,
   suppressCreateWhenSearchMatches,
   optionPresentation = "default",
@@ -87,7 +89,7 @@ export function CreatableCombobox({
   const searchAliasMatch = suppressCreateWhenSearchMatches && normalizedQuery.length > 0 && options.some((option) => (
     getNormalizedTokens(getOptionSearchText(option)).includes(normalizedQuery)
   ));
-  const canCreate = normalizedQuery.length > 0 && !exactMatch && !searchAliasMatch;
+  const canCreate = allowCreate && normalizedQuery.length > 0 && !exactMatch && !searchAliasMatch;
   const activeOptionId =
     open && selectedId && filteredOptions.some((option) => option.id === selectedId)
       ? getOptionDomId(listboxId, selectedId)
@@ -164,9 +166,9 @@ export function CreatableCombobox({
             onChange({ id: null, label: "", reason: "clear" });
             setOpen(false);
           }}
-          className="absolute right-1.5 top-1/2 grid size-6 -translate-y-1/2 place-items-center rounded-sm text-tertiary transition hover:bg-surfaceMuted hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+          className="absolute right-1.5 top-1/2 grid size-6 -translate-y-1/2 place-items-center rounded-xs text-tertiary transition hover:bg-surfaceMuted hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
         >
-          <X size={10} weight="bold" aria-hidden="true" />
+          <X size={10} weight="regular" aria-hidden="true" />
         </button>
       ) : null}
       {open ? (
@@ -176,7 +178,7 @@ export function CreatableCombobox({
           aria-label={`${ariaLabel} options`}
           data-combobox-popup-placement={dropdownPlacement}
           className={cn(
-            "absolute z-50 rounded-md border border-hairline bg-white shadow-[0_12px_32px_rgba(17,17,17,0.14)]",
+            "absolute z-50 rounded-xs border border-hairline bg-white shadow-[0_12px_32px_rgba(17,17,17,0.14)]",
             dropdownPlacement === "top" ? "bottom-[calc(100%+4px)]" : "top-[calc(100%+4px)]",
             usesUnitPresentation
               ? "right-0 max-h-72 min-w-full w-[min(22rem,calc(100vw-2rem))] overflow-auto p-1.5"
@@ -186,7 +188,7 @@ export function CreatableCombobox({
           {usesUnitPresentation && filteredOptions.length > 0 ? (
             <div
               aria-hidden="true"
-              className="sticky top-0 z-10 mb-1 grid grid-cols-[4.75rem_minmax(0,1fr)] gap-2 rounded-sm border border-hairline bg-surfaceMuted px-2 py-1 text-[8px] font-bold uppercase leading-3 tracking-[0.08em] text-tertiary"
+              className="sticky top-0 z-10 mb-1 grid grid-cols-[4.75rem_minmax(0,1fr)] gap-2 rounded-xs border border-hairline bg-surfaceMuted px-2 py-1 text-[8px] font-medium uppercase leading-3 tracking-normal text-tertiary"
             >
               <span>Code</span>
               <span>Meaning</span>
@@ -205,12 +207,12 @@ export function CreatableCombobox({
                 onClick={() => selectOption(option)}
                 className={cn(
                   usesUnitPresentation
-                    ? "grid min-h-9 w-full grid-cols-[4.75rem_minmax(0,1fr)] items-center gap-2 rounded-sm px-2 py-1.5 text-left transition hover:bg-surfaceMuted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+                    ? "grid min-h-9 w-full grid-cols-[4.75rem_minmax(0,1fr)] items-center gap-2 rounded-xs px-2 py-1.5 text-left transition hover:bg-surfaceMuted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
                     : "flex min-h-7 w-full items-center px-2 text-left !text-[10px] leading-4 text-ink transition hover:bg-surfaceMuted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus",
                   selectedId === option.id
                     ? usesUnitPresentation
                       ? "bg-accentSoft"
-                      : "font-bold"
+                      : "font-medium"
                     : usesUnitPresentation
                       ? "bg-white"
                       : "font-normal",
@@ -221,7 +223,7 @@ export function CreatableCombobox({
                     <span
                       data-combobox-option-code={option.id}
                       className={cn(
-                        "inline-flex min-w-0 max-w-full items-center justify-center truncate rounded-sm border px-1.5 py-0.5 font-mono !text-[10px] font-bold leading-4 tabular-nums",
+                        "inline-flex min-w-0 max-w-full items-center justify-center truncate rounded-xs border px-1.5 py-0.5 font-sans !text-[10px] font-medium leading-4 tabular-nums",
                         selectedId === option.id
                           ? "border-accent bg-white text-ink"
                           : "border-hairline bg-surfaceMuted/70 text-ink",
@@ -232,7 +234,7 @@ export function CreatableCombobox({
                     <span className="min-w-0">
                       <span
                         data-combobox-option-meaning={option.description ?? option.label}
-                        className="block truncate !text-[10px] font-semibold leading-4 text-ink"
+                        className="block truncate !text-[10px] font-medium leading-4 text-ink"
                       >
                         {option.description ?? option.label}
                       </span>
@@ -242,7 +244,7 @@ export function CreatableCombobox({
                   <span className="min-w-0 flex-1">
                     <span className="block truncate">{option.label}</span>
                     {option.description ? (
-                      <span className="mt-0.5 block truncate text-[9px] font-semibold leading-3 text-tertiary">{option.description}</span>
+                      <span className="mt-0.5 block truncate text-[9px] font-medium leading-3 text-tertiary">{option.description}</span>
                     ) : null}
                   </span>
                 )}
@@ -259,13 +261,13 @@ export function CreatableCombobox({
               onMouseDown={(event) => event.preventDefault()}
               onClick={createOption}
               className={cn(
-                "w-full border-t border-hairline text-left font-bold text-ink transition hover:bg-accentSoft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus",
+                "w-full border-t border-hairline text-left font-medium text-ink transition hover:bg-accentSoft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus",
                 usesUnitPresentation
-                  ? "mt-1 flex min-h-8 items-center gap-1 rounded-sm px-2 py-1 !text-[10px] leading-4"
+                  ? "mt-1 flex min-h-8 items-center gap-1 rounded-xs px-2 py-1 !text-[10px] leading-4"
                   : "flex min-h-7 items-center gap-1 px-2 !text-[10px] leading-4",
               )}
             >
-              <Plus size={10} weight="bold" aria-hidden="true" />
+              <Plus size={10} weight="regular" aria-hidden="true" />
               <span className="min-w-0 flex-1 truncate">{createLabel(query)}</span>
             </button>
           ) : null}

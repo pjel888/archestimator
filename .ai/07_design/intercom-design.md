@@ -55,7 +55,7 @@ The layout primarily utilizes a responsive CSS Grid and Flexbox system, ensuring
 
 ### 7.1. Typography
 
-**Archestimator product/workshop typography override:** Intercom-style large typography is landing-page reference only. Outside the landing page (`/`), the maximum font size is **12px** unless Philip explicitly approves a one-off exception. Use 12px only for the strongest app title/card title, 11px for subtitles, 10px for body/control/button/table text, and 8–9px for meta/eyebrow labels. Do not use 14px/16px/18px+ in workshop, estimate, dashboard, sidebar, modal, or component-library surfaces.
+**Archestimator product/workshop typography override:** Intercom-style large typography is landing-page reference only. Outside the landing page (`/`), app/workshop UI follows `DESIGN.md`: SF Pro system stack, regular/medium weights only, compact `12px` maximum with normal controls around `10px`, zero tracking, xs-only radius, neutral reference colors, and regular-outline icon weight.
 
 *   **Sans-serif:** `var(--wsc-font-sans)`, `var(--wsc-default-font-family, ui-sans-serif, system-ui, sans-serif, Apple Color Emoji, Segoe UI Emoji, Segoe UI Symbol, Noto Color Emoji)`
 *   **Monospace:** `var(--wsc-font-mono)`, `var(--wsc-default-mono-font-family, ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, Liberation Mono, Courier New, monospace)`
@@ -83,7 +83,7 @@ The layout primarily utilizes a responsive CSS Grid and Flexbox system, ensuring
 ### 7.4. Component Styling
 *   **Buttons:** `border-radius: 0`, `box-shadow: none`, `text-transform: uppercase`.
 *   **Cards:** `border: 0 solid`, `box-shadow: none`, `border-radius: 0`.
-*   **Border Radius:** `0`, `.25rem`, `.375rem`, `10px`, `100%` (for circular elements), `var(--wsc-radius-sm)`, `var(--wsc-radius-md)`, `var(--wsc-radius-lg)`.
+*   **Border Radius:** landing references may vary; app/workshop implementation must use xs-only radius (`3px`).
 
 ## 8. Responsive Behavior
 *   **Breakpoints:**

@@ -62,17 +62,17 @@ export function Modal({
         aria-labelledby={titleId}
         aria-describedby={description ? descriptionId : undefined}
         className={cn(
-          "relative z-[1001] flex max-h-[calc(100dvh-32px)] w-full max-w-md flex-col overflow-hidden rounded-lg border border-hairline bg-white shadow-2xl",
+          "relative z-[1001] flex max-h-[calc(100dvh-32px)] w-full max-w-md flex-col overflow-hidden rounded-xs border border-hairline bg-white shadow-2xl",
           className,
         )}
       >
         <div className="flex min-h-10 items-start justify-between gap-3 border-b border-hairline px-3 py-2">
           <div className="min-w-0">
-            <h2 id={titleId} className="truncate text-[11px] font-bold leading-4 text-ink">
+            <h2 id={titleId} className="truncate text-[11px] font-medium leading-4 text-ink">
               {title}
             </h2>
             {description ? (
-              <p id={descriptionId} className="mt-0.5 text-[10px] font-semibold leading-4 text-tertiary">
+              <p id={descriptionId} className="mt-0.5 text-[10px] font-medium leading-4 text-tertiary">
                 {description}
               </p>
             ) : null}
@@ -81,11 +81,11 @@ export function Modal({
             type="button"
             variant="ghost"
             size="icon-sm"
-            className="size-6 shrink-0 rounded-sm p-0 text-tertiary hover:bg-surfaceMuted hover:text-ink"
+            className="size-6 shrink-0 rounded-xs p-0 text-tertiary hover:bg-surfaceMuted hover:text-ink"
             aria-label={closeLabel}
             onClick={() => onOpenChange(false)}
           >
-            <X size={13} weight="bold" aria-hidden="true" />
+            <X size={13} weight="regular" aria-hidden="true" />
           </Button>
         </div>
         <div className={cn("min-h-0 flex-1 overflow-auto p-3", bodyClassName)}>{children}</div>

@@ -29,7 +29,7 @@ type ArchestimatorWordmarkProps = {
 };
 
 export function ArchestimatorWordmark({ className }: ArchestimatorWordmarkProps) {
-  return <span className={cn("font-poppins font-normal lowercase tracking-[-0.03em]", className)}>archestimator</span>;
+  return <span className={cn("font-sans font-normal lowercase tracking-normal", className)}>archestimator</span>;
 }
 
 type ArchestimatorLogoProps = {
