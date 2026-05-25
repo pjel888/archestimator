@@ -1,11 +1,17 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
+import { cookies } from "next/headers";
 
 import { MainSidebar } from "@/components/sidebar/MainSidebar";
 import { cn } from "@/lib/ui/cn";
 import { getCurrentUserContext } from "@/lib/auth/session";
 import { ESTIMATE_CENTER_COLUMN_CSS_VARIABLES } from "./EstimateCenterColumnBoundary";
 import { WorkshopTitleHeader } from "./WorkshopTitleHeader";
+import {
+  getSidePanelActualWidth,
+  getSidePanelWidthCookieName,
+  SIDE_PANEL_WIDTH_CONFIGS,
+} from "./side-panel-widths";
 
 type WorkshopBreadcrumb = string | { label: string; href?: string };
 
@@ -23,6 +29,15 @@ type WorkshopPageShellProps = {
   children: ReactNode;
 };
 
+async function getSidePanelWidthCssVariables() {
+  const cookieStore = await cookies();
+  return SIDE_PANEL_WIDTH_CONFIGS.reduce<Record<string, string>>((variables, config) => {
+    const savedWidth = Number.parseInt(cookieStore.get(getSidePanelWidthCookieName(config.storageKey))?.value ?? "", 10);
+    variables[config.cssVariable] = `${getSidePanelActualWidth(config, savedWidth)}px`;
+    return variables;
+  }, {});
+}
+
 export async function WorkshopPageShell({
   title,
   eyebrow = "Workshop",
@@ -37,6 +52,7 @@ export async function WorkshopPageShell({
   children,
 }: WorkshopPageShellProps) {
   const currentUser = await getCurrentUserContext();
+  const sidePanelWidthCssVariables = await getSidePanelWidthCssVariables();
   const sidebarUser = currentUser
     ? { displayName: currentUser.displayName, email: currentUser.email, avatarUrl: currentUser.avatarUrl }
     : undefined;
@@ -68,7 +84,7 @@ export async function WorkshopPageShell({
       <section
         data-workshop-page-shell-canvas
         className="flex h-full min-h-0 flex-col lg:pl-[64px]"
-        style={ESTIMATE_CENTER_COLUMN_CSS_VARIABLES}
+        style={{ ...ESTIMATE_CENTER_COLUMN_CSS_VARIABLES, ...sidePanelWidthCssVariables }}
         aria-label={`${title} canvas`}
       >
         <WorkshopTitleHeader

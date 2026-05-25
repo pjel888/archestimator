@@ -3,7 +3,7 @@ import type { DragEvent } from "react";
 import type { ActionMenuGroup } from "@/components/ui/action-menu";
 import type { EstimateRowItem } from "../../estimate-tree-data";
 
-export type LibraryTreeTab = "categories" | "suppliers" | "custom";
+export type LibraryTreeTab = "categories" | "suppliers" | "brands" | "custom";
 
 export type LibraryTreeNode = {
   id: string;
@@ -28,6 +28,7 @@ export type LibraryTreeProps = {
   addDisabled?: boolean;
   addLabel?: string;
   onItemDragStart?: (event: DragEvent<HTMLElement>, item: EstimateRowItem | undefined) => void;
+  showItemAddAction?: boolean;
 };
 
 export type LibraryFolderRowProps = {
@@ -48,6 +49,7 @@ export type LibraryItemRowProps = {
   onAdd: () => void;
   addDisabled?: boolean;
   addLabel?: string;
+  showAddAction?: boolean;
   onDragStart?: (event: DragEvent<HTMLElement>) => void;
   contextMenuGroups?: ActionMenuGroup[];
 };

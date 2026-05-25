@@ -11,6 +11,10 @@ const supabaseServerMocks = vi.hoisted(() => ({
   createSupabaseServerClient: vi.fn(),
 }));
 
+const authMocks = vi.hoisted(() => ({
+  requireCurrentUserContext: vi.fn(),
+}));
+
 const nextCacheMocks = vi.hoisted(() => ({
   revalidatePath: vi.fn(),
 }));
@@ -21,8 +25,13 @@ const nextNavigationMocks = vi.hoisted(() => ({
 
 vi.mock("@/lib/repositories/workspace-repository", () => repositoryMocks);
 vi.mock("@/lib/supabase/server", () => supabaseServerMocks);
+vi.mock("@/lib/auth/session", () => authMocks);
 vi.mock("next/cache", () => nextCacheMocks);
 vi.mock("next/navigation", () => nextNavigationMocks);
+
+beforeEach(() => {
+  authMocks.requireCurrentUserContext.mockResolvedValue({ userId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa" });
+});
 
 type EstimateNodeRow = {
   id: string;
@@ -78,6 +87,7 @@ function makeSupabase({
 describe("reorderEstimateTreeNodes server action", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    authMocks.requireCurrentUserContext.mockResolvedValue({ userId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa" });
     repositoryMocks.getCurrentWorkspaceProject.mockResolvedValue({ project: { id: "project-1" } });
     repositoryMocks.getProjectEstimateTreeByEstimate.mockResolvedValue({
       project: { id: "project-1" },
@@ -101,7 +111,7 @@ describe("reorderEstimateTreeNodes server action", () => {
     expect(supabaseServerMocks.createSupabaseServerClient).not.toHaveBeenCalled();
   });
 
-  it("converts camelCase updates to one scoped reorder_estimate_nodes RPC and returns the fresh nested tree", async () => {
+  it("converts camelCase updates to one scoped history-aware reorder RPC and returns the fresh nested tree", async () => {
     const supabase = makeSupabase({
       nodes: [
         { id: "ground-floor", kind: "group", estimate_id: "estimate-1", parent_id: "project-scope" },
@@ -124,13 +134,15 @@ describe("reorderEstimateTreeNodes server action", () => {
 
     expect(repositoryMocks.getCurrentWorkspaceProject).toHaveBeenCalledWith("project-1");
     expect(supabase.rpc).toHaveBeenCalledTimes(1);
-    expect(supabase.rpc).toHaveBeenCalledWith("reorder_estimate_nodes", {
+    expect(supabase.rpc).toHaveBeenCalledWith("reorder_estimate_nodes_with_history", {
       target_estimate_id: "estimate-1",
       move_updates: [
         { id: "living", parent_id: "ground-floor", sort_order: 10 },
         { id: "front-yard", parent_id: "site-works", sort_order: 10 },
         { id: "kitchen", parent_id: "site-works", sort_order: 20 },
       ],
+      acting_user_id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+      correlation_id: expect.any(String),
     });
     expect(repositoryMocks.getProjectEstimateTreeByEstimate).toHaveBeenCalledWith("project-1", "estimate-1");
     expect(result.tree).toEqual([{ id: "project-scope", name: "Project Scope", kind: "group", total: "₱0.00", children: [] }]);
@@ -169,12 +181,14 @@ describe("reorderEstimateTreeNodes server action", () => {
       ],
     });
 
-    expect(restRpc).toHaveBeenCalledWith("reorder_estimate_nodes", {
+    expect(restRpc).toHaveBeenCalledWith("reorder_estimate_nodes_with_history", {
       target_estimate_id: "estimate-1",
       move_updates: [
         { id: "site-works", parent_id: "ground-floor", sort_order: 10 },
         { id: "ground-floor", parent_id: "project-scope", sort_order: 20 },
       ],
+      acting_user_id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+      correlation_id: expect.any(String),
     });
   });
 
@@ -215,9 +229,11 @@ describe("reorderEstimateTreeNodes server action", () => {
       updates: [{ id: "master-bedroom", parentId: "second-floor", sortOrder: 20 }],
     });
 
-    expect(supabase.rpc).toHaveBeenCalledWith("reorder_estimate_nodes", {
+    expect(supabase.rpc).toHaveBeenCalledWith("reorder_estimate_nodes_with_history", {
       target_estimate_id: "estimate-1",
       move_updates: [{ id: "master-bedroom", parent_id: "second-floor", sort_order: 20 }],
+      acting_user_id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+      correlation_id: expect.any(String),
     });
   });
 
@@ -263,6 +279,7 @@ describe("reorderEstimateTreeNodes server action", () => {
 describe("createEstimateNode server action", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    authMocks.requireCurrentUserContext.mockResolvedValue({ userId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa" });
     repositoryMocks.getCurrentWorkspaceProject.mockResolvedValue({ project: { id: "project-1" } });
   });
 
@@ -273,8 +290,7 @@ describe("createEstimateNode server action", () => {
       error: null,
     });
     const siblingQuery = queryResult({ data: [{ id: "existing-bedroom", kind: "area", sort_order: 7 }], error: null });
-    const insertQuery = queryResult({ data: { id: "new-bedroom" }, error: null });
-    const estimateNodeQueries = [parentQuery, siblingQuery, insertQuery];
+    const estimateNodeQueries = [parentQuery, siblingQuery];
     const supabase = {
       from: vi.fn((table: string) => {
         if (table === "estimates") return estimateQuery;
@@ -285,7 +301,7 @@ describe("createEstimateNode server action", () => {
         }
         throw new Error(`Unexpected table ${table}`);
       }),
-      rpc: vi.fn(async () => ({ data: 2, error: null })),
+      rpc: vi.fn(async () => ({ data: { nodeId: "new-bedroom" }, error: null })),
     };
     supabaseServerMocks.createSupabaseServerClient.mockResolvedValue(supabase);
     const formData = new FormData();
@@ -296,19 +312,15 @@ describe("createEstimateNode server action", () => {
 
     await createEstimateNode("project-1", "estimate-1", formData);
 
-    expect(insertQuery.insert).toHaveBeenCalledWith({
-      estimate_id: "estimate-1",
-      parent_id: "second-floor",
-      kind: "area",
-      name: "New Bedroom",
-      sort_order: 8,
-    });
-    expect(supabase.rpc).toHaveBeenCalledWith("reorder_estimate_nodes", {
+    expect(supabase.rpc).toHaveBeenCalledWith("create_estimate_node_with_history", {
+      target_project_id: "project-1",
       target_estimate_id: "estimate-1",
-      move_updates: [
-        { id: "existing-bedroom", parent_id: "second-floor", sort_order: 10 },
-        { id: "new-bedroom", parent_id: "second-floor", sort_order: 20 },
-      ],
+      parent_node_id: "second-floor",
+      node_kind: "area",
+      node_name: "New Bedroom",
+      initial_sort_order: 8,
+      acting_user_id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+      correlation_id: expect.any(String),
     });
     expect(nextCacheMocks.revalidatePath).toHaveBeenCalledWith("/workshop/projects/project-1/estimates");
     expect(nextCacheMocks.revalidatePath).toHaveBeenCalledWith("/workshop/projects/project-1/estimates/estimate-1");
@@ -322,8 +334,7 @@ describe("createEstimateNode server action", () => {
       error: null,
     });
     const siblingQuery = queryResult({ data: [{ id: "kitchen", kind: "area", sort_order: 10 }], error: null });
-    const insertQuery = queryResult({ data: { id: "new-group" }, error: null });
-    const estimateNodeQueries = [parentQuery, siblingQuery, insertQuery];
+    const estimateNodeQueries = [parentQuery, siblingQuery];
     const supabase = {
       from: vi.fn((table: string) => {
         if (table === "estimates") return estimateQuery;
@@ -334,7 +345,7 @@ describe("createEstimateNode server action", () => {
         }
         throw new Error(`Unexpected table ${table}`);
       }),
-      rpc: vi.fn(async () => ({ data: 2, error: null })),
+      rpc: vi.fn(async () => ({ data: { nodeId: "new-group" }, error: null })),
     };
     supabaseServerMocks.createSupabaseServerClient.mockResolvedValue(supabase);
     const formData = new FormData();
@@ -345,33 +356,28 @@ describe("createEstimateNode server action", () => {
 
     await createEstimateNode("project-1", "estimate-1", formData);
 
-    expect(insertQuery.insert).toHaveBeenCalledWith({
-      estimate_id: "estimate-1",
-      parent_id: "main-house",
-      kind: "group",
-      name: "New Group",
-      sort_order: 11,
-    });
-    expect(supabase.rpc).toHaveBeenCalledWith("reorder_estimate_nodes", {
+    expect(supabase.rpc).toHaveBeenCalledWith("create_estimate_node_with_history", {
+      target_project_id: "project-1",
       target_estimate_id: "estimate-1",
-      move_updates: [
-        { id: "new-group", parent_id: "main-house", sort_order: 10 },
-        { id: "kitchen", parent_id: "main-house", sort_order: 20 },
-      ],
+      parent_node_id: "main-house",
+      node_kind: "group",
+      node_name: "New Group",
+      initial_sort_order: 11,
+      acting_user_id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+      correlation_id: expect.any(String),
     });
     expect(nextNavigationMocks.redirect).toHaveBeenCalledWith("/workshop/projects/project-1/estimates/new-group");
   });
 
-  it("removes the inserted node if sibling reordering fails", async () => {
+  it("surfaces create RPC failures without app-side rollback writes", async () => {
     const estimateQuery = queryResult({ data: { id: "estimate-1", project_id: "project-1" }, error: null });
     const parentQuery = queryResult({
       data: { id: "main-house", kind: "group", estimate_id: "estimate-1", estimates: { project_id: "project-1" } },
       error: null,
     });
     const siblingQuery = queryResult({ data: [{ id: "kitchen", kind: "area", sort_order: 10 }], error: null });
-    const insertQuery = queryResult({ data: { id: "new-group" }, error: null });
-    const deleteQuery = queryResult({ data: null, error: null });
-    const estimateNodeQueries = [parentQuery, siblingQuery, insertQuery, deleteQuery];
+    const mutationQuery = queryResult({ data: null, error: null });
+    const estimateNodeQueries = [parentQuery, siblingQuery, mutationQuery];
     const supabase = {
       from: vi.fn((table: string) => {
         if (table === "estimates") return estimateQuery;
@@ -392,12 +398,11 @@ describe("createEstimateNode server action", () => {
     const { createEstimateNode } = await import("@/lib/estimates/actions");
 
     await expect(createEstimateNode("project-1", "estimate-1", formData)).rejects.toThrow(
-      "Could not order estimate tree siblings: duplicate estimate node reorder slots",
+      "Could not create estimate tree node: duplicate estimate node reorder slots",
     );
 
-    expect(deleteQuery.delete).toHaveBeenCalledTimes(1);
-    expect(deleteQuery.eq).toHaveBeenCalledWith("id", "new-group");
-    expect(deleteQuery.eq).toHaveBeenCalledWith("estimate_id", "estimate-1");
+    expect(mutationQuery.insert).not.toHaveBeenCalled();
+    expect(mutationQuery.delete).not.toHaveBeenCalled();
     expect(nextCacheMocks.revalidatePath).not.toHaveBeenCalled();
     expect(nextNavigationMocks.redirect).not.toHaveBeenCalled();
   });
@@ -406,6 +411,7 @@ describe("createEstimateNode server action", () => {
 describe("renameEstimateNode and deleteEstimateNode server actions", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    authMocks.requireCurrentUserContext.mockResolvedValue({ userId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa" });
     repositoryMocks.getCurrentWorkspaceProject.mockResolvedValue({ project: { id: "project-1" } });
   });
 
@@ -432,6 +438,7 @@ describe("renameEstimateNode and deleteEstimateNode server actions", () => {
         }
         throw new Error(`Unexpected table ${table}`);
       }),
+      rpc: vi.fn(async () => ({ data: { eventId: "delete-event-1" }, error: null })),
       estimateQuery,
       nodeValidationQuery,
       mutationQuery,
@@ -447,9 +454,15 @@ describe("renameEstimateNode and deleteEstimateNode server actions", () => {
 
     const result = await renameEstimateNode("project-1", "estimate-1", "kitchen", "  Chef Kitchen  ");
 
-    expect(mutationQuery.update).toHaveBeenCalledWith({ name: "Chef Kitchen" });
-    expect(mutationQuery.eq).toHaveBeenCalledWith("id", "kitchen");
-    expect(mutationQuery.eq).toHaveBeenCalledWith("estimate_id", "estimate-1");
+    expect(mutationQuery.update).not.toHaveBeenCalled();
+    expect(supabase.rpc).toHaveBeenCalledWith("rename_estimate_node_with_history", {
+      target_project_id: "project-1",
+      target_estimate_id: "estimate-1",
+      target_node_id: "kitchen",
+      next_name: "Chef Kitchen",
+      acting_user_id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+      correlation_id: expect.any(String),
+    });
     expect(repositoryMocks.getProjectEstimateTreeByEstimate).not.toHaveBeenCalled();
     expect(nextCacheMocks.revalidatePath).not.toHaveBeenCalled();
     expect(result).toEqual({
@@ -524,9 +537,14 @@ describe("renameEstimateNode and deleteEstimateNode server actions", () => {
 
     const result = await deleteEstimateNode("project-1", "estimate-1", "kitchen");
 
-    expect(mutationQuery.delete).toHaveBeenCalledTimes(1);
-    expect(mutationQuery.eq).toHaveBeenCalledWith("id", "kitchen");
-    expect(mutationQuery.eq).toHaveBeenCalledWith("estimate_id", "estimate-1");
+    expect(supabase.rpc).toHaveBeenCalledWith("delete_estimate_node_with_history", {
+      target_project_id: "project-1",
+      target_estimate_id: "estimate-1",
+      target_node_id: "kitchen",
+      acting_user_id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+      correlation_id: expect.any(String),
+    });
+    expect(mutationQuery.delete).not.toHaveBeenCalled();
     expect(result.deletedNodeIds).toEqual(["kitchen"]);
     expect(result.fallbackNodeId).toBe("living");
     expect(result.tree).toEqual([
@@ -563,6 +581,7 @@ describe("renameEstimateNode and deleteEstimateNode server actions", () => {
 describe("insertEstimateRowItemFromLibrary server action", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    authMocks.requireCurrentUserContext.mockResolvedValue({ userId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa" });
     repositoryMocks.getCurrentWorkspaceProject.mockResolvedValue({ project: { id: "project-1" } });
   });
 
@@ -572,13 +591,13 @@ describe("insertEstimateRowItemFromLibrary server action", () => {
       error: null,
     });
     const existingRowsQuery = queryResult({ data: [], error: null });
-    const insertQuery = queryResult({ data: null, error: null });
     const supabase = {
       from: vi.fn((table: string) => {
         if (table === "estimate_nodes") return targetNodeQuery;
-        if (table === "estimate_row_items") return supabase.from.mock.calls.filter(([name]) => name === "estimate_row_items").length === 1 ? existingRowsQuery : insertQuery;
+        if (table === "estimate_row_items") return existingRowsQuery;
         throw new Error(`Unexpected table ${table}`);
       }),
+      rpc: vi.fn(async () => ({ data: { rowId: "row-1", row: { id: "row-1", nodeId: "55555555-5555-4555-8555-555555555561" } }, error: null })),
     };
     supabaseServerMocks.createSupabaseServerClient.mockResolvedValue(supabase);
     const { insertEstimateRowItemFromLibrary } = await import("@/lib/estimates/actions");
@@ -606,13 +625,20 @@ describe("insertEstimateRowItemFromLibrary server action", () => {
       },
     });
 
-    expect(insertQuery.insert).toHaveBeenCalledTimes(1);
-    const payload = insertQuery.insert.mock.calls[0][0];
+    expect(supabase.rpc).toHaveBeenCalledTimes(1);
+    expect(supabase.rpc).toHaveBeenCalledWith("insert_estimate_row_item_with_history", expect.objectContaining({
+      target_project_id: "project-1",
+      target_estimate_id: "77777777-7777-4777-8777-777777777719",
+      target_node_id: "55555555-5555-4555-8555-555555555561",
+      acting_user_id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+      correlation_id: expect.any(String),
+    }));
+    const payload = supabase.rpc.mock.calls[0][1].row_payload;
     expect(payload.id).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i);
     expect(payload.id).not.toContain("lib-sofa");
-    expect(payload.source_library_item_id).toBeNull();
-    expect(payload.link_state).toBe("unlinked");
-    expect(payload.misc_cost).toBe(1200);
+    expect(payload.sourceLibraryItemId).toBeNull();
+    expect(payload.linkState).toBe("unlinked");
+    expect(payload.miscCost).toBe(1200);
     expect(payload).not.toHaveProperty("labor_cost");
     expect(payload).not.toHaveProperty("supplementary_cost");
   });
@@ -621,6 +647,7 @@ describe("insertEstimateRowItemFromLibrary server action", () => {
 describe("insertEstimateTemplateIntoEstimate server action", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    authMocks.requireCurrentUserContext.mockResolvedValue({ userId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa" });
     repositoryMocks.getCurrentWorkspaceProject.mockResolvedValue({ project: { id: "project-1" } });
     repositoryMocks.getProjectEstimateTreeByEstimate.mockResolvedValue({
       project: { id: "project-1" },
@@ -659,11 +686,13 @@ describe("insertEstimateTemplateIntoEstimate server action", () => {
     } as never);
 
     expect(supabase.rpc).toHaveBeenCalledTimes(1);
-    expect(supabase.rpc).toHaveBeenCalledWith("insert_estimate_template_into_estimate", {
+    expect(supabase.rpc).toHaveBeenCalledWith("insert_estimate_template_into_estimate_with_history", {
       target_project_id: "project-1",
       target_estimate_id: "estimate-1",
       target_parent_node_id: "parent-group",
       source_template_id: "template-1",
+      acting_user_id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+      correlation_id: expect.any(String),
     });
     expect(supabase.from).not.toHaveBeenCalled();
     expect(repositoryMocks.getProjectEstimateTreeByEstimate).toHaveBeenCalledWith("project-1", "estimate-1");

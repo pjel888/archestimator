@@ -5,6 +5,7 @@ import type { EstimateRowItem } from "@/components/workshop/estimate-tree-data";
 import {
   buildLibraryFolderTree,
   evaluateLibraryFolderDrop,
+  getLibraryFolderCreateSortOrder,
   getLibraryItemsForFolderNode,
   LIBRARY_FOLDER_TREE_ROOT_ITEM_ID,
   planLibraryFolderDelete,
@@ -71,6 +72,12 @@ describe("library folder reorder planning", () => {
       sourceCategoryNodeId: "category-structure",
       folderKind: "taxonomy",
     });
+  });
+
+  it("plans created folder sort orders for top-level and child insertion", () => {
+    expect(getLibraryFolderCreateSortOrder([], "top")).toBe(10);
+    expect(getLibraryFolderCreateSortOrder([{ sort_order: 10 }, { sort_order: 20 }], "top")).toBe(0);
+    expect(getLibraryFolderCreateSortOrder([{ sort_order: 10 }, { sort_order: 20 }], "bottom")).toBe(30);
   });
 
   it("plans single-folder root and nesting moves with affected sibling updates", () => {

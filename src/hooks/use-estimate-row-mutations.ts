@@ -19,24 +19,32 @@ type InsertEstimateRowInput = SharedMutationInput & {
   targetNodeId: string;
   rowId: string;
   libraryItem: EstimateRowItem;
+  mutationId?: string;
   rollback?: () => void;
 };
 
 type ReplaceEstimateRowInput = SharedMutationInput & {
   rowId: string;
   libraryItem: EstimateRowItem;
+  mutationId?: string;
+  expectedRowRevision?: number;
   rollback?: () => void;
 };
 
 type DeleteEstimateRowInput = SharedMutationInput & {
   rowId: string;
+  mutationId?: string;
+  expectedRowRevision?: number;
   rollback?: () => void;
 };
 
 type UpdateEstimateRowInput = SharedMutationInput & {
   rowId: string;
   quantity?: number;
+  contingencyPercentage?: number;
   miscCost?: number;
+  mutationId?: string;
+  expectedRowRevision?: number;
   rollback?: () => void;
 };
 
@@ -54,6 +62,7 @@ type UpdateMutationContext = {
 function toOptimisticRowPatch(input: UpdateEstimateRowInput): EstimateRowItemPatch {
   return {
     ...(input.quantity !== undefined ? { quantity: input.quantity } : {}),
+    ...(input.contingencyPercentage !== undefined ? { contingencyPercentage: input.contingencyPercentage } : {}),
     ...(input.miscCost !== undefined ? { miscCost: input.miscCost } : {}),
   };
 }
@@ -61,9 +70,17 @@ function toOptimisticRowPatch(input: UpdateEstimateRowInput): EstimateRowItemPat
 function toServerRowPatch(result: UpdateEstimateRowItemResult, input: UpdateEstimateRowInput): EstimateRowItemPatch {
   return {
     itemCost: result.itemCost,
+    rowRevision: result.rowRevision,
     ...(input.quantity !== undefined ? { quantity: result.quantity } : {}),
+    ...(input.contingencyPercentage !== undefined ? { contingencyPercentage: result.contingencyPercentage } : {}),
     ...(input.miscCost !== undefined ? { miscCost: result.miscCost } : {}),
   };
+}
+
+function createMutationId() {
+  if (typeof globalThis.crypto?.randomUUID === "function") return globalThis.crypto.randomUUID();
+  const suffix = `${Date.now().toString(16)}${Math.random().toString(16).slice(2)}`.slice(0, 12).padEnd(12, "0");
+  return `00000000-0000-4000-8000-${suffix}`;
 }
 
 function useSaveState() {
@@ -98,6 +115,7 @@ export function useEstimateRowMutations(estimateId?: string) {
   const queryClient = useQueryClient();
   const { saveState, markRowDirty, markSaving, markSaved, markFailed } = useSaveState();
   const rowOperationIdsRef = useRef<Record<string, number>>({});
+  const rowUpdateQueuesRef = useRef<Record<string, Promise<unknown>>>({});
   const detailQueryKey = estimateId ? estimateQueryKeys.detail(estimateId) : undefined;
   const areaTreeQueryKey = estimateId ? estimateQueryKeys.areaTree(estimateId) : undefined;
 
@@ -146,7 +164,9 @@ export function useEstimateRowMutations(estimateId?: string) {
       const previousPatch = previousRow
         ? {
             itemCost: previousRow.itemCost,
+            rowRevision: previousRow.rowRevision,
             ...(input.quantity !== undefined ? { quantity: previousRow.quantity } : {}),
+            ...(input.contingencyPercentage !== undefined ? { contingencyPercentage: previousRow.contingencyPercentage ?? 0 } : {}),
             ...(input.miscCost !== undefined ? { miscCost: previousRow.miscCost } : {}),
           }
         : undefined;
@@ -181,13 +201,46 @@ export function useEstimateRowMutations(estimateId?: string) {
     },
   });
 
+  function getCachedRowRevision(rowId: string) {
+    if (!areaTreeQueryKey) return undefined;
+    const currentTree = queryClient.getQueryData<EstimateTreeNode[]>(areaTreeQueryKey);
+    return currentTree ? findEstimateRowItemInTree(currentTree, rowId)?.rowRevision : undefined;
+  }
+
+  function withMutationIdentity<T extends { rowId: string; mutationId?: string; expectedRowRevision?: number }>(input: T): T {
+    return {
+      ...input,
+      mutationId: input.mutationId ?? createMutationId(),
+      expectedRowRevision: input.expectedRowRevision ?? getCachedRowRevision(input.rowId),
+    };
+  }
+
+  function withInsertMutationIdentity(input: InsertEstimateRowInput): InsertEstimateRowInput {
+    return {
+      ...input,
+      mutationId: input.mutationId ?? createMutationId(),
+    };
+  }
+
+  function enqueueRowUpdate(input: UpdateEstimateRowInput) {
+    markSaving();
+    const previousUpdate = rowUpdateQueuesRef.current[input.rowId] ?? Promise.resolve();
+    const nextUpdate = previousUpdate
+      .catch(() => undefined)
+      .then(() => updateMutation.mutateAsync(withMutationIdentity(input)));
+    rowUpdateQueuesRef.current[input.rowId] = nextUpdate;
+    void nextUpdate.catch(() => undefined).then(() => {
+      if (rowUpdateQueuesRef.current[input.rowId] === nextUpdate) delete rowUpdateQueuesRef.current[input.rowId];
+    });
+  }
+
   return {
     saveState,
     markRowDirty,
     fetchTree: fetchEstimateTree,
-    insertRow: insertMutation.mutate,
-    replaceRow: replaceMutation.mutate,
-    deleteRow: deleteMutation.mutate,
-    updateRow: updateMutation.mutate,
+    insertRow: (input: InsertEstimateRowInput) => insertMutation.mutate(withInsertMutationIdentity(input)),
+    replaceRow: (input: ReplaceEstimateRowInput) => replaceMutation.mutate(withMutationIdentity(input)),
+    deleteRow: (input: DeleteEstimateRowInput) => deleteMutation.mutate(withMutationIdentity(input)),
+    updateRow: enqueueRowUpdate,
   };
 }

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { render, screen, within } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 
 import { TemplatesPageClient } from "@/components/workshop/TemplatesPageClient";
 import { estimateTemplates } from "@/lib/component-library/estimate-templates";
@@ -21,9 +21,14 @@ describe("template library manager UI", () => {
     const sheet = screen.getByLabelText("Template sheet");
     expect(within(tree).getByRole("treeitem", { name: "All Templates" })).toHaveAttribute("aria-selected", "true");
     expect(within(tree).getByRole("treeitem", { name: "Residential Rooms" })).toBeInTheDocument();
+    expect(within(tree).getByRole("treeitem", { name: "Condo Fit-Out Starter" })).toBeInTheDocument();
     expect(within(sheet).getByRole("tab", { name: "All Templates" })).toHaveAttribute("aria-selected", "true");
     expect(within(sheet).getByText("Condo Fit-Out Starter")).toBeInTheDocument();
     expect(within(sheet).getByText("2 groups / 3 areas / 8 rows")).toBeInTheDocument();
     expect(within(sheet).queryByText("Database Steel Frame")).not.toBeInTheDocument();
+
+    fireEvent.click(within(tree).getByRole("treeitem", { name: "Condo Fit-Out Starter" }));
+    expect(within(sheet).getByRole("tab", { name: "Condo Fit-Out Starter" })).toHaveAttribute("aria-selected", "true");
+    expect(within(sheet).getAllByText("Condo Fit-Out Starter").length).toBeGreaterThan(0);
   });
 });

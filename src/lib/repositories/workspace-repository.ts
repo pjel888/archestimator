@@ -4,6 +4,7 @@ import type { Tables } from "@/lib/supabase/types";
 import { requireCurrentUserContext } from "@/lib/auth/session";
 import { isUuid } from "@/lib/ids";
 import { getEstimateNodeKindSortRank, normalizeEstimateTreeNodeKind } from "@/lib/estimates/tree-hierarchy";
+import { normalizeEstimateRecord, type EstimateRecordWithLegacy } from "@/lib/repositories/estimate-schema-compat";
 
 export type WorkspaceBootstrap = {
   workspace: Tables<"workspaces">;
@@ -121,7 +122,8 @@ export async function listProjectEstimates(projectId: string): Promise<ProjectEs
 
   if (error) throw error;
 
-  const estimateIds = (estimates ?? []).map((estimate) => estimate.id);
+  const normalizedEstimates = (estimates ?? []).map((estimate) => normalizeEstimateRecord(estimate as EstimateRecordWithLegacy));
+  const estimateIds = normalizedEstimates.map((estimate) => estimate.id);
   if (estimateIds.length === 0) {
     return {
       workspace,
@@ -139,7 +141,7 @@ export async function listProjectEstimates(projectId: string): Promise<ProjectEs
       .order("sort_order", { ascending: true }),
     supabase
       .from("estimate_row_items")
-      .select("estimate_id, quantity, unit_cost, misc_cost")
+      .select("estimate_id, quantity, unit_cost, contingency_percentage, misc_cost")
       .in("estimate_id", estimateIds),
   ]);
 
@@ -161,13 +163,15 @@ export async function listProjectEstimates(projectId: string): Promise<ProjectEs
   for (const row of rowsResult.data ?? []) {
     const quantity = Number(row.quantity);
     const unitCost = Number(row.unit_cost);
+    const contingencyPercentage = Number(row.contingency_percentage ?? 0);
     const miscCost = Number(row.misc_cost);
-    const rowTotal = quantity * unitCost + miscCost;
+    const subTotal = quantity * unitCost;
+    const rowTotal = subTotal + miscCost + (subTotal * contingencyPercentage) / 100;
     rowCountByEstimateId.set(row.estimate_id, (rowCountByEstimateId.get(row.estimate_id) ?? 0) + 1);
     totalCostByEstimateId.set(row.estimate_id, (totalCostByEstimateId.get(row.estimate_id) ?? 0) + rowTotal);
   }
 
-  return { workspace, project, estimates: estimates ?? [], firstNodeByEstimateId, nodeCountByEstimateId, rowCountByEstimateId, totalCostByEstimateId };
+  return { workspace, project, estimates: normalizedEstimates, firstNodeByEstimateId, nodeCountByEstimateId, rowCountByEstimateId, totalCostByEstimateId };
 }
 
 type EstimateNodeKind = Tables<"estimate_nodes">["kind"];
@@ -198,7 +202,10 @@ function readJsonRecord(value: unknown): Record<string, unknown> {
 function toUiRow(row: EstimateRowItemRow): EstimateRowItem {
   const quantity = Number(row.quantity);
   const itemCost = Number(row.unit_cost);
+  const contingencyPercentage = Number(row.contingency_percentage ?? 0);
   const miscCost = Number(row.misc_cost);
+  const subTotal = itemCost * quantity;
+  const contingencyValue = (subTotal * contingencyPercentage) / 100;
   const sourceSnapshot = readJsonRecord(row.source_snapshot);
   const metadata = readJsonRecord(row.metadata);
   const category = typeof sourceSnapshot.category === "string" && sourceSnapshot.category
@@ -219,9 +226,12 @@ function toUiRow(row: EstimateRowItemRow): EstimateRowItem {
     unit: row.unit,
     itemCost,
     quantity,
-    subTotal: itemCost * quantity,
+    subTotal,
+    contingencyPercentage,
+    contingencyValue,
     miscCost,
-    totalItemCosts: itemCost * quantity + miscCost,
+    totalItemCosts: subTotal + miscCost + contingencyValue,
+    rowRevision: row.row_revision,
     category,
     categoryNodeId: categoryNodeId ?? undefined,
     discipline: row.discipline ?? undefined,
@@ -317,8 +327,9 @@ export async function getProjectEstimateTreeByEstimate(projectId: string, estima
   if (rowsResult.error) throw rowsResult.error;
 
   const nodes = nodesResult.data ?? [];
+  const normalizedEstimate = normalizeEstimateRecord(estimate as EstimateRecordWithLegacy);
   const tree = buildEstimateTree(nodes, rowsResult.data ?? []);
-  return { workspace, project, estimate, selectedNodeId: tree[0]?.id ?? null, tree };
+  return { workspace, project, estimate: normalizedEstimate, selectedNodeId: tree[0]?.id ?? null, tree };
 }
 
 export async function getProjectEstimateTreeByNode(projectId: string, nodeId: string): Promise<LiveEstimateTreeResult> {
@@ -336,7 +347,7 @@ export async function getProjectEstimateTreeByNode(projectId: string, nodeId: st
   if (selectedNodeError) throw selectedNodeError;
   if (!selectedNode) return getProjectEstimateTreeByEstimate(projectId, nodeId);
 
-  const estimate = selectedNode.estimates as Tables<"estimates">;
+  const estimate = normalizeEstimateRecord(selectedNode.estimates as EstimateRecordWithLegacy);
   const [nodesResult, rowsResult] = await Promise.all([
     supabase.from("estimate_nodes").select("*").eq("estimate_id", selectedNode.estimate_id).order("sort_order", { ascending: true }),
     supabase.from("estimate_row_items").select("*").eq("estimate_id", selectedNode.estimate_id).order("sort_order", { ascending: true }),

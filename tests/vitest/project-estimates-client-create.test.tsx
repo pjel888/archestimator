@@ -27,7 +27,6 @@ function renderClient(estimates: ProjectEstimateTableRow[] = []) {
   render(
     <ProjectEstimatesClient
       estimates={estimates}
-      projectBudget={5000}
       projectId="project-1"
       projectName="Lewis Residence"
     />,
@@ -53,11 +52,12 @@ describe("project estimates create flow", () => {
     renderClient();
 
     const createButton = screen.getByRole("button", { name: "Create Estimate Sheet" });
+    expect(createButton).not.toHaveTextContent("Create Estimate Sheet");
     await user.dblClick(createButton);
 
     expect(actionMocks.createEstimateSheetDraft).toHaveBeenCalledTimes(1);
     expect(actionMocks.createEstimateSheetDraft).toHaveBeenCalledWith("project-1");
-    expect(screen.getByRole("button", { name: "Creating..." })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Creating estimate sheet" })).toBeDisabled();
 
     resolveCreate?.({ estimateId: "estimate-1", areaNodeId: "node-1", sheetCode: "ES-001" });
     await waitFor(() => expect(routerMock.refresh).toHaveBeenCalledTimes(1));

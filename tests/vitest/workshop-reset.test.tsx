@@ -7,6 +7,10 @@ vi.mock("@/lib/auth/session", () => ({
   getCurrentUserContext: vi.fn(async () => null),
 }));
 
+vi.mock("next/headers", () => ({
+  cookies: vi.fn(async () => ({ get: vi.fn(() => undefined) })),
+}));
+
 describe("workshop sidebar baseline", () => {
   test("renders the workshop shell with an overlay sidebar and blank canvas", async () => {
     render(

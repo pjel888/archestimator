@@ -109,8 +109,11 @@ const nodesWithRow: EstimateTreeNode[] = [
         itemCost: 100,
         quantity: 2,
         subTotal: 200,
+        contingencyPercentage: 0,
+        contingencyValue: 0,
         miscCost: 10,
         totalItemCosts: 210,
+        rowRevision: 7,
         category: "Cabinetry",
         pricingSource: "Estimate row snapshot",
         pricingDate: "2026-05-22",
@@ -125,8 +128,11 @@ const nodesWithRow: EstimateTreeNode[] = [
         itemCost: 250,
         quantity: 1,
         subTotal: 250,
+        contingencyPercentage: 0,
+        contingencyValue: 0,
         miscCost: 0,
         totalItemCosts: 250,
+        rowRevision: 3,
         category: "Plumbing Fixtures",
         pricingSource: "Estimate row snapshot",
         pricingDate: "2026-05-22",
@@ -173,8 +179,11 @@ describe("estimate sheet library insertion persistence", () => {
       nodeId: targetNodeId,
       quantity: 7,
       itemCost: 100,
+      contingencyPercentage: 0,
+      contingencyValue: 0,
       miscCost: 10,
       linkState: "linked-overridden",
+      rowRevision: 8,
     });
   });
 
@@ -312,12 +321,13 @@ describe("estimate sheet library insertion persistence", () => {
     await user.tab();
 
     await waitFor(() => expect(actionMocks.updateEstimateRowItem).toHaveBeenCalledTimes(1));
-    expect(actionMocks.updateEstimateRowItem).toHaveBeenCalledWith({
+    expect(actionMocks.updateEstimateRowItem).toHaveBeenCalledWith(expect.objectContaining({
       projectId,
       estimateId,
       rowId: cabinetRowId,
       quantity: 7,
-    });
+      mutationId: expect.any(String),
+    }));
     expect(quantityInput.value).toBe("7");
     expect(within(row as HTMLElement).getByText("₱ 710.00")).toBeInTheDocument();
 
@@ -327,8 +337,11 @@ describe("estimate sheet library insertion persistence", () => {
         nodeId: targetNodeId,
         quantity: 7,
         itemCost: 100,
+        contingencyPercentage: 0,
+        contingencyValue: 0,
         miscCost: 10,
         linkState: "linked-overridden",
+        rowRevision: 8,
       });
       await save.promise;
     });
@@ -366,10 +379,13 @@ describe("estimate sheet library insertion persistence", () => {
         rowId: sinkRowId,
         nodeId: targetNodeId,
         quantity: input.quantity ?? 1,
-        itemCost: 250,
-        miscCost: 0,
-        linkState: "linked-overridden",
-      });
+          itemCost: 250,
+          contingencyPercentage: 0,
+          contingencyValue: 0,
+          miscCost: 0,
+          linkState: "linked-overridden",
+          rowRevision: 4,
+        });
     });
     renderPersistedEstimateSheet(nodesWithRow);
 
@@ -415,7 +431,12 @@ describe("estimate sheet library insertion persistence", () => {
     await user.type(quantityInput, "8");
     fireEvent.blur(quantityInput);
 
-    await waitFor(() => expect(actionMocks.updateEstimateRowItem).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(actionMocks.updateEstimateRowItem).toHaveBeenCalledTimes(1));
+    expect(actionMocks.updateEstimateRowItem).toHaveBeenLastCalledWith(expect.objectContaining({
+      rowId: cabinetRowId,
+      quantity: 7,
+      expectedRowRevision: 7,
+    }));
 
     await act(async () => {
       firstSave.resolve({
@@ -423,11 +444,21 @@ describe("estimate sheet library insertion persistence", () => {
         nodeId: targetNodeId,
         quantity: 7,
         itemCost: 100,
+        contingencyPercentage: 0,
+        contingencyValue: 0,
         miscCost: 10,
         linkState: "linked-overridden",
+        rowRevision: 8,
       });
       await firstSave.promise;
     });
+
+    await waitFor(() => expect(actionMocks.updateEstimateRowItem).toHaveBeenCalledTimes(2));
+    expect(actionMocks.updateEstimateRowItem).toHaveBeenLastCalledWith(expect.objectContaining({
+      rowId: cabinetRowId,
+      quantity: 8,
+      expectedRowRevision: 8,
+    }));
 
     expect(quantityInput.value).toBe("8");
 
@@ -437,8 +468,11 @@ describe("estimate sheet library insertion persistence", () => {
         nodeId: targetNodeId,
         quantity: 8,
         itemCost: 100,
+        contingencyPercentage: 0,
+        contingencyValue: 0,
         miscCost: 10,
         linkState: "linked-overridden",
+        rowRevision: 9,
       });
       await secondSave.promise;
     });
@@ -446,7 +480,7 @@ describe("estimate sheet library insertion persistence", () => {
     expect(quantityInput.value).toBe("8");
   });
 
-  it("does not let a misc cost response with an older quantity overwrite the optimistic quantity", async () => {
+  it("queues rapid same-row quantity and misc edits against the latest row revision", async () => {
     const user = userEvent.setup();
     const quantitySave = deferred<Awaited<ReturnType<typeof actionMocks.updateEstimateRowItem>>>();
     const miscSave = deferred<Awaited<ReturnType<typeof actionMocks.updateEstimateRowItem>>>();
@@ -467,19 +501,12 @@ describe("estimate sheet library insertion persistence", () => {
     await user.type(miscCostInput, "400");
     await user.tab();
 
-    await waitFor(() => expect(actionMocks.updateEstimateRowItem).toHaveBeenCalledTimes(2));
-
-    await act(async () => {
-      miscSave.resolve({
-        rowId: cabinetRowId,
-        nodeId: targetNodeId,
-        quantity: 2,
-        itemCost: 100,
-        miscCost: 400,
-        linkState: "linked-overridden",
-      });
-      await miscSave.promise;
-    });
+    await waitFor(() => expect(actionMocks.updateEstimateRowItem).toHaveBeenCalledTimes(1));
+    expect(actionMocks.updateEstimateRowItem).toHaveBeenLastCalledWith(expect.objectContaining({
+      rowId: cabinetRowId,
+      quantity: 7,
+      expectedRowRevision: 7,
+    }));
 
     expect(quantityInput.value).toBe("7");
     expect(within(row as HTMLElement).getByText("₱ 1,100.00")).toBeInTheDocument();
@@ -490,13 +517,70 @@ describe("estimate sheet library insertion persistence", () => {
         nodeId: targetNodeId,
         quantity: 7,
         itemCost: 100,
+        contingencyPercentage: 0,
+        contingencyValue: 0,
         miscCost: 10,
         linkState: "linked-overridden",
+        rowRevision: 8,
       });
       await quantitySave.promise;
     });
 
+    await waitFor(() => expect(actionMocks.updateEstimateRowItem).toHaveBeenCalledTimes(2));
+    expect(actionMocks.updateEstimateRowItem).toHaveBeenLastCalledWith(expect.objectContaining({
+      rowId: cabinetRowId,
+      miscCost: 400,
+      expectedRowRevision: 8,
+    }));
+
+    await act(async () => {
+      miscSave.resolve({
+        rowId: cabinetRowId,
+        nodeId: targetNodeId,
+        quantity: 7,
+        itemCost: 100,
+        contingencyPercentage: 0,
+        contingencyValue: 0,
+        miscCost: 400,
+        linkState: "linked-overridden",
+        rowRevision: 9,
+      });
+      await miscSave.promise;
+    });
+
     expect(quantityInput.value).toBe("7");
     expect(within(row as HTMLElement).getByText("₱ 1,100.00")).toBeInTheDocument();
+  });
+
+  it("clamps out-of-range contingency before saving the row", async () => {
+    const user = userEvent.setup();
+    actionMocks.updateEstimateRowItem.mockResolvedValueOnce({
+      rowId: cabinetRowId,
+      nodeId: targetNodeId,
+      quantity: 2,
+      itemCost: 100,
+      contingencyPercentage: 100,
+      contingencyValue: 200,
+      miscCost: 10,
+      linkState: "linked-overridden",
+      rowRevision: 8,
+    });
+    renderPersistedEstimateSheet(nodesWithRow);
+
+    const kitchenSection = screen.getByLabelText("Kitchen");
+    const contingencyInput = within(kitchenSection).getByLabelText("Kitchen Cabinet contingency percentage") as HTMLInputElement;
+
+    await user.click(contingencyInput);
+    await user.clear(contingencyInput);
+    await user.type(contingencyInput, "101");
+    await user.tab();
+
+    await waitFor(() => expect(actionMocks.updateEstimateRowItem).toHaveBeenCalledTimes(1));
+    expect(actionMocks.updateEstimateRowItem).toHaveBeenCalledWith(expect.objectContaining({
+      rowId: cabinetRowId,
+      contingencyPercentage: 100,
+      expectedRowRevision: 7,
+    }));
+    expect(contingencyInput.value).toBe("100");
   });
 });
