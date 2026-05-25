@@ -26,6 +26,8 @@ describe("live estimate node route", () => {
     expect(estimateTree).toContain("you must select a group first before adding an area node");
     expect(estimateTree).toContain("renderDepthOffset={WORKSHOP_TREE_INDENT_STEP}");
     expect(treeVisualStyle).toContain("WORKSHOP_TREE_INDENT_STEP = 20");
+    expect(treeVisualStyle).toContain('WORKSHOP_TREE_ROW_GAP_CLASS = "space-y-0"');
+    expect(estimateTree).toContain("WORKSHOP_TREE_ROW_GAP_CLASS");
     expect(estimateTree).toContain("onExpandAll={handleExpandAll}");
     expect(estimateTree).toContain("onCollapseAll={handleCollapseAll}");
     expect(estimateTree).toContain("canDragAndDrop");
@@ -90,7 +92,8 @@ describe("live estimate node route", () => {
     expect(estimateNodePage).toContain("ProjectEstimateMetadataPublisher");
     expect(estimateNodePage).toContain("estimateName: estimate.name");
     expect(estimateNodePage).toContain("estimateSheetCode: estimate.sheet_code");
-    expect(estimateNodePage).toContain("versionLabel: readEstimateVersionLabel(estimate.metadata)");
+    expect(estimateNodePage).toContain("projectBudget: estimate.project_budget");
+    expect(estimateNodePage).toContain("const estimateVersionLabel = readEstimateVersionLabel(estimate.metadata);");
     expect(projectWorkspaceHeaderRow).toContain('centerId="project-estimate-metadata-strip"');
     expect(projectWorkspaceHeaderRow).toContain('centerDataColumn="metadata-strip"');
     expect(projectWorkspaceHeaderRow).toContain('scope="project-workspace-row"');
@@ -100,11 +103,12 @@ describe("live estimate node route", () => {
     expect(metadataStrip).toContain('font-normal uppercase tracking-[0.14em] text-tertiary');
     expect(metadataStrip).toContain("EstimateSheetCodeCell");
     expect(metadataStrip).toContain("EstimateSheetNameCell");
-    expect(metadataStrip).toContain("EstimateVersionCell");
+    expect(metadataStrip).toContain("dispatchProjectBudgetChange(projectBudget ?? 0)");
     expect(metadataStrip.indexOf("<EstimateSheetCodeCell")).toBeLessThan(metadataStrip.indexOf("<EstimateSheetNameCell"));
-    expect(metadataStrip.indexOf("<EstimateSheetNameCell")).toBeLessThan(metadataStrip.indexOf("<EstimateVersionCell"));
-    expect(metadataStrip).toContain("grid-cols-[1fr_minmax(0,2fr)_1fr]");
-    expect(metadataStrip).toContain("items-center px-2");
+    expect(metadataStrip).not.toContain("EstimateVersionCell");
+    expect(metadataStrip).toContain("grid-cols-[minmax(0,1fr)_minmax(0,2fr)]");
+    expect(metadataStrip).toContain("text-right text-ink");
+    expect(metadataStrip).toContain("items-center gap-3");
     expect(estimateCenterColumnBoundary).toContain('"project-workspace-row"');
     expect(estimateContent).toContain('className="flex h-[38px] items-center"');
     expect(estimateContent).toContain('placeholder="Search Sheet"');
@@ -139,7 +143,8 @@ describe("live estimate node route", () => {
     expect(estimateActions).toContain("isUuid(libraryItem.id)");
     expect(estimateActions).toContain("const persistedRowId = isUuid(rowId) ? rowId : randomUUID();");
     expect(estimateActions).toContain("id: persistedRowId");
-    expect(estimateActions).toContain('link_state: sourceLibraryItemId ? "linked-clean" : "unlinked"');
+    expect(estimateActions).toContain('linkState: sourceLibraryItemId ? "linked-clean" : "unlinked"');
+    expect(estimateActions).toContain("insert_estimate_row_item_with_history");
     expect(estimateActions).toContain("updateEstimateRowItem");
     expect(estimateActions).toContain("replaceEstimateRowItemWithLibrary");
     expect(estimateActions).toContain("deleteEstimateRowItem");

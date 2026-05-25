@@ -6,6 +6,7 @@ import {
   dispatchProjectTotalChange,
   ProjectTotalHeader,
 } from "@/components/workshop/ProjectTotalHeader";
+import { ProjectEstimateMetadataPublisher } from "@/components/workshop/ProjectEstimateMetadataStrip";
 
 const estimatePath = "/workshop/projects/project-1/estimates/node-1";
 const pathnameMock = { current: estimatePath };
@@ -25,6 +26,12 @@ function renderProjectTotalHeader(plannedBudget = 1_000_000) {
 describe("ProjectTotalHeader", () => {
   afterEach(() => {
     pathnameMock.current = estimatePath;
+    delete (window as Window & { __archestimatorProjectBudget?: number }).__archestimatorProjectBudget;
+    delete (
+      window as Window & {
+        __archestimatorProjectEstimateMetadata?: { projectBudget?: unknown } | null;
+      }
+    ).__archestimatorProjectEstimateMetadata;
   });
 
   it("shows an empty budget health meter before estimate rows contribute cost", () => {
@@ -108,7 +115,7 @@ describe("ProjectTotalHeader", () => {
     expect(screen.queryByLabelText("Sheet running totals")).not.toBeInTheDocument();
   });
 
-  it("reacts to planned budget edits from the project data rail", () => {
+  it("reacts to active estimate sheet budget changes", () => {
     renderProjectTotalHeader(1_000_000);
 
     act(() => dispatchProjectTotalChange(900_000));
@@ -119,5 +126,25 @@ describe("ProjectTotalHeader", () => {
     expect(header.querySelector("[data-budget-health-state]")).toHaveAttribute("data-budget-health-state", "danger");
     expect(within(header).getByText("₱ 100K over · 113% used")).toBeInTheDocument();
     expect(within(header).getByText("₱ 800,000.00")).toBeInTheDocument();
+  });
+
+  it("hydrates the active estimate sheet budget when metadata publishes during layout", () => {
+    render(
+      <div className="h-14 w-[640px]">
+        <ProjectTotalHeader projectId="project-1" plannedBudget={0} />
+        <ProjectEstimateMetadataPublisher
+          metadata={{
+            estimateName: "Lewis Residence - 002",
+            estimateSheetCode: "ES-002",
+            projectBudget: 2_000_000,
+          }}
+        />
+      </div>,
+    );
+
+    const header = screen.getByLabelText("Sheet running totals");
+
+    expect(within(header).getByText("₱ 2,000,000.00")).toBeInTheDocument();
+    expect(header.querySelector("[data-budget-health-state]")).toHaveAttribute("data-budget-health-state", "empty");
   });
 });

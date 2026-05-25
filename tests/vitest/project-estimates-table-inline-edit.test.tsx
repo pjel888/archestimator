@@ -32,6 +32,8 @@ function makeEstimate(overrides: Partial<ProjectEstimateTableRow> = {}): Project
     metadata: {},
     name: "Original Estimate",
     nodeCount: 1,
+    notes: "Original notes",
+    project_budget: 5000,
     project_id: "project-1",
     rowItemCount: 1,
     sheet_code: "EST-001",
@@ -42,7 +44,7 @@ function makeEstimate(overrides: Partial<ProjectEstimateTableRow> = {}): Project
 }
 
 function renderTable(estimate = makeEstimate()) {
-  render(<ProjectEstimatesTable estimates={[estimate]} projectBudget={5000} projectId="project-1" />);
+  render(<ProjectEstimatesTable estimates={[estimate]} projectId="project-1" />);
 }
 
 describe("project estimates table inline editing", () => {
@@ -94,6 +96,46 @@ describe("project estimates table inline editing", () => {
     await waitFor(() => expect(nameInput).toHaveValue("Original Estimate"));
     expect(actionMocks.updateEstimateDetails).not.toHaveBeenCalled();
     expect(routerMock.refresh).not.toHaveBeenCalled();
+  });
+
+  it("saves an inline project budget edit per estimate sheet", async () => {
+    const updatedEstimate = makeEstimate({ project_budget: 6500 });
+    actionMocks.updateEstimateDetails.mockResolvedValue(updatedEstimate);
+    const user = userEvent.setup();
+
+    renderTable();
+
+    const budgetInput = screen.getByLabelText("Project budget for Original Estimate");
+    await user.clear(budgetInput);
+    await user.type(budgetInput, "6,500.00{Enter}");
+
+    await waitFor(() => expect(actionMocks.updateEstimateDetails).toHaveBeenCalledTimes(1));
+    expect(actionMocks.updateEstimateDetails).toHaveBeenCalledWith({
+      projectId: "project-1",
+      estimateId: "estimate-1",
+      projectBudget: 6500,
+    });
+    expect(routerMock.refresh).toHaveBeenCalledTimes(1);
+  });
+
+  it("saves an inline notes edit per estimate sheet", async () => {
+    const updatedEstimate = makeEstimate({ notes: "Client requested alternate finish" });
+    actionMocks.updateEstimateDetails.mockResolvedValue(updatedEstimate);
+    const user = userEvent.setup();
+
+    renderTable();
+
+    const notesInput = screen.getByLabelText("Notes for Original Estimate");
+    await user.clear(notesInput);
+    await user.type(notesInput, "Client requested alternate finish{Enter}");
+
+    await waitFor(() => expect(actionMocks.updateEstimateDetails).toHaveBeenCalledTimes(1));
+    expect(actionMocks.updateEstimateDetails).toHaveBeenCalledWith({
+      projectId: "project-1",
+      estimateId: "estimate-1",
+      notes: "Client requested alternate finish",
+    });
+    expect(routerMock.refresh).toHaveBeenCalledTimes(1);
   });
 
   it("does not crash when persisted column width storage is blocked", () => {
