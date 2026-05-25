@@ -1,6 +1,8 @@
 import type { Tables } from "@/lib/supabase/types";
 
-export type EstimateRecordWithLegacy = Omit<Tables<"estimates">, "sheet_code"> & {
+export type EstimateRecordWithLegacy = Omit<Tables<"estimates">, "notes" | "project_budget" | "sheet_code"> & {
+  notes?: string | null;
+  project_budget?: number | null;
   sheet_code?: string | null;
   revision_label?: string | null;
 };
@@ -23,10 +25,12 @@ export function isMissingRelationError(error: MissingColumnErrorCandidate | null
 }
 
 export function normalizeEstimateRecord(estimate: EstimateRecordWithLegacy): Tables<"estimates"> {
-  const { revision_label: legacyRevisionLabel, sheet_code: sheetCode, ...rest } = estimate;
+  const { notes, project_budget: projectBudget, revision_label: legacyRevisionLabel, sheet_code: sheetCode, ...rest } = estimate;
 
   return {
     ...rest,
+    notes: notes ?? null,
+    project_budget: projectBudget ?? null,
     sheet_code: sheetCode ?? legacyRevisionLabel ?? "Rev 0",
   } as Tables<"estimates">;
 }

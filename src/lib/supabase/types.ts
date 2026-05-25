@@ -314,6 +314,50 @@ export type Database = {
           },
         ]
       }
+      component_brands: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          metadata: Json
+          name: string
+          normalized_name: string
+          sort_order: number
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          metadata?: Json
+          name: string
+          normalized_name: string
+          sort_order?: number
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          metadata?: Json
+          name?: string
+          normalized_name?: string
+          sort_order?: number
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "component_brands_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       component_suppliers: {
         Row: {
           created_at: string
@@ -361,6 +405,7 @@ export type Database = {
       cost_library_items: {
         Row: {
           brand: string | null
+          brand_id: string | null
           category: string
           category_node_id: string | null
           confidence: string | null
@@ -368,7 +413,6 @@ export type Database = {
           created_by: string | null
           description: string
           id: string
-          kind: Database["public"]["Enums"]["cost_library_item_kind"]
           active_price_option_id: string | null
           current_version_number: number
           library_folder_id: string | null
@@ -380,7 +424,6 @@ export type Database = {
           name: string
           pricing_date: string | null
           pricing_source: string | null
-          sku: string | null
           supplier: string | null
           supplier_id: string | null
           thumbnail_path: string | null
@@ -391,6 +434,7 @@ export type Database = {
         }
         Insert: {
           brand?: string | null
+          brand_id?: string | null
           category?: string
           category_node_id?: string | null
           confidence?: string | null
@@ -398,7 +442,6 @@ export type Database = {
           created_by?: string | null
           description?: string
           id?: string
-          kind?: Database["public"]["Enums"]["cost_library_item_kind"]
           active_price_option_id?: string | null
           current_version_number?: number
           library_folder_id?: string | null
@@ -410,7 +453,6 @@ export type Database = {
           name: string
           pricing_date?: string | null
           pricing_source?: string | null
-          sku?: string | null
           supplier?: string | null
           supplier_id?: string | null
           thumbnail_path?: string | null
@@ -421,6 +463,7 @@ export type Database = {
         }
         Update: {
           brand?: string | null
+          brand_id?: string | null
           category?: string
           category_node_id?: string | null
           confidence?: string | null
@@ -428,7 +471,6 @@ export type Database = {
           created_by?: string | null
           description?: string
           id?: string
-          kind?: Database["public"]["Enums"]["cost_library_item_kind"]
           active_price_option_id?: string | null
           current_version_number?: number
           library_folder_id?: string | null
@@ -440,7 +482,6 @@ export type Database = {
           name?: string
           pricing_date?: string | null
           pricing_source?: string | null
-          sku?: string | null
           supplier?: string | null
           supplier_id?: string | null
           thumbnail_path?: string | null
@@ -450,6 +491,13 @@ export type Database = {
           workspace_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "cost_library_items_brand_id_fkey"
+            columns: ["brand_id"]
+            isOneToOne: false
+            referencedRelation: "component_brands"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "cost_library_items_category_node_id_fkey"
             columns: ["category_node_id"]
@@ -521,22 +569,188 @@ export type Database = {
       }
       cost_library_item_price_options: {
         Row: {
+          active_cost_entry_id: string | null
           confidence: string | null
           created_at: string
           created_by: string | null
           currency: string
+          dimension_height: number | null
+          dimension_length: number | null
+          dimension_unit: string | null
+          dimension_width: number | null
           id: string
+          image_bucket: string | null
+          image_metadata: Json
+          image_path: string | null
           is_active: boolean
           is_default: boolean
           item_id: string
           label: string
+          mass: number | null
+          mass_unit: string | null
           misc_cost: number
           notes: string
+          package_quantity: number | null
+          package_unit: string | null
           pricing_date: string | null
           pricing_source: string | null
+          sku: string | null
           source_url: string | null
           supplier_id: string | null
+          thumbnail_path: string | null
           unit: string
+          unit_cost: number
+          updated_at: string
+          variant_description: string
+          variant_metadata: Json
+          variant_sort_order: number
+          workspace_id: string
+        }
+        Insert: {
+          active_cost_entry_id?: string | null
+          confidence?: string | null
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          dimension_height?: number | null
+          dimension_length?: number | null
+          dimension_unit?: string | null
+          dimension_width?: number | null
+          id?: string
+          image_bucket?: string | null
+          image_metadata?: Json
+          image_path?: string | null
+          is_active?: boolean
+          is_default?: boolean
+          item_id: string
+          label: string
+          mass?: number | null
+          mass_unit?: string | null
+          misc_cost?: number
+          notes?: string
+          package_quantity?: number | null
+          package_unit?: string | null
+          pricing_date?: string | null
+          pricing_source?: string | null
+          sku?: string | null
+          source_url?: string | null
+          supplier_id?: string | null
+          thumbnail_path?: string | null
+          unit?: string
+          unit_cost?: number
+          updated_at?: string
+          variant_description?: string
+          variant_metadata?: Json
+          variant_sort_order?: number
+          workspace_id: string
+        }
+        Update: {
+          active_cost_entry_id?: string | null
+          confidence?: string | null
+          created_at?: string
+          created_by?: string | null
+          currency?: string
+          dimension_height?: number | null
+          dimension_length?: number | null
+          dimension_unit?: string | null
+          dimension_width?: number | null
+          id?: string
+          image_bucket?: string | null
+          image_metadata?: Json
+          image_path?: string | null
+          is_active?: boolean
+          is_default?: boolean
+          item_id?: string
+          label?: string
+          mass?: number | null
+          mass_unit?: string | null
+          misc_cost?: number
+          notes?: string
+          package_quantity?: number | null
+          package_unit?: string | null
+          pricing_date?: string | null
+          pricing_source?: string | null
+          sku?: string | null
+          source_url?: string | null
+          supplier_id?: string | null
+          thumbnail_path?: string | null
+          unit?: string
+          unit_cost?: number
+          updated_at?: string
+          variant_description?: string
+          variant_metadata?: Json
+          variant_sort_order?: number
+          workspace_id?: string
+        }
+        Relationships: []
+      }
+      cost_library_item_variant_attachments: {
+        Row: {
+          attachment_kind: string
+          content_type: string
+          created_at: string
+          created_by: string | null
+          file_name: string
+          id: string
+          item_id: string
+          metadata: Json
+          price_option_id: string
+          size_bytes: number
+          storage_bucket: string
+          storage_path: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          attachment_kind: string
+          content_type: string
+          created_at?: string
+          created_by?: string | null
+          file_name: string
+          id?: string
+          item_id: string
+          metadata?: Json
+          price_option_id: string
+          size_bytes: number
+          storage_bucket?: string
+          storage_path: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          attachment_kind?: string
+          content_type?: string
+          created_at?: string
+          created_by?: string | null
+          file_name?: string
+          id?: string
+          item_id?: string
+          metadata?: Json
+          price_option_id?: string
+          size_bytes?: number
+          storage_bucket?: string
+          storage_path?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: []
+      }
+      cost_library_item_variant_cost_entries: {
+        Row: {
+          confidence: string | null
+          created_at: string
+          created_by: string | null
+          currency: string
+          deleted_at: string | null
+          id: string
+          is_current: boolean
+          item_id: string
+          misc_cost: number
+          notes: string
+          price_option_id: string
+          pricing_date: string
+          pricing_source: string | null
+          source_url: string | null
           unit_cost: number
           updated_at: string
           workspace_id: string
@@ -546,18 +760,16 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           currency?: string
+          deleted_at?: string | null
           id?: string
-          is_active?: boolean
-          is_default?: boolean
+          is_current?: boolean
           item_id: string
-          label: string
           misc_cost?: number
           notes?: string
-          pricing_date?: string | null
+          price_option_id: string
+          pricing_date?: string
           pricing_source?: string | null
           source_url?: string | null
-          supplier_id?: string | null
-          unit?: string
           unit_cost?: number
           updated_at?: string
           workspace_id: string
@@ -567,18 +779,16 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           currency?: string
+          deleted_at?: string | null
           id?: string
-          is_active?: boolean
-          is_default?: boolean
+          is_current?: boolean
           item_id?: string
-          label?: string
           misc_cost?: number
           notes?: string
-          pricing_date?: string | null
+          price_option_id?: string
+          pricing_date?: string
           pricing_source?: string | null
           source_url?: string | null
-          supplier_id?: string | null
-          unit?: string
           unit_cost?: number
           updated_at?: string
           workspace_id?: string
@@ -784,9 +994,11 @@ export type Database = {
           link_state: Database["public"]["Enums"]["estimate_row_link_state"]
           material: string
           metadata: Json
+          contingency_percentage: number
           misc_cost: number
           node_id: string
           quantity: number
+          row_revision: number
           sort_order: number
           source_library_item_id: string | null
           source_snapshot: Json | null
@@ -807,9 +1019,11 @@ export type Database = {
           link_state?: Database["public"]["Enums"]["estimate_row_link_state"]
           material?: string
           metadata?: Json
+          contingency_percentage?: number
           misc_cost?: number
           node_id: string
           quantity?: number
+          row_revision?: number
           sort_order?: number
           source_library_item_id?: string | null
           source_snapshot?: Json | null
@@ -830,9 +1044,11 @@ export type Database = {
           link_state?: Database["public"]["Enums"]["estimate_row_link_state"]
           material?: string
           metadata?: Json
+          contingency_percentage?: number
           misc_cost?: number
           node_id?: string
           quantity?: number
+          row_revision?: number
           sort_order?: number
           source_library_item_id?: string | null
           source_snapshot?: Json | null
@@ -876,6 +1092,165 @@ export type Database = {
             columns: ["supplier_id"]
             isOneToOne: false
             referencedRelation: "component_suppliers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      estimate_sheet_events: {
+        Row: {
+          actor_user_id: string | null
+          changed_fields: string[]
+          correlation_id: string
+          created_at: string
+          estimate_id: string
+          estimate_node_id: string | null
+          event_source: string
+          event_type: string
+          id: string
+          metadata: Json
+          new_snapshot: Json | null
+          old_snapshot: Json | null
+          payload: Json
+          row_context: Json
+          target_row_id: string | null
+          total_delta: number | null
+          workspace_id: string
+        }
+        Insert: {
+          actor_user_id?: string | null
+          changed_fields?: string[]
+          correlation_id?: string
+          created_at?: string
+          estimate_id: string
+          estimate_node_id?: string | null
+          event_source?: string
+          event_type: string
+          id?: string
+          metadata?: Json
+          new_snapshot?: Json | null
+          old_snapshot?: Json | null
+          payload?: Json
+          row_context?: Json
+          target_row_id?: string | null
+          total_delta?: number | null
+          workspace_id: string
+        }
+        Update: {
+          actor_user_id?: string | null
+          changed_fields?: string[]
+          correlation_id?: string
+          created_at?: string
+          estimate_id?: string
+          estimate_node_id?: string | null
+          event_source?: string
+          event_type?: string
+          id?: string
+          metadata?: Json
+          new_snapshot?: Json | null
+          old_snapshot?: Json | null
+          payload?: Json
+          row_context?: Json
+          target_row_id?: string | null
+          total_delta?: number | null
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "estimate_sheet_events_estimate_id_fkey"
+            columns: ["estimate_id"]
+            isOneToOne: false
+            referencedRelation: "estimates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "estimate_sheet_events_estimate_node_id_fkey"
+            columns: ["estimate_node_id"]
+            isOneToOne: false
+            referencedRelation: "estimate_nodes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "estimate_sheet_events_target_row_id_fkey"
+            columns: ["target_row_id"]
+            isOneToOne: false
+            referencedRelation: "estimate_row_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "estimate_sheet_events_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      estimate_sheet_versions: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          estimate_id: string
+          id: string
+          metadata: Json
+          note: string
+          snapshot: Json
+          source_event_id: string | null
+          summary: Json
+          title: string
+          version_label: string
+          version_number: number
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          estimate_id: string
+          id?: string
+          metadata?: Json
+          note?: string
+          snapshot: Json
+          source_event_id?: string | null
+          summary?: Json
+          title?: string
+          version_label: string
+          version_number: number
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          estimate_id?: string
+          id?: string
+          metadata?: Json
+          note?: string
+          snapshot?: Json
+          source_event_id?: string | null
+          summary?: Json
+          title?: string
+          version_label?: string
+          version_number?: number
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "estimate_sheet_versions_estimate_id_fkey"
+            columns: ["estimate_id"]
+            isOneToOne: false
+            referencedRelation: "estimates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "estimate_sheet_versions_source_event_id_fkey"
+            columns: ["source_event_id"]
+            isOneToOne: false
+            referencedRelation: "estimate_sheet_events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "estimate_sheet_versions_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
             referencedColumns: ["id"]
           },
         ]
@@ -942,6 +1317,7 @@ export type Database = {
           link_state: Database["public"]["Enums"]["estimate_row_link_state"]
           material: string
           metadata: Json
+          contingency_percentage: number
           misc_cost: number
           quantity: number
           sort_order: number
@@ -965,6 +1341,7 @@ export type Database = {
           link_state?: Database["public"]["Enums"]["estimate_row_link_state"]
           material?: string
           metadata?: Json
+          contingency_percentage?: number
           misc_cost?: number
           quantity?: number
           sort_order?: number
@@ -988,6 +1365,7 @@ export type Database = {
           link_state?: Database["public"]["Enums"]["estimate_row_link_state"]
           material?: string
           metadata?: Json
+          contingency_percentage?: number
           misc_cost?: number
           quantity?: number
           sort_order?: number
@@ -1094,6 +1472,8 @@ export type Database = {
           id: string
           metadata: Json
           name: string
+          notes: string | null
+          project_budget: number | null
           project_id: string
           sheet_code: string
           updated_at: string
@@ -1105,6 +1485,8 @@ export type Database = {
           id?: string
           metadata?: Json
           name: string
+          notes?: string | null
+          project_budget?: number | null
           project_id: string
           sheet_code?: string
           updated_at?: string
@@ -1116,6 +1498,8 @@ export type Database = {
           id?: string
           metadata?: Json
           name?: string
+          notes?: string | null
+          project_budget?: number | null
           project_id?: string
           sheet_code?: string
           updated_at?: string
@@ -1319,6 +1703,142 @@ export type Database = {
         }
         Returns: Json
       }
+      insert_estimate_row_item_with_history: {
+        Args: {
+          target_project_id: string
+          target_estimate_id: string
+          target_node_id: string
+          row_payload: Json
+          acting_user_id?: string
+          correlation_id?: string
+        }
+        Returns: Json
+      }
+      update_estimate_row_item_with_history: {
+        Args: {
+          target_project_id: string
+          target_estimate_id: string
+          target_row_id: string
+          expected_row_revision: number
+          row_patch: Json
+          acting_user_id?: string
+          correlation_id?: string
+        }
+        Returns: Json
+      }
+      replace_estimate_row_item_with_history: {
+        Args: {
+          target_project_id: string
+          target_estimate_id: string
+          target_row_id: string
+          expected_row_revision: number
+          replacement_payload: Json
+          acting_user_id?: string
+          correlation_id?: string
+        }
+        Returns: Json
+      }
+      delete_estimate_row_item_with_history: {
+        Args: {
+          target_project_id: string
+          target_estimate_id: string
+          target_row_id: string
+          expected_row_revision: number
+          acting_user_id?: string
+          correlation_id?: string
+        }
+        Returns: Json
+      }
+      create_estimate_sheet_version: {
+        Args: {
+          target_project_id: string
+          target_estimate_id: string
+          version_title?: string
+          version_note?: string
+          acting_user_id?: string
+          correlation_id?: string
+        }
+        Returns: Json
+      }
+      restore_estimate_sheet_version_as_copy: {
+        Args: {
+          target_project_id: string
+          source_version_id: string
+          new_estimate_name?: string
+          new_sheet_code?: string
+          acting_user_id?: string
+          correlation_id?: string
+        }
+        Returns: Json
+      }
+      get_estimate_activity_retention_metrics: {
+        Args: {
+          target_project_id: string
+        }
+        Returns: {
+          workspace_event_bytes: number
+          workspace_version_bytes: number
+          largest_event_payload_bytes: number
+          max_estimate_event_count: number
+          estimates_over_event_threshold: number
+          workspace_storage_over_threshold: boolean
+        }[]
+      }
+      create_estimate_node_with_history: {
+        Args: {
+          target_project_id: string
+          target_estimate_id: string
+          parent_node_id: string | null
+          node_kind: Database["public"]["Enums"]["estimate_node_kind"]
+          node_name: string
+          initial_sort_order: number
+          acting_user_id?: string
+          correlation_id?: string
+        }
+        Returns: Json
+      }
+      rename_estimate_node_with_history: {
+        Args: {
+          target_project_id: string
+          target_estimate_id: string
+          target_node_id: string
+          next_name: string
+          acting_user_id?: string
+          correlation_id?: string
+        }
+        Returns: Json
+      }
+      insert_estimate_template_into_estimate_with_history: {
+        Args: {
+          target_project_id: string
+          target_estimate_id: string
+          target_parent_node_id: string
+          source_template_id: string
+          acting_user_id?: string
+          correlation_id?: string
+        }
+        Returns: Json
+      }
+      update_estimate_details_with_history: {
+        Args: {
+          target_project_id: string
+          target_estimate_id: string
+          estimate_patch: Json
+          acting_user_id?: string
+          correlation_id?: string
+        }
+        Returns: Json
+      }
+      delete_estimate_node_with_history: {
+        Args: {
+          target_project_id: string
+          target_estimate_id: string
+          target_node_id: string
+          acting_user_id?: string
+          correlation_id?: string
+        }
+        Returns: Json
+      }
       set_cost_library_component_lifecycle_state: {
         Args: {
           target_workspace_id: string
@@ -1341,6 +1861,15 @@ export type Database = {
       reorder_estimate_nodes: {
         Args: { target_estimate_id: string; move_updates: Json }
         Returns: number
+      }
+      reorder_estimate_nodes_with_history: {
+        Args: {
+          target_estimate_id: string
+          move_updates: Json
+          acting_user_id?: string
+          correlation_id?: string
+        }
+        Returns: Json
       }
       reorder_library_folders: {
         Args: { target_workspace_id: string; folder_updates: Json }

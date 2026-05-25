@@ -3,7 +3,9 @@ import type { EstimateRowItem, EstimateTreeNode } from "@/lib/estimates/types";
 export type EstimateRowItemPatch = {
   quantity?: number;
   itemCost?: number;
+  contingencyPercentage?: number;
   miscCost?: number;
+  rowRevision?: number;
 };
 
 export function findEstimateRowItemInTree(tree: EstimateTreeNode[], rowId: string): EstimateRowItem | null {
@@ -20,14 +22,20 @@ export function findEstimateRowItemInTree(tree: EstimateTreeNode[], rowId: strin
 function patchEstimateRowItem(item: EstimateRowItem, patch: EstimateRowItemPatch) {
   const quantity = patch.quantity ?? item.quantity;
   const itemCost = patch.itemCost ?? item.itemCost;
+  const contingencyPercentage = patch.contingencyPercentage ?? item.contingencyPercentage ?? 0;
   const miscCost = patch.miscCost ?? item.miscCost;
+  const subTotal = itemCost * quantity;
+  const contingencyValue = (subTotal * contingencyPercentage) / 100;
   return {
     ...item,
     quantity,
     itemCost,
-    subTotal: itemCost * quantity,
+    subTotal,
+    contingencyPercentage,
+    contingencyValue,
     miscCost,
-    totalItemCosts: itemCost * quantity + miscCost,
+    totalItemCosts: subTotal + miscCost + contingencyValue,
+    rowRevision: patch.rowRevision ?? item.rowRevision,
   };
 }
 

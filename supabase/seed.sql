@@ -27,20 +27,24 @@ on conflict (id) do update
       currency_code = excluded.currency_code,
       metadata = public.projects.metadata || excluded.metadata;
 
-insert into public.estimates (id, project_id, name, sheet_code, currency_code, metadata)
+insert into public.estimates (id, project_id, name, sheet_code, notes, currency_code, project_budget, metadata)
 values (
   '33333333-3333-4333-8333-333333333333',
   '22222222-2222-4222-8222-222222222222',
   'Lewis Residence Baseline Estimate',
   'Rev 0',
+  null,
   'PHP',
+  2000000.00,
   '{"seeded": true, "seedVersion": "2026-05-19-lewis-tree"}'::jsonb
 )
 on conflict (id) do update
   set project_id = excluded.project_id,
       name = excluded.name,
       sheet_code = excluded.sheet_code,
+      notes = excluded.notes,
       currency_code = excluded.currency_code,
+      project_budget = excluded.project_budget,
       metadata = public.estimates.metadata || excluded.metadata;
 
 insert into public.cost_library_items (id, workspace_id, kind, name, description, category, supplier, unit, unit_cost, misc_cost, pricing_source, confidence, metadata)

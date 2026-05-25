@@ -211,6 +211,8 @@ export function getEstimateTreeContentSignature(nodes: EstimateTreeNode[]): stri
           item.itemCost,
           item.quantity,
           item.subTotal,
+          item.contingencyPercentage,
+          item.contingencyValue,
           item.miscCost,
           item.totalItemCosts,
           item.category,

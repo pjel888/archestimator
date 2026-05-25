@@ -51,6 +51,8 @@ export type LibraryFolderDeletePlan = {
   liftedChildUpdates: LibraryFolderReorderUpdate[];
 };
 
+export type LibraryFolderCreatePlacement = "top" | "bottom";
+
 type LibraryFolderReorderFailureCode =
   | "unknown-dragged-folder"
   | "unknown-target-parent"
@@ -122,6 +124,17 @@ export function buildLibraryFolderTree(folders: LibraryFolderRecord[]): LibraryF
   }
 
   return attach(null);
+}
+
+export function getLibraryFolderCreateSortOrder(
+  siblings: Array<Pick<LibraryFolderRecord, "sort_order">>,
+  placement: LibraryFolderCreatePlacement = "bottom",
+) {
+  if (siblings.length === 0) return LIBRARY_FOLDER_SORT_ORDER_STEP;
+  if (placement === "top") {
+    return Math.min(...siblings.map((folder) => folder.sort_order)) - LIBRARY_FOLDER_SORT_ORDER_STEP;
+  }
+  return Math.max(...siblings.map((folder) => folder.sort_order)) + LIBRARY_FOLDER_SORT_ORDER_STEP;
 }
 
 function findFolderLocation(folders: LibraryFolderRecord[], id: string): FolderLocation | null {
