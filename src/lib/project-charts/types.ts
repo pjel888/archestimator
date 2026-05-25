@@ -21,6 +21,7 @@ export type ProjectChartRowFact = {
   sourceSupplierName: string | null;
   quantity: number;
   unitCost: number;
+  contingencyPercentage?: number;
   miscCost: number;
 };
 

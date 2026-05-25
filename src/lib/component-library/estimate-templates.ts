@@ -20,12 +20,15 @@ type TemplateRowInput = Pick<
   "id" | "material" | "description" | "supplier" | "unit" | "itemCost" | "quantity" | "miscCost" | "category" | "pricingSource" | "pricingDate"
 > & {
   categoryNodeId?: string;
+  contingencyPercentage?: number;
   discipline?: string;
   designation?: string;
 };
 
 function templateRow(input: TemplateRowInput): EstimateRowItem {
   const subTotal = input.itemCost * input.quantity;
+  const contingencyPercentage = input.contingencyPercentage ?? 0;
+  const contingencyValue = (subTotal * contingencyPercentage) / 100;
   return {
     ...input,
     name: input.material,
@@ -33,8 +36,10 @@ function templateRow(input: TemplateRowInput): EstimateRowItem {
     price: input.itemCost,
     currency: "PHP",
     subTotal,
+    contingencyPercentage,
+    contingencyValue,
     miscCostDefault: input.miscCost,
-    totalItemCosts: subTotal + input.miscCost,
+    totalItemCosts: subTotal + input.miscCost + contingencyValue,
   };
 }
 
