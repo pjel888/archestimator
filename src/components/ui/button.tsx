@@ -20,11 +20,11 @@ const variantClasses: Record<ButtonVariant, string> = {
 };
 
 const sizeClasses: Record<ButtonSize, string> = {
-  sm: "min-h-8 rounded-md p-2",
-  md: "min-h-9 rounded-md p-2",
-  icon: "grid size-9 place-items-center rounded-md p-0",
-  "icon-sm": "grid size-8 place-items-center rounded-sm p-0",
-  scrim: "fixed inset-0 cursor-default rounded-none p-0",
+  sm: "min-h-8 rounded-xs p-2",
+  md: "min-h-9 rounded-xs p-2",
+  icon: "grid size-9 place-items-center rounded-xs p-0",
+  "icon-sm": "grid size-8 place-items-center rounded-xs p-0",
+  scrim: "fixed inset-0 cursor-default p-0",
 };
 
 export function Button({ className, variant = "secondary", size = "md", type = "button", children, ...props }: ButtonProps) {
@@ -32,7 +32,7 @@ export function Button({ className, variant = "secondary", size = "md", type = "
     <button
       type={type}
       className={cn(
-        "inline-flex items-center justify-center gap-2 !text-[10px] !font-bold leading-none transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50",
+        "inline-flex items-center justify-center gap-2 !text-[10px] !font-medium leading-none transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50",
         variantClasses[variant],
         sizeClasses[size],
         className,

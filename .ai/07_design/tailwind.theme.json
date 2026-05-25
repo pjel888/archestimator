@@ -2,22 +2,22 @@
   "theme": {
     "extend": {
       "colors": {
-        "primary": "#ff7a1a",
-        "ink": "#111111",
-        "secondary": "#313130",
-        "tertiary": "#626260",
-        "muted": "#6b7280",
-        "hairline": "#e5e7eb",
-        "divider": "#cecfcb",
+        "primary": "#292929",
+        "ink": "#292929",
+        "secondary": "#5d5d5d",
+        "tertiary": "#7f7f7f",
+        "muted": "#7f7f7f",
+        "hairline": "#f2f2f2",
+        "divider": "#f2f2f2",
         "background": "#ffffff",
-        "canvas": "#f6f6f1",
-        "warmCanvas": "#f4f3ec",
+        "canvas": "#f5f5f5",
+        "warmCanvas": "#f5f5f5",
         "surface": "#ffffff",
-        "surfaceMuted": "#f6f6f1",
-        "surfaceWarm": "#f4f3ec",
-        "accent": "#ff7a1a",
-        "accentSoft": "#fff0e5",
-        "focus": "#ff7a1a",
+        "surfaceMuted": "#f5f5f5",
+        "surfaceWarm": "#f5f5f5",
+        "accent": "#292929",
+        "accentSoft": "#f5f5f5",
+        "focus": "#292929",
         "success": "#15803d",
         "successSoft": "#dcfce7",
         "warning": "#b45309",
@@ -49,25 +49,60 @@
           "Inter"
         ],
         "body-sm": [
-          "Inter"
+          "SF Pro Text",
+          "SF Pro Display",
+          "-apple-system",
+          "BlinkMacSystemFont",
+          "Segoe UI",
+          "sans-serif"
         ],
         "label": [
-          "Inter"
+          "SF Pro Text",
+          "SF Pro Display",
+          "-apple-system",
+          "BlinkMacSystemFont",
+          "Segoe UI",
+          "sans-serif"
         ],
         "label-sm": [
-          "Inter"
+          "SF Pro Text",
+          "SF Pro Display",
+          "-apple-system",
+          "BlinkMacSystemFont",
+          "Segoe UI",
+          "sans-serif"
         ],
         "nav-link": [
-          "Inter"
+          "SF Pro Text",
+          "SF Pro Display",
+          "-apple-system",
+          "BlinkMacSystemFont",
+          "Segoe UI",
+          "sans-serif"
         ],
         "button-text": [
-          "Inter"
+          "SF Pro Text",
+          "SF Pro Display",
+          "-apple-system",
+          "BlinkMacSystemFont",
+          "Segoe UI",
+          "sans-serif"
         ],
         "table-cell": [
-          "Inter"
+          "SF Pro Text",
+          "SF Pro Display",
+          "-apple-system",
+          "BlinkMacSystemFont",
+          "Segoe UI",
+          "sans-serif"
         ],
         "numeric": [
-          "Roboto Mono"
+          "SF Pro Text",
+          "SF Pro Display",
+          "-apple-system",
+          "BlinkMacSystemFont",
+          "Segoe UI",
+          "sans-serif"
         ],
         "proposal-body": [
           "Source Serif 4"
@@ -124,51 +159,51 @@
           }
         ],
         "body-sm": [
-          "0.875rem",
+          "10px",
           {
-            "letterSpacing": "-0.01em",
-            "fontWeight": "350"
+            "letterSpacing": "0em",
+            "fontWeight": "400"
           }
         ],
         "label": [
-          "0.875rem",
+          "10px",
           {
-            "letterSpacing": "-0.01em",
-            "fontWeight": "430"
-          }
-        ],
-        "label-sm": [
-          "0.75rem",
-          {
-            "letterSpacing": "0.03em",
+            "letterSpacing": "0em",
             "fontWeight": "500"
           }
         ],
-        "nav-link": [
-          "0.875rem",
+        "label-sm": [
+          "9px",
           {
-            "letterSpacing": "-0.01em",
+            "letterSpacing": "0em",
+            "fontWeight": "400"
+          }
+        ],
+        "nav-link": [
+          "10px",
+          {
+            "letterSpacing": "0em",
             "fontWeight": "400"
           }
         ],
         "button-text": [
-          "0.875rem",
+          "10px",
           {
-            "letterSpacing": "-0.01em",
+            "letterSpacing": "0em",
             "fontWeight": "500"
           }
         ],
         "table-cell": [
-          "0.8125rem",
+          "10px",
           {
-            "letterSpacing": "-0.005em",
+            "letterSpacing": "0em",
             "fontWeight": "400"
           }
         ],
         "numeric": [
-          "0.8125rem",
+          "10px",
           {
-            "letterSpacing": "-0.02em",
+            "letterSpacing": "0em",
             "fontWeight": "500"
           }
         ],
@@ -183,11 +218,11 @@
       "borderRadius": {
         "none": "0px",
         "xs": "3px",
-        "sm": "4px",
-        "md": "6px",
-        "lg": "8px",
-        "xl": "12px",
-        "full": "9999px"
+        "sm": "3px",
+        "md": "3px",
+        "lg": "3px",
+        "xl": "3px",
+        "full": "3px"
       },
       "spacing": {
         "xs": "4px",
@@ -204,120 +239,120 @@
         "12px",
         {
           "lineHeight": "16px",
-          "letterSpacing": "-0.01em",
-          "fontWeight": "700"
+          "letterSpacing": "0em",
+          "fontWeight": "500"
         }
       ],
       "app-subtitle": [
         "11px",
         {
           "lineHeight": "14px",
-          "letterSpacing": "-0.01em",
-          "fontWeight": "700"
+          "letterSpacing": "0em",
+          "fontWeight": "500"
         }
       ],
       "app-body": [
         "10px",
         {
           "lineHeight": "14px",
-          "letterSpacing": "-0.005em",
-          "fontWeight": "500"
+          "letterSpacing": "0em",
+          "fontWeight": "400"
         }
       ],
       "app-label": [
         "9px",
         {
           "lineHeight": "12px",
-          "letterSpacing": "0.08em",
-          "fontWeight": "700"
+          "letterSpacing": "0em",
+          "fontWeight": "500"
         }
       ],
       "app-label-sm": [
         "8px",
         {
           "lineHeight": "10px",
-          "letterSpacing": "0.08em",
-          "fontWeight": "700"
+          "letterSpacing": "0em",
+          "fontWeight": "400"
         }
       ],
       "app-button": [
         "10px",
         {
           "lineHeight": "12px",
-          "letterSpacing": "-0.005em",
-          "fontWeight": "700"
+          "letterSpacing": "0em",
+          "fontWeight": "500"
         }
       ],
       "app-table-cell": [
         "10px",
         {
           "lineHeight": "14px",
-          "letterSpacing": "-0.005em",
-          "fontWeight": "500"
+          "letterSpacing": "0em",
+          "fontWeight": "400"
         }
       ],
       "app-numeric": [
         "10px",
         {
           "lineHeight": "13px",
-          "letterSpacing": "-0.02em",
-          "fontWeight": "700"
+          "letterSpacing": "0em",
+          "fontWeight": "500"
         }
       ],
       "body-sm": [
         "10px",
         {
           "lineHeight": "14px",
-          "letterSpacing": "-0.005em",
-          "fontWeight": "500"
+          "letterSpacing": "0em",
+          "fontWeight": "400"
         }
       ],
       "label": [
-        "10px",
-        {
-          "lineHeight": "12px",
-          "letterSpacing": "-0.005em",
-          "fontWeight": "700"
-        }
-      ],
-      "label-sm": [
         "9px",
         {
           "lineHeight": "12px",
-          "letterSpacing": "0.08em",
-          "fontWeight": "700"
+          "letterSpacing": "0em",
+          "fontWeight": "500"
+        }
+      ],
+      "label-sm": [
+        "8px",
+        {
+          "lineHeight": "10px",
+          "letterSpacing": "0em",
+          "fontWeight": "400"
         }
       ],
       "nav-link": [
         "10px",
         {
           "lineHeight": "12px",
-          "letterSpacing": "-0.005em",
-          "fontWeight": "700"
+          "letterSpacing": "0em",
+          "fontWeight": "400"
         }
       ],
       "button-text": [
         "10px",
         {
           "lineHeight": "12px",
-          "letterSpacing": "-0.005em",
-          "fontWeight": "700"
+          "letterSpacing": "0em",
+          "fontWeight": "500"
         }
       ],
       "table-cell": [
         "10px",
         {
           "lineHeight": "14px",
-          "letterSpacing": "-0.005em",
-          "fontWeight": "500"
+          "letterSpacing": "0em",
+          "fontWeight": "400"
         }
       ],
       "numeric": [
         "10px",
         {
           "lineHeight": "13px",
-          "letterSpacing": "-0.02em",
-          "fontWeight": "700"
+          "letterSpacing": "0em",
+          "fontWeight": "500"
         }
       ]
     }

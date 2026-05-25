@@ -71,7 +71,7 @@ export function WorkshopTreeRow({
   ...props
 }: WorkshopTreeRowProps) {
   const rowClassName = cn(
-    "group flex w-full min-w-0 items-center rounded-sm border px-1.5 py-0 text-left text-ink outline-none transition focus-visible:ring-2 focus-visible:ring-focus",
+    "group flex w-full min-w-0 items-center rounded-xs border px-1.5 py-0 text-left text-ink outline-none transition focus-visible:ring-2 focus-visible:ring-focus",
     WORKSHOP_TREE_ROW_MIN_HEIGHT_CLASS,
     WORKSHOP_TREE_TEXT_CLASS,
     selected ? "border-accent bg-accent-soft" : "border-transparent bg-white hover:bg-surfaceMuted",
@@ -218,7 +218,7 @@ export function WorkshopTreeTabs<TTab extends string>({
           role="tab"
           aria-selected={activeTab === tab.id}
           className={cn(
-            "relative h-full rounded-t-md border border-b-0 px-3 text-[10px] font-bold leading-none transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus",
+            "relative h-full rounded-xs border border-b-0 px-3 text-[10px] font-medium leading-none transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus",
             activeTab === tab.id
               ? "z-10 bg-white text-ink border-hairline -mb-px"
               : "bg-surfaceMuted text-tertiary border-transparent hover:text-ink hover:border-hairline",

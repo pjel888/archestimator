@@ -23,14 +23,14 @@ export function Chip({ className, tone = "neutral", active = false, removable = 
       type={type}
       aria-pressed={active || undefined}
       className={cn(
-        "inline-flex min-h-5 items-center gap-1 rounded-sm border px-1.5 py-px !text-[9px] font-bold leading-none transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-1 disabled:pointer-events-none disabled:opacity-50",
+        "inline-flex min-h-5 items-center gap-1 rounded-xs border px-1.5 py-px !text-[9px] font-medium leading-none transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-1 disabled:pointer-events-none disabled:opacity-50",
         active ? "border-ink bg-ink text-white hover:border-ink" : toneClasses[tone],
         className,
       )}
       {...props}
     >
       <span className="truncate">{children}</span>
-      {removable ? <X size={9} weight="bold" aria-hidden="true" /> : null}
+      {removable ? <X size={9} weight="regular" aria-hidden="true" /> : null}
     </button>
   );
 }

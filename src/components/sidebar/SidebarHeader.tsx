@@ -37,7 +37,7 @@ export function SidebarHeader({ expanded, onToggle }: SidebarHeaderProps) {
       <div aria-hidden="true" className="absolute bottom-0 border-b border-hairline" style={dividerStyle} />
       <div className="p-2">
         <div
-          className="relative overflow-hidden rounded-md bg-secondary text-white ring-1 ring-black/10 transition-[width,height] duration-[180ms] ease-out motion-reduce:transition-none"
+          className="relative overflow-hidden rounded-xs bg-secondary text-white ring-1 ring-black/10 transition-[width,height] duration-[180ms] ease-out motion-reduce:transition-none"
           style={{
             width: frameWidth,
             height: frameHeight,
@@ -56,7 +56,10 @@ export function SidebarHeader({ expanded, onToggle }: SidebarHeaderProps) {
                   markSize={32}
                   priority
                   showWordmark={expanded}
-                  className="text-white transition-[opacity,transform] duration-[180ms] ease-out motion-reduce:transform-none motion-reduce:transition-none"
+                  className={[
+                    "text-white transition-[opacity,transform,background-color,box-shadow] duration-[180ms] ease-out motion-reduce:transform-none motion-reduce:transition-none",
+                    expanded ? "" : "size-8 justify-center rounded-xs bg-white/[0.10] ring-1 ring-white/16 backdrop-blur-[1px]",
+                  ].join(" ")}
                   markClassName="size-8"
                   separatorClassName="hidden"
                   wordmarkClassName="text-[12px] leading-none text-white drop-shadow-sm"
@@ -66,7 +69,7 @@ export function SidebarHeader({ expanded, onToggle }: SidebarHeaderProps) {
               <div className={["flex w-full items-center overflow-hidden pt-2", expanded ? "justify-start" : "justify-center"].join(" ")}>
                 <div
                   className={[
-                    "flex min-w-0 items-center rounded-sm bg-white/[0.08] text-white/82 ring-1 ring-white/16 backdrop-blur-[1px] transition-[width,padding,opacity] duration-[180ms] ease-out motion-reduce:transition-none",
+                    "flex min-w-0 items-center rounded-xs bg-white/[0.08] text-white/82 ring-1 ring-white/16 backdrop-blur-[1px] transition-[width,padding,opacity] duration-[180ms] ease-out motion-reduce:transition-none",
                     expanded ? "h-7 w-full gap-1.5 px-2.5 opacity-90" : "h-8 w-full justify-center px-0 opacity-85",
                   ].join(" ")}
                   aria-label="Workspace shell"
@@ -74,7 +77,7 @@ export function SidebarHeader({ expanded, onToggle }: SidebarHeaderProps) {
                 >
                   <Crown size={expanded ? 12 : 15} weight="regular" className="shrink-0 text-white/78" />
                   {expanded && (
-                    <span className="min-w-0 truncate whitespace-nowrap text-[10px] font-medium leading-none tracking-[0.03em] text-white/78">
+                    <span className="min-w-0 truncate whitespace-nowrap text-[10px] font-medium leading-none tracking-normal text-white/78">
                       Workshop
                     </span>
                   )}

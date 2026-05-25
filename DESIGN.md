@@ -1,24 +1,24 @@
 ---
 version: alpha
-name: Archestimator Intercom-Inspired Workspace
-description: Intercom-grade editorial SaaS design adapted to full-browser construction estimating workspaces.
+name: Archestimator Product Design System
+description: SF Pro, crisp-xs, neutral product UI for every non-landing Archestimator surface; landing pages may stay more experimental.
 colors:
-  primary: "#FF7A1A"
-  ink: "#111111"
-  secondary: "#313130"
-  tertiary: "#626260"
-  muted: "#6B7280"
-  hairline: "#E5E7EB"
-  divider: "#CECFCB"
+  primary: "#292929"
+  ink: "#292929"
+  secondary: "#5D5D5D"
+  tertiary: "#7F7F7F"
+  muted: "#7F7F7F"
+  hairline: "#F2F2F2"
+  divider: "#F2F2F2"
   background: "#FFFFFF"
-  canvas: "#F4F7FA"
-  warmCanvas: "#F4F7FA"
+  canvas: "#F5F5F5"
+  warmCanvas: "#F5F5F5"
   surface: "#FFFFFF"
-  surfaceMuted: "#F4F7FA"
-  surfaceWarm: "#F4F7FA"
-  accent: "#FF7A1A"
-  accentSoft: "#FFF0E5"
-  focus: "#FF7A1A"
+  surfaceMuted: "#F5F5F5"
+  surfaceWarm: "#F5F5F5"
+  accent: "#292929"
+  accentSoft: "#F5F5F5"
+  focus: "#292929"
   success: "#15803D"
   successSoft: "#DCFCE7"
   warning: "#B45309"
@@ -87,114 +87,113 @@ typography:
 
   # Product/workshop/app scale. This is the default outside the landing page.
   app-title:
-    fontFamily: "Inter"
+    fontFamily: "SF Pro"
     fontSize: 12px
-    fontWeight: 700
+    fontWeight: 500
     lineHeight: 16px
-    letterSpacing: "-0.01em"
-    maxOutsideLanding: true
+    letterSpacing: "0em"
   app-subtitle:
-    fontFamily: "Inter"
+    fontFamily: "SF Pro"
     fontSize: 11px
-    fontWeight: 700
+    fontWeight: 500
     lineHeight: 14px
-    letterSpacing: "-0.01em"
+    letterSpacing: "0em"
   app-body:
-    fontFamily: "Inter"
+    fontFamily: "SF Pro"
     fontSize: 10px
-    fontWeight: 500
+    fontWeight: 400
     lineHeight: 14px
-    letterSpacing: "-0.005em"
+    letterSpacing: "0em"
   app-body-muted:
-    fontFamily: "Inter"
+    fontFamily: "SF Pro"
     fontSize: 10px
-    fontWeight: 500
+    fontWeight: 400
     lineHeight: 14px
-    letterSpacing: "-0.005em"
+    letterSpacing: "0em"
   app-label:
-    fontFamily: "Inter"
+    fontFamily: "SF Pro"
     fontSize: 9px
-    fontWeight: 700
+    fontWeight: 500
     lineHeight: 12px
-    letterSpacing: "0.08em"
+    letterSpacing: "0em"
   app-label-sm:
-    fontFamily: "Inter"
+    fontFamily: "SF Pro"
     fontSize: 8px
-    fontWeight: 700
+    fontWeight: 400
     lineHeight: 10px
-    letterSpacing: "0.08em"
+    letterSpacing: "0em"
   app-button:
-    fontFamily: "Inter"
-    fontSize: 10px
-    fontWeight: 700
-    lineHeight: 12px
-    letterSpacing: "-0.005em"
-  app-table-cell:
-    fontFamily: "Inter"
+    fontFamily: "SF Pro"
     fontSize: 10px
     fontWeight: 500
-    lineHeight: 14px
-    letterSpacing: "-0.005em"
-  app-numeric:
-    fontFamily: "Roboto Mono"
+    lineHeight: 12px
+    letterSpacing: "0em"
+  app-table-cell:
+    fontFamily: "SF Pro"
     fontSize: 10px
-    fontWeight: 700
+    fontWeight: 400
+    lineHeight: 14px
+    letterSpacing: "0em"
+  app-numeric:
+    fontFamily: "SF Pro"
+    fontSize: 10px
+    fontWeight: 500
     lineHeight: 13px
-    letterSpacing: "-0.02em"
+    letterSpacing: "0em"
     fontFeature: "tnum"
 
   # Legacy aliases retained only for landing/proposal compatibility. Product UI must use app-* tokens above.
   body-sm:
-    fontFamily: "Inter"
+    fontFamily: "SF Pro"
     fontSize: 10px
-    fontWeight: 500
+    fontWeight: 400
     lineHeight: 14px
-    letterSpacing: "-0.005em"
+    letterSpacing: "0em"
   label:
-    fontFamily: "Inter"
-    fontSize: 10px
-    fontWeight: 700
-    lineHeight: 12px
-    letterSpacing: "-0.005em"
-  label-sm:
-    fontFamily: "Inter"
+    fontFamily: "SF Pro"
     fontSize: 9px
-    fontWeight: 700
+    fontWeight: 500
     lineHeight: 12px
-    letterSpacing: "0.08em"
+    letterSpacing: "0em"
+  label-sm:
+    fontFamily: "SF Pro"
+    fontSize: 8px
+    fontWeight: 400
+    lineHeight: 10px
+    letterSpacing: "0em"
   nav-link:
-    fontFamily: "Inter"
+    fontFamily: "SF Pro"
     fontSize: 10px
-    fontWeight: 700
+    fontWeight: 400
     lineHeight: 12px
-    letterSpacing: "-0.005em"
+    letterSpacing: "0em"
   button-text:
-    fontFamily: "Inter"
-    fontSize: 10px
-    fontWeight: 700
-    lineHeight: 12px
-    letterSpacing: "-0.005em"
-  table-cell:
-    fontFamily: "Inter"
+    fontFamily: "SF Pro"
     fontSize: 10px
     fontWeight: 500
-    lineHeight: 14px
-    letterSpacing: "-0.005em"
-  numeric:
-    fontFamily: "Roboto Mono"
+    lineHeight: 12px
+    letterSpacing: "0em"
+  table-cell:
+    fontFamily: "SF Pro"
     fontSize: 10px
-    fontWeight: 700
+    fontWeight: 400
+    lineHeight: 14px
+    letterSpacing: "0em"
+  numeric:
+    fontFamily: "SF Pro"
+    fontSize: 10px
+    fontWeight: 500
     lineHeight: 13px
-    letterSpacing: "-0.02em"
+    letterSpacing: "0em"
     fontFeature: "tnum"
 rounded:
   none: 0px
   xs: 3px
-  sm: 4px
-  md: 6px
-  lg: 8px
-  xl: 12px
-  full: 9999px
+  sm: 3px
+  md: 3px
+  lg: 3px
+  xl: 3px
+  full: 3px
 spacing:
   xs: 4px
   sm: 8px
@@ -208,65 +207,65 @@ components:
     backgroundColor: "{colors.primary}"
     textColor: "{colors.surface}"
     typography: "{typography.button-text}"
-    rounded: "{rounded.md}"
+    rounded: "{rounded.xs}"
     padding: 10px
     height: 40px
   button-primary-hover:
     backgroundColor: "{colors.secondary}"
     textColor: "{colors.surface}"
     typography: "{typography.button-text}"
-    rounded: "{rounded.md}"
+    rounded: "{rounded.xs}"
     padding: 10px
     height: 40px
   button-secondary:
     backgroundColor: "{colors.surface}"
     textColor: "{colors.ink}"
     typography: "{typography.button-text}"
-    rounded: "{rounded.sm}"
+    rounded: "{rounded.xs}"
     padding: 10px
     height: 40px
   button-link:
     backgroundColor: "{colors.surface}"
     textColor: "{colors.ink}"
     typography: "{typography.nav-link}"
-    rounded: "{rounded.none}"
+    rounded: "{rounded.xs}"
     padding: 0px
   app-sidebar:
     backgroundColor: "{colors.surface}"
     textColor: "{colors.ink}"
     typography: "{typography.nav-link}"
-    rounded: "{rounded.none}"
+    rounded: "{rounded.xs}"
     width: 248px
   app-sidebar-collapsed:
     backgroundColor: "{colors.surface}"
     textColor: "{colors.ink}"
     typography: "{typography.nav-link}"
-    rounded: "{rounded.none}"
+    rounded: "{rounded.xs}"
     width: 56px
   workspace-panel:
     backgroundColor: "{colors.surface}"
     textColor: "{colors.ink}"
     typography: "{typography.body-sm}"
-    rounded: "{rounded.lg}"
+    rounded: "{rounded.xs}"
     padding: 16px
   product-card:
     backgroundColor: "{colors.surface}"
     textColor: "{colors.ink}"
     typography: "{typography.body}"
-    rounded: "{rounded.lg}"
+    rounded: "{rounded.xs}"
     padding: 16px
   input:
     backgroundColor: "{colors.surface}"
     textColor: "{colors.ink}"
     typography: "{typography.body-sm}"
-    rounded: "{rounded.sm}"
+    rounded: "{rounded.xs}"
     padding: 12px
     height: 40px
   chip:
     backgroundColor: "{colors.surface}"
     textColor: "{colors.ink}"
     typography: "{typography.label-sm}"
-    rounded: "{rounded.full}"
+    rounded: "{rounded.xs}"
     padding: 6px
   estimate-cell:
     backgroundColor: "{colors.surface}"
@@ -284,43 +283,43 @@ components:
     backgroundColor: "{colors.primary}"
     textColor: "{colors.surface}"
     typography: "{typography.numeric}"
-    rounded: "{rounded.lg}"
+    rounded: "{rounded.xs}"
     padding: 16px
   library-card:
     backgroundColor: "{colors.surface}"
     textColor: "{colors.ink}"
     typography: "{typography.body-sm}"
-    rounded: "{rounded.lg}"
+    rounded: "{rounded.xs}"
     padding: 16px
   proposal-page:
     backgroundColor: "{colors.proposalPaper}"
     textColor: "{colors.ink}"
     typography: "{typography.proposal-body}"
-    rounded: "{rounded.sm}"
+    rounded: "{rounded.xs}"
     padding: 32px
   status-approved:
     backgroundColor: "{colors.successSoft}"
     textColor: "{colors.success}"
     typography: "{typography.label-sm}"
-    rounded: "{rounded.full}"
+    rounded: "{rounded.xs}"
     padding: 6px
   status-review:
     backgroundColor: "{colors.warningSoft}"
     textColor: "{colors.warning}"
     typography: "{typography.label-sm}"
-    rounded: "{rounded.full}"
+    rounded: "{rounded.xs}"
     padding: 6px
   status-danger:
     backgroundColor: "{colors.dangerSoft}"
     textColor: "{colors.danger}"
     typography: "{typography.label-sm}"
-    rounded: "{rounded.full}"
+    rounded: "{rounded.xs}"
     padding: 6px
 ---
 
 ## Overview
 
-Archestimator adopts an **Intercom-grade editorial SaaS design language**: calm, high-contrast, spacious, precise, and product-led. Intercom is the external reference for marketing rhythm, typography scale, CTA hierarchy, monochrome restraint, product mockup treatment, and polished illustration style. Legacy Archestimator frontend v4 is the internal reference for the application shell: full-height workspace, persistent left navigation, project/area tree, central estimate sheet, and docked contextual panels.
+Archestimator uses a strict **SF Pro product design system** outside the landing page: regular/medium typography, neutral colors, 1px-outline-style icons, and xs-only radius. The landing page may remain more experimental and can keep larger editorial rhythms, but app/workshop UI must stay enforceable and product-like.
 
 The result should not be a generic construction dashboard. It should feel like premium SaaS for contractors and design-build teams: editorial on public/landing pages, efficient and full-browser in the authenticated app, and document-like in proposal output.
 
@@ -335,38 +334,43 @@ Primary product surfaces:
 
 ## Colors
 
-- **Primary / ink (`#000000`, `#111111`)** anchor the brand, headings, decisive actions, totals, and high-emphasis UI. Public and dashboard chrome should be mostly monochrome.
-- **Tertiary / muted (`#626260`, `#6B7280`)** support navigation, metadata, descriptions, empty states, labels, and passive states. Do not use muted text for financial totals or critical risk indicators.
-- **Canvas / cool muted surfaces (`#F4F7FA`)** create subtle blue-leaning gray chapter backgrounds, dashboard bands, product mockup wells, and low-noise secondary surfaces. Avoid older warm gray families inside app/workshop surfaces.
+- **Strong (`#292929`)** anchors headings, active actions, totals, and high-emphasis UI.
+- **Default (`#5D5D5D`)** is the normal app/workshop text color for body copy and controls.
+- **Subtle (`#7F7F7F`)** supports navigation, metadata, descriptions, empty states, labels, and passive states. Do not use subtle text for financial totals or critical risk indicators.
+- **Selected background (`#F5F5F5`)** is the only neutral selected/hover surface outside semantic success/warning/danger states.
 - **Surface (`#FFFFFF`)** is the dominant canvas for landing, cards, grid cells, forms, panels, and modals.
-- **Hairline / divider (`#E5E7EB`, `#CECFCB`)** replace heavy shadows. Use thin borders, crop marks, and whitespace for separation.
-- **Primary orange (`#FF7A1A`)** is the precise Intercom-inspired Archestimator highlight. Use it for primary CTAs, focus rings, orange asterisk markers, selected-cell affordances, links, and technical emphasis.
+- **Border (`#F2F2F2`)** replaces heavy shadows. Use thin borders and whitespace for separation.
 - **Functional colors** retain meaning only: success for approved/current/safe, warning for provisional/source-review/cost-risk, danger for destructive/error/excluded/cost increase.
 - **Proposal paper (`#FFFDF8`)** distinguishes client-facing documents from app dashboards.
 
-Color discipline is mandatory: black/white/off-white remain the visual system; orange is the primary Archestimator accent and should appear as deliberate asterisks, active states, CTAs, and precision marks rather than broad decoration.
+Color discipline is mandatory outside the landing page: use strong/default/subtle text, selected background, and border tokens first. Orange is landing/brand expression only unless Philip explicitly approves a named app exception.
 
 ## Typography
 
-Use the Intercom model: large editorial sans headlines, compact body copy, restrained labels, and clear numeric scanning.
+Use the attached product-reference model outside the landing page for font family, weights, colors, icon style, and radius, while preserving Archestimator's compact app font-size density.
 
-- **Preferred implementation font:** Inter for now, with future option to evaluate Saans/MediumLL-like licensed fonts. Do not block implementation on paid fonts.
+- **App/workshop font:** SF Pro via the system stack: `"SF Pro Text", "SF Pro Display", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif`.
+- **App/workshop weights:** regular (`400`) and medium (`500`) only. No bold, semibold, mono, serif, or Poppins in app UI.
+- **App/workshop sizes:** `12px` maximum. Use `12px` for strongest titles only, `11px` for subtitles/secondary headings, `10px` for body, nav, controls, inputs, tabs, chips, buttons, table cells, and numeric values, and `8-9px` for meta/eyebrow labels.
+- **Hierarchy invariant:** labels, eyebrows, metadata, helper copy, and muted subheaders must never render larger than the input/control/body text they describe. Use `8-9px` for labels/meta and keep muted supporting text at `10px` or below.
+- **App/workshop letter spacing:** `0`. Do not use negative tracking, wide uppercase tracking, or arbitrary tracking utilities.
+- **App/workshop icons:** regular 1px-outline-style iconography. Current Phosphor icons must use regular weight until/unless a dedicated 1px icon library is approved.
 - **Display / headline:** light-to-regular weight, very tight tracking, intentional line breaks, generous surrounding whitespace. Use for landing hero, dashboard hero, major product statements, and empty-state moments.
 - **Body copy:** compact, calm, and short. Public pages should avoid dense paragraphs. App panels should use `body-sm` where useful but stay readable for long estimating sessions.
 - **Labels/navigation/buttons:** small sans-serif, high clarity, not over-bold. CTAs are compact and precise, not oversized marketing pills.
-- **Numeric:** Roboto Mono with tabular numbers for quantities, unit costs, subtotals, totals, deltas, percentages, and version comparison values.
+- **Numeric:** SF Pro with tabular numbers for quantities, unit costs, subtotals, totals, deltas, percentages, and version comparison values.
 - **Proposal body:** Source Serif 4 remains for formal client-facing proposal paragraphs, terms, assumptions, and signature blocks.
 
 Target text rhythm:
 
 - Landing H1: 64px desktop / 42–48px tablet / 34–38px mobile.
 - Landing section H2: 45px desktop / 34px tablet / 28px mobile.
-- Outside the public landing page, **12px is the hard maximum** for visible UI text unless Philip explicitly approves a one-off exception.
-- App/workshop/card titles: 12px maximum, bold enough for hierarchy but never marketing-sized.
-- App subtitles and secondary headings: around 11px.
-- App body, nav, controls, tables, inputs, tabs, chips, toolbar labels, and button text: normally 10px.
-- App meta/eyebrow labels: 8–9px.
-- Estimate cells: normally 10px with strong contrast and enough row height for scanning; do not solve readability by increasing beyond 12px.
+- Outside the public landing page, **12px is the hard maximum** unless Philip explicitly approves a named exception.
+- App/workshop/card titles: `12px` maximum.
+- App subtitles and secondary headings: around `11px`.
+- App body, nav, controls, tables, inputs, tabs, chips, toolbar labels, and button text: normally `10px`.
+- App meta/eyebrow/helper labels: `8-9px`; these must be visually smaller than paired inputs, controls, values, and body text.
+- Estimate cells: normally `10px` with strong contrast, tabular numbers, and enough row height for scanning.
 
 ## Component reuse contract
 
@@ -378,15 +382,15 @@ Mandatory rules:
 - Do not create new one-off search inputs. Use and extend the shared search/input primitive, currently `src/components/ui/search-input.tsx` when present, or create it once under `src/components/ui/` and reuse it.
 - Do not create one-off icon-button patterns. Add a variant/size to the shared button primitive instead.
 - Do not duplicate card, chip, tab, filter, dropdown, field, toolbar, panel, empty-state, or inspector patterns inside route files. Extract a shared primitive or workshop component when the pattern appears more than once.
-- New UI primitives must encode this design scale internally: app text no larger than 12px, normal controls around 10px, compact padding, accessible states, and token-aligned colors.
+- New UI primitives must encode this design scale internally: SF Pro stack, regular/medium weights, allowed sizes only, xs radius only, zero tracking, compact padding, accessible states, and token-aligned colors.
 - Form-control font resets must live inside Tailwind `@layer base`; an unlayered `button { font: inherit; }` after `@import "tailwindcss"` can override app button text utilities and create anchor/button typography drift.
 - A visible duplicated button/search/input/icon-button implementation is a blocking design-system defect, not harmless polish.
 
 ## Layout
 
-### Public landing and dashboard entry
+### Public landing
 
-Follow Intercom’s long-form product narrative:
+Landing pages are exempt from the strict app/workshop system and may use the more experimental editorial direction:
 
 1. thin announcement/product-update bar when relevant;
 2. compact global nav with logo left, navigation center, CTAs right;
@@ -440,13 +444,11 @@ Avoid heavy drop shadows, glass effects, gradients, glossy cards, and generic da
 
 ## Shapes
 
-Shapes are crisp and restrained:
+Shapes are crisp and restrained outside the landing page:
 
-- `none`/`xs`: table lines, grid cells, dense controls;
-- `sm`/`md`: buttons, inputs, tabs;
-- `lg`: product cards, library cards, panels;
-- `xl`: marketing mockup blocks and major empty states only;
-- `full`: chips/status pills only.
+- `xs` (`3px`) is the only app/workshop border radius.
+- Do not use `rounded`, `rounded-sm`, `rounded-md`, `rounded-lg`, `rounded-xl`, `rounded-full`, arbitrary radius utilities, or CSS radius values other than `3px` outside landing-approved surfaces.
+- Use no radius only when there is no border radius class/value at all; do not encode `rounded-none` as an app surface style.
 
 Do not over-round estimating, financial, or proposal surfaces. The product should feel precise and architectural, not toy-like.
 
@@ -454,10 +456,10 @@ Do not over-round estimating, financial, or proposal surfaces. The product shoul
 
 ### Buttons and CTAs
 
-- Public and dashboard primary CTA: orange filled button, 40px height, compact padding.
+- Public landing primary CTA: landing-approved experimental styling.
 - Secondary CTA: white/outlined button with dark text and thin border.
 - Tertiary CTA: text link, often underlined or arrowed.
-- App primary actions use orange for Create, Add selected item, Duplicate revision, Issue proposal, and Export while preserving black for text/ink hierarchy.
+- App primary actions use strong neutral (`#292929`) for Create, Add selected item, Duplicate revision, Issue proposal, and Export while preserving clear text/ink hierarchy.
 - Destructive actions use danger styling and confirmation.
 
 ### Navigation
@@ -532,14 +534,15 @@ Do not make client-facing proposal pages look like raw admin dashboards or Inter
 
 ### Do
 
-- Use Intercom as the design-language benchmark for public landing, dashboard polish, typography scale, monochrome restraint, CTAs, art direction, and section rhythm.
+- Use the attached SF Pro neutral product reference for app/workshop UI.
+- Use Intercom/editorial references only for public landing, typography scale, CTA rhythm, art direction, and section rhythm.
 - Use legacy Archestimator frontend v4 as the layout benchmark for the authenticated app shell: full-height workspace, left nav, project tree, central estimate sheet, docked right panel.
 - Maximize the whole browser for app workflows; remove centered max-width caps from workspace routes.
 - Make the estimate grid the primary surface on estimate routes.
 - Keep public pages spacious, editorial, and proof-led.
 - Keep app pages compact, aligned, and efficient for long work sessions.
-- Use orange primary CTAs and outlined secondary CTAs.
-- Use orange as the precise focus/link/technical accent.
+- Use strong neutral primary CTAs and outlined secondary CTAs in app/workshop UI.
+- Use the neutral selected background and border tokens for app focus/selection unless a semantic state requires success/warning/danger.
 - Use real product UI mockups and monochrome sketch-style illustrations.
 - Keep controls accessible with semantic buttons/links, visible focus rings, and full labels.
 - Update this DESIGN.md before introducing new visual language.
@@ -552,6 +555,8 @@ Do not make client-facing proposal pages look like raw admin dashboards or Inter
 - Do not use construction-orange as the brand accent.
 - Do not use heavy shadows, gradients, glassmorphism, blueprint clichés, or decorative dashboard clutter.
 - Do not make buttons overly rounded, oversized, or visually loud.
+- Do not use any app/workshop radius except `xs`.
+- Do not use app/workshop font weights beyond regular/medium or font sizes above `12px`.
 - Do not invent one-off button, badge, table, panel, or card styles outside this system.
 - Do not hide financial risk, source confidence, proposal state, or revision changes behind vague icons.
 - Do not imitate Intercom’s support/helpdesk content; only adapt its design standards to Archestimator’s estimating domain.

@@ -50,7 +50,7 @@ export function ToolbarTooltip({ id, label, open, anchorRef }: ToolbarTooltipPro
     <span
       id={id}
       role="tooltip"
-      className="pointer-events-none fixed z-[1100] max-w-[calc(100vw-16px)] whitespace-nowrap rounded-sm border border-hairline bg-ink px-1.5 py-1 text-[9px] font-bold leading-none text-white opacity-100 shadow-sm"
+      className="pointer-events-none fixed z-[1100] max-w-[calc(100vw-16px)] whitespace-nowrap rounded-xs border border-hairline bg-ink px-1.5 py-1 text-[9px] font-medium leading-none text-white opacity-100 shadow-sm"
       style={{ left: position.left, top: position.top }}
     >
       {label}

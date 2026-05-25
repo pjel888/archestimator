@@ -1,83 +1,83 @@
 {
   "$schema": "https://www.designtokens.org/schemas/2025.10/format.json",
-  "$description": "Intercom-grade editorial SaaS design adapted to full-browser construction estimating workspaces.",
+  "$description": "SF Pro, xs-radius, neutral product UI for non-landing Archestimator surfaces; landing pages may remain experimental.",
   "color": {
     "$type": "color",
     "primary": {
       "$value": {
         "colorSpace": "srgb",
         "components": [
-          1,
-          0.478,
-          0.102
+          0.161,
+          0.161,
+          0.161
         ],
-        "hex": "#ff7a1a"
+        "hex": "#292929"
       }
     },
     "ink": {
       "$value": {
         "colorSpace": "srgb",
         "components": [
-          0.067,
-          0.067,
-          0.067
+          0.161,
+          0.161,
+          0.161
         ],
-        "hex": "#111111"
+        "hex": "#292929"
       }
     },
     "secondary": {
       "$value": {
         "colorSpace": "srgb",
         "components": [
-          0.192,
-          0.192,
-          0.188
+          0.365,
+          0.365,
+          0.365
         ],
-        "hex": "#313130"
+        "hex": "#5d5d5d"
       }
     },
     "tertiary": {
       "$value": {
         "colorSpace": "srgb",
         "components": [
-          0.384,
-          0.384,
-          0.376
+          0.498,
+          0.498,
+          0.498
         ],
-        "hex": "#626260"
+        "hex": "#7f7f7f"
       }
     },
     "muted": {
       "$value": {
         "colorSpace": "srgb",
         "components": [
-          0.42,
-          0.447,
-          0.502
+          0.498,
+          0.498,
+          0.498
         ],
-        "hex": "#6b7280"
+        "hex": "#7f7f7f"
       }
     },
     "hairline": {
       "$value": {
         "colorSpace": "srgb",
         "components": [
-          0.898,
-          0.906,
-          0.922
+          0.949,
+          0.949,
+          0.949
         ],
-        "hex": "#e5e7eb"
+        "hex": "#f2f2f2"
       }
     },
     "divider": {
       "$value": {
         "colorSpace": "srgb",
         "components": [
-          0.808,
-          0.812,
-          0.796
+          0.949,
+          0.949,
+          0.949
         ],
-        "hex": "#cecfcb"
+        "hex": "#f2f2f2"
       }
     },
     "background": {
@@ -95,22 +95,22 @@
       "$value": {
         "colorSpace": "srgb",
         "components": [
-          0.965,
-          0.965,
-          0.945
+          0.961,
+          0.961,
+          0.961
         ],
-        "hex": "#f6f6f1"
+        "hex": "#f5f5f5"
       }
     },
     "warmCanvas": {
       "$value": {
         "colorSpace": "srgb",
         "components": [
-          0.957,
-          0.953,
-          0.925
+          0.961,
+          0.961,
+          0.961
         ],
-        "hex": "#f4f3ec"
+        "hex": "#f5f5f5"
       }
     },
     "surface": {
@@ -128,55 +128,55 @@
       "$value": {
         "colorSpace": "srgb",
         "components": [
-          0.965,
-          0.965,
-          0.945
+          0.961,
+          0.961,
+          0.961
         ],
-        "hex": "#f6f6f1"
+        "hex": "#f5f5f5"
       }
     },
     "surfaceWarm": {
       "$value": {
         "colorSpace": "srgb",
         "components": [
-          0.957,
-          0.953,
-          0.925
+          0.961,
+          0.961,
+          0.961
         ],
-        "hex": "#f4f3ec"
+        "hex": "#f5f5f5"
       }
     },
     "accent": {
       "$value": {
         "colorSpace": "srgb",
         "components": [
-          1,
-          0.478,
-          0.102
+          0.161,
+          0.161,
+          0.161
         ],
-        "hex": "#ff7a1a"
+        "hex": "#292929"
       }
     },
     "accentSoft": {
       "$value": {
         "colorSpace": "srgb",
         "components": [
-          1,
-          0.941,
-          0.898
+          0.961,
+          0.961,
+          0.961
         ],
-        "hex": "#fff0e5"
+        "hex": "#f5f5f5"
       }
     },
     "focus": {
       "$value": {
         "colorSpace": "srgb",
         "components": [
-          1,
-          0.478,
-          0.102
+          0.161,
+          0.161,
+          0.161
         ],
-        "hex": "#ff7a1a"
+        "hex": "#292929"
       }
     },
     "success": {
@@ -311,40 +311,22 @@
       }
     },
     "xs": {
-      "$value": {
-        "value": 3,
-        "unit": "px"
-      }
+      "$value": "3px"
     },
     "sm": {
-      "$value": {
-        "value": 4,
-        "unit": "px"
-      }
+      "$value": "3px"
     },
     "md": {
-      "$value": {
-        "value": 6,
-        "unit": "px"
-      }
+      "$value": "3px"
     },
     "lg": {
-      "$value": {
-        "value": 8,
-        "unit": "px"
-      }
+      "$value": "3px"
     },
     "xl": {
-      "$value": {
-        "value": 12,
-        "unit": "px"
-      }
+      "$value": "3px"
     },
     "full": {
-      "$value": {
-        "value": 9999,
-        "unit": "px"
-      }
+      "$value": "3px"
     }
   },
   "typography": {
@@ -456,106 +438,71 @@
     "body-sm": {
       "$type": "typography",
       "$value": {
-        "fontFamily": "Inter",
-        "fontSize": {
-          "value": 0.875,
-          "unit": "rem"
-        },
-        "fontWeight": 350,
-        "letterSpacing": {
-          "value": -0.01,
-          "unit": "em"
-        }
+        "fontFamily": "SF Pro",
+        "fontSize": "10px",
+        "fontWeight": "400",
+        "letterSpacing": "0em",
+        "lineHeight": "14px"
       }
     },
     "label": {
       "$type": "typography",
       "$value": {
-        "fontFamily": "Inter",
-        "fontSize": {
-          "value": 0.875,
-          "unit": "rem"
-        },
-        "fontWeight": 430,
-        "letterSpacing": {
-          "value": -0.01,
-          "unit": "em"
-        }
+        "fontFamily": "SF Pro",
+        "fontSize": "9px",
+        "fontWeight": "500",
+        "letterSpacing": "0em",
+        "lineHeight": "12px"
       }
     },
     "label-sm": {
       "$type": "typography",
       "$value": {
-        "fontFamily": "Inter",
-        "fontSize": {
-          "value": 0.75,
-          "unit": "rem"
-        },
-        "fontWeight": 500,
-        "letterSpacing": {
-          "value": 0.03,
-          "unit": "em"
-        }
+        "fontFamily": "SF Pro",
+        "fontSize": "8px",
+        "fontWeight": "400",
+        "letterSpacing": "0em",
+        "lineHeight": "10px"
       }
     },
     "nav-link": {
       "$type": "typography",
       "$value": {
-        "fontFamily": "Inter",
-        "fontSize": {
-          "value": 0.875,
-          "unit": "rem"
-        },
-        "fontWeight": 400,
-        "letterSpacing": {
-          "value": -0.01,
-          "unit": "em"
-        }
+        "fontFamily": "SF Pro",
+        "fontSize": "10px",
+        "fontWeight": "400",
+        "letterSpacing": "0em",
+        "lineHeight": "12px"
       }
     },
     "button-text": {
       "$type": "typography",
       "$value": {
-        "fontFamily": "Inter",
-        "fontSize": {
-          "value": 0.875,
-          "unit": "rem"
-        },
-        "fontWeight": 500,
-        "letterSpacing": {
-          "value": -0.01,
-          "unit": "em"
-        }
+        "fontFamily": "SF Pro",
+        "fontSize": "10px",
+        "fontWeight": "500",
+        "letterSpacing": "0em",
+        "lineHeight": "12px"
       }
     },
     "table-cell": {
       "$type": "typography",
       "$value": {
-        "fontFamily": "Inter",
-        "fontSize": {
-          "value": 0.8125,
-          "unit": "rem"
-        },
-        "fontWeight": 400,
-        "letterSpacing": {
-          "value": -0.005,
-          "unit": "em"
-        }
+        "fontFamily": "SF Pro",
+        "fontSize": "10px",
+        "fontWeight": "400",
+        "letterSpacing": "0em",
+        "lineHeight": "14px"
       }
     },
     "numeric": {
       "$type": "typography",
       "$value": {
-        "fontFamily": "Roboto Mono",
-        "fontSize": {
-          "value": 0.8125,
-          "unit": "rem"
-        },
-        "fontWeight": 500,
-        "letterSpacing": {
-          "value": -0.02,
-          "unit": "em"
-        }
+        "fontFamily": "SF Pro",
+        "fontSize": "10px",
+        "fontWeight": "500",
+        "letterSpacing": "0em",
+        "lineHeight": "13px"
       }
     },
     "proposal-body": {
@@ -576,61 +523,61 @@
     "app-title": {
       "$type": "typography",
       "$value": {
-        "fontFamily": "Inter",
+        "fontFamily": "SF Pro",
         "fontSize": "12px",
-        "fontWeight": 700,
+        "fontWeight": "500",
         "lineHeight": "16px",
-        "letterSpacing": "-0.01em"
+        "letterSpacing": "0em"
       }
     },
     "app-subtitle": {
       "$type": "typography",
       "$value": {
-        "fontFamily": "Inter",
+        "fontFamily": "SF Pro",
         "fontSize": "11px",
-        "fontWeight": 700,
+        "fontWeight": "500",
         "lineHeight": "14px",
-        "letterSpacing": "-0.01em"
+        "letterSpacing": "0em"
       }
     },
     "app-body": {
       "$type": "typography",
       "$value": {
-        "fontFamily": "Inter",
+        "fontFamily": "SF Pro",
         "fontSize": "10px",
-        "fontWeight": 500,
+        "fontWeight": "400",
         "lineHeight": "14px",
-        "letterSpacing": "-0.005em"
+        "letterSpacing": "0em"
       }
     },
     "app-label": {
       "$type": "typography",
       "$value": {
-        "fontFamily": "Inter",
+        "fontFamily": "SF Pro",
         "fontSize": "9px",
-        "fontWeight": 700,
+        "fontWeight": "500",
         "lineHeight": "12px",
-        "letterSpacing": "0.08em"
+        "letterSpacing": "0em"
       }
     },
     "app-label-sm": {
       "$type": "typography",
       "$value": {
-        "fontFamily": "Inter",
+        "fontFamily": "SF Pro",
         "fontSize": "8px",
-        "fontWeight": 700,
+        "fontWeight": "400",
         "lineHeight": "10px",
-        "letterSpacing": "0.08em"
+        "letterSpacing": "0em"
       }
     },
     "app-button": {
       "$type": "typography",
       "$value": {
-        "fontFamily": "Inter",
+        "fontFamily": "SF Pro",
         "fontSize": "10px",
-        "fontWeight": 700,
+        "fontWeight": "500",
         "lineHeight": "12px",
-        "letterSpacing": "-0.005em"
+        "letterSpacing": "0em"
       }
     }
   }

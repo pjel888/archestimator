@@ -73,10 +73,10 @@ function makeToastId() {
 }
 
 function ToastIcon({ tone }: { tone: ToastTone }) {
-  if (tone === "loading") return <CircleNotch size={13} weight="bold" className="animate-spin" aria-hidden="true" />;
-  if (tone === "success") return <CheckCircle size={13} weight="bold" aria-hidden="true" />;
-  if (tone === "error") return <WarningCircle size={13} weight="bold" aria-hidden="true" />;
-  return <Info size={13} weight="bold" aria-hidden="true" />;
+  if (tone === "loading") return <CircleNotch size={13} weight="regular" className="animate-spin" aria-hidden="true" />;
+  if (tone === "success") return <CheckCircle size={13} weight="regular" aria-hidden="true" />;
+  if (tone === "error") return <WarningCircle size={13} weight="regular" aria-hidden="true" />;
+  return <Info size={13} weight="regular" aria-hidden="true" />;
 }
 
 function toastToneClassName(tone: ToastTone) {
@@ -168,7 +168,7 @@ export function ToastProvider({ children, viewportClassName }: ToastProviderProp
             aria-live={toastRecord.tone === "error" ? "assertive" : "polite"}
             data-toast-id={toastRecord.id}
             className={cn(
-              "pointer-events-auto flex min-h-8 items-start gap-1.5 rounded-md border px-2 py-1.5 text-[10px] font-bold leading-4",
+              "pointer-events-auto flex min-h-8 items-start gap-1.5 rounded-xs border px-2 py-1.5 text-[10px] font-medium leading-4",
               toastToneClassName(toastRecord.tone),
             )}
           >
@@ -182,10 +182,10 @@ export function ToastProvider({ children, viewportClassName }: ToastProviderProp
                 variant="ghost"
                 size="icon-sm"
                 aria-label="Dismiss notification"
-                className="-mr-1 -mt-0.5 size-5 min-h-0 shrink-0 rounded-sm text-current hover:bg-black/5 hover:text-current focus-visible:ring-current focus-visible:ring-offset-0"
+                className="-mr-1 -mt-0.5 size-5 min-h-0 shrink-0 rounded-xs text-current hover:bg-black/5 hover:text-current focus-visible:ring-current focus-visible:ring-offset-0"
                 onClick={() => dismissToast(toastRecord.id)}
               >
-                <X size={10} weight="bold" aria-hidden="true" />
+                <X size={10} weight="regular" aria-hidden="true" />
               </Button>
             )}
           </div>

@@ -45,7 +45,7 @@ Landing display treatment:
 - nav/action text: 13-15px;
 - mono/kicker labels: 10-11px uppercase with wide tracking.
 
-Workshop/app exception: all `/workshop` and product surfaces still follow the compact non-landing scale in `DESIGN.md` and `.ai/00_system/AGENT_OPERATING_PROTOCOL.md`.
+Workshop/app exception: all `/workshop` and product surfaces follow the enforced non-landing system in `DESIGN.md` and `.ai/00_system/AGENT_OPERATING_PROTOCOL.md`: SF Pro system stack, regular/medium weights, compact `12px` maximum with normal controls around `10px`, xs-only radius, zero tracking, neutral reference colors, and regular-outline icons.
 
 ## Color tokens for landing
 

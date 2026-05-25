@@ -40,7 +40,7 @@ export function ToolbarIconSelect({
   return (
     <span
       ref={wrapperRef}
-      className={cn("relative inline-flex size-6 items-center justify-center rounded-sm text-tertiary hover:bg-surfaceMuted focus-within:bg-surfaceMuted", wrapperClassName)}
+      className={cn("relative inline-flex size-6 items-center justify-center rounded-xs text-tertiary hover:bg-surfaceMuted focus-within:bg-surfaceMuted", wrapperClassName)}
       onPointerEnter={() => setTooltipOpen(true)}
       onPointerLeave={() => setTooltipOpen(false)}
     >
@@ -52,7 +52,7 @@ export function ToolbarIconSelect({
         aria-label={label}
         aria-describedby={describedBy || undefined}
         title={label}
-        className={cn("absolute inset-0 size-full cursor-pointer appearance-none rounded-sm border-0 bg-transparent p-0 text-transparent outline-none", className)}
+        className={cn("absolute inset-0 size-full cursor-pointer appearance-none rounded-xs border-0 bg-transparent p-0 text-transparent outline-none", className)}
         onBlur={handleBlur}
         onFocus={handleFocus}
       >

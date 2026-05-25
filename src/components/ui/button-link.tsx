@@ -19,15 +19,15 @@ const variantClasses: Record<ButtonLinkVariant, string> = {
 };
 
 const sizeClasses: Record<ButtonLinkSize, string> = {
-  sm: "min-h-8 rounded-md p-2",
-  md: "min-h-9 rounded-md p-2",
+  sm: "min-h-8 rounded-xs p-2",
+  md: "min-h-9 rounded-xs p-2",
 };
 
 export function ButtonLink({ className, variant = "secondary", size = "md", children, ...props }: ButtonLinkProps) {
   return (
     <Link
       className={cn(
-        "inline-flex items-center justify-center gap-2 !text-[10px] !font-bold leading-none transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2",
+        "inline-flex items-center justify-center gap-2 !text-[10px] !font-medium leading-none transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2",
         variantClasses[variant],
         sizeClasses[size],
         className,

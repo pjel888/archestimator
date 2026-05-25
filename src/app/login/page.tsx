@@ -9,21 +9,21 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
   return (
     <main className="min-h-screen bg-[#F4F7FA] p-2 text-ink">
       <section className="mx-auto flex min-h-[calc(100vh-16px)] max-w-[360px] items-center">
-        <div className="w-full rounded-lg border border-hairline bg-white p-2 shadow-[0_18px_60px_-44px_rgba(17,24,39,0.45)]">
+        <div className="w-full rounded-xs border border-hairline bg-white p-2 shadow-[0_18px_60px_-44px_rgba(17,24,39,0.45)]">
           <div className="border-b border-hairline pb-2">
-            <p className="text-[8px] font-bold uppercase tracking-[0.18em] text-muted">Archestimator</p>
-            <h1 className="mt-1 text-[12px] font-bold tracking-[-0.02em] text-ink">Sign in to workshop</h1>
+            <p className="text-[8px] font-medium uppercase tracking-normal text-muted">Archestimator</p>
+            <h1 className="mt-1 text-[12px] font-medium tracking-normal text-ink">Sign in to workshop</h1>
             <p className="mt-1 text-[10px] leading-4 text-muted">Use Google sign-in first, or fall back to an email magic link.</p>
           </div>
 
           {params.sent ? (
-            <div className="mt-2 rounded-md border border-accent/25 bg-accentSoft p-2 text-[10px] leading-4 text-ink">
-              Magic link sent to <span className="font-bold">{params.email}</span>. Open it on this device to continue.
+            <div className="mt-2 rounded-xs border border-accent/25 bg-accentSoft p-2 text-[10px] leading-4 text-ink">
+              Magic link sent to <span className="font-medium">{params.email}</span>. Open it on this device to continue.
             </div>
           ) : null}
 
           {params.error ? (
-            <div className="mt-2 rounded-md border border-dangerSoft bg-dangerSoft/40 p-2 text-[10px] leading-4 text-danger">
+            <div className="mt-2 rounded-xs border border-dangerSoft bg-dangerSoft/40 p-2 text-[10px] leading-4 text-danger">
               {params.error}
             </div>
           ) : null}
@@ -35,7 +35,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
             </Button>
           </form>
 
-          <div className="my-2 flex items-center gap-2 text-[8px] font-bold uppercase tracking-[0.16em] text-muted">
+          <div className="my-2 flex items-center gap-2 text-[8px] font-medium uppercase tracking-normal text-muted">
             <span className="h-px flex-1 bg-hairline" />
             Email link
             <span className="h-px flex-1 bg-hairline" />
@@ -44,7 +44,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
           <form action={signInWithEmail} className="space-y-2">
             <input type="hidden" name="next" value={next} />
             <label className="block space-y-1">
-              <span className="text-[9px] font-bold uppercase tracking-[0.12em] text-muted">Email</span>
+              <span className="text-[9px] font-medium uppercase tracking-normal text-muted">Email</span>
               <ControlInput name="email" type="email" placeholder="philipjonlewis@gmail.com" autoComplete="email" required className="h-9 px-2" />
             </label>
             <Button type="submit" variant="primary" size="md" className="h-9 w-full">

@@ -156,9 +156,9 @@ export function MainSidebar({ user }: { user?: MainSidebarUser }) {
         <div className="flex flex-1 flex-col overflow-y-auto overflow-x-hidden [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           <div className="relative flex h-[72px] shrink-0 items-center xl:h-[76px]" style={{ paddingInline: SIDEBAR_PADDING }}>
             <div aria-hidden="true" className="absolute bottom-0 border-b border-hairline" style={dividerStyle} />
-            <div className="grid h-10 w-full grid-cols-[48px_minmax(0,1fr)] items-center gap-1 overflow-hidden rounded-md">
+            <div className="grid h-10 w-full grid-cols-[48px_minmax(0,1fr)] items-center gap-1 overflow-hidden rounded-xs">
               <div className="flex h-10 w-12 shrink-0 items-center justify-center">
-                <div className="relative flex size-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-linear-to-br from-secondary to-primary text-[10px] font-semibold leading-none text-white ring-1 ring-black/10">
+                <div className="relative flex size-8 shrink-0 items-center justify-center overflow-hidden rounded-xs bg-linear-to-br from-secondary to-primary text-[10px] font-medium leading-none text-white ring-1 ring-black/10">
                   {user?.avatarUrl ? (
                     <Image src={user.avatarUrl} alt="" fill sizes="32px" className="object-cover" referrerPolicy="no-referrer" unoptimized />
                   ) : (
@@ -190,7 +190,7 @@ export function MainSidebar({ user }: { user?: MainSidebarUser }) {
                   <span
                     aria-hidden={!expanded}
                     className={[
-                      "px-2 text-[8px] font-bold uppercase tracking-wider text-tertiary select-none transition-[opacity,transform] duration-[180ms] ease-out motion-reduce:transform-none motion-reduce:transition-none",
+                      "px-2 text-[8px] font-medium uppercase tracking-normal text-tertiary select-none transition-[opacity,transform] duration-[180ms] ease-out motion-reduce:transform-none motion-reduce:transition-none",
                       expanded ? "translate-x-0 opacity-100" : "pointer-events-none translate-x-1 opacity-0",
                     ].join(" ")}
                   >

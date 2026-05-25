@@ -7,13 +7,14 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "lint:font-size": "node scripts/enforce-app-font-size.mjs",
+    "lint:design-system": "node scripts/enforce-app-design-system.mjs",
+    "lint:font-size": "bun run lint:design-system",
     "type-check": "tsc --noEmit",
     "test": "bun test tests/unit",
     "test:dom": "vitest run --maxWorkers=1",
     "test:dom:watch": "vitest",
     "test:e2e": "playwright test",
-    "validate": "bun run type-check && bun run lint && bun run lint:font-size && bun run test && bun run test:dom"
+    "validate": "bun run type-check && bun run lint && bun run lint:design-system && bun run test && bun run test:dom"
   },
   "dependencies": {
     "@firecms/neat": "0.8.0",
