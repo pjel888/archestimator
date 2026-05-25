@@ -31,8 +31,11 @@ describe("workshop sidebar baseline", () => {
     );
 
     expect(screen.getByRole("main", { name: "Workshop" })).toBeTruthy();
-    expect(screen.getByRole("navigation", { name: "Main navigation" })).toBeTruthy();
+    const navigation = screen.getByRole("navigation", { name: "Main navigation" });
+    expect(navigation).toBeTruthy();
     expect(screen.getByRole("button", { name: "Expand sidebar" }).getAttribute("aria-expanded")).toBe("false");
+    expect(navigation.querySelector('span[class*="bg-white/[0.10]"]')).toBeTruthy();
+    expect(navigation.querySelector('span[class*="backdrop-blur-[1px]"]')).toBeTruthy();
     expect(screen.getByLabelText("Workshop empty canvas").childElementCount).toBe(0);
   });
 });

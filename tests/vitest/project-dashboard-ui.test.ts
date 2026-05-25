@@ -38,20 +38,21 @@ describe("project dashboard UI governance", () => {
 
   it("keeps the project-code header out of estimate detail routes", () => {
     const sidebarHeaderClass = 'flex h-10 items-center border-b border-hairline pl-4 pr-2';
-    const sidebarTitleClass = 'truncate text-[9px] font-bold uppercase tracking-[0.14em] text-tertiary';
+    const sidebarTitleClass = 'truncate text-[9px] font-medium uppercase tracking-normal text-tertiary';
 
     expect(projectMiniSidebar).toContain(sidebarHeaderClass);
     expect(projectMiniSidebar).toContain(sidebarTitleClass);
     expect(projectDashboardLayout).toContain('const projectCode = liveProject?.project_code ?? projectId;');
     expect(projectDashboardLayout).toContain('<ProjectWorkspaceHeaderRow projectId={projectId} projectCode={projectCode} />');
+    expect(projectDashboardLayout).toContain('contentClassName="py-2 pr-2 pl-0"');
     expect(projectWorkspaceHeaderRow).toContain('relative h-10 shrink-0 border-b border-hairline bg-white');
     expect(projectWorkspaceHeaderRow).toContain('pathname?.startsWith(`/workshop/projects/${projectId}/estimates/`)');
     expect(projectWorkspaceHeaderRow).toContain("const projectCodeHeader = isEstimateSheetRoute ? null : (");
     expect(projectWorkspaceHeaderRow).toContain('<ProjectEstimateMetadataStrip />');
     expect(projectWorkspaceHeaderRow).toContain('style={{ width: "var(--estimate-tree-panel-width)" }}');
     expect(projectWorkspaceHeaderRow).toContain('pl-4 pr-2');
-    expect(projectWorkspaceHeaderRow).toContain('textClassName="font-bold"');
-    expect(projectWorkspaceProjectCode).toContain(sidebarTitleClass.replace("font-bold ", ""));
+    expect(projectWorkspaceHeaderRow).toContain('textClassName="font-medium"');
+    expect(projectWorkspaceProjectCode).toContain("truncate text-[9px] uppercase tracking-normal text-tertiary");
     expect(projectWorkspaceProjectCode).toContain('{projectCode}');
   });
 
@@ -103,6 +104,12 @@ describe("project dashboard UI governance", () => {
     expect(sidePanelWidths).toContain("component_library_tree_width");
     expect(resizableSidePanel).toContain("document.cookie");
     expect(workshopTitleHeader).toContain("EstimateCenterColumnBoundary");
+    expect(workshopTitleHeader).toContain("data-workshop-title-block");
+    expect(projectEstimateMetadataStrip).toContain('document.querySelector<HTMLElement>("[data-workshop-title-block]")');
+    expect(projectEstimateMetadataStrip).toContain("workshopTitleBlock.hidden = true");
+    expect(projectEstimateMetadataStrip).toContain("workshopTitleBlock.hidden = previousWorkshopTitleBlockHidden");
+    expect(projectEstimateMetadataStrip).toContain('workshopCanvas.dataset.estimateSheetRoute = "true"');
+    expect(projectEstimateMetadataStrip).toContain("delete workshopCanvas.dataset.estimateSheetRoute");
     expect(workshopPageShell).toContain("data-workshop-page-shell-canvas");
     expect(projectDashboardLayout).toContain("ProjectWorkspaceHeaderRow");
     expect(projectWorkspaceHeaderRow).toContain("ProjectWorkspaceHeaderSurface");
@@ -113,13 +120,18 @@ describe("project dashboard UI governance", () => {
     expect(projectWorkspaceHeaderRow).toContain('centerDataColumn="metadata-strip"');
     expect(projectWorkspaceHeaderRow).toContain('data-estimate-center-column={centerDataColumn}');
     expect(projectEstimateMetadataStrip).toContain('data-workshop-layout="project-estimate-metadata-row"');
-    expect(projectEstimateMetadataStrip).toContain('font-normal uppercase tracking-[0.14em] text-tertiary');
+    expect(projectEstimateMetadataStrip).toContain('text-[9px] font-normal uppercase tracking-normal text-tertiary');
+    expect(workshopTitleHeader).toContain('truncate text-[12px] font-medium leading-4 tracking-normal text-ink');
+    expect(workshopTitleHeader).toContain('truncate text-[8px] font-medium uppercase leading-3 tracking-normal text-tertiary');
     expect(projectEstimateMetadataStrip).toContain("ProjectEstimateMetadataStripGrid");
     expect(projectEstimateMetadataStrip).toContain("EstimateSheetCodeCell");
+    expect(projectEstimateMetadataStrip).toContain("EstimateProjectTitleCell");
     expect(projectEstimateMetadataStrip).toContain("EstimateSheetNameCell");
-    expect(projectEstimateMetadataStrip.indexOf("<EstimateSheetCodeCell")).toBeLessThan(projectEstimateMetadataStrip.indexOf("<EstimateSheetNameCell"));
+    expect(projectEstimateMetadataStrip.indexOf("<EstimateSheetCodeCell")).toBeLessThan(projectEstimateMetadataStrip.indexOf("<EstimateProjectTitleCell"));
+    expect(projectEstimateMetadataStrip.indexOf("<EstimateProjectTitleCell")).toBeLessThan(projectEstimateMetadataStrip.indexOf("<EstimateSheetNameCell"));
     expect(projectEstimateMetadataStrip).not.toContain("EstimateVersionCell");
-    expect(projectEstimateMetadataStrip).toContain("grid-cols-[minmax(0,1fr)_minmax(0,2fr)]");
+    expect(projectEstimateMetadataStrip).toContain("grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)]");
+    expect(projectEstimateMetadataStrip).toContain("text-center text-ink");
     expect(projectEstimateMetadataStrip).toContain("text-right text-ink");
     expect(projectEstimateMetadataStrip).toContain("items-center gap-3");
     expect(projectTotalHeader).toContain('data-estimate-center-column="project-total-header"');
@@ -148,7 +160,7 @@ describe("project dashboard UI governance", () => {
   });
 
   it("keeps minimized estimate side-panel rails white instead of changing background color", () => {
-    expect(resizableSidePanel).toContain('className="h-full rounded-none border-x border-hairline bg-white hover:bg-white"');
+    expect(resizableSidePanel).toContain('className="h-full rounded-xs border-x border-hairline bg-white hover:bg-white"');
     expect(resizableSidePanel).not.toContain('collapsed ? "bg-surface-muted" : "bg-white"');
     expect(resizableSidePanel).not.toContain('hover:bg-surface-muted');
   });
@@ -171,7 +183,7 @@ describe("project dashboard UI governance", () => {
     expect(headerIconToolbar).not.toContain("border-y border-hairline");
     expect(headerIconToolbar).not.toContain("min-h-10");
     expect(sharedSearchSurfaces).not.toContain('wrapperClassName="h-12 w-full"');
-    expect(sharedSearchSurfaces).not.toMatch(/className="flex h-12 (shrink-0 )?items-center/);
+    expect(sharedSearchSurfaces).not.toMatch(/className="flex h-12 (shrink-0 )?items-center gap/);
   });
 
   it("keeps project details CRUD editing available from the project page", () => {
@@ -211,7 +223,7 @@ describe("project dashboard UI governance", () => {
     expect(projectDashboardClient).toContain('label="Updated"');
     expect(projectDashboardClient).toContain("grid grid-cols-2 divide-x divide-hairline border-t border-hairline pt-1");
     expect(projectDashboardClient).not.toContain("mt-auto grid grid-cols-2 divide-x divide-hairline");
-    expect(projectDashboardClient).toContain("text-[6px] font-semibold uppercase tracking-[0.12em] text-gray-400");
+    expect(projectDashboardClient).toContain("text-[8px] font-medium uppercase tracking-normal text-gray-400");
     expect(projectDashboardClient).toContain("text-[8px] font-medium leading-3 text-tertiary");
     expect(projectDashboardClient).not.toContain("ReadOnlyProjectDataField");
   });

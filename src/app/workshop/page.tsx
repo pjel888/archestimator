@@ -1,21 +1,18 @@
 import { WorkshopPageShell } from "@/components/workshop/WorkshopPageShell";
+import { WorkshopHomebaseClient } from "@/components/workshop/WorkshopHomebaseClient";
+import { listCurrentWorkspaceProjects } from "@/lib/repositories/workspace-repository";
 
 export default async function WorkshopPage() {
+  const { projects } = await listCurrentWorkspaceProjects();
+
   return (
     <WorkshopPageShell
       title="Workshop"
-      eyebrow="Workspace"
       showEyebrow={false}
       breadcrumbs={["Workshop"]}
-      contentClassName=""
-      footer={
-        <>
-          <span>Workshop shell</span>
-          <span>Select Projects or Components from the sidebar</span>
-        </>
-      }
+      contentClassName="overflow-auto"
     >
-      <div className="h-full bg-white" aria-label="Workshop empty canvas" />
+      <WorkshopHomebaseClient liveProjects={projects} />
     </WorkshopPageShell>
   );
 }

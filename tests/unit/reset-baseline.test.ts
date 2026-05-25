@@ -10,11 +10,14 @@ const forbiddenPrototypeReferences = [
 ];
 
 describe("workshop sidebar baseline", () => {
-  test("workshop page keeps only the approved sidebar shell and blank canvas", async () => {
+  test("workshop page keeps the approved sidebar shell and live homebase", async () => {
     const source = await Bun.file("src/app/workshop/page.tsx").text();
     const shell = await Bun.file("src/components/workshop/WorkshopPageShell.tsx").text();
     expect(source).toContain("WorkshopPageShell");
-    expect(source).toContain("Workshop empty canvas");
+    expect(source).toContain("WorkshopHomebaseClient");
+    expect(source).toContain("listCurrentWorkspaceProjects");
+    expect(source).toContain("<WorkshopHomebaseClient liveProjects={projects} />");
+    expect(source).not.toContain("Workshop empty canvas");
     expect(shell).toContain("MainSidebar");
     expect(shell).toContain("aria-label={`${title} canvas`}");
 

@@ -134,9 +134,9 @@ function getErrorMessage(error: unknown) {
 }
 
 function SortIcon({ direction }: { direction: false | "asc" | "desc" }) {
-  if (direction === "asc") return <CaretUp size={10} weight="bold" aria-hidden="true" />;
-  if (direction === "desc") return <CaretDown size={10} weight="bold" aria-hidden="true" />;
-  return <CaretUpDown size={10} weight="bold" aria-hidden="true" />;
+  if (direction === "asc") return <CaretUp size={10} weight="regular" aria-hidden="true" />;
+  if (direction === "desc") return <CaretDown size={10} weight="regular" aria-hidden="true" />;
+  return <CaretUpDown size={10} weight="regular" aria-hidden="true" />;
 }
 
 function ProjectEstimateFillerRows({
@@ -199,45 +199,45 @@ function ProjectEstimateRowActions({ estimate, isSelected, onDuplicateError, onT
     <div className="flex items-center gap-1">
       <input
         type="checkbox"
-        className="size-3 rounded border-hairline accent-ink"
+        className="size-3 rounded-xs border-hairline accent-ink"
         aria-label={`Select ${estimate.name}`}
         checked={isSelected}
         onChange={() => onToggleSelected(estimate.id)}
       />
       <button
         type="button"
-        className="grid size-6 place-items-center rounded-sm text-tertiary transition hover:bg-surface-muted hover:text-danger focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus disabled:cursor-not-allowed disabled:opacity-40"
+        className="grid size-6 place-items-center rounded-xs text-tertiary transition hover:bg-surface-muted hover:text-danger focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus disabled:cursor-not-allowed disabled:opacity-40"
         aria-label={`Delete ${estimate.name}`}
         title="Delete action is not wired yet"
         disabled
       >
-        <Trash size={12} weight="bold" aria-hidden="true" />
+        <Trash size={12} weight="regular" aria-hidden="true" />
       </button>
       <button
         type="button"
-        className="grid size-6 place-items-center rounded-sm text-tertiary transition hover:bg-surface-muted hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus disabled:cursor-not-allowed disabled:opacity-40"
+        className="grid size-6 place-items-center rounded-xs text-tertiary transition hover:bg-surface-muted hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus disabled:cursor-not-allowed disabled:opacity-40"
         aria-label={`Duplicate ${estimate.name}`}
         disabled={isDuplicating}
         onClick={handleDuplicate}
         title={isDuplicating ? "Duplicating estimate sheet..." : "Duplicate estimate sheet"}
       >
-        <CopySimple size={12} weight="bold" aria-hidden="true" />
+        <CopySimple size={12} weight="regular" aria-hidden="true" />
       </button>
       <Link
         href={estimateHref}
-        className="grid size-6 place-items-center rounded-sm text-tertiary transition hover:bg-surface-muted hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
+        className="grid size-6 place-items-center rounded-xs text-tertiary transition hover:bg-surface-muted hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
         aria-label={`Open ${estimate.name}`}
       >
-        <ArrowSquareOut size={12} weight="bold" aria-hidden="true" />
+        <ArrowSquareOut size={12} weight="regular" aria-hidden="true" />
       </Link>
       <button
         type="button"
-        className="grid size-6 place-items-center rounded-sm text-tertiary transition hover:bg-surface-muted hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus disabled:cursor-not-allowed disabled:opacity-40"
+        className="grid size-6 place-items-center rounded-xs text-tertiary transition hover:bg-surface-muted hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus disabled:cursor-not-allowed disabled:opacity-40"
         aria-label={`View version history for ${estimate.name}`}
         title="Version history is not wired yet"
         disabled
       >
-        <ClockCounterClockwise size={12} weight="bold" aria-hidden="true" />
+        <ClockCounterClockwise size={12} weight="regular" aria-hidden="true" />
       </button>
     </div>
   );
@@ -340,7 +340,7 @@ function ProjectEstimateEditableTextCell({
           aria-invalid={status === "error" ? "true" : undefined}
           aria-label={`${label} for ${estimate.name}`}
           className={cn(
-            "h-6 min-w-0 flex-1 rounded-sm border border-transparent bg-transparent px-1 !text-[10px] leading-none text-ink outline-none transition placeholder:text-tertiary hover:border-hairline focus:border-accent focus:bg-accentSoft disabled:opacity-60",
+            "h-6 min-w-0 flex-1 rounded-xs border border-transparent bg-transparent px-1 !text-[10px] leading-none text-ink outline-none transition placeholder:text-tertiary hover:border-hairline focus:border-accent focus:bg-accentSoft disabled:opacity-60",
             status === "error" && "border-danger bg-dangerSoft/40",
             inputClassName,
           )}
@@ -356,10 +356,10 @@ function ProjectEstimateEditableTextCell({
           title="Edit inline. Press Enter or leave the cell to save. Press Esc to cancel."
           value={draft}
         />
-        {status === "saving" ? <span className="shrink-0 text-[8px] font-bold uppercase tracking-[0.12em] text-tertiary">Saving</span> : null}
-        {status === "saved" ? <span className="shrink-0 text-[8px] font-bold uppercase tracking-[0.12em] text-success">Saved</span> : null}
+        {status === "saving" ? <span className="shrink-0 text-[8px] font-medium uppercase tracking-normal text-tertiary">Saving</span> : null}
+        {status === "saved" ? <span className="shrink-0 text-[8px] font-medium uppercase tracking-normal text-success">Saved</span> : null}
         {status === "error" ? (
-          <span className="grid size-4 shrink-0 place-items-center rounded-full bg-dangerSoft text-[9px] font-bold text-danger" title={errorMessage ?? "Update failed"}>
+          <span className="grid size-4 shrink-0 place-items-center rounded-xs bg-dangerSoft text-[9px] font-medium text-danger" title={errorMessage ?? "Update failed"}>
             !
           </span>
         ) : null}
@@ -452,13 +452,13 @@ function ProjectEstimateBudgetCell({ estimate, projectId }: { estimate: ProjectE
     <div className="min-w-0">
       <div className="flex min-w-0 items-center gap-1">
         <div className="relative min-w-0 flex-1">
-          <span className="pointer-events-none absolute left-1 top-1/2 -translate-y-1/2 text-[9px] font-semibold text-tertiary">₱</span>
+          <span className="pointer-events-none absolute left-1 top-1/2 -translate-y-1/2 text-[9px] font-medium text-tertiary">₱</span>
           <input
             aria-describedby={errorMessage ? errorId : undefined}
             aria-invalid={status === "error" ? "true" : undefined}
             aria-label={`Project budget for ${estimate.name}`}
             className={cn(
-              "h-6 min-w-0 w-full rounded-sm border border-transparent bg-transparent px-1 pl-4 text-left font-mono !text-[10px] leading-none tabular-nums text-ink outline-none transition placeholder:text-tertiary hover:border-hairline focus:border-accent focus:bg-accentSoft disabled:opacity-60",
+              "h-6 min-w-0 w-full rounded-xs border border-transparent bg-transparent px-1 pl-4 text-left font-sans !text-[10px] leading-none tabular-nums text-ink outline-none transition placeholder:text-tertiary hover:border-hairline focus:border-accent focus:bg-accentSoft disabled:opacity-60",
               status === "error" && "border-danger bg-dangerSoft/40",
             )}
             disabled={isPending}
@@ -476,10 +476,10 @@ function ProjectEstimateBudgetCell({ estimate, projectId }: { estimate: ProjectE
             value={draft}
           />
         </div>
-        {status === "saving" ? <span className="shrink-0 text-[8px] font-bold uppercase tracking-[0.12em] text-tertiary">Saving</span> : null}
-        {status === "saved" ? <span className="shrink-0 text-[8px] font-bold uppercase tracking-[0.12em] text-success">Saved</span> : null}
+        {status === "saving" ? <span className="shrink-0 text-[8px] font-medium uppercase tracking-normal text-tertiary">Saving</span> : null}
+        {status === "saved" ? <span className="shrink-0 text-[8px] font-medium uppercase tracking-normal text-success">Saved</span> : null}
         {status === "error" ? (
-          <span className="grid size-4 shrink-0 place-items-center rounded-full bg-dangerSoft text-[9px] font-bold text-danger" title={errorMessage ?? "Update failed"}>
+          <span className="grid size-4 shrink-0 place-items-center rounded-xs bg-dangerSoft text-[9px] font-medium text-danger" title={errorMessage ?? "Update failed"}>
             !
           </span>
         ) : null}
@@ -517,7 +517,7 @@ function ProjectEstimateSheetCodeCell({ estimate, projectId }: { estimate: Proje
         key={`estimate-sheet-code-${estimate.id}-${estimate.sheet_code}`}
         estimate={estimate}
         field="sheetCode"
-        inputClassName="font-semibold text-tertiary tabular-nums"
+        inputClassName="font-medium text-tertiary tabular-nums"
         label="Sheet code"
         placeholder="Auto Code"
         projectId={projectId}
@@ -525,7 +525,7 @@ function ProjectEstimateSheetCodeCell({ estimate, projectId }: { estimate: Proje
       <button
         type="button"
         aria-label={`Auto-generate sheet code for ${estimate.name}`}
-        className="h-5 shrink-0 rounded-sm border border-hairline bg-white px-1.5 text-[8px] font-bold uppercase tracking-[0.1em] text-tertiary transition hover:border-accent hover:text-accent disabled:cursor-not-allowed disabled:opacity-50"
+        className="h-5 shrink-0 rounded-xs border border-hairline bg-white px-1.5 text-[8px] font-medium uppercase tracking-normal text-tertiary transition hover:border-accent hover:text-accent disabled:cursor-not-allowed disabled:opacity-50"
         disabled={isPending}
         onClick={handleAutoGenerate}
         title={errorMessage ?? "Auto-generate the next sheet code"}
@@ -661,7 +661,7 @@ function ProjectEstimatesTableComponent({ estimates, projectId, emptyMessage = "
             key={`estimate-name-${row.original.id}-${row.original.name}`}
             estimate={row.original}
             field="name"
-            inputClassName="font-bold tracking-[-0.01em]"
+            inputClassName="font-medium tracking-normal"
             label="Estimate sheet name"
             placeholder="Estimate Sheet Name"
             projectId={projectId}
@@ -705,7 +705,7 @@ function ProjectEstimatesTableComponent({ estimates, projectId, emptyMessage = "
         size: 172,
         minSize: 144,
         maxSize: 240,
-        cell: ({ row }) => <span className="font-mono font-bold tabular-nums text-ink">{formatPeso(row.original.totalProjectCost)}</span>,
+        cell: ({ row }) => <span className="font-sans font-medium tabular-nums text-ink">{formatPeso(row.original.totalProjectCost)}</span>,
       },
       {
         id: "overbudget",
@@ -718,7 +718,7 @@ function ProjectEstimatesTableComponent({ estimates, projectId, emptyMessage = "
           if (row.original.project_budget === null) return <span className="font-medium text-tertiary">No budget set</span>;
           const budgetVariance = row.original.project_budget - row.original.totalProjectCost;
           return (
-            <span className={`font-mono font-bold tabular-nums ${getVarianceColorClass(budgetVariance)}`}>
+            <span className={`font-sans font-medium tabular-nums ${getVarianceColorClass(budgetVariance)}`}>
               {formatSignedPeso(budgetVariance)}
             </span>
           );
@@ -767,14 +767,14 @@ function ProjectEstimatesTableComponent({ estimates, projectId, emptyMessage = "
   return (
     <div className="flex h-full min-h-0 flex-col border-t border-hairline">
       {duplicateError ? (
-        <p className="shrink-0 border-b border-dangerSoft bg-dangerSoft/40 px-2 py-1 text-[10px] font-semibold text-danger" role="alert">
+        <p className="shrink-0 border-b border-dangerSoft bg-dangerSoft/40 px-2 py-1 text-[10px] font-medium text-danger" role="alert">
           {duplicateError}
         </p>
       ) : null}
       <div className="min-h-0 flex-1 overflow-auto [scrollbar-gutter:stable]">
         <table className="table-fixed border-collapse text-left text-[10px]" style={tableStyle}>
           <ProjectEstimatesColGroup table={table} />
-          <thead className="sticky top-0 z-10 bg-surface-muted text-[10px] font-bold text-tertiary">
+          <thead className="sticky top-0 z-10 bg-surface-muted text-[10px] font-medium text-tertiary">
             {table.getHeaderGroups().map((headerGroup) => (
               <tr key={headerGroup.id} className="h-9 border-b border-hairline">
                 {headerGroup.headers.map((header) => {
@@ -784,14 +784,14 @@ function ProjectEstimatesTableComponent({ estimates, projectId, emptyMessage = "
                     <th
                       key={header.id}
                       scope="col"
-                      className="relative border-r border-hairline bg-surface-muted px-2 py-2 text-left text-[10px] font-bold last:border-r-0"
+                      className="relative border-r border-hairline bg-surface-muted px-2 py-2 text-left text-[10px] font-medium last:border-r-0"
                       style={{ width: `${header.getSize()}px` }}
                     >
                       {canSort ? (
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="min-h-0 justify-start gap-1 rounded-sm p-0 text-left text-[10px] font-bold text-tertiary hover:bg-transparent"
+                          className="min-h-0 justify-start gap-1 rounded-xs p-0 text-left text-[10px] font-medium text-tertiary hover:bg-transparent"
                           onClick={header.column.getToggleSortingHandler()}
                         >
                           {flexRender(header.column.columnDef.header, header.getContext())}
@@ -827,7 +827,7 @@ function ProjectEstimatesTableComponent({ estimates, projectId, emptyMessage = "
         <span>{formatCount(estimates.length, "estimate sheet", "estimate sheets")}</span>
         <button
           type="button"
-          className="rounded-sm px-1.5 py-0.5 font-bold uppercase tracking-[0.1em] text-tertiary transition hover:bg-surface-muted hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
+          className="rounded-xs px-1.5 py-0.5 font-medium uppercase tracking-normal text-tertiary transition hover:bg-surface-muted hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
           onClick={() => {
             table.resetColumnSizing();
             router.refresh();

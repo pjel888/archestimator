@@ -56,7 +56,6 @@ export function ProjectsPageClient({ projects }: ProjectsPageClientProps) {
       toolbarLabel="Project tools"
       toolbarPrefix="projects"
       onAdd={() => setIsModalOpen(true)}
-      addVisibleLabel="Create Project"
     >
       {hasLiveProjects ? (
         displayProjects.length > 0 ? (
@@ -67,13 +66,13 @@ export function ProjectsPageClient({ projects }: ProjectsPageClientProps) {
           </section>
         ) : (
           <div className="flex flex-col items-center justify-center py-8 text-center">
-            <p className="text-[11px] font-semibold text-ink">No projects match your search</p>
+            <p className="text-[11px] font-medium text-ink">No projects match your search</p>
             <p className="mt-1 text-[10px] text-tertiary">Try adjusting your search terms</p>
           </div>
         )
       ) : (
         <section aria-label="Sample project references" className="space-y-2">
-          <div className="rounded-lg border border-dashed border-hairline bg-white p-2 text-[10px] leading-4 text-tertiary">
+          <div className="rounded-xs border border-dashed border-hairline bg-white p-2 text-[10px] leading-4 text-tertiary">
             No live projects yet. Create the first project to get started; sample cards below are references only.
           </div>
           <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">

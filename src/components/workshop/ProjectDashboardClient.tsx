@@ -44,7 +44,7 @@ function ProjectDataField({
 }) {
   return (
     <label className="block space-y-1">
-      <span className="block text-[8px] font-bold uppercase tracking-[0.12em] text-tertiary">{label}</span>
+      <span className="block text-[8px] font-medium uppercase tracking-normal text-tertiary">{label}</span>
       {children}
     </label>
   );
@@ -53,7 +53,7 @@ function ProjectDataField({
 function ProjectTimestampField({ label, value }: { label: string; value: string }) {
   return (
     <div className="space-y-0.5 px-2 py-1.5">
-      <span className="block text-[6px] font-semibold uppercase tracking-[0.12em] text-gray-400">{label}</span>
+      <span className="block text-[8px] font-medium uppercase tracking-normal text-gray-400">{label}</span>
       <p className="truncate text-[8px] font-medium leading-3 text-tertiary">{value}</p>
     </div>
   );
@@ -116,7 +116,7 @@ export function ProjectDashboardClient({ project, fallback }: ProjectDashboardCl
                 name="name"
                 defaultValue={name}
                 required
-                className="h-8 w-full px-2 text-[10px] font-semibold text-ink"
+                className="h-8 w-full px-2 text-[10px] font-medium text-ink"
               />
             </ProjectDataField>
 
@@ -136,7 +136,7 @@ export function ProjectDashboardClient({ project, fallback }: ProjectDashboardCl
                 name="location"
                 defaultValue={location}
                 placeholder="Project address"
-                className="min-h-12 w-full resize-y rounded-sm border border-transparent bg-white/70 px-2 py-1 !text-[10px] font-medium leading-3 text-secondary outline-none transition hover:border-hairline focus:border-accent focus:bg-accentSoft"
+                className="min-h-12 w-full resize-y rounded-xs border border-transparent bg-white/70 px-2 py-1 !text-[10px] font-medium leading-3 text-secondary outline-none transition hover:border-hairline focus:border-accent focus:bg-accentSoft"
               />
             </ProjectDataField>
           </div>

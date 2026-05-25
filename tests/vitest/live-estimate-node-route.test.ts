@@ -90,6 +90,7 @@ describe("live estimate node route", () => {
     const estimateCenterColumnBoundary = readFileSync("src/components/workshop/EstimateCenterColumnBoundary.tsx", "utf8");
 
     expect(estimateNodePage).toContain("ProjectEstimateMetadataPublisher");
+    expect(estimateNodePage).toContain("projectName: project.name");
     expect(estimateNodePage).toContain("estimateName: estimate.name");
     expect(estimateNodePage).toContain("estimateSheetCode: estimate.sheet_code");
     expect(estimateNodePage).toContain("projectBudget: estimate.project_budget");
@@ -100,13 +101,16 @@ describe("live estimate node route", () => {
     expect(projectWorkspaceHeaderRow).toContain('data-estimate-center-column={centerDataColumn}');
     expect(metadataStrip).toContain('data-workshop-layout="project-estimate-metadata-row"');
     expect(metadataStrip).toContain("ProjectEstimateMetadataStripGrid");
-    expect(metadataStrip).toContain('font-normal uppercase tracking-[0.14em] text-tertiary');
+    expect(metadataStrip).toContain('text-[9px] font-normal uppercase tracking-normal text-tertiary');
     expect(metadataStrip).toContain("EstimateSheetCodeCell");
+    expect(metadataStrip).toContain("EstimateProjectTitleCell");
     expect(metadataStrip).toContain("EstimateSheetNameCell");
     expect(metadataStrip).toContain("dispatchProjectBudgetChange(projectBudget ?? 0)");
-    expect(metadataStrip.indexOf("<EstimateSheetCodeCell")).toBeLessThan(metadataStrip.indexOf("<EstimateSheetNameCell"));
+    expect(metadataStrip.indexOf("<EstimateSheetCodeCell")).toBeLessThan(metadataStrip.indexOf("<EstimateProjectTitleCell"));
+    expect(metadataStrip.indexOf("<EstimateProjectTitleCell")).toBeLessThan(metadataStrip.indexOf("<EstimateSheetNameCell"));
     expect(metadataStrip).not.toContain("EstimateVersionCell");
-    expect(metadataStrip).toContain("grid-cols-[minmax(0,1fr)_minmax(0,2fr)]");
+    expect(metadataStrip).toContain("grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)]");
+    expect(metadataStrip).toContain("text-center text-ink");
     expect(metadataStrip).toContain("text-right text-ink");
     expect(metadataStrip).toContain("items-center gap-3");
     expect(estimateCenterColumnBoundary).toContain('"project-workspace-row"');

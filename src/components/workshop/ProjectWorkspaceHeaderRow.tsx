@@ -20,7 +20,7 @@ export function ProjectWorkspaceHeaderRow({ projectId, projectCode }: ProjectWor
       projectCode={projectCode}
       className="absolute inset-y-0 left-0 flex items-center pl-4 pr-2"
       style={{ width: "var(--estimate-tree-panel-width)" }}
-      textClassName="font-bold"
+      textClassName="font-medium"
     />
   );
 
