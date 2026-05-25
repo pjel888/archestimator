@@ -14,7 +14,6 @@ type ProjectDetailsModalProps = {
 };
 
 type ProjectMetadata = {
-  projectBudget?: number;
   projectImageUrl?: string;
 };
 
@@ -22,7 +21,6 @@ function readProjectMetadata(value: Json): ProjectMetadata {
   if (!value || typeof value !== "object" || Array.isArray(value)) return {};
   const record = value as Record<string, Json>;
   return {
-    projectBudget: typeof record.projectBudget === "number" ? record.projectBudget : undefined,
     projectImageUrl: typeof record.projectImageUrl === "string" ? record.projectImageUrl : undefined,
   };
 }
@@ -111,19 +109,6 @@ export function ProjectDetailsModal({ project, onClose }: ProjectDetailsModalPro
               <label className="space-y-1">
                 <FieldLabel>Currency</FieldLabel>
                 <ControlInput name="currencyCode" defaultValue={project.currency_code} className="h-8 px-2 uppercase" />
-              </label>
-              <label className="space-y-1 md:col-span-2">
-                <FieldLabel>Project budget</FieldLabel>
-                <ControlInput
-                  name="projectBudget"
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  defaultValue={metadata.projectBudget ?? ""}
-                  placeholder="0.00"
-                  align="right"
-                  className="h-8 px-2 font-mono"
-                />
               </label>
             </div>
           </div>

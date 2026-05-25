@@ -19,24 +19,8 @@ function getProjectImageUrl(metadata: Json) {
   return typeof value === "string" && value.trim() ? value : null;
 }
 
-function getProjectBudget(metadata: Json) {
-  if (!metadata || typeof metadata !== "object" || Array.isArray(metadata)) return null;
-  const value = (metadata as Record<string, Json>).projectBudget;
-  return typeof value === "number" ? value : null;
-}
-
-function formatBudget(value: number | null, currencyCode: string) {
-  if (value === null) return "No budget set";
-  return new Intl.NumberFormat("en-PH", {
-    style: "currency",
-    currency: currencyCode || "PHP",
-    maximumFractionDigits: 0,
-  }).format(value);
-}
-
 export function LiveProjectCard({ project, onExpand }: LiveProjectCardProps) {
   const imageUrl = getProjectImageUrl(project.metadata);
-  const budget = getProjectBudget(project.metadata);
 
   return (
     <article className="group flex min-h-[260px] flex-col overflow-hidden rounded-xl border border-hairline bg-white shadow-[0_16px_38px_-34px_rgba(17,17,17,0.5)] transition duration-150 hover:-translate-y-0.5 hover:border-divider hover:shadow-[0_24px_52px_-38px_rgba(17,17,17,0.58)]">
@@ -79,11 +63,6 @@ export function LiveProjectCard({ project, onExpand }: LiveProjectCardProps) {
             <Clock size={12} aria-hidden="true" />
             Updated {formatUpdatedAt(project.updated_at)}
           </p>
-        </div>
-
-        <div className="mt-2 rounded-md border border-hairline bg-surfaceMuted px-2 py-1.5">
-          <p className="text-[8px] font-bold uppercase tracking-[0.12em] text-tertiary">Project budget</p>
-          <p className="mt-0.5 font-mono text-[10px] font-bold text-ink">{formatBudget(budget, project.currency_code)}</p>
         </div>
 
         <div className="mt-auto flex items-center justify-between border-t border-hairline pt-2">

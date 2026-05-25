@@ -96,7 +96,8 @@ export function buildProjectChartSeries(
 }
 
 export function calculateProjectChartRowTotal(row: ProjectChartRowFact): number {
-  return toFiniteNumber(row.quantity) * toFiniteNumber(row.unitCost) + toFiniteNumber(row.miscCost);
+  const subTotal = toFiniteNumber(row.quantity) * toFiniteNumber(row.unitCost);
+  return subTotal + toFiniteNumber(row.miscCost) + (subTotal * toFiniteNumber(row.contingencyPercentage ?? 0)) / 100;
 }
 
 function buildSeries(

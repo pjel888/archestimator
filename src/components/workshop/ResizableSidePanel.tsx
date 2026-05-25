@@ -1,10 +1,15 @@
 "use client";
 
-import type { ReactNode } from "react";
-import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import type { CSSProperties, ReactNode } from "react";
+import { useEffect, useRef, useState } from "react";
 import { SidebarSimple } from "@phosphor-icons/react/dist/ssr";
 
 import { Button } from "@/components/ui/button";
+import {
+  clampSidePanelContentWidth,
+  getSidePanelWidthConfig,
+  getSidePanelWidthCookieName,
+} from "./side-panel-widths";
 
 type ResizableSidePanelProps = {
   side: "left" | "right";
@@ -19,19 +24,30 @@ type ResizableSidePanelProps = {
 };
 
 function getInitialWidth(storageKey: string, defaultWidth: number, minWidth: number, maxWidth: number) {
-  if (typeof window === "undefined" || !window.localStorage) return defaultWidth;
+  if (typeof document === "undefined") return defaultWidth;
   try {
-    const saved = window.localStorage.getItem(storageKey);
-    if (!saved) return defaultWidth;
-    const parsed = Number.parseInt(saved, 10);
-    return Number.isFinite(parsed) ? Math.min(maxWidth, Math.max(minWidth, parsed)) : defaultWidth;
+    const cookieName = `${getSidePanelWidthCookieName(storageKey)}=`;
+    const saved = document.cookie
+      .split(";")
+      .map((entry) => entry.trim())
+      .find((entry) => entry.startsWith(cookieName))
+      ?.slice(cookieName.length);
+    const parsed = saved ? Number.parseInt(saved, 10) : NaN;
+    return clampSidePanelContentWidth(parsed, minWidth, maxWidth, defaultWidth);
   } catch {
     return defaultWidth;
   }
 }
 
-function subscribeToPanelStorage() {
-  return () => {};
+function getPanelWidthCssVariable(storageKey: string) {
+  return getSidePanelWidthConfig(storageKey)?.cssVariable ?? null;
+}
+
+function persistPanelWidth(storageKey: string, width: number) {
+  try { window.localStorage.setItem(storageKey, String(width)); } catch {}
+  try {
+    document.cookie = `${getSidePanelWidthCookieName(storageKey)}=${width}; Path=/; Max-Age=31536000; SameSite=Lax`;
+  } catch {}
 }
 
 export function ResizableSidePanel({
@@ -46,16 +62,19 @@ export function ResizableSidePanel({
   children,
 }: ResizableSidePanelProps) {
   const [collapsed, setCollapsed] = useState(false);
-  const savedWidth = useSyncExternalStore(
-    subscribeToPanelStorage,
-    () => getInitialWidth(storageKey, defaultWidth, minWidth, maxWidth),
-    () => defaultWidth,
-  );
+  const [savedWidth, setSavedWidth] = useState(() => getInitialWidth(storageKey, defaultWidth, minWidth, maxWidth));
   const [dragWidth, setDragWidth] = useState<number | null>(null);
   const [compactViewport, setCompactViewport] = useState(false);
   const width = dragWidth ?? savedWidth;
   const actualWidth = (collapsed ? collapsedWidth : width) + widthOffset;
   const responsiveWidth = compactViewport ? 0 : actualWidth;
+  const cssVariable = getPanelWidthCssVariable(storageKey);
+  const defaultActualWidth = defaultWidth + widthOffset;
+  const panelStyle = {
+    width: compactViewport || collapsed || dragWidth !== null || !cssVariable
+      ? responsiveWidth
+      : `var(${cssVariable}, ${defaultActualWidth}px)`,
+  } satisfies CSSProperties;
   const dragging = useRef(false);
   const startX = useRef(0);
   const startWidth = useRef(defaultWidth);
@@ -69,21 +88,21 @@ export function ResizableSidePanel({
   }, []);
 
   useEffect(() => {
-    if (storageKey !== "estimate_sheet_tree_width" && storageKey !== "estimate_component_library_width_v2") return;
-    const cssVariable = storageKey === "estimate_sheet_tree_width" ? "--estimate-tree-panel-width" : "--estimate-library-panel-width";
+    const panelWidthCssVariable = getPanelWidthCssVariable(storageKey);
+    if (!panelWidthCssVariable) return;
     const targets = [
       document.documentElement,
       document.querySelector<HTMLElement>("[data-workshop-page-shell-canvas]"),
     ].filter((target): target is HTMLElement => Boolean(target));
-    const previousWidths = targets.map((target) => target.style.getPropertyValue(cssVariable));
+    const previousWidths = targets.map((target) => target.style.getPropertyValue(panelWidthCssVariable));
 
-    targets.forEach((target) => target.style.setProperty(cssVariable, `${responsiveWidth}px`));
+    targets.forEach((target) => target.style.setProperty(panelWidthCssVariable, `${responsiveWidth}px`));
 
     return () => {
       targets.forEach((target, index) => {
         const previousWidth = previousWidths[index];
-        if (previousWidth) target.style.setProperty(cssVariable, previousWidth);
-        else target.style.removeProperty(cssVariable);
+        if (previousWidth) target.style.setProperty(panelWidthCssVariable, previousWidth);
+        else target.style.removeProperty(panelWidthCssVariable);
       });
     };
   }, [responsiveWidth, storageKey]);
@@ -107,8 +126,9 @@ export function ResizableSidePanel({
       dragging.current = false;
       const delta = side === "left" ? upEvent.clientX - startX.current : startX.current - upEvent.clientX;
       const finalWidth = Math.min(maxWidth, Math.max(minWidth, startWidth.current + delta));
+      setSavedWidth(finalWidth);
       setDragWidth(finalWidth);
-      try { window.localStorage.setItem(storageKey, String(finalWidth)); } catch {}
+      persistPanelWidth(storageKey, finalWidth);
       document.body.style.cursor = "";
       document.body.style.userSelect = "";
       window.removeEventListener("mousemove", onMove);
@@ -151,7 +171,7 @@ export function ResizableSidePanel({
   );
 
   return (
-    <div className="group hidden h-full shrink-0 overflow-hidden lg:flex" style={{ width: responsiveWidth }}>
+    <div className="group hidden h-full shrink-0 overflow-hidden lg:flex" style={panelStyle}>
       {side === "right" ? toggle : null}
       {side === "right" ? resizer : null}
       <aside className="h-full min-w-0 flex-1 overflow-hidden bg-white !text-[10px]" aria-label={ariaLabel} aria-hidden={collapsed}>

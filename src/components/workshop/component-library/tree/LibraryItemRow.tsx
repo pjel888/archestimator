@@ -18,6 +18,7 @@ export function LibraryItemRow({
   onAdd,
   addDisabled = false,
   addLabel,
+  showAddAction = true,
   onDragStart,
   contextMenuGroups,
 }: LibraryItemRowProps) {
@@ -45,7 +46,7 @@ export function LibraryItemRow({
         className="cursor-pointer gap-1.5"
         onClick={onPreview}
         onDoubleClick={() => {
-          if (!addDisabled) onAdd();
+          if (showAddAction && !addDisabled) onAdd();
         }}
       >
         <Package size={12} weight="bold" className="shrink-0 text-tertiary" aria-hidden="true" />
@@ -71,24 +72,26 @@ export function LibraryItemRow({
           </div>
         </div>
 
-        <div className="flex shrink-0 items-center opacity-0 transition-opacity group-hover:opacity-100">
-          <Button
-            type="button"
-            variant="ghost"
-            size="icon-sm"
-            className="size-5 p-0 text-tertiary hover:text-ink"
-            aria-label={resolvedAddLabel}
-            title={resolvedAddLabel}
-            disabled={addDisabled}
-            onClick={(event) => {
-              event.stopPropagation();
-              if (addDisabled) return;
-              onAdd();
-            }}
-          >
-            <Plus size={11} weight="bold" />
-          </Button>
-        </div>
+        {showAddAction ? (
+          <div className="flex shrink-0 items-center opacity-0 transition-opacity group-hover:opacity-100">
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon-sm"
+              className="size-5 p-0 text-tertiary hover:text-ink"
+              aria-label={resolvedAddLabel}
+              title={resolvedAddLabel}
+              disabled={addDisabled}
+              onClick={(event) => {
+                event.stopPropagation();
+                if (addDisabled) return;
+                onAdd();
+              }}
+            >
+              <Plus size={11} weight="bold" />
+            </Button>
+          </div>
+        ) : null}
       </WorkshopTreeRow>
     </li>
   );

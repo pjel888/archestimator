@@ -46,7 +46,7 @@ function createItemActionGroups({
 }: {
   addDisabled?: boolean;
   addLabel?: string;
-  onAdd: () => void;
+  onAdd?: () => void;
   onPreview: () => void;
 }): ActionMenuGroup[] {
   return [
@@ -54,13 +54,17 @@ function createItemActionGroups({
       id: "component-actions",
       items: [
         { id: "preview", label: "Preview", onSelect: onPreview },
-        {
-          id: "add",
-          label: addDisabled ? "Add" : (addLabel ?? "Add"),
-          disabled: addDisabled,
-          disabledReason: addDisabled ? "Select an area before adding this component." : undefined,
-          onSelect: onAdd,
-        },
+        ...(onAdd
+          ? [
+              {
+                id: "add",
+                label: addDisabled ? "Add" : (addLabel ?? "Add"),
+                disabled: addDisabled,
+                disabledReason: addDisabled ? "Select an area before adding this component." : undefined,
+                onSelect: onAdd,
+              },
+            ]
+          : []),
       ],
     },
   ];
@@ -79,6 +83,7 @@ function TreeNode({
   onItemPreview,
   addDisabled,
   addLabel,
+  showItemAddAction,
   onItemDragStart,
 }: {
   node: LibraryTreeNode;
@@ -93,6 +98,7 @@ function TreeNode({
   onItemPreview?: (itemId: string) => void;
   addDisabled?: boolean;
   addLabel?: string;
+  showItemAddAction?: boolean;
   onItemDragStart?: (event: DragEvent<HTMLElement>, item: LibraryTreeNode["item"]) => void;
 }) {
   if (node.item) {
@@ -101,6 +107,7 @@ function TreeNode({
     const handleAdd = () => {
       onItemAdd?.(item);
     };
+    const canShowAddAction = showItemAddAction ?? Boolean(onItemAdd);
 
     return (
       <LibraryItemRow
@@ -111,6 +118,7 @@ function TreeNode({
         onAdd={handleAdd}
         addDisabled={addDisabled}
         addLabel={addLabel}
+        showAddAction={canShowAddAction}
         onDragStart={
           onItemDragStart
             ? (event) => onItemDragStart(event, item)
@@ -119,7 +127,7 @@ function TreeNode({
         contextMenuGroups={createItemActionGroups({
           addDisabled,
           addLabel,
-          onAdd: handleAdd,
+          onAdd: canShowAddAction ? handleAdd : undefined,
           onPreview: handlePreview,
         })}
       />
@@ -158,6 +166,7 @@ export function LibraryTree({
   onItemPreview,
   addDisabled,
   addLabel,
+  showItemAddAction,
   onItemDragStart,
 }: LibraryTreeProps) {
   if (nodes.length === 0) {
@@ -188,6 +197,7 @@ export function LibraryTree({
           onItemPreview={onItemPreview}
           addDisabled={addDisabled}
           addLabel={addLabel}
+          showItemAddAction={showItemAddAction}
           onItemDragStart={onItemDragStart}
         >
           {children}

@@ -24,5 +24,6 @@ describe("HeaderIconToolbar", () => {
     expect(screen.queryByRole("button", { name: "Filter chart" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Group chart" })).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Add chart" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Add chart" })).not.toHaveTextContent("Add chart");
   });
 });

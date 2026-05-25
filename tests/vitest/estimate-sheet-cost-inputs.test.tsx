@@ -12,6 +12,10 @@ vi.mock("@/lib/auth/session", () => ({
   getCurrentUserContext: vi.fn(async () => null),
 }));
 
+vi.mock("next/headers", () => ({
+  cookies: vi.fn(async () => ({ get: vi.fn(() => undefined) })),
+}));
+
 function renderEstimateSheet(selectedNodeId: string) {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
   return render(
@@ -19,6 +23,22 @@ function renderEstimateSheet(selectedNodeId: string) {
       <EstimateSheetContent selectedNodeId={selectedNodeId} renderSidebar={false} />
     </QueryClientProvider>,
   );
+}
+
+function createDataTransferStub(initialDropEffect = "none") {
+  const store = new Map<string, string>();
+  const types: string[] = [];
+  return {
+    types,
+    dropEffect: initialDropEffect,
+    effectAllowed: "all",
+    setData: vi.fn((type: string, value: string) => {
+      store.set(type, value);
+      if (!types.includes(type)) types.push(type);
+    }),
+    getData: vi.fn((type: string) => store.get(type) ?? ""),
+    setDragImage: vi.fn(),
+  };
 }
 
 describe("estimate shell chrome", () => {
@@ -185,6 +205,26 @@ describe("estimate sheet cost inputs", () => {
     expect(within(livingAreaSection).getByText("Drag and drop estimate component here")).toBeInTheDocument();
   });
 
+  it("opens row version history from the row action menu", async () => {
+    const user = userEvent.setup();
+    renderEstimateSheet("living-area");
+
+    await user.click(screen.getByRole("button", { name: "Open row menu for Hardwood Oak Flooring" }));
+
+    expect(screen.getByRole("dialog", { name: "Row details" })).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "Version History" })).toHaveAttribute("aria-selected", "true");
+  });
+
+  it("opens sheet activity from the local sheet header", async () => {
+    const user = userEvent.setup();
+    renderEstimateSheet("living-area");
+
+    await user.click(screen.getByRole("button", { name: "Activity" }));
+
+    expect(screen.getByRole("dialog", { name: "Sheet activity" })).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "Activity" })).toHaveAttribute("aria-selected", "true");
+  });
+
   it("does not expose discipline or designation as estimate row item fields", () => {
     renderEstimateSheet("living-area");
 
@@ -198,21 +238,40 @@ describe("estimate sheet cost inputs", () => {
     renderEstimateSheet("living-area");
 
     const livingAreaSection = screen.getByLabelText("Living Area");
+    expect(within(livingAreaSection).getByRole("columnheader", { name: "Contingency" })).toBeInTheDocument();
     expect(within(livingAreaSection).getByRole("columnheader", { name: "Total Item Cost" })).toBeInTheDocument();
     expect(within(livingAreaSection).queryByRole("columnheader", { name: "Costs" })).not.toBeInTheDocument();
     expect(within(livingAreaSection).getAllByText("Total Item Cost")).toHaveLength(1);
   });
 
-  it("centers subtotal and misc cost row values", () => {
+  it("centers subtotal, contingency, and misc cost row values", () => {
     renderEstimateSheet("living-area");
 
     const livingAreaSection = screen.getByLabelText("Living Area");
     const subtotalCell = within(livingAreaSection).getByText("₱ 57,600.00").closest("td");
+    const contingencyInput = within(livingAreaSection).getByLabelText("Hardwood Oak Flooring contingency percentage");
+    const contingencyCell = contingencyInput.closest("td");
     const miscCostInput = within(livingAreaSection).getByLabelText("Hardwood Oak Flooring misc cost");
 
     expect(subtotalCell).toHaveClass("justify-center");
+    expect(contingencyCell).toHaveClass("relative", "justify-center");
+    expect(contingencyInput).toHaveClass("text-center");
+    expect(contingencyInput).toHaveClass("h-full");
+    expect(within(contingencyCell as HTMLElement).getByText("₱ 0.00")).toHaveClass("absolute", "right-1", "text-right");
     expect(miscCostInput.closest("td")).toHaveClass("justify-center");
     expect(miscCostInput).toHaveClass("text-center");
+  });
+
+  it("calculates contingency value from the row subtotal and includes it in total item cost", async () => {
+    const user = userEvent.setup();
+    renderEstimateSheet("living-area");
+
+    const contingencyInput = screen.getByLabelText("Hardwood Oak Flooring contingency percentage");
+    await user.clear(contingencyInput);
+    await user.type(contingencyInput, "10");
+
+    expect(screen.getByText("₱ 5,760.00")).toBeInTheDocument();
+    expect(screen.getByText("₱ 93,360.00")).toBeInTheDocument();
   });
 
   it("keeps area breadcrumb spacing symmetrical above and below the trail", () => {
@@ -364,6 +423,14 @@ describe("estimate sheet cost inputs", () => {
 
     await user.click(firstQuantity);
     await user.keyboard("{ArrowRight}");
+    const firstContingency = screen.getByLabelText("Hardwood Oak Flooring contingency percentage");
+    expect(firstContingency).toHaveFocus();
+
+    await user.keyboard("{Enter}");
+    expect(firstContingency).not.toHaveFocus();
+
+    await user.click(firstQuantity);
+    await user.keyboard("{ArrowRight}{ArrowRight}");
     expect(screen.getByLabelText("Hardwood Oak Flooring misc cost")).toHaveFocus();
 
     await user.keyboard("{Enter}");
@@ -406,14 +473,18 @@ describe("estimate sheet cost inputs", () => {
     expect(within(livingAreaSection).queryByText("Save failed")).not.toBeInTheDocument();
   });
 
-  it("marks estimate component cells as replaceable draggable sources and highlights focused row editing", async () => {
+  it("marks estimate component cells as replaceable targets with component action handles and highlights focused row editing", async () => {
     const user = userEvent.setup();
     renderEstimateSheet("living-area");
 
     const materialCell = screen.getByLabelText("Hardwood Oak Flooring replaceable estimate component");
-    expect(materialCell).toHaveAttribute("draggable", "true");
+    expect(materialCell).not.toHaveAttribute("draggable", "true");
     expect(within(materialCell).getByText("Hardwood Oak Flooring")).toBeInTheDocument();
     expect(within(materialCell).getByText("₱ 1,200.00")).toBeInTheDocument();
+    expect(within(materialCell).getByLabelText("Component actions for Hardwood Oak Flooring")).toBeInTheDocument();
+    expect(within(materialCell).getByRole("button", { name: "Delete component Hardwood Oak Flooring" })).toBeInTheDocument();
+    expect(within(materialCell).getByRole("button", { name: "Open component menu for Hardwood Oak Flooring" })).toBeInTheDocument();
+    expect(within(materialCell).getByRole("button", { name: "Drag component Hardwood Oak Flooring" })).toHaveAttribute("draggable", "true");
 
     const quantityInput = screen.getByLabelText("Hardwood Oak Flooring quantity");
     await user.click(quantityInput);
@@ -421,6 +492,67 @@ describe("estimate sheet cost inputs", () => {
     const activeRow = quantityInput.closest("tr");
     expect(activeRow).toHaveAttribute("data-estimate-row-active", "true");
     expect(quantityInput.closest("td")).toHaveAttribute("data-estimate-cell-active", "true");
+  });
+
+  it("opens component information from the in-card component menu", async () => {
+    const user = userEvent.setup();
+    renderEstimateSheet("living-area");
+
+    const materialCell = screen.getByLabelText("Hardwood Oak Flooring replaceable estimate component");
+    await user.click(within(materialCell).getByRole("button", { name: "Open component menu for Hardwood Oak Flooring" }));
+
+    expect(screen.getByRole("dialog", { name: "Row details" })).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: "Source" })).toHaveAttribute("aria-selected", "true");
+  });
+
+  it("deletes only the component from the card action while keeping the row item editable", async () => {
+    const user = userEvent.setup();
+    renderEstimateSheet("living-area");
+
+    const materialCell = screen.getByLabelText("Hardwood Oak Flooring replaceable estimate component");
+    const row = materialCell.closest("tr");
+    expect(row).not.toBeNull();
+
+    await user.click(within(materialCell).getByRole("button", { name: "Delete component Hardwood Oak Flooring" }));
+
+    expect(within(row as HTMLElement).getByLabelText("Drag or add a component here empty estimate component slot")).toBeInTheDocument();
+    expect(within(row as HTMLElement).getByLabelText("Drag or add a component here quantity")).toBeInTheDocument();
+    expect(screen.queryByLabelText("Hardwood Oak Flooring quantity")).not.toBeInTheDocument();
+  });
+
+  it("moves a component to another row item from the in-card drag handle and clears the source component", async () => {
+    renderEstimateSheet("living-area");
+
+    const sourceComponent = screen.getByLabelText("Hardwood Oak Flooring replaceable estimate component");
+    const sourceRow = sourceComponent.closest("tr");
+    const targetComponent = screen.getByLabelText("HEMLINGBY Loveseat replaceable estimate component");
+    const targetRow = targetComponent.closest("tr");
+    expect(sourceRow).not.toBeNull();
+    expect(targetRow).not.toBeNull();
+
+    const dataTransfer = createDataTransferStub("none");
+    fireEvent.dragStart(within(sourceComponent).getByRole("button", { name: "Drag component Hardwood Oak Flooring" }), { dataTransfer });
+    fireEvent.dragOver(targetComponent, { dataTransfer });
+    fireEvent.drop(targetComponent, { dataTransfer });
+
+    await waitFor(() => {
+      expect(within(sourceRow as HTMLElement).getByLabelText("Drag or add a component here empty estimate component slot")).toBeInTheDocument();
+    });
+    expect(within(targetRow as HTMLElement).getByLabelText("Hardwood Oak Flooring replaceable estimate component")).toBeInTheDocument();
+  });
+
+  it("treats dragging a component away from row items as deleting only the component", async () => {
+    renderEstimateSheet("living-area");
+
+    const materialCell = screen.getByLabelText("Hardwood Oak Flooring replaceable estimate component");
+    const row = materialCell.closest("tr");
+    expect(row).not.toBeNull();
+
+    const dataTransfer = createDataTransferStub("none");
+    fireEvent.dragStart(within(materialCell).getByRole("button", { name: "Drag component Hardwood Oak Flooring" }), { dataTransfer });
+    fireEvent.dragEnd(within(materialCell).getByRole("button", { name: "Drag component Hardwood Oak Flooring" }), { dataTransfer });
+
+    expect(within(row as HTMLElement).getByLabelText("Drag or add a component here empty estimate component slot")).toBeInTheDocument();
   });
 
   it("removes the active group context and moves the project total out of the estimate footer", () => {
@@ -440,7 +572,9 @@ describe("estimate sheet cost inputs", () => {
     expect(within(sheetTools).getByRole("button", { name: "Group sheet" })).toHaveAttribute("title", "Group sheet");
     expect(within(sheetTools).getByRole("button", { name: "Collapse all sheet" })).toHaveAttribute("title", "Collapse all sheet");
     expect(within(sheetTools).getByRole("button", { name: "Expand all sheet" })).toHaveAttribute("title", "Expand all sheet");
-    expect(within(sheetTools).getByRole("button", { name: "Add sheet" })).toHaveAttribute("title", "Add sheet");
+    expect(within(sheetTools).queryByRole("button", { name: "Add sheet" })).not.toBeInTheDocument();
+    expect(within(sheetTools).getByRole("button", { name: "Activity" })).toHaveAttribute("title", "Activity");
+    expect(within(sheetTools).getByRole("button", { name: "Preview Excel Export" })).toHaveAttribute("title", "Preview Excel Export");
 
     expect(screen.queryByLabelText("Sheet running totals")).not.toBeInTheDocument();
   });

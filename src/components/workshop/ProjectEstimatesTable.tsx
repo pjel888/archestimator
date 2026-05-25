@@ -30,12 +30,11 @@ export type ProjectEstimateTableRow = Tables<"estimates"> & {
 
 type ProjectEstimatesTableProps = {
   estimates: ProjectEstimateTableRow[];
-  projectBudget: number | null;
   projectId: string;
   emptyMessage?: string;
 };
 
-type EditableEstimateTextField = "name" | "sheetCode";
+type EditableEstimateTextField = "name" | "notes" | "sheetCode";
 
 const pesoFormatter = new Intl.NumberFormat("en-PH", {
   style: "currency",
@@ -90,6 +89,20 @@ function formatPeso(value: number) {
 function formatSignedPeso(value: number) {
   const sign = value >= 0 ? "+" : "-";
   return `${sign}${formatPeso(Math.abs(value))}`;
+}
+
+function formatBudgetInput(value: number | null) {
+  if (typeof value !== "number") return "";
+  return new Intl.NumberFormat("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value);
+}
+
+function parseBudgetInput(value: string) {
+  const text = value.replace(/,/g, "").trim();
+  if (!text) return null;
+
+  const budget = Number(text);
+  if (!Number.isFinite(budget) || budget < 0) throw new Error("Project budget must be a valid positive number.");
+  return budget;
 }
 
 function getVarianceColorClass(value: number) {
@@ -251,7 +264,8 @@ function ProjectEstimateEditableTextCell({
 }) {
   const router = useRouter();
   const errorId = useId();
-  const savedValue = field === "sheetCode" ? estimate.sheet_code : estimate.name;
+  const isRequired = field !== "notes";
+  const savedValue = field === "sheetCode" ? estimate.sheet_code : field === "notes" ? (estimate.notes ?? "") : estimate.name;
   const [draft, setDraft] = useState(savedValue);
   const [status, setStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -267,7 +281,7 @@ function ProjectEstimateEditableTextCell({
       return;
     }
 
-    if (!nextValue) {
+    if (isRequired && !nextValue) {
       setStatus("error");
       setErrorMessage(`${label} is required.`);
       return;
@@ -279,10 +293,10 @@ function ProjectEstimateEditableTextCell({
       void updateEstimateDetails({
         projectId,
         estimateId: estimate.id,
-        ...(field === "sheetCode" ? { sheetCode: nextValue } : { name: nextValue }),
+        ...(field === "sheetCode" ? { sheetCode: nextValue } : field === "notes" ? { notes: nextValue || null } : { name: nextValue }),
       })
         .then((updatedEstimate) => {
-          setDraft(field === "sheetCode" ? updatedEstimate.sheet_code : updatedEstimate.name);
+          setDraft(field === "sheetCode" ? updatedEstimate.sheet_code : field === "notes" ? (updatedEstimate.notes ?? "") : updatedEstimate.name);
           setStatus("saved");
           router.refresh();
         })
@@ -291,7 +305,7 @@ function ProjectEstimateEditableTextCell({
           setErrorMessage(getErrorMessage(error));
         });
     });
-  }, [draft, estimate.id, field, label, projectId, router, savedValue]);
+  }, [draft, estimate.id, field, isRequired, label, projectId, router, savedValue]);
 
   function handleBlur() {
     if (skipNextBlurCommitRef.current) {
@@ -360,6 +374,126 @@ function ProjectEstimateEditableTextCell({
 }
 
 ProjectEstimateEditableTextCell.displayName = "ProjectEstimateEditableTextCell";
+
+function ProjectEstimateBudgetCell({ estimate, projectId }: { estimate: ProjectEstimateTableRow; projectId: string }) {
+  const router = useRouter();
+  const errorId = useId();
+  const savedBudget = estimate.project_budget;
+  const savedValue = formatBudgetInput(savedBudget);
+  const [draft, setDraft] = useState(savedValue);
+  const [status, setStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [isPending, startTransition] = useTransition();
+  const skipNextBlurCommitRef = useRef(false);
+
+  const commitDraft = useCallback(() => {
+    let nextBudget: number | null;
+    try {
+      nextBudget = parseBudgetInput(draft);
+    } catch (error) {
+      setStatus("error");
+      setErrorMessage(getErrorMessage(error));
+      return;
+    }
+
+    if (nextBudget === savedBudget || (nextBudget === null && savedBudget === null)) {
+      setDraft(savedValue);
+      setStatus("idle");
+      setErrorMessage(null);
+      return;
+    }
+
+    setStatus("saving");
+    setErrorMessage(null);
+    startTransition(() => {
+      void updateEstimateDetails({
+        projectId,
+        estimateId: estimate.id,
+        projectBudget: nextBudget,
+      })
+        .then((updatedEstimate) => {
+          setDraft(formatBudgetInput(updatedEstimate.project_budget));
+          setStatus("saved");
+          router.refresh();
+        })
+        .catch((error: unknown) => {
+          setStatus("error");
+          setErrorMessage(getErrorMessage(error));
+        });
+    });
+  }, [draft, estimate.id, projectId, router, savedBudget, savedValue]);
+
+  function handleBlur() {
+    if (skipNextBlurCommitRef.current) {
+      skipNextBlurCommitRef.current = false;
+      return;
+    }
+    commitDraft();
+  }
+
+  function handleKeyDown(event: KeyboardEvent<HTMLInputElement>) {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      event.currentTarget.blur();
+      return;
+    }
+
+    if (event.key === "Escape") {
+      event.preventDefault();
+      skipNextBlurCommitRef.current = true;
+      setDraft(savedValue);
+      setStatus("idle");
+      setErrorMessage(null);
+      event.currentTarget.blur();
+    }
+  }
+
+  return (
+    <div className="min-w-0">
+      <div className="flex min-w-0 items-center gap-1">
+        <div className="relative min-w-0 flex-1">
+          <span className="pointer-events-none absolute left-1 top-1/2 -translate-y-1/2 text-[9px] font-semibold text-tertiary">₱</span>
+          <input
+            aria-describedby={errorMessage ? errorId : undefined}
+            aria-invalid={status === "error" ? "true" : undefined}
+            aria-label={`Project budget for ${estimate.name}`}
+            className={cn(
+              "h-6 min-w-0 w-full rounded-sm border border-transparent bg-transparent px-1 pl-4 text-left font-mono !text-[10px] leading-none tabular-nums text-ink outline-none transition placeholder:text-tertiary hover:border-hairline focus:border-accent focus:bg-accentSoft disabled:opacity-60",
+              status === "error" && "border-danger bg-dangerSoft/40",
+            )}
+            disabled={isPending}
+            inputMode="decimal"
+            onBlur={handleBlur}
+            onChange={(event) => {
+              setDraft(event.currentTarget.value);
+              if (status !== "idle") setStatus("idle");
+              if (errorMessage) setErrorMessage(null);
+            }}
+            onFocus={(event) => event.currentTarget.select()}
+            onKeyDown={handleKeyDown}
+            placeholder="0.00"
+            title="Edit the project budget for this estimate sheet. Press Enter or leave the cell to save. Press Esc to cancel."
+            value={draft}
+          />
+        </div>
+        {status === "saving" ? <span className="shrink-0 text-[8px] font-bold uppercase tracking-[0.12em] text-tertiary">Saving</span> : null}
+        {status === "saved" ? <span className="shrink-0 text-[8px] font-bold uppercase tracking-[0.12em] text-success">Saved</span> : null}
+        {status === "error" ? (
+          <span className="grid size-4 shrink-0 place-items-center rounded-full bg-dangerSoft text-[9px] font-bold text-danger" title={errorMessage ?? "Update failed"}>
+            !
+          </span>
+        ) : null}
+      </div>
+      {errorMessage ? (
+        <p id={errorId} className="sr-only">
+          {errorMessage}
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
+ProjectEstimateBudgetCell.displayName = "ProjectEstimateBudgetCell";
 
 function ProjectEstimateSheetCodeCell({ estimate, projectId }: { estimate: ProjectEstimateTableRow; projectId: string }) {
   const router = useRouter();
@@ -459,7 +593,7 @@ function ProjectEstimatesColumnResizeHandle({
 
 ProjectEstimatesColumnResizeHandle.displayName = "ProjectEstimatesColumnResizeHandle";
 
-function ProjectEstimatesTableComponent({ estimates, projectBudget, projectId, emptyMessage = "No estimate sheets yet" }: ProjectEstimatesTableProps) {
+function ProjectEstimatesTableComponent({ estimates, projectId, emptyMessage = "No estimate sheets yet" }: ProjectEstimatesTableProps) {
   const router = useRouter();
   const columnWidthStorageKey = `${COLUMN_WIDTH_STORAGE_KEY_PREFIX}:${projectId}`;
   const [sorting, setSorting] = useState<SortingState>([{ id: "updated_at", desc: true }]);
@@ -535,6 +669,37 @@ function ProjectEstimatesTableComponent({ estimates, projectBudget, projectId, e
         ),
       },
       {
+        accessorKey: "notes",
+        header: "Notes",
+        size: 240,
+        minSize: 172,
+        maxSize: 420,
+        cell: ({ row }) => (
+          <ProjectEstimateEditableTextCell
+            key={`estimate-notes-${row.original.id}-${row.original.notes ?? ""}`}
+            estimate={row.original}
+            field="notes"
+            label="Notes"
+            placeholder="Add notes"
+            projectId={projectId}
+          />
+        ),
+      },
+      {
+        accessorKey: "project_budget",
+        header: "Project Budget",
+        size: 172,
+        minSize: 144,
+        maxSize: 240,
+        cell: ({ row }) => (
+          <ProjectEstimateBudgetCell
+            key={`estimate-budget-${row.original.id}-${row.original.project_budget ?? "none"}`}
+            estimate={row.original}
+            projectId={projectId}
+          />
+        ),
+      },
+      {
         accessorKey: "totalProjectCost",
         header: "Ongoing Project Cost",
         size: 172,
@@ -544,14 +709,14 @@ function ProjectEstimatesTableComponent({ estimates, projectBudget, projectId, e
       },
       {
         id: "overbudget",
-        header: "Budget Remaining",
+        header: "Remaining Budget",
         size: 168,
         minSize: 144,
         maxSize: 240,
-        accessorFn: (row) => (projectBudget ?? 0) - row.totalProjectCost,
+        accessorFn: (row) => (row.project_budget ?? 0) - row.totalProjectCost,
         cell: ({ row }) => {
-          if (projectBudget === null) return <span className="font-medium text-tertiary">No budget set</span>;
-          const budgetVariance = projectBudget - row.original.totalProjectCost;
+          if (row.original.project_budget === null) return <span className="font-medium text-tertiary">No budget set</span>;
+          const budgetVariance = row.original.project_budget - row.original.totalProjectCost;
           return (
             <span className={`font-mono font-bold tabular-nums ${getVarianceColorClass(budgetVariance)}`}>
               {formatSignedPeso(budgetVariance)}
@@ -576,7 +741,7 @@ function ProjectEstimatesTableComponent({ estimates, projectBudget, projectId, e
         cell: ({ row }) => <span className="whitespace-nowrap font-medium text-tertiary">{formatDateTime(row.original.created_at)}</span>,
       },
     ],
-    [projectBudget, projectId, selectedEstimateIds, toggleEstimateSelection],
+    [projectId, selectedEstimateIds, toggleEstimateSelection],
   );
 
   const table = useReactTable({

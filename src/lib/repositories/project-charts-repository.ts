@@ -21,7 +21,7 @@ type GetProjectChartsDataOptions = {
 type JsonRecord = Record<string, unknown>;
 type EstimateRowItemChartRow = Pick<
   Tables<"estimate_row_items">,
-  "id" | "estimate_id" | "node_id" | "source_snapshot" | "supplier" | "quantity" | "unit_cost" | "misc_cost"
+  "id" | "estimate_id" | "node_id" | "source_snapshot" | "supplier" | "quantity" | "unit_cost" | "contingency_percentage" | "misc_cost"
 >;
 type EstimateNodeChartRow = Pick<Tables<"estimate_nodes">, "id" | "estimate_id" | "parent_id" | "kind" | "name" | "sort_order">;
 
@@ -80,10 +80,10 @@ export async function getProjectChartsData(
     return {
       ...estimate,
       rowCount: estimateRowsForOption.length,
-      totalCost: estimateRowsForOption.reduce(
-        (sum, row) => sum + finite(row.quantity) * finite(row.unitCost) + finite(row.miscCost),
-        0,
-      ),
+      totalCost: estimateRowsForOption.reduce((sum, row) => {
+        const subTotal = finite(row.quantity) * finite(row.unitCost);
+        return sum + subTotal + finite(row.miscCost) + (subTotal * finite(row.contingencyPercentage ?? 0)) / 100;
+      }, 0),
     };
   });
 
@@ -128,7 +128,7 @@ async function loadRowFacts(
 ): Promise<ProjectChartRowFact[]> {
   const { data, error } = await supabase
     .from("estimate_row_items")
-    .select("id, estimate_id, node_id, supplier, source_snapshot, quantity, unit_cost, misc_cost")
+    .select("id, estimate_id, node_id, supplier, source_snapshot, quantity, unit_cost, contingency_percentage, misc_cost")
     .in("estimate_id", estimateIds);
 
   if (error) {
@@ -149,6 +149,7 @@ async function loadRowFacts(
       sourceSupplierName: readString(sourceSnapshot.supplier),
       quantity: finite(Number(row.quantity)),
       unitCost: finite(Number(row.unit_cost)),
+      contingencyPercentage: finite(Number(row.contingency_percentage ?? 0)),
       miscCost: finite(Number(row.misc_cost)),
     };
   });

@@ -157,6 +157,10 @@ describe("estimate sheet tree React Complex Tree DOM integration", () => {
     renderTree();
 
     const tree = screen.getByRole("tree", { name: "Modern Bungalow estimate areas" });
+    const rowGroups = Array.from(tree.querySelectorAll("ol"));
+    expect(rowGroups.length).toBeGreaterThan(0);
+    for (const rowGroup of rowGroups) expect(rowGroup).toHaveClass("space-y-0");
+
     expect(
       Array.from(tree.querySelectorAll("[data-estimate-tree-node-id]")).map((item) => item.getAttribute("data-estimate-tree-node-id")),
     ).toEqual(["project-scope", "ground-floor", "kitchen", "alternates", "phase-two", "phase-three"]);

@@ -8,9 +8,16 @@ export type ComponentLibrarySupplierOption = {
   sort_order?: number | null;
 };
 
+export type ComponentLibraryBrandOption = {
+  id: string;
+  name: string;
+  sort_order?: number | null;
+};
+
 export type ComponentLibraryTreeSourceOptions = {
   categoryTree?: ComponentLibraryTaxonomyNode[];
   suppliers?: ComponentLibrarySupplierOption[];
+  brands?: ComponentLibraryBrandOption[];
 };
 
 type BuildLibraryTreeOptions = ComponentLibraryTreeSourceOptions & {
@@ -203,6 +210,64 @@ function normalizeSupplierKey(value: string): string {
   return normalizeLabel(value).replace(/\s+/g, "-");
 }
 
+/* ─── Brands tree ─── */
+
+function normalizeBrandKey(value: string): string {
+  return normalizeLabel(value).replace(/\s+/g, "-");
+}
+
+function toBrandTreeNodeId(brandId: string) {
+  return brandId.startsWith("brand-") ? brandId : `brand-${brandId}`;
+}
+
+function buildBrandTree(
+  items: EstimateRowItem[],
+  brands: ComponentLibraryBrandOption[] = [],
+  includeComponentRows = true,
+): LibraryTreeNode[] {
+  const brandsByKey = new Map<string, ComponentLibraryBrandOption>();
+  for (const brand of brands) {
+    brandsByKey.set(brand.id, brand);
+    brandsByKey.set(normalizeBrandKey(brand.name), brand);
+  }
+
+  const derivedBrandNames = Array.from(new Set(items.map((item) => item.brand).filter((brand): brand is string => Boolean(brand)))).sort();
+  for (const brandName of derivedBrandNames) {
+    const normalized = normalizeBrandKey(brandName);
+    if (!brandsByKey.has(normalized)) {
+      brandsByKey.set(normalized, { id: `brand-${normalized}`, name: brandName, sort_order: Number.MAX_SAFE_INTEGER });
+    }
+  }
+
+  const orderedBrands = Array.from(new Map(Array.from(brandsByKey.values()).map((brand) => [brand.id, brand])).values())
+    .sort((left, right) => (left.sort_order ?? 0) - (right.sort_order ?? 0) || left.name.localeCompare(right.name));
+
+  return [
+    {
+      id: "all-brands",
+      label: "All Brands",
+      kind: "organizer",
+      children: orderedBrands.map((brand) => {
+        const brandKey = normalizeBrandKey(brand.name);
+        const brandItems = items.filter((item) => item.brandId === brand.id || normalizeBrandKey(item.brand ?? "") === brandKey);
+        return {
+          id: toBrandTreeNodeId(brand.id),
+          label: brand.name,
+          kind: "brand",
+          children: includeComponentRows
+            ? brandItems.map((item) => ({
+                id: item.id,
+                label: item.name ?? item.material,
+                kind: "component",
+                item,
+              }))
+            : undefined,
+        };
+      }),
+    },
+  ];
+}
+
 function buildSupplierTree(
   items: EstimateRowItem[],
   suppliers: ComponentLibrarySupplierOption[] = [],
@@ -328,6 +393,10 @@ function buildLibraryTree(
 
   if (tab === "suppliers") {
     return sortTreeNodes(buildSupplierTree(items, options.suppliers, includeComponentRows));
+  }
+
+  if (tab === "brands") {
+    return sortTreeNodes(buildBrandTree(items, options.brands, includeComponentRows));
   }
 
   return sortTreeNodes(buildCustomTree(items, favoriteIds, recentIds, includeComponentRows));

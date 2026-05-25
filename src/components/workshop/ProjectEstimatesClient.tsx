@@ -10,7 +10,6 @@ import { createEstimateSheetDraft } from "@/lib/estimates/actions";
 
 type ProjectEstimatesClientProps = {
   estimates: ProjectEstimateTableRow[];
-  projectBudget: number | null;
   projectId: string;
   projectName: string;
 };
@@ -25,7 +24,7 @@ function filterEstimateSheets(estimates: ProjectEstimateTableRow[], query: strin
   });
 }
 
-export function ProjectEstimatesClient({ estimates, projectBudget, projectId, projectName }: ProjectEstimatesClientProps) {
+export function ProjectEstimatesClient({ estimates, projectId, projectName }: ProjectEstimatesClientProps) {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState("");
   const [isCreating, setIsCreating] = useState(false);
@@ -66,9 +65,13 @@ export function ProjectEstimatesClient({ estimates, projectBudget, projectId, pr
       <HeaderIconToolbar
         ariaLabel="Project estimate sheet tools"
         labelPrefix="estimate sheets"
-        addVisibleLabel={isCreating ? "Creating..." : "Create Estimate Sheet"}
-        addDisabled={isCreating}
-        onAdd={handleCreateEstimateSheet}
+        addActions={[
+          {
+            label: isCreating ? "Creating estimate sheet" : "Create Estimate Sheet",
+            disabled: isCreating,
+            onClick: handleCreateEstimateSheet,
+          },
+        ]}
       />
       {createError ? (
         <p className="border-y border-dangerSoft bg-dangerSoft/40 px-2 py-1 text-[10px] font-semibold text-danger" role="alert">
@@ -79,7 +82,6 @@ export function ProjectEstimatesClient({ estimates, projectBudget, projectId, pr
       <div className="min-h-0 flex-1 bg-white">
         <ProjectEstimatesTable
           projectId={projectId}
-          projectBudget={projectBudget}
           estimates={filteredEstimates}
           emptyMessage={emptyMessage}
         />

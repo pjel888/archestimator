@@ -3,12 +3,10 @@
 import { useMemo, useRef, useTransition } from "react";
 
 import { ControlInput } from "@/components/ui/control-input";
-import { dispatchProjectBudgetChange } from "@/components/workshop/ProjectTotalHeader";
 import { updateProjectDetails } from "@/lib/projects/actions";
 import type { Json, Tables } from "@/lib/supabase/types";
 
 type ProjectMetadata = {
-  projectBudget?: number;
   projectImageUrl?: string;
 };
 
@@ -28,7 +26,6 @@ function readProjectMetadata(value: Json): ProjectMetadata {
   if (!value || typeof value !== "object" || Array.isArray(value)) return {};
   const record = value as Record<string, Json>;
   return {
-    projectBudget: typeof record.projectBudget === "number" ? record.projectBudget : undefined,
     projectImageUrl: typeof record.projectImageUrl === "string" ? record.projectImageUrl : undefined,
   };
 }
@@ -36,16 +33,6 @@ function readProjectMetadata(value: Json): ProjectMetadata {
 function formatDate(value?: string | null) {
   if (!value) return "—";
   return new Intl.DateTimeFormat("en", { month: "short", day: "numeric", year: "numeric" }).format(new Date(value));
-}
-
-function formatBudgetInput(value?: number) {
-  if (typeof value !== "number") return "";
-  return new Intl.NumberFormat("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value);
-}
-
-function parseBudgetInput(value: string) {
-  const parsed = Number(value.replace(/,/g, ""));
-  return Number.isFinite(parsed) ? parsed : 0;
 }
 
 function ProjectDataField({
@@ -142,21 +129,6 @@ export function ProjectDashboardClient({ project, fallback }: ProjectDashboardCl
               />
             </ProjectDataField>
 
-            <ProjectDataField label="Planned project budget">
-              <div className="relative">
-                <span className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-[10px] font-semibold text-tertiary">₱</span>
-                <ControlInput
-                  name="projectBudget"
-                  type="text"
-                  inputMode="decimal"
-                  defaultValue={formatBudgetInput(metadata.projectBudget)}
-                  placeholder="0.00"
-                  align="left"
-                  className="h-8 w-full px-2 pl-5 text-left text-[10px] font-semibold tabular-nums text-secondary"
-                  onChange={(event) => dispatchProjectBudgetChange(parseBudgetInput(event.currentTarget.value))}
-                />
-              </div>
-            </ProjectDataField>
             <input type="hidden" name="currencyCode" value="PHP" />
 
             <ProjectDataField label="Project address">

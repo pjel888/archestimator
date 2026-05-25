@@ -6,13 +6,21 @@ import { requireCurrentUserContext } from "@/lib/auth/session";
 import { ensureDefaultWorkspace } from "@/lib/repositories/workspace-repository";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { Json, Tables } from "@/lib/supabase/types";
-import { planLibraryFolderDelete, type LibraryFolderRecord } from "./library-folder-reorder";
+import {
+  getLibraryFolderCreateSortOrder,
+  planLibraryFolderDelete,
+  type LibraryFolderCreatePlacement,
+  type LibraryFolderRecord,
+} from "./library-folder-reorder";
 
 export type ComponentLifecycleState = "draft" | "in_production" | "available" | "discontinued" | "archived";
 
 export type ComponentPriceOptionInput = {
   id?: string;
   label: string;
+  sku?: string | null;
+  variantDescription?: string;
+  variantSortOrder?: number;
   unit: string;
   unitCost: number;
   miscCost?: number;
@@ -23,15 +31,56 @@ export type ComponentPriceOptionInput = {
   sourceUrl?: string;
   notes?: string;
   supplierId?: string | null;
+  activeCostEntryId?: string | null;
+  costEntries?: ComponentVariantCostEntryInput[];
+  packageQuantity?: number | null;
+  packageUnit?: string | null;
+  dimensionLength?: number | null;
+  dimensionWidth?: number | null;
+  dimensionHeight?: number | null;
+  dimensionUnit?: string | null;
+  mass?: number | null;
+  massUnit?: string | null;
+  imageBucket?: string | null;
+  imagePath?: string | null;
+  thumbnailPath?: string | null;
+  imageMetadata?: Json;
+  attachments?: ComponentVariantAttachmentInput[];
+  variantMetadata?: Json;
   isDefault?: boolean;
   isActive?: boolean;
   changeReason?: string;
   effectiveAt?: string;
 };
 
+export type ComponentVariantCostEntryInput = {
+  id?: string;
+  clientId?: string;
+  unitCost: number;
+  miscCost?: number;
+  currency?: string;
+  pricingSource?: string;
+  pricingDate?: string;
+  confidence?: string;
+  sourceUrl?: string;
+  notes?: string;
+  isCurrent?: boolean;
+  deletedAt?: string | null;
+};
+
+export type ComponentVariantAttachmentInput = {
+  id?: string;
+  bucket: string;
+  path: string;
+  fileName: string;
+  contentType: string;
+  sizeBytes: number;
+  kind?: "pdf" | "excel";
+  metadata?: Json;
+};
+
 export type CostLibraryComponentInput = {
   id?: string;
-  kind?: Tables<"cost_library_items">["kind"];
   name: string;
   description?: string;
   category?: string;
@@ -39,7 +88,7 @@ export type CostLibraryComponentInput = {
   supplier?: string | null;
   supplierId?: string | null;
   brand?: string | null;
-  sku?: string | null;
+  brandId?: string | null;
   unit: string;
   thumbnailPath?: string | null;
   libraryFolderId?: string | null;
@@ -55,6 +104,10 @@ export type CreateCostLibraryComponentInput = CostLibraryComponentInput & {
 
 export type LibraryFolderActionResult = {
   folder: Tables<"library_folders">;
+};
+
+export type CreateLibraryFolderOptions = {
+  placement?: LibraryFolderCreatePlacement;
 };
 
 export type ReorderLibraryFoldersInput = {
@@ -83,15 +136,46 @@ function readRequiredComponentText(value: string | undefined | null, label: stri
 }
 
 function validatePriceOptions(priceOptions: ComponentPriceOptionInput[]) {
-  if (priceOptions.length === 0) throw new Error("At least one price option is required.");
+  if (priceOptions.length === 0) throw new Error("At least one variant is required.");
   const defaultCount = priceOptions.filter((option) => option.isDefault).length;
-  if (defaultCount !== 1) throw new Error("Exactly one default price option is required.");
+  if (defaultCount !== 1) throw new Error("Exactly one default variant is required.");
   for (const option of priceOptions) {
-    readRequiredComponentText(option.label, "Price option label");
-    readRequiredComponentText(option.unit, "Price option unit");
-    if (!Number.isFinite(option.unitCost) || option.unitCost < 0) throw new Error("Price option unit cost must be a non-negative number.");
+    readRequiredComponentText(option.label, "Variant name");
+    readRequiredComponentText(option.unit, "Variant unit");
+    if (!Number.isFinite(option.unitCost) || option.unitCost < 0) throw new Error("Variant cost must be a non-negative number.");
     if (option.miscCost !== undefined && (!Number.isFinite(option.miscCost) || option.miscCost < 0)) {
-      throw new Error("Price option misc cost must be a non-negative number.");
+      throw new Error("Variant misc cost must be a non-negative number.");
+    }
+    const activeCostEntries = (option.costEntries ?? []).filter((entry) => entry.deletedAt === undefined || entry.deletedAt === null);
+    if (activeCostEntries.length > 0) {
+      const currentCount = activeCostEntries.filter((entry) => entry.isCurrent).length;
+      if (currentCount !== 1) throw new Error("Each variant must have exactly one current cost entry.");
+      for (const entry of activeCostEntries) {
+        if (!Number.isFinite(entry.unitCost) || entry.unitCost < 0) throw new Error("Variant cost entries must use non-negative costs.");
+        if (entry.miscCost !== undefined && (!Number.isFinite(entry.miscCost) || entry.miscCost < 0)) {
+          throw new Error("Variant cost entries must use non-negative misc costs.");
+        }
+      }
+    }
+    for (const attachment of option.attachments ?? []) {
+      readRequiredComponentText(attachment.path, "Attachment path");
+      readRequiredComponentText(attachment.fileName, "Attachment file name");
+      if (![
+        "application/pdf",
+        "application/vnd.ms-excel",
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      ].includes(attachment.contentType)) {
+        throw new Error("Variant attachments must be PDF or Excel files.");
+      }
+      if (!Number.isFinite(attachment.sizeBytes) || attachment.sizeBytes <= 0) throw new Error("Variant attachment size must be positive.");
+    }
+    if (option.packageQuantity !== undefined && option.packageQuantity !== null && (!Number.isFinite(option.packageQuantity) || option.packageQuantity <= 0)) {
+      throw new Error("Variant package quantity must be a positive number.");
+    }
+    for (const measurement of [option.dimensionLength, option.dimensionWidth, option.dimensionHeight, option.mass]) {
+      if (measurement !== undefined && measurement !== null && (!Number.isFinite(measurement) || measurement <= 0)) {
+        throw new Error("Variant measurements must be positive numbers.");
+      }
     }
   }
 }
@@ -105,7 +189,7 @@ function normalizeComponentInput(input: CostLibraryComponentInput) {
     description: input.description ?? "",
     supplier: input.supplier?.trim() || null,
     brand: input.brand?.trim() || null,
-    sku: input.sku?.trim() || null,
+    brandId: input.brandId?.trim() || null,
     thumbnailPath: input.thumbnailPath?.trim() || null,
     lifecycleState: input.lifecycleState ?? "available",
     effectiveAt: input.effectiveAt || new Date().toISOString(),
@@ -115,10 +199,50 @@ function normalizeComponentInput(input: CostLibraryComponentInput) {
 }
 
 function normalizePriceOptionInput(input: ComponentPriceOptionInput) {
+  const costEntries = input.costEntries?.length
+    ? input.costEntries.map((entry) => ({
+        ...entry,
+        clientId: entry.clientId?.trim() || entry.id?.trim() || undefined,
+        miscCost: entry.miscCost ?? 0,
+        currency: entry.currency ?? input.currency ?? "PHP",
+        pricingSource: entry.pricingSource?.trim() || null,
+        pricingDate: entry.pricingDate || input.pricingDate || new Date().toISOString().slice(0, 10),
+        confidence: entry.confidence?.trim() || null,
+        sourceUrl: entry.sourceUrl?.trim() || null,
+        notes: entry.notes ?? "",
+        deletedAt: entry.deletedAt ?? null,
+        isCurrent: entry.isCurrent ?? false,
+      }))
+    : [{
+        clientId: input.activeCostEntryId?.trim() || undefined,
+        unitCost: input.unitCost,
+        miscCost: input.miscCost ?? 0,
+        currency: input.currency ?? "PHP",
+        pricingSource: input.pricingSource?.trim() || null,
+        pricingDate: input.pricingDate || new Date().toISOString().slice(0, 10),
+        confidence: input.confidence?.trim() || null,
+        sourceUrl: input.sourceUrl?.trim() || null,
+        notes: input.notes ?? "",
+        isCurrent: true,
+        deletedAt: null,
+      }];
+  const attachments = (input.attachments ?? []).map((attachment) => ({
+    ...attachment,
+    bucket: attachment.bucket.trim(),
+    path: attachment.path.trim(),
+    fileName: attachment.fileName.trim(),
+    contentType: attachment.contentType.trim(),
+    kind: attachment.kind ?? (attachment.contentType === "application/pdf" ? "pdf" : "excel"),
+    metadata: attachment.metadata ?? {},
+  }));
+
   return {
     ...input,
-    label: readRequiredComponentText(input.label, "Price option label"),
-    unit: readRequiredComponentText(input.unit, "Price option unit"),
+    label: readRequiredComponentText(input.label, "Variant name"),
+    sku: input.sku?.trim() || null,
+    variantDescription: input.variantDescription ?? "",
+    variantSortOrder: input.variantSortOrder ?? 0,
+    unit: readRequiredComponentText(input.unit, "Variant unit"),
     miscCost: input.miscCost ?? 0,
     currency: input.currency ?? "PHP",
     pricingSource: input.pricingSource?.trim() || null,
@@ -127,6 +251,22 @@ function normalizePriceOptionInput(input: ComponentPriceOptionInput) {
     sourceUrl: input.sourceUrl?.trim() || null,
     notes: input.notes ?? "",
     supplierId: input.supplierId ?? null,
+    activeCostEntryId: input.activeCostEntryId?.trim() || costEntries.find((entry) => entry.isCurrent)?.clientId || null,
+    costEntries,
+    packageQuantity: input.packageQuantity ?? null,
+    packageUnit: input.packageUnit?.trim() || null,
+    dimensionLength: input.dimensionLength ?? null,
+    dimensionWidth: input.dimensionWidth ?? null,
+    dimensionHeight: input.dimensionHeight ?? null,
+    dimensionUnit: input.dimensionUnit?.trim() || null,
+    mass: input.mass ?? null,
+    massUnit: input.massUnit?.trim() || null,
+    imageBucket: input.imageBucket?.trim() || null,
+    imagePath: input.imagePath?.trim() || null,
+    thumbnailPath: input.thumbnailPath?.trim() || null,
+    imageMetadata: input.imageMetadata ?? {},
+    attachments,
+    variantMetadata: input.variantMetadata ?? {},
     isActive: input.isActive ?? true,
     isDefault: input.isDefault ?? false,
     effectiveAt: input.effectiveAt || new Date().toISOString(),
@@ -149,6 +289,19 @@ function getRpcNumber(result: unknown, key: string): number | undefined {
   if (!result || typeof result !== "object" || Array.isArray(result)) return undefined;
   const value = (result as Record<string, unknown>)[key];
   return typeof value === "number" ? value : undefined;
+}
+
+function getRpcPriceOptions(result: unknown): Array<{ id: string; label: string; isDefault: boolean }> {
+  if (!result || typeof result !== "object" || Array.isArray(result)) return [];
+  const value = (result as Record<string, unknown>).priceOptions;
+  if (!Array.isArray(value)) return [];
+  return value.flatMap((entry) => {
+    if (!entry || typeof entry !== "object" || Array.isArray(entry)) return [];
+    const option = entry as Record<string, unknown>;
+    return typeof option.id === "string" && typeof option.label === "string"
+      ? [{ id: option.id, label: option.label, isDefault: option.isDefault === true }]
+      : [];
+  });
 }
 
 export async function createCostLibraryComponent(input: CreateCostLibraryComponentInput) {
@@ -178,6 +331,7 @@ export async function createCostLibraryComponent(input: CreateCostLibraryCompone
     itemId: getRpcString(data, "itemId"),
     versionNumber: getRpcNumber(data, "versionNumber"),
     activePriceOptionId: getRpcString(data, "activePriceOptionId"),
+    priceOptions: getRpcPriceOptions(data),
   };
 }
 
@@ -242,7 +396,7 @@ export async function changeCostLibraryComponentLifecycleState(input: {
   };
 }
 
-export async function createLibraryFolder(parentId: string | null, name: string): Promise<LibraryFolderActionResult> {
+export async function createLibraryFolder(parentId: string | null, name: string, options: CreateLibraryFolderOptions = {}): Promise<LibraryFolderActionResult> {
   const [{ workspace }, currentUser] = await Promise.all([ensureDefaultWorkspace(), requireCurrentUserContext()]);
   const supabase = await createSupabaseServerClient();
   const parentResult = parentId
@@ -265,7 +419,7 @@ export async function createLibraryFolder(parentId: string | null, name: string)
   const { data: siblings, error: siblingsError } = await siblingsQuery;
   if (siblingsError) throw siblingsError;
 
-  const nextSortOrder = ((siblings ?? []).reduce((max, folder) => Math.max(max, folder.sort_order), 0) || 0) + 10;
+  const nextSortOrder = getLibraryFolderCreateSortOrder(siblings ?? [], options.placement ?? "bottom");
   const { data, error } = await supabase
     .from("library_folders")
     .insert({

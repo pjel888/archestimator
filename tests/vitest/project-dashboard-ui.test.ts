@@ -13,6 +13,7 @@ const projectWorkspaceProjectCode = readFileSync("src/components/workshop/Projec
 const estimateCenterColumnBoundary = readFileSync("src/components/workshop/EstimateCenterColumnBoundary.tsx", "utf8");
 const projectEstimateMetadataStrip = readFileSync("src/components/workshop/ProjectEstimateMetadataStrip.tsx", "utf8");
 const resizableSidePanel = readFileSync("src/components/workshop/ResizableSidePanel.tsx", "utf8");
+const sidePanelWidths = readFileSync("src/components/workshop/side-panel-widths.ts", "utf8");
 const searchInput = readFileSync("src/components/ui/search-input.tsx", "utf8");
 const headerIconToolbar = readFileSync("src/components/ui/header-icon-toolbar.tsx", "utf8");
 const workshopCollectionLayout = readFileSync("src/components/workshop/WorkshopCollectionLayout.tsx", "utf8");
@@ -35,7 +36,7 @@ describe("project dashboard UI governance", () => {
     expect(projectDashboardClient).not.toContain("Source");
   });
 
-  it("matches the project-code header to the Project mini-sidebar header", () => {
+  it("keeps the project-code header out of estimate detail routes", () => {
     const sidebarHeaderClass = 'flex h-10 items-center border-b border-hairline pl-4 pr-2';
     const sidebarTitleClass = 'truncate text-[9px] font-bold uppercase tracking-[0.14em] text-tertiary';
 
@@ -45,6 +46,7 @@ describe("project dashboard UI governance", () => {
     expect(projectDashboardLayout).toContain('<ProjectWorkspaceHeaderRow projectId={projectId} projectCode={projectCode} />');
     expect(projectWorkspaceHeaderRow).toContain('relative h-10 shrink-0 border-b border-hairline bg-white');
     expect(projectWorkspaceHeaderRow).toContain('pathname?.startsWith(`/workshop/projects/${projectId}/estimates/`)');
+    expect(projectWorkspaceHeaderRow).toContain("const projectCodeHeader = isEstimateSheetRoute ? null : (");
     expect(projectWorkspaceHeaderRow).toContain('<ProjectEstimateMetadataStrip />');
     expect(projectWorkspaceHeaderRow).toContain('style={{ width: "var(--estimate-tree-panel-width)" }}');
     expect(projectWorkspaceHeaderRow).toContain('pl-4 pr-2');
@@ -93,9 +95,13 @@ describe("project dashboard UI governance", () => {
   it("uses one estimate center-column width contract for the totals header and estimate metadata strip", () => {
     expect(estimateCenterColumnBoundary).toContain('"workshop-title"');
     expect(estimateCenterColumnBoundary).toContain('"project-workspace-row"');
-    expect(estimateCenterColumnBoundary).toContain('"--estimate-tree-panel-width": "272px"');
+    expect(estimateCenterColumnBoundary).toContain('"--estimate-tree-panel-width": "376px"');
     expect(estimateCenterColumnBoundary).toContain('"--estimate-library-panel-width": "380px"');
     expect(estimateCenterColumnBoundary).toContain('"--project-mini-sidebar-width": "104px"');
+    expect(workshopPageShell).toContain("getSidePanelWidthCssVariables");
+    expect(sidePanelWidths).toContain("estimate_component_library_width_v2");
+    expect(sidePanelWidths).toContain("component_library_tree_width");
+    expect(resizableSidePanel).toContain("document.cookie");
     expect(workshopTitleHeader).toContain("EstimateCenterColumnBoundary");
     expect(workshopPageShell).toContain("data-workshop-page-shell-canvas");
     expect(projectDashboardLayout).toContain("ProjectWorkspaceHeaderRow");
@@ -111,10 +117,11 @@ describe("project dashboard UI governance", () => {
     expect(projectEstimateMetadataStrip).toContain("ProjectEstimateMetadataStripGrid");
     expect(projectEstimateMetadataStrip).toContain("EstimateSheetCodeCell");
     expect(projectEstimateMetadataStrip).toContain("EstimateSheetNameCell");
-    expect(projectEstimateMetadataStrip).toContain("EstimateVersionCell");
     expect(projectEstimateMetadataStrip.indexOf("<EstimateSheetCodeCell")).toBeLessThan(projectEstimateMetadataStrip.indexOf("<EstimateSheetNameCell"));
-    expect(projectEstimateMetadataStrip.indexOf("<EstimateSheetNameCell")).toBeLessThan(projectEstimateMetadataStrip.indexOf("<EstimateVersionCell"));
-    expect(projectEstimateMetadataStrip).toContain("items-center px-2");
+    expect(projectEstimateMetadataStrip).not.toContain("EstimateVersionCell");
+    expect(projectEstimateMetadataStrip).toContain("grid-cols-[minmax(0,1fr)_minmax(0,2fr)]");
+    expect(projectEstimateMetadataStrip).toContain("text-right text-ink");
+    expect(projectEstimateMetadataStrip).toContain("items-center gap-3");
     expect(projectTotalHeader).toContain('data-estimate-center-column="project-total-header"');
     expect(projectTotalHeader).toContain('className="mx-px flex h-full w-[calc(100%-2px)] items-center gap-2 bg-white px-2"');
     expect(projectTotalHeader).toContain("BUDGET_WARNING_THRESHOLD_PERCENT = 85");
@@ -135,7 +142,7 @@ describe("project dashboard UI governance", () => {
     expect(resizableSidePanel).toContain("const responsiveWidth = compactViewport ? 0 : actualWidth;");
     expect(resizableSidePanel).toContain('window.matchMedia("(max-width: 1023px)")');
     expect(resizableSidePanel).toContain('document.querySelector<HTMLElement>("[data-workshop-page-shell-canvas]")');
-    expect(resizableSidePanel).toContain("target.style.removeProperty(cssVariable);");
+    expect(resizableSidePanel).toContain("target.style.removeProperty(panelWidthCssVariable);");
     expect(projectEstimateMetadataStrip).toContain("PROJECT_MINI_SIDEBAR_WIDTH_CSS_VARIABLE");
     expect(projectEstimateMetadataStrip).toContain('workshopCanvas?.style.setProperty(PROJECT_MINI_SIDEBAR_WIDTH_CSS_VARIABLE, "0px")');
   });
@@ -187,21 +194,16 @@ describe("project dashboard UI governance", () => {
     expect(projectDashboardClient).toContain('label="Project name"');
     expect(projectDashboardClient).toContain('label="Client"');
     expect(projectDashboardClient).not.toContain('label="Project code"');
-    expect(projectDashboardClient).toContain('label="Planned project budget"');
+    expect(projectDashboardClient).not.toContain('label="Planned project budget"');
+    expect(projectDashboardClient).not.toContain('name="projectBudget"');
     expect(projectDashboardClient).toContain('label="Project address"');
     expect(projectDashboardClient.indexOf('label="Project name"')).toBeLessThan(projectDashboardClient.indexOf('label="Client"'));
-    expect(projectDashboardClient.indexOf('label="Client"')).toBeLessThan(projectDashboardClient.indexOf('label="Planned project budget"'));
-    expect(projectDashboardClient.indexOf('label="Planned project budget"')).toBeLessThan(projectDashboardClient.indexOf('label="Project address"'));
+    expect(projectDashboardClient.indexOf('label="Client"')).toBeLessThan(projectDashboardClient.indexOf('label="Project address"'));
     expect(projectDashboardClient.indexOf('label="Project address"')).toBeLessThan(projectDashboardClient.indexOf('label="Created"'));
     expect(projectDashboardClient).not.toContain('label="Currency"');
-    expect(projectDashboardClient).toContain('type="text"');
-    expect(projectDashboardClient).toContain("formatBudgetInput");
-    expect(projectDashboardClient).toContain("minimumFractionDigits: 2");
-    expect(projectDashboardClient).toContain("maximumFractionDigits: 2");
+    expect(projectDashboardClient).not.toContain('type="text"');
+    expect(projectDashboardClient).not.toContain("formatBudgetInput");
     expect(projectDashboardClient).toContain('value="PHP"');
-    expect(projectDashboardClient).toContain("₱");
-    expect(projectDashboardClient).toContain('align="left"');
-    expect(projectDashboardClient).toContain("text-left text-[10px] font-semibold tabular-nums text-secondary");
     expect(projectDashboardClient).toContain("<textarea");
     expect(projectDashboardClient).toContain("!text-[10px] font-medium leading-3 text-secondary");
     expect(projectDashboardClient).not.toContain("grid grid-cols-2 gap-2");
@@ -214,16 +216,16 @@ describe("project dashboard UI governance", () => {
     expect(projectDashboardClient).not.toContain("ReadOnlyProjectDataField");
   });
 
-  it("links the editable budget to the planned project budget header", () => {
-    expect(projectDashboardLayout).toContain("readProjectBudget");
-    expect(projectDashboardLayout).toContain("<ProjectTotalHeader projectId={projectId} plannedBudget={plannedBudget} />");
+  it("gets the active header budget from the selected estimate sheet metadata", () => {
+    expect(projectDashboardLayout).not.toContain("readProjectBudget");
+    expect(projectDashboardLayout).toContain("<ProjectTotalHeader projectId={projectId} />");
     expect(projectTotalHeader).toContain("usePathname");
     expect(projectTotalHeader).toContain("pathname?.startsWith(`/workshop/projects/${projectId}/estimates/`)");
     expect(projectTotalHeader).toContain("if (!isEstimateSheetRoute) return null;");
     expect(projectTotalHeader).toContain("PROJECT_BUDGET_CHANGE_EVENT");
     expect(projectTotalHeader).toContain("dispatchProjectBudgetChange");
     expect(projectTotalHeader).toContain("formatPeso(budget)");
-    expect(projectDashboardClient).toContain("dispatchProjectBudgetChange");
-    expect(projectDashboardClient).toContain("onChange={(event) => dispatchProjectBudgetChange(parseBudgetInput(event.currentTarget.value))}");
+    expect(projectEstimateMetadataStrip).toContain("dispatchProjectBudgetChange(projectBudget ?? 0)");
+    expect(projectDashboardClient).not.toContain("dispatchProjectBudgetChange");
   });
 });

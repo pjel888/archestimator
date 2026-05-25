@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import { usePathname } from "next/navigation";
 
 const pesoFormatter = new Intl.NumberFormat("en-PH", {
@@ -35,6 +35,11 @@ type ProjectBudgetChangeDetail = {
   budget: number;
 };
 
+type ProjectBudgetWindow = Window & {
+  __archestimatorProjectBudget?: number;
+  __archestimatorProjectEstimateMetadata?: { projectBudget?: unknown } | null;
+};
+
 export function dispatchProjectTotalChange(total: number) {
   if (typeof window === "undefined") return;
   window.dispatchEvent(new CustomEvent<ProjectTotalChangeDetail>(PROJECT_TOTAL_CHANGE_EVENT, { detail: { total } }));
@@ -42,6 +47,7 @@ export function dispatchProjectTotalChange(total: number) {
 
 export function dispatchProjectBudgetChange(budget: number) {
   if (typeof window === "undefined") return;
+  (window as ProjectBudgetWindow).__archestimatorProjectBudget = budget;
   window.dispatchEvent(new CustomEvent<ProjectBudgetChangeDetail>(PROJECT_BUDGET_CHANGE_EVENT, { detail: { budget } }));
 }
 
@@ -53,6 +59,39 @@ function formatPercent(value: number) {
 
 function formatTrackPercent(value: number) {
   return `${Math.max(0, Math.min(100, value)).toFixed(2)}%`;
+}
+
+function getActiveEstimateProjectBudget(fallback: number) {
+  if (typeof window === "undefined") return fallback;
+
+  const projectBudgetWindow = window as ProjectBudgetWindow;
+  const storedBudget = projectBudgetWindow.__archestimatorProjectBudget;
+
+  if (typeof storedBudget === "number") return storedBudget;
+
+  const metadata = projectBudgetWindow.__archestimatorProjectEstimateMetadata;
+
+  if (!metadata || !("projectBudget" in metadata)) return fallback;
+
+  return typeof metadata.projectBudget === "number" ? metadata.projectBudget : 0;
+}
+
+function subscribeToProjectBudgetChange(onStoreChange: () => void) {
+  if (typeof window === "undefined") return () => {};
+  window.addEventListener(PROJECT_BUDGET_CHANGE_EVENT, onStoreChange);
+  return () => window.removeEventListener(PROJECT_BUDGET_CHANGE_EVENT, onStoreChange);
+}
+
+function subscribeToInactiveProjectBudgetChange() {
+  return () => {};
+}
+
+function useProjectBudget(plannedBudget: number, isEstimateSheetRoute: boolean) {
+  return useSyncExternalStore(
+    isEstimateSheetRoute ? subscribeToProjectBudgetChange : subscribeToInactiveProjectBudgetChange,
+    () => (isEstimateSheetRoute ? getActiveEstimateProjectBudget(plannedBudget) : plannedBudget),
+    () => plannedBudget,
+  );
 }
 
 type BudgetHealthState = "missing" | "empty" | "success" | "warning" | "danger";
@@ -168,7 +207,7 @@ export function ProjectTotalHeader({ plannedBudget = 0, projectId }: { plannedBu
   const isEstimateSheetRoute = projectId
     ? Boolean(pathname?.startsWith(`/workshop/projects/${projectId}/estimates/`))
     : true;
-  const [budget, setBudget] = useState(plannedBudget);
+  const budget = useProjectBudget(plannedBudget, isEstimateSheetRoute);
   const [total, setTotal] = useState(0);
   const healthState = getBudgetHealthState(budget > 0 ? (Math.max(0, total) / Math.max(0, budget)) * 100 : 0, budget > 0, Math.max(0, total));
   const totalValueClassName = budgetHealthTotalValueClass(healthState);
@@ -185,18 +224,6 @@ export function ProjectTotalHeader({ plannedBudget = 0, projectId }: { plannedBu
     return () => window.removeEventListener(PROJECT_TOTAL_CHANGE_EVENT, handleProjectTotalChange);
   }, [isEstimateSheetRoute]);
 
-  useEffect(() => {
-    if (!isEstimateSheetRoute) return;
-
-    function handleProjectBudgetChange(event: Event) {
-      const customEvent = event as CustomEvent<ProjectBudgetChangeDetail>;
-      if (typeof customEvent.detail?.budget === "number") setBudget(customEvent.detail.budget);
-    }
-
-    window.addEventListener(PROJECT_BUDGET_CHANGE_EVENT, handleProjectBudgetChange);
-    return () => window.removeEventListener(PROJECT_BUDGET_CHANGE_EVENT, handleProjectBudgetChange);
-  }, [isEstimateSheetRoute]);
-
   if (!isEstimateSheetRoute) return null;
 
   return (
@@ -207,12 +234,12 @@ export function ProjectTotalHeader({ plannedBudget = 0, projectId }: { plannedBu
     >
       <div className="flex min-w-[118px] shrink-0 flex-col items-start justify-center text-left">
         <span className={`font-mono text-[12px] font-bold leading-4 tabular-nums ${BUDGET_HEALTH_BUDGET_BLUE_TEXT_CLASS}`}>{formatPeso(budget)}</span>
-        <span className="text-[6px] font-bold uppercase leading-3 tracking-[0.12em] text-gray-400">Planned project budget</span>
+        <span className="text-[6px] font-bold uppercase leading-3 tracking-[0.12em] text-gray-400">Project budget</span>
       </div>
       <BudgetHealthMeter budget={budget} total={total} />
       <div className="flex min-w-[138px] shrink-0 flex-col items-end justify-center">
         <span className={`font-mono text-[12px] font-bold leading-4 tabular-nums ${totalValueClassName}`}>{formatPeso(total)}</span>
-        <span className="text-right text-[6px] font-bold uppercase leading-3 tracking-[0.12em] text-gray-400">Ongoing total project cost</span>
+        <span className="text-right text-[6px] font-bold uppercase leading-3 tracking-[0.12em] text-gray-400">Ongoing project cost</span>
       </div>
     </div>
   );

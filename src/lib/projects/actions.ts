@@ -80,7 +80,8 @@ export async function updateProjectDetails(formData: FormData) {
   const location = readOptionalText(formData, "location");
   const projectCode = readOptionalText(formData, "projectCode");
   const currencyCode = readOptionalText(formData, "currencyCode") ?? "PHP";
-  const projectBudget = readOptionalNumber(formData, "projectBudget");
+  const shouldUpdateProjectBudget = formData.has("projectBudget");
+  const projectBudget = shouldUpdateProjectBudget ? readOptionalNumber(formData, "projectBudget") : null;
   const projectImageUrl = readOptionalText(formData, "projectImageUrl");
 
   const { data: existing, error: loadError } = await supabase
@@ -92,10 +93,12 @@ export async function updateProjectDetails(formData: FormData) {
   if (loadError) throw loadError;
 
   const metadata = asProjectMetadata(existing.metadata);
-  if (projectBudget === null) {
-    delete metadata.projectBudget;
-  } else {
-    metadata.projectBudget = projectBudget;
+  if (shouldUpdateProjectBudget) {
+    if (projectBudget === null) {
+      delete metadata.projectBudget;
+    } else {
+      metadata.projectBudget = projectBudget;
+    }
   }
   if (projectImageUrl === null) {
     delete metadata.projectImageUrl;

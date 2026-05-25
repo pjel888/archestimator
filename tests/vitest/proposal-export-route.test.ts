@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import type { EstimateTreeNode } from "@/lib/estimates/types";
@@ -102,6 +104,25 @@ describe("proposal xlsx export route", () => {
     expect(response.headers.get("content-disposition")).toContain("attachment");
     expect(response.headers.get("content-disposition")).toContain("GH-001-EST-001-proposal.xlsx");
     expect(await response.text()).toBe("xlsx-bytes");
+  });
+
+  it("treats version labels as mutable estimate metadata, not dormant named-version snapshots", () => {
+    const routeSource = readFileSync(
+      join(process.cwd(), "src/app/api/projects/[projectId]/estimates/[estimateId]/export/proposal.xlsx/route.ts"),
+      "utf8",
+    );
+    const pageSource = readFileSync(
+      join(process.cwd(), "src/app/workshop/projects/[projectId]/estimates/[nodeId]/page.tsx"),
+      "utf8",
+    );
+    const combinedSource = `${routeSource}\n${pageSource}`;
+
+    expect(combinedSource).toContain("readVersionLabel");
+    expect(combinedSource).toContain("readEstimateVersionLabel");
+    expect(combinedSource).toContain("estimate.metadata");
+    expect(combinedSource).not.toContain("estimate_sheet_versions");
+    expect(combinedSource).not.toContain("create_estimate_sheet_version");
+    expect(combinedSource).not.toContain("restore_estimate_sheet_version_as_copy");
   });
 
   it("returns 404 when the project or estimate is outside the current workspace", async () => {

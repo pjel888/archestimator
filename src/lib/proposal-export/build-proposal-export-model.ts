@@ -89,8 +89,9 @@ function normalizeSourceRow(flatRow: ProposalFlatSourceRow<EstimateRowItem>, set
   const laborUnitCost = 0;
   const materialSubtotal = roundMoney(materialUnitCost * quantity);
   const laborSubtotal = roundMoney(laborUnitCost * quantity);
+  const contingencySubtotal = roundMoney((materialSubtotal * (sourceRow.contingencyPercentage ?? 0)) / 100);
   const miscSubtotal = roundMoney(sourceRow.miscCost);
-  const costAmount = roundMoney(materialSubtotal + laborSubtotal + miscSubtotal);
+  const costAmount = roundMoney(materialSubtotal + laborSubtotal + contingencySubtotal + miscSubtotal);
   const sectionLabel = normalizeWhitespace(sourceRow.category) || normalizeWhitespace(sourceRow.discipline) || "Uncategorized";
   const scopeStatus: ProposalScopeStatus = "included";
 

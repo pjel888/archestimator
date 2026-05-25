@@ -73,23 +73,27 @@ export function HeaderIconToolbar({
         </ToolbarIconButton>
       ) : null}
       <div className="ml-auto flex items-center gap-1">
-        {toolbarAddActions.map((action) => (
-          <ToolbarIconButton
-            key={action.label}
-            label={action.label}
-            visibleLabel={action.visibleLabel}
-            onClick={action.onClick}
-            disabled={action.disabled}
-            className={
-              action.className ??
-              (action.visibleLabel
-                ? "bg-primary text-white hover:bg-accentDark focus-visible:bg-accentDark focus-visible:text-white"
-                : "bg-orange-50 text-orange-700 hover:bg-orange-100 hover:text-orange-800 focus-visible:bg-orange-100 focus-visible:text-orange-800")
-            }
-          >
-            {action.icon ?? <Plus size={12} weight="bold" aria-hidden="true" />}
-          </ToolbarIconButton>
-        ))}
+        {toolbarAddActions.map((action) => {
+          const isAddAction = action.label.trim().toLowerCase().startsWith("add");
+          const visibleLabel = isAddAction ? undefined : action.visibleLabel;
+          return (
+            <ToolbarIconButton
+              key={action.label}
+              label={action.label}
+              visibleLabel={visibleLabel}
+              onClick={action.onClick}
+              disabled={action.disabled}
+              className={
+                action.className ??
+                (visibleLabel
+                  ? "bg-primary text-white hover:bg-accentDark focus-visible:bg-accentDark focus-visible:text-white"
+                  : "bg-orange-50 text-orange-700 hover:bg-orange-100 hover:text-orange-800 focus-visible:bg-orange-100 focus-visible:text-orange-800")
+              }
+            >
+              {action.icon ?? <Plus size={12} weight="bold" aria-hidden="true" />}
+            </ToolbarIconButton>
+          );
+        })}
       </div>
     </div>
   );
