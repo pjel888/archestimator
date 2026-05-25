@@ -253,6 +253,23 @@ describe("workshop library consolidation UI", () => {
     expect(templatesRoute).toContain("getCurrentWorkspaceEstimateTemplates");
   });
 
+  it("keeps Supabase upload review safeguards in place", () => {
+    const attachmentRoute = readFileSync(join(process.cwd(), "src/app/api/component-library/attachments/route.ts"), "utf8");
+    const addComponentModal = readFileSync(join(process.cwd(), "src/components/workshop/component-library-manager/AddComponentModal.tsx"), "utf8");
+    const nextConfig = readFileSync(join(process.cwd(), "next.config.ts"), "utf8");
+
+    expect(attachmentRoute).toContain("includesAscii(bytes, \"[Content_Types].xml\")");
+    expect(attachmentRoute).toContain("includesAscii(bytes, \"xl/workbook.xml\")");
+    expect(attachmentRoute).toContain("export async function DELETE");
+    expect(attachmentRoute).toContain("const declaredMime = file.type.trim()");
+    expect(addComponentModal).toContain("cleanupUploadedDraftAssets");
+    expect(addComponentModal).toContain("removeComponentAttachmentUpload");
+    expect(addComponentModal).toContain("attachmentBusy");
+    expect(nextConfig).toContain('const protocol = url.protocol === "http:" ? "http" : url.protocol === "https:" ? "https" : null');
+    expect(nextConfig).toContain("remotePatterns: supabaseImageRemotePattern ? [supabaseImageRemotePattern] : []");
+    expect(nextConfig).not.toContain('hostname: "**"');
+  });
+
   it("renders Components as the only route tab with direct folder scoped rows", () => {
     render(
       <LibraryPageClient
@@ -391,7 +408,7 @@ describe("workshop library consolidation UI", () => {
     expect(sectionTabs).toHaveClass("h-[32px]");
     expect(sectionTabs).toHaveClass("bg-surfaceMuted");
     expect(sectionTabs).toHaveClass("border-b");
-    expect(componentTab).toHaveClass("rounded-t-md");
+    expect(componentTab).toHaveClass("rounded-xs");
     expect(componentTab).toHaveClass("-mb-px");
     expect(componentTab).toHaveClass("bg-white");
     expect(activityTab).toHaveClass("border-transparent");
@@ -445,7 +462,7 @@ describe("workshop library consolidation UI", () => {
     expect(within(dialog).queryByLabelText("Kind")).not.toBeInTheDocument();
     fireEvent.click(within(dialog).getByRole("treeitem", { name: "Details" }));
     expect(within(dialog).getByRole("treeitem", { name: "Details" })).toHaveAttribute("aria-selected", "true");
-    expect(within(within(dialog).getByLabelText("Selected nesting path")).getByText("Details")).toHaveClass("font-bold");
+    expect(within(within(dialog).getByLabelText("Selected nesting path")).getByText("Details")).toHaveClass("font-medium");
     fireEvent.click(within(dialog).getByRole("treeitem", { name: "Fabrication" }));
     const promptSpy = vi.spyOn(window, "prompt").mockReturnValue("Acoustics");
     actionMocks.createLibraryFolder.mockResolvedValueOnce({
@@ -464,7 +481,7 @@ describe("workshop library consolidation UI", () => {
     expect(promptSpy).toHaveBeenCalledWith("Folder name");
     promptSpy.mockRestore();
     await waitFor(() => expect(within(dialog).getByRole("treeitem", { name: "Acoustics" })).toHaveAttribute("aria-selected", "true"));
-    expect(within(within(dialog).getByLabelText("Selected nesting path")).getByText("Acoustics")).toHaveClass("font-bold");
+    expect(within(within(dialog).getByLabelText("Selected nesting path")).getByText("Acoustics")).toHaveClass("font-medium");
 
     const nameInput = within(dialog).getByLabelText("Name");
     expect(nameInput).toHaveAttribute("aria-invalid", "true");

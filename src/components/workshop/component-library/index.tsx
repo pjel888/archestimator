@@ -109,25 +109,25 @@ function PreviewPanel({
         />
         <div className="min-w-0 flex-1">
           <div className="flex items-start justify-between gap-1">
-            <h3 className="truncate text-[11px] font-bold text-ink">{getComponentName(item)}</h3>
+            <h3 className="truncate text-[11px] font-medium text-ink">{getComponentName(item)}</h3>
             <Button
               type="button"
               variant="ghost"
               size="icon-sm"
-              className="size-5 shrink-0 rounded-sm p-0 text-tertiary hover:bg-surfaceMuted hover:text-ink"
+              className="size-5 shrink-0 rounded-xs p-0 text-tertiary hover:bg-surfaceMuted hover:text-ink"
               aria-label="Close component preview"
               onClick={onClose}
             >
               <X size={11} />
             </Button>
           </div>
-          <p className="text-[9px] font-semibold text-tertiary">
+          <p className="text-[9px] font-medium text-tertiary">
             {item.category} · {item.supplier || "No supplier"}
           </p>
-          <p className="mt-0.5 font-mono text-[10px] font-bold tabular-nums text-ink">
+          <p className="mt-0.5 font-sans text-[10px] font-medium tabular-nums text-ink">
             {pesoFormatter.format(getComponentPrice(item))} / {item.unit}
           </p>
-          <p className={cn("mt-0.5 truncate text-[8px] font-bold leading-3", stalenessClass)}>
+          <p className={cn("mt-0.5 truncate text-[8px] font-medium leading-3", stalenessClass)}>
             {item.pricingSource || item.supplier || "Library"}
             {stalenessLabel ? ` · ${stalenessLabel}` : ""}
           </p>
@@ -156,7 +156,7 @@ function PreviewPanel({
             value={insertQuantity}
             aria-label="Insert quantity"
             onChange={(event) => onInsertQuantityChange(Math.max(1, Number.parseInt(event.target.value, 10) || 1))}
-            className="h-6 border border-hairline bg-white px-1 text-center text-[9px] font-bold tabular-nums text-ink outline-none focus:border-accent"
+            className="h-6 border border-hairline bg-white px-1 text-center text-[9px] font-medium tabular-nums text-ink outline-none focus:border-accent"
           />
           <Button onClick={() => onAdd(insertQuantity)} disabled={addDisabled} aria-label={addLabel} title={addLabel} className="h-6 min-h-6 text-[9px]">
             {addDisabled ? "Select area" : `Add ×${insertQuantity}`}
@@ -221,7 +221,7 @@ function TemplateSidebarList({
 
   if (!filteredTemplates.length) {
     return (
-      <div className="flex min-h-24 items-center justify-center border border-dashed border-hairline bg-surfaceMuted/30 px-3 text-center text-[10px] font-semibold text-tertiary">
+      <div className="flex min-h-24 items-center justify-center border border-dashed border-hairline bg-surfaceMuted/30 px-3 text-center text-[10px] font-medium text-tertiary">
         No templates match this search.
       </div>
     );
@@ -231,7 +231,7 @@ function TemplateSidebarList({
     <div className="space-y-3" aria-label="Estimate templates">
       {categories.map((category) => (
         <section key={category} className="space-y-1" aria-label={`${category} templates`}>
-          <p className="px-1 text-[8px] font-bold uppercase tracking-[0.14em] text-tertiary">{category}</p>
+          <p className="px-1 text-[8px] font-medium uppercase tracking-normal text-tertiary">{category}</p>
           {filteredTemplates.filter((template) => template.category === category).map((template) => {
             const summary = summarizeEstimateTemplate(template);
             return (
@@ -244,7 +244,7 @@ function TemplateSidebarList({
               >
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0">
-                    <p className="truncate text-[11px] font-bold text-ink">{template.name}</p>
+                    <p className="truncate text-[11px] font-medium text-ink">{template.name}</p>
                     <p className="mt-0.5 line-clamp-2 text-[9px] leading-3 text-tertiary">{template.description}</p>
                   </div>
                   <Button
@@ -258,12 +258,12 @@ function TemplateSidebarList({
                     Add
                   </Button>
                 </div>
-                <div className="mt-2 flex flex-wrap gap-1 text-[8px] font-bold uppercase tracking-[0.08em] text-tertiary">
+                <div className="mt-2 flex flex-wrap gap-1 text-[8px] font-medium uppercase tracking-normal text-tertiary">
                   <span>{summary.groupCount} groups</span>
                   <span>{summary.areaCount} areas</span>
                   <span>{summary.rowCount} rows</span>
                 </div>
-                <p className="mt-1 font-mono text-[10px] font-bold tabular-nums text-ink">
+                <p className="mt-1 font-sans text-[10px] font-medium tabular-nums text-ink">
                   {pesoFormatter.format(summary.total)}
                 </p>
               </div>
@@ -672,7 +672,7 @@ export function EstimateRightSidebar({
     event.dataTransfer.setData("text/plain", getComponentName(item));
 
     const dragGhost = document.createElement("div");
-    dragGhost.className = "fixed -top-96 left-0 flex items-center gap-2 border border-hairline bg-white px-2 py-1 text-[10px] font-bold text-ink shadow-lg";
+    dragGhost.className = "fixed -top-96 left-0 flex items-center gap-2 border border-hairline bg-white px-2 py-1 text-[10px] font-medium text-ink shadow-lg";
     dragGhost.textContent = `${getComponentName(item)} · ${pesoFormatter.format(getComponentPrice(item))}`;
     document.body.appendChild(dragGhost);
     event.dataTransfer.setDragImage(dragGhost, 12, 12);
@@ -685,7 +685,7 @@ export function EstimateRightSidebar({
     event.dataTransfer.setData("text/plain", template.name);
 
     const dragGhost = document.createElement("div");
-    dragGhost.className = "fixed -top-96 left-0 border border-hairline bg-white px-2 py-1 text-[10px] font-bold text-ink shadow-lg";
+    dragGhost.className = "fixed -top-96 left-0 border border-hairline bg-white px-2 py-1 text-[10px] font-medium text-ink shadow-lg";
     dragGhost.textContent = `${template.name} · estimate template`;
     document.body.appendChild(dragGhost);
     event.dataTransfer.setDragImage(dragGhost, 12, 12);
@@ -802,7 +802,7 @@ export function EstimateRightSidebar({
 
         {deletedItems.length ? (
           <div className="absolute right-2 bottom-2 z-30 max-w-72 border border-hairline bg-white p-2 shadow-xl">
-            <p className="text-[9px] font-bold text-ink">
+            <p className="text-[9px] font-medium text-ink">
               {deletedItems.length === 1 ? `${getComponentName(deletedItems[0])} deleted.` : `${deletedItems.length} components deleted.`}
             </p>
             <Button type="button" variant="secondary" size="sm" className="mt-1 h-6 min-h-6 text-[9px]" onClick={undoDelete}>
@@ -819,7 +819,7 @@ export function EstimateRightSidebar({
         {deleteCandidate ? (
           <div className="absolute inset-0 z-40 grid place-items-center bg-black/25 p-4">
             <div role="alertdialog" aria-modal="true" className="w-full max-w-72 border border-hairline bg-white p-3 shadow-xl">
-              <h3 className="text-[11px] font-bold text-ink">Delete component?</h3>
+              <h3 className="text-[11px] font-medium text-ink">Delete component?</h3>
               <p className="mt-1 text-[9px] leading-4 text-tertiary">
                 Remove {getComponentName(deleteCandidate)} from this local library view. Existing estimate rows stay unchanged.
               </p>

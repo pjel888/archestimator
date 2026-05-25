@@ -171,7 +171,7 @@ export function LibraryTree({
 }: LibraryTreeProps) {
   if (nodes.length === 0) {
     return (
-      <div className="rounded-md border border-dashed border-hairline bg-surfaceMuted p-2 text-[10px] leading-4 text-tertiary">
+      <div className="rounded-xs border border-dashed border-hairline bg-surfaceMuted p-2 text-[10px] leading-4 text-tertiary">
         No matches for &quot;{searchQuery}&quot;.
       </div>
     );

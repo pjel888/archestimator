@@ -49,13 +49,13 @@ export function LibraryItemRow({
           if (showAddAction && !addDisabled) onAdd();
         }}
       >
-        <Package size={12} weight="bold" className="shrink-0 text-tertiary" aria-hidden="true" />
+        <Package size={12} weight="regular" className="shrink-0 text-tertiary" aria-hidden="true" />
 
         <div className="flex min-w-0 flex-1 items-center gap-2">
           <div className="flex min-w-0 flex-1 flex-col">
             <span
               data-component-library-tree-label
-              className="truncate text-[10px] font-semibold leading-4 text-ink"
+              className="truncate text-[10px] font-medium leading-4 text-ink"
             >
               {name}
             </span>
@@ -65,7 +65,7 @@ export function LibraryItemRow({
           </div>
 
           <div className="flex shrink-0 flex-col items-end">
-            <span className="text-[9px] font-bold tabular-nums text-ink">
+            <span className="text-[9px] font-medium tabular-nums text-ink">
               {pesoFormatter.format(price)}
             </span>
             <span className="text-[9px] text-tertiary">/{item.unit}</span>
@@ -88,7 +88,7 @@ export function LibraryItemRow({
                 onAdd();
               }}
             >
-              <Plus size={11} weight="bold" />
+              <Plus size={11} weight="regular" />
             </Button>
           </div>
         ) : null}

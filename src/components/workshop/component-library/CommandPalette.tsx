@@ -105,7 +105,7 @@ export function CommandPalette({
         onKeyDown={handleKeyDown}
       >
         <div className="flex h-11 items-center gap-2 border-b border-hairline px-3">
-          <MagnifyingGlass size={15} weight="bold" className="shrink-0 text-tertiary" aria-hidden="true" />
+          <MagnifyingGlass size={15} weight="regular" className="shrink-0 text-tertiary" aria-hidden="true" />
           <input
             ref={searchRef}
             value={query}
@@ -115,7 +115,7 @@ export function CommandPalette({
             }}
             aria-label="Command palette search"
             placeholder="Search components"
-            className="min-w-0 flex-1 bg-transparent text-[12px] font-semibold text-ink outline-none placeholder:text-tertiary"
+            className="min-w-0 flex-1 bg-transparent text-[10px] font-medium text-ink outline-none placeholder:text-tertiary"
           />
           <Button
             type="button"
@@ -125,18 +125,18 @@ export function CommandPalette({
             aria-label="Close command palette"
             onClick={onClose}
           >
-            <X size={13} weight="bold" />
+            <X size={13} weight="regular" />
           </Button>
         </div>
 
-        <div className={cn("border-b border-hairline px-3 py-2 text-[10px] font-bold", canInsert ? "text-success" : "text-warning")}>
+        <div className={cn("border-b border-hairline px-3 py-2 text-[10px] font-medium", canInsert ? "text-success" : "text-warning")}>
           {canInsert ? `Ready to insert into ${targetLabel}` : "Select an Area Node before inserting components"}
         </div>
 
         <div className="max-h-[50vh] overflow-auto p-1">
           {!results.length ? (
-            <div className="flex items-center gap-2 px-3 py-6 text-[11px] font-semibold text-tertiary">
-              <WarningCircle size={14} weight="bold" aria-hidden="true" />
+            <div className="flex items-center gap-2 px-3 py-6 text-[10px] font-medium text-tertiary">
+              <WarningCircle size={14} weight="regular" aria-hidden="true" />
               No components matched.
             </div>
           ) : (
@@ -159,16 +159,16 @@ export function CommandPalette({
                   onClick={() => insertItem(item)}
                 >
                   <span className="min-w-0 flex-1">
-                    <span className="block truncate text-[11px] font-bold text-ink">{name}</span>
-                    <span className="block truncate text-[9px] font-semibold text-tertiary">
+                    <span className="block truncate text-[11px] font-medium text-ink">{name}</span>
+                    <span className="block truncate text-[9px] font-medium text-tertiary">
                       {item.supplier || "No supplier"} · {item.category}
                     </span>
                   </span>
                   <span className="shrink-0 text-right">
-                    <span className="block font-mono text-[10px] font-bold tabular-nums text-ink">
+                    <span className="block font-sans text-[10px] font-medium tabular-nums text-ink">
                       {pesoFormatter.format(getComponentPrice(item))} / {item.unit}
                     </span>
-                    <span className={cn("block text-[8px] font-bold", stalenessClass(stalenessTone))}>
+                    <span className={cn("block text-[8px] font-medium", stalenessClass(stalenessTone))}>
                       {stalenessLabel ?? item.pricingSource ?? "Library"}
                     </span>
                   </span>
@@ -178,7 +178,7 @@ export function CommandPalette({
           )}
         </div>
 
-        <div className="flex items-center justify-between border-t border-hairline px-3 py-2 text-[9px] font-bold text-tertiary">
+        <div className="flex items-center justify-between border-t border-hairline px-3 py-2 text-[9px] font-medium text-tertiary">
           <span>Enter inserts · Shift+Enter keeps open</span>
           <span>Esc closes</span>
         </div>

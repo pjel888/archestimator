@@ -91,13 +91,13 @@ function TemplateLibrarySheet({
             role="tab"
             aria-selected={true}
             className={cn(
-              "relative h-full rounded-t-md border border-b-0 px-3 text-[10px] font-bold leading-none transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus",
+              "relative h-full rounded-xs border border-b-0 px-3 text-[10px] font-medium leading-none transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus",
               "z-10 -mb-px border-hairline bg-white text-ink",
             )}
           >
             {selectedLabel}
           </button>
-          <span className="ml-auto self-center pr-2 text-[9px] font-bold text-tertiary">
+          <span className="ml-auto self-center pr-2 text-[9px] font-medium text-tertiary">
             {visibleTemplates.length} / {sheetTemplates.length}
           </span>
         </div>
@@ -114,13 +114,13 @@ function TemplateLibrarySheet({
                   className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 border-b border-hairline px-2 py-1.5 last:border-b-0"
                 >
                   <div className="min-w-0">
-                    <p className="truncate text-[10px] font-bold leading-4 text-ink">{template.name}</p>
-                    <p className="truncate text-[9px] font-semibold leading-3 text-tertiary">
+                    <p className="truncate text-[10px] font-medium leading-4 text-ink">{template.name}</p>
+                    <p className="truncate text-[9px] font-medium leading-3 text-tertiary">
                       {summary.groupCount} groups / {summary.areaCount} areas / {summary.rowCount} rows
                     </p>
                     <p className="truncate text-[9px] leading-3 text-tertiary/80">{template.description}</p>
                   </div>
-                  <span className="font-mono text-[10px] font-bold tabular-nums text-ink">
+                  <span className="font-sans text-[10px] font-medium tabular-nums text-ink">
                     {pesoFormatter.format(summary.total)}
                   </span>
                 </li>
@@ -130,8 +130,8 @@ function TemplateLibrarySheet({
         ) : (
           <div className="flex h-full items-center justify-center bg-white p-2 text-center">
             <div>
-              <SquaresFour size={18} weight="bold" className="mx-auto mb-2 text-tertiary" aria-hidden="true" />
-              <p className="text-[11px] font-bold leading-4 text-ink">{selectedLabel}</p>
+              <SquaresFour size={18} weight="regular" className="mx-auto mb-2 text-tertiary" aria-hidden="true" />
+              <p className="text-[11px] font-medium leading-4 text-ink">{selectedLabel}</p>
               <p className="mt-0.5 max-w-56 text-[9px] leading-4 text-tertiary">
                 {searchQuery ? `No templates match "${searchQuery}".` : "No templates in this folder yet."}
               </p>
@@ -229,14 +229,14 @@ function TemplateLibraryTreePanel({
                         className="cursor-pointer gap-1.5"
                         onClick={() => onSelectNode(node.id)}
                       >
-                        <SquaresFour size={12} weight="bold" className="shrink-0 text-tertiary" aria-hidden="true" />
+                        <SquaresFour size={12} weight="regular" className="shrink-0 text-tertiary" aria-hidden="true" />
                         <div className="flex min-w-0 flex-1 items-center gap-2">
                           <div className="flex min-w-0 flex-1 flex-col">
-                            <span className="truncate text-[10px] font-semibold leading-4 text-ink">{node.label}</span>
+                            <span className="truncate text-[10px] font-medium leading-4 text-ink">{node.label}</span>
                             <span className="truncate text-[9px] leading-3 text-tertiary">{node.meta}</span>
                           </div>
                           {summary ? (
-                            <span className="font-mono text-[9px] font-bold tabular-nums text-ink">
+                            <span className="font-sans text-[9px] font-medium tabular-nums text-ink">
                               {pesoFormatter.format(summary.total)}
                             </span>
                           ) : null}
@@ -269,13 +269,13 @@ function TemplateLibraryTreePanel({
                       >
                         {hasChildren ? (
                           expanded ? (
-                            <CaretDown size={11} weight="bold" aria-hidden="true" />
+                            <CaretDown size={11} weight="regular" aria-hidden="true" />
                           ) : (
-                            <CaretRight size={11} weight="bold" aria-hidden="true" />
+                            <CaretRight size={11} weight="regular" aria-hidden="true" />
                           )
                         ) : null}
                       </span>
-                      <FolderSimple size={12} weight="bold" className="shrink-0 text-tertiary" aria-hidden="true" />
+                      <FolderSimple size={12} weight="regular" className="shrink-0 text-tertiary" aria-hidden="true" />
                       <span className="min-w-0 flex-1 truncate">{node.label}</span>
                     </WorkshopTreeRow>
                     {children}
@@ -284,7 +284,7 @@ function TemplateLibraryTreePanel({
               }}
             />
           ) : (
-            <div className="rounded-md border border-dashed border-hairline bg-surfaceMuted p-2 text-[10px] leading-4 text-tertiary">
+            <div className="rounded-xs border border-dashed border-hairline bg-surfaceMuted p-2 text-[10px] leading-4 text-tertiary">
               No templates match &quot;{searchQuery}&quot;.
             </div>
           )}
@@ -303,7 +303,7 @@ export function TemplateLibraryManager({ templates = [] }: { templates?: Estimat
   );
 
   return (
-    <div className="flex h-full min-h-0 overflow-hidden rounded-xl border border-hairline bg-white" data-template-library-workspace="true">
+    <div className="flex h-full min-h-0 overflow-hidden rounded-xs border border-hairline bg-white" data-template-library-workspace="true">
       <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-canvas">
         <div
           className="relative h-10 shrink-0 border-b border-hairline bg-white"

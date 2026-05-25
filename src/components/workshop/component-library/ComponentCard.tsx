@@ -96,7 +96,7 @@ export function LibraryItemCard({
     event.dataTransfer.setData("text/plain", getComponentName(item));
 
     const dragGhost = document.createElement("div");
-    dragGhost.className = "fixed -top-96 left-0 flex items-center gap-2 border border-hairline bg-white px-2 py-1 text-[10px] font-bold text-ink shadow-lg";
+    dragGhost.className = "fixed -top-96 left-0 flex items-center gap-2 border border-hairline bg-white px-2 py-1 text-[10px] font-medium text-ink shadow-lg";
     dragGhost.textContent = `${getComponentName(item)} · ${pesoFormatter.format(getComponentPrice(item))}`;
     document.body.appendChild(dragGhost);
     event.dataTransfer.setDragImage(dragGhost, 12, 12);
@@ -143,7 +143,7 @@ export function LibraryItemCard({
           onAdd();
         }}
       >
-        <Plus size={11} weight="bold" />
+        <Plus size={11} weight="regular" />
       </Button>
       <Button
         type="button"
@@ -156,21 +156,21 @@ export function LibraryItemCard({
           onFavorite();
         }}
       >
-        <Heart size={11} weight={favorite ? "fill" : "bold"} />
+        <Heart size={11} weight="regular" />
       </Button>
       <details className="relative" onClick={(event) => event.stopPropagation()}>
         <summary
-          className="grid size-5 cursor-pointer list-none place-items-center rounded-sm text-tertiary hover:bg-surfaceMuted hover:text-ink"
+          className="grid size-5 cursor-pointer list-none place-items-center rounded-xs text-tertiary hover:bg-surfaceMuted hover:text-ink"
           aria-label={`More actions for ${name}`}
         >
-          <DotsThreeVertical size={11} weight="bold" />
+          <DotsThreeVertical size={11} weight="regular" />
         </summary>
         <div className="absolute right-0 z-20 mt-1 w-28 border border-hairline bg-white p-1 shadow-lg">
           <Button
             type="button"
             variant="ghost"
             size="sm"
-            className="flex h-auto min-h-0 w-full justify-start gap-1.5 rounded-none px-1.5 py-1 text-left hover:bg-surfaceMuted"
+            className="flex h-auto min-h-0 w-full justify-start gap-1.5 rounded-xs px-1.5 py-1 text-left hover:bg-surfaceMuted"
             onClick={onEdit}
           >
             <PencilSimple size={10} />
@@ -180,7 +180,7 @@ export function LibraryItemCard({
             type="button"
             variant="ghost"
             size="sm"
-            className="flex h-auto min-h-0 w-full justify-start gap-1.5 rounded-none px-1.5 py-1 text-left hover:bg-surfaceMuted"
+            className="flex h-auto min-h-0 w-full justify-start gap-1.5 rounded-xs px-1.5 py-1 text-left hover:bg-surfaceMuted"
             onClick={onDuplicate}
           >
             <Plus size={10} />
@@ -190,7 +190,7 @@ export function LibraryItemCard({
             type="button"
             variant="ghost"
             size="sm"
-            className="flex h-auto min-h-0 w-full justify-start gap-1.5 rounded-none px-1.5 py-1 text-left text-danger hover:bg-dangerSoft"
+            className="flex h-auto min-h-0 w-full justify-start gap-1.5 rounded-xs px-1.5 py-1 text-left text-danger hover:bg-dangerSoft"
             onClick={onDelete}
           >
             <Trash size={10} />
@@ -226,20 +226,20 @@ export function LibraryItemCard({
           <span className="relative block aspect-[4/3] w-full overflow-hidden bg-surfaceMuted">
             <ComponentThumb item={item} size="lg" />
             <span className="absolute inset-x-0 bottom-0 bg-white/90 px-1.5 py-1 backdrop-blur-sm">
-              <span className="block truncate text-[9px] font-bold leading-3 text-ink">
+              <span className="block truncate text-[9px] font-medium leading-3 text-ink">
                 <HighlightMatch text={name} query={query} />
               </span>
-              <span className="block truncate font-mono text-[9px] font-bold tabular-nums text-ink">
+              <span className="block truncate font-sans text-[9px] font-medium tabular-nums text-ink">
                 {pesoFormatter.format(price)} / {item.unit}
               </span>
-              <span className={cn("block truncate text-[8px] font-bold leading-3", stalenessClass(stalenessTone))}>
+              <span className={cn("block truncate text-[8px] font-medium leading-3", stalenessClass(stalenessTone))}>
                 {sourceMeta}
               </span>
             </span>
           </span>
         </button>
         <div className="flex items-center justify-between gap-1 px-1.5 py-1">
-          <span className="block truncate text-[9px] font-semibold text-tertiary">{item.supplier || "No supplier"}</span>
+          <span className="block truncate text-[9px] font-medium text-tertiary">{item.supplier || "No supplier"}</span>
           {ActionButtons}
         </div>
       </div>
@@ -273,17 +273,17 @@ export function LibraryItemCard({
         <ComponentThumb item={item} size={isDetailed ? "md" : "sm"} />
         <span className="flex min-w-0 flex-1 flex-col justify-center">
           <span className="flex items-start justify-between gap-1">
-          <span className={cn("block truncate font-bold leading-3 text-ink", isDetailed ? "text-[10px]" : "text-[10px]")}>
+          <span className={cn("block truncate font-medium leading-3 text-ink", isDetailed ? "text-[10px]" : "text-[10px]")}>
             <HighlightMatch text={name} query={query} />
           </span>
         </span>
-        <span className="mt-0.5 block truncate text-[9px] font-semibold leading-3 text-tertiary">
+        <span className="mt-0.5 block truncate text-[9px] font-medium leading-3 text-tertiary">
           {item.supplier || "No supplier"} · {item.category}
         </span>
-        <span className="mt-0.5 block font-mono text-[9px] font-bold tabular-nums text-ink">
+        <span className="mt-0.5 block font-sans text-[9px] font-medium tabular-nums text-ink">
           {pesoFormatter.format(price)} / {item.unit}
         </span>
-        <span className={cn("mt-0.5 block truncate text-[8px] font-bold leading-3", stalenessClass(stalenessTone))}>
+        <span className={cn("mt-0.5 block truncate text-[8px] font-medium leading-3", stalenessClass(stalenessTone))}>
           {sourceMeta}
         </span>
         {isDetailed ? (

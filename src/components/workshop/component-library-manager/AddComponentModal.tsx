@@ -181,6 +181,7 @@ const ALLOWED_ATTACHMENT_TYPES = new Set([
   "application/vnd.ms-excel",
   "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
 ]);
+const ALLOWED_ATTACHMENT_EXTENSION_PATTERN = /\.(pdf|xls|xlsx)$/i;
 const accountingNumberFormatter = new Intl.NumberFormat("en-US", {
   minimumFractionDigits: 2,
   maximumFractionDigits: 2,
@@ -292,6 +293,16 @@ function collectDraftImages(draft: ComponentDraft) {
   return Array.from(byPath.values());
 }
 
+function collectDraftAttachments(draft: ComponentDraft) {
+  const byPath = new Map<string, VariantAttachmentDraft>();
+  for (const variant of draft.variants) {
+    for (const attachment of variant.attachments) {
+      if (attachment.path) byPath.set(attachment.path, attachment);
+    }
+  }
+  return Array.from(byPath.values());
+}
+
 function isSameStoredImage(left: VariantImageDraft | null | undefined, right: VariantImageDraft | null | undefined) {
   return Boolean(left && right && (left.path === right.path || left.thumbnailStoragePath === right.thumbnailStoragePath));
 }
@@ -306,8 +317,27 @@ async function removeComponentImageUpload(image: VariantImageDraft | null | unde
   }).catch(() => undefined);
 }
 
+function getAttachmentStoragePaths(attachment: VariantAttachmentDraft | null | undefined) {
+  if (!attachment?.path) return [];
+  return [attachment.path];
+}
+
+async function removeComponentAttachmentUpload(attachment: VariantAttachmentDraft | null | undefined) {
+  const paths = getAttachmentStoragePaths(attachment);
+  if (paths.length === 0) return;
+  await fetch("/api/component-library/attachments", {
+    method: "DELETE",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ paths }),
+  }).catch(() => undefined);
+}
+
 function isImageUploadBusy(state: ImageUploadState["state"]) {
   return state === "processing" || state === "uploading";
+}
+
+function hasAllowedAttachmentExtension(name: string) {
+  return ALLOWED_ATTACHMENT_EXTENSION_PATTERN.test(name);
 }
 
 async function uploadComponentAttachment(file: File): Promise<UploadedComponentAttachment> {
@@ -640,11 +670,11 @@ function buildComponentMetadata(
 }
 
 function sectionTitleClassName() {
-  return "text-[9px] font-bold uppercase tracking-[0.06em] text-tertiary";
+  return "text-[9px] font-medium uppercase tracking-normal text-tertiary";
 }
 
-const selectWrapperClassName = "h-8 w-full rounded-sm border border-hairline bg-white px-2 shadow-[inset_0_1px_0_rgba(17,17,17,0.02)]";
-const selectClassName = "h-full w-full border-b-0 pr-7 !text-[10px] font-semibold";
+const selectWrapperClassName = "h-8 w-full rounded-xs border border-hairline bg-white px-2 shadow-[inset_0_1px_0_rgba(17,17,17,0.02)]";
+const selectClassName = "h-full w-full border-b-0 pr-7 !text-[10px] font-medium";
 
 export function AddComponentModal({
   open,
@@ -709,6 +739,7 @@ export function AddComponentModal({
   const activeImageSrc = activePreviewUrl || activeVariantImage?.thumbnailUrl || activeVariantImage?.url || "";
   const activeImagePath = activeVariantImage?.path || activeVariantImage?.thumbnailStoragePath || "";
   const imageBusy = isImageUploadBusy(imageUpload.state);
+  const attachmentBusy = isImageUploadBusy(attachmentUpload.state);
   const lifecycleOption = LIFECYCLE_OPTIONS.find((option) => option.value === draft.lifecycleState) ?? LIFECYCLE_OPTIONS[0];
   const defaultCostEntry = getActiveCostEntry(defaultVariant);
   const defaultCost = defaultCostEntry && Number.isFinite(parseMoney(defaultCostEntry.unitCost))
@@ -868,6 +899,7 @@ export function AddComponentModal({
     if (!activeVariant || draft.variants.length <= 1) return;
     dirtyRef.current = true;
     const removedImage = draft.sharedImageForAllVariants ? null : activeVariant.image;
+    const removedAttachments = activeVariant.attachments;
     const removedIndex = draft.variants.findIndex((variant) => variant.id === activeVariant.id);
     const nextVariants = draft.variants.filter((variant) => variant.id !== activeVariant.id);
     const ensuredVariants = nextVariants.some((variant) => variant.isDefault)
@@ -877,6 +909,9 @@ export function AddComponentModal({
     setDraft((current) => ({ ...current, variants: ensuredVariants }));
     setActiveVariantId(nextActive?.id ?? "");
     if (removedImage) void removeComponentImageUpload(removedImage);
+    for (const attachment of removedAttachments) {
+      void removeComponentAttachmentUpload(attachment);
+    }
     setError("");
   }
 
@@ -890,9 +925,12 @@ export function AddComponentModal({
     setError("");
   }
 
-  function cleanupUploadedDraftImages() {
+  function cleanupUploadedDraftAssets() {
     for (const image of collectDraftImages(draft)) {
       void removeComponentImageUpload(image);
+    }
+    for (const attachment of collectDraftAttachments(draft)) {
+      void removeComponentAttachmentUpload(attachment);
     }
   }
 
@@ -901,8 +939,8 @@ export function AddComponentModal({
       onOpenChange(openValue);
       return;
     }
-    if (imageBusy) {
-      setError("Wait for the thumbnail upload to finish before closing.");
+    if (imageBusy || attachmentBusy) {
+      setError("Wait for uploads to finish before closing.");
       return;
     }
     if (!dirtyRef.current) {
@@ -910,7 +948,7 @@ export function AddComponentModal({
       return;
     }
     if (window.confirm("Discard this component draft?")) {
-      cleanupUploadedDraftImages();
+      cleanupUploadedDraftAssets();
       dirtyRef.current = false;
       onOpenChange(false);
     }
@@ -969,7 +1007,7 @@ export function AddComponentModal({
 
   async function handleAttachmentUpload(file: File) {
     if (!activeVariant) return;
-    if (!ALLOWED_ATTACHMENT_TYPES.has(file.type)) {
+    if (file.type && !ALLOWED_ATTACHMENT_TYPES.has(file.type) && !hasAllowedAttachmentExtension(file.name)) {
       setAttachmentUpload({ state: "error", message: "Use a PDF, XLS, or XLSX file." });
       return;
     }
@@ -1021,9 +1059,11 @@ export function AddComponentModal({
 
   function removeAttachment(attachmentId: string) {
     if (!activeVariant) return;
+    const removedAttachment = activeVariant.attachments.find((attachment) => attachment.id === attachmentId);
     updateActiveVariant({
       attachments: activeVariant.attachments.filter((attachment) => attachment.id !== attachmentId),
     });
+    if (removedAttachment) void removeComponentAttachmentUpload(removedAttachment);
   }
 
   function updateActiveCostEntry(update: Partial<VariantCostEntryDraft>) {
@@ -1327,8 +1367,8 @@ export function AddComponentModal({
   }
 
   function submit() {
-    if (imageBusy) {
-      setError("Wait for the thumbnail upload to finish before adding this component.");
+    if (imageBusy || attachmentBusy) {
+      setError("Wait for uploads to finish before adding this component.");
       return;
     }
     if (validation.length > 0 || isPending) {
@@ -1473,7 +1513,7 @@ export function AddComponentModal({
           >
           <aside className="min-h-0 overflow-auto border-b border-hairline bg-white p-3 lg:col-start-1 lg:border-b-0 lg:border-r" aria-label="Component image">
             <div className="flex h-full min-h-0 flex-col gap-2">
-              <div className="relative flex aspect-square w-full shrink-0 items-center justify-center overflow-hidden rounded-md border border-dashed border-divider bg-white text-tertiary">
+              <div className="relative flex aspect-square w-full shrink-0 items-center justify-center overflow-hidden rounded-xs border border-dashed border-divider bg-white text-tertiary">
                 {activeImageSrc ? (
                   <Image
                     src={activeImageSrc}
@@ -1485,16 +1525,16 @@ export function AddComponentModal({
                   />
                 ) : (
                   <div className="grid justify-items-center gap-1 px-3 text-center">
-                    <ImageSquare size={34} weight="bold" aria-hidden="true" />
-                    <span className="text-[10px] font-bold leading-4 text-ink">Thumbnail</span>
-                    <span className="max-w-48 text-[9px] font-semibold leading-3 text-tertiary">
+                    <ImageSquare size={34} weight="regular" aria-hidden="true" />
+                    <span className="text-[10px] font-medium leading-4 text-ink">Thumbnail</span>
+                    <span className="max-w-48 text-[9px] font-medium leading-3 text-tertiary">
                       Upload a square reference image for this component.
                     </span>
                   </div>
                 )}
               </div>
               <div className="grid gap-1">
-                <span className="block min-h-3 truncate text-[9px] font-bold uppercase leading-3 tracking-[0.06em] text-tertiary">Upload thumbnail</span>
+                <span className="block min-h-3 truncate text-[9px] font-medium uppercase leading-3 tracking-normal text-tertiary">Upload thumbnail</span>
                 <input
                   id={thumbnailInputId}
                   type="file"
@@ -1511,18 +1551,18 @@ export function AddComponentModal({
                 />
                 <label
                   htmlFor={thumbnailInputId}
-                  className="inline-flex min-h-8 cursor-pointer items-center justify-center gap-2 rounded-md border border-hairline bg-white px-3 text-[10px] font-bold leading-none text-ink transition hover:bg-surfaceMuted focus-within:ring-2 focus-within:ring-focus"
+                  className="inline-flex min-h-8 cursor-pointer items-center justify-center gap-2 rounded-xs border border-hairline bg-white px-3 text-[10px] font-medium leading-none text-ink transition hover:bg-surfaceMuted focus-within:ring-2 focus-within:ring-focus"
                 >
-                  <UploadSimple size={12} weight="bold" aria-hidden="true" />
+                  <UploadSimple size={12} weight="regular" aria-hidden="true" />
                   Choose image
                 </label>
-                <label className="flex min-h-6 items-center gap-2 rounded-sm px-1 text-[10px] font-semibold normal-case tracking-normal text-ink">
+                <label className="flex min-h-6 items-center gap-2 rounded-xs px-1 text-[10px] font-medium normal-case tracking-normal text-ink">
                   <input
                     type="checkbox"
                     aria-label="Use same image for all variants"
                     checked={draft.sharedImageForAllVariants}
                     onChange={(event) => setSharedImageMode(event.target.checked)}
-                    className="size-3 rounded border-hairline accent-ink"
+                    className="size-3 rounded-xs border-hairline accent-ink"
                   />
                   <span>Use same image for all variants</span>
                 </label>
@@ -1548,7 +1588,7 @@ export function AddComponentModal({
 
           <div className="flex min-h-0 flex-col lg:col-start-2">
             <div className="shrink-0 border-b border-hairline bg-white px-3 py-2" aria-label="Selected nesting path">
-              <div className="text-[9px] font-bold uppercase tracking-[0.06em] text-tertiary">NEST COMPONENT UNDER</div>
+              <div className="text-[9px] font-medium uppercase tracking-normal text-tertiary">NEST COMPONENT UNDER</div>
               <div className="mt-1 flex min-w-0 flex-wrap items-center gap-x-1 gap-y-0.5 pl-2 text-[10px] leading-4">
                 {selectedFolderPath.length > 0 ? (
                   selectedFolderPath.map((segment, index) => {
@@ -1556,7 +1596,7 @@ export function AddComponentModal({
                     return (
                       <span key={`${segment}-${index}`} className="inline-flex min-w-0 items-center gap-1">
                         {index > 0 ? <span className="font-normal text-tertiary">/</span> : null}
-                        <span className={cn("max-w-[20rem] truncate", selected ? "font-bold text-ink" : "font-normal text-tertiary")}>
+                        <span className={cn("max-w-[20rem] truncate", selected ? "font-medium text-ink" : "font-normal text-tertiary")}>
                           {segment}
                         </span>
                       </span>
@@ -1607,7 +1647,7 @@ export function AddComponentModal({
                       }}
                     />
                   </ControlField>
-                  <div className="md:col-span-2 rounded-md border border-hairline bg-white" aria-label="Component variants">
+                  <div className="md:col-span-2 rounded-xs border border-hairline bg-white" aria-label="Component variants">
                     <div className="flex h-[32px] items-end gap-0 border-b border-hairline bg-surfaceMuted" role="tablist" aria-label="Component variants">
                       {draft.variants.map((variant) => (
                         <button
@@ -1616,7 +1656,7 @@ export function AddComponentModal({
                           role="tab"
                           aria-selected={activeVariant?.id === variant.id}
                           className={cn(
-                            "relative h-full min-w-0 max-w-32 rounded-t-md border border-b-0 px-3 text-[10px] font-bold leading-none transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus",
+                            "relative h-full min-w-0 max-w-32 rounded-xs border border-b-0 px-3 text-[10px] font-medium leading-none transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus",
                             activeVariant?.id === variant.id
                               ? "z-10 -mb-px border-hairline bg-white text-ink"
                               : "border-transparent bg-surfaceMuted text-tertiary hover:border-hairline hover:text-ink",
@@ -1633,7 +1673,7 @@ export function AddComponentModal({
                         onClick={addVariant}
                         className="ml-auto grid size-8 place-items-center border-l border-hairline text-tertiary transition hover:bg-white hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
                       >
-                        <Plus size={12} weight="bold" aria-hidden="true" />
+                        <Plus size={12} weight="regular" aria-hidden="true" />
                       </button>
                     </div>
                     {activeVariant ? (
@@ -1665,9 +1705,9 @@ export function AddComponentModal({
                                 aria-label="Remove active variant"
                                 title="Remove active variant"
                                 onClick={removeActiveVariant}
-                                className="grid size-8 shrink-0 place-items-center rounded-sm border border-hairline text-tertiary transition hover:bg-surfaceMuted hover:text-danger focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+                                className="grid size-8 shrink-0 place-items-center rounded-xs border border-hairline text-tertiary transition hover:bg-surfaceMuted hover:text-danger focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
                               >
-                                <Trash size={12} weight="bold" aria-hidden="true" />
+                                <Trash size={12} weight="regular" aria-hidden="true" />
                               </button>
                             ) : (
                               <span aria-hidden="true" className="size-8" />
@@ -1682,10 +1722,10 @@ export function AddComponentModal({
                           </ControlField>
                           <ControlField as="div" label="Cost" className="md:col-span-2">
                             <div ref={costPickerRootRef} className="relative grid gap-1">
-                              <div className="flex min-h-8 items-center justify-between gap-2 rounded-sm border border-hairline bg-surfaceMuted/60 px-2 py-1">
+                              <div className="flex min-h-8 items-center justify-between gap-2 rounded-xs border border-hairline bg-surfaceMuted/60 px-2 py-1">
                                 <div className="min-w-0">
-                                  <div className="truncate text-[10px] font-bold leading-4 text-ink">Cost baseline</div>
-                                  <div className="truncate text-[9px] font-semibold leading-3 text-tertiary">{formatCostTimestamp(activeCostEntry)}</div>
+                                  <div className="truncate text-[10px] font-medium leading-4 text-ink">Cost baseline</div>
+                                  <div className="truncate text-[9px] font-medium leading-3 text-tertiary">{formatCostTimestamp(activeCostEntry)}</div>
                                 </div>
                                 <Button
                                   type="button"
@@ -1753,13 +1793,13 @@ export function AddComponentModal({
                                     commitCostInputEntry();
                                     setCostPickerOpen((current) => !current);
                                   }}
-                                  className="grid size-8 place-items-center rounded-sm border border-hairline bg-white text-tertiary transition hover:bg-surfaceMuted hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+                                  className="grid size-8 place-items-center rounded-xs border border-hairline bg-white text-tertiary transition hover:bg-surfaceMuted hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
                                 >
-                                  <CaretDown size={12} weight="bold" aria-hidden="true" />
+                                  <CaretDown size={12} weight="regular" aria-hidden="true" />
                                 </button>
                               </div>
                               {costPickerOpen ? (
-                                <div className="absolute left-0 right-0 top-[38px] z-30 grid gap-1 rounded-md border border-hairline bg-white p-1 shadow-lg">
+                                <div className="absolute left-0 right-0 top-[38px] z-30 grid gap-1 rounded-xs border border-hairline bg-white p-1 shadow-lg">
                                   <div
                                     id={costPickerListboxId}
                                     role="listbox"
@@ -1774,7 +1814,7 @@ export function AddComponentModal({
                                           aria-selected={entry.id === activeCostEntry?.id}
                                           onClick={() => selectCostEntry(entry.id)}
                                           className={cn(
-                                            "grid min-h-8 grid-cols-[minmax(0,1fr)_auto] items-center gap-3 rounded-sm px-2 text-left text-[10px] font-semibold text-ink transition hover:bg-surfaceMuted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus",
+                                            "grid min-h-8 grid-cols-[minmax(0,1fr)_auto] items-center gap-3 rounded-xs px-2 text-left text-[10px] font-medium text-ink transition hover:bg-surfaceMuted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus",
                                             entry.id === activeCostEntry?.id ? "bg-accentSoft" : "bg-white",
                                           )}
                                         >
@@ -1787,16 +1827,16 @@ export function AddComponentModal({
                                           title="Delete cost entry"
                                           disabled={visibleCostEntries.length <= 1}
                                           onClick={() => deleteCostEntry(entry.id)}
-                                          className="grid size-7 place-items-center rounded-sm border border-transparent text-tertiary transition hover:border-hairline hover:bg-dangerSoft/30 hover:text-danger focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus disabled:cursor-not-allowed disabled:opacity-40"
+                                          className="grid size-7 place-items-center rounded-xs border border-transparent text-tertiary transition hover:border-hairline hover:bg-dangerSoft/30 hover:text-danger focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus disabled:cursor-not-allowed disabled:opacity-40"
                                         >
-                                          <Trash size={11} weight="bold" aria-hidden="true" />
+                                          <Trash size={11} weight="regular" aria-hidden="true" />
                                         </button>
                                       </div>
                                     ))}
                                   </div>
                                   {activeCostEntry ? (
                                     <label className="grid grid-cols-[minmax(0,1fr)_7.5rem] items-center gap-2 border-t border-hairline px-2 pt-1">
-                                      <span className="text-[9px] font-bold uppercase leading-3 tracking-[0.06em] text-tertiary">Date</span>
+                                      <span className="text-[9px] font-medium uppercase leading-3 tracking-normal text-tertiary">Date</span>
                                       <ControlInput
                                         aria-label="Selected cost date"
                                         type="date"
@@ -1864,7 +1904,7 @@ export function AddComponentModal({
                               </ControlField>
                             ) : null}
                           </div>
-                          <div className="md:col-span-2 rounded-md border border-hairline bg-white p-3" aria-label="Component measurements">
+                          <div className="md:col-span-2 rounded-xs border border-hairline bg-white p-3" aria-label="Component measurements">
                             <div className={sectionTitleClassName()}>Measurements</div>
                             <div className="mt-2 grid gap-x-2 gap-y-3 md:grid-cols-4">
                               <ControlField label="Length">
@@ -1962,7 +2002,7 @@ export function AddComponentModal({
                               className="min-h-16"
                             />
                           </ControlField>
-                          <div className="md:col-span-2 rounded-md border border-hairline bg-white p-3" aria-label="Variant attachments">
+                          <div className="md:col-span-2 rounded-xs border border-hairline bg-white p-3" aria-label="Variant attachments">
                             <div className="flex items-center justify-between gap-2">
                               <div className={sectionTitleClassName()}>Attachments</div>
                               <input
@@ -1981,9 +2021,9 @@ export function AddComponentModal({
                               />
                               <label
                                 htmlFor={attachmentInputId}
-                                className="inline-flex min-h-7 cursor-pointer items-center justify-center gap-2 rounded-sm border border-hairline bg-white px-2 text-[10px] font-bold leading-none text-ink transition hover:bg-surfaceMuted focus-within:ring-2 focus-within:ring-focus"
+                                className="inline-flex min-h-7 cursor-pointer items-center justify-center gap-2 rounded-xs border border-hairline bg-white px-2 text-[10px] font-medium leading-none text-ink transition hover:bg-surfaceMuted focus-within:ring-2 focus-within:ring-focus"
                               >
-                                <UploadSimple size={11} weight="bold" aria-hidden="true" />
+                                <UploadSimple size={11} weight="regular" aria-hidden="true" />
                                 Attach file
                               </label>
                             </div>
@@ -1992,22 +2032,22 @@ export function AddComponentModal({
                                 <div
                                   key={attachment.id}
                                   role="listitem"
-                                  className="grid min-h-8 grid-cols-[minmax(0,1fr)_auto_28px] items-center gap-2 rounded-sm border border-hairline bg-surfaceMuted px-2"
+                                  className="grid min-h-8 grid-cols-[minmax(0,1fr)_auto_28px] items-center gap-2 rounded-xs border border-hairline bg-surfaceMuted px-2"
                                 >
-                                  <span className="truncate text-[10px] font-semibold text-ink">{attachment.fileName}</span>
-                                  <span className="shrink-0 text-[9px] font-semibold text-tertiary">{formatBytes(attachment.sizeBytes)}</span>
+                                  <span className="truncate text-[10px] font-medium text-ink">{attachment.fileName}</span>
+                                  <span className="shrink-0 text-[9px] font-medium text-tertiary">{formatBytes(attachment.sizeBytes)}</span>
                                   <button
                                     type="button"
                                     aria-label={`Remove attachment ${attachment.fileName}`}
                                     title="Remove attachment"
                                     onClick={() => removeAttachment(attachment.id)}
-                                    className="grid size-7 place-items-center rounded-sm text-tertiary transition hover:bg-dangerSoft/30 hover:text-danger focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+                                    className="grid size-7 place-items-center rounded-xs text-tertiary transition hover:bg-dangerSoft/30 hover:text-danger focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
                                   >
-                                    <Trash size={11} weight="bold" aria-hidden="true" />
+                                    <Trash size={11} weight="regular" aria-hidden="true" />
                                   </button>
                                 </div>
                               )) : (
-                                <div className="rounded-sm border border-dashed border-hairline bg-surfaceMuted px-2 py-2 text-[10px] font-semibold text-tertiary">
+                                <div className="rounded-xs border border-dashed border-hairline bg-surfaceMuted px-2 py-2 text-[10px] font-medium text-tertiary">
                                   No attachments
                                 </div>
                               )}
@@ -2083,7 +2123,7 @@ export function AddComponentModal({
             className="min-h-0 flex-1 overflow-auto bg-surfaceMuted p-3"
           >
             <div className="mx-auto grid w-full max-w-5xl gap-3 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
-              <section className="grid gap-3 rounded-md border border-hairline bg-white p-3" aria-label="Component lifecycle">
+              <section className="grid gap-3 rounded-xs border border-hairline bg-white p-3" aria-label="Component lifecycle">
                 <div className={sectionTitleClassName()}>Lifecycle</div>
                 <div className="grid gap-3 md:grid-cols-2">
                   <ControlField label="Component state">
@@ -2116,27 +2156,27 @@ export function AddComponentModal({
                 </div>
               </section>
 
-              <section className="grid gap-3 rounded-md border border-hairline bg-white p-3" aria-label="Activity history">
+              <section className="grid gap-3 rounded-xs border border-hairline bg-white p-3" aria-label="Activity history">
                 <div className={sectionTitleClassName()}>Activity history</div>
                 <div role="list" className="grid gap-2">
-                  <div role="listitem" className="rounded-sm border border-hairline bg-surfaceMuted px-2 py-2">
+                  <div role="listitem" className="rounded-xs border border-hairline bg-surfaceMuted px-2 py-2">
                     <div className="flex min-w-0 items-center justify-between gap-2">
-                      <span className="truncate text-[10px] font-semibold text-ink">Component created</span>
+                      <span className="truncate text-[10px] font-medium text-ink">Component created</span>
                       <span className="shrink-0 text-[9px] font-normal text-tertiary">{draft.effectiveAt}</span>
                     </div>
                     <div className="mt-1 truncate text-[10px] font-normal text-tertiary">{draft.name.trim() || "Unnamed component"}</div>
                     <div className="mt-1 text-[10px] font-normal leading-4 text-tertiary">{draft.changeReason}</div>
                   </div>
-                  <div role="listitem" className="rounded-sm border border-hairline bg-surfaceMuted px-2 py-2">
+                  <div role="listitem" className="rounded-xs border border-hairline bg-surfaceMuted px-2 py-2">
                     <div className="flex min-w-0 items-center justify-between gap-2">
-                      <span className="truncate text-[10px] font-semibold text-ink">Lifecycle state</span>
+                      <span className="truncate text-[10px] font-medium text-ink">Lifecycle state</span>
                       <span className="shrink-0 text-[9px] font-normal text-tertiary">{lifecycleOption.label}</span>
                     </div>
                     <div className="mt-1 text-[10px] font-normal leading-4 text-tertiary">{draft.effectiveAt}</div>
                   </div>
-                  <div role="listitem" className="rounded-sm border border-hairline bg-surfaceMuted px-2 py-2">
+                  <div role="listitem" className="rounded-xs border border-hairline bg-surfaceMuted px-2 py-2">
                     <div className="flex min-w-0 items-center justify-between gap-2">
-                      <span className="truncate text-[10px] font-semibold text-ink">Cost baseline</span>
+                      <span className="truncate text-[10px] font-medium text-ink">Cost baseline</span>
                       <span className="shrink-0 text-[9px] font-normal text-tertiary">{defaultCost}</span>
                     </div>
                     <div className="mt-1 truncate text-[10px] font-normal text-tertiary">
@@ -2151,12 +2191,12 @@ export function AddComponentModal({
 
         <div className="sticky bottom-0 z-10 flex min-h-11 items-center justify-end gap-2 border-t border-hairline bg-white px-3 py-2">
           {error ? (
-            <div className="mr-auto min-w-0 text-[9px] font-semibold leading-4 text-danger" aria-live="polite">
+            <div className="mr-auto min-w-0 text-[9px] font-medium leading-4 text-danger" aria-live="polite">
               {error}
             </div>
           ) : null}
-          <Button type="button" onClick={submit} variant="primary" size="sm" disabled={isPending || imageBusy || validation.length > 0}>
-            {isPending ? "Adding..." : imageBusy ? "Uploading..." : "Add Component"}
+          <Button type="button" onClick={submit} variant="primary" size="sm" disabled={isPending || imageBusy || attachmentBusy || validation.length > 0}>
+            {isPending ? "Adding..." : imageBusy || attachmentBusy ? "Uploading..." : "Add Component"}
           </Button>
         </div>
       </div>
@@ -2174,11 +2214,11 @@ export function AddComponentModal({
         <section className="min-h-0 border-b border-hairline bg-surfaceMuted/60 lg:border-b-0 lg:border-r" aria-label="All cost entries">
           <div className="flex min-h-10 items-center justify-between gap-2 border-b border-hairline bg-white px-3 py-2">
             <div className="min-w-0">
-              <div className="truncate text-[10px] font-bold leading-4 text-ink">All cost entries</div>
-              <div className="truncate text-[9px] font-semibold leading-3 text-tertiary">{visibleCostEntries.length} records</div>
+              <div className="truncate text-[10px] font-medium leading-4 text-ink">All cost entries</div>
+              <div className="truncate text-[9px] font-medium leading-3 text-tertiary">{visibleCostEntries.length} records</div>
             </div>
             <Button type="button" variant="secondary" size="sm" onClick={addCostEntry} className="h-7 shrink-0 px-2">
-              <Plus size={11} weight="bold" aria-hidden="true" />
+              <Plus size={11} weight="regular" aria-hidden="true" />
               Add cost entry
             </Button>
           </div>
@@ -2192,15 +2232,15 @@ export function AddComponentModal({
                   aria-label={`${entry.isCurrent ? "Current " : ""}${formatCostEntryLabel(entry)}`}
                   onClick={() => selectCostEntry(entry.id)}
                   className={cn(
-                    "grid min-h-[54px] min-w-0 rounded-sm border px-2 py-1.5 text-left transition hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus",
+                    "grid min-h-[54px] min-w-0 rounded-xs border px-2 py-1.5 text-left transition hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus",
                     entry.id === activeCostEntry?.id ? "border-accent bg-accentSoft" : "border-hairline bg-white",
                   )}
                 >
                   <span className="flex min-w-0 items-center justify-between gap-2">
-                    <span className="truncate text-[10px] font-bold tabular-nums text-ink">{formatAccountingMoney(entry.unitCost)}</span>
-                    {entry.isCurrent ? <span className="shrink-0 rounded-sm bg-white px-1 text-[8px] font-bold uppercase leading-4 text-tertiary">Current</span> : null}
+                    <span className="truncate text-[10px] font-medium tabular-nums text-ink">{formatAccountingMoney(entry.unitCost)}</span>
+                    {entry.isCurrent ? <span className="shrink-0 rounded-xs bg-white px-1 text-[8px] font-medium uppercase leading-4 text-tertiary">Current</span> : null}
                   </span>
-                  <span className="mt-0.5 truncate text-[9px] font-semibold leading-3 text-tertiary">{formatCostTimestamp(entry)}</span>
+                  <span className="mt-0.5 truncate text-[9px] font-medium leading-3 text-tertiary">{formatCostTimestamp(entry)}</span>
                   <span className="mt-0.5 truncate text-[9px] font-normal leading-3 text-tertiary">{entry.pricingSource || "No source"}</span>
                 </button>
                 <button
@@ -2209,24 +2249,24 @@ export function AddComponentModal({
                   title="Delete cost entry"
                   disabled={visibleCostEntries.length <= 1}
                   onClick={() => deleteCostEntry(entry.id)}
-                  className="grid size-7 place-items-center self-start rounded-sm border border-transparent text-tertiary transition hover:border-hairline hover:bg-dangerSoft/30 hover:text-danger focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus disabled:cursor-not-allowed disabled:opacity-40"
+                  className="grid size-7 place-items-center self-start rounded-xs border border-transparent text-tertiary transition hover:border-hairline hover:bg-dangerSoft/30 hover:text-danger focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus disabled:cursor-not-allowed disabled:opacity-40"
                 >
-                  <Trash size={11} weight="bold" aria-hidden="true" />
+                  <Trash size={11} weight="regular" aria-hidden="true" />
                 </button>
               </div>
             ))}
           </div>
         </section>
         <section className="min-h-0 overflow-auto bg-white p-3" aria-label="Current cost entry">
-          <div className="mb-3 rounded-sm border border-hairline bg-surfaceMuted px-3 py-2">
+          <div className="mb-3 rounded-xs border border-hairline bg-surfaceMuted px-3 py-2">
             <div className="flex min-w-0 items-center justify-between gap-2">
               <div className="min-w-0">
-                <div className="truncate text-[10px] font-bold leading-4 text-ink">Current entry</div>
-                <div className="truncate text-[9px] font-semibold leading-3 text-tertiary">{formatCostTimestamp(activeCostEntry)}</div>
+                <div className="truncate text-[10px] font-medium leading-4 text-ink">Current entry</div>
+                <div className="truncate text-[9px] font-medium leading-3 text-tertiary">{formatCostTimestamp(activeCostEntry)}</div>
               </div>
               <div className="shrink-0 text-right">
-                <div className="text-[12px] font-bold leading-4 tabular-nums text-ink">{formatAccountingMoney(activeCostEntry?.unitCost ?? "0")}</div>
-                <div className="text-[9px] font-semibold leading-3 text-tertiary">PHP</div>
+                <div className="text-[9px] font-medium leading-4 tabular-nums text-ink">{formatAccountingMoney(activeCostEntry?.unitCost ?? "0")}</div>
+                <div className="text-[9px] font-medium leading-3 text-tertiary">PHP</div>
               </div>
             </div>
           </div>
@@ -2269,7 +2309,7 @@ export function AddComponentModal({
                 aria-label="Cost manager confidence"
                 value={activeCostEntry?.confidence || "medium"}
                 onChange={(event) => updateActiveCostEntry({ confidence: event.target.value })}
-                wrapperClassName="h-8 rounded-sm border border-hairline bg-white px-2"
+                wrapperClassName="h-8 rounded-xs border border-hairline bg-white px-2"
                 className="h-full w-full border-0 pr-6 text-[10px]"
               >
                 <option value="low">Low</option>

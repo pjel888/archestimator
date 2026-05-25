@@ -11,7 +11,7 @@ import type { NewComponentForm as NewComponentFormType } from "./types";
 function Field({ label, children, required }: { label: string; children: ReactNode; required?: boolean }) {
   return (
     <label className="grid gap-1">
-      <span className="text-[9px] font-bold uppercase tracking-[0.08em] text-tertiary">
+      <span className="text-[9px] font-medium uppercase tracking-normal text-tertiary">
         {label}
         {required ? <span className="ml-0.5 text-danger" aria-hidden="true">*</span> : null}
       </span>
@@ -20,7 +20,7 @@ function Field({ label, children, required }: { label: string; children: ReactNo
   );
 }
 
-const inputClass = "h-7 border border-hairline bg-white px-2 !text-[10px] font-semibold text-ink outline-none transition focus:border-accent";
+const inputClass = "h-7 border border-hairline bg-white px-2 !text-[10px] font-medium text-ink outline-none transition focus:border-accent";
 
 export type NewComponentFormProps = {
   form: NewComponentFormType;
@@ -46,7 +46,7 @@ export function NewComponentForm({ form, formError, onChange, onSave, onSaveAndA
 
   return (
     <div className="grid gap-3">
-      {formError ? <p className="border border-dangerSoft bg-dangerSoft p-2 text-[10px] font-bold text-danger">{formError}</p> : null}
+      {formError ? <p className="border border-dangerSoft bg-dangerSoft p-2 text-[10px] font-medium text-danger">{formError}</p> : null}
 
       <div className="grid grid-cols-2 gap-2">
         <Field label="Component name" required>
