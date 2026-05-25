@@ -46,7 +46,7 @@ export function ProjectMiniSidebar({ projectId }: ProjectMiniSidebarProps) {
   return (
     <aside className="relative z-10 hidden w-[104px] shrink-0 border-r border-hairline bg-white lg:block" aria-label="Project navigation">
       <div className="flex h-10 items-center border-b border-hairline pl-4 pr-2">
-        <h2 className="truncate text-[9px] font-bold uppercase tracking-[0.14em] text-tertiary">Project</h2>
+        <h2 className="truncate text-[9px] font-medium uppercase tracking-normal text-tertiary">Project</h2>
       </div>
       <nav className="flex flex-col gap-1 p-2" aria-label="Project sections">
         {links.map((link) => {
@@ -59,7 +59,7 @@ export function ProjectMiniSidebar({ projectId }: ProjectMiniSidebarProps) {
               href={link.href}
               aria-current={active ? "page" : undefined}
               className={[
-                "flex h-7 items-center gap-1 rounded-md p-1 text-[10px] font-medium leading-none transition-colors",
+                "flex h-7 items-center gap-1 rounded-xs p-1 text-[10px] font-medium leading-none transition-colors",
                 active ? "bg-surface-muted text-ink" : "text-tertiary hover:bg-surface-muted hover:text-ink",
               ].join(" ")}
             >

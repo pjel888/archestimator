@@ -17,12 +17,12 @@ export function NewProjectModal({ onClose }: NewProjectModalProps) {
         role="dialog"
         aria-modal="true"
         aria-labelledby="new-project-title"
-        className="flex max-h-[90%] w-full max-w-lg flex-col overflow-hidden rounded-xl border border-hairline bg-white shadow-2xl"
+        className="flex max-h-[90%] w-full max-w-3xl flex-col overflow-hidden rounded-xs border border-white/70 bg-white/92 shadow-[0_24px_80px_-42px_rgba(17,17,17,0.65)] ring-1 ring-black/5 backdrop-blur-xl"
       >
-        <div className="flex items-center justify-between border-b border-hairline px-3 py-2">
-          <div>
-            <p className="text-[8px] font-bold uppercase tracking-[0.16em] text-tertiary">Live Supabase</p>
-            <h3 id="new-project-title" className="mt-0.5 text-[12px] font-bold text-ink">
+        <div className="flex items-center justify-between border-b border-hairline bg-white/80 px-3 py-2">
+          <div className="min-w-0">
+            <p className="text-[8px] font-medium uppercase tracking-normal text-tertiary">Projects</p>
+            <h3 id="new-project-title" className="mt-0.5 text-[12px] font-medium text-ink">
               Create project
             </h3>
           </div>
@@ -30,11 +30,11 @@ export function NewProjectModal({ onClose }: NewProjectModalProps) {
             type="button"
             variant="ghost"
             size="icon-sm"
-            className="size-7 rounded-sm text-tertiary hover:bg-surfaceMuted hover:text-ink"
-            aria-label="Close"
+            className="size-7 rounded-xs text-tertiary hover:bg-surfaceMuted hover:text-ink"
+            aria-label="Close create project"
             onClick={onClose}
           >
-            <X size={14} />
+            <X size={14} weight="regular" />
           </Button>
         </div>
 

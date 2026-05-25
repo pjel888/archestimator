@@ -74,7 +74,7 @@ export function ProjectEstimatesClient({ estimates, projectId, projectName }: Pr
         ]}
       />
       {createError ? (
-        <p className="border-y border-dangerSoft bg-dangerSoft/40 px-2 py-1 text-[10px] font-semibold text-danger" role="alert">
+        <p className="border-y border-dangerSoft bg-dangerSoft/40 px-2 py-1 text-[10px] font-medium text-danger" role="alert">
           {createError}
         </p>
       ) : null}

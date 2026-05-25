@@ -32,13 +32,14 @@ export default async function ProjectLayout({ children, params }: ProjectLayoutP
       ]}
       centerHeader={<ProjectTotalHeader projectId={projectId} />}
       alignChromeToProjectSidebar
+      contentClassName="py-2 pr-2 pl-0"
       footer={
         <>
           <span>Dashboard + estimates shell</span>
         </>
       }
     >
-      <div className="flex h-full min-h-0 overflow-hidden rounded-xl border border-hairline bg-white">
+      <div className="flex h-full min-h-0 overflow-hidden rounded-xs border border-hairline bg-white">
         <ProjectMiniSidebar projectId={projectId} />
         <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-canvas">
           <ProjectWorkspaceHeaderRow projectId={projectId} projectCode={projectCode} />
