@@ -1,6 +1,8 @@
 "use client";
 
-import { useEffect, useSyncExternalStore } from "react";
+import { useLayoutEffect, useSyncExternalStore } from "react";
+
+import { dispatchProjectBudgetChange } from "@/components/workshop/ProjectTotalHeader";
 
 export const PROJECT_ESTIMATE_METADATA_CHANGE_EVENT = "archestimator:project-estimate-metadata-change";
 const PROJECT_MINI_SIDEBAR_WIDTH_CSS_VARIABLE = "--project-mini-sidebar-width";
@@ -8,7 +10,7 @@ const PROJECT_MINI_SIDEBAR_WIDTH_CSS_VARIABLE = "--project-mini-sidebar-width";
 export type ProjectEstimateMetadata = {
   estimateName: string;
   estimateSheetCode: string;
-  versionLabel: string;
+  projectBudget: number | null;
 };
 
 type ProjectEstimateMetadataPublisherProps = {
@@ -46,14 +48,15 @@ function useProjectEstimateMetadata() {
 }
 
 export function ProjectEstimateMetadataPublisher({ metadata }: ProjectEstimateMetadataPublisherProps) {
-  const { estimateName, estimateSheetCode, versionLabel } = metadata;
+  const { estimateName, estimateSheetCode, projectBudget } = metadata;
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     const workshopCanvas = document.querySelector<HTMLElement>("[data-workshop-page-shell-canvas]");
     const previousProjectMiniSidebarWidth = workshopCanvas?.style.getPropertyValue(PROJECT_MINI_SIDEBAR_WIDTH_CSS_VARIABLE);
 
     workshopCanvas?.style.setProperty(PROJECT_MINI_SIDEBAR_WIDTH_CSS_VARIABLE, "0px");
-    dispatchProjectEstimateMetadataChange({ estimateName, estimateSheetCode, versionLabel });
+    dispatchProjectEstimateMetadataChange({ estimateName, estimateSheetCode, projectBudget });
+    dispatchProjectBudgetChange(projectBudget ?? 0);
 
     return () => {
       if (previousProjectMiniSidebarWidth) {
@@ -62,8 +65,9 @@ export function ProjectEstimateMetadataPublisher({ metadata }: ProjectEstimateMe
         workshopCanvas?.style.removeProperty(PROJECT_MINI_SIDEBAR_WIDTH_CSS_VARIABLE);
       }
       dispatchProjectEstimateMetadataChange(null);
+      dispatchProjectBudgetChange(0);
     };
-  }, [estimateName, estimateSheetCode, versionLabel]);
+  }, [estimateName, estimateSheetCode, projectBudget]);
 
   return null;
 }
@@ -77,12 +81,11 @@ export function ProjectEstimateMetadataStrip() {
 function ProjectEstimateMetadataStripGrid({ metadata }: ProjectEstimateMetadataStripGridProps) {
   return (
     <div
-      className="grid h-full grid-cols-[1fr_minmax(0,2fr)_1fr] items-center px-2 bg-white text-[9px] font-normal uppercase tracking-[0.14em] text-tertiary"
+      className="grid h-full grid-cols-[minmax(0,1fr)_minmax(0,2fr)] items-center gap-3 bg-white px-2 text-[9px] font-normal uppercase tracking-[0.14em] text-tertiary"
       data-workshop-layout="project-estimate-metadata-row"
     >
       <EstimateSheetCodeCell value={metadata?.estimateSheetCode ?? ""} />
       <EstimateSheetNameCell value={metadata?.estimateName ?? ""} />
-      <EstimateVersionCell value={metadata?.versionLabel ?? ""} />
     </div>
   );
 }
@@ -92,9 +95,5 @@ function EstimateSheetCodeCell({ value }: { value: string }) {
 }
 
 function EstimateSheetNameCell({ value }: { value: string }) {
-  return <span className="truncate text-center text-ink">{value}</span>;
-}
-
-function EstimateVersionCell({ value }: { value: string }) {
-  return <span className="truncate text-right">{value}</span>;
+  return <span className="min-w-0 truncate text-right text-ink">{value}</span>;
 }

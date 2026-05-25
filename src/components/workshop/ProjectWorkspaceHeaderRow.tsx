@@ -15,7 +15,7 @@ type ProjectWorkspaceHeaderRowProps = {
 export function ProjectWorkspaceHeaderRow({ projectId, projectCode }: ProjectWorkspaceHeaderRowProps) {
   const pathname = usePathname();
   const isEstimateSheetRoute = Boolean(pathname?.startsWith(`/workshop/projects/${projectId}/estimates/`));
-  const projectCodeHeader = (
+  const projectCodeHeader = isEstimateSheetRoute ? null : (
     <ProjectWorkspaceProjectCode
       projectCode={projectCode}
       className="absolute inset-y-0 left-0 flex items-center pl-4 pr-2"

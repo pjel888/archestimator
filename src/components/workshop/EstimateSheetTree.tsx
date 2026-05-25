@@ -28,6 +28,7 @@ import { cn } from "@/lib/ui/cn";
 import {
   WORKSHOP_TREE_ICON_SLOT_CLASS,
   WORKSHOP_TREE_INDENT_STEP,
+  WORKSHOP_TREE_ROW_GAP_CLASS,
   WORKSHOP_TREE_ROW_MIN_HEIGHT_CLASS,
 } from "./tree-visual-style";
 import { WorkshopTreeRow, WorkshopTreeTabs } from "./workshop-tree";
@@ -920,7 +921,7 @@ export function EstimateSheetTree({ projectId, estimateId, projectName, selected
               renderItemsContainer={({ children, containerProps }) => {
                 const { className, ...itemsContainerProps } = containerProps as HTMLAttributes<HTMLOListElement>;
                 return (
-                  <ol {...itemsContainerProps} className={cn("space-y-0", className)}>
+                  <ol {...itemsContainerProps} className={cn(WORKSHOP_TREE_ROW_GAP_CLASS, className)}>
                     {children}
                   </ol>
                 );

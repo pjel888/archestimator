@@ -1,25 +1,26 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { SquaresFour } from "@phosphor-icons/react/dist/ssr";
+import { CaretDown, CaretRight, FolderSimple, SquaresFour } from "@phosphor-icons/react/dist/ssr";
 
 import { HeaderIconToolbar } from "@/components/ui/header-icon-toolbar";
 import { SearchInput } from "@/components/ui/search-input";
 import { ResizableSidePanel } from "@/components/workshop/ResizableSidePanel";
-import { WorkshopTreeTabs } from "@/components/workshop/workshop-tree";
+import { WORKSHOP_TREE_ICON_SLOT_CLASS } from "@/components/workshop/tree-visual-style";
+import { WorkshopTree, WorkshopTreeRow, WorkshopTreeTabs } from "@/components/workshop/workshop-tree";
 import { cn } from "@/lib/ui/cn";
 import { pesoFormatter } from "../component-library/helpers";
 import {
   buildTemplateNavigationTree,
   getTemplatesForTreeNode,
   summarizeEstimateTemplate,
+  toTemplateTreeItemId,
   type EstimateTemplate,
 } from "../component-library/templates";
 import {
   filterTree,
   findNode,
   getAllNodeIds,
-  LibraryTree,
 } from "../component-library/tree";
 import type { LibraryTreeNode } from "../component-library/tree/types";
 
@@ -144,16 +145,22 @@ function TemplateLibrarySheet({
 
 function TemplateLibraryTreePanel({
   nodes,
+  templates,
   selectedNodeId,
   onSelectNode,
 }: {
   nodes: LibraryTreeNode[];
+  templates: EstimateTemplate[];
   selectedNodeId: string;
   onSelectNode: (nodeId: string) => void;
 }) {
   const [searchQuery, setSearchQuery] = useState("");
   const filteredNodes = filterTree(nodes, searchQuery);
   const [expandedNodeIds, setExpandedNodeIds] = useState(() => getAllNodeIds(nodes));
+  const templatesByTreeItemId = useMemo(
+    () => new Map(templates.map((template) => [toTemplateTreeItemId(template.id), template])),
+    [templates],
+  );
 
   function toggleNode(nodeId: string) {
     setExpandedNodeIds((current) =>
@@ -197,14 +204,90 @@ function TemplateLibraryTreePanel({
 
         <div className="min-h-0 flex-1 overflow-auto p-2">
           <div className="h-6" />
-          <LibraryTree
-            nodes={filteredNodes}
-            selectedNodeId={selectedNodeId}
-            expandedNodeIds={expandedNodeIds}
-            searchQuery={searchQuery}
-            onSelect={onSelectNode}
-            onToggle={toggleNode}
-          />
+          {filteredNodes.length > 0 ? (
+            <WorkshopTree
+              nodes={filteredNodes}
+              selectedNodeId={selectedNodeId}
+              expandedNodeIds={expandedNodeIds}
+              getNodeId={(node) => node.id}
+              getChildren={(node) => node.children}
+              renderNode={({ node, depth, selected, expanded, hasChildren, children }) => {
+                const template = templatesByTreeItemId.get(node.id);
+                const summary = template ? summarizeEstimateTemplate(template) : null;
+
+                if (node.kind === "template") {
+                  return (
+                    <li role="none">
+                      <WorkshopTreeRow
+                        as="div"
+                        role="treeitem"
+                        aria-label={node.label}
+                        aria-selected={selected}
+                        data-template-library-tree-item-id={node.id}
+                        depth={depth}
+                        selected={selected}
+                        className="cursor-pointer gap-1.5"
+                        onClick={() => onSelectNode(node.id)}
+                      >
+                        <SquaresFour size={12} weight="bold" className="shrink-0 text-tertiary" aria-hidden="true" />
+                        <div className="flex min-w-0 flex-1 items-center gap-2">
+                          <div className="flex min-w-0 flex-1 flex-col">
+                            <span className="truncate text-[10px] font-semibold leading-4 text-ink">{node.label}</span>
+                            <span className="truncate text-[9px] leading-3 text-tertiary">{node.meta}</span>
+                          </div>
+                          {summary ? (
+                            <span className="font-mono text-[9px] font-bold tabular-nums text-ink">
+                              {pesoFormatter.format(summary.total)}
+                            </span>
+                          ) : null}
+                        </div>
+                      </WorkshopTreeRow>
+                    </li>
+                  );
+                }
+
+                return (
+                  <li role="none">
+                    <WorkshopTreeRow
+                      role="treeitem"
+                      aria-label={node.label}
+                      aria-selected={selected}
+                      aria-expanded={hasChildren ? expanded : undefined}
+                      data-template-library-tree-node-id={node.id}
+                      depth={depth}
+                      selected={selected}
+                      className="gap-1"
+                      onClick={() => onSelectNode(node.id)}
+                    >
+                      <span
+                        className={cn(WORKSHOP_TREE_ICON_SLOT_CLASS, "hover:bg-white")}
+                        onClick={(event) => {
+                          if (!hasChildren) return;
+                          event.stopPropagation();
+                          toggleNode(node.id);
+                        }}
+                      >
+                        {hasChildren ? (
+                          expanded ? (
+                            <CaretDown size={11} weight="bold" aria-hidden="true" />
+                          ) : (
+                            <CaretRight size={11} weight="bold" aria-hidden="true" />
+                          )
+                        ) : null}
+                      </span>
+                      <FolderSimple size={12} weight="bold" className="shrink-0 text-tertiary" aria-hidden="true" />
+                      <span className="min-w-0 flex-1 truncate">{node.label}</span>
+                    </WorkshopTreeRow>
+                    {children}
+                  </li>
+                );
+              }}
+            />
+          ) : (
+            <div className="rounded-md border border-dashed border-hairline bg-surfaceMuted p-2 text-[10px] leading-4 text-tertiary">
+              No templates match &quot;{searchQuery}&quot;.
+            </div>
+          )}
         </div>
       </div>
     </ResizableSidePanel>
@@ -238,6 +321,7 @@ export function TemplateLibraryManager({ templates = [] }: { templates?: Estimat
           </div>
           <TemplateLibraryTreePanel
             nodes={templateTree}
+            templates={templates}
             selectedNodeId={selectedTemplateNode?.id ?? "all-templates"}
             onSelectNode={setSelectedTemplateNodeId}
           />

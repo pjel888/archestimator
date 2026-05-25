@@ -6,18 +6,11 @@ import { ProjectWorkspaceHeaderRow } from "@/components/workshop/ProjectWorkspac
 import { WorkshopPageShell } from "@/components/workshop/WorkshopPageShell";
 import { sampleProjects } from "@/components/workshop/workshop-sample-projects";
 import { getCurrentWorkspaceProject } from "@/lib/repositories/workspace-repository";
-import type { Json } from "@/lib/supabase/types";
 
 type ProjectLayoutProps = {
   children: ReactNode;
   params: Promise<{ projectId: string }>;
 };
-
-function readProjectBudget(value: Json | undefined): number {
-  if (!value || typeof value !== "object" || Array.isArray(value)) return 0;
-  const record = value as Record<string, Json>;
-  return typeof record.projectBudget === "number" ? record.projectBudget : 0;
-}
 
 export default async function ProjectLayout({ children, params }: ProjectLayoutProps) {
   const { projectId } = await params;
@@ -27,7 +20,6 @@ export default async function ProjectLayout({ children, params }: ProjectLayoutP
   const title = project?.name ?? "Project";
   const projectClient = liveProject?.client_name ?? sampleProject?.client ?? projectId;
   const projectCode = liveProject?.project_code ?? projectId;
-  const plannedBudget = readProjectBudget(liveProject?.metadata);
 
   return (
     <WorkshopPageShell
@@ -38,7 +30,7 @@ export default async function ProjectLayout({ children, params }: ProjectLayoutP
         { label: "Projects", href: "/workshop/projects" },
         { label: title, href: `/workshop/projects/${projectId}` },
       ]}
-      centerHeader={<ProjectTotalHeader projectId={projectId} plannedBudget={plannedBudget} />}
+      centerHeader={<ProjectTotalHeader projectId={projectId} />}
       alignChromeToProjectSidebar
       footer={
         <>

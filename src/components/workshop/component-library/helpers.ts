@@ -240,6 +240,8 @@ export function createComponent(form: NewComponentForm): { component?: EstimateR
       currency: form.currency || "PHP",
       quantity: 1,
       subTotal,
+      contingencyPercentage: 0,
+      contingencyValue: 0,
       miscCost,
       miscCostDefault: miscCost,
       totalItemCosts: subTotal + miscCost,
@@ -261,6 +263,8 @@ export function createComponent(form: NewComponentForm): { component?: EstimateR
         quantity: 1,
         miscCost,
         subTotal,
+        contingencyPercentage: 0,
+        contingencyValue: 0,
         totalItemCosts: subTotal + miscCost,
         description: form.description.trim(),
         id: "component-image-preview",
@@ -595,7 +599,8 @@ export function expandLibraryBundle(bundle: LibraryBundle, items: EstimateRowIte
 }
 
 export function getLibraryRowTotal(item: EstimateRowItem) {
-  return getComponentPrice(item) * Math.max(1, item.quantity || 1) + (item.miscCost ?? 0);
+  const subTotal = getComponentPrice(item) * Math.max(1, item.quantity || 1);
+  return subTotal + (item.miscCost ?? 0) + (subTotal * (item.contingencyPercentage ?? 0)) / 100;
 }
 
 export function getLibraryBundleTotal(bundle: LibraryBundle, items: EstimateRowItem[]) {

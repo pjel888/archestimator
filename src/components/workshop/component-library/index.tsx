@@ -14,6 +14,7 @@ import { cn } from "@/lib/ui/cn";
 import { estimateLibraryItems, findEstimateNode, type EstimateRowItem, type EstimateTreeNode } from "../estimate-tree-data";
 import { ResizableSidePanel } from "../ResizableSidePanel";
 import { WorkshopTreeTabs } from "../workshop-tree";
+import { ComponentViewControls, type ComponentViewMode } from "../component-library-manager/LibraryFolderTree";
 import { NewComponentForm } from "./NewComponentForm";
 import {
   ESTIMATE_TEMPLATE_DRAG_MIME_TYPE,
@@ -27,7 +28,7 @@ import {
   getAllNodeIds,
   LibraryTree,
 } from "./tree";
-import type { ComponentLibrarySupplierOption } from "./tree/buildLibraryTree";
+import type { ComponentLibraryBrandOption, ComponentLibrarySupplierOption } from "./tree/buildLibraryTree";
 import {
   createComponent,
   defaultForm,
@@ -48,13 +49,17 @@ import {
 } from "./helpers";
 
 const LIBRARY_TREE_TABS = [
-  { id: "categories", label: "Categories" },
-  { id: "suppliers", label: "Suppliers" },
-  { id: "custom", label: "Custom" },
+  { id: "components", label: "Components" },
   { id: "templates", label: "Templates" },
 ] as const;
 
 type EstimateLibraryTab = (typeof LIBRARY_TREE_TABS)[number]["id"];
+type EstimateComponentTreeTab = "categories" | "suppliers" | "brands";
+
+function getComponentTreeTab(mode: ComponentViewMode): EstimateComponentTreeTab {
+  if (mode === "brand") return "brands";
+  return mode === "suppliers" ? "suppliers" : "categories";
+}
 
 /* ─── Preview Panel ─── */
 
@@ -286,6 +291,7 @@ type EstimateRightSidebarProps = {
   templates?: EstimateTemplate[];
   categoryTree?: ComponentLibraryTaxonomyNode[];
   suppliers?: ComponentLibrarySupplierOption[];
+  brands?: ComponentLibraryBrandOption[];
 };
 
 function componentToForm(item: EstimateRowItem): NewComponentFormType {
@@ -322,6 +328,7 @@ export function EstimateRightSidebar({
   templates = [],
   categoryTree = componentCategoryTree,
   suppliers = [],
+  brands = [],
 }: EstimateRightSidebarProps = {}) {
   const { selectedNodeId: activeSelectedNodeId } = useEstimateWorkspaceSelection(estimateId, selectedNodeId);
   const [recentIds, setRecentIds] = useState<string[]>(() => readJsonStorage<string[]>(LIBRARY_RECENTS_KEY, []));
@@ -340,19 +347,27 @@ export function EstimateRightSidebar({
   });
 
   const [activeTab, setActiveTab] = useState<EstimateLibraryTab>(() => {
-    if (typeof window === "undefined") return "categories";
-    const stored = localStorage.getItem("estimate_library_active_tab") as EstimateLibraryTab | null;
-    return LIBRARY_TREE_TABS.find((tab) => tab.id === stored)?.id ?? "categories";
+    if (typeof window === "undefined") return "components";
+    const storedPrefs = readJsonStorage<{ activeTab?: string }>(LIBRARY_PREFS_KEY, {});
+    const legacyStoredTab = localStorage.getItem("estimate_library_active_tab");
+    const stored = storedPrefs.activeTab ?? legacyStoredTab;
+    return stored === "templates" && templates.length ? "templates" : "components";
   });
-  const [expandedNodeIdsByTab, setExpandedNodeIdsByTab] = useState<Record<EstimateLibraryTab, string[]>>(() => {
+  const [componentViewMode, setComponentViewMode] = useState<ComponentViewMode>(() => {
+    if (typeof window === "undefined") return "default";
+    const storedPrefs = readJsonStorage<{ componentViewMode?: string }>(LIBRARY_PREFS_KEY, {});
+    const legacyStoredTab = localStorage.getItem("estimate_library_active_tab");
+    if (storedPrefs.componentViewMode === "brand" || legacyStoredTab === "brand") return "brand";
+    return storedPrefs.componentViewMode === "suppliers" || legacyStoredTab === "suppliers" ? "suppliers" : "default";
+  });
+  const [expandedNodeIdsByViewMode, setExpandedNodeIdsByViewMode] = useState<Record<ComponentViewMode, string[]>>(() => {
     const favoriteIds = readJsonStorage<string[]>(LIBRARY_FAVORITES_KEY, []);
     const storedRecentIds = readJsonStorage<string[]>(LIBRARY_RECENTS_KEY, []);
 
     return {
-      categories: getAllNodeIds(buildLibraryTreeWithComponentRows("categories", initialLibraryItems, favoriteIds, storedRecentIds, { categoryTree, suppliers })),
+      default: getAllNodeIds(buildLibraryTreeWithComponentRows("categories", initialLibraryItems, favoriteIds, storedRecentIds, { categoryTree, suppliers })),
       suppliers: [],
-      custom: [],
-      templates: [],
+      brand: getAllNodeIds(buildLibraryTreeWithComponentRows("brands", initialLibraryItems, favoriteIds, storedRecentIds, { categoryTree, suppliers, brands })),
     };
   });
   const [searchQuery, setSearchQuery] = useState("");
@@ -402,8 +417,8 @@ export function EstimateRightSidebar({
   }, [form, resetComponentForm]);
 
   useEffect(() => {
-    safeSetJsonStorage(LIBRARY_PREFS_KEY, { activeTab });
-  }, [activeTab]);
+    safeSetJsonStorage(LIBRARY_PREFS_KEY, { activeTab, componentViewMode });
+  }, [activeTab, componentViewMode]);
 
   useEffect(() => {
     const handler = (event: KeyboardEvent) => {
@@ -452,12 +467,17 @@ export function EstimateRightSidebar({
   }, []);
 
   const favoriteIds = useMemo(() => libraryItems.filter((item) => item.isFavorite).map((item) => item.id), [libraryItems]);
+  const componentTreeTab = getComponentTreeTab(componentViewMode);
+  const visibleTreeTabs = useMemo(
+    () => LIBRARY_TREE_TABS.filter((tab) => tab.id === "components" || templates.length > 0),
+    [templates.length],
+  );
 
   const treeNodes = useMemo(() => {
     if (activeTab === "templates") return [];
-    const tree = buildLibraryTreeWithComponentRows(activeTab, libraryItems, favoriteIds, recentIds, { categoryTree, suppliers });
+    const tree = buildLibraryTreeWithComponentRows(componentTreeTab, libraryItems, favoriteIds, recentIds, { categoryTree, suppliers, brands });
     return tree;
-  }, [activeTab, libraryItems, favoriteIds, recentIds, categoryTree, suppliers]);
+  }, [activeTab, brands, categoryTree, componentTreeTab, favoriteIds, libraryItems, recentIds, suppliers]);
 
   const filteredTreeNodes = useMemo(() => filterTree(treeNodes, searchQuery), [treeNodes, searchQuery]);
 
@@ -616,27 +636,34 @@ export function EstimateRightSidebar({
     setPreviewItemId(null);
   }, []);
 
+  const handleComponentViewModeChange = useCallback((mode: ComponentViewMode) => {
+    setComponentViewMode(mode);
+    setActiveTab("components");
+    setSearchQuery("");
+    setPreviewItemId(null);
+  }, []);
+
   const handleToggleNode = useCallback((nodeId: string) => {
-    setExpandedNodeIdsByTab((current) => {
-      const ids = current[activeTab];
+    setExpandedNodeIdsByViewMode((current) => {
+      const ids = current[componentViewMode];
       const next = ids.includes(nodeId) ? ids.filter((id) => id !== nodeId) : [...ids, nodeId];
-      return { ...current, [activeTab]: next };
+      return { ...current, [componentViewMode]: next };
     });
-  }, [activeTab]);
+  }, [componentViewMode]);
 
   const handleExpandAll = useCallback(() => {
-    setExpandedNodeIdsByTab((current) => ({
+    setExpandedNodeIdsByViewMode((current) => ({
       ...current,
-      [activeTab]: getAllNodeIds(treeNodes),
+      [componentViewMode]: getAllNodeIds(treeNodes),
     }));
-  }, [activeTab, treeNodes]);
+  }, [componentViewMode, treeNodes]);
 
   const handleCollapseAll = useCallback(() => {
-    setExpandedNodeIdsByTab((current) => ({
+    setExpandedNodeIdsByViewMode((current) => ({
       ...current,
-      [activeTab]: [],
+      [componentViewMode]: [],
     }));
-  }, [activeTab]);
+  }, [componentViewMode]);
 
   const handleItemDragStart = useCallback((event: React.DragEvent<HTMLElement>, item: EstimateRowItem | undefined) => {
     if (!item) return;
@@ -691,11 +718,18 @@ export function EstimateRightSidebar({
           />
 
           <WorkshopTreeTabs
-            tabs={LIBRARY_TREE_TABS}
+            tabs={visibleTreeTabs}
             activeTab={activeTab}
             ariaLabel="Library tree views"
             onTabChange={handleTabChange}
           />
+          {activeTab === "components" ? (
+            <ComponentViewControls
+              mode={componentViewMode}
+              ariaLabel="Component view mode"
+              onModeChange={handleComponentViewModeChange}
+            />
+          ) : null}
         </div>
 
         {/* Scrollable tree */}
@@ -714,7 +748,7 @@ export function EstimateRightSidebar({
             <LibraryTree
               nodes={filteredTreeNodes}
               selectedNodeId={previewItemId}
-              expandedNodeIds={expandedNodeIdsByTab[activeTab]}
+              expandedNodeIds={expandedNodeIdsByViewMode[componentViewMode]}
               searchQuery={searchQuery}
               onSelect={(nodeId) => handleToggleNode(nodeId)}
               onToggle={handleToggleNode}
