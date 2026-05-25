@@ -1,52 +1,23 @@
 "use client";
 
-import {
-  type ButtonHTMLAttributes,
-  type HTMLAttributes,
-  useCallback,
-  useMemo,
-  useRef,
-  useState,
-  useTransition,
-} from "react";
+import { useMemo, useRef, useState, useTransition } from "react";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
-import {
-  ControlledTreeEnvironment,
-  InteractionMode,
-  Tree,
-  type DraggingPosition,
-  type TreeItem,
-  type TreeItemIndex,
-  type TreeViewState,
-} from "react-complex-tree";
-import { CaretDown, CaretRight, FolderSimple, SquaresFour } from "@phosphor-icons/react/dist/ssr";
+import { CaretDown, CaretRight, FolderSimple, ImageSquare, SquaresFour } from "@phosphor-icons/react/dist/ssr";
 
 import { HeaderIconToolbar } from "@/components/ui/header-icon-toolbar";
-import { Badge } from "@/components/ui/badge";
-import { ControlSelect } from "@/components/ui/control-select";
 import { EmptyState } from "@/components/ui/empty-state";
 import { SearchInput } from "@/components/ui/search-input";
-import type { ActionMenuGroup } from "@/components/ui/action-menu";
 import { ResizableSidePanel } from "@/components/workshop/ResizableSidePanel";
-import { WorkshopTreeRow, WorkshopTreeTabs } from "@/components/workshop/workshop-tree";
-import { WORKSHOP_TREE_ICON_SLOT_CLASS, WORKSHOP_TREE_ROW_MIN_HEIGHT_CLASS } from "@/components/workshop/tree-visual-style";
 import {
   createLibraryFolder,
   deleteLibraryFolder,
-  changeCostLibraryComponentLifecycleState,
   renameLibraryFolder,
-  reorderLibraryFolders,
-  upsertCostLibraryComponentPriceOption,
-  type ComponentLifecycleState,
 } from "@/lib/component-library/actions";
 import {
   buildLibraryFolderTree,
-  evaluateLibraryFolderDrop,
   getLibraryItemsForFolderNode,
-  LIBRARY_FOLDER_TREE_ID,
-  LIBRARY_FOLDER_TREE_ROOT_ITEM_ID,
   planLibraryFolderDelete,
-  toLibraryFolderTreeItemId,
   type LibraryFolderRecord,
   type LibraryFolderTreeNode,
 } from "@/lib/component-library/library-folder-reorder";
@@ -54,14 +25,12 @@ import {
   componentCategoryTree,
   type ComponentLibraryTaxonomyNode,
 } from "@/lib/component-library/taxonomy";
+import type { ComponentLibraryBrand } from "@/lib/repositories/component-library-repository";
 import { cn } from "@/lib/ui/cn";
 import { estimateLibraryItems, type EstimateRowItem } from "../estimate-tree-data";
 import {
-  buildComponentLibraryNavigationTree,
-  filterTree,
-  getAllNodeIds,
+  buildLibraryTreeWithComponentRows,
   getLibraryItemsForTreeNode,
-  LibraryTree,
 } from "../component-library/tree";
 import {
   getComponentName,
@@ -71,38 +40,50 @@ import {
 import type { LibraryTreeNode } from "../component-library/tree/types";
 import type { ComponentLibrarySupplierOption } from "../component-library/tree/buildLibraryTree";
 import { AddComponentModal } from "./AddComponentModal";
+import {
+  ALL_COMPONENTS_FOLDER_ID,
+  LibraryFolderTreeSurface,
+  type ComponentViewMode,
+  type CreateLibraryFolderHandler,
+  type ReorderStatus,
+  isAllComponentsFolderId,
+} from "./LibraryFolderTree";
 
 const COMPONENT_LIBRARY_TREE_WIDTH_OFFSET = 104;
-const LIBRARY_TABS = [{ id: "components", label: "Components" }] as const;
-const COMPONENT_VIEW_MODES = [
-  { id: "default", label: "View By: Default" },
-  { id: "suppliers", label: "Suppliers" },
-] as const;
-const LIFECYCLE_META: Record<ComponentLifecycleState, { label: string; tone: "neutral" | "info" | "success" | "warning" | "danger" }> = {
-  draft: { label: "Draft", tone: "neutral" },
-  in_production: { label: "In production", tone: "info" },
-  available: { label: "Available", tone: "success" },
-  discontinued: { label: "Discontinued", tone: "warning" },
-  archived: { label: "Archived", tone: "danger" },
+const CATALOGUE_UNASSIGNED_LABEL = "Unassigned";
+const CATALOGUE_BRANCH_INDENT_STEP = 32;
+const CATALOGUE_BRANCH_MAX_INDENT = 192;
+const CATALOGUE_CARD_GRID_CLASS = "mt-2 grid list-none grid-cols-[repeat(auto-fill,minmax(164px,1fr))] gap-2 p-0";
+const CATALOGUE_CARD_SHELL_CLASS =
+  "flex min-h-[236px] flex-col overflow-hidden rounded-md border border-hairline bg-white text-left shadow-[0_10px_24px_-22px_rgba(17,24,39,0.55)]";
+const CATALOGUE_CARD_BODY_HEIGHT_CLASS = "h-[132px]";
+
+type CatalogueFolderMeta = {
+  folderId: string;
+  path: string[];
+  sortKey: string;
 };
 
-type ComponentViewMode = (typeof COMPONENT_VIEW_MODES)[number]["id"];
+type CatalogueCard = {
+  item: EstimateRowItem;
+  pathLabel: string;
+};
 
-type LibraryFolderTreeItemData = {
-  folderId: string | null;
+type CatalogueBranch = {
+  id: string;
   label: string;
+  pathLabel: string;
+  sortKey: string;
+  depth: number;
+  directItems: CatalogueCard[];
+  children: CatalogueBranch[];
+  totalItemCount: number;
 };
 
-type LibraryFolderTreeModel = {
-  items: Record<TreeItemIndex, TreeItem<LibraryFolderTreeItemData>>;
-  folderItemIds: TreeItemIndex[];
+type CatalogueOutline = {
+  branches: CatalogueBranch[];
+  items: CatalogueCard[];
 };
-
-type ReorderStatus =
-  | { state: "idle" }
-  | { state: "saving"; message: string }
-  | { state: "saved"; message: string }
-  | { state: "error"; message: string };
 
 type SheetStatus =
   | { state: "idle" }
@@ -141,16 +122,319 @@ function itemMatchesSheetQuery(item: EstimateRowItem, query: string): boolean {
   const normalizedQuery = normalizeLabel(query);
   if (!normalizedQuery) return true;
 
-  return [
+  const searchableValues = [
     getComponentName(item),
     item.supplier,
+    item.brand,
     item.category,
     item.unit,
     item.description,
     ...(item.categoryPath ?? []),
   ]
-    .filter(Boolean)
-    .some((value) => normalizeLabel(value).includes(normalizedQuery));
+    .flatMap((value) => (typeof value === "string" && value.length > 0 ? [value] : []));
+
+  return searchableValues.some((value) => normalizeLabel(value).includes(normalizedQuery));
+}
+
+function buildCatalogueFolderMaps(nodes: LibraryFolderTreeNode[]) {
+  const folderMetaById = new Map<string, CatalogueFolderMeta>();
+  const categoryMetaById = new Map<string, CatalogueFolderMeta>();
+
+  function visit(currentNodes: LibraryFolderTreeNode[], parentPath: string[] = [], parentSortKey = "") {
+    currentNodes.forEach((node, index) => {
+      const path = [...parentPath, node.label];
+      const sortSegment = `${String(node.sortOrder).padStart(6, "0")}-${String(index).padStart(3, "0")}-${normalizeLabel(node.label)}`;
+      const sortKey = parentSortKey ? `${parentSortKey}/${sortSegment}` : sortSegment;
+      const meta = { folderId: node.folderId, path, sortKey };
+      folderMetaById.set(node.folderId, meta);
+      if (node.sourceCategoryNodeId) categoryMetaById.set(node.sourceCategoryNodeId, meta);
+      visit(node.children ?? [], path, sortKey);
+    });
+  }
+
+  visit(nodes);
+  return { folderMetaById, categoryMetaById };
+}
+
+function getCatalogueItemMeta(
+  item: EstimateRowItem,
+  folderMetaById: Map<string, CatalogueFolderMeta>,
+  categoryMetaById: Map<string, CatalogueFolderMeta>,
+): CatalogueFolderMeta {
+  if (item.libraryFolderId) {
+    const folderMeta = folderMetaById.get(item.libraryFolderId);
+    if (folderMeta) return folderMeta;
+  }
+
+  if (item.categoryNodeId) {
+    const categoryMeta = categoryMetaById.get(item.categoryNodeId);
+    if (categoryMeta) return categoryMeta;
+  }
+
+  const path = item.categoryPath?.filter(Boolean) ?? [item.category].filter(Boolean);
+  const safePath = path.length ? path : [CATALOGUE_UNASSIGNED_LABEL];
+  return {
+    folderId: CATALOGUE_UNASSIGNED_LABEL,
+    path: safePath,
+    sortKey: `zz-${safePath.map(normalizeLabel).join("/")}`,
+  };
+}
+
+function buildCatalogueOutline(
+  items: EstimateRowItem[],
+  folderNodes: LibraryFolderTreeNode[],
+  selectedFolderNode: LibraryFolderTreeNode | null,
+  searchQuery: string,
+): CatalogueOutline {
+  const { folderMetaById, categoryMetaById } = buildCatalogueFolderMaps(folderNodes);
+  const cardsByFolderId = new Map<string, CatalogueCard[]>();
+  const unassignedCards: CatalogueCard[] = [];
+  const normalizedQuery = normalizeLabel(searchQuery);
+
+  for (const item of items) {
+    const meta = getCatalogueItemMeta(item, folderMetaById, categoryMetaById);
+    const card = {
+      item,
+      pathLabel: meta.path.join(" / "),
+    };
+    if (folderMetaById.has(meta.folderId)) {
+      const folderCards = cardsByFolderId.get(meta.folderId) ?? [];
+      folderCards.push(card);
+      cardsByFolderId.set(meta.folderId, folderCards);
+    } else {
+      unassignedCards.push(card);
+    }
+  }
+
+  function buildBranch(node: LibraryFolderTreeNode, depth: number, parentPath: string[]): CatalogueBranch | null {
+    const path = [...parentPath, node.label];
+    const directItems = [...(cardsByFolderId.get(node.folderId) ?? [])].sort((left, right) => (
+      getComponentName(left.item).localeCompare(getComponentName(right.item))
+    ));
+    const children = (node.children ?? [])
+      .map((child) => buildBranch(child, depth + 1, path))
+      .filter((child): child is CatalogueBranch => Boolean(child));
+    const folderMatches = normalizedQuery.length > 0 && normalizeLabel(node.label).includes(normalizedQuery);
+    const shouldRender = normalizedQuery.length === 0 || folderMatches || directItems.length > 0 || children.length > 0;
+    if (!shouldRender) return null;
+
+    return {
+      id: node.folderId,
+      label: node.label,
+      pathLabel: path.join(" / "),
+      sortKey: folderMetaById.get(node.folderId)?.sortKey ?? normalizeLabel(node.label),
+      depth,
+      directItems,
+      children,
+      totalItemCount: directItems.length + children.reduce((total, child) => total + child.totalItemCount, 0),
+    };
+  }
+
+  const roots = selectedFolderNode
+    ? [{ node: selectedFolderNode, parentPath: folderMetaById.get(selectedFolderNode.folderId)?.path.slice(0, -1) ?? [] }]
+    : folderNodes.map((node) => ({ node, parentPath: [] }));
+  return {
+    branches: roots
+      .map(({ node, parentPath }) => buildBranch(node, 0, parentPath))
+      .filter((branch): branch is CatalogueBranch => Boolean(branch))
+      .sort((left, right) => left.sortKey.localeCompare(right.sortKey) || left.label.localeCompare(right.label)),
+    items: unassignedCards.sort((left, right) => getComponentName(left.item).localeCompare(getComponentName(right.item))),
+  };
+}
+
+function getItemBrandLabel(item: EstimateRowItem) {
+  return item.brand?.trim() || "Brand not set";
+}
+
+function getCatalogueIndent(depth: number) {
+  return Math.min(depth * CATALOGUE_BRANCH_INDENT_STEP, CATALOGUE_BRANCH_MAX_INDENT);
+}
+
+function isNextImageSafeComponentSource(src: string) {
+  if (!src) return false;
+  if (src.startsWith("/")) return true;
+
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  if (!supabaseUrl) return false;
+
+  try {
+    const imageUrl = new URL(src);
+    const storageUrl = new URL(supabaseUrl);
+    return imageUrl.hostname === storageUrl.hostname
+      && imageUrl.pathname.startsWith("/storage/v1/object/public/component-images/");
+  } catch {
+    return false;
+  }
+}
+
+function ComponentCatalogueCard({ card }: { card: CatalogueCard }) {
+  const item = card.item;
+  const name = getComponentName(item);
+  const brand = getItemBrandLabel(item);
+
+  return (
+    <li
+      data-component-catalogue-card-id={item.id}
+      className={cn(
+        "group transition hover:border-divider hover:shadow-[0_16px_32px_-24px_rgba(17,24,39,0.65)]",
+        CATALOGUE_CARD_SHELL_CLASS,
+      )}
+    >
+      <div className="relative aspect-square w-full overflow-hidden border-b border-hairline bg-white">
+        {item.imageUrl && isNextImageSafeComponentSource(item.imageUrl) ? (
+          <Image
+            src={item.imageUrl}
+            alt={`${name} thumbnail`}
+            fill
+            sizes="(max-width: 768px) 50vw, 176px"
+            className="object-cover transition duration-200 group-hover:scale-[1.02]"
+          />
+        ) : item.imageUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={item.imageUrl}
+            alt={`${name} thumbnail`}
+            className="h-full w-full object-cover transition duration-200 group-hover:scale-[1.02]"
+          />
+        ) : (
+          <div className="flex h-full w-full items-center justify-center bg-white text-tertiary" aria-hidden="true">
+            <ImageSquare size={24} weight="bold" />
+          </div>
+        )}
+      </div>
+      <div className="flex min-h-0 flex-1 flex-col gap-1.5 p-2">
+        <p className="truncate text-[8px] font-normal uppercase leading-3 tracking-[0.04em] text-tertiary" title={card.pathLabel}>
+          {card.pathLabel}
+        </p>
+        <h3 className="line-clamp-2 text-[10px] font-semibold leading-[1.25] text-ink" title={name}>
+          {name}
+        </h3>
+        <div className="flex flex-col gap-0.5">
+          <p className="truncate text-[9px] font-normal leading-3 text-secondary" title={item.supplier || "No supplier"}>
+            {item.supplier || "No supplier"}
+          </p>
+          <p className="truncate text-[9px] font-normal leading-3 text-tertiary" title={brand}>
+            {brand}
+          </p>
+        </div>
+        <div className="mt-auto border-t border-hairline pt-1.5">
+          <p className="font-mono text-[11px] font-semibold leading-4 tabular-nums text-ink">
+            {pesoFormatter.format(getComponentPrice(item))}
+          </p>
+          <p className="truncate text-[9px] font-normal leading-3 text-tertiary">
+            Cost / {item.unit}
+          </p>
+        </div>
+      </div>
+    </li>
+  );
+}
+
+function CatalogueCardGrid({ cards, label }: { cards: CatalogueCard[]; label: string }) {
+  if (cards.length === 0) return null;
+
+  return (
+    <ul
+      className={CATALOGUE_CARD_GRID_CLASS}
+      aria-label={`${label} component catalogue grid`}
+    >
+      {cards.map((card) => (
+        <ComponentCatalogueCard key={card.item.id} card={card} />
+      ))}
+    </ul>
+  );
+}
+
+function CatalogueEmptyRow({ label }: { label: string }) {
+  return (
+    <div
+      className={cn(CATALOGUE_CARD_GRID_CLASS, "relative")}
+      aria-label={`${label} empty component catalogue row`}
+      data-component-catalogue-empty-row="true"
+    >
+      <div className="invisible min-h-[236px]" aria-hidden="true" data-component-catalogue-empty-row-spacer="true">
+        <div className="aspect-square w-full" />
+        <div className={CATALOGUE_CARD_BODY_HEIGHT_CLASS} />
+      </div>
+      <p className="absolute inset-0 flex items-center justify-center border border-dashed border-hairline bg-surfaceMuted/30 px-2 text-center text-[10px] font-normal leading-3 text-tertiary opacity-50 transition-opacity hover:opacity-100">
+        No components in this folder yet.
+      </p>
+    </div>
+  );
+}
+
+function ComponentCatalogueBranch({
+  branch,
+  collapsedBranchIds,
+  onToggleBranch,
+}: {
+  branch: CatalogueBranch;
+  collapsedBranchIds: Set<string>;
+  onToggleBranch: (branchId: string) => void;
+}) {
+  const indent = getCatalogueIndent(branch.depth);
+  const collapsed = collapsedBranchIds.has(branch.id);
+  const empty = branch.totalItemCount === 0;
+
+  return (
+    <section
+      aria-label={`${branch.pathLabel} component catalogue branch`}
+      data-component-catalogue-section={branch.id}
+      data-component-catalogue-folder-depth={branch.depth}
+      className={cn("relative", branch.depth === 0 ? "pt-1" : "pt-0.5")}
+    >
+      <div
+        className={cn(
+          "flex h-9 min-w-0 items-center gap-2 border-b px-2",
+          branch.depth === 0 ? "border-hairline bg-surfaceMuted/70" : "border-hairline bg-white",
+        )}
+        style={{ paddingLeft: `${indent + 8}px` }}
+      >
+        <button
+          type="button"
+          className="grid size-5 shrink-0 place-items-center rounded-sm text-tertiary transition hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+          aria-label={`${collapsed ? "Expand" : "Collapse"} ${branch.pathLabel}`}
+          aria-expanded={!collapsed}
+          onClick={() => onToggleBranch(branch.id)}
+        >
+          {collapsed ? <CaretRight size={12} weight="bold" /> : <CaretDown size={12} weight="bold" />}
+        </button>
+        <FolderSimple size={13} weight="bold" className="shrink-0 text-tertiary" aria-hidden="true" />
+        <div className="min-w-0 flex-1">
+          <div className="flex min-w-0 items-center gap-2">
+            <h2 className="truncate text-[10px] font-bold uppercase leading-3 tracking-[0.06em] text-ink">
+              {branch.label}
+            </h2>
+          </div>
+          {branch.depth > 0 ? (
+            <p className="mt-0.5 truncate text-[8px] font-normal uppercase leading-3 tracking-[0.04em] text-tertiary">
+              {branch.pathLabel}
+            </p>
+          ) : null}
+        </div>
+      </div>
+      {!collapsed ? (
+        <>
+          {empty ? (
+            <CatalogueEmptyRow label={branch.pathLabel} />
+          ) : null}
+          <CatalogueCardGrid cards={branch.directItems} label={branch.pathLabel} />
+          {branch.children.length > 0 ? (
+            <div className={cn("flex flex-col gap-1", branch.directItems.length > 0 ? "mt-2" : "mt-1")}>
+              {branch.children.map((child) => (
+                <ComponentCatalogueBranch
+                  key={child.id}
+                  branch={child}
+                  collapsedBranchIds={collapsedBranchIds}
+                  onToggleBranch={onToggleBranch}
+                />
+              ))}
+            </div>
+          ) : null}
+        </>
+      ) : null}
+    </section>
+  );
 }
 
 function buildFallbackLibraryFolders(
@@ -187,355 +471,36 @@ function normalizeLibraryFolderRecords(folders: LibraryFolderRecord[]): LibraryF
   }));
 }
 
-function folderMatchesQuery(node: LibraryFolderTreeNode, query: string): boolean {
-  const normalizedQuery = normalizeLabel(query);
-  if (!normalizedQuery) return true;
-  return normalizeLabel(node.label).includes(normalizedQuery);
-}
-
-function filterFolderTree(nodes: LibraryFolderTreeNode[], query: string): LibraryFolderTreeNode[] {
-  if (!query.trim()) return nodes;
-  return nodes.flatMap((node) => {
-    const children = filterFolderTree(node.children ?? [], query);
-    if (folderMatchesQuery(node, query) || children.length > 0) {
-      return [{ ...node, children }];
-    }
-    return [];
-  });
-}
-
-function getAllFolderTreeItemIds(nodes: LibraryFolderTreeNode[]): TreeItemIndex[] {
-  return nodes.flatMap((node) => [node.id, ...getAllFolderTreeItemIds(node.children ?? [])]);
-}
-
-function buildFolderTreeModel(nodes: LibraryFolderTreeNode[]): LibraryFolderTreeModel {
-  const items: Record<TreeItemIndex, TreeItem<LibraryFolderTreeItemData>> = {
-    [LIBRARY_FOLDER_TREE_ROOT_ITEM_ID]: {
-      index: LIBRARY_FOLDER_TREE_ROOT_ITEM_ID,
-      isFolder: true,
-      canMove: false,
-      children: nodes.map((node) => node.id),
-      data: { folderId: null, label: "Library folders" },
-    },
-  };
-  const folderItemIds: TreeItemIndex[] = [];
-
-  function visit(node: LibraryFolderTreeNode) {
-    folderItemIds.push(node.id);
-    items[node.id] = {
-      index: node.id,
-      isFolder: true,
-      canMove: true,
-      children: node.children?.map((child) => child.id) ?? [],
-      data: { folderId: node.folderId, label: node.label },
-    };
-    node.children?.forEach(visit);
-  }
-
-  nodes.forEach(visit);
-  return { items, folderItemIds };
-}
-
 function getSupplierBackedItems(items: EstimateRowItem[]) {
   return items.filter((item) => Boolean(item.supplierId || item.supplier?.trim()));
 }
 
-function FolderActionIcon() {
-  return <FolderSimple size={12} weight="bold" aria-hidden="true" />;
+function getBrandBackedItems(items: EstimateRowItem[]) {
+  return items.filter((item) => Boolean(item.brandId || item.brand?.trim()));
 }
 
-function LibraryFolderTree({
-  folders,
-  nodes,
-  selectedFolderId,
-  searchQuery,
-  disabled,
-  onSelectFolder,
-  onFoldersChange,
-  onReorderStatus,
-  onCreateFolder,
-  onRenameFolder,
-  onDeleteFolder,
-}: {
-  folders: LibraryFolderRecord[];
-  nodes: LibraryFolderTreeNode[];
-  selectedFolderId: string | null;
-  searchQuery: string;
-  disabled: boolean;
-  onSelectFolder: (folderId: string) => void;
-  onFoldersChange: (folders: LibraryFolderRecord[]) => void;
-  onReorderStatus: (status: ReorderStatus) => void;
-  onCreateFolder: (parentId: string | null) => void;
-  onRenameFolder: (folderId: string, currentName: string) => void;
-  onDeleteFolder: (folderId: string, currentName: string) => void;
-}) {
-  const filteredNodes = useMemo(() => filterFolderTree(nodes, searchQuery), [nodes, searchQuery]);
-  const treeModel = useMemo(() => buildFolderTreeModel(filteredNodes), [filteredNodes]);
-  const [expandedItemIds, setExpandedItemIds] = useState<TreeItemIndex[]>(() => getAllFolderTreeItemIds(nodes));
-  const selectedItems = useMemo<TreeItemIndex[]>(
-    () => (selectedFolderId ? [toLibraryFolderTreeItemId(selectedFolderId)] : []),
-    [selectedFolderId],
-  );
-  const viewState = useMemo<TreeViewState>(() => ({
-    [LIBRARY_FOLDER_TREE_ID]: {
-      expandedItems: expandedItemIds,
-      selectedItems,
-      focusedItem: selectedItems[0],
-    },
-  }), [expandedItemIds, selectedItems]);
-
-  const canDrag = useCallback((items: TreeItem<LibraryFolderTreeItemData>[]) => (
-    !disabled && items.length === 1 && Boolean(items[0]?.data.folderId)
-  ), [disabled]);
-
-  const canDropAt = useCallback((items: TreeItem<LibraryFolderTreeItemData>[], target: DraggingPosition) => {
-    if (!canDrag(items)) return false;
-    return evaluateLibraryFolderDrop({
-      folders,
-      draggedItemIds: items.map((item) => item.index),
-      target,
-    }).ok;
-  }, [canDrag, folders]);
-
-  const handleDrop = useCallback(async (items: TreeItem<LibraryFolderTreeItemData>[], target: DraggingPosition) => {
-    const result = evaluateLibraryFolderDrop({
-      folders,
-      draggedItemIds: items.map((item) => item.index),
-      target,
-    });
-
-    if (!result.ok) {
-      onReorderStatus({ state: "error", message: result.message });
-      return;
-    }
-
-    const previousFolders = folders;
-    onFoldersChange(result.plan.nextFolders);
-    onReorderStatus({ state: "saving", message: "Saving folder order..." });
-    try {
-      await reorderLibraryFolders({ updates: result.plan.updates });
-      onSelectFolder(result.plan.draggedFolderId);
-      onReorderStatus({ state: "saved", message: "Folder order saved." });
-    } catch (error) {
-      onFoldersChange(previousFolders);
-      onReorderStatus({ state: "error", message: error instanceof Error ? error.message : "Could not save folder order." });
-    }
-  }, [folders, onFoldersChange, onReorderStatus, onSelectFolder]);
-
-  const createActionGroups = useCallback((item: TreeItem<LibraryFolderTreeItemData>, hasChildren: boolean, isExpanded: boolean): ActionMenuGroup[] => {
-    const folderId = item.data.folderId;
-    return [
-      {
-        id: "folder-actions",
-        items: [
-          {
-            id: "select",
-            label: "Select",
-            onSelect: () => {
-              if (folderId) onSelectFolder(folderId);
-            },
-          },
-          ...(hasChildren
-            ? [
-                {
-                  id: isExpanded ? "collapse" : "expand",
-                  label: isExpanded ? "Collapse" : "Expand",
-                  onSelect: () => {
-                    setExpandedItemIds((current) =>
-                      current.includes(item.index) ? current.filter((id) => id !== item.index) : [...current, item.index],
-                    );
-                  },
-                },
-              ]
-            : []),
-          {
-            id: "add-folder",
-            label: "Add folder",
-            disabled,
-            disabledReason: disabled ? "Finish the current folder save before creating another folder." : undefined,
-            onSelect: () => onCreateFolder(folderId),
-          },
-          {
-            id: "rename-folder",
-            label: "Rename",
-            disabled,
-            disabledReason: disabled ? "Finish the current folder save before renaming another folder." : undefined,
-            onSelect: () => {
-              if (folderId) onRenameFolder(folderId, item.data.label);
-            },
-          },
-          {
-            id: "delete-folder",
-            label: "Delete",
-            tone: "destructive",
-            disabled: disabled || !folderId,
-            disabledReason: disabled ? "Finish the current folder save before deleting another folder." : undefined,
-            onSelect: () => {
-              if (folderId) onDeleteFolder(folderId, item.data.label);
-            },
-          },
-        ],
-      },
-    ];
-  }, [disabled, onCreateFolder, onDeleteFolder, onRenameFolder, onSelectFolder]);
-
-  if (filteredNodes.length === 0) {
-    return (
-      <div className="rounded-md border border-dashed border-hairline bg-surfaceMuted p-2 text-[10px] leading-4 text-tertiary">
-        No folders match &quot;{searchQuery}&quot;.
-      </div>
-    );
-  }
-
-  return (
-    <ControlledTreeEnvironment<LibraryFolderTreeItemData>
-      items={treeModel.items}
-      getItemTitle={(item) => item.data.label}
-      viewState={viewState}
-      defaultInteractionMode={InteractionMode.ClickArrowToExpand}
-      canInvokePrimaryActionOnItemContainer
-      canSearch={false}
-      canDragAndDrop
-      canReorderItems
-      canDropOnFolder
-      canDropOnNonFolder={false}
-      canDropBelowOpenFolders
-      canDrag={canDrag}
-      canDropAt={canDropAt}
-      onDrop={handleDrop}
-      onPrimaryAction={(item) => {
-        if (item.data.folderId) onSelectFolder(item.data.folderId);
-      }}
-      onExpandItem={(item) => {
-        setExpandedItemIds((current) => current.includes(item.index) ? current : [...current, item.index]);
-      }}
-      onCollapseItem={(item) => {
-        setExpandedItemIds((current) => current.filter((id) => id !== item.index));
-      }}
-      renderTreeContainer={({ children, containerProps }) => {
-        const { className, ...treeContainerProps } = containerProps as HTMLAttributes<HTMLDivElement>;
-        return (
-          <nav aria-label="Library folder tree">
-            <div {...treeContainerProps} className={cn("relative min-h-7 outline-none", className)}>
-              {children}
-            </div>
-          </nav>
-        );
-      }}
-      renderItemsContainer={({ children, containerProps }) => {
-        const { className, ...itemsContainerProps } = containerProps as HTMLAttributes<HTMLOListElement>;
-        return (
-          <ol {...itemsContainerProps} className={cn("space-y-0", className)}>
-            {children}
-          </ol>
-        );
-      }}
-      renderItemTitle={({ title }) => (
-        <>
-          <span className={cn("mr-1", WORKSHOP_TREE_ICON_SLOT_CLASS)} aria-hidden="true">
-            <FolderActionIcon />
-          </span>
-          <span className="min-w-0 flex-1 truncate">{title}</span>
-        </>
-      )}
-      renderItemArrow={({ context }) => (
-        <span className={cn(WORKSHOP_TREE_ICON_SLOT_CLASS, "cursor-pointer transition hover:bg-surfaceMuted")}>
-          {context.isExpanded ? (
-            <CaretDown size={11} weight="bold" aria-hidden="true" />
-          ) : (
-            <CaretRight size={11} weight="bold" aria-hidden="true" />
-          )}
-        </span>
-      )}
-      renderItem={({ item, depth, children, title, arrow, context }) => {
-        const folderId = item.data.folderId;
-        if (!folderId) return null;
-
-        const { className: liClassName, ...liProps } = context.itemContainerWithChildrenProps as HTMLAttributes<HTMLLIElement>;
-        const { className: rowClassName, style: rowStyle, ...rowProps } = context.itemContainerWithoutChildrenProps as HTMLAttributes<HTMLDivElement>;
-        const {
-          className: buttonClassName,
-          ...interactiveProps
-        } = context.interactiveElementProps as ButtonHTMLAttributes<HTMLButtonElement>;
-        const selected = selectedFolderId === folderId;
-        const hasChildren = Boolean(item.children?.length);
-
-        return (
-          <li {...liProps} className={cn("list-none", liClassName)}>
-            <div
-              {...rowProps}
-              data-library-folder-tree-row="true"
-              className={cn("relative flex items-center gap-0.5 py-0", WORKSHOP_TREE_ROW_MIN_HEIGHT_CLASS, rowClassName)}
-              style={rowStyle}
-            >
-              <div className="min-w-0 flex-1">
-                <WorkshopTreeRow
-                  {...interactiveProps}
-                  type="button"
-                  role="treeitem"
-                  aria-label={item.data.label}
-                  aria-selected={selected}
-                  aria-expanded={hasChildren ? context.isExpanded : undefined}
-                  data-library-folder-node-id={item.index}
-                  depth={depth}
-                  selected={selected}
-                  contextMenuGroups={createActionGroups(item, hasChildren, Boolean(context.isExpanded))}
-                  className={cn("relative justify-start gap-0 focus-visible:ring-[#c8d2df] focus-visible:ring-offset-2", buttonClassName)}
-                >
-                  {arrow}
-                  {title}
-                </WorkshopTreeRow>
-              </div>
-            </div>
-            {children}
-          </li>
-        );
-      }}
-    >
-      <Tree treeId={LIBRARY_FOLDER_TREE_ID} rootItem={LIBRARY_FOLDER_TREE_ROOT_ITEM_ID} treeLabel="Library folders" />
-    </ControlledTreeEnvironment>
-  );
+function toSupplierTreeNodeId(supplierId: string) {
+  return supplierId.startsWith("supplier-") ? supplierId : `supplier-${supplierId}`;
 }
 
-function ComponentViewControls({
-  mode,
-  onModeChange,
-}: {
-  mode: ComponentViewMode;
-  onModeChange: (mode: ComponentViewMode) => void;
-}) {
-  return (
-    <div className="border-b border-hairline bg-white px-2 py-1">
-      <div role="group" aria-label="Component view mode" className="grid grid-cols-2 gap-1 rounded-md bg-surfaceMuted p-0.5">
-        {COMPONENT_VIEW_MODES.map((item) => (
-          <button
-            key={item.id}
-            type="button"
-            aria-pressed={mode === item.id}
-            onClick={() => onModeChange(item.id)}
-            className={cn(
-              "h-6 rounded-sm px-2 text-[9px] font-bold leading-none transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus",
-              mode === item.id ? "bg-white text-ink shadow-sm" : "text-tertiary hover:bg-white/70 hover:text-ink",
-            )}
-          >
-            {item.label}
-          </button>
-        ))}
-      </div>
-    </div>
-  );
+function toBrandTreeNodeId(brandId: string) {
+  return brandId.startsWith("brand-") ? brandId : `brand-${brandId}`;
 }
 
 function ComponentLibraryTreePanel({
   supplierNodes,
+  brandNodes,
   selectedNodeId,
+  selectedBrandNodeId,
   folderNodes,
+  libraryItems,
   folders,
   selectedFolderId,
   viewMode,
   reorderStatus,
   treeMutationPending,
   onSelectNode,
+  onSelectBrandNode,
   onSelectFolder,
   onViewModeChange,
   onFoldersChange,
@@ -545,33 +510,26 @@ function ComponentLibraryTreePanel({
   onDeleteFolder,
 }: {
   supplierNodes: LibraryTreeNode[];
+  brandNodes: LibraryTreeNode[];
   selectedNodeId: string;
+  selectedBrandNodeId: string;
   folderNodes: LibraryFolderTreeNode[];
+  libraryItems: EstimateRowItem[];
   folders: LibraryFolderRecord[];
   selectedFolderId: string | null;
   viewMode: ComponentViewMode;
   reorderStatus: ReorderStatus;
   treeMutationPending: boolean;
   onSelectNode: (nodeId: string) => void;
+  onSelectBrandNode: (nodeId: string) => void;
   onSelectFolder: (folderId: string) => void;
   onViewModeChange: (mode: ComponentViewMode) => void;
   onFoldersChange: (folders: LibraryFolderRecord[]) => void;
   onReorderStatus: (status: ReorderStatus) => void;
-  onCreateFolder: (parentId: string | null) => void;
+  onCreateFolder: CreateLibraryFolderHandler;
   onRenameFolder: (folderId: string, currentName: string) => void;
   onDeleteFolder: (folderId: string, currentName: string) => void;
 }) {
-  const [searchQuery, setSearchQuery] = useState("");
-  const filteredNodes = filterTree(supplierNodes, searchQuery);
-  const [expandedNodeIds, setExpandedNodeIds] = useState(() => getAllNodeIds(supplierNodes));
-  const isFolderMode = viewMode === "default";
-
-  function toggleNode(nodeId: string) {
-    setExpandedNodeIds((current) =>
-      current.includes(nodeId) ? current.filter((id) => id !== nodeId) : [...current, nodeId],
-    );
-  }
-
   return (
     <ResizableSidePanel
       side="right"
@@ -583,85 +541,36 @@ function ComponentLibraryTreePanel({
       widthOffset={COMPONENT_LIBRARY_TREE_WIDTH_OFFSET}
     >
       <div className="flex h-full flex-col overflow-hidden border-l border-hairline bg-white" data-component-library-tree-panel="true">
-        <div className="sticky top-0 z-20 shrink-0 bg-white">
-          <SearchInput
-            placeholder={isFolderMode ? "Search Library Folders" : "Search Library Tree"}
-            value={searchQuery}
-            onChange={(event) => setSearchQuery(event.target.value)}
-            onClear={() => setSearchQuery("")}
-            aria-label="Search component library tree"
-            wrapperClassName="w-full"
-          />
-          <HeaderIconToolbar
-            ariaLabel="Component tree tools"
-            labelPrefix={isFolderMode ? "library folder" : "component tree"}
-            onExpandAll={() => {
-              if (!isFolderMode) setExpandedNodeIds(getAllNodeIds(supplierNodes));
-            }}
-            onCollapseAll={() => {
-              if (!isFolderMode) setExpandedNodeIds([]);
-            }}
-            addActions={[
-              {
-                label: "Add library folder",
-                visibleLabel: "Add folder",
-                icon: <FolderActionIcon />,
-                onClick: () => onCreateFolder(selectedFolderId),
-                disabled: !isFolderMode || treeMutationPending,
-              },
-            ]}
-          />
-          <WorkshopTreeTabs
-            tabs={LIBRARY_TABS}
-            activeTab="components"
-            ariaLabel="Library views"
-          />
-          <ComponentViewControls mode={viewMode} onModeChange={onViewModeChange} />
-          {reorderStatus.state !== "idle" ? (
-            <div
-              role="status"
-              aria-live="polite"
-              className={cn(
-                "border-b border-hairline px-2 py-1 text-[10px] leading-4",
-                reorderStatus.state === "error" ? "text-red-700" : "text-tertiary",
-              )}
-            >
-              {reorderStatus.message}
-            </div>
-          ) : null}
-        </div>
-
-        <div className="min-h-0 flex-1 overflow-auto p-2">
-          <div className="h-6" />
-          {isFolderMode ? (
-            <LibraryFolderTree
-              folders={folders}
-              nodes={folderNodes}
-              selectedFolderId={selectedFolderId}
-              searchQuery={searchQuery}
-              disabled={treeMutationPending}
-              onSelectFolder={onSelectFolder}
-              onFoldersChange={onFoldersChange}
-              onReorderStatus={onReorderStatus}
-              onCreateFolder={onCreateFolder}
-              onRenameFolder={onRenameFolder}
-              onDeleteFolder={onDeleteFolder}
-            />
-          ) : filteredNodes.length > 0 ? (
-            <LibraryTree
-              nodes={filteredNodes}
-              selectedNodeId={selectedNodeId}
-              expandedNodeIds={expandedNodeIds}
-              searchQuery={searchQuery}
-              onSelect={(nodeId) => onSelectNode(nodeId)}
-              onToggle={toggleNode}
-            />
-          ) : (
-            <div className="rounded-md border border-dashed border-hairline bg-surfaceMuted p-2 text-[10px] leading-4 text-tertiary">
-              No tree matches for &quot;{searchQuery}&quot;.
-            </div>
-          )}
-        </div>
+        <LibraryFolderTreeSurface
+          folders={folders}
+          folderNodes={folderNodes}
+          libraryItems={libraryItems}
+          selectedFolderId={selectedFolderId}
+          supplierNodes={supplierNodes}
+          selectedSupplierNodeId={selectedNodeId}
+          brandNodes={brandNodes}
+          selectedBrandNodeId={selectedBrandNodeId}
+          viewMode={viewMode}
+          reorderStatus={reorderStatus}
+          treeMutationPending={treeMutationPending}
+          bodyTopSpacer={<div className="h-6" />}
+          onSelectSupplierNode={onSelectNode}
+          onSelectBrandNode={onSelectBrandNode}
+          onSelectFolder={onSelectFolder}
+          onViewModeChange={onViewModeChange}
+          onFoldersChange={onFoldersChange}
+          onReorderStatus={onReorderStatus}
+          onCreateFolder={onCreateFolder}
+          onRenameFolder={onRenameFolder}
+          onDeleteFolder={onDeleteFolder}
+          searchAriaLabel="Search component library tree"
+          folderSearchPlaceholder="Search Library Folders"
+          supplierSearchPlaceholder="Search Library Tree"
+          toolbarAriaLabel="Component tree tools"
+          toolbarLabelPrefix={(mode) => (mode === "default" ? "library folder" : "component tree")}
+          tabsAriaLabel="Library views"
+          viewModeAriaLabel="Component view mode"
+        />
       </div>
     </ResizableSidePanel>
   );
@@ -669,44 +578,74 @@ function ComponentLibraryTreePanel({
 
 function ComponentLibrarySheet({
   selectedFolderNode,
+  selectedFolderId,
   selectedSupplierNode,
+  selectedBrandNode,
+  folderNodes,
   viewMode,
   libraryItems,
   categoryTree,
   suppliers,
+  brands,
   status,
   onAddComponent,
-  onItemChanged,
-  onStatusChange,
 }: {
   selectedFolderNode: LibraryFolderTreeNode | null;
+  selectedFolderId: string | null;
   selectedSupplierNode: LibraryTreeNode | null;
+  selectedBrandNode: LibraryTreeNode | null;
+  folderNodes: LibraryFolderTreeNode[];
   viewMode: ComponentViewMode;
   libraryItems: EstimateRowItem[];
   categoryTree: ComponentLibraryTaxonomyNode[];
   suppliers: ComponentLibrarySupplierOption[];
+  brands: ComponentLibraryBrand[];
   status: SheetStatus;
   onAddComponent: () => void;
-  onItemChanged: (item: EstimateRowItem) => void;
-  onStatusChange: (status: SheetStatus) => void;
 }) {
   const [searchQuery, setSearchQuery] = useState("");
-  const [isPending, startTransition] = useTransition();
+  const [collapsedCatalogueBranchIds, setCollapsedCatalogueBranchIds] = useState<Set<string>>(() => new Set());
   const sheetItems = useMemo(() => {
     if (viewMode === "suppliers") {
       if (!selectedSupplierNode || selectedSupplierNode.id === "all-suppliers") return getSupplierBackedItems(libraryItems);
       return getLibraryItemsForTreeNode("suppliers", selectedSupplierNode.id, libraryItems, [], [], { categoryTree, suppliers });
     }
 
+    if (viewMode === "brand") {
+      if (!selectedBrandNode || selectedBrandNode.id === "all-brands") return getBrandBackedItems(libraryItems);
+      return getLibraryItemsForTreeNode("brands", selectedBrandNode.id, libraryItems, [], [], { categoryTree, suppliers, brands });
+    }
+
+    if (isAllComponentsFolderId(selectedFolderId)) return libraryItems;
     return selectedFolderNode ? getLibraryItemsForFolderNode(selectedFolderNode, libraryItems) : libraryItems;
-  }, [categoryTree, libraryItems, selectedFolderNode, selectedSupplierNode, suppliers, viewMode]);
+  }, [brands, categoryTree, libraryItems, selectedBrandNode, selectedFolderId, selectedFolderNode, selectedSupplierNode, suppliers, viewMode]);
   const visibleItems = useMemo(
     () => sheetItems.filter((item) => itemMatchesSheetQuery(item, searchQuery)),
     [searchQuery, sheetItems],
   );
+  const catalogueOutline = useMemo(
+    () => buildCatalogueOutline(visibleItems, folderNodes, selectedFolderNode, searchQuery),
+    [folderNodes, searchQuery, selectedFolderNode, visibleItems],
+  );
+  const hasCatalogueResults = catalogueOutline.branches.length > 0 || catalogueOutline.items.length > 0;
+  const toggleCatalogueBranch = (branchId: string) => {
+    setCollapsedCatalogueBranchIds((current) => {
+      const next = new Set(current);
+      if (next.has(branchId)) {
+        next.delete(branchId);
+      } else {
+        next.add(branchId);
+      }
+      return next;
+    });
+  };
   const selectedLabel = viewMode === "suppliers"
     ? selectedSupplierNode?.label ?? "All Suppliers"
-    : selectedFolderNode?.label ?? "Components";
+    : viewMode === "brand"
+      ? selectedBrandNode?.label ?? "All Brands"
+    : isAllComponentsFolderId(selectedFolderId)
+      ? "All Components"
+      : selectedFolderNode?.label ?? "Components";
 
   return (
     <section
@@ -768,141 +707,28 @@ function ComponentLibrarySheet({
       </header>
 
       <div className="min-h-0 flex-1 overflow-auto p-2">
-        {visibleItems.length > 0 ? (
-          <ul className="space-y-1" aria-label={`${selectedLabel} component rows`}>
-            {visibleItems.map((item) => (
-              <li
-                key={item.id}
-                className={cn(
-                  "grid grid-cols-[minmax(0,1fr)_auto] items-start gap-2 border-b border-hairline px-2 py-1.5 last:border-b-0",
-                  item.lifecycleState === "archived" ? "opacity-60" : "",
-                )}
-              >
-                <div className="min-w-0">
-                  <p className="truncate text-[10px] font-bold leading-4 text-ink">{getComponentName(item)}</p>
-                  <div className="flex min-w-0 items-center gap-1">
-                    <p className="truncate text-[9px] font-semibold leading-3 text-tertiary">
-                      {item.supplier || "No supplier"} / {item.category}
-                    </p>
-                    <Badge tone={LIFECYCLE_META[item.lifecycleState ?? "available"].tone} size="xs">
-                      {LIFECYCLE_META[item.lifecycleState ?? "available"].label}
-                    </Badge>
-                  </div>
-                  {item.history?.length ? (
-                    <details className="mt-1">
-                      <summary className="cursor-pointer text-[9px] font-bold leading-3 text-tertiary">
-                        History / v{item.componentVersionNumber ?? 1}
-                      </summary>
-                      <ol className="mt-1 space-y-1 rounded-sm border border-hairline bg-surfaceMuted p-1">
-                        {item.history.slice(0, 5).map((entry) => (
-                          <li key={`${entry.type}-${entry.id}`} className="grid grid-cols-[auto_minmax(0,1fr)] gap-1 text-[9px] leading-3 text-tertiary">
-                            <Badge tone={entry.type === "state" ? "info" : entry.type === "price" ? "warning" : "neutral"} size="xs">
-                              {entry.label}
-                            </Badge>
-                            <span className="min-w-0 truncate">{entry.summary} / {entry.effectiveAt.slice(0, 10)}</span>
-                          </li>
-                        ))}
-                      </ol>
-                    </details>
-                  ) : null}
-                </div>
-                <div className="flex min-w-[148px] flex-col items-end gap-1">
-                  <span className="font-mono text-[10px] font-bold tabular-nums text-ink">
-                    {pesoFormatter.format(getComponentPrice(item))}
-                    <span className="ml-1 font-sans text-[9px] font-semibold text-tertiary">/{item.unit}</span>
-                  </span>
-                  {item.priceOptions && item.priceOptions.length > 1 ? (
-                    <ControlSelect
-                      aria-label={`Pricing option for ${getComponentName(item)}`}
-                      value={item.priceOptionId ?? ""}
-                      onChange={(event) => {
-                        const nextOption = item.priceOptions?.find((option) => option.id === event.target.value);
-                        if (!nextOption) return;
-                        startTransition(async () => {
-                          onStatusChange({ state: "saving", message: "Saving price option..." });
-                          try {
-                            await upsertCostLibraryComponentPriceOption(item.id, {
-                              id: nextOption.id,
-                              label: nextOption.label,
-                              unit: nextOption.unit,
-                              unitCost: nextOption.unitCost,
-                              miscCost: nextOption.miscCost,
-                              currency: nextOption.currency,
-                              pricingSource: nextOption.pricingSource ?? undefined,
-                              pricingDate: nextOption.pricingDate ?? undefined,
-                              confidence: nextOption.confidence ?? undefined,
-                              sourceUrl: nextOption.sourceUrl ?? undefined,
-                              notes: nextOption.notes ?? undefined,
-                              supplierId: nextOption.supplierId ?? undefined,
-                              isDefault: true,
-                              isActive: true,
-                              changeReason: "Default price option changed from workshop library.",
-                            });
-                            onItemChanged({
-                              ...item,
-                              unit: nextOption.unit,
-                              itemCost: nextOption.unitCost,
-                              price: nextOption.unitCost,
-                              subTotal: nextOption.unitCost,
-                              miscCost: nextOption.miscCost,
-                              miscCostDefault: nextOption.miscCost,
-                              totalItemCosts: nextOption.unitCost + nextOption.miscCost,
-                              pricingSource: nextOption.pricingSource ?? item.pricingSource,
-                              pricingDate: nextOption.pricingDate ?? item.pricingDate,
-                              confidence: nextOption.confidence ?? item.confidence,
-                              priceOptionId: nextOption.id,
-                              priceOptionLabel: nextOption.label,
-                              priceOptions: item.priceOptions?.map((option) => ({ ...option, isDefault: option.id === nextOption.id })),
-                            });
-                          } catch (error) {
-                            onStatusChange({ state: "error", message: error instanceof Error ? error.message : "Could not save price option." });
-                          }
-                        });
-                      }}
-                      disabled={isPending}
-                    >
-                      {item.priceOptions.map((option) => (
-                        <option key={option.id} value={option.id}>{option.label}</option>
-                      ))}
-                    </ControlSelect>
-                  ) : (
-                    <span className="max-w-32 truncate text-[9px] font-semibold text-tertiary">
-                      {item.priceOptionLabel ?? item.pricingDate}
-                    </span>
-                  )}
-                  <ControlSelect
-                    aria-label={`Lifecycle state for ${getComponentName(item)}`}
-                    value={item.lifecycleState ?? "available"}
-                    onChange={(event) => {
-                      const lifecycleState = event.target.value as ComponentLifecycleState;
-                      startTransition(async () => {
-                        onStatusChange({ state: "saving", message: "Saving component state..." });
-                        try {
-                          await changeCostLibraryComponentLifecycleState({
-                            itemId: item.id,
-                            lifecycleState,
-                            changeReason: "Lifecycle state changed from workshop library.",
-                          });
-                          onItemChanged({
-                            ...item,
-                            lifecycleState,
-                            lifecycleStateChangedAt: new Date().toISOString(),
-                          });
-                        } catch (error) {
-                          onStatusChange({ state: "error", message: error instanceof Error ? error.message : "Could not save component state." });
-                        }
-                      });
-                    }}
-                    disabled={isPending}
-                  >
-                    {Object.entries(LIFECYCLE_META).map(([value, meta]) => (
-                      <option key={value} value={value}>{meta.label}</option>
-                    ))}
-                  </ControlSelect>
-                </div>
-              </li>
+        {hasCatalogueResults ? (
+          <div className="flex flex-col gap-1" aria-label={`${selectedLabel} component catalogue`}>
+            {catalogueOutline.branches.map((branch) => (
+              <ComponentCatalogueBranch
+                key={branch.id}
+                branch={branch}
+                collapsedBranchIds={collapsedCatalogueBranchIds}
+                onToggleBranch={toggleCatalogueBranch}
+              />
             ))}
-          </ul>
+            {catalogueOutline.items.length > 0 ? (
+              <section aria-label={`${CATALOGUE_UNASSIGNED_LABEL} component catalogue branch`} data-component-catalogue-section="unassigned">
+                <div className="flex h-9 min-w-0 items-center gap-2 border-b border-hairline bg-surfaceMuted/70 px-2">
+                  <SquaresFour size={13} weight="bold" className="shrink-0 text-tertiary" aria-hidden="true" />
+                  <h2 className="min-w-0 flex-1 truncate text-[10px] font-bold uppercase leading-3 tracking-[0.06em] text-ink">
+                    {CATALOGUE_UNASSIGNED_LABEL}
+                  </h2>
+                </div>
+                <CatalogueCardGrid cards={catalogueOutline.items} label={CATALOGUE_UNASSIGNED_LABEL} />
+              </section>
+            ) : null}
+          </div>
         ) : (
           <EmptyState
             icon={<SquaresFour size={18} weight="bold" aria-hidden="true" />}
@@ -918,40 +744,46 @@ function ComponentLibrarySheet({
 
 function ComponentLibrarySheetPanel({
   selectedFolderNode,
+  selectedFolderId,
   selectedSupplierNode,
+  selectedBrandNode,
+  folderNodes,
   viewMode,
   libraryItems,
   categoryTree,
   suppliers,
+  brands,
   status,
   onAddComponent,
-  onItemChanged,
-  onStatusChange,
 }: {
   selectedFolderNode: LibraryFolderTreeNode | null;
+  selectedFolderId: string | null;
   selectedSupplierNode: LibraryTreeNode | null;
+  selectedBrandNode: LibraryTreeNode | null;
+  folderNodes: LibraryFolderTreeNode[];
   viewMode: ComponentViewMode;
   libraryItems: EstimateRowItem[];
   categoryTree: ComponentLibraryTaxonomyNode[];
   suppliers: ComponentLibrarySupplierOption[];
+  brands: ComponentLibraryBrand[];
   status: SheetStatus;
   onAddComponent: () => void;
-  onItemChanged: (item: EstimateRowItem) => void;
-  onStatusChange: (status: SheetStatus) => void;
 }) {
   return (
     <div className="flex min-h-0 min-w-0 flex-1" data-component-library-sheet-panel="true">
       <ComponentLibrarySheet
         selectedFolderNode={selectedFolderNode}
+        selectedFolderId={selectedFolderId}
         selectedSupplierNode={selectedSupplierNode}
+        selectedBrandNode={selectedBrandNode}
+        folderNodes={folderNodes}
         viewMode={viewMode}
         libraryItems={libraryItems}
         categoryTree={categoryTree}
         suppliers={suppliers}
+        brands={brands}
         status={status}
         onAddComponent={onAddComponent}
-        onItemChanged={onItemChanged}
-        onStatusChange={onStatusChange}
       />
     </div>
   );
@@ -960,11 +792,13 @@ function ComponentLibrarySheetPanel({
 export function ComponentLibraryManager({
   categoryTree = componentCategoryTree,
   suppliers = [],
+  brands = [],
   libraryFolders,
   libraryItems = estimateLibraryItems,
 }: {
   categoryTree?: ComponentLibraryTaxonomyNode[];
   suppliers?: ComponentLibrarySupplierOption[];
+  brands?: ComponentLibraryBrand[];
   libraryFolders?: LibraryFolderRecord[];
   libraryItems?: EstimateRowItem[];
 } = {}) {
@@ -975,11 +809,11 @@ export function ComponentLibraryManager({
     () => normalizeLibraryFolderRecords(libraryFolders?.length ? libraryFolders : fallbackFolders),
     [fallbackFolders, libraryFolders],
   );
-  const initialSelectedFolderId = useMemo(() => getFirstFolderId(buildLibraryFolderTree(normalizedPropFolders)), [normalizedPropFolders]);
   const [localFolders, setLocalFolders] = useState<LibraryFolderRecord[]>(normalizedPropFolders);
   const [viewMode, setViewMode] = useState<ComponentViewMode>("default");
-  const [selectedFolderId, setSelectedFolderId] = useState<string | null>(initialSelectedFolderId);
+  const [selectedFolderId, setSelectedFolderId] = useState<string | null>(ALL_COMPONENTS_FOLDER_ID);
   const [selectedSupplierNodeId, setSelectedSupplierNodeId] = useState("all-suppliers");
+  const [selectedBrandNodeId, setSelectedBrandNodeId] = useState("all-brands");
   const [reorderStatus, setReorderStatus] = useState<ReorderStatus>({ state: "idle" });
   const [sheetStatus, setSheetStatus] = useState<SheetStatus>({ state: "idle" });
   const [addComponentOpen, setAddComponentOpen] = useState(false);
@@ -999,14 +833,29 @@ export function ComponentLibraryManager({
   const firstFolderId = useMemo(() => getFirstFolderId(folderNodes), [folderNodes]);
 
   const supplierTree = useMemo(
-    () => buildComponentLibraryNavigationTree("suppliers", localLibraryItems, [], [], { categoryTree, suppliers }),
+    () => buildLibraryTreeWithComponentRows("suppliers", localLibraryItems, [], [], { categoryTree, suppliers }),
     [categoryTree, localLibraryItems, suppliers],
   );
+  const brandTree = useMemo(
+    () => buildLibraryTreeWithComponentRows("brands", localLibraryItems, [], [], { categoryTree, suppliers, brands }),
+    [brands, categoryTree, localLibraryItems, suppliers],
+  );
   const selectedSupplierNode = useMemo(() => findNode(supplierTree, selectedSupplierNodeId) ?? supplierTree[0] ?? null, [selectedSupplierNodeId, supplierTree]);
+  const selectedBrandNode = useMemo(() => findNode(brandTree, selectedBrandNodeId) ?? brandTree[0] ?? null, [brandTree, selectedBrandNodeId]);
+  const selectedSupplierIdForModal = useMemo(() => {
+    if (viewMode !== "suppliers" || selectedSupplierNodeId === "all-suppliers") return null;
+    return suppliers.find((supplier) => toSupplierTreeNodeId(supplier.id) === selectedSupplierNodeId)?.id ?? null;
+  }, [selectedSupplierNodeId, suppliers, viewMode]);
+  const selectedBrandIdForModal = useMemo(() => {
+    if (viewMode !== "brand" || selectedBrandNodeId === "all-brands") return null;
+    return brands.find((brand) => toBrandTreeNodeId(brand.id) === selectedBrandNodeId)?.id ?? null;
+  }, [brands, selectedBrandNodeId, viewMode]);
   const selectedFolderNode = useMemo(() => (
-    findFolderNode(folderNodes, selectedFolderId) ?? findFolderNode(folderNodes, firstFolderId)
+    isAllComponentsFolderId(selectedFolderId) ? null : findFolderNode(folderNodes, selectedFolderId) ?? findFolderNode(folderNodes, firstFolderId)
   ), [firstFolderId, folderNodes, selectedFolderId]);
-  const effectiveSelectedFolderId = selectedFolderNode?.folderId ?? null;
+  const effectiveSelectedFolderId = isAllComponentsFolderId(selectedFolderId)
+    ? ALL_COMPONENTS_FOLDER_ID
+    : selectedFolderNode?.folderId ?? firstFolderId ?? ALL_COMPONENTS_FOLDER_ID;
 
   function selectFolder(folderId: string) {
     setSelectedFolderId(folderId);
@@ -1014,6 +863,10 @@ export function ComponentLibraryManager({
 
   function selectSupplierNode(nodeId: string) {
     setSelectedSupplierNodeId(nodeId);
+  }
+
+  function selectBrandNode(nodeId: string) {
+    setSelectedBrandNodeId(nodeId);
   }
 
   function openAddComponentModal() {
@@ -1034,36 +887,31 @@ export function ComponentLibraryManager({
       items: [item, ...current.items.filter((entry) => entry.id !== item.id)],
     }));
     if (item.libraryFolderId) setSelectedFolderId(item.libraryFolderId);
-    if (item.supplierId) setSelectedSupplierNodeId(item.supplierId);
+    if (item.supplierId) setSelectedSupplierNodeId(toSupplierTreeNodeId(item.supplierId));
+    if (item.brandId) setSelectedBrandNodeId(toBrandTreeNodeId(item.brandId));
     setSheetStatus({ state: "saved", message: "Component saved." });
     router.refresh();
   }
 
-  function handleComponentChanged(item: EstimateRowItem) {
-    setLibraryItemState((current) => ({
-      ...current,
-      items: current.items.map((entry) => (entry.id === item.id ? item : entry)),
-    }));
-    setSheetStatus({ state: "saved", message: "Component updated." });
-    router.refresh();
-  }
-
-  function createFolder(parentId: string | null) {
+  const createFolder: CreateLibraryFolderHandler = (parentId, options) => {
     const name = window.prompt("Folder name");
     if (!name?.trim()) return;
     startTreeMutation(async () => {
       setReorderStatus({ state: "saving", message: "Creating folder..." });
       try {
-        const result = await createLibraryFolder(parentId, name);
+        const result = options?.placement === "top"
+          ? await createLibraryFolder(parentId, name, { placement: options.placement })
+          : await createLibraryFolder(parentId, name);
         const folder = normalizeLibraryFolderRecords([result.folder as LibraryFolderRecord])[0];
         setLocalFolders((current) => [...current, folder]);
         selectFolder(folder.id);
+        options?.onCreated?.(folder);
         setReorderStatus({ state: "saved", message: "Folder created." });
       } catch (error) {
         setReorderStatus({ state: "error", message: error instanceof Error ? error.message : "Could not create folder." });
       }
     });
-  }
+  };
 
   function renameFolder(folderId: string, currentName: string) {
     const name = window.prompt("Folder name", currentName);
@@ -1115,27 +963,32 @@ export function ComponentLibraryManager({
         <section className="flex h-full min-h-0 overflow-hidden bg-white" aria-label="Component library workspace">
           <ComponentLibrarySheetPanel
             selectedFolderNode={selectedFolderNode}
+            selectedFolderId={effectiveSelectedFolderId}
             selectedSupplierNode={selectedSupplierNode}
+            selectedBrandNode={selectedBrandNode}
+            folderNodes={folderNodes}
             viewMode={viewMode}
             libraryItems={localLibraryItems}
             categoryTree={categoryTree}
             suppliers={suppliers}
+            brands={brands}
             status={sheetStatus}
             onAddComponent={openAddComponentModal}
-            onItemChanged={handleComponentChanged}
-            onStatusChange={setSheetStatus}
           />
           <ComponentLibraryTreePanel
-            key={viewMode}
             supplierNodes={supplierTree}
+            brandNodes={brandTree}
             selectedNodeId={selectedSupplierNodeId}
+            selectedBrandNodeId={selectedBrandNodeId}
             folderNodes={folderNodes}
+            libraryItems={localLibraryItems}
             folders={localFolders}
             selectedFolderId={effectiveSelectedFolderId}
             viewMode={viewMode}
             reorderStatus={reorderStatus}
             treeMutationPending={isTreeMutationPending}
             onSelectNode={selectSupplierNode}
+            onSelectBrandNode={selectBrandNode}
             onSelectFolder={selectFolder}
             onViewModeChange={setViewMode}
             onFoldersChange={setLocalFolders}
@@ -1152,10 +1005,18 @@ export function ComponentLibraryManager({
           folders={localFolders}
           categoryTree={categoryTree}
           suppliers={suppliers}
+          brands={brands}
+          libraryItems={localLibraryItems}
           selectedFolderId={effectiveSelectedFolderId}
-          selectedSupplierId={viewMode === "suppliers" && selectedSupplierNodeId !== "all-suppliers" ? selectedSupplierNodeId : null}
+          selectedSupplierId={selectedSupplierIdForModal}
+          selectedBrandId={selectedBrandIdForModal}
           onOpenChange={setAddComponentOpenWithFocus}
           onComponentCreated={handleComponentCreated}
+          onCreateFolder={createFolder}
+          onRenameFolder={renameFolder}
+          onDeleteFolder={deleteFolder}
+          reorderStatus={reorderStatus}
+          treeMutationPending={isTreeMutationPending}
         />
       ) : null}
     </div>

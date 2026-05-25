@@ -5,6 +5,14 @@ export type { EstimateTemplate, EstimateTemplateSummary } from "@/lib/component-
 
 export const ESTIMATE_TEMPLATE_DRAG_MIME_TYPE = "application/x-archestimator-estimate-template";
 
+function toTemplateCategoryId(category: string) {
+  return `template-category-${category.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")}`;
+}
+
+export function toTemplateTreeItemId(templateId: string) {
+  return `template-${templateId}`;
+}
+
 export function summarizeEstimateTemplate(template: EstimateTemplate) {
   const summary = {
     groupCount: 0,
@@ -36,9 +44,21 @@ export function buildTemplateNavigationTree(templates: EstimateTemplate[]): Libr
       label: "All Templates",
       kind: "organizer",
       children: categories.map((category) => ({
-        id: `template-category-${category.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")}`,
+        id: toTemplateCategoryId(category),
         label: category,
         kind: "template-category",
+        children: templates
+          .filter((template) => template.category === category)
+          .sort((left, right) => left.name.localeCompare(right.name))
+          .map((template) => {
+            const summary = summarizeEstimateTemplate(template);
+            return {
+              id: toTemplateTreeItemId(template.id),
+              label: template.name,
+              kind: "template",
+              meta: `${summary.groupCount} groups / ${summary.areaCount} areas / ${summary.rowCount} rows`,
+            };
+          }),
       })),
     },
   ];
@@ -46,10 +66,14 @@ export function buildTemplateNavigationTree(templates: EstimateTemplate[]): Libr
 
 export function getTemplatesForTreeNode(selectedNodeId: string | null, templates: EstimateTemplate[]) {
   if (!selectedNodeId || selectedNodeId === "all-templates") return templates;
+  if (selectedNodeId.startsWith("template-") && !selectedNodeId.startsWith("template-category-")) {
+    const templateId = selectedNodeId.replace(/^template-/, "");
+    return templates.filter((template) => template.id === templateId);
+  }
   if (!selectedNodeId.startsWith("template-category-")) return [];
 
   const normalized = selectedNodeId.replace(/^template-category-/, "");
   return templates.filter((template) => (
-    template.category.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") === normalized
+    toTemplateCategoryId(template.category).replace(/^template-category-/, "") === normalized
   ));
 }

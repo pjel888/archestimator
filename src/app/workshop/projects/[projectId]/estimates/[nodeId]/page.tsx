@@ -33,10 +33,11 @@ export default async function ProjectEstimateNodePage({ params }: ProjectEstimat
 
   if (!project || !estimate) notFound();
 
+  const estimateVersionLabel = readEstimateVersionLabel(estimate.metadata);
   const estimateMetadata = {
     estimateName: estimate.name,
     estimateSheetCode: estimate.sheet_code,
-    versionLabel: readEstimateVersionLabel(estimate.metadata),
+    projectBudget: estimate.project_budget,
   };
   const proposalExportMetadata = {
     projectId: project.id,
@@ -46,7 +47,7 @@ export default async function ProjectEstimateNodePage({ params }: ProjectEstimat
     projectAddress: project.location,
     estimateName: estimate.name,
     estimateSheetCode: estimate.sheet_code,
-    versionLabel: estimateMetadata.versionLabel,
+    versionLabel: estimateVersionLabel,
     currency: estimate.currency_code || project.currency_code || "PHP",
   };
 
@@ -65,6 +66,7 @@ export default async function ProjectEstimateNodePage({ params }: ProjectEstimat
           libraryTemplates={componentLibrary.templates}
           libraryCategoryTree={componentLibrary.categoryTree}
           librarySuppliers={componentLibrary.suppliers}
+          libraryBrands={componentLibrary.brands}
         />
       </section>
     </>

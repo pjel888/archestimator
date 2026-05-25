@@ -21,6 +21,7 @@ export default async function LibraryPage() {
       <LibraryPageClient
         categoryTree={componentLibrary.categoryTree}
         suppliers={componentLibrary.suppliers}
+        brands={componentLibrary.brands}
         libraryFolders={componentLibrary.libraryFolders}
         libraryItems={componentLibrary.libraryItems}
       />
