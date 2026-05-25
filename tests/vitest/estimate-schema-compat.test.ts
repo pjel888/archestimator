@@ -17,6 +17,8 @@ describe("estimate schema compatibility", () => {
     });
 
     expect(estimate.sheet_code).toBe("EST-LR-001");
+    expect(estimate.notes).toBeNull();
+    expect(estimate.project_budget).toBeNull();
   });
 
   it("detects Postgres and PostgREST missing-column errors for one column", () => {

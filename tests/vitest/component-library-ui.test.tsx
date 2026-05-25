@@ -1,5 +1,5 @@
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent, within } from "@testing-library/react";
 import type { ComponentProps } from "react";
 import { EstimateRightSidebar } from "@/components/workshop/component-library";
 import { LIBRARY_RECENTS_KEY } from "@/components/workshop/component-library/helpers";
@@ -41,8 +41,18 @@ const sharedLibraryItems: EstimateRowItem[] = [
     category: "Legacy category label",
     categoryNodeId: "db-category-fabrication",
     categoryPath: ["Database Components", "Fabrication"],
+    brand: "Database Brand",
+    brandId: "db-brand",
     pricingSource: "Database Supplier",
     pricingDate: "2026-05-22",
+  },
+];
+const sharedBrands = [
+  {
+    id: "db-brand",
+    name: "Database Brand",
+    normalized_name: "database brand",
+    sort_order: 1,
   },
 ];
 
@@ -90,14 +100,23 @@ describe("component library UI", () => {
     expect(screen.queryByRole("button", { name: "Export components" })).not.toBeInTheDocument();
 
     const stickyHeader = screen.getByLabelText("Library tree tools").closest(".sticky");
-    expect(stickyHeader?.children).toHaveLength(3); // search, toolbar, tabs
+    expect(stickyHeader?.children).toHaveLength(4); // search, toolbar, tabs, view controls
   });
 
-  it("shows tree view tabs", () => {
+  it("matches the component library route navigation contract", () => {
     renderSidebar();
-    expect(screen.getByRole("tab", { name: "Categories" })).toHaveAttribute("aria-selected", "true");
-    expect(screen.getByRole("tab", { name: "Suppliers" })).toHaveAttribute("aria-selected", "false");
-    expect(screen.getByRole("tab", { name: "Custom" })).toHaveAttribute("aria-selected", "false");
+    const tabs = screen.getByRole("tablist", { name: "Library tree views" });
+    expect(within(tabs).getAllByRole("tab").map((tab) => tab.textContent)).toEqual(["Components"]);
+    expect(within(tabs).getByRole("tab", { name: "Components" })).toHaveAttribute("aria-selected", "true");
+    expect(screen.queryByRole("tab", { name: "Categories" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("tab", { name: "Suppliers" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("tab", { name: "Custom" })).not.toBeInTheDocument();
+
+    const viewMode = screen.getByRole("group", { name: "Component view mode" });
+    expect(screen.getByText("View By")).toBeInTheDocument();
+    expect(within(viewMode).getByRole("button", { name: "Default" })).toHaveAttribute("aria-pressed", "true");
+    expect(within(viewMode).getByRole("button", { name: "Suppliers" })).toHaveAttribute("aria-pressed", "false");
+    expect(within(viewMode).getByRole("button", { name: "Brand" })).toHaveAttribute("aria-pressed", "false");
   });
 
   it("opens the new component form in a viewport modal from the plus tool", () => {
@@ -120,8 +139,8 @@ describe("component library UI", () => {
   });
 
   function expandSupplierFolder() {
-    // Switch to Suppliers tab and expand folders until components appear
-    fireEvent.click(screen.getByRole("tab", { name: "Suppliers" }));
+    const viewMode = screen.getByRole("group", { name: "Component view mode" });
+    fireEvent.click(within(viewMode).getByRole("button", { name: "Suppliers" }));
     // Expand up to 3 levels deep to reach components
     for (let i = 0; i < 3; i++) {
       const folders = screen.getAllByRole("treeitem");
@@ -200,8 +219,7 @@ describe("component library UI", () => {
   it("does not expose static estimate templates when no templates are provided", () => {
     renderSidebar();
 
-    fireEvent.click(screen.getByRole("tab", { name: "Templates" }));
-
+    expect(screen.queryByRole("tab", { name: "Templates" })).not.toBeInTheDocument();
     expect(screen.queryByText("Condo Fit-Out Starter")).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /Add template Condo Fit-Out Starter/i })).not.toBeInTheDocument();
   });
@@ -275,12 +293,29 @@ describe("component library UI", () => {
       initialLibraryItems: sharedLibraryItems,
       categoryTree: sharedCategoryTree,
       suppliers: [{ id: "db-supplier", name: "Database Supplier", sort_order: 1 }],
+      brands: sharedBrands,
     });
 
     expect(screen.getByRole("treeitem", { name: "Database Components" })).toBeInTheDocument();
     expect(screen.getByRole("treeitem", { name: "Fabrication" })).toBeInTheDocument();
     expect(screen.getByRole("treeitem", { name: "Database Steel Frame" })).toBeInTheDocument();
     expect(screen.queryByRole("treeitem", { name: "Legacy category label" })).not.toBeInTheDocument();
+  });
+
+  it("adds Brand as an estimate-sidebar component organization view", () => {
+    renderSidebar({
+      initialLibraryItems: sharedLibraryItems,
+      categoryTree: sharedCategoryTree,
+      suppliers: [{ id: "db-supplier", name: "Database Supplier", sort_order: 1 }],
+      brands: sharedBrands,
+    });
+
+    const viewMode = screen.getByRole("group", { name: "Component view mode" });
+    fireEvent.click(within(viewMode).getByRole("button", { name: "Brand" }));
+
+    expect(screen.getByRole("treeitem", { name: "All Brands" })).toHaveAttribute("aria-expanded", "true");
+    expect(screen.getByRole("treeitem", { name: "Database Brand" })).toBeInTheDocument();
+    expect(screen.getByRole("treeitem", { name: "Database Steel Frame" })).toBeInTheDocument();
   });
 
   it("collapses and expands folders when clicked", () => {
@@ -300,11 +335,13 @@ describe("component library UI", () => {
     expect(folder).toHaveClass("min-h-7", "!text-[10px]", "leading-4");
     expect(folder).toHaveClass("w-full");
     expect(folder.closest("[data-workshop-tree-row]")).toBe(folder);
+    expect(folder.closest('ul[role="tree"]')).toHaveClass("space-y-0");
     expect(folder).not.toHaveAttribute("draggable");
 
     const item = screen.getByRole("treeitem", { name: "HEMLINGBY Loveseat" });
     expect(item).toHaveClass("min-h-7", "w-full");
     expect(item.closest("[data-workshop-tree-row]")).toBe(item);
+    expect(item.closest('ul[role="group"]')).toHaveClass("space-y-0");
     expect(item.querySelector("[data-component-library-tree-label]")).toHaveClass("text-[10px]", "leading-4");
     expect(item).toHaveAttribute("draggable", "true");
   });
