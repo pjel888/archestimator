@@ -26,6 +26,7 @@ Active/current plan:
 - `.ai/03_plans/estimate-sheet-version-control/` — implemented Activity-first estimate sheet and row-level history pack for `/workshop/projects/[projectId]/estimates/[nodeId]`. Current UX is sheet `Activity` plus row details `Version History`; named sheet version, compare, and restore-as-copy artifacts exist only as dormant DB compatibility residue unless a future proposal/export snapshot plan revives them.
 - `.ai/03_plans/industry-standard-excel-proposal-export/` — active research and implementation plan for contractor-standard consolidated Excel proposal export, read-only preview, ExcelJS package choice, and room/area source-breakdown traceability.
 - `.ai/03_plans/ui-componentization-and-storybook-plan.md` — active UI component matrix, reusable-primitive pipeline, and Storybook organization plan.
+- `.ai/03_plans/estimate-tree-dnd-reorganization/` — audit, React Complex Tree API guide, implementation plan, and QA strategy for seamless live estimate-tree drag/drop reorganization.
 
 Archived closeout / superseded plans:
 
@@ -47,8 +48,9 @@ Read first before planning new work:
 6. `.ai/03_plans/project-estimates-component-library-improvement-plan.md`
 7. `.ai/03_plans/ui-componentization-and-storybook-plan.md`
 8. `.ai/09_archive/store/2026-05-21-estimate-tree-dnd-reorganization-complete/README.md`
-9. `.ai/02_audits/2026-05-17-reset-cleanup-audit.md`
-10. `.ai/06_specs/restart-guardrails.md`
+9. `.ai/03_plans/estimate-tree-dnd-reorganization/README.md` (historical planning context; current implementation truth is the archived closeout above)
+10. `.ai/02_audits/2026-05-17-reset-cleanup-audit.md`
+11. `.ai/06_specs/restart-guardrails.md`
 
 ## Rules for new plans
 
