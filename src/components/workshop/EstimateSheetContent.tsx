@@ -1,7 +1,7 @@
 "use client";
 
-import { type ChangeEvent, type Dispatch, type DragEvent, type InputHTMLAttributes, type KeyboardEvent, type MouseEvent, type SetStateAction, createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
-import { ArrowsOutSimple, CaretDown, ClockCounterClockwise, Cube, DotsSixVertical, DotsThreeVertical, FileXls, FolderSimple, Plus, Trash, WarningCircle, X } from "@phosphor-icons/react/dist/ssr";
+import { type ChangeEvent, type Dispatch, type DragEvent, type InputHTMLAttributes, type KeyboardEvent, type MouseEvent, type ReactNode, type SetStateAction, createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { ArrowsOutSimple, CaretDown, ClockCounterClockwise, Cube, DotsSixVertical, DotsThreeVertical, FileXls, FolderSimple, FunnelSimple, Plus, Trash, WarningCircle, X } from "@phosphor-icons/react/dist/ssr";
 
 import { Button } from "@/components/ui/button";
 import { ControlField, ControlInput } from "@/components/ui/control-input";
@@ -23,6 +23,8 @@ import { ESTIMATE_TEMPLATE_DRAG_MIME_TYPE, type EstimateTemplate } from "./compo
 import type { ComponentLibraryBrandOption, ComponentLibrarySupplierOption } from "./component-library/tree/buildLibraryTree";
 import { findEstimateNode, sampleEstimateTree, type EstimateTreeNode, type EstimateRowItem } from "./estimate-tree-data";
 import { ProposalExportPreviewDialog } from "./ProposalExportPreviewDialog";
+import { WORKSHOP_TREE_ICON_SLOT_CLASS, WORKSHOP_TREE_ROW_GAP_CLASS } from "./tree-visual-style";
+import { WorkshopTreeRow, WorkshopTreeTabs, type WorkshopTreeTabItem } from "./workshop-tree";
 
 
 /* Re-export component library helpers and sidebar so existing imports don't break */
@@ -108,19 +110,24 @@ type EstimateSheetBranchProps = {
   onDeleteRowItem: (rowItemId: string) => void;
   onUpdateRowItem: (rowItemId: string, values: Partial<EditableRowValue>) => void;
   onMarkRowDirty: (rowItemId: string) => void;
-  onOpenRowDetails: (rowItemId: string, opener: HTMLElement, tab?: RowInspectorTab) => void;
+  onOpenRowDetails: (rowItemId: string, opener: HTMLElement, tab?: RowDetailTab) => void;
   onClearRowComponent: (rowItemId: string) => void;
   onMoveRowComponent: (sourceRowItemId: string, targetRowItemId: string, movedItem: EstimateRowItem) => void;
   depth?: number;
   usesSiblingGroupRhythm?: boolean;
 };
 
-type RowInspectorTab = "summary" | "source" | "history";
-
-type EstimateInspectorState =
-  | { mode: "row"; rowId: string; tab: RowInspectorTab }
+type EstimateActivityScope =
+  | { mode: "row"; rowId: string }
   | { mode: "sheet" }
   | { mode: "node"; nodeId: string; includeDescendants: boolean };
+
+type RowDetailTab = "details" | "component" | "activity";
+
+type RowDetailsState = {
+  rowId: string;
+  tab: RowDetailTab;
+};
 
 type ActivityFilterState = {
   eventType: string;
@@ -151,6 +158,8 @@ const ACTIVITY_FILTER_EVENT_TYPES = [
   { value: "sheet_metadata_updated", label: "Sheet metadata" },
 ] as const;
 
+const ACTIVITY_SCOPE_TREE_TABS: readonly WorkshopTreeTabItem<"sheets">[] = [{ id: "sheets", label: "Sheets" }];
+
 type FlattenedEstimateRow = {
   item: EstimateRowItem;
   nodeId: string;
@@ -160,6 +169,18 @@ type FlattenedEstimateRow = {
   contingencyValue: number;
   miscCost: number;
   lineTotal: number;
+};
+
+type ActivityScopeTreeItem = {
+  id: string;
+  scope: EstimateActivityScope;
+  depth: number;
+  kind: "sheet" | "group" | "area" | "row";
+  label: string;
+  eyebrow: string;
+  description?: string;
+  total: number | null;
+  row: FlattenedEstimateRow | null;
 };
 
 type EstimateMaterialCardItem = Pick<EstimateRowItem, "material" | "supplier" | "itemCost" | "description" | "unit" | "imageUrl" | "category">;
@@ -217,18 +238,28 @@ function nodeHeaderClasses(kind: EstimateTreeNode["kind"]) {
 }
 
 function nodeNameClasses(kind: EstimateTreeNode["kind"]) {
-  if (kind === "group") return "truncate text-[10px] font-semibold text-ink";
-  return "truncate text-[10px] font-semibold text-secondary";
+  if (kind === "group") return "truncate text-[10px] font-medium text-ink";
+  return "truncate text-[10px] font-medium text-secondary";
 }
 
 function nodeTotalClasses(kind: EstimateTreeNode["kind"]) {
-  if (kind === "group") return "shrink-0 text-right text-[10px] font-semibold tabular-nums text-ink";
+  if (kind === "group") return "shrink-0 text-right text-[10px] font-medium tabular-nums text-ink";
   return "shrink-0 text-right text-[10px] font-normal tabular-nums text-ink";
 }
 
 function NodeIcon({ kind }: { kind: EstimateTreeNode["kind"] }) {
-  if (getEstimateNodeDisplayKind(kind) === "group") return <FolderSimple size={13} weight="bold" aria-hidden="true" />;
-  return <Cube size={13} weight="bold" aria-hidden="true" />;
+  if (getEstimateNodeDisplayKind(kind) === "group") return <FolderSimple size={13} weight="regular" aria-hidden="true" />;
+  return <Cube size={13} weight="regular" aria-hidden="true" />;
+}
+
+function AddTreeActionIcon({ kind }: { kind: EstimateTreeNode["kind"] }) {
+  const Icon = getEstimateNodeDisplayKind(kind) === "group" ? FolderSimple : Cube;
+  return (
+    <span className="relative flex size-4 items-center justify-center" aria-hidden="true">
+      <Icon size={13} weight="regular" className="absolute left-0 top-1/2 -translate-y-1/2" />
+      <Plus size={8} weight="regular" className="absolute right-0 top-0" />
+    </span>
+  );
 }
 
 function focusEstimateCell(rowIndex: number, cellIndex: number) {
@@ -295,6 +326,7 @@ type EditableRowValue = {
 
 const BLANK_ESTIMATE_ROW_COMPONENT_LABEL = "Drag or add a component here";
 const BLANK_ESTIMATE_ROW_TAG = "manual-row-placeholder";
+const BLANK_ESTIMATE_ROW_AUDIT_LABEL = "Empty row slot";
 
 function parseEditableNumber(value: string) {
   const parsed = Number(value.replace(/[^0-9.-]/g, ""));
@@ -455,6 +487,16 @@ function formatShortDateTime(value: string) {
   });
 }
 
+function formatActivityDay(value: string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "Unscheduled";
+  return date.toLocaleDateString("en-PH", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+}
+
 function readRecord(value: unknown): Record<string, unknown> {
   if (!value || typeof value !== "object" || Array.isArray(value)) return {};
   return value as Record<string, unknown>;
@@ -462,11 +504,6 @@ function readRecord(value: unknown): Record<string, unknown> {
 
 function readStringValue(value: unknown, fallback = "") {
   return typeof value === "string" ? value : fallback;
-}
-
-function readNumberValue(value: unknown, fallback = 0) {
-  const parsed = Number(value);
-  return Number.isFinite(parsed) ? parsed : fallback;
 }
 
 function flattenEstimateRows(nodes: EstimateTreeNode[], editableRows: Record<string, EditableRowValue>): FlattenedEstimateRow[] {
@@ -517,16 +554,48 @@ function getEventLabel(eventType: string) {
   return labels[eventType] ?? eventType.replace(/_/g, " ");
 }
 
+function isBlankEstimateRowAuditMaterial(value: unknown) {
+  return readStringValue(value).trim() === BLANK_ESTIMATE_ROW_COMPONENT_LABEL;
+}
+
+function isBlankEstimateRowAuditSnapshot(snapshot: Record<string, unknown>) {
+  if (!isBlankEstimateRowAuditMaterial(snapshot.material)) return false;
+  if (snapshot.sourceLibraryItemId) return false;
+
+  const sourceSnapshot = readRecord(snapshot.sourceSnapshot);
+  const hasSourceSnapshot = Object.keys(sourceSnapshot).length > 0;
+  const unitCost = readOptionalNumber(snapshot.unitCost ?? snapshot.itemCost);
+  const lineTotal = readOptionalNumber(snapshot.lineTotal);
+  const hasCost = (unitCost !== null && Math.abs(unitCost) >= 0.005) || (lineTotal !== null && Math.abs(lineTotal) >= 0.005);
+  return !hasSourceSnapshot && !hasCost;
+}
+
+function isBlankEstimateRowAuditEvent(event: EstimateSheetHistoryEvent) {
+  if (event.eventType !== "row_blank_added" && event.eventType !== "row_deleted") return false;
+  return (
+    isBlankEstimateRowAuditMaterial(event.rowContext.material) ||
+    isBlankEstimateRowAuditSnapshot(getEventSnapshotRecord(event.oldSnapshot)) ||
+    isBlankEstimateRowAuditSnapshot(getEventSnapshotRecord(event.newSnapshot))
+  );
+}
+
+function formatAuditMaterialName(value: string) {
+  return value.trim() === BLANK_ESTIMATE_ROW_COMPONENT_LABEL ? BLANK_ESTIMATE_ROW_AUDIT_LABEL : value;
+}
+
 function getEventSummary(event: EstimateSheetHistoryEvent) {
   const rowContext = event.rowContext;
   const payload = event.payload;
-  const material = readStringValue(rowContext.material);
+  const material = formatAuditMaterialName(readStringValue(rowContext.material));
+  if (isBlankEstimateRowAuditEvent(event)) {
+    return event.eventType === "row_deleted" ? `${BLANK_ESTIMATE_ROW_AUDIT_LABEL} removed` : `${BLANK_ESTIMATE_ROW_AUDIT_LABEL} added`;
+  }
   if (event.eventType === "row_replaced") {
     const oldSnapshot = getEventSnapshotRecord(event.oldSnapshot);
     const newSnapshot = getEventSnapshotRecord(event.newSnapshot);
-    return `${readStringValue(oldSnapshot.material, material)} -> ${readStringValue(newSnapshot.material, material)}`;
+    return `${formatAuditComponentIdentity(oldSnapshot, material)} -> ${formatAuditComponentIdentity(newSnapshot, material)}`;
   }
-  if (event.eventType === "row_updated" && event.changedFields.length) return event.changedFields.map((field) => field.replace(/([A-Z])/g, " $1").toLowerCase()).join(", ");
+  if (event.eventType === "row_updated" && event.changedFields.length) return event.changedFields.map(summarizeChangedAuditField).join(", ");
   if (event.eventType === "template_inserted") return "Template rows were inserted into the estimate tree";
   if (event.eventType === "sheet_code_updated") return "Sheet code changed";
   if (event.eventType === "sheet_metadata_updated") return "Estimate sheet metadata changed";
@@ -594,9 +663,9 @@ function EstimateDropZone({
   const content = (
     <>
       {compact ? (
-        <div className="flex flex-col items-center justify-center gap-1 text-center text-[10px] font-bold uppercase tracking-[0.12em]">
-          <span className="flex size-5 items-center justify-center rounded-full border border-dashed border-divider bg-white text-ink">
-            <Plus size={12} weight="bold" aria-hidden="true" />
+        <div className="flex flex-col items-center justify-center gap-1 text-center text-[8px] font-medium uppercase tracking-normal">
+          <span className="flex size-5 items-center justify-center rounded-xs border border-dashed border-divider bg-white text-ink">
+            <Plus size={12} weight="regular" aria-hidden="true" />
           </span>
           <span>{label}</span>
         </div>
@@ -659,17 +728,17 @@ function EstimateMaterialCardContent({ item }: { item: EstimateMaterialCardItem 
     <>
       <div className="flex gap-2">
         <div
-          className="size-14 shrink-0 rounded-sm bg-neutral-100 bg-cover bg-center"
+          className="size-14 shrink-0 rounded-xs bg-neutral-100 bg-cover bg-center"
           style={{ backgroundImage: `url(${getComponentImageUrl(item)})` }}
           aria-label={`${item.material} reference image`}
         />
         <div className="flex min-w-0 flex-1 flex-col">
           <div className="min-w-0 pr-[66px]">
-            <p className="truncate text-[11px] font-bold leading-4 text-ink">{item.material}</p>
-            <p className="truncate text-[10px] font-semibold leading-4 text-tertiary">{item.supplier}</p>
+            <p className="truncate text-[11px] font-medium leading-4 text-ink">{item.material}</p>
+            <p className="truncate text-[10px] font-medium leading-4 text-tertiary">{item.supplier}</p>
           </div>
           <div className="flex flex-1 items-start justify-end">
-            <p className="whitespace-nowrap text-[9px] font-bold leading-4 tabular-nums text-ink">{pesoFormatter.format(item.itemCost).replace("₱", "₱ ")}</p>
+            <p className="whitespace-nowrap text-[9px] font-medium leading-4 tabular-nums text-ink">{pesoFormatter.format(item.itemCost).replace("₱", "₱ ")}</p>
           </div>
         </div>
       </div>
@@ -677,7 +746,7 @@ function EstimateMaterialCardContent({ item }: { item: EstimateMaterialCardItem 
         <p className="truncate text-[10px] leading-4 text-secondary/60 transition-opacity group-hover:text-secondary" title={item.description}>
           {item.description}
         </p>
-        <p className="shrink-0 whitespace-nowrap text-[10px] font-semibold leading-3 text-tertiary">/ {item.unit}</p>
+        <p className="shrink-0 whitespace-nowrap text-[10px] font-medium leading-3 text-tertiary">/ {item.unit}</p>
       </div>
     </>
   );
@@ -787,7 +856,7 @@ function EstimateMaterialCell({
           type="button"
           variant="ghost"
           size="icon-sm"
-          className="size-5 rounded-sm p-0 text-tertiary hover:bg-red-50 hover:text-red-700 active:bg-red-50 focus-visible:text-red-700"
+          className="size-5 rounded-xs p-0 text-tertiary hover:bg-red-50 hover:text-red-700 active:bg-red-50 focus-visible:text-red-700"
           aria-label={`Delete component ${item.material}`}
           title="Delete component"
           onClick={(event: MouseEvent<HTMLButtonElement>) => {
@@ -795,27 +864,27 @@ function EstimateMaterialCell({
             onClearComponent();
           }}
         >
-          <Trash size={11} weight="bold" aria-hidden="true" />
+          <Trash size={11} weight="regular" aria-hidden="true" />
         </Button>
         <Button
           type="button"
           variant="ghost"
           size="icon-sm"
-          className="size-5 rounded-sm p-0 text-tertiary hover:bg-surfaceMuted hover:text-ink active:bg-surfaceMuted"
-          aria-label={`Open component menu for ${item.material}`}
-          title="Component information"
+          className="size-5 rounded-xs p-0 text-tertiary hover:bg-surfaceMuted hover:text-ink active:bg-surfaceMuted"
+          aria-label={`Open component details for ${item.material}`}
+          title="Component details"
           onClick={(event: MouseEvent<HTMLButtonElement>) => {
             event.stopPropagation();
             onOpenComponentDetails(event.currentTarget);
           }}
         >
-          <DotsThreeVertical size={11} weight="bold" aria-hidden="true" />
+          <DotsThreeVertical size={11} weight="regular" aria-hidden="true" />
         </Button>
         <Button
           type="button"
           variant="ghost"
           size="icon-sm"
-          className="size-5 cursor-grab rounded-sm p-0 text-tertiary hover:bg-surfaceMuted hover:text-ink active:cursor-grabbing active:bg-surfaceMuted"
+          className="size-5 cursor-grab rounded-xs p-0 text-tertiary hover:bg-surfaceMuted hover:text-ink active:cursor-grabbing active:bg-surfaceMuted"
           aria-label={`Drag component ${item.material}`}
           title="Drag component"
           draggable
@@ -823,7 +892,7 @@ function EstimateMaterialCell({
           onDragStart={handleComponentDragStart}
           onDragEnd={handleComponentDragEnd}
         >
-          <DotsSixVertical size={11} weight="bold" aria-hidden="true" />
+          <DotsSixVertical size={11} weight="regular" aria-hidden="true" />
         </Button>
       </div>
       <EstimateMaterialCardContent item={item} />
@@ -898,7 +967,7 @@ function EstimateRowItemsTable({
   onDeleteRowItem: (rowItemId: string) => void;
   onUpdateRowItem: (rowItemId: string, values: Partial<EditableRowValue>) => void;
   onMarkRowDirty: (rowItemId: string) => void;
-  onOpenRowDetails: (rowItemId: string, opener: HTMLElement, tab?: RowInspectorTab) => void;
+  onOpenRowDetails: (rowItemId: string, opener: HTMLElement, tab?: RowDetailTab) => void;
   onClearRowComponent: (rowItemId: string) => void;
   onMoveRowComponent: (sourceRowItemId: string, targetRowItemId: string, movedItem: EstimateRowItem) => void;
 }) {
@@ -954,9 +1023,9 @@ function EstimateRowItemsTable({
   return (
     <div className="overflow-hidden border border-hairline bg-white" onDragOver={handleDragOver} onDrop={handleDrop}>
       <table className="w-full border-collapse text-[10px] text-ink">
-        <thead className="sticky top-0 z-10 bg-white text-left text-[10px] font-bold text-ink">
+        <thead className="sticky top-0 z-10 bg-white text-left text-[10px] font-medium text-ink">
           <tr className={cn("grid min-h-10 border-b border-hairline", rowColumns)}>
-            <th className="flex items-center justify-center border-r border-hairline text-[9px] font-mono text-tertiary">#</th>
+            <th className="flex items-center justify-center border-r border-hairline text-[9px] font-sans text-tertiary">#</th>
             <th className="flex items-center justify-center border-r border-hairline">
               <input type="checkbox" aria-label="Select all estimate row items" />
             </th>
@@ -967,7 +1036,7 @@ function EstimateRowItemsTable({
             <th className="flex items-center justify-center border-r border-hairline text-center text-[9px] leading-3">Misc Cost</th>
             <th className="flex items-center justify-center border-r border-hairline text-center text-[9px] leading-3">Total Item Cost</th>
             <th className="flex items-center justify-center">
-              <DotsThreeVertical size={14} weight="bold" aria-hidden="true" />
+              <DotsThreeVertical size={14} weight="regular" aria-hidden="true" />
             </th>
           </tr>
         </thead>
@@ -984,12 +1053,12 @@ function EstimateRowItemsTable({
                 )}
                 data-estimate-row-active={activeCellIndex !== null ? "true" : undefined}
               >
-                <td className="flex items-center justify-center border-r border-hairline text-[9px] font-mono tabular-nums text-tertiary">
+                <td className="flex items-center justify-center border-r border-hairline text-[9px] font-sans tabular-nums text-tertiary">
                   {String(rowIndex + 1).padStart(2, "0")}
                 </td>
                 <td className="flex flex-col items-center justify-between border-r border-hairline py-2 text-tertiary">
                   <span className="flex h-6 items-center justify-center">
-                    <DotsSixVertical size={14} weight="bold" aria-label={`Drag material ${item.material}`} />
+                    <DotsSixVertical size={14} weight="regular" aria-label={`Drag material ${item.material}`} />
                   </span>
                   <span className="flex h-6 items-center justify-center">
                     <input type="checkbox" aria-label={`Select ${item.material}`} />
@@ -1015,7 +1084,7 @@ function EstimateRowItemsTable({
                     }
                     onClearComponent={() => onClearRowComponent(item.id)}
                     onMoveComponent={onMoveRowComponent}
-                    onOpenComponentDetails={(opener) => onOpenRowDetails(item.id, opener, "source")}
+                    onOpenComponentDetails={(opener) => onOpenRowDetails(item.id, opener, "component")}
                   />
                 </td>
                 <td
@@ -1047,9 +1116,9 @@ function EstimateRowItemsTable({
                     align="center"
                     className="text-[10px] tabular-nums"
                   />
-                  <p className="absolute top-18 right-1 text-[10px] font-semibold leading-3 text-tertiary">/ {item.unit}</p>
+                  <p className="absolute top-18 right-1 text-[10px] font-medium leading-3 text-tertiary">/ {item.unit}</p>
                 </td>
-                <td className="flex items-center justify-center border-r border-hairline px-1 text-center text-[9px] font-bold tabular-nums text-ink">{pesoFormatter.format(item.subTotal).replace("₱", "₱ ")}</td>
+                <td className="flex items-center justify-center border-r border-hairline px-1 text-center text-[9px] font-medium tabular-nums text-ink">{pesoFormatter.format(item.subTotal).replace("₱", "₱ ")}</td>
                 <td
                   className={cn(
                     "relative flex items-center justify-center border-r border-hairline px-1 text-center",
@@ -1079,9 +1148,9 @@ function EstimateRowItemsTable({
                     data-estimate-cell-index={1}
                     aria-label={`${item.material} contingency percentage`}
                     align="center"
-                    className="h-full w-full border-0 bg-transparent p-0 text-center text-[10px] font-bold tabular-nums shadow-none [appearance:textfield] focus-visible:ring-0 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                    className="h-full w-full border-0 bg-transparent p-0 text-center text-[10px] font-medium tabular-nums shadow-none [appearance:textfield] focus-visible:ring-0 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
                   />
-                  <p className="absolute top-18 right-1 max-w-[calc(100%-0.5rem)] truncate text-right text-[9px] font-semibold leading-3 tabular-nums text-tertiary">
+                  <p className="absolute top-18 right-1 max-w-[calc(100%-0.5rem)] truncate text-right text-[9px] font-medium leading-3 tabular-nums text-tertiary">
                     {formatPeso(item.contingencyValue)}
                   </p>
                 </td>
@@ -1111,38 +1180,38 @@ function EstimateRowItemsTable({
                   />
                 </td>
                 <td className="flex items-center justify-end border-r border-hairline px-1 text-right">
-                  <p className="text-[10px] font-bold tabular-nums text-ink">{pesoFormatter.format(item.totalItemCosts).replace("₱", "₱ ")}</p>
+                  <p className="text-[10px] font-medium tabular-nums text-ink">{pesoFormatter.format(item.totalItemCosts).replace("₱", "₱ ")}</p>
                 </td>
                 <td className="flex flex-col items-center justify-between py-2 text-tertiary">
                   <Button
                     type="button"
                     variant="ghost"
                     size="icon-sm"
-                    className="size-6 rounded-sm p-0 text-tertiary hover:bg-surfaceMuted hover:text-ink"
-                    aria-label={`Open row menu for ${item.material}`}
-                    onClick={(event: MouseEvent<HTMLButtonElement>) => onOpenRowDetails(item.id, event.currentTarget)}
-                  >
-                    <DotsThreeVertical size={14} weight="bold" aria-hidden="true" />
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon-sm"
-                    className="size-6 rounded-sm p-0 text-tertiary hover:bg-surfaceMuted hover:text-ink"
+                    className="size-6 rounded-xs p-0 text-tertiary hover:bg-surfaceMuted hover:text-ink"
                     aria-label={`Open row details for ${item.material}`}
-                    onClick={(event: MouseEvent<HTMLButtonElement>) => onOpenRowDetails(item.id, event.currentTarget)}
+                    onClick={(event: MouseEvent<HTMLButtonElement>) => onOpenRowDetails(item.id, event.currentTarget, "details")}
                   >
-                    <ArrowsOutSimple size={14} weight="bold" aria-hidden="true" />
+                    <DotsThreeVertical size={14} weight="regular" aria-hidden="true" />
                   </Button>
                   <Button
                     type="button"
                     variant="ghost"
                     size="icon-sm"
-                    className="size-6 rounded-sm p-0 text-tertiary hover:bg-red-50 hover:text-red-700 focus-visible:text-red-700"
+                    className="size-6 rounded-xs p-0 text-tertiary hover:bg-surfaceMuted hover:text-ink"
+                    aria-label={`Open row activity for ${item.material}`}
+                    onClick={(event: MouseEvent<HTMLButtonElement>) => onOpenRowDetails(item.id, event.currentTarget, "activity")}
+                  >
+                    <ArrowsOutSimple size={14} weight="regular" aria-hidden="true" />
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon-sm"
+                    className="size-6 rounded-xs p-0 text-tertiary hover:bg-red-50 hover:text-red-700 focus-visible:text-red-700"
                     aria-label={`Delete row ${item.material}`}
                     onClick={() => onDeleteRowItem(item.id)}
                   >
-                    <Trash size={14} weight="bold" aria-hidden="true" />
+                    <Trash size={14} weight="regular" aria-hidden="true" />
                   </Button>
                 </td>
               </tr>
@@ -1275,7 +1344,7 @@ function EstimateSheetBranch({ node, nodeCode, ancestorPath = [], editableRows, 
 
   return (
     <section
-      className={cn(groupGap(depth, node.kind, usesSiblingGroupRhythm), !isGroup && (depth > 0 ? "border border-hairline bg-surfaceMuted/20" : "rounded-sm border border-hairline bg-surfaceMuted/20"))}
+      className={cn(groupGap(depth, node.kind, usesSiblingGroupRhythm), !isGroup && (depth > 0 ? "border border-hairline bg-surfaceMuted/20" : "rounded-xs border border-hairline bg-surfaceMuted/20"))}
       aria-label={node.name}
       onDragOver={handleTemplateDragOver}
       onDrop={handleTemplateDrop}
@@ -1290,7 +1359,7 @@ function EstimateSheetBranch({ node, nodeCode, ancestorPath = [], editableRows, 
             size="icon-sm"
             aria-label={`${collapsed ? "Expand" : "Collapse"} ${node.name} ${displayKind}`}
             aria-expanded={!collapsed}
-            className="size-6 rounded-sm p-0 text-tertiary"
+            className="size-6 rounded-xs p-0 text-tertiary"
             onClick={() =>
               setCollapsedNodeIds((prev) => {
                 const next = new Set(prev);
@@ -1300,14 +1369,14 @@ function EstimateSheetBranch({ node, nodeCode, ancestorPath = [], editableRows, 
               })
             }
           >
-            <CaretDown size={13} weight="bold" aria-hidden="true" className={collapsed ? "-rotate-90" : ""} />
+            <CaretDown size={13} weight="regular" aria-hidden="true" className={collapsed ? "-rotate-90" : ""} />
           </Button>
           <span className="flex size-6 shrink-0 items-center justify-center text-tertiary">
             <NodeIcon kind={node.kind} />
           </span>
           <div className="min-w-0 flex-1">
             {nodeCode && (
-              <p className="text-[8px] font-mono leading-none tabular-nums text-tertiary">{nodeCode}</p>
+              <p className="text-[8px] font-sans leading-none tabular-nums text-tertiary">{nodeCode}</p>
             )}
             <p className={nodeNameClasses(node.kind)}>{node.name}</p>
           </div>
@@ -1497,57 +1566,29 @@ function replaceRowItemWithLibraryItem(rowItemId: string, libraryItem: EstimateR
   };
 }
 
-function InspectorTabButton({
-  selected,
-  children,
-  onClick,
-}: {
-  selected: boolean;
-  children: string;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      role="tab"
-      aria-selected={selected}
-      className={cn(
-        "h-7 border-b px-2 text-[10px] font-semibold text-tertiary",
-        selected ? "border-accent text-ink" : "border-transparent hover:border-hairline hover:text-ink",
-      )}
-      onClick={onClick}
-    >
-      {children}
-    </button>
-  );
-}
-
-function InspectorField({ label, value }: { label: string; value: string | number | null | undefined }) {
-  return (
-    <div className="min-w-0 border-b border-hairline/60 py-2 last:border-b-0">
-      <p className="text-[8px] font-bold uppercase text-tertiary">{label}</p>
-      <p className="mt-0.5 truncate text-[10px] font-semibold text-ink">{value === null || value === undefined || value === "" ? "—" : value}</p>
-    </div>
-  );
-}
-
 function getEventSnapshotRecord(snapshot: unknown) {
   const record = readRecord(snapshot);
   const changedRecord = readRecord(record.changed);
   return Object.keys(changedRecord).length > 0 ? changedRecord : record;
 }
 
-function getRowHistorySnapshotRecord(event: EstimateSheetHistoryEvent) {
-  const newSnapshot = getEventSnapshotRecord(event.newSnapshot);
-  if (Object.keys(newSnapshot).length > 0) return newSnapshot;
-  return getEventSnapshotRecord(event.oldSnapshot);
-}
-
 type AuditChangeDetail =
   | { kind: "diff"; label: string; oldValue: string; newValue: string }
   | { kind: "note"; label: string; value: string };
 
-const ROW_HISTORY_COMPONENT_EVENT_TYPES = new Set(["row_blank_added", "row_replaced"]);
+type AuditComponentSnapshot = {
+  key: string;
+  label: string;
+  item: EstimateMaterialCardItem;
+  imageUrl: string;
+  category: string;
+  quantityLabel: string | null;
+  unitCostLabel: string;
+  lineTotalLabel: string;
+  sourceLabel: string;
+};
+
+const ROW_HISTORY_COMPONENT_EVENT_TYPES = new Set(["row_added", "row_replaced", "row_deleted"]);
 const ROW_HISTORY_COMPONENT_FIELDS = new Set(["linkState", "sourceLibraryItemId", "sourceSnapshot"]);
 const ROW_HISTORY_SCALAR_FIELDS = new Set(["quantity", "contingencyPercentage", "miscCost"]);
 const AUDIT_DETAIL_LIMIT = 5;
@@ -1556,7 +1597,7 @@ const AUDIT_FIELD_LABELS: Record<string, string> = {
   contingencyPercentage: "Contingency",
   description: "Description",
   discipline: "Discipline",
-  linkState: "Link state",
+  linkState: "Library status",
   material: "Material",
   metadata: "Metadata",
   miscCost: "Misc cost",
@@ -1570,13 +1611,67 @@ const AUDIT_FIELD_LABELS: Record<string, string> = {
   unitCost: "Unit cost",
 };
 
+const AUDIT_LINK_STATE_LABELS: Record<string, string> = {
+  "linked-clean": "Using library values",
+  "linked-overridden": "Customized from library",
+  unlinked: "Manual row",
+  detached: "Detached from library",
+  "source-changed": "Library source changed",
+};
+
 const ROW_REPLACED_DETAIL_FIELDS = ["material", "supplier", "unitCost", "unit", "quantity", "contingencyPercentage", "miscCost"];
 const HIDDEN_AUDIT_FIELDS = new Set(["metadata"]);
 
 function shouldRenderRowHistoryComponent(event: EstimateSheetHistoryEvent) {
+  if (isBlankEstimateRowAuditEvent(event)) return false;
   if (ROW_HISTORY_COMPONENT_EVENT_TYPES.has(event.eventType)) return true;
   if (event.changedFields.some((field) => ROW_HISTORY_SCALAR_FIELDS.has(field))) return false;
   return event.changedFields.some((field) => ROW_HISTORY_COMPONENT_FIELDS.has(field));
+}
+
+function getAuditSnapshotSourceRecord(snapshot: Record<string, unknown>) {
+  return readRecord(snapshot.sourceSnapshot);
+}
+
+function getAuditSnapshotCategory(snapshot: Record<string, unknown>) {
+  const sourceSnapshot = getAuditSnapshotSourceRecord(snapshot);
+  const categoryPath = Array.isArray(sourceSnapshot.categoryPath)
+    ? sourceSnapshot.categoryPath.filter((part): part is string => typeof part === "string")
+    : [];
+  const lastCategoryPathPart = categoryPath.length > 0 ? categoryPath[categoryPath.length - 1] : undefined;
+  return readStringValue(sourceSnapshot.category, lastCategoryPathPart ?? "Uncategorized");
+}
+
+function getAuditSnapshotUnit(snapshot: Record<string, unknown>) {
+  const sourceSnapshot = getAuditSnapshotSourceRecord(snapshot);
+  return readStringValue(snapshot.unit, readStringValue(sourceSnapshot.unit, "unit"));
+}
+
+function getAuditSnapshotUnitCost(snapshot: Record<string, unknown>) {
+  const sourceSnapshot = getAuditSnapshotSourceRecord(snapshot);
+  return readOptionalNumber(snapshot.unitCost)
+    ?? readOptionalNumber(snapshot.itemCost)
+    ?? readOptionalNumber(sourceSnapshot.unit_cost);
+}
+
+function getAuditSnapshotLineTotal(snapshot: Record<string, unknown>) {
+  return readOptionalNumber(snapshot.lineTotal) ?? readOptionalNumber(snapshot.totalItemCosts);
+}
+
+function getAuditSnapshotSourceLabel(snapshot: Record<string, unknown>) {
+  const sourceSnapshot = getAuditSnapshotSourceRecord(snapshot);
+  const versionNumber = readOptionalNumber(sourceSnapshot.componentVersionNumber);
+  const priceOptionLabel = readStringValue(sourceSnapshot.priceOptionLabel);
+  const sourceKind = snapshot.sourceLibraryItemId || sourceSnapshot.sourceLibraryItemId ? "Library snapshot" : "Row snapshot";
+  return [
+    sourceKind,
+    versionNumber !== null ? `V${versionNumber}` : "",
+    priceOptionLabel,
+  ].filter(Boolean).join(" · ");
+}
+
+function formatAuditSnapshotMoney(value: number | null) {
+  return value === null ? "Not captured" : formatPeso(value);
 }
 
 function readOptionalNumber(value: unknown) {
@@ -1592,8 +1687,61 @@ function humanizeAuditField(field: string) {
   return AUDIT_FIELD_LABELS[field] ?? field.replace(/([A-Z])/g, " $1").replace(/^./, (char) => char.toUpperCase());
 }
 
+function summarizeChangedAuditField(field: string) {
+  if (field === "linkState") return "library status";
+  return field.replace(/([A-Z])/g, " $1").toLowerCase();
+}
+
 function humanizeAuditValue(value: string) {
   return value.replace(/[_-]/g, " ").replace(/\b\w/g, (char) => char.toUpperCase());
+}
+
+function formatAuditLinkStateValue(value: unknown) {
+  const key = String(value);
+  return AUDIT_LINK_STATE_LABELS[key] ?? humanizeAuditValue(key);
+}
+
+function readSnapshotTextValue(snapshot: Record<string, unknown>, keys: string[]) {
+  for (const key of keys) {
+    const value = snapshot[key];
+    if (typeof value === "string" && value.trim()) return value.trim();
+  }
+  return "";
+}
+
+function inferAuditBrandFromSupplier(supplier: string) {
+  if (!supplier) return "";
+  const supplierParts = supplier.split("/").map((part) => part.trim()).filter(Boolean);
+  const likelyBrand = supplierParts[supplierParts.length - 1] ?? supplier;
+  return likelyBrand
+    .replace(/\b(dealers?|suppliers?|quote required|allowance|philippines|ph)\b/gi, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function getAuditSnapshotSupplier(snapshot: Record<string, unknown>) {
+  const sourceSnapshot = getAuditSnapshotSourceRecord(snapshot);
+  return readSnapshotTextValue(snapshot, ["supplier", "supplierName"])
+    || readSnapshotTextValue(sourceSnapshot, ["supplier", "supplierName", "supplier_name"]);
+}
+
+function getAuditSnapshotBrand(snapshot: Record<string, unknown>) {
+  const sourceSnapshot = getAuditSnapshotSourceRecord(snapshot);
+  return readSnapshotTextValue(snapshot, ["brand", "brandName"])
+    || readSnapshotTextValue(sourceSnapshot, ["brand", "brandName", "brand_name"])
+    || inferAuditBrandFromSupplier(getAuditSnapshotSupplier(snapshot));
+}
+
+function formatAuditComponentIdentity(snapshot: Record<string, unknown>, fallback: string) {
+  const material = formatAuditMaterialName(readStringValue(snapshot.material, fallback));
+  const brand = getAuditSnapshotBrand(snapshot);
+  const supplier = getAuditSnapshotSupplier(snapshot);
+  const identity = [
+    brand ? `Brand: ${brand}` : "",
+    supplier ? `Supplier: ${supplier}` : "",
+  ].filter(Boolean);
+
+  return identity.length ? `${material} (${identity.join("; ")})` : material;
 }
 
 function getSnapshotUnit(snapshot: Record<string, unknown>) {
@@ -1617,6 +1765,7 @@ function formatSourceSnapshotValue(snapshot: Record<string, unknown>) {
 
 function formatAuditFieldValue(field: string, value: unknown, snapshot: Record<string, unknown>) {
   if (value === null || value === undefined || value === "") return "—";
+  if (field === "material") return formatAuditMaterialName(String(value));
 
   if (field === "quantity") {
     const parsed = readOptionalNumber(value);
@@ -1635,7 +1784,7 @@ function formatAuditFieldValue(field: string, value: unknown, snapshot: Record<s
     return parsed === null ? String(value) : formatPeso(parsed);
   }
 
-  if (field === "linkState") return humanizeAuditValue(String(value));
+  if (field === "linkState") return formatAuditLinkStateValue(value);
   if (field === "sourceLibraryItemId") return value ? "Library component" : "Manual component";
   if (field === "sourceSnapshot") return formatSourceSnapshotValue(snapshot);
 
@@ -1693,32 +1842,73 @@ function getAuditChangeDetails(event: EstimateSheetHistoryEvent): AuditChangeDet
     .filter((detail) => detail.oldValue !== detail.newValue);
 }
 
-function getRowHistoryMaterialItem(event: EstimateSheetHistoryEvent, row: FlattenedEstimateRow | null): EstimateMaterialCardItem | null {
-  const snapshot = getRowHistorySnapshotRecord(event);
-  const sourceSnapshot = readRecord(snapshot.sourceSnapshot);
-  const categoryPath = Array.isArray(sourceSnapshot.categoryPath)
-    ? sourceSnapshot.categoryPath.filter((part): part is string => typeof part === "string")
-    : [];
-  const lastCategoryPathPart = categoryPath.length > 0 ? categoryPath[categoryPath.length - 1] : undefined;
-  const fallback = row?.item;
-  const material = readStringValue(snapshot.material, fallback?.material ?? "");
+function getRowHistoryMaterialItem(snapshot: Record<string, unknown>): EstimateMaterialCardItem | null {
+  if (isBlankEstimateRowAuditSnapshot(snapshot)) return null;
 
-  if (!material) return fallback ?? null;
+  const sourceSnapshot = getAuditSnapshotSourceRecord(snapshot);
+  const material = readStringValue(snapshot.material);
+
+  if (!material) return null;
 
   return {
     material,
-    supplier: readStringValue(snapshot.supplier, fallback?.supplier ?? ""),
-    itemCost: readNumberValue(snapshot.unitCost, readNumberValue(snapshot.itemCost, fallback?.itemCost ?? 0)),
-    description: readStringValue(snapshot.description, fallback?.description ?? ""),
-    unit: readStringValue(snapshot.unit, fallback?.unit ?? "unit"),
-    imageUrl: readStringValue(sourceSnapshot.imageUrl, fallback?.imageUrl ?? ""),
-    category: readStringValue(sourceSnapshot.category, lastCategoryPathPart ?? fallback?.category ?? "General"),
+    supplier: readStringValue(snapshot.supplier, readStringValue(sourceSnapshot.supplier, "No supplier captured")),
+    itemCost: getAuditSnapshotUnitCost(snapshot) ?? 0,
+    description: readStringValue(snapshot.description, readStringValue(sourceSnapshot.description, "")),
+    unit: getAuditSnapshotUnit(snapshot),
+    imageUrl: readStringValue(sourceSnapshot.imageUrl),
+    category: getAuditSnapshotCategory(snapshot),
   };
 }
 
-function getHistoryDeltaClass(value: number | null) {
-  if (value === null || Math.abs(value) < 0.005) return "text-tertiary";
-  return value > 0 ? "text-emerald-700" : "text-red-700";
+function createAuditComponentSnapshot(key: string, label: string, snapshot: Record<string, unknown>): AuditComponentSnapshot | null {
+  const item = getRowHistoryMaterialItem(snapshot);
+  if (!item) return null;
+
+  const quantity = readOptionalNumber(snapshot.quantity);
+  const unitCost = getAuditSnapshotUnitCost(snapshot);
+  const lineTotal = getAuditSnapshotLineTotal(snapshot);
+
+  return {
+    key,
+    label,
+    item,
+    imageUrl: item.imageUrl ?? "",
+    category: item.category ?? "Uncategorized",
+    quantityLabel: quantity === null ? null : `${formatAuditNumber(quantity)} ${item.unit}`,
+    unitCostLabel: formatAuditSnapshotMoney(unitCost),
+    lineTotalLabel: formatAuditSnapshotMoney(lineTotal),
+    sourceLabel: getAuditSnapshotSourceLabel(snapshot),
+  };
+}
+
+function getAuditComponentSnapshots(event: EstimateSheetHistoryEvent): AuditComponentSnapshot[] {
+  if (!shouldRenderRowHistoryComponent(event)) return [];
+
+  const oldSnapshot = getEventSnapshotRecord(event.oldSnapshot);
+  const newSnapshot = getEventSnapshotRecord(event.newSnapshot);
+
+  if (event.eventType === "row_replaced") {
+    return [
+      createAuditComponentSnapshot("before", "Before component", oldSnapshot),
+      createAuditComponentSnapshot("after", "After component", newSnapshot),
+    ].filter((snapshot): snapshot is AuditComponentSnapshot => Boolean(snapshot));
+  }
+
+  if (event.eventType === "row_added") {
+    const addedSnapshot = createAuditComponentSnapshot("added", "Component added", newSnapshot);
+    return addedSnapshot ? [addedSnapshot] : [];
+  }
+
+  if (event.eventType === "row_deleted") {
+    const removedSnapshot = createAuditComponentSnapshot("removed", "Component removed", oldSnapshot);
+    return removedSnapshot ? [removedSnapshot] : [];
+  }
+
+  return [
+    createAuditComponentSnapshot("before", "Before component", oldSnapshot),
+    createAuditComponentSnapshot("after", "After component", newSnapshot),
+  ].filter((snapshot): snapshot is AuditComponentSnapshot => Boolean(snapshot));
 }
 
 function getHistoryChangeLabel(event: EstimateSheetHistoryEvent) {
@@ -1726,7 +1916,69 @@ function getHistoryChangeLabel(event: EstimateSheetHistoryEvent) {
 }
 
 function getActorLabel(event: EstimateSheetHistoryEvent) {
-  return event.actorLabel || (event.actorUserId ? `User ${event.actorUserId.slice(0, 8)}` : "System/backfill");
+  return event.actorLabel || (event.actorUserId ? "Unknown user" : "System/backfill");
+}
+
+function getAuditDeltaClassName(value: number | null | undefined) {
+  if (value === null || value === undefined || Math.abs(value) < 0.005) {
+    return "border-hairline bg-surfaceMuted text-tertiary";
+  }
+  return value > 0
+    ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+    : "border-red-200 bg-red-50 text-red-700";
+}
+
+function formatAuditLabelList(labels: string[]) {
+  if (labels.length <= 1) return labels[0] ?? "activity";
+  if (labels.length === 2) return `${labels[0]} and ${labels[1]}`;
+  return `${labels.slice(0, -1).join(", ")}, and ${labels[labels.length - 1]}`;
+}
+
+function getAuditTargetLabel(event: EstimateSheetHistoryEvent) {
+  const material = formatAuditMaterialName(readStringValue(event.rowContext.material));
+  if (material) return material;
+  if (event.estimateNodeId) return "selected node";
+  return "the estimate sheet";
+}
+
+function getAuditDetailSentence(detail: AuditChangeDetail) {
+  if (detail.kind === "note") return `${detail.label}: ${detail.value}.`;
+  return `Changed ${detail.label.toLowerCase()} value from ${detail.oldValue} to ${detail.newValue}.`;
+}
+
+function getAuditEventDescription(event: EstimateSheetHistoryEvent, details: AuditChangeDetail[]) {
+  const diffDetails = details.filter((detail): detail is Extract<AuditChangeDetail, { kind: "diff" }> => detail.kind === "diff");
+
+  if (event.eventType === "row_added" || event.eventType === "row_blank_added") {
+    return `Added ${getAuditTargetLabel(event)} to the estimate.`;
+  }
+
+  if (event.eventType === "row_deleted") {
+    return `Removed ${getAuditTargetLabel(event)} from the estimate.`;
+  }
+
+  if (event.eventType === "row_replaced") {
+    const oldSnapshot = getEventSnapshotRecord(event.oldSnapshot);
+    const newSnapshot = getEventSnapshotRecord(event.newSnapshot);
+    const fallback = getAuditTargetLabel(event);
+    return `Replaced ${formatAuditComponentIdentity(oldSnapshot, fallback)} with ${formatAuditComponentIdentity(newSnapshot, fallback)}.`;
+  }
+
+  if (diffDetails.length === 1) return `Changed ${diffDetails[0].label.toLowerCase()} for ${getAuditTargetLabel(event)}.`;
+
+  if (diffDetails.length > 1) {
+    return `Changed ${formatAuditLabelList(diffDetails.map((detail) => detail.label.toLowerCase()))} for ${getAuditTargetLabel(event)}.`;
+  }
+
+  if (details.length === 1) return getAuditDetailSentence(details[0]);
+
+  return getEventSummary(event);
+}
+
+function getAuditSupportingSummary(event: EstimateSheetHistoryEvent, summary: string, description: string) {
+  if (!summary || summary === description) return "";
+  if (event.eventType === "row_updated") return `Affected fields: ${summary}`;
+  return summary;
 }
 
 function getLocalDateBoundaryISOString(value: string, boundary: "start" | "end") {
@@ -1757,27 +2009,42 @@ function createActivityFilterKey(filters: ActivityFilterState) {
   return `${filters.eventType}|${filters.search.trim()}|${filters.dateFrom}|${filters.dateTo}`;
 }
 
-function ActivityFilterBar({
+function hasActivityFilters(filters: ActivityFilterState) {
+  return createActivityFilterKey(filters) !== createActivityFilterKey(DEFAULT_ACTIVITY_FILTERS);
+}
+
+function hasAdvancedActivityFilters(filters: ActivityFilterState) {
+  return Boolean(filters.eventType || filters.dateFrom || filters.dateTo);
+}
+
+function ActivityFilterDropdown({
   filters,
   onChange,
   onReset,
+  open,
 }: {
   filters: ActivityFilterState;
   onChange: (filters: ActivityFilterState) => void;
   onReset: () => void;
+  open: boolean;
 }) {
   const updateFilter = (key: keyof ActivityFilterState) => (event: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     onChange({ ...filters, [key]: event.target.value });
   };
-  const hasFilters = createActivityFilterKey(filters) !== createActivityFilterKey(DEFAULT_ACTIVITY_FILTERS);
+
+  if (!open) return null;
 
   return (
-    <div className="mb-2 grid gap-2 border border-hairline bg-white p-2 text-[10px]" aria-label="Activity filters">
-      <div className="grid grid-cols-[minmax(0,1.1fr)_minmax(0,1.4fr)] gap-2 max-sm:grid-cols-1">
+    <div
+      role="group"
+      aria-label="Activity filter options"
+      className="absolute right-2 top-[38px] z-30 grid w-[min(380px,calc(100vw-48px))] gap-2 border border-hairline bg-white p-2 text-[10px] shadow-xl"
+    >
+      <div className="grid gap-2">
         <ControlField label="Event" reserveHelperSpace>
           <select
             aria-label="Filter activity by event type"
-            className="h-8 min-w-0 rounded-sm border border-hairline bg-white px-2 text-[10px] font-semibold text-ink outline-none focus:border-accent focus:ring-2 focus:ring-focus"
+            className="h-8 min-w-0 rounded-xs border border-hairline bg-white px-2 text-[10px] font-medium text-ink outline-none focus:border-accent focus:ring-2 focus:ring-focus"
             value={filters.eventType}
             onChange={updateFilter("eventType")}
           >
@@ -1786,17 +2053,8 @@ function ActivityFilterBar({
             ))}
           </select>
         </ControlField>
-        <ControlField label="Search" reserveHelperSpace>
-          <ControlInput
-            className="h-8 border-hairline px-2"
-            aria-label="Search activity"
-            value={filters.search}
-            onChange={updateFilter("search")}
-            placeholder="Material, event, id"
-          />
-        </ControlField>
       </div>
-      <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] items-start gap-2 max-sm:grid-cols-1">
+      <div className="grid grid-cols-2 items-start gap-2 max-sm:grid-cols-1">
         <ControlField label="From" reserveHelperSpace>
           <ControlInput
             type="date"
@@ -1815,73 +2073,161 @@ function ActivityFilterBar({
             onChange={updateFilter("dateTo")}
           />
         </ControlField>
-        <Button
-          type="button"
-          variant="secondary"
-          size="sm"
-          className="mt-4 h-8 rounded-sm text-[10px]"
-          disabled={!hasFilters}
-          onClick={onReset}
-        >
-          Reset
+      </div>
+      <div className="flex items-center justify-end border-t border-hairline pt-2">
+        <Button type="button" variant="secondary" size="sm" className="h-7 rounded-xs text-[10px]" disabled={!hasActivityFilters(filters)} onClick={onReset}>
+          Reset filters
         </Button>
       </div>
     </div>
   );
 }
 
+function AuditComponentSnapshotCard({ snapshot }: { snapshot: AuditComponentSnapshot }) {
+  const hasImage = Boolean(snapshot.imageUrl);
+
+  return (
+    <figure
+      className="grid min-w-0 grid-cols-[72px_minmax(0,1fr)] gap-3 rounded-xs border border-hairline bg-white p-3"
+      aria-label={`${snapshot.label} snapshot for ${snapshot.item.material}`}
+      data-row-history-component-card
+    >
+      <div
+        className={cn(
+          "flex size-[72px] shrink-0 items-center justify-center overflow-hidden rounded-xs border border-hairline bg-surfaceMuted text-tertiary",
+          hasImage ? "bg-cover bg-center" : "",
+        )}
+        style={hasImage ? { backgroundImage: `url(${snapshot.imageUrl})` } : undefined}
+        aria-label={hasImage ? `${snapshot.item.material} stored snapshot image` : "No image in snapshot"}
+      >
+        {hasImage ? null : (
+          <span className="grid gap-1 px-1 text-center">
+            <Cube size={15} weight="regular" aria-hidden="true" className="mx-auto" />
+            <span className="text-[8px] font-medium leading-3">No image in snapshot</span>
+          </span>
+        )}
+      </div>
+      <figcaption className="min-w-0">
+        <p className="text-[8px] font-medium uppercase leading-4 text-tertiary">{snapshot.label}</p>
+        <p className="mt-1 break-words text-[10px] font-medium leading-4 text-ink">{snapshot.item.material}</p>
+        <p className="mt-0.5 break-words text-[9px] leading-4 text-secondary">{snapshot.item.supplier}</p>
+        {snapshot.item.description ? (
+          <p className="mt-2 line-clamp-2 text-[9px] leading-4 text-tertiary">{snapshot.item.description}</p>
+        ) : null}
+        <dl className="mt-3 grid grid-cols-2 gap-x-3 gap-y-2 text-[9px] leading-4">
+          <div className="min-w-0">
+            <dt className="font-medium uppercase text-tertiary">Source</dt>
+            <dd className="truncate text-secondary" title={snapshot.sourceLabel}>{snapshot.sourceLabel}</dd>
+          </div>
+          <div className="min-w-0">
+            <dt className="font-medium uppercase text-tertiary">Category</dt>
+            <dd className="truncate text-secondary" title={snapshot.category}>{snapshot.category}</dd>
+          </div>
+          {snapshot.quantityLabel ? (
+            <div className="min-w-0">
+              <dt className="font-medium uppercase text-tertiary">Quantity</dt>
+              <dd className="truncate text-secondary" title={snapshot.quantityLabel}>{snapshot.quantityLabel}</dd>
+            </div>
+          ) : null}
+          <div className="min-w-0">
+            <dt className="font-medium uppercase text-tertiary">Unit cost</dt>
+            <dd className="truncate font-sans tabular-nums text-secondary" title={snapshot.unitCostLabel}>{snapshot.unitCostLabel}</dd>
+          </div>
+          <div className="min-w-0">
+            <dt className="font-medium uppercase text-tertiary">Total</dt>
+            <dd className="truncate font-sans tabular-nums text-ink" title={snapshot.lineTotalLabel}>{snapshot.lineTotalLabel}</dd>
+          </div>
+          <div className="min-w-0">
+            <dt className="font-medium uppercase text-tertiary">Unit</dt>
+            <dd className="truncate text-secondary" title={snapshot.item.unit}>{snapshot.item.unit}</dd>
+          </div>
+        </dl>
+      </figcaption>
+    </figure>
+  );
+}
+
 function AuditEventCard({
   event,
-  componentItem,
+  componentSnapshots,
 }: {
   event: EstimateSheetHistoryEvent;
-  componentItem?: EstimateMaterialCardItem | null;
+  componentSnapshots?: AuditComponentSnapshot[];
 }) {
   const title = getEventLabel(event.eventType);
   const summary = getEventSummary(event);
   const details = getAuditChangeDetails(event);
-  const deltaClass = getHistoryDeltaClass(event.totalDelta);
+  const deltaClass = getAuditDeltaClassName(event.totalDelta);
   const changeLabel = getHistoryChangeLabel(event);
+  const description = getAuditEventDescription(event, details);
+  const supportingSummary = getAuditSupportingSummary(event, summary, description);
+  const actorLabel = getActorLabel(event);
+  const eventAriaLabel = `${title} audit event for ${getAuditTargetLabel(event)} at ${formatShortDateTime(event.createdAt)} by ${actorLabel}: ${description}`;
+  const snapshots = componentSnapshots ?? [];
 
   return (
-    <article className="overflow-hidden border border-hairline bg-white text-[10px]" aria-label={`${title} audit event`} data-audit-event-card>
-      <div className="border-b border-hairline bg-surfaceMuted/50 px-2 py-1.5">
-        <div className="grid min-w-0 grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2">
-          <p className="shrink-0 font-mono text-[9px] tabular-nums text-tertiary">{formatShortDateTime(event.createdAt)}</p>
-          <p className="min-w-0 truncate text-center text-[9px] font-semibold text-tertiary">{getActorLabel(event)}</p>
-          <p className={cn("shrink-0 text-right font-mono text-[9px] font-bold tabular-nums", deltaClass)}>{formatSignedPeso(event.totalDelta)}</p>
+    <article
+      className="overflow-hidden rounded-xs border border-hairline bg-white text-[10px] shadow-[0_10px_24px_rgba(17,17,17,0.045)]"
+      aria-label={eventAriaLabel}
+      data-audit-event-card
+    >
+      <div className="border-b border-hairline bg-white px-4 py-4">
+        <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-start gap-3">
+          <div className="min-w-0">
+            <p className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 text-[9px] font-medium uppercase leading-4 text-tertiary">
+              <span>{formatShortDateTime(event.createdAt)}</span>
+              <span aria-hidden="true">·</span>
+              <span>{actorLabel}</span>
+            </p>
+            <p className="mt-2 text-[10px] font-medium leading-5 text-ink">{title}</p>
+          </div>
+          <p className={cn("shrink-0 rounded-xs border px-2 py-1 text-right font-sans text-[9px] font-medium tabular-nums", deltaClass)}>
+            {formatSignedPeso(event.totalDelta)}
+          </p>
         </div>
-        <div className="mt-1 min-w-0">
-          <p className="font-semibold text-ink">{title}</p>
-          <p className="mt-0.5 break-words leading-4 text-tertiary" title={changeLabel}>{summary}</p>
-        </div>
+        <p className="mt-3 break-words text-[10px] font-medium leading-5 text-secondary" title={changeLabel}>{description}</p>
+        {supportingSummary ? (
+          <p className="mt-1.5 break-words text-[10px] leading-5 text-tertiary">{supportingSummary}</p>
+        ) : null}
       </div>
       {details.length ? (
-        <div className="grid gap-1.5 bg-white p-2" data-audit-event-details>
-          {details.map((detail) => (
-            <div key={`${detail.label}-${detail.kind}`} className="border border-hairline/70 bg-surfaceMuted/25 p-2">
-              <p className="text-[8px] font-bold uppercase leading-3 text-tertiary">{detail.label}</p>
+        <section className="border-b border-hairline bg-white px-4 py-4" data-audit-event-details>
+          <p className="text-[8px] font-medium uppercase leading-4 text-tertiary">Audit facts</p>
+          <dl className="mt-3 grid gap-3">
+            {details.map((detail) => (
+            <div key={`${detail.label}-${detail.kind}`} className="rounded-xs border border-hairline bg-surfaceMuted/20 p-3">
+              <dt className="text-[8px] font-medium uppercase leading-4 text-tertiary">{detail.label}</dt>
               {detail.kind === "diff" ? (
-                <div className="mt-1 grid grid-cols-[minmax(0,1fr)_12px_minmax(0,1fr)] items-start gap-1 text-[9px] leading-4">
-                  <p className="min-w-0 break-words text-secondary">{detail.oldValue}</p>
-                  <p className="text-center font-mono text-muted">→</p>
-                  <p className="min-w-0 break-words font-semibold text-ink">{detail.newValue}</p>
-                </div>
+                <dd className="mt-2 min-w-0" aria-label={getAuditDetailSentence(detail)}>
+                  <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-start gap-3 text-[10px] leading-5 max-sm:grid-cols-1">
+                    <div className="min-w-0 rounded-xs bg-white p-2">
+                      <p className="mb-0.5 text-[8px] font-medium uppercase text-tertiary">Previous</p>
+                      <p className="min-w-0 break-words text-secondary">{detail.oldValue}</p>
+                    </div>
+                    <span className="pt-5 text-[9px] font-medium text-tertiary max-sm:hidden" aria-hidden="true">-&gt;</span>
+                    <div className="min-w-0 rounded-xs border border-accent/30 bg-white p-2">
+                      <p className="mb-0.5 text-[8px] font-medium uppercase text-tertiary">Current</p>
+                      <p className="min-w-0 break-words font-medium text-ink">{detail.newValue}</p>
+                    </div>
+                  </div>
+                </dd>
               ) : (
-                <p className="mt-1 break-words text-[9px] font-semibold leading-4 text-ink">{detail.value}</p>
+                <dd className="mt-1 break-words text-[9px] font-medium leading-5 text-ink">{detail.value}</dd>
               )}
             </div>
-          ))}
-        </div>
+            ))}
+          </dl>
+        </section>
       ) : null}
-      {componentItem ? (
-        <div
-          className="group flex min-h-24 flex-col gap-2 overflow-hidden border-t border-hairline bg-white p-2"
-          aria-label={`${componentItem.material} history component snapshot`}
-          data-row-history-component-card
-        >
-          <EstimateMaterialCardContent item={componentItem} />
-        </div>
+      {snapshots.length ? (
+        <section className="bg-surfaceMuted/25 px-4 py-4" data-audit-component-snapshots>
+          <p className="text-[8px] font-medium uppercase leading-4 text-tertiary">Component snapshot evidence</p>
+          <div className={cn("mt-3 grid gap-3", snapshots.length > 1 ? "lg:grid-cols-2" : "")}>
+            {snapshots.map((snapshot) => (
+              <AuditComponentSnapshotCard key={snapshot.key} snapshot={snapshot} />
+            ))}
+          </div>
+        </section>
       ) : null}
     </article>
   );
@@ -1890,6 +2236,11 @@ function AuditEventCard({
 type GroupedActivityEventItem =
   | { kind: "event"; event: EstimateSheetHistoryEvent }
   | { kind: "group"; correlationId: string; events: EstimateSheetHistoryEvent[] };
+
+type ActivityTimelineDayGroup = {
+  day: string;
+  items: GroupedActivityEventItem[];
+};
 
 function groupActivityEvents(events: EstimateSheetHistoryEvent[]): GroupedActivityEventItem[] {
   const countsByCorrelationId = new Map<string, number>();
@@ -1918,28 +2269,62 @@ function groupActivityEvents(events: EstimateSheetHistoryEvent[]): GroupedActivi
   return groupedItems;
 }
 
+function getActivityItemCreatedAt(item: GroupedActivityEventItem) {
+  return item.kind === "group" ? item.events[0]?.createdAt ?? "" : item.event.createdAt;
+}
+
+function groupActivityTimelineByDay(events: EstimateSheetHistoryEvent[]): ActivityTimelineDayGroup[] {
+  const dayGroups: ActivityTimelineDayGroup[] = [];
+  for (const item of groupActivityEvents(events)) {
+    const day = formatActivityDay(getActivityItemCreatedAt(item));
+    const currentGroup = dayGroups[dayGroups.length - 1];
+    if (currentGroup?.day === day) {
+      currentGroup.items.push(item);
+      continue;
+    }
+    dayGroups.push({ day, items: [item] });
+  }
+  return dayGroups;
+}
+
+function ActivityTimelineItem({ children }: { children: ReactNode }) {
+  return (
+    <li className="relative grid grid-cols-[20px_minmax(0,1fr)] gap-3">
+      <span className="relative z-10 mt-4 flex size-5 items-center justify-center rounded-xs border border-orange-200 bg-orange-50" aria-hidden="true">
+        <span className="size-1.5 rounded-xs bg-orange-600" />
+      </span>
+      <div className="min-w-0 pb-2">{children}</div>
+    </li>
+  );
+}
+
 function AuditEventGroup({
   events,
-  row,
 }: {
   events: EstimateSheetHistoryEvent[];
-  row?: FlattenedEstimateRow | null;
 }) {
   const firstEvent = events[0];
   const eventTypes = Array.from(new Set(events.map((event) => getEventLabel(event.eventType)))).join(", ");
+  const eventTotal = events.reduce((total, event) => total + (event.totalDelta ?? 0), 0);
 
   return (
-    <details className="border border-hairline bg-white" data-audit-event-group>
-      <summary className="grid cursor-pointer grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2 border-b border-hairline bg-surfaceMuted/60 px-2 py-1.5 text-[10px]">
-        <span className="font-mono text-[9px] tabular-nums text-tertiary">{firstEvent ? formatShortDateTime(firstEvent.createdAt) : "Activity"}</span>
-        <span className="min-w-0 truncate font-semibold text-ink">{events.length} related activity events</span>
-        <span className="min-w-0 truncate text-right text-[9px] text-tertiary">{eventTypes}</span>
+    <details className="overflow-hidden rounded-xs border border-hairline bg-white text-[10px] shadow-[0_8px_18px_rgba(17,17,17,0.035)]" data-audit-event-group>
+      <summary className="grid cursor-pointer grid-cols-[minmax(0,1fr)_auto] items-start gap-3 border-b border-hairline bg-white px-4 py-3">
+        <span className="min-w-0">
+          <span className="block text-[9px] font-medium uppercase leading-4 text-tertiary">
+            {firstEvent ? `${formatShortDateTime(firstEvent.createdAt)} · ${getActorLabel(firstEvent)}` : "Activity group"}
+          </span>
+          <span className="mt-1.5 block text-[9px] font-medium leading-5 text-ink">{events.length} related activity events</span>
+          <span className="mt-1 block break-words text-[9px] leading-5 text-tertiary">{eventTypes}</span>
+        </span>
+        <span className={cn("shrink-0 rounded-xs border px-2 py-1 text-right font-sans text-[10px] font-medium tabular-nums", getAuditDeltaClassName(eventTotal))}>
+          {formatSignedPeso(eventTotal)}
+        </span>
       </summary>
-      <div className="space-y-1 p-1.5">
-        {events.map((event) => {
-          const componentItem = shouldRenderRowHistoryComponent(event) ? getRowHistoryMaterialItem(event, row ?? null) : null;
-          return <AuditEventCard key={event.id} event={event} componentItem={componentItem} />;
-        })}
+      <div className="space-y-3 bg-surfaceMuted/25 p-3">
+        {events.map((event) => (
+          <AuditEventCard key={event.id} event={event} componentSnapshots={getAuditComponentSnapshots(event)} />
+        ))}
       </div>
     </details>
   );
@@ -1956,7 +2341,6 @@ function EventList({
   isLoadingMore = false,
   loadMoreLabel = "Load more activity",
   onLoadMore,
-  row,
 }: {
   events: EstimateSheetHistoryEvent[];
   isLoading: boolean;
@@ -1968,13 +2352,12 @@ function EventList({
   isLoadingMore?: boolean;
   loadMoreLabel?: string;
   onLoadMore?: () => void;
-  row?: FlattenedEstimateRow | null;
 }) {
   if (isLoading) {
     return (
-      <div className="space-y-2" aria-label="Loading history">
+      <div className="space-y-3" aria-label="Loading history">
         {Array.from({ length: 4 }).map((_, index) => (
-          <div key={index} className="h-14 border border-hairline bg-surfaceMuted/50" />
+          <div key={index} className="h-20 border border-hairline bg-surfaceMuted/50" />
         ))}
       </div>
     );
@@ -1982,13 +2365,13 @@ function EventList({
 
   if (error) {
     return (
-      <div className="border border-amber-200 bg-amber-50 p-3 text-[10px] text-amber-900">
-        <div className="flex items-center gap-2 font-semibold">
-          <WarningCircle size={13} weight="bold" aria-hidden="true" />
+      <div className="border border-amber-200 bg-amber-50 p-4 text-[10px] text-amber-900">
+        <div className="flex items-center gap-2 font-medium">
+          <WarningCircle size={13} weight="regular" aria-hidden="true" />
           History could not load
         </div>
         <p className="mt-1 leading-4">{error}</p>
-        <Button type="button" variant="secondary" size="sm" className="mt-2 h-7 rounded-sm text-[10px]" onClick={onRetry}>
+        <Button type="button" variant="secondary" size="sm" className="mt-2 h-7 rounded-xs text-[10px]" onClick={onRetry}>
           Retry
         </Button>
       </div>
@@ -1997,26 +2380,42 @@ function EventList({
 
   if (!events.length) {
     return (
-      <div className="border border-dashed border-hairline bg-white p-3 text-[10px] text-tertiary">
-        <p className="font-semibold text-ink">{emptyLabel}</p>
+      <div className="border border-dashed border-hairline bg-white p-4 text-[10px] text-tertiary">
+        <p className="font-medium text-ink">{emptyLabel}</p>
         <p className="mt-1 leading-4">{emptyDescription}</p>
       </div>
     );
   }
 
   return (
-    <div className="space-y-1">
-      {groupActivityEvents(events).map((item) => {
-        if (item.kind === "group") {
-          return <AuditEventGroup key={item.correlationId} events={item.events} row={row} />;
-        }
+    <div className="space-y-5" data-activity-timeline>
+      {groupActivityTimelineByDay(events).map((dayGroup) => (
+        <section key={dayGroup.day} aria-label={`${dayGroup.day} activity`} className="space-y-3">
+          <div className="px-1 pb-1 pt-2">
+            <p className="text-[8px] font-medium uppercase leading-4 text-tertiary">{dayGroup.day}</p>
+          </div>
+          <ol className="relative space-y-4 before:absolute before:bottom-5 before:left-[9.5px] before:top-5 before:w-px before:bg-hairline">
+            {dayGroup.items.map((item) => {
+              if (item.kind === "group") {
+                return (
+                  <ActivityTimelineItem key={item.correlationId}>
+                    <AuditEventGroup events={item.events} />
+                  </ActivityTimelineItem>
+                );
+              }
 
-        const componentItem = shouldRenderRowHistoryComponent(item.event) ? getRowHistoryMaterialItem(item.event, row ?? null) : null;
-        return <AuditEventCard key={item.event.id} event={item.event} componentItem={componentItem} />;
-      })}
+              return (
+                <ActivityTimelineItem key={item.event.id}>
+                  <AuditEventCard event={item.event} componentSnapshots={getAuditComponentSnapshots(item.event)} />
+                </ActivityTimelineItem>
+              );
+            })}
+          </ol>
+        </section>
+      ))}
       {nextCursor && onLoadMore ? (
         <div className="pt-1">
-          <Button type="button" variant="secondary" size="sm" className="h-7 w-full rounded-sm text-[10px]" disabled={isLoadingMore} onClick={onLoadMore}>
+          <Button type="button" variant="secondary" size="sm" className="h-7 w-full rounded-xs text-[10px]" disabled={isLoadingMore} onClick={onLoadMore}>
             {isLoadingMore ? "Loading..." : loadMoreLabel}
           </Button>
         </div>
@@ -2025,229 +2424,544 @@ function EventList({
   );
 }
 
-function RowInspector({
+const ROW_DETAIL_TABS: readonly WorkshopTreeTabItem<RowDetailTab>[] = [
+  { id: "details", label: "Details" },
+  { id: "component", label: "Component" },
+  { id: "activity", label: "Activity" },
+];
+
+function RowDetailField({ label, value }: { label: string; value: string | number | null | undefined }) {
+  return (
+    <div className="min-w-0 border-b border-hairline py-2">
+      <p className="text-[8px] font-medium uppercase text-tertiary">{label}</p>
+      <p className="mt-0.5 truncate text-[10px] font-medium text-ink" title={value === null || value === undefined ? undefined : String(value)}>
+        {value === null || value === undefined || value === "" ? "—" : value}
+      </p>
+    </div>
+  );
+}
+
+function RowDetailsModal({
   row,
   tab,
-  events,
-  nextCursor,
-  isLoading,
-  isLoadingMore,
-  error,
+  projectId,
+  estimateId,
   onTabChange,
-  onRetry,
-  onLoadMore,
+  onClose,
 }: {
   row: FlattenedEstimateRow | null;
-  tab: RowInspectorTab;
-  events: EstimateSheetHistoryEvent[];
-  nextCursor: EstimateSheetVersionControlData["rowNextCursor"];
-  isLoading: boolean;
-  isLoadingMore: boolean;
-  error: string;
-  onTabChange: (tab: RowInspectorTab) => void;
-  onRetry: () => void;
-  onLoadMore: () => void;
+  tab: RowDetailTab;
+  projectId?: string;
+  estimateId?: string;
+  onTabChange: (tab: RowDetailTab) => void;
+  onClose: () => void;
 }) {
-  const item = row?.item;
+  const item = row?.item ?? null;
+  const isBlankRow = item ? isBlankEstimateRowItem(item) : false;
+  const [events, setEvents] = useState<EstimateSheetHistoryEvent[]>([]);
+  const [nextCursor, setNextCursor] = useState<EstimateSheetVersionControlData["rowNextCursor"]>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [error, setError] = useState("");
+  const requestGenerationRef = useRef(0);
+  const rowId = item?.id ?? "";
+
+  const loadRowActivity = useCallback((cursor?: EstimateSheetVersionControlData["rowNextCursor"]) => {
+    if (!projectId || !estimateId || !rowId) return;
+    const requestGeneration = requestGenerationRef.current;
+    if (cursor) {
+      setIsLoadingMore(true);
+    } else {
+      setIsLoading(true);
+      setEvents([]);
+      setNextCursor(null);
+    }
+    setError("");
+
+    fetchEstimateSheetVersionControl({
+      projectId,
+      estimateId,
+      rowId,
+      eventLimit: 50,
+      rowCursor: cursor ?? undefined,
+      scope: "row",
+    })
+      .then((data) => {
+        if (requestGenerationRef.current !== requestGeneration) return;
+        setEvents((current) => (cursor ? [...current, ...data.rowEvents] : data.rowEvents));
+        setNextCursor(data.rowNextCursor);
+      })
+      .catch((caughtError: unknown) => {
+        if (requestGenerationRef.current !== requestGeneration) return;
+        setError(caughtError instanceof Error ? caughtError.message : "Row activity could not load.");
+      })
+      .finally(() => {
+        if (requestGenerationRef.current !== requestGeneration) return;
+        setIsLoading(false);
+        setIsLoadingMore(false);
+      });
+  }, [estimateId, projectId, rowId]);
+
+  useEffect(() => {
+    requestGenerationRef.current += 1;
+    if (tab === "activity" && projectId && estimateId && rowId) {
+      const timeoutId = window.setTimeout(() => loadRowActivity(), 0);
+      return () => window.clearTimeout(timeoutId);
+    }
+    return undefined;
+  }, [estimateId, loadRowActivity, projectId, rowId, tab]);
+
+  const lineTotal = row?.lineTotal ?? item?.totalItemCosts ?? 0;
+  const quantity = row?.quantity ?? item?.quantity ?? 0;
+  const contingencyPercentage = row?.contingencyPercentage ?? item?.contingencyPercentage ?? 0;
+  const contingencyValue = row?.contingencyValue ?? item?.contingencyValue ?? 0;
+  const miscCost = row?.miscCost ?? item?.miscCost ?? 0;
+  const componentStatus = isBlankRow ? "No linked component" : item?.sourceLibraryItemId ? "Library component" : "Manual component";
+
   return (
-    <>
-      <div className="border-b border-hairline p-3">
-        <div className="flex items-start justify-between gap-3">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/20 p-4 max-sm:p-2"
+      onMouseDown={(event) => {
+        if (event.target === event.currentTarget) onClose();
+      }}
+    >
+      <section
+        role="dialog"
+        aria-modal="true"
+        aria-label="Row item details"
+        className="flex h-[min(720px,calc(100dvh-32px))] w-[min(940px,calc(100vw-32px))] min-w-0 flex-col overflow-hidden border border-hairline bg-[#FBFCFD] shadow-2xl max-sm:h-[calc(100dvh-16px)] max-sm:w-[calc(100vw-16px)]"
+      >
+        <div className="flex h-10 shrink-0 items-center justify-between border-b border-hairline bg-white px-3">
           <div className="min-w-0">
-            <p className="truncate text-[12px] font-bold text-ink">{item?.material ?? "Row not found"}</p>
-            <p className="mt-0.5 truncate text-[9px] text-tertiary">{row?.nodePath.join(" / ") ?? "Current sheet"}</p>
+            <p className="text-[9px] font-medium text-ink">Row Item</p>
+            <p className="truncate text-[8px] font-medium uppercase text-tertiary">{row?.nodePath.join(" / ") ?? "Current estimate row"}</p>
           </div>
-          <p className="shrink-0 font-mono text-[11px] font-bold tabular-nums text-ink">{formatPeso(row?.lineTotal ?? 0)}</p>
+          <Button type="button" variant="ghost" size="icon-sm" className="size-6 rounded-xs p-0" aria-label="Close row details" onClick={onClose}>
+            <X size={13} weight="regular" aria-hidden="true" />
+          </Button>
         </div>
-        <div className="mt-3 flex gap-2 border-b border-hairline" role="tablist" aria-label="Row details tabs">
-          <InspectorTabButton selected={tab === "summary"} onClick={() => onTabChange("summary")}>Summary</InspectorTabButton>
-          <InspectorTabButton selected={tab === "source"} onClick={() => onTabChange("source")}>Source</InspectorTabButton>
-          <InspectorTabButton selected={tab === "history"} onClick={() => onTabChange("history")}>Version History</InspectorTabButton>
-        </div>
-      </div>
-      <div className="min-h-0 flex-1 overflow-auto p-3">
-        {tab === "summary" ? (
-          <div className="grid grid-cols-2 gap-x-3 border border-hairline bg-white px-3">
-            <InspectorField label="Material" value={item?.material} />
-            <InspectorField label="Supplier" value={item?.supplier} />
-            <InspectorField label="Quantity" value={row ? `${row.quantity} ${item?.unit ?? ""}` : null} />
-            <InspectorField label="Unit cost" value={formatPeso(item?.itemCost ?? 0)} />
-            <InspectorField label="Contingency" value={row ? `${row.contingencyPercentage}% (${formatPeso(row.contingencyValue)})` : null} />
-            <InspectorField label="Misc cost" value={formatPeso(row?.miscCost ?? 0)} />
-            <InspectorField label="Total" value={formatPeso(row?.lineTotal ?? 0)} />
-            <InspectorField label="Category" value={item?.category} />
-            <InspectorField label="Row revision" value={item?.rowRevision ?? 1} />
-          </div>
-        ) : null}
-        {tab === "source" ? (
-          <div className="grid grid-cols-2 gap-x-3 border border-hairline bg-white px-3">
-            <InspectorField label="Component version" value={item?.componentVersionNumber ? `V${item.componentVersionNumber}` : item?.componentVersionId} />
-            <InspectorField label="Price option" value={item?.priceOptionLabel ?? item?.priceOptionId} />
-            <InspectorField label="Lifecycle" value={item?.lifecycleState} />
-            <InspectorField label="Discipline" value={item?.discipline} />
-            <InspectorField label="Designation" value={item?.designation} />
-            <InspectorField label="Pricing source" value={item?.pricingSource} />
-            <InspectorField label="Pricing date" value={item?.pricingDate} />
-            <InspectorField label="Tags" value={item?.tags?.join(", ")} />
-          </div>
-        ) : null}
-        {tab === "history" ? (
-          <EventList
-            events={events}
-            isLoading={isLoading}
-            error={error}
-            emptyLabel="No row history yet"
-            onRetry={onRetry}
-            nextCursor={nextCursor}
-            isLoadingMore={isLoadingMore}
-            loadMoreLabel="Load more row history"
-            onLoadMore={onLoadMore}
-            row={row}
+        <div className="shrink-0">
+          <WorkshopTreeTabs
+            tabs={ROW_DETAIL_TABS}
+            activeTab={tab}
+            ariaLabel="Row item detail tabs"
+            onTabChange={onTabChange}
           />
-        ) : null}
-      </div>
-    </>
+        </div>
+        <div className="grid min-h-0 flex-1 grid-cols-[300px_minmax(0,1fr)] max-md:grid-cols-1">
+          <aside className="min-h-0 overflow-auto border-r border-hairline bg-surfaceMuted/35 p-3 max-md:max-h-64 max-md:border-r-0 max-md:border-b">
+            <div className="border border-hairline bg-white p-2">
+              {item && !isBlankRow ? (
+                <div
+                  className="aspect-[4/3] bg-neutral-100 bg-cover bg-center"
+                  style={{ backgroundImage: `url(${getComponentImageUrl(item)})` }}
+                  aria-label={`${item.material} reference image`}
+                />
+              ) : (
+                <div className="grid aspect-[4/3] place-items-center border border-dashed border-hairline bg-surfaceMuted/50 text-center text-[10px] font-medium text-tertiary">
+                  No component selected
+                </div>
+              )}
+              <div className="mt-2 min-w-0">
+                <p className="truncate text-[10px] font-medium text-ink">{item?.material ?? "Row not found"}</p>
+                <p className="truncate text-[9px] font-medium text-tertiary">{item?.supplier ?? "No supplier"}</p>
+              </div>
+              <div className="mt-3 grid grid-cols-2 gap-x-3 border-t border-hairline">
+                <RowDetailField label="Qty" value={`${quantity} ${item?.unit ?? ""}`.trim()} />
+                <RowDetailField label="Unit cost" value={formatPeso(item?.itemCost ?? 0)} />
+                <RowDetailField label="Contingency" value={`${contingencyPercentage}%`} />
+                <RowDetailField label="Total" value={formatPeso(lineTotal)} />
+              </div>
+            </div>
+          </aside>
+          <div className="flex min-h-0 flex-col">
+            <div className="border-b border-hairline bg-white p-3">
+              <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-start gap-3">
+                <div className="min-w-0">
+                  <p className="font-sans text-[8px] font-medium uppercase text-tertiary">{componentStatus}</p>
+                  <p className="truncate text-[10px] font-medium text-ink">{item?.material ?? "Row item"}</p>
+                  <p className="mt-0.5 truncate text-[9px] text-tertiary">{row?.nodePath.join(" › ") ?? "Current estimate row"}</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-[8px] font-medium uppercase text-tertiary">Total</p>
+                  <p className="mt-0.5 font-sans text-[12px] font-medium tabular-nums text-ink">{formatPeso(lineTotal)}</p>
+                </div>
+              </div>
+            </div>
+            <div className="min-h-0 flex-1 overflow-auto p-3" role="tabpanel" aria-label={ROW_DETAIL_TABS.find((rowTab) => rowTab.id === tab)?.label}>
+              {tab === "details" ? (
+                <div className="grid grid-cols-2 gap-x-4 border border-hairline bg-white px-3 max-sm:grid-cols-1">
+                  <RowDetailField label="Material" value={item?.material} />
+                  <RowDetailField label="Supplier" value={item?.supplier} />
+                  <RowDetailField label="Description" value={item?.description} />
+                  <RowDetailField label="Category" value={item?.category} />
+                  <RowDetailField label="Quantity" value={`${quantity} ${item?.unit ?? ""}`.trim()} />
+                  <RowDetailField label="Unit cost" value={formatPeso(item?.itemCost ?? 0)} />
+                  <RowDetailField label="Subtotal" value={formatPeso(item?.subTotal ?? 0)} />
+                  <RowDetailField label="Contingency" value={`${contingencyPercentage}% (${formatPeso(contingencyValue)})`} />
+                  <RowDetailField label="Misc cost" value={formatPeso(miscCost)} />
+                  <RowDetailField label="Total" value={formatPeso(lineTotal)} />
+                  <RowDetailField label="Unit" value={item?.unit} />
+                  <RowDetailField label="Row revision" value={item?.rowRevision ?? 1} />
+                </div>
+              ) : null}
+              {tab === "component" ? (
+                <div className="grid gap-3">
+                  <div className="border border-hairline bg-white p-3">
+                    <p className="text-[12px] font-medium text-ink">Current component</p>
+                    <p className="mt-1 text-[10px] leading-4 text-tertiary">
+                      {isBlankRow ? "This row is a manual placeholder. Add or drag a component into the row to link current component data." : item?.description}
+                    </p>
+                  </div>
+                  <div className="grid grid-cols-2 gap-x-4 border border-hairline bg-white px-3 max-sm:grid-cols-1">
+                    <RowDetailField label="Component source" value={componentStatus} />
+                    <RowDetailField label="Source library id" value={item?.sourceLibraryItemId} />
+                    <RowDetailField label="Component version" value={item?.componentVersionNumber ? `V${item.componentVersionNumber}` : item?.componentVersionId} />
+                    <RowDetailField label="Price option" value={item?.priceOptionLabel ?? item?.priceOptionId} />
+                    <RowDetailField label="Lifecycle" value={item?.lifecycleState} />
+                    <RowDetailField label="Discipline" value={item?.discipline} />
+                    <RowDetailField label="Designation" value={item?.designation} />
+                    <RowDetailField label="Pricing source" value={item?.pricingSource} />
+                    <RowDetailField label="Pricing date" value={item?.pricingDate} />
+                    <RowDetailField label="Brand" value={item?.brand} />
+                    <RowDetailField label="SKU / reference" value={item?.sku} />
+                    <RowDetailField label="Tags" value={item?.tags?.join(", ")} />
+                  </div>
+                </div>
+              ) : null}
+              {tab === "activity" ? (
+                <EventList
+                  events={events}
+                  isLoading={isLoading}
+                  error={error}
+                  emptyLabel="No row activity yet"
+                  emptyDescription="Edits, replacements, and value changes for this row will appear here."
+                  onRetry={() => {
+                    requestGenerationRef.current += 1;
+                    loadRowActivity();
+                  }}
+                  nextCursor={nextCursor}
+                  isLoadingMore={isLoadingMore}
+                  loadMoreLabel="Load more row activity"
+                  onLoadMore={() => loadRowActivity(nextCursor)}
+                />
+              ) : null}
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
   );
 }
 
-function SheetInspector({
+function getActivityScopeKey(scope: EstimateActivityScope | null) {
+  if (!scope) return "";
+  if (scope.mode === "row") return `row:${scope.rowId}`;
+  if (scope.mode === "node") return `node:${scope.nodeId}:${scope.includeDescendants ? "desc" : "direct"}`;
+  return "sheet";
+}
+
+function getActivityEventsForScope(scope: EstimateActivityScope, historyData: EstimateSheetVersionControlData | null) {
+  if (scope.mode === "row") return historyData?.rowEvents ?? [];
+  if (scope.mode === "node") return historyData?.nodeEvents ?? [];
+  return historyData?.events ?? [];
+}
+
+function getActivityCursorForScope(scope: EstimateActivityScope, historyData: EstimateSheetVersionControlData | null) {
+  if (scope.mode === "row") return historyData?.rowNextCursor ?? null;
+  if (scope.mode === "node") return historyData?.nodeNextCursor ?? null;
+  return historyData?.nextCursor ?? null;
+}
+
+function getActivityEmptyCopy(scope: EstimateActivityScope) {
+  if (scope.mode === "row") {
+    return {
+      label: "No row activity yet",
+      description: "Edits, replacements, and value changes for this row will appear here.",
+    };
+  }
+
+  if (scope.mode === "node") {
+    return {
+      label: "No node activity yet",
+      description: scope.includeDescendants ? "Node and descendant row activity will appear here." : "Node changes and row edits in this Area Node will appear here.",
+    };
+  }
+
+  return {
+    label: "No sheet activity yet",
+    description: "Estimate edits, row changes, and sheet metadata updates will appear here.",
+  };
+}
+
+function getActivityLoadMoreLabel(scope: EstimateActivityScope) {
+  if (scope.mode === "row") return "Load more row activity";
+  if (scope.mode === "node") return "Load more node activity";
+  return "Load more activity";
+}
+
+function buildActivityScopeTreeItems({
+  nodes,
+  rows,
+  editableRows,
   metadata,
   projectTotal,
-  events,
-  nextCursor,
-  filters,
-  isLoading,
-  isLoadingMore,
-  error,
-  onFiltersChange,
-  onFiltersReset,
-  onRetry,
-  onLoadMore,
 }: {
+  nodes: EstimateTreeNode[];
+  rows: FlattenedEstimateRow[];
+  editableRows: Record<string, EditableRowValue>;
   metadata: ProposalExportMetadata | null;
   projectTotal: number;
-  events: EstimateSheetHistoryEvent[];
-  nextCursor: EstimateSheetVersionControlData["nextCursor"];
-  filters: ActivityFilterState;
-  isLoading: boolean;
-  isLoadingMore: boolean;
-  error: string;
-  onFiltersChange: (filters: ActivityFilterState) => void;
-  onFiltersReset: () => void;
-  onRetry: () => void;
-  onLoadMore: () => void;
 }) {
-  return (
-    <>
-      <div className="border-b border-hairline p-3">
-        <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-3">
-          <div className="min-w-0">
-            <p className="font-mono text-[9px] font-bold text-tertiary">{metadata?.estimateSheetCode ?? "ES"}</p>
-            <p className="truncate text-[12px] font-bold text-ink">{metadata?.estimateName ?? "Estimate sheet"}</p>
-          </div>
-          <div className="text-right">
-            <p className="text-[9px] font-bold uppercase text-tertiary">Activity</p>
-            <p className="mt-0.5 font-mono text-[11px] font-bold tabular-nums text-ink">{formatPeso(projectTotal)}</p>
-          </div>
-        </div>
-        <div className="mt-3 flex gap-2 border-b border-hairline" role="tablist" aria-label="Sheet activity tabs">
-          <InspectorTabButton selected onClick={() => undefined}>Activity</InspectorTabButton>
-        </div>
-      </div>
-      <div className="min-h-0 flex-1 overflow-auto p-3">
-        <ActivityFilterBar filters={filters} onChange={onFiltersChange} onReset={onFiltersReset} />
-        <EventList
-          events={events}
-          isLoading={isLoading}
-          error={error}
-          emptyLabel="No sheet activity yet"
-          emptyDescription="Estimate edits, row changes, and sheet metadata updates will appear here."
-          onRetry={onRetry}
-          nextCursor={nextCursor}
-          isLoadingMore={isLoadingMore}
-          loadMoreLabel="Load more activity"
-          onLoadMore={onLoadMore}
-        />
-      </div>
-    </>
-  );
+  const rowById = new Map(rows.map((row) => [row.item.id, row]));
+  const items: ActivityScopeTreeItem[] = [
+    {
+      id: "sheet",
+      scope: { mode: "sheet" },
+      depth: 0,
+      kind: "sheet",
+      label: metadata?.estimateName ?? "Estimate sheet",
+      eyebrow: metadata?.estimateSheetCode ?? "Sheet",
+      total: projectTotal,
+      row: null,
+    },
+  ];
+
+  function visit(node: EstimateTreeNode, depth: number, nodeCode: string, ancestorNames: string[]) {
+    const isGroup = node.kind === "group";
+    const pathLabel = [...ancestorNames, node.name].join(" / ");
+    items.push({
+      id: `node:${node.id}`,
+      scope: { mode: "node", nodeId: node.id, includeDescendants: isGroup },
+      depth,
+      kind: isGroup ? "group" : "area",
+      label: node.name,
+      eyebrow: `${nodeCode} ${isGroup ? "Group Node" : "Area Node"}`,
+      description: isGroup ? "Includes descendant node and row activity" : pathLabel,
+      total: computeNodeTotal(node, editableRows),
+      row: null,
+    });
+
+    node.children?.forEach((child, childIndex) => {
+      visit(child, depth + 1, getNodeCode(nodeCode, childIndex), [...ancestorNames, node.name]);
+    });
+
+    if (node.kind !== "area") return;
+
+    node.estimateRowItems?.forEach((rowItem, rowIndex) => {
+      const row = rowById.get(rowItem.id) ?? null;
+      const label = isBlankEstimateRowItem(rowItem) ? BLANK_ESTIMATE_ROW_AUDIT_LABEL : rowItem.material;
+      items.push({
+        id: `row:${node.id}:${rowIndex}:${rowItem.id}`,
+        scope: { mode: "row", rowId: rowItem.id },
+        depth: depth + 1,
+        kind: "row",
+        label,
+        eyebrow: `Row ${String(rowIndex + 1).padStart(2, "0")}`,
+        description: pathLabel,
+        total: row?.lineTotal ?? rowItem.totalItemCosts ?? null,
+        row,
+      });
+    });
+  }
+
+  nodes.forEach((node, index) => visit(node, 1, getNodeCode("", index), []));
+  return items;
 }
 
-function NodeInspector({
-  node,
-  nodePath,
-  events,
-  nextCursor,
-  filters,
-  includeDescendants,
-  isLoading,
-  isLoadingMore,
-  error,
-  onFiltersChange,
-  onFiltersReset,
-  onRetry,
-  onLoadMore,
+function normalizeActivityScopeSearch(value: string) {
+  return value.trim().toLowerCase();
+}
+
+function activityScopeItemMatchesSearch(item: ActivityScopeTreeItem, search: string) {
+  if (!search) return true;
+  return [item.label, item.eyebrow, item.description ?? ""].some((value) => value.toLowerCase().includes(search));
+}
+
+function getActivityScopeCollapsibleIds(items: ActivityScopeTreeItem[]) {
+  const ids = new Set<string>();
+  items.forEach((item, index) => {
+    const nextItem = items[index + 1];
+    if (nextItem && nextItem.depth > item.depth) ids.add(item.id);
+  });
+  return ids;
+}
+
+function getActivityScopeSearchVisibleIds(items: ActivityScopeTreeItem[], search: string) {
+  const visibleIds = new Set<string>();
+  if (!search) return visibleIds;
+
+  items.forEach((item, index) => {
+    if (!activityScopeItemMatchesSearch(item, search)) return;
+
+    visibleIds.add(item.id);
+
+    for (let ancestorIndex = index - 1; ancestorIndex >= 0; ancestorIndex -= 1) {
+      const ancestor = items[ancestorIndex];
+      if (!ancestor) continue;
+      if (ancestor.depth < item.depth && !visibleIds.has(ancestor.id)) visibleIds.add(ancestor.id);
+      if (ancestor.depth === 0) break;
+    }
+
+    for (let descendantIndex = index + 1; descendantIndex < items.length; descendantIndex += 1) {
+      const descendant = items[descendantIndex];
+      if (!descendant || descendant.depth <= item.depth) break;
+      visibleIds.add(descendant.id);
+    }
+  });
+
+  return visibleIds;
+}
+
+function ActivityScopeTree({
+  items,
+  activeScopeKey,
+  onSelect,
 }: {
-  node: EstimateTreeNode | null;
-  nodePath: EstimateTreeNode[];
-  events: EstimateSheetHistoryEvent[];
-  nextCursor: EstimateSheetVersionControlData["nodeNextCursor"];
-  filters: ActivityFilterState;
-  includeDescendants: boolean;
-  isLoading: boolean;
-  isLoadingMore: boolean;
-  error: string;
-  onFiltersChange: (filters: ActivityFilterState) => void;
-  onFiltersReset: () => void;
-  onRetry: () => void;
-  onLoadMore: () => void;
+  items: ActivityScopeTreeItem[];
+  activeScopeKey: string;
+  onSelect: (scope: EstimateActivityScope) => void;
 }) {
-  const nodeKindLabel = node ? getEstimateNodeDisplayKind(node.kind) : "Node";
-  const pathLabel = nodePath.map((pathNode) => pathNode.name).join(" / ") || "Current sheet";
+  const [scopeSearch, setScopeSearch] = useState("");
+  const [collapsedScopeIds, setCollapsedScopeIds] = useState<Set<string>>(() => new Set());
+  const normalizedSearch = normalizeActivityScopeSearch(scopeSearch);
+  const collapsibleIds = useMemo(() => getActivityScopeCollapsibleIds(items), [items]);
+  const searchVisibleIds = useMemo(() => getActivityScopeSearchVisibleIds(items, normalizedSearch), [items, normalizedSearch]);
+  const visibleItems = useMemo(() => {
+    if (normalizedSearch) return items.filter((item) => searchVisibleIds.has(item.id));
+
+    let collapsedDepth: number | null = null;
+    return items.filter((item) => {
+      if (collapsedDepth !== null) {
+        if (item.depth > collapsedDepth) return false;
+        collapsedDepth = null;
+      }
+
+      if (collapsedScopeIds.has(item.id)) collapsedDepth = item.depth;
+      return true;
+    });
+  }, [collapsedScopeIds, items, normalizedSearch, searchVisibleIds]);
+
+  const expandAllScopes = () => setCollapsedScopeIds(new Set());
+  const collapseAllScopes = () => setCollapsedScopeIds(new Set(collapsibleIds));
+  const toggleScopeExpanded = (itemId: string) => {
+    setCollapsedScopeIds((current) => {
+      const next = new Set(current);
+      if (next.has(itemId)) {
+        next.delete(itemId);
+      } else {
+        next.add(itemId);
+      }
+      return next;
+    });
+  };
 
   return (
-    <>
-      <div className="border-b border-hairline p-3">
-        <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-3">
-          <div className="min-w-0">
-            <p className="font-mono text-[9px] font-bold uppercase text-tertiary">{nodeKindLabel}</p>
-            <p className="truncate text-[12px] font-bold text-ink">{node?.name ?? "Node not found"}</p>
-            <p className="mt-0.5 truncate text-[9px] text-tertiary">{pathLabel}</p>
-          </div>
-          <div className="text-right">
-            <p className="text-[9px] font-bold uppercase text-tertiary">Activity</p>
-            <p className="mt-0.5 text-[9px] font-semibold text-ink">{includeDescendants ? "Node + descendants" : "Node only"}</p>
-          </div>
+    <div className="flex h-full min-h-0 flex-col overflow-hidden bg-white">
+      <div className="sticky top-0 z-20 shrink-0 bg-white">
+        <div className="flex h-[38px] items-center">
+          <SearchInput
+            wrapperClassName="w-full"
+            placeholder="Search Tree"
+            aria-label="Search Tree"
+            value={scopeSearch}
+            onChange={(event) => setScopeSearch(event.currentTarget.value)}
+            onClear={() => setScopeSearch("")}
+          />
         </div>
-        <div className="mt-3 flex gap-2 border-b border-hairline" role="tablist" aria-label="Node activity tabs">
-          <InspectorTabButton selected onClick={() => undefined}>Activity</InspectorTabButton>
-        </div>
-      </div>
-      <div className="min-h-0 flex-1 overflow-auto p-3">
-        <ActivityFilterBar filters={filters} onChange={onFiltersChange} onReset={onFiltersReset} />
-        <EventList
-          events={events}
-          isLoading={isLoading}
-          error={error}
-          emptyLabel="No node activity yet"
-          emptyDescription="Node changes and scoped descendant edits will appear here."
-          onRetry={onRetry}
-          nextCursor={nextCursor}
-          isLoadingMore={isLoadingMore}
-          loadMoreLabel="Load more node activity"
-          onLoadMore={onLoadMore}
+        <HeaderIconToolbar
+          ariaLabel="Tree tools"
+          labelPrefix="tree"
+          onExpandAll={expandAllScopes}
+          onCollapseAll={collapseAllScopes}
+          addActions={[
+            {
+              label: "Add Group",
+              icon: <AddTreeActionIcon kind="group" />,
+              disabled: true,
+            },
+            {
+              label: "Add Node",
+              icon: <AddTreeActionIcon kind="area" />,
+              disabled: true,
+            },
+          ]}
         />
+        <WorkshopTreeTabs tabs={ACTIVITY_SCOPE_TREE_TABS} activeTab="sheets" ariaLabel="Estimate tree views" />
       </div>
-    </>
+
+      <div className="min-h-0 flex-1 overflow-auto p-2">
+        {visibleItems.length > 0 ? (
+          <div role="tree" aria-label="Activity scope tree" className={WORKSHOP_TREE_ROW_GAP_CLASS}>
+            {visibleItems.map((item) => {
+              const selected = getActivityScopeKey(item.scope) === activeScopeKey;
+              const hasChildren = collapsibleIds.has(item.id);
+              const expanded = normalizedSearch ? true : !collapsedScopeIds.has(item.id);
+              return (
+                <WorkshopTreeRow
+                  key={item.id}
+                  role="treeitem"
+                  aria-selected={selected}
+                  aria-level={item.depth + 1}
+                  aria-expanded={hasChildren ? expanded : undefined}
+                  aria-label={`${item.label}, ${item.eyebrow}`}
+                  data-activity-scope-item={item.id}
+                  depth={item.depth}
+                  selected={selected}
+                  className="justify-start gap-0 focus-visible:ring-[#c8d2df] focus-visible:ring-offset-2"
+                  onClick={() => onSelect(item.scope)}
+                  onKeyDown={(event) => {
+                    if (!hasChildren || normalizedSearch) return;
+                    if (event.key === "ArrowRight" && !expanded) {
+                      event.preventDefault();
+                      toggleScopeExpanded(item.id);
+                    }
+                    if (event.key === "ArrowLeft" && expanded) {
+                      event.preventDefault();
+                      toggleScopeExpanded(item.id);
+                    }
+                  }}
+                >
+                  {hasChildren ? (
+                    <span
+                      className={cn(WORKSHOP_TREE_ICON_SLOT_CLASS, "cursor-pointer transition hover:bg-surface-muted")}
+                      aria-hidden="true"
+                      onClick={(event) => {
+                        if (normalizedSearch) return;
+                        event.stopPropagation();
+                        toggleScopeExpanded(item.id);
+                      }}
+                    >
+                      <CaretDown size={11} aria-hidden="true" className={expanded ? "" : "-rotate-90"} />
+                    </span>
+                  ) : (
+                    <span className="size-4 shrink-0" aria-hidden="true" />
+                  )}
+                  <span className={cn("mr-1", WORKSHOP_TREE_ICON_SLOT_CLASS)} aria-hidden="true">
+                    {item.kind === "sheet" ? <FolderSimple size={12} weight="regular" aria-hidden="true" /> : null}
+                    {item.kind === "group" ? <FolderSimple size={12} weight="regular" aria-hidden="true" /> : null}
+                    {item.kind === "area" ? <Cube size={12} weight="regular" aria-hidden="true" /> : null}
+                    {item.kind === "row" ? <span className="font-sans text-[12px] font-medium" aria-hidden="true">#</span> : null}
+                  </span>
+                  <span className="min-w-0 truncate text-left">{item.label}</span>
+                </WorkshopTreeRow>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="rounded-xs border border-dashed border-hairline bg-surface-muted p-2 text-[10px] leading-4 text-tertiary">
+            No tree matches found.
+          </div>
+        )}
+      </div>
+    </div>
   );
 }
 
-function EstimateVersionControlInspector({
-  inspector,
-  selectedRow,
-  selectedNode,
-  selectedNodePath,
-  projectTotal,
+function ActivityHistoryModal({
+  scope,
+  scopeItems,
+  selectedScopeItem,
   metadata,
   historyData,
   activityFilters,
@@ -2259,13 +2973,11 @@ function EstimateVersionControlInspector({
   onClose,
   onRetry,
   onLoadMore,
-  onInspectorChange,
+  onScopeSelect,
 }: {
-  inspector: EstimateInspectorState;
-  selectedRow: FlattenedEstimateRow | null;
-  selectedNode: EstimateTreeNode | null;
-  selectedNodePath: EstimateTreeNode[];
-  projectTotal: number;
+  scope: EstimateActivityScope;
+  scopeItems: ActivityScopeTreeItem[];
+  selectedScopeItem: ActivityScopeTreeItem | null;
   metadata: ProposalExportMetadata | null;
   historyData: EstimateSheetVersionControlData | null;
   activityFilters: ActivityFilterState;
@@ -2277,74 +2989,131 @@ function EstimateVersionControlInspector({
   onClose: () => void;
   onRetry: () => void;
   onLoadMore: () => void;
-  onInspectorChange: (state: EstimateInspectorState) => void;
+  onScopeSelect: (scope: EstimateActivityScope) => void;
 }) {
-  const title = inspector.mode === "row" ? "Row details" : inspector.mode === "node" ? "Node activity" : "Sheet activity";
+  const [filterPanelOpen, setFilterPanelOpen] = useState(false);
+  const activeScopeKey = getActivityScopeKey(scope);
+  const events = getActivityEventsForScope(scope, historyData);
+  const nextCursor = getActivityCursorForScope(scope, historyData);
+  const emptyCopy = getActivityEmptyCopy(scope);
+  const loadMoreLabel = getActivityLoadMoreLabel(scope);
+  const selectedLabel = selectedScopeItem?.label ?? metadata?.estimateName ?? "Estimate sheet";
+  const selectedEyebrow = selectedScopeItem?.eyebrow ?? metadata?.estimateSheetCode ?? "Sheet";
+  const selectedDescription = selectedScopeItem?.description ?? "";
+  const filtersActive = hasActivityFilters(activityFilters);
+  const advancedFiltersActive = hasAdvancedActivityFilters(activityFilters);
+  const updateSearchFilter = (event: ChangeEvent<HTMLInputElement>) => {
+    onActivityFiltersChange({ ...activityFilters, search: event.target.value });
+  };
+  const clearSearchFilter = () => {
+    onActivityFiltersChange({ ...activityFilters, search: "" });
+  };
 
   return (
-    <>
-      <div className="fixed inset-0 z-40 bg-black/5" onClick={onClose} aria-hidden="true" />
-      <aside
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/20 p-4 max-sm:p-2"
+      onMouseDown={(event) => {
+        if (event.target === event.currentTarget) onClose();
+      }}
+    >
+      <section
         role="dialog"
-        aria-modal="false"
-        aria-label={title}
-        className="fixed inset-y-0 right-0 z-50 flex w-[min(480px,42vw)] min-w-[420px] flex-col border-l border-hairline bg-[#FBFCFD] shadow-2xl max-lg:inset-x-2 max-lg:inset-y-auto max-lg:bottom-2 max-lg:max-h-[80dvh] max-lg:w-auto max-lg:min-w-0 max-lg:border"
+        aria-modal="true"
+        aria-label="Activity History"
+        className="flex h-[min(860px,calc(100dvh-32px))] w-[min(1180px,calc(100vw-32px))] min-w-0 flex-col overflow-hidden border border-hairline bg-[#FBFCFD] shadow-2xl max-sm:h-[calc(100dvh-16px)] max-sm:w-[calc(100vw-16px)]"
       >
-        <div className="flex h-9 items-center justify-between border-b border-hairline bg-white px-3">
-          <p className="text-[11px] font-bold text-ink">{title}</p>
-          <Button type="button" variant="ghost" size="icon-sm" className="size-6 rounded-sm p-0" aria-label={`Close ${title}`} onClick={onClose}>
-            <X size={13} weight="bold" aria-hidden="true" />
+        <div className="flex h-12 shrink-0 items-center justify-between border-b border-hairline bg-white px-4">
+          <div className="min-w-0">
+            <p className="text-[11px] font-medium text-ink">Activity History</p>
+            <p className="truncate text-[8px] font-medium uppercase text-tertiary">Audit trail · {metadata?.estimateSheetCode ?? "Estimate sheet"}</p>
+          </div>
+          <Button type="button" variant="ghost" size="icon-sm" className="size-6 rounded-xs p-0" aria-label="Close Activity History" onClick={onClose}>
+            <X size={13} weight="regular" aria-hidden="true" />
           </Button>
         </div>
-        {inspector.mode === "row" ? (
-          <RowInspector
-            row={selectedRow}
-            tab={inspector.tab}
-            events={historyData?.rowEvents ?? []}
-            nextCursor={historyData?.rowNextCursor ?? null}
-            isLoading={isHistoryLoading}
-            isLoadingMore={isHistoryLoadingMore}
-            error={historyError}
-            onTabChange={(tab) => onInspectorChange({ mode: "row", rowId: inspector.rowId, tab })}
-            onRetry={onRetry}
-            onLoadMore={onLoadMore}
-          />
-        ) : null}
-        {inspector.mode === "sheet" ? (
-          <SheetInspector
-            metadata={metadata}
-            projectTotal={projectTotal}
-            events={historyData?.events ?? []}
-            nextCursor={historyData?.nextCursor ?? null}
-            filters={activityFilters}
-            isLoading={isHistoryLoading}
-            isLoadingMore={isHistoryLoadingMore}
-            error={historyError}
-            onFiltersChange={onActivityFiltersChange}
-            onFiltersReset={onActivityFiltersReset}
-            onRetry={onRetry}
-            onLoadMore={onLoadMore}
-          />
-        ) : null}
-        {inspector.mode === "node" ? (
-          <NodeInspector
-            node={selectedNode}
-            nodePath={selectedNodePath}
-            events={historyData?.nodeEvents ?? []}
-            nextCursor={historyData?.nodeNextCursor ?? null}
-            filters={activityFilters}
-            includeDescendants={inspector.includeDescendants}
-            isLoading={isHistoryLoading}
-            isLoadingMore={isHistoryLoadingMore}
-            error={historyError}
-            onFiltersChange={onActivityFiltersChange}
-            onFiltersReset={onActivityFiltersReset}
-            onRetry={onRetry}
-            onLoadMore={onLoadMore}
-          />
-        ) : null}
-      </aside>
-    </>
+        <div className="grid min-h-0 flex-1 grid-cols-[350px_minmax(0,1fr)] max-lg:grid-cols-1">
+          <aside className="min-h-0 overflow-hidden border-r border-hairline bg-white max-lg:max-h-64 max-lg:border-r-0 max-lg:border-b" aria-label="Activity scope">
+            <ActivityScopeTree items={scopeItems} activeScopeKey={activeScopeKey} onSelect={onScopeSelect} />
+          </aside>
+          <div className="flex min-h-0 flex-col">
+            <div className="border-b border-hairline bg-white">
+              <section aria-label="Selected activity scope" className="min-w-0 p-4">
+                <div className="min-w-0">
+                  <p className="font-sans text-[8px] font-medium uppercase text-tertiary">{selectedEyebrow}</p>
+                  <p className="truncate text-[10px] font-medium text-ink">{selectedLabel}</p>
+                  {selectedDescription ? (
+                    <p className="mt-0.5 truncate text-[9px] text-tertiary">{selectedDescription}</p>
+                  ) : null}
+                </div>
+              </section>
+              <div className="relative grid min-w-0 grid-cols-[minmax(0,1fr)_auto] border-t border-hairline">
+                <SearchInput
+                  aria-label="Search activity"
+                  placeholder="Search activity"
+                  value={activityFilters.search}
+                  onChange={updateSearchFilter}
+                  onClear={clearSearchFilter}
+                  wrapperClassName="min-w-0"
+                />
+                <div className="relative border-l border-hairline">
+                  <HeaderIconToolbar
+                    ariaLabel="Activity history tools"
+                    labelPrefix="activity"
+                    showDefaultActions={false}
+                    addActions={[
+                      {
+                        label: "Filter activity",
+                        icon: (
+                          <span className="relative inline-flex">
+                            <FunnelSimple size={12} weight="regular" aria-hidden="true" />
+                            {advancedFiltersActive ? <span className="absolute -right-1 -top-1 size-1.5 rounded-xs bg-orange-600" aria-hidden="true" /> : null}
+                          </span>
+                        ),
+                        onClick: () => setFilterPanelOpen((current) => !current),
+                        className: cn(
+                          "hover:bg-orange-50 hover:text-orange-700 focus-visible:bg-orange-50 focus-visible:text-orange-700",
+                          (filterPanelOpen || advancedFiltersActive) && "bg-orange-50 text-orange-700",
+                        ),
+                      },
+                      ...(filtersActive
+                        ? [
+                            {
+                              label: "Reset activity filters",
+                              icon: <X size={12} weight="regular" aria-hidden="true" />,
+                              onClick: onActivityFiltersReset,
+                              className: "hover:bg-surfaceMuted hover:text-ink focus-visible:bg-surfaceMuted focus-visible:text-ink",
+                            },
+                          ]
+                        : []),
+                    ]}
+                  />
+                  <ActivityFilterDropdown
+                    filters={activityFilters}
+                    onChange={onActivityFiltersChange}
+                    onReset={onActivityFiltersReset}
+                    open={filterPanelOpen}
+                  />
+                </div>
+              </div>
+            </div>
+            <div className="min-h-0 flex-1 overflow-auto p-4">
+              <EventList
+                events={events}
+                isLoading={isHistoryLoading}
+                error={historyError}
+                emptyLabel={emptyCopy.label}
+                emptyDescription={emptyCopy.description}
+                onRetry={onRetry}
+                nextCursor={nextCursor}
+                isLoadingMore={isHistoryLoadingMore}
+                loadMoreLabel={loadMoreLabel}
+                onLoadMore={onLoadMore}
+              />
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
   );
 }
 
@@ -2354,14 +3123,12 @@ function EstimateSheetHeader({
   onPreviewProposalExport,
   canPreviewProposalExport = false,
   onOpenSheetActivity,
-  onOpenNodeActivity,
 }: {
   onExpandAll?: () => void;
   onCollapseAll?: () => void;
   onPreviewProposalExport?: () => void;
   canPreviewProposalExport?: boolean;
   onOpenSheetActivity?: (opener: HTMLElement) => void;
-  onOpenNodeActivity?: (opener: HTMLElement) => void;
 }) {
   return (
     <header className="sticky top-0 z-20 bg-white/95 backdrop-blur" aria-label="Sheet controls">
@@ -2382,7 +3149,7 @@ function EstimateSheetHeader({
         addActions={[
           {
             label: "Activity",
-            icon: <ClockCounterClockwise size={12} weight="bold" aria-hidden="true" />,
+            icon: <ClockCounterClockwise size={12} weight="regular" aria-hidden="true" />,
             onClick: onOpenSheetActivity
               ? function openSheetActivity(event?: unknown) {
                 const target = event && typeof event === "object" && "currentTarget" in event ? (event as { currentTarget?: EventTarget | null }).currentTarget : null;
@@ -2392,20 +3159,8 @@ function EstimateSheetHeader({
             className: "text-tertiary hover:bg-orange-50 hover:text-orange-700 focus-visible:bg-orange-50 focus-visible:text-orange-700",
           },
           {
-            label: "Node Activity",
-            icon: <FolderSimple size={12} weight="bold" aria-hidden="true" />,
-            onClick: onOpenNodeActivity
-              ? function openNodeActivity(event?: unknown) {
-                const target = event && typeof event === "object" && "currentTarget" in event ? (event as { currentTarget?: EventTarget | null }).currentTarget : null;
-                onOpenNodeActivity(target instanceof HTMLElement ? target : document.body);
-              }
-              : undefined,
-            disabled: !onOpenNodeActivity,
-            className: "text-tertiary hover:bg-blue-50 hover:text-blue-700 focus-visible:bg-blue-50 focus-visible:text-blue-700",
-          },
-          {
             label: "Preview Excel Export",
-            icon: <FileXls size={12} weight="bold" aria-hidden="true" />,
+            icon: <FileXls size={12} weight="regular" aria-hidden="true" />,
             onClick: onPreviewProposalExport,
             disabled: !canPreviewProposalExport,
             className: "text-tertiary hover:bg-emerald-50 hover:text-emerald-700 focus-visible:bg-emerald-50 focus-visible:text-emerald-700",
@@ -2449,7 +3204,8 @@ export function EstimateSheetContent({
   const [isProposalPreviewOpen, setIsProposalPreviewOpen] = useState(false);
   const [proposalPreviewModel, setProposalPreviewModel] = useState<ProposalExportModel | null>(null);
   const [proposalPreviewSignature, setProposalPreviewSignature] = useState("");
-  const [inspector, setInspector] = useState<EstimateInspectorState | null>(null);
+  const [inspector, setInspector] = useState<EstimateActivityScope | null>(null);
+  const [rowDetails, setRowDetails] = useState<RowDetailsState | null>(null);
   const [activityFilters, setActivityFilters] = useState<ActivityFilterState>(DEFAULT_ACTIVITY_FILTERS);
   const [historyData, setHistoryData] = useState<EstimateSheetVersionControlData | null>(null);
   const [isHistoryLoading, setIsHistoryLoading] = useState(false);
@@ -2457,6 +3213,7 @@ export function EstimateSheetContent({
   const [historyError, setHistoryError] = useState("");
   const [historyReloadToken, setHistoryReloadToken] = useState(0);
   const inspectorOpenerRef = useRef<HTMLElement | null>(null);
+  const rowDetailsOpenerRef = useRef<HTMLElement | null>(null);
   const inspectorScopeRef = useRef("");
   const historyRequestGenerationRef = useRef(0);
   const activateHistoryScope = useCallback((scopeKey: string) => {
@@ -2513,33 +3270,37 @@ export function EstimateSheetContent({
   const templateInsertionTargetLabel = templateTargetParentNode?.name ?? "selected group";
   const projectTotal = estimateTree.reduce((total, node) => total + computeNodeTotal(node, editableRows), 0);
   const currentRows = useMemo(() => flattenEstimateRows(estimateTree, editableRows), [editableRows, estimateTree]);
-  const inspectorRowId = inspector?.mode === "row" ? inspector.rowId : "";
-  const inspectorNodeId = inspector?.mode === "node" ? inspector.nodeId : "";
-  const inspectorScopeKey = inspector?.mode === "row" ? `row:${inspector.rowId}` : inspector?.mode === "node" ? `node:${inspector.nodeId}:${inspector.includeDescendants ? "desc" : "direct"}` : inspector?.mode === "sheet" ? "sheet" : "";
+  const inspectorScopeKey = getActivityScopeKey(inspector);
   const activityFilterKey = useMemo(() => createActivityFilterKey(activityFilters), [activityFilters]);
-  const selectedInspectorRow = useMemo(
-    () => currentRows.find((row) => row.item.id === inspectorRowId) ?? null,
-    [currentRows, inspectorRowId],
+  const activityScopeItems = useMemo(
+    () => buildActivityScopeTreeItems({
+      nodes: estimateTree,
+      rows: currentRows,
+      editableRows,
+      metadata: resolvedProposalExportMetadata,
+      projectTotal,
+    }),
+    [currentRows, editableRows, estimateTree, projectTotal, resolvedProposalExportMetadata],
   );
-  const selectedInspectorNode = useMemo(
-    () => (inspectorNodeId ? findEstimateNode(estimateTree, inspectorNodeId) ?? null : null),
-    [estimateTree, inspectorNodeId],
+  const selectedActivityScopeItem = useMemo(
+    () => activityScopeItems.find((item) => getActivityScopeKey(item.scope) === inspectorScopeKey) ?? activityScopeItems[0] ?? null,
+    [activityScopeItems, inspectorScopeKey],
   );
-  const selectedInspectorNodePath = useMemo(
-    () => (inspectorNodeId ? findNodePath(estimateTree, inspectorNodeId) : []),
-    [estimateTree, inspectorNodeId],
+  const selectedRowDetailsItem = useMemo(
+    () => (rowDetails ? currentRows.find((row) => row.item.id === rowDetails.rowId) ?? null : null),
+    [currentRows, rowDetails],
   );
   const allNodeIds = useMemo(() => (selectedNode ? collectAllNodeIds([selectedNode]) : []), [selectedNode]);
   const expandAll = useCallback(() => setCollapsedNodeIds(new Set()), []);
   const collapseAll = useCallback(() => setCollapsedNodeIds(new Set(allNodeIds)), [allNodeIds]);
-  const setActiveInspector = useCallback((nextInspector: EstimateInspectorState | null) => {
-    const nextScopeKey = nextInspector?.mode === "row" ? `row:${nextInspector.rowId}` : nextInspector?.mode === "node" ? `node:${nextInspector.nodeId}:${nextInspector.includeDescendants ? "desc" : "direct"}` : nextInspector?.mode === "sheet" ? "sheet" : "";
+  const setActiveInspector = useCallback((nextInspector: EstimateActivityScope | null) => {
+    const nextScopeKey = getActivityScopeKey(nextInspector);
     activateHistoryScope(nextScopeKey);
     setInspector(nextInspector);
   }, [activateHistoryScope]);
   const replaceActivityFilters = useCallback((nextFilters: ActivityFilterState) => {
     setActivityFilters(nextFilters);
-    if (projectId && estimateId && inspector && inspector.mode !== "row") {
+    if (projectId && estimateId && inspector) {
       historyRequestGenerationRef.current += 1;
       setIsHistoryLoading(true);
       setIsHistoryLoadingMore(false);
@@ -2564,41 +3325,35 @@ export function EstimateSheetContent({
     setActiveInspector(null);
     window.requestAnimationFrame(() => inspectorOpenerRef.current?.focus());
   }, [setActiveInspector]);
-  const openRowDetails = useCallback((rowItemId: string, opener: HTMLElement, tab: RowInspectorTab = "history") => {
-    inspectorOpenerRef.current = opener;
+  const prepareHistoryLoad = useCallback(() => {
     if (projectId && estimateId) {
       setIsHistoryLoading(true);
       setIsHistoryLoadingMore(false);
       setHistoryData(null);
       setHistoryError("");
     }
-    setActiveInspector({ mode: "row", rowId: rowItemId, tab });
-  }, [estimateId, projectId, setActiveInspector]);
-  const openVersionHistory = useCallback((opener: HTMLElement) => {
+  }, [estimateId, projectId]);
+  const openActivityHistory = useCallback((opener: HTMLElement, initialScope: EstimateActivityScope = { mode: "sheet" }) => {
     inspectorOpenerRef.current = opener;
-    if (projectId && estimateId) {
-      setIsHistoryLoading(true);
-      setIsHistoryLoadingMore(false);
-      setHistoryData(null);
-      setHistoryError("");
-    }
-    setActiveInspector({ mode: "sheet" });
-  }, [estimateId, projectId, setActiveInspector]);
-  const openNodeActivity = useCallback((opener: HTMLElement) => {
-    if (!resolvedSelectedNodeId) return;
-    inspectorOpenerRef.current = opener;
-    if (projectId && estimateId) {
-      setIsHistoryLoading(true);
-      setIsHistoryLoadingMore(false);
-      setHistoryData(null);
-      setHistoryError("");
-    }
-    setActiveInspector({
-      mode: "node",
-      nodeId: resolvedSelectedNodeId,
-      includeDescendants: selectedNode?.kind === "group",
-    });
-  }, [estimateId, projectId, resolvedSelectedNodeId, selectedNode?.kind, setActiveInspector]);
+    prepareHistoryLoad();
+    setActiveInspector(initialScope);
+  }, [prepareHistoryLoad, setActiveInspector]);
+  const openRowDetails = useCallback((rowItemId: string, opener: HTMLElement, tab: RowDetailTab = "details") => {
+    rowDetailsOpenerRef.current = opener;
+    setRowDetails({ rowId: rowItemId, tab });
+  }, []);
+  const closeRowDetails = useCallback(() => {
+    setRowDetails(null);
+    window.requestAnimationFrame(() => rowDetailsOpenerRef.current?.focus());
+  }, []);
+  const setRowDetailsTab = useCallback((tab: RowDetailTab) => {
+    setRowDetails((current) => (current ? { ...current, tab } : current));
+  }, []);
+  const selectActivityScope = useCallback((nextScope: EstimateActivityScope) => {
+    if (getActivityScopeKey(nextScope) === inspectorScopeKey) return;
+    prepareHistoryLoad();
+    setActiveInspector(nextScope);
+  }, [inspectorScopeKey, prepareHistoryLoad, setActiveInspector]);
   const loadMoreVersionControl = useCallback(() => {
     if (!inspector || !historyData || !projectId || !estimateId || isHistoryLoadingMore) return;
 
@@ -2620,7 +3375,7 @@ export function EstimateSheetContent({
       nodeId: isNodeHistory ? inspector.nodeId : undefined,
       includeDescendants: isNodeHistory ? inspector.includeDescendants : undefined,
       eventLimit: 50,
-      ...(!isRowHistory ? getActivityFilterInput(activityFilters) : {}),
+      ...getActivityFilterInput(activityFilters),
       sheetCursor: !isRowHistory && !isNodeHistory ? cursor : undefined,
       rowCursor: isRowHistory ? cursor : undefined,
       nodeCursor: isNodeHistory ? cursor : undefined,
@@ -2655,7 +3410,7 @@ export function EstimateSheetContent({
       })
       .catch((error: unknown) => {
         if (!isCurrentHistoryRequest()) return;
-        setHistoryError(error instanceof Error ? error.message : "Version history could not load.");
+        setHistoryError(error instanceof Error ? error.message : "Activity history could not load.");
       })
       .finally(() => {
         if (!isCurrentHistoryRequest()) return;
@@ -2702,7 +3457,7 @@ export function EstimateSheetContent({
       nodeId,
       includeDescendants: isNodeHistory ? nodeDescendantMode === "desc" : undefined,
       eventLimit: 50,
-      ...(!isRowHistory ? getActivityFilterInput(activityFilters) : {}),
+      ...getActivityFilterInput(activityFilters),
       scope: isRowHistory ? "row" : isNodeHistory ? "node" : "sheet",
     })
       .then((data) => {
@@ -2711,7 +3466,7 @@ export function EstimateSheetContent({
       })
       .catch((error: unknown) => {
         if (!isCurrentHistoryRequest()) return;
-        setHistoryError(error instanceof Error ? error.message : "Version history could not load.");
+        setHistoryError(error instanceof Error ? error.message : "Activity history could not load.");
       })
       .finally(() => {
         if (isCurrentHistoryRequest()) setIsHistoryLoading(false);
@@ -2738,6 +3493,19 @@ export function EstimateSheetContent({
     window.addEventListener("keydown", handleEscape);
     return () => window.removeEventListener("keydown", handleEscape);
   }, [closeInspector, inspector]);
+
+  useEffect(() => {
+    if (!rowDetails) return;
+
+    function handleEscape(event: globalThis.KeyboardEvent) {
+      if (event.key !== "Escape") return;
+      event.preventDefault();
+      closeRowDetails();
+    }
+
+    window.addEventListener("keydown", handleEscape);
+    return () => window.removeEventListener("keydown", handleEscape);
+  }, [closeRowDetails, rowDetails]);
 
   useEffect(() => {
     dispatchProjectTotalChange(projectTotal);
@@ -3027,12 +3795,10 @@ export function EstimateSheetContent({
         onClose={() => setIsProposalPreviewOpen(false)}
       />
       {inspector ? (
-        <EstimateVersionControlInspector
-          inspector={inspector}
-          selectedRow={selectedInspectorRow}
-          selectedNode={selectedInspectorNode}
-          selectedNodePath={selectedInspectorNodePath}
-          projectTotal={projectTotal}
+        <ActivityHistoryModal
+          scope={inspector}
+          scopeItems={activityScopeItems}
+          selectedScopeItem={selectedActivityScopeItem}
           metadata={resolvedProposalExportMetadata}
           historyData={historyData}
           activityFilters={activityFilters}
@@ -3044,7 +3810,17 @@ export function EstimateSheetContent({
           onClose={closeInspector}
           onRetry={reloadVersionControl}
           onLoadMore={loadMoreVersionControl}
-          onInspectorChange={setInspector}
+          onScopeSelect={selectActivityScope}
+        />
+      ) : null}
+      {rowDetails ? (
+        <RowDetailsModal
+          row={selectedRowDetailsItem}
+          tab={rowDetails.tab}
+          projectId={projectId}
+          estimateId={estimateId}
+          onTabChange={setRowDetailsTab}
+          onClose={closeRowDetails}
         />
       ) : null}
       <section
@@ -3060,8 +3836,7 @@ export function EstimateSheetContent({
               onCollapseAll={collapseAll}
               onPreviewProposalExport={openProposalPreview}
               canPreviewProposalExport={Boolean(resolvedProposalExportMetadata)}
-              onOpenSheetActivity={openVersionHistory}
-              onOpenNodeActivity={resolvedSelectedNodeId ? openNodeActivity : undefined}
+              onOpenSheetActivity={openActivityHistory}
             />
             <div className="min-h-0 flex-1 overflow-auto px-2 pb-2">
               <EstimateSheetExpansionContext.Provider value={{ collapsedNodeIds, setCollapsedNodeIds }}>
@@ -3092,13 +3867,12 @@ export function EstimateSheetContent({
               onCollapseAll={collapseAll}
               onPreviewProposalExport={openProposalPreview}
               canPreviewProposalExport={Boolean(resolvedProposalExportMetadata)}
-              onOpenSheetActivity={openVersionHistory}
-              onOpenNodeActivity={resolvedSelectedNodeId ? openNodeActivity : undefined}
+              onOpenSheetActivity={openActivityHistory}
             />
             <div className="flex min-h-0 flex-1 items-center justify-center overflow-auto px-2 pb-2">
-              <div className="max-w-md rounded-lg border border-dashed border-hairline bg-surface-muted p-3 text-center">
-                <p className="text-[8px] font-bold uppercase tracking-[0.16em] text-tertiary">Empty estimate</p>
-                <h2 className="mt-1 text-[12px] font-bold tracking-[-0.02em] text-ink">No estimate tree yet</h2>
+              <div className="max-w-md rounded-xs border border-dashed border-hairline bg-surface-muted p-3 text-center">
+                <p className="text-[8px] font-medium uppercase tracking-normal text-tertiary">Empty estimate</p>
+                <h2 className="mt-1 text-[10px] font-medium tracking-normal text-ink">No estimate tree yet</h2>
                 <p className="mt-1 text-[10px] leading-4 text-tertiary">
                   This estimate has no Group Nodes, Area Nodes, or cost estimate rows. Rebuild the tree first, then place cost rows only inside Area Nodes.
                 </p>

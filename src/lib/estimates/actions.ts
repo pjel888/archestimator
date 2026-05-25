@@ -305,13 +305,29 @@ function readStringArray(value: unknown) {
 }
 
 function getFallbackActorLabel(actorUserId: string | null) {
-  return actorUserId ? `User ${actorUserId.slice(0, 8)}` : "System/backfill";
+  return actorUserId ? "Unknown user" : "System/backfill";
 }
 
 function readProfileActorLabel(value: unknown) {
   if (typeof value !== "string") return null;
   const trimmed = value.trim();
   return trimmed || null;
+}
+
+function readProfileEmailActorLabel(value: unknown) {
+  const email = readProfileActorLabel(value)?.toLowerCase();
+  if (!email) return null;
+  if (email === "philipjonlewis@gmail.com") return "Philip Lewis";
+
+  const [localPart] = email.split("@");
+  const spacedLocalPart = localPart?.replace(/[._-]+/g, " ").trim();
+  if (!spacedLocalPart) return null;
+  if (!spacedLocalPart.includes(" ")) return email;
+
+  return spacedLocalPart
+    .split(/\s+/)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
 }
 
 function normalizeHistoryEvent(row: Tables<"estimate_sheet_events">, actorLabels = new Map<string, string>()): EstimateSheetHistoryEvent {
@@ -471,14 +487,14 @@ async function resolveActivityActorLabels(
   try {
     const { data, error } = await supabase
       .from("profiles")
-      .select("id, display_name")
+      .select("id, display_name, email")
       .in("id", actorUserIds);
 
     if (error) return new Map<string, string>();
 
     return new Map(
-      ((data ?? []) as Array<{ id: string; display_name: string | null }>)
-        .map((profile) => [profile.id, readProfileActorLabel(profile.display_name) ?? getFallbackActorLabel(profile.id)] as const),
+      ((data ?? []) as Array<{ id: string; display_name: string | null; email: string | null }>)
+        .map((profile) => [profile.id, readProfileActorLabel(profile.display_name) ?? readProfileEmailActorLabel(profile.email) ?? getFallbackActorLabel(profile.id)] as const),
     );
   } catch {
     return new Map<string, string>();
@@ -640,6 +656,8 @@ function getSourceSnapshot(libraryItem: EstimateRowItem) {
     category: libraryItem.category,
     categoryNodeId: libraryItem.categoryNodeId ?? null,
     categoryPath: libraryItem.categoryPath ?? [],
+    brand: libraryItem.brand ?? null,
+    brandId: libraryItem.brandId ?? null,
     componentVersionId: libraryItem.componentVersionId ?? null,
     componentVersionNumber: libraryItem.componentVersionNumber ?? null,
     imageUrl: libraryItem.imageUrl ?? null,
@@ -666,6 +684,7 @@ function getEstimateRowMetadata(libraryItem: EstimateRowItem) {
   return {
     categoryNodeId: libraryItem.categoryNodeId ?? null,
     categoryPath: libraryItem.categoryPath ?? [],
+    brandId: libraryItem.brandId ?? null,
     supplierId: libraryItem.supplierId ?? null,
     sourceComponentId: libraryItem.id,
     componentVersionId: libraryItem.componentVersionId ?? null,

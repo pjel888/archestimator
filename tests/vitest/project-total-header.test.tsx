@@ -48,6 +48,17 @@ describe("ProjectTotalHeader", () => {
     expect(header.querySelector("[data-budget-health-budget-tick]")).toHaveStyle({ left: "100.00%" });
   });
 
+  it("keeps total values stronger than compact labels and budget health metadata", () => {
+    renderProjectTotalHeader();
+
+    const header = screen.getByLabelText("Sheet running totals");
+
+    expect(within(header).getByText("₱ 1,000,000.00")).toHaveClass("text-[12px]");
+    expect(within(header).getByText("Project budget")).toHaveClass("text-[8px]");
+    expect(within(header).getByText("Ongoing project cost")).toHaveClass("text-[8px]");
+    expect(within(header).getByText("Budget health").parentElement).toHaveClass("text-[8px]");
+  });
+
   it("renders remaining budget and usage percentage while under budget", () => {
     renderProjectTotalHeader();
 
@@ -134,6 +145,7 @@ describe("ProjectTotalHeader", () => {
         <ProjectTotalHeader projectId="project-1" plannedBudget={0} />
         <ProjectEstimateMetadataPublisher
           metadata={{
+            projectName: "Lewis Residence",
             estimateName: "Lewis Residence - 002",
             estimateSheetCode: "ES-002",
             projectBudget: 2_000_000,

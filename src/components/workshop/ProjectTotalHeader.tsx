@@ -160,12 +160,12 @@ function BudgetHealthMeter({ budget, total }: { budget: number; total: number })
 
   return (
     <div className="flex min-w-[112px] flex-1 flex-col justify-center" data-budget-health-state={state}>
-      <div className="mb-0.5 flex items-center justify-between gap-2 text-[6px] font-bold uppercase leading-3 tracking-[0.12em] text-gray-400">
+      <div className="mb-0.5 flex items-center justify-between gap-2 text-[8px] font-medium uppercase leading-3 tracking-normal text-gray-400">
         <span>Budget health</span>
         <span className={textClassName}>{shortStatusText}</span>
       </div>
       <div
-        className="relative h-1.5 overflow-hidden rounded-full bg-surfaceMuted"
+        className="relative h-1.5 overflow-hidden rounded-xs bg-surfaceMuted"
         role="meter"
         aria-label="Budget health"
         aria-valuemin={0}
@@ -175,13 +175,13 @@ function BudgetHealthMeter({ budget, total }: { budget: number; total: number })
         data-budget-health-meter
       >
         <span
-          className={`absolute inset-y-0 left-0 rounded-full ${fillClassName}`}
+          className={`absolute inset-y-0 left-0 rounded-xs ${fillClassName}`}
           style={{ width: formatTrackPercent(inBudgetFillPercent) }}
           data-budget-health-fill
         />
         {overBudgetFillPercent > 0 ? (
           <span
-            className={`absolute inset-y-0 rounded-r-full ${BUDGET_HEALTH_OVERBUDGET_RED_FILL_CLASS}`}
+            className={`absolute inset-y-0 rounded-xs ${BUDGET_HEALTH_OVERBUDGET_RED_FILL_CLASS}`}
             style={{ left: formatTrackPercent(budgetTickPercent), width: formatTrackPercent(overBudgetFillPercent) }}
             data-budget-health-overflow
           />
@@ -195,7 +195,7 @@ function BudgetHealthMeter({ budget, total }: { budget: number; total: number })
           />
         ) : null}
       </div>
-      <p className={`mt-0.5 truncate text-center text-[8px] font-bold leading-[10px] ${textClassName}`} data-budget-health-summary>
+      <p className={`mt-0.5 truncate text-center text-[8px] font-medium leading-[10px] ${textClassName}`} data-budget-health-summary>
         {summaryText}
       </p>
     </div>
@@ -233,13 +233,13 @@ export function ProjectTotalHeader({ plannedBudget = 0, projectId }: { plannedBu
       aria-label="Sheet running totals"
     >
       <div className="flex min-w-[118px] shrink-0 flex-col items-start justify-center text-left">
-        <span className={`font-mono text-[12px] font-bold leading-4 tabular-nums ${BUDGET_HEALTH_BUDGET_BLUE_TEXT_CLASS}`}>{formatPeso(budget)}</span>
-        <span className="text-[6px] font-bold uppercase leading-3 tracking-[0.12em] text-gray-400">Project budget</span>
+        <span className={`font-sans text-[12px] font-medium leading-4 tabular-nums ${BUDGET_HEALTH_BUDGET_BLUE_TEXT_CLASS}`}>{formatPeso(budget)}</span>
+        <span className="text-[8px] font-medium uppercase leading-3 tracking-normal text-gray-400">Project budget</span>
       </div>
       <BudgetHealthMeter budget={budget} total={total} />
       <div className="flex min-w-[138px] shrink-0 flex-col items-end justify-center">
-        <span className={`font-mono text-[12px] font-bold leading-4 tabular-nums ${totalValueClassName}`}>{formatPeso(total)}</span>
-        <span className="text-right text-[6px] font-bold uppercase leading-3 tracking-[0.12em] text-gray-400">Ongoing project cost</span>
+        <span className={`font-sans text-[12px] font-medium leading-4 tabular-nums ${totalValueClassName}`}>{formatPeso(total)}</span>
+        <span className="text-right text-[8px] font-medium uppercase leading-3 tracking-normal text-gray-400">Ongoing project cost</span>
       </div>
     </div>
   );

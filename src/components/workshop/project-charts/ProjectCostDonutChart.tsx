@@ -72,7 +72,7 @@ export function ProjectCostDonutChart({ buckets, total, currencyCode, label }: P
 
   if (data.length === 0 || total <= 0) {
     return (
-      <div className="flex min-h-[520px] items-center justify-center rounded border border-dashed border-hairline text-[11px] text-muted-foreground">
+      <div className="flex min-h-[520px] items-center justify-center rounded-xs border border-dashed border-hairline text-[10px] text-muted-foreground">
         No cost rows
       </div>
     );
@@ -146,8 +146,8 @@ export function ProjectCostDonutChart({ buckets, total, currencyCode, label }: P
             className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center text-center"
             data-testid="donut-center-detail"
           >
-            <span className="max-w-36 truncate text-[10px] font-semibold text-foreground">{activeDatum.label}</span>
-            <span className="text-xs font-semibold tabular-nums text-foreground">
+            <span className="max-w-36 truncate text-[10px] font-medium text-foreground">{activeDatum.label}</span>
+            <span className="text-[10px] font-medium tabular-nums text-foreground">
               {formatCompactMoney(activeDatum.value, currencyCode)}
             </span>
             <span className="text-[9px] tabular-nums text-muted-foreground">{formatPercent(activeDatum.share)}</span>

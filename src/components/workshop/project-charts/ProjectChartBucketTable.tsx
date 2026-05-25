@@ -12,9 +12,9 @@ export function ProjectChartBucketTable({ series, currencyCode, groupingLabel }:
       <table aria-label={`${series.estimateName} bucket table`} className="w-full border-collapse text-[10px]">
         <thead className="bg-muted/30 text-[9px] uppercase tracking-normal text-muted-foreground">
           <tr>
-            <th className="px-2 py-2 text-left font-semibold">{groupingLabel}</th>
-            <th className="px-2 py-2 text-right font-semibold">Cost</th>
-            <th className="px-2 py-2 text-right font-semibold">Share</th>
+            <th className="px-2 py-2 text-left font-medium">{groupingLabel}</th>
+            <th className="px-2 py-2 text-right font-medium">Cost</th>
+            <th className="px-2 py-2 text-right font-medium">Share</th>
           </tr>
         </thead>
         <tbody>
@@ -22,11 +22,11 @@ export function ProjectChartBucketTable({ series, currencyCode, groupingLabel }:
             <tr key={row.id} className={row.kind === "group" ? "border-t border-hairline bg-muted/20" : "border-t border-hairline"}>
               <td className="max-w-36 truncate py-2 pr-2 font-medium text-foreground" style={{ paddingLeft: `${8 + row.depth * 12}px` }}>
                 {row.color ? (
-                  <span className="mr-1.5 inline-block h-2 w-2 rounded-sm" style={{ backgroundColor: row.color }} />
+                  <span className="mr-1.5 inline-block h-2 w-2 rounded-xs" style={{ backgroundColor: row.color }} />
                 ) : (
-                  <span className="mr-1.5 inline-block h-2 w-2 rounded-sm border border-hairline bg-white" />
+                  <span className="mr-1.5 inline-block h-2 w-2 rounded-xs border border-hairline bg-white" />
                 )}
-                <span className={row.kind === "group" ? "font-bold" : undefined}>{row.label}</span>
+                <span className={row.kind === "group" ? "font-medium" : undefined}>{row.label}</span>
               </td>
               <td className="px-2 py-2 text-right tabular-nums">{formatMoney(row.total, currencyCode)}</td>
               <td className="px-2 py-2 text-right tabular-nums text-muted-foreground">{formatPercent(row.share)}</td>

@@ -8,6 +8,7 @@ export const PROJECT_ESTIMATE_METADATA_CHANGE_EVENT = "archestimator:project-est
 const PROJECT_MINI_SIDEBAR_WIDTH_CSS_VARIABLE = "--project-mini-sidebar-width";
 
 export type ProjectEstimateMetadata = {
+  projectName: string;
   estimateName: string;
   estimateSheetCode: string;
   projectBudget: number | null;
@@ -48,17 +49,30 @@ function useProjectEstimateMetadata() {
 }
 
 export function ProjectEstimateMetadataPublisher({ metadata }: ProjectEstimateMetadataPublisherProps) {
-  const { estimateName, estimateSheetCode, projectBudget } = metadata;
+  const { projectName, estimateName, estimateSheetCode, projectBudget } = metadata;
 
   useLayoutEffect(() => {
     const workshopCanvas = document.querySelector<HTMLElement>("[data-workshop-page-shell-canvas]");
+    const workshopTitleBlock = document.querySelector<HTMLElement>("[data-workshop-title-block]");
     const previousProjectMiniSidebarWidth = workshopCanvas?.style.getPropertyValue(PROJECT_MINI_SIDEBAR_WIDTH_CSS_VARIABLE);
+    const previousEstimateSheetRoute = workshopCanvas?.dataset.estimateSheetRoute;
+    const previousWorkshopTitleBlockHidden = workshopTitleBlock?.hidden ?? false;
 
+    if (workshopCanvas) workshopCanvas.dataset.estimateSheetRoute = "true";
+    if (workshopTitleBlock) workshopTitleBlock.hidden = true;
     workshopCanvas?.style.setProperty(PROJECT_MINI_SIDEBAR_WIDTH_CSS_VARIABLE, "0px");
-    dispatchProjectEstimateMetadataChange({ estimateName, estimateSheetCode, projectBudget });
+    dispatchProjectEstimateMetadataChange({ projectName, estimateName, estimateSheetCode, projectBudget });
     dispatchProjectBudgetChange(projectBudget ?? 0);
 
     return () => {
+      if (workshopTitleBlock) workshopTitleBlock.hidden = previousWorkshopTitleBlockHidden;
+
+      if (previousEstimateSheetRoute) {
+        if (workshopCanvas) workshopCanvas.dataset.estimateSheetRoute = previousEstimateSheetRoute;
+      } else if (workshopCanvas) {
+        delete workshopCanvas.dataset.estimateSheetRoute;
+      }
+
       if (previousProjectMiniSidebarWidth) {
         workshopCanvas?.style.setProperty(PROJECT_MINI_SIDEBAR_WIDTH_CSS_VARIABLE, previousProjectMiniSidebarWidth);
       } else {
@@ -67,7 +81,7 @@ export function ProjectEstimateMetadataPublisher({ metadata }: ProjectEstimateMe
       dispatchProjectEstimateMetadataChange(null);
       dispatchProjectBudgetChange(0);
     };
-  }, [estimateName, estimateSheetCode, projectBudget]);
+  }, [projectName, estimateName, estimateSheetCode, projectBudget]);
 
   return null;
 }
@@ -81,10 +95,11 @@ export function ProjectEstimateMetadataStrip() {
 function ProjectEstimateMetadataStripGrid({ metadata }: ProjectEstimateMetadataStripGridProps) {
   return (
     <div
-      className="grid h-full grid-cols-[minmax(0,1fr)_minmax(0,2fr)] items-center gap-3 bg-white px-2 text-[9px] font-normal uppercase tracking-[0.14em] text-tertiary"
+      className="grid h-full grid-cols-[minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)] items-center gap-3 bg-white px-2 text-[9px] font-normal uppercase tracking-normal text-tertiary"
       data-workshop-layout="project-estimate-metadata-row"
     >
       <EstimateSheetCodeCell value={metadata?.estimateSheetCode ?? ""} />
+      <EstimateProjectTitleCell value={metadata?.projectName ?? ""} />
       <EstimateSheetNameCell value={metadata?.estimateName ?? ""} />
     </div>
   );
@@ -92,6 +107,10 @@ function ProjectEstimateMetadataStripGrid({ metadata }: ProjectEstimateMetadataS
 
 function EstimateSheetCodeCell({ value }: { value: string }) {
   return <span className="min-w-0 flex-1 truncate text-left">{value}</span>;
+}
+
+function EstimateProjectTitleCell({ value }: { value: string }) {
+  return <span className="min-w-0 truncate text-center text-ink">{value}</span>;
 }
 
 function EstimateSheetNameCell({ value }: { value: string }) {

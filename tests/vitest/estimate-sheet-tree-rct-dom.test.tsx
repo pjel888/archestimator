@@ -185,7 +185,7 @@ describe("estimate sheet tree React Complex Tree DOM integration", () => {
     const kitchenRow = treeNodeRow("kitchen");
     expect(kitchenRow).toHaveClass("min-h-7", "py-0");
     expect(kitchenRow).not.toHaveClass("h-8");
-    expect(kitchen).toHaveClass("min-h-7", "w-full", "!text-[10px]", "leading-4", "rounded-sm");
+    expect(kitchen).toHaveClass("min-h-7", "w-full", "!text-[10px]", "leading-4", "rounded-xs");
     expect(kitchen.closest("[data-workshop-tree-row]")).toBe(kitchen);
 
     expect(projectScope).toHaveStyle({ paddingLeft: "0px" });

@@ -79,16 +79,16 @@ type NestIntentHint = {
 type RootDropEdge = "top" | "bottom";
 
 function NodeIcon({ kind }: { kind: EstimateTreeNode["kind"] }) {
-  if (getEstimateNodeDisplayKind(kind) === "group") return <FolderSimple size={12} weight="bold" aria-hidden="true" />;
-  return <Cube size={12} weight="bold" aria-hidden="true" />;
+  if (getEstimateNodeDisplayKind(kind) === "group") return <FolderSimple size={12} weight="regular" aria-hidden="true" />;
+  return <Cube size={12} weight="regular" aria-hidden="true" />;
 }
 
 function AddTreeActionIcon({ kind }: { kind: EstimateTreeNode["kind"] }) {
   const Icon = getEstimateNodeDisplayKind(kind) === "group" ? FolderSimple : Cube;
   return (
     <span className="relative flex size-4 items-center justify-center" aria-hidden="true">
-      <Icon size={13} weight="bold" className="absolute left-0 top-1/2 -translate-y-1/2" />
-      <Plus size={8} weight="bold" className="absolute right-0 top-0" />
+      <Icon size={13} weight="regular" className="absolute left-0 top-1/2 -translate-y-1/2" />
+      <Plus size={8} weight="regular" className="absolute right-0 top-0" />
     </span>
   );
 }
@@ -866,7 +866,7 @@ export function EstimateSheetTree({ projectId, estimateId, projectName, selected
 
         <div className="min-h-0 flex-1 overflow-auto p-2">
           {localNodes.length === 0 ? (
-            <div className="rounded-md border border-dashed border-hairline bg-surface-muted p-2 text-[10px] leading-4 text-tertiary">
+            <div className="rounded-xs border border-dashed border-hairline bg-surface-muted p-2 text-[10px] leading-4 text-tertiary">
               This estimate has no tree nodes yet. Add a Group Node or Area Node to begin rebuilding the estimate structure.
             </div>
           ) : (
@@ -974,7 +974,7 @@ export function EstimateSheetTree({ projectId, estimateId, projectName, selected
                             }
                           }}
                           className={cn(
-                            "h-5 min-h-0 flex-1 rounded-sm border-accent bg-white px-1 py-0 font-normal leading-5 shadow-[inset_0_0_0_1px_rgba(255,122,26,0.14)] hover:border-accent focus:border-accent focus:bg-white focus-visible:ring-2 focus-visible:ring-accentSoft",
+                            "h-5 min-h-0 flex-1 rounded-xs border-accent bg-white px-1 py-0 font-normal leading-5 shadow-[inset_0_0_0_1px_rgba(255,122,26,0.14)] hover:border-accent focus:border-accent focus:bg-white focus-visible:ring-2 focus-visible:ring-accentSoft",
                             editingNodeError ? "border-danger focus:border-danger focus-visible:ring-danger" : "",
                           )}
                         />
@@ -983,7 +983,7 @@ export function EstimateSheetTree({ projectId, estimateId, projectName, selected
                           data-estimate-tree-rename-control="true"
                           aria-label={`Confirm rename ${node.name}`}
                           title="Confirm rename"
-                          className="grid size-5 shrink-0 place-items-center rounded-sm border border-accent bg-white text-warning transition hover:bg-accentSoft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accentSoft"
+                          className="grid size-5 shrink-0 place-items-center rounded-xs border border-accent bg-white text-warning transition hover:bg-accentSoft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accentSoft"
                           onPointerDown={(event) => {
                             event.preventDefault();
                             event.stopPropagation();
@@ -998,14 +998,14 @@ export function EstimateSheetTree({ projectId, estimateId, projectName, selected
                             commitRenameNode(node);
                           }}
                         >
-                          <Check size={12} weight="bold" aria-hidden="true" />
+                          <Check size={12} weight="regular" aria-hidden="true" />
                         </button>
                         <button
                           type="button"
                           data-estimate-tree-rename-control="true"
                           aria-label={`Reset rename ${node.name}`}
                           title="Reset name"
-                          className="grid size-5 shrink-0 place-items-center rounded-sm border border-accent/70 bg-white text-warning transition hover:bg-accentSoft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accentSoft"
+                          className="grid size-5 shrink-0 place-items-center rounded-xs border border-accent/70 bg-white text-warning transition hover:bg-accentSoft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accentSoft"
                           onPointerDown={(event) => {
                             event.preventDefault();
                             event.stopPropagation();
@@ -1020,13 +1020,13 @@ export function EstimateSheetTree({ projectId, estimateId, projectName, selected
                             resetRenameNode(node);
                           }}
                         >
-                          <ArrowCounterClockwise size={12} weight="bold" aria-hidden="true" />
+                          <ArrowCounterClockwise size={12} weight="regular" aria-hidden="true" />
                         </button>
                         {editingNodeError ? (
                           <span
                             id={errorId}
                             role="alert"
-                            className="absolute left-0 top-[22px] z-20 max-w-[180px] truncate rounded-sm border border-dangerSoft bg-white px-1 py-0.5 text-[9px] font-semibold leading-3 text-danger shadow-sm"
+                            className="absolute left-0 top-[22px] z-20 max-w-[180px] truncate rounded-xs border border-dangerSoft bg-white px-1 py-0.5 text-[9px] font-medium leading-3 text-danger shadow-sm"
                           >
                             {editingNodeError}
                           </span>
@@ -1263,7 +1263,7 @@ export function EstimateSheetTree({ projectId, estimateId, projectName, selected
                         <div
                           role="status"
                           aria-live="polite"
-                          className="pointer-events-none absolute right-7 top-1/2 z-10 max-w-[62%] -translate-y-1/2 truncate rounded-sm border border-[#8bbce8] bg-white px-1.5 py-0.5 text-[9px] leading-3 text-[#155f9f] shadow-sm"
+                          className="pointer-events-none absolute right-7 top-1/2 z-10 max-w-[62%] -translate-y-1/2 truncate rounded-xs border border-[#8bbce8] bg-white px-1.5 py-0.5 text-[9px] leading-3 text-[#155f9f] shadow-sm"
                         >
                           Nest inside {nestIntentHint.targetName}
                         </div>
@@ -1284,12 +1284,12 @@ export function EstimateSheetTree({ projectId, estimateId, projectName, selected
                   onDragLeave={clearRootDropActive}
                   className={cn(
                     "relative h-8 px-1 py-2 transition-colors",
-                    activeRootDropEdge === "top" ? "rounded-md bg-[#eef7ff]" : "bg-transparent",
+                    activeRootDropEdge === "top" ? "rounded-xs bg-[#eef7ff]" : "bg-transparent",
                   )}
                 >
                   <div
                     className={cn(
-                      "pointer-events-none absolute left-1 right-6 top-1/2 h-0.5 -translate-y-1/2 rounded-full transition-colors",
+                      "pointer-events-none absolute left-1 right-6 top-1/2 h-0.5 -translate-y-1/2 rounded-xs transition-colors",
                       activeRootDropEdge === "top" ? "bg-[#1976d2] shadow-[0_0_0_1px_rgba(25,118,210,0.15)]" : "bg-transparent",
                     )}
                   />
@@ -1304,12 +1304,12 @@ export function EstimateSheetTree({ projectId, estimateId, projectName, selected
                   onDragLeave={clearRootDropActive}
                   className={cn(
                     "relative h-8 px-1 py-2 transition-colors",
-                    activeRootDropEdge === "bottom" ? "rounded-md bg-[#eef7ff]" : "bg-transparent",
+                    activeRootDropEdge === "bottom" ? "rounded-xs bg-[#eef7ff]" : "bg-transparent",
                   )}
                 >
                   <div
                     className={cn(
-                      "pointer-events-none absolute left-1 right-6 top-1/2 h-0.5 -translate-y-1/2 rounded-full transition-colors",
+                      "pointer-events-none absolute left-1 right-6 top-1/2 h-0.5 -translate-y-1/2 rounded-xs transition-colors",
                       activeRootDropEdge === "bottom" ? "bg-[#1976d2] shadow-[0_0_0_1px_rgba(25,118,210,0.15)]" : "bg-transparent",
                     )}
                   />
@@ -1329,10 +1329,10 @@ export function EstimateSheetTree({ projectId, estimateId, projectName, selected
         className="max-w-sm"
       >
         <div className="space-y-3">
-          <p className="text-[10px] font-semibold leading-4 text-ink">
+          <p className="text-[10px] font-medium leading-4 text-ink">
             {deleteTargetNode ? (
               <>
-                Delete <span className="font-bold">{deleteTargetNode.name}</span>? This action updates the tree immediately and can be undone only if the server rejects it.
+                Delete <span className="font-medium">{deleteTargetNode.name}</span>? This action updates the tree immediately and can be undone only if the server rejects it.
               </>
             ) : null}
           </p>

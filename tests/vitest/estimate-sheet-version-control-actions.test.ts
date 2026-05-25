@@ -68,6 +68,8 @@ function makeLibraryItem(overrides: Record<string, unknown> = {}) {
     totalItemCosts: 3150,
     category: "Finishes",
     categoryNodeId: "finishes-flooring",
+    brand: "Tile Brand",
+    brandId: "55555555-5555-4555-8555-555555555555",
     supplierId: "22222222-2222-4222-8222-222222222222",
     discipline: "Architectural",
     designation: "Floor Finish",
@@ -266,6 +268,11 @@ describe("estimate sheet version control server actions", () => {
     expect(supabase.rpc.mock.calls[0][1].replacement_payload).toMatchObject({
       material: "Porcelain Tile",
       sourceLibraryItemId: "11111111-1111-4111-8111-111111111111",
+      sourceSnapshot: expect.objectContaining({
+        brand: "Tile Brand",
+        brandId: "55555555-5555-4555-8555-555555555555",
+        supplier: "Tile Supplier",
+      }),
       contingencyPercentage: 0,
       linkState: "linked-clean",
     });
@@ -740,7 +747,7 @@ describe("estimate sheet version control server actions", () => {
       ],
       error: null,
     });
-    const profilesQuery = queryResult({ data: [{ id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", display_name: "Philip Lewis" }], error: null });
+    const profilesQuery = queryResult({ data: [{ id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa", display_name: "Philip Lewis", email: "philipjonlewis@gmail.com" }], error: null });
     const supabase = {
       from: vi.fn((table: string) => {
         if (table === "estimates") return estimateQuery;
@@ -759,7 +766,56 @@ describe("estimate sheet version control server actions", () => {
     });
 
     expect(profilesQuery.in).toHaveBeenCalledWith("id", ["aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa"]);
+    expect(profilesQuery.select).toHaveBeenCalledWith("id, display_name, email");
     expect(result.events[0]?.actorLabel).toBe("Philip Lewis");
+  });
+
+  it("uses profile email as the actor label source when display name is missing", async () => {
+    const estimateQuery = queryResult({ data: { id: "estimate-1", project_id: "project-1" }, error: null });
+    const eventsQuery = queryResult({
+      data: [
+        {
+          id: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+          event_type: "row_updated",
+          event_source: "server_action",
+          created_at: "2026-05-24T03:00:00.000Z",
+          actor_user_id: "4e23801d-6fc2-4886-b980-d15ca2b164b8",
+          target_row_id: "row-1",
+          estimate_node_id: "node-1",
+          row_context: {},
+          old_snapshot: null,
+          new_snapshot: null,
+          changed_fields: [],
+          total_delta: null,
+          payload: {},
+          correlation_id: "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
+        },
+      ],
+      error: null,
+    });
+    const profilesQuery = queryResult({
+      data: [{ id: "4e23801d-6fc2-4886-b980-d15ca2b164b8", display_name: null, email: "philipjonlewis@gmail.com" }],
+      error: null,
+    });
+    const supabase = {
+      from: vi.fn((table: string) => {
+        if (table === "estimates") return estimateQuery;
+        if (table === "estimate_sheet_events") return eventsQuery;
+        if (table === "profiles") return profilesQuery;
+        throw new Error(`Unexpected table ${table}`);
+      }),
+    };
+    supabaseServerMocks.createSupabaseServerClient.mockResolvedValue(supabase);
+    const { fetchEstimateSheetVersionControl } = await import("@/lib/estimates/actions");
+
+    const result = await fetchEstimateSheetVersionControl({
+      projectId: "project-1",
+      estimateId: "estimate-1",
+      scope: "sheet",
+    });
+
+    expect(result.events[0]?.actorLabel).toBe("Philip Lewis");
+    expect(result.events[0]?.actorLabel).not.toMatch(/^User /);
   });
 
   it("returns read-only Activity retention metrics with threshold flags", async () => {

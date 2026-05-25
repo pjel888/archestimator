@@ -205,14 +205,17 @@ describe("estimate sheet cost inputs", () => {
     expect(within(livingAreaSection).getByText("Drag and drop estimate component here")).toBeInTheDocument();
   });
 
-  it("opens row version history from the row action menu", async () => {
+  it("opens row details from the row action menu", async () => {
     const user = userEvent.setup();
     renderEstimateSheet("living-area");
 
-    await user.click(screen.getByRole("button", { name: "Open row menu for Hardwood Oak Flooring" }));
+    await user.click(screen.getByRole("button", { name: "Open row details for Hardwood Oak Flooring" }));
 
-    expect(screen.getByRole("dialog", { name: "Row details" })).toBeInTheDocument();
-    expect(screen.getByRole("tab", { name: "Version History" })).toHaveAttribute("aria-selected", "true");
+    const dialog = screen.getByRole("dialog", { name: "Row item details" });
+    expect(dialog).toBeInTheDocument();
+    expect(within(dialog).getByRole("tab", { name: "Details" })).toHaveAttribute("aria-selected", "true");
+    expect(within(dialog).getAllByText("Hardwood Oak Flooring").length).toBeGreaterThan(0);
+    expect(within(dialog).queryByRole("tree", { name: "Activity scope tree" })).not.toBeInTheDocument();
   });
 
   it("opens sheet activity from the local sheet header", async () => {
@@ -221,8 +224,9 @@ describe("estimate sheet cost inputs", () => {
 
     await user.click(screen.getByRole("button", { name: "Activity" }));
 
-    expect(screen.getByRole("dialog", { name: "Sheet activity" })).toBeInTheDocument();
-    expect(screen.getByRole("tab", { name: "Activity" })).toHaveAttribute("aria-selected", "true");
+    const dialog = screen.getByRole("dialog", { name: "Activity History" });
+    expect(dialog).toBeInTheDocument();
+    expect(within(dialog).getByRole("treeitem", { name: /Estimate sheet/i })).toHaveAttribute("aria-selected", "true");
   });
 
   it("does not expose discipline or designation as estimate row item fields", () => {
@@ -483,7 +487,7 @@ describe("estimate sheet cost inputs", () => {
     expect(within(materialCell).getByText("₱ 1,200.00")).toBeInTheDocument();
     expect(within(materialCell).getByLabelText("Component actions for Hardwood Oak Flooring")).toBeInTheDocument();
     expect(within(materialCell).getByRole("button", { name: "Delete component Hardwood Oak Flooring" })).toBeInTheDocument();
-    expect(within(materialCell).getByRole("button", { name: "Open component menu for Hardwood Oak Flooring" })).toBeInTheDocument();
+    expect(within(materialCell).getByRole("button", { name: "Open component details for Hardwood Oak Flooring" })).toBeInTheDocument();
     expect(within(materialCell).getByRole("button", { name: "Drag component Hardwood Oak Flooring" })).toHaveAttribute("draggable", "true");
 
     const quantityInput = screen.getByLabelText("Hardwood Oak Flooring quantity");
@@ -494,15 +498,17 @@ describe("estimate sheet cost inputs", () => {
     expect(quantityInput.closest("td")).toHaveAttribute("data-estimate-cell-active", "true");
   });
 
-  it("opens component information from the in-card component menu", async () => {
+  it("opens the row component tab from the in-card component action", async () => {
     const user = userEvent.setup();
     renderEstimateSheet("living-area");
 
     const materialCell = screen.getByLabelText("Hardwood Oak Flooring replaceable estimate component");
-    await user.click(within(materialCell).getByRole("button", { name: "Open component menu for Hardwood Oak Flooring" }));
+    await user.click(within(materialCell).getByRole("button", { name: "Open component details for Hardwood Oak Flooring" }));
 
-    expect(screen.getByRole("dialog", { name: "Row details" })).toBeInTheDocument();
-    expect(screen.getByRole("tab", { name: "Source" })).toHaveAttribute("aria-selected", "true");
+    const dialog = screen.getByRole("dialog", { name: "Row item details" });
+    expect(dialog).toBeInTheDocument();
+    expect(within(dialog).getByRole("tab", { name: "Component" })).toHaveAttribute("aria-selected", "true");
+    expect(within(dialog).getByText("Current component")).toBeInTheDocument();
   });
 
   it("deletes only the component from the card action while keeping the row item editable", async () => {
