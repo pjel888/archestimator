@@ -26,7 +26,7 @@ Do not use this file as an active pre-code checklist for new work. Use it as a h
 | Git status / dirty files | Required per task | Must be rerun before any future edit because the worktree is active and dirty. |
 | Impact analysis | Required per code task | Must be rerun before editing `createEstimateNode`, `renameEstimateNode`, `reorderEstimateTreeNodes`, `deleteEstimateNode`, `EstimateSheetContent`, or `fetchEstimateSheetVersionControl`. |
 | Supabase RPC boundaries | Partially satisfied | Row, reorder, template, metadata, delete, create, and rename wrappers exist. Create/rename still need live DB proof once a local/throwaway harness is available. |
-| Actor attribution | Satisfied locally | Actor labels resolve through visible profiles with `User <short-id>` / `System/backfill` fallbacks. |
+| Actor attribution | Satisfied locally | Actor labels resolve through visible profile names or safe profile-email labels; unresolved user profiles render `Unknown user`, and null actors render `System/backfill`. |
 | Correlation/idempotency | Satisfied locally | RPC/idempotency strategy exists; repeated `correlation_id` values render as page-local related-event groups. |
 | Event pagination | Satisfied locally | Sheet, row, and node Activity use cursor pagination and Load more. |
 | Measurement gates | Partially satisfied | Payload/snapshot and retention metrics are recorded; scalar latency benchmark remains blocked without a mutation harness. |

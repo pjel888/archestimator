@@ -8,13 +8,19 @@
 
 Estimate sheet history v1 is Activity-only.
 
-Supported surfaces:
+Supported surface:
 
-- sheet header opens `Activity`;
-- sheet header opens `Node Activity` for the selected estimate tree node;
-- row 3-dot action and row Expand open row details with `Version History`;
+- sheet header opens one `Activity History` modal;
+- the modal's left scope tree includes the whole sheet, every Group Node, every Area Node, and every row item;
+- the modal's left scope tree uses the shared workshop tree row styling and omits cost totals so hierarchy stays consistent with the estimate sidebar;
+- the modal's main pane renders activity for the selected left-tree scope;
+- row scopes can be selected from the `Activity History` modal's left tree;
+- row table controls open a `Row item details` modal: the 3-dot row action opens the Details tab, the component-card detail action opens the Component tab, and the row Activity action opens the Activity tab;
+- row activity therefore lives in the row details modal for row-originated actions, while the sheet-level Activity modal still supports row-scope filtering from its tree;
+- Group Node scopes include descendant node and row activity, while Area Node scopes read direct node activity;
+- the modal main pane uses a compact command row: Search is always visible, while Event/From/To filters live in a filter dropdown opened from the toolbar;
 - events are rendered as audit cards in the shared inspector language;
-- Activity can paginate and filter by event type, search text, and browser-local date range;
+- Activity can paginate and filter by event type, search text, and browser-local date range for the active scope;
 - row scalar saves preserve spreadsheet behavior and history-aware row revisions.
 
 Unsupported current surfaces:
@@ -108,11 +114,11 @@ Current `fetchEstimateSheetVersionControl` input:
 
 Current output:
 
-- `events`: recent sheet-scoped history events;
-- `rowEvents`: row-scoped history events when `rowId` is provided;
-- `nodeEvents`: node-scoped history events when `nodeId` is provided;
+- `events`: recent sheet-scoped history events for whole-sheet modal scope;
+- `rowEvents`: row-scoped history events when the Activity modal selects a row item or the Row item details modal opens its Activity tab;
+- `nodeEvents`: node-scoped history events when the modal selects a Group Node or Area Node;
 - `nextCursor`: next sheet Activity cursor or `null`;
-- `rowNextCursor`: next row Version History cursor or `null`;
+- `rowNextCursor`: next row-scope Activity cursor or `null`;
 - `nodeNextCursor`: next node Activity cursor or `null`;
 - no estimate/sheet identity fields;
 - no version rows or dormant named-version data.
@@ -131,7 +137,8 @@ Implemented cursor rules:
 - Group Node descendant reads include matching descendant `estimate_node_id` values and row ids under descendant Area nodes;
 - event-type filters reject dormant named-version event types;
 - search is bounded to 80 characters and rejects unsupported raw-filter characters before event rows are queried;
-- compact Load more UI for sheet Activity, row Version History, and node Activity.
+- compact Load more UI for sheet, row, and node scopes inside the Activity History modal, plus row Load more inside the Row item details Activity tab;
+- compact Search plus dropdown Event/From/To controls in the Activity History modal command row.
 
 Remaining read-path caution:
 
@@ -143,12 +150,25 @@ Remaining read-path caution:
 Audit cards should communicate:
 
 - timestamp;
+- actor metadata;
 - event label;
-- summary;
+- a plain-language event description;
 - changed fields;
+- labeled Previous/Current values for field-level diffs;
 - cost delta when meaningful;
-- actor label from visible `profiles.display_name` when available, otherwise `User <short-id>` or `System/backfill`;
-- page-local grouped/correlated context for repeated `correlation_id` values.
+- actor label from visible `profiles.display_name` when available, then safe profile-email labels, otherwise `Unknown user` or `System/backfill`;
+- page-local grouped/correlated context for repeated `correlation_id` values;
+- component snapshot evidence only when the event carries row source/component snapshot data.
+
+The Activity History main pane renders events as a day-grouped timeline with static day separators and distinct, spacious card boundaries. Diff details should have a labeled field name plus explicit `Previous` and `Current` value blocks, with a concise accessible change sentence for assistive technology.
+
+The 2026-05-25 audit-card refinement separates the visible hierarchy into event summary, `Audit facts`, and optional `Component snapshot evidence`. Scalar row updates remain fact/diff cards. Component inserts, replacements, and deletes render dedicated stored-snapshot cards; replacements show before/after component evidence; missing stored images render a stable `No image in snapshot` placeholder rather than borrowing category fallback imagery from the live component card.
+
+Audit field labels and values must use estimating/domain language rather than storage-column language. For example, `linkState` renders as `Library status`, with values such as `Using library values` and `Customized from library`, not `Link state`, `Linked Clean`, or `Linked Overridden`.
+
+Replacement descriptions should identify both components with supplier and brand context when captured in the event snapshot. The compact `old -> new` name summary may remain as supporting context, but the primary description should not rely on component names alone.
+
+Internal event source values such as `server_action` and `database_trigger` stay out of visible card metadata; they are implementation details, not user-facing audit language.
 
 Unknown/system/backfill actors must render as explicit labels, not blanks.
 
@@ -225,7 +245,7 @@ git diff --check
 
 Add `bun run type-check` and `bun run validate` when TypeScript/runtime behavior changes.
 
-Current visual/browser evidence lives under `.omx/artifacts/visual-ralph/estimate-sheet-version-control/20260525-current-activity/` and covers the protected estimate route, sheet Activity, row Version History, node Activity, Activity filters, and absence of named-version `Versions` / `Compare` controls.
+Historical pre-modal visual/browser evidence lives under `.omx/artifacts/visual-ralph/estimate-sheet-version-control/20260525-current-activity/` and covered the protected estimate route, sheet Activity, row Version History, node Activity, Activity filters, and absence of named-version `Versions` / `Compare` controls. New modal evidence is captured under `.omx/artifacts/visual-ralph/estimate-sheet-version-control/20260525-activity-modal/` with the unified `Activity History` modal, tree scopes, and row-scope loaded state. Row details modal evidence is captured under `.omx/artifacts/visual-ralph/estimate-sheet-version-control/20260525-row-details-modal/` for the row Details, Component, and Activity tab contract.
 
 ## Next Implementation Priority
 

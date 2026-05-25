@@ -1,6 +1,6 @@
 # Agent Self-Diagnostic Protocol
 
-**Date:** 2026-05-18
+**Date:** 2026-05-25
 **Status:** Active quality-control protocol for Archestimator agents.
 
 ## Why this exists
@@ -19,7 +19,7 @@ This document is the mandatory recovery loop when an agent seems confused, slow,
 
 ## Non-negotiable rule
 
-If current repo state conflicts with historical plans, current repo state wins. Then update `.ai/10_state/current-state.md` or the relevant source-of-truth doc so the next agent does not repeat the same mistake.
+If current repo state conflicts with historical plans, current repo state wins. Then update `.ai/10_state/current-state.md` or the relevant source-of-truth doc so the next agent does not repeat the same mistake. If `.ai/README.md` active-work notes conflict with `.ai/10_state/current-state.md` or `.ai/10_state/decisions.md`, treat the state docs as newer until the README is refreshed.
 
 ## Trigger conditions
 
@@ -42,26 +42,33 @@ Do this before further planning or coding:
    - `git branch --show-current`
    - inspect changed files before editing any already-modified file.
 2. Read the active source-of-truth chain:
-   - `.ai/README.md`
    - `.ai/00_system/DOCS_SOURCE_OF_TRUTH.md`
    - `.ai/00_system/AGENT_OPERATING_PROTOCOL.md`
    - `.ai/00_system/AGENT_SELF_DIAGNOSTIC_PROTOCOL.md`
+   - `.ai/00_system/VALIDATION_MATRIX.md`
+   - `.ai/README.md`
    - `.ai/10_state/current-state.md`
    - `.ai/10_state/decisions.md`
    - `.ai/10_state/known-issues.md`
    - relevant active plan/spec only after the current-state docs are read.
-3. State the task frame internally before acting:
+3. For whole-codebase, roadmap, architecture, or docs-sync work, gather fresh evidence before acting:
+   - code-review graph/GitNexus overview or query when available;
+   - current `src/app` route tree;
+   - current package scripts and major dependencies;
+   - current `supabase/migrations` list;
+   - current focused test files for the affected feature.
+4. State the task frame internally before acting:
    - goal;
    - non-goals;
    - current active branch;
    - files likely touched;
    - validation command(s);
    - stop conditions.
-4. Reduce scope:
+5. Reduce scope:
    - choose the smallest useful change;
    - do not revive old routes, modules, data layers, or UI unless the current task explicitly requires them;
    - do not add a new plan if an active plan already covers the work.
-5. Verify evidence before final response:
+6. Verify evidence before final response:
    - docs-only: referenced paths exist and `git diff --check` passes;
    - code changes: use `.ai/00_system/VALIDATION_MATRIX.md` for the current gate;
    - if validation cannot run, say why and what remains unverified.
@@ -73,6 +80,7 @@ Do this before further planning or coding:
 - Summarize old material as `historical context`, not active instruction, unless current-state docs point to it.
 - Do not continue from a long degraded session for implementation work; start a fresh session or delegate to an isolated builder with a concise brief.
 - Do not let a model-specific skill override repo-local `.ai` source-of-truth docs.
+- Do not trust memory-derived route, feature, Supabase, AI, or package facts without a cheap current-file check.
 
 ## When modifying `.ai` docs
 
@@ -81,6 +89,7 @@ Do this before further planning or coding:
 3. Do not create parallel Hermes-only, Claude-only, or Codex-only project brains.
 4. Update the source-of-truth map if a new canonical doc is created.
 5. Keep docs short enough to be loaded reliably by future agents.
+6. For roadmap and system docs, separate shipped implementation, partial implementation, future scope, and blocked/destructive work.
 
 ## Required final report after a self-diagnostic fix
 

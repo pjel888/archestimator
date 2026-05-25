@@ -1,10 +1,10 @@
 # Estimate Sheet Group / Area Node Visual Distinction
 
-**Date:** 2026-05-21  
-**Status:** Planning — UX/UI audit and implementation readiness  
-**Scope:** `/workshop/projects/[projectId]/estimates/[nodeId]` center estimate sheet (`EstimateSheetContent`)  
-**Companion spec:** `.ai/06_specs/current-project-estimates-component-library-spec.md`  
-**Companion plan:** `.ai/03_plans/project-estimates-component-library-improvement-plan.md`  
+**Date:** 2026-05-21
+**Status:** Partially implemented, partially superseded by the 2026-05-25 Activity History modal correction
+**Scope:** Group/Area/row hierarchy semantics in `EstimateSheetContent`; center-sheet visual distinction remains relevant, while activity-history UX now belongs to the unified modal
+**Companion spec:** `.ai/06_specs/current-project-estimates-component-library-spec.md`
+**Companion plan:** `.ai/03_plans/project-estimates-component-library-improvement-plan.md`
 
 ---
 
@@ -15,12 +15,17 @@ Create subtle but unambiguous visual distinction between **Group Nodes** (organi
 This plan now also covers:
 - **Node codes:** Auto-generated hierarchical position codes (e.g., `01`, `01.01`) displayed in every header, with a path for future user-defined persistence.
 - **Area breadcrumbs:** Subtle ancestor path trails below area headers (e.g., `Lot A › Main House › Ground Floor`).
+- **Activity scope tree semantics:** The same Group Node / Area Node / row-item distinction is reused in the unified Activity History modal's left tree.
 
 The distinction must survive deep nesting, limited horizontal space, and the visual weight of the row-item table that already exists under Area Nodes.
 
+## Current correction
+
+The previous folder scope did not cover Activity History. As of 2026-05-25, estimate activity must use one `Activity History` modal with a left scope tree that includes the whole sheet, all Group Nodes, all Area Nodes, and all row items. The old separate right-slideout `Node Activity` and row `Version History` surfaces are no longer the supported UX. Row-originated controls now open `Row item details`, where Details, Component, and Activity are tabs for the selected row.
+
 ## Non-goals
 
-- Do not redesign the left estimate tree panel (`EstimateSheetTree`) — it already has folder/leaf iconography and selection states that work.
+- Do not redesign the persistent left estimate tree panel (`EstimateSheetTree`) as part of this plan; the Activity History modal owns its own scoped activity tree.
 - Do not change the node data model, hierarchy rules, or drag-and-drop behavior.
 - Do not add new animations, transitions, or motion beyond the existing micro-interaction baseline.
 - Do not introduce new colors outside the existing design-token palette.
