@@ -658,9 +658,9 @@ Do not let UI grid/card objects become the data model.
 
 This feature must obey the current Archestimator design rules:
 
-- Outside landing page, visible UI text must not exceed `12px` unless Philip explicitly approves a named exception.
-- Normal app text, controls, tables, inputs, chips, and buttons should be around `10px`.
-- Meta labels should be around `8–9px`.
+- Outside landing page, visible UI text must not exceed `12px`; normal controls/body/table/input/button text should stay around `10px`.
+- App/workshop typography uses SF Pro system stack, regular/medium weights only, and zero tracking.
+- App/workshop radius is xs-only (`3px`), with neutral reference colors and regular-outline icon weight.
 - Buttons and icon buttons should use `src/components/ui/button.tsx` or a shared wrapper built on it.
 - Search controls should use `src/components/ui/search-input.tsx`.
 - Repeated cards, chips, filters, dropdowns, panels, and empty states should be extracted or reused as shared components.

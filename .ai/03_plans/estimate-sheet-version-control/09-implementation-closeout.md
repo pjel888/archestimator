@@ -137,7 +137,7 @@ Second-pass reconciliation evidence should supersede this section with fresh doc
 - Closed in code, pending live DB proof: `renameEstimateNode` now routes through `rename_estimate_node_with_history` and `node_renamed`.
 - Closed in code, pending live DB proof: `createEstimateNode` now routes through `create_estimate_node_with_history` and `node_created`.
 - Closed in code, pending high-volume route proof: sheet Activity and row Version History now support cursor-based Load more.
-- Closed actor display: audit cards render visible profile display names when available, with `User <short-id>` and `System/backfill` fallbacks.
+- Closed actor display: audit cards render visible profile display names when available, then safe profile-email labels, with `Unknown user` and `System/backfill` fallbacks.
 - Closed local-safe browsing UX: node Activity, direct/descendant node-scoped reads, event-type filters, browser-local date filters, bounded search, node cursor pagination, and page-local `correlation_id` grouping are implemented.
 
 ## 2026-05-24 Evidence Closure Addendum
@@ -194,7 +194,7 @@ Follow-up implementation closed the remaining local-safe Activity expansion gate
 - `fetchEstimateSheetVersionControl` now supports `nodeId`, `includeDescendants`, `eventTypes`, `dateFrom`, `dateTo`, `search`, `nodeCursor`, and `scope: "node"`.
 - Sheet Activity, row Version History, and node Activity all use bounded cursor pagination.
 - Sheet/node Activity expose compact filters for event type, search, and browser-local date range.
-- Server actions enrich events with privacy-safe actor labels from visible `profiles.display_name`, falling back to `User <short-id>` or `System/backfill`.
+- Server actions enrich events with privacy-safe actor labels from visible `profiles.display_name`, then safe profile-email labels, falling back to `Unknown user` or `System/backfill`.
 - Activity lists group repeated `correlation_id` values into page-local related-event groups.
 - Added read-only retention monitoring RPC `get_estimate_activity_retention_metrics` in migration `20260525013900_estimate_activity_retention_metrics.sql`.
 - Updated generated Supabase types and focused tests, including a regression for browser-local Activity date bounds.

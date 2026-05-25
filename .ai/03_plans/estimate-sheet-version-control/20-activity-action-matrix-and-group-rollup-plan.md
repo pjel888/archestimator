@@ -22,7 +22,7 @@ The key design problem is not just "more events." It is a clean information mode
 Already implemented and supported:
 
 - `estimate_sheet_events` is the active append-only audit source.
-- Sheet Activity, Node Activity, and row Version History exist.
+- Sheet Activity, node scopes, row scopes, and the Row item details Activity tab exist.
 - Read filters, search, date bounds, cursor pagination, actor labels, and page-local correlation grouping exist.
 - Node create and rename write history-owned events.
 - Tree reorder, template insert, node cascade delete, row CRUD, and sheet metadata edits write server-owned history events.
@@ -39,7 +39,7 @@ Current shortcomings to correct:
 ## Principles
 
 1. **Canonical fact first.** `estimate_sheet_events` stores canonical audit facts. UI rollups must be derived from those facts, not written as duplicate ancestor rows.
-2. **Scope is a lens, not a copy.** Sheet Activity, Group Node Activity, Area Node Activity, and row Version History are different lenses over the same facts.
+2. **Scope is a lens, not a copy.** Sheet Activity, Group Node Activity, Area Node Activity, row-scope Activity, and the Row item details Activity tab are different lenses over the same facts.
 3. **Group Nodes aggregate; Area Nodes own rows.** Group Node Activity can show direct structural events plus descendant Area/row activity. Area Node Activity shows the Area's structural events plus its row activity.
 4. **Cascade is one action.** Deleting a Group subtree should render as one aggregate cascade card with counts, cost delta, and expandable affected nodes/rows unless the user explicitly opens a child detail view.
 5. **Bulk operations stay grouped.** Template insertion, import, duplicate, and future bulk actions should have one operation-level card with child details, not dozens of top-level cards.

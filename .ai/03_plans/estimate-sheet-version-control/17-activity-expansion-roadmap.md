@@ -13,7 +13,7 @@ Make estimate Activity trustworthy before expanding the feature surface. The 202
 ### Implemented And Supported
 
 - Sheet header opens `Activity`.
-- Row details expose `Version History`.
+- Row-originated controls open `Row item details`, with Details, Component, and Activity tabs for the selected row.
 - Row insert/update/replace/delete use history RPCs.
 - Reorder, template insert, estimate metadata updates, and node delete use history-aware wrapper RPCs.
 - Node create and node rename now route through history-aware RPCs in migration `20260524132800_estimate_node_activity_history.sql` and `src/lib/estimates/actions.ts`.
@@ -32,11 +32,12 @@ Make estimate Activity trustworthy before expanding the feature surface. The 202
    - Local runtime proof remains blocked until a local Supabase/throwaway DB harness is available.
 2. Event reads now have expanded cursor pagination and filters.
    - `fetchEstimateSheetVersionControl` accepts `sheetCursor`, `rowCursor`, `nodeCursor`, `scope`, `nodeId`, `includeDescendants`, `eventTypes`, `dateFrom`, `dateTo`, and `search`.
-   - Sheet Activity, row Version History, and node Activity expose compact Load more controls.
+   - Sheet Activity, row scopes, Row item details Activity, and node Activity expose compact Load more controls.
    - Remaining proof: high-volume load testing if production event counts approach the documented thresholds.
 3. Actor attribution displays safe labels.
    - Actor labels resolve through visible `profiles.display_name` when available.
-   - Missing profiles fall back to `User <short-id>`.
+   - Missing display names resolve through safe profile-email labels when possible.
+   - Missing profiles fall back to `Unknown user`.
    - Null actors render as `System/backfill`.
 4. Bulk/correlated events are grouped page-locally.
    - Events sharing `correlation_id` render as related-event groups in the current page.
@@ -215,7 +216,7 @@ Status after 2026-05-25 browsing/filter pass:
 - Sheet Activity appends more events through `Load more activity`.
 - Row Version History appends more row-scoped events through `Load more row history`.
 - Load more responses are ignored if the inspector closes or switches between sheet/row scope before the request resolves.
-- Audit cards now render `User <short-id>` or `System/backfill`.
+- Audit cards now render safe actor labels, `Unknown user`, or `System/backfill`.
 - Focused verification passed:
   - `bunx vitest run tests/vitest/estimate-sheet-version-control-actions.test.ts tests/vitest/estimate-sheet-version-control-ui.test.tsx --maxWorkers=1`
   - `bun run type-check`
@@ -281,7 +282,7 @@ Undo/redo:
 E2E:
 
 - Browser/E2E smoke remains deferred until protected-route data setup is reliable.
-- When added, it should cover sheet Activity open, row Version History open, Load more, node rename/create activity, and no named-version UI.
+- When added, it should cover sheet Activity open, Row item details open, row Activity tab open, Load more, node rename/create activity, and no named-version UI.
 
 ## Remote QA Artifact Decision
 

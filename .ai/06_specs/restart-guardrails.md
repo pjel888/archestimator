@@ -53,7 +53,7 @@ Before expanding app implementation:
 - Do not add sample data unless the screen needs it to communicate the product idea.
 - Do not create dense estimating controls before the estimating interaction is accepted.
 - Avoid fake SaaS maturity: no settings, history, broad dashboards, auth, exports, or admin surfaces until the product slice earns them.
-- Preserve the app/workshop density correction: outside the landing page, 12px is the maximum font size unless Philip explicitly approves an exception.
+- Preserve the enforced app/workshop product design system: outside landing pages, use the SF Pro system stack, regular/medium weights, compact `12px` maximum font-size scale, xs-only radius, zero tracking, neutral reference colors, and regular-outline icons.
 
 ## Data principles for the restart
 

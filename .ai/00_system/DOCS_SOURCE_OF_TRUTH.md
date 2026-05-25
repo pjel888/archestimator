@@ -5,13 +5,30 @@ The `.ai` folder prevents agent drift. Each type of knowledge has one canonical 
 ## Current restart entry point
 
 - Current state: `.ai/10_state/current-state.md`
-- Agent self-diagnostic protocol: `.ai/00_system/AGENT_SELF_DIAGNOSTIC_PROTOCOL.md`
-- Reset audit: `.ai/02_audits/2026-05-17-reset-cleanup-audit.md`
-- Restart guardrails: `.ai/06_specs/restart-guardrails.md`
 - Decisions: `.ai/10_state/decisions.md`
-- Known issues: `.ai/10_state/known-issues.md`
+- Roadmap and launch cutline: `.ai/01_roadmap/README.md`
+- Validation matrix: `.ai/00_system/VALIDATION_MATRIX.md`
+- Agent operating protocol: `.ai/00_system/AGENT_OPERATING_PROTOCOL.md`
+- Agent self-diagnostic protocol: `.ai/00_system/AGENT_SELF_DIAGNOSTIC_PROTOCOL.md`
+- Known issues and risks: `.ai/10_state/known-issues.md`
 
-Historical workshop-recovery plans/logs are not active instructions after the reset.
+If this restart chain conflicts with `.ai/README.md` active-work notes, prefer `.ai/10_state/current-state.md` and `.ai/10_state/decisions.md` until the README is refreshed. Historical workshop-recovery plans/logs are not active instructions after the reset.
+
+## Current implementation authorities
+
+These docs are the first stops for the current MVP codebase surface:
+
+- Live project and estimate bootstrap: `.ai/06_specs/live-project-estimate-bootstrap.md`
+- Project estimates and component-library source split: `.ai/06_specs/current-project-estimates-component-library-spec.md`
+- Estimate Activity contract: `.ai/03_plans/estimate-sheet-version-control/18-current-activity-contract.md`
+- Estimate Activity local-safe audit: `.ai/03_plans/estimate-sheet-version-control/19-local-safe-completion-audit.md`
+- Project charts: `.ai/03_plans/project-charts-estimate-comparison/`
+- Proposal XLSX export: `.ai/03_plans/industry-standard-excel-proposal-export/`
+- Library/Templates split, component creation/versioning, and variant assets: `.ai/03_plans/workshop-library-components-templates-split/`, `.ai/03_plans/workshop-library-component-creation-versioning/`, `.ai/03_plans/component-variant-assets-and-cost-history/`
+- AI Ask-only readiness and implementation: `.ai/03_plans/ai-chatbot-agent-readiness/`
+- UI componentization: `.ai/03_plans/ui-componentization-and-storybook-plan.md`
+
+Do not treat an older plan as active if these docs or `.ai/10_state/*` say the implementation has moved on.
 
 ## Canonical homes
 
@@ -33,10 +50,11 @@ Historical workshop-recovery plans/logs are not active instructions after the re
 - Skills/playbooks: `.ai/11_skills/`
 - Agent contracts/model routing: `.ai/12_agents/`
 - Research: `.ai/13_research/`
+- External operating workspace: Notion may mirror roadmap/startup context, but repo implementation truth lives in `.ai` and current source files when conflicts appear.
 
 ## Anti-duplication rule
 
-If two docs cover the same topic, one must be canonical and the other must point to it. Do not let Claude, Codex, OpenCode, CommandCode, Antigravity CLI (`agy`), Kimi, DeepSeek, or other agents maintain separate contradictory instructions. Gemini is phased out and must not become a separate active instruction lane unless Philip explicitly reapproves it.
+If two docs cover the same topic, one must be canonical and the other must point to it. Do not let Claude, Codex, OpenCode, CommandCode, Antigravity CLI (`agy`), Kimi, DeepSeek, Notion, or other agents/tools maintain separate contradictory instructions. Gemini is phased out and must not become a separate active instruction lane unless Philip explicitly reapproves it.
 
 ## Agent performance rule
 

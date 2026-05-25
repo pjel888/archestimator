@@ -36,7 +36,7 @@
 | Template insertion event coverage | Partially confirmed | Server action calls `insert_estimate_template_into_estimate_with_history`, schema tests assert `template_inserted` and wrapper `eventId`; live/event-read proof still needs local/throwaway DB. |
 | Chart aggregation historical-table regression | Confirmed by focused static test | Repository reads `estimate_row_items`; focused tests assert it avoids `estimate_sheet_events` / `estimate_sheet_versions`. |
 | Pagination beyond first 50 | Closed after audit | `fetchEstimateSheetVersionControl` supports sheet, row, and node cursors; UI exposes Load more for each scope. |
-| Actor display | Closed after audit | Audit cards render visible profile display names, `User <short-id>`, or `System/backfill`. |
+| Actor display | Closed after audit | Audit cards render visible profile display names, safe profile-email labels, `Unknown user`, or `System/backfill`. |
 | Correlation grouping | Closed after audit | Repeated `correlation_id` values render as page-local related-event groups. |
 | Measurement gates | Partially closed after audit | Payload/snapshot and retention metrics recorded on 2026-05-25; scalar latency remains blocked without a mutation harness. |
 | Linked-remote QA artifacts | Decided after audit | The `V2` / `QA checkpoint` row is accepted as dormant residue; cleanup is destructive and out of current scope. |

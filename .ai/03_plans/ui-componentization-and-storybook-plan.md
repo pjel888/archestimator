@@ -20,16 +20,17 @@ Every UI implementation must follow this order:
 
 Feature-local raw buttons, icon buttons, search inputs, chips, tabs, filter controls, select controls, cards, panel headers, and empty states are defects unless there is a documented reason.
 
-## Non-negotiable density rule
+## Non-negotiable product-system rule
 
 Outside the landing page:
 
-- Maximum visible font size: `12px`.
-- Default controls/body/nav/table text: `10px`.
-- Subtitles/supporting text: `11px`.
-- Meta/eyebrow labels: `8px` to `9px`.
-- Buttons: `10px` and bold.
-- No `text-sm`, `text-base`, `text-lg`, `text-xl`, or raw `13px+` typography in app/workshop surfaces unless Philip approves a named exception.
+- Font: SF Pro system stack.
+- Weights: regular (`400`) and medium (`500`) only.
+- Sizes: `12px` maximum; normal app/workshop controls/body/table/input/button text around `10px`, subtitles around `11px`, and meta/eyebrow labels around `8-9px`.
+- Letter spacing: `0` only.
+- Colors: strong `#292929`, default `#5D5D5D`, subtle `#7F7F7F`, selected background `#F5F5F5`, border `#F2F2F2`, plus semantic success/warning/danger only for meaning.
+- Radius: `xs` (`3px`) only. No `rounded`, `rounded-sm`, `rounded-md`, `rounded-lg`, `rounded-xl`, `rounded-full`, or arbitrary radius utilities.
+- Icons: regular 1px-outline-style iconography; current Phosphor icons must use regular weight until a dedicated 1px icon library is approved.
 
 ## Current primitive inventory
 
@@ -219,7 +220,7 @@ Workshop/
 Story requirements once Storybook is installed:
 
 1. Each shared primitive gets a default story, density story, disabled/loading/empty story where relevant, and accessibility notes.
-2. Each story must visibly prove non-landing typography stays at or under `12px`.
+2. Each story must visibly prove non-landing typography keeps the compact app/workshop `12px` maximum and expected `10px` control density.
 3. Story names should map to user-facing patterns, not internal implementation quirks.
 4. Feature stories under `Workshop/` may compose primitives but must not introduce new primitive class systems.
 5. Storybook should be a documentation and QA tool, not the source of design truth. `DESIGN.md` remains the token/density source of truth.
@@ -241,9 +242,9 @@ During implementation:
 
 During review:
 
-- Search for raw `<button>`, `<input type="search">`, repeated chip/select/card class strings, and `13px+` typography.
+- Search for raw `<button>`, `<input type="search">`, repeated chip/select/card class strings, non-SF font utilities, non-regular/medium weights, nonzero tracking, non-xs radius, and unapproved icon weights.
 - Treat duplicated controls as blocking defects.
-- Run `bun run lint:font-size` and `bun run type-check` at minimum for UI primitive changes.
+- Run `bun run lint:design-system` and `bun run type-check` at minimum for UI primitive changes. `bun run lint:font-size` is retained as an alias.
 - If browser-visible sizing is disputed, inspect computed styles with Playwright/browser tools rather than trusting source classes.
 
 ## Acceptance criteria
@@ -252,8 +253,10 @@ A UI slice is acceptable only if:
 
 - Shared primitives are reused before feature-local controls.
 - New repeated controls are extracted into `src/components/ui/` or a documented feature-shared component.
-- No non-landing visible text exceeds `12px`.
-- Buttons remain `10px` bold through the shared button primitive.
+- Non-landing visible text stays at or below `12px`, with normal controls/body/table/input/button text around `10px`.
+- Buttons remain medium-weight SF Pro through the shared button primitive.
+- Every visible app/workshop radius is `xs`.
+- App/workshop icons use regular outline weight.
 - The component matrix is updated when a primitive is added or when a repeated pattern becomes clear.
 - Storybook organization impact is noted for new primitives, even before Storybook is installed.
 

@@ -67,8 +67,7 @@ Do not use this slice to add:
 ## Product/UX constraints
 
 - Keep the slice compact and app-like, not marketing-like.
-- Outside the landing page, keep 12px as the maximum font size unless Philip explicitly approves an exception.
-- Normal app/control/table/button text should remain around 10px; meta/eyebrow text around 8-9px.
+- Outside the landing page, follow the enforced SF Pro product design system: compact `12px` maximum with normal app controls around `10px`, regular/medium weights, xs-only radius, zero tracking, neutral reference colors, and regular-outline icons.
 - Use shared UI primitives before adding feature-local raw button/card/input patterns.
 - Keep page chrome pinned where possible; prefer independently scrollable panels over document/body scrolling for workshop surfaces.
 - Do not add navigation labels or modules for features that do not exist.

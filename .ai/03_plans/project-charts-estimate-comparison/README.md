@@ -73,7 +73,7 @@ Do not use this feature to add:
 - Component category grouping prefers `estimate_row_items.category_node_id`.
 - Supplier grouping prefers `estimate_row_items.supplier_id`.
 - Space grouping uses `estimate_row_items.node_id` and `estimate_nodes` ancestry.
-- App typography stays within the `/workshop` hard cap: visible text <= 12px, normal controls around 10px.
+- App typography follows the enforced non-landing system: SF Pro stack, regular/medium weights, compact `12px` maximum, xs-only radius, zero tracking, and regular-outline icons.
 
 ## Non-Goals
 

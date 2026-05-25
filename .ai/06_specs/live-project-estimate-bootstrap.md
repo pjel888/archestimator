@@ -100,7 +100,8 @@ This is app/workshop UI, not landing-page UI.
 - Strong titles: max `text-[12px]`.
 - Body/control text: around `text-[10px]`.
 - Eyebrows/meta: `text-[8px]` to `text-[9px]`.
-- Buttons/links styled as buttons: forced `!text-[10px] !font-bold` through shared primitives.
+- Buttons/links styled as buttons: `!text-[10px] !font-medium` through shared primitives.
+- All radius must be `rounded-xs`; icons should use regular outline weight.
 
 ## Tests and gates
 

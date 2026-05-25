@@ -1,12 +1,39 @@
 # 04 — Implementation Readiness Plan
 
-**Date:** 2026-05-21  
-**Scope:** `EstimateSheetContent.tsx` header-bar styling, node code display, area breadcrumbs, and related markup adjustments. Includes optional future DB migration for user-defined codes.  
+**Date:** 2026-05-21
+**Scope:** `EstimateSheetContent.tsx` header-bar styling, node code display, area breadcrumbs, related markup adjustments, and the Activity History modal's hierarchy scope tree. Includes optional future DB migration for user-defined codes.
 **Estimated implementation size:** Medium (2–3 files, ~150 lines changed; optional DB migration adds 1 migration file + repository updates)
 
 ---
 
 ## 1. Implementation phases
+
+### 2026-05-25 correction — Unified Activity History modal
+
+**Goal:** Replace separate right-slideout activity surfaces with one modal whose left tree includes the whole sheet, Group Nodes, Area Nodes, and row items.
+
+**Files:**
+- `src/components/workshop/EstimateSheetContent.tsx`
+- `tests/vitest/estimate-sheet-version-control-ui.test.tsx`
+- `.ai/03_plans/estimate-sheet-version-control/18-current-activity-contract.md`
+
+**Changes:**
+1. Remove the separate `Node Activity` header action.
+2. Replace the right-side activity/version inspector with a centered `Activity History` modal.
+3. Build a modal-local scope tree from the loaded estimate tree plus row items.
+4. Map sheet, node, and row selections onto the existing scoped `fetchEstimateSheetVersionControl()` API.
+5. Use descendant node scope for Group Nodes and direct node scope for Area Nodes.
+6. Keep row scopes selectable in the `Activity History` modal tree, while row-originated controls open the `Row item details` modal: 3-dot row action to Details, component-card detail action to Component, and row Activity action to the Activity tab.
+7. Preserve pagination, filters, stale response guards, audit-card rendering, and placeholder-row audit labeling.
+
+**Validation:**
+```bash
+bunx vitest run tests/vitest/estimate-sheet-version-control-ui.test.tsx --maxWorkers=1
+bun run validate
+bun run build
+```
+
+**Current evidence:** Implemented and re-verified on 2026-05-25. Browser evidence lives under `.omx/artifacts/visual-ralph/estimate-sheet-version-control/20260525-activity-modal/`.
 
 ### Phase 1 — Core distinction (must have)
 
@@ -282,12 +309,14 @@ Because Phases 1–6 are purely presentational and frontend-only, rollback is im
 - [ ] Unwired header controls (Search, Filter, View) are disabled with "Coming soon" tooltip.
 - [ ] `aria-label` on branch sections and collapse buttons includes the node kind.
 - [ ] Hover states are present on both header types without competing with row-cell hover states.
-- [ ] `bun run validate` passes (type-check, lint, font-size lint, unit tests, vitest).
-- [ ] `bun run build` passes.
+- [x] Activity History is one modal with a left scope tree for sheet, Group Nodes, Area Nodes, and row items.
+- [x] Row controls no longer open a separate row Version History slideout; row-originated actions resolve inside `Row item details`, with Activity as a tab and global row scopes still available from the Activity History tree.
+- [x] `bun run validate` passes (type-check, lint, font-size lint, unit tests, vitest).
+- [x] `bun run build` passes.
 - [ ] Screenshots of root, mid-depth, and leaf nodes are attached to the task for review.
 - [ ] Screenshots verify codes are readable, breadcrumbs are accurate, row numbers are visible, and empty indicators are clear.
 - [ ] No raw `<button>` or `<input>` strings are introduced outside existing shared primitives.
-- [ ] Plan documents in `.ai/03_plans/estimate-sheet-node-distinction/` are updated if implementation reality diverges from the plan.
+- [x] Plan documents in `.ai/03_plans/estimate-sheet-node-distinction/` are updated if implementation reality diverges from the plan.
 
 ---
 

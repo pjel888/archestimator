@@ -6,6 +6,12 @@ The canonical project intelligence root is `.ai/`.
 
 All durable project-management, audit, planning, state, prompt, agent, skill, archive, and research material should live under the numbered folders below.
 
+Repo-level entrypoints outside `.ai` still matter:
+
+- `AGENTS.md` — top-level agent operating contract and current tool/graph rules.
+- `DESIGN.md` — visual/design direction.
+- Source files, migrations, package scripts, and tests — live implementation evidence when docs drift.
+
 ## Top-level canonical folders
 
 - `00_system/` — governance, routing, structure, naming, validation, workflow
@@ -44,6 +50,17 @@ All durable project-management, audit, planning, state, prompt, agent, skill, ar
 - New research pack: `13_research/`
 - Unsorted scratch notes: `99_inbox/`, then triage quickly
 
+## Active authority shortcuts
+
+- Current feature and route truth: `10_state/current-state.md`, then `10_state/decisions.md`.
+- Launch sequence and startup priorities: `01_roadmap/README.md`.
+- Agent recovery from stale context: `00_system/AGENT_SELF_DIAGNOSTIC_PROTOCOL.md`.
+- Validation gates: `00_system/VALIDATION_MATRIX.md`.
+- Feature-specific implementation contracts: the active plan/spec named by `10_state/current-state.md`.
+- Historical plans under `03_plans/` or `09_archive/store/` are not active instructions unless current-state links them as current.
+
 ## Anti-drift rule
 
 Do not create new unnumbered top-level `.ai` content folders. If a new category is needed, add it to this map first with a clear role.
+
+When docs disagree, resolve the disagreement in the canonical home instead of creating another summary. For current implementation claims, verify against source, migrations, tests, and package scripts before updating roadmap/system docs.
