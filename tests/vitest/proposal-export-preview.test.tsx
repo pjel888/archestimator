@@ -108,10 +108,10 @@ describe("ProposalExportPreviewDialog", () => {
     expect(downloadLink).toHaveAttribute("href", "/api/projects/project-1/estimates/estimate-1/export/proposal.xlsx");
 
     const refreshButton = screen.getByRole("button", { name: "Refresh preview" });
-    expect(refreshButton).toHaveClass("h-7", "gap-1", "text-[9px]", "font-bold", "leading-none", "bg-accentSoft", "text-primary");
-    expect(downloadLink).toHaveClass("h-7", "gap-1", "text-[9px]", "font-bold", "leading-none", "bg-primary", "text-white");
-    expect(screen.getByTestId("proposal-preview-refresh-label")).toHaveClass("text-[9px]", "font-bold", "leading-none");
-    expect(screen.getByTestId("proposal-preview-download-label")).toHaveClass("text-[9px]", "font-bold", "leading-none");
+    expect(refreshButton).toHaveClass("h-7", "gap-1", "text-[9px]", "font-medium", "leading-none", "bg-accentSoft", "text-primary");
+    expect(downloadLink).toHaveClass("h-7", "gap-1", "text-[9px]", "font-medium", "leading-none", "bg-primary", "text-white");
+    expect(screen.getByTestId("proposal-preview-refresh-label")).toHaveClass("text-[9px]", "font-medium", "leading-none");
+    expect(screen.getByTestId("proposal-preview-download-label")).toHaveClass("text-[9px]", "font-medium", "leading-none");
 
     await user.click(refreshButton);
     expect(onRefresh).toHaveBeenCalledTimes(1);

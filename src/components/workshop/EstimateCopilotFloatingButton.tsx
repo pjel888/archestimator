@@ -90,22 +90,22 @@ export function EstimateCopilotFloatingButton({
         <section
           role="region"
           aria-label="Estimate Copilot"
-          className="flex h-[min(520px,calc(100dvh-96px))] w-[min(380px,calc(100vw-32px))] flex-col overflow-hidden rounded-lg border border-hairline bg-white shadow-[0_18px_48px_rgba(17,24,39,0.18)]"
+          className="flex h-[min(520px,calc(100dvh-96px))] w-[min(380px,calc(100vw-32px))] flex-col overflow-hidden rounded-xs border border-hairline bg-white shadow-[0_18px_48px_rgba(17,24,39,0.18)]"
         >
           <div className="flex min-h-11 items-center justify-between gap-2 border-b border-hairline px-3">
             <div className="min-w-0">
-              <h2 className="truncate text-[11px] font-bold leading-4 text-ink">Estimate Copilot</h2>
-              <p className="text-[9px] font-bold uppercase leading-3 text-tertiary">Ask only</p>
+              <h2 className="truncate text-[11px] font-medium leading-4 text-ink">Estimate Copilot</h2>
+              <p className="text-[9px] font-medium uppercase leading-3 text-tertiary">Ask only</p>
             </div>
             <Button
               type="button"
               variant="ghost"
               size="icon-sm"
-              className="size-7 rounded-sm text-tertiary hover:bg-surfaceMuted hover:text-ink"
+              className="size-7 rounded-xs text-tertiary hover:bg-surfaceMuted hover:text-ink"
               aria-label="Close Estimate Copilot"
               onClick={() => setOpen(false)}
             >
-              <X size={13} weight="bold" aria-hidden="true" />
+              <X size={13} weight="regular" aria-hidden="true" />
             </Button>
           </div>
           <div className="min-h-0 flex-1 space-y-2 overflow-auto bg-surfaceMuted/35 p-2">
@@ -113,7 +113,7 @@ export function EstimateCopilotFloatingButton({
               <div
                 key={message.id}
                 className={cn(
-                  "max-w-[86%] rounded-md border px-2 py-1.5 text-[10px] font-semibold leading-4",
+                  "max-w-[86%] rounded-xs border px-2 py-1.5 text-[10px] font-medium leading-4",
                   message.role === "user"
                     ? "ml-auto border-ink bg-ink text-white"
                     : "border-hairline bg-white text-ink",
@@ -123,13 +123,13 @@ export function EstimateCopilotFloatingButton({
               </div>
             ))}
             {isSending ? (
-              <div className="max-w-[86%] rounded-md border border-hairline bg-white px-2 py-1.5 text-[10px] font-semibold leading-4 text-tertiary">
+              <div className="max-w-[86%] rounded-xs border border-hairline bg-white px-2 py-1.5 text-[10px] font-medium leading-4 text-tertiary">
                 Thinking...
               </div>
             ) : null}
           </div>
           {error ? (
-            <div role="alert" className="border-t border-dangerSoft bg-dangerSoft px-3 py-2 text-[10px] font-bold leading-4 text-danger">
+            <div role="alert" className="border-t border-dangerSoft bg-dangerSoft px-3 py-2 text-[10px] font-medium leading-4 text-danger">
               {error}
             </div>
           ) : null}
@@ -139,18 +139,18 @@ export function EstimateCopilotFloatingButton({
               value={input}
               onChange={(event) => setInput(event.target.value)}
               placeholder="Ask about this estimate..."
-              className="min-w-0 flex-1 rounded-md border border-hairline bg-white px-2 text-[10px] font-semibold text-ink outline-none transition placeholder:text-tertiary focus:border-accent"
+              className="min-w-0 flex-1 rounded-xs border border-hairline bg-white px-2 text-[10px] font-medium text-ink outline-none transition placeholder:text-tertiary focus:border-accent"
               maxLength={8_000}
             />
             <Button
               type="submit"
               variant="primary"
               size="icon-sm"
-              className="size-8 rounded-md"
+              className="size-8 rounded-xs"
               aria-label="Send message"
               disabled={!input.trim() || isSending}
             >
-              <PaperPlaneRight size={13} weight="bold" aria-hidden="true" />
+              <PaperPlaneRight size={13} weight="regular" aria-hidden="true" />
             </Button>
           </form>
         </section>
@@ -158,12 +158,12 @@ export function EstimateCopilotFloatingButton({
       <Button
         type="button"
         variant="primary"
-        className="grid size-14 place-items-center rounded-full p-0 shadow-[0_14px_34px_rgba(17,24,39,0.28)]"
+        className="grid size-14 place-items-center rounded-xs p-0 shadow-[0_14px_34px_rgba(17,24,39,0.28)]"
         aria-label="Open Estimate Copilot"
         aria-expanded={open}
         onClick={() => setOpen((current) => !current)}
       >
-        <ChatCircleDots size={23} weight="bold" aria-hidden="true" />
+        <ChatCircleDots size={23} weight="regular" aria-hidden="true" />
       </Button>
     </div>
   );

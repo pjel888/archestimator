@@ -51,7 +51,7 @@ export function ProjectCostBubbleChart({ buckets, total, currencyCode, label }: 
 
   if (bubbles.length === 0 || total <= 0) {
     return (
-      <div className="flex min-h-[520px] items-center justify-center rounded border border-dashed border-hairline text-[11px] text-muted-foreground">
+      <div className="flex min-h-[520px] items-center justify-center rounded-xs border border-dashed border-hairline text-[10px] text-muted-foreground">
         No cost rows
       </div>
     );

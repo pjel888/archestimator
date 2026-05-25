@@ -30,12 +30,12 @@ function formatQuantity(value: number) {
 }
 
 const previewActionButtonClass =
-  "inline-flex h-7 items-center justify-center gap-1 rounded-sm px-2 text-[9px] font-bold leading-none tracking-[-0.005em] transition";
+  "inline-flex h-7 items-center justify-center gap-1 rounded-xs px-2 text-[9px] font-medium leading-none tracking-normal transition";
 
-const previewActionTextClass = "text-[9px] font-bold leading-none tracking-[-0.005em]";
+const previewActionTextClass = "text-[9px] font-medium leading-none tracking-normal";
 
 const previewStatusBadgeClass =
-  "inline-flex h-7 items-center justify-center rounded-full px-2 text-[9px] font-bold leading-none tracking-[-0.005em] whitespace-nowrap";
+  "inline-flex h-7 items-center justify-center rounded-xs px-2 text-[9px] font-medium leading-none tracking-normal whitespace-nowrap";
 
 export function ProposalExportPreviewDialog({
   open,
@@ -61,8 +61,8 @@ export function ProposalExportPreviewDialog({
       >
         <header className="flex items-center justify-between gap-3 border-b border-hairline px-3 py-2">
           <div className="min-w-0">
-            <p className="text-[8px] font-bold uppercase tracking-[0.16em] text-tertiary">Industry BOQ export</p>
-            <h2 className="mt-0.5 text-[12px] font-bold tracking-[-0.02em] text-ink">Read-only Excel preview</h2>
+            <p className="text-[8px] font-medium uppercase tracking-normal text-tertiary">Industry BOQ export</p>
+            <h2 className="mt-0.5 text-[10px] font-medium tracking-normal text-ink">Read-only Excel preview</h2>
             <p className="mt-1 max-w-2xl text-[10px] leading-4 text-secondary">
               This preview consolidates identical items across rooms/areas. The workbook becomes editable only after XLSX download.
             </p>
@@ -83,7 +83,7 @@ export function ProposalExportPreviewDialog({
               )}
               onClick={onRefresh}
             >
-              <ArrowClockwise size={11} weight="bold" aria-hidden="true" />
+              <ArrowClockwise size={11} weight="regular" aria-hidden="true" />
               <span className={previewActionTextClass} data-testid="proposal-preview-refresh-label">
                 Refresh preview
               </span>
@@ -93,7 +93,7 @@ export function ProposalExportPreviewDialog({
                 className={cn(previewActionButtonClass, "bg-primary text-white hover:bg-accentDark")}
                 href={downloadHref}
               >
-                <FileXls size={11} weight="bold" aria-hidden="true" />
+                <FileXls size={11} weight="regular" aria-hidden="true" />
                 <span className={previewActionTextClass} data-testid="proposal-preview-download-label">
                   Download editable XLSX
                 </span>
@@ -102,7 +102,7 @@ export function ProposalExportPreviewDialog({
             <button
               type="button"
               aria-label="Close preview"
-              className="grid size-7 place-items-center rounded-sm border border-hairline text-[12px] font-bold leading-none text-tertiary hover:bg-surfaceMuted hover:text-ink"
+              className="grid size-7 place-items-center rounded-xs border border-hairline text-[9px] font-medium leading-none text-tertiary hover:bg-surfaceMuted hover:text-ink"
               onClick={onClose}
             >
               ×
@@ -114,20 +114,20 @@ export function ProposalExportPreviewDialog({
           <div className="flex min-h-0 flex-1 flex-col">
             <div className="grid grid-cols-4 border-b border-hairline bg-surfaceMuted/40 text-[10px]">
               <div className="border-r border-hairline px-3 py-2">
-                <p className="text-[8px] font-bold uppercase tracking-[0.14em] text-tertiary">Project</p>
-                <p className="mt-0.5 truncate font-semibold text-ink">{model.metadata.projectName}</p>
+                <p className="text-[8px] font-medium uppercase tracking-normal text-tertiary">Project</p>
+                <p className="mt-0.5 truncate font-medium text-ink">{model.metadata.projectName}</p>
               </div>
               <div className="border-r border-hairline px-3 py-2">
-                <p className="text-[8px] font-bold uppercase tracking-[0.14em] text-tertiary">Estimate</p>
-                <p className="mt-0.5 truncate font-semibold text-ink">{model.metadata.estimateSheetCode} · {model.metadata.estimateName}</p>
+                <p className="text-[8px] font-medium uppercase tracking-normal text-tertiary">Estimate</p>
+                <p className="mt-0.5 truncate font-medium text-ink">{model.metadata.estimateSheetCode} · {model.metadata.estimateName}</p>
               </div>
               <div className="border-r border-hairline px-3 py-2">
-                <p className="text-[8px] font-bold uppercase tracking-[0.14em] text-tertiary">Rows</p>
-                <p className="mt-0.5 font-semibold tabular-nums text-ink">{model.proposalRows.length} consolidated BOQ rows</p>
+                <p className="text-[8px] font-medium uppercase tracking-normal text-tertiary">Rows</p>
+                <p className="mt-0.5 font-medium tabular-nums text-ink">{model.proposalRows.length} consolidated BOQ rows</p>
               </div>
               <div className="px-3 py-2">
-                <p className="text-[8px] font-bold uppercase tracking-[0.14em] text-tertiary">Grand total</p>
-                <p className="mt-0.5 font-semibold tabular-nums text-ink">{formatMoney(model.totals.grandTotal)}</p>
+                <p className="text-[8px] font-medium uppercase tracking-normal text-tertiary">Grand total</p>
+                <p className="mt-0.5 font-medium tabular-nums text-ink">{formatMoney(model.totals.grandTotal)}</p>
               </div>
             </div>
 
@@ -149,7 +149,7 @@ export function ProposalExportPreviewDialog({
                       "COST AMOUNT",
                       "REMARKS",
                     ].map((header) => (
-                      <th key={header} scope="col" className="border-r border-white/20 px-2 py-2 text-left text-[9px] font-bold uppercase tracking-[0.08em]">
+                      <th key={header} scope="col" className="border-r border-white/20 px-2 py-2 text-left text-[9px] font-medium uppercase tracking-normal">
                         {header}
                       </th>
                     ))}
@@ -160,7 +160,7 @@ export function ProposalExportPreviewDialog({
                     model.proposalRows.map((row) => (
                       <tr key={row.exportRowId} className="border-b border-hairline">
                         <td className="px-2 py-1.5 tabular-nums">{row.rowNumber}</td>
-                        <td className="px-2 py-1.5 font-semibold">{row.tag}</td>
+                        <td className="px-2 py-1.5 font-medium">{row.tag}</td>
                         <td className="max-w-[340px] px-2 py-1.5">{row.particulars}</td>
                         <td className="px-2 py-1.5 text-right tabular-nums">{formatQuantity(row.quantity)}</td>
                         <td className="px-2 py-1.5">{row.unit}</td>
@@ -169,7 +169,7 @@ export function ProposalExportPreviewDialog({
                         <td className="px-2 py-1.5 text-right tabular-nums">{formatMoney(row.materialSubtotal)}</td>
                         <td className="px-2 py-1.5 text-right tabular-nums">{formatMoney(row.laborSubtotal)}</td>
                         <td className="px-2 py-1.5 text-right tabular-nums">{formatMoney(row.miscSubtotal)}</td>
-                        <td className="px-2 py-1.5 text-right font-semibold tabular-nums">{formatMoney(row.costAmount)}</td>
+                        <td className="px-2 py-1.5 text-right font-medium tabular-nums">{formatMoney(row.costAmount)}</td>
                         <td className="max-w-[280px] px-2 py-1.5 text-tertiary">{row.remarks}</td>
                       </tr>
                     ))
@@ -181,9 +181,9 @@ export function ProposalExportPreviewDialog({
                     </tr>
                   )}
                 </tbody>
-                <tfoot className="bg-surfaceMuted font-bold">
+                <tfoot className="bg-surfaceMuted font-medium">
                   <tr>
-                    <td colSpan={7} className="px-2 py-2 text-right uppercase tracking-[0.08em] text-secondary">Grand total</td>
+                    <td colSpan={7} className="px-2 py-2 text-right uppercase tracking-normal text-secondary">Grand total</td>
                     <td className="px-2 py-2 text-right tabular-nums">{formatMoney(model.totals.materialSubtotal)}</td>
                     <td className="px-2 py-2 text-right tabular-nums">{formatMoney(model.totals.laborSubtotal)}</td>
                     <td className="px-2 py-2 text-right tabular-nums">{formatMoney(model.totals.miscSubtotal)}</td>

@@ -73,15 +73,50 @@ describe("estimate sheet version control UI", () => {
     renderEstimateSheet();
 
     await user.click(screen.getByRole("button", { name: "Activity" }));
-    const sheetDialog = await screen.findByRole("dialog", { name: "Sheet activity" });
-    expect(within(sheetDialog).getByRole("tab", { name: "Activity" })).toHaveAttribute("aria-selected", "true");
+    const sheetDialog = await screen.findByRole("dialog", { name: "Activity History" });
+    const scopeSearch = within(sheetDialog).getByRole("searchbox", { name: "Search Tree" });
+    expect(scopeSearch).toBeInTheDocument();
+    expect(within(sheetDialog).getByRole("button", { name: "Filter tree" })).toBeInTheDocument();
+    expect(within(sheetDialog).getByRole("button", { name: "Group tree" })).toBeInTheDocument();
+    expect(within(sheetDialog).getByRole("button", { name: "Expand all tree" })).toBeInTheDocument();
+    expect(within(sheetDialog).getByRole("button", { name: "Collapse all tree" })).toBeInTheDocument();
+    expect(within(sheetDialog).getByRole("button", { name: "Add Group" })).toBeDisabled();
+    expect(within(sheetDialog).getByRole("button", { name: "Add Node" })).toBeDisabled();
+    expect(within(sheetDialog).getByRole("tab", { name: "Sheets" })).toHaveAttribute("aria-selected", "true");
+    const scopeTree = within(sheetDialog).getByRole("tree", { name: "Activity scope tree" });
+    expect(scopeTree).toBeInTheDocument();
+    expect(scopeTree.querySelectorAll("[data-workshop-tree-row]").length).toBeGreaterThan(0);
+    expect(within(scopeTree).queryByText(/₱/)).not.toBeInTheDocument();
+    expect(within(sheetDialog).getByRole("treeitem", { name: /Lewis Residence Estimate/i })).toHaveAttribute("aria-selected", "true");
+    expect(within(sheetDialog).getByRole("treeitem", { name: /Main House/i })).toBeInTheDocument();
+    expect(within(sheetDialog).getByRole("treeitem", { name: /Living Area/i })).toBeInTheDocument();
+    expect(within(sheetDialog).getByRole("treeitem", { name: /Hardwood Oak Flooring/i })).toBeInTheDocument();
+    expect(within(sheetDialog).queryByText("Whole estimate sheet")).not.toBeInTheDocument();
+    const selectedScopeHeader = within(sheetDialog).getByRole("region", { name: "Selected activity scope" });
+    expect(within(selectedScopeHeader).getByText("ES-001")).toBeInTheDocument();
+    expect(within(selectedScopeHeader).getByText("Lewis Residence Estimate")).toBeInTheDocument();
+    expect(within(selectedScopeHeader).queryByText("Scope total")).not.toBeInTheDocument();
+    expect(within(selectedScopeHeader).queryByText(/₱/)).not.toBeInTheDocument();
+    expect(within(sheetDialog).queryByText(/^\d+ events?$/)).not.toBeInTheDocument();
+    expect(within(sheetDialog).queryByRole("button", { name: "Reset activity filters" })).not.toBeInTheDocument();
     expect(within(sheetDialog).queryByRole("tab", { name: "Versions" })).not.toBeInTheDocument();
     expect(within(sheetDialog).queryByText("Create version")).not.toBeInTheDocument();
     expect(within(sheetDialog).queryByRole("button", { name: "Compare" })).not.toBeInTheDocument();
     expect(within(sheetDialog).queryByRole("button", { name: /Restore/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Node Activity" })).not.toBeInTheDocument();
+
+    await user.click(within(sheetDialog).getByRole("button", { name: "Collapse all tree" }));
+    expect(within(sheetDialog).queryByRole("treeitem", { name: /Hardwood Oak Flooring/i })).not.toBeInTheDocument();
+
+    await user.click(within(sheetDialog).getByRole("button", { name: "Expand all tree" }));
+    expect(within(sheetDialog).getByRole("treeitem", { name: /Hardwood Oak Flooring/i })).toBeInTheDocument();
+
+    await user.type(scopeSearch, "Hardwood");
+    expect(within(sheetDialog).getByRole("treeitem", { name: /Hardwood Oak Flooring/i })).toBeInTheDocument();
+    expect(within(sheetDialog).queryByRole("treeitem", { name: /SANDSBERG Dining Table/i })).not.toBeInTheDocument();
   });
 
-  it("shows row component changes as row-style component snapshots", async () => {
+  it("structures row component changes with explicit before-and-after snapshot evidence", async () => {
     const user = userEvent.setup();
     actionMocks.fetchEstimateSheetVersionControl.mockResolvedValue({
       events: [],
@@ -99,17 +134,19 @@ describe("estimate sheet version control UI", () => {
             material: "Hardwood Oak Flooring",
             description: "Solid hardwood flooring supply and installation.",
             supplier: "Elegant Floors Inc.",
+            brand: "Oakline",
             unit: "sqm",
             unitCost: 1200,
-            sourceSnapshot: { category: "Finishes", imageUrl: "/component-thumbnails/living-hardwood-oak-flooring.jpg" },
+            sourceSnapshot: { brand: "Oakline", category: "Finishes", imageUrl: "/component-thumbnails/living-hardwood-oak-flooring.jpg", supplier: "Elegant Floors Inc." },
           },
           newSnapshot: {
             material: "HEMLINGBY Loveseat",
             description: "IKEA Philippines loveseat, Knisa dark gray.",
             supplier: "IKEA Philippines",
+            brand: "IKEA",
             unit: "pc",
             unitCost: 7999,
-            sourceSnapshot: { category: "Furniture", imageUrl: "/component-thumbnails/lib-sofa.jpg" },
+            sourceSnapshot: { brand: "IKEA", category: "Furniture", imageUrl: "/component-thumbnails/lib-sofa.jpg", supplier: "IKEA Philippines" },
           },
           changedFields: ["material", "supplier", "unitCost", "sourceSnapshot"],
           totalDelta: 12500,
@@ -163,29 +200,44 @@ describe("estimate sheet version control UI", () => {
 
     renderEstimateSheet();
 
-    await user.click(screen.getByRole("button", { name: "Open row menu for Hardwood Oak Flooring" }));
-    const rowDialog = await screen.findByRole("dialog", { name: "Row details" });
+    await user.click(screen.getByRole("button", { name: "Open row activity for Hardwood Oak Flooring" }));
+    const rowDialog = await screen.findByRole("dialog", { name: "Row item details" });
 
     await waitFor(() => {
-      expect(within(rowDialog).getByLabelText("HEMLINGBY Loveseat history component snapshot")).toBeInTheDocument();
+      expect(within(rowDialog).getByLabelText("After component snapshot for HEMLINGBY Loveseat")).toBeInTheDocument();
     });
 
-    const componentSnapshot = within(rowDialog).getByLabelText("HEMLINGBY Loveseat history component snapshot");
-    const replacementCard = within(rowDialog).getByLabelText("Row replaced audit event");
-    const scalarCard = within(rowDialog).getByLabelText("Row updated audit event");
+    const replacementCard = within(rowDialog).getByLabelText(/^Row replaced audit event/);
+    const scalarCard = within(rowDialog).getByLabelText(/^Row updated audit event/);
+    const beforeSnapshot = within(replacementCard).getByLabelText("Before component snapshot for Hardwood Oak Flooring");
+    const afterSnapshot = within(replacementCard).getByLabelText("After component snapshot for HEMLINGBY Loveseat");
     expect(within(rowDialog).getByText("May 24, 10:30 AM")).toBeInTheDocument();
     expect(within(rowDialog).getByText("May 24, 10:45 AM")).toBeInTheDocument();
     expect(within(replacementCard).getByText("Row replaced")).toBeInTheDocument();
-    expect(within(replacementCard).getByText("Hardwood Oak Flooring -> HEMLINGBY Loveseat")).toBeInTheDocument();
+    expect(within(replacementCard).getByText("Replaced Hardwood Oak Flooring (Brand: Oakline; Supplier: Elegant Floors Inc.) with HEMLINGBY Loveseat (Brand: IKEA; Supplier: IKEA Philippines).")).toBeInTheDocument();
+    expect(within(replacementCard).getByText("Hardwood Oak Flooring (Brand: Oakline; Supplier: Elegant Floors Inc.) -> HEMLINGBY Loveseat (Brand: IKEA; Supplier: IKEA Philippines)")).toBeInTheDocument();
+    expect(within(replacementCard).getByText("Audit facts")).toBeInTheDocument();
+    expect(within(replacementCard).getByText("Component snapshot evidence")).toBeInTheDocument();
+    expect(replacementCard.querySelectorAll("[data-row-history-component-card]")).toHaveLength(2);
     expect(within(replacementCard).getByText("Material")).toBeInTheDocument();
     expect(within(replacementCard).getByText(/\+₱\s?12,500\.00/)).toBeInTheDocument();
-    expect(within(componentSnapshot).getByText("HEMLINGBY Loveseat")).toBeInTheDocument();
-    expect(within(componentSnapshot).getByText("IKEA Philippines")).toBeInTheDocument();
-    expect(within(componentSnapshot).getByText("IKEA Philippines loveseat, Knisa dark gray.")).toBeInTheDocument();
-    expect(within(componentSnapshot).getByText("/ pc")).toBeInTheDocument();
+    expect(within(beforeSnapshot).getByText("Before component")).toBeInTheDocument();
+    expect(within(beforeSnapshot).getByText("Hardwood Oak Flooring")).toBeInTheDocument();
+    expect(within(beforeSnapshot).getByText("Elegant Floors Inc.")).toBeInTheDocument();
+    expect(within(beforeSnapshot).getByText("Finishes")).toBeInTheDocument();
+    expect(within(afterSnapshot).getByText("After component")).toBeInTheDocument();
+    expect(within(afterSnapshot).getByText("HEMLINGBY Loveseat")).toBeInTheDocument();
+    expect(within(afterSnapshot).getByText("IKEA Philippines")).toBeInTheDocument();
+    expect(within(afterSnapshot).getByText("IKEA Philippines loveseat, Knisa dark gray.")).toBeInTheDocument();
+    expect(within(afterSnapshot).getByText("Furniture")).toBeInTheDocument();
+    expect(within(afterSnapshot).getByText("pc")).toBeInTheDocument();
     expect(within(scalarCard).getByText("Row updated")).toBeInTheDocument();
-    expect(within(scalarCard).getByText("quantity, contingency percentage, misc cost")).toBeInTheDocument();
+    expect(within(scalarCard).getByText("Changed quantity, contingency, and misc cost for Hardwood Oak Flooring.")).toBeInTheDocument();
+    expect(within(scalarCard).getByText("Affected fields: quantity, contingency percentage, misc cost")).toBeInTheDocument();
+    expect(within(scalarCard).getByText("Audit facts")).toBeInTheDocument();
     expect(within(scalarCard).getByText("Quantity")).toBeInTheDocument();
+    expect(within(scalarCard).getAllByText("Previous").length).toBeGreaterThan(0);
+    expect(within(scalarCard).getAllByText("Current").length).toBeGreaterThan(0);
     expect(within(scalarCard).getByText("48 sqm")).toBeInTheDocument();
     expect(within(scalarCard).getByText("50 sqm")).toBeInTheDocument();
     expect(within(scalarCard).getByText("Contingency")).toBeInTheDocument();
@@ -193,7 +245,59 @@ describe("estimate sheet version control UI", () => {
     expect(within(scalarCard).getByText("10% (₱ 6,000.00)")).toBeInTheDocument();
     expect(within(scalarCard).getByText("Misc cost")).toBeInTheDocument();
     expect(within(scalarCard).getByText("₱ 1,200.00")).toBeInTheDocument();
-    expect(within(rowDialog).queryByLabelText("Hardwood Oak Flooring history component snapshot")).not.toBeInTheDocument();
+    expect(scalarCard.querySelector("[data-audit-component-snapshots]")).not.toBeInTheDocument();
+  });
+
+  it("keeps component snapshot layout stable when the stored source has no image", async () => {
+    const user = userEvent.setup();
+    actionMocks.fetchEstimateSheetVersionControl.mockResolvedValue({
+      events: [],
+      rowEvents: [
+        {
+          id: "row-event-no-image",
+          eventType: "row_added",
+          eventSource: "server_action",
+          createdAt: "2026-05-24T03:15:00.000Z",
+          actorUserId: null,
+          targetRowId: "living-hardwood-oak-flooring",
+          estimateNodeId: "living-area",
+          rowContext: { material: "Manual Stone Countertop" },
+          oldSnapshot: null,
+          newSnapshot: {
+            material: "Manual Stone Countertop",
+            description: "Owner-supplied countertop allowance.",
+            supplier: "Local fabricator",
+            unit: "lm",
+            quantity: 3,
+            unitCost: 4500,
+            lineTotal: 13500,
+            sourceLibraryItemId: "11111111-1111-4111-8111-111111111111",
+            sourceSnapshot: { category: "Finishes" },
+          },
+          changedFields: ["row"],
+          totalDelta: 13500,
+          payload: {},
+          correlationId: "row-history-no-image",
+        },
+      ],
+      nextCursor: null,
+      rowNextCursor: null,
+      nodeEvents: [],
+      nodeNextCursor: null,
+    });
+
+    renderEstimateSheet();
+
+    await user.click(screen.getByRole("button", { name: "Open row activity for Hardwood Oak Flooring" }));
+    const rowDialog = await screen.findByRole("dialog", { name: "Row item details" });
+
+    const snapshot = await within(rowDialog).findByLabelText("Component added snapshot for Manual Stone Countertop");
+    expect(within(snapshot).getByText("No image in snapshot")).toBeInTheDocument();
+    expect(within(snapshot).getByText("Manual Stone Countertop")).toBeInTheDocument();
+    expect(within(snapshot).getByText("Local fabricator")).toBeInTheDocument();
+    expect(within(snapshot).getByText("3 lm")).toBeInTheDocument();
+    expect(within(snapshot).getByText("₱ 4,500.00")).toBeInTheDocument();
+    expect(within(snapshot).getByText("₱ 13,500.00")).toBeInTheDocument();
   });
 
   it("shows sheet activity audit cards with old-to-new details by default", async () => {
@@ -206,6 +310,7 @@ describe("estimate sheet version control UI", () => {
           eventSource: "server_action",
           createdAt: "2026-05-24T03:00:00.000Z",
           actorUserId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+          actorLabel: "Philip Lewis",
           targetRowId: null,
           estimateNodeId: null,
           rowContext: {},
@@ -225,16 +330,157 @@ describe("estimate sheet version control UI", () => {
     renderEstimateSheet();
 
     await user.click(screen.getByRole("button", { name: "Activity" }));
-    const sheetDialog = await screen.findByRole("dialog", { name: "Sheet activity" });
-    const sheetActivityCard = within(sheetDialog).getByLabelText("Sheet code updated audit event");
+    const sheetDialog = await screen.findByRole("dialog", { name: "Activity History" });
+    const sheetActivityCard = within(sheetDialog).getByLabelText(/^Sheet code updated audit event/);
 
-    expect(within(sheetDialog).getByRole("tab", { name: "Activity" })).toHaveAttribute("aria-selected", "true");
     expect(within(sheetActivityCard).getByText("Sheet code updated")).toBeInTheDocument();
-    expect(within(sheetActivityCard).getByText("User aaaaaaaa")).toBeInTheDocument();
+    const dayRegion = within(sheetDialog).getByRole("region", { name: "May 24, 2026 activity" });
+    expect(dayRegion).toBeInTheDocument();
+    expect(within(dayRegion).getByText("May 24, 2026").parentElement).not.toHaveClass("sticky");
+    expect(within(sheetActivityCard).getByText("Audit facts")).toBeInTheDocument();
+    expect(within(sheetActivityCard).getByText("Philip Lewis")).toBeInTheDocument();
+    expect(within(sheetActivityCard).queryByText(/^User /)).not.toBeInTheDocument();
+    expect(within(sheetActivityCard).queryByText("Server action")).not.toBeInTheDocument();
     expect(within(sheetActivityCard).getByText("Sheet code")).toBeInTheDocument();
+    expect(within(sheetActivityCard).getByText("Previous")).toBeInTheDocument();
+    expect(within(sheetActivityCard).getByText("Current")).toBeInTheDocument();
     expect(within(sheetActivityCard).getByText("ES-001")).toBeInTheDocument();
     expect(within(sheetActivityCard).getByText("ES-002")).toBeInTheDocument();
     expect(within(sheetActivityCard).getByText("no total change")).toBeInTheDocument();
+  });
+
+  it("renders library sync changes without link-state jargon", async () => {
+    const user = userEvent.setup();
+    actionMocks.fetchEstimateSheetVersionControl.mockResolvedValue({
+      events: [
+        {
+          id: "sheet-event-library-status",
+          eventType: "row_updated",
+          eventSource: "server_action",
+          createdAt: "2026-05-25T11:27:00.000Z",
+          actorUserId: "4e23801d-6fc2-4886-b980-d15ca2b164b8",
+          actorLabel: "Philip Lewis",
+          targetRowId: "side-and-coffee-tables",
+          estimateNodeId: "family-lounge",
+          rowContext: { material: "Side and coffee tables" },
+          oldSnapshot: {
+            changed: {
+              material: "Side and coffee tables",
+              linkState: "linked-clean",
+              quantity: 1,
+              unit: "set",
+            },
+          },
+          newSnapshot: {
+            changed: {
+              material: "Side and coffee tables",
+              linkState: "linked-overridden",
+              quantity: 18,
+              unit: "set",
+            },
+          },
+          changedFields: ["linkState", "quantity"],
+          totalDelta: 166600,
+          payload: {},
+          correlationId: "sheet-history-library-status",
+        },
+      ],
+      rowEvents: [],
+      nodeEvents: [],
+      nextCursor: null,
+      rowNextCursor: null,
+      nodeNextCursor: null,
+    });
+
+    renderEstimateSheet();
+
+    await user.click(screen.getByRole("button", { name: "Activity" }));
+    const sheetDialog = await screen.findByRole("dialog", { name: "Activity History" });
+    const auditCard = within(sheetDialog).getByLabelText(/^Row updated audit event/);
+
+    expect(within(auditCard).getByText("Changed library status and quantity for Side and coffee tables.")).toBeInTheDocument();
+    expect(within(auditCard).getByText("Affected fields: library status, quantity")).toBeInTheDocument();
+    expect(within(auditCard).getByText("Library status")).toBeInTheDocument();
+    expect(within(auditCard).getByText("Using library values")).toBeInTheDocument();
+    expect(within(auditCard).getByText("Customized from library")).toBeInTheDocument();
+    expect(within(auditCard).queryByText("Link state")).not.toBeInTheDocument();
+    expect(within(auditCard).queryByText("Linked Clean")).not.toBeInTheDocument();
+    expect(within(auditCard).queryByText("Linked Overridden")).not.toBeInTheDocument();
+  });
+
+  it("renders blank placeholder row activity as audit text instead of component drop targets", async () => {
+    const user = userEvent.setup();
+    actionMocks.fetchEstimateSheetVersionControl.mockResolvedValue({
+      events: [
+        {
+          id: "blank-row-added",
+          eventType: "row_blank_added",
+          eventSource: "server_action",
+          createdAt: "2026-05-24T11:47:00.000Z",
+          actorUserId: "4e23801d-0000-4000-8000-000000000000",
+          targetRowId: "blank-row-1",
+          estimateNodeId: "living-area",
+          rowContext: { material: "Drag or add a component here" },
+          oldSnapshot: null,
+          newSnapshot: {
+            material: "Drag or add a component here",
+            description: "",
+            supplier: "",
+            unit: "unit",
+            unitCost: 0,
+            lineTotal: 0,
+            sourceLibraryItemId: null,
+            sourceSnapshot: {},
+          },
+          changedFields: ["row"],
+          totalDelta: 0,
+          payload: {},
+          correlationId: "blank-row-added",
+        },
+        {
+          id: "blank-row-deleted",
+          eventType: "row_deleted",
+          eventSource: "server_action",
+          createdAt: "2026-05-24T11:48:00.000Z",
+          actorUserId: "4e23801d-0000-4000-8000-000000000000",
+          targetRowId: "blank-row-1",
+          estimateNodeId: "living-area",
+          rowContext: { material: "Drag or add a component here" },
+          oldSnapshot: {
+            material: "Drag or add a component here",
+            description: "",
+            supplier: "",
+            unit: "unit",
+            unitCost: 0,
+            lineTotal: 0,
+            sourceLibraryItemId: null,
+            sourceSnapshot: {},
+          },
+          newSnapshot: null,
+          changedFields: ["row"],
+          totalDelta: 0,
+          payload: {},
+          correlationId: "blank-row-deleted",
+        },
+      ],
+      rowEvents: [],
+      nodeEvents: [],
+      nextCursor: null,
+      rowNextCursor: null,
+      nodeNextCursor: null,
+    });
+
+    renderEstimateSheet();
+
+    await user.click(screen.getByRole("button", { name: "Activity" }));
+    const sheetDialog = await screen.findByRole("dialog", { name: "Activity History" });
+
+    expect(within(sheetDialog).getByText("Empty row slot added")).toBeInTheDocument();
+    expect(within(sheetDialog).getByText("Empty row slot removed")).toBeInTheDocument();
+    expect(within(sheetDialog).getAllByText("Unknown user").length).toBeGreaterThan(0);
+    expect(within(sheetDialog).queryByText(/User 4E23801D/i)).not.toBeInTheDocument();
+    expect(within(sheetDialog).queryByText("Drag or add a component here")).not.toBeInTheDocument();
+    expect(sheetDialog.querySelector("[data-row-history-component-card]")).not.toBeInTheDocument();
   });
 
   it("loads more sheet activity with the returned cursor", async () => {
@@ -294,13 +540,13 @@ describe("estimate sheet version control UI", () => {
     renderEstimateSheet();
 
     await user.click(screen.getByRole("button", { name: "Activity" }));
-    const sheetDialog = await screen.findByRole("dialog", { name: "Sheet activity" });
-    expect(within(sheetDialog).getByLabelText("Sheet code updated audit event")).toBeInTheDocument();
+    const sheetDialog = await screen.findByRole("dialog", { name: "Activity History" });
+    expect(within(sheetDialog).getByLabelText(/^Sheet code updated audit event/)).toBeInTheDocument();
 
     await user.click(within(sheetDialog).getByRole("button", { name: "Load more activity" }));
 
     await waitFor(() => {
-      expect(within(sheetDialog).getByLabelText("Sheet metadata updated audit event")).toBeInTheDocument();
+      expect(within(sheetDialog).getByLabelText(/^Sheet metadata updated audit event/)).toBeInTheDocument();
     });
     expect(actionMocks.fetchEstimateSheetVersionControl).toHaveBeenLastCalledWith(expect.objectContaining({
       projectId: "project-1",
@@ -312,7 +558,7 @@ describe("estimate sheet version control UI", () => {
     }));
   });
 
-  it("loads more row Version History with the row cursor", async () => {
+  it("loads more row activity with the row cursor", async () => {
     const user = userEvent.setup();
     const cursor = {
       createdAt: "2026-05-24T02:45:00.000Z",
@@ -368,27 +614,26 @@ describe("estimate sheet version control UI", () => {
 
     renderEstimateSheet();
 
-    await user.click(screen.getByRole("button", { name: "Open row menu for Hardwood Oak Flooring" }));
-    const rowDialog = await screen.findByRole("dialog", { name: "Row details" });
-    expect(within(rowDialog).getByText("quantity")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Open row activity for Hardwood Oak Flooring" }));
+    const rowDialog = await screen.findByRole("dialog", { name: "Row item details" });
+    expect(within(rowDialog).getByText("Affected fields: quantity")).toBeInTheDocument();
 
-    await user.click(within(rowDialog).getByRole("button", { name: "Load more row history" }));
+    await user.click(within(rowDialog).getByRole("button", { name: "Load more row activity" }));
 
     await waitFor(() => {
-      expect(within(rowDialog).getByText("misc cost")).toBeInTheDocument();
+      expect(within(rowDialog).getByText("Affected fields: misc cost")).toBeInTheDocument();
     });
     expect(actionMocks.fetchEstimateSheetVersionControl).toHaveBeenLastCalledWith(expect.objectContaining({
       projectId: "project-1",
       estimateId: "estimate-1",
       rowId: "living-hardwood-oak-flooring",
       eventLimit: 50,
-      sheetCursor: undefined,
       rowCursor: cursor,
       scope: "row",
     }));
   });
 
-  it("keeps pending row load-more state coherent across row tab changes", async () => {
+  it("keeps pending row load-more state coherent across activity scope changes", async () => {
     const user = userEvent.setup();
     const cursor = {
       createdAt: "2026-05-24T02:45:00.000Z",
@@ -396,6 +641,14 @@ describe("estimate sheet version control UI", () => {
     };
     const pendingRowLoadMore = deferred<Awaited<ReturnType<typeof actionMocks.fetchEstimateSheetVersionControl>>>();
     actionMocks.fetchEstimateSheetVersionControl
+      .mockResolvedValueOnce({
+        events: [],
+        rowEvents: [],
+        nodeEvents: [],
+        nextCursor: null,
+        rowNextCursor: null,
+        nodeNextCursor: null,
+      })
       .mockResolvedValueOnce({
         events: [],
         rowEvents: [
@@ -419,18 +672,30 @@ describe("estimate sheet version control UI", () => {
         nextCursor: null,
         rowNextCursor: cursor,
       })
-      .mockReturnValueOnce(pendingRowLoadMore.promise);
+      .mockReturnValueOnce(pendingRowLoadMore.promise)
+      .mockResolvedValueOnce({
+        events: [],
+        rowEvents: [],
+        nodeEvents: [],
+        nextCursor: null,
+        rowNextCursor: null,
+        nodeNextCursor: null,
+      });
 
     renderEstimateSheet();
 
-    await user.click(screen.getByRole("button", { name: "Open row menu for Hardwood Oak Flooring" }));
-    const rowDialog = await screen.findByRole("dialog", { name: "Row details" });
-    expect(within(rowDialog).getByText("quantity")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Activity" }));
+    const rowDialog = await screen.findByRole("dialog", { name: "Activity History" });
+    await user.click(within(rowDialog).getByRole("treeitem", { name: /Hardwood Oak Flooring/i }));
+    expect(within(rowDialog).getByText("Affected fields: quantity")).toBeInTheDocument();
 
-    await user.click(within(rowDialog).getByRole("button", { name: "Load more row history" }));
-    await user.click(within(rowDialog).getByRole("tab", { name: "Summary" }));
-    await user.click(within(rowDialog).getByRole("tab", { name: "Source" }));
-    expect(actionMocks.fetchEstimateSheetVersionControl).toHaveBeenCalledTimes(2);
+    await user.click(within(rowDialog).getByRole("button", { name: "Load more row activity" }));
+    await user.click(within(rowDialog).getByRole("treeitem", { name: /Lewis Residence Estimate/i }));
+    await waitFor(() => {
+      expect(within(rowDialog).getByText("No sheet activity yet")).toBeInTheDocument();
+    });
+    expect(within(rowDialog).queryByRole("button", { name: "Loading..." })).not.toBeInTheDocument();
+    expect(actionMocks.fetchEstimateSheetVersionControl).toHaveBeenCalledTimes(4);
 
     pendingRowLoadMore.resolve({
       events: [],
@@ -455,13 +720,12 @@ describe("estimate sheet version control UI", () => {
       nextCursor: null,
       rowNextCursor: null,
     });
-    await user.click(within(rowDialog).getByRole("tab", { name: "Version History" }));
+    await Promise.resolve();
+    await Promise.resolve();
 
-    await waitFor(() => {
-      expect(within(rowDialog).getByText("misc cost")).toBeInTheDocument();
-    });
+    expect(within(rowDialog).queryByText("misc cost")).not.toBeInTheDocument();
     expect(within(rowDialog).queryByRole("button", { name: "Loading..." })).not.toBeInTheDocument();
-    expect(actionMocks.fetchEstimateSheetVersionControl).toHaveBeenCalledTimes(2);
+    expect(actionMocks.fetchEstimateSheetVersionControl).toHaveBeenCalledTimes(4);
   });
 
   it("does not render dormant named-version event records in Activity", async () => {
@@ -478,7 +742,7 @@ describe("estimate sheet version control UI", () => {
     renderEstimateSheet();
 
     await user.click(screen.getByRole("button", { name: "Activity" }));
-    const sheetDialog = await screen.findByRole("dialog", { name: "Sheet activity" });
+    const sheetDialog = await screen.findByRole("dialog", { name: "Activity History" });
 
     await waitFor(() => {
       expect(actionMocks.fetchEstimateSheetVersionControl).toHaveBeenCalledWith(expect.objectContaining({ scope: "sheet" }));
@@ -519,24 +783,15 @@ describe("estimate sheet version control UI", () => {
     renderEstimateSheet();
 
     await user.click(screen.getByRole("button", { name: "Activity" }));
-    await screen.findByRole("dialog", { name: "Sheet activity" });
-
-    const rejectDuringScopeSwitch = (event: Event) => {
-      const target = event.target instanceof Element ? event.target : null;
-      if (!target?.closest('button[aria-label="Open row menu for Hardwood Oak Flooring"]')) return;
-      staleInitialFetch.reject(new Error("stale initial sheet load failed"));
-    };
-    document.addEventListener("click", rejectDuringScopeSwitch);
-    try {
-      await user.click(screen.getByRole("button", { name: "Open row menu for Hardwood Oak Flooring" }));
-    } finally {
-      document.removeEventListener("click", rejectDuringScopeSwitch);
-    }
-
-    const rowDialog = await screen.findByRole("dialog", { name: "Row details" });
+    const rowDialog = await screen.findByRole("dialog", { name: "Activity History" });
+    await user.click(within(rowDialog).getByRole("treeitem", { name: /Hardwood Oak Flooring/i }));
+    await waitFor(() => {
+      expect(actionMocks.fetchEstimateSheetVersionControl).toHaveBeenLastCalledWith(expect.objectContaining({ scope: "row" }));
+    });
+    staleInitialFetch.reject(new Error("stale initial sheet load failed"));
 
     await waitFor(() => {
-      expect(within(rowDialog).getByText("quantity")).toBeInTheDocument();
+      expect(within(rowDialog).getByText("Affected fields: quantity")).toBeInTheDocument();
     });
     expect(within(rowDialog).queryByText("stale initial sheet load failed")).not.toBeInTheDocument();
   });
@@ -600,11 +855,11 @@ describe("estimate sheet version control UI", () => {
     renderEstimateSheet();
 
     await user.click(screen.getByRole("button", { name: "Activity" }));
-    const sheetDialog = await screen.findByRole("dialog", { name: "Sheet activity" });
+    const sheetDialog = await screen.findByRole("dialog", { name: "Activity History" });
     await user.click(within(sheetDialog).getByRole("button", { name: "Load more activity" }));
-    await user.click(screen.getByRole("button", { name: "Open row menu for Hardwood Oak Flooring" }));
+    await user.click(within(sheetDialog).getByRole("treeitem", { name: /Hardwood Oak Flooring/i }));
 
-    const rowDialog = await screen.findByRole("dialog", { name: "Row details" });
+    const rowDialog = await screen.findByRole("dialog", { name: "Activity History" });
     staleLoadMore.resolve({
       events: [
         {
@@ -632,9 +887,9 @@ describe("estimate sheet version control UI", () => {
     });
 
     await waitFor(() => {
-      expect(within(rowDialog).getByText("quantity")).toBeInTheDocument();
+      expect(within(rowDialog).getByText("Affected fields: quantity")).toBeInTheDocument();
     });
-    expect(within(rowDialog).queryByLabelText("Sheet metadata updated audit event")).not.toBeInTheDocument();
+    expect(within(rowDialog).queryByLabelText(/^Sheet metadata updated audit event/)).not.toBeInTheDocument();
   });
 
   it("opens node activity for the selected node without named-version controls", async () => {
@@ -668,9 +923,10 @@ describe("estimate sheet version control UI", () => {
 
     renderEstimateSheet();
 
-    await user.click(screen.getByRole("button", { name: "Node Activity" }));
-    const nodeDialog = await screen.findByRole("dialog", { name: "Node activity" });
-    const nodeActivityCard = within(nodeDialog).getByLabelText("Node renamed audit event");
+    await user.click(screen.getByRole("button", { name: "Activity" }));
+    const nodeDialog = await screen.findByRole("dialog", { name: "Activity History" });
+    await user.click(within(nodeDialog).getByRole("treeitem", { name: /Living Area/i }));
+    const nodeActivityCard = within(nodeDialog).getByLabelText(/^Node renamed audit event/);
 
     expect(within(nodeActivityCard).getByText("Node renamed")).toBeInTheDocument();
     expect(within(nodeActivityCard).getByText("Philip Lewis")).toBeInTheDocument();
@@ -684,12 +940,60 @@ describe("estimate sheet version control UI", () => {
     }));
   });
 
+  it("selects group nodes from the activity tree with descendant scope", async () => {
+    const user = userEvent.setup();
+    actionMocks.fetchEstimateSheetVersionControl.mockResolvedValue({
+      events: [],
+      rowEvents: [],
+      nodeEvents: [
+        {
+          id: "group-event-1",
+          eventType: "template_inserted",
+          eventSource: "server_action",
+          createdAt: "2026-05-24T04:30:00.000Z",
+          actorUserId: null,
+          targetRowId: null,
+          estimateNodeId: "living-area",
+          rowContext: {},
+          oldSnapshot: null,
+          newSnapshot: { name: "Living package" },
+          changedFields: ["template"],
+          totalDelta: 25000,
+          payload: {},
+          correlationId: "group-history-1",
+        },
+      ],
+      nextCursor: null,
+      rowNextCursor: null,
+      nodeNextCursor: null,
+    });
+
+    renderEstimateSheet();
+
+    await user.click(screen.getByRole("button", { name: "Activity" }));
+    const activityDialog = await screen.findByRole("dialog", { name: "Activity History" });
+    await user.click(within(activityDialog).getByRole("treeitem", { name: /Main House/i }));
+
+    expect(within(activityDialog).getByLabelText(/^Template inserted audit event/)).toBeInTheDocument();
+    expect(actionMocks.fetchEstimateSheetVersionControl).toHaveBeenLastCalledWith(expect.objectContaining({
+      projectId: "project-1",
+      estimateId: "estimate-1",
+      nodeId: "main-house",
+      includeDescendants: true,
+      scope: "node",
+    }));
+  });
+
   it("passes sheet activity filters into the history read action", async () => {
     const user = userEvent.setup();
     renderEstimateSheet();
 
     await user.click(screen.getByRole("button", { name: "Activity" }));
-    const sheetDialog = await screen.findByRole("dialog", { name: "Sheet activity" });
+    const sheetDialog = await screen.findByRole("dialog", { name: "Activity History" });
+    expect(within(sheetDialog).getByLabelText("Search activity")).toBeInTheDocument();
+    expect(within(sheetDialog).queryByLabelText("Filter activity by event type")).not.toBeInTheDocument();
+    await user.click(within(sheetDialog).getByRole("button", { name: "Filter activity" }));
+    expect(within(sheetDialog).getByRole("group", { name: "Activity filter options" })).toBeInTheDocument();
     await user.selectOptions(within(sheetDialog).getByLabelText("Filter activity by event type"), "row_updated");
     await user.type(within(sheetDialog).getByLabelText("Search activity"), "hardwood");
 
@@ -707,7 +1011,8 @@ describe("estimate sheet version control UI", () => {
     renderEstimateSheet();
 
     await user.click(screen.getByRole("button", { name: "Activity" }));
-    const sheetDialog = await screen.findByRole("dialog", { name: "Sheet activity" });
+    const sheetDialog = await screen.findByRole("dialog", { name: "Activity History" });
+    await user.click(within(sheetDialog).getByRole("button", { name: "Filter activity" }));
     fireEvent.change(within(sheetDialog).getByLabelText("Filter activity from date"), {
       target: { value: "2026-05-25" },
     });
@@ -771,7 +1076,7 @@ describe("estimate sheet version control UI", () => {
     renderEstimateSheet();
 
     await user.click(screen.getByRole("button", { name: "Activity" }));
-    const sheetDialog = await screen.findByRole("dialog", { name: "Sheet activity" });
+    const sheetDialog = await screen.findByRole("dialog", { name: "Activity History" });
 
     expect(within(sheetDialog).getByText("2 related activity events")).toBeInTheDocument();
   });
@@ -835,25 +1140,19 @@ describe("estimate sheet version control UI", () => {
     renderEstimateSheet();
 
     await user.click(screen.getByRole("button", { name: "Activity" }));
-    const sheetDialog = await screen.findByRole("dialog", { name: "Sheet activity" });
+    const sheetDialog = await screen.findByRole("dialog", { name: "Activity History" });
     await user.click(within(sheetDialog).getByRole("button", { name: "Load more activity" }));
 
-    const rejectDuringScopeSwitch = (event: Event) => {
-      const target = event.target instanceof Element ? event.target : null;
-      if (!target?.closest('button[aria-label="Open row menu for Hardwood Oak Flooring"]')) return;
-      staleLoadMore.reject(new Error("stale sheet load failed"));
-    };
-    document.addEventListener("click", rejectDuringScopeSwitch);
-    try {
-      await user.click(screen.getByRole("button", { name: "Open row menu for Hardwood Oak Flooring" }));
-    } finally {
-      document.removeEventListener("click", rejectDuringScopeSwitch);
-    }
+    await user.click(within(sheetDialog).getByRole("treeitem", { name: /Hardwood Oak Flooring/i }));
+    await waitFor(() => {
+      expect(actionMocks.fetchEstimateSheetVersionControl).toHaveBeenLastCalledWith(expect.objectContaining({ scope: "row" }));
+    });
+    staleLoadMore.reject(new Error("stale sheet load failed"));
 
-    const rowDialog = await screen.findByRole("dialog", { name: "Row details" });
+    const rowDialog = await screen.findByRole("dialog", { name: "Activity History" });
 
     await waitFor(() => {
-      expect(within(rowDialog).getByText("quantity")).toBeInTheDocument();
+      expect(within(rowDialog).getByText("Affected fields: quantity")).toBeInTheDocument();
     });
     expect(within(rowDialog).queryByText("stale sheet load failed")).not.toBeInTheDocument();
   });
@@ -900,12 +1199,12 @@ describe("estimate sheet version control UI", () => {
     renderEstimateSheet();
 
     await user.click(screen.getByRole("button", { name: "Activity" }));
-    const sheetDialog = await screen.findByRole("dialog", { name: "Sheet activity" });
+    const sheetDialog = await screen.findByRole("dialog", { name: "Activity History" });
     await user.click(within(sheetDialog).getByRole("button", { name: "Load more activity" }));
-    await user.click(within(sheetDialog).getByRole("button", { name: "Close Sheet activity" }));
+    await user.click(within(sheetDialog).getByRole("button", { name: "Close Activity History" }));
     await user.click(screen.getByRole("button", { name: "Activity" }));
 
-    const reopenedDialog = await screen.findByRole("dialog", { name: "Sheet activity" });
+    const reopenedDialog = await screen.findByRole("dialog", { name: "Activity History" });
     await waitFor(() => {
       expect(within(reopenedDialog).getByText("No sheet activity yet")).toBeInTheDocument();
     });

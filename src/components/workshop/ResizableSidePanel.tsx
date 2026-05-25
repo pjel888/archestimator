@@ -151,7 +151,7 @@ export function ResizableSidePanel({
     >
       <div className="absolute left-1/2 top-1/2 grid -translate-x-1/2 -translate-y-1/2 grid-cols-2 gap-[3px]">
         {Array.from({ length: 6 }).map((_, index) => (
-          <span key={index} className="size-[3px] rounded-full bg-divider" />
+          <span key={index} className="size-[3px] rounded-xs bg-divider" />
         ))}
       </div>
     </div>
@@ -163,7 +163,7 @@ export function ResizableSidePanel({
       size="icon-sm"
       aria-label={collapsed ? `Expand ${ariaLabel}` : `Collapse ${ariaLabel}`}
       aria-expanded={!collapsed}
-      className="h-full rounded-none border-x border-hairline bg-white hover:bg-white"
+      className="h-full rounded-xs border-x border-hairline bg-white hover:bg-white"
       onClick={() => setCollapsed((value) => !value)}
     >
       <SidebarSimple size={14} aria-hidden="true" className={side === "left" ? "" : "rotate-180"} />

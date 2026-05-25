@@ -102,7 +102,7 @@ export function ProjectChartsClient({
       <div className="flex shrink-0 flex-wrap items-center gap-2 border-b border-hairline bg-white px-2 py-0">
         <div className="flex min-h-[38px] min-w-0 flex-1 flex-wrap items-center gap-2 py-1">
           <SegmentedToolbarLabel label="Group By">
-            <div role="group" aria-label="Group chart costs by" className="grid grid-cols-3 gap-1 rounded-md bg-surfaceMuted p-0.5">
+            <div role="group" aria-label="Group chart costs by" className="grid grid-cols-3 gap-1 rounded-xs bg-surfaceMuted p-0.5">
               {GROUPING_OPTIONS.map((option) => (
                 <SegmentedToolbarButton
                   key={option.value}
@@ -114,7 +114,7 @@ export function ProjectChartsClient({
             </div>
           </SegmentedToolbarLabel>
           <SegmentedToolbarLabel label="View By">
-            <div role="group" aria-label="Chart visualization type" className="grid grid-cols-2 gap-1 rounded-md bg-surfaceMuted p-0.5">
+            <div role="group" aria-label="Chart visualization type" className="grid grid-cols-2 gap-1 rounded-xs bg-surfaceMuted p-0.5">
               {CHART_VIEW_OPTIONS.map((option) => (
                 <SegmentedToolbarButton
                   key={option.value}
@@ -134,7 +134,7 @@ export function ProjectChartsClient({
             {
               label: "Add chart",
               visibleLabel: "Add chart",
-              icon: <Plus size={12} weight="bold" aria-hidden="true" />,
+              icon: <Plus size={12} weight="regular" aria-hidden="true" />,
               onClick: addChart,
               disabled: !canAddChart,
             },
@@ -162,7 +162,7 @@ export function ProjectChartsClient({
               return (
                 <section
                   key={`${index}-${column.estimate.id}`}
-                  className="min-w-0 overflow-hidden rounded border border-hairline bg-white"
+                  className="min-w-0 overflow-hidden rounded-xs border border-hairline bg-white"
                   data-testid="project-chart-column"
                 >
                   <div className="grid min-h-11 grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 border-b border-hairline px-3 py-2">
@@ -180,19 +180,19 @@ export function ProjectChartsClient({
                         ))}
                       </ControlSelect>
                     </div>
-                    <p className="justify-self-center text-xs font-semibold tabular-nums text-foreground" data-testid={`chart-${index + 1}-total`}>
+                    <p className="justify-self-center text-[10px] font-medium tabular-nums text-foreground" data-testid={`chart-${index + 1}-total`}>
                       {formatMoney(column.series.total, currencyCode)}
                     </p>
                     <div className="justify-self-end">
                       {chartColumns.length > 1 ? (
                         <Button
                           aria-label={`Remove chart ${index + 1}`}
-                          className="size-6 rounded-sm"
+                          className="size-6 rounded-xs"
                           onClick={() => removeChart(index)}
                           size="icon-sm"
                           variant="ghost"
                         >
-                          <X size={11} weight="bold" />
+                          <X size={11} weight="regular" />
                         </Button>
                       ) : null}
                     </div>
@@ -249,7 +249,7 @@ function getGroupingLabel(groupingMode: ProjectChartGroupingMode) {
 function SegmentedToolbarLabel({ label, children }: { label: string; children: ReactNode }) {
   return (
     <div className="flex items-center gap-2">
-      <span className="shrink-0 text-[9px] font-semibold uppercase tracking-normal text-muted-foreground">
+      <span className="shrink-0 text-[9px] font-medium uppercase tracking-normal text-muted-foreground">
         {label}
       </span>
       {children}
@@ -272,7 +272,7 @@ function SegmentedToolbarButton({
       aria-pressed={isActive}
       onClick={onClick}
       className={cn(
-        "h-6 rounded-sm px-2 text-[9px] font-bold leading-none transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus",
+        "h-6 rounded-xs px-2 text-[9px] font-medium leading-none transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus",
         isActive ? "bg-white text-ink shadow-sm" : "text-tertiary hover:bg-white/70 hover:text-ink",
       )}
     >
