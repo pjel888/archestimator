@@ -55,6 +55,15 @@ Outside the landing page:
 - `src/components/ui/control-select.tsx`
   - Purpose: compact toolbar/filter dropdowns where native select is sufficient.
 
+- `src/components/ui/control-input.tsx`
+  - Purpose: compact labeled text fields and textareas for dense app/workshop forms.
+  - Includes: `ControlField`, `ControlInput`, `ControlTextarea`, and the shared dense input surface class.
+  - Rule: create/edit dialogs should compose these field primitives before writing feature-local label/input class strings.
+
+- `src/components/ui/creatable-combobox.tsx`
+  - Purpose: compact searchable create-or-select fields for workspace-managed option lists such as Component Library brands and suppliers.
+  - Rule: use this before writing feature-local searchable dropdowns with typed "add this value" behavior.
+
 - `src/components/ui/empty-state.tsx`
   - Purpose: consistent blank states in lists, panels, tables, search results.
 
@@ -85,6 +94,17 @@ Outside the landing page:
   - File: `src/components/ui/control-select.tsx`
   - Used by: group/sort/view controls, facet dropdowns, compact toolbar options.
   - Storybook category: `UI/Inputs/ControlSelect`.
+
+- ControlField / ControlInput / ControlTextarea
+  - File: `src/components/ui/control-input.tsx`
+  - Used by: dense modal forms, inspector forms, version/pricing edits, create/edit dialogs.
+  - Rule: keep label, helper, error, hover, focus, invalid, and textarea styling here before adding feature-local input classes.
+  - Storybook category: `UI/Inputs/ControlField`.
+
+- CreatableCombobox
+  - File: `src/components/ui/creatable-combobox.tsx`
+  - Used by: workspace-scoped create/select fields where search and adding a missing value are both expected.
+  - Storybook category: `UI/Inputs/CreatableCombobox`.
 
 - ContextMenu
   - File: `src/components/ui/context-menu.tsx`
