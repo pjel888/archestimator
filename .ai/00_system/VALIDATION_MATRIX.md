@@ -46,7 +46,10 @@ Do not use the old reset-era assumption that `/workshop` is intentionally blank 
 - Shared primitives must be used or extended before creating repeated local controls:
   - `Button`
   - `ButtonLink`
+  - `ControlField`
   - `ControlInput`
+  - `ControlTextarea`
+  - `CreatableCombobox`
   - `SearchInput`
   - `ControlSelect`
   - `Badge`

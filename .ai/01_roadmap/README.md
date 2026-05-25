@@ -1,6 +1,6 @@
 # Roadmap
 
-**Last updated:** 2026-05-18
+**Last updated:** 2026-05-25
 **Status:** Authenticated Supabase foundation is active; project and estimate bootstrap are now the current MVP path.
 
 ## Current product baseline
@@ -103,7 +103,7 @@ Target:
 
 ## Phase 5 — Proposal/export/versioning/library hardening
 
-Status: deferred until live estimate workspace editing is stable.
+Status: partly implemented for estimate Activity; remaining work is gated or future-scope.
 
 Target capabilities:
 
@@ -112,6 +112,18 @@ Target capabilities:
 - cost-library management;
 - export package generation;
 - pricing/source trust metadata.
+
+Estimate Activity residual roadmap:
+
+- Live mutation/atomicity proof is not local-safe implementation work yet. It needs local Supabase or an approved throwaway database, and must cover node create/rename, template event reads, rollback, and concurrency.
+- Scalar edit latency benchmarking also needs the same safe mutation harness before any production-runtime performance claim.
+- Deleting the linked-remote `V2` / `QA checkpoint` residue is destructive and remains out of scope unless a separate cleanup task explicitly approves exact-id deletion.
+- Activity export/report, Supabase Realtime, retention pruning/archive compaction, and undo/redo remain future product slices, not unfinished local-safe implementation.
+
+Current source:
+
+- `.ai/03_plans/estimate-sheet-version-control/18-current-activity-contract.md`
+- `.ai/03_plans/estimate-sheet-version-control/19-local-safe-completion-audit.md`
 
 ## Permanent guardrails
 
