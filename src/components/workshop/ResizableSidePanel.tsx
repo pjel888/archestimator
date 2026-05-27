@@ -66,7 +66,7 @@ export function ResizableSidePanel({
   const [dragWidth, setDragWidth] = useState<number | null>(null);
   const [compactViewport, setCompactViewport] = useState(false);
   const width = dragWidth ?? savedWidth;
-  const actualWidth = (collapsed ? collapsedWidth : width) + widthOffset;
+  const actualWidth = collapsed ? collapsedWidth : width + widthOffset;
   const responsiveWidth = compactViewport ? 0 : actualWidth;
   const cssVariable = getPanelWidthCssVariable(storageKey);
   const defaultActualWidth = defaultWidth + widthOffset;
@@ -144,7 +144,7 @@ export function ResizableSidePanel({
       aria-hidden={collapsed}
       className={[
         "relative h-full shrink-0 overflow-hidden transition-[width] duration-150",
-        collapsed ? "w-0 cursor-default" : "w-2 cursor-col-resize",
+        collapsed ? "w-0 cursor-default" : "w-2 cursor-col-resize border-x border-hairline bg-white",
       ].join(" ")}
       onMouseDown={startResize}
       title="Drag to resize"
@@ -163,7 +163,10 @@ export function ResizableSidePanel({
       size="icon-sm"
       aria-label={collapsed ? `Expand ${ariaLabel}` : `Collapse ${ariaLabel}`}
       aria-expanded={!collapsed}
-      className="h-full rounded-xs border-x border-hairline bg-white hover:bg-white"
+      className={[
+        "h-full rounded-xs border-hairline bg-white hover:bg-white",
+        side === "right" ? "border-l" : "border-r",
+      ].join(" ")}
       onClick={() => setCollapsed((value) => !value)}
     >
       <SidebarSimple size={14} aria-hidden="true" className={side === "left" ? "" : "rotate-180"} />

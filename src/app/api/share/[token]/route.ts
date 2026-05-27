@@ -1,0 +1,59 @@
+import {
+  recordProjectPublicationEvent,
+  resolveProjectPublicationAccessByToken,
+  resolveProjectPublicationSnapshotByToken,
+} from "@/lib/publication/public-repository";
+import { hasPublicationAccessCookie } from "@/lib/publication/security";
+
+export const dynamic = "force-dynamic";
+
+const noStoreHeaders = {
+  "Cache-Control": "no-store",
+};
+
+export async function GET(request: Request, { params }: { params: Promise<{ token: string }> }) {
+  const { token } = await params;
+  const publicationAccess = await resolveProjectPublicationAccessByToken(token);
+
+  if (!publicationAccess) {
+    return Response.json({ error: "Publication not found." }, { status: 404, headers: noStoreHeaders });
+  }
+
+  if (
+    publicationAccess.passwordRequired &&
+    !hasPublicationAccessCookie(request.headers.get("cookie") ?? "", {
+      token,
+      publicationId: publicationAccess.publicationId,
+      snapshotVersion: publicationAccess.snapshotVersion,
+    })
+  ) {
+    return Response.json(
+      {
+        error: "Publication password required.",
+        passwordRequired: true,
+      },
+      { status: 423, headers: noStoreHeaders },
+    );
+  }
+
+  const publication = await resolveProjectPublicationSnapshotByToken(token);
+  if (!publication) {
+    return Response.json({ error: "Publication not found." }, { status: 404, headers: noStoreHeaders });
+  }
+
+  await recordProjectPublicationEvent({
+    token,
+    eventType: "open",
+    request,
+    metadata: {},
+  });
+
+  return Response.json(
+    {
+      publicationId: publication.publicationId,
+      passwordRequired: publication.passwordRequired,
+      snapshot: publication.snapshot,
+    },
+    { headers: noStoreHeaders },
+  );
+}
