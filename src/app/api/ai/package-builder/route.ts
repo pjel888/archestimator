@@ -98,6 +98,7 @@ export async function handlePackageBuilderRequest(request: Request, dependencies
 
     let applyRequest;
     try {
+      // Keep Apply gated on explicit confirmation plus a matching draftHash.
       applyRequest = parsePackageBuilderApplyRequest(rawBody);
     } catch (error) {
       return jsonError(error instanceof Error ? error.message : "Package Apply request is invalid.", 400);
