@@ -2,10 +2,10 @@ import { PlaceholderMedia } from "./PlaceholderMedia";
 import { SectionIntro } from "./SectionIntro";
 
 const partnerCards = [
-  ["Faster setup", "Start from project structure and reusable cost components instead of rebuilding the same estimate logic every time."],
-  ["Safer revisions", "Keep versions, assumptions, issued files, and change history traceable as the project moves."],
-  ["Clearer client decisions", "Use proposal comparisons and visual cost breakdowns to explain what changed and why it matters."],
-  ["Cleaner handoff", "Export Excel and PDF files for the clients, consultants, and internal reviewers who still expect standard estimate formats."],
+  ["Faster setup", "Start from structured line items and reusable catalog components instead of rebuilding the same quote logic every time."],
+  ["Safer revisions", "Keep versions, assumptions, issued files, and change history traceable as the offer moves."],
+  ["Clearer buyer decisions", "Use proposal comparisons and visual cost breakdowns to explain what changed and why it matters."],
+  ["Cleaner handoff", "Prepare spreadsheet and document handoff for buyers, clients, consultants, and internal reviewers who still expect standard files."],
 ];
 
 export function PartnerSection() {
@@ -13,8 +13,8 @@ export function PartnerSection() {
     <section id="about" className="bg-white py-20 lg:py-28">
       <div className="w-full px-6">
         <SectionIntro
-          title="What this changes for the estimating team"
-          body="Archestimator is built around the moments that usually slow estimates down: setup, repeated cost logic, revisions, option comparison, client explanation, and standard-format handoff."
+          title="What this changes for quote teams"
+          body="Archestimator is built around the moments that usually slow quotes down: setup, repeated catalog logic, revisions, option comparison, buyer explanation, and standard-format handoff."
         />
         <div className="mt-16 grid gap-4 lg:grid-cols-4">
           {partnerCards.map(([title, body]) => (

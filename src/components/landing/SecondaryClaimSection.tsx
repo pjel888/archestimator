@@ -4,11 +4,11 @@ import { ChartBar, FileXls, GitDiff, Package, TreeStructure } from "@phosphor-ic
 import { MotionReveal } from "./MotionReveal";
 
 const workflowPillars: { label: string; icon: Icon }[] = [
-  { label: "Project-shaped estimates", icon: TreeStructure },
-  { label: "Reusable cost components", icon: Package },
+  { label: "Structured quote sheets", icon: TreeStructure },
+  { label: "Reusable supplier catalogs", icon: Package },
   { label: "Revision context", icon: GitDiff },
   { label: "Proposal comparison path", icon: ChartBar },
-  { label: "Planned Excel/PDF handoff", icon: FileXls },
+  { label: "Document handoff path", icon: FileXls },
 ];
 
 export function SecondaryClaimSection() {
@@ -25,10 +25,10 @@ export function SecondaryClaimSection() {
               The Archestimator way
             </p>
             <h2 className="mt-4 text-[38px] font-normal leading-[1.02] tracking-[-0.052em] text-[#111111] sm:text-[56px]">
-              The most intuitive way to create construction cost estimates
+              A clearer way to create quotes, estimates, and proposal-ready documents
             </h2>
             <p className="mx-auto mt-5 max-w-[640px] text-[15px] leading-[1.55] tracking-[-0.015em] text-[#4f4f4d] sm:text-[16px]">
-              Keep project hierarchy, reusable cost components, revision context, proposal comparison paths, and planned Excel/PDF handoff moving through one estimating workspace.
+              Keep line-item structure, reusable supplier catalogs, assumptions, revision context, and planned document handoff moving through one quote workspace.
             </p>
           </div>
         </MotionReveal>

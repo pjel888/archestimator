@@ -1,4 +1,5 @@
 import { ReactNode } from "react";
+import { CookieConsentBanner } from "./CookieConsentBanner";
 import { LandingHeader } from "./LandingHeader";
 import { LandingFooter } from "./LandingFooter";
 import { LandingSmoothScrollProvider } from "./LandingSmoothScrollProvider";
@@ -38,6 +39,7 @@ export function PublicPageShell({
           <LandingFooter isHomePage={isHomePage} />
         </>
       )}
+      <CookieConsentBanner />
     </div>
   );
 }

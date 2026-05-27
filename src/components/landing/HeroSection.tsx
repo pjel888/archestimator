@@ -2,7 +2,26 @@ import Link from 'next/link'
 import { NeatWireframeBackground } from './NeatWireframeBackground'
 import { loginHref } from './constants'
 
-const trustBadges = ['Component Library', 'BOQ ready', 'Revision ready']
+const trustBadges = ['Reusable catalog', 'Quote-ready', 'Document-aware']
+
+export const heroCopyVariants = [
+  {
+    id: 'smart-way',
+    headline: 'Only the smart ones create quotes this way.',
+    support:
+      'Move from item selection to proposal handoff without losing supplier details, assumptions, or revision context.',
+    evidenceGate: 'Can test now',
+  },
+  {
+    id: 'competitive-pressure',
+    headline: 'Your competitors are already a step ahead.',
+    support:
+      'Build quote logic faster without letting the proposal drift away from the details buyers need to review.',
+    evidenceGate: 'Can test now',
+  },
+] as const
+
+const activeHeroCopy = heroCopyVariants[0]
 
 export function HeroSection() {
   return (
@@ -29,16 +48,16 @@ export function HeroSection() {
 
         <div className='relative z-10 flex min-h-[calc(100svh-92px)] flex-col px-12 py-9 lg:py-12'>
           <div className='flex items-center gap-3 text-[11px] font-semibold uppercase tracking-[0.055em] text-white/90'>
-            <span>Built for construction cost estimators</span>
+            <span>Built for teams that create quotes, estimates, and proposals</span>
             <span className='h-px w-12 bg-white/45' aria-hidden='true' />
             <span className='hidden text-white/75 sm:inline'>
-              Estimates · BOQs · Proposals
+              Quotes · Estimates · Proposals
             </span>
           </div>
 
           <div className='mt-7 max-w-[780px]'>
             <h1 className='max-w-[760px] text-[56px] font-medium leading-[0.98] tracking-[-0.038em] text-white sm:text-[70px] lg:text-[86px] xl:text-[96px]'>
-              Only the smart ones create cost estimates this way.
+              {activeHeroCopy.headline}
             </h1>
 
             <Link
@@ -51,8 +70,7 @@ export function HeroSection() {
 
           <div className='mt-auto pt-10'>
             <p className='max-w-[500px] text-[15px] font-normal leading-[1.45] tracking-[-0.006em] text-white/92 sm:text-[16px]'>
-              Create in hours, not days. <br /> Revisions won&apos;t eat your weekends
-              anymore.
+              {activeHeroCopy.support}
             </p>
             <br />
             <p>This is the Archestimator way.</p>

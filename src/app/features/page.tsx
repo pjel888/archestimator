@@ -1,4 +1,4 @@
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { getLandingAuthState } from "@/lib/landing/get-landing-auth-state";
 import { PublicPageShell } from "@/components/landing";
 import Link from "next/link";
 import { 
@@ -11,18 +11,6 @@ import {
   Coins
 } from "@phosphor-icons/react/dist/ssr";
 
-async function getLandingAuthState() {
-  try {
-    const supabase = await createSupabaseServerClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    return Boolean(user);
-  } catch {
-    return false;
-  }
-}
-
 export default async function FeaturesPage() {
   const isLoggedIn = await getLandingAuthState();
 
@@ -33,10 +21,10 @@ export default async function FeaturesPage() {
       title: "Estimate Workspace",
       maturity: "Available in MVP preview",
       maturityColor: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20",
-      description: "Create and manage project-based estimate sheets in an early workspace designed for construction estimators.",
+      description: "Create and manage structured quote, estimate, and proposal sheets in an early workspace for teams that price and document sales work.",
       problem: "Replaces scattered browser tabs, hidden formulas, and blank spreadsheet setup lag.",
       details: [
-        "Protected workspace routes requiring estimator login.",
+        "Protected workspace routes requiring user login.",
         "Interactive grid designed for direct entry of quantities and rates.",
         "Side-by-side node and sheet navigation for quick lookups."
       ]
@@ -47,21 +35,21 @@ export default async function FeaturesPage() {
       title: "Project-Shaped Hierarchy",
       maturity: "Available in MVP preview",
       maturityColor: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20",
-      description: "Organize the estimate with flexible groups and areas that follow the physical breakdown of your project.",
-      problem: "Replaces flat list cost items that are hard to audit or explain to clients.",
+      description: "Organize the quote or estimate with flexible groups that follow the commercial breakdown of the offer.",
+      problem: "Replaces flat list items that are hard to audit or explain to buyers.",
       details: [
-        "Flexible nesting: group by lot, structure, level, floor, or scope.",
-        "Cost items belong to specific project areas for geographical tracking.",
-        "Instant roll-up totals matching your architectural structure."
+        "Flexible nesting: group by package, location, product family, phase, or scope.",
+        "Line items belong to the specific quote section they support.",
+        "Roll-up totals match the structure of the offer."
       ]
     },
     {
       id: "components",
       icon: Coins,
-      title: "Area-Targeted Cost Rows",
+      title: "Scope-Targeted Cost Rows",
       maturity: "Available in MVP preview",
       maturityColor: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/20",
-      description: "Perform itemized cost takeoffs directly within the designated sections of the project tree.",
+      description: "Build itemized pricing directly within the designated sections of the quote structure.",
       problem: "Replaces disconnected rows where you don't know which rate belongs to which scope.",
       details: [
         "Edit quantities and Misc Cost allowances.",
@@ -75,7 +63,7 @@ export default async function FeaturesPage() {
       title: "Component Library Workflow",
       maturity: "Partially available in MVP preview",
       maturityColor: "bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-500/20",
-      description: "Use an early component library flow to insert reusable cost assemblies and rates into your estimates.",
+      description: "Use an early catalog flow to insert reusable products, assemblies, services, and rates into your quote sheets.",
       problem: "Replaces copying and pasting rows between older estimate files, bringing along obsolete rates.",
       details: [
         "Insert pre-configured cost items instantly.",
@@ -89,12 +77,12 @@ export default async function FeaturesPage() {
       title: "Revision Intelligence",
       maturity: "Planned next",
       maturityColor: "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20",
-      description: "Track version indicators as the estimate matures to pinpoint exactly how and why costs changed.",
-      problem: "Replaces filename suffix madness (e.g. Estimate_v3_Final_v2_edit.xlsx) and blind client updates.",
+      description: "Track version indicators as the quote matures to pinpoint exactly how and why prices changed.",
+      problem: "Replaces filename suffix madness and blind buyer updates.",
       details: [
         "Version-labeled sheets with unique tracking codes.",
         "Planned revision history timeline indicating who changed what and when.",
-        "Future snapshot comparison tool to trace cost creep before presenting proposals."
+        "Future snapshot comparison tool to trace price changes before presenting proposals."
       ]
     },
     {
@@ -103,10 +91,10 @@ export default async function FeaturesPage() {
       title: "Proposal Comparisons",
       maturity: "Planned next",
       maturityColor: "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20",
-      description: "Build multiple estimate sheets inside one project to serve as the basis for comparing different options.",
+      description: "Build multiple quote or estimate sheets inside one workspace to compare different options.",
       problem: "Replaces duplicating entire folders and manually cross-referencing alternate bids.",
       details: [
-        "Support for alternate estimate structures (e.g. Option A vs Option B).",
+        "Support for alternate quote structures (e.g. Option A vs Option B).",
         "Future comparison dashboard to inspect alternate specifications side-by-side.",
         "Clear highlights of total, material, and labor deltas."
       ]
@@ -117,12 +105,12 @@ export default async function FeaturesPage() {
       title: "Excel & PDF Handoff",
       maturity: "Planned next",
       maturityColor: "bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-500/20",
-      description: "Export estimate structures and totals into clean, industry-standard Excel spreadsheets or formatted PDF proposal packages.",
+      description: "Prepare structured quote and proposal data for planned spreadsheet and document handoff workflows.",
       problem: "Replaces hours spent clean-formatting raw spreadsheets and rebuilding PDFs for clients.",
       details: [
         "Planned Excel (.xlsx) export preserving project hierarchy and formulas.",
-        "Planned PDF client package generation with custom header and cost summaries.",
-        "Clean column mappings ready for team review or contractor handoff."
+        "Planned document package generation with custom header and cost summaries.",
+        "Clean column mappings ready for team, buyer, or client review."
       ]
     }
   ];
@@ -136,7 +124,7 @@ export default async function FeaturesPage() {
             Product Capabilities
           </span>
           <h1 className="mt-5 text-[40px] font-normal leading-[1.08] tracking-[-0.04em] text-[#111111] md:text-[56px]">
-            Designed for construction cost clarity.
+            Designed for quote and proposal clarity.
           </h1>
           <p className="mx-auto mt-6 max-w-[620px] text-[16px] leading-7 text-[#626260] md:text-[18px]">
             Explore the features shaping the Archestimator workflow. We keep your structure, component database, revisions, and outputs connected in one workspace.
@@ -217,10 +205,10 @@ export default async function FeaturesPage() {
       <section className="bg-[#111111] py-16 text-white md:py-24">
         <div className="mx-auto w-full max-w-[800px] px-6 text-center">
           <h2 className="text-[30px] font-normal leading-tight tracking-[-0.04em] text-white sm:text-[40px]">
-            Ready to experience a clearer cost workflow?
+            Ready to experience a clearer quote workflow?
           </h2>
           <p className="mt-4 text-[15px] leading-6 text-white/60">
-            Archestimator is currently in early MVP preview. Open a workspace to explore the structure and build cost models.
+            Archestimator is currently in early MVP preview. Open a workspace to explore the structure and build quote models.
           </p>
           <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
             <Link

@@ -1,35 +1,23 @@
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { getLandingAuthState } from "@/lib/landing/get-landing-auth-state";
 import { PublicPageShell } from "@/components/landing";
 import Link from "next/link";
 import { Info } from "@phosphor-icons/react/dist/ssr";
-
-async function getLandingAuthState() {
-  try {
-    const supabase = await createSupabaseServerClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    return Boolean(user);
-  } catch {
-    return false;
-  }
-}
 
 export default async function AboutPage() {
   const isLoggedIn = await getLandingAuthState();
 
   const theWayElements = [
     {
-      title: "Start with Project Structure",
-      desc: "Organize estimates by physical layout, trade, or phase. The estimate structure matches the project's reality, not a flat table."
+      title: "Start with Line-Item Structure",
+      desc: "Organize quotes by package, product group, room, location, phase, or scope. The quote structure matches the offer's reality, not a flat table."
     },
     {
       title: "Price in Context",
-      desc: "Insert unit rates, labor assumptions, and supplier links directly alongside the line items they govern."
+      desc: "Insert unit rates, supplier context, labor assumptions, and commercial notes directly alongside the line items they govern."
     },
     {
       title: "Reuse What Repeats",
-      desc: "Compile common assemblies (like specific wall build-ups or foundation structures) and drop them into new sheets instantly."
+      desc: "Compile common products, assemblies, services, or packages and drop them into new sheets instantly."
     },
     {
       title: "Keep Assumptions Attached",
@@ -49,7 +37,7 @@ export default async function AboutPage() {
             Why Archestimator exists.
           </h1>
           <p className="mx-auto mt-6 max-w-[620px] text-[16px] leading-7 text-[#626260] md:text-[18px]">
-            Construction estimating has moved from paper ledger books to Excel, but the core challenge remains: keeping quantities, rates, revisions, and proposals connected.
+            Quote and proposal work has moved from paper files to spreadsheets, but the core challenge remains: keeping line items, supplier rates, assumptions, revisions, and documents connected.
           </p>
         </div>
       </section>
@@ -65,10 +53,10 @@ export default async function AboutPage() {
               Excel is the most powerful calculator ever created. The enemy isn&apos;t the spreadsheet itself, and it certainly isn&apos;t the estimator. The enemy is the <strong>disconnected file workflow</strong>.
             </p>
             <p>
-              When estimates live in separate spreadsheets scattered across localized hard drives, bid risk multiplies. Rates become obsolete, formulas break silently during row additions, revision changes get lost in client email threads, and the final PDF proposal sheet loses its connection to the underlying rate logic.
+              When quotes live in separate spreadsheets scattered across local drives, commercial risk multiplies. Rates become obsolete, formulas break silently during row additions, revision changes get lost in buyer email threads, and the final proposal file loses its connection to the underlying price logic.
             </p>
             <p>
-              Archestimator was built to create a workspace where estimate structures, reusable rates, change history, and client proposal packages reside in one unified, auditable environment.
+              Archestimator is being built as a workspace where quote structures, reusable catalogs, supplier context, change history, and proposal handoff context stay connected in one reviewable environment.
             </p>
           </div>
         </div>
@@ -82,7 +70,7 @@ export default async function AboutPage() {
               The Archestimator Way
             </h2>
             <p className="mt-3 text-[14px] text-[#626260]">
-              How we approach construction estimating differently.
+              How we approach quote and proposal work differently.
             </p>
           </div>
 
@@ -122,7 +110,7 @@ export default async function AboutPage() {
                   Not a broad ERP
                 </strong>
                 <p className="text-white/60 mt-1">
-                  We do not build HR modules, direct field payroll, inventory registries, or general ledger accounting tools. We focus exclusively on pre-construction estimation and proposal generation.
+                  We do not build HR modules, direct field payroll, inventory registries, purchasing execution, or general ledger accounting tools. We focus on structured quote, estimate, and proposal workflows.
                 </p>
               </div>
               <div>
@@ -138,7 +126,7 @@ export default async function AboutPage() {
                   Not AI magic
                 </strong>
                 <p className="text-white/60 mt-1">
-                  We do not generate estimates from simple text descriptions. Unit costs, waste factors, and structural relationships remain firmly under the estimator&apos;s professional control.
+                  We do not generate binding quotes from simple text descriptions. Unit costs, supplier choices, commercial assumptions, and document review remain under the user&apos;s professional control.
                 </p>
               </div>
               <div>
@@ -146,7 +134,7 @@ export default async function AboutPage() {
                   Not a finished enterprise platform
                 </strong>
                 <p className="text-white/60 mt-1">
-                  Archestimator is currently in early MVP preview. Features like Excel exports, PDF packages, and revision tracking are planned next and will roll out as the platform matures.
+                  Archestimator is currently in early MVP preview. Features like broader document handoff, issued-output snapshots, and advanced revision tracking will roll out only after they pass verification.
                 </p>
               </div>
             </div>
@@ -161,7 +149,7 @@ export default async function AboutPage() {
             Join our early-access program
           </h2>
           <p className="mt-4 text-[15px] leading-6 text-white/60">
-            Open a workspace today to test our project cost hierarchy, component library, and estimator grid.
+            Open a workspace today to test our structured quote sheets, reusable catalog, and estimator grid.
           </p>
           <div className="mt-8 flex flex-col justify-center gap-3 sm:flex-row">
             <Link

@@ -1,5 +1,6 @@
 export { AnnouncementBanner } from "./AnnouncementBanner";
 export { CompanyProofCarouselSection } from "./CompanyProofCarouselSection";
+export { CookieConsentBanner } from "./CookieConsentBanner";
 export { CtaLink } from "./CtaLink";
 export { SecondaryClaimSection } from "./SecondaryClaimSection";
 export { EstimatorEngineSection } from "./EstimatorEngineSection";

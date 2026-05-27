@@ -1,18 +1,6 @@
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { getLandingAuthState } from "@/lib/landing/get-landing-auth-state";
 import { PublicPageShell, ContactForm } from "@/components/landing";
 import { MapPin, Envelope, Sparkle } from "@phosphor-icons/react/dist/ssr";
-
-async function getLandingAuthState() {
-  try {
-    const supabase = await createSupabaseServerClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    return Boolean(user);
-  } catch {
-    return false;
-  }
-}
 
 export default async function ContactPage() {
   const isLoggedIn = await getLandingAuthState();
@@ -29,7 +17,7 @@ export default async function ContactPage() {
             Connect with Archestimator.
           </h1>
           <p className="mx-auto mt-6 max-w-[620px] text-[16px] leading-7 text-[#626260] md:text-[18px]">
-            Have a question about our pre-construction database, rate engines, or layout tools? Send a direct message to our development team.
+            Have a question about quote catalogs, supplier pricing, proposal workflows, or document handoff? Send a direct message to our development team.
           </p>
         </div>
       </section>
@@ -43,10 +31,10 @@ export default async function ContactPage() {
             <div className="flex flex-col justify-between rounded-[16px] border border-[#cfcfca]/60 bg-[#f5f5f3]/40 p-8">
               <div>
                 <h2 className="text-[22px] font-semibold tracking-tight text-[#111111]">
-                  Estimator Inquiries
+                  Quote Workflow Inquiries
                 </h2>
                 <p className="mt-3 text-[14px] leading-6 text-[#626260]">
-                  We are actively partnering with contractors and quantity surveyors to refine our spreadsheet-replacing estimate structures.
+                  We are actively learning from suppliers, sales teams, buyers, and estimators who build quotes, proposals, and approval-ready document packages from spreadsheets.
                 </p>
 
                 <div className="mt-8 space-y-6">
@@ -60,7 +48,7 @@ export default async function ContactPage() {
                         Design Partner Program
                       </h3>
                       <p className="mt-1 text-[13px] leading-5 text-[#626260]">
-                        Get direct access to custom database assemblies and shape early features.
+                        Get direct access to early catalog workflows and shape early features.
                       </p>
                     </div>
                   </div>
@@ -90,7 +78,7 @@ export default async function ContactPage() {
                         Location & Focus
                       </h3>
                       <p className="mt-1 text-[13px] leading-5 text-[#626260]">
-                        Developed with input from regional estimators. Supporting local-first cost databases.
+                        Developed with input from teams that price project work, supplier packages, and itemized commercial offers.
                       </p>
                     </div>
                   </div>
@@ -98,7 +86,7 @@ export default async function ContactPage() {
               </div>
 
               <div className="mt-8 pt-6 border-t border-[#cfcfca]/30 text-[12px] leading-5 text-[#626260]">
-                <strong>Privacy Promise:</strong> We do not sell or lease your email address. It is strictly used to reply to estimating support and access inquiries.
+                <strong>Privacy Promise:</strong> We do not sell or lease your email address. It is strictly used to reply to quote workflow support and access inquiries.
               </div>
             </div>
 
