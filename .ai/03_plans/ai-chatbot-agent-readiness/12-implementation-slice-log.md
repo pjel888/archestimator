@@ -33,14 +33,29 @@ This overrides the fourth-pass default recommendation only for the first **Ask-o
 - `src/lib/ai/auth.ts` now derives the authenticated user's default workspace id for audit ownership, rejects Supabase users without a workspace before provider calls, and still rejects admin DB bypass before any AI route work.
 - Focused audit schema/flow tests were added.
 
+## Implemented package-builder Draft/Apply slice
+
+**Date:** 2026-05-28
+**Scope:** first write-capable Ask Flip package-builder implementation after the package-builder readiness addendum.
+
+- New server route `/api/ai/package-builder` supports `draft` and `apply` modes without changing the existing `/api/ai/ask` Ask route.
+- `src/lib/ai/package-builder/*` now owns feature flags, schemas, provider-neutral provider contracts, DeepSeek structured-draft adapter support, authenticated read tools, deterministic draft assembly, and confirmed Apply orchestration.
+- Draft mode accepts package-building prompts such as "Assemble me a 3 bedroom package, budget is 5 million pesos", uses compact authenticated project/component/template summaries when Supabase workspace auth is available, may ask DeepSeek for structured draft hints through the provider boundary, and falls back to deterministic server-side package assembly when the provider is unavailable or invalid.
+- Draft mode writes no production records. It returns a normalized package brief, project/estimate draft, Group/Area estimate tree draft, component/template match summaries, clearly marked allowance rows, budget summary, assumptions, warnings, operation eligibility, and a server draft hash.
+- Apply mode is command-style and confirmation gated. The server revalidates authenticated user/workspace ownership, rejects model/browser supplied workspace/user ids, validates the draft hash, validates estimate hierarchy and Area-only row targets, revalidates linked component items/price options against the current workspace, and uses an idempotency key to avoid duplicate package creation on replay.
+- Confirmed Apply currently creates a project, estimate shell, estimate tree nodes, and approved row items, including source snapshots for linked component rows and explicit `allowance` metadata for generated/unmatched rows.
+- Apply writes an `estimate_sheet_events` `ai_package_applied` event and metadata-only AI audit rows with safe summaries, created ids, source tables, tool calls, and package run correlation.
+- Ask Flip UI now detects package-builder prompts, shows a reviewable package draft preview with tree/room plan, matched components, allowance rows, budget summary, assumptions/warnings, and requires an explicit confirmation checkbox before calling Apply.
+- Feature flags are environment-driven: `AI_PACKAGE_BUILDER_READ_TOOLS_ENABLED`, `AI_PACKAGE_BUILDER_DRAFT_ENABLED`, `AI_PACKAGE_BUILDER_APPLY_SHELL_ENABLED`, `AI_PACKAGE_BUILDER_APPLY_TREE_ENABLED`, `AI_PACKAGE_BUILDER_APPLY_ROWS_ENABLED`, and `AI_PACKAGE_BUILDER_MEMORY_ENABLED`.
+- Memory/RAG remains disabled by default and unimplemented in this slice.
+
 ## Still not implemented
 
-- Draft patch mode.
-- Apply mode.
 - Stored conversations or Supabase-backed chat sessions.
-- Component-library retrieval beyond user-provided visible route hints.
-- Project/estimate create/edit tools.
 - Vector/RAG.
+- A database RPC that atomically creates the entire package in one transaction. Current Apply uses validated sequential server writes plus idempotency metadata and audit events.
+- Post-Apply editing/refinement loops beyond the created draft package.
+- Persistent user memory, accepted/rejected draft feedback storage, or resettable preference UI.
 
 ## Safety boundary
 

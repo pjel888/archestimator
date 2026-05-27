@@ -472,7 +472,7 @@ export async function applyPackageBuilderDraft(input: ApplyPackageBuilderDraftIn
   const insertedRowIds = rowInserts.map((row) => row.id).filter((id): id is string => Boolean(id));
   const createdNodeIds = Object.fromEntries(nodeIdByClientDraftId.entries());
 
-  await supabase.from("estimate_sheet_events").insert({
+  const { error: eventError } = await supabase.from("estimate_sheet_events").insert({
     workspace_id: workspace.id,
     estimate_id: estimate.id,
     actor_user_id: currentUser.userId,
@@ -501,6 +501,7 @@ export async function applyPackageBuilderDraft(input: ApplyPackageBuilderDraftIn
     metadata: toJson(metadata),
     correlation_id: runId,
   });
+  if (eventError) throw eventError;
 
   const actionRun = buildAiPackageActionRun({
     runId,
