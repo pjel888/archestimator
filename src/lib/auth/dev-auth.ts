@@ -66,6 +66,6 @@ export async function getDevCurrentUserContext(): Promise<DevCurrentUserContext 
     role: profile.role,
     profile,
     displayName: profile.display_name ?? profile.email,
-    avatarUrl: null,
+    avatarUrl: profile.avatar_url,
   };
 }

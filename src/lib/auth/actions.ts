@@ -2,17 +2,34 @@
 
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
+
+import { recordAccountSecurityEvent } from "@/lib/auth/account-audit";
+import { mapAuthErrorToCode } from "@/lib/auth/error-mapping";
+import {
+  buildLoginRedirectUrl,
+  LOGIN_PATH,
+  resolveAuthOrigin,
+  sanitizeNextPath,
+} from "@/lib/auth/redirects";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
-function sanitizeNextPath(value: FormDataEntryValue | string | null) {
-  const raw = typeof value === "string" ? value : "/workshop/projects";
-  if (!raw.startsWith("/") || raw.startsWith("//")) return "/workshop/projects";
-  return raw;
-}
-
-async function getRequestOrigin() {
+async function getRequestMetadata() {
   const headersList = await headers();
-  return headersList.get("origin") ?? process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+  const requestHost = headersList.get("host");
+  const forwardedProto = headersList.get("x-forwarded-proto");
+  const requestUrl = requestHost
+    ? `${forwardedProto ?? (requestHost.startsWith("localhost") ? "http" : "https")}://${requestHost}${LOGIN_PATH}`
+    : null;
+
+  return {
+    origin: resolveAuthOrigin({
+      requestOrigin: headersList.get("origin"),
+      requestUrl,
+    }),
+    requestId: headersList.get("x-request-id") ?? headersList.get("x-vercel-id"),
+    ipAddress: headersList.get("x-forwarded-for")?.split(",")[0]?.trim() ?? null,
+    userAgent: headersList.get("user-agent"),
+  };
 }
 
 export async function signInWithEmail(formData: FormData) {
@@ -20,29 +37,60 @@ export async function signInWithEmail(formData: FormData) {
   const next = sanitizeNextPath(formData.get("next"));
 
   if (!email) {
-    redirect(`/login?error=${encodeURIComponent("Email is required")}&next=${encodeURIComponent(next)}`);
+    const request = await getRequestMetadata();
+    redirect(
+      buildLoginRedirectUrl({
+        origin: request.origin,
+        code: "email_required",
+        next,
+      }).toString(),
+    );
   }
 
-  const origin = await getRequestOrigin();
+  const request = await getRequestMetadata();
+  const origin = request.origin;
   const supabase = await createSupabaseServerClient();
 
   const { error } = await supabase.auth.signInWithOtp({
     email,
     options: {
       emailRedirectTo: `${origin}/auth/callback?next=${encodeURIComponent(next)}`,
+      shouldCreateUser: true,
     },
   });
 
   if (error) {
-    redirect(`/login?error=${encodeURIComponent(error.message)}&next=${encodeURIComponent(next)}`);
+    redirect(
+      buildLoginRedirectUrl({
+        origin,
+        code: mapAuthErrorToCode({
+          fallbackCode: "auth_request_failed",
+          rawError: error.message,
+        }),
+        next,
+      }).toString(),
+    );
   }
 
-  redirect(`/login?sent=1&email=${encodeURIComponent(email)}&next=${encodeURIComponent(next)}`);
+  await recordAccountSecurityEvent({
+    eventType: "auth_email_link_requested",
+    requestId: request.requestId,
+    ipAddress: request.ipAddress,
+    userAgent: request.userAgent,
+    metadata: {
+      method: "email_link",
+      redirect_to: `${origin}/auth/callback`,
+      safe_next: next,
+    },
+  });
+
+  redirect(`${LOGIN_PATH}?sent=1&next=${encodeURIComponent(next)}`);
 }
 
 export async function signInWithGoogle(formData: FormData) {
   const next = sanitizeNextPath(formData.get("next"));
-  const origin = await getRequestOrigin();
+  const request = await getRequestMetadata();
+  const origin = request.origin;
   const supabase = await createSupabaseServerClient();
 
   const { data, error } = await supabase.auth.signInWithOAuth({
@@ -50,15 +98,35 @@ export async function signInWithGoogle(formData: FormData) {
     options: {
       redirectTo: `${origin}/auth/callback?next=${encodeURIComponent(next)}`,
       queryParams: {
-        access_type: "offline",
         prompt: "select_account",
       },
     },
   });
 
   if (error || !data.url) {
-    redirect(`/login?error=${encodeURIComponent(error?.message ?? "Google sign-in could not start")}&next=${encodeURIComponent(next)}`);
+    redirect(
+      buildLoginRedirectUrl({
+        origin,
+        code: mapAuthErrorToCode({
+          fallbackCode: "google_request_failed",
+          rawError: error?.message,
+        }),
+        next,
+      }).toString(),
+    );
   }
+
+  await recordAccountSecurityEvent({
+    eventType: "auth_google_started",
+    requestId: request.requestId,
+    ipAddress: request.ipAddress,
+    userAgent: request.userAgent,
+    metadata: {
+      provider: "google",
+      redirect_to: `${origin}/auth/callback`,
+      safe_next: next,
+    },
+  });
 
   redirect(data.url);
 }
