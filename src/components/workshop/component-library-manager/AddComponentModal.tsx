@@ -1538,7 +1538,7 @@ export function AddComponentModal({
                 <input
                   id={thumbnailInputId}
                   type="file"
-                  accept="image/jpeg,image/png,image/webp,image/avif"
+                  accept="image/jpeg,image/png,image/webp,image/avif,.jpg,.jpeg,.png,.webp,.avif"
                   aria-label="Upload thumbnail"
                   disabled={imageBusy}
                   onChange={(event) => {

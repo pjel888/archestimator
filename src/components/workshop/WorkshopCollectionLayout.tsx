@@ -14,11 +14,17 @@ type WorkshopCollectionLayoutProps = {
   toolbarPrefix: string;
   onFilter?: () => void;
   onGroup?: () => void;
+  onExpandAll?: () => void;
+  onCollapseAll?: () => void;
+  leadingActions?: HeaderIconToolbarAddAction[];
+  leadingActionsLabel?: string;
   onAdd?: () => void;
   addVisibleLabel?: string;
   addDisabled?: boolean;
   addActions?: HeaderIconToolbarAddAction[];
   searchActions?: ReactNode;
+  toolbarPanel?: ReactNode;
+  contentScroll?: boolean;
   searchInputRef?: Ref<HTMLInputElement>;
   children: ReactNode;
 };
@@ -32,11 +38,17 @@ export function WorkshopCollectionLayout({
   toolbarPrefix,
   onFilter,
   onGroup,
+  onExpandAll,
+  onCollapseAll,
+  leadingActions,
+  leadingActionsLabel,
   onAdd,
   addVisibleLabel,
   addDisabled,
   addActions,
   searchActions,
+  toolbarPanel,
+  contentScroll = true,
   searchInputRef,
   children,
 }: WorkshopCollectionLayoutProps) {
@@ -60,13 +72,19 @@ export function WorkshopCollectionLayout({
         labelPrefix={toolbarPrefix}
         onFilter={onFilter}
         onGroup={onGroup}
+        onExpandAll={onExpandAll}
+        onCollapseAll={onCollapseAll}
+        leadingActions={leadingActions}
+        leadingActionsLabel={leadingActionsLabel}
         onAdd={onAdd}
         addVisibleLabel={addVisibleLabel}
         addDisabled={addDisabled}
         addActions={addActions}
       />
 
-      <div className="min-h-0 flex-1 overflow-auto p-2">{children}</div>
+      {toolbarPanel}
+
+      <div className={`min-h-0 flex-1 bg-white p-2 ${contentScroll ? "overflow-auto" : "overflow-hidden"}`}>{children}</div>
     </div>
   );
 }

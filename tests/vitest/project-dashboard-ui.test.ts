@@ -43,12 +43,21 @@ describe("project dashboard UI governance", () => {
     expect(projectMiniSidebar).toContain(sidebarHeaderClass);
     expect(projectMiniSidebar).toContain(sidebarTitleClass);
     expect(projectDashboardLayout).toContain('const projectCode = liveProject?.project_code ?? projectId;');
-    expect(projectDashboardLayout).toContain('<ProjectWorkspaceHeaderRow projectId={projectId} projectCode={projectCode} />');
-    expect(projectDashboardLayout).toContain('contentClassName="py-2 pr-2 pl-0"');
+    expect(projectDashboardLayout).toContain("<ProjectWorkspaceHeaderRow");
+    expect(projectDashboardLayout).toContain("projectId={projectId}");
+    expect(projectDashboardLayout).toContain("projectCode={projectCode}");
+    expect(projectDashboardLayout).toContain("collaborationSummary={collaborationSummary}");
+    expect(projectDashboardLayout).toContain("publicationSummary={publicationSummary}");
+    expect(projectDashboardLayout).toContain('contentClassName="pt-0 pb-0 pr-2 pl-0"');
     expect(projectWorkspaceHeaderRow).toContain('relative h-10 shrink-0 border-b border-hairline bg-white');
     expect(projectWorkspaceHeaderRow).toContain('pathname?.startsWith(`/workshop/projects/${projectId}/estimates/`)');
     expect(projectWorkspaceHeaderRow).toContain("const projectCodeHeader = isEstimateSheetRoute ? null : (");
     expect(projectWorkspaceHeaderRow).toContain('<ProjectEstimateMetadataStrip />');
+    expect(projectWorkspaceHeaderRow).toContain("<ProjectPublicationHeader");
+    expect(projectWorkspaceHeaderRow).toContain("<ProjectTeamspaceHeader");
+    expect(projectWorkspaceHeaderRow).toContain("summary={publicationSummary}");
+    expect(projectWorkspaceHeaderRow).toContain("summary={collaborationSummary}");
+    expect(projectWorkspaceHeaderRow).toContain('data-workshop-layout="project-workspace-header-actions"');
     expect(projectWorkspaceHeaderRow).toContain('style={{ width: "var(--estimate-tree-panel-width)" }}');
     expect(projectWorkspaceHeaderRow).toContain('pl-4 pr-2');
     expect(projectWorkspaceHeaderRow).toContain('textClassName="font-medium"');
@@ -115,6 +124,8 @@ describe("project dashboard UI governance", () => {
     expect(projectWorkspaceHeaderRow).toContain("ProjectWorkspaceHeaderSurface");
     expect(projectWorkspaceHeaderRow).toContain("ProjectWorkspaceProjectCode");
     expect(projectWorkspaceHeaderRow).toContain("<ProjectEstimateMetadataStrip />");
+    expect(projectWorkspaceHeaderRow).toContain("rightContent");
+    expect(projectWorkspaceHeaderRow).toContain('"var(--estimate-library-panel-width)"');
     expect(projectWorkspaceHeaderRow).toContain('scope="project-workspace-row"');
     expect(projectWorkspaceHeaderRow).toContain('centerId="project-estimate-metadata-strip"');
     expect(projectWorkspaceHeaderRow).toContain('centerDataColumn="metadata-strip"');
@@ -150,7 +161,7 @@ describe("project dashboard UI governance", () => {
     expect(estimateSheetTree).toContain("widthOffset={ESTIMATE_TREE_LEFT_EXTENSION_WIDTH}");
     expect(resizableSidePanel).toContain("widthOffset?: number");
     expect(resizableSidePanel).toContain("widthOffset = 0");
-    expect(resizableSidePanel).toContain("const actualWidth = (collapsed ? collapsedWidth : width) + widthOffset;");
+    expect(resizableSidePanel).toContain("const actualWidth = collapsed ? collapsedWidth : width + widthOffset;");
     expect(resizableSidePanel).toContain("const responsiveWidth = compactViewport ? 0 : actualWidth;");
     expect(resizableSidePanel).toContain('window.matchMedia("(max-width: 1023px)")');
     expect(resizableSidePanel).toContain('document.querySelector<HTMLElement>("[data-workshop-page-shell-canvas]")');
@@ -160,7 +171,10 @@ describe("project dashboard UI governance", () => {
   });
 
   it("keeps minimized estimate side-panel rails white instead of changing background color", () => {
-    expect(resizableSidePanel).toContain('className="h-full rounded-xs border-x border-hairline bg-white hover:bg-white"');
+    expect(resizableSidePanel).toContain('"h-full rounded-xs border-hairline bg-white hover:bg-white"');
+    expect(resizableSidePanel).toContain('side === "right" ? "border-l" : "border-r"');
+    expect(resizableSidePanel).toContain('"w-2 cursor-col-resize border-x border-hairline bg-white"');
+    expect(resizableSidePanel).not.toContain('className="h-full rounded-xs border-x border-hairline bg-white hover:bg-white"');
     expect(resizableSidePanel).not.toContain('collapsed ? "bg-surface-muted" : "bg-white"');
     expect(resizableSidePanel).not.toContain('hover:bg-surface-muted');
   });

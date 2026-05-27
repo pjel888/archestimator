@@ -5,7 +5,6 @@ import { SidebarSimple, Crown } from "@phosphor-icons/react/dist/ssr";
 import { ArchestimatorLogo } from "@/components/brand/ArchestimatorLogo";
 import { Button } from "@/components/ui/button";
 import {
-  SIDEBAR_ICON_SLOT,
   SIDEBAR_PADDING,
   SIDEBAR_WIDTH_COLLAPSED,
   SIDEBAR_WIDTH_EXPANDED,
@@ -25,16 +24,12 @@ const headerHeight = SIDEBAR_WIDTH_EXPANDED;
 export function SidebarHeader({ expanded, onToggle }: SidebarHeaderProps) {
   const frameWidth = expanded ? expandedFrameSize : collapsedFrameWidth;
   const frameHeight = expanded ? expandedFrameSize : collapsedFrameHeight;
-  const dividerStyle = expanded
-    ? { left: 0, right: 0 }
-    : { left: SIDEBAR_PADDING, width: SIDEBAR_ICON_SLOT };
 
   return (
     <div
       className="relative shrink-0 overflow-hidden bg-white transition-[height] duration-[180ms] ease-out motion-reduce:transition-none"
       style={{ height: headerHeight }}
     >
-      <div aria-hidden="true" className="absolute bottom-0 border-b border-hairline" style={dividerStyle} />
       <div className="p-2">
         <div
           className="relative overflow-hidden rounded-xs bg-secondary text-white ring-1 ring-black/10 transition-[width,height] duration-[180ms] ease-out motion-reduce:transition-none"

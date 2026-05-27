@@ -11,12 +11,7 @@ export default async function LibraryPage() {
       eyebrow="Library"
       showEyebrow={false}
       breadcrumbs={["Library"]}
-      footer={
-        <>
-          <span>Workspace library</span>
-          <span>Components</span>
-        </>
-      }
+      contentClassName=""
     >
       <LibraryPageClient
         categoryTree={componentLibrary.categoryTree}

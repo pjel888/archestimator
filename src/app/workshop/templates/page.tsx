@@ -11,12 +11,6 @@ export default async function TemplatesPage() {
       eyebrow="Templates"
       showEyebrow={false}
       breadcrumbs={["Templates"]}
-      footer={
-        <>
-          <span>Workspace library</span>
-          <span>Templates</span>
-        </>
-      }
     >
       <TemplatesPageClient templates={templates} />
     </WorkshopPageShell>
