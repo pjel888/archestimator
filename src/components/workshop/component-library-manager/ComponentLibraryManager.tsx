@@ -51,8 +51,6 @@ import {
 
 const COMPONENT_LIBRARY_TREE_WIDTH_OFFSET = 104;
 const CATALOGUE_UNASSIGNED_LABEL = "Unassigned";
-const CATALOGUE_BRANCH_INDENT_STEP = 32;
-const CATALOGUE_BRANCH_MAX_INDENT = 192;
 const CATALOGUE_CARD_GRID_CLASS = "mt-2 grid list-none grid-cols-[repeat(auto-fill,minmax(164px,1fr))] gap-2 p-0";
 const CATALOGUE_CARD_SHELL_CLASS =
   "flex min-h-[236px] flex-col overflow-hidden rounded-xs border border-hairline bg-white text-left shadow-[0_10px_24px_-22px_rgba(17,24,39,0.55)]";
@@ -73,6 +71,7 @@ type CatalogueBranch = {
   id: string;
   label: string;
   pathLabel: string;
+  parentPathLabel: string;
   sortKey: string;
   depth: number;
   directItems: CatalogueCard[];
@@ -222,6 +221,7 @@ function buildCatalogueOutline(
       id: node.folderId,
       label: node.label,
       pathLabel: path.join(" / "),
+      parentPathLabel: parentPath.join(" / "),
       sortKey: folderMetaById.get(node.folderId)?.sortKey ?? normalizeLabel(node.label),
       depth,
       directItems,
@@ -246,10 +246,6 @@ function getItemBrandLabel(item: EstimateRowItem) {
   return item.brand?.trim() || "Brand not set";
 }
 
-function getCatalogueIndent(depth: number) {
-  return Math.min(depth * CATALOGUE_BRANCH_INDENT_STEP, CATALOGUE_BRANCH_MAX_INDENT);
-}
-
 function isNextImageSafeComponentSource(src: string) {
   if (!src) return false;
   if (src.startsWith("/")) return true;
@@ -260,7 +256,9 @@ function isNextImageSafeComponentSource(src: string) {
   try {
     const imageUrl = new URL(src);
     const storageUrl = new URL(supabaseUrl);
-    return imageUrl.hostname === storageUrl.hostname
+    return imageUrl.protocol === storageUrl.protocol
+      && imageUrl.hostname === storageUrl.hostname
+      && imageUrl.port === storageUrl.port
       && imageUrl.pathname.startsWith("/storage/v1/object/public/component-images/");
   } catch {
     return false;
@@ -372,9 +370,9 @@ function ComponentCatalogueBranch({
   collapsedBranchIds: Set<string>;
   onToggleBranch: (branchId: string) => void;
 }) {
-  const indent = getCatalogueIndent(branch.depth);
   const collapsed = collapsedBranchIds.has(branch.id);
   const empty = branch.totalItemCount === 0;
+  const eyebrow = branch.parentPathLabel || "Component Library";
 
   return (
     <section
@@ -385,10 +383,8 @@ function ComponentCatalogueBranch({
     >
       <div
         className={cn(
-          "flex h-9 min-w-0 items-center gap-2 border-b px-2",
-          branch.depth === 0 ? "border-hairline bg-surfaceMuted/70" : "border-hairline bg-white",
+          "flex min-h-[72px] min-w-0 items-center gap-2 border-b border-hairline bg-white px-3 py-2.5",
         )}
-        style={{ paddingLeft: `${indent + 8}px` }}
       >
         <button
           type="button"
@@ -400,17 +396,13 @@ function ComponentCatalogueBranch({
           {collapsed ? <CaretRight size={12} weight="regular" /> : <CaretDown size={12} weight="regular" />}
         </button>
         <FolderSimple size={13} weight="regular" className="shrink-0 text-tertiary" aria-hidden="true" />
-        <div className="min-w-0 flex-1">
-          <div className="flex min-w-0 items-center gap-2">
-            <h2 className="truncate text-[10px] font-medium leading-3 tracking-normal text-ink">
-              {branch.label}
-            </h2>
-          </div>
-          {branch.depth > 0 ? (
-            <p className="mt-0.5 truncate text-[8px] font-normal uppercase leading-3 tracking-normal text-tertiary">
-              {branch.pathLabel}
-            </p>
-          ) : null}
+        <div className="flex min-w-0 flex-1 flex-col justify-center">
+          <p className="truncate text-[8px] font-normal uppercase leading-3 tracking-normal text-tertiary/70">
+            {eyebrow}
+          </p>
+          <h2 className="mt-0.5 truncate text-[12px] font-medium leading-4 tracking-normal text-ink">
+            {branch.label}
+          </h2>
         </div>
       </div>
       {!collapsed ? (
@@ -540,7 +532,7 @@ function ComponentLibraryTreePanel({
       maxWidth={432}
       widthOffset={COMPONENT_LIBRARY_TREE_WIDTH_OFFSET}
     >
-      <div className="flex h-full flex-col overflow-hidden border-l border-hairline bg-white" data-component-library-tree-panel="true">
+      <div className="flex h-full flex-col overflow-hidden bg-white" data-component-library-tree-panel="true">
         <LibraryFolderTreeSurface
           folders={folders}
           folderNodes={folderNodes}
@@ -688,9 +680,6 @@ function ComponentLibrarySheet({
           >
             {selectedLabel}
           </button>
-          <span className="self-center px-2 text-[9px] font-medium text-tertiary">
-            {visibleItems.length} / {sheetItems.length}
-          </span>
         </div>
         {status.state !== "idle" ? (
           <div
@@ -719,11 +708,16 @@ function ComponentLibrarySheet({
             ))}
             {catalogueOutline.items.length > 0 ? (
               <section aria-label={`${CATALOGUE_UNASSIGNED_LABEL} component catalogue branch`} data-component-catalogue-section="unassigned">
-                <div className="flex h-9 min-w-0 items-center gap-2 border-b border-hairline bg-surfaceMuted/70 px-2">
+                <div className="flex min-h-[72px] min-w-0 items-center gap-2 border-b border-hairline bg-surfaceMuted/70 px-3 py-2.5">
                   <SquaresFour size={13} weight="regular" className="shrink-0 text-tertiary" aria-hidden="true" />
-                  <h2 className="min-w-0 flex-1 truncate text-[10px] font-medium leading-3 tracking-normal text-ink">
-                    {CATALOGUE_UNASSIGNED_LABEL}
-                  </h2>
+                  <div className="flex min-w-0 flex-1 flex-col justify-center">
+                    <p className="truncate text-[8px] font-normal uppercase leading-3 tracking-normal text-tertiary/70">
+                      No folder assigned
+                    </p>
+                    <h2 className="truncate text-[12px] font-medium leading-4 tracking-normal text-ink">
+                      {CATALOGUE_UNASSIGNED_LABEL}
+                    </h2>
+                  </div>
                 </div>
                 <CatalogueCardGrid cards={catalogueOutline.items} label={CATALOGUE_UNASSIGNED_LABEL} />
               </section>
@@ -948,18 +942,8 @@ export function ComponentLibraryManager({
   }
 
   return (
-    <div className="flex h-full min-h-0 overflow-hidden rounded-xs border border-hairline bg-white" data-component-library-workspace="true">
+    <div className="flex h-full min-h-0 overflow-hidden rounded-xs border-r border-hairline bg-white" data-component-library-workspace="true">
       <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-canvas">
-        <div
-          className="relative h-10 shrink-0 border-b border-hairline bg-white"
-          data-workshop-layout="component-library-workspace-header-row"
-        >
-          <div
-            className="absolute inset-y-0 left-0 right-0 flex min-w-0 items-center"
-            data-component-library-center-header="true"
-          />
-        </div>
-
         <section className="flex h-full min-h-0 overflow-hidden bg-white" aria-label="Component library workspace">
           <ComponentLibrarySheetPanel
             selectedFolderNode={selectedFolderNode}

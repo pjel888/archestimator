@@ -8,6 +8,7 @@ export type HeaderIconToolbarAddAction = {
   visibleLabel?: string;
   icon?: ReactNode;
   onClick?: () => void;
+  pressed?: boolean;
   disabled?: boolean;
   className?: string;
 };
@@ -19,6 +20,8 @@ type HeaderIconToolbarProps = {
   onGroup?: () => void;
   onExpandAll?: () => void;
   onCollapseAll?: () => void;
+  leadingActions?: HeaderIconToolbarAddAction[];
+  leadingActionsLabel?: string;
   onAdd?: () => void;
   addVisibleLabel?: string;
   addDisabled?: boolean;
@@ -33,6 +36,8 @@ export function HeaderIconToolbar({
   onGroup,
   onExpandAll,
   onCollapseAll,
+  leadingActions = [],
+  leadingActionsLabel,
   onAdd,
   addVisibleLabel,
   addDisabled = false,
@@ -72,6 +77,27 @@ export function HeaderIconToolbar({
           <CaretDoubleUp size={12} weight="regular" aria-hidden="true" />
         </ToolbarIconButton>
       ) : null}
+      {leadingActions.length > 0 ? (
+        <div
+          className="ml-1 flex items-center gap-1 border-l border-hairline pl-1"
+          role="group"
+          aria-label={leadingActionsLabel ?? `${labelPrefix} view actions`}
+        >
+          {leadingActions.map((action) => (
+            <ToolbarIconButton
+              key={action.label}
+              label={action.label}
+              visibleLabel={action.visibleLabel}
+              onClick={action.onClick}
+              aria-pressed={action.pressed}
+              disabled={action.disabled}
+              className={action.className}
+            >
+              {action.icon ?? <Plus size={12} weight="regular" aria-hidden="true" />}
+            </ToolbarIconButton>
+          ))}
+        </div>
+      ) : null}
       <div className="ml-auto flex items-center gap-1">
         {toolbarAddActions.map((action) => {
           const isAddAction = action.label.trim().toLowerCase().startsWith("add");
@@ -82,6 +108,7 @@ export function HeaderIconToolbar({
               label={action.label}
               visibleLabel={visibleLabel}
               onClick={action.onClick}
+              aria-pressed={action.pressed}
               disabled={action.disabled}
               className={
                 action.className ??

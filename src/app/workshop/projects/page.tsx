@@ -3,7 +3,7 @@ import { WorkshopPageShell } from "@/components/workshop/WorkshopPageShell";
 import { listCurrentWorkspaceProjects } from "@/lib/repositories/workspace-repository";
 
 export default async function ProjectsPage() {
-  const { projects } = await listCurrentWorkspaceProjects();
+  const { projects, favoriteProjectIds } = await listCurrentWorkspaceProjects();
 
   return (
     <WorkshopPageShell
@@ -12,14 +12,11 @@ export default async function ProjectsPage() {
       showEyebrow={false}
       breadcrumbs={["Projects"]}
       contentClassName=""
-      footer={
-        <>
-          <span>{projects.length} live projects</span>
-          <span>{projects.length === 0 ? "Sample references visible" : "Supabase workspace connected"}</span>
-        </>
-      }
     >
-      <ProjectsPageClient projects={projects} />
+      <ProjectsPageClient
+        projects={projects}
+        favoriteProjectIds={favoriteProjectIds}
+      />
     </WorkshopPageShell>
   );
 }

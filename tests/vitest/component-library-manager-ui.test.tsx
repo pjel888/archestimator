@@ -241,16 +241,22 @@ describe("component library manager UI", () => {
     expect(screen.getByLabelText("Search component sheet")).toBeInTheDocument();
 
     const workspace = screen.getByLabelText("Component library workspace");
+    const workspaceFrame = document.querySelector('[data-component-library-workspace="true"]');
     const sheetPanel = workspace.querySelector('[data-component-library-sheet-panel="true"]');
     const treePanel = workspace.querySelector('[data-component-library-tree-panel="true"]');
+    expect(workspaceFrame).toHaveClass("border-r");
+    expect(workspaceFrame).not.toHaveClass("border");
+    expect(workspaceFrame).not.toHaveClass("border-l");
+    expect(workspaceFrame).not.toHaveClass("border-b");
+    expect(workspaceFrame).not.toHaveClass("border-t");
     expect(sheetPanel).not.toBeNull();
     expect(treePanel).not.toBeNull();
+    expect(treePanel).not.toHaveClass("border-l");
+    expect(treePanel).not.toHaveClass("border-hairline");
     expect(sheetPanel!.compareDocumentPosition(treePanel!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
 
-    const centerHeader = document.querySelector('[data-component-library-center-header="true"]');
-    const workspaceHeader = document.querySelector('[data-workshop-layout="component-library-workspace-header-row"]');
-    expect(centerHeader).not.toHaveClass("lg:left-[var(--component-library-tree-width)]");
-    expect(workspaceHeader?.getAttribute("style") ?? "").not.toContain("--component-library-tree-width");
+    expect(document.querySelector('[data-component-library-center-header="true"]')).toBeNull();
+    expect(document.querySelector('[data-workshop-layout="component-library-workspace-header-row"]')).toBeNull();
 
     const tabs = screen.getByRole("tablist", { name: "Library views" });
     expect(within(tabs).getAllByRole("tab").map((tab) => tab.textContent)).toEqual(["Components"]);
@@ -283,6 +289,7 @@ describe("component library manager UI", () => {
     expect(within(tree).getByRole("treeitem", { name: "Database Steel Frame" })).toBeInTheDocument();
     expect(within(tree).getByRole("treeitem", { name: "Custom Cabinet Pull" })).toBeInTheDocument();
     expect(within(sheet).getByRole("tab", { name: "All Components" })).toHaveAttribute("aria-selected", "true");
+    expect(within(sheet).getByRole("tablist", { name: "Component sheet tabs" })).not.toHaveTextContent("3 / 3");
     expect(within(sheet).queryByLabelText("All Components component rows")).not.toBeInTheDocument();
     const fabricationArrow = getLibraryFolderArrowWithin(tree, "folder-fabrication");
     expect(getLibraryFolderButton("Fabrication")).toHaveAttribute("aria-expanded", "true");
@@ -303,9 +310,25 @@ describe("component library manager UI", () => {
     expect(fabricationBranch).toHaveAttribute("data-component-catalogue-folder-depth", "0");
     expect(detailsBranch).toHaveAttribute("data-component-catalogue-folder-depth", "1");
     expect(emptyBranch).toHaveAttribute("data-component-catalogue-folder-depth", "2");
-    expect(fabricationBranch.firstElementChild).toHaveStyle({ paddingLeft: "8px" });
-    expect(detailsBranch.firstElementChild).toHaveStyle({ paddingLeft: "40px" });
-    expect(emptyBranch.firstElementChild).toHaveStyle({ paddingLeft: "72px" });
+    expect(fabricationBranch.firstElementChild).toHaveClass("min-h-[72px]");
+    expect(detailsBranch.firstElementChild).toHaveClass("min-h-[72px]");
+    expect(emptyBranch.firstElementChild).toHaveClass("min-h-[72px]");
+    expect(fabricationBranch.firstElementChild).toHaveClass("bg-white");
+    expect(fabricationBranch.firstElementChild).toHaveClass("border-hairline");
+    expect(fabricationBranch.firstElementChild).not.toHaveClass("border-l-2");
+    expect(fabricationBranch.firstElementChild).not.toHaveClass("border-l-divider/70");
+    expect(detailsBranch.firstElementChild).not.toHaveClass("border-l-2");
+    expect(emptyBranch.firstElementChild).not.toHaveClass("border-l-2");
+    expect(fabricationBranch.firstElementChild).not.toHaveClass("bg-surfaceMuted/70");
+    expect(fabricationBranch.firstElementChild).not.toHaveAttribute("style");
+    expect(detailsBranch.firstElementChild).not.toHaveAttribute("style");
+    expect(emptyBranch.firstElementChild).not.toHaveAttribute("style");
+    expect(within(fabricationBranch).getByText("Component Library")).toHaveClass("text-tertiary/70");
+    expect(within(fabricationBranch).getByRole("heading", { name: "Fabrication" })).toHaveClass("font-medium");
+    expect(within(detailsBranch).getByText("Fabrication", { selector: "p" })).toHaveClass("text-tertiary/70");
+    expect(within(detailsBranch).getByRole("heading", { name: "Details" })).toHaveClass("font-medium");
+    expect(within(emptyBranch).getByText("Fabrication / Details", { selector: "p" })).toHaveClass("text-tertiary/70");
+    expect(within(emptyBranch).getByRole("heading", { name: "Empty Child" })).toHaveClass("font-medium");
     expect(within(fabricationBranch).queryByText(/\d+ items?/i)).not.toBeInTheDocument();
     expect(within(emptyBranch).queryByText("Empty folder")).not.toBeInTheDocument();
     expect(within(fabricationBranch).getByText("Database Steel Frame")).toBeInTheDocument();
@@ -351,6 +374,10 @@ describe("component library manager UI", () => {
 
     expect(within(sheet).getByRole("tab", { name: "Details" })).toHaveAttribute("aria-selected", "true");
     const selectedDetailsBranch = within(sheet).getByLabelText("Fabrication / Details component catalogue branch");
+    expect(selectedDetailsBranch.firstElementChild).toHaveClass("bg-white");
+    expect(selectedDetailsBranch.firstElementChild).not.toHaveClass("border-l-2");
+    expect(selectedDetailsBranch.firstElementChild).not.toHaveClass("border-l-divider/70");
+    expect(selectedDetailsBranch.firstElementChild).not.toHaveClass("bg-surfaceMuted/70");
     expect(within(selectedDetailsBranch).getByText("Custom Cabinet Pull")).toBeInTheDocument();
     expect(within(sheet).getByLabelText("Fabrication / Details / Empty Child component catalogue branch")).toBeInTheDocument();
     expect(within(sheet).queryByText("Database Steel Frame")).not.toBeInTheDocument();

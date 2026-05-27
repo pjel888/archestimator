@@ -3,14 +3,13 @@
 import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
-import { Books, Copy, Folder, GearSix, SquaresFour } from "@phosphor-icons/react/dist/ssr";
+import { Blueprint, Books, Folder, GearSix, SquaresFour } from "@phosphor-icons/react/dist/ssr";
 import type { Icon as PhosphorIcon } from "@phosphor-icons/react";
 
 import { Button } from "@/components/ui/button";
 import { SidebarHeader } from "./SidebarHeader";
 import { SidebarNavItemRow } from "./SidebarNavItemRow";
 import {
-  SIDEBAR_ICON_SLOT,
   SIDEBAR_PADDING,
   SIDEBAR_TRANSITION,
   SIDEBAR_WIDTH_COLLAPSED,
@@ -24,12 +23,6 @@ type MainSidebarUser = {
   avatarUrl?: string | null;
 };
 
-type NavGroup = {
-  key: string;
-  label: string;
-  items: Array<SidebarNavItem & { icon: PhosphorIcon }>;
-};
-
 const dashboardItem: SidebarNavItem & { icon: PhosphorIcon } = {
   id: "workshop",
   href: "/workshop",
@@ -38,30 +31,20 @@ const dashboardItem: SidebarNavItem & { icon: PhosphorIcon } = {
   shortcut: "⌘1",
 };
 
-const navGroups: NavGroup[] = [
-  {
-    key: "work",
-    label: "Work",
-    items: [
-      { id: "projects", href: "/workshop/projects", label: "Projects", icon: Folder, shortcut: "⌘2" },
-    ],
-  },
-  {
-    key: "library",
-    label: "Library",
-    items: [
-      { id: "library", href: "/workshop/library", label: "Components", icon: Books, shortcut: "⌘3" },
-      { id: "templates", href: "/workshop/templates", label: "Templates", icon: Copy, shortcut: "⌘4" },
-    ],
-  },
-];
-
 const settingsItem: SidebarNavItem & { icon: PhosphorIcon } = {
   id: "settings",
-  href: "/workshop",
+  href: "/workshop/settings",
   label: "Settings",
   icon: GearSix,
 };
+
+const sidebarNavItems: Array<SidebarNavItem & { icon: PhosphorIcon }> = [
+  dashboardItem,
+  { id: "projects", href: "/workshop/projects", label: "Projects", icon: Folder, shortcut: "⌘2" },
+  { id: "library", href: "/workshop/library", label: "Components", icon: Books, shortcut: "⌘3" },
+  { id: "templates", href: "/workshop/templates", label: "Templates", icon: Blueprint, shortcut: "⌘4" },
+  settingsItem,
+];
 
 const isActiveHref = (pathname: string | null, href: string) => pathname === href || Boolean(pathname?.startsWith(`${href}/`));
 
@@ -131,10 +114,6 @@ export function MainSidebar({ user }: { user?: MainSidebarUser }) {
     };
   }, [expanded, prefersReducedMotion]);
 
-  const dividerStyle: React.CSSProperties = expanded
-    ? { left: 0, right: 0 }
-    : { left: SIDEBAR_PADDING, width: SIDEBAR_ICON_SLOT };
-
   return (
     <>
       {expanded && (
@@ -154,8 +133,7 @@ export function MainSidebar({ user }: { user?: MainSidebarUser }) {
         <SidebarHeader expanded={expanded} onToggle={() => setExpanded((value) => !value)} />
 
         <div className="flex flex-1 flex-col overflow-y-auto overflow-x-hidden [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-          <div className="relative flex h-[72px] shrink-0 items-center xl:h-[76px]" style={{ paddingInline: SIDEBAR_PADDING }}>
-            <div aria-hidden="true" className="absolute bottom-0 border-b border-hairline" style={dividerStyle} />
+          <div className="flex h-[72px] shrink-0 items-center xl:h-[76px]" style={{ paddingInline: SIDEBAR_PADDING }}>
             <div className="grid h-10 w-full grid-cols-[48px_minmax(0,1fr)] items-center gap-1 overflow-hidden rounded-xs">
               <div className="flex h-10 w-12 shrink-0 items-center justify-center">
                 <div className="relative flex size-8 shrink-0 items-center justify-center overflow-hidden rounded-xs bg-linear-to-br from-secondary to-primary text-[10px] font-medium leading-none text-white ring-1 ring-black/10">
@@ -179,37 +157,15 @@ export function MainSidebar({ user }: { user?: MainSidebarUser }) {
             </div>
           </div>
 
-          <div className="flex flex-col gap-3 pt-2" style={{ paddingInline: SIDEBAR_PADDING }}>
-            <div className="flex flex-col gap-1">
-              <SidebarNavItemRow item={dashboardItem} active={pathname === dashboardItem.href} expanded={expanded} />
-            </div>
-
-            {navGroups.map((group, groupIndex) => (
-              <div key={group.key} className="flex flex-col gap-1">
-                <div className="relative flex h-5 items-center overflow-hidden">
-                  <span
-                    aria-hidden={!expanded}
-                    className={[
-                      "px-2 text-[8px] font-medium uppercase tracking-normal text-tertiary select-none transition-[opacity,transform] duration-[180ms] ease-out motion-reduce:transform-none motion-reduce:transition-none",
-                      expanded ? "translate-x-0 opacity-100" : "pointer-events-none translate-x-1 opacity-0",
-                    ].join(" ")}
-                  >
-                    {group.label}
-                  </span>
-                  {!expanded && groupIndex > 0 && <div aria-hidden="true" className="absolute left-0 top-1/2 w-12 border-t border-hairline/70" />}
-                </div>
-                {group.items.map((item) => (
-                  <SidebarNavItemRow key={item.id} item={item} active={isActiveHref(pathname, item.href)} expanded={expanded} />
-                ))}
-              </div>
+          <div className="flex flex-col gap-2 pb-2 pt-2" style={{ paddingInline: SIDEBAR_PADDING }}>
+            {sidebarNavItems.map((item) => (
+              <SidebarNavItemRow
+                key={item.id}
+                item={item}
+                active={item.id === dashboardItem.id ? pathname === item.href : isActiveHref(pathname, item.href)}
+                expanded={expanded}
+              />
             ))}
-          </div>
-
-          <div className="relative mt-auto flex flex-col gap-1 pb-2 pt-2" style={{ paddingInline: SIDEBAR_PADDING }}>
-            <div className="relative h-3" style={{ marginInline: -SIDEBAR_PADDING }}>
-              <div aria-hidden="true" className="absolute top-1/2 border-t border-hairline" style={dividerStyle} />
-            </div>
-            <SidebarNavItemRow item={settingsItem} active={false} expanded={expanded} />
           </div>
         </div>
       </nav>

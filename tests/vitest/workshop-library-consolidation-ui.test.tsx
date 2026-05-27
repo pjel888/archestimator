@@ -245,7 +245,8 @@ describe("workshop library consolidation UI", () => {
     expect(libraryRoute).not.toContain("getCurrentWorkspaceComponentLibrary");
     expect(libraryRoute).not.toContain("templates=");
     expect(libraryRoute).toContain('breadcrumbs={["Library"]}');
-    expect(libraryRoute).toContain("Workspace library");
+    expect(libraryRoute).toContain('contentClassName=""');
+    expect(libraryRoute).not.toContain("Workspace library");
     expect(libraryRoute).not.toContain("Categories and templates");
     expect(componentsRoute).toContain('redirect("/workshop/library")');
     expect(componentsRoute).not.toContain("getCurrentWorkspaceComponentLibrary");
@@ -265,9 +266,15 @@ describe("workshop library consolidation UI", () => {
     expect(addComponentModal).toContain("cleanupUploadedDraftAssets");
     expect(addComponentModal).toContain("removeComponentAttachmentUpload");
     expect(addComponentModal).toContain("attachmentBusy");
+    expect(addComponentModal).toContain('accept="image/jpeg,image/png,image/webp,image/avif,.jpg,.jpeg,.png,.webp,.avif"');
+    expect(addComponentModal).toContain("isImageUploadBusy(imageUpload.state)");
+    expect(addComponentModal).toContain("disabled={isPending || imageBusy || attachmentBusy || validation.length > 0}");
     expect(nextConfig).toContain('const protocol = url.protocol === "http:" ? "http" : url.protocol === "https:" ? "https" : null');
     expect(nextConfig).toContain("remotePatterns: supabaseImageRemotePattern ? [supabaseImageRemotePattern] : []");
     expect(nextConfig).not.toContain('hostname: "**"');
+    const componentLibraryManager = readFileSync(join(process.cwd(), "src/components/workshop/component-library-manager/ComponentLibraryManager.tsx"), "utf8");
+    expect(componentLibraryManager).toContain("imageUrl.protocol === storageUrl.protocol");
+    expect(componentLibraryManager).toContain("imageUrl.port === storageUrl.port");
   });
 
   it("renders Components as the only route tab with direct folder scoped rows", () => {

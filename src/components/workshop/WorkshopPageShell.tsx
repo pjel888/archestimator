@@ -3,6 +3,7 @@ import Link from "next/link";
 import { cookies } from "next/headers";
 
 import { MainSidebar } from "@/components/sidebar/MainSidebar";
+import { AskFlipFooterAssistant } from "@/components/workshop/EstimateCopilotFloatingButton";
 import { cn } from "@/lib/ui/cn";
 import { getCurrentUserContext } from "@/lib/auth/session";
 import { ESTIMATE_CENTER_COLUMN_CSS_VARIABLES } from "./EstimateCenterColumnBoundary";
@@ -22,7 +23,6 @@ type WorkshopPageShellProps = {
   description?: string;
   actions?: ReactNode;
   centerHeader?: ReactNode;
-  footer?: ReactNode;
   breadcrumbs?: WorkshopBreadcrumb[];
   alignChromeToProjectSidebar?: boolean;
   contentClassName?: string;
@@ -45,7 +45,6 @@ export async function WorkshopPageShell({
   description,
   actions,
   centerHeader,
-  footer,
   breadcrumbs,
   alignChromeToProjectSidebar = false,
   contentClassName,
@@ -101,9 +100,9 @@ export async function WorkshopPageShell({
           {children}
         </div>
 
-        <footer className={["flex min-h-12 shrink-0 items-center justify-between gap-2 border-t border-hairline bg-white text-[10px] text-tertiary", chromePaddingClass].join(" ")}>
-          {breadcrumbNav}
-          {footer ? <div className="ml-auto flex shrink-0 items-center gap-2">{footer}</div> : <span className="ml-auto shrink-0">Local sample workspace</span>}
+        <footer className={["relative flex min-h-12 shrink-0 items-center justify-between gap-2 overflow-visible border-t border-hairline bg-white text-[10px] text-tertiary", chromePaddingClass].join(" ")}>
+          <div className="min-w-0 flex-1">{breadcrumbNav}</div>
+          <AskFlipFooterAssistant />
         </footer>
       </section>
     </main>
