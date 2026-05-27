@@ -476,6 +476,10 @@ function readArray(value: unknown, label: string): unknown[] {
   return value;
 }
 
+function isUuidLike(value: string) {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value);
+}
+
 export function validatePackageBuilderDraft(draft: PackageBuilderDraft): { valid: boolean; errors: string[] } {
   const errors: string[] = [];
   const treeIds = new Set<string>();
@@ -504,6 +508,9 @@ export function validatePackageBuilderDraft(draft: PackageBuilderDraft): { valid
     rowIds.add(row.clientDraftId);
     if (!areaIds.has(row.targetAreaClientDraftId)) errors.push(`Row ${row.clientDraftId} must target an Area Node.`);
     if (row.sourceType === "library_item" && !row.sourceLibraryItemId) errors.push(`Linked row ${row.clientDraftId} is missing a source library item id.`);
+    if (row.sourceType === "library_item" && row.sourceLibraryItemId && !isUuidLike(row.sourceLibraryItemId)) {
+      errors.push(`Linked row ${row.clientDraftId} must reference a real UUID-backed library item.`);
+    }
     if (row.sourceType === "allowance" && row.sourceLibraryItemId) errors.push(`Allowance row ${row.clientDraftId} must not masquerade as a library row.`);
   }
 

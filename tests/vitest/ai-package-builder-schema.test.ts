@@ -159,4 +159,35 @@ describe("AI package-builder schemas", () => {
       }),
     ).toMatchObject({ mode: "apply", draftHash, idempotencyKey: "idem-1" });
   });
+
+  it("rejects rows targeting non-Area nodes", () => {
+    const draft = parsePackageBuilderDraft({
+      ...validDraft,
+      rowDraft: [{ ...validDraft.rowDraft[0], targetAreaClientDraftId: "group-house" }],
+    });
+
+    expect(validatePackageBuilderDraft(draft)).toMatchObject({
+      valid: false,
+      errors: expect.arrayContaining(["Row row-bedroom-1-bed must target an Area Node."]),
+    });
+  });
+
+  it("does not let fallback static ids masquerade as writable component rows", () => {
+    const draft = parsePackageBuilderDraft({
+      ...validDraft,
+      rowDraft: [
+        {
+          ...validDraft.rowDraft[0],
+          sourceType: "library_item",
+          sourceLibraryItemId: "lib-sofa",
+          material: "Static sofa",
+        },
+      ],
+    });
+
+    expect(validatePackageBuilderDraft(draft)).toMatchObject({
+      valid: false,
+      errors: expect.arrayContaining(["Linked row row-bedroom-1-bed must reference a real UUID-backed library item."]),
+    });
+  });
 });
