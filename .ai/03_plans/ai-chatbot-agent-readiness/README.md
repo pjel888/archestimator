@@ -1,8 +1,8 @@
 # AI Chatbot Agent Readiness Plan
 
 **Date:** 2026-05-23
-**Status:** research / audit / readiness only
-**Implementation status:** no code implementation approved in this plan pack
+**Status:** readiness pack plus staged implementation log
+**Implementation status:** Ask-only shipped first; package-builder Draft/Apply slice implemented on 2026-05-28
 **Primary product idea:** an authenticated Archestimator chatbot agent that can answer questions, draft estimate structures, and eventually create or edit projects, estimates, components, and proposal content through safe app-owned tools.
 
 ## Why this exists
@@ -15,12 +15,24 @@ The target experience is not a generic chatbot. It is an estimating copilot that
 
 ## Non-negotiable constraints
 
-- No implementation in this planning task.
+- This pack began as a readiness-only planning task. Current implementation work is now authorized by explicit user request and must keep this pack updated as product reality changes.
 - The model must never receive broad database credentials, service-role keys, arbitrary SQL access, or cross-workspace data.
 - AI reads and writes must execute through server-owned, user-scoped, RLS-backed app tools.
 - Every write-capable tool must validate workspace/project/estimate ownership at the server or database boundary.
 - The MVP should use grounding, tool calling, structured outputs, and evals before considering fine-tuning.
 - The first launch should require user confirmation before writes that create, update, delete, or materially price estimate data.
+
+## Current implementation status
+
+As of 2026-05-28, Ask Flip has a first package-builder path:
+
+- `/api/ai/ask` remains the Ask route.
+- `/api/ai/package-builder` handles package-builder `draft` and `apply` modes.
+- Draft mode builds a reviewable package draft from compact authenticated read-tool summaries plus optional DeepSeek structured hints and deterministic server-side fallback logic.
+- Apply mode requires explicit UI confirmation, validates the draft hash and workspace boundary server-side, creates the project, estimate shell, tree nodes, and approved rows, and records metadata-only AI/estimate audit rows.
+- The UI preview is available inside the Ask Flip footer assistant for package prompts such as "Assemble me a 3 bedroom package, budget is 5 million pesos."
+- Memory/RAG remains off and provider-owned canonical memory is not used.
+- The current Apply path is sequential server writes with idempotency metadata; a single database transaction/RPC remains the recommended hardening step for broader rollout.
 
 ## Recommended direction
 
@@ -30,11 +42,11 @@ Build an **Estimate Copilot** with three explicit modes:
 2. **Draft**: produce structured proposed changes, including project briefs, estimate tree nodes, row items, budget allocation, exclusions, assumptions, and uncertainty flags.
 3. **Apply**: after explicit user confirmation, execute validated server-side actions that create or edit app records and write an audit trail.
 
-Default model policy as of the fourth pass on 2026-05-23:
+Default model policy as of the fourth pass on 2026-05-23, modified by the current user override for the package-builder implementation:
 
-- **Primary production path:** OpenAI Responses API, `gpt-5.5`, `reasoning.effort: medium`, through an Archestimator-owned provider adapter for tool-heavy estimate creation/editing, budget reasoning, and Apply-adjacent planning.
+- **Primary long-term path:** OpenAI Responses API, `gpt-5.5`, `reasoning.effort: medium`, through an Archestimator-owned provider adapter for tool-heavy estimate creation/editing, budget reasoning, and Apply-adjacent planning.
 - **OpenAI cost lane:** `gpt-5.4-mini` only for routing, extraction, title/summary generation, library-search synthesis, and simple read-only Ask turns after evals prove quality.
-- **DeepSeek lane:** evaluation-only, synthetic/redacted fixtures only, until vendor privacy/compliance approval and provider-specific schema/tool evals pass. Do not send real tenant project/client/supplier/cost data to hosted DeepSeek in the first implementation plan.
+- **DeepSeek lane:** temporarily allowed by explicit user override for Ask and package-builder Draft with scoped/minimized data only. Server code still owns validation and Apply; the model never mutates records directly.
 
 The best implementation strategy is not "multi-provider first." It is **provider-ready, OpenAI-first**: keep app tools, schemas, evals, audit logs, and streaming events provider-neutral, but implement only the OpenAI adapter in Phase 1 unless a later approved eval plan adds DeepSeek.
 
