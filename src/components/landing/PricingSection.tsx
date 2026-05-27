@@ -18,10 +18,10 @@ export function PricingSection() {
             <div className="mt-4 grid gap-6 md:grid-cols-[1fr_auto] md:items-end">
               <div>
                 <h2 className="text-[38px] font-normal leading-[1.02] tracking-[-0.052em] text-[#111111] sm:text-[52px]">
-                  Early access to the estimating workspace
+                  Early access to the quote workspace
                 </h2>
                 <p className="mt-5 max-w-[760px] text-[15px] leading-[1.55] tracking-[-0.015em] text-[#4f4f4d] sm:text-[16px]">
-                  Explore the early flow for Estimate Workspace, Component Library, and connected estimate organization. Revision history, proposal comparisons, visual cost breakdowns, and Excel/PDF exports remain planned next-step workflows.
+                  Explore the early flow for structured quote sheets, reusable catalog logic, and connected estimate organization. Revision history, proposal comparisons, visual cost breakdowns, and document handoff remain planned next-step workflows.
                 </p>
               </div>
               <div className="rounded-[10px] border border-[#dedbd6] bg-[#faf9f6] p-5 md:min-w-[190px]">

@@ -42,8 +42,8 @@ export function getRenderableCompanyProofItems(items: CompanyProofLogo[]): {
 }
 
 export const companyProofCopy = {
-  eyebrow: "Sample estimating workflows",
-  headline: "Estimate logic should stay connected from first quantity to proposal.",
+  eyebrow: "Sample quote workflows",
+  headline: "Quote logic should stay connected from first quantity to proposal.",
   description:
     "Placeholder profiles only. Real customer proof will replace this rail before any public trust claim.",
 };
@@ -74,7 +74,7 @@ export const placeholderCompanyProof: CompanyProofLogo[] = [
     permissionConfirmed: false,
     isPlaceholder: true,
     publicLabel: "Sample profile",
-    workflowFit: "BOQ and revision review",
+    workflowFit: "Quotation and revision review",
   },
   {
     name: "Atlas Site Works",

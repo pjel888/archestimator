@@ -3,12 +3,12 @@ import { MotionReveal } from "./MotionReveal";
 
 const solutionFeatures = [
   [
-    "Project-shaped estimates",
-    "Organize the estimate with flexible groups and areas named for lots, structures, levels, scopes, trades, cost components, and line items.",
+    "Structured quote sheets",
+    "Organize the quote with flexible groups named for packages, locations, scopes, categories, suppliers, catalog items, and line items.",
   ],
   [
-    "Reusable cost components",
-    "Bring repeated assemblies, materials, labor rates, and scope packages into the next estimate without rebuilding them from scratch.",
+    "Reusable catalog items",
+    "Bring repeated products, assemblies, services, labor rates, and scope packages into the next quote without rebuilding them from scratch.",
   ],
   [
     "Revision context",
@@ -16,18 +16,18 @@ const solutionFeatures = [
   ],
   [
     "Proposal handoff direction",
-    "Carry inclusions, exclusions, assumptions, and totals toward proposal-ready output while Excel/PDF handoff remains a planned workflow.",
+    "Carry inclusions, exclusions, assumptions, and totals toward proposal-ready output while document handoff remains a planned workflow.",
   ],
 ];
 
 function WorkflowVisual() {
   const steps = [
-    { label: "Project", sub: "Lot · Structure · Level" },
-    { label: "Area & Scope", sub: "Kitchen · Bathroom · Facade" },
-    { label: "Trade & Component", sub: "Tile · Waterproofing · Labor" },
-    { label: "Estimate Logic", sub: "Qty · Rate · Assumption" },
+    { label: "Opportunity", sub: "Buyer · Site · Package" },
+    { label: "Scope", sub: "Room · Category · Deliverable" },
+    { label: "Catalog Item", sub: "Product · Service · Labor" },
+    { label: "Quote Logic", sub: "Qty · Rate · Assumption" },
     { label: "Revision", sub: "Delta · Approval" },
-    { label: "Proposal Handoff", sub: "Planned Excel · PDF" },
+    { label: "Proposal Handoff", sub: "Planned document path" },
   ];
 
   return (
@@ -35,7 +35,7 @@ function WorkflowVisual() {
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_22%_18%,rgba(255,255,255,0.98),transparent_24%),linear-gradient(135deg,#f4f1ea,#fbfaf7_48%,#e5ded2)]" />
       <div className="relative">
         <p className="mb-5 font-mono text-[10px] font-semibold uppercase tracking-[0.14em] text-[#7b7b78]">
-          Connected estimate workflow
+          Connected quote workflow
         </p>
         <div className="space-y-3">
           {steps.map((step, i) => (
@@ -55,10 +55,10 @@ function WorkflowVisual() {
         </div>
         <div className="mt-5 rounded-[8px] border border-[#ff7a1a]/20 bg-[#fff7ef] p-3">
           <p className="text-[12px] font-semibold text-[#111111]">
-            Project hierarchy drives connected estimate logic
+            Line-item structure drives connected quote logic
           </p>
           <p className="mt-1 text-[12px] text-[#626260]">
-            Every cost belongs to a place, a scope, and a trade. As the product matures, revision and proposal handoff should stay connected to the same estimate logic.
+            Every price belongs to a scope, supplier context, and assumption. As the product matures, revision and proposal handoff should stay connected to the same quote logic.
           </p>
         </div>
       </div>
@@ -76,8 +76,8 @@ export function SolutionSection() {
       <div className="relative z-10 mx-auto w-full max-w-[1120px]">
         <MotionReveal>
           <SectionIntro
-            title="Less spreadsheet drift. More estimate control."
-            body="Archestimator keeps the work around the estimate connected: the project structure, the reusable cost logic, the revision trail, and the proposal handoff."
+            title="Less spreadsheet drift. More quote control."
+            body="Archestimator keeps the work around the quote connected: the line-item structure, reusable catalog logic, revision trail, and proposal handoff."
           />
         </MotionReveal>
 

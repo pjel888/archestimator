@@ -1,19 +1,7 @@
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { getLandingAuthState } from "@/lib/landing/get-landing-auth-state";
 import { PublicPageShell } from "@/components/landing";
 import Link from "next/link";
 import { Check, Info } from "@phosphor-icons/react/dist/ssr";
-
-async function getLandingAuthState() {
-  try {
-    const supabase = await createSupabaseServerClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    return Boolean(user);
-  } catch {
-    return false;
-  }
-}
 
 export default async function PricingPage() {
   const isLoggedIn = await getLandingAuthState();
@@ -30,25 +18,25 @@ export default async function PricingPage() {
   const futureHighlights = [
     { title: "Revision comparisons", desc: "Compare versions of the same sheet side-by-side to catch scope creep." },
     { title: "Excel (.xlsx) exports", desc: "Handoff complete cost sheets preserving hierarchy and formulas." },
-    { title: "PDF proposal packages", desc: "Format estimations automatically into professional client packages." }
+    { title: "Document proposal packages", desc: "Format quote data into professional client packages after the document workflow ships." }
   ];
 
   const pricingFaq = [
     {
       q: "Is Archestimator production-ready?",
-      a: "Archestimator is currently in MVP preview / early-access state. It is stable and fully functional for building cost trees, entering rate calculations, and organizing project structures, but is not yet recommended as the sole repository for high-risk corporate estimation files."
+      a: "Archestimator is currently in MVP preview / early-access state. It is usable for early MVP trials around structured sheets, rate calculations, and reusable catalog workflows, but is not yet recommended as the sole repository for high-risk commercial, purchasing, legal, or corporate estimation files."
     },
     {
       q: "Why is early access currently free?",
-      a: "We believe in building software directly alongside active cost estimators. During the early-access phase, the platform is free (₱0) to try so we can collect real feedback, run usage diagnostics, and harden the database structures before general commercial release."
+      a: "We believe in building software directly alongside teams that create quotes, estimates, and proposal packages. During the early-access phase, the platform is free (₱0) to try so we can collect real feedback, run usage diagnostics, and harden the database structures before general commercial release."
     },
     {
       q: "Will pricing change in the future?",
-      a: "Yes. Once the core workflow matures and features like Excel/PDF exports and revision histories are released, we will introduce sustainable, professional pricing tiers. We will notify all early-access users well in advance of any tier changes."
+      a: "Yes. Once the core workflow matures and features like document handoff and revision histories are released, we will introduce sustainable, professional pricing tiers. We will notify all early-access users well in advance of any tier changes."
     },
     {
       q: "How can I provide feedback or request features?",
-      a: "Estimators can reach us directly via our Contact page or by participating in design-partner discussions. We read every rate-logic, keyboard-nav, and hierarchy suggestion to shape upcoming releases."
+      a: "Suppliers, sales teams, buyers, and estimators can reach us directly via our Contact page or by participating in design-partner discussions. We read every rate-logic, keyboard-nav, and quote-structure suggestion to shape upcoming releases."
     }
   ];
 
@@ -64,7 +52,7 @@ export default async function PricingPage() {
             Simple access. Honest status.
           </h1>
           <p className="mx-auto mt-6 max-w-[620px] text-[16px] leading-7 text-[#626260] md:text-[18px]">
-            Archestimator is in early development. We are making the core estimation engine available to try today, with no hidden commitments.
+            Archestimator is in early development. We are making the core quote and estimate workspace available to try today, with no hidden commitments.
           </p>
         </div>
       </section>

@@ -1,11 +1,29 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import { HeroSection, heroCopyVariants } from "@/components/landing/HeroSection";
 import { LandingFooter } from "@/components/landing/LandingFooter";
 import { ProductShowcaseSection } from "@/components/landing/ProductShowcaseSection";
 import { SolutionSection } from "@/components/landing/SolutionSection";
 
+vi.mock("@/components/landing/NeatWireframeBackground", () => ({
+  NeatWireframeBackground: () => <div data-testid="neat-wireframe-background" />,
+}));
+
 describe("landing page below-hero interactivity", () => {
+  it("keeps the stronger hero A/B copy options available", () => {
+    render(<HeroSection />);
+
+    expect(screen.getByRole("heading", { name: /only the smart ones create quotes this way/i })).toBeInTheDocument();
+    expect(heroCopyVariants.map((variant) => variant.headline)).toEqual(
+      expect.arrayContaining([
+        "Only the smart ones create quotes this way.",
+        "Your competitors are already a step ahead.",
+      ]),
+    );
+    expect(screen.queryByRole("heading", { name: /your competitors are already a step ahead/i })).not.toBeInTheDocument();
+  });
+
   it("switches product preview content through accessible product tabs", async () => {
     const user = userEvent.setup();
 
@@ -47,20 +65,20 @@ describe("landing page below-hero interactivity", () => {
     expect(componentLibraryTab).toHaveAttribute("aria-selected", "true");
   });
 
-  it("replaces the public solution placeholder with a credible estimating workflow visual", () => {
+  it("replaces the public solution placeholder with a credible quote workflow visual", () => {
     render(<SolutionSection />);
 
     expect(screen.queryByText(/placeholder/i)).not.toBeInTheDocument();
-    expect(screen.getByText(/project hierarchy/i)).toBeInTheDocument();
-    expect(screen.getByText(/connected estimate logic/i)).toBeInTheDocument();
+    expect(screen.getByText(/connected quote workflow/i)).toBeInTheDocument();
+    expect(screen.getByText(/line-item structure drives connected quote logic/i)).toBeInTheDocument();
   });
 
-  it("renders a professional footer with grounded construction-estimating navigation", () => {
+  it("renders a professional footer with grounded quote-and-proposal navigation", () => {
     render(<LandingFooter />);
 
-    const footer = screen.getByRole("contentinfo", { name: /clearer estimating workspace/i });
+    const footer = screen.getByRole("contentinfo", { name: /clearer quote and proposal workspace/i });
     expect(footer).toBeInTheDocument();
-    expect(screen.getByText(/A clearer estimating workspace for construction cost estimators/i)).toBeInTheDocument();
+    expect(screen.getByText(/A clearer quote and proposal workspace for sales teams, suppliers, and estimating teams/i)).toBeInTheDocument();
     expect(screen.getByText(/Less file hunting/i)).toBeInTheDocument();
     expect(screen.getAllByRole("link", { name: /Open workspace/i }).map((link) => link.getAttribute("href"))).toContain("/workshop");
     expect(screen.getAllByRole("link", { name: /Try Workspace/i }).map((link) => link.getAttribute("href"))).toContain("/login?next=/workshop/projects");

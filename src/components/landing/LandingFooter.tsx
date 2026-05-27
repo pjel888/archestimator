@@ -7,9 +7,9 @@ import { MotionReveal } from "./MotionReveal";
 import { loginHref, workshopHref } from "./constants";
 
 const footerHighlights = [
-  "Build around the project, not a blank spreadsheet.",
-  "Keep quantities, costs, assumptions, and proposal context connected.",
-  "See what changed before a revision becomes a client problem.",
+  "Build around the offer, not a blank spreadsheet.",
+  "Keep quantities, prices, supplier context, and proposal context connected.",
+  "See what changed before a revision becomes a buyer problem.",
 ] as const;
 
 export function LandingFooter({ isHomePage = true }: { isHomePage?: boolean }) {
@@ -67,10 +67,10 @@ export function LandingFooter({ isHomePage = true }: { isHomePage?: boolean }) {
               </Link>
 
               <h2 id="landing-footer-heading" className="mt-8 max-w-[680px] text-[34px] font-normal leading-[1.03] tracking-[-0.052em] text-white sm:text-[46px]">
-                A clearer estimating workspace for construction cost estimators.
+                A clearer quote and proposal workspace for sales teams, suppliers, and estimating teams.
               </h2>
               <p className="mt-5 max-w-[560px] text-[14px] leading-6 text-white/66">
-                Less file hunting. Less version confusion. More clarity around the estimate, the revision, and the proposal the client needs to understand.
+                Less file hunting. Less version confusion. More clarity around the quote, the revision, and the proposal the buyer needs to understand.
               </p>
 
               <div className="mt-8 flex flex-col gap-3 sm:flex-row">
@@ -115,7 +115,7 @@ export function LandingFooter({ isHomePage = true }: { isHomePage?: boolean }) {
                 MVP preview
               </p>
               <p className="mt-3 text-[13px] leading-6 text-white/68">
-                Archestimator is being shaped as an early estimating workspace. It supports estimator judgment instead of replacing it, and public claims stay grounded until proof is verified.
+                Archestimator is being shaped as an early quote, estimate, and proposal workspace. It supports human review instead of replacing commercial, purchasing, or legal judgment.
               </p>
             </div>
 
@@ -133,7 +133,7 @@ export function LandingFooter({ isHomePage = true }: { isHomePage?: boolean }) {
 
           <div className="flex flex-col gap-3 border-t border-white/12 pt-6 text-[11px] text-white/42 sm:flex-row sm:items-center sm:justify-between">
             <p>© {currentYear} Archestimator. All rights reserved.</p>
-            <p>Built for construction cost estimators. No unverified customer proof, logos, or guaranteed savings claims.</p>
+            <p>Built for quote and proposal workflows. No fake logos, legal-document automation, or savings guarantees.</p>
           </div>
         </div>
       </MotionReveal>

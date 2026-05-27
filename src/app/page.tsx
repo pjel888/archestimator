@@ -1,4 +1,4 @@
-import { createSupabaseServerClient } from "@/lib/supabase/server";
+import { getLandingAuthState } from "@/lib/landing/get-landing-auth-state";
 import {
   CompanyProofCarouselSection,
   FAQSection,
@@ -13,18 +13,6 @@ import {
   LandingFooter,
   LandingSmoothScrollProvider,
 } from "@/components/landing";
-
-async function getLandingAuthState() {
-  try {
-    const supabase = await createSupabaseServerClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    return Boolean(user);
-  } catch {
-    return false;
-  }
-}
 
 export default async function LandingPage() {
   const isLoggedIn = await getLandingAuthState();

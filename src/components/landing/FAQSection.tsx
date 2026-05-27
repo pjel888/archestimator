@@ -15,16 +15,16 @@ const faqData: FAQItem[] = [
     answer: "The MVP preview offers free access (₱0) to our early-stage estimating workspace. By participating, you get direct access to the tool, and your usage and feedback directly help us shape the product features, interfaces, and roadmap before our public release.",
   },
   {
-    question: "Can I import my existing Excel estimating sheets?",
-    answer: "We support structured manual entry and quick copy-paste into our project hierarchy to ensure clean cost structures. While direct Excel importing is not yet supported, we plan to support structured Excel and PDF exporting in future updates to make handoffs seamless.",
+    question: "Can I import my existing Excel quote sheets?",
+    answer: "We support structured manual entry and quick copy-paste into the workspace to keep line items clean. Direct Excel importing is not yet supported, and spreadsheet/document handoff remains a planned workflow.",
   },
   {
-    question: "Is my estimate data secure?",
-    answer: "Yes. Your data is stored securely using Supabase with strict Row-Level Security (RLS) policies, meaning only authorized users in your workspace can access or modify your estimates. We prioritize local-first responsiveness and secure cloud syncing.",
+    question: "Is my quote data protected?",
+    answer: "Workspace access is protected by login and row-level access rules. Broader security, privacy, and compliance claims stay pending until the reviewed Privacy Notice, Terms, and security posture are published.",
   },
   {
     question: "How does Archestimator differ from spreadsheets?",
-    answer: "Traditional spreadsheets suffer from broken formulas, disconnected tabs, and high risk of errors. Archestimator structures estimates by project hierarchy, lets you reuse cost components across projects, tracks revisions systematically, and compares proposals side-by-side without duplicating sheets.",
+    answer: "Traditional spreadsheets suffer from broken formulas, disconnected tabs, and high risk of errors. Archestimator structures quote and estimate sheets, helps reuse catalog items and supplier context, and is designed to make revisions and proposal comparisons easier as planned workflows mature.",
   },
 ];
 
