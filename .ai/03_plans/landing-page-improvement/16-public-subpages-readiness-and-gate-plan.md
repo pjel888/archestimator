@@ -1,7 +1,7 @@
 # Public Landing Subpages Readiness and Gate Plan
 
-**Date:** 2026-05-21 18:05 PST
-**Status:** Planning only; implementation readiness gate.
+**Date:** 2026-05-21 18:05 PST; refreshed 2026-05-27 14:50 PHT
+**Status:** Planning only; implementation/release readiness gate. Public marketing routes now exist, but privacy, claims, analytics, and legal gates remain active.
 **Scope:** Readiness checklist for public marketing subpages: `/features`, `/pricing`, `/about`, `/contact`, `/privacy`, `/security`, and future `/resources`.
 **Parent folder:** `.ai/03_plans/landing-page-improvement/`
 **Related plans:**
@@ -203,7 +203,9 @@ High-risk claims that always require explicit review:
 
 - [ ] Data collection fact matrix completed.
 - [ ] Providers listed accurately.
-- [ ] Analytics/cookies confirmed.
+- [ ] Analytics/cookies confirmed against Phase 8 facts: current `archestimator_cookie_consent`; planned opt-in GA4, Clarity, and `ab_test`; no PostHog unless a future ADR adopts it.
+- [ ] Report-Only CSP route coverage includes `/privacy` and `/terms` when those legal routes ship.
+- [ ] DPA/legal review covers Supabase, Google Analytics, Microsoft Clarity, and any later adopted PostHog processor.
 - [ ] Retention/deletion approach confirmed.
 - [ ] Privacy contact confirmed.
 - [ ] Effective date set.

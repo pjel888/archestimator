@@ -52,6 +52,10 @@ The best implementation strategy is not "multi-provider first." It is **provider
 - `10-third-pass-implementation-readiness-gate.md` — third-pass go/no-go checklist for moving from readiness into a scoped implementation plan.
 - `11-fourth-pass-model-vendor-strategy.md` — fourth-pass model/vendor policy, including DeepSeek cost-vs-risk analysis and provider-readiness gates.
 - `12-implementation-slice-log.md` — implementation-slice record for the DeepSeek Ask-only floating Copilot override.
+- `13-package-builder-agent-readiness-and-architecture.md` — package-builder architecture for "assemble a 3 bedroom package" style prompts.
+- `14-package-builder-agent-data-access-audit-and-memory-plan.md` — data-access, audit, memory, RAG, and Wisebase position for package-builder AI.
+- `15-package-builder-agent-implementation-plan.md` — staged implementation plan from read tools to Draft, Apply, package transaction/RPC, and memory.
+- `16-package-builder-agent-evals-and-ultraqa-plan.md` — eval fixtures, prompt-injection cases, rollout gates, and QA loop for write-capable AI.
 
 ## Sources used
 
@@ -73,6 +77,10 @@ The best implementation strategy is not "multi-provider first." It is **provider
 - Supabase Edge Function auth docs: https://supabase.com/docs/guides/functions/auth
 - Supabase AI/vector docs: https://supabase.com/docs/guides/ai
 - Supabase semantic search docs: https://supabase.com/docs/guides/ai/semantic-search
+- Supabase RAG with permissions docs: https://supabase.com/docs/guides/ai/rag-with-permissions
+- Vercel AI Gateway docs: https://vercel.com/docs/ai-gateway/
+- Vercel AI Gateway Responses API docs: https://vercel.com/docs/ai-gateway/sdks-and-apis/responses/
+- Sider Wisebase docs: https://sider.ai/en/help-center/feature-guides/wisebase
 - React Flow / Xyflow docs: https://reactflow.dev
 - Mermaid docs: https://mermaid.js.org
 - D3 docs: https://d3js.org

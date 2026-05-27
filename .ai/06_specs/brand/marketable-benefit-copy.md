@@ -21,15 +21,15 @@ Use these as supporting benefit labels or card headings when the section needs o
 
 **Short copy:**
 
-Create estimates faster by starting from an organized project structure instead of rebuilding every sheet from scratch.
+Create quotes and estimates faster by starting from an organized offer structure instead of rebuilding every sheet from scratch.
 
 **Longer copy:**
 
-Archestimator keeps your estimate organized by project, area, scope, and cost component, so you spend less time setting up files and more time pricing the work.
+Archestimator keeps your quote organized by package, project, supplier, scope, and cost component, so you spend less time setting up files and more time pricing the work.
 
 **Alternate titles:**
 
-- Estimate Faster
+- Quote Faster
 - Price Faster
 - Start Faster
 - Faster Estimate Setup
@@ -38,11 +38,11 @@ Archestimator keeps your estimate organized by project, area, scope, and cost co
 
 **Short copy:**
 
-Save repeat work with a cost component library you can reuse across projects.
+Save repeat work with a cost/catalog component library you can reuse across quotes and projects.
 
 **Longer copy:**
 
-Turn common assemblies, materials, labor patterns, and scope packages into reusable components. Bring them into new projects, then adjust them for the specific job.
+Turn common products, assemblies, services, labor patterns, and scope packages into reusable components. Bring them into new quotes or projects, then adjust them for the specific offer.
 
 **Alternate titles:**
 
@@ -55,11 +55,11 @@ Turn common assemblies, materials, labor patterns, and scope packages into reusa
 
 **Short copy:**
 
-Keep estimate versions traceable, so important cost data does not disappear into old spreadsheet copies.
+Keep quote versions traceable, so important cost data does not disappear into old spreadsheet copies.
 
 **Longer copy:**
 
-Projects change. Archestimator keeps estimate sheets, revisions, and assumptions inside the project workspace so you can see what changed without hunting through file names and duplicated spreadsheets.
+Quotes change. Archestimator keeps quote/estimate sheets, revisions, supplier context, and assumptions inside the workspace so you can see what changed without hunting through file names and duplicated spreadsheets.
 
 **Alternate titles:**
 
@@ -72,11 +72,11 @@ Projects change. Archestimator keeps estimate sheets, revisions, and assumptions
 
 **Short copy:**
 
-Create multiple estimate sheets under one project and compare different cost proposals side by side.
+Create multiple quote or estimate sheets under one workspace and compare different cost proposals side by side.
 
 **Longer copy:**
 
-Use separate estimate sheets for alternates, revisions, value-engineering options, or different proposal schemes. Keep every option connected to the same project so comparison stays clear.
+Use separate quote/estimate sheets for alternates, revisions, value-engineering options, or different proposal schemes. Keep every option connected to the same workspace so comparison stays clear.
 
 **Alternate titles:**
 
@@ -106,18 +106,18 @@ Instead of walking clients through rows of a spreadsheet, show cost differences 
 
 **Short copy:**
 
-Organize costs by project structure, work area, scope, and discipline so every line item has a clear place.
+Organize costs by offer structure, package, work area, supplier, scope, and category so every line item has a clear place.
 
 **Longer copy:**
 
-Archestimator follows how construction teams already think: projects have locations, scopes, trades, components, quantities, assumptions, and revisions. The estimate stays easier to navigate because the structure mirrors the work.
+Archestimator follows how quote teams already think: offers have packages, products, services, locations, suppliers, components, quantities, assumptions, and revisions. The quote stays easier to navigate because the structure mirrors the work.
 
 **Alternate titles:**
 
-- Project-Shaped Estimates
+- Offer-Shaped Quotes
 - Organized by Scope
 - Every Cost Has a Place
-- Estimate by Area and Trade
+- Quote by Package and Source
 
 ## Strong section title set
 
@@ -156,33 +156,33 @@ If the page needs a sharper/challenger-brand tone:
 
 ### Option A: clear and direct
 
-Archestimator helps estimators move faster without losing control of the details. Reuse cost components, keep versions traceable, compare proposal options, and show clients what changed with clear visual breakdowns.
+Archestimator helps quote teams move faster without losing control of the details. Reuse cost components, keep versions traceable, compare proposal options, and show clients or buyers what changed with clear visual breakdowns.
 
 ### Option B: more marketable
 
-Estimating is faster when the work stays organized. Archestimator gives every cost a place, every version a history, and every proposal option a clear way to compare.
+Quoting is faster when the work stays organized. Archestimator gives every cost a place, every version a history, and every proposal option a clear way to compare.
 
 ### Option C: sharper
 
-Stop chasing old spreadsheets. Build estimates in one organized workspace where costs can be reused, versions stay traceable, and proposal options are easier to explain.
+Stop chasing old spreadsheets. Build quotes in one organized workspace where costs can be reused, versions stay traceable, and proposal options are easier to explain.
 
 ### Option D: client-communication angle
 
-Create the estimate, compare the options, and show the difference clearly. Archestimator helps turn cost data into proposal conversations clients can understand.
+Create the quote, compare the options, and show the difference clearly. Archestimator helps turn cost data into proposal conversations clients and buyers can understand.
 
 ## One-line value proposition options
 
-- Create estimates faster, compare options clearly, and keep every version under control.
+- Create quotes faster, compare options clearly, and keep every version under control.
 - Reuse cost components, track versions, and show clients how proposal options compare.
-- A smarter estimating workspace for reusable costs, traceable versions, and visual proposal comparisons.
-- Build project-organized estimates that are easier to reuse, revise, compare, and explain.
+- A smarter quote workspace for reusable costs, traceable versions, and visual proposal comparisons.
+- Build offer-organized quotes that are easier to reuse, revise, compare, and explain.
 - Less spreadsheet confusion. More reusable costs, safer versions, and clearer client decisions.
 
 ## Recommended current wording
 
 For the next landing-page pass, use this core copy direction:
 
-> Archestimator helps construction estimators create estimates faster by organizing costs around the project, reusing proven cost components, keeping versions traceable, and making proposal options easier to compare and explain.
+> Archestimator helps teams create quotes, estimates, and proposal-ready documents faster by organizing costs around the offer, reusing proven catalog/cost components, keeping versions traceable, and making proposal options easier to compare and explain.
 
 This is clear, marketable, and aligned with the current product direction without overclaiming.
 

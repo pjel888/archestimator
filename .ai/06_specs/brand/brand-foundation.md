@@ -6,16 +6,16 @@
 
 ## Current working positioning
 
-Archestimator helps construction cost estimators create clearer estimates faster by untangling the messy work around the estimate: scattered files, repeated setup, hidden assumptions, unclear revisions, and proposal outputs that drift away from the number.
+Archestimator helps teams create clearer quotes, estimates, and proposal-ready outputs faster by untangling the messy work around the offer: scattered files, repeated setup, hidden assumptions, supplier context, unclear revisions, and proposal outputs that drift away from the numbers.
 
 ## Primary first audience
 
-To confirm:
+To confirm after the 2026-05-27 narrative pivot:
 
-- Construction cost estimators
-- Contractors who prepare their own estimates
-- Small-to-mid construction teams
-- Design-build or fit-out teams with frequent revision cycles
+- Suppliers and sales teams that build detailed itemized quotations
+- Buyers and operations teams reviewing supplier offers
+- Contractors and construction estimators as the current implemented proof case
+- Furniture, restaurant-supply, fit-out, and other quote-heavy businesses with frequent revision cycles
 
 ## Core user pain
 
@@ -25,15 +25,15 @@ The deeper pain is normalized waste. Many teams do not realize how much time the
 
 ## Brand promise
 
-Create construction estimates faster and with more clarity, without losing the assumptions, versions, comparisons, and context that make the number trustworthy.
+Create quotes, estimates, and proposal-ready outputs faster and with more clarity, without losing the assumptions, supplier/source context, versions, comparisons, and review trail that make the numbers trustworthy.
 
 ## Internal problem frame
 
-Archestimator's brand should challenge the familiar suffering inside current estimating workflows.
+Archestimator's brand should challenge the familiar suffering inside current quote, estimating, and proposal workflows.
 
 The message is not “estimators are doing it wrong.” The message is:
 
-> You should not have to suffer through a messy workflow just because it is familiar. There is a faster, clearer, better way to create construction estimates.
+> You should not have to suffer through a messy workflow just because it is familiar. There is a faster, clearer, better way to create itemized quotes and proposals.
 
 The product exists to untangle:
 
@@ -43,13 +43,13 @@ The product exists to untangle:
 - proposal language disconnected from cost logic;
 - manual revision comparison;
 - client conversations where the number is hard to explain;
-- Excel/PDF handoff work that becomes a separate cleanup job.
+- spreadsheet/document handoff work that becomes a separate cleanup job.
 
 ## Secondary public claim
 
-> The most intuitive way to create construction cost estimates
+> A clearer way to create quotes, estimates, and proposal-ready documents
 
-Use this as a below-hero supporting claim. It should communicate ease, structure, and workflow clarity, not unverified market leadership. Pair it with visible product proof: project hierarchy, Component Library reuse, Revision Intelligence, proposal comparison, visual cost breakdowns, proposal-ready output, and Excel/PDF export.
+Use this as a below-hero supporting claim. It should communicate ease, structure, and workflow clarity, not unverified market leadership. Pair it with visible product proof: structured sheets, reusable supplier/catalog logic, revision context, proposal comparison, visual cost breakdowns, proposal-ready output direction, and spreadsheet/document handoff.
 
 ## Benefit pillars
 
@@ -62,21 +62,21 @@ Use this as a below-hero supporting claim. It should communicate ease, structure
 
 ## Product truth to preserve
 
-- The estimate sheet is the center of gravity.
-- Cost library and reusable components should support faster, more consistent pricing across different projects.
-- A project can have multiple estimate sheets for proposal options, alternates, revisions, or cost comparisons.
+- The quote/estimate sheet is the center of gravity.
+- Catalog/library components should support faster, more consistent pricing across different offers and projects.
+- A workspace can have multiple quote or estimate sheets for proposal options, alternates, revisions, or cost comparisons.
 - Version control matters because estimating data is too important to lose in file drift or overwritten copies.
 - Data visualization matters because clients need to understand cost differences, not only see totals.
-- Revisions matter because construction estimates change repeatedly before approval.
-- Proposal output matters because the estimate must eventually become something a client can understand and sign.
+- Revisions matter because quote and estimate scopes change repeatedly before approval.
+- Proposal output matters because the quote must eventually become something a buyer, client, or internal reviewer can understand and approve.
 - Trust matters more than pure automation.
 - The user's problem is not lack of skill; it is too much skilled work trapped inside disconnected tools.
 
 ## What Archestimator is not
 
-- Not a broad construction ERP.
+- Not a broad ERP, procurement execution, inventory, accounting, or project-management system.
 - Not a generic project-management app.
-- Not an invoice-only or quote-only app.
+- Not an invoice-only app or generic one-line quote form; Archestimator is for structured, itemized quotations and proposal packages where assumptions, pricing, revisions, and handoff matter.
 - Not an AI magic estimator that replaces estimator judgment.
 - Not a design/BIM takeoff platform unless that scope is explicitly added later.
 
@@ -84,8 +84,8 @@ Use this as a below-hero supporting claim. It should communicate ease, structure
 
 Archestimator should own the connection between:
 
-1. Estimate hierarchy
-2. Cost components
+1. Quote/estimate structure
+2. Catalog and cost components
 3. Assumptions and source notes
 4. Revisions and changes
 5. Proposal-ready output
@@ -105,7 +105,7 @@ Avoid or soften unless proven:
 
 ## Open brand questions
 
-- Is the first public audience independent contractors, professional estimators, or design-build teams?
+- Is the first public audience suppliers, quote-heavy sales teams, furniture suppliers, restaurant suppliers, contractors, or buyer-facing estimating teams?
 - Should the voice feel more premium/professional, founder-led, or sharp/challenger-brand?
 - How prominently should AI appear in the brand story?
 - Should the page emphasize speed first, trust first, or revisions/proposal control first?

@@ -5,9 +5,9 @@
 
 ## Purpose
 
-This document maps the hero thesis into the sections below the hero. The landing page should prove the line:
+This document maps the hero thesis into the sections below the hero. The landing page should prove the current line:
 
-> Only the smart ones create cost estimates this way.
+> Only the smart ones create quotes this way.
 
 The rest of the page must define “this way.”
 
@@ -15,15 +15,17 @@ The rest of the page must define “this way.”
 
 ### 1. Hero: the claim
 
-**Message:** Smart estimators create estimates differently.
+**Message:** Smart quote teams create offers differently.
 
-**Current headline:** “Only the smart ones create cost estimates this way.”
+**Current headline:** “Only the smart ones create quotes this way.”
 
-**Support idea:** Archestimator is the smarter way because it organizes the estimate by the logic of the actual project: space, scope, discipline, cost, assumption, revision, and proposal.
+**Support idea:** Archestimator is the clearer way because it organizes the quote by the logic of the actual offer: package, product/service, location, supplier, cost, assumption, revision, and proposal handoff.
+
+**A/B option:** “Your competitors are already a step ahead.” This is the competitive-pressure variant. Keep “because they use Archestimator” proof-gated in the experiment board until real customer proof exists.
 
 ### 2. Product preview: show the method immediately
 
-**Message:** This is not a blank spreadsheet. It is an estimating workspace with structure.
+**Message:** This is not a blank spreadsheet. It is a quote and estimating workspace with structure.
 
 **What to show:**
 
@@ -36,15 +38,15 @@ The rest of the page must define “this way.”
 
 **Copy angle:**
 
-> Build estimates around where the work happens, not around disconnected spreadsheet rows.
+> Build quotes around how the offer will be reviewed, not around disconnected spreadsheet rows.
 
-### 3. Secondary main claim: intuitive estimating
+### 3. Secondary main claim: clearer quoting
 
-**Message:** Archestimator is not only smarter; it should feel easier and more natural because the workflow follows construction-estimating logic.
+**Message:** Archestimator should feel easier and more natural because the workflow follows quote, estimate, and proposal logic.
 
 **Current below-hero claim:**
 
-> The most intuitive way to create construction cost estimates
+> A clearer way to create quotes, estimates, and proposal-ready documents
 
 **What to show nearby:**
 
@@ -56,13 +58,13 @@ The rest of the page must define “this way.”
 
 **Copy angle:**
 
-> Archestimator turns the estimate into a structured workspace where project hierarchy, reusable cost components, revisions, proposal comparisons, and Excel/PDF handoff stay connected.
+> Archestimator turns the quote or estimate into a structured workspace where offer structure, reusable catalog/cost components, revisions, proposal comparisons, and spreadsheet/document handoff stay connected.
 
-**Guardrail:** Do not present “most intuitive” as verified market leadership. The claim works as a positioning line only when the page immediately proves what makes the workflow intuitive.
+**Guardrail:** Do not present “clearer way” as verified market leadership. The claim works as a positioning line only when the page immediately proves what makes the workflow clearer.
 
-### 4. Problem section: scattered estimate logic
+### 4. Problem section: scattered quote logic
 
-**Message:** The old way makes estimators carry too much context in their heads, and most teams do not realize how much time they are losing because the mess feels normal.
+**Message:** The old way makes quote teams carry too much context in their heads, and most teams do not realize how much time they are losing because the mess feels normal.
 
 **Pain points:**
 
@@ -71,54 +73,54 @@ The rest of the page must define “this way.”
 - proposal documents drifting from estimate rows;
 - assumptions buried outside the sheet;
 - revisions requiring manual checking;
-- exported files recreated manually in Excel or PDF after the estimate is already done.
-- the quiet cost of re-finding, rechecking, rebuilding, and reconnecting estimate work.
+- exported files recreated manually after the quote or estimate is already done.
+- the quiet cost of re-finding, rechecking, rebuilding, and reconnecting quote work.
 
 **Copy angle:**
 
-> The hard part is not only calculating the total. It is keeping the logic behind the total organized as the project changes.
+> The hard part is not only calculating the total. It is keeping the logic behind the total organized as the offer changes.
 
-> Most teams do not realize how much time they lose to the work around the estimate.
+> Most teams do not realize how much time they lose to the work around the quote.
 
 > Untangle the mess before it becomes a proposal problem.
 
-### 5. Spatial hierarchy section: project-shaped estimating
+### 5. Offer structure section: quote-shaped estimating
 
-**Message:** Archestimator organizes the estimate like the project.
+**Message:** Archestimator organizes the quote like the offer.
 
 **Proof:**
 
-- Project → Lot → Structure → Floor → Area → Discipline → Cost component → Line item.
+- Offer → Package → Product/service → Location/scope → Supplier/context → Cost component → Line item.
 
 **Copy angle:**
 
-> Every cost belongs somewhere: a place, a scope, a trade, and an assumption.
+> Every cost belongs somewhere: a package, source, scope, and assumption.
 
 ### 6. Cost components section: reuse the work that repeats
 
-**Message:** Smart estimating means not rebuilding the same pricing logic again and again.
+**Message:** Smart quoting means not rebuilding the same pricing logic again and again.
 
 **Proof:**
 
 - reusable cost components;
-- project-specific edits;
+- quote-specific edits;
 - source/assumption notes;
-- component insertion into selected area/scope;
-- components reused across different projects.
+- component insertion into selected package/area/scope;
+- components reused across different quotes and projects.
 
 **Copy angle:**
 
-> Reuse proven assemblies without losing control of project-specific edits.
+> Reuse proven assemblies without losing control of quote-specific edits.
 
-> Save time by turning repeated estimating work into a reusable component library.
+> Save time by turning repeated quote work into a reusable component library.
 
-### 7. Multiple estimate sheets section: compare proposal options
+### 7. Multiple quote sheets section: compare proposal options
 
-**Message:** A project can have multiple estimate sheets, so users can compare schemes, alternates, revisions, or cost proposals without leaving the project.
+**Message:** A workspace can have multiple quote or estimate sheets, so users can compare schemes, alternates, revisions, or cost proposals without leaving the workspace.
 
 **Proof:**
 
-- multiple estimate sheets under one project;
+- multiple quote/estimate sheets under one workspace;
 - total cost comparison;
 - sheet-by-sheet proposal options;
 - baseline vs revised estimate;
@@ -126,11 +128,11 @@ The rest of the page must define “this way.”
 
 **Copy angle:**
 
-> Compare different cost proposals inside the same project, not across scattered files.
+> Compare different cost proposals inside the same workspace, not across scattered files.
 
-### 8. Version control section: protect estimate history
+### 8. Version control section: protect quote history
 
-**Message:** Estimators should not worry about lost data, overwritten spreadsheets, or unclear file versions.
+**Message:** Quote teams should not worry about lost data, overwritten spreadsheets, or unclear file versions.
 
 **Proof:**
 
@@ -162,7 +164,7 @@ The rest of the page must define “this way.”
 
 ### 10. Revision section: show what changed
 
-**Message:** Construction estimates are living documents. The system should make change easier to understand.
+**Message:** Quotes and estimates are living documents. The system should make change easier to understand.
 
 **Proof:**
 
@@ -195,19 +197,19 @@ The rest of the page must define “this way.”
 
 ### 12. Export section: use the formats the industry already accepts
 
-**Message:** The estimate should leave the workspace in standard handoff formats, not become another manual spreadsheet/PDF rewrite.
+**Message:** The quote should leave the workspace in standard handoff formats, not become another manual spreadsheet/document rewrite.
 
 **Proof:**
 
 - Excel export;
-- PDF export;
+- document handoff;
 - estimate sheet handoff;
 - proposal package handoff;
 - export tied to estimate/proposal version.
 
 **Copy angle:**
 
-> Export estimates and proposal packages to Excel and PDF so clients, consultants, and internal reviewers can work with the formats they already expect.
+> Hand off quote sheets and proposal packages as spreadsheet/document outputs so clients, buyers, consultants, and internal reviewers can work with the formats they already expect.
 
 ### 13. Pricing/MVP section: be honest
 
@@ -219,25 +221,25 @@ The rest of the page must define “this way.”
 
 **Copy angle:**
 
-> MVP preview. Explore the early estimating workspace while the core flow is being shaped.
+> MVP preview. Explore the early quote workspace while the core flow is being shaped.
 
 ### 14. Final CTA: return to the method
 
-**Message:** Try the smarter way to build an estimate.
+**Message:** Try the clearer way to build a quote.
 
 **CTA options:**
 
 - See the workspace
 - Open the workspace
-- Build a sample estimate
-- Explore the estimating workspace
+- Build a sample quote
+- Explore the quote workspace
 
 ## Section copy spine
 
 A concise section spine could be:
 
-1. **The most intuitive way to create construction cost estimates.**
-2. **Estimate in the shape of the project.**
+1. **A clearer way to create quotes, estimates, and proposal-ready documents.**
+2. **Quote in the shape of the offer.**
 3. **Price each scope where it belongs.**
 4. **Reuse the cost logic that repeats.**
 5. **Keep every estimate version traceable.**
@@ -246,7 +248,7 @@ A concise section spine could be:
 8. **Keep assumptions close to the numbers.**
 9. **See what changed before it reaches the client.**
 10. **Turn the estimate into a proposal without losing the thread.**
-11. **Export to Excel and PDF when the work needs to leave the workspace.**
+11. **Hand off spreadsheet/document outputs when the work needs to leave the workspace.**
 
 ## Brand voice reminder
 

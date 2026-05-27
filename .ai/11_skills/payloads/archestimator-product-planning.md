@@ -18,17 +18,17 @@
 
 ## Core product thesis
 
-Archestimator is a contractor-first estimating workspace, not a full construction ERP and not merely a calculator.
+Archestimator is a structured quotation, estimating, and proposal workspace, not a full ERP, procurement execution system, legal-document automation tool, or merely a calculator. Construction contractors remain the current implemented wedge, but supplier, sales, buyer, furniture, restaurant-supply, and other quote-heavy workflows are now valid discovery targets.
 
 The MVP wedge is:
 
-> fast estimates and revision updates for contractors managing multiple projects and design changes.
+> fast itemized quotes, estimates, proposal handoffs, and revision updates for teams managing changing scopes, supplier context, reusable catalog items, and approval-ready documents.
 
 ## MVP bias
 
 Prefer:
 
-- fast estimate sheet
+- fast quote/estimate sheet
 - reusable cost library
 - templates
 - quick calculators that produce line items
@@ -39,7 +39,7 @@ Prefer:
 
 Defer unless explicitly approved:
 
-- full supplier bidding
+- full supplier bidding or procurement execution
 - full takeoff/CAD/BIM engine
 - project scheduling
 - FF&E/spec management
@@ -51,10 +51,10 @@ Defer unless explicitly approved:
 
 For every proposed MVP feature, ask:
 
-1. Does this help a contractor produce or revise an estimate faster?
+1. Does this help a target user produce or revise a structured quote, estimate, or proposal faster?
 2. Does this reduce Excel/manual rework?
 3. Does this preserve editable assumptions and trust?
 4. Can it be implemented without becoming an enterprise suite?
-5. Does it strengthen the estimate sheet or revision workflow?
+5. Does it strengthen the quote/estimate sheet or revision workflow?
 
 If no, move it to Later.

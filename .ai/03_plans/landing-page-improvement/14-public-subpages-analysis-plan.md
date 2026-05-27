@@ -1,7 +1,7 @@
 # Public Landing Subpages Analysis Plan
 
-**Date:** 2026-05-21 17:56 PST
-**Status:** Planning only; no implementation yet.
+**Date:** 2026-05-21 17:56 PST; refreshed 2026-05-27 14:50 PHT
+**Status:** Planning only for remaining subpage/content/privacy gates; public marketing routes now exist, but release claims remain gated.
 **Scope:** Public marketing subpages related to the landing page: `/features`, `/pricing`, `/about`, `/contact`, and supporting trust/content pages.
 **Parent folder:** `.ai/03_plans/landing-page-improvement/`
 **Hard boundary:** The accepted homepage hero remains locked. This plan may define new subpage hero/intro sections, but must not alter the existing `/` hero unless Philip explicitly reopens it.
@@ -72,15 +72,15 @@ Independent review input:
 Current public marketing route inventory from `src/app`:
 
 - `/` — existing public landing page.
+- `/features` — public marketing route exists; content claims must stay maturity-labeled.
+- `/pricing` — public marketing route exists; pricing posture still needs Philip approval.
+- `/about` — public marketing route exists; founder/company facts remain approval-gated.
+- `/contact` — public marketing route exists; contact mechanism and privacy language remain release-gated.
 - `/login` — Supabase magic-link auth route.
 - `/auth/callback` — Supabase auth callback route.
 
 No dedicated public marketing subpages currently exist for:
 
-- `/features`
-- `/pricing`
-- `/about`
-- `/contact`
 - `/privacy`
 - `/security`
 - `/resources`
@@ -248,13 +248,13 @@ Claims to avoid unless verified:
 - auth/login data;
 - project/estimate data;
 - contact-form data;
-- cookies/analytics;
-- service providers;
+- cookies/analytics: current `archestimator_cookie_consent` essential cookie, planned GA4/Clarity/A/B cookies after opt-in, and no PostHog unless a future ADR adopts it;
+- service providers: Supabase, planned Google Analytics, planned Microsoft Clarity, hosting, and any selected contact/email provider;
 - data retention/deletion;
 - privacy contact;
 - effective date.
 
-**Open legal requirement:** Do not improvise legal policy. Draft from actual system facts, then get legal/human review.
+**Open legal requirement:** Do not improvise legal policy. Draft from actual system facts, Phase 8 cookie/CSP/DPA docs, and `ab-testing-gdpr-international-compliance/05-analytics-stack-decision.md`, then get legal/human review.
 
 ### 6. `/security` — optional, only after a verified fact matrix
 
@@ -465,7 +465,7 @@ Build when founder/company facts and contact destination are approved.
 
 ### Phase 5 — `/privacy` and optional `/security`
 
-Build when legal/provider facts are gathered. Privacy is higher priority than security if contact forms or public lead capture are added.
+Build when legal/provider facts are gathered. Privacy is higher priority than security if contact forms or public lead capture are added. Use the Phase 8 cookie audit, DPA checklist, consent implementation state, Report-Only CSP state, and analytics-stack decision as the source of truth.
 
 ### Phase 6 — `/resources`
 
@@ -498,7 +498,7 @@ Do not change these during this planning pass.
 1. **Thin-page risk:** Subpages that only repeat homepage copy will weaken credibility and SEO.
 2. **Fake-maturity risk:** Features such as exports, proposal outputs, revision intelligence, and visual comparisons must be labeled by current maturity.
 3. **Pricing risk:** `₱0` can be misread as permanent pricing if not framed as MVP preview.
-4. **Legal/privacy risk:** Contact forms and auth data collection require privacy coverage.
+4. **Legal/privacy risk:** Contact forms and auth data collection require privacy coverage grounded in current Phase 8 facts: consent banner/cookie implemented, GA4/Clarity planned but not wired, PostHog deferred, DPA/legal review open, and `/privacy`/`/terms` not yet shipped.
 5. **Security-overclaim risk:** Do not turn Supabase/Auth/RLS facts into certifications.
 6. **Navigation risk:** Header/footer anchors need route-aware behavior once subpages exist.
 7. **Dirty-worktree risk:** The repo has many active uncommitted changes; implementation must isolate public-page work carefully.

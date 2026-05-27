@@ -5,9 +5,9 @@
 
 ## Voice direction
 
-Archestimator should sound clear, competent, construction-literate, and slightly sharp. It should feel like a tool built by someone who understands the pain of estimating work, not like a generic SaaS template.
+Archestimator should sound clear, competent, commercially literate, and slightly sharp. It should feel like a tool built by someone who understands the pain of quote, estimating, and proposal work, not like a generic SaaS template.
 
-The voice should own the emotional territory of clarity: untangling messy estimating workflows, naming hidden time waste, and giving estimators permission to stop suffering through a process that only feels acceptable because it is familiar.
+The voice should own the emotional territory of clarity: untangling messy quote/estimating workflows, naming hidden time waste, and giving skilled teams permission to stop suffering through a process that only feels acceptable because it is familiar.
 
 ## Tone attributes
 
@@ -16,20 +16,20 @@ The voice should own the emotional territory of clarity: untangling messy estima
 - Confident but not overclaiming
 - Professional, not corporate bland
 - Sharp enough to stand out
-- Grounded in estimator workflow reality
-- Empathetic toward estimators, but unsentimental about broken workflows
+- Grounded in quote, estimate, and proposal workflow reality
+- Empathetic toward estimators, suppliers, sales teams, and buyers, but unsentimental about broken workflows
 - Clarity-first: the copy should make the messy problem feel visible
 
 ## Write like this
 
-- “Create construction estimates faster.”
-- “The most intuitive way to create construction cost estimates.”
-- “Keep quantities, costs, assumptions, and proposal context in one workspace.”
+- “Create quotes, estimates, and proposal-ready documents faster.”
+- “A clearer way to create quotes, estimates, and proposal-ready documents.”
+- “Keep quantities, costs, supplier context, assumptions, and proposal context in one workspace.”
 - “Know what changed before a revision becomes a client problem.”
-- “Build the estimate once. Reuse the logic. Keep the proposal aligned.”
+- “Build the quote once. Reuse the logic. Keep the proposal aligned.”
 - “Fast is useful only if the number is still explainable.”
 - “Untangle the mess before it becomes a proposal problem.”
-- “Most teams do not realize how much time they lose to rechecking, rebuilding, and reconnecting estimate work.”
+- “Most teams do not realize how much time they lose to rechecking, rebuilding, and reconnecting quote work.”
 - “Do not suffer through a workflow that makes every revision feel like detective work.”
 - “Less file hunting. Less version confusion. More clarity around the number.”
 
@@ -46,10 +46,10 @@ The voice should own the emotional territory of clarity: untangling messy estima
 
 ## Vocabulary to prefer
 
-- construction estimates
-- cost estimator
+- quotes and estimates
+- quote teams, suppliers, sales teams, buyers, and cost estimators
 - estimate sheet
-- cost library
+- cost/catalog library
 - project hierarchy
 - line items
 - quantities
@@ -57,6 +57,8 @@ The voice should own the emotional territory of clarity: untangling messy estima
 - assumptions
 - revisions
 - proposal package
+- itemized quotation
+- supplier context
 - client-ready proposal
 - traceable estimate
 - reusable cost components
@@ -84,8 +86,8 @@ The voice should own the emotional territory of clarity: untangling messy estima
 - “Create ___ faster without losing ___.”
 - “Keep ___, ___, and ___ connected.”
 - “See what changed, why it changed, and what the client is agreeing to.”
-- “The estimate is not just a total. It is the logic behind the proposal.”
-- “Less spreadsheet drift. More estimate control.”
+- “The quote is not just a total. It is the logic behind the proposal.”
+- “Less spreadsheet drift. More quote control.”
 - “Untangle ___ before it becomes ___.”
 - “Stop losing time to ___, ___, and ___.”
 - “The problem is not ___. The problem is ___.”
@@ -96,9 +98,9 @@ The voice should own the emotional territory of clarity: untangling messy estima
 
 - See the workspace
 - Open the workspace
-- Start an estimate
-- Explore the estimating workspace
-- Build a sample estimate
+- Start a quote
+- Explore the quote workspace
+- Build a sample quote
 
 ## Public-claim safety rules
 
@@ -106,5 +108,5 @@ The voice should own the emotional territory of clarity: untangling messy estima
 - Do not imply professional certification.
 - Do not imply real customers, partners, or testimonials unless verified.
 - If a feature is aspirational, mark it as future direction in internal docs and avoid presenting it as live product capability.
-- If using “the most intuitive way,” support it immediately with concrete workflow proof so it does not read as empty superiority language.
-- If naming the messy workflow, respect estimator skill. Do not shame spreadsheet users, imply non-users are stupid, or make fear the whole message. Name the pain, then offer relief through structure.
+- If using “a clearer way,” support it immediately with concrete workflow proof so it does not read as empty superiority language.
+- If naming the messy workflow, respect user skill. Do not shame spreadsheet users, imply non-users are careless, or make fear the whole message. Name the pain, then offer relief through structure.

@@ -2,19 +2,19 @@
 
 **Status:** Active planning folder
 **Created:** 2026-05-21
-**Updated:** 2026-05-21 18:33 PST
+**Updated:** 2026-05-27 14:50 PHT
 **Route/screen:** `/` public landing page plus planned public marketing subpages.
-**Current pass focus:** Below-hero conversion architecture, focused-middle container layout, locked-hero section reorder, Lenis smooth-scroll and soft section-settling correction, placeholder-safe company proof, brand-aligned feature icons, Kimi K2.6/frontend-design delegation, functional product tabs, no-new-package motion/interactivity readiness planning, professional footer work, public-subpage claims safety, and planning for `/features`, `/pricing`, `/about`, `/contact`, and supporting trust/content pages.
-**Hard boundary:** The above-the-fold hero is accepted for this pass and must not be touched.
+**Current pass focus:** Below-hero conversion architecture, focused-middle container layout, locked-hero section reorder, Lenis smooth-scroll and soft section-settling correction, placeholder-safe company proof, brand-aligned feature icons, Kimi K2.6/frontend-design delegation, functional product tabs, no-new-package motion/interactivity readiness planning, professional footer work, public-subpage claims safety, planning for `/features`, `/pricing`, `/about`, `/contact`, and supporting trust/content pages, plus A/B testing infrastructure, GDPR compliance, and international readiness (`ab-testing-gdpr-international-compliance/`).
+**Hard boundary:** Current user override on 2026-05-27 allows copy changes for the quote/proposal narrative pivot; do not change the accepted hero layout or visual system unless separately requested.
 **Supersedes:** `.ai/09_archive/store/2026-05-21-intercom-v4-ui-ux-improvement-plan-superseded/intercom-v4-ui-ux-improvement-plan.md`
 
 ## User job
 
-A construction cost estimator, contractor, architect, QS, engineer, or project team member should quickly understand why Archestimator helps them create and revise construction cost estimates faster than disconnected spreadsheet/proposal workflows.
+A company team creating detailed quotations or proposals should quickly understand why Archestimator helps them assemble, revise, compare, and hand off itemized commercial offers faster than disconnected spreadsheet/proposal workflows. Construction estimating remains the current implemented proof case.
 
 ## Goal
 
-Improve the current public landing page using live repo evidence, not the outdated Intercom/v4 plan. The page should prove the hero claim by showing the actual Archestimator method: project-shaped estimate structure, reusable cost components, traceable revisions, proposal comparisons, visual cost breakdowns, proposal-ready outputs, and Excel/PDF handoff.
+Improve the current public landing page using live repo evidence, not the outdated Intercom/v4 plan. The page should prove the hero claim by showing the actual Archestimator method: structured quote/estimate sheets, reusable supplier/catalog logic, traceable revisions, proposal comparisons, visual cost breakdowns, proposal-ready output direction, and spreadsheet/document handoff.
 
 ## Non-goals
 
@@ -23,7 +23,7 @@ Improve the current public landing page using live repo evidence, not the outdat
 - Do not add fake logos, fake testimonials, fake usage metrics, or fake customer proof. Placeholder company entries are allowed only as clearly marked implementation scaffolding and must not read as real social proof.
 - Do not imply finished pricing, finished export behavior, or production maturity beyond the current MVP-preview state.
 - Do not let landing typography rules bleed into app/workshop surfaces; the non-landing 12px maximum still applies there.
-- If Philip says the hero is acceptable for the current pass, lock the hero and improve the sections below it first.
+- If Philip says the hero is acceptable for a future visual pass, lock the hero layout and improve the sections below it first; copy may still change when product positioning changes.
 
 ## Current source references
 
@@ -78,6 +78,11 @@ Brand and planning references:
 21. `21-b2b-saas-and-estimation-landing-page-best-practices.md` — detailed research and best-practices guide for tech startups and vertical B2B SaaS apps like Archestimator.
 22. `22-current-execution-brief.md` — approved and active implementation guide for the current below-hero pass.
 23. `23-comprehensive-landing-page-research-and-strategy.md` — master landing page playbook consolidating general and vertical-specific best practices, competitor analysis, current audits, and the below-hero blueprint.
+24. `ab-testing-gdpr-international-compliance/` — A/B testing infrastructure, GDPR cookie consent and data privacy compliance, and international readiness/i18n planning for the public landing page and marketing subpages. Current truth: first consent banner/cookie and public-route Report-Only CSP slice exists; GA4, Microsoft Clarity, A/B assignment, privacy/terms pages, DPA/legal review, strict CSP, and i18n proxy composition remain open. PostHog is explicitly deferred from the MVP landing stack unless future product analytics/feature flags are approved.
+    - `ab-testing/README.md` — A/B testing tool selection, event taxonomy, conversion metrics, experiment governance
+    - `gdpr-compliance/README.md` — cookie consent, privacy policy, data processing disclosure, user data rights, Supabase DPA review
+    - `international-readiness/README.md` — i18n strategy, locale routing, translation readiness, multi-region legal compliance (GDPR, CCPA, etc.)
+    - `05-analytics-stack-decision.md` — official-doc GA4/Clarity/PostHog stack decision
 
 ## Deletion criteria
 

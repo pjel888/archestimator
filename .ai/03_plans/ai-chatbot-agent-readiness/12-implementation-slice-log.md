@@ -11,8 +11,8 @@ This overrides the fourth-pass default recommendation only for the first **Ask-o
 
 ## Implemented Ask-only slice
 
-- Floating lower-right Estimate Copilot launcher on the protected estimate workspace route.
-- Ask-only chat panel.
+- Ask Flip footer utility mounted through the protected workshop shell.
+- Two-column Ask-only chat panel with local/in-memory chat sessions on the left and the active Ask chat on the right.
 - Server-side `/api/ai/ask` route.
 - DeepSeek Chat Completions call via server-side `fetch`.
 - `DEEPSEEK_API_KEY` required server-side; optional `DEEPSEEK_MODEL`, defaulting to `deepseek-v4-flash`.
@@ -37,7 +37,7 @@ This overrides the fourth-pass default recommendation only for the first **Ask-o
 
 - Draft patch mode.
 - Apply mode.
-- Stored conversations.
+- Stored conversations or Supabase-backed chat sessions.
 - Component-library retrieval beyond user-provided visible route hints.
 - Project/estimate create/edit tools.
 - Vector/RAG.
@@ -70,8 +70,11 @@ Browser-provided route context is serialized as untrusted JSON and must never be
 
 ## Latest verification
 
-- `bun run test:dom -- tests/vitest/ai-audit-schema.test.ts tests/vitest/ai-audit-flow.test.ts tests/vitest/ai-ask-route.test.ts tests/vitest/ai-auth-guard.test.ts tests/vitest/estimate-copilot-floating-button.test.tsx` passed: 5 files, 19 tests.
-- `bun run type-check` passed.
-- Changed-file ESLint passed for AI route/auth/audit and AI test files.
+- 2026-05-26 Ask Flip footer update: `bun run test:dom tests/vitest/estimate-copilot-floating-button.test.tsx tests/vitest/ai-ask-route.test.ts tests/vitest/workshop-reset.test.tsx tests/vitest/estimate-sheet-cost-inputs.test.tsx tests/vitest/project-dashboard-ui.test.ts` passed: 5 files, 59 tests.
+- 2026-05-26 Ask Flip footer update: `bun test tests/unit/reset-baseline.test.ts` passed: 2 tests.
+- 2026-05-26 Ask Flip footer update: `bun run type-check` passed.
+- 2026-05-26 Ask Flip footer update: `bun run build` passed.
+- 2026-05-26 Ask Flip footer update: changed-file ESLint passed for the Ask Flip component, workshop shell, app providers, Ask route, and focused tests.
 - `bun run lint:font-size` passed.
+- Browser smoke on `/workshop/projects` verified one `Open Ask Flip` footer action, one `Ask Flip` region, one `Ask Flip chat sessions` complementary region, no legacy `Open Estimate Copilot` action, no legacy fixed root, and no browser console/page errors at `1440x900` and `390x844`. Screenshots: `.omx/artifacts/ask-flip-footer-smoke-20260526.png` and `.omx/artifacts/ask-flip-footer-mobile-smoke-20260526.png`.
 - `git diff --check` passed.

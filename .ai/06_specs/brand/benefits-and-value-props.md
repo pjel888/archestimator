@@ -5,23 +5,23 @@
 
 ## Core benefit thesis
 
-Archestimator saves time because it organizes estimating work around reusable project logic instead of forcing estimators to rebuild, copy, compare, and explain the same information across scattered spreadsheets and documents.
+Archestimator saves time because it organizes quote and estimating work around reusable offer logic instead of forcing teams to rebuild, copy, compare, and explain the same information across scattered spreadsheets and documents.
 
-It also reduces worry around lost data and version confusion because each project can keep multiple estimate sheets, revisions, assumptions, and visual comparisons in one controlled workspace.
+It also reduces worry around lost data and version confusion because each workspace can keep multiple quote/estimate sheets, revisions, assumptions, supplier context, and visual comparisons in one controlled workspace.
 
-The sharper brand benefit is clarity. Archestimator exposes the hidden time waste that teams have normalized, then replaces file hunting, manual comparison, proposal drift, and repeated setup with a connected estimating workflow.
+The sharper brand benefit is clarity. Archestimator exposes the hidden time waste that teams have normalized, then replaces file hunting, manual comparison, proposal drift, and repeated setup with a connected quote/proposal workflow.
 
 ## Secondary main value claim
 
-> The most intuitive way to create construction cost estimates
+> A clearer way to create quotes, estimates, and proposal-ready documents
 
-This line should sit above or near the benefit pillars as the emotional summary of the product: estimating feels more intuitive when the workspace follows project structure, keeps reusable cost components close, makes revisions/comparisons visible, and exports to the formats the industry already expects.
+This line should sit above or near the benefit pillars as the emotional summary of the product: quote and estimating work feels clearer when the workspace keeps structure, reusable catalog/cost components, supplier context, revisions/comparisons, and handoff formats connected.
 
 ## Primary benefits
 
 ### 0. Untangle the messy workflow
 
-Before any single feature benefit, Archestimator should own the bigger transformation: it turns scattered estimating work into visible estimate logic.
+Before any single feature benefit, Archestimator should own the bigger transformation: it turns scattered quote and estimating work into visible offer logic.
 
 Most teams do not only waste time calculating. They waste time finding the right file, copying old rows, checking which version changed, hunting for assumptions, and rebuilding proposal outputs after the estimate has moved.
 
@@ -45,7 +45,7 @@ A component library is one of the strongest product benefits.
 
 Estimators repeat similar scope packages across projects: finishes, waterproofing, partitions, cabinetry, lighting rough-ins, labor patterns, site protection, and many other recurring assemblies. Without a reusable library, teams rebuild or copy these patterns manually from old files.
 
-Archestimator should let users create and reuse cost components across different projects while still allowing project-specific edits.
+Archestimator should let users create and reuse cost/catalog components across different projects, quote types, and customers while still allowing offer-specific edits.
 
 **User value:**
 
@@ -57,15 +57,15 @@ Archestimator should let users create and reuse cost components across different
 
 **Brand language:**
 
-> Reuse the cost logic that repeats instead of rebuilding every estimate from zero.
+> Reuse the cost logic that repeats instead of rebuilding every quote from zero.
 
-> Build a smarter cost library once, then bring proven components into the next project.
+> Build a smarter catalog once, then bring proven components into the next quote, estimate, or project.
 
 ### 2. Reduce worry about lost data through version control
 
-Estimating work is vulnerable to file drift: multiple spreadsheet copies, renamed versions, accidental overwrites, missing notes, and unclear revision history.
+Quote and estimating work is vulnerable to file drift: multiple spreadsheet copies, renamed versions, accidental overwrites, missing notes, and unclear revision history.
 
-Archestimator should make version control part of the estimating workflow, so users can keep track of estimate sheets, revisions, assumptions, and proposal changes without worrying that important data disappeared into an old file.
+Archestimator should make version control part of the quote/proposal workflow, so users can keep track of sheets, revisions, assumptions, supplier context, and proposal changes without worrying that important data disappeared into an old file.
 
 **User value:**
 
@@ -79,19 +79,19 @@ Archestimator should make version control part of the estimating workflow, so us
 
 > Stop worrying about which spreadsheet has the latest number.
 
-> Keep estimate versions, assumptions, and changes in one controlled project workspace.
+> Keep quote versions, assumptions, and changes in one controlled workspace.
 
 ### 3. Compare multiple estimate sheets inside one project
 
-A single project can have multiple estimate sheets. This is important because real projects often need different pricing options, proposal versions, schemes, alternates, scope packages, or design-revision estimates.
+A single workspace can have multiple quote or estimate sheets. This is important because real sales and project workflows often need different pricing options, proposal versions, schemes, alternates, scope packages, or design-revision estimates.
 
-Archestimator should make it easy to compare and contrast those estimate sheets within the same project instead of scattering them across separate files.
+Archestimator should make it easy to compare and contrast those sheets within the same workspace or project instead of scattering them across separate files.
 
 **Use cases:**
 
 - Scheme A vs Scheme B;
 - baseline estimate vs revised estimate;
-- contractor option vs client value-engineering option;
+- supplier option vs buyer value-engineering option;
 - different material/specification options;
 - preliminary budget vs detailed estimate;
 - multiple cost proposals for the same project.
@@ -106,15 +106,15 @@ Archestimator should make it easy to compare and contrast those estimate sheets 
 
 **Brand language:**
 
-> Compare cost proposals without leaving the project.
+> Compare cost proposals without leaving the workspace.
 
-> Keep multiple estimate sheets under one project, then see how each option changes the cost story.
+> Keep multiple quote or estimate sheets under one workspace, then see how each option changes the cost story.
 
 ### 4. Explain cost differences to clients with visualizations
 
-Clients do not always understand estimate sheets. They need the difference between options to be visible, explainable, and tied to real project choices.
+Clients and buyers do not always understand quote sheets. They need the difference between options to be visible, explainable, and tied to real commercial choices.
 
-Archestimator's data visualization benefit should focus on client clarity: helping estimators show where costs differ, why totals changed, and what each proposal option means.
+Archestimator's data visualization benefit should focus on client/buyer clarity: helping teams show where costs differ, why totals changed, and what each proposal option means.
 
 **Possible visualization stories:**
 
@@ -139,9 +139,9 @@ Archestimator's data visualization benefit should focus on client clarity: helpi
 
 > Turn estimate differences into visual cost stories clients can understand.
 
-### 5. Organize estimates by spatial hierarchy and discipline
+### 5. Organize quotes by offer structure
 
-The project structure remains the organizing backbone. The estimate becomes easier to work with because every cost belongs to a place, discipline, and scope.
+The offer structure remains the organizing backbone. The quote or estimate becomes easier to work with because every cost belongs to a package, place, supplier, category, discipline, and scope.
 
 **User value:**
 
@@ -153,9 +153,9 @@ The project structure remains the organizing backbone. The estimate becomes easi
 
 **Brand language:**
 
-> Build the estimate the way the project is built.
+> Build the quote around the way the offer will be reviewed.
 
-> Every cost has a place, a scope, and a reason.
+> Every cost has a place, a source, a scope, and a reason.
 
 ## Benefit ladder
 
@@ -197,7 +197,7 @@ The project structure remains the organizing backbone. The estimate becomes easi
 
 1. **Speed + control**
 
-> Create construction estimates faster while keeping every version, component, and proposal option organized inside the project.
+> Create quotes and estimates faster while keeping every version, component, and proposal option organized inside the workspace.
 
 2. **Reuse + comparison**
 
@@ -209,7 +209,7 @@ The project structure remains the organizing backbone. The estimate becomes easi
 
 4. **Project-shaped estimating**
 
-> Build estimates around the way the project is actually organized: spaces, disciplines, components, revisions, and proposal options.
+> Build quotes around the way the offer is actually reviewed: packages, suppliers, components, revisions, assumptions, and proposal options.
 
 5. **Version-safe estimating**
 

@@ -11,14 +11,14 @@ Archestimator is no longer at the completely blank `/workshop` reset snapshot. T
 Current planning baseline:
 
 - `/` landing page is preserved.
-- `/workshop` and a small workshop/projects/components route slice exist in `src/app`.
+- `/workshop`, `/workshop/projects`, `/workshop/library`, and `/workshop/templates` route slices exist in `src/app`; `/workshop/components` is a redirect to `/workshop/library`.
 - The deleted full prototype remains superseded.
 - Future work must be route-scoped, screen-scoped, and easy to delete if Philip rejects it.
 
 Active/current plan:
 
-- `.ai/03_plans/current-post-reset-workshop-slice.md` — narrow orientation plan for the current workshop/projects/components route slice.
-- `.ai/03_plans/component-category-library-taxonomy/` — active taxonomy research artifact for the `/workshop/components` category tree, supplier/category tabs, component metadata facets, standards crosswalks, and future custom-component organization.
+- `.ai/03_plans/current-post-reset-workshop-slice.md` — historical orientation plan for the early workshop/projects/components route slice; current component-library route truth is `/workshop/library` plus `/workshop/templates`.
+- `.ai/03_plans/component-category-library-taxonomy/` — active taxonomy research artifact for the `/workshop/library` category tree, supplier/category tabs, component metadata facets, standards crosswalks, and future custom-component organization.
 - `.ai/03_plans/landing-page-improvement/` — active public `/` landing-page improvement plan; replaces the archived Intercom/v4 broad plan and starts from current source inventory. Current pass locks the accepted hero, preserves the placeholder-safe full-width light company carousel immediately after the hero, keeps Lenis landing-only smooth scrolling, focuses remaining content with Tailwind containers, uses brand-source synthesis, and now adds Kimi K2.6 frontend-design delegation plus functional-tabs/IntersectionObserver readiness planning with no new animation packages.
 - `.ai/03_plans/project-estimates-component-library-improvement-plan.md` — research-backed UX/UI improvement plan for the current project estimate workspace and connected Component Library feature.
 - `.ai/03_plans/workshop-library-component-creation-versioning/` — active readiness pack for persisted Add Component on `/workshop/library`, including Supabase component shape, modal UX, pricing options, component lifecycle state, version history, blast radius, and QA gates.
@@ -37,6 +37,9 @@ Archived closeout / superseded plans:
 - `.ai/09_archive/store/2026-05-21-workshop-components-library-redesign-complete/` — completed replacement `/workshop/components` redesign plan and implementation evidence for the estimate-workspace mirror: left category/supplier tree, center custom-component sheet, no right sidebar, no tree drag/drop/reorder, mobile component cards, classification helpers, Visual Verdict artifacts, and validation closeout.
 - `.ai/09_archive/store/2026-05-21-intercom-v4-ui-ux-improvement-plan-superseded/` — superseded broad Intercom/v4 UI/UX plan; historical context only, replaced for landing work by `.ai/03_plans/landing-page-improvement/`.
 - `.ai/09_archive/store/2026-05-21-implemented-plan-cleanup/` — implemented loose historical plans moved out of `.ai/03_plans` after the 2026-05-21 plan inventory cleanup. Includes pre-reset local MVP, proposal, Glide/dnd-kit spike, and completed estimate-tree stability planning files.
+- `.ai/09_archive/store/2026-05-27-sign-up-login-authentication-local-implementation-evidence/` — completed local Sign Up / Log In implementation and evidence pack for canonical `/login`, `/auth/callback`, passwordless Google/email auth UI, safe redirects, optional profile/workspace settings, stale onboarding redirect, auth-account migration, account-security audit, storage/API boundary tests, runbooks, and launch go/no-go records. Remaining Supabase dashboard, Google Cloud, Vercel, legal/privacy, QA, support, owner, and provider evidence stays active in the roadmap/pre-launch gates.
+- `.ai/09_archive/store/2026-05-27-project-workspace-invite-entry-complete/` — completed project workspace invite-entry plan and evidence for `/invite/[token]`, signed pending-invite `/workshop` bridge, linked Supabase invite-token migration/RPC grants, Teamspaces invite URL issuing/copying, `/workshop/projects` shared-member labeling, browser E2E, and validation closeout. Remaining provider/legal/Vercel/support launch evidence stays in the auth/pre-launch roadmap.
+- `.ai/09_archive/store/2026-05-27-project-client-publication-complete/` — completed V1 project client publication implementation and evidence for project-header `Public link`, `/share/[token]`, optional password access, public-link/new-link/revoke/update manager actions, metadata-only open tracking, linked Supabase migration `20260527120000`, focused tests, full validation/build, and authenticated manager browser proof. Remaining Privacy/Terms, broad dirty-worktree release review, and future PDF/download artifacts stay in the roadmap.
 
 Read first before planning new work:
 

@@ -1,7 +1,7 @@
 # Public Landing Subpages Research Plan
 
-**Date:** 2026-05-21 18:05 PST
-**Status:** Planning only; research backlog before implementation.
+**Date:** 2026-05-21 18:05 PST; refreshed 2026-05-27 14:50 PHT
+**Status:** Planning only; research backlog before implementation/release gates. Phase 8 now provides concrete cookie/CSP/DPA and analytics-stack facts.
 **Scope:** Research needed before implementing `/features`, `/pricing`, `/about`, `/contact`, and supporting public trust/content pages.
 **Parent folder:** `.ai/03_plans/landing-page-improvement/`
 **Related plan:** `14-public-subpages-analysis-plan.md`
@@ -38,6 +38,7 @@ Research gaps:
 - contact-flow destination;
 - founder/company facts for `/about`;
 - privacy/legal policy facts;
+- Phase 8 cookie/CSP/DPA facts and the GA4/Clarity/PostHog stack decision;
 - security fact matrix;
 - current SEO/competitor page patterns;
 - mobile/responsive examples for public subpage information density.
@@ -266,8 +267,8 @@ If any form collects name/email/company/project notes, a privacy policy and cons
 - What personal data is collected by Supabase Auth.
 - What profile/workspace/project/estimate data is stored.
 - What contact-form data will be collected.
-- Whether analytics/cookies are used.
-- Which providers process data: Supabase, hosting provider, email/contact provider, analytics provider, scheduling provider.
+- Whether analytics/cookies are used. Current fact: `archestimator_cookie_consent` exists; GA4, Microsoft Clarity, and `ab_test` are planned after opt-in; PostHog is deferred unless a future ADR adopts it.
+- Which providers process data: Supabase, hosting provider, email/contact provider, planned Google Analytics, planned Microsoft Clarity, scheduling provider if chosen, and PostHog only if adopted later.
 - Retention/deletion process.
 - Privacy contact address.
 - Effective date.
@@ -276,6 +277,8 @@ If any form collects name/email/company/project notes, a privacy policy and cons
 **Sources:**
 
 - actual app code/config;
+- `.ai/03_plans/landing-page-improvement/ab-testing-gdpr-international-compliance/02-cookie-csp-dpa-gap-closure.md`;
+- `.ai/03_plans/landing-page-improvement/ab-testing-gdpr-international-compliance/05-analytics-stack-decision.md`;
 - Supabase docs/DPA/security docs;
 - hosting provider docs;
 - contact/email provider docs if selected;
