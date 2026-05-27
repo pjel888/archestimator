@@ -37,14 +37,14 @@ export const getCurrentUserContext = cache(async (): Promise<CurrentUserContext 
       role: profile.role,
       profile,
       displayName: profile.display_name ?? metadataName ?? email,
-      avatarUrl,
+      avatarUrl: profile.avatar_url ?? avatarUrl,
     };
   }
 
   const role = email === "philipjonlewis@gmail.com" ? "ceo" : "member";
   const { data: createdProfile, error } = await supabase
     .from("profiles")
-    .insert({ id: user.id, email, display_name: user.user_metadata?.display_name ?? user.user_metadata?.full_name ?? null, role })
+    .insert({ id: user.id, email, display_name: user.user_metadata?.display_name ?? user.user_metadata?.full_name ?? null, avatar_url: avatarUrl, role })
     .select("*")
     .single();
 
@@ -55,7 +55,7 @@ export const getCurrentUserContext = cache(async (): Promise<CurrentUserContext 
     role: createdProfile.role,
     profile: createdProfile,
     displayName: createdProfile.display_name ?? metadataName ?? email,
-    avatarUrl,
+    avatarUrl: createdProfile.avatar_url ?? avatarUrl,
   };
 });
 

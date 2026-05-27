@@ -1,10 +1,20 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { isDevAuthBypassRequest } from "@/lib/auth/dev-auth-gate";
+import { AUTH_REQUEST_PATH_HEADER, DEFAULT_AUTH_DESTINATION, LOGIN_PATH, sanitizeNextPath } from "@/lib/auth/redirects";
 import type { Database } from "@/lib/supabase/types";
 
 const PROTECTED_PREFIXES = ["/workshop"];
-const AUTH_ROUTES = ["/login"];
+const AUTH_ROUTES = [LOGIN_PATH];
+
+function createRequestPathResponse(request: NextRequest) {
+  const requestHeaders = new Headers(request.headers);
+  requestHeaders.set(
+    AUTH_REQUEST_PATH_HEADER,
+    sanitizeNextPath(`${request.nextUrl.pathname}${request.nextUrl.search}`),
+  );
+  return NextResponse.next({ request: { headers: requestHeaders } });
+}
 
 export async function proxy(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
@@ -18,13 +28,13 @@ export async function proxy(request: NextRequest) {
 
   if (isDevAuthBypassRequest(request.nextUrl.hostname)) {
     if (isAuthRoute) {
-      return NextResponse.redirect(new URL("/workshop/projects", request.url));
+      return NextResponse.redirect(new URL(DEFAULT_AUTH_DESTINATION, request.url));
     }
 
-    return NextResponse.next({ request });
+    return createRequestPathResponse(request);
   }
 
-  let response = NextResponse.next({ request });
+  let response = createRequestPathResponse(request);
 
   const supabase = createServerClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -36,7 +46,7 @@ export async function proxy(request: NextRequest) {
         },
         setAll(cookiesToSet) {
           cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value));
-          response = NextResponse.next({ request });
+          response = createRequestPathResponse(request);
           cookiesToSet.forEach(({ name, value, options }) => response.cookies.set(name, value, options));
         },
       },
@@ -48,13 +58,16 @@ export async function proxy(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   if (!user && isProtected) {
-    const loginUrl = new URL("/login", request.url);
-    loginUrl.searchParams.set("next", pathname);
+    const loginUrl = new URL(LOGIN_PATH, request.url);
+    loginUrl.searchParams.set(
+      "next",
+      sanitizeNextPath(`${pathname}${request.nextUrl.search}`),
+    );
     return NextResponse.redirect(loginUrl);
   }
 
   if (user && isAuthRoute) {
-    return NextResponse.redirect(new URL("/workshop/projects", request.url));
+    return NextResponse.redirect(new URL(DEFAULT_AUTH_DESTINATION, request.url));
   }
 
   return response;

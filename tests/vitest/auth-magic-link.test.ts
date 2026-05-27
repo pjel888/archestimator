@@ -21,7 +21,7 @@ describe("magic-link auth callback", () => {
     expect(callbackRoute).toContain("export async function GET");
     expect(callbackRoute).toContain("exchangeCodeForSession(code)");
     expect(callbackRoute).toContain("NextResponse.redirect");
-    expect(callbackRoute).toContain("Missing magic-link code");
+    expect(callbackRoute).toContain("callback_missing_code");
   });
 
   it("keeps magic-link redirects pointed at the callback route with sanitized next path", () => {
