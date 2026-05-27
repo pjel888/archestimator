@@ -5,6 +5,7 @@
 **Scope:** Public `/` landing page below the accepted hero.
 **Hard boundary:** Do not modify the accepted above-the-fold hero section or its visual treatment.
 **Related docs:** `07-below-hero-container-layout-plan.md`, `08-motion-and-microinteraction-plan.md`, `11-lenis-smooth-scroll-and-placeholder-company-proof-plan.md`, `17-public-subpages-claims-matrix.md`.
+**Follow-up / supersession note (2026-05-27):** This document remains historical planning for section order, containers, and icon treatment. Scroll implementation authority now lives in `19-cinematic-scroll-performance-correction-plan.md`, which corrected the earlier hard slideshow/snap direction toward Lenis-first smooth scrolling and soft section settling.
 
 ## User brief
 

@@ -4,7 +4,7 @@
 
 ## Core thesis
 
-Archestimator should help contractors produce and revise construction estimates faster, with clearer assumptions, scope boundaries, and client-ready outputs than ad hoc spreadsheets.
+Archestimator should help teams produce and revise structured commercial estimates, quotations, and proposal outputs faster, with clearer assumptions, scope boundaries, supplier/source context, and client-ready handoffs than ad hoc spreadsheets.
 
 ## Current implementation baseline
 
@@ -14,18 +14,18 @@ The previous app/workshop prototype was rejected for poor UI/UX and deleted from
 
 ## Product wedge to revalidate
 
-The likely wedge remains:
+The current implemented wedge remains:
 
-> fast estimates and revision updates for contractors managing multiple projects and design changes.
+> construction-style estimates and revision updates for teams managing multiple projects, supplier context, and design or scope changes.
 
-This must be revalidated through one focused workflow before rebuilding route families or data systems.
+The broader market narrative now includes teams that sell through itemized quotations: suppliers, sales teams, buyers, furniture suppliers, restaurant suppliers, and other businesses whose quotes become proposal, approval, purchase-order, or legal-review inputs. This must be revalidated through focused workflows before broadening product scope.
 
 ## What future work should preserve
 
-- Contractor-first estimating, not generic project management.
+- Structured quote/proposal workflows, with construction-style estimating as the current proof case.
 - Editable quantities, rates, scope statuses, assumptions, exclusions, and pricing metadata.
 - User-owned cost knowledge rather than pretending seeded prices are authoritative.
-- Clear separation between internal estimating detail and client-facing proposal/package outputs.
+- Clear separation between internal pricing detail and client-facing quote/proposal/package outputs.
 - Immutable issued outputs if proposal/export functionality returns.
 - A calm, professional, high-density interface only after the workflow is accepted.
 

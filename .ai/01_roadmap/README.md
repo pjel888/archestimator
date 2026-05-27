@@ -1,7 +1,7 @@
 # Roadmap
 
-**Last updated:** 2026-05-25
-**Status:** Pre-launch MVP. Supabase/Auth/Postgres are active for Archestimator project `ebxxqidacheyapmmzavr`; the protected workshop, estimating sheet, component library, charts, proposal XLSX export, and Ask-only AI slice are in active MVP hardening.
+**Last updated:** 2026-05-27
+**Status:** Pre-launch MVP. Supabase/Auth/Postgres are active for Archestimator project `ebxxqidacheyapmmzavr`; the protected workshop, invite-entry collaboration flow, project client publication, estimating sheet, component library, charts, proposal XLSX export, and Ask-only AI slice are in active MVP hardening. The brand narrative is pivoting from construction-cost-estimator-only to structured quote, estimate, and proposal workflows for teams that build itemized commercial offers. Construction-style estimating remains the current implemented wedge. The local sign-up/login/authentication, project invite-entry, and project client publication implementations are reviewed at the focused-test level, but public/private launch remains NO-GO until provider, legal, Vercel, QA, support, owner, full validation/build, and storage/security evidence is complete.
 
 ## Current product baseline
 
@@ -13,14 +13,19 @@ The reset-era blank-workshop baseline is no longer current. Archestimator now pr
 /features                                             public feature page
 /pricing                                              public pricing page
 /contact                                              public contact page
-/login                                                Supabase magic-link auth
-/auth/callback                                        Supabase auth callback
+/login                                                Supabase Auth entry: Google primary, email sign-in-link fallback, no password UI
+/auth/callback                                        Supabase auth callback with safe redirect and stable public error handling
+/invite/[token]                                      app-owned project/sheet invite entry route for pending collaborators
+/share/[token]                                       public, view-only client publication receiver route with optional password gate
+/privacy                                             pending-review Privacy Notice status page
+/terms                                               pending-review Terms status page
 /api/ai/ask                                           Ask-only AI copilot endpoint
 /api/component-library/images                         component-library image upload API
 /api/component-library/attachments                    component-library attachment upload API
 /api/projects/[projectId]/estimates/[estimateId]/export/proposal.xlsx
-/workshop                                             protected workshop entry
-/workshop/projects                                    live project list/create route
+/workshop                                             protected workshop entry and post-auth pending-invite bridge
+/workshop/onboarding                                  compatibility redirect to /workshop/settings; not a required first-run gate
+/workshop/projects                                    live project list/create route with owned/shared/sheet-only access labeling
 /workshop/projects/[projectId]                        live project dashboard shell
 /workshop/projects/[projectId]/estimates              live estimate list/create route
 /workshop/projects/[projectId]/estimates/[nodeId]     live estimate workspace with project-scoped tree/row data
@@ -28,13 +33,17 @@ The reset-era blank-workshop baseline is no longer current. Archestimator now pr
 /workshop/library                                     component library workspace
 /workshop/templates                                   reusable template workspace
 /workshop/components                                  compatibility redirect to /workshop/library
+/workshop/settings                                    account settings landing route
+/workshop/settings/profile                            profile-owned intake correction route
+/workshop/settings/workspace                          workspace-owned intake correction route
 ```
 
 ## Current codebase pillars
 
-- Public website: landing plus About, Features, Pricing, and Contact pages.
-- Auth and tenancy: Supabase magic-link auth, protected `/workshop/*`, workspace bootstrap, CEO/profile role foundation, and RLS-backed app tables.
+- Public website: landing plus About, Features, Pricing, and Contact pages, with quote/proposal-first wording and construction-style estimating kept as the current proof case.
+- Auth and tenancy: Supabase Auth with Google OAuth primary and email sign-in-link fallback, protected `/workshop/*`, safe auth redirects, no required first-run onboarding, optional profile/workspace settings, workspace bootstrap guards, CEO/profile role foundation, server-owned account-security audit metadata, app-owned invite-entry tokens, and RLS-backed app tables.
 - Project and estimate workspace: project dashboard, estimate list/create, project-scoped estimate tree, row items, inline edits, Activity History, proposal export, and chart route.
+- Project publication: project-header `Public link` controls and `/share/[token]` receiver route exist for token-scoped, view-only client snapshots with optional password protection and metadata-only open tracking. PDF/download publication artifacts are not implemented.
 - Component Library/Templates: `/workshop/library` for components, `/workshop/templates` for reusable templates, shared estimate-sidebar data loading, variants, brands, suppliers, folders, images, attachments, cost entries, and component lifecycle/history foundations.
 - Proposal output: current-estimate XLSX preview/download exists; immutable issued proposal snapshots and PDF package workflows are not implemented yet.
 - AI: global Ask-only copilot exists through `/api/ai/ask`; no write tools, Draft/Apply, retrieval/RAG, stored conversations, or autonomous actions are approved.
@@ -58,21 +67,46 @@ Next:
 
 ## Phase 1 - Authenticated workspace foundation
 
-Status: implemented, with hosted-dashboard verification still required.
+Status: local implementation reviewed; launch blocked by external evidence and owner decisions.
 
 Done:
 
 - Supabase project linked: `ebxxqidacheyapmmzavr`.
-- Supabase Auth magic-link route added.
+- Canonical `/login` auth entry implemented with Google OAuth as primary and email sign-in link as fallback.
+- App-owned password UI/actions remain absent; `/signup`, `/sign-in`, and `/sign-up` aliases are not implemented.
+- Canonical `/auth/callback` exchanges Supabase auth codes, maps failures to stable public error codes, and hides raw provider errors.
+- Central safe-next redirect handling rejects external URLs, protocol-relative URLs, encoded external URLs, CRLF, backslash paths, callback self-redirects, malformed input, and missing `next`.
 - `/workshop/*` protected by `src/proxy.ts`.
 - Profiles/CEO role bootstrap implemented in database migration.
-- Default workspace bootstrap implemented.
+- Migration `20260527072220_auth_account_data.sql` is applied to the linked remote and repaired into migration history; the auth-account tables are present in the PostgREST schema cache.
+- Authenticated users land on `/workshop`; stale `/workshop/onboarding` visits redirect to `/workshop/settings`, and profile/workspace details are optional settings rather than a required first-run gate.
+- Invited collaborators can reuse existing workspace, project, or estimate-sheet membership before any default workspace is inserted.
+- Profile-owned intake and workspace-owned intake are separated through `user_onboarding_profiles` and `workspace_account_settings`.
+- Server-owned auth/security audit metadata uses `account_security_events` with no browser write grants.
+- `/privacy` and `/terms` exist only as truthful pending-review status pages.
 - Auth setup checklist documented in `.ai/06_specs/supabase-auth-setup.md`.
+- Project/sheet invite entry is implemented through app-owned `/invite/[token]` URLs, signed pending-invite bridge cookies, `/workshop` non-blocking access banners, and `/workshop/projects` shared-member labeling.
+- Migration `20260527115342_project_invite_entry_tokens.sql` is applied to the linked remote and grant-verified: `anon` resolves only, `authenticated` accepts/manager-manages, and lifecycle materialization is service-owned.
+- Invite-entry browser E2E passed locally against linked Supabase for signed-out accept through `/workshop`, signed-in accept, wrong-account recovery, expired, revoked, used, invalid, and shared-project card labeling.
 
 Remaining:
 
-- Verify hosted Supabase Auth redirect URLs in the Dashboard before broader tester use.
-- Keep local migration state and linked-remote migration state separately proven before claiming remote readiness.
+- Capture redacted Supabase dashboard evidence for Site URL, redirect allow-list, Google provider, email provider, password/passwordless posture, signups policy, anonymous disabled, phone disabled, passkeys disabled, SAML disabled, OTP expiry, resend cooldown, rate limits, CAPTCHA decision, SMTP/templates, and audit retention.
+- Capture Google Cloud OAuth evidence for consent screen, app identity, privacy/terms URLs, support email, authorized domains, redirect URIs, scopes, and verification state.
+- Capture Vercel evidence for production/staging/preview URL policy, env var presence by environment, preview-auth policy, deployment protection, and redeploy requirements.
+- Replace pending-review `/privacy` and `/terms` with reviewed Privacy Notice and Terms; add subprocessor list, retention schedule, DSAR/export/delete/correction workflow, cookie/analytics posture, student/minor posture, and launch-jurisdiction decisions.
+- Add owner-backed support and incident evidence for auth failures, expired links, wrong-email invites, missing workspace/project, deleted/deactivated users, provider outage, service-role leak, redirect vulnerability, cross-workspace data access, invite abuse, and rollback execution.
+- Run signed-in browser QA with real or staging Supabase credentials for `/login` redirect-away and settings correction paths; invite acceptance has local linked-Supabase E2E coverage but still needs staging/production provider evidence before launch.
+- Keep local migration state and linked-remote migration state separately proven after any future schema change.
+
+Current source/evidence:
+
+- `.ai/09_archive/store/2026-05-27-sign-up-login-authentication-local-implementation-evidence/`
+- `.ai/09_archive/store/2026-05-27-sign-up-login-authentication-local-implementation-evidence/14-go-no-go-evidence-and-owner-decision-record.md`
+- `.ai/09_archive/store/2026-05-27-sign-up-login-authentication-local-implementation-evidence/15-local-implementation-and-validation-evidence.md`
+- `.ai/09_archive/store/2026-05-27-sign-up-login-authentication-local-implementation-evidence/16-provider-config-audit-redacted.md`
+- `.ai/09_archive/store/2026-05-27-sign-up-login-authentication-local-implementation-evidence/17-auth-runbooks-and-rollback.md`
+- `.ai/09_archive/store/2026-05-27-project-workspace-invite-entry-complete/`
 
 ## Phase 2 - Live project and estimate foundation
 
@@ -81,6 +115,8 @@ Status: implemented.
 Done:
 
 - `/workshop/projects` reads authenticated workspace projects.
+- `/workshop/projects` normalizes owned projects, shared project memberships, and sheet-only collaborator memberships into one list with `All` / `Owned` / `Shared` filtering.
+- Shared project cards show explicit `Shared project` or `Sheet-only` badges, role context, and owner/shared-sheet context instead of making collaborator access look owned.
 - Project creation server action inserts live Supabase project records.
 - Live project cards render Supabase rows.
 - Project dashboard route loads authenticated workspace project data.
@@ -168,6 +204,32 @@ Current source:
 - `.ai/03_plans/industry-standard-excel-proposal-export/`
 - `.ai/03_plans/project-charts-estimate-comparison/`
 
+## Phase 5A - Project client publication
+
+Status: implemented V1 and archived; release gates remain active.
+
+Done:
+
+- `/share/[token]` exists as the public receiver route outside `/workshop`.
+- Project-header `Public link` controls let project managers generate, copy, open, update, create a new URL for, turn off, and password-protect a public view-only client link.
+- Publication content is a sanitized project snapshot, not live workspace authorization.
+- Password-protected receiver links hide project data until a same-origin password unlock sets the signed access cookie.
+- Open/password events are metadata-only; open count/latest-open are summary signals, not review/approval/legal proof.
+- Migration `20260527120000_project_client_publication.sql` is applied to the linked remote and repaired into migration history.
+- Focused schema, action, header, route, receiver, snapshot, and security-header tests exist.
+- Full `bun run validate`, `bun run build`, `git diff --check`, and authenticated manager browser proof passed before archive.
+
+Remaining:
+
+- Reconcile broad dirty-worktree code-review/detect-change results before merge/release.
+- Keep reviewed Privacy Notice/Terms as launch blockers for public receiver/open-tracking release.
+- Treat PDF/download publication artifacts as a separate future plan until a snapshot-safe artifact contract is approved.
+
+Current source:
+
+- `.ai/09_archive/store/2026-05-27-project-client-publication-complete/`
+- `.ai/09_archive/store/2026-05-27-project-client-publication-complete/15-implementation-closeout-and-remaining-gates.md`
+
 ## Phase 6 - AI copilot
 
 Status: Ask-only slice implemented; write-capable AI is future-gated.
@@ -196,7 +258,13 @@ Status: active next operating lane.
 
 Launch gates:
 
-- Hosted Supabase auth redirects verified.
+- All P0 sign-up/login/authentication go/no-go rows are `PASS` or owner-backed `ACCEPTED_RISK`; no unresolved `FAIL` rows remain.
+- Hosted Supabase auth redirects and provider settings verified with redacted evidence.
+- Google OAuth, email sign-in link, callback, safe redirect, onboarding, settings, invite continuity, account security events, and no-password posture verified against a real or staging provider setup.
+- Privacy Notice, Terms, subprocessor list, retention schedule, DSAR/export/delete/correction workflow, cookie/analytics posture, student/minor posture, and launch jurisdictions are reviewed and public where required.
+- Vercel production/staging/preview auth URL policy, env vars, deployment protection, and redeploy procedure are documented.
+- Support, incident, abuse, service-role leak, redirect-vulnerability, cross-workspace data access, and rollback runbooks have named owners and drill evidence.
+- Executable storage/API/RLS denial tests prove no cross-workspace/profile/project/estimate/library/storage leak.
 - Local and linked-remote migrations reconciled and documented.
 - Protected workshop smoke passes for project create, estimate create, estimate edit, library/template access, charts, proposal export, and Ask-only copilot.
 - Public pages claim only currently shipped, verified capability.
@@ -204,6 +272,43 @@ Launch gates:
 - AI privacy, audit, and no-write posture are tested and documented.
 - Pricing, customer segments, onboarding steps, and beta feedback loop are documented in the startup homebase and mirrored into `.ai` when they affect product scope.
 - Known destructive cleanup, including linked-remote `V2` / `QA checkpoint` residue, is handled only by an explicit cleanup task with exact IDs and approval.
+- The broad dirty worktree is isolated, reconciled, or intentionally closed out before any merge/release claim.
+- Public narrative reflects the quote/proposal pivot without claiming purchase-order execution, legal-document automation, immutable issued snapshots, or mature compliance.
+
+## Phase 8 - Landing page compliance and growth
+
+Status: active planning — auth DRY cleanup plus first consent/CSP slice implemented; `/privacy` and `/terms` exist only as pending-review status pages. Reviewed legal artifacts, analytics, strict-CSP, and i18n proxy gates remain open; PostHog is deferred from the MVP landing stack.
+
+Goals:
+
+- Implement A/B testing infrastructure on the public landing page to measure and optimize conversion from landing to sign-up (Stack C: GA4 + Clarity + custom code; no PostHog or third-party experiment service for MVP)
+- Implement GDPR-compliant cookie consent (custom component), CSP header (Report-Only), reviewed privacy policy, reviewed terms of service, and user data rights for EU/UK visitors
+- Establish i18n strategy (next-intl) and locale routing for public marketing pages to support international launch
+- Prepare multi-region legal compliance (GDPR, CCPA/CPRA, and other priority jurisdictions)
+- 14 concrete tests planned across 3.5 hours, zero new test dependencies needed; first DRY auth-state, consent, and CSP header tests added
+
+Current state:
+- DRY public landing auth-state helper implemented (`src/lib/landing/get-landing-auth-state.ts`)
+- Public consent banner/settings trigger and versioned `archestimator_cookie_consent` cookie implemented
+- CSP Report-Only header implemented for `/`, `/about`, `/features`, `/pricing`, and `/contact`
+- DPA verification checklist provided, but human/legal verification is still open
+- GA4 custom dimension registration requirement documented (24-48 hr delay)
+- GA4 conversion events must explicitly send `experiment_id` and `variant`; do not rely on automatic carry-forward from `experiment_view`
+- PostHog official-doc review completed; defer unless product analytics, feature flags, native experiments, or analytics consolidation become explicit
+- @firecms/neat replacement spec'd; current repo still uses pinned/patched `@firecms/neat@0.8.0`
+- i18n must compose with existing Next 16 `src/proxy.ts`, not a new `src/middleware.ts`
+- Strict CSP remains post-MVP until inline style/package blockers are removed
+
+Current source:
+
+- `.ai/03_plans/landing-page-improvement/ab-testing-gdpr-international-compliance/`
+  - `00-blast-radius-implementation-analysis.md` — 30 files mapped, risk matrix
+  - `01-dependency-graph.md` — full import tree
+  - `02-cookie-csp-dpa-gap-closure.md` — cookie audit, CSP, DPA checklist
+  - `03-residual-risk-resolution.md` — residual-risk register and open gates
+  - `04-current-audit-and-corrections.md` — current audit corrections and implementation truth
+  - `05-analytics-stack-decision.md` — GA4/Clarity/PostHog decision record
+  - `ab-testing/README.md`, `gdpr-compliance/README.md`, `international-readiness/README.md`
 
 ## Permanent guardrails
 

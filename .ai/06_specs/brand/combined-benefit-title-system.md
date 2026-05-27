@@ -18,7 +18,7 @@ For the active homepage feature-name system, use `public-facing-feature-copy.md`
 
 Use this as the large below-hero bridge before benefit cards or workflow pillars:
 
-> The most intuitive way to create construction cost estimates
+> A clearer way to create quotes, estimates, and proposal-ready documents
 
 Pair it with the active public-facing feature set below so the claim is proven by workflow structure, not by hype.
 
@@ -117,9 +117,9 @@ Use this if the section needs maximum landing-page energy:
 
 ## Recommended section intro
 
-> The most intuitive way to create construction cost estimates.
+> A clearer way to create quotes, estimates, and proposal-ready documents.
 
-> Stop chasing old spreadsheets. Build estimates in one organized workspace where costs can be reused, versions stay traceable, proposal options are easy to compare, clients can see the difference clearly, and teams can export to Excel or PDF.
+> Stop chasing old spreadsheets. Build quotes and estimates in one organized workspace where costs can be reused, versions stay traceable, proposal options are easy to compare, clients and buyers can see the difference clearly, and teams can hand off spreadsheet/document outputs.
 
 ## Shorter section intro
 
@@ -149,4 +149,4 @@ Keep estimate sheets, revisions, and assumptions traceable inside the project, s
 - Retain **Component Library** as the internal/product feature name. For public landing copy, explain the benefit in user language when needed: reusable cost components, repeated assemblies, or reusable cost logic.
 - Use “traceable” instead of absolute data-loss guarantees.
 - Use “visual breakdowns” instead of internal “data visualization.”
-- Use **Industry Standard Export Formats** when describing Excel and PDF export as a public homepage feature.
+- Use **Industry Standard Export Formats** when describing spreadsheet/document handoff as a public homepage feature; do not imply finished legal-document automation or purchase-order execution.

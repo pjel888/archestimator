@@ -37,9 +37,9 @@ It should answer:
 
 Use this below the hero as a major supporting line, not as the hero replacement:
 
-> The most intuitive way to create construction cost estimates
+> A clearer way to create quotes, estimates, and proposal-ready documents
 
-This claim must be supported by product proof: Estimate Workspace, Component Library, Revision Intelligence, Proposal Comparisons, Visual Cost Breakdowns, Proposal-Ready Outputs, and Industry Standard Export Formats. Do not use it as a fake superiority claim or standalone slogan without explaining what makes the workflow intuitive.
+This claim must be supported by product proof: structured quote/estimate sheets, Component Library reuse, revision context, proposal comparisons, visual cost breakdowns, proposal-ready output direction, and spreadsheet/document handoff. Do not use it as a fake superiority claim or standalone slogan without explaining what makes the workflow clearer.
 
 ## Current problem frame
 
@@ -52,20 +52,20 @@ Core internal line:
 Brand territory:
 
 - untangle the mess;
-- bring clarity to construction estimating;
-- stop suffering through disconnected estimating workflows;
-- offer a faster, clearer, better way to create construction estimates;
-- make the estimate logic visible before it becomes a proposal problem.
+- bring clarity to quote, estimate, and proposal workflows;
+- stop suffering through disconnected quotation and estimating workflows;
+- offer a faster, clearer, better way to create itemized commercial offers;
+- make the quote/estimate logic visible before it becomes a proposal or approval problem.
 
 ## Working rules
 
 - Keep market-facing claims specific and believable.
 - Do not invent testimonials, customers, certifications, or adoption proof.
 - Treat fake logos/testimonials as placeholders only until replaced or removed.
-- Prefer construction-estimator language over generic SaaS language.
+- Prefer quote/proposal workflow language over generic SaaS language; use construction-estimator language only for the current proof case.
 - Separate product truth from aspirational future features.
 - Date time-sensitive market, pricing, or competitive claims.
-- Treat “most intuitive” as a brand-positioning claim that needs immediate workflow proof, not as verified market leadership.
+- Treat “clearer way” as a brand-positioning claim that needs immediate workflow proof, not as verified market leadership.
 - Name messy workflow pain directly, but do not shame estimators or attack Excel itself. The enemy is disconnected work, not the user.
 
 ## Related docs

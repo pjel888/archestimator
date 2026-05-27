@@ -23,13 +23,13 @@ Example:
 
 Use this as a major below-hero supporting headline:
 
-> The most intuitive way to create construction cost estimates
+> A clearer way to create quotes, estimates, and proposal-ready documents
 
 **Placement:** below the hero/product preview area, before or near the workflow proof pillars.
 
 **Support copy:**
 
-Archestimator turns the estimate into a structured workspace where project hierarchy, reusable cost components, revisions, proposal comparisons, and Excel/PDF handoff stay connected.
+Archestimator turns the quote or estimate into a structured workspace where line-item structure, reusable supplier/catalog logic, assumptions, revisions, proposal comparisons, and document handoff stay connected.
 
 **Why it works:**
 
@@ -47,11 +47,11 @@ Do not use “most intuitive” as an unsupported market-ranking claim. Pair it 
 
 **Landing copy:**
 
-Build estimates around the project structure: lot, structure, level, area, scope, trade, cost component, and line item.
+Build quotes and estimates around the offer structure: package, location, scope, supplier, cost component, and line item. Construction-style project hierarchy remains the current proof case.
 
 **Why it works:**
 
-It names the main workspace clearly, then proves that Archestimator is different because the estimate follows the real construction hierarchy.
+It names the main workspace clearly, then proves that Archestimator is different because the sheet follows the real offer structure instead of a flat spreadsheet.
 
 ### 2. Component Library
 
@@ -59,11 +59,11 @@ It names the main workspace clearly, then proves that Archestimator is different
 
 **Landing copy:**
 
-Save repeated assemblies, materials, labor rates, and scope packages so every new estimate starts with proven cost logic.
+Save repeated products, assemblies, materials, labor rates, services, and scope packages so every new quote starts with reusable price logic.
 
 **Why it works:**
 
-It keeps **Component Library** as the product feature name while making the value obvious to estimators.
+It keeps **Component Library** as the current product feature name while making the value obvious to estimators, suppliers, and sales teams.
 
 ### 3. Revision Intelligence
 
@@ -75,7 +75,7 @@ Track quantity, unit-rate, scope, assumption, and proposal changes before they d
 
 **Why it works:**
 
-It is stronger than plain “version control” but still grounded in real estimating work. It avoids absolute guarantees like “never lose data.”
+It is stronger than plain “version control” but still grounded in real quote and estimating work. It avoids absolute guarantees like “never lose data.”
 
 ### 4. Proposal Comparisons
 
@@ -87,7 +87,7 @@ Compare estimate sheets, alternates, and value-engineering options with visual b
 
 **Why it works:**
 
-It connects multiple estimate sheets, option comparison, client explanation, and visual breakdowns into one public-facing concept.
+It connects multiple quote/estimate sheets, option comparison, client explanation, and visual breakdowns into one public-facing concept.
 
 ### 5. Visual Cost Breakdowns
 
@@ -99,7 +99,7 @@ Break down cost differences by area, trade, scope, or revision so the client can
 
 **Why it works:**
 
-It replaces vague/internal “data visualization” with a construction-estimator/client conversation use case.
+It replaces vague/internal “data visualization” with a quote-team/client conversation use case.
 
 ### 6. Proposal-Ready Outputs
 
@@ -119,37 +119,37 @@ It avoids pretending the product is mature proof-backed enterprise software, whi
 
 **Landing copy:**
 
-Export estimate sheets and proposal packages to Excel and PDF so clients, consultants, and internal reviewers can review, price, approve, and archive the work without learning a new file format.
+Prepare quote sheets and proposal packages for spreadsheet and document handoff so clients, buyers, consultants, and internal reviewers can review, price, approve, and archive the work without learning a new file format.
 
 **Why it works:**
 
-It names a concrete handoff capability while keeping the claim grounded in standard construction-estimating file expectations.
+It names a concrete handoff direction while keeping the claim grounded in current export maturity.
 
 ## Current landing page section spine
 
 Use this order below the hero:
 
 1. **Product tabs / preview:** Estimate Workspace, Component Library, Revision Intelligence, Proposal Comparisons.
-2. **Secondary main claim:** “The most intuitive way to create construction cost estimates,” supported by connected-workflow copy.
-3. **Workflow pillar strip:** Project-shaped estimates, Component Library, Traceable revisions, Proposal comparisons, Visual cost breakdowns, Proposal-ready outputs, Industry Standard Export Formats.
-4. **Main solution section:** the smarter way is the whole estimating flow, not one isolated feature.
-5. **Method section:** build, revise, compare, export, and explain estimates in one flow.
-6. **Feature detail section:** project-shaped estimates, Component Library, traceable revisions, proposal comparisons, Industry Standard Export Formats.
+2. **Secondary main claim:** “A clearer way to create quotes, estimates, and proposal-ready documents,” supported by connected-workflow copy.
+3. **Workflow pillar strip:** Structured quote/estimate sheets, Component Library, Traceable revisions, Proposal comparisons, Visual cost breakdowns, Proposal-ready outputs, Industry Standard Export Formats.
+4. **Main solution section:** the clearer way is the whole quote/proposal flow, not one isolated feature.
+5. **Method section:** build, revise, compare, hand off, and explain quotes in one flow.
+6. **Feature detail section:** structured quote/estimate sheets, Component Library, traceable revisions, proposal comparisons, Industry Standard Export Formats.
 7. **Workflow outcome section:** faster setup, safer revisions, clearer client decisions, cleaner handoff.
 8. **MVP preview / pricing:** honest early-access framing.
-9. **Final CTA:** build your next estimate the smart way.
+9. **Final CTA:** build your next quote the clearer way.
 
 ## Copy guardrails
 
 - Do **not** invent logos, testimonials, customers, adoption proof, certifications, or maturity claims.
 - Do **not** overuse “AI-powered.” The current public feature set should stand on estimating value first.
 - Do **not** replace concrete feature names with generic benefit titles everywhere. Use both.
-- Use **Component Library** as a public product feature name when it appears with construction-estimating context.
+- Use **Component Library** as a public product feature name when it appears with quote, estimating, or catalog context.
 - Use “traceable,” “version history,” or “change deltas” instead of absolute guarantees like “never lose data.”
 - Use “visual cost breakdowns,” “show where the cost moved,” or “proposal comparisons” instead of “data visualization.”
-- Use **Industry Standard Export Formats** for the public feature name when describing Excel and PDF exports.
-- Use “The most intuitive way to create construction cost estimates” as the secondary main claim below the hero, not as a replacement for the current hero.
-- Use “construction cost estimators” as the broad audience phrase unless a section deliberately narrows to contractors.
+- Use **Industry Standard Export Formats** for the public feature name when describing spreadsheet/document handoff.
+- Use “A clearer way to create quotes, estimates, and proposal-ready documents” as the secondary main claim below the hero, not as a replacement for the current hero.
+- Use “teams that create quotes, estimates, and proposals” as the broad audience phrase; use construction-specific wording only when describing the current proof case.
 - Keep the promise centered on speed, reuse, traceability, comparison, clearer client explanation, and standard-format handoff.
 
 ## Bad → better examples
@@ -172,11 +172,11 @@ Better:
 
 ### Too fake-mature
 
-> Trusted by leading construction teams.
+> Trusted by leading quote teams.
 
 Better:
 
-> MVP preview — explore the early estimating workspace while the core flow is being shaped.
+> MVP preview — explore the early quote workspace while the core flow is being shaped.
 
 ### Too vague
 
