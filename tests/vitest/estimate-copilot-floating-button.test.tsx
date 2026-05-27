@@ -77,6 +77,89 @@ describe("AskFlipFooterAssistant", () => {
     expect(screen.getByRole("button", { name: /Current page\s*No questions yet/i })).toBeInTheDocument();
   });
 
+  it("renders a package draft preview and requires confirmation before Apply", async () => {
+    const user = userEvent.setup();
+    const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
+      const body = JSON.parse(String(init?.body ?? "{}"));
+      if (url === "/api/ai/package-builder" && body.mode === "draft") {
+        return new Response(
+          JSON.stringify({
+            mode: "draft",
+            draftHash: "sha256:draft",
+            productionWrite: false,
+            serverValidation: { eligible: true, reasons: [] },
+            draft: {
+              schemaVersion: 1,
+              mode: "draft",
+              intent: "create_package_project",
+              draftId: "draft-1",
+              brief: { projectName: "3 Bedroom Package", targetBudget: 5000000, currencyCode: "PHP", bedrooms: 3, floorCount: 1, finishLevel: "standard", missingInputs: ["gross floor area"] },
+              projectDraft: { name: "3 Bedroom Package", clientName: null, location: null, projectBudget: 5000000 },
+              estimateDraft: { name: "Initial 3 Bedroom Package Estimate", sheetCode: "ES-001" },
+              treeDraft: [
+                { clientDraftId: "group-house", kind: "group", name: "House", parentClientDraftId: null, sortOrder: 0 },
+                { clientDraftId: "area-bedroom-1", kind: "area", name: "Bedroom 1", parentClientDraftId: "group-house", sortOrder: 0 },
+              ],
+              rowDraft: [
+                { clientDraftId: "row-1", targetAreaClientDraftId: "area-bedroom-1", sourceType: "allowance", material: "Bedroom 1 allowance", description: "Allowance", supplier: null, quantity: 1, unit: "allowance", unitCost: 100000, miscCost: 0, contingencyPercentage: 0, confidence: "requires-user-review", assumption: "No match.", warnings: ["Review."], applyEligible: true },
+              ],
+              componentMatches: [],
+              templateMatches: [],
+              operations: [
+                { operationId: "op-project", type: "create_project", applyEligible: true },
+                { operationId: "op-estimate", type: "create_estimate", applyEligible: true },
+              ],
+              budgetSummary: { targetBudget: 5000000, draftSubtotal: 100000, allowanceTotal: 100000, contingencyTotal: 0, draftTotal: 100000, variance: -4900000, currencyCode: "PHP", completeness: "partial" },
+              assumptions: ["Budget is a target."],
+              warnings: ["Allowances are not supplier-priced rows."],
+              applyEligibility: { eligible: true, reasons: [] },
+              requiresConfirmation: true,
+            },
+          }),
+          { status: 200, headers: { "Content-Type": "application/json" } },
+        );
+      }
+
+      return new Response(
+        JSON.stringify({
+          mode: "apply",
+          result: {
+            projectId: "project-1",
+            estimateId: "estimate-1",
+            selectedNodeId: "area-1",
+            createdNodeIds: { "area-bedroom-1": "area-1" },
+            insertedRowIds: ["row-1"],
+            total: 100000,
+            warnings: [],
+            recoveryStatus: "completed",
+            idempotencyKey: body.idempotencyKey,
+            idempotentReplay: false,
+            auditRunId: "run-1",
+          },
+        }),
+        { status: 200, headers: { "Content-Type": "application/json" } },
+      );
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<AskFlipFooterAssistant />);
+    await user.click(screen.getByRole("button", { name: "Open Ask Flip" }));
+    await user.type(screen.getByPlaceholderText("Ask Flip"), "Assemble me a 3 bedroom package, budget is 5 million pesos.");
+    await user.click(screen.getByRole("button", { name: "Send message" }));
+
+    expect(await screen.findByText("I drafted a package for review.")).toBeInTheDocument();
+    expect(screen.getByText("3 Bedroom Package")).toBeInTheDocument();
+    const applyButton = screen.getByRole("button", { name: "Apply package" });
+    expect(applyButton).toBeDisabled();
+
+    await user.click(screen.getByLabelText("I reviewed this draft and approve Apply"));
+    expect(applyButton).toBeEnabled();
+    await user.click(applyButton);
+
+    expect(await screen.findByText(/Applied project project-/)).toBeInTheDocument();
+    expect(fetchMock).toHaveBeenCalledWith("/api/ai/package-builder", expect.objectContaining({ method: "POST" }));
+  });
+
   it("is no longer mounted by global app providers", () => {
     render(
       <AppProviders>

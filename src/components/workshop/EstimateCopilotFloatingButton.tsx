@@ -5,6 +5,8 @@ import { ChatCircleDots, PaperPlaneRight, Plus, X } from "@phosphor-icons/react/
 
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/ui/cn";
+import type { PackageBuilderApplyResult } from "@/lib/ai/package-builder/apply";
+import type { PackageBuilderDraft } from "@/lib/ai/package-builder/schemas";
 
 type EstimateCopilotFloatingButtonProps = {
   projectName?: string;
@@ -16,6 +18,7 @@ type ChatMessage = {
   id: string;
   role: "assistant" | "user";
   content: string;
+  packageDraft?: PackageDraftPreviewState;
 };
 
 type ChatSession = {
@@ -26,6 +29,29 @@ type ChatSession = {
 
 type AiAskResponse = {
   message?: string;
+  error?: string;
+  mode?: "draft" | "apply";
+  draft?: PackageBuilderDraft;
+  draftHash?: string;
+  serverValidation?: {
+    eligible: boolean;
+    reasons: string[];
+  };
+};
+
+type PackageBuilderApplyResponse = {
+  mode?: "apply";
+  result?: PackageBuilderApplyResult;
+  error?: string;
+};
+
+type PackageDraftPreviewState = {
+  draft: PackageBuilderDraft;
+  draftHash: string;
+  idempotencyKey: string;
+  confirmed: boolean;
+  applyStatus: "ready" | "applying" | "applied";
+  applyResult?: PackageBuilderApplyResult;
   error?: string;
 };
 
@@ -55,6 +81,162 @@ function getSessionMeta(session: ChatSession) {
   const userMessageCount = session.messages.filter((message) => message.role === "user").length;
   if (userMessageCount === 0) return "No questions yet";
   return userMessageCount === 1 ? "1 question" : `${userMessageCount} questions`;
+}
+
+function shouldUsePackageBuilder(prompt: string) {
+  const normalized = prompt.toLowerCase();
+  return (
+    /\b(assemble|build|create|generate|draft)\b/.test(normalized)
+    && /\b(package|estimate|budget|bedroom|bedrooms)\b/.test(normalized)
+  );
+}
+
+function formatPeso(value: number, currencyCode = "PHP") {
+  return new Intl.NumberFormat("en-PH", {
+    style: "currency",
+    currency: currencyCode,
+    maximumFractionDigits: 0,
+  }).format(value);
+}
+
+function countTreeAreas(draft: PackageBuilderDraft) {
+  return draft.treeDraft.filter((node) => node.kind === "area").length;
+}
+
+function updateSessionMessage(
+  sessions: ChatSession[],
+  sessionId: string,
+  messageId: string,
+  updater: (message: ChatMessage) => ChatMessage,
+) {
+  return sessions.map((session) =>
+    session.id === sessionId
+      ? {
+          ...session,
+          messages: session.messages.map((message) => (message.id === messageId ? updater(message) : message)),
+        }
+      : session,
+  );
+}
+
+function PackageDraftPreview({
+  state,
+  onConfirm,
+  onApply,
+}: {
+  state: PackageDraftPreviewState;
+  onConfirm: (confirmed: boolean) => void;
+  onApply: () => void;
+}) {
+  const { draft } = state;
+  const allowanceRows = draft.rowDraft.filter((row) => row.sourceType === "allowance");
+  const linkedRows = draft.rowDraft.filter((row) => row.sourceType === "library_item");
+  const canApply = draft.applyEligibility.eligible && state.confirmed && state.applyStatus !== "applying" && state.applyStatus !== "applied";
+
+  return (
+    <div className="mt-2 w-full max-w-full rounded-xs border border-hairline bg-white text-ink">
+      <div className="border-b border-hairline px-2 py-2">
+        <div className="flex items-start justify-between gap-2">
+          <div className="min-w-0">
+            <p className="truncate text-[11px] font-medium leading-4 text-ink">{draft.projectDraft.name}</p>
+            <p className="text-[9px] leading-3 text-tertiary">
+              {countTreeAreas(draft)} areas · {draft.rowDraft.length} rows · {formatPeso(draft.budgetSummary.draftTotal, draft.budgetSummary.currencyCode)}
+            </p>
+          </div>
+          <div className="shrink-0 text-right text-[9px] leading-3 text-tertiary">
+            Budget {formatPeso(draft.budgetSummary.targetBudget, draft.budgetSummary.currencyCode)}
+          </div>
+        </div>
+      </div>
+      <div className="grid gap-2 px-2 py-2 sm:grid-cols-2">
+        <div className="min-w-0">
+          <p className="text-[9px] font-medium leading-3 text-tertiary">Tree</p>
+          <div className="mt-1 space-y-1">
+            {draft.treeDraft.slice(0, 8).map((node) => (
+              <div key={node.clientDraftId} className="flex items-center gap-1 text-[10px] leading-4 text-ink">
+                <span className="text-tertiary">{node.kind === "group" ? "Group" : "Area"}</span>
+                <span className="truncate">{node.name}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+        <div className="min-w-0">
+          <p className="text-[9px] font-medium leading-3 text-tertiary">Budget</p>
+          <div className="mt-1 space-y-1 text-[10px] leading-4">
+            <div className="flex justify-between gap-2">
+              <span className="text-tertiary">Draft total</span>
+              <span className="font-medium text-ink">{formatPeso(draft.budgetSummary.draftTotal, draft.budgetSummary.currencyCode)}</span>
+            </div>
+            <div className="flex justify-between gap-2">
+              <span className="text-tertiary">Variance</span>
+              <span className="font-medium text-ink">{formatPeso(draft.budgetSummary.variance, draft.budgetSummary.currencyCode)}</span>
+            </div>
+            <div className="flex justify-between gap-2">
+              <span className="text-tertiary">Allowances</span>
+              <span className="font-medium text-ink">{formatPeso(draft.budgetSummary.allowanceTotal, draft.budgetSummary.currencyCode)}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div className="border-t border-hairline px-2 py-2">
+        <p className="text-[9px] font-medium leading-3 text-tertiary">Matched components</p>
+        <div className="mt-1 space-y-1">
+          {linkedRows.length ? linkedRows.slice(0, 5).map((row) => (
+            <div key={row.clientDraftId} className="flex justify-between gap-2 text-[10px] leading-4">
+              <span className="min-w-0 truncate text-ink">{row.material}</span>
+              <span className="shrink-0 text-tertiary">{formatPeso(row.unitCost, draft.budgetSummary.currencyCode)}</span>
+            </div>
+          )) : <p className="text-[10px] leading-4 text-tertiary">No scoped library matches.</p>}
+        </div>
+      </div>
+      <div className="border-t border-hairline px-2 py-2">
+        <p className="text-[9px] font-medium leading-3 text-tertiary">Allowances</p>
+        <div className="mt-1 space-y-1">
+          {allowanceRows.slice(0, 5).map((row) => (
+            <div key={row.clientDraftId} className="flex justify-between gap-2 text-[10px] leading-4">
+              <span className="min-w-0 truncate text-ink">{row.material}</span>
+              <span className="shrink-0 text-tertiary">{formatPeso(row.unitCost, draft.budgetSummary.currencyCode)}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+      <div className="border-t border-hairline px-2 py-2">
+        <div className="space-y-1">
+          {[...draft.assumptions, ...draft.warnings].slice(0, 4).map((item) => (
+            <p key={item} className="text-[10px] leading-4 text-tertiary">{item}</p>
+          ))}
+        </div>
+        {state.error ? <p role="alert" className="mt-2 text-[10px] font-medium leading-4 text-danger">{state.error}</p> : null}
+        {state.applyResult ? (
+          <p className="mt-2 text-[10px] font-medium leading-4 text-success">
+            Applied project {state.applyResult.projectId.slice(0, 8)} · {state.applyResult.insertedRowIds.length} rows
+          </p>
+        ) : null}
+      </div>
+      <div className="flex flex-wrap items-center justify-between gap-2 border-t border-hairline px-2 py-2">
+        <label className="flex min-w-0 items-center gap-2 text-[10px] font-medium leading-4 text-ink">
+          <input
+            type="checkbox"
+            className="size-3 rounded-xs border-hairline"
+            checked={state.confirmed}
+            disabled={state.applyStatus === "applying" || state.applyStatus === "applied"}
+            onChange={(event) => onConfirm(event.target.checked)}
+          />
+          <span className="min-w-0">I reviewed this draft and approve Apply</span>
+        </label>
+        <Button
+          type="button"
+          variant="primary"
+          size="sm"
+          className="h-7 rounded-xs px-2 text-[10px]"
+          disabled={!canApply}
+          onClick={onApply}
+        >
+          {state.applyStatus === "applying" ? "Applying" : state.applyStatus === "applied" ? "Applied" : "Apply package"}
+        </Button>
+      </div>
+    </div>
+  );
 }
 
 export function AskFlipFooterAssistant({
@@ -103,18 +285,42 @@ export function AskFlipFooterAssistant({
     setIsSending(true);
 
     try {
-      const response = await fetch("/api/ai/ask", {
+      const usePackageBuilder = shouldUsePackageBuilder(prompt);
+      const response = await fetch(usePackageBuilder ? "/api/ai/package-builder" : "/api/ai/ask", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: prompt, routeContext }),
+        body: JSON.stringify(usePackageBuilder ? { mode: "draft", message: prompt, routeContext } : { message: prompt, routeContext }),
       });
       const payload = (await response.json().catch(() => ({}))) as AiAskResponse;
       if (!response.ok) throw new Error(payload.error || "AI request failed.");
-      const assistantMessage = payload.message?.trim() || "I could not produce a useful answer.";
+      const assistantMessageId = makeMessageId();
+      const assistantMessage = payload.draft
+        ? "I drafted a package for review."
+        : payload.message?.trim() || "I could not produce a useful answer.";
       setSessions((current) =>
         current.map((session) =>
           session.id === activeSessionId
-            ? { ...session, messages: [...session.messages, { id: makeMessageId(), role: "assistant", content: assistantMessage }] }
+            ? {
+                ...session,
+                messages: [
+                  ...session.messages,
+                  {
+                    id: assistantMessageId,
+                    role: "assistant",
+                    content: assistantMessage,
+                    packageDraft: payload.draft && payload.draftHash
+                      ? {
+                          draft: payload.draft,
+                          draftHash: payload.draftHash,
+                          idempotencyKey: `ask-flip-apply-${assistantMessageId}`,
+                          confirmed: false,
+                          applyStatus: "ready",
+                          error: payload.serverValidation?.eligible === false ? payload.serverValidation.reasons.join(" ") : undefined,
+                        }
+                      : undefined,
+                  },
+                ],
+              }
             : session,
         ),
       );
@@ -124,6 +330,52 @@ export function AskFlipFooterAssistant({
     } finally {
       setIsSending(false);
       window.requestAnimationFrame(() => inputRef.current?.focus());
+    }
+  }
+
+  async function handleConfirmDraft(messageId: string, confirmed: boolean) {
+    setSessions((current) =>
+      updateSessionMessage(current, activeSessionId, messageId, (message) =>
+        message.packageDraft ? { ...message, packageDraft: { ...message.packageDraft, confirmed, error: undefined } } : message,
+      ),
+    );
+  }
+
+  async function handleApplyDraft(messageId: string, packageDraft: PackageDraftPreviewState) {
+    setSessions((current) =>
+      updateSessionMessage(current, activeSessionId, messageId, (message) =>
+        message.packageDraft ? { ...message, packageDraft: { ...message.packageDraft, applyStatus: "applying", error: undefined } } : message,
+      ),
+    );
+
+    try {
+      const response = await fetch("/api/ai/package-builder", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          mode: "apply",
+          draft: packageDraft.draft,
+          draftHash: packageDraft.draftHash,
+          confirmation: { confirmed: packageDraft.confirmed },
+          idempotencyKey: packageDraft.idempotencyKey,
+        }),
+      });
+      const payload = (await response.json().catch(() => ({}))) as PackageBuilderApplyResponse;
+      if (!response.ok || !payload.result) throw new Error(payload.error || "Package Apply failed.");
+      setSessions((current) =>
+        updateSessionMessage(current, activeSessionId, messageId, (message) =>
+          message.packageDraft
+            ? { ...message, packageDraft: { ...message.packageDraft, applyStatus: "applied", applyResult: payload.result, error: undefined } }
+            : message,
+        ),
+      );
+    } catch (applyError) {
+      const errorMessage = applyError instanceof Error ? applyError.message : "Package Apply failed.";
+      setSessions((current) =>
+        updateSessionMessage(current, activeSessionId, messageId, (message) =>
+          message.packageDraft ? { ...message, packageDraft: { ...message.packageDraft, applyStatus: "ready", error: errorMessage } } : message,
+        ),
+      );
     }
   }
 
@@ -218,6 +470,13 @@ export function AskFlipFooterAssistant({
                   )}
                 >
                   {message.content}
+                  {message.packageDraft ? (
+                    <PackageDraftPreview
+                      state={message.packageDraft}
+                      onConfirm={(confirmed) => handleConfirmDraft(message.id, confirmed)}
+                      onApply={() => handleApplyDraft(message.id, message.packageDraft as PackageDraftPreviewState)}
+                    />
+                  ) : null}
                 </div>
               ))}
               {isSending ? (
