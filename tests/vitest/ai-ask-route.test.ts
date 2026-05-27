@@ -51,6 +51,22 @@ describe("AI Ask route", () => {
     await expect(response.json()).resolves.toMatchObject({ error: "AI provider is not configured." });
   });
 
+  it("rejects unauthenticated users before calling DeepSeek or audit", async () => {
+    const askDeepSeek = vi.fn();
+    const recordAudit = vi.fn();
+    const response = await handleAiAskRequest(makeRequest({ message: "Summarize this estimate." }), {
+      getUserContext: async () => null,
+      askDeepSeek,
+      hasApiKey: () => true,
+      recordAudit,
+    });
+
+    expect(response.status).toBe(401);
+    expect(askDeepSeek).not.toHaveBeenCalled();
+    expect(recordAudit).not.toHaveBeenCalled();
+    await expect(response.json()).resolves.toMatchObject({ error: "Authentication required." });
+  });
+
   it("rejects real Supabase users without a workspace before calling DeepSeek", async () => {
     const askDeepSeek = vi.fn();
     const recordAudit = vi.fn();
@@ -96,6 +112,7 @@ describe("AI Ask route", () => {
     expect(askDeepSeek).toHaveBeenCalledTimes(1);
     const messages = askDeepSeek.mock.calls[0][0] as DeepSeekChatMessage[];
     expect(messages[0].role).toBe("system");
+    expect(messages[0].content).toContain("Ask Flip");
     expect(messages[0].content).toContain("Ask-only");
     expect(messages[0].content).toContain("must not create, edit, delete, apply");
     expect(messages[0].content).toContain("Untrusted browser-provided route context JSON");

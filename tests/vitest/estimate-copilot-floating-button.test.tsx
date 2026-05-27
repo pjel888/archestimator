@@ -3,26 +3,27 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { AppProviders } from "@/app/providers";
-import { EstimateCopilotFloatingButton } from "@/components/workshop/EstimateCopilotFloatingButton";
+import { AskFlipFooterAssistant } from "@/components/workshop/EstimateCopilotFloatingButton";
 
-describe("EstimateCopilotFloatingButton", () => {
+describe("AskFlipFooterAssistant", () => {
   afterEach(() => {
     vi.restoreAllMocks();
   });
 
-  it("opens a floating Ask-only chat panel", async () => {
+  it("opens a footer-mounted two-column Ask-only chat panel", async () => {
     const user = userEvent.setup();
-    render(<EstimateCopilotFloatingButton projectName="Lewis Residence" estimateName="Initial Estimate" selectedNodeName="Kitchen" />);
+    render(<AskFlipFooterAssistant projectName="Lewis Residence" estimateName="Initial Estimate" selectedNodeName="Kitchen" />);
 
-    expect(document.querySelector("[data-estimate-copilot-root='true']")).toHaveClass("fixed");
-    expect(screen.getByRole("button", { name: "Open Estimate Copilot" })).not.toHaveClass("fixed");
+    expect(document.querySelector("[data-ask-flip-root='true']")).not.toHaveClass("fixed");
+    expect(screen.getByRole("button", { name: "Open Ask Flip" })).not.toHaveClass("fixed");
 
-    await user.click(screen.getByRole("button", { name: "Open Estimate Copilot" }));
+    await user.click(screen.getByRole("button", { name: "Open Ask Flip" }));
 
-    expect(screen.getByRole("region", { name: "Estimate Copilot" })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Open Estimate Copilot" })).not.toHaveClass("fixed");
-    expect(screen.getByText("Ask only")).toBeInTheDocument();
-    expect(screen.getByPlaceholderText("Ask about this estimate...")).toBeInTheDocument();
+    expect(screen.getByRole("region", { name: "Ask Flip" })).toBeInTheDocument();
+    expect(screen.getByRole("complementary", { name: "Ask Flip chat sessions" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Open Ask Flip" })).not.toHaveClass("fixed");
+    expect(screen.getByRole("heading", { name: "Ask Flip" })).toBeInTheDocument();
+    expect(screen.getByPlaceholderText("Ask Flip")).toBeInTheDocument();
   });
 
   it("sends the prompt and renders the assistant answer", async () => {
@@ -35,9 +36,9 @@ describe("EstimateCopilotFloatingButton", () => {
     );
     vi.stubGlobal("fetch", fetchMock);
 
-    render(<EstimateCopilotFloatingButton projectName="Lewis Residence" estimateName="Initial Estimate" selectedNodeName="Kitchen" />);
-    await user.click(screen.getByRole("button", { name: "Open Estimate Copilot" }));
-    await user.type(screen.getByPlaceholderText("Ask about this estimate..."), "Summarize this estimate");
+    render(<AskFlipFooterAssistant projectName="Lewis Residence" estimateName="Initial Estimate" selectedNodeName="Kitchen" />);
+    await user.click(screen.getByRole("button", { name: "Open Ask Flip" }));
+    await user.type(screen.getByPlaceholderText("Ask Flip"), "Summarize this estimate");
     await user.click(screen.getByRole("button", { name: "Send message" }));
 
     expect(fetchMock).toHaveBeenCalledWith(
@@ -54,18 +55,29 @@ describe("EstimateCopilotFloatingButton", () => {
     const user = userEvent.setup();
     vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify({ error: "AI provider is not configured." }), { status: 503 })));
 
-    render(<EstimateCopilotFloatingButton projectName="Lewis Residence" estimateName="Initial Estimate" />);
-    await user.click(screen.getByRole("button", { name: "Open Estimate Copilot" }));
-    await user.type(screen.getByPlaceholderText("Ask about this estimate..."), "Hello");
+    render(<AskFlipFooterAssistant projectName="Lewis Residence" estimateName="Initial Estimate" />);
+    await user.click(screen.getByRole("button", { name: "Open Ask Flip" }));
+    await user.type(screen.getByPlaceholderText("Ask Flip"), "Hello");
     await user.click(screen.getByRole("button", { name: "Send message" }));
 
     await waitFor(() => {
       expect(screen.getByRole("alert")).toHaveTextContent("AI provider is not configured.");
     });
-    expect(screen.getByText("Hello")).toBeInTheDocument();
+    expect(screen.getAllByText("Hello").length).toBeGreaterThan(0);
   });
 
-  it("is mounted by the global app providers so it persists across pages", () => {
+  it("keeps multiple chat sessions local to the footer panel", async () => {
+    const user = userEvent.setup();
+    render(<AskFlipFooterAssistant />);
+
+    await user.click(screen.getByRole("button", { name: "Open Ask Flip" }));
+    await user.click(screen.getByRole("button", { name: "Start new Ask Flip chat" }));
+
+    expect(screen.getByRole("button", { name: /New chat\s*No questions yet/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Current page\s*No questions yet/i })).toBeInTheDocument();
+  });
+
+  it("is no longer mounted by global app providers", () => {
     render(
       <AppProviders>
         <main>Any Archestimator page</main>
@@ -73,6 +85,6 @@ describe("EstimateCopilotFloatingButton", () => {
     );
 
     expect(screen.getByText("Any Archestimator page")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Open Estimate Copilot" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Open Ask Flip" })).not.toBeInTheDocument();
   });
 });
