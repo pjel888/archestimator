@@ -57,7 +57,7 @@ function buildSystemPrompt(context: RouteContext) {
   });
 
   return [
-    "You are Estimate Copilot inside Archestimator.",
+    "You are Ask Flip inside Archestimator.",
     "This first implementation is Ask-only. You must not create, edit, delete, apply, save, or mutate any project, estimate, component, template, supplier, or workspace data.",
     "If the user asks for a write/action, explain that this version can discuss and draft guidance only, but cannot apply changes yet.",
     "Answer concisely. Call out uncertainty. Do not claim final construction cost certainty.",
