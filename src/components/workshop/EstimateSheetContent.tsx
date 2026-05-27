@@ -1,6 +1,6 @@
 "use client";
 
-import { type ChangeEvent, type Dispatch, type DragEvent, type InputHTMLAttributes, type KeyboardEvent, type MouseEvent, type ReactNode, type SetStateAction, createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { type ChangeEvent, type Dispatch, type DragEvent, type InputHTMLAttributes, type KeyboardEvent, type MouseEvent, type PointerEvent, type ReactNode, type SetStateAction, createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import { ArrowsOutSimple, CaretDown, ClockCounterClockwise, Cube, DotsSixVertical, DotsThreeVertical, FileXls, FolderSimple, FunnelSimple, Plus, Trash, WarningCircle, X } from "@phosphor-icons/react/dist/ssr";
 
 import { Button } from "@/components/ui/button";
@@ -9,9 +9,11 @@ import { HeaderIconToolbar } from "@/components/ui/header-icon-toolbar";
 import { SearchInput } from "@/components/ui/search-input";
 import { dispatchProjectTotalChange } from "@/components/workshop/ProjectTotalHeader";
 import { useEstimateRowMutations } from "@/hooks/use-estimate-row-mutations";
+import { useEstimateCursorCollaboration, type RemoteEstimateCursor } from "@/hooks/use-estimate-cursor-broadcast";
 import { useEstimateAreaTreeQuery } from "@/hooks/use-estimate-query";
 import { resolveEstimateWorkspaceSelection, useEstimateWorkspaceSelection } from "@/hooks/use-estimate-workspace-state";
 import { fetchEstimateSheetVersionControl, insertEstimateTemplateIntoEstimate, type EstimateSheetHistoryEvent, type EstimateSheetVersionControlData } from "@/lib/estimates/actions";
+import { getCollaborationColorForUser } from "@/lib/collaboration/colors";
 import { getEstimateNodeDisplayKind } from "@/lib/estimates/tree-hierarchy";
 import { buildProposalExportModel } from "@/lib/proposal-export/build-proposal-export-model";
 import type { ProposalExportMetadata, ProposalExportModel } from "@/lib/proposal-export/types";
@@ -59,6 +61,8 @@ type EstimateSheetContentProps = {
   nodes?: EstimateTreeNode[];
   projectId?: string;
   estimateId?: string;
+  collaborationUserId?: string | null;
+  collaborationDisplayName?: string | null;
   proposalExportMetadata?: ProposalExportMetadata;
   renderSidebar?: boolean;
   libraryItems?: EstimateRowItem[];
@@ -3171,11 +3175,57 @@ function EstimateSheetHeader({
   );
 }
 
+function getRemoteCursorLabel(cursor: RemoteEstimateCursor) {
+  return cursor.displayName ?? `User ${cursor.userId.slice(0, 8)}`;
+}
+
+function RemoteEstimateCursorsOverlay({ cursors }: { cursors: RemoteEstimateCursor[] }) {
+  if (cursors.length === 0) return null;
+
+  return (
+    <div
+      className="pointer-events-none absolute left-0 top-0 z-30 min-h-full min-w-full"
+      aria-hidden="true"
+      data-estimate-cursor-layer
+    >
+      {cursors.map((cursor) => (
+        <RemoteEstimateCursorMarker key={cursor.userId} cursor={cursor} />
+      ))}
+    </div>
+  );
+}
+
+function RemoteEstimateCursorMarker({ cursor }: { cursor: RemoteEstimateCursor }) {
+  const color = getCollaborationColorForUser(cursor.userId);
+
+  return (
+    <div
+      className="absolute left-0 top-0 flex items-start gap-1"
+      style={{ transform: `translate3d(${cursor.x}px, ${cursor.y}px, 0)` }}
+      data-estimate-remote-cursor={cursor.userId}
+      data-estimate-remote-cursor-color={color.name}
+    >
+      <span
+        className="mt-0.5 block size-2 rotate-45 rounded-xs shadow-[0_0_0_1px_rgba(255,255,255,0.9)]"
+        style={{ backgroundColor: color.cursor, boxShadow: `0 0 0 1px rgba(255, 255, 255, 0.9), 0 0 0 4px ${color.ring}` }}
+      />
+      <span
+        className="max-w-28 truncate rounded-xs px-1.5 py-0.5 text-[8px] font-medium leading-[10px] shadow-[0_4px_12px_rgba(17,24,39,0.18)]"
+        style={{ backgroundColor: color.cursor, color: color.text }}
+      >
+        {getRemoteCursorLabel(cursor)}
+      </span>
+    </div>
+  );
+}
+
 export function EstimateSheetContent({
   selectedNodeId,
   nodes = sampleEstimateTree,
   projectId,
   estimateId,
+  collaborationUserId = null,
+  collaborationDisplayName = null,
   proposalExportMetadata,
   renderSidebar = true,
   libraryItems,
@@ -3212,6 +3262,12 @@ export function EstimateSheetContent({
   const [isHistoryLoadingMore, setIsHistoryLoadingMore] = useState(false);
   const [historyError, setHistoryError] = useState("");
   const [historyReloadToken, setHistoryReloadToken] = useState(0);
+  const { broadcastCursor, channelStatus: cursorChannelStatus, lastSendStatus: cursorLastSendStatus, remoteCursors } = useEstimateCursorCollaboration({
+    estimateId,
+    userId: collaborationUserId,
+    displayName: collaborationDisplayName,
+    enabled: Boolean(estimateId && collaborationUserId),
+  });
   const inspectorOpenerRef = useRef<HTMLElement | null>(null);
   const rowDetailsOpenerRef = useRef<HTMLElement | null>(null);
   const inspectorScopeRef = useRef("");
@@ -3436,6 +3492,21 @@ export function EstimateSheetContent({
     buildProposalPreview();
   }, [buildProposalPreview]);
   const isProposalPreviewStale = Boolean(proposalPreviewModel && proposalPreviewSignature !== currentProposalPreviewSignature);
+  const handleSheetPointerMove = useCallback((event: PointerEvent<HTMLDivElement>) => {
+    if (!estimateId || !collaborationUserId) return;
+    if (!(event.target instanceof Element)) return;
+
+    const bounds = event.currentTarget.getBoundingClientRect();
+    const rowElement = event.target.closest<HTMLElement>("[data-estimate-row-id]");
+    const cellElement = event.target.closest<HTMLElement>("[data-estimate-cell-index]");
+
+    broadcastCursor({
+      x: Math.round(event.clientX - bounds.left + event.currentTarget.scrollLeft),
+      y: Math.round(event.clientY - bounds.top + event.currentTarget.scrollTop),
+      rowId: rowElement?.dataset.estimateRowId ?? null,
+      columnId: cellElement?.dataset.estimateCellIndex ?? null,
+    });
+  }, [broadcastCursor, collaborationUserId, estimateId]);
 
   useEffect(() => {
     if (!inspectorScopeKey) return;
@@ -3838,7 +3909,14 @@ export function EstimateSheetContent({
               canPreviewProposalExport={Boolean(resolvedProposalExportMetadata)}
               onOpenSheetActivity={openActivityHistory}
             />
-            <div className="min-h-0 flex-1 overflow-auto px-2 pb-2">
+            <div
+              className="relative min-h-0 flex-1 overflow-auto px-2 pb-2"
+              data-estimate-pointer-surface
+              data-estimate-cursor-channel={cursorChannelStatus}
+              data-estimate-cursor-send={cursorLastSendStatus}
+              onPointerMove={handleSheetPointerMove}
+            >
+              <RemoteEstimateCursorsOverlay cursors={remoteCursors} />
               <EstimateSheetExpansionContext.Provider value={{ collapsedNodeIds, setCollapsedNodeIds }}>
                 <EstimateSheetBranch
                   node={selectedNode}
@@ -3869,7 +3947,8 @@ export function EstimateSheetContent({
               canPreviewProposalExport={Boolean(resolvedProposalExportMetadata)}
               onOpenSheetActivity={openActivityHistory}
             />
-            <div className="flex min-h-0 flex-1 items-center justify-center overflow-auto px-2 pb-2">
+            <div className="relative flex min-h-0 flex-1 items-center justify-center overflow-auto px-2 pb-2" onPointerMove={handleSheetPointerMove}>
+              <RemoteEstimateCursorsOverlay cursors={remoteCursors} />
               <div className="max-w-md rounded-xs border border-dashed border-hairline bg-surface-muted p-3 text-center">
                 <p className="text-[8px] font-medium uppercase tracking-normal text-tertiary">Empty estimate</p>
                 <h2 className="mt-1 text-[10px] font-medium tracking-normal text-ink">No estimate tree yet</h2>

@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { ProjectEstimateMetadataPublisher } from "@/components/workshop/ProjectEstimateMetadataStrip";
 import { EstimateSheetContent } from "@/components/workshop/EstimateSheetContent";
 import { EstimateSheetTree } from "@/components/workshop/EstimateSheetTree";
+import { requireCurrentUserContext } from "@/lib/auth/session";
 import { getCurrentWorkspaceComponentLibrary } from "@/lib/repositories/component-library-repository";
 import { getProjectEstimateTreeByNode } from "@/lib/repositories/workspace-repository";
 import type { Json } from "@/lib/supabase/types";
@@ -25,9 +26,10 @@ function readEstimateVersionLabel(metadata: Json): string {
 
 export default async function ProjectEstimateNodePage({ params }: ProjectEstimateNodePageProps) {
   const { projectId, nodeId } = await params;
-  const [estimateTreeResult, componentLibrary] = await Promise.all([
+  const [estimateTreeResult, componentLibrary, currentUser] = await Promise.all([
     getProjectEstimateTreeByNode(projectId, nodeId),
     getCurrentWorkspaceComponentLibrary(),
+    requireCurrentUserContext(),
   ]);
   const { project, estimate, selectedNodeId, tree } = estimateTreeResult;
 
@@ -62,6 +64,8 @@ export default async function ProjectEstimateNodePage({ params }: ProjectEstimat
           nodes={tree}
           projectId={project.id}
           estimateId={estimate.id}
+          collaborationUserId={currentUser.userId}
+          collaborationDisplayName={currentUser.displayName}
           proposalExportMetadata={proposalExportMetadata}
           libraryItems={componentLibrary.libraryItems}
           libraryTemplates={componentLibrary.templates}

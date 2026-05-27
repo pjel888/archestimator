@@ -14,6 +14,148 @@ export type Database = {
   }
   public: {
     Tables: {
+      account_security_events: {
+        Row: {
+          created_at: string
+          event_type: string
+          id: string
+          ip_hash: string | null
+          metadata_json: Json
+          request_id: string | null
+          user_agent_hash: string | null
+          user_id: string | null
+          workspace_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          event_type: string
+          id?: string
+          ip_hash?: string | null
+          metadata_json?: Json
+          request_id?: string | null
+          user_agent_hash?: string | null
+          user_id?: string | null
+          workspace_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          event_type?: string
+          id?: string
+          ip_hash?: string | null
+          metadata_json?: Json
+          request_id?: string | null
+          user_agent_hash?: string | null
+          user_id?: string | null
+          workspace_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "account_security_events_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "account_security_events_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_onboarding_profiles: {
+        Row: {
+          country_region: string
+          created_at: string
+          display_name: string
+          marketing_consent_at: string | null
+          onboarding_completed_at: string | null
+          primary_use: string | null
+          student_educator_detail: string | null
+          updated_at: string
+          user_category: string
+          user_id: string
+        }
+        Insert: {
+          country_region: string
+          created_at?: string
+          display_name: string
+          marketing_consent_at?: string | null
+          onboarding_completed_at?: string | null
+          primary_use?: string | null
+          student_educator_detail?: string | null
+          updated_at?: string
+          user_category: string
+          user_id: string
+        }
+        Update: {
+          country_region?: string
+          created_at?: string
+          display_name?: string
+          marketing_consent_at?: string | null
+          onboarding_completed_at?: string | null
+          primary_use?: string | null
+          student_educator_detail?: string | null
+          updated_at?: string
+          user_category?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_onboarding_profiles_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      workspace_account_settings: {
+        Row: {
+          company_size: string | null
+          country_region: string
+          created_at: string
+          default_currency: string
+          organization_name: string
+          organization_type: string
+          primary_use: string | null
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          company_size?: string | null
+          country_region: string
+          created_at?: string
+          default_currency?: string
+          organization_name: string
+          organization_type: string
+          primary_use?: string | null
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          company_size?: string | null
+          country_region?: string
+          created_at?: string
+          default_currency?: string
+          organization_name?: string
+          organization_type?: string
+          primary_use?: string | null
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workspace_account_settings_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: true
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       ai_action_runs: {
         Row: {
           actor_user_id: string
@@ -1514,8 +1656,422 @@ export type Database = {
           },
         ]
       }
+      estimate_favorites: {
+        Row: {
+          created_at: string
+          estimate_id: string
+          id: string
+          project_id: string
+          user_id: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          estimate_id: string
+          id?: string
+          project_id: string
+          user_id: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          estimate_id?: string
+          id?: string
+          project_id?: string
+          user_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "estimate_favorites_estimate_project_fkey"
+            columns: ["estimate_id", "project_id"]
+            isOneToOne: false
+            referencedRelation: "estimates"
+            referencedColumns: ["id", "project_id"]
+          },
+          {
+            foreignKeyName: "estimate_favorites_project_workspace_fkey"
+            columns: ["project_id", "workspace_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id", "workspace_id"]
+          },
+        ]
+      }
+      collaboration_invitations: {
+        Row: {
+          accepted_via: string | null
+          accepted_at: string | null
+          created_at: string
+          direct_granted_at: string | null
+          direct_granted_user_id: string | null
+          email: string
+          estimate_id: string | null
+          expires_at: string
+          id: string
+          invited_by: string | null
+          invited_user_id: string | null
+          last_opened_at: string | null
+          lifecycle_state: string
+          project_id: string
+          revoked_at: string | null
+          role: Database["public"]["Enums"]["collaboration_role"]
+          scope: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          accepted_via?: string | null
+          accepted_at?: string | null
+          created_at?: string
+          direct_granted_at?: string | null
+          direct_granted_user_id?: string | null
+          email: string
+          estimate_id?: string | null
+          expires_at?: string
+          id?: string
+          invited_by?: string | null
+          invited_user_id?: string | null
+          last_opened_at?: string | null
+          lifecycle_state?: string
+          project_id: string
+          revoked_at?: string | null
+          role?: Database["public"]["Enums"]["collaboration_role"]
+          scope?: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          accepted_via?: string | null
+          accepted_at?: string | null
+          created_at?: string
+          direct_granted_at?: string | null
+          direct_granted_user_id?: string | null
+          email?: string
+          estimate_id?: string | null
+          expires_at?: string
+          id?: string
+          invited_by?: string | null
+          invited_user_id?: string | null
+          last_opened_at?: string | null
+          lifecycle_state?: string
+          project_id?: string
+          revoked_at?: string | null
+          role?: Database["public"]["Enums"]["collaboration_role"]
+          scope?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "collaboration_invitations_estimate_project_fkey"
+            columns: ["estimate_id", "project_id"]
+            isOneToOne: false
+            referencedRelation: "estimates"
+            referencedColumns: ["id", "project_id"]
+          },
+          {
+            foreignKeyName: "collaboration_invitations_project_workspace_fkey"
+            columns: ["project_id", "workspace_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id", "workspace_id"]
+          },
+        ]
+      }
+      collaboration_invitation_tokens: {
+        Row: {
+          created_at: string
+          created_by: string
+          delivery_method: string
+          expires_at: string
+          id: string
+          invitation_id: string
+          last_opened_at: string | null
+          revoked_at: string | null
+          revoked_by: string | null
+          token_hash: string
+          token_hint: string | null
+          used_at: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          delivery_method: string
+          expires_at: string
+          id?: string
+          invitation_id: string
+          last_opened_at?: string | null
+          revoked_at?: string | null
+          revoked_by?: string | null
+          token_hash: string
+          token_hint?: string | null
+          used_at?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          delivery_method?: string
+          expires_at?: string
+          id?: string
+          invitation_id?: string
+          last_opened_at?: string | null
+          revoked_at?: string | null
+          revoked_by?: string | null
+          token_hash?: string
+          token_hint?: string | null
+          used_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "collaboration_invitation_tokens_invitation_id_fkey"
+            columns: ["invitation_id"]
+            isOneToOne: false
+            referencedRelation: "collaboration_invitations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      collaboration_audit_events: {
+        Row: {
+          actor_user_id: string | null
+          created_at: string
+          estimate_id: string | null
+          event_type: string
+          id: string
+          invitation_id: string | null
+          metadata: Json
+          project_id: string | null
+        }
+        Insert: {
+          actor_user_id?: string | null
+          created_at?: string
+          estimate_id?: string | null
+          event_type: string
+          id?: string
+          invitation_id?: string | null
+          metadata?: Json
+          project_id?: string | null
+        }
+        Update: {
+          actor_user_id?: string | null
+          created_at?: string
+          estimate_id?: string | null
+          event_type?: string
+          id?: string
+          invitation_id?: string | null
+          metadata?: Json
+          project_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "collaboration_audit_events_invitation_id_fkey"
+            columns: ["invitation_id"]
+            isOneToOne: false
+            referencedRelation: "collaboration_invitations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "collaboration_audit_events_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "collaboration_audit_events_estimate_id_fkey"
+            columns: ["estimate_id"]
+            isOneToOne: false
+            referencedRelation: "estimates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      estimate_sheet_access_settings: {
+        Row: {
+          created_at: string
+          estimate_id: string
+          inherit_project_access: boolean
+          project_id: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          estimate_id: string
+          inherit_project_access?: boolean
+          project_id: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          estimate_id?: string
+          inherit_project_access?: boolean
+          project_id?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "estimate_sheet_access_settings_estimate_project_fkey"
+            columns: ["estimate_id", "project_id"]
+            isOneToOne: true
+            referencedRelation: "estimates"
+            referencedColumns: ["id", "project_id"]
+          },
+        ]
+      }
+      estimate_sheet_members: {
+        Row: {
+          added_by: string | null
+          created_at: string
+          estimate_id: string
+          project_id: string
+          role: Database["public"]["Enums"]["collaboration_role"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          added_by?: string | null
+          created_at?: string
+          estimate_id: string
+          project_id: string
+          role?: Database["public"]["Enums"]["collaboration_role"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          added_by?: string | null
+          created_at?: string
+          estimate_id?: string
+          project_id?: string
+          role?: Database["public"]["Enums"]["collaboration_role"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "estimate_sheet_members_estimate_project_fkey"
+            columns: ["estimate_id", "project_id"]
+            isOneToOne: false
+            referencedRelation: "estimates"
+            referencedColumns: ["id", "project_id"]
+          },
+        ]
+      }
+      project_publication_events: {
+        Row: {
+          created_at: string
+          event_type: Database["public"]["Enums"]["project_publication_event_type"]
+          id: string
+          ip_hash: string | null
+          metadata_json: Json
+          publication_id: string
+          user_agent_hash: string | null
+        }
+        Insert: {
+          created_at?: string
+          event_type: Database["public"]["Enums"]["project_publication_event_type"]
+          id?: string
+          ip_hash?: string | null
+          metadata_json?: Json
+          publication_id: string
+          user_agent_hash?: string | null
+        }
+        Update: {
+          created_at?: string
+          event_type?: Database["public"]["Enums"]["project_publication_event_type"]
+          id?: string
+          ip_hash?: string | null
+          metadata_json?: Json
+          publication_id?: string
+          user_agent_hash?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_publication_events_publication_id_fkey"
+            columns: ["publication_id"]
+            isOneToOne: false
+            referencedRelation: "project_publications"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      project_publications: {
+        Row: {
+          created_at: string
+          encrypted_token: string
+          expires_at: string | null
+          id: string
+          latest_opened_at: string | null
+          open_count: number
+          password_hash: string | null
+          project_id: string
+          published_at: string
+          published_by: string | null
+          revoked_at: string | null
+          selected_estimate_ids: string[]
+          snapshot_json: Json
+          snapshot_version: number
+          status: Database["public"]["Enums"]["project_publication_status"]
+          token_hash: string
+          updated_at: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          encrypted_token: string
+          expires_at?: string | null
+          id?: string
+          latest_opened_at?: string | null
+          open_count?: number
+          password_hash?: string | null
+          project_id: string
+          published_at?: string
+          published_by?: string | null
+          revoked_at?: string | null
+          selected_estimate_ids?: string[]
+          snapshot_json: Json
+          snapshot_version?: number
+          status?: Database["public"]["Enums"]["project_publication_status"]
+          token_hash: string
+          updated_at?: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          encrypted_token?: string
+          expires_at?: string | null
+          id?: string
+          latest_opened_at?: string | null
+          open_count?: number
+          password_hash?: string | null
+          project_id?: string
+          published_at?: string
+          published_by?: string | null
+          revoked_at?: string | null
+          selected_estimate_ids?: string[]
+          snapshot_json?: Json
+          snapshot_version?: number
+          status?: Database["public"]["Enums"]["project_publication_status"]
+          token_hash?: string
+          updated_at?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_publications_project_workspace_fkey"
+            columns: ["project_id", "workspace_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id", "workspace_id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
+          avatar_url: string | null
           created_at: string
           default_workspace_id: string | null
           display_name: string | null
@@ -1525,6 +2081,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          avatar_url?: string | null
           created_at?: string
           default_workspace_id?: string | null
           display_name?: string | null
@@ -1534,6 +2091,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          avatar_url?: string | null
           created_at?: string
           default_workspace_id?: string | null
           display_name?: string | null
@@ -1549,6 +2107,76 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "workspaces"
             referencedColumns: ["id"]
+          },
+        ]
+      }
+      project_favorites: {
+        Row: {
+          created_at: string
+          id: string
+          project_id: string
+          user_id: string
+          workspace_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          project_id: string
+          user_id: string
+          workspace_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          project_id?: string
+          user_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_favorites_project_workspace_fkey"
+            columns: ["project_id", "workspace_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id", "workspace_id"]
+          },
+        ]
+      }
+      project_members: {
+        Row: {
+          added_by: string | null
+          created_at: string
+          project_id: string
+          role: Database["public"]["Enums"]["collaboration_role"]
+          updated_at: string
+          user_id: string
+          workspace_id: string
+        }
+        Insert: {
+          added_by?: string | null
+          created_at?: string
+          project_id: string
+          role?: Database["public"]["Enums"]["collaboration_role"]
+          updated_at?: string
+          user_id: string
+          workspace_id: string
+        }
+        Update: {
+          added_by?: string | null
+          created_at?: string
+          project_id?: string
+          role?: Database["public"]["Enums"]["collaboration_role"]
+          updated_at?: string
+          user_id?: string
+          workspace_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "project_members_project_workspace_fkey"
+            columns: ["project_id", "workspace_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id", "workspace_id"]
           },
         ]
       }
@@ -1670,6 +2298,7 @@ export type Database = {
       current_user_profile: {
         Args: never
         Returns: {
+          avatar_url: string | null
           created_at: string
           default_workspace_id: string | null
           display_name: string | null
@@ -1879,12 +2508,78 @@ export type Database = {
         Args: { raw_email: string }
         Returns: Database["public"]["Enums"]["app_role"]
       }
+      can_access_project: {
+        Args: { target_project_id: string }
+        Returns: boolean
+      }
+      can_edit_project: {
+        Args: { target_project_id: string }
+        Returns: boolean
+      }
+      can_access_estimate: {
+        Args: { target_estimate_id: string }
+        Returns: boolean
+      }
+      can_edit_estimate: {
+        Args: { target_estimate_id: string }
+        Returns: boolean
+      }
+      resolve_collaboration_invitation: {
+        Args: { invitation_token_hash: string }
+        Returns: {
+          state: string
+          invitation_id: string | null
+          project_id: string | null
+          estimate_id: string | null
+          project_name: string | null
+          project_code: string | null
+          estimate_name: string | null
+          role: string | null
+          scope: string | null
+          inviter_label: string | null
+          invited_email: string | null
+          expires_at: string | null
+          token_id: string | null
+        }[]
+      }
+      accept_collaboration_invitation: {
+        Args: { invitation_token_hash: string }
+        Returns: Json
+      }
+      revoke_collaboration_invitation: {
+        Args: { invitation_id: string }
+        Returns: undefined
+      }
+      issue_collaboration_invitation_token: {
+        Args: {
+          invitation_id: string
+          invitation_token_hash: string
+          token_hint: string
+          delivery_method: string
+          token_expires_at: string
+          revoke_existing: boolean
+        }
+        Returns: string
+      }
+      record_collaboration_invitation_delivery: {
+        Args: { invitation_id: string; token_id: string; delivery_method: string }
+        Returns: undefined
+      }
+      is_workspace_editor: {
+        Args: { target_workspace_id: string }
+        Returns: boolean
+      }
+      increment_project_publication_open: {
+        Args: { target_publication_id: string }
+        Returns: undefined
+      }
     }
     Enums: {
       ai_interaction_mode: "ask" | "draft" | "apply" | "eval"
       ai_redaction_status: "metadata_only" | "redacted" | "synthetic" | "blocked"
       ai_run_status: "started" | "completed" | "failed" | "blocked"
       app_role: "ceo" | "admin" | "member"
+      collaboration_role: "owner" | "admin" | "editor" | "viewer"
       component_lifecycle_state:
         | "draft"
         | "in_production"
@@ -1906,6 +2601,12 @@ export type Database = {
         | "area"
         | "group"
         | "assembly"
+      project_publication_event_type:
+        | "open"
+        | "password_success"
+        | "password_failure"
+        | "download_attempt_blocked"
+      project_publication_status: "published" | "expired" | "revoked"
       estimate_row_link_state:
         | "unlinked"
         | "linked-clean"
@@ -2044,6 +2745,7 @@ export const Constants = {
       ai_redaction_status: ["metadata_only", "redacted", "synthetic", "blocked"],
       ai_run_status: ["started", "completed", "failed", "blocked"],
       app_role: ["ceo", "admin", "member"],
+      collaboration_role: ["owner", "admin", "editor", "viewer"],
       component_lifecycle_state: [
         "draft",
         "in_production",
@@ -2068,6 +2770,13 @@ export const Constants = {
         "group",
         "assembly",
       ],
+      project_publication_event_type: [
+        "open",
+        "password_success",
+        "password_failure",
+        "download_attempt_blocked",
+      ],
+      project_publication_status: ["published", "expired", "revoked"],
       estimate_row_link_state: [
         "unlinked",
         "linked-clean",

@@ -1,0 +1,242 @@
+import { createCipheriv, createDecipheriv, createHash, createHmac, randomBytes as nodeRandomBytes, scrypt, timingSafeEqual } from "node:crypto";
+import { promisify } from "node:util";
+
+const scryptAsync = promisify(scrypt);
+const tokenHashPrefix = "hmac-sha256-v1";
+const tokenEncryptionPrefix = "aes-256-gcm-v1";
+const passwordHashPrefix = "scrypt-sha256-v1";
+const accessCookiePrefix = "publication-access-v1";
+const csrfCookieName = "ae_publication_csrf";
+const publicationAccessCookieMaxAgeSeconds = 24 * 60 * 60;
+
+type RandomBytes = (size: number) => Buffer;
+type PublicationAccessCookieContext = {
+  token: string;
+  publicationId: string;
+  snapshotVersion: string | number;
+};
+
+type PublicationAccessCookieOptions = {
+  maxAgeSeconds?: number;
+  now?: number;
+  secret?: string;
+};
+
+type PublicationAccessCookiePayload = {
+  expiresAt: number;
+  publicationId: string;
+  snapshotVersion: string;
+  tokenDigest: string;
+};
+
+function toBase64Url(buffer: Buffer) {
+  return buffer.toString("base64url");
+}
+
+function fromBase64Url(value: string) {
+  return Buffer.from(value, "base64url");
+}
+
+function deriveKey(secret: string) {
+  return createHash("sha256").update(secret).digest();
+}
+
+function constantTimeEqual(left: Buffer, right: Buffer) {
+  if (left.length !== right.length) return false;
+  return timingSafeEqual(left, right);
+}
+
+export function createPublicationToken({
+  bytes = 32,
+  randomBytes = nodeRandomBytes,
+}: {
+  bytes?: number;
+  randomBytes?: RandomBytes;
+} = {}) {
+  return toBase64Url(randomBytes(bytes));
+}
+
+export function hashPublicationToken(token: string, secret: string) {
+  const digest = createHmac("sha256", secret).update(token).digest();
+  return `${tokenHashPrefix}:${toBase64Url(digest)}`;
+}
+
+export function encryptPublicationToken(token: string, secret: string, randomBytes: RandomBytes = nodeRandomBytes) {
+  const iv = randomBytes(12);
+  const cipher = createCipheriv("aes-256-gcm", deriveKey(secret), iv);
+  const encrypted = Buffer.concat([cipher.update(token, "utf8"), cipher.final()]);
+  const tag = cipher.getAuthTag();
+  return `${tokenEncryptionPrefix}:${toBase64Url(iv)}:${toBase64Url(tag)}:${toBase64Url(encrypted)}`;
+}
+
+export function decryptPublicationToken(encryptedToken: string, secret: string) {
+  const [prefix, iv, tag, encrypted] = encryptedToken.split(":");
+  if (prefix !== tokenEncryptionPrefix || !iv || !tag || !encrypted) throw new Error("Publication token envelope is invalid.");
+
+  const decipher = createDecipheriv("aes-256-gcm", deriveKey(secret), fromBase64Url(iv));
+  decipher.setAuthTag(fromBase64Url(tag));
+  return Buffer.concat([decipher.update(fromBase64Url(encrypted)), decipher.final()]).toString("utf8");
+}
+
+export function readPublicationTokenEncryptionSecret() {
+  const configured = process.env.PUBLICATION_TOKEN_ENCRYPTION_SECRET?.trim() ?? process.env.ARCHESTIMATOR_PUBLICATION_TOKEN_SECRET?.trim();
+  if (configured) return configured;
+  if (process.env.NODE_ENV === "production") throw new Error("PUBLICATION_TOKEN_ENCRYPTION_SECRET is required in production.");
+  return "archestimator-local-publication-token-secret";
+}
+
+export function readPublicationTokenHashSecret() {
+  const configured = process.env.PUBLICATION_TOKEN_HASH_SECRET?.trim() ?? process.env.ARCHESTIMATOR_PUBLICATION_TOKEN_HASH_SECRET?.trim();
+  if (configured) return configured;
+  if (process.env.NODE_ENV === "production") throw new Error("PUBLICATION_TOKEN_HASH_SECRET is required in production.");
+  return "archestimator-local-publication-hash-secret";
+}
+
+export function readPublicationAccessCookieSecret() {
+  const configured =
+    process.env.PUBLICATION_ACCESS_COOKIE_SECRET?.trim() ??
+    process.env.ARCHESTIMATOR_PUBLICATION_ACCESS_COOKIE_SECRET?.trim();
+  if (configured) return configured;
+  return readPublicationTokenHashSecret();
+}
+
+export async function hashPublicationPassword(
+  password: string,
+  {
+    saltBytes = nodeRandomBytes,
+  }: {
+    saltBytes?: RandomBytes;
+  } = {},
+) {
+  const salt = saltBytes(16);
+  const hash = (await scryptAsync(password, salt, 32)) as Buffer;
+  return `${passwordHashPrefix}:${toBase64Url(salt)}:${toBase64Url(hash)}`;
+}
+
+export async function verifyPublicationPassword(password: string, passwordHash: string) {
+  const [prefix, salt, expected] = passwordHash.split(":");
+  if (prefix !== passwordHashPrefix || !salt || !expected) return false;
+
+  const actual = (await scryptAsync(password, fromBase64Url(salt), 32)) as Buffer;
+  return constantTimeEqual(actual, fromBase64Url(expected));
+}
+
+export function createPublicPostCsrfToken({
+  randomBytes = nodeRandomBytes,
+}: {
+  randomBytes?: RandomBytes;
+} = {}) {
+  return toBase64Url(randomBytes(16));
+}
+
+export function createPublicationAccessCookieName(token: string) {
+  const suffix = createHash("sha256").update(token).digest("base64url").slice(0, 20);
+  return `ae_publication_access_${suffix}`;
+}
+
+function createPublicationAccessCookiePayload(
+  { token, publicationId, snapshotVersion }: PublicationAccessCookieContext,
+  expiresAt: number,
+): PublicationAccessCookiePayload {
+  return {
+    expiresAt,
+    publicationId,
+    snapshotVersion: String(snapshotVersion),
+    tokenDigest: createHash("sha256").update(token).digest("base64url"),
+  };
+}
+
+function signPublicationAccessCookiePayload(payload: string, secret: string) {
+  return createHmac("sha256", secret).update(payload).digest("base64url");
+}
+
+function parsePublicationAccessCookiePayload(value: string, secret: string) {
+  const [prefix, encodedPayload, signature] = value.split(":");
+  if (prefix !== accessCookiePrefix || !encodedPayload || !signature) return null;
+
+  const expectedSignature = signPublicationAccessCookiePayload(encodedPayload, secret);
+  if (!constantTimeEqual(Buffer.from(signature), Buffer.from(expectedSignature))) return null;
+
+  try {
+    const payload = JSON.parse(Buffer.from(encodedPayload, "base64url").toString("utf8")) as Partial<PublicationAccessCookiePayload>;
+    if (
+      typeof payload.expiresAt !== "number" ||
+      typeof payload.publicationId !== "string" ||
+      typeof payload.snapshotVersion !== "string" ||
+      typeof payload.tokenDigest !== "string"
+    ) {
+      return null;
+    }
+    return payload as PublicationAccessCookiePayload;
+  } catch {
+    return null;
+  }
+}
+
+function readCookieValue(cookieHeader: string, name: string) {
+  return cookieHeader
+    .split(";")
+    .map((part) => part.trim())
+    .find((part) => part.startsWith(`${name}=`))
+    ?.slice(name.length + 1);
+}
+
+export function verifyPublicationAccessCookieValue(
+  value: string | undefined,
+  context: PublicationAccessCookieContext,
+  { now = Date.now(), secret = readPublicationAccessCookieSecret() }: PublicationAccessCookieOptions = {},
+) {
+  if (!value) return false;
+  const payload = parsePublicationAccessCookiePayload(value, secret);
+  if (!payload || payload.expiresAt <= now) return false;
+
+  const expectedPayload = createPublicationAccessCookiePayload(context, payload.expiresAt);
+  return (
+    payload.publicationId === expectedPayload.publicationId &&
+    payload.snapshotVersion === expectedPayload.snapshotVersion &&
+    constantTimeEqual(Buffer.from(payload.tokenDigest), Buffer.from(expectedPayload.tokenDigest))
+  );
+}
+
+export function hasPublicationAccessCookie(
+  cookieHeader: string,
+  context: PublicationAccessCookieContext,
+  options?: PublicationAccessCookieOptions,
+) {
+  const value = readCookieValue(cookieHeader, createPublicationAccessCookieName(context.token));
+  return verifyPublicationAccessCookieValue(value, context, options);
+}
+
+export function createPublicationAccessCookie(
+  context: PublicationAccessCookieContext,
+  {
+    maxAgeSeconds = publicationAccessCookieMaxAgeSeconds,
+    now = Date.now(),
+    secret = readPublicationAccessCookieSecret(),
+  }: PublicationAccessCookieOptions = {},
+) {
+  const expiresAt = now + maxAgeSeconds * 1000;
+  const encodedPayload = Buffer.from(
+    JSON.stringify(createPublicationAccessCookiePayload(context, expiresAt)),
+    "utf8",
+  ).toString("base64url");
+  const signature = signPublicationAccessCookiePayload(encodedPayload, secret);
+  const secureCookie = process.env.NODE_ENV === "production" ? "; Secure" : "";
+  return `${createPublicationAccessCookieName(context.token)}=${accessCookiePrefix}:${encodedPayload}:${signature}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${maxAgeSeconds}${secureCookie}`;
+}
+
+export function assertSameOriginPublicPost(request: Request): { ok: true } | { ok: false; status: number; message: string } {
+  const origin = request.headers.get("origin");
+  const requestOrigin = new URL(request.url).origin;
+  if (!origin || origin !== requestOrigin) {
+    return { ok: false, status: 403, message: "Cross-origin publication requests are blocked." };
+  }
+
+  const csrfHeader = request.headers.get("x-archestimator-csrf");
+  const csrfCookie = readCookieValue(request.headers.get("cookie") ?? "", csrfCookieName);
+  if (!csrfHeader || !csrfCookie || csrfHeader !== csrfCookie) {
+    return { ok: false, status: 403, message: "Publication request verification failed." };
+  }
+
+  return { ok: true };
+}

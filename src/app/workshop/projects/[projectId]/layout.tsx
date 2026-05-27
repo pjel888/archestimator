@@ -5,7 +5,7 @@ import { ProjectTotalHeader } from "@/components/workshop/ProjectTotalHeader";
 import { ProjectWorkspaceHeaderRow } from "@/components/workshop/ProjectWorkspaceHeaderRow";
 import { WorkshopPageShell } from "@/components/workshop/WorkshopPageShell";
 import { sampleProjects } from "@/components/workshop/workshop-sample-projects";
-import { getCurrentWorkspaceProject } from "@/lib/repositories/workspace-repository";
+import { getCurrentWorkspaceProject, getProjectCollaborationSummary, getProjectPublicationSummary } from "@/lib/repositories/workspace-repository";
 
 type ProjectLayoutProps = {
   children: ReactNode;
@@ -15,6 +15,9 @@ type ProjectLayoutProps = {
 export default async function ProjectLayout({ children, params }: ProjectLayoutProps) {
   const { projectId } = await params;
   const { project: liveProject } = await getCurrentWorkspaceProject(projectId);
+  const [collaborationSummary, publicationSummary] = liveProject
+    ? await Promise.all([getProjectCollaborationSummary(projectId), getProjectPublicationSummary(projectId)])
+    : [null, null];
   const sampleProject = sampleProjects.find((item) => item.id === projectId);
   const project = liveProject ?? sampleProject;
   const title = project?.name ?? "Project";
@@ -32,17 +35,17 @@ export default async function ProjectLayout({ children, params }: ProjectLayoutP
       ]}
       centerHeader={<ProjectTotalHeader projectId={projectId} />}
       alignChromeToProjectSidebar
-      contentClassName="py-2 pr-2 pl-0"
-      footer={
-        <>
-          <span>Dashboard + estimates shell</span>
-        </>
-      }
+      contentClassName="pt-0 pb-0 pr-2 pl-0"
     >
-      <div className="flex h-full min-h-0 overflow-hidden rounded-xs border border-hairline bg-white">
+      <div className="flex h-full min-h-0 overflow-hidden bg-white">
         <ProjectMiniSidebar projectId={projectId} />
         <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-canvas">
-          <ProjectWorkspaceHeaderRow projectId={projectId} projectCode={projectCode} />
+          <ProjectWorkspaceHeaderRow
+            projectId={projectId}
+            projectCode={projectCode}
+            collaborationSummary={collaborationSummary}
+            publicationSummary={publicationSummary}
+          />
           <div className="min-h-0 flex-1 overflow-hidden">{children}</div>
         </div>
       </div>
