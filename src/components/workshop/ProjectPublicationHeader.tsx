@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useSyncExternalStore, useTransition } from "react";
+import { useEffect, useState, useSyncExternalStore, useTransition } from "react";
 import { ArrowClockwise, ArrowSquareOut, LinkBreak, LinkSimple, LockSimple, Prohibit, UploadSimple } from "@phosphor-icons/react/dist/ssr";
 
 import { Button } from "@/components/ui/button";
@@ -11,10 +11,11 @@ import {
   revokeProjectPublication,
   rotateProjectPublicationLink,
 } from "@/lib/publication/actions";
-import type { ProjectPublicationStatus, ProjectPublicationSummary } from "@/lib/publication/types";
+import type { ProjectEstimateSheet, ProjectPublicationStatus, ProjectPublicationSummary } from "@/lib/publication/types";
 
 type ProjectPublicationHeaderProps = {
   summary: ProjectPublicationSummary | null;
+  projectEstimateSheets?: ProjectEstimateSheet[];
 };
 
 type PasswordDraft = {
@@ -64,7 +65,7 @@ function readServerOrigin() {
   return "";
 }
 
-export function ProjectPublicationHeader({ summary }: ProjectPublicationHeaderProps) {
+export function ProjectPublicationHeader({ summary, projectEstimateSheets = [] }: ProjectPublicationHeaderProps) {
   const summaryKey = readSummaryKey(summary);
   const [open, setOpen] = useState(false);
   const [actionMessage, setActionMessage] = useState<string | null>(null);
@@ -75,6 +76,22 @@ export function ProjectPublicationHeader({ summary }: ProjectPublicationHeaderPr
     summaryKey,
   }));
   const [isPending, startTransition] = useTransition();
+
+  // P1: selected sheets for the Sheets tab picker (defaults to all when estimates provided)
+  const [selectedEstimateIds, setSelectedEstimateIds] = useState<string[]>([]);
+
+  // P1: 3-tab navigation inside the shared link modal (Link / Sheets / Access)
+  const [activeTab, setActiveTab] = useState<"link" | "sheets" | "access">("link");
+
+  // Default picker to all sheets for the project (so republish keeps prior selection by default; user can adjust in Sheets tab).
+  // Resets when project/summaryKey or the available sheets change.
+  useEffect(() => {
+    if (projectEstimateSheets.length > 0) {
+      setSelectedEstimateIds(projectEstimateSheets.map((e) => e.id));
+    } else {
+      setSelectedEstimateIds([]);
+    }
+  }, [projectEstimateSheets, summaryKey]);
   const browserOrigin = useSyncExternalStore(subscribeToOriginChange, readBrowserOrigin, readServerOrigin);
   const hasLocalResult = localResult?.summaryKey === summaryKey;
   const hasPasswordDraft = passwordDraft.summaryKey === summaryKey;
@@ -92,14 +109,14 @@ export function ProjectPublicationHeader({ summary }: ProjectPublicationHeaderPr
 
   async function copyClientLink() {
     if (!clientLinkPath) {
-      setActionMessage("Create a public link first.");
+      setActionMessage("Create a shared link first.");
       return;
     }
 
     try {
       if (!navigator.clipboard?.writeText) throw new Error("Clipboard API unavailable.");
       await navigator.clipboard.writeText(absoluteClientLink);
-      setActionMessage("Public link copied.");
+      setActionMessage("Shared link copied.");
     } catch {
       setActionMessage("Copy unavailable. Select the link to copy it.");
     }
@@ -107,7 +124,7 @@ export function ProjectPublicationHeader({ summary }: ProjectPublicationHeaderPr
 
   function openClientLink() {
     if (!clientLinkPath || typeof window === "undefined") {
-      setActionMessage("Create a public link first.");
+      setActionMessage("Create a shared link first.");
       return;
     }
 
@@ -139,33 +156,42 @@ export function ProjectPublicationHeader({ summary }: ProjectPublicationHeaderPr
     });
   }
 
+  const hasSelectedEstimates = selectedEstimateIds.length > 0;
+  const generateDisabled = !canManagePublication || !summary?.projectId || isPending || passwordRequiredForSubmit || !hasSelectedEstimates;
+
   return (
     <>
-      <div className="flex h-full items-center justify-end gap-1 px-1" aria-label="Public client link">
+      <div className="flex h-full items-center justify-end gap-1 px-1" aria-label="Shared link">
         <Button
           type="button"
           variant="ghost"
           size="sm"
           className="min-h-6 rounded-xs px-2 text-secondary hover:bg-surfaceMuted hover:text-ink"
-          aria-label="Open public client link"
-          onClick={() => setOpen(true)}
+          aria-label="Open shared link"
+          onClick={() => {
+            setActiveTab("link");
+            setOpen(true);
+          }}
         >
           <UploadSimple size={12} weight="regular" aria-hidden="true" />
-          Public link
+          Shared link
         </Button>
       </div>
 
       <Modal
         open={open}
-        title="Public client link"
+        title="Shared link"
         description="View-only project page"
-        onOpenChange={setOpen}
+        onOpenChange={(next) => {
+          if (!next) setActiveTab("link");
+          setOpen(next);
+        }}
         className="max-w-xl"
         bodyClassName="p-0"
       >
-        <div className="grid min-h-[320px] grid-cols-[160px_minmax(0,1fr)] divide-x divide-hairline">
+        <div className="grid min-h-[340px] grid-cols-[160px_minmax(0,1fr)] divide-x divide-hairline">
           <aside className="bg-surfaceMuted p-3">
-            <p className="text-[9px] font-medium uppercase leading-3 text-tertiary">Public link</p>
+            <p className="text-[9px] font-medium uppercase leading-3 text-tertiary">Shared link</p>
             <p className="mt-1 text-[12px] font-medium leading-4 text-ink">{statusLabel}</p>
             <p className="mt-0.5 text-[9px] leading-3 text-tertiary">
               {summary?.selectedEstimateCount ?? 0} estimates, version {summary?.snapshotVersion ?? 0}
@@ -179,97 +205,144 @@ export function ProjectPublicationHeader({ summary }: ProjectPublicationHeaderPr
               <p>Expires: {formatDate(summary?.expiresAt ?? null)}</p>
             </div>
           </aside>
-          <div className="min-w-0 divide-y divide-hairline">
-            <section className="p-3">
-              <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0 flex flex-col divide-y divide-hairline">
+            {/* P1: 3-tab bar (Link / Sheets / Access) - compact 10px per design system */}
+            <div className="flex border-b border-hairline bg-white px-1 text-[10px] font-medium" role="tablist" aria-label="Shared link settings">
+              {(["link", "sheets", "access"] as const).map((tab) => {
+                const label = tab === "link" ? "Link" : tab === "sheets" ? "Sheets" : "Access";
+                const isActive = activeTab === tab;
+                return (
+                  <button
+                    key={tab}
+                    type="button"
+                    role="tab"
+                    aria-selected={isActive}
+                    aria-controls={`pub-tab-${tab}`}
+                    className={`min-h-7 flex-1 rounded-xs px-2 py-1 transition-colors ${isActive ? "border-b-2 border-ink text-ink" : "text-tertiary hover:text-secondary hover:bg-surfaceMuted/60"}`}
+                    onClick={() => setActiveTab(tab)}
+                  >
+                    {label}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Tab content */}
+            <div className="flex-1 overflow-auto p-3" id={`pub-tab-${activeTab}`} role="tabpanel">
+              {activeTab === "link" && (
                 <div>
-                  <h3 className="text-[11px] font-medium leading-4 text-ink">Public link</h3>
-                  <p className="text-[9px] leading-3 text-tertiary">Anyone with this link can view this project page.</p>
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <h3 className="text-[11px] font-medium leading-4 text-ink">Shared link</h3>
+                      <p className="text-[9px] leading-3 text-tertiary">Anyone with this link can view this project page.</p>
+                    </div>
+                    <span className="rounded-xs bg-surfaceMuted px-1.5 py-0.5 text-[8px] font-medium uppercase leading-[10px] text-tertiary">
+                      {passwordStateLabel}
+                    </span>
+                  </div>
+                  <div className="mt-2 grid min-w-0 grid-cols-[minmax(0,1fr)_auto_auto] gap-1">
+                    <label className="sr-only" htmlFor="project-publication-client-link">
+                      Shared link
+                    </label>
+                    <input
+                      id="project-publication-client-link"
+                      className="min-h-7 min-w-0 rounded-xs border border-hairline bg-white px-2 text-[10px] leading-3 text-secondary outline-none placeholder:text-tertiary focus:border-focus"
+                      aria-label="Shared link"
+                      readOnly
+                      placeholder="Create a shared link"
+                      value={absoluteClientLink}
+                      onFocus={(event) => event.currentTarget.select()}
+                    />
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="min-h-7 rounded-xs px-2 text-[10px]"
+                      aria-label="Open shared link"
+                      disabled={!clientLinkPath}
+                      onClick={openClientLink}
+                    >
+                      <ArrowSquareOut size={11} aria-hidden="true" />
+                      Open
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="min-h-7 rounded-xs px-2 text-[10px]"
+                      aria-label="Copy shared link"
+                      disabled={!clientLinkPath}
+                      onClick={() => void copyClientLink()}
+                    >
+                      <LinkSimple size={11} aria-hidden="true" />
+                      Copy
+                    </Button>
+                  </div>
                 </div>
-                <span className="rounded-xs bg-surfaceMuted px-1.5 py-0.5 text-[8px] font-medium uppercase leading-[10px] text-tertiary">
-                  {passwordStateLabel}
-                </span>
-              </div>
-              <div className="mt-2 grid min-w-0 grid-cols-[minmax(0,1fr)_auto_auto] gap-1">
-                <label className="sr-only" htmlFor="project-publication-client-link">
-                  Public link
-                </label>
-                <input
-                  id="project-publication-client-link"
-                  className="min-h-7 min-w-0 rounded-xs border border-hairline bg-white px-2 text-[10px] leading-3 text-secondary outline-none placeholder:text-tertiary focus:border-focus"
-                  aria-label="Public link"
-                  readOnly
-                  placeholder="Create a public link"
-                  value={absoluteClientLink}
-                  onFocus={(event) => event.currentTarget.select()}
-                />
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  className="min-h-7 rounded-xs px-2 text-[10px]"
-                  aria-label="Open public link"
-                  disabled={!clientLinkPath}
-                  onClick={openClientLink}
-                >
-                  <ArrowSquareOut size={11} aria-hidden="true" />
-                  Open
-                </Button>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  className="min-h-7 rounded-xs px-2 text-[10px]"
-                  aria-label="Copy public link"
-                  disabled={!clientLinkPath}
-                  onClick={() => void copyClientLink()}
-                >
-                  <LinkSimple size={11} aria-hidden="true" />
-                  Copy
-                </Button>
-              </div>
-            </section>
-            <section className="p-3">
-              <h3 className="text-[10px] font-medium leading-3 text-ink">Access</h3>
-              <label className="mt-2 flex min-h-7 items-center gap-2 rounded-xs border border-hairline bg-white px-2 text-[10px] leading-3 text-secondary">
-                <input
-                  type="checkbox"
-                  className="size-3 accent-ink"
-                  checked={requirePassword}
-                  onChange={(event) =>
-                    setPasswordDraft({
-                      password: event.currentTarget.checked ? password : "",
-                      requirePassword: event.currentTarget.checked,
-                      summaryKey,
-                    })
-                  }
-                />
-                <LockSimple size={11} aria-hidden="true" />
-                Require password
-              </label>
-              {requirePassword ? (
-                <div className="mt-2">
-                  <label className="sr-only" htmlFor="project-publication-password">
-                    Link password
-                  </label>
-                  <input
-                    id="project-publication-password"
-                    className="min-h-7 w-full rounded-xs border border-hairline bg-white px-2 text-[10px] leading-3 text-secondary outline-none placeholder:text-tertiary focus:border-focus"
-                    aria-label="Link password"
-                    type="password"
-                    placeholder={summary?.passwordRequired ? "Enter a new password to change it" : "Set a link password"}
-                    value={password}
-                    onChange={(event) =>
-                      setPasswordDraft({
-                        password: event.currentTarget.value,
-                        requirePassword: true,
-                        summaryKey,
-                      })
-                    }
+              )}
+
+              {activeTab === "sheets" && (
+                <div>
+                  <h3 className="text-[10px] font-medium leading-3 text-ink mb-1">Estimate sheets to include</h3>
+                  <SheetPickerList
+                    estimates={projectEstimateSheets}
+                    selectedIds={selectedEstimateIds}
+                    onChange={setSelectedEstimateIds}
+                    aria-label="Select estimate sheets to include in shared link"
+                    disabled={isPending}
                   />
+                  {!hasSelectedEstimates && projectEstimateSheets.length > 0 && (
+                    <p className="mt-1 text-[9px] text-tertiary" role="status">0 estimates selected — generate is disabled</p>
+                  )}
                 </div>
-              ) : null}
-            </section>
+              )}
+
+              {activeTab === "access" && (
+                <div>
+                  <h3 className="text-[10px] font-medium leading-3 text-ink">Access</h3>
+                  <label className="mt-2 flex min-h-7 items-center gap-2 rounded-xs border border-hairline bg-white px-2 text-[10px] leading-3 text-secondary">
+                    <input
+                      type="checkbox"
+                      className="size-3 accent-ink"
+                      checked={requirePassword}
+                      onChange={(event) =>
+                        setPasswordDraft({
+                          password: event.currentTarget.checked ? password : "",
+                          requirePassword: event.currentTarget.checked,
+                          summaryKey,
+                        })
+                      }
+                    />
+                    <LockSimple size={11} aria-hidden="true" />
+                    Require password
+                  </label>
+                  {requirePassword ? (
+                    <div className="mt-2">
+                      <label className="sr-only" htmlFor="project-publication-password">
+                        Link password
+                      </label>
+                      <input
+                        id="project-publication-password"
+                        className="min-h-7 w-full rounded-xs border border-hairline bg-white px-2 text-[10px] leading-3 text-secondary outline-none placeholder:text-tertiary focus:border-focus"
+                        aria-label="Link password"
+                        type="password"
+                        placeholder={summary?.passwordRequired ? "Enter a new password to change it" : "Set a link password"}
+                        value={password}
+                        onChange={(event) =>
+                          setPasswordDraft({
+                            password: event.currentTarget.value,
+                            requirePassword: true,
+                            summaryKey,
+                          })
+                        }
+                      />
+                    </div>
+                  ) : null}
+                </div>
+              )}
+            </div>
+
+            {/* Link controls — always visible below tabs so Generate can be disabled from Sheets tab state */}
             <section className="p-3">
               <h3 className="text-[10px] font-medium leading-3 text-ink">Link controls</h3>
               <div className="mt-2 flex flex-wrap gap-1.5">
@@ -278,19 +351,21 @@ export function ProjectPublicationHeader({ summary }: ProjectPublicationHeaderPr
                   variant="secondary"
                   size="sm"
                   className="min-h-7 rounded-xs px-2 text-[10px]"
-                  aria-label={hasLiveClientLink ? "Update public page" : "Generate public link"}
-                  disabled={!canManagePublication || !summary?.projectId || isPending || passwordRequiredForSubmit}
+                  aria-label={hasLiveClientLink ? "Update shared page" : "Generate shared link"}
+                  disabled={generateDisabled}
                   onClick={() =>
                     summary?.projectId
                       ? runPublicationAction(() =>
                           hasLiveClientLink
                             ? republishProjectPublication({
                                 projectId: summary.projectId,
+                                selectedEstimateIds,
                                 password: requirePassword && password.trim() ? password.trim() : undefined,
                                 clearPassword: !requirePassword,
                               })
                             : createProjectPublication({
                                 projectId: summary.projectId,
+                                selectedEstimateIds,
                                 password: requirePassword ? password.trim() : undefined,
                               }),
                         )
@@ -298,14 +373,14 @@ export function ProjectPublicationHeader({ summary }: ProjectPublicationHeaderPr
                   }
                 >
                   <ArrowClockwise size={11} aria-hidden="true" />
-                  {hasLiveClientLink ? "Update public page" : "Generate public link"}
+                  {hasLiveClientLink ? "Update shared page" : "Generate shared link"}
                 </Button>
                 <Button
                   type="button"
                   variant="ghost"
                   size="sm"
                   className="min-h-7 rounded-xs px-2 text-[10px]"
-                  aria-label="Create new public link"
+                  aria-label="Create new shared link"
                   disabled={!canManagePublication || !summary?.projectId || !hasLiveClientLink || isPending || passwordRequiredForSubmit}
                   onClick={() =>
                     summary?.projectId
@@ -327,7 +402,7 @@ export function ProjectPublicationHeader({ summary }: ProjectPublicationHeaderPr
                   variant="danger"
                   size="sm"
                   className="min-h-7 rounded-xs px-2 text-[10px]"
-                  aria-label="Turn off public link"
+                  aria-label="Turn off shared link"
                   disabled={!canManagePublication || !summary?.projectId || !hasLiveClientLink || isPending}
                   onClick={() =>
                     summary?.projectId ? runPublicationAction(() => revokeProjectPublication({ projectId: summary.projectId })) : undefined
@@ -338,6 +413,7 @@ export function ProjectPublicationHeader({ summary }: ProjectPublicationHeaderPr
                 </Button>
               </div>
             </section>
+
             {actionMessage ? (
               <section className="p-3">
                 <p className="rounded-xs bg-surfaceMuted px-2 py-1.5 text-[9px] leading-3 text-secondary" role="status">
@@ -349,5 +425,102 @@ export function ProjectPublicationHeader({ summary }: ProjectPublicationHeaderPr
         </div>
       </Modal>
     </>
+  );
+}
+
+/* P1: SheetPickerList — compact, a11y, keyboard-friendly picker for estimate sheets.
+ * Used exclusively inside the "Sheets" tab of the publication modal.
+ * Design: SF Pro via parent, 10-12px text, rounded-xs (3px), regular Phosphor if needed, native checkboxes for max keyboard.
+ */
+export type SheetPickerListProps = {
+  estimates: ProjectEstimateSheet[];
+  selectedIds: string[];
+  onChange: (ids: string[]) => void;
+  disabled?: boolean;
+  "aria-label"?: string;
+};
+
+export function SheetPickerList({ estimates, selectedIds, onChange, disabled, "aria-label": ariaLabel = "Select estimate sheets to include in shared link" }: SheetPickerListProps) {
+  const selectedSet = new Set(selectedIds);
+  const allIds = estimates.map((e) => e.id);
+  const allSelected = estimates.length > 0 && selectedIds.length === estimates.length;
+
+  function toggle(id: string) {
+    if (disabled) return;
+    const next = selectedSet.has(id) ? selectedIds.filter((x) => x !== id) : [...selectedIds, id];
+    onChange(next);
+  }
+
+  function selectAll() {
+    if (disabled) return;
+    onChange(allIds);
+  }
+
+  function clearAll() {
+    if (disabled) return;
+    onChange([]);
+  }
+
+  if (estimates.length === 0) {
+    return (
+      <div className="rounded-xs border border-dashed border-divider bg-surfaceMuted/60 p-3 text-center text-[10px] text-tertiary">
+        No estimate sheets in this project.
+      </div>
+    );
+  }
+
+  return (
+    <div aria-label={ariaLabel} className="text-[10px]">
+      <div className="mb-1 flex items-center gap-2 text-[9px]">
+        <button
+          type="button"
+          onClick={selectAll}
+          disabled={disabled || allSelected}
+          className="rounded-xs px-1.5 py-0.5 text-secondary hover:text-ink disabled:opacity-50"
+        >
+          Select all
+        </button>
+        <button
+          type="button"
+          onClick={clearAll}
+          disabled={disabled || selectedIds.length === 0}
+          className="rounded-xs px-1.5 py-0.5 text-secondary hover:text-ink disabled:opacity-50"
+        >
+          Clear
+        </button>
+        <span className="ml-auto text-tertiary tabular-nums">
+          {selectedIds.length} / {estimates.length} selected
+        </span>
+      </div>
+
+      <div className="max-h-40 overflow-auto rounded-xs border border-hairline bg-white p-1 text-[10px] leading-4">
+        {estimates.map((est) => {
+          const checked = selectedSet.has(est.id);
+          const label = est.sheetCode ? `${est.sheetCode} — ${est.name}` : est.name;
+          return (
+            <label
+              key={est.id}
+              className="flex cursor-pointer items-center gap-1.5 rounded-xs px-1 py-0.5 hover:bg-surfaceMuted/70"
+            >
+              <input
+                type="checkbox"
+                className="size-3 accent-ink"
+                checked={checked}
+                disabled={disabled}
+                onChange={() => toggle(est.id)}
+                aria-label={label}
+              />
+              <span className="truncate">{label}</span>
+            </label>
+          );
+        })}
+      </div>
+
+      {selectedIds.length === 0 && (
+        <p className="mt-1 text-[9px] text-tertiary" role="status">
+          0 estimates selected
+        </p>
+      )}
+    </div>
   );
 }

@@ -944,6 +944,31 @@ export async function listProjectEstimates(projectId: string): Promise<ProjectEs
   return { workspace, project, estimates: normalizedEstimates, firstNodeByEstimateId, nodeCountByEstimateId, rowCountByEstimateId, totalCostByEstimateId };
 }
 
+/**
+ * Lightweight list of estimate sheets for a project (id, name, sheetCode).
+ * Used by ProjectPublicationHeader (Sheets tab picker) for selection without loading heavy node/row aggregates.
+ * Additive for Shared Link Overhaul V2 (P1).
+ */
+export async function listProjectEstimateSheets(projectId: string): Promise<Array<{ id: string; name: string; sheetCode: string | null }>> {
+  const { project } = await getCurrentWorkspaceProject(projectId);
+  if (!project) return [];
+
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase
+    .from("estimates")
+    .select("id, name, sheet_code")
+    .eq("project_id", project.id)
+    .order("sheet_code", { ascending: true });
+
+  if (error) throw error;
+
+  return (data ?? []).map((estimate) => ({
+    id: estimate.id,
+    name: estimate.name,
+    sheetCode: estimate.sheet_code ?? null,
+  }));
+}
+
 type EstimateNodeKind = Tables<"estimate_nodes">["kind"];
 type EstimateNodeRow = Tables<"estimate_nodes">;
 type EstimateRowItemRow = Tables<"estimate_row_items">;
