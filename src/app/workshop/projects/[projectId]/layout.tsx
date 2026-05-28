@@ -5,7 +5,12 @@ import { ProjectTotalHeader } from "@/components/workshop/ProjectTotalHeader";
 import { ProjectWorkspaceHeaderRow } from "@/components/workshop/ProjectWorkspaceHeaderRow";
 import { WorkshopPageShell } from "@/components/workshop/WorkshopPageShell";
 import { sampleProjects } from "@/components/workshop/workshop-sample-projects";
-import { getCurrentWorkspaceProject, getProjectCollaborationSummary, getProjectPublicationSummary } from "@/lib/repositories/workspace-repository";
+import {
+  getCurrentWorkspaceProject,
+  getProjectCollaborationSummary,
+  getProjectPublicationSummary,
+  listProjectEstimateSheets,
+} from "@/lib/repositories/workspace-repository";
 
 type ProjectLayoutProps = {
   children: ReactNode;
@@ -15,9 +20,13 @@ type ProjectLayoutProps = {
 export default async function ProjectLayout({ children, params }: ProjectLayoutProps) {
   const { projectId } = await params;
   const { project: liveProject } = await getCurrentWorkspaceProject(projectId);
-  const [collaborationSummary, publicationSummary] = liveProject
-    ? await Promise.all([getProjectCollaborationSummary(projectId), getProjectPublicationSummary(projectId)])
-    : [null, null];
+  const [collaborationSummary, publicationSummary, projectEstimateSheets] = liveProject
+    ? await Promise.all([
+        getProjectCollaborationSummary(projectId),
+        getProjectPublicationSummary(projectId),
+        listProjectEstimateSheets(projectId),
+      ])
+    : [null, null, []];
   const sampleProject = sampleProjects.find((item) => item.id === projectId);
   const project = liveProject ?? sampleProject;
   const title = project?.name ?? "Project";
@@ -45,6 +54,7 @@ export default async function ProjectLayout({ children, params }: ProjectLayoutP
             projectCode={projectCode}
             collaborationSummary={collaborationSummary}
             publicationSummary={publicationSummary}
+            projectEstimateSheets={projectEstimateSheets}
           />
           <div className="min-h-0 flex-1 overflow-hidden">{children}</div>
         </div>

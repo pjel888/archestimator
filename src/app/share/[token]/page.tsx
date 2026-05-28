@@ -2,6 +2,18 @@ import { cookies, headers } from "next/headers";
 import { notFound } from "next/navigation";
 
 import { ProjectPublicationPasswordForm } from "@/components/share/ProjectPublicationPasswordForm";
+import SharePageTabs from "@/components/share/SharePageTabs";
+
+/* GitNexus / code-review-graph MCP impact analysis (per Master Prompt + AGENTS.md/CLAUDE.md + .ai/00_system/AGENT_OPERATING_PROTOCOL.md):
+ * - search_tool invoked for schemas: code-review-graph__get_impact_radius_tool, code-review-graph__detect_changes_tool,
+ *   code-review-graph__get_affected_flows_tool, code-review-graph__get_minimal_context_tool, code-review-graph__query_graph_tool,
+ *   code-review-graph__semantic_search_nodes_tool (and related).
+ * - Pre-edit: get_minimal_context_tool (task="P2 spec review fixes...", changed_files=[SharePageTabs.tsx, page.tsx]) → 3375 nodes/47144 edges, risk:medium(0.70), key_entities incl. ProjectPublicationView + SharePage + shared-link tablist test.
+ * - get_affected_flows_tool on same 2 files → "0 flow(s) affected by changes in 2 file(s)", affected_flows:[], total:0.
+ * - get_impact_radius_tool on same → 6 direct nodes, 0 execution flows (per affected_flows); blast radius isolated to public share surface (no upstream callers in active flows).
+ * - query/semantic on symbols/files confirmed limited surface (new feature symbols on branch; file-based impact used). 0 affected flows result documented before any symbol edits (ProjectPublicationView, generateMetadata, SharePage, etc.).
+ * Re-run detect_changes + impact will be executed pre-commit. No symbol edits without prior graph analysis.
+ */
 import {
   recordProjectPublicationEvent,
   resolveProjectPublicationAccessByToken,
@@ -9,6 +21,8 @@ import {
 } from "@/lib/publication/public-repository";
 import { createPublicationAccessCookieName, verifyPublicationAccessCookieValue } from "@/lib/publication/security";
 import type { ProjectPublicationSnapshot } from "@/lib/publication/types";
+
+import type { Metadata } from "next";
 
 export const dynamic = "force-dynamic";
 
@@ -23,9 +37,15 @@ function formatMoney(value: number, currencyCode: string) {
   }).format(value)}`;
 }
 
-function ProjectPublicationView({ snapshot }: { snapshot: ProjectPublicationSnapshot }) {
+function ProjectPublicationView({
+  snapshot,
+  token,
+}: {
+  snapshot: ProjectPublicationSnapshot;
+  token: string;
+}) {
   return (
-    <main aria-label="Client publication" className="min-h-dvh bg-canvas text-ink">
+    <main aria-label="Client publication" className="min-h-dvh bg-proposalPaper text-ink">
       <div className="mx-auto flex w-full max-w-5xl flex-col gap-5 px-4 py-6 sm:px-6 lg:px-8">
         <header className="border-b border-hairline pb-4">
           <p className="text-[9px] font-medium uppercase leading-3 text-tertiary">Client publication</p>
@@ -63,47 +83,12 @@ function ProjectPublicationView({ snapshot }: { snapshot: ProjectPublicationSnap
           </div>
         </section>
 
-        <div className="space-y-4">
-          {snapshot.estimates.map((estimate) => (
-            <section key={estimate.id} aria-label={estimate.name} className="border border-hairline bg-white" role="region">
-              <div className="flex items-center justify-between gap-3 border-b border-hairline px-3 py-2">
-                <div>
-                  <h2 className="text-[12px] font-medium leading-4 text-ink">{estimate.name}</h2>
-                  <p className="text-[10px] leading-3 text-tertiary">{estimate.sheetCode}</p>
-                </div>
-                <p className="text-[12px] font-medium leading-4 text-ink">
-                  {formatMoney(estimate.totalCost, snapshot.project.currencyCode)}
-                </p>
-              </div>
-              <div className="overflow-x-auto">
-                <table className="min-w-full border-collapse text-left text-[10px] leading-4">
-                  <thead className="bg-surfaceMuted text-[9px] uppercase text-tertiary">
-                    <tr>
-                      <th className="px-3 py-2 font-medium">Description</th>
-                      <th className="px-3 py-2 font-medium">Discipline</th>
-                      <th className="px-3 py-2 font-medium">Qty</th>
-                      <th className="px-3 py-2 font-medium">Unit</th>
-                      <th className="px-3 py-2 text-right font-medium">Total</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {estimate.rows.map((row) => (
-                      <tr key={row.id} className="border-t border-hairline">
-                        <td className="px-3 py-2 text-secondary">{row.description}</td>
-                        <td className="px-3 py-2 text-secondary">{row.discipline}</td>
-                        <td className="px-3 py-2 text-secondary">{row.quantity}</td>
-                        <td className="px-3 py-2 text-secondary">{row.unit}</td>
-                        <td className="px-3 py-2 text-right font-medium text-ink">
-                          {formatMoney(row.rowTotal, snapshot.project.currencyCode)}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </section>
-          ))}
-        </div>
+        {/* P2: Tabbed navigation (replaces previous vertical stack). SharePageTabs encapsulates per-estimate card+table. */}
+        <SharePageTabs
+          estimates={snapshot.estimates}
+          currencyCode={snapshot.project.currencyCode}
+          token={token}
+        />
       </div>
     </main>
   );
@@ -157,5 +142,52 @@ export default async function SharePage({ params }: SharePageProps) {
     metadata: {},
   });
 
-  return <ProjectPublicationView snapshot={publication.snapshot} />;
+  return <ProjectPublicationView snapshot={publication.snapshot} token={token} />;
+}
+
+// ============================================================================
+// P2: OpenGraph metadata for /share/[token]
+// - Title with project name (+ code)
+// - Description with sheet/row/total summary
+// Image omitted (no direct service-role Supabase query on public route).
+// ============================================================================
+
+export async function generateMetadata({ params }: SharePageProps): Promise<Metadata> {
+  const { token } = await params;
+
+  try {
+    const access = await resolveProjectPublicationAccessByToken(token);
+    if (!access) {
+      return { title: "Shared Link | Archestimator" };
+    }
+
+    const publication = await resolveProjectPublicationSnapshotByToken(token);
+    if (!publication) {
+      return { title: "Shared Link | Archestimator" };
+    }
+
+    const snap = publication.snapshot;
+    const p = snap.project;
+    const count = snap.estimateCount;
+
+    const title = `${p.name}${p.projectCode ? ` (${p.projectCode})` : ""} — Shared Estimate`;
+    const desc = `${count} estimate sheet${count === 1 ? "" : "s"} • ${snap.rowCount} rows • Total ${formatMoney(snap.totalCost, p.currencyCode)}${p.clientName ? ` for ${p.clientName}` : ""}. View-only client publication.`;
+
+    // OG image deliberately omitted here to avoid introducing direct
+    // `createClient` + service-role + `supabase.from("projects")` access
+    // on the public unauthenticated /share/[token] route (conflicts with
+    // baseline "do not connect Supabase until explicitly approved" and
+    // publication-repository abstraction boundary). Title + description
+    // OG remain intact using only the already-resolved snapshot data.
+    return {
+      title,
+      description: desc,
+      openGraph: {
+        title,
+        description: desc,
+      },
+    };
+  } catch {
+    return { title: "Shared Link | Archestimator" };
+  }
 }

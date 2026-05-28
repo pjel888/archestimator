@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import nextConfig from "../../next.config";
 
-describe("project publication security headers", () => {
+describe("project publication security headers (Shared Link V2)", () => {
   it("applies the public CSP header policy to client publication pages", async () => {
     const headers = await nextConfig.headers?.();
     const shareHeaders = headers?.find((entry) => entry.source === "/share/:path*");

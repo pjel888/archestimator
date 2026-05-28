@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { buildProjectPublicationSnapshot } from "@/lib/publication/snapshot";
 
-describe("project publication snapshot builder", () => {
+describe("project publication snapshot builder (Shared Link V2)", () => {
   it("returns a client-safe immutable DTO with computed totals and no internal supplier/library metadata", () => {
     const snapshot = buildProjectPublicationSnapshot({
       generatedAt: "2026-05-27T00:00:00.000Z",

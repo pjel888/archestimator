@@ -126,7 +126,7 @@ async function assertProjectPublicationManager(projectId: string): Promise<Publi
       workspaceRoleRank(workspaceMembership.data?.role),
       roleRank[projectMembership.data?.role ?? "viewer"],
     );
-    if (actorRank < managerRank) throw new Error("Only project owners and admins can publish client links.");
+    if (actorRank < managerRank) throw new Error("Only project owners and admins can publish shared links.");
   }
 
   return {
@@ -271,23 +271,30 @@ export async function createProjectPublication({
 
   if (error) throw error;
   revalidatePublicationRoutes(context.project.id, previousClientLinkPath, clientLinkPath);
-  return { ok: true, message: "Public link ready.", clientLinkPath };
+  return { ok: true, message: "Shared link ready.", clientLinkPath };
 }
 
 export async function republishProjectPublication({
   projectId,
+  selectedEstimateIds,
   password,
   clearPassword = false,
 }: {
   projectId: string;
+  selectedEstimateIds?: string[];
   password?: string;
   clearPassword?: boolean;
 }): Promise<PublicationActionResult> {
   const context = await assertProjectPublicationManager(projectId);
   const latest = await readLatestProjectPublication(context);
-  if (!latest) return createProjectPublication({ projectId });
+  const estimateIds = normalizeSelectedEstimateIds(selectedEstimateIds);
 
-  const snapshot = await buildSnapshotForProject(context, latest.selected_estimate_ids);
+  if (!latest) {
+    return createProjectPublication({ projectId, selectedEstimateIds: estimateIds.length ? estimateIds : undefined, password });
+  }
+
+  const idsToUse = estimateIds.length ? estimateIds : latest.selected_estimate_ids;
+  const snapshot = await buildSnapshotForProject(context, idsToUse);
   const clientLinkPath = readClientLinkPath(latest);
   const passwordUpdate =
     clearPassword
@@ -299,6 +306,7 @@ export async function republishProjectPublication({
     .from("project_publications")
     .update({
       snapshot_json: snapshot,
+      selected_estimate_ids: idsToUse,
       snapshot_version: latest.snapshot_version + 1,
       published_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
@@ -308,7 +316,7 @@ export async function republishProjectPublication({
 
   if (error) throw error;
   revalidatePublicationRoutes(context.project.id, clientLinkPath);
-  return { ok: true, message: "Public page updated.", clientLinkPath };
+  return { ok: true, message: "Shared page updated.", clientLinkPath };
 }
 
 export async function rotateProjectPublicationLink({
@@ -360,7 +368,7 @@ export async function rotateProjectPublicationLink({
 
   if (error) throw error;
   revalidatePublicationRoutes(context.project.id, previousClientLinkPath, clientLinkPath);
-  return { ok: true, message: "New public link ready.", clientLinkPath };
+  return { ok: true, message: "New shared link ready.", clientLinkPath };
 }
 
 export async function revokeProjectPublication({ projectId }: { projectId: string }): Promise<PublicationActionResult> {
@@ -379,5 +387,5 @@ export async function revokeProjectPublication({ projectId }: { projectId: strin
 
   if (error) throw error;
   revalidatePublicationRoutes(context.project.id, previousClientLinkPath);
-  return { ok: true, message: "Public link turned off.", clientLinkPath: null };
+  return { ok: true, message: "Shared link turned off.", clientLinkPath: null };
 }

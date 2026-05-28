@@ -35,7 +35,7 @@ function params(token = "client-token") {
   return { params: Promise.resolve({ token }) };
 }
 
-describe("public project publication route handlers", () => {
+describe("public project publication route handlers (Shared Link V2 audit)", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.resolveProjectPublicationAccessByToken.mockResolvedValue({
