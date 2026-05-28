@@ -9,16 +9,23 @@ import { ProjectPublicationHeader } from "./ProjectPublicationHeader";
 import { ProjectTeamspaceHeader } from "./ProjectTeamspaceHeader";
 import { ProjectWorkspaceProjectCode } from "./ProjectWorkspaceProjectCode";
 import type { ProjectCollaborationSummary } from "@/lib/collaboration/types";
-import type { ProjectPublicationSummary } from "@/lib/publication/types";
+import type { ProjectEstimateSheet, ProjectPublicationSummary } from "@/lib/publication/types";
 
 type ProjectWorkspaceHeaderRowProps = {
   projectId: string;
   projectCode: string;
   collaborationSummary: ProjectCollaborationSummary | null;
   publicationSummary?: ProjectPublicationSummary | null;
+  projectEstimateSheets?: ProjectEstimateSheet[];
 };
 
-export function ProjectWorkspaceHeaderRow({ projectId, projectCode, collaborationSummary, publicationSummary = null }: ProjectWorkspaceHeaderRowProps) {
+export function ProjectWorkspaceHeaderRow({
+  projectId,
+  projectCode,
+  collaborationSummary,
+  publicationSummary = null,
+  projectEstimateSheets = [],
+}: ProjectWorkspaceHeaderRowProps) {
   const pathname = usePathname();
   const isEstimateSheetRoute = Boolean(pathname?.startsWith(`/workshop/projects/${projectId}/estimates/`));
   const projectCodeHeader = isEstimateSheetRoute ? null : (
@@ -37,7 +44,7 @@ export function ProjectWorkspaceHeaderRow({ projectId, projectCode, collaboratio
       centerDataColumn="metadata-strip"
       rightContent={
         <div className="flex h-full min-w-0 items-center justify-end">
-          <ProjectPublicationHeader summary={publicationSummary} />
+          <ProjectPublicationHeader summary={publicationSummary} projectEstimateSheets={projectEstimateSheets} />
           <span className="h-4 w-px bg-hairline" aria-hidden="true" />
           <ProjectTeamspaceHeader summary={collaborationSummary} />
         </div>

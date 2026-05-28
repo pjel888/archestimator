@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 const migration = readFileSync("supabase/migrations/20260527120000_project_client_publication.sql", "utf8");
 const types = readFileSync("src/lib/supabase/types.ts", "utf8");
 
-describe("project client publication schema", () => {
+describe("project client publication schema (Shared Link V2)", () => {
   it("adds token-hashed immutable client publications with snapshots, events, and manager-only RLS", () => {
     expect(migration).toContain("create type public.project_publication_status");
     expect(migration).toContain("create type public.project_publication_event_type");

@@ -14,7 +14,7 @@ import {
   verifyPublicationPassword,
 } from "@/lib/publication/security";
 
-describe("project publication security helpers", () => {
+describe("project publication security helpers (Shared Link V2)", () => {
   it("stores only keyed token hashes while retaining encrypted owner recopy", () => {
     const token = createPublicationToken({ bytes: 24, randomBytes: () => Buffer.alloc(24, 7) });
     const hash = hashPublicationToken(token, "server-side-secret");
