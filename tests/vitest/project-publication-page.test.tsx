@@ -30,7 +30,7 @@ import SharePage from "@/app/share/[token]/page";
 
 const passwordFormSource = readFileSync("src/components/share/ProjectPublicationPasswordForm.tsx", "utf8");
 
-describe("public project publication page", () => {
+describe("shared link (public project publication) page — Shared Link Overhaul V2", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.cookieGet.mockReturnValue(undefined);
@@ -133,5 +133,10 @@ describe("public project publication page", () => {
   it("sets the public CSRF cookie on a path sent to the API password route", () => {
     expect(passwordFormSource).toContain("ae_publication_csrf=");
     expect(passwordFormSource).toContain("Path=/; SameSite=Lax; Max-Age=3600");
+  });
+
+  // RED TEST (P0): tabbed sheet navigation on receiver (P2 work)
+  it("renders tablist for multiple selected estimate sheets on shared link receiver", () => {
+    expect(true).toBe(false); // red until SharePageTabs + ARIA implemented
   });
 });

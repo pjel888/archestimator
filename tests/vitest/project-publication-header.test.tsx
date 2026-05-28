@@ -91,16 +91,17 @@ describe("ProjectWorkspaceHeaderRow publication control", () => {
     );
 
     const actions = container.querySelector('[data-workshop-layout="project-workspace-header-actions"]');
-    expect(actions?.textContent).toMatch(/Public link.*Teamspaces/s);
+    // RED TEST (P0): "Public link" terminology renamed to "Shared link" — fails until P1 updates JSX
+    expect(actions?.textContent).toMatch(/Shared link.*Teamspaces/s);
 
-    await user.click(screen.getByRole("button", { name: "Open public client link" }));
+    await user.click(screen.getByRole("button", { name: "Open shared link" }));
 
-    const dialog = screen.getByRole("dialog", { name: "Public client link" });
-    expect(within(dialog).getAllByText("Public link").length).toBeGreaterThan(0);
-    expect(within(dialog).getByRole("textbox", { name: "Public link" })).toHaveValue("http://localhost:3000/share/client-token");
+    const dialog = screen.getByRole("dialog", { name: "Shared link" });
+    expect(within(dialog).getAllByText("Shared link").length).toBeGreaterThan(0);
+    expect(within(dialog).getByRole("textbox", { name: "Shared link" })).toHaveValue("http://localhost:3000/share/client-token");
     expect(within(dialog).getByText("Password on")).toBeInTheDocument();
-    expect(within(dialog).getByRole("button", { name: "Update public page" })).toBeEnabled();
-    expect(within(dialog).getByRole("button", { name: "Create new public link" })).toBeEnabled();
+    expect(within(dialog).getByRole("button", { name: "Update shared page" })).toBeEnabled();
+    expect(within(dialog).getByRole("button", { name: "Create new shared link" })).toBeEnabled();
     expect(within(dialog).queryByText("Project share link")).not.toBeInTheDocument();
     expect(within(dialog).queryByText("Client publication snapshot")).not.toBeInTheDocument();
   });
@@ -136,19 +137,19 @@ describe("ProjectWorkspaceHeaderRow publication control", () => {
       />,
     );
 
-    await user.click(screen.getByRole("button", { name: "Open public client link" }));
-    const dialog = screen.getByRole("dialog", { name: "Public client link" });
+    await user.click(screen.getByRole("button", { name: "Open shared link" }));
+    const dialog = screen.getByRole("dialog", { name: "Shared link" });
     await user.click(within(dialog).getByLabelText("Require password"));
     await user.type(within(dialog).getByLabelText("Link password"), "client-pass-1");
-    await user.click(within(dialog).getByRole("button", { name: "Generate public link" }));
+    await user.click(within(dialog).getByRole("button", { name: "Generate shared link" }));
 
     expect(publicationActions.createProjectPublication).toHaveBeenCalledWith({
       projectId: "project-1",
       password: "client-pass-1",
     });
     expect(await within(dialog).findByDisplayValue("http://localhost:3000/share/generated-token")).toBeInTheDocument();
-    expect(within(dialog).getByRole("button", { name: "Copy public link" })).toBeEnabled();
-    expect(within(dialog).getByRole("button", { name: "Create new public link" })).toBeEnabled();
+    expect(within(dialog).getByRole("button", { name: "Copy shared link" })).toBeEnabled();
+    expect(within(dialog).getByRole("button", { name: "Create new shared link" })).toBeEnabled();
   });
 
   it("can create a fresh public link for an already published page", async () => {
@@ -168,9 +169,9 @@ describe("ProjectWorkspaceHeaderRow publication control", () => {
       />,
     );
 
-    await user.click(screen.getByRole("button", { name: "Open public client link" }));
-    const dialog = screen.getByRole("dialog", { name: "Public client link" });
-    await user.click(within(dialog).getByRole("button", { name: "Create new public link" }));
+    await user.click(screen.getByRole("button", { name: "Open shared link" }));
+    const dialog = screen.getByRole("dialog", { name: "Shared link" });
+    await user.click(within(dialog).getByRole("button", { name: "Create new shared link" }));
 
     expect(publicationActions.rotateProjectPublicationLink).toHaveBeenCalledWith({
       projectId: "project-1",
@@ -178,5 +179,19 @@ describe("ProjectWorkspaceHeaderRow publication control", () => {
       clearPassword: false,
     });
     expect(await within(dialog).findByDisplayValue("http://localhost:3000/share/rotated-token")).toBeInTheDocument();
+  });
+
+  // RED TEST (P0, minimal): Sheet picker filter behavior (selection state) — red until P1 adds SheetPickerList + passes selected ids
+  it("disables generate when 0 estimates selected (sheet filter validation)", () => {
+    // Structural expectation on action contract; full UI checkbox interaction in P1
+    expect(publicationActions.createProjectPublication).toBeDefined();
+    // Intentional red signal for missing UI validation until sheet picker wired
+    expect(true).toBe(false);
+  });
+
+  // RED TEST (P0): Tab rendering on receiver — red until P2 SharePageTabs
+  it("receiver page renders accessible tabs for selected estimate sheets", () => {
+    // Will locate tablist with sheet names once P2 lands
+    expect(true).toBe(false);
   });
 });

@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 
 const publicRepository = readFileSync("src/lib/publication/public-repository.ts", "utf8");
 
-describe("project publication public repository", () => {
+describe("project publication public repository (Shared Link V2 context)", () => {
   it("keeps password verification server-side and increments open counters with public events", () => {
     expect(publicRepository).toContain("verifyProjectPublicationPasswordByToken");
     expect(publicRepository).toContain("verifyPublicationPassword");
