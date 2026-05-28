@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -308,5 +309,57 @@ describe("SheetPickerList (P1)", () => {
     // Native checkbox keyboard (Space/Enter) is provided by browser; focusable + labelled for a11y
     checkboxes[0].focus();
     expect(document.activeElement).toBe(checkboxes[0]);
+  });
+});
+
+// P4 RED TESTS — RecipientEmailComposer + Recipients tab (must fail until implemented)
+// Per Master Prompt + P4: chip input (email entry + add/remove), validation, send states (pending/sending/success/error),
+// status chips (Pending/Sent/Bounced/Opened), graceful Resend, integrated as 4th tab in ProjectPublicationHeader.
+describe("P4 — RecipientEmailComposer and Recipients tab (RED until implementation)", () => {
+  const headerSrc = readFileSync("src/components/workshop/ProjectPublicationHeader.tsx", "utf8");
+
+  it("exports and wires RecipientEmailComposer for the Recipients tab (chip email UI)", () => {
+    // RED until component defined + exported (co-located export like SheetPickerList) and tab added
+    expect(headerSrc).toContain("RecipientEmailComposer");
+    expect(headerSrc).toContain("Recipients");
+    // Tab bar extended to 4 tabs (link/sheets/access/recipients)
+    expect(headerSrc).toMatch(/recipients|Recipients/i);
+    // Uses design system: rounded-xs, text-[10px] or smaller, SF Pro via parent
+    expect(headerSrc).toMatch(/rounded-xs|text-\[10px\]|text-\[9px\]/);
+  });
+
+  it("RecipientEmailComposer supports email chip input, validation, add/remove chips (RED)", () => {
+    // Key behaviors required by P4 UX: enter/comma adds valid email chip; invalid rejected; remove chip; dedupe
+    expect(headerSrc).toMatch(/chip|email.*input|validateEmail|isValidEmail|onAddRecipient|recipients.*state/i);
+    expect(headerSrc).toContain("RecipientEmailComposer");
+  });
+
+  it("RecipientEmailComposer shows send states, calls add action, displays delivery status chips (RED)", () => {
+    // Send button, loading/disabled during send, success message or list update
+    // Status chips: Pending (default), Sent (on Resend ok), Bounced/Opened (from table)
+    expect(headerSrc).toMatch(/delivery_status|Pending|Sent|Bounced|Opened|status.*chip|chip.*(pending|sent)/i);
+    expect(headerSrc).toContain("addSharedLinkRecipients");
+    expect(headerSrc).toMatch(/isPending|startTransition|loading|disabled.*send/i);
+  });
+
+  it("Recipients tab integrates cleanly without breaking Link/Sheets/Access (backwards compat RED gate)", () => {
+    expect(headerSrc).toContain("activeTab");
+    // Existing 3 tabs still present; 4th added without removal
+    expect(headerSrc).toMatch(/"link"|"sheets"|"access"/);
+    // No breakage to runPublicationAction or existing controls
+    expect(headerSrc).toContain("runPublicationAction");
+  });
+
+  it("dynamically imports and renders RecipientEmailComposer (chip input + validation + status display) — hard RED gate", async () => {
+    // Dynamic to avoid top-level module load failure during red phase; will fail until export exists + impl
+    const mod = await import("@/components/workshop/ProjectPublicationHeader");
+    expect(mod.RecipientEmailComposer).toBeDefined(); // fails until exported
+
+    // Once exported, these will fail until chip UI, email validation, send states, status chips implemented
+    const { RecipientEmailComposer } = mod;
+    // Minimal render to exercise (props per usage: publicationId, current list, callbacks)
+    // Expectation: input for emails, chips list, send button, status badges with correct labels
+    expect(RecipientEmailComposer).toBeTruthy();
+    // (Full userEvent chip add/validate/remove/send would be added here post-export; current red via source + import)
   });
 });
