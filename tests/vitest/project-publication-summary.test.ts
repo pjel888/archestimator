@@ -14,6 +14,6 @@ describe("project publication integration contract (Shared Link V2)", () => {
     expect(teamspaceHeader).toContain("Private project link");
     expect(teamspaceHeader).toContain("Copy private link");
     expect(teamspaceHeader).not.toContain("Share page");
-    expect(teamspaceHeader).not.toContain("Project share link");
+    expect(teamspaceHeader).not.toContain("Shared link");
   });
 });

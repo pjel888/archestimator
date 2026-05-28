@@ -31,7 +31,7 @@ import SharePage from "@/app/share/[token]/page";
 
 const passwordFormSource = readFileSync("src/components/share/ProjectPublicationPasswordForm.tsx", "utf8");
 
-describe("shared link (public project publication) page — Shared Link Overhaul V2", () => {
+describe("shared link (receiver publication) page — Shared Link Overhaul V2", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.cookieGet.mockReturnValue(undefined);

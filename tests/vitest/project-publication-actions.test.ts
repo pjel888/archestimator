@@ -30,7 +30,7 @@ describe("project publication manager actions (Shared Link Overhaul V2)", () => 
     expect(header).toContain("rotateProjectPublicationLink");
     expect(header).toContain("revokeProjectPublication");
     expect(header).toContain("runPublicationAction");
-    // RED TEST (P0): expects new "Shared link" terminology (will fail until P1 renames JSX strings in ProjectPublicationHeader)
+    // P13 final terminology consistency pass for "Shared link" (P0-P1 complete; all publication tests updated)
     expect(header).toContain("Generate shared link");
     expect(header).toContain("Update shared page");
     expect(header).toContain("New link");
