@@ -1,6 +1,7 @@
 "use client";
 
-import { unstable_rethrow, usePathname, useRouter } from "next/navigation";
+import { unstable_rethrow, usePathname } from "next/navigation";
+import { useNavigationRouter } from "@/hooks/use-navigation-router";
 import { startTransition, useCallback, useEffect, useMemo, useRef, useState, type ButtonHTMLAttributes, type DragEvent, type HTMLAttributes } from "react";
 import {
   ControlledTreeEnvironment,
@@ -201,7 +202,7 @@ function getEstimateRouteNodeIdFromPathname(pathname: string | null, estimateId:
 }
 
 export function EstimateSheetTree({ projectId, estimateId, projectName, selectedNodeId, nodes }: EstimateSheetTreeProps) {
-  const router = useRouter();
+  const router = useNavigationRouter();
   const pathname = usePathname();
   const { toast, dismissToast } = useToast();
   const {

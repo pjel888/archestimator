@@ -55,10 +55,11 @@ describe("AI audit foundation schema", () => {
     expect(auditSource).toContain("buildAiAskAuditEvent");
     expect(auditSource).toContain("hashAiAuditValue(input.message)");
     expect(auditSource).toContain("hashAiAuditValue(input.routeContext)");
-    expect(auditSource).toContain("provider_send_categories: [\"user_message\", \"bounded_route_context\"]");
+    expect(auditSource).toContain("[\"user_message\", \"bounded_route_context\"]");
+    expect(auditSource).toContain("[\"user_message\", \"bounded_route_context\", \"server_scoped_read_context\"]");
     expect(auditSource).toContain("archestimator-ai-audit");
     expect(auditSource).toContain("SUPABASE_SERVICE_ROLE_KEY");
-    expect(auditSource).toContain("Ask-only request used bounded browser route context and no database read tools.");
+    expect(auditSource).toContain("Ask request used bounded browser route context and no database read tools.");
     expect(supabaseTypes).toContain("ai_action_runs");
     expect(supabaseTypes).toContain("ai_tool_calls");
     expect(supabaseTypes).toContain("ai_data_access_events");

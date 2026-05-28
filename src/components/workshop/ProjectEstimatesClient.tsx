@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useNavigationRouter } from "@/hooks/use-navigation-router";
 
 import { HeaderIconToolbar } from "@/components/ui/header-icon-toolbar";
 import { SearchInput } from "@/components/ui/search-input";
@@ -25,7 +25,7 @@ function filterEstimateSheets(estimates: ProjectEstimateTableRow[], query: strin
 }
 
 export function ProjectEstimatesClient({ estimates, projectId, projectName }: ProjectEstimatesClientProps) {
-  const router = useRouter();
+  const router = useNavigationRouter();
   const [searchQuery, setSearchQuery] = useState("");
   const [isCreating, setIsCreating] = useState(false);
   const createInFlightRef = useRef(false);

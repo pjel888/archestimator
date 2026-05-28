@@ -2295,6 +2295,17 @@ export type Database = {
         Args: { target_workspace_id: string; component: Json; price_options: Json }
         Returns: Json
       }
+      create_ai_package_library_components_with_history: {
+        Args: {
+          target_workspace_id: string
+          component_payloads: Json
+          draft_id: string
+          draft_hash: string
+          idempotency_key: string
+          correlation_id?: string
+        }
+        Returns: Json
+      }
       current_user_profile: {
         Args: never
         Returns: {

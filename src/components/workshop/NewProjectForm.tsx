@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useId, useState, type FormEvent } from "react";
-import { useRouter } from "next/navigation";
+import { useNavigationRouter } from "@/hooks/use-navigation-router";
 
 import {
   createProjectRecord,
@@ -26,7 +26,7 @@ import {
 import { ProjectImagePanel } from "./NewProjectImagePanel";
 
 export function NewProjectForm() {
-  const router = useRouter();
+  const router = useNavigationRouter();
   const imageInputId = useId();
   const [projectCode, setProjectCode] = useState(generateProjectCode);
   const [selectedImage, setSelectedImage] = useState<File | null>(null);

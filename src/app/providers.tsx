@@ -3,6 +3,8 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useState, type ReactNode } from "react";
 
+import { NavigationListener } from "@/components/navigation-listener";
+import { RouteLoadingOverlay } from "@/components/ui/route-loading-overlay";
 import { ToastProvider } from "@/components/ui/toast";
 
 function createQueryClient() {
@@ -27,7 +29,9 @@ export function AppProviders({ children }: { children: ReactNode }) {
   return (
     <QueryClientProvider client={queryClient}>
       <ToastProvider>
+        <NavigationListener />
         {children}
+        <RouteLoadingOverlay />
       </ToastProvider>
     </QueryClientProvider>
   );

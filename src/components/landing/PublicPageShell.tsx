@@ -3,6 +3,8 @@ import { CookieConsentBanner } from "./CookieConsentBanner";
 import { LandingHeader } from "./LandingHeader";
 import { LandingFooter } from "./LandingFooter";
 import { LandingSmoothScrollProvider } from "./LandingSmoothScrollProvider";
+import { LandingAnalyticsLoader } from "./LandingAnalyticsLoader";
+
 
 interface PublicPageShellProps {
   children: ReactNode;
@@ -40,6 +42,7 @@ export function PublicPageShell({
         </>
       )}
       <CookieConsentBanner />
+      <LandingAnalyticsLoader />
     </div>
   );
 }

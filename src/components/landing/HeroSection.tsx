@@ -1,6 +1,9 @@
+"use client";
+
 import Link from 'next/link'
 import { NeatWireframeBackground } from './NeatWireframeBackground'
 import { loginHref } from './constants'
+import { trackConversion } from "@/lib/ab-testing/experiment-tracker";
 
 const trustBadges = ['Reusable catalog', 'Quote-ready', 'Document-aware']
 
@@ -21,9 +24,8 @@ export const heroCopyVariants = [
   },
 ] as const
 
-const activeHeroCopy = heroCopyVariants[0]
-
-export function HeroSection() {
+export function HeroSection({ variant = "A" }: { variant?: "A" | "B" }) {
+  const activeHeroCopy = variant === "B" ? heroCopyVariants[1] : heroCopyVariants[0];
   return (
     <section className='relative w-full bg-[#eeeeec] px-6 pb-12'>
       <div className='relative min-h-[calc(100svh-92px)] w-full overflow-hidden rounded-[6px] bg-[#e95d1a] text-white shadow-[0_1px_0_rgba(17,17,17,0.08)]'>
@@ -62,6 +64,7 @@ export function HeroSection() {
 
             <Link
               href={loginHref}
+              onClick={() => trackConversion("hero-cta-copy", "cta_click", { location: "hero", variant })}
               className='mt-8 inline-flex min-h-9 items-center justify-center rounded-[5px] bg-white px-4 text-[10px] font-bold uppercase tracking-[0.02em] text-[#17181c] shadow-[0_12px_30px_rgba(111,41,0,0.12)] transition hover:translate-y-[-1px] hover:bg-[#fff7ef]'
             >
               See the workspace

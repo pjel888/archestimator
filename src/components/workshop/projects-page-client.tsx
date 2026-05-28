@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState, useSyncExternalStore, useTransition } from "react";
-import { useRouter } from "next/navigation";
+import { useNavigationRouter } from "@/hooks/use-navigation-router";
 import { Cards, GridFour, Plus, Rows, SquaresFour } from "@phosphor-icons/react";
 
 import type { HeaderIconToolbarAddAction } from "@/components/ui/header-icon-toolbar";
@@ -118,7 +118,7 @@ export function ProjectsPageClient({
   projects,
   favoriteProjectIds = EMPTY_FAVORITE_PROJECT_IDS,
 }: ProjectsPageClientProps) {
-  const router = useRouter();
+  const router = useNavigationRouter();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [expandedProject, setExpandedProject] =
     useState<Tables<"projects"> | null>(null);
