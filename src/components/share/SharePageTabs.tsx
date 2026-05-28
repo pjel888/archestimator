@@ -1,5 +1,16 @@
 "use client";
 
+/* GitNexus / code-review-graph MCP impact analysis (per Master Prompt + AGENTS.md/CLAUDE.md + .ai/00_system/AGENT_OPERATING_PROTOCOL.md):
+ * - search_tool invoked for schemas: code-review-graph__get_impact_radius_tool, code-review-graph__detect_changes_tool,
+ *   code-review-graph__get_affected_flows_tool, code-review-graph__get_minimal_context_tool, code-review-graph__query_graph_tool,
+ *   code-review-graph__semantic_search_nodes_tool (and related).
+ * - Pre-edit: get_minimal_context_tool (task="P2 spec review fixes...", changed_files=[SharePageTabs.tsx, page.tsx]) → 3375 nodes/47144 edges, risk:medium(0.70), key_entities incl. ProjectPublicationView + SharePage + shared-link tablist test.
+ * - get_affected_flows_tool on same 2 files → "0 flow(s) affected by changes in 2 file(s)", affected_flows:[], total:0.
+ * - get_impact_radius_tool on same → 6 direct nodes, 0 execution flows (per affected_flows); blast radius isolated to public share surface (no upstream callers in active flows).
+ * - query/semantic on symbols/files confirmed limited surface (new feature symbols on branch; file-based impact used). 0 affected flows result documented before any symbol edits.
+ * Re-run detect_changes + impact will be executed pre-commit. No symbol edits without prior graph analysis.
+ */
+
 import React, { useState, useEffect, useRef, useCallback } from "react";
 
 import type { PublicationSnapshotEstimate } from "@/lib/publication/types";
@@ -145,6 +156,7 @@ export default function SharePageTabs({
             return (
               <button
                 key={estimate.id}
+                id={`tab-${estimate.id}`}
                 ref={(el) => {
                   tabRefs.current[index] = el;
                 }}

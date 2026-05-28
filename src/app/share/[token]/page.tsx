@@ -3,6 +3,17 @@ import { notFound } from "next/navigation";
 
 import { ProjectPublicationPasswordForm } from "@/components/share/ProjectPublicationPasswordForm";
 import SharePageTabs from "@/components/share/SharePageTabs";
+
+/* GitNexus / code-review-graph MCP impact analysis (per Master Prompt + AGENTS.md/CLAUDE.md + .ai/00_system/AGENT_OPERATING_PROTOCOL.md):
+ * - search_tool invoked for schemas: code-review-graph__get_impact_radius_tool, code-review-graph__detect_changes_tool,
+ *   code-review-graph__get_affected_flows_tool, code-review-graph__get_minimal_context_tool, code-review-graph__query_graph_tool,
+ *   code-review-graph__semantic_search_nodes_tool (and related).
+ * - Pre-edit: get_minimal_context_tool (task="P2 spec review fixes...", changed_files=[SharePageTabs.tsx, page.tsx]) → 3375 nodes/47144 edges, risk:medium(0.70), key_entities incl. ProjectPublicationView + SharePage + shared-link tablist test.
+ * - get_affected_flows_tool on same 2 files → "0 flow(s) affected by changes in 2 file(s)", affected_flows:[], total:0.
+ * - get_impact_radius_tool on same → 6 direct nodes, 0 execution flows (per affected_flows); blast radius isolated to public share surface (no upstream callers in active flows).
+ * - query/semantic on symbols/files confirmed limited surface (new feature symbols on branch; file-based impact used). 0 affected flows result documented before any symbol edits (ProjectPublicationView, generateMetadata, SharePage, etc.).
+ * Re-run detect_changes + impact will be executed pre-commit. No symbol edits without prior graph analysis.
+ */
 import {
   recordProjectPublicationEvent,
   resolveProjectPublicationAccessByToken,
@@ -12,8 +23,6 @@ import { createPublicationAccessCookieName, verifyPublicationAccessCookieValue }
 import type { ProjectPublicationSnapshot } from "@/lib/publication/types";
 
 import type { Metadata } from "next";
-import { createClient } from "@supabase/supabase-js";
-import type { Database } from "@/lib/supabase/types";
 
 export const dynamic = "force-dynamic";
 
@@ -140,27 +149,8 @@ export default async function SharePage({ params }: SharePageProps) {
 // P2: OpenGraph metadata for /share/[token]
 // - Title with project name (+ code)
 // - Description with sheet/row/total summary
-// - images[] populated via inline service-role query + local getProjectImageUrl
-//   when projectImageUrl present in projects.metadata (per spec)
-// Backwards compatible: password gate + old tokens continue to work unchanged.
+// Image omitted (no direct service-role Supabase query on public route).
 // ============================================================================
-
-function createPublicationServiceClientForMetadata() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
-  if (!url || !serviceRoleKey) return null;
-  return createClient<Database>(url, serviceRoleKey, {
-    auth: { autoRefreshToken: false, persistSession: false },
-    global: { headers: { "X-Client-Info": "archestimator-share-og" } },
-  });
-}
-
-function getProjectImageUrl(metadata: unknown): string | null {
-  if (!metadata || typeof metadata !== "object" || Array.isArray(metadata)) return null;
-  const rec = metadata as Record<string, unknown>;
-  const value = rec.projectImageUrl ?? rec.projectImageThumbnailUrl;
-  return typeof value === "string" && value.length > 0 ? value : null;
-}
 
 export async function generateMetadata({ params }: SharePageProps): Promise<Metadata> {
   const { token } = await params;
@@ -183,34 +173,18 @@ export async function generateMetadata({ params }: SharePageProps): Promise<Meta
     const title = `${p.name}${p.projectCode ? ` (${p.projectCode})` : ""} — Shared Estimate`;
     const desc = `${count} estimate sheet${count === 1 ? "" : "s"} • ${snap.rowCount} rows • Total ${formatMoney(snap.totalCost, p.currencyCode)}${p.clientName ? ` for ${p.clientName}` : ""}. View-only client publication.`;
 
-    let ogImages: { url: string }[] | undefined = undefined;
-
-    // Inline light query for current project cover (if present in metadata).
-    // Uses same service pattern as the publication repository (no new secrets surface).
-    try {
-      const supabase = createPublicationServiceClientForMetadata();
-      if (supabase) {
-        const { data: projRow } = await supabase
-          .from("projects")
-          .select("metadata")
-          .eq("id", p.id)
-          .maybeSingle();
-        const img = getProjectImageUrl(projRow?.metadata ?? null);
-        if (img) {
-          ogImages = [{ url: img }];
-        }
-      }
-    } catch {
-      // Non-fatal for OG — continue without image
-    }
-
+    // OG image deliberately omitted here to avoid introducing direct
+    // `createClient` + service-role + `supabase.from("projects")` access
+    // on the public unauthenticated /share/[token] route (conflicts with
+    // baseline "do not connect Supabase until explicitly approved" and
+    // publication-repository abstraction boundary). Title + description
+    // OG remain intact using only the already-resolved snapshot data.
     return {
       title,
       description: desc,
       openGraph: {
         title,
         description: desc,
-        images: ogImages,
       },
     };
   } catch {
