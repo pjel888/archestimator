@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { ProjectPublicationPasswordForm } from "@/components/share/ProjectPublicationPasswordForm";
 import SharePageTabs from "@/components/share/SharePageTabs";
 import SharePageComments from "@/components/share/SharePageComments";
+import SharePageDecision from "@/components/share/SharePageDecision";
 
 /* GitNexus / code-review-graph MCP impact analysis (per Master Prompt + AGENTS.md/CLAUDE.md + .ai/00_system/AGENT_OPERATING_PROTOCOL.md):
  * - search_tool invoked for schemas: code-review-graph__get_impact_radius_tool, code-review-graph__detect_changes_tool,
@@ -93,7 +94,7 @@ function ProjectPublicationView({
         </section>
 
         {/* P2: Tabbed navigation (replaces previous vertical stack). SharePageTabs encapsulates per-estimate card+table. */}
-        {/* P6: Comments sidebar (desktop ~320px / w-80) or stacks below on mobile — additive, session-gated inside component via P5 hook. */}
+        {/* P6/P7: Right column — decision (P7) above comments (P6). Both session-gated via P5 hook. Decision locks to read-only badge after submit/409; comments remain usable post-decision (additive, per owner allowance). */}
         <div className="flex flex-col gap-5 lg:flex-row">
           <div className="min-w-0 flex-1">
             <SharePageTabs
@@ -102,7 +103,10 @@ function ProjectPublicationView({
               token={token}
             />
           </div>
-          <SharePageComments token={token} />
+          <div className="w-full lg:w-80 flex-shrink-0 flex flex-col gap-3">
+            <SharePageDecision token={token} />
+            <SharePageComments token={token} />
+          </div>
         </div>
       </div>
     </main>
