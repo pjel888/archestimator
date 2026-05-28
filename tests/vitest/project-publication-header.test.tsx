@@ -165,7 +165,7 @@ describe("ProjectWorkspaceHeaderRow publication control", () => {
     expect(within(dialog).getByRole("button", { name: "Create new shared link" })).toBeEnabled();
   });
 
-  it("can create a fresh public link for an already published page", async () => {
+  it("can create a fresh shared link for an already published page", async () => {
     publicationActions.rotateProjectPublicationLink.mockResolvedValueOnce({
       ok: true,
       message: "New shared link ready.",
