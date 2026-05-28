@@ -5,6 +5,7 @@ import { ProjectPublicationPasswordForm } from "@/components/share/ProjectPublic
 import SharePageTabs from "@/components/share/SharePageTabs";
 import SharePageComments from "@/components/share/SharePageComments";
 import SharePageDecision from "@/components/share/SharePageDecision";
+import SharePageHero from "@/components/share/SharePageHero";
 
 /* GitNexus / code-review-graph MCP impact analysis (per Master Prompt + AGENTS.md/CLAUDE.md + .ai/00_system/AGENT_OPERATING_PROTOCOL.md):
  * - search_tool invoked for schemas: code-review-graph__get_impact_radius_tool, code-review-graph__detect_changes_tool,
@@ -78,6 +79,10 @@ function ProjectPublicationView({
           </div>
         </header>
 
+        {/* P9: Hero cover (from snapshot.project.coverImageUrl populated from projects.metadata at publish).
+            Next/Image + lazy. Null when absent (old snapshots / no cover) — additive, no layout shift. */}
+        <SharePageHero project={snapshot.project as any} />
+
         <section className="grid grid-cols-3 gap-2">
           <div className="border border-hairline bg-white p-3">
             <p className="text-[9px] font-medium uppercase leading-3 text-tertiary">Estimates</p>
@@ -103,7 +108,8 @@ function ProjectPublicationView({
               token={token}
             />
           </div>
-          <div className="w-full lg:w-80 flex-shrink-0 flex flex-col gap-3">
+          {/* P9: sticky decision rail on lg+ (desktop polish); safe-area-inset-bottom on mobile for interactive bars (additive, no behavior change) */}
+          <div className="w-full lg:w-80 flex-shrink-0 flex flex-col gap-3 lg:sticky lg:top-4 pb-[env(safe-area-inset-bottom)] lg:pb-0">
             <SharePageDecision token={token} />
             <SharePageComments token={token} />
           </div>

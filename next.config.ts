@@ -17,22 +17,27 @@ const landingReportOnlyCsp = [
 
 const publicSecurityHeaderRoutes = ["/", "/about", "/features", "/pricing", "/contact", "/share/:path*"];
 
-const supabaseImageRemotePattern = ((): ImageRemotePattern | null => {
+const supabaseImageRemotePatterns = ((): ImageRemotePattern[] => {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  if (!supabaseUrl) return null;
+  if (!supabaseUrl) return [];
   try {
     const url = new URL(supabaseUrl);
     const protocol = url.protocol === "http:" ? "http" : url.protocol === "https:" ? "https" : null;
-    if (!protocol) return null;
-    return {
+    if (!protocol) return [];
+    const base = {
       protocol,
       hostname: url.hostname,
       port: url.port,
-      pathname: "/storage/v1/object/public/component-images/**",
       search: "",
     };
+    // P9: cover both component library images and project cover images (from metadata.projectImageUrl)
+    // for Next/Image optimization on receiver hero + row thumbnails. Backwards compat.
+    return [
+      { ...base, pathname: "/storage/v1/object/public/component-images/**" },
+      { ...base, pathname: "/storage/v1/object/public/project-images/**" },
+    ];
   } catch {
-    return null;
+    return [];
   }
 })();
 
@@ -42,7 +47,7 @@ const nextConfig: NextConfig = {
     optimizePackageImports: ["@phosphor-icons/react"],
   },
   images: {
-    remotePatterns: supabaseImageRemotePattern ? [supabaseImageRemotePattern] : [],
+    remotePatterns: supabaseImageRemotePatterns,
   },
   async headers() {
     return publicSecurityHeaderRoutes.map((source) => ({
