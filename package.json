@@ -34,6 +34,7 @@
     "react": "19.2.4",
     "react-complex-tree": "^2.6.1",
     "react-dom": "19.2.4",
+    "resend": "^6.12.4",
     "sharp": "^0.34.5",
     "tailwind-merge": "^3.6.0",
     "three": "^0.184.0",

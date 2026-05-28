@@ -5,7 +5,7 @@ const layout = readFileSync("src/app/workshop/projects/[projectId]/layout.tsx", 
 const header = readFileSync("src/components/workshop/ProjectWorkspaceHeaderRow.tsx", "utf8");
 const teamspaceHeader = readFileSync("src/components/workshop/ProjectTeamspaceHeader.tsx", "utf8");
 
-describe("project publication integration contract", () => {
+describe("project publication integration contract (Shared Link V2)", () => {
   it("keeps publication separate from private Teamspaces membership", () => {
     expect(layout).toContain("getProjectPublicationSummary(projectId)");
     expect(layout).toContain("publicationSummary={publicationSummary}");
