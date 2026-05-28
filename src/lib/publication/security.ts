@@ -240,3 +240,131 @@ export function assertSameOriginPublicPost(request: Request): { ok: true } | { o
 
   return { ok: true };
 }
+
+// ============================================================================
+// P5: Additive Recipient Session Cookie (shared_link_session_[token])
+// - Exact spec: HttpOnly, SameSite=Lax, Secure (prod), Max-Age=86400
+// - Additive to ae_publication_access_* password cookie (no changes to existing fns/logic)
+// - Used for /share/[token]?recipient= verification + future interactive (P6+)
+// - Client-visible _ok flag (non-secret) supports useSharedLinkSession hook
+// ============================================================================
+
+const sharedLinkSessionCookiePrefix = "shared-link-session-v1";
+const sharedLinkSessionCookieMaxAgeSeconds = 86400;
+
+export type SharedLinkSessionContext = {
+  token: string;
+  publicationId: string;
+  snapshotVersion: string | number;
+  recipientId?: string;
+};
+
+type SharedLinkSessionCookiePayload = {
+  expiresAt: number;
+  publicationId: string;
+  snapshotVersion: string;
+  tokenDigest: string;
+  recipientId?: string;
+};
+
+function createSharedLinkSessionCookiePayload(
+  { token, publicationId, snapshotVersion, recipientId }: SharedLinkSessionContext,
+  expiresAt: number,
+): SharedLinkSessionCookiePayload {
+  return {
+    expiresAt,
+    publicationId,
+    snapshotVersion: String(snapshotVersion),
+    tokenDigest: createHash("sha256").update(token).digest("base64url"),
+    recipientId,
+  };
+}
+
+function signSharedLinkSessionCookiePayload(payload: string, secret: string) {
+  return createHmac("sha256", secret).update(payload).digest("base64url");
+}
+
+function parseSharedLinkSessionCookiePayload(value: string, secret: string) {
+  const [prefix, encodedPayload, signature] = value.split(":");
+  if (prefix !== sharedLinkSessionCookiePrefix || !encodedPayload || !signature) return null;
+
+  const expectedSignature = signSharedLinkSessionCookiePayload(encodedPayload, secret);
+  if (!constantTimeEqual(Buffer.from(signature), Buffer.from(expectedSignature))) return null;
+
+  try {
+    const payload = JSON.parse(Buffer.from(encodedPayload, "base64url").toString("utf8")) as Partial<SharedLinkSessionCookiePayload>;
+    if (
+      typeof payload.expiresAt !== "number" ||
+      typeof payload.publicationId !== "string" ||
+      typeof payload.snapshotVersion !== "string" ||
+      typeof payload.tokenDigest !== "string"
+    ) {
+      return null;
+    }
+    return payload as SharedLinkSessionCookiePayload;
+  } catch {
+    return null;
+  }
+}
+
+export function createSharedLinkSessionCookieName(token: string) {
+  const suffix = createHash("sha256").update(token).digest("base64url").slice(0, 20);
+  return `shared_link_session_${suffix}`;
+}
+
+export function verifySharedLinkSessionCookieValue(
+  value: string | undefined,
+  context: SharedLinkSessionContext,
+  { now = Date.now(), secret = readPublicationAccessCookieSecret() }: PublicationAccessCookieOptions = {},
+) {
+  if (!value) return false;
+  const payload = parseSharedLinkSessionCookiePayload(value, secret);
+  if (!payload || payload.expiresAt <= now) return false;
+
+  const expectedPayload = createSharedLinkSessionCookiePayload(context, payload.expiresAt);
+  return (
+    payload.publicationId === expectedPayload.publicationId &&
+    payload.snapshotVersion === expectedPayload.snapshotVersion &&
+    constantTimeEqual(Buffer.from(payload.tokenDigest), Buffer.from(expectedPayload.tokenDigest)) &&
+    (payload.recipientId === undefined || payload.recipientId === expectedPayload.recipientId)
+  );
+}
+
+export function getSharedLinkSessionCookieParts(
+  context: SharedLinkSessionContext,
+  {
+    maxAgeSeconds = sharedLinkSessionCookieMaxAgeSeconds,
+    now = Date.now(),
+    secret = readPublicationAccessCookieSecret(),
+  }: PublicationAccessCookieOptions = {},
+) {
+  const expiresAt = now + maxAgeSeconds * 1000;
+  const encodedPayload = Buffer.from(
+    JSON.stringify(createSharedLinkSessionCookiePayload(context, expiresAt)),
+    "utf8",
+  ).toString("base64url");
+  const signature = signSharedLinkSessionCookiePayload(encodedPayload, secret);
+  const name = createSharedLinkSessionCookieName(context.token);
+  const value = `${sharedLinkSessionCookiePrefix}:${encodedPayload}:${signature}`;
+  const secure = process.env.NODE_ENV === "production";
+  return {
+    name,
+    value,
+    cookieOptions: {
+      path: "/",
+      httpOnly: true as const,
+      sameSite: "lax" as const,
+      maxAge: maxAgeSeconds,
+      secure,
+    },
+  };
+}
+
+export function createSharedLinkSessionCookie(
+  context: SharedLinkSessionContext,
+  opts: PublicationAccessCookieOptions = {},
+) {
+  const parts = getSharedLinkSessionCookieParts(context, opts);
+  const secureCookie = parts.cookieOptions.secure ? "; Secure" : "";
+  return `${parts.name}=${parts.value}; Path=${parts.cookieOptions.path}; HttpOnly; SameSite=Lax; Max-Age=${parts.cookieOptions.maxAge}${secureCookie}`;
+}

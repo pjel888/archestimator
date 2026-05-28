@@ -159,3 +159,46 @@ export async function recordProjectPublicationEvent({
     if (incrementError) throw incrementError;
   }
 }
+
+// ============================================================================
+// P5: Verify recipient token for shared link session (additive, uses P3 shared_link_recipients table)
+// Hashes the raw recipient token with the same publication hash secret, matches against
+// recipient_token_hash + publication linkage. Returns context for cookie + future RPCs.
+// ============================================================================
+export async function verifySharedLinkRecipientToken(
+  publicationToken: string,
+  recipientToken: string,
+): Promise<{ publicationId: string; snapshotVersion: number; recipientId: string } | null> {
+  if (!publicationToken.trim() || !recipientToken.trim()) return null;
+
+  const supabase = createPublicationServiceClient();
+  const pubHash = readTokenHash(publicationToken);
+
+  const { data: pub, error: pubErr } = await supabase
+    .from("project_publications")
+    .select("id, status, expires_at, revoked_at, snapshot_version")
+    .eq("token_hash", pubHash)
+    .maybeSingle();
+
+  if (pubErr) throw pubErr;
+  if (!pub || !isActivePublication(pub as PublicationLookupRow)) return null;
+
+  const recHash = hashPublicationToken(recipientToken, readPublicationTokenHashSecret());
+
+  // @ts-expect-error P3 table (shared_link_recipients + columns) — types pending local `supabase db reset` + regen (Docker blocker; authorized per .ai/10_state/current-state.md and P3 migration notes). Runtime verified against remote schema.
+  const { data: rec, error: recErr } = await supabase
+    .from("shared_link_recipients" as any)
+    .select("id" as any)
+    .eq("recipient_token_hash" as any, recHash)
+    .eq("publication_id" as any, pub.id)
+    .maybeSingle();
+
+  if (recErr) throw recErr;
+  if (!rec) return null;
+
+  return {
+    publicationId: pub.id,
+    snapshotVersion: pub.snapshot_version,
+    recipientId: (rec as any).id,
+  };
+}
