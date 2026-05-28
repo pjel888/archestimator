@@ -2,6 +2,7 @@ import { cookies, headers } from "next/headers";
 import { notFound } from "next/navigation";
 
 import { ProjectPublicationPasswordForm } from "@/components/share/ProjectPublicationPasswordForm";
+import SharePageTabs from "@/components/share/SharePageTabs";
 import {
   recordProjectPublicationEvent,
   resolveProjectPublicationAccessByToken,
@@ -9,6 +10,10 @@ import {
 } from "@/lib/publication/public-repository";
 import { createPublicationAccessCookieName, verifyPublicationAccessCookieValue } from "@/lib/publication/security";
 import type { ProjectPublicationSnapshot } from "@/lib/publication/types";
+
+import type { Metadata } from "next";
+import { createClient } from "@supabase/supabase-js";
+import type { Database } from "@/lib/supabase/types";
 
 export const dynamic = "force-dynamic";
 
@@ -23,9 +28,15 @@ function formatMoney(value: number, currencyCode: string) {
   }).format(value)}`;
 }
 
-function ProjectPublicationView({ snapshot }: { snapshot: ProjectPublicationSnapshot }) {
+function ProjectPublicationView({
+  snapshot,
+  token,
+}: {
+  snapshot: ProjectPublicationSnapshot;
+  token: string;
+}) {
   return (
-    <main aria-label="Client publication" className="min-h-dvh bg-canvas text-ink">
+    <main aria-label="Client publication" className="min-h-dvh bg-proposalPaper text-ink">
       <div className="mx-auto flex w-full max-w-5xl flex-col gap-5 px-4 py-6 sm:px-6 lg:px-8">
         <header className="border-b border-hairline pb-4">
           <p className="text-[9px] font-medium uppercase leading-3 text-tertiary">Client publication</p>
@@ -63,47 +74,12 @@ function ProjectPublicationView({ snapshot }: { snapshot: ProjectPublicationSnap
           </div>
         </section>
 
-        <div className="space-y-4">
-          {snapshot.estimates.map((estimate) => (
-            <section key={estimate.id} aria-label={estimate.name} className="border border-hairline bg-white" role="region">
-              <div className="flex items-center justify-between gap-3 border-b border-hairline px-3 py-2">
-                <div>
-                  <h2 className="text-[12px] font-medium leading-4 text-ink">{estimate.name}</h2>
-                  <p className="text-[10px] leading-3 text-tertiary">{estimate.sheetCode}</p>
-                </div>
-                <p className="text-[12px] font-medium leading-4 text-ink">
-                  {formatMoney(estimate.totalCost, snapshot.project.currencyCode)}
-                </p>
-              </div>
-              <div className="overflow-x-auto">
-                <table className="min-w-full border-collapse text-left text-[10px] leading-4">
-                  <thead className="bg-surfaceMuted text-[9px] uppercase text-tertiary">
-                    <tr>
-                      <th className="px-3 py-2 font-medium">Description</th>
-                      <th className="px-3 py-2 font-medium">Discipline</th>
-                      <th className="px-3 py-2 font-medium">Qty</th>
-                      <th className="px-3 py-2 font-medium">Unit</th>
-                      <th className="px-3 py-2 text-right font-medium">Total</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {estimate.rows.map((row) => (
-                      <tr key={row.id} className="border-t border-hairline">
-                        <td className="px-3 py-2 text-secondary">{row.description}</td>
-                        <td className="px-3 py-2 text-secondary">{row.discipline}</td>
-                        <td className="px-3 py-2 text-secondary">{row.quantity}</td>
-                        <td className="px-3 py-2 text-secondary">{row.unit}</td>
-                        <td className="px-3 py-2 text-right font-medium text-ink">
-                          {formatMoney(row.rowTotal, snapshot.project.currencyCode)}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </section>
-          ))}
-        </div>
+        {/* P2: Tabbed navigation (replaces previous vertical stack). SharePageTabs encapsulates per-estimate card+table. */}
+        <SharePageTabs
+          estimates={snapshot.estimates}
+          currencyCode={snapshot.project.currencyCode}
+          token={token}
+        />
       </div>
     </main>
   );
@@ -157,5 +133,87 @@ export default async function SharePage({ params }: SharePageProps) {
     metadata: {},
   });
 
-  return <ProjectPublicationView snapshot={publication.snapshot} />;
+  return <ProjectPublicationView snapshot={publication.snapshot} token={token} />;
+}
+
+// ============================================================================
+// P2: OpenGraph metadata for /share/[token]
+// - Title with project name (+ code)
+// - Description with sheet/row/total summary
+// - images[] populated via inline service-role query + local getProjectImageUrl
+//   when projectImageUrl present in projects.metadata (per spec)
+// Backwards compatible: password gate + old tokens continue to work unchanged.
+// ============================================================================
+
+function createPublicationServiceClientForMetadata() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
+  if (!url || !serviceRoleKey) return null;
+  return createClient<Database>(url, serviceRoleKey, {
+    auth: { autoRefreshToken: false, persistSession: false },
+    global: { headers: { "X-Client-Info": "archestimator-share-og" } },
+  });
+}
+
+function getProjectImageUrl(metadata: unknown): string | null {
+  if (!metadata || typeof metadata !== "object" || Array.isArray(metadata)) return null;
+  const rec = metadata as Record<string, unknown>;
+  const value = rec.projectImageUrl ?? rec.projectImageThumbnailUrl;
+  return typeof value === "string" && value.length > 0 ? value : null;
+}
+
+export async function generateMetadata({ params }: SharePageProps): Promise<Metadata> {
+  const { token } = await params;
+
+  try {
+    const access = await resolveProjectPublicationAccessByToken(token);
+    if (!access) {
+      return { title: "Shared Link | Archestimator" };
+    }
+
+    const publication = await resolveProjectPublicationSnapshotByToken(token);
+    if (!publication) {
+      return { title: "Shared Link | Archestimator" };
+    }
+
+    const snap = publication.snapshot;
+    const p = snap.project;
+    const count = snap.estimateCount;
+
+    const title = `${p.name}${p.projectCode ? ` (${p.projectCode})` : ""} — Shared Estimate`;
+    const desc = `${count} estimate sheet${count === 1 ? "" : "s"} • ${snap.rowCount} rows • Total ${formatMoney(snap.totalCost, p.currencyCode)}${p.clientName ? ` for ${p.clientName}` : ""}. View-only client publication.`;
+
+    let ogImages: { url: string }[] | undefined = undefined;
+
+    // Inline light query for current project cover (if present in metadata).
+    // Uses same service pattern as the publication repository (no new secrets surface).
+    try {
+      const supabase = createPublicationServiceClientForMetadata();
+      if (supabase) {
+        const { data: projRow } = await supabase
+          .from("projects")
+          .select("metadata")
+          .eq("id", p.id)
+          .maybeSingle();
+        const img = getProjectImageUrl(projRow?.metadata ?? null);
+        if (img) {
+          ogImages = [{ url: img }];
+        }
+      }
+    } catch {
+      // Non-fatal for OG — continue without image
+    }
+
+    return {
+      title,
+      description: desc,
+      openGraph: {
+        title,
+        description: desc,
+        images: ogImages,
+      },
+    };
+  } catch {
+    return { title: "Shared Link | Archestimator" };
+  }
 }
