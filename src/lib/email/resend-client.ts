@@ -11,7 +11,7 @@
  * graceful degradation (link generation succeeds even if email fails).
  */
 
-import { Resend } from "resend";
+import { Resend, type CreateEmailOptions } from "resend";
 
 export type SendEmailInput = {
   to: string | string[];
@@ -67,7 +67,7 @@ export async function sendEmail(input: SendEmailInput): Promise<SendEmailResult>
       subject: input.subject,
       html: input.html,
       text: input.text,
-    });
+    } as CreateEmailOptions);
 
     if (response.error) {
       return {
