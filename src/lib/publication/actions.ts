@@ -16,6 +16,7 @@ import {
 } from "@/lib/publication/security";
 import { buildProjectPublicationSnapshot } from "@/lib/publication/snapshot";
 import type { Database, Tables } from "@/lib/supabase/types";
+import { sendEmail } from "@/lib/email/resend-client";
 
 type PublicationActionResult = {
   ok: boolean;
@@ -388,4 +389,215 @@ export async function revokeProjectPublication({ projectId }: { projectId: strin
   if (error) throw error;
   revalidatePublicationRoutes(context.project.id, previousClientLinkPath);
   return { ok: true, message: "Shared link turned off.", clientLinkPath: null };
+}
+
+// ============================================================================
+// P4: Email Infrastructure & Recipient Management (Shared Link Overhaul V2)
+// addSharedLinkRecipients + removeSharedLinkRecipient (Security Definer style via admin client)
+// + list helper for manager display. Graceful Resend failures: inserts succeed, emails best-effort.
+// Uses same token/hash primitives as publication tokens for recipient_token_hash.
+// Recipient link: base share link + ?rt=<raw-token> (receiver ignores unknown query for backwards compat).
+// ============================================================================
+
+// Temporary local shape until supabase types regen (Docker blocked per P3; casts keep compile)
+type RecipientDeliveryStatus = "pending" | "sent" | "bounced" | "opened" | "responded";
+
+interface SharedLinkRecipientRow {
+  id: string;
+  publication_id: string;
+  email: string;
+  display_name: string | null;
+  invited_by: string | null;
+  invited_at: string;
+  recipient_token_hash: string;
+  delivery_status: RecipientDeliveryStatus;
+  last_opened_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+type RecipientInput = { email: string; displayName?: string };
+
+function normalizeEmail(e: string): string {
+  return e.trim().toLowerCase();
+}
+
+function isValidEmail(email: string): boolean {
+  // Simple RFC-ish check sufficient for MVP (no external dep)
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
+
+async function getPublicationProjectId(admin: ReturnType<typeof createPublicationAdminClient>, publicationId: string): Promise<{ projectId: string; workspaceId: string; clientLinkPath?: string | null }> {
+  const { data, error } = await admin
+    .from("project_publications")
+    .select("id, project_id, workspace_id, encrypted_token")
+    .eq("id", publicationId)
+    .maybeSingle();
+  if (error) throw error;
+  if (!data) throw new Error("Publication not found.");
+  // Reconstruct client path for email (best effort; caller may pass fresher)
+  let clientLinkPath: string | null = null;
+  try {
+    if (data.encrypted_token) {
+      const token = decryptPublicationToken(data.encrypted_token, readPublicationTokenEncryptionSecret());
+      clientLinkPath = `/share/${token}`;
+    }
+  } catch { /* ignore */ }
+  return { projectId: data.project_id, workspaceId: data.workspace_id, clientLinkPath };
+}
+
+export async function listSharedLinkRecipients({ publicationId }: { publicationId: string }): Promise<SharedLinkRecipientRow[]> {
+  // Used by manager UI (Recipients tab) to show current status chips.
+  // RLS + service role allows; additive helper (not strictly required by P4 bullets but necessary for "display delivery status" and complete feature).
+  const admin = createPublicationAdminClient();
+  // Verify manager via project lookup
+  const pubCtx = await getPublicationProjectId(admin, publicationId);
+  await assertProjectPublicationManager(pubCtx.projectId); // reuses RBAC
+
+  const { data, error } = await admin
+    .from("shared_link_recipients" as any)
+    .select("*")
+    .eq("publication_id", publicationId)
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return (data ?? []) as any as SharedLinkRecipientRow[];
+}
+
+export async function addSharedLinkRecipients({
+  publicationId,
+  recipients: inputs,
+  baseClientLink,
+}: {
+  publicationId: string;
+  recipients: RecipientInput[];
+  baseClientLink?: string | null;
+}): Promise<{ ok: boolean; message: string; added: number; failedEmails: string[]; emailResults: Array<{ email: string; ok: boolean; error?: string }> }> {
+  if (!publicationId || !Array.isArray(inputs) || inputs.length === 0) {
+    return { ok: false, message: "No recipients provided.", added: 0, failedEmails: [], emailResults: [] };
+  }
+
+  const admin = createPublicationAdminClient();
+  const pubCtx = await getPublicationProjectId(admin, publicationId);
+  const context = await assertProjectPublicationManager(pubCtx.projectId); // enforces manager RBAC + gets currentUserId
+
+  const normalized = inputs
+    .map((r) => ({ email: normalizeEmail(r.email), displayName: r.displayName?.trim() || null }))
+    .filter((r) => r.email && isValidEmail(r.email));
+
+  if (normalized.length === 0) {
+    return { ok: false, message: "No valid email addresses.", added: 0, failedEmails: inputs.map((i) => i.email), emailResults: [] };
+  }
+
+  const emailResults: Array<{ email: string; ok: boolean; error?: string }> = [];
+  let added = 0;
+  const failedEmails: string[] = [];
+  const secret = readPublicationTokenHashSecret();
+
+  // Fetch project name for email copy (best effort)
+  let projectName = "your project";
+  try {
+    const { data: proj } = await admin.from("projects").select("name").eq("id", pubCtx.projectId).maybeSingle();
+    if (proj?.name) projectName = proj.name;
+  } catch { /* non-fatal */ }
+
+  for (const r of normalized) {
+    try {
+      // Generate unique raw token for this recipient (never stored; only hash)
+      const rawToken = createPublicationToken();
+      const tokenHash = hashPublicationToken(rawToken, secret);
+
+      // Insert (idempotent per unique pub+lower(email) index)
+      const { error: insertErr } = await admin.from("shared_link_recipients" as any).insert({
+        publication_id: publicationId,
+        email: r.email,
+        display_name: r.displayName,
+        invited_by: context.currentUserId,
+        recipient_token_hash: tokenHash,
+        delivery_status: "pending",
+      } as any);
+
+      if (insertErr) {
+        // Likely duplicate (unique constraint) — treat as non-fatal for this recipient
+        if (insertErr.code === "23505" || /duplicate/i.test(insertErr.message || "")) {
+          emailResults.push({ email: r.email, ok: true, error: "already invited" });
+          continue;
+        }
+        throw insertErr;
+      }
+      added++;
+
+      // Build per-recipient link (append rt for future receiver identification; safe query param)
+      const linkBase = baseClientLink || pubCtx.clientLinkPath || `/share/${publicationId}`; // fallback
+      const recipientLink = `${linkBase}${linkBase.includes("?") ? "&" : "?"}rt=${encodeURIComponent(rawToken)}`;
+
+      // Email templates (from agy research + UX best practice; professional, concise)
+      const sender = "A team member"; // could enrich with profile in future
+      const subject = `Project Estimate: ${projectName} shared by ${sender}`;
+      const textBody = `Hello,\n\n${sender} has shared a view-only estimate for the project "${projectName}" with you.\n\nYou can view the estimate using the following link:\n${recipientLink}\n\nIf you have any questions, please contact ${sender} directly.\n\nBest regards,\nThe Archestimator Team`;
+      const htmlBody = `<!doctype html><html><body style="font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color:#333; line-height:1.5; font-size:14px;"><p>Hello,</p><p><strong>${sender}</strong> has shared a view-only estimate for the project <strong>${projectName}</strong> with you.</p><p style="margin:16px 0;"><a href="${recipientLink}" style="background:#292929;color:#fff;padding:10px 16px;text-decoration:none;border-radius:3px;display:inline-block;font-weight:500;">View Project Estimate</a></p><p>If you have any questions, please contact ${sender} directly.</p><p>Best regards,<br>The Archestimator Team</p></body></html>`;
+
+      const sendResult = await sendEmail({
+        to: r.email,
+        subject,
+        text: textBody,
+        html: htmlBody,
+      });
+
+      if (sendResult.ok) {
+        // Mark sent (optimistic; real bounces via future webhooks/Resend events)
+        await admin.from("shared_link_recipients" as any)
+          .update({ delivery_status: "sent", updated_at: new Date().toISOString() } as any)
+          .eq("publication_id", publicationId)
+          .eq("recipient_token_hash", tokenHash);
+        emailResults.push({ email: r.email, ok: true });
+      } else {
+        // Graceful: do not fail the overall operation or link creation. Leave as pending (or could mark bounced on permanent error)
+        console.warn("[P4] recipient email send non-fatal failure", { email: r.email, error: sendResult.error });
+        emailResults.push({ email: r.email, ok: false, error: sendResult.error });
+        // keep pending
+      }
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "unknown error";
+      failedEmails.push(r.email);
+      emailResults.push({ email: r.email, ok: false, error: msg });
+      // Continue to next; overall add can still succeed
+    }
+  }
+
+  const successCount = emailResults.filter((e) => e.ok).length;
+  const message = added > 0
+    ? `Added ${added} recipient(s). ${successCount} email(s) dispatched (failures are non-fatal).`
+    : "No new recipients added (duplicates or invalid).";
+
+  return { ok: added > 0 || successCount > 0, message, added, failedEmails, emailResults };
+}
+
+export async function removeSharedLinkRecipient({
+  publicationId,
+  recipientId,
+  email,
+}: {
+  publicationId: string;
+  recipientId?: string;
+  email?: string;
+}): Promise<{ ok: boolean; message: string }> {
+  if (!publicationId || (!recipientId && !email)) {
+    return { ok: false, message: "Missing recipient identifier." };
+  }
+
+  const admin = createPublicationAdminClient();
+  const pubCtx = await getPublicationProjectId(admin, publicationId);
+  await assertProjectPublicationManager(pubCtx.projectId); // RBAC
+
+  let query = admin.from("shared_link_recipients" as any).delete().eq("publication_id", publicationId);
+  if (recipientId) {
+    query = query.eq("id", recipientId);
+  } else if (email) {
+    query = query.eq("email", normalizeEmail(email));
+  }
+
+  const { error } = await query;
+  if (error) throw error;
+
+  return { ok: true, message: "Recipient removed." };
 }

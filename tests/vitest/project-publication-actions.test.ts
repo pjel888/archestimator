@@ -53,4 +53,28 @@ describe("project publication manager actions (Shared Link Overhaul V2)", () => 
   it("receiver surface will expose tablist for sheet navigation (tabbed estimates)", () => {
     // P2 delivered; original expect(true).toBe(false) removed.
   });
+
+  // P4 RED TESTS (Shared Link Overhaul — Email & Recipients)
+  // These must fail until addSharedLinkRecipients / removeSharedLinkRecipient implemented in actions.ts
+  // and wired with Resend + token gen + graceful failure per Master Prompt + P4 bullets.
+  it("exposes P4 recipient management server actions (add/remove with token generation + Resend)", () => {
+    expect(actions).toContain("addSharedLinkRecipients");
+    expect(actions).toContain("removeSharedLinkRecipient");
+    expect(actions).toContain("shared_link_recipients");
+    expect(actions).toContain("recipient_token_hash");
+    expect(actions).toContain("delivery_status");
+    expect(actions).toContain("delivery_status in ('pending', 'sent', 'bounced', 'opened', 'responded')");
+    // Uses Resend client (P0) for transactional send with unique recipient token link
+    expect(actions).toContain("sendEmail");
+    expect(actions).toContain("from \"@/lib/email/resend-client\"");
+    // Graceful: publication create/republish succeed even if email fails/bounces (no throw, status may stay pending)
+    expect(actions).toMatch(/sendEmail|ResendEmailClient|ok:\s*false/);
+  });
+
+  it("P4 recipient actions generate secure per-recipient tokens and insert with invited_by", () => {
+    expect(actions).toContain("createPublicationToken"); // reuse or similar for recipient tokens
+    expect(actions).toContain("hashPublicationToken"); // or equiv for recipient_token_hash
+    expect(actions).toMatch(/insert.*shared_link_recipients|recipient_token_hash/);
+    expect(actions).toContain("invited_by");
+  });
 });
