@@ -368,3 +368,82 @@ export function createSharedLinkSessionCookie(
   const secureCookie = parts.cookieOptions.secure ? "; Secure" : "";
   return `${parts.name}=${parts.value}; Path=${parts.cookieOptions.path}; HttpOnly; SameSite=Lax; Max-Age=${parts.cookieOptions.maxAge}${secureCookie}`;
 }
+
+// ============================================================================
+// P10 — Password Brute-Force Hardening (additive only)
+// In-memory lockout store (Map + TTL prune, per plan + P6/P8 precedent; no DB table).
+// Progressive delay (1s, 2s, 4s, 8s...) on failures before lock.
+// Hard lock after 5 attempts per IP+token (15min block from 5th fail; 1hr window for count).
+// IP from x-forwarded-for (same as recordProjectPublicationEvent).
+// Always records 'password_attempt' (success/failure in metadata) — type extended at call site.
+// Backwards compat: no-pw tokens, existing cookies, verify/create paths, success flows untouched.
+// Test-only reset exported for red tests in project-publication-security.test.ts
+// ============================================================================
+
+const PASSWORD_LOCKOUT_DURATION_MS = 15 * 60 * 1000;
+const PASSWORD_ATTEMPT_WINDOW_MS = 60 * 60 * 1000;
+const PROGRESSIVE_DELAYS_MS = [1000, 2000, 4000, 8000, 16000, 30000];
+
+type PasswordAttemptRecord = {
+  timestamps: number[];
+  lockedUntil?: number;
+};
+
+const passwordAttemptStore = new Map<string, PasswordAttemptRecord>();
+
+export function __resetPasswordAttemptStoreForTest() {
+  passwordAttemptStore.clear();
+}
+
+export function getClientIp(request: Request): string {
+  const fwd = request.headers.get("x-forwarded-for");
+  if (fwd) return fwd.split(",")[0].trim();
+  return request.headers.get("x-real-ip") || "unknown";
+}
+
+function getPasswordAttemptKey(ip: string, token: string): string {
+  return `${ip}:${token}`;
+}
+
+function pruneOldPasswordAttempts(record: PasswordAttemptRecord, now: number) {
+  record.timestamps = record.timestamps.filter((t) => now - t < PASSWORD_ATTEMPT_WINDOW_MS);
+}
+
+export function getProgressiveDelayMs(failCount: number): number {
+  if (failCount <= 0) return 0;
+  const idx = Math.min(failCount - 1, PROGRESSIVE_DELAYS_MS.length - 1);
+  return PROGRESSIVE_DELAYS_MS[idx];
+}
+
+export function isPasswordLocked(ip: string, token: string, now = Date.now()): boolean {
+  const key = getPasswordAttemptKey(ip, token);
+  const rec = passwordAttemptStore.get(key);
+  if (!rec) return false;
+  if (rec.lockedUntil && now < rec.lockedUntil) return true;
+  pruneOldPasswordAttempts(rec, now);
+  if (rec.timestamps.length >= 5) {
+    rec.lockedUntil = now + PASSWORD_LOCKOUT_DURATION_MS;
+    return true;
+  }
+  return false;
+}
+
+export function recordPasswordFailure(ip: string, token: string, now = Date.now()): number {
+  const key = getPasswordAttemptKey(ip, token);
+  let rec = passwordAttemptStore.get(key);
+  if (!rec) {
+    rec = { timestamps: [] };
+    passwordAttemptStore.set(key, rec);
+  }
+  pruneOldPasswordAttempts(rec, now);
+  rec.timestamps.push(now);
+  if (rec.timestamps.length >= 5 && !rec.lockedUntil) {
+    rec.lockedUntil = now + PASSWORD_LOCKOUT_DURATION_MS;
+  }
+  return getProgressiveDelayMs(rec.timestamps.length);
+}
+
+export function recordPasswordSuccess(ip: string, token: string) {
+  const key = getPasswordAttemptKey(ip, token);
+  passwordAttemptStore.delete(key);
+}

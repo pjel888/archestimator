@@ -133,6 +133,37 @@ describe("shared link (public project publication) page — Shared Link Overhaul
     expect(mocks.recordProjectPublicationEvent).not.toHaveBeenCalled();
   });
 
+  // P10 RED TEST — written FIRST before any form/page/src edits (graph impact + prior red in security.test completed).
+  // Verifies "Too many attempts" message + disabled input/submit on lockout response (429 from server).
+  it("P10 RED: shows 'Too many attempts' message and disables input + submit during lockout", async () => {
+    const { ProjectPublicationPasswordForm } = await import("@/components/share/ProjectPublicationPasswordForm");
+    const user = userEvent.setup();
+    // Mock fetch to simulate server returning lockout (before form handles 429 -> locked state + msg + disabled)
+    // @ts-expect-error test stub
+    global.fetch = vi.fn().mockResolvedValueOnce({
+      status: 429,
+      json: async () => ({ error: "Too many attempts. Please try again later." }),
+    } as any);
+
+    render(<ProjectPublicationPasswordForm token="p10-lock-red-token" />);
+
+    const input = screen.getByLabelText(/password/i) as HTMLInputElement;
+    const button = screen.getByRole("button", { name: /unlock/i });
+
+    // pre-submit: enabled
+    expect(input.disabled).toBe(false);
+    expect(button.disabled).toBe(false);
+
+    await user.type(input, "guess123");
+    await user.click(button);
+
+    // after 429: msg + disabled (will be red until form impl)
+    expect(await screen.findByText(/too many attempts/i)).toBeInTheDocument();
+    expect(screen.getByText(/too many attempts. please try again later/i)).toBeInTheDocument();
+    expect(input.disabled).toBe(true);
+    expect(button.disabled).toBe(true);
+  });
+
   it("sets the public CSRF cookie on a path sent to the API password route", () => {
     expect(passwordFormSource).toContain("ae_publication_csrf=");
     expect(passwordFormSource).toContain("Path=/; SameSite=Lax; Max-Age=3600");
