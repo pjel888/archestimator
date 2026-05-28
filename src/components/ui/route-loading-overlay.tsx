@@ -37,7 +37,7 @@ export function RouteLoadingOverlay() {
       aria-live="polite"
       aria-label="Loading page"
       className={cn(
-        "fixed inset-0 z-[150] flex items-center justify-center bg-black/25 backdrop-blur-md",
+        "fixed inset-0 z-[150] flex items-center justify-center bg-white/40 backdrop-blur-md",
         "pointer-events-none",
         "transition-opacity duration-200 ease-out",
         "motion-reduce:transition-none motion-reduce:duration-0",
@@ -46,7 +46,7 @@ export function RouteLoadingOverlay() {
       <CircleNotch
         size={28}
         weight="regular"
-        className="animate-spin text-white"
+        className="animate-spin text-ink"
         aria-hidden="true"
       />
     </div>,
