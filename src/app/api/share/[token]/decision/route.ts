@@ -71,6 +71,15 @@ export async function POST(request: Request, { params }: { params: Promise<{ tok
       decision: decision as "accepted" | "declined" | "revision_requested",
       note,
     });
+
+    // P8: best-effort owner email digest on decision (rate limited). Non-blocking.
+    try {
+      const { maybeTriggerSharedLinkActivityDigest } = await import("@/lib/publication/actions");
+      if (publicationId && publicationId !== "unknown-pub") {
+        maybeTriggerSharedLinkActivityDigest(publicationId, token, "decision");
+      }
+    } catch {}
+
     return Response.json({ id, decision, created: true }, { status: 201, headers: { "Cache-Control": "no-store" } });
   } catch (e: any) {
     const msg = e?.message || "Failed to submit decision.";

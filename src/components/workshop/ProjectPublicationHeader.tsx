@@ -16,6 +16,7 @@ import {
 } from "@/lib/publication/actions";
 import { RecipientEmailComposer } from "./publication/RecipientEmailComposer";
 export { RecipientEmailComposer };
+import SharedLinkActivityFeed from "@/components/share/SharedLinkActivityFeed";
 import type { ProjectEstimateSheet, ProjectPublicationStatus, ProjectPublicationSummary } from "@/lib/publication/types";
 
 type ProjectPublicationHeaderProps = {
@@ -85,8 +86,8 @@ export function ProjectPublicationHeader({ summary, projectEstimateSheets = [] }
   // P1: selected sheets for the Sheets tab picker (defaults to all when estimates provided)
   const [selectedEstimateIds, setSelectedEstimateIds] = useState<string[]>([]);
 
-  // P1/P4: 4-tab navigation inside the shared link modal (Link / Sheets / Access / Recipients)
-  const [activeTab, setActiveTab] = useState<"link" | "sheets" | "access" | "recipients">("link");
+  // P1/P4/P8: 5-tab navigation (Link / Sheets / Access / Recipients / Activity owner-only)
+  const [activeTab, setActiveTab] = useState<"link" | "sheets" | "access" | "recipients" | "activity">("link");
 
   // Default picker to all sheets for the project (so republish keeps prior selection by default; user can adjust in Sheets tab).
   // Resets when project/summaryKey or the available sheets change.
@@ -211,29 +212,40 @@ export function ProjectPublicationHeader({ summary, projectEstimateSheets = [] }
             </div>
           </aside>
           <div className="min-w-0 flex flex-col divide-y divide-hairline">
-            {/* P1: 3-tab bar (Link / Sheets / Access) - compact 10px per design system */}
+            {/* P1/P4/P8: tabs (Link / Sheets / Access / Recipients / Activity owner-only) - compact 10px, rounded-xs per design system */}
             <div className="flex border-b border-hairline bg-white px-1 text-[10px] font-medium" role="tablist" aria-label="Shared link settings">
-              {(["link", "sheets", "access", "recipients"] as const).map((tab) => {
-                const label = tab === "link" ? "Link" : tab === "sheets" ? "Sheets" : tab === "access" ? "Access" : "Recipients";
-                const isActive = activeTab === tab;
-                return (
-                  <button
-                    key={tab}
-                    type="button"
-                    role="tab"
-                    aria-selected={isActive}
-                    aria-controls={`pub-tab-${tab}`}
-                    className={`min-h-7 flex-1 rounded-xs px-2 py-1 transition-colors ${isActive ? "border-b-2 border-ink text-ink" : "text-tertiary hover:text-secondary hover:bg-surfaceMuted/60"}`}
-                    onClick={() => setActiveTab(tab)}
-                  >
-                    {label}
-                  </button>
-                );
-              })}
+              {(["link", "sheets", "access", "recipients", "activity"] as const)
+                .filter((tab) => tab !== "activity" || canManagePublication)
+                .map((tab) => {
+                  const label = tab === "link" ? "Link" : tab === "sheets" ? "Sheets" : tab === "access" ? "Access" : tab === "recipients" ? "Recipients" : "Activity";
+                  const isActive = activeTab === tab;
+                  return (
+                    <button
+                      key={tab}
+                      type="button"
+                      role="tab"
+                      aria-selected={isActive}
+                      aria-controls={`pub-tab-${tab}`}
+                      className={`min-h-7 flex-1 rounded-xs px-2 py-1 transition-colors ${isActive ? "border-b-2 border-ink text-ink" : "text-tertiary hover:text-secondary hover:bg-surfaceMuted/60"}`}
+                      onClick={() => setActiveTab(tab)}
+                    >
+                      {label}
+                    </button>
+                  );
+                })}
             </div>
 
             {/* Tab content */}
             <div className="flex-1 overflow-auto p-3" id={`pub-tab-${activeTab}`} role="tabpanel">
+              {activeTab === "activity" && canManagePublication && (
+                <div>
+                  <h3 className="text-[11px] font-medium text-ink">Shared link activity</h3>
+                  <p className="text-[9px] text-tertiary">Comments, decisions, and events from recipients (internal notes visible to you only).</p>
+                  <div className="mt-2">
+                    <SharedLinkActivityFeed publicationToken={summary?.clientLinkPath?.split("/").pop() || ""} isOwner={true} onActivitySeen={() => { /* update local seen for badge future */ }} />
+                  </div>
+                </div>
+              )}
               {activeTab === "link" && (
                 <div>
                   <div className="flex items-start justify-between gap-3">

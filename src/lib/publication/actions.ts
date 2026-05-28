@@ -601,3 +601,151 @@ export async function removeSharedLinkRecipient({
 
   return { ok: true, message: "Recipient removed." };
 }
+
+// ============================================================================
+// P8: Activity Feed & Notifications (red stub first — full impl follows in sequence)
+// loadSharedLinkActivity: owner-only server action for manager modal (joins comments + responses + events)
+// Rate-limited owner digest (in-memory MVP; 1 per 15min per publication) using P0 sendEmail
+// ============================================================================
+
+export type ActivityItem = {
+  id: string;
+  type: "comment" | "decision" | "event";
+  created_at: string;
+  author?: string;
+  body?: string;
+  decision?: string;
+  is_internal?: boolean;
+  metadata?: Record<string, unknown>;
+};
+
+type LoadActivityResult = {
+  activities: ActivityItem[];
+  hasMore: boolean;
+};
+
+// In-memory rate limiter for digest emails (MVP; per-process, resets on restart; production would use DB row or Redis)
+const digestRateLimit = new Map<string, number>(); // publicationId -> lastSentEpochMs
+const DIGEST_RATE_LIMIT_MS = 15 * 60 * 1000;
+
+function shouldSendDigest(publicationId: string, now = Date.now()): boolean {
+  const last = digestRateLimit.get(publicationId) ?? 0;
+  if (now - last >= DIGEST_RATE_LIMIT_MS) {
+    digestRateLimit.set(publicationId, now);
+    return true;
+  }
+  return false;
+}
+
+async function triggerOwnerDigestIfAllowed(publicationId: string, publicationToken: string, kind: "comment" | "decision") {
+  if (!shouldSendDigest(publicationId)) return { ok: true, skipped: "rate-limited" };
+  // Lightweight digest (no secrets, best-effort, P0 graceful path)
+  const subject = `New activity on your shared project link`;
+  const text = `There is new ${kind} activity on the shared link for publication ${publicationId.slice(0, 8)}.\nView in the Shared link > Activity tab in your project workspace.`;
+  const html = `<p>There is new <strong>${kind}</strong> activity on your shared project link.</p><p>Open the Shared link modal in the project workspace and select the Activity tab to review.</p>`;
+  try {
+    const res = await sendEmail({ to: "owner@archestimator.test", subject, text, html }); // owner email would be resolved from publication/workspace in full impl
+    return { ok: res.ok, mocked: (res as any).mocked };
+  } catch {
+    return { ok: false, error: "digest-send-failed" };
+  }
+}
+
+// Full owner-only load (P8). Requires manager context. Joins the three shared_link_* tables for the publication
+// resolved from token. Sorted by created_at desc. Supports basic cursor (timestamp). Internal comments visible only to owners.
+export async function loadSharedLinkActivity(
+  publicationToken: string,
+  opts: { limit?: number; cursor?: string } = {}
+): Promise<LoadActivityResult> {
+  const limit = Math.min(Math.max(1, opts.limit ?? 50), 100);
+  const { token } = await requireCurrentUserContext(); // ensures authenticated
+  // Resolve publication + enforce manager via existing helper pattern
+  const admin = createPublicationAdminClient();
+  const pubHash = hashPublicationToken(publicationToken, readPublicationTokenHashSecret());
+  const { data: pub, error: pubErr } = await admin
+    .from("project_publications")
+    .select("id, project_id, status, revoked_at, expires_at")
+    .eq("token_hash", pubHash)
+    .maybeSingle();
+  if (pubErr) throw pubErr;
+  if (!pub || pub.status !== "published" || pub.revoked_at) {
+    throw new Error("Publication not found or inactive.");
+  }
+  // RBAC check (reuses existing assert pattern from this file)
+  await assertProjectPublicationManager(pub.project_id);
+
+  const pubId = pub.id;
+  const cursor = opts.cursor ? new Date(opts.cursor) : null;
+
+  // Parallel loads (additive, service role bypasses RLS for owner-verified path)
+  const [commentsRes, responsesRes, eventsRes] = await Promise.all([
+    admin
+      .from("shared_link_comments" as any)
+      .select("id, created_at, body, is_internal, author_email, estimate_id, row_id")
+      .eq("publication_id", pubId)
+      .order("created_at", { ascending: false })
+      .limit(limit + 1),
+    admin
+      .from("shared_link_responses" as any)
+      .select("id, created_at, decision, note, recipient_id")
+      .eq("publication_id", pubId)
+      .order("created_at", { ascending: false })
+      .limit(limit + 1),
+    admin
+      .from("shared_link_events" as any)
+      .select("id, created_at, event_type, metadata_json, recipient_id")
+      .eq("publication_id", pubId)
+      .order("created_at", { ascending: false })
+      .limit(limit + 1),
+  ]);
+
+  const raw: any[] = [];
+  (commentsRes.data ?? []).forEach((c: any) =>
+    raw.push({
+      id: c.id,
+      type: "comment",
+      created_at: c.created_at,
+      author: c.author_email,
+      body: c.body,
+      is_internal: !!c.is_internal,
+    })
+  );
+  (responsesRes.data ?? []).forEach((r: any) =>
+    raw.push({
+      id: r.id,
+      type: "decision",
+      created_at: r.created_at,
+      author: "recipient",
+      decision: r.decision,
+      body: r.note || undefined,
+    })
+  );
+  (eventsRes.data ?? []).forEach((e: any) =>
+    raw.push({
+      id: e.id,
+      type: "event",
+      created_at: e.created_at,
+      metadata: e.metadata_json || {},
+    })
+  );
+
+  // Sort + cursor filter + limit
+  raw.sort((a, b) => (a.created_at < b.created_at ? 1 : -1));
+  let filtered = raw;
+  if (cursor) {
+    filtered = filtered.filter((a) => new Date(a.created_at) < cursor);
+  }
+  const hasMore = filtered.length > limit;
+  const activities = filtered.slice(0, limit);
+
+  return { activities, hasMore };
+}
+
+// Internal trigger for P8 email digest (called from comment/decision routes after successful insert)
+export async function maybeTriggerSharedLinkActivityDigest(
+  publicationId: string,
+  publicationToken: string,
+  kind: "comment" | "decision"
+) {
+  return triggerOwnerDigestIfAllowed(publicationId, publicationToken, kind);
+}
