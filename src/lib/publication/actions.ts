@@ -671,7 +671,7 @@ export async function loadSharedLinkActivity(
   opts: { limit?: number; cursor?: string } = {}
 ): Promise<LoadActivityResult> {
   const limit = Math.min(Math.max(1, opts.limit ?? 50), 100);
-  const { token } = await requireCurrentUserContext(); // ensures authenticated
+  await requireCurrentUserContext(); // enforces authenticated owner for shared link activity load (P8); no .token on context type — publicationToken param used for lookup
   // Resolve publication + enforce manager via existing helper pattern
   const admin = createPublicationAdminClient();
   const pubHash = hashPublicationToken(publicationToken, readPublicationTokenHashSecret());

@@ -145,7 +145,7 @@ export async function recordProjectPublicationEvent({
 
   const { error: eventError } = await supabase.from("project_publication_events").insert({
     publication_id: publication.id,
-    event_type: eventType,
+    event_type: eventType as any, // P10: password_attempt (widened in app ProjectPublicationEventType); generated supabase/types still narrow until `supabase gen types` post-DB (runtime Postgres accepts; see P3 migration 20260528220000 + P10 security)
     metadata_json: metadata as Json,
     ip_hash: hashRequestValue(request.headers.get("x-forwarded-for")),
     user_agent_hash: hashRequestValue(request.headers.get("user-agent")),
