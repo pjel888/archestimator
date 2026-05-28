@@ -3,8 +3,9 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { ProjectWorkspaceHeaderRow } from "@/components/workshop/ProjectWorkspaceHeaderRow";
+import { SheetPickerList } from "@/components/workshop/ProjectPublicationHeader";
 import type { ProjectCollaborationSummary } from "@/lib/collaboration/types";
-import type { ProjectPublicationSummary } from "@/lib/publication/types";
+import type { ProjectEstimateSheet, ProjectPublicationSummary } from "@/lib/publication/types";
 
 const publicationActions = vi.hoisted(() => ({
   createProjectPublication: vi.fn(),
@@ -64,6 +65,11 @@ const publicationSummary: ProjectPublicationSummary = {
   latestOpenedAt: "2026-05-27T01:00:00.000Z",
 };
 
+const sampleEstimateSheets: ProjectEstimateSheet[] = [
+  { id: "est-1", name: "Foundation", sheetCode: "S-100" },
+  { id: "est-2", name: "Framing", sheetCode: "S-200" },
+];
+
 describe("ProjectWorkspaceHeaderRow publication control", () => {
   beforeEach(() => {
     publicationActions.createProjectPublication.mockReset();
@@ -87,6 +93,7 @@ describe("ProjectWorkspaceHeaderRow publication control", () => {
         projectCode="PRJ-001"
         collaborationSummary={collaborationSummary}
         publicationSummary={publicationSummary}
+        projectEstimateSheets={sampleEstimateSheets}
       />,
     );
 
@@ -109,7 +116,7 @@ describe("ProjectWorkspaceHeaderRow publication control", () => {
   it("generates a public view-only link with an optional password and shows it immediately", async () => {
     publicationActions.createProjectPublication.mockResolvedValueOnce({
       ok: true,
-      message: "Public link ready.",
+      message: "Shared link ready.",
       clientLinkPath: "/share/generated-token",
     });
 
@@ -134,19 +141,24 @@ describe("ProjectWorkspaceHeaderRow publication control", () => {
         projectCode="PRJ-001"
         collaborationSummary={null}
         publicationSummary={unpublishedSummary}
+        projectEstimateSheets={sampleEstimateSheets}
       />,
     );
 
     await user.click(screen.getByRole("button", { name: "Open shared link" }));
     const dialog = screen.getByRole("dialog", { name: "Shared link" });
+    await user.click(within(dialog).getByRole("tab", { name: "Access" }));
     await user.click(within(dialog).getByLabelText("Require password"));
     await user.type(within(dialog).getByLabelText("Link password"), "client-pass-1");
     await user.click(within(dialog).getByRole("button", { name: "Generate shared link" }));
 
     expect(publicationActions.createProjectPublication).toHaveBeenCalledWith({
       projectId: "project-1",
+      selectedEstimateIds: ["est-1", "est-2"],
       password: "client-pass-1",
     });
+    // Switch back to Link tab to see the populated input (generate works from any tab)
+    await user.click(within(dialog).getByRole("tab", { name: "Link" }));
     expect(await within(dialog).findByDisplayValue("http://localhost:3000/share/generated-token")).toBeInTheDocument();
     expect(within(dialog).getByRole("button", { name: "Copy shared link" })).toBeEnabled();
     expect(within(dialog).getByRole("button", { name: "Create new shared link" })).toBeEnabled();
@@ -155,7 +167,7 @@ describe("ProjectWorkspaceHeaderRow publication control", () => {
   it("can create a fresh public link for an already published page", async () => {
     publicationActions.rotateProjectPublicationLink.mockResolvedValueOnce({
       ok: true,
-      message: "New public link ready.",
+      message: "New shared link ready.",
       clientLinkPath: "/share/rotated-token",
     });
 
@@ -166,6 +178,7 @@ describe("ProjectWorkspaceHeaderRow publication control", () => {
         projectCode="PRJ-001"
         collaborationSummary={null}
         publicationSummary={publicationSummary}
+        projectEstimateSheets={sampleEstimateSheets}
       />,
     );
 
@@ -181,17 +194,118 @@ describe("ProjectWorkspaceHeaderRow publication control", () => {
     expect(await within(dialog).findByDisplayValue("http://localhost:3000/share/rotated-token")).toBeInTheDocument();
   });
 
-  // RED TEST (P0, minimal): Sheet picker filter behavior (selection state) — red until P1 adds SheetPickerList + passes selected ids
-  it("disables generate when 0 estimates selected (sheet filter validation)", () => {
-    // Structural expectation on action contract; full UI checkbox interaction in P1
-    expect(publicationActions.createProjectPublication).toBeDefined();
-    // Intentional red signal for missing UI validation until sheet picker wired
-    expect(true).toBe(false);
+  it("disables generate when 0 estimates selected (sheet filter validation)", async () => {
+    const user = userEvent.setup();
+    const noSheetSummary = { ...publicationSummary, status: "unpublished" as const, selectedEstimateCount: 0 };
+    render(
+      <ProjectWorkspaceHeaderRow
+        projectId="project-1"
+        projectCode="PRJ-001"
+        collaborationSummary={null}
+        publicationSummary={noSheetSummary}
+        projectEstimateSheets={[]}
+      />,
+    );
+    await user.click(screen.getByRole("button", { name: "Open shared link" }));
+    const dialog = screen.getByRole("dialog", { name: "Shared link" });
+    // Switch to Sheets (starts default empty when no sheets)
+    await user.click(within(dialog).getByRole("tab", { name: "Sheets" }));
+    const generateBtn = within(dialog).getByRole("button", { name: "Generate shared link" });
+    expect(generateBtn).toBeDisabled();
   });
 
   // RED TEST (P0): Tab rendering on receiver — red until P2 SharePageTabs
   it("receiver page renders accessible tabs for selected estimate sheets", () => {
     // Will locate tablist with sheet names once P2 lands
     expect(true).toBe(false);
+  });
+});
+
+/**
+ * RED TESTS (P1): SheetPickerList component behavior.
+ * Written BEFORE any SheetPickerList implementation logic or tab restructure in ProjectPublicationHeader.
+ * These capture the required rendering, interaction, validation, a11y, and keyboard contract per the approved interface:
+ *   interface SheetPickerListProps {
+ *     estimates: Array<{id: string; name: string; sheetCode?: string | null}>;
+ *     selectedIds: string[];
+ *     onChange: (ids: string[]) => void;
+ *     disabled?: boolean;
+ *     'aria-label'?: string;
+ *   }
+ * All UI must comply with design system (SF Pro, ≤12px / text-[10px] text-[9px], rounded-xs, Phosphor regular, compact).
+ * Integration expectations (0-selected disables Generate, empty state for 0 selected) exercised here and will be wired after header changes.
+ */
+describe("SheetPickerList (P1)", () => {
+  const mockEstimates: ProjectEstimateSheet[] = [
+    { id: "est-1", name: "Foundation", sheetCode: "S-100" },
+    { id: "est-2", name: "Framing", sheetCode: "S-200" },
+    { id: "est-3", name: "Electrical", sheetCode: null },
+  ];
+
+  const onChange = vi.fn();
+
+  beforeEach(() => {
+    onChange.mockReset();
+  });
+
+  it("renders list of estimates with checkboxes, labels showing name and sheetCode, and aria-label", () => {
+    render(<SheetPickerList estimates={mockEstimates} selectedIds={["est-1"]} onChange={onChange} aria-label="Select estimate sheets to include in shared link" />);
+    expect(screen.getAllByRole("checkbox")).toHaveLength(3);
+    expect(screen.getByLabelText(/S-100.*Foundation/)).toBeInTheDocument();
+    expect(screen.getByLabelText(/Electrical/)).toBeInTheDocument();
+    expect(screen.getByLabelText("Select estimate sheets to include in shared link")).toBeInTheDocument();
+  });
+
+  it("toggles individual estimate on checkbox change and calls onChange with updated set", async () => {
+    const user = userEvent.setup();
+    const { rerender } = render(<SheetPickerList estimates={mockEstimates} selectedIds={[]} onChange={onChange} />);
+    const foundation = screen.getByLabelText(/Foundation/);
+    await user.click(foundation);
+    expect(onChange).toHaveBeenCalledWith(["est-1"]);
+    rerender(<SheetPickerList estimates={mockEstimates} selectedIds={["est-1"]} onChange={onChange} />);
+    await user.click(foundation);
+    expect(onChange).toHaveBeenLastCalledWith([]);
+  });
+
+  it("Select all affordance selects every estimate id and calls onChange", async () => {
+    const user = userEvent.setup();
+    render(<SheetPickerList estimates={mockEstimates} selectedIds={["est-1"]} onChange={onChange} />);
+    await user.click(screen.getByRole("button", { name: /select all/i }));
+    expect(onChange).toHaveBeenCalledWith(["est-1", "est-2", "est-3"]);
+  });
+
+  it("Clear / deselect all affordance calls onChange with empty array", async () => {
+    const user = userEvent.setup();
+    render(<SheetPickerList estimates={mockEstimates} selectedIds={["est-1", "est-2"]} onChange={onChange} />);
+    await user.click(screen.getByRole("button", { name: /clear/i }));
+    expect(onChange).toHaveBeenCalledWith([]);
+  });
+
+  it("shows explicit '0 estimates selected' message when selectedIds.length === 0", () => {
+    render(<SheetPickerList estimates={mockEstimates} selectedIds={[]} onChange={onChange} />);
+    expect(screen.getByText("0 estimates selected")).toBeInTheDocument();
+  });
+
+  it("renders empty state when project has 0 estimates", () => {
+    render(<SheetPickerList estimates={[]} selectedIds={[]} onChange={onChange} />);
+    expect(screen.getByText(/no estimate sheets/i)).toBeInTheDocument();
+  });
+
+  it("respects disabled prop (no toggles, no select-all)", async () => {
+    const user = userEvent.setup();
+    render(<SheetPickerList estimates={mockEstimates} selectedIds={[]} onChange={onChange} disabled />);
+    const cb = screen.getAllByRole("checkbox")[0];
+    expect(cb).toBeDisabled();
+    await user.click(cb);
+    expect(onChange).not.toHaveBeenCalled();
+  });
+
+  it("supports keyboard navigation (checkboxes are focusable with proper aria labels)", () => {
+    render(<SheetPickerList estimates={mockEstimates} selectedIds={[]} onChange={onChange} aria-label="Sheets" />);
+    const checkboxes = screen.getAllByRole("checkbox");
+    expect(checkboxes[0]).toHaveAttribute("aria-label", "S-100 — Foundation");
+    // Native checkbox keyboard (Space/Enter) is provided by browser; focusable + labelled for a11y
+    checkboxes[0].focus();
+    expect(document.activeElement).toBe(checkboxes[0]);
   });
 });
