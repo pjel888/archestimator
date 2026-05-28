@@ -1,5 +1,6 @@
 import { assertSameOriginPublicPost, createSharedLinkSessionCookieName, verifySharedLinkSessionCookieValue } from "@/lib/publication/security";
 import { submitSharedLinkDecision, createPublicationServiceClient } from "@/lib/publication/public-repository";
+import { createHash } from "crypto";
 
 export const dynamic = "force-dynamic";
 
@@ -7,6 +8,19 @@ export const dynamic = "force-dynamic";
 function parseCookieValue(cookieHeader: string, name: string): string | undefined {
   const match = cookieHeader.match(new RegExp(`(?:^|;\\s*)${name}=([^;]*)`));
   return match ? decodeURIComponent(match[1]) : undefined;
+}
+
+// P12: structured error logging (additive) for decision route
+function getIpHash(request: Request): string {
+  const ip = request.headers.get("x-forwarded-for")?.split(",")[0].trim()
+    || request.headers.get("cf-connecting-ip")
+    || request.headers.get("x-real-ip")
+    || "unknown";
+  return createHash("sha256").update(ip).digest("hex").slice(0, 12);
+}
+
+function logStructured(level: "error" | "warn", route: string, errorCode: string, ipHash: string, extra?: Record<string, unknown>) {
+  console.error({ level, route, errorCode, ipHash, ts: new Date().toISOString(), ...extra });
 }
 
 export async function POST(request: Request, { params }: { params: Promise<{ token: string }> }) {
@@ -24,6 +38,8 @@ export async function POST(request: Request, { params }: { params: Promise<{ tok
   const decision = (body.decision || "").toString().trim();
   const allowedDecisions = ["accepted", "declined", "revision_requested"] as const;
   if (!allowedDecisions.includes(decision as any)) {
+    const ipHash = getIpHash(request);
+    logStructured("error", "/api/share/[token]/decision", "VALIDATION_INVALID_DECISION", ipHash);
     return Response.json({ error: "Invalid decision. Must be accepted, declined, or revision_requested." }, { status: 400, headers: { "Cache-Control": "no-store" } });
   }
 
@@ -56,11 +72,15 @@ export async function POST(request: Request, { params }: { params: Promise<{ tok
     recipientId: recipientIdFromCookie,
   });
   if (!sessionOk) {
+    const ipHash = getIpHash(request);
+    logStructured("error", "/api/share/[token]/decision", "SESSION_INVALID", ipHash);
     return Response.json({ error: "Valid recipient session required for decisions." }, { status: 401, headers: { "Cache-Control": "no-store" } });
   }
 
   const recipientId = recipientIdFromCookie;
   if (!recipientId) {
+    const ipHash = getIpHash(request);
+    logStructured("error", "/api/share/[token]/decision", "RECIPIENT_MISSING", ipHash);
     return Response.json({ error: "Recipient context missing from session." }, { status: 400, headers: { "Cache-Control": "no-store" } });
   }
 
@@ -84,9 +104,13 @@ export async function POST(request: Request, { params }: { params: Promise<{ tok
   } catch (e: any) {
     const msg = e?.message || "Failed to submit decision.";
     if (/already submitted/i.test(msg)) {
+      const ipHash = getIpHash(request);
+      logStructured("warn", "/api/share/[token]/decision", "DECISION_ALREADY_SUBMITTED", ipHash);
       return Response.json({ error: "Decision already submitted." }, { status: 409, headers: { "Cache-Control": "no-store" } });
     }
     const status = /not found|expired|recipient/i.test(msg) ? 403 : 500;
+    const ipHash = getIpHash(request);
+    logStructured("error", "/api/share/[token]/decision", "SUBMIT_FAILED", ipHash, { status, msg: msg.slice(0, 120) });
     return Response.json({ error: msg }, { status, headers: { "Cache-Control": "no-store" } });
   }
 }
