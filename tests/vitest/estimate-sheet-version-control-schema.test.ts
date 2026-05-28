@@ -20,6 +20,15 @@ if (!contingencyMigrationPath) throw new Error("Missing estimate row contingency
 
 const contingencyMigration = readFileSync(join(process.cwd(), "supabase/migrations", contingencyMigrationPath), "utf8");
 
+const discountMigrationPath = readdirSync(join(process.cwd(), "supabase/migrations"))
+  .filter((file) => file.endsWith("_allow_estimate_row_discounts.sql"))
+  .sort()
+  .at(-1);
+
+if (!discountMigrationPath) throw new Error("Missing estimate row discount migration.");
+
+const discountMigration = readFileSync(join(process.cwd(), "supabase/migrations", discountMigrationPath), "utf8");
+
 describe("estimate sheet version control schema", () => {
   it("adds append-only events, named versions, row revisions, and safety indexes", () => {
     expect(migration).toContain("add column if not exists row_revision integer not null default 1");
@@ -76,6 +85,12 @@ describe("estimate sheet version control schema", () => {
     expect(contingencyMigration).toContain("revoke execute on function public.reorder_estimate_nodes(uuid, jsonb) from public, anon, authenticated");
     expect(contingencyMigration).toContain("revoke execute on function public.insert_estimate_template_into_estimate(uuid, uuid, uuid, uuid) from public, anon, authenticated");
     expect(contingencyMigration).toContain("drop function if exists public.move_estimate_nodes(uuid, jsonb)");
+  });
+
+  it("allows row percentage adjustments to be stored as discounts", () => {
+    expect(discountMigration).toContain("drop constraint if exists estimate_row_items_contingency_percentage_check");
+    expect(discountMigration).toContain("check (contingency_percentage >= -100 and contingency_percentage <= 100)");
+    expect(discountMigration).toContain("drop constraint if exists estimate_template_row_items_contingency_percentage_check");
   });
 
   it("defines named-version, compare foundation, restore-as-copy, and wrapper RPCs", () => {

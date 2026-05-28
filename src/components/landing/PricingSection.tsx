@@ -1,6 +1,9 @@
+"use client";
+
 import { CtaLink } from "./CtaLink";
 import { MotionReveal } from "./MotionReveal";
 import { workshopHref } from "./constants";
+import { trackConversion } from "@/lib/ab-testing/experiment-tracker";
 
 export function PricingSection() {
   return (
@@ -32,7 +35,12 @@ export function PricingSection() {
               </div>
             </div>
             <div className="mt-8">
-              <CtaLink href={workshopHref}>See the workspace</CtaLink>
+              <CtaLink
+                href={workshopHref}
+                onClick={() => trackConversion("hero-cta-copy", "cta_click", { location: "pricing", target: "see_workspace" })}
+              >
+                See the workspace
+              </CtaLink>
             </div>
           </div>
         </MotionReveal>

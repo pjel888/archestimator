@@ -1,7 +1,10 @@
+"use client";
+
 import Link from "next/link";
 import { ArrowRight } from "@phosphor-icons/react/dist/ssr";
 import { MotionReveal } from "./MotionReveal";
 import { workshopHref } from "./constants";
+import { trackConversion } from "@/lib/ab-testing/experiment-tracker";
 
 export function FinalCTASection() {
   return (
@@ -23,6 +26,7 @@ export function FinalCTASection() {
             </div>
             <Link
               href={workshopHref}
+              onClick={() => trackConversion("hero-cta-copy", "cta_click", { location: "final_cta", target: "open_workspace" })}
               className="inline-flex min-h-10 items-center justify-center gap-2 rounded-[5px] bg-white px-4 text-[12px] font-semibold leading-none text-[#111111] transition hover:translate-y-[-1px] hover:bg-[#fff7ef] active:scale-95 focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-[#ff7a1a]"
             >
               Open workspace <ArrowRight className="size-4" weight="bold" />

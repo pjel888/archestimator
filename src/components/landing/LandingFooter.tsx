@@ -132,7 +132,15 @@ export function LandingFooter({ isHomePage = true }: { isHomePage?: boolean }) {
           </div>
 
           <div className="flex flex-col gap-3 border-t border-white/12 pt-6 text-[11px] text-white/42 sm:flex-row sm:items-center sm:justify-between">
-            <p>© {currentYear} Archestimator. All rights reserved.</p>
+            <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
+              <span>© {currentYear} Archestimator. All rights reserved.</span>
+              <Link href="/privacy" className="transition hover:text-white">
+                Privacy Policy
+              </Link>
+              <Link href="/terms" className="transition hover:text-white">
+                Terms of Service
+              </Link>
+            </div>
             <p>Built for quote and proposal workflows. No fake logos, legal-document automation, or savings guarantees.</p>
           </div>
         </div>

@@ -1,7 +1,7 @@
 # Roadmap
 
-**Last updated:** 2026-05-27
-**Status:** Pre-launch MVP. Supabase/Auth/Postgres are active for Archestimator project `ebxxqidacheyapmmzavr`; the protected workshop, invite-entry collaboration flow, project client publication, estimating sheet, component library, charts, proposal XLSX export, and Ask-only AI slice are in active MVP hardening. The brand narrative is pivoting from construction-cost-estimator-only to structured quote, estimate, and proposal workflows for teams that build itemized commercial offers. Construction-style estimating remains the current implemented wedge. The local sign-up/login/authentication, project invite-entry, and project client publication implementations are reviewed at the focused-test level, but public/private launch remains NO-GO until provider, legal, Vercel, QA, support, owner, full validation/build, and storage/security evidence is complete.
+**Last updated:** 2026-05-28
+**Status:** Pre-launch MVP. Supabase/Auth/Postgres are active for Archestimator project `ebxxqidacheyapmmzavr`; the protected workshop, invite-entry collaboration flow, project client publication, estimating sheet, component library, charts, proposal XLSX export, account-aware Ask route, and package-builder Draft/Apply AI slice are in active MVP hardening. The brand narrative is pivoting from construction-cost-estimator-only to structured quote, estimate, and proposal workflows for teams that build itemized commercial offers. Construction-style estimating remains the current implemented wedge. The local sign-up/login/authentication, project invite-entry, and project client publication implementations are reviewed at the focused-test level, but public/private launch remains NO-GO until provider, legal, Vercel, QA, support, owner, full validation/build, and storage/security evidence is complete.
 
 ## Current product baseline
 
@@ -19,7 +19,8 @@ The reset-era blank-workshop baseline is no longer current. Archestimator now pr
 /share/[token]                                       public, view-only client publication receiver route with optional password gate
 /privacy                                             pending-review Privacy Notice status page
 /terms                                               pending-review Terms status page
-/api/ai/ask                                           Ask-only AI copilot endpoint
+/api/ai/ask                                           read-only account-aware AI copilot endpoint
+/api/ai/package-builder                               package-builder Draft/Apply endpoint with signed preview and confirmation gates
 /api/component-library/images                         component-library image upload API
 /api/component-library/attachments                    component-library attachment upload API
 /api/projects/[projectId]/estimates/[estimateId]/export/proposal.xlsx
@@ -46,7 +47,7 @@ The reset-era blank-workshop baseline is no longer current. Archestimator now pr
 - Project publication: project-header `Public link` controls and `/share/[token]` receiver route exist for token-scoped, view-only client snapshots with optional password protection and metadata-only open tracking. PDF/download publication artifacts are not implemented.
 - Component Library/Templates: `/workshop/library` for components, `/workshop/templates` for reusable templates, shared estimate-sidebar data loading, variants, brands, suppliers, folders, images, attachments, cost entries, and component lifecycle/history foundations.
 - Proposal output: current-estimate XLSX preview/download exists; immutable issued proposal snapshots and PDF package workflows are not implemented yet.
-- AI: global Ask-only copilot exists through `/api/ai/ask`; no write tools, Draft/Apply, retrieval/RAG, stored conversations, or autonomous actions are approved.
+- AI: global Ask Flip copilot exists through `/api/ai/ask` for read-only account-aware questions and `/api/ai/package-builder` for signed package-builder Draft/Apply flows. Package-builder Draft can now use bounded comparable prior estimate packages as room/row/cost/source-coverage hints in addition to library components, templates, prior rows, and default-off memory ranking. Stored conversations, vector/RAG, provider-owned memory, autonomous actions, and broad persistent user memory remain unimplemented. The only memory slice is a default-off package-builder accepted/rejected source-signal ranking hint behind `AI_PACKAGE_BUILDER_MEMORY_ENABLED`.
 
 ## Phase 0 - Governance and design-system guardrails
 
@@ -232,21 +233,25 @@ Current source:
 
 ## Phase 6 - AI copilot
 
-Status: Ask-only slice implemented; write-capable AI is future-gated.
+Status: account-aware Ask and first package-builder Draft/Apply slice implemented; launch hardening and broader app actions remain active future work.
 
 Done:
 
-- Global floating copilot opens an Ask-only workflow.
-- `/api/ai/ask` uses the approved first-slice provider path and server-only provider keys.
+- Global floating copilot opens Ask Flip and routes ordinary read-only questions to `/api/ai/ask`.
+- `/api/ai/ask` uses the approved first-slice provider path, server-only provider keys, and server-derived compact account context for authenticated workspace users.
+- `/api/ai/package-builder` supports reviewable `draft`, bounded pre-Apply `refine`, rejected-draft `feedback`, and confirmation-gated `apply` modes for package creation and current-estimate edits.
+- Package-builder Draft uses compact project/component/template/prior-row context, including linked prior-project component usage as a deterministic ranking hint for scoped library component selection.
+- Package-builder Apply uses signed draft tokens, explicit confirmation, idempotency, metadata-only audit, and authenticated Supabase RPCs for approved app-owned mutations.
+- Default-off package-builder memory ranking hints can store accepted/rejected library-item/template source signals when `AI_PACKAGE_BUILDER_MEMORY_ENABLED` is enabled; the local memory migration has not been applied to the linked remote.
 - Workspace auth is required for real provider calls.
 - Admin DB bypass is rejected for AI routes.
 - Metadata-only audit persistence exists for real Supabase workspace users.
 
 Remaining:
 
-- No Draft/Apply, write tools, read tools, retrieval/RAG, stored conversations, or autonomous mutations until separately approved.
-- Future write paths require confirmation UX, idempotency, audit trails, RLS compatibility, data-leakage tests, and rollback strategy.
-- AI launch copy must stay honest: assistant for questions only, not an autonomous estimator.
+- Stored conversations, vector/RAG, provider-owned memory, resettable preference UI, broad persistent user memory, and autonomous mutations remain unimplemented.
+- Broader write paths beyond the current package-builder contracts require confirmation UX, idempotency, audit trails, RLS compatibility, data-leakage tests, and rollback strategy.
+- AI launch copy must stay honest: Ask Flip can answer scoped account questions and create/edit reviewed package-builder drafts after confirmation, but it is not a fully autonomous estimator.
 
 Current source:
 

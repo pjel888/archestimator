@@ -568,7 +568,7 @@ describe("estimate sheet library insertion persistence", () => {
     renderPersistedEstimateSheet(nodesWithRow);
 
     const kitchenSection = screen.getByLabelText("Kitchen");
-    const contingencyInput = within(kitchenSection).getByLabelText("Kitchen Cabinet contingency percentage") as HTMLInputElement;
+    const contingencyInput = within(kitchenSection).getByLabelText("Kitchen Cabinet adjustment percentage") as HTMLInputElement;
 
     await user.click(contingencyInput);
     await user.clear(contingencyInput);
@@ -582,5 +582,40 @@ describe("estimate sheet library insertion persistence", () => {
       expectedRowRevision: 7,
     }));
     expect(contingencyInput.value).toBe("100");
+  });
+
+  it("saves discount adjustments as negative percentages", async () => {
+    const user = userEvent.setup();
+    actionMocks.updateEstimateRowItem.mockResolvedValueOnce({
+      rowId: cabinetRowId,
+      nodeId: targetNodeId,
+      quantity: 2,
+      itemCost: 100,
+      contingencyPercentage: -10,
+      contingencyValue: -20,
+      miscCost: 10,
+      linkState: "linked-overridden",
+      rowRevision: 8,
+    });
+    renderPersistedEstimateSheet(nodesWithRow);
+
+    const kitchenSection = screen.getByLabelText("Kitchen");
+    const adjustmentType = within(kitchenSection).getByLabelText("Kitchen Cabinet adjustment type");
+    const adjustmentInput = within(kitchenSection).getByLabelText("Kitchen Cabinet adjustment percentage") as HTMLInputElement;
+
+    await user.selectOptions(adjustmentType, "discount");
+    await user.click(adjustmentInput);
+    await user.clear(adjustmentInput);
+    await user.type(adjustmentInput, "10");
+    await user.tab();
+
+    await waitFor(() => expect(actionMocks.updateEstimateRowItem).toHaveBeenCalledTimes(1));
+    expect(actionMocks.updateEstimateRowItem).toHaveBeenCalledWith(expect.objectContaining({
+      rowId: cabinetRowId,
+      contingencyPercentage: -10,
+      expectedRowRevision: 7,
+    }));
+    expect(adjustmentType).toHaveValue("discount");
+    expect(adjustmentInput.value).toBe("10");
   });
 });

@@ -33,10 +33,9 @@ describe("landing page company proof and Lenis integration", () => {
   it("keeps the locked hero first and inserts the company proof carousel before the product showcase", () => {
     const page = readProjectFile("src/app/page.tsx");
 
-    expect(page).toContain("LandingSmoothScrollProvider");
-    expect(page.indexOf("<HeroSection />")).toBeGreaterThan(-1);
+    expect(page.indexOf("<HeroSection")).toBeGreaterThan(-1);
     expect(page.indexOf("<CompanyProofCarouselSection />")).toBeGreaterThan(
-      page.indexOf("<HeroSection />"),
+      page.indexOf("<HeroSection"),
     );
     expect(page.indexOf("<ProductShowcaseSection />")).toBeGreaterThan(
       page.indexOf("<CompanyProofCarouselSection />"),
@@ -44,6 +43,7 @@ describe("landing page company proof and Lenis integration", () => {
     expect(page.indexOf("<LandingFooter />")).toBeGreaterThan(
       page.indexOf("<FinalCTASection />"),
     );
+    expect(page).toContain("LandingSmoothScrollProvider");
   });
 
   it("marks company carousel data as placeholder scaffolding instead of real social proof", () => {

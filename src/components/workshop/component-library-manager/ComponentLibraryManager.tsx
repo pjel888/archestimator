@@ -2,7 +2,7 @@
 
 import { useMemo, useRef, useState, useTransition } from "react";
 import Image from "next/image";
-import { useRouter } from "next/navigation";
+import { useNavigationRouter } from "@/hooks/use-navigation-router";
 import { CaretDown, CaretRight, FolderSimple, ImageSquare, SquaresFour } from "@phosphor-icons/react/dist/ssr";
 
 import { HeaderIconToolbar } from "@/components/ui/header-icon-toolbar";
@@ -796,7 +796,7 @@ export function ComponentLibraryManager({
   libraryFolders?: LibraryFolderRecord[];
   libraryItems?: EstimateRowItem[];
 } = {}) {
-  const router = useRouter();
+  const router = useNavigationRouter();
   const addButtonReturnRef = useRef<HTMLElement | null>(null);
   const fallbackFolders = useMemo(() => buildFallbackLibraryFolders(categoryTree), [categoryTree]);
   const normalizedPropFolders = useMemo(

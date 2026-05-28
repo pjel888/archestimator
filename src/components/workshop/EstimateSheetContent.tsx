@@ -5,6 +5,7 @@ import { ArrowsOutSimple, CaretDown, ClockCounterClockwise, Cube, DotsSixVertica
 
 import { Button } from "@/components/ui/button";
 import { ControlField, ControlInput } from "@/components/ui/control-input";
+import { ControlSelect } from "@/components/ui/control-select";
 import { HeaderIconToolbar } from "@/components/ui/header-icon-toolbar";
 import { SearchInput } from "@/components/ui/search-input";
 import { dispatchProjectTotalChange } from "@/components/workshop/ProjectTotalHeader";
@@ -315,18 +316,27 @@ function updateEditableRowValue(
     ...current,
     [item.id]: {
       quantity: currentRow?.quantity ?? toEditableNumber(item.quantity),
-      contingencyPercentage: currentRow?.contingencyPercentage ?? toEditableNumber(item.contingencyPercentage ?? 0),
+      contingencyMode: currentRow?.contingencyMode ?? toEditableContingencyMode(item.contingencyPercentage ?? 0),
+      contingencyPercentage: currentRow?.contingencyPercentage ?? toEditableContingencyPercentage(item.contingencyPercentage ?? 0),
       miscCost: currentRow?.miscCost ?? toEditableNumber(item.miscCost),
       ...patchValue,
     },
   };
 }
 
+type CostAdjustmentMode = "contingency" | "discount";
+
 type EditableRowValue = {
   quantity: string;
+  contingencyMode: CostAdjustmentMode;
   contingencyPercentage: string;
   miscCost: string;
 };
+
+const COST_ADJUSTMENT_MODE_OPTIONS: readonly { value: CostAdjustmentMode; label: string }[] = [
+  { value: "contingency", label: "Contingency" },
+  { value: "discount", label: "Discount" },
+];
 
 const BLANK_ESTIMATE_ROW_COMPONENT_LABEL = "Drag or add a component here";
 const BLANK_ESTIMATE_ROW_TAG = "manual-row-placeholder";
@@ -339,15 +349,34 @@ function parseEditableNumber(value: string) {
 
 function clampContingencyPercentage(value: number) {
   if (!Number.isFinite(value)) return 0;
-  return Math.min(100, Math.max(0, value));
+  return Math.min(100, Math.max(-100, value));
 }
 
-function parseContingencyPercentage(value: string) {
-  return clampContingencyPercentage(parseEditableNumber(value));
+function clampCostAdjustmentMagnitude(value: number) {
+  if (!Number.isFinite(value)) return 0;
+  return Math.min(100, Math.max(0, Math.abs(value)));
+}
+
+function toEditableContingencyMode(value: number): CostAdjustmentMode {
+  return value < 0 ? "discount" : "contingency";
+}
+
+function parseCostAdjustmentPercentage(value: string, mode: CostAdjustmentMode) {
+  const magnitude = clampCostAdjustmentMagnitude(parseEditableNumber(value));
+  return mode === "discount" ? -magnitude : magnitude;
+}
+
+function parseEditableContingencyPercentage(editableRow: Pick<EditableRowValue, "contingencyMode" | "contingencyPercentage">) {
+  return parseCostAdjustmentPercentage(editableRow.contingencyPercentage, editableRow.contingencyMode);
 }
 
 function toEditableContingencyPercentage(value: number) {
-  return toEditableNumber(clampContingencyPercentage(value));
+  return toEditableNumber(Math.abs(clampContingencyPercentage(value)));
+}
+
+function formatCostAdjustmentPercentage(value: number) {
+  const modeLabel = toEditableContingencyMode(value) === "discount" ? "Discount" : "Contingency";
+  return `${modeLabel} ${formatAuditNumber(Math.abs(clampContingencyPercentage(value)))}%`;
 }
 
 function formatEditableMoney(value: string) {
@@ -357,6 +386,7 @@ function formatEditableMoney(value: string) {
 function getInitialEditableRow(item: EstimateRowItem): EditableRowValue {
   return {
     quantity: toEditableNumber(item.quantity),
+    contingencyMode: toEditableContingencyMode(item.contingencyPercentage ?? 0),
     contingencyPercentage: toEditableContingencyPercentage(item.contingencyPercentage ?? 0),
     miscCost: toEditableNumber(item.miscCost),
   };
@@ -431,7 +461,7 @@ function collectEditableRows(nodes: EstimateTreeNode[]) {
 function computeRowTotal(item: EstimateRowItem, editableRows: Record<string, EditableRowValue>) {
   const editableRow = editableRows[item.id] ?? getInitialEditableRow(item);
   const quantity = parseEditableNumber(editableRow.quantity);
-  const contingencyPercentage = parseContingencyPercentage(editableRow.contingencyPercentage);
+  const contingencyPercentage = parseEditableContingencyPercentage(editableRow);
   const miscCost = parseEditableNumber(editableRow.miscCost);
   const subTotal = item.itemCost * quantity;
   return calculateRowTotal(subTotal, miscCost, contingencyPercentage);
@@ -451,7 +481,7 @@ function materializeEditableEstimateTree(nodes: EstimateTreeNode[], editableRows
       if (!editableRow) return item;
 
       const quantity = parseEditableNumber(editableRow.quantity);
-      const contingencyPercentage = parseContingencyPercentage(editableRow.contingencyPercentage);
+      const contingencyPercentage = parseEditableContingencyPercentage(editableRow);
       const miscCost = parseEditableNumber(editableRow.miscCost);
       const subTotal = item.itemCost * quantity;
       const contingencyValue = calculateContingencyValue(subTotal, contingencyPercentage);
@@ -518,7 +548,7 @@ function flattenEstimateRows(nodes: EstimateTreeNode[], editableRows: Record<str
     node.estimateRowItems?.forEach((item) => {
       const editableRow = editableRows[item.id] ?? getInitialEditableRow(item);
       const quantity = parseEditableNumber(editableRow.quantity);
-      const contingencyPercentage = parseContingencyPercentage(editableRow.contingencyPercentage);
+      const contingencyPercentage = parseEditableContingencyPercentage(editableRow);
       const miscCost = parseEditableNumber(editableRow.miscCost);
       const subTotal = item.itemCost * quantity;
       const contingencyValue = calculateContingencyValue(subTotal, contingencyPercentage);
@@ -628,6 +658,7 @@ function createProposalPreviewSignature(nodes: EstimateTreeNode[], editableRows:
         item.unit,
         item.itemCost,
         editableRow.quantity,
+        editableRow.contingencyMode,
         editableRow.contingencyPercentage,
         editableRow.miscCost,
         item.supplier,
@@ -982,7 +1013,7 @@ function EstimateRowItemsTable({
       items.map((item) => {
         const editableRow = editableRows[item.id] ?? getInitialEditableRow(item);
         const quantity = parseEditableNumber(editableRow.quantity);
-        const contingencyPercentage = parseContingencyPercentage(editableRow.contingencyPercentage);
+        const contingencyPercentage = parseEditableContingencyPercentage(editableRow);
         const miscCost = parseEditableNumber(editableRow.miscCost);
         const subTotal = item.itemCost * quantity;
         const contingencyValue = calculateContingencyValue(subTotal, contingencyPercentage);
@@ -992,6 +1023,7 @@ function EstimateRowItemsTable({
           storedContingencyPercentage: item.contingencyPercentage ?? 0,
           storedMiscCost: item.miscCost,
           editableQuantity: editableRow.quantity,
+          editableContingencyMode: editableRow.contingencyMode,
           editableContingencyPercentage: editableRow.contingencyPercentage,
           editableMiscCost: editableRow.miscCost,
           quantity,
@@ -1007,7 +1039,7 @@ function EstimateRowItemsTable({
 
   if (!items.length) return null;
 
-  const rowColumns = "grid-cols-[36px_32px_minmax(160px,1fr)_58px_92px_88px_92px_108px_30px]";
+  const rowColumns = "grid-cols-[36px_32px_minmax(160px,1fr)_58px_92px_106px_92px_108px_30px]";
 
   function handleDragOver(event: DragEvent) {
     if (event.dataTransfer.types.includes(LIBRARY_ITEM_DRAG_MIME_TYPE)) {
@@ -1036,7 +1068,7 @@ function EstimateRowItemsTable({
             <th className="flex items-center justify-center border-r border-hairline">Materials</th>
             <th className="flex items-center justify-center border-r border-hairline">Qty</th>
             <th className="flex items-center justify-center border-r border-hairline">Subtotal</th>
-            <th className="flex items-center justify-center border-r border-hairline text-center text-[9px] leading-3">Contingency</th>
+            <th className="flex items-center justify-center border-r border-hairline text-center text-[9px] leading-3">Adjustment</th>
             <th className="flex items-center justify-center border-r border-hairline text-center text-[9px] leading-3">Misc Cost</th>
             <th className="flex items-center justify-center border-r border-hairline text-center text-[9px] leading-3">Total Item Cost</th>
             <th className="flex items-center justify-center">
@@ -1125,11 +1157,32 @@ function EstimateRowItemsTable({
                 <td className="flex items-center justify-center border-r border-hairline px-1 text-center text-[9px] font-medium tabular-nums text-ink">{pesoFormatter.format(item.subTotal).replace("₱", "₱ ")}</td>
                 <td
                   className={cn(
-                    "relative flex items-center justify-center border-r border-hairline px-1 text-center",
+                    "relative flex flex-col items-stretch justify-center gap-1 border-r border-hairline px-1 py-1 text-center",
                     activeCellIndex === 1 && "bg-accent/10 ring-1 ring-inset ring-accent/30",
                   )}
                   data-estimate-cell-active={activeCellIndex === 1 ? "true" : undefined}
                 >
+                  <ControlSelect
+                    value={item.editableContingencyMode}
+                    aria-label={`${item.material} adjustment type`}
+                    wrapperClassName="mx-auto w-full max-w-[92px] justify-center"
+                    className="h-4 w-full border-0 bg-transparent pl-1 pr-4 text-center !text-[9px]"
+                    onChange={(event) => {
+                      const nextMode = event.target.value as CostAdjustmentMode;
+                      setEditableRows((current) => updateEditableRowValue(current, item, { contingencyMode: nextMode }));
+                      onMarkRowDirty(item.id);
+                      const nextContingencyPercentage = parseCostAdjustmentPercentage(item.editableContingencyPercentage, nextMode);
+                      if (nextContingencyPercentage !== item.storedContingencyPercentage) {
+                        onUpdateRowItem(item.id, { contingencyMode: nextMode, contingencyPercentage: item.editableContingencyPercentage });
+                      }
+                    }}
+                  >
+                    {COST_ADJUSTMENT_MODE_OPTIONS.map((option) => (
+                      <option key={option.value} value={option.value}>
+                        {option.label}
+                      </option>
+                    ))}
+                  </ControlSelect>
                   <ControlInput
                     type="number"
                     min="0"
@@ -1145,16 +1198,18 @@ function EstimateRowItemsTable({
                       setFocusedCell((current) => (current?.rowId === item.id && current.cellIndex === 1 ? null : current));
                       const nextContingencyPercentage = toEditableContingencyPercentage(item.contingencyPercentage);
                       setEditableRows((current) => updateEditableRowValue(current, item, { contingencyPercentage: nextContingencyPercentage }));
-                      if (item.contingencyPercentage !== item.storedContingencyPercentage) onUpdateRowItem(item.id, { contingencyPercentage: nextContingencyPercentage });
+                      if (item.contingencyPercentage !== item.storedContingencyPercentage) {
+                        onUpdateRowItem(item.id, { contingencyMode: item.editableContingencyMode, contingencyPercentage: nextContingencyPercentage });
+                      }
                     }}
                     onKeyDown={(event) => handleEstimateCellKeyDown(event, rowIndex, 1)}
                     data-estimate-row-index={rowIndex}
                     data-estimate-cell-index={1}
-                    aria-label={`${item.material} contingency percentage`}
+                    aria-label={`${item.material} adjustment percentage`}
                     align="center"
-                    className="h-full w-full border-0 bg-transparent p-0 text-center text-[10px] font-medium tabular-nums shadow-none [appearance:textfield] focus-visible:ring-0 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                    className="h-5 w-full border-0 bg-transparent p-0 text-center text-[10px] font-medium tabular-nums shadow-none [appearance:textfield] focus-visible:ring-0 [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
                   />
-                  <p className="absolute top-18 right-1 max-w-[calc(100%-0.5rem)] truncate text-right text-[9px] font-medium leading-3 tabular-nums text-tertiary">
+                  <p className="max-w-full truncate text-center text-[9px] font-medium leading-3 tabular-nums text-tertiary">
                     {formatPeso(item.contingencyValue)}
                   </p>
                 </td>
@@ -1536,7 +1591,7 @@ function applyEditableValuesToLibraryItem(libraryItem: EstimateRowItem, editable
   if (!editableRow) return libraryItem;
 
   const quantity = parseEditableNumber(editableRow.quantity);
-  const contingencyPercentage = parseContingencyPercentage(editableRow.contingencyPercentage);
+  const contingencyPercentage = parseEditableContingencyPercentage(editableRow);
   const miscCost = parseEditableNumber(editableRow.miscCost);
   const subTotal = libraryItem.itemCost * quantity;
   const contingencyValue = calculateContingencyValue(subTotal, contingencyPercentage);
@@ -1598,7 +1653,7 @@ const ROW_HISTORY_SCALAR_FIELDS = new Set(["quantity", "contingencyPercentage", 
 const AUDIT_DETAIL_LIMIT = 5;
 const AUDIT_FIELD_LABELS: Record<string, string> = {
   categoryNodeId: "Category",
-  contingencyPercentage: "Contingency",
+  contingencyPercentage: "Adjustment",
   description: "Description",
   discipline: "Discipline",
   linkState: "Library status",
@@ -1693,6 +1748,7 @@ function humanizeAuditField(field: string) {
 
 function summarizeChangedAuditField(field: string) {
   if (field === "linkState") return "library status";
+  if (field === "contingencyPercentage") return "adjustment percentage";
   return field.replace(/([A-Z])/g, " $1").toLowerCase();
 }
 
@@ -1780,7 +1836,7 @@ function formatAuditFieldValue(field: string, value: unknown, snapshot: Record<s
     const parsed = readOptionalNumber(value);
     if (parsed === null) return String(value);
     const contingencyValue = readOptionalNumber(snapshot.contingencyValue);
-    return contingencyValue === null ? `${formatAuditNumber(parsed)}%` : `${formatAuditNumber(parsed)}% (${formatPeso(contingencyValue)})`;
+    return contingencyValue === null ? formatCostAdjustmentPercentage(parsed) : `${formatCostAdjustmentPercentage(parsed)} (${formatPeso(contingencyValue)})`;
   }
 
   if (field === "miscCost" || field === "unitCost" || field === "lineTotal") {
@@ -2573,7 +2629,7 @@ function RowDetailsModal({
               <div className="mt-3 grid grid-cols-2 gap-x-3 border-t border-hairline">
                 <RowDetailField label="Qty" value={`${quantity} ${item?.unit ?? ""}`.trim()} />
                 <RowDetailField label="Unit cost" value={formatPeso(item?.itemCost ?? 0)} />
-                <RowDetailField label="Contingency" value={`${contingencyPercentage}%`} />
+                <RowDetailField label="Adjustment" value={formatCostAdjustmentPercentage(contingencyPercentage)} />
                 <RowDetailField label="Total" value={formatPeso(lineTotal)} />
               </div>
             </div>
@@ -2602,7 +2658,7 @@ function RowDetailsModal({
                   <RowDetailField label="Quantity" value={`${quantity} ${item?.unit ?? ""}`.trim()} />
                   <RowDetailField label="Unit cost" value={formatPeso(item?.itemCost ?? 0)} />
                   <RowDetailField label="Subtotal" value={formatPeso(item?.subTotal ?? 0)} />
-                  <RowDetailField label="Contingency" value={`${contingencyPercentage}% (${formatPeso(contingencyValue)})`} />
+                  <RowDetailField label="Adjustment" value={`${formatCostAdjustmentPercentage(contingencyPercentage)} (${formatPeso(contingencyValue)})`} />
                   <RowDetailField label="Misc cost" value={formatPeso(miscCost)} />
                   <RowDetailField label="Total" value={formatPeso(lineTotal)} />
                   <RowDetailField label="Unit" value={item?.unit} />
@@ -3639,12 +3695,20 @@ export function EstimateSheetContent({
     const previousTree = estimateTree;
     const previousRows = collectEditableRows(estimateTree);
     const rollbackRevision = getEstimateTreeRevision();
+    const currentEditableRow = editableRows[rowItemId] ?? previousRows[rowItemId];
+    const nextEditableRow: EditableRowValue = {
+      quantity: currentEditableRow?.quantity ?? "0",
+      contingencyMode: currentEditableRow?.contingencyMode ?? "contingency",
+      contingencyPercentage: currentEditableRow?.contingencyPercentage ?? "0",
+      miscCost: currentEditableRow?.miscCost ?? "0",
+      ...values,
+    };
     updateRow({
       projectId,
       estimateId,
       rowId: rowItemId,
       ...(values.quantity !== undefined ? { quantity: parseEditableNumber(values.quantity) } : {}),
-      ...(values.contingencyPercentage !== undefined ? { contingencyPercentage: parseContingencyPercentage(values.contingencyPercentage) } : {}),
+      ...(values.contingencyPercentage !== undefined || values.contingencyMode !== undefined ? { contingencyPercentage: parseEditableContingencyPercentage(nextEditableRow) } : {}),
       ...(values.miscCost !== undefined ? { miscCost: parseEditableNumber(values.miscCost) } : {}),
       rollback: () => restoreEstimateState(previousTree, previousRows, rollbackRevision),
     });

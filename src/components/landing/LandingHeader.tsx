@@ -1,5 +1,8 @@
+"use client";
+
 import Link from "next/link";
 import { ArrowRight } from "@phosphor-icons/react/dist/ssr";
+import { trackConversion } from "@/lib/ab-testing/experiment-tracker";
 
 import { ArchestimatorLogo } from "@/components/brand/ArchestimatorLogo";
 
@@ -41,16 +44,28 @@ export function LandingHeader({ isLoggedIn, isHomePage = false }: { isLoggedIn: 
         </nav>
         <nav className="flex items-center gap-4 text-[12px] text-[#111111]">
           {isLoggedIn ? (
-            <Link href={workshopHref} className="inline-flex min-h-9 items-center gap-1 rounded-[5px] bg-[#17181c] px-4 text-[10px] font-bold uppercase tracking-[0.02em] text-white transition hover:bg-[#2a2b30]">
+            <Link
+              href={workshopHref}
+              onClick={() => trackConversion("hero-cta-copy", "cta_click", { location: "header", target: "workspace" })}
+              className="inline-flex min-h-9 items-center gap-1 rounded-[5px] bg-[#17181c] px-4 text-[10px] font-bold uppercase tracking-[0.02em] text-white transition hover:bg-[#2a2b30]"
+            >
               Workspace
               <ArrowRight className="size-3.5 [animation:workspace-arrow-bounce_0.9s_ease-in-out_infinite]" weight="bold" />
             </Link>
           ) : (
             <>
-              <Link href={loginHref} className="inline-flex min-h-9 items-center justify-center rounded-[5px] bg-[#17181c] px-4 text-[10px] font-bold uppercase tracking-[0.02em] text-white transition hover:bg-[#2a2b30]">
+              <Link
+                href={loginHref}
+                onClick={() => trackConversion("hero-cta-copy", "cta_click", { location: "header", target: "try_workspace" })}
+                className="inline-flex min-h-9 items-center justify-center rounded-[5px] bg-[#17181c] px-4 text-[10px] font-bold uppercase tracking-[0.02em] text-white transition hover:bg-[#2a2b30]"
+              >
                 Try Workspace
               </Link>
-              <Link href={loginHref} className="hidden hover:text-[#626260] sm:inline">
+              <Link
+                href={loginHref}
+                onClick={() => trackConversion("hero-cta-copy", "cta_click", { location: "header", target: "login" })}
+                className="hidden hover:text-[#626260] sm:inline"
+              >
                 Log In
               </Link>
             </>

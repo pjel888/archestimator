@@ -3,7 +3,7 @@
 import { useMemo, useState, useTransition } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useNavigationRouter } from "@/hooks/use-navigation-router";
 import { ArrowRight, Blueprint, Books, Calculator, Folder, Star } from "@phosphor-icons/react/dist/ssr";
 
 import { Button } from "@/components/ui/button";
@@ -73,7 +73,7 @@ const destinations: WorkshopDestination[] = [
 ];
 
 export function WorkshopHomebaseClient({ homebase, inviteBanner }: WorkshopHomebaseClientProps) {
-  const router = useRouter();
+  const router = useNavigationRouter();
   const [projectFavoriteOverrides, setProjectFavoriteOverrides] = useState<Record<string, boolean>>({});
   const [estimateFavoriteOverrides, setEstimateFavoriteOverrides] = useState<Record<string, boolean>>({});
   const [activeFavoriteTab, setActiveFavoriteTab] = useState<FavoriteTab>("projects");

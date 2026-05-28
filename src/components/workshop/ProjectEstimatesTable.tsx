@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useNavigationRouter } from "@/hooks/use-navigation-router";
 import { useCallback, useEffect, useId, useMemo, useRef, useState, useTransition, type KeyboardEvent } from "react";
 import { ArrowSquareOut, CaretDown, CaretUp, CaretUpDown, ClockCounterClockwise, CopySimple, Trash } from "@phosphor-icons/react/dist/ssr";
 import {
@@ -175,7 +175,7 @@ type ProjectEstimateRowActionsProps = {
 
 function ProjectEstimateRowActions({ estimate, isSelected, onDuplicateError, onToggleSelected, projectId }: ProjectEstimateRowActionsProps) {
   const estimateHref = getEstimateHref(estimate);
-  const router = useRouter();
+  const router = useNavigationRouter();
   const [isDuplicating, setIsDuplicating] = useState(false);
   const duplicateInFlightRef = useRef(false);
 
@@ -262,7 +262,7 @@ function ProjectEstimateEditableTextCell({
   placeholder: string;
   projectId: string;
 }) {
-  const router = useRouter();
+  const router = useNavigationRouter();
   const errorId = useId();
   const isRequired = field !== "notes";
   const savedValue = field === "sheetCode" ? estimate.sheet_code : field === "notes" ? (estimate.notes ?? "") : estimate.name;
@@ -376,7 +376,7 @@ function ProjectEstimateEditableTextCell({
 ProjectEstimateEditableTextCell.displayName = "ProjectEstimateEditableTextCell";
 
 function ProjectEstimateBudgetCell({ estimate, projectId }: { estimate: ProjectEstimateTableRow; projectId: string }) {
-  const router = useRouter();
+  const router = useNavigationRouter();
   const errorId = useId();
   const savedBudget = estimate.project_budget;
   const savedValue = formatBudgetInput(savedBudget);
@@ -496,7 +496,7 @@ function ProjectEstimateBudgetCell({ estimate, projectId }: { estimate: ProjectE
 ProjectEstimateBudgetCell.displayName = "ProjectEstimateBudgetCell";
 
 function ProjectEstimateSheetCodeCell({ estimate, projectId }: { estimate: ProjectEstimateTableRow; projectId: string }) {
-  const router = useRouter();
+  const router = useNavigationRouter();
   const [isPending, startTransition] = useTransition();
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -594,7 +594,7 @@ function ProjectEstimatesColumnResizeHandle({
 ProjectEstimatesColumnResizeHandle.displayName = "ProjectEstimatesColumnResizeHandle";
 
 function ProjectEstimatesTableComponent({ estimates, projectId, emptyMessage = "No estimate sheets yet" }: ProjectEstimatesTableProps) {
-  const router = useRouter();
+  const router = useNavigationRouter();
   const columnWidthStorageKey = `${COLUMN_WIDTH_STORAGE_KEY_PREFIX}:${projectId}`;
   const [sorting, setSorting] = useState<SortingState>([{ id: "updated_at", desc: true }]);
   const [columnSizing, setColumnSizing] = useState<ColumnSizingState>(() => readColumnSizingFromStorage(columnWidthStorageKey));

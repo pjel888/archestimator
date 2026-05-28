@@ -242,26 +242,28 @@ describe("estimate sheet cost inputs", () => {
     renderEstimateSheet("living-area");
 
     const livingAreaSection = screen.getByLabelText("Living Area");
-    expect(within(livingAreaSection).getByRole("columnheader", { name: "Contingency" })).toBeInTheDocument();
+    expect(within(livingAreaSection).getByRole("columnheader", { name: "Adjustment" })).toBeInTheDocument();
     expect(within(livingAreaSection).getByRole("columnheader", { name: "Total Item Cost" })).toBeInTheDocument();
     expect(within(livingAreaSection).queryByRole("columnheader", { name: "Costs" })).not.toBeInTheDocument();
     expect(within(livingAreaSection).getAllByText("Total Item Cost")).toHaveLength(1);
   });
 
-  it("centers subtotal, contingency, and misc cost row values", () => {
+  it("centers subtotal, adjustment, and misc cost row values", () => {
     renderEstimateSheet("living-area");
 
     const livingAreaSection = screen.getByLabelText("Living Area");
     const subtotalCell = within(livingAreaSection).getByText("₱ 57,600.00").closest("td");
-    const contingencyInput = within(livingAreaSection).getByLabelText("Hardwood Oak Flooring contingency percentage");
-    const contingencyCell = contingencyInput.closest("td");
+    const adjustmentInput = within(livingAreaSection).getByLabelText("Hardwood Oak Flooring adjustment percentage");
+    const adjustmentType = within(livingAreaSection).getByLabelText("Hardwood Oak Flooring adjustment type");
+    const adjustmentCell = adjustmentInput.closest("td");
     const miscCostInput = within(livingAreaSection).getByLabelText("Hardwood Oak Flooring misc cost");
 
     expect(subtotalCell).toHaveClass("justify-center");
-    expect(contingencyCell).toHaveClass("relative", "justify-center");
-    expect(contingencyInput).toHaveClass("text-center");
-    expect(contingencyInput).toHaveClass("h-full");
-    expect(within(contingencyCell as HTMLElement).getByText("₱ 0.00")).toHaveClass("absolute", "right-1", "text-right");
+    expect(adjustmentCell).toHaveClass("relative", "justify-center");
+    expect(adjustmentType).toHaveValue("contingency");
+    expect(adjustmentInput).toHaveClass("text-center");
+    expect(adjustmentInput).toHaveClass("h-5");
+    expect(within(adjustmentCell as HTMLElement).getByText("₱ 0.00")).toHaveClass("text-center");
     expect(miscCostInput.closest("td")).toHaveClass("justify-center");
     expect(miscCostInput).toHaveClass("text-center");
   });
@@ -270,12 +272,27 @@ describe("estimate sheet cost inputs", () => {
     const user = userEvent.setup();
     renderEstimateSheet("living-area");
 
-    const contingencyInput = screen.getByLabelText("Hardwood Oak Flooring contingency percentage");
-    await user.clear(contingencyInput);
-    await user.type(contingencyInput, "10");
+    const adjustmentInput = screen.getByLabelText("Hardwood Oak Flooring adjustment percentage");
+    await user.clear(adjustmentInput);
+    await user.type(adjustmentInput, "10");
 
     expect(screen.getByText("₱ 5,760.00")).toBeInTheDocument();
     expect(screen.getByText("₱ 93,360.00")).toBeInTheDocument();
+  });
+
+  it("subtracts the adjustment value when the row is set to discount", async () => {
+    const user = userEvent.setup();
+    renderEstimateSheet("living-area");
+
+    const adjustmentType = screen.getByLabelText("Hardwood Oak Flooring adjustment type");
+    const adjustmentInput = screen.getByLabelText("Hardwood Oak Flooring adjustment percentage");
+    await user.selectOptions(adjustmentType, "discount");
+    await user.clear(adjustmentInput);
+    await user.type(adjustmentInput, "10");
+
+    expect(adjustmentType).toHaveValue("discount");
+    expect(screen.getByText("-₱ 5,760.00")).toBeInTheDocument();
+    expect(screen.getByText("₱ 81,840.00")).toBeInTheDocument();
   });
 
   it("keeps area breadcrumb spacing symmetrical above and below the trail", () => {
@@ -427,7 +444,7 @@ describe("estimate sheet cost inputs", () => {
 
     await user.click(firstQuantity);
     await user.keyboard("{ArrowRight}");
-    const firstContingency = screen.getByLabelText("Hardwood Oak Flooring contingency percentage");
+    const firstContingency = screen.getByLabelText("Hardwood Oak Flooring adjustment percentage");
     expect(firstContingency).toHaveFocus();
 
     await user.keyboard("{Enter}");
