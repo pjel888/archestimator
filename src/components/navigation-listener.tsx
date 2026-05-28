@@ -27,7 +27,6 @@ export function NavigationListener() {
     function handleClick(event: MouseEvent) {
       const anchor = (event.target as HTMLElement).closest("a");
       if (!anchor) return;
-      if (event.defaultPrevented) return;
       if (event.button !== 0) return;
       if (event.metaKey || event.ctrlKey || event.altKey || event.shiftKey) return;
       if (anchor.target === "_blank") return;
