@@ -18,8 +18,15 @@ import {
   recordProjectPublicationEvent,
   resolveProjectPublicationAccessByToken,
   resolveProjectPublicationSnapshotByToken,
+  verifySharedLinkRecipientToken,
 } from "@/lib/publication/public-repository";
-import { createPublicationAccessCookieName, verifyPublicationAccessCookieValue } from "@/lib/publication/security";
+import {
+  createPublicationAccessCookieName,
+  createSharedLinkSessionCookieName,
+  getSharedLinkSessionCookieParts,
+  verifyPublicationAccessCookieValue,
+  verifySharedLinkSessionCookieValue,
+} from "@/lib/publication/security";
 import type { ProjectPublicationSnapshot } from "@/lib/publication/types";
 
 import type { Metadata } from "next";
@@ -28,6 +35,7 @@ export const dynamic = "force-dynamic";
 
 type SharePageProps = {
   params: Promise<{ token: string }>;
+  searchParams?: Promise<Record<string, string | undefined>>;
 };
 
 function formatMoney(value: number, currencyCode: string) {
@@ -113,8 +121,11 @@ function ProjectPublicationPasswordGate({ token }: { token: string }) {
   );
 }
 
-export default async function SharePage({ params }: SharePageProps) {
+export default async function SharePage({ params, searchParams }: SharePageProps) {
   const { token } = await params;
+  const searchParamsData = await (searchParams ?? Promise.resolve<Record<string, string | undefined>>({}));
+  const recipientToken = typeof searchParamsData.recipient === "string" ? searchParamsData.recipient.trim() : undefined;
+
   const publicationAccess = await resolveProjectPublicationAccessByToken(token);
   if (!publicationAccess) notFound();
 
@@ -128,6 +139,58 @@ export default async function SharePage({ params }: SharePageProps) {
       })
     ) {
       return <ProjectPublicationPasswordGate token={token} />;
+    }
+  }
+
+  // P5: Recipient session & security cookie (additive only; password + view-only flows unchanged)
+  // - On ?recipient= param: verify token against shared_link_recipients (P3 table), set HttpOnly session cookie + client flag
+  // - On subsequent loads: validate existing session cookie
+  // - Sets Max-Age=86400, HttpOnly, SameSite=Lax, Secure (prod) per spec
+  // - Enables useSharedLinkSession hook + future interactive blocking (P6+)
+  let hasValidRecipientSession = false;
+  if (recipientToken) {
+    const verified = await verifySharedLinkRecipientToken(token, recipientToken);
+    if (verified) {
+      hasValidRecipientSession = true;
+      const cookieStore = await cookies();
+      const parts = getSharedLinkSessionCookieParts({
+        token,
+        publicationId: verified.publicationId,
+        snapshotVersion: verified.snapshotVersion,
+        recipientId: verified.recipientId,
+      });
+      cookieStore.set(parts.name, parts.value, parts.cookieOptions);
+      // Non-secret companion flag cookie for client-side hook (useSharedLinkSession reads this)
+      const flagName = `${parts.name}_ok`;
+      cookieStore.set(flagName, "1", {
+        path: "/",
+        httpOnly: false,
+        sameSite: "lax",
+        maxAge: 86400,
+        secure: process.env.NODE_ENV === "production",
+      });
+    }
+  } else {
+    // Subsequent load: validate existing session cookie (additive to password cookie)
+    const cookieStore = await cookies();
+    const sessionValue = cookieStore.get(createSharedLinkSessionCookieName(token))?.value;
+    if (
+      verifySharedLinkSessionCookieValue(sessionValue, {
+        token,
+        publicationId: publicationAccess.publicationId,
+        snapshotVersion: publicationAccess.snapshotVersion,
+      })
+    ) {
+      hasValidRecipientSession = true;
+      // Ensure client flag for hook consistency
+      const flagName = `${createSharedLinkSessionCookieName(token)}_ok`;
+      cookieStore.set(flagName, "1", {
+        path: "/",
+        httpOnly: false,
+        sameSite: "lax",
+        maxAge: 86400,
+        secure: process.env.NODE_ENV === "production",
+      });
     }
   }
 
