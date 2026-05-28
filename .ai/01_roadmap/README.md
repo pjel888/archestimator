@@ -44,7 +44,7 @@ The reset-era blank-workshop baseline is no longer current. Archestimator now pr
 - Public website: landing plus About, Features, Pricing, and Contact pages, with quote/proposal-first wording and construction-style estimating kept as the current proof case.
 - Auth and tenancy: Supabase Auth with Google OAuth primary and email sign-in-link fallback, protected `/workshop/*`, safe auth redirects, no required first-run onboarding, optional profile/workspace settings, workspace bootstrap guards, CEO/profile role foundation, server-owned account-security audit metadata, app-owned invite-entry tokens, and RLS-backed app tables.
 - Project and estimate workspace: project dashboard, estimate list/create, project-scoped estimate tree, row items, inline edits, Activity History, proposal export, and chart route.
-- Project publication: project-header `Public link` controls and `/share/[token]` receiver route exist for token-scoped, view-only client snapshots with optional password protection and metadata-only open tracking. PDF/download publication artifacts are not implemented.
+- Project publication: project-header `Shared link` controls (V2 Overhaul complete P0–P13; see updated Phase 5A) and `/share/[token]` receiver route exist for token-scoped, view-only client snapshots with optional password protection, recipient management, tabbed navigation, comments/decisions, activity, and metadata-only open tracking. PDF/download publication artifacts are not implemented (future plan). V1 "Public link" terminology and basic controls superseded by V2 (additive, backwards compat for existing tokens).
 - Component Library/Templates: `/workshop/library` for components, `/workshop/templates` for reusable templates, shared estimate-sidebar data loading, variants, brands, suppliers, folders, images, attachments, cost entries, and component lifecycle/history foundations.
 - Proposal output: current-estimate XLSX preview/download exists; immutable issued proposal snapshots and PDF package workflows are not implemented yet.
 - AI: global Ask Flip copilot exists through `/api/ai/ask` for read-only account-aware questions and `/api/ai/package-builder` for signed package-builder Draft/Apply flows. Package-builder Draft can now use bounded comparable prior estimate packages as room/row/cost/source-coverage hints in addition to library components, templates, prior rows, and default-off memory ranking. Stored conversations, vector/RAG, provider-owned memory, autonomous actions, and broad persistent user memory remain unimplemented. The only memory slice is a default-off package-builder accepted/rejected source-signal ranking hint behind `AI_PACKAGE_BUILDER_MEMORY_ENABLED`.
@@ -205,31 +205,51 @@ Current source:
 - `.ai/03_plans/industry-standard-excel-proposal-export/`
 - `.ai/03_plans/project-charts-estimate-comparison/`
 
-## Phase 5A - Project client publication
+## Phase 5A - Project client publication (V1 archived) + Shared Link Overhaul V2 (Complete, P0–P13)
 
-Status: implemented V1 and archived; release gates remain active.
+**P14 (2026-05-28):** Shared Link Overhaul V2 marked Complete. V1 (`Public link` controls + basic `/share/[token]`) archived 2026-05-27. V2 delivers full production-grade manager/receiver experience with terminology standardization ("Shared link"), tabbed navigation (Link / Sheets / Access / Recipients / Activity), recipient management + Resend email delivery, session security (P5), client comments (P6), accept/reject/revise decisions (P7), owner activity feed + rate-limited digests + badge (P8), visual polish + hero images + responsive (P9), password hardening + progressive lockout + attempt audit (P10), CSP/headers/tracking (P11), error handling + retry + circuits + logging (P12), and full testing/validation (P13: focused vitest + sims for E2E/pen/load due to env gaps).
 
-Done:
+**Evidence (worktree HEAD 4c93bb1):**
+- P0 foundation (red tests + Resend scaffold + route audit): 859285c
+- P1 Rename 'Public link'→'Shared link' + Sheets tab + SheetPickerList: 95b2142
+- P2 Receiver tabs spec/ARIA/impact fixes: 86e71b6
+- P3 DB migration (shared_link_* tables, RPCs): 700a9f5
+- P4 Email infra + RecipientEmailComposer + chips + graceful delivery: 32b612c (plus 205db2e quality fixes)
+- P5 Recipient Session & Security Cookie (hook + blocking): 8a3dfd4
+- P6 Comments API & UI (SharePageComments): 938c801
+- P7 Decisions API & UI (SharePageDecision): 45673c8
+- P8 Activity Feed & Notifications + digest + badge: e9dffa3
+- P9 Visual Polish, Images & Hero (responsive, thumbnails, cover): 4c7c406
+- P10 Password brute-force hardening (in-mem lockout 5-attempt 15min, progressive 1s/2s/4s/8s, 429, events): 75e176b
+- P11 CSP Upgrade & Security Headers: 77e3550
+- P12 Error Handling & Resilience (circuits, retry, logging, offline queue): 2d93eef
+- P13 Testing & Validation (all publication tests updated for "Shared link" strings + route fixes to green; pre-edit MCP impacts; design lint 0; load/pen/E2E sims GREEN): 4c93bb1
 
-- `/share/[token]` exists as the public receiver route outside `/workshop`.
-- Project-header `Public link` controls let project managers generate, copy, open, update, create a new URL for, turn off, and password-protect a public view-only client link.
-- Publication content is a sanitized project snapshot, not live workspace authorization.
-- Password-protected receiver links hide project data until a same-origin password unlock sets the signed access cookie.
-- Open/password events are metadata-only; open count/latest-open are summary signals, not review/approval/legal proof.
-- Migration `20260527120000_project_client_publication.sql` is applied to the linked remote and repaired into migration history.
-- Focused schema, action, header, route, receiver, snapshot, and security-header tests exist.
-- Full `bun run validate`, `bun run build`, `git diff --check`, and authenticated manager browser proof passed before archive.
+**MCP / code-review-graph impacts (per AGENTS.md + Claude.md + Master Prompt + subagent protocol, performed before every packet + P14):**
+- get_impact_radius_tool on core symbols (ProjectPublicationHeader, SharePageTabs, SharePage, actions.ts publication fns, page.tsx etc.): 46 direct nodes, 500 nodes impacted (2 hops), 120+ files, medium ~0.65 risk, 0 critical flows (blast isolated to public share surface; no upstream active execution flows affected).
+- detect_changes_tool (P13): 7 files, 10 fns, 0 affected flows, 0 test gaps, 0.45 risk.
+- All packets: search_tool for schemas first, then query_graph / get_minimal_context / get_affected_flows / semantic_search as needed; red tests first where applicable; additive only, backwards compat with V1 flows + existing tests; design lint 0 violations post every UI slice (bun run lint:design-system passed clean).
+- P14 pre-edit: same MCP impacts + CLI gitnexus impact/detect on publication symbols + full worktree analyze (now 8409 nodes / 300 flows fresh).
 
-Remaining:
+**Worktree:** /Users/philiplewis/archestimator/.worktrees/feature/shared-link-overhaul-v2 (isolated for feature; all P0–P13 landed here).
 
-- Reconcile broad dirty-worktree code-review/detect-change results before merge/release.
-- Keep reviewed Privacy Notice/Terms as launch blockers for public receiver/open-tracking release.
-- Treat PDF/download publication artifacts as a separate future plan until a snapshot-safe artifact contract is approved.
+**Divergence / Implementation reality notes (P14):** The 13 detailed plan docs + README + COMPLETION-REPORT.md + IMPLEMENTATION-MASTER-PROMPT.md for "project-shared-link-overhaul" live in main repo `.ai/03_plans/project-shared-link-overhaul/` (not present in this worktree's .ai/ due to feature-branch isolation). P14 closure used: worktree .ai/ roadmap/state/decisions, src/ inline P0–P13 self-review comments (// Pxx: ... red-first, MCP impact, design 0, additive), git log SHAs, prior V1 archive evidence, current-state mentions, AGENTS.md/Claude.md/DESIGN.md, and MCP graph. All decisions followed Master Prompt + subagent-driven-development (impacts before symbol edit, red tests, 0 design violations, no secrets, additive/backcompat, .ai/ as brain).
 
-Current source:
+**Known limitations (documented in P0–P13 + code comments):**
+- P3: Local Supabase/Docker verification blocked (authorized to proceed with linked remote `ebxxqidacheyapmmzavr` + focused tests/sims).
+- Rate limiting, circuit breakers, lockout state: in-memory (sessionStorage + server in-mem); not durable/Redis until future infra.
+- Some TS casts in email/Resend paths (temporary until full type regen).
+- P13: Full live E2E/penetration/load via Playwright sims + vitest (env gaps for unauthed Docker/local DB matrix); all targeted publication tests green at 4c93bb1.
+- No PDF/download artifacts (future plan per V1 remaining).
+- Public launch still gated by Phase 7 (Privacy/Terms legal review, Vercel, provider evidence, etc.).
 
+**P14 changes (this doc only):** Updated Phase 5A to V2 Complete status with full evidence cross-links. No code changes. Additive only. Backwards compat preserved (V1 flows + tests untouched except string polish in P13).
+
+Current source (V1 archive + V2 implementation):
 - `.ai/09_archive/store/2026-05-27-project-client-publication-complete/`
 - `.ai/09_archive/store/2026-05-27-project-client-publication-complete/15-implementation-closeout-and-remaining-gates.md`
+- Worktree src/lib/publication/*, src/components/share/*, src/components/workshop/ProjectPublicationHeader.tsx, src/app/share/[token]/page.tsx, tests/vitest/project-publication*.test.*
+- P0–P13 commit SHAs above + P14 closure in `.ai/10_state/current-state.md`, `decisions.md`, and `walkthrough-shared-link-overhaul.md`.
 
 ## Phase 6 - AI copilot
 
