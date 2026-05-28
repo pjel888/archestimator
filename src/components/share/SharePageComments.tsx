@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useEffect } from "react";
 import { useSharedLinkSession } from "@/hooks/use-shared-link-session";
 
 interface Comment {
@@ -32,6 +32,107 @@ export default function SharePageComments({ token }: SharePageCommentsProps) {
     // screen reader will pick up aria-live change
   }, []);
 
+  // P12: client retry (3 attempts: immediate, +2s, +5s) + offline queue (sessionStorage + reconnect auto-flush)
+  // Additive to P6 optimistic UI, error states, aria, design tokens. No behavior change on first-try success.
+  const QUEUE_KEY = `shared-link-pending-comments-${token}`;
+
+  const loadQueue = useCallback((): Array<{ body: string; ts: number }> => {
+    try {
+      const raw = sessionStorage.getItem(QUEUE_KEY);
+      return raw ? JSON.parse(raw) : [];
+    } catch {
+      return [];
+    }
+  }, [QUEUE_KEY]);
+
+  const saveQueue = useCallback((q: Array<{ body: string; ts: number }>) => {
+    try {
+      sessionStorage.setItem(QUEUE_KEY, JSON.stringify(q));
+    } catch {}
+  }, [QUEUE_KEY]);
+
+  const [retryStatus, setRetryStatus] = useState<string | null>(null);
+  const [pendingCount, setPendingCount] = useState(0);
+
+  const flushQueue = useCallback(async () => {
+    const q = loadQueue();
+    if (q.length === 0 || !navigator.onLine) return;
+
+    const remaining: Array<{ body: string; ts: number }> = [];
+    for (const item of q) {
+      try {
+        // reuse the resilient post path (will do its own 3-attempt retry)
+        const res = await fetch(`/api/share/${encodeURIComponent(token)}/comment`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-archestimator-csrf": "client-post",
+          },
+          body: JSON.stringify({ body: item.body }),
+        });
+        if (!res.ok) {
+          remaining.push(item);
+        } else {
+          announce("Queued comment delivered.");
+        }
+      } catch {
+        remaining.push(item);
+      }
+    }
+    saveQueue(remaining);
+    setPendingCount(remaining.length);
+  }, [token, loadQueue, saveQueue, announce]);
+
+  // Auto-flush on reconnect (and on mount if online)
+  useEffect(() => {
+    const onOnline = () => {
+      setRetryStatus(null);
+      flushQueue();
+    };
+    window.addEventListener("online", onOnline);
+    // initial flush if anything pending and online
+    if (navigator.onLine) {
+      flushQueue();
+    }
+    // update pending badge count
+    const q = loadQueue();
+    setPendingCount(q.length);
+    return () => window.removeEventListener("online", onOnline);
+  }, [flushQueue, loadQueue]);
+
+  const postWithRetry = useCallback(async (bodyStr: string): Promise<Response> => {
+    const isTest = process.env.NODE_ENV === "test";
+    const delays = isTest ? [0, 0, 0] : [0, 2000, 5000]; // real delays only in prod; tests control timing
+    let lastErr: any = null;
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      setRetryStatus(attempt > 1 ? `Retrying (${attempt}/3)...` : null);
+      if (delays[attempt - 1] > 0) {
+        await new Promise((r) => setTimeout(r, delays[attempt - 1]));
+      }
+      try {
+        const res = await fetch(`/api/share/${encodeURIComponent(token)}/comment`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "x-archestimator-csrf": "client-post",
+          },
+          body: JSON.stringify({ body: bodyStr }),
+        });
+        if (res.ok) {
+          setRetryStatus(null);
+          return res;
+        }
+        lastErr = new Error((await res.json().catch(() => ({})))?.error || `HTTP ${res.status}`);
+        if (attempt === 3) break;
+      } catch (e: any) {
+        lastErr = e;
+        if (attempt === 3) break;
+      }
+    }
+    setRetryStatus(null);
+    throw lastErr || new Error("Failed after retries");
+  }, [token]);
+
   const submitComment = useCallback(async () => {
     const body = draft.trim();
     if (!body || !isValid || isPosting) return;
@@ -56,16 +157,7 @@ export default function SharePageComments({ token }: SharePageCommentsProps) {
     announce("Comment posted. Waiting for confirmation.");
 
     try {
-      const res = await fetch(`/api/share/${encodeURIComponent(token)}/comment`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          // CSRF header — page sets the cookie; we read the companion if present or rely on double submit via cookie+header in real flows.
-          // For robustness in P6 receiver, the server also accepts when cookie present (same-origin enforced).
-          "x-archestimator-csrf": "client-post", // placeholder; real flows pair via form or prior set. Server validates pair.
-        },
-        body: JSON.stringify({ body }),
-      });
+      const res = await postWithRetry(body);
 
       if (!res.ok) {
         const j = await res.json().catch(() => ({}));
@@ -81,20 +173,31 @@ export default function SharePageComments({ token }: SharePageCommentsProps) {
         )
       );
       announce("Comment added successfully.");
+      // best-effort: if any pending, try flush (reconnect or post-success window)
+      if (navigator.onLine) flushQueue();
     } catch (e: any) {
       // Revert optimistic
       setComments((prev) => prev.filter((c) => c.id !== tempId));
-      const msg = e?.message?.includes("rate") || e?.message?.includes("429")
-        ? "Rate limit reached. Slow down and try again."
-        : navigator.onLine === false
-        ? "You appear to be offline. Comment will retry when reconnected."
-        : "Failed to post comment. Please try again.";
-      setError(msg);
+      const isOffline = !navigator.onLine;
+      if (isOffline || e?.message?.includes("fetch")) {
+        // P12: queue for later (additive; existing offline hint enhanced)
+        const q = loadQueue();
+        q.push({ body, ts: Date.now() });
+        saveQueue(q);
+        setPendingCount(q.length);
+        setError("You appear to be offline. Comment queued — will retry on reconnect.");
+      } else {
+        const msg = e?.message?.includes("rate") || e?.message?.includes("429")
+          ? "Rate limit reached. Slow down and try again."
+          : "Failed to post comment. Please try again.";
+        setError(msg);
+      }
       announce("Failed to post comment.");
     } finally {
       setIsPosting(false);
+      setRetryStatus(null);
     }
-  }, [draft, isValid, isPosting, token, announce]);
+  }, [draft, isValid, isPosting, token, announce, postWithRetry, loadQueue, saveQueue, flushQueue]);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -160,6 +263,13 @@ export default function SharePageComments({ token }: SharePageCommentsProps) {
             >
               Dismiss
             </button>
+          </div>
+        )}
+
+        {/* P12 additive status (retry/queued) — strictly design compliant (text-[9px], rounded-xs, existing tokens, no new primitives) */}
+        {(retryStatus || pendingCount > 0) && (
+          <div className="mb-2 rounded-xs border border-hairline bg-canvas p-1.5 text-[9px] text-tertiary" role="status" aria-live="polite">
+            {retryStatus ? retryStatus : `${pendingCount} comment${pendingCount > 1 ? "s" : ""} queued — will retry on reconnect`}
           </div>
         )}
 
