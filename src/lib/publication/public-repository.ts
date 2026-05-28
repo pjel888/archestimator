@@ -5,7 +5,7 @@ import { hashPublicationToken, readPublicationTokenHashSecret, verifyPublication
 import type { ProjectPublicationSnapshot } from "@/lib/publication/types";
 import type { Database, Json, Tables } from "@/lib/supabase/types";
 
-export type ProjectPublicationEventType = "open" | "password_success" | "password_failure" | "download_attempt_blocked";
+export type ProjectPublicationEventType = "open" | "password_success" | "password_failure" | "download_attempt_blocked" | "password_attempt";
 
 export type ResolvedProjectPublicationAccess = {
   publicationId: string;

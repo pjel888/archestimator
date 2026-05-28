@@ -14,7 +14,7 @@ function createCsrfToken() {
 
 export function ProjectPublicationPasswordForm({ token }: ProjectPublicationPasswordFormProps) {
   const [password, setPassword] = useState("");
-  const [status, setStatus] = useState<"idle" | "submitting" | "invalid" | "error">("idle");
+  const [status, setStatus] = useState<"idle" | "submitting" | "invalid" | "error" | "locked">("idle");
 
   async function submitPassword(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -36,27 +36,39 @@ export function ProjectPublicationPasswordForm({ token }: ProjectPublicationPass
       return;
     }
 
+    if (response?.status === 429) {
+      setStatus("locked");
+      return;
+    }
+
     setStatus(response?.status === 401 ? "invalid" : "error");
   }
+
+  const isLocked = status === "locked";
+  const isSubmitting = status === "submitting";
 
   return (
     <form className="mt-4 grid gap-2" onSubmit={submitPassword}>
       <label className="grid gap-1 text-[10px] font-medium leading-4 text-secondary">
         Password
         <input
-          className="h-8 border border-hairline bg-white px-2 text-[11px] leading-4 text-ink outline-none focus:border-secondary"
+          className="h-8 border border-hairline bg-white px-2 text-[11px] leading-4 text-ink outline-none focus:border-secondary disabled:cursor-not-allowed disabled:opacity-60"
           type="password"
           value={password}
           onChange={(event) => setPassword(event.currentTarget.value)}
           autoComplete="current-password"
+          disabled={isSubmitting || isLocked}
         />
       </label>
       {status === "invalid" ? <p className="text-[10px] leading-4 text-red-700">Password is invalid.</p> : null}
       {status === "error" ? <p className="text-[10px] leading-4 text-red-700">Unable to unlock publication.</p> : null}
+      {isLocked ? (
+        <p className="text-[10px] leading-4 text-red-700">Too many attempts. Please try again later.</p>
+      ) : null}
       <button
         className="h-8 bg-ink px-3 text-[10px] font-medium leading-none text-white transition hover:bg-secondary disabled:cursor-wait disabled:opacity-60"
         type="submit"
-        disabled={status === "submitting"}
+        disabled={isSubmitting || isLocked}
       >
         Unlock
       </button>
