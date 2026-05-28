@@ -34,6 +34,13 @@ vi.mock("next/navigation", () => ({
   useRouter: () => routerMock,
 }));
 
+vi.mock("@/stores/navigation-ui-store", () => ({
+  useNavigationUiStore: (selector: (state: unknown) => unknown) => {
+    const state = { isNavigating: false, startTime: 0, targetHref: null, show: vi.fn(), hide: vi.fn() };
+    return selector(state);
+  },
+}));
+
 vi.mock("@/lib/estimates/actions", () => actionMocks);
 
 function deferred<T>() {
