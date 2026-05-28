@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 
 import { ProjectPublicationPasswordForm } from "@/components/share/ProjectPublicationPasswordForm";
 import SharePageTabs from "@/components/share/SharePageTabs";
+import SharePageComments from "@/components/share/SharePageComments";
 
 /* GitNexus / code-review-graph MCP impact analysis (per Master Prompt + AGENTS.md/CLAUDE.md + .ai/00_system/AGENT_OPERATING_PROTOCOL.md):
  * - search_tool invoked for schemas: code-review-graph__get_impact_radius_tool, code-review-graph__detect_changes_tool,
@@ -92,11 +93,17 @@ function ProjectPublicationView({
         </section>
 
         {/* P2: Tabbed navigation (replaces previous vertical stack). SharePageTabs encapsulates per-estimate card+table. */}
-        <SharePageTabs
-          estimates={snapshot.estimates}
-          currencyCode={snapshot.project.currencyCode}
-          token={token}
-        />
+        {/* P6: Comments sidebar (desktop ~320px / w-80) or stacks below on mobile — additive, session-gated inside component via P5 hook. */}
+        <div className="flex flex-col gap-5 lg:flex-row">
+          <div className="min-w-0 flex-1">
+            <SharePageTabs
+              estimates={snapshot.estimates}
+              currencyCode={snapshot.project.currencyCode}
+              token={token}
+            />
+          </div>
+          <SharePageComments token={token} />
+        </div>
       </div>
     </main>
   );

@@ -25,7 +25,7 @@ type PublicationLookupRow = Pick<
 
 type PublicationSnapshotLookupRow = PublicationLookupRow & Pick<Tables<"project_publications">, "snapshot_json">;
 
-function createPublicationServiceClient() {
+export function createPublicationServiceClient() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
   if (!url || !serviceRoleKey) {
@@ -202,3 +202,54 @@ export async function verifySharedLinkRecipientToken(
     recipientId: (rec as any).id,
   };
 }
+
+// ============================================================================
+// P6: Insert client comment via the P3 SECURITY DEFINER RPC (additive only)
+// - Reuses createPublicationServiceClient + hash helpers
+// - Looks up recipient_token_hash from P3 table using recipientId (from P5 session)
+// - Server-side sanitize + truncate defense-in-depth (RPC also truncates)
+// - Returns comment id or throws on validation failure (publication/recipient active)
+// - Called exclusively from the new POST /api/share/[token]/comment after CSRF + session + rate
+// ============================================================================
+export async function insertSharedLinkComment(params: {
+  publicationToken: string;
+  recipientId: string;
+  body: string;
+  estimateId?: string | null;
+  rowId?: string | null;
+}): Promise<{ id: string }> {
+  const supabase = createPublicationServiceClient();
+  const pubHash = readTokenHash(params.publicationToken); // uses same secret as P3/P4/P5
+
+  // Lookup recipient_token_hash (P3 table — cast as in verify fn)
+  const { data: rec, error: recErr } = await supabase
+    .from("shared_link_recipients" as any)
+    .select("recipient_token_hash" as any)
+    .eq("id" as any, params.recipientId)
+    .maybeSingle();
+
+  if (recErr) throw recErr;
+  if (!rec || !(rec as any).recipient_token_hash) {
+    throw new Error("Recipient not found for comment.");
+  }
+  const recipientTokenHash = (rec as any).recipient_token_hash as string;
+
+  const sanitizedBody = params.body.trim().slice(0, 1000);
+
+  // Call the exact P3 RPC (validates active pub + recipient match internally)
+  // @ts-expect-error P3 RPC (insert_client_comment) + shared_link_* tables — types pending local `supabase db reset` + regen (Docker blocker per current-state; runtime verified against remote schema + migration 20260528220000).
+  const { data: commentId, error: rpcErr } = await supabase.rpc("insert_client_comment", {
+    p_token_hash: pubHash,
+    p_recipient_token_hash: recipientTokenHash,
+    p_estimate_id: params.estimateId ?? null,
+    p_row_id: params.rowId ?? null,
+    p_body: sanitizedBody,
+  } as any);
+
+  if (rpcErr) throw rpcErr;
+  if (!commentId) throw new Error("Failed to insert comment.");
+
+  return { id: commentId as string };
+}
+
+// (readTokenHash / hash helpers already defined earlier in this module for P3/P5 paths)
