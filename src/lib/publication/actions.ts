@@ -27,7 +27,7 @@ type PublicationActionResult = {
 type PublicationManagerContext = {
   admin: ReturnType<typeof createPublicationAdminClient>;
   currentUserId: string;
-  project: Pick<Tables<"projects">, "client_name" | "currency_code" | "id" | "location" | "name" | "project_code" | "workspace_id">;
+  project: Pick<Tables<"projects">, "client_name" | "currency_code" | "id" | "location" | "name" | "project_code" | "workspace_id" | "metadata">;
 };
 
 type EstimateSource = Pick<Tables<"estimates">, "id" | "name" | "sheet_code" | "updated_at">;
@@ -44,6 +44,8 @@ type EstimateRowSource = Pick<
   | "quantity"
   | "unit"
   | "unit_cost"
+  // P9: for source_snapshot.imageUrl extraction (additive to Pick)
+  | "source_snapshot"
 >;
 type LatestPublication = Pick<
   Tables<"project_publications">,
@@ -97,7 +99,7 @@ async function assertProjectPublicationManager(projectId: string): Promise<Publi
   const admin = createPublicationAdminClient();
   const { data: project, error: projectError } = await admin
     .from("projects")
-    .select("id, workspace_id, name, project_code, client_name, location, currency_code")
+    .select("id, workspace_id, name, project_code, client_name, location, currency_code, metadata")
     .eq("id", projectId)
     .maybeSingle();
 
@@ -170,7 +172,7 @@ async function buildSnapshotForProject(context: PublicationManagerContext, selec
   if (estimateIds.length) {
     const { data: rows, error: rowsError } = await context.admin
       .from("estimate_row_items")
-      .select("id, estimate_id, description, designation, discipline, material, quantity, unit, unit_cost, misc_cost, contingency_percentage")
+      .select("id, estimate_id, description, designation, discipline, material, quantity, unit, unit_cost, misc_cost, contingency_percentage, source_snapshot")
       .in("estimate_id", estimateIds)
       .order("sort_order", { ascending: true });
 
@@ -191,24 +193,35 @@ async function buildSnapshotForProject(context: PublicationManagerContext, selec
       clientName: context.project.client_name,
       location: context.project.location,
       currencyCode: context.project.currency_code,
+      // P9: capture cover for receiver hero (from metadata at publish; additive)
+      coverImageUrl:
+        (context.project as any)?.metadata?.projectImageUrl ??
+        (context.project as any)?.metadata?.coverImageUrl ??
+        null,
     },
     estimates: estimateRows.map((estimate) => ({
       id: estimate.id,
       name: estimate.name,
       sheetCode: estimate.sheet_code,
       updatedAt: estimate.updated_at,
-      rows: (rowsByEstimateId.get(estimate.id) ?? []).map((row) => ({
-        id: row.id,
-        description: row.description,
-        designation: row.designation,
-        discipline: row.discipline,
-        material: row.material,
-        quantity: Number(row.quantity),
-        unit: row.unit,
-        unitCost: Number(row.unit_cost),
-        miscCost: Number(row.misc_cost),
-        contingencyPercentage: Number(row.contingency_percentage ?? 0),
-      })),
+      rows: (rowsByEstimateId.get(estimate.id) ?? []).map((row) => {
+        const snap = (row as any).source_snapshot as Record<string, unknown> | null | undefined;
+        const imageUrl = typeof snap?.imageUrl === "string" ? snap.imageUrl : undefined;
+        return {
+          id: row.id,
+          description: row.description,
+          designation: row.designation,
+          discipline: row.discipline,
+          material: row.material,
+          quantity: Number(row.quantity),
+          unit: row.unit,
+          unitCost: Number(row.unit_cost),
+          miscCost: Number(row.misc_cost),
+          contingencyPercentage: Number(row.contingency_percentage ?? 0),
+          // P9: extract for thumbnails (matches workspace-repository source_snapshot.imageUrl pattern)
+          imageUrl,
+        };
+      }),
     })),
   });
 }
