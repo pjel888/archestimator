@@ -5,9 +5,11 @@ import type { WorkshopProject } from "./workshop-sample-projects";
 
 type ProjectCardProps = {
   project: WorkshopProject;
+  // P8 additive: optional activity badge for unseen shared-link activity (workshop project list)
+  hasUnseenSharedLinkActivity?: boolean;
 };
 
-export function ProjectCard({ project }: ProjectCardProps) {
+export function ProjectCard({ project, hasUnseenSharedLinkActivity = false }: ProjectCardProps) {
   return (
     <Link
       href={`/workshop/projects/${project.id}`}
@@ -20,7 +22,12 @@ export function ProjectCard({ project }: ProjectCardProps) {
 
       <div className="flex flex-1 flex-col p-2">
         <div className="min-w-0">
-          <p className="truncate text-[10px] font-medium text-tertiary">{project.client}</p>
+          <div className="flex items-center justify-between gap-2">
+            <p className="truncate text-[10px] font-medium text-tertiary">{project.client}</p>
+            {hasUnseenSharedLinkActivity && (
+              <span className="rounded-xs bg-accentSoft px-1 py-0.5 text-[8px] font-medium text-accent">Activity</span>
+            )}
+          </div>
           <h2 className="mt-1 line-clamp-2 text-[12px] font-medium leading-[1.12] tracking-normal text-ink">{project.name}</h2>
           <p className="mt-1 line-clamp-2 text-[10px] leading-4 text-tertiary">{project.scope}</p>
         </div>

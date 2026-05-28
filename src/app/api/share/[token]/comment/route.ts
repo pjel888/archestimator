@@ -136,6 +136,15 @@ export async function POST(request: Request, { params }: { params: Promise<{ tok
       estimateId: body.estimateId ?? null,
       rowId: body.rowId ?? null,
     });
+
+    // P8: best-effort lightweight owner email digest (rate-limited 1/15min inside helper). Non-blocking for receiver.
+    try {
+      const { maybeTriggerSharedLinkActivityDigest } = await import("@/lib/publication/actions");
+      if (publicationId && publicationId !== "unknown-pub") {
+        maybeTriggerSharedLinkActivityDigest(publicationId, token, "comment");
+      }
+    } catch {}
+
     return Response.json({ id, created: true }, { status: 201, headers: { "Cache-Control": "no-store" } });
   } catch (e: any) {
     const msg = e?.message || "Failed to post comment.";
