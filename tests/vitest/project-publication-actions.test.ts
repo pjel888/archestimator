@@ -12,7 +12,7 @@ describe("project publication manager actions (Shared Link Overhaul V2)", () => 
     expect(actions).toContain("rotateProjectPublicationLink");
     expect(actions).toContain("revokeProjectPublication");
     expect(actions).toContain("assertProjectPublicationManager");
-    expect(actions).toContain("Only project owners and admins can publish client links.");
+    expect(actions).toContain("Only project owners and admins can publish shared links.");
     expect(actions).toContain("createPublicationToken");
     expect(actions).toContain("hashPublicationToken");
     expect(actions).toContain("encryptPublicationToken");
@@ -33,8 +33,8 @@ describe("project publication manager actions (Shared Link Overhaul V2)", () => 
     // RED TEST (P0): expects new "Shared link" terminology (will fail until P1 renames JSX strings in ProjectPublicationHeader)
     expect(header).toContain("Generate shared link");
     expect(header).toContain("Update shared page");
-    expect(header).toContain("New shared link");
-    expect(header).toContain("Turn off shared link");
+    expect(header).toContain("New link");
+    expect(header).toContain("Turn off link");
     expect(header).toContain("Require password");
   });
 
@@ -63,7 +63,7 @@ describe("project publication manager actions (Shared Link Overhaul V2)", () => 
     expect(actions).toContain("shared_link_recipients");
     expect(actions).toContain("recipient_token_hash");
     expect(actions).toContain("delivery_status");
-    expect(actions).toContain("delivery_status in ('pending', 'sent', 'bounced', 'opened', 'responded')");
+    expect(actions).toContain('RecipientDeliveryStatus = "pending" | "sent" | "bounced" | "opened" | "responded"');
     // Uses Resend client (P0) for transactional send with unique recipient token link
     expect(actions).toContain("sendEmail");
     expect(actions).toContain("from \"@/lib/email/resend-client\"");
