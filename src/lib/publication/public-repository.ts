@@ -253,3 +253,50 @@ export async function insertSharedLinkComment(params: {
 }
 
 // (readTokenHash / hash helpers already defined earlier in this module for P3/P5 paths)
+
+// ============================================================================
+// P7: Submit client decision via the P3 SECURITY DEFINER RPC submit_client_response
+// - Additive only. Mirrors insertSharedLinkComment exactly for lookup + RPC shape.
+// - snapshot_version locking + duplicate detection (unique on recipient+publication) handled inside RPC.
+// - Raises 'Decision already submitted.' on conflict (mapped to 409 by caller route).
+// - Optional note truncated to 2000 chars (RPC also enforces).
+// - Called exclusively from the new POST /api/share/[token]/decision after CSRF + P5 session.
+// ============================================================================
+export async function submitSharedLinkDecision(params: {
+  publicationToken: string;
+  recipientId: string;
+  decision: "accepted" | "declined" | "revision_requested";
+  note?: string | null;
+}): Promise<{ id: string }> {
+  const supabase = createPublicationServiceClient();
+  const pubHash = readTokenHash(params.publicationToken);
+
+  // Lookup recipient_token_hash (P3 table — same pattern as comments)
+  const { data: rec, error: recErr } = await supabase
+    .from("shared_link_recipients" as any)
+    .select("recipient_token_hash" as any)
+    .eq("id" as any, params.recipientId)
+    .maybeSingle();
+
+  if (recErr) throw recErr;
+  if (!rec || !(rec as any).recipient_token_hash) {
+    throw new Error("Recipient not found for decision.");
+  }
+  const recipientTokenHash = (rec as any).recipient_token_hash as string;
+
+  const trimmedNote = params.note ? params.note.trim().slice(0, 2000) : null;
+
+  // Call the exact P3 RPC (validates active pub + recipient + performs snapshot_version_at_decision lock + unique conflict)
+  // @ts-expect-error P3 RPC (submit_client_response) + shared_link_responses table — types pending local `supabase db reset` + regen (Docker blocker); runtime verified against remote + migration 20260528220000.
+  const { data: responseId, error: rpcErr } = await supabase.rpc("submit_client_response", {
+    p_token_hash: pubHash,
+    p_recipient_token_hash: recipientTokenHash,
+    p_decision: params.decision,
+    p_note: trimmedNote,
+  } as any);
+
+  if (rpcErr) throw rpcErr;
+  if (!responseId) throw new Error("Failed to submit decision.");
+
+  return { id: responseId as string };
+}
