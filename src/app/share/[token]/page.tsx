@@ -6,6 +6,8 @@ import SharePageTabs from "@/components/share/SharePageTabs";
 import SharePageComments from "@/components/share/SharePageComments";
 import SharePageDecision from "@/components/share/SharePageDecision";
 import SharePageHero from "@/components/share/SharePageHero";
+import { SharePageSessionBanner } from "@/components/share/SharePageSessionBanner";
+import { ArchestimatorLogo } from "@/components/brand/ArchestimatorLogo";
 
 /* GitNexus / code-review-graph MCP impact analysis (per Master Prompt + AGENTS.md/CLAUDE.md + .ai/00_system/AGENT_OPERATING_PROTOCOL.md):
  * - search_tool invoked for schemas: code-review-graph__get_impact_radius_tool, code-review-graph__detect_changes_tool,
@@ -56,47 +58,29 @@ function ProjectPublicationView({
   token: string;
 }) {
   return (
-    <main aria-label="Client publication" className="min-h-dvh bg-proposalPaper text-ink">
-      <div className="mx-auto flex w-full max-w-5xl flex-col gap-5 px-4 py-6 sm:px-6 lg:px-8">
-        <header className="border-b border-hairline pb-4">
-          <p className="text-[9px] font-medium uppercase leading-3 text-tertiary">Client publication</p>
-          <div className="mt-2 flex flex-wrap items-end justify-between gap-3">
-            <div>
-              <h1 className="text-[12px] font-medium leading-4 text-ink">{snapshot.project.name}</h1>
-              <p className="mt-1 text-[10px] leading-4 text-secondary">View-only project page</p>
-              <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-[10px] leading-3 text-secondary">
-                {snapshot.project.projectCode ? <span>{snapshot.project.projectCode}</span> : null}
-                {snapshot.project.clientName ? <span>{snapshot.project.clientName}</span> : null}
-                {snapshot.project.location ? <span>{snapshot.project.location}</span> : null}
-              </div>
-            </div>
-            <div className="text-right">
-              <p className="text-[9px] font-medium uppercase leading-3 text-tertiary">Published total</p>
-              <p className="text-[12px] font-medium leading-4 text-ink">
-                {formatMoney(snapshot.totalCost, snapshot.project.currencyCode)}
-              </p>
-            </div>
+    <main aria-label="Client publication" className="min-h-dvh bg-white text-ink">
+      <SharePageSessionBanner />
+      <header className="border-b border-hairline bg-white">
+        <div className="mx-auto flex h-12 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
+          <ArchestimatorLogo markSize={24} showWordmark className="text-ink" />
+          <span className="text-[9px] font-medium uppercase tracking-normal text-tertiary">View-only</span>
+        </div>
+      </header>
+      <div className="mx-auto flex w-full max-w-7xl flex-col gap-5 px-4 py-6 sm:px-6 lg:px-8">
+        <div className="border-b border-hairline pb-4">
+          <p className="text-[9px] font-medium uppercase leading-3 tracking-normal text-tertiary">Client publication</p>
+          <h1 className="mt-1.5 text-[12px] font-medium leading-4 text-ink">{snapshot.project.name}</h1>
+          <p className="mt-1 text-[10px] leading-4 text-secondary">View-only project page</p>
+          <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-[10px] leading-3 text-secondary">
+            {snapshot.project.projectCode ? <span>{snapshot.project.projectCode}</span> : null}
+            {snapshot.project.clientName ? <span>{snapshot.project.clientName}</span> : null}
+            {snapshot.project.location ? <span>{snapshot.project.location}</span> : null}
           </div>
-        </header>
+        </div>
 
         {/* P9: Hero cover (from snapshot.project.coverImageUrl populated from projects.metadata at publish).
             Next/Image + lazy. Null when absent (old snapshots / no cover) — additive, no layout shift. */}
         <SharePageHero project={snapshot.project as any} />
-
-        <section className="grid grid-cols-3 gap-2">
-          <div className="border border-hairline bg-white p-3">
-            <p className="text-[9px] font-medium uppercase leading-3 text-tertiary">Estimates</p>
-            <p className="mt-1 text-[12px] font-medium leading-4 text-ink">{snapshot.estimateCount}</p>
-          </div>
-          <div className="border border-hairline bg-white p-3">
-            <p className="text-[9px] font-medium uppercase leading-3 text-tertiary">Rows</p>
-            <p className="mt-1 text-[12px] font-medium leading-4 text-ink">{snapshot.rowCount}</p>
-          </div>
-          <div className="border border-hairline bg-white p-3">
-            <p className="text-[9px] font-medium uppercase leading-3 text-tertiary">Generated</p>
-            <p className="mt-1 text-[12px] font-medium leading-5 text-ink">{new Date(snapshot.generatedAt).toLocaleDateString("en-PH")}</p>
-          </div>
-        </section>
 
         {/* P2: Tabbed navigation (replaces previous vertical stack). SharePageTabs encapsulates per-estimate card+table. */}
         {/* P6/P7: Right column — decision (P7) above comments (P6). Both session-gated via P5 hook. Decision locks to read-only badge after submit/409; comments remain usable post-decision (additive, per owner allowance). */}
@@ -127,7 +111,7 @@ function createPublicationEventRequest(token: string, requestHeaders: Headers) {
 
 function ProjectPublicationPasswordGate({ token }: { token: string }) {
   return (
-    <main aria-label="Client publication password" className="grid min-h-dvh place-items-center bg-canvas px-4 py-6 text-ink">
+    <main aria-label="Client publication password" className="grid min-h-dvh place-items-center bg-white px-4 py-6 text-ink">
       <section className="w-full max-w-sm border border-hairline bg-white p-4">
         <p className="text-[9px] font-medium uppercase leading-3 text-tertiary">Client publication</p>
         <h1 className="mt-2 text-[12px] font-medium leading-4 text-ink">Enter publication password</h1>

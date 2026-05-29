@@ -14,8 +14,10 @@ import {
   reconstructTreeByDiscipline,
   getBestShareTree,
   wrapTreeWithRoot,
+  buildShareTreeFromSnapshotNodes,
   ShareTreeNode,
 } from "@/lib/share/reconstruct-share-tree";
+import type { PublicationSnapshotTreeNode } from "@/lib/publication/types";
 import {
   publicationSnapshotFixtures,
   injectMaliciousLabels,
@@ -184,5 +186,104 @@ describe("Short/relative designation (Lewis Balcony snapshot shape + virtual roo
     expect(root.depth).toBe(0);
     expect(root.children[0].depth).toBe(1);
     expect(sumTotals(wrapped)).toBeCloseTo(34100, 2);
+  });
+});
+
+describe("buildShareTreeFromSnapshotNodes (actual workshop hierarchy)", () => {
+  const treeNodes: PublicationSnapshotTreeNode[] = [
+    {
+      id: "lot-a",
+      name: "Lot A — Primary Residence",
+      kind: "group",
+      children: [
+        {
+          id: "main-house",
+          name: "Main House",
+          kind: "group",
+          children: [
+            {
+              id: "ground-floor",
+              name: "Ground Floor",
+              kind: "group",
+              children: [
+                { id: "living-area", name: "Living Area", kind: "area", children: [] },
+                { id: "kitchen", name: "Kitchen", kind: "area", children: [] },
+              ],
+            },
+          ],
+        },
+      ],
+    },
+  ];
+
+  const rows = publicationSnapshotFixtures.richHierarchical.map((r) => ({
+    ...r,
+    nodeId: r.designation.includes("Kitchen") ? "kitchen" : "living-area",
+  }));
+
+  it("preserves exact workshop hierarchy from snapshot tree nodes", () => {
+    const tree = buildShareTreeFromSnapshotNodes(treeNodes, rows);
+    expect(tree.length).toBe(1);
+    const root = tree[0];
+    expect(root.label).toBe("Lot A — Primary Residence");
+    expect(root.kind).toBe("group");
+    expect(root.children[0].label).toBe("Main House");
+    expect(root.children[0].children[0].label).toBe("Ground Floor");
+    expect(root.children[0].children[0].children[0].label).toBe("Living Area");
+    expect(root.children[0].children[0].children[1].label).toBe("Kitchen");
+  });
+
+  it("rolls up totals and row counts correctly from snapshot nodes", () => {
+    const tree = buildShareTreeFromSnapshotNodes(treeNodes, rows);
+    const root = tree[0];
+    const originalTotal = rows.reduce((s, r) => s + r.rowTotal, 0);
+    expect(root.total).toBeCloseTo(originalTotal, 2);
+    expect(root.rowCount).toBe(rows.length);
+  });
+
+  it("attaches rows to the correct area nodes by nodeId", () => {
+    const tree = buildShareTreeFromSnapshotNodes(treeNodes, rows);
+    const livingArea = tree[0].children[0].children[0].children[0];
+    const kitchen = tree[0].children[0].children[0].children[1];
+    expect(livingArea.kind).toBe("area");
+    expect(kitchen.kind).toBe("area");
+    expect(livingArea.rows.length).toBe(rows.filter((r) => r.nodeId === "living-area").length);
+    expect(kitchen.rows.length).toBe(rows.filter((r) => r.nodeId === "kitchen").length);
+  });
+
+  it("creates an Unassigned node for rows with unmatched nodeIds", () => {
+    const orphanRows = [
+      ...rows,
+      { ...rows[0], id: "orphan-1", nodeId: "nonexistent-node" },
+    ];
+    const tree = buildShareTreeFromSnapshotNodes(treeNodes, orphanRows);
+    const unassigned = tree.find((n) => n.label === "Unassigned");
+    expect(unassigned).toBeDefined();
+    expect(unassigned!.rows.length).toBe(1);
+    expect(unassigned!.rows[0].id).toBe("orphan-1");
+  });
+
+  it("returns empty array when treeNodes are empty", () => {
+    expect(buildShareTreeFromSnapshotNodes([], rows)).toEqual([]);
+  });
+});
+
+describe("getBestShareTree with snapshot treeNodes", () => {
+  it("prefers snapshot treeNodes over designation reconstruction when available", () => {
+    const treeNodes: PublicationSnapshotTreeNode[] = [
+      { id: "g1", name: "Group A", kind: "group", children: [{ id: "a1", name: "Area 1", kind: "area", children: [] }] },
+    ];
+    const rows = publicationSnapshotFixtures.flatAreaOnly.map((r) => ({ ...r, nodeId: "a1" }));
+    const tree = getBestShareTree(rows, treeNodes);
+    expect(tree.length).toBe(1);
+    expect(tree[0].label).toBe("Group A");
+    expect(tree[0].children[0].label).toBe("Area 1");
+  });
+
+  it("falls back to designation reconstruction when treeNodes are absent", () => {
+    const rows = publicationSnapshotFixtures.lewisRepresentative;
+    const tree = getBestShareTree(rows, undefined);
+    const hasGroups = tree.some((n) => n.kind === "group");
+    expect(hasGroups).toBe(true);
   });
 });

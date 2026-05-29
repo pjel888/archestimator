@@ -17,6 +17,7 @@ import {
 import { buildProjectPublicationSnapshot } from "@/lib/publication/snapshot";
 import type { Database, Tables } from "@/lib/supabase/types";
 import { sendEmail } from "@/lib/email/resend-client";
+import { normalizeEstimateTreeNodeKind } from "@/lib/estimates/tree-hierarchy";
 
 type PublicationActionResult = {
   ok: boolean;
@@ -169,18 +170,35 @@ async function buildSnapshotForProject(context: PublicationManagerContext, selec
   const estimateIds = estimateRows.map((estimate) => estimate.id);
   const rowsByEstimateId = new Map<string, EstimateRowSource[]>();
 
+  const nodesByEstimateId = new Map<string, { id: string; name: string; kind: string; parent_id: string | null; sort_order: number }[]>();
+
   if (estimateIds.length) {
-    const { data: rows, error: rowsError } = await context.admin
-      .from("estimate_row_items")
-      .select("id, estimate_id, description, designation, discipline, material, quantity, unit, unit_cost, misc_cost, contingency_percentage, source_snapshot")
-      .in("estimate_id", estimateIds)
-      .order("sort_order", { ascending: true });
+    const [{ data: rows, error: rowsError }, { data: nodes, error: nodesError }] = await Promise.all([
+      context.admin
+        .from("estimate_row_items")
+        .select("id, estimate_id, node_id, description, designation, discipline, material, quantity, unit, unit_cost, misc_cost, contingency_percentage, source_snapshot")
+        .in("estimate_id", estimateIds)
+        .order("sort_order", { ascending: true }),
+      context.admin
+        .from("estimate_nodes")
+        .select("id, estimate_id, name, kind, parent_id, sort_order")
+        .in("estimate_id", estimateIds)
+        .order("sort_order", { ascending: true }),
+    ]);
 
     if (rowsError) throw rowsError;
+    if (nodesError) throw nodesError;
+
     for (const row of (rows ?? []) as EstimateRowSource[]) {
       const current = rowsByEstimateId.get(row.estimate_id) ?? [];
       current.push(row);
       rowsByEstimateId.set(row.estimate_id, current);
+    }
+
+    for (const node of (nodes ?? []) as any[]) {
+      const current = nodesByEstimateId.get(node.estimate_id) ?? [];
+      current.push(node);
+      nodesByEstimateId.set(node.estimate_id, current);
     }
   }
 
@@ -209,6 +227,7 @@ async function buildSnapshotForProject(context: PublicationManagerContext, selec
         const imageUrl = typeof snap?.imageUrl === "string" ? snap.imageUrl : undefined;
         return {
           id: row.id,
+          nodeId: (row as any).node_id as string | undefined,
           description: row.description,
           designation: row.designation,
           discipline: row.discipline,
@@ -222,6 +241,13 @@ async function buildSnapshotForProject(context: PublicationManagerContext, selec
           imageUrl,
         };
       }),
+      nodes: (nodesByEstimateId.get(estimate.id) ?? []).map((node) => ({
+        id: node.id,
+        name: node.name,
+        kind: normalizeEstimateTreeNodeKind(node.kind) ?? "group",
+        parentId: node.parent_id,
+        sortOrder: node.sort_order,
+      })),
     })),
   });
 }

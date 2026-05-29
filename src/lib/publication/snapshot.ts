@@ -1,4 +1,4 @@
-import type { ProjectPublicationSnapshot, PublicationSnapshotEstimate, PublicationSnapshotRow } from "@/lib/publication/types";
+import type { ProjectPublicationSnapshot, PublicationSnapshotEstimate, PublicationSnapshotRow, PublicationSnapshotTreeNode } from "@/lib/publication/types";
 
 type SnapshotProjectInput = {
   id: string;
@@ -24,6 +24,16 @@ type SnapshotRowInput = {
   contingencyPercentage: number;
   // P9: source_snapshot.imageUrl extracted at publish (additive)
   imageUrl?: string | null;
+  // Link to the estimate node that owns this row in the workshop tree
+  nodeId?: string | null;
+};
+
+type SnapshotNodeInput = {
+  id: string;
+  name: string;
+  kind: "group" | "area";
+  parentId?: string | null;
+  sortOrder?: number;
 };
 
 type SnapshotEstimateInput = {
@@ -32,6 +42,7 @@ type SnapshotEstimateInput = {
   sheetCode: string;
   updatedAt: string | null;
   rows: SnapshotRowInput[];
+  nodes?: SnapshotNodeInput[];
 };
 
 function toFiniteNumber(value: number) {
@@ -62,7 +73,36 @@ function buildSnapshotRow(row: SnapshotRowInput): PublicationSnapshotRow {
     rowTotal: calculateRowTotal(row),
     // P9 additive (undefined/null if absent in source_snapshot at publish)
     imageUrl: row.imageUrl ?? null,
+    nodeId: row.nodeId ?? null,
   };
+}
+
+function buildSnapshotTreeNodes(nodes: SnapshotNodeInput[]): PublicationSnapshotTreeNode[] {
+  if (!nodes || nodes.length === 0) return [];
+
+  const nodeMap = new Map<string, PublicationSnapshotTreeNode>();
+  for (const node of nodes) {
+    nodeMap.set(node.id, {
+      id: node.id,
+      name: node.name,
+      kind: node.kind,
+      children: [],
+    });
+  }
+
+  const roots: PublicationSnapshotTreeNode[] = [];
+  for (const node of nodes) {
+    const treeNode = nodeMap.get(node.id);
+    if (!treeNode) continue;
+    if (node.parentId && nodeMap.has(node.parentId)) {
+      const parent = nodeMap.get(node.parentId)!;
+      parent.children.push(treeNode);
+    } else {
+      roots.push(treeNode);
+    }
+  }
+
+  return roots;
 }
 
 function buildSnapshotEstimate(estimate: SnapshotEstimateInput): PublicationSnapshotEstimate {
@@ -75,6 +115,7 @@ function buildSnapshotEstimate(estimate: SnapshotEstimateInput): PublicationSnap
     rowCount: rows.length,
     totalCost: rows.reduce((total, row) => total + row.rowTotal, 0),
     rows,
+    treeNodes: estimate.nodes && estimate.nodes.length > 0 ? buildSnapshotTreeNodes(estimate.nodes) : undefined,
   };
 }
 

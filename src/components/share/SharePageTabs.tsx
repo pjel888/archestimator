@@ -20,8 +20,8 @@ import Image from "next/image";
 import { aggregateRowsByDiscipline } from "@/lib/share/aggregate-share-chart-buckets";
 import { CostDonutChart } from "@/components/charts/CostDonutChart";
 import { reconstructTreeFromRows, wrapTreeWithRoot } from "@/lib/share/reconstruct-share-tree";
+import { ShareEstimateTreePanel } from "@/components/share/ShareEstimateTreePanel";
 import { ShareEstimateTreeView } from "@/components/share/ShareEstimateTreeView";
-import { ShareFloatingTreeNav } from "@/components/share/ShareFloatingTreeNav";
 
 interface SharePageTabsProps {
   estimates: PublicationSnapshotEstimate[];
@@ -50,11 +50,20 @@ export default function SharePageTabs({
 
   const currentView = sheetViews[activeId] ?? "tree";
 
+  const contentRef = useRef<HTMLDivElement>(null);
+
   const setViewForCurrentSheet = (view: "tree" | "grid") => {
     if (activeId) {
       setSheetViews(prev => ({ ...prev, [activeId]: view }));
     }
   };
+
+  const handleTreeNavigate = useCallback((nodeId: string) => {
+    const el = contentRef.current?.querySelector(`[data-share-tree-node-id="${nodeId}"]`);
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }, []);
 
   const handleSubTabKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
@@ -345,15 +354,20 @@ export default function SharePageTabs({
           </table>
         </div>
         ) : (
-          <div className="flex gap-2 lg:gap-3">
-            {/* P4: Floating navigation tree (desktop only, hidden in Grid mode via parent conditional) */}
-            <ShareFloatingTreeNav nodes={treeNodes} />
-
+          <div className="flex gap-0" ref={contentRef}>
+            <ShareEstimateTreePanel
+              nodes={treeNodes}
+              currencyCode={currencyCode}
+              showInlineRows={false}
+              onNavigate={handleTreeNavigate}
+              className="hidden lg:flex lg:w-[260px] lg:flex-shrink-0 border-r border-hairline"
+            />
             <div className="flex-1 min-w-0">
               <ShareEstimateTreeView
                 nodes={treeNodes}
                 currencyCode={currencyCode}
                 disclaimer="Reconstructed from estimate data (may differ from internal workspace view)"
+                activeNodeId={undefined}
               />
             </div>
           </div>
