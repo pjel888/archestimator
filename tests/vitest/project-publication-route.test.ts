@@ -35,7 +35,7 @@ function params(token = "client-token") {
   return { params: Promise.resolve({ token }) };
 }
 
-describe("public project publication route handlers (Shared Link V2 audit)", () => {
+describe("shared link publication route handlers (Shared Link V2 audit)", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.resolveProjectPublicationAccessByToken.mockResolvedValue({
@@ -196,9 +196,9 @@ describe("public project publication route handlers (Shared Link V2 audit)", () 
     expect(mocks.verifyProjectPublicationPasswordByToken).toHaveBeenCalledWith("client-token", "client-secret");
     expect(mocks.recordProjectPublicationEvent).toHaveBeenCalledWith({
       token: "client-token",
-      eventType: "password_success",
+      eventType: "password_attempt",
       request: expect.any(Request),
-      metadata: {},
+      metadata: { success: true },
     });
   });
 
@@ -223,9 +223,9 @@ describe("public project publication route handlers (Shared Link V2 audit)", () 
     expect(response.headers.get("set-cookie")).toBeNull();
     expect(mocks.recordProjectPublicationEvent).toHaveBeenCalledWith({
       token: "client-token",
-      eventType: "password_failure",
+      eventType: "password_attempt",
       request: expect.any(Request),
-      metadata: {},
+      metadata: { success: false },
     });
   });
 });

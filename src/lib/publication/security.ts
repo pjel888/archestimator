@@ -240,3 +240,210 @@ export function assertSameOriginPublicPost(request: Request): { ok: true } | { o
 
   return { ok: true };
 }
+
+// ============================================================================
+// P5: Additive Recipient Session Cookie (shared_link_session_[token])
+// - Exact spec: HttpOnly, SameSite=Lax, Secure (prod), Max-Age=86400
+// - Additive to ae_publication_access_* password cookie (no changes to existing fns/logic)
+// - Used for /share/[token]?recipient= verification + future interactive (P6+)
+// - Client-visible _ok flag (non-secret) supports useSharedLinkSession hook
+// ============================================================================
+
+const sharedLinkSessionCookiePrefix = "shared-link-session-v1";
+const sharedLinkSessionCookieMaxAgeSeconds = 86400;
+
+export type SharedLinkSessionContext = {
+  token: string;
+  publicationId: string;
+  snapshotVersion: string | number;
+  recipientId?: string;
+};
+
+type SharedLinkSessionCookiePayload = {
+  expiresAt: number;
+  publicationId: string;
+  snapshotVersion: string;
+  tokenDigest: string;
+  recipientId?: string;
+};
+
+function createSharedLinkSessionCookiePayload(
+  { token, publicationId, snapshotVersion, recipientId }: SharedLinkSessionContext,
+  expiresAt: number,
+): SharedLinkSessionCookiePayload {
+  return {
+    expiresAt,
+    publicationId,
+    snapshotVersion: String(snapshotVersion),
+    tokenDigest: createHash("sha256").update(token).digest("base64url"),
+    recipientId,
+  };
+}
+
+function signSharedLinkSessionCookiePayload(payload: string, secret: string) {
+  return createHmac("sha256", secret).update(payload).digest("base64url");
+}
+
+function parseSharedLinkSessionCookiePayload(value: string, secret: string) {
+  const [prefix, encodedPayload, signature] = value.split(":");
+  if (prefix !== sharedLinkSessionCookiePrefix || !encodedPayload || !signature) return null;
+
+  const expectedSignature = signSharedLinkSessionCookiePayload(encodedPayload, secret);
+  if (!constantTimeEqual(Buffer.from(signature), Buffer.from(expectedSignature))) return null;
+
+  try {
+    const payload = JSON.parse(Buffer.from(encodedPayload, "base64url").toString("utf8")) as Partial<SharedLinkSessionCookiePayload>;
+    if (
+      typeof payload.expiresAt !== "number" ||
+      typeof payload.publicationId !== "string" ||
+      typeof payload.snapshotVersion !== "string" ||
+      typeof payload.tokenDigest !== "string"
+    ) {
+      return null;
+    }
+    return payload as SharedLinkSessionCookiePayload;
+  } catch {
+    return null;
+  }
+}
+
+export function createSharedLinkSessionCookieName(token: string) {
+  const suffix = createHash("sha256").update(token).digest("base64url").slice(0, 20);
+  return `shared_link_session_${suffix}`;
+}
+
+export function verifySharedLinkSessionCookieValue(
+  value: string | undefined,
+  context: SharedLinkSessionContext,
+  { now = Date.now(), secret = readPublicationAccessCookieSecret() }: PublicationAccessCookieOptions = {},
+) {
+  if (!value) return false;
+  const payload = parseSharedLinkSessionCookiePayload(value, secret);
+  if (!payload || payload.expiresAt <= now) return false;
+
+  const expectedPayload = createSharedLinkSessionCookiePayload(context, payload.expiresAt);
+  return (
+    payload.publicationId === expectedPayload.publicationId &&
+    payload.snapshotVersion === expectedPayload.snapshotVersion &&
+    constantTimeEqual(Buffer.from(payload.tokenDigest), Buffer.from(expectedPayload.tokenDigest)) &&
+    (payload.recipientId === undefined || payload.recipientId === expectedPayload.recipientId)
+  );
+}
+
+export function getSharedLinkSessionCookieParts(
+  context: SharedLinkSessionContext,
+  {
+    maxAgeSeconds = sharedLinkSessionCookieMaxAgeSeconds,
+    now = Date.now(),
+    secret = readPublicationAccessCookieSecret(),
+  }: PublicationAccessCookieOptions = {},
+) {
+  const expiresAt = now + maxAgeSeconds * 1000;
+  const encodedPayload = Buffer.from(
+    JSON.stringify(createSharedLinkSessionCookiePayload(context, expiresAt)),
+    "utf8",
+  ).toString("base64url");
+  const signature = signSharedLinkSessionCookiePayload(encodedPayload, secret);
+  const name = createSharedLinkSessionCookieName(context.token);
+  const value = `${sharedLinkSessionCookiePrefix}:${encodedPayload}:${signature}`;
+  const secure = process.env.NODE_ENV === "production";
+  return {
+    name,
+    value,
+    cookieOptions: {
+      path: "/",
+      httpOnly: true as const,
+      sameSite: "lax" as const,
+      maxAge: maxAgeSeconds,
+      secure,
+    },
+  };
+}
+
+export function createSharedLinkSessionCookie(
+  context: SharedLinkSessionContext,
+  opts: PublicationAccessCookieOptions = {},
+) {
+  const parts = getSharedLinkSessionCookieParts(context, opts);
+  const secureCookie = parts.cookieOptions.secure ? "; Secure" : "";
+  return `${parts.name}=${parts.value}; Path=${parts.cookieOptions.path}; HttpOnly; SameSite=Lax; Max-Age=${parts.cookieOptions.maxAge}${secureCookie}`;
+}
+
+// ============================================================================
+// P10 — Password Brute-Force Hardening (additive only)
+// In-memory lockout store (Map + TTL prune, per plan + P6/P8 precedent; no DB table).
+// Progressive delay (1s, 2s, 4s, 8s...) on failures before lock.
+// Hard lock after 5 attempts per IP+token (15min block from 5th fail; 1hr window for count).
+// IP from x-forwarded-for (same as recordProjectPublicationEvent).
+// Always records 'password_attempt' (success/failure in metadata) — type extended at call site.
+// Backwards compat: no-pw tokens, existing cookies, verify/create paths, success flows untouched.
+// Test-only reset exported for red tests in project-publication-security.test.ts
+// ============================================================================
+
+const PASSWORD_LOCKOUT_DURATION_MS = 15 * 60 * 1000;
+const PASSWORD_ATTEMPT_WINDOW_MS = 60 * 60 * 1000;
+const PROGRESSIVE_DELAYS_MS = [1000, 2000, 4000, 8000, 16000, 30000];
+
+type PasswordAttemptRecord = {
+  timestamps: number[];
+  lockedUntil?: number;
+};
+
+const passwordAttemptStore = new Map<string, PasswordAttemptRecord>();
+
+export function __resetPasswordAttemptStoreForTest() {
+  passwordAttemptStore.clear();
+}
+
+export function getClientIp(request: Request): string {
+  const fwd = request.headers.get("x-forwarded-for");
+  if (fwd) return fwd.split(",")[0].trim();
+  return request.headers.get("x-real-ip") || "unknown";
+}
+
+function getPasswordAttemptKey(ip: string, token: string): string {
+  return `${ip}:${token}`;
+}
+
+function pruneOldPasswordAttempts(record: PasswordAttemptRecord, now: number) {
+  record.timestamps = record.timestamps.filter((t) => now - t < PASSWORD_ATTEMPT_WINDOW_MS);
+}
+
+export function getProgressiveDelayMs(failCount: number): number {
+  if (failCount <= 0) return 0;
+  const idx = Math.min(failCount - 1, PROGRESSIVE_DELAYS_MS.length - 1);
+  return PROGRESSIVE_DELAYS_MS[idx];
+}
+
+export function isPasswordLocked(ip: string, token: string, now = Date.now()): boolean {
+  const key = getPasswordAttemptKey(ip, token);
+  const rec = passwordAttemptStore.get(key);
+  if (!rec) return false;
+  if (rec.lockedUntil && now < rec.lockedUntil) return true;
+  pruneOldPasswordAttempts(rec, now);
+  if (rec.timestamps.length >= 5) {
+    rec.lockedUntil = now + PASSWORD_LOCKOUT_DURATION_MS;
+    return true;
+  }
+  return false;
+}
+
+export function recordPasswordFailure(ip: string, token: string, now = Date.now()): number {
+  const key = getPasswordAttemptKey(ip, token);
+  let rec = passwordAttemptStore.get(key);
+  if (!rec) {
+    rec = { timestamps: [] };
+    passwordAttemptStore.set(key, rec);
+  }
+  pruneOldPasswordAttempts(rec, now);
+  rec.timestamps.push(now);
+  if (rec.timestamps.length >= 5 && !rec.lockedUntil) {
+    rec.lockedUntil = now + PASSWORD_LOCKOUT_DURATION_MS;
+  }
+  return getProgressiveDelayMs(rec.timestamps.length);
+}
+
+export function recordPasswordSuccess(ip: string, token: string) {
+  const key = getPasswordAttemptKey(ip, token);
+  passwordAttemptStore.delete(key);
+}

@@ -36,6 +36,8 @@ export type PublicationSnapshotRow = {
   miscCost: number;
   contingencyPercentage: number;
   rowTotal: number;
+  // P9: optional thumbnail from estimate_row_items.source_snapshot.imageUrl (additive; old snapshots omit)
+  imageUrl?: string | null;
 };
 
 export type PublicationSnapshotEstimate = {
@@ -58,6 +60,8 @@ export type ProjectPublicationSnapshot = {
     clientName: string | null;
     location: string | null;
     currencyCode: string;
+    // P9: cover from projects.metadata (projectImageUrl etc) captured at publish time for hero
+    coverImageUrl?: string | null;
   };
   estimateCount: number;
   rowCount: number;
