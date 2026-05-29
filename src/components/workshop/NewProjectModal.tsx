@@ -31,7 +31,7 @@ export function NewProjectModal({ onClose }: NewProjectModalProps) {
         </Button>
 
         <div className="min-h-0 flex-1 overflow-auto">
-          <NewProjectForm />
+          <NewProjectForm onSuccess={onClose} />
         </div>
       </div>
     </div>

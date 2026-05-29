@@ -3,6 +3,7 @@
 import { useEffect, useId, useState, type FormEvent } from "react";
 import { useNavigationRouter } from "@/hooks/use-navigation-router";
 
+import { createEstimateSheetDraft } from "@/lib/estimates/actions";
 import {
   createProjectRecord,
   updateProjectImageMetadata,
@@ -25,7 +26,11 @@ import {
 } from "./NewProjectFormSections";
 import { ProjectImagePanel } from "./NewProjectImagePanel";
 
-export function NewProjectForm() {
+type NewProjectFormProps = {
+  onSuccess?: () => void;
+};
+
+export function NewProjectForm({ onSuccess }: NewProjectFormProps) {
   const router = useNavigationRouter();
   const imageInputId = useId();
   const [projectCode, setProjectCode] = useState(generateProjectCode);
@@ -102,7 +107,8 @@ export function NewProjectForm() {
         await updateProjectImageMetadata(project.id, uploadedImage);
       }
 
-      router.push(`/workshop/projects/${project.id}`);
+      await createEstimateSheetDraft(project.id);
+      onSuccess?.();
       router.refresh();
     } catch (error) {
       if (uploadedImage) void removeProjectImageUpload(uploadedImage);

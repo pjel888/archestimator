@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 
+import { Button } from "@/components/ui/button";
 import {
   addSharedLinkRecipients,
   listSharedLinkRecipients,
@@ -173,7 +174,7 @@ export function RecipientEmailComposer({ publicationId, baseClientLink, projectN
 
   return (
     <div className="text-[10px]">
-      <h3 className="text-[10px] font-medium leading-3 text-ink mb-1">Email recipients</h3>
+      <h3 className="text-[9px] font-medium uppercase leading-3 tracking-normal text-tertiary">Email recipients</h3>
       <p className="text-[9px] leading-3 text-tertiary mb-2">Add emails to receive the unique share link. Delivery is best-effort; link creation always succeeds.</p>
 
       {/* Chip input */}
@@ -189,15 +190,17 @@ export function RecipientEmailComposer({ publicationId, baseClientLink, projectN
             <span key={chip.id || chip.email} className="inline-flex items-center gap-1 rounded-xs border border-hairline bg-surfaceMuted pl-1.5 pr-0.5 py-0 text-[9px] leading-4">
               <span className="truncate max-w-[140px]">{chip.displayName ? `${chip.displayName} <${chip.email}>` : chip.email}</span>
               <span className={`rounded-xs px-1 py-0 text-[8px] font-medium ${statusClass}`}>{status}</span>
-              <button
+              <Button
                 type="button"
+                variant="ghost"
+                size="sm"
                 aria-label={`Remove ${chip.email}`}
-                className="px-1 text-tertiary hover:text-danger rounded-xs"
+                className="h-5 px-1 py-0 text-[9px] text-tertiary hover:text-danger"
                 onClick={() => void handleRemove(chip)}
                 disabled={isSending}
               >
                 ×
-              </button>
+              </Button>
             </span>
           );
         })}
@@ -222,22 +225,26 @@ export function RecipientEmailComposer({ publicationId, baseClientLink, projectN
       </div>
 
       <div className="mt-1.5 flex items-center gap-2">
-        <button
+        <Button
           type="button"
+          variant="primary"
+          size="sm"
           onClick={() => void handleSend()}
           disabled={!canSend}
-          className="min-h-6 rounded-xs bg-ink px-2 py-0.5 text-[9px] font-medium text-white disabled:opacity-50 disabled:cursor-not-allowed"
+          className="min-h-6 px-2 py-0 text-[9px]"
         >
           {isSending ? "Sending..." : `Send to ${pendingCount} recipient${pendingCount === 1 ? "" : "s"}`}
-        </button>
-        <button
+        </Button>
+        <Button
           type="button"
+          variant="ghost"
+          size="sm"
           onClick={() => { setChips([]); setInput(""); setLocalMessage(null); }}
           disabled={isSending || chips.length === 0}
-          className="min-h-6 rounded-xs px-1.5 text-[9px] text-tertiary hover:text-secondary disabled:opacity-50"
+          className="min-h-6 px-1.5 py-0 text-[9px]"
         >
           Clear
-        </button>
+        </Button>
         {isLoadingList && <span className="text-[9px] text-tertiary">Loading…</span>}
       </div>
 

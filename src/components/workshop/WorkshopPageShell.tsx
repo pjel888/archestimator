@@ -4,6 +4,7 @@ import { cookies } from "next/headers";
 
 import { MainSidebar } from "@/components/sidebar/MainSidebar";
 import { AskFlipFooterAssistant } from "@/components/workshop/EstimateCopilotFloatingButton";
+import { ProjectTotalHeader } from "@/components/workshop/ProjectTotalHeader";
 import { cn } from "@/lib/ui/cn";
 import { getCurrentUserContext } from "@/lib/auth/session";
 import { ESTIMATE_CENTER_COLUMN_CSS_VARIABLES } from "./EstimateCenterColumnBoundary";
@@ -26,6 +27,7 @@ type WorkshopPageShellProps = {
   breadcrumbs?: WorkshopBreadcrumb[];
   alignChromeToProjectSidebar?: boolean;
   contentClassName?: string;
+  projectId?: string;
   children: ReactNode;
 };
 
@@ -48,6 +50,7 @@ export async function WorkshopPageShell({
   breadcrumbs,
   alignChromeToProjectSidebar = false,
   contentClassName,
+  projectId,
   children,
 }: WorkshopPageShellProps) {
   const currentUser = await getCurrentUserContext();
@@ -102,6 +105,19 @@ export async function WorkshopPageShell({
 
         <footer className={["relative flex min-h-12 shrink-0 items-center justify-between gap-2 overflow-visible border-t border-hairline bg-white text-[10px] text-tertiary", chromePaddingClass].join(" ")}>
           <div className="min-w-0 flex-1">{breadcrumbNav}</div>
+          {projectId ? (
+            <div
+              className="absolute inset-y-0 flex items-center"
+              style={{
+                left: "384px",
+                right: "388px",
+              }}
+              data-estimate-center-column="project-total-footer"
+              aria-label="Sheet running totals"
+            >
+              <ProjectTotalHeader projectId={projectId} />
+            </div>
+          ) : null}
           <AskFlipFooterAssistant />
         </footer>
       </section>
