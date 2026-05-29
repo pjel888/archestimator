@@ -176,14 +176,17 @@ Latest results:
 - Loading skeletons for 6 workshop sub-routes
 - 34-document Route Transition Performance Master Plan
 
-## 2026-05-30 — Documentation Audit & Code Intelligence Update
+## 2026-05-29 — Comprehensive Documentation Audit & Code Intelligence Refresh
 
 **Type:** documentation
 
 **Deliverables:**
-- Full 17-folder `.ai/` audit against live codebase
-- Created `14_code_intelligence/README.md` + `blast-radius-analysis.md`
-- Fresh GitNexus analyze (9,403 nodes, 17,358 edges, 300 flows)
-- Fresh code-review-graph data (3,103 nodes, 44,110 edges, 120 communities)
-- Updated documentation sync log and execution ledger
-- Verified all feature specs, roadmap, decisions, current-state against source
+- Full 19-folder `.ai/` audit against live codebase (279 source files, 48 migrations, 23 routes, 12 API routes, 112 test files)
+- Refreshed `14_code_intelligence/README.md` and `blast-radius-analysis.md` with live graph data
+- Live code-review-graph: 3,103 nodes, 44,110 edges, 120 communities, 1,912 functions, 835 tests
+- Live GitNexus: 9,403 nodes, 17,358 edges, 300 flows
+- Updated hub nodes (15) and bridge nodes (15) with fresh degree/betweenness data
+- Updated execution ledger with post-reset phase history (Phases 1–8)
+- Verified 15+ existing docs current; updated 4 docs
+- Confirmed feature-inventory.md (270 lines), current-state.md (278 lines), decisions.md (143 lines), roadmap (377 lines) all accurate
+- 0 undocumented features found; 0 flows affected by doc changes
