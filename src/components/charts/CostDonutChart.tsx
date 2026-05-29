@@ -15,7 +15,9 @@ type CostDonutChartProps = {
   /** Compact mode for constrained contexts (e.g. /share/[token] receiver next to sidebar).
    *  Uses scaled 520×400 viewBox + tighter callout padding + DESIGN-compliant smaller text.
    *  Workshop usage (no prop) remains full 720×560 unchanged.
-   *  P5: Already provides excellent mobile scaling per spec §7.3 (callouts may truncate <360px; acceptable V1).
+   *  P5 polish: aspect-ratio wrapper on compact guarantees the entire viewBox (incl. side/bottom callouts)
+   *  receives allocated height from flex-1 width in the share two-col + sticky sidebar layout. Prevents
+   *  collapse / clipping where chart was previously invisible. Mobile stacks naturally via max-w.
    */
   compact?: boolean;
   className?: string;
@@ -276,27 +278,29 @@ export function CostDonutChart({
     ? `${activeDatum.label}\n${formatCompactMoney(activeDatum.value, currencyCode)}\n${formatPercent(activeDatum.share)}`
     : `${formatCompactMoney(total, currencyCode)}\n${label}`;
 
-  const svgClassName = cn(
-    "w-full",
-    compact ? "max-w-[520px]" : "max-w-[720px]",
-    "mx-auto",
-    className
-  );
-
   const centerFont = compact ? "text-[10px]" : "text-[11px]";
   const centerDy = compact ? 11 : 14;
   const calloutLabelFont = compact ? "text-[8px]" : "text-[9px]";
   const calloutValueFont = compact ? "text-[8px]" : "text-[9px]";
 
+  // Compact path (share receiver): aspect-ratio container + h-full svg guarantees the full
+  // 520x400 viewBox (callouts at LABEL_MIN_Y/MAX_Y) is always visibly allocated from the
+  // flex-1 column width. Fixes "literally can't see the donut" clipping in lg+ sidebar layout.
+  // Workshop (non-compact) path is visually identical to pre-polish (viewBox ratio via intrinsic sizing).
+  const chartContainerClass = compact
+    ? "mx-auto w-full max-w-[520px] aspect-[520/400]"
+    : "mx-auto w-full max-w-[720px]";
+
   return (
     <div className="relative w-full" aria-label={label}>
-      <svg
-        viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
-        className={svgClassName}
-        role="img"
-        aria-label={label}
-        onMouseLeave={() => setActiveId(null)}
-      >
+      <div className={chartContainerClass}>
+        <svg
+          viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
+          className={cn("w-full h-full block", className)}
+          role="img"
+          aria-label={label}
+          onMouseLeave={() => setActiveId(null)}
+        >
         <g>
           {arcs.map(({ datum, path }, i) => (
             <path
@@ -357,6 +361,7 @@ export function CostDonutChart({
           ))}
         </g>
       </svg>
+      </div>
 
       <div className="sr-only" aria-live="polite">
         {activeDatum ? `${activeDatum.label} ${formatPercent(activeDatum.share)}` : ""}
