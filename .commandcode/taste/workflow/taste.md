@@ -7,3 +7,4 @@
 - Prefer direct implementation over asking clarifying questions mid-task — proceed with best judgment and the user will correct in subsequent iterations. Confidence: 0.85
 - After meaningful batches of changes: stage, commit with descriptive messages, push to branch, and ensure all worktrees are merged into main. Confidence: 0.70
 - Recovery branches (e.g., `wip/post-shared-link-merge-recovery`) containing stashed work should be merged into main when their files are needed to resolve build errors or missing dependencies. Confidence: 0.75
+- When implementing from plan documents, create comprehensive implementation prompts that force autonomous autopilot execution with plan tracking, continuous state updates to `.ai/01_roadmap` and `.ai/10_state`, and loop until 0 errors remain. Confidence: 0.75

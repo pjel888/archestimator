@@ -64,3 +64,6 @@ yarn-error.log*
 /.antigravitycli/
 /.gemini/
 .worktrees/
+
+# Ralph Loop session data
+/.omo/

@@ -28,7 +28,7 @@ const supabaseImageRemotePatterns = ((): ImageRemotePattern[] => {
   if (!supabaseUrl) return [];
   try {
     const url = new URL(supabaseUrl);
-    const protocol = url.protocol === "http:" ? "http" : url.protocol === "https:" ? "https" : null;
+    const protocol: "http" | "https" | null = url.protocol === "http:" ? "http" : url.protocol === "https:" ? "https" : null;
     if (!protocol) return [];
     const base = {
       protocol,
