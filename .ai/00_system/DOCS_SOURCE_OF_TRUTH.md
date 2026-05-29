@@ -20,13 +20,13 @@ These docs are the first stops for the current MVP codebase surface:
 
 - Live project and estimate bootstrap: `.ai/06_specs/live-project-estimate-bootstrap.md`
 - Project estimates and component-library source split: `.ai/06_specs/current-project-estimates-component-library-spec.md`
-- Estimate Activity contract: `.ai/03_plans/estimate-sheet-version-control/18-current-activity-contract.md`
-- Estimate Activity local-safe audit: `.ai/03_plans/estimate-sheet-version-control/19-local-safe-completion-audit.md`
-- Project charts: `.ai/03_plans/project-charts-estimate-comparison/`
-- Proposal XLSX export: `.ai/03_plans/industry-standard-excel-proposal-export/`
-- Library/Templates split, component creation/versioning, and variant assets: `.ai/03_plans/workshop-library-components-templates-split/`, `.ai/03_plans/workshop-library-component-creation-versioning/`, `.ai/03_plans/component-variant-assets-and-cost-history/`
+- Estimate Activity contract: `.ai/09_archive/store/2026-05-29-estimate-sheet-version-control-complete/18-current-activity-contract.md`
+- Estimate Activity local-safe audit: `.ai/09_archive/store/2026-05-29-estimate-sheet-version-control-complete/19-local-safe-completion-audit.md`
+- Project charts: `.ai/09_archive/store/2026-05-29-project-charts-estimate-comparison-complete/`
+- Proposal XLSX export: `.ai/09_archive/store/2026-05-29-industry-standard-excel-proposal-export-complete/`
+- Library/Templates split, component creation/versioning, and variant assets: `.ai/09_archive/store/2026-05-29-workshop-library-components-templates-split-complete/`, `.ai/09_archive/store/2026-05-29-workshop-library-component-creation-versioning-complete/`, `.ai/09_archive/store/2026-05-29-component-variant-assets-and-cost-history-complete/`
 - AI Ask-only readiness and implementation: `.ai/03_plans/ai-chatbot-agent-readiness/`
-- UI componentization: `.ai/03_plans/ui-componentization-and-storybook-plan.md`
+- UI componentization: `.ai/09_archive/store/2026-05-29-implemented-plan-cleanup/ui-componentization-and-storybook-plan.md`
 
 Do not treat an older plan as active if these docs or `.ai/10_state/*` say the implementation has moved on.
 
