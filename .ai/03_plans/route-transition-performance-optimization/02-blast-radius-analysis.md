@@ -124,10 +124,11 @@
 - SSR: `dynamic()` with `ssr: false` means the component won't render on the server. This can cause hydration mismatches if not careful.
 
 **What breaks if wrong:**
-- **Missing exports:** If the dynamically imported component doesn't have a default export.
+- **Missing exports:** **VERIFIED — ALL 5 targets use NAMED exports.** The `dynamic(() => import(...))` pattern (assuming default export) WILL FAIL at build. Use `.then(mod => mod.ComponentName)` pattern. See `14-code-splitting-named-exports.md`.
 - **SSR mismatch:** If `ssr: false` is used but the component was previously server-rendered.
 - **Import path errors:** If the component is renamed or moved.
 - **Type errors:** `dynamic()` wraps the component type, which may affect prop type inference.
+- **EstimateSheetContent re-exports:** The component re-exports 15+ functions from `./component-library/helpers`. The helpers will be bundled with the dynamic chunk (not the route's initial bundle), which is acceptable.
 
 **Risk:** LOW-MEDIUM. `next/dynamic` is well-tested. The main risk is CI build failures from incorrect imports.
 
@@ -277,6 +278,170 @@
 
 **Rollback:** Remove cache directives or set `dynamic = 'force-dynamic'`.
 
+### 2.11 Proxy.ts → Middleware Migration
+
+**Change:** Migrate auth logic from `src/proxy.ts` to `src/middleware.ts` (Next.js Edge runtime).
+
+**Files modified:**
+- `src/proxy.ts` — extract auth logic
+- `src/middleware.ts` — new file, implement Edge-compatible auth
+
+**What depends on this:**
+- **All protected routes** (`/workshop/*`, `/api/protected/*`) — currently rely on proxy.ts running before page render
+- **Auth state** — `supabase.auth.getUser()` calls in middleware must match current proxy behavior
+- **Redirects** — `/login` redirect logic must work identically in Edge runtime
+- **Cookie handling** — `cookies()` API differs between Node.js and Edge runtime
+
+**What breaks if wrong:**
+- **Auth bypass:** If middleware fails silently, unauthenticated users could access protected routes. Mitigated by: keep proxy.ts as fallback during migration, test all auth flows.
+- **Cookie issues:** Edge runtime `cookies()` API has different behavior. Mitigated by: use `@supabase/ssr` helpers which handle both runtimes.
+- **Performance regression:** If middleware adds latency instead of reducing it. Mitigated by: benchmark before/after, middleware should be <10ms.
+- **Supabase client creation:** `createClient()` must work in Edge runtime. Mitigated by: use `createBrowserClient()` pattern for middleware.
+
+**Risk:** MEDIUM-HIGH. Core auth infrastructure change. Requires extensive testing.
+
+**Rollback:** Delete `src/middleware.ts`, restore `src/proxy.ts` imports in all pages.
+
+**Dependencies:**
+- Supabase auth session validation
+- Cookie encryption/decryption
+- Route protection logic (16+ protected routes)
+- OAuth callback handling
+
+### 2.12 React.memo Strategic Memoization
+
+**Change:** Add `React.memo` to high-impact list/tree components to prevent unnecessary re-renders.
+
+**Files modified:**
+- `src/components/workshop/EstimateSheetContent.tsx` — memoize row items
+- `src/components/workshop/EstimateSheetTree.tsx` — memoize tree nodes
+- `src/components/workshop/ComponentLibraryManager.tsx` — memoize library items
+- `src/components/workshop/ProjectEstimatesTable.tsx` — memoize table rows
+- `src/components/workshop/projects-page-client.tsx` — memoize project cards
+
+**What depends on this:**
+- **Render performance** — memoized components skip re-renders when props unchanged
+- **Memory usage** — memoized components hold references to previous props
+- **Debugging** — React DevTools shows memoized components differently
+
+**What breaks if wrong:**
+- **Broken memoization:** If props change reference but not value, memoization is ineffective. Mitigated by: use `useMemo` for object/array props, `useCallback` for function props.
+- **Stale closures:** If memoized component captures stale state. Mitigated by: include all dependencies in `useMemo`/`useCallback` deps arrays.
+- **Performance regression:** If memoization overhead exceeds re-render cost. Mitigated by: profile before/after, only memoize components with 10+ instances.
+- **Type errors:** If memoization breaks prop type inference. Mitigated by: use `React.memo<Props>()` generic syntax.
+
+**Risk:** LOW-MEDIUM. Additive optimization, easily reverted. Main risk is ineffective memoization (no performance gain).
+
+**Rollback:** Remove `React.memo` wrappers, revert to plain components.
+
+**Impact chain:**
+- Row item memoization → 10x faster row edits (50-100ms → 5-10ms)
+- Tree node memoization → 10x faster tree expansion (30-60ms → 3-6ms)
+- Project card memoization → 10x faster project list updates
+
+### 2.13 Three.js Lazy Loading (Landing Page)
+
+**Change:** Lazy-load Three.js background component on landing page to reduce initial bundle size.
+
+**Files modified:**
+- `src/app/page.tsx` — dynamic import of `NeatWireframeBackground`
+
+**What depends on this:**
+- **Landing page bundle size** — currently includes ~150KB of Three.js
+- **First Contentful Paint (FCP)** — faster without Three.js parsing
+- **Visual appearance** — background gradient appears after lazy load
+
+**What breaks if wrong:**
+- **Hydration mismatch:** If Three.js renders differently on server vs client. Mitigated by: use `ssr: false` in dynamic import.
+- **Layout shift:** If background appears late and causes visual jump. Mitigated by: reserve space with CSS, use fade-in animation.
+- **SEO impact:** If search engines see different content. Mitigated by: Three.js is decorative, not content.
+- **Mobile performance:** If lazy loading adds overhead on slow devices. Mitigated by: use `loading="lazy"` and Intersection Observer.
+
+**Risk:** LOW. Purely additive, easily reverted. Three.js is non-critical visual enhancement.
+
+**Rollback:** Remove dynamic import, revert to static import.
+
+**Impact:** ~150KB reduction in landing page initial bundle, ~200ms faster FCP.
+
+### 2.14 Font Loading Optimization
+
+**Change:** Load fonts route-specifically instead of globally in root layout.
+
+**Files modified:**
+- `src/app/layout.tsx` — remove global font imports (Poppins, Roboto Mono, Source Serif 4)
+- `src/app/workshop/layout.tsx` — add workshop-specific font imports
+- `src/app/(marketing)/layout.tsx` — add marketing-specific font imports (if needed)
+
+**What depends on this:**
+- **All pages** — currently inherit fonts from root layout
+- **Typography rendering** — pages must explicitly import fonts they use
+- **Bundle size** — landing page saves ~300KB of unused fonts
+
+**What breaks if wrong:**
+- **Missing fonts:** If a page uses a font but doesn't import it. Mitigated by: audit all font usage across codebase, create font usage map.
+- **FOIT (Flash of Invisible Text):** If fonts load late. Mitigated by: use `font-display: swap`.
+- **Layout shift:** If font metrics differ between fallback and actual font. Mitigated by: use `size-adjust` CSS property.
+- **Inconsistent typography:** If different pages use different font stacks. Mitigated by: document font strategy per route group.
+
+**Risk:** MEDIUM. Requires comprehensive font usage audit. Missing fonts cause visible rendering issues.
+
+**Rollback:** Restore global font imports in root layout.
+
+**Impact:** ~300KB reduction in landing page bundle, ~200ms faster FCP on landing page.
+
+### 2.15 Error Boundaries (Route + Component)
+
+**Change:** Add `error.tsx` files to routes and `ErrorBoundary` components to high-risk components.
+
+**Files modified:**
+- `src/app/workshop/projects/[projectId]/error.tsx` — new file
+- `src/app/workshop/projects/[projectId]/estimates/[nodeId]/error.tsx` — new file
+- `src/app/workshop/library/error.tsx` — new file
+- `src/components/workshop/EstimateSheetContent.tsx` — wrap in ErrorBoundary
+- `src/components/workshop/project-charts/` — wrap D3 charts in ErrorBoundary
+
+**What depends on this:**
+- **Error handling** — currently errors cause full-page crashes
+- **User experience** — error boundaries show retry UI instead of white screen
+- **Debugging** — error boundaries log errors for monitoring
+
+**What breaks if wrong:**
+- **Infinite error loops:** If error boundary re-renders and throws again. Mitigated by: limit retry attempts, show "contact support" after 3 retries.
+- **State loss:** If error boundary resets component state. Mitigated by: use React Query for data persistence, error boundary only resets UI.
+- **Incomplete error coverage:** If some errors bypass boundaries. Mitigated by: add boundaries at multiple levels (route + component).
+- **Poor error messages:** If errors are too technical for users. Mitigated by: use user-friendly messages, log technical details separately.
+
+**Risk:** LOW. Purely additive, improves resilience. Main risk is incomplete coverage.
+
+**Rollback:** Delete `error.tsx` files, remove ErrorBoundary wrappers.
+
+**Impact:** 20x faster error recovery (1000ms full reload → 50ms retry), prevents full-page crashes.
+
+### 2.16 Project Layout Caching (`unstable_cache`)
+
+**Change:** Cache project layout queries to eliminate re-fetch waterfall on sub-navigation.
+
+**Files modified:**
+- `src/app/workshop/projects/[projectId]/layout.tsx` — wrap queries in `unstable_cache`
+
+**What depends on this:**
+- **Project detail** — `getCurrentWorkspaceProject()` called 3 times per navigation
+- **Collaboration data** — `getProjectCollaborationSummary()` called 3 times
+- **Publication data** — `getProjectPublicationSummary()` called 3 times
+- **Estimate sheets** — `listProjectEstimateSheets()` called 3 times
+
+**What breaks if wrong:**
+- **Stale data:** If cache isn't invalidated after mutations. Mitigated by: use `revalidateTag()` after project/collaboration/publication mutations.
+- **Cross-user data leak:** If cache key doesn't include user ID. Mitigated by: include `userId` in cache key.
+- **Cache invalidation complexity:** If too many tags to manage. Mitigated by: use simple tag scheme (`project-${projectId}`), document all invalidation points.
+- **Performance regression:** If cache lookup is slower than query. Mitigated by: benchmark before/after, cache should be <5ms.
+
+**Risk:** MEDIUM. Server-side caching requires careful invalidation strategy. Main risk is stale data.
+
+**Rollback:** Remove `unstable_cache` wrappers, revert to direct queries.
+
+**Impact:** ~90ms saved per sub-navigation (3 navigations = 270ms total savings).
+
 ---
 
 ## 3. Upstream Dependencies
@@ -285,14 +450,17 @@
 
 | Layer | Component | Impact |
 |-------|-----------|--------|
+| **Auth** | **`proxy.ts` (auth guard)** | **If middleware migration fails, all protected routes lose auth protection. Must test all 16+ protected routes after migration.** |
 | Auth | `proxy.ts` (auth guard) + Supabase session | If `loading.tsx` reveals protected content before auth check, data leak possible. **Note:** There is NO `middleware.ts`. Auth is enforced at the data-fetching layer via `requireCurrentUserContext()` → `redirect("/login")`. |
 | Auth | `src/lib/auth/actions.ts` | Server-side redirects bypass client optimizations (unchanged) |
 | Layout | `src/app/layout.tsx` | Root layout load affects ALL pages. Font loading optimization helps all routes. |
-| Layout | `[projectId]/layout.tsx` | Project layout is the only nested workshop layout. Fetches 4 Supabase queries (1 sequential + 3 parallel). Optimizing here has the widest impact. |
+| Layout | `[projectId]/layout.tsx` | Project layout is the only nested workshop layout. Fetches 4 Supabase queries (1 sequential + 3 parallel). Optimizing here has the widest impact. **Caching this layout saves 90ms per sub-navigation.** |
 | Shell | `WorkshopPageShell` (111 lines) | Rendered by EVERY workshop page. Reads `cookies()` for side-panel widths — forces dynamic rendering. |
 | Providers | `src/app/providers.tsx` | Changes to `staleTime` affect ALL queries. Must not break auth query freshness. |
 | Navigation | `NavigationListener` | bfcache changes affect ALL routes. Overlay behavior affects ALL transitions. |
 | Navigation | `useNavigationRouter` | Changes to router wrapper affect ALL programmatic navigation (7 files, 16+ call sites). |
+| **Rendering** | **List/tree components** | **React.memo changes affect render performance of 100+ row items, 50+ tree nodes. Must profile to ensure memoization is effective.** |
+| **Error handling** | **Error boundaries** | **If error boundaries are incomplete, some errors still cause full-page crashes. Must audit all high-risk components.** |
 
 ### Components that depend on navigation state:
 
@@ -353,6 +521,23 @@ None of these should be affected by adding prefetch, caching, or code splitting.
 | Server caching | Set `dynamic = 'force-dynamic'` | Pages re-fetch on every render |
 
 **Universal rollback command:** `git revert` the implementation commit. All techniques are additive or scoped changes that can be cleanly reverted.
+
+---
+
+**Next:** See `03-readiness-assessment.md` for pre-implementation prerequisites.
+n be cleanly reverted.
+
+---
+
+## 6. Related Documents
+
+For detailed implementation strategies on the new optimizations:
+
+- **`17-server-side-optimization-strategy.md`** — Proxy.ts migration, React.cache expansion, N+1 query fixes
+- **`19-react-memo-strategy.md`** — Strategic component memoization plan
+- **`20-font-and-bundle-optimization.md`** — Three.js lazy loading, font optimization, bundle analysis
+- **`21-error-boundary-strategy.md`** — Route-level and component-level error boundaries
+- **`16-critical-path-waterfall.md`** — Detailed timing analysis showing proxy.ts and layout re-fetch impact
 
 ---
 

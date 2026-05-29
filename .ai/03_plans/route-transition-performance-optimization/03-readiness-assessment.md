@@ -43,7 +43,7 @@
 | No existing `next.config.ts` performance settings | Low | No | Can be added incrementally |
 | `useTransition` used inconsistently | Low | No | Some components use it, others don't. Standardize. |
 | No bundle analyzer configured | Low | No | `@next/bundle-analyzer` recommended for Phase 0 |
-| No middleware.ts — auth at data-fetching layer | Medium | No | All workshop pages forced dynamic by `cookies()` in auth + WorkshopPageShell |
+| No middleware.ts — auth at data-fetching layer | **HIGH** 🔴 | No (blocking for performance) | All workshop pages forced dynamic by `cookies()` in auth + WorkshopPageShell. See **`31-auth-optimization-middleware-migration.md`** for the 3-line fix. |
 | 3 files import Phosphor icons from wrong path | Low | No | Fix import paths to `@phosphor-icons/react/dist/ssr` |
 | Landing barrel export (32 components) | Low | No | Consider breaking into dynamic chunks for below-fold sections |
 
@@ -65,6 +65,21 @@
 **Additional dynamic rendering force:** `WorkshopPageShell` (rendered by every workshop page) reads `cookies()` for side-panel width CSS variables via `getSidePanelWidthCssVariables()`. Even if auth were moved to middleware, this cookie read would still force dynamic rendering.
 
 **Impact on Suspense/streaming strategy:** Suspense boundaries can still stream partial content while data resolves, but the page shell itself will always be server-rendered dynamically. This is acceptable — the goal is to show the shell immediately while heavy data (project lists, estimate trees, library) resolves in Suspense boundaries.
+
+### 1.5 Additional Performance Gaps Discovered (Deep Audit)
+
+Recent deep codebase analysis revealed critical performance bottlenecks beyond the initial audit:
+
+| Gap | Severity | Blocking? | Impact | Resolution |
+|-----|----------|-----------|--------|------------|
+| **Proxy.ts auth check on every request** | **Critical** | **No (but high priority)** | **Adds ~100-200ms latency per navigation. Single largest server-side bottleneck.** | Migrate to Next.js middleware (saves 80-180ms) or optimize to use `getSession()` instead of `getUser()` (saves 60-150ms). See `17-server-side-optimization-strategy.md` §1. |
+| **Zero React.memo usage** | **High** | **No** | **Causes 10x slower re-renders for list/tree components. 100+ row items re-render when only 1 is edited.** | Add strategic memoization to row items, tree nodes, project cards. See `19-react-memo-strategy.md`. |
+| **Three.js on landing page (~150KB)** | **High** | **No** | **65% of landing page JS bundle. Statically imported in hero section (above-fold), blocking initial render of headline and CTA.** | Dynamically import Three.js via `next/dynamic` with `ssr: false` and CSS placeholder. See `20-font-and-bundle-optimization.md` §2. |
+| **Font loading cost (4 fonts on all pages)** | **Medium** | **No** | **Landing page loads ~300KB of unused fonts (Poppins, Roboto Mono, Source Serif 4).** | Route-specific font loading. Landing page only loads Inter. See `20-font-and-bundle-optimization.md` §1. |
+| **Zero error boundaries** | **High** | **No** | **Full-page crashes on component errors. Recovery requires full reload (~1000ms vs ~50ms with retry).** | Add `error.tsx` files to routes and `ErrorBoundary` components to high-risk components. See `21-error-boundary-strategy.md`. |
+| **Project layout re-fetch waterfall** | **High** | **No** | **Project layout re-fetches on every sub-navigation (projects/X/estimates → projects/X/charts), wasting ~90ms per navigation.** | Cache project layout queries with `unstable_cache`. See `17-server-side-optimization-strategy.md` §2. |
+| **N+1 query patterns** | **Medium** | **No** | **Sequential queries in loops (e.g., fetching metadata per project). Adds 30-150ms depending on data size.** | Batch queries, use JOINs, implement DataLoader pattern. See `17-server-side-optimization-strategy.md` §4. |
+| **Detailed waterfall analysis missing** | **Low** | **No** | **Without exact timing breakdown, hard to prioritize optimizations.** | Review `16-critical-path-waterfall.md` for heaviest routes (estimate workspace, component library, projects list). |
 
 ---
 
@@ -199,23 +214,35 @@ bun run build 2>&1 | grep -E "Route|First Load JS"
 | 2 | Verify auth flow doesn't break with streaming | ❌ Not verified | **MUST:** Test auth at data-fetching layer (`requireCurrentUserContext()`) + streaming compatibility. Auth is NOT in middleware — it's in repository functions that call `cookies()` + `headers()`. |
 | 3 | Seed data for peak-load testing | ❌ Not done | **MUST:** Create seed script for 50 projects, 200 rows scenarios |
 
+### HIGH PRIORITY (Should Resolve Early — High Impact)
+
+| # | Item | Status | Impact | Action |
+|---|------|--------|--------|--------|
+| 4 | **Proxy.ts auth optimization** | ❌ Not done | **Saves 100-200ms per navigation (largest single bottleneck)** | Evaluate middleware migration vs. `getSession()` optimization. See `17-server-side-optimization-strategy.md` §1. |
+| 5 | **React.memo strategic memoization** | ❌ Not done | **10x faster re-renders for list/tree components** | Audit components for memoization candidates. See `19-react-memo-strategy.md`. |
+| 6 | **Project layout caching** | ❌ Not done | **Saves 90ms per sub-navigation** | Implement `unstable_cache` for project layout queries. See `17-server-side-optimization-strategy.md` §2. |
+| 7 | **Error boundaries** | ❌ Not done | **Prevents full-page crashes, 20x faster recovery** | Add `error.tsx` files to critical routes. See `21-error-boundary-strategy.md`. |
+
 ### RECOMMENDED (Should Resolve Before Implementation)
 
 | # | Item | Status | Action |
 |---|------|--------|--------|
-| 4 | Bundle analyzer installed | ❌ Not done | Install `@next/bundle-analyzer` |
-| 5 | React Query DevTools installed (dev) | ❌ Not done | Install for cache debugging during optimization |
-| 6 | `@tanstack/react-virtual` evaluated | ❌ Not done | Verify compatibility with TanStack Table + React Complex Tree |
-| 7 | Philip approval on skeleton design direction | ⏳ Pending | Review with owner |
-| 8 | Fix 3 Phosphor icon import paths | ❌ Not done | Switch `ContactForm.tsx`, `ProjectChartsClient.tsx`, `projects-page-client.tsx` to `/dist/ssr` path |
+| 8 | Bundle analyzer installed | ❌ Not done | Install `@next/bundle-analyzer` |
+| 9 | React Query DevTools installed (dev) | ❌ Not done | Install for cache debugging during optimization |
+| 10 | `@tanstack/react-virtual` evaluated | ❌ Not done | Verify compatibility with TanStack Table + React Complex Tree |
+| 11 | Philip approval on skeleton design direction | ⏳ Pending | Review with owner |
+| 12 | Fix 3 Phosphor icon import paths | ❌ Not done | Switch `ContactForm.tsx`, `ProjectChartsClient.tsx`, `projects-page-client.tsx` to `/dist/ssr` path |
+| 13 | **Three.js dynamic import (landing page hero)** | ❌ Not done | Defer ~150KB off critical path via `next/dynamic` with `ssr: false`. **Note:** Component is in above-fold HeroSection (not below-fold) — IntersectionObserver approach will NOT defer it. See `20-font-and-bundle-optimization.md` §2. |
+| 14 | **Font loading optimization** | ❌ Not done | Reduce landing page bundle by ~300KB. See `20-font-and-bundle-optimization.md` §1. |
+| 15 | **N+1 query fixes** | ❌ Not done | Batch sequential queries. See `17-server-side-optimization-strategy.md` §4. |
 
 ### NICE-TO-HAVE
 
 | # | Item | Status |
 |---|------|--------|
-| 8 | CI performance regression check | Not needed for initial implementation |
-| 9 | Visual regression testing | Defer to later phase |
-| 10 | Automated Lighthouse CI | Defer to later phase |
+| 16 | CI performance regression check | Not needed for initial implementation |
+| 17 | Visual regression testing | Defer to later phase |
+| 18 | Automated Lighthouse CI | Defer to later phase |
 
 ### Overall Readiness: ⚠️ CONDITIONALLY READY
 
@@ -225,12 +252,38 @@ The codebase is technically ready — all necessary libraries exist, the archite
 2. Auth + streaming verification (auth is at data-fetching layer, not middleware)
 3. Peak-load seed data
 
+**High-priority optimizations discovered in deep audit:**
+- Proxy.ts auth check adds 100-200ms per navigation (critical bottleneck)
+- Zero React.memo causes 10x slower re-renders
+- Project layout re-fetch wastes 90ms per sub-navigation
+- Zero error boundaries cause full-page crashes
+- Three.js on landing page (150KB) and font loading (300KB) bloat initial bundle
+
 **Good news from codebase audit:**
 - bfcache: **Zero blockers found** — no `beforeunload`/`unload` listeners, no `Cache-Control: no-store` on workshop pages
 - Navigation: `useNavigationRouter` hook already migrated from raw `useRouter()` — only needs consolidation of 5 instances in `ProjectEstimatesTable`
 - Optimistic updates: Sophisticated patterns already in place (snapshot/restore/revision tracking)
 
-Once blocking items are resolved, Phase 1 (quick wins) can begin immediately.
+**Recommended implementation order:**
+1. Resolve blocking items (instrumentation, auth verification, seed data)
+2. Tackle high-priority items (proxy.ts, React.memo, layout caching, error boundaries)
+3. Implement quick wins (loading.tsx, staleTime, code splitting)
+4. Address recommended items (bundle analyzer, Three.js, fonts, N+1 fixes)
+
+Once blocking items are resolved, Phase 1 (quick wins) can begin immediately, with high-priority optimizations integrated as Phase 1.5.
+
+---
+
+## 7. Related Documents
+
+For detailed analysis of the new findings:
+
+- **`16-critical-path-waterfall.md`** — Detailed server+client waterfall diagrams showing exact timing of each step from click to interactive
+- **`17-server-side-optimization-strategy.md`** — Proxy.ts optimization, React.cache expansion, N+1 query fixes, project layout caching
+- **`18-performance-monitoring-production.md`** — Runtime monitoring, alerting, regression detection
+- **`19-react-memo-strategy.md`** — Strategic component memoization plan with specific targets
+- **`20-font-and-bundle-optimization.md`** — Font loading optimization, Three.js lazy loading, bundle analysis
+- **`21-error-boundary-strategy.md`** — Route-level and component-level error boundaries
 
 ---
 

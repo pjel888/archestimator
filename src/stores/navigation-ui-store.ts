@@ -6,6 +6,7 @@ type NavigationUiState = {
   targetHref: string | null;
   show: (targetHref?: string | null) => void;
   hide: () => void;
+  bfcacheRestore: () => void;
 };
 
 const MIN_DISPLAY_MS = 250;
@@ -52,5 +53,13 @@ export const useNavigationUiStore = create<NavigationUiState>((set, get) => ({
       }
       set({ isNavigating: false, targetHref: null });
     }, remaining);
+  },
+  bfcacheRestore: () => {
+    clearTimers();
+    set({
+      isNavigating: false,
+      startTime: 0,
+      targetHref: null,
+    });
   },
 }));

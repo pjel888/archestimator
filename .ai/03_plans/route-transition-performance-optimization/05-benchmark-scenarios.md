@@ -117,9 +117,9 @@ For automated collection, use `lighthouse` CLI or Playwright with `page.metrics(
 | # | Scenario | Action | Measurement |
 |---|----------|--------|-------------|
 | C1 | New Project Form submit | Fill form → click "Create Project" | Time from click to redirect + project detail visible |
-| C2 | Estimate row click | Click estimate row in table (`router.push`) | Time from click to estimate workspace visible |
+| C2 | Estimate row click | Click estimate row in table (`useNavigationRouter().push`) | Time from click to estimate workspace visible |
 | C3 | `router.refresh()` | Trigger a data mutation | Time from refresh start to updated data visible |
-| C4 | Estimate tree node click | Click tree node (`router.replace`) | Time from click to new node selected + row items visible |
+| C4 | Estimate tree node click | Click tree node (`useNavigationRouter().replace`) | Time from click to new node selected + row items visible |
 
 ### 2.4 Browser Back/Forward
 

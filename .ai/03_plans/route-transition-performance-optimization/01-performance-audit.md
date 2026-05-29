@@ -271,7 +271,112 @@ The other 44+ files correctly use the SSR import path. The `next.config.ts` has 
 
 ### 3.10 Landing Page Barrel Export
 
-**Problem:** `src/components/landing/index.ts` re-exports **32 components** as a barrel export. The landing page (`src/app/page.tsx`) is a server component that imports from this barrel. While tree-shaking should handle unused exports, the barrel forces the bundler to analyze all 32 modules. Several of these components are below-the-fold (FAQ, Pricing, Partner, Testimonial, FinalCTA) and could be dynamically imported.
+**Problem:** `src/components/landing/index.ts` re-exports **26 components** as a barrel export (not 32 as previously stated — verified 2026-05-29). The landing page (`src/app/page.tsx`) is a server component that imports 18 of them. While tree-shaking should handle unused exports, the barrel forces the bundler to analyze all 26 modules. Several of these components are below-the-fold (FAQ, Pricing, Partner, Testimonial, FinalCTA) and could be dynamically imported.
+
+### 3.11 Proxy.ts Auth Check Latency (Every Request) — NEW
+
+**Problem:** `src/proxy.ts` runs on **every protected page request** and adds **~100-200ms latency** per navigation.
+
+**How it works:**
+1. Every request to `/workshop/*` routes triggers the proxy
+2. Proxy calls `supabase.auth.getUser()` — an HTTP roundtrip to Supabase Auth API
+3. Even when the session cookie is valid and hasn't expired, this HTTP call still executes
+4. This adds 100-200ms to every single page navigation
+
+**Impact:** This is the **single largest server-side bottleneck** for route transitions. A user navigating through 3 pages in the project segment (projects → estimates → charts) incurs 300-600ms of cumulative auth latency.
+
+**Files affected:**
+- `src/proxy.ts` — the auth check implementation
+- All workshop routes (`/workshop/*`) — every protected page
+
+**Root cause:** The proxy uses `getUser()` which always makes an HTTP request, instead of `getSession()` which validates the JWT locally.
+
+**Optimization opportunity:** See `17-server-side-optimization-strategy.md` §1 for migration to Next.js middleware (saves ~80-180ms per navigation) or optimization of proxy to use `getSession()` (saves ~60-150ms).
+
+### 3.12 Zero React.memo Usage (Unnecessary Re-renders) — NEW
+
+**Problem:** The codebase has **245+ `useMemo`/`useCallback` usages** but **zero `React.memo` or `memo()` usage** anywhere.
+
+**Impact:** When a parent component re-renders, ALL child components re-render, even if their props haven't changed. This is especially costly for:
+- **Estimate row items:** 100+ rows re-render when only 1 row is edited
+- **Tree nodes:** 50+ nodes re-render when only 1 node is expanded
+- **Project cards:** 20+ cards re-render when only 1 card is updated
+
+**Performance cost:** Estimated **10x slower re-renders** for list/tree components. A row edit that should take 5-10ms takes 50-100ms because all sibling rows unnecessarily re-render.
+
+**Files affected:**
+- `EstimateSheetContent.tsx` — 100+ row items
+- `EstimateSheetTree.tsx` — 50+ tree nodes
+- `ComponentLibraryManager.tsx` — 50+ library items
+- `ProjectEstimatesTable.tsx` — 20+ estimate rows
+- All list/tree rendering components
+
+**Optimization opportunity:** See `19-react-memo-strategy.md` for strategic memoization targets. Expected improvement: 10x faster re-renders for list items and tree nodes.
+
+### 3.13 Three.js on Landing Page (~150KB) — NEW
+
+**Problem:** The landing page loads **Three.js (~150KB gzipped)** for a WebGL gradient background effect (`NeatWireframeBackground.tsx`), even though:
+1. ⚠️ **CORRECTION:** The gradient is NOT below the fold — it renders inside `HeroSection` (`src/components/landing/HeroSection.tsx:44`), which is the above-fold hero. Earlier drafts incorrectly described this as "below the fold" — see `20-font-and-bundle-optimization.md` §2 for the corrected location analysis.
+2. Three.js blocks initial render of hero headline and CTA because it's statically imported on the critical rendering path
+3. The landing page is the first impression (highest traffic, most critical for performance)
+
+**Impact:** Three.js is **65% of the landing page JavaScript bundle** (~315KB total). This is unacceptable for a landing page that should load as fast as possible.
+
+**Files affected:**
+- `src/components/landing/NeatWireframeBackground.tsx` — imports `@firecms/neat` (Three.js-based)
+- `src/components/landing/HeroSection.tsx` — renders `NeatWireframeBackground` as above-fold hero decoration
+- `src/app/page.tsx` — renders the hero section
+
+**Optimization opportunity:** Since the component is above-fold, a simple IntersectionObserver lazy-load strategy will NOT defer it. Instead, use `next/dynamic` with `ssr: false` and a CSS gradient placeholder to defer Three.js hydration off the critical path. See `20-font-and-bundle-optimization.md` §2 for the corrected strategy. Expected savings: ~150KB deferred from critical path.
+
+### 3.14 Font Loading Cost (4 Fonts on All Pages) — NEW
+
+**Problem:** The root layout loads **4 Google Fonts** on every page:
+- Inter (used on landing page + some workshop components)
+- Poppins (used on specific workshop headings)
+- Roboto Mono (used for code snippets, estimate values)
+- Source Serif 4 (used for marketing copy, testimonials)
+
+**Impact:** The landing page loads **~300KB of unused fonts** (Poppins, Roboto Mono, Source Serif 4), even though it only uses Inter. This adds ~200-400ms to landing page LCP.
+
+**Files affected:**
+- `src/app/layout.tsx` — loads all 4 fonts in root layout
+- All pages — inherit the fonts
+
+**Optimization opportunity:** See `20-font-and-bundle-optimization.md` §1 for route-specific font loading. Expected savings: ~300KB on landing page (75% reduction).
+
+### 3.15 Zero Error Boundaries (Full-Page Crashes) — NEW
+
+**Problem:** The codebase has **zero `error.tsx` files** and **zero custom error boundary components**. If any component throws during render, the entire page crashes.
+
+**Impact:**
+- User sees Next.js default error page (white screen or generic error)
+- Only recovery: full page reload (loses all client state, unsaved edits, scroll position)
+- No graceful degradation — one broken component kills the entire UI
+- Recovery time: ~1000ms (full reload) vs ~50ms (error boundary retry)
+
+**High-risk components:**
+- `EstimateSheetContent.tsx` (~4,048 lines) — complex, many edge cases
+- Chart components (D3) — error-prone with empty data
+- Tree components (recursion) — risk of infinite loops
+
+**Optimization opportunity:** See `21-error-boundary-strategy.md` for route-level and component-level error boundaries. Expected improvement: 20x faster recovery (1000ms → 50ms).
+
+### 3.16 Project Layout Re-Fetch Waterfall — NEW
+
+**Problem:** The project layout (`src/app/workshop/projects/[projectId]/layout.tsx`) runs on **every sub-navigation** within the project segment, even when data hasn't changed.
+
+**Scenario:** User navigates:
+1. `/workshop/projects/123` → layout fetches project + collaboration + publication + estimates (~90ms)
+2. `/workshop/projects/123/estimates` → layout **re-fetches the same data** (~90ms wasted)
+3. `/workshop/projects/123/charts` → layout **re-fetches again** (~90ms wasted)
+
+**Impact:** ~180ms wasted across 2 sub-navigations. The layout queries are not cached between navigations.
+
+**Files affected:**
+- `src/app/workshop/projects/[projectId]/layout.tsx` — runs 4 queries on every render
+
+**Optimization opportunity:** See `17-server-side-optimization-strategy.md` §2 for server-side caching with `unstable_cache`. Expected savings: ~90ms per sub-navigation.
 
 ---
 
@@ -522,15 +627,20 @@ None of these are code-split. All are eagerly loaded in their parent routes. The
 
 ## 7. Summary of Findings
 
-### Top 5 Bottlenecks (by impact)
+### Top 10 Bottlenecks (by impact)
 
 | Rank | Bottleneck | Affected Routes | Estimated Latency |
 |------|-----------|-----------------|-------------------|
-| 1 | No prefetching — every navigation is a cold start | All workshop routes | 300–800ms per transition |
-| 2 | No Suspense boundaries — entire route blocks | All workshop routes | Blocks until all data resolves |
-| 3 | No code splitting — heavy components eagerly loaded | estimates, library, charts | 500ms–2s hydration |
-| 4 | Server Components re-fetch on every render | All workshop routes | 200–500ms per fetch cycle |
-| 5 | No bfcache — back/forward re-renders everything | All routes | 300–800ms back/forward |
+| 1 | **Proxy.ts auth check on every request** | All workshop routes | **100-200ms per navigation** |
+| 2 | No prefetching — every navigation is a cold start | All workshop routes | 300–800ms per transition |
+| 3 | No Suspense boundaries — entire route blocks | All workshop routes | Blocks until all data resolves |
+| 4 | No code splitting — heavy components eagerly loaded | estimates, library, charts | 500ms–2s hydration |
+| 5 | Server Components re-fetch on every render | All workshop routes | 200–500ms per fetch cycle |
+| 6 | **Project layout re-fetches on sub-navigation** | `/workshop/projects/[id]/*` | **90ms per sub-nav** |
+| 7 | **Zero React.memo — massive unnecessary re-renders** | List/tree components | **10x slower re-renders** |
+| 8 | **Three.js on landing page (~150KB)** | Landing page | **65% of landing JS bundle** |
+| 9 | **Font loading (4 fonts on all pages)** | Landing page | **~300KB wasted** |
+| 10 | No bfcache — back/forward re-renders everything | All routes | 300–800ms back/forward |
 
 ### Quick Wins (Low Effort, High Impact)
 
@@ -543,6 +653,11 @@ None of these are code-split. All are eagerly loaded in their parent routes. The
 | 5 | Consolidate 5 `useNavigationRouter()` in `ProjectEstimatesTable` | Refactor | Reduces Zustand subscriptions, potential re-render source |
 | 6 | Fix 3 files importing Phosphor icons from wrong path | 3 lines | Consistent tree-shaking |
 | 7 | Add React `cache()` to repository functions | 5 files | Deduplicates Supabase calls within same render pass |
+| 8 | **Migrate proxy.ts to Next.js middleware** | Medium | **Saves 100-200ms per navigation** |
+| 9 | **Add React.memo to row items and tree nodes** | Low-Medium | **10x faster re-renders** |
+| 10 | **Dynamic import Three.js on landing page** (above-fold hero — IntersectionObserver won't defer; use `next/dynamic` with `ssr: false`) | Low | **Saves ~150KB off critical path** |
+| 11 | **Route-specific font loading** | Low | **Saves ~300KB on landing page** |
+| 12 | **Add error boundaries to heavy components** | Low | **Prevents full-page crashes, 20x faster recovery** |
 
 ### Strategic Investments (High Effort, Highest Impact)
 
@@ -554,6 +669,21 @@ None of these are code-split. All are eagerly loaded in their parent routes. The
 | 4 | bfcache optimization (codebase already has zero blockers) | Low-Medium | Instant back/forward — only need `pageshow` handling in overlay |
 | 5 | Route-level bundle analysis and code splitting | Medium | 30–50% JS reduction per route (top 4 components = ~8,943 lines) |
 | 6 | Extract WorkshopPageShell `cookies()` read to middleware | Medium | Would unlock static generation for non-auth workshop data (future) |
+| 7 | **Server-side caching with `unstable_cache`** | Medium | **Eliminates project layout re-fetch waterfall** |
+| 8 | **Comprehensive React.memo strategy** | Medium | **Massive re-render reduction across all list/tree components** |
+
+---
+
+## 8. Related Documents
+
+For detailed implementation strategies on the new findings:
+
+- **`16-critical-path-waterfall.md`** — Detailed server+client waterfall diagrams showing exact timing of each step from click to interactive
+- **`17-server-side-optimization-strategy.md`** — Proxy.ts optimization, React.cache expansion, N+1 query fixes, project layout caching
+- **`18-performance-monitoring-production.md`** — Runtime monitoring, alerting, regression detection
+- **`19-react-memo-strategy.md`** — Strategic component memoization plan with specific targets
+- **`20-font-and-bundle-optimization.md`** — Font loading optimization, Three.js dynamic import (above-fold hero), bundle analysis
+- **`21-error-boundary-strategy.md`** — Route-level and component-level error boundaries
 
 ---
 

@@ -278,12 +278,14 @@ export default function ProjectsLoading() {
 
 ### 5.3 Usage in `next/dynamic`
 
+**⚠️ All code-splitting targets use NAMED exports. Use `.then(mod => mod.ComponentName)` pattern.** See `14-code-splitting-named-exports.md`.
+
 ```tsx
 import dynamic from "next/dynamic";
 import { EstimateWorkspaceSkeleton } from "@/components/skeletons";
 
 const EstimateSheetContent = dynamic(
-  () => import("@/components/workshop/EstimateSheetContent"),
+  () => import("@/components/workshop/EstimateSheetContent").then(mod => mod.EstimateSheetContent),
   { loading: () => <EstimateWorkspaceSkeleton /> }
 );
 ```
@@ -307,4 +309,4 @@ export default async function ProjectsPage() {
 
 ---
 
-**Next:** See `11-prefetch-wiring-map.md` for the exact prefetch hookup plan.
+**Next:** See `11-prefetch-wiring-map.md` for the exact prefetch hookup plan. See `33-loading-sequence-progressive-enhancement.md` for when skeletons appear in the user's click-to-interactive timeline.
