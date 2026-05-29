@@ -19,7 +19,7 @@ import Image from "next/image";
 
 import { aggregateRowsByDiscipline } from "@/lib/share/aggregate-share-chart-buckets";
 import { CostDonutChart } from "@/components/charts/CostDonutChart";
-import { reconstructTreeFromRows } from "@/lib/share/reconstruct-share-tree";
+import { reconstructTreeFromRows, wrapTreeWithRoot } from "@/lib/share/reconstruct-share-tree";
 import { ShareEstimateTreeView } from "@/components/share/ShareEstimateTreeView";
 import { ShareFloatingTreeNav } from "@/components/share/ShareFloatingTreeNav";
 
@@ -172,10 +172,15 @@ export default function SharePageTabs({
     [wouldBeActive]
   );
 
-  const treeNodes = useMemo(
-    () => (wouldBeActive ? reconstructTreeFromRows(wouldBeActive.rows) : []),
-    [wouldBeActive]
-  );
+  const treeNodes = useMemo(() => {
+    if (!wouldBeActive) return [];
+    const raw = reconstructTreeFromRows(wouldBeActive.rows);
+    if (raw.length === 0) return raw;
+    // Virtual root (per clarified target A): provides "complete hierarchy" context in Tree View + floating nav
+    // even when designation data in snapshot is relative/shallow (e.g. starts at "Balcony" for some Lewis publishes).
+    // Reconstruction itself remains pure (fidelity tests + other snapshots unaffected).
+    return wrapTreeWithRoot(raw, wouldBeActive.name || "Estimate", wouldBeActive.totalCost);
+  }, [wouldBeActive]);
 
   if (estimates.length === 0) return null;
 

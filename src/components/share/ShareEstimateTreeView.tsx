@@ -72,7 +72,10 @@ function TreeNodeRenderer({
   const indentStep = isMobile ? 12 : WORKSHOP_TREE_INDENT_STEP;
   const maxIndent = isMobile ? 80 : WORKSHOP_TREE_MAX_INDENT;
 
-  // Row items under this node (only areas carry direct rows per reconstruction contract)
+  // Row items under this node (only areas carry direct rows per reconstruction contract).
+  // +1 level indent from parent area (consistent with workshop patterns + spec).
+  // Polished hover/spacing/alignment for UI quality (matches workshop tree density + grid preview numeric rhythm,
+  // DESIGN compact 10px/9px, xs radius, hairline, proposalPaper context via parent).
   const rowItems = node.kind === "area" && node.rows && node.rows.length > 0 ? (
     <div
       className="border-l border-hairline/60"
@@ -87,21 +90,21 @@ function TreeNodeRenderer({
           return (
             <div
               key={row.id}
-              className="group flex min-h-[28px] items-center gap-2 border-b border-hairline/40 py-1 pr-2 text-[10px] text-secondary last:border-b-0 hover:bg-surfaceMuted/40 touch-manipulation sm:min-h-[22px] sm:py-0.5"
+              className="group flex min-h-[26px] items-center gap-2 border-b border-hairline/40 py-0.5 pr-2 text-[10px] text-secondary last:border-b-0 hover:bg-surfaceMuted/50 active:bg-surfaceMuted touch-manipulation"
             >
               {row.imageUrl ? (
-                <div className="h-5 w-5 flex-shrink-0 overflow-hidden rounded-xs border border-hairline bg-surfaceMuted">
+                <div className="h-4 w-4 flex-shrink-0 overflow-hidden rounded-xs border border-hairline bg-surfaceMuted">
                   <Image
                     src={row.imageUrl}
                     alt=""
-                    width={20}
-                    height={20}
+                    width={16}
+                    height={16}
                     className="h-full w-full object-cover"
                     loading="lazy"
                   />
                 </div>
               ) : (
-                <div className="h-5 w-5 flex-shrink-0" aria-hidden="true" />
+                <div className="h-4 w-4 flex-shrink-0" aria-hidden="true" />
               )}
               <span className="min-w-0 flex-1 truncate" title={row.description}>
                 {row.description}
@@ -115,22 +118,22 @@ function TreeNodeRenderer({
         return (
           <div
             key={row.id}
-            className="group flex min-h-[22px] items-center gap-1.5 border-b border-hairline/40 py-0.5 pr-2 text-[10px] text-secondary last:border-b-0 hover:bg-surfaceMuted/40 touch-manipulation"
+            className="group flex min-h-[20px] items-center gap-1.5 border-b border-hairline/30 py-px pr-2 text-[10px] text-secondary last:border-b-0 hover:bg-surfaceMuted/60 active:bg-surfaceMuted touch-manipulation"
           >
-            {/* Optional thumbnail (P9 snapshot imageUrl) — compact 20px for tree density */}
+            {/* Optional thumbnail (P9 snapshot imageUrl) — compact 16-20px for tree density */}
             {row.imageUrl ? (
-              <div className="h-5 w-5 flex-shrink-0 overflow-hidden rounded-xs border border-hairline bg-surfaceMuted">
+              <div className="h-4 w-4 flex-shrink-0 overflow-hidden rounded-xs border border-hairline bg-surfaceMuted">
                 <Image
                   src={row.imageUrl}
                   alt=""
-                  width={20}
-                  height={20}
+                  width={16}
+                  height={16}
                   className="h-full w-full object-cover"
                   loading="lazy"
                 />
               </div>
             ) : (
-              <div className="h-5 w-5 flex-shrink-0" aria-hidden="true" />
+              <div className="h-4 w-4 flex-shrink-0" aria-hidden="true" />
             )}
 
             {/* Description (primary, truncate) */}
@@ -139,17 +142,17 @@ function TreeNodeRenderer({
             </span>
 
             {/* Qty */}
-            <span className="w-10 flex-shrink-0 text-right tabular-nums text-[9px] text-tertiary">
+            <span className="w-9 flex-shrink-0 text-right tabular-nums text-[9px] text-tertiary">
               {row.quantity}
             </span>
 
             {/* Unit */}
-            <span className="w-9 flex-shrink-0 text-left text-[9px] text-tertiary">
+            <span className="w-8 flex-shrink-0 text-left text-[9px] text-tertiary">
               {row.unit}
             </span>
 
             {/* rowTotal */}
-            <span className="w-[92px] flex-shrink-0 text-right font-medium tabular-nums text-ink text-[10px]">
+            <span className="w-[88px] flex-shrink-0 text-right font-medium tabular-nums text-ink text-[10px]">
               {formatMoney(row.rowTotal, currencyCode)}
             </span>
           </div>
@@ -169,9 +172,10 @@ function TreeNodeRenderer({
         role="treeitem"
         aria-expanded={hasChildren ? expanded : undefined}
         tabIndex={hasChildren ? 0 : -1}
-        className="border-l border-hairline/70 cursor-pointer"
+        className={`border-l border-hairline/70 cursor-pointer ${depth === 0 && hasChildren ? "bg-[#FFFDF8]" : ""}`}
         data-share-tree-node={node.kind}
         data-share-tree-expanded={expanded ? "true" : "false"}
+        data-share-tree-depth={depth}
         onClick={hasChildren && onToggle ? () => onToggle(node.id) : undefined}
         onKeyDown={(e) => {
           if (hasChildren && onToggle && (e.key === "Enter" || e.key === " ")) {
@@ -179,8 +183,13 @@ function TreeNodeRenderer({
             onToggle(node.id);
           }
         }}
-        // P5 mobile indent override (12px step) — style after depth so it wins over workshopTreeIndentStyle(20px*depth)
-        style={isMobile ? { paddingLeft: `${Math.min(depth * 12, 80)}px` } : undefined}
+        // Mobile: reduced indent per spec §7.2 (override wins via merge in WorkshopTreeRow).
+        // Desktop: fully delegate to workshopTreeIndentStyle(depth) via the row primitive for exact workshop match.
+        style={
+          isMobile
+            ? { paddingLeft: `${Math.min(depth * 12, 80)}px` }
+            : undefined
+        }
       >
         <div className="flex w-full items-center gap-1.5">
           {hasChildren ? (
