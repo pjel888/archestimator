@@ -238,10 +238,267 @@ useEffect(() => {
 }, [pathname]);
 ```
 
+### Enhanced Metrics
+
+Track which optimization layer prevented the overlay:
+
+```typescript
+// Track cache hit rates
+analytics.track("cache_hit", {
+  route: pathname,
+  cacheType: "react_query" | "unstable_cache" | "bfcache",
+  age: cacheAge,
+});
+
+// Track prefetch success
+analytics.track("prefetch_result", {
+  route: targetRoute,
+  success: boolean,
+  latency: prefetchDuration,
+});
+
+// Track error boundary triggers
+analytics.track("error_boundary", {
+  route: pathname,
+  component: componentName,
+  error: errorMessage,
+});
+```
+
 ### Success Signal
 
 When the overlay visibility rate drops below 5% of all navigations, the strategy is successful. The overlay is now a rare fallback.
 
 ---
 
+## 9. Additional Fallback Layers (Deep Audit Findings)
+
+The deep codebase analysis revealed additional optimization opportunities that further reduce overlay visibility:
+
+### Layer 6: Proxy.ts Middleware Migration (catches ~8% of slow navigations)
+
+**What it does:** Migrates auth from data-fetching layer to Next.js middleware, reducing auth latency from 100-200ms to <10ms.
+
+**Catches:** All authenticated route navigations (16+ protected routes).
+
+**Result:** Removes the single largest server-side bottleneck. Cold navigations drop from 800-1500ms to 600-1200ms.
+
+**Implementation:** See `17-server-side-optimization-strategy.md` §1 and `04-implementation-plan.md` Task 1.5.1.
+
+### Layer 7: React.memo Strategic Memoization (catches ~5% of perceived slowness)
+
+**What it does:** Wraps high-impact components (row items, tree nodes, cards) in `React.memo` to prevent unnecessary re-renders.
+
+**Catches:** List/tree components with 10+ instances that re-render when parent state changes.
+
+**Result:** 10x faster re-renders (50-100ms → 5-10ms). Editing a single row feels instant instead of laggy.
+
+**Implementation:** See `19-react-memo-strategy.md` and `04-implementation-plan.md` Task 1.5.2.
+
+### Layer 8: Error Boundaries (prevents full-page crashes)
+
+**What it does:** Catches component errors and shows retry UI instead of crashing the entire page.
+
+**Catches:** Component errors in estimate workspace, library, and charts (high-risk areas).
+
+**Result:** 20x faster error recovery (1000ms full reload → 50ms retry). Prevents overlay from appearing due to crashes.
+
+**Implementation:** See `21-error-boundary-strategy.md` and `04-implementation-plan.md` Task 1.5.4.
+
+### Layer 9: N+1 Query Fixes (catches ~10% of server slowness)
+
+**What it does:** Batches sequential queries in repository functions to reduce server query time.
+
+**Catches:** List pages with many items (projects, estimates, library components).
+
+**Result:** 30-50% reduction in server-side query time. List pages load faster, reducing overlay visibility.
+
+**Implementation:** See `17-server-side-optimization-strategy.md` §4 and `04-implementation-plan.md` Task 2.0.
+
+### Layer 10: Project Layout Caching (catches ~7% of sub-navigation slowness)
+
+**What it does:** Caches project layout queries with `unstable_cache` to eliminate re-fetch on sub-navigation.
+
+**Catches:** Sub-navigation within project segment (projects/X/estimates → projects/X/charts).
+
+**Result:** ~90ms reduction per sub-navigation. Navigating between project sub-pages feels instant.
+
+**Implementation:** See `17-server-side-optimization-strategy.md` §2 and `04-implementation-plan.md` Task 1.5.3.
+
+---
+
+## 10. Realistic Projections by Route
+
+Based on waterfall analysis (`16-critical-path-waterfall.md`), here are realistic projections for overlay visibility after each phase:
+
+### Estimate Workspace (Heaviest Route)
+
+| Phase | Expected Latency | Overlay Visibility | Primary Bottleneck |
+|-------|------------------|-------------------|-------------------|
+| Current | 800-1500ms | 100% | Server auth + hydration |
+| After Phase 1 | 600-1000ms | 95% | Server auth + hydration |
+| After Phase 1.5 | 400-700ms | 70% | Hydration + data fetching |
+| After Phase 2 | 200-400ms | 30% | Hydration |
+| After Phase 3 | <200ms | <5% | None (target achieved) |
+
+**Key optimizations:** Proxy.ts migration (Phase 1.5), React.memo (Phase 1.5), code splitting (Phase 1), prefetch (Phase 2), virtualization (Phase 3).
+
+### Component Library (Second Heaviest)
+
+| Phase | Expected Latency | Overlay Visibility | Primary Bottleneck |
+|-------|------------------|-------------------|-------------------|
+| Current | 600-1000ms | 100% | Server auth + tree rendering |
+| After Phase 1 | 500-800ms | 90% | Server auth + tree rendering |
+| After Phase 1.5 | 300-500ms | 60% | Tree rendering |
+| After Phase 2 | 150-300ms | 20% | Tree rendering |
+| After Phase 3 | <150ms | <5% | None (target achieved) |
+
+**Key optimizations:** Proxy.ts migration (Phase 1.5), code splitting (Phase 1), prefetch (Phase 2), "load more" pagination (Phase 3).
+
+### Projects List (Third Heaviest)
+
+| Phase | Expected Latency | Overlay Visibility | Primary Bottleneck |
+|-------|------------------|-------------------|-------------------|
+| Current | 500-900ms | 100% | Server auth + N+1 queries |
+| After Phase 1 | 400-700ms | 85% | Server auth + N+1 queries |
+| After Phase 1.5 | 300-500ms | 50% | N+1 queries |
+| After Phase 2 | 150-300ms | 15% | Image loading |
+| After Phase 3 | <150ms | <5% | None (target achieved) |
+
+**Key optimizations:** Proxy.ts migration (Phase 1.5), N+1 fixes (Phase 2), virtualization (Phase 3), lazy image loading (Phase 1).
+
+### Landing Page (Public, No Auth)
+
+| Phase | Expected Latency | Overlay Visibility | Primary Bottleneck |
+|-------|------------------|-------------------|-------------------|
+| Current | 400-800ms | 100% | Three.js (deferred from critical path) + fonts |
+| After Phase 1 | 150-300ms | 20% | Below-fold content |
+| After Phase 2 | <150ms | <5% | None (target achieved) |
+
+**Key optimizations:** Three.js dynamic import (Phase 1, Task 1.7), font optimization (Phase 1, Task 1.8), code splitting (Phase 1).
+
+---
+
+## 11. Edge Cases and Failure Modes
+
+### Edge Case 1: Prefetch Fails
+
+**Scenario:** User hovers link, but prefetch fails (network error, server error, timeout).
+
+**Current behavior:** Prefetch silently fails. User clicks link, navigation is cold (no cache).
+
+**Improved behavior:**
+1. Log prefetch failure to analytics
+2. Fall back to immediate navigation (no prefetch benefit)
+3. Overlay appears after 150ms delay if navigation is slow
+4. Retry prefetch on next hover (with exponential backoff)
+
+**Implementation:** Add error handling to `usePrefetchOnHover` hook.
+
+### Edge Case 2: Cache Stale but Not Expired
+
+**Scenario:** Data in React Query cache is 4 minutes old (within 5-minute `staleTime`), but user expects fresh data.
+
+**Current behavior:** Serve stale data. User sees outdated information.
+
+**Improved behavior:**
+1. Serve stale data immediately (fast navigation)
+2. Trigger background refetch
+3. Show subtle "updating" indicator (not overlay)
+4. Update UI when fresh data arrives
+
+**Implementation:** Use React Query's `refetchOnMount: 'always'` for critical data, or manual `queryClient.invalidateQueries` on navigation.
+
+### Edge Case 3: Slow 3G Network
+
+**Scenario:** User on very slow network (3G or worse). All navigations take 2-5 seconds.
+
+**Current behavior:** Overlay appears after 150ms, stays visible for 2-5 seconds.
+
+**Improved behavior:**
+1. Overlay appears after 150ms (as designed)
+2. Show progress indicator (e.g., "Loading... 45%")
+3. Offer "cancel navigation" option after 3 seconds
+4. Cache aggressively to avoid repeat slow navigations
+
+**Implementation:** Add progress tracking to `NavigationListener`, show progress in overlay UI.
+
+### Edge Case 4: Error Boundary Catches Error
+
+**Scenario:** Component throws error during navigation. Error boundary catches it.
+
+**Current behavior:** Full-page crash. User must reload (1000ms recovery).
+
+**Improved behavior:**
+1. Error boundary catches error
+2. Show retry UI (50ms recovery)
+3. Log error to analytics
+4. Overlay does NOT appear (error boundary handles it)
+
+**Implementation:** Error boundaries prevent overlay from appearing. See `21-error-boundary-strategy.md`.
+
+### Edge Case 5: bfcache Restore
+
+**Scenario:** User clicks back button, page restored from bfcache.
+
+**Current behavior:** `pageshow` event fires with `event.persisted === true`. Overlay hidden.
+
+**Improved behavior:**
+1. Detect bfcache restore via `pageshow` event
+2. Skip overlay entirely (page already rendered)
+3. Verify data freshness (optional background refetch)
+4. Log bfcache hit to analytics
+
+**Implementation:** Already planned in `04-implementation-plan.md` Task 2.4.
+
+---
+
+## 12. Integration with New Optimizations
+
+The new optimizations discovered in deep analysis (documents 16-21) significantly improve overlay fallback strategy:
+
+### Proxy.ts Middleware Migration (Task 1.5.1)
+
+**Impact on overlay:** Reduces cold navigation latency by 100-200ms. This is the single largest improvement.
+
+**Overlay visibility reduction:** ~8% of navigations that would have shown overlay now complete before 150ms delay.
+
+**Risk:** Migration may break auth flows. Comprehensive E2E testing required. See `08-risks-and-mitigations.md` R21.
+
+### React.memo Strategic Memoization (Task 1.5.2)
+
+**Impact on overlay:** Reduces re-render time for list/tree components by 10x. Editing a row feels instant.
+
+**Overlay visibility reduction:** Overlay does not appear for re-renders (only for navigations). However, perceived performance improves significantly.
+
+**Risk:** Ineffective if props are not stable. Must audit memoized components. See `08-risks-and-mitigations.md` R22.
+
+### Error Boundaries (Task 1.5.4)
+
+**Impact on overlay:** Prevents overlay from appearing due to component crashes. Error boundary handles error instead.
+
+**Overlay visibility reduction:** Overlay does not appear for error scenarios. Error boundary shows retry UI instead.
+
+**Risk:** Infinite error loops if not implemented correctly. Limit retries to 3. See `08-risks-and-mitigations.md` R25.
+
+### N+1 Query Fixes (Task 2.0)
+
+**Impact on overlay:** Reduces server query time by 30-50% for list pages.
+
+**Overlay visibility reduction:** ~10% of navigations to list pages complete faster, reducing overlay visibility.
+
+**Risk:** Changes query logic, may return incorrect data if not tested. See `08-risks-and-mitigations.md` R27.
+
+### Project Layout Caching (Task 1.5.3)
+
+**Impact on overlay:** Eliminates re-fetch on sub-navigation within project segment.
+
+**Overlay visibility reduction:** ~7% of sub-navigations complete 90ms faster, reducing overlay visibility.
+
+**Risk:** Cache staleness if not invalidated on mutations. See `08-risks-and-mitigations.md` R26.
+
+---
+
 **Next:** Implement the phased plan in `04-implementation-plan.md`, starting with Phase 1 (quick wins) to establish the foundation for this strategy.
+
+> **Related:** See `32-bfcache-strategy.md` for back/forward navigation optimization — bfcache alone eliminates the overlay for the most common multi-step navigation flow. See `30-dynamic-rendering-analysis.md` for the server-side caching foundation. See `33-loading-sequence-progressive-enhancement.md` for the exact UX timeline defining when the overlay activates (150ms) and when it must be suppressed (bfcache).

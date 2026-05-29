@@ -5,6 +5,8 @@
 **Implementation Start:** ⏳ Pending owner approval  
 **Phases:** 4 phases, each independently shippable and verifiable
 
+> **⚠️ READ FIRST:** Before implementing ANY loading UI, read `33-loading-sequence-progressive-enhancement.md` — it defines the exact UX timeline for all navigation scenarios. Every loading state (skeletons, overlay, bfcache) must follow this unified sequence.
+
 ---
 
 ## Table of Contents
@@ -25,16 +27,18 @@
 ```
 Phase 0: Instrumentation    (Day 0)      → Measure before you cut
 Phase 1: Quick Wins         (Day 0–1)    → Instant 30–50% improvement
-Phase 2: Strategic          (Day 1–3)    → Near-instant navigation for most routes
-Phase 3: Peak-Load          (Day 3–5)    → Graceful degradation under heavy data
+Phase 1.5: Critical Infra   (Day 1–2)    → Fix critical bottlenecks (proxy.ts, React.memo, caching, errors)
+Phase 2: Strategic          (Day 2–4)    → Near-instant navigation for most routes
+Phase 3: Peak-Load          (Day 4–6)    → Graceful degradation under heavy data
 Phase 4: Monitoring         (Ongoing)    → Don't regress
 ```
 
 | Phase | Techniques | Key Metric Target | Effort | Risk |
 |-------|-----------|-------------------|--------|------|
 | 0 | Performance instrumentation, baseline collection | Establish baseline | 2h | NONE |
-| 1 | `staleTime` increase, `loading.tsx`, code splitting, React `cache()`, overlay delay | 50% faster revisits | 4–6h | LOW |
-| 2 | Hover prefetch, Suspense in layouts, bfcache, bundle analysis | <100ms cold transitions | 6–10h | LOW-MED |
+| 1 | `staleTime` increase, `loading.tsx`, code splitting, React `cache()`, overlay delay, Three.js dynamic import, font optimization | 50% faster revisits | 6–8h | LOW |
+| 1.5 | Proxy.ts → middleware, React.memo, project layout caching, error boundaries | Eliminate 100-200ms auth latency, 10x faster re-renders | 8–12h | MEDIUM |
+| 2 | Hover prefetch, Suspense in layouts, bfcache, bundle analysis, N+1 fixes | <100ms cold transitions | 8–12h | LOW-MED |
 | 3 | Virtualized lists, streaming, component-level Suspense | <500ms with 200+ rows | 8–12h | MED |
 | 4 | Performance regression CI, monitoring | No regressions | Ongoing | NONE |
 
@@ -283,18 +287,21 @@ export default function LibraryLoading() {
 **Files to modify:**
 
 #### A. `src/app/workshop/projects/[projectId]/estimates/[nodeId]/page.tsx` — **HIGHEST PRIORITY**
+
+**⚠️ VERIFIED:** `EstimateSheetContent` and `EstimateSheetTree` use NAMED exports (`export function`), not default exports. See `14-code-splitting-named-exports.md`.
+
 ```typescript
 // Before: direct import of ~4,048-line component + ~1,365-line tree
 // After:
 import dynamic from "next/dynamic";
 
 const EstimateSheetContent = dynamic(
-  () => import("@/components/workshop/EstimateSheetContent"),
+  () => import("@/components/workshop/EstimateSheetContent").then(mod => mod.EstimateSheetContent),
   { loading: () => <EstimateWorkspaceSkeleton /> }
 );
 
 const EstimateSheetTree = dynamic(
-  () => import("@/components/workshop/EstimateSheetTree"),
+  () => import("@/components/workshop/EstimateSheetTree").then(mod => mod.EstimateSheetTree),
   { loading: () => <TreeSkeleton /> }
 );
 ```
@@ -302,12 +309,12 @@ const EstimateSheetTree = dynamic(
 #### B. `src/components/workshop/component-library-manager/ComponentLibraryManager.tsx`
 ```typescript
 const AddComponentModal = dynamic(
-  () => import("@/components/workshop/component-library-manager/AddComponentModal"),
+  () => import("@/components/workshop/component-library-manager/AddComponentModal").then(mod => mod.AddComponentModal),
   { loading: () => <ModalSkeleton /> }
 );
 
 const LibraryFolderTree = dynamic(
-  () => import("@/components/workshop/component-library-manager/LibraryFolderTree"),
+  () => import("@/components/workshop/component-library-manager/LibraryFolderTree").then(mod => mod.LibraryFolderTree),
   { loading: () => <TreeSkeleton /> }
 );
 ```
@@ -315,7 +322,7 @@ const LibraryFolderTree = dynamic(
 #### C. `src/app/workshop/library/page.tsx`
 ```typescript
 const ComponentLibraryManager = dynamic(
-  () => import("@/components/workshop/component-library-manager/ComponentLibraryManager"),
+  () => import("@/components/workshop/component-library-manager/ComponentLibraryManager").then(mod => mod.ComponentLibraryManager),
   { loading: () => <LibrarySkeleton /> }
 );
 ```
@@ -323,11 +330,11 @@ const ComponentLibraryManager = dynamic(
 #### D. `src/app/workshop/projects/[projectId]/charts/page.tsx`
 ```typescript
 const ProjectCostDonutChart = dynamic(
-  () => import("@/components/workshop/project-charts/ProjectCostDonutChart"),
+  () => import("@/components/workshop/project-charts/ProjectCostDonutChart").then(mod => mod.ProjectCostDonutChart),
   { ssr: false, loading: () => <ChartSkeleton /> }
 );
 const ProjectCostBubbleChart = dynamic(
-  () => import("@/components/workshop/project-charts/ProjectCostBubbleChart"),
+  () => import("@/components/workshop/project-charts/ProjectCostBubbleChart").then(mod => mod.ProjectCostBubbleChart),
   { ssr: false, loading: () => <ChartSkeleton /> }
 );
 ```
@@ -467,11 +474,578 @@ bun run test:e2e      # Must pass (or note pre-existing failures)
 
 **Expected improvement:** 30–50% faster revisits (cached), skeleton screens replace blank screens, overlay appears less frequently.
 
+### Task 1.7: Three.js Dynamic Import (Landing Page)
+
+**⚠️ CRITICAL LOCATION CORRECTION:** The `NeatWireframeBackground` is NOT below the fold. It renders inside `HeroSection` (`src/components/landing/HeroSection.tsx:44`), which is the **above-fold hero** — the first thing users see. An IntersectionObserver lazy-load strategy will NOT defer loading because the element is already in the initial viewport. See `20-font-and-bundle-optimization.md` §2 for full analysis.
+
+**Problem:** Landing page loads ~150KB of Three.js via `@firecms/neat` statically imported in the hero section. This Three.js bundle blocks initial render of the hero content (headline, CTA). Three.js is ~65% of the landing page JS bundle.
+
+**Goal:** Defer Three.js loading off the critical path so the hero headline and CTA render immediately.
+
+**Strategy:** Use `next/dynamic` with `ssr: false` and a CSS gradient placeholder. The hero section renders a CSS gradient immediately (no Three.js), then the Three.js chunk loads asynchronously and hydrates the WebGL canvas when ready.
+
+**File to modify:** The component that renders `NeatWireframeBackground` (currently `src/components/landing/HeroSection.tsx`), or create a wrapper:
+
+```typescript
+// Option A: Wrapper component or in page.tsx
+import dynamic from "next/dynamic";
+
+const NeatWireframeBackground = dynamic(
+  () => import("@/components/landing/NeatWireframeBackground").then(mod => mod.NeatWireframeBackground),
+  {
+    ssr: false,
+    loading: () => (
+      <div
+        className="absolute inset-0"
+        style={{
+          background: "radial-gradient(ellipse at 50% 50%, rgba(255,127,45,0.3), transparent 70%)",
+        }}
+        aria-hidden="true"
+      />
+    ),
+  }
+);
+```
+
+**Note:** An alternative approach (Option B from doc 20) is to replace the Three.js gradient entirely with CSS. The hero section already has multiple `radial-gradient` and `linear-gradient` layers (`HeroSection.tsx:33-39`), so adding one more CSS layer would be visually consistent and eliminate the ~150KB entirely.
+
+**QA Check:**
+1. Load landing page with network throttling (Fast 3G).
+2. Verify hero headline and CTA render immediately (within 1s).
+3. Verify Three.js chunk loads asynchronously (check Network tab for the dynamic chunk).
+4. Verify no FOIT-like visual glitch (CSS placeholder should mask the transition).
+5. If using CSS-only replacement (Option B), verify the hero gradient matches the original visual design.
+
+**Expected impact:** ~150KB deferred off critical path. Hero content renders without waiting for Three.js (~200ms faster LCP for hero headline/CTA).
+
+### Task 1.8: Font Loading Optimization
+
+**Problem:** Root layout loads 4 Google Fonts (Inter, Poppins, Roboto Mono, Source Serif 4) on every page. Landing page only uses Inter. This adds ~300KB of unused fonts.
+
+**File to modify:** `src/app/layout.tsx`
+
+**Change:** Move workshop-specific fonts to workshop layout:
+
+```typescript
+// src/app/layout.tsx — keep only Inter
+import { Inter } from "next/font/google";
+
+const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
+
+export default function RootLayout({ children }) {
+  return (
+    <html lang="en" className={inter.variable}>
+      <body>{children}</body>
+    </html>
+  );
+}
+```
+
+**⚠️ ARCHITECTURAL CAVEAT:** There is currently **NO `src/app/workshop/layout.tsx`**. Every workshop page independently renders `<WorkshopPageShell>` in its `page.tsx`. Creating a new workshop layout would introduce Next.js nested layout semantics — the workshop layout would wrap ALL workshop pages and could affect the component tree, `WorkshopPageShell` usage, and shared state boundaries.
+
+**Two approaches:**
+
+1. **Create `src/app/workshop/layout.tsx`** (new file) — Adds 3 fonts only to workshop routes. Requires:
+   - Verify no workshop page uses `WorkshopPageShell` outside the layout.
+   - Test that nested layout doesn't break any page's rendering.
+   - Confirm WorkshopPageShell's cookie reads still work inside the layout context.
+
+2. **Keep fonts in root layout but use `font-display: swap`** — Simpler. The fonts still load on all pages but via `swap` they don't block rendering. This avoids the architectural change but doesn't reduce bytes on the landing page.
+
+**Approach 1 implementation:**
+
+```typescript
+// src/app/workshop/layout.tsx (new workshop layout)
+import { Poppins, Roboto_Mono, Source_Serif_4 } from "next/font/google";
+
+const poppins = Poppins({ subsets: ["latin"], weight: ["400", "600"], variable: "--font-poppins" });
+const robotoMono = Roboto_Mono({ subsets: ["latin"], variable: "--font-mono" });
+const sourceSerif = Source_Serif_4({ subsets: ["latin"], variable: "--font-serif" });
+
+export default function WorkshopLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <div className={`${poppins.variable} ${robotoMono.variable} ${sourceSerif.variable}`}>
+      {children}
+    </div>
+  );
+}
+```
+
+**File to audit:** All pages that use Poppins, Roboto Mono, or Source Serif 4 — verify they're inside `/workshop` routes.
+
+**QA Check:**
+1. Load landing page. Check Network tab — verify only Inter font loads.
+2. Navigate to `/workshop/projects`. Verify Poppins, Roboto Mono, Source Serif 4 load.
+3. Verify no FOIT (Flash of Invisible Text) or FOUT (Flash of Unstyled Text).
+4. Verify all typography renders correctly on all pages.
+
+**Expected impact:** ~300KB reduction in landing page bundle, ~200ms faster FCP on landing page.
+
+### Phase 1 Verification Gate (Updated)
+
+```bash
+bun run build         # Must pass
+bun run validate      # Must pass
+bun run test:e2e      # Must pass (or note pre-existing failures)
+```
+
+**Expected improvement:** 30–50% faster revisits (cached), skeleton screens replace blank screens, overlay appears less frequently, landing page critical path ~450KB lighter (Three.js deferred + font reduction — see caveat: Three.js is in above-fold hero, so it's deferred from critical path but not eliminated; see Task 1.7 for strategy details).
+
 ---
 
-## 4. Phase 2: Strategic Investments (Medium Effort, Highest Impact)
+## 4. Phase 1.5: Critical Infrastructure (Medium Effort, Critical Impact)
+
+**Goal:** Fix critical server-side bottlenecks and client-side inefficiencies discovered in deep audit. These are not "quick wins" but are essential for achieving sub-100ms navigation.
+
+### Task 1.5.1: Migrate Proxy.ts to Next.js Middleware
+
+**Problem:** `src/proxy.ts` runs on every request and adds ~100-200ms latency due to `supabase.auth.getUser()` HTTP roundtrip. This is the single largest server-side bottleneck.
+
+**File to create:** `src/middleware.ts`
+
+**Change:** Migrate auth logic to Edge-compatible middleware:
+
+```typescript
+// src/middleware.ts
+import { createServerClient, type CookieOptions } from "@supabase/ssr";
+import { NextResponse, type NextRequest } from "next/server";
+
+export async function middleware(request: NextRequest) {
+  let response = NextResponse.next({
+    request: { headers: request.headers },
+  });
+
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        get(name: string) {
+          return request.cookies.get(name)?.value;
+        },
+        set(name: string, value: string, options: CookieOptions) {
+          request.cookies.set({ name, value, ...options });
+          response = NextResponse.next({
+            request: { headers: request.headers },
+          });
+          response.cookies.set({ name, value, ...options });
+        },
+        remove(name: string, options: CookieOptions) {
+          request.cookies.set({ name, value: "", ...options });
+          response = NextResponse.next({
+            request: { headers: request.headers },
+          });
+          response.cookies.set({ name, value: "", ...options });
+        },
+      },
+    }
+  );
+
+  // Refresh session if expired (uses getSession() which is local JWT validation, not HTTP)
+  await supabase.auth.getSession();
+
+  return response;
+}
+
+export const config = {
+  matcher: [
+    /*
+     * Match all request paths except for the ones starting with:
+     * - api (API routes)
+     * - _next/static (static files)
+     * - _next/image (image optimization files)
+     * - favicon.ico (favicon file)
+     */
+    "/((?!api|_next/static|_next/image|favicon.ico).*)",
+  ],
+};
+```
+
+**File to delete:** `src/proxy.ts`
+
+**Files to modify:** Remove all `import { proxy } from "@/proxy"` statements from pages.
+
+**Critical difference:** `getSession()` validates the JWT locally (no HTTP request), while `getUser()` always makes an HTTP roundtrip to Supabase Auth API. This saves ~80-180ms per navigation.
+
+**QA Check:**
+1. Test all auth flows: login, logout, signup, password reset, email verification.
+2. Test protected route access: navigate to `/workshop/projects` while logged out — verify redirect to `/login`.
+3. Test session refresh: wait for session to expire (or manually expire in DevTools), then navigate — verify no auth error.
+4. Benchmark before/after: measure navigation latency on `/workshop/projects` → `/workshop/library`. Expect ~100-200ms improvement.
+5. Run full E2E test suite: `bun run test:e2e`.
+
+**Rollback plan:** If migration fails, restore `src/proxy.ts` and revert page imports.
+
+**Expected impact:** ~100-200ms reduction in navigation latency for all authenticated routes.
+
+### Task 1.5.2: Strategic React.memo Memoization
+
+**Problem:** Zero `React.memo` usage despite 245+ `useMemo`/`useCallback`. When parent re-renders, all children re-render even if props unchanged. This causes 10x slower re-renders for list/tree components.
+
+**Priority targets (by re-render frequency and cost):**
+
+1. **Estimate row items** (`EstimateSheetContent.tsx`) — 100+ rows, frequent updates
+2. **Tree nodes** (`EstimateSheetTree.tsx`) — 50+ nodes, expand/collapse
+3. **Project cards** (`LiveProjectCard.tsx`) — 20+ cards, occasional updates
+4. **Component library items** (`ComponentLibraryManager.tsx`) — 50+ items, occasional updates
+
+**File to modify:** `src/components/workshop/EstimateSheetContent.tsx`
+
+**Change:** Wrap row item components in `React.memo`:
+
+```typescript
+import { memo } from "react";
+
+interface EstimateRowItemProps {
+  row: EstimateRowItem;
+  onUpdate: (row: EstimateRowItem) => void;
+  onDelete: (id: string) => void;
+}
+
+export const EstimateRowItem = memo(function EstimateRowItem({
+  row,
+  onUpdate,
+  onDelete,
+}: EstimateRowItemProps) {
+  // ... existing component logic
+});
+```
+
+**Critical:** Ensure props are stable:
+- Use `useMemo` for object/array props
+- Use `useCallback` for function props
+
+```typescript
+// In parent component
+const handleUpdate = useCallback((row: EstimateRowItem) => {
+  // ... update logic
+}, []);
+
+const handleDelete = useCallback((id: string) => {
+  // ... delete logic
+}, []);
+
+// Pass stable callbacks to memoized children
+{rows.map(row => (
+  <EstimateRowItem
+    key={row.id}
+    row={row}
+    onUpdate={handleUpdate}
+    onDelete={handleDelete}
+  />
+))}
+```
+
+**File to modify:** `src/components/workshop/EstimateSheetTree.tsx`
+
+Wrap tree node components:
+
+```typescript
+export const TreeNode = memo(function TreeNode({ node, onSelect }: TreeNodeProps) {
+  // ... existing logic
+});
+```
+
+**File to modify:** `src/components/workshop/LiveProjectCard.tsx`
+
+```typescript
+export const LiveProjectCard = memo(function LiveProjectCard({ project }: ProjectCardProps) {
+  // ... existing logic
+});
+```
+
+**QA Check:**
+1. Install React DevTools Profiler (browser extension).
+2. Navigate to estimate workspace with 100+ rows.
+3. Edit one row item.
+4. Check Profiler: verify only the edited row re-renders (not all 100+ rows).
+5. Verify no functional regressions: all row operations still work (edit, delete, drag-drop).
+6. Benchmark before/after: measure time to edit a row. Expect 10x improvement (50-100ms → 5-10ms).
+
+**Expected impact:** 10x faster re-renders for list/tree components, significantly smoother UX.
+
+### Task 1.5.3: Project Layout Caching with unstable_cache
+
+**Problem:** Project layout (`[projectId]/layout.tsx`) runs 4 Supabase queries on every sub-navigation (projects/X/estimates → projects/X/charts), even when data hasn't changed. This wastes ~90ms per navigation.
+
+**File to modify:** `src/app/workshop/projects/[projectId]/layout.tsx`
+
+**Change:** Wrap layout data fetching in `unstable_cache`:
+
+```typescript
+import { unstable_cache } from "next/cache";
+import { getCurrentWorkspaceProject } from "@/lib/repositories/workspace-repository";
+import { getProjectCollaborationSummary } from "@/lib/repositories/collaboration-repository";
+import { getProjectPublicationSummary } from "@/lib/repositories/publication-repository";
+import { listProjectEstimateSheets } from "@/lib/repositories/estimate-repository";
+
+const getProjectLayoutData = unstable_cache(
+  async (projectId: string) => {
+    const { project } = await getCurrentWorkspaceProject(projectId);
+    const [collaboration, publication, estimates] = await Promise.all([
+      getProjectCollaborationSummary(projectId),
+      getProjectPublicationSummary(projectId),
+      listProjectEstimateSheets(projectId),
+    ]);
+    return { project, collaboration, publication, estimates };
+  },
+  ["project-layout"], // cache key prefix
+  {
+    revalidate: 30, // cache for 30 seconds
+    tags: [`project-${projectId}`], // for on-demand revalidation
+  }
+);
+
+export default async function ProjectLayout({ children, params }) {
+  const { projectId } = params;
+  const { project, collaboration, publication, estimates } = await getProjectLayoutData(projectId);
+  
+  // ... rest of layout
+}
+```
+
+**File to modify:** All mutation actions that update project data
+
+**Change:** Add `revalidateTag` to invalidate cache:
+
+```typescript
+import { revalidateTag } from "next/cache";
+
+export async function updateProject(projectId: string, data: UpdateProjectData) {
+  // ... existing mutation logic
+  
+  // Invalidate layout cache
+  revalidateTag(`project-${projectId}`);
+}
+```
+
+**QA Check:**
+1. Navigate to `/workshop/projects/123` → `/workshop/projects/123/estimates` → `/workshop/projects/123/charts`.
+2. Check Supabase logs: verify project queries only run once (not 3 times).
+3. Update project data (e.g., rename project).
+4. Navigate back to project layout. Verify cache is invalidated and fresh data loads.
+5. Benchmark before/after: measure sub-navigation latency. Expect ~90ms improvement per navigation.
+
+**Expected impact:** ~90ms reduction per sub-navigation within project segment.
+
+### Task 1.5.4: Error Boundaries (Route + Component)
+
+**Problem:** Zero `error.tsx` files and zero custom error boundaries. If a component throws, the entire page crashes. Recovery requires full reload (~1000ms) vs error boundary retry (~50ms).
+
+**Priority targets:**
+1. Estimate workspace (`[nodeId]/error.tsx`) — complex, high crash risk
+2. Component library (`library/error.tsx`) — complex tree operations
+3. Chart components — D3 error-prone with empty data
+
+**File to create:** `src/app/workshop/projects/[projectId]/estimates/[nodeId]/error.tsx`
+
+```typescript
+"use client";
+
+import { useEffect } from "react";
+import { Button } from "@/components/ui/button";
+
+export default function EstimateWorkspaceError({
+  error,
+  reset,
+}: {
+  error: Error & { digest?: string };
+  reset: () => void;
+}) {
+  useEffect(() => {
+    console.error("Estimate workspace error:", error);
+    // Optional: log to error reporting service
+  }, [error]);
+
+  return (
+    <div className="flex h-full flex-col items-center justify-center gap-4">
+      <h2 className="text-lg font-semibold">Something went wrong</h2>
+      <p className="text-sm text-muted-foreground">
+        We encountered an error loading this estimate sheet.
+      </p>
+      <div className="flex gap-2">
+        <Button onClick={reset} variant="default">
+          Try again
+        </Button>
+        <Button
+          onClick={() => window.location.reload()}
+          variant="outline"
+        >
+          Reload page
+        </Button>
+      </div>
+    </div>
+  );
+}
+```
+
+**File to create:** `src/app/workshop/library/error.tsx`
+
+Similar error boundary for library route.
+
+**File to modify:** `src/components/workshop/project-charts/ProjectChartsClient.tsx`
+
+Wrap D3 chart components in custom error boundary:
+
+```typescript
+import { ErrorBoundary } from "@/components/ui/error-boundary";
+
+export function ProjectChartsClient({ data }) {
+  return (
+    <div className="grid grid-cols-2 gap-4">
+      <ErrorBoundary fallback={<ChartErrorFallback />}>
+        <ProjectCostDonutChart data={data.costData} />
+      </ErrorBoundary>
+      <ErrorBoundary fallback={<ChartErrorFallback />}>
+        <ProjectCostBubbleChart data={data.bubbleData} />
+      </ErrorBoundary>
+    </div>
+  );
+}
+
+function ChartErrorFallback() {
+  return (
+    <div className="flex h-64 items-center justify-center rounded-lg border border-dashed">
+      <p className="text-sm text-muted-foreground">Chart unavailable</p>
+    </div>
+  );
+}
+```
+
+**File to create:** `src/components/ui/error-boundary.tsx`
+
+```typescript
+"use client";
+
+import { Component, ReactNode } from "react";
+
+interface Props {
+  children: ReactNode;
+  fallback: ReactNode;
+}
+
+interface State {
+  hasError: boolean;
+}
+
+export class ErrorBoundary extends Component<Props, State> {
+  constructor(props: Props) {
+    super(props);
+    this.state = { hasError: false };
+  }
+
+  static getDerivedStateFromError(): State {
+    return { hasError: true };
+  }
+
+  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+    console.error("ErrorBoundary caught:", error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return this.props.fallback;
+    }
+
+    return this.props.children;
+  }
+}
+```
+
+**QA Check:**
+1. Intentionally throw error in estimate workspace (e.g., `throw new Error("test")` in component).
+2. Verify error boundary catches it and shows retry UI.
+3. Click "Try again" — verify component re-renders without full page reload.
+4. Verify error is logged to console (and error reporting service if configured).
+5. Repeat for library and chart components.
+
+**Expected impact:** 20x faster error recovery (1000ms → 50ms), prevents full-page crashes.
+
+### Phase 1.5 Verification Gate
+
+```bash
+bun run build         # Must pass
+bun run validate      # Must pass
+bun run test:e2e      # Must pass
+```
+
+**Expected improvement:** 
+- ~100-200ms faster navigation (proxy.ts middleware)
+- 10x faster re-renders for list/tree components (React.memo)
+- ~90ms faster sub-navigation (layout caching)
+- Graceful error recovery (error boundaries)
+
+---
+
+## 5. Phase 2: Strategic Investments (Medium Effort, Highest Impact)
 
 **Goal:** Near-instant (< 100ms) navigation for predictable paths. This is where the "seamless" feel comes from.
+
+### Task 2.0: Fix N+1 Query Patterns
+
+**Problem:** Several repository functions execute sequential queries instead of batching them. For example, `getProjectEstimateSheets` might fetch each sheet's row count individually instead of in a single query.
+
+**File to audit:** All repository files in `src/lib/repositories/`
+
+**Common N+1 patterns to fix:**
+
+```typescript
+// BAD: Sequential queries (N+1)
+async function getProjectEstimateSheets(projectId: string) {
+  const sheets = await db.query.estimateSheets.findMany({
+    where: eq(estimateSheets.projectId, projectId),
+  });
+  
+  // N+1: One query per sheet
+  for (const sheet of sheets) {
+    sheet.rowCount = await db.query.estimateRows.count({
+      where: eq(estimateRows.sheetId, sheet.id),
+    });
+  }
+  
+  return sheets;
+}
+
+// GOOD: Batched queries
+async function getProjectEstimateSheets(projectId: string) {
+  const sheets = await db.query.estimateSheets.findMany({
+    where: eq(estimateSheets.projectId, projectId),
+  });
+  
+  const sheetIds = sheets.map(s => s.id);
+  
+  // Single query for all row counts
+  const rowCounts = await db
+    .select({
+      sheetId: estimateRows.sheetId,
+      count: count(),
+    })
+    .from(estimateRows)
+    .where(inArray(estimateRows.sheetId, sheetIds))
+    .groupBy(estimateRows.sheetId);
+  
+  const countMap = new Map(rowCounts.map(r => [r.sheetId, r.count]));
+  
+  return sheets.map(sheet => ({
+    ...sheet,
+    rowCount: countMap.get(sheet.id) ?? 0,
+  }));
+}
+```
+
+**Priority targets:**
+1. `workspace-repository.ts` — project/workspace queries
+2. `estimate-repository.ts` — estimate sheet/row queries
+3. `component-library-repository.ts` — component/folder queries
+
+**QA Check:**
+1. Install Supabase query logging (or use `console.time` around queries).
+2. Navigate to project list with 10+ projects.
+3. Verify total query count is O(1) or O(few), not O(N).
+4. Benchmark before/after: measure page load time with 50+ projects.
+5. Verify no functional regressions.
+
+**Expected impact:** 30-50% reduction in server-side query time for list pages.
 
 ### Task 2.1: Hover-Based Prefetch
 
@@ -1013,10 +1587,20 @@ Phase 1 (Quick Wins) — all tasks are INDEPENDENT, can be done in any order
   ├─► Task 1.3 (code splitting) ──► No dependencies
   ├─► Task 1.4 (React cache) ──► No dependencies
   ├─► Task 1.5 (overlay delay) ──► No dependencies
-  └─► Task 1.6 (consolidate useRouter) ──► No dependencies
+  ├─► Task 1.6 (consolidate useRouter) ──► No dependencies
+  ├─► Task 1.7 (Three.js dynamic import) ──► No dependencies
+  └─► Task 1.8 (font optimization) ──► No dependencies
 
-Phase 2 (Strategic) — Phase 1 must be complete
+Phase 1.5 (Critical Infrastructure) — Phase 1 must be complete
   │
+  ├─► Task 1.5.1 (proxy.ts → middleware) ──► No dependencies (auth infrastructure)
+  ├─► Task 1.5.2 (React.memo) ──► No dependencies (render optimization)
+  ├─► Task 1.5.3 (layout caching) ──► Depends on 1.4 (React cache pattern)
+  └─► Task 1.5.4 (error boundaries) ──► No dependencies (error handling)
+
+Phase 2 (Strategic) — Phase 1.5 must be complete
+  │
+  ├─► Task 2.0 (N+1 queries) ──► Depends on 1.5.1 (middleware auth)
   ├─► Task 2.1 (prefetch hook) ──► Task 2.2 depends on it
   ├─► Task 2.2 (wire prefetch) ──► Depends on 2.1
   ├─► Task 2.3 (Suspense in layouts) ──► Depends on 1.2 pattern established
@@ -1047,42 +1631,49 @@ src/app/workshop/projects/[projectId]/loading.tsx               # Phase 1
 src/app/workshop/projects/[projectId]/estimates/loading.tsx     # Phase 1
 src/app/workshop/projects/[projectId]/estimates/[nodeId]/loading.tsx  # Phase 1
 src/app/workshop/library/loading.tsx                            # Phase 1
+src/middleware.ts                                                # Phase 1.5 (auth middleware)
+src/app/workshop/projects/[projectId]/estimates/[nodeId]/error.tsx  # Phase 1.5 (error boundary)
+src/app/workshop/library/error.tsx                               # Phase 1.5 (error boundary)
+src/components/ui/error-boundary.tsx                             # Phase 1.5 (reusable error boundary)
 src/hooks/use-prefetch-on-hover.ts                              # Phase 2
 scripts/seed-performance-test-data.ts                           # Phase 0
-lighthouserc.json                                               # Phase 4
+lighthouserc.json                                                # Phase 4
 ```
 
 ### Files to Modify
 
 ```
 src/app/providers.tsx                                           # Phase 0, 1
+src/app/layout.tsx                                               # Phase 1 (font loading optimization)
+src/app/page.tsx                                                 # Phase 1 (Three.js dynamic import — not lazy load, it's above-fold)
 src/stores/navigation-ui-store.ts                               # Phase 1
 src/app/workshop/projects/page.tsx                              # Phase 1 (Suspense)
 src/app/workshop/projects/[projectId]/page.tsx                  # Phase 1 (Suspense)
-src/app/workshop/projects/[projectId]/layout.tsx                # Phase 1, 2 (cache, Suspense)
+src/app/workshop/projects/[projectId]/layout.tsx                # Phase 1, 1.5 (cache, Suspense, unstable_cache), 2 (Suspense)
 src/app/workshop/projects/[projectId]/charts/page.tsx           # Phase 1 (code split D3 charts), 3 (streaming)
 src/app/workshop/projects/[projectId]/estimates/page.tsx        # Phase 1 (Suspense)
 src/app/workshop/projects/[projectId]/estimates/[nodeId]/page.tsx  # Phase 1 (code split EstimateSheetContent + EstimateSheetTree), 3 (streaming)
 src/app/workshop/library/page.tsx                               # Phase 1 (code split ComponentLibraryManager), 3 (Suspense)
 src/app/workshop/templates/page.tsx                             # Phase 1 (Suspense)
+src/proxy.ts                                                     # Phase 1.5 (migrate to middleware, likely delete)
+src/components/landing/NeatWireframeBackground.tsx              # Phase 1 (dynamic import wrapper — no IntersectionObserver, component is above-fold)
 src/components/sidebar/SidebarNavItemRow.tsx                    # Phase 2 (prefetch)
 src/components/workshop/ProjectMiniSidebar.tsx                  # Phase 2 (prefetch)
-src/components/workshop/LiveProjectCard.tsx                     # Phase 2 (prefetch)
+src/components/workshop/LiveProjectCard.tsx                     # Phase 1.5 (React.memo), 2 (prefetch)
 src/components/workshop/ProjectEstimatesTable.tsx               # Phase 1 (consolidate useNavigationRouter), 3 (virtualize)
 src/components/workshop/projects-page-client.tsx                # Phase 3 (virtualize)
-src/components/workshop/EstimateSheetContent.tsx                # Phase 1 (code split target — 4,048 lines)
-src/components/workshop/EstimateSheetTree.tsx                   # Phase 1 (code split target — 1,365 lines)
-src/components/workshop/component-library-manager/ComponentLibraryManager.tsx  # Phase 1 (code split AddComponentModal + LibraryFolderTree)
+src/components/workshop/EstimateSheetContent.tsx                # Phase 1 (code split target — 4,048 lines), 1.5 (React.memo)
+src/components/workshop/EstimateSheetTree.tsx                   # Phase 1 (code split target — 1,365 lines), 1.5 (React.memo)
+src/components/workshop/component-library-manager/ComponentLibraryManager.tsx  # Phase 1 (code split AddComponentModal + LibraryFolderTree), 1.5 (React.memo)
+src/components/workshop/project-charts/ProjectChartsClient.tsx  # Phase 0 (fix Phosphor icon import path), 1.5 (error boundaries)
 src/components/navigation-listener.tsx                          # Phase 2 (bfcache pageshow handler)
 src/components/ui/route-loading-overlay.tsx                     # Phase 2 (bfcache pagehide handler)
-src/lib/repositories/workspace-repository.ts                    # Phase 1 (React cache)
-src/lib/repositories/component-library-repository.ts            # Phase 1 (React cache)
-src/lib/repositories/project-charts-repository.ts               # Phase 1 (React cache)
+src/lib/repositories/workspace-repository.ts                    # Phase 1 (React cache), 1.5 (unstable_cache), 2 (N+1 fixes)
+src/lib/repositories/component-library-repository.ts            # Phase 1 (React cache), 1.5 (unstable_cache), 2 (N+1 fixes)
+src/lib/repositories/project-charts-repository.ts               # Phase 1 (React cache), 1.5 (unstable_cache), 2 (N+1 fixes)
 next.config.ts                                                  # Phase 0 (bundle analyzer)
 src/hooks/use-estimate-query.ts                                 # Phase 1 (staleTime review)
 src/components/landing/ContactForm.tsx                          # Phase 0 (fix Phosphor icon import path)
-src/components/workshop/project-charts/ProjectChartsClient.tsx  # Phase 0 (fix Phosphor icon import path)
-src/components/workshop/projects-page-client.tsx                # Phase 0 (fix Phosphor icon import path)
 ```
 
 ### Files to Audit (No Changes Expected)
@@ -1093,6 +1684,28 @@ src/app/workshop/page.tsx                                       # Verify no acci
 src/components/workshop/WorkshopPageShell.tsx                   # Verify no bfcache blockers
 src/middleware.ts (if exists)                                   # Verify no bfcache blockers
 ```
+
+---
+
+## 9. Related Documents
+
+For detailed analysis and implementation guidance, refer to these supporting documents:
+
+**Audit & Analysis:**
+- `16-critical-path-waterfall.md` — Server+client waterfall diagrams for heaviest routes (project detail, estimate workspace)
+- `17-server-side-optimization-strategy.md` — Proxy.ts migration, React.cache, N+1 query fixes
+- `18-performance-monitoring-production.md` — Runtime monitoring, alerting, regression detection
+
+**Implementation Strategies:**
+- `19-react-memo-strategy.md` — Strategic component memoization (targets, measurement, anti-patterns)
+- `20-font-and-bundle-optimization.md` — Font loading, Three.js lazy loading, bundle analysis
+- `21-error-boundary-strategy.md` — Route-level and component-level error boundaries
+
+**Existing Documents:**
+- `01-performance-audit.md` — Comprehensive audit findings
+- `02-blast-radius-analysis.md` — Impact analysis for each optimization
+- `06-strategy-adrs.md` — Architecture decision records (ADRs)
+- `08-risks-and-mitigations.md` — Risk register and mitigation strategies
 
 ---
 

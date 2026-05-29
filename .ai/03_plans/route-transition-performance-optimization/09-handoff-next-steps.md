@@ -1,8 +1,16 @@
 # 09 — Handoff: Next Steps for Implementation
 
-**Status:** Complete  
+**Status:** Updated 2026-05-29 (codebase-verified corrections)  
 **Created:** 2026-05-29  
 **Purpose:** Concrete, ordered instructions for the next agent/developer picking up this plan.
+
+> **⚠️ CRITICAL:** Before ANY implementation, read the six key verification documents:
+> - **`13-verified-codebase-facts.md`** — canonical reference for all codebase claims (source file + line numbers)
+> - **`14-code-splitting-named-exports.md`** — correct `dynamic()` patterns (all targets use NAMED exports)
+> - **`15-server-component-prefetch-reality.md`** — corrected prefetch strategy (most React Query keys don't exist)
+> - **`30-dynamic-rendering-analysis.md`** — what forces every route to be dynamic and how to fix it
+> - **`31-auth-optimization-middleware-migration.md`** — proxy.ts is dead code (no middleware.ts exists); 3-line fix with outsized impact
+> - **`32-bfcache-strategy.md`** — bfcache plan for instant back/forward navigation
 
 ---
 
@@ -50,10 +58,10 @@ Execute in this order (each task is independently shippable):
 |-------|------|---------|-------------|
 | 1 | Increase `staleTime` to 5min | `src/app/providers.tsx:14` | React Query DevTools shows fresh data on revisit |
 | 2 | Add `loading.tsx` files (5 files) | `src/app/workshop/**/loading.tsx` | Skeletons appear on cold nav, replaced by content |
-| 3 | Code-split modals (4 components) | Various page files | `ANALYZE=true bun run build` shows new chunks |
+| 3 | Code-split modals (5 components — **USE NAMED EXPORT PATTERN, see doc 14**) | Various page files | `ANALYZE=true bun run build` shows new chunks |
 | 4 | Add React `cache()` to repositories | `src/lib/repositories/*.ts` | No behavior change; deduplication within request |
 | 5 | Add 150ms show delay to overlay | `src/stores/navigation-ui-store.ts` | Fast navs show no overlay; slow navs show after 150ms |
-| 6 | Consolidate `useRouter()` in table | `ProjectEstimatesTable.tsx` | All 5 navigation scenarios still work |
+| 6 | Consolidate `useNavigationRouter()` in table (already partially migrated — 5 instances remain) | `ProjectEstimatesTable.tsx` | All 5 navigation scenarios still work |
 
 **After each task:** Run `bun run validate`. If it fails, fix before proceeding.
 
@@ -64,6 +72,9 @@ Execute in this order (each task is independently shippable):
 | If you need to know... | Read... |
 |------------------------|---------|
 | What the plan is about | `README.md` |
+| Verified codebase facts (READ FIRST) | `13-verified-codebase-facts.md` |
+| Correct dynamic() patterns | `14-code-splitting-named-exports.md` |
+| Corrected prefetch strategy | `15-server-component-prefetch-reality.md` |
 | What's slow and why | `01-performance-audit.md` |
 | What changes affect what | `02-blast-radius-analysis.md` |
 | If we're ready to implement | `03-readiness-assessment.md` |
@@ -72,6 +83,9 @@ Execute in this order (each task is independently shippable):
 | Why we chose each approach | `06-strategy-adrs.md` |
 | Template for recording metrics | `07-baseline-metrics-template.md` |
 | What could go wrong | `08-risks-and-mitigations.md` |
+| Skeleton UI patterns | `10-skeleton-design-system.md` |
+| Prefetch wiring (RSC only) | `11-prefetch-wiring-map.md` |
+| Overlay as rare fallback | `12-overlay-fallback-strategy.md` |
 
 ---
 
@@ -83,6 +97,8 @@ Execute in this order (each task is independently shippable):
 4. **Test auth flows.** Login, callback, invite, share — these must work identically after each phase.
 5. **`bun run validate` after every task.** No exceptions. If pre-existing failures exist, document them.
 6. **Collect metrics after each phase.** Compare against Phase 0 baseline. Stop if no improvement.
+7. **🆕 All code splitting uses `.then(mod => mod.ComponentName)` pattern.** All 5 targets use named exports. Default-import `dynamic()` pattern WILL FAIL at build. See `14-code-splitting-named-exports.md`.
+8. **🆕 React Query prefetch ONLY for estimate workspace routes.** `["projects"]`, `["homebase"]`, `["library"]` keys don't exist. Use `router.prefetch()` for RSC payload prefetch on all other routes. See `15-server-component-prefetch-reality.md`.
 
 ---
 

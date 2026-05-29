@@ -16,6 +16,12 @@
 6. [ADR-006: Loading Overlay — Keep vs. Remove vs. Degrade](#adr-006)
 7. [ADR-007: Server Component Caching — `unstable_cache` vs. `"use cache"` vs. `dynamic = 'force-static'`](#adr-007)
 8. [ADR-008: bfcache — Compatibility vs. Custom Scroll Restoration](#adr-008)
+9. [ADR-009: Auth Architecture — No Middleware, Data-Layer Enforcement](#adr-009)
+10. [ADR-010: React.memo Strategy — Selective vs. Aggressive Memoization](#adr-010)
+11. [ADR-011: Font Loading Strategy — Global vs. Route-Specific](#adr-011)
+12. [ADR-012: Error Boundary Strategy — Route-Level vs. Component-Level](#adr-012)
+13. [ADR-013: Server-Side Optimization — Proxy Migration, N+1 Fixes, Layout Caching](#adr-013)
+14. [ADR-014: Three.js and Bundle Optimization — Lazy Loading vs. Removal](#adr-014)
 
 ---
 
@@ -200,13 +206,17 @@ Apply `next/dynamic` to:
 2. **Chart components:** `ProjectCostDonutChart`, `ProjectCostBubbleChart` — D3 is heavy and only needed on the charts route.
 3. **Heavy landing sections:** Below-fold sections on `/` — lazy-load when they enter the viewport.
 
-**Pattern:**
+**⚠️ VERIFIED (2026-05-29):** All 5 code-splitting targets (`EstimateSheetContent`, `EstimateSheetTree`, `AddComponentModal`, `LibraryFolderTree`, `ComponentLibraryManager`) use NAMED exports (`export function`). The correct `next/dynamic` pattern is:
+
 ```typescript
+// CORRECT — named exports require .then():
 const AddComponentModal = dynamic(
-  () => import("@/components/workshop/component-library-manager/AddComponentModal"),
+  () => import("@/components/workshop/component-library-manager/AddComponentModal").then(mod => mod.AddComponentModal),
   { loading: () => <ModalSkeleton /> }
 );
 ```
+
+Using the default-import pattern (`() => import("...")`) will fail at build time. See `14-code-splitting-named-exports.md` for full details.
 
 ---
 
@@ -328,6 +338,308 @@ The minimum display timer (250ms) is removed — if navigation completes, hide i
 
 ---
 
+---
+
+## ADR-009: Auth Architecture — No Middleware, Data-Layer Enforcement {#adr-009}
+
+**Context:** The codebase enforces authentication at the data-fetching layer, not via Next.js middleware. Every workshop page calls repository functions that check auth via `requireCurrentUserContext()`.
+
+**Status:** Architectural constraint (not a decision to change).
+
+### Current State
+
+- No `src/middleware.ts` file exists
+- Auth is enforced in repository functions via `requireCurrentUserContext()`
+- `WorkshopPageShell` reads `cookies()` for side-panel width, forcing dynamic rendering
+- All workshop pages are dynamically rendered (no static generation possible)
+
+### Implications
+
+1. **Performance:** Every workshop page fetch triggers a Supabase auth check (~100-200ms latency)
+2. **Caching:** Cannot use `generateStaticParams` or static generation for workshop routes
+3. **Streaming:** Suspense boundaries still work, but the page shell itself is always server-rendered
+
+### Decision
+
+**Accept as architectural constraint.** Do not migrate to middleware in this performance plan. The auth architecture is intentional and provides fine-grained control. Future optimization may consider middleware migration separately, but it's out of scope for route transition performance.
+
+**Mitigation:** Use `unstable_cache` for project layout queries to reduce redundant auth checks on sub-navigation (see ADR-013).
+
+---
+
+## ADR-010: React.memo Strategy — Selective vs. Aggressive Memoization {#adr-010}
+
+**Context:** Deep audit revealed 245+ `useMemo`/`useCallback` usages but zero `React.memo` wrappers. This causes unnecessary re-renders in list/tree components, especially when parent state changes.
+
+### Options Considered
+
+1. **Aggressive memoization (wrap all components)**
+   - *Pros:* Maximum re-render reduction. No need to analyze which components benefit.
+   - *Cons:* Adds complexity. May memoize components that don't need it. Harder to debug. Memory overhead.
+   - *Verdict:* ❌ Rejected. Over-engineering.
+
+2. **Selective memoization (high-impact targets only)**
+   - *Pros:* Focused effort. Targets components with 10+ instances that re-render unnecessarily. Easier to measure impact.
+   - *Cons:* Requires profiling to identify targets. May miss some optimization opportunities.
+   - *Verdict:* ✅ **ACCEPTED.**
+
+3. **No memoization (rely on React's default behavior)**
+   - *Pros:* Simpler code. No maintenance burden.
+   - *Cons:* 10x slower re-renders for list/tree components. Poor UX when editing a single row causes 100+ rows to re-render.
+   - *Verdict:* ❌ Rejected. Performance impact too significant.
+
+### Decision
+
+**Selective memoization** targeting:
+
+1. **Estimate row items** (`EstimateSheetContent.tsx`) — 100+ rows, frequent updates (edit, drag-drop)
+2. **Tree nodes** (`EstimateSheetTree.tsx`) — 50+ nodes, expand/collapse operations
+3. **Project cards** (`LiveProjectCard.tsx`) — 20+ cards, occasional updates
+4. **Component library items** (`ComponentLibraryManager.tsx`) — 50+ items, occasional updates
+
+**Critical requirement:** Props must be stable (use `useMemo` for objects, `useCallback` for functions) for `React.memo` to be effective.
+
+**Expected impact:** 10x faster re-renders for list/tree components. Editing a single row takes 5-10ms instead of 50-100ms.
+
+**Implementation:** See `19-react-memo-strategy.md` for detailed plan.
+
+---
+
+## ADR-011: Font Loading Strategy — Global vs. Route-Specific {#adr-011}
+
+**Context:** Root layout loads 4 Google Fonts (Inter, Poppins, Roboto Mono, Source Serif 4) on every page. Landing page only uses Inter. This adds ~300KB of unused fonts to the landing page.
+
+### Options Considered
+
+1. **Keep global font loading (status quo)**
+   - *Pros:* Simple. No changes needed. All fonts available everywhere.
+   - *Cons:* Landing page loads 300KB of unused fonts. Slower FCP on landing page.
+   - *Verdict:* ❌ Rejected. Performance impact too significant for landing page.
+
+2. **Route-specific font loading**
+   - *Pros:* Landing page only loads Inter (used font). Saves ~300KB. Faster FCP.
+   - *Cons:* More complex. Need to audit font usage per route. Workshop layout needs Poppins/Roboto Mono/Source Serif.
+   - *Verdict:* ✅ **ACCEPTED.**
+
+3. **Font subsetting (load only used characters)**
+   - *Pros:* Smaller font files. Faster downloads.
+   - *Cons:* Complex to implement. May break if new characters are used. Maintenance burden.
+   - *Verdict:* ⚠️ Deferred. Can be considered later if font size is still an issue.
+
+### Decision
+
+**Route-specific font loading:**
+
+- **Root layout (`src/app/layout.tsx`):** Load only Inter (used by landing page)
+- **Workshop layout (`src/app/workshop/layout.tsx`):** Load Poppins, Roboto Mono, Source Serif 4 (workshop-specific fonts)
+- **Landing page routes:** Inherit Inter from root layout
+
+**Implementation:**
+
+```typescript
+// src/app/layout.tsx — root layout
+import { Inter } from "next/font/google";
+const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
+
+// src/app/workshop/layout.tsx — workshop layout
+import { Poppins, Roboto_Mono, Source_Serif_4 } from "next/font/google";
+const poppins = Poppins({ weight: ["400", "600"], subsets: ["latin"], variable: "--font-poppins" });
+// ... etc
+```
+
+**Expected impact:** ~300KB reduction in landing page bundle, ~200ms faster FCP on landing page.
+
+**Risk:** Low. Fonts are isolated to layouts, easy to verify correctness.
+
+**Implementation:** See `20-font-and-bundle-optimization.md` for detailed plan.
+
+---
+
+## ADR-012: Error Boundary Strategy — Route-Level vs. Component-Level {#adr-012}
+
+**Context:** Zero `error.tsx` files and zero custom error boundaries. If a component throws, the entire page crashes. Recovery requires full reload (~1000ms) vs error boundary retry (~50ms).
+
+### Options Considered
+
+1. **Route-level error boundaries only (`error.tsx` files)**
+   - *Pros:* Simple. Next.js convention. Catches errors at route level.
+   - *Cons:* Entire route crashes on component error. User loses all page state.
+   - *Verdict:* ✅ **ACCEPTED as baseline.**
+
+2. **Component-level error boundaries only (custom `ErrorBoundary`)**
+   - *Pros:* Granular error handling. One component can fail without crashing the page.
+   - *Cons:* More complex. Need to wrap each high-risk component. Doesn't catch route-level errors.
+   - *Verdict:* ✅ **ACCEPTED as complement.**
+
+3. **No error boundaries (status quo)**
+   - *Pros:* Simpler code.
+   - *Cons:* Full-page crashes on any error. Poor UX. Slow recovery (1000ms vs 50ms).
+   - *Verdict:* ❌ Rejected. Resilience impact too significant.
+
+### Decision
+
+**Hybrid approach:**
+
+1. **Route-level:** Add `error.tsx` files to high-risk routes:
+   - `/workshop/projects/[projectId]/estimates/[nodeId]/error.tsx` (estimate workspace)
+   - `/workshop/library/error.tsx` (component library)
+   - `/workshop/projects/[projectId]/charts/error.tsx` (charts)
+
+2. **Component-level:** Wrap high-risk components in custom `ErrorBoundary`:
+   - `EstimateSheetContent` (complex, high crash risk)
+   - `EstimateSheetTree` (tree operations, DnD)
+   - Chart components (D3 error-prone with empty data)
+
+3. **Reusable `ErrorBoundary` component:** Create `src/components/ui/error-boundary.tsx` for component-level boundaries.
+
+**Expected impact:** 20x faster error recovery (1000ms → 50ms). Prevents full-page crashes. Graceful degradation.
+
+**Risk:** Low. Error boundaries are additive. Fallback UI must be well-designed to avoid confusing users.
+
+**Implementation:** See `21-error-boundary-strategy.md` for detailed plan.
+
+---
+
+## ADR-013: Server-Side Optimization — Proxy Migration, N+1 Fixes, Layout Caching {#adr-013}
+
+**Context:** Deep audit revealed critical server-side bottlenecks:
+- Proxy.ts adds ~100-200ms per request (HTTP roundtrip to Supabase Auth)
+- Project layout re-fetches on every sub-navigation (~90ms wasted per nav)
+- N+1 query patterns in repository functions
+
+### Options Considered
+
+#### Proxy.ts Optimization
+
+1. **Migrate to Next.js middleware**
+   - *Pros:* Edge runtime, faster. Uses `getSession()` (local JWT validation) instead of `getUser()` (HTTP roundtrip). Saves ~100-200ms.
+   - *Cons:* Complex migration. Edge runtime limitations. Risk of auth flow breakage.
+   - *Verdict:* ✅ **ACCEPTED.** High impact, manageable risk.
+
+2. **Keep proxy.ts, optimize to use `getSession()`**
+   - *Pros:* Simpler. No Edge runtime constraints. Saves ~60-150ms.
+   - *Cons:* Still Node.js runtime (slower than Edge). Less future-proof.
+   - *Verdict:* ⚠️ Fallback if middleware migration fails.
+
+3. **Keep proxy.ts as-is (status quo)**
+   - *Pros:* No changes. No risk.
+   - *Cons:* ~100-200ms latency per request. Single largest server-side bottleneck.
+   - *Verdict:* ❌ Rejected. Performance impact too significant.
+
+#### Project Layout Caching
+
+1. **Cache layout queries with `unstable_cache`**
+   - *Pros:* Eliminates re-fetch on sub-navigation. Saves ~90ms per nav. 30s TTL balances freshness vs performance.
+   - *Cons:* Cache invalidation complexity. Risk of stale data if not invalidated on mutations.
+   - *Verdict:* ✅ **ACCEPTED.**
+
+2. **No caching (status quo)**
+   - *Pros:* Simple. Always fresh data.
+   - *Cons:* ~90ms wasted per sub-navigation. Poor UX.
+   - *Verdict:* ❌ Rejected. Performance impact too significant.
+
+#### N+1 Query Fixes
+
+1. **Batch sequential queries**
+   - *Pros:* Reduces query count from O(N) to O(1). 30-50% reduction in server-side query time.
+   - *Cons:* More complex query logic. Need to audit all repository functions.
+   - *Verdict:* ✅ **ACCEPTED.**
+
+2. **Keep sequential queries (status quo)**
+   - *Pros:* Simpler code.
+   - *Cons:* Slow list pages with many items. Poor scalability.
+   - *Verdict:* ❌ Rejected. Performance impact too significant for list pages.
+
+### Decision
+
+**Phase 1.5 (Critical Infrastructure):**
+
+1. **Proxy.ts → Middleware migration** (Task 1.5.1)
+   - Migrate auth logic to Edge-compatible middleware
+   - Use `getSession()` instead of `getUser()`
+   - Delete `src/proxy.ts` after migration
+   - Expected impact: ~100-200ms reduction in navigation latency
+
+2. **Project layout caching** (Task 1.5.3)
+   - Wrap layout data fetching in `unstable_cache` with 30s TTL
+   - Add `revalidateTag` to mutation actions
+   - Expected impact: ~90ms reduction per sub-navigation
+
+3. **N+1 query fixes** (Task 2.0 in Phase 2)
+   - Audit repository functions for sequential queries
+   - Batch queries using `inArray` and `Promise.all`
+   - Expected impact: 30-50% reduction in server-side query time
+
+**Risk:** Medium. Proxy.ts migration affects auth flows. Layout caching requires careful invalidation. N+1 fixes change query logic.
+
+**Mitigation:** Comprehensive E2E testing. Rollback plans for each task. Incremental rollout.
+
+**Implementation:** See `17-server-side-optimization-strategy.md` for detailed plan.
+
+---
+
+## ADR-014: Three.js and Bundle Optimization — Dynamic Import vs. Removal {#adr-014}
+
+**Context:** Landing page loads ~150KB of Three.js via `@firecms/neat` for `NeatWireframeBackground` (WebGL gradient). ⚠️ **LOCATION CORRECTION from earlier drafts:** The component renders inside `HeroSection` (`src/components/landing/HeroSection.tsx:44`), which is the **above-fold hero** — NOT below the fold. An IntersectionObserver lazy-load strategy will NOT defer loading because the element is already in the initial viewport. See `20-font-and-bundle-optimization.md` §2 for the complete corrected analysis.
+
+**Impact:** Three.js is 65% of the landing page JS bundle (~315KB total) and blocks initial render of hero headline and CTA.
+
+### Options Considered
+
+1. **Remove Three.js entirely, replace with CSS gradient**
+   - *Pros:* Eliminates 150KB entirely. Simpler code. Hero already uses multiple CSS gradient layers — visually consistent.
+   - *Cons:* Loses animated WebGL effect. Design team may object.
+   - *Verdict:* ⚠️ **Recommended fallback** if dynamic import causes visual issues.
+
+2. **Dynamic import with `next/dynamic` + CSS placeholder (Recommended)**
+   - *Pros:* Three.js chunk loads after critical path. CSS placeholder renders immediately. Hero content (headline, CTA) not blocked. Preserves visual effect after hydration.
+   - *Cons:* Three.js still loads on every landing page visit (since hero is always visible). Extra complexity from `loading` state.
+   - *Verdict:* ✅ **ACCEPTED** as primary strategy.
+
+3. **Keep as-is (status quo)**
+   - *Pros:* Simple. No changes.
+   - *Cons:* 150KB blocks first paint. Slower FCP. Poor performance for first impression.
+   - *Verdict:* ❌ Rejected. Performance impact too significant.
+
+4. **Replace with static gradient image**
+   - *Pros:* Tiny file size. Instant load.
+   - *Cons:* Loses animation/interactivity. Static feel. Design team may object.
+   - *Verdict:* ❌ Rejected. Animated gradient is part of brand identity.
+
+### Decision
+
+**Dynamic import Three.js with `next/dynamic`, `ssr: false`, and CSS placeholder:**
+
+1. **Dynamic import in the page or wrapper:**
+   ```typescript
+   const NeatWireframeBackground = dynamic(
+     () => import("@/components/landing/NeatWireframeBackground").then(mod => mod.NeatWireframeBackground),
+     {
+       ssr: false,
+       loading: () => (
+         <div
+           className="absolute inset-0"
+           style={{ background: "radial-gradient(ellipse at 50% 50%, rgba(255,127,45,0.3), transparent 70%)" }}
+           aria-hidden="true"
+         />
+       ),
+     }
+   );
+   ```
+
+2. **CSS placeholder** renders immediately (matches hero gradient colors).
+3. **No IntersectionObserver needed** — the component is always visible. The deferral comes from `next/dynamic` only, which delays JS hydration.
+
+**Expected impact:** ~150KB deferred from critical path. Hero headline/CTA render without waiting for Three.js (~200ms faster LCP for hero content). Three.js still loads on every visit, but not as a render blocker.
+
+**Fallback:** If the CSS→Three.js transition causes visual issues, replace entirely with CSS gradient layers (the hero already uses 4+ gradient layers in `HeroSection.tsx:33-39`).
+
+**Risk:** Low. Additive optimization. Easy to verify (check Network tab) and rollback (revert dynamic import).
+
+**Implementation:** See `20-font-and-bundle-optimization.md` §2 for detailed plan.
+
+---
+
 ## Summary of Decisions
 
 | ADR | Decision | Phase |
@@ -341,6 +653,11 @@ The minimum display timer (250ms) is removed — if navigation completes, hide i
 | ADR-007 | React `cache()` now, `unstable_cache` later, `"use cache"` in future | Phase 1 |
 | ADR-008 | bfcache-compatible (zero blockers found), add `pageshow` handler | Phase 1–2 |
 | ADR-009 | Auth at data-fetching layer (no middleware), all workshop pages forced dynamic | N/A (architectural constraint) |
+| ADR-010 | Selective React.memo for high-impact targets (rows, tree nodes, cards) | Phase 1.5 |
+| ADR-011 | Route-specific font loading (Inter for landing, workshop fonts for workshop) | Phase 1 |
+| ADR-012 | Hybrid error boundaries (route-level + component-level) | Phase 1.5 |
+| ADR-013 | Proxy.ts → middleware, layout caching, N+1 query fixes | Phase 1.5–2 |
+| ADR-014 | Dynamic import Three.js with `next/dynamic` + CSS placeholder (above-fold, IntersectionObserver won't defer) | Phase 1 |
 
 ---
 

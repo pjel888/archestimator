@@ -3,7 +3,9 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useState, type ReactNode } from "react";
 
+import { BfcacheHandler } from "@/components/bfcache-handler";
 import { NavigationListener } from "@/components/navigation-listener";
+import { PerformanceMonitor } from "@/components/performance-monitor";
 import { RouteLoadingOverlay } from "@/components/ui/route-loading-overlay";
 import { ToastProvider } from "@/components/ui/toast";
 
@@ -29,6 +31,8 @@ export function AppProviders({ children }: { children: ReactNode }) {
   return (
     <QueryClientProvider client={queryClient}>
       <ToastProvider>
+        <BfcacheHandler />
+        <PerformanceMonitor />
         <NavigationListener />
         {children}
         <RouteLoadingOverlay />

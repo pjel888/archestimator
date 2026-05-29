@@ -1,8 +1,11 @@
 # 11 — Prefetch Wiring Map: Exact Hookup Plan
 
-**Status:** New  
+**Status:** ⚠️ PARTIALLY SUPERSEDED — See `15-server-component-prefetch-reality.md` for corrected strategy  
 **Created:** 2026-05-29  
-**Purpose:** Map every navigation link in the app to its prefetch strategy. This document defines exactly which components need hover prefetch, what data to prefetch, and the expected cache keys.
+**Updated:** 2026-05-29 — Correction note added after codebase verification  
+**Purpose:** Map every navigation link in the app to its prefetch strategy.
+
+> **⚠️ CORRECTION (2026-05-29):** The React Query keys listed in this document (`["projects"]`, `["homebase"]`, `["library"]`, `["templates"]`, `["project", projectId]`) **do not exist in the codebase.** Most workshop data is fetched in Server Components, not via React Query. The `router.prefetch()` calls still work for RSC payload prefetch. For the corrected strategy, see **`15-server-component-prefetch-reality.md`**. The estimate workspace route IS correctly covered (its React Query keys exist). This document is retained for the RSC prefetch wiring (sidebar, cards, mini-sidebar) which remains valid.
 
 ---
 

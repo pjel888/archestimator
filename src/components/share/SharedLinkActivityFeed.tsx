@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState, useCallback } from "react";
 import { createClient } from "@supabase/supabase-js";
+import { Button } from "@/components/ui/button";
 import { loadSharedLinkActivity, type ActivityItem } from "@/lib/publication/actions"; // server action callable from client
 
 type SharedLinkActivityFeedProps = {
@@ -89,7 +90,7 @@ export default function SharedLinkActivityFeed({ publicationToken, isOwner = fal
   if (error) {
     return (
       <div data-testid="activity-error" className="rounded-xs p-2 text-[10px] text-warning">
-        {error} <button onClick={load} className="underline">Retry</button>
+        {error} <Button variant="ghost" size="sm" onClick={load} className="h-5 px-1 py-0 text-[9px] underline">Retry</Button>
       </div>
     );
   }
@@ -98,7 +99,7 @@ export default function SharedLinkActivityFeed({ publicationToken, isOwner = fal
     <div data-testid="activity-feed" className="rounded-xs text-[10px] text-ink">
       <div className="mb-2 flex items-center justify-between text-[9px] text-tertiary">
         <span>Activity</span>
-        <button type="button" onClick={load} className="rounded-xs px-1.5 py-0.5 hover:bg-surfaceMuted">Refresh</button>
+        <Button type="button" variant="ghost" size="sm" onClick={load} className="h-5 px-1.5 py-0 text-[9px]">Refresh</Button>
       </div>
       {activities.length === 0 ? (
         <p className="text-tertiary">No activity yet.</p>
