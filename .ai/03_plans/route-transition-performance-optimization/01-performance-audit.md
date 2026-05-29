@@ -114,26 +114,32 @@ Data sources:
 - **Optimization opportunity:** Stream layout data. Cache project detail. Prefetch on project card hover.
 
 #### `/workshop/projects/[projectId]/estimates` (Estimate List)
-- **Page type:** Client Component with TanStack Table
-- **Components:** `ProjectEstimatesTable`
-- **Data fetching:** TanStack Query fetches estimate list. Table renders with inline editing, duplicate, and navigation actions.
+- **Page type:** Server Component (`listProjectEstimates()`) + Client Component (`ProjectEstimatesTable`)
+- **Components:** `ProjectEstimatesTable` (846 lines)
+- **Data fetching:** Server Component fetches estimate list via `listProjectEstimates()`. Table renders with inline editing, duplicate, and navigation actions using TanStack Table.
 - **Bottleneck:**
   - **MANY ESTIMATE SHEETS:** If a project has 20+ estimates, the table renders all rows with inline edit fields, action buttons, and status indicators.
-  - `ProjectEstimatesTable` instantiates `useRouter()` 5 separate times (lines 178, 265, 379, 499, 597) — each creates a router subscription.
+  - `ProjectEstimatesTable` instantiates `useNavigationRouter()` 5 separate times (lines 178, 265, 379, 499, 597) — each creates a Zustand subscription to the navigation store. The hook is already migrated from raw `useRouter()`, but 5 instances is still wasteful.
+  - 8 inline sub-components (`ProjectEstimatesColGroup`, `SortIcon`, `ProjectEstimateFillerRows`, `ProjectEstimateRowActions`, `ProjectEstimateEditableTextCell`, `ProjectEstimateBudgetCell`, `ProjectEstimateSheetCodeCell`, `ProjectEstimatesColumnResizeHandle`).
+  - Each editable cell independently calls `useNavigationRouter()`.
+  - `@tanstack/react-table` is eagerly bundled with this route.
 - **Perceived slowness with many estimates:** HIGH. Table rendering + hydration cost.
-- **Optimization opportunity:** Virtualize the table. Consolidate 5 useRouter calls. Paginate estimates.
+- **Optimization opportunity:** Virtualize the table. Consolidate 5 useNavigationRouter hook instantiations into 1 at the component top level. Paginate estimates.
 
 #### `/workshop/projects/[projectId]/estimates/[nodeId]` (Estimate Workspace)
-- **Page type:** Client Component (heavy)
-- **Components:** `EstimateSheetTree`, `EstimateSheetContent`, `EstimateCenterColumnBoundary`, component library sidebar
-- **Data fetching:** `use-estimate-query.ts` sets `staleTime: 30_000`. Fetches estimate tree, row items, component library. React Complex Tree renders the node hierarchy.
+- **Page type:** Server Component (page fetches data) + Client Components (heavy)
+- **Components:** `EstimateSheetTree` (1,365 lines), `EstimateSheetContent` (~4,048 lines — **the single heaviest component in the entire codebase**), `EstimateCenterColumnBoundary`, component library sidebar
+- **Data fetching:** Page is a Server Component that calls `Promise.all([getProjectEstimateTreeByNode(), getCurrentWorkspaceComponentLibrary(), requireCurrentUserContext()])`. Client-side `use-estimate-query.ts` uses default `staleTime` (inherits global 30s). `useEstimateAreaTreeQuery` has optimistic update support with snapshot/restore/revision tracking.
 - **Bottleneck:**
+  - **`EstimateSheetContent` at ~4,048 lines** is the largest single component. It embeds 12+ sub-components inline: `ActivityFilterDropdown`, `AuditComponentSnapshotCard`, `AuditEventCard`, `AuditEventGroup`, `EventList`, `RowDetailsModal`, `ActivityScopeTree`, `ActivityHistoryModal`, `EstimateSheetHeader`, `RemoteEstimateCursorsOverlay`, `RemoteEstimateCursorMarker`, `CommandPalette`, `ProposalExportPreviewDialog`.
+  - **`EstimateSheetTree` at 1,365 lines** renders the full React Complex Tree with drag-and-drop, inline rename, delete confirmations, context menus, and toast notifications. Uses ~15 refs, ~10 useState calls, ~20 useCallback/useMemo hooks.
   - **MANY ESTIMATE ROW ITEMS:** If an estimate sheet has 200+ row items across 20+ nodes, the tree rendering + row table rendering becomes expensive. React Complex Tree renders ALL nodes (no virtualization in the tree itself).
-  - The component library sidebar loads the full library tree on mount.
-  - `EstimateSheetTree` handles drag/drop, selection, rename, delete — all client-side state.
+  - The component library sidebar (`EstimateRightSidebar`) loads the full library tree on mount.
+  - `EstimateSheetTree` handles drag/drop with optimistic updates via `useMoveEstimateRowItem` (full optimistic → rollback → invalidate pattern).
   - Multiple `useTransition` calls for marking non-urgent updates.
-- **Perceived slowness with many rows:** VERY HIGH. The combination of tree + table + library sidebar is the heaviest surface in the app.
-- **Optimization opportunity:** Virtualize row items. Lazy-load component library sidebar. Split estimate tree and content into separate Suspense boundaries. Prefetch estimate data on estimate list row hover.
+  - Row mutations use per-row serial queueing (`enqueueRowUpdate`) with operation-level concurrency control and optimistic concurrency via `expectedRowRevision`.
+- **Perceived slowness with many rows:** VERY HIGH. The combination of tree (~1,365 LOC) + content (~4,048 LOC) + library sidebar is the heaviest surface in the app. Combined ~5,400+ lines of client component code hydrate on every visit.
+- **Optimization opportunity:** This is the #1 code splitting target. `EstimateSheetContent` should be `dynamic()` imported. Extract modals (`ActivityHistoryModal`, `RowDetailsModal`, `ProposalExportPreviewDialog`) into separate dynamic chunks. Virtualize row items. Lazy-load component library sidebar. Split estimate tree and content into separate Suspense boundaries. Prefetch estimate data on estimate list row hover.
 
 #### `/workshop/projects/[projectId]/charts` (Project Charts)
 - **Page type:** Client Component with D3
@@ -241,7 +247,31 @@ Data sources:
 
 **Problem:** The app does not leverage the browser's Back-Forward Cache (bfcache). On back/forward navigation, pages are completely re-fetched and re-rendered instead of being restored from the browser's in-memory cache.
 
-**Root cause:** The loading overlay's `NavigationListener` uses `popstate` event listener, and the overlay portal may interact with the DOM in ways that prevent bfcache. Additionally, the app likely has `unload` handlers or other bfcache blockers.
+**Root cause:** The loading overlay's `NavigationListener` uses `popstate` event listener, and the overlay portal may interact with the DOM in ways that prevent bfcache.
+
+**Codebase audit result (verified):** There are **zero** `beforeunload` or `unload` event listeners anywhere in the codebase. No `Cache-Control: no-store` headers are set on workshop pages (only on `/api/share/*` routes and the proposal export endpoint). This means the codebase is **already bfcache-compatible** from a blocker perspective. The remaining work is: (a) verify the `popstate` listener + portal don't interfere with bfcache restore, and (b) add `pageshow` event handling to suppress the overlay on bfcache restores.
+
+### 3.8 Auth Forces Dynamic Rendering (No Middleware)
+
+**Problem:** There is **no `middleware.ts`** file in the project. Auth is enforced at the data-fetching layer: every workshop page calls repository functions that chain through `ensureDefaultWorkspace()` → `requireCurrentUserContext()` → `redirect("/login")`. This function calls `createSupabaseServerClient()` which reads `cookies()` + `headers()`, forcing all workshop pages to be dynamically rendered.
+
+**Additional dynamic rendering force:** `WorkshopPageShell` (the shell component rendered by every workshop page) reads `cookies()` for side-panel width CSS variables via `getSidePanelWidthCssVariables()`. Even if auth were moved to middleware, this cookie read would still force dynamic rendering.
+
+**Impact:** Zero workshop pages can be statically generated. Every page navigation triggers a full Supabase auth check + data fetch round-trip. This is the fundamental reason why Suspense/streaming is critical — we can't avoid the server round-trip, but we can stream partial content while data resolves.
+
+### 3.9 Phosphor Icon Import Inconsistency
+
+**Problem:** 3 files import Phosphor icons from the full client bundle path (`@phosphor-icons/react`) instead of the tree-shakeable SSR path (`@phosphor-icons/react/dist/ssr`):
+
+1. `src/components/landing/ContactForm.tsx` — `EnvelopeOpen, Spinner`
+2. `src/components/workshop/project-charts/ProjectChartsClient.tsx` — `Plus, X`
+3. `src/components/workshop/projects-page-client.tsx` — `Cards, GridFour, Plus, Rows, SquaresFour`
+
+The other 44+ files correctly use the SSR import path. The `next.config.ts` has `experimental.optimizePackageImports: ["@phosphor-icons/react"]` which helps, but the inconsistency could still pull in unnecessary client bundle size.
+
+### 3.10 Landing Page Barrel Export
+
+**Problem:** `src/components/landing/index.ts` re-exports **32 components** as a barrel export. The landing page (`src/app/page.tsx`) is a server component that imports from this barrel. While tree-shaking should handle unused exports, the barrel forces the bundler to analyze all 32 modules. Several of these components are below-the-fold (FAQ, Pricing, Partner, Testimonial, FinalCTA) and could be dynamically imported.
 
 ---
 
@@ -259,38 +289,95 @@ new QueryClient({
       refetchOnWindowFocus: false, // Good
       retry: 1,                  // Reasonable
     },
+    mutations: {
+      retry: 0,                  // Good — mutations shouldn't auto-retry
+    },
   },
 });
 ```
 
 **Issue:** `staleTime: 30_000` means data is considered "stale" after 30 seconds. When a user navigates away and comes back within 30 seconds, the data is still fresh and served from cache. But after 30 seconds (common — user might spend 30+ seconds on another page), the data is re-fetched.
 
+**Verified hooks using React Query:**
+
+| Hook | queryKey | staleTime | File |
+|------|----------|-----------|------|
+| `useEstimateQuery` | `["estimate", estimateId]` | 30s (global default) | `use-estimate-query.ts` |
+| `useEstimateAreaTreeQuery` | `["estimate", estimateId, "area-tree"]` | 30s (explicit) | `use-estimate-query.ts` |
+| `useMoveEstimateRowItem` | (mutation) | N/A | `use-estimate-query.ts` |
+
+**Note:** There are **zero** `useSuspenseQuery` calls in the codebase. All data fetching uses standard `useQuery`, which means no component-level Suspense integration with React Query.
+
 **Recommendation:** Increase `staleTime` to `5 * 60_000` (5 minutes) for lists and `2 * 60_000` (2 minutes) for detail views.
 
 ### 4.2 Server Component Data Fetching
 
-Workshop pages like `[projectId]/layout.tsx` use direct Supabase queries:
+**Verified inventory of all Server Components that fetch data:**
 
-```typescript
-const { project: liveProject } = await getCurrentWorkspaceProject(projectId);
-const [collaborationSummary, publicationSummary, projectEstimateSheets] = liveProject
-  ? await Promise.all([...])
-  : [null, null, []];
-```
+| Route | Functions Called | Pattern |
+|-------|-----------------|---------|
+| `/workshop` | `getWorkshopHomebaseData()` | Single call → `ensureDefaultWorkspace()` → auth chain |
+| `/workshop/projects` | `listCurrentWorkspaceProjects()` | Single call → auth chain |
+| `/workshop/projects/[projectId]` (layout) | `getCurrentWorkspaceProject()` → then `Promise.all([getProjectCollaborationSummary(), getProjectPublicationSummary(), listProjectEstimateSheets()])` | **Waterfall:** sequential project fetch → parallel 3-query batch |
+| `/workshop/projects/[projectId]` (page) | `getCurrentWorkspaceProject()` | Re-fetched (not deduplicated with layout) |
+| `/workshop/projects/[projectId]/estimates` | `listProjectEstimates()` | Single call |
+| `/workshop/projects/[projectId]/estimates/[nodeId]` | `Promise.all([getProjectEstimateTreeByNode(), getCurrentWorkspaceComponentLibrary(), requireCurrentUserContext()])` | Parallel 3-query batch |
+| `/workshop/projects/[projectId]/charts` | `getProjectChartsData()` | Single call (4 sub-queries via Promise.all) |
+| `/workshop/library` | `getCurrentWorkspaceComponentRowsLibrary()` | Single call (3-phase parallel fetch internally) |
+| `/workshop/templates` | `getCurrentWorkspaceEstimateTemplates()` | Single call |
 
-These queries run on EVERY request. There's no:
-- `unstable_cache` (Next.js 14) or `cacheTag` (Next.js 15+)
-- `stale-while-revalidate` pattern
-- Incremental Static Regeneration (ISR)
-- HTTP cache headers
+**Key patterns:**
+- All repository functions use `createSupabaseServerClient()` which reads `cookies()` + `headers()`, forcing dynamic rendering
+- `getCurrentWorkspaceProject()` is called in BOTH the layout AND the page — no deduplication across the layout/page boundary (React `cache()` would fix this)
+- `ensureDefaultWorkspace()` is called at the start of most functions — it creates the workspace if none exists
+- `getCurrentUserContext()` is the only function wrapped in React `cache()` (in `src/lib/auth/session.ts`)
 
-### 4.3 Repository Query Patterns
+### 4.3 Mutation Patterns (Verified)
 
-All repositories in `src/lib/repositories/` are plain async functions that call Supabase. They don't:
-- Cache results
-- Batch related queries
-- Use `select` column filtering consistently
-- Return minimal DTOs (many return full row objects)
+The codebase has **sophisticated optimistic update patterns** already in place:
+
+**Pattern A: Full optimistic mutation** (`useMoveEstimateRowItem`):
+- `onMutate`: cancel queries → snapshot → apply optimistic update
+- `onError`: rollback to snapshot
+- `onSettled`: invalidate queries
+
+**Pattern B: Per-row optimistic patching** (`useEstimateRowMutations`):
+- Uses `rowOperationIdsRef` for operation-level concurrency control
+- Uses `rowUpdateQueuesRef` for per-row serial queueing (`enqueueRowUpdate`)
+- Each mutation gets a `mutationId` (UUID) and `expectedRowRevision` for optimistic concurrency
+- `snapshot()` / `restore()` / `prepareOptimisticUpdate()` enable external rollback
+- All `invalidateQueries` calls use `refetchType: "none"` — marks stale but does NOT trigger immediate refetch
+
+**Pattern C: Server-side revalidation** (`src/lib/estimates/actions.ts`):
+- `revalidatePath()` called after create/delete estimate mutations
+- Targets: `/workshop/projects/${projectId}`, `/workshop/projects/${projectId}/estimates`, `/workshop/projects/${projectId}/charts`
+
+### 4.4 Repository Architecture
+
+**Verified repository inventory:**
+
+| Repository | Lines | Type | Key Functions |
+|-----------|-------|------|---------------|
+| `workspace-repository.ts` | 1,160 | Server-only | `ensureDefaultWorkspace`, `listCurrentWorkspaceProjects`, `getWorkshopHomebaseData`, `getCurrentWorkspaceProject`, `getProjectCollaborationSummary`, `getProjectPublicationSummary`, `listProjectEstimates`, `listProjectEstimateSheets`, `getProjectEstimateTreeByNode` |
+| `component-library-repository.ts` | 787 | Server-only | `getCurrentWorkspaceComponentRowsLibrary`, `getCurrentWorkspaceEstimateTemplates`, `getCurrentWorkspaceComponentLibrary` |
+| `project-charts-repository.ts` | 245 | Server-only | `getProjectChartsData` |
+| `estimate-repository.ts` | 215 | Dual (browser) | `getEstimateTree`, `moveEstimateRowItem`, `insertEstimateRowItem`, `updateEstimateRowItem`, `deleteEstimateRowItem` |
+| `cost-library-repository.ts` | 86 | Dual (browser) | `listCostLibraryItems`, `createCostLibraryItem`, `updateCostLibraryItem` |
+| `estimate-schema-compat.ts` | 37 | Utility | `isMissingColumnError`, `isMissingRelationError`, `normalizeEstimateRecord` |
+
+**Key insight:** The server-side repositories are plain async functions with no caching. The browser-side repositories (`estimate-repository.ts`, `cost-library-repository.ts`) use a dual-mode pattern — auto-selecting between Supabase browser client and in-memory Map based on `hasSupabaseBrowserEnv()`.
+
+### 4.5 What's Missing
+
+- **Zero** `unstable_cache` usage anywhere
+- **Zero** `"use cache"` directives anywhere
+- **Zero** `cacheLife` / `cacheTag` usage anywhere
+- **Zero** `useSuspenseQuery` calls
+- **Zero** Suspense boundaries
+- **Zero** `loading.tsx` or `error.tsx` files
+- **Zero** streaming Server Components
+- Only **1** `React.cache()` usage (auth/session.ts)
+- No per-request deduplication of repository calls across layout/page boundaries
 
 ---
 
@@ -319,17 +406,19 @@ All client components in the provider tree are downloaded on every page.
 
 ### 5.3 Heavy Client Components
 
-| Component | File | Estimated Impact |
-|-----------|------|-----------------|
-| `ProjectEstimatesTable` | ~600+ lines | TanStack Table + 5 useRouter + inline editing |
-| `EstimateSheetTree` | ~900+ lines | React Complex Tree + drag/drop + context menu |
-| `EstimateSheetContent` | Large | Row items table + component library sidebar |
-| `ComponentLibraryManager` | ~1500+ lines | Full component management + modals |
-| `AddComponentModal` | ~1500+ lines | Complex form with multiple sections |
-| `WorkshopHomebaseClient` | Large | Bento grid with favorites |
-| `ProjectDashboardClient` | Large | Dashboard with metrics |
+| Component | File | Lines | Estimated Impact |
+|-----------|------|-------|-----------------|
+| `EstimateSheetContent` | `EstimateSheetContent.tsx` | **~4,048** | Largest component in codebase. 12+ embedded sub-components, modals, activity history, proposal export. |
+| `AddComponentModal` | `AddComponentModal.tsx` | **~2,354** | Complex form: image upload, multi-variant management, cost entry manager, attachment upload, folder tree picker. |
+| `EstimateSheetTree` | `EstimateSheetTree.tsx` | **1,365** | React Complex Tree + drag/drop + inline rename + context menu + optimistic updates. ~15 refs, ~10 useState. |
+| `LibraryFolderTree` | `LibraryFolderTree.tsx` | **~1,172** | Heavy tree component using react-complex-tree. |
+| `ComponentLibraryManager` | `ComponentLibraryManager.tsx` | **1,009** | Full component management + modals. |
+| `ProjectEstimatesTable` | `ProjectEstimatesTable.tsx` | **846** | TanStack Table + 5 useNavigationRouter + 8 inline sub-components + inline editing. |
+| `WorkshopHomebaseClient` | `WorkshopHomebaseClient.tsx` | **482** | Bento grid with favorites, invite banner, star toggling. |
+| `ProjectDetailsModal` | `ProjectDetailsModal.tsx` | **375** | Image upload, currency combobox, form with server action. |
+| `ProjectChartsClient` | `ProjectChartsClient.tsx` | **283** | Chart orchestrator (D3 isolated in child components). |
 
-None of these are code-split. All are eagerly loaded in their parent routes.
+None of these are code-split. All are eagerly loaded in their parent routes. The top 4 components alone total **~8,943 lines** of client JavaScript that hydrates on navigation.
 
 ---
 
@@ -448,20 +537,23 @@ None of these are code-split. All are eagerly loaded in their parent routes.
 | # | Change | Effort | Impact |
 |---|--------|--------|--------|
 | 1 | Increase `staleTime` to 5 minutes | 1 line | Instant revisits become free |
-| 2 | Add `<Link prefetch>` to sidebar items | 5 lines | Next route RSC payload is preloaded |
-| 3 | Add `loading.tsx` to heavy segments | 3 new files | Non-blocking navigation with skeletons |
-| 4 | Code-split `AddComponentModal` | 3 lines | Removes 1500-line component from initial bundle |
-| 5 | Consolidate 5 `useRouter()` in `ProjectEstimatesTable` | Refactor | Reduces router subscriptions, potential re-render source |
+| 2 | Add `loading.tsx` to heavy segments | 5 new files | Non-blocking navigation with skeletons |
+| 3 | Code-split `EstimateSheetContent` (~4,048 lines) with `next/dynamic` | 3 lines | Removes the single largest component from initial bundle |
+| 4 | Code-split `AddComponentModal` (~2,354 lines) with `next/dynamic` | 3 lines | Removes massive modal from initial bundle |
+| 5 | Consolidate 5 `useNavigationRouter()` in `ProjectEstimatesTable` | Refactor | Reduces Zustand subscriptions, potential re-render source |
+| 6 | Fix 3 files importing Phosphor icons from wrong path | 3 lines | Consistent tree-shaking |
+| 7 | Add React `cache()` to repository functions | 5 files | Deduplicates Supabase calls within same render pass |
 
 ### Strategic Investments (High Effort, Highest Impact)
 
 | # | Change | Effort | Impact |
 |---|--------|--------|--------|
 | 1 | Prefetch on hover (data prefetching) | Medium | Near-instant navigation for predictable paths |
-| 2 | Streaming Server Components | Medium | Partial content appears immediately |
+| 2 | Streaming Server Components with Suspense boundaries | Medium | Partial content appears immediately while data resolves |
 | 3 | Virtualized lists for projects/estimates/rows | High | Smooth scrolling with 1000s of items |
-| 4 | bfcache optimization | Medium | Instant back/forward |
-| 5 | Route-level bundle analysis and splitting | Medium | 30–50% JS reduction per route |
+| 4 | bfcache optimization (codebase already has zero blockers) | Low-Medium | Instant back/forward — only need `pageshow` handling in overlay |
+| 5 | Route-level bundle analysis and code splitting | Medium | 30–50% JS reduction per route (top 4 components = ~8,943 lines) |
+| 6 | Extract WorkshopPageShell `cookies()` read to middleware | Medium | Would unlock static generation for non-auth workshop data (future) |
 
 ---
 

@@ -24,6 +24,11 @@
 | R13 | **Code splitting increases Time-to-Interactive for modals** | Low | Low | Modals are user-triggered, not time-critical. Skeleton shown during chunk load (< 500ms on 3G). First interaction after page load is when the chunk is needed. | Developer |
 | R14 | **Bundle analysis reveals unactionable bloat** | Low | Low | Next.js and Tailwind handle most optimization automatically. If a library (Phosphor, D3) dominates bundle, evaluate lighter alternatives or sprite-sheet approach. | Developer |
 | R15 | **Performance degrades after future feature additions** | Medium | High | Phase 4 monitoring (Lighthouse CI, bundle size regression checks) prevents silent regressions. Every major feature release must re-run baseline benchmarks. | DevOps |
+| R16 | **`EstimateSheetContent` code split breaks dynamic import** | Low | High | The component is ~4,048 lines with 12+ embedded sub-components and re-exports from `./component-library/helpers`. Verify default export exists. If not, wrap in a barrel re-export file. | Developer |
+| R17 | **WorkshopPageShell `cookies()` read prevents any caching strategy** | Low | Low | Architectural constraint — all workshop pages are forced dynamic. This is acceptable for now. Future: extract side-panel width to client-side localStorage to unlock server caching. | Architect |
+| R18 | **No middleware means auth redirect latency** | Low | Medium | Every workshop page SSR runs `requireCurrentUserContext()` → Supabase auth check. This adds ~50-100ms per request. Future: add middleware for auth guard to avoid per-page auth round-trip. | Architect |
+| R19 | **Phosphor icon import inconsistency pulls full client bundle** | Low | Low | 3 files import from `@phosphor-icons/react` instead of `/dist/ssr`. The `optimizePackageImports` config helps but doesn't guarantee tree-shaking. Fix import paths. | Developer |
+| R20 | **`getCurrentWorkspaceProject()` called in both layout and page without deduplication** | Low | Medium | Layout and page both call this function, resulting in 2 identical Supabase queries. `React.cache()` (Task 1.4) will fix this. | Developer |
 
 ---
 
@@ -33,9 +38,9 @@ These risks are blocking for Phase 2 (Strategic Investments) and must be resolve
 
 | Risk | Why Critical | Resolution Check |
 |------|-------------|-----------------|
-| R5: Auth + streaming | Streaming HTML may send content before auth redirect | Test: manually navigate protected route with streaming enabled. Verify redirect works before any content is rendered. |
-| R8: bfcache blockers | Without bfcache, back/forward will always be slow | Test: Chrome DevTools → Application → Back/forward cache → "Test". All workshop routes must pass. |
-| R2: CLS from skeletons | High CLS negates any perceived speed improvement | Test: Lighthouse on each route with `loading.tsx`. CLS must be < 0.1. |
+| R5: Auth + streaming | Auth is at data-fetching layer (`requireCurrentUserContext()` → `cookies()` + `headers()`), not middleware. Streaming HTML may send content before auth redirect completes. | Test: manually navigate protected route with streaming enabled. Verify redirect works before any content is rendered. |
+| R8: bfcache blockers | **Audit complete: Zero blockers found.** No `beforeunload`/`unload` listeners. No `Cache-Control: no-store` on workshop pages. Only need `pageshow` handler in NavigationListener. | Test: Chrome DevTools → Application → Back/forward cache → "Test". All workshop routes must pass. |
+| R2: CLS from skeletons | High CLS negates any perceived speed improvement | Test: Lighthouse on each route with `loading.tsx` / Suspense. CLS must be < 0.1. |
 
 ---
 
