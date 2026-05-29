@@ -1,6 +1,6 @@
 # Known Issues / Open Risks
 
-**Last updated:** 2026-05-30 (code intelligence + blast radius update)
+**Last updated:** 2026-05-29
 
 ## Current blockers
 
