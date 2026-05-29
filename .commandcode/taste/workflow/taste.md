@@ -6,3 +6,4 @@
 - Integrate shadcn UI primitives (built on Radix) for new UI components; do not use shadcn add --all — add only the specific primitives needed per feature slice. Confidence: 0.85
 - Prefer direct implementation over asking clarifying questions mid-task — proceed with best judgment and the user will correct in subsequent iterations. Confidence: 0.85
 - After meaningful batches of changes: stage, commit with descriptive messages, push to branch, and ensure all worktrees are merged into main. Confidence: 0.70
+- Recovery branches (e.g., `wip/post-shared-link-merge-recovery`) containing stashed work should be merged into main when their files are needed to resolve build errors or missing dependencies. Confidence: 0.75
