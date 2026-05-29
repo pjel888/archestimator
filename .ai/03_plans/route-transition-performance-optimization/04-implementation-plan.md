@@ -268,47 +268,73 @@ export default function LibraryLoading() {
 
 ### Task 1.3: Code-Split Heavy Components with `next/dynamic`
 
+**Priority targets by size (verified line counts):**
+
+| Component | Lines | Current Import Location |
+|-----------|-------|------------------------|
+| `EstimateSheetContent` | ~4,048 | `estimates/[nodeId]/page.tsx` |
+| `AddComponentModal` | ~2,354 | `ComponentLibraryManager.tsx` |
+| `EstimateSheetTree` | 1,365 | `estimates/[nodeId]/page.tsx` |
+| `LibraryFolderTree` | ~1,172 | `ComponentLibraryManager.tsx` |
+| `ComponentLibraryManager` | 1,009 | `library/page.tsx` |
+| `ProjectCostDonutChart` | ~130 | `ProjectChartsClient.tsx` |
+| `ProjectCostBubbleChart` | ~130 | `ProjectChartsClient.tsx` |
+
 **Files to modify:**
 
-#### A. `src/app/workshop/projects/page.tsx` (or the client component that imports it)
+#### A. `src/app/workshop/projects/[projectId]/estimates/[nodeId]/page.tsx` — **HIGHEST PRIORITY**
 ```typescript
-// Before: import NewProjectModal from "@/components/workshop/NewProjectModal";
+// Before: direct import of ~4,048-line component + ~1,365-line tree
 // After:
 import dynamic from "next/dynamic";
 
-const NewProjectModal = dynamic(
-  () => import("@/components/workshop/NewProjectModal"),
-  { loading: () => <div className="h-96 rounded bg-muted animate-pulse" /> }
+const EstimateSheetContent = dynamic(
+  () => import("@/components/workshop/EstimateSheetContent"),
+  { loading: () => <EstimateWorkspaceSkeleton /> }
+);
+
+const EstimateSheetTree = dynamic(
+  () => import("@/components/workshop/EstimateSheetTree"),
+  { loading: () => <TreeSkeleton /> }
 );
 ```
 
-#### B. `src/app/workshop/projects/[projectId]/page.tsx`
-```typescript
-const ProjectDetailsModal = dynamic(
-  () => import("@/components/workshop/ProjectDetailsModal"),
-  { loading: () => <div className="h-64 rounded bg-muted animate-pulse" /> }
-);
-```
-
-#### C. `src/app/workshop/projects/[projectId]/charts/page.tsx`
-```typescript
-const ProjectCostDonutChart = dynamic(
-  () => import("@/components/workshop/project-charts/ProjectCostDonutChart"),
-  { ssr: false, loading: () => <div className="h-64 rounded bg-muted animate-pulse" /> }
-);
-const ProjectCostBubbleChart = dynamic(
-  () => import("@/components/workshop/project-charts/ProjectCostBubbleChart"),
-  { ssr: false, loading: () => <div className="h-64 rounded bg-muted animate-pulse" /> }
-);
-```
-
-#### D. `src/components/workshop/component-library-manager/ComponentLibraryManager.tsx`
+#### B. `src/components/workshop/component-library-manager/ComponentLibraryManager.tsx`
 ```typescript
 const AddComponentModal = dynamic(
   () => import("@/components/workshop/component-library-manager/AddComponentModal"),
-  { loading: () => <div className="h-96 rounded bg-muted animate-pulse" /> }
+  { loading: () => <ModalSkeleton /> }
+);
+
+const LibraryFolderTree = dynamic(
+  () => import("@/components/workshop/component-library-manager/LibraryFolderTree"),
+  { loading: () => <TreeSkeleton /> }
 );
 ```
+
+#### C. `src/app/workshop/library/page.tsx`
+```typescript
+const ComponentLibraryManager = dynamic(
+  () => import("@/components/workshop/component-library-manager/ComponentLibraryManager"),
+  { loading: () => <LibrarySkeleton /> }
+);
+```
+
+#### D. `src/app/workshop/projects/[projectId]/charts/page.tsx`
+```typescript
+const ProjectCostDonutChart = dynamic(
+  () => import("@/components/workshop/project-charts/ProjectCostDonutChart"),
+  { ssr: false, loading: () => <ChartSkeleton /> }
+);
+const ProjectCostBubbleChart = dynamic(
+  () => import("@/components/workshop/project-charts/ProjectCostBubbleChart"),
+  { ssr: false, loading: () => <ChartSkeleton /> }
+);
+```
+
+**Note:** D3 is already well-isolated in these two chart components (enforced by test in `project-dashboard-ui.test.ts`). Using `ssr: false` is safe here — charts are purely client-rendered visualizations.
+
+**Estimated bundle impact:** Removing ~8,943 lines of client code from initial route bundles. The estimate workspace alone sheds ~5,413 lines (EstimateSheetContent + EstimateSheetTree).
 
 **QA Check:**
 1. `bun run build` — verify no errors.
@@ -317,6 +343,10 @@ const AddComponentModal = dynamic(
 4. Verify skeleton appears while chunk loads on slow network.
 
 ### Task 1.4: Add React `cache()` to Repository Functions
+
+**Verified current state:** Only `src/lib/auth/session.ts` uses `React.cache()` (wraps `getCurrentUserContext`). All other repository functions are plain async functions with no deduplication.
+
+**Critical deduplication opportunity:** `getCurrentWorkspaceProject(projectId)` is called in BOTH `projects/[projectId]/layout.tsx` AND `projects/[projectId]/page.tsx`. Without `cache()`, this results in 2 identical Supabase queries per navigation.
 
 **Files to modify:** `src/lib/repositories/workspace-repository.ts`
 
@@ -342,7 +372,11 @@ export const listProjectEstimateSheets = cache(async (projectId: string) => {
 });
 ```
 
-Repeat for other repositories: `estimate-repository.ts`, `component-library-repository.ts`, `cost-library-repository.ts`, `project-charts-repository.ts`.
+Repeat for other repositories: `component-library-repository.ts`, `project-charts-repository.ts`.
+
+**Note:** `estimate-repository.ts` and `cost-library-repository.ts` are browser-side dual-mode repositories — `React.cache()` only works in Server Components. Skip these.
+
+**Scope clarification:** `React.cache()` deduplicates within a single React render pass (one request). It does NOT persist data across navigations. For cross-navigation caching, rely on React Query's `staleTime` increase (Task 1.1).
 
 **QA Check:**
 1. `bun run build` — verify no errors.
@@ -399,18 +433,19 @@ hide: () => {
 4. Verify rapid sequential navigation doesn't leave overlay stuck (hide cancels show timer).
 5. Verify safety timeout (10s) still works.
 
-### Task 1.6: Consolidate `useRouter()` in `ProjectEstimatesTable`
+### Task 1.6: Consolidate `useNavigationRouter()` in `ProjectEstimatesTable`
 
-**File to modify:** `src/components/workshop/ProjectEstimatesTable.tsx`
+**File to modify:** `src/components/workshop/ProjectEstimatesTable.tsx` (846 lines)
 
-**Current:** 5 separate `useRouter()` calls at lines 178, 265, 379, 499, 597.
+**Current:** 5 separate `useNavigationRouter()` calls at lines 178, 265, 379, 499, 597. Each creates a Zustand subscription to the navigation store. The component has already been migrated from raw `useRouter()` to the custom hook, but 5 instances is wasteful.
 
-**Target:** 1 `useNavigationRouter()` at component top level. Pass router methods to inner functions via closure or `useRef`.
+**Target:** 1 `useNavigationRouter()` at component top level. Pass router methods to inner functions via closure.
 
 **Refactoring approach:**
-1. Replace ALL `useRouter()` imports with `useNavigationRouter`.
+1. Keep `useNavigationRouter` import (already correct).
 2. Call once at top: `const router = useNavigationRouter();`
-3. Inner functions that reference `router.push()` etc. now close over the single instance.
+3. Inner functions (sub-components like `ProjectEstimateRowActions`, `ProjectEstimateEditableTextCell`) that reference `router.refresh()` now close over the single instance.
+4. The 8 inline sub-components (`ProjectEstimatesColGroup`, `SortIcon`, `ProjectEstimateFillerRows`, `ProjectEstimateRowActions`, `ProjectEstimateEditableTextCell`, `ProjectEstimateBudgetCell`, `ProjectEstimateSheetCodeCell`, `ProjectEstimatesColumnResizeHandle`) can access `router` via closure since they're defined inline.
 
 **QA Check:**
 1. Verify all 5 navigation scenarios still work:
@@ -419,7 +454,7 @@ hide: () => {
    - Duplicate sheet → router.refresh()
    - Create estimate → router.push()
    - Any other programmatic navigation
-2. `bun run test` — verify existing tests pass.
+2. `bun run test` — verify existing tests pass (12 test files mock `useRouter`).
 3. No console errors or warnings.
 
 ### Phase 1 Verification Gate
@@ -571,14 +606,20 @@ onPointerEnter={() => handlePointerEnter(`/workshop/projects/${projectId}/estima
 
 ### Task 2.3: Suspense Boundaries in Workshop Layouts
 
+**Verified layout structure:** There are only 2 layouts in the entire app:
+1. `src/app/layout.tsx` — root layout (fonts + AppProviders)
+2. `src/app/workshop/projects/[projectId]/layout.tsx` — the ONLY nested workshop layout
+
+There is NO `src/app/workshop/layout.tsx`. Every workshop page independently renders `<WorkshopPageShell>` in its own `page.tsx`. This means Suspense boundaries must be added at the page level for most routes, not the layout level.
+
 **File to modify:** `src/app/workshop/projects/[projectId]/layout.tsx`
 
-**Current:** Layout fetches 4 queries and blocks until all resolve. Children render only after all data is available.
+**Current:** Layout fetches 4 queries (1 sequential + 3 parallel) and blocks until all resolve. Children render only after all data is available.
 
 **Target:** Extract data-fetching into child Suspense boundaries so the layout shell renders immediately.
 
 ```tsx
-// layout.tsx — shell only, no data fetching
+// layout.tsx — shell only, minimal data fetching
 export default async function ProjectLayout({ children, params }: ProjectLayoutProps) {
   const { projectId } = await params;
 
@@ -622,6 +663,34 @@ async function ProjectWorkspaceHeaderRowWrapper({ projectId }: { projectId: stri
 }
 ```
 
+**For pages without a shared layout** (most workshop routes), add Suspense directly in the page:
+
+```tsx
+// src/app/workshop/projects/page.tsx
+export default async function ProjectsPage() {
+  return (
+    <WorkshopPageShell title="Projects" breadcrumbs={["Projects"]}>
+      <Suspense fallback={<ProjectsGridSkeleton />}>
+        <ProjectsPageContent />
+      </Suspense>
+    </WorkshopPageShell>
+  );
+}
+
+async function ProjectsPageContent() {
+  const projects = await listCurrentWorkspaceProjects();
+  return <ProjectsPageClient initialProjects={projects} />;
+}
+```
+
+**Key constraint:** `WorkshopPageShell` itself reads `cookies()` for side-panel widths and calls `getCurrentUserContext()` for the sidebar user. The shell will always render dynamically. The Suspense boundary wraps the content INSIDE the shell, not the shell itself.
+
+**QA Check:**
+1. Navigate to project detail with network throttling.
+2. Verify the shell (sidebar, breadcrumbs, mini-sidebar) renders immediately.
+3. Verify the header row shows a skeleton then populates with data.
+4. Verify no layout shift when data resolves.
+
 **QA Check:**
 1. Navigate to project detail with network throttling.
 2. Verify the shell (sidebar, breadcrumbs, mini-sidebar) renders immediately.
@@ -630,42 +699,42 @@ async function ProjectWorkspaceHeaderRowWrapper({ projectId }: { projectId: stri
 
 ### Task 2.4: bfcache Compatibility
 
-**Files to audit (search for bfcache blockers):**
+**Codebase audit result (verified):** **Zero bfcache blockers found.** There are no `beforeunload` or `unload` event listeners anywhere in the codebase. No `Cache-Control: no-store` headers on workshop pages. The codebase is already bfcache-compatible from a blocker perspective.
+
+**Remaining work:** Add `pageshow` event handling to suppress the overlay on bfcache restore.
+
+**Files to audit (verification complete):**
 
 ```bash
-# Search for unload/beforeunload handlers
+# Search for unload/beforeunload handlers → NONE FOUND
 grep -rn "unload\|beforeunload" src/
 
-# Search for Cache-Control no-store
+# Search for Cache-Control no-store → Only on /api/share/* routes (not workshop pages)
 grep -rn "no-store" src/
 ```
 
 **File to modify:** `src/components/navigation-listener.tsx`
 
-**Changes:**
-1. Replace `popstate` listener with `pageshow` listener.
-2. On `pageshow` with `event.persisted === true`: page restored from bfcache. Do NOT show overlay.
-3. Add `pagehide` listener (replaces `beforeunload`/`unload` — bfcache-safe).
+**Changes:** Add `pageshow` listener to detect bfcache restore and suppress overlay:
 
 ```typescript
-// Replace popstate listener with pageshow
+// Add to NavigationListener component
 useEffect(() => {
   function handlePageShow(event: PageTransitionEvent) {
     if (event.persisted) {
       // Page was restored from bfcache — do NOT show overlay
       // The page is already fully rendered
-      return;
+      hide(); // Ensure overlay is hidden
     }
-    // Fresh navigation — handled by click listener
   }
   window.addEventListener("pageshow", handlePageShow);
   return () => window.removeEventListener("pageshow", handlePageShow);
-}, []);
+}, [hide]);
 ```
 
 **File to modify:** `src/components/ui/route-loading-overlay.tsx`
 
-Ensure the portal is cleaned up properly on pagehide:
+Ensure the portal is cleaned up properly on `pagehide` (bfcache-safe alternative to `beforeunload`):
 
 ```typescript
 useEffect(() => {
@@ -678,12 +747,7 @@ useEffect(() => {
 }, []);
 ```
 
-**QA Check:**
-1. Open Chrome DevTools → Application → Back/forward cache → "Test back/forward cache".
-2. Navigate through several pages.
-3. Click browser Back button.
-4. Verify page restores INSTANTLY (no network requests, no loading overlay).
-5. Verify scroll position is preserved.
+**Risk:** LOW. The codebase is already clean — only the `pageshow` handler needs to be added.
 
 ### Task 2.5: Route-Level Bundle Analysis & Optimization
 
@@ -993,27 +1057,32 @@ lighthouserc.json                                               # Phase 4
 ```
 src/app/providers.tsx                                           # Phase 0, 1
 src/stores/navigation-ui-store.ts                               # Phase 1
-src/app/workshop/projects/page.tsx                              # Phase 1 (code split)
-src/app/workshop/projects/[projectId]/page.tsx                  # Phase 1 (code split)
+src/app/workshop/projects/page.tsx                              # Phase 1 (Suspense)
+src/app/workshop/projects/[projectId]/page.tsx                  # Phase 1 (Suspense)
 src/app/workshop/projects/[projectId]/layout.tsx                # Phase 1, 2 (cache, Suspense)
-src/app/workshop/projects/[projectId]/charts/page.tsx           # Phase 1 (code split), 3 (streaming)
-src/app/workshop/projects/[projectId]/estimates/[nodeId]/page.tsx  # Phase 3 (streaming)
+src/app/workshop/projects/[projectId]/charts/page.tsx           # Phase 1 (code split D3 charts), 3 (streaming)
+src/app/workshop/projects/[projectId]/estimates/page.tsx        # Phase 1 (Suspense)
+src/app/workshop/projects/[projectId]/estimates/[nodeId]/page.tsx  # Phase 1 (code split EstimateSheetContent + EstimateSheetTree), 3 (streaming)
+src/app/workshop/library/page.tsx                               # Phase 1 (code split ComponentLibraryManager), 3 (Suspense)
+src/app/workshop/templates/page.tsx                             # Phase 1 (Suspense)
 src/components/sidebar/SidebarNavItemRow.tsx                    # Phase 2 (prefetch)
 src/components/workshop/ProjectMiniSidebar.tsx                  # Phase 2 (prefetch)
 src/components/workshop/LiveProjectCard.tsx                     # Phase 2 (prefetch)
-src/components/workshop/ProjectEstimatesTable.tsx               # Phase 1 (consolidate useRouter), 3 (virtualize)
+src/components/workshop/ProjectEstimatesTable.tsx               # Phase 1 (consolidate useNavigationRouter), 3 (virtualize)
 src/components/workshop/projects-page-client.tsx                # Phase 3 (virtualize)
-src/components/workshop/EstimateSheetContent.tsx                # Phase 3 (virtualize rows)
-src/components/workshop/component-library-manager/ComponentLibraryManager.tsx  # Phase 1 (code split), 3 (pagination)
-src/components/navigation-listener.tsx                          # Phase 2 (bfcache)
-src/components/ui/route-loading-overlay.tsx                     # Phase 2 (bfcache)
+src/components/workshop/EstimateSheetContent.tsx                # Phase 1 (code split target — 4,048 lines)
+src/components/workshop/EstimateSheetTree.tsx                   # Phase 1 (code split target — 1,365 lines)
+src/components/workshop/component-library-manager/ComponentLibraryManager.tsx  # Phase 1 (code split AddComponentModal + LibraryFolderTree)
+src/components/navigation-listener.tsx                          # Phase 2 (bfcache pageshow handler)
+src/components/ui/route-loading-overlay.tsx                     # Phase 2 (bfcache pagehide handler)
 src/lib/repositories/workspace-repository.ts                    # Phase 1 (React cache)
-src/lib/repositories/estimate-repository.ts                     # Phase 1 (React cache)
 src/lib/repositories/component-library-repository.ts            # Phase 1 (React cache)
-src/lib/repositories/cost-library-repository.ts                 # Phase 1 (React cache)
 src/lib/repositories/project-charts-repository.ts               # Phase 1 (React cache)
 next.config.ts                                                  # Phase 0 (bundle analyzer)
 src/hooks/use-estimate-query.ts                                 # Phase 1 (staleTime review)
+src/components/landing/ContactForm.tsx                          # Phase 0 (fix Phosphor icon import path)
+src/components/workshop/project-charts/ProjectChartsClient.tsx  # Phase 0 (fix Phosphor icon import path)
+src/components/workshop/projects-page-client.tsx                # Phase 0 (fix Phosphor icon import path)
 ```
 
 ### Files to Audit (No Changes Expected)

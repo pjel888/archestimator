@@ -84,15 +84,18 @@ This is NOT a single feature. It's a multi-layered performance strategy:
 
 | # | Document | Purpose |
 |---|----------|---------|
-| 1 | `01-performance-audit.md` | Deep-dive analysis of what's slow, where, and why. Route-by-route breakdown with specific bottlenecks. |
-| 2 | `02-blast-radius-analysis.md` | What files, components, and execution flows are affected by each performance optimization. Risk assessment per technique. |
-| 3 | `03-readiness-assessment.md` | Pre-implementation checklist: what must exist before optimization can begin. Dependencies, blockers, pre-requisites. |
-| 4 | `04-implementation-plan.md` | Phased, ordered implementation strategy. Each phase is independently shippable. Includes verification gates. |
+| 1 | `01-performance-audit.md` | Deep-dive analysis of what's slow, where, and why. Route-by-route breakdown with specific bottlenecks. Verified against actual codebase. |
+| 2 | `02-blast-radius-analysis.md` | What files, components, and execution flows are affected by each performance optimization. Risk assessment per technique. Includes verified `useNavigationRouter` call sites. |
+| 3 | `03-readiness-assessment.md` | Pre-implementation checklist: what must exist before optimization can begin. Dependencies, blockers, pre-requisites. Notes: no middleware exists — auth at data layer. |
+| 4 | `04-implementation-plan.md` | Phased, ordered implementation strategy. Each phase is independently shippable. Includes verification gates. Verified code splitting targets with actual line counts. |
 | 5 | `05-benchmark-scenarios.md` | Concrete performance measurement scenarios: many project thumbnails, many estimate sheets, many row items, slow network, etc. |
-| 6 | `06-strategy-adrs.md` | Architecture Decision Records for key performance choices. Justifies why each approach was chosen over alternatives. |
+| 6 | `06-strategy-adrs.md` | Architecture Decision Records for key performance choices. Justifies why each approach was chosen over alternatives. Includes ADR-009 for auth architecture. |
 | 7 | `07-baseline-metrics-template.md` | Fill-in template for collecting actual baseline measurements. Paired with the automated measurement script. |
-| 8 | `08-risks-and-mitigations.md` | Risk matrix: 15 identified risks, critical-path blockers, acceptance criteria, rollback strategy. |
+| 8 | `08-risks-and-mitigations.md` | Risk matrix: 20 identified risks, critical-path blockers, acceptance criteria, rollback strategy. Includes newly discovered risks R16–R20. |
 | 9 | `09-handoff-next-steps.md` | Concrete next-steps: owner approval gates, Phase 0 actions, Phase 1 execution order, documentation map, branch strategy. |
+| 10 | `10-skeleton-design-system.md` | Consistent skeleton UI system for all Suspense fallbacks and code-split loading states. Base primitives + route-specific skeletons. |
+| 11 | `11-prefetch-wiring-map.md` | Exact prefetch hookup plan: which components need hover prefetch, what data to prefetch, cache keys, and implementation checklist. |
+| 12 | `12-overlay-fallback-strategy.md` | Strategy for making the loading overlay a rare fallback (< 5% of navigations). Layered defense model with decision tree. |
 
 **Supporting tool:**
 | — | `scripts/measure-route-transitions.ts` | Automated Playwright script that measures route transition timing for all major navigation paths. Run with `bun run scripts/measure-route-transitions.ts`. |
@@ -107,7 +110,10 @@ This is NOT a single feature. It's a multi-layered performance strategy:
 4. **`02-blast-radius-analysis.md`** — understand impact of proposed changes
 5. **`03-readiness-assessment.md`** — check if we're ready to implement
 6. **`06-strategy-adrs.md`** — understand architectural decisions
-7. **`04-implementation-plan.md`** — phased execution plan
+7. **`12-overlay-fallback-strategy.md`** — understand the layered defense model for making the overlay rare
+8. **`10-skeleton-design-system.md`** — understand the skeleton UI patterns for Suspense/code-split fallbacks
+9. **`11-prefetch-wiring-map.md`** — understand the exact prefetch hookup plan
+10. **`04-implementation-plan.md`** — phased execution plan
 
 ---
 

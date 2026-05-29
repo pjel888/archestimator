@@ -38,11 +38,14 @@
 |-----|----------|-----------|------------|
 | No `loading.tsx` files anywhere | Medium | No | First task: create them |
 | No Suspense boundaries in layouts | Medium | No | First task: add them |
-| 5 `useRouter()` in `ProjectEstimatesTable` | Low | No | Consolidate during Phase 1 |
+| 5 `useNavigationRouter()` instantiations in `ProjectEstimatesTable` (already migrated from raw `useRouter()`) | Low | No | Consolidate during Phase 1 |
 | No performance instrumentation | Medium | **YES** | Must add baseline measurement before optimization (you can't improve what you don't measure) |
 | No existing `next.config.ts` performance settings | Low | No | Can be added incrementally |
 | `useTransition` used inconsistently | Low | No | Some components use it, others don't. Standardize. |
 | No bundle analyzer configured | Low | No | `@next/bundle-analyzer` recommended for Phase 0 |
+| No middleware.ts — auth at data-fetching layer | Medium | No | All workshop pages forced dynamic by `cookies()` in auth + WorkshopPageShell |
+| 3 files import Phosphor icons from wrong path | Low | No | Fix import paths to `@phosphor-icons/react/dist/ssr` |
+| Landing barrel export (32 components) | Low | No | Consider breaking into dynamic chunks for below-fold sections |
 
 ### 1.3 Route Structure Assessment
 
@@ -51,14 +54,17 @@
 | All routes use App Router (not Pages Router) | ✅ Yes |
 | Layouts are server components by default | ✅ Yes (except root layout with client providers) |
 | Route groups exist for auth/public separation | ❌ No route groups |
-| `middleware.ts` exists for auth gating | Need to verify — not found in `src/middleware.ts` |
+| `middleware.ts` exists for auth gating | ❌ **No middleware exists.** Auth enforced at data-fetching layer via `requireCurrentUserContext()` → `redirect("/login")`. `proxy.ts` handles cookie-based Supabase session refresh but doesn't guard routes directly. |
 | API routes are separate from page routes | ✅ Yes (`/api/ai/ask`, etc.) |
+| Only 2 layouts in entire app | ✅ Root layout + `projects/[projectId]/layout.tsx`. No `/workshop/layout.tsx`. |
 
 ### 1.4 Auth Integration Risk
 
-**Critical finding:** Workshop routes check auth inside layouts or pages (using `cookies()` or Supabase session), which forces dynamic rendering. Adding Server Component caching requires careful cache key scoping to avoid cross-user data leaks.
+**Critical finding (verified):** There is **no `middleware.ts`** in the project. Workshop routes check auth inside repository functions via `requireCurrentUserContext()` → `createSupabaseServerClient()` → `cookies()` + `headers()`. This forces dynamic rendering on every request.
 
-**Recommendation:** Verify auth middleware exists at `src/middleware.ts` or the auth proxy. If auth is checked in layouts, Server Component caching must be user-scoped or use `cacheTag` with user-specific tags.
+**Additional dynamic rendering force:** `WorkshopPageShell` (rendered by every workshop page) reads `cookies()` for side-panel width CSS variables via `getSidePanelWidthCssVariables()`. Even if auth were moved to middleware, this cookie read would still force dynamic rendering.
+
+**Impact on Suspense/streaming strategy:** Suspense boundaries can still stream partial content while data resolves, but the page shell itself will always be server-rendered dynamically. This is acceptable — the goal is to show the shell immediately while heavy data (project lists, estimate trees, library) resolves in Suspense boundaries.
 
 ---
 
@@ -179,7 +185,7 @@ bun run build 2>&1 | grep -E "Route|First Load JS"
 | Performance optimization breaks existing functionality | Run full test suite (`bun run validate && bun run build && bun run test:e2e`) after each phase |
 | Optimization doesn't yield expected improvement | Measure after each phase; if Phase 1 doesn't show >30% improvement, reassess |
 | User reports stale data after increased `staleTime` | Can revert to 30s instantly; adjust per-query |
-| Streaming breaks auth | Can revert Suspense boundaries; auth middleware testing beforehand |
+| Streaming breaks auth | Can revert Suspense boundaries; auth is at data-fetching layer (not middleware) — test `requireCurrentUserContext()` + streaming compatibility |
 
 ---
 
@@ -190,7 +196,7 @@ bun run build 2>&1 | grep -E "Route|First Load JS"
 | # | Item | Status | Action |
 |---|------|--------|--------|
 | 1 | Performance instrumentation added | ❌ Not done | **MUST:** Add `PerformanceMonitor` component and baseline measurement before ANY optimization |
-| 2 | Verify auth flow doesn't break with streaming | ❌ Not verified | **MUST:** Test auth middleware + streaming compatibility |
+| 2 | Verify auth flow doesn't break with streaming | ❌ Not verified | **MUST:** Test auth at data-fetching layer (`requireCurrentUserContext()`) + streaming compatibility. Auth is NOT in middleware — it's in repository functions that call `cookies()` + `headers()`. |
 | 3 | Seed data for peak-load testing | ❌ Not done | **MUST:** Create seed script for 50 projects, 200 rows scenarios |
 
 ### RECOMMENDED (Should Resolve Before Implementation)
@@ -201,6 +207,7 @@ bun run build 2>&1 | grep -E "Route|First Load JS"
 | 5 | React Query DevTools installed (dev) | ❌ Not done | Install for cache debugging during optimization |
 | 6 | `@tanstack/react-virtual` evaluated | ❌ Not done | Verify compatibility with TanStack Table + React Complex Tree |
 | 7 | Philip approval on skeleton design direction | ⏳ Pending | Review with owner |
+| 8 | Fix 3 Phosphor icon import paths | ❌ Not done | Switch `ContactForm.tsx`, `ProjectChartsClient.tsx`, `projects-page-client.tsx` to `/dist/ssr` path |
 
 ### NICE-TO-HAVE
 
@@ -215,10 +222,15 @@ bun run build 2>&1 | grep -E "Route|First Load JS"
 The codebase is technically ready — all necessary libraries exist, the architecture supports the proposed changes, and the loading overlay safety net is in place. However, **three blocking items must be resolved before implementation begins:**
 
 1. Performance instrumentation (measure baseline)
-2. Auth + streaming verification
+2. Auth + streaming verification (auth is at data-fetching layer, not middleware)
 3. Peak-load seed data
 
-Once these are resolved, Phase 1 (quick wins) can begin immediately.
+**Good news from codebase audit:**
+- bfcache: **Zero blockers found** — no `beforeunload`/`unload` listeners, no `Cache-Control: no-store` on workshop pages
+- Navigation: `useNavigationRouter` hook already migrated from raw `useRouter()` — only needs consolidation of 5 instances in `ProjectEstimatesTable`
+- Optimistic updates: Sophisticated patterns already in place (snapshot/restore/revision tracking)
+
+Once blocking items are resolved, Phase 1 (quick wins) can begin immediately.
 
 ---
 

@@ -101,6 +101,8 @@ function usePrefetchOnHover(href: string, prefetchQuery?: () => Promise<void>) {
 
 **Context:** The app currently blocks entire routes until all data resolves. We need non-blocking navigation with progressive rendering.
 
+**Verified layout structure:** There are only 2 layouts in the entire app: root layout and `projects/[projectId]/layout.tsx`. There is NO `/workshop/layout.tsx`. Every workshop page independently renders `<WorkshopPageShell>` (111 lines, async server component). `WorkshopPageShell` reads `cookies()` for side-panel widths and calls `getCurrentUserContext()` — it will always render dynamically. Suspense boundaries must wrap content INSIDE the shell, not the shell itself.
+
 ### Options Considered
 
 1. **`loading.tsx` in every route segment**
@@ -111,18 +113,25 @@ function usePrefetchOnHover(href: string, prefetchQuery?: () => Promise<void>) {
 2. **Custom `<Suspense>` boundaries inside layouts**
    - *Pros:* Layout shell (sidebar, header) stays visible. Only the content area shows a skeleton. More granular control.
    - *Cons:* Requires restructuring layouts to separate shell from content. More code.
-   - *Verdict:* ✅ **ACCEPTED** for workshop routes with persistent shell.
+   - *Verdict:* ✅ **ACCEPTED** for the one workshop route that has a shared layout (`projects/[projectId]/*`).
 
-3. **Hybrid: `loading.tsx` for simple routes + custom Suspense for workshop**
+3. **Custom `<Suspense>` boundaries inside `page.tsx` (for routes without shared layout)**
+   - *Pros:* Works for the majority of workshop routes that don't have a nested layout. Each page wraps its data-fetching content in Suspense while `WorkshopPageShell` renders immediately.
+   - *Cons:* Must add Suspense to each page individually. More files to touch.
+   - *Verdict:* ✅ **ACCEPTED** as the primary pattern for workshop routes without layouts.
+
+4. **Hybrid: `loading.tsx` for simple routes + custom Suspense for workshop**
    - *Pros:* Best of both worlds. Simple routes get the easy path. Complex routes get fine-grained control.
    - *Cons:* Two patterns to maintain.
    - *Verdict:* ✅ **ACCEPTED.**
 
 ### Decision
 
-**For workshop routes (persistent shell):** Use custom `<Suspense>` boundaries. The layout shell renders immediately. The content area shows a skeleton while data resolves.
+**For workshop routes with a shared layout** (only `projects/[projectId]/*`): Use custom `<Suspense>` boundaries in the layout. The layout shell renders immediately. The content area shows a skeleton while data resolves.
 
-**For simple routes (landing, auth, settings):** Use `loading.tsx` files for automatic Suspense wrapping.
+**For workshop routes without a shared layout** (all other `/workshop/*` routes): Add Suspense boundaries directly in `page.tsx`. Wrap the data-fetching content in `<Suspense fallback={<Skeleton />}>` while the `WorkshopPageShell` renders immediately.
+
+**For simple routes** (landing, auth, settings): Use `loading.tsx` files for automatic Suspense wrapping.
 
 **Skeleton design principle:** Skeletons should match the final layout dimensions to minimize CLS. Use `animate-pulse` with neutral background colors (`bg-muted`). Never use spinner-only skeletons (they don't prevent layout shift).
 
@@ -286,12 +295,14 @@ The minimum display timer (250ms) is removed — if navigation completes, hide i
 
 **Context:** Back/forward navigation currently re-fetches and re-renders every page. The browser's bfcache (Back-Forward Cache) stores the full page state in memory and restores it instantly.
 
+**Codebase audit result (verified):** **Zero bfcache blockers found.** No `beforeunload` or `unload` event listeners anywhere in the codebase. No `Cache-Control: no-store` headers on workshop pages. The codebase is already bfcache-compatible from a blocker perspective.
+
 ### Options Considered
 
 1. **Make all pages bfcache-compatible**
    - *Pros:* Instant back/forward. Browser-native. Zero JS needed for restoration. Preserves scroll position, form state, focus.
    - *Cons:* Requires auditing and removing all bfcache blockers (`unload` handlers, `Cache-Control: no-store`). May conflict with the loading overlay.
-   - *Verdict:* ✅ **ACCEPTED as target state.**
+   - *Verdict:* ✅ **ACCEPTED as target state.** Audit shows zero blockers — this is lower effort than originally estimated.
 
 2. **Custom scroll restoration**
    - *Pros:* Full control.
@@ -305,14 +316,15 @@ The minimum display timer (250ms) is removed — if navigation completes, hide i
 
 ### Decision
 
-1. **Audit bfcache blockers** in the current codebase (`unload`, `beforeunload`, `Cache-Control` headers).
-2. **Remove or migrate blockers** to bfcache-safe alternatives (`pagehide`/`pageshow` events, `visibilitychange`).
-3. **Verify bfcache** using Chrome DevTools → Application → Back/forward cache → "Test back/forward cache".
-4. **If bfcache can't be achieved** (e.g., due to Next.js or Supabase constraints), implement manual scroll position save/restore as fallback.
+1. **bfcache audit complete:** Zero blockers found. No `beforeunload`/`unload` listeners. No `Cache-Control: no-store` on workshop pages.
+2. **Add `pageshow` handler** in `NavigationListener` to suppress the overlay on bfcache restore (`event.persisted === true`).
+3. **Add `pagehide` handler** in `RouteLoadingOverlay` for portal cleanup before bfcache snapshot.
+4. **Verify bfcache** using Chrome DevTools → Application → Back/forward cache → "Test back/forward cache".
+5. **If bfcache can't be achieved** (e.g., due to Next.js or Supabase constraints), implement manual scroll position save/restore as fallback.
 
 **NavigationListener modification:**
-- Replace `popstate` listener with `pageshow` event (fires on bfcache restore, not on initial load).
-- On `pageshow` with `event.persisted === true`: the page was restored from bfcache. Do NOT show the loading overlay. The page is already fully rendered.
+- Add `pageshow` event listener (fires on bfcache restore).
+- On `pageshow` with `event.persisted === true`: the page was restored from bfcache. Do NOT show the loading overlay. The page is already fully rendered. Call `hide()` to ensure overlay is dismissed.
 
 ---
 
@@ -322,12 +334,13 @@ The minimum display timer (250ms) is removed — if navigation completes, hide i
 |-----|----------|-------|
 | ADR-001 | Hover-based prefetch (RSC + React Query data) | Phase 2 |
 | ADR-002 | Global `staleTime: 5min` + per-query overrides | Phase 1 |
-| ADR-003 | `loading.tsx` for simple routes, custom Suspense for workshop | Phase 1 |
+| ADR-003 | `loading.tsx` for simple routes, custom Suspense in layouts for `projects/[projectId]`, Suspense in `page.tsx` for all other workshop routes | Phase 1 |
 | ADR-004 | `@tanstack/react-virtual` for lists, defer tree virtualization | Phase 2–3 |
-| ADR-005 | `next/dynamic` for modals, charts, below-fold sections | Phase 1 |
+| ADR-005 | `next/dynamic` for EstimateSheetContent (4,048 LOC), AddComponentModal (2,354 LOC), EstimateSheetTree (1,365 LOC), charts (D3), and other heavy components | Phase 1 |
 | ADR-006 | Keep overlay, add 150ms show delay, remove min display timer | Phase 1 |
 | ADR-007 | React `cache()` now, `unstable_cache` later, `"use cache"` in future | Phase 1 |
-| ADR-008 | bfcache-compatible target, with fallback scroll restoration | Phase 1 |
+| ADR-008 | bfcache-compatible (zero blockers found), add `pageshow` handler | Phase 1–2 |
+| ADR-009 | Auth at data-fetching layer (no middleware), all workshop pages forced dynamic | N/A (architectural constraint) |
 
 ---
 

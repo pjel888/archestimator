@@ -231,26 +231,23 @@
 
 **Change:** Ensure pages are bfcache-compatible by avoiding `unload` event handlers and minimizing DOM mutations that block bfcache.
 
-**Files modified:**
-- `src/components/navigation-listener.tsx` — ensure `popstate` listener is bfcache-safe
+**Codebase audit result:** **Zero bfcache blockers found.** There are no `beforeunload` or `unload` event listeners anywhere in the codebase. No `Cache-Control: no-store` headers are set on workshop pages. The codebase is already bfcache-compatible from a blocker perspective.
+
+**Files to modify:**
+- `src/components/navigation-listener.tsx` — add `pageshow` event handling to suppress overlay on bfcache restore
 - `src/components/ui/route-loading-overlay.tsx` — ensure portal cleanup is bfcache-safe
 
 **What depends on this:**
 - The `popstate` event listener in `NavigationListener`.
 - The `createPortal` call in `RouteLoadingOverlay`.
-- Any `beforeunload` or `unload` event listeners (check codebase).
+- No `beforeunload` or `unload` event listeners exist (verified clean).
 
 **What breaks if wrong:**
 - **Stale overlay:** If the overlay portal isn't cleaned up on bfcache restore, a stale overlay might appear.
 - **Stale listeners:** If event listeners aren't properly cleaned up, duplicate listeners accumulate on bfcache restore.
 - **Stale React Query data:** If React Query cached data is stale after bfcache restore. Mitigated by: React Query's `refetchOnWindowFocus` is already `false`, but bfcache restore might not trigger window focus.
 
-**Common bfcache blockers to check:**
-- `window.addEventListener("unload", ...)` — blocks bfcache
-- `window.addEventListener("beforeunload", ...)` — blocks bfcache if `preventDefault()` is called
-- `Cache-Control: no-store` HTTP header — blocks bfcache
-
-**Risk:** MEDIUM. Requires testing across browsers. Chrome/Edge have good bfcache support; Safari is more restrictive.
+**Risk:** LOW. The codebase is already clean — the only work is adding `pageshow` handling to suppress the overlay on bfcache restore. Chrome/Edge/Safari all have good bfcache support for apps without blockers.
 
 **Rollback:** Remove bfcache-specific optimizations.
 
@@ -288,23 +285,41 @@
 
 | Layer | Component | Impact |
 |-------|-----------|--------|
-| Auth | Middleware + Supabase session | If `loading.tsx` reveals protected content before auth check, data leak possible |
+| Auth | `proxy.ts` (auth guard) + Supabase session | If `loading.tsx` reveals protected content before auth check, data leak possible. **Note:** There is NO `middleware.ts`. Auth is enforced at the data-fetching layer via `requireCurrentUserContext()` → `redirect("/login")`. |
 | Auth | `src/lib/auth/actions.ts` | Server-side redirects bypass client optimizations (unchanged) |
 | Layout | `src/app/layout.tsx` | Root layout load affects ALL pages. Font loading optimization helps all routes. |
-| Layout | `[projectId]/layout.tsx` | Project layout is the heaviest. Optimizing here has the widest impact. |
+| Layout | `[projectId]/layout.tsx` | Project layout is the only nested workshop layout. Fetches 4 Supabase queries (1 sequential + 3 parallel). Optimizing here has the widest impact. |
+| Shell | `WorkshopPageShell` (111 lines) | Rendered by EVERY workshop page. Reads `cookies()` for side-panel widths — forces dynamic rendering. |
 | Providers | `src/app/providers.tsx` | Changes to `staleTime` affect ALL queries. Must not break auth query freshness. |
 | Navigation | `NavigationListener` | bfcache changes affect ALL routes. Overlay behavior affects ALL transitions. |
-| Navigation | `useNavigationRouter` | Changes to router wrapper affect ALL programmatic navigation (7 files). |
+| Navigation | `useNavigationRouter` | Changes to router wrapper affect ALL programmatic navigation (7 files, 16+ call sites). |
 
 ### Components that depend on navigation state:
 
-- `MainSidebar` — active route highlighting depends on `usePathname`
-- `ProjectMiniSidebar` — active sub-route highlighting
-- `WorkshopPageShell` — breadcrumbs depend on current route
-- `ProjectEstimatesTable` — row navigation depends on `useRouter`
-- `EstimateSheetTree` — node selection triggers `router.replace`
+| Component | File | Navigation API Used |
+|-----------|------|---------------------|
+| `MainSidebar` | `src/components/sidebar/MainSidebar.tsx` | `usePathname` — active route highlighting |
+| `ProjectMiniSidebar` | `src/components/workshop/ProjectMiniSidebar.tsx` | `usePathname` — active sub-route highlighting |
+| `WorkshopPageShell` | `src/components/workshop/WorkshopPageShell.tsx` | Breadcrumbs depend on current route |
+| `ProjectEstimatesTable` | `src/components/workshop/ProjectEstimatesTable.tsx` | 5× `useNavigationRouter()` — `refresh()` for mutations |
+| `EstimateSheetTree` | `src/components/workshop/EstimateSheetTree.tsx` | `useNavigationRouter()` — `replace()` for tree navigation, `push()` for node selection; `usePathname` for current route |
+| `EstimateSheetContent` | `src/components/workshop/EstimateSheetContent.tsx` | `useNavigationRouter()` via sub-components |
+| `ProjectWorkspaceHeaderRow` | `src/components/workshop/ProjectWorkspaceHeaderRow.tsx` | `usePathname` — context-aware header |
+| `ProjectTotalHeader` | `src/components/workshop/ProjectTotalHeader.tsx` | `usePathname` — header context |
 
 None of these should be affected by adding prefetch, caching, or code splitting. They read from the currently-committed route, which is unchanged.
+
+### Verified `useNavigationRouter` Call Sites (7 files, 16+ method calls):
+
+| File | Lines | Methods Called |
+|------|-------|---------------|
+| `ProjectEstimatesTable.tsx` | 178, 265, 379, 499, 597 | `router.refresh()` × 5 |
+| `EstimateSheetTree.tsx` | 205, 723, 900 | `router.replace(href)`, `router.push(href)` |
+| `NewProjectForm.tsx` | 29, 105–106 | `router.push(href)`, `router.refresh()` |
+| `WorkshopHomebaseClient.tsx` | 76, 100, 112 | `router.refresh()` × 2 |
+| `projects-page-client.tsx` | 121, 218 | `router.refresh()` |
+| `ProjectEstimatesClient.tsx` | 28, 44 | `router.refresh()` |
+| `ComponentLibraryManager.tsx` | 799, 887 | `router.refresh()` |
 
 ---
 
