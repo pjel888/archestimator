@@ -11,11 +11,17 @@
  * Re-run detect_changes + impact will be executed pre-commit. No symbol edits without prior graph analysis.
  */
 
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
 
 import type { PublicationSnapshotEstimate } from "@/lib/publication/types";
-import { useSharedLinkSession } from "@/hooks/use-shared-link-session";
+
 import Image from "next/image";
+
+import { aggregateRowsByDiscipline } from "@/lib/share/aggregate-share-chart-buckets";
+import { CostDonutChart } from "@/components/charts/CostDonutChart";
+import { reconstructTreeFromRows } from "@/lib/share/reconstruct-share-tree";
+import { ShareEstimateTreeView } from "@/components/share/ShareEstimateTreeView";
+import { ShareFloatingTreeNav } from "@/components/share/ShareFloatingTreeNav";
 
 interface SharePageTabsProps {
   estimates: PublicationSnapshotEstimate[];
@@ -38,6 +44,25 @@ export default function SharePageTabs({
   const [activeId, setActiveId] = useState<string>(() => estimates[0]?.id ?? "");
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
+
+  // P2: Sub-tab view mode per sheet (Tree View | Grid Preview)
+  const [sheetViews, setSheetViews] = useState<Record<string, "tree" | "grid">>({});
+
+  const currentView = sheetViews[activeId] ?? "tree";
+
+  const setViewForCurrentSheet = (view: "tree" | "grid") => {
+    if (activeId) {
+      setSheetViews(prev => ({ ...prev, [activeId]: view }));
+    }
+  };
+
+  const handleSubTabKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
+      e.stopPropagation(); // CRITICAL: isolate from main tab bar roving
+      const next = currentView === "tree" ? "grid" : "tree";
+      setViewForCurrentSheet(next);
+    }
+  };
 
   const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -138,28 +163,57 @@ export default function SharePageTabs({
     };
   }, [updateScrollFades, estimates.length]);
 
+  // All hooks must be called unconditionally at the top (rules of hooks).
+  const wouldBeActiveId = activeId || (estimates[0]?.id ?? "");
+  const wouldBeActive = estimates.find((e) => e.id === wouldBeActiveId) ?? estimates[0];
+
+  const donutBuckets = useMemo(
+    () => (wouldBeActive ? aggregateRowsByDiscipline(wouldBeActive.rows) : []),
+    [wouldBeActive]
+  );
+
+  const treeNodes = useMemo(
+    () => (wouldBeActive ? reconstructTreeFromRows(wouldBeActive.rows) : []),
+    [wouldBeActive]
+  );
+
   if (estimates.length === 0) return null;
 
-  const { isValid: hasValidRecipientSession } = useSharedLinkSession();
-  const activeEstimate = estimates.find((e) => e.id === activeId) ?? estimates[0];
+  const activeEstimate = wouldBeActive ?? estimates[0];
 
   return (
     <div className="space-y-3">
-      {/* P5: Additive recipient session guard (blocks interactive UI until valid session cookie/flag).
-          Design-system compliant (SF Pro 9px uppercase tertiary, hairline, canvas, xs radius implicit).
-          View-only content remains fully accessible for backwards compat. */}
-      {!hasValidRecipientSession && (
-        <div className="border border-hairline bg-canvas p-3 text-[9px] font-medium uppercase leading-3 text-tertiary">
-          Recipient session required for interactive features (comments, decisions). Use a recipient link to enable.
+      {/* Active estimate summary — shows current sheet name + total above tabs */}
+      <div className="flex items-end justify-between gap-3">
+        <div>
+          <h2 className="text-[12px] font-medium leading-4 text-ink">{activeEstimate.name}</h2>
+          {activeEstimate.sheetCode ? (
+            <p className="text-[10px] leading-3 text-tertiary">{activeEstimate.sheetCode}</p>
+          ) : null}
         </div>
-      )}
+        <p className="text-[12px] font-medium leading-4 text-ink">
+          {formatMoney(activeEstimate.totalCost, currencyCode)}
+        </p>
+      </div>
+
+      {/* P1/P5 polish: Per-sheet donut chart. compact variant ensures full callout visibility
+          (520×400 internal, scaled D3 logic + DESIGN ≤12px text) in the flex-1 + lg sidebar
+          layout without clipping or excessive page scroll. Workshop charts unchanged. */}
+      <CostDonutChart
+        buckets={donutBuckets}
+        total={activeEstimate.totalCost}
+        currencyCode={currencyCode}
+        label={`${activeEstimate.name} cost breakdown`}
+        compact
+      />
+
       {/* Tablist — horizontal scroll + fade masks for mobile, design-system compliant */}
       <div className="relative">
         <div
           ref={scrollRef}
           role="tablist"
           aria-label="Estimate sheets"
-          className="flex overflow-x-auto overflow-y-hidden border-b border-hairline bg-proposalPaper px-1 text-[10px] font-medium scrollbar-thin scrollbar-thumb-hairline"
+          className="flex h-[32px] items-end gap-0 overflow-x-auto overflow-y-hidden border-b border-hairline bg-surfaceMuted text-[10px] font-medium scrollbar-thin scrollbar-thumb-hairline"
           style={{ scrollbarWidth: "thin" }}
         >
           {estimates.map((estimate, index) => {
@@ -176,10 +230,10 @@ export default function SharePageTabs({
                 aria-selected={isActive}
                 aria-controls={`share-estimate-panel-${estimate.id}`}
                 tabIndex={isActive ? 0 : -1}
-                className={`min-h-7 flex-shrink-0 rounded-xs px-3 py-1 text-[10px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus ${
+                className={`relative h-full flex-shrink-0 min-w-0 truncate rounded-xs border border-b-0 px-3 text-[10px] font-medium leading-none transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus ${
                   isActive
-                    ? "border-b-2 border-ink text-ink"
-                    : "text-tertiary hover:text-secondary hover:bg-surfaceMuted/40"
+                    ? "z-10 bg-white text-ink border-hairline -mb-px"
+                    : "bg-surfaceMuted text-tertiary border-transparent hover:text-ink hover:border-hairline"
                 }`}
                 onClick={() => updateActive(estimate.id)}
                 onKeyDown={(e) => handleTabKeyDown(e, index)}
@@ -196,12 +250,42 @@ export default function SharePageTabs({
         {/* Lightweight left/right fade masks for mobile horizontal scroll (pure + state driven; always in DOM for test + a11y) */}
         <div
           aria-hidden
-          className={`pointer-events-none absolute left-0 top-0 h-full w-6 bg-gradient-to-r from-proposalPaper to-transparent transition-opacity ${canScrollLeft ? "opacity-100" : "opacity-0"}`}
+          className={`pointer-events-none absolute left-0 top-0 h-full w-6 bg-gradient-to-r from-surfaceMuted to-transparent transition-opacity ${canScrollLeft ? "opacity-100" : "opacity-0"}`}
         />
         <div
           aria-hidden
-          className={`pointer-events-none absolute right-0 top-0 h-full w-6 bg-gradient-to-l from-proposalPaper to-transparent transition-opacity ${canScrollRight ? "opacity-100" : "opacity-0"}`}
+          className={`pointer-events-none absolute right-0 top-0 h-full w-6 bg-gradient-to-l from-surfaceMuted to-transparent transition-opacity ${canScrollRight ? "opacity-100" : "opacity-0"}`}
         />
+      </div>
+
+      {/* P2: Sub-tab bar (Tree View | Grid Preview) — below main tabs, above content */}
+      <div
+        role="tablist"
+        aria-label="Estimate view mode"
+        className="flex h-7 items-center gap-0 border-b border-hairline bg-white text-[10px] font-medium"
+        onKeyDown={handleSubTabKeyDown}
+      >
+        {(["tree", "grid"] as const).map((mode) => {
+          const isActive = currentView === mode;
+          const label = mode === "tree" ? "Tree View" : "Grid Preview";
+          return (
+            <button
+              key={mode}
+              role="tab"
+              aria-selected={isActive}
+              aria-controls={`view-${mode}-${activeEstimate.id}`}
+              tabIndex={isActive ? 0 : -1}
+              className={`px-3 py-0.5 rounded-xs border transition-colors ${
+                isActive
+                  ? "bg-surfaceMuted text-ink border-hairline"
+                  : "text-tertiary hover:text-ink border-transparent hover:border-hairline"
+              }`}
+              onClick={() => setViewForCurrentSheet(mode)}
+            >
+              {label}
+            </button>
+          );
+        })}
       </div>
 
       {/* Active tab panel — encapsulates the original estimate card + table exactly */}
@@ -211,18 +295,9 @@ export default function SharePageTabs({
         aria-labelledby={`tab-${activeEstimate.id}`}
         className="border border-hairline bg-white"
       >
-        <div className="flex items-center justify-between gap-3 border-b border-hairline px-3 py-2">
-          <div>
-            <h2 className="text-[12px] font-medium leading-4 text-ink">{activeEstimate.name}</h2>
-            <p className="text-[10px] leading-3 text-tertiary">{activeEstimate.sheetCode}</p>
-          </div>
-          <p className="text-[12px] font-medium leading-4 text-ink">
-            {formatMoney(activeEstimate.totalCost, currencyCode)}
-          </p>
-        </div>
-
-        <div className="overflow-x-auto">
-          <table className="min-w-full border-collapse text-left text-[10px] leading-4">
+        {currentView === "grid" ? (
+          <div className="overflow-x-auto">
+            <table className="min-w-full border-collapse text-left text-[10px] leading-4">
             <thead className="bg-surfaceMuted text-[9px] uppercase text-tertiary">
               <tr>
                 <th className="px-3 py-2 font-medium">Description</th>
@@ -264,6 +339,20 @@ export default function SharePageTabs({
             </tbody>
           </table>
         </div>
+        ) : (
+          <div className="flex gap-3">
+            {/* P4: Floating navigation tree (desktop only, hidden in Grid mode via parent conditional) */}
+            <ShareFloatingTreeNav nodes={treeNodes} />
+
+            <div className="flex-1 min-w-0">
+              <ShareEstimateTreeView
+                nodes={treeNodes}
+                currencyCode={currencyCode}
+                disclaimer="Reconstructed from estimate data (may differ from internal workspace view)"
+              />
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
