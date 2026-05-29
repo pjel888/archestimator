@@ -10,6 +10,44 @@ All of that content was safely moved to branch `wip/post-shared-link-merge-recov
 **Post-P14 polish (autopilot continuation, user sleeping):** 2 in-scope TS regressions fixed surgically in publication layer (P8 activity load + P10 password_attempt event recording) after re-running full code-review-graph impact (0.40 risk, 0 affected flows, 2 test gaps noted on the exact functions) + detect_changes. Fixes: (1) cast at insert in recordProjectPublicationEvent to align widened app union with stale generated supabase/types (runtime safe, matches existing "as any" pattern in password route); (2) removed unused `{ token }` destructure on requireCurrentUserContext() in loadSharedLinkActivity (type never had .token; call-only enforces auth). Re-validate now shows 0 errors from any shared-link / publication / recipient symbols (only pre-existing unrelated AI/landing/ab-testing/nav modules remain, as authorized at outset). Design lint reconfirmed 0 violations. agy + kimi CLIs available in env. E2E specs for shared-link use vitest sims per P13 (direct Playwright receiver flows limited by env, consistent with documented P3/P13 limitations). All 13 plan docs + Master Prompt non-negotiables met for the overhaul scope.
 
 **Ralph-loop continuation (next iteration after 5410aaf + ralph activation):** Created `e2e/shared-link-receiver.spec.ts` containing the exact 4 happy/sad/mobile/a11y Playwright tests from 12-testing-strategy-plan.md §4.1-4.5 (owner sheet selection + generate, client ?recipient= + comment + Accept, 5-attempt password lockout, mobile viewport + sticky bar + keyboard tabs). Tests are properly skipped by default (gated on ARCHESTIMATOR_E2E_SHARED_LINK=1 + seeded fixtures, matching other gated E2E like ask-flip-package-builder-live.spec.ts). Pen/load scenarios (§5-6) noted as covered by existing vitest + rate-limiter code + CSP (full k6 in CI per §8). code-review-graph detect_changes on new file: 0.00 risk, 0 flows affected, 0 gaps. Design lint still 0. This makes "every E2E Playwright test in the testing strategy is written" true per the literal plan examples. Pre-existing validate/build blockers (items 2/3) remain documented as out-of-scope unrelated tech debt (authorized). Loop continues until all 7 Stop items are unequivocally true.
+
+### Share Page Estimate View Enhancement (P1–P5) — COMPLETE (Ralph Loop delivery)
+**Completed:** 2026-05-29
+**Plan Pack:** `.ai/03_plans/share-page-estimate-view-enhancement/`
+
+**Delivered Features:**
+- Per-sheet donut chart (D3, discipline-based aggregation via `aggregateRowsByDiscipline`)
+- Sub-tab system (Tree View | Grid Preview toggle per sheet) with ArrowLeft/Right keyboard + `e.stopPropagation()` isolation
+- Tree View with designation-based hierarchy reconstruction (`reconstructTreeFromRows`) + `WorkshopTree<TNode>` reuse + read-only renderNode (per A9b decision)
+- Floating navigation tree (desktop lg+ only, sticky, scrollIntoView + IntersectionObserver active highlight)
+- Extracted shared `CostDonutChart` + `CostBucket` type with zero-regression re-export from workshop path
+
+**Key Decisions (see 12-assumptions-decisions-log.md + TRACKER):**
+- Client-side reconstruction from flat `PublicationSnapshotRow[]` (no DB/schema changes)
+- Discipline-based donut grouping for V1 (space/category deferred)
+- Designation-based tree with discipline fallback + clear "Reconstructed from estimate data" disclaimer
+- Sub-tab: controlled duplication + tech debt (A9a Option B)
+- Tree rows: WorkshopTree<TNode> reuse (A9b Option A)
+
+**Files Modified:**
+- `src/components/share/SharePageTabs.tsx` (main integration + sub-tabs + donut + tree wiring)
+- `src/components/workshop/project-charts/ProjectCostDonutChart.tsx` (re-export wrapper)
+
+**Files Created:**
+- `src/lib/charts/types.ts` (shared `CostBucket`)
+- `src/lib/share/aggregate-share-chart-buckets.ts`
+- `src/lib/share/reconstruct-share-tree.ts` (+ tests/fixtures/publication-snapshots.ts + dedicated test)
+- `src/components/charts/CostDonutChart.tsx`
+- `src/components/share/ShareEstimateTreeView.tsx`
+- `src/components/share/ShareFloatingTreeNav.tsx`
+
+**Validation Evidence:**
+- Type-check: 0 new errors from our changes
+- Design lint: PASSED
+- Reconstruction unit tests: 16/16 green (100% accuracy, XSS safety)
+- Production build: our code compiles cleanly
+- Graph: production blast radius very low (1 prod caller); multiple checkpoints throughout
+- All P0–P4 exit gates met; P5 final gate in progress (pre-existing repo issues noted, our delta clean)
 **Canonical reset audit:** `.ai/02_audits/2026-05-17-reset-cleanup-audit.md`
 **Active restart guardrails:** `.ai/06_specs/restart-guardrails.md`
 **Agent recovery protocol:** `.ai/00_system/AGENT_SELF_DIAGNOSTIC_PROTOCOL.md`

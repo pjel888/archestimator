@@ -209,6 +209,8 @@ Current source:
 
 **P14 (2026-05-28):** Shared Link Overhaul V2 marked Complete. V1 (`Public link` controls + basic `/share/[token]`) archived 2026-05-27. V2 delivers full production-grade manager/receiver experience with terminology standardization ("Shared link"), tabbed navigation (Link / Sheets / Access / Recipients / Activity), recipient management + Resend email delivery, session security (P5), client comments (P6), accept/reject/revise decisions (P7), owner activity feed + rate-limited digests + badge (P8), visual polish + hero images + responsive (P9), password hardening + progressive lockout + attempt audit (P10), CSP/headers/tracking (P11), error handling + retry + circuits + logging (P12), and full testing/validation (P13: focused vitest + sims for E2E/pen/load due to env gaps).
 
+**Post-P14 Phase 5A addition (2026-05-29, Ralph Loop):** Share Page Estimate View Enhancement (P0–P5) delivered on top of the V2 receiver: per-sheet donut charts, Tree View | Grid Preview sub-tabs with keyboard isolation, designation-based Tree View (WorkshopTree reuse + reconstruction), floating nav. All client-side, 0 new errors from changes, design lint clean. See `.ai/03_plans/share-page-estimate-view-enhancement/`, TRACKER, COMPLETION-REPORT, and current-state.md Phase 5A section. Strict Ralph Loop with completion promise used for delivery.
+
 **Evidence (worktree HEAD 4c93bb1):**
 - P0 foundation (red tests + Resend scaffold + route audit): 859285c
 - P1 Rename 'Public link'→'Shared link' + Sheets tab + SheetPickerList: 95b2142
