@@ -1,5 +1,9 @@
 # Current State
 
+**Reconciliation note (2026-05-29):** After the user-directed merge of `feature/shared-link-overhaul-v2` (d3331f5), there was a pre-merge stash + large set of untracked files on main from concurrent work (AI package-builder, landing A/B testing/analytics, new migrations, other .ai/ plans, etc.).
+
+All of that content was safely moved to branch `wip/post-shared-link-merge-recovery` (commit 17f2a90) so that `main` could stay clean with the authoritative Shared Link Overhaul history from the feature branch. The stash was dropped after inspection — the merged `.ai/10_state/current-state.md` and roadmap contain the complete, up-to-date record of the Shared Link V2 work (P0–P14 + E2E + ralph-loop iterations). The recovery branch exists purely for later review/cherry-picking of the unrelated concurrent work.
+
 **Date:** 2026-05-28
 **P14 (2026-05-28) — Shared Link Overhaul V2 Complete:** P0–P13 delivered full "Shared link" (ex-"Public link") manager + receiver experience with tabs, recipients + email, sessions, comments, decisions, activity/digests, password hardening + lockout, CSP/headers, error resilience, and validation (sims + green tests). MCP impacts pre-edit (500 nodes / 120 files blast, med ~0.65 risk, 0 crit flows). Design lint 0. Additive, backwards compat. Detailed 13 plan docs live in main `.ai/03_plans/project-shared-link-overhaul/` (divergence: worktree isolation); closure used code comments, git SHAs (859285c P0 → 4c93bb1 P13), existing .ai/, MCP graph. See new `walkthrough-shared-link-overhaul.md`, updated roadmap Phase 5A, and decisions.md. Limitations (P3 Docker, in-mem state, P13 sims) documented.
 
