@@ -3,6 +3,9 @@ import { notFound } from "next/navigation";
 
 import { ProjectPublicationPasswordForm } from "@/components/share/ProjectPublicationPasswordForm";
 import SharePageTabs from "@/components/share/SharePageTabs";
+import SharePageComments from "@/components/share/SharePageComments";
+import SharePageDecision from "@/components/share/SharePageDecision";
+import SharePageHero from "@/components/share/SharePageHero";
 
 /* GitNexus / code-review-graph MCP impact analysis (per Master Prompt + AGENTS.md/CLAUDE.md + .ai/00_system/AGENT_OPERATING_PROTOCOL.md):
  * - search_tool invoked for schemas: code-review-graph__get_impact_radius_tool, code-review-graph__detect_changes_tool,
@@ -18,8 +21,15 @@ import {
   recordProjectPublicationEvent,
   resolveProjectPublicationAccessByToken,
   resolveProjectPublicationSnapshotByToken,
+  verifySharedLinkRecipientToken,
 } from "@/lib/publication/public-repository";
-import { createPublicationAccessCookieName, verifyPublicationAccessCookieValue } from "@/lib/publication/security";
+import {
+  createPublicationAccessCookieName,
+  createSharedLinkSessionCookieName,
+  getSharedLinkSessionCookieParts,
+  verifyPublicationAccessCookieValue,
+  verifySharedLinkSessionCookieValue,
+} from "@/lib/publication/security";
 import type { ProjectPublicationSnapshot } from "@/lib/publication/types";
 
 import type { Metadata } from "next";
@@ -28,6 +38,7 @@ export const dynamic = "force-dynamic";
 
 type SharePageProps = {
   params: Promise<{ token: string }>;
+  searchParams?: Promise<Record<string, string | undefined>>;
 };
 
 function formatMoney(value: number, currencyCode: string) {
@@ -68,6 +79,10 @@ function ProjectPublicationView({
           </div>
         </header>
 
+        {/* P9: Hero cover (from snapshot.project.coverImageUrl populated from projects.metadata at publish).
+            Next/Image + lazy. Null when absent (old snapshots / no cover) — additive, no layout shift. */}
+        <SharePageHero project={snapshot.project as any} />
+
         <section className="grid grid-cols-3 gap-2">
           <div className="border border-hairline bg-white p-3">
             <p className="text-[9px] font-medium uppercase leading-3 text-tertiary">Estimates</p>
@@ -84,11 +99,21 @@ function ProjectPublicationView({
         </section>
 
         {/* P2: Tabbed navigation (replaces previous vertical stack). SharePageTabs encapsulates per-estimate card+table. */}
-        <SharePageTabs
-          estimates={snapshot.estimates}
-          currencyCode={snapshot.project.currencyCode}
-          token={token}
-        />
+        {/* P6/P7: Right column — decision (P7) above comments (P6). Both session-gated via P5 hook. Decision locks to read-only badge after submit/409; comments remain usable post-decision (additive, per owner allowance). */}
+        <div className="flex flex-col gap-5 lg:flex-row">
+          <div className="min-w-0 flex-1">
+            <SharePageTabs
+              estimates={snapshot.estimates}
+              currencyCode={snapshot.project.currencyCode}
+              token={token}
+            />
+          </div>
+          {/* P9: sticky decision rail on lg+ (desktop polish); safe-area-inset-bottom on mobile for interactive bars (additive, no behavior change) */}
+          <div className="w-full lg:w-80 flex-shrink-0 flex flex-col gap-3 lg:sticky lg:top-4 pb-[env(safe-area-inset-bottom)] lg:pb-0">
+            <SharePageDecision token={token} />
+            <SharePageComments token={token} />
+          </div>
+        </div>
       </div>
     </main>
   );
@@ -113,8 +138,11 @@ function ProjectPublicationPasswordGate({ token }: { token: string }) {
   );
 }
 
-export default async function SharePage({ params }: SharePageProps) {
+export default async function SharePage({ params, searchParams }: SharePageProps) {
   const { token } = await params;
+  const searchParamsData = await (searchParams ?? Promise.resolve<Record<string, string | undefined>>({}));
+  const recipientToken = typeof searchParamsData.recipient === "string" ? searchParamsData.recipient.trim() : undefined;
+
   const publicationAccess = await resolveProjectPublicationAccessByToken(token);
   if (!publicationAccess) notFound();
 
@@ -128,6 +156,58 @@ export default async function SharePage({ params }: SharePageProps) {
       })
     ) {
       return <ProjectPublicationPasswordGate token={token} />;
+    }
+  }
+
+  // P5: Recipient session & security cookie (additive only; password + view-only flows unchanged)
+  // - On ?recipient= param: verify token against shared_link_recipients (P3 table), set HttpOnly session cookie + client flag
+  // - On subsequent loads: validate existing session cookie
+  // - Sets Max-Age=86400, HttpOnly, SameSite=Lax, Secure (prod) per spec
+  // - Enables useSharedLinkSession hook + future interactive blocking (P6+)
+  let hasValidRecipientSession = false;
+  if (recipientToken) {
+    const verified = await verifySharedLinkRecipientToken(token, recipientToken);
+    if (verified) {
+      hasValidRecipientSession = true;
+      const cookieStore = await cookies();
+      const parts = getSharedLinkSessionCookieParts({
+        token,
+        publicationId: verified.publicationId,
+        snapshotVersion: verified.snapshotVersion,
+        recipientId: verified.recipientId,
+      });
+      cookieStore.set(parts.name, parts.value, parts.cookieOptions);
+      // Non-secret companion flag cookie for client-side hook (useSharedLinkSession reads this)
+      const flagName = `${parts.name}_ok`;
+      cookieStore.set(flagName, "1", {
+        path: "/",
+        httpOnly: false,
+        sameSite: "lax",
+        maxAge: 86400,
+        secure: process.env.NODE_ENV === "production",
+      });
+    }
+  } else {
+    // Subsequent load: validate existing session cookie (additive to password cookie)
+    const cookieStore = await cookies();
+    const sessionValue = cookieStore.get(createSharedLinkSessionCookieName(token))?.value;
+    if (
+      verifySharedLinkSessionCookieValue(sessionValue, {
+        token,
+        publicationId: publicationAccess.publicationId,
+        snapshotVersion: publicationAccess.snapshotVersion,
+      })
+    ) {
+      hasValidRecipientSession = true;
+      // Ensure client flag for hook consistency
+      const flagName = `${createSharedLinkSessionCookieName(token)}_ok`;
+      cookieStore.set(flagName, "1", {
+        path: "/",
+        httpOnly: false,
+        sameSite: "lax",
+        maxAge: 86400,
+        secure: process.env.NODE_ENV === "production",
+      });
     }
   }
 

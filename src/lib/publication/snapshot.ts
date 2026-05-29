@@ -7,6 +7,8 @@ type SnapshotProjectInput = {
   clientName: string | null;
   location: string | null;
   currencyCode: string;
+  // P9 additive
+  coverImageUrl?: string | null;
 };
 
 type SnapshotRowInput = {
@@ -20,6 +22,8 @@ type SnapshotRowInput = {
   unitCost: number;
   miscCost: number;
   contingencyPercentage: number;
+  // P9: source_snapshot.imageUrl extracted at publish (additive)
+  imageUrl?: string | null;
 };
 
 type SnapshotEstimateInput = {
@@ -56,6 +60,8 @@ function buildSnapshotRow(row: SnapshotRowInput): PublicationSnapshotRow {
     miscCost: toFiniteNumber(row.miscCost),
     contingencyPercentage: toFiniteNumber(row.contingencyPercentage),
     rowTotal: calculateRowTotal(row),
+    // P9 additive (undefined/null if absent in source_snapshot at publish)
+    imageUrl: row.imageUrl ?? null,
   };
 }
 

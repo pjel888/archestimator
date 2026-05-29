@@ -11,7 +11,7 @@
  * graceful degradation (link generation succeeds even if email fails).
  */
 
-import { Resend } from "resend";
+import { Resend, type CreateEmailOptions } from "resend";
 
 export type SendEmailInput = {
   to: string | string[];
@@ -41,12 +41,63 @@ function getResendClient(): Resend | null {
   return resendInstance;
 }
 
+// P12: circuit breaker for email dispatch (>50% failure over window -> 10min pause)
+// Additive wrapper around existing sendEmail (happy path unchanged, best-effort callers unaffected until open).
+const EMAIL_CIRCUIT_WINDOW_MS = 5 * 60 * 1000;
+const EMAIL_CIRCUIT_COOLDOWN_MS = 10 * 60 * 1000;
+const EMAIL_CIRCUIT_MIN_SAMPLES = 4;
+const EMAIL_CIRCUIT_THRESHOLD = 0.5;
+
+let emailAttemptTimes: number[] = [];
+let emailFailTimes: number[] = [];
+let emailCircuitOpenUntil = 0;
+
+function pruneEmailCircuit(now: number) {
+  emailAttemptTimes = emailAttemptTimes.filter((t) => now - t < EMAIL_CIRCUIT_WINDOW_MS);
+  emailFailTimes = emailFailTimes.filter((t) => now - t < EMAIL_CIRCUIT_WINDOW_MS);
+}
+
+function recordEmailAttempt(now: number) {
+  pruneEmailCircuit(now);
+  emailAttemptTimes.push(now);
+}
+
+function recordEmailFail(now: number) {
+  pruneEmailCircuit(now);
+  emailFailTimes.push(now);
+  const fails = emailFailTimes.length;
+  const attempts = Math.max(emailAttemptTimes.length, 1);
+  if (attempts >= EMAIL_CIRCUIT_MIN_SAMPLES && fails / attempts > EMAIL_CIRCUIT_THRESHOLD) {
+    emailCircuitOpenUntil = now + EMAIL_CIRCUIT_COOLDOWN_MS;
+  }
+}
+
+function isEmailCircuitOpen(now: number): boolean {
+  if (now < emailCircuitOpenUntil) return true;
+  if (emailCircuitOpenUntil > 0 && now >= emailCircuitOpenUntil) {
+    emailCircuitOpenUntil = 0;
+    emailFailTimes = [];
+    emailAttemptTimes = [];
+  }
+  return false;
+}
+
 /**
  * Send a transactional email.
  * In test or missing key: returns mocked success (no-op).
  * On real failure: returns structured error (never throws to caller).
  */
 export async function sendEmail(input: SendEmailInput): Promise<SendEmailResult> {
+  const now = Date.now();
+  recordEmailAttempt(now);
+
+  // P12 circuit: fast-fail if open (protects all P4/P8 email paths: digests, recipient links)
+  if (isEmailCircuitOpen(now)) {
+    const errMsg = "Email dispatch temporarily paused due to high failure rate (circuit open).";
+    console.error({ level: "error", route: "email/resend-client", errorCode: "CIRCUIT_OPEN", ipHash: "n/a", ts: new Date().toISOString(), subject: input.subject.slice(0, 60) });
+    return { ok: false, error: errMsg, code: "CIRCUIT_OPEN" };
+  }
+
   const client = getResendClient();
 
   if (!client) {
@@ -67,12 +118,15 @@ export async function sendEmail(input: SendEmailInput): Promise<SendEmailResult>
       subject: input.subject,
       html: input.html,
       text: input.text,
-    });
+    } as CreateEmailOptions);
 
     if (response.error) {
+      recordEmailFail(Date.now());
+      const errMsg = response.error.message ?? "Unknown Resend error";
+      console.error({ level: "error", route: "email/resend-client", errorCode: "RESEND_ERROR", ipHash: "n/a", ts: new Date().toISOString(), subject: input.subject.slice(0, 60), code: response.error.name });
       return {
         ok: false,
-        error: response.error.message ?? "Unknown Resend error",
+        error: errMsg,
         code: response.error.name,
       };
     }
@@ -82,13 +136,10 @@ export async function sendEmail(input: SendEmailInput): Promise<SendEmailResult>
       messageId: response.data?.id,
     };
   } catch (err: unknown) {
+    recordEmailFail(Date.now());
     const message = err instanceof Error ? err.message : "Unexpected email send failure";
-    // Structured log (no PII or secrets)
-    console.error("[resend-client] send failure", {
-      toCount: Array.isArray(input.to) ? input.to.length : 1,
-      subject: input.subject.slice(0, 60),
-      error: message,
-    });
+    // P12 enhanced structured log (additive fields + circuit awareness)
+    console.error({ level: "error", route: "email/resend-client", errorCode: "SEND_EXCEPTION", ipHash: "n/a", ts: new Date().toISOString(), subject: input.subject.slice(0, 60), error: message });
     return { ok: false, error: message };
   }
 }

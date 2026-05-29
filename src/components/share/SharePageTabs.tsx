@@ -14,6 +14,8 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 
 import type { PublicationSnapshotEstimate } from "@/lib/publication/types";
+import { useSharedLinkSession } from "@/hooks/use-shared-link-session";
+import Image from "next/image";
 
 interface SharePageTabsProps {
   estimates: PublicationSnapshotEstimate[];
@@ -138,10 +140,19 @@ export default function SharePageTabs({
 
   if (estimates.length === 0) return null;
 
+  const { isValid: hasValidRecipientSession } = useSharedLinkSession();
   const activeEstimate = estimates.find((e) => e.id === activeId) ?? estimates[0];
 
   return (
     <div className="space-y-3">
+      {/* P5: Additive recipient session guard (blocks interactive UI until valid session cookie/flag).
+          Design-system compliant (SF Pro 9px uppercase tertiary, hairline, canvas, xs radius implicit).
+          View-only content remains fully accessible for backwards compat. */}
+      {!hasValidRecipientSession && (
+        <div className="border border-hairline bg-canvas p-3 text-[9px] font-medium uppercase leading-3 text-tertiary">
+          Recipient session required for interactive features (comments, decisions). Use a recipient link to enable.
+        </div>
+      )}
       {/* Tablist — horizontal scroll + fade masks for mobile, design-system compliant */}
       <div className="relative">
         <div
@@ -224,7 +235,24 @@ export default function SharePageTabs({
             <tbody>
               {activeEstimate.rows.map((row) => (
                 <tr key={row.id} className="border-t border-hairline">
-                  <td className="px-3 py-2 text-secondary">{row.description}</td>
+                  <td className="px-3 py-2 text-secondary">
+                    <div className="flex items-center gap-2">
+                      {/* P9: 32px thumbnail from estimate_row_items.source_snapshot.imageUrl (additive; only when present) */}
+                      {row.imageUrl ? (
+                        <div className="h-8 w-8 flex-shrink-0 overflow-hidden rounded-xs border border-hairline bg-surfaceMuted">
+                          <Image
+                            src={row.imageUrl}
+                            alt=""
+                            width={32}
+                            height={32}
+                            className="h-full w-full object-cover"
+                            loading="lazy"
+                          />
+                        </div>
+                      ) : null}
+                      <span>{row.description}</span>
+                    </div>
+                  </td>
                   <td className="px-3 py-2 text-secondary">{row.discipline}</td>
                   <td className="px-3 py-2 text-secondary">{row.quantity}</td>
                   <td className="px-3 py-2 text-secondary">{row.unit}</td>
