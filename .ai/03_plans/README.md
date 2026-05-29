@@ -17,30 +17,46 @@ Current planning baseline:
 
 Active/current plan:
 
-- `.ai/03_plans/current-post-reset-workshop-slice.md` — historical orientation plan for the early workshop/projects/components route slice; current component-library route truth is `/workshop/library` plus `/workshop/templates`.
-- `.ai/03_plans/component-category-library-taxonomy/` — active taxonomy research artifact for the `/workshop/library` category tree, supplier/category tabs, component metadata facets, standards crosswalks, and future custom-component organization.
 - `.ai/03_plans/landing-page-improvement/` — active public `/` landing-page improvement plan; replaces the archived Intercom/v4 broad plan and starts from current source inventory. Current pass locks the accepted hero, preserves the placeholder-safe full-width light company carousel immediately after the hero, keeps Lenis landing-only smooth scrolling, focuses remaining content with Tailwind containers, uses brand-source synthesis, and now adds Kimi K2.6 frontend-design delegation plus functional-tabs/IntersectionObserver readiness planning with no new animation packages.
-- `.ai/03_plans/project-estimates-component-library-improvement-plan.md` — research-backed UX/UI improvement plan for the current project estimate workspace and connected Component Library feature.
-- `.ai/03_plans/workshop-library-component-creation-versioning/` — active readiness pack for persisted Add Component on `/workshop/library`, including Supabase component shape, modal UX, pricing options, component lifecycle state, version history, blast radius, and QA gates.
-- `.ai/03_plans/component-variant-assets-and-cost-history/` — implemented follow-on pack for Add Component variant-owned measurement layout, per-variant/shared images, PDF/Excel attachments, and selectable dated cost entries.
-- `.ai/03_plans/estimate-sheet-version-control/` — implemented Activity-first estimate sheet and row-level history pack for `/workshop/projects/[projectId]/estimates/[nodeId]`. Current UX is sheet `Activity` plus row details `Version History`; named sheet version, compare, and restore-as-copy artifacts exist only as dormant DB compatibility residue unless a future proposal/export snapshot plan revives them.
-- `.ai/03_plans/industry-standard-excel-proposal-export/` — active research and implementation plan for contractor-standard consolidated Excel proposal export, read-only preview, ExcelJS package choice, and room/area source-breakdown traceability.
-- `.ai/03_plans/ui-componentization-and-storybook-plan.md` — active UI component matrix, reusable-primitive pipeline, and Storybook organization plan.
-- `.ai/03_plans/estimate-tree-dnd-reorganization/` — audit, React Complex Tree API guide, implementation plan, and QA strategy for seamless live estimate-tree drag/drop reorganization.
 - `.ai/03_plans/route-transition-performance-optimization/` — active pre-implementation planning pack for comprehensive route transition performance. Includes performance audit (23 routes, 6 bottleneck categories), blast radius analysis (11 techniques, risk-scored), readiness assessment (3 blocking items), phased implementation plan (4 phases, 20+ tasks), benchmark scenarios (7 categories, 30+ test cases), and strategy ADRs (8 architectural decisions). Target: sub-100ms cold transitions, zero perceived lag, loading overlay relegated to safety net.
+- `.ai/03_plans/ai-chatbot-agent-readiness/` — active chatbot planning and context pack for local /api/ai/ask and /api/ai/package-builder routes.
 
 Archived closeout / superseded plans:
 
+- `.ai/09_archive/store/2026-05-29-implemented-plan-cleanup/` — cleanup archive containing:
+  - `current-post-reset-workshop-slice.md` — early workshop/projects/components route slice orientation.
+  - `estimate-line-items-library-tree-plan.md` — planning for estimate line items and library tree integration.
+  - `mvp-definition-plan.md` — early MVP definition, superseded by post-reset implementation.
+  - `production-glide-workspace-migration-slice.md` — Glide workspace migration plan, superseded.
+  - `production-model-space-proposal-bridge.md` — proposal bridge plan, superseded.
+  - `project-estimates-component-library-improvement-plan.md` — UX/UI improvement plan for project estimates and Component Library integration.
+  - `ui-componentization-and-storybook-plan.md` — UI component matrix and Storybook plan.
+- `.ai/09_archive/store/2026-05-29-component-category-library-taxonomy-complete/` — completed taxonomy research and library tree organization plan.
+- `.ai/09_archive/store/2026-05-29-component-library-identity-and-brand-view-complete/` — completed component identity cleanup and library brand views plan.
+- `.ai/09_archive/store/2026-05-29-component-library-templates-complete/` — completed library/templates split and templates workspace plan.
+- `.ai/09_archive/store/2026-05-29-component-library-variants-complete/` — completed price options and variant records database/UX plan.
+- `.ai/09_archive/store/2026-05-29-component-variant-assets-and-cost-history-complete/` — completed variant cost history, image, and attachment details plan.
+- `.ai/09_archive/store/2026-05-29-estimate-sheet-node-distinction-complete/` — completed Group Node vs Area Node distinction plan.
+- `.ai/09_archive/store/2026-05-29-estimate-sheet-version-control-complete/` — completed Activity-first version history and sheet version control plan.
+- `.ai/09_archive/store/2026-05-29-estimate-tree-dnd-reorganization-complete/` — completed React Complex Tree drag-and-drop reorganization plan.
+- `.ai/09_archive/store/2026-05-29-industry-standard-excel-proposal-export-complete/` — completed ExcelJS proposal export plan.
+- `.ai/09_archive/store/2026-05-29-lewis-residence-chart-demo-seed-complete/` — completed seed data migration plan.
+- `.ai/09_archive/store/2026-05-29-project-charts-estimate-comparison-complete/` — completed comparison charts view plan.
+- `.ai/09_archive/store/2026-05-29-project-shared-link-overhaul-complete/` — completed view-only shared link overhaul plan.
+- `.ai/09_archive/store/2026-05-29-share-page-estimate-view-enhancement-complete/` — completed share page D3 donut, tabbed view, and tree reconstruction plan.
+- `.ai/09_archive/store/2026-05-29-workshop-bento-favorites-complete/` — completed favorites shortcuts grid plan.
+- `.ai/09_archive/store/2026-05-29-workshop-library-component-creation-versioning-complete/` — completed component creation persisted modal plan.
+- `.ai/09_archive/store/2026-05-29-workshop-library-components-templates-split-complete/` — completed workspace routes split plan.
 - `.ai/09_archive/store/2026-05-21-estimate-tree-dnd-reorganization-complete/` — completed audit, React Complex Tree API guide, implementation plan, QA strategy, and closeout evidence for seamless live estimate-tree drag/drop reorganization.
-- `.ai/09_archive/store/2026-05-21-shadcn-context-menu-integration-complete/` — completed first shadcn/Radix integration closeout for estimate tree Group/Area row right-click Rename/Delete, inline optimistic rename, confirmed optimistic delete, route repair, shared action-menu foundation, and state-first rollback hardening.
-- `.ai/09_archive/store/2026-05-21-estimate-component-library-sidebar-audit-complete/` — completed P0-P4 closeout for the live estimate Component Library sidebar audit, including target-aware insertion, command palette, assemblies/templates, bulk actions, import/export, keyboard navigation, native card buttons, and verification evidence.
-- `.ai/09_archive/store/2026-05-21-workshop-components-library-ux-ui-complete/` — completed `/workshop/components` global manager plan pack and implementation evidence for the read-only seed-backed dense table, facets, price-health views, and inspector slice. Future persistence/CRUD remains deferred until the server action and schema boundary is explicitly approved.
-- `.ai/09_archive/store/2026-05-21-workshop-components-library-redesign-complete/` — completed replacement `/workshop/components` redesign plan and implementation evidence for the estimate-workspace mirror: left category/supplier tree, center custom-component sheet, no right sidebar, no tree drag/drop/reorder, mobile component cards, classification helpers, Visual Verdict artifacts, and validation closeout.
-- `.ai/09_archive/store/2026-05-21-intercom-v4-ui-ux-improvement-plan-superseded/` — superseded broad Intercom/v4 UI/UX plan; historical context only, replaced for landing work by `.ai/03_plans/landing-page-improvement/`.
-- `.ai/09_archive/store/2026-05-21-implemented-plan-cleanup/` — implemented loose historical plans moved out of `.ai/03_plans` after the 2026-05-21 plan inventory cleanup. Includes pre-reset local MVP, proposal, Glide/dnd-kit spike, and completed estimate-tree stability planning files.
-- `.ai/09_archive/store/2026-05-27-sign-up-login-authentication-local-implementation-evidence/` — completed local Sign Up / Log In implementation and evidence pack for canonical `/login`, `/auth/callback`, passwordless Google/email auth UI, safe redirects, optional profile/workspace settings, stale onboarding redirect, auth-account migration, account-security audit, storage/API boundary tests, runbooks, and launch go/no-go records. Remaining Supabase dashboard, Google Cloud, Vercel, legal/privacy, QA, support, owner, and provider evidence stays active in the roadmap/pre-launch gates.
-- `.ai/09_archive/store/2026-05-27-project-workspace-invite-entry-complete/` — completed project workspace invite-entry plan and evidence for `/invite/[token]`, signed pending-invite `/workshop` bridge, linked Supabase invite-token migration/RPC grants, Teamspaces invite URL issuing/copying, `/workshop/projects` shared-member labeling, browser E2E, and validation closeout. Remaining provider/legal/Vercel/support launch evidence stays in the auth/pre-launch roadmap.
-- `.ai/09_archive/store/2026-05-27-project-client-publication-complete/` — completed V1 project client publication implementation and evidence for project-header `Public link`, `/share/[token]`, optional password access, public-link/new-link/revoke/update manager actions, metadata-only open tracking, linked Supabase migration `20260527120000`, focused tests, full validation/build, and authenticated manager browser proof. Remaining Privacy/Terms, broad dirty-worktree release review, and future PDF/download artifacts stay in the roadmap.
+- `.ai/09_archive/store/2026-05-21-shadcn-context-menu-integration-complete/` — completed first shadcn/Radix integration closeout for estimate tree Group/Area row right-click Rename/Delete.
+- `.ai/09_archive/store/2026-05-21-estimate-component-library-sidebar-audit-complete/` — completed P0-P4 closeout for the live estimate Component Library sidebar audit.
+- `.ai/09_archive/store/2026-05-21-workshop-components-library-ux-ui-complete/` — completed `/workshop/components` global manager plan pack.
+- `.ai/09_archive/store/2026-05-21-workshop-components-library-redesign-complete/` — completed replacement `/workshop/components` redesign plan.
+- `.ai/09_archive/store/2026-05-21-intercom-v4-ui-ux-improvement-plan-superseded/` — superseded broad Intercom/v4 UI/UX plan.
+- `.ai/09_archive/store/2026-05-21-implemented-plan-cleanup/` — implemented loose historical plans moved out of `.ai/03_plans` after the 2026-05-21 plan inventory cleanup.
+- `.ai/09_archive/store/2026-05-27-sign-up-login-authentication-local-implementation-evidence/` — completed local Sign Up / Log In implementation and evidence pack.
+- `.ai/09_archive/store/2026-05-27-project-workspace-invite-entry-complete/` — completed project workspace invite-entry plan and evidence.
+- `.ai/09_archive/store/2026-05-27-project-client-publication-complete/` — completed V1 project client publication implementation.
 
 Read first before planning new work:
 
@@ -48,13 +64,9 @@ Read first before planning new work:
 2. `.ai/10_state/current-state.md`
 3. `.ai/10_state/decisions.md`
 4. `.ai/10_state/known-issues.md`
-5. `.ai/03_plans/current-post-reset-workshop-slice.md`
-6. `.ai/03_plans/project-estimates-component-library-improvement-plan.md`
-7. `.ai/03_plans/ui-componentization-and-storybook-plan.md`
-8. `.ai/09_archive/store/2026-05-21-estimate-tree-dnd-reorganization-complete/README.md`
-9. `.ai/03_plans/estimate-tree-dnd-reorganization/README.md` (historical planning context; current implementation truth is the archived closeout above)
-10. `.ai/02_audits/2026-05-17-reset-cleanup-audit.md`
-11. `.ai/06_specs/restart-guardrails.md`
+5. `.ai/02_audits/2026-05-17-reset-cleanup-audit.md`
+6. `.ai/06_specs/restart-guardrails.md`
+7. `.ai/09_archive/store/2026-05-29-estimate-tree-dnd-reorganization-complete/README.md`
 
 ## Rules for new plans
 

@@ -1,6 +1,6 @@
 # Roadmap
 
-**Last updated:** 2026-05-28
+**Last updated:** 2026-05-29
 **Status:** Pre-launch MVP. Supabase/Auth/Postgres are active for Archestimator project `ebxxqidacheyapmmzavr`; the protected workshop, invite-entry collaboration flow, project client publication, estimating sheet, component library, charts, proposal XLSX export, account-aware Ask route, and package-builder Draft/Apply AI slice are in active MVP hardening. The brand narrative is pivoting from construction-cost-estimator-only to structured quote, estimate, and proposal workflows for teams that build itemized commercial offers. Construction-style estimating remains the current implemented wedge. The local sign-up/login/authentication, project invite-entry, and project client publication implementations are reviewed at the focused-test level, but public/private launch remains NO-GO until provider, legal, Vercel, QA, support, owner, full validation/build, and storage/security evidence is complete.
 
 ## Current product baseline
@@ -154,8 +154,8 @@ Remaining:
 
 Current source:
 
-- `.ai/03_plans/estimate-sheet-version-control/18-current-activity-contract.md`
-- `.ai/03_plans/estimate-sheet-version-control/19-local-safe-completion-audit.md`
+- `.ai/09_archive/store/2026-05-29-estimate-sheet-version-control-complete/18-current-activity-contract.md`
+- `.ai/09_archive/store/2026-05-29-estimate-sheet-version-control-complete/19-local-safe-completion-audit.md`
 
 ## Phase 4 - Component Library and Templates
 
@@ -178,9 +178,9 @@ Remaining:
 
 Current source:
 
-- `.ai/03_plans/workshop-library-components-templates-split/`
-- `.ai/03_plans/workshop-library-component-creation-versioning/`
-- `.ai/03_plans/component-variant-assets-and-cost-history/`
+- `.ai/09_archive/store/2026-05-29-workshop-library-components-templates-split-complete/`
+- `.ai/09_archive/store/2026-05-29-workshop-library-component-creation-versioning-complete/`
+- `.ai/09_archive/store/2026-05-29-component-variant-assets-and-cost-history-complete/`
 - `.ai/06_specs/current-project-estimates-component-library-spec.md`
 
 ## Phase 5 - Proposal export and project charts
@@ -202,14 +202,16 @@ Remaining:
 
 Current source:
 
-- `.ai/03_plans/industry-standard-excel-proposal-export/`
-- `.ai/03_plans/project-charts-estimate-comparison/`
+- `.ai/09_archive/store/2026-05-29-industry-standard-excel-proposal-export-complete/`
+- `.ai/09_archive/store/2026-05-29-project-charts-estimate-comparison-complete/`
 
 ## Phase 5A - Project client publication (V1 archived) + Shared Link Overhaul V2 (Complete, P0–P13)
 
 **P14 (2026-05-28):** Shared Link Overhaul V2 marked Complete. V1 (`Public link` controls + basic `/share/[token]`) archived 2026-05-27. V2 delivers full production-grade manager/receiver experience with terminology standardization ("Shared link"), tabbed navigation (Link / Sheets / Access / Recipients / Activity), recipient management + Resend email delivery, session security (P5), client comments (P6), accept/reject/revise decisions (P7), owner activity feed + rate-limited digests + badge (P8), visual polish + hero images + responsive (P9), password hardening + progressive lockout + attempt audit (P10), CSP/headers/tracking (P11), error handling + retry + circuits + logging (P12), and full testing/validation (P13: focused vitest + sims for E2E/pen/load due to env gaps).
 
-**Post-P14 Phase 5A addition (2026-05-29, Ralph Loop):** Share Page Estimate View Enhancement (P0–P5) delivered on top of the V2 receiver: per-sheet donut charts, Tree View | Grid Preview sub-tabs with keyboard isolation, designation-based Tree View (WorkshopTree reuse + reconstruction), floating nav. All client-side, 0 new errors from changes, design lint clean. See `.ai/03_plans/share-page-estimate-view-enhancement/`, TRACKER, COMPLETION-REPORT, and current-state.md Phase 5A section. Strict Ralph Loop with completion promise used for delivery.
+**Post-P14 Phase 5A addition (2026-05-29, Ralph Loop):** Share Page Estimate View Enhancement (P0–P5) delivered on top of the V2 receiver: per-sheet donut charts, Tree View | Grid Preview sub-tabs with keyboard isolation, designation-based Tree View (WorkshopTree reuse + reconstruction), floating nav. All client-side, 0 new errors from changes, design lint clean. See `.ai/09_archive/store/2026-05-29-share-page-estimate-view-enhancement-complete/`, TRACKER, COMPLETION-REPORT, and current-state.md Phase 5A section. Strict Ralph Loop with completion promise used for delivery.
+- Redesigned the project publication (Shared Link) modal using a full-height sidebar grid layout and integrated WorkshopTreeTabs for Link/Sheets/Access/Recipients/Activity tabs. Polished RecipientEmailComposer with standard ControlInput primitives.
+- Overhauled project creation flow: NewProjectForm accepts onSuccess callback (closes modal, creates estimate draft), NewProjectModal auto-dismisses, and ProjectTotalHeader rendering is centralized in WorkshopPageShell footer slot.
 
 **Evidence (worktree HEAD 4c93bb1):**
 - P0 foundation (red tests + Resend scaffold + route audit): 859285c
@@ -235,7 +237,7 @@ Current source:
 
 **Worktree:** /Users/philiplewis/archestimator/.worktrees/feature/shared-link-overhaul-v2 (isolated for feature; all P0–P13 landed here).
 
-**Divergence / Implementation reality notes (P14):** The 13 detailed plan docs + README + COMPLETION-REPORT.md + IMPLEMENTATION-MASTER-PROMPT.md for "project-shared-link-overhaul" live in main repo `.ai/03_plans/project-shared-link-overhaul/` (not present in this worktree's .ai/ due to feature-branch isolation). P14 closure used: worktree .ai/ roadmap/state/decisions, src/ inline P0–P13 self-review comments (// Pxx: ... red-first, MCP impact, design 0, additive), git log SHAs, prior V1 archive evidence, current-state mentions, AGENTS.md/Claude.md/DESIGN.md, and MCP graph. All decisions followed Master Prompt + subagent-driven-development (impacts before symbol edit, red tests, 0 design violations, no secrets, additive/backcompat, .ai/ as brain).
+**Divergence / Implementation reality notes (P14):** The 13 detailed plan docs + README + COMPLETION-REPORT.md + IMPLEMENTATION-MASTER-PROMPT.md for "project-shared-link-overhaul" live in main repo `.ai/09_archive/store/2026-05-29-project-shared-link-overhaul-complete/` (not present in this worktree's .ai/ due to feature-branch isolation). P14 closure used: worktree .ai/ roadmap/state/decisions, src/ inline P0–P13 self-review comments (// Pxx: ... red-first, MCP impact, design 0, additive), git log SHAs, prior V1 archive evidence, current-state mentions, AGENTS.md/Claude.md/DESIGN.md, and MCP graph. All decisions followed Master Prompt + subagent-driven-development (impacts before symbol edit, red tests, 0 design violations, no secrets, additive/backcompat, .ai/ as brain).
 
 **Known limitations (documented in P0–P13 + code comments):**
 - P3: Local Supabase/Docker verification blocked (authorized to proceed with linked remote `ebxxqidacheyapmmzavr` + focused tests/sims).
@@ -252,6 +254,32 @@ Current source (V1 archive + V2 implementation):
 - `.ai/09_archive/store/2026-05-27-project-client-publication-complete/15-implementation-closeout-and-remaining-gates.md`
 - Worktree src/lib/publication/*, src/components/share/*, src/components/workshop/ProjectPublicationHeader.tsx, src/app/share/[token]/page.tsx, tests/vitest/project-publication*.test.*
 - P0–P13 commit SHAs above + P14 closure in `.ai/10_state/current-state.md`, `decisions.md`, and `walkthrough-shared-link-overhaul.md`.
+
+## Phase 5B - Route transition performance optimization
+
+Status: Active planning & Groundwork Phase complete.
+
+Done:
+- Formulated the comprehensive 34-document Route Transition Performance Master Plan under `.ai/03_plans/route-transition-performance-optimization/` covering audit data, blast radius analysis, performance ADRs, and implementation strategies for sub-100ms transitions.
+- Created `BfcacheHandler` to handle pageshow events and restore navigation UI store from browser back-forward cache.
+- Created `PerformanceMonitor` to log transition times in development mode.
+- Created `usePrefetchOnHover` custom hook for anticipatory preloading of TanStack Query caches.
+- Implemented `Skeleton` reusable loading UI primitive matching standard design tokens.
+- Created native route loading skeletons (`loading.tsx`) for `/workshop`, `/workshop/library`, `/workshop/onboarding`, `/workshop/projects`, `/workshop/settings`, and `/workshop/templates` to eliminate full-screen transition overlays during data fetching.
+
+Remaining:
+- Implement Phase 1: Client routing prefetch wiring on navigation links.
+- Implement Phase 2: React Server Component prefetching and query hydration.
+- Implement Phase 3: Code splitting and bundle optimization for heavy components (e.g. Three.js dynamic loading, TanStack table dynamic loading).
+- Implement Phase 4: Dynamic rendering, build-time caching, and performance budgets.
+
+Current source:
+- `.ai/03_plans/route-transition-performance-optimization/`
+- `src/components/bfcache-handler.tsx`
+- `src/components/performance-monitor.tsx`
+- `src/components/ui/skeleton.tsx`
+- `src/hooks/use-prefetch-on-hover.ts`
+- `src/app/workshop/library/loading.tsx` etc.
 
 ## Phase 6 - AI copilot
 

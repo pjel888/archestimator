@@ -85,7 +85,7 @@ Default roles:
 - Buttons, icon buttons, and toolbar buttons must go through `src/components/ui/button.tsx` or an explicitly shared wrapper built on it.
 - Search inputs must go through the shared search/input primitive, currently `src/components/ui/search-input.tsx` when present, instead of one-off local input markup.
 - Repeated cards, chips, tabs, filters, dropdowns, panels, empty states, and inspector controls must be extracted or reused as shared components.
-- UI component work must update or follow `.ai/03_plans/ui-componentization-and-storybook-plan.md`, including the component matrix and Storybook category plan. Do not install Storybook unless Philip explicitly approves setup/dependencies.
+- UI component work must update or follow `.ai/09_archive/store/2026-05-29-implemented-plan-cleanup/ui-componentization-and-storybook-plan.md`, including the component matrix and Storybook category plan. Do not install Storybook unless Philip explicitly approves setup/dependencies.
 - Treat design-system lint failures, oversized typography, inverted text hierarchy, non-xs radius, non-regular/medium weights, nonzero tracking, bold/fill icons, and duplicated controls as blocking defects during implementation and review.
 
 ## Completion discipline
