@@ -15,6 +15,7 @@ type CostDonutChartProps = {
   /** Compact mode for constrained contexts (e.g. /share/[token] receiver next to sidebar).
    *  Uses scaled 520×400 viewBox + tighter callout padding + DESIGN-compliant smaller text.
    *  Workshop usage (no prop) remains full 720×560 unchanged.
+   *  P5: Already provides excellent mobile scaling per spec §7.3 (callouts may truncate <360px; acceptable V1).
    */
   compact?: boolean;
   className?: string;

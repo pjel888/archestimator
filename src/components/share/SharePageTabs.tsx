@@ -340,7 +340,7 @@ export default function SharePageTabs({
           </table>
         </div>
         ) : (
-          <div className="flex gap-3">
+          <div className="flex gap-2 lg:gap-3">
             {/* P4: Floating navigation tree (desktop only, hidden in Grid mode via parent conditional) */}
             <ShareFloatingTreeNav nodes={treeNodes} />
 
