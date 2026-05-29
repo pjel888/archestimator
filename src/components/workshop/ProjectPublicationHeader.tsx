@@ -4,7 +4,13 @@ import { useEffect, useState, useSyncExternalStore, useTransition } from "react"
 import { ArrowClockwise, ArrowSquareOut, LinkBreak, LinkSimple, LockSimple, Prohibit, UploadSimple } from "@phosphor-icons/react/dist/ssr";
 
 import { Button } from "@/components/ui/button";
+import {
+  ControlField,
+  ControlInput,
+  CONTROL_INPUT_SURFACE_CLASS,
+} from "@/components/ui/control-input";
 import { Modal } from "@/components/ui/modal";
+import { cn } from "@/lib/ui/cn";
 import {
   addSharedLinkRecipients,
   createProjectPublication,
@@ -17,6 +23,7 @@ import {
 import { RecipientEmailComposer } from "./publication/RecipientEmailComposer";
 export { RecipientEmailComposer };
 import SharedLinkActivityFeed from "@/components/share/SharedLinkActivityFeed";
+import { WorkshopTreeTabs, type WorkshopTreeTabItem } from "./workshop-tree";
 import type { ProjectEstimateSheet, ProjectPublicationStatus, ProjectPublicationSummary } from "@/lib/publication/types";
 
 type ProjectPublicationHeaderProps = {
@@ -192,115 +199,123 @@ export function ProjectPublicationHeader({ summary, projectEstimateSheets = [] }
           if (!next) setActiveTab("link");
           setOpen(next);
         }}
-        className="max-w-xl"
+        className="max-w-5xl"
         bodyClassName="p-0"
       >
-        <div className="grid min-h-[340px] grid-cols-[160px_minmax(0,1fr)] divide-x divide-hairline">
-          <aside className="bg-surfaceMuted p-3">
-            <p className="text-[9px] font-medium uppercase leading-3 text-tertiary">Shared link</p>
-            <p className="mt-1 text-[12px] font-medium leading-4 text-ink">{statusLabel}</p>
-            <p className="mt-0.5 text-[9px] leading-3 text-tertiary">
-              {summary?.selectedEstimateCount ?? 0} estimates, version {summary?.snapshotVersion ?? 0}
-            </p>
-            <div className="mt-3 space-y-2 text-[9px] leading-3 text-tertiary">
-              <p>
-                Opened <span className="font-medium text-secondary">{summary?.openCount ?? 0}</span> times
-              </p>
-              <p>Latest open: {formatDate(summary?.latestOpenedAt ?? null)}</p>
-              <p>Published: {formatDate(summary?.publishedAt ?? null)}</p>
-              <p>Expires: {formatDate(summary?.expiresAt ?? null)}</p>
+        <div className="grid min-h-[600px] grid-cols-[260px_minmax(0,1fr)]">
+          {/* Sidebar */}
+          <aside className="border-r border-hairline bg-surfaceMuted p-6">
+            <div className="space-y-4">
+              <div>
+                <p className="text-[9px] font-medium uppercase leading-3 tracking-normal text-tertiary">Shared link</p>
+                <p className="mt-1.5 text-[12px] font-medium leading-4 text-ink">{statusLabel}</p>
+                <p className="mt-1 text-[10px] leading-3 text-secondary">
+                  {summary?.selectedEstimateCount ?? 0} estimates · version {summary?.snapshotVersion ?? 0}
+                </p>
+              </div>
+              <div className="border-t border-hairline pt-4 space-y-3">
+                <div>
+                  <p className="text-[9px] font-medium uppercase leading-3 tracking-normal text-tertiary">Opened</p>
+                  <p className="mt-0.5 text-[10px] leading-3 text-secondary">
+                    <span className="font-medium text-ink">{summary?.openCount ?? 0}</span> times
+                  </p>
+                </div>
+                <div>
+                  <p className="text-[9px] font-medium uppercase leading-3 tracking-normal text-tertiary">Latest open</p>
+                  <p className="mt-0.5 text-[10px] leading-3 text-secondary">{formatDate(summary?.latestOpenedAt ?? null)}</p>
+                </div>
+                <div>
+                  <p className="text-[9px] font-medium uppercase leading-3 tracking-normal text-tertiary">Published</p>
+                  <p className="mt-0.5 text-[10px] leading-3 text-secondary">{formatDate(summary?.publishedAt ?? null)}</p>
+                </div>
+                <div>
+                  <p className="text-[9px] font-medium uppercase leading-3 tracking-normal text-tertiary">Expires</p>
+                  <p className="mt-0.5 text-[10px] leading-3 text-secondary">{formatDate(summary?.expiresAt ?? null)}</p>
+                </div>
+              </div>
             </div>
           </aside>
-          <div className="min-w-0 flex flex-col divide-y divide-hairline">
-            {/* P1/P4/P8: tabs (Link / Sheets / Access / Recipients / Activity owner-only) - compact 10px, rounded-xs per design system */}
-            <div className="flex border-b border-hairline bg-white px-1 text-[10px] font-medium" role="tablist" aria-label="Shared link settings">
-              {(["link", "sheets", "access", "recipients", "activity"] as const)
-                .filter((tab) => tab !== "activity" || canManagePublication)
-                .map((tab) => {
-                  const label = tab === "link" ? "Link" : tab === "sheets" ? "Sheets" : tab === "access" ? "Access" : tab === "recipients" ? "Recipients" : "Activity";
-                  const isActive = activeTab === tab;
-                  return (
-                    <button
-                      key={tab}
-                      type="button"
-                      role="tab"
-                      aria-selected={isActive}
-                      aria-controls={`pub-tab-${tab}`}
-                      className={`min-h-7 flex-1 rounded-xs px-2 py-1 transition-colors ${isActive ? "border-b-2 border-ink text-ink" : "text-tertiary hover:text-secondary hover:bg-surfaceMuted/60"}`}
-                      onClick={() => setActiveTab(tab)}
-                    >
-                      {label}
-                    </button>
-                  );
-                })}
-            </div>
 
-            {/* Tab content */}
-            <div className="flex-1 overflow-auto p-3" id={`pub-tab-${activeTab}`} role="tabpanel">
+          {/* Content */}
+          <div className="min-w-0 flex flex-col bg-white">
+            <WorkshopTreeTabs
+              tabs={(
+                [
+                  { id: "link", label: "Link" },
+                  { id: "sheets", label: "Sheets" },
+                  { id: "access", label: "Access" },
+                  { id: "recipients", label: "Recipients" },
+                  { id: "activity", label: "Activity" },
+                ] as const
+              ).filter((tab) => tab.id !== "activity" || canManagePublication)}
+              activeTab={activeTab}
+              ariaLabel="Shared link settings"
+              onTabChange={(tab) => setActiveTab(tab)}
+            />
+
+            <div className="flex-1 overflow-auto p-6">
               {activeTab === "activity" && canManagePublication && (
-                <div>
-                  <h3 className="text-[11px] font-medium text-ink">Shared link activity</h3>
+                <div className="space-y-2">
+                  <h3 className="text-[9px] font-medium uppercase leading-3 tracking-normal text-tertiary">Shared link activity</h3>
                   <p className="text-[9px] text-tertiary">Comments, decisions, and events from recipients (internal notes visible to you only).</p>
-                  <div className="mt-2">
-                    <SharedLinkActivityFeed publicationToken={summary?.clientLinkPath?.split("/").pop() || ""} isOwner={true} onActivitySeen={() => { /* update local seen for badge future */ }} />
-                  </div>
+                  <SharedLinkActivityFeed publicationToken={summary?.clientLinkPath?.split("/").pop() || ""} isOwner={true} onActivitySeen={() => { /* update local seen for badge future */ }} />
                 </div>
               )}
+
               {activeTab === "link" && (
-                <div>
+                <div className="space-y-4">
                   <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <h3 className="text-[11px] font-medium leading-4 text-ink">Shared link</h3>
-                      <p className="text-[9px] leading-3 text-tertiary">Anyone with this link can view this project page.</p>
-                    </div>
-                    <span className="rounded-xs bg-surfaceMuted px-1.5 py-0.5 text-[8px] font-medium uppercase leading-[10px] text-tertiary">
+                    <ControlField
+                      label="Shared link"
+                      helperText="Anyone with this link can view this project page."
+                      className="min-w-0 flex-1"
+                    >
+                      <div className="mt-1 grid min-w-0 grid-cols-[minmax(0,1fr)_auto_auto] gap-1">
+                        <ControlInput
+                          id="project-publication-client-link"
+                          className={cn("min-h-7", CONTROL_INPUT_SURFACE_CLASS)}
+                          aria-label="Shared link"
+                          readOnly
+                          placeholder="Create a shared link"
+                          value={absoluteClientLink}
+                          onFocus={(event) => event.currentTarget.select()}
+                        />
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="min-h-7 rounded-xs px-2 text-[10px]"
+                          aria-label="Open shared link"
+                          disabled={!clientLinkPath}
+                          onClick={openClientLink}
+                        >
+                          <ArrowSquareOut size={11} aria-hidden="true" />
+                          Open
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="min-h-7 rounded-xs px-2 text-[10px]"
+                          aria-label="Copy shared link"
+                          disabled={!clientLinkPath}
+                          onClick={() => void copyClientLink()}
+                        >
+                          <LinkSimple size={11} aria-hidden="true" />
+                          Copy
+                        </Button>
+                      </div>
+                    </ControlField>
+                    <span className="mt-5 shrink-0 rounded-xs bg-surfaceMuted px-1.5 py-0.5 text-[8px] font-medium uppercase leading-[10px] text-tertiary">
                       {passwordStateLabel}
                     </span>
-                  </div>
-                  <div className="mt-2 grid min-w-0 grid-cols-[minmax(0,1fr)_auto_auto] gap-1">
-                    <label className="sr-only" htmlFor="project-publication-client-link">
-                      Shared link
-                    </label>
-                    <input
-                      id="project-publication-client-link"
-                      className="min-h-7 min-w-0 rounded-xs border border-hairline bg-white px-2 text-[10px] leading-3 text-secondary outline-none placeholder:text-tertiary focus:border-focus"
-                      aria-label="Shared link"
-                      readOnly
-                      placeholder="Create a shared link"
-                      value={absoluteClientLink}
-                      onFocus={(event) => event.currentTarget.select()}
-                    />
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      className="min-h-7 rounded-xs px-2 text-[10px]"
-                      aria-label="Open shared link"
-                      disabled={!clientLinkPath}
-                      onClick={openClientLink}
-                    >
-                      <ArrowSquareOut size={11} aria-hidden="true" />
-                      Open
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      className="min-h-7 rounded-xs px-2 text-[10px]"
-                      aria-label="Copy shared link"
-                      disabled={!clientLinkPath}
-                      onClick={() => void copyClientLink()}
-                    >
-                      <LinkSimple size={11} aria-hidden="true" />
-                      Copy
-                    </Button>
                   </div>
                 </div>
               )}
 
               {activeTab === "sheets" && (
-                <div>
-                  <h3 className="text-[10px] font-medium leading-3 text-ink mb-1">Estimate sheets to include</h3>
+                <div className="space-y-2">
+                  <h3 className="text-[9px] font-medium uppercase leading-3 tracking-normal text-tertiary">Estimate sheets to include</h3>
                   <SheetPickerList
                     estimates={projectEstimateSheets}
                     selectedIds={selectedEstimateIds}
@@ -309,15 +324,15 @@ export function ProjectPublicationHeader({ summary, projectEstimateSheets = [] }
                     disabled={isPending}
                   />
                   {!hasSelectedEstimates && projectEstimateSheets.length > 0 && (
-                    <p className="mt-1 text-[9px] text-tertiary" role="status">0 estimates selected — generate is disabled</p>
+                    <p className="text-[9px] text-tertiary" role="status">0 estimates selected — generate is disabled</p>
                   )}
                 </div>
               )}
 
               {activeTab === "access" && (
-                <div>
-                  <h3 className="text-[10px] font-medium leading-3 text-ink">Access</h3>
-                  <label className="mt-2 flex min-h-7 items-center gap-2 rounded-xs border border-hairline bg-white px-2 text-[10px] leading-3 text-secondary">
+                <div className="space-y-3">
+                  <h3 className="text-[9px] font-medium uppercase leading-3 tracking-normal text-tertiary">Access</h3>
+                  <label className="flex min-h-7 items-center gap-2 rounded-xs border border-hairline bg-white px-2 text-[10px] leading-3 text-secondary transition hover:border-tertiary cursor-pointer">
                     <input
                       type="checkbox"
                       className="size-3 accent-ink"
@@ -334,13 +349,10 @@ export function ProjectPublicationHeader({ summary, projectEstimateSheets = [] }
                     Require password
                   </label>
                   {requirePassword ? (
-                    <div className="mt-2">
-                      <label className="sr-only" htmlFor="project-publication-password">
-                        Link password
-                      </label>
-                      <input
+                    <ControlField label="Link password" className="max-w-sm">
+                      <ControlInput
                         id="project-publication-password"
-                        className="min-h-7 w-full rounded-xs border border-hairline bg-white px-2 text-[10px] leading-3 text-secondary outline-none placeholder:text-tertiary focus:border-focus"
+                        className={cn("min-h-7", CONTROL_INPUT_SURFACE_CLASS)}
                         aria-label="Link password"
                         type="password"
                         placeholder={summary?.passwordRequired ? "Enter a new password to change it" : "Set a link password"}
@@ -353,7 +365,7 @@ export function ProjectPublicationHeader({ summary, projectEstimateSheets = [] }
                           })
                         }
                       />
-                    </div>
+                    </ControlField>
                   ) : null}
                 </div>
               )}
@@ -374,8 +386,8 @@ export function ProjectPublicationHeader({ summary, projectEstimateSheets = [] }
             </div>
 
             {/* Link controls — always visible below tabs so Generate can be disabled from Sheets tab state */}
-            <section className="p-3">
-              <h3 className="text-[10px] font-medium leading-3 text-ink">Link controls</h3>
+            <div className="border-t border-hairline p-6">
+              <h3 className="text-[9px] font-medium uppercase leading-3 tracking-normal text-tertiary">Link controls</h3>
               <div className="mt-2 flex flex-wrap gap-1.5">
                 <Button
                   type="button"
@@ -443,14 +455,14 @@ export function ProjectPublicationHeader({ summary, projectEstimateSheets = [] }
                   Turn off link
                 </Button>
               </div>
-            </section>
+            </div>
 
             {actionMessage ? (
-              <section className="p-3">
+              <div className="border-t border-hairline p-6">
                 <p className="rounded-xs bg-surfaceMuted px-2 py-1.5 text-[9px] leading-3 text-secondary" role="status">
                   {actionMessage}
                 </p>
-              </section>
+              </div>
             ) : null}
           </div>
         </div>

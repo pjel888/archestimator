@@ -1,7 +1,6 @@
 import type { ReactNode } from "react";
 
 import { ProjectMiniSidebar } from "@/components/workshop/ProjectMiniSidebar";
-import { ProjectTotalHeader } from "@/components/workshop/ProjectTotalHeader";
 import { ProjectWorkspaceHeaderRow } from "@/components/workshop/ProjectWorkspaceHeaderRow";
 import { WorkshopPageShell } from "@/components/workshop/WorkshopPageShell";
 import { sampleProjects } from "@/components/workshop/workshop-sample-projects";
@@ -42,9 +41,9 @@ export default async function ProjectLayout({ children, params }: ProjectLayoutP
         { label: "Projects", href: "/workshop/projects" },
         { label: title, href: `/workshop/projects/${projectId}` },
       ]}
-      centerHeader={<ProjectTotalHeader projectId={projectId} />}
       alignChromeToProjectSidebar
       contentClassName="pt-0 pb-0 pr-2 pl-0"
+      projectId={projectId}
     >
       <div className="flex h-full min-h-0 overflow-hidden bg-white">
         <ProjectMiniSidebar projectId={projectId} />
