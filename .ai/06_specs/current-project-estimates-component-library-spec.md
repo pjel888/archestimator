@@ -40,24 +40,20 @@ The feature exists to validate the project-estimate surface and the library-to-e
 
 ---
 
-## 2. Non-goals for the current slice
+## 2. Platform Status & Goals
 
-The following are intentionally not guaranteed by the current implementation:
+Many items originally deferred are now **fully implemented** and core to the system:
 
-- backend persistence;
-- Supabase/Postgres connection;
-- authenticated workspace data;
-- project-specific persisted libraries;
-- permanent saves of inserted rows or custom library items;
-- server-side estimate mutations;
-- proposal package generation;
-- revision/version records;
-- full spreadsheet/grid behavior;
-- supplier quote workflow;
-- destructive global library administration;
-- exact source-verified pricing.
+- **Database Persistence:** Active Supabase connection with PostgreSQL database.
+- **Security & Multi-Tenancy:** Authenticated workspace and user-scoped data access, RLS policies, and platform-wide CEO overrides.
+- **Server-Side Mutations:** All estimate tree updates (create, rename, delete, drag/reorder) and row changes (quantity, contingency, misc cost) run through Server Actions and transaction-safe RPCs.
+- **Version Control:** Timeline-based Activity History ledger documenting sheet events.
+- **Templates Library:** Reusable multi-node templates are fully database-backed.
+- **Shared Links:** VIEW-only publication snapshots with recipient verification, access logs, comments, decisions, and passwords.
 
-The current Component Library taxonomy, suppliers, and seeded reusable rows are Supabase-backed through `component_category_nodes`, `component_suppliers`, and `cost_library_items`, with static `estimateLibraryItems` retained as a test/fallback fixture. Pricing is allowed to be a demo allowance only when labeled as requiring supplier verification.
+Remaining non-goals for current version:
+- Supplier direct quote integration (direct API communication with supplier inventories).
+- Destructive global administration of cost items from client side.
 
 ---
 
@@ -620,37 +616,19 @@ Discipline belongs to the source library component metadata, not the editable es
 
 ### Current state boundary
 
-The current implementation is local-first with Supabase reconciliation:
+The implementation uses a robust three-tier state architecture with server actions and RPCs:
 
-- estimate tree and row data are read through server actions/repositories and cached in TanStack Query;
-- estimate row edits update the client cache optimistically, then reconcile with Supabase persistence;
-- inserted estimate row ids must be UUIDs because `estimate_row_items.id` is a Supabase UUID column; the client generates UUIDs for optimistic row ids, and `insertEstimateRowItemFromLibrary()` normalizes stale/non-UUID client row ids to server-generated UUIDs before inserting;
-- static UI library ids such as `lib-sofa` are persisted through `source_snapshot`, not `source_library_item_id`; only UUID-backed `cost_library_items.id` sources can remain `linked-clean`;
-- blank rows created from the estimate drop zone are persisted as unlinked project/manual rows with no `source_library_item_id`;
-- selected estimate node state lives in a scoped Zustand store keyed by estimate id so tree selection and the center sheet update immediately before route navigation catches up;
-- route state remains the deep-link and server-render reconciliation boundary;
-- editable row values live in React state inside `EstimateSheetContent` while optimistic save state is in flight;
-- component library view state lives in React state inside `EstimateRightSidebar`;
-- library preferences/favorites/recents use browser localStorage.
+- **TanStack Query (`estimateQueryKeys`):** Caches and drives the live client-side tree and estimate sheet. Hydrated from React Server Component (RSC) page loads, query mutations are optimistic and trigger cache overrides immediately to prevent latency.
+- **Zustand UI Stores:** Holds transient interface selection states (e.g., active node, panels open/collapsed, expanded nodes) keyed by estimate ID, resolving immediate UI changes before route updates occur.
+- **Supabase Persistence Layer:** Mutates database rows transactionally. Direct table writes are used for row updates, and database-side stored procedures (RPCs) are invoked for complex mutations (e.g. `public.reorder_estimate_nodes` and template insertions) to guarantee integrity.
+- **Optimistic ID Strategy:** Optimistic row entries mint client-generated UUIDs. Stale or invalid client IDs are normalized to server-generated UUIDs by `insertEstimateRowItemFromLibrary()` before database execution.
+- **Link States:** UUID-linked components are persisted with `source_library_item_id` and marked `linked-clean`. Static UI fallback items copy properties to `source_snapshot` with no library ID references. Blank manual rows are persisted as `unlinked`.
 
 ### Current implications
 
-- Tree selection must not wait for Supabase or route navigation before updating the sheet.
-- Supabase remains the canonical store after optimistic mutations settle.
-- Refreshing the page may preserve library preferences/favorites/recents because those use localStorage.
-- Custom components created in the sidebar are not persisted across refresh unless later storage is added.
-
-### Future persistence requirement
-
-Before making this production-like, introduce a repository boundary that separates:
-
-- canonical project estimate data;
-- component library source data;
-- estimate row snapshots created from library items;
-- mutable user edits;
-- localStorage-only UI preferences.
-
-Do not let UI grid/card objects become the data model.
+- **No Save Pills:** Row mutations perform optimistic cache updates and silent rollback on failure. Loading indicator badges are omitted to simulate high-performance local spreadsheet edits.
+- **Safe Cache Rollbacks:** Local state changes are indexed by transaction IDs to avoid newer query writes from being overwritten by older delayed responses.
+- **Repository Abstraction:** Components interface exclusively with Server Actions (`src/lib/estimates/actions.ts` or `src/lib/projects/actions.ts`), separating the UI from direct Supabase querying.
 
 ---
 

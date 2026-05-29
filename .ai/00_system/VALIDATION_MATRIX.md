@@ -32,19 +32,31 @@ Add `bun run test:e2e` when auth, protected-route behavior, login rendering, rou
 /contact
 /login
 /auth/callback
+/privacy
+/terms
+/api/invite/[token]/accept, continue, sign-out
+/share/[token]
 /api/ai/ask
+/api/ai/package-builder
 /api/component-library/images
 /api/component-library/attachments
+/api/projects/images
 /api/projects/[projectId]/estimates/[estimateId]/export/proposal.xlsx
+/api/share/[token]                                   (publication access/snapshot/password/comment/decision/activity/events sub-routes)
 /workshop
+/workshop/onboarding                                  (redirects to /workshop/settings)
 /workshop/projects
 /workshop/projects/[projectId]
+/workshop/projects/[projectId]/charts
 /workshop/projects/[projectId]/estimates
 /workshop/projects/[projectId]/estimates/[nodeId]
-/workshop/projects/[projectId]/charts
 /workshop/library
 /workshop/templates
-/workshop/components -> /workshop/library redirect
+/workshop/components                                  (redirects to /workshop/library)
+/workshop/settings
+/workshop/settings/profile
+/workshop/settings/workspace
+/invite/[token]
 ```
 
 Do not use the old reset-era assumption that `/workshop` is intentionally blank or that `/workshop/projects` is deleted. The authenticated Supabase-backed workshop path is now active.
