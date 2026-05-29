@@ -27,6 +27,7 @@ Active/current plan:
 - `.ai/03_plans/industry-standard-excel-proposal-export/` — active research and implementation plan for contractor-standard consolidated Excel proposal export, read-only preview, ExcelJS package choice, and room/area source-breakdown traceability.
 - `.ai/03_plans/ui-componentization-and-storybook-plan.md` — active UI component matrix, reusable-primitive pipeline, and Storybook organization plan.
 - `.ai/03_plans/estimate-tree-dnd-reorganization/` — audit, React Complex Tree API guide, implementation plan, and QA strategy for seamless live estimate-tree drag/drop reorganization.
+- `.ai/03_plans/route-transition-performance-optimization/` — active pre-implementation planning pack for comprehensive route transition performance. Includes performance audit (23 routes, 6 bottleneck categories), blast radius analysis (11 techniques, risk-scored), readiness assessment (3 blocking items), phased implementation plan (4 phases, 20+ tasks), benchmark scenarios (7 categories, 30+ test cases), and strategy ADRs (8 architectural decisions). Target: sub-100ms cold transitions, zero perceived lag, loading overlay relegated to safety net.
 
 Archived closeout / superseded plans:
 
