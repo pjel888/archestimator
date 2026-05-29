@@ -1,10 +1,11 @@
 # Estimate Tree Drag Stability Design
 
 **Date:** 2026-05-20
-**Status:** Superseded on 2026-05-20 by removal of estimate-tree drag/drop reorganization
-**Scope:** `src/components/workshop/EstimateSheetTree.tsx` drag/reorder UX only
+**Status:** Implemented (Restored and Completed 2026-05-21)
+**Scope:** `src/components/workshop/EstimateSheetTree.tsx` drag/reorder UX
 
-> Superseded note: this design is retained only as historical context. Do not implement or restore this drag/drop workflow; the current product state removes estimate-tree drag/drop entirely pending a replacement move design.
+> **Implementation Note:** React Complex Tree is used as the semantic drag-and-drop tree engine. Visual feedback uses a stable single-intent rendering model to prevent flicker. Dropping a node triggers app-side hierarchy checks, optimistic tree state updates, and calls the `public.reorder_estimate_nodes` transaction-safe RPC.
+
 
 ## Problem
 

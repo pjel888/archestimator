@@ -107,10 +107,9 @@ Domain mutations are the only legal path for structural changes:
 
 UI can optimistically update through TanStack Query, but persistence must be committed through repository/domain functions.
 
-## Next steps
+## Database & Realtime Collaboration
 
-1. Apply the migration to the linked Supabase project once the database password or Supabase PAT/MCP path is available.
-2. Generate official Supabase TypeScript types from the remote schema.
-3. Add authenticated workspace/project creation flows.
-4. Expand repository functions for insert/update/delete row items and cost-library operations.
-5. Add tests around authenticated data access and RLS expectations.
+The state foundation is fully implemented:
+1. **Migrations & Types:** All database migrations are applied to the linked Supabase project, with official TypeScript types generated in `src/lib/supabase/types.ts`.
+2. **Realtime Collaborative Cursors:** Estimate workspaces subscribe to private `estimate:{estimateId}` Broadcast channels, sync cursor coordinates via Presence, and render remote collaborator cursor labels with avatar colors.
+3. **Optimistic Sync Loops:** UI modifications patch TanStack Query caches immediately, verify edits via Server Actions, write database rows transactionally, and trigger background cache reconciliations or error rollbacks.

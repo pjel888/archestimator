@@ -1,36 +1,106 @@
-# MVP UX Flow
+# MVP User Experience Flows
 
-**Status:** Superseded by the 2026-05-17 reset cleanup. Do not use this file as the active app-flow source of truth.
+**Date:** 2026-05-29<br />
+**Status:** Active<br />
+**Purpose:** Maps the user journeys and interface navigation paths for the Archestimator MVP.
 
-Use `.ai/10_state/current-state.md` for the live route state and `.ai/06_specs/restart-guardrails.md` for restart constraints.
+---
 
-## Current baseline
+## 1. Marketing & Authentication
 
-The old full MVP UX flow is superseded. The immediate reset baseline was `/` plus blank `/workshop`, but the repo has since moved into a small post-reset workshop route slice. This file does not define that slice; it only records that the earlier broad MVP flow is not active.
+```mermaid
+flowchart TD
+    Landing["/ (Landing Page)"] -->|Get Started| Login["/login (Magic Link Gate)"]
+    Login -->|Email link sent| Callback["/auth/callback (Token verification)"]
+    Callback -->|Redirect| Homebase["/workshop (Protected Workspace Home)"]
+```
 
-## Superseded flow
+### 1.1 Landing Page (`/`)
+*   Provides product value proposition focusing on structured quotations, cost catalogs, revision track record, and client-ready exports.
+*   Runs automated A/B headline tests (e.g. "Only the smart ones create quotes this way" vs. "Your competitors are already a step ahead").
 
-Earlier versions of this document described project dashboards, estimate workspaces, component libraries, proposal pages, revisions, and local-first route families. Those flows were rejected with the prototype and must not be rebuilt by default.
+### 1.2 Access & Login (`/login`, `/auth/callback`)
+*   Email magic links act as primary login credential (no passwords for standard onboarding).
+*   CEO/platform administrator access is mapped automatically based on email role resolver.
+*   Redirect cookies (`archestimator_pending_invite`) route users directly to pending project invitations after authentication.
 
-## Restart rule
+---
 
-The next durable MVP UX flow must be written as a fresh/current spec after Philip approves the first focused workflow or after the current route slice is accepted as a direction.
+## 2. Protected Workshop Homebase (`/workshop`)
 
-A new flow must include:
+The **Workshop Homebase** is a dashboard layout featuring:
+*   **Bento Grid Tiles:** Direct shortcuts to Projects list, Component Library, and Templates.
+*   **Favorites Rail:** Quick-access links to user-starred projects and individual estimate sheets.
+*   **Intake Banner:** Alerts users of successful project addition or sheet sharing upon accepting invitations.
 
-- first user type;
-- first user job;
-- first screen state;
-- primary action;
-- success state;
-- explicit non-goals;
-- validation approach.
+---
 
-## Guardrails
+## 3. Project & Sheet Management
 
-- Start from the current approved route slice, not from the rejected full prototype.
-- Prefer one screen/workflow over a broad route family.
-- No fake dashboard/module nav until the workflow earns it.
-- No full component library/proposal/revision/settings surfaces until explicitly approved.
-- No grid/drag/drop package until a simple interaction fails.
-- No persistence layer until an accepted screen needs saved data.
+### 3.1 Project Pipeline (`/workshop/projects`)
+*   Shows a listing of all workspaces (Owned vs. Shared).
+*   **New Project Form:** Triggers a dialog capturing project details (name, client, location, budget), creates the project, and automatically redirects to the Project Dashboard.
+
+### 3.2 Project Dashboard (`/workshop/projects/[projectId]`)
+*   **Teamspaces Modal:** Allows managers to invite collaborators by email, copy invite tokens, manage roles (manager, editor, viewer), and configure specific sheet access controls.
+*   **Public Link Manager Modal:** Lets managers configure password-protected public snapshots (`/share/[token]`).
+
+### 3.3 Estimates Listing (`/workshop/projects/[projectId]/estimates`)
+*   Displays a spreadsheet table listing all estimate sheets (e.g., `ES-001`).
+*   Supports **inline sheet name/code editing** and **sheet duplication** (which deep-copies the entire node tree and row snapshots into a new sheet code).
+
+---
+
+## 4. Detailed Estimate Workspace (`/workshop/projects/[projectId]/estimates/[nodeId]`)
+
+This workspace implements a high-density, three-pane layout for estimating work.
+
+```
++-----------------------------------------------------------------------------------+
+| Project Header / Collaboration Avatars / Teamspaces / Settings Button             |
++------------------------+---------------------------------+------------------------+
+|                        |                                 |                        |
+|  Left Pane:            |  Center Pane:                   |  Right Pane:           |
+|  Estimate Node Tree    |  Estimate Sheet Grid            |  Component & Template  |
+|                        |                                 |  Library               |
+|  - Group Nodes         |  - Area Node title              |                        |
+|  - Area Nodes          |  - Table headers (material,     |  - Categories Tree     |
+|                        |    qty, unit, cost, total)      |  - Suppliers Tree      |
+|  - Drag/Drop reorder   |  - Quantity & contingency edits |  - Brands Tree         |
+|  - Context menu for    |  - Add blank rows (click zone)  |  - Templates Tab       |
+|    rename/delete       |  - Drag/Drop component cells    |                        |
+|                        |                                 |                        |
++------------------------+---------------------------------+------------------------+
+```
+
+### 4.1 Node Tree Panel (Left)
+*   Differentiates node types: **Group Nodes** (organizer folders) and **Area Nodes** (leaf locations owning cost items).
+*   Supports context menu (Radix Context Menu) to Rename (inline) and Delete (with confirmation).
+*   Allows **drag and drop reordering** of the hierarchy with optimistic client updates and database RPC alignment.
+
+### 4.2 Estimate Sheet Panel (Center)
+*   Displays item lists for the selected Area Node.
+*   Provides inline text inputs for **Quantity**, **Contingency/Discount** percentage, and **Misc Cost**. Commits trigger optimistic TanStack cache updates with background rollback safeguards.
+*   **Activity History Button:** Opens a slideout ledger detailing changes (inserts, edits, deletes) filtered by date, author, and node scope.
+
+### 4.3 Library Panel (Right)
+*   **Components Tab:** User filters cost catalog items by Category, Supplier, or Brand, then inserts them via click or drag-and-drop.
+*   **Templates Tab:** User inserts structural multi-node assemblies (e.g. "3-Bedroom Condo layout") into Group Nodes.
+
+---
+
+## 5. Cost Visualizations (`/workshop/projects/[projectId]/charts`)
+
+Provides a diagnostic dashboard comparing estimate sheets:
+*   Displays up to three estimate columns.
+*   Renders high-quality **D3 Donut Charts** (color-coded by space, category, or supplier) and alternative **D3 Packed Bubble Charts**.
+*   Centers total sums in headers and shows detailed flat/nested item ledgers below the charts.
+
+---
+
+## 6. Client Publication & Feedback (`/share/[token]`)
+
+A view-only pipeline for client presentation:
+*   **Security Barrier:** If password-locked, prompts users for a passcode and saves access via HttpOnly cookie. IP lockouts trigger on consecutive failed attempts.
+*   **Client Sheet View:** Renders estimate totals and D3 donut charts. Sub-tabs toggle between a reconstructed designation Tree View and flat Grid Preview.
+*   **Engagement Tools:** Allow clients to submit comments on rows and issue decisions (Accept / Decline / Request Revision). Events dispatch rate-limited digests to the project owner via email.

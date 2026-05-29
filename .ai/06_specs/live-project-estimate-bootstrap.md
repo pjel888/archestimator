@@ -125,10 +125,5 @@ Required gates after edits:
 
 ## Known limitations
 
-- Hosted Supabase redirect URLs still require Dashboard verification.
-- Estimate detail route now reads live Supabase tree/rows with project-scoped node validation; node selection updates immediately through scoped Zustand UI state while route navigation reconciles in the background; Group Nodes can nest under other Group Nodes while Area Nodes remain row-owning leaves; row CRUD and inline edits persist through project-scoped server actions with optimistic local/cache updates, internal dirty/saving/saved/failed mutation state, rollback on failure, and canonical row patch reconciliation after success. Visible row save-state pills are intentionally absent so editing behaves like a stable spreadsheet.
-- Estimate totals, proposal exports, recent activity, and estimate row CRUD UI are not in this slice.
-
-## Next slice
-
-Implement row creation affordances for adding new blank/manual rows, then add proposal totals/export coverage once the row mutation UX is stable.
+- Hosted Supabase redirect URLs require manual dashboard verification for production deployment environments.
+- Optimistic cache mutations are highly responsive, but performance on network latency spikes requires offline queue retries.

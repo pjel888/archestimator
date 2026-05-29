@@ -11,6 +11,7 @@ The `.ai` folder prevents agent drift. Each type of knowledge has one canonical 
 - Agent operating protocol: `.ai/00_system/AGENT_OPERATING_PROTOCOL.md`
 - Agent self-diagnostic protocol: `.ai/00_system/AGENT_SELF_DIAGNOSTIC_PROTOCOL.md`
 - Known issues and risks: `.ai/10_state/known-issues.md`
+- Feature inventory (code↔doc cross-reference): `.ai/06_specs/feature-inventory.md`
 
 If this restart chain conflicts with `.ai/README.md` active-work notes, prefer `.ai/10_state/current-state.md` and `.ai/10_state/decisions.md` until the README is refreshed. Historical workshop-recovery plans/logs are not active instructions after the reset.
 
@@ -18,15 +19,22 @@ If this restart chain conflicts with `.ai/README.md` active-work notes, prefer `
 
 These docs are the first stops for the current MVP codebase surface:
 
+- Feature inventory (code↔doc map): `.ai/06_specs/feature-inventory.md`
 - Live project and estimate bootstrap: `.ai/06_specs/live-project-estimate-bootstrap.md`
-- Project estimates and component-library source split: `.ai/06_specs/current-project-estimates-component-library-spec.md`
+- Project estimates and component-library: `.ai/06_specs/current-project-estimates-component-library-spec.md`
 - Estimate Activity contract: `.ai/09_archive/store/2026-05-29-estimate-sheet-version-control-complete/18-current-activity-contract.md`
 - Estimate Activity local-safe audit: `.ai/09_archive/store/2026-05-29-estimate-sheet-version-control-complete/19-local-safe-completion-audit.md`
 - Project charts: `.ai/09_archive/store/2026-05-29-project-charts-estimate-comparison-complete/`
 - Proposal XLSX export: `.ai/09_archive/store/2026-05-29-industry-standard-excel-proposal-export-complete/`
-- Library/Templates split, component creation/versioning, and variant assets: `.ai/09_archive/store/2026-05-29-workshop-library-components-templates-split-complete/`, `.ai/09_archive/store/2026-05-29-workshop-library-component-creation-versioning-complete/`, `.ai/09_archive/store/2026-05-29-component-variant-assets-and-cost-history-complete/`
-- AI Ask-only readiness and implementation: `.ai/03_plans/ai-chatbot-agent-readiness/`
+- Shared link / publication: `.ai/06_specs/shared-link-and-publication-spec.md`, `.ai/06_specs/walkthrough-shared-link-overhaul.md`
+- AI copilot and package builder: `.ai/06_specs/ai-assistant-and-package-builder-spec.md`, `.ai/03_plans/ai-chatbot-agent-readiness/`
+- Teamspaces collaboration: `.ai/06_specs/teamspaces-collaboration-spec.md`
+- Library/Templates: `.ai/09_archive/store/2026-05-29-workshop-library-components-templates-split-complete/`
+- Component creation/versioning: `.ai/09_archive/store/2026-05-29-workshop-library-component-creation-versioning-complete/`
+- Component variants/assets/cost: `.ai/09_archive/store/2026-05-29-component-variant-assets-and-cost-history-complete/`
 - UI componentization: `.ai/09_archive/store/2026-05-29-implemented-plan-cleanup/ui-componentization-and-storybook-plan.md`
+- Route transition performance: `.ai/03_plans/route-transition-performance-optimization/`
+- Landing page improvement: `.ai/03_plans/landing-page-improvement/`
 
 Do not treat an older plan as active if these docs or `.ai/10_state/*` say the implementation has moved on.
 
