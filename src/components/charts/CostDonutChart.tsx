@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { arc, pie } from "d3";
-import type { PieArcDatum } from "d3";
+import type { PieArcDatum } from "d3-shape";
 
 import type { CostBucket } from "@/lib/charts/types";
 import { cn } from "@/lib/ui/cn";
@@ -232,13 +232,13 @@ export function CostDonutChart({
   const data: PieDatum[] = useMemo(
     () =>
       buckets
-        .filter((bucket) => bucket.total > 0)
+        .filter((bucket) => Number.isFinite(bucket.total) && bucket.total > 0)
         .map((bucket) => ({
           id: bucket.id,
           label: bucket.label,
           value: bucket.total,
           color: bucket.color,
-          share: bucket.share,
+          share: Number.isFinite(bucket.share) ? bucket.share : 0,
           rowCount: bucket.rowCount,
         })),
     [buckets]
@@ -255,21 +255,32 @@ export function CostDonutChart({
       .outerRadius((datum) => (datum.data.id === activeId ? OUTER_RADIUS + 4 : OUTER_RADIUS))
       .cornerRadius(3);
 
-    return pieGenerator(data).map((datum) => ({
-      datum,
-      path: arcGenerator(datum) ?? "",
-    }));
+    // Fallback arc without corner radius for edge cases (e.g. full-circle single slice)
+    const fallbackArcGenerator = arc<PieArcDatum<PieDatum>>()
+      .innerRadius(INNER_RADIUS)
+      .outerRadius((datum) => (datum.data.id === activeId ? OUTER_RADIUS + 4 : OUTER_RADIUS));
+
+    return pieGenerator(data).map((datum) => {
+      const path = arcGenerator(datum);
+      if (path) return { datum, path };
+      return { datum, path: fallbackArcGenerator(datum) ?? "" };
+    });
   }, [activeId, data, INNER_RADIUS, OUTER_RADIUS]);
 
   const callouts = useMemo(() => buildCallouts(arcs, dims), [arcs, dims]);
   const activeDatum = activeId ? data.find((d) => d.id === activeId) ?? null : null;
 
-  const emptyMinH = compact ? "min-h-[360px]" : "min-h-[520px]";
+  const emptyMinH = compact ? "h-[400px]" : "min-h-[520px]";
 
-  if (data.length === 0 || total <= 0) {
+  // Guard against invalid data (NaN totals, negative values, or empty dataset)
+  const safeTotal = Number.isFinite(total) && total > 0 ? total : 0;
+  if (data.length === 0 || safeTotal <= 0) {
     return (
-      <div className={`flex ${emptyMinH} items-center justify-center rounded-xs border border-dashed border-hairline text-[10px] text-muted-foreground`}>
-        No cost rows
+      <div className={`flex ${emptyMinH} flex-col items-center justify-center gap-2 rounded-xs border border-dashed border-hairline bg-surface-muted text-[10px]`}>
+        <span className="text-tertiary">No cost rows</span>
+        <span className="text-[9px] text-muted tabular-nums">
+          buckets:{buckets.length} · total:{safeTotal}
+        </span>
       </div>
     );
   }
@@ -283,17 +294,22 @@ export function CostDonutChart({
   const calloutLabelFont = compact ? "text-[8px]" : "text-[9px]";
   const calloutValueFont = compact ? "text-[8px]" : "text-[9px]";
 
-  // Compact path (share receiver): aspect-ratio container + h-full svg guarantees the full
-  // 520x400 viewBox (callouts at LABEL_MIN_Y/MAX_Y) is always visibly allocated from the
-  // flex-1 column width. Fixes "literally can't see the donut" clipping in lg+ sidebar layout.
-  // Workshop (non-compact) path is visually identical to pre-polish (viewBox ratio via intrinsic sizing).
+  // Compact path (share receiver): explicit height container guarantees the full
+  // 520x400 viewBox is always visibly allocated. aspect-ratio was unreliable in
+  // flex-1 + sidebar layouts across browsers, so we use a fixed height derived
+  // from the viewBox ratio (400/520 * max-width ≈ 400px at full width).
+  // Workshop (non-compact) path relies on SVG intrinsic sizing.
   const chartContainerClass = compact
-    ? "mx-auto w-full max-w-[520px] aspect-[520/400]"
+    ? "w-full h-[400px]"
     : "mx-auto w-full max-w-[720px]";
 
   return (
     <div className="relative w-full" aria-label={label}>
-      <div className={chartContainerClass}>
+      {/* Debug badge — always visible so user can report back what they see */}
+      <div className="absolute right-1 top-1 z-10 rounded-xs bg-black/70 px-1.5 py-px text-[8px] text-white tabular-nums">
+        🍩 buckets:{data.length} total:{safeTotal}
+      </div>
+      <div className={cn(chartContainerClass, "bg-white")}>
         <svg
           viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
           className={cn("w-full h-full block", className)}

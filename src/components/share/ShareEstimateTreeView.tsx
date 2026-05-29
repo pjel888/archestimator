@@ -40,6 +40,7 @@ interface ShareEstimateTreeViewProps {
   nodes: ShareTreeNode[];
   currencyCode: string;
   disclaimer?: string;
+  activeNodeId?: string;
 }
 
 function formatMoney(value: number, currencyCode: string) {
@@ -53,6 +54,7 @@ type TreeNodeRendererProps = WorkshopTreeRenderNodeArgs<ShareTreeNode> & {
   currencyCode: string;
   onToggle?: (id: string) => void;
   isMobile?: boolean;
+  activeNodeId?: string;
 };
 
 function TreeNodeRenderer({
@@ -64,23 +66,27 @@ function TreeNodeRenderer({
   currencyCode,
   onToggle,
   isMobile = false,
+  activeNodeId,
 }: TreeNodeRendererProps) {
   const isGroup = node.kind === "group";
+  const isActive = activeNodeId === node.id;
   const Icon = isGroup ? FolderSimple : Cube;
 
-  // P5 mobile: per spec §7.2 use 12px step / 80px cap; desktop uses shared 20px/140px constants.
   const indentStep = isMobile ? 12 : WORKSHOP_TREE_INDENT_STEP;
   const maxIndent = isMobile ? 80 : WORKSHOP_TREE_MAX_INDENT;
 
-  // Row items under this node (only areas carry direct rows per reconstruction contract).
-  // +1 level indent from parent area (consistent with workshop patterns + spec).
-  // Polished hover/spacing/alignment for UI quality (matches workshop tree density + grid preview numeric rhythm,
-  // DESIGN compact 10px/9px, xs radius, hairline, proposalPaper context via parent).
+  const nodeHeaderIndent = isMobile
+    ? Math.min(depth * 12, 80)
+    : Math.min(depth * indentStep, maxIndent);
+
+  const rowIndent = isMobile
+    ? Math.min((depth + 1) * 12, 80) + 4
+    : Math.min((depth + 1) * indentStep, maxIndent) + indentStep;
+
   const rowItems = node.kind === "area" && node.rows && node.rows.length > 0 ? (
     <div
-      className="border-l border-hairline/60"
       style={{
-        paddingLeft: `${Math.min((depth + 1) * indentStep, maxIndent) + 4}px`,
+        paddingLeft: `${rowIndent}px`,
       }}
     >
       {node.rows.map((row) => {
@@ -90,10 +96,10 @@ function TreeNodeRenderer({
           return (
             <div
               key={row.id}
-              className="group flex min-h-[26px] items-center gap-2 border-b border-hairline/40 py-0.5 pr-2 text-[10px] text-secondary last:border-b-0 hover:bg-surfaceMuted/50 active:bg-surfaceMuted touch-manipulation"
+              className="group flex min-h-[26px] items-center gap-2 py-0.5 pr-2 text-[10px] text-secondary hover:bg-surfaceMuted/50 active:bg-surfaceMuted touch-manipulation"
             >
               {row.imageUrl ? (
-                <div className="h-4 w-4 flex-shrink-0 overflow-hidden rounded-xs border border-hairline bg-surfaceMuted">
+                <div className="h-4 w-4 flex-shrink-0 overflow-hidden rounded-xs bg-surfaceMuted">
                   <Image
                     src={row.imageUrl}
                     alt=""
@@ -118,11 +124,11 @@ function TreeNodeRenderer({
         return (
           <div
             key={row.id}
-            className="group flex min-h-[20px] items-center gap-1.5 border-b border-hairline/30 py-px pr-2 text-[10px] text-secondary last:border-b-0 hover:bg-surfaceMuted/60 active:bg-surfaceMuted touch-manipulation"
+            className="group flex min-h-[20px] items-center gap-1.5 py-px pr-2 text-[10px] text-secondary hover:bg-surfaceMuted/60 active:bg-surfaceMuted touch-manipulation"
           >
             {/* Optional thumbnail (P9 snapshot imageUrl) — compact 16-20px for tree density */}
             {row.imageUrl ? (
-              <div className="h-4 w-4 flex-shrink-0 overflow-hidden rounded-xs border border-hairline bg-surfaceMuted">
+              <div className="h-4 w-4 flex-shrink-0 overflow-hidden rounded-xs bg-surfaceMuted">
                 <Image
                   src={row.imageUrl}
                   alt=""
@@ -162,17 +168,16 @@ function TreeNodeRenderer({
   ) : null;
 
   return (
-    <>
-      {/* Node header — reuse WorkshopTreeRow for canonical hover/focus/indent/rounded-xs/min-h-7 per workshop patterns + DESIGN tokens */}
-      {/* P5 a11y (spec §9): role=treeitem + aria-expanded + tabIndex + Enter/Space keyboard toggle for full keyboard operability + screen reader tree structure. */}
+    <div data-share-tree-node-id={node.id} className={`${depth === 0 ? "mt-0" : "mt-3"} ${node.kind === "group" ? "border-t border-hairline/50" : ""}`} style={{ paddingLeft: `${nodeHeaderIndent}px` }}>
       <WorkshopTreeRow
         as="div"
         id={node.id}
-        depth={depth}
+        depth={0}
         role="treeitem"
         aria-expanded={hasChildren ? expanded : undefined}
         tabIndex={hasChildren ? 0 : -1}
-        className={`border-l border-hairline/70 cursor-pointer ${depth === 0 && hasChildren ? "bg-[#FFFDF8]" : ""}`}
+        className={`cursor-pointer border-l-2 ${isActive ? "border-l-accent bg-accent-soft" : isGroup ? "border-l-divider bg-surfaceMuted" : "border-l-transparent"} mb-1`}
+        style={{ minHeight: isGroup ? "72px" : "44px" }}
         data-share-tree-node={node.kind}
         data-share-tree-expanded={expanded ? "true" : "false"}
         data-share-tree-depth={depth}
@@ -183,13 +188,6 @@ function TreeNodeRenderer({
             onToggle(node.id);
           }
         }}
-        // Mobile: reduced indent per spec §7.2 (override wins via merge in WorkshopTreeRow).
-        // Desktop: fully delegate to workshopTreeIndentStyle(depth) via the row primitive for exact workshop match.
-        style={
-          isMobile
-            ? { paddingLeft: `${Math.min(depth * 12, 80)}px` }
-            : undefined
-        }
       >
         <div className="flex w-full items-center gap-1.5">
           {hasChildren ? (
@@ -224,16 +222,13 @@ function TreeNodeRenderer({
         </div>
       </WorkshopTreeRow>
 
-      {/* Inline row items (only under area nodes) — +1 level indent, compact read-only presentation */}
       {rowItems}
-
-      {/* Subtree children (other groups/areas) from WorkshopTree engine */}
       {children}
-    </>
+    </div>
   );
 }
 
-export function ShareEstimateTreeView({ nodes, currencyCode, disclaimer }: ShareEstimateTreeViewProps) {
+export function ShareEstimateTreeView({ nodes, currencyCode, disclaimer, activeNodeId }: ShareEstimateTreeViewProps) {
   // P5 mobile detection (per spec §7.2 breakpoints <768px): drives collapsed default, reduced indent, simplified rows.
   const [isMobile, setIsMobile] = useState(false);
   useEffect(() => {
@@ -276,21 +271,21 @@ export function ShareEstimateTreeView({ nodes, currencyCode, disclaimer }: Share
   // Close over currencyCode + toggle + isMobile so the read-only renderer (and its row items) are currency-aware + interactive + mobile-aware.
   // This keeps the WorkshopTree<TNode> contract unchanged (renderNode receives only the standard args + our thin extras).
   const renderNode = (args: WorkshopTreeRenderNodeArgs<ShareTreeNode>) => (
-    <TreeNodeRenderer {...args} currencyCode={currencyCode} onToggle={toggleNode} isMobile={isMobile} />
+    <TreeNodeRenderer {...args} currencyCode={currencyCode} onToggle={toggleNode} isMobile={isMobile} activeNodeId={activeNodeId} />
   );
 
   if (nodes.length === 0) {
     return (
-      <div className="p-4 text-[10px] text-tertiary border border-hairline bg-[#FFFDF8]">
+      <div className="p-4 text-[10px] text-tertiary">
         No estimate items.
       </div>
     );
   }
 
   return (
-    <div className="border border-hairline bg-[#FFFDF8]">
+    <div>
       {disclaimer && (
-        <div className="border-b border-hairline bg-surfaceMuted px-3 py-1 text-[9px] text-tertiary">
+        <div className="bg-surfaceMuted px-3 py-1 text-[9px] text-tertiary">
           {disclaimer}
         </div>
       )}

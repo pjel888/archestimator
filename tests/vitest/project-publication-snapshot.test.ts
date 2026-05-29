@@ -64,6 +64,8 @@ describe("project publication snapshot builder (Shared Link V2)", () => {
       miscCost: 100,
       contingencyPercentage: 10,
       rowTotal: 2300,
+      imageUrl: null,
+      nodeId: null,
     });
     expect(snapshot.totalCost).toBe(2300);
     expect(JSON.stringify(snapshot)).not.toContain("Internal supplier");

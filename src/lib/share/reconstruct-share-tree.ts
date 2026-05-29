@@ -1,4 +1,4 @@
-import type { PublicationSnapshotRow } from "@/lib/publication/types";
+import type { PublicationSnapshotRow, PublicationSnapshotTreeNode } from "@/lib/publication/types";
 
 /**
  * Share Page Estimate View — Tree Reconstruction (client-side, from flat snapshot rows)
@@ -249,10 +249,89 @@ export function reconstructTreeByDiscipline(rows: PublicationSnapshotRow[]): Sha
 }
 
 /**
- * Convenience: returns the best available tree for the given rows.
- * Uses designation reconstruction unless the sheet is very large.
+ * Build ShareTreeNode[] from actual snapshot tree nodes (workshop estimate_nodes).
+ * This preserves the exact group/area hierarchy and row grouping from the workshop.
+ * Falls back gracefully when snapshot treeNodes are missing or empty.
  */
-export function getBestShareTree(rows: PublicationSnapshotRow[]): ShareTreeNode[] {
+export function buildShareTreeFromSnapshotNodes(
+  nodes: PublicationSnapshotTreeNode[],
+  rows: PublicationSnapshotRow[]
+): ShareTreeNode[] {
+  if (!nodes || nodes.length === 0) return [];
+
+  const rowsByNodeId = new Map<string, PublicationSnapshotRow[]>();
+  const nodeIds = new Set<string>();
+  const collectIds = (list: PublicationSnapshotTreeNode[]) => {
+    for (const n of list) {
+      nodeIds.add(n.id);
+      collectIds(n.children);
+    }
+  };
+  collectIds(nodes);
+
+  const unmatched: PublicationSnapshotRow[] = [];
+  for (const row of rows) {
+    const nid = row.nodeId;
+    if (!nid || !nodeIds.has(nid)) {
+      if (nid) unmatched.push(row);
+      continue;
+    }
+    const current = rowsByNodeId.get(nid) ?? [];
+    current.push(row);
+    rowsByNodeId.set(nid, current);
+  }
+
+  function visit(node: PublicationSnapshotTreeNode, depth: number): ShareTreeNode {
+    const childNodes = node.children.map((c) => visit(c, depth + 1));
+    const directRows = node.kind === "area" ? (rowsByNodeId.get(node.id) ?? []) : [];
+    const directTotal = directRows.reduce((s, r) => s + (r.rowTotal ?? 0), 0);
+    const directRowCount = directRows.length;
+    const childrenTotal = childNodes.reduce((s, c) => s + c.total, 0);
+    const childrenRowCount = childNodes.reduce((s, c) => s + c.rowCount, 0);
+
+    return {
+      id: `share-tree-${node.id}`,
+      label: node.name,
+      kind: node.kind,
+      total: directTotal + childrenTotal,
+      rowCount: directRowCount + childrenRowCount,
+      children: childNodes,
+      rows: directRows,
+      depth,
+    };
+  }
+
+  const result = nodes.map((n) => visit(n, 0));
+
+  if (unmatched.length > 0) {
+    const unassignedTotal = unmatched.reduce((s, r) => s + (r.rowTotal ?? 0), 0);
+    result.push({
+      id: "share-tree-unassigned",
+      label: "Unassigned",
+      kind: "area",
+      total: unassignedTotal,
+      rowCount: unmatched.length,
+      children: [],
+      rows: unmatched,
+      depth: 0,
+    });
+  }
+
+  return result;
+}
+
+/**
+ * Convenience: returns the best available tree for the given rows.
+ * Uses snapshot treeNodes when available, otherwise falls back to designation reconstruction.
+ */
+export function getBestShareTree(
+  rows: PublicationSnapshotRow[],
+  treeNodes?: PublicationSnapshotTreeNode[]
+): ShareTreeNode[] {
+  if (treeNodes && treeNodes.length > 0) {
+    const fromNodes = buildShareTreeFromSnapshotNodes(treeNodes, rows);
+    if (fromNodes.length > 0) return fromNodes;
+  }
   if (rows.length > MAX_ROWS_FOR_TREE) {
     return reconstructTreeByDiscipline(rows);
   }
