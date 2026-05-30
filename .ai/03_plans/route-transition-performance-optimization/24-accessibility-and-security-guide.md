@@ -1,6 +1,8 @@
 # 24 — Accessibility & Security Guide
 
-**Status:** Complete  
+> ⚠️ **SUPERSEDED.** Contains fetchProjects reference (fake function). Use `CURRENT_CANONICAL_PLAN.md` for security guardrails.
+
+**Status:** SUPERSEDED  
 **Created:** 2026-05-29  
 **Purpose:** Ensure performance optimizations maintain accessibility standards and don't introduce security vulnerabilities. Covers WCAG compliance, screen reader support, keyboard navigation, and security best practices.
 

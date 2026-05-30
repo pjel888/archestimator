@@ -1,9 +1,11 @@
 # 04 — Implementation Plan: Phased Route Transition Performance Optimization
 
-**Status:** Planning Complete  
+> ⚠️ **SUPERSEDED — DO NOT IMPLEMENT FROM THIS DOCUMENT.** Task 1.5.1 ("Migrate Proxy.ts to Next.js Middleware — create src/middleware.ts, delete src/proxy.ts") is WRONG for Next.js 16 where proxy.ts IS the active middleware. Task 2.2 uses fake React Query keys that don't exist. Dynamic import examples in Task 1.3 use default-import syntax (will fail with named exports). See `CURRENT_CANONICAL_PLAN.md` for the corrected phased plan, `IMPLEMENTATION_MATRIX.md` for task-by-task status, and `ADR_UPDATES.md` for all corrected ADRs. The general phase structure and non-code-splitting tasks remain directionally useful as historical context.
+
+**Status:** SUPERSEDED  
 **Created:** 2026-05-29  
-**Implementation Start:** ⏳ Pending owner approval  
-**Phases:** 4 phases, each independently shippable and verifiable
+**Superseded by:** `CURRENT_CANONICAL_PLAN.md`, `IMPLEMENTATION_MATRIX.md`, `ADR_UPDATES.md`  
+**Implementation Start:** ⏳ Pending owner approval — use canonical docs only
 
 > **⚠️ READ FIRST:** Before implementing ANY loading UI, read `33-loading-sequence-progressive-enhancement.md` — it defines the exact UX timeline for all navigation scenarios. Every loading state (skeletons, overlay, bfcache) must follow this unified sequence.
 

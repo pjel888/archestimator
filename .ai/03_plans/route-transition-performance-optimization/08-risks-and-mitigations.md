@@ -1,6 +1,8 @@
 # 08 — Risks & Mitigations
 
-**Status:** Complete  
+> ⚠️ **SUPERSEDED.** R12 assumes 150ms overlay show delay (not implemented — current: immediate show + MIN_DISPLAY_MS=250). R21 references middleware.ts creation (superseded). R26 references unstable_cache without user-scoping. See `CURRENT_CANONICAL_PLAN.md` and `ADR_UPDATES.md`.
+
+**Status:** SUPERSEDED  
 **Created:** 2026-05-29  
 
 ---

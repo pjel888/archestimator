@@ -1,6 +1,8 @@
 # 03 — Readiness Assessment: Pre-Implementation Checklist
 
-**Status:** Complete  
+> ⚠️ **SUPERSEDED.** The claim "no middleware exists — auth at data layer" is FALSE in Next.js 16. `src/proxy.ts` IS the active middleware. See `CURRENT_CANONICAL_PLAN.md` §"Corrected Assumptions" #1.
+
+**Status:** SUPERSEDED  
 **Created:** 2026-05-29  
 **Purpose:** Determine if the codebase, tooling, and team are ready for route transition performance optimization.
 

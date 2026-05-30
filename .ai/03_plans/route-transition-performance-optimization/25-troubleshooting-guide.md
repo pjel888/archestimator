@@ -1,6 +1,8 @@
 # 25 — Troubleshooting Guide
 
-**Status:** Complete  
+> ⚠️ **SUPERSEDED.** Contains getSession() example (security risk), fake fetchProjects queryFn (doesn't exist), and default dynamic import syntax examples (will fail with named exports). Use `CURRENT_CANONICAL_PLAN.md` and `IMPLEMENTATION_MATRIX.md` for current instructions.
+
+**Status:** SUPERSEDED  
 **Created:** 2026-05-29  
 **Purpose:** Common issues and solutions when implementing route transition performance optimizations. Covers debugging techniques, error messages, and resolution steps.
 

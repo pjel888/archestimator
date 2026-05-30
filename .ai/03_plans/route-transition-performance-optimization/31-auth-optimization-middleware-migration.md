@@ -1,8 +1,11 @@
 # 31 — Auth Optimization & Middleware Migration
 
-**Status:** New  
+> ⚠️ **SUPERSEDED — DO NOT IMPLEMENT.** This document was written under the assumption that `src/proxy.ts` is dead code and that creating `src/middleware.ts` is needed. Both claims are FALSE in Next.js 16, where `proxy.ts` IS the active middleware file (renamed from `middleware.ts`). The recommendation to use `getSession()` for speed is a SECURITY RISK per current Supabase SSR documentation. See `CURRENT_CANONICAL_PLAN.md` §"Corrected Assumptions" #1 and #2, and `ADR_UPDATES.md` ADR-009 and ADR-013 for the corrected decisions.
+
+**Status:** SUPERSEDED  
 **Created:** 2026-05-29  
-**Purpose:** Concrete migration plan for moving auth from `WorkshopPageShell`-level Server Component calls to edge middleware. Reduces per-navigation latency, prevents wasted server compute, and enables future static generation of workshop shell components.
+**Superseded by:** `CURRENT_CANONICAL_PLAN.md`, `ADR_UPDATES.md`  
+**Historical purpose:** (Retained for reference) Concrete migration plan for moving auth from `WorkshopPageShell`-level Server Component calls to edge middleware.
 
 ---
 

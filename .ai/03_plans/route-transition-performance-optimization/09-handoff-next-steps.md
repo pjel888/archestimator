@@ -1,8 +1,9 @@
 # 09 — Handoff: Next Steps for Implementation
 
-**Status:** Updated 2026-05-29 (codebase-verified corrections)  
-**Created:** 2026-05-29  
-**Purpose:** Concrete, ordered instructions for the next agent/developer picking up this plan.
+> ⚠️ **SUPERSEDED — DO NOT IMPLEMENT.** This document references `31-auth-optimization-middleware-migration.md` ("proxy.ts is dead code") which is FALSE in Next 16. See `CURRENT_CANONICAL_PLAN.md` for the corrected next steps, `IMPLEMENTATION_AGENT_INSTRUCTIONS.md` for the implementation AI guide, and `IMPLEMENTATION_MATRIX.md` for task status.
+
+**Status:** SUPERSEDED  
+**Created:** 2026-05-29
 
 > **⚠️ CRITICAL:** Before ANY implementation, read the six key verification documents:
 > - **`13-verified-codebase-facts.md`** — canonical reference for all codebase claims (source file + line numbers)

@@ -280,11 +280,11 @@
 
 ### 2.11 Proxy.ts → Middleware Migration
 
-**Change:** Migrate auth logic from `src/proxy.ts` to `src/middleware.ts` (Next.js Edge runtime).
+**Change:** ⚠️ SUPERSEDED — In Next.js 16, `src/proxy.ts` IS already the middleware. Do NOT create `src/middleware.ts`. Instead, optimize the existing `proxy.ts` (add public-route early-return). See `CURRENT_CANONICAL_PLAN.md` §"Corrected Assumptions" #1.
 
 **Files modified:**
 - `src/proxy.ts` — extract auth logic
-- `src/middleware.ts` — new file, implement Edge-compatible auth
+- ⚠️ SUPERSEDED — `src/proxy.ts` IS the middleware. Do not create `src/middleware.ts`.
 
 **What depends on this:**
 - **All protected routes** (`/workshop/*`, `/api/protected/*`) — currently rely on proxy.ts running before page render
@@ -300,7 +300,7 @@
 
 **Risk:** MEDIUM-HIGH. Core auth infrastructure change. Requires extensive testing.
 
-**Rollback:** Delete `src/middleware.ts`, restore `src/proxy.ts` imports in all pages.
+**Rollback:** ⚠️ SUPERSEDED — No middleware.ts to roll back. Optimization is additive (early-return in proxy.ts). Revert the added early-return.
 
 **Dependencies:**
 - Supabase auth session validation

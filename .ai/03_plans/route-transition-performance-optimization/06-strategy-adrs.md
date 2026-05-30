@@ -1,8 +1,11 @@
 # 06 — Strategy ADRs: Architecture Decision Records
 
-**Status:** Complete  
+> ⚠️ **SUPERSEDED — DO NOT IMPLEMENT.** ADR-006 (150ms overlay show delay + remove min-display) is WRONG — the current code correctly uses immediate show + MIN_DISPLAY_MS=250. ADR-013 (proxy.ts → middleware migration, use getSession()) contains two errors: proxy.ts IS the middleware in Next 16, and getSession() is a security risk. See `ADR_UPDATES.md` for all 14 corrected ADRs. The remaining ADRs (001-005, 007-008, 010-012, 014) are directionally valid but have been refined in the updates.
+
+**Status:** SUPERSEDED  
 **Created:** 2026-05-29  
-**Purpose:** Document and justify key architecture decisions for the route transition performance strategy.
+**Superseded by:** `ADR_UPDATES.md`  
+**Historical purpose:** (Retained for reference) Document and justify key architecture decisions.
 
 ---
 

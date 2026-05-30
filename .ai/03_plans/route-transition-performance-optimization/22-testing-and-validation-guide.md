@@ -1,6 +1,8 @@
 # 22 — Testing & Validation Guide
 
-**Status:** Complete  
+> ⚠️ **SUPERSEDED.** Contains references to fake functions (fetchProjects, etc.). Use `BENCHMARK_PROTOCOL.md` and `IMPLEMENTATION_MATRIX.md` for current validation steps.
+
+**Status:** SUPERSEDED  
 **Created:** 2026-05-29  
 **Purpose:** Comprehensive testing strategy for all performance optimizations. Ensures quality, prevents regressions, and validates improvements.
 

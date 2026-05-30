@@ -1,8 +1,11 @@
 # 12 — Overlay Fallback Strategy: Making the Loading Overlay a Rare Event
 
-**Status:** New  
+> ⚠️ **SUPERSEDED §6 (Overlay Timing Changes).** The 150ms show delay and "remove MIN_DISPLAY_MS" recommendations in §6 contradict the current implementation (immediate show + MIN_DISPLAY_MS=250) and the decision documented in `ADR_UPDATES.md` ADR-006. The overlay timing strategy is deferred until AFTER baseline measurement. See `CURRENT_CANONICAL_PLAN.md` §"Corrected Assumptions" #3. The layered defense strategy (§4, §5) and success criteria (§7) remain directionally valid.
+
+**Status:** PARTIALLY SUPERSEDED  
 **Created:** 2026-05-29  
-**Purpose:** Define the strategy for making the route transition loading overlay (`.ai/09_archive/route-transition-loading-overlay/`) appear only in truly rare cases. The overlay should be a safety net, not the primary loading experience.
+**Superseded by:** `CURRENT_CANONICAL_PLAN.md`, `ADR_UPDATES.md` ADR-006  
+**Historical purpose:** (Retained for reference) Define the strategy for making the overlay a rare event.
 
 ---
 
