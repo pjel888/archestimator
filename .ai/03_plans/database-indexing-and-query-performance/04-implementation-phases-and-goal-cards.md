@@ -18,13 +18,13 @@
 |-------|-------|
 | Wave | 2 (after staging exists) |
 | Lane | BETA P0 |
-| Status | READY FOR CODEX |
+| Status | READY FOR CODEX (repo-only audit). Live Supabase metrics: READY ONLY IF staging access exists. |
 | Owner | Codex |
-| Dependencies | None for repo inspection; staging preferred for live metrics |
-| Explicit non-goals | Creating indexes, running DDL, modifying migrations |
+| Dependencies | None for repo inspection and migration file audit. Staging preferred for live metrics. |
+| Explicit non-goals | Creating indexes, running DDL, modifying migrations. Do NOT fabricate live metrics if Supabase access is unavailable. |
 
 ### Outcome
-Complete index/query inventory and critical flow query map. All results documented, no DDL executed.
+Complete index/query inventory and critical flow query map. All results documented, no DDL executed. Output MUST separate: (a) repo-derived query map, (b) migration-derived index inventory, (c) live Supabase metrics (if available), (d) gaps requiring DB access.
 
 ### Why Now
 Must understand current index coverage and query patterns before beta. Prevents reactive/speculative indexing under scale pressure.
@@ -51,7 +51,7 @@ Must understand current index coverage and query patterns before beta. Prevents 
 |-------|-------|
 | Wave | 2 |
 | Lane | BETA P0 |
-| Status | READY FOR CODEX AFTER STAGING TARGET CONFIRMED |
+| Status | READY FOR CODEX AFTER STAGING TARGET CONFIRMED. If staging unavailable, linked-dev read-only parity check only if explicitly allowed. Never apply migrations. |
 | Owner | Codex |
 | Dependencies | Staging Supabase target |
 | Explicit non-goals | Creating indexes, applying migrations, modifying schema |
@@ -80,7 +80,7 @@ Migration parity must be verified before designing indexes. Shared-link tables m
 |-------|-------|
 | Wave | 2 |
 | Lane | BETA P0 |
-| Status | READY FOR CODEX AFTER STAGING TARGET CONFIRMED |
+| Status | READY FOR CODEX AFTER STAGING TARGET CONFIRMED. Requires representative seed data or documented limitation. If staging data too small, EXPLAIN evidence is directional only. |
 | Owner | Codex |
 | Dependencies | Staging with representative seed data |
 | Explicit non-goals | Creating indexes, running DDL |
@@ -108,10 +108,10 @@ Must have query plan evidence before any index can be proposed. Prevents specula
 |-------|-------|
 | Wave | 3 (after audit + EXPLAIN) |
 | Lane | BETA P1 |
-| Status | READY FOR CODEX AFTER DBIDX-001/002/003 |
+| Status | READY FOR CODEX AFTER DBIDX-001/002/003 + OWNER APPROVAL |
 | Owner | Codex |
-| Dependencies | Audit (DBIDX-001), parity (DBIDX-002), EXPLAIN evidence (DBIDX-003) |
-| Explicit non-goals | Applying to production, creating indexes without EXPLAIN evidence |
+| Dependencies | DBIDX-001 complete, DBIDX-002 complete, DBIDX-003 complete, Philip approval of candidate index shortlist, staging target confirmed |
+| Explicit non-goals | Applying to production, creating indexes without EXPLAIN evidence. Do NOT place migration into `supabase/migrations/` unless Philip explicitly approves. Do NOT create production DDL. |
 
 ### Outcome
 Draft a candidate migration for staging review only. Includes only evidence-backed indexes with rationale.
@@ -140,10 +140,10 @@ This card may create a draft migration only after owner approval of the EXPLAIN 
 |-------|-------|
 | Wave | 6 (enterprise MVP) |
 | Lane | BETA P1 / ENTERPRISE MVP |
-| Status | PLANNED |
+| Status | PLANNED. Blocked until server-side search is approved. |
 | Owner | Codex |
 | Dependencies | Server-side search decision |
-| Explicit non-goals | Creating search indexes before search moves server-side, vector/RAG indexes |
+| Explicit non-goals | Creating search indexes before search moves server-side, vector/RAG indexes. No `pg_trgm`, `tsvector`, or vector index implementation in this card. |
 
 ### Outcome
 Define pg_trgm/full-text strategy if and when search moves server-side. No indexes created unless use cases are approved.
