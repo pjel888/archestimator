@@ -1,8 +1,11 @@
 # 17 — Server-Side Optimization Strategy
 
-**Status:** Complete  
+> ⚠️ **SUPERSEDED — DO NOT IMPLEMENT.** This document contains two critical errors: (1) claims `proxy.ts` is dead code and recommends creating `src/middleware.ts` — FALSE in Next.js 16 where `proxy.ts` IS the active middleware; (2) recommends `getSession()` for local JWT validation — SECURITY RISK per current Supabase SSR docs. See `CURRENT_CANONICAL_PLAN.md` §"Corrected Assumptions" #1 and #2, and `ADR_UPDATES.md` ADR-009 and ADR-013 for corrected decisions. The React.cache() and N+1 query sections remain directionally useful but must be verified against current codebase before implementation.
+
+**Status:** SUPERSEDED (sections on proxy/dead code/getSession) / PARTIALLY VALID (React.cache, N+1)  
 **Created:** 2026-05-29  
-**Purpose:** Address server-side bottlenecks that add 100-300ms latency to every route transition. These optimizations are critical for achieving sub-150ms cold navigations.
+**Superseded by:** `CURRENT_CANONICAL_PLAN.md`, `ADR_UPDATES.md`  
+**Historical purpose:** (Retained for reference) Address server-side bottlenecks.
 
 ---
 

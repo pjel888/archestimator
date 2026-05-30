@@ -1,6 +1,8 @@
 # 01 — Performance Audit: Route Transition Bottlenecks
 
-**Status:** Complete  
+> ⚠️ **SUPERSEDED.** Three claims are now stale: (1) "Zero loading.tsx files" — 6 now exist. (2) "proxy.ts does NOT guard routes" — it guards /workshop in Next.js 16. (3) "no middleware exists" claims — proxy.ts IS the middleware. See `CODEBASE_AUDIT.md` for current verified facts.
+
+**Status:** SUPERSEDED  
 **Audit Date:** 2026-05-29  
 **Scope:** Every route in `src/app/`, every navigation path, every data-fetching pattern  
 

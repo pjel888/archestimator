@@ -1,8 +1,9 @@
 # 13 — Verified Codebase Facts: Canonical Reference for Implementation
 
-**Status:** Complete
+> ⚠️ **TWO CLAIMS NOW STALE** (corrected in `CODEBASE_AUDIT.md`): (1) "Zero loading.tsx files anywhere" — 6 now exist. (2) "proxy.ts does NOT guard routes" — it does guard /workshop routes and IS the active Next.js 16 middleware. All other claims remain verified against the May 2026 codebase.
+
+**Status:** Mostly valid, two corrections  
 **Created:** 2026-05-29
-**Purpose:** Single source of truth for every codebase claim made across the 12-plan documents. Every fact below was verified via direct code inspection (grep, read, ast-grep) against the live codebase on 2026-05-29. Implementers must trust this document over any claim in the other documents where they differ.
 
 ---
 

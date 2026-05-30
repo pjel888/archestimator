@@ -1,8 +1,13 @@
 # Route Transition Performance Optimization — Master Plan
 
-**Status:** Planning  
-**Created:** 2026-05-29  
-**Phase:** Pre-implementation audit, research, readiness, and strategy  
+> ## IMPLEMENTERS: Read `CURRENT_CANONICAL_PLAN.md` first.
+> Do not implement from numbered legacy docs unless the canonical plan explicitly references that section.
+> Any conflict is resolved in favor of `CURRENT_CANONICAL_PLAN.md` and `ADR_UPDATES.md`.
+> Most legacy documents have been marked SUPERSEDED with banners pointing to the canonical source.
+
+**Status:** ✅ APPROVED — 2026-05-30 — Ready for implementation  
+**Created:** 2026-05-29 (original), 2026-05-30 (audit + rewrite + hardening)  
+**Owner:** All assumptions approved. Conditions: adhere to code standards, don't break existing flows or auth.  
 **Goal:** Sub-100ms route transitions with zero perceived lag; loading overlays relegated to truly slow components only
 
 ---
@@ -129,10 +134,33 @@ This is NOT a single feature. It's a multi-layered performance strategy:
 
 ---
 
-## 3. Reading Order
+## 3. Reading Order (UPDATED 2026-05-30)
 
-1. **Start here** (`README.md`) — understand the vision and document inventory
-2. **`13-verified-codebase-facts.md`** 🆕 — READ FIRST before any implementation. Canonical codebase claims with source verification.
+**PRIMARY (read these first):**
+1. **`CURRENT_CANONICAL_PLAN.md`** ⚡ — **SINGLE SOURCE OF TRUTH.** Read before ANY implementation.
+2. **`ADR_UPDATES.md`** ⚡ — All 14 ADRs corrected against verified codebase facts.
+3. **`PLAN_REPAIR_LOG.md`** ⚡ — What was wrong in the old plan and what was fixed.
+4. **`IMPLEMENTATION_MATRIX.md`** ⚡ — Every task with current code status, plan status, risk, validation, and rollback.
+5. **`CODEBASE_AUDIT.md`** ⚡ — Route-by-route verified facts. Corrects stale plan claims.
+6. **`BENCHMARK_PROTOCOL.md`** ⚡ — Exact measurement protocol. Do NOT proceed to Phase 1 without baseline.
+
+**SUPPLEMENTARY (still valid, consult as needed):**
+7. **`13-verified-codebase-facts.md`** — Canonical codebase claims (mostly still correct; loading.tsx/proxy.ts errors noted in PLAN_REPAIR_LOG)
+8. **`14-code-splitting-named-exports.md`** 🆕 — CRITICAL. Correct `next/dynamic` pattern for named exports.
+9. **`15-server-component-prefetch-reality.md`** 🆕 — CRITICAL. Only estimate React Query keys exist.
+10. **`32-bfcache-strategy.md`** — bfcache strategy (Handler already implemented)
+11. **`34-implementation-handoff.md`** — Current implementation state of BfcacheHandler, PerformanceMonitor, loading.tsx, etc.
+
+**SUPERSEDED (contains errors — cross-reference with CURRENT_CANONICAL_PLAN.md):**
+12. **`31-auth-optimization-middleware-migration.md`** — ⚠️ **SUPERSEDED.** Recommends creating middleware.ts and using getSession(). Both are wrong.
+13. **`12-overlay-fallback-strategy.md`** §6 — ⚠️ **SUPERSEDED.** 150ms show delay contradicts current implementation.
+14. **`06-strategy-adrs.md`** ADR-006, ADR-013 — ⚠️ **SUPERSEDED.** See ADR_UPDATES.md for corrections.
+15. **`11-prefetch-wiring-map.md`** §1.3, §2 — ⚠️ **SUPERSEDED.** Uses fake React Query keys.
+16. **`04-implementation-plan.md`** Task 1.5.1 — ⚠️ **SUPERSEDED.** "Create middleware.ts" is wrong.
+
+**ORIGINAL DOCS (pre-audit, for reference):**
+17. `01-performance-audit.md` — Original performance audit. Some claims about proxy.ts are wrong.
+18. After the original docs, see all docs 01-34 as historical context.
 3. **`30-dynamic-rendering-analysis.md`** 🆕 — understand what forces every route to be dynamic and how to minimize it (READ BEFORE server-side optimization)
 4. **`31-auth-optimization-middleware-migration.md`** 🆕 — plan for creating middleware.ts (proxy.ts dead code fix). READ BEFORE server-side optimization — this is the highest-ROI fix.
 5. **`32-bfcache-strategy.md`** 🆕 — plan for instant back/forward navigation. bfcache alone eliminates overlay for most back/forward flows.
@@ -246,4 +274,6 @@ The route transition loading overlay (`.ai/09_archive/route-transition-loading-o
 | Auth Optimization & Middleware Migration | 2026-05-29 | ✅ Complete — `31-auth-optimization-middleware-migration.md` |
 | bfcache Strategy | 2026-05-29 | ✅ Complete — `32-bfcache-strategy.md` |
 | Loading Sequence & Progressive Enhancement | 2026-05-29 | ✅ Complete — `33-loading-sequence-progressive-enhancement.md` |
-| Owner Approval | — | ⏳ Pending |
+| Plan Audit & Rewrite | 2026-05-30 | ✅ Complete — `CURRENT_CANONICAL_PLAN.md` |
+| Document Hardening Pass | 2026-05-30 | ✅ Complete — all stale instructions quarantined |
+| Owner Approval | 2026-05-30 | ✅ **APPROVED** — all phases unlocked. Conditions: adhere to code standards, don't break existing flows or auth. |

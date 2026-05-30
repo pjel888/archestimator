@@ -1,6 +1,8 @@
 # 23 — Browser Compatibility & Mobile Guide
 
-**Status:** Complete  
+> ⚠️ **SUPERSEDED.** References 150ms overlay delay (not implemented). See `ADR_UPDATES.md` ADR-006.
+
+**Status:** SUPERSEDED  
 **Created:** 2026-05-29  
 **Purpose:** Ensure performance optimizations work across all target browsers and mobile devices. Covers browser support matrix, mobile-specific scenarios, and platform-specific considerations.
 

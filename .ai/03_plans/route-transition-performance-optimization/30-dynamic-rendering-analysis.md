@@ -166,7 +166,7 @@ Every workshop page uses `WorkshopPageShell` which calls `cookies()` and `getCur
 
 **Proposed:** Create a focused auth-checking layout or middleware:
 
-Option A — **Middleware auth guard** (requires creating `src/middleware.ts`):
+Option A — **Middleware auth guard** (⚠️ SUPERSEDED — `src/proxy.ts` already IS the middleware in Next.js 16. Do NOT create `src/middleware.ts`. See `CURRENT_CANONICAL_PLAN.md`):
 ```typescript
 // src/middleware.ts
 import { proxy } from "@/proxy";
