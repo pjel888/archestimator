@@ -93,6 +93,11 @@ Evidence artifacts are classified by category for filtering and prioritization:
 | PUBLIC-P0-LEGAL-001 | Published legal page screenshots, list (02) | public-launch-evidence, legal-evidence |
 | POST-BETA-PROD-001 | Owner decision record (00) | public-launch-evidence |
 | POST-BETA-MOBILE-001 | Owner decision record (00) | public-launch-evidence |
+| CODEX-P0-DBIDX-001 | Repo-derived query map, migration-derived index inventory, existing index inventory from migrations and/or live schema, Supabase advisor output (if available), corrected unindexed FK query output (if live DB access exists), pg_stat_statements snapshot (if available), explicit "live metrics unavailable" note (if DB access unavailable), no-DDL confirmation | database-performance-evidence |
+| CODEX-P0-DBIDX-002 | Local migration list, live/staging schema table list (if available), supabase_migrations.schema_migrations snapshot (if available), shared-link table parity report (shared_link_recipients, shared_link_comments, shared_link_responses, shared_link_events), blocker report for missing migration/table, no-schema-change confirmation | database-performance-evidence |
+| CODEX-P0-DBIDX-003 | Concrete EXPLAIN templates, representative seed-size assumptions, before-index EXPLAIN baselines (if staging available), seed-size limitation note (if staging data too small), no-DDL confirmation, no-index-created confirmation | database-performance-evidence |
+| CODEX-P1-DBIDX-004 | Completed DBIDX-001/002/003 evidence links, Philip owner approval of candidate shortlist, candidate index rationale table, duplicate-index analysis table, draft migration saved inside plan folder (not supabase/migrations/), rollback/drop-index section, no-production-application confirmation | database-performance-evidence |
+| CODEX-P1-DBIDX-005 | Approved server-side search decision, search use-case list, pg_trgm vs tsvector decision, no-vector/RAG-index confirmation unless separately approved, no-index-created confirmation | database-performance-evidence |
 
 ## Evidence Quality Standards
 
@@ -168,4 +173,4 @@ bun run test tests/integration/rls-isolation.test.ts > .ai/09_archive/store/YYYY
 | CODEX-P1-DBIDX-004 | No | No | database-performance-evidence | PLANNED — after DBIDX-001/002/003 + owner approval |
 | CODEX-P1-DBIDX-005 | No | No | database-performance-evidence | PLANNED |
 
-**Total evidence artifacts produced: 0 of 42** — All blocked pending Wave 0 owner decisions.
+**Total evidence artifacts produced: 0 of 47** — All blocked pending execution.

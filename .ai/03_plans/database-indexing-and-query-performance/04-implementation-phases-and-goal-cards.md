@@ -16,11 +16,12 @@
 
 | Field | Value |
 |-------|-------|
-| Wave | 2 (after staging exists) |
+| Wave | Wave 2 for full beta evidence; repo-only audit may begin immediately |
 | Lane | BETA P0 |
-| Status | READY FOR CODEX (repo-only audit). Live Supabase metrics: READY ONLY IF staging access exists. |
+| Status | READY FOR CODEX for repo-only audit; live Supabase metrics require staging or explicitly allowed linked-dev read-only access |
 | Owner | Codex |
 | Dependencies | None for repo inspection and migration file audit. Staging preferred for live metrics. |
+| DBIDX-001 Split | DBIDX-001A (repo-only): can start immediately, no staging required. DBIDX-001B (live metrics): only if staging/live Supabase read-only access is confirmed. |
 | Explicit non-goals | Creating indexes, running DDL, modifying migrations. Do NOT fabricate live metrics if Supabase access is unavailable. |
 
 ### Outcome
@@ -36,6 +37,9 @@ Must understand current index coverage and query patterns before beta. Prevents 
 4. Unindexed FK inventory classified into priority buckets
 5. Critical user flows mapped to query shapes
 6. No DDL executed
+7. Repo-only output must not wait for staging
+8. Live metrics must be clearly marked as unavailable if no DB access exists
+9. No agent may fabricate live advisor/pg_stat_statements output
 
 ### Likely Files Touched
 `supabase/migrations/*.sql` (read-only), `src/lib/repositories/` (read-only), plan documents in this folder
