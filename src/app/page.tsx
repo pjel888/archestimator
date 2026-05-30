@@ -2,6 +2,7 @@
 
 import Image from 'next/image'
 import { NeatWireframeBackground } from '@/components/landing/NeatWireframeBackground'
+import { ArchestimatorWordmark } from '@/components/brand/ArchestimatorLogo'
 
 export default function TeaserPage() {
   return (
@@ -42,10 +43,8 @@ export default function TeaserPage() {
           {/* Horizontal line */}
           <div className="h-px w-28 bg-white/80" />
 
-          {/* Wordmark */}
-          <span className="text-[15px] font-medium tracking-[0.22em] text-white/90 uppercase">
-            archestimator
-          </span>
+          {/* Wordmark — same font as the marketing landing page */}
+          <ArchestimatorWordmark className="text-[17px] text-white/90" />
         </div>
       </div>
     </main>
