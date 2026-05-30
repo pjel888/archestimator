@@ -85,6 +85,7 @@ Every file in `.ai/01_roadmap/` is classified into exactly one category. Canonic
 | **Performance rules** | `27-performance-budget-and-regression-gates.md` | `06-performance-reliability-observability.md` | — |
 | **Evidence artifacts** | `28-evidence-artifact-index.md` | `33-ralph-loop-execution-protocol.md` | — |
 | **RLS/storage** | `03-supabase-rls-storage-readiness.md` | `32-test-infrastructure-execution-spec.md`, `02-security-tenancy-data-protection.md` | — |
+| **Database indexing / query performance** | `.ai/03_plans/database-indexing-and-query-performance/` | `06-performance-reliability-observability.md`, `26-codex-goal-cards.md`, `28-evidence-artifact-index.md` | Roadmap files that claim indexing is implemented (see drift warning below) |
 | **Auth/provider** | `04-auth-provider-vercel-environment-readiness.md` | `02-security-tenancy-data-protection.md` | — |
 | **UX/onboarding** | `16-onboarding-activation-readiness.md` | `05-ux-ui-polish-readiness.md`, `18-happy-path-user-journey-matrices.md` | — |
 | **Legal** | `08-legal-privacy-compliance-readiness.md` | `29-enterprise-mvp-scope-and-owner-defaults.md` (for beta legal pack) | — |
@@ -128,6 +129,10 @@ If a roadmap file says the invite flow is "IMPLEMENTED / NEEDS EVIDENCE" but the
 ### ⚠️ Drift Warning — Route Transition Performance
 
 If a roadmap file says `proxy.ts` is dead code, recommends `getSession()` in middleware, or claims route transition optimization is complete, **the roadmap must be corrected.** `.ai/03_plans/route-transition-performance-optimization/CURRENT_CANONICAL_PLAN.md` is the conflict-resolution authority. `proxy.ts` is active Next.js 16 middleware. `getUser()` must be used, not `getSession()`. Phase 0 baseline is required before optimization claims.
+
+### ⚠️ Drift Warning — Database Indexing / Query Performance
+
+If a roadmap file says indexing is implemented or "DONE" but the database indexing plan at `.ai/03_plans/database-indexing-and-query-performance/` says no indexes have been created and the audit has not started, **the roadmap must be corrected.** Index planning is not implementation evidence. No index migration exists. No EXPLAIN evidence has been collected. The audit (CODEX-P0-DBIDX-001) is BETA P0 and must complete before any index can be proposed.
 
 ---
 

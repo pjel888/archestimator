@@ -110,7 +110,7 @@
 **Why now:** Staging exists (Wave 1). Now prove RLS/storage/auth boundaries with real tests against staging. Security evidence is the highest-leverage work before beta.
 **Prerequisites:** Wave 1 (staging environment for test execution)
 
-**Goal cards:** BETA-P0-SEC-001, BETA-P0-SEC-002, BETA-P0-SEC-003, BETA-P0-SEC-004, BETA-P0-SEC-005, CODEX-P0-COLLAB-002, CODEX-P0-COLLAB-003, CODEX-P0-COLLAB-004
+**Goal cards:** BETA-P0-SEC-001, BETA-P0-SEC-002, BETA-P0-SEC-003, BETA-P0-SEC-004, BETA-P0-SEC-005, CODEX-P0-COLLAB-002, CODEX-P0-COLLAB-003, CODEX-P0-COLLAB-004, CODEX-P0-DBIDX-001, CODEX-P0-DBIDX-002, CODEX-P0-DBIDX-003
 
 **Success criteria:**
 - RLS denial test suite passes against staging for all user-data tables

@@ -43,6 +43,9 @@ These items are hard gates for controlled design-partner beta. Codex must implem
 | 15 | Beta legal / limitations pack | BETA P0 | What beta participants should and should not expect. Written disclosure required. | D-014: Legal before beta | Published limitations document, beta partner agreement template | Wave 7 |
 | 16 | Beta partner list | BETA P0 | 3-5 named design partners identified and committed before beta launch. | D-006: Beta scope | Documented partner list with contact info and use cases | Wave 7 |
 | 17 | Philip beta signoff | BETA P0 | Hardest gate. Philip must say "go." | All owner decisions | Philip signoff recorded with date and scope | Wave 7 |
+| 18 | Database index & query-plan audit | BETA P0 | Must understand current index coverage before beta. Read-only audit — no DDL. | No | Index inventory, query hotspot map, FK classification, advisor review (CODEX-P0-DBIDX-001) | Wave 2 |
+| 19 | Migration parity & shared-link schema reconciliation | BETA P0 | Must verify schema parity before designing indexes for shared-link tables. No schema changes. | No | Migration parity report, shared-link table check (CODEX-P0-DBIDX-002) | Wave 2 |
+| 20 | EXPLAIN protocol for critical queries | BETA P0 | Need query plan evidence before any index can be proposed. No DDL. | No | EXPLAIN templates with representative seed data (CODEX-P0-DBIDX-003) | Wave 2 |
 
 ---
 
@@ -62,6 +65,7 @@ These items should ideally be done before beta, but Philip can accept the risk i
 | 8 | Shared-link visibility signifiers (project-card badges, one-click copy, activity dot) | BETA P1 | Missing link status indicators and copy convenience. Acceptable if beta partners are briefed. | No | Minor UX friction; mitigated by partner relationship |
 | 9 | Shared-link recipient tracking + owner digest fix | BETA P1 | Per-recipient open tracking missing; owner digest uses hardcoded/placeholder sender. Acceptable for beta. | No | Can't measure recipient engagement; acceptable for qualitative-first beta |
 | 10 | Shared-link destructive confirmation dialogs | BETA P1 | Revoke/remove/destructive share actions lack confirmation. Acceptable risk for small beta. | No | Accidental revoke risk; mitigated by small beta |
+| 11 | Candidate index migration draft for staging | BETA P1 | Draft migration with evidence-backed indexes for staging review only. Requires audit + EXPLAIN evidence. Must not apply to production. | No | Delaying index optimization until after audit; acceptable for small beta |
 
 ---
 
@@ -81,6 +85,7 @@ These items are required for enterprise MVP but do NOT block controlled design-p
 | 8 | Full restore drill / PITR | ENTERPRISE MVP | Supabase backups sufficient for beta. Enterprise needs proven restore capability. | Point-in-time recovery drill completed and documented |
 | 9 | Full browser matrix validation | ENTERPRISE MVP | Chrome-only acceptable for beta. Enterprise needs Chrome, Safari, Firefox, Edge. | All supported browsers pass smoke tests |
 | 10 | Full mobile editing support | ENTERPRISE MVP | Desktop guard sufficient for beta. Enterprise field estimators need mobile. | Responsive estimate editing on mobile viewports |
+| 11 | Database search index strategy | ENTERPRISE MVP | pg_trgm/full-text strategy deferred until server-side search ships. Search index candidates stay PLANNED. | Search index strategy document; no indexes created unless use cases approved |
 
 ---
 
@@ -154,13 +159,13 @@ These items are explicitly out of scope. Codex must NOT spend time on these.
 
 | Lane | Count | Action for Codex |
 |------|-------|------------------|
-| BETA P0 | 21 | Implement now, in wave order (includes collab invite config unblock, POST-only, rate limiting, messaging fix) |
-| BETA P1 | 10 | Can be deferred; Philip accepts risk (includes invite visibility, shared-link visibility, recipient tracking, destructive confirmations) |
-| ENTERPRISE MVP | 10 | Do not implement for beta; queued for Wave 6 |
+| BETA P0 | 24 | Implement now, in wave order (includes collab invite config, POST-only, rate limiting, messaging fix, DB indexing audit/parity/EXPLAIN) |
+| BETA P1 | 11 | Can be deferred; Philip accepts risk (includes invite visibility, shared-link visibility, recipient tracking, destructive confirmations, candidate index draft) |
+| ENTERPRISE MVP | 11 | Do not implement for beta; queued for Wave 6 |
 | PUBLIC / PAID LAUNCH | 19 | Do not implement for beta or enterprise MVP |
 | POST-MVP | 8 | Do not implement |
 | DEFERRED | 14 | Explicitly skip |
-| **Total classified** | **82** | Expanded from 74 — 8 new collab/share BETA P0/P1 items from collaboration-and-sharing-audit |
+| **Total classified** | **87** | Expanded from 82 — 5 new DBIDX BETA P0/P1/ENTERPRISE items |
 
 The 137 raw items from the dashboard have been compressed into 82 classified items across 6 priority lanes. Only 21 BETA P0 items demand immediate Codex attention (including 4 new collab invite items), and 10 of those are in Waves 1-5 (implementation); 4 are in Wave 7 (beta operations).
 

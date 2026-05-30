@@ -122,6 +122,10 @@
 - BETA-P0-ANA-001 — First-party product events / analytics
 - BETA-P0-PERF-001 — Performance benchmark harness (route transitions, row editing, tree rendering, export)
 - BETA-P0-PERF-002 — Bundle analyzer + code splitting
+- CODEX-P0-DBIDX-001 — Database Index & Query Plan Audit
+- CODEX-P0-DBIDX-002 — Migration Parity & Shared-Link Schema Reconciliation
+- CODEX-P0-DBIDX-003 — EXPLAIN Protocol for Critical Queries
+- CODEX-P1-DBIDX-004 — Candidate Index Migration Draft for Staging
 
 **Blocked Goal Cards:** None
 
@@ -552,6 +556,11 @@ The workstreams are not 7 independent parallel tracks — they **activate at dif
 | BETA-P0-ANA-001 | First-party product events / analytics | 3 | 3 |
 | BETA-P0-PERF-001 | Performance benchmark harness | 3 | 3 |
 | BETA-P0-PERF-002 | Bundle analyzer + code splitting | 3 | 3 |
+| CODEX-P0-DBIDX-001 | Database index & query-plan audit | 3 | 2 |
+| CODEX-P0-DBIDX-002 | Migration parity & schema reconciliation | 3 | 2 |
+| CODEX-P0-DBIDX-003 | EXPLAIN protocol for critical queries | 3 | 2 |
+| CODEX-P1-DBIDX-004 | Candidate index migration draft | 3 | 3 |
+| CODEX-P1-DBIDX-005 | Database search index strategy | 3 | 6 |
 | BETA-P0-UX-001 | Core onboarding first-value flow | 4 | 4 |
 | BETA-P0-UX-002 | Estimating happy path polish | 4 | 4 |
 | BETA-P0-UX-004 | Desktop guard for workshop | 4 | 4 |

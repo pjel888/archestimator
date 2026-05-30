@@ -34,6 +34,7 @@ Evidence artifacts are classified by category for filtering and prioritization:
 | `ops-evidence` | Sentry dashboards, support runbook drills, rollback drill notes, rate limiting proof | BETA-P0-OBS-001, BETA-P0-SEC-005, BETA-P0-OPS-001 |
 | `collaboration-evidence` | Invite config proof, env var inventory, POST-only accept proof, lifecycle E2E, visibility signifiers | HUMAN-P0-COLLAB-001A, CODEX-P0-COLLAB-*, CODEX-P1-COLLAB-* |
 | `sharing-evidence` | Shared-link visibility badges, recipient tracking, digest sender fix, destructive confirmation | CODEX-P1-SHARE-* |
+| `database-performance-evidence` | Supabase advisor output, existing index inventory, unindexed FK classification, pg_stat_statements snapshot, EXPLAIN plans, migration parity report, candidate index rationale, rollback/drop plan | CODEX-P0-DBIDX-*, CODEX-P1-DBIDX-* |
 
 ## Evidence Types
 
@@ -161,5 +162,10 @@ bun run test tests/integration/rls-isolation.test.ts > .ai/09_archive/store/YYYY
 | CODEX-P1-SHARE-002 | No | No | user-research-evidence | PLANNED |
 | CODEX-P1-SHARE-003 | No | No | user-research-evidence | PLANNED |
 | CODEX-P1-SHARE-004 | No | No | user-research-evidence | PLANNED |
+| CODEX-P0-DBIDX-001 | No | No | database-performance-evidence | BLOCKED |
+| CODEX-P0-DBIDX-002 | No | No | database-performance-evidence | BLOCKED — after staging target confirmed |
+| CODEX-P0-DBIDX-003 | No | No | database-performance-evidence | BLOCKED — after staging target confirmed |
+| CODEX-P1-DBIDX-004 | No | No | database-performance-evidence | PLANNED — after DBIDX-001/002/003 |
+| CODEX-P1-DBIDX-005 | No | No | database-performance-evidence | PLANNED |
 
-**Total evidence artifacts produced: 0 of 37** — All blocked pending Wave 0 owner decisions.
+**Total evidence artifacts produced: 0 of 42** — All blocked pending Wave 0 owner decisions.
