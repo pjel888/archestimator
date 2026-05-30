@@ -1,8 +1,8 @@
 # Codex /goal Cards — Atomic Split Edition
 
 **Last updated:** 2026-05-30
-**Total cards:** 78 (plus 15 EPIC headers — non-executable)
-**Ready for Codex:** 50
+**Total cards:** 78 (plus 15 EPIC headers — non-executable) + 10 new collab/share cards (2026-05-30 sync)
+**Ready for Codex:** 60 (50 existing + 10 new collab/share)
 **Blocked by external setup:** 5
 **Blocked by staging target:** 11
 **Blocked by sentry choice:** 2
@@ -111,6 +111,21 @@ The topic is valid, but Codex must not execute it directly. It must be split int
 | PUBLIC-P0-LEGAL-001 | PUBLIC LAUNCH / LEGAL REVIEW REQUIRED |
 | POST-BETA-PROD-001 | SPLIT into ENTERPRISE-P1-PROD-001 and ENTERPRISE-P1-PROD-002 |
 | POST-BETA-MOBILE-001 | POST-MVP / FULL MOBILE EDITING |
+
+## New — Collaboration & Sharing Cards (Added 2026-05-30)
+
+| Goal ID | Status |
+|---------|--------|
+| HUMAN-P0-COLLAB-001A | READY FOR HUMAN EXTERNAL SETUP |
+| CODEX-P0-COLLAB-001B | READY FOR CODEX |
+| CODEX-P0-COLLAB-002 | READY FOR CODEX |
+| CODEX-P0-COLLAB-003 | READY FOR CODEX AFTER EXTERNAL SETUP |
+| CODEX-P0-COLLAB-004 | READY FOR CODEX |
+| CODEX-P1-COLLAB-005 | READY FOR CODEX |
+| CODEX-P1-SHARE-001 | READY FOR CODEX |
+| CODEX-P1-SHARE-002 | READY FOR CODEX |
+| CODEX-P1-SHARE-003 | READY FOR CODEX |
+| CODEX-P1-SHARE-004 | READY FOR CODEX |
 | ENTERPRISE-P1-PROD-001 | **EPIC / SPLIT REQUIRED** — see sub-cards |
 | ENTERPRISE-P1-PROD-001A | PLANNED |
 | ENTERPRISE-P1-PROD-001B | PLANNED |
@@ -3732,7 +3747,452 @@ Performance budget review; async strategy review.
 .ai/09_archive/store/YYYY-MM-DD-ENTERPRISE-P1-PROD-002C/
 
 ### Completion report
-Performance budget doc, async strategy doc, UX wireframe for progress.
+PDF performance budget doc, async strategy doc, UX wireframe for progress.
+
+---
+
+## HUMAN-P0-COLLAB-001A — Configure Supabase Auth Email Provider
+
+| Field | Value |
+|---|---|
+| Wave | 1 |
+| Lane | BETA P0 |
+| Status | READY FOR HUMAN EXTERNAL SETUP |
+| Primary risk reduced | Collaboration |
+| Owner | Philip (manual, provider dashboard) |
+| Dependencies | None |
+| Explicit non-goals | Code changes, Resend shared-link email setup, generating invite env var secrets, applying migrations |
+
+### Outcome
+Supabase Auth email/SMTP provider configured for collaboration invite delivery. This unblocks the entire invite system.
+
+### Why now
+Collaboration invites are currently **BROKEN / CONFIG BLOCKED**. Without email provider configuration, no invite can be delivered, no acceptance path can be tested, and the invite lifecycle is non-functional.
+
+### Likely areas touched
+Supabase dashboard (Authentication → Email → SMTP Provider Settings)
+
+### Acceptance criteria
+1. Supabase Auth email provider configured (SMTP or Supabase-managed)
+2. Test invite delivery verified (redacted screenshot)
+3. Provider configuration documented for staging and production environments
+4. Evidence saved
+
+### Validation
+Send test invite email; verify delivery; redacted dashboard screenshot.
+
+### Performance budget
+N/A (provider dashboard configuration).
+
+### Security/data check
+Provider credentials must not be stored in repo. Email delivery must use authenticated SMTP.
+
+### UX/UI check
+N/A (provider configuration).
+
+### Evidence artifact
+.ai/09_archive/store/YYYY-MM-DD-HUMAN-P0-COLLAB-001A/
+
+### Completion report
+Redacted Supabase dashboard screenshot, test invite delivery evidence, provider configuration summary.
+
+---
+
+## CODEX-P0-COLLAB-001B — Invite Environment Variable Inventory
+
+| Field | Value |
+|---|---|
+| Wave | 1 |
+| Lane | BETA P0 |
+| Status | READY FOR CODEX |
+| Primary risk reduced | Collaboration |
+| Owner | Codex |
+| Dependencies | None |
+| Explicit non-goals | Generating real secrets, configuring provider dashboards, applying migrations |
+
+### Outcome
+Roadmap/env docs and env templates identify `PROJECT_INVITE_ENTRY_ENABLED` and `ARCHESTIMATOR_INVITE_TOKEN_PEPPER` with their purpose, required environments, and security classification.
+
+### Why now
+These env vars are missing from the current env inventory (see `.ai/01_roadmap/04-auth-provider-vercel-environment-readiness.md`). Without them, the `/invite/[token]` acceptance path is disabled. Must document before provisioning.
+
+### Likely files touched
+.ai/01_roadmap/04-auth-provider-vercel-environment-readiness.md, .env.local template, .env.example
+
+### Acceptance criteria
+1. `PROJECT_INVITE_ENTRY_ENABLED` documented with purpose, local/staging/prod status
+2. `ARCHESTIMATOR_INVITE_TOKEN_PEPPER` documented with purpose, local/staging/prod status
+3. Both vars added to env template files
+4. Security classification: both are server-side secrets (not NEXT_PUBLIC_)
+
+### Validation
+Grep env templates for invite vars; cross-reference with audit pack findings.
+
+### Performance budget
+N/A (docs only).
+
+### Security/data check
+`ARCHESTIMATOR_INVITE_TOKEN_PEPPER` must never be client-exposed. Both vars must be classified as server-only.
+
+### Evidence artifact
+.ai/09_archive/store/YYYY-MM-DD-CODEX-P0-COLLAB-001B/
+
+### Completion report
+Updated env inventory, env template diff, cross-reference with audit pack.
+
+---
+
+## CODEX-P0-COLLAB-002 — Invite Acceptance Route Fail-Closed / POST-Only
+
+| Field | Value |
+|---|---|
+| Wave | 2 |
+| Lane | BETA P0 |
+| Status | READY FOR CODEX |
+| Primary risk reduced | Security |
+| Owner | Codex |
+| Dependencies | HUMAN-P0-COLLAB-001A (email provider), CODEX-P0-COLLAB-001B (env var inventory) |
+| Explicit non-goals | Full invite redesign, email template changes, new invite UX |
+
+### Outcome
+`/invite/[token]/accept` is POST-only, fails closed when `PROJECT_INVITE_ENTRY_ENABLED` is missing, and does not mutate state on GET requests.
+
+### Why now
+Current code has a GET-based acceptance mutation risk. The acceptance path is disabled pending config, but once enabled it must be secure. The audit pack identifies this as a critical gap.
+
+### Likely files touched
+src/app/invite/[token]/accept/route.ts, src/app/invite/[token]/page.tsx, src/lib/collaboration/actions.ts
+
+### Acceptance criteria
+1. GET to `/invite/[token]/accept` does NOT mutate invite state or grant access
+2. Missing `PROJECT_INVITE_ENTRY_ENABLED` disables acceptance entirely
+3. Token is never logged in server logs or error messages
+4. Wrong-account, expired, revoked, and already-used states return stable error codes
+5. CSRF protection on POST mutation endpoint
+6. Rate limiting applied (see BETA-P0-SEC-005)
+
+### Validation
+`bun run test:e2e` (invite specs); manual: GET /invite/[token]/accept → 405 or redirect without mutation; POST with missing config → fail closed.
+
+### Performance budget
+Rate-limit check < 5ms per request.
+
+### Security/data check
+CRITICAL: GET must not grant access. Token must never be logged. Missing config must fail closed. CSRF/origin checks on POST.
+
+### UX/UI check
+Error states for wrong-account/expired/revoked/used must be clear and use design-system tokens.
+
+### Evidence artifact
+.ai/09_archive/store/YYYY-MM-DD-CODEX-P0-COLLAB-002/
+
+### Completion report
+Route audit results, POST-only verification test output, fail-closed evidence.
+
+---
+
+## CODEX-P0-COLLAB-003 — Invite Lifecycle E2E Validation
+
+| Field | Value |
+|---|---|
+| Wave | 2 |
+| Lane | BETA P0 |
+| Status | READY FOR CODEX AFTER EXTERNAL SETUP |
+| Primary risk reduced | Collaboration |
+| Owner | Codex |
+| Dependencies | HUMAN-P0-COLLAB-001A (email provider configured), CODEX-P0-COLLAB-001B (invite env vars configured), staging target exists |
+| Explicit non-goals | Invite email template design, invite UX redesign |
+
+### Outcome
+E2E tests validate the full invite lifecycle: valid invite acceptance, expired invite rejection, revoked invite rejection, already-used invite rejection, and wrong-account recovery.
+
+### Why now
+Invite lifecycle is the core collaboration flow. Must be proven end-to-end before any beta users touch the system. Currently blocked by missing config — this card executes AFTER config unblock.
+
+### Likely files touched
+e2e/invite-entry.spec.ts, tests/vitest/invite-lifecycle.test.ts
+
+### Acceptance criteria
+1. Valid invite: issue → resolve → accept → grant membership → redirect to project
+2. Expired invite: resolve succeeds, accept rejected with clear error
+3. Revoked invite: resolve fails, accept rejected
+4. Already-used invite: resolve succeeds, accept rejected (replay protection)
+5. Wrong-account: resolve with different email → "wrong account" recovery path
+6. POST-only acceptance enforced (see CODEX-P0-COLLAB-002)
+7. All states return stable error codes without leaking internal state
+
+### Validation
+`bun run test:e2e -- e2e/invite-entry.spec.ts`; `bun run test tests/vitest/invite-lifecycle.test.ts`
+
+### Performance budget
+Invite resolution < 100ms; acceptance < 200ms.
+
+### Security/data check
+Token must not be logged. Invite state transitions must be atomic. Replay protection must survive restarts.
+
+### Evidence artifact
+.ai/09_archive/store/YYYY-MM-DD-CODEX-P0-COLLAB-003/
+
+### Completion report
+E2E test output, lifecycle state matrix, replay protection evidence.
+
+---
+
+## CODEX-P0-COLLAB-004 — Invite Messaging Truthfulness
+
+| Field | Value |
+|---|---|
+| Wave | 2 |
+| Lane | BETA P0 |
+| Status | READY FOR CODEX |
+| Primary risk reduced | UX |
+| Owner | Codex |
+| Dependencies | None (can audit current messaging without config) |
+| Explicit non-goals | Provider email template redesign, Resend template changes |
+
+### Outcome
+UI and API messaging cannot say "email sent" or "invite sent" unless delivery is confirmed. False-positive messaging is eliminated.
+
+### Why now
+The audit pack identifies that current user messaging can produce false-positive "invite email sent" states even when no email is actually delivered. This is a trust and UX issue that must be fixed before beta.
+
+### Likely files touched
+src/app/workshop/projects/[projectId]/, src/components/workshop/teamspaces/, src/lib/collaboration/actions.ts
+
+### Acceptance criteria
+1. Audit all invite-related UI strings for "email sent", "invitation sent", "invite sent"
+2. Replace with truthful messaging: "Invitation created" or "Invite link ready" when email delivery is not confirmed
+3. Only show "email sent" messaging when Supabase Auth email provider is configured AND delivery is confirmed
+4. API responses for invite creation must not claim email delivery unless confirmed
+
+### Validation
+Manual audit of all invite UI strings; grep for "email sent", "invitation sent" in src/; verify messaging truthfulness in each state.
+
+### Performance budget
+N/A (string audit).
+
+### Security/data check
+No security impact — UX truthfulness improvement.
+
+### UX/UI check
+All invite messaging must use design-system typography and truthful language.
+
+### Evidence artifact
+.ai/09_archive/store/YYYY-MM-DD-CODEX-P0-COLLAB-004/
+
+### Completion report
+Messaging audit results, before/after string comparison, screenshot of truthful invite states.
+
+---
+
+## CODEX-P1-COLLAB-005 — Invite Visibility Signifiers
+
+| Field | Value |
+|---|---|
+| Wave | 4-5 (parallel with UX waves) |
+| Lane | BETA P1 |
+| Status | READY FOR CODEX |
+| Primary risk reduced | UX |
+| Owner | Codex |
+| Dependencies | CODEX-P0-COLLAB-002 (acceptance route enabled) |
+| Explicit non-goals | Invite redesign, new notification system, email template changes |
+
+### Outcome
+Pending, sent, opened, accepted, expired, and revoked invite states are visible in project sidebar, homebase, and modal surfaces.
+
+### Why now
+The audit pack identifies that invite state visibility is almost non-existent in current UI. For beta, Philip manages invites manually, but visibility improves the collaboration experience. BETA P1 — can be deferred if P0 invite work is incomplete.
+
+### Likely files touched
+src/components/workshop/teamspaces/, src/components/sidebar/, src/app/workshop/page.tsx
+
+### Acceptance criteria
+1. Pending invites visible in project Teamspaces modal with status
+2. Invite status badges on project cards (if applicable)
+3. Sidebar/homebase shows active/pending invite counts
+4. Expired/revoked states clearly distinguished
+5. Design-system compliant (SF Pro, 12px max, xs radius)
+
+### Validation
+Manual: issue invites in various states, verify each is visible with correct status in UI.
+
+### UX/UI check
+Invite status badges use neutral palette; pending/active/expired states visually distinct; design-system tokens.
+
+### Evidence artifact
+.ai/09_archive/store/YYYY-MM-DD-CODEX-P1-COLLAB-005/
+
+### Completion report
+Screenshots of invite states in project/sidebar/homebase, UX review notes.
+
+---
+
+## CODEX-P1-SHARE-001 — Shared-Link Visibility Signifiers
+
+| Field | Value |
+|---|---|
+| Wave | 4-5 (parallel with UX waves) |
+| Lane | BETA P1 |
+| Status | READY FOR CODEX |
+| Primary risk reduced | UX |
+| Owner | Codex |
+| Dependencies | None (shared-link already functional) |
+| Explicit non-goals | Shared-link redesign, new notification system |
+
+### Outcome
+Project cards, homebase, and project page show shared-link state with one-click copy and activity dot.
+
+### Why now
+The audit pack identifies missing project-card/homebase link status indicators and missing one-click copy. These are industry-parity features. BETA P1 — can be deferred if beta is small and partners are briefed.
+
+### Likely files touched
+src/components/workshop/projects/ProjectCard.tsx, src/app/workshop/page.tsx, src/app/workshop/projects/[projectId]/page.tsx
+
+### Acceptance criteria
+1. Project cards show shared-link status badge (active/inactive/locked)
+2. Homebase shows shared-link activity indicators
+3. One-click copy button on project page for active shared link
+4. Activity dot or indicator when shared link has recent recipient activity
+5. Design-system compliant
+
+### Validation
+Manual: create shared link → verify badges on project card and homebase → verify one-click copy works.
+
+### UX/UI check
+Status badges use neutral palette; one-click copy uses shared UI primitives; activity dot is subtle.
+
+### Evidence artifact
+.ai/09_archive/store/YYYY-MM-DD-CODEX-P1-SHARE-001/
+
+### Completion report
+Screenshots of shared-link badges, one-click copy UX, activity indicators.
+
+---
+
+## CODEX-P1-SHARE-002 — Shared-Link Recipient Tracking
+
+| Field | Value |
+|---|---|
+| Wave | 4-5 |
+| Lane | BETA P1 or ENTERPRISE MVP |
+| Status | READY FOR CODEX |
+| Primary risk reduced | Product |
+| Owner | Codex |
+| Dependencies | None (shared-link recipient schema exists) |
+| Explicit non-goals | Full analytics dashboard, recipient engagement scoring, email open tracking |
+
+### Outcome
+Per-recipient open tracking plan and implementation: who opened the shared link, when, and which sheets they viewed.
+
+### Why now
+The audit pack identifies missing per-recipient open tracking. Current tracking is limited to aggregate open counts. Per-recipient tracking is needed for client engagement visibility. Lane: BETA P1 or Enterprise MVP depending on roadmap decision.
+
+### Likely files touched
+src/lib/publication/events.ts, src/app/api/share/[token]/, src/components/share/
+
+### Acceptance criteria
+1. Per-recipient open events recorded (recipient email, timestamp, sheets viewed)
+2. Open events visible in shared-link activity/recipients tab
+3. Recipient identity linked to shared_link_recipients table where applicable
+4. PII scrubbed from logs
+5. No impact on shared-link load performance
+
+### Validation
+Manual: open shared link as recipient → verify open event recorded → verify visible in activity tab.
+
+### Performance budget
+Open event recording must not add >50ms to share page load.
+
+### Security/data check
+Recipient PII must not appear in logs or error messages. Open events must be RLS-scoped.
+
+### Evidence artifact
+.ai/09_archive/store/YYYY-MM-DD-CODEX-P1-SHARE-002/
+
+### Completion report
+Recipient tracking evidence, activity tab screenshot, performance baseline.
+
+---
+
+## CODEX-P1-SHARE-003 — Shared-Link Owner Digest Sender Fix
+
+| Field | Value |
+|---|---|
+| Wave | 4-5 |
+| Lane | BETA P1 |
+| Status | READY FOR CODEX |
+| Primary risk reduced | UX |
+| Owner | Codex |
+| Dependencies | None |
+| Explicit non-goals | Digest redesign, new notification channels |
+
+### Outcome
+Owner digest sender/display identity uses real authenticated sender context instead of hardcoded/placeholder sender.
+
+### Why now
+The audit pack identifies that owner digest uses hardcoded/placeholder sender behavior. This is unprofessional for client-facing communications. BETA P1.
+
+### Likely files touched
+src/lib/publication/digest.ts, src/lib/email/resend-client.ts, src/app/api/share/[token]/digest/
+
+### Acceptance criteria
+1. Digest sender identity derived from authenticated user profile (name + workspace)
+2. No hardcoded placeholder sender names in digest content
+3. Sender identity visible in digest email content and activity feed
+4. Falls back gracefully if profile data unavailable
+
+### Validation
+Manual: trigger owner digest → verify sender identity in email and activity feed → verify no placeholder.
+
+### UX/UI check
+Sender identity uses real profile data; fallback uses generic but not misleading label.
+
+### Evidence artifact
+.ai/09_archive/store/YYYY-MM-DD-CODEX-P1-SHARE-003/
+
+### Completion report
+Digest sender evidence (screenshots), before/after comparison.
+
+---
+
+## CODEX-P1-SHARE-004 — Shared-Link Destructive Confirmations
+
+| Field | Value |
+|---|---|
+| Wave | 4-5 |
+| Lane | BETA P1 |
+| Status | READY FOR CODEX |
+| Primary risk reduced | UX |
+| Owner | Codex |
+| Dependencies | None |
+| Explicit non-goals | Undo/restore functionality, soft-delete |
+
+### Outcome
+Revoke, remove, and other destructive share actions require explicit confirmation before executing.
+
+### Why now
+The audit pack identifies missing destructive-action confirmations. Accidental link revocation or recipient removal could disrupt client access. BETA P1.
+
+### Likely files touched
+src/components/workshop/publication/, src/app/workshop/projects/[projectId]/
+
+### Acceptance criteria
+1. Revoke shared link → confirmation dialog with consequences explained
+2. Remove recipient → confirmation dialog
+3. Destructive actions use design-system Modal/confirm pattern
+4. No destructive action executes without confirmation
+
+### Validation
+Manual: attempt to revoke link → verify confirmation appears → verify revoke only on confirm → verify cancel aborts.
+
+### UX/UI check
+Confirmation dialog uses design-system Modal; clear consequences explained; Cancel/Confirm buttons distinct; destructive action button uses warning styling.
+
+### Evidence artifact
+.ai/09_archive/store/YYYY-MM-DD-CODEX-P1-SHARE-004/
+
+### Completion report
+Screenshots of confirmation dialogs for each destructive action.
 
 ---
 

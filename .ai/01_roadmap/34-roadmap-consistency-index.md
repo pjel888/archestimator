@@ -74,6 +74,8 @@ Every file in `.ai/01_roadmap/` is classified into exactly one category. Canonic
 | Topic | Canonical Doc | Supporting Docs | Do NOT Use as Source of Truth |
 |---|---|---|---|
 | **Launch status** | `README.md` | `00-production-readiness-dashboard.md` | `action-plan.md`, `status-tracker.md`, `production-readiness-audit.md` |
+| **Collaboration & sharing (detailed audit truth)** | `.ai/03_plans/collaboration-and-sharing-audit/` | `26-codex-goal-cards.md` (for goal cards), `22-ruthless-prioritization-for-beta.md` (for priority lanes) | Roadmap files that claim invites are "IMPLEMENTED" (see drift warning below) |
+| **Route transition performance (conflict resolution)** | `.ai/03_plans/route-transition-performance-optimization/CURRENT_CANONICAL_PLAN.md` | `27-performance-budget-and-regression-gates.md` (for budget targets) | Legacy route-transition docs marked SUPERSEDED in the plan README |
 | **Beta scope** | `29-enterprise-mvp-scope-and-owner-defaults.md` | `30-design-partner-beta-recruiting-plan.md`, `12-beta-launch-feedback-loop.md` | `24-owner-decision-packet.md` (pre-resolution) |
 | **Owner decisions** | `29-enterprise-mvp-scope-and-owner-defaults.md` | `14-owner-decisions.md`, `24-owner-decision-packet.md` | Any doc still saying `OWNER DECISION REQUIRED` for the 21 resolved items |
 | **Goal cards** | `26-codex-goal-cards.md` | `23-codex-goal-execution-plan.md`, `25-active-workstreams.md` | `00-production-readiness-dashboard.md` (dashboard is summary, cards are canonical) |
@@ -116,7 +118,16 @@ Every file in `.ai/01_roadmap/` is classified into exactly one category. Canonic
 | "Analytics is undecided" | **FALSE — corrected.** First-party product events for beta. | `29-enterprise-mvp-scope-and-owner-defaults.md` |
 | "Old four-gate model only" | **SUPERSEDED.** New model: Four Launch Layers (0-4) + 5 Gate categories. | `29-enterprise-mvp-scope-and-owner-defaults.md`, `README.md` |
 | "137 items in dashboard" | **STALE — corrected.** Dashboard has 143 items (see Gate Summary table). | `00-production-readiness-dashboard.md` |
-| "69 total blockers" | **HISTORICAL ONLY.** After ruthless prioritization: 16 BETA P0, 5 BETA P1, 12 ENTERPRISE MVP, 11 PUBLIC LAUNCH. | `22-ruthless-prioritization-for-beta.md` |
+| "69 total blockers" | **HISTORICAL ONLY.** After ruthless prioritization: 21 BETA P0, 10 BETA P1, 12 ENTERPRISE MVP, 11 PUBLIC LAUNCH. | `22-ruthless-prioritization-for-beta.md` |
+| "26 implementation-ready goal cards" | **STALE — corrected.** `26-codex-goal-cards.md` now contains 78 atomic cards + 15 EPIC headers + 10 new collab/share cards (2026-05-30). | `26-codex-goal-cards.md` |
+
+### ⚠️ Drift Warning — Collaboration Invites
+
+If a roadmap file says the invite flow is "IMPLEMENTED / NEEDS EVIDENCE" but the collaboration audit at `.ai/03_plans/collaboration-and-sharing-audit/` says the system is config-blocked / non-functional, **the roadmap must be corrected.** The distinction between "code exists" and "system actually works in configured environment" must be explicit. The audit pack is the newer truth for invite operational readiness.
+
+### ⚠️ Drift Warning — Route Transition Performance
+
+If a roadmap file says `proxy.ts` is dead code, recommends `getSession()` in middleware, or claims route transition optimization is complete, **the roadmap must be corrected.** `.ai/03_plans/route-transition-performance-optimization/CURRENT_CANONICAL_PLAN.md` is the conflict-resolution authority. `proxy.ts` is active Next.js 16 middleware. `getUser()` must be used, not `getSession()`. Phase 0 baseline is required before optimization claims.
 
 ---
 

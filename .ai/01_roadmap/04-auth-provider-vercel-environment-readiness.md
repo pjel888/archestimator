@@ -138,6 +138,17 @@ All variables referenced in code or configuration, grouped by category. Values a
 
 Note: The publication secrets have dual naming (`PUBLICATION_*` and `ARCHESTIMATOR_PUBLICATION_*`). Code checks the primary name first, then the fallback. In production, `src/lib/publication/security.ts` will throw if neither is set.
 
+### Collaboration Invites
+
+| Variable | Purpose | Local | Staging | Production |
+|---|---|---|---|---|
+| `PROJECT_INVITE_ENTRY_ENABLED` | Enables custom `/invite/[token]` entry/acceptance path | Missing or not verified | **Required** | **Required** |
+| `ARCHESTIMATOR_INVITE_TOKEN_PEPPER` | Pepper/hash secret for app-owned invite token lookup/lifecycle | Missing or not verified | **Required** | **Required** |
+
+> **⚠️ CRITICAL:** Collaboration invites are currently **non-functional / config-blocked**. The `/invite/[token]` acceptance path is disabled because `PROJECT_INVITE_ENTRY_ENABLED` is not set and `ARCHESTIMATOR_INVITE_TOKEN_PEPPER` is not configured. Additionally, Supabase Auth email/SMTP provider must be configured for invite delivery. This is distinct from Resend shared-link email — collaboration invites rely on Supabase Auth email/invite behavior. See `.ai/03_plans/collaboration-and-sharing-audit/` for full audit.
+
+| `ARCHESTIMATOR_E2E_INVITE_ENTRY` | Enables collaboration invite E2E tests | Optional | Optional | Not applicable |
+
 ### E2E testing flags
 
 | Variable | Purpose | Local | Staging | Production |
@@ -172,6 +183,10 @@ Note: The publication secrets have dual naming (`PUBLICATION_*` and `ARCHESTIMAT
 6. Create separate DeepSeek API keys for staging and production.
 7. Document the secret rotation procedure for each provider.
 8. Create a `.env.staging` and `.env.production` template (without values) for documentation.
+9. **Configure Supabase Auth email/SMTP provider** for collaboration invite delivery (provider dashboard task — required before invite testing).
+10. **Add `PROJECT_INVITE_ENTRY_ENABLED` and `ARCHESTIMATOR_INVITE_TOKEN_PEPPER`** to all environment maps (local, staging, production).
+11. **Verify invite E2E** with `ARCHESTIMATOR_E2E_INVITE_ENTRY=1` after config unblock.
+12. **Record redacted dashboard evidence** for Supabase Auth email provider and invite env var configuration.
 
 ---
 

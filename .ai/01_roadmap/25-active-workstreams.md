@@ -1,7 +1,7 @@
 # Active Workstreams
 
 **Last updated:** 2026-05-30
-**Purpose:** Organizes the implementation roadmap into 7 concurrent workstream tracks. Each workstream activates at a different wave. Within a wave, workstreams can run in parallel.
+**Purpose:** Organizes the implementation roadmap into 8 concurrent workstream tracks. Each workstream activates at a different wave. Within a wave, workstreams can run in parallel.
 
 ---
 
@@ -438,6 +438,68 @@
 
 ---
 
+## Workstream 8: Collaboration & Sharing Hardening
+
+**Purpose:** Unblock collaboration invites and bring shared-link to production-hardening parity. Cross-cuts Security (Workstream 2) and UX (Workstream 4).
+
+**Now-Unblocked Cards:**
+- HUMAN-P0-COLLAB-001A — Configure Supabase Auth Email Provider (human external setup)
+- CODEX-P0-COLLAB-001B — Invite Environment Variable Inventory
+- CODEX-P0-COLLAB-002 — Invite Acceptance Route Fail-Closed / POST-Only
+- CODEX-P0-COLLAB-003 — Invite Lifecycle E2E Validation (after external setup)
+- CODEX-P0-COLLAB-004 — Invite Messaging Truthfulness
+- CODEX-P1-COLLAB-005 — Invite Visibility Signifiers
+- CODEX-P1-SHARE-001 — Shared-Link Visibility Signifiers
+- CODEX-P1-SHARE-002 — Shared-Link Recipient Tracking
+- CODEX-P1-SHARE-003 — Shared-Link Owner Digest Sender Fix
+- CODEX-P1-SHARE-004 — Shared-Link Destructive Confirmations
+
+**Blocked Goal Cards:** None
+
+**Owner Decisions Required:** None (all resolved in Wave 0)
+
+**External Setup Required (Philip executes, agent prepares):**
+- Supabase Auth email/SMTP provider configuration
+- `PROJECT_INVITE_ENTRY_ENABLED` and `ARCHESTIMATOR_INVITE_TOKEN_PEPPER` env var provisioning
+
+**Implementation Required (agent can execute):**
+- Invite env var inventory and documentation
+- POST-only invite acceptance route hardening
+- Invite lifecycle E2E validation (after config unblock)
+- Invite messaging truthfulness audit and fix
+- Invite visibility signifiers throughout workshop surfaces
+- Shared-link visibility signifiers (project-card badges, one-click copy)
+- Shared-link per-recipient open tracking
+- Shared-link owner digest sender identity fix
+- Shared-link destructive confirmation dialogs
+
+**Evidence Required:**
+- Redacted Supabase dashboard screenshot (email provider)
+- Env var inventory with invite vars
+- POST-only accept proof (GET must not mutate)
+- Invite lifecycle E2E evidence
+- Visibility/signifier screenshots
+- Recipient tracking proof
+- Destructive confirmation screenshots
+- Audit event evidence
+
+**Performance Gate:** Must not regress route transitions, sheet editing latency, or bundle size. Rate limiting must add <5ms per request.
+
+**Security Gate:** Invite tokens must not be enumerable. POST-only mutation must be enforced. Missing config must fail closed. "Email sent" must not be shown unless delivery is confirmed. In-memory rate limiting is not acceptable for external beta.
+
+**UX Gate:** Invite states must be visible in project/sidebar/homebase surfaces. Shared-link badges and one-click copy must use design-system tokens. Destructive actions must require confirmation.
+
+**First Ralph Loop Target:** HUMAN-P0-COLLAB-001A — Philip configures Supabase Auth email provider. Then CODEX-P0-COLLAB-001B — document invite env vars.
+
+**Dependencies:** Wave 1 (staging, human email provider setup). P0 invite cards align with Wave 2 (security evidence). P1 cards can run in parallel with Waves 4-5.
+
+**Explicitly Out of Scope:**
+- Full invite email template redesign (current audit scope only)
+- Threaded comments (POST-MVP)
+- Advanced recipient analytics (POST-MVP)
+
+---
+
 ## Workstream Status Dashboard
 
 | Workstream | Wave | Active Cards | Blocked Cards | Owner Decisions Pending | Dependencies Met? | Overall Status |
@@ -449,8 +511,9 @@
 | 5. Share/Export/AI | Wave 5 | 2 | 0 | 0 | No (needs Waves 1-4) | **QUEUED — unblocks after Wave 4** |
 | 6. Enterprise MVP | Wave 6 | 5 | 0 | 0 | No (needs Waves 1-5) | **QUEUED — unblocks after Wave 5** |
 | 7. Beta Operations | Wave 7 | 3 | 3 | Philip signoff | No (needs Waves 1-5) | **QUEUED — unblocks after Wave 5** |
+| 8. Collaboration & Sharing Hardening | Waves 1-5 | 10 | 0 | 0 (human setup for invite config) | Partial (needs Wave 1 staging + Supabase email provider) | **P0: READY for human setup. P1: QUEUED — unblocks after Wave 4** |
 
-**All 7 workstreams are unblocked for planning.** Owner decisions are codified (Wave 0 is DONE). Workstream 1 (Environment & Deployment) can begin immediately. Subsequent workstreams activate in wave order as dependencies are satisfied.
+**All 8 workstreams are unblocked for planning.** Owner decisions are codified (Wave 0 is DONE). Workstream 1 (Environment & Deployment) can begin immediately. Workstream 8 (Collaboration & Sharing) has P0 human external setup ready now. Subsequent workstreams activate in wave order as dependencies are satisfied.
 
 ---
 

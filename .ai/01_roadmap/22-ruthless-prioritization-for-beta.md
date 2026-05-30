@@ -28,7 +28,11 @@ These items are hard gates for controlled design-partner beta. Codex must implem
 | 4 | API/server-action authorization audit | BETA P0 | Every /api/* route and server action must verify auth. No unauthenticated writes. | No | Audit report, automated tests for top 10 write routes | Wave 2 |
 | 5 | Persistent rate limiting or equivalent durable protection | BETA P0 | In-memory rate limiting clears on restart. Must have durable protection for shared-link brute-force and auth endpoints. | D-004: Rate-limit/CAPTCHA posture | Rate-limit tests survive restart; lockout persistence verified | Wave 2 |
 | 6 | Secrets scanning / service-role leak check | BETA P0 | Accidental credential commits must be blocked. Service-role key must never reach client. | No | CI fails on commit with fake credential; bundle audit clean | Wave 2 |
-| 7 | Invite lifecycle staging validation | BETA P0 | Invite tokens must be validated end-to-end: issue → accept → revoke → reject replay. | No | Staging E2E test pass on invite lifecycle | Wave 2 |
+| 7 | Invite lifecycle staging validation | BETA P0 | Invite tokens must be validated end-to-end: issue → accept → revoke → reject replay. Currently BROKEN / CONFIG BLOCKED. | No | Staging E2E test pass on invite lifecycle AFTER config unblock | Wave 2 |
+| 7a | Collaboration invite config unblock | BETA P0 | Supabase Auth email provider, `PROJECT_INVITE_ENTRY_ENABLED`, `ARCHESTIMATOR_INVITE_TOKEN_PEPPER` must all be configured before invite testing can begin. | No | Redacted dashboard evidence, env var inventory | Wave 1 |
+| 7b | POST-only invite acceptance + fail-closed | BETA P0 | GET must not mutate or grant access. Missing config must disable acceptance. | No | Route audit, test results | Wave 2 |
+| 7c | Invite endpoint rate limiting | BETA P0 | Rate limiting must be durable and survive restarts. | No | Rate limit persistence test | Wave 2 |
+| 7d | False-positive invite messaging fix | BETA P0 | UI/API must not say "email sent" unless delivery is confirmed. | No | Messaging audit, test results | Wave 2 |
 | 8 | Shared-link boundary validation | BETA P0 | Shared link tokens must not be enumerable. Password-gated links must enforce lockout. | D-026: Password-gated share evidence | Token enumeration test, lockout persistence test against staging | Wave 2 |
 | 9 | Sentry / basic error tracking | BETA P0 | No error visibility exists. Beta needs at least Sentry or equivalent. | No | Sentry dashboard showing errors from staging | Wave 3 |
 | 10 | Performance smoke harness | BETA P0 | Must know baseline performance before beta users experience slowness. | No | Lighthouse + trace for key routes; row-edit, tree-render, export benchmarks | Wave 3 |
@@ -54,6 +58,10 @@ These items should ideally be done before beta, but Philip can accept the risk i
 | 4 | Full cross-browser matrix | BETA P1 | Chrome-only smoke is acceptable for controlled beta. | No | Safari/Firefox bugs possible; mitigated by asking partners' browsers |
 | 5 | Full disaster recovery drill | BETA P1 | Beta data is low-risk; Supabase backups provide adequate safety net. | No | Data loss risk; acceptable for beta with backups |
 | 6 | Product analytics beyond north star | BETA P1 | Minimal first-party events (north star only) is sufficient for qualitative-first beta. | D-031: Analytics before beta | Can't measure quantitatively beyond activation; acceptable for qualitative-first beta |
+| 7 | Invite visibility signifiers (pending/sent/accepted/expired states) | BETA P1 | Collaboration invite status not visible in sidebar/homebase/modal surfaces. Acceptable for small beta where Philip manages invites manually. | No | Confusion risk for invitees; mitigated by small beta + manual onboarding |
+| 8 | Shared-link visibility signifiers (project-card badges, one-click copy, activity dot) | BETA P1 | Missing link status indicators and copy convenience. Acceptable if beta partners are briefed. | No | Minor UX friction; mitigated by partner relationship |
+| 9 | Shared-link recipient tracking + owner digest fix | BETA P1 | Per-recipient open tracking missing; owner digest uses hardcoded/placeholder sender. Acceptable for beta. | No | Can't measure recipient engagement; acceptable for qualitative-first beta |
+| 10 | Shared-link destructive confirmation dialogs | BETA P1 | Revoke/remove/destructive share actions lack confirmation. Acceptable risk for small beta. | No | Accidental revoke risk; mitigated by small beta |
 
 ---
 
@@ -146,15 +154,15 @@ These items are explicitly out of scope. Codex must NOT spend time on these.
 
 | Lane | Count | Action for Codex |
 |------|-------|------------------|
-| BETA P0 | 17 | Implement now, in wave order |
-| BETA P1 | 6 | Can be deferred; Philip accepts risk |
+| BETA P0 | 21 | Implement now, in wave order (includes collab invite config unblock, POST-only, rate limiting, messaging fix) |
+| BETA P1 | 10 | Can be deferred; Philip accepts risk (includes invite visibility, shared-link visibility, recipient tracking, destructive confirmations) |
 | ENTERPRISE MVP | 10 | Do not implement for beta; queued for Wave 6 |
 | PUBLIC / PAID LAUNCH | 19 | Do not implement for beta or enterprise MVP |
 | POST-MVP | 8 | Do not implement |
 | DEFERRED | 14 | Explicitly skip |
-| **Total classified** | **74** | Reduced from 137 raw items |
+| **Total classified** | **82** | Expanded from 74 — 8 new collab/share BETA P0/P1 items from collaboration-and-sharing-audit |
 
-The 137 raw items from the dashboard have been compressed into 74 classified items across 6 priority lanes. Only 17 BETA P0 items demand immediate Codex attention, and 10 of those are in Waves 1-5 (implementation); 4 are in Wave 7 (beta operations).
+The 137 raw items from the dashboard have been compressed into 82 classified items across 6 priority lanes. Only 21 BETA P0 items demand immediate Codex attention (including 4 new collab invite items), and 10 of those are in Waves 1-5 (implementation); 4 are in Wave 7 (beta operations).
 
 ## Next Action
 

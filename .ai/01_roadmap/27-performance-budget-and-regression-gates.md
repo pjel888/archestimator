@@ -3,6 +3,13 @@
 **Last updated:** 2026-05-30
 **Purpose:** Makes performance unavoidable in every Codex implementation. No feature ships without considering perf. Applies at three tiers: Beta, Enterprise MVP, Public Launch.
 
+> **⚠️ Canonical Route Transition Plan:** For all route-transition performance work, `.ai/03_plans/route-transition-performance-optimization/CURRENT_CANONICAL_PLAN.md` is the single source of truth and conflict-resolution authority. Key corrections from the canonical plan:
+> - `src/proxy.ts` is **active Next.js 16 middleware** — it is NOT dead code. Do not create `src/middleware.ts`.
+> - Do **NOT** replace `getUser()` with `getSession()` in middleware — this is a security risk (JWT forgery).
+> - Phase 0 baseline measurement is **required** before any optimization claims.
+> - The route-transition groundwork phase is complete, but important gaps remain: loading.tsx waterfall, unwired `usePrefetchOnHover`, missing `router.prefetch()`, zero error boundaries, zero Suspense boundaries.
+> - Beta acceptable target: `<200ms`. Active optimization north star: **sub-100ms** where the canonical plan says so.
+
 ## Global Performance Rules
 
 These rules apply to ALL Codex goal implementations:
@@ -209,6 +216,7 @@ Until full perf optimization is complete, these risks are documented:
 | Cold starts unknown | Not measured | Accept if documented | Wave 3 measurement |
 | Large estimate performance unknown | Not tested | Accept if <500 rows is ok for beta | Wave 3 benchmark |
 | XLSX large export timeout | Not tested | Accept if documented | Wave 3 benchmark |
+| Route transitions unmeasured | Groundwork implemented, Phase 0 baseline missing | No — blocked by missing baseline | Phase 0 baseline measurement required. Do NOT claim route transitions are solved because groundwork files exist. |
 
 ## Accepted Risks (Enterprise MVP)
 

@@ -56,8 +56,15 @@ Recommended first implementation sequence for Ralph Loop execution:
 | Decision Level | Verdict | Rationale |
 |---|---|---|
 | **Public Launch** | **NO-GO** | Security gate incomplete (RLS/RPC audit, rate limiting, CSP), legal gate missing all provider evidence (ToS, GDPR, DPA, OAuth verification), deployment pipeline absent (no CD, no staging), performance untested at scale |
-| **Controlled Beta** | **CONDITIONAL / OWNER DEFAULTS NOW DECIDED** | 21 owner decisions resolved. 78 atomic goal cards + 15 EPIC headers defined (Atomic Split Edition). 1 evidence artifact exists (decisions codified). See Codex execution docs 22-34. |
+| **Controlled Beta** | **CONDITIONAL / OWNER DEFAULTS NOW DECIDED** | 21 owner decisions resolved. 78 atomic goal cards + 15 EPIC headers defined (Atomic Split Edition). 1 evidence artifact exists (decisions codified). See Codex execution docs 22-34. **⚠️ Collaboration invites are BROKEN / CONFIG BLOCKED** — invite acceptance is non-functional until Supabase Auth email provider and invite env vars are configured. See `.ai/03_plans/collaboration-and-sharing-audit/`. |
 | **Enterprise MVP** | **PLANNED** | Depends on controlled beta completion. Requires immutable proposals, PDF packages, CSP hardening, DSAR workflow, backup verification. |
+
+## Documentation Sync Status
+
+| Item | Status | Notes |
+|---|---|---|
+| Collaboration & Sharing Audit Sync | ✅ COMPLETE (2026-05-30) | `.ai/03_plans/collaboration-and-sharing-audit/` integrated into roadmap. Invite readiness downgraded to config-blocked. Shared-link production gaps visible. Route-transition canonical plan recognized as conflict-resolution source. |
+| Roadmap Consistency Index | ✅ Active | See `34-roadmap-consistency-index.md` for canonical source map.
 
 ---
 
@@ -65,11 +72,14 @@ Recommended first implementation sequence for Ralph Loop execution:
 
 | Metric | Count |
 |---|---|
-| Total goal cards | 78 (+ 15 EPIC headers — Atomic Split Edition) |
-| Ready for Codex | UNKNOWN / NEEDS ROADMAP AUDIT (Atomic Split Edition — recount against 78 cards) |
-| Ready for Codex after external setup | UNKNOWN / NEEDS ROADMAP AUDIT |
-| Ready for human external setup | UNKNOWN / NEEDS ROADMAP AUDIT |
-| Still owner-blocked or planned | UNKNOWN / NEEDS ROADMAP AUDIT |
+| Total goal cards | 78 (+ 15 EPIC headers — Atomic Split Edition); 10 new collab/share cards added 2026-05-30 |
+| Ready for Codex | 50 (needs recount after collab/share card sync) |
+| Ready for Codex after external setup | 11 (staging-dependent) |
+| Blocked by external setup | 5 |
+| Blocked by sentry choice | 2 |
+| Blocked by design partner list | 1 |
+| Blocked by owner decisions (public-launch only) | 2 |
+| Planned | 6 |
 | Evidence-backed DONE | 1 |
 
 **Next 3 recommended goals:**
@@ -169,7 +179,7 @@ Owner: Philip for all items.
 | 1.5 | Shared project permissions | IMPLEMENTED / NEEDS EVIDENCE | BETA BLOCKER | Test: shared_project row enforces view_only vs edit vs comment. Share token resolves to correct permission level. Middleware check: share_token → permission route mapping. | Philip | Execute BETA-P0-SEC-001 | Beta |
 | 1.6 | Share token boundaries | IMPLEMENTED / NEEDS EVIDENCE | BETA BLOCKER | Test: share_token grants access to its linked resource only (project or sheet), not sibling resources. Token scope test across all shareable types. | Philip | Execute BETA-P0-SEC-001 | Beta |
 | 1.7 | Password-protected share | IMPLEMENTED / NEEDS EVIDENCE | BETA BLOCKER | Staging E2E with real Supabase, penetration test of lockout | Philip | Schedule staging test | Beta |
-| 1.8 | Invite token lifecycle | IMPLEMENTED / NEEDS EVIDENCE | BETA BLOCKER | Test: token expires after invite.expires_at. Test: consumed token marked consumed_at not reusable. Test: unexpired unused token works. | Philip | Execute BETA-P0-SEC-003 | Beta |
+| 1.8 | Invite token lifecycle | BROKEN / CONFIG BLOCKED | BETA BLOCKER | Code exists but system is non-functional: Supabase Auth email not configured, `PROJECT_INVITE_ENTRY_ENABLED` missing, `ARCHESTIMATOR_INVITE_TOKEN_PEPPER` missing, old auto-grant RPC deliberately disabled. No reliable acceptance path. Test: token expires after invite.expires_at. Test: consumed token marked consumed_at not reusable. Test: unexpired unused token works. | Philip | Unblock config (HUMAN-P0-COLLAB-001A, CODEX-P0-COLLAB-001B) | Beta |
 | 1.9 | Auth callback safety | IMPLEMENTED / NEEDS EVIDENCE | LAUNCH BLOCKER | Test: invalid state param in OAuth callback returns 400. Test: expired code returns error. Test: redirect_uri mismatch blocked. | Philip | Execute BETA-P0-SEC-003 | Beta |
 | 1.10 | Service-role isolation | IMPLEMENTED / NEEDS EVIDENCE | LAUNCH BLOCKER | Verify: service_role key never exposed client-side. Server actions use service_role only via server context. No client bundle contains service_role. | Philip | Execute BETA-P0-SEC-004 | Beta |
 | 1.11 | Server-only secrets | IMPLEMENTED / NEEDS EVIDENCE | LAUNCH BLOCKER | Verify: all env vars prefixed NEXT_PUBLIC_ are safe for client. No secrets in .env.local committed. Supabase anon key is the only client-side key. | Philip | Execute BETA-P0-SEC-004 | Beta |
@@ -196,9 +206,9 @@ Owner: Philip for all items.
 |---|---|---|---|---|---|---|---|
 | 2.1 | Landing → login | IMPLEMENTED / NEEDS EVIDENCE | BETA BLOCKER | Screenshot: landing page at 3 breakpoints. Test: sign-in button visible, functional. Test: unauthenticated user sees landing, cannot reach /workshop. | Philip | Capture evidence | Beta |
 | 2.2 | Login → workshop | IMPLEMENTED / NEEDS EVIDENCE | BETA BLOCKER | Screenshot: post-login redirect lands on /workshop. Test: first-time user sees empty workshop. Test: returning user sees their workspaces. | Philip | Capture evidence | Beta |
-| 2.3 | Invite — signed out | IMPLEMENTED / NEEDS EVIDENCE | BETA BLOCKER | Flow test: signed-out user clicks invite link → sign-in → auto-redirect to invited project. Screenshot of each step. | Philip | Capture evidence | Beta |
-| 2.4 | Invite — signed in | IMPLEMENTED / NEEDS EVIDENCE | BETA BLOCKER | Flow test: signed-in user clicks invite link → auto-accept → redirect to project. Screenshot: acceptance confirmation. | Philip | Capture evidence | Beta |
-| 2.5 | Wrong-account recovery | LEFT TO DO | BETA BLOCKER | Flow test: user clicks invite while signed into wrong Google account → sees "wrong account" prompt → can switch → lands correctly. Screenshot of mismatch warning. | Philip | Implement recovery flow | Beta |
+| 2.3 | Invite — signed out | BROKEN / CONFIG BLOCKED (code exists, config missing) | BETA BLOCKER | Flow test: signed-out user clicks invite link → sign-in → auto-redirect to invited project. Screenshot of each step. Blocked until Supabase Auth email provider configured, `PROJECT_INVITE_ENTRY_ENABLED` and `ARCHESTIMATOR_INVITE_TOKEN_PEPPER` set. | Philip | Unblock config then capture evidence | Beta |
+| 2.4 | Invite — signed in | BROKEN / CONFIG BLOCKED (code exists, config missing) | BETA BLOCKER | Flow test: signed-in user clicks invite link → auto-accept → redirect to project. Screenshot: acceptance confirmation. Blocked until accepted route enabled, config unblocked. | Philip | Unblock config then capture evidence | Beta |
+| 2.5 | Wrong-account recovery | LEFT TO DO (config-blocked) | BETA BLOCKER | Flow test: user clicks invite while signed into wrong Google account → sees "wrong account" prompt → can switch → lands correctly. Screenshot of mismatch warning. | Philip | Implement recovery flow after config unblock | Beta |
 | 2.6 | Project creation | IMPLEMENTED / NEEDS EVIDENCE | BETA BLOCKER | Screenshot: create project modal. Test: project appears in workspace sidebar after creation. Test: empty project shows prompt to create first estimate. | Philip | Capture evidence | Beta |
 | 2.7 | Estimate creation | IMPLEMENTED / NEEDS EVIDENCE | BETA BLOCKER | Screenshot: create estimate modal with template picker. Test: new estimate opens in editor. Test: estimate appears in project tree. | Philip | Capture evidence | Beta |
 | 2.8 | Tree navigation | IMPLEMENTED / NEEDS EVIDENCE | BETA BLOCKER | Screenshot: workspace → project → estimate drill-down. Test: expand/collapse sections, drag items between sections. Test: tree persists state on refresh. | Philip | Capture evidence | Beta |
@@ -208,9 +218,9 @@ Owner: Philip for all items.
 | 2.12 | Proposal — XLSX | IMPLEMENTED / NEEDS EVIDENCE | BETA BLOCKER | Screenshot: export button and generated XLSX. Test: XLSX contains all sections, items, totals. Test: formatting matches proposal style. Open in Excel and Google Sheets. | Philip | Capture evidence | Beta |
 | 2.13 | Proposal — PDF | ENTERPRISE MVP P1 | ENTERPRISE MVP | PDF package workflow implemented for enterprise MVP. | Philip | Execute ENTERPRISE-P1-PROD-002 | Enterprise MVP |
 | 2.14 | Charts | IMPLEMENTED / NEEDS EVIDENCE | BETA BLOCKER | Screenshot: cost breakdown pie chart, section bar chart. Test: charts update after estimate edit. Test: charts render in share view. | Philip | Capture evidence | Beta |
-| 2.15 | Shared link manager | IMPLEMENTED / NEEDS EVIDENCE | BETA BLOCKER | Screenshot: share dialog with link list. Test: create share link → copy to clipboard. Test: set password, set expiry. Test: revoke link. Test: revoke confirmation dialog. | Philip | Capture evidence | Beta |
+| 2.15 | Shared link manager | IMPLEMENTED / NEEDS EVIDENCE (production gaps) | BETA BLOCKER | System functional but has known production gaps: in-memory rate limiters (not durable), missing per-recipient open tracking, missing project-card/homebase link status indicators, missing one-click copy on project page, owner digest uses hardcoded/placeholder sender. | Philip | See CODEX-P1-SHARE cards for gap closure | Beta |
 | 2.16 | Shared receiver — view mode | IMPLEMENTED / NEEDS EVIDENCE | BETA BLOCKER | Screenshot: recipient view of shared estimate. Test: view_only hides edit controls. Test: charts visible. Test: XLSX export available if allowed. | Philip | Capture evidence | Beta |
-| 2.17 | Password-gated share flow | IMPLEMENTED / NEEDS EVIDENCE | BETA BLOCKER | Staging E2E with real Supabase, penetration test of lockout | Philip | Schedule staging test | Beta |
+| 2.17 | Password-gated share flow | IMPLEMENTED / NEEDS EVIDENCE (in-memory lockout) | BETA BLOCKER | Staging E2E with real Supabase, penetration test of lockout. Note: current lockout is in-memory, not durable across restarts. | Philip | Schedule staging test; durable rate limiting via BETA-P0-SEC-005 | Beta |
 | 2.18 | Comments / decisions / activity | IMPLEMENTED / NEEDS EVIDENCE | BETA BLOCKER | Screenshot: comment thread on estimate item. Test: comment saves, shows author + timestamp. Test: activity feed shows comment events. Test: decision flag on comment. | Philip | Capture evidence | Beta |
 | 2.19 | Account settings | IMPLEMENTED / NEEDS EVIDENCE | BETA BLOCKER | Screenshot: account page with name, email, avatar. Test: Google account info displayed. Test: logout works. Test: delete account flow (if implemented). | Philip | Capture evidence | Beta |
 | 2.20 | Ask Flip (AI copilot) | IMPLEMENTED / NEEDS EVIDENCE | BETA BLOCKER | Screenshot: chat panel open beside estimate. Test: ask a question about estimate → receives contextual response. Test: Flip cannot access other workspaces. | Philip | Capture evidence | Beta |
@@ -222,7 +232,7 @@ Owner: Philip for all items.
 
 | # | Area | Status | Launch Blocker? | Evidence Required | Owner | Next Decision | Target Phase |
 |---|---|---|---|---|---|---|---|
-| 3.1 | Route transitions | IMPLEMENTED / NEEDS EVIDENCE | BETA BLOCKER | Lighthouse timing: <200ms for route-to-route navigation. Test: no full-page reloads between Next.js routes. | Philip | Execute BETA-P0-PERF-001 | Beta |
+| 3.1 | Route transitions | PARTIAL (groundwork done, baseline missing) | BETA BLOCKER | Groundwork implemented (BfcacheHandler, PerformanceMonitor, usePrefetchOnHover, Skeleton, loading.tsx). Remaining gaps: prefetch unwired, no error boundaries, no Suspense boundaries, no Phase 0 baseline. See `.ai/03_plans/route-transition-performance-optimization/CURRENT_CANONICAL_PLAN.md` for conflict-resolution source. Beta target: <200ms; active optimization target: sub-100ms. | Philip | Phase 0 baseline measurement before optimization claims | Beta |
 | 3.2 | Workshop navigation | IMPLEMENTED / NEEDS EVIDENCE | BETA BLOCKER | Test: /workshop → /workshop/project → /workshop/estimate <300ms each. No layout shift during tree expansion. | Philip | Execute BETA-P0-PERF-001 | Beta |
 | 3.3 | Estimate editing latency | IMPLEMENTED / NEEDS EVIDENCE | BETA BLOCKER | Measure: keypress to save <100ms perceived. Debounce strategy confirmed. No blocking UI during save. | Philip | Execute BETA-P0-PERF-001 | Beta |
 | 3.4 | Tree rendering | IMPLEMENTED / NEEDS EVIDENCE | BETA BLOCKER | Test: 500-item tree renders <1s. Test: expand all sections <1s. Virtualization confirmed or decision documented as accepted risk. | Philip | Execute BETA-P0-PERF-001 | Beta |

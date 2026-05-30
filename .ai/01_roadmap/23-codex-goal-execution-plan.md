@@ -72,10 +72,10 @@
 ## Wave 1 — Environment & Staging Foundation
 
 **Objective:** Create a safe, isolated environment where all subsequent evidence can be gathered.
-**Why now:** Security tests (Wave 2) need a staging Supabase to run against. No safe environment = no safe way to prove tenant isolation. This MUST come before security test execution.
+**Why now:** Security tests (Wave 2) need a staging Supabase to run against. No safe environment = no safe way to prove tenant isolation. This MUST come before security test execution. **Also includes collaboration invite config unblock** — Supabase Auth email provider and invite env vars must be configured before any invite testing.
 **Prerequisites:** Wave 0 complete (owner defaults codified)
 
-**Goal cards:** BETA-P0-INF-001
+**Goal cards:** BETA-P0-INF-001, HUMAN-P0-COLLAB-001A, CODEX-P0-COLLAB-001B
 
 **Success criteria:**
 - Staging Supabase project created, separate from dev (different URL, different service-role key)
@@ -110,7 +110,7 @@
 **Why now:** Staging exists (Wave 1). Now prove RLS/storage/auth boundaries with real tests against staging. Security evidence is the highest-leverage work before beta.
 **Prerequisites:** Wave 1 (staging environment for test execution)
 
-**Goal cards:** BETA-P0-SEC-001, BETA-P0-SEC-002, BETA-P0-SEC-003, BETA-P0-SEC-004, BETA-P0-SEC-005
+**Goal cards:** BETA-P0-SEC-001, BETA-P0-SEC-002, BETA-P0-SEC-003, BETA-P0-SEC-004, BETA-P0-SEC-005, CODEX-P0-COLLAB-002, CODEX-P0-COLLAB-003, CODEX-P0-COLLAB-004
 
 **Success criteria:**
 - RLS denial test suite passes against staging for all user-data tables
@@ -137,7 +137,19 @@ bun run test tests/integration/storage-isolation.test.ts  # must pass against st
 
 **Owner decisions required:** None (all resolved in Wave 0)
 
-**Explicit non-goals:** Fixing every RLS policy gap (report only), penetration testing, implementing new auth features, modifying RLS policies without test coverage first. Agents may run tests against staging Supabase but must not modify staging infrastructure.
+**Explicit non-goals:** Fixing every RLS policy gap (report only), penetration testing, implementing new auth features, modifying RLS policies without test coverage first. Do NOT use `.ai/03_plans/collaboration-and-sharing-audit/` as evidence of implementation — it is a plan/audit pack only. Collab invite implementation must be atomic: human dashboard/provider setup (Wave 1) must be separated from Codex code tasks (Wave 2). Agents may run tests against staging Supabase but must not modify staging infrastructure.
+
+---
+
+## Collaboration & Sharing Audit Integration
+
+**⚠️ Important:** The collaboration & sharing audit pack at `.ai/03_plans/collaboration-and-sharing-audit/` has been integrated into the roadmap. Key points:
+
+- **Collaboration Invites are BROKEN / CONFIG BLOCKED.** The system is non-functional in its current configuration. Supabase Auth email/SMTP provider must be configured, `PROJECT_INVITE_ENTRY_ENABLED` and `ARCHESTIMATOR_INVITE_TOKEN_PEPPER` must be set, and the invite acceptance route must be corrected to POST-only and fail-closed. The old auto-grant RPC is deliberately disabled.
+- **Shared Link is functional but has production-hardening gaps.** In-memory rate limiters are not durable, per-recipient open tracking is missing, project-card/homebase visibility signifiers are missing, one-click copy is missing, and owner digest uses hardcoded/placeholder sender.
+- **Do NOT execute the whole audit at once.** Each implementation unit must be atomic. See new goal cards in `26-codex-goal-cards.md`: HUMAN-P0-COLLAB-001A (human external setup), CODEX-P0-COLLAB-001B through 004 (invite hardening), CODEX-P1-COLLAB-005 (invite visibility), CODEX-P1-SHARE-001 through 004 (shared-link hardening).
+- **Wave mapping:** Invite config/unblock (Wave 1 human setup), invite acceptance security + rate limiting (Wave 2), invite visibility + shared-link hardening (P1 items, parallel with Waves 4-5).
+- **The audit pack is a plan, not evidence.** Do not claim implementation is done based on audit documents.
 
 ---
 

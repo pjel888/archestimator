@@ -1,10 +1,15 @@
 # Known Issues / Open Risks
 
-**Last updated:** 2026-05-29
+**Last updated:** 2026-05-30
 
 ## Current blockers
 
 - Public/private launch remains NO-GO until provider, legal, Vercel, QA, support, owner, full validation/build, and storage/security evidence is complete (see Roadmap Phase 7).
+- **Collaboration invite system is config-blocked / non-functional.** Supabase Auth email provider not configured. `PROJECT_INVITE_ENTRY_ENABLED` and `ARCHESTIMATOR_INVITE_TOKEN_PEPPER` missing or not verified. Invite acceptance path must be POST-only and fail closed. Old auto-grant RPC deliberately disabled. See `.ai/03_plans/collaboration-and-sharing-audit/`.
+- **Invite endpoint rate limiting missing.** All invite endpoints lack rate limiting. GET-based acceptance mutation risk must be corrected to POST-only.
+- **Shared-link rate limiting is in-memory / not durable.** Password lockout and access rate limiting do not survive server restarts. Must be persistent (Redis/Upstash) before external beta.
+- **Shared-link lacks per-recipient open tracking and visibility signifiers.** Missing project-card/homebase link status indicators, one-click copy, and owner digest sender identity fix.
+- **Route-transition performance has groundwork but not full baseline/optimization proof.** Phase 0 baseline measurement required before optimization claims. `.ai/03_plans/route-transition-performance-optimization/CURRENT_CANONICAL_PLAN.md` is the conflict-resolution source.
 - Local Supabase/Docker verification blocked for mutation/atomicity proof and scalar edit latency benchmarking; must use linked remote `ebxxqidacheyapmmzavr` until Docker is available.
 - Do not merge, deploy, or connect additional Supabase/Postgres resources without Philip's explicit approval.
 - Agent performance degradation is an explicit operational risk; use `.ai/00_system/AGENT_SELF_DIAGNOSTIC_PROTOCOL.md` when quality slips.
