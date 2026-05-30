@@ -27,7 +27,8 @@ See [ui/taste.md](ui/taste.md)
 - When researching drag-and-drop or tree UI patterns, prefer primary/authoritative sources: WAI-ARIA APG, React Complex Tree docs, Atlassian/other design systems, NN/g. Confidence: 0.70
 
 # planning-audits
-- Structure feature audits as four documents: 01-current-inventory (code-level catalog), 02-feature-gap-analysis (ranked gaps with severity), 03-ux-paths-and-happy-paths (user journeys with cross-surface maps), 04-prioritized-improvement-roadmap (phased P0–P4 with concrete code snippets and file paths). Confidence: 0.70
+- Structure feature audits as four documents: 01-current-inventory (code-level catalog), 02-feature-gap-analysis (ranked gaps with severity), 03-ux-paths-and-happy-paths (user journeys with cross-surface maps), 04-prioritized-improvement-roadmap (phased P0–P4 with concrete code snippets and file paths). Apply the UX paths pattern to bug-triage docs as well. Confidence: 0.75
+- For collaboration/sharing UX path studies, cover three perspectives: the inviter's view (status signifiers for pending/unaccepted invites, role management), the invitee's view (all acceptance flow branches), and the projects-list view (how shared projects are designated, removal risk, ownership indicators). Confidence: 0.70
 
 # estimate-tree
 - When group nodes and area nodes are siblings, group nodes must always be sorted before area nodes. Confidence: 0.70
