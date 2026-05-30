@@ -11,8 +11,8 @@ const robotoMono = Roboto_Mono({ variable: "--font-roboto-mono", subsets: ["lati
 const sourceSerif = Source_Serif_4({ variable: "--font-source-serif", subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Archestimator | Quote, Proposal & Estimate Workspace",
-  description: "A workspace for teams that build quotes, estimates, and proposals from reusable line items, supplier context, assumptions, and document-ready handoff steps.",
+  title: "Archestimator — Coming Soon",
+  description: "A new workspace for teams that build quotes, estimates, and proposals. Coming soon.",
   icons: {
     icon: [
       { url: "/favicon_io/favicon.ico", sizes: "any" },
