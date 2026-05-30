@@ -26,6 +26,10 @@ export async function proxy(request: NextRequest) {
   const isProtected = PROTECTED_PREFIXES.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`));
   const isAuthRoute = AUTH_ROUTES.includes(pathname);
 
+  if (!isProtected && !isAuthRoute) {
+    return createRequestPathResponse(request);
+  }
+
   if (isDevAuthBypassRequest(request.nextUrl.hostname)) {
     if (isAuthRoute) {
       return NextResponse.redirect(new URL(DEFAULT_AUTH_DESTINATION, request.url));
