@@ -28,7 +28,7 @@ These documents form the Ralph Loop execution command center:
 | 22 | [Ruthless Beta Prioritization](./22-ruthless-prioritization-for-beta.md) | Classifies every item into BETA P0 / P1 / PUBLIC LAUNCH / POST-BETA / DEFERRED |
 | 23 | [Codex /goal Execution Plan](./23-codex-goal-execution-plan.md) | **Start here.** Wave plan, sequencing, what Codex must and must not do |
 | 24 | [Owner Decision Packet](./24-owner-decision-packet.md) | All 21 resolved decisions with defaults and goal-card mappings |
-| 25 | [Active Workstreams](./25-active-workstreams.md) | 6 workstreams organized by wave, with status dashboard |
+| 25 | [Active Workstreams](./25-active-workstreams.md) | 8 workstreams organized by wave, with status dashboard |
 | 26 | [Codex Goal Cards](./26-codex-goal-cards.md) | 78 atomic goal cards (plus 15 EPIC headers) for Codex `/goal` |
 | 27 | [Performance Budget & Regression Gates](./27-performance-budget-and-regression-gates.md) | Makes performance unavoidable in every implementation |
 | 28 | [Evidence Artifact Index](./28-evidence-artifact-index.md) | Where Codex saves evidence; DONE requires evidence path |

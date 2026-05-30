@@ -119,9 +119,9 @@
 
 **Now-Unblocked Cards:**
 - BETA-P0-OBS-001 — Sentry / basic error tracking and logging path
-- BETA-P0-ANA-001 — Performance smoke harness
-- BETA-P0-PERF-001 — Bundle analyzer and heavy-module code splitting
-- BETA-P0-PERF-002 — Performance benchmarks (route transitions, row editing, tree rendering, export)
+- BETA-P0-ANA-001 — First-party product events / analytics
+- BETA-P0-PERF-001 — Performance benchmark harness (route transitions, row editing, tree rendering, export)
+- BETA-P0-PERF-002 — Bundle analyzer + code splitting
 
 **Blocked Goal Cards:** None
 
@@ -320,8 +320,8 @@
 **Purpose:** Ship the features that distinguish enterprise-ready product from beta prototype.
 
 **Now-Unblocked Cards:**
-- ENTERPRISE-P1-PROD-001 — PDF package workflow
-- ENTERPRISE-P1-PROD-002 — Immutable issued proposal snapshots
+- ENTERPRISE-P1-PROD-001 — Immutable issued proposal snapshots
+- ENTERPRISE-P1-PROD-002 — PDF package workflow
 - ENTERPRISE-P1-LEGAL-001 — Public-ready legal review (ToS, Privacy Notice, subprocessor list)
 - ENTERPRISE-P1-SEC-001 — Strict CSP on workshop routes + feature flags
 - ENTERPRISE-P1-UX-001 — Accessibility baseline beyond critical blockers + self-serve DSAR + full restore drill + full browser matrix + full mobile editing
@@ -363,7 +363,7 @@
 
 **UX Gate:** PDF output must be professionally styled. Snapshot UI must clearly communicate immutability. DSAR flows must be discoverable and understandable. Mobile editing must be usable, not just functional. Feature flags must be invisible to end users.
 
-**First Ralph Loop Target:** ENTERPRISE-P1-PROD-001 — PDF package workflow. Implement PDF generation from estimate tree, produce styled proposal output.
+**First Ralph Loop Target:** ENTERPRISE-P1-PROD-001 — Immutable Issued Proposal Snapshots. Implement snapshot creation, retrieval, and issuance workflow from estimate tree.
 
 **Dependencies:** Waves 1-5 complete (beta-validated core). This workstream runs in parallel with Workstream 7 (Beta Operations). Enterprise MVP features are NOT prerequisites for beta go/no-go.
 
@@ -549,17 +549,17 @@ The workstreams are not 7 independent parallel tracks — they **activate at dif
 | BETA-P0-SEC-005 | Persistent rate limiting | 2 | 2 |
 | BETA-P1-SEC-006 | Cloudflare Turnstile (BETA P1) | 2 | 2 |
 | BETA-P0-OBS-001 | Sentry / basic error tracking | 3 | 3 |
-| BETA-P0-ANA-001 | Performance smoke harness | 3 | 3 |
-| BETA-P0-PERF-001 | Bundle analyzer + code splitting | 3 | 3 |
-| BETA-P0-PERF-002 | Performance benchmarks | 3 | 3 |
+| BETA-P0-ANA-001 | First-party product events / analytics | 3 | 3 |
+| BETA-P0-PERF-001 | Performance benchmark harness | 3 | 3 |
+| BETA-P0-PERF-002 | Bundle analyzer + code splitting | 3 | 3 |
 | BETA-P0-UX-001 | Core onboarding first-value flow | 4 | 4 |
 | BETA-P0-UX-002 | Estimating happy path polish | 4 | 4 |
 | BETA-P0-UX-004 | Desktop guard for workshop | 4 | 4 |
 | BETA-P0-REL-001 | Error boundaries, 404/500 | 4 | 4 |
 | BETA-P0-UX-003 | Shared-link receiver comprehension | 5 | 5 |
 | BETA-P0-AI-001 | AI clarity and safety evidence | 5 | 5 |
-| ENTERPRISE-P1-PROD-001 | PDF package workflow | 6 | 6 |
-| ENTERPRISE-P1-PROD-002 | Immutable issued snapshots | 6 | 6 |
+| ENTERPRISE-P1-PROD-001 | Immutable issued proposal snapshots | 6 | 6 |
+| ENTERPRISE-P1-PROD-002 | PDF package workflow | 6 | 6 |
 | ENTERPRISE-P1-LEGAL-001 | Public-ready legal review | 6 | 6 |
 | ENTERPRISE-P1-SEC-001 | Strict CSP + feature flags | 6 | 6 |
 | ENTERPRISE-P1-UX-001 | Accessibility + DSAR + PITR + browser matrix + mobile | 6 | 6 |

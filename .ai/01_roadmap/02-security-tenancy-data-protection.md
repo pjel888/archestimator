@@ -525,3 +525,21 @@
 ---
 
 *Document prepared for Archestimator MVP security readiness assessment. All findings are based on current codebase state as of 2026-05-30. No security tests have been executed as part of this assessment; this document identifies required tests and proofs.*
+
+---
+
+## Collaboration & Sharing Audit Integration Note — 2026-05-30
+
+This document is a reference domain deep-dive. For detailed, current collaboration/share security truth, consult `.ai/03_plans/collaboration-and-sharing-audit/` — specifically `05-security-threat-model-and-hardening.md`. Key invite/share security gaps identified in that audit and reflected in current roadmap goal cards:
+
+- **Invite token brute-force protection** — missing; invite endpoints have no rate limiting
+- **Invite route rate limiting** — must be durable (Redis-backed), not in-memory
+- **POST-only invite acceptance** — GET-based mutation risk must be corrected; GET must not mutate or grant access
+- **Fail-closed missing config** — `PROJECT_INVITE_ENTRY_ENABLED` must disable acceptance entirely when absent
+- **Raw token logging/referrer leakage review** — tokens must never appear in server logs, error messages, or referrer headers
+- **Invite audit event gaps** — current audit events are RPC-only; invite lifecycle events need broader coverage
+- **Durable rate limiting required before external beta** — in-memory rate limiting is not acceptable for beta
+- **Shared-link in-memory lockout** — password/access lockout must persist across server restarts; current in-memory implementation is not beta-acceptable
+- **"Email sent" messaging** — must not claim email delivery unless confirmed
+
+See goal cards CODEX-P0-COLLAB-002 (POST-only/fail-closed), BETA-P0-SEC-005 (persistent rate limiting), and CODEX-P0-COLLAB-004 (messaging truthfulness) for implementation details.

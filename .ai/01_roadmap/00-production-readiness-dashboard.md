@@ -56,7 +56,7 @@ Recommended first implementation sequence for Ralph Loop execution:
 | Decision Level | Verdict | Rationale |
 |---|---|---|
 | **Public Launch** | **NO-GO** | Security gate incomplete (RLS/RPC audit, rate limiting, CSP), legal gate missing all provider evidence (ToS, GDPR, DPA, OAuth verification), deployment pipeline absent (no CD, no staging), performance untested at scale |
-| **Controlled Beta** | **CONDITIONAL / OWNER DEFAULTS NOW DECIDED** | 21 owner decisions resolved. 78 atomic goal cards + 15 EPIC headers defined (Atomic Split Edition). 1 evidence artifact exists (decisions codified). See Codex execution docs 22-34. **⚠️ Collaboration invites are BROKEN / CONFIG BLOCKED** — invite acceptance is non-functional until Supabase Auth email provider and invite env vars are configured. See `.ai/03_plans/collaboration-and-sharing-audit/`. |
+| **Controlled Beta** | **CONDITIONAL / OWNER DEFAULTS NOW DECIDED** | 21 owner decisions resolved (1 decision-coded DONE). 88 atomic goal cards + 15 EPIC headers defined. 0 evidence artifacts produced. See Codex execution docs 22-34. **⚠️ Collaboration invites are BROKEN / CONFIG BLOCKED** — invite acceptance is non-functional until Supabase Auth email provider and invite env vars are configured. See `.ai/03_plans/collaboration-and-sharing-audit/`. |
 | **Enterprise MVP** | **PLANNED** | Depends on controlled beta completion. Requires immutable proposals, PDF packages, CSP hardening, DSAR workflow, backup verification. |
 
 ## Documentation Sync Status
@@ -72,15 +72,13 @@ Recommended first implementation sequence for Ralph Loop execution:
 
 | Metric | Count |
 |---|---|
-| Total goal cards | 78 (+ 15 EPIC headers — Atomic Split Edition); 10 new collab/share cards added 2026-05-30 |
-| Ready for Codex | 50 (needs recount after collab/share card sync) |
-| Ready for Codex after external setup | 11 (staging-dependent) |
-| Blocked by external setup | 5 |
-| Blocked by sentry choice | 2 |
-| Blocked by design partner list | 1 |
-| Blocked by owner decisions (public-launch only) | 2 |
-| Planned | 6 |
-| Evidence-backed DONE | 1 |
+| Total atomic executable cards | 88 (78 original + 10 new collab/share from 2026-05-30 sync) |
+| EPIC headers (non-executable) | 15 |
+| Ready for Codex (immediately) | 58 |
+| Ready for Codex after external setup | 12 (staging-dependent 11 + CODEX-P0-COLLAB-003) |
+| Ready for human external setup | 3 (INF-001A/B + COLLAB-001A) |
+| Decision-coded DONE | 1 (BETA-P0-DEC-001) |
+| Evidence artifacts produced | 0 |
 
 **Next 3 recommended goals:**
 1. BETA-P0-INF-001 — Staging / environment separation
