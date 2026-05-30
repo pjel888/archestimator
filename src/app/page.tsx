@@ -2,7 +2,7 @@
 
 import Image from 'next/image'
 import { NeatWireframeBackground } from '@/components/landing/NeatWireframeBackground'
-import { ArchestimatorWordmark } from '@/components/brand/ArchestimatorLogo'
+
 
 export default function TeaserPage() {
   return (
@@ -29,23 +29,14 @@ export default function TeaserPage() {
 
       {/* Centered content */}
       <div className="relative z-10 flex h-svh w-full flex-col items-center justify-center px-6">
-        <div className="flex flex-col items-center gap-6">
-          {/* Logo */}
-          <Image
-            src="/archestimator_logo_white.svg"
-            alt="Archestimator"
-            width={96}
-            height={96}
-            className="h-24 w-24"
-            priority
-          />
-
-          {/* Horizontal line */}
-          <div className="h-px w-28 bg-white/80" />
-
-          {/* Wordmark — same font as the marketing landing page */}
-          <ArchestimatorWordmark className="text-[17px] text-white/90" />
-        </div>
+        <Image
+          src="/archestimator_logo_white.svg"
+          alt="Archestimator"
+          width={192}
+          height={192}
+          className="h-48 w-48"
+          priority
+        />
       </div>
     </main>
   )
