@@ -1,0 +1,88 @@
+# Feature Adoption & Success Metrics
+
+**Last updated: 2026-05-30**
+
+---
+
+## North-Star Metric
+
+> **Weekly active workspaces with at least one estimate edit, export, or share.**
+
+Every feature below feeds this metric. If a feature does not drive estimate edits, exports, or shares within a workspace, it does not earn its place in the product. This document defines, for each of 20 planned features, what activation, adoption, success, and failure look like, how to measure them, and what instrumentation is required.
+
+**State of instrumentation:** No analytics events exist today. All data sources are planned Supabase analytics tables. Every baseline is UNKNOWN. Every status is PLANNED or NEEDS INSTRUMENTATION. This document is the specification for what must be built before any target can be measured.
+
+---
+
+## Feature Metrics Table
+
+| # | Feature | Persona | Activation Event | Adoption Event | Success Event | Failure / Drop-off Event | North-Star Contribution | Metric Formula | Required Analytics Event | Data Source | Current Baseline | Target (Beta) | Target (Public Launch) | Evidence Required | Status |
+|---|---------|---------|-----------------|----------------|--------------|--------------------------|------------------------|----------------|--------------------------|-------------|------------------|---------------|------------------------|-------------------|--------|
+| 1 | Login / Auth | All users | First login | Second login within 7 days | No auth failures in 30 days | Auth failure rate > 5% or zero return logins in 14 days | Enables all other metrics; without login no estimate edits, exports, or shares can occur | `return_rate_7d = count(users with ≥2 logins in 7d) / count(users with ≥1 login)` | `user_login`, `auth_failure` | Supabase analytics tables (PLANNED — not yet implemented) | UNKNOWN | ≥ 60% 7-day return | ≥ 75% 7-day return | Auth event telemetry live in staging ≥ 1 week | PLANNED |
+| 2 | Workspace Settings | Workspace owner | Profile saved | Workspace settings saved | Settings stable for 30 days (no revert, no support ticket) | Settings discarded or reverted within 48h | Workspaces with stable settings correlate with sustained editing activity | `settings_stability = count(workspaces with 0 setting changes in 30d after first save) / count(workspaces with ≥1 save)` | `workspace_setting_saved`, `profile_saved` | Supabase analytics tables (PLANNED — not yet implemented) | UNKNOWN | ≥ 50% stable at 30d | ≥ 70% stable at 30d | Setting-save telemetry live in staging ≥ 1 week | PLANNED |
+| 3 | Project Creation | Estimator lead | First project created | 2+ projects created | At least one project contains estimates | Project created but zero estimates added in 30 days | Projects are containers for estimates; no project means no workspace activity | `project_to_estimate_rate = count(projects with ≥1 estimate) / count(projects)` | `project_created`, `estimate_created` | Supabase analytics tables (PLANNED — not yet implemented) | UNKNOWN | ≥ 40% projects get an estimate | ≥ 60% projects get an estimate | Project and estimate event telemetry live in staging ≥ 1 week | PLANNED |
+| 4 | Estimate Creation | Estimator | First estimate created | 3+ estimates created | Estimate has 5+ rows | Estimate created but zero rows added in 48h | Estimates with rows are the direct fuel for the north star (edits, exports, shares) | `deep_estimate_rate = count(estimates with ≥5 rows) / count(estimates)` | `estimate_created`, `row_added` | Supabase analytics tables (PLANNED — not yet implemented) | UNKNOWN | ≥ 50% of estimates reach 5+ rows | ≥ 65% of estimates reach 5+ rows | Estimate and row telemetry live in staging ≥ 1 week | PLANNED |
+| 5 | Tree Navigation | Estimator | First node clicked in estimate tree | 3+ nodes clicked in a session | No bounce without action (user clicks a node, then performs at least one edit) | Session with node clicks but zero subsequent actions (bounce) | Tree exploration that ends in an edit directly drives north-star editing activity | `tree_to_edit_rate = count(sessions with ≥1 node click AND ≥1 subsequent edit) / count(sessions with ≥1 node click)` | `node_clicked`, `row_edited` | Supabase analytics tables (PLANNED — not yet implemented) | UNKNOWN | ≥ 60% of tree-click sessions lead to an edit | ≥ 75% of tree-click sessions lead to an edit | Node-click and edit event telemetry live in staging ≥ 1 week | NEEDS INSTRUMENTATION |
+| 6 | Row Editing | Estimator | First row added | 10+ rows added across estimates | Rows edited (not just created and left untouched); depth of engagement shown through edits-per-row ratio | Rows added but never edited (stale data pattern) | Edits on existing rows signal active workspace usage, the core north-star event | `edit_depth = count(row_edit events) / count(row_add events)` | `row_added`, `row_edited` | Supabase analytics tables (PLANNED — not yet implemented) | UNKNOWN | Edit depth ratio ≥ 0.5 | Edit depth ratio ≥ 1.0 | Row-add and row-edit telemetry live in staging ≥ 1 week | NEEDS INSTRUMENTATION |
+| 7 | Component Library | Estimator | First component inserted from library | 5+ components inserted | Components drawn from 2+ distinct folders (demonstrates library breadth usage) | Component inserted then immediately deleted (undo pattern) | Components populate rows, rows drive edits, edits drive the north star | `library_breadth = count(users inserting from ≥2 folders) / count(users with ≥1 insert)` | `component_inserted`, `component_deleted` | Supabase analytics tables (PLANNED — not yet implemented) | UNKNOWN | ≥ 30% use 2+ folders | ≥ 50% use 2+ folders | Component-insert telemetry live in staging ≥ 1 week | NEEDS INSTRUMENTATION |
+| 8 | Templates | Estimator | First template previewed | First template applied | Rows created from template survive to export or share (template value is proven downstream) | Template applied but all generated rows deleted within 48h | Templates accelerate estimate creation, which generates rows that become edits, exports, and shares | `template_survival = count(template-applied estimates exported or shared) / count(template-applied estimates)` | `template_previewed`, `template_applied`, `estimate_exported`, `estimate_shared` | Supabase analytics tables (PLANNED — not yet implemented) | UNKNOWN | ≥ 30% survival to export/share | ≥ 50% survival to export/share | Template and export/share telemetry live in staging ≥ 1 week | NEEDS INSTRUMENTATION |
+| 9 | Charts | Estimator, client | First chart viewed | 2+ Group By modes used | Session duration > 30s on chart view (meaningful inspection) | Chart viewed then immediately dismissed (< 3s) | Charts provide insight that motivates further editing, driving north-star activity | `chart_engagement = count(sessions with chart duration > 30s AND ≥2 group_by modes) / count(sessions with chart_viewed)` | `chart_viewed`, `chart_group_by_changed` | Supabase analytics tables (PLANNED — not yet implemented) | UNKNOWN | ≥ 25% of chart viewers engage deeply | ≥ 40% of chart viewers engage deeply | Chart-view and group-by telemetry live in staging ≥ 1 week | NEEDS INSTRUMENTATION |
+| 10 | XLSX Export | Estimator | First export triggered | 2+ exports triggered | Export downloads successfully (confirmed by client-side completion event) | Export triggered but download failed or was abandoned | Export is one of the three north-star actions; successful exports are the proof point | `export_success_rate = count(export_download_success) / count(export_triggered)` | `export_triggered`, `export_download_success`, `export_download_failed` | Supabase analytics tables (PLANNED — not yet implemented) | UNKNOWN | Export success rate ≥ 85% | Export success rate ≥ 95% | Export telemetry live in staging ≥ 1 week | NEEDS INSTRUMENTATION |
+| 11 | Shared Link Manager | Estimator (sender) | First shared link created | Link sent to 2+ distinct recipients | Client engages with the shared estimate (opens, navigates) | Link created but zero recipient opens in 7 days | Sharing is a north-star action; recipient engagement proves the share was meaningful | `share_engagement = count(shared_links with ≥1 recipient_open) / count(shared_links)` | `shared_link_created`, `shared_link_recipient_opened` | Supabase analytics tables (PLANNED — not yet implemented) | UNKNOWN | ≥ 40% of shared links get at least one open | ≥ 60% of shared links get at least one open | Share-link and recipient-open telemetry live in staging ≥ 1 week | NEEDS INSTRUMENTATION |
+| 12 | Shared Receiver | Client (recipient) | First client opens a shared estimate | Client returns within 7 days | Client comments or makes a decision on the estimate | Client opens once and never returns | Receiver engagement closes the share loop, proving that sharing (a north-star action) delivered value | `receiver_return_rate = count(receivers with ≥2 sessions in 7d) / count(receivers with ≥1 session)` | `shared_estimate_opened`, `shared_comment_posted`, `shared_decision_made` | Supabase analytics tables (PLANNED — not yet implemented) | UNKNOWN | ≥ 25% of receivers return within 7d | ≥ 40% of receivers return within 7d | Receiver-session and action telemetry live in staging ≥ 1 week | NEEDS INSTRUMENTATION |
+| 13 | Comments | Estimator, client | First comment posted | 3+ comments on a single estimate | Estimate owner responds to at least one comment (closes the loop) | Comments posted but owner never responds in 7 days | Comments on estimates signal active collaboration around estimating work, which drives further edits | `comment_loop_closure = count(estimates with ≥1 owner_reply) / count(estimates with ≥1 comment)` | `comment_posted`, `comment_owner_replied` | Supabase analytics tables (PLANNED — not yet implemented) | UNKNOWN | ≥ 50% of commented estimates get owner reply | ≥ 70% of commented estimates get owner reply | Comment and reply telemetry live in staging ≥ 1 week | NEEDS INSTRUMENTATION |
+| 14 | Decisions | Client | First decision made | All 3 decision types used (approved, revise, reject) | Decision leads to an estimate revision (proves the decision drove action) | Decision made but no estimate revision follows in 7 days | Decisions that lead to revisions drive the north-star editing loop | `decision_to_revision = count(decisions followed by revision in 7d) / count(decisions)` | `decision_made`, `revision_created` | Supabase analytics tables (PLANNED — not yet implemented) | UNKNOWN | ≥ 30% of decisions lead to a revision | ≥ 50% of decisions lead to a revision | Decision and revision telemetry live in staging ≥ 1 week | NEEDS INSTRUMENTATION |
+| 15 | Activity Feed | Estimator, client | First activity feed viewed | Activity feed checked 2+ times in 30 days | Activity view informs an owner action (edit, comment, or share within 5 minutes of viewing) | Activity viewed but no downstream action in 30 days | Activity drives awareness, which drives edits and shares, feeding the north star | `activity_to_action = count(activity_sessions with downstream action in 5m) / count(activity_sessions)` | `activity_viewed`, `row_edited`, `comment_posted`, `estimate_shared` | Supabase analytics tables (PLANNED — not yet implemented) | UNKNOWN | ≥ 20% of activity views lead to an action | ≥ 35% of activity views lead to an action | Activity-view and downstream-action telemetry live in staging ≥ 1 week | NEEDS INSTRUMENTATION |
+| 16 | Invites | Estimator | First collaborator invite sent | 3+ collaborators invited | Invite accepted within 48 hours | Invite sent but not accepted in 7 days | Invited collaborators become editors or sharers, expanding north-star activity across the workspace | `invite_acceptance_rate = count(invites accepted in 48h) / count(invites sent)` | `invite_sent`, `invite_accepted` | Supabase analytics tables (PLANNED — not yet implemented) | UNKNOWN | Invite acceptance ≥ 40% in 48h | Invite acceptance ≥ 60% in 48h | Invite-send and invite-accept telemetry live in staging ≥ 1 week | NEEDS INSTRUMENTATION |
+| 17 | Ask Flip (AI Assistant) | Estimator | First question asked | 3+ questions asked in 7 days | User acts on an answer (applies a suggested row, copies a formula, or navigates based on Flip's response) | Question asked but user dismisses or ignores the answer | Flip-driven actions that result in edits directly contribute to north-star editing volume | `flip_action_rate = count(flip_questions followed by user_action in 3m) / count(flip_questions)` | `flip_question_asked`, `flip_answer_action_taken` | Supabase analytics tables (PLANNED — not yet implemented) | UNKNOWN | ≥ 30% of Flip questions lead to an action | ≥ 45% of Flip questions lead to an action | Flip-question and answer-action telemetry live in staging ≥ 1 week | NEEDS INSTRUMENTATION |
+| 18 | Package Builder | Estimator | First draft saved | First draft applied to an estimate | Package survives 7 days (not deleted or abandoned) | Draft saved but never applied in 14 days | Packages that survive and are applied generate structured estimates that are then edited, exported, or shared | `package_survival = count(packages applied AND not deleted in 7d) / count(packages saved)` | `package_draft_saved`, `package_applied`, `package_deleted` | Supabase analytics tables (PLANNED — not yet implemented) | UNKNOWN | ≥ 30% of drafts applied and survive 7d | ≥ 50% of drafts applied and survive 7d | Package-draft, apply, and delete telemetry live in staging ≥ 1 week | NEEDS INSTRUMENTATION |
+| 19 | Account Settings | All users | Profile page viewed | Profile or account settings saved | No support tickets filed related to account management in 90 days | Support ticket filed for account issue within 90 days | Frictionless account management reduces churn, preserving workspace activity for the north star | `account_support_rate = count(users with account_support_ticket in 90d) / count(users with saved_settings)` (inverse; lower is better) | `profile_viewed`, `account_setting_saved`, `support_ticket_filed` | Supabase analytics tables (PLANNED — not yet implemented) | UNKNOWN | Account support ticket rate < 5% | Account support ticket rate < 2% | Account-setting and support-ticket telemetry live in staging ≥ 1 week | PLANNED |
+| 20 | Support / Feedback | All users | First support or feedback contact | Feedback submitted | Resolved within SLA (acknowledged in 4h, resolved in 24h business) | Unresolved support contact exceeding SLA | Resolved feedback improves the product, which improves retention and north-star activity indirectly | `sla_compliance = count(tickets resolved within SLA) / count(tickets)` | `support_contact_created`, `feedback_submitted`, `ticket_resolved` | Supabase analytics tables (PLANNED — not yet implemented) | UNKNOWN | SLA compliance ≥ 80% | SLA compliance ≥ 95% | Support-ticket lifecycle telemetry live in staging ≥ 1 week | PLANNED |
+
+---
+
+## North-Star Roll-up
+
+The north-star metric, "Weekly active workspaces with at least one estimate edit, export, or share," is fed by four contribution paths:
+
+| Contribution Path | Feeding Features |
+|---|---|
+| **Edit path** | Login (1) → Workspace Settings (2) → Project (3) → Estimate (4) → Tree Nav (5) → Row Editing (6) → Component Library (7) → Templates (8) → Charts (9) → Ask Flip (17) |
+| **Export path** | Login (1) → Estimate (4) → Row Editing (6) → XLSX Export (10) → Package Builder (18) |
+| **Share path** | Login (1) → Estimate (4) → Shared Link Manager (11) → Shared Receiver (12) → Comments (13) → Decisions (14) |
+| **Sustainment path** | Activity Feed (15) → Invites (16) → Account Settings (19) → Support/Feedback (20) |
+
+The edit path produces the raw material. The export path delivers it. The share path closes the collaboration loop. The sustainment path prevents churn and multiplies throughput. All four paths must be instrumented for the north star to be measurable and optimizable.
+
+---
+
+## Summary
+
+| Metric | Count |
+|--------|-------|
+| Features defined | 20 |
+| Features with instrumentation | 0 |
+| Baselines known | 0 (all UNKNOWN) |
+| Features PLANNED | 6 |
+| Features NEEDS INSTRUMENTATION | 14 |
+
+All targets for Beta and Public Launch are provisional. They will be revised once baseline data exists. No target should be treated as a committed goal until at least 30 days of production telemetry has been collected and analyzed.
+
+---
+
+## Data Source Note
+
+All metrics rely on **Supabase analytics tables (PLANNED — not yet implemented).** Currently: no analytics instrumentation exists. The "Required Analytics Event" column defines the exact events that must be emitted from the client and ingested into Supabase before any measurement can begin. The data source for every row is identical; it is repeated per feature to keep each row self-contained for reader convenience.
+
+---
+
+## Instrumentation Prerequisites
+
+Before any feature metric can be computed, the following must exist:
+
+1. A Supabase-hosted analytics events table with schema supporting `event_name`, `user_id`, `workspace_id`, `session_id`, `timestamp`, and a JSON `properties` column.
+2. A client-side analytics SDK (or server-side middleware) that fires the events listed for each feature.
+3. A scheduled job (or real-time pipeline) that computes the metric formulas defined above and writes results to a metrics materialization table.
+4. A dashboard or reporting surface that displays each metric against its baseline, beta target, and public-launch target.
+
+**None of the above exists today.** This document serves as the specification for what must be built.

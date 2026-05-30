@@ -1,0 +1,153 @@
+# Evidence Artifact Index
+
+**Last updated:** 2026-05-30
+**Rule:** A roadmap item cannot move to DONE unless it has: evidence artifact path, validation output, screenshots or trace where relevant, performance evidence if feature touches critical path, security evidence if feature touches auth/data/storage/share/API, UX evidence if feature is user-facing, owner signoff if launch decision changes.
+
+## Directory Structure
+
+Save all evidence under `.ai/09_archive/store/` using this pattern:
+
+```
+.ai/09_archive/store/YYYY-MM-DD-[goal-id]/
+  00-summary.md              — What was done, by whom, when
+  01-validation-output.md    — Test output, CLI results
+  02-screenshots-or-links.md — Visual evidence or URLs
+  03-performance-baseline.md — Lighthouse, traces, bundle reports
+  04-security-notes.md       — RLS test results, auth audit
+  05-ux-notes.md             — User test observations, comprehension results
+  06-regression-notes.md     — What regressed, accepted risks
+```
+
+## Artifact Categories
+
+Evidence artifacts are classified by category for filtering and prioritization:
+
+| Category | Purpose | Required For |
+|---|---|---|
+| `beta-evidence` | Evidence required for controlled beta go/no-go | All BETA-P0 goal cards |
+| `enterprise-mvp-evidence` | Evidence required for enterprise MVP go/no-go | All ENTERPRISE-P1 goal cards |
+| `public-launch-evidence` | Evidence required for public launch go/no-go | All PUBLIC-P0 goal cards |
+| `user-research-evidence` | Beta user testing observations, comprehension results | BETA-P0-UX-* cards |
+| `security-evidence` | RLS denial tests, storage denial tests, auth audits, secrets scans, PII scrub verification | BETA-P0-SEC-* cards |
+| `performance-evidence` | Lighthouse reports, bundle analyzer, performance traces, instrumentation latency checks | BETA-P0-PERF-*, ENTERPRISE-P1-PROD-* cards |
+| `legal-evidence` | Published legal pages, subprocessor lists, DSAR workflow evidence | PUBLIC-P0-LEGAL-* cards |
+| `ops-evidence` | Sentry dashboards, support runbook drills, rollback drill notes, rate limiting proof | BETA-P0-OBS-001, BETA-P0-SEC-005, BETA-P0-OPS-001 |
+
+## Evidence Types
+
+| Type | File | Description | Example |
+|---|---|---|---|
+| Test output | `01-validation-output.md` | CLI output from `bun run test`, `bun run validate`, etc. | Terminal output showing all tests passing |
+| Typecheck/lint/build | `01-validation-output.md` | Output from `bun run type-check`, `bun run lint`, `bun run build` | "0 errors, 0 warnings" |
+| Playwright output | `01-validation-output.md` | E2E test results, screenshots from failed tests | `bun run test:e2e` output |
+| Screenshots | `02-screenshots-or-links.md` | Screenshots of UI changes, dashboard proof | Login page, estimate sheet, error page |
+| Lighthouse report | `03-performance-baseline.md` | JSON or summary of Lighthouse audit | LCP: 1.8s, TBT: 150ms |
+| Performance traces | `03-performance-baseline.md` | Chrome DevTools Performance tab export | Route transition timing |
+| Bundle analyzer | `03-performance-baseline.md` | Bundle analyzer output or screenshot | Main chunk: 180KB gzipped |
+| RLS denial test result | `04-security-notes.md` | Test output proving cross-workspace denial | "user_b_read_workspace_a: DENIED (expected)" |
+| Storage denial test result | `04-security-notes.md` | Test output proving cross-workspace storage denial | "user_b_download_workspace_a_file: 403" |
+| API auth audit | `04-security-notes.md` | Checklist of all routes with auth verification | "/api/ai/ask: getSession() ✓" |
+| Secrets scan result | `04-security-notes.md` | CI output showing credential block | "commit blocked: SUPABASE_SERVICE_ROLE_KEY found" |
+| Rate limiting proof | `04-security-notes.md` | Test output showing rate limiting active (Redis/Upstash) | "429 returned after 5 requests in 1s: PASS" |
+| Turnstile integration proof | `04-security-notes.md` | Screenshot of Turnstile on login/auth forms | "Turnstile widget rendered on /login" |
+| PII scrub verification | `04-security-notes.md` | Review of Sentry/log output — no PII | "Sentry payload reviewed: no emails, names, or tokens" |
+| Analytics setup proof | `02-screenshots-or-links.md` | Dashboard screenshot of first-party analytics active | "Analytics dashboard: pageviews captured" |
+| Support channel proof | `02-screenshots-or-links.md` | Screenshot of support channel configured | "Support email/Zendesk/Discord configured" |
+| Desktop guard proof | `02-screenshots-or-links.md` | Screenshot of mobile guard on workshop routes | "Mobile viewport shows desktop-only message" |
+| Supabase/Vercel screenshots | `02-screenshots-or-links.md` | Redacted screenshots of provider dashboards | Staging Supabase project list |
+| Owner decision record | `00-summary.md` | Philip's written answers to decisions | "D-015: Yes, create separate staging" |
+| Beta user observation | `05-ux-notes.md` | Notes from beta user testing sessions | "User spent 30s looking for export button" |
+| Rollback drill notes | `06-regression-notes.md` | Notes from rollback exercise | "Rollback completed in 3m 45s" |
+| Support runbook drill notes | `04-security-notes.md` | Notes from runbook drill execution | "AUTH-001 drill: 5m to detect, 2m to respond" |
+
+## Goal Card → Evidence Mapping
+
+| Goal ID | Required Evidence | Category |
+|---|---|---|
+| BETA-P0-DEC-001 | Owner decision record (00-summary.md) | beta-evidence |
+| BETA-P0-INF-001 | Supabase screenshots, Vercel screenshots, env var inventory (01, 02) | beta-evidence |
+| BETA-P0-SEC-001 | RLS denial test output (01, 04) | security-evidence |
+| BETA-P0-SEC-002 | Storage denial test output (01, 04) | security-evidence |
+| BETA-P0-SEC-003 | API auth audit checklist + test output (01, 04) | security-evidence |
+| BETA-P0-SEC-004 | Secrets scan CI output, service-role verification (01, 04) | security-evidence |
+| BETA-P0-SEC-005 | Rate limiting test output (Redis/Upstash), 429 proof (01, 04) | security-evidence, ops-evidence |
+| BETA-P1-SEC-006 | Turnstile integration screenshot, CAPTCHA test output (01, 02, 04) | security-evidence |
+| BETA-P0-OBS-001 | Sentry dashboard screenshots, error capture proof (02, 04) | ops-evidence |
+| BETA-P0-ANA-001 | Analytics dashboard screenshot, pageview capture proof (02, 04) | ops-evidence |
+| BETA-P0-OPS-001 | Support channel setup proof, incident owner assignment, rollback authority documented (00, 02, 04) | ops-evidence |
+| BETA-P0-LEGAL-001 | Beta legal pack: privacy notice draft, beta terms, subprocessor list (00, 02) | legal-evidence |
+| BETA-P0-PERF-001 | Lighthouse reports, performance traces (03) | performance-evidence |
+| BETA-P0-PERF-002 | Bundle analyzer screenshots, build output (03) | performance-evidence |
+| BETA-P0-UX-001 | Onboarding screenshots, empty-state screenshots (02, 05) | user-research-evidence |
+| BETA-P0-UX-002 | Estimate editing screenshots, design-system lint output (02, 05) | user-research-evidence |
+| BETA-P0-UX-003 | Shared receiver screenshots, comprehension test notes (02, 05) | user-research-evidence |
+| BETA-P0-UX-004 | Desktop guard screenshot, mobile posture proof (02, 05) | user-research-evidence |
+| BETA-P0-REL-001 | Error page screenshots, mobile guard screenshot (02, 05) | beta-evidence |
+| BETA-P0-AI-001 | AI safety test output, disclaimer screenshots (02, 04) | security-evidence |
+| BETA-P0-BETA-001 | Beta checklist, risk register, kickoff script, signoff (00, 02, 04, 05) | beta-evidence |
+| ENTERPRISE-P1-PROD-001 | Snapshot generation proof: non-blocking, PII scrub, editor responsiveness (01, 03, 04) | enterprise-mvp-evidence, performance-evidence |
+| ENTERPRISE-P1-PROD-002 | PDF generation proof: lazy-loaded or server-generated, <10s for normal proposal (01, 02, 03) | enterprise-mvp-evidence, performance-evidence |
+| PUBLIC-P0-LEGAL-001 | Published legal page screenshots, list (02) | public-launch-evidence, legal-evidence |
+| POST-BETA-PROD-001 | Owner decision record (00) | public-launch-evidence |
+| POST-BETA-MOBILE-001 | Owner decision record (00) | public-launch-evidence |
+
+## Evidence Quality Standards
+
+Evidence is VALID only when:
+
+1. **Reproducible.** Another person can follow the same steps and get the same result.
+2. **Timestamped.** Evidence includes date and time of capture.
+3. **Redacted.** No secrets, tokens, keys, emails, or user PII in evidence files.
+4. **Specific.** "Tests pass" is not evidence. The test output is evidence.
+5. **Fresh.** Evidence older than 30 days is stale and must be regenerated.
+
+## How to Save Evidence
+
+When completing a Codex goal:
+
+```bash
+# 1. Create the evidence directory
+mkdir -p .ai/09_archive/store/$(date +%Y-%m-%d)-BETA-P0-SEC-001/
+
+# 2. Save test output
+bun run test tests/integration/rls-isolation.test.ts > .ai/09_archive/store/YYYY-MM-DD-BETA-P0-SEC-001/01-validation-output.md
+
+# 3. Save screenshots (manual, using Playwright or browser)
+# Save to: .ai/09_archive/store/YYYY-MM-DD-BETA-P0-SEC-001/02-screenshots-or-links.md
+
+# 4. Write summary
+# Create: .ai/09_archive/store/YYYY-MM-DD-BETA-P0-SEC-001/00-summary.md
+```
+
+## Evidence Status Dashboard
+
+| Goal ID | Evidence Path Exists? | Evidence Valid? | Category | Status |
+|---|---|---|---|---|
+| BETA-P0-DEC-001 | No | No | beta-evidence | BLOCKED |
+| BETA-P0-INF-001 | No | No | beta-evidence | BLOCKED |
+| BETA-P0-SEC-001 | No | No | security-evidence | BLOCKED |
+| BETA-P0-SEC-002 | No | No | security-evidence | BLOCKED |
+| BETA-P0-SEC-003 | No | No | security-evidence | BLOCKED |
+| BETA-P0-SEC-004 | No | No | security-evidence | BLOCKED |
+| BETA-P0-SEC-005 | No | No | security-evidence, ops-evidence | BLOCKED |
+| BETA-P1-SEC-006 | No | No | security-evidence | BLOCKED |
+| BETA-P0-OBS-001 | No | No | ops-evidence | BLOCKED |
+| BETA-P0-ANA-001 | No | No | ops-evidence | BLOCKED |
+| BETA-P0-OPS-001 | No | No | ops-evidence | BLOCKED |
+| BETA-P0-LEGAL-001 | No | No | legal-evidence | BLOCKED |
+| BETA-P0-PERF-001 | No | No | performance-evidence | BLOCKED |
+| BETA-P0-PERF-002 | No | No | performance-evidence | BLOCKED |
+| BETA-P0-UX-001 | No | No | user-research-evidence | BLOCKED |
+| BETA-P0-UX-002 | No | No | user-research-evidence | BLOCKED |
+| BETA-P0-UX-003 | No | No | user-research-evidence | BLOCKED |
+| BETA-P0-UX-004 | No | No | user-research-evidence | BLOCKED |
+| BETA-P0-REL-001 | No | No | beta-evidence | BLOCKED |
+| BETA-P0-AI-001 | No | No | security-evidence | BLOCKED |
+| BETA-P0-BETA-001 | No | No | beta-evidence | BLOCKED |
+| ENTERPRISE-P1-PROD-001 | No | No | enterprise-mvp-evidence, performance-evidence | PLANNED |
+| ENTERPRISE-P1-PROD-002 | No | No | enterprise-mvp-evidence, performance-evidence | PLANNED |
+| PUBLIC-P0-LEGAL-001 | No | No | public-launch-evidence, legal-evidence | BLOCKED |
+| POST-BETA-PROD-001 | No | No | public-launch-evidence | PLANNED |
+| POST-BETA-MOBILE-001 | No | No | public-launch-evidence | PLANNED |
+
+**Total evidence artifacts produced: 0 of 26** — All blocked pending Wave 0 owner decisions.

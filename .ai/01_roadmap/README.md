@@ -1,376 +1,357 @@
-# Roadmap
-
-**Last updated:** 2026-05-29
-**Status:** Pre-launch MVP. Supabase/Auth/Postgres are active for Archestimator project `ebxxqidacheyapmmzavr`; the protected workshop, invite-entry collaboration flow, project client publication, estimating sheet, component library, charts, proposal XLSX export, account-aware Ask route, and package-builder Draft/Apply AI slice are in active MVP hardening. The brand narrative is pivoting from construction-cost-estimator-only to structured quote, estimate, and proposal workflows for teams that build itemized commercial offers. Construction-style estimating remains the current implemented wedge. The local sign-up/login/authentication, project invite-entry, and project client publication implementations are reviewed at the focused-test level, but public/private launch remains NO-GO until provider, legal, Vercel, QA, support, owner, full validation/build, and storage/security evidence is complete.
-
-## Current product baseline
-
-The reset-era blank-workshop baseline is no longer current. Archestimator now preserves and actively builds on:
-
-```txt
-/                                                     public landing page
-/about                                                public company/product page
-/features                                             public feature page
-/pricing                                              public pricing page
-/contact                                              public contact page
-/login                                                Supabase Auth entry: Google primary, email sign-in-link fallback, no password UI
-/auth/callback                                        Supabase auth callback with safe redirect and stable public error handling
-/invite/[token]                                      app-owned project/sheet invite entry route for pending collaborators
-/share/[token]                                       public, view-only client publication receiver route with optional password gate
-/privacy                                             pending-review Privacy Notice status page
-/terms                                               pending-review Terms status page
-/api/ai/ask                                           read-only account-aware AI copilot endpoint
-/api/ai/package-builder                               package-builder Draft/Apply endpoint with signed preview and confirmation gates
-/api/component-library/images                         component-library image upload API
-/api/component-library/attachments                    component-library attachment upload API
-/api/projects/[projectId]/estimates/[estimateId]/export/proposal.xlsx
-/workshop                                             protected workshop entry and post-auth pending-invite bridge
-/workshop/onboarding                                  compatibility redirect to /workshop/settings; not a required first-run gate
-/workshop/projects                                    live project list/create route with owned/shared/sheet-only access labeling
-/workshop/projects/[projectId]                        live project dashboard shell
-/workshop/projects/[projectId]/estimates              live estimate list/create route
-/workshop/projects/[projectId]/estimates/[nodeId]     live estimate workspace with project-scoped tree/row data
-/workshop/projects/[projectId]/charts                 project cost charts
-/workshop/library                                     component library workspace
-/workshop/templates                                   reusable template workspace
-/workshop/components                                  compatibility redirect to /workshop/library
-/workshop/settings                                    account settings landing route
-/workshop/settings/profile                            profile-owned intake correction route
-/workshop/settings/workspace                          workspace-owned intake correction route
-```
-
-## Current codebase pillars
-
-- Public website: landing plus About, Features, Pricing, and Contact pages, with quote/proposal-first wording and construction-style estimating kept as the current proof case.
-- Auth and tenancy: Supabase Auth with Google OAuth primary and email sign-in-link fallback, protected `/workshop/*`, safe auth redirects, no required first-run onboarding, optional profile/workspace settings, workspace bootstrap guards, CEO/profile role foundation, server-owned account-security audit metadata, app-owned invite-entry tokens, and RLS-backed app tables.
-- Project and estimate workspace: project dashboard, estimate list/create, project-scoped estimate tree, row items, inline edits, Activity History, proposal export, and chart route.
-- Project publication: project-header `Shared link` controls (V2 Overhaul complete P0–P14 + post-P14 polish; see Phase 5A) and `/share/[token]` receiver route exist for token-scoped, view-only client snapshots with optional password protection, recipient management, tabbed navigation, comments/decisions, activity, and metadata-only open tracking. PDF/download publication artifacts are not implemented (future plan). V1 "Public link" terminology and basic controls superseded by V2 (additive, backwards compat for existing tokens). Post-P14: 2 in-scope publication TS issues resolved (event cast + auth context destructure); feature symbols now clean in tsc; pre-existing unrelated blockers remain (authorized, documented in current-state). All design lints 0, MCP graph impacts throughout, red-first + 2-stage reviews followed via subagent-driven-dev.
-- Component Library/Templates: `/workshop/library` for components, `/workshop/templates` for reusable templates, shared estimate-sidebar data loading, variants, brands, suppliers, folders, images, attachments, cost entries, and component lifecycle/history foundations.
-- Proposal output: current-estimate XLSX preview/download exists; immutable issued proposal snapshots and PDF package workflows are not implemented yet.
-- AI: global Ask Flip copilot exists through `/api/ai/ask` for read-only account-aware questions and `/api/ai/package-builder` for signed package-builder Draft/Apply flows. Package-builder Draft can now use bounded comparable prior estimate packages as room/row/cost/source-coverage hints in addition to library components, templates, prior rows, and default-off memory ranking. Stored conversations, vector/RAG, provider-owned memory, autonomous actions, and broad persistent user memory remain unimplemented. The only memory slice is a default-off package-builder accepted/rejected source-signal ranking hint behind `AI_PACKAGE_BUILDER_MEMORY_ENABLED`.
-
-## Phase 0 - Governance and design-system guardrails
-
-Status: active and continuous.
-
-Done:
-
-- Non-landing product design system enforced by `bun run lint:design-system` (`lint:font-size` is an alias).
-- App/workshop typography scale: SF Pro system stack and regular/medium only, while preserving the compact `12px` maximum with normal controls/body/table/input/button text around `10px`.
-- Shared UI primitive reuse is mandatory.
-- Code-review graph/GitNexus and `.ai` source-of-truth docs are part of the normal agent workflow.
-
-Next:
-
-- Continue moving repeated controls into `src/components/ui` before feature-local markup spreads.
-- Keep current-state, decisions, roadmap, and feature specs synchronized after each durable product/code change.
-- Treat docs-only changes as verified only after referenced paths exist and `git diff --check` passes.
-
-## Phase 1 - Authenticated workspace foundation
-
-Status: local implementation reviewed; launch blocked by external evidence and owner decisions.
-
-Done:
-
-- Supabase project linked: `ebxxqidacheyapmmzavr`.
-- Canonical `/login` auth entry implemented with Google OAuth as primary and email sign-in link as fallback.
-- App-owned password UI/actions remain absent; `/signup`, `/sign-in`, and `/sign-up` aliases are not implemented.
-- Canonical `/auth/callback` exchanges Supabase auth codes, maps failures to stable public error codes, and hides raw provider errors.
-- Central safe-next redirect handling rejects external URLs, protocol-relative URLs, encoded external URLs, CRLF, backslash paths, callback self-redirects, malformed input, and missing `next`.
-- `/workshop/*` protected by `src/proxy.ts`.
-- Profiles/CEO role bootstrap implemented in database migration.
-- Migration `20260527072220_auth_account_data.sql` is applied to the linked remote and repaired into migration history; the auth-account tables are present in the PostgREST schema cache.
-- Authenticated users land on `/workshop`; stale `/workshop/onboarding` visits redirect to `/workshop/settings`, and profile/workspace details are optional settings rather than a required first-run gate.
-- Invited collaborators can reuse existing workspace, project, or estimate-sheet membership before any default workspace is inserted.
-- Profile-owned intake and workspace-owned intake are separated through `user_onboarding_profiles` and `workspace_account_settings`.
-- Server-owned auth/security audit metadata uses `account_security_events` with no browser write grants.
-- `/privacy` and `/terms` exist only as truthful pending-review status pages.
-- Auth setup checklist documented in `.ai/06_specs/supabase-auth-setup.md`.
-- Project/sheet invite entry is implemented through app-owned `/invite/[token]` URLs, signed pending-invite bridge cookies, `/workshop` non-blocking access banners, and `/workshop/projects` shared-member labeling.
-- Migration `20260527115342_project_invite_entry_tokens.sql` is applied to the linked remote and grant-verified: `anon` resolves only, `authenticated` accepts/manager-manages, and lifecycle materialization is service-owned.
-- Invite-entry browser E2E passed locally against linked Supabase for signed-out accept through `/workshop`, signed-in accept, wrong-account recovery, expired, revoked, used, invalid, and shared-project card labeling.
-
-Remaining:
-
-- Capture redacted Supabase dashboard evidence for Site URL, redirect allow-list, Google provider, email provider, password/passwordless posture, signups policy, anonymous disabled, phone disabled, passkeys disabled, SAML disabled, OTP expiry, resend cooldown, rate limits, CAPTCHA decision, SMTP/templates, and audit retention.
-- Capture Google Cloud OAuth evidence for consent screen, app identity, privacy/terms URLs, support email, authorized domains, redirect URIs, scopes, and verification state.
-- Capture Vercel evidence for production/staging/preview URL policy, env var presence by environment, preview-auth policy, deployment protection, and redeploy requirements.
-- Replace pending-review `/privacy` and `/terms` with reviewed Privacy Notice and Terms; add subprocessor list, retention schedule, DSAR/export/delete/correction workflow, cookie/analytics posture, student/minor posture, and launch-jurisdiction decisions.
-- Add owner-backed support and incident evidence for auth failures, expired links, wrong-email invites, missing workspace/project, deleted/deactivated users, provider outage, service-role leak, redirect vulnerability, cross-workspace data access, invite abuse, and rollback execution.
-- Run signed-in browser QA with real or staging Supabase credentials for `/login` redirect-away and settings correction paths; invite acceptance has local linked-Supabase E2E coverage but still needs staging/production provider evidence before launch.
-- Keep local migration state and linked-remote migration state separately proven after any future schema change.
+# Archestimator Production-Readiness Command Center
+
+**Last updated:** 2026-05-30
+**Status:** Pre-launch MVP — Owner defaults decided. Ralph Loop execution layer active.
+
+---
+
+## Launch Status
+
+| Level | Status |
+|---|---|
+| **PUBLIC LAUNCH** | `NO-GO` |
+| **CONTROLLED BETA** | `CONDITIONAL / OWNER DEFAULTS NOW DECIDED` |
+| **ENTERPRISE MVP** | `PLANNED` |
+| **DOCS / PLANNING** | `ACTIVE` |
+| **IMPLEMENTATION** | `NOT PART OF THIS TASK` |
+
+---
+
+## Canonical Document Structure
+
+### Active Execution Docs (read these first)
+
+These documents form the Ralph Loop execution command center:
+
+| # | Document | Purpose |
+|---|---|---|
+| 22 | [Ruthless Beta Prioritization](./22-ruthless-prioritization-for-beta.md) | Classifies every item into BETA P0 / P1 / PUBLIC LAUNCH / POST-BETA / DEFERRED |
+| 23 | [Codex /goal Execution Plan](./23-codex-goal-execution-plan.md) | **Start here.** Wave plan, sequencing, what Codex must and must not do |
+| 24 | [Owner Decision Packet](./24-owner-decision-packet.md) | All 21 resolved decisions with defaults and goal-card mappings |
+| 25 | [Active Workstreams](./25-active-workstreams.md) | 6 workstreams organized by wave, with status dashboard |
+| 26 | [Codex Goal Cards](./26-codex-goal-cards.md) | 78 atomic goal cards (plus 15 EPIC headers) for Codex `/goal` |
+| 27 | [Performance Budget & Regression Gates](./27-performance-budget-and-regression-gates.md) | Makes performance unavoidable in every implementation |
+| 28 | [Evidence Artifact Index](./28-evidence-artifact-index.md) | Where Codex saves evidence; DONE requires evidence path |
+| 29 | [Enterprise MVP Scope & Owner Defaults](./29-enterprise-mvp-scope-and-owner-defaults.md) | Enterprise-grade MVP scope definition and 21 approved owner defaults |
+| 30 | [Design-Partner Beta Recruiting Plan](./30-design-partner-beta-recruiting-plan.md) | Controlled design-partner beta recruiting and onboarding strategy |
+| 31 | [Founder Ops & Bus-Factor Plan](./31-founder-ops-and-bus-factor-plan.md) | Solo-founder operational resilience, incident ownership, and support infrastructure |
+| 32 | [Test Infrastructure Execution Spec](./32-test-infrastructure-execution-spec.md) | RLS denial test harness, storage denial test harness, and auth audit execution specification |
+| 33 | [Ralph Loop Execution Protocol](./33-ralph-loop-execution-protocol.md) | How to start and run Ralph Loop against this roadmap |
+| 34 | [Roadmap Consistency Index](./34-roadmap-consistency-index.md) | Cross-reference index ensuring all roadmap documents stay consistent |
+| 00 | [Production-Readiness Dashboard](./00-production-readiness-dashboard.md) | Master dashboard with all 143 items across 5 gates |
+| 01 | [Launch Gates Master Checklist](./01-launch-gates-master-checklist.md) | Every gate item with acceptance criteria and Beta Minimum Gate |
+
+### Reference Readiness Docs
+
+These documents provide detailed readiness analysis across all domains:
+
+| # | Document | Purpose |
+|---|---|---|
+| 02 | [Security, Tenancy & Data Protection](./02-security-tenancy-data-protection.md) | OWASP ASVS-based security readiness |
+| 03 | [Supabase, RLS & Storage Readiness](./03-supabase-rls-storage-readiness.md) | Database, migration, and storage audit |
+| 04 | [Auth, Provider & Vercel Environment Readiness](./04-auth-provider-vercel-environment-readiness.md) | Google OAuth, Supabase, Resend, Vercel |
+| 05 | [UX/UI Polish Readiness](./05-ux-ui-polish-readiness.md) | Flow-by-flow launch quality checklist |
+| 06 | [Performance, Reliability & Observability](./06-performance-reliability-observability.md) | Budgets, SLOs, resilience patterns |
+| 07 | [QA, Testing & Validation Matrix](./07-qa-test-validation-matrix.md) | All test areas with coverage status |
+| 08 | [Legal, Privacy & Compliance Readiness](./08-legal-privacy-compliance-readiness.md) | Privacy/Terms, GDPR/CCPA, DSAR |
+| 09 | [Support, Incidents & Rollback Runbooks](./09-support-incident-rollback-runbooks.md) | 20 incident scenario templates |
+| 10 | [AI Safety Readiness](./10-ai-safety-readiness.md) | Truthfulness rules, capability boundaries |
+| 11 | [Release & Deployment Go/No-Go](./11-release-deployment-go-no-go.md) | Staging/production separation, rollback |
+| 12 | [Beta Launch & Feedback Loop](./12-beta-launch-feedback-loop.md) | Controlled design-partner beta plan |
+| 13 | [Risk Register](./13-risk-register.md) | Numbered risks with probability/impact |
+| 14 | [Owner Decisions](./14-owner-decisions.md) | Full register of 32 pending decisions |
+| 15 | [Product-Management Operating Model](./15-product-management-operating-model.md) | North star, activation, PM cadence |
+| 16 | [Onboarding & Activation Readiness](./16-onboarding-activation-readiness.md) | 12-phase onboarding, 6 persona variants |
+| 17 | [Personas & Jobs-to-be-Done](./17-personas-jobs-to-be-done.md) | 6 personas with goals, anxieties, JTBD |
+| 18 | [Happy-Path User Journey Matrices](./18-happy-path-user-journey-matrices.md) | 20 journeys, step-by-step matrices |
+| 19 | [Feature Adoption & Success Metrics](./19-feature-adoption-success-metrics.md) | 20 features with adoption metrics |
+| 20 | [UX/UI Excellence Scorecard](./20-ux-ui-excellence-scorecard.md) | 17-dimension scoring across 20 features |
+| 21 | [Usability Research & Beta Learning Plan](./21-usability-research-and-beta-learning-plan.md) | 14 task scripts, severity rubric, feedback process |
+| 99 | [Roadmap Quality Self-Audit](./99-roadmap-quality-self-audit.md) | PASS/FAIL audit of all roadmap criteria |
+
+### Superseded / Historical Documents
+
+These files remain for git history only. Do not reference for current state:
+
+| File | Superseded By | Status |
+|---|---|---|
+| `action-plan.md` | Gate documents 00–14, Codex execution docs 22-34 | **SUPERSEDED** |
+| `status-tracker.md` | 00-production-readiness-dashboard.md | **SUPERSEDED** |
+| `production-readiness-audit.md` | 00-production-readiness-dashboard.md | **SUPERSEDED** |
+
+---
+
+## How to Start Ralph Loop
+
+1. **Read** `29-enterprise-mvp-scope-and-owner-defaults.md` — understand the 21 approved owner defaults and enterprise MVP scope
+2. **Read** `23-codex-goal-execution-plan.md` — understand the wave structure
+3. **Read** `26-codex-goal-cards.md` — review all 78 atomic goal cards (Atomic Split Edition)
+4. **Select** one goal card marked `READY FOR CODEX`
+5. **Check** `27-performance-budget-and-regression-gates.md` — validate performance before claiming done
+6. **Implement** only that goal — one bounded card at a time
+7. **Save** evidence using `28-evidence-artifact-index.md`
+8. **Update** dashboard status in `00-production-readiness-dashboard.md` and card status in `26-codex-goal-cards.md`
+
+**Critical rules:**
+- Do **NOT** run `/goal` against the entire roadmap. Use ONE goal card at a time.
+- Do **NOT** run a broad `/goal` against the whole roadmap. Run ONE bounded goal card at a time.
+- Production readiness is not a claim. It is an evidence-backed status.
+- No goal card can move to DONE without an evidence artifact path listed.
+- Codex must STOP if it hits an owner decision — report the block, do not proceed.
+
+---
+
+## Production-Readiness Definition
+
+Archestimator is production-ready only when:
+
+1. Real users can authenticate safely.
+2. Tenant/workspace/project/estimate/library/share boundaries are **proven by test**, not assumed.
+3. Data loss and cross-tenant leakage risks are tested and denied.
+4. Critical UX flows are understandable without Philip explaining them.
+5. Errors, incidents, support, rollback, and abuse scenarios have named procedures.
+6. Public claims match implemented and verified capabilities.
+7. Deployment, provider, legal, and owner approvals are complete.
+
+---
+
+## The Four Launch Layers
+
+| Layer | Name | Description | Status |
+|---|---|---|---|
+| 0 | Internal Implementation / Dev | Local dev, staging, internal testing. No external users. | `ACTIVE` |
+| 1 | Controlled Design-Partner Beta | Named users, known limitations, manual support, invite-only non-public beta | `CONDITIONAL / OWNER DEFAULTS NOW DECIDED` |
+| 2 | Enterprise-Grade MVP | Immutable proposals, PDF packages, CSP hardening, DSAR workflow, backup verification | `PLANNED` |
+| 3 | Public / Paid Production Launch | Open onboarding, legal/support/security/deploy evidence complete, paid plans active | `NO-GO` |
+| 4 | Post-MVP Expansion | Revision comparison, multi-region, billing integration, admin panel, i18n | `DEFERRED` |
+
+---
+
+## Dashboard
+
+| Area | Status | Launch Blocker? | Evidence Required | Owner | Next Decision | Target Phase |
+|---|---|---|---|---|---|---|
+| Security — cross-workspace isolation | `IMPLEMENTED / NEEDS EVIDENCE` | YES | RLS denial tests, storage denial tests | Philip | Execute BETA-P0-SEC-001 | Beta |
+| Security — invite token lifecycle | `IMPLEMENTED / NEEDS EVIDENCE` | YES | Staging/prod E2E with real Supabase | Philip | Execute BETA-P0-SEC-003 | Beta |
+| Security — shared link boundaries | `IMPLEMENTED / NEEDS EVIDENCE` | YES | Penetration tests, token scope tests | Philip | Execute BETA-P0-SEC-003 | Beta |
+| Security — CSP/headers | `PARTIAL` | YES | Strict CSP on workshop routes | Philip | Enterprise MVP hardening | Enterprise MVP |
+| Security — rate limiting | `DECIDED / REQUIRED BEFORE EXTERNAL BETA` | BETA | Persistent rate limiting implemented | Philip | Execute BETA-P0-SEC-005 | Beta |
+| Security — CAPTCHA | `DECIDED / CLOUDFLARE TURNSTILE` | BETA | Cloudflare Turnstile integrated | Philip | Execute BETA-P1-SEC-006 | Beta |
+| Supabase — RLS policies | `IMPLEMENTED / NEEDS EVIDENCE` | YES | Table-by-table denial tests | Philip | Execute BETA-P0-SEC-001 | Beta |
+| Supabase — migration parity | `UNKNOWN` | YES | Local vs remote reconciliation | Philip | Run migration comparison | Beta |
+| Supabase — storage policies | `IMPLEMENTED / NEEDS EVIDENCE` | YES | Cross-workspace storage access tests | Philip | Execute BETA-P0-SEC-002 | Beta |
+| Auth — Google OAuth verification | `LEFT TO DO` | YES | Google Cloud Console verified status | Philip | Submit verification | Beta |
+| Auth — email/SMTP/Resend config | `PARTIAL` | YES | SPF/DKIM/DMARC evidence, template review | Philip | Configure DNS records | Beta |
+| Vercel — deployment pipeline | `DECIDED / STAGING APPROVED` | YES | Production/staging/preview URLs configured | Philip | Execute BETA-P0-INF-001 | Beta |
+| Vercel — env vars inventory | `PARTIAL` | YES | Complete env var audit per environment | Philip | Audit env vars | Beta |
+| Vercel — preview protection | `LEFT TO DO` | YES | Preview auth configured | Philip | Configure Vercel auth | Beta |
+| UX — landing to login flow | `IMPLEMENTED / NEEDS EVIDENCE` | BETA | First-time user test | Philip | Recruit test users | Beta |
+| UX — invite acceptance flows | `IMPLEMENTED / NEEDS EVIDENCE` | BETA | Staging E2E pass | Philip | Schedule staging tests | Beta |
+| UX — estimate editing clarity | `IMPLEMENTED / NEEDS EVIDENCE` | BETA | Non-technical user validation | Philip | Recruit test users | Beta |
+| UX — shared receiver clarity | `IMPLEMENTED / NEEDS EVIDENCE` | BETA | Client-side user validation | Philip | Recruit test users | Beta |
+| UX — AI Ask/package-builder clarity | `IMPLEMENTED / NEEDS EVIDENCE` | BETA | User understanding test | Philip | Recruit test users | Beta |
+| UX — mobile workshop | `DECIDED / DESKTOP GUARD FOR MVP` | — | Desktop-only guard in workshop routes | Philip | Execute BETA-P0-UX-004 | Beta |
+| UX — package-builder | `DECIDED / OPTIONAL FEATURE-FLAGGED BETA` | — | Feature flag for beta opt-in | Philip | Implement feature flag | Beta |
+| Performance — route transitions | `PLANNED` | BETA | Sub-100ms benchmarks | Philip | Execute BETA-P0-PERF-001 | Beta |
+| Performance — large estimate sheets | `UNKNOWN` | BETA | 500+ row benchmarks | Philip | Execute BETA-P0-PERF-001 | Beta |
+| Performance — XLSX export | `UNKNOWN` | BETA | Timeout benchmarks | Philip | Run export load test | Beta |
+| Observability — APM/error tracking | `LEFT TO DO` | YES | Sentry or equivalent configured | Philip | Execute BETA-P0-OBS-001 | Beta |
+| Observability — log aggregation | `LEFT TO DO` | BETA | Centralized log shipping | Philip | Execute BETA-P0-OBS-001 | Beta |
+| Analytics — product events | `DECIDED / FIRST-PARTY PRODUCT EVENTS FOR BETA` | BETA | First-party analytics instrumentation | Philip | Execute BETA-P0-ANA-001 | Beta |
+| QA — RLS denial tests | `LEFT TO DO` | YES | Automated test suite passing | Philip | Execute BETA-P0-SEC-001 | Beta |
+| QA — E2E smoke tests | `PARTIAL` | BETA | Staging E2E pass | Philip | Schedule staging run | Beta |
+| QA — accessibility tests | `LEFT TO DO` | BETA | aXe/WAVE audit pass | Philip | Schedule accessibility audit | Beta |
+| Legal — Privacy Notice | `DECIDED / MINIMUM BETA LEGAL PACK REQUIRED` | YES | Reviewed legal copy published | Philip | Execute BETA-P0-LEGAL-001 | Beta |
+| Legal — Terms of Service | `DECIDED / MINIMUM BETA LEGAL PACK REQUIRED` | YES | Reviewed legal copy published | Philip | Execute BETA-P0-LEGAL-001 | Beta |
+| Legal — subprocessor list | `LEFT TO DO` | YES | Published subprocessor disclosure | Philip | Compile subprocessor list | Beta |
+| Legal — DSAR workflow | `DECIDED / MANUAL DSAR FOR BETA` | BETA | Manual delete/export process documented | Philip | Document DSAR process | Beta |
+| AI — truthfulness claims | `PARTIAL` | YES | Public copy audit | Philip | Review public pages | Beta |
+| AI — no autonomous claims | `DONE` | — | Confirmed in code and docs | Philip | Maintain ongoing | — |
+| AI — memory / ranking hints | `DECIDED / DEFAULT-OFF RANKING HINTS ONLY` | — | Ranking hints disabled by default | Philip | Implement off-by-default | Beta |
+| Support — runbook coverage | `TEMPLATED / NEEDS DRILL` | BETA | Drill critical runbooks (AUTH-001, SEC-001, SEC-003, DEP-002) | Philip | Schedule drills | Beta |
+| Support — email + tracker | `DECIDED / SUPPORT EMAIL + LIGHTWEIGHT TRACKER` | BETA | support@ configured, lightweight ticket tracker | Philip | Execute BETA-P0-OPS-001 | Beta |
+| Incident — owner | `DECIDED / PHILIP` | YES | Philip is named incident owner | Philip | Documented | Beta |
+| Incident — rollback procedure | `DECIDED / PHILIP` | YES | Philip owns rollback authority | Philip | Documented | Beta |
+| Beta — scope definition | `DECIDED / APPROVED DEFAULT` | BETA | Documented beta scope/limitations | Philip | Execute BETA-P0-BETA-001 | Beta |
+| Beta — kickoff system | `PLANNED` | BETA | Controlled beta kickoff infrastructure | Philip | Execute BETA-P0-BETA-001 | Beta |
+| Owner — launch jurisdiction | `DECIDED / INVITE-ONLY NON-PUBLIC BETA` | YES | Invite-only, no public sign-up | Philip | Documented | Beta |
+| Owner — pricing/payment timeline | `DECIDED / NO PAID BETA` | — | No payment required for beta | Philip | Documented | Beta |
+| Owner — browser support | `DECIDED / CHROME + EDGE DESKTOP FOR BETA` | BETA | Chrome and Edge desktop supported | Philip | Documented | Beta |
+| Product — north star metric | `DRAFTED / NEEDS OWNER APPROVAL` | BETA | Philip selects and documents north star | Philip | Choose north star | Beta |
+| Product — activation definition | `DRAFTED / NEEDS OWNER APPROVAL` | BETA | Activation event defined and instrumented | Philip | Approve activation definition | Beta |
+| Product — persona journeys | `DRAFTED` | BETA | 6 personas with journey maps documented | Philip | Review persona docs | Beta |
+| Product — happy-path matrices | `DRAFTED` | BETA | 20 journey matrices documented and validated | Philip | Review journey docs | Beta |
+| Product — UX excellence scorecard | `DRAFTED` | — | 20 features scored, validated by users | Philip | Review scorecard | Production |
+| Product — usability research plan | `PLANNED` | BETA | Research plan documented, sessions conducted | Philip | Recruit beta participants | Beta |
+| Product — onboarding strategy | `DRAFTED` | BETA | 12-phase plan documented, owner-approved | Philip | Approve onboarding plan | Beta |
+| Product — beta feedback loop | `DRAFTED / NEEDS OWNER APPROVAL` | BETA | Weekly review cadence, feedback triage, decision log | Philip | Approve beta operating model | Beta |
+| Proposals — immutable issued snapshots | `ENTERPRISE MVP P1` | Enterprise MVP | Immutable proposal snapshots implemented | Philip | Execute ENTERPRISE-P1-PROD-001 | Enterprise MVP |
+| Proposals — PDF package workflow | `ENTERPRISE MVP P1` | Enterprise MVP | PDF/client-facing package workflow implemented | Philip | Execute ENTERPRISE-P1-PROD-002 | Enterprise MVP |
+| Dependency — @firecms/neat | `ENTERPRISE MVP P1` | Enterprise MVP | WebGL animation loop upgrade | Philip | Execute ENTERPRISE-P1-DEP-001 | Enterprise MVP |
+| Backup — verification | `DECIDED / BACKUP VERIFICATION FOR BETA` | BETA | Backup restoration verified | Philip | Verify backup restore | Beta |
+
+---
+
+## Product Excellence Layer
+
+Production readiness is necessary but not sufficient. Archestimator is excellent only when:
+
+1. A first-time user reaches value without Philip explaining the product.
+2. Each persona has a clear journey.
+3. Each major feature has a documented happy path and recovery path.
+4. Onboarding intentionally introduces features in the right order.
+5. Metrics show users are activating, completing estimates, sharing outputs, and returning.
+6. UX/UI decisions are tied to user outcomes, not just visual polish.
+7. Beta feedback is captured, triaged, and converted into roadmap decisions.
+
+The enterprise MVP layer adds product-rigor requirements on top of beta readiness:
+
+8. Immutable issued proposals with audit trail exist and are client-facing.
+9. PDF package workflows are complete and production-quality.
+10. CSP headers are hardened for workshop routes.
+11. DSAR workflow is operational (manual for beta, automated for enterprise MVP).
+12. Backup verification is proven with restore drills.
+
+This layer adds product-management rigor on top of the existing production-readiness gates:
+
+- [Product-Management Operating Model](./15-product-management-operating-model.md) — North star, activation, product loops, PM cadence
+- [Onboarding & Activation Readiness](./16-onboarding-activation-readiness.md) — 12-phase onboarding plan, 6 persona variants
+- [Personas & Jobs-to-be-Done](./17-personas-jobs-to-be-done.md) — 6 personas with goals, anxieties, first-success moments
+- [Happy-Path User Journey Matrices](./18-happy-path-user-journey-matrices.md) — 20 journeys with step-by-step system/user actions
+- [Feature Adoption & Success Metrics](./19-feature-adoption-success-metrics.md) — 20 features with activation/adoption/success events
+- [UX/UI Excellence Scorecard](./20-ux-ui-excellence-scorecard.md) — 20 features scored across 17 dimensions (0-5 scale)
+- [Usability Research & Beta Learning Plan](./21-usability-research-and-beta-learning-plan.md) — 14 task scripts, severity rubric, feedback process
+- [Enterprise MVP Scope & Owner Defaults](./29-enterprise-mvp-scope-and-owner-defaults.md) — Enterprise-grade MVP scope with 21 approved owner defaults
+- [Design-Partner Beta Recruiting Plan](./30-design-partner-beta-recruiting-plan.md) — Controlled design-partner beta recruiting strategy
+- [Founder Ops & Bus-Factor Plan](./31-founder-ops-and-bus-factor-plan.md) — Solo-founder resilience and operational infrastructure
+
+---
+
+## Steering Documents
+
+This roadmap is backed by detailed tracking documents:
+
+| # | Document | Purpose |
+|---|---|---|
+| 00 | [Production-Readiness Dashboard](./00-production-readiness-dashboard.md) | Master dashboard with all areas |
+| 01 | [Launch Gates Master Checklist](./01-launch-gates-master-checklist.md) | Every gate item with acceptance criteria |
+| 02 | [Security, Tenancy & Data Protection](./02-security-tenancy-data-protection.md) | OWASP ASVS-based security readiness |
+| 03 | [Supabase, RLS & Storage Readiness](./03-supabase-rls-storage-readiness.md) | Database, migration, and storage audit |
+| 04 | [Auth, Provider & Vercel Environment Readiness](./04-auth-provider-vercel-environment-readiness.md) | Google OAuth, Supabase, Resend, Vercel |
+| 05 | [UX/UI Polish Readiness](./05-ux-ui-polish-readiness.md) | Flow-by-flow launch quality checklist |
+| 06 | [Performance, Reliability & Observability](./06-performance-reliability-observability.md) | Budgets, SLOs, resilience patterns |
+| 07 | [QA, Testing & Validation Matrix](./07-qa-test-validation-matrix.md) | All test areas with coverage status |
+| 08 | [Legal, Privacy & Compliance Readiness](./08-legal-privacy-compliance-readiness.md) | Privacy/Terms, GDPR/CCPA, DSAR |
+| 09 | [Support, Incidents & Rollback Runbooks](./09-support-incident-rollback-runbooks.md) | 20 incident scenario templates |
+| 10 | [AI Safety Readiness](./10-ai-safety-readiness.md) | Truthfulness rules, capability boundaries |
+| 11 | [Release & Deployment Go/No-Go](./11-release-deployment-go-no-go.md) | Staging/production separation, rollback |
+| 12 | [Beta Launch & Feedback Loop](./12-beta-launch-feedback-loop.md) | Controlled design-partner beta plan |
+| 13 | [Risk Register](./13-risk-register.md) | Numbered risks with probability/impact |
+| 14 | [Owner Decisions](./14-owner-decisions.md) | All pending owner decisions |
+| 15 | [Product-Management Operating Model](./15-product-management-operating-model.md) | North star, activation, PM cadence, decision framework |
+| 16 | [Onboarding & Activation Readiness](./16-onboarding-activation-readiness.md) | 12-phase onboarding, 6 persona variants |
+| 17 | [Personas & Jobs-to-be-Done](./17-personas-jobs-to-be-done.md) | 6 personas with goals, anxieties, JTBD |
+| 18 | [Happy-Path User Journey Matrices](./18-happy-path-user-journey-matrices.md) | 20 journeys, step-by-step matrices |
+| 19 | [Feature Adoption & Success Metrics](./19-feature-adoption-success-metrics.md) | 20 features with adoption metrics |
+| 20 | [UX/UI Excellence Scorecard](./20-ux-ui-excellence-scorecard.md) | 17-dimension scoring across 20 features |
+| 21 | [Usability Research & Beta Learning Plan](./21-usability-research-and-beta-learning-plan.md) | 14 task scripts, severity rubric, feedback process |
+| 29 | [Enterprise MVP Scope & Owner Defaults](./29-enterprise-mvp-scope-and-owner-defaults.md) | Enterprise-grade MVP scope with 21 approved owner defaults |
+| 30 | [Design-Partner Beta Recruiting Plan](./30-design-partner-beta-recruiting-plan.md) | Controlled design-partner beta recruiting strategy |
+| 31 | [Founder Ops & Bus-Factor Plan](./31-founder-ops-and-bus-factor-plan.md) | Solo-founder resilience and operational infrastructure |
+| 32 | [Test Infrastructure Execution Spec](./32-test-infrastructure-execution-spec.md) | RLS denial, storage denial, and auth audit test specification |
+| 33 | [Ralph Loop Execution Protocol](./33-ralph-loop-execution-protocol.md) | Ralph Loop execution protocol for this roadmap |
+| 34 | [Roadmap Consistency Index](./34-roadmap-consistency-index.md) | Cross-reference index for roadmap document consistency |
+
+### Superseded / Historical Documents
+
+The following files remain in the directory for historical reference only. They are **SUPERSEDED** and should not be used as canonical sources. The gate-based documents above are the authoritative replacements:
+
+| File | Superseded By | Status |
+|---|---|---|
+| `action-plan.md` | Gate documents 00–14 | **SUPERSEDED** |
+| `status-tracker.md` | 00-production-readiness-dashboard.md | **SUPERSEDED** |
+| `production-readiness-audit.md` | 00-production-readiness-dashboard.md | **SUPERSEDED** |
+
+These files are preserved for git history and context; do not reference them for current state or decisions.
+
+---
+
+## Current Product Baseline
+
+The app has substantial product surface:
+
+- **Public:** Landing, About, Features, Pricing, Contact pages
+- **Auth:** Google OAuth + email sign-in link via Supabase, safe redirect, protected `/workshop/*`
+- **Workshop:** Projects, estimates (tree/sheet editing), charts, component library, templates, settings
+- **Collaboration:** Invite-entry tokens, project/estimate-sheet sharing, Teamspaces
+- **Publication:** Shared Link V2 (tabbed receiver, comments, decisions, recipients, activity, password gate)
+- **Export:** XLSX proposal export (mutable current estimate)
+- **AI:** Ask Flip (read-only, account-aware), Package-builder (draft/refine/apply, confirmation-gated)
+- **Landing:** A/B testing, consent banner, CSP Report-Only
+
+## Not Yet Implemented
+
+- Immutable issued proposal snapshots (ENTERPRISE MVP P1)
+- PDF/client-facing package workflows (ENTERPRISE MVP P1)
+- Revision comparison and issued-proposal audit policy
+- Stored AI conversations, vector/RAG, broad persistent memory, autonomous AI mutations
+- Strict CSP on workshop routes (ENTERPRISE MVP hardening)
+- Persistent rate limiting (Redis-backed, BETA P0)
+- Production APM/error tracking (BETA P0)
+- Cloudflare Turnstile CAPTCHA (BETA P1)
+- First-party product event analytics (BETA P0)
+
+---
+
+## Status Legend
+
+| Status | Meaning |
+|---|---|
+| `DONE` | Implemented and evidence exists |
+| `IMPLEMENTED / NEEDS EVIDENCE` | Code exists but production proof is missing |
+| `PARTIAL` | Some slices exist, but not enough for launch |
+| `PLANNED` | Future work; do not imply current capability |
+| `LEFT TO DO` | Known gap, not yet started |
+| `BLOCKED` | Cannot proceed without dependency or decision |
+| `OWNER DECISION REQUIRED` | Philip must decide |
+| `DECIDED / ...` | Owner decision made with recorded default |
+| `ENTERPRISE MVP P1` | Required for enterprise-grade MVP, not beta |
+| `ACCEPTED RISK` | Philip explicitly accepts risk with notes |
+| `LAUNCH BLOCKER` | Public launch cannot proceed |
+| `BETA BLOCKER` | Controlled beta cannot proceed |
+| `UNKNOWN` | Needs audit; do not assume |
+
+## Launch Levels
+
+| Level | Meaning |
+|---|---|
+| `Private local/staging use` | Internal only; no real customer reliance |
+| `Controlled design-partner beta` | Named users, known limitations, manual support, invite-only |
+| `Enterprise-grade MVP` | Immutable proposals, PDF packages, CSP hardening, DSAR, backup verification |
+| `Public production` | Open onboarding, legal/support/security/deploy evidence complete |
+
+---
+
+## Strict Rules
+
+1. **No production launch claim** may be added unless there is matching evidence in `.ai`, tests, provider screenshots/checklists, or owner decision logs.
+2. **No merge to `main`** without Philip approval.
+3. **No deploy** without Philip approval.
+4. **Public copy** must claim only currently shipped, verified capability.
+5. **Proposal export copy** must distinguish mutable XLSX export from future immutable issued snapshots.
+6. **AI copy** must describe scoped Ask and confirmation-gated package-builder — not autonomous estimation.
+
+---
+
+## Permanent Guardrails
 
-Current source/evidence:
-
-- `.ai/09_archive/store/2026-05-27-sign-up-login-authentication-local-implementation-evidence/`
-- `.ai/09_archive/store/2026-05-27-sign-up-login-authentication-local-implementation-evidence/14-go-no-go-evidence-and-owner-decision-record.md`
-- `.ai/09_archive/store/2026-05-27-sign-up-login-authentication-local-implementation-evidence/15-local-implementation-and-validation-evidence.md`
-- `.ai/09_archive/store/2026-05-27-sign-up-login-authentication-local-implementation-evidence/16-provider-config-audit-redacted.md`
-- `.ai/09_archive/store/2026-05-27-sign-up-login-authentication-local-implementation-evidence/17-auth-runbooks-and-rollback.md`
-- `.ai/09_archive/store/2026-05-27-project-workspace-invite-entry-complete/`
-
-## Phase 2 - Live project and estimate foundation
-
-Status: implemented.
-
-Done:
-
-- `/workshop/projects` reads authenticated workspace projects.
-- `/workshop/projects` normalizes owned projects, shared project memberships, and sheet-only collaborator memberships into one list with `All` / `Owned` / `Shared` filtering.
-- Shared project cards show explicit `Shared project` or `Sheet-only` badges, role context, and owner/shared-sheet context instead of making collaborator access look owned.
-- Project creation server action inserts live Supabase project records.
-- Live project cards render Supabase rows.
-- Project dashboard route loads authenticated workspace project data.
-- `/workshop/projects/[projectId]/estimates` lists live Supabase estimates.
-- Estimate creation creates a draft estimate and bootstraps lot -> structure -> level -> area hierarchy.
-- Estimate list cards link to the first area node.
-- `/workshop/projects/[projectId]/estimates/[nodeId]` reads live Supabase `estimate_nodes` and `estimate_row_items`.
-- Node route validation is project-scoped through the selected node's parent estimate.
-
-Current source:
-
-- `.ai/06_specs/live-project-estimate-bootstrap.md`
-- `.ai/06_specs/current-project-estimates-component-library-spec.md`
-
-## Phase 3 - Estimate workspace editing and Activity
-
-Status: implemented core, hardening active.
-
-Done:
-
-- Insert, replace, delete, and update row mutations persist through TanStack Query mutation hooks backed by server actions.
-- Row mutations validate project, estimate, node, row, and ownership before writing.
-- Route-loaded estimate tree is seeded into TanStack Query cache and optimistic failures restore previous local state.
-- React Complex Tree drag/drop reorder is active with hierarchy guards and reorder server action support.
-- One unified `Activity History` modal exists for sheet and row activity.
-- Named sheet `Versions`, `Compare`, restore-as-copy, and app-level named-version actions are intentionally absent from the current UI.
-
-Remaining:
-
-- Live mutation/atomicity proof needs local Supabase or an approved throwaway database. It must cover node create/rename, template event reads, rollback, and concurrency.
-- Scalar edit latency benchmarking needs the same safe mutation harness before any production-runtime performance claim.
-- Activity export/report, Supabase Realtime, retention pruning/archive compaction, and undo/redo remain future product slices.
-- Do not add visible row-level save pills; preserve spreadsheet-like editing and the accepted compact sheet-level save state unless Philip approves a new interaction contract.
-
-Current source:
-
-- `.ai/09_archive/store/2026-05-29-estimate-sheet-version-control-complete/18-current-activity-contract.md`
-- `.ai/09_archive/store/2026-05-29-estimate-sheet-version-control-complete/19-local-safe-completion-audit.md`
-
-## Phase 4 - Component Library and Templates
-
-Status: partially implemented, active hardening.
-
-Done:
-
-- `/workshop/library` is the current component-library workspace.
-- `/workshop/templates` is the current reusable-template workspace.
-- `/workshop/components` redirects to `/workshop/library`.
-- Add Component flow persists component names, variants, brand/supplier metadata, images, attachments, cost entries, and linked thumbnails.
-- Component/library data loading is shared with the estimate sidebar and must bootstrap the workspace once.
-- Component lifecycle/history and versioning schema foundations are present.
-
-Remaining:
-
-- Prove the newest local component-library cleanup migration against the linked remote before claiming remote parity.
-- Continue UI polish for dense component/template workflows.
-- Tighten pricing/source trust metadata, supplier provenance, and lifecycle reporting before launch claims.
-
-Current source:
-
-- `.ai/09_archive/store/2026-05-29-workshop-library-components-templates-split-complete/`
-- `.ai/09_archive/store/2026-05-29-workshop-library-component-creation-versioning-complete/`
-- `.ai/09_archive/store/2026-05-29-component-variant-assets-and-cost-history-complete/`
-- `.ai/06_specs/current-project-estimates-component-library-spec.md`
-
-## Phase 5 - Proposal export and project charts
-
-Status: implemented partials, launch hardening active.
-
-Done:
-
-- Proposal XLSX preview/download exists for the current mutable estimate.
-- Proposal workbook generation uses project/estimate data and is covered by focused proposal tests.
-- `/workshop/projects/[projectId]/charts` exists with project cost chart surfaces.
-
-Remaining:
-
-- Immutable issued proposal snapshots are not implemented.
-- PDF/client-facing package workflow is not implemented.
-- Revision comparison and issued-proposal audit policy need a product decision before public claims.
-- Chart grouping, empty states, and drill-downs need beta-user validation before they become core launch positioning.
-
-Current source:
-
-- `.ai/09_archive/store/2026-05-29-industry-standard-excel-proposal-export-complete/`
-- `.ai/09_archive/store/2026-05-29-project-charts-estimate-comparison-complete/`
-
-## Phase 5A - Project client publication (V1 archived) + Shared Link Overhaul V2 (Complete, P0–P13)
-
-**P14 (2026-05-28):** Shared Link Overhaul V2 marked Complete. V1 (`Public link` controls + basic `/share/[token]`) archived 2026-05-27. V2 delivers full production-grade manager/receiver experience with terminology standardization ("Shared link"), tabbed navigation (Link / Sheets / Access / Recipients / Activity), recipient management + Resend email delivery, session security (P5), client comments (P6), accept/reject/revise decisions (P7), owner activity feed + rate-limited digests + badge (P8), visual polish + hero images + responsive (P9), password hardening + progressive lockout + attempt audit (P10), CSP/headers/tracking (P11), error handling + retry + circuits + logging (P12), and full testing/validation (P13: focused vitest + sims for E2E/pen/load due to env gaps).
-
-**Post-P14 Phase 5A addition (2026-05-29, Ralph Loop):** Share Page Estimate View Enhancement (P0–P5) delivered on top of the V2 receiver: per-sheet donut charts, Tree View | Grid Preview sub-tabs with keyboard isolation, designation-based Tree View (WorkshopTree reuse + reconstruction), floating nav. All client-side, 0 new errors from changes, design lint clean. See `.ai/09_archive/store/2026-05-29-share-page-estimate-view-enhancement-complete/`, TRACKER, COMPLETION-REPORT, and current-state.md Phase 5A section. Strict Ralph Loop with completion promise used for delivery.
-- Redesigned the project publication (Shared Link) modal using a full-height sidebar grid layout and integrated WorkshopTreeTabs for Link/Sheets/Access/Recipients/Activity tabs. Polished RecipientEmailComposer with standard ControlInput primitives.
-- Overhauled project creation flow: NewProjectForm accepts onSuccess callback (closes modal, creates estimate draft), NewProjectModal auto-dismisses, and ProjectTotalHeader rendering is centralized in WorkshopPageShell footer slot.
-
-**Evidence (worktree HEAD 4c93bb1):**
-- P0 foundation (red tests + Resend scaffold + route audit): 859285c
-- P1 Rename 'Public link'→'Shared link' + Sheets tab + SheetPickerList: 95b2142
-- P2 Receiver tabs spec/ARIA/impact fixes: 86e71b6
-- P3 DB migration (shared_link_* tables, RPCs): 700a9f5
-- P4 Email infra + RecipientEmailComposer + chips + graceful delivery: 32b612c (plus 205db2e quality fixes)
-- P5 Recipient Session & Security Cookie (hook + blocking): 8a3dfd4
-- P6 Comments API & UI (SharePageComments): 938c801
-- P7 Decisions API & UI (SharePageDecision): 45673c8
-- P8 Activity Feed & Notifications + digest + badge: e9dffa3
-- P9 Visual Polish, Images & Hero (responsive, thumbnails, cover): 4c7c406
-- P10 Password brute-force hardening (in-mem lockout 5-attempt 15min, progressive 1s/2s/4s/8s, 429, events): 75e176b
-- P11 CSP Upgrade & Security Headers: 77e3550
-- P12 Error Handling & Resilience (circuits, retry, logging, offline queue): 2d93eef
-- P13 Testing & Validation (all publication tests updated for "Shared link" strings + route fixes to green; pre-edit MCP impacts; design lint 0; load/pen/E2E sims GREEN): 4c93bb1
-
-**MCP / code-review-graph impacts (per AGENTS.md + Claude.md + Master Prompt + subagent protocol, performed before every packet + P14):**
-- get_impact_radius_tool on core symbols (ProjectPublicationHeader, SharePageTabs, SharePage, actions.ts publication fns, page.tsx etc.): 46 direct nodes, 500 nodes impacted (2 hops), 120+ files, medium ~0.65 risk, 0 critical flows (blast isolated to public share surface; no upstream active execution flows affected).
-- detect_changes_tool (P13): 7 files, 10 fns, 0 affected flows, 0 test gaps, 0.45 risk.
-- All packets: search_tool for schemas first, then query_graph / get_minimal_context / get_affected_flows / semantic_search as needed; red tests first where applicable; additive only, backwards compat with V1 flows + existing tests; design lint 0 violations post every UI slice (bun run lint:design-system passed clean).
-- P14 pre-edit: same MCP impacts + CLI gitnexus impact/detect on publication symbols + full worktree analyze (now 8409 nodes / 300 flows fresh).
-
-**Worktree:** /Users/philiplewis/archestimator/.worktrees/feature/shared-link-overhaul-v2 (isolated for feature; all P0–P13 landed here).
-
-**Divergence / Implementation reality notes (P14):** The 13 detailed plan docs + README + COMPLETION-REPORT.md + IMPLEMENTATION-MASTER-PROMPT.md for "project-shared-link-overhaul" live in main repo `.ai/09_archive/store/2026-05-29-project-shared-link-overhaul-complete/` (not present in this worktree's .ai/ due to feature-branch isolation). P14 closure used: worktree .ai/ roadmap/state/decisions, src/ inline P0–P13 self-review comments (// Pxx: ... red-first, MCP impact, design 0, additive), git log SHAs, prior V1 archive evidence, current-state mentions, AGENTS.md/Claude.md/DESIGN.md, and MCP graph. All decisions followed Master Prompt + subagent-driven-development (impacts before symbol edit, red tests, 0 design violations, no secrets, additive/backcompat, .ai/ as brain).
-
-**Known limitations (documented in P0–P13 + code comments):**
-- P3: Local Supabase/Docker verification blocked (authorized to proceed with linked remote `ebxxqidacheyapmmzavr` + focused tests/sims).
-- Rate limiting, circuit breakers, lockout state: in-memory (sessionStorage + server in-mem); not durable/Redis until future infra.
-- Some TS casts in email/Resend paths (temporary until full type regen).
-- P13: Full live E2E/penetration/load via Playwright sims + vitest (env gaps for unauthed Docker/local DB matrix); all targeted publication tests green at 4c93bb1.
-- No PDF/download artifacts (future plan per V1 remaining).
-- Public launch still gated by Phase 7 (Privacy/Terms legal review, Vercel, provider evidence, etc.).
-
-**P14 changes (this doc only):** Updated Phase 5A to V2 Complete status with full evidence cross-links. No code changes. Additive only. Backwards compat preserved (V1 flows + tests untouched except string polish in P13).
-
-Current source (V1 archive + V2 implementation):
-- `.ai/09_archive/store/2026-05-27-project-client-publication-complete/`
-- `.ai/09_archive/store/2026-05-27-project-client-publication-complete/15-implementation-closeout-and-remaining-gates.md`
-- Worktree src/lib/publication/*, src/components/share/*, src/components/workshop/ProjectPublicationHeader.tsx, src/app/share/[token]/page.tsx, tests/vitest/project-publication*.test.*
-- P0–P13 commit SHAs above + P14 closure in `.ai/10_state/current-state.md`, `decisions.md`, and `walkthrough-shared-link-overhaul.md`.
-
-## Phase 5B - Route transition performance optimization
-
-Status: Active planning & Groundwork Phase complete.
-
-Done:
-- Formulated the comprehensive 34-document Route Transition Performance Master Plan under `.ai/03_plans/route-transition-performance-optimization/` covering audit data, blast radius analysis, performance ADRs, and implementation strategies for sub-100ms transitions.
-- Created `BfcacheHandler` to handle pageshow events and restore navigation UI store from browser back-forward cache.
-- Created `PerformanceMonitor` to log transition times in development mode.
-- Created `usePrefetchOnHover` custom hook for anticipatory preloading of TanStack Query caches.
-- Implemented `Skeleton` reusable loading UI primitive matching standard design tokens.
-- Created native route loading skeletons (`loading.tsx`) for `/workshop`, `/workshop/library`, `/workshop/onboarding`, `/workshop/projects`, `/workshop/settings`, and `/workshop/templates` to eliminate full-screen transition overlays during data fetching.
-
-Remaining:
-- Implement Phase 1: Client routing prefetch wiring on navigation links.
-- Implement Phase 2: React Server Component prefetching and query hydration.
-- Implement Phase 3: Code splitting and bundle optimization for heavy components (e.g. Three.js dynamic loading, TanStack table dynamic loading).
-- Implement Phase 4: Dynamic rendering, build-time caching, and performance budgets.
-
-Current source:
-- `.ai/03_plans/route-transition-performance-optimization/`
-- `src/components/bfcache-handler.tsx`
-- `src/components/performance-monitor.tsx`
-- `src/components/ui/skeleton.tsx`
-- `src/hooks/use-prefetch-on-hover.ts`
-- `src/app/workshop/library/loading.tsx` etc.
-
-## Phase 6 - AI copilot
-
-Status: account-aware Ask and first package-builder Draft/Apply slice implemented; launch hardening and broader app actions remain active future work.
-
-Done:
-
-- Global floating copilot opens Ask Flip and routes ordinary read-only questions to `/api/ai/ask`.
-- `/api/ai/ask` uses the approved first-slice provider path, server-only provider keys, and server-derived compact account context for authenticated workspace users.
-- `/api/ai/package-builder` supports reviewable `draft`, bounded pre-Apply `refine`, rejected-draft `feedback`, and confirmation-gated `apply` modes for package creation and current-estimate edits.
-- Package-builder Draft uses compact project/component/template/prior-row context, including linked prior-project component usage as a deterministic ranking hint for scoped library component selection.
-- Package-builder Apply uses signed draft tokens, explicit confirmation, idempotency, metadata-only audit, and authenticated Supabase RPCs for approved app-owned mutations.
-- Default-off package-builder memory ranking hints can store accepted/rejected library-item/template source signals when `AI_PACKAGE_BUILDER_MEMORY_ENABLED` is enabled; the local memory migration has not been applied to the linked remote.
-- Workspace auth is required for real provider calls.
-- Admin DB bypass is rejected for AI routes.
-- Metadata-only audit persistence exists for real Supabase workspace users.
-
-Remaining:
-
-- Stored conversations, vector/RAG, provider-owned memory, resettable preference UI, broad persistent user memory, and autonomous mutations remain unimplemented.
-- Broader write paths beyond the current package-builder contracts require confirmation UX, idempotency, audit trails, RLS compatibility, data-leakage tests, and rollback strategy.
-- AI launch copy must stay honest: Ask Flip can answer scoped account questions and create/edit reviewed package-builder drafts after confirmation, but it is not a fully autonomous estimator.
-
-Current source:
-
-- `.ai/03_plans/ai-chatbot-agent-readiness/`
-
-## Phase 7 - Pre-launch MVP readiness
-
-Status: active next operating lane.
-
-Launch gates:
-
-- All P0 sign-up/login/authentication go/no-go rows are `PASS` or owner-backed `ACCEPTED_RISK`; no unresolved `FAIL` rows remain.
-- Hosted Supabase auth redirects and provider settings verified with redacted evidence.
-- Google OAuth, email sign-in link, callback, safe redirect, onboarding, settings, invite continuity, account security events, and no-password posture verified against a real or staging provider setup.
-- Privacy Notice, Terms, subprocessor list, retention schedule, DSAR/export/delete/correction workflow, cookie/analytics posture, student/minor posture, and launch jurisdictions are reviewed and public where required.
-- Vercel production/staging/preview auth URL policy, env vars, deployment protection, and redeploy procedure are documented.
-- Support, incident, abuse, service-role leak, redirect-vulnerability, cross-workspace data access, and rollback runbooks have named owners and drill evidence.
-- Executable storage/API/RLS denial tests prove no cross-workspace/profile/project/estimate/library/storage leak.
-- Local and linked-remote migrations reconciled and documented.
-- Protected workshop smoke passes for project create, estimate create, estimate edit, library/template access, charts, proposal export, and Ask-only copilot.
-- Public pages claim only currently shipped, verified capability.
-- Proposal export copy clearly distinguishes mutable current XLSX export from future issued snapshots.
-- AI privacy, audit, and no-write posture are tested and documented.
-- Pricing, customer segments, onboarding steps, and beta feedback loop are documented in the startup homebase and mirrored into `.ai` when they affect product scope.
-- Known destructive cleanup, including linked-remote `V2` / `QA checkpoint` residue, is handled only by an explicit cleanup task with exact IDs and approval.
-- The broad dirty worktree is isolated, reconciled, or intentionally closed out before any merge/release claim.
-- Public narrative reflects the quote/proposal pivot without claiming purchase-order execution, legal-document automation, immutable issued snapshots, or mature compliance.
-
-## Phase 8 - Landing page compliance and growth
-
-Status: active planning — auth DRY cleanup plus first consent/CSP slice implemented; `/privacy` and `/terms` exist only as pending-review status pages. Reviewed legal artifacts, analytics, strict-CSP, and i18n proxy gates remain open; PostHog is deferred from the MVP landing stack.
-
-Goals:
-
-- Implement A/B testing infrastructure on the public landing page to measure and optimize conversion from landing to sign-up (Stack C: GA4 + Clarity + custom code; no PostHog or third-party experiment service for MVP)
-- Implement GDPR-compliant cookie consent (custom component), CSP header (Report-Only), reviewed privacy policy, reviewed terms of service, and user data rights for EU/UK visitors
-- Establish i18n strategy (next-intl) and locale routing for public marketing pages to support international launch
-- Prepare multi-region legal compliance (GDPR, CCPA/CPRA, and other priority jurisdictions)
-- 14 concrete tests planned across 3.5 hours, zero new test dependencies needed; first DRY auth-state, consent, and CSP header tests added
-
-Current state:
-- DRY public landing auth-state helper implemented (`src/lib/landing/get-landing-auth-state.ts`)
-- Public consent banner/settings trigger and versioned `archestimator_cookie_consent` cookie implemented
-- CSP Report-Only header implemented for `/`, `/about`, `/features`, `/pricing`, and `/contact`
-- DPA verification checklist provided, but human/legal verification is still open
-- GA4 custom dimension registration requirement documented (24-48 hr delay)
-- GA4 conversion events must explicitly send `experiment_id` and `variant`; do not rely on automatic carry-forward from `experiment_view`
-- PostHog official-doc review completed; defer unless product analytics, feature flags, native experiments, or analytics consolidation become explicit
-- @firecms/neat replacement spec'd; current repo still uses pinned/patched `@firecms/neat@0.8.0`
-- i18n must compose with existing Next 16 `src/proxy.ts`, not a new `src/middleware.ts`
-- Strict CSP remains post-MVP until inline style/package blockers are removed
-
-Current source:
-
-- `.ai/03_plans/landing-page-improvement/ab-testing-gdpr-international-compliance/`
-  - `00-blast-radius-implementation-analysis.md` — 30 files mapped, risk matrix
-  - `01-dependency-graph.md` — full import tree
-  - `02-cookie-csp-dpa-gap-closure.md` — cookie audit, CSP, DPA checklist
-  - `03-residual-risk-resolution.md` — residual-risk register and open gates
-  - `04-current-audit-and-corrections.md` — current audit corrections and implementation truth
-  - `05-analytics-stack-decision.md` — GA4/Clarity/PostHog decision record
-  - `ab-testing/README.md`, `gdpr-compliance/README.md`, `international-readiness/README.md`
-
-## Permanent guardrails
-
-- No merge to `main` without Philip approval.
-- No deploy without Philip approval.
 - Never touch SlateCamp Supabase resources.
-- No app/workshop font above `12px`, no non-xs radius, no nonzero tracking, and no bold/fill icon weights.
-- No duplicated feature-local buttons, search inputs, icon buttons, chips, cards, panels, dropdowns, or repeated controls; make/reuse shared UI primitives.
+- No app/workshop font above `12px`, no non-xs radius, no nonzero tracking, no bold/fill icon weights.
+- No duplicated feature-local controls; reuse shared UI primitives.
 - No AI writes, autonomous actions, retrieval/RAG, or stored conversations by implication.
 - Tests protect accepted behavior and key governance rules.
+- Code-review graph/GitNexus and `.ai` source-of-truth docs are part of the normal agent workflow.
+
+---
+
+*Historical feature-progress detail preserved in superseded documents and `.ai/09_archive/`.*
