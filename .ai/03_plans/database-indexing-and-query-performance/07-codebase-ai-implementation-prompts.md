@@ -16,9 +16,10 @@ You are performing a read-only audit. Do NOT create indexes, run DDL, or modify 
 Steps:
 1. Read all migration files in supabase/migrations/ and catalog every CREATE INDEX statement.
 2. Read src/lib/repositories/ and src/lib/publication/, src/lib/collaboration/, src/lib/ai/ — map every query method to the tables and columns it accesses.
-3. If you have access to the live Supabase project, run the read-only SQL queries from 01-current-query-and-index-inventory.md.
-4. Classify unindexed foreign keys into: must-index-now, monitor-until-grows, not-worth-indexing-yet, already-covered.
-5. Save inventory to .ai/09_archive/store/YYYY-MM-DD-CODEX-P0-DBIDX-001/.
+3. **Repo-only audit is independent of live metrics.** If you have live Supabase access, run the read-only SQL queries from 01-current-query-and-index-inventory.md. If not, record "live metrics unavailable" — do NOT fabricate results.
+4. **Use the corrected FK coverage query** (WITH fk_cols / fk_index_match) from doc 01. Do NOT use the old weak query.
+5. Classify unindexed foreign keys into: must-index-now, monitor-until-grows, not-worth-indexing-yet, already-covered.
+6. Save inventory to .ai/09_archive/store/YYYY-MM-DD-CODEX-P0-DBIDX-001/. Output MUST separate: repo-derived query map, migration-derived index inventory, live Supabase metrics (if available), gaps requiring DB access.
 
 NON-GOALS: Creating indexes, running DDL, modifying migrations, changing app code.
 ```
@@ -34,11 +35,12 @@ You are performing a read-only reconciliation. Do NOT apply migrations or modify
 
 Steps:
 1. List all local migration files in supabase/migrations/.
-2. Query the live Supabase schema for all table names in the public schema.
-3. Compare: list any local migrations not applied, any live tables not in local migrations.
+2. Query the live Supabase schema for all table names in the public schema (run both `information_schema.tables` and `supabase_migrations.schema_migrations` queries from doc 01).
+3. Compare: list missing tables and missing migration versions **separately**.
 4. Specifically check: shared_link_recipients, shared_link_comments, shared_link_responses, shared_link_events.
-5. Document any mismatch as a blocker.
-6. Save report to .ai/09_archive/store/YYYY-MM-DD-CODEX-P0-DBIDX-002/.
+5. **Shared-link table parity is a hard blocker** for shared-link recipient indexing.
+6. Document any mismatch as a blocker.
+7. Save report to .ai/09_archive/store/YYYY-MM-DD-CODEX-P0-DBIDX-002/.
 
 NON-GOALS: Applying migrations, creating indexes, modifying schema.
 ```
@@ -53,11 +55,12 @@ GOAL: Execute CODEX-P0-DBIDX-003 — EXPLAIN Protocol for Critical Queries.
 You are generating EXPLAIN templates. Do NOT create indexes or run DDL.
 
 Steps:
-1. For each critical flow (homebase, estimate editor, component library, publication, invite, AI audit), write the exact parameterized SELECT query that the app executes.
+1. For each critical flow (homebase, estimate editor, component library, publication, invite, AI audit), use the concrete EXPLAIN templates from doc 05.
 2. For each query, produce an EXPLAIN template with before-index baseline format.
 3. Document representative seed-size assumptions (10 projects, 50 estimates, 500 nodes, 1000 row items, 5000 library items, 1000 events).
-4. If staging Supabase is accessible, run EXPLAIN (without ANALYZE) on each query.
-5. Save templates and results to .ai/09_archive/store/YYYY-MM-DD-CODEX-P0-DBIDX-003/.
+4. If staging Supabase is accessible, run EXPLAIN (without ANALYZE) on each query. Do NOT run EXPLAIN ANALYZE on production.
+5. Run `ANALYZE table_name` on staging after seed load if allowed.
+6. Save templates and results to .ai/09_archive/store/YYYY-MM-DD-CODEX-P0-DBIDX-003/.
 
 NON-GOALS: Creating indexes, running DDL, creating seed data scripts.
 ```
@@ -69,18 +72,18 @@ NON-GOALS: Creating indexes, running DDL, creating seed data scripts.
 ```
 GOAL: Execute CODEX-P1-DBIDX-004 — Candidate Index Migration Draft for Staging.
 
-PREREQUISITES: DBIDX-001 (audit), DBIDX-002 (parity), DBIDX-003 (EXPLAIN evidence) must all be complete.
+PREREQUISITES: DBIDX-001 (audit), DBIDX-002 (parity), DBIDX-003 (EXPLAIN evidence) must all be complete. **Philip must approve the candidate index shortlist before drafting.**
 
-You are drafting a candidate migration. Do NOT apply it to production.
+You are drafting a candidate migration. Do NOT apply it to production. Do NOT place it in supabase/migrations/.
 
 Steps:
 1. Review audit findings and EXPLAIN evidence from DBIDX-001/002/003.
-2. Select only evidence-backed candidate indexes.
-3. Draft a Supabase migration file with CREATE INDEX IF NOT EXISTS statements.
+2. Select only evidence-backed candidate indexes from the owner-approved shortlist.
+3. Draft a SQL file with CREATE INDEX IF NOT EXISTS statements. **Save inside the plan folder**, not supabase/migrations/.
 4. For each index, include a comment with the rationale and matching query.
-5. Include a rollback migration with DROP INDEX IF NOT EXISTS.
-6. Check against existing indexes to avoid duplicates.
-7. Save draft as a candidate migration in the plan folder. Do NOT place in supabase/migrations/ until owner approves.
+5. Include a duplicate-index analysis table (check against existing pg_indexes output).
+6. Include a rollback/drop-index section.
+7. Do NOT use CREATE INDEX CONCURRENTLY inside a normal Supabase migration draft.
 
 NON-GOALS: Applying to production, creating indexes without EXPLAIN evidence, placing in migration folder.
 ```
@@ -118,10 +121,11 @@ PREREQUISITES: Beta must be active with real user data.
 Steps:
 1. Query pg_stat_user_indexes for indexes with idx_scan = 0.
 2. Cross-reference with pg_stat_statements to confirm no query uses them.
-3. Classify each unused index: safe-to-drop, keep-for-RLS, keep-for-constraint, investigate.
-4. For safe-to-drop indexes, draft DROP INDEX statements.
-5. Do NOT drop indexes used by RLS policies, unique constraints, or foreign keys.
-6. Save review to .ai/09_archive/store/YYYY-MM-DD-post-beta-index-review/.
+3. **Do NOT drop indexes that enforce unique/primary constraints.** Verify each index is not constraint-backed before classifying as safe-to-drop.
+4. Classify each unused index: safe-to-drop, keep-for-RLS, keep-for-constraint, investigate.
+5. For safe-to-drop indexes, draft DROP INDEX statements.
+6. **Require at least 30 days of beta traffic** or owner-approved shorter review window. Do not drop based on one short observation window.
+7. Save review to .ai/09_archive/store/YYYY-MM-DD-post-beta-index-review/.
 
 NON-GOALS: Dropping indexes without owner approval, modifying constraints.
 ```

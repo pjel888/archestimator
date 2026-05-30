@@ -68,3 +68,91 @@ LIMIT 25;
 - Test with varied filters (different workspace_id, project_id values)
 - Test warm-cache and cold-cache scenarios
 - Do not conclude from a single `EXPLAIN ANALYZE` run — run 3-5 times and take median
+
+---
+
+## Archestimator-Specific EXPLAIN Templates
+
+Run these in staging with representative seed data (never on production with ANALYZE). Replace `:param` placeholders with real values.
+
+```sql
+-- ── Estimate nodes ──
+EXPLAIN (ANALYZE, BUFFERS)
+SELECT id, estimate_id, parent_id, kind, name, sort_order
+FROM public.estimate_nodes
+WHERE estimate_id = :estimate_id
+ORDER BY sort_order ASC;
+
+-- ── Estimate row items ──
+EXPLAIN (ANALYZE, BUFFERS)
+SELECT *
+FROM public.estimate_row_items
+WHERE estimate_id = :estimate_id
+ORDER BY sort_order ASC;
+
+-- ── Component library items ──
+EXPLAIN (ANALYZE, BUFFERS)
+SELECT *
+FROM public.cost_library_items
+WHERE workspace_id = :workspace_id
+ORDER BY category ASC, name ASC;
+
+-- ── Component price options ──
+EXPLAIN (ANALYZE, BUFFERS)
+SELECT *
+FROM public.cost_library_item_price_options
+WHERE workspace_id = :workspace_id
+  AND item_id = ANY(:item_ids)
+ORDER BY is_default DESC, variant_sort_order ASC, created_at ASC;
+
+-- ── Project homebase ──
+EXPLAIN (ANALYZE, BUFFERS)
+SELECT id, name, client_name, project_code, location, updated_at
+FROM public.projects
+WHERE workspace_id = :workspace_id
+ORDER BY updated_at DESC
+LIMIT 12;
+
+-- ── Pending collaboration invitations ──
+EXPLAIN (ANALYZE, BUFFERS)
+SELECT id, email, role, scope, estimate_id, expires_at
+FROM public.collaboration_invitations
+WHERE project_id = :project_id
+  AND lifecycle_state = 'pending'
+  AND accepted_at IS NULL
+  AND revoked_at IS NULL
+ORDER BY created_at DESC;
+
+-- ── Latest project publication ──
+EXPLAIN (ANALYZE, BUFFERS)
+SELECT id, encrypted_token, expires_at, password_hash, selected_estimate_ids, snapshot_version
+FROM public.project_publications
+WHERE project_id = :project_id
+  AND status = 'published'
+ORDER BY published_at DESC
+LIMIT 1;
+
+-- ── Publication events ──
+EXPLAIN (ANALYZE, BUFFERS)
+SELECT *
+FROM public.project_publication_events
+WHERE publication_id = :publication_id
+ORDER BY created_at DESC
+LIMIT 50;
+
+-- ── AI audit events ──
+EXPLAIN (ANALYZE, BUFFERS)
+SELECT *
+FROM public.ai_data_access_events
+WHERE workspace_id = :workspace_id
+  AND event_name = :event_name
+ORDER BY created_at DESC
+LIMIT 100;
+```
+
+**Template usage rules:**
+- Replace `:param` with real UUIDs or values from seed data.
+- Run 3–5 times and take median execution time.
+- Test cold cache (restart or `DISCARD ALL`) and warm cache scenarios.
+- Run `ANALYZE table_name` on staging after seed data load if allowed.
+- Never run `EXPLAIN ANALYZE` on unbounded production queries.

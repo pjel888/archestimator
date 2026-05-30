@@ -162,10 +162,10 @@ bun run test tests/integration/rls-isolation.test.ts > .ai/09_archive/store/YYYY
 | CODEX-P1-SHARE-002 | No | No | user-research-evidence | PLANNED |
 | CODEX-P1-SHARE-003 | No | No | user-research-evidence | PLANNED |
 | CODEX-P1-SHARE-004 | No | No | user-research-evidence | PLANNED |
-| CODEX-P0-DBIDX-001 | No | No | database-performance-evidence | BLOCKED |
+| CODEX-P0-DBIDX-001 | No | No | database-performance-evidence | BLOCKED. Evidence expectations: repo-derived query map, migration-derived index inventory, live metrics snapshot (if available), explicit "live metrics unavailable" note if not available, corrected unindexed FK query output if live DB access exists |
 | CODEX-P0-DBIDX-002 | No | No | database-performance-evidence | BLOCKED — after staging target confirmed |
-| CODEX-P0-DBIDX-003 | No | No | database-performance-evidence | BLOCKED — after staging target confirmed |
-| CODEX-P1-DBIDX-004 | No | No | database-performance-evidence | PLANNED — after DBIDX-001/002/003 |
+| CODEX-P0-DBIDX-003 | No | No | database-performance-evidence | BLOCKED — after staging target confirmed. Evidence expectations: concrete EXPLAIN templates, seed-size limitation note, before-index baselines only, no DDL confirmation |
+| CODEX-P1-DBIDX-004 | No | No | database-performance-evidence | PLANNED — after DBIDX-001/002/003 + owner approval |
 | CODEX-P1-DBIDX-005 | No | No | database-performance-evidence | PLANNED |
 
 **Total evidence artifacts produced: 0 of 42** — All blocked pending Wave 0 owner decisions.

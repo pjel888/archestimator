@@ -112,3 +112,51 @@ Only after server-side search is introduced. Start with `pg_trgm` + GIN for fuzz
 - Database views or RPCs for homebase/project summaries
 - Scheduled index usage review
 - Unused-index cleanup
+
+---
+
+## Existing Index Coverage Must Be Checked First
+
+Before proposing any candidate index, verify against known existing indexes from current schema/migrations:
+
+| Table | Known Covering Index(es) | Coverage Assessment |
+|-------|-------------------------|---------------------|
+| `projects` | `(workspace_id, updated_at DESC)` | Project list query appears covered |
+| `estimates` | `(project_id, updated_at DESC)` | Estimate listing appears covered |
+| `project_publications` | `(project_id, status, published_at DESC)`, `token_hash` | Publication lookup appears covered |
+| `estimate_nodes` | `(estimate_id, parent_id, sort_order)` | Hierarchy covered; `estimate_id ORDER BY sort_order` globally may not be optimal |
+| `estimate_row_items` | `(estimate_id, node_id, sort_order)` | Node-scoped sort covered; `estimate_id ORDER BY sort_order` globally may not be optimal |
+| `cost_library_item_price_options` | `(workspace_id, item_id, is_active)` | Filter covered; order-specific coverage needs EXPLAIN |
+| History tables (`versions`, `price_history`, `state_history`) | May have `(workspace_id, item_id, effective_at DESC)` | Needs verification |
+
+**⚠️ Candidate indexes must be tested against existing equivalent or near-equivalent indexes. Do not add subset indexes if an existing index already covers the query efficiently. Some query improvements may require changing query order/filter shape rather than adding an index.**
+
+## Candidate Index Status Table
+
+| Candidate Index | Target Query | Likely Benefit | Duplication Risk | Write Overhead | Prerequisite | Status |
+|----------------|-------------|----------------|-----------------|----------------|--------------|--------|
+| `estimate_nodes (estimate_id, sort_order)` | Estimate tree render | High — most frequent read | Medium — overlaps `(estimate_id, parent_id, sort_order)` | Low — nodes change rarely | EXPLAIN evidence | Candidate |
+| `estimate_row_items (estimate_id, sort_order)` | Row list render | High — most frequent read | Medium — overlaps `(estimate_id, node_id, sort_order)` | Medium — rows change during editing | EXPLAIN evidence | Candidate |
+| `cost_library_items (workspace_id, category, name)` | Library browse | High — core UX surface | Low — no existing composite covering this | Low — library items change slowly | EXPLAIN evidence | Candidate |
+| `library_folders (workspace_id, sort_order, name)` | Folder navigation | Medium — navigation UX | Low | Low — folders rarely change | EXPLAIN evidence | Candidate |
+| `component_suppliers (workspace_id, sort_order, name)` | Supplier listing | Medium | Low | Low | EXPLAIN evidence | Candidate |
+| `component_brands (workspace_id, sort_order, name)` | Brand listing | Medium | Low | Low | EXPLAIN evidence | Candidate |
+| `collaboration_invitations (project_id, created_at DESC) WHERE pending...` | Pending invite listing | Medium — team UX | Low — partial index unique | Low — invites are moderate writes | EXPLAIN evidence | Candidate |
+
+## FK Indexing Policy
+
+**Must-index-now:**
+- FK is used in critical joins/filters on user-facing surfaces
+- Table can grow significantly
+- Delete/update parent operations could lock/scan child table
+- Column is used in RLS policies or audit lookups
+
+**Monitor:**
+- Table is currently tiny (<100 rows)
+- Query pattern is rare or administrative
+- Existing composite index partially covers use
+
+**Skip:**
+- No user-facing query pattern
+- Table is write-heavy and read path is absent
+- Index would duplicate an existing left-prefix index
