@@ -40,3 +40,10 @@ Formal strategy for database indexing, query-plan validation, and Supabase perfo
 - Staging migration strategy exists with rollback plan
 - No speculative index bloat
 - No migration created without EXPLAIN before/after comparison
+
+## Next Safe Action
+
+Run `CODEX-P0-DBIDX-001` as a repo-only/read-only audit first.
+
+Do not run DBIDX-002, DBIDX-003, or DBIDX-004 until staging/read-only DB access is confirmed.
+Do not create a migration until DBIDX-001/002/003 are complete and Philip approves the candidate shortlist.

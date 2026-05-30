@@ -19,7 +19,19 @@ Steps:
 3. **Repo-only audit is independent of live metrics.** If you have live Supabase access, run the read-only SQL queries from 01-current-query-and-index-inventory.md. If not, record "live metrics unavailable" — do NOT fabricate results.
 4. **Use the corrected FK coverage query** (WITH fk_cols / fk_index_match) from doc 01. Do NOT use the old weak query.
 5. Classify unindexed foreign keys into: must-index-now, monitor-until-grows, not-worth-indexing-yet, already-covered.
-6. Save inventory to .ai/09_archive/store/YYYY-MM-DD-CODEX-P0-DBIDX-001/. Output MUST separate: repo-derived query map, migration-derived index inventory, live Supabase metrics (if available), gaps requiring DB access.
+6. Save inventory to .ai/09_archive/store/YYYY-MM-DD-CODEX-P0-DBIDX-001/. Output MUST produce four separate, clearly labeled sections:
+
+   **Output 1: repo-derived query map** — Every query method found in src/ mapped to tables/columns accessed.
+   **Output 2: migration-derived index inventory** — Every CREATE INDEX found in supabase/migrations/.
+   **Output 3: live metrics** — Supabase advisor output, pg_stat_statements snapshot, unindexed FK query results (ONLY if live DB access exists).
+   **Output 4: live-metrics-unavailable note** — Explicit statement if Supabase access is missing; no fabricated data permitted.
+
+SAFETY RULES — VIOLATIONS ARE BLOCKERS:
+- Do not block repo-only audit if Supabase access is missing.
+- Do not fabricate Supabase advisor output, pg_stat_statements snapshots, or live schema data.
+- If using live DB, all SQL must be read-only (SELECT, EXPLAIN only). No DDL, no CREATE, no ALTER, no DROP.
+- Do not run DDL of any kind.
+- Do not create or modify migration files.
 
 NON-GOALS: Creating indexes, running DDL, modifying migrations, changing app code.
 ```
