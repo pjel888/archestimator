@@ -9,7 +9,8 @@
 
 | Metric | Count |
 |---|---|
-| Total items across all gates | 88 (recounted 2026-05-30 — includes 6 new collab/share sub-gates) |
+| Total items across all gates | 89 |
+| **Beta Minimum Gate items** | **25** (expanded from 18 — invite/share items split + DB index audit) |
 | **Beta Minimum Gate items** | **24** (expanded from 18 — invite/share items split) |
 | **Enterprise MVP Gate items** | **12** |
 | **Public Launch Gate items** | **45** (full 5-gate checklist) |
@@ -55,7 +56,7 @@
 
 The Beta Minimum Gate defines the absolute minimum required before controlled invite-only beta with 5–8 design partners. Everything else is ENTERPRISE MVP (P1) or PUBLIC LAUNCH.
 
-**Gate status:** `0 of 24 DONE — PRE-IMPLEMENTATION` (24 numbered items including sub-gates 5a–5d and 6a–6c)
+**Gate status:** `0 of 25 DONE — PRE-IMPLEMENTATION` (25 numbered items including sub-gates 5a–5d, 6a–6c, and DB index audit)
 **Owner decisions resolved:** All 21 gate-blocking decisions decided 2026-05-30.
 
 ### Beta Minimum Checklist
@@ -87,10 +88,11 @@ The Beta Minimum Gate defines the absolute minimum required before controlled in
 | 16 | Cloudflare Turnstile on auth endpoints (CAPTCHA provider decided) | SEC-13, D-004 | `DECIDED / CLOUDFLARE TURNSTILE` | **BETA P1** |
 | 17 | Beta onboarding script + known limitations disclosure | LEG-10 | `DECIDED / APPROVED DEFAULT` | **BETA P0** |
 | 18 | Beta scope defined (invite-only, 5–8 partners, controlled — DECIDED) | LEG-10, D-006 | `DECIDED / APPROVED DEFAULT` | **BETA P0** |
+| 19 | Database index & query-plan audit complete | DBIDX-001/002/003 | `LEFT TO DO` | **BETA P0** |
 
 ### Beta Minimum Gate Acceptance Criteria
 
-- All 24 Beta Minimum Gate items (including sub-gates) marked `DONE` with evidence
+- All 25 Beta Minimum Gate items (including sub-gates) marked `DONE` with evidence
 - 4 critical runbooks templated (auth outage, data leak, bad deploy, invite failure)
 - Philip signs beta approval (go decision)
 - Risk acceptance register signed for all BETA P1 items

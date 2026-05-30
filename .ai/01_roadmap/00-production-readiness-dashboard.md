@@ -72,9 +72,9 @@ Recommended first implementation sequence for Ralph Loop execution:
 
 | Metric | Count |
 |---|---|
-| Total atomic executable cards | 88 (78 original + 10 new collab/share from 2026-05-30 sync) |
+| Total atomic executable cards | 93 (78 original + 10 collab/share + 5 DBIDX from 2026-05-30) |
 | EPIC headers (non-executable) | 15 |
-| Ready for Codex (immediately) | 58 |
+| Ready for Codex (immediately) | 60 |
 | Ready for Codex after external setup | 12 (staging-dependent 11 + CODEX-P0-COLLAB-003) |
 | Ready for human external setup | 3 (INF-001A/B + COLLAB-001A) |
 | Decision-coded DONE | 1 (BETA-P0-DEC-001) |
@@ -255,6 +255,9 @@ Owner: Philip for all items.
 | 3.23 | Disaster recovery | LEFT TO DO | Production | Define RPO (Recovery Point Objective) and RTO (Recovery Time Objective). Backup strategy for Supabase. Restoration drill plan. Multi-region plan. | Philip | Define RPO/RTO | Production |
 | 3.24 | Database connection pooling | IMPLEMENTED / NEEDS EVIDENCE | BETA BLOCKER | Confirm Supabase connection pooler (PgBouncer) configured. Test: concurrent estimate edits from 10 users. No connection exhaustion. | Philip | Pool config review | Beta |
 | 3.25 | Serverless cold start | UNKNOWN | BETA BLOCKER | Measure: cold start time for API routes and server actions. Warm start time. Acceptable threshold defined. | Philip | Measure cold starts | Beta |
+| 3.26 | Database indexing & query-plan audit | LEFT TO DO | BETA BLOCKER | Audit existing indexes, map query hotspots, classify unindexed FKs, document Supabase advisor findings. No DDL. | Philip | Execute CODEX-P0-DBIDX-001 | Beta |
+| 3.27 | Migration parity / shared-link schema reconciliation | LEFT TO DO | BETA BLOCKER | Verify local migrations match live schema. Check shared_link_recipients/comments/responses/events. No schema changes. | Philip | Execute CODEX-P0-DBIDX-002 | Beta |
+| 3.28 | Critical query EXPLAIN evidence | LEFT TO DO | BETA BLOCKER | EXPLAIN protocol for estimate, library, homebase, publication, invite, and AI audit queries. No DDL. | Philip | Execute CODEX-P0-DBIDX-003 | Beta |
 
 ### Gate 4: Legal / Business
 

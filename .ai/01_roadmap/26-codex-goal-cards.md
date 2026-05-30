@@ -1,16 +1,17 @@
 # Codex /goal Cards — Atomic Split Edition
 
 **Last updated:** 2026-05-30
-**Total atomic executable cards:** 88 (78 original + 10 new collab/share from 2026-05-30 sync)
+**Total atomic executable cards:** 93 (78 original + 10 new collab/share + 5 new DBIDX from 2026-05-30 sync)
 **EPIC headers / non-executable reference nodes:** 15
-**Ready for Codex (immediately):** 58
+**Ready for Codex (immediately):** 60
 **Ready for Codex after external setup:** 12 (staging-dependent 11 + COLLAB-003)
-**Ready for Codex after sentry/dependencies:** 4 (sentry choice 1 + DSN 1 + sentry integration 1 + design partner list 1)
-**Ready for human external setup:** 3 (INF-001A, INF-001B, COLLAB-001A)
-**Planned / enterprise MVP:** 6
+**Ready for Codex after prior cards (DBIDX):** 1 (DBIDX-004)
+**Ready for Codex after sentry/dependencies:** 4
+**Ready for human external setup:** 3
+**Planned / enterprise MVP:** 7
 **Public launch / legal blocked:** 2
 **Post-MVP / deferred:** 2
-**Decision-coded DONE:** 1 (BETA-P0-DEC-001)
+**Decision-coded DONE:** 1
 **Evidence artifacts produced:** 0
 
 ## Atomic Goal-Card Standard
@@ -128,6 +129,11 @@ The topic is valid, but Codex must not execute it directly. It must be split int
 | CODEX-P1-SHARE-002 | READY FOR CODEX |
 | CODEX-P1-SHARE-003 | READY FOR CODEX |
 | CODEX-P1-SHARE-004 | READY FOR CODEX |
+| CODEX-P0-DBIDX-001 | READY FOR CODEX |
+| CODEX-P0-DBIDX-002 | READY FOR CODEX AFTER STAGING TARGET CONFIRMED |
+| CODEX-P0-DBIDX-003 | READY FOR CODEX AFTER STAGING TARGET CONFIRMED |
+| CODEX-P1-DBIDX-004 | READY FOR CODEX AFTER DBIDX-001/002/003 |
+| CODEX-P1-DBIDX-005 | PLANNED |
 | ENTERPRISE-P1-PROD-001 | **EPIC / SPLIT REQUIRED** — see sub-cards |
 | ENTERPRISE-P1-PROD-001A | PLANNED |
 | ENTERPRISE-P1-PROD-001B | PLANNED |
@@ -4195,6 +4201,212 @@ Confirmation dialog uses design-system Modal; clear consequences explained; Canc
 
 ### Completion report
 Screenshots of confirmation dialogs for each destructive action.
+
+---
+
+## CODEX-P0-DBIDX-001 — Database Index & Query Plan Audit
+
+| Field | Value |
+|---|---|
+| Wave | 2 |
+| Lane | BETA P0 |
+| Status | READY FOR CODEX |
+| Primary risk reduced | Performance |
+| Owner | Codex |
+| Dependencies | None for repo inspection; staging preferred for live metrics |
+| Explicit non-goals | Creating indexes, running DDL, modifying migrations, applying schema changes |
+
+### Outcome
+Complete index/query inventory and critical flow query map. All results documented, no DDL executed.
+
+### Why now
+Must understand current index coverage and query patterns before beta. Prevents reactive/speculative indexing under scale pressure. Supabase advisor already flags many unindexed FKs.
+
+### Likely files touched
+`supabase/migrations/*.sql` (read-only inspection), `src/lib/repositories/` (read-only), plan documents
+
+### Acceptance criteria
+1. Existing indexes inventoried from migrations and/or live schema
+2. Query hotspots mapped from codebase against critical user flows
+3. Supabase advisor findings summarized
+4. Unindexed FK inventory classified into priority buckets (must-index-now, monitor, not-worth, already-covered)
+5. Critical user flows mapped to query shapes
+6. No DDL executed
+
+### Validation
+Manual: run read-only SQL from plan doc 01; cross-reference with migration files; verify classification.
+
+### Performance budget
+N/A (read-only audit).
+
+### Security/data check
+No data access beyond read-only metadata queries.
+
+### Evidence artifact
+`.ai/09_archive/store/YYYY-MM-DD-CODEX-P0-DBIDX-001/`
+
+### Completion report
+Index inventory, query hotspot map, FK classification, advisor summary.
+
+---
+
+## CODEX-P0-DBIDX-002 — Supabase Migration Parity & Shared-Link Schema Reconciliation
+
+| Field | Value |
+|---|---|
+| Wave | 2 |
+| Lane | BETA P0 |
+| Status | READY FOR CODEX AFTER STAGING TARGET CONFIRMED |
+| Primary risk reduced | Performance / Data Integrity |
+| Owner | Codex |
+| Dependencies | Staging Supabase target |
+| Explicit non-goals | Applying migrations, creating indexes, modifying schema |
+
+### Outcome
+Prove local migrations, linked dev/staging schema, and code expectations match. Any shared-link table drift documented as blocker.
+
+### Why now
+Migration parity must be verified before designing indexes. Shared-link recipient/comment/response/event tables may not exist in the live schema despite code references.
+
+### Likely files touched
+`supabase/migrations/` (read-only), live Supabase schema (read-only queries)
+
+### Acceptance criteria
+1. Local migrations list captured
+2. Live schema table list captured
+3. Shared-link tables checked: `shared_link_recipients`, `shared_link_comments`, `shared_link_responses`, `shared_link_events`
+4. Any mismatch documented as blocker
+5. No schema changes applied
+
+### Validation
+Compare local migration list against live `information_schema.tables`; document drift.
+
+### Performance budget
+N/A (read-only reconciliation).
+
+### Evidence artifact
+`.ai/09_archive/store/YYYY-MM-DD-CODEX-P0-DBIDX-002/`
+
+### Completion report
+Migration parity report, shared-link table status, drift documentation.
+
+---
+
+## CODEX-P0-DBIDX-003 — EXPLAIN Protocol for Critical Queries
+
+| Field | Value |
+|---|---|
+| Wave | 2 |
+| Lane | BETA P0 |
+| Status | READY FOR CODEX AFTER STAGING TARGET CONFIRMED |
+| Primary risk reduced | Performance |
+| Owner | Codex |
+| Dependencies | Staging with representative seed data |
+| Explicit non-goals | Creating indexes, running DDL |
+
+### Outcome
+EXPLAIN/ANALYZE protocol for estimate, library, homebase, publication, invite, and AI audit queries. Before-index baseline format defined with representative seed-size assumptions.
+
+### Why now
+Must have query plan evidence before any index can be proposed. Prevents speculative indexing.
+
+### Acceptance criteria
+1. EXPLAIN templates written for all critical flows (homebase, estimate, library, publication, invite, AI audit)
+2. Representative seed-size assumptions documented: 10 projects, 50 estimates, 500 nodes, 1,000 row items, 5,000 library items, 1,000 publication/audit events
+3. Before-index baseline format defined
+4. No DDL executed
+
+### Validation
+If staging is accessible: run EXPLAIN (without ANALYZE) on each template; capture plan type and estimated cost.
+
+### Performance budget
+N/A (read-only protocol definition).
+
+### Evidence artifact
+`.ai/09_archive/store/YYYY-MM-DD-CODEX-P0-DBIDX-003/`
+
+### Completion report
+EXPLAIN template count, seed-size assumptions, baseline format documentation.
+
+---
+
+## CODEX-P1-DBIDX-004 — Candidate Index Migration Draft for Staging
+
+| Field | Value |
+|---|---|
+| Wave | 3 (after audit + EXPLAIN) |
+| Lane | BETA P1 |
+| Status | READY FOR CODEX AFTER DBIDX-001/002/003 |
+| Primary risk reduced | Performance |
+| Owner | Codex |
+| Dependencies | DBIDX-001 (audit), DBIDX-002 (parity), DBIDX-003 (EXPLAIN evidence) |
+| Explicit non-goals | Applying to production, creating indexes without EXPLAIN evidence |
+
+### Outcome
+Draft a candidate migration for staging review only. Includes only evidence-backed indexes with rationale. Rollback/drop plan included.
+
+### Why now
+After audit and EXPLAIN evidence exists, draft the migration for staging testing. Do not apply to production until staging-validated.
+
+### ⚠️ Important
+This card may create a draft migration only after owner approval of the EXPLAIN evidence. Until then, keep SQL in the plan document.
+
+### Acceptance criteria
+1. Migration draft includes only evidence-backed indexes
+2. Each index has rationale and matching query
+3. Redundant indexes avoided (checked against existing)
+4. Rollback/drop plan written
+5. No production application
+
+### Validation
+Cross-reference each proposed index against existing indexes; verify EXPLAIN evidence exists for each.
+
+### Performance budget
+Migration must not add >10% write overhead in staging benchmarks.
+
+### Evidence artifact
+`.ai/09_archive/store/YYYY-MM-DD-CODEX-P1-DBIDX-004/`
+
+### Completion report
+Migration draft path, index count, rationale per index, rollback plan.
+
+---
+
+## CODEX-P1-DBIDX-005 — Database Search Index Strategy
+
+| Field | Value |
+|---|---|
+| Wave | 6 (enterprise MVP) |
+| Lane | BETA P1 / ENTERPRISE MVP |
+| Status | PLANNED |
+| Primary risk reduced | Performance |
+| Owner | Codex |
+| Dependencies | Server-side search decision |
+| Explicit non-goals | Creating search indexes before search moves server-side, vector/RAG indexes |
+
+### Outcome
+Define pg_trgm/full-text strategy if and when search moves server-side. No indexes created unless use cases are approved.
+
+### Why now
+Search indexing must be planned before it becomes an emergency, but must not be implemented before the product actually moves search server-side.
+
+### Acceptance criteria
+1. Search use cases listed from current and planned UI search surfaces
+2. pg_trgm vs tsvector decision documented with rationale
+3. No vector/RAG index included unless explicitly approved
+4. Search index candidates tied to UI search surfaces
+
+### Validation
+Review search use cases against UI inventory; verify no speculative vector indexes.
+
+### Performance budget
+N/A (strategy document only).
+
+### Evidence artifact
+`.ai/09_archive/store/YYYY-MM-DD-CODEX-P1-DBIDX-005/`
+
+### Completion report
+Search use case inventory, technology decision, candidate index list.
 
 ---
 

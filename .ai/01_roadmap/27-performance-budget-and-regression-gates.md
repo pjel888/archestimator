@@ -228,3 +228,13 @@ Until full perf optimization is complete, these risks are documented:
 | Main bundle exceeds 150KB | Unknown | Accept if 150-170KB with documented plan to reduce | Bundle split plan required |
 | Instrumentation adds latency | Not measured | Accept if <10ms total overhead | Defer to idle; measure with trace |
 | No performance regression CI gate | Not configured | Accept if manual smoke test passes before go/no-go | CI gate deferred to public launch |
+
+## Database Performance Rules
+
+1. **Every feature** touching estimate tree, component library, collaboration, publication, AI logs, or search must identify query/index impact in its goal card.
+2. **No new query-heavy feature** can be marked DONE without considering index support (document existing indexes, note if new index is needed, or state "no index impact").
+3. **No speculative indexes** without query evidence. Every proposed index must be tied to a real query shape and have EXPLAIN before/after comparison.
+4. **No index migration** without rollback/drop plan.
+5. **Search indexes** (pg_trgm, tsvector, GIN) require explicit product search use case approval.
+| No index/query-plan audit | Not performed | No — BETA P0 blocker (CODEX-P0-DBIDX-001) | Wave 2: database index & query-plan audit |
+| No EXPLAIN evidence for critical queries | Not performed | No — BETA P0 blocker (CODEX-P0-DBIDX-003) | Wave 2: EXPLAIN protocol generation |

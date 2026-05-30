@@ -161,3 +161,49 @@ This document is a reference domain deep-dive. For detailed, current collaborati
 - **Audit/event visibility gaps** — collaboration_invitations table has lifecycle events but not all state transitions are recorded as audit events; shared-link events are partial
 
 See goal cards BETA-P0-SEC-005 (persistent rate limiting), CODEX-P0-COLLAB-003 (invite lifecycle E2E), CODEX-P1-SHARE-002 (recipient tracking), and the 06-performance-and-observability-plan in the audit pack for detailed recommendations including 15 recommended indexes, 14 observability metrics, and 7 alerting thresholds.
+
+---
+
+## Database Indexing & Query Performance Readiness
+
+**Current state:** Unknown until CODEX-P0-DBIDX-001 audit is complete. No index/query inventory exists. No EXPLAIN evidence for critical flows.
+
+### Why This Matters
+
+Archestimator's architecture is already query-heavy, tenant-scoped, and estimate-tree-heavy. Without an indexing strategy:
+- Estimate editor loads will degrade as estimate row counts grow
+- Component library queries will slow as cost item catalogs expand
+- Shared-link publication resolution will worsen with more published links
+- AI audit logs will become a write+read burden without careful indexing
+- RLS policy predicates will add hidden cost to every tenant-scoped query
+
+### Critical App Flows Requiring EXPLAIN Evidence
+
+| Flow | Tables | Key Columns |
+|------|--------|-------------|
+| Estimate editor load | `estimate_nodes`, `estimate_row_items` | `estimate_id`, `sort_order` |
+| Component library browse | `cost_library_items`, `library_folders`, `component_suppliers`, `component_brands` | `workspace_id`, `sort_order`, `name`, `category` |
+| Homebase / project list | `projects`, `project_favorites`, `project_members` | `workspace_id`, `user_id`, `updated_at` |
+| Shared link resolve | `project_publications` | `token_hash`, `project_id`, `status` |
+| Invite token resolve | `collaboration_invitation_tokens`, `collaboration_invitations` | `token_hash`, `project_id`, `lifecycle_state` |
+| AI audit reads | `ai_action_runs`, `ai_tool_calls`, `ai_data_access_events` | `workspace_id`, `actor_user_id`, `created_at` |
+
+### Candidate Index Families
+
+See `.ai/03_plans/database-indexing-and-query-performance/03-index-strategy-and-prioritization.md` for the full prioritized list. Key candidates:
+
+1. **Estimate rendering:** `(estimate_id, sort_order)` on `estimate_nodes` and `estimate_row_items`
+2. **Component library:** `(workspace_id, category, name)` on `cost_library_items`; `(workspace_id, sort_order, name)` on `library_folders`, `component_suppliers`, `component_brands`
+3. **Collaboration pending invites:** Partial index on `collaboration_invitations` for pending/active state
+
+### Requirements Before Index Creation
+
+- `pg_stat_statements` must be used for query evidence
+- Supabase Performance Advisor must be reviewed
+- EXPLAIN protocol must be followed (see plan doc 05)
+- Migration parity must be verified before shared-link table indexing
+- No speculative index bloat — every index must be evidence-backed
+
+### Dependencies
+- Migration parity check (CODEX-P0-DBIDX-002) — shared-link tables may not exist in live schema
+- Staging environment with representative seed data (CODEX-P0-DBIDX-003)
