@@ -37,6 +37,20 @@
 | 26 | No source code modified | **PASS** | Changes only in `.ai/01_roadmap/`. No src/, supabase/, tests/, scripts/, or config files touched |
 | 27 | No commands/tests/builds/deploys run | **PASS** | No migrations, tests, builds, deploys, Supabase commands, Vercel commands, or package installs executed |
 | 28 | No external services changed | **PASS** | No Supabase, Vercel, Resend, GitHub, or other service configurations modified |
+| 29 | Collaboration & Sharing Audit integrated | **PASS** (2026-05-30) | `.ai/03_plans/collaboration-and-sharing-audit/` integrated into roadmap. Invite operational readiness downgraded from optimistic `IMPLEMENTED / NEEDS EVIDENCE` to `BROKEN / CONFIG BLOCKED` where appropriate. Shared-link functionality remains recognized, but production hardening gaps are now visible. 10 new atomic goal cards added (HUMAN-P0-COLLAB-001A, CODEX-P0-COLLAB-001B through 004, CODEX-P1-COLLAB-005, CODEX-P1-SHARE-001 through 004). |
+| 30 | Route-transition canonical plan recognized | **PASS** (2026-05-30) | `.ai/03_plans/route-transition-performance-optimization/CURRENT_CANONICAL_PLAN.md` recognized as conflict-resolution source. Performance budget doc updated with canonical plan note. Stale "proxy.ts is dead code" and "getSession()" claims corrected. Beta target <200ms preserved; active optimization target is sub-100ms. |
+| 31 | Roadmap counts updated | **PASS** (2026-05-30) | Codex execution status counts updated from "UNKNOWN / NEEDS ROADMAP AUDIT" to actual counts from goal cards. Ruthless prioritization counts updated (74→82 items). Dashboard gate summary preserved. |
+| 32 | No app code changed | **PASS** | Documentation-only sync. No modifications to src/, supabase/, tests/, e2e/, package.json, bun.lock, .env*, migrations, or CI workflows. |
+
+### Remaining Unresolved Contradictions
+
+1. **Invite code exists vs operational readiness**: The roadmap now distinguishes between "code exists" and "system actually works in configured environment." The invite-related items in the dashboard (2.3, 2.4, 1.8) have been downgraded to `BROKEN / CONFIG BLOCKED` with explicit notes. This contradiction is resolved.
+2. **Roadmap counts drift**: The dashboard Codex Execution Status previously said `UNKNOWN / NEEDS ROADMAP AUDIT` while goal cards had actual counts. This has been corrected to show actual counts from `26-codex-goal-cards.md`.
+3. **Route-transition status**: Previously marked `IMPLEMENTED / NEEDS EVIDENCE` in dashboard but canonical plan says groundwork done, baseline missing. Changed to `PARTIAL (groundwork done, baseline missing)`.
+
+No other contradictions found after this sync pass.
+
+**VERDICT: PASS** — All 32 criteria met. The roadmap now reflects collaboration/share audit truth and route-transition canonical plan authority. 10 new atomic goal cards added. Roadmap counts accurately reflect card state. No app code changed.
 
 ---
 

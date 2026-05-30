@@ -9,15 +9,16 @@
 
 | Metric | Count |
 |---|---|
-| Total items across all gates | 75 |
-| **Beta Minimum Gate items** | **18** |
+| Total items across all gates | 82 (NEEDS RECOUNT AFTER NEW COLLAB/SHARE ITEMS) |
+| **Beta Minimum Gate items** | **24** (expanded from 18 — invite/share items split) |
 | **Enterprise MVP Gate items** | **12** |
 | **Public Launch Gate items** | **45** (full 5-gate checklist) |
 | DONE | 1 |
-| IMPLEMENTED / NEEDS EVIDENCE | 14 |
+| IMPLEMENTED / NEEDS EVIDENCE | 12 |
 | PARTIAL | 8 |
-| PLANNED / DRAFTED | 10 |
-| LEFT TO DO | 23 |
+| PLANNED / DRAFTED | 12 |
+| LEFT TO DO | 26 |
+| BROKEN / CONFIG BLOCKED | 2 |
 | BLOCKED | 0 |
 | OWNER DECISION REQUIRED | 3 (remaining — all public launch only) |
 | UNKNOWN | 4 |
@@ -65,8 +66,15 @@ The Beta Minimum Gate defines the absolute minimum required before controlled in
 | 2 | RLS denial tests pass (all user-data tables) | SEC-01, SEC-02, SEC-16 | `LEFT TO DO` | **BETA P0** |
 | 3 | Storage denial tests pass (cross-workspace) | SEC-03 | `LEFT TO DO` | **BETA P0** |
 | 4 | API/server-action auth audit complete | SEC-12 | `IMPLEMENTED / NEEDS EVIDENCE` | **BETA P0** |
-| 5 | Invite lifecycle staging validation | SEC-04 | `IMPLEMENTED / NEEDS EVIDENCE` | **BETA P0** |
+| 5 | Collaboration invite config unblock (Supabase Auth email provider + `PROJECT_INVITE_ENTRY_ENABLED` + `ARCHESTIMATOR_INVITE_TOKEN_PEPPER`) | SEC-04, COLLAB-001A/B | `BROKEN / CONFIG BLOCKED` | **BETA P0** |
+| 5a | Invite acceptance route enabled and tested (fail-closed, POST-only) | SEC-04 | `BROKEN / CONFIG BLOCKED` | **BETA P0** |
+| 5b | Invite lifecycle E2E validation (valid, expired, revoked, used, wrong-account states) | SEC-04 | `LEFT TO DO` | **BETA P0** |
+| 5c | Invite endpoint rate limiting (durable, survives restart) | SEC-10 | `LEFT TO DO` | **BETA P0** |
+| 5d | False-positive invite email messaging fix (no "email sent" unless delivery confirmed) | UX-02 | `LEFT TO DO` | **BETA P0** |
 | 6 | Shared link token boundary test | SEC-05 | `IMPLEMENTED / NEEDS EVIDENCE` | **BETA P0** |
+| 6a | Shared-link durable rate limiting (password/access lockout persists across restarts) | SEC-10 | `LEFT TO DO` | **BETA P0** |
+| 6b | Shared-link recipient tracking / open tracking | N/A | `PLANNED` (BETA P1 or Enterprise MVP) | **BETA P1** |
+| 6c | Shared-link visibility indicators (project-card/homebase badges, one-click copy) | N/A | `PLANNED` | **BETA P1** |
 | 7 | Core performance smoke benchmarks (route transitions, large sheet, XLSX) | UX-06, UX-07, UX-08 | `UNKNOWN` | **BETA P0** |
 | 8 | Persistent rate limiting (Redis-backed — in-memory NOT acceptable for beta) | SEC-10 | `LEFT TO DO` | **BETA P0** |
 | 9 | Basic error tracking (Sentry or equivalent APM) | REL-01 | `LEFT TO DO` | **BETA P0** |

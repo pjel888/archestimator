@@ -32,6 +32,8 @@ Evidence artifacts are classified by category for filtering and prioritization:
 | `performance-evidence` | Lighthouse reports, bundle analyzer, performance traces, instrumentation latency checks | BETA-P0-PERF-*, ENTERPRISE-P1-PROD-* cards |
 | `legal-evidence` | Published legal pages, subprocessor lists, DSAR workflow evidence | PUBLIC-P0-LEGAL-* cards |
 | `ops-evidence` | Sentry dashboards, support runbook drills, rollback drill notes, rate limiting proof | BETA-P0-OBS-001, BETA-P0-SEC-005, BETA-P0-OPS-001 |
+| `collaboration-evidence` | Invite config proof, env var inventory, POST-only accept proof, lifecycle E2E, visibility signifiers | HUMAN-P0-COLLAB-001A, CODEX-P0-COLLAB-*, CODEX-P1-COLLAB-* |
+| `sharing-evidence` | Shared-link visibility badges, recipient tracking, digest sender fix, destructive confirmation | CODEX-P1-SHARE-* |
 
 ## Evidence Types
 
@@ -149,5 +151,15 @@ bun run test tests/integration/rls-isolation.test.ts > .ai/09_archive/store/YYYY
 | PUBLIC-P0-LEGAL-001 | No | No | public-launch-evidence, legal-evidence | BLOCKED |
 | POST-BETA-PROD-001 | No | No | public-launch-evidence | PLANNED |
 | POST-BETA-MOBILE-001 | No | No | public-launch-evidence | PLANNED |
+| HUMAN-P0-COLLAB-001A | No | No | beta-evidence | BLOCKED — human external setup |
+| CODEX-P0-COLLAB-001B | No | No | beta-evidence | BLOCKED |
+| CODEX-P0-COLLAB-002 | No | No | security-evidence | BLOCKED |
+| CODEX-P0-COLLAB-003 | No | No | beta-evidence | BLOCKED — after external setup |
+| CODEX-P0-COLLAB-004 | No | No | beta-evidence | BLOCKED |
+| CODEX-P1-COLLAB-005 | No | No | user-research-evidence | PLANNED |
+| CODEX-P1-SHARE-001 | No | No | user-research-evidence | PLANNED |
+| CODEX-P1-SHARE-002 | No | No | user-research-evidence | PLANNED |
+| CODEX-P1-SHARE-003 | No | No | user-research-evidence | PLANNED |
+| CODEX-P1-SHARE-004 | No | No | user-research-evidence | PLANNED |
 
-**Total evidence artifacts produced: 0 of 26** — All blocked pending Wave 0 owner decisions.
+**Total evidence artifacts produced: 0 of 37** — All blocked pending Wave 0 owner decisions.

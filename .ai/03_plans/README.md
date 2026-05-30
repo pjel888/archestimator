@@ -15,11 +15,12 @@ Current planning baseline:
 - The deleted full prototype remains superseded.
 - Future work must be route-scoped, screen-scoped, and easy to delete if Philip rejects it.
 
-Active/current plan:
+Active/current plans:
 
 - `.ai/03_plans/landing-page-improvement/` — active public `/` landing-page improvement plan; replaces the archived Intercom/v4 broad plan and starts from current source inventory. Current pass locks the accepted hero, preserves the placeholder-safe full-width light company carousel immediately after the hero, keeps Lenis landing-only smooth scrolling, focuses remaining content with Tailwind containers, uses brand-source synthesis, and now adds Kimi K2.6 frontend-design delegation plus functional-tabs/IntersectionObserver readiness planning with no new animation packages.
-- `.ai/03_plans/route-transition-performance-optimization/` — active pre-implementation planning pack for comprehensive route transition performance. Includes performance audit (23 routes, 6 bottleneck categories), blast radius analysis (11 techniques, risk-scored), readiness assessment (3 blocking items), phased implementation plan (4 phases, 20+ tasks), benchmark scenarios (7 categories, 30+ test cases), and strategy ADRs (8 architectural decisions). Target: sub-100ms cold transitions, zero perceived lag, loading overlay relegated to safety net.
+- `.ai/03_plans/route-transition-performance-optimization/` — active pre-implementation planning pack. **Implementers must read `CURRENT_CANONICAL_PLAN.md` first** — it supersedes conflicting legacy numbered docs. Includes performance audit (23 routes, 6 bottleneck categories), blast radius analysis, readiness assessment, implementation handoff, and benchmark protocols. Groundwork phase complete; remaining phases (prefetch wiring, code splitting, Suspense/error boundaries, proxy optimization) are planned. Target: sub-100ms cold transitions, zero perceived lag, loading overlay relegated to safety net.
 - `.ai/03_plans/ai-chatbot-agent-readiness/` — active chatbot planning and context pack for local /api/ai/ask and /api/ai/package-builder routes.
+- `.ai/03_plans/collaboration-and-sharing-audit/` — active collaboration & sharing audit pack. **Analysis complete, implementation not started.** Collaboration Invites: non-functional / config-blocked (Supabase Auth email not configured, `PROJECT_INVITE_ENTRY_ENABLED` and `ARCHESTIMATOR_INVITE_TOKEN_PEPPER` missing, old auto-grant RPC deliberately disabled). Shared Link: functional end-to-end but below industry parity / production hardening incomplete. This plan includes: collaboration invite current inventory, shared-link current inventory, feature gap analyses, UX paths, prioritized roadmaps, security threat model, performance/observability plan, acceptance criteria, and Codex implementation prompts. Do NOT treat this plan as evidence of implementation.
 
 Archived closeout / superseded plans:
 
