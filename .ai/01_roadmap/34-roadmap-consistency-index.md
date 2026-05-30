@@ -37,8 +37,8 @@ Every file in `.ai/01_roadmap/` is classified into exactly one category. Canonic
 | `22-ruthless-prioritization-for-beta.md` | ACTIVE EXECUTION DOC | **YES** | Classifies every item into BETA P0 / P1 / ENTERPRISE MVP / PUBLIC LAUNCH / POST-MVP / DEFERRED | Gate definitions (see 01) | — | Canonical for priority lanes and item classification |
 | `23-codex-goal-execution-plan.md` | ACTIVE EXECUTION DOC | **YES** | Wave plan (0-8), sequencing, Codex execution rules, what Codex must/must not do | Goal card details (see 26) | — | Most important doc for Codex; start here |
 | `24-owner-decision-packet.md` | ACTIVE EXECUTION DOC | NO — reference only | Compressed reference of approved defaults for agents; maps decisions to unblocked goal cards | Full decision register (see 14), canonical defaults (see 29) | — | Compressed agent reference; 29 and 14 are canonical |
-| `25-active-workstreams.md` | ACTIVE EXECUTION DOC | NO — reference only | 7 workstreams organized by wave, status dashboard, dependencies, explicit out-of-scope items | Goal card details (see 26), wave plan (see 23) | — | Execution aid; derived from 23 and 26 |
-| `26-codex-goal-cards.md` | ACTIVE EXECUTION DOC | **YES** | 26 implementation-ready goal cards for Codex `/goal`; canonical card statuses and details | Wave sequencing (see 23), priority classification (see 22) | — | Canonical for goal cards; what Codex actually implements |
+| `25-active-workstreams.md` | ACTIVE EXECUTION DOC | NO — reference only | 8 workstreams organized by wave, status dashboard, dependencies, explicit out-of-scope items | Goal card details (see 26), wave plan (see 23) | — | Execution aid; derived from 23 and 26 |
+| `26-codex-goal-cards.md` | ACTIVE EXECUTION DOC | **YES** | 88 atomic goal cards + 15 EPIC headers for Codex `/goal`; canonical card statuses and details | Wave sequencing (see 23), priority classification (see 22) | — | Canonical for goal cards; what Codex actually implements |
 | `27-performance-budget-and-regression-gates.md` | ACTIVE EXECUTION DOC | **YES** | Global perf rules, Enterprise MVP stricter rules, three-tier budgets, regression gates | Performance domain detail (see 06) | — | Canonical for performance requirements on every goal |
 | `28-evidence-artifact-index.md` | ACTIVE EXECUTION DOC | **YES** | Where Codex saves evidence; directory structure, artifact categories, 26 per-card evidence mappings | What evidence is required (see 01 for acceptance criteria) | — | DONE requires evidence path; canonical for evidence storage |
 | `29-enterprise-mvp-scope-and-owner-defaults.md` | ACTIVE EXECUTION DOC | **YES** | 21 approved owner defaults, 4-layer launch model, controlled beta/enterprise MVP/public launch scope boundaries | Full decision register (see 14 for complete register), compressed reference (see 24) | — | Canonical for owner defaults and launch layer model |
@@ -163,7 +163,7 @@ If a roadmap file says `proxy.ts` is dead code, recommends `getSession()` in mid
 
 ## 7. Where Each Goal Card Lives
 
-All 26 goal cards are in `26-codex-goal-cards.md`. Status summary in `00-production-readiness-dashboard.md`. Execution plan in `23-codex-goal-execution-plan.md`. Workstream organization in `25-active-workstreams.md`.
+All canonical goal cards and EPIC headers live in `26-codex-goal-cards.md`; use that file for exact current counts and readiness status. Status summary in `00-production-readiness-dashboard.md`. Execution plan in `23-codex-goal-execution-plan.md`. Workstream organization in `25-active-workstreams.md`.
 
 ## 8. Where Evidence Lives
 

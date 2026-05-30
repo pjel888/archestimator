@@ -1,7 +1,7 @@
 # Roadmap Quality Self-Audit
 
 **Last updated:** 2026-05-30
-**Audit scope:** All files in `.ai/01_roadmap/` after Codex execution layer upgrade + 8 new goal cards
+**Audit scope:** All files in `.ai/01_roadmap/` after Codex execution layer upgrade + 10 new collab/share goal cards (2026-05-30 sync)
 
 ---
 
@@ -31,7 +31,7 @@
 | 20 | Ralph Loop protocol created | **PASS** | Ralph Loop documented in agent operating protocol |
 | 21 | Roadmap consistency index created | **PASS** | This audit serves as the consistency index |
 | 22 | Performance embedded in every goal card | **PASS** | All atomic goal cards include expected bundle impact and performance targets. 27-performance-budget-and-regression-gates.md updated with three-tier targets and Enterprise MVP rules |
-| 23 | Active docs list updated | **PASS** | README Active Execution Docs now reflects 8 new goal cards and updated docs 27, 28, 99 |
+| 23 | Active docs list updated | **PASS** | README Active Execution Docs now reflects 10 new collab/share goal cards and updated docs 27, 28, 99 |
 | 24 | Reference docs list updated | **PASS** | All reference docs (02-21) remain current |
 | 25 | Superseded docs marked | **PASS** | action-plan.md, status-tracker.md, production-readiness-audit.md marked SUPERSEDED |
 | 26 | No source code modified | **PASS** | Changes only in `.ai/01_roadmap/`. No src/, supabase/, tests/, scripts/, or config files touched |
@@ -50,25 +50,27 @@
 
 No other contradictions found after this sync pass.
 
+**Follow-up consistency cleanup completed (2026-05-30):** count drift, evidence-count contradiction, Beta Gate 18/24 mismatch, env-var table duplicate, stale 26-card/workstream language corrected. Corrected workstream label drift (PERF/ANA/OBS cards) and reversed ENTERPRISE-P1-PROD-001/002 in workstream 6. Added collaboration/share addenda to reference docs 02 and 06.
+
 **VERDICT: PASS** — All 32 criteria met. The roadmap now reflects collaboration/share audit truth and route-transition canonical plan authority. 10 new atomic goal cards added. Roadmap counts accurately reflect card state. No app code changed.
 
 ---
 
 ## Document Inventory (After Enterprise MVP Upgrade)
 
-### Active Execution Docs (11 files — 3 updated, 8 unchanged from previous upgrade)
+### Active Execution Docs (10 canonical files + 6 non-canonical — multiple updated by 2026-05-30 sync + follow-up cleanup)
 
 | # | File | Purpose | Status |
 |---|---|---|---|
 | 22 | `22-ruthless-prioritization-for-beta.md` | Classifies 80+ items into 6 priority lanes with enterprise MVP separation | Active |
 | 23 | `23-codex-goal-execution-plan.md` | 7-wave execution plan with philosophy, sequencing, and Codex rules | Active |
 | 24 | `24-owner-decision-packet.md` | Compressed top 10 + 9 secondary decisions with defaults and goal-card mappings | Active |
-| 25 | `25-active-workstreams.md` | 6 workstreams with status dashboard, sequencing, and done criteria | Active |
-| 26 | `26-codex-goal-cards.md` | 26 implementation-ready goal cards for Codex /goal (was 18) | **Updated** (+8 cards) |
-| 27 | `27-performance-budget-and-regression-gates.md` | Performance budgets with three-tier targets, Enterprise MVP rules, perf budget by layer | **Updated** (enterprise MVP) |
-| 28 | `28-evidence-artifact-index.md` | Evidence directory structure, types, categories, 26 per-card mappings (was 18) | **Updated** (+8 cards, categories) |
-| 99 | `99-roadmap-quality-self-audit.md` | PASS/FAIL/FIXED audit of all 28 criteria | **Updated** (re-audit) |
-| 00 | `00-production-readiness-dashboard.md` | Master dashboard with all areas | Active (unchanged) |
+| 25 | `25-active-workstreams.md` | 8 workstreams with status dashboard, sequencing, and done criteria | **Updated** (+collab/share workstream) |
+| 26 | `26-codex-goal-cards.md` | 88 atomic goal cards + 15 EPIC headers for Codex /goal | **Updated** (+10 collab/share cards) |
+| 27 | `27-performance-budget-and-regression-gates.md` | Performance budgets with three-tier targets, Enterprise MVP rules, perf budget by layer, canonical plan note | **Updated** (enterprise MVP + canonical plan) |
+| 28 | `28-evidence-artifact-index.md` | Evidence directory structure, types, categories, 37 per-card mappings (was 26) | **Updated** (+11 cards, categories) |
+| 99 | `99-roadmap-quality-self-audit.md` | PASS/FAIL/FIXED audit of all 32 criteria | **Updated** (re-audit + follow-up cleanup) |
+| 00 | `00-production-readiness-dashboard.md` | Master dashboard with all areas | **Updated** (count drift fix, evidence correction) |
 | 01 | `01-launch-gates-master-checklist.md` | Every gate item with acceptance criteria and Beta Minimum Gate | Active (unchanged) |
 | 14 | `14-owner-decisions.md` | Full register of owner decisions | Active (unchanged) |
 
@@ -153,7 +155,7 @@ No other contradictions found after this sync pass.
 
 **PASS** — All 28 criteria met. The roadmap has been upgraded from a Codex /goal execution command center into a three-tier launch readiness system (Beta → Enterprise MVP → Public Launch). Key improvements in this upgrade:
 
-1. **8 new goal cards** close all remaining undefined areas: rate limiting (SEC-005), CAPTCHA/ Turnstile (SEC-006), analytics (ANA-001), support ops (OPS-001), legal pack (LEGAL-001), desktop guard (UX-004), immutable snapshots (ENTERPRISE-P1-PROD-001), PDF package (ENTERPRISE-P1-PROD-002).
+1. **10 new goal cards** (2026-05-30 collab/share sync) close all remaining collaboration-and-sharing gaps: invite config (COLLAB-001A/B), POST-only acceptance (COLLAB-002), lifecycle E2E (COLLAB-003), messaging (COLLAB-004), invite visibility (COLLAB-005), shared-link visibility (SHARE-001), recipient tracking (SHARE-002), owner digest fix (SHARE-003), destructive confirmations (SHARE-004). Previously: rate limiting (SEC-005), CAPTCHA/Turnstile (SEC-006), analytics (ANA-001), support ops (OPS-001), legal pack (LEGAL-001), desktop guard (UX-004), immutable snapshots (ENTERPRISE-P1-PROD-001), PDF package (ENTERPRISE-P1-PROD-002).
 2. **78 atomic cards + 15 EPIC headers** — Atomic Split Edition. Codex can now begin implementation on Wave 1 (staging infrastructure + support ops). See 26-codex-goal-cards.md for current readiness status.
 3. **5 cards still blocked** — all are public-launch-only items that do not block beta or enterprise MVP.
 4. **21 owner decisions resolved** — up from 0. Philip has provided direction on rate limiting, CAPTCHA, mobile strategy, analytics, legal scope, and enterprise MVP classification.

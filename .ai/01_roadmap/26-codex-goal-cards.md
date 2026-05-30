@@ -1,15 +1,17 @@
 # Codex /goal Cards — Atomic Split Edition
 
 **Last updated:** 2026-05-30
-**Total cards:** 78 (plus 15 EPIC headers — non-executable) + 10 new collab/share cards (2026-05-30 sync)
-**Ready for Codex:** 60 (50 existing + 10 new collab/share)
-**Blocked by external setup:** 5
-**Blocked by staging target:** 11
-**Blocked by sentry choice:** 2
-**Blocked by design partner list:** 1
-**Blocked by owner decisions (public-launch only):** 2
-**Planned:** 6
-**Evidence-backed DONE:** 1
+**Total atomic executable cards:** 88 (78 original + 10 new collab/share from 2026-05-30 sync)
+**EPIC headers / non-executable reference nodes:** 15
+**Ready for Codex (immediately):** 58
+**Ready for Codex after external setup:** 12 (staging-dependent 11 + COLLAB-003)
+**Ready for Codex after sentry/dependencies:** 4 (sentry choice 1 + DSN 1 + sentry integration 1 + design partner list 1)
+**Ready for human external setup:** 3 (INF-001A, INF-001B, COLLAB-001A)
+**Planned / enterprise MVP:** 6
+**Public launch / legal blocked:** 2
+**Post-MVP / deferred:** 2
+**Decision-coded DONE:** 1 (BETA-P0-DEC-001)
+**Evidence artifacts produced:** 0
 
 ## Atomic Goal-Card Standard
 

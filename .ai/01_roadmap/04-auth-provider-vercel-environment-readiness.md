@@ -145,9 +145,7 @@ Note: The publication secrets have dual naming (`PUBLICATION_*` and `ARCHESTIMAT
 | `PROJECT_INVITE_ENTRY_ENABLED` | Enables custom `/invite/[token]` entry/acceptance path | Missing or not verified | **Required** | **Required** |
 | `ARCHESTIMATOR_INVITE_TOKEN_PEPPER` | Pepper/hash secret for app-owned invite token lookup/lifecycle | Missing or not verified | **Required** | **Required** |
 
-> **⚠️ CRITICAL:** Collaboration invites are currently **non-functional / config-blocked**. The `/invite/[token]` acceptance path is disabled because `PROJECT_INVITE_ENTRY_ENABLED` is not set and `ARCHESTIMATOR_INVITE_TOKEN_PEPPER` is not configured. Additionally, Supabase Auth email/SMTP provider must be configured for invite delivery. This is distinct from Resend shared-link email — collaboration invites rely on Supabase Auth email/invite behavior. See `.ai/03_plans/collaboration-and-sharing-audit/` for full audit.
-
-| `ARCHESTIMATOR_E2E_INVITE_ENTRY` | Enables collaboration invite E2E tests | Optional | Optional | Not applicable |
+> **⚠️ CRITICAL:** Collaboration invites are currently **non-functional / config-blocked**. The `/invite/[token]` acceptance path is disabled because `PROJECT_INVITE_ENTRY_ENABLED` is not set and `ARCHESTIMATOR_INVITE_TOKEN_PEPPER` is not configured. Additionally, Supabase Auth email/SMTP provider must be configured for invite delivery (a provider-dashboard task, not an env var). This is distinct from Resend shared-link email — collaboration invites rely on Supabase Auth email/invite behavior unless future implementation changes that. See `.ai/03_plans/collaboration-and-sharing-audit/` for full audit.
 
 ### E2E testing flags
 
@@ -169,9 +167,9 @@ Note: The publication secrets have dual naming (`PUBLICATION_*` and `ARCHESTIMAT
 
 | Environment | Variables Present | Missing / Required |
 |---|---|---|
-| Local | Supabase (all), Resend API key, DeepSeek API key, dev auth email | Publication secrets (not enforced in dev), AI_PACKAGE_BUILDER_DRAFT_SIGNING_SECRET (uses fallback) |
-| Staging | None provisioned | All variables must be provisioned with staging-specific values |
-| Production | None provisioned | All variables must be provisioned with production-specific values; publication secrets are **required** (throws on startup if missing) |
+| Local | Supabase (all), Resend API key, DeepSeek API key, dev auth email | Publication secrets (not enforced in dev), AI_PACKAGE_BUILDER_DRAFT_SIGNING_SECRET (uses fallback), invite env vars (`PROJECT_INVITE_ENTRY_ENABLED`, `ARCHESTIMATOR_INVITE_TOKEN_PEPPER`) missing or not verified |
+| Staging | None provisioned | All variables must be provisioned with staging-specific values, including invite env vars required for collaboration invite testing |
+| Production | None provisioned | All variables must be provisioned with production-specific values; publication secrets are **required** (throws on startup if missing), invite env vars are **required** for invite functionality |
 
 ### Action items
 

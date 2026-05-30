@@ -145,3 +145,19 @@ Every cell marked `NO BENCHMARKS` or `UNKNOWN` is a known evidence gap. These ar
 10. **Verify Supabase backups and enable PITR** — data recovery prerequisite.
 11. **Run performance benchmarks** on all budget targets in Section 1 — converts UNKNOWN cells to measured evidence.
 12. **Configure log aggregation** — structured logging with correlation IDs shipped to a centralized service.
+
+---
+
+## Collaboration & Sharing Audit Integration Note — 2026-05-30
+
+This document is a reference domain deep-dive. For detailed, current collaboration/share performance and observability truth, consult `.ai/03_plans/collaboration-and-sharing-audit/` — specifically `06-performance-and-observability-plan.md`. Key audit findings relevant to this domain:
+
+- **Persistent rate limiter store required** — invite and shared-link rate limiting must use durable storage (Redis/Upstash), not in-memory. Restart-surviving lockout is a beta requirement.
+- **Invite/share abuse metrics** — monitor invite acceptance spikes, shared-link password brute-force attempts, and magic-link creation velocity
+- **Invite acceptance latency target** — acceptance and redirect cycle should complete within 500ms; measure end-to-end
+- **Shared-link open/comment/decision observability** — per-recipient tracking, activity feed completeness, and event audit gaps need measurement baselines
+- **Email delivery observability** — both Supabase Auth invite emails and Resend shared-link emails need delivery/failure monitoring
+- **Alerting thresholds for invite/share abuse** — define p95 latency and error-rate thresholds for invite acceptance, shared-link access, and password-gate lockout events
+- **Audit/event visibility gaps** — collaboration_invitations table has lifecycle events but not all state transitions are recorded as audit events; shared-link events are partial
+
+See goal cards BETA-P0-SEC-005 (persistent rate limiting), CODEX-P0-COLLAB-003 (invite lifecycle E2E), CODEX-P1-SHARE-002 (recipient tracking), and the 06-performance-and-observability-plan in the audit pack for detailed recommendations including 15 recommended indexes, 14 observability metrics, and 7 alerting thresholds.

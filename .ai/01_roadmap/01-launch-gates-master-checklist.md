@@ -9,7 +9,7 @@
 
 | Metric | Count |
 |---|---|
-| Total items across all gates | 82 (NEEDS RECOUNT AFTER NEW COLLAB/SHARE ITEMS) |
+| Total items across all gates | 88 (recounted 2026-05-30 — includes 6 new collab/share sub-gates) |
 | **Beta Minimum Gate items** | **24** (expanded from 18 — invite/share items split) |
 | **Enterprise MVP Gate items** | **12** |
 | **Public Launch Gate items** | **45** (full 5-gate checklist) |
@@ -55,7 +55,7 @@
 
 The Beta Minimum Gate defines the absolute minimum required before controlled invite-only beta with 5–8 design partners. Everything else is ENTERPRISE MVP (P1) or PUBLIC LAUNCH.
 
-**Gate status:** `0 of 18 DONE — PRE-IMPLEMENTATION`
+**Gate status:** `0 of 24 DONE — PRE-IMPLEMENTATION` (24 numbered items including sub-gates 5a–5d and 6a–6c)
 **Owner decisions resolved:** All 21 gate-blocking decisions decided 2026-05-30.
 
 ### Beta Minimum Checklist
@@ -90,7 +90,7 @@ The Beta Minimum Gate defines the absolute minimum required before controlled in
 
 ### Beta Minimum Gate Acceptance Criteria
 
-- All 18 items above marked `DONE` with evidence
+- All 24 Beta Minimum Gate items (including sub-gates) marked `DONE` with evidence
 - 4 critical runbooks templated (auth outage, data leak, bad deploy, invite failure)
 - Philip signs beta approval (go decision)
 - Risk acceptance register signed for all BETA P1 items
