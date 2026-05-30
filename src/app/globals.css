@@ -69,9 +69,6 @@
   --color-proposal-paper: var(--proposal-paper);
   --color-proposalPaper: var(--proposal-paper);
   --font-sans: var(--font-sf-pro);
-  --font-poppins: var(--font-poppins);
-  --font-mono: var(--font-roboto-mono);
-  --font-serif: var(--font-source-serif);
   --radius-xs: var(--radius-xs);
 }
 
@@ -87,8 +84,13 @@ body {
   font-feature-settings: "kern";
 }
 
-body:has([data-landing-page-root="true"]) {
-  font-family: var(--font-inter), Arial, Helvetica, sans-serif;
+@layer base {
+  button,
+  input,
+  select,
+  textarea {
+    font: inherit;
+  }
 }
 
 /* Sleek thin scrollbars — global default */
@@ -113,166 +115,4 @@ body:has([data-landing-page-root="true"]) {
 html {
   scrollbar-width: thin;
   scrollbar-color: var(--divider) transparent;
-}
-
-html:has([data-workshop-page-shell-root]),
-body:has([data-workshop-page-shell-root]) {
-  height: 100%;
-  overflow: hidden;
-}
-
-@layer base {
-  button,
-  input,
-  select,
-  textarea {
-    font: inherit;
-  }
-}
-
-
-.halftone-panel {
-  position: relative;
-  isolation: isolate;
-}
-
-.halftone-panel::before,
-.halftone-panel::after {
-  content: "✱";
-  position: absolute;
-  z-index: 2;
-  color: var(--primary);
-  font-size: 12px;
-  line-height: 1;
-  font-weight: 700;
-}
-
-.halftone-panel::before {
-  top: 14px;
-  left: 14px;
-}
-
-.halftone-panel::after {
-  right: 14px;
-  bottom: 14px;
-}
-
-.halftone-field {
-  background-image: radial-gradient(currentColor 1px, transparent 1.25px);
-  background-size: 10px 10px;
-  color: color-mix(in srgb, var(--primary) 36%, transparent);
-}
-
-.arch-sketch-line {
-  stroke: currentColor;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-  fill: none;
-}
-
-@keyframes landing-company-marquee {
-  from {
-    transform: translate3d(0, 0, 0);
-  }
-  to {
-    transform: translate3d(calc(-50% - var(--landing-company-marquee-gap) / 2), 0, 0);
-  }
-}
-
-.landing-company-marquee {
-  --landing-company-marquee-gap: 3rem; /* matches gap-12 */
-  animation: landing-company-marquee 68s linear infinite;
-  will-change: transform;
-}
-
-@media (min-width: 64rem) {
-  .landing-company-marquee {
-    --landing-company-marquee-gap: 4rem; /* matches lg:gap-16 */
-  }
-}
-
-.landing-company-carousel-viewport:hover .landing-company-marquee,
-.landing-company-carousel-viewport:focus-within .landing-company-marquee {
-  animation-play-state: paused;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .landing-company-carousel-viewport {
-    overflow-x: auto;
-  }
-
-  .landing-company-marquee {
-    width: max-content;
-    animation: none;
-    transform: none;
-    will-change: auto;
-  }
-
-  .landing-company-marquee > [aria-hidden="true"] {
-    display: none;
-  }
-}
-
-@media (min-width: 64rem) {
-  html:has([data-landing-page-root="true"]),
-  body:has([data-landing-page-root="true"]) {
-    scroll-padding-top: 68px;
-    scroll-snap-type: none;
-  }
-
-  html:has([data-landing-page-root="true"]) [data-landing-page-root="true"] > :first-child,
-  [data-landing-snap-section="true"] {
-    scroll-margin-top: 68px;
-    scroll-snap-align: none;
-    scroll-snap-stop: normal;
-  }
-}
-
-@media (min-width: 64rem) and (prefers-reduced-motion: reduce) {
-  html:has([data-landing-page-root="true"]),
-  body:has([data-landing-page-root="true"]) {
-    scroll-snap-type: none;
-  }
-
-  html:has([data-landing-page-root="true"]) [data-landing-page-root="true"] > :first-child,
-  [data-landing-snap-section="true"] {
-    scroll-snap-align: none;
-    scroll-snap-stop: normal;
-  }
-}
-
-/* MotionReveal: no-JS safe, reduced-motion safe */
-[data-motion-reveal="idle"] {
-  opacity: 1;
-  transform: none;
-}
-
-[data-motion-reveal="active"] {
-  opacity: 0;
-  transform: translateY(1rem);
-  transition: opacity 700ms ease-out, transform 700ms ease-out;
-}
-
-[data-motion-reveal="revealed"] {
-  opacity: 1;
-  transform: translateY(0);
-  transition: opacity 700ms ease-out, transform 700ms ease-out;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  [data-motion-reveal] {
-    opacity: 1 !important;
-    transform: none !important;
-    transition: none !important;
-  }
-}
-
-/* Hide number input spinners for cleaner centered alignment */
-input[type="number"]::-webkit-outer-spin-button,
-input[type="number"]::-webkit-inner-spin-button {
-  -webkit-appearance: none;
-  margin: 0;
-}
-input[type="number"] {
-  -moz-appearance: textfield;
 }
