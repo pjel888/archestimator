@@ -1,3 +1,5 @@
+import { cache } from "react";
+
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { readFirstAccountWorkspaceMembership } from "@/lib/auth/account-membership";
 import type { EstimateRowItem, EstimateTreeNode } from "@/lib/estimates/types";
@@ -632,7 +634,7 @@ export async function getWorkshopHomebaseData(): Promise<WorkshopHomebaseData> {
   };
 }
 
-export async function getCurrentWorkspaceProject(projectId: string) {
+export const getCurrentWorkspaceProject = cache(async function getCurrentWorkspaceProject(projectId: string) {
   const { workspace: defaultWorkspace } = await ensureDefaultWorkspace();
 
   if (!isUuid(projectId)) return { workspace: defaultWorkspace, project: null };
@@ -658,7 +660,7 @@ export async function getCurrentWorkspaceProject(projectId: string) {
 
   if (workspaceError) throw workspaceError;
   return { workspace: projectWorkspace ?? defaultWorkspace, project };
-}
+});
 
 export async function getProjectCollaborationSummary(projectId: string): Promise<ProjectCollaborationSummary | null> {
   const { profile } = await ensureDefaultWorkspace();

@@ -9,16 +9,23 @@ type SidebarNavItemProps = {
   item: SidebarNavItem & { icon: PhosphorIcon };
   active: boolean;
   expanded: boolean;
+  onPrefetchStart?: (href: string) => void;
+  onPrefetchCancel?: (href: string) => void;
 };
 
-export function SidebarNavItemRow({ item, active, expanded }: SidebarNavItemProps) {
+export function SidebarNavItemRow({ item, active, expanded, onPrefetchStart, onPrefetchCancel }: SidebarNavItemProps) {
   const Icon = item.icon;
 
   return (
     <Link
       href={item.href}
+      prefetch={false}
       aria-current={active ? "page" : undefined}
       aria-label={expanded ? undefined : item.label}
+      onBlur={() => onPrefetchCancel?.(item.href)}
+      onFocus={() => onPrefetchStart?.(item.href)}
+      onMouseEnter={() => onPrefetchStart?.(item.href)}
+      onMouseLeave={() => onPrefetchCancel?.(item.href)}
       className={[
         "group relative grid h-8 w-full grid-cols-[48px_minmax(0,1fr)] items-center gap-1 overflow-visible rounded-xs px-0 pr-2 outline-none transition-colors duration-[120ms] ease-out",
         "before:absolute before:left-1.5 before:top-[-2px] before:z-0 before:h-9 before:w-9 before:rounded-xs before:bg-accent-soft before:opacity-0 before:shadow-[inset_0_0_0_1px_rgba(255,122,26,0.12)] before:transition-opacity before:duration-[120ms] before:ease-out before:content-['']",

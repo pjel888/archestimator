@@ -2,8 +2,10 @@
 
 import Link from "next/link";
 import { useNavigationRouter } from "@/hooks/use-navigation-router";
+import { usePrefetchOnHover } from "@/hooks/use-prefetch-on-hover";
 import { useCallback, useEffect, useId, useMemo, useRef, useState, useTransition, type KeyboardEvent } from "react";
 import { ArrowSquareOut, CaretDown, CaretUp, CaretUpDown, ClockCounterClockwise, CopySimple, Trash } from "@phosphor-icons/react/dist/ssr";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   flexRender,
   getCoreRowModel,
@@ -17,7 +19,9 @@ import {
 } from "@tanstack/react-table";
 
 import { Button } from "@/components/ui/button";
-import { duplicateEstimateSheet, regenerateEstimateSheetCode, updateEstimateDetails } from "@/lib/estimates/actions";
+import { duplicateEstimateSheet, fetchEstimateTree, regenerateEstimateSheetCode, updateEstimateDetails } from "@/lib/estimates/actions";
+import { estimateQueryKeys } from "@/hooks/use-estimate-query";
+import { estimateRepository } from "@/lib/repositories/estimate-repository";
 import type { Tables } from "@/lib/supabase/types";
 import { cn } from "@/lib/ui/cn";
 
@@ -169,11 +173,21 @@ type ProjectEstimateRowActionsProps = {
   estimate: ProjectEstimateTableRow;
   isSelected: boolean;
   onDuplicateError: (message: string | null) => void;
+  onPrefetchCancel: (href: string) => void;
+  onPrefetchStart: (href: string) => void;
   onToggleSelected: (estimateId: string) => void;
   projectId: string;
 };
 
-function ProjectEstimateRowActions({ estimate, isSelected, onDuplicateError, onToggleSelected, projectId }: ProjectEstimateRowActionsProps) {
+function ProjectEstimateRowActions({
+  estimate,
+  isSelected,
+  onDuplicateError,
+  onPrefetchCancel,
+  onPrefetchStart,
+  onToggleSelected,
+  projectId,
+}: ProjectEstimateRowActionsProps) {
   const estimateHref = getEstimateHref(estimate);
   const router = useNavigationRouter();
   const [isDuplicating, setIsDuplicating] = useState(false);
@@ -225,6 +239,11 @@ function ProjectEstimateRowActions({ estimate, isSelected, onDuplicateError, onT
       </button>
       <Link
         href={estimateHref}
+        prefetch={false}
+        onBlur={() => onPrefetchCancel(estimateHref)}
+        onFocus={() => onPrefetchStart(estimateHref)}
+        onMouseEnter={() => onPrefetchStart(estimateHref)}
+        onMouseLeave={() => onPrefetchCancel(estimateHref)}
         className="grid size-6 place-items-center rounded-xs text-tertiary transition hover:bg-surface-muted hover:text-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
         aria-label={`Open ${estimate.name}`}
       >
@@ -595,11 +614,33 @@ ProjectEstimatesColumnResizeHandle.displayName = "ProjectEstimatesColumnResizeHa
 
 function ProjectEstimatesTableComponent({ estimates, projectId, emptyMessage = "No estimate sheets yet" }: ProjectEstimatesTableProps) {
   const router = useNavigationRouter();
+  const queryClient = useQueryClient();
   const columnWidthStorageKey = `${COLUMN_WIDTH_STORAGE_KEY_PREFIX}:${projectId}`;
   const [sorting, setSorting] = useState<SortingState>([{ id: "updated_at", desc: true }]);
   const [columnSizing, setColumnSizing] = useState<ColumnSizingState>(() => readColumnSizingFromStorage(columnWidthStorageKey));
   const [selectedEstimateIds, setSelectedEstimateIds] = useState<Set<string>>(() => new Set());
   const [duplicateError, setDuplicateError] = useState<string | null>(null);
+  const prefetchRoutes = useMemo(
+    () =>
+      estimates.map((estimate) => ({
+        pathname: getEstimateHref(estimate),
+        queryClient,
+        queries: [
+          {
+            queryKey: estimateQueryKeys.detail(estimate.id),
+            queryFn: () => estimateRepository.getEstimateTree(estimate.id),
+            staleTime: 5 * 60_000,
+          },
+          {
+            queryKey: estimateQueryKeys.areaTree(estimate.id),
+            queryFn: () => fetchEstimateTree({ projectId, estimateId: estimate.id }),
+            staleTime: 5 * 60_000,
+          },
+        ],
+      })),
+    [estimates, projectId, queryClient],
+  );
+  const { prefetch: prefetchEstimateRoute, cancel: cancelEstimateRoute } = usePrefetchOnHover(prefetchRoutes);
 
   useEffect(() => {
     setColumnSizing(readColumnSizingFromStorage(columnWidthStorageKey));
@@ -636,6 +677,8 @@ function ProjectEstimatesTableComponent({ estimates, projectId, emptyMessage = "
               estimate={estimate}
               isSelected={selectedEstimateIds.has(estimate.id)}
               onDuplicateError={setDuplicateError}
+              onPrefetchCancel={cancelEstimateRoute}
+              onPrefetchStart={prefetchEstimateRoute}
               onToggleSelected={toggleEstimateSelection}
               projectId={projectId}
             />
@@ -741,7 +784,7 @@ function ProjectEstimatesTableComponent({ estimates, projectId, emptyMessage = "
         cell: ({ row }) => <span className="whitespace-nowrap font-medium text-tertiary">{formatDateTime(row.original.created_at)}</span>,
       },
     ],
-    [projectId, selectedEstimateIds, toggleEstimateSelection],
+    [cancelEstimateRoute, prefetchEstimateRoute, projectId, selectedEstimateIds, toggleEstimateSelection],
   );
 
   const table = useReactTable({

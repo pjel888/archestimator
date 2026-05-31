@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, FormEvent } from "react";
-import { EnvelopeOpen, Spinner } from "@phosphor-icons/react";
+import { EnvelopeOpen, Spinner } from "@phosphor-icons/react/dist/ssr";
 
 export function ContactForm() {
   const [name, setName] = useState("");

@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { arc, pie } from "d3";
+import { arc, pie } from "d3-shape";
 import type { PieArcDatum } from "d3-shape";
 
 import type { CostBucket } from "@/lib/charts/types";
@@ -30,6 +30,19 @@ type PieDatum = {
   color: string;
   share: number;
   rowCount: number;
+};
+
+type CalloutCandidate = {
+  id: string;
+  label: string;
+  percent: string;
+  value: string;
+  color: string;
+  outerX: number;
+  outerY: number;
+  labelX: number;
+  labelYBase: number;
+  y?: number;
 };
 
 // Base (full) dimensions — used by workshop charts and default receiver.
@@ -100,9 +113,10 @@ function getChartDims(compact: boolean): ChartDims {
 
 function formatCompactMoney(value: number, currencyCode: string): string {
   const abs = Math.abs(value);
-  if (abs >= 1_000_000) return `${(value / 1_000_000).toFixed(1)}M`;
-  if (abs >= 10_000) return `${Math.round(value / 1000)}k`;
-  return new Intl.NumberFormat(undefined, { maximumFractionDigits: 0 }).format(value);
+  const prefix = currencyCode === "PHP" ? "₱" : currencyCode === "USD" ? "$" : `${currencyCode} `;
+  if (abs >= 1_000_000) return `${prefix}${(value / 1_000_000).toFixed(1)}M`;
+  if (abs >= 10_000) return `${prefix}${Math.round(value / 1000)}k`;
+  return `${prefix}${new Intl.NumberFormat(undefined, { maximumFractionDigits: 0 }).format(value)}`;
 }
 
 function formatPercent(share: number): string {
@@ -116,7 +130,8 @@ function truncateLabel(text: string, max = 18): string {
 
 function buildCallouts(
   arcs: Array<{ datum: PieArcDatum<PieDatum>; path: string }>,
-  dims: ChartDims
+  dims: ChartDims,
+  currencyCode: string,
 ) {
   const {
     CENTER_X,
@@ -143,8 +158,8 @@ function buildCallouts(
     id: string;
   }> = [];
 
-  const left: any[] = [];
-  const right: any[] = [];
+  const left: CalloutCandidate[] = [];
+  const right: CalloutCandidate[] = [];
 
   arcs.forEach(({ datum }) => {
     const midAngle = (datum.startAngle + datum.endAngle) / 2;
@@ -160,7 +175,7 @@ function buildCallouts(
       id: datum.data.id,
       label: datum.data.label,
       percent: formatPercent(datum.data.share),
-      value: formatCompactMoney(datum.data.value, "USD"),
+      value: formatCompactMoney(datum.data.value, currencyCode),
       color: datum.data.color,
       outerX,
       outerY,
@@ -169,7 +184,7 @@ function buildCallouts(
     });
   });
 
-  const stack = (items: any[], direction: 1 | -1) => {
+  const stack = (items: CalloutCandidate[], direction: 1 | -1) => {
     items.sort((a, b) => a.labelYBase - b.labelYBase);
     let prevY = direction > 0 ? LABEL_MIN_Y - LABEL_GAP : LABEL_MAX_Y + LABEL_GAP;
     items.forEach((item) => {
@@ -192,11 +207,12 @@ function buildCallouts(
   [...left, ...right].forEach((item) => {
     const isRight = item.labelX > CENTER_X;
     const connectorX = isRight ? RIGHT_CONNECTOR_X : LEFT_CONNECTOR_X;
-    const connector = `M ${item.outerX} ${item.outerY} L ${connectorX} ${item.y} L ${item.labelX} ${item.y}`;
+    const itemY = item.y ?? item.labelYBase;
+    const connector = `M ${item.outerX} ${item.outerY} L ${connectorX} ${itemY} L ${item.labelX} ${itemY}`;
 
     callouts.push({
       x: item.labelX,
-      y: item.y,
+      y: itemY,
       anchor: isRight ? "start" : "end",
       connector,
       label: truncateLabel(item.label),
@@ -267,7 +283,7 @@ export function CostDonutChart({
     });
   }, [activeId, data, INNER_RADIUS, OUTER_RADIUS]);
 
-  const callouts = useMemo(() => buildCallouts(arcs, dims), [arcs, dims]);
+  const callouts = useMemo(() => buildCallouts(arcs, dims, currencyCode), [arcs, dims, currencyCode]);
   const activeDatum = activeId ? data.find((d) => d.id === activeId) ?? null : null;
 
   const emptyMinH = compact ? "h-[400px]" : "min-h-[520px]";
@@ -311,6 +327,7 @@ export function CostDonutChart({
       </div>
       <div className={cn(chartContainerClass, "bg-white")}>
         <svg
+          data-testid="d3-donut-chart"
           viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
           className={cn("w-full h-full block", className)}
           role="img"
@@ -318,7 +335,7 @@ export function CostDonutChart({
           onMouseLeave={() => setActiveId(null)}
         >
         <g>
-          {arcs.map(({ datum, path }, i) => (
+          {arcs.map(({ datum, path }) => (
             <path
               key={datum.data.id}
               d={path}
@@ -337,6 +354,7 @@ export function CostDonutChart({
 
         {/* Center label */}
         <text
+          data-testid={activeDatum ? "donut-center-detail" : "donut-center-empty"}
           x={CENTER_X}
           y={CENTER_Y}
           textAnchor="middle"
@@ -353,7 +371,7 @@ export function CostDonutChart({
         {/* Callouts */}
         <g>
           {callouts.map((c) => (
-            <g key={c.id}>
+            <g key={c.id} data-testid="donut-callout">
               <path d={c.connector} fill="none" stroke="#E5E5E5" strokeWidth={1} />
               <circle cx={c.x} cy={c.y} r={3} fill={c.color} />
               <text
