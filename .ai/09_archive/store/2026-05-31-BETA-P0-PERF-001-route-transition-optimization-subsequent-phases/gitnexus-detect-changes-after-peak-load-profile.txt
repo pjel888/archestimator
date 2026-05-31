@@ -1,0 +1,34 @@
+npm warn Unknown user config "always-auth" (//skand-124087294415.d.codeartifact.ap-southeast-2.amazonaws.com/npm/core/:always-auth). This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.
+Changes: 61 files, 122 symbols
+Affected processes: 58
+Risk level: critical
+
+Changed symbols:
+  undefined action → scripts/measure-route-transitions.ts
+  undefined measureTransition → scripts/measure-route-transitions.ts
+  undefined main → scripts/measure-route-transitions.ts
+  undefined validTimings → scripts/measure-route-transitions.ts
+  undefined sorted → scripts/measure-route-transitions.ts
+  undefined slowScenarios → scripts/measure-route-transitions.ts
+  undefined fastScenarios → scripts/measure-route-transitions.ts
+  undefined Scenario → scripts/measure-route-transitions.ts
+  undefined BASE_URL → scripts/measure-route-transitions.ts
+  undefined RUNS → scripts/measure-route-transitions.ts
+  undefined NETWORK_PROFILE → scripts/measure-route-transitions.ts
+  undefined NETWORK_PRESETS → scripts/measure-route-transitions.ts
+  undefined SCENARIOS → scripts/measure-route-transitions.ts
+  undefined card → scripts/measure-route-transitions.ts
+  undefined currentUrl → scripts/measure-route-transitions.ts
+  ... and 107 more
+
+Affected execution flows:
+  • ProjectDashboardPage → IsDevAuthBypassEnabled (7 steps) — changed: getCurrentWorkspaceProject
+  • ProjectDashboardPage → GetHostnameFromHostHeader (7 steps) — changed: getCurrentWorkspaceProject
+  • ProjectChartsPage → IsMissingOptionalCollaborationTable (6 steps) — changed: getCurrentWorkspaceProject
+  • ProjectChartsPage → GetRequiredDevEnv (6 steps) — changed: getCurrentWorkspaceProject
+  • CreateEstimate → GetRequiredDevEnv (6 steps) — changed: getCurrentWorkspaceProject
+  • CreateEstimate → IsDevAuthBypassEnabled (6 steps) — changed: getCurrentWorkspaceProject
+  • CreateEstimate → GetHostnameFromHostHeader (6 steps) — changed: getCurrentWorkspaceProject
+  • ProjectEstimatesPage → IsMissingOptionalCollaborationTable (6 steps) — changed: getCurrentWorkspaceProject
+  • ProjectEstimatesPage → GetRequiredDevEnv (6 steps) — changed: getCurrentWorkspaceProject
+  • ProjectDashboardPage → GetRequiredDevEnv (6 steps) — changed: getCurrentWorkspaceProject

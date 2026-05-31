@@ -1,0 +1,109 @@
+
+ RUN  v4.1.7 /Users/philiplewis/archestimator
+
+ ❯ tests/vitest/live-estimate-node-route.test.ts (8 tests | 1 failed) 22ms
+     × persists component-library area inserts through a project-scoped server action 11ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/vitest/live-estimate-node-route.test.ts > live estimate node route > persists component-library area inserts through a project-scoped server action
+AssertionError: expected 'import { notFound } from "next/naviga…' to contain 'projectId={project.id} estimateId={es…'
+
+- Expected
++ Received
+
+- projectId={project.id} estimateId={estimate.id}
++ import { notFound } from "next/navigation";
++
++ import { EstimateWorkspaceClient } from "@/components/workshop/EstimateWorkspaceClient";
++ import { ProjectEstimateMetadataPublisher } from "@/components/workshop/ProjectEstimateMetadataStrip";
++ import { requireCurrentUserContext } from "@/lib/auth/session";
++ import { getCurrentWorkspaceComponentLibrary } from "@/lib/repositories/component-library-repository";
++ import { getProjectEstimateTreeByNode } from "@/lib/repositories/workspace-repository";
++ import type { Json } from "@/lib/supabase/types";
++
++ type ProjectEstimateNodePageProps = {
++   params: Promise<{ projectId: string; nodeId: string }>;
++ };
++
++ function readEstimateVersionLabel(metadata: Json): string {
++   if (!metadata || typeof metadata !== "object" || Array.isArray(metadata)) return "V1";
++   const record = metadata as Record<string, Json>;
++   const value = record.versionNumber ?? record.version_number ?? record.version ?? record.revisionNumber ?? record.revision_number;
++   if (typeof value === "number" && Number.isFinite(value)) return `V${value}`;
++   if (typeof value === "string" && value.trim()) {
++     const normalized = value.trim();
++     return normalized.toLowerCase().startsWith("v") ? normalized : `V${normalized}`;
++   }
++   return "V1";
++ }
++
++ export default async function ProjectEstimateNodePage({ params }: ProjectEstimateNodePageProps) {
++   const { projectId, nodeId } = await params;
++   const [estimateTreeResult, componentLibrary, currentUser] = await Promise.all([
++     getProjectEstimateTreeByNode(projectId, nodeId),
++     getCurrentWorkspaceComponentLibrary(),
++     requireCurrentUserContext(),
++   ]);
++   const { project, estimate, selectedNodeId, tree } = estimateTreeResult;
++
++   if (!project || !estimate) notFound();
++
++   const estimateVersionLabel = readEstimateVersionLabel(estimate.metadata);
++   const estimateMetadata = {
++     projectName: project.name,
++     estimateName: estimate.name,
++     estimateSheetCode: estimate.sheet_code,
++     projectBudget: estimate.project_budget,
++   };
++   const proposalExportMetadata = {
++     projectId: project.id,
++     estimateId: estimate.id,
++     projectName: project.name,
++     projectCode: project.project_code,
++     projectAddress: project.location,
++     estimateName: estimate.name,
++     estimateSheetCode: estimate.sheet_code,
++     versionLabel: estimateVersionLabel,
++     currency: estimate.currency_code || project.currency_code || "PHP",
++   };
++
++   return (
++     <>
++       <ProjectEstimateMetadataPublisher metadata={estimateMetadata} />
++       <EstimateWorkspaceClient
++         projectId={project.id}
++         estimateId={estimate.id}
++         projectName={project.name}
++         selectedNodeId={selectedNodeId}
++         nodes={tree}
++         collaborationUserId={currentUser.userId}
++         collaborationDisplayName={currentUser.displayName}
++         proposalExportMetadata={proposalExportMetadata}
++         libraryItems={componentLibrary.libraryItems}
++         libraryTemplates={componentLibrary.templates}
++         libraryCategoryTree={componentLibrary.categoryTree}
++         librarySuppliers={componentLibrary.suppliers}
++         libraryBrands={componentLibrary.brands}
++       />
++     </>
++   );
++ }
++
+
+ ❯ tests/vitest/live-estimate-node-route.test.ts:142:30
+    140|     expect(estimateContent).toContain("projectId?: string");
+    141|     expect(estimateContent).toContain("estimateId?: string");
+    142|     expect(estimateNodePage).toContain("projectId={project.id} estimat…
+       |                              ^
+    143|     expect(estimateActions).toContain("insertEstimateRowItemFromLibrar…
+    144|     expect(estimateActions).toContain('.eq("kind", "area")');
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 7 passed (8)
+   Start at  19:37:57
+   Duration  1.40s (transform 66ms, setup 146ms, import 37ms, tests 22ms, environment 970ms)
+

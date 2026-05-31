@@ -1,0 +1,62 @@
+{
+  "route": "/workshop/library",
+  "routeKey": "[project]/src/app/workshop/library/page",
+  "entryChunkCount": 6,
+  "entryInitialJsBytes": 231552,
+  "entryChunkDetails": [
+    {
+      "chunk": "static/chunks/0c-wh02mnv76y.js",
+      "bytes": 27366
+    },
+    {
+      "chunk": "static/chunks/0d3shmwh5_nmn.js",
+      "bytes": 54646
+    },
+    {
+      "chunk": "static/chunks/0ald18yvno_36.js",
+      "bytes": 49336
+    },
+    {
+      "chunk": "static/chunks/050wmu-hcm2pw.js",
+      "bytes": 4923
+    },
+    {
+      "chunk": "static/chunks/06i8ys-05hxj6.js",
+      "bytes": 59282
+    },
+    {
+      "chunk": "static/chunks/0ykz78o4.d_o2.js",
+      "bytes": 35999
+    }
+  ],
+  "relevantClientModuleKeys": [
+    "[project]/src/components/workshop/LibraryPageClient.tsx <module evaluation>",
+    "[project]/src/components/workshop/LibraryPageClient.tsx"
+  ],
+  "ssrChunks": [
+    {
+      "file": "10h7_workshop_component-library-manager_ComponentLibraryManager_tsx_0_q7sam._.js",
+      "bytes": 19753
+    },
+    {
+      "file": "10h7_workshop_component-library-manager_ComponentLibraryManager_tsx_0_q7sam._.js.map",
+      "bytes": 62837
+    },
+    {
+      "file": "src_components_workshop_component-library-manager_AddComponentModal_tsx_0lyvm75._.js",
+      "bytes": 61857
+    },
+    {
+      "file": "src_components_workshop_component-library-manager_AddComponentModal_tsx_0lyvm75._.js.map",
+      "bytes": 185550
+    },
+    {
+      "file": "src_components_workshop_component-library-manager_LibraryFolderTree_tsx_0jxs7ih._.js",
+      "bytes": 19989
+    },
+    {
+      "file": "src_components_workshop_component-library-manager_LibraryFolderTree_tsx_0jxs7ih._.js.map",
+      "bytes": 69408
+    }
+  ]
+}

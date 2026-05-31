@@ -1,0 +1,26 @@
+
+ RUN  v4.1.7 /Users/philiplewis/archestimator
+
+ ❯ tests/vitest/workshop-library-consolidation-ui.test.tsx (9 tests | 9 skipped) 11402ms
+
+⎯⎯⎯⎯⎯⎯ Failed Suites 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/vitest/workshop-library-consolidation-ui.test.tsx > workshop library consolidation UI
+Error: Hook timed out in 10000ms.
+If this is a long-running hook, pass a timeout value as the last argument or configure it globally with "hookTimeout".
+ ❯ tests/vitest/workshop-library-consolidation-ui.test.tsx:228:3
+    226|
+    227| describe("workshop library consolidation UI", () => {
+    228|   beforeAll(async () => {
+       |   ^
+    229|     await import("@/components/workshop/component-library-manager/Comp…
+    230|     await import("@/components/workshop/component-library-manager/AddC…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed | 7 passed (8)
+      Tests  80 passed | 9 skipped (89)
+   Start at  19:25:19
+   Duration  90.53s (transform 4.96s, setup 1.62s, import 26.49s, tests 35.59s, environment 20.31s)
+

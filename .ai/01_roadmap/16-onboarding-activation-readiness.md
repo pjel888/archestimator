@@ -239,8 +239,8 @@
 | Variant | Starting State | Onboarding Path | Key Moments | Status | Owner Decision |
 |---------|---------------|-----------------|-------------|--------|----------------|
 | Founder / contractor from blank workspace | No account, no projects | Phases 1 through 12 sequentially | Landing page → signup → first project → first estimate → first export → return | MANUAL BETA ONLY | Philip guides personally |
-| Estimator creating first estimate (invited to existing project) | Has account via invite, lands in existing project | Phases 2, 6 through 8 | Auth → first line item → cost confidence → export | IMPLEMENTED / NEEDS EVIDENCE | Validate with beta estimators |
-| Team collaborator accepting invite | Receives invite email | Phases 2, 9 | Auth via invite link → accepts → sees correct project | IMPLEMENTED / NEEDS EVIDENCE (local E2E passed) | Validate invite acceptance flow |
+| Estimator creating first estimate (invited to existing project) | Has account via invite, lands in existing project | Phases 2, 6 through 8 | Auth → first line item → cost confidence → export | PARTIAL / BLOCKED BY INVITE CONFIG | Validate after collaboration Wave 1 and Wave 2 unblock invite entry |
+| Team collaborator accepting invite | Receives invite email | Phases 2, 9 | Auth via invite link → accepts → sees correct project | BROKEN / CONFIG BLOCKED | Configure Supabase Auth email/env, make accept POST-only, then validate invite acceptance flow |
 | Client / recipient opening shared link | No account, receives shared link | Phase 13 in journey matrix (no auth required) | Opens link → views estimate read-only → optionally exports | IMPLEMENTED / NEEDS EVIDENCE | Validate shared link experience |
 | Returning user | Has account, has existing work | Phase 11 | Login → workshop with recent activity → resume work | PARTIAL | Add activity-based resumption to workshop |
 | Beta design partner (manual guidance) | Curated invite, direct relationship with Philip | All phases, Philip-facilitated walkthrough | Personal onboarding session, feedback collection, iterative guidance | DRAFTED (see 12-beta doc) | Philip manages schedule and relationships |

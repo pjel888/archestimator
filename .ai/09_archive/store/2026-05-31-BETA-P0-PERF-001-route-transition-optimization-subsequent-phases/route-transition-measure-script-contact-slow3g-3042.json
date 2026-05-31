@@ -1,0 +1,77 @@
+{
+  "generatedAt": "2026-05-31T13:07:27.047Z",
+  "baseUrl": "http://127.0.0.1:3042",
+  "networkProfile": "Slow 3G",
+  "runsPerScenario": 3,
+  "scenarioFilter": "contact",
+  "skipAuthenticated": true,
+  "skippedScenarios": [],
+  "results": [
+    {
+      "scenario": "Public: About to Contact",
+      "from": "/about",
+      "expectedPathname": "/contact",
+      "networkProfile": "Slow 3G",
+      "runs": [
+        {
+          "run": 1,
+          "durationMs": 6027,
+          "overlayVisible": false,
+          "rscRequestCount": 4,
+          "finalPathname": "/contact"
+        },
+        {
+          "run": 2,
+          "durationMs": 1874,
+          "overlayVisible": true,
+          "rscRequestCount": 9,
+          "finalPathname": "/contact"
+        },
+        {
+          "run": 3,
+          "durationMs": 1893,
+          "overlayVisible": true,
+          "rscRequestCount": 9,
+          "finalPathname": "/contact"
+        }
+      ],
+      "failures": [],
+      "medianMs": 1893,
+      "overlayVisibilityRate": 0.6666666666666666,
+      "rscRequestCount": 22
+    },
+    {
+      "scenario": "Public: Pricing to Contact",
+      "from": "/pricing",
+      "expectedPathname": "/contact",
+      "networkProfile": "Slow 3G",
+      "runs": [
+        {
+          "run": 1,
+          "durationMs": 6227,
+          "overlayVisible": false,
+          "rscRequestCount": 4,
+          "finalPathname": "/contact"
+        },
+        {
+          "run": 2,
+          "durationMs": 3177,
+          "overlayVisible": true,
+          "rscRequestCount": 8,
+          "finalPathname": "/contact"
+        },
+        {
+          "run": 3,
+          "durationMs": 1898,
+          "overlayVisible": true,
+          "rscRequestCount": 8,
+          "finalPathname": "/contact"
+        }
+      ],
+      "failures": [],
+      "medianMs": 3177,
+      "overlayVisibilityRate": 0.6666666666666666,
+      "rscRequestCount": 20
+    }
+  ]
+}

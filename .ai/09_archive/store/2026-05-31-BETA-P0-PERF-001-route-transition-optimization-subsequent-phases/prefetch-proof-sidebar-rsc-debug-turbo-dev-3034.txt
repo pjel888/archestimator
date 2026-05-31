@@ -1,0 +1,3 @@
+box { x: 8, y: 412, width: 272, height: 32 }
+allRequests []
+resources []

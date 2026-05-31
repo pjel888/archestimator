@@ -1,0 +1,162 @@
+
+ RUN  v4.1.7 /Users/philiplewis/archestimator
+
+ ❯ tests/vitest/project-charts-ui.test.tsx (7 tests | 1 failed) 1047ms
+     × starts with one chart column and no combined comparison table 269ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/vitest/project-charts-ui.test.tsx > ProjectChartsClient > starts with one chart column and no combined comparison table
+TestingLibraryElementError: Unable to find an element by: [data-testid="donut-center-empty"]
+
+Ignored nodes: comments, script, style
+[36m<body>[39m
+  [36m<div>[39m
+    [36m<section[39m
+      [33mclass[39m=[32m"flex h-full min-h-0 flex-col overflow-hidden bg-white"[39m
+      [33mdata-project-charts-page[39m=[32m"true"[39m
+    [36m>[39m
+      [36m<div[39m
+        [33mclass[39m=[32m"flex shrink-0 flex-wrap items-center gap-2 border-b border-hairline bg-white px-2 py-0"[39m
+      [36m>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"flex min-h-[38px] min-w-0 flex-1 flex-wrap items-center gap-2 py-1"[39m
+        [36m>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"flex items-center gap-2"[39m
+          [36m>[39m
+            [36m<span[39m
+              [33mclass[39m=[32m"shrink-0 text-[9px] font-medium uppercase tracking-normal text-muted-foreground"[39m
+            [36m>[39m
+              [0mGroup By[0m
+            [36m</span>[39m
+            [36m<div[39m
+              [33maria-label[39m=[32m"Group chart costs by"[39m
+              [33mclass[39m=[32m"grid grid-cols-3 gap-1 rounded-xs bg-surfaceMuted p-0.5"[39m
+              [33mrole[39m=[32m"group"[39m
+            [36m>[39m
+              [36m<button[39m
+                [33maria-pressed[39m=[32m"true"[39m
+                [33mclass[39m=[32m"h-6 rounded-xs px-2 text-[9px] font-medium leading-none transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus bg-white text-ink shadow-sm"[39m
+                [33mtype[39m=[32m"button"[39m
+              [36m>[39m
+                [0mSpace[0m
+              [36m</button>[39m
+              [36m<button[39m
+                [33maria-pressed[39m=[32m"false"[39m
+                [33mclass[39m=[32m"h-6 rounded-xs px-2 text-[9px] font-medium leading-none transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus text-tertiary hover:bg-white/70 hover:text-ink"[39m
+                [33mtype[39m=[32m"button"[39m
+              [36m>[39m
+                [0mCategory[0m
+              [36m</button>[39m
+              [36m<button[39m
+                [33maria-pressed[39m=[32m"false"[39m
+                [33mclass[39m=[32m"h-6 rounded-xs px-2 text-[9px] font-medium leading-none transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus text-tertiary hover:bg-white/70 hover:text-ink"[39m
+                [33mtype[39m=[32m"button"[39m
+              [36m>[39m
+                [0mSuppliers[0m
+              [36m</button>[39m
+            [36m</div>[39m
+          [36m</div>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"flex items-center gap-2"[39m
+          [36m>[39m
+            [36m<span[39m
+              [33mclass[39m=[32m"shrink-0 text-[9px] font-medium uppercase tracking-normal text-muted-foreground"[39m
+            [36m>[39m
+              [0mView By[0m
+            [36m</span>[39m
+            [36m<div[39m
+              [33maria-label[39m=[32m"Chart visualization type"[39m
+              [33mclass[39m=[32m"grid grid-cols-2 gap-1 rounded-xs bg-surfaceMuted p-0.5"[39m
+              [33mrole[39m=[32m"group"[39m
+            [36m>[39m
+              [36m<button[39m
+                [33maria-pressed[39m=[32m"true"[39m
+                [33mclass[39m=[32m"h-6 rounded-xs px-2 text-[9px] font-medium leading-none transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus bg-white text-ink shadow-sm"[39m
+                [33mtype[39m=[32m"button"[39m
+              [36m>[39m
+                [0mDonut Chart[0m
+              [36m</button>[39m
+              [36m<button[39m
+                [33maria-pressed[39m=[32m"false"[39m
+                [33mclass[39m=[32m"h-6 rounded-xs px-2 text-[9px] font-medium leading-none transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus text-tertiary hover:bg-white/70 hover:text-ink"[39m
+                [33mtype[39m=[32m"button"[39m
+              [36m>[39m
+                [0mBubble Chart[0m
+              [36m</button>[39m
+            [36m</div>[39m
+          [36m</div>[39m
+        [36m</div>[39m
+        [36m<div[39m
+          [33maria-label[39m=[32m"Project chart tools"[39m
+          [33mclass[39m=[32m"flex h-[38px] min-h-[38px] items-center gap-1 bg-white px-2 py-0"[39m
+        [36m>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"ml-auto flex items-center gap-1"[39m
+          [36m>[39m
+            [36m<span[39m
+              [33mclass[39m=[32m"relative inline-flex"[39m
+            [36m>[39m
+              [36m<button[39m
+                [33maria-describedby[39m=[32m"_r_2_"[39m
+                [33maria-label[39m=[32m"Add chart"[39m
+                [33mclass[39m=[32m"items-center justify-center gap-2 !text-[10px] !font-medium leading-none transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 focus-visible:ring-focus grid place-items-center size-6 rounded-xs p-0 bg-orange-50 text-orange-700 hover:bg-orange-100 hover:text-orange-800 focus-visible:bg-orange-100 focus-visible:text-orange-800"[39m
+                [33mtitle[39m=[32m"Add chart"[39m
+                [33mtype[39m=[32m"button"[39m
+              [36m>[39m
+                [36m<svg[39m
+                  [33maria-hidden[39m=[32m"true"[39m
+                  [33mfill[39m=[32m"currentColor"[39m
+                  [33mheight[39m=[32m"12"[39m
+                  [33mviewBox[39m=[32m"0 0 256 256"[39m
+                  [33mwidth[39m=[32m"12"[39m
+                  [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+                [36m>[39m
+                  [36m<path[39m
+                    [33md[39m=[32m"M224,128a8,8,0,0,1-8,8H136v80a8,8,0,0,1-16,0V136H40a8,8,0,0,1,0-16h80V40a8,8,0,0,1,16,0v80h80A8,8,0,0,1,224,128Z"[39m
+                  [36m/>[39m
+                [36m</svg>[39m
+              [36m</button>[39m
+            [36m</span>[39m
+          [36m</div>[39m
+        [36m</div>[39m
+      [36m</div>[39m
+      [36m<div[39m
+        [33mclass[39m=[32m"min-h-0 flex-1 overflow-auto p-1"[39m
+      [36m>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"grid gap-3"[39m
+          [33mstyle[39m=[32m"grid-template-columns: repeat(1, minmax(220px, 1fr));"[39m
+        [36m>[39m
+          [36m<section[39m
+            [33mclass[39m=[32m"min-w-0 overflow-hidden rounded-xs border border-hairline bg-white"[39m
+            [33mdata-testid[39m=[32m"project-chart-column"[39m
+          [36m>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"grid min-h-11 grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 border-b border-hairline px-3 py-2"[39m
+            [36m>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"min-w-0 flex-1"[39m
+              [36m>[39m
+               ...
+ ❯ Object.getElementError node_modules/@testing-library/dom/dist/config.js:37:19
+ ❯ node_modules/@testing-library/dom/dist/query-helpers.js:76:38
+ ❯ node_modules/@testing-library/dom/dist/query-helpers.js:52:17
+ ❯ node_modules/@testing-library/dom/dist/query-helpers.js:95:19
+ ❯ tests/vitest/project-charts-ui.test.tsx:71:19
+     69|     expect(screen.getByText("House")).toBeInTheDocument();
+     70|     expect(screen.getByText("Level 1")).toBeInTheDocument();
+     71|     expect(screen.getByTestId("donut-center-empty")).toBeInTheDocument…
+       |                   ^
+     72|     expect(screen.getAllByTestId("donut-callout").length).toBeGreaterT…
+     73|     expect(document.querySelector('[data-testid="donut-callout"] path'…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed | 1 passed (2)
+      Tests  1 failed | 22 passed (23)
+   Start at  16:26:22
+   Duration  16.49s (transform 1.39s, setup 1.85s, import 7.51s, tests 1.07s, environment 5.38s)
+

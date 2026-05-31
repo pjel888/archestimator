@@ -137,13 +137,13 @@ bun run test tests/integration/storage-isolation.test.ts  # must pass against st
 
 **Owner decisions required:** None (all resolved in Wave 0)
 
-**Explicit non-goals:** Fixing every RLS policy gap (report only), penetration testing, implementing new auth features, modifying RLS policies without test coverage first. Do NOT use `.ai/03_plans/collaboration-and-sharing-audit/` as evidence of implementation — it is a plan/audit pack only. Collab invite implementation must be atomic: human dashboard/provider setup (Wave 1) must be separated from Codex code tasks (Wave 2). Agents may run tests against staging Supabase but must not modify staging infrastructure.
+**Explicit non-goals:** Fixing every RLS policy gap (report only), penetration testing, implementing new auth features, modifying RLS policies without test coverage first. Do NOT use `.ai/03_plans/share-and-collaboration-implementation/` as evidence of implementation — it is a plan/audit/readiness pack only. Collab invite implementation must be atomic: human dashboard/provider setup (Wave 1) must be separated from Codex code tasks (Wave 2). Agents may run tests against staging Supabase but must not modify staging infrastructure.
 
 ---
 
 ## Collaboration & Sharing Audit Integration
 
-**⚠️ Important:** The collaboration & sharing audit pack at `.ai/03_plans/collaboration-and-sharing-audit/` has been integrated into the roadmap. Key points:
+**⚠️ Important:** The collaboration & sharing implementation-readiness pack at `.ai/03_plans/share-and-collaboration-implementation/` has been integrated into the roadmap. Key points:
 
 - **Collaboration Invites are BROKEN / CONFIG BLOCKED.** The system is non-functional in its current configuration. Supabase Auth email/SMTP provider must be configured, `PROJECT_INVITE_ENTRY_ENABLED` and `ARCHESTIMATOR_INVITE_TOKEN_PEPPER` must be set, and the invite acceptance route must be corrected to POST-only and fail-closed. The old auto-grant RPC is deliberately disabled.
 - **Shared Link is functional but has production-hardening gaps.** In-memory rate limiters are not durable, per-recipient open tracking is missing, project-card/homebase visibility signifiers are missing, one-click copy is missing, and owner digest uses hardcoded/placeholder sender.

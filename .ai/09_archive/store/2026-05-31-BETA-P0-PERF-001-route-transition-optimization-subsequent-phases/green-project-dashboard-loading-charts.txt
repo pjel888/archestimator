@@ -1,0 +1,626 @@
+
+ RUN  v4.1.7 /Users/philiplewis/archestimator
+
+ ❯ tests/vitest/project-charts-ui.test.tsx (7 tests | 1 failed) 17660ms
+     × switches the chart visualization from donut to bubble chart 3262ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/vitest/project-charts-ui.test.tsx > ProjectChartsClient > switches the chart visualization from donut to bubble chart
+TestingLibraryElementError: Unable to find an element by: [data-testid="d3-bubble-chart"]
+
+Ignored nodes: comments, script, style
+[36m<body>[39m
+  [36m<div>[39m
+    [36m<section[39m
+      [33mclass[39m=[32m"flex h-full min-h-0 flex-col overflow-hidden bg-white"[39m
+      [33mdata-project-charts-page[39m=[32m"true"[39m
+    [36m>[39m
+      [36m<div[39m
+        [33mclass[39m=[32m"flex shrink-0 flex-wrap items-center gap-2 border-b border-hairline bg-white px-2 py-0"[39m
+      [36m>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"flex min-h-[38px] min-w-0 flex-1 flex-wrap items-center gap-2 py-1"[39m
+        [36m>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"flex items-center gap-2"[39m
+          [36m>[39m
+            [36m<span[39m
+              [33mclass[39m=[32m"shrink-0 text-[9px] font-medium uppercase tracking-normal text-muted-foreground"[39m
+            [36m>[39m
+              [0mGroup By[0m
+            [36m</span>[39m
+            [36m<div[39m
+              [33maria-label[39m=[32m"Group chart costs by"[39m
+              [33mclass[39m=[32m"grid grid-cols-3 gap-1 rounded-xs bg-surfaceMuted p-0.5"[39m
+              [33mrole[39m=[32m"group"[39m
+            [36m>[39m
+              [36m<button[39m
+                [33maria-pressed[39m=[32m"true"[39m
+                [33mclass[39m=[32m"h-6 rounded-xs px-2 text-[9px] font-medium leading-none transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus bg-white text-ink shadow-sm"[39m
+                [33mtype[39m=[32m"button"[39m
+              [36m>[39m
+                [0mSpace[0m
+              [36m</button>[39m
+              [36m<button[39m
+                [33maria-pressed[39m=[32m"false"[39m
+                [33mclass[39m=[32m"h-6 rounded-xs px-2 text-[9px] font-medium leading-none transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus text-tertiary hover:bg-white/70 hover:text-ink"[39m
+                [33mtype[39m=[32m"button"[39m
+              [36m>[39m
+                [0mCategory[0m
+              [36m</button>[39m
+              [36m<button[39m
+                [33maria-pressed[39m=[32m"false"[39m
+                [33mclass[39m=[32m"h-6 rounded-xs px-2 text-[9px] font-medium leading-none transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus text-tertiary hover:bg-white/70 hover:text-ink"[39m
+                [33mtype[39m=[32m"button"[39m
+              [36m>[39m
+                [0mSuppliers[0m
+              [36m</button>[39m
+            [36m</div>[39m
+          [36m</div>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"flex items-center gap-2"[39m
+          [36m>[39m
+            [36m<span[39m
+              [33mclass[39m=[32m"shrink-0 text-[9px] font-medium uppercase tracking-normal text-muted-foreground"[39m
+            [36m>[39m
+              [0mView By[0m
+            [36m</span>[39m
+            [36m<div[39m
+              [33maria-label[39m=[32m"Chart visualization type"[39m
+              [33mclass[39m=[32m"grid grid-cols-2 gap-1 rounded-xs bg-surfaceMuted p-0.5"[39m
+              [33mrole[39m=[32m"group"[39m
+            [36m>[39m
+              [36m<button[39m
+                [33maria-pressed[39m=[32m"false"[39m
+                [33mclass[39m=[32m"h-6 rounded-xs px-2 text-[9px] font-medium leading-none transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus text-tertiary hover:bg-white/70 hover:text-ink"[39m
+                [33mtype[39m=[32m"button"[39m
+              [36m>[39m
+                [0mDonut Chart[0m
+              [36m</button>[39m
+              [36m<button[39m
+                [33maria-pressed[39m=[32m"true"[39m
+                [33mclass[39m=[32m"h-6 rounded-xs px-2 text-[9px] font-medium leading-none transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus bg-white text-ink shadow-sm"[39m
+                [33mtype[39m=[32m"button"[39m
+              [36m>[39m
+                [0mBubble Chart[0m
+              [36m</button>[39m
+            [36m</div>[39m
+          [36m</div>[39m
+        [36m</div>[39m
+        [36m<div[39m
+          [33maria-label[39m=[32m"Project chart tools"[39m
+          [33mclass[39m=[32m"flex h-[38px] min-h-[38px] items-center gap-1 bg-white px-2 py-0"[39m
+        [36m>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"ml-auto flex items-center gap-1"[39m
+          [36m>[39m
+            [36m<span[39m
+              [33mclass[39m=[32m"relative inline-flex"[39m
+            [36m>[39m
+              [36m<button[39m
+                [33maria-describedby[39m=[32m"_r_6_"[39m
+                [33maria-label[39m=[32m"Add chart"[39m
+                [33mclass[39m=[32m"items-center justify-center gap-2 !text-[10px] !font-medium leading-none transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 focus-visible:ring-focus grid place-items-center size-6 rounded-xs p-0 bg-orange-50 text-orange-700 hover:bg-orange-100 hover:text-orange-800 focus-visible:bg-orange-100 focus-visible:text-orange-800"[39m
+                [33mtitle[39m=[32m"Add chart"[39m
+                [33mtype[39m=[32m"button"[39m
+              [36m>[39m
+                [36m<svg[39m
+                  [33maria-hidden[39m=[32m"true"[39m
+                  [33mfill[39m=[32m"currentColor"[39m
+                  [33mheight[39m=[32m"12"[39m
+                  [33mviewBox[39m=[32m"0 0 256 256"[39m
+                  [33mwidth[39m=[32m"12"[39m
+                  [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+                [36m>[39m
+                  [36m<path[39m
+                    [33md[39m=[32m"M224,128a8,8,0,0,1-8,8H136v80a8,8,0,0,1-16,0V136H40a8,8,0,0,1,0-16h80V40a8,8,0,0,1,16,0v80h80A8,8,0,0,1,224,128Z"[39m
+                  [36m/>[39m
+                [36m</svg>[39m
+              [36m</button>[39m
+            [36m</span>[39m
+          [36m</div>[39m
+        [36m</div>[39m
+      [36m</div>[39m
+      [36m<div[39m
+        [33mclass[39m=[32m"min-h-0 flex-1 overflow-auto p-1"[39m
+      [36m>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"grid gap-3"[39m
+          [33mstyle[39m=[32m"grid-template-columns: repeat(1, minmax(220px, 1fr));"[39m
+        [36m>[39m
+          [36m<section[39m
+            [33mclass[39m=[32m"min-w-0 overflow-hidden rounded-xs border border-hairline bg-white"[39m
+            [33mdata-testid[39m=[32m"project-chart-column"[39m
+          [36m>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"grid min-h-11 grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 border-b border-hairline px-3 py-2"[39m
+            [36m>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"min-w-0 flex-1"[39m
+              [36m>[39m
+                [36m<span[39m
+                  [33mclass[39m=[32m"relative inline-flex min-w-0 items-center transition focus-within:border-accent focus-within:ring-2 focus-within:ring-focus"[39m
+                [36m>[39m
+                  [36m<select[39m
+                    [33maria-label[39m=[32m"Chart 1 estimate"[39m
+                    [33mclass[39m=[32m"h-5 min-w-0 appearance-none border-0 border-hairline bg-transparent pl-0 pr-6 !text-[9px] font-medium leading-none text-ink outline-none transition-colors disabled:cursor-not-allowed disabled:opacity-50 border-b-0 hover:border-transparent focus:border-transparent"[39m
+                  [36m>[39m
+                    [36m<option[39m
+                      [33mvalue[39m=[32m"estimate-a"[39m
+                    [36m>[39m
+                      [0mBaseline[0m
+                    [36m</option>[39m
+                    [36m<option[39m
+                      [33mvalue[39m=[32m"estimate-b"[39m
+                    [36m>[39m
+                      [0mRevision[0m
+                    [36m</option>[39m
+                  [36m</select>[39m
+                  [36m<svg[39m
+                    [33maria-hidden[39m=[32m"true"[39m
+                    [33mclass[39m=[32m"pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-tertiary"[39m
+                    [33mfill[39m=[32m"currentColor"[39m
+                    [33mheight[39m=[32m"8"[39m
+                    [33mviewBox[39m=[32m"0 0 256 256"[39m
+                    [33mwidth[39m=[32m"8"[39m
+                    [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+                  [36m>[39m
+                    [36m<path[39m
+                      [33md[39m=[32m"M213.66,101.66l-80,80a8,8,0,0,1-11.32,0l-80-80A8,8,0,0,1,53.66,90.34L128,164.69l74.34-74.35a8,8,0,0,1,11.32,11.32Z"[39m
+                    [36m/>[39m
+                  [36m</svg>[39m
+                [36m</span>[39m
+              [36m</div>[39m
+              [36m<p[39m
+                [33mclass[39m=[32m"justify-self-center text-[10px] font-medium tabular-nums text-foreground"[39m
+                [33mdata-testid[39m=[32m"chart-1-total"[39m
+              [36m>[39m
+                [0m₱225[0m
+              [36m</p>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"justify-self-end"[39m
+              [36m/>[39m
+            [36m</div>[39m
+            [36m<div[39m
+              [33maria-label[39m=[32m"Loading bubble chart"[39m
+              [33mclass[39m=[32m"flex min-h-[520px] items-center justify-center rounded-xs border border-dashed border-hairline text-[10px] text-muted-foreground"[39m
+              [33mrole[39m=[32m"status"[39m
+            [36m>[39m
+              [0mLoading chart[0m
+            [36m</div>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"overflow-hidden border-t border-hairline"[39m
+            [36m>[39m
+              [36m<table[39m
+                [33maria-label[39m=[32m"Baseline bucket table"[39m
+                [33mclass[39m=[32m"w-full border-collapse text-[10px]"[39m
+              [36m>[39m
+                [36m<thead[39m
+                  [33mclass[39m=[32m"bg-muted/30 text-[9px] uppercase tracking-normal text-muted-foreground"[39m
+                [36m>[39m
+                  [36m<tr>[39m
+                    [36m<th[39m
+                      [33mclass[39m=[32m"px-2 py-2 text-left font-medium"[39m
+                    [36m>[39m
+                      [0mSpace[0m
+                    [36m</th>[39m
+                    [36m<th[39m
+                      [33mclass[39m=[32m"px-2 py-2 text-right font-medium"[39m
+                    [36m>[39m
+                      [0mCost[0m
+                    [36m</th>[39m
+                    [36m<th[39m
+                      [33mclass[39m=[32m"px-2 py-2 text-right font-medium"[39m
+                    [36m>[39m
+                      [0mShare[0m
+                    [36m</th>[39m
+                  [36m</tr>[39m
+                [36m</thead>[39m
+                [36m<tbody>[39m
+                  [36m<tr[39m
+                    [33mclass[39m=[32m"border-t border-hairline bg-muted/20"[39m
+                  [36m>[39m
+                    [36m<td[39m
+                      [33mclass[39m=[32m"max-w-36 truncate py-2 pr-2 font-medium text-foreground"[39m
+                      [33mstyle[39m=[32m"padding-left: 8px;"[39m
+                    [36m>[39m
+                      [36m<span[39m
+                        [33mclass[39m=[32m"mr-1.5 inline-block h-2 w-2 rounded-xs border border-hairline bg-white"[39m
+                      [36m/>[39m
+                      [36m<span[39m
+                        [33mclass[39m=[32m"font-medium"[39m
+                      [36m>[39m
+                        [0mHouse[0m
+                      [36m</span>[39m
+                    [36m</td>[39m
+                    [36m<td[39m
+                      [33mclass[39m=[32m"px-2 py-2 text-right tabular-nums"[39m
+                    [36m>[39m
+                      [0m₱225[0m
+                    [36m</td>[39m
+                    [36m<td[39m
+                      [33mclass[39m=[32m"px-2 py-2 text-right tabular-nums text-muted-foreground"[39m
+                    [36m>[39m
+                      [0m100%[0m
+                    [36m</td>[39m
+                  [36m</tr>[39m
+                  [36m<tr[39m
+                    [33mclass[39m=[32m"border-t border-hairline bg-muted/20"[39m
+                  [36m>[39m
+                    [36m<td[39m
+                      [33mclass[39m=[32m"max-w-36 truncate py-2 pr-2 font-medium text-foreground"[39m
+                      [33mstyle[39m=[32m"padding-left: 20px;"[39m
+                    [36m>[39m
+                      [36m<span[39m
+                        [33mclass[39m=[32m"mr-1.5 inline-block h-2 w-2 rounded-xs border border-hairline bg-white"[39m
+                      [36m/>[39m
+                      [36m<span[39m
+                        [33mclass[39m=[32m"font-medium"[39m
+                      [36m>[39m
+                        [0mLevel 1[0m
+                      [36m</span>[39m
+                    [36m</td>[39m
+                    [36m<td[39m
+                      [33mclass[39m=[32m"px-2 py-2 text-right tabular-nums"[39m
+                    [36m>[39m
+                      [0m₱225[0m
+                    [36m</td>[39m
+                    [36m<td[39m
+                      [33mclass[39m=[32m"px-2 py-2 text-right tabular-nums text-muted-foreground"[39m
+                    [36m>[39m
+                      [0m100%[0m
+                    [36m</td>[39m
+                  [36m</tr>[39m
+                  [36m<tr[39m
+                    [33mclass[39m=[32m"border-t border-hairline"[39m
+                  [36m>[39m
+                    [36m<td[39m
+                      [33mclass[39m=[32m"max-w-36 truncate py-2 pr-2 font-medium text-foreground"[39m
+                      [33mstyle[39m=[32m"padding-left: 32px;"[39m
+                    [36m>[39m
+                      [36m<span[39m
+                        [33mclass[39m=[32m"mr-1.5 inline-block h-2 w-2 rounded-xs"[39m
+                        [33mstyle[39m=[32m"background-color: rgb(47, 93, 80);"[39m
+                      [36m/>[39m
+                      [36m<span>[39m
+                        [0mGround Floor[0m
+                      [36m</span>[39m
+                    [36m</td>[39m
+                    [36m<td[39m
+                      [33mclass[39m=[32m"px-2 py-2 text-right tabular-nums"[39m
+                    [36m>[39m
+                      [0m₱225[0m
+                    [36m</td>[39m
+                    [36m<td[39m
+                      [33mclass[39m=[32m"px-2 py-2 text-right tabular-nums text-muted-foreground"[39m
+                    [36m>[39m
+                      [0m100%[0m
+                    [36m</td>[39m
+                  [36m</tr>[39m
+                [36m</tbody>[39m
+              [36m</table>[39m
+            [36m</div>[39m
+          [36m</section>[39m
+        [36m</div>[39m
+      [36m</div>[39m
+    [36m</section>[39m
+  [36m</div>[39m
+[36m</body>[39m
+
+Ignored nodes: comments, script, style
+[36m<body>[39m
+  [36m<div>[39m
+    [36m<section[39m
+      [33mclass[39m=[32m"flex h-full min-h-0 flex-col overflow-hidden bg-white"[39m
+      [33mdata-project-charts-page[39m=[32m"true"[39m
+    [36m>[39m
+      [36m<div[39m
+        [33mclass[39m=[32m"flex shrink-0 flex-wrap items-center gap-2 border-b border-hairline bg-white px-2 py-0"[39m
+      [36m>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"flex min-h-[38px] min-w-0 flex-1 flex-wrap items-center gap-2 py-1"[39m
+        [36m>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"flex items-center gap-2"[39m
+          [36m>[39m
+            [36m<span[39m
+              [33mclass[39m=[32m"shrink-0 text-[9px] font-medium uppercase tracking-normal text-muted-foreground"[39m
+            [36m>[39m
+              [0mGroup By[0m
+            [36m</span>[39m
+            [36m<div[39m
+              [33maria-label[39m=[32m"Group chart costs by"[39m
+              [33mclass[39m=[32m"grid grid-cols-3 gap-1 rounded-xs bg-surfaceMuted p-0.5"[39m
+              [33mrole[39m=[32m"group"[39m
+            [36m>[39m
+              [36m<button[39m
+                [33maria-pressed[39m=[32m"true"[39m
+                [33mclass[39m=[32m"h-6 rounded-xs px-2 text-[9px] font-medium leading-none transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus bg-white text-ink shadow-sm"[39m
+                [33mtype[39m=[32m"button"[39m
+              [36m>[39m
+                [0mSpace[0m
+              [36m</button>[39m
+              [36m<button[39m
+                [33maria-pressed[39m=[32m"false"[39m
+                [33mclass[39m=[32m"h-6 rounded-xs px-2 text-[9px] font-medium leading-none transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus text-tertiary hover:bg-white/70 hover:text-ink"[39m
+                [33mtype[39m=[32m"button"[39m
+              [36m>[39m
+                [0mCategory[0m
+              [36m</button>[39m
+              [36m<button[39m
+                [33maria-pressed[39m=[32m"false"[39m
+                [33mclass[39m=[32m"h-6 rounded-xs px-2 text-[9px] font-medium leading-none transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus text-tertiary hover:bg-white/70 hover:text-ink"[39m
+                [33mtype[39m=[32m"button"[39m
+              [36m>[39m
+                [0mSuppliers[0m
+              [36m</button>[39m
+            [36m</div>[39m
+          [36m</div>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"flex items-center gap-2"[39m
+          [36m>[39m
+            [36m<span[39m
+              [33mclass[39m=[32m"shrink-0 text-[9px] font-medium uppercase tracking-normal text-muted-foreground"[39m
+            [36m>[39m
+              [0mView By[0m
+            [36m</span>[39m
+            [36m<div[39m
+              [33maria-label[39m=[32m"Chart visualization type"[39m
+              [33mclass[39m=[32m"grid grid-cols-2 gap-1 rounded-xs bg-surfaceMuted p-0.5"[39m
+              [33mrole[39m=[32m"group"[39m
+            [36m>[39m
+              [36m<button[39m
+                [33maria-pressed[39m=[32m"false"[39m
+                [33mclass[39m=[32m"h-6 rounded-xs px-2 text-[9px] font-medium leading-none transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus text-tertiary hover:bg-white/70 hover:text-ink"[39m
+                [33mtype[39m=[32m"button"[39m
+              [36m>[39m
+                [0mDonut Chart[0m
+              [36m</button>[39m
+              [36m<button[39m
+                [33maria-pressed[39m=[32m"true"[39m
+                [33mclass[39m=[32m"h-6 rounded-xs px-2 text-[9px] font-medium leading-none transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus bg-white text-ink shadow-sm"[39m
+                [33mtype[39m=[32m"button"[39m
+              [36m>[39m
+                [0mBubble Chart[0m
+              [36m</button>[39m
+            [36m</div>[39m
+          [36m</div>[39m
+        [36m</div>[39m
+        [36m<div[39m
+          [33maria-label[39m=[32m"Project chart tools"[39m
+          [33mclass[39m=[32m"flex h-[38px] min-h-[38px] items-center gap-1 bg-white px-2 py-0"[39m
+        [36m>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"ml-auto flex items-center gap-1"[39m
+          [36m>[39m
+            [36m<span[39m
+              [33mclass[39m=[32m"relative inline-flex"[39m
+            [36m>[39m
+              [36m<button[39m
+                [33maria-describedby[39m=[32m"_r_6_"[39m
+                [33maria-label[39m=[32m"Add chart"[39m
+                [33mclass[39m=[32m"items-center justify-center gap-2 !text-[10px] !font-medium leading-none transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 focus-visible:ring-focus grid place-items-center size-6 rounded-xs p-0 bg-orange-50 text-orange-700 hover:bg-orange-100 hover:text-orange-800 focus-visible:bg-orange-100 focus-visible:text-orange-800"[39m
+                [33mtitle[39m=[32m"Add chart"[39m
+                [33mtype[39m=[32m"button"[39m
+              [36m>[39m
+                [36m<svg[39m
+                  [33maria-hidden[39m=[32m"true"[39m
+                  [33mfill[39m=[32m"currentColor"[39m
+                  [33mheight[39m=[32m"12"[39m
+                  [33mviewBox[39m=[32m"0 0 256 256"[39m
+                  [33mwidth[39m=[32m"12"[39m
+                  [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+                [36m>[39m
+                  [36m<path[39m
+                    [33md[39m=[32m"M224,128a8,8,0,0,1-8,8H136v80a8,8,0,0,1-16,0V136H40a8,8,0,0,1,0-16h80V40a8,8,0,0,1,16,0v80h80A8,8,0,0,1,224,128Z"[39m
+                  [36m/>[39m
+                [36m</svg>[39m
+              [36m</button>[39m
+            [36m</span>[39m
+          [36m</div>[39m
+        [36m</div>[39m
+      [36m</div>[39m
+      [36m<div[39m
+        [33mclass[39m=[32m"min-h-0 flex-1 overflow-auto p-1"[39m
+      [36m>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"grid gap-3"[39m
+          [33mstyle[39m=[32m"grid-template-columns: repeat(1, minmax(220px, 1fr));"[39m
+        [36m>[39m
+          [36m<section[39m
+            [33mclass[39m=[32m"min-w-0 overflow-hidden rounded-xs border border-hairline bg-white"[39m
+            [33mdata-testid[39m=[32m"project-chart-column"[39m
+          [36m>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"grid min-h-11 grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 border-b border-hairline px-3 py-2"[39m
+            [36m>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"min-w-0 flex-1"[39m
+              [36m>[39m
+                [36m<span[39m
+                  [33mclass[39m=[32m"relative inline-flex min-w-0 items-center transition focus-within:border-accent focus-within:ring-2 focus-within:ring-focus"[39m
+                [36m>[39m
+                  [36m<select[39m
+                    [33maria-label[39m=[32m"Chart 1 estimate"[39m
+                    [33mclass[39m=[32m"h-5 min-w-0 appearance-none border-0 border-hairline bg-transparent pl-0 pr-6 !text-[9px] font-medium leading-none text-ink outline-none transition-colors disabled:cursor-not-allowed disabled:opacity-50 border-b-0 hover:border-transparent focus:border-transparent"[39m
+                  [36m>[39m
+                    [36m<option[39m
+                      [33mvalue[39m=[32m"estimate-a"[39m
+                    [36m>[39m
+                      [0mBaseline[0m
+                    [36m</option>[39m
+                    [36m<option[39m
+                      [33mvalue[39m=[32m"estimate-b"[39m
+                    [36m>[39m
+                      [0mRevision[0m
+                    [36m</option>[39m
+                  [36m</select>[39m
+                  [36m<svg[39m
+                    [33maria-hidden[39m=[32m"true"[39m
+                    [33mclass[39m=[32m"pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-tertiary"[39m
+                    [33mfill[39m=[32m"currentColor"[39m
+                    [33mheight[39m=[32m"8"[39m
+                    [33mviewBox[39m=[32m"0 0 256 256"[39m
+                    [33mwidth[39m=[32m"8"[39m
+                    [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+                  [36m>[39m
+                    [36m<path[39m
+                      [33md[39m=[32m"M213.66,101.66l-80,80a8,8,0,0,1-11.32,0l-80-80A8,8,0,0,1,53.66,90.34L128,164.69l74.34-74.35a8,8,0,0,1,11.32,11.32Z"[39m
+                    [36m/>[39m
+                  [36m</svg>[39m
+                [36m</span>[39m
+              [36m</div>[39m
+              [36m<p[39m
+                [33mclass[39m=[32m"justify-self-center text-[10px] font-medium tabular-nums text-foreground"[39m
+                [33mdata-testid[39m=[32m"chart-1-total"[39m
+              [36m>[39m
+                [0m₱225[0m
+              [36m</p>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"justify-self-end"[39m
+              [36m/>[39m
+            [36m</div>[39m
+            [36m<div[39m
+              [33maria-label[39m=[32m"Loading bubble chart"[39m
+              [33mclass[39m=[32m"flex min-h-[520px] items-center justify-center rounded-xs border border-dashed border-hairline text-[10px] text-muted-foreground"[39m
+              [33mrole[39m=[32m"status"[39m
+            [36m>[39m
+              [0mLoading chart[0m
+            [36m</div>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"overflow-hidden border-t border-hairline"[39m
+            [36m>[39m
+              [36m<table[39m
+                [33maria-label[39m=[32m"Baseline bucket table"[39m
+                [33mclass[39m=[32m"w-full border-collapse text-[10px]"[39m
+              [36m>[39m
+                [36m<thead[39m
+                  [33mclass[39m=[32m"bg-muted/30 text-[9px] uppercase tracking-normal text-muted-foreground"[39m
+                [36m>[39m
+                  [36m<tr>[39m
+                    [36m<th[39m
+                      [33mclass[39m=[32m"px-2 py-2 text-left font-medium"[39m
+                    [36m>[39m
+                      [0mSpace[0m
+                    [36m</th>[39m
+                    [36m<th[39m
+                      [33mclass[39m=[32m"px-2 py-2 text-right font-medium"[39m
+                    [36m>[39m
+                      [0mCost[0m
+                    [36m</th>[39m
+                    [36m<th[39m
+                      [33mclass[39m=[32m"px-2 py-2 text-right font-medium"[39m
+                    [36m>[39m
+                      [0mShare[0m
+                    [36m</th>[39m
+                  [36m</tr>[39m
+                [36m</thead>[39m
+                [36m<tbody>[39m
+                  [36m<tr[39m
+                    [33mclass[39m=[32m"border-t border-hairline bg-muted/20"[39m
+                  [36m>[39m
+                    [36m<td[39m
+                      [33mclass[39m=[32m"max-w-36 truncate py-2 pr-2 font-medium text-foreground"[39m
+                      [33mstyle[39m=[32m"padding-left: 8px;"[39m
+                    [36m>[39m
+                      [36m<span[39m
+                        [33mclass[39m=[32m"mr-1.5 inline-block h-2 w-2 rounded-xs border border-hairline bg-white"[39m
+                      [36m/>[39m
+                      [36m<span[39m
+                        [33mclass[39m=[32m"font-medium"[39m
+                      [36m>[39m
+                        [0mHouse[0m
+                      [36m</span>[39m
+                    [36m</td>[39m
+                    [36m<td[39m
+                      [33mclass[39m=[32m"px-2 py-2 text-right tabular-nums"[39m
+                    [36m>[39m
+                      [0m₱225[0m
+                    [36m</td>[39m
+                    [36m<td[39m
+                      [33mclass[39m=[32m"px-2 py-2 text-right tabular-nums text-muted-foreground"[39m
+                    [36m>[39m
+                      [0m100%[0m
+                    [36m</td>[39m
+                  [36m</tr>[39m
+                  [36m<tr[39m
+                    [33mclass[39m=[32m"border-t border-hairline bg-muted/20"[39m
+                  [36m>[39m
+                    [36m<td[39m
+                      [33mclass[39m=[32m"max-w-36 truncate py-2 pr-2 font-medium text-foreground"[39m
+                      [33mstyle[39m=[32m"padding-left: 20px;"[39m
+                    [36m>[39m
+                      [36m<span[39m
+                        [33mclass[39m=[32m"mr-1.5 inline-block h-2 w-2 rounded-xs border border-hairline bg-white"[39m
+                      [36m/>[39m
+                      [36m<span[39m
+                        [33mclass[39m=[32m"font-medium"[39m
+                      [36m>[39m
+                        [0mLevel 1[0m
+                      [36m</span>[39m
+                    [36m</td>[39m
+                    [36m<td[39m
+                      [33mclass[39m=[32m"px-2 py-2 text-right tabular-nums"[39m
+                    [36m>[39m
+                      [0m₱225[0m
+                    [36m</td>[39m
+                    [36m<td[39m
+                      [33mclass[39m=[32m"px-2 py-2 text-right tabular-nums text-muted-foreground"[39m
+                    [36m>[39m
+                      [0m100%[0m
+                    [36m</td>[39m
+                  [36m</tr>[39m
+                  [36m<tr[39m
+                    [33mclass[39m=[32m"border-t border-hairline"[39m
+                  [36m>[39m
+                    [36m<td[39m
+                      [33mclass[39m=[32m"max-w-36 truncate py-2 pr-2 font-medium text-foreground"[39m
+                      [33mstyle[39m=[32m"padding-left: 32px;"[39m
+                    [36m>[39m
+                      [36m<span[39m
+                        [33mclass[39m=[32m"mr-1.5 inline-block h-2 w-2 rounded-xs"[39m
+                        [33mstyle[39m=[32m"background-color: rgb(47, 93, 80);"[39m
+                      [36m/>[39m
+                      [36m<span>[39m
+                        [0mGround Floor[0m
+                      [36m</span>[39m
+                    [36m</td>[39m
+                    [36m<td[39m
+                      [33mclass[39m=[32m"px-2 py-2 text-right tabular-nums"[39m
+                    [36m>[39m
+                      [0m₱225[0m
+                    [36m</td>[39m
+                    [36m<td[39m
+                      [33mclass[39m=[32m"px-2 py-2 text-right tabular-nums text-muted-foreground"[39m
+                    [36m>[39m
+                      [0m100%[0m
+                    [36m</td>[39m
+                  [36m</tr>[39m
+                [36m</tbody>[39m
+              [36m</table>[39m
+            [36m</div>[39m
+          [36m</section>[39m
+        [36m</div>[39m
+      [36m</div>[39m
+    [36m</section>[39m
+  [36m</div>[39m
+[36m</body>[39m
+ ❯ waitForWrapper node_modules/@testing-library/dom/dist/wait-for.js:163:27
+ ❯ node_modules/@testing-library/dom/dist/query-helpers.js:86:33
+ ❯ tests/vitest/project-charts-ui.test.tsx:133:25
+    131|     expect(screen.getByRole("button", { name: "Bubble Chart" })).toHav…
+    132|     expect(screen.queryByTestId("d3-donut-chart")).not.toBeInTheDocume…
+    133|     expect(await screen.findByTestId("d3-bubble-chart")).toBeInTheDocu…
+       |                         ^
+    134|     expect((await screen.findAllByTestId("bubble-node")).length).toBeG…
+    135|   });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed | 1 passed (2)
+      Tests  1 failed | 23 passed (24)
+   Start at  16:36:19
+   Duration  60.17s (transform 11.59s, setup 3.20s, import 19.73s, tests 17.70s, environment 9.31s)
+

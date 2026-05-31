@@ -1,0 +1,304 @@
+
+ RUN  v4.1.7 /Users/philiplewis/archestimator
+
+ ❯ tests/vitest/route-transition-measure-script.test.ts (1 test | 1 failed) 26ms
+     × captures repeatable production-like route transition evidence without requiring auth by default 23ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/vitest/route-transition-measure-script.test.ts > route transition measurement script governance > captures repeatable production-like route transition evidence without requiring auth by default
+AssertionError: expected '#!/usr/bin/env bun\n/**\n * Automated…' to contain 'from "@playwright/test"'
+
+- Expected
++ Received
+
+- from "@playwright/test"
++ #!/usr/bin/env bun
++ /**
++  * Automated Route Transition Measurement Script
++  *
++  * Usage: bun run scripts/measure-route-transitions.ts
++  *
++  * Prerequisites:
++  * 1. App running at localhost:3000 (`bun run dev` or `bun run build && bun run start`)
++  * 2. Playwright installed (`npx playwright install chromium`)
++  * 3. Authenticated session (set PLAYWRIGHT_STORAGE_STATE or run login flow first)
++  *
++  * This script measures route transition timing for all major navigation paths.
++  * Results are printed to stdout in CSV format for easy import into spreadsheets.
++  *
++  * This is a DIAGNOSTIC/PLANNING tool — not production code. It supports the
++  * performance audit by collecting actual baseline numbers.
++  */
++
++ import { chromium, type Browser, type Page } from "playwright";
++
++ const BASE_URL = process.env.BASE_URL ?? "http://localhost:3000";
++ const RUNS = 3; // Number of runs per scenario for statistical significance
++ const NETWORK_PROFILE = process.env.NETWORK_PROFILE ?? "Fast 3G"; // "No throttle" | "Fast 3G" | "Slow 3G"
++
++ // Network throttling presets (matching Chrome DevTools)
++ const NETWORK_PRESETS: Record<string, { download: number; upload: number; latency: number }> = {
++   "No throttle": { download: -1, upload: -1, latency: 0 },
++   "Fast 3G": { download: (1.5 * 1024 * 1024) / 8, upload: (750 * 1024) / 8, latency: 150 },
++   "Slow 3G": { download: (400 * 1024) / 8, upload: (400 * 1024) / 8, latency: 400 },
++ };
++
++ interface Scenario {
++   name: string;
++   from: string; // Starting URL
++   action: (page: Page) => Promise<void>; // How to trigger navigation
++ }
++
++ // ── Scenarios ──────────────────────────────────────────────────────────
++
++ const SCENARIOS: Scenario[] = [
++   // Sidebar Navigation (Cold)
++   {
++     name: "Cold: Workshop → Projects",
++     from: "/workshop",
++     action: async (page) => {
++       await page.click('a[href="/workshop/projects"]');
++     },
++   },
++   {
++     name: "Cold: Workshop → Library",
++     from: "/workshop",
++     action: async (page) => {
++       await page.click('a[href="/workshop/library"]');
++     },
++   },
++   {
++     name: "Cold: Workshop → Templates",
++     from: "/workshop",
++     action: async (page) => {
++       await page.click('a[href="/workshop/templates"]');
++     },
++   },
++   {
++     name: "Cold: Workshop → Settings",
++     from: "/workshop",
++     action: async (page) => {
++       await page.click('a[href="/workshop/settings"]');
++     },
++   },
++
++   // Sidebar Navigation (Warm)
++   {
++     name: "Warm: Projects → Workshop → Projects",
++     from: "/workshop/projects",
++     action: async (page) => {
++       // Navigate away
++       await page.click('a[href="/workshop"]');
++       await page.waitForURL("**/workshop");
++       // Navigate back
++       await page.click('a[href="/workshop/projects"]');
++     },
++   },
++
++   // Project Navigation
++   {
++     name: "Cold: Projects → Project Detail",
++     from: "/workshop/projects",
++     action: async (page) => {
++       // Click the first project card
++       const card = page.locator("[data-project-card], a[href*='/workshop/projects/']").first();
++       await card.click();
++     },
++   },
++
++   // Browser Back
++   {
++     name: "Browser Back: Estimate → Estimates List",
++     from: "/workshop/projects",
++     action: async (page) => {
++       // First navigate forward to an estimate, then go back
++       // This is a simplified version — real test would track specific URLs
++       await page.goBack();
++     },
++   },
++
++   // Landing Page Navigation
++   {
++     name: "Cold: Landing → Features",
++     from: "/",
++     action: async (page) => {
++       await page.click('a[href="/features"]');
++     },
++   },
++   {
++     name: "Cold: Landing → Pricing",
++     from: "/",
++     action: async (page) => {
++       await page.click('a[href="/pricing"]');
++     },
++   },
++   {
++     name: "Cold: Landing → Login",
++     from: "/",
++     action: async (page) => {
++       await page.click('a[href="/login"]');
++     },
++   },
++ ];
++
++ // ── Measurement Engine ──────────────────────────────────────────────────
++
++ async function measureTransition(
++   page: Page,
++   scenario: Scenario,
++ ): Promise<number> {
++   await page.goto(`${BASE_URL}${scenario.from}`, { waitUntil: "networkidle" });
++
++   const currentUrl = page.url();
++
++   const navStart = await page.evaluate(() => performance.now());
++   await scenario.action(page);
++
++   // Wait for URL to actually change (Next.js SPA transition commits)
++   await page.waitForFunction(
++     (oldUrl: string) => window.location.href !== oldUrl,
++     currentUrl,
++     { timeout: 15000 },
++   );
++
++   // Wait for loading overlay to disappear or network to settle
++   await page.waitForFunction(
++     () => !document.querySelector("[data-route-overlay]"),
++     { timeout: 15000 },
++   ).catch(() => {
++     // Overlay might not exist if transition was fast enough
++   });
++
++   await page.waitForLoadState("networkidle", { timeout: 15000 });
++
++   const navEnd = await page.evaluate(() => performance.now());
++   return Math.round(navEnd - navStart);
++ }
++
++ // ── Main ────────────────────────────────────────────────────────────────
++
++ async function main() {
++   console.log("╔══════════════════════════════════════════════════╗");
++   console.log("║  Archestimator Route Transition Benchmark       ║");
++   console.log("╚══════════════════════════════════════════════════╝");
++   console.log(`\nBase URL: ${BASE_URL}`);
++   console.log(`Network:  ${NETWORK_PROFILE}`);
++   console.log(`Runs per scenario: ${RUNS}\n`);
++
++   const preset = NETWORK_PRESETS[NETWORK_PROFILE];
++   if (!preset) {
++     console.error(`Unknown network profile: ${NETWORK_PROFILE}`);
++     console.error(`Available: ${Object.keys(NETWORK_PRESETS).join(", ")}`);
++     process.exit(1);
++   }
++
++   const browser: Browser = await chromium.launch({ headless: true });
++   const context = await browser.newContext();
++
++   const results: Array<{ scenario: string; runs: number[]; median: number }> = [];
++
++   for (const scenario of SCENARIOS) {
++     const page: Page = await context.newPage();
++
++     // Apply network conditions
++     if (preset.download > 0) {
++       const client = await page.context().newCDPSession(page);
++       await client.send("Network.emulateNetworkConditions", {
++         offline: false,
++         downloadThroughput: preset.download,
++         uploadThroughput: preset.upload,
++         latency: preset.latency,
++       });
++     }
++
++     const timings: number[] = [];
++     console.log(`\n📊 ${scenario.name}`);
++
++     for (let run = 1; run <= RUNS; run++) {
++       try {
++         const duration = await measureTransition(page, scenario);
++         timings.push(duration);
++         console.log(`   Run ${run}: ${duration}ms`);
++       } catch (error) {
++         console.error(`   Run ${run}: FAILED — ${(error as Error).message}`);
++         timings.push(-1); // Mark as failed
++       }
++     }
++
++     const validTimings = timings.filter((t) => t > 0);
++     if (validTimings.length > 0) {
++       const sorted = [...validTimings].sort((a, b) => a - b);
++       const median = sorted[Math.floor(sorted.length / 2)];
++       results.push({ scenario: scenario.name, runs: validTimings, median });
++       console.log(`   Median: ${median}ms`);
++     } else {
++       console.log(`   ❌ All runs failed`);
++     }
++
++     await page.close();
++   }
++
++   await browser.close();
++
++   // ── Print Summary ──────────────────────────────────────────────────
++
++   console.log("\n\n╔══════════════════════════════════════════════════╗");
++   console.log("║  SUMMARY                                        ║");
++   console.log("╚══════════════════════════════════════════════════╝\n");
++
++   console.log("| Scenario | Median (ms) | Individual Runs |");
++   console.log("|----------|-------------|-----------------|");
++   for (const r of results) {
++     console.log(`| ${r.scenario} | ${r.median} | ${r.runs.join(", ")} |`);
++   }
++
++   // ── Print JSON for programmatic consumption ──────────────────────────
++
++   console.log("\n\n--- JSON OUTPUT ---");
++   console.log(JSON.stringify(results, null, 2));
++
++   // ── Recommendations ──────────────────────────────────────────────────
++
++   const slowThreshold = 300;
++   const slowScenarios = results.filter((r) => r.median > slowThreshold);
++   if (slowScenarios.length > 0) {
++     console.log(`\n⚠️  ${slowScenarios.length} scenarios exceed ${slowThreshold}ms threshold:`);
++     for (const s of slowScenarios) {
++       console.log(`   - ${s.scenario}: ${s.median}ms`);
++     }
++     console.log("\n   These should be prioritized in Phase 1 optimization.");
++   }
++
++   const fastThreshold = 150;
++   const fastScenarios = results.filter((r) => r.median <= fastThreshold);
++   if (fastScenarios.length > 0) {
++     console.log(`\n✅ ${fastScenarios.length} scenarios are already fast (<${fastThreshold}ms):`);
++     for (const s of fastScenarios) {
++       console.log(`   - ${s.scenario}: ${s.median}ms`);
++     }
++   }
++ }
++
++ main().catch((error) => {
++   console.error("Fatal error:", error);
++   process.exit(1);
++ });
++
+
+ ❯ tests/vitest/route-transition-measure-script.test.ts:8:27
+      6| describe("route transition measurement script governance", () => {
+      7|   it("captures repeatable production-like route transition evidence wi…
+      8|     expect(measureScript).toContain('from "@playwright/test"');
+       |                           ^
+      9|     expect(measureScript).toContain("OUTPUT_FILE");
+     10|     expect(measureScript).toContain("requiresAuth?: boolean");
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed (1)
+   Start at  20:56:45
+   Duration  5.79s (transform 188ms, setup 412ms, import 55ms, tests 26ms, environment 4.83s)
+

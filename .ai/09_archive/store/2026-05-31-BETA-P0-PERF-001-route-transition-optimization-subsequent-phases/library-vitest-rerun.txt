@@ -1,0 +1,371 @@
+
+ RUN  v4.1.7 /Users/philiplewis/archestimator
+
+ ❯ tests/vitest/component-library-manager-ui.test.tsx (14 tests | 2 failed) 34216ms
+     × renders the library workspace without the retired standalone manager chrome 10386ms
+     × searches folder labels without reintroducing procurement scopes as category folders 15613ms
+ ❯ tests/vitest/workshop-library-consolidation-ui.test.tsx (9 tests | 1 failed) 4226ms
+     × keeps Supabase upload review safeguards in place 15ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 3 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/vitest/component-library-manager-ui.test.tsx > component library manager UI > renders the library workspace without the retired standalone manager chrome
+TestingLibraryElementError: Unable to find a label with the text of: Component library tree
+
+Ignored nodes: comments, script, style
+[36m<body>[39m
+  [36m<div>[39m
+    [36m<div[39m
+      [33maria-label[39m=[32m"Loading library"[39m
+      [33mclass[39m=[32m"flex h-full min-h-0 overflow-hidden rounded-xs border-r border-hairline bg-white"[39m
+      [33mrole[39m=[32m"status"[39m
+    [36m>[39m
+      [36m<div[39m
+        [33mclass[39m=[32m"flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-canvas"[39m
+      [36m>[39m
+        [36m<section[39m
+          [33maria-label[39m=[32m"Component library workspace"[39m
+          [33mclass[39m=[32m"flex h-full min-h-0 overflow-hidden bg-white"[39m
+        [36m>[39m
+          [36m<div[39m
+            [33maria-hidden[39m=[32m"true"[39m
+            [33mclass[39m=[32m"flex min-w-0 flex-1 flex-col p-2"[39m
+          [36m>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-7 w-32"[39m
+            [36m/>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"mt-2 grid grid-cols-[repeat(auto-fill,minmax(164px,1fr))] gap-2"[39m
+            [36m>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-[236px] w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-[236px] w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-[236px] w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-[236px] w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-[236px] w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-[236px] w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-[236px] w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-[236px] w-full"[39m
+              [36m/>[39m
+            [36m</div>[39m
+          [36m</div>[39m
+          [36m<div[39m
+            [33maria-hidden[39m=[32m"true"[39m
+            [33mclass[39m=[32m"hidden w-[312px] shrink-0 border-l border-hairline p-2 lg:block"[39m
+          [36m>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-7 w-full"[39m
+            [36m/>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"mt-2 space-y-1"[39m
+            [36m>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-6 w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-6 w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-6 w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-6 w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-6 w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-6 w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-6 w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-6 w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-6 w-full"[39m
+              [36m/>[39m
+            [36m</div>[39m
+          [36m</div>[39m
+        [36m</section>[39m
+      [36m</div>[39m
+      [36m<span[39m
+        [33mclass[39m=[32m"sr-only"[39m
+      [36m>[39m
+        [0mLoading library[0m
+      [36m</span>[39m
+    [36m</div>[39m
+  [36m</div>[39m
+[36m</body>[39m
+
+Ignored nodes: comments, script, style
+[36m<body>[39m
+  [36m<div>[39m
+    [36m<div[39m
+      [33maria-label[39m=[32m"Loading library"[39m
+      [33mclass[39m=[32m"flex h-full min-h-0 overflow-hidden rounded-xs border-r border-hairline bg-white"[39m
+      [33mrole[39m=[32m"status"[39m
+    [36m>[39m
+      [36m<div[39m
+        [33mclass[39m=[32m"flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-canvas"[39m
+      [36m>[39m
+        [36m<section[39m
+          [33maria-label[39m=[32m"Component library workspace"[39m
+          [33mclass[39m=[32m"flex h-full min-h-0 overflow-hidden bg-white"[39m
+        [36m>[39m
+          [36m<div[39m
+            [33maria-hidden[39m=[32m"true"[39m
+            [33mclass[39m=[32m"flex min-w-0 flex-1 flex-col p-2"[39m
+          [36m>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-7 w-32"[39m
+            [36m/>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"mt-2 grid grid-cols-[repeat(auto-fill,minmax(164px,1fr))] gap-2"[39m
+            [36m>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-[236px] w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-[236px] w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-[236px] w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-[236px] w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-[236px] w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-[236px] w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-[236px] w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-[236px] w-full"[39m
+              [36m/>[39m
+            [36m</div>[39m
+          [36m</div>[39m
+          [36m<div[39m
+            [33maria-hidden[39m=[32m"true"[39m
+            [33mclass[39m=[32m"hidden w-[312px] shrink-0 border-l border-hairline p-2 lg:block"[39m
+          [36m>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-7 w-full"[39m
+            [36m/>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"mt-2 space-y-1"[39m
+            [36m>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-6 w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-6 w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-6 w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-6 w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-6 w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-6 w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-6 w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-6 w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-6 w-full"[39m
+              [36m/>[39m
+            [36m</div>[39m
+          [36m</div>[39m
+        [36m</section>[39m
+      [36m</div>[39m
+      [36m<span[39m
+        [33mclass[39m=[32m"sr-only"[39m
+      [36m>[39m
+        [0mLoading library[0m
+      [36m</span>[39m
+    [36m</div>[39m
+  [36m</div>[39m
+[36m</body>[39m
+ ❯ waitForWrapper node_modules/@testing-library/dom/dist/wait-for.js:163:27
+ ❯ node_modules/@testing-library/dom/dist/query-helpers.js:86:33
+ ❯ renderLibrary tests/vitest/component-library-manager-ui.test.tsx:205:16
+    203|     />,
+    204|   );
+    205|   await screen.findByLabelText("Component library tree", undefined, { …
+       |                ^
+    206|   return result;
+    207| }
+ ❯ tests/vitest/component-library-manager-ui.test.tsx:237:11
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/3]⎯
+
+ FAIL  tests/vitest/component-library-manager-ui.test.tsx > component library manager UI > searches folder labels without reintroducing procurement scopes as category folders
+Error: Test timed out in 15000ms.
+If this is a long-running test, pass a timeout value as the last argument or configure it globally with "testTimeout".
+ ❯ tests/vitest/component-library-manager-ui.test.tsx:654:3
+    652|   });
+    653|
+    654|   it("searches folder labels without reintroducing procurement scopes …
+       |   ^
+    655|     render(<LibraryPageClient />);
+    656|     await screen.findByLabelText("Component library tree", undefined, …
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/3]⎯
+
+ FAIL  tests/vitest/workshop-library-consolidation-ui.test.tsx > workshop library consolidation UI > keeps Supabase upload review safeguards in place
+AssertionError: expected 'import type { NextConfig } from "next…' to contain 'const protocol = url.protocol === "ht…'
+
+- Expected
++ Received
+
+- const protocol = url.protocol === "http:" ? "http" : url.protocol === "https:" ? "https" : null
++ import type { NextConfig } from "next";
++
++ type ImageRemotePattern = Exclude<NonNullable<NonNullable<NextConfig["images"]>["remotePatterns"]>[number], URL>;
++
++ const landingReportOnlyCsp = [
++   "default-src 'self'",
++   "base-uri 'self'",
++   "frame-ancestors 'none'",
++   "object-src 'none'",
++   "form-action 'self'",
++   "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com https://www.google-analytics.com https://www.clarity.ms",
++   "style-src 'self' 'unsafe-inline'",
++   "img-src 'self' data: blob: https://*.supabase.co https://www.google-analytics.com https://www.googletagmanager.com https://*.clarity.ms",
++   "font-src 'self' data:",
++   "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://www.google-analytics.com https://region1.google-analytics.com https://www.clarity.ms https://*.clarity.ms",
++ ].join("; ");
++
++ // P11: Separate sources for enforced CSP on public share (additive security upgrade from Report-Only)
++ // Landing/other pages remain Report-Only (existing behavior).
++ // Share API gets the 3 required security headers (central, minimal blast, consistent with existing no-store in handlers).
++ // Policy value kept identical for share enforced (no tighten) — tracking domains (GA4/Clarity) verified never loaded on /share (landing-only components + providers + consent gate in src/lib/landing/* and app/page.tsx only; see P11 tests + grep).
++ // This is the best engineering choice: additive, 0 execution flow impact (graph confirmed), backwards compat for all P0-P10 share flows (view, password P10, session P5, interactive tabs/comments/decisions), fail-closed enforcement, one-file change.
++ const sharePageSource = "/share/:path*";
++ const shareApiSource = "/api/share/:path*";
++
++ const supabaseImageRemotePatterns = ((): ImageRemotePattern[] => {
++   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
++   if (!supabaseUrl) return [];
++   try {
++     const url = new URL(supabaseUrl);
++     const protocol: "http" | "https" | null = url.protocol === "http:" ? "http" : url.protocol === "https:" ? "https" : null;
++     if (!protocol) return [];
++     const base = {
++       protocol,
++       hostname: url.hostname,
++       port: url.port,
++       search: "",
++     };
++     // P9: cover both component library images and project cover images (from metadata.projectImageUrl)
++     // for Next/Image optimization on receiver hero + row thumbnails. Backwards compat.
++     return [
++       { ...base, pathname: "/storage/v1/object/public/component-images/**" },
++       { ...base, pathname: "/storage/v1/object/public/project-images/**" },
++     ];
++   } catch {
++     return [];
++   }
++ })();
++
++ const nextConfig: NextConfig = {
++   allowedDevOrigins: ["127.0.0.1"],
++   experimental: {
++     optimizePackageImports: ["@phosphor-icons/react"],
++   },
++   images: {
++     remotePatterns: supabaseImageRemotePatterns,
++   },
++   async headers() {
++     // P11: landing + about etc remain Report-Only (no behavior change)
++     const landingReportOnly = [
++       "/",
++       "/about",
++       "/features",
++       "/pricing",
++       "/contact",
++     ].map((source) => ({
++       source,
++       headers: [
++         {
++           key: "Content-Security-Policy-Report-Only",
++           value: landingReportOnlyCsp,
++         },
++       ],
++     }));
++
++     // P11: /share/:path* now enforced CSP (upgrade from Report-Only)
++     const sharePageEnforced = [
++       {
++         source: sharePageSource,
++         headers: [
++           {
++             key: "Content-Security-Policy",
++             value: landingReportOnlyCsp,
++           },
++         ],
++       },
++     ];
++
++     // P11: share API routes get the 3 required headers (additive to per-route no-store etc.)
++     const shareApiSecurityHeaders = [
++       {
++         source: shareApiSource,
++         headers: [
++           { key: "X-Content-Type-Options", value: "nosniff" },
++           { key: "X-Frame-Options", value: "DENY" },
++           { key: "Referrer-Policy", value: "no-referrer-when-downgrade" },
++         ],
++       },
++     ];
++
++     return [...landingReportOnly, ...sharePageEnforced, ...shareApiSecurityHeaders];
++   },
++ };
++
++ export default nextConfig;
++
+
+ ❯ tests/vitest/workshop-library-consolidation-ui.test.tsx:276:24
+    274|     expect(addComponentModal).toContain("isImageUploadBusy(imageUpload…
+    275|     expect(addComponentModal).toContain("disabled={isPending || imageB…
+    276|     expect(nextConfig).toContain('const protocol = url.protocol === "h…
+       |                        ^
+    277|     expect(nextConfig).toContain("remotePatterns: supabaseImageRemoteP…
+    278|     expect(nextConfig).not.toContain('hostname: "**"');
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/3]⎯
+
+
+ Test Files  2 failed (2)
+      Tests  3 failed | 20 passed (23)
+   Start at  15:41:03
+   Duration  41.50s (transform 4.78s, setup 186ms, import 434ms, tests 38.44s, environment 1.74s)
+

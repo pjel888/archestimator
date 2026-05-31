@@ -512,7 +512,7 @@
 | Required evidence | Percentage of users who scroll past first 10 items, filter usage if added |
 | Next product decision | Determine if feed needs filtering or if it should be collapsed by default |
 
-### 16. Invite entry (local E2E passed)
+### 16. Invite entry (config-blocked; local code path exists)
 
 | Dimension | Score | Notes |
 |-----------|-------|-------|
@@ -523,7 +523,7 @@
 | Loading state | 0 | Not audited |
 | Error state | 2 | Invalid/expired invite messaging exists |
 | Success state | 2 | Redirect to workspace on successful join |
-| Recovery path | 3 | Expired invite can be re-sent; local E2E tests pass recovery scenarios |
+| Recovery path | 2 | Expired invite can be re-sent in the intended flow; end-to-end readiness is blocked until provider/env setup and POST-only accept are proven |
 | Keyboard accessibility | 0 | Not audited |
 | Screen-reader accessibility | 0 | Not audited |
 | Mobile/desktop guard | 0 | Not audited |
@@ -532,16 +532,16 @@
 | Cognitive load | 2 | Simple, single-purpose page |
 | First-time-user guidance | 0 | Not audited |
 | Power-user efficiency | 0 | Not audited |
-| Evidence quality | 0 | No user observation data (E2E tests are automated, not user observation) |
+| Evidence quality | 0 | No user observation data; local code-path evidence does not prove configured invite delivery or acceptance |
 
 | Metric | Value |
 |--------|-------|
 | Current average | 1.1 |
 | Target beta | 3.0 |
 | Target public launch | 4.0 |
-| Main UX risk | Invite email lands in spam; user doesn't know what workspace they're joining |
-| Required evidence | Invite-acceptance completion rate, time-from-email-to-join |
-| Next product decision | Audit invite email copy and deliverability; add workspace context to accept page |
+| Main UX risk | Invite delivery and acceptance are config-blocked; user doesn't know what workspace they're joining |
+| Required evidence | Supabase Auth/provider/env proof, POST-only accept test, invite-acceptance completion rate, time-from-email-to-join |
+| Next product decision | Complete collaboration Wave 1/2 unblock, then audit invite email copy and deliverability plus workspace context |
 
 ### 17. Ask Flip (AI assistant)
 
@@ -785,7 +785,7 @@ All scores are provisional. The scorecard is designed to highlight what we don't
 | 10 | Comments/decisions | (covered by UX-003) | 1.3 | 2.5 | 4.0 | Thread UX, decision flag clarity | Threaded comments, clear decision marking, activity feed | Comments save/show; decisions flaggable; basic activity feed works | Comments lost; decisions broken; activity empty; no author attribution |
 | 11 | Ask Flip (AI) | BETA-P0-AI-001 | 1.4 | 2.5 | 4.0 | Scope understanding (read-only), timeout, workspace isolation | User understands it's read-only and workspace-scoped; useful responses < 15s; clear error on timeout | Clear scope label; responses are relevant; timeout shows feedback; errors are graceful | User thinks AI can write data; AI accesses wrong workspace; hangs indefinitely |
 | 12 | Package builder (AI) | BETA-P0-AI-001 | 1.4 | 2.5 | 4.0 | Confirmation gate clarity, output quality | Confirmation required before apply; draft quality high; user modifies < 50% of suggestions | Confirmation gate clear; drafts generate; apply works; user can edit before apply | Applies without confirmation; requires no user review; AI errors written to estimate |
-| 13 | Invite acceptance | BETA-P0-UX-001 | 1.5 | 3.0 | 4.0 | Wrong-account recovery, expired token UX | All invite states handled gracefully; wrong-account flow clear; expired token informative | Invite works for signed-out and signed-in users; wrong-account detected; expired token shows message | Invite broken; wrong-account silent failure; expired token crashes; no recovery |
+| 13 | Invite acceptance | BETA-P0-UX-001 | 1.5 | 3.0 | 4.0 | Provider/env unblock, POST-only acceptance, wrong-account recovery, expired token UX | All invite states handled gracefully; wrong-account flow clear; expired token informative; configured invite delivery works | Invite works for signed-out and signed-in users after Wave 1/2; wrong-account detected; expired token shows message | Invite config blocked; GET mutates; wrong-account silent failure; expired token crashes; no recovery |
 | 14 | Project creation | (covered by UX-001) | 1.6 | 2.5 | 3.5 | Modal UX, empty project guidance | Fast modal, auto-creates estimate draft, clear next step | Modal works, project appears after creation, estimate draft exists | Creation fails silently; project doesn't appear; no estimate created |
 | 15 | Settings/profile | (covered by UX-001) | 1.3 | 2.0 | 3.5 | Account deletion safety | Profile management, account deletion with confirmation cascade | Profile view/edit works; logout works; basic settings functional | Deletion broken; profile save fails; logout broken |
 | 16 | Collaboration cursors | (covered by UX-002) | 1.2 | 2.0 | 3.5 | Real-time performance, cursor accuracy | Smooth cursor movement, clear attribution, presence indicators | Cursors visible; basic presence works; no performance hit | Cursors laggy; presence broken; causes estimate editing latency |

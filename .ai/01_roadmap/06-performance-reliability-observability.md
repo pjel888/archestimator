@@ -150,7 +150,7 @@ Every cell marked `NO BENCHMARKS` or `UNKNOWN` is a known evidence gap. These ar
 
 ## Collaboration & Sharing Audit Integration Note — 2026-05-30
 
-This document is a reference domain deep-dive. For detailed, current collaboration/share performance and observability truth, consult `.ai/03_plans/collaboration-and-sharing-audit/` — specifically `06-performance-and-observability-plan.md`. Key audit findings relevant to this domain:
+This document is a reference domain deep-dive. For detailed, current collaboration/share performance and observability truth, consult `.ai/03_plans/share-and-collaboration-implementation/` — specifically `06-performance-and-observability-plan.md`. Key audit findings relevant to this domain:
 
 - **Persistent rate limiter store required** — invite and shared-link rate limiting must use durable storage (Redis/Upstash), not in-memory. Restart-surviving lockout is a beta requirement.
 - **Invite/share abuse metrics** — monitor invite acceptance spikes, shared-link password brute-force attempts, and magic-link creation velocity

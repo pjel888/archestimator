@@ -1,0 +1,101 @@
+Archestimator route transition benchmark
+Base URL: http://127.0.0.1:3042
+Network: Slow 3G
+Runs per scenario: 3
+Scenario filter: contact
+
+Scenario: Public: About to Contact
+   Run 1: 6027ms, overlay=false, rsc=4
+   Run 2: 1874ms, overlay=true, rsc=9
+   Run 3: 1893ms, overlay=true, rsc=9
+
+Scenario: Public: Pricing to Contact
+   Run 1: 6227ms, overlay=false, rsc=4
+   Run 2: 3177ms, overlay=true, rsc=8
+   Run 3: 1898ms, overlay=true, rsc=8
+
+| Scenario | Median (ms) | Overlay rate | RSC requests | Runs | Failures |
+|----------|-------------|--------------|--------------|------|----------|
+| Public: About to Contact | 1893 | 0.67 | 22 | 3 | 0 |
+| Public: Pricing to Contact | 3177 | 0.67 | 20 | 3 | 0 |
+
+Wrote benchmark JSON: .ai/09_archive/store/2026-05-31-BETA-P0-PERF-001-route-transition-optimization-subsequent-phases/route-transition-measure-script-contact-slow3g-3042.json
+
+--- JSON OUTPUT ---
+{
+  "generatedAt": "2026-05-31T13:07:27.047Z",
+  "baseUrl": "http://127.0.0.1:3042",
+  "networkProfile": "Slow 3G",
+  "runsPerScenario": 3,
+  "scenarioFilter": "contact",
+  "skipAuthenticated": true,
+  "skippedScenarios": [],
+  "results": [
+    {
+      "scenario": "Public: About to Contact",
+      "from": "/about",
+      "expectedPathname": "/contact",
+      "networkProfile": "Slow 3G",
+      "runs": [
+        {
+          "run": 1,
+          "durationMs": 6027,
+          "overlayVisible": false,
+          "rscRequestCount": 4,
+          "finalPathname": "/contact"
+        },
+        {
+          "run": 2,
+          "durationMs": 1874,
+          "overlayVisible": true,
+          "rscRequestCount": 9,
+          "finalPathname": "/contact"
+        },
+        {
+          "run": 3,
+          "durationMs": 1893,
+          "overlayVisible": true,
+          "rscRequestCount": 9,
+          "finalPathname": "/contact"
+        }
+      ],
+      "failures": [],
+      "medianMs": 1893,
+      "overlayVisibilityRate": 0.6666666666666666,
+      "rscRequestCount": 22
+    },
+    {
+      "scenario": "Public: Pricing to Contact",
+      "from": "/pricing",
+      "expectedPathname": "/contact",
+      "networkProfile": "Slow 3G",
+      "runs": [
+        {
+          "run": 1,
+          "durationMs": 6227,
+          "overlayVisible": false,
+          "rscRequestCount": 4,
+          "finalPathname": "/contact"
+        },
+        {
+          "run": 2,
+          "durationMs": 3177,
+          "overlayVisible": true,
+          "rscRequestCount": 8,
+          "finalPathname": "/contact"
+        },
+        {
+          "run": 3,
+          "durationMs": 1898,
+          "overlayVisible": true,
+          "rscRequestCount": 8,
+          "finalPathname": "/contact"
+        }
+      ],
+      "failures": [],
+      "medianMs": 3177,
+      "overlayVisibilityRate": 0.6666666666666666,
+      "rscRequestCount": 20
+    }
+  ]
+}
