@@ -1,0 +1,42 @@
+$ playwright test e2e/route-transition-performance.spec.ts
+
+Running 3 tests using 1 worker
+
+(node:88299) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:88299) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  1 [chromium] › e2e/route-transition-performance.spec.ts:58:7 › route transition performance evidence › captures public route baseline metrics (35.9s)
+(node:90918) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:90918) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  2 [chromium] › e2e/route-transition-performance.spec.ts:77:7 › route transition performance evidence › keeps protected redirect from leaving the route overlay mounted (1.7s)
+  -  3 [chromium] › e2e/route-transition-performance.spec.ts:89:7 › route transition performance evidence › captures authenticated workshop transition metrics when dev auth is enabled
+
+
+  1) [chromium] › e2e/route-transition-performance.spec.ts:58:7 › route transition performance evidence › captures public route baseline metrics 
+
+    [31mTest timeout of 30000ms exceeded.[39m
+
+    Error: page.goto: net::ERR_ABORTED; maybe frame was detached?
+    Call log:
+    [2m  - navigating to "http://127.0.0.1:3000/features", waiting until "domcontentloaded"[22m
+
+
+      60 |
+      61 |     for (const route of ["/", "/features", "/pricing"]) {
+    > 62 |       await page.goto(route, { waitUntil: "domcontentloaded" });
+         |                  ^
+      63 |       await page.waitForLoadState("networkidle");
+      64 |       snapshots.push(await collectRouteMetrics(page));
+      65 |       await page.evaluate(() => performance.clearResourceTimings());
+        at /Users/philiplewis/archestimator/e2e/route-transition-performance.spec.ts:62:18
+
+    Error Context: test-results/route-transition-performan-2bbf7-blic-route-baseline-metrics-chromium/error-context.md
+
+  1 failed
+    [chromium] › e2e/route-transition-performance.spec.ts:58:7 › route transition performance evidence › captures public route baseline metrics 
+  1 skipped
+  1 passed (57.8s)
+error: script "test:e2e:perf" exited with code 1

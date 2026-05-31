@@ -1,13 +1,12 @@
-import { WorkshopPageShell } from "@/components/workshop/WorkshopPageShell";
+import { StaticWorkshopLoadingShell } from "@/components/workshop/StaticWorkshopLoadingShell";
 import { Skeleton } from "@/components/ui/skeleton";
 
-export default async function Loading() {
+export default function Loading() {
   return (
-    <WorkshopPageShell
+    <StaticWorkshopLoadingShell
       title="Onboarding"
       eyebrow="Workshop"
       showEyebrow={false}
-      breadcrumbs={["Onboarding"]}
       contentClassName="overflow-y-auto p-2"
     >
       <div className="flex min-h-[50vh] items-center justify-center">
@@ -22,6 +21,6 @@ export default async function Loading() {
           <Skeleton className="mx-auto h-10 w-32" />
         </div>
       </div>
-    </WorkshopPageShell>
+    </StaticWorkshopLoadingShell>
   );
 }

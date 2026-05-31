@@ -1,0 +1,71 @@
+## feat/route-transition-perf
+ M .ai/03_plans/route-transition-performance-optimization/CURRENT_CANONICAL_PLAN.md
+ M .ai/03_plans/route-transition-performance-optimization/IMPLEMENTATION_MATRIX.md
+ M .ai/10_state/current-state.md
+ M "archestimator_pitch deck/Archestimator Deck.html"
+ M e2e/auth.spec.ts
+ M package.json
+ M src/app/providers.tsx
+ M src/app/workshop/library/loading.tsx
+ M src/app/workshop/loading.tsx
+ M src/app/workshop/onboarding/loading.tsx
+ M src/app/workshop/projects/[projectId]/layout.tsx
+ M src/app/workshop/projects/loading.tsx
+ M src/app/workshop/settings/loading.tsx
+ M src/app/workshop/templates/loading.tsx
+ M src/components/landing/ContactForm.tsx
+ M src/components/landing/HeroSection.tsx
+ M src/components/sidebar/MainSidebar.tsx
+ M src/components/sidebar/SidebarNavItemRow.tsx
+ M src/components/workshop/LibraryPageClient.tsx
+ M src/components/workshop/LiveProjectCard.tsx
+ M src/components/workshop/ProjectEstimatesTable.tsx
+ M src/components/workshop/component-library-manager/ComponentLibraryManager.tsx
+ M src/components/workshop/project-charts/ProjectChartsClient.tsx
+ M src/components/workshop/projects-page-client.tsx
+ M src/hooks/use-estimate-query.ts
+ M src/hooks/use-prefetch-on-hover.ts
+ M src/lib/repositories/workspace-repository.ts
+ M src/proxy.ts
+ M tests/vitest/auth-proxy.test.ts
+ M tests/vitest/component-library-manager-ui.test.tsx
+ M tests/vitest/estimate-sheet-cost-inputs.test.tsx
+ M tests/vitest/project-estimates-table-inline-edit.test.tsx
+ M tests/vitest/workshop-library-consolidation-ui.test.tsx
+?? .ai/09_archive/store/2026-05-31-BETA-P0-PERF-001-route-transition-optimization-slice-1/
+?? .ai/09_archive/store/2026-05-31-BETA-P0-PERF-001-route-transition-optimization-subsequent-phases/
+?? "archestimator_pitch deck/assets/collab-activity-history.png"
+?? "archestimator_pitch deck/assets/collab-export-view.png"
+?? "archestimator_pitch deck/assets/collab-shared-link.png"
+?? "archestimator_pitch deck/assets/product-workspace-main.png"
+?? "archestimator_pitch deck/screenshots/product-workspace-main-expanded-crop-preview.png"
+?? "archestimator_pitch deck/screenshots/product-workspace-main-source-expanded.png"
+?? "archestimator_pitch deck/screenshots/product-workspace-main-source.png"
+?? "archestimator_pitch deck/screenshots/qa15-slide-04-solution.png"
+?? "archestimator_pitch deck/screenshots/qa16-slide-04-solution.png"
+?? "archestimator_pitch deck/screenshots/qa17-slide-04-solution.png"
+?? "archestimator_pitch deck/screenshots/qa18-slide-04-solution.png"
+?? "archestimator_pitch deck/screenshots/qa19-slide-04-solution.png"
+?? "archestimator_pitch deck/screenshots/qa21-slide-03-problem.png"
+?? "archestimator_pitch deck/screenshots/qa22-slide-03-problem.png"
+?? "archestimator_pitch deck/screenshots/qa23-slide-03-problem.png"
+?? "archestimator_pitch deck/screenshots/qa24-slide-03-problem.png"
+?? "archestimator_pitch deck/screenshots/qa25-slide-03-problem.png"
+?? "archestimator_pitch deck/screenshots/qa26-slide-03-problem.png"
+?? "archestimator_pitch deck/screenshots/qa27-slide-03-problem.png"
+?? "archestimator_pitch deck/screenshots/qa28-slide-04-solution.png"
+?? "archestimator_pitch deck/screenshots/qa29-slide-05-why.png"
+?? "archestimator_pitch deck/screenshots/qa30-slide-18-founder-fit.png"
+?? "archestimator_pitch deck/screenshots/qa30-slide-18-founder.png"
+?? "archestimator_pitch deck/screenshots/qa31-slide-06-product.png"
+?? "archestimator_pitch deck/screenshots/qa32-slide-06-product-user-shot.png"
+?? "archestimator_pitch deck/screenshots/qa33-slide-08-collaboration.png"
+?? "archestimator_pitch deck/screenshots/qa33-slide-09-client-proposal.png"
+?? "archestimator_pitch deck/screenshots/qa34-slide-09-client-proposal.png"
+?? e2e/route-transition-performance.spec.ts
+?? src/app/workshop/library/error.tsx
+?? src/app/workshop/projects/[projectId]/charts/error.tsx
+?? src/app/workshop/projects/[projectId]/estimates/[nodeId]/error.tsx
+?? src/components/workshop/ProjectRouteContentFallback.tsx
+?? src/components/workshop/StaticWorkshopLoadingShell.tsx
+?? src/components/workshop/WorkshopRouteErrorState.tsx

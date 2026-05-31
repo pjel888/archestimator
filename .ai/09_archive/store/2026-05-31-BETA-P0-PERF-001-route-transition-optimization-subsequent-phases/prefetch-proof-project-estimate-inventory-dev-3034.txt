@@ -1,0 +1,12 @@
+projectLinkCount 4
+projectHref /workshop/projects/2fd7ae61-e60e-4a2d-a3d3-e33ab65999f1
+projectHoverRsc []
+estimatesUrl http://127.0.0.1:3034/workshop/projects/2fd7ae61-e60e-4a2d-a3d3-e33ab65999f1/estimates
+bodyText PL Philip Lewis philipjonlewis@gmail.com Workshop Projects Components Templates Settings Lighting Project Proposal ARCHITECT PHILIP PROJECT Dashboard Estimates Charts 5LFPWZLH Shared link Teamspaces PL Sheet Code Estimate Sheet Name Notes Project Budget Ongoing Project Cost Remaining Budget Updated Created AUTO ₱ ₱ 0.00 No budget set 5/29/26, 10:26 AM 5/29/26, 10:26 AM 1 estimate sheet RESET COLUMN WIDTHS Workshop / Projects / Lighting Proje
+estimateLinks [
+  {
+    "href": "/workshop/projects/2fd7ae61-e60e-4a2d-a3d3-e33ab65999f1/estimates/6737eb2a-0e6a-443d-98c9-3375696429fc",
+    "aria": "Open ES-001 Estimate Sheet",
+    "text": ""
+  }
+]

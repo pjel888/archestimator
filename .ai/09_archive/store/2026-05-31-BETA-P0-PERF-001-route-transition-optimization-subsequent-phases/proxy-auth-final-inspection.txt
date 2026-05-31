@@ -1,0 +1,2 @@
+src/middleware.ts absent
+67:  } = await supabase.auth.getUser();

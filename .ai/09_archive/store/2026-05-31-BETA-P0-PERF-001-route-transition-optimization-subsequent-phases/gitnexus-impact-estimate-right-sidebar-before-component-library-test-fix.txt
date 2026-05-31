@@ -1,0 +1,61 @@
+npm warn Unknown user config "always-auth" (//skand-124087294415.d.codeartifact.ap-southeast-2.amazonaws.com/npm/core/:always-auth). This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.
+{
+  "target": {
+    "id": "Function:src/components/workshop/component-library/index.tsx:EstimateRightSidebar",
+    "name": "EstimateRightSidebar",
+    "type": "Function",
+    "filePath": "src/components/workshop/component-library/index.tsx"
+  },
+  "direction": "upstream",
+  "impactedCount": 2,
+  "risk": "LOW",
+  "summary": {
+    "direct": 1,
+    "processes_affected": 1,
+    "modules_affected": 2
+  },
+  "affected_processes": [
+    {
+      "name": "ProjectEstimateNodePage",
+      "type": "Function",
+      "filePath": "src/app/workshop/projects/[projectId]/estimates/[nodeId]/page.tsx",
+      "affected_process_count": 8,
+      "total_hits": 8,
+      "earliest_broken_step": 1
+    }
+  ],
+  "affected_modules": [
+    {
+      "name": "Estimates",
+      "hits": 1,
+      "impact": "indirect"
+    },
+    {
+      "name": "Workshop",
+      "hits": 1,
+      "impact": "direct"
+    }
+  ],
+  "byDepth": {
+    "1": [
+      {
+        "depth": 1,
+        "id": "Function:src/components/workshop/EstimateSheetContent.tsx:EstimateSheetContent",
+        "name": "EstimateSheetContent",
+        "filePath": "src/components/workshop/EstimateSheetContent.tsx",
+        "relationType": "CALLS",
+        "confidence": 0.85
+      }
+    ],
+    "2": [
+      {
+        "depth": 2,
+        "id": "Function:src/app/workshop/projects/[projectId]/estimates/[nodeId]/page.tsx:ProjectEstimateNodePage",
+        "name": "ProjectEstimateNodePage",
+        "filePath": "src/app/workshop/projects/[projectId]/estimates/[nodeId]/page.tsx",
+        "relationType": "CALLS",
+        "confidence": 0.85
+      }
+    ]
+  }
+}

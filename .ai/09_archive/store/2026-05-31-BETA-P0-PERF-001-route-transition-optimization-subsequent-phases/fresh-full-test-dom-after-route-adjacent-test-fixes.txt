@@ -1,0 +1,773 @@
+$ vitest run --maxWorkers=1
+
+ RUN  v4.1.7 /Users/philiplewis/archestimator
+
+Warning: A vi.mock("next/image") call in "/Users/philiplewis/archestimator/tests/vitest/project-publication-page.test.tsx" is not at the top level of the module. Although it appears nested, it will be hoisted and executed before any tests run. Move it to the top level to reflect its actual execution order. This will become an error in a future version.
+See: https://vitest.dev/guide/mocking/modules#how-it-works
+ ❯ tests/vitest/project-publication-page.test.tsx (15 tests | 3 failed) 660ms
+       × renders a tablist with role=tablist, aria-label, and role=tab buttons (one per estimate) with aria-selected and aria-controls 31ms
+       × even for a single estimate sheet, renders exactly one tab + its full table content (no bypass) 16ms
+       × estimate table rows render 32px thumbnails (lazy Next/Image) from source_snapshot.imageUrl when present; no thumbnail cell when absent 12ms
+ ❯ tests/vitest/project-publication-activity.test.tsx (11 tests | 5 failed) 52ms
+       × rejects missing or invalid CSRF for POST-like but allows safe GET (reuses assert pattern from P5/P6) 3ms
+       × filters is_internal comments for unauthenticated / public recipient views (decisions may be recipient-scoped) 1ms
+       × returns full activity (including internal) when owner/manager context via session or server action path 0ms
+       × requires owner/manager context and returns joined activity with proper ordering 2ms
+       × supports pagination cursor and filters for manager modal 1ms
+ ❯ tests/vitest/project-publication-actions.test.ts (9 tests | 1 failed) 17ms
+     × P5 provides useSharedLinkSession hook (client-side) and integrates blocking guard in receiver UI for future interactive (P6+) 13ms
+ ❯ tests/vitest/project-creation-ui.test.ts (11 tests | 1 failed) 13ms
+     × lets new projects select and upload an image into project metadata 9ms
+ ❯ tests/vitest/project-publication-security-headers.test.ts (1 test | 1 failed) 4ms
+     × applies the public CSP header policy to client publication pages 3ms
+ ❯ tests/vitest/landing-security-headers.test.ts (1 test | 1 failed) 7ms
+     × applies CSP Report-Only to public marketing pages without covering workshop routes 6ms
+
+⎯⎯⎯⎯⎯⎯ Failed Tests 12 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/vitest/landing-security-headers.test.ts > landing security headers > applies CSP Report-Only to public marketing pages without covering workshop routes
+AssertionError: expected [ '/', '/about', '/features', …(4) ] to deeply equal [ '/', '/about', '/features', …(3) ]
+
+- Expected
++ Received
+
+@@ -3,6 +3,7 @@
+    "/about",
+    "/features",
+    "/pricing",
+    "/contact",
+    "/share/:path*",
++   "/api/share/:path*",
+  ]
+
+ ❯ tests/vitest/landing-security-headers.test.ts:12:21
+     10|
+     11|     const sources = headers?.map((entry) => entry.source) ?? [];
+     12|     expect(sources).toEqual(["/", "/about", "/features", "/pricing", "…
+       |                     ^
+     13|     expect(sources).not.toContain("/workshop/:path*");
+     14|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/12]⎯
+
+ FAIL  tests/vitest/project-creation-ui.test.ts > project creation UI governance > lets new projects select and upload an image into project metadata
+AssertionError: expected '"use client";\n\nimport { useEffect, …' to contain 'router.push(`/workshop/projects/${pro…'
+
+- Expected
++ Received
+
+- router.push(`/workshop/projects/${project.id}`)
++ "use client";
++
++ import { useEffect, useId, useState, type FormEvent } from "react";
++ import { useNavigationRouter } from "@/hooks/use-navigation-router";
++
++ import { createEstimateSheetDraft } from "@/lib/estimates/actions";
++ import {
++   createProjectRecord,
++   updateProjectImageMetadata,
++ } from "@/lib/projects/actions";
++ import { generateProjectCode } from "@/lib/projects/project-code";
++ import {
++   ALLOWED_PROJECT_IMAGE_TYPES,
++   formatUploadBytes,
++   MAX_PROJECT_IMAGE_BYTES,
++   removeProjectImageUpload,
++   uploadProjectImage,
++   type ProjectImageDraft,
++ } from "@/components/workshop/project-image-client";
++ import {
++   CreateProjectFooter,
++   CreateProjectHeader,
++   ProjectCodeField,
++   ProjectFields,
++   type CreateProjectStatus,
++ } from "./NewProjectFormSections";
++ import { ProjectImagePanel } from "./NewProjectImagePanel";
++
++ type NewProjectFormProps = {
++   onSuccess?: () => void;
++ };
++
++ export function NewProjectForm({ onSuccess }: NewProjectFormProps) {
++   const router = useNavigationRouter();
++   const imageInputId = useId();
++   const [projectCode, setProjectCode] = useState(generateProjectCode);
++   const [selectedImage, setSelectedImage] = useState<File | null>(null);
++   const [previewUrl, setPreviewUrl] = useState("");
++   const [status, setStatus] = useState<CreateProjectStatus>({ state: "idle" });
++   const isSubmitting =
++     status.state === "creating" ||
++     status.state === "uploading" ||
++     status.state === "saving";
++
++   useEffect(() => {
++     return () => {
++       if (previewUrl) URL.revokeObjectURL(previewUrl);
++     };
++   }, [previewUrl]);
++
++   function chooseProjectImage(file: File) {
++     if (file.type && !ALLOWED_PROJECT_IMAGE_TYPES.has(file.type)) {
++       setStatus({
++         state: "error",
++         message: "Use a JPG, PNG, WebP, or AVIF image.",
++       });
++       return;
++     }
++     if (file.size > MAX_PROJECT_IMAGE_BYTES) {
++       setStatus({ state: "error", message: "Choose an image under 12 MB." });
++       return;
++     }
++     if (previewUrl) URL.revokeObjectURL(previewUrl);
++     setSelectedImage(file);
++     setPreviewUrl(URL.createObjectURL(file));
++     setStatus({ state: "idle" });
++   }
++
++   function clearProjectImage() {
++     if (previewUrl) URL.revokeObjectURL(previewUrl);
++     setSelectedImage(null);
++     setPreviewUrl("");
++     setStatus({ state: "idle" });
++   }
++
++   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
++     event.preventDefault();
++     if (isSubmitting) return;
++
++     let uploadedImage: ProjectImageDraft | null = null;
++     try {
++       setStatus({ state: "creating", message: "Creating project..." });
++       const formData = new FormData(event.currentTarget);
++       const project = await createProjectRecord(formData);
++
++       if (selectedImage) {
++         setStatus({
++           state: "uploading",
++           message: "Uploading project image...",
++           progress: 5,
++         });
++         uploadedImage = await uploadProjectImage(
++           selectedImage,
++           project.id,
++           (progress) => {
++             setStatus({
++               state: "uploading",
++               message: "Uploading project image...",
++               progress,
++             });
++           },
++         );
++         setStatus({
++           state: "saving",
++           message: `Saving image metadata (${formatUploadBytes(uploadedImage.originalBytes)} -> ${formatUploadBytes(uploadedImage.optimizedBytes)}).`,
++         });
++         await updateProjectImageMetadata(project.id, uploadedImage);
++       }
++
++       await createEstimateSheetDraft(project.id);
++       onSuccess?.();
++       router.refresh();
++     } catch (error) {
++       if (uploadedImage) void removeProjectImageUpload(uploadedImage);
++       setStatus({
++         state: "error",
++         message:
++           error instanceof Error ? error.message : "Could not create project.",
++       });
++     }
++   }
++
++   return (
++     <form
++       onSubmit={handleSubmit}
++       className="grid min-h-[560px] grid-rows-[auto_1fr]"
++     >
++       <CreateProjectHeader />
++
++       <div className="grid min-h-0 lg:grid-cols-[minmax(320px,0.92fr)_minmax(460px,1fr)]">
++         <ProjectImagePanel
++           imageInputId={imageInputId}
++           isSubmitting={isSubmitting}
++           previewUrl={previewUrl}
++           selectedImage={selectedImage}
++           onChooseImage={chooseProjectImage}
++           onClearImage={clearProjectImage}
++         />
++
++         <div className="flex min-h-0 flex-col bg-white">
++           <div className="flex flex-1 flex-col gap-2 p-2">
++             <div className="grid gap-2 md:grid-cols-2">
++               <ProjectFields />
++             </div>
++             <ProjectCodeField
++               isSubmitting={isSubmitting}
++               projectCode={projectCode}
++               onChange={(value) => setProjectCode(value.toUpperCase())}
++               onGenerate={() => setProjectCode(generateProjectCode())}
++             />
++           </div>
++           <CreateProjectFooter isSubmitting={isSubmitting} status={status} />
++         </div>
++       </div>
++     </form>
++   );
++ }
++
+
+ ❯ tests/vitest/project-creation-ui.test.ts:157:28
+    155|     );
+    156|     expect(newProjectForm).toContain("removeProjectImageUpload(uploade…
+    157|     expect(newProjectForm).toContain(
+       |                            ^
+    158|       "router.push(`/workshop/projects/${project.id}`)",
+    159|     );
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/12]⎯
+
+ FAIL  tests/vitest/project-publication-actions.test.ts > project publication manager actions (Shared Link Overhaul V2) > P5 provides useSharedLinkSession hook (client-side) and integrates blocking guard in receiver UI for future interactive (P6+)
+AssertionError: expected '"use client";\n\n/* GitNexus / code-r…' to contain 'hasValidRecipientSession'
+
+- Expected
++ Received
+
+- hasValidRecipientSession
++ "use client";
++
++ /* GitNexus / code-review-graph MCP impact analysis (per Master Prompt + AGENTS.md/CLAUDE.md + .ai/00_system/AGENT_OPERATING_PROTOCOL.md):
++  * - search_tool invoked for schemas: code-review-graph__get_impact_radius_tool, code-review-graph__detect_changes_tool,
++  *   code-review-graph__get_affected_flows_tool, code-review-graph__get_minimal_context_tool, code-review-graph__query_graph_tool,
++  *   code-review-graph__semantic_search_nodes_tool (and related).
++  * - Pre-edit: get_minimal_context_tool (task="P2 spec review fixes...", changed_files=[SharePageTabs.tsx, page.tsx]) → 3375 nodes/47144 edges, risk:medium(0.70), key_entities incl. ProjectPublicationView + SharePage + shared-link tablist test.
++  * - get_affected_flows_tool on same 2 files → "0 flow(s) affected by changes in 2 file(s)", affected_flows:[], total:0.
++  * - get_impact_radius_tool on same → 6 direct nodes, 0 execution flows (per affected_flows); blast radius isolated to public share surface (no upstream callers in active flows).
++  * - query/semantic on symbols/files confirmed limited surface (new feature symbols on branch; file-based impact used). 0 affected flows result documented before any symbol edits.
++  * Re-run detect_changes + impact will be executed pre-commit. No symbol edits without prior graph analysis.
++  */
++
++ import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
++
++ import type { PublicationSnapshotEstimate } from "@/lib/publication/types";
++
++ import Image from "next/image";
++
++ import { aggregateRowsByDiscipline } from "@/lib/share/aggregate-share-chart-buckets";
++ import { CostDonutChart } from "@/components/charts/CostDonutChart";
++ import { reconstructTreeFromRows, wrapTreeWithRoot } from "@/lib/share/reconstruct-share-tree";
++ import { ShareEstimateTreePanel } from "@/components/share/ShareEstimateTreePanel";
++ import { ShareEstimateTreeView } from "@/components/share/ShareEstimateTreeView";
++
++ interface SharePageTabsProps {
++   estimates: PublicationSnapshotEstimate[];
++   currencyCode: string;
++   token: string;
++ }
++
++ function formatMoney(value: number, currencyCode: string) {
++   return `${currencyCode} ${new Intl.NumberFormat("en-PH", {
++     minimumFractionDigits: 2,
++     maximumFractionDigits: 2,
++   }).format(value)}`;
++ }
++
++ export default function SharePageTabs({
++   estimates,
++   currencyCode,
++   token,
++ }: SharePageTabsProps) {
++   const [activeId, setActiveId] = useState<string>(() => estimates[0]?.id ?? "");
++   const [canScrollLeft, setCanScrollLeft] = useState(false);
++   const [canScrollRight, setCanScrollRight] = useState(false);
++
++   // P2: Sub-tab view mode per sheet (Tree View | Grid Preview)
++   const [sheetViews, setSheetViews] = useState<Record<string, "tree" | "grid">>({});
++
++   const currentView = sheetViews[activeId] ?? "tree";
++
++   const contentRef = useRef<HTMLDivElement>(null);
++
++   const setViewForCurrentSheet = (view: "tree" | "grid") => {
++     if (activeId) {
++       setSheetViews(prev => ({ ...prev, [activeId]: view }));
++     }
++   };
++
++   const handleTreeNavigate = useCallback((nodeId: string) => {
++     const el = contentRef.current?.querySelector(`[data-share-tree-node-id="${nodeId}"]`);
++     if (el) {
++       el.scrollIntoView({ behavior: "smooth", block: "start" });
++     }
++   }, []);
++
++   const handleSubTabKeyDown = (e: React.KeyboardEvent) => {
++     if (e.key === "ArrowLeft" || e.key === "ArrowRight") {
++       e.stopPropagation(); // CRITICAL: isolate from main tab bar roving
++       const next = currentView === "tree" ? "grid" : "tree";
++       setViewForCurrentSheet(next);
++     }
++   };
++
++   const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
++   const scrollRef = useRef<HTMLDivElement>(null);
++
++   const storageKey = `share-tab:${token}`;
++
++   // Restore from sessionStorage (or default first)
++   useEffect(() => {
++     if (typeof window === "undefined" || estimates.length === 0) return;
++     try {
++       const saved = window.sessionStorage.getItem(storageKey);
++       if (saved && estimates.some((e) => e.id === saved)) {
++         setActiveId(saved);
++       } else {
++         setActiveId(estimates[0].id);
++       }
++     } catch {
++       setActiveId(estimates[0].id);
++     }
++   }, [storageKey, estimates]);
++
++   // Persist on change
++   const updateActive = useCallback(
++     (id: string) => {
++       if (!id || id === activeId) return;
++       setActiveId(id);
++       try {
++         window.sessionStorage.setItem(storageKey, id);
++       } catch {
++         // sessionStorage may be unavailable (private mode etc) — graceful
++       }
++     },
++     [activeId, storageKey]
++   );
++
++   // Keyboard navigation (roving tabindex + arrows + Home/End + activation)
++   const handleTabKeyDown = useCallback(
++     (e: React.KeyboardEvent<HTMLButtonElement>, index: number) => {
++       const len = estimates.length;
++       if (len <= 1) return;
++
++       let nextIndex = index;
++
++       switch (e.key) {
++         case "ArrowRight":
++           e.preventDefault();
++           nextIndex = (index + 1) % len;
++           break;
++         case "ArrowLeft":
++           e.preventDefault();
++           nextIndex = (index - 1 + len) % len;
++           break;
++         case "Home":
++           e.preventDefault();
++           nextIndex = 0;
++           break;
++         case "End":
++           e.preventDefault();
++           nextIndex = len - 1;
++           break;
++         case "Enter":
++         case " ":
++           e.preventDefault();
++           updateActive(estimates[index].id);
++           return;
++         default:
++           return;
++       }
++
++       const nextId = estimates[nextIndex].id;
++       updateActive(nextId);
++
++       // Move focus to the newly active tab button (roving)
++       const nextBtn = tabRefs.current[nextIndex];
++       nextBtn?.focus();
++     },
++     [estimates, updateActive]
++   );
++
++   // Update scroll fade indicators (lightweight, on mount + scroll)
++   const updateScrollFades = useCallback(() => {
++     const el = scrollRef.current;
++     if (!el) return;
++     const { scrollLeft, scrollWidth, clientWidth } = el;
++     setCanScrollLeft(scrollLeft > 2);
++     setCanScrollRight(scrollLeft + clientWidth < scrollWidth - 2);
++   }, []);
++
++   useEffect(() => {
++     const el = scrollRef.current;
++     if (!el) return;
++     updateScrollFades();
++     el.addEventListener("scroll", updateScrollFades, { passive: true });
++     window.addEventListener("resize", updateScrollFades);
++     return () => {
++       el.removeEventListener("scroll", updateScrollFades);
++       window.removeEventListener("resize", updateScrollFades);
++     };
++   }, [updateScrollFades, estimates.length]);
++
++   // All hooks must be called unconditionally at the top (rules of hooks).
++   const wouldBeActiveId = activeId || (estimates[0]?.id ?? "");
++   const wouldBeActive = estimates.find((e) => e.id === wouldBeActiveId) ?? estimates[0];
++
++   const donutBuckets = useMemo(
++     () => (wouldBeActive ? aggregateRowsByDiscipline(wouldBeActive.rows) : []),
++     [wouldBeActive]
++   );
++
++   const treeNodes = useMemo(() => {
++     if (!wouldBeActive) return [];
++     const raw = reconstructTreeFromRows(wouldBeActive.rows);
++     if (raw.length === 0) return raw;
++     // Virtual root (per clarified target A): provides "complete hierarchy" context in Tree View + floating nav
++     // even when designation data in snapshot is relative/shallow (e.g. starts at "Balcony" for some Lewis publishes).
++     // Reconstruction itself remains pure (fidelity tests + other snapshots unaffected).
++     return wrapTreeWithRoot(raw, wouldBeActive.name || "Estimate", wouldBeActive.totalCost);
++   }, [wouldBeActive]);
++
++   if (estimates.length === 0) return null;
++
++   const activeEstimate = wouldBeActive ?? estimates[0];
++
++   return (
++     <div className="space-y-3">
++       {/* Active estimate summary — shows current sheet name + total above tabs */}
++       <div className="flex items-end justify-between gap-3">
++         <div>
++           <h2 className="text-[12px] font-medium leading-4 text-ink">{activeEstimate.name}</h2>
++           {activeEstimate.sheetCode ? (
++             <p className="text-[10px] leading-3 text-tertiary">{activeEstimate.sheetCode}</p>
++           ) : null}
++         </div>
++         <p className="text-[12px] font-medium leading-4 text-ink">
++           {formatMoney(activeEstimate.totalCost, currencyCode)}
++         </p>
++       </div>
++
++       {/* P1/P5 polish: Per-sheet donut chart. compact variant ensures full callout visibility
++           (520×400 internal, scaled D3 logic + DESIGN ≤12px text) in the flex-1 + lg sidebar
++           layout without clipping or excessive page scroll. Workshop charts unchanged. */}
++       <CostDonutChart
++         buckets={donutBuckets}
++         total={activeEstimate.totalCost}
++         currencyCode={currencyCode}
++         label={`${activeEstimate.name} cost breakdown`}
++         compact
++       />
++
++       {/* Tablist — horizontal scroll + fade masks for mobile, design-system compliant */}
++       <div className="relative">
++         <div
++           ref={scrollRef}
++           role="tablist"
++           aria-label="Estimate sheets"
++           className="flex h-[32px] items-end gap-0 overflow-x-auto overflow-y-hidden border-b border-hairline bg-surfaceMuted text-[10px] font-medium scrollbar-thin scrollbar-thumb-hairline"
++           style={{ scrollbarWidth: "thin" }}
++         >
++           {estimates.map((estimate, index) => {
++             const isActive = estimate.id === activeId;
++             return (
++               <button
++                 key={estimate.id}
++                 id={`tab-${estimate.id}`}
++                 ref={(el) => {
++                   tabRefs.current[index] = el;
++                 }}
++                 type="button"
++                 role="tab"
++                 aria-selected={isActive}
++                 aria-controls={`share-estimate-panel-${estimate.id}`}
++                 tabIndex={isActive ? 0 : -1}
++                 className={`relative h-full flex-shrink-0 min-w-0 truncate rounded-xs border border-b-0 px-3 text-[10px] font-medium leading-none transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus ${
++                   isActive
++                     ? "z-10 bg-white text-ink border-hairline -mb-px"
++                     : "bg-surfaceMuted text-tertiary border-transparent hover:text-ink hover:border-hairline"
++                 }`}
++                 onClick={() => updateActive(estimate.id)}
++                 onKeyDown={(e) => handleTabKeyDown(e, index)}
++               >
++                 <span className="truncate">{estimate.name}</span>
++                 {estimate.sheetCode ? (
++                   <span className="ml-1 text-[9px] text-tertiary">({estimate.sheetCode})</span>
++                 ) : null}
++               </button>
++             );
++           })}
++         </div>
++
++         {/* Lightweight left/right fade masks for mobile horizontal scroll (pure + state driven; always in DOM for test + a11y) */}
++         <div
++           aria-hidden
++           className={`pointer-events-none absolute left-0 top-0 h-full w-6 bg-gradient-to-r from-surfaceMuted to-transparent transition-opacity ${canScrollLeft ? "opacity-100" : "opacity-0"}`}
++         />
++         <div
++           aria-hidden
++           className={`pointer-events-none absolute right-0 top-0 h-full w-6 bg-gradient-to-l from-surfaceMuted to-transparent transition-opacity ${canScrollRight ? "opacity-100" : "opacity-0"}`}
++         />
++       </div>
++
++       {/* P2: Sub-tab bar (Tree View | Grid Preview) — below main tabs, above content */}
++       <div
++         role="tablist"
++         aria-label="Estimate view mode"
++         className="flex h-7 items-center gap-0 border-b border-hairline bg-white text-[10px] font-medium"
++         onKeyDown={handleSubTabKeyDown}
++       >
++         {(["tree", "grid"] as const).map((mode) => {
++           const isActive = currentView === mode;
++           const label = mode === "tree" ? "Tree View" : "Grid Preview";
++           return (
++             <button
++               key={mode}
++               role="tab"
++               aria-selected={isActive}
++               aria-controls={`view-${mode}-${activeEstimate.id}`}
++               tabIndex={isActive ? 0 : -1}
++               className={`px-3 py-0.5 rounded-xs border transition-colors ${
++                 isActive
++                   ? "bg-surfaceMuted text-ink border-hairline"
++                   : "text-tertiary hover:text-ink border-transparent hover:border-hairline"
++               }`}
++               onClick={() => setViewForCurrentSheet(mode)}
++             >
++               {label}
++             </button>
++           );
++         })}
++       </div>
++
++       {/* Active tab panel — encapsulates the original estimate card + table exactly */}
++       <div
++         id={`share-estimate-panel-${activeEstimate.id}`}
++         role="tabpanel"
++         aria-labelledby={`tab-${activeEstimate.id}`}
++         className="border border-hairline bg-white"
++       >
++         {currentView === "grid" ? (
++           <div className="overflow-x-auto">
++             <table className="min-w-full border-collapse text-left text-[10px] leading-4">
++             <thead className="bg-surfaceMuted text-[9px] uppercase text-tertiary">
++               <tr>
++                 <th className="px-3 py-2 font-medium">Description</th>
++                 <th className="px-3 py-2 font-medium">Discipline</th>
++                 <th className="px-3 py-2 font-medium">Qty</th>
++                 <th className="px-3 py-2 font-medium">Unit</th>
++                 <th className="px-3 py-2 text-right font-medium">Total</th>
++               </tr>
++             </thead>
++             <tbody>
++               {activeEstimate.rows.map((row) => (
++                 <tr key={row.id} className="border-t border-hairline">
++                   <td className="px-3 py-2 text-secondary">
++                     <div className="flex items-center gap-2">
++                       {/* P9: 32px thumbnail from estimate_row_items.source_snapshot.imageUrl (additive; only when present) */}
++                       {row.imageUrl ? (
++                         <div className="h-8 w-8 flex-shrink-0 overflow-hidden rounded-xs border border-hairline bg-surfaceMuted">
++                           <Image
++                             src={row.imageUrl}
++                             alt=""
++                             width={32}
++                             height={32}
++                             className="h-full w-full object-cover"
++                             loading="lazy"
++                           />
++                         </div>
++                       ) : null}
++                       <span>{row.description}</span>
++                     </div>
++                   </td>
++                   <td className="px-3 py-2 text-secondary">{row.discipline}</td>
++                   <td className="px-3 py-2 text-secondary">{row.quantity}</td>
++                   <td className="px-3 py-2 text-secondary">{row.unit}</td>
++                   <td className="px-3 py-2 text-right font-medium text-ink">
++                     {formatMoney(row.rowTotal, currencyCode)}
++                   </td>
++                 </tr>
++               ))}
++             </tbody>
++           </table>
++         </div>
++         ) : (
++           <div className="flex gap-0" ref={contentRef}>
++             <ShareEstimateTreePanel
++               nodes={treeNodes}
++               currencyCode={currencyCode}
++               showInlineRows={false}
++               onNavigate={handleTreeNavigate}
++               className="hidden lg:flex lg:w-[260px] lg:flex-shrink-0 border-r border-hairline"
++             />
++             <div className="flex-1 min-w-0">
++               <ShareEstimateTreeView
++                 nodes={treeNodes}
++                 currencyCode={currencyCode}
++                 disclaimer="Reconstructed from estimate data (may differ from internal workspace view)"
++                 activeNodeId={undefined}
++               />
++             </div>
++           </div>
++         )}
++       </div>
++     </div>
++   );
++ }
++
+
+ ❯ tests/vitest/project-publication-actions.test.ts:129:18
+    127|     // Guard/blocking in tabs (additive, design-system compliant messa…
+    128|     const tabs = readFileSync("src/components/share/SharePageTabs.tsx"…
+    129|     expect(tabs).toContain("hasValidRecipientSession");
+       |                  ^
+    130|     expect(tabs).toContain("Recipient session required for interactive…
+    131|     expect(tabs).toContain("text-[9px]"); // design system typography
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/12]⎯
+
+ FAIL  tests/vitest/project-publication-activity.test.tsx > P8 — Shared Link Activity Feed & Notifications (red tests written FIRST before any route/action/component impl) > GET /api/share/[token]/activity route (public filtered + session aware, is_internal filter for unauth) > rejects missing or invalid CSRF for POST-like but allows safe GET (reuses assert pattern from P5/P6)
+TypeError: Cannot read properties of undefined (reading 'ok')
+ ❯ Module.GET src/app/api/share/[token]/activity/route.ts:23:19
+     21| export async function GET(request: NextRequest, { params }: { params: …
+     22|   const sameOrigin = assertSameOriginPublicPost(request as unknown as …
+     23|   if (!sameOrigin.ok) {
+       |                   ^
+     24|     return Response.json({ error: sameOrigin.message }, { status: same…
+     25|   }
+ ❯ tests/vitest/project-publication-activity.test.tsx:94:25
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/12]⎯
+
+ FAIL  tests/vitest/project-publication-activity.test.tsx > P8 — Shared Link Activity Feed & Notifications (red tests written FIRST before any route/action/component impl) > GET /api/share/[token]/activity route (public filtered + session aware, is_internal filter for unauth) > filters is_internal comments for unauthenticated / public recipient views (decisions may be recipient-scoped)
+Error: Public publication lookup requires NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY on the server.
+ ❯ createPublicationServiceClient src/lib/publication/public-repository.ts:32:11
+     30|   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
+     31|   if (!url || !serviceRoleKey) {
+     32|     throw new Error("Public publication lookup requires NEXT_PUBLIC_SU…
+       |           ^
+     33|   }
+     34|
+ ❯ Module.GET src/app/api/share/[token]/activity/route.ts:28:20
+ ❯ tests/vitest/project-publication-activity.test.tsx:102:19
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/12]⎯
+
+ FAIL  tests/vitest/project-publication-activity.test.tsx > P8 — Shared Link Activity Feed & Notifications (red tests written FIRST before any route/action/component impl) > GET /api/share/[token]/activity route (public filtered + session aware, is_internal filter for unauth) > returns full activity (including internal) when owner/manager context via session or server action path
+Error: Public publication lookup requires NEXT_PUBLIC_SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY on the server.
+ ❯ createPublicationServiceClient src/lib/publication/public-repository.ts:32:11
+     30|   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
+     31|   if (!url || !serviceRoleKey) {
+     32|     throw new Error("Public publication lookup requires NEXT_PUBLIC_SU…
+       |           ^
+     33|   }
+     34|
+ ❯ Module.GET src/app/api/share/[token]/activity/route.ts:28:20
+ ❯ tests/vitest/project-publication-activity.test.tsx:115:19
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/12]⎯
+
+ FAIL  tests/vitest/project-publication-activity.test.tsx > P8 — Shared Link Activity Feed & Notifications (red tests written FIRST before any route/action/component impl) > loadSharedLinkActivity server action (owner-only, joins comments + decisions + events) > requires owner/manager context and returns joined activity with proper ordering
+Error: `headers` was called outside a request scope. Read more: https://nextjs.org/docs/messages/next-dynamic-api-wrong-context
+ ❯ throwForMissingRequestStore node_modules/next/src/server/app-render/work-unit-async-storage.external.ts:415:8
+ ❯ callingExpression node_modules/next/src/server/request/headers.ts:168:30
+ ❯ getDevCurrentUserContext src/lib/auth/dev-auth.ts:51:29
+     49|
+     50| export async function getDevCurrentUserContext(): Promise<DevCurrentUs…
+     51|   const hostHeader = (await headers()).get("host");
+       |                             ^
+     52|   if (!isDevAuthBypassRequest(hostHeader)) return null;
+     53|
+ ❯ src/lib/auth/session.ts:17:28
+ ❯ node_modules/react/cjs/react.development.js:919:19
+ ❯ requireCurrentUserContext src/lib/auth/session.ts:63:25
+ ❯ Module.loadSharedLinkActivity src/lib/publication/actions.ts:700:9
+ ❯ tests/vitest/project-publication-activity.test.tsx:122:28
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/12]⎯
+
+ FAIL  tests/vitest/project-publication-activity.test.tsx > P8 — Shared Link Activity Feed & Notifications (red tests written FIRST before any route/action/component impl) > loadSharedLinkActivity server action (owner-only, joins comments + decisions + events) > supports pagination cursor and filters for manager modal
+Error: `headers` was called outside a request scope. Read more: https://nextjs.org/docs/messages/next-dynamic-api-wrong-context
+ ❯ throwForMissingRequestStore node_modules/next/src/server/app-render/work-unit-async-storage.external.ts:415:8
+ ❯ callingExpression node_modules/next/src/server/request/headers.ts:168:30
+ ❯ getDevCurrentUserContext src/lib/auth/dev-auth.ts:51:29
+     49|
+     50| export async function getDevCurrentUserContext(): Promise<DevCurrentUs…
+     51|   const hostHeader = (await headers()).get("host");
+       |                             ^
+     52|   if (!isDevAuthBypassRequest(hostHeader)) return null;
+     53|
+ ❯ src/lib/auth/session.ts:17:28
+ ❯ node_modules/react/cjs/react.development.js:919:19
+ ❯ requireCurrentUserContext src/lib/auth/session.ts:63:25
+ ❯ Module.loadSharedLinkActivity src/lib/publication/actions.ts:700:9
+ ❯ tests/vitest/project-publication-activity.test.tsx:129:28
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/12]⎯
+
+ FAIL  tests/vitest/project-publication-page.test.tsx > shared link (receiver publication) page — Shared Link Overhaul V2 > SharePageTabs (P2 — red until implemented) > renders a tablist with role=tablist, aria-label, and role=tab buttons (one per estimate) with aria-selected and aria-controls
+AssertionError: expected [ <button …(7)>…(2)</button>, …(4) ] to have a length of 2 but got 5
+
+- Expected
++ Received
+
+- 2
++ 5
+
+ ❯ tests/vitest/project-publication-page.test.tsx:251:20
+    249|
+    250|       const tabs = screen.getAllByRole("tab");
+    251|       expect(tabs).toHaveLength(2);
+       |                    ^
+    252|       expect(tabs[0]).toHaveAttribute("aria-selected", "true");
+    253|       expect(tabs[0]).toHaveAttribute("aria-controls");
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/12]⎯
+
+ FAIL  tests/vitest/project-publication-page.test.tsx > shared link (receiver publication) page — Shared Link Overhaul V2 > SharePageTabs (P2 — red until implemented) > even for a single estimate sheet, renders exactly one tab + its full table content (no bypass)
+AssertionError: expected [ <button …(7)>…(2)</button>, …(3) ] to have a length of 1 but got 4
+
+- Expected
++ Received
+
+- 1
++ 4
+
+ ❯ tests/vitest/project-publication-page.test.tsx:390:20
+    388|
+    389|       const tabs = screen.getAllByRole("tab");
+    390|       expect(tabs).toHaveLength(1);
+       |                    ^
+    391|       expect(screen.getByRole("heading", { name: "Main Estimate" })).t…
+    392|       expect(screen.getByText("Concrete works")).toBeInTheDocument();
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[10/12]⎯
+
+ FAIL  tests/vitest/project-publication-page.test.tsx > shared link (receiver publication) page — Shared Link Overhaul V2 > P9 — SharePageHero + thumbnails + lazy images + responsive (RED until implemented) > estimate table rows render 32px thumbnails (lazy Next/Image) from source_snapshot.imageUrl when present; no thumbnail cell when absent
+AssertionError: expected 0 to be greater than or equal to 1
+ ❯ tests/vitest/project-publication-page.test.tsx:503:29
+    501|       // 32px thumbnail present for row with imageUrl
+    502|       const thumbs = container.querySelectorAll('img[width="32"], img[…
+    503|       expect(thumbs.length).toBeGreaterThanOrEqual(1);
+       |                             ^
+    504|       const thumb = thumbs[0] as HTMLImageElement;
+    505|       expect(thumb).toHaveAttribute("loading", "lazy");
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[11/12]⎯
+
+ FAIL  tests/vitest/project-publication-security-headers.test.ts > project publication security headers (Shared Link V2) > applies the public CSP header policy to client publication pages
+AssertionError: the given combination of arguments (undefined and string) is invalid for this assertion. You can use an array, a map, an object, a set, a string, or a weakset instead of a string
+ ❯ tests/vitest/project-publication-security-headers.test.ts:12:17
+     10|     expect(shareHeaders).toBeDefined();
+     11|     const csp = shareHeaders?.headers.find((header) => header.key === …
+     12|     expect(csp).toContain("default-src 'self'");
+       |                 ^
+     13|     expect(csp).toContain("frame-ancestors 'none'");
+     14|     expect(csp).toContain("form-action 'self'");
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[12/12]⎯
+
+
+ Test Files  6 failed | 109 passed (115)
+      Tests  12 failed | 894 passed | 2 skipped (908)
+   Start at  19:40:59
+   Duration  183.88s (transform 4.48s, setup 5.51s, import 33.90s, tests 71.96s, environment 56.28s)
+
+error: script "test:dom" exited with code 1

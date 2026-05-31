@@ -1,0 +1,11 @@
+
+Running 1 test using 1 worker
+
+(node:34952) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:34952) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+route-transition-authenticated-hover-prefetch {"beforeClick":{"href":"http://127.0.0.1:3034/workshop","navigation":{"domContentLoaded":3773.099999997765,"loadEventEnd":3776.7999999970198,"duration":3776.7999999970198,"transferSize":19750,"decodedBodySize":79223},"resources":{"count":0,"transferSize":0,"scriptCount":0,"rscCount":0,"nextAssetCount":0,"prefetchCount":0}},"afterClick":{"href":"http://127.0.0.1:3034/workshop/projects","navigation":{"domContentLoaded":3773.099999997765,"loadEventEnd":3776.7999999970198,"duration":3776.7999999970198,"transferSize":19750,"decodedBodySize":79223},"resources":{"count":4,"transferSize":110167,"scriptCount":4,"rscCount":0,"nextAssetCount":4,"prefetchCount":0}},"rscRequests":["http://127.0.0.1:3034/workshop/projects?_rsc=KLcskdFz2YD4R37_"],"transitionMs":644}
+  ✓  1 [chromium] › e2e/route-transition-performance.spec.ts:249:7 › route transition performance evidence › captures authenticated hover prefetch and transition budget when dev auth is enabled (5.9s)
+
+  1 passed (11.0s)

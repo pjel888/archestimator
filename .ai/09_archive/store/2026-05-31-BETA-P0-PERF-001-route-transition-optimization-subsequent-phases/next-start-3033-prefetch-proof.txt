@@ -1,0 +1,5 @@
+$ next start --port "3033"
+▲ Next.js 16.2.6
+- Local:         http://localhost:3033
+- Network:       http://127.0.2.2:3033
+✓ Ready in 292ms

@@ -1,0 +1,11 @@
+
+Running 1 test using 1 worker
+
+(node:39726) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:39726) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+route-transition-authenticated-hover-prefetch {"beforeClick":{"href":"http://127.0.0.1:3034/workshop","navigation":{"domContentLoaded":3107.7999999970198,"loadEventEnd":3110.699999999255,"duration":3110.699999999255,"transferSize":19750,"decodedBodySize":79223},"resources":{"count":0,"transferSize":0,"scriptCount":0,"rscCount":0,"nextAssetCount":0,"prefetchCount":0}},"afterClick":{"href":"http://127.0.0.1:3034/workshop/projects","navigation":{"domContentLoaded":3107.7999999970198,"loadEventEnd":3110.699999999255,"duration":3110.699999999255,"transferSize":19750,"decodedBodySize":79223},"resources":{"count":4,"transferSize":110167,"scriptCount":4,"rscCount":0,"nextAssetCount":4,"prefetchCount":0}},"hoverRscRequests":[],"transitionRscRequests":["http://127.0.0.1:3034/workshop/projects?_rsc=KLcskdFz2YD4R37_"],"allRscRequests":["http://127.0.0.1:3034/workshop/projects?_rsc=KLcskdFz2YD4R37_"],"hoverPrefetchNote":"Hover prefetch RSC requests were not observed before click in this environment.","transitionMs":572}
+  ✓  1 [chromium] › e2e/route-transition-performance.spec.ts:249:7 › route transition performance evidence › captures authenticated transition budget and separates hover-prefetch evidence when dev auth is enabled (5.2s)
+
+  1 passed (7.6s)

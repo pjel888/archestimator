@@ -1,11 +1,19 @@
 "use client";
 
 import Link from 'next/link'
-import { NeatWireframeBackground } from './NeatWireframeBackground'
+import dynamic from "next/dynamic";
 import { loginHref } from './constants'
 import { trackConversion } from "@/lib/ab-testing/experiment-tracker";
 
 const trustBadges = ['Reusable catalog', 'Quote-ready', 'Document-aware']
+
+const NeatWireframeBackground = dynamic(() =>
+  import("./NeatWireframeBackground").then((module) => module.NeatWireframeBackground),
+  {
+    loading: () => null,
+    ssr: false,
+  },
+);
 
 export const heroCopyVariants = [
   {

@@ -1,0 +1,14 @@
+url http://127.0.0.1:3033/login?next=%2Fworkshop%2Fprojects
+title Archestimator | Quote, Proposal & Estimate Workspace
+[
+  {
+    "href": "/terms",
+    "text": "terms status",
+    "aria": null
+  },
+  {
+    "href": "/privacy",
+    "text": "privacy status",
+    "aria": null
+  }
+]

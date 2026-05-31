@@ -1,0 +1,319 @@
+$ eslint
+
+/Users/philiplewis/archestimator/archestimator_pitch deck/deck-stage.js
+   638:16   warning  'e' is defined but never used    @typescript-eslint/no-unused-vars
+   719:18   warning  'e' is defined but never used    @typescript-eslint/no-unused-vars
+   741:16   warning  'e' is defined but never used    @typescript-eslint/no-unused-vars
+   919:94   warning  'err' is defined but never used  @typescript-eslint/no-unused-vars
+   969:16   warning  'err' is defined but never used  @typescript-eslint/no-unused-vars
+  1088:72   warning  'e' is defined but never used    @typescript-eslint/no-unused-vars
+  1103:147  warning  'e' is defined but never used    @typescript-eslint/no-unused-vars
+  1228:90   warning  'e' is defined but never used    @typescript-eslint/no-unused-vars
+  1472:86   warning  'err' is defined but never used  @typescript-eslint/no-unused-vars
+  1718:152  warning  'e' is defined but never used    @typescript-eslint/no-unused-vars
+
+/Users/philiplewis/archestimator/src/app/api/share/[token]/activity/route.ts
+  58:9   warning  'sessionOk' is assigned a value but never used  @typescript-eslint/no-unused-vars
+  63:39  error    Unexpected any. Specify a different type        @typescript-eslint/no-explicit-any
+  70:40  error    Unexpected any. Specify a different type        @typescript-eslint/no-explicit-any
+  76:37  error    Unexpected any. Specify a different type        @typescript-eslint/no-explicit-any
+  83:21  error    Unexpected any. Specify a different type        @typescript-eslint/no-explicit-any
+  84:40  error    Unexpected any. Specify a different type        @typescript-eslint/no-explicit-any
+  87:41  error    Unexpected any. Specify a different type        @typescript-eslint/no-explicit-any
+  90:38  error    Unexpected any. Specify a different type        @typescript-eslint/no-explicit-any
+
+/Users/philiplewis/archestimator/src/app/api/share/[token]/comment/route.ts
+    2:35  warning  'createPublicationServiceClient' is defined but never used  @typescript-eslint/no-unused-vars
+  224:15  error    Unexpected any. Specify a different type                    @typescript-eslint/no-explicit-any
+
+/Users/philiplewis/archestimator/src/app/api/share/[token]/decision/route.ts
+    2:36  warning  'createPublicationServiceClient' is defined but never used  @typescript-eslint/no-unused-vars
+   40:46  error    Unexpected any. Specify a different type                    @typescript-eslint/no-explicit-any
+  104:15  error    Unexpected any. Specify a different type                    @typescript-eslint/no-explicit-any
+
+/Users/philiplewis/archestimator/src/app/api/share/[token]/password/route.ts
+  49:38  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/philiplewis/archestimator/src/app/share/[token]/page.tsx
+   83:53  error    Unexpected any. Specify a different type                       @typescript-eslint/no-explicit-any
+  185:7   warning  'hasValidRecipientSession' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/Users/philiplewis/archestimator/src/components/charts/CostDonutChart.tsx
+  101:44  warning  'currencyCode' is defined but never used  @typescript-eslint/no-unused-vars
+  146:15  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  147:16  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  172:25  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  321:39  warning  'i' is defined but never used             @typescript-eslint/no-unused-vars
+
+/Users/philiplewis/archestimator/src/components/performance-monitor.tsx
+  17:11  warning  Unused eslint-disable directive (no problems were reported from 'no-console')
+
+/Users/philiplewis/archestimator/src/components/share/ShareEstimateTreePanel.tsx
+  329:5  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+/Users/philiplewis/archestimator/src/components/share/ShareEstimateTreePanel.tsx:329:5
+  327 |     };
+  328 |     collect(nodes, 0);
+> 329 |     setExpandedNodeIds(ids);
+      |     ^^^^^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  330 |   }, [nodes, isMobile, searchQuery]);
+  331 |
+  332 |   const handleExpandAll = () => {                         react-hooks/set-state-in-effect
+  347:7  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+/Users/philiplewis/archestimator/src/components/share/ShareEstimateTreePanel.tsx:347:7
+  345 |   useEffect(() => {
+  346 |     if (searchQuery.trim()) {
+> 347 |       setExpandedNodeIds(collectAllNodeIds(filteredNodes));
+      |       ^^^^^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  348 |     }
+  349 |   }, [searchQuery, filteredNodes]);
+  350 |  react-hooks/set-state-in-effect
+
+/Users/philiplewis/archestimator/src/components/share/ShareEstimateTreeView.tsx
+  257:5  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+/Users/philiplewis/archestimator/src/components/share/ShareEstimateTreeView.tsx:257:5
+  255 |     };
+  256 |     collect(nodes, 0);
+> 257 |     setExpandedNodeIds(ids);
+      |     ^^^^^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  258 |   }, [nodes, isMobile]);
+  259 |
+  260 |   const getNodeId = (n: ShareTreeNode) => n.id;  react-hooks/set-state-in-effect
+
+/Users/philiplewis/archestimator/src/components/share/SharePageComments.tsx
+   95:7   error    Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+/Users/philiplewis/archestimator/src/components/share/SharePageComments.tsx:95:7
+  93 |     // initial flush if anything pending and online
+  94 |     if (navigator.onLine) {
+> 95 |       flushQueue();
+     |       ^^^^^^^^^^ Avoid calling setState() directly within an effect
+  96 |     }
+  97 |     // update pending badge count
+  98 |     const q = loadQueue();  react-hooks/set-state-in-effect
+  106:18  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         @typescript-eslint/no-explicit-any
+  127:19  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         @typescript-eslint/no-explicit-any
+  178:17  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         @typescript-eslint/no-explicit-any
+  200:6   warning  React Hook useCallback has an unnecessary dependency: 'token'. Either exclude it or remove the dependency array                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  react-hooks/exhaustive-deps
+
+/Users/philiplewis/archestimator/src/components/share/SharePageDecision.tsx
+  86:17  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/philiplewis/archestimator/src/components/share/SharePageTabs.tsx
+  87:9  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+/Users/philiplewis/archestimator/src/components/share/SharePageTabs.tsx:87:9
+  85 |       const saved = window.sessionStorage.getItem(storageKey);
+  86 |       if (saved && estimates.some((e) => e.id === saved)) {
+> 87 |         setActiveId(saved);
+     |         ^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  88 |       } else {
+  89 |         setActiveId(estimates[0].id);
+  90 |       }  react-hooks/set-state-in-effect
+
+/Users/philiplewis/archestimator/src/components/share/SharedLinkActivityFeed.tsx
+  53:5   error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+/Users/philiplewis/archestimator/src/components/share/SharedLinkActivityFeed.tsx:53:5
+  51 |
+  52 |   useEffect(() => {
+> 53 |     load();
+     |     ^^^^ Avoid calling setState() directly within an effect
+  54 |   }, [load]);
+  55 |
+  56 |   // Supabase Realtime subscription (owner only, for live updates on comment/decision/event)  react-hooks/set-state-in-effect
+  65:31  error  Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          @typescript-eslint/no-explicit-any
+  70:31  error  Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          @typescript-eslint/no-explicit-any
+  75:31  error  Unexpected any. Specify a different type                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          @typescript-eslint/no-explicit-any
+
+/Users/philiplewis/archestimator/src/components/workshop/ProjectEstimatesTable.tsx
+  790:17  warning  Compilation Skipped: Use of incompatible library
+
+This API returns functions which cannot be memoized without leading to stale UI. To prevent this, by default React Compiler will skip memoizing this component/hook. However, you may see issues if values from this API are passed to other components/hooks that are memoized.
+
+/Users/philiplewis/archestimator/src/components/workshop/ProjectEstimatesTable.tsx:790:17
+  788 |   );
+  789 |
+> 790 |   const table = useReactTable({
+      |                 ^^^^^^^^^^^^^ TanStack Table's `useReactTable()` API returns functions that cannot be memoized safely
+  791 |     data: estimates,
+  792 |     columns,
+  793 |     state: { sorting, columnSizing },  react-hooks/incompatible-library
+
+/Users/philiplewis/archestimator/src/components/workshop/ProjectPublicationHeader.tsx
+   15:3   warning  'addSharedLinkRecipients' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                @typescript-eslint/no-unused-vars
+   17:3   warning  'listSharedLinkRecipients' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               @typescript-eslint/no-unused-vars
+   18:3   warning  'removeSharedLinkRecipient' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              @typescript-eslint/no-unused-vars
+   26:33  warning  'WorkshopTreeTabItem' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    @typescript-eslint/no-unused-vars
+  103:7   error    Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+/Users/philiplewis/archestimator/src/components/workshop/ProjectPublicationHeader.tsx:103:7
+  101 |   useEffect(() => {
+  102 |     if (projectEstimateSheets.length > 0) {
+> 103 |       setSelectedEstimateIds(projectEstimateSheets.map((e) => e.id));
+      |       ^^^^^^^^^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  104 |     } else {
+  105 |       setSelectedEstimateIds([]);
+  106 |     }  react-hooks/set-state-in-effect
+
+/Users/philiplewis/archestimator/src/components/workshop/publication/RecipientEmailComposer.tsx
+   37:73  warning  'projectName' is defined but never used   @typescript-eslint/no-unused-vars
+   53:65  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+   61:16  warning  'e' is defined but never used             @typescript-eslint/no-unused-vars
+  119:52  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  165:14  warning  'e' is defined but never used             @typescript-eslint/no-unused-vars
+
+/Users/philiplewis/archestimator/src/hooks/use-shared-link-session.ts
+  30:5  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+/Users/philiplewis/archestimator/src/hooks/use-shared-link-session.ts:30:5
+  28 |     // Flag set by server when the real HttpOnly shared_link_session_* cookie is valid for this publication token.
+  29 |     const isValid = /shared_link_session_[^=;]+_ok=1/.test(cookieStr);
+> 30 |     setResult({ isValid });
+     |     ^^^^^^^^^ Avoid calling setState() directly within an effect
+  31 |   }, []);
+  32 |
+  33 |   return result;  react-hooks/set-state-in-effect
+
+/Users/philiplewis/archestimator/src/lib/email/resend-client.ts
+  155:1  warning  Assign object to a variable before exporting as module default  import/no-anonymous-default-export
+
+/Users/philiplewis/archestimator/src/lib/publication/actions.ts
+  198:41  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  216:29  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  217:29  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  226:30  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  230:27  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  497:39  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  502:26  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  549:81  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  556:12  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  587:54  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  588:88  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  631:54  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  687:42  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  722:39  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  728:40  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  734:37  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  741:14  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  742:40  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  752:41  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  762:38  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/philiplewis/archestimator/src/lib/publication/public-repository.ts
+  148:30  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  190:39  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  191:21  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  192:35  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  193:29  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  202:26  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  226:39  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  227:39  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  228:17  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  232:24  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  235:38  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  247:8   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  276:39  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  277:39  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  278:17  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  282:24  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  285:38  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  296:8   error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/philiplewis/archestimator/tests/unit/p3-shared-link-migration-red.test.ts
+  27:79  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  28:75  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  29:77  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  30:71  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  41:84  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  42:86  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/philiplewis/archestimator/tests/vitest/project-publication-activity.test.tsx
+    3:8   warning  'userEvent' is defined but never used     @typescript-eslint/no-unused-vars
+  107:43  error    Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/philiplewis/archestimator/tests/vitest/project-publication-comments.test.tsx
+  277:55  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+  279:38  error  Unexpected any. Specify a different type  @typescript-eslint/no-explicit-any
+
+/Users/philiplewis/archestimator/tests/vitest/project-publication-decision.test.tsx
+  218:15  warning  'container' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/Users/philiplewis/archestimator/tests/vitest/project-publication-page.test.tsx
+    2:26   warning  'within' is defined but never used                                                                                                                                                                                                                                                       @typescript-eslint/no-unused-vars
+  146:10   error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                 @typescript-eslint/no-explicit-any
+  239:15   warning  'container' is assigned a value but never used                                                                                                                                                                                                                                           @typescript-eslint/no-unused-vars
+  241:40   error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                 @typescript-eslint/no-explicit-any
+  266:40   error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                 @typescript-eslint/no-explicit-any
+  292:40   error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                 @typescript-eslint/no-explicit-any
+  332:40   error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                 @typescript-eslint/no-explicit-any
+  345:40   error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                 @typescript-eslint/no-explicit-any
+  365:40   error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                 @typescript-eslint/no-explicit-any
+  383:40   error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                 @typescript-eslint/no-explicit-any
+  400:47   error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                 @typescript-eslint/no-explicit-any
+  428:26   error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                 @typescript-eslint/no-explicit-any
+  430:18   warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+  479:75   error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                 @typescript-eslint/no-explicit-any
+  495:48   error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                 @typescript-eslint/no-explicit-any
+  510:112  error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                 @typescript-eslint/no-explicit-any
+  522:61   error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                 @typescript-eslint/no-explicit-any
+  539:61   error    Unexpected any. Specify a different type                                                                                                                                                                                                                                                 @typescript-eslint/no-explicit-any
+
+/Users/philiplewis/archestimator/tests/vitest/share/reconstruct-share-tree.test.ts
+  105:46  warning  '_' is defined but never used  @typescript-eslint/no-unused-vars
+  105:49  warning  'i' is defined but never used  @typescript-eslint/no-unused-vars
+
+✖ 128 problems (94 errors, 34 warnings)
+  0 errors and 1 warning potentially fixable with the `--fix` option.
+
+error: script "lint" exited with code 1

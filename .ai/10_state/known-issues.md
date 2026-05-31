@@ -1,13 +1,14 @@
 # Known Issues / Open Risks
 
-**Last updated:** 2026-05-30
+**Last updated:** 2026-05-31
 
 ## Current blockers
 
 - Public/private launch remains NO-GO until provider, legal, Vercel, QA, support, owner, full validation/build, and storage/security evidence is complete (see Roadmap Phase 7).
-- **Collaboration invite system is config-blocked / non-functional.** Supabase Auth email provider not configured. `PROJECT_INVITE_ENTRY_ENABLED` and `ARCHESTIMATOR_INVITE_TOKEN_PEPPER` missing or not verified. Invite acceptance path must be POST-only and fail closed. Old auto-grant RPC deliberately disabled. See `.ai/03_plans/collaboration-and-sharing-audit/`.
+- **Collaboration invite system is config-blocked / non-functional.** Supabase Auth email provider not configured. `PROJECT_INVITE_ENTRY_ENABLED` and `ARCHESTIMATOR_INVITE_TOKEN_PEPPER` missing or not verified. Invite acceptance path must be POST-only and fail closed. Old auto-grant RPC deliberately disabled. See `.ai/03_plans/share-and-collaboration-implementation/`.
 - **Invite endpoint rate limiting missing.** All invite endpoints lack rate limiting. GET-based acceptance mutation risk must be corrected to POST-only.
 - **Shared-link rate limiting is in-memory / not durable.** Password lockout and access rate limiting do not survive server restarts. Must be persistent (Redis/Upstash) before external beta.
+- **Shared-link recipient email/query mismatch blocks reliable recipient sessions.** Recipient emails currently generate `/share/[token]?rt=<recipient-token>`, but `/share/[token]` reads `?recipient=` before verifying the token and setting the shared-link session cookie. Fix or compatibility support is required before recipient identity, comments/decisions from emailed links, or per-recipient tracking can be trusted.
 - **Shared-link lacks per-recipient open tracking and visibility signifiers.** Missing project-card/homebase link status indicators, one-click copy, and owner digest sender identity fix.
 - **Route-transition performance has groundwork but not full baseline/optimization proof.** Phase 0 baseline measurement required before optimization claims. `.ai/03_plans/route-transition-performance-optimization/CURRENT_CANONICAL_PLAN.md` is the conflict-resolution source.
 - **Database indexing strategy not yet implemented.** Supabase advisor and query-plan audit required before beta. Migration parity must be checked before shared-link recipient/comment/response/event index work. Critical estimate/library/collaboration/publication query flows need EXPLAIN evidence. See `.ai/03_plans/database-indexing-and-query-performance/`.

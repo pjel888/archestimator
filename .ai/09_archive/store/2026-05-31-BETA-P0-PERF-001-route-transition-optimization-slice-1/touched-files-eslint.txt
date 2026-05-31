@@ -1,0 +1,17 @@
+
+/Users/philiplewis/archestimator/src/components/workshop/ProjectEstimatesTable.tsx
+  790:17  warning  Compilation Skipped: Use of incompatible library
+
+This API returns functions which cannot be memoized without leading to stale UI. To prevent this, by default React Compiler will skip memoizing this component/hook. However, you may see issues if values from this API are passed to other components/hooks that are memoized.
+
+/Users/philiplewis/archestimator/src/components/workshop/ProjectEstimatesTable.tsx:790:17
+  788 |   );
+  789 |
+> 790 |   const table = useReactTable({
+      |                 ^^^^^^^^^^^^^ TanStack Table's `useReactTable()` API returns functions that cannot be memoized safely
+  791 |     data: estimates,
+  792 |     columns,
+  793 |     state: { sorting, columnSizing },  react-hooks/incompatible-library
+
+✖ 1 problem (0 errors, 1 warning)
+

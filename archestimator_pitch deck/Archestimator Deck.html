@@ -106,6 +106,11 @@
     font-size:var(--type-title);font-weight:600;line-height:1.08;
     letter-spacing:-.022em;margin:0;max-width:25ch;text-wrap:balance;
   }
+  .product-title{max-width:36ch;}
+  .problem-title{max-width:33ch;}
+  .solution-title{max-width:36ch;}
+  .market-title{max-width:40ch;}
+  .advantage-title{max-width:32ch;}
   .title .hl{color:var(--accent-deep);}
   .slide.orange .title .hl{color:#fff;border-bottom:5px solid rgba(255,255,255,.5);}
 
@@ -216,6 +221,36 @@
   .title-slide .meta-label{font-family:'IBM Plex Mono',monospace;font-size:var(--type-footer);letter-spacing:.14em;text-transform:uppercase;color:rgba(255,255,255,.7);margin-bottom:7px;}
   .title-slide .meta-name{font-size:var(--type-footer);font-weight:600;letter-spacing:.04em;text-transform:uppercase;}
 
+  .solution-grid{
+    position:relative;display:block;
+    width:100%;height:100%;padding:4px 0 44px;
+  }
+  .solution-hero{
+    position:absolute;left:50%;top:calc(50% - 70px);transform:translate(-50%,-50%);
+    width:100%;max-width:980px;text-align:center;
+  }
+  .solution-plain{font-size:31px;line-height:1.2;font-weight:500;color:rgba(255,255,255,.94);max-width:34ch;margin:0 auto;}
+  .solution-loop{display:flex;align-items:stretch;justify-content:center;gap:12px;margin:28px auto 0;max-width:920px;}
+  .solution-step{
+    flex:1;padding:18px 18px 16px;border-radius:14px;
+    background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.28);
+    backdrop-filter:blur(14px);
+  }
+  .solution-step .k{font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:.13em;text-transform:uppercase;color:rgba(255,255,255,.68);margin-bottom:10px;}
+  .solution-step .v{font-size:21px;line-height:1.16;font-weight:650;color:#fff;}
+  .solution-arrow{display:flex;align-items:center;justify-content:center;font-family:'IBM Plex Mono',monospace;font-size:20px;color:rgba(255,255,255,.78);}
+  .solution-cards{
+    position:absolute;left:50%;bottom:117px;transform:translateX(-50%);
+    display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:44px;
+    width:min(100%,1320px);text-align:center;align-items:start;
+  }
+  .solution-card{
+    padding:0 18px;border-radius:0;background:transparent;border:0;box-shadow:none;backdrop-filter:none;
+  }
+  .solution-card + .solution-card{margin-top:0;}
+  .solution-card b{display:block;font-size:23px;line-height:1.12;margin-bottom:8px;color:#fff;}
+  .solution-card span{display:block;font-size:var(--type-small);line-height:1.34;color:rgba(255,255,255,.82);}
+
   .shot{
     border:1px solid var(--line-2);border-radius:14px;overflow:hidden;background:#fff;
     box-shadow:0 30px 70px -30px rgba(40,28,12,.4),0 4px 14px -6px rgba(40,28,12,.18);
@@ -233,6 +268,52 @@
   .step .sd{font-size:var(--type-small);color:var(--ink-2);line-height:1.3;}
 
   /* scattered file cards (s2) */
+  .problem-body{position:relative;flex-direction:column;justify-content:flex-start;gap:32px;padding-top:48px;}
+  .problem-files{width:min(100%,880px);margin:0 auto;display:flex;flex-direction:column;gap:14px;align-items:stretch;}
+  .problem-files-label{
+    font-family:'IBM Plex Mono',monospace;font-size:14px;letter-spacing:.12em;text-transform:uppercase;
+    color:var(--ink-3);text-align:center;
+  }
+  .problem-files-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;}
+  .problem-files .fcard{font-size:14px;padding:12px 13px;border-radius:8px;}
+  .problem-files-note{
+    font-family:'IBM Plex Mono',monospace;font-size:13px;color:var(--ink-3);letter-spacing:.04em;text-align:center;
+  }
+  .problem-copy{position:absolute;inset:0;width:100%;margin:0;}
+  .problem-cards{
+    list-style:none;margin:0;padding:0;
+    position:absolute;left:50%;bottom:197px;transform:translateX(-50%);
+    width:min(100%,1120px);display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px;
+  }
+  .problem-cards li{
+    display:block;min-height:132px;padding:20px 22px;border-radius:14px;background:var(--card);
+    border:1px solid var(--line);box-shadow:0 16px 38px -28px rgba(40,28,12,.5);
+    font-size:18px;line-height:1.3;color:var(--ink-2);max-width:none;
+  }
+  .problem-cards li::before{display:none;}
+  .problem-cards b{
+    display:block;font-size:21px;line-height:1.12;font-weight:650;color:var(--ink);
+    margin-bottom:9px;
+  }
+  .problem-core{
+    position:absolute;left:50%;top:calc(50% - 70px);transform:translate(-50%,-50%);
+    width:min(100%,900px);display:flex;flex-direction:column;align-items:center;gap:18px;text-align:center;
+  }
+  .problem-memory{
+    font-size:30px;line-height:1.18;font-weight:650;margin:0;max-width:30ch;text-align:center;
+  }
+  .problem-cascade{
+    display:flex;align-items:center;justify-content:center;gap:10px;flex-wrap:wrap;
+    font-family:'IBM Plex Mono',monospace;font-size:14px;letter-spacing:.08em;text-transform:uppercase;
+    color:var(--ink-3);
+  }
+  .problem-cascade span{white-space:nowrap;}
+  .problem-cascade .arr{color:var(--accent-deep);font-size:15px;}
+  .problem-cascade .impact{color:var(--accent-ink);font-weight:600;}
+  .problem-cascade .flowitem{
+    padding:7px 10px;border-radius:999px;background:rgba(255,255,255,.7);
+    border:1px solid var(--line);
+  }
   .fcard{
     font-family:'IBM Plex Mono',monospace;font-size:var(--type-small);color:var(--ink-2);
     background:var(--card);border:1px dashed var(--line-2);border-radius:10px;
@@ -245,6 +326,49 @@
     background:var(--card);border:1px solid var(--line-2);border-radius:12px;
     padding:22px 30px;font-weight:500;
   }
+  /* why it matters compounding diagram */
+  .why-diagram{width:100%;display:flex;flex-direction:column;gap:24px;}
+  .why-flow{display:grid;grid-template-columns:.95fr auto 1.5fr auto 1fr;gap:18px;align-items:stretch;}
+  .why-panel{
+    border-radius:16px;background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.3);
+    backdrop-filter:blur(15px);box-shadow:0 28px 68px -44px rgba(64,18,6,.55);
+    padding:20px 22px;
+  }
+  .why-label{
+    font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:.13em;text-transform:uppercase;
+    color:rgba(255,255,255,.68);margin-bottom:12px;
+  }
+  .why-projects{display:grid;grid-template-columns:1fr;gap:10px;}
+  .why-project{
+    font-family:'IBM Plex Mono',monospace;font-size:15px;color:#fff;padding:11px 14px;border-radius:10px;
+    background:rgba(255,255,255,.13);border:1px solid rgba(255,255,255,.22);
+  }
+  .why-arrow{display:flex;align-items:center;justify-content:center;font-family:'IBM Plex Mono',monospace;font-size:23px;color:rgba(255,255,255,.78);}
+  .why-hub{padding:22px 24px;}
+  .why-hub-title{font-size:31px;line-height:1.05;font-weight:700;color:#fff;white-space:nowrap;margin-bottom:15px;}
+  .why-hub-copy{font-size:17px;line-height:1.3;color:rgba(255,255,255,.84);max-width:52ch;margin-bottom:16px;}
+  .why-mini-chips{display:flex;gap:8px;flex-wrap:wrap;}
+  .why-mini-chips span{
+    font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:.03em;color:rgba(255,255,255,.82);
+    padding:7px 10px;border-radius:999px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);
+  }
+  .why-client-title{font-size:23px;line-height:1.1;font-weight:700;color:#fff;margin-bottom:12px;}
+  .why-actions{display:grid;grid-template-columns:1fr 1fr;gap:9px;}
+  .why-action{
+    font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:.08em;text-transform:uppercase;
+    color:#fff;padding:10px 9px;border-radius:10px;background:rgba(255,255,255,.12);
+    border:1px solid rgba(255,255,255,.22);text-align:center;
+  }
+  .why-feedback{
+    display:flex;align-items:center;justify-content:center;gap:14px;
+    font-family:'IBM Plex Mono',monospace;font-size:14px;letter-spacing:.08em;text-transform:uppercase;
+    color:rgba(255,255,255,.76);
+  }
+  .why-feedback::before,.why-feedback::after{content:"";height:1px;max-width:310px;flex:1;background:rgba(255,255,255,.28);}
+  .why-outcomes{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;}
+  .why-outcome{padding:18px 20px;border-radius:14px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);}
+  .why-outcome b{display:block;font-size:21px;line-height:1.1;color:#fff;margin-bottom:7px;}
+  .why-outcome span{font-size:16px;line-height:1.3;color:rgba(255,255,255,.78);}
   /* product map nodes (s4) */
   .mapnode{
     background:var(--card);border:1px solid var(--line);border-radius:12px;
@@ -252,6 +376,127 @@
   }
   .mapnode.hl{background:var(--accent);border-color:var(--accent);color:#fff;}
   .mapsep{font-family:'IBM Plex Mono',monospace;color:var(--accent);font-size:var(--type-small);padding-left:20px;line-height:1;}
+
+  .product-workspace-body{flex-direction:column;justify-content:center;align-items:center;gap:18px;}
+  .product-workspace-shot{
+    position:relative;width:min(100%,1630px);height:680px;border-radius:18px;overflow:hidden;
+    background:#fff;border:1px solid rgba(214,204,186,.95);
+    box-shadow:0 32px 80px -42px rgba(40,28,12,.5),0 8px 24px -18px rgba(40,28,12,.26);
+  }
+  .product-workspace-shot img{
+    display:block;width:100%;height:100%;object-fit:cover;object-position:top center;
+    filter:contrast(1.035) saturate(1.03);
+  }
+  .product-pin{
+    position:absolute;display:grid;place-items:center;width:34px;height:34px;border-radius:999px;
+    background:#fff;color:var(--accent-deep);border:1px solid rgba(255,122,26,.34);
+    font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600;
+    box-shadow:0 18px 34px -20px rgba(190,74,18,.55);
+  }
+  .product-pin::after{
+    content:"";position:absolute;inset:-7px;border:1px solid rgba(255,122,26,.24);border-radius:999px;
+  }
+  .product-pin.tree{left:11%;top:55%;}
+  .product-pin.sheet{left:54%;top:69%;}
+  .product-pin.library{right:9%;top:52%;}
+  .product-callouts{
+    width:min(100%,1630px);display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;
+  }
+  .product-callout{
+    display:grid;grid-template-columns:auto 1fr;gap:14px;align-items:start;min-height:100px;
+    padding:16px 18px;border-radius:14px;background:rgba(255,255,255,.72);
+    border:1px solid rgba(228,219,204,.88);box-shadow:0 20px 54px -42px rgba(40,28,12,.55);
+  }
+  .product-callout .num{
+    font-family:'IBM Plex Mono',monospace;font-size:13px;font-weight:600;letter-spacing:.12em;
+    color:var(--accent-deep);padding-top:3px;
+  }
+  .product-callout b{display:block;font-size:21px;line-height:1.12;margin-bottom:6px;color:var(--ink);}
+  .product-callout span{display:block;font-size:16px;line-height:1.3;color:var(--ink-2);}
+
+  .collab-proof-body{flex-direction:column;justify-content:center;gap:22px;}
+  .collab-proof-grid{
+    width:100%;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px;
+  }
+  .collab-proof-card{
+    display:flex;flex-direction:column;min-height:0;text-decoration:none;color:inherit;
+    border:1px solid var(--line);border-radius:14px;overflow:hidden;background:rgba(255,255,255,.82);
+    box-shadow:0 24px 58px -42px rgba(40,28,12,.52);
+  }
+  .collab-proof-card:focus-visible{outline:3px solid rgba(255,122,26,.42);outline-offset:4px;}
+  .collab-shot{
+    position:relative;aspect-ratio:5/3;background:#fff;overflow:hidden;border-bottom:1px solid var(--line);
+  }
+  .collab-shot img{
+    display:block;width:100%;height:100%;object-fit:cover;object-position:top center;
+    filter:contrast(1.035) saturate(1.02);
+  }
+  .collab-proof-card:hover .collab-shot img{transform:scale(1.018);}
+  .collab-shot img{transition:transform .22s ease;}
+  .collab-proof-copy{padding:16px 18px 18px;}
+  .collab-proof-copy .tag{
+    font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:.12em;text-transform:uppercase;
+    color:var(--accent-ink);margin-bottom:8px;
+  }
+  .collab-proof-copy b{display:block;font-size:21px;line-height:1.08;margin-bottom:8px;color:var(--ink);}
+  .collab-proof-copy p{margin:0;font-size:16px;line-height:1.32;color:var(--ink-2);}
+  .proposal-title{max-width:33ch;}
+  .proposal-flow-body{flex-direction:column;justify-content:center;gap:24px;}
+  .proposal-flow{
+    display:grid;grid-template-columns:1fr 54px 1.08fr 54px 1fr;gap:14px;align-items:stretch;width:100%;
+  }
+  .proposal-node,.proposal-client{
+    border:1px solid rgba(255,255,255,.32);background:rgba(255,255,255,.15);border-radius:16px;
+    box-shadow:0 28px 76px -52px rgba(64,18,6,.75),inset 0 1px 0 rgba(255,255,255,.2);
+    backdrop-filter:blur(18px);
+  }
+  .proposal-node{display:flex;flex-direction:column;justify-content:flex-start;min-height:306px;padding:43px 24px 24px;}
+  .proposal-node .num{
+    font-family:'IBM Plex Mono',monospace;font-size:13px;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.67);
+    min-height:16px;margin-bottom:14px;
+  }
+  .proposal-node b{
+    display:block;min-height:66px;font-size:27px;line-height:1.08;letter-spacing:-.01em;
+    margin-bottom:10px;color:#fff;
+  }
+  .proposal-node p{font-size:18px;line-height:1.35;color:rgba(255,255,255,.82);margin:0;}
+  .proposal-arrow{
+    align-self:center;display:flex;align-items:center;justify-content:center;width:54px;height:54px;border-radius:999px;
+    border:1px solid rgba(255,255,255,.3);background:rgba(255,255,255,.14);backdrop-filter:blur(14px);
+    font-family:'IBM Plex Mono',monospace;font-size:30px;color:#fff;
+    box-shadow:0 20px 54px -36px rgba(64,18,6,.72),inset 0 1px 0 rgba(255,255,255,.2);
+  }
+  .proposal-client{display:flex;align-items:stretch;padding:18px;position:relative;overflow:hidden;}
+  .proposal-client-card{
+    position:relative;z-index:1;width:100%;background:rgba(255,255,255,.18);
+    border:1px solid rgba(255,255,255,.34);border-radius:14px;padding:24px;
+    display:grid;grid-template-columns:1fr;gap:16px;align-content:start;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.22);
+  }
+  .proposal-client-card .label{
+    font-family:'IBM Plex Mono',monospace;font-size:13px;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.64);
+    min-height:16px;margin-bottom:14px;
+  }
+  .proposal-client-card h3{
+    min-height:66px;font-size:31px;line-height:1.04;margin:0 0 10px;color:#fff;letter-spacing:-.014em;
+  }
+  .proposal-client-card p{font-size:17px;line-height:1.34;color:rgba(255,255,255,.82);margin:0;max-width:34ch;}
+  .proposal-total{font-size:18px;font-weight:700;line-height:1;color:#fff;white-space:nowrap;}
+  .proposal-actions{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:4px;}
+  .proposal-action{
+    font-family:'IBM Plex Mono',monospace;font-size:13px;letter-spacing:.08em;text-transform:uppercase;
+    border:1px solid rgba(255,255,255,.28);border-radius:10px;padding:12px 10px;text-align:center;
+    color:#fff;background:rgba(255,255,255,.12);
+  }
+  .proposal-action.approve{border-color:rgba(255,255,255,.52);background:rgba(255,255,255,.24);}
+  .proposal-action.decline{border-color:rgba(255,255,255,.23);background:rgba(52,11,4,.16);}
+  .proposal-outcomes{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;}
+  .proposal-outcome{
+    border:1px solid rgba(255,255,255,.25);border-radius:12px;background:rgba(255,255,255,.13);
+    padding:15px 16px;font-size:17px;line-height:1.25;color:rgba(255,255,255,.8);
+    backdrop-filter:blur(14px);box-shadow:inset 0 1px 0 rgba(255,255,255,.16);
+  }
+  .proposal-outcome b{display:block;color:#fff;font-size:19px;line-height:1.08;margin-bottom:6px;}
 
   /* concentric rings (s6) */
   .rings{position:relative;width:580px;height:580px;}
@@ -264,6 +509,33 @@
   .ring.r2>span{margin-top:26px;font-size:14px;letter-spacing:.08em;color:var(--accent-ink);text-transform:uppercase;}
   .ring.r1{width:212px;height:212px;background:linear-gradient(150deg,#F2641C,#FF8A2B);border:none;align-items:center;}
   .ring.r1>span{margin-top:0;font-size:22px;color:#fff;font-weight:600;text-transform:none;white-space:normal;line-height:1.15;}
+  .market-body{gap:52px;align-items:center;}
+  .market-rings-wrap{flex:0 0 46%;display:flex;justify-content:center;}
+  .market-story{flex:1;display:flex;flex-direction:column;gap:18px;}
+  .market-thesis{
+    padding:24px 26px 22px;border-radius:16px;background:rgba(255,255,255,.78);
+    border:1px solid rgba(228,219,204,.88);box-shadow:0 24px 70px -54px rgba(40,28,12,.58);
+  }
+  .market-thesis .eyebrow{margin-bottom:14px;}
+  .market-thesis h3{font-size:33px;line-height:1.03;letter-spacing:-.02em;margin:0 0 12px;color:var(--ink);max-width:18ch;}
+  .market-thesis p{font-size:19px;line-height:1.34;color:var(--ink-2);margin:0;max-width:44ch;}
+  .market-path{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+  .market-path-card{
+    padding:18px 18px 17px;border-radius:14px;background:rgba(255,255,255,.72);
+    border:1px solid var(--line);box-shadow:0 18px 52px -46px rgba(40,28,12,.52);
+  }
+  .market-path-card.accent{background:linear-gradient(150deg,rgba(242,100,28,.13),rgba(255,138,43,.11));border-color:rgba(242,100,28,.26);}
+  .market-path-card .num{font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent-ink);margin-bottom:10px;}
+  .market-path-card b{display:block;font-size:22px;line-height:1.08;margin-bottom:8px;color:var(--ink);}
+  .market-path-card span{display:block;font-size:15px;line-height:1.28;color:var(--ink-2);}
+  .market-sector-strip{padding-top:16px;border-top:1px solid var(--line);}
+  .market-sector-strip .eyebrow{margin-bottom:12px;}
+  .market-sector-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;}
+  .market-sector{
+    min-height:46px;display:flex;align-items:center;justify-content:center;text-align:center;
+    padding:9px 11px;border-radius:12px;border:1px solid var(--line-2);background:rgba(255,255,255,.66);
+    font-family:'IBM Plex Mono',monospace;font-size:12px;line-height:1.18;letter-spacing:.04em;text-transform:uppercase;color:var(--ink-2);
+  }
 
   /* compare table (s7) */
   table.cmp{width:100%;border-collapse:separate;border-spacing:0;font-size:var(--type-small);}
@@ -288,33 +560,91 @@
   .disrupt-card.plain{background:transparent;border-color:transparent;box-shadow:none;backdrop-filter:none;padding-left:4px;padding-right:4px;}
   .disrupt-card.plain .dtag{color:rgba(255,255,255,.58);}
   .disrupt-card.arch{background:rgba(255,255,255,.12);border-color:rgba(255,255,255,.36);box-shadow:0 24px 70px -56px rgba(34,9,0,.64),inset 0 1px 0 rgba(255,255,255,.18);}
-  .win-strip{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-top:22px;}
-  .win-pill{padding:14px 0 0;border-radius:0;background:transparent;border:0;border-top:1px solid rgba(255,255,255,.28);backdrop-filter:none;}
-  .win-pill b{display:block;font-size:20px;line-height:1.1;margin-bottom:6px;color:#fff;}
-  .win-pill span{font-size:15px;line-height:1.25;color:rgba(255,255,255,.78);}
+  .advantage-body{flex-direction:column;justify-content:center;gap:22px;}
+  .advantage-separator{height:1px;width:100%;background:rgba(255,255,255,.36);}
+  .advantage-list{width:min(100%,760px);margin:0;padding:0;list-style:none;display:grid;gap:12px;}
+  .advantage-list li{display:grid;grid-template-columns:112px 1fr;gap:18px;align-items:start;color:#fff;}
+  .advantage-list li::before{display:none;}
+  .advantage-list b{font-size:22px;line-height:1.08;color:#fff;}
+  .advantage-list span{font-size:17px;line-height:1.28;color:rgba(255,255,255,.82);}
 
-  .askflip-body{flex-direction:column;justify-content:center;gap:24px;}
+  .askflip-body{flex-direction:column;justify-content:center;gap:30px;}
   .ai-steps{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;}
   .ai-step{
-    display:grid;grid-template-columns:64px 1fr;gap:16px;align-items:center;
-    padding:18px 20px;border-radius:14px;background:rgba(255,255,255,.82);
+    display:grid;grid-template-columns:58px 1fr;gap:15px;align-items:start;
+    padding:18px 20px 20px;border-radius:14px;background:rgba(255,255,255,.82);
     border:1px solid var(--line);box-shadow:0 20px 48px -42px rgba(40,28,12,.55);
   }
   .ai-step .idx{
-    width:52px;height:52px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+    width:50px;height:50px;border-radius:50%;display:flex;align-items:center;justify-content:center;
     background:linear-gradient(150deg,#F2641C,#FF8A2B);color:#fff;
     font-family:'IBM Plex Mono',monospace;font-size:18px;font-weight:600;
   }
-  .ai-step b{display:block;font-size:22px;line-height:1.12;margin-bottom:5px;}
-  .ai-step span{font-size:15px;line-height:1.25;color:var(--ink-2);}
-  .askflip-shot{align-self:center;width:58%;max-width:860px;}
-  .askflip-points{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin:0;padding:0;list-style:none;}
-  .askflip-points li{
-    font-size:18px;line-height:1.32;color:var(--ink-2);padding-top:14px;
-    border-top:1px solid var(--line);max-width:none;
+  .ai-step b{display:block;font-size:22px;line-height:1.12;margin-bottom:6px;}
+  .ai-step span{display:block;font-size:15px;line-height:1.28;color:var(--ink-2);}
+  .askflip-chat{
+    align-self:center;width:min(100%,1320px);display:grid;grid-template-columns:1.16fr .9fr;
+    border:1px solid rgba(214,204,186,.95);border-radius:18px;overflow:hidden;background:rgba(255,255,255,.88);
+    box-shadow:0 30px 76px -48px rgba(40,28,12,.58),0 8px 24px -20px rgba(40,28,12,.22);
   }
-  .askflip-points li::before{display:none;}
-
+  .askflip-conversation{padding:22px 24px 16px;background:rgba(255,255,255,.76);border-right:1px solid var(--line);display:flex;flex-direction:column;min-width:0;}
+  .askflip-chat-top{display:flex;align-items:center;justify-content:space-between;gap:18px;padding-bottom:15px;margin-bottom:14px;border-bottom:1px solid var(--line);}
+  .askflip-agent{display:flex;align-items:center;gap:13px;}
+  .askflip-mark{
+    display:grid;place-items:center;width:42px;height:42px;border-radius:12px;background:linear-gradient(150deg,#F2641C,#FF8A2B);
+    color:#fff;font-size:22px;font-weight:800;letter-spacing:-.04em;box-shadow:0 18px 34px -24px rgba(190,74,18,.8);
+  }
+  .askflip-agent b{display:block;font-size:22px;line-height:1.05;color:var(--ink);}
+  .askflip-agent span{display:block;font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-3);margin-top:4px;}
+  .askflip-status-stack{display:grid;gap:5px;justify-items:end;text-align:right;font-family:'IBM Plex Mono',monospace;text-transform:uppercase;white-space:nowrap;}
+  .askflip-status-line{display:flex;align-items:center;gap:7px;font-size:12px;letter-spacing:.1em;color:var(--accent-ink);}
+  .askflip-meta-line{font-size:10px;letter-spacing:.08em;color:var(--ink-3);}
+  .status-dot{width:8px;height:8px;border-radius:50%;background:#18A05E;box-shadow:0 0 0 4px rgba(24,160,94,.12);}
+  .chat-thread{display:flex;flex-direction:column;gap:12px;}
+  .chat-bubble{padding:14px 16px;border-radius:16px;font-size:17px;line-height:1.28;box-shadow:0 16px 34px -30px rgba(40,28,12,.55);}
+  .speaker-row{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:8px;}
+  .chat-bubble .speaker{display:block;font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:.1em;text-transform:uppercase;}
+  .chat-bubble time{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.04em;white-space:nowrap;}
+  .chat-bubble p{margin:0;}
+  .chat-bubble.user{align-self:flex-end;max-width:84%;background:var(--ink);color:#fff;border-bottom-right-radius:6px;}
+  .chat-bubble.user .speaker,.chat-bubble.user time{color:rgba(255,255,255,.62);}
+  .chat-bubble.flip{align-self:flex-start;max-width:88%;background:rgba(255,122,26,.1);border:1px solid rgba(255,122,26,.24);color:var(--ink);}
+  .chat-bubble.flip .speaker{color:var(--accent-ink);}
+  .chat-bubble.flip time{color:var(--ink-3);}
+  .chat-progress{display:flex;align-items:center;gap:10px;align-self:flex-start;max-width:90%;padding:10px 13px;border:1px solid rgba(214,204,186,.8);border-radius:13px;background:rgba(255,255,255,.78);color:var(--ink-2);}
+  .typing-dots{display:flex;gap:4px;}
+  .typing-dots i{display:block;width:5px;height:5px;border-radius:50%;background:var(--accent);opacity:.85;}
+  .chat-progress b{font-size:13px;color:var(--ink);line-height:1;}
+  .chat-progress span:last-child{font-size:12px;color:var(--ink-3);}
+  .askflip-compose{
+    margin-top:12px;display:grid;grid-template-columns:minmax(0,1fr) 60px;align-items:center;gap:10px;
+    padding:9px;border-radius:14px;background:var(--paper);border:1px solid var(--line);box-shadow:inset 0 1px 0 rgba(255,255,255,.82);
+  }
+  .askflip-input{min-height:60px;display:flex;flex-direction:column;justify-content:center;gap:3px;padding:0 12px;border-radius:10px;background:#fff;border:1px solid rgba(214,204,186,.72);}
+  .askflip-input span{font-size:15px;color:var(--ink);font-weight:650;}
+  .askflip-input small{font-size:12px;line-height:1.2;color:var(--ink-3);}
+  .askflip-send{
+    width:60px;height:60px;display:grid;place-items:center;border:0;border-radius:12px;background:linear-gradient(150deg,#F2641C,#FF8A2B);
+    color:#fff;cursor:pointer;box-shadow:0 16px 30px -22px rgba(190,74,18,.95);
+  }
+  .askflip-send:focus-visible{outline:3px solid rgba(255,122,26,.3);outline-offset:3px;}
+  .askflip-send svg{width:19px;height:19px;display:block;}
+  .askflip-workflow{
+    padding:25px 26px;background:linear-gradient(150deg,#E9571A 0%,#F2641C 52%,#FF8A2B 100%);color:#fff;
+    display:flex;flex-direction:column;justify-content:center;gap:16px;
+  }
+  .workflow-kicker{font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:rgba(255,255,255,.68);}
+  .askflip-workflow h3{font-size:28px;line-height:1.04;letter-spacing:-.014em;margin:0;max-width:18ch;}
+  .workflow-list{display:grid;gap:10px;}
+  .workflow-item{
+    display:grid;grid-template-columns:auto 1fr;gap:12px;align-items:start;padding:12px 13px;border-radius:12px;
+    background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.24);backdrop-filter:blur(12px);
+  }
+  .workflow-item .step{
+    font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:600;color:#fff;padding-top:2px;
+  }
+  .workflow-item b{display:block;font-size:17px;line-height:1.12;margin-bottom:4px;color:#fff;}
+  .workflow-item small{display:block;font-size:13px;line-height:1.22;color:rgba(255,255,255,.76);}
   .draft-sheet{margin-top:28px;border-radius:12px;border:1px solid rgba(255,255,255,.28);background:rgba(255,255,255,.12);overflow:hidden;}
   .draft-sheet .dh{display:flex;justify-content:space-between;gap:18px;padding:13px 15px;border-bottom:1px solid rgba(255,255,255,.22);font-family:'IBM Plex Mono',monospace;font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:rgba(255,255,255,.72);}
   .draft-row{display:grid;grid-template-columns:1.2fr .8fr .6fr .7fr;gap:12px;padding:12px 15px;border-bottom:1px solid rgba(255,255,255,.16);font-size:16px;color:rgba(255,255,255,.9);}
@@ -346,6 +676,53 @@
   .sparkline i{display:block;flex:1;border-radius:5px 5px 0 0;background:var(--line-2);}
   .sparkline i.hot{background:linear-gradient(180deg,#FF8A2B,#E95D1A);}
   .delta{font-family:'IBM Plex Mono',monospace;font-size:17px;font-weight:600;text-align:right;color:var(--accent-ink);}
+  .intel-body{flex-direction:column;gap:18px;justify-content:flex-start;}
+  .intel-thesis{
+    max-width:1030px;font-size:23px;line-height:1.28;color:var(--ink-2);margin:0;
+  }
+  .intel-flywheel{display:grid;grid-template-columns:.9fr 1.15fr .95fr;gap:18px;align-items:stretch;}
+  .intel-panel{position:relative;padding:20px 22px;border-radius:14px;min-height:390px;display:flex;flex-direction:column;gap:16px;}
+  .intel-panel:nth-child(-n+2)::after{
+    content:"→";position:absolute;right:-24px;top:48%;width:30px;height:30px;border-radius:50%;
+    display:grid;place-items:center;background:rgba(255,255,255,.92);border:1px solid var(--line);
+    color:var(--accent-ink);font-size:18px;font-weight:700;box-shadow:0 12px 28px -24px rgba(40,28,12,.8);z-index:2;
+  }
+  .intel-kicker{
+    font-family:'IBM Plex Mono',monospace;font-size:13px;letter-spacing:.13em;text-transform:uppercase;color:var(--accent-ink);
+  }
+  .intel-panel h3{font-size:28px;line-height:1.02;letter-spacing:-.018em;margin:0;color:var(--ink);}
+  .intel-panel p{font-size:17px;line-height:1.28;color:var(--ink-2);margin:0;}
+  .memory-stack{display:grid;gap:10px;margin-top:2px;}
+  .memory-layer{display:grid;grid-template-columns:54px 1fr;gap:12px;align-items:start;padding:12px 12px;border:1px solid var(--line);border-radius:11px;background:rgba(255,255,255,.72);}
+  .memory-layer .code{font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:.09em;text-transform:uppercase;color:var(--ink-3);padding-top:2px;}
+  .memory-layer b{display:block;font-size:17px;line-height:1.12;color:var(--ink);margin-bottom:3px;}
+  .memory-layer span{display:block;font-size:14px;line-height:1.22;color:var(--ink-3);}
+  .benchmark-panel{background:linear-gradient(180deg,#fff 0%,rgba(255,255,255,.84) 100%);}
+  .benchmark-head{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;}
+  .benchmark-chip{font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--accent-ink);border:1px solid rgba(255,122,26,.34);background:rgba(255,122,26,.08);border-radius:999px;padding:7px 10px;white-space:nowrap;}
+  .benchmark-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .benchmark-metric{padding:14px 14px 13px;border:1px solid var(--line);border-radius:12px;background:#fff;}
+  .benchmark-metric .label{font-size:15px;font-weight:650;color:var(--ink);line-height:1.12;margin-bottom:10px;}
+  .benchmark-metric .value{font-size:28px;font-weight:750;letter-spacing:-.02em;color:var(--accent-ink);line-height:1;}
+  .benchmark-metric .value small{font-size:14px;font-weight:600;color:var(--ink-3);letter-spacing:0;margin-left:3px;}
+  .benchmark-metric .basis{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.07em;text-transform:uppercase;color:var(--ink-3);margin-top:8px;}
+  .variance-chart{display:grid;grid-template-columns:105px 1fr 46px;align-items:center;gap:10px;padding:12px 13px;border:1px solid var(--line);border-radius:12px;background:rgba(245,239,230,.66);}
+  .variance-chart .scope{font-size:15px;font-weight:650;color:var(--ink);}
+  .variance-track{height:10px;border-radius:99px;background:var(--line);overflow:hidden;}
+  .variance-track i{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,#FFB15F,#E95D1A);}
+  .variance-chart .pct{font-family:'IBM Plex Mono',monospace;font-size:13px;color:var(--accent-ink);font-weight:600;text-align:right;}
+  .intel-flow-note{display:flex;align-items:center;gap:10px;margin-top:auto;font-size:14px;color:var(--ink-3);}
+  .intel-flow-note::before{content:"";width:8px;height:8px;background:var(--accent);border-radius:2px;transform:rotate(45deg);flex:0 0 auto;}
+  .market-signal-list{display:grid;gap:11px;}
+  .market-signal{display:grid;grid-template-columns:92px 1fr 44px;align-items:center;gap:9px;}
+  .market-signal .name{font-size:15px;font-weight:650;color:var(--ink);}
+  .signal-track{height:30px;display:flex;align-items:flex-end;gap:4px;}
+  .signal-track i{display:block;flex:1;border-radius:4px 4px 0 0;background:var(--line-2);}
+  .signal-track i.hot{background:linear-gradient(180deg,#FF8A2B,#E95D1A);}
+  .market-signal .delta{font-size:14px;}
+  .intel-disclaimer{
+    margin-top:auto;padding-top:12px;border-top:1px solid var(--line);font-size:13px;line-height:1.28;color:var(--ink-3);
+  }
 
   /* status board (s9) */
   .board{display:flex;flex-direction:column;gap:13px;}
@@ -378,6 +755,42 @@
   .road .cell{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px;display:flex;flex-direction:column;gap:10px;}
   .road .cell li{font-size:var(--type-small);color:var(--ink);line-height:1.25;list-style:none;}
   .road .cell ul{margin:0;padding:0;display:flex;flex-direction:column;gap:10px;}
+  .founder-roadmap-body{flex-direction:column;justify-content:flex-start;gap:22px;padding-top:88px;}
+  .founder-exec-grid{display:grid;grid-template-columns:.95fr 1.35fr;gap:22px;align-items:stretch;}
+  .founder-exec-card,.validation-path-card,.accelerator-row{
+    background:rgba(255,255,255,.78);border:1px solid rgba(228,219,204,.86);border-radius:16px;
+    box-shadow:0 24px 68px -54px rgba(40,28,12,.56);
+  }
+  .founder-exec-card{padding:28px 30px 26px;display:flex;flex-direction:column;gap:20px;}
+  .founder-exec-card h3{font-size:34px;line-height:1.03;letter-spacing:-.02em;margin:0;color:var(--ink);}
+  .founder-exec-card p{font-size:19px;line-height:1.34;color:var(--ink-2);margin:0;}
+  .founder-proof-list{margin:0;padding:0;list-style:none;display:grid;gap:12px;}
+  .founder-proof-list li{
+    display:grid;grid-template-columns:22px 1fr;gap:10px;align-items:start;
+    font-size:17px;line-height:1.28;color:var(--ink);
+  }
+  .founder-proof-list li::before{
+    content:"";width:9px;height:9px;border-radius:2px;background:var(--accent);transform:rotate(45deg);margin-top:7px;
+  }
+  .validation-path-card{padding:24px 26px;display:flex;flex-direction:column;gap:18px;}
+  .simple-roadmap{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;}
+  .simple-step{
+    min-height:240px;padding:18px 18px 17px;border-radius:14px;background:var(--card);border:1px solid var(--line);
+    display:flex;flex-direction:column;gap:12px;
+  }
+  .simple-step .when{font-family:'IBM Plex Mono',monospace;font-size:13px;letter-spacing:.11em;text-transform:uppercase;color:var(--accent-ink);}
+  .simple-step b{font-size:26px;line-height:1.05;color:var(--ink);}
+  .simple-step p{margin:0;font-size:17px;line-height:1.3;color:var(--ink-2);}
+  .accelerator-row{display:grid;grid-template-columns:190px repeat(3,1fr);gap:0;overflow:hidden;}
+  .accelerator-row .label{
+    padding:20px 22px;background:rgba(255,122,26,.09);font-family:'IBM Plex Mono',monospace;font-size:13px;
+    letter-spacing:.12em;text-transform:uppercase;color:var(--accent-ink);display:flex;align-items:center;
+  }
+  .accelerator{
+    padding:18px 20px;border-left:1px solid var(--line);display:flex;flex-direction:column;gap:5px;
+  }
+  .accelerator b{font-size:20px;line-height:1.1;color:var(--ink);}
+  .accelerator span{font-size:15px;line-height:1.26;color:var(--ink-2);}
 
   /* bridge (s12) */
   .bridge{display:flex;align-items:center;gap:0;}
@@ -393,6 +806,11 @@
   .askcard .need{font-family:'IBM Plex Mono',monospace;font-size:13px;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.7);}
   .askcard h3{font-size:28px;line-height:1.06;letter-spacing:-.016em;margin:0;color:#fff;}
   .askcard .evidence{margin-top:auto;padding-top:14px;border-top:1px solid rgba(255,255,255,.24);font-family:'IBM Plex Mono',monospace;font-size:13px;letter-spacing:.06em;text-transform:uppercase;color:rgba(255,255,255,.7);}
+  .founder-name{font-size:22px;font-weight:700;line-height:1.16;color:var(--ink);}
+  .founder-credentials{
+    display:block;margin-top:6px;font-family:'IBM Plex Mono',monospace;font-size:12px;line-height:1;
+    letter-spacing:.06em;color:var(--ink-3);font-weight:500;
+  }
 
   /* founder cv timeline (s14) */
   .cvtrack{display:flex;flex-direction:column;gap:10px;}
@@ -442,22 +860,12 @@
   <section data-label="Problem" class="slide">
     <div class="head">
       <div class="eyebrow"><span class="n">03</span> The Problem</div>
-      <h2 class="title">Commercial cost knowledge is still trapped in disposable spreadsheets.</h2>
+      <h2 class="title problem-title">Teams waste time, effort, and money<br>rebuilding proposal logic they should reuse.</h2>
     </div>
-    <div class="body" style="gap:52px;align-items:center;">
-      <div style="flex:0 0 40%;display:flex;flex-direction:column;gap:30px;">
-        <ul class="pts">
-          <li>Quote-heavy teams still build estimates from one-off sheets, copied templates, and scattered supplier files.</li>
-          <li>Every project creates reusable pricing logic, but that knowledge disappears after the proposal is sent.</li>
-          <li>The result is slower offers, inconsistent line items, weak revision traceability, and repeated manual work.</li>
-        </ul>
-        <p style="font-size:var(--type-body);line-height:1.3;font-weight:600;margin:0;max-width:31ch;">
-          The problem is not only calculation.<br><span style="color:var(--accent-deep);">It is memory loss.</span>
-        </p>
-      </div>
-      <div style="flex:1;align-self:stretch;display:flex;flex-direction:column;justify-content:center;gap:22px;">
-        <div style="font-family:'IBM Plex Mono',monospace;font-size:var(--type-small);letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3);">Today: one project, scattered everywhere</div>
-        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:20px;">
+    <div class="body problem-body">
+      <div class="problem-files">
+        <div class="problem-files-label">Today: one project, scattered everywhere</div>
+        <div class="problem-files-grid">
           <div class="fcard" style="--r:-2deg;">estimate_v1.xlsx</div>
           <div class="fcard" style="--r:1.5deg;">supplier_prices.xlsx</div>
           <div class="fcard" style="--r:-1deg;">assumptions.docx</div>
@@ -465,7 +873,28 @@
           <div class="fcard" style="--r:-1.5deg;">proposal_FINAL.pdf</div>
           <div class="fcard" style="--r:2deg;">quote_final_v2.xlsx</div>
         </div>
-        <div style="font-family:'IBM Plex Mono',monospace;font-size:var(--type-small);color:var(--ink-3);letter-spacing:.04em;">↳ disconnected · no shared logic · nothing compounds</div>
+        <div class="problem-files-note">↳ disconnected · no shared logic · nothing compounds</div>
+      </div>
+      <div class="problem-copy">
+        <ul class="problem-cards">
+          <li><b>Scattered files</b>Quote-heavy teams still build estimates from one-off sheets, copied templates, and scattered supplier files.</li>
+          <li><b>Lost pricing logic</b>Every project creates reusable pricing logic, but that knowledge disappears after the proposal is sent.</li>
+          <li><b>Manual rework</b>The result is slower offers, inconsistent line items, weak revision traceability, and repeated manual work.</li>
+        </ul>
+        <div class="problem-core">
+          <p class="problem-memory">
+            The problem is not only calculation.<br><span style="color:var(--accent-deep);">It is wasting time.</span>
+          </p>
+          <div class="problem-cascade" aria-label="Cascading problem">
+            <span class="flowitem">Lost time</span>
+            <span class="arr">→</span>
+            <span class="flowitem">Wasted effort</span>
+            <span class="arr">→</span>
+            <span class="flowitem">Wasted resources</span>
+            <span class="arr">→</span>
+            <span class="flowitem impact">Lost money</span>
+          </div>
+        </div>
       </div>
     </div>
     <div class="foot">
@@ -474,34 +903,50 @@
     </div>
   </section>
 
-  <!-- 4 — WHY IT MATTERS -->
-  <section data-label="Why it matters" class="slide orange">
+  <!-- 4 — THE SOLUTION -->
+  <section data-label="The Solution" class="slide orange">
     <div class="head">
-      <div class="eyebrow"><span class="n">04</span> Why It Matters</div>
-      <h2 class="title">Proposal work is where commercial knowledge should compound.</h2>
+      <div class="eyebrow"><span class="n">04</span> The Solution</div>
+      <h2 class="title solution-title">Archestimator gives teams the tools<br>to stop starting every estimate from zero.</h2>
     </div>
-    <div class="body" style="flex-direction:column;justify-content:center;gap:46px;">
-      <div style="display:flex;align-items:center;gap:24px;justify-content:center;">
-        <div class="pcard">Project 01</div>
-        <div class="pcard">Project 02</div>
-        <div class="pcard">Project 03</div>
-        <div style="font-family:'IBM Plex Mono',monospace;font-size:22px;color:rgba(255,255,255,.82);">→</div>
-        <div style="flex:1;max-width:240px;font-size:var(--type-small);color:rgba(255,255,255,.82);line-height:1.35;">Each project carries the same kinds of cost logic.</div>
-      </div>
-      <div style="display:flex;justify-content:center;">
-        <div style="width:64%;text-align:center;font-family:'IBM Plex Mono',monospace;font-size:22px;color:rgba(255,255,255,.82);">↓ &nbsp; captured once, reused everywhere &nbsp; ↓</div>
-      </div>
-      <div class="card" style="border-color:var(--line-2);border-radius:16px;padding:28px 34px;display:flex;align-items:center;gap:34px;">
-        <div style="flex:0 0 auto;">
-          <div style="font-family:'IBM Plex Mono',monospace;font-size:var(--type-small);letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.72);margin-bottom:8px;">Reusable</div>
-          <div style="font-size:26px;font-weight:700;line-height:1.05;">Cost knowledge<br>layer</div>
+    <div class="body" style="justify-content:center;">
+      <div class="solution-grid">
+        <div class="solution-hero">
+          <p class="solution-plain">
+            One place to build estimates, reuse what already worked, and turn cost details into proposals clients can review.
+          </p>
+          <div class="solution-loop">
+            <div class="solution-step">
+              <div class="k">Build</div>
+              <div class="v">Create the estimate</div>
+            </div>
+            <div class="solution-arrow">→</div>
+            <div class="solution-step">
+              <div class="k">Remember</div>
+              <div class="v">Keep the cost logic</div>
+            </div>
+            <div class="solution-arrow">→</div>
+            <div class="solution-step">
+              <div class="k">Send</div>
+              <div class="v">Share the proposal</div>
+            </div>
+          </div>
         </div>
-        <div style="width:1px;align-self:stretch;background:rgba(255,255,255,.26);"></div>
-        <div class="chips" style="flex:1;">
-          <span class="chip">Materials</span><span class="chip">Labor rates</span><span class="chip">Suppliers</span><span class="chip">Brands</span><span class="chip">Assemblies</span><span class="chip">Unit costs</span><span class="chip">Assumptions</span>
+        <div class="solution-cards">
+          <div class="solution-card">
+            <b>Less rebuilding</b>
+            <span>Teams stop starting from blank spreadsheets and copied files every time a new quote begins.</span>
+          </div>
+          <div class="solution-card">
+            <b>More reusable knowledge</b>
+            <span>Items, prices, suppliers, assumptions, and decisions can be carried forward instead of disappearing after one project.</span>
+          </div>
+          <div class="solution-card">
+            <b>Cleaner client decisions</b>
+            <span>Cost proposals can move from internal estimate to client comment, approval, or decline without losing the story behind the numbers.</span>
+          </div>
         </div>
       </div>
-      <p style="text-align:center;font-size:var(--type-body);color:rgba(255,255,255,.88);margin:0;max-width:63ch;align-self:center;">Better estimating infrastructure produces faster, clearer, more defensible offers, and gives teams back the hours they lose rebuilding work they already solved.</p>
     </div>
     <div class="foot">
       <div class="brand"><img src="assets/logo-white.svg" alt=""><span>archestimator</span></div>
@@ -509,27 +954,83 @@
     </div>
   </section>
 
-  <!-- 5 — THE PRODUCT -->
+  <!-- 5 — WHY IT MATTERS -->
+  <section data-label="Why it matters" class="slide orange">
+    <div class="head">
+      <div class="eyebrow"><span class="n">05</span> Why It Matters</div>
+      <h2 class="title">Proposal work is where commercial knowledge should compound.</h2>
+    </div>
+    <div class="body" style="flex-direction:column;justify-content:center;">
+      <div class="why-diagram">
+        <div class="why-flow">
+          <div class="why-panel">
+            <div class="why-label">Every project adds</div>
+            <div class="why-projects">
+              <div class="why-project">Project 01</div>
+              <div class="why-project">Project 02</div>
+              <div class="why-project">Project 03</div>
+            </div>
+          </div>
+          <div class="why-arrow">→</div>
+          <div class="why-panel why-hub">
+            <div class="why-label">Captured once, reused everywhere</div>
+            <div class="why-hub-title">Cost knowledge layer</div>
+            <div class="why-hub-copy">Scope, prices, suppliers, assumptions, revisions, and decisions stay connected instead of resetting per file.</div>
+            <div class="why-mini-chips">
+              <span>Materials</span><span>Labor rates</span><span>Suppliers</span><span>Brands</span><span>Assemblies</span><span>Assumptions</span>
+            </div>
+          </div>
+          <div class="why-arrow">→</div>
+          <div class="why-panel">
+            <div class="why-label">Shared with clients</div>
+            <div class="why-client-title">Proposal review</div>
+            <div class="why-actions">
+              <div class="why-action">Comment</div>
+              <div class="why-action">Approve</div>
+              <div class="why-action">Decline</div>
+              <div class="why-action">Revise</div>
+            </div>
+          </div>
+        </div>
+        <div class="why-feedback">Client decisions feed back into future estimates</div>
+        <div class="why-outcomes">
+          <div class="why-outcome"><b>Faster proposals</b><span>Teams reuse prior scope, pricing, and assumptions instead of rebuilding from scratch.</span></div>
+          <div class="why-outcome"><b>Clearer decisions</b><span>Clients review the offer with the context behind the numbers still attached.</span></div>
+          <div class="why-outcome"><b>Compounding memory</b><span>Every estimate and client response improves the next proposal workflow.</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="foot">
+      <div class="brand"><img src="assets/logo-white.svg" alt=""><span>archestimator</span></div>
+      <div class="tag">Philip Jon Echavez Lewis &nbsp;·&nbsp; UAP, PIA, Int'l Assoc AIA</div>
+    </div>
+  </section>
+
+  <!-- 6 — THE PRODUCT -->
   <section data-label="The Product" class="slide">
     <div class="head">
-      <div class="eyebrow"><span class="n">05</span> The Product</div>
-      <h2 class="title">A structured workspace for estimates, reusable components, and proposal review.</h2>
+      <div class="eyebrow"><span class="n">06</span> The Product</div>
+      <h2 class="title product-title">A structured workspace for estimates, reusable<br>components, and proposal review.</h2>
     </div>
-    <div class="body" style="gap:48px;align-items:center;">
-      <div style="flex:0 0 53%;">
-        <div class="shot"><img src="assets/shot-sheets.png" alt="Archestimator estimate sheets"></div>
+    <div class="body product-workspace-body">
+      <div class="product-workspace-shot">
+        <img src="assets/product-workspace-main.png" alt="Archestimator main estimate workspace with project tree, estimate sheet, and component library">
+        <span class="product-pin tree">01</span>
+        <span class="product-pin sheet">02</span>
+        <span class="product-pin library">03</span>
       </div>
-      <div style="flex:1;display:flex;flex-direction:column;gap:24px;">
-        <div style="display:flex;flex-direction:column;gap:12px;">
-          <div class="mapnode">Projects</div>
-          <div class="mapsep">↓</div>
-          <div class="mapnode">Estimate tree · groups &amp; areas</div>
-          <div class="mapsep">↓</div>
-          <div class="mapnode">Reusable cost components</div>
-          <div class="mapsep">↓</div>
-          <div class="mapnode">Revisions &amp; version history</div>
-          <div class="mapsep">↓</div>
-          <div class="mapnode hl">Proposal review</div>
+      <div class="product-callouts">
+        <div class="product-callout">
+          <div class="num">01</div>
+          <div><b>Domain-driven tree</b><span>Scope stays organized by lot, house, floor, room, and package.</span></div>
+        </div>
+        <div class="product-callout">
+          <div class="num">02</div>
+          <div><b>Estimate sheet</b><span>Quantities, adjustments, misc costs, and totals stay connected in one working surface.</span></div>
+        </div>
+        <div class="product-callout">
+          <div class="num">03</div>
+          <div><b>Reusable library</b><span>Cost components stay ready to drag into estimates instead of being rebuilt.</span></div>
         </div>
       </div>
     </div>
@@ -539,10 +1040,10 @@
     </div>
   </section>
 
-  <!-- 6 — HOW IT WORKS -->
+  <!-- 7 — HOW IT WORKS -->
   <section data-label="How it works" class="slide orange">
     <div class="head">
-      <div class="eyebrow"><span class="n">06</span> How It Works</div>
+      <div class="eyebrow"><span class="n">07</span> How It Works</div>
       <h2 class="title">Connected quote logic, from scope to client decision.</h2>
     </div>
     <div class="body" style="flex-direction:column;justify-content:center;gap:48px;">
@@ -571,33 +1072,38 @@
     </div>
   </section>
 
-  <!-- 7 — COLLABORATION -->
+  <!-- 8 — COLLABORATION -->
   <section data-label="Collaboration" class="slide">
     <div class="head">
-      <div class="eyebrow"><span class="n">07</span> Collaboration &amp; Accountability</div>
-      <h2 class="title">Teams and clients work from one accountable source of truth.</h2>
+      <div class="eyebrow"><span class="n">08</span> Collaboration &amp; Accountability</div>
+      <h2 class="title">Teams work from one accountable source of truth.</h2>
     </div>
-    <div class="body" style="gap:46px;align-items:center;">
-      <div style="flex:0 0 44%;">
-        <div class="shot"><img src="assets/shot-activity.png" alt="Activity history and audit trail"></div>
-        <div class="caption">Version history &amp; audit trail · sample project</div>
-      </div>
-      <div style="flex:1;display:flex;flex-direction:column;gap:14px;">
-        <div class="card" style="padding:18px 22px;border-radius:12px;">
-          <div style="font-family:'IBM Plex Mono',monospace;font-size:var(--type-small);letter-spacing:.08em;text-transform:uppercase;color:var(--accent-ink);margin-bottom:6px;">Share</div>
-          <div style="font-size:22px;font-weight:600;margin-bottom:6px;">Shared projects</div>
-          <p style="margin:0;font-size:var(--type-small);line-height:1.34;color:var(--ink-2);">Invite a team into the same estimate, with shared context instead of file handoffs.</p>
-        </div>
-        <div class="card" style="padding:18px 22px;border-radius:12px;">
-          <div style="font-family:'IBM Plex Mono',monospace;font-size:var(--type-small);letter-spacing:.08em;text-transform:uppercase;color:var(--accent-ink);margin-bottom:6px;">Track</div>
-          <div style="font-size:22px;font-weight:600;margin-bottom:6px;">Version history</div>
-          <p style="margin:0;font-size:var(--type-small);line-height:1.34;color:var(--ink-2);">Every change is versioned, so teams know who changed what, when, and why.</p>
-        </div>
-        <div class="card" style="padding:18px 22px;border-radius:12px;">
-          <div style="font-family:'IBM Plex Mono',monospace;font-size:var(--type-small);letter-spacing:.08em;text-transform:uppercase;color:var(--accent-ink);margin-bottom:6px;">Approve</div>
-          <div style="font-size:22px;font-weight:600;margin-bottom:6px;">Client proposal review</div>
-          <p style="margin:0;font-size:var(--type-small);line-height:1.34;color:var(--ink-2);">Send cost proposals for client comments, approval, or decline without losing the estimate context.</p>
-        </div>
+    <div class="body collab-proof-body">
+      <div class="collab-proof-grid">
+        <a class="collab-proof-card" href="assets/collab-shared-link.png" target="_blank" rel="noopener" aria-label="Open HD shared link screenshot">
+          <div class="collab-shot"><img src="assets/collab-shared-link.png" alt="Shared link management dialog"></div>
+          <div class="collab-proof-copy">
+            <div class="tag">Share</div>
+            <b>Live project links</b>
+            <p>Distribute a view-only workspace link without sending another disconnected file.</p>
+          </div>
+        </a>
+        <a class="collab-proof-card" href="assets/collab-activity-history.png" target="_blank" rel="noopener" aria-label="Open HD activity history screenshot">
+          <div class="collab-shot"><img src="assets/collab-activity-history.png" alt="Activity history and audit facts panel"></div>
+          <div class="collab-proof-copy">
+            <div class="tag">Track</div>
+            <b>Audit facts</b>
+            <p>Tree changes, edits, and cost effects stay attributed instead of hiding in filenames.</p>
+          </div>
+        </a>
+        <a class="collab-proof-card" href="assets/collab-export-view.png" target="_blank" rel="noopener" aria-label="Open HD industry standard export screenshot">
+          <div class="collab-shot"><img src="assets/collab-export-view.png" alt="Industry standard BOQ export preview"></div>
+          <div class="collab-proof-copy">
+            <div class="tag">Export</div>
+            <b>Industry BOQ view</b>
+            <p>Domain-driven estimates collapse into a familiar Excel-ready schedule when the team needs it.</p>
+          </div>
+        </a>
       </div>
     </div>
     <div class="foot">
@@ -606,26 +1112,114 @@
     </div>
   </section>
 
-  <!-- 8 — ASK FLIP -->
+  <!-- 9 — CLIENT PROPOSAL VIEW -->
+  <section data-label="Client Proposal View" class="slide orange">
+    <div class="head">
+      <div class="eyebrow"><span class="n">09</span> Client Proposal View</div>
+      <h2 class="title proposal-title">The proposal view turns review into a decision loop.</h2>
+    </div>
+    <div class="body proposal-flow-body">
+      <div class="proposal-flow">
+        <div class="proposal-node">
+          <div class="num">01 Share</div>
+          <b>Send a controlled proposal link.</b>
+          <p>The estimator chooses the estimate version, visible sheets, assumptions, and access rules before the client sees anything.</p>
+        </div>
+        <div class="proposal-arrow" aria-hidden="true">&rarr;</div>
+        <div class="proposal-client">
+          <div class="proposal-client-card">
+            <div>
+              <div class="label">02 Client review</div>
+              <h3>Scope, totals, and alternates stay readable.</h3>
+              <p>The client sees the proposal package, not the internal workspace, and can respond directly inside the review flow.</p>
+            </div>
+            <div class="proposal-total">Client chooses the next move</div>
+            <div class="proposal-actions">
+              <div class="proposal-action">Comment</div>
+              <div class="proposal-action approve">Approve</div>
+              <div class="proposal-action decline">Decline</div>
+            </div>
+          </div>
+        </div>
+        <div class="proposal-arrow" aria-hidden="true">&rarr;</div>
+        <div class="proposal-node">
+          <div class="num">03 Record</div>
+          <b>Decisions come back with context.</b>
+          <p>Comments, approvals, and declines attach to the proposal history so teams know what changed and why.</p>
+        </div>
+      </div>
+      <div class="proposal-outcomes">
+        <div class="proposal-outcome"><b>Controlled link</b>Client receives one proposal page.</div>
+        <div class="proposal-outcome"><b>Comment</b>Questions attach to the proposal instead of inbox threads.</div>
+        <div class="proposal-outcome"><b>Approve</b>Accepted scope becomes a clean decision record.</div>
+        <div class="proposal-outcome"><b>Decline</b>Rejected options still teach the next proposal.</div>
+      </div>
+    </div>
+    <div class="foot">
+      <div class="brand"><img src="assets/logo-white.svg" alt=""><span>archestimator</span></div>
+      <div class="tag">Philip Jon Echavez Lewis &nbsp;·&nbsp; UAP, PIA, Int'l Assoc AIA</div>
+    </div>
+  </section>
+
+  <!-- 10 — ASK FLIP -->
   <section data-label="Ask Flip" class="slide alt">
     <div class="head">
-      <div class="eyebrow"><span class="n">08</span> Ask Flip · AI Assistant</div>
-      <h2 class="title">Ask Flip turns your cost history into a drafting engine.</h2>
+      <div class="eyebrow"><span class="n">10</span> Ask Flip · AI Assistant</div>
+      <h2 class="title">Ask Flip turns one prompt into a reviewable estimate package.</h2>
     </div>
     <div class="body askflip-body">
       <div class="ai-steps">
-        <div class="ai-step"><div class="idx">01</div><div><b>Studies your workspace</b><span>Projects, component library, pricing, suppliers, and prior estimate patterns.</span></div></div>
-        <div class="ai-step"><div class="idx">02</div><div><b>Drafts project logic</b><span>Builds a structured project and estimate sheets from existing team data.</span></div></div>
-        <div class="ai-step"><div class="idx">03</div><div><b>You review &amp; apply</b><span>Nothing changes until accepted; applied work stays versioned and traceable.</span></div></div>
+        <div class="ai-step"><div class="idx">01</div><div><b>Studies your workspace</b><span>Reads prior projects, component library, pricing, suppliers, and estimate patterns.</span></div></div>
+        <div class="ai-step"><div class="idx">02</div><div><b>Drafts project logic</b><span>Builds project trees and estimate sheets in the team's existing logic, then waits for review.</span></div></div>
+        <div class="ai-step"><div class="idx">03</div><div><b>You review &amp; apply</b><span>Nothing changes until accepted; applied work compounds into faster future proposals.</span></div></div>
       </div>
-      <div class="askflip-shot">
-        <div class="shot"><img src="assets/shot-estimate.png" alt="Ask Flip drafted estimate"></div>
+      <div class="askflip-chat" aria-label="Ask Flip chatbot mockup">
+        <div class="askflip-conversation">
+          <div class="askflip-chat-top">
+            <div class="askflip-agent">
+              <div class="askflip-mark">F</div>
+              <div><b>Ask Flip</b><span>Workspace copilot</span></div>
+            </div>
+            <div class="askflip-status-stack">
+              <div class="askflip-status-line"><span class="status-dot"></span>Ready to draft</div>
+              <div class="askflip-meta-line">9:41 AM · Lewis Studio</div>
+            </div>
+          </div>
+          <div class="chat-thread">
+            <div class="chat-bubble user">
+              <div class="speaker-row"><span class="speaker">Designer</span><time datetime="2026-05-31T09:41">9:41 AM</time></div>
+              <p>Hi Flip, I have a new interior design project. A 3 bedroom unit with 2 toilet &amp; shower. Can you assemble the project and estimate sheet for me? Make sure to study our previous projects like this and use cost components from our library.</p>
+            </div>
+            <div class="chat-bubble flip">
+              <div class="speaker-row"><span class="speaker">Ask Flip</span><time datetime="2026-05-31T09:42">9:42 AM</time></div>
+              <p>Sure, assembling the package now. I am studying similar residential interiors, matching components from your library, and drafting the project tree plus estimate sheets for your review.</p>
+            </div>
+            <div class="chat-progress" aria-label="Ask Flip is assembling the package">
+              <span class="typing-dots" aria-hidden="true"><i></i><i></i><i></i></span>
+              <b>Assembling package</b>
+              <span>Project tree · library components · estimate sheets</span>
+            </div>
+          </div>
+          <div class="askflip-compose" aria-label="Ask Flip message composer">
+            <div class="askflip-input"><span>Nothing applies until the team reviews the draft.</span><small>Draft package ready for team review.</small></div>
+            <button class="askflip-send" type="button" aria-label="Send message">
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M4.2 12.6 19 5.4c.62-.3 1.25.29 1 0.93l-4.9 13.05c-.24.64-1.14.64-1.38 0l-2-5.2-5.2-2c-.64-.25-.64-1.15-.02-1.58Z" fill="currentColor"/>
+                <path d="m11.9 13.9 3.7-3.7" fill="none" stroke="#fff" stroke-width="1.55" stroke-linecap="round"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+        <div class="askflip-workflow">
+          <div class="workflow-kicker">Software-wide action</div>
+          <h3>It can operate the whole Archestimator workspace.</h3>
+          <div class="workflow-list">
+            <div class="workflow-item"><div class="step">01</div><div><b>Reads prior projects</b><small>Finds similar unit layouts, room scopes, and team pricing behavior.</small></div></div>
+            <div class="workflow-item"><div class="step">02</div><div><b>Pulls library components</b><small>Uses reusable cost components instead of starting from a blank sheet.</small></div></div>
+            <div class="workflow-item"><div class="step">03</div><div><b>Builds the estimate workspace</b><small>Creates the project tree and estimate sheets as a reviewable draft.</small></div></div>
+          </div>
+        </div>
       </div>
-      <ul class="askflip-points">
-        <li>It studies the user's own projects, component library, pricing, and prior estimate patterns.</li>
-        <li>It drafts structured projects and estimate sheets in the team's existing logic, then waits for review.</li>
-        <li>The adoption incentive is compounding speed: the more users build, the faster their next proposal starts.</li>
-      </ul>
     </div>
     <div class="foot">
       <div class="brand"><img src="assets/logo-orange.svg" alt=""><span>archestimator</span></div>
@@ -633,31 +1227,48 @@
     </div>
   </section>
 
-  <!-- 9 — MARKET -->
+  <!-- 11 — MARKET -->
   <section data-label="Market" class="slide">
     <div class="head">
-      <div class="eyebrow"><span class="n">09</span> Market</div>
-      <h2 class="title">Construction estimating is the wedge. Quote-heavy teams are the opportunity.</h2>
+      <div class="eyebrow"><span class="n">11</span> Market</div>
+      <h2 class="title market-title">Construction estimation is the wedge.<br>Quote-heavy teams are the opportunity.</h2>
     </div>
-    <div class="body" style="gap:48px;align-items:center;">
-      <div style="flex:0 0 46%;display:flex;justify-content:center;">
+    <div class="body market-body">
+      <div class="market-rings-wrap">
         <div class="rings">
           <div class="ring r3"><span>Quote-heavy teams</span></div>
           <div class="ring r2"><span>Fit-out · interiors</span></div>
           <div class="ring r1"><span>Architecture &amp;<br>construction</span></div>
         </div>
       </div>
-      <div style="flex:1;display:flex;flex-direction:column;gap:26px;">
-        <div>
-          <div class="eyebrow" style="margin-bottom:18px;">Current proof case</div>
-          <div class="chips">
-            <span class="chip">Architects</span><span class="chip">Contractors</span><span class="chip">Fit-out teams</span><span class="chip">Design-build firms</span><span class="chip">Suppliers</span>
+      <div class="market-story">
+        <div class="market-thesis">
+          <div class="eyebrow">Market thesis</div>
+          <h3>AEC is the wedge. Quote-first B2B is the platform.</h3>
+          <p>We start where the pain is sharp and the founder has unfair context, then expand to any business that sells through scoped, itemized quotes before work begins.</p>
+        </div>
+        <div class="market-path">
+          <div class="market-path-card accent">
+            <div class="num">01 Beachhead</div>
+            <b>AEC first because fit is real.</b>
+            <span>Architecture, contractors, fit-out, design-build, and suppliers already live inside revision-heavy estimate workflows.</span>
+          </div>
+          <div class="market-path-card">
+            <div class="num">02 Expansion</div>
+            <b>The workflow is industry agnostic.</b>
+            <span>Reusable line items, approvals, proposal links, and audit history matter to every quote-first B2B team.</span>
           </div>
         </div>
-        <div style="height:1px;background:var(--line);"></div>
-        <div>
-          <div class="eyebrow" style="margin-bottom:14px;">Broader opportunity</div>
-          <p style="font-size:var(--type-body);line-height:1.34;color:var(--ink-2);margin:0;max-width:42ch;">Any team that repeatedly prepares itemized commercial offers can benefit from reusable cost logic, controlled revisions, and proposal workflows.</p>
+        <div class="market-sector-strip">
+          <div class="eyebrow">Quote-first teams beyond AEC</div>
+          <div class="market-sector-grid">
+            <div class="market-sector">Custom fabrication</div>
+            <div class="market-sector">Equipment suppliers</div>
+            <div class="market-sector">Facility services</div>
+            <div class="market-sector">Installers</div>
+            <div class="market-sector">Agencies</div>
+            <div class="market-sector">B2B services</div>
+          </div>
         </div>
       </div>
     </div>
@@ -667,13 +1278,13 @@
     </div>
   </section>
 
-  <!-- 10 — ADVANTAGE -->
+  <!-- 12 — ADVANTAGE -->
   <section data-label="Advantage" class="slide orange">
     <div class="head">
-      <div class="eyebrow"><span class="n">10</span> Competitive Advantage</div>
-      <h2 class="title">Archestimator replaces disposable files with a compounding proposal system.</h2>
+      <div class="eyebrow"><span class="n">12</span> Competitive Advantage</div>
+      <h2 class="title advantage-title">Archestimator replaces disposable files<br>with a compounding proposal system.</h2>
     </div>
-    <div class="body" style="flex-direction:column;justify-content:center;gap:26px;">
+    <div class="body advantage-body">
       <div class="disruptor-grid">
         <div class="disrupt-card plain">
           <div class="dtag">Current default</div>
@@ -706,12 +1317,13 @@
           </ul>
         </div>
       </div>
-      <div class="win-strip">
-        <div class="win-pill"><b>Faster</b><span>Reuse prior scope, items, pricing, and assumptions.</span></div>
-        <div class="win-pill"><b>Clearer</b><span>Every proposal line keeps its source context.</span></div>
-        <div class="win-pill"><b>Safer</b><span>Every change is attributed, versioned, and reversible.</span></div>
-        <div class="win-pill"><b>Smarter</b><span>Each estimate improves the next one.</span></div>
-      </div>
+      <div class="advantage-separator" aria-hidden="true"></div>
+      <ul class="advantage-list" aria-label="Archestimator advantages">
+        <li><b>Faster</b><span>Reuse prior scope, items, pricing, and assumptions.</span></li>
+        <li><b>Clearer</b><span>Every proposal line keeps its source context.</span></li>
+        <li><b>Safer</b><span>Every change is attributed, versioned, and reversible.</span></li>
+        <li><b>Smarter</b><span>Each estimate improves the next one.</span></li>
+      </ul>
     </div>
     <div class="foot">
       <div class="brand"><img src="assets/logo-white.svg" alt=""><span>archestimator</span></div>
@@ -719,10 +1331,10 @@
     </div>
   </section>
 
-  <!-- 11 — DOMAIN MODEL -->
+  <!-- 13 — DOMAIN MODEL -->
   <section data-label="Domain Model" class="slide">
     <div class="head">
-      <div class="eyebrow"><span class="n">11</span> The Domain Model</div>
+      <div class="eyebrow"><span class="n">13</span> The Domain Model</div>
       <h2 class="title">The moat is the structured memory behind every proposal.</h2>
     </div>
     <div class="body domain-grid">
@@ -748,51 +1360,82 @@
     </div>
   </section>
 
-  <!-- 12 — DATA INTELLIGENCE -->
+  <!-- 14 — DATA INTELLIGENCE -->
   <section data-label="Data Intelligence" class="slide alt">
     <div class="head">
-      <div class="eyebrow"><span class="n">12</span> Data Intelligence · Emerging Opportunity</div>
-      <h2 class="title">Every estimate can build a living picture of real costs.</h2>
+      <div class="eyebrow"><span class="n">14</span> Data Intelligence · Emerging Opportunity</div>
+      <h2 class="title">Every estimate becomes cost intelligence the next proposal can use.</h2>
     </div>
-    <div class="body" style="gap:52px;align-items:center;">
-      <div style="flex:1;display:flex;flex-direction:column;gap:24px;">
-        <ul class="pts">
-          <li>As teams estimate, Archestimator captures structured, ground-level cost signals: materials, rates, suppliers, and assumptions over time.</li>
-          <li>Aggregated and anonymized, those signals could show how real construction costs move before they appear in formal reports.</li>
-          <li>That creates a long-term path toward benchmarking, research, and broader economic insight.</li>
-        </ul>
-        <p style="margin:0;font-size:var(--type-small);color:var(--ink-3);line-height:1.4;max-width:58ch;">An emerging opportunity, to be explored responsibly after core product validation. Not a current commercial claim.</p>
-      </div>
-      <div style="flex:0 0 42%;">
-        <div class="card intel-board">
-          <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:20px;">
+    <div class="body intel-body">
+      <p class="intel-thesis">The first data product is not a public index. It is a team's own estimating memory: what comparable projects cost, where variance appears, which assumptions held, and how confidently the next scope can start.</p>
+      <div class="intel-flywheel">
+        <div class="card intel-panel">
+          <div class="intel-kicker">01 Capture</div>
+          <h3>Proposal logic becomes structured data.</h3>
+          <p>Archestimator records the context behind each price, not only the final number.</p>
+          <div class="memory-stack">
+            <div class="memory-layer"><div class="code">Scope</div><div><b>Project DNA</b><span>type, size, floor count, room mix, location</span></div></div>
+            <div class="memory-layer"><div class="code">Cost</div><div><b>Estimate lines</b><span>qty, unit, supplier, rate, misc, adjustment</span></div></div>
+            <div class="memory-layer"><div class="code">Truth</div><div><b>Assumptions</b><span>notes, alternates, revisions, approvals</span></div></div>
+          </div>
+          <div class="intel-flow-note">Inputs stay reusable instead of disappearing into one-off files.</div>
+        </div>
+        <div class="card intel-panel benchmark-panel">
+          <div class="benchmark-head">
             <div>
-              <div style="font-family:'IBM Plex Mono',monospace;font-size:var(--type-small);letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3);">Ground-level cost signals</div>
-              <div style="font-size:24px;font-weight:650;line-height:1.08;margin-top:9px;">Illustrative category index</div>
+              <div class="intel-kicker">02 Benchmark</div>
+              <h3>Cost estimating prowess becomes visible.</h3>
             </div>
-            <div class="chip" style="font-size:13px;padding:8px 12px;">Anonymized</div>
+            <div class="benchmark-chip">Illustrative</div>
           </div>
-          <div class="signal-row">
-            <div><div class="name">Concrete</div><div class="meta">materials</div></div>
-            <div class="sparkline"><i style="height:42%"></i><i style="height:50%"></i><i style="height:47%"></i><i class="hot" style="height:63%"></i><i class="hot" style="height:72%"></i><i class="hot" style="height:78%"></i></div>
-            <div class="delta">+8%</div>
+          <div class="benchmark-grid">
+            <div class="benchmark-metric">
+              <div class="label">10-storey residential</div>
+              <div class="value">₱72k<small>/ sqm</small></div>
+              <div class="basis">avg accepted scope</div>
+            </div>
+            <div class="benchmark-metric">
+              <div class="label">3BR condo fit-out</div>
+              <div class="value">₱38k<small>/ sqm</small></div>
+              <div class="basis">prior comparable set</div>
+            </div>
+            <div class="benchmark-metric">
+              <div class="label">Kitchen-heavy scopes</div>
+              <div class="value">+14%</div>
+              <div class="basis">typical variance</div>
+            </div>
+            <div class="benchmark-metric">
+              <div class="label">Supplier delta</div>
+              <div class="value">7%</div>
+              <div class="basis">median spread</div>
+            </div>
           </div>
-          <div class="signal-row">
-            <div><div class="name">Steel</div><div class="meta">structural</div></div>
-            <div class="sparkline"><i class="hot" style="height:76%"></i><i class="hot" style="height:72%"></i><i style="height:68%"></i><i style="height:64%"></i><i style="height:58%"></i><i style="height:55%"></i></div>
-            <div class="delta" style="color:var(--ink-2);">-3%</div>
+          <div class="variance-chart">
+            <div class="scope">Structure</div>
+            <div class="variance-track"><i style="width:72%"></i></div>
+            <div class="pct">₱/sqm</div>
           </div>
-          <div class="signal-row">
-            <div><div class="name">Furniture</div><div class="meta">fit-out</div></div>
-            <div class="sparkline"><i style="height:38%"></i><i style="height:43%"></i><i style="height:51%"></i><i class="hot" style="height:56%"></i><i style="height:52%"></i><i class="hot" style="height:61%"></i></div>
-            <div class="delta">+5%</div>
+          <div class="variance-chart">
+            <div class="scope">MEP</div>
+            <div class="variance-track"><i style="width:54%"></i></div>
+            <div class="pct">scope</div>
           </div>
-          <div class="signal-row">
-            <div><div class="name">Plumbing fixtures</div><div class="meta">suppliers</div></div>
-            <div class="sparkline"><i style="height:44%"></i><i style="height:48%"></i><i class="hot" style="height:58%"></i><i class="hot" style="height:71%"></i><i class="hot" style="height:86%"></i><i class="hot" style="height:92%"></i></div>
-            <div class="delta">+11%</div>
+          <div class="variance-chart">
+            <div class="scope">Fit-out</div>
+            <div class="variance-track"><i style="width:88%"></i></div>
+            <div class="pct">finish</div>
           </div>
-          <p style="margin:6px 0 0;font-size:14px;line-height:1.35;color:var(--ink-3);">Illustrative only: shows the type of benchmark view that could emerge after validation and responsible aggregation.</p>
+        </div>
+        <div class="card intel-panel">
+          <div class="intel-kicker">03 Aggregate</div>
+          <h3>Ground-level signals can emerge later.</h3>
+          <p>With consent, controls, and anonymization, repeated estimates could form useful market intelligence.</p>
+          <div class="market-signal-list">
+            <div class="market-signal"><div class="name">Concrete</div><div class="signal-track"><i style="height:42%"></i><i style="height:50%"></i><i style="height:47%"></i><i class="hot" style="height:63%"></i><i class="hot" style="height:72%"></i><i class="hot" style="height:78%"></i></div><div class="delta">+8%</div></div>
+            <div class="market-signal"><div class="name">Steel</div><div class="signal-track"><i class="hot" style="height:76%"></i><i class="hot" style="height:72%"></i><i style="height:68%"></i><i style="height:64%"></i><i style="height:58%"></i><i style="height:55%"></i></div><div class="delta" style="color:var(--ink-2);">-3%</div></div>
+            <div class="market-signal"><div class="name">Fixtures</div><div class="signal-track"><i style="height:44%"></i><i style="height:48%"></i><i class="hot" style="height:58%"></i><i class="hot" style="height:71%"></i><i class="hot" style="height:86%"></i><i class="hot" style="height:92%"></i></div><div class="delta">+11%</div></div>
+          </div>
+          <div class="intel-disclaimer">Emerging opportunity only. Benchmarking and broader market insight come after core product validation, customer consent, and responsible aggregation.</div>
         </div>
       </div>
     </div>
@@ -802,10 +1445,10 @@
     </div>
   </section>
 
-  <!-- 13 — STATUS -->
+  <!-- 15 — STATUS -->
   <section data-label="Status" class="slide alt">
     <div class="head">
-      <div class="eyebrow"><span class="n">13</span> Current Status &nbsp;·&nbsp; Pre-launch MVP · Bootstrapped</div>
+      <div class="eyebrow"><span class="n">15</span> Current Status &nbsp;·&nbsp; Pre-launch MVP · Bootstrapped</div>
       <h2 class="title">Built enough to validate, early enough to shape with the right cohort.</h2>
     </div>
     <div class="body" style="gap:46px;align-items:center;">
@@ -837,10 +1480,10 @@
     </div>
   </section>
 
-  <!-- 14 — BUSINESS MODEL -->
+  <!-- 16 — BUSINESS MODEL -->
   <section data-label="Business Model" class="slide orange">
     <div class="head">
-      <div class="eyebrow"><span class="n">14</span> Business Model</div>
+      <div class="eyebrow"><span class="n">16</span> Business Model</div>
       <h2 class="title">A B2B SaaS model that expands from solo estimating into team proposal operations.</h2>
     </div>
     <div class="body" style="flex-direction:column;justify-content:center;gap:32px;">
@@ -874,28 +1517,50 @@
     </div>
   </section>
 
-  <!-- 15 — ROADMAP -->
-  <section data-label="Roadmap" class="slide alt">
+  <!-- 17 — FOUNDER-LED ROADMAP -->
+  <section data-label="Founder-Led Roadmap" class="slide alt">
     <div class="head">
-      <div class="eyebrow"><span class="n">15</span> Six-Month Roadmap</div>
-      <h2 class="title">A six-month validation path to paid pilots.</h2>
+      <div class="eyebrow"><span class="n">17</span> Founder-Led Roadmap</div>
+      <h2 class="title">Solo founder velocity, structured validation, paid pilot proof.</h2>
     </div>
-    <div class="body" style="flex-direction:column;justify-content:center;gap:18px;">
-      <div class="road">
-        <div></div>
-        <div class="ph">Months 1–2</div><div class="ph">Months 3–4</div><div class="ph">Months 5–6</div>
+    <div class="body founder-roadmap-body">
+      <div class="founder-exec-grid">
+        <div class="founder-exec-card">
+          <div class="eyebrow">Solo builder advantage</div>
+          <h3>Built by the person who lives the workflow.</h3>
+          <p>Archestimator is still early, but the core product depth is already founder-built across architecture, software, design, and estimating practice.</p>
+          <ul class="founder-proof-list">
+            <li>Licensed architect with direct proposal and supplier coordination experience.</li>
+            <li>Software builder who can move product, UX, and technical infrastructure together.</li>
+            <li>Founder-led access to the first users: architects, fit-out teams, contractors, and quote-heavy operators.</li>
+          </ul>
+        </div>
+        <div class="validation-path-card">
+          <div class="eyebrow">Next six months</div>
+          <div class="simple-roadmap">
+            <div class="simple-step">
+              <div class="when">01 Ship</div>
+              <b>MVP ready for real jobs.</b>
+              <p>Stabilize onboarding, estimate editing, library reuse, proposal export, and basic QA.</p>
+            </div>
+            <div class="simple-step">
+              <div class="when">02 Validate</div>
+              <b>Founder-led beta learning.</b>
+              <p>Run discovery and beta teams to sharpen the ICP, onboarding path, and buyer language.</p>
+            </div>
+            <div class="simple-step">
+              <div class="when">03 Prove</div>
+              <b>Paid pilot evidence.</b>
+              <p>Convert early design partners into paid pilots with clear success criteria and pricing signals.</p>
+            </div>
+          </div>
+        </div>
       </div>
-      <div class="road">
-        <div class="lab tech">Tech</div>
-        <div class="cell"><ul><li>Production-ready MVP</li><li>Stable onboarding &amp; auth</li></ul></div>
-        <div class="cell"><ul><li>Security &amp; RLS hardening</li><li>Reliable estimate editor</li></ul></div>
-        <div class="cell"><ul><li>Proposal export &amp; sharing</li><li>AI draft &amp; review flow</li><li>Performance &amp; QA</li></ul></div>
-      </div>
-      <div class="road">
-        <div class="lab" style="color:var(--ink-2);">Market</div>
-        <div class="cell"><ul><li>20–30 discovery calls</li><li>Sharper ICP</li></ul></div>
-        <div class="cell"><ul><li>5–10 beta teams</li><li>Repeatable founder-led sales script</li></ul></div>
-        <div class="cell"><ul><li>2–3 paid pilots</li><li>Validated pricing</li></ul></div>
+      <div class="accelerator-row">
+        <div class="label">What accelerates the next stage</div>
+        <div class="accelerator"><b>Cadence</b><span>Turn founder access into disciplined weekly validation.</span></div>
+        <div class="accelerator"><b>Packaging</b><span>Shape a paid pilot offer before claiming broad pricing.</span></div>
+        <div class="accelerator"><b>Introductions</b><span>Reach serious quote-first teams faster and learn deeper.</span></div>
       </div>
     </div>
     <div class="foot">
@@ -904,64 +1569,28 @@
     </div>
   </section>
 
-  <!-- 16 — THE ASK -->
-  <section data-label="The Ask" class="slide orange">
-    <div class="head">
-      <div class="eyebrow"><span class="n">16</span> The Ask</div>
-      <h2 class="title">What we need from a serious innovation cohort.</h2>
-    </div>
-    <div class="body" style="flex-direction:column;justify-content:center;gap:34px;">
-      <div style="display:flex;align-items:center;justify-content:center;gap:18px;font-family:'IBM Plex Mono',monospace;text-transform:uppercase;letter-spacing:.11em;color:rgba(255,255,255,.74);font-size:var(--type-small);">
-        <span>Founder-built MVP</span><span style="color:rgba(255,255,255,.48);">→</span><span>Structured beta validation</span><span style="color:rgba(255,255,255,.48);">→</span><span>Paid pilot evidence</span>
-      </div>
-      <div class="ask-grid">
-        <div class="askcard">
-          <div class="ak">01</div>
-          <div class="need">Discipline</div>
-          <h3>Turn access into validation.</h3>
-          <p>Mentorship and operating cadence to convert real industry relationships into discovery calls, beta teams, and repeatable learning.</p>
-          <div class="evidence">Sharper ICP</div>
-        </div>
-        <div class="askcard">
-          <div class="ak">02</div>
-          <div class="need">Business model</div>
-          <h3>Shape the paid pilot offer.</h3>
-          <p>Guidance on pricing, packaging, onboarding, success criteria, and what evidence matters before broader fundraising.</p>
-          <div class="evidence">Validated pricing</div>
-        </div>
-        <div class="askcard">
-          <div class="ak">03</div>
-          <div class="need">Network</div>
-          <h3>Reach serious early buyers faster.</h3>
-          <p>Cohort credibility and introductions to design partners, quote-heavy teams, and operators who can test the workflow deeply.</p>
-          <div class="evidence">Investment readiness</div>
-        </div>
-      </div>
-    </div>
-    <div class="foot">
-      <div class="brand"><img src="assets/logo-white.svg" alt=""><span>archestimator</span></div>
-      <div class="tag">Philip Jon Echavez Lewis &nbsp;·&nbsp; UAP, PIA, Int'l Assoc AIA</div>
-    </div>
-  </section>
-
-  <!-- 17 — FOUNDER FIT -->
+  <!-- 18 — FOUNDER FIT -->
   <section data-label="Founder Fit" class="slide">
     <div class="head">
-      <div class="eyebrow"><span class="n">17</span> Founder Fit</div>
+      <div class="eyebrow"><span class="n">18</span> Founder Fit</div>
     </div>
     <div class="body" style="gap:42px;align-items:center;margin-top:14px;">
       <div style="flex:0 0 30%;">
         <div class="shot" style="border-radius:18px;"><img src="assets/founder.jpg" alt="Philip Jon Echavez Lewis"></div>
         <div style="margin-top:22px;">
-          <div style="font-size:22px;font-weight:700;line-height:1.2;">Philip Jon Echavez Lewis, UAP, PIA</div>
+          <div class="founder-name">Philip Jon Echavez Lewis<span class="founder-credentials">UAP, PIA, Int'l Assoc AIA</span></div>
           <div class="caption" style="margin-top:8px;">Licensed Architect · Software Engineer · Founder</div>
         </div>
       </div>
-      <div style="flex:1;display:flex;flex-direction:column;gap:24px;">
-        <h2 style="font-size:36px;font-weight:600;line-height:1.12;letter-spacing:-.02em;margin:0;max-width:26ch;">I know the problem because I have lived it. I know the market because I am the market.</h2>
+      <div style="flex:1;display:flex;flex-direction:column;gap:20px;">
+        <h2 style="font-size:36px;font-weight:600;line-height:1.12;letter-spacing:-.02em;margin:0;max-width:none;">
+          <span style="display:block;white-space:nowrap;">I know the problem because I have lived it.</span>
+          <span style="display:block;white-space:nowrap;color:var(--accent-deep);">I know the market because I am the market.</span>
+        </h2>
         <p style="font-size:var(--type-body);line-height:1.4;color:var(--ink-2);margin:0;max-width:52ch;">A licensed architect who has prepared estimates and proposals, coordinated with suppliers and contractors, run his own practice, and worked in startup and technology roles.</p>
-        <p style="font-size:var(--type-body);line-height:1.4;color:var(--ink-2);margin:0;max-width:52ch;">In 2020 and 2021, while transitioning into software engineering during the pandemic, he lost both parents to cancer. He rebuilt his life and career through grief, uncertainty, and reinvention. That experience shaped the discipline behind Archestimator.</p>
-        <p style="font-size:var(--type-body);line-height:1.36;font-weight:600;margin:0;max-width:54ch;border-left:4px solid var(--accent);padding-left:20px;">He brings the lived workflow, the professional network, and the technical ability to turn a painful manual process into software.</p>
+        <p style="font-size:var(--type-body);line-height:1.4;color:var(--ink-2);margin:0;max-width:52ch;">After years in architecture, he chose to start over in software: learning new tools, moving outside his comfort zone, and building the discipline to translate domain experience into product execution.</p>
+        <p style="font-size:var(--type-body);line-height:1.4;color:var(--ink-2);margin:0;max-width:52ch;">That combination makes him the right founder-builder for Archestimator: he understands the messy estimating workflow, can design the product experience, and can ship the technical system himself.</p>
+        <p style="font-size:var(--type-body);line-height:1.36;font-weight:600;margin:0;max-width:54ch;border-left:4px solid var(--accent);padding-left:20px;">He brings lived workflow, professional network, and technical execution into one founder.</p>
       </div>
     </div>
     <div class="foot">
@@ -970,10 +1599,10 @@
     </div>
   </section>
 
-  <!-- 18 — FOUNDER CV -->
+  <!-- 19 — FOUNDER CV -->
   <section data-label="Founder CV" class="slide alt">
     <div class="head">
-      <div class="eyebrow"><span class="n">18</span> Founder CV Snapshot</div>
+      <div class="eyebrow"><span class="n">19</span> Founder CV Snapshot</div>
       <h2 class="title">A bridge between architecture, software, design, and business.</h2>
     </div>
     <div class="body" style="flex-direction:column;justify-content:center;gap:24px;">
@@ -1008,10 +1637,10 @@
     </div>
   </section>
 
-  <!-- 19 — CLOSING IMPACT -->
-  <section data-label="Closing Impact" class="slide orange">
+  <!-- 20 — IMPACT -->
+  <section data-label="Impact" class="slide orange">
     <div class="head">
-      <div class="eyebrow"><span class="n">19</span> Closing Impact</div>
+      <div class="eyebrow"><span class="n">20</span> Impact</div>
     </div>
     <div class="body" style="align-items:center;justify-content:center;">
       <div class="glass-card" style="max-width:1040px;padding:42px 48px;border-radius:18px;text-align:left;">
@@ -1019,8 +1648,8 @@
           <img src="assets/logo-white.svg" alt="" style="height:32px;width:auto;">
           <div style="font-size:28px;font-weight:650;letter-spacing:-.02em;">archestimator</div>
         </div>
-        <h2 style="font-size:56px;line-height:1.04;letter-spacing:-.026em;margin:0 0 28px;max-width:15ch;">From every estimate, a smarter way to build.</h2>
-        <p style="font-size:28px;line-height:1.34;color:rgba(255,255,255,.9);margin:0;">Archestimator turns proposal work from a disposable document into a compounding system. Teams move faster because scope, pricing, revisions, AI drafts, and client decisions stay connected. The long-term opportunity is bigger than estimating: a trusted intelligence layer for real construction costs, built from the work professionals already do.</p>
+        <h2 style="font-size:56px;line-height:1.04;letter-spacing:-.026em;margin:0 0 28px;max-width:17ch;">The most intuitive way to work with estimates</h2>
+        <p style="font-size:28px;line-height:1.34;color:rgba(255,255,255,.9);margin:0;">Archestimator gives quote-heavy teams one workspace to assemble estimates, reuse cost components, review proposals, and keep decisions connected. It replaces disposable spreadsheets with structured project memory: every line item, supplier note, revision, approval, export, and Ask Flip draft becomes context the next estimate can build on.</p>
       </div>
     </div>
     <div class="foot">
@@ -1031,25 +1660,26 @@
 
   <script type="application/json" id="speaker-notes">
   [
-    "Cover. Open with the visual identity only: logo, orange wireframe field, no exposition.",
-    "Title. Archestimator is a proposal-first workspace for estimates, reusable cost logic, and client-ready offers. This is the core one-line frame before the problem narrative begins.",
-    "Problem. Quote-heavy teams still use one-off spreadsheets and scattered supplier files. The deeper issue is memory loss: every project creates reusable commercial logic, then the logic disappears after the proposal.",
-    "Why it matters. Estimates contain project logic, not just numbers. Capturing that logic once creates faster, clearer offers and gives teams back hours they lose rebuilding work they already solved.",
-    "The product. A structured workspace, not a spreadsheet skin. Walk the map: projects, estimate tree, reusable components, revisions, proposal review.",
+    "Cover. Open with the visual identity only: logo, orange static mesh field, no exposition.",
+    "Title. Archestimator is the most intuitive way to work with cost estimates. This is the core one-line frame before the problem narrative begins.",
+    "Problem. Quote-heavy teams waste time, effort, resources, and money because the reusable logic behind every proposal disappears. Instead of carrying forward prior scope, pricing, supplier context, and decisions, they keep rebuilding from scattered files.",
+    "The solution. Archestimator gives teams the tools to stop starting from zero: build the estimate, reuse prior cost logic and components, keep context connected, and move the work into client-ready proposal review.",
+    "Why it matters. Estimates contain project logic, not just numbers. Each project feeds the cost knowledge layer, the layer creates faster proposals, and client comments, approvals, declines, and revisions feed back into future estimates.",
+    "The product. This is the main workspace: a domain-driven tree on the left, the live estimate sheet in the middle, and the reusable component library on the right. The product is a structured workspace, not a spreadsheet skin.",
     "How it works. Every price stays connected to its scope, supplier context, and assumption across six steps, through proposal review and client decision.",
-    "Collaboration. Three ideas: shared projects, version history, and client proposal review. Teams know who changed what and clients can comment, approve, or decline without losing the estimate context.",
+    "Collaboration. Show three concrete proof objects: shared links, activity history, and the industry-standard BOQ export view. The point is accountability from one source of truth, with familiar outputs when teams need them.",
+    "Client proposal view. This is a planned client-facing workflow: the client receives a controlled link, can comment in context, approve, or decline, and the decision returns to the estimate history.",
     "Ask Flip. This is the adoption unlock and control story combined. Ask Flip studies the user's own workspace, drafts structured projects and estimate sheets, then waits for human review. Nothing applies until accepted, and applied work stays versioned.",
     "Market. Construction-style estimating is the wedge and current proof case. The larger market is any quote-heavy team that repeatedly prepares itemized commercial offers.",
     "Advantage. Frame the disruption clearly: Excel is flexible but fragile, ERP is heavy and not proposal-first, and Archestimator owns the proposal-first middle with compounding cost intelligence.",
     "Domain model. The moat is structured memory: scope, costs, suppliers, revisions, client decisions, and AI draft context stay connected instead of resetting per file.",
-    "Data intelligence. Forward-looking and clearly framed as emerging. Every estimate can become structured, ground-level cost data. Aggregated and anonymized, that could support benchmarking and research after core product validation.",
+    "Data intelligence. The first data product is a team's own estimating memory: project DNA, estimate lines, assumptions, and approvals reveal estimating prowess through benchmarks such as cost per sqm, variance by scope, and supplier spread. Broader anonymized market signals are a later responsible aggregation opportunity after validation and consent.",
     "Status. Be honest and confident: pre-launch MVP, bootstrapped, no customers, revenue, funding, or partnerships yet. Substantial product depth is already built; next step is structured beta validation and paid pilots.",
     "Business model. B2B SaaS begins with solo and small-team quote builders, then expands into shared workspaces, proposal operations, AI drafting, and business accounts. Paid pilots validate willingness to pay before fixed prices are claimed.",
-    "Roadmap. Two tracks over six months. Tech: production-ready MVP through proposal export, AI review flow, and QA. Market: discovery calls, beta teams, paid pilots, and validated pricing.",
-    "The ask. I already have founder-market fit and real industry access. What I need now is operating discipline, pricing and packaging guidance, and the credibility and network to reach beta teams and paid pilots faster.",
-    "Founder fit. I know the problem because I have lived it; I know the market because I am the market. Deliver the resilience story with dignity, then tie it back to domain access plus technical execution.",
+    "Founder-led roadmap. Archestimator is still early, but it already has solo-founder product depth across architecture, software, design, and estimating. The next six months are simple: ship a usable MVP, validate with real teams, and convert the strongest learning into paid pilot proof.",
+    "Founder fit. I know the problem because I have lived it; I know the market because I am the market. Keep the story professional: architecture experience, starting over in software, disciplined reinvention, and the rare ability to design and build the product from inside the workflow.",
     "Founder CV. Two tracks, architecture and software/design, converging into Archestimator. A rare bridge of domain expertise and technical execution.",
-    "Closing impact. Archestimator turns each estimate into reusable knowledge, gives teams time back, and opens a path toward trusted real-cost intelligence."
+    "Impact. Close on the product promise: Archestimator is the most intuitive way to work with estimates because it keeps scope, reusable components, proposal review, exports, decisions, and Ask Flip drafts connected as structured project memory."
   ]
   </script>
 

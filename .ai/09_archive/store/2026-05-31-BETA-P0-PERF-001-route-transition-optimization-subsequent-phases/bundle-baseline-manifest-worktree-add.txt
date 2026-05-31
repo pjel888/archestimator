@@ -1,0 +1,2 @@
+Preparing worktree (detached HEAD b89043f)
+HEAD is now at b89043f Preserve pitch deck progress before parallel work

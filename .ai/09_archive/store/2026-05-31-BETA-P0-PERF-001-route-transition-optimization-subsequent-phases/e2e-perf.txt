@@ -1,0 +1,18 @@
+$ playwright test e2e/route-transition-performance.spec.ts
+[2m[WebServer] [22m[0m[2m[35m$[0m [2m[1mnext dev --port "3020"[0m
+[2m[WebServer] [22m(node:87299) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[2m[WebServer] [22m(Use `node --trace-warnings ...` to show where the warning was created)
+[2m[WebServer] [22m(node:87301) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[2m[WebServer] [22m(Use `node --trace-warnings ...` to show where the warning was created)
+[2m[WebServer] [22m⨯ Another next dev server is already running.
+[2m[WebServer] [22m
+[2m[WebServer] [22m- Local:        http://localhost:3000
+[2m[WebServer] [22m- PID:          14313
+[2m[WebServer] [22m- Dir:          /Users/philiplewis/archestimator
+[2m[WebServer] [22m- Log:          .next/dev/logs/next-development.log
+[2m[WebServer] [22m
+[2m[WebServer] [22mRun kill 14313 to stop it.
+[2m[WebServer] [22m[0m[31merror[0m[2m:[0m script [1m"dev"[0m exited with code 1[0m
+Error: Process from config.webServer was not able to start. Exit code: 1
+
+error: script "test:e2e:perf" exited with code 1

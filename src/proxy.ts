@@ -6,6 +6,11 @@ import type { Database } from "@/lib/supabase/types";
 
 const PROTECTED_PREFIXES = ["/workshop"];
 const AUTH_ROUTES = [LOGIN_PATH];
+const PUBLIC_ROUTE_PREFIXES = ["/about", "/features", "/pricing", "/contact", "/privacy", "/terms", "/invite", "/share"];
+
+function isPublicRoute(pathname: string) {
+  return pathname === "/" || PUBLIC_ROUTE_PREFIXES.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`));
+}
 
 function createRequestPathResponse(request: NextRequest) {
   const requestHeaders = new Headers(request.headers);
@@ -35,6 +40,10 @@ export async function proxy(request: NextRequest) {
   }
 
   let response = createRequestPathResponse(request);
+
+  if (isPublicRoute(pathname)) {
+    return response;
+  }
 
   const supabase = createServerClient<Database>(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
