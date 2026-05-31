@@ -1,8 +1,7 @@
 import { notFound } from "next/navigation";
 
+import { EstimateWorkspaceClient } from "@/components/workshop/EstimateWorkspaceClient";
 import { ProjectEstimateMetadataPublisher } from "@/components/workshop/ProjectEstimateMetadataStrip";
-import { EstimateSheetContent } from "@/components/workshop/EstimateSheetContent";
-import { EstimateSheetTree } from "@/components/workshop/EstimateSheetTree";
 import { requireCurrentUserContext } from "@/lib/auth/session";
 import { getCurrentWorkspaceComponentLibrary } from "@/lib/repositories/component-library-repository";
 import { getProjectEstimateTreeByNode } from "@/lib/repositories/workspace-repository";
@@ -57,23 +56,21 @@ export default async function ProjectEstimateNodePage({ params }: ProjectEstimat
   return (
     <>
       <ProjectEstimateMetadataPublisher metadata={estimateMetadata} />
-      <section className="flex h-full min-h-0 overflow-hidden bg-white" aria-label={`${project.name} estimates`}>
-        <EstimateSheetTree projectId={project.id} estimateId={estimate.id} projectName={project.name} selectedNodeId={selectedNodeId} nodes={tree} />
-        <EstimateSheetContent
-          selectedNodeId={selectedNodeId}
-          nodes={tree}
-          projectId={project.id}
-          estimateId={estimate.id}
-          collaborationUserId={currentUser.userId}
-          collaborationDisplayName={currentUser.displayName}
-          proposalExportMetadata={proposalExportMetadata}
-          libraryItems={componentLibrary.libraryItems}
-          libraryTemplates={componentLibrary.templates}
-          libraryCategoryTree={componentLibrary.categoryTree}
-          librarySuppliers={componentLibrary.suppliers}
-          libraryBrands={componentLibrary.brands}
-        />
-      </section>
+      <EstimateWorkspaceClient
+        projectId={project.id}
+        estimateId={estimate.id}
+        projectName={project.name}
+        selectedNodeId={selectedNodeId}
+        nodes={tree}
+        collaborationUserId={currentUser.userId}
+        collaborationDisplayName={currentUser.displayName}
+        proposalExportMetadata={proposalExportMetadata}
+        libraryItems={componentLibrary.libraryItems}
+        libraryTemplates={componentLibrary.templates}
+        libraryCategoryTree={componentLibrary.categoryTree}
+        librarySuppliers={componentLibrary.suppliers}
+        libraryBrands={componentLibrary.brands}
+      />
     </>
   );
 }

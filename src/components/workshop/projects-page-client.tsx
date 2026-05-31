@@ -2,7 +2,7 @@
 
 import { useMemo, useState, useSyncExternalStore, useTransition } from "react";
 import { useNavigationRouter } from "@/hooks/use-navigation-router";
-import { Cards, GridFour, Plus, Rows, SquaresFour } from "@phosphor-icons/react";
+import { Cards, GridFour, Plus, Rows, SquaresFour } from "@phosphor-icons/react/dist/ssr";
 
 import type { HeaderIconToolbarAddAction } from "@/components/ui/header-icon-toolbar";
 import { setProjectFavorite } from "@/lib/workshop/actions";

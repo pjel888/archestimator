@@ -1,4 +1,7 @@
+"use client";
+
 import Link from "next/link";
+import { useMemo } from "react";
 import {
   ArrowRight,
   ArrowsOutSimple,
@@ -9,6 +12,7 @@ import {
 } from "@phosphor-icons/react/dist/ssr";
 
 import { Button } from "@/components/ui/button";
+import { usePrefetchOnHover } from "@/hooks/use-prefetch-on-hover";
 import type { Json, Tables } from "@/lib/supabase/types";
 import { cn } from "@/lib/ui/cn";
 import type { CollaborationRole } from "@/lib/collaboration/types";
@@ -86,6 +90,9 @@ export function LiveProjectCard({
   const isListView = viewMode === "list";
   const isSharedAccess = accessKind !== "owned";
   const openLabel = accessKind === "sheet-member" && sharedEstimateCount === 1 ? "Open sheet" : "Open";
+  const projectHref = `/workshop/projects/${project.id}`;
+  const prefetchRoutes = useMemo(() => [{ pathname: projectHref }], [projectHref]);
+  const { prefetch, cancel } = usePrefetchOnHover(prefetchRoutes);
 
   return (
     <article
@@ -245,7 +252,12 @@ export function LiveProjectCard({
             {project.project_code ?? "—"}
           </span>
           <Link
-            href={`/workshop/projects/${project.id}`}
+            href={projectHref}
+            prefetch={false}
+            onBlur={() => cancel(projectHref)}
+            onFocus={() => prefetch(projectHref)}
+            onMouseEnter={() => prefetch(projectHref)}
+            onMouseLeave={() => cancel(projectHref)}
             className="inline-flex h-7 shrink-0 items-center gap-1 rounded-xs px-1.5 text-[10px] font-medium text-ink hover:bg-surfaceMuted focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
           >
             {openLabel}

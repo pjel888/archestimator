@@ -7,6 +7,7 @@ import { Blueprint, Books, Folder, GearSix, SquaresFour } from "@phosphor-icons/
 import type { Icon as PhosphorIcon } from "@phosphor-icons/react";
 
 import { Button } from "@/components/ui/button";
+import { usePrefetchOnHover } from "@/hooks/use-prefetch-on-hover";
 import { SidebarHeader } from "./SidebarHeader";
 import { SidebarNavItemRow } from "./SidebarNavItemRow";
 import {
@@ -46,10 +47,13 @@ const sidebarNavItems: Array<SidebarNavItem & { icon: PhosphorIcon }> = [
   settingsItem,
 ];
 
+const sidebarPrefetchRoutes = sidebarNavItems.map((item) => ({ pathname: item.href }));
+
 const isActiveHref = (pathname: string | null, href: string) => pathname === href || Boolean(pathname?.startsWith(`${href}/`));
 
 export function MainSidebar({ user }: { user?: MainSidebarUser }) {
   const pathname = usePathname();
+  const { prefetch, cancel } = usePrefetchOnHover(sidebarPrefetchRoutes);
   const userName = user?.displayName || user?.email || "Workspace";
   const userSubtitle = user?.email || "Archestimator";
   const userInitials = userName
@@ -164,6 +168,8 @@ export function MainSidebar({ user }: { user?: MainSidebarUser }) {
                 item={item}
                 active={item.id === dashboardItem.id ? pathname === item.href : isActiveHref(pathname, item.href)}
                 expanded={expanded}
+                onPrefetchStart={prefetch}
+                onPrefetchCancel={cancel}
               />
             ))}
           </div>

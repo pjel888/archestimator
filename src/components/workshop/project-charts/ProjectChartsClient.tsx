@@ -1,6 +1,7 @@
 "use client";
 
-import { Plus, X } from "@phosphor-icons/react";
+import dynamic from "next/dynamic";
+import { Plus, X } from "@phosphor-icons/react/dist/ssr";
 import { useMemo, useState, type ReactNode } from "react";
 
 import { ControlSelect } from "@/components/ui/control-select";
@@ -12,8 +13,26 @@ import type { ProjectChartGroupingMode, ProjectChartsData } from "@/lib/project-
 import { cn } from "@/lib/ui/cn";
 
 import { ProjectChartBucketTable } from "./ProjectChartBucketTable";
-import { ProjectCostBubbleChart } from "./ProjectCostBubbleChart";
 import { ProjectCostDonutChart } from "./ProjectCostDonutChart";
+
+const ProjectCostBubbleChart = dynamic(() =>
+  import("./ProjectCostBubbleChart").then((module) => module.ProjectCostBubbleChart),
+  {
+    loading: () => (
+      <div
+        className="flex min-h-[520px] items-center justify-center rounded-xs border border-dashed border-hairline text-[10px] text-muted-foreground"
+        role="status"
+        aria-label="Loading bubble chart"
+      >
+        Loading chart
+      </div>
+    ),
+  },
+);
+
+type PreloadableChart = typeof ProjectCostBubbleChart & {
+  preload?: () => Promise<unknown> | void;
+};
 
 type ProjectChartsClientProps = {
   data: ProjectChartsData;
@@ -97,6 +116,13 @@ export function ProjectChartsClient({
     setChartEstimateIds((current) => (current.length <= 1 ? current : current.filter((_, currentIndex) => currentIndex !== index)));
   }
 
+  function selectChartViewMode(nextMode: ChartViewMode) {
+    if (nextMode === "bubble") {
+      void (ProjectCostBubbleChart as PreloadableChart).preload?.();
+    }
+    setChartViewMode(nextMode);
+  }
+
   return (
     <section data-project-charts-page className="flex h-full min-h-0 flex-col overflow-hidden bg-white">
       <div className="flex shrink-0 flex-wrap items-center gap-2 border-b border-hairline bg-white px-2 py-0">
@@ -120,7 +146,7 @@ export function ProjectChartsClient({
                   key={option.value}
                   isActive={chartViewMode === option.value}
                   label={option.label}
-                  onClick={() => setChartViewMode(option.value)}
+                  onClick={() => selectChartViewMode(option.value)}
                 />
               ))}
             </div>

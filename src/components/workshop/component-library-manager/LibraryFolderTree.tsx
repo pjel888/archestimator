@@ -42,28 +42,24 @@ import { cn } from "@/lib/ui/cn";
 import { buildLibraryTreeWithComponentRows, filterTree, getAllNodeIds, LibraryTree } from "../component-library/tree";
 import { getComponentName, getComponentPrice, pesoFormatter } from "../component-library/helpers";
 import type { LibraryTreeNode } from "../component-library/tree/types";
+import {
+  ALL_COMPONENTS_FOLDER_ID,
+  COMPONENT_VIEW_MODES,
+  isAllComponentsFolderId,
+  type ComponentViewMode,
+  type CreateLibraryFolderHandler,
+  type ReorderStatus,
+} from "./library-folder-tree-shared";
+
+export {
+  ALL_COMPONENTS_FOLDER_ID,
+  isAllComponentsFolderId,
+  type ComponentViewMode,
+  type CreateLibraryFolderHandler,
+  type ReorderStatus,
+} from "./library-folder-tree-shared";
 
 const LIBRARY_TABS = [{ id: "components", label: "Components" }] as const;
-const COMPONENT_VIEW_MODES = [
-  { id: "default", label: "Default" },
-  { id: "suppliers", label: "Suppliers" },
-  { id: "brand", label: "Brand" },
-] as const;
-
-export const ALL_COMPONENTS_FOLDER_ID = "all-components";
-
-export type ComponentViewMode = (typeof COMPONENT_VIEW_MODES)[number]["id"];
-
-export type CreateLibraryFolderHandler = (
-  parentId: string | null,
-  options?: { onCreated?: (folder: LibraryFolderRecord) => void; placement?: "top" | "bottom" },
-) => void;
-
-export type ReorderStatus =
-  | { state: "idle" }
-  | { state: "saving"; message: string }
-  | { state: "saved"; message: string }
-  | { state: "error"; message: string };
 
 type LibraryFolderTreeItemData = {
   kind: "folder" | "component";
@@ -196,10 +192,6 @@ function buildComponentItemsByFolderId(nodes: LibraryFolderTreeNode[], libraryIt
   }
 
   return itemsByFolderId;
-}
-
-export function isAllComponentsFolderId(folderId: string | null | undefined) {
-  return folderId === ALL_COMPONENTS_FOLDER_ID;
 }
 
 function withAllComponentsRoot(nodes: LibraryFolderTreeNode[]): LibraryFolderTreeNode[] {

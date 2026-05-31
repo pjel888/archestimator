@@ -1,8 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
-import { hierarchy, pack } from "d3";
-import type { HierarchyCircularNode } from "d3";
+import { hierarchy, pack, type HierarchyCircularNode } from "d3-hierarchy";
 
 import type { ProjectChartBucket } from "@/lib/project-charts/types";
 

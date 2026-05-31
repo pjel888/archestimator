@@ -38,7 +38,7 @@ export function useEstimateAreaTreeQuery({
     initialData: initialNodes,
     enabled: Boolean(projectId && estimateId),
     refetchOnWindowFocus,
-    staleTime: 30_000,
+    staleTime: 5 * 60_000,
   });
   const tree = query.data ?? initialNodes;
   const getTreeRevision = useCallback(() => queryClient.getQueryData<number>(revisionKey) ?? 0, [queryClient, revisionKey]);

@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useRef, useState, useTransition } from "react";
+import dynamic from "next/dynamic";
 import Image from "next/image";
 import { useNavigationRouter } from "@/hooks/use-navigation-router";
 import { CaretDown, CaretRight, FolderSimple, ImageSquare, SquaresFour } from "@phosphor-icons/react/dist/ssr";
@@ -39,15 +40,32 @@ import {
 } from "../component-library/helpers";
 import type { LibraryTreeNode } from "../component-library/tree/types";
 import type { ComponentLibrarySupplierOption } from "../component-library/tree/buildLibraryTree";
-import { AddComponentModal } from "./AddComponentModal";
 import {
   ALL_COMPONENTS_FOLDER_ID,
-  LibraryFolderTreeSurface,
   type ComponentViewMode,
   type CreateLibraryFolderHandler,
   type ReorderStatus,
   isAllComponentsFolderId,
-} from "./LibraryFolderTree";
+} from "./library-folder-tree-shared";
+
+const LibraryFolderTreeSurface = dynamic(() =>
+  import("./LibraryFolderTree").then((module) => module.LibraryFolderTreeSurface),
+  {
+    loading: () => (
+      <div className="h-full bg-white p-2" aria-hidden="true">
+        <div className="h-9 rounded-xs border border-hairline bg-surfaceMuted" />
+        <div className="mt-2 h-[calc(100%-44px)] rounded-xs border border-hairline bg-surfaceMuted/40" />
+      </div>
+    ),
+  },
+);
+
+const AddComponentModal = dynamic(() =>
+  import("./AddComponentModal").then((module) => module.AddComponentModal),
+  {
+    loading: () => null,
+  },
+);
 
 const COMPONENT_LIBRARY_TREE_WIDTH_OFFSET = 104;
 const CATALOGUE_UNASSIGNED_LABEL = "Unassigned";
