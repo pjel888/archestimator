@@ -1,17 +1,24 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { ProjectEstimatesTable, type ProjectEstimateTableRow } from "@/components/workshop/ProjectEstimatesTable";
 
 const routerMock = vi.hoisted(() => ({
+  prefetch: vi.fn(),
   refresh: vi.fn(),
 }));
 
 const actionMocks = vi.hoisted(() => ({
   duplicateEstimateSheet: vi.fn(),
+  fetchEstimateTree: vi.fn(),
   regenerateEstimateSheetCode: vi.fn(),
   updateEstimateDetails: vi.fn(),
+}));
+
+const repositoryMocks = vi.hoisted(() => ({
+  getEstimateTree: vi.fn(),
 }));
 
 vi.mock("next/navigation", () => ({
@@ -19,6 +26,9 @@ vi.mock("next/navigation", () => ({
 }));
 
 vi.mock("@/lib/estimates/actions", () => actionMocks);
+vi.mock("@/lib/repositories/estimate-repository", () => ({
+  estimateRepository: repositoryMocks,
+}));
 
 const originalLocalStorage = window.localStorage;
 
@@ -44,24 +54,64 @@ function makeEstimate(overrides: Partial<ProjectEstimateTableRow> = {}): Project
 }
 
 function renderTable(estimate = makeEstimate()) {
-  render(<ProjectEstimatesTable estimates={[estimate]} projectId="project-1" />);
+  const queryClient = new QueryClient({
+    defaultOptions: {
+      queries: { retry: false },
+    },
+  });
+  render(
+    <QueryClientProvider client={queryClient}>
+      <ProjectEstimatesTable estimates={[estimate]} projectId="project-1" />
+    </QueryClientProvider>,
+  );
 }
 
 describe("project estimates table inline editing", () => {
   beforeEach(() => {
     actionMocks.duplicateEstimateSheet.mockReset();
+    actionMocks.fetchEstimateTree.mockReset();
     actionMocks.regenerateEstimateSheetCode.mockReset();
     actionMocks.updateEstimateDetails.mockReset();
+    repositoryMocks.getEstimateTree.mockReset();
+    actionMocks.fetchEstimateTree.mockResolvedValue([]);
+    repositoryMocks.getEstimateTree.mockResolvedValue(null);
+    routerMock.prefetch.mockReset();
     routerMock.refresh.mockReset();
     window.localStorage.clear();
   });
 
   afterEach(() => {
+    vi.clearAllTimers();
+    vi.useRealTimers();
     Object.defineProperty(window, "localStorage", {
       configurable: true,
       value: originalLocalStorage,
     });
     vi.restoreAllMocks();
+  });
+
+  it("prefetches estimate route and real estimate query data from the open link", async () => {
+    vi.useFakeTimers();
+    actionMocks.fetchEstimateTree.mockResolvedValue([]);
+    repositoryMocks.getEstimateTree.mockResolvedValue({ id: "estimate-1" });
+
+    renderTable();
+
+    const openLink = screen.getByLabelText("Open Original Estimate");
+    fireEvent.mouseEnter(openLink);
+    expect(routerMock.prefetch).not.toHaveBeenCalled();
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(150);
+      await Promise.resolve();
+    });
+
+    expect(routerMock.prefetch).toHaveBeenCalledWith("/workshop/projects/project-1/estimates/node-1");
+    expect(repositoryMocks.getEstimateTree).toHaveBeenCalledWith("estimate-1");
+    expect(actionMocks.fetchEstimateTree).toHaveBeenCalledWith({
+      projectId: "project-1",
+      estimateId: "estimate-1",
+    });
   });
 
   it("saves an inline estimate name edit once when Enter blurs the field", async () => {

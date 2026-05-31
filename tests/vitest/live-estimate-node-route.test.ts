@@ -139,7 +139,8 @@ describe("live estimate node route", () => {
     expect(estimateContent).toContain("useEstimateRowMutations");
     expect(estimateContent).toContain("projectId?: string");
     expect(estimateContent).toContain("estimateId?: string");
-    expect(estimateNodePage).toContain("projectId={project.id} estimateId={estimate.id}");
+    expect(estimateNodePage).toContain("projectId={project.id}");
+    expect(estimateNodePage).toContain("estimateId={estimate.id}");
     expect(estimateActions).toContain("insertEstimateRowItemFromLibrary");
     expect(estimateActions).toContain('.eq("kind", "area")');
     expect(estimateActions).toContain('.eq("estimates.project_id", project.id)');

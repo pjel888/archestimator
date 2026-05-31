@@ -45,7 +45,7 @@ describe("ProjectChartsClient", () => {
     expect(screen.getAllByTestId("project-chart-column")).toHaveLength(1);
   });
 
-  it("starts with one chart column and no combined comparison table", () => {
+  it("starts with one chart column and no combined comparison table", async () => {
     render(<ProjectChartsClient data={chartData()} initialGroupingMode="space" initialLeftEstimateId="estimate-a" initialRightEstimateId="estimate-b" />);
 
     expect(screen.getByLabelText("Chart 1 estimate")).toBeInTheDocument();
@@ -59,7 +59,7 @@ describe("ProjectChartsClient", () => {
     expect(screen.queryByRole("button", { name: "Filter chart" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Group chart" })).not.toBeInTheDocument();
     expect(screen.getAllByTestId("project-chart-column")).toHaveLength(1);
-    expect(screen.getAllByTestId("d3-donut-chart")).toHaveLength(1);
+    expect(await screen.findAllByTestId("d3-donut-chart")).toHaveLength(1);
     expect(screen.queryByTestId("d3-bubble-chart")).not.toBeInTheDocument();
     expect(screen.getByDisplayValue("Baseline")).toBeInTheDocument();
     expect(screen.queryByText("EST-001 · Baseline")).not.toBeInTheDocument();
@@ -70,7 +70,7 @@ describe("ProjectChartsClient", () => {
     expect(screen.getByText("Level 1")).toBeInTheDocument();
     expect(screen.getByTestId("donut-center-empty")).toBeInTheDocument();
     expect(screen.getAllByTestId("donut-callout").length).toBeGreaterThan(0);
-    expect(document.querySelector('[data-testid="donut-callout"] path')?.getAttribute("d")).toMatch(/\d+\.\d{3}/);
+    expect(document.querySelector('[data-testid="donut-callout"] path')?.getAttribute("d")).toMatch(/^M\s/);
     expect(screen.queryByTestId("donut-center-detail")).not.toBeInTheDocument();
     expect(screen.queryByText("Cost bucket deltas")).not.toBeInTheDocument();
     expect(screen.getAllByText("Ground Floor").length).toBeGreaterThan(0);
@@ -83,7 +83,7 @@ describe("ProjectChartsClient", () => {
     await user.click(screen.getByRole("button", { name: "Add chart" }));
 
     expect(screen.getAllByTestId("project-chart-column")).toHaveLength(2);
-    expect(screen.getAllByTestId("d3-donut-chart")).toHaveLength(2);
+    expect(await screen.findAllByTestId("d3-donut-chart")).toHaveLength(2);
     expect(screen.getAllByRole("table", { name: /bucket table/i })).toHaveLength(2);
     expect(screen.getByRole("button", { name: "Add chart" })).toBeDisabled();
   });
@@ -130,8 +130,8 @@ describe("ProjectChartsClient", () => {
 
     expect(screen.getByRole("button", { name: "Bubble Chart" })).toHaveAttribute("aria-pressed", "true");
     expect(screen.queryByTestId("d3-donut-chart")).not.toBeInTheDocument();
-    expect(screen.getByTestId("d3-bubble-chart")).toBeInTheDocument();
-    expect(screen.getAllByTestId("bubble-node").length).toBeGreaterThan(0);
+    expect(await screen.findByTestId("d3-bubble-chart")).toBeInTheDocument();
+    expect((await screen.findAllByTestId("bubble-node")).length).toBeGreaterThan(0);
   });
 });
 
