@@ -25,3 +25,5 @@ jobs:
         run: bunx playwright install chromium --with-deps
       - name: E2E smoke
         run: bun run test:e2e
+      - name: Route transition performance smoke
+        run: bun run test:e2e:perf
