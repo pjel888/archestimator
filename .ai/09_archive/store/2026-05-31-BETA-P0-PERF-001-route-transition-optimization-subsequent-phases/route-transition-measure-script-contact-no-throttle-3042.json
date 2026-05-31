@@ -1,0 +1,77 @@
+{
+  "generatedAt": "2026-05-31T13:06:46.667Z",
+  "baseUrl": "http://127.0.0.1:3042",
+  "networkProfile": "No throttle",
+  "runsPerScenario": 3,
+  "scenarioFilter": "contact",
+  "skipAuthenticated": true,
+  "skippedScenarios": [],
+  "results": [
+    {
+      "scenario": "Public: About to Contact",
+      "from": "/about",
+      "expectedPathname": "/contact",
+      "networkProfile": "No throttle",
+      "runs": [
+        {
+          "run": 1,
+          "durationMs": 779,
+          "overlayVisible": true,
+          "rscRequestCount": 1,
+          "finalPathname": "/contact"
+        },
+        {
+          "run": 2,
+          "durationMs": 723,
+          "overlayVisible": true,
+          "rscRequestCount": 1,
+          "finalPathname": "/contact"
+        },
+        {
+          "run": 3,
+          "durationMs": 794,
+          "overlayVisible": true,
+          "rscRequestCount": 3,
+          "finalPathname": "/contact"
+        }
+      ],
+      "failures": [],
+      "medianMs": 779,
+      "overlayVisibilityRate": 1,
+      "rscRequestCount": 5
+    },
+    {
+      "scenario": "Public: Pricing to Contact",
+      "from": "/pricing",
+      "expectedPathname": "/contact",
+      "networkProfile": "No throttle",
+      "runs": [
+        {
+          "run": 1,
+          "durationMs": 737,
+          "overlayVisible": true,
+          "rscRequestCount": 1,
+          "finalPathname": "/contact"
+        },
+        {
+          "run": 2,
+          "durationMs": 764,
+          "overlayVisible": true,
+          "rscRequestCount": 1,
+          "finalPathname": "/contact"
+        },
+        {
+          "run": 3,
+          "durationMs": 673,
+          "overlayVisible": true,
+          "rscRequestCount": 1,
+          "finalPathname": "/contact"
+        }
+      ],
+      "failures": [],
+      "medianMs": 737,
+      "overlayVisibilityRate": 1,
+      "rscRequestCount": 3
+    }
+  ]
+}

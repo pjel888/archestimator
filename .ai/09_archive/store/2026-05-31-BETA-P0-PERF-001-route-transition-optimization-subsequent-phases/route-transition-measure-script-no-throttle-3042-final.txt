@@ -1,0 +1,60 @@
+Archestimator route transition benchmark
+Base URL: http://127.0.0.1:3042
+Network: No throttle
+Runs per scenario: 3
+Skipping authenticated scenarios: Authenticated: Workshop to Projects, Authenticated: Workshop to Library, Authenticated: Workshop to Templates, Authenticated: Workshop to Settings
+
+Scenario: Public: Landing to Login
+   Run 1: 29396ms, overlay=false, rsc=3
+   Run 2: FAILED - click: Target page, context or browser has been closed
+Browser logs:
+
+<launching> /Users/philiplewis/Library/Caches/ms-playwright/chromium_headless_shell-1223/chrome-headless-shell-mac-arm64/chrome-headless-shell --disable-field-trial-config --disable-background-networking --disable-background-timer-throttling --disable-backgrounding-occluded-windows --disable-back-forward-cache --disable-breakpad --disable-client-side-phishing-detection --disable-component-extensions-with-background-pages --disable-component-update --no-default-browser-check --disable-default-apps --disable-dev-shm-usage --disable-edgeupdater --disable-extensions --disable-features=AvoidUnnecessaryBeforeUnloadCheckSync,BoundaryEventDispatchTracksNodeRemoval,DestroyProfileOnBrowserClose,DialMediaRouteProvider,GlobalMediaControls,HttpsUpgrades,LensOverlay,MediaRouter,PaintHolding,ThirdPartyStoragePartitioning,Translate,AutoDeElevate,RenderDocument,OptimizationHints,msForceBrowserSignIn,msEdgeUpdateLaunchServicesPreferredVersion --enable-features=CDPScreenshotNewSurface --allow-pre-commit-input --disable-hang-monitor --disable-ipc-flooding-protection --disable-popup-blocking --disable-prompt-on-repost --disable-renderer-backgrounding --force-color-profile=srgb --metrics-recording-only --no-first-run --password-store=basic --use-mock-keychain --no-service-autorun --export-tagged-pdf --disable-search-engine-choice-screen --unsafely-disable-devtools-self-xss-warnings --edge-skip-compat-layer-relaunch --disable-infobars --disable-search-engine-choice-screen --disable-sync --enable-unsafe-swiftshader --headless --hide-scrollbars --mute-audio --blink-settings=primaryHoverType=2,availableHoverTypes=2,primaryPointerType=4,availablePointerTypes=4 --no-sandbox --user-data-dir=/var/folders/bn/7b1mmzfj6j52jkpfny_33f840000gn/T/playwright_chromiumdev_profile-fgdRUF --remote-debugging-pipe --no-startup-window
+<launched> pid=49868
+[pid=49868][err] [0531/210454.519865:WARNING:net/dns/address_sorter_posix.cc:457] FromSockAddr failed on netmask
+[pid=49868][err] [0531/210454.521466:WARNING:net/dns/address_sorter_posix.cc:457] FromSockAddr failed on netmask
+[pid=49868][err] [0531/210456.566158:INFO:CONSOLE:368] "%c🌈 Neat Gradients%c
+[pid=49868][err] 
+[pid=49868][err] Licensed under MIT + The Commons Clause.
+[pid=49868][err] Free for personal and commercial use.
+[pid=49868][err] Selling this software or its derivatives is strictly prohibited.
+[pid=49868][err] https://neat.firecms.co font-weight: bold; font-size: 14px; color: #FF5772; color: inherit;", source: http://127.0.0.1:3042/_next/static/chunks/0x_g9jpdd.n5n.js (368)
+[pid=49868][err] [0531/210456.643390:ERROR:gpu/command_buffer/service/gl_utils.cc:430] [.WebGL-0x11400573800]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels
+[pid=49868][err] [0531/210456.881612:ERROR:gpu/command_buffer/service/gl_utils.cc:430] [.WebGL-0x11400573800]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels
+[pid=49868][err] [0531/210503.700440:INFO:CONSOLE:0] "[.WebGL-0x11400573800]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels", source: http://127.0.0.1:3042/ (0)
+[pid=49868][err] [0531/210503.741096:INFO:CONSOLE:0] "[.WebGL-0x11400573800]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels", source: http://127.0.0.1:3042/ (0)
+[pid=49868][err] [0531/210503.783672:ERROR:gpu/command_buffer/service/gl_utils.cc:430] [.WebGL-0x11400573800]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels
+[pid=49868][err] [0531/210506.562602:ERROR:gpu/command_buffer/service/gl_utils.cc:430] [.WebGL-0x11400573800]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels (this message will no longer repeat)
+[pid=49868][err] [0531/210506.611428:INFO:CONSOLE:0] "[.WebGL-0x11400573800]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels", source: http://127.0.0.1:3042/ (0)
+[pid=49868][err] [0531/210510.388814:INFO:CONSOLE:0] "[.WebGL-0x11400573800]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels (this message will no longer repeat)", source: http://127.0.0.1:3042/ (0)
+[pid=49868][err] [0531/210528.186165:INFO:CONSOLE:368] "%c🌈 Neat Gradients%c
+[pid=49868][err] 
+[pid=49868][err] Licensed under MIT + The Commons Clause.
+[pid=49868][err] Free for personal and commercial use.
+[pid=49868][err] Selling this software or its derivatives is strictly prohibited.
+[pid=49868][err] https://neat.firecms.co font-weight: bold; font-size: 14px; color: #FF5772; color: inherit;", source: http://127.0.0.1:3042/_next/static/chunks/0x_g9jpdd.n5n.js (368)
+[pid=49868] <gracefully close start>
+Call log:
+[2m  - waiting for locator('a[href="/login?next=/workshop/projects"]').first()[22m
+[2m    - locator resolved to <a href="/login?next=/workshop/projects" class="inline-flex min-h-9 items-center justify-center rounded-[5px] bg-[#17181c] px-4 text-[10px] font-bold uppercase tracking-[0.02em] text-white transition hover:bg-[#2a2b30]">Try Workspace</a>[22m
+[2m  - attempting click action[22m
+[2m    - waiting for element to be visible, enabled and stable[22m
+[2m    - element is visible, enabled and stable[22m
+[2m    - scrolling into view if needed[22m
+[2m    - done scrolling[22m
+
+   Run 3: FAILED - goto: Target page, context or browser has been closed
+
+Scenario: Public: About to Contact
+Fatal error: 190 |   const contextOptions: BrowserContextOptions = {};
+191 |   if (process.env.PLAYWRIGHT_STORAGE_STATE) {
+192 |     contextOptions.storageState = process.env.PLAYWRIGHT_STORAGE_STATE;
+193 |   }
+194 | 
+195 |   const context = await browser.newContext(contextOptions);
+                                      ^
+error: async newContext: Target page, context or browser has been closed
+      at measureScenario (/Users/philiplewis/archestimator/scripts/measure-route-transitions.ts:195:33)
+      at main (/Users/philiplewis/archestimator/scripts/measure-route-transitions.ts:257:26)
+      at processTicksAndRejections (native:7:39)
+

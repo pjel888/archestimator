@@ -1,0 +1,27 @@
+
+ RUN  v4.1.7 /Users/philiplewis/archestimator
+
+ ❯ tests/vitest/project-estimates-table-inline-edit.test.tsx (7 tests | 1 failed) 15727ms
+     × prefetches estimate route and real estimate query data from the open link 15066ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/vitest/project-estimates-table-inline-edit.test.tsx > project estimates table inline editing > prefetches estimate route and real estimate query data from the open link
+Error: Test timed out in 15000ms.
+If this is a long-running test, pass a timeout value as the last argument or configure it globally with "testTimeout".
+ ❯ tests/vitest/project-estimates-table-inline-edit.test.tsx:93:3
+     91|   });
+     92|
+     93|   it("prefetches estimate route and real estimate query data from the …
+       |   ^
+     94|     vi.useFakeTimers();
+     95|     actionMocks.fetchEstimateTree.mockResolvedValue([]);
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed | 1 passed (2)
+      Tests  1 failed | 10 passed (11)
+   Start at  16:45:58
+   Duration  25.12s (transform 740ms, setup 227ms, import 6.79s, tests 15.85s, environment 1.92s)
+

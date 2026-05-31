@@ -1,0 +1,26 @@
+
+ RUN  v4.1.7 /Users/philiplewis/archestimator
+
+ ❯ tests/vitest/component-library-manager-ui.test.tsx (15 tests | 15 skipped) 74532ms
+
+⎯⎯⎯⎯⎯⎯ Failed Suites 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/vitest/component-library-manager-ui.test.tsx > component library manager UI
+Error: Hook timed out in 10000ms.
+If this is a long-running hook, pass a timeout value as the last argument or configure it globally with "hookTimeout".
+ ❯ tests/vitest/component-library-manager-ui.test.tsx:230:3
+    228|
+    229| describe("component library manager UI", () => {
+    230|   beforeAll(async () => {
+       |   ^
+    231|     await import("@/components/workshop/component-library-manager/Comp…
+    232|     await import("@/components/workshop/component-library-manager/AddC…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  15 skipped (15)
+   Start at  18:05:48
+   Duration  103.10s (transform 11.92s, setup 5.63s, import 11.89s, tests 74.53s, environment 4.63s)
+

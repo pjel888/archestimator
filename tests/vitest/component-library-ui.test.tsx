@@ -1,5 +1,5 @@
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
-import { render, screen, fireEvent, within } from "@testing-library/react";
+import { cleanup, render, screen, fireEvent, within } from "@testing-library/react";
 import type { ComponentProps } from "react";
 import { EstimateRightSidebar } from "@/components/workshop/component-library";
 import { LIBRARY_RECENTS_KEY } from "@/components/workshop/component-library/helpers";
@@ -72,6 +72,7 @@ describe("component library UI", () => {
   });
 
   afterEach(() => {
+    cleanup();
     vi.restoreAllMocks();
   });
 

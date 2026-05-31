@@ -1,0 +1,57 @@
+{
+  "route": "/workshop/library",
+  "routeKey": "[project]/src/app/workshop/library/page",
+  "entryChunkCount": 11,
+  "entryInitialJsBytes": 618452,
+  "entryChunkDetails": [
+    {
+      "chunk": "static/chunks/0f~g34_5a51.y.js",
+      "bytes": 18140
+    },
+    {
+      "chunk": "static/chunks/0-a7iw.xi9oq..js",
+      "bytes": 31189
+    },
+    {
+      "chunk": "static/chunks/0d3shmwh5_nmn.js",
+      "bytes": 54646
+    },
+    {
+      "chunk": "static/chunks/0c-wh02mnv76y.js",
+      "bytes": 27366
+    },
+    {
+      "chunk": "static/chunks/05oj2rclg6cig.js",
+      "bytes": 37154
+    },
+    {
+      "chunk": "static/chunks/119bjaqiny2n9.js",
+      "bytes": 64542
+    },
+    {
+      "chunk": "static/chunks/0y0ozt9ta_-x2.js",
+      "bytes": 29770
+    },
+    {
+      "chunk": "static/chunks/12_hoex.kun3k.js",
+      "bytes": 85186
+    },
+    {
+      "chunk": "static/chunks/0d5xnxm69cd5o.js",
+      "bytes": 133601
+    },
+    {
+      "chunk": "static/chunks/0clkx9as633kb.js",
+      "bytes": 80942
+    },
+    {
+      "chunk": "static/chunks/0yblzz60og9zf.js",
+      "bytes": 55916
+    }
+  ],
+  "relevantClientModuleKeys": [
+    "[project]/src/components/workshop/LibraryPageClient.tsx <module evaluation>",
+    "[project]/src/components/workshop/LibraryPageClient.tsx"
+  ],
+  "ssrChunks": []
+}

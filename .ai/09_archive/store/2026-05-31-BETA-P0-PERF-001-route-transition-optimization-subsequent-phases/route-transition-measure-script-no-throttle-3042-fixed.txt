@@ -1,0 +1,28 @@
+Archestimator route transition benchmark
+Base URL: http://127.0.0.1:3042
+Network: No throttle
+Runs per scenario: 3
+Skipping authenticated scenarios: Authenticated: Workshop to Projects, Authenticated: Workshop to Library, Authenticated: Workshop to Templates, Authenticated: Workshop to Settings
+
+Scenario: Public: Landing to About
+   Run 1: 22903ms, overlay=false, rsc=17
+   Run 2: FAILED - click: Target page, context or browser has been closed
+Call log:
+[2m  - waiting for locator('a[href="/about"]').first()[22m
+[2m    - locator resolved to <a href="/about" class="transition hover:text-white focus-visible:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#ff7a1a] focus-visible:ring-offset-2 focus-visible:ring-offset-[#111111] motion-reduce:transition-none">About</a>[22m
+
+   Run 3: FAILED - goto: Target page, context or browser has been closed
+
+Scenario: Public: About to Contact
+Fatal error: 190 |   const contextOptions: BrowserContextOptions = {};
+191 |   if (process.env.PLAYWRIGHT_STORAGE_STATE) {
+192 |     contextOptions.storageState = process.env.PLAYWRIGHT_STORAGE_STATE;
+193 |   }
+194 | 
+195 |   const context = await browser.newContext(contextOptions);
+                                      ^
+error: async newContext: Target page, context or browser has been closed
+      at measureScenario (/Users/philiplewis/archestimator/scripts/measure-route-transitions.ts:195:33)
+      at main (/Users/philiplewis/archestimator/scripts/measure-route-transitions.ts:257:26)
+      at processTicksAndRejections (native:7:39)
+

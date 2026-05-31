@@ -1,0 +1,64 @@
+[2m[WebServer] [22m[0m[2m[35m$[0m [2m[1mnext dev --port "3032"[0m
+[2m[WebServer] [22m(node:96494) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[2m[WebServer] [22m(Use `node --trace-warnings ...` to show where the warning was created)
+[2m[WebServer] [22m(node:97439) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[2m[WebServer] [22m(Use `node --trace-warnings ...` to show where the warning was created)
+[2m[WebServer] [22m(node:99151) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[2m[WebServer] [22m(Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 1 test using 1 worker
+
+(node:1843) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:1843) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+[2m[WebServer] [22m[browser] Image with src "/Cards/Components-Card.jpg" was detected as the Largest Contentful Paint (LCP). Please add the `loading="eager"` property if this image is above the fold.
+[2m[WebServer] [22mRead more: https://nextjs.org/docs/app/api-reference/components/image#loading
+  ✘  1 [chromium] › e2e/route-transition-performance.spec.ts:249:7 › route transition performance evidence › captures authenticated hover prefetch and transition budget when dev auth is enabled (1.6m)
+
+
+  1) [chromium] › e2e/route-transition-performance.spec.ts:249:7 › route transition performance evidence › captures authenticated hover prefetch and transition budget when dev auth is enabled 
+
+    [31mTest timeout of 90000ms exceeded.[39m
+
+    Error: locator.hover: Test timeout of 90000ms exceeded.
+    Call log:
+    [2m  - waiting for locator('a[href="/workshop/projects"]').first()[22m
+    [2m    - locator resolved to <a aria-label="Projects" href="/workshop/projects" class="group relative grid h-8 w-full grid-cols-[48px_minmax(0,1fr)] items-center gap-1 overflow-visible rounded-xs px-0 pr-2 outline-none transition-colors duration-[120ms] ease-out before:absolute before:left-1.5 before:top-[-2px] before:z-0 before:h-9 before:w-9 before:rounded-xs before:bg-accent-soft before:opacity-0 before:shadow-[inset_0_0_0_1px_rgba(255,122,26,0.12)] before:transition-opacity before:duration-[120ms] before:ease-out before:…>…</a>[22m
+    [2m  - attempting hover action[22m
+    [2m    2 × waiting for element to be visible and stable[22m
+    [2m      - element is visible and stable[22m
+    [2m      - scrolling into view if needed[22m
+    [2m      - done scrolling[22m
+    [2m      - <section aria-label="Workshop bento" class="grid h-full min-h-0 grid-cols-12 auto-rows-min content-start gap-2 overflow-y-auto text-[10px] xl:grid-rows-[auto_minmax(0,1fr)] xl:content-stretch xl:overflow-hidden">…</section> from <section aria-label="Workshop canvas" data-workshop-page-shell-canvas="true" class="flex h-full min-h-0 flex-col lg:pl-[64px]">…</section> subtree intercepts pointer events[22m
+    [2m    - retrying hover action[22m
+    [2m    - waiting 20ms[22m
+    [2m    2 × waiting for element to be visible and stable[22m
+    [2m      - element is visible and stable[22m
+    [2m      - scrolling into view if needed[22m
+    [2m      - done scrolling[22m
+    [2m      - <section aria-label="Workshop bento" class="grid h-full min-h-0 grid-cols-12 auto-rows-min content-start gap-2 overflow-y-auto text-[10px] xl:grid-rows-[auto_minmax(0,1fr)] xl:content-stretch xl:overflow-hidden">…</section> from <section aria-label="Workshop canvas" data-workshop-page-shell-canvas="true" class="flex h-full min-h-0 flex-col lg:pl-[64px]">…</section> subtree intercepts pointer events[22m
+    [2m    - retrying hover action[22m
+    [2m      - waiting 100ms[22m
+    [2m    101 × waiting for element to be visible and stable[22m
+    [2m        - element is visible and stable[22m
+    [2m        - scrolling into view if needed[22m
+    [2m        - done scrolling[22m
+    [2m        - <section aria-label="Workshop bento" class="grid h-full min-h-0 grid-cols-12 auto-rows-min content-start gap-2 overflow-y-auto text-[10px] xl:grid-rows-[auto_minmax(0,1fr)] xl:content-stretch xl:overflow-hidden">…</section> from <section aria-label="Workshop canvas" data-workshop-page-shell-canvas="true" class="flex h-full min-h-0 flex-col lg:pl-[64px]">…</section> subtree intercepts pointer events[22m
+    [2m      - retrying hover action[22m
+    [2m        - waiting 500ms[22m
+
+
+      261 |
+      262 |     const projectsLink = page.locator('a[href="/workshop/projects"]').first();
+    > 263 |     await projectsLink.hover();
+          |                        ^
+      264 |     await page.waitForTimeout(250);
+      265 |     const beforeClick = await collectRouteMetrics(page);
+      266 |
+        at /private/tmp/archestimator-auth-smoke-admin-1780220869/e2e/route-transition-performance.spec.ts:263:24
+
+    Error Context: test-results/route-transition-performan-01d89-et-when-dev-auth-is-enabled-chromium/error-context.md
+
+  1 failed
+    [chromium] › e2e/route-transition-performance.spec.ts:249:7 › route transition performance evidence › captures authenticated hover prefetch and transition budget when dev auth is enabled 

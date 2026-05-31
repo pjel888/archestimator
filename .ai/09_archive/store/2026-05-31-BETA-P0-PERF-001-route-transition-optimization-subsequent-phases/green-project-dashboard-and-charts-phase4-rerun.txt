@@ -1,0 +1,33 @@
+
+ RUN  v4.1.7 /Users/philiplewis/archestimator
+
+ ❯ tests/vitest/project-charts-ui.test.tsx (7 tests | 1 failed) 2325ms
+     × starts with one chart column and no combined comparison table 1064ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/vitest/project-charts-ui.test.tsx > ProjectChartsClient > starts with one chart column and no combined comparison table
+AssertionError: expected 'M 204 280 L 190 280 L 24 280' to match /\d+\.\d{3}/
+
+- Expected:
+/\d+\.\d{3}/
+
++ Received:
+"M 204 280 L 190 280 L 24 280"
+
+ ❯ tests/vitest/project-charts-ui.test.tsx:73:93
+     71|     expect(screen.getByTestId("donut-center-empty")).toBeInTheDocument…
+     72|     expect(screen.getAllByTestId("donut-callout").length).toBeGreaterT…
+     73|     expect(document.querySelector('[data-testid="donut-callout"] path'…
+       |                                                                                             ^
+     74|     expect(screen.queryByTestId("donut-center-detail")).not.toBeInTheD…
+     75|     expect(screen.queryByText("Cost bucket deltas")).not.toBeInTheDocu…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed | 1 passed (2)
+      Tests  1 failed | 22 passed (23)
+   Start at  16:27:14
+   Duration  17.40s (transform 827ms, setup 806ms, import 4.32s, tests 2.42s, environment 8.80s)
+

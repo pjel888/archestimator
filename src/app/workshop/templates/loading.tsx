@@ -1,19 +1,18 @@
-import { WorkshopPageShell } from "@/components/workshop/WorkshopPageShell";
+import { StaticWorkshopLoadingShell } from "@/components/workshop/StaticWorkshopLoadingShell";
 import { Skeleton } from "@/components/ui/skeleton";
 
-export default async function Loading() {
+export default function Loading() {
   return (
-    <WorkshopPageShell
+    <StaticWorkshopLoadingShell
       title="Templates"
       eyebrow="Templates"
       showEyebrow={false}
-      breadcrumbs={["Templates"]}
     >
       <div className="flex h-full flex-col bg-white">
         <div className="flex h-[38px] items-center">
-          <Skeleton className="h-7 w-full rounded-none" />
+          <Skeleton className="h-7 w-full rounded-xs" />
         </div>
-        <Skeleton className="h-[34px] w-full shrink-0 rounded-none" />
+        <Skeleton className="h-[34px] w-full shrink-0 rounded-xs" />
         <div className="min-h-0 flex-1 overflow-auto p-2">
           <div className="grid gap-2 md:grid-cols-2 lg:grid-cols-3">
             {Array.from({ length: 4 }, (_, i) => (
@@ -31,6 +30,6 @@ export default async function Loading() {
           </div>
         </div>
       </div>
-    </WorkshopPageShell>
+    </StaticWorkshopLoadingShell>
   );
 }

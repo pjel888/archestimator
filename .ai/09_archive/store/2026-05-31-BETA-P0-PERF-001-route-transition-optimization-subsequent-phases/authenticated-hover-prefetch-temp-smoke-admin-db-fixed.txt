@@ -1,0 +1,18 @@
+[2m[WebServer] [22m[0m[2m[35m$[0m [2m[1mnext dev --port "3032"[0m
+[2m[WebServer] [22m(node:35140) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[2m[WebServer] [22m(Use `node --trace-warnings ...` to show where the warning was created)
+[2m[WebServer] [22m(node:35157) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[2m[WebServer] [22m(Use `node --trace-warnings ...` to show where the warning was created)
+[2m[WebServer] [22m(node:36334) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[2m[WebServer] [22m(Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 1 test using 1 worker
+
+(node:37399) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:37399) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+route-transition-authenticated-hover-prefetch {"beforeClick":{"href":"http://127.0.0.1:3032/workshop","navigation":{"domContentLoaded":7328.5,"loadEventEnd":7332.5,"duration":7332.5,"transferSize":19840,"decodedBodySize":79223},"resources":{"count":0,"transferSize":0,"scriptCount":0,"rscCount":0,"nextAssetCount":0,"prefetchCount":0}},"afterClick":{"href":"http://127.0.0.1:3032/workshop/projects","navigation":{"domContentLoaded":7328.5,"loadEventEnd":7332.5,"duration":7332.5,"transferSize":19840,"decodedBodySize":79223},"resources":{"count":7,"transferSize":207262,"scriptCount":3,"rscCount":0,"nextAssetCount":6,"prefetchCount":0}},"rscRequests":["http://127.0.0.1:3032/workshop/projects?_rsc=KLcskdFz2YD4R37_"],"transitionMs":3633}
+  ✓  1 [chromium] › e2e/route-transition-performance.spec.ts:249:7 › route transition performance evidence › captures authenticated hover prefetch and transition budget when dev auth is enabled (12.5s)
+
+  1 passed (27.6s)

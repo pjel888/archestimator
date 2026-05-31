@@ -132,7 +132,7 @@ Archestimator is production-ready only when:
 | Area | Status | Launch Blocker? | Evidence Required | Owner | Next Decision | Target Phase |
 |---|---|---|---|---|---|---|
 | Security — cross-workspace isolation | `IMPLEMENTED / NEEDS EVIDENCE` | YES | RLS denial tests, storage denial tests | Philip | Execute BETA-P0-SEC-001 | Beta |
-| Security — invite token lifecycle | `IMPLEMENTED / NEEDS EVIDENCE` | YES | Staging/prod E2E with real Supabase | Philip | Execute BETA-P0-SEC-003 | Beta |
+| Security — invite token lifecycle | `BROKEN / CONFIG BLOCKED` | YES | Supabase Auth email + invite env vars + POST-only accept + staging/prod E2E | Philip | Execute collaboration Wave 1 and Wave 2 from `.ai/03_plans/share-and-collaboration-implementation/` | Beta |
 | Security — shared link boundaries | `IMPLEMENTED / NEEDS EVIDENCE` | YES | Penetration tests, token scope tests | Philip | Execute BETA-P0-SEC-003 | Beta |
 | Security — CSP/headers | `PARTIAL` | YES | Strict CSP on workshop routes | Philip | Enterprise MVP hardening | Enterprise MVP |
 | Security — rate limiting | `DECIDED / REQUIRED BEFORE EXTERNAL BETA` | BETA | Persistent rate limiting implemented | Philip | Execute BETA-P0-SEC-005 | Beta |
@@ -146,13 +146,13 @@ Archestimator is production-ready only when:
 | Vercel — env vars inventory | `PARTIAL` | YES | Complete env var audit per environment | Philip | Audit env vars | Beta |
 | Vercel — preview protection | `LEFT TO DO` | YES | Preview auth configured | Philip | Configure Vercel auth | Beta |
 | UX — landing to login flow | `IMPLEMENTED / NEEDS EVIDENCE` | BETA | First-time user test | Philip | Recruit test users | Beta |
-| UX — invite acceptance flows | `IMPLEMENTED / NEEDS EVIDENCE` | BETA | Staging E2E pass | Philip | Schedule staging tests | Beta |
+| UX — invite acceptance flows | `BROKEN / CONFIG BLOCKED` | BETA | Provider/env setup, POST-only accept, then staging E2E pass | Philip | Unblock invite config and route safety before scheduling staging tests | Beta |
 | UX — estimate editing clarity | `IMPLEMENTED / NEEDS EVIDENCE` | BETA | Non-technical user validation | Philip | Recruit test users | Beta |
 | UX — shared receiver clarity | `IMPLEMENTED / NEEDS EVIDENCE` | BETA | Client-side user validation | Philip | Recruit test users | Beta |
 | UX — AI Ask/package-builder clarity | `IMPLEMENTED / NEEDS EVIDENCE` | BETA | User understanding test | Philip | Recruit test users | Beta |
 | UX — mobile workshop | `DECIDED / DESKTOP GUARD FOR MVP` | — | Desktop-only guard in workshop routes | Philip | Execute BETA-P0-UX-004 | Beta |
 | UX — package-builder | `DECIDED / OPTIONAL FEATURE-FLAGGED BETA` | — | Feature flag for beta opt-in | Philip | Implement feature flag | Beta |
-| Performance — route transitions | `PLANNED` | BETA | Sub-100ms benchmarks | Philip | Execute BETA-P0-PERF-001 | Beta |
+| Performance — route transitions | `IMPLEMENTED / NEEDS MANUAL BENCHMARK + CLEAN GATES` | BETA | Sub-100ms benchmarks | Philip | Complete manual benchmark screenshots, Lighthouse/full analyzer proof, and unrelated validation cleanup before archive | Beta |
 | Performance — large estimate sheets | `UNKNOWN` | BETA | 500+ row benchmarks | Philip | Execute BETA-P0-PERF-001 | Beta |
 | Performance — XLSX export | `UNKNOWN` | BETA | Timeout benchmarks | Philip | Run export load test | Beta |
 | Observability — APM/error tracking | `LEFT TO DO` | YES | Sentry or equivalent configured | Philip | Execute BETA-P0-OBS-001 | Beta |

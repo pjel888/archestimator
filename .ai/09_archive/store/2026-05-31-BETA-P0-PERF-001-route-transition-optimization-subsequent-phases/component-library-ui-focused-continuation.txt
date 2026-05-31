@@ -1,0 +1,27 @@
+
+ RUN  v4.1.7 /Users/philiplewis/archestimator
+
+ ❯ tests/vitest/component-library-ui.test.tsx (23 tests | 1 failed) 55393ms
+     × keeps slash shortcut from focusing search behind the component modal 16219ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/vitest/component-library-ui.test.tsx > component library UI > keeps slash shortcut from focusing search behind the component modal
+Error: Test timed out in 15000ms.
+If this is a long-running test, pass a timeout value as the last argument or configure it globally with "testTimeout".
+ ❯ tests/vitest/component-library-ui.test.tsx:263:3
+    261|   });
+    262|
+    263|   it("keeps slash shortcut from focusing search behind the component m…
+       |   ^
+    264|     renderSidebar();
+    265|     const search = screen.getByLabelText("Search Library Tree");
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 22 passed (23)
+   Start at  20:29:24
+   Duration  59.10s (transform 639ms, setup 93ms, import 2.67s, tests 55.39s, environment 653ms)
+

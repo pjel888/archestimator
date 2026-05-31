@@ -1,0 +1,33 @@
+
+Running 1 test using 1 worker
+
+(node:23344) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:23344) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  1 [chromium] › e2e/route-transition-performance.spec.ts:165:7 › route transition performance evidence › captures Link-based public route transition medians and overlay visibility (1.5m)
+
+
+  1) [chromium] › e2e/route-transition-performance.spec.ts:165:7 › route transition performance evidence › captures Link-based public route transition medians and overlay visibility 
+
+    [31mTest timeout of 90000ms exceeded.[39m
+
+    Error: page.waitForURL: Test timeout of 90000ms exceeded.
+    =========================== logs ===========================
+    waiting for navigation until "domcontentloaded"
+      navigated to "http://127.0.0.1:3000/features"
+    ============================================================
+
+      177 |       const startedAt = Date.now();
+      178 |       await Promise.all([
+    > 179 |         page.waitForURL(targetUrl, { waitUntil: "domcontentloaded" }),
+          |              ^
+      180 |         page.locator(`a[href="${targetHref}"]`).first().click(),
+      181 |       ]);
+      182 |       await page.waitForTimeout(100);
+        at /Users/philiplewis/archestimator/e2e/route-transition-performance.spec.ts:179:14
+
+    Error Context: test-results/route-transition-performan-71ef2-ians-and-overlay-visibility-chromium/error-context.md
+
+  1 failed
+    [chromium] › e2e/route-transition-performance.spec.ts:165:7 › route transition performance evidence › captures Link-based public route transition medians and overlay visibility 

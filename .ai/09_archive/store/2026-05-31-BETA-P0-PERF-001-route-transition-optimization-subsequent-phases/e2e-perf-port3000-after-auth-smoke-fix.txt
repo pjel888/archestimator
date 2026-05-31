@@ -1,0 +1,22 @@
+$ playwright test e2e/route-transition-performance.spec.ts
+
+Running 6 tests using 1 worker
+
+(node:42259) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:42259) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+route-transition-public-baseline [{"href":"http://127.0.0.1:3000/","navigation":{"domContentLoaded":1551.4000000022352,"loadEventEnd":2100.900000002235,"duration":2100.900000002235,"transferSize":32303,"decodedBodySize":155723},"resources":{"count":30,"transferSize":1161270,"scriptCount":22,"rscCount":0,"nextAssetCount":29,"prefetchCount":0}},{"href":"http://127.0.0.1:3000/features","navigation":{"domContentLoaded":2421.300000000745,"loadEventEnd":2572.699999999255,"duration":2572.699999999255,"transferSize":28306,"decodedBodySize":102018},"resources":{"count":28,"transferSize":6966,"scriptCount":20,"rscCount":0,"nextAssetCount":27,"prefetchCount":0}},{"href":"http://127.0.0.1:3000/pricing","navigation":{"domContentLoaded":706.7999999970198,"loadEventEnd":708.5999999977648,"duration":708.5999999977648,"transferSize":19154,"decodedBodySize":71069},"resources":{"count":29,"transferSize":8074,"scriptCount":20,"rscCount":0,"nextAssetCount":27,"prefetchCount":0}}]
+  ✓  1 [chromium] › e2e/route-transition-performance.spec.ts:128:7 › route transition performance evidence › captures public route baseline metrics (6.6s)
+route-transition-slow-3g-public {"href":"http://127.0.0.1:3000/features","navigation":{"domContentLoaded":4799.5,"loadEventEnd":0,"duration":4799.5,"transferSize":28309,"decodedBodySize":102018},"resources":{"count":5,"transferSize":72157,"scriptCount":1,"rscCount":0,"nextAssetCount":4,"prefetchCount":0}}
+  ✓  2 [chromium] › e2e/route-transition-performance.spec.ts:151:7 › route transition performance evidence › captures Slow 3G public-route budget evidence (5.4s)
+route-transition-public-link-medians {"runs":[{"from":"/features","to":"/pricing","durationMs":2672,"overlayVisible":false},{"from":"/features","to":"/pricing","durationMs":3812,"overlayVisible":true},{"from":"/features","to":"/pricing","durationMs":791,"overlayVisible":true},{"from":"/features","to":"/pricing","durationMs":2378,"overlayVisible":true},{"from":"/features","to":"/pricing","durationMs":1120,"overlayVisible":true}],"medianMs":2378,"overlayVisibilityRate":0.8}
+  ✓  3 [chromium] › e2e/route-transition-performance.spec.ts:165:7 › route transition performance evidence › captures Link-based public route transition medians and overlay visibility (33.9s)
+route-transition-public-bfcache {"href":"http://127.0.0.1:3000/","navigationTypes":["back_forward"],"pageshowPersisted":[],"restoreMs":649}
+  ✓  4 [chromium] › e2e/route-transition-performance.spec.ts:205:7 › route transition performance evidence › captures public back-forward cache restore evidence without stuck overlay (17.1s)
+route-transition-protected-redirect-budget {"href":"http://127.0.0.1:3000/login?next=%2Fworkshop%2Fprojects","navigation":{"domContentLoaded":4976.800000000745,"loadEventEnd":0,"duration":4976.800000000745,"transferSize":7466,"decodedBodySize":21907},"resources":{"count":7,"transferSize":203134,"scriptCount":2,"rscCount":0,"nextAssetCount":7,"prefetchCount":0}}
+  ✓  5 [chromium] › e2e/route-transition-performance.spec.ts:236:7 › route transition performance evidence › keeps protected redirect within the route performance budget (5.7s)
+  -  6 [chromium] › e2e/route-transition-performance.spec.ts:249:7 › route transition performance evidence › captures authenticated hover prefetch and transition budget when dev auth is enabled
+
+  1 skipped
+  5 passed (1.4m)

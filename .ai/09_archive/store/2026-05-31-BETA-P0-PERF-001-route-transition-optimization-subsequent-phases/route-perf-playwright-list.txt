@@ -1,0 +1,8 @@
+Listing tests:
+  [chromium] › route-transition-performance.spec.ts:119:7 › route transition performance evidence › captures public route baseline metrics
+  [chromium] › route-transition-performance.spec.ts:142:7 › route transition performance evidence › captures Slow 3G public-route budget evidence
+  [chromium] › route-transition-performance.spec.ts:156:7 › route transition performance evidence › captures public back-forward cache restore evidence without stuck overlay
+  [chromium] › route-transition-performance.spec.ts:187:7 › route transition performance evidence › captures public focus prefetch resource evidence
+  [chromium] › route-transition-performance.spec.ts:209:7 › route transition performance evidence › keeps protected redirect within the route performance budget
+  [chromium] › route-transition-performance.spec.ts:222:7 › route transition performance evidence › captures authenticated hover prefetch and transition budget when dev auth is enabled
+Total: 6 tests in 1 file

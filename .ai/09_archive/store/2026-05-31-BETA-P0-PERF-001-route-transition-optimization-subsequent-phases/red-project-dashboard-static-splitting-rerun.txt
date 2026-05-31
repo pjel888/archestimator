@@ -1,0 +1,254 @@
+
+ RUN  v4.1.7 /Users/philiplewis/archestimator
+
+ ❯ tests/vitest/project-dashboard-ui.test.ts (15 tests | 3 failed) 16ms
+     × keeps D3 shape rendering isolated to the project charts feature 6ms
+     × keeps estimate workspace client components behind named dynamic imports 1ms
+     × gets the active header budget from the selected estimate sheet metadata 2ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 3 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/vitest/project-dashboard-ui.test.ts > project dashboard UI governance > keeps D3 shape rendering isolated to the project charts feature
+AssertionError: expected '"use client";\n\nimport { useMemo } f…' not to contain 'from "d3"'
+
+- Expected
++ Received
+
+- from "d3"
++ "use client";
++
++ import { useMemo } from "react";
++ import { hierarchy, pack } from "d3";
++ import type { HierarchyCircularNode } from "d3";
++
++ import type { ProjectChartBucket } from "@/lib/project-charts/types";
++
++ type ProjectCostBubbleChartProps = {
++   buckets: ProjectChartBucket[];
++   total: number;
++   currencyCode: string;
++   label: string;
++ };
++
++ type BubbleDatum = {
++   id: string;
++   label: string;
++   value: number;
++   color: string;
++   share: number;
++ };
++
++ type BubbleRootDatum = { children: BubbleDatum[]; value?: never } | BubbleDatum;
++
++ const CHART_SIZE = 560;
++ const BUBBLE_PADDING = 6;
++
++ export function ProjectCostBubbleChart({ buckets, total, currencyCode, label }: ProjectCostBubbleChartProps) {
++   const bubbles = useMemo(() => {
++     const data: BubbleDatum[] = buckets
++       .filter((bucket) => bucket.total > 0)
++       .map((bucket) => ({
++         id: bucket.id,
++         label: bucket.label,
++         value: bucket.total,
++         color: bucket.color,
++         share: bucket.share,
++       }));
++
++     const root = hierarchy<BubbleRootDatum>({ children: data })
++       .sum((datum) => ("value" in datum ? datum.value ?? 0 : 0))
++       .sort((left, right) => (right.value ?? 0) - (left.value ?? 0));
++
++     const packedRoot = pack<BubbleRootDatum>()
++       .size([CHART_SIZE - 2, CHART_SIZE - 2])
++       .padding(BUBBLE_PADDING)(root);
++
++     return packedRoot.leaves() as Array<HierarchyCircularNode<BubbleDatum>>;
++   }, [buckets]);
++
++   if (bubbles.length === 0 || total <= 0) {
++     return (
++       <div className="flex min-h-[520px] items-center justify-center rounded-xs border border-dashed border-hairline text-[10px] text-muted-foreground">
++         No cost rows
++       </div>
++     );
++   }
++
++   return (
++     <figure aria-label={label} className="flex min-h-[520px] items-center justify-center" data-testid="d3-bubble-chart">
++       <svg
++         role="img"
++         aria-label={label}
++         viewBox={`0 0 ${CHART_SIZE} ${CHART_SIZE}`}
++         className="h-auto w-full max-w-[560px]"
++         preserveAspectRatio="xMidYMid meet"
++       >
++         {bubbles.map((bubble) => {
++           const showLabel = bubble.r >= 34;
++           const showValue = bubble.r >= 46;
++
++           return (
++             <g key={bubble.data.id} transform={`translate(${bubble.x + 1}, ${bubble.y + 1})`} data-testid="bubble-node">
++               <circle
++                 r={bubble.r}
++                 fill={bubble.data.color}
++                 fillOpacity={0.84}
++                 stroke="white"
++                 strokeWidth={1.5}
++                 aria-label={`${bubble.data.label}: ${formatMoney(bubble.data.value, currencyCode)} (${formatPercent(bubble.data.share)})`}
++               />
++               <title>{`${bubble.data.label}\n${formatMoney(bubble.data.value, currencyCode)}\n${formatPercent(bubble.data.share)}`}</title>
++               {showLabel ? (
++                 <text textAnchor="middle" className="pointer-events-none fill-white" fontSize={Math.min(11, Math.max(8, bubble.r / 5))} fontWeight={700}>
++                   <tspan x={0} y={showValue ? -4 : 3}>
++                     {truncateLabel(bubble.data.label, bubble.r)}
++                   </tspan>
++                   {showValue ? (
++                     <tspan x={0} y={11} fontSize={Math.min(10, Math.max(8, bubble.r / 6))} fontWeight={600} fillOpacity={0.86}>
++                       {formatPercent(bubble.data.share)}
++                     </tspan>
++                   ) : null}
++                 </text>
++               ) : null}
++             </g>
++           );
++         })}
++       </svg>
++     </figure>
++   );
++ }
++
++ function truncateLabel(label: string, radius: number) {
++   const maxLength = Math.max(6, Math.floor(radius / 3.2));
++   return label.length > maxLength ? `${label.slice(0, maxLength - 1)}...` : label;
++ }
++
++ function formatMoney(value: number, currencyCode: string) {
++   return new Intl.NumberFormat("en-PH", {
++     style: "currency",
++     currency: currencyCode,
++     maximumFractionDigits: 0,
++   }).format(value);
++ }
++
++ function formatPercent(value: number) {
++   return new Intl.NumberFormat("en-PH", {
++     style: "percent",
++     maximumFractionDigits: 1,
++   }).format(value);
++ }
++
+
+ ❯ tests/vitest/project-dashboard-ui.test.ts:96:40
+     94|   it("keeps D3 shape rendering isolated to the project charts feature"…
+     95|     expect(projectCostDonutChart).not.toContain('from "d3"');
+     96|     expect(projectCostBubbleChart).not.toContain('from "d3"');
+       |                                        ^
+     97|     expect(projectCostBubbleChart).not.toContain('from "d3";');
+     98|     expect(projectCostDonutChart).toContain('from "d3-shape"');
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/3]⎯
+
+ FAIL  tests/vitest/project-dashboard-ui.test.ts > project dashboard UI governance > keeps estimate workspace client components behind named dynamic imports
+AssertionError: expected '' not to be '' // Object.is equality
+ ❯ tests/vitest/project-dashboard-ui.test.ts:106:41
+    104|
+    105|   it("keeps estimate workspace client components behind named dynamic …
+    106|     expect(estimateWorkspaceClient).not.toBe("");
+       |                                         ^
+    107|     expect(projectEstimateNodePage).toContain("EstimateWorkspaceClient…
+    108|     expect(projectEstimateNodePage).not.toContain('import { EstimateSh…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/3]⎯
+
+ FAIL  tests/vitest/project-dashboard-ui.test.ts > project dashboard UI governance > gets the active header budget from the selected estimate sheet metadata
+AssertionError: expected 'import { Suspense, type ReactNode } f…' to contain '<ProjectTotalHeader projectId={projec…'
+
+- Expected
++ Received
+
+- <ProjectTotalHeader projectId={projectId} />
++ import { Suspense, type ReactNode } from "react";
++
++ import { ProjectMiniSidebar } from "@/components/workshop/ProjectMiniSidebar";
++ import { ProjectRouteContentFallback } from "@/components/workshop/ProjectRouteContentFallback";
++ import { ProjectWorkspaceHeaderRow } from "@/components/workshop/ProjectWorkspaceHeaderRow";
++ import { WorkshopPageShell } from "@/components/workshop/WorkshopPageShell";
++ import { sampleProjects } from "@/components/workshop/workshop-sample-projects";
++ import {
++   getCurrentWorkspaceProject,
++   getProjectCollaborationSummary,
++   getProjectPublicationSummary,
++   listProjectEstimateSheets,
++ } from "@/lib/repositories/workspace-repository";
++
++ type ProjectLayoutProps = {
++   children: ReactNode;
++   params: Promise<{ projectId: string }>;
++ };
++
++ export default async function ProjectLayout({ children, params }: ProjectLayoutProps) {
++   const { projectId } = await params;
++   const { project: liveProject } = await getCurrentWorkspaceProject(projectId);
++   const [collaborationSummary, publicationSummary, projectEstimateSheets] = liveProject
++     ? await Promise.all([
++         getProjectCollaborationSummary(projectId),
++         getProjectPublicationSummary(projectId),
++         listProjectEstimateSheets(projectId),
++       ])
++     : [null, null, []];
++   const sampleProject = sampleProjects.find((item) => item.id === projectId);
++   const project = liveProject ?? sampleProject;
++   const title = project?.name ?? "Project";
++   const projectClient = liveProject?.client_name ?? sampleProject?.client ?? projectId;
++   const projectCode = liveProject?.project_code ?? projectId;
++
++   return (
++     <WorkshopPageShell
++       title={title}
++       eyebrow={projectClient}
++       breadcrumbs={[
++         { label: "Workshop", href: "/workshop" },
++         { label: "Projects", href: "/workshop/projects" },
++         { label: title, href: `/workshop/projects/${projectId}` },
++       ]}
++       alignChromeToProjectSidebar
++       contentClassName="pt-0 pb-0 pr-2 pl-0"
++       projectId={projectId}
++     >
++       <div className="flex h-full min-h-0 overflow-hidden bg-white">
++         <ProjectMiniSidebar projectId={projectId} />
++         <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-canvas">
++           <ProjectWorkspaceHeaderRow
++             projectId={projectId}
++             projectCode={projectCode}
++             collaborationSummary={collaborationSummary}
++             publicationSummary={publicationSummary}
++             projectEstimateSheets={projectEstimateSheets}
++           />
++           <div className="min-h-0 flex-1 overflow-hidden">
++             <Suspense fallback={<ProjectRouteContentFallback />}>{children}</Suspense>
++           </div>
++         </div>
++       </div>
++     </WorkshopPageShell>
++   );
++ }
++
+
+ ❯ tests/vitest/project-dashboard-ui.test.ts:265:36
+    263|   it("gets the active header budget from the selected estimate sheet m…
+    264|     expect(projectDashboardLayout).not.toContain("readProjectBudget");
+    265|     expect(projectDashboardLayout).toContain("<ProjectTotalHeader proj…
+       |                                    ^
+    266|     expect(projectTotalHeader).toContain("usePathname");
+    267|     expect(projectTotalHeader).toContain("pathname?.startsWith(`/works…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/3]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  3 failed | 12 passed (15)
+   Start at  16:22:25
+   Duration  1.03s (transform 59ms, setup 99ms, import 39ms, tests 16ms, environment 741ms)
+

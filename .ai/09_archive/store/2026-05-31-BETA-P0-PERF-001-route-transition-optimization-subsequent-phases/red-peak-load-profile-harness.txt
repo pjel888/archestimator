@@ -1,0 +1,26 @@
+
+ RUN  v4.1.7 /Users/philiplewis/archestimator
+
+ ❯ tests/vitest/route-transition-performance-spec.test.ts (5 tests | 1 failed) 10ms
+     × keeps a peak-load render profile harness for 50 projects and 200 estimate rows 5ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/vitest/route-transition-performance-spec.test.ts > route transition performance spec governance > keeps a peak-load render profile harness for 50 projects and 200 estimate rows
+Error: ENOENT: no such file or directory, open 'tests/vitest/route-transition-peak-load-profile.test.tsx'
+ ❯ tests/vitest/route-transition-performance-spec.test.ts:38:33
+     36|
+     37|   it("keeps a peak-load render profile harness for 50 projects and 200…
+     38|     const peakLoadProfileSpec = readFileSync("tests/vitest/route-trans…
+       |                                 ^
+     39|
+     40|     expect(packageJson).toContain('"perf:profile-peak-load"');
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 4 passed (5)
+   Start at  21:28:39
+   Duration  928ms (transform 33ms, setup 102ms, import 14ms, tests 10ms, environment 678ms)
+

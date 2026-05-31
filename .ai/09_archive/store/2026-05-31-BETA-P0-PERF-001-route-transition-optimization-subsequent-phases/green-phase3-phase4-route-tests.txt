@@ -1,0 +1,27 @@
+
+ RUN  v4.1.7 /Users/philiplewis/archestimator
+
+ ❯ tests/vitest/estimate-sheet-cost-inputs.test.tsx (31 tests | 1 failed) 33493ms
+     × inserts from the production sidebar direct callback path 15809ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/vitest/estimate-sheet-cost-inputs.test.tsx > estimate sheet cost inputs > inserts from the production sidebar direct callback path
+Error: Test timed out in 15000ms.
+If this is a long-running test, pass a timeout value as the last argument or configure it globally with "testTimeout".
+ ❯ tests/vitest/estimate-sheet-cost-inputs.test.tsx:413:3
+    411|   });
+    412|
+    413|   it("inserts from the production sidebar direct callback path", async…
+       |   ^
+    414|     const user = userEvent.setup();
+    415|     render(
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed | 3 passed (4)
+      Tests  1 failed | 55 passed (56)
+   Start at  16:30:48
+   Duration  152.31s (transform 26.30s, setup 2.40s, import 92.56s, tests 39.48s, environment 14.59s)
+

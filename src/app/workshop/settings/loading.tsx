@@ -1,13 +1,12 @@
-import { WorkshopPageShell } from "@/components/workshop/WorkshopPageShell";
+import { StaticWorkshopLoadingShell } from "@/components/workshop/StaticWorkshopLoadingShell";
 import { Skeleton } from "@/components/ui/skeleton";
 
-export default async function Loading() {
+export default function Loading() {
   return (
-    <WorkshopPageShell
+    <StaticWorkshopLoadingShell
       title="Settings"
       eyebrow="Settings"
       showEyebrow={false}
-      breadcrumbs={["Settings"]}
       contentClassName="overflow-y-auto p-2"
     >
       <div className="max-w-3xl space-y-3">
@@ -25,6 +24,6 @@ export default async function Loading() {
           <Skeleton className="h-8 w-24" />
         </div>
       </div>
-    </WorkshopPageShell>
+    </StaticWorkshopLoadingShell>
   );
 }

@@ -1,10 +1,11 @@
-import type { ReactNode } from "react";
+import { Suspense, type ReactNode } from "react";
 import Link from "next/link";
 import { cookies } from "next/headers";
 
 import { MainSidebar } from "@/components/sidebar/MainSidebar";
 import { AskFlipFooterAssistant } from "@/components/workshop/EstimateCopilotFloatingButton";
 import { ProjectTotalHeader } from "@/components/workshop/ProjectTotalHeader";
+import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/ui/cn";
 import { getCurrentUserContext } from "@/lib/auth/session";
 import { ESTIMATE_CENTER_COLUMN_CSS_VARIABLES } from "./EstimateCenterColumnBoundary";
@@ -40,6 +41,22 @@ async function getSidePanelWidthCssVariables() {
   }, {});
 }
 
+function WorkshopShellContentFallback() {
+  return (
+    <div className="flex h-full min-h-0 flex-col gap-2" role="status" aria-label="Loading workspace">
+      <div className="grid shrink-0 grid-cols-3 gap-2" aria-hidden="true">
+        <Skeleton className="h-10 w-full" />
+        <Skeleton className="h-10 w-full" />
+        <Skeleton className="h-10 w-full" />
+      </div>
+      <div className="min-h-0 flex-1 rounded-xs border border-hairline bg-white p-2" aria-hidden="true">
+        <Skeleton className="h-full w-full" />
+      </div>
+      <span className="sr-only">Loading workspace</span>
+    </div>
+  );
+}
+
 export async function WorkshopPageShell({
   title,
   eyebrow = "Workshop",
@@ -53,8 +70,10 @@ export async function WorkshopPageShell({
   projectId,
   children,
 }: WorkshopPageShellProps) {
-  const currentUser = await getCurrentUserContext();
-  const sidePanelWidthCssVariables = await getSidePanelWidthCssVariables();
+  const [currentUser, sidePanelWidthCssVariables] = await Promise.all([
+    getCurrentUserContext(),
+    getSidePanelWidthCssVariables(),
+  ]);
   const sidebarUser = currentUser
     ? { displayName: currentUser.displayName, email: currentUser.email, avatarUrl: currentUser.avatarUrl }
     : undefined;
@@ -100,7 +119,7 @@ export async function WorkshopPageShell({
 
         <div className={cn("min-h-0 flex-1 overflow-hidden", contentClassName ?? "p-2")}>
           {description ? <p className="mb-2 max-w-2xl text-[10px] leading-4 text-tertiary">{description}</p> : null}
-          {children}
+          <Suspense fallback={<WorkshopShellContentFallback />}>{children}</Suspense>
         </div>
 
         <footer className={["relative flex min-h-12 shrink-0 items-center justify-between gap-2 overflow-visible border-t border-hairline bg-white text-[10px] text-tertiary", chromePaddingClass].join(" ")}>

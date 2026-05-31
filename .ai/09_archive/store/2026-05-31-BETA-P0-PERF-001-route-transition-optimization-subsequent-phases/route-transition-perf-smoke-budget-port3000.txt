@@ -1,0 +1,49 @@
+$ playwright test e2e/route-transition-performance.spec.ts
+
+Running 6 tests using 1 worker
+
+(node:92580) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:92580) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+route-transition-public-baseline [{"href":"http://127.0.0.1:3000/","navigation":{"domContentLoaded":3685.10000000149,"loadEventEnd":0,"duration":0,"transferSize":32304,"decodedBodySize":155723},"resources":{"count":26,"transferSize":1135743,"scriptCount":18,"rscCount":0,"nextAssetCount":25,"prefetchCount":0}},{"href":"http://127.0.0.1:3000/features","navigation":{"domContentLoaded":7013.599999997765,"loadEventEnd":0,"duration":0,"transferSize":28309,"decodedBodySize":102018},"resources":{"count":12,"transferSize":1800,"scriptCount":4,"rscCount":0,"nextAssetCount":11,"prefetchCount":0}},{"href":"http://127.0.0.1:3000/pricing","navigation":{"domContentLoaded":3173.60000000149,"loadEventEnd":3175,"duration":3175,"transferSize":19155,"decodedBodySize":71069},"resources":{"count":29,"transferSize":8074,"scriptCount":20,"rscCount":0,"nextAssetCount":27,"prefetchCount":0}}]
+  ✓  1 [chromium] › e2e/route-transition-performance.spec.ts:119:7 › route transition performance evidence › captures public route baseline metrics (17.3s)
+route-transition-slow-3g-public {"href":"http://127.0.0.1:3000/features","navigation":{"domContentLoaded":4290.900000002235,"loadEventEnd":0,"duration":0,"transferSize":28309,"decodedBodySize":102018},"resources":{"count":5,"transferSize":72157,"scriptCount":1,"rscCount":0,"nextAssetCount":4,"prefetchCount":0}}
+  ✓  2 [chromium] › e2e/route-transition-performance.spec.ts:142:7 › route transition performance evidence › captures Slow 3G public-route budget evidence (6.4s)
+route-transition-public-bfcache {"href":"http://127.0.0.1:3000/","navigationTypes":["back_forward"],"pageshowPersisted":[],"restoreMs":588}
+  ✓  3 [chromium] › e2e/route-transition-performance.spec.ts:156:7 › route transition performance evidence › captures public back-forward cache restore evidence without stuck overlay (10.3s)
+  ✘  4 [chromium] › e2e/route-transition-performance.spec.ts:187:7 › route transition performance evidence › captures public focus prefetch resource evidence (1.6m)
+(node:97807) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:97807) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+route-transition-protected-redirect-budget {"href":"http://127.0.0.1:3000/login?next=%2Fworkshop%2Fprojects","navigation":{"domContentLoaded":6872.5,"loadEventEnd":6985.699999999255,"duration":6985.699999999255,"transferSize":7464,"decodedBodySize":21907},"resources":{"count":21,"transferSize":947907,"scriptCount":16,"rscCount":0,"nextAssetCount":21,"prefetchCount":0}}
+  ✓  5 [chromium] › e2e/route-transition-performance.spec.ts:209:7 › route transition performance evidence › keeps protected redirect within the route performance budget (7.4s)
+  -  6 [chromium] › e2e/route-transition-performance.spec.ts:222:7 › route transition performance evidence › captures authenticated hover prefetch and transition budget when dev auth is enabled
+
+
+  1) [chromium] › e2e/route-transition-performance.spec.ts:187:7 › route transition performance evidence › captures public focus prefetch resource evidence 
+
+    [31mTest timeout of 90000ms exceeded.[39m
+
+    Error: locator.focus: Test timeout of 90000ms exceeded.
+    Call log:
+    [2m  - waiting for locator('a[href="/features"]').first()[22m
+
+
+      194 |     await page.goto("/", { waitUntil: "domcontentloaded" });
+      195 |     const featuresLink = page.locator('a[href="/features"]').first();
+    > 196 |     await featuresLink.focus();
+          |                        ^
+      197 |     await page.waitForTimeout(250);
+      198 |
+      199 |     const metrics = await collectRouteMetrics(page);
+        at /Users/philiplewis/archestimator/e2e/route-transition-performance.spec.ts:196:24
+
+    Error Context: test-results/route-transition-performan-7aa77--prefetch-resource-evidence-chromium/error-context.md
+
+  1 failed
+    [chromium] › e2e/route-transition-performance.spec.ts:187:7 › route transition performance evidence › captures public focus prefetch resource evidence 
+  1 skipped
+  4 passed (2.8m)
+error: script "test:e2e:perf" exited with code 1

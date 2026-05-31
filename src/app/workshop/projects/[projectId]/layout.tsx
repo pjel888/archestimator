@@ -1,6 +1,7 @@
-import type { ReactNode } from "react";
+import { Suspense, type ReactNode } from "react";
 
 import { ProjectMiniSidebar } from "@/components/workshop/ProjectMiniSidebar";
+import { ProjectRouteContentFallback } from "@/components/workshop/ProjectRouteContentFallback";
 import { ProjectWorkspaceHeaderRow } from "@/components/workshop/ProjectWorkspaceHeaderRow";
 import { WorkshopPageShell } from "@/components/workshop/WorkshopPageShell";
 import { sampleProjects } from "@/components/workshop/workshop-sample-projects";
@@ -55,7 +56,9 @@ export default async function ProjectLayout({ children, params }: ProjectLayoutP
             publicationSummary={publicationSummary}
             projectEstimateSheets={projectEstimateSheets}
           />
-          <div className="min-h-0 flex-1 overflow-hidden">{children}</div>
+          <div className="min-h-0 flex-1 overflow-hidden">
+            <Suspense fallback={<ProjectRouteContentFallback />}>{children}</Suspense>
+          </div>
         </div>
       </div>
     </WorkshopPageShell>

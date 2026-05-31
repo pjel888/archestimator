@@ -1,0 +1,9 @@
+
+ RUN  v4.1.7 /Users/philiplewis/archestimator
+
+
+ Test Files  7 passed (7)
+      Tests  58 passed (58)
+   Start at  19:08:16
+   Duration  22.04s (transform 1.32s, setup 553ms, import 5.91s, tests 7.93s, environment 6.02s)
+

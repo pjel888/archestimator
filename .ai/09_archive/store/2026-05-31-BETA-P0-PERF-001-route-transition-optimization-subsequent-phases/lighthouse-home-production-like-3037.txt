@@ -1,0 +1,1 @@
+npm warn Unknown user config "always-auth" (//skand-124087294415.d.codeartifact.ap-southeast-2.amazonaws.com/npm/core/:always-auth). This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.

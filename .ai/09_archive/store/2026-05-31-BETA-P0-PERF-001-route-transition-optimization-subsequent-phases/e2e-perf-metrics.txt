@@ -1,0 +1,16 @@
+$ playwright test e2e/route-transition-performance.spec.ts
+
+Running 3 tests using 1 worker
+
+(node:98305) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:98305) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+route-transition-public-baseline [{"href":"http://127.0.0.1:3000/","navigation":{"domContentLoaded":8527.099999997765,"loadEventEnd":0,"duration":0,"transferSize":32304,"decodedBodySize":155723},"resources":{"count":12,"transferSize":303382,"scriptCount":5,"rscCount":0,"nextAssetCount":11,"prefetchCount":0}},{"href":"http://127.0.0.1:3000/features","navigation":{"domContentLoaded":5162.199999999255,"loadEventEnd":5163.199999999255,"duration":5163.199999999255,"transferSize":28307,"decodedBodySize":102018},"resources":{"count":28,"transferSize":169936,"scriptCount":20,"rscCount":0,"nextAssetCount":27,"prefetchCount":0}},{"href":"http://127.0.0.1:3000/pricing","navigation":{"domContentLoaded":9992.10000000149,"loadEventEnd":9995.199999999255,"duration":9995.199999999255,"transferSize":19156,"decodedBodySize":71069},"resources":{"count":29,"transferSize":8074,"scriptCount":20,"rscCount":0,"nextAssetCount":27,"prefetchCount":0}}]
+  ✓  1 [chromium] › e2e/route-transition-performance.spec.ts:60:7 › route transition performance evidence › captures public route baseline metrics (26.6s)
+route-transition-protected-redirect {"href":"http://127.0.0.1:3000/login?next=%2Fworkshop%2Fprojects","navigation":{"domContentLoaded":2343.800000000745,"loadEventEnd":0,"duration":0,"transferSize":7465,"decodedBodySize":21907},"resources":{"count":19,"transferSize":943136,"scriptCount":14,"rscCount":0,"nextAssetCount":19,"prefetchCount":0}}
+  ✓  2 [chromium] › e2e/route-transition-performance.spec.ts:80:7 › route transition performance evidence › keeps protected redirect from leaving the route overlay mounted (4.8s)
+  -  3 [chromium] › e2e/route-transition-performance.spec.ts:93:7 › route transition performance evidence › captures authenticated workshop transition metrics when dev auth is enabled
+
+  1 skipped
+  2 passed (44.8s)

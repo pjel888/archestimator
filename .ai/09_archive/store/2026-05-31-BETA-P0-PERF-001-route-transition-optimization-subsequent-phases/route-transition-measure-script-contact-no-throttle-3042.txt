@@ -1,0 +1,101 @@
+Archestimator route transition benchmark
+Base URL: http://127.0.0.1:3042
+Network: No throttle
+Runs per scenario: 3
+Scenario filter: contact
+
+Scenario: Public: About to Contact
+   Run 1: 779ms, overlay=true, rsc=1
+   Run 2: 723ms, overlay=true, rsc=1
+   Run 3: 794ms, overlay=true, rsc=3
+
+Scenario: Public: Pricing to Contact
+   Run 1: 737ms, overlay=true, rsc=1
+   Run 2: 764ms, overlay=true, rsc=1
+   Run 3: 673ms, overlay=true, rsc=1
+
+| Scenario | Median (ms) | Overlay rate | RSC requests | Runs | Failures |
+|----------|-------------|--------------|--------------|------|----------|
+| Public: About to Contact | 779 | 1.00 | 5 | 3 | 0 |
+| Public: Pricing to Contact | 737 | 1.00 | 3 | 3 | 0 |
+
+Wrote benchmark JSON: .ai/09_archive/store/2026-05-31-BETA-P0-PERF-001-route-transition-optimization-subsequent-phases/route-transition-measure-script-contact-no-throttle-3042.json
+
+--- JSON OUTPUT ---
+{
+  "generatedAt": "2026-05-31T13:06:46.667Z",
+  "baseUrl": "http://127.0.0.1:3042",
+  "networkProfile": "No throttle",
+  "runsPerScenario": 3,
+  "scenarioFilter": "contact",
+  "skipAuthenticated": true,
+  "skippedScenarios": [],
+  "results": [
+    {
+      "scenario": "Public: About to Contact",
+      "from": "/about",
+      "expectedPathname": "/contact",
+      "networkProfile": "No throttle",
+      "runs": [
+        {
+          "run": 1,
+          "durationMs": 779,
+          "overlayVisible": true,
+          "rscRequestCount": 1,
+          "finalPathname": "/contact"
+        },
+        {
+          "run": 2,
+          "durationMs": 723,
+          "overlayVisible": true,
+          "rscRequestCount": 1,
+          "finalPathname": "/contact"
+        },
+        {
+          "run": 3,
+          "durationMs": 794,
+          "overlayVisible": true,
+          "rscRequestCount": 3,
+          "finalPathname": "/contact"
+        }
+      ],
+      "failures": [],
+      "medianMs": 779,
+      "overlayVisibilityRate": 1,
+      "rscRequestCount": 5
+    },
+    {
+      "scenario": "Public: Pricing to Contact",
+      "from": "/pricing",
+      "expectedPathname": "/contact",
+      "networkProfile": "No throttle",
+      "runs": [
+        {
+          "run": 1,
+          "durationMs": 737,
+          "overlayVisible": true,
+          "rscRequestCount": 1,
+          "finalPathname": "/contact"
+        },
+        {
+          "run": 2,
+          "durationMs": 764,
+          "overlayVisible": true,
+          "rscRequestCount": 1,
+          "finalPathname": "/contact"
+        },
+        {
+          "run": 3,
+          "durationMs": 673,
+          "overlayVisible": true,
+          "rscRequestCount": 1,
+          "finalPathname": "/contact"
+        }
+      ],
+      "failures": [],
+      "medianMs": 737,
+      "overlayVisibilityRate": 1,
+      "rscRequestCount": 3
+    }
+  ]
+}
