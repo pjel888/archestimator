@@ -1,0 +1,330 @@
+
+ RUN  v4.1.7 /Users/philiplewis/archestimator
+
+ ❯ tests/vitest/route-transition-measure-script.test.ts (1 test | 1 failed) 27ms
+     × captures repeatable production-like route transition evidence without requiring auth by default 23ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/vitest/route-transition-measure-script.test.ts > route transition measurement script governance > captures repeatable production-like route transition evidence without requiring auth by default
+AssertionError: expected '#!/usr/bin/env bun\n/**\n * Automated…' to contain 'state: "hidden"'
+
+- Expected
++ Received
+
+- state: "hidden"
++ #!/usr/bin/env bun
++ /**
++  * Automated route-transition benchmark evidence.
++  *
++  * Usage:
++  *   BASE_URL=http://127.0.0.1:3039 NETWORK_PROFILE="Slow 3G" \
++  *     OUTPUT_FILE=.ai/09_archive/store/.../route-transition-measurements.json \
++  *     bun run scripts/measure-route-transitions.ts
++  *
++  * Authenticated workshop scenarios are skipped by default. Enable them only
++  * when a valid Playwright storage state or dev-auth server is available:
++  *   INCLUDE_AUTHENTICATED=1 PLAYWRIGHT_STORAGE_STATE=.auth/user.json ...
++  */
++
++ import { writeFileSync } from "node:fs";
++
++ import { chromium, type Browser, type BrowserContextOptions, type Page } from "@playwright/test";
++
++ const BASE_URL = process.env.BASE_URL ?? "http://localhost:3000";
++ const RUNS = Number.parseInt(process.env.RUNS ?? "3", 10);
++ const NETWORK_PROFILE = process.env.NETWORK_PROFILE ?? "No throttle";
++ const OUTPUT_FILE = process.env.OUTPUT_FILE;
++ const INCLUDE_AUTHENTICATED = process.env.INCLUDE_AUTHENTICATED === "1" || Boolean(process.env.PLAYWRIGHT_STORAGE_STATE);
++ const SKIP_AUTHENTICATED = process.env.SKIP_AUTHENTICATED === "1" || !INCLUDE_AUTHENTICATED;
++
++ type NetworkPreset = {
++   download: number;
++   upload: number;
++   latency: number;
++ };
++
++ const NETWORK_PRESETS: Record<string, NetworkPreset> = {
++   "No throttle": { download: -1, upload: -1, latency: 0 },
++   "Fast 3G": { download: (1.5 * 1024 * 1024) / 8, upload: (750 * 1024) / 8, latency: 150 },
++   "Slow 3G": { download: (400 * 1024) / 8, upload: (400 * 1024) / 8, latency: 400 },
++ };
++
++ type Scenario = {
++   name: string;
++   from: string;
++   expectedPathname: string;
++   requiresAuth?: boolean;
++   action: (page: Page) => Promise<void>;
++ };
++
++ type ScenarioRun = {
++   run: number;
++   durationMs: number;
++   overlayVisible: boolean;
++   rscRequestCount: number;
++   finalPathname: string;
++ };
++
++ type ScenarioResult = {
++   scenario: string;
++   from: string;
++   expectedPathname: string;
++   networkProfile: string;
++   runs: ScenarioRun[];
++   failures: Array<{ run: number; message: string }>;
++   medianMs: number | null;
++   overlayVisibilityRate: number;
++   rscRequestCount: number;
++ };
++
++ const SCENARIOS: Scenario[] = [
++   {
++     name: "Public: Landing to About",
++     from: "/",
++     expectedPathname: "/about",
++     action: async (page) => {
++       await page.locator('a[href="/about"]').first().click();
++     },
++   },
++   {
++     name: "Public: About to Contact",
++     from: "/about",
++     expectedPathname: "/contact",
++     action: async (page) => {
++       await page.locator('a[href="/contact"]').first().click();
++     },
++   },
++   {
++     name: "Public: Pricing to Contact",
++     from: "/pricing",
++     expectedPathname: "/contact",
++     action: async (page) => {
++       await page.locator('a[href="/contact"]').first().click();
++     },
++   },
++   {
++     name: "Authenticated: Workshop to Projects",
++     from: "/workshop",
++     expectedPathname: "/workshop/projects",
++     requiresAuth: true,
++     action: async (page) => {
++       await page.locator('a[href="/workshop/projects"]').first().click();
++     },
++   },
++   {
++     name: "Authenticated: Workshop to Library",
++     from: "/workshop",
++     expectedPathname: "/workshop/library",
++     requiresAuth: true,
++     action: async (page) => {
++       await page.locator('a[href="/workshop/library"]').first().click();
++     },
++   },
++   {
++     name: "Authenticated: Workshop to Templates",
++     from: "/workshop",
++     expectedPathname: "/workshop/templates",
++     requiresAuth: true,
++     action: async (page) => {
++       await page.locator('a[href="/workshop/templates"]').first().click();
++     },
++   },
++   {
++     name: "Authenticated: Workshop to Settings",
++     from: "/workshop",
++     expectedPathname: "/workshop/settings",
++     requiresAuth: true,
++     action: async (page) => {
++       await page.locator('a[href="/workshop/settings"]').first().click();
++     },
++   },
++ ];
++
++ function getMedian(values: number[]) {
++   const sorted = [...values].sort((left, right) => left - right);
++   return sorted[Math.floor(sorted.length / 2)] ?? null;
++ }
++
++ async function emulateNetworkProfile(page: Page, preset: NetworkPreset) {
++   if (preset.download <= 0) return null;
++
++   const client = await page.context().newCDPSession(page);
++   await client.send("Network.enable");
++   await client.send("Network.emulateNetworkConditions", {
++     offline: false,
++     downloadThroughput: preset.download,
++     uploadThroughput: preset.upload,
++     latency: preset.latency,
++   });
++   return client;
++ }
++
++ async function measureTransition(page: Page, scenario: Scenario, run: number): Promise<ScenarioRun> {
++   await page.goto(new URL(scenario.from, BASE_URL).toString(), { waitUntil: "domcontentloaded" });
++   await page.waitForTimeout(150);
++
++   const rscRequests = new Set<string>();
++   const onRequest = (request: { url: () => string }) => {
++     const url = request.url();
++     if (url.includes("_rsc=")) rscRequests.add(url);
++   };
++
++   page.on("request", onRequest);
++   const overlaySeen = page
++     .locator("[data-route-overlay]")
++     .waitFor({ state: "attached", timeout: 1000 })
++     .then(() => true)
++     .catch(() => false);
++
++   const startedAt = Date.now();
++   try {
++     await scenario.action(page);
++     await page.waitForFunction(
++       (expectedPathname) => window.location.pathname === expectedPathname,
++       scenario.expectedPathname,
++       { timeout: 15_000 },
++     );
++     await page.waitForFunction(() => !document.querySelector("[data-route-overlay]"), { timeout: 15_000 }).catch(() => undefined);
++     await page.waitForLoadState("networkidle", { timeout: 5_000 }).catch(() => undefined);
++     await page.waitForTimeout(100);
++
++     return {
++       run,
++       durationMs: Date.now() - startedAt,
++       overlayVisible: await overlaySeen,
++       rscRequestCount: rscRequests.size,
++       finalPathname: new URL(page.url()).pathname,
++     };
++   } finally {
++     page.off("request", onRequest);
++   }
++ }
++
++ async function measureScenario(browser: Browser, scenario: Scenario, preset: NetworkPreset): Promise<ScenarioResult> {
++   const contextOptions: BrowserContextOptions = {};
++   if (process.env.PLAYWRIGHT_STORAGE_STATE) {
++     contextOptions.storageState = process.env.PLAYWRIGHT_STORAGE_STATE;
++   }
++
++   const context = await browser.newContext(contextOptions);
++   const page = await context.newPage();
++   const client = await emulateNetworkProfile(page, preset);
++   const runs: ScenarioRun[] = [];
++   const failures: ScenarioResult["failures"] = [];
++
++   for (let run = 1; run <= RUNS; run += 1) {
++     try {
++       const result = await measureTransition(page, scenario, run);
++       runs.push(result);
++       console.log(`   Run ${run}: ${result.durationMs}ms, overlay=${result.overlayVisible}, rsc=${result.rscRequestCount}`);
++     } catch (error) {
++       const message = error instanceof Error ? error.message : String(error);
++       failures.push({ run, message });
++       console.error(`   Run ${run}: FAILED - ${message}`);
++     }
++   }
++
++   await client?.detach().catch(() => undefined);
++   await context.close();
++
++   const durations = runs.map((result) => result.durationMs);
++   const overlayVisibilityRate = runs.length === 0 ? 0 : runs.filter((result) => result.overlayVisible).length / runs.length;
++
++   return {
++     scenario: scenario.name,
++     from: scenario.from,
++     expectedPathname: scenario.expectedPathname,
++     networkProfile: NETWORK_PROFILE,
++     runs,
++     failures,
++     medianMs: getMedian(durations),
++     overlayVisibilityRate,
++     rscRequestCount: runs.reduce((sum, result) => sum + result.rscRequestCount, 0),
++   };
++ }
++
++ async function main() {
++   const preset = NETWORK_PRESETS[NETWORK_PROFILE];
++   if (!preset) {
++     console.error(`Unknown NETWORK_PROFILE: ${NETWORK_PROFILE}`);
++     console.error(`Available: ${Object.keys(NETWORK_PRESETS).join(", ")}`);
++     process.exit(1);
++   }
++
++   const runnableScenarios = SCENARIOS.filter((scenario) => !scenario.requiresAuth || !SKIP_AUTHENTICATED);
++   const skippedScenarios = SCENARIOS.filter((scenario) => scenario.requiresAuth && SKIP_AUTHENTICATED).map((scenario) => scenario.name);
++
++   console.log("Archestimator route transition benchmark");
++   console.log(`Base URL: ${BASE_URL}`);
++   console.log(`Network: ${NETWORK_PROFILE}`);
++   console.log(`Runs per scenario: ${RUNS}`);
++   if (skippedScenarios.length > 0) {
++     console.log(`Skipping authenticated scenarios: ${skippedScenarios.join(", ")}`);
++   }
++
++   const browser = await chromium.launch({ headless: true });
++   const results: ScenarioResult[] = [];
++
++   try {
++     for (const scenario of runnableScenarios) {
++       console.log(`\nScenario: ${scenario.name}`);
++       results.push(await measureScenario(browser, scenario, preset));
++     }
++   } finally {
++     await browser.close();
++   }
++
++   console.log("\n| Scenario | Median (ms) | Overlay rate | RSC requests | Runs | Failures |");
++   console.log("|----------|-------------|--------------|--------------|------|----------|");
++   for (const result of results) {
++     console.log(
++       `| ${result.scenario} | ${result.medianMs ?? "n/a"} | ${result.overlayVisibilityRate.toFixed(2)} | ${result.rscRequestCount} | ${result.runs.length} | ${result.failures.length} |`,
++     );
++   }
++
++   const payload = {
++     generatedAt: new Date().toISOString(),
++     baseUrl: BASE_URL,
++     networkProfile: NETWORK_PROFILE,
++     runsPerScenario: RUNS,
++     skipAuthenticated: SKIP_AUTHENTICATED,
++     skippedScenarios,
++     results,
++   };
++
++   if (OUTPUT_FILE) {
++     writeFileSync(OUTPUT_FILE, `${JSON.stringify(payload, null, 2)}\n`);
++     console.log(`\nWrote benchmark JSON: ${OUTPUT_FILE}`);
++   }
++
++   console.log("\n--- JSON OUTPUT ---");
++   console.log(JSON.stringify(payload, null, 2));
++
++   if (results.some((result) => result.runs.length === 0)) {
++     process.exitCode = 1;
++   }
++ }
++
++ main().catch((error) => {
++   console.error("Fatal error:", error);
++   process.exit(1);
++ });
++
+
+ ❯ tests/vitest/route-transition-measure-script.test.ts:16:27
+     14|     expect(measureScript).toContain("SKIP_AUTHENTICATED");
+     15|     expect(measureScript).toContain("writeFileSync");
+     16|     expect(measureScript).toContain('state: "hidden"');
+       |                           ^
+     17|   });
+     18| });
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed (1)
+   Start at  21:02:22
+   Duration  6.70s (transform 134ms, setup 414ms, import 46ms, tests 27ms, environment 5.58s)
+

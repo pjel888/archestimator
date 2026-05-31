@@ -1,0 +1,2994 @@
+
+ RUN  v4.1.7 /Users/philiplewis/archestimator
+
+ ❯ tests/vitest/workshop-library-consolidation-ui.test.tsx (9 tests | 8 failed) 1023ms
+     × keeps Supabase upload review safeguards in place 57ms
+     × renders Components as the only route tab with direct folder scoped rows 443ms
+     × keeps Add folder usable from supplier organization by creating a Default folder 140ms
+     × creates a root folder at the top from Add Component when no folder is selected 56ms
+     × opens the Add Component modal and submits categorized variants 206ms
+     × renders versioned components as ecommerce-style catalogue cards without lifecycle or history chrome 34ms
+     × keeps supplier organization inside Components and scopes the sheet directly to suppliers 58ms
+     × uses the shared drag/drop tree environment for editable library folders 23ms
+ ❯ tests/vitest/project-charts-ui.test.tsx (7 tests | 2 failed) 576ms
+     × starts with one chart column and no combined comparison table 114ms
+     × adds chart columns up to the available estimates and gives every column its own table 49ms
+ ❯ tests/vitest/project-dashboard-ui.test.ts (14 tests | 2 failed) 15ms
+     × keeps D3 shape rendering isolated to the project charts feature 5ms
+     × gets the active header budget from the selected estimate sheet metadata 5ms
+ ❯ tests/vitest/component-library-manager-ui.test.tsx (14 tests | 12 failed) 204ms
+     × renders the library workspace without the retired standalone manager chrome 32ms
+     × uses editable folder navigation and shows component leaves inside the library tree 4ms
+     × moves supplier organization under Components instead of a top-level Suppliers tab 69ms
+     × adds Brand as a component organization view and scopes the sheet directly to brands 14ms
+     × uses the same working folder expanders inside the Add Component modal 11ms
+     × runs rename and delete folder actions inside the Add Component modal tree 12ms
+     × keeps supplier typing in the current Add Component tree view and stages the supplier folder 10ms
+     × keeps brand typing in the current Add Component tree view and stages the brand folder 14ms
+     × opens a cost manager with timestamped component cost data 10ms
+     × renders unit dropdowns with clear code and meaning columns 13ms
+     × opens right-click actions on editable library folders 2ms
+     × searches folder labels without reintroducing procurement scopes as category folders 2ms
+
+⎯⎯⎯⎯⎯⎯ Failed Tests 24 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/vitest/component-library-manager-ui.test.tsx > component library manager UI > renders the library workspace without the retired standalone manager chrome
+TestingLibraryElementError: Unable to find a label with the text of: Component library tree
+
+Ignored nodes: comments, script, style
+[36m<body>[39m
+  [36m<div>[39m
+    [36m<div[39m
+      [33maria-label[39m=[32m"Loading library"[39m
+      [33mclass[39m=[32m"flex h-full min-h-0 overflow-hidden rounded-xs border-r border-hairline bg-white"[39m
+      [33mrole[39m=[32m"status"[39m
+    [36m>[39m
+      [36m<div[39m
+        [33mclass[39m=[32m"flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-canvas"[39m
+      [36m>[39m
+        [36m<section[39m
+          [33maria-label[39m=[32m"Component library workspace"[39m
+          [33mclass[39m=[32m"flex h-full min-h-0 overflow-hidden bg-white"[39m
+        [36m>[39m
+          [36m<div[39m
+            [33maria-hidden[39m=[32m"true"[39m
+            [33mclass[39m=[32m"flex min-w-0 flex-1 flex-col p-2"[39m
+          [36m>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-7 w-32"[39m
+            [36m/>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"mt-2 grid grid-cols-[repeat(auto-fill,minmax(164px,1fr))] gap-2"[39m
+            [36m>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-[236px] w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-[236px] w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-[236px] w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-[236px] w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-[236px] w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-[236px] w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-[236px] w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-[236px] w-full"[39m
+              [36m/>[39m
+            [36m</div>[39m
+          [36m</div>[39m
+          [36m<div[39m
+            [33maria-hidden[39m=[32m"true"[39m
+            [33mclass[39m=[32m"hidden w-[312px] shrink-0 border-l border-hairline p-2 lg:block"[39m
+          [36m>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-7 w-full"[39m
+            [36m/>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"mt-2 space-y-1"[39m
+            [36m>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-6 w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-6 w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-6 w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-6 w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-6 w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-6 w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-6 w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-6 w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-6 w-full"[39m
+              [36m/>[39m
+            [36m</div>[39m
+          [36m</div>[39m
+        [36m</section>[39m
+      [36m</div>[39m
+      [36m<span[39m
+        [33mclass[39m=[32m"sr-only"[39m
+      [36m>[39m
+        [0mLoading library[0m
+      [36m</span>[39m
+    [36m</div>[39m
+  [36m</div>[39m
+[36m</body>[39m
+ ❯ Object.getElementError node_modules/@testing-library/dom/dist/config.js:37:19
+ ❯ getAllByLabelText node_modules/@testing-library/dom/dist/queries/label-text.js:111:38
+ ❯ node_modules/@testing-library/dom/dist/query-helpers.js:52:17
+ ❯ node_modules/@testing-library/dom/dist/query-helpers.js:95:19
+ ❯ tests/vitest/component-library-manager-ui.test.tsx:238:19
+    236|
+    237|     expect(screen.getByLabelText("Component library workspace")).toBeI…
+    238|     expect(screen.getByLabelText("Component library tree")).toBeInTheD…
+       |                   ^
+    239|     expect(screen.getByLabelText("Component sheet")).toBeInTheDocument…
+    240|     expect(screen.getByLabelText("Search component library tree")).toB…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/24]⎯
+
+ FAIL  tests/vitest/component-library-manager-ui.test.tsx > component library manager UI > uses editable folder navigation and shows component leaves inside the library tree
+TestingLibraryElementError: Unable to find a label with the text of: Component library tree
+
+Ignored nodes: comments, script, style
+[36m<body>[39m
+  [36m<div>[39m
+    [36m<div[39m
+      [33maria-label[39m=[32m"Loading library"[39m
+      [33mclass[39m=[32m"flex h-full min-h-0 overflow-hidden rounded-xs border-r border-hairline bg-white"[39m
+      [33mrole[39m=[32m"status"[39m
+    [36m>[39m
+      [36m<div[39m
+        [33mclass[39m=[32m"flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-canvas"[39m
+      [36m>[39m
+        [36m<section[39m
+          [33maria-label[39m=[32m"Component library workspace"[39m
+          [33mclass[39m=[32m"flex h-full min-h-0 overflow-hidden bg-white"[39m
+        [36m>[39m
+          [36m<div[39m
+            [33maria-hidden[39m=[32m"true"[39m
+            [33mclass[39m=[32m"flex min-w-0 flex-1 flex-col p-2"[39m
+          [36m>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-7 w-32"[39m
+            [36m/>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"mt-2 grid grid-cols-[repeat(auto-fill,minmax(164px,1fr))] gap-2"[39m
+            [36m>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-[236px] w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-[236px] w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-[236px] w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-[236px] w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-[236px] w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-[236px] w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-[236px] w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-[236px] w-full"[39m
+              [36m/>[39m
+            [36m</div>[39m
+          [36m</div>[39m
+          [36m<div[39m
+            [33maria-hidden[39m=[32m"true"[39m
+            [33mclass[39m=[32m"hidden w-[312px] shrink-0 border-l border-hairline p-2 lg:block"[39m
+          [36m>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-7 w-full"[39m
+            [36m/>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"mt-2 space-y-1"[39m
+            [36m>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-6 w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-6 w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-6 w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-6 w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-6 w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-6 w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-6 w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-6 w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-6 w-full"[39m
+              [36m/>[39m
+            [36m</div>[39m
+          [36m</div>[39m
+        [36m</section>[39m
+      [36m</div>[39m
+      [36m<span[39m
+        [33mclass[39m=[32m"sr-only"[39m
+      [36m>[39m
+        [0mLoading library[0m
+      [36m</span>[39m
+    [36m</div>[39m
+  [36m</div>[39m
+[36m</body>[39m
+ ❯ Object.getElementError node_modules/@testing-library/dom/dist/config.js:37:19
+ ❯ getAllByLabelText node_modules/@testing-library/dom/dist/queries/label-text.js:111:38
+ ❯ node_modules/@testing-library/dom/dist/query-helpers.js:52:17
+ ❯ node_modules/@testing-library/dom/dist/query-helpers.js:95:19
+ ❯ tests/vitest/component-library-manager-ui.test.tsx:280:25
+    278|     renderLibrary();
+    279|
+    280|     const tree = screen.getByLabelText("Component library tree");
+       |                         ^
+    281|     const sheet = screen.getByLabelText("Component sheet");
+    282|     const rowGroups = Array.from(tree.querySelectorAll("ol"));
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/24]⎯
+
+ FAIL  tests/vitest/component-library-manager-ui.test.tsx > component library manager UI > moves supplier organization under Components instead of a top-level Suppliers tab
+TestingLibraryElementError: Unable to find an accessible element with the role "group" and name "Component view mode"
+
+Here are the accessible roles:
+
+  status:
+
+  Name "Loading library":
+  [36m<div[39m
+    [33maria-label[39m=[32m"Loading library"[39m
+    [33mclass[39m=[32m"flex h-full min-h-0 overflow-hidden rounded-xs border-r border-hairline bg-white"[39m
+    [33mrole[39m=[32m"status"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  region:
+
+  Name "Component library workspace":
+  [36m<section[39m
+    [33maria-label[39m=[32m"Component library workspace"[39m
+    [33mclass[39m=[32m"flex h-full min-h-0 overflow-hidden bg-white"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+
+Ignored nodes: comments, script, style
+[36m<body>[39m
+  [36m<div>[39m
+    [36m<div[39m
+      [33maria-label[39m=[32m"Loading library"[39m
+      [33mclass[39m=[32m"flex h-full min-h-0 overflow-hidden rounded-xs border-r border-hairline bg-white"[39m
+      [33mrole[39m=[32m"status"[39m
+    [36m>[39m
+      [36m<div[39m
+        [33mclass[39m=[32m"flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-canvas"[39m
+      [36m>[39m
+        [36m<section[39m
+          [33maria-label[39m=[32m"Component library workspace"[39m
+          [33mclass[39m=[32m"flex h-full min-h-0 overflow-hidden bg-white"[39m
+        [36m>[39m
+          [36m<div[39m
+            [33maria-hidden[39m=[32m"true"[39m
+            [33mclass[39m=[32m"flex min-w-0 flex-1 flex-col p-2"[39m
+          [36m>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-7 w-32"[39m
+            [36m/>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"mt-2 grid grid-cols-[repeat(auto-fill,minmax(164px,1fr))] gap-2"[39m
+            [36m>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-[236px] w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-[236px] w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-[236px] w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-[236px] w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-[236px] w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-[236px] w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-[236px] w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-[236px] w-full"[39m
+              [36m/>[39m
+            [36m</div>[39m
+          [36m</div>[39m
+          [36m<div[39m
+            [33maria-hidden[39m=[32m"true"[39m
+            [33mclass[39m=[32m"hidden w-[312px] shrink-0 border-l border-hairline p-2 lg:block"[39m
+          [36m>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-7 w-full"[39m
+            [36m/>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"mt-2 space-y-1"[39m
+            [36m>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-6 w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-6 w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-6 w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-6 w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-6 w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-6 w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-6 w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-6 w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-6 w-full"[39m
+              [36m/>[39m
+            [36m</div>[39m
+          [36m</div>[39m
+        [36m</section>[39m
+      [36m</div>[39m
+      [36m<span[39m
+        [33mclass[39m=[32m"sr-only"[39m
+      [36m>[39m
+        [0mLoading library[0m
+      [36m</span>[39m
+    [36m</div>[39m
+  [36m</div>[39m
+[36m</body>[39m
+ ❯ Object.getElementError node_modules/@testing-library/dom/dist/config.js:37:19
+ ❯ node_modules/@testing-library/dom/dist/query-helpers.js:76:38
+ ❯ node_modules/@testing-library/dom/dist/query-helpers.js:52:17
+ ❯ node_modules/@testing-library/dom/dist/query-helpers.js:95:19
+ ❯ tests/vitest/component-library-manager-ui.test.tsx:389:29
+    387|     renderLibrary();
+    388|
+    389|     const viewMode = screen.getByRole("group", { name: "Component view…
+       |                             ^
+    390|     expect(screen.getByText("View By")).toBeInTheDocument();
+    391|     expect(within(viewMode).getByRole("button", { name: "Default" })).…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/24]⎯
+
+ FAIL  tests/vitest/component-library-manager-ui.test.tsx > component library manager UI > adds Brand as a component organization view and scopes the sheet directly to brands
+TestingLibraryElementError: Unable to find an accessible element with the role "group" and name "Component view mode"
+
+Here are the accessible roles:
+
+  status:
+
+  Name "Loading library":
+  [36m<div[39m
+    [33maria-label[39m=[32m"Loading library"[39m
+    [33mclass[39m=[32m"flex h-full min-h-0 overflow-hidden rounded-xs border-r border-hairline bg-white"[39m
+    [33mrole[39m=[32m"status"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  region:
+
+  Name "Component library workspace":
+  [36m<section[39m
+    [33maria-label[39m=[32m"Component library workspace"[39m
+    [33mclass[39m=[32m"flex h-full min-h-0 overflow-hidden bg-white"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+
+Ignored nodes: comments, script, style
+[36m<body>[39m
+  [36m<div>[39m
+    [36m<div[39m
+      [33maria-label[39m=[32m"Loading library"[39m
+      [33mclass[39m=[32m"flex h-full min-h-0 overflow-hidden rounded-xs border-r border-hairline bg-white"[39m
+      [33mrole[39m=[32m"status"[39m
+    [36m>[39m
+      [36m<div[39m
+        [33mclass[39m=[32m"flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-canvas"[39m
+      [36m>[39m
+        [36m<section[39m
+          [33maria-label[39m=[32m"Component library workspace"[39m
+          [33mclass[39m=[32m"flex h-full min-h-0 overflow-hidden bg-white"[39m
+        [36m>[39m
+          [36m<div[39m
+            [33maria-hidden[39m=[32m"true"[39m
+            [33mclass[39m=[32m"flex min-w-0 flex-1 flex-col p-2"[39m
+          [36m>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-7 w-32"[39m
+            [36m/>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"mt-2 grid grid-cols-[repeat(auto-fill,minmax(164px,1fr))] gap-2"[39m
+            [36m>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-[236px] w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-[236px] w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-[236px] w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-[236px] w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-[236px] w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-[236px] w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-[236px] w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-[236px] w-full"[39m
+              [36m/>[39m
+            [36m</div>[39m
+          [36m</div>[39m
+          [36m<div[39m
+            [33maria-hidden[39m=[32m"true"[39m
+            [33mclass[39m=[32m"hidden w-[312px] shrink-0 border-l border-hairline p-2 lg:block"[39m
+          [36m>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-7 w-full"[39m
+            [36m/>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"mt-2 space-y-1"[39m
+            [36m>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-6 w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-6 w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-6 w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-6 w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-6 w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-6 w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-6 w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-6 w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-6 w-full"[39m
+              [36m/>[39m
+            [36m</div>[39m
+          [36m</div>[39m
+        [36m</section>[39m
+      [36m</div>[39m
+      [36m<span[39m
+        [33mclass[39m=[32m"sr-only"[39m
+      [36m>[39m
+        [0mLoading library[0m
+      [36m</span>[39m
+    [36m</div>[39m
+  [36m</div>[39m
+[36m</body>[39m
+ ❯ Object.getElementError node_modules/@testing-library/dom/dist/config.js:37:19
+ ❯ node_modules/@testing-library/dom/dist/query-helpers.js:76:38
+ ❯ node_modules/@testing-library/dom/dist/query-helpers.js:52:17
+ ❯ node_modules/@testing-library/dom/dist/query-helpers.js:95:19
+ ❯ tests/vitest/component-library-manager-ui.test.tsx:416:29
+    414|     renderLibrary();
+    415|
+    416|     const viewMode = screen.getByRole("group", { name: "Component view…
+       |                             ^
+    417|     fireEvent.click(within(viewMode).getByRole("button", { name: "Bran…
+    418|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/24]⎯
+
+ FAIL  tests/vitest/component-library-manager-ui.test.tsx > component library manager UI > uses the same working folder expanders inside the Add Component modal
+TestingLibraryElementError: Unable to find an accessible element with the role "button" and name "Add Component"
+
+Here are the accessible roles:
+
+  status:
+
+  Name "Loading library":
+  [36m<div[39m
+    [33maria-label[39m=[32m"Loading library"[39m
+    [33mclass[39m=[32m"flex h-full min-h-0 overflow-hidden rounded-xs border-r border-hairline bg-white"[39m
+    [33mrole[39m=[32m"status"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  region:
+
+  Name "Component library workspace":
+  [36m<section[39m
+    [33maria-label[39m=[32m"Component library workspace"[39m
+    [33mclass[39m=[32m"flex h-full min-h-0 overflow-hidden bg-white"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+
+Ignored nodes: comments, script, style
+[36m<body>[39m
+  [36m<div>[39m
+    [36m<div[39m
+      [33maria-label[39m=[32m"Loading library"[39m
+      [33mclass[39m=[32m"flex h-full min-h-0 overflow-hidden rounded-xs border-r border-hairline bg-white"[39m
+      [33mrole[39m=[32m"status"[39m
+    [36m>[39m
+      [36m<div[39m
+        [33mclass[39m=[32m"flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-canvas"[39m
+      [36m>[39m
+        [36m<section[39m
+          [33maria-label[39m=[32m"Component library workspace"[39m
+          [33mclass[39m=[32m"flex h-full min-h-0 overflow-hidden bg-white"[39m
+        [36m>[39m
+          [36m<div[39m
+            [33maria-hidden[39m=[32m"true"[39m
+            [33mclass[39m=[32m"flex min-w-0 flex-1 flex-col p-2"[39m
+          [36m>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-7 w-32"[39m
+            [36m/>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"mt-2 grid grid-cols-[repeat(auto-fill,minmax(164px,1fr))] gap-2"[39m
+            [36m>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-[236px] w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-[236px] w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-[236px] w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-[236px] w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-[236px] w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-[236px] w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-[236px] w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-[236px] w-full"[39m
+              [36m/>[39m
+            [36m</div>[39m
+          [36m</div>[39m
+          [36m<div[39m
+            [33maria-hidden[39m=[32m"true"[39m
+            [33mclass[39m=[32m"hidden w-[312px] shrink-0 border-l border-hairline p-2 lg:block"[39m
+          [36m>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-7 w-full"[39m
+            [36m/>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"mt-2 space-y-1"[39m
+            [36m>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-6 w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-6 w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-6 w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-6 w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-6 w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-6 w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-6 w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-6 w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-6 w-full"[39m
+              [36m/>[39m
+            [36m</div>[39m
+          [36m</div>[39m
+        [36m</section>[39m
+      [36m</div>[39m
+      [36m<span[39m
+        [33mclass[39m=[32m"sr-only"[39m
+      [36m>[39m
+        [0mLoading library[0m
+      [36m</span>[39m
+    [36m</div>[39m
+  [36m</div>[39m
+[36m</body>[39m
+ ❯ Object.getElementError node_modules/@testing-library/dom/dist/config.js:37:19
+ ❯ node_modules/@testing-library/dom/dist/query-helpers.js:76:38
+ ❯ node_modules/@testing-library/dom/dist/query-helpers.js:52:17
+ ❯ node_modules/@testing-library/dom/dist/query-helpers.js:95:19
+ ❯ tests/vitest/component-library-manager-ui.test.tsx:438:28
+    436|     renderLibrary();
+    437|
+    438|     fireEvent.click(screen.getByRole("button", { name: "Add Component"…
+       |                            ^
+    439|
+    440|     const dialog = await screen.findByRole("dialog", { name: "Add Comp…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/24]⎯
+
+ FAIL  tests/vitest/component-library-manager-ui.test.tsx > component library manager UI > runs rename and delete folder actions inside the Add Component modal tree
+TestingLibraryElementError: Unable to find an accessible element with the role "button" and name "Add Component"
+
+Here are the accessible roles:
+
+  status:
+
+  Name "Loading library":
+  [36m<div[39m
+    [33maria-label[39m=[32m"Loading library"[39m
+    [33mclass[39m=[32m"flex h-full min-h-0 overflow-hidden rounded-xs border-r border-hairline bg-white"[39m
+    [33mrole[39m=[32m"status"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  region:
+
+  Name "Component library workspace":
+  [36m<section[39m
+    [33maria-label[39m=[32m"Component library workspace"[39m
+    [33mclass[39m=[32m"flex h-full min-h-0 overflow-hidden bg-white"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+
+Ignored nodes: comments, script, style
+[36m<body>[39m
+  [36m<div>[39m
+    [36m<div[39m
+      [33maria-label[39m=[32m"Loading library"[39m
+      [33mclass[39m=[32m"flex h-full min-h-0 overflow-hidden rounded-xs border-r border-hairline bg-white"[39m
+      [33mrole[39m=[32m"status"[39m
+    [36m>[39m
+      [36m<div[39m
+        [33mclass[39m=[32m"flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-canvas"[39m
+      [36m>[39m
+        [36m<section[39m
+          [33maria-label[39m=[32m"Component library workspace"[39m
+          [33mclass[39m=[32m"flex h-full min-h-0 overflow-hidden bg-white"[39m
+        [36m>[39m
+          [36m<div[39m
+            [33maria-hidden[39m=[32m"true"[39m
+            [33mclass[39m=[32m"flex min-w-0 flex-1 flex-col p-2"[39m
+          [36m>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-7 w-32"[39m
+            [36m/>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"mt-2 grid grid-cols-[repeat(auto-fill,minmax(164px,1fr))] gap-2"[39m
+            [36m>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-[236px] w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-[236px] w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-[236px] w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-[236px] w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-[236px] w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-[236px] w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-[236px] w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-[236px] w-full"[39m
+              [36m/>[39m
+            [36m</div>[39m
+          [36m</div>[39m
+          [36m<div[39m
+            [33maria-hidden[39m=[32m"true"[39m
+            [33mclass[39m=[32m"hidden w-[312px] shrink-0 border-l border-hairline p-2 lg:block"[39m
+          [36m>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-7 w-full"[39m
+            [36m/>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"mt-2 space-y-1"[39m
+            [36m>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-6 w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-6 w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-6 w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-6 w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-6 w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-6 w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-6 w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-6 w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-6 w-full"[39m
+              [36m/>[39m
+            [36m</div>[39m
+          [36m</div>[39m
+        [36m</section>[39m
+      [36m</div>[39m
+      [36m<span[39m
+        [33mclass[39m=[32m"sr-only"[39m
+      [36m>[39m
+        [0mLoading library[0m
+      [36m</span>[39m
+    [36m</div>[39m
+  [36m</div>[39m
+[36m</body>[39m
+ ❯ Object.getElementError node_modules/@testing-library/dom/dist/config.js:37:19
+ ❯ node_modules/@testing-library/dom/dist/query-helpers.js:76:38
+ ❯ node_modules/@testing-library/dom/dist/query-helpers.js:52:17
+ ❯ node_modules/@testing-library/dom/dist/query-helpers.js:95:19
+ ❯ tests/vitest/component-library-manager-ui.test.tsx:459:28
+    457|     renderLibrary();
+    458|
+    459|     fireEvent.click(screen.getByRole("button", { name: "Add Component"…
+       |                            ^
+    460|
+    461|     const dialog = await screen.findByRole("dialog", { name: "Add Comp…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/24]⎯
+
+ FAIL  tests/vitest/component-library-manager-ui.test.tsx > component library manager UI > keeps supplier typing in the current Add Component tree view and stages the supplier folder
+TestingLibraryElementError: Unable to find an accessible element with the role "button" and name "Add Component"
+
+Here are the accessible roles:
+
+  status:
+
+  Name "Loading library":
+  [36m<div[39m
+    [33maria-label[39m=[32m"Loading library"[39m
+    [33mclass[39m=[32m"flex h-full min-h-0 overflow-hidden rounded-xs border-r border-hairline bg-white"[39m
+    [33mrole[39m=[32m"status"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  region:
+
+  Name "Component library workspace":
+  [36m<section[39m
+    [33maria-label[39m=[32m"Component library workspace"[39m
+    [33mclass[39m=[32m"flex h-full min-h-0 overflow-hidden bg-white"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+
+Ignored nodes: comments, script, style
+[36m<body>[39m
+  [36m<div>[39m
+    [36m<div[39m
+      [33maria-label[39m=[32m"Loading library"[39m
+      [33mclass[39m=[32m"flex h-full min-h-0 overflow-hidden rounded-xs border-r border-hairline bg-white"[39m
+      [33mrole[39m=[32m"status"[39m
+    [36m>[39m
+      [36m<div[39m
+        [33mclass[39m=[32m"flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-canvas"[39m
+      [36m>[39m
+        [36m<section[39m
+          [33maria-label[39m=[32m"Component library workspace"[39m
+          [33mclass[39m=[32m"flex h-full min-h-0 overflow-hidden bg-white"[39m
+        [36m>[39m
+          [36m<div[39m
+            [33maria-hidden[39m=[32m"true"[39m
+            [33mclass[39m=[32m"flex min-w-0 flex-1 flex-col p-2"[39m
+          [36m>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-7 w-32"[39m
+            [36m/>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"mt-2 grid grid-cols-[repeat(auto-fill,minmax(164px,1fr))] gap-2"[39m
+            [36m>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-[236px] w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-[236px] w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-[236px] w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-[236px] w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-[236px] w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-[236px] w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-[236px] w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-[236px] w-full"[39m
+              [36m/>[39m
+            [36m</div>[39m
+          [36m</div>[39m
+          [36m<div[39m
+            [33maria-hidden[39m=[32m"true"[39m
+            [33mclass[39m=[32m"hidden w-[312px] shrink-0 border-l border-hairline p-2 lg:block"[39m
+          [36m>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-7 w-full"[39m
+            [36m/>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"mt-2 space-y-1"[39m
+            [36m>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-6 w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-6 w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-6 w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-6 w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-6 w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-6 w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-6 w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-6 w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-6 w-full"[39m
+              [36m/>[39m
+            [36m</div>[39m
+          [36m</div>[39m
+        [36m</section>[39m
+      [36m</div>[39m
+      [36m<span[39m
+        [33mclass[39m=[32m"sr-only"[39m
+      [36m>[39m
+        [0mLoading library[0m
+      [36m</span>[39m
+    [36m</div>[39m
+  [36m</div>[39m
+[36m</body>[39m
+ ❯ Object.getElementError node_modules/@testing-library/dom/dist/config.js:37:19
+ ❯ node_modules/@testing-library/dom/dist/query-helpers.js:76:38
+ ❯ node_modules/@testing-library/dom/dist/query-helpers.js:52:17
+ ❯ node_modules/@testing-library/dom/dist/query-helpers.js:95:19
+ ❯ tests/vitest/component-library-manager-ui.test.tsx:494:28
+    492|     renderLibrary();
+    493|
+    494|     fireEvent.click(screen.getByRole("button", { name: "Add Component"…
+       |                            ^
+    495|
+    496|     const dialog = await screen.findByRole("dialog", { name: "Add Comp…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/24]⎯
+
+ FAIL  tests/vitest/component-library-manager-ui.test.tsx > component library manager UI > keeps brand typing in the current Add Component tree view and stages the brand folder
+TestingLibraryElementError: Unable to find an accessible element with the role "button" and name "Add Component"
+
+Here are the accessible roles:
+
+  status:
+
+  Name "Loading library":
+  [36m<div[39m
+    [33maria-label[39m=[32m"Loading library"[39m
+    [33mclass[39m=[32m"flex h-full min-h-0 overflow-hidden rounded-xs border-r border-hairline bg-white"[39m
+    [33mrole[39m=[32m"status"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  region:
+
+  Name "Component library workspace":
+  [36m<section[39m
+    [33maria-label[39m=[32m"Component library workspace"[39m
+    [33mclass[39m=[32m"flex h-full min-h-0 overflow-hidden bg-white"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+
+Ignored nodes: comments, script, style
+[36m<body>[39m
+  [36m<div>[39m
+    [36m<div[39m
+      [33maria-label[39m=[32m"Loading library"[39m
+      [33mclass[39m=[32m"flex h-full min-h-0 overflow-hidden rounded-xs border-r border-hairline bg-white"[39m
+      [33mrole[39m=[32m"status"[39m
+    [36m>[39m
+      [36m<div[39m
+        [33mclass[39m=[32m"flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-canvas"[39m
+      [36m>[39m
+        [36m<section[39m
+          [33maria-label[39m=[32m"Component library workspace"[39m
+          [33mclass[39m=[32m"flex h-full min-h-0 overflow-hidden bg-white"[39m
+        [36m>[39m
+          [36m<div[39m
+            [33maria-hidden[39m=[32m"true"[39m
+            [33mclass[39m=[32m"flex min-w-0 flex-1 flex-col p-2"[39m
+          [36m>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-7 w-32"[39m
+            [36m/>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"mt-2 grid grid-cols-[repeat(auto-fill,minmax(164px,1fr))] gap-2"[39m
+            [36m>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-[236px] w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-[236px] w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-[236px] w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-[236px] w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-[236px] w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-[236px] w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-[236px] w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-[236px] w-full"[39m
+              [36m/>[39m
+            [36m</div>[39m
+          [36m</div>[39m
+          [36m<div[39m
+            [33maria-hidden[39m=[32m"true"[39m
+            [33mclass[39m=[32m"hidden w-[312px] shrink-0 border-l border-hairline p-2 lg:block"[39m
+          [36m>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-7 w-full"[39m
+            [36m/>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"mt-2 space-y-1"[39m
+            [36m>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-6 w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-6 w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-6 w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-6 w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-6 w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-6 w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-6 w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-6 w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-6 w-full"[39m
+              [36m/>[39m
+            [36m</div>[39m
+          [36m</div>[39m
+        [36m</section>[39m
+      [36m</div>[39m
+      [36m<span[39m
+        [33mclass[39m=[32m"sr-only"[39m
+      [36m>[39m
+        [0mLoading library[0m
+      [36m</span>[39m
+    [36m</div>[39m
+  [36m</div>[39m
+[36m</body>[39m
+ ❯ Object.getElementError node_modules/@testing-library/dom/dist/config.js:37:19
+ ❯ node_modules/@testing-library/dom/dist/query-helpers.js:76:38
+ ❯ node_modules/@testing-library/dom/dist/query-helpers.js:52:17
+ ❯ node_modules/@testing-library/dom/dist/query-helpers.js:95:19
+ ❯ tests/vitest/component-library-manager-ui.test.tsx:519:28
+    517|     renderLibrary();
+    518|
+    519|     fireEvent.click(screen.getByRole("button", { name: "Add Component"…
+       |                            ^
+    520|
+    521|     const dialog = await screen.findByRole("dialog", { name: "Add Comp…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/24]⎯
+
+ FAIL  tests/vitest/component-library-manager-ui.test.tsx > component library manager UI > opens a cost manager with timestamped component cost data
+TestingLibraryElementError: Unable to find an accessible element with the role "button" and name "Add Component"
+
+Here are the accessible roles:
+
+  status:
+
+  Name "Loading library":
+  [36m<div[39m
+    [33maria-label[39m=[32m"Loading library"[39m
+    [33mclass[39m=[32m"flex h-full min-h-0 overflow-hidden rounded-xs border-r border-hairline bg-white"[39m
+    [33mrole[39m=[32m"status"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  region:
+
+  Name "Component library workspace":
+  [36m<section[39m
+    [33maria-label[39m=[32m"Component library workspace"[39m
+    [33mclass[39m=[32m"flex h-full min-h-0 overflow-hidden bg-white"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+
+Ignored nodes: comments, script, style
+[36m<body>[39m
+  [36m<div>[39m
+    [36m<div[39m
+      [33maria-label[39m=[32m"Loading library"[39m
+      [33mclass[39m=[32m"flex h-full min-h-0 overflow-hidden rounded-xs border-r border-hairline bg-white"[39m
+      [33mrole[39m=[32m"status"[39m
+    [36m>[39m
+      [36m<div[39m
+        [33mclass[39m=[32m"flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-canvas"[39m
+      [36m>[39m
+        [36m<section[39m
+          [33maria-label[39m=[32m"Component library workspace"[39m
+          [33mclass[39m=[32m"flex h-full min-h-0 overflow-hidden bg-white"[39m
+        [36m>[39m
+          [36m<div[39m
+            [33maria-hidden[39m=[32m"true"[39m
+            [33mclass[39m=[32m"flex min-w-0 flex-1 flex-col p-2"[39m
+          [36m>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-7 w-32"[39m
+            [36m/>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"mt-2 grid grid-cols-[repeat(auto-fill,minmax(164px,1fr))] gap-2"[39m
+            [36m>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-[236px] w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-[236px] w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-[236px] w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-[236px] w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-[236px] w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-[236px] w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-[236px] w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-[236px] w-full"[39m
+              [36m/>[39m
+            [36m</div>[39m
+          [36m</div>[39m
+          [36m<div[39m
+            [33maria-hidden[39m=[32m"true"[39m
+            [33mclass[39m=[32m"hidden w-[312px] shrink-0 border-l border-hairline p-2 lg:block"[39m
+          [36m>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-7 w-full"[39m
+            [36m/>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"mt-2 space-y-1"[39m
+            [36m>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-6 w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-6 w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-6 w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-6 w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-6 w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-6 w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-6 w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-6 w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-6 w-full"[39m
+              [36m/>[39m
+            [36m</div>[39m
+          [36m</div>[39m
+        [36m</section>[39m
+      [36m</div>[39m
+      [36m<span[39m
+        [33mclass[39m=[32m"sr-only"[39m
+      [36m>[39m
+        [0mLoading library[0m
+      [36m</span>[39m
+    [36m</div>[39m
+  [36m</div>[39m
+[36m</body>[39m
+ ❯ Object.getElementError node_modules/@testing-library/dom/dist/config.js:37:19
+ ❯ node_modules/@testing-library/dom/dist/query-helpers.js:76:38
+ ❯ node_modules/@testing-library/dom/dist/query-helpers.js:52:17
+ ❯ node_modules/@testing-library/dom/dist/query-helpers.js:95:19
+ ❯ tests/vitest/component-library-manager-ui.test.tsx:544:28
+    542|     renderLibrary();
+    543|
+    544|     fireEvent.click(screen.getByRole("button", { name: "Add Component"…
+       |                            ^
+    545|
+    546|     const dialog = await screen.findByRole("dialog", { name: "Add Comp…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[9/24]⎯
+
+ FAIL  tests/vitest/component-library-manager-ui.test.tsx > component library manager UI > renders unit dropdowns with clear code and meaning columns
+TestingLibraryElementError: Unable to find an accessible element with the role "button" and name "Add Component"
+
+Here are the accessible roles:
+
+  status:
+
+  Name "Loading library":
+  [36m<div[39m
+    [33maria-label[39m=[32m"Loading library"[39m
+    [33mclass[39m=[32m"flex h-full min-h-0 overflow-hidden rounded-xs border-r border-hairline bg-white"[39m
+    [33mrole[39m=[32m"status"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  region:
+
+  Name "Component library workspace":
+  [36m<section[39m
+    [33maria-label[39m=[32m"Component library workspace"[39m
+    [33mclass[39m=[32m"flex h-full min-h-0 overflow-hidden bg-white"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+
+Ignored nodes: comments, script, style
+[36m<body>[39m
+  [36m<div>[39m
+    [36m<div[39m
+      [33maria-label[39m=[32m"Loading library"[39m
+      [33mclass[39m=[32m"flex h-full min-h-0 overflow-hidden rounded-xs border-r border-hairline bg-white"[39m
+      [33mrole[39m=[32m"status"[39m
+    [36m>[39m
+      [36m<div[39m
+        [33mclass[39m=[32m"flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-canvas"[39m
+      [36m>[39m
+        [36m<section[39m
+          [33maria-label[39m=[32m"Component library workspace"[39m
+          [33mclass[39m=[32m"flex h-full min-h-0 overflow-hidden bg-white"[39m
+        [36m>[39m
+          [36m<div[39m
+            [33maria-hidden[39m=[32m"true"[39m
+            [33mclass[39m=[32m"flex min-w-0 flex-1 flex-col p-2"[39m
+          [36m>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-7 w-32"[39m
+            [36m/>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"mt-2 grid grid-cols-[repeat(auto-fill,minmax(164px,1fr))] gap-2"[39m
+            [36m>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-[236px] w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-[236px] w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-[236px] w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-[236px] w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-[236px] w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-[236px] w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-[236px] w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-[236px] w-full"[39m
+              [36m/>[39m
+            [36m</div>[39m
+          [36m</div>[39m
+          [36m<div[39m
+            [33maria-hidden[39m=[32m"true"[39m
+            [33mclass[39m=[32m"hidden w-[312px] shrink-0 border-l border-hairline p-2 lg:block"[39m
+          [36m>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-7 w-full"[39m
+            [36m/>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"mt-2 space-y-1"[39m
+            [36m>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-6 w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-6 w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-6 w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-6 w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-6 w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-6 w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-6 w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-6 w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-6 w-full"[39m
+              [36m/>[39m
+            [36m</div>[39m
+          [36m</div>[39m
+        [36m</section>[39m
+      [36m</div>[39m
+      [36m<span[39m
+        [33mclass[39m=[32m"sr-only"[39m
+      [36m>[39m
+        [0mLoading library[0m
+      [36m</span>[39m
+    [36m</div>[39m
+  [36m</div>[39m
+[36m</body>[39m
+ ❯ Object.getElementError node_modules/@testing-library/dom/dist/config.js:37:19
+ ❯ node_modules/@testing-library/dom/dist/query-helpers.js:76:38
+ ❯ node_modules/@testing-library/dom/dist/query-helpers.js:52:17
+ ❯ node_modules/@testing-library/dom/dist/query-helpers.js:95:19
+ ❯ tests/vitest/component-library-manager-ui.test.tsx:573:28
+    571|     renderLibrary();
+    572|
+    573|     fireEvent.click(screen.getByRole("button", { name: "Add Component"…
+       |                            ^
+    574|
+    575|     const dialog = await screen.findByRole("dialog", { name: "Add Comp…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[10/24]⎯
+
+ FAIL  tests/vitest/component-library-manager-ui.test.tsx > component library manager UI > opens right-click actions on editable library folders
+TestingLibraryElementError: Unable to find a label with the text of: Fabrication
+
+Ignored nodes: comments, script, style
+[36m<body>[39m
+  [36m<div>[39m
+    [36m<div[39m
+      [33maria-label[39m=[32m"Loading library"[39m
+      [33mclass[39m=[32m"flex h-full min-h-0 overflow-hidden rounded-xs border-r border-hairline bg-white"[39m
+      [33mrole[39m=[32m"status"[39m
+    [36m>[39m
+      [36m<div[39m
+        [33mclass[39m=[32m"flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-canvas"[39m
+      [36m>[39m
+        [36m<section[39m
+          [33maria-label[39m=[32m"Component library workspace"[39m
+          [33mclass[39m=[32m"flex h-full min-h-0 overflow-hidden bg-white"[39m
+        [36m>[39m
+          [36m<div[39m
+            [33maria-hidden[39m=[32m"true"[39m
+            [33mclass[39m=[32m"flex min-w-0 flex-1 flex-col p-2"[39m
+          [36m>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-7 w-32"[39m
+            [36m/>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"mt-2 grid grid-cols-[repeat(auto-fill,minmax(164px,1fr))] gap-2"[39m
+            [36m>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-[236px] w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-[236px] w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-[236px] w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-[236px] w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-[236px] w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-[236px] w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-[236px] w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-[236px] w-full"[39m
+              [36m/>[39m
+            [36m</div>[39m
+          [36m</div>[39m
+          [36m<div[39m
+            [33maria-hidden[39m=[32m"true"[39m
+            [33mclass[39m=[32m"hidden w-[312px] shrink-0 border-l border-hairline p-2 lg:block"[39m
+          [36m>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-7 w-full"[39m
+            [36m/>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"mt-2 space-y-1"[39m
+            [36m>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-6 w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-6 w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-6 w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-6 w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-6 w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-6 w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-6 w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-6 w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-6 w-full"[39m
+              [36m/>[39m
+            [36m</div>[39m
+          [36m</div>[39m
+        [36m</section>[39m
+      [36m</div>[39m
+      [36m<span[39m
+        [33mclass[39m=[32m"sr-only"[39m
+      [36m>[39m
+        [0mLoading library[0m
+      [36m</span>[39m
+    [36m</div>[39m
+  [36m</div>[39m
+[36m</body>[39m
+ ❯ Object.getElementError node_modules/@testing-library/dom/dist/config.js:37:19
+ ❯ getAllByLabelText node_modules/@testing-library/dom/dist/queries/label-text.js:111:38
+ ❯ node_modules/@testing-library/dom/dist/query-helpers.js:109:15
+ ❯ getLibraryFolderButton tests/vitest/component-library-manager-ui.test.tsx:208:26
+    206|
+    207| function getLibraryFolderButton(name: string) {
+    208|   const matches = screen.getAllByLabelText(name);
+       |                          ^
+    209|   const folderButton = matches.find((element) => element.hasAttribute(…
+    210|   if (!folderButton) throw new Error(`Library folder button not found:…
+ ❯ tests/vitest/component-library-manager-ui.test.tsx:644:27
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[11/24]⎯
+
+ FAIL  tests/vitest/component-library-manager-ui.test.tsx > component library manager UI > searches folder labels without reintroducing procurement scopes as category folders
+TestingLibraryElementError: Unable to find a label with the text of: Search component library tree
+
+Ignored nodes: comments, script, style
+[36m<body>[39m
+  [36m<div>[39m
+    [36m<div[39m
+      [33maria-label[39m=[32m"Loading library"[39m
+      [33mclass[39m=[32m"flex h-full min-h-0 overflow-hidden rounded-xs border-r border-hairline bg-white"[39m
+      [33mrole[39m=[32m"status"[39m
+    [36m>[39m
+      [36m<div[39m
+        [33mclass[39m=[32m"flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-canvas"[39m
+      [36m>[39m
+        [36m<section[39m
+          [33maria-label[39m=[32m"Component library workspace"[39m
+          [33mclass[39m=[32m"flex h-full min-h-0 overflow-hidden bg-white"[39m
+        [36m>[39m
+          [36m<div[39m
+            [33maria-hidden[39m=[32m"true"[39m
+            [33mclass[39m=[32m"flex min-w-0 flex-1 flex-col p-2"[39m
+          [36m>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-7 w-32"[39m
+            [36m/>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"mt-2 grid grid-cols-[repeat(auto-fill,minmax(164px,1fr))] gap-2"[39m
+            [36m>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-[236px] w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-[236px] w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-[236px] w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-[236px] w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-[236px] w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-[236px] w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-[236px] w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-[236px] w-full"[39m
+              [36m/>[39m
+            [36m</div>[39m
+          [36m</div>[39m
+          [36m<div[39m
+            [33maria-hidden[39m=[32m"true"[39m
+            [33mclass[39m=[32m"hidden w-[312px] shrink-0 border-l border-hairline p-2 lg:block"[39m
+          [36m>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-7 w-full"[39m
+            [36m/>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"mt-2 space-y-1"[39m
+            [36m>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-6 w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-6 w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-6 w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-6 w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-6 w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-6 w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-6 w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-6 w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-6 w-full"[39m
+              [36m/>[39m
+            [36m</div>[39m
+          [36m</div>[39m
+        [36m</section>[39m
+      [36m</div>[39m
+      [36m<span[39m
+        [33mclass[39m=[32m"sr-only"[39m
+      [36m>[39m
+        [0mLoading library[0m
+      [36m</span>[39m
+    [36m</div>[39m
+  [36m</div>[39m
+[36m</body>[39m
+ ❯ Object.getElementError node_modules/@testing-library/dom/dist/config.js:37:19
+ ❯ getAllByLabelText node_modules/@testing-library/dom/dist/queries/label-text.js:111:38
+ ❯ node_modules/@testing-library/dom/dist/query-helpers.js:52:17
+ ❯ node_modules/@testing-library/dom/dist/query-helpers.js:95:19
+ ❯ tests/vitest/component-library-manager-ui.test.tsx:655:29
+    653|     render(<LibraryPageClient />);
+    654|
+    655|     fireEvent.change(screen.getByLabelText("Search component library t…
+       |                             ^
+    656|
+    657|     expect(screen.getByLabelText("Search component library tree")).toH…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[12/24]⎯
+
+ FAIL  tests/vitest/project-charts-ui.test.tsx > ProjectChartsClient > starts with one chart column and no combined comparison table
+TestingLibraryElementError: Unable to find an element by: [data-testid="d3-donut-chart"]
+
+Ignored nodes: comments, script, style
+[36m<body>[39m
+  [36m<div>[39m
+    [36m<section[39m
+      [33mclass[39m=[32m"flex h-full min-h-0 flex-col overflow-hidden bg-white"[39m
+      [33mdata-project-charts-page[39m=[32m"true"[39m
+    [36m>[39m
+      [36m<div[39m
+        [33mclass[39m=[32m"flex shrink-0 flex-wrap items-center gap-2 border-b border-hairline bg-white px-2 py-0"[39m
+      [36m>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"flex min-h-[38px] min-w-0 flex-1 flex-wrap items-center gap-2 py-1"[39m
+        [36m>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"flex items-center gap-2"[39m
+          [36m>[39m
+            [36m<span[39m
+              [33mclass[39m=[32m"shrink-0 text-[9px] font-medium uppercase tracking-normal text-muted-foreground"[39m
+            [36m>[39m
+              [0mGroup By[0m
+            [36m</span>[39m
+            [36m<div[39m
+              [33maria-label[39m=[32m"Group chart costs by"[39m
+              [33mclass[39m=[32m"grid grid-cols-3 gap-1 rounded-xs bg-surfaceMuted p-0.5"[39m
+              [33mrole[39m=[32m"group"[39m
+            [36m>[39m
+              [36m<button[39m
+                [33maria-pressed[39m=[32m"true"[39m
+                [33mclass[39m=[32m"h-6 rounded-xs px-2 text-[9px] font-medium leading-none transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus bg-white text-ink shadow-sm"[39m
+                [33mtype[39m=[32m"button"[39m
+              [36m>[39m
+                [0mSpace[0m
+              [36m</button>[39m
+              [36m<button[39m
+                [33maria-pressed[39m=[32m"false"[39m
+                [33mclass[39m=[32m"h-6 rounded-xs px-2 text-[9px] font-medium leading-none transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus text-tertiary hover:bg-white/70 hover:text-ink"[39m
+                [33mtype[39m=[32m"button"[39m
+              [36m>[39m
+                [0mCategory[0m
+              [36m</button>[39m
+              [36m<button[39m
+                [33maria-pressed[39m=[32m"false"[39m
+                [33mclass[39m=[32m"h-6 rounded-xs px-2 text-[9px] font-medium leading-none transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus text-tertiary hover:bg-white/70 hover:text-ink"[39m
+                [33mtype[39m=[32m"button"[39m
+              [36m>[39m
+                [0mSuppliers[0m
+              [36m</button>[39m
+            [36m</div>[39m
+          [36m</div>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"flex items-center gap-2"[39m
+          [36m>[39m
+            [36m<span[39m
+              [33mclass[39m=[32m"shrink-0 text-[9px] font-medium uppercase tracking-normal text-muted-foreground"[39m
+            [36m>[39m
+              [0mView By[0m
+            [36m</span>[39m
+            [36m<div[39m
+              [33maria-label[39m=[32m"Chart visualization type"[39m
+              [33mclass[39m=[32m"grid grid-cols-2 gap-1 rounded-xs bg-surfaceMuted p-0.5"[39m
+              [33mrole[39m=[32m"group"[39m
+            [36m>[39m
+              [36m<button[39m
+                [33maria-pressed[39m=[32m"true"[39m
+                [33mclass[39m=[32m"h-6 rounded-xs px-2 text-[9px] font-medium leading-none transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus bg-white text-ink shadow-sm"[39m
+                [33mtype[39m=[32m"button"[39m
+              [36m>[39m
+                [0mDonut Chart[0m
+              [36m</button>[39m
+              [36m<button[39m
+                [33maria-pressed[39m=[32m"false"[39m
+                [33mclass[39m=[32m"h-6 rounded-xs px-2 text-[9px] font-medium leading-none transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus text-tertiary hover:bg-white/70 hover:text-ink"[39m
+                [33mtype[39m=[32m"button"[39m
+              [36m>[39m
+                [0mBubble Chart[0m
+              [36m</button>[39m
+            [36m</div>[39m
+          [36m</div>[39m
+        [36m</div>[39m
+        [36m<div[39m
+          [33maria-label[39m=[32m"Project chart tools"[39m
+          [33mclass[39m=[32m"flex h-[38px] min-h-[38px] items-center gap-1 bg-white px-2 py-0"[39m
+        [36m>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"ml-auto flex items-center gap-1"[39m
+          [36m>[39m
+            [36m<span[39m
+              [33mclass[39m=[32m"relative inline-flex"[39m
+            [36m>[39m
+              [36m<button[39m
+                [33maria-describedby[39m=[32m"_r_2_"[39m
+                [33maria-label[39m=[32m"Add chart"[39m
+                [33mclass[39m=[32m"items-center justify-center gap-2 !text-[10px] !font-medium leading-none transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 focus-visible:ring-focus grid place-items-center size-6 rounded-xs p-0 bg-orange-50 text-orange-700 hover:bg-orange-100 hover:text-orange-800 focus-visible:bg-orange-100 focus-visible:text-orange-800"[39m
+                [33mtitle[39m=[32m"Add chart"[39m
+                [33mtype[39m=[32m"button"[39m
+              [36m>[39m
+                [36m<svg[39m
+                  [33maria-hidden[39m=[32m"true"[39m
+                  [33mfill[39m=[32m"currentColor"[39m
+                  [33mheight[39m=[32m"12"[39m
+                  [33mviewBox[39m=[32m"0 0 256 256"[39m
+                  [33mwidth[39m=[32m"12"[39m
+                  [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+                [36m>[39m
+                  [36m<path[39m
+                    [33md[39m=[32m"M224,128a8,8,0,0,1-8,8H136v80a8,8,0,0,1-16,0V136H40a8,8,0,0,1,0-16h80V40a8,8,0,0,1,16,0v80h80A8,8,0,0,1,224,128Z"[39m
+                  [36m/>[39m
+                [36m</svg>[39m
+              [36m</button>[39m
+            [36m</span>[39m
+          [36m</div>[39m
+        [36m</div>[39m
+      [36m</div>[39m
+      [36m<div[39m
+        [33mclass[39m=[32m"min-h-0 flex-1 overflow-auto p-1"[39m
+      [36m>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"grid gap-3"[39m
+          [33mstyle[39m=[32m"grid-template-columns: repeat(1, minmax(220px, 1fr));"[39m
+        [36m>[39m
+          [36m<section[39m
+            [33mclass[39m=[32m"min-w-0 overflow-hidden rounded-xs border border-hairline bg-white"[39m
+            [33mdata-testid[39m=[32m"project-chart-column"[39m
+          [36m>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"grid min-h-11 grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 border-b border-hairline px-3 py-2"[39m
+            [36m>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"min-w-0 flex-1"[39m
+              [36m>[39m
+               ...
+ ❯ Object.getElementError node_modules/@testing-library/dom/dist/config.js:37:19
+ ❯ node_modules/@testing-library/dom/dist/query-helpers.js:76:38
+ ❯ node_modules/@testing-library/dom/dist/query-helpers.js:109:15
+ ❯ tests/vitest/project-charts-ui.test.tsx:62:19
+     60|     expect(screen.queryByRole("button", { name: "Group chart" })).not.…
+     61|     expect(screen.getAllByTestId("project-chart-column")).toHaveLength…
+     62|     expect(screen.getAllByTestId("d3-donut-chart")).toHaveLength(1);
+       |                   ^
+     63|     expect(screen.queryByTestId("d3-bubble-chart")).not.toBeInTheDocum…
+     64|     expect(screen.getByDisplayValue("Baseline")).toBeInTheDocument();
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[13/24]⎯
+
+ FAIL  tests/vitest/project-charts-ui.test.tsx > ProjectChartsClient > adds chart columns up to the available estimates and gives every column its own table
+TestingLibraryElementError: Unable to find an element by: [data-testid="d3-donut-chart"]
+
+Ignored nodes: comments, script, style
+[36m<body>[39m
+  [36m<div>[39m
+    [36m<section[39m
+      [33mclass[39m=[32m"flex h-full min-h-0 flex-col overflow-hidden bg-white"[39m
+      [33mdata-project-charts-page[39m=[32m"true"[39m
+    [36m>[39m
+      [36m<div[39m
+        [33mclass[39m=[32m"flex shrink-0 flex-wrap items-center gap-2 border-b border-hairline bg-white px-2 py-0"[39m
+      [36m>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"flex min-h-[38px] min-w-0 flex-1 flex-wrap items-center gap-2 py-1"[39m
+        [36m>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"flex items-center gap-2"[39m
+          [36m>[39m
+            [36m<span[39m
+              [33mclass[39m=[32m"shrink-0 text-[9px] font-medium uppercase tracking-normal text-muted-foreground"[39m
+            [36m>[39m
+              [0mGroup By[0m
+            [36m</span>[39m
+            [36m<div[39m
+              [33maria-label[39m=[32m"Group chart costs by"[39m
+              [33mclass[39m=[32m"grid grid-cols-3 gap-1 rounded-xs bg-surfaceMuted p-0.5"[39m
+              [33mrole[39m=[32m"group"[39m
+            [36m>[39m
+              [36m<button[39m
+                [33maria-pressed[39m=[32m"true"[39m
+                [33mclass[39m=[32m"h-6 rounded-xs px-2 text-[9px] font-medium leading-none transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus bg-white text-ink shadow-sm"[39m
+                [33mtype[39m=[32m"button"[39m
+              [36m>[39m
+                [0mSpace[0m
+              [36m</button>[39m
+              [36m<button[39m
+                [33maria-pressed[39m=[32m"false"[39m
+                [33mclass[39m=[32m"h-6 rounded-xs px-2 text-[9px] font-medium leading-none transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus text-tertiary hover:bg-white/70 hover:text-ink"[39m
+                [33mtype[39m=[32m"button"[39m
+              [36m>[39m
+                [0mCategory[0m
+              [36m</button>[39m
+              [36m<button[39m
+                [33maria-pressed[39m=[32m"false"[39m
+                [33mclass[39m=[32m"h-6 rounded-xs px-2 text-[9px] font-medium leading-none transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus text-tertiary hover:bg-white/70 hover:text-ink"[39m
+                [33mtype[39m=[32m"button"[39m
+              [36m>[39m
+                [0mSuppliers[0m
+              [36m</button>[39m
+            [36m</div>[39m
+          [36m</div>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"flex items-center gap-2"[39m
+          [36m>[39m
+            [36m<span[39m
+              [33mclass[39m=[32m"shrink-0 text-[9px] font-medium uppercase tracking-normal text-muted-foreground"[39m
+            [36m>[39m
+              [0mView By[0m
+            [36m</span>[39m
+            [36m<div[39m
+              [33maria-label[39m=[32m"Chart visualization type"[39m
+              [33mclass[39m=[32m"grid grid-cols-2 gap-1 rounded-xs bg-surfaceMuted p-0.5"[39m
+              [33mrole[39m=[32m"group"[39m
+            [36m>[39m
+              [36m<button[39m
+                [33maria-pressed[39m=[32m"true"[39m
+                [33mclass[39m=[32m"h-6 rounded-xs px-2 text-[9px] font-medium leading-none transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus bg-white text-ink shadow-sm"[39m
+                [33mtype[39m=[32m"button"[39m
+              [36m>[39m
+                [0mDonut Chart[0m
+              [36m</button>[39m
+              [36m<button[39m
+                [33maria-pressed[39m=[32m"false"[39m
+                [33mclass[39m=[32m"h-6 rounded-xs px-2 text-[9px] font-medium leading-none transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus text-tertiary hover:bg-white/70 hover:text-ink"[39m
+                [33mtype[39m=[32m"button"[39m
+              [36m>[39m
+                [0mBubble Chart[0m
+              [36m</button>[39m
+            [36m</div>[39m
+          [36m</div>[39m
+        [36m</div>[39m
+        [36m<div[39m
+          [33maria-label[39m=[32m"Project chart tools"[39m
+          [33mclass[39m=[32m"flex h-[38px] min-h-[38px] items-center gap-1 bg-white px-2 py-0"[39m
+        [36m>[39m
+          [36m<div[39m
+            [33mclass[39m=[32m"ml-auto flex items-center gap-1"[39m
+          [36m>[39m
+            [36m<span[39m
+              [33mclass[39m=[32m"relative inline-flex"[39m
+            [36m>[39m
+              [36m<button[39m
+                [33maria-describedby[39m=[32m"_r_3_"[39m
+                [33maria-label[39m=[32m"Add chart"[39m
+                [33mclass[39m=[32m"items-center justify-center gap-2 !text-[10px] !font-medium leading-none transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 focus-visible:ring-focus grid place-items-center size-6 rounded-xs p-0 bg-orange-50 text-orange-700 hover:bg-orange-100 hover:text-orange-800 focus-visible:bg-orange-100 focus-visible:text-orange-800"[39m
+                [33mdisabled[39m=[32m""[39m
+                [33mtitle[39m=[32m"Add chart"[39m
+                [33mtype[39m=[32m"button"[39m
+              [36m>[39m
+                [36m<svg[39m
+                  [33maria-hidden[39m=[32m"true"[39m
+                  [33mfill[39m=[32m"currentColor"[39m
+                  [33mheight[39m=[32m"12"[39m
+                  [33mviewBox[39m=[32m"0 0 256 256"[39m
+                  [33mwidth[39m=[32m"12"[39m
+                  [33mxmlns[39m=[32m"http://www.w3.org/2000/svg"[39m
+                [36m>[39m
+                  [36m<path[39m
+                    [33md[39m=[32m"M224,128a8,8,0,0,1-8,8H136v80a8,8,0,0,1-16,0V136H40a8,8,0,0,1,0-16h80V40a8,8,0,0,1,16,0v80h80A8,8,0,0,1,224,128Z"[39m
+                  [36m/>[39m
+                [36m</svg>[39m
+              [36m</button>[39m
+            [36m</span>[39m
+          [36m</div>[39m
+        [36m</div>[39m
+      [36m</div>[39m
+      [36m<div[39m
+        [33mclass[39m=[32m"min-h-0 flex-1 overflow-auto p-1"[39m
+      [36m>[39m
+        [36m<div[39m
+          [33mclass[39m=[32m"grid gap-3"[39m
+          [33mstyle[39m=[32m"grid-template-columns: repeat(2, minmax(220px, 1fr));"[39m
+        [36m>[39m
+          [36m<section[39m
+            [33mclass[39m=[32m"min-w-0 overflow-hidden rounded-xs border border-hairline bg-white"[39m
+            [33mdata-testid[39m=[32m"project-chart-column"[39m
+          [36m>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"grid min-h-11 grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 border-b border-hairline px-3 py-2"[39m
+            [36m>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"min-w-0 flex-1...
+ ❯ Object.getElementError node_modules/@testing-library/dom/dist/config.js:37:19
+ ❯ node_modules/@testing-library/dom/dist/query-helpers.js:76:38
+ ❯ node_modules/@testing-library/dom/dist/query-helpers.js:109:15
+ ❯ tests/vitest/project-charts-ui.test.tsx:86:19
+     84|
+     85|     expect(screen.getAllByTestId("project-chart-column")).toHaveLength…
+     86|     expect(screen.getAllByTestId("d3-donut-chart")).toHaveLength(2);
+       |                   ^
+     87|     expect(screen.getAllByRole("table", { name: /bucket table/i })).to…
+     88|     expect(screen.getByRole("button", { name: "Add chart" })).toBeDisa…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[14/24]⎯
+
+ FAIL  tests/vitest/project-dashboard-ui.test.ts > project dashboard UI governance > keeps D3 shape rendering isolated to the project charts feature
+AssertionError: expected '"use client";\n\n/**\n * Re-export wr…' to contain 'from "d3"'
+
+- Expected
++ Received
+
+- from "d3"
++ "use client";
++
++ /**
++  * Re-export wrapper for backward compatibility.
++  * Real implementation lives in the shared @/components/charts/CostDonutChart
++  * (extracted during P1 of Share Page Estimate View Enhancement).
++  *
++  * Zero behavioral change for workshop charts.
++  */
++ export { CostDonutChart as ProjectCostDonutChart } from "@/components/charts/CostDonutChart";
++
++ // Maintain old type name for any direct imports in the workshop area
++ export type { CostBucket as ProjectChartBucket } from "@/lib/charts/types";
++
++ // The rest of the file is intentionally removed — the shared component
++ // is the source of truth. All prior tests and usage continue to work.
++
+
+ ❯ tests/vitest/project-dashboard-ui.test.ts:91:35
+     89|
+     90|   it("keeps D3 shape rendering isolated to the project charts feature"…
+     91|     expect(projectCostDonutChart).toContain('from "d3"');
+       |                                   ^
+     92|     expect(projectDashboardClient).not.toContain('from "d3"');
+     93|     expect(projectEstimatesClient).not.toContain('from "d3"');
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[15/24]⎯
+
+ FAIL  tests/vitest/project-dashboard-ui.test.ts > project dashboard UI governance > gets the active header budget from the selected estimate sheet metadata
+AssertionError: expected 'import { Suspense, type ReactNode } f…' to contain '<ProjectTotalHeader projectId={projec…'
+
+- Expected
++ Received
+
+- <ProjectTotalHeader projectId={projectId} />
++ import { Suspense, type ReactNode } from "react";
++
++ import { ProjectMiniSidebar } from "@/components/workshop/ProjectMiniSidebar";
++ import { ProjectRouteContentFallback } from "@/components/workshop/ProjectRouteContentFallback";
++ import { ProjectWorkspaceHeaderRow } from "@/components/workshop/ProjectWorkspaceHeaderRow";
++ import { WorkshopPageShell } from "@/components/workshop/WorkshopPageShell";
++ import { sampleProjects } from "@/components/workshop/workshop-sample-projects";
++ import {
++   getCurrentWorkspaceProject,
++   getProjectCollaborationSummary,
++   getProjectPublicationSummary,
++   listProjectEstimateSheets,
++ } from "@/lib/repositories/workspace-repository";
++
++ type ProjectLayoutProps = {
++   children: ReactNode;
++   params: Promise<{ projectId: string }>;
++ };
++
++ export default async function ProjectLayout({ children, params }: ProjectLayoutProps) {
++   const { projectId } = await params;
++   const { project: liveProject } = await getCurrentWorkspaceProject(projectId);
++   const [collaborationSummary, publicationSummary, projectEstimateSheets] = liveProject
++     ? await Promise.all([
++         getProjectCollaborationSummary(projectId),
++         getProjectPublicationSummary(projectId),
++         listProjectEstimateSheets(projectId),
++       ])
++     : [null, null, []];
++   const sampleProject = sampleProjects.find((item) => item.id === projectId);
++   const project = liveProject ?? sampleProject;
++   const title = project?.name ?? "Project";
++   const projectClient = liveProject?.client_name ?? sampleProject?.client ?? projectId;
++   const projectCode = liveProject?.project_code ?? projectId;
++
++   return (
++     <WorkshopPageShell
++       title={title}
++       eyebrow={projectClient}
++       breadcrumbs={[
++         { label: "Workshop", href: "/workshop" },
++         { label: "Projects", href: "/workshop/projects" },
++         { label: title, href: `/workshop/projects/${projectId}` },
++       ]}
++       alignChromeToProjectSidebar
++       contentClassName="pt-0 pb-0 pr-2 pl-0"
++       projectId={projectId}
++     >
++       <div className="flex h-full min-h-0 overflow-hidden bg-white">
++         <ProjectMiniSidebar projectId={projectId} />
++         <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-canvas">
++           <ProjectWorkspaceHeaderRow
++             projectId={projectId}
++             projectCode={projectCode}
++             collaborationSummary={collaborationSummary}
++             publicationSummary={publicationSummary}
++             projectEstimateSheets={projectEstimateSheets}
++           />
++           <div className="min-h-0 flex-1 overflow-hidden">
++             <Suspense fallback={<ProjectRouteContentFallback />}>{children}</Suspense>
++           </div>
++         </div>
++       </div>
++     </WorkshopPageShell>
++   );
++ }
++
+
+ ❯ tests/vitest/project-dashboard-ui.test.ts:247:36
+    245|   it("gets the active header budget from the selected estimate sheet m…
+    246|     expect(projectDashboardLayout).not.toContain("readProjectBudget");
+    247|     expect(projectDashboardLayout).toContain("<ProjectTotalHeader proj…
+       |                                    ^
+    248|     expect(projectTotalHeader).toContain("usePathname");
+    249|     expect(projectTotalHeader).toContain("pathname?.startsWith(`/works…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[16/24]⎯
+
+ FAIL  tests/vitest/workshop-library-consolidation-ui.test.tsx > workshop library consolidation UI > keeps Supabase upload review safeguards in place
+AssertionError: expected 'import type { NextConfig } from "next…' to contain 'const protocol = url.protocol === "ht…'
+
+- Expected
++ Received
+
+- const protocol = url.protocol === "http:" ? "http" : url.protocol === "https:" ? "https" : null
++ import type { NextConfig } from "next";
++
++ type ImageRemotePattern = Exclude<NonNullable<NonNullable<NextConfig["images"]>["remotePatterns"]>[number], URL>;
++
++ const landingReportOnlyCsp = [
++   "default-src 'self'",
++   "base-uri 'self'",
++   "frame-ancestors 'none'",
++   "object-src 'none'",
++   "form-action 'self'",
++   "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com https://www.google-analytics.com https://www.clarity.ms",
++   "style-src 'self' 'unsafe-inline'",
++   "img-src 'self' data: blob: https://*.supabase.co https://www.google-analytics.com https://www.googletagmanager.com https://*.clarity.ms",
++   "font-src 'self' data:",
++   "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://www.google-analytics.com https://region1.google-analytics.com https://www.clarity.ms https://*.clarity.ms",
++ ].join("; ");
++
++ // P11: Separate sources for enforced CSP on public share (additive security upgrade from Report-Only)
++ // Landing/other pages remain Report-Only (existing behavior).
++ // Share API gets the 3 required security headers (central, minimal blast, consistent with existing no-store in handlers).
++ // Policy value kept identical for share enforced (no tighten) — tracking domains (GA4/Clarity) verified never loaded on /share (landing-only components + providers + consent gate in src/lib/landing/* and app/page.tsx only; see P11 tests + grep).
++ // This is the best engineering choice: additive, 0 execution flow impact (graph confirmed), backwards compat for all P0-P10 share flows (view, password P10, session P5, interactive tabs/comments/decisions), fail-closed enforcement, one-file change.
++ const sharePageSource = "/share/:path*";
++ const shareApiSource = "/api/share/:path*";
++
++ const supabaseImageRemotePatterns = ((): ImageRemotePattern[] => {
++   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
++   if (!supabaseUrl) return [];
++   try {
++     const url = new URL(supabaseUrl);
++     const protocol: "http" | "https" | null = url.protocol === "http:" ? "http" : url.protocol === "https:" ? "https" : null;
++     if (!protocol) return [];
++     const base = {
++       protocol,
++       hostname: url.hostname,
++       port: url.port,
++       search: "",
++     };
++     // P9: cover both component library images and project cover images (from metadata.projectImageUrl)
++     // for Next/Image optimization on receiver hero + row thumbnails. Backwards compat.
++     return [
++       { ...base, pathname: "/storage/v1/object/public/component-images/**" },
++       { ...base, pathname: "/storage/v1/object/public/project-images/**" },
++     ];
++   } catch {
++     return [];
++   }
++ })();
++
++ const nextConfig: NextConfig = {
++   allowedDevOrigins: ["127.0.0.1"],
++   experimental: {
++     optimizePackageImports: ["@phosphor-icons/react"],
++   },
++   images: {
++     remotePatterns: supabaseImageRemotePatterns,
++   },
++   async headers() {
++     // P11: landing + about etc remain Report-Only (no behavior change)
++     const landingReportOnly = [
++       "/",
++       "/about",
++       "/features",
++       "/pricing",
++       "/contact",
++     ].map((source) => ({
++       source,
++       headers: [
++         {
++           key: "Content-Security-Policy-Report-Only",
++           value: landingReportOnlyCsp,
++         },
++       ],
++     }));
++
++     // P11: /share/:path* now enforced CSP (upgrade from Report-Only)
++     const sharePageEnforced = [
++       {
++         source: sharePageSource,
++         headers: [
++           {
++             key: "Content-Security-Policy",
++             value: landingReportOnlyCsp,
++           },
++         ],
++       },
++     ];
++
++     // P11: share API routes get the 3 required headers (additive to per-route no-store etc.)
++     const shareApiSecurityHeaders = [
++       {
++         source: shareApiSource,
++         headers: [
++           { key: "X-Content-Type-Options", value: "nosniff" },
++           { key: "X-Frame-Options", value: "DENY" },
++           { key: "Referrer-Policy", value: "no-referrer-when-downgrade" },
++         ],
++       },
++     ];
++
++     return [...landingReportOnly, ...sharePageEnforced, ...shareApiSecurityHeaders];
++   },
++ };
++
++ export default nextConfig;
++
+
+ ❯ tests/vitest/workshop-library-consolidation-ui.test.tsx:272:24
+    270|     expect(addComponentModal).toContain("isImageUploadBusy(imageUpload…
+    271|     expect(addComponentModal).toContain("disabled={isPending || imageB…
+    272|     expect(nextConfig).toContain('const protocol = url.protocol === "h…
+       |                        ^
+    273|     expect(nextConfig).toContain("remotePatterns: supabaseImageRemoteP…
+    274|     expect(nextConfig).not.toContain('hostname: "**"');
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[17/24]⎯
+
+ FAIL  tests/vitest/workshop-library-consolidation-ui.test.tsx > workshop library consolidation UI > renders Components as the only route tab with direct folder scoped rows
+TestingLibraryElementError: Unable to find an accessible element with the role "tablist" and name "Library views"
+
+Here are the accessible roles:
+
+  status:
+
+  Name "Loading library":
+  [36m<div[39m
+    [33maria-label[39m=[32m"Loading library"[39m
+    [33mclass[39m=[32m"flex h-full min-h-0 overflow-hidden rounded-xs border-r border-hairline bg-white"[39m
+    [33mrole[39m=[32m"status"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  region:
+
+  Name "Component library workspace":
+  [36m<section[39m
+    [33maria-label[39m=[32m"Component library workspace"[39m
+    [33mclass[39m=[32m"flex h-full min-h-0 overflow-hidden bg-white"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+
+Ignored nodes: comments, script, style
+[36m<body>[39m
+  [36m<div>[39m
+    [36m<div[39m
+      [33maria-label[39m=[32m"Loading library"[39m
+      [33mclass[39m=[32m"flex h-full min-h-0 overflow-hidden rounded-xs border-r border-hairline bg-white"[39m
+      [33mrole[39m=[32m"status"[39m
+    [36m>[39m
+      [36m<div[39m
+        [33mclass[39m=[32m"flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-canvas"[39m
+      [36m>[39m
+        [36m<section[39m
+          [33maria-label[39m=[32m"Component library workspace"[39m
+          [33mclass[39m=[32m"flex h-full min-h-0 overflow-hidden bg-white"[39m
+        [36m>[39m
+          [36m<div[39m
+            [33maria-hidden[39m=[32m"true"[39m
+            [33mclass[39m=[32m"flex min-w-0 flex-1 flex-col p-2"[39m
+          [36m>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-7 w-32"[39m
+            [36m/>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"mt-2 grid grid-cols-[repeat(auto-fill,minmax(164px,1fr))] gap-2"[39m
+            [36m>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-[236px] w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-[236px] w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-[236px] w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-[236px] w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-[236px] w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-[236px] w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-[236px] w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-[236px] w-full"[39m
+              [36m/>[39m
+            [36m</div>[39m
+          [36m</div>[39m
+          [36m<div[39m
+            [33maria-hidden[39m=[32m"true"[39m
+            [33mclass[39m=[32m"hidden w-[312px] shrink-0 border-l border-hairline p-2 lg:block"[39m
+          [36m>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-7 w-full"[39m
+            [36m/>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"mt-2 space-y-1"[39m
+            [36m>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-6 w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-6 w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-6 w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-6 w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-6 w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-6 w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-6 w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-6 w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-6 w-full"[39m
+              [36m/>[39m
+            [36m</div>[39m
+          [36m</div>[39m
+        [36m</section>[39m
+      [36m</div>[39m
+      [36m<span[39m
+        [33mclass[39m=[32m"sr-only"[39m
+      [36m>[39m
+        [0mLoading library[0m
+      [36m</span>[39m
+    [36m</div>[39m
+  [36m</div>[39m
+[36m</body>[39m
+ ❯ Object.getElementError node_modules/@testing-library/dom/dist/config.js:37:19
+ ❯ node_modules/@testing-library/dom/dist/query-helpers.js:76:38
+ ❯ node_modules/@testing-library/dom/dist/query-helpers.js:52:17
+ ❯ node_modules/@testing-library/dom/dist/query-helpers.js:95:19
+ ❯ tests/vitest/workshop-library-consolidation-ui.test.tsx:291:32
+    289|     );
+    290|
+    291|     const libraryTabs = screen.getByRole("tablist", { name: "Library v…
+       |                                ^
+    292|     expect(within(libraryTabs).getAllByRole("tab").map((tab) => tab.te…
+    293|     expect(within(libraryTabs).getByRole("tab", { name: "Components" }…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[18/24]⎯
+
+ FAIL  tests/vitest/workshop-library-consolidation-ui.test.tsx > workshop library consolidation UI > keeps Add folder usable from supplier organization by creating a Default folder
+TestingLibraryElementError: Unable to find an accessible element with the role "group" and name "Component view mode"
+
+Here are the accessible roles:
+
+  status:
+
+  Name "Loading library":
+  [36m<div[39m
+    [33maria-label[39m=[32m"Loading library"[39m
+    [33mclass[39m=[32m"flex h-full min-h-0 overflow-hidden rounded-xs border-r border-hairline bg-white"[39m
+    [33mrole[39m=[32m"status"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  region:
+
+  Name "Component library workspace":
+  [36m<section[39m
+    [33maria-label[39m=[32m"Component library workspace"[39m
+    [33mclass[39m=[32m"flex h-full min-h-0 overflow-hidden bg-white"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+
+Ignored nodes: comments, script, style
+[36m<body>[39m
+  [36m<div>[39m
+    [36m<div[39m
+      [33maria-label[39m=[32m"Loading library"[39m
+      [33mclass[39m=[32m"flex h-full min-h-0 overflow-hidden rounded-xs border-r border-hairline bg-white"[39m
+      [33mrole[39m=[32m"status"[39m
+    [36m>[39m
+      [36m<div[39m
+        [33mclass[39m=[32m"flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-canvas"[39m
+      [36m>[39m
+        [36m<section[39m
+          [33maria-label[39m=[32m"Component library workspace"[39m
+          [33mclass[39m=[32m"flex h-full min-h-0 overflow-hidden bg-white"[39m
+        [36m>[39m
+          [36m<div[39m
+            [33maria-hidden[39m=[32m"true"[39m
+            [33mclass[39m=[32m"flex min-w-0 flex-1 flex-col p-2"[39m
+          [36m>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-7 w-32"[39m
+            [36m/>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"mt-2 grid grid-cols-[repeat(auto-fill,minmax(164px,1fr))] gap-2"[39m
+            [36m>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-[236px] w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-[236px] w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-[236px] w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-[236px] w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-[236px] w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-[236px] w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-[236px] w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-[236px] w-full"[39m
+              [36m/>[39m
+            [36m</div>[39m
+          [36m</div>[39m
+          [36m<div[39m
+            [33maria-hidden[39m=[32m"true"[39m
+            [33mclass[39m=[32m"hidden w-[312px] shrink-0 border-l border-hairline p-2 lg:block"[39m
+          [36m>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-7 w-full"[39m
+            [36m/>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"mt-2 space-y-1"[39m
+            [36m>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-6 w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-6 w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-6 w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-6 w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-6 w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-6 w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-6 w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-6 w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-6 w-full"[39m
+              [36m/>[39m
+            [36m</div>[39m
+          [36m</div>[39m
+        [36m</section>[39m
+      [36m</div>[39m
+      [36m<span[39m
+        [33mclass[39m=[32m"sr-only"[39m
+      [36m>[39m
+        [0mLoading library[0m
+      [36m</span>[39m
+    [36m</div>[39m
+  [36m</div>[39m
+[36m</body>[39m
+ ❯ Object.getElementError node_modules/@testing-library/dom/dist/config.js:37:19
+ ❯ node_modules/@testing-library/dom/dist/query-helpers.js:76:38
+ ❯ node_modules/@testing-library/dom/dist/query-helpers.js:52:17
+ ❯ node_modules/@testing-library/dom/dist/query-helpers.js:95:19
+ ❯ tests/vitest/workshop-library-consolidation-ui.test.tsx:336:29
+    334|     );
+    335|
+    336|     const viewMode = screen.getByRole("group", { name: "Component view…
+       |                             ^
+    337|     fireEvent.click(within(viewMode).getByRole("button", { name: "Supp…
+    338|
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[19/24]⎯
+
+ FAIL  tests/vitest/workshop-library-consolidation-ui.test.tsx > workshop library consolidation UI > creates a root folder at the top from Add Component when no folder is selected
+TestingLibraryElementError: Unable to find an accessible element with the role "button" and name "Add Component"
+
+Here are the accessible roles:
+
+  status:
+
+  Name "Loading library":
+  [36m<div[39m
+    [33maria-label[39m=[32m"Loading library"[39m
+    [33mclass[39m=[32m"flex h-full min-h-0 overflow-hidden rounded-xs border-r border-hairline bg-white"[39m
+    [33mrole[39m=[32m"status"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  region:
+
+  Name "Component library workspace":
+  [36m<section[39m
+    [33maria-label[39m=[32m"Component library workspace"[39m
+    [33mclass[39m=[32m"flex h-full min-h-0 overflow-hidden bg-white"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+
+Ignored nodes: comments, script, style
+[36m<body>[39m
+  [36m<div>[39m
+    [36m<div[39m
+      [33maria-label[39m=[32m"Loading library"[39m
+      [33mclass[39m=[32m"flex h-full min-h-0 overflow-hidden rounded-xs border-r border-hairline bg-white"[39m
+      [33mrole[39m=[32m"status"[39m
+    [36m>[39m
+      [36m<div[39m
+        [33mclass[39m=[32m"flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-canvas"[39m
+      [36m>[39m
+        [36m<section[39m
+          [33maria-label[39m=[32m"Component library workspace"[39m
+          [33mclass[39m=[32m"flex h-full min-h-0 overflow-hidden bg-white"[39m
+        [36m>[39m
+          [36m<div[39m
+            [33maria-hidden[39m=[32m"true"[39m
+            [33mclass[39m=[32m"flex min-w-0 flex-1 flex-col p-2"[39m
+          [36m>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-7 w-32"[39m
+            [36m/>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"mt-2 grid grid-cols-[repeat(auto-fill,minmax(164px,1fr))] gap-2"[39m
+            [36m>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-[236px] w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-[236px] w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-[236px] w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-[236px] w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-[236px] w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-[236px] w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-[236px] w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-[236px] w-full"[39m
+              [36m/>[39m
+            [36m</div>[39m
+          [36m</div>[39m
+          [36m<div[39m
+            [33maria-hidden[39m=[32m"true"[39m
+            [33mclass[39m=[32m"hidden w-[312px] shrink-0 border-l border-hairline p-2 lg:block"[39m
+          [36m>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-7 w-full"[39m
+            [36m/>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"mt-2 space-y-1"[39m
+            [36m>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-6 w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-6 w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-6 w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-6 w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-6 w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-6 w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-6 w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-6 w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-6 w-full"[39m
+              [36m/>[39m
+            [36m</div>[39m
+          [36m</div>[39m
+        [36m</section>[39m
+      [36m</div>[39m
+      [36m<span[39m
+        [33mclass[39m=[32m"sr-only"[39m
+      [36m>[39m
+        [0mLoading library[0m
+      [36m</span>[39m
+    [36m</div>[39m
+  [36m</div>[39m
+[36m</body>[39m
+ ❯ Object.getElementError node_modules/@testing-library/dom/dist/config.js:37:19
+ ❯ node_modules/@testing-library/dom/dist/query-helpers.js:76:38
+ ❯ node_modules/@testing-library/dom/dist/query-helpers.js:52:17
+ ❯ node_modules/@testing-library/dom/dist/query-helpers.js:95:19
+ ❯ tests/vitest/workshop-library-consolidation-ui.test.tsx:374:28
+    372|     );
+    373|
+    374|     fireEvent.click(screen.getByRole("button", { name: "Add Component"…
+       |                            ^
+    375|
+    376|     const dialog = await screen.findByRole("dialog", { name: "Add Comp…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[20/24]⎯
+
+ FAIL  tests/vitest/workshop-library-consolidation-ui.test.tsx > workshop library consolidation UI > opens the Add Component modal and submits categorized variants
+TestingLibraryElementError: Unable to find an accessible element with the role "button" and name "Add Component"
+
+Here are the accessible roles:
+
+  status:
+
+  Name "Loading library":
+  [36m<div[39m
+    [33maria-label[39m=[32m"Loading library"[39m
+    [33mclass[39m=[32m"flex h-full min-h-0 overflow-hidden rounded-xs border-r border-hairline bg-white"[39m
+    [33mrole[39m=[32m"status"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  region:
+
+  Name "Component library workspace":
+  [36m<section[39m
+    [33maria-label[39m=[32m"Component library workspace"[39m
+    [33mclass[39m=[32m"flex h-full min-h-0 overflow-hidden bg-white"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+
+Ignored nodes: comments, script, style
+[36m<body>[39m
+  [36m<div>[39m
+    [36m<div[39m
+      [33maria-label[39m=[32m"Loading library"[39m
+      [33mclass[39m=[32m"flex h-full min-h-0 overflow-hidden rounded-xs border-r border-hairline bg-white"[39m
+      [33mrole[39m=[32m"status"[39m
+    [36m>[39m
+      [36m<div[39m
+        [33mclass[39m=[32m"flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-canvas"[39m
+      [36m>[39m
+        [36m<section[39m
+          [33maria-label[39m=[32m"Component library workspace"[39m
+          [33mclass[39m=[32m"flex h-full min-h-0 overflow-hidden bg-white"[39m
+        [36m>[39m
+          [36m<div[39m
+            [33maria-hidden[39m=[32m"true"[39m
+            [33mclass[39m=[32m"flex min-w-0 flex-1 flex-col p-2"[39m
+          [36m>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-7 w-32"[39m
+            [36m/>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"mt-2 grid grid-cols-[repeat(auto-fill,minmax(164px,1fr))] gap-2"[39m
+            [36m>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-[236px] w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-[236px] w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-[236px] w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-[236px] w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-[236px] w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-[236px] w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-[236px] w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-[236px] w-full"[39m
+              [36m/>[39m
+            [36m</div>[39m
+          [36m</div>[39m
+          [36m<div[39m
+            [33maria-hidden[39m=[32m"true"[39m
+            [33mclass[39m=[32m"hidden w-[312px] shrink-0 border-l border-hairline p-2 lg:block"[39m
+          [36m>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-7 w-full"[39m
+            [36m/>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"mt-2 space-y-1"[39m
+            [36m>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-6 w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-6 w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-6 w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-6 w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-6 w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-6 w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-6 w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-6 w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-6 w-full"[39m
+              [36m/>[39m
+            [36m</div>[39m
+          [36m</div>[39m
+        [36m</section>[39m
+      [36m</div>[39m
+      [36m<span[39m
+        [33mclass[39m=[32m"sr-only"[39m
+      [36m>[39m
+        [0mLoading library[0m
+      [36m</span>[39m
+    [36m</div>[39m
+  [36m</div>[39m
+[36m</body>[39m
+ ❯ Object.getElementError node_modules/@testing-library/dom/dist/config.js:37:19
+ ❯ node_modules/@testing-library/dom/dist/query-helpers.js:76:38
+ ❯ node_modules/@testing-library/dom/dist/query-helpers.js:52:17
+ ❯ node_modules/@testing-library/dom/dist/query-helpers.js:95:19
+ ❯ tests/vitest/workshop-library-consolidation-ui.test.tsx:406:39
+    404|     );
+    405|
+    406|     const addComponentButton = screen.getByRole("button", { name: "Add…
+       |                                       ^
+    407|     expect(addComponentButton).not.toHaveTextContent("Add Component");
+    408|     expect(addComponentButton).toHaveClass("size-6");
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[21/24]⎯
+
+ FAIL  tests/vitest/workshop-library-consolidation-ui.test.tsx > workshop library consolidation UI > renders versioned components as ecommerce-style catalogue cards without lifecycle or history chrome
+TestingLibraryElementError: Unable to find a label with the text of: Component sheet
+
+Ignored nodes: comments, script, style
+[36m<body>[39m
+  [36m<div>[39m
+    [36m<div[39m
+      [33maria-label[39m=[32m"Loading library"[39m
+      [33mclass[39m=[32m"flex h-full min-h-0 overflow-hidden rounded-xs border-r border-hairline bg-white"[39m
+      [33mrole[39m=[32m"status"[39m
+    [36m>[39m
+      [36m<div[39m
+        [33mclass[39m=[32m"flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-canvas"[39m
+      [36m>[39m
+        [36m<section[39m
+          [33maria-label[39m=[32m"Component library workspace"[39m
+          [33mclass[39m=[32m"flex h-full min-h-0 overflow-hidden bg-white"[39m
+        [36m>[39m
+          [36m<div[39m
+            [33maria-hidden[39m=[32m"true"[39m
+            [33mclass[39m=[32m"flex min-w-0 flex-1 flex-col p-2"[39m
+          [36m>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-7 w-32"[39m
+            [36m/>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"mt-2 grid grid-cols-[repeat(auto-fill,minmax(164px,1fr))] gap-2"[39m
+            [36m>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-[236px] w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-[236px] w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-[236px] w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-[236px] w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-[236px] w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-[236px] w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-[236px] w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-[236px] w-full"[39m
+              [36m/>[39m
+            [36m</div>[39m
+          [36m</div>[39m
+          [36m<div[39m
+            [33maria-hidden[39m=[32m"true"[39m
+            [33mclass[39m=[32m"hidden w-[312px] shrink-0 border-l border-hairline p-2 lg:block"[39m
+          [36m>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-7 w-full"[39m
+            [36m/>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"mt-2 space-y-1"[39m
+            [36m>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-6 w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-6 w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-6 w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-6 w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-6 w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-6 w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-6 w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-6 w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-6 w-full"[39m
+              [36m/>[39m
+            [36m</div>[39m
+          [36m</div>[39m
+        [36m</section>[39m
+      [36m</div>[39m
+      [36m<span[39m
+        [33mclass[39m=[32m"sr-only"[39m
+      [36m>[39m
+        [0mLoading library[0m
+      [36m</span>[39m
+    [36m</div>[39m
+  [36m</div>[39m
+[36m</body>[39m
+ ❯ Object.getElementError node_modules/@testing-library/dom/dist/config.js:37:19
+ ❯ getAllByLabelText node_modules/@testing-library/dom/dist/queries/label-text.js:111:38
+ ❯ node_modules/@testing-library/dom/dist/query-helpers.js:52:17
+ ❯ node_modules/@testing-library/dom/dist/query-helpers.js:95:19
+ ❯ tests/vitest/workshop-library-consolidation-ui.test.tsx:749:26
+    747|     );
+    748|
+    749|     const sheet = screen.getByLabelText("Component sheet");
+       |                          ^
+    750|     const branch = within(sheet).getByLabelText("Fabrication component…
+    751|     const card = branch.querySelector('[data-component-catalogue-card-…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[22/24]⎯
+
+ FAIL  tests/vitest/workshop-library-consolidation-ui.test.tsx > workshop library consolidation UI > keeps supplier organization inside Components and scopes the sheet directly to suppliers
+TestingLibraryElementError: Unable to find an accessible element with the role "group" and name "Component view mode"
+
+Here are the accessible roles:
+
+  status:
+
+  Name "Loading library":
+  [36m<div[39m
+    [33maria-label[39m=[32m"Loading library"[39m
+    [33mclass[39m=[32m"flex h-full min-h-0 overflow-hidden rounded-xs border-r border-hairline bg-white"[39m
+    [33mrole[39m=[32m"status"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+  region:
+
+  Name "Component library workspace":
+  [36m<section[39m
+    [33maria-label[39m=[32m"Component library workspace"[39m
+    [33mclass[39m=[32m"flex h-full min-h-0 overflow-hidden bg-white"[39m
+  [36m/>[39m
+
+  --------------------------------------------------
+
+Ignored nodes: comments, script, style
+[36m<body>[39m
+  [36m<div>[39m
+    [36m<div[39m
+      [33maria-label[39m=[32m"Loading library"[39m
+      [33mclass[39m=[32m"flex h-full min-h-0 overflow-hidden rounded-xs border-r border-hairline bg-white"[39m
+      [33mrole[39m=[32m"status"[39m
+    [36m>[39m
+      [36m<div[39m
+        [33mclass[39m=[32m"flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-canvas"[39m
+      [36m>[39m
+        [36m<section[39m
+          [33maria-label[39m=[32m"Component library workspace"[39m
+          [33mclass[39m=[32m"flex h-full min-h-0 overflow-hidden bg-white"[39m
+        [36m>[39m
+          [36m<div[39m
+            [33maria-hidden[39m=[32m"true"[39m
+            [33mclass[39m=[32m"flex min-w-0 flex-1 flex-col p-2"[39m
+          [36m>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-7 w-32"[39m
+            [36m/>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"mt-2 grid grid-cols-[repeat(auto-fill,minmax(164px,1fr))] gap-2"[39m
+            [36m>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-[236px] w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-[236px] w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-[236px] w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-[236px] w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-[236px] w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-[236px] w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-[236px] w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-[236px] w-full"[39m
+              [36m/>[39m
+            [36m</div>[39m
+          [36m</div>[39m
+          [36m<div[39m
+            [33maria-hidden[39m=[32m"true"[39m
+            [33mclass[39m=[32m"hidden w-[312px] shrink-0 border-l border-hairline p-2 lg:block"[39m
+          [36m>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-7 w-full"[39m
+            [36m/>[39m
+            [36m<div[39m
+              [33mclass[39m=[32m"mt-2 space-y-1"[39m
+            [36m>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-6 w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-6 w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-6 w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-6 w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-6 w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-6 w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-6 w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-6 w-full"[39m
+              [36m/>[39m
+              [36m<div[39m
+                [33mclass[39m=[32m"animate-pulse rounded-xs bg-muted/40 motion-reduce:animate-none h-6 w-full"[39m
+              [36m/>[39m
+            [36m</div>[39m
+          [36m</div>[39m
+        [36m</section>[39m
+      [36m</div>[39m
+      [36m<span[39m
+        [33mclass[39m=[32m"sr-only"[39m
+      [36m>[39m
+        [0mLoading library[0m
+      [36m</span>[39m
+    [36m</div>[39m
+  [36m</div>[39m
+[36m</body>[39m
+ ❯ Object.getElementError node_modules/@testing-library/dom/dist/config.js:37:19
+ ❯ node_modules/@testing-library/dom/dist/query-helpers.js:76:38
+ ❯ node_modules/@testing-library/dom/dist/query-helpers.js:52:17
+ ❯ node_modules/@testing-library/dom/dist/query-helpers.js:95:19
+ ❯ tests/vitest/workshop-library-consolidation-ui.test.tsx:777:29
+    775|     );
+    776|
+    777|     const viewMode = screen.getByRole("group", { name: "Component view…
+       |                             ^
+    778|     fireEvent.click(within(viewMode).getByRole("button", { name: "Supp…
+    779|     const updatedViewMode = screen.getByRole("group", { name: "Compone…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[23/24]⎯
+
+ FAIL  tests/vitest/workshop-library-consolidation-ui.test.tsx > workshop library consolidation UI > uses the shared drag/drop tree environment for editable library folders
+AssertionError: expected null to match object { canDragAndDrop: true, …(4) }
+
+- Expected:
+{
+  "canDragAndDrop": true,
+  "canDropBelowOpenFolders": true,
+  "canDropOnFolder": true,
+  "canDropOnNonFolder": false,
+  "canReorderItems": true,
+}
+
++ Received:
+null
+
+ ❯ tests/vitest/workshop-library-consolidation-ui.test.tsx:804:25
+    802|
+    803|     const environment = rctHarness.lastEnvironmentProps;
+    804|     expect(environment).toMatchObject({
+       |                         ^
+    805|       canDragAndDrop: true,
+    806|       canReorderItems: true,
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[24/24]⎯
+
+
+ Test Files  4 failed | 4 passed (8)
+      Tests  24 failed | 43 passed (67)
+   Start at  15:36:19
+   Duration  28.04s (transform 2.46s, setup 1.19s, import 12.68s, tests 3.17s, environment 9.21s)
+

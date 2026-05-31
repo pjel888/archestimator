@@ -1,0 +1,179 @@
+Archestimator route transition benchmark
+Base URL: http://127.0.0.1:3043
+Network: No throttle
+Runs per scenario: 3
+Scenario filter: authenticated
+
+Scenario: Authenticated: Workshop to Projects
+   Run 1: 4591ms, overlay=true, rsc=1
+   Run 2: 1531ms, overlay=true, rsc=1
+   Run 3: 1940ms, overlay=true, rsc=1
+
+Scenario: Authenticated: Workshop to Library
+   Run 1: 5085ms, overlay=true, rsc=1
+   Run 2: 4496ms, overlay=true, rsc=1
+   Run 3: 4178ms, overlay=true, rsc=1
+
+Scenario: Authenticated: Workshop to Templates
+   Run 1: 2457ms, overlay=true, rsc=1
+   Run 2: 2097ms, overlay=true, rsc=1
+   Run 3: 2405ms, overlay=true, rsc=1
+
+Scenario: Authenticated: Workshop to Settings
+   Run 1: 2780ms, overlay=true, rsc=2
+   Run 2: 2716ms, overlay=true, rsc=2
+   Run 3: 2246ms, overlay=true, rsc=2
+
+| Scenario | Median (ms) | Overlay rate | RSC requests | Runs | Failures |
+|----------|-------------|--------------|--------------|------|----------|
+| Authenticated: Workshop to Projects | 1940 | 1.00 | 3 | 3 | 0 |
+| Authenticated: Workshop to Library | 4496 | 1.00 | 3 | 3 | 0 |
+| Authenticated: Workshop to Templates | 2405 | 1.00 | 3 | 3 | 0 |
+| Authenticated: Workshop to Settings | 2716 | 1.00 | 6 | 3 | 0 |
+
+Wrote benchmark JSON: .ai/09_archive/store/2026-05-31-BETA-P0-PERF-001-route-transition-optimization-subsequent-phases/route-transition-measure-script-authenticated-no-throttle-3043-final.json
+
+--- JSON OUTPUT ---
+{
+  "generatedAt": "2026-05-31T13:19:07.395Z",
+  "baseUrl": "http://127.0.0.1:3043",
+  "networkProfile": "No throttle",
+  "runsPerScenario": 3,
+  "scenarioFilter": "authenticated",
+  "skipAuthenticated": false,
+  "skippedScenarios": [],
+  "results": [
+    {
+      "scenario": "Authenticated: Workshop to Projects",
+      "from": "/workshop",
+      "expectedPathname": "/workshop/projects",
+      "networkProfile": "No throttle",
+      "runs": [
+        {
+          "run": 1,
+          "durationMs": 4591,
+          "overlayVisible": true,
+          "rscRequestCount": 1,
+          "finalPathname": "/workshop/projects"
+        },
+        {
+          "run": 2,
+          "durationMs": 1531,
+          "overlayVisible": true,
+          "rscRequestCount": 1,
+          "finalPathname": "/workshop/projects"
+        },
+        {
+          "run": 3,
+          "durationMs": 1940,
+          "overlayVisible": true,
+          "rscRequestCount": 1,
+          "finalPathname": "/workshop/projects"
+        }
+      ],
+      "failures": [],
+      "medianMs": 1940,
+      "overlayVisibilityRate": 1,
+      "rscRequestCount": 3
+    },
+    {
+      "scenario": "Authenticated: Workshop to Library",
+      "from": "/workshop",
+      "expectedPathname": "/workshop/library",
+      "networkProfile": "No throttle",
+      "runs": [
+        {
+          "run": 1,
+          "durationMs": 5085,
+          "overlayVisible": true,
+          "rscRequestCount": 1,
+          "finalPathname": "/workshop/library"
+        },
+        {
+          "run": 2,
+          "durationMs": 4496,
+          "overlayVisible": true,
+          "rscRequestCount": 1,
+          "finalPathname": "/workshop/library"
+        },
+        {
+          "run": 3,
+          "durationMs": 4178,
+          "overlayVisible": true,
+          "rscRequestCount": 1,
+          "finalPathname": "/workshop/library"
+        }
+      ],
+      "failures": [],
+      "medianMs": 4496,
+      "overlayVisibilityRate": 1,
+      "rscRequestCount": 3
+    },
+    {
+      "scenario": "Authenticated: Workshop to Templates",
+      "from": "/workshop",
+      "expectedPathname": "/workshop/templates",
+      "networkProfile": "No throttle",
+      "runs": [
+        {
+          "run": 1,
+          "durationMs": 2457,
+          "overlayVisible": true,
+          "rscRequestCount": 1,
+          "finalPathname": "/workshop/templates"
+        },
+        {
+          "run": 2,
+          "durationMs": 2097,
+          "overlayVisible": true,
+          "rscRequestCount": 1,
+          "finalPathname": "/workshop/templates"
+        },
+        {
+          "run": 3,
+          "durationMs": 2405,
+          "overlayVisible": true,
+          "rscRequestCount": 1,
+          "finalPathname": "/workshop/templates"
+        }
+      ],
+      "failures": [],
+      "medianMs": 2405,
+      "overlayVisibilityRate": 1,
+      "rscRequestCount": 3
+    },
+    {
+      "scenario": "Authenticated: Workshop to Settings",
+      "from": "/workshop",
+      "expectedPathname": "/workshop/settings/profile",
+      "networkProfile": "No throttle",
+      "runs": [
+        {
+          "run": 1,
+          "durationMs": 2780,
+          "overlayVisible": true,
+          "rscRequestCount": 2,
+          "finalPathname": "/workshop/settings/profile"
+        },
+        {
+          "run": 2,
+          "durationMs": 2716,
+          "overlayVisible": true,
+          "rscRequestCount": 2,
+          "finalPathname": "/workshop/settings/profile"
+        },
+        {
+          "run": 3,
+          "durationMs": 2246,
+          "overlayVisible": true,
+          "rscRequestCount": 2,
+          "finalPathname": "/workshop/settings/profile"
+        }
+      ],
+      "failures": [],
+      "medianMs": 2716,
+      "overlayVisibilityRate": 1,
+      "rscRequestCount": 6
+    }
+  ]
+}

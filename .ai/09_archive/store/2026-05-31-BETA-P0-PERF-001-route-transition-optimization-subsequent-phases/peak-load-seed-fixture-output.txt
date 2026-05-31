@@ -1,0 +1,12 @@
+$ bun run scripts/seed-performance-test-data.ts
+{
+  "outputPath": "/Users/philiplewis/archestimator/.ai/09_archive/store/2026-05-31-BETA-P0-PERF-001-route-transition-optimization-subsequent-phases/peak-load-seed-manifest.json",
+  "totals": {
+    "projects": 50,
+    "estimates": 1500,
+    "rowItems": 300000,
+    "sampledRowItems": 4500
+  },
+  "generationMs": 8.79,
+  "mode": "manifest-only"
+}

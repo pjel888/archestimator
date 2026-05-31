@@ -1,0 +1,144 @@
+Archestimator route transition benchmark
+Base URL: http://127.0.0.1:3042
+Network: No throttle
+Runs per scenario: 3
+Skipping authenticated scenarios: Authenticated: Workshop to Projects, Authenticated: Workshop to Library, Authenticated: Workshop to Templates, Authenticated: Workshop to Settings
+
+Scenario: Public: Landing to About
+   Run 1: 19622ms, overlay=false, rsc=12
+   Run 2: 28491ms, overlay=false, rsc=13
+   Run 3: 12827ms, overlay=false, rsc=13
+
+Scenario: Public: About to Contact
+   Run 1: 760ms, overlay=true, rsc=1
+   Run 2: 704ms, overlay=true, rsc=1
+   Run 3: 717ms, overlay=true, rsc=1
+
+Scenario: Public: Pricing to Contact
+   Run 1: 797ms, overlay=true, rsc=1
+   Run 2: 743ms, overlay=true, rsc=1
+   Run 3: 711ms, overlay=true, rsc=1
+
+| Scenario | Median (ms) | Overlay rate | RSC requests | Runs | Failures |
+|----------|-------------|--------------|--------------|------|----------|
+| Public: Landing to About | 19622 | 0.00 | 38 | 3 | 0 |
+| Public: About to Contact | 717 | 1.00 | 3 | 3 | 0 |
+| Public: Pricing to Contact | 743 | 1.00 | 3 | 3 | 0 |
+
+Wrote benchmark JSON: .ai/09_archive/store/2026-05-31-BETA-P0-PERF-001-route-transition-optimization-subsequent-phases/route-transition-measure-script-no-throttle-3042.json
+
+--- JSON OUTPUT ---
+{
+  "generatedAt": "2026-05-31T13:01:50.014Z",
+  "baseUrl": "http://127.0.0.1:3042",
+  "networkProfile": "No throttle",
+  "runsPerScenario": 3,
+  "skipAuthenticated": true,
+  "skippedScenarios": [
+    "Authenticated: Workshop to Projects",
+    "Authenticated: Workshop to Library",
+    "Authenticated: Workshop to Templates",
+    "Authenticated: Workshop to Settings"
+  ],
+  "results": [
+    {
+      "scenario": "Public: Landing to About",
+      "from": "/",
+      "expectedPathname": "/about",
+      "networkProfile": "No throttle",
+      "runs": [
+        {
+          "run": 1,
+          "durationMs": 19622,
+          "overlayVisible": false,
+          "rscRequestCount": 12,
+          "finalPathname": "/about"
+        },
+        {
+          "run": 2,
+          "durationMs": 28491,
+          "overlayVisible": false,
+          "rscRequestCount": 13,
+          "finalPathname": "/about"
+        },
+        {
+          "run": 3,
+          "durationMs": 12827,
+          "overlayVisible": false,
+          "rscRequestCount": 13,
+          "finalPathname": "/about"
+        }
+      ],
+      "failures": [],
+      "medianMs": 19622,
+      "overlayVisibilityRate": 0,
+      "rscRequestCount": 38
+    },
+    {
+      "scenario": "Public: About to Contact",
+      "from": "/about",
+      "expectedPathname": "/contact",
+      "networkProfile": "No throttle",
+      "runs": [
+        {
+          "run": 1,
+          "durationMs": 760,
+          "overlayVisible": true,
+          "rscRequestCount": 1,
+          "finalPathname": "/contact"
+        },
+        {
+          "run": 2,
+          "durationMs": 704,
+          "overlayVisible": true,
+          "rscRequestCount": 1,
+          "finalPathname": "/contact"
+        },
+        {
+          "run": 3,
+          "durationMs": 717,
+          "overlayVisible": true,
+          "rscRequestCount": 1,
+          "finalPathname": "/contact"
+        }
+      ],
+      "failures": [],
+      "medianMs": 717,
+      "overlayVisibilityRate": 1,
+      "rscRequestCount": 3
+    },
+    {
+      "scenario": "Public: Pricing to Contact",
+      "from": "/pricing",
+      "expectedPathname": "/contact",
+      "networkProfile": "No throttle",
+      "runs": [
+        {
+          "run": 1,
+          "durationMs": 797,
+          "overlayVisible": true,
+          "rscRequestCount": 1,
+          "finalPathname": "/contact"
+        },
+        {
+          "run": 2,
+          "durationMs": 743,
+          "overlayVisible": true,
+          "rscRequestCount": 1,
+          "finalPathname": "/contact"
+        },
+        {
+          "run": 3,
+          "durationMs": 711,
+          "overlayVisible": true,
+          "rscRequestCount": 1,
+          "finalPathname": "/contact"
+        }
+      ],
+      "failures": [],
+      "medianMs": 743,
+      "overlayVisibilityRate": 1,
+      "rscRequestCount": 3
+    }
+  ]
+}

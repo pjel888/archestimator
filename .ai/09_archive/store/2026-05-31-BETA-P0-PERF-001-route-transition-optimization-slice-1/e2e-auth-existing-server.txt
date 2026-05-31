@@ -1,0 +1,68 @@
+
+Running 2 tests using 1 worker
+
+(node:69130) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:69130) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  1 [chromium] › e2e/auth.spec.ts:3:5 › protected workshop projects redirects signed-out users to login (6.0s)
+(node:69261) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:69261) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  2 [chromium] › e2e/auth.spec.ts:10:5 › login page keeps compact shared-control UI visible (5.3s)
+
+
+  1) [chromium] › e2e/auth.spec.ts:3:5 › protected workshop projects redirects signed-out users to login 
+
+    Error: [2mexpect([22m[31mlocator[39m[2m).[22mtoBeVisible[2m([22m[2m)[22m failed
+
+    Locator: getByRole('heading', { name: 'Sign in to workshop' })
+    Expected: visible
+    Timeout: 5000ms
+    Error: element(s) not found
+
+    Call log:
+    [2m  - Expect "toBeVisible" with timeout 5000ms[22m
+    [2m  - waiting for getByRole('heading', { name: 'Sign in to workshop' })[22m
+
+
+       5 |
+       6 |   await expect(page).toHaveURL(/\/login\?next=%2Fworkshop%2Fprojects/);
+    >  7 |   await expect(page.getByRole("heading", { name: "Sign in to workshop" })).toBeVisible();
+         |                                                                            ^
+       8 | });
+       9 |
+      10 | test("login page keeps compact shared-control UI visible", async ({ page }) => {
+        at /Users/philiplewis/archestimator/e2e/auth.spec.ts:7:76
+
+    Error Context: test-results/auth-protected-workshop-pr-7ef5c-s-signed-out-users-to-login-chromium/error-context.md
+
+  2) [chromium] › e2e/auth.spec.ts:10:5 › login page keeps compact shared-control UI visible ───────
+
+    Error: [2mexpect([22m[31mlocator[39m[2m).[22mtoBeVisible[2m([22m[2m)[22m failed
+
+    Locator: getByPlaceholder('philipjonlewis@gmail.com')
+    Expected: visible
+    Timeout: 5000ms
+    Error: element(s) not found
+
+    Call log:
+    [2m  - Expect "toBeVisible" with timeout 5000ms[22m
+    [2m  - waiting for getByPlaceholder('philipjonlewis@gmail.com')[22m
+
+
+      11 |   await page.goto("/login?next=/workshop/projects");
+      12 |
+    > 13 |   await expect(page.getByPlaceholder("philipjonlewis@gmail.com")).toBeVisible();
+         |                                                                   ^
+      14 |   await expect(page.getByRole("button", { name: "Send magic link" })).toBeVisible();
+      15 | });
+      16 |
+        at /Users/philiplewis/archestimator/e2e/auth.spec.ts:13:67
+
+    Error Context: test-results/auth-login-page-keeps-compact-shared-control-UI-visible-chromium/error-context.md
+
+  2 failed
+    [chromium] › e2e/auth.spec.ts:3:5 › protected workshop projects redirects signed-out users to login 
+    [chromium] › e2e/auth.spec.ts:10:5 › login page keeps compact shared-control UI visible ────────

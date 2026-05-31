@@ -1,0 +1,44 @@
+[2m[WebServer] [22m[0m[2m[35m$[0m [2m[1mnext dev --port "3032"[0m
+[2m[WebServer] [22m(node:39924) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[2m[WebServer] [22m(Use `node --trace-warnings ...` to show where the warning was created)
+[2m[WebServer] [22m(node:40659) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[2m[WebServer] [22m(Use `node --trace-warnings ...` to show where the warning was created)
+[2m[WebServer] [22m(node:48505) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[2m[WebServer] [22m(Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 1 test using 1 worker
+
+(node:49740) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:49740) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+[2m[WebServer] [22m⨯ Error: {"code":"42501","details":null,"hint":null,"message":"new row violates row-level security policy for table \"workspaces\""}
+[2m[WebServer] [22m    at ignore-listed frames {
+[2m[WebServer] [22m  digest: [32m'2188400353@E394'[39m
+[2m[WebServer] [22m}
+[2m[WebServer] [22m[browser] Uncaught Error: {code: "42501", details: Null, hint: ..., message: ...}
+  ✘  1 [chromium] › e2e/route-transition-performance.spec.ts:249:7 › route transition performance evidence › captures authenticated hover prefetch and transition budget when dev auth is enabled (1.5m)
+
+
+  1) [chromium] › e2e/route-transition-performance.spec.ts:249:7 › route transition performance evidence › captures authenticated hover prefetch and transition budget when dev auth is enabled 
+
+    [31mTest timeout of 90000ms exceeded.[39m
+
+    Error: locator.hover: Test timeout of 90000ms exceeded.
+    Call log:
+    [2m  - waiting for locator('a[href="/workshop/projects"]').first()[22m
+
+
+      261 |
+      262 |     const projectsLink = page.locator('a[href="/workshop/projects"]').first();
+    > 263 |     await projectsLink.hover();
+          |                        ^
+      264 |     await page.waitForTimeout(250);
+      265 |     const beforeClick = await collectRouteMetrics(page);
+      266 |
+        at /private/tmp/archestimator-auth-smoke-1780220550/e2e/route-transition-performance.spec.ts:263:24
+
+    Error Context: test-results/route-transition-performan-01d89-et-when-dev-auth-is-enabled-chromium/error-context.md
+
+  1 failed
+    [chromium] › e2e/route-transition-performance.spec.ts:249:7 › route transition performance evidence › captures authenticated hover prefetch and transition budget when dev auth is enabled 

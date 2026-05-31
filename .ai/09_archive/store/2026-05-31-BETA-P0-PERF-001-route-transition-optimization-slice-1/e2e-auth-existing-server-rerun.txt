@@ -1,0 +1,11 @@
+
+Running 2 tests using 1 worker
+
+(node:71066) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:71066) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  1 [chromium] › e2e/auth.spec.ts:3:5 › protected workshop projects redirects signed-out users to login (820ms)
+  ✓  2 [chromium] › e2e/auth.spec.ts:10:5 › login page keeps compact shared-control UI visible (249ms)
+
+  2 passed (2.0s)

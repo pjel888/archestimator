@@ -1,0 +1,52 @@
+console: info %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold
+console: log [HMR] connected
+url http://127.0.0.1:3034/workshop/projects
+title Archestimator | Quote, Proposal & Estimate Workspace
+bodyText PL Philip Lewis philipjonlewis@gmail.com Workshop Projects Components Templates Settings Projects ADD PROJECT IMAGE ARCHITECT PHILIP Lighting Project Proposal Taguig Updated May 29 5LFPWZLH Open LEWIS FAMILY Lewis Residence Quezon City, Metro Manila, Philippines Updated May 26 AE-LR-001 Open DEVELOPER Tropical House Metro Manila Updated May 26 YJBXSRED Open HONG KONG GOVERNMENT Harbour Box Hong Kong SAR Updated May 26 QSYXXL8R Open Projects Ask Flip
+[
+  {
+    "href": "/workshop",
+    "text": "Workshop",
+    "aria": "Workshop"
+  },
+  {
+    "href": "/workshop/projects",
+    "text": "Projects",
+    "aria": "Projects"
+  },
+  {
+    "href": "/workshop/library",
+    "text": "Components",
+    "aria": "Components"
+  },
+  {
+    "href": "/workshop/templates",
+    "text": "Templates",
+    "aria": "Templates"
+  },
+  {
+    "href": "/workshop/settings",
+    "text": "Settings",
+    "aria": "Settings"
+  },
+  {
+    "href": "/workshop/projects/2fd7ae61-e60e-4a2d-a3d3-e33ab65999f1",
+    "text": "Open",
+    "aria": null
+  },
+  {
+    "href": "/workshop/projects/22222222-2222-4222-8222-222222222222",
+    "text": "Open",
+    "aria": null
+  },
+  {
+    "href": "/workshop/projects/a04459eb-cd96-4bd5-b579-15143a2491ef",
+    "text": "Open",
+    "aria": null
+  },
+  {
+    "href": "/workshop/projects/7694d347-5faf-41d2-a75e-a8d85834a77e",
+    "text": "Open",
+    "aria": null
+  }
+]

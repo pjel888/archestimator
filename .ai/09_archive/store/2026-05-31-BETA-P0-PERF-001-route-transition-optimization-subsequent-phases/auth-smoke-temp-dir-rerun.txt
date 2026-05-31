@@ -1,0 +1,1 @@
+SMOKE_DIR=/tmp/archestimator-auth-smoke-1780220392

@@ -70,8 +70,8 @@ The topic is valid, but Codex must not execute it directly. It must be split int
 | BETA-P0-OBS-001D | READY FOR CODEX AFTER SENTRY INTEGRATION |
 | BETA-P0-OBS-001E | READY FOR CODEX |
 | BETA-P0-PERF-001 | **EPIC / SPLIT REQUIRED** — see sub-cards |
-| BETA-P0-PERF-001A | READY FOR CODEX |
-| BETA-P0-PERF-001B | READY FOR CODEX |
+| BETA-P0-PERF-001A | IMPLEMENTED / NEEDS FULL VALIDATION CLEANUP |
+| BETA-P0-PERF-001B | IMPLEMENTED / NEEDS MANUAL BENCHMARK + CLEAN GATES |
 | BETA-P0-PERF-001C | READY FOR CODEX |
 | BETA-P0-PERF-001D | READY FOR CODEX |
 | BETA-P0-PERF-001E | READY FOR CODEX |
@@ -80,8 +80,8 @@ The topic is valid, but Codex must not execute it directly. It must be split int
 | BETA-P0-PERF-002A | READY FOR CODEX |
 | BETA-P0-PERF-002B | READY FOR CODEX |
 | BETA-P0-PERF-002C | READY FOR CODEX |
-| BETA-P0-PERF-002D | READY FOR CODEX |
-| BETA-P0-PERF-002E | READY FOR CODEX |
+| BETA-P0-PERF-002D | IMPLEMENTED / NEEDS BUNDLE ANALYZER PROOF |
+| BETA-P0-PERF-002E | IMPLEMENTED / NEEDS FULL CI GREEN |
 | BETA-P0-UX-001 | **EPIC / SPLIT REQUIRED** — see sub-cards |
 | BETA-P0-UX-001A | READY FOR CODEX |
 | BETA-P0-UX-001B | READY FOR CODEX |
@@ -318,7 +318,7 @@ Staging Vercel URL, preview protection confirmation.
 |---|---|
 | Wave | 2 |
 | Lane | BETA P0 |
-| Status | READY FOR CODEX |
+| Status | IMPLEMENTED / NEEDS MANUAL BENCHMARK + CLEAN GATES |
 | Primary risk reduced | Deployment |
 | Owner | Codex |
 | Dependencies | None |
@@ -1767,10 +1767,12 @@ Harness module path, helper inventory, seed data summary.
 |---|---|
 | Wave | 3 |
 | Lane | BETA P0 |
-| Status | READY FOR CODEX |
+| Status | IMPLEMENTED / NEEDS MANUAL BENCHMARK + CLEAN GATES |
 | Owner | Codex |
 | Dependencies | BETA-P0-PERF-001A |
 | Explicit non-goals | Optimizing routes, implementing prefetch |
+
+**2026-05-31 evidence:** route-transition local smoke and production-like `next start` smoke exist at `.ai/09_archive/store/2026-05-31-BETA-P0-PERF-001-route-transition-optimization-subsequent-phases/`. Public routes, Slow 3G public route, public Link-transition medians, bfcache/no-overlay, signed-out protected redirect, authenticated transition RSC evidence, explicit hover-before-click limitation evidence, Next.js dev-mode prefetch source inspection, and `/workshop/library` route manifest byte comparison are captured. Production-mode authenticated hover Network screenshots, Lighthouse/full bundle analyzer proof, and full clean lint/DOM/E2E gates remain pending.
 
 ### Outcome
 Route transition benchmarks measured for all workshop routes. Beta target: < 200ms.
@@ -1807,7 +1809,7 @@ Median per route, any violations, baseline saved.
 |---|---|
 | Wave | 3 |
 | Lane | BETA P0 |
-| Status | READY FOR CODEX |
+| Status | IMPLEMENTED / NEEDS BUNDLE ANALYZER PROOF |
 | Owner | Codex |
 | Dependencies | BETA-P0-PERF-001A |
 | Explicit non-goals | Optimizing edit latency, implementing batching |
@@ -2114,10 +2116,12 @@ Before/after main chunk size, lazy chunk size, export functionality verification
 |---|---|
 | Wave | 3 |
 | Lane | BETA P0 |
-| Status | READY FOR CODEX |
+| Status | IMPLEMENTED / NEEDS BUNDLE ANALYZER PROOF |
 | Owner | Codex |
 | Dependencies | BETA-P0-PERF-002A |
 | Explicit non-goals | Rewriting chart components, removing Three.js |
+
+**2026-05-31 evidence:** route-transition slice dynamically imports the landing wireframe background, estimate workspace tree/content wrapper, component library manager, add-component modal, library folder tree surface, and project bubble chart, and uses D3 submodule imports. `/workshop/library` initial JS in the Next.js client reference manifest dropped from 618,452 bytes at `HEAD` to 231,552 bytes in this branch. Evidence is in `.ai/09_archive/store/2026-05-31-BETA-P0-PERF-001-route-transition-optimization-subsequent-phases/`. Full bundle analyzer proof remains pending.
 
 ### Outcome
 D3 and Three.js loaded via next/dynamic. Only loaded when charts/3D views accessed.
@@ -2158,10 +2162,12 @@ Before/after chunk sizes, chart functionality verification.
 |---|---|
 | Wave | 3 |
 | Lane | BETA P0 |
-| Status | READY FOR CODEX |
+| Status | IMPLEMENTED / NEEDS FULL CI GREEN |
 | Owner | Codex |
 | Dependencies | BETA-P0-PERF-002C, BETA-P0-PERF-002D |
 | Explicit non-goals | Enforcing all public-launch budgets, blocking builds aggressively |
+
+**2026-05-31 evidence:** `test:e2e:perf`, `e2e/route-transition-performance-budgets.json`, and CI route-transition perf smoke wiring were added. The perf smoke passes locally and under production-like `next start`; isolated local dev-auth authenticated transition and project/estimate hover-evidence recording also pass, but hover-before-click `_rsc` requests were not observed in that environment. Local Next.js source inspection shows App Router prefetch URL creation is disabled in development, so production-mode authenticated hover Network proof remains pending. Full lint/DOM/E2E remain blocked by unrelated share/publication/landing debt.
 
 ### Outcome
 CI enforces main bundle size budget. Build fails if main chunk exceeds 200KB gzipped.

@@ -1,0 +1,10 @@
+$ vitest run tests/vitest/route-transition-peak-load-profile.test.tsx --maxWorkers=1
+
+ RUN  v4.1.7 /Users/philiplewis/archestimator
+
+
+ Test Files  1 passed (1)
+      Tests  1 passed (1)
+   Start at  21:30:11
+   Duration  7.79s (transform 731ms, setup 126ms, import 3.87s, tests 2.63s, environment 972ms)
+

@@ -1,0 +1,1 @@
+BASE_DIR=/tmp/archestimator-route-base-manifest-1780223143

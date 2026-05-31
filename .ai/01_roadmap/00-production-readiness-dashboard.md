@@ -56,14 +56,14 @@ Recommended first implementation sequence for Ralph Loop execution:
 | Decision Level | Verdict | Rationale |
 |---|---|---|
 | **Public Launch** | **NO-GO** | Security gate incomplete (RLS/RPC audit, rate limiting, CSP), legal gate missing all provider evidence (ToS, GDPR, DPA, OAuth verification), deployment pipeline absent (no CD, no staging), performance untested at scale |
-| **Controlled Beta** | **CONDITIONAL / OWNER DEFAULTS NOW DECIDED** | 21 owner decisions resolved (1 decision-coded DONE). 88 atomic goal cards + 15 EPIC headers defined. 0 evidence artifacts produced. See Codex execution docs 22-34. **⚠️ Collaboration invites are BROKEN / CONFIG BLOCKED** — invite acceptance is non-functional until Supabase Auth email provider and invite env vars are configured. See `.ai/03_plans/collaboration-and-sharing-audit/`. |
+| **Controlled Beta** | **CONDITIONAL / OWNER DEFAULTS NOW DECIDED** | 21 owner decisions resolved (1 decision-coded DONE). 88 atomic goal cards + 15 EPIC headers defined. 0 evidence artifacts produced. See Codex execution docs 22-34. **⚠️ Collaboration invites are BROKEN / CONFIG BLOCKED** — invite acceptance is non-functional until Supabase Auth email provider and invite env vars are configured. See `.ai/03_plans/share-and-collaboration-implementation/`. |
 | **Enterprise MVP** | **PLANNED** | Depends on controlled beta completion. Requires immutable proposals, PDF packages, CSP hardening, DSAR workflow, backup verification. |
 
 ## Documentation Sync Status
 
 | Item | Status | Notes |
 |---|---|---|
-| Collaboration & Sharing Audit Sync | ✅ COMPLETE (2026-05-30) | `.ai/03_plans/collaboration-and-sharing-audit/` integrated into roadmap. Invite readiness downgraded to config-blocked. Shared-link production gaps visible. Route-transition canonical plan recognized as conflict-resolution source. |
+| Collaboration & Sharing Plan Consolidation | ✅ COMPLETE (2026-05-31) | `.ai/03_plans/share-and-collaboration-implementation/` is the canonical combined folder for invite, shared-link manager, and receiver UX implementation readiness. Invite readiness remains config-blocked. Shared-link production gaps and receiver UX flow are visible in one implementation sequence. |
 | Roadmap Consistency Index | ✅ Active | See `34-roadmap-consistency-index.md` for canonical source map.
 
 ---
@@ -230,7 +230,7 @@ Owner: Philip for all items.
 
 | # | Area | Status | Launch Blocker? | Evidence Required | Owner | Next Decision | Target Phase |
 |---|---|---|---|---|---|---|---|
-| 3.1 | Route transitions | PARTIAL (groundwork done, baseline missing) | BETA BLOCKER | Groundwork implemented (BfcacheHandler, PerformanceMonitor, usePrefetchOnHover, Skeleton, loading.tsx). Remaining gaps: prefetch unwired, no error boundaries, no Suspense boundaries, no Phase 0 baseline. See `.ai/03_plans/route-transition-performance-optimization/CURRENT_CANONICAL_PLAN.md` for conflict-resolution source. Beta target: <200ms; active optimization target: sub-100ms. | Philip | Phase 0 baseline measurement before optimization claims | Beta |
+| 3.1 | Route transitions | IMPLEMENTED / NEEDS FULL BENCHMARK EVIDENCE | BETA BLOCKER | Local route-transition slices now include static loading shells, wired route/query prefetch, error boundaries, Suspense route fallbacks, safe proxy public early-return, route perf smoke, Slow 3G Link-transition medians, automated bfcache/back-forward no-overlay diagnostics, public Lighthouse samples, focused standalone `perf:measure-routes` JSON medians for public Contact routes and local dev-auth workshop routes, local jsdom peak-load profile evidence, CI perf-smoke wiring, and expanded route/workshop/library targeted validation (12 files / 162 tests). Remaining gaps: production-mode authenticated hover Network screenshots, manual bfcache DevTools/forced-error screenshots, production-mode authenticated medians/Lighthouse/full analyzer proof, production Chrome React Profiler proof, and full clean lint/DOM/E2E gates blocked by unrelated landing/project-publication/project-creation debt. Evidence: `.ai/09_archive/store/2026-05-31-BETA-P0-PERF-001-route-transition-optimization-subsequent-phases/`. | Philip | Finish benchmark protocol and unrelated validation blockers before readiness/archive claims | Beta |
 | 3.2 | Workshop navigation | IMPLEMENTED / NEEDS EVIDENCE | BETA BLOCKER | Test: /workshop → /workshop/project → /workshop/estimate <300ms each. No layout shift during tree expansion. | Philip | Execute BETA-P0-PERF-001 | Beta |
 | 3.3 | Estimate editing latency | IMPLEMENTED / NEEDS EVIDENCE | BETA BLOCKER | Measure: keypress to save <100ms perceived. Debounce strategy confirmed. No blocking UI during save. | Philip | Execute BETA-P0-PERF-001 | Beta |
 | 3.4 | Tree rendering | IMPLEMENTED / NEEDS EVIDENCE | BETA BLOCKER | Test: 500-item tree renders <1s. Test: expand all sections <1s. Virtualization confirmed or decision documented as accepted risk. | Philip | Execute BETA-P0-PERF-001 | Beta |
@@ -321,7 +321,7 @@ Owner: Philip for all items.
 | 5.3 | Activation definition | DRAFTED / NEEDS OWNER APPROVAL | BETA BLOCKER | Activation event defined (project + estimate + first row). Instrumentation planned. | Philip | Approve activation definition | Beta |
 | 5.4 | Onboarding strategy | DRAFTED | BETA BLOCKER | 12-phase onboarding plan, 6 persona variants, owner-approved | Philip | Execute BETA-P0-UX-001 | Beta |
 | 5.5 | First-run onboarding path | DRAFTED | BETA BLOCKER | Founder/contractor journey documented. Guided empty states planned. | Philip | Execute BETA-P0-UX-001 | Beta |
-| 5.6 | Invite-based onboarding path | IMPLEMENTED / NEEDS EVIDENCE | BETA BLOCKER | Local E2E passed. Staging E2E needed. | Philip | Schedule staging test | Beta |
+| 5.6 | Invite-based onboarding path | BROKEN / CONFIG BLOCKED | BETA BLOCKER | Supabase Auth email/provider, invite env vars, POST-only accept, and staging E2E all needed. | Philip | Execute collaboration Wave 1/2 before staging test | Beta |
 | 5.7 | Client/recipient onboarding path | IMPLEMENTED / NEEDS EVIDENCE | BETA BLOCKER | Shared receiver V2 + estimate view enhancement done. Client comprehension test needed. | Philip | Recruit test users | Beta |
 | 5.8 | Returning-user path | PARTIAL | — | Favorite shortcuts exist. No activity-based resumption. | Philip | Prioritize return UX | Production |
 | 5.9 | Persona model | DRAFTED | — | 6 personas with goals, anxieties, JTBD, first-success moments documented | Philip | Review persona docs | Beta |

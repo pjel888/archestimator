@@ -1,0 +1,24 @@
+$ next dev --port "3034" --webpack
+▲ Next.js 16.2.6 (webpack)
+- Local:         http://localhost:3034
+- Network:       http://127.0.2.2:3034
+- Environments: .env.local
+✓ Ready in 400ms
+- Experiments (use with caution):
+  · optimizePackageImports
+
+(node:25924) [DEP0205] DeprecationWarning: `module.register()` is deprecated. Use `module.registerHooks()` instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+○ Compiling /workshop/projects ...
+ GET /workshop/projects 200 in 23.2s (next.js: 15.3s, proxy.ts: 217ms, application-code: 7.7s)
+ GET /workshop/projects 200 in 1220ms (next.js: 13ms, proxy.ts: 27ms, application-code: 1180ms)
+○ Compiling /workshop/projects/[projectId]/estimates ...
+ GET /workshop/projects 200 in 458ms (next.js: 62ms, proxy.ts: 49ms, application-code: 347ms)
+ GET /workshop/projects/2fd7ae61-e60e-4a2d-a3d3-e33ab65999f1/estimates 200 in 9.9s (next.js: 6.8s, proxy.ts: 10ms, application-code: 3.0s)
+ GET /workshop/projects 200 in 1872ms (next.js: 27ms, proxy.ts: 20ms, application-code: 1825ms)
+○ Compiling /workshop ...
+ GET /workshop 200 in 5.4s (next.js: 3.2s, proxy.ts: 21ms, application-code: 2.2s)
+[browser] Image with src "/Cards/Projects-Card.jpg" was detected as the Largest Contentful Paint (LCP). Please add the `loading="eager"` property if this image is above the fold.
+Read more: https://nextjs.org/docs/app/api-reference/components/image#loading
+[browser] Image with src "/Cards/Components-Card.jpg" was detected as the Largest Contentful Paint (LCP). Please add the `loading="eager"` property if this image is above the fold.
+Read more: https://nextjs.org/docs/app/api-reference/components/image#loading

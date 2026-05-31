@@ -530,7 +530,7 @@
 
 ## Collaboration & Sharing Audit Integration Note — 2026-05-30
 
-This document is a reference domain deep-dive. For detailed, current collaboration/share security truth, consult `.ai/03_plans/collaboration-and-sharing-audit/` — specifically `05-security-threat-model-and-hardening.md`. Key invite/share security gaps identified in that audit and reflected in current roadmap goal cards:
+This document is a reference domain deep-dive. For detailed, current collaboration/share security truth, consult `.ai/03_plans/share-and-collaboration-implementation/` — specifically `05-security-threat-model-and-hardening.md`. Key invite/share security gaps identified in that pack and reflected in current roadmap goal cards:
 
 - **Invite token brute-force protection** — missing; invite endpoints have no rate limiting
 - **Invite route rate limiting** — must be durable (Redis-backed), not in-memory

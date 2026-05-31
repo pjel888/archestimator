@@ -1,0 +1,470 @@
+
+ RUN  v4.1.7 /Users/philiplewis/archestimator
+
+ ❯ tests/vitest/project-dashboard-ui.test.ts (16 tests | 3 failed) 16ms
+     × keeps D3 shape rendering isolated to the project charts feature 5ms
+     × keeps estimate workspace client components behind named dynamic imports 1ms
+     × keeps the non-default project bubble chart behind a named dynamic import 3ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 3 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/vitest/project-dashboard-ui.test.ts > project dashboard UI governance > keeps D3 shape rendering isolated to the project charts feature
+AssertionError: expected '"use client";\n\nimport { useMemo } f…' not to contain 'from "d3"'
+
+- Expected
++ Received
+
+- from "d3"
++ "use client";
++
++ import { useMemo } from "react";
++ import { hierarchy, pack } from "d3";
++ import type { HierarchyCircularNode } from "d3";
++
++ import type { ProjectChartBucket } from "@/lib/project-charts/types";
++
++ type ProjectCostBubbleChartProps = {
++   buckets: ProjectChartBucket[];
++   total: number;
++   currencyCode: string;
++   label: string;
++ };
++
++ type BubbleDatum = {
++   id: string;
++   label: string;
++   value: number;
++   color: string;
++   share: number;
++ };
++
++ type BubbleRootDatum = { children: BubbleDatum[]; value?: never } | BubbleDatum;
++
++ const CHART_SIZE = 560;
++ const BUBBLE_PADDING = 6;
++
++ export function ProjectCostBubbleChart({ buckets, total, currencyCode, label }: ProjectCostBubbleChartProps) {
++   const bubbles = useMemo(() => {
++     const data: BubbleDatum[] = buckets
++       .filter((bucket) => bucket.total > 0)
++       .map((bucket) => ({
++         id: bucket.id,
++         label: bucket.label,
++         value: bucket.total,
++         color: bucket.color,
++         share: bucket.share,
++       }));
++
++     const root = hierarchy<BubbleRootDatum>({ children: data })
++       .sum((datum) => ("value" in datum ? datum.value ?? 0 : 0))
++       .sort((left, right) => (right.value ?? 0) - (left.value ?? 0));
++
++     const packedRoot = pack<BubbleRootDatum>()
++       .size([CHART_SIZE - 2, CHART_SIZE - 2])
++       .padding(BUBBLE_PADDING)(root);
++
++     return packedRoot.leaves() as Array<HierarchyCircularNode<BubbleDatum>>;
++   }, [buckets]);
++
++   if (bubbles.length === 0 || total <= 0) {
++     return (
++       <div className="flex min-h-[520px] items-center justify-center rounded-xs border border-dashed border-hairline text-[10px] text-muted-foreground">
++         No cost rows
++       </div>
++     );
++   }
++
++   return (
++     <figure aria-label={label} className="flex min-h-[520px] items-center justify-center" data-testid="d3-bubble-chart">
++       <svg
++         role="img"
++         aria-label={label}
++         viewBox={`0 0 ${CHART_SIZE} ${CHART_SIZE}`}
++         className="h-auto w-full max-w-[560px]"
++         preserveAspectRatio="xMidYMid meet"
++       >
++         {bubbles.map((bubble) => {
++           const showLabel = bubble.r >= 34;
++           const showValue = bubble.r >= 46;
++
++           return (
++             <g key={bubble.data.id} transform={`translate(${bubble.x + 1}, ${bubble.y + 1})`} data-testid="bubble-node">
++               <circle
++                 r={bubble.r}
++                 fill={bubble.data.color}
++                 fillOpacity={0.84}
++                 stroke="white"
++                 strokeWidth={1.5}
++                 aria-label={`${bubble.data.label}: ${formatMoney(bubble.data.value, currencyCode)} (${formatPercent(bubble.data.share)})`}
++               />
++               <title>{`${bubble.data.label}\n${formatMoney(bubble.data.value, currencyCode)}\n${formatPercent(bubble.data.share)}`}</title>
++               {showLabel ? (
++                 <text textAnchor="middle" className="pointer-events-none fill-white" fontSize={Math.min(11, Math.max(8, bubble.r / 5))} fontWeight={700}>
++                   <tspan x={0} y={showValue ? -4 : 3}>
++                     {truncateLabel(bubble.data.label, bubble.r)}
++                   </tspan>
++                   {showValue ? (
++                     <tspan x={0} y={11} fontSize={Math.min(10, Math.max(8, bubble.r / 6))} fontWeight={600} fillOpacity={0.86}>
++                       {formatPercent(bubble.data.share)}
++                     </tspan>
++                   ) : null}
++                 </text>
++               ) : null}
++             </g>
++           );
++         })}
++       </svg>
++     </figure>
++   );
++ }
++
++ function truncateLabel(label: string, radius: number) {
++   const maxLength = Math.max(6, Math.floor(radius / 3.2));
++   return label.length > maxLength ? `${label.slice(0, maxLength - 1)}...` : label;
++ }
++
++ function formatMoney(value: number, currencyCode: string) {
++   return new Intl.NumberFormat("en-PH", {
++     style: "currency",
++     currency: currencyCode,
++     maximumFractionDigits: 0,
++   }).format(value);
++ }
++
++ function formatPercent(value: number) {
++   return new Intl.NumberFormat("en-PH", {
++     style: "percent",
++     maximumFractionDigits: 1,
++   }).format(value);
++ }
++
+
+ ❯ tests/vitest/project-dashboard-ui.test.ts:96:40
+     94|   it("keeps D3 shape rendering isolated to the project charts feature"…
+     95|     expect(projectCostDonutChart).not.toContain('from "d3"');
+     96|     expect(projectCostBubbleChart).not.toContain('from "d3"');
+       |                                        ^
+     97|     expect(projectCostBubbleChart).not.toContain('from "d3";');
+     98|     expect(projectCostDonutChart).toContain('from "d3-shape"');
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/3]⎯
+
+ FAIL  tests/vitest/project-dashboard-ui.test.ts > project dashboard UI governance > keeps estimate workspace client components behind named dynamic imports
+AssertionError: expected '' not to be '' // Object.is equality
+ ❯ tests/vitest/project-dashboard-ui.test.ts:106:41
+    104|
+    105|   it("keeps estimate workspace client components behind named dynamic …
+    106|     expect(estimateWorkspaceClient).not.toBe("");
+       |                                         ^
+    107|     expect(projectEstimateNodePage).toContain("EstimateWorkspaceClient…
+    108|     expect(projectEstimateNodePage).not.toContain('import { EstimateSh…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/3]⎯
+
+ FAIL  tests/vitest/project-dashboard-ui.test.ts > project dashboard UI governance > keeps the non-default project bubble chart behind a named dynamic import
+AssertionError: expected '"use client";\n\nimport { Plus, X } f…' to contain 'dynamic(() =>'
+
+- Expected
++ Received
+
+- dynamic(() =>
++ "use client";
++
++ import { Plus, X } from "@phosphor-icons/react/dist/ssr";
++ import { useMemo, useState, type ReactNode } from "react";
++
++ import { ControlSelect } from "@/components/ui/control-select";
++ import { Button } from "@/components/ui/button";
++ import { EmptyState } from "@/components/ui/empty-state";
++ import { HeaderIconToolbar } from "@/components/ui/header-icon-toolbar";
++ import { buildProjectChartSeries, getProjectChartDefaultPair } from "@/lib/project-charts/aggregate-project-charts";
++ import type { ProjectChartGroupingMode, ProjectChartsData } from "@/lib/project-charts/types";
++ import { cn } from "@/lib/ui/cn";
++
++ import { ProjectChartBucketTable } from "./ProjectChartBucketTable";
++ import { ProjectCostBubbleChart } from "./ProjectCostBubbleChart";
++ import { ProjectCostDonutChart } from "./ProjectCostDonutChart";
++
++ type ProjectChartsClientProps = {
++   data: ProjectChartsData;
++   initialLeftEstimateId: string | null;
++   initialRightEstimateId: string | null;
++   initialGroupingMode: ProjectChartGroupingMode;
++ };
++
++ const GROUPING_OPTIONS: Array<{ value: ProjectChartGroupingMode; label: string }> = [
++   { value: "space", label: "Space" },
++   { value: "category", label: "Category" },
++   { value: "supplier", label: "Suppliers" },
++ ];
++
++ const CHART_VIEW_OPTIONS = [
++   { value: "donut", label: "Donut Chart" },
++   { value: "bubble", label: "Bubble Chart" },
++ ] as const;
++
++ const MAX_CHART_COLUMNS = 3;
++ type ChartViewMode = (typeof CHART_VIEW_OPTIONS)[number]["value"];
++
++ export function ProjectChartsClient({
++   data,
++   initialLeftEstimateId,
++   initialGroupingMode,
++ }: ProjectChartsClientProps) {
++   const defaultPair = getProjectChartDefaultPair(data.estimateOptions);
++   const [groupingMode, setGroupingMode] = useState<ProjectChartGroupingMode>(initialGroupingMode);
++   const [chartViewMode, setChartViewMode] = useState<ChartViewMode>("donut");
++   const [chartEstimateIds, setChartEstimateIds] = useState(() =>
++     [initialLeftEstimateId ?? defaultPair.leftEstimateId ?? data.estimateOptions[0]?.id].filter(Boolean) as string[],
++   );
++   const estimateOptions = data.estimateOptions.map((estimate) => ({
++     value: estimate.id,
++     label: estimate.name,
++   }));
++   const chartLimit = Math.min(MAX_CHART_COLUMNS, data.estimateOptions.length);
++   const canAddChart = chartEstimateIds.length < chartLimit;
++
++   const chartColumns = useMemo(
++     () =>
++       chartEstimateIds
++         .map((estimateId) => {
++           const estimate = data.estimateOptions.find((candidate) => candidate.id === estimateId);
++           if (!estimate) return null;
++
++           return {
++             estimate,
++             series: buildProjectChartSeries({
++               estimates: data.estimateOptions,
++               rows: data.rowFacts,
++               nodes: data.nodeFacts,
++               categoryNodes: data.categoryNodeFacts,
++               suppliers: data.supplierFacts,
++               groupingMode,
++               estimateId,
++             }),
++           };
++         })
++         .filter(Boolean),
++     [chartEstimateIds, data, groupingMode],
++   );
++
++   const bodyState = getBodyState(data);
++
++   function addChart() {
++     if (!canAddChart) return;
++
++     const nextEstimate = data.estimateOptions.find((estimate) => !chartEstimateIds.includes(estimate.id)) ?? data.estimateOptions[0];
++     if (!nextEstimate) return;
++
++     setChartEstimateIds((current) => [...current, nextEstimate.id].slice(0, MAX_CHART_COLUMNS));
++   }
++
++   function updateChartEstimate(index: number, estimateId: string) {
++     setChartEstimateIds((current) => current.map((id, currentIndex) => (currentIndex === index ? estimateId : id)));
++   }
++
++   function removeChart(index: number) {
++     setChartEstimateIds((current) => (current.length <= 1 ? current : current.filter((_, currentIndex) => currentIndex !== index)));
++   }
++
++   return (
++     <section data-project-charts-page className="flex h-full min-h-0 flex-col overflow-hidden bg-white">
++       <div className="flex shrink-0 flex-wrap items-center gap-2 border-b border-hairline bg-white px-2 py-0">
++         <div className="flex min-h-[38px] min-w-0 flex-1 flex-wrap items-center gap-2 py-1">
++           <SegmentedToolbarLabel label="Group By">
++             <div role="group" aria-label="Group chart costs by" className="grid grid-cols-3 gap-1 rounded-xs bg-surfaceMuted p-0.5">
++               {GROUPING_OPTIONS.map((option) => (
++                 <SegmentedToolbarButton
++                   key={option.value}
++                   isActive={groupingMode === option.value}
++                   label={option.label}
++                   onClick={() => setGroupingMode(option.value)}
++                 />
++               ))}
++             </div>
++           </SegmentedToolbarLabel>
++           <SegmentedToolbarLabel label="View By">
++             <div role="group" aria-label="Chart visualization type" className="grid grid-cols-2 gap-1 rounded-xs bg-surfaceMuted p-0.5">
++               {CHART_VIEW_OPTIONS.map((option) => (
++                 <SegmentedToolbarButton
++                   key={option.value}
++                   isActive={chartViewMode === option.value}
++                   label={option.label}
++                   onClick={() => setChartViewMode(option.value)}
++                 />
++               ))}
++             </div>
++           </SegmentedToolbarLabel>
++         </div>
++         <HeaderIconToolbar
++           ariaLabel="Project chart tools"
++           labelPrefix="chart"
++           showDefaultActions={false}
++           addActions={[
++             {
++               label: "Add chart",
++               visibleLabel: "Add chart",
++               icon: <Plus size={12} weight="regular" aria-hidden="true" />,
++               onClick: addChart,
++               disabled: !canAddChart,
++             },
++           ]}
++         />
++         {data.requiresSelectedPair ? (
++           <p className="basis-full px-1 pb-2 text-[10px] text-muted-foreground">
++             Large project mode loads selected comparisons only.
++           </p>
++         ) : null}
++       </div>
++
++       <div className="min-h-0 flex-1 overflow-auto p-1">
++         {bodyState ? (
++           <EmptyState title={bodyState.title} description={bodyState.description} />
++         ) : (
++           <div
++             className="grid gap-3"
++             style={{ gridTemplateColumns: `repeat(${Math.max(1, chartColumns.length)}, minmax(220px, 1fr))` }}
++           >
++             {chartColumns.map((column, index) => {
++               if (!column) return null;
++               const currencyCode = column.estimate.currencyCode ?? "PHP";
++
++               return (
++                 <section
++                   key={`${index}-${column.estimate.id}`}
++                   className="min-w-0 overflow-hidden rounded-xs border border-hairline bg-white"
++                   data-testid="project-chart-column"
++                 >
++                   <div className="grid min-h-11 grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 border-b border-hairline px-3 py-2">
++                     <div className="min-w-0 flex-1">
++                       <ControlSelect
++                         aria-label={`Chart ${index + 1} estimate`}
++                         className="border-b-0 hover:border-transparent focus:border-transparent"
++                         value={column.estimate.id}
++                         onChange={(event) => updateChartEstimate(index, event.target.value)}
++                       >
++                         {estimateOptions.map((option) => (
++                           <option key={option.value} value={option.value}>
++                             {option.label}
++                           </option>
++                         ))}
++                       </ControlSelect>
++                     </div>
++                     <p className="justify-self-center text-[10px] font-medium tabular-nums text-foreground" data-testid={`chart-${index + 1}-total`}>
++                       {formatMoney(column.series.total, currencyCode)}
++                     </p>
++                     <div className="justify-self-end">
++                       {chartColumns.length > 1 ? (
++                         <Button
++                           aria-label={`Remove chart ${index + 1}`}
++                           className="size-6 rounded-xs"
++                           onClick={() => removeChart(index)}
++                           size="icon-sm"
++                           variant="ghost"
++                         >
++                           <X size={11} weight="regular" />
++                         </Button>
++                       ) : null}
++                     </div>
++                   </div>
++                   {chartViewMode === "donut" ? (
++                     <ProjectCostDonutChart
++                       buckets={column.series.buckets}
++                       currencyCode={currencyCode}
++                       label={`${column.series.estimateName} ${groupingMode} cost distribution`}
++                       total={column.series.total}
++                     />
++                   ) : (
++                     <ProjectCostBubbleChart
++                       buckets={column.series.buckets}
++                       currencyCode={currencyCode}
++                       label={`${column.series.estimateName} ${groupingMode} bubble cost distribution`}
++                       total={column.series.total}
++                     />
++                   )}
++                   <ProjectChartBucketTable currencyCode={currencyCode} groupingLabel={getGroupingLabel(groupingMode)} series={column.series} />
++                 </section>
++               );
++             })}
++           </div>
++         )}
++       </div>
++     </section>
++   );
++ }
++
++ function getBodyState(data: ProjectChartsData): { title: string; description: string } | null {
++   if (data.estimateOptions.length === 0) {
++     return {
++       title: "No estimates yet",
++       description: "Create at least two estimates before comparing project cost distributions.",
++     };
++   }
++
++   return null;
++ }
++
++ function formatMoney(value: number, currencyCode: string) {
++   return new Intl.NumberFormat("en-PH", {
++     style: "currency",
++     currency: currencyCode,
++     maximumFractionDigits: 0,
++   }).format(value);
++ }
++
++ function getGroupingLabel(groupingMode: ProjectChartGroupingMode) {
++   return GROUPING_OPTIONS.find((option) => option.value === groupingMode)?.label ?? "Group";
++ }
++
++ function SegmentedToolbarLabel({ label, children }: { label: string; children: ReactNode }) {
++   return (
++     <div className="flex items-center gap-2">
++       <span className="shrink-0 text-[9px] font-medium uppercase tracking-normal text-muted-foreground">
++         {label}
++       </span>
++       {children}
++     </div>
++   );
++ }
++
++ function SegmentedToolbarButton({
++   isActive,
++   label,
++   onClick,
++ }: {
++   isActive: boolean;
++   label: string;
++   onClick: () => void;
++ }) {
++   return (
++     <button
++       type="button"
++       aria-pressed={isActive}
++       onClick={onClick}
++       className={cn(
++         "h-6 rounded-xs px-2 text-[9px] font-medium leading-none transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus",
++         isActive ? "bg-white text-ink shadow-sm" : "text-tertiary hover:bg-white/70 hover:text-ink",
++       )}
++     >
++       {label}
++     </button>
++   );
++ }
++
+
+ ❯ tests/vitest/project-dashboard-ui.test.ts:116:33
+    114|
+    115|   it("keeps the non-default project bubble chart behind a named dynami…
+    116|     expect(projectChartsClient).toContain("dynamic(() =>");
+       |                                 ^
+    117|     expect(projectChartsClient).toContain("module.ProjectCostBubbleCha…
+    118|     expect(projectChartsClient).not.toContain('import { ProjectCostBub…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/3]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  3 failed | 13 passed (16)
+   Start at  16:23:13
+   Duration  1.10s (transform 53ms, setup 91ms, import 36ms, tests 16ms, environment 798ms)
+

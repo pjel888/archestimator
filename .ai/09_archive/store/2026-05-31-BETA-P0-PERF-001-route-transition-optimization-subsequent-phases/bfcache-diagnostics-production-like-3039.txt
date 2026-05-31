@@ -1,0 +1,27 @@
+
+Running 1 test using 1 worker
+
+(node:34309) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:34309) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  1 [chromium] › e2e/route-transition-performance.spec.ts:248:7 › route transition performance evidence › captures public back-forward cache restore evidence without stuck overlay (2.1s)
+
+
+  1) [chromium] › e2e/route-transition-performance.spec.ts:248:7 › route transition performance evidence › captures public back-forward cache restore evidence without stuck overlay 
+
+    Error: page.evaluate: Execution context was destroyed, most likely because of a navigation
+
+      263 |     await page.waitForTimeout(100);
+      264 |
+    > 265 |     const evidence = await page.evaluate(() => {
+          |                                 ^
+      266 |       const scopedWindow = window as Window & { __routeTransitionPageshowPersisted?: boolean[] };
+      267 |       const navigationEntries = performance.getEntriesByType("navigation") as PerformanceNavigationTiming[];
+      268 |       const pageshowPersisted = scopedWindow.__routeTransitionPageshowPersisted ?? [];
+        at /Users/philiplewis/archestimator/e2e/route-transition-performance.spec.ts:265:33
+
+    Error Context: test-results/route-transition-performan-603ba-dence-without-stuck-overlay-chromium/error-context.md
+
+  1 failed
+    [chromium] › e2e/route-transition-performance.spec.ts:248:7 › route transition performance evidence › captures public back-forward cache restore evidence without stuck overlay 

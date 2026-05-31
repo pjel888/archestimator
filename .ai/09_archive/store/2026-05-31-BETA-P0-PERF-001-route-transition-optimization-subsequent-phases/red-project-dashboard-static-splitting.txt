@@ -1,0 +1,25 @@
+
+ RUN  v4.1.7 /Users/philiplewis/archestimator
+
+ ❯ tests/vitest/project-dashboard-ui.test.ts (0 test)
+
+⎯⎯⎯⎯⎯⎯ Failed Suites 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/vitest/project-dashboard-ui.test.ts [ tests/vitest/project-dashboard-ui.test.ts ]
+Error: ENOENT: no such file or directory, open 'src/components/workshop/EstimateWorkspaceClient.tsx'
+ ❯ tests/vitest/project-dashboard-ui.test.ts:26:33
+     24| const projectEstimatesClient = readFileSync("src/components/workshop/P…
+     25| const projectEstimateNodePage = readFileSync("src/app/workshop/project…
+     26| const estimateWorkspaceClient = readFileSync("src/components/workshop/…
+       |                                 ^
+     27| const projectChartsPage = readFileSync("src/app/workshop/projects/[pro…
+     28| const projectChartsClient = readFileSync("src/components/workshop/proj…
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  no tests
+   Start at  16:22:07
+   Duration  1.04s (transform 53ms, setup 94ms, import 0ms, tests 0ms, environment 792ms)
+

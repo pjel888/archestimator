@@ -1,0 +1,34 @@
+npm warn Unknown user config "always-auth" (//skand-124087294415.d.codeartifact.ap-southeast-2.amazonaws.com/npm/core/:always-auth). This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.
+Changes: 22 files, 48 symbols
+Affected processes: 15
+Risk level: high
+
+Changed symbols:
+  undefined createQueryClient → src/app/providers.tsx
+  undefined Loading → src/app/workshop/library/loading.tsx
+  undefined Loading → src/app/workshop/loading.tsx
+  undefined Loading → src/app/workshop/onboarding/loading.tsx
+  undefined Loading → src/app/workshop/projects/loading.tsx
+  undefined Loading → src/app/workshop/settings/loading.tsx
+  undefined Loading → src/app/workshop/templates/loading.tsx
+  undefined pathname → src/components/sidebar/MainSidebar.tsx
+  undefined userInitials → src/components/sidebar/MainSidebar.tsx
+  undefined MainSidebar → src/components/sidebar/MainSidebar.tsx
+  undefined SidebarNavItemRow → src/components/sidebar/SidebarNavItemRow.tsx
+  undefined LiveProjectCard → src/components/workshop/LiveProjectCard.tsx
+  undefined estimateHref → src/components/workshop/ProjectEstimatesTable.tsx
+  undefined router → src/components/workshop/ProjectEstimatesTable.tsx
+  undefined toggleEstimateSelection → src/components/workshop/ProjectEstimatesTable.tsx
+  ... and 33 more
+
+Affected execution flows:
+  • TemplatesPage → Cn (5 steps) — changed: MainSidebar
+  • Cell → UseNavigationUiStore (5 steps) — changed: cell
+  • WorkshopPage → SidebarNavItemRow (4 steps) — changed: MainSidebar, SidebarNavItemRow
+  • WorkshopPage → IsActiveHref (4 steps) — changed: MainSidebar
+  • ProfileSettingsPage → SidebarNavItemRow (4 steps) — changed: MainSidebar, SidebarNavItemRow
+  • ProfileSettingsPage → IsActiveHref (4 steps) — changed: MainSidebar
+  • WorkspaceSettingsPage → SidebarNavItemRow (4 steps) — changed: MainSidebar, SidebarNavItemRow
+  • WorkspaceSettingsPage → IsActiveHref (4 steps) — changed: MainSidebar
+  • LibraryPage → SidebarNavItemRow (4 steps) — changed: MainSidebar, SidebarNavItemRow
+  • LibraryPage → IsActiveHref (4 steps) — changed: MainSidebar

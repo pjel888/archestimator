@@ -1,0 +1,37 @@
+$ next dev --port "3034"
+▲ Next.js 16.2.6 (Turbopack)
+- Local:         http://localhost:3034
+- Network:       http://127.0.2.2:3034
+- Environments: .env.local
+✓ Ready in 502ms
+- Experiments (use with caution):
+  · optimizePackageImports
+
+(node:33152) [DEP0205] DeprecationWarning: `module.register()` is deprecated. Use `module.registerHooks()` instead.
+(Use `node --trace-deprecation ...` to show where the warning was created)
+○ Compiling /workshop/projects ...
+ GET /workshop/projects 200 in 7.2s (next.js: 5.1s, proxy.ts: 184ms, application-code: 1947ms)
+ GET /workshop 200 in 3.1s (next.js: 1096ms, proxy.ts: 9ms, application-code: 2.0s)
+[browser] Image with src "/Cards/Components-Card.jpg" was detected as the Largest Contentful Paint (LCP). Please add the `loading="eager"` property if this image is above the fold.
+Read more: https://nextjs.org/docs/app/api-reference/components/image#loading
+ GET / 200 in 2.9s (next.js: 1816ms, proxy.ts: 10ms, application-code: 1043ms)
+ GET / 200 in 390ms (next.js: 16ms, proxy.ts: 45ms, application-code: 329ms)
+ GET /workshop 200 in 3.7s (next.js: 32ms, proxy.ts: 59ms, application-code: 3.6s)
+[browser] Image with src "/Cards/Components-Card.jpg" was detected as the Largest Contentful Paint (LCP). Please add the `loading="eager"` property if this image is above the fold.
+Read more: https://nextjs.org/docs/app/api-reference/components/image#loading
+ GET /workshop/projects 200 in 586ms (next.js: 11ms, proxy.ts: 14ms, application-code: 561ms)
+ GET /workshop 200 in 4.0s (next.js: 59ms, proxy.ts: 15ms, application-code: 4.0s)
+[browser] Image with src "/Cards/Components-Card.jpg" was detected as the Largest Contentful Paint (LCP). Please add the `loading="eager"` property if this image is above the fold.
+Read more: https://nextjs.org/docs/app/api-reference/components/image#loading
+ GET / 200 in 226ms (next.js: 38ms, proxy.ts: 13ms, application-code: 174ms)
+ GET / 200 in 218ms (next.js: 3ms, proxy.ts: 3ms, application-code: 212ms)
+ GET /workshop 200 in 3.1s (next.js: 61ms, proxy.ts: 69ms, application-code: 2.9s)
+[browser] Image with src "/Cards/Components-Card.jpg" was detected as the Largest Contentful Paint (LCP). Please add the `loading="eager"` property if this image is above the fold.
+Read more: https://nextjs.org/docs/app/api-reference/components/image#loading
+ GET /workshop/projects 200 in 755ms (next.js: 9ms, proxy.ts: 22ms, application-code: 724ms)
+ GET / 200 in 298ms (next.js: 55ms, proxy.ts: 19ms, application-code: 224ms)
+ GET / 200 in 130ms (next.js: 3ms, proxy.ts: 5ms, application-code: 122ms)
+ GET /workshop/projects 200 in 1468ms (next.js: 8ms, proxy.ts: 16ms, application-code: 1444ms)
+○ Compiling /workshop/projects/[projectId]/estimates ...
+ GET /workshop/projects/2fd7ae61-e60e-4a2d-a3d3-e33ab65999f1/estimates 200 in 7.7s (next.js: 4.6s, proxy.ts: 12ms, application-code: 3.1s)
+ POST /workshop/projects/2fd7ae61-e60e-4a2d-a3d3-e33ab65999f1/estimates 200 in 150ms (next.js: 22ms, proxy.ts: 19ms, application-code: 109ms)

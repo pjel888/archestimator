@@ -1,0 +1,49 @@
+
+ RUN  v4.1.7 /Users/philiplewis/archestimator
+
+ ❯ tests/vitest/project-dashboard-ui.test.ts (16 tests | 1 failed) 77ms
+     × keeps D3 shape rendering isolated to the project charts feature 50ms
+
+⎯⎯⎯⎯⎯⎯⎯ Failed Tests 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/vitest/project-dashboard-ui.test.ts > project dashboard UI governance > keeps D3 shape rendering isolated to the project charts feature
+AssertionError: expected '"use client";\n\n/**\n * Re-export wr…' to contain 'from "d3-shape"'
+
+- Expected
++ Received
+
+- from "d3-shape"
++ "use client";
++
++ /**
++  * Re-export wrapper for backward compatibility.
++  * Real implementation lives in the shared @/components/charts/CostDonutChart
++  * (extracted during P1 of Share Page Estimate View Enhancement).
++  *
++  * Zero behavioral change for workshop charts.
++  */
++ export { CostDonutChart as ProjectCostDonutChart } from "@/components/charts/CostDonutChart";
++
++ // Maintain old type name for any direct imports in the workshop area
++ export type { CostBucket as ProjectChartBucket } from "@/lib/charts/types";
++
++ // The rest of the file is intentionally removed — the shared component
++ // is the source of truth. All prior tests and usage continue to work.
++
+
+ ❯ tests/vitest/project-dashboard-ui.test.ts:98:35
+     96|     expect(projectCostBubbleChart).not.toContain('from "d3"');
+     97|     expect(projectCostBubbleChart).not.toContain('from "d3";');
+     98|     expect(projectCostDonutChart).toContain('from "d3-shape"');
+       |                                   ^
+     99|     expect(projectCostBubbleChart).toContain('from "d3-hierarchy"');
+    100|     expect(projectDashboardClient).not.toContain('from "d3"');
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  1 failed | 15 passed (16)
+   Start at  16:24:06
+   Duration  24.74s (transform 1.90s, setup 2.55s, import 1.09s, tests 77ms, environment 16.84s)
+

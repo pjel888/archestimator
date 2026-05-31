@@ -1,6 +1,6 @@
 # CURRENT CANONICAL PLAN — Route Transition Performance Optimization
 
-**Status:** Upgraded — 2026-05-30  
+**Status:** Route-transition implementation slices completed through safe local Phase 7 gates; full archive blocked by unrelated validation debt and remaining manual/bundle evidence — 2026-05-31
 **Replaces:** All previous docs where they conflict  
 **Audit basis:** Full static codebase audit against live repo on 2026-05-30  
 **Owner approval:** ⏳ Pending
@@ -18,6 +18,34 @@ This document is the **single source of truth** for the route transition perform
 2. **It recommends using `auth.getSession()` for server-side protection, claiming it's faster.** DANGEROUS. Current Supabase SSR docs explicitly warn against trusting `getSession()` in server middleware. The actual code correctly uses `auth.getUser()` which validates the JWT with Supabase. The plan must NOT recommend switching to `getSession()`.
 
 3. **The overlay timing strategy is contradictory across documents.** Some docs say add 150ms show delay and remove min-display; others say immediate show with 250ms min-display is intentional. The actual code implements immediate show with MIN_DISPLAY_MS=250. Resolution: keep the current behavior (immediate show + MIN_DISPLAY_MS=250) for now; add a delayed-fallback overlay strategy in a later phase IF measurement shows the overlay flashes too often.
+
+## Slice 1 Execution Update — 2026-05-31
+
+**Evidence:** `.ai/09_archive/store/2026-05-31-BETA-P0-PERF-001-route-transition-optimization-slice-1/`
+
+**Implemented in this slice:**
+- Phase 0 repo-truth and baseline capture: branch/dirtystate recorded, baseline build captured, baseline validate failure recorded as pre-existing lint debt in share/publication/deck scopes.
+- Phase 1 low-risk infrastructure fixes: static workshop loading shell, six workshop loading routes rewired away from async `WorkshopPageShell`, route prefetch hook repaired and wired to sidebar/project/estimate entry points, three route error boundaries added, React Query stale time raised to five minutes.
+- Phase 2 proxy/auth correction: public page early return added before Supabase client creation while preserving `AUTH_REQUEST_PATH_HEADER`, `/workshop` protection, `/api` skip behavior, dev auth bypass, and `supabase.auth.getUser()`.
+
+**Validation summary:** `bun run type-check`, `bun run lint:design-system`, `bun run test`, targeted route/auth/workshop Vitest checks, `bun run build`, and auth Playwright smoke passed. Full `bun run lint` and `bun run test:dom` still fail on documented pre-existing share/publication/security-header/chart governance issues outside this slice.
+
+**Benchmark limitation:** This slice has build output, route inventory, and auth/proxy smoke evidence only. Full manual Chrome throttling traces, hover network screenshots, bfcache verification, and route-transition timing medians remain required before claiming full BETA-P0-PERF readiness.
+
+## Subsequent Phase Execution Update — 2026-05-31
+
+**Evidence:** `.ai/09_archive/store/2026-05-31-BETA-P0-PERF-001-route-transition-optimization-subsequent-phases/`
+
+**Implemented in this continuation:**
+- Phase 3 route-shell support: `WorkshopPageShell` now parallelizes user-context and side-panel cookie reads and wraps children in Suspense; project workspace child routes have a local `ProjectRouteContentFallback`; nested project estimates loading fallback now exists; `getCurrentWorkspaceProject()` remains request-local cached with React `cache()`.
+- Phase 4 bundle work: estimate workspace tree/content are loaded through a tiny client dynamic wrapper; `/workshop/library` lazy-loads `ComponentLibraryManager`; `ComponentLibraryManager` lazy-loads `AddComponentModal` and `LibraryFolderTreeSurface`; the landing `NeatWireframeBackground` is dynamically imported with `ssr: false`; D3 imports use submodules; the bubble chart is dynamically imported. A Next.js client-reference manifest comparison shows `/workshop/library` initial JS decreased from 618,452 bytes at `HEAD` to 231,552 bytes in this branch.
+- Phase 5 evidence: direct hook and table-level regression coverage prove debounced `router.prefetch()` and real estimate React Query prefetch queryFns. The duplicate repository-call audit did not add more cache wrappers because no profiling proof justified broader caching.
+- Phase 6 support: a manifest-only peak-load fixture script generates 50 projects, 1,500 estimates, and 300,000 row items without writing to Supabase. A local jsdom profile harness renders 50 project-estimate rows and 200 estimate-sheet rows and records a defer decision for virtualization/broad memoization until production Chrome React Profiler evidence proves the need.
+- Phase 7 support: `test:e2e:perf` now has budget config, public/protected/bfcache/Slow 3G/public Link-transition smoke coverage, production-like `next start` evidence, CI wiring, refreshed standalone `perf:measure-routes` JSON output with scenario filtering / overlay rate / RSC counts, focused public Contact medians, and local dev-auth authenticated workshop medians using the localhost-only dev-auth flags. A later evidence-contract fix separated hover-before-click requests from click-transition requests and showed that local dev-auth browser runs did not observe hover-before-click `_rsc` requests for sidebar, project-card, or estimate-row surfaces. Local Next.js docs/source inspection explains that gap for `next dev`: App Router prefetch URL creation is disabled in development, while the local authenticated bypass is development-only.
+
+**Validation summary:** `bun run type-check`, `bun run lint:design-system`, targeted ESLint, targeted route-transition Vitest, `bun run test`, `bun run build`, dev-server `test:e2e:perf`, production-like `next start` `test:e2e:perf`, focused standalone `perf:measure-routes` no-throttle and Slow 3G Contact-route runs, local dev-auth standalone workshop route runs, isolated authenticated transition smoke, and project-card/estimate-row hover evidence recording passed. Full `bun run lint`, `bun run test:dom`, and full `bun run test:e2e` still fail or cannot complete because of unrelated share/publication/landing validation debt outside this route-transition scope.
+
+**Do not archive yet:** The route-transition plan folder should not be moved to `.ai/09_archive` until either the unrelated global validation debt is resolved or the owner explicitly narrows the completion gate, and the remaining manual screenshot / production-authenticated / Chrome Profiler / Lighthouse / full bundle-analyzer evidence is captured.
 
 ---
 

@@ -1,0 +1,11 @@
+
+Running 1 test using 1 worker
+
+(node:14235) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:14235) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+route-transition-public-link-medians {"runs":[{"from":"/features","to":"/pricing","durationMs":11930,"overlayVisible":true},{"from":"/features","to":"/pricing","durationMs":4425,"overlayVisible":true},{"from":"/features","to":"/pricing","durationMs":2865,"overlayVisible":true},{"from":"/features","to":"/pricing","durationMs":997,"overlayVisible":true},{"from":"/features","to":"/pricing","durationMs":8667,"overlayVisible":true}],"medianMs":4425,"overlayVisibilityRate":1}
+  ✓  1 [chromium] › e2e/route-transition-performance.spec.ts:165:7 › route transition performance evidence › captures Link-based public route transition medians and overlay visibility (55.9s)
+
+  1 passed (1.3m)
