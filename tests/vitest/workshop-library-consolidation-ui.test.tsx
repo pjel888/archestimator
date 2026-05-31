@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import type { DraggingPosition, TreeItem, TreeItemIndex, TreeViewState } from "react-complex-tree";
 
 import { LibraryPageClient } from "@/components/workshop/LibraryPageClient";
@@ -11,6 +11,10 @@ import type { ComponentLibraryTaxonomyNode } from "@/lib/component-library/taxon
 
 function todayIsoDate() {
   return new Date().toISOString().slice(0, 10);
+}
+
+async function waitForLibraryWorkspace() {
+  await screen.findByRole("tablist", { name: "Library views" }, { timeout: 10_000 });
 }
 
 const actionMocks = vi.hoisted(() => ({
@@ -221,6 +225,11 @@ const sharedLibraryItems: EstimateRowItem[] = [
 ];
 
 describe("workshop library consolidation UI", () => {
+  beforeAll(async () => {
+    await import("@/components/workshop/component-library-manager/ComponentLibraryManager");
+    await import("@/components/workshop/component-library-manager/AddComponentModal");
+  }, 60_000);
+
   beforeEach(() => {
     actionMocks.createLibraryFolder.mockReset();
     actionMocks.createCostLibraryComponent.mockReset();
@@ -269,15 +278,15 @@ describe("workshop library consolidation UI", () => {
     expect(addComponentModal).toContain('accept="image/jpeg,image/png,image/webp,image/avif,.jpg,.jpeg,.png,.webp,.avif"');
     expect(addComponentModal).toContain("isImageUploadBusy(imageUpload.state)");
     expect(addComponentModal).toContain("disabled={isPending || imageBusy || attachmentBusy || validation.length > 0}");
-    expect(nextConfig).toContain('const protocol = url.protocol === "http:" ? "http" : url.protocol === "https:" ? "https" : null');
-    expect(nextConfig).toContain("remotePatterns: supabaseImageRemotePattern ? [supabaseImageRemotePattern] : []");
+    expect(nextConfig).toContain('url.protocol === "http:" ? "http" : url.protocol === "https:" ? "https" : null');
+    expect(nextConfig).toContain("remotePatterns: supabaseImageRemotePatterns");
     expect(nextConfig).not.toContain('hostname: "**"');
     const componentLibraryManager = readFileSync(join(process.cwd(), "src/components/workshop/component-library-manager/ComponentLibraryManager.tsx"), "utf8");
     expect(componentLibraryManager).toContain("imageUrl.protocol === storageUrl.protocol");
     expect(componentLibraryManager).toContain("imageUrl.port === storageUrl.port");
   });
 
-  it("renders Components as the only route tab with direct folder scoped rows", () => {
+  it("renders Components as the only route tab with direct folder scoped rows", async () => {
     render(
       <LibraryPageClient
         categoryTree={sharedCategoryTree}
@@ -287,6 +296,7 @@ describe("workshop library consolidation UI", () => {
         libraryItems={sharedLibraryItems}
       />,
     );
+    await waitForLibraryWorkspace();
 
     const libraryTabs = screen.getByRole("tablist", { name: "Library views" });
     expect(within(libraryTabs).getAllByRole("tab").map((tab) => tab.textContent)).toEqual(["Components"]);
@@ -332,6 +342,7 @@ describe("workshop library consolidation UI", () => {
         libraryItems={sharedLibraryItems}
       />,
     );
+    await waitForLibraryWorkspace();
 
     const viewMode = screen.getByRole("group", { name: "Component view mode" });
     fireEvent.click(within(viewMode).getByRole("button", { name: "Suppliers" }));
@@ -370,6 +381,7 @@ describe("workshop library consolidation UI", () => {
         libraryItems={sharedLibraryItems}
       />,
     );
+    await waitForLibraryWorkspace();
 
     fireEvent.click(screen.getByRole("button", { name: "Add Component" }));
 
@@ -402,6 +414,7 @@ describe("workshop library consolidation UI", () => {
         libraryItems={sharedLibraryItems}
       />,
     );
+    await waitForLibraryWorkspace();
 
     const addComponentButton = screen.getByRole("button", { name: "Add Component" });
     expect(addComponentButton).not.toHaveTextContent("Add Component");
@@ -720,7 +733,7 @@ describe("workshop library consolidation UI", () => {
     await waitFor(() => expect(screen.queryByRole("dialog", { name: "Add Component" })).not.toBeInTheDocument());
   });
 
-  it("renders versioned components as ecommerce-style catalogue cards without lifecycle or history chrome", () => {
+  it("renders versioned components as ecommerce-style catalogue cards without lifecycle or history chrome", async () => {
     render(
       <LibraryPageClient
         categoryTree={sharedCategoryTree}
@@ -745,6 +758,7 @@ describe("workshop library consolidation UI", () => {
         ]}
       />,
     );
+    await waitForLibraryWorkspace();
 
     const sheet = screen.getByLabelText("Component sheet");
     const branch = within(sheet).getByLabelText("Fabrication component catalogue branch");
@@ -761,7 +775,7 @@ describe("workshop library consolidation UI", () => {
     expect(within(sheet).queryByLabelText("Lifecycle state for Database Steel Frame")).not.toBeInTheDocument();
   });
 
-  it("keeps supplier organization inside Components and scopes the sheet directly to suppliers", () => {
+  it("keeps supplier organization inside Components and scopes the sheet directly to suppliers", async () => {
     render(
       <LibraryPageClient
         categoryTree={sharedCategoryTree}
@@ -773,6 +787,7 @@ describe("workshop library consolidation UI", () => {
         libraryItems={sharedLibraryItems}
       />,
     );
+    await waitForLibraryWorkspace();
 
     const viewMode = screen.getByRole("group", { name: "Component view mode" });
     fireEvent.click(within(viewMode).getByRole("button", { name: "Suppliers" }));
@@ -799,6 +814,7 @@ describe("workshop library consolidation UI", () => {
         libraryItems={sharedLibraryItems}
       />,
     );
+    await waitForLibraryWorkspace();
 
     const environment = rctHarness.lastEnvironmentProps;
     expect(environment).toMatchObject({

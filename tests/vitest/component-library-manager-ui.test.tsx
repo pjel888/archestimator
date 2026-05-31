@@ -188,8 +188,8 @@ const unmatchedLibraryItem: EstimateRowItem = {
   pricingDate: "2026-05-22",
 };
 
-function renderLibrary(overrides: Partial<ComponentProps<typeof LibraryPageClient>> = {}) {
-  return render(
+async function renderLibrary(overrides: Partial<ComponentProps<typeof LibraryPageClient>> = {}) {
+  const result = render(
     <LibraryPageClient
       categoryTree={sharedCategoryTree}
       suppliers={[
@@ -202,6 +202,8 @@ function renderLibrary(overrides: Partial<ComponentProps<typeof LibraryPageClien
       {...overrides}
     />,
   );
+  await screen.findByLabelText("Component library tree", undefined, { timeout: 10_000 });
+  return result;
 }
 
 function getLibraryFolderButton(name: string) {
@@ -224,15 +226,28 @@ function getLibraryFolderArrowWithin(scope: HTMLElement, folderId: string) {
   return arrow as HTMLElement;
 }
 
+describe("component library manager bundle boundaries", () => {
+  it("keeps the library folder tree surface behind a named dynamic import", () => {
+    const managerSource = readFileSync(join(process.cwd(), "src/components/workshop/component-library-manager/ComponentLibraryManager.tsx"), "utf8");
+
+    expect(managerSource).toContain('import("./LibraryFolderTree").then((module) => module.LibraryFolderTreeSurface)');
+    expect(managerSource).not.toContain('from "./LibraryFolderTree"');
+    expect(managerSource).toContain('from "./library-folder-tree-shared"');
+  });
+});
+
 describe("component library manager UI", () => {
-  beforeAll(() => {
+  beforeAll(async () => {
+    await import("@/components/workshop/component-library-manager/ComponentLibraryManager");
+    await import("@/components/workshop/component-library-manager/AddComponentModal");
+
     if (!window.PointerEvent) {
       window.PointerEvent = MouseEvent as unknown as typeof PointerEvent;
     }
   });
 
-  it("renders the library workspace without the retired standalone manager chrome", () => {
-    renderLibrary();
+  it("renders the library workspace without the retired standalone manager chrome", async () => {
+    await renderLibrary();
 
     expect(screen.getByLabelText("Component library workspace")).toBeInTheDocument();
     expect(screen.getByLabelText("Component library tree")).toBeInTheDocument();
@@ -274,8 +289,8 @@ describe("component library manager UI", () => {
     expect(screen.queryByText("Demo seed")).not.toBeInTheDocument();
   });
 
-  it("uses editable folder navigation and shows component leaves inside the library tree", () => {
-    renderLibrary();
+  it("uses editable folder navigation and shows component leaves inside the library tree", async () => {
+    await renderLibrary();
 
     const tree = screen.getByLabelText("Component library tree");
     const sheet = screen.getByLabelText("Component sheet");
@@ -383,8 +398,8 @@ describe("component library manager UI", () => {
     expect(within(sheet).queryByText("Database Steel Frame")).not.toBeInTheDocument();
   });
 
-  it("moves supplier organization under Components instead of a top-level Suppliers tab", () => {
-    renderLibrary();
+  it("moves supplier organization under Components instead of a top-level Suppliers tab", async () => {
+    await renderLibrary();
 
     const viewMode = screen.getByRole("group", { name: "Component view mode" });
     expect(screen.getByText("View By")).toBeInTheDocument();
@@ -410,8 +425,8 @@ describe("component library manager UI", () => {
     expect(screen.queryByLabelText("Library row collection")).not.toBeInTheDocument();
   });
 
-  it("adds Brand as a component organization view and scopes the sheet directly to brands", () => {
-    renderLibrary();
+  it("adds Brand as a component organization view and scopes the sheet directly to brands", async () => {
+    await renderLibrary();
 
     const viewMode = screen.getByRole("group", { name: "Component view mode" });
     fireEvent.click(within(viewMode).getByRole("button", { name: "Brand" }));
@@ -433,7 +448,7 @@ describe("component library manager UI", () => {
   });
 
   it("uses the same working folder expanders inside the Add Component modal", async () => {
-    renderLibrary();
+    await renderLibrary();
 
     fireEvent.click(screen.getByRole("button", { name: "Add Component" }));
 
@@ -454,7 +469,7 @@ describe("component library manager UI", () => {
   });
 
   it("runs rename and delete folder actions inside the Add Component modal tree", async () => {
-    renderLibrary();
+    await renderLibrary();
 
     fireEvent.click(screen.getByRole("button", { name: "Add Component" }));
 
@@ -489,7 +504,7 @@ describe("component library manager UI", () => {
   });
 
   it("keeps supplier typing in the current Add Component tree view and stages the supplier folder", async () => {
-    renderLibrary();
+    await renderLibrary();
 
     fireEvent.click(screen.getByRole("button", { name: "Add Component" }));
 
@@ -514,7 +529,7 @@ describe("component library manager UI", () => {
   });
 
   it("keeps brand typing in the current Add Component tree view and stages the brand folder", async () => {
-    renderLibrary();
+    await renderLibrary();
 
     fireEvent.click(screen.getByRole("button", { name: "Add Component" }));
 
@@ -539,7 +554,7 @@ describe("component library manager UI", () => {
   });
 
   it("opens a cost manager with timestamped component cost data", async () => {
-    renderLibrary();
+    await renderLibrary();
 
     fireEvent.click(screen.getByRole("button", { name: "Add Component" }));
 
@@ -568,7 +583,7 @@ describe("component library manager UI", () => {
   });
 
   it("renders unit dropdowns with clear code and meaning columns", async () => {
-    renderLibrary();
+    await renderLibrary();
 
     fireEvent.click(screen.getByRole("button", { name: "Add Component" }));
 
@@ -607,8 +622,8 @@ describe("component library manager UI", () => {
     expect(dimensionUnitOptions.querySelector('[data-combobox-option-meaning="Millimeter"]')).toHaveTextContent("Millimeter");
   });
 
-  it("removes collection dropdown behavior instead of hiding it", () => {
-    renderLibrary({ libraryItems: [...sharedLibraryItems, unmatchedLibraryItem] });
+  it("removes collection dropdown behavior instead of hiding it", async () => {
+    await renderLibrary({ libraryItems: [...sharedLibraryItems, unmatchedLibraryItem] });
 
     expect(screen.queryByLabelText("Library row collection")).not.toBeInTheDocument();
     expect(screen.queryByRole("option", { name: "Estimate Row Items" })).not.toBeInTheDocument();
@@ -629,8 +644,8 @@ describe("component library manager UI", () => {
     expect(source).not.toContain("supplier-row-items");
   });
 
-  it("does not expose template UI inside the component route", () => {
-    renderLibrary();
+  it("does not expose template UI inside the component route", async () => {
+    await renderLibrary();
 
     expect(screen.queryByRole("tab", { name: "Templates" })).not.toBeInTheDocument();
     expect(screen.queryByText("All Templates")).not.toBeInTheDocument();
@@ -639,7 +654,7 @@ describe("component library manager UI", () => {
   });
 
   it("opens right-click actions on editable library folders", async () => {
-    renderLibrary();
+    await renderLibrary();
 
     fireEvent.contextMenu(getLibraryFolderButton("Fabrication"), { clientX: 16, clientY: 16 });
 
@@ -649,8 +664,8 @@ describe("component library manager UI", () => {
     expect(screen.getByRole("menuitem", { name: "Delete" })).toBeInTheDocument();
   });
 
-  it("searches folder labels without reintroducing procurement scopes as category folders", () => {
-    render(<LibraryPageClient />);
+  it("searches folder labels without reintroducing procurement scopes as category folders", async () => {
+    await renderLibrary();
 
     fireEvent.change(screen.getByLabelText("Search component library tree"), { target: { value: "luminaire" } });
 

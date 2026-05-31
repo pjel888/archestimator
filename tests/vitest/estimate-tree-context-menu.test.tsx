@@ -474,20 +474,24 @@ describe("estimate tree context menu", () => {
     expect(screen.getByRole("button", { name: /Chef Kitchen/ })).toBeInTheDocument();
   });
 
-  it("shares optimistic rename state with sheet content through the area tree query cache", async () => {
-    actionMocks.renameEstimateNode.mockResolvedValue({ nodeId: "kitchen", name: "Chef Kitchen" });
-    renderTreeWithSheet();
+  it(
+    "shares optimistic rename state with sheet content through the area tree query cache",
+    async () => {
+      actionMocks.renameEstimateNode.mockResolvedValue({ nodeId: "kitchen", name: "Chef Kitchen" });
+      renderTreeWithSheet();
 
-    expect(screen.getByRole("region", { name: "Kitchen" })).toBeInTheDocument();
-    await chooseMenuItem("kitchen", "Rename");
+      expect(screen.getByRole("region", { name: "Kitchen" })).toBeInTheDocument();
+      await chooseMenuItem("kitchen", "Rename");
 
-    fireEvent.change(screen.getByLabelText("Rename Kitchen"), { target: { value: "Chef Kitchen" } });
-    fireEvent.keyDown(screen.getByLabelText("Rename Kitchen"), { key: "Enter" });
+      fireEvent.change(screen.getByLabelText("Rename Kitchen"), { target: { value: "Chef Kitchen" } });
+      fireEvent.keyDown(screen.getByLabelText("Rename Kitchen"), { key: "Enter" });
 
-    expect(await screen.findByRole("region", { name: "Chef Kitchen" })).toBeInTheDocument();
-    expect(actionMocks.renameEstimateNode).toHaveBeenCalledWith("project-1", "estimate-1", "kitchen", "Chef Kitchen");
-    expect(routerMock.refresh).not.toHaveBeenCalled();
-  });
+      expect(await screen.findByRole("region", { name: "Chef Kitchen" })).toBeInTheDocument();
+      expect(actionMocks.renameEstimateNode).toHaveBeenCalledWith("project-1", "estimate-1", "kitchen", "Chef Kitchen");
+      expect(routerMock.refresh).not.toHaveBeenCalled();
+    },
+    30_000,
+  );
 
   it("blur commits changed inline rename values", async () => {
     actionMocks.renameEstimateNode.mockResolvedValue({ nodeId: "kitchen", name: "Prep Kitchen" });

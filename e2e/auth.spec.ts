@@ -4,12 +4,12 @@ test("protected workshop projects redirects signed-out users to login", async ({
   await page.goto("/workshop/projects");
 
   await expect(page).toHaveURL(/\/login\?next=%2Fworkshop%2Fprojects/);
-  await expect(page.getByRole("heading", { name: "Sign in to workshop" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Sign in to Archestimator" })).toBeVisible();
 });
 
 test("login page keeps compact shared-control UI visible", async ({ page }) => {
   await page.goto("/login?next=/workshop/projects");
 
-  await expect(page.getByPlaceholder("philipjonlewis@gmail.com")).toBeVisible();
-  await expect(page.getByRole("button", { name: "Send magic link" })).toBeVisible();
+  await expect(page.getByPlaceholder("name@example.com")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Send sign-in link" })).toBeVisible();
 });

@@ -16,6 +16,18 @@ vi.mock("next/headers", () => ({
   cookies: vi.fn(async () => ({ get: vi.fn(() => undefined) })),
 }));
 
+vi.mock("next/navigation", () => ({
+  usePathname: () => "/workshop/projects/project-1/estimates/main-house",
+  useRouter: () => ({
+    prefetch: vi.fn(),
+    push: vi.fn(),
+    replace: vi.fn(),
+    refresh: vi.fn(),
+    back: vi.fn(),
+    forward: vi.fn(),
+  }),
+}));
+
 function renderEstimateSheet(selectedNodeId: string) {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
   return render(
@@ -399,15 +411,14 @@ describe("estimate sheet cost inputs", () => {
   });
 
   it("inserts from the production sidebar direct callback path", async () => {
-    const user = userEvent.setup();
     render(
       <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } })}>
-        <EstimateSheetContent selectedNodeId="kitchen" estimateId="estimate-sidebar-test" renderSidebar />
+        <EstimateSheetContent selectedNodeId="kitchen" estimateId="estimate-sidebar-test" renderSidebar libraryItems={[estimateLibraryItems[0]]} />
       </QueryClientProvider>,
     );
 
-    await user.click(screen.getByRole("button", { name: "Expand all library tree" }));
-    await user.click((await screen.findAllByLabelText(/^add to kitchen:/i))[0]);
+    fireEvent.click(screen.getByRole("button", { name: "Expand all library tree" }));
+    fireEvent.click(await screen.findByLabelText(/^add to kitchen:/i));
 
     const kitchenSection = screen.getByLabelText("Kitchen");
     await waitFor(() => expect(within(kitchenSection).getAllByRole("spinbutton").length).toBeGreaterThan(0));

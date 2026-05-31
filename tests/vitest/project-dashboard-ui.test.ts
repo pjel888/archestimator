@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
 const projectDashboardPage = readFileSync("src/app/workshop/projects/[projectId]/page.tsx", "utf8");
@@ -21,10 +21,17 @@ const estimateSheetTree = readFileSync("src/components/workshop/EstimateSheetTre
 const estimateSheetContent = readFileSync("src/components/workshop/EstimateSheetContent.tsx", "utf8");
 const estimateComponentLibrary = readFileSync("src/components/workshop/component-library/index.tsx", "utf8");
 const projectEstimatesPage = readFileSync("src/app/workshop/projects/[projectId]/estimates/page.tsx", "utf8");
+const projectEstimatesLoadingPath = "src/app/workshop/projects/[projectId]/estimates/loading.tsx";
+const projectEstimatesLoading = existsSync(projectEstimatesLoadingPath) ? readFileSync(projectEstimatesLoadingPath, "utf8") : "";
 const projectEstimatesClient = readFileSync("src/components/workshop/ProjectEstimatesClient.tsx", "utf8");
+const projectEstimateNodePage = readFileSync("src/app/workshop/projects/[projectId]/estimates/[nodeId]/page.tsx", "utf8");
+const estimateWorkspaceClientPath = "src/components/workshop/EstimateWorkspaceClient.tsx";
+const estimateWorkspaceClient = existsSync(estimateWorkspaceClientPath) ? readFileSync(estimateWorkspaceClientPath, "utf8") : "";
 const projectChartsPage = readFileSync("src/app/workshop/projects/[projectId]/charts/page.tsx", "utf8");
 const projectChartsClient = readFileSync("src/components/workshop/project-charts/ProjectChartsClient.tsx", "utf8");
 const projectCostDonutChart = readFileSync("src/components/workshop/project-charts/ProjectCostDonutChart.tsx", "utf8");
+const sharedCostDonutChart = readFileSync("src/components/charts/CostDonutChart.tsx", "utf8");
+const projectCostBubbleChart = readFileSync("src/components/workshop/project-charts/ProjectCostBubbleChart.tsx", "utf8");
 const globalsCss = readFileSync("src/app/globals.css", "utf8");
 
 describe("project dashboard UI governance", () => {
@@ -88,15 +95,47 @@ describe("project dashboard UI governance", () => {
   });
 
   it("keeps D3 shape rendering isolated to the project charts feature", () => {
-    expect(projectCostDonutChart).toContain('from "d3"');
+    expect(projectCostDonutChart).not.toContain('from "d3"');
+    expect(projectCostBubbleChart).not.toContain('from "d3"');
+    expect(projectCostBubbleChart).not.toContain('from "d3";');
+    expect(sharedCostDonutChart).toContain('from "d3-shape"');
+    expect(projectCostBubbleChart).toContain('from "d3-hierarchy"');
     expect(projectDashboardClient).not.toContain('from "d3"');
     expect(projectEstimatesClient).not.toContain('from "d3"');
     expect(estimateSheetContent).not.toContain('from "d3"');
   });
 
+  it("keeps estimate workspace client components behind named dynamic imports", () => {
+    expect(estimateWorkspaceClient).not.toBe("");
+    expect(projectEstimateNodePage).toContain("EstimateWorkspaceClient");
+    expect(projectEstimateNodePage).not.toContain('import { EstimateSheetContent }');
+    expect(projectEstimateNodePage).not.toContain('import { EstimateSheetTree }');
+    expect(estimateWorkspaceClient).toContain("dynamic(() =>");
+    expect(estimateWorkspaceClient).toContain("module.EstimateSheetTree");
+    expect(estimateWorkspaceClient).toContain("module.EstimateSheetContent");
+  });
+
+  it("provides a nested loading fallback for project estimate list transitions", () => {
+    expect(projectEstimatesLoading).not.toBe("");
+    expect(projectEstimatesLoading).toContain("ProjectRouteContentFallback");
+    expect(projectEstimatesLoading).not.toContain("WorkshopPageShell");
+    expect(projectEstimatesLoading).not.toContain("cookies()");
+    expect(projectEstimatesLoading).not.toContain("getCurrentUserContext");
+  });
+
+  it("keeps the non-default project bubble chart behind a named dynamic import", () => {
+    expect(projectChartsClient).toContain("dynamic(() =>");
+    expect(projectChartsClient).toContain("module.ProjectCostBubbleChart");
+    expect(projectChartsClient).not.toContain('import { ProjectCostBubbleChart }');
+  });
+
   it("locks page-level scrolling only while the workshop shell is mounted", () => {
     expect(workshopPageShell).toContain("data-workshop-page-shell-root");
     expect(workshopPageShell).toContain("h-[100dvh] overflow-hidden");
+    expect(workshopPageShell).toContain("Promise.all([");
+    expect(workshopPageShell).toContain("<Suspense fallback={<WorkshopShellContentFallback />}>");
+    expect(workshopPageShell).toContain("function WorkshopShellContentFallback()");
+    expect(workshopPageShell).not.toContain("Modern Bungalow");
     expect(globalsCss).toContain("body:has([data-workshop-page-shell-root])");
     expect(globalsCss).toContain("overflow: hidden");
     expect(globalsCss).not.toContain("body {\\n  overflow: hidden;");
@@ -244,7 +283,8 @@ describe("project dashboard UI governance", () => {
 
   it("gets the active header budget from the selected estimate sheet metadata", () => {
     expect(projectDashboardLayout).not.toContain("readProjectBudget");
-    expect(projectDashboardLayout).toContain("<ProjectTotalHeader projectId={projectId} />");
+    expect(projectDashboardLayout).toContain("projectId={projectId}");
+    expect(workshopPageShell).toContain("<ProjectTotalHeader projectId={projectId} />");
     expect(projectTotalHeader).toContain("usePathname");
     expect(projectTotalHeader).toContain("pathname?.startsWith(`/workshop/projects/${projectId}/estimates/`)");
     expect(projectTotalHeader).toContain("if (!isEstimateSheetRoute) return null;");
