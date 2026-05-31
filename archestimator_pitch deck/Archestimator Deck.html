@@ -676,6 +676,53 @@
   .sparkline i{display:block;flex:1;border-radius:5px 5px 0 0;background:var(--line-2);}
   .sparkline i.hot{background:linear-gradient(180deg,#FF8A2B,#E95D1A);}
   .delta{font-family:'IBM Plex Mono',monospace;font-size:17px;font-weight:600;text-align:right;color:var(--accent-ink);}
+  .intel-body{flex-direction:column;gap:18px;justify-content:flex-start;}
+  .intel-thesis{
+    max-width:1030px;font-size:23px;line-height:1.28;color:var(--ink-2);margin:0;
+  }
+  .intel-flywheel{display:grid;grid-template-columns:.9fr 1.15fr .95fr;gap:18px;align-items:stretch;}
+  .intel-panel{position:relative;padding:20px 22px;border-radius:14px;min-height:390px;display:flex;flex-direction:column;gap:16px;}
+  .intel-panel:nth-child(-n+2)::after{
+    content:"→";position:absolute;right:-24px;top:48%;width:30px;height:30px;border-radius:50%;
+    display:grid;place-items:center;background:rgba(255,255,255,.92);border:1px solid var(--line);
+    color:var(--accent-ink);font-size:18px;font-weight:700;box-shadow:0 12px 28px -24px rgba(40,28,12,.8);z-index:2;
+  }
+  .intel-kicker{
+    font-family:'IBM Plex Mono',monospace;font-size:13px;letter-spacing:.13em;text-transform:uppercase;color:var(--accent-ink);
+  }
+  .intel-panel h3{font-size:28px;line-height:1.02;letter-spacing:-.018em;margin:0;color:var(--ink);}
+  .intel-panel p{font-size:17px;line-height:1.28;color:var(--ink-2);margin:0;}
+  .memory-stack{display:grid;gap:10px;margin-top:2px;}
+  .memory-layer{display:grid;grid-template-columns:54px 1fr;gap:12px;align-items:start;padding:12px 12px;border:1px solid var(--line);border-radius:11px;background:rgba(255,255,255,.72);}
+  .memory-layer .code{font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:.09em;text-transform:uppercase;color:var(--ink-3);padding-top:2px;}
+  .memory-layer b{display:block;font-size:17px;line-height:1.12;color:var(--ink);margin-bottom:3px;}
+  .memory-layer span{display:block;font-size:14px;line-height:1.22;color:var(--ink-3);}
+  .benchmark-panel{background:linear-gradient(180deg,#fff 0%,rgba(255,255,255,.84) 100%);}
+  .benchmark-head{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;}
+  .benchmark-chip{font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--accent-ink);border:1px solid rgba(255,122,26,.34);background:rgba(255,122,26,.08);border-radius:999px;padding:7px 10px;white-space:nowrap;}
+  .benchmark-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .benchmark-metric{padding:14px 14px 13px;border:1px solid var(--line);border-radius:12px;background:#fff;}
+  .benchmark-metric .label{font-size:15px;font-weight:650;color:var(--ink);line-height:1.12;margin-bottom:10px;}
+  .benchmark-metric .value{font-size:28px;font-weight:750;letter-spacing:-.02em;color:var(--accent-ink);line-height:1;}
+  .benchmark-metric .value small{font-size:14px;font-weight:600;color:var(--ink-3);letter-spacing:0;margin-left:3px;}
+  .benchmark-metric .basis{font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.07em;text-transform:uppercase;color:var(--ink-3);margin-top:8px;}
+  .variance-chart{display:grid;grid-template-columns:105px 1fr 46px;align-items:center;gap:10px;padding:12px 13px;border:1px solid var(--line);border-radius:12px;background:rgba(245,239,230,.66);}
+  .variance-chart .scope{font-size:15px;font-weight:650;color:var(--ink);}
+  .variance-track{height:10px;border-radius:99px;background:var(--line);overflow:hidden;}
+  .variance-track i{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,#FFB15F,#E95D1A);}
+  .variance-chart .pct{font-family:'IBM Plex Mono',monospace;font-size:13px;color:var(--accent-ink);font-weight:600;text-align:right;}
+  .intel-flow-note{display:flex;align-items:center;gap:10px;margin-top:auto;font-size:14px;color:var(--ink-3);}
+  .intel-flow-note::before{content:"";width:8px;height:8px;background:var(--accent);border-radius:2px;transform:rotate(45deg);flex:0 0 auto;}
+  .market-signal-list{display:grid;gap:11px;}
+  .market-signal{display:grid;grid-template-columns:92px 1fr 44px;align-items:center;gap:9px;}
+  .market-signal .name{font-size:15px;font-weight:650;color:var(--ink);}
+  .signal-track{height:30px;display:flex;align-items:flex-end;gap:4px;}
+  .signal-track i{display:block;flex:1;border-radius:4px 4px 0 0;background:var(--line-2);}
+  .signal-track i.hot{background:linear-gradient(180deg,#FF8A2B,#E95D1A);}
+  .market-signal .delta{font-size:14px;}
+  .intel-disclaimer{
+    margin-top:auto;padding-top:12px;border-top:1px solid var(--line);font-size:13px;line-height:1.28;color:var(--ink-3);
+  }
 
   /* status board (s9) */
   .board{display:flex;flex-direction:column;gap:13px;}
@@ -1317,47 +1364,78 @@
   <section data-label="Data Intelligence" class="slide alt">
     <div class="head">
       <div class="eyebrow"><span class="n">14</span> Data Intelligence · Emerging Opportunity</div>
-      <h2 class="title">Every estimate can build a living picture of real costs.</h2>
+      <h2 class="title">Every estimate becomes cost intelligence the next proposal can use.</h2>
     </div>
-    <div class="body" style="gap:52px;align-items:center;">
-      <div style="flex:1;display:flex;flex-direction:column;gap:20px;">
-        <ul class="pts">
-          <li>As teams estimate, Archestimator captures structured, ground-level cost signals: materials, rates, suppliers, and assumptions over time.</li>
-          <li>Aggregated and anonymized, those signals could show how real construction costs move before they appear in formal reports.</li>
-          <li>That creates a long-term path toward benchmarking, research, and broader economic insight.</li>
-        </ul>
-        <p style="margin:0;font-size:var(--type-small);color:var(--ink-3);line-height:1.4;max-width:58ch;">An emerging opportunity, to be explored responsibly after core product validation. Not a current commercial claim.</p>
-      </div>
-      <div style="flex:0 0 42%;">
-        <div class="card intel-board">
-          <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:20px;">
+    <div class="body intel-body">
+      <p class="intel-thesis">The first data product is not a public index. It is a team's own estimating memory: what comparable projects cost, where variance appears, which assumptions held, and how confidently the next scope can start.</p>
+      <div class="intel-flywheel">
+        <div class="card intel-panel">
+          <div class="intel-kicker">01 Capture</div>
+          <h3>Proposal logic becomes structured data.</h3>
+          <p>Archestimator records the context behind each price, not only the final number.</p>
+          <div class="memory-stack">
+            <div class="memory-layer"><div class="code">Scope</div><div><b>Project DNA</b><span>type, size, floor count, room mix, location</span></div></div>
+            <div class="memory-layer"><div class="code">Cost</div><div><b>Estimate lines</b><span>qty, unit, supplier, rate, misc, adjustment</span></div></div>
+            <div class="memory-layer"><div class="code">Truth</div><div><b>Assumptions</b><span>notes, alternates, revisions, approvals</span></div></div>
+          </div>
+          <div class="intel-flow-note">Inputs stay reusable instead of disappearing into one-off files.</div>
+        </div>
+        <div class="card intel-panel benchmark-panel">
+          <div class="benchmark-head">
             <div>
-              <div style="font-family:'IBM Plex Mono',monospace;font-size:var(--type-small);letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3);">Ground-level cost signals</div>
-              <div style="font-size:24px;font-weight:650;line-height:1.08;margin-top:9px;">Illustrative category index</div>
+              <div class="intel-kicker">02 Benchmark</div>
+              <h3>Cost estimating prowess becomes visible.</h3>
             </div>
-            <div class="chip" style="font-size:13px;padding:8px 12px;">Anonymized</div>
+            <div class="benchmark-chip">Illustrative</div>
           </div>
-          <div class="signal-row">
-            <div><div class="name">Concrete</div><div class="meta">materials</div></div>
-            <div class="sparkline"><i style="height:42%"></i><i style="height:50%"></i><i style="height:47%"></i><i class="hot" style="height:63%"></i><i class="hot" style="height:72%"></i><i class="hot" style="height:78%"></i></div>
-            <div class="delta">+8%</div>
+          <div class="benchmark-grid">
+            <div class="benchmark-metric">
+              <div class="label">10-storey residential</div>
+              <div class="value">₱72k<small>/ sqm</small></div>
+              <div class="basis">avg accepted scope</div>
+            </div>
+            <div class="benchmark-metric">
+              <div class="label">3BR condo fit-out</div>
+              <div class="value">₱38k<small>/ sqm</small></div>
+              <div class="basis">prior comparable set</div>
+            </div>
+            <div class="benchmark-metric">
+              <div class="label">Kitchen-heavy scopes</div>
+              <div class="value">+14%</div>
+              <div class="basis">typical variance</div>
+            </div>
+            <div class="benchmark-metric">
+              <div class="label">Supplier delta</div>
+              <div class="value">7%</div>
+              <div class="basis">median spread</div>
+            </div>
           </div>
-          <div class="signal-row">
-            <div><div class="name">Steel</div><div class="meta">structural</div></div>
-            <div class="sparkline"><i class="hot" style="height:76%"></i><i class="hot" style="height:72%"></i><i style="height:68%"></i><i style="height:64%"></i><i style="height:58%"></i><i style="height:55%"></i></div>
-            <div class="delta" style="color:var(--ink-2);">-3%</div>
+          <div class="variance-chart">
+            <div class="scope">Structure</div>
+            <div class="variance-track"><i style="width:72%"></i></div>
+            <div class="pct">₱/sqm</div>
           </div>
-          <div class="signal-row">
-            <div><div class="name">Furniture</div><div class="meta">fit-out</div></div>
-            <div class="sparkline"><i style="height:38%"></i><i style="height:43%"></i><i style="height:51%"></i><i class="hot" style="height:56%"></i><i style="height:52%"></i><i class="hot" style="height:61%"></i></div>
-            <div class="delta">+5%</div>
+          <div class="variance-chart">
+            <div class="scope">MEP</div>
+            <div class="variance-track"><i style="width:54%"></i></div>
+            <div class="pct">scope</div>
           </div>
-          <div class="signal-row">
-            <div><div class="name">Plumbing fixtures</div><div class="meta">suppliers</div></div>
-            <div class="sparkline"><i style="height:44%"></i><i style="height:48%"></i><i class="hot" style="height:58%"></i><i class="hot" style="height:71%"></i><i class="hot" style="height:86%"></i><i class="hot" style="height:92%"></i></div>
-            <div class="delta">+11%</div>
+          <div class="variance-chart">
+            <div class="scope">Fit-out</div>
+            <div class="variance-track"><i style="width:88%"></i></div>
+            <div class="pct">finish</div>
           </div>
-          <p style="margin:6px 0 0;font-size:14px;line-height:1.35;color:var(--ink-3);">Illustrative only: shows the type of benchmark view that could emerge after validation and responsible aggregation.</p>
+        </div>
+        <div class="card intel-panel">
+          <div class="intel-kicker">03 Aggregate</div>
+          <h3>Ground-level signals can emerge later.</h3>
+          <p>With consent, controls, and anonymization, repeated estimates could form useful market intelligence.</p>
+          <div class="market-signal-list">
+            <div class="market-signal"><div class="name">Concrete</div><div class="signal-track"><i style="height:42%"></i><i style="height:50%"></i><i style="height:47%"></i><i class="hot" style="height:63%"></i><i class="hot" style="height:72%"></i><i class="hot" style="height:78%"></i></div><div class="delta">+8%</div></div>
+            <div class="market-signal"><div class="name">Steel</div><div class="signal-track"><i class="hot" style="height:76%"></i><i class="hot" style="height:72%"></i><i style="height:68%"></i><i style="height:64%"></i><i style="height:58%"></i><i style="height:55%"></i></div><div class="delta" style="color:var(--ink-2);">-3%</div></div>
+            <div class="market-signal"><div class="name">Fixtures</div><div class="signal-track"><i style="height:44%"></i><i style="height:48%"></i><i class="hot" style="height:58%"></i><i class="hot" style="height:71%"></i><i class="hot" style="height:86%"></i><i class="hot" style="height:92%"></i></div><div class="delta">+11%</div></div>
+          </div>
+          <div class="intel-disclaimer">Emerging opportunity only. Benchmarking and broader market insight come after core product validation, customer consent, and responsible aggregation.</div>
         </div>
       </div>
     </div>
@@ -1595,7 +1673,7 @@
     "Market. Construction-style estimating is the wedge and current proof case. The larger market is any quote-heavy team that repeatedly prepares itemized commercial offers.",
     "Advantage. Frame the disruption clearly: Excel is flexible but fragile, ERP is heavy and not proposal-first, and Archestimator owns the proposal-first middle with compounding cost intelligence.",
     "Domain model. The moat is structured memory: scope, costs, suppliers, revisions, client decisions, and AI draft context stay connected instead of resetting per file.",
-    "Data intelligence. Forward-looking and clearly framed as emerging. Every estimate can become structured, ground-level cost data. Aggregated and anonymized, that could support benchmarking and research after core product validation.",
+    "Data intelligence. The first data product is a team's own estimating memory: project DNA, estimate lines, assumptions, and approvals reveal estimating prowess through benchmarks such as cost per sqm, variance by scope, and supplier spread. Broader anonymized market signals are a later responsible aggregation opportunity after validation and consent.",
     "Status. Be honest and confident: pre-launch MVP, bootstrapped, no customers, revenue, funding, or partnerships yet. Substantial product depth is already built; next step is structured beta validation and paid pilots.",
     "Business model. B2B SaaS begins with solo and small-team quote builders, then expands into shared workspaces, proposal operations, AI drafting, and business accounts. Paid pilots validate willingness to pay before fixed prices are claimed.",
     "Founder-led roadmap. Archestimator is still early, but it already has solo-founder product depth across architecture, software, design, and estimating. The next six months are simple: ship a usable MVP, validate with real teams, and convert the strongest learning into paid pilot proof.",
