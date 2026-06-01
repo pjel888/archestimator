@@ -15,6 +15,7 @@ This audit maps the active MVP launch goal in `codex-autopilot-goal.md` to curre
 | Local build refresh | `e6cf52b`, `bun run build` passed under Next.js 16.2.6 / Turbopack with 29 static pages. |
 | Manual/provider proof matrix | `46-manual-proof-matrix.md`, with packet template `48-manual-proof-packet-template.md`; all P0 rows still missing. |
 | Supabase read-only provider evidence | `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/supabase-read-only-cli-2026-06-02.md`; backup list showed PITR disabled and no listed backups; security advisor returned WARN findings; migration/performance CLI reads were blocked by the temp-role pooler circuit breaker. |
+| Vercel read-only provider evidence | `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/vercel-read-only-cli-2026-06-02.md`; latest preview reached READY and protected `/api/health` returned ok through `vercel curl`, but `vercel env ls` found no env vars, plain curl returned Vercel 401 due to deployment protection, and rollback/production/custom-domain proof is missing. |
 
 ## Final Criteria Audit
 
@@ -43,7 +44,7 @@ These are required before the active goal can be marked complete:
 1. Supabase backup/PITR and restore-drill proof. Current CLI evidence says PITR is disabled and no backups are listed.
 2. Linked/staging Supabase migration, RLS, storage, and RPC allow/deny proof. Current CLI migration/performance reads are blocked by the linked temp-role pooler circuit breaker, and the security advisor returned WARN findings that require triage.
 3. Hosted auth allowlist smoke for allowed, denied, revoked, first-run, logout, and session-expiry states.
-4. Vercel deploy/env/health/rollback proof.
+4. Vercel deploy/env/health/rollback proof. Current preview health proof is partial only because env vars are absent, public health is deployment-protected, and rollback is not rehearsed.
 5. Resend DNS/delivery/webhook proof if visible email flows remain enabled.
 6. Excel plus one secondary spreadsheet app open/recalc/print proof.
 7. Project-specific unlink manual smoke with library unchanged proof.
