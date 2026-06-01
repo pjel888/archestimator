@@ -1,153 +1,131 @@
 # Launch Runbook
 
-## Pre-Launch Branch / PR Process
+Commit audited: `681c95e64864f283950a88dba304eaffe8f2f8b3`
+Runbook status: draft; **not approved for launch**.
 
-1. Create PRs by ticket group from `16-implementation-ticket-map.md`.
-2. Keep PRs small and reversible.
-3. Include Lore commit messages.
-4. Run targeted tests for each PR.
-5. Update `14-evidence-index.md` with final proof before launch PR merge.
+## Roles
 
-## Staging Deploy Process
+| Role | Owner | Responsibilities |
+| --- | --- | --- |
+| Launch lead | Philip | Go/no-go decision, scope lock, investor/beta messaging. |
+| Release engineer | Assigned release owner before `INFRA-001` starts | Vercel deploy, env, rollback, CI evidence. |
+| Database owner | Assigned database owner before `DATA-001` starts | Supabase migrations, RLS proof, backups, restore. |
+| Security owner | Assigned security owner before `SEC-001` starts | Threat model, RLS/API/storage proofs, secrets/log review. |
+| QA owner | Assigned QA owner before `QA-002` starts | Command baseline, E2E/manual matrix, evidence index. |
+| Support owner | Assigned support owner before `OBS-001` starts | Support inbox, incident response, beta feedback. |
+| Legal reviewer | Assigned legal reviewer before `LEGAL-001` starts | Terms, Privacy, Beta Agreement, AUP approval. |
 
-1. Merge implementation PRs into staging branch or deploy preview.
-2. Verify Vercel env:
-   - `NEXT_PUBLIC_ASK_FLIP_ENABLED=false`
-   - `AI_ASK_ENABLED=false`
-   - `AI_PACKAGE_BUILDER_ENABLED=false`
-   - Supabase URL/anon/service vars present as required.
-3. Run protected route smoke:
-   - `/login`
-   - `/auth/callback`
-   - `/workshop`
-   - `/workshop/library`
-   - `/workshop/templates`
-   - estimate sheet route
-   - export download route
-4. Capture deployment URL and smoke output.
+## Pre-Launch Preconditions
 
-## Supabase Migration Apply / Verify
+All of these must be complete before beta/investor launch:
 
-Use exact-file apply for linked remote migrations when other migrations are pending.
+1. `12-final-mvp-launch-gate.md` P0 gates pass.
+2. `14-evidence-index.md` contains current command results and manual proof artifacts.
+3. `AI-001` proves Ask Flip hidden and AI routes fail closed by default.
+4. `SEC-001` proves RLS/storage/API route boundaries.
+5. `EXP-001` produces a verified bid/BOQ workbook artifact.
+6. `LEGAL-001`, `OBS-001`, and `DATA-001` have owner sign-off.
 
-1. Review migration SQL.
-2. Run local migration tests.
-3. Apply exact file to linked Supabase.
-4. Verify function exists and grants are correct.
-5. Verify generated types include new RPC.
-6. Run direct SQL smoke in non-production/staging:
-   - linked row detaches,
-   - revision increments,
-   - event row inserted,
-   - source snapshot preserved.
-7. Capture output in evidence artifact.
+## Local Validation Baseline
 
-## Vercel Env Checklist
+Run from repo root:
 
-| Env var | Production default |
+```bash
+git status --short
+git rev-parse HEAD
+bun install --frozen-lockfile
+bun run type-check
+bun run lint
+bun run lint:design-system
+bun run test
+bun run test:dom
+bun run build
+bun run test:e2e
+```
+
+Current results at `681c95e`:
+
+- Pass: install, type-check, lint with warnings, design lint, unit tests, build.
+- Fail: `bun run test:dom`.
+- Blocked: `bun run test:e2e` because Playwright could not start its dev server while another Next dev server was active.
+
+Do not treat this baseline as launch-ready.
+
+## CI Comparison
+
+CI currently runs install, `bun run validate`, build, Chromium install, `bun run test:e2e`, and `bun run test:e2e:perf`. `validate` includes typecheck, lint, design lint, unit, and DOM tests. CI gaps:
+
+- Critical E2E specs can skip unless env flags are present.
+- CI does not prove Vercel env, Supabase linked RLS/storage, Resend delivery, legal sign-off, observability, HSTS, or backups.
+- Bun version uses `latest`; release gate should consider pinning.
+
+## Environment Setup Checklist
+
+| Area | Required |
 | --- | --- |
-| `NEXT_PUBLIC_ASK_FLIP_ENABLED` | `false` |
-| `AI_ASK_ENABLED` | `false` |
-| `AI_PACKAGE_BUILDER_ENABLED` | `false` |
-| Existing package-builder subflags | Can remain but are inert behind top-level false. |
-| Supabase vars | Present and production-correct. |
-| Provider API keys | Not required for disabled AI launch; if present, disabled route must still prevent calls. |
+| Vercel | `NEXT_PUBLIC_APP_URL`, `NEXT_PUBLIC_SITE_URL`, Supabase public vars, server-only service role, Resend vars, publication secrets, AI disable vars, monitoring vars. |
+| Supabase | Auth callback URLs for preview/staging/prod, RLS policies applied, storage buckets/policies, backup/PITR settings. |
+| Resend | Verified sender domain, DKIM/SPF/DMARC, webhook URL, webhook secret, reply-to/support inbox. |
+| AI | `NEXT_PUBLIC_ASK_FLIP_ENABLED=false`, `AI_ASK_ENABLED=false`, `AI_PACKAGE_BUILDER_ENABLED=false` for MVP. |
+| E2E | Safe staging credentials/flags; no production-mutating tests. |
 
-## Auth Callback Verification
+## Migration Procedure
 
-1. Open production/staging `/login`.
-2. Sign in with approved method.
-3. Confirm callback lands in `/workshop`.
-4. Confirm no forced onboarding/country gate.
-5. Confirm `/workshop/library` and `/workshop/templates` load under the same session.
-6. Capture timestamp and account used, with secrets redacted.
+1. Confirm `DATA-001` backup proof is complete.
+2. Freeze beta writes if migration touches live beta data.
+3. Run migration in staging.
+4. Run RLS/storage/schema verification queries.
+5. Run targeted app smoke.
+6. Apply to production only after staging proof.
+7. Record migration IDs, output, and rollback plan in `14-evidence-index.md`.
 
-## Smoke Test Sequence
+## Deployment Procedure
 
-1. Login.
-2. Open `/workshop`.
-3. Confirm Ask Flip footer absent.
-4. Open `/workshop/library`; search component by supplier/brand/category.
-5. Open `/workshop/templates`; preview a template.
-6. Open a project estimate.
-7. Edit a scalar row field.
-8. Insert/replace component row.
-9. Detach linked row to project-specific.
-10. Verify activity/history event.
-11. Download Excel bid workbook.
-12. Hit `/api/ai/ask` and `/api/ai/package-builder`; confirm 403 disabled and no provider logs.
+1. Confirm `git status --short` only contains intended changes.
+2. Confirm command baseline green.
+3. Confirm Vercel preview deployment green.
+4. Run preview smoke: public pages, login, workshop redirect, protected route, export if configured, share/invite if enabled.
+5. Promote/merge to production.
+6. Run production smoke.
+7. Monitor first 24/72 hours per `27-observability-monitoring-support-plan.md`.
 
-## Export Manual QA
+## Smoke Test Checklist
 
-1. Generate workbook from staging estimate fixture.
-2. Open in Excel, Numbers, LibreOffice, Google Sheets.
-3. Verify:
-   - sheet names,
-   - header block,
-   - general notes,
-   - no blank line totals,
-   - formulas,
-   - section summaries,
-   - VAT/contingency behavior,
-   - commercial blocks,
-   - print layout.
-4. Capture screenshots or notes with filename/date/totals.
+| Smoke | Required proof |
+| --- | --- |
+| Public landing/pricing/legal | Pages load; claims/legal copy accurate. |
+| Login | Google and magic link start, callback returns to `/workshop`. |
+| First workspace | New account has workspace/member and no dead end. |
+| Project | Create/list/open project. |
+| Estimate | Create/open/edit row/delete row/history remains correct. |
+| Library | Browse/create/insert component. |
+| Template | Browse/preview/insert template. |
+| Detached row | Detach linked row; edit row; source library unchanged. |
+| Export | Download workbook; formulas/open/print proof. |
+| Share/invite | Only if visible: email delivery, token access, revoked/expired denial. |
+| Support | Support link/inbox receives message. |
+| Monitoring | Synthetic error/uptime/export/auth alert reaches owner. |
 
-## Production Deploy
+## Rollback Plan
 
-1. Confirm all P0 checklist rows are Pass.
-2. Confirm owner sign-off.
-3. Deploy to production.
-4. Re-run smoke sequence against production without mutating dangerous data.
-5. Capture deployment URL and commit SHA.
+| Failure | Immediate action | Rollback |
+| --- | --- | --- |
+| Bad Vercel deploy | Stop beta/demo traffic. | Roll back to previous Vercel deployment and env set. |
+| Migration failure | Freeze writes. | Apply rollback migration or restore backup per `DATA-001`. |
+| Auth failure | Pause invites and public CTA. | Restore previous callback/env config. |
+| Resend failure | Hide email-dependent share/invite entry. | Revert email config or disable send UI. |
+| Export failure | Disable export CTA or revert export PR. | Previous workbook builder/deploy. |
+| AI visible/callable | Set global flags false; redeploy if needed. | Revert AI gate PR only after reactivation ADR. |
+| Security/RLS issue | Disable affected public/protected route. | Policy rollback or route-level block. |
 
-## First-Hour Monitoring
+## Incident Response
 
-Monitor:
+1. Classify severity using `29-beta-program-readiness-plan.md`.
+2. Preserve logs and affected user IDs without exposing PII in chat/docs.
+3. Disable affected feature if data/security risk exists.
+4. Notify beta users if their data/access is affected.
+5. Record incident timeline, root cause, fix, and prevention in `.ai/10_state/current-state.md` after resolution.
 
-- Vercel deployment logs.
-- Supabase errors.
-- Auth callback failures.
-- AI provider logs for unexpected calls.
-- Export route errors.
-- Client-side error tracking if configured.
+## Launch Stop Conditions
 
-## Rollback
-
-Immediate rollback triggers:
-
-- AI provider call observed with disabled env.
-- Auth callback fails.
-- Export workbook totals wrong.
-- Unlink corrupts row/history.
-- Vercel deploy unstable.
-
-Rollback actions:
-
-1. Set AI flags false and redeploy if AI leakage.
-2. Roll back Vercel deployment to last known good.
-3. Hide unlink UI if row issue.
-4. Drop unlink RPC only if function itself is unsafe.
-5. Disable export route/download if workbook totals are wrong.
-6. Record incident and repair plan in `.ai/10_state/current-state.md` and this plan folder.
-
-## Post-Launch Triage
-
-Within 24 hours:
-
-- Review errors.
-- Review first exported workbooks.
-- Review user feedback on library/templates/row detach.
-- Decide whether to reopen AI readiness plan.
-- Move completed launch package to archive only after evidence is complete.
-
-## Owner Sign-Off
-
-Owner: Philip Lewis
-
-Required before production:
-
-- [ ] P0 checklist pass.
-- [ ] Export commercial defaults approved.
-- [ ] Manual QA artifacts reviewed.
-- [ ] Production deploy approved.
+Stop launch immediately if any P0 gate in `12-final-mvp-launch-gate.md` regresses, if legal copy is misleading, if RLS/storage/auth proof fails, if export formulas are wrong, if no backup exists before migration, or if support/monitoring cannot receive incidents.

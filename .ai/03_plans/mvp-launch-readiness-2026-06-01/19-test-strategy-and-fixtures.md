@@ -1,5 +1,24 @@
 # Test Strategy and Fixtures
 
+## Third-Pass Test Gate
+
+Commit audited: `681c95e64864f283950a88dba304eaffe8f2f8b3`. Current validation is not launch-clean: `bun run test:dom` fails and `bun run test:e2e` was blocked by a local dev-server port collision. The MVP gate requires a fresh green baseline or a documented no-go.
+
+| Area | Required automated tests | Required manual QA | Current gap |
+| --- | --- | --- | --- |
+| AI deferral | UI hidden, routes disabled, provider/tool/write/audit not called. | Direct route POSTs and workshop footer check. | Tests not implemented; current AI visible. |
+| Auth/onboarding | Callback/proxy/magic link/first-run DOM/E2E. | New/returning/invited/expired-login journeys. | Hosted proof missing. |
+| Estimate editor | Create/open/duplicate/edit/delete/replace/history/activity. | Core smoke with real browser. | Matrix not complete. |
+| Component library | Search/filter/create/insert/empty/error/image-backed fixtures. | Demo library scan. | Needs P1 polish tests. |
+| Templates | Browse/preview/insert/empty/error fixtures. | Insert into empty and grouped estimate. | Needs P1 polish tests. |
+| Project-specific unlink | RPC/action/hook/UI/publication tests; library unchanged. | Detach and edit row. | Not implemented. |
+| Excel export | Model/workbook/formulas/route/preview/performance fixtures. | Excel + secondary app open/print. | Current formulas absent. |
+| Share/invite/email | Token/session/CSRF/RLS/webhook tests. | Send/open/revoke/expire/bounce. | Env-gated and provider proof missing. |
+| Security | RLS/storage denial, secret scan, XSS/CSRF. | Cross-workspace attempts. | Needs live/staging proof. |
+| Perf | Route transitions, export large fixture, no silent E2E skips. | Investor demo rehearsal. | Route/prod proof missing. |
+
+For E2E, document required flags and credentials: shared link, invite entry, collaboration, AI package builder, route-error smoke, and mutating DnD specs are env-gated and must not run against production with mutating credentials.
+
 ## Test Layers
 
 | Layer | Purpose | Command/examples |
