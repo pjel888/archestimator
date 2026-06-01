@@ -28,7 +28,7 @@ No Stripe, checkout, subscriptions, billing UI, invoices, paid tiers, pricing en
 - Current local app build refresh: `e6cf52b`, `bun run build` passed with Next.js 16.2.6 / Turbopack and 29 static pages.
 - Install, type-check, lint, design-system lint, unit tests, full DOM tests, and build passed locally.
 - Local signed-out auth E2E passed: `PLAYWRIGHT_PORT=3037 bun run test:e2e -- e2e/auth.spec.ts --project=chromium`, 2 tests in 9.9s.
-- Launch validation still lacks hosted/manual E2E, provider dashboard, backup/restore, deployment rollback, and spreadsheet-open proof.
+- Launch validation still lacks hosted/manual E2E, provider dashboard, backup/restore, deployment rollback, and spreadsheet-open proof. Local template insertion proof exists only for a throwaway estimate under the local smoke path.
 
 ### P0 Blockers
 
@@ -90,7 +90,7 @@ Hosted auth/RLS/Resend/deployment proof missing, E2E/manual smoke unproven, spre
 4. Spreadsheet open/print QA for the workbook.
 5. Resend delivery/webhook proof if email-dependent flows remain visible.
 6. Owner/counsel review of beta legal copy and monitored support inbox proof.
-7. Demo workspace/script rehearsal, hosted screenshots, and spreadsheet-app validated workbook fallback artifact. Local component/template screenshots and workbook artifact now exist, but they do not prove the hosted demo.
+7. Demo workspace/script rehearsal, hosted screenshots, and spreadsheet-app validated workbook fallback artifact. Local component/template screenshots, workbook artifact, and template insertion smoke proof now exist, but they do not prove the hosted demo.
 
 ## Readiness Scorecard
 
@@ -99,7 +99,7 @@ Hosted auth/RLS/Resend/deployment proof missing, E2E/manual smoke unproven, spre
 | Product core | 84 |
 | Estimate editor | 84 |
 | Component library | 90 |
-| Templates | 88 |
+| Templates | 91 |
 | Project-specific unlink | 86 |
 | Excel export | 88 |
 | Auth/onboarding | 82 |
@@ -110,7 +110,7 @@ Hosted auth/RLS/Resend/deployment proof missing, E2E/manual smoke unproven, spre
 | Performance/caching | 65 |
 | Observability/support | 78 |
 | QA/test coverage | 82 |
-| Investor demo readiness | 76 |
+| Investor demo readiness | 82 |
 | Beta readiness | 40 |
 
 Anything below 90 is not beta-ready. Any P0 domain below 95 blocks launch. No domain is 100 because launch evidence is incomplete.
