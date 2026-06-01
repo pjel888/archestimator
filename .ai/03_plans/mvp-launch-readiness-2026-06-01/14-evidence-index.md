@@ -119,6 +119,22 @@
 - Post-edit code-review-graph `detect_changes` against `HEAD` analyzed 4 changed files, 7 changed functions/classes, 0 affected flows, 5 source-level test gaps, and overall risk score 0.55.
 - Post-edit GitNexus `detect-changes --repo archestimator --scope staged` reported 4 changed files, 13 changed symbols, 3 affected `ComponentLibraryManager` flows, and medium risk. This is expected for visible sheet/card/search changes and is mitigated by focused manager UI coverage plus full DOM/build.
 
+### TPL-001 Template Library Polish Evidence
+
+- Design direction: compact template browser, optimized for quickly understanding reusable estimate structure before insertion. Signature differentiator: each template row now previews category, top-level structure, and sample row quantities directly in the sheet.
+- `TemplateLibraryManager` sheet tabs now show readable result counts such as `3 of 3 templates` and `1 of 1 template`.
+- Template sheet rows now expose a labeled preview region with `Structure`, category, representative group/area labels, `Sample rows`, and compact quantity/unit signals.
+- Focused red/green evidence: `bun run test:dom tests/vitest/template-library-manager-ui.test.tsx` first failed on the old `3 / 3` result-count copy, then passed 1 file / 1 test after the preview implementation.
+- `bun run type-check` passed.
+- `bun run lint` passed with the existing 14 warnings and 0 errors.
+- `bun run lint:design-system` passed.
+- `bun run test` passed 4 unit tests / 129 expectations.
+- `bun run test:dom` passed 127 files / 1009 tests with 2 skips.
+- `bun run build` passed.
+- `git diff --check` passed.
+- Post-edit code-review-graph `detect_changes` against `HEAD` analyzed 4 changed files, 7 changed functions/classes, 0 affected flows, 5 source-level test gaps, and overall risk score 0.40. The reported helper gaps are covered through `template-library-manager-ui.test.tsx` component rendering assertions.
+- Post-edit GitNexus `detect-changes --repo archestimator --scope staged` reported 4 changed files, 11 changed symbols, 0 affected processes, and low risk.
+
 ### Closed Beta Audit Evidence
 
 - Auth/proxy: `src/proxy.ts`, `src/lib/auth/actions.ts`, `src/app/auth/callback/route.ts`, `src/lib/auth/account-setup.ts`, `src/lib/auth/session.ts`.

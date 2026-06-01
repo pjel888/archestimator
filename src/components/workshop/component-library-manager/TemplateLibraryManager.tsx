@@ -48,6 +48,41 @@ function templateMatchesSheetQuery(template: EstimateTemplate, query: string): b
     .some((value) => normalizeLabel(value).includes(normalizedQuery));
 }
 
+function formatTemplateResultCount(visibleCount: number, totalCount: number): string {
+  const noun = totalCount === 1 ? "template" : "templates";
+  return `${visibleCount} of ${totalCount} ${noun}`;
+}
+
+function getTemplateStructure(template: EstimateTemplate): string[] {
+  const labels: string[] = [];
+  const visit = (nodes: EstimateTemplate["nodes"], depth = 0) => {
+    for (const node of nodes) {
+      if (depth <= 1) labels.push(node.name);
+      if (labels.length >= 4) return;
+      if (node.children?.length) visit(node.children, depth + 1);
+      if (labels.length >= 4) return;
+    }
+  };
+
+  visit(template.nodes);
+  return labels;
+}
+
+function getTemplateSampleRows(template: EstimateTemplate) {
+  const rows: EstimateTemplate["nodes"][number]["estimateRowItems"] = [];
+  const visit = (nodes: EstimateTemplate["nodes"]) => {
+    for (const node of nodes) {
+      if (node.estimateRowItems?.length) rows.push(...node.estimateRowItems);
+      if (rows.length >= 3) return;
+      if (node.children?.length) visit(node.children);
+      if (rows.length >= 3) return;
+    }
+  };
+
+  visit(template.nodes);
+  return rows.slice(0, 3);
+}
+
 function TemplateLibrarySheet({
   selectedNode,
   templates,
@@ -98,7 +133,7 @@ function TemplateLibrarySheet({
             {selectedLabel}
           </button>
           <span className="ml-auto self-center pr-2 text-[9px] font-medium text-tertiary">
-            {visibleTemplates.length} / {sheetTemplates.length}
+            {formatTemplateResultCount(visibleTemplates.length, sheetTemplates.length)}
           </span>
         </div>
       </header>
@@ -108,21 +143,56 @@ function TemplateLibrarySheet({
           <ul className="space-y-1" aria-label={`${selectedLabel} template rows`}>
             {visibleTemplates.map((template) => {
               const summary = summarizeEstimateTemplate(template);
+              const structure = getTemplateStructure(template);
+              const sampleRows = getTemplateSampleRows(template);
               return (
                 <li
                   key={template.id}
-                  className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 border-b border-hairline px-2 py-1.5 last:border-b-0"
+                  className="grid grid-cols-[minmax(0,1fr)_auto] gap-2 border-b border-hairline px-2 py-2 last:border-b-0"
                 >
                   <div className="min-w-0">
-                    <p className="truncate text-[10px] font-medium leading-4 text-ink">{template.name}</p>
-                    <p className="truncate text-[9px] font-medium leading-3 text-tertiary">
-                      {summary.groupCount} groups / {summary.areaCount} areas / {summary.rowCount} rows
-                    </p>
-                    <p className="truncate text-[9px] leading-3 text-tertiary/80">{template.description}</p>
+                    <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-2">
+                      <div className="min-w-0">
+                        <p className="truncate text-[10px] font-medium leading-4 text-ink">{template.name}</p>
+                        <p className="truncate text-[9px] font-medium leading-3 text-tertiary">
+                          {summary.groupCount} groups / {summary.areaCount} areas / {summary.rowCount} rows
+                        </p>
+                        <p className="truncate text-[9px] leading-3 text-tertiary/80">{template.description}</p>
+                      </div>
+                      <span className="font-sans text-[10px] font-medium tabular-nums text-ink">
+                        {pesoFormatter.format(summary.total)}
+                      </span>
+                    </div>
+                    <div
+                      className="mt-2 grid gap-2 border-l border-hairline pl-2 text-[9px] leading-4 text-tertiary sm:grid-cols-2"
+                      aria-label={`${template.name} template preview`}
+                    >
+                      <div className="min-w-0">
+                        <p className="font-medium text-ink">Structure</p>
+                        <p className="truncate">{template.category}</p>
+                        <div className="mt-1 flex flex-wrap gap-x-2 gap-y-0.5">
+                          {structure.map((label) => (
+                            <span key={label} className="max-w-full truncate">
+                              {label}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                      <div className="min-w-0">
+                        <p className="font-medium text-ink">Sample rows</p>
+                        <div className="mt-1 grid gap-0.5">
+                          {sampleRows.map((row) => (
+                            <div key={row.id} className="grid grid-cols-[minmax(0,1fr)_auto] gap-2">
+                              <span className="truncate">{row.material}</span>
+                              <span className="font-sans tabular-nums text-ink">
+                                {row.quantity} {row.unit}
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                  <span className="font-sans text-[10px] font-medium tabular-nums text-ink">
-                    {pesoFormatter.format(summary.total)}
-                  </span>
                 </li>
               );
             })}

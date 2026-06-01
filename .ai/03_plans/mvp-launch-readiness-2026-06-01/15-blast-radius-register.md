@@ -109,6 +109,17 @@ GitNexus impact was run before editing the component-library card/search/count s
 - `ComponentLibrarySheet` upstream impact: 2 impacted symbols through sheet panel/manager, 1 affected process (`ComponentLibraryManager`), risk `LOW`.
 
 Mitigation: keep the design within the existing compact catalogue direction, add no new dependencies, and lock pricing-source search, visible result counts, and pricing trust fields with `component-library-manager-ui.test.tsx`.
+
+## TPL-001 Template Library Polish Impact Evidence - 2026-06-02
+
+GitNexus impact was run before editing the template-library sheet/count/preview seams:
+
+- `TemplatesPageClient` upstream impact: 2 impacted symbols, direct dependents include `TemplatesPage` and `template-library-manager-ui.test.tsx`, 1 affected process (`TemplatesPage`), risk `LOW`.
+- `TemplateLibrarySheet` upstream impact: 3 impacted symbols through `TemplateLibraryManager` and `TemplatesPageClient`, 1 affected process (`TemplatesPage`), risk `LOW`.
+- `templateMatchesSheetQuery` upstream impact: 1 impacted symbol (`visibleTemplates`), 0 affected processes, risk `LOW`.
+- code-review-graph file-level impact for `TemplateLibraryManager.tsx` reported high risk across unrelated-looking graph nodes; this is treated as a broad/stale graph warning and mitigated with symbol-level GitNexus impact plus full local validation.
+
+Mitigation: keep the change display-only inside the existing manager, add no dependencies, preserve template filtering/selection contracts, and lock result-count plus structure/sample preview rendering with `template-library-manager-ui.test.tsx`.
 | `EstimateSheetContent` | GitNexus specific symbol returned 0 upstream due App Router boundary; other impacts show it is central through hook/export/preview. | Estimate workspace flows. | HIGH by manual assessment | many estimate DOM tests. | Keep row edits scoped; use targeted DOM tests. | Protected estimate route smoke. |
 | `useEstimateRowMutations` | Direct caller: `EstimateSheetContent`; indirect tests. | None reported. | LOW graph, MEDIUM product | estimate sheet tests. | Add unlink as peer mutation with same queue/revision model. | Hook conflict/rollback test. |
 | `insertEstimateRowItemFromLibrary` | `mutationFn` in row hook. | None. | LOW | `estimate-sheet-library-insert.test.tsx`, version-control actions tests. | Do not alter insert semantics. | Regression after unlink action. |
