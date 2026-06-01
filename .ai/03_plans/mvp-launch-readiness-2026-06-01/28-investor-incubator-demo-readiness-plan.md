@@ -1,5 +1,19 @@
 # Investor and Incubator Demo Readiness Plan
 
+## Fourth-Pass Closed Beta Investor Reframe - 2026-06-02
+
+Investor and incubator reviewers should experience the same closed beta controls as beta users.
+
+Demo requirements:
+
+- Add reviewer emails to the allowlist.
+- Use Google Sign-In.
+- Seed or manually prepare a demo workspace.
+- Show project, estimate, component/template value, unlink safety, and Excel export.
+- Explain closed beta cohort and feedback loop.
+- Explain pricing as future roadmap only.
+- Do not show checkout, paid plans, active billing, or Ask Flip as a live production promise.
+
 Commit audited: `681c95e64864f283950a88dba304eaffe8f2f8b3`
 
 ## Demo Narrative
