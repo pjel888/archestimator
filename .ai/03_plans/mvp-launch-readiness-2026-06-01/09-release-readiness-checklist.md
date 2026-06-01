@@ -9,14 +9,14 @@ This checklist is now for closed beta, not public paid launch.
 | Command | Status |
 | --- | --- |
 | `git status --short` | Clean at validation refresh except intentionally untracked `.ai/08_prompts/mvp-launch-goal.md`. |
-| Evidence anchors | `a65b34b` for `bun run validate`; `e6cf52b` for `bun run build`. |
+| Evidence anchors | `2587f80` for both `bun run validate` and `bun run build`. |
 | `bun install --frozen-lockfile` | Pass |
 | `bun run type-check` | Pass |
 | `bun run lint` | Pass with 14 warnings |
 | `bun run lint:design-system` | Pass |
 | `bun run test` | Pass |
-| `bun run test:dom` | Pass: 131 files / 1022 passed / 2 skipped through `bun run validate` |
-| `bun run build` | Pass at `e6cf52b`: Next.js 16.2.6 / Turbopack, 29 static pages |
+| `bun run test:dom` | Pass: 133 files / 1034 passed / 2 skipped through `bun run validate` |
+| `bun run build` | Pass at `2587f80`: Next.js 16.2.6 / Turbopack, 29 static pages |
 
 ### Closed Beta Gates
 

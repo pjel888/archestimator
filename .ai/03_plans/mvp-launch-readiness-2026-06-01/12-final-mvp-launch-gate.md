@@ -9,19 +9,19 @@ This gate is now the closed beta launch gate. It is not a public paid-launch gat
 - Full local implementation baseline: `c5ca065` after demo seed row repair.
 - Final report baseline: `8084908` after canonical state/decision/roadmap truth sync.
 - Final report indexed in launch docs: `3e8d7a0`.
-- Current local validation refresh: `a65b34b`, `bun run validate` pass.
-- Current local app build refresh: `e6cf52b`, `bun run build` pass.
+- Current local validation refresh: `2587f80`, `bun run validate` pass.
+- Current local app build refresh: `2587f80`, `bun run build` pass.
 - Resend guardrail refresh: `fd5d4b3` fails unconfigured production-like email sends closed with `EMAIL_NOT_CONFIGURED`; `61160ee` disables shared-link recipient entry/send/resend controls while server email readiness is false.
 - `bun install --frozen-lockfile`: pass.
 - `bun run type-check`: pass.
 - `bun run lint`: pass with 14 warnings.
 - `bun run lint:design-system`: pass.
 - `bun run test`: pass, 4 unit tests / 129 expectations.
-- `bun run test:dom`: historical baseline pass, 131 files / 1021 tests with 2 skips; current validation refresh pass, 131 files / 1022 passed / 2 skipped.
+- `bun run test:dom`: historical baseline pass, 131 files / 1021 tests with 2 skips; current validation refresh pass, 133 files / 1034 passed / 2 skipped.
 - `PLAYWRIGHT_PORT=3037 bun run test:e2e -- e2e/auth.spec.ts --project=chromium`: pass, 2 tests in 9.9s for local signed-out workshop redirect and login UI.
 - `ARCHESTIMATOR_E2E_LIBRARY_DEMO_SMOKE=1 ... PLAYWRIGHT_PORT=3038 bun run test:e2e e2e/workshop-library-demo-smoke.spec.ts --project=chromium`: pass, 2 tests in 14.9s for local component/template demo screenshots.
 - `ARCHESTIMATOR_E2E_TEMPLATE_INSERT_SMOKE=1 ARCHESTIMATOR_DEV_AUTH_BYPASS=1 ARCHESTIMATOR_DEV_AUTH_ADMIN_DB=1 ARCHESTIMATOR_TEMPLATE_INSERT_SMOKE_DIR=.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof PLAYWRIGHT_PORT=3039 bun run test:e2e e2e/workshop-template-insert-smoke.spec.ts --project=chromium`: pass, 1 test in 46.1s for local template insertion into a throwaway estimate, with node count `51 -> 56`, row count `0 -> 8`, one `template_inserted` event, screenshot/JSON artifacts, and zero fixture residue.
-- `bun run build`: historical baseline pass; current build refresh pass at `e6cf52b`, Next.js 16.2.6 / Turbopack, 29 static pages.
+- `bun run build`: historical baseline pass; current build refresh pass at `2587f80`, Next.js 16.2.6 / Turbopack, 29 static pages.
 
 ### Closed Beta No-Go
 
