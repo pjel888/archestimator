@@ -173,6 +173,24 @@
 - Post-edit GitNexus `detect-changes --repo archestimator --scope staged` reported 4 changed files, 2 changed symbols, 23 affected workshop execution flows, and critical risk. This is expected because `WorkshopPageShell` is shared by all protected workshop routes; the implementation is mitigated by being a footer-only `mailto:` link with focused shell DOM coverage, full DOM, and build evidence.
 - External feedback form selection remains open; the current local slice provides the minimum support email path only.
 
+### LEGAL-001 Closed Beta Terms / Privacy Copy Evidence
+
+- `/terms` now presents closed beta terms for invited users instead of only a pending-review placeholder.
+- `/terms` explicitly covers invite-only access, no payment or subscription contract, beta defects/data responsibility, construction estimate accuracy, feedback/acceptable use, and support/deletion contact.
+- `/privacy` now presents a closed beta privacy notice covering account email, project and estimate data, feedback/support messages, telemetry, providers/processors, beta data handling, and deletion requests.
+- Both pages retain a legal-review caveat before external tester invitations or production legal use.
+- Focused red/green evidence: `bun run test:dom tests/vitest/auth-entry-ui-contract.test.ts` first failed on the missing closed-beta legal copy, then passed 1 file / 4 tests after the page updates.
+- `bun run type-check` passed.
+- `bun run lint` passed with the existing 14 warnings and 0 errors.
+- `bun run lint:design-system` passed.
+- `bun run test` passed 4 unit tests / 129 expectations.
+- `bun run test:dom` passed 127 files / 1009 tests with 2 skips.
+- `bun run build` passed.
+- `git diff --check` passed.
+- Post-edit code-review-graph `detect_changes` against `HEAD` analyzed 5 changed files, 4 changed functions/classes, 0 affected flows, 2 source-level test gaps, and overall risk score 0.50. The reported page gaps are covered through `auth-entry-ui-contract.test.ts` plus full DOM/build.
+- Post-edit GitNexus `detect-changes --repo archestimator --scope staged` reported 5 changed files, 2 changed symbols, 16 affected public legal/landing execution flows, and critical risk. This is expected because the route pages participate in landing/auth-state rendering; the implementation is copy-only and covered by source-contract, full DOM, and build evidence.
+- Counsel/owner review is still required before treating the pages as final external legal sign-off.
+
 ### Closed Beta Audit Evidence
 
 - Auth/proxy: `src/proxy.ts`, `src/lib/auth/actions.ts`, `src/app/auth/callback/route.ts`, `src/lib/auth/account-setup.ts`, `src/lib/auth/session.ts`.
