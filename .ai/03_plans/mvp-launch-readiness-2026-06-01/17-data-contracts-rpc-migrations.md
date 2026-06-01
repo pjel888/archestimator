@@ -1,5 +1,21 @@
 # Data Contracts, RPCs, and Migrations
 
+## Fourth-Pass Closed Beta Data Contract - 2026-06-02
+
+Add allowlist contract:
+
+- Table: `public.closed_beta_allowed_emails`.
+- Migration: `supabase/migrations/20260602090000_closed_beta_allowed_emails.sql`.
+- Normalization: `lower(btrim(email))` stored as unique `normalized_email`.
+- Status values: `invited`, `active`, `revoked`.
+- RLS: enabled; no broad user list access.
+- Admin management: Supabase Table Editor or SQL with service/admin role.
+- Helper/RPC: server-side access check returning allowed/status for one email.
+- Application helper: fail closed for protected app routes when enabled.
+- Rollback: env flag off first; keep table data in production.
+
+Row unlink contracts remain P0 and must not be weakened by beta access work.
+
 ## Third-Pass Schema Corrections
 
 Commit audited: `681c95e64864f283950a88dba304eaffe8f2f8b3`. Local migrations and generated types were inspected; linked Supabase was not queried, so production schema readiness is a P0 proof gap.

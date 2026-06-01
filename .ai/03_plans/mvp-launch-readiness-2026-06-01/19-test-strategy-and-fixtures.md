@@ -1,5 +1,22 @@
 # Test Strategy and Fixtures
 
+## Fourth-Pass Closed Beta Test Additions - 2026-06-02
+
+Closed beta requires auth/access tests before launch:
+
+- Whitelisted Google user can access `/workshop`.
+- Non-whitelisted Google user is blocked from `/workshop`.
+- Revoked user is blocked even with an existing session.
+- Public routes remain accessible.
+- Public share routes remain governed by current sharing rules.
+- `/pricing` shows beta/waitlist/contact copy or is hidden from navigation.
+- `/beta/access-required` renders invite-only copy, contact/request access, and sign-out.
+- Auth callback avoids redirect loops.
+- First whitelisted user workspace path succeeds.
+- Feedback/support path is visible.
+
+Existing `bun run test:dom` currently fails three static-contract assertions unrelated to this docs pass; these must be resolved or explicitly no-go-scoped before closed beta.
+
 ## Third-Pass Test Gate
 
 Commit audited: `681c95e64864f283950a88dba304eaffe8f2f8b3`. Current validation is not launch-clean: `bun run test:dom` fails and `bun run test:e2e` was blocked by a local dev-server port collision. The MVP gate requires a fresh green baseline or a documented no-go.

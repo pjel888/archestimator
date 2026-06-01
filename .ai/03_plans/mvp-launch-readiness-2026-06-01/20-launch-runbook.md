@@ -1,5 +1,33 @@
 # Launch Runbook
 
+## Fourth-Pass Closed Beta Runbook Reframe - 2026-06-02
+
+This runbook now operates a closed beta, not a public paid launch.
+
+### Command Baseline
+
+- `git status --short`: clean before docs, docs-only after fourth pass.
+- `git rev-parse HEAD`: `811362ac70d84cf20101f83258ae22c4e8b2c11f`.
+- `bun install --frozen-lockfile`: pass.
+- `bun run type-check`: pass.
+- `bun run lint`: pass with 14 warnings.
+- `bun run lint:design-system`: pass.
+- `bun run test`: pass.
+- `bun run test:dom`: fail with 3 existing static-contract assertions.
+- `bun run build`: pass.
+
+### Closed Beta Operations
+
+- Philip manually inserts beta users into `closed_beta_allowed_emails`.
+- Philip manually sends beta invites unless app-generated email is explicitly shipped.
+- Revoke users by setting `status='revoked'`.
+- Verify access with one allowed and one denied Google account after every deployment.
+- Keep `/share` and `/invite` token routes smoke-tested separately from beta app access.
+- Review feedback/support inbox daily during the first beta week.
+- Pause invites if auth, export, data integrity, or feedback capture fails.
+
+See `40-closed-beta-operations-runbook.md` for the detailed runbook.
+
 Commit audited: `681c95e64864f283950a88dba304eaffe8f2f8b3`
 Runbook status: draft; **not approved for launch**.
 
