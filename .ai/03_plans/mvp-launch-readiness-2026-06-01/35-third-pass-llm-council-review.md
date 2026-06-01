@@ -1,5 +1,21 @@
 # Third-Pass LLM Council Review
 
+## Fourth-Pass Closed Beta Council Addendum - 2026-06-02
+
+The fourth-pass council is captured in `45-fourth-pass-closed-beta-council-review.md`.
+
+Summary decisions:
+
+- Closed beta whitelist is P0.
+- Payment can be fully deferred.
+- Pricing page should be hidden or reframed as beta access/contact.
+- Resend is P1 for manual beta invites, conditional P0 for visible required email workflows.
+- Redis is deferred.
+- Manual Supabase whitelist management is acceptable.
+- Lightweight feedback path is P0.
+- Beta legal terms/privacy/AUP are P0.
+- Final no-go conditions are closed-beta access, auth, core workflow, export, feedback, legal, backup, rollback, and runbook failures.
+
 Commit audited: `681c95e64864f283950a88dba304eaffe8f2f8b3`
 
 External model CLIs were not invoked from this Codex App session. This council is a simulated internal multi-expert review informed by read-only native explorer lanes for AI/auth/share/email, unlink/schema/RPC, Excel export, and infra/performance/security/legal/observability.
