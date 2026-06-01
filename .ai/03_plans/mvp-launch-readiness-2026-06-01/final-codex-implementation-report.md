@@ -44,6 +44,8 @@ These follow-up commits improve traceability only. They do not change the implem
 
 The remaining manual/provider proof packet is now centralized in `46-manual-proof-matrix.md`; it must be filled with dated artifacts before the external beta recommendation changes.
 
+The active-goal completion audit is centralized in `47-goal-completion-audit.md`; it currently says **DO NOT MARK GOAL COMPLETE** because external/manual proof is missing.
+
 ## 2. Features Implemented
 
 - Closed beta allowlist schema/helper/proxy/callback/session gate with `/beta/access-required` UX.

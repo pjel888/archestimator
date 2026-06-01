@@ -6,6 +6,7 @@
 
 - Final report artifact: `final-codex-implementation-report.md`.
 - Manual proof matrix artifact: `46-manual-proof-matrix.md`.
+- Goal completion audit artifact: `47-goal-completion-audit.md`.
 - Stable implementation baseline summarized by the report: `8084908`.
 - Report publication/correction commits: `80f806d`, `579cef0`.
 - Current report recommendation: **NO-GO for external closed beta launch** until hosted/provider/manual proof gates are complete.
@@ -352,6 +353,12 @@
 - `46-manual-proof-matrix.md` now defines the exact P0 evidence packet required before external closed beta can move from **NO-GO** to go/no-go review.
 - It includes proof rows for Supabase backup/PITR, linked migrations/RLS/storage/RPCs, hosted auth allowlist, first-run workspace, Vercel deploy/env/health/rollback, Resend/email, spreadsheet compatibility, project-specific unlink, component/template demo smoke, legal/owner review, support/monitoring, demo rehearsal, and current manual E2E smoke.
 - Current status: all rows remain missing until dated artifacts are captured under `.ai/09_archive/store/<date>-mvp-closed-beta-manual-proof/` and linked back here.
+
+### Goal Completion Audit Evidence
+
+- `47-goal-completion-audit.md` maps every final criterion from `codex-autopilot-goal.md` to current evidence.
+- Current result: local-safe implementation, validation, build, and docs are proven; hosted/provider/manual evidence remains missing.
+- Completion decision in the audit: **DO NOT MARK GOAL COMPLETE** until the `46-manual-proof-matrix.md` evidence packet is captured and linked.
 
 ### Closed Beta Audit Evidence
 

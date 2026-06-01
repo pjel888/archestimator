@@ -46,6 +46,8 @@ Run the provider-backed proof lane next: linked Supabase backup/migration/RLS ch
 
 Use `46-manual-proof-matrix.md` as the operator checklist for the next proof lane and link all dated artifacts back to `14-evidence-index.md`.
 
+Use `47-goal-completion-audit.md` to check whether the active launch goal can be completed after those artifacts are captured.
+
 Commit audited: `681c95e64864f283950a88dba304eaffe8f2f8b3`
 Current decision: **NO-GO**.
 

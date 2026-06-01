@@ -43,6 +43,8 @@ Closed beta launch is blocked until hosted auth/RLS/storage, provider dashboards
 
 Use `46-manual-proof-matrix.md` as the required evidence checklist for those remaining hosted/provider/manual gates.
 
+Use `47-goal-completion-audit.md` before any claim that the active MVP launch goal is complete.
+
 Commit audited: `681c95e64864f283950a88dba304eaffe8f2f8b3`
 Gate owner: Philip / Launch lead
 Current decision: **NO-GO**.

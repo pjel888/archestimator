@@ -27,6 +27,7 @@ New fourth-pass documents:
 - `44-beta-user-management-implementation-spec.md`
 - `45-fourth-pass-closed-beta-council-review.md`
 - `46-manual-proof-matrix.md`
+- `47-goal-completion-audit.md`
 
 Third-pass audit date: 2026-06-02
 Commit audited: `681c95e64864f283950a88dba304eaffe8f2f8b3`
@@ -137,6 +138,7 @@ Rules: below 90 is not beta-ready; P0 domains below 95 block launch; 100 require
 | `13`-`20` | Quality audit, evidence index, blast radius, ticket map, data contracts, Excel references, tests, runbook. |
 | `21`-`36` | Third-pass enterprise/legal/security/infra/performance/demo/beta/DR/UX/ADR/council/executive package. |
 | `37`-`46` | Fourth-pass closed-beta access, nonpayment, onboarding, operations, threat model, legal pack, scorecard, user management, council review, and manual proof matrix. |
+| `47` | Completion audit mapping the active goal criteria to current evidence and missing proof. |
 
 ## First Implementation PR Recommendation
 
