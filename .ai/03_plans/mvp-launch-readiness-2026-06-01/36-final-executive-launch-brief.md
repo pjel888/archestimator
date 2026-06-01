@@ -1,5 +1,43 @@
 # Final Executive Launch Brief
 
+## Fourth-Pass Closed Beta Executive Brief - 2026-06-02
+
+### Launch Thesis
+
+Archestimator should launch next as a closed beta MVP: invite-only, Google-authenticated, whitelist-gated, no-payment, and feedback-led. The goal is to prove real estimating workflow value with beta testers, investors, and incubator reviewers before public commercial launch.
+
+### Closed Beta Scope
+
+- Google Sign-In plus `closed_beta_allowed_emails`.
+- Founder-managed cohort.
+- Working project, estimate, component library, template, unlink, and Excel export workflows.
+- Visible feedback/support path.
+- Beta legal/privacy/AUP/disclaimers.
+- Vercel/Supabase production deployment with rollback and smoke evidence.
+
+### No Payments
+
+No Stripe, checkout, subscriptions, billing UI, invoices, paid tiers, pricing enforcement, or revenue collection are in closed beta P0.
+
+### Command Evidence
+
+- HEAD: `811362ac70d84cf20101f83258ae22c4e8b2c11f`.
+- Install, type-check, lint, design-system lint, unit tests, and build passed.
+- DOM tests failed 3 existing static-contract assertions; this remains a validation risk to resolve or explicitly scope before beta.
+
+### P0 Blockers
+
+- Allowlist schema/enforcement missing.
+- Access-required UX missing.
+- Beta terms/privacy/AUP missing.
+- Durable beta feedback path not proven.
+- Closed-beta copy updates not implemented.
+- Existing DOM static-contract failures remain.
+
+### First PR Recommendation
+
+Implement `BETA-AUTH-001` through `BETA-AUTH-006` first: allowlist schema/RLS, server helper, workshop gate, access-required UX, tests, and env/runbook updates.
+
 Commit audited: `681c95e64864f283950a88dba304eaffe8f2f8b3`
 Current decision: **NO-GO**.
 
