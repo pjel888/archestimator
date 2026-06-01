@@ -18,6 +18,7 @@ This gate is now the closed beta launch gate. It is not a public paid-launch gat
 - `bun run test`: pass, 4 unit tests / 129 expectations.
 - `bun run test:dom`: historical baseline pass, 131 files / 1021 tests with 2 skips; current validation refresh pass, 131 files / 1022 passed / 2 skipped.
 - `PLAYWRIGHT_PORT=3037 bun run test:e2e -- e2e/auth.spec.ts --project=chromium`: pass, 2 tests in 9.9s for local signed-out workshop redirect and login UI.
+- `ARCHESTIMATOR_E2E_LIBRARY_DEMO_SMOKE=1 ... PLAYWRIGHT_PORT=3038 bun run test:e2e e2e/workshop-library-demo-smoke.spec.ts --project=chromium`: pass, 2 tests in 14.9s for local component/template demo screenshots.
 - `bun run build`: historical baseline pass; current build refresh pass at `e6cf52b`, Next.js 16.2.6 / Turbopack, 29 static pages.
 
 ### Closed Beta No-Go
@@ -72,7 +73,7 @@ Current decision: **NO-GO**.
 | Support/feedback path exists | Yes | Contact/support inbox and beta bug report route. | Local workshop feedback link exists; monitored inbox/form proof pending. | No-go |
 | Observability/alerts configured | Yes | Error tracking, uptime, alert owner, export/auth/email alerts. | Local `/api/health` and runbook exist; deployed monitor/alert proof pending. | No-go |
 | Backup/rollback plan proven | Yes | Backup proof, migration rollback, Vercel rollback, restore plan. | Backup/restore checklist exists; provider proof pending. | No-go |
-| Investor demo pack ready | Yes for demo | Demo workspace, script, screenshots, export artifact, fallback. | Local seed/demo script anchors exist; rehearsal, screenshots, and workbook artifact proof pending. | No-go |
+| Investor demo pack ready | Yes for demo | Demo workspace, script, screenshots, export artifact, fallback. | Local seed/demo script anchors, component/template screenshots, and workbook artifact exist; rehearsal and hosted proof pending. | No-go |
 | Beta program ready | Yes for beta | Cohort, onboarding email, SLA, feedback loop, known limits. | Planned only. | No-go |
 
 Local update 2026-06-02: visible pricing/payment copy is no longer a local no-go. `/pricing`, landing pricing, and FAQ now state closed beta / invite-only / no payment required / pricing after beta, with `closed-beta-pricing-copy` test coverage. Overall launch remains **NO-GO** because the other P0 rows above are still unproven.
@@ -85,8 +86,8 @@ Rules: below 90 cannot be called beta-ready; P0 below 95 blocks launch; 100 requ
 | --- | ---: | --- |
 | Product core | 84 | Local DOM baseline is green; protected route/manual smoke gaps remain. |
 | Estimate editor | 84 | Strong area; manual smoke and linked DB proof remain. |
-| Component library | 86 | Local polish tests pass; screenshot/manual demo smoke remains. |
-| Templates | 86 | Local preview tests pass; screenshot/manual insertion smoke remains. |
+| Component library | 90 | Local polish tests and screenshot smoke pass; hosted/manual proof remains. |
+| Templates | 88 | Local preview tests and screenshot smoke pass; insertion proof remains. |
 | Project-specific unlink | 86 | Local RPC/action/hook/UI tests pass; linked/manual proof remains. |
 | Excel export | 90 | Professional workbook tests, generated XLSX artifact, ZIP integrity, and no-blank-total scan pass; cross-app open proof remains. |
 | Auth/onboarding | 78 | Local beta gate coverage and signed-out redirect/login UI E2E pass; Vercel env is empty, so hosted callback and first-run smoke are blocked. |
@@ -97,7 +98,7 @@ Rules: below 90 cannot be called beta-ready; P0 below 95 blocks launch; 100 requ
 | Performance/caching | 65 | Current architecture plausible; export/route/load proof missing. |
 | Observability/support | 78 | Local health route/support runbook exists; external alert proof missing. |
 | QA/test coverage | 82 | Local type/lint/unit/DOM/build pass; hosted/manual E2E proof missing. |
-| Investor demo readiness | 78 | Local seed/demo plan anchors and fallback workbook artifact exist; rehearsal and screenshots remain missing. |
+| Investor demo readiness | 80 | Local seed/demo plan anchors, fallback workbook artifact, and library/template screenshots exist; rehearsal proof remains missing. |
 | Beta readiness | 40 | P0 legal/security/ops/product gates are unproven. |
 
 ## Explicit Launch No-Go Rules

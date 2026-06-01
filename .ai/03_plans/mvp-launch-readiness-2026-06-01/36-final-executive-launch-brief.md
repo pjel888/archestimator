@@ -90,7 +90,7 @@ Hosted auth/RLS/Resend/deployment proof missing, E2E/manual smoke unproven, spre
 4. Spreadsheet open/print QA for the workbook.
 5. Resend delivery/webhook proof if email-dependent flows remain visible.
 6. Owner/counsel review of beta legal copy and monitored support inbox proof.
-7. Demo workspace/script rehearsal, screenshots, and validated workbook fallback artifact.
+7. Demo workspace/script rehearsal, hosted screenshots, and spreadsheet-app validated workbook fallback artifact. Local component/template screenshots and workbook artifact now exist, but they do not prove the hosted demo.
 
 ## Readiness Scorecard
 
@@ -98,8 +98,8 @@ Hosted auth/RLS/Resend/deployment proof missing, E2E/manual smoke unproven, spre
 | --- | ---: |
 | Product core | 84 |
 | Estimate editor | 84 |
-| Component library | 86 |
-| Templates | 86 |
+| Component library | 90 |
+| Templates | 88 |
 | Project-specific unlink | 86 |
 | Excel export | 88 |
 | Auth/onboarding | 82 |

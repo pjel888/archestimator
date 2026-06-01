@@ -1,0 +1,15 @@
+{
+  "route": "/workshop/library",
+  "url": "http://127.0.0.1:3038/workshop/library",
+  "checkedLabels": [
+    "Library",
+    "Component library workspace",
+    "Search component sheet",
+    "Search component library tree",
+    "Component sheet result count",
+    "Source",
+    "Checked"
+  ],
+  "screenshot": "component-library-demo-smoke-2026-06-02.png",
+  "capturedAt": "2026-06-01T21:39:42.908Z"
+}

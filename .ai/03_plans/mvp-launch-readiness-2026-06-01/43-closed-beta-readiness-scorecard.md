@@ -2,7 +2,7 @@
 
 ## Final Report Artifact
 
-Final implementation report: `final-codex-implementation-report.md`. It summarizes the local-safe implementation baseline through `8084908`, records report publication/correction commits `80f806d` and `579cef0`, records post-report validation/build/completion-audit/proof-template evidence through `9d71239`, records Supabase and Vercel read-only provider evidence in `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/`, and keeps the external closed beta recommendation at **NO-GO** until hosted/provider/manual proof gates are complete.
+Final implementation report: `final-codex-implementation-report.md`. It summarizes the local-safe implementation baseline through `8084908`, records report publication/correction commits `80f806d` and `579cef0`, records post-report validation/build/completion-audit/proof-template evidence through `9d71239`, records Supabase, Vercel, spreadsheet artifact, and local component/template demo evidence in `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/`, and keeps the external closed beta recommendation at **NO-GO** until hosted/provider/manual proof gates are complete.
 
 Manual proof matrix: `46-manual-proof-matrix.md`. It is the required checklist for collecting the remaining hosted/provider/manual evidence before any external closed-beta go/no-go review.
 
@@ -19,18 +19,18 @@ Closed beta can launch only if all P0 domains are 95+ or have a documented no-go
 | Closed beta access control | Yes | 82 | Local pass; linked proof pending | Allowlist migration/helper/proxy/callback/session/access-required UX exist locally; linked Supabase apply and hosted allowed/denied smoke are missing. |
 | Auth/onboarding | Yes | 78 | Needs env and hosted smoke | Google Sign-In and workspace flow exist with local beta gate coverage; local signed-out redirect/login UI E2E passes; Vercel env list is empty, so hosted callback, allowed/denied/revoked, and first-run smoke are blocked. |
 | Core estimating workflow | Yes | 84 | Needs smoke proof | Core app exists and local DOM baseline is green; protected route/manual smoke remains required. |
-| Component library | Yes | 86 | Local polish pass | Search/count/trust fields are locally tested; screenshot/manual demo smoke remains required. |
-| Templates | Yes | 86 | Local polish pass | Preview/count/sample rows are locally tested; screenshot/manual insertion smoke remains required. |
+| Component library | Yes | 90 | Local screenshot pass; hosted proof pending | Search/count/trust fields are locally tested and screenshot-smoked; hosted/manual E2E remains required. |
+| Templates | Yes | 88 | Local screenshot pass; insertion proof pending | Preview/count/sample rows are locally tested and screenshot-smoked; template insertion into an estimate remains required. |
 | Project-specific unlink | Yes | 86 | Local pass; linked proof pending | RPC/action/hook/UI coverage exists; linked SQL verification and manual detach/edit proof remain required. |
 | Excel export | Yes | 90 | Local artifact pass; app proof pending | Professional workbook, ExcelJS tests, ZIP integrity, and no-blank-total artifact proof pass; Excel/secondary-app open and print proof remain required. |
-| Design polish | Yes | 84 | Local pass; manual review pending | Access-required, pricing, legal, feedback, library/template/export surfaces have local coverage; screenshot/manual review remains required. |
+| Design polish | Yes | 86 | Local pass; manual review pending | Access-required, pricing, legal, feedback, library/template/export surfaces have local coverage; library/template screenshots exist; hosted/manual review remains required. |
 | Feedback loop | Yes | 78 | Minimum local path; external proof pending | Workshop feedback mailto and support copy exist; monitored inbox/form proof remains required. |
 | Vercel/Supabase deployment | Yes | 76 | Partial preview proof | Vercel preview for `2e5b38d` reached READY and protected `/api/health` works through `vercel curl`; Vercel env list is empty, public health is protected, rollback proof is missing, and linked Supabase migration CLI proof is blocked by the temp-role pooler circuit breaker. |
 | Resend/email readiness | Conditional | 65 | P1 unless visible flows require it | Required for share/invite email workflows if exposed, not required for manual beta invites. |
 | Security/RLS | Yes | 70 | Live advisor warns | Existing RLS work plus allowlist RLS migration exists locally, but linked security advisor returned WARN findings and linked allow/deny/storage proof is still missing. |
 | Legal/beta terms | Yes | 82 | Local copy pass; review pending | Beta-specific terms/privacy copy exists; counsel/owner sign-off is missing. |
 | Observability/support | Yes | 78 | Protected health only | Feedback link, support/runbook, and `/api/health` exist; Vercel protected health works through `vercel curl`, but public uptime/error alert proof is missing. |
-| Investor demo readiness | Yes | 78 | Local seed and workbook anchored; rehearsal pending | `supabase/seed.sql` anchors demo workspace/project/estimate/rows and a generated fallback workbook artifact now exists; live rehearsal, screenshots, and hosted account proof remain required. |
+| Investor demo readiness | Yes | 80 | Local seed, screenshots, and workbook anchored; rehearsal pending | `supabase/seed.sql` anchors demo workspace/project/estimate/rows, a generated fallback workbook artifact exists, and local library/template screenshots exist; live rehearsal and hosted account proof remain required. |
 | Data backup/rollback | Yes | 60 | Provider evidence negative | Backup/restore template and migration procedure exist; Supabase CLI readback shows PITR disabled and no listed backups, and restore drill proof is missing. |
 | Payment/pricing readiness | No | N/A | Deferred | Not applicable to closed beta. |
 | AI deferral | No | N/A | Locally gated | `AI-001` hides Ask Flip and disables AI routes by default; keep deferred until a future ADR explicitly reactivates. |

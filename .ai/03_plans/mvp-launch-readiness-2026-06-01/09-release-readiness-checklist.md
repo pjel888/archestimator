@@ -63,8 +63,8 @@ Current release state: **NO-GO**.
 | Env manifest complete | P0 | `INFRA-001` | Eng/Release | `.env.example` and Vercel env list cover all runtime vars. | `22-infrastructure...md`, `.env.example` diff | PR-1 | Local manifest pass; Vercel/provider proof pending |
 | Hosted auth smoke | P0 | `ONB-001` | Eng/QA | Google, magic link, callback, workshop landing in staging/prod. | Manual QA log | PR-2 | Blocked |
 | First-run UX | P0 | `ONB-001` | Product/UX | Empty workspace/project/estimate/library paths are understandable. | Screenshot set + DOM tests | PR-2 | Blocked |
-| Component library credible | P1 | `LIB-001` | Product/Eng | Search/filter/empty/error/trust fields validated. | UI tests + screenshots | PR-3 | Local UI test pass; screenshot/manual smoke pending |
-| Templates credible | P1 | `TPL-001` | Product/Eng | Preview/insertion/empty states verified. | UI tests + screenshots | PR-3 | Local UI test pass; screenshot/manual insertion smoke pending |
+| Component library credible | P1 | `LIB-001` | Product/Eng | Search/filter/empty/error/trust fields validated. | UI tests + screenshots | PR-3 | Local UI test and screenshot smoke pass; hosted/manual proof pending |
+| Templates credible | P1 | `TPL-001` | Product/Eng | Preview/insertion/empty states verified. | UI tests + screenshots | PR-3 | Local UI test and screenshot smoke pass; insertion smoke pending |
 | Project-specific unlink | P0 | `UNLINK-001` | Eng | Detached rows do not mutate library, history recorded. | RPC/action/UI tests + SQL proof | PR-4 | Local code/test pass; linked SQL/manual proof pending |
 | Excel bid workbook | P0 | `EXP-001` | Eng/Product | Formula workbook opens in Excel and one secondary app. | XLSX artifact + ExcelJS tests | PR-5 | Local ExcelJS pass; cross-app open proof pending |
 | RLS/security proof | P0 | `SEC-001` | Security/Eng | RLS denial, storage denial, route access matrix pass. | SQL output + test logs | PR-6 | Blocked |
