@@ -109,7 +109,7 @@ Hosted auth/RLS/Resend/deployment proof missing, E2E/manual smoke unproven, spre
 | Security/RLS | 78 |
 | Legal/privacy | 82 |
 | Performance/caching | 65 |
-| Observability/support | 78 |
+| Observability/support | 79 |
 | QA/test coverage | 82 |
 | Investor demo readiness | 82 |
 | Beta readiness | 40 |
@@ -130,7 +130,7 @@ Vercel env/deploy/rollback, Supabase auth/RLS/storage/backups, Resend DNS/webhoo
 
 ## Final Risk Posture
 
-The codebase has stronger local foundations now, but launch risk remains high because the trust surfaces that require external proof are not yet proven: hosted auth/security, provider backups, deployment rollback, monitored support/alerts, and spreadsheet-app compatibility.
+The codebase has stronger local foundations now, and the contact flow no longer pretends to submit support messages without a backend. Launch risk remains high because the trust surfaces that require external proof are not yet proven: hosted auth/security, provider backups, deployment rollback, monitored support/alerts, and spreadsheet-app compatibility.
 
 ## Go / No-Go Rule
 

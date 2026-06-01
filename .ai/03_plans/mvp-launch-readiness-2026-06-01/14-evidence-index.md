@@ -23,6 +23,14 @@
 - Covered behavior: signed-out `/workshop/projects` redirects to `/login?next=%2Fworkshop%2Fprojects`, and `/login?next=/workshop/projects` renders the compact email-link sign-in controls.
 - Scope limit: this is local signed-out route/login UI proof only. Hosted Google auth, allowed/denied/revoked allowlist smoke, first-run workspace entry, and session expiry/logout proof remain external/manual gates.
 
+### SUPPORT-001 Honest Contact Handoff Evidence
+
+- `src/components/landing/ContactForm.tsx` opens a structured `mailto:support@archestimator.com` draft containing name, email, organization, inquiry type, and message instead of simulating backend receipt.
+- The confirmation state says the support email draft was prepared and includes fallback instructions if the user's email app does not open.
+- `src/components/workshop/WorkshopPageShell.tsx` keeps the authenticated workshop footer one click from `support@archestimator.com` beta feedback.
+- Focused verification: `bunx vitest run tests/vitest/contact-form-mailto.test.tsx tests/vitest/support-contact-readiness.test.ts tests/vitest/closed-beta-readiness-docs.test.ts --maxWorkers=1` passed 3 files / 15 tests.
+- Scope limit: this proves an honest local support handoff only. It does not prove inbox monitoring, form delivery, alert owner, or incident response.
+
 ### Command Evidence
 
 | Evidence | Result |

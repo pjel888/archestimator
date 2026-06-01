@@ -398,10 +398,12 @@ describe("closed beta readiness docs", () => {
     expect(currentState).toContain("local insertion into a throwaway estimate with zero residue");
     expect(currentState).toContain("Support/feedback local evidence");
     expect(currentState).toContain("`/contact`, workshop feedback, terms, and privacy point to `support@archestimator.com`");
+    expect(currentState).toContain("the public contact form no longer simulates submission");
+    expect(currentState).toContain("structured support email draft with fallback instructions");
     expect(currentState).toContain("Support Email DNS Evidence");
     expect(currentState).toContain("five registrar email-forwarding MX records");
     expect(currentState).toContain("no `_dmarc.archestimator.com` TXT answer");
-    expect(currentState).toContain("monitored inbox/form and alert ownership proof remain missing");
+    expect(currentState).toContain("Monitored inbox/form delivery and alert ownership proof remain missing");
     expect(currentState).toContain("Project-specific unlink linked smoke evidence");
     expect(currentState).toContain("linked Supabase returned `PGRST202`");
     expect(currentState).toContain("do not prove hosted auth, linked RLS/security, Resend delivery/webhooks, project-specific unlink, monitored support/alerts, or current hosted E2E/manual smoke");
@@ -422,10 +424,11 @@ describe("closed beta readiness docs", () => {
     expect(knownIssues).toContain("hosted/manual target-environment proof remains missing");
     expect(knownIssues).toContain("Local component/template demo evidence on 2026-06-02 proves screenshots/JSON");
     expect(knownIssues).toContain("local template insertion evidence proves throwaway-estimate insertion with zero residue");
-    expect(knownIssues).toContain("Support/feedback local evidence on 2026-06-02 proves `/contact`, workshop feedback, terms, and privacy point to `support@archestimator.com`");
+    expect(knownIssues).toContain("Support/feedback local evidence now proves `/contact`, workshop feedback, terms, and privacy point to `support@archestimator.com`");
+    expect(knownIssues).toContain("the public contact form prepares a structured support email draft instead of fake-submitting");
     expect(knownIssues).toContain("Support email DNS evidence on 2026-06-02 proves `archestimator.com` has registrar email-forwarding MX records");
     expect(knownIssues).toContain("This still does not prove `support@archestimator.com` is monitored");
-    expect(knownIssues).toContain("monitored inbox/form and alert ownership proof remain missing");
+    expect(knownIssues).toContain("Monitored inbox/form delivery and alert ownership proof remain missing");
     expect(knownIssues).toContain("Project-specific unlink linked smoke evidence is negative/blocked");
     expect(knownIssues).toContain("missing `unlink_estimate_row_item_from_library_with_history`");
     expect(knownIssues).toContain("hosted auth, Resend delivery/webhooks, unlink detach/edit/library-unchanged/export, monitored support/alerts, and current hosted E2E proof remain missing");
