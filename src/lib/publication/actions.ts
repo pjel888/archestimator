@@ -18,13 +18,18 @@ import {
 } from "@/lib/publication/security";
 import { buildProjectPublicationSnapshot } from "@/lib/publication/snapshot";
 import type { Database, Json, Tables } from "@/lib/supabase/types";
-import { sendEmail } from "@/lib/email/resend-client";
+import { readEmailDeliveryConfig, sendEmail } from "@/lib/email/resend-client";
 import { normalizeEstimateTreeNodeKind } from "@/lib/estimates/tree-hierarchy";
 
 type PublicationActionResult = {
   ok: boolean;
   message: string;
   clientLinkPath?: string | null;
+};
+
+export type SharedLinkEmailDeliveryReadiness = {
+  configured: boolean;
+  message: string;
 };
 
 type PublicationManagerContext = {
@@ -192,6 +197,22 @@ function readPublicationComplianceEmail(fallbackEmail: string): string {
   if (fromEmail && isValidEmail(fromEmail)) return fromEmail;
 
   return fallbackEmail;
+}
+
+export async function readSharedLinkEmailDeliveryReadiness(): Promise<SharedLinkEmailDeliveryReadiness> {
+  await requireCurrentUserContext();
+
+  const deliveryConfig = readEmailDeliveryConfig();
+  const hasReplyTo = Boolean(process.env.RESEND_REPLY_TO?.trim());
+  const hasWebhookSecret = Boolean(process.env.RESEND_WEBHOOK_SECRET?.trim());
+  const configured = deliveryConfig.configured && hasReplyTo && hasWebhookSecret;
+
+  return {
+    configured,
+    message: configured
+      ? "Email delivery is configured."
+      : "Email delivery is disabled until Resend sender, reply-to, and webhook settings are configured. Copy the share link manually.",
+  };
 }
 
 function buildPublicationEmailComplianceFooter({

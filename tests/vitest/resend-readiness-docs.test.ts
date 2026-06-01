@@ -35,7 +35,9 @@ describe("Resend launch readiness docs", () => {
     expect(resendWebhookRoute).toContain("RESEND_WEBHOOK_SECRET");
     expect(resendWebhookRoute).toContain("status: 503");
     expect(publicationActions).toContain("sendEmail");
+    expect(publicationActions).toContain("readSharedLinkEmailDeliveryReadiness");
     expect(collaborationActions).toContain("sendEmail");
+    expect(artifact).toContain("recipient entry, send, and resend controls");
   });
 
   it("fails closed when delivery config lacks a key or sender outside test mocks", () => {
@@ -51,7 +53,8 @@ describe("Resend launch readiness docs", () => {
 
   it("keeps the launch meaning blocked until delivery and webhook proof exist", () => {
     expect(artifact).toContain("negative/blocked provider readiness evidence");
-    expect(artifact).toContain("Visible shared-link recipient email, owner digest, collaboration invite, and resend flows must not be considered launch-ready");
+    expect(artifact).toContain("recipient email controls are disabled");
+    expect(artifact).toContain("must not be considered launch-ready or re-enabled");
     expect(artifact).toContain("Vercel env values, verified sender/domain/DNS, a configured webhook secret, and real delivery/bounce/open webhook evidence");
   });
 });
