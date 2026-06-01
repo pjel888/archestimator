@@ -1,129 +1,109 @@
-# 12 — Final MVP Launch Gate
+# Final MVP Launch Gate
 
-**Date:** 2026-06-01
+Current decision: NO-GO.
 
-## What Must Be Green Before Launch
+Reason: P0 implementation and evidence gates remain open, and `bun run test:dom` fails at commit `b6184cf7123ed46f4cd8b9a467feb5232f0b46bf`.
 
-### Code Quality
-- [ ] `bun run type-check` — 0 errors
-- [ ] `bun run lint` — 0 errors (warnings reviewed)
-- [ ] `bun run lint:design-system` — 0 violations
-- [ ] `bun run test` — all pass
-- [ ] `bun run test:dom` — all pass (or 2 pre-existing failures documented)
-- [ ] `bun run build` — succeeds
+## Required Linked Docs
 
-### Features
-- [ ] Auth/login works on production
-- [ ] Workshop homebase loads with project grid
-- [ ] Project create/list/detail works
-- [ ] Estimate create/duplicate/open works
-- [ ] Estimate tree (group/area nodes) works, DnD reorder works
-- [ ] Estimate row editing (quantity, contingency, miscCost) works
-- [ ] Component library browsable, searchable, insertable
-- [ ] Templates browsable, previewable, insertable
-- [ ] Component unlink works (RPC, UI, badges, history)
-- [ ] Project-specific row editing does not mutate library
-- [ ] Excel export produces professional bid/BOQ workbook
-- [ ] Export opens in Excel, Numbers, LibreOffice
-- [ ] Export handles detached row values correctly
+- Checklist: `09-release-readiness-checklist.md`
+- Risk register: `10-technical-risk-register.md`
+- Evidence index: `14-evidence-index.md`
+- Blast radius: `15-blast-radius-register.md`
+- Ticket map: `16-implementation-ticket-map.md`
+- Data contracts: `17-data-contracts-rpc-migrations.md`
+- Test strategy: `19-test-strategy-and-fixtures.md`
+- Runbook: `20-launch-runbook.md`
 
-### AI Deferral
-- [ ] Ask Flip NOT visible on any workshop page
-- [ ] AI API routes disabled (404 or feature-flag-gated)
-- [ ] No "Ask Flip" text in rendered workshop page source
+## Go/No-Go Table
 
-### Design
-- [ ] All workshop pages: SF Pro, regular/medium, ≤12px, xs radius, zero tracking
-- [ ] Design-system lint 0 violations
-- [ ] No visual regressions from new features
+| Gate | Current status | Go condition |
+| --- | --- | --- |
+| AI hidden by default | Open | Footer absent with default env. |
+| AI routes disabled by default | Open | 403 before handler, no provider/context/audit. |
+| Unlink data contract | Open | Migration/RPC/action tests pass with real schema. |
+| Row UX | Open | Badge/confirmation/editor/history tests pass. |
+| Library polish | Open | DOM/repository tests and visual QA pass. |
+| Template polish | Open | DOM/repository/action tests and visual QA pass. |
+| Excel export | Open | Workbook spec, formula tests, and manual QA pass. |
+| Full command baseline | Fail | All required commands pass. |
+| Supabase proof | Open | Linked apply/verify artifact captured. |
+| Vercel proof | Open | Deployment/env/smoke artifact captured. |
+| Production auth proof | Open | Login/callback/workshop smoke pass. |
+| Owner sign-off | Open | Philip signs final section. |
 
-### Security
-- [ ] RLS enabled on all user-data tables
-- [ ] RPC grants correct (authenticated only, no anon write)
-- [ ] No service-role key in browser code
-- [ ] CSP headers configured
+## Current Command Proof
 
-### Data
-- [ ] All migrations applied to production Supabase
-- [ ] Migration history clean
-- [ ] Seed data verified (component names, thumbnails, pricing)
+Pass:
 
-### Deployment
-- [ ] Vercel production deploy successful
-- [ ] Custom domain/SSL working
-- [ ] Environment variables set correctly
-- [ ] Supabase connection works from production
+- `bun install --frozen-lockfile`
+- `bun run type-check`
+- `bun run lint` with warnings only
+- `bun run lint:design-system`
+- `bun run test`
+- `bun run build`
+- Focused AI, row, library/template, and export bundles
 
-### Legal
-- [ ] Privacy Notice reviewed (or accurate pending-review status)
-- [ ] Terms of Service reviewed (or accurate pending-review status)
+Fail:
 
-## What Can Be Known-Debt After Launch
+- `bun run test:dom`: 2 failed files, 3 failed tests.
 
-| Debt | Reason | Mitigation |
-|------|--------|------------|
-| Material/labor split missing from export | MVP compatibility mode chosen | Documented as "material costs only unless noted" in export |
-| Scope status stored in source_snapshot (not dedicated column) | Avoids schema migration risk | Migrate to dedicated column post-MVP |
-| Seed templates hardcoded (with Supabase fallback) | Low risk, works | Migrate fully to Supabase post-MVP |
-| 14 ESLint warnings | Pre-existing, low severity | Fix incrementally |
-| No E2E test suite for all features | Vitest coverage is strong | Add Playwright E2E post-MVP |
-| Lighthouse score ~0.73 for projects page | Acceptable for MVP | Improve post-MVP |
-| Legal pages may be pending-review status | Legal review timeline unknown | Keep status pages accurate |
+## Manual QA Proof Required
 
-## What Must Be Hidden / Deferred
+| Proof | Required artifact |
+| --- | --- |
+| Excel opens in Microsoft Excel | Screenshot or notes with generated filename, date, totals checked. |
+| Excel opens in Apple Numbers | Screenshot or notes. |
+| Excel opens in LibreOffice | Screenshot or notes. |
+| Excel opens in Google Sheets | Screenshot or notes. |
+| Export formulas recalc | Formula cell sample and total match. |
+| No blank line totals | Row inspection summary. |
+| Workshop protected smoke | Route checklist. |
+| Auth callback | Login/callback proof. |
 
-| Feature | Current state | Launch state |
-|---------|--------------|-------------|
-| Ask Flip footer button | Visible everywhere | Hidden (NEXT_PUBLIC_ASK_FLIP_ENABLED=false) |
-| `/api/ai/ask` | Active | Disabled (AI_ASK_ENABLED=false) |
-| `/api/ai/package-builder` | Active | Disabled (AI_PACKAGE_BUILDER_ENABLED=false) |
-| AI audit tables | Dormant (internal) | Dormant (no user surface) |
-| AI memory | Default-off | Default-off (unchanged) |
-| Invite entry (collaboration) | Feature-flagged | Per existing flag (PROJECT_INVITE_ENTRY_ENABLED) |
+## Production Proof Required
 
-## What Must Be Manually Inspected
+- Vercel deployment URL.
+- Vercel env variable list with secret values redacted.
+- Supabase migration version list.
+- `/workshop` auth smoke.
+- `/workshop/library` smoke.
+- `/workshop/templates` smoke.
+- Estimate sheet row edit smoke.
+- Export download smoke.
+- AI disabled route smoke.
 
-1. **Visual walkthrough of all workshop pages** — check for Ask Flip, check design-system compliance
-2. **Excel export opened in Excel, Numbers, LibreOffice** — verify formulas, layout, printing
-3. **Auth flow on production** — Google OAuth login, magic link login, logout
-4. **Full workflow smoke test** — login → create project → create estimate → add rows → unlink component → export → open in Excel
-5. **Component library** — browse, search, empty states, loading states
-6. **Templates** — browse, preview, insert, empty states
-7. **Error states** — what happens on failed loads, network errors, auth expiration
-8. **Mobile / responsive** — sidebar behavior, estimate grid on small screens
-9. **Public pages** — landing, features, pricing, contact, privacy, terms
+## Unresolved Debt List
 
-## Owner Sign-Off Checklist
+- Labor/material split remains compatibility mode.
+- Terms/VAT/warranty defaults need owner approval.
+- AI feature remains deferred.
+- Template authoring UI deferred.
+- Bulk library import/export deferred.
+- Route-transition production benchmark remains outside this MVP launch package unless required by owner.
 
-- [ ] **Product Owner (Philip Lewis):** All MVP features working. No unfinished AI surfaces visible. Export looks professional. Project-specific components work correctly.
-- [ ] **Legal:** Privacy Notice and Terms of Service reviewed and approved (or pending-review status accepted).
-- [ ] **Engineering:** All validation gates pass. All P0 risks mitigated. Deployed to production and verified.
-- [ ] **Design:** All workshop pages pass design-system lint. Visual audit complete.
-- [ ] **QA:** Full workflow smoke test passed. Export verified in 3 spreadsheet apps.
+## Do Not Launch If
 
-## Post-MVP Backlog
+- Any P0 gate in `09-release-readiness-checklist.md` is not Pass.
+- Any AI route can reach provider/context/audit with default env.
+- Ask Flip footer is visible by default.
+- Unlink RPC uses invalid schema or lacks row revision conflict protection.
+- Export workbook has blank line total cells.
+- Export total formulas do not match preview totals.
+- Supabase migration proof is missing.
+- Vercel env proof is missing.
+- Production auth proof is missing.
+- Owner signature is missing.
 
-Priority order for work after launch:
+## Owner Signature
 
-1. **Material/labor split** — add `labor_unit_cost` to estimate_row_items, editable in sheet, visible in export
-2. **Export settings UI** — configurable exclusions, terms, VAT, warranty per estimate
-3. **PDF export** — formal proposal letter with branded cover page
-4. **Template management** — admin CRUD for templates in workspace
-5. **Scope status UI** — row-level INCLUDED/EXCLUDED/BY OTHERS toggle in estimate sheet
-6. **Component library bulk operations** — import/export, batch pricing update
-7. **Ask Flip reactivation** — when AI is robust and UX is polished
-8. **Advanced charts** — cost trends, estimate comparisons, project dashboards
-9. **Mobile estimate editing** — simplified row entry for mobile
-10. **E2E test suite expansion** — Playwright specs for all core workflows
+Owner: Philip Lewis
 
-## Launch Decision
+Decision:
 
-**Go:** All P0 gates pass. Owner sign-off obtained. Production deployment verified.
+- [ ] GO
+- [ ] NO-GO
 
-**No-Go:** Any P0 gate fails. Must fix before launch.
+Signature/date:
 
-**Conditional Go:** P0 passes but P1 has documented exceptions. Owner approves exceptions.
-
----
-
-*This document is the final gate. When all checkboxes are marked, Archestimator MVP is ready to launch.*
+Notes:
