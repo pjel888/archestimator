@@ -1,5 +1,33 @@
 # Project-Specific / Unlink Components Plan
 
+## Third-Pass Schema-Accurate Decision
+
+Commit audited: `681c95e64864f283950a88dba304eaffe8f2f8b3`. The plan below is constrained by current local migrations and generated types. No linked Supabase query was run in this pass, so production schema readiness remains a P0 proof gate.
+
+Final language:
+
+- A project-specific component is an `estimate_row_items` row, not a reusable `cost_library_items` record.
+- `unlinked` means a row was never backed by a real source library UUID or is a manual/blank row with `source_library_item_id = null`.
+- `detached` means a row was previously linked to a real library item and has been intentionally severed for project-specific editing while preserving `source_snapshot` provenance.
+- `linked-overridden` means a linked row has local scalar overrides but is still traceable to its source library item.
+- Do not persist fallback/static IDs such as `lib-sofa` into `source_library_item_id`.
+
+Required contract for `UNLINK-001`:
+
+| Layer | Current fact | Required implementation |
+| --- | --- | --- |
+| Schema | `estimate_row_items` has `source_library_item_id`, `source_snapshot`, `metadata`, `link_state`, `row_revision`. | Use existing columns; add migration only for missing metadata constraints/indexes after linked verification. |
+| RPC | Insert/update/replace/delete RPCs are revision-aware and emit `estimate_sheet_events`. | Add a dedicated revision-aware unlink/detach RPC or prove existing update RPC can safely set `link_state='detached'` and emit history. |
+| Server action | Existing actions set linked/manual states during insert/update/replace. | Add `detachEstimateRowItemFromLibrary` or equivalent; never direct-write table outside RPC. |
+| Hook | `useEstimateRowMutations` has no unlink mutation. | Add queued mutation using `row_revision` conflict handling and cache reconciliation. |
+| UI | Row details distinguishes library/manual but not launch-grade detached copy. | Add explicit "Project-specific" state, source snapshot summary, and confirm copy explaining library remains unchanged. |
+| History | `estimate_sheet_events` can store row snapshots/payload. | Event type/payload must include previous source ID, previous link state, new link state, and reason/user action. |
+| Public/share | Publication DTOs must avoid leaking raw metadata. | Share page may show user-safe project-specific label, not internal snapshot JSON. |
+
+**VERIFIED CONTRACT — checked against current local schema/types:** valid columns are `source_library_item_id`, `source_snapshot`, `metadata`, `link_state`, and `row_revision`; valid enum includes `detached`.
+
+Tests required: RPC revision conflict, action mapping, hook cache update, UI label/confirm, library unchanged assertion, publication metadata redaction, migration rollback. Manual QA: insert library row, detach it, edit cost/description, confirm source library item remains unchanged and Activity records detach.
+
 This document replaces the first-pass unlink plan. The first-pass SQL was schema-invalid and must not be reused.
 
 ## Current State Evidence

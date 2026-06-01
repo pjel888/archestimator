@@ -1,5 +1,24 @@
 # Excel Export Industry-Standard Plan
 
+## Third-Pass Workbook Contract
+
+Commit audited: `681c95e64864f283950a88dba304eaffe8f2f8b3`. Current export is not launch-grade: sheets are `Proposal Summary`, `Detailed Estimate`, `Area Breakdown`; totals are static values despite `includeFormulas`; every row is `included`; labor is always `0`; commercial/legal blocks are missing.
+
+MVP workbook must be:
+
+| Sheet | Purpose | Required structure |
+| --- | --- | --- |
+| `Bid Form` | Estimator-facing BOQ/bid sheet | Header block: project, location, owner/client, bidder/contractor, date submitted. General notes. Columns: `ITEM`, `PARTICULARS`, `UNIT`, `QTY`, `MATERIAL`, `LABOR`, `COST TOTAL`, `LINE TOTAL`, `SCOPE`, `NOTES / REMARKS`. Section subtotal rows and formula line totals. |
+| `Summary` | Commercial total sheet | Section totals, running subtotal, contingency/VAT decision, grand total, amount-in-words placeholder if feasible, cost-per-sqm only if project area exists. |
+| `Commercial Terms` | Proposal qualifications | Exclusions, inclusions, payment terms, validity, warranty, duration, signature/conforme blocks, export disclaimer. |
+| `Source Breakdown` | Audit/support sheet | Current area/section/source rows, link state, source item name/ID where safe, validation notes, export generated timestamp. |
+
+Reference patterns incorporated: header block; general notes requiring nonblank line totals and scope markings; material/labor or supply/installation split; scope labels `INCLUDED`, `EXCLUDED`, `BY OTHERS`, `OWNER SUPPLIED`, `OSM`, `OFCI`, `OMITTED`, `NOT APPLICABLE`; summary with contingency/VAT/grand total/exclusions/terms/signatures. Bid tabulations and PDF-style proposal letters are post-MVP.
+
+Formula requirements: row material subtotal = quantity * material unit cost; row labor subtotal = quantity * labor unit cost; cost total = material + labor + misc/other; line total = zero for excluded/by others/owner supplied/not applicable unless explicitly included; section subtotal = sum of launch-counted line totals; grand total = summary formula. Formula tests must inspect ExcelJS formula objects and cached results where applicable.
+
+Manual QA: landscape fit-to-width print, repeated headers, wrapped remarks, frozen header, currency formatting, open in Excel desktop and at least one secondary spreadsheet app, no blank line totals. Route remains `runtime = "nodejs"` and uses in-memory `writeBuffer()`, so add row-count/size benchmark and Vercel proof before launch.
+
 Goal: turn the current proposal export into a professional bid/BOQ workbook matching the reference bid-form patterns supplied in the 2026-06-01 prompt.
 
 ## Current Export Code Audit
@@ -247,6 +266,6 @@ Verify:
 
 ## Tickets
 
-- MVP-XLS-001 Export model contract rewrite.
-- MVP-XLS-002 Workbook builder bid-form layout.
-- MVP-XLS-003 Export formula/scope/status tests.
+- EXP-001 Export model contract rewrite.
+- EXP-001 Workbook builder bid-form layout.
+- EXP-001 Export formula/scope/status tests.
