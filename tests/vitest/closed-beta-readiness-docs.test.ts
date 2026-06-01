@@ -137,6 +137,11 @@ describe("closed beta readiness docs", () => {
     expect(evidenceIndex).toContain("Cleanup proof: post-run residue check found no `E2E Project Specific%` estimates.");
     expect(evidenceIndex).toContain("no listed backups, `pitr_enabled=false`");
     expect(evidenceIndex).toContain("linked temp-role pooler circuit breaker");
+    expect(evidenceIndex).toContain("### Supabase Linked Schema Parity Evidence");
+    expect(evidenceIndex).toContain("supabase-linked-schema-parity-2026-06-02.md");
+    expect(evidenceIndex).toContain("linked history is missing `20260601182522_closed_beta_allowed_emails` and `20260601184343_unlink_estimate_row_items`");
+    expect(evidenceIndex).toContain("`closed_beta_allowed_emails`, `check_closed_beta_access(text)`, and `unlink_estimate_row_item_from_library_with_history(...)` are absent on linked Supabase");
+    expect(evidenceIndex).toContain("`component-images` bucket is public");
     expect(evidenceIndex).toContain("Current app build anchor: `e6cf52b` on `main`, before this docs-only evidence-sync commit.");
     expect(evidenceIndex).toContain("PLAYWRIGHT_PORT=3037 bun run test:e2e -- e2e/auth.spec.ts --project=chromium");
     expect(evidenceIndex).toContain("Result: pass, 2 Playwright tests in 9.9s.");
@@ -196,6 +201,9 @@ describe("closed beta readiness docs", () => {
     expect(manualProofMatrix).toContain("Closed beta stays **NO-GO**");
     expect(manualProofMatrix).toContain("Use `48-manual-proof-packet-template.md`");
     expect(manualProofMatrix).toContain("Supabase backup/PITR");
+    expect(manualProofMatrix).toContain("supabase-linked-schema-parity-2026-06-02.md");
+    expect(manualProofMatrix).toContain("`20260601182522_closed_beta_allowed_emails` and `20260601184343_unlink_estimate_row_items` are missing from linked migration history");
+    expect(manualProofMatrix).toContain("`closed_beta_allowed_emails`, `check_closed_beta_access`, and `unlink_estimate_row_item_from_library_with_history` are absent");
     expect(manualProofMatrix).toContain("Hosted auth allowlist");
     expect(manualProofMatrix).toContain("Vercel deploy/env/health");
     expect(manualProofMatrix).toContain("Spreadsheet compatibility");
@@ -232,6 +240,9 @@ describe("closed beta readiness docs", () => {
     expect(goalCompletionAudit).toContain("All changes staged, committed, and pushed in meaningful commits");
     expect(goalCompletionAudit).toContain("Current launch-pack evidence commits are pushed");
     expect(goalCompletionAudit).toContain("backup list showed PITR disabled and no listed backups");
+    expect(goalCompletionAudit).toContain("Supabase linked schema parity evidence");
+    expect(goalCompletionAudit).toContain("linked migration history missing `20260601182522` and `20260601184343`");
+    expect(goalCompletionAudit).toContain("`closed_beta_allowed_emails`, `check_closed_beta_access`, and `unlink_estimate_row_item_from_library_with_history` are absent");
     expect(goalCompletionAudit).toContain("latest preview reached READY and protected `/api/health` returned ok through `vercel curl`");
     expect(goalCompletionAudit).toContain("generated workbook artifact is loadable, ZIP-valid, formula-backed, and has no blank line totals");
     expect(goalCompletionAudit).toContain("component/template demo smoke and template insertion are partial/local pass");
@@ -250,6 +261,10 @@ describe("closed beta readiness docs", () => {
     expect(currentState).toMatch(/Closed beta remains \*\*NO-GO\*\*/);
     expect(currentState).toContain("Read-only Supabase CLI evidence");
     expect(currentState).toContain("PITR is disabled");
+    expect(currentState).toContain("Linked Supabase schema parity evidence");
+    expect(currentState).toContain("Management API SQL readback succeeded");
+    expect(currentState).toContain("`20260601182522_closed_beta_allowed_emails` and `20260601184343_unlink_estimate_row_items`");
+    expect(currentState).toContain("`component-images` is public");
     expect(currentState).toContain("Read-only Vercel CLI evidence");
     expect(currentState).toContain("Vercel env list is empty");
     expect(currentState).toContain("Spreadsheet artifact evidence");
@@ -265,6 +280,9 @@ describe("closed beta readiness docs", () => {
     expect(knownIssues).toContain("Local validation/build evidence is now current");
     expect(knownIssues).toContain("`a65b34b` passed `bun run validate`");
     expect(knownIssues).toContain("`e6cf52b` passed `bun run build`");
+    expect(knownIssues).toContain("Linked Supabase schema parity evidence on 2026-06-02 is negative/blocked");
+    expect(knownIssues).toContain("`20260601182522_closed_beta_allowed_emails` and `20260601184343_unlink_estimate_row_items` missing from linked migration history");
+    expect(knownIssues).toContain("`component-images` public");
     expect(knownIssues).toContain("Local component/template demo evidence on 2026-06-02 proves screenshots/JSON");
     expect(knownIssues).toContain("local template insertion evidence proves throwaway-estimate insertion with zero residue");
     expect(knownIssues).toContain("Project-specific unlink linked smoke evidence is negative/blocked");
