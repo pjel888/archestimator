@@ -229,6 +229,22 @@
 - Post-edit GitNexus `detect-changes --repo archestimator --scope staged` reported no changes detected for this new-route/docs/test staged set.
 - Production uptime monitor setup and deployed endpoint proof remain external launch gates.
 
+### QA-002 Local Readiness Truth-Sync Evidence
+
+- `09-release-readiness-checklist.md` now reflects the current local command baseline: `test:dom` is pass, while hosted/provider/manual P0 gates remain no-go.
+- `19-test-strategy-and-fixtures.md` now distinguishes the historical third-pass red DOM state from the current green local Vitest DOM baseline.
+- `33-main-feature-zero-defect-test-matrix.md` now states the local type/lint/unit/DOM/build baseline is green and keeps launch status no-go pending hosted auth/RLS/provider, manual smoke, backup/restore, spreadsheet open, and deployment/rollback evidence.
+- `closed-beta-readiness-docs.test.ts` locks the current QA docs against stale `test:dom` failure wording while preserving conservative no-go launch language.
+- Focused evidence: `bun run test:dom tests/vitest/closed-beta-readiness-docs.test.ts` passed 1 file / 2 tests.
+- Adjacent focused evidence: `bun run test:dom tests/vitest/closed-beta-readiness-docs.test.ts tests/vitest/health-route.test.ts` passed 2 files / 4 tests.
+- `bun run type-check` passed.
+- `bun run lint` passed with the existing 14 warnings and 0 errors.
+- `bun run lint:design-system` passed.
+- `bun run test` passed 4 unit tests / 129 expectations.
+- `git diff --check` passed.
+- Post-edit code-review-graph `detect_changes` against `HEAD` analyzed 6 staged changed files, 3 changed functions/classes from the source-contract test, 0 affected flows, 0 test gaps, and overall risk score 0.30.
+- Post-edit GitNexus `detect-changes --repo archestimator --scope staged` reported no code changes detected for this docs/test-only staged set.
+
 ### Closed Beta Audit Evidence
 
 - Auth/proxy: `src/proxy.ts`, `src/lib/auth/actions.ts`, `src/app/auth/callback/route.ts`, `src/lib/auth/account-setup.ts`, `src/lib/auth/session.ts`.

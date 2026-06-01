@@ -15,21 +15,21 @@ Closed beta requires auth/access tests before launch:
 - First whitelisted user workspace path succeeds.
 - Feedback/support path is visible.
 
-Existing `bun run test:dom` currently fails three static-contract assertions unrelated to this docs pass; these must be resolved or explicitly no-go-scoped before closed beta.
+Current local Vitest DOM baseline is green: `bun run test:dom` passed 129 files / 1014 tests with 2 skips after the AI, auth, library, template, export, feedback, legal, infra, and health slices. Hosted/manual E2E proof is still required before launch.
 
 ## Third-Pass Test Gate
 
-Commit audited: `681c95e64864f283950a88dba304eaffe8f2f8b3`. Current validation is not launch-clean: `bun run test:dom` fails and `bun run test:e2e` was blocked by a local dev-server port collision. The MVP gate requires a fresh green baseline or a documented no-go.
+Commit audited: `681c95e64864f283950a88dba304eaffe8f2f8b3`. Historical third-pass validation found a red DOM baseline and blocked E2E run. Current local validation is green for `type-check`, `lint`, `lint:design-system`, `test`, `test:dom`, and `build`; the MVP gate still requires hosted/manual smoke or a documented no-go for any E2E path that cannot run safely.
 
 | Area | Required automated tests | Required manual QA | Current gap |
 | --- | --- | --- | --- |
-| AI deferral | UI hidden, routes disabled, provider/tool/write/audit not called. | Direct route POSTs and workshop footer check. | Tests not implemented; current AI visible. |
+| AI deferral | UI hidden, routes disabled, provider/tool/write/audit not called. | Direct route POSTs and workshop footer check. | Locally implemented and tested; production env proof still required. |
 | Auth/onboarding | Callback/proxy/magic link/first-run DOM/E2E. | New/returning/invited/expired-login journeys. | Hosted proof missing. |
 | Estimate editor | Create/open/duplicate/edit/delete/replace/history/activity. | Core smoke with real browser. | Matrix not complete. |
-| Component library | Search/filter/create/insert/empty/error/image-backed fixtures. | Demo library scan. | Needs P1 polish tests. |
-| Templates | Browse/preview/insert/empty/error fixtures. | Insert into empty and grouped estimate. | Needs P1 polish tests. |
-| Project-specific unlink | RPC/action/hook/UI/publication tests; library unchanged. | Detach and edit row. | Not implemented. |
-| Excel export | Model/workbook/formulas/route/preview/performance fixtures. | Excel + secondary app open/print. | Current formulas absent. |
+| Component library | Search/filter/create/insert/empty/error/image-backed fixtures. | Demo library scan. | Core local polish tests pass; manual/demo route smoke still required. |
+| Templates | Browse/preview/insert/empty/error fixtures. | Insert into empty and grouped estimate. | Core local preview tests pass; manual insertion smoke still required. |
+| Project-specific unlink | RPC/action/hook/UI/publication tests; library unchanged. | Detach and edit row. | Local RPC/action/hook/UI coverage exists; linked Supabase/manual proof still required. |
+| Excel export | Model/workbook/formulas/route/preview/performance fixtures. | Excel + secondary app open/print. | Professional workbook local tests pass; spreadsheet-app open/print QA still required. |
 | Share/invite/email | Token/session/CSRF/RLS/webhook tests. | Send/open/revoke/expire/bounce. | Env-gated and provider proof missing. |
 | Security | RLS/storage denial, secret scan, XSS/CSRF. | Cross-workspace attempts. | Needs live/staging proof. |
 | Perf | Route transitions, export large fixture, no silent E2E skips. | Investor demo rehearsal. | Route/prod proof missing. |
