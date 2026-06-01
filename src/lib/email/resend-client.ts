@@ -19,6 +19,7 @@ export type SendEmailInput = {
   html?: string;
   text?: string;
   from?: string; // optional override; defaults to env-configured or safe sender
+  tags?: Array<{ name: string; value: string }>;
 };
 
 export type SendEmailResult =
@@ -118,6 +119,7 @@ export async function sendEmail(input: SendEmailInput): Promise<SendEmailResult>
       subject: input.subject,
       html: input.html,
       text: input.text,
+      tags: input.tags,
     } as CreateEmailOptions);
 
     if (response.error) {
@@ -152,4 +154,6 @@ export const ResendEmailClient = {
   send: sendEmail,
 };
 
-export default { sendEmail };
+const ResendEmailDefaultClient = { sendEmail };
+
+export default ResendEmailDefaultClient;
