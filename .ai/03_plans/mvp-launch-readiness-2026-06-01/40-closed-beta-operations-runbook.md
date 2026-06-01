@@ -60,6 +60,7 @@ Do not delete rows during beta unless required by a data deletion request. Statu
 
 ## Monitor Usage
 
+- `/api/health` uptime monitor and production response status.
 - Vercel deployment health and function errors.
 - Supabase Auth errors and callback failures.
 - Supabase database errors and RLS denials.
@@ -122,6 +123,7 @@ Options:
 
 ## First 24-Hour Checklist
 
+- `/api/health` returns `200` with no-store JSON after deployment.
 - Allowed and denied login smoke after deployment.
 - First workspace/project/estimate smoke.
 - Excel export smoke.

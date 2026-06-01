@@ -29,6 +29,7 @@ Commit audited: `681c95e64864f283950a88dba304eaffe8f2f8b3`
 | Vercel logs | Available if deployed. | No alert routing proof. |
 | Supabase logs | Available in dashboard. | No dashboard/runbook references. |
 | Resend webhook logs | Route can record delivery state. | Delivery/webhook proof missing. |
+| Health endpoint | `/api/health` returns `200` JSON with `Cache-Control: no-store` and no auth/data dependency. | Production uptime monitor proof missing. |
 | Performance monitor | Dev-only monitor exists. | No production RUM/APM. |
 | Support | Public contact route likely exists. | No beta support inbox/SLA/bug flow. |
 
@@ -59,14 +60,14 @@ Commit audited: `681c95e64864f283950a88dba304eaffe8f2f8b3`
 - Supabase API/Auth/Postgres/storage logs.
 - Resend delivery/webhook dashboard.
 - Error tracker dashboard with release/env tags.
-- Uptime monitor for public, login, workshop health route if added.
+- Uptime monitor for `/api/health`, public entry, login, and protected workshop smoke.
 - `20-launch-runbook.md` for incident/rollback.
 
 ## First 24 / 72 Hours
 
 | Window | Required monitoring |
 | --- | --- |
-| First 24h | Watch auth, project/estimate creation, export, share/invite email, support inbox, 5xx logs every 2-4 hours. |
+| First 24h | Watch `/api/health`, auth, project/estimate creation, export, share/invite email, support inbox, 5xx logs every 2-4 hours. |
 | First 72h | Daily review of support tickets, slow routes, export failures, email failures, RLS/security alerts, beta feedback themes. |
 
 ## No-Go Criteria

@@ -211,6 +211,24 @@
 - Post-edit GitNexus `detect-changes --repo archestimator --scope staged` reported no code changes detected for the config/docs/test-only staged set.
 - Real Vercel env values, Supabase provider screenshots, Resend DNS/webhook proof, deployment smoke, and rollback proof remain external launch gates.
 
+### OBS-001 Health Endpoint Evidence
+
+- `/api/health` now returns public `200` JSON with `ok: true`, `service: "archestimator"`, an ISO timestamp, and `Cache-Control: no-store`.
+- The payload deliberately avoids auth, Supabase, Resend, database, secret, key, token, or environment-specific details so uptime monitors can call it without leaking runtime configuration.
+- `27-observability-monitoring-support-plan.md` now names `/api/health` as the uptime monitor target.
+- `40-closed-beta-operations-runbook.md` now includes `/api/health` in monitor usage and the first 24-hour checklist.
+- Focused red/green evidence: `bun run test:dom tests/vitest/health-route.test.ts` first failed on the missing route, then passed 1 file / 2 tests after implementation and doc alignment.
+- `bun run type-check` passed.
+- `bun run lint` passed with the existing 14 warnings and 0 errors.
+- `bun run lint:design-system` passed.
+- `bun run test` passed 4 unit tests / 129 expectations.
+- `bun run test:dom` passed 129 files / 1014 tests with 2 skips.
+- `bun run build` passed and lists `/api/health` as a dynamic app route.
+- `git diff --check` passed.
+- Post-edit code-review-graph `detect_changes` against `HEAD` analyzed 6 staged changed files, 4 changed functions/classes, 0 affected flows, 1 source-level test gap (`GET`), and overall risk score 0.35. The reported `GET` gap is covered by `health-route.test.ts` importing and invoking the route handler directly.
+- Post-edit GitNexus `detect-changes --repo archestimator --scope staged` reported no changes detected for this new-route/docs/test staged set.
+- Production uptime monitor setup and deployed endpoint proof remain external launch gates.
+
 ### Closed Beta Audit Evidence
 
 - Auth/proxy: `src/proxy.ts`, `src/lib/auth/actions.ts`, `src/app/auth/callback/route.ts`, `src/lib/auth/account-setup.ts`, `src/lib/auth/session.ts`.
