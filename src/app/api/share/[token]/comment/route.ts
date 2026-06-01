@@ -1,5 +1,5 @@
 import { assertSameOriginPublicPost, createSharedLinkSessionCookieName, verifySharedLinkSessionCookieValue } from "@/lib/publication/security";
-import { insertSharedLinkComment, createPublicationServiceClient } from "@/lib/publication/public-repository";
+import { checkSharedLinkCommentRateLimit, insertSharedLinkComment } from "@/lib/publication/public-repository";
 import { createHash } from "crypto";
 
 export const dynamic = "force-dynamic";
@@ -59,38 +59,6 @@ function logStructured(level: "error" | "warn", route: string, errorCode: string
   console.error({ level, route, errorCode, ipHash, ts: new Date().toISOString(), ...extra });
 }
 
-// In-memory LRU rate limiter with TTL (per-recipient, no external deps, P6 per plan)
-// 5/min, 20/hour sliding. Keyed by publicationId:recipientId. Auto-prunes.
-const RATE_WINDOW_MS = 60 * 60 * 1000; // 1h
-const MAX_PER_MIN = 5;
-const MAX_PER_HOUR = 20;
-const rateBuckets = new Map<string, number[]>(); // timestamps desc newest
-
-function getRateKey(publicationId: string, recipientId: string) {
-  return `${publicationId}:${recipientId}`;
-}
-
-function checkAndRecordRateLimit(key: string): { allowed: true } | { allowed: false; status: 429; message: string; retryAfter: number } {
-  const now = Date.now();
-  let arr = rateBuckets.get(key) || [];
-  // prune >1h old
-  arr = arr.filter((t) => now - t < RATE_WINDOW_MS);
-  const inMin = arr.filter((t) => now - t < 60 * 1000).length;
-  if (inMin >= MAX_PER_MIN || arr.length >= MAX_PER_HOUR) {
-    const retryAfter = Math.ceil((60 * 1000 - (now - (arr[arr.length - 1] || now))) / 1000);
-    return { allowed: false, status: 429, message: "Too many comments. Please slow down.", retryAfter: Math.max(5, retryAfter) };
-  }
-  arr.unshift(now); // newest first
-  rateBuckets.set(key, arr.slice(0, MAX_PER_HOUR + 5)); // cap
-  // global prune if map grows
-  if (rateBuckets.size > 2000) {
-    for (const [k, v] of rateBuckets) {
-      if (v.length === 0 || now - v[0] > RATE_WINDOW_MS) rateBuckets.delete(k);
-    }
-  }
-  return { allowed: true };
-}
-
 function sanitizeAndTruncate(input: string): string {
   if (typeof input !== "string") return "";
   // Strip script/style tags completely + all other HTML tags. Decode basic entities.
@@ -113,6 +81,33 @@ function sanitizeAndTruncate(input: string): string {
 function parseCookieValue(cookieHeader: string, name: string): string | undefined {
   const match = cookieHeader.match(new RegExp(`(?:^|;\\s*)${name}=([^;]*)`));
   return match ? decodeURIComponent(match[1]) : undefined;
+}
+
+function readSessionPayload(value: string | undefined) {
+  try {
+    const prefix = "shared-link-session-v1";
+    const parts = (value || "").split(":");
+    if (parts[0] !== prefix || !parts[1]) return {};
+    const payload = JSON.parse(Buffer.from(parts[1], "base64url").toString("utf8")) as {
+      publicationId?: unknown;
+      snapshotVersion?: unknown;
+      recipientId?: unknown;
+    };
+    return {
+      publicationId: typeof payload.publicationId === "string" ? payload.publicationId : undefined,
+      snapshotVersion:
+        typeof payload.snapshotVersion === "string" || typeof payload.snapshotVersion === "number"
+          ? payload.snapshotVersion
+          : undefined,
+      recipientId: typeof payload.recipientId === "string" ? payload.recipientId : undefined,
+    };
+  } catch {
+    return {};
+  }
+}
+
+function readErrorMessage(error: unknown, fallback: string) {
+  return error instanceof Error ? error.message : fallback;
 }
 
 export async function POST(request: Request, { params }: { params: Promise<{ token: string }> }) {
@@ -142,17 +137,10 @@ export async function POST(request: Request, { params }: { params: Promise<{ tok
   // Lightweight parse of signed P5 session payload for ids (no DB). Full crypto verify below.
   let publicationId = "unknown-pub";
   let snapshotVersion: string | number = "1";
-  let recipientIdFromCookie: string | undefined;
-  try {
-    const prefix = "shared-link-session-v1";
-    const parts = (sessionValue || "").split(":");
-    if (parts[0] === prefix && parts[1]) {
-      const p = JSON.parse(Buffer.from(parts[1], "base64url").toString("utf8"));
-      if (p?.publicationId) publicationId = p.publicationId;
-      if (p?.snapshotVersion) snapshotVersion = p.snapshotVersion;
-      recipientIdFromCookie = p?.recipientId;
-    }
-  } catch {}
+  const sessionPayload = readSessionPayload(sessionValue);
+  if (sessionPayload.publicationId) publicationId = sessionPayload.publicationId;
+  if (sessionPayload.snapshotVersion) snapshotVersion = sessionPayload.snapshotVersion;
+  const recipientIdFromCookie = sessionPayload.recipientId;
 
   // Verify P5 session (crypto + expiry + match, no DB required)
   const sessionOk = verifySharedLinkSessionCookieValue(sessionValue, {
@@ -183,15 +171,14 @@ export async function POST(request: Request, { params }: { params: Promise<{ tok
     return Response.json({ error: "Service temporarily unavailable due to high error rate. Please retry shortly." }, { status: 503, headers: { "Cache-Control": "no-store", "Retry-After": "120" } });
   }
 
-  // Rate limit (server, per-recipient)
-  const rateKey = getRateKey(publicationId, recipientId);
-  const rateCheck = checkAndRecordRateLimit(rateKey);
+  // Durable rate limit (server, per-recipient).
+  const rateCheck = await checkSharedLinkCommentRateLimit({ publicationId, recipientId });
   if (!rateCheck.allowed) {
     const ipHash = getIpHash(request);
     logStructured("warn", "/api/share/[token]/comment", "RATE_LIMITED", ipHash, { status: 429 });
     return Response.json(
       { error: rateCheck.message },
-      { status: rateCheck.status, headers: { "Cache-Control": "no-store", "Retry-After": String(rateCheck.retryAfter) } }
+      { status: 429, headers: { "Cache-Control": "no-store", "Retry-After": String(rateCheck.retryAfter) } }
     );
   }
 
@@ -221,8 +208,8 @@ export async function POST(request: Request, { params }: { params: Promise<{ tok
     } catch {}
 
     return Response.json({ id, created: true }, { status: 201, headers: { "Cache-Control": "no-store" } });
-  } catch (e: any) {
-    const msg = e?.message || "Failed to post comment.";
+  } catch (error: unknown) {
+    const msg = readErrorMessage(error, "Failed to post comment.");
     const status = /rate|too many/i.test(msg) ? 429 : /not found|expired|recipient/i.test(msg) ? 403 : 500;
     const ipHash = getIpHash(request);
     if (status === 500) {

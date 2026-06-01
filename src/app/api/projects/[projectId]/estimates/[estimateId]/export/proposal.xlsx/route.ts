@@ -4,6 +4,7 @@ import { buildProposalExportModel } from "@/lib/proposal-export/build-proposal-e
 import { createProposalWorkbookBuffer } from "@/lib/proposal-export/create-proposal-workbook";
 import { getProjectEstimateTreeByEstimate } from "@/lib/repositories/workspace-repository";
 import type { Json } from "@/lib/supabase/types";
+import { buildProposalWorkbookFilename } from "./filename";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -23,21 +24,6 @@ function readVersionLabel(metadata: Json): string {
     return normalized.toLocaleLowerCase("en-PH").startsWith("v") ? normalized : `V${normalized}`;
   }
   return "V1";
-}
-
-export function buildProposalWorkbookFilename(projectCodeOrName: string | null | undefined, estimateCodeOrName: string | null | undefined) {
-  const safeStem = [projectCodeOrName, estimateCodeOrName]
-    .map((value) =>
-      (value ?? "")
-        .normalize("NFKD")
-        .replace(/[\u0300-\u036f]/g, "")
-        .replace(/[^a-zA-Z0-9]+/g, "-")
-        .replace(/^-+|-+$/g, ""),
-    )
-    .filter(Boolean)
-    .join("-");
-
-  return `${safeStem || "estimate"}-proposal.xlsx`;
 }
 
 function createXlsxResponse(buffer: Buffer, filename: string) {

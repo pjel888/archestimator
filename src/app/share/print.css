@@ -1,0 +1,48 @@
+@media print {
+  @page {
+    margin: 14mm;
+  }
+
+  html,
+  body {
+    background: #fff !important;
+    color: #111 !important;
+  }
+
+  .share-print-hidden {
+    display: none !important;
+  }
+
+  .share-print-content {
+    max-width: none !important;
+    padding: 0 !important;
+  }
+
+  .share-print-content *,
+  .share-print-estimate * {
+    background: transparent !important;
+    box-shadow: none !important;
+    color: #111 !important;
+  }
+
+  .share-print-estimate {
+    break-inside: avoid;
+    page-break-inside: avoid;
+    border-color: #999 !important;
+  }
+
+  .share-print-estimate + .share-print-estimate {
+    break-before: page;
+    page-break-before: always;
+  }
+
+  .share-print-estimate table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+  }
+
+  .share-print-estimate th,
+  .share-print-estimate td {
+    border-color: #bbb !important;
+  }
+}

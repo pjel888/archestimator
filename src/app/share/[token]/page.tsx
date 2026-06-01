@@ -6,6 +6,7 @@ import SharePageTabs from "@/components/share/SharePageTabs";
 import SharePageComments from "@/components/share/SharePageComments";
 import SharePageDecision from "@/components/share/SharePageDecision";
 import SharePageHero from "@/components/share/SharePageHero";
+import { SharePageRecipientSessionInitializer } from "@/components/share/SharePageRecipientSessionInitializer";
 import { SharePageSessionBanner } from "@/components/share/SharePageSessionBanner";
 import { ArchestimatorLogo } from "@/components/brand/ArchestimatorLogo";
 
@@ -23,16 +24,17 @@ import {
   recordProjectPublicationEvent,
   resolveProjectPublicationAccessByToken,
   resolveProjectPublicationSnapshotByToken,
-  verifySharedLinkRecipientToken,
+  resolveSharedLinkRecipientIdentity,
 } from "@/lib/publication/public-repository";
 import {
   createPublicationAccessCookieName,
   createSharedLinkSessionCookieName,
-  getSharedLinkSessionCookieParts,
+  readSharedLinkSessionCookieRecipientId,
   verifyPublicationAccessCookieValue,
   verifySharedLinkSessionCookieValue,
 } from "@/lib/publication/security";
 import type { ProjectPublicationSnapshot } from "@/lib/publication/types";
+import "../print.css";
 
 import type { Metadata } from "next";
 
@@ -51,22 +53,27 @@ function formatMoney(value: number, currencyCode: string) {
 }
 
 function ProjectPublicationView({
+  recipientEmail,
+  recipientToken,
   snapshot,
   token,
 }: {
+  recipientEmail?: string | null;
+  recipientToken?: string;
   snapshot: ProjectPublicationSnapshot;
   token: string;
 }) {
   return (
     <main aria-label="Client publication" className="min-h-dvh bg-white text-ink">
-      <SharePageSessionBanner />
-      <header className="border-b border-hairline bg-white">
+      {recipientToken ? <SharePageRecipientSessionInitializer recipientToken={recipientToken} token={token} /> : null}
+      <SharePageSessionBanner recipientEmail={recipientEmail} token={token} />
+      <header className="share-print-hidden border-b border-hairline bg-white">
         <div className="mx-auto flex h-12 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
           <ArchestimatorLogo markSize={24} showWordmark className="text-ink" />
           <span className="text-[9px] font-medium uppercase tracking-normal text-tertiary">View-only</span>
         </div>
       </header>
-      <div className="mx-auto flex w-full max-w-7xl flex-col gap-5 px-4 py-6 sm:px-6 lg:px-8">
+      <div className="share-print-content mx-auto flex w-full max-w-7xl flex-col gap-5 px-4 py-6 sm:px-6 lg:px-8">
         <div className="border-b border-hairline pb-4">
           <p className="text-[9px] font-medium uppercase leading-3 tracking-normal text-tertiary">Client publication</p>
           <h1 className="mt-1.5 text-[12px] font-medium leading-4 text-ink">{snapshot.project.name}</h1>
@@ -80,7 +87,7 @@ function ProjectPublicationView({
 
         {/* P9: Hero cover (from snapshot.project.coverImageUrl populated from projects.metadata at publish).
             Next/Image + lazy. Null when absent (old snapshots / no cover) — additive, no layout shift. */}
-        <SharePageHero project={snapshot.project as any} />
+        <SharePageHero project={snapshot.project} />
 
         {/* P2: Tabbed navigation (replaces previous vertical stack). SharePageTabs encapsulates per-estimate card+table. */}
         {/* P6/P7: Right column — decision (P7) above comments (P6). Both session-gated via P5 hook. Decision locks to read-only badge after submit/409; comments remain usable post-decision (additive, per owner allowance). */}
@@ -93,7 +100,7 @@ function ProjectPublicationView({
             />
           </div>
           {/* P9: sticky decision rail on lg+ (desktop polish); safe-area-inset-bottom on mobile for interactive bars (additive, no behavior change) */}
-          <div className="w-full lg:w-80 flex-shrink-0 flex flex-col gap-3 lg:sticky lg:top-4 pb-[env(safe-area-inset-bottom)] lg:pb-0">
+          <div className="share-print-hidden w-full lg:w-80 flex-shrink-0 flex flex-col gap-3 lg:sticky lg:top-4 pb-[env(safe-area-inset-bottom)] lg:pb-0">
             <SharePageDecision token={token} />
             <SharePageComments token={token} />
           </div>
@@ -109,9 +116,18 @@ function createPublicationEventRequest(token: string, requestHeaders: Headers) {
   return new Request(`${protocol}://${host}/share/${token}`, { headers: requestHeaders });
 }
 
+function decodeCookieValue(value: string | undefined) {
+  if (!value) return undefined;
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return value;
+  }
+}
+
 function ProjectPublicationPasswordGate({ token }: { token: string }) {
   return (
-    <main aria-label="Client publication password" className="grid min-h-dvh place-items-center bg-white px-4 py-6 text-ink">
+    <main aria-label="Client publication password" className="share-print-hidden grid min-h-dvh place-items-center bg-white px-4 py-6 text-ink">
       <section className="w-full max-w-sm border border-hairline bg-white p-4">
         <p className="text-[9px] font-medium uppercase leading-3 text-tertiary">Client publication</p>
         <h1 className="mt-2 text-[12px] font-medium leading-4 text-ink">Enter publication password</h1>
@@ -125,7 +141,10 @@ function ProjectPublicationPasswordGate({ token }: { token: string }) {
 export default async function SharePage({ params, searchParams }: SharePageProps) {
   const { token } = await params;
   const searchParamsData = await (searchParams ?? Promise.resolve<Record<string, string | undefined>>({}));
-  const recipientToken = typeof searchParamsData.recipient === "string" ? searchParamsData.recipient.trim() : undefined;
+  const canonicalRecipientToken =
+    typeof searchParamsData.recipient === "string" ? searchParamsData.recipient.trim() : "";
+  const legacyRecipientToken = typeof searchParamsData.rt === "string" ? searchParamsData.rt.trim() : "";
+  const recipientToken = canonicalRecipientToken || legacyRecipientToken || undefined;
 
   const publicationAccess = await resolveProjectPublicationAccessByToken(token);
   if (!publicationAccess) notFound();
@@ -144,54 +163,31 @@ export default async function SharePage({ params, searchParams }: SharePageProps
   }
 
   // P5: Recipient session & security cookie (additive only; password + view-only flows unchanged)
-  // - On ?recipient= param: verify token against shared_link_recipients (P3 table), set HttpOnly session cookie + client flag
+  // - On ?recipient= / legacy ?rt= param: client initializer posts to the route-handler session boundary.
   // - On subsequent loads: validate existing session cookie
-  // - Sets Max-Age=86400, HttpOnly, SameSite=Lax, Secure (prod) per spec
+  // - Session route sets Max-Age=86400, HttpOnly, SameSite=Lax, Secure (prod) per spec
   // - Enables useSharedLinkSession hook + future interactive blocking (P6+)
-  let hasValidRecipientSession = false;
-  if (recipientToken) {
-    const verified = await verifySharedLinkRecipientToken(token, recipientToken);
-    if (verified) {
-      hasValidRecipientSession = true;
-      const cookieStore = await cookies();
-      const parts = getSharedLinkSessionCookieParts({
-        token,
-        publicationId: verified.publicationId,
-        snapshotVersion: verified.snapshotVersion,
-        recipientId: verified.recipientId,
-      });
-      cookieStore.set(parts.name, parts.value, parts.cookieOptions);
-      // Non-secret companion flag cookie for client-side hook (useSharedLinkSession reads this)
-      const flagName = `${parts.name}_ok`;
-      cookieStore.set(flagName, "1", {
-        path: "/",
-        httpOnly: false,
-        sameSite: "lax",
-        maxAge: 86400,
-        secure: process.env.NODE_ENV === "production",
-      });
-    }
-  } else {
+  let recipientIdForOpenEvent: string | undefined;
+  let recipientEmailForBanner: string | null = null;
+  if (!recipientToken) {
     // Subsequent load: validate existing session cookie (additive to password cookie)
     const cookieStore = await cookies();
-    const sessionValue = cookieStore.get(createSharedLinkSessionCookieName(token))?.value;
+    const sessionValue = decodeCookieValue(cookieStore.get(createSharedLinkSessionCookieName(token))?.value);
+    const recipientIdFromCookie = readSharedLinkSessionCookieRecipientId(sessionValue);
     if (
       verifySharedLinkSessionCookieValue(sessionValue, {
         token,
         publicationId: publicationAccess.publicationId,
         snapshotVersion: publicationAccess.snapshotVersion,
+        recipientId: recipientIdFromCookie,
       })
     ) {
-      hasValidRecipientSession = true;
-      // Ensure client flag for hook consistency
-      const flagName = `${createSharedLinkSessionCookieName(token)}_ok`;
-      cookieStore.set(flagName, "1", {
-        path: "/",
-        httpOnly: false,
-        sameSite: "lax",
-        maxAge: 86400,
-        secure: process.env.NODE_ENV === "production",
+      recipientIdForOpenEvent = recipientIdFromCookie;
+      const recipientIdentity = await resolveSharedLinkRecipientIdentity({
+        publicationId: publicationAccess.publicationId,
+        recipientId: recipientIdFromCookie,
       });
+      recipientEmailForBanner = recipientIdentity?.recipientEmail ?? null;
     }
   }
 
@@ -203,10 +199,18 @@ export default async function SharePage({ params, searchParams }: SharePageProps
     token,
     eventType: "open",
     request: createPublicationEventRequest(token, requestHeaders),
-    metadata: {},
+    metadata: recipientIdForOpenEvent ? { recipient_id: recipientIdForOpenEvent } : {},
+    recipientId: recipientIdForOpenEvent,
   });
 
-  return <ProjectPublicationView snapshot={publication.snapshot} token={token} />;
+  return (
+    <ProjectPublicationView
+      recipientEmail={recipientEmailForBanner}
+      recipientToken={recipientToken}
+      snapshot={publication.snapshot}
+      token={token}
+    />
+  );
 }
 
 // ============================================================================
