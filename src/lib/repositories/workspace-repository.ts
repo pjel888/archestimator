@@ -1486,6 +1486,7 @@ function toUiRow(row: EstimateRowItemRow): EstimateRowItem {
     tags,
     imageUrl: typeof sourceSnapshot.imageUrl === "string" ? sourceSnapshot.imageUrl : undefined,
     sourceLibraryItemId: row.source_library_item_id,
+    linkState: row.link_state,
     componentVersionId: typeof sourceSnapshot.componentVersionId === "string" ? sourceSnapshot.componentVersionId : undefined,
     componentVersionNumber,
     priceOptionId: typeof sourceSnapshot.priceOptionId === "string" ? sourceSnapshot.priceOptionId : undefined,

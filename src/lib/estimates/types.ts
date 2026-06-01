@@ -1,4 +1,5 @@
 export type EstimateRowItemSource = "project" | "supplier" | "library";
+export type EstimateRowLinkState = "unlinked" | "linked-clean" | "linked-overridden" | "detached" | "source-changed";
 
 export type ComponentLifecycleState = "draft" | "in_production" | "available" | "discontinued" | "archived";
 
@@ -109,6 +110,7 @@ export type EstimateRowItem = {
   sku?: string;
   sourceUrl?: string;
   sourceLibraryItemId?: string | null;
+  linkState?: EstimateRowLinkState;
   componentVersionId?: string | null;
   componentVersionNumber?: number;
   rowRevision?: number;

@@ -117,6 +117,7 @@ type EstimateSheetBranchProps = {
   onMarkRowDirty: (rowItemId: string) => void;
   onOpenRowDetails: (rowItemId: string, opener: HTMLElement, tab?: RowDetailTab) => void;
   onClearRowComponent: (rowItemId: string) => void;
+  onRequestProjectSpecific: (rowItemId: string) => void;
   onMoveRowComponent: (sourceRowItemId: string, targetRowItemId: string, movedItem: EstimateRowItem) => void;
   depth?: number;
   usesSiblingGroupRhythm?: boolean;
@@ -419,6 +420,15 @@ function isBlankEstimateRowItem(item: EstimateRowItem) {
     item.material === BLANK_ESTIMATE_ROW_COMPONENT_LABEL &&
     (isTaggedPlaceholder || isPersistedPlaceholder)
   );
+}
+
+function isProjectSpecificRowItem(item: EstimateRowItem) {
+  return item.linkState === "detached";
+}
+
+function canMakeProjectSpecific(item: EstimateRowItem) {
+  if (isBlankEstimateRowItem(item) || isProjectSpecificRowItem(item)) return false;
+  return Boolean(item.sourceLibraryItemId || item.linkState?.startsWith("linked") || item.linkState === "source-changed");
 }
 
 function createBlankEstimateRowTemplate(): EstimateRowItem {
@@ -768,7 +778,7 @@ function EstimateMaterialCardContent({ item }: { item: EstimateMaterialCardItem 
           aria-label={`${item.material} reference image`}
         />
         <div className="flex min-w-0 flex-1 flex-col">
-          <div className="min-w-0 pr-[66px]">
+          <div className="min-w-0 pr-[92px]">
             <p className="truncate text-[11px] font-medium leading-4 text-ink">{item.material}</p>
             <p className="truncate text-[10px] font-medium leading-4 text-tertiary">{item.supplier}</p>
           </div>
@@ -794,6 +804,7 @@ function EstimateMaterialCell({
   onReplaceDragLeave,
   onReplace,
   onClearComponent,
+  onRequestProjectSpecific,
   onMoveComponent,
   onOpenComponentDetails,
 }: {
@@ -803,6 +814,7 @@ function EstimateMaterialCell({
   onReplaceDragLeave: () => void;
   onReplace: (libraryItem: EstimateRowItem) => void;
   onClearComponent: () => void;
+  onRequestProjectSpecific: () => void;
   onMoveComponent: (sourceRowItemId: string, targetRowItemId: string, movedItem: EstimateRowItem) => void;
   onOpenComponentDetails: (opener: HTMLElement) => void;
 }) {
@@ -873,6 +885,9 @@ function EstimateMaterialCell({
     );
   }
 
+  const showProjectSpecificBadge = isProjectSpecificRowItem(item);
+  const showProjectSpecificAction = canMakeProjectSpecific(item);
+
   return (
     <div
       className={cn(
@@ -887,6 +902,22 @@ function EstimateMaterialCell({
       title="Drop another component here to replace this component"
     >
       <div className="absolute top-1 right-1 z-10 flex items-center gap-1.5" aria-label={`Component actions for ${item.material}`}>
+        {showProjectSpecificAction ? (
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon-sm"
+            className="size-5 rounded-xs p-0 text-tertiary hover:bg-surfaceMuted hover:text-ink active:bg-surfaceMuted"
+            aria-label={`Make ${item.material} project-specific`}
+            title="Make project-specific"
+            onClick={(event: MouseEvent<HTMLButtonElement>) => {
+              event.stopPropagation();
+              onRequestProjectSpecific();
+            }}
+          >
+            <Cube size={11} weight="regular" aria-hidden="true" />
+          </Button>
+        ) : null}
         <Button
           type="button"
           variant="ghost"
@@ -930,6 +961,11 @@ function EstimateMaterialCell({
           <DotsSixVertical size={11} weight="regular" aria-hidden="true" />
         </Button>
       </div>
+      {showProjectSpecificBadge ? (
+        <div className="pointer-events-none absolute top-1 left-1 z-10 rounded-xs border border-hairline bg-white px-1.5 py-0.5 text-[8px] font-medium uppercase leading-3 text-tertiary">
+          Project-specific
+        </div>
+      ) : null}
       <EstimateMaterialCardContent item={item} />
     </div>
   );
@@ -991,6 +1027,7 @@ function EstimateRowItemsTable({
   onMarkRowDirty,
   onOpenRowDetails,
   onClearRowComponent,
+  onRequestProjectSpecific,
   onMoveRowComponent,
 }: {
   items: EstimateRowItem[];
@@ -1004,6 +1041,7 @@ function EstimateRowItemsTable({
   onMarkRowDirty: (rowItemId: string) => void;
   onOpenRowDetails: (rowItemId: string, opener: HTMLElement, tab?: RowDetailTab) => void;
   onClearRowComponent: (rowItemId: string) => void;
+  onRequestProjectSpecific: (rowItemId: string) => void;
   onMoveRowComponent: (sourceRowItemId: string, targetRowItemId: string, movedItem: EstimateRowItem) => void;
 }) {
   const [focusedCell, setFocusedCell] = useState<{ rowId: string; cellIndex: number } | null>(null);
@@ -1119,6 +1157,7 @@ function EstimateRowItemsTable({
                       })
                     }
                     onClearComponent={() => onClearRowComponent(item.id)}
+                    onRequestProjectSpecific={() => onRequestProjectSpecific(item.id)}
                     onMoveComponent={onMoveRowComponent}
                     onOpenComponentDetails={(opener) => onOpenRowDetails(item.id, opener, "component")}
                   />
@@ -1365,7 +1404,7 @@ function InlineDropZone({
   );
 }
 
-function EstimateSheetBranch({ node, nodeCode, ancestorPath = [], editableRows, setEditableRows, onInsertLibraryItem, onInsertTemplate, onAddBlankRow, onReplaceRowItem, onDeleteRowItem, onUpdateRowItem, onMarkRowDirty, onOpenRowDetails, onClearRowComponent, onMoveRowComponent, depth = 0, usesSiblingGroupRhythm = false }: EstimateSheetBranchProps) {
+function EstimateSheetBranch({ node, nodeCode, ancestorPath = [], editableRows, setEditableRows, onInsertLibraryItem, onInsertTemplate, onAddBlankRow, onReplaceRowItem, onDeleteRowItem, onUpdateRowItem, onMarkRowDirty, onOpenRowDetails, onClearRowComponent, onRequestProjectSpecific, onMoveRowComponent, depth = 0, usesSiblingGroupRhythm = false }: EstimateSheetBranchProps) {
   const { collapsedNodeIds, setCollapsedNodeIds } = useEstimateSheetExpansion();
   const collapsed = collapsedNodeIds.has(node.id);
   const childAreas = node.children ?? [];
@@ -1482,6 +1521,7 @@ function EstimateSheetBranch({ node, nodeCode, ancestorPath = [], editableRows, 
                 onMarkRowDirty={onMarkRowDirty}
                 onOpenRowDetails={onOpenRowDetails}
                 onClearRowComponent={onClearRowComponent}
+                onRequestProjectSpecific={onRequestProjectSpecific}
                 onMoveRowComponent={onMoveRowComponent}
                 depth={depth + 1}
                 usesSiblingGroupRhythm={hasMixedChildKinds}
@@ -1500,6 +1540,7 @@ function EstimateSheetBranch({ node, nodeCode, ancestorPath = [], editableRows, 
             onMarkRowDirty={onMarkRowDirty}
             onOpenRowDetails={onOpenRowDetails}
             onClearRowComponent={onClearRowComponent}
+            onRequestProjectSpecific={onRequestProjectSpecific}
             onMoveRowComponent={onMoveRowComponent}
           />
           {!hasContents ? (
@@ -2576,7 +2617,13 @@ function RowDetailsModal({
   const contingencyPercentage = row?.contingencyPercentage ?? item?.contingencyPercentage ?? 0;
   const contingencyValue = row?.contingencyValue ?? item?.contingencyValue ?? 0;
   const miscCost = row?.miscCost ?? item?.miscCost ?? 0;
-  const componentStatus = isBlankRow ? "No linked component" : item?.sourceLibraryItemId ? "Library component" : "Manual component";
+  const componentStatus = isBlankRow
+    ? "No linked component"
+    : item && isProjectSpecificRowItem(item)
+      ? "Project-specific"
+      : item?.sourceLibraryItemId
+        ? "Library component"
+        : "Manual component";
 
   return (
     <div
@@ -3291,7 +3338,7 @@ export function EstimateSheetContent({
   libraryBrands,
 }: EstimateSheetContentProps) {
   const { selectedNodeId: activeSelectedNodeId, setSelectedNodeId } = useEstimateWorkspaceSelection(estimateId, selectedNodeId);
-  const { saveState, markRowDirty, insertRow, replaceRow, deleteRow, updateRow } = useEstimateRowMutations(estimateId);
+  const { saveState, markRowDirty, insertRow, replaceRow, detachRow, deleteRow, updateRow } = useEstimateRowMutations(estimateId);
   const {
     tree: estimateTree,
     setTree: setEstimateTreeData,
@@ -3312,6 +3359,7 @@ export function EstimateSheetContent({
   const [proposalPreviewSignature, setProposalPreviewSignature] = useState("");
   const [inspector, setInspector] = useState<EstimateActivityScope | null>(null);
   const [rowDetails, setRowDetails] = useState<RowDetailsState | null>(null);
+  const [projectSpecificRowId, setProjectSpecificRowId] = useState("");
   const [activityFilters, setActivityFilters] = useState<ActivityFilterState>(DEFAULT_ACTIVITY_FILTERS);
   const [historyData, setHistoryData] = useState<EstimateSheetVersionControlData | null>(null);
   const [isHistoryLoading, setIsHistoryLoading] = useState(false);
@@ -3401,6 +3449,10 @@ export function EstimateSheetContent({
   const selectedRowDetailsItem = useMemo(
     () => (rowDetails ? currentRows.find((row) => row.item.id === rowDetails.rowId) ?? null : null),
     [currentRows, rowDetails],
+  );
+  const projectSpecificRow = useMemo(
+    () => (projectSpecificRowId ? currentRows.find((row) => row.item.id === projectSpecificRowId) ?? null : null),
+    [currentRows, projectSpecificRowId],
   );
   const allNodeIds = useMemo(() => (selectedNode ? collectAllNodeIds([selectedNode]) : []), [selectedNode]);
   const expandAll = useCallback(() => setCollapsedNodeIds(new Set()), []);
@@ -3880,6 +3932,31 @@ export function EstimateSheetContent({
     replaceRowItem(rowItemId, createBlankEstimateRowTemplate());
   }
 
+  function requestProjectSpecific(rowItemId: string) {
+    const row = currentRows.find((candidate) => candidate.item.id === rowItemId);
+    if (!row || !canMakeProjectSpecific(row.item)) return;
+    setProjectSpecificRowId(rowItemId);
+  }
+
+  function confirmProjectSpecific() {
+    if (!projectId || !estimateId || !projectSpecificRow) {
+      setProjectSpecificRowId("");
+      return;
+    }
+
+    const rowItemId = projectSpecificRow.item.id;
+    const previousTree = estimateTree;
+    const previousRows = editableRows;
+    const rollbackRevision = getEstimateTreeRevision();
+    detachRow({
+      projectId,
+      estimateId,
+      rowId: rowItemId,
+      rollback: () => restoreEstimateState(previousTree, previousRows, rollbackRevision),
+    });
+    setProjectSpecificRowId("");
+  }
+
   function moveRowComponent(sourceRowItemId: string, targetRowItemId: string, movedItem: EstimateRowItem) {
     if (sourceRowItemId === targetRowItemId) return;
     replaceRowItem(targetRowItemId, movedItem);
@@ -3958,6 +4035,37 @@ export function EstimateSheetContent({
           onClose={closeRowDetails}
         />
       ) : null}
+      {projectSpecificRow ? (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/20 p-4"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) setProjectSpecificRowId("");
+          }}
+        >
+          <section
+            role="dialog"
+            aria-modal="true"
+            aria-label="Make component project-specific"
+            className="w-[min(360px,calc(100vw-32px))] border border-hairline bg-white p-3 shadow-2xl"
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <p className="text-[11px] font-medium text-ink">Make component project-specific</p>
+                <p className="mt-1 text-[10px] leading-4 text-tertiary">
+                  {projectSpecificRow.item.material} will keep its current row values and stop following library updates.
+                </p>
+              </div>
+              <Button type="button" variant="ghost" size="icon-sm" className="size-6 rounded-xs p-0" aria-label="Close project-specific dialog" onClick={() => setProjectSpecificRowId("")}>
+                <X size={13} weight="regular" aria-hidden="true" />
+              </Button>
+            </div>
+            <div className="mt-4 flex justify-end gap-2">
+              <Button type="button" variant="secondary" size="sm" onClick={() => setProjectSpecificRowId("")}>Cancel</Button>
+              <Button type="button" variant="primary" size="sm" onClick={confirmProjectSpecific}>Make project-specific</Button>
+            </div>
+          </section>
+        </div>
+      ) : null}
       <section
         id="estimate-sheet-center-column"
         className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-white"
@@ -3997,6 +4105,7 @@ export function EstimateSheetContent({
                   onMarkRowDirty={markRowDirty}
                   onOpenRowDetails={openRowDetails}
                   onClearRowComponent={clearRowComponent}
+                  onRequestProjectSpecific={requestProjectSpecific}
                   onMoveRowComponent={moveRowComponent}
                 />
               </EstimateSheetExpansionContext.Provider>

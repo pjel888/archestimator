@@ -4,7 +4,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useRef, useState } from "react";
 
 import type { EstimateRowItem, EstimateTreeNode } from "@/components/workshop/estimate-tree-data";
-import { deleteEstimateRowItem, fetchEstimateTree, insertEstimateRowItemFromLibrary, replaceEstimateRowItemWithLibrary, updateEstimateRowItem, type UpdateEstimateRowItemResult } from "@/lib/estimates/actions";
+import { deleteEstimateRowItem, detachEstimateRowItemFromLibrary, fetchEstimateTree, insertEstimateRowItemFromLibrary, replaceEstimateRowItemWithLibrary, updateEstimateRowItem, type UpdateEstimateRowItemResult } from "@/lib/estimates/actions";
 import { findEstimateRowItemInTree, patchEstimateRowItemInTree, type EstimateRowItemPatch } from "@/lib/estimates/estimate-row-tree-patch";
 import { estimateQueryKeys } from "./use-estimate-query";
 
@@ -35,6 +35,14 @@ type DeleteEstimateRowInput = SharedMutationInput & {
   rowId: string;
   mutationId?: string;
   expectedRowRevision?: number;
+  rollback?: () => void;
+};
+
+type DetachEstimateRowInput = SharedMutationInput & {
+  rowId: string;
+  mutationId?: string;
+  expectedRowRevision?: number;
+  reason?: string;
   rollback?: () => void;
 };
 
@@ -74,6 +82,15 @@ function toServerRowPatch(result: UpdateEstimateRowItemResult, input: UpdateEsti
     ...(input.quantity !== undefined ? { quantity: result.quantity } : {}),
     ...(input.contingencyPercentage !== undefined ? { contingencyPercentage: result.contingencyPercentage } : {}),
     ...(input.miscCost !== undefined ? { miscCost: result.miscCost } : {}),
+  };
+}
+
+function toDetachedRowPatch(result: UpdateEstimateRowItemResult): EstimateRowItemPatch {
+  return {
+    source: "project",
+    sourceLibraryItemId: null,
+    linkState: result.linkState,
+    rowRevision: result.rowRevision,
   };
 }
 
@@ -149,6 +166,55 @@ export function useEstimateRowMutations(estimateId?: string) {
   const deleteMutation = useMutation({
     mutationFn: (input: DeleteEstimateRowInput) => deleteEstimateRowItem(withoutRollback(input)),
     ...mutationOptions,
+  });
+
+  const detachMutation = useMutation({
+    mutationFn: (input: DetachEstimateRowInput) => detachEstimateRowItemFromLibrary(withoutRollback(input)),
+    onMutate: async (input): Promise<{ previousPatch?: EstimateRowItemPatch }> => {
+      markSaving();
+      const queryKey = estimateQueryKeys.areaTree(input.estimateId);
+      await queryClient.cancelQueries({ queryKey });
+      const previousTree = queryClient.getQueryData<EstimateTreeNode[]>(queryKey);
+      const previousRow = previousTree ? findEstimateRowItemInTree(previousTree, input.rowId) : null;
+      const previousPatch = previousRow
+        ? {
+            source: previousRow.source,
+            sourceLibraryItemId: previousRow.sourceLibraryItemId,
+            linkState: previousRow.linkState,
+            rowRevision: previousRow.rowRevision,
+          }
+        : undefined;
+      if (previousTree) {
+        queryClient.setQueryData<EstimateTreeNode[]>(
+          queryKey,
+          patchEstimateRowItemInTree(previousTree, input.rowId, {
+            source: "project",
+            sourceLibraryItemId: null,
+            linkState: "detached",
+          }),
+        );
+      }
+      return { previousPatch };
+    },
+    onSuccess: (result: UpdateEstimateRowItemResult, input) => {
+      const queryKey = estimateQueryKeys.areaTree(input.estimateId);
+      queryClient.setQueryData<EstimateTreeNode[]>(queryKey, (currentTree) =>
+        currentTree ? patchEstimateRowItemInTree(currentTree, result.rowId, toDetachedRowPatch(result)) : currentTree,
+      );
+      markSaved();
+      void queryClient.invalidateQueries({ queryKey, refetchType: "none" });
+      if (detailQueryKey) void queryClient.invalidateQueries({ queryKey: detailQueryKey, refetchType: "none" });
+    },
+    onError: (_error: Error, input, context) => {
+      const queryKey = estimateQueryKeys.areaTree(input.estimateId);
+      if (context?.previousPatch) {
+        queryClient.setQueryData<EstimateTreeNode[]>(queryKey, (currentTree) =>
+          currentTree ? patchEstimateRowItemInTree(currentTree, input.rowId, context.previousPatch ?? {}) : currentTree,
+        );
+      } else input.rollback?.();
+      markFailed();
+      void queryClient.invalidateQueries({ queryKey, refetchType: "none" });
+    },
   });
 
   const updateMutation = useMutation({
@@ -240,6 +306,7 @@ export function useEstimateRowMutations(estimateId?: string) {
     fetchTree: fetchEstimateTree,
     insertRow: (input: InsertEstimateRowInput) => insertMutation.mutate(withInsertMutationIdentity(input)),
     replaceRow: (input: ReplaceEstimateRowInput) => replaceMutation.mutate(withMutationIdentity(input)),
+    detachRow: (input: DetachEstimateRowInput) => detachMutation.mutate(withMutationIdentity(input)),
     deleteRow: (input: DeleteEstimateRowInput) => deleteMutation.mutate(withMutationIdentity(input)),
     updateRow: enqueueRowUpdate,
   };

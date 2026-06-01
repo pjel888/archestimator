@@ -12,6 +12,7 @@ const actionMocks = vi.hoisted(() => ({
   createEstimateNode: vi.fn(),
   deleteEstimateNode: vi.fn(),
   deleteEstimateRowItem: vi.fn(),
+  detachEstimateRowItemFromLibrary: vi.fn(),
   fetchEstimateTree: vi.fn(),
   insertEstimateRowItemFromLibrary: vi.fn(),
   insertEstimateTemplateIntoEstimate: vi.fn(),
@@ -142,6 +143,24 @@ const nodesWithRow: EstimateTreeNode[] = [
   },
 ];
 
+const nodesWithLinkedRow: EstimateTreeNode[] = [
+  {
+    id: targetNodeId,
+    name: "Kitchen",
+    kind: "area",
+    total: "PHP 0.00",
+    estimateRowItems: [
+      {
+        ...nodesWithRow[0].estimateRowItems![0],
+        source: "library",
+        sourceLibraryItemId: "99999999-9999-4999-8999-999999999901",
+        linkState: "linked-clean",
+      },
+    ],
+    children: [],
+  },
+];
+
 function deferred<T>() {
   let resolve!: (value: T) => void;
   let reject!: (reason?: unknown) => void;
@@ -183,6 +202,17 @@ describe("estimate sheet library insertion persistence", () => {
       contingencyValue: 0,
       miscCost: 10,
       linkState: "linked-overridden",
+      rowRevision: 8,
+    });
+    actionMocks.detachEstimateRowItemFromLibrary.mockResolvedValue({
+      rowId: cabinetRowId,
+      nodeId: targetNodeId,
+      quantity: 2,
+      itemCost: 100,
+      contingencyPercentage: 0,
+      contingencyValue: 0,
+      miscCost: 10,
+      linkState: "detached",
       rowRevision: 8,
     });
   });
@@ -348,6 +378,37 @@ describe("estimate sheet library insertion persistence", () => {
 
     expect(quantityInput.value).toBe("7");
     expect(within(row as HTMLElement).getByText("₱ 710.00")).toBeInTheDocument();
+  });
+
+  it("makes a linked component project-specific without clearing row values", async () => {
+    const user = userEvent.setup();
+    renderPersistedEstimateSheet(nodesWithLinkedRow);
+
+    const kitchenSection = screen.getByLabelText("Kitchen");
+    expect(within(kitchenSection).getByText("Kitchen Cabinet")).toBeInTheDocument();
+    expect(within(kitchenSection).getByText("₱ 210.00")).toBeInTheDocument();
+
+    await user.click(within(kitchenSection).getByRole("button", { name: "Make Kitchen Cabinet project-specific" }));
+    const firstDialog = screen.getByRole("dialog", { name: "Make component project-specific" });
+    await user.click(within(firstDialog).getByRole("button", { name: "Cancel" }));
+    expect(actionMocks.detachEstimateRowItemFromLibrary).not.toHaveBeenCalled();
+
+    await user.click(within(kitchenSection).getByRole("button", { name: "Make Kitchen Cabinet project-specific" }));
+    const dialog = screen.getByRole("dialog", { name: "Make component project-specific" });
+    await user.click(within(dialog).getByRole("button", { name: "Make project-specific" }));
+
+    await waitFor(() => expect(actionMocks.detachEstimateRowItemFromLibrary).toHaveBeenCalledTimes(1));
+    expect(actionMocks.detachEstimateRowItemFromLibrary).toHaveBeenCalledWith(expect.objectContaining({
+      projectId,
+      estimateId,
+      rowId: cabinetRowId,
+      expectedRowRevision: 7,
+      mutationId: expect.any(String),
+    }));
+    await waitFor(() => expect(screen.queryByRole("dialog", { name: "Make component project-specific" })).not.toBeInTheDocument());
+    expect(within(kitchenSection).getByText("Kitchen Cabinet")).toBeInTheDocument();
+    expect(within(kitchenSection).getByText("Project-specific")).toBeInTheDocument();
+    expect(within(kitchenSection).getByText("₱ 210.00")).toBeInTheDocument();
   });
 
   it("rolls back a failed quantity save without rendering spreadsheet save pills", async () => {

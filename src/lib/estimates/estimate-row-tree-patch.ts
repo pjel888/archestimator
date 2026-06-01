@@ -6,6 +6,9 @@ export type EstimateRowItemPatch = {
   contingencyPercentage?: number;
   miscCost?: number;
   rowRevision?: number;
+  source?: EstimateRowItem["source"];
+  sourceLibraryItemId?: string | null;
+  linkState?: EstimateRowItem["linkState"];
 };
 
 export function findEstimateRowItemInTree(tree: EstimateTreeNode[], rowId: string): EstimateRowItem | null {
@@ -36,6 +39,9 @@ function patchEstimateRowItem(item: EstimateRowItem, patch: EstimateRowItemPatch
     miscCost,
     totalItemCosts: subTotal + miscCost + contingencyValue,
     rowRevision: patch.rowRevision ?? item.rowRevision,
+    source: patch.source ?? item.source,
+    sourceLibraryItemId: patch.sourceLibraryItemId !== undefined ? patch.sourceLibraryItemId : item.sourceLibraryItemId,
+    linkState: patch.linkState ?? item.linkState,
   };
 }
 
