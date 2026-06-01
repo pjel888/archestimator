@@ -75,12 +75,18 @@ describe("closed beta readiness docs", () => {
     expect(evidenceIndex).toContain("| Final report baseline | `8084908` after canonical state/decision/roadmap truth sync |");
     expect(evidenceIndex).toContain("| Final report indexed in launch docs | `3e8d7a0` |");
     expect(evidenceIndex).toContain("| `bun run test:dom` | Pass: 131 files / 1021 tests / 2 skipped |");
+    expect(evidenceIndex).toContain("PLAYWRIGHT_PORT=3037 bun run test:e2e -- e2e/auth.spec.ts --project=chromium");
+    expect(evidenceIndex).toContain("Result: pass, 2 Playwright tests in 9.9s.");
+    expect(evidenceIndex).toContain("Hosted Google auth, allowed/denied/revoked allowlist smoke, first-run workspace entry, and session expiry/logout proof remain external/manual gates.");
     expect(evidenceIndex).not.toContain("| HEAD | `1ed86b4f2a3881bf1b946eb81c688071e6736574` |");
     expect(evidenceIndex).not.toContain("Pass: 122 files / 989 tests passed / 2 skipped after AI-001");
     expect(finalLaunchGate).toContain("Full local implementation baseline: `c5ca065` after demo seed row repair.");
+    expect(finalLaunchGate).toContain("Local signed-out redirect/login UI E2E pass; hosted allowed/denied/revoked proof missing.");
     expect(finalLaunchGate).not.toContain("HEAD audited: `531f20a`");
     expect(executiveBrief).toContain("Final report indexed in launch docs: `3e8d7a0`.");
+    expect(executiveBrief).toContain("Local signed-out auth E2E passed");
     expect(executiveBrief).not.toContain("HEAD: `531f20a`");
+    expect(readinessScorecard).toContain("local signed-out redirect/login UI E2E passes; hosted callback, allowed/denied/revoked, and first-run smoke are missing");
     expect(launchReadinessReadme).toContain("Final local implementation report: `final-codex-implementation-report.md`.");
     expect(launchReadinessReadme).toContain("| Product core | 84 | Local pass; manual smoke gap |");
     expect(launchReadinessReadme).toContain("| Excel export | 88 | Local workbook pass; cross-app proof gap |");

@@ -13,7 +13,7 @@ Closed beta can launch only if all P0 domains are 95+ or have a documented no-go
 | Domain | P0? | Score | Status | Reason |
 | --- | --- | ---: | --- | --- |
 | Closed beta access control | Yes | 82 | Local pass; linked proof pending | Allowlist migration/helper/proxy/callback/session/access-required UX exist locally; linked Supabase apply and hosted allowed/denied smoke are missing. |
-| Auth/onboarding | Yes | 82 | Needs hosted smoke | Google Sign-In and workspace flow exist with local beta gate coverage; hosted callback and first-run smoke are missing. |
+| Auth/onboarding | Yes | 82 | Needs hosted smoke | Google Sign-In and workspace flow exist with local beta gate coverage; local signed-out redirect/login UI E2E passes; hosted callback, allowed/denied/revoked, and first-run smoke are missing. |
 | Core estimating workflow | Yes | 84 | Needs smoke proof | Core app exists and local DOM baseline is green; protected route/manual smoke remains required. |
 | Component library | Yes | 86 | Local polish pass | Search/count/trust fields are locally tested; screenshot/manual demo smoke remains required. |
 | Templates | Yes | 86 | Local polish pass | Preview/count/sample rows are locally tested; screenshot/manual insertion smoke remains required. |

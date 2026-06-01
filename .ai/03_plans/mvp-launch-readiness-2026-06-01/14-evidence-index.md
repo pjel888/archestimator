@@ -11,6 +11,13 @@
 - Local baseline recorded in the report: typecheck pass, lint pass with 14 existing warnings, design lint pass, unit pass, full DOM pass at 131 files / 1021 tests / 2 skipped, build pass, graph/GitNexus checks clean.
 - Remaining proof gates recorded in the report: linked Supabase backup/RLS/storage/migration proof, hosted auth smoke, Vercel deploy/health/rollback proof, Resend proof if visible email flows remain, spreadsheet open/print proof, legal review, monitored support proof, demo artifacts, and current manual/E2E smoke.
 
+### AUTH-E2E Local Signed-Out Smoke Evidence
+
+- Local command: `PLAYWRIGHT_PORT=3037 bun run test:e2e -- e2e/auth.spec.ts --project=chromium`.
+- Result: pass, 2 Playwright tests in 9.9s.
+- Covered behavior: signed-out `/workshop/projects` redirects to `/login?next=%2Fworkshop%2Fprojects`, and `/login?next=/workshop/projects` renders the compact email-link sign-in controls.
+- Scope limit: this is local signed-out route/login UI proof only. Hosted Google auth, allowed/denied/revoked allowlist smoke, first-run workspace entry, and session expiry/logout proof remain external/manual gates.
+
 ### Command Evidence
 
 | Evidence | Result |
