@@ -6,6 +6,8 @@ Final implementation report: `final-codex-implementation-report.md`. It summariz
 
 Manual proof matrix: `46-manual-proof-matrix.md`. It is the required checklist for collecting the remaining hosted/provider/manual evidence before any external closed-beta go/no-go review.
 
+Goal completion audit: `47-goal-completion-audit.md`. It keeps the active goal open until the manual/provider proof packet is filled and linked.
+
 ## Scoring Rule
 
 Closed beta can launch only if all P0 domains are 95+ or have a documented no-go resolution. Payment/pricing readiness is deferred and not applicable to closed beta. Public launch readiness is separate from this scorecard.
