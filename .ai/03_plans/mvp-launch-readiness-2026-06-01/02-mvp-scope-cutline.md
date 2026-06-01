@@ -1,5 +1,26 @@
 # MVP Scope Cutline
 
+## Fourth-Pass Closed Beta Scope Cutline - 2026-06-02
+
+Public paid-launch scope is superseded. Closed beta scope is invite-only, no-payment, and feedback-led.
+
+| Area | Closed beta decision | Public launch decision | Payment relevance | Whitelist impact | Visible in closed beta? | Ticket ID |
+| --- | --- | --- | --- | --- | --- | --- |
+| Closed beta access control | P0 | Replaced later by broader entitlement model | None | Required | Yes | `BETA-AUTH-001..006` |
+| Google Sign-In | P0 | P0 | None | Must feed allowlist check | Yes | `BETA-AUTH-003` |
+| Public self-serve signup | Deferred | Needed later | None | Must be blocked | No | Deferred |
+| Pricing/payment/billing | Deferred/not applicable | Needed later | Deferred | None | No paid UI | Deferred |
+| Pricing page | Reframe or hide | Public pricing later | Future-only | Public route | Maybe, beta copy only | `BETA-COPY-001` |
+| Feedback path | P0 lightweight | P0 scalable later | None | Prefer allowed-user context | Yes | `BETA-FEEDBACK-001` |
+| Resend onboarding invites | P1 if manual invites | P0 for automation | None | None | Optional | `BETA-OPS-001` |
+| Resend share/invite email | Conditional P0 if visible/required | P0 | None | May affect invited users | Depends | Existing share/invite tickets |
+| Beta terms/privacy/AUP | P0 | Public terms later | Must not mention active billing | None | Yes | `BETA-LEGAL-001` |
+| Ask Flip/AI | Deferred/hidden | Later safe launch | None | None | No | AI deferred |
+| Admin beta management UI | Deferred | Maybe later | None | Manual Supabase enough | No | Deferred |
+| Component library/templates | P0 useful | P0 fuller | None | Allowed users only | Yes | Existing P0 |
+| Project-specific unlink | P0 | P0 | None | Allowed users only | Yes | Existing P0 |
+| Excel export | P0 | P0 | None | Allowed users only | Yes | Existing P0 |
+
 ## Third-Pass Production Cutline
 
 Commit audited: `681c95e64864f283950a88dba304eaffe8f2f8b3`. This section supersedes any weaker second-pass wording. "Visible" means reachable through route, navigation, sidebar/footer, CTA, direct URL, API, or launch copy.
@@ -7,8 +28,8 @@ Commit audited: `681c95e64864f283950a88dba304eaffe8f2f8b3`. This section superse
 | Surface | Exact route/file | Launch visible? | Feature flag / control | Owner | Ticket | Beta/investor risk | Final decision |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | Landing | `src/app/page.tsx` | Yes | none | Product | `LEGAL-001`, `DEMO-001` | Claim overreach | Keep, but claims must match evidence. |
-| Pricing | `src/app/pricing/page.tsx` | Yes | none | Product/Legal | `LEGAL-001`, `32` | Promises unavailable features | Keep preview-safe copy only. |
-| Terms/Privacy | `src/app/terms/page.tsx`, `src/app/privacy/page.tsx` | Yes | none | Legal/Product | `LEGAL-001` | Current placeholders block public launch | Replace/review before launch. |
+| Pricing | `src/app/pricing/page.tsx` | Yes | none | Product/Legal | `BETA-COPY-001`, `32` | Paid-launch confusion | Hide or reframe as closed beta access/contact only. |
+| Terms/Privacy | `src/app/terms/page.tsx`, `src/app/privacy/page.tsx` | Yes | none | Legal/Product | `BETA-LEGAL-001` | Current placeholders block closed beta | Replace with beta terms/privacy/AUP/disclaimers before beta. |
 | Login/callback | `src/app/login/page.tsx`, `src/app/auth/callback/route.ts` | Yes | Supabase provider config | Eng | `ONB-001`, `INFRA-001` | Auth failure blocks all users | Keep; hosted proof required. |
 | Workshop | `src/app/workshop/**` | Yes | auth proxy | Eng/Product | `QA-002` | Prototype feel if empty states fail | Keep; first-run QA required. |
 | Component library | `src/app/workshop/library/**`, sidebar | Yes | auth only | Product/Eng | `LIB-001` | Demo credibility risk | Keep after polish/proof. |
@@ -18,7 +39,7 @@ Commit audited: `681c95e64864f283950a88dba304eaffe8f2f8b3`. This section superse
 | Share/invite/email | `src/app/share/**`, `src/app/invite/**`, Resend webhook | Conditional | publication/invite/email env | Eng/Security | `SEC-001`, `INFRA-002` | Public token/privacy/email risk | Enable only after security/email proof. |
 | Ask Flip / AI | `WorkshopPageShell`, `/api/ai/*` | No | `NEXT_PUBLIC_ASK_FLIP_ENABLED=false`, `AI_ASK_ENABLED=false`, `AI_PACKAGE_BUILDER_ENABLED=false` | Eng | `AI-001` | Unfinished AI visible/cost/write risk | Hide/fail closed for MVP. |
 | Upload/image APIs | component/project image routes | Conditional | auth/storage policies | Eng/Security | `SEC-001` | Storage leak/upload abuse | Prove storage policies first. |
-| Billing/PDF/bid tabulation | no launch-ready implementation | No | none | Product | `32`, `18` | Scope/claim risk | Defer. |
+| Billing/PDF/bid tabulation | no launch-ready implementation | No | none | Product | `32`, `18` | Scope/claim risk | Billing is post-beta; PDF/bid tabulation are post-MVP unless separately approved. |
 
 No unknown launch-visible surface is acceptable. If implementation finds another route/nav/API, add it here before launch.
 
@@ -61,6 +82,6 @@ This cutline is route/action/API based. "Launch visible" means visible or callab
 
 | Unknown | Why it matters | Owner |
 | --- | --- | --- |
-| Final commercial terms defaults for export. | Workbook needs payment terms, validity, warranty, exclusions, signature/conforme blocks. | Philip |
+| Final commercial terms defaults for export. | Workbook needs estimate/proposal payment terms, validity, warranty, exclusions, signature/conforme blocks. This is export content, not app billing. | Philip |
 | Whether launch wants 0% or 12% VAT default. | Affects formulas and client totals. | Philip |
 | Whether duration/cost per sqm are required inputs or safe blanks. | Affects model and workbook validation. | Philip |

@@ -1,5 +1,63 @@
 # Codebase Audit
 
+## Fourth-Pass Closed Beta Audit - 2026-06-02
+
+This audit supersedes public paid-launch assumptions with closed beta launch readiness.
+
+### Command Baseline
+
+| Command | Status | Evidence |
+| --- | --- | --- |
+| `git status --short` | Pass before docs | Clean before this planning-doc edit pass; final status is docs-only changes. |
+| `git rev-parse HEAD` | Pass | `811362ac70d84cf20101f83258ae22c4e8b2c11f` |
+| `bun install --frozen-lockfile` | Pass | Bun 1.3.10 checked lockfile/install set without changing dependencies. |
+| `bun run type-check` | Pass | `tsc --noEmit` completed. |
+| `bun run lint` | Pass with warnings | 14 existing warnings; no errors. Warnings are unused variables/disable comments and one React Compiler TanStack Table skip. |
+| `bun run lint:design-system` | Pass | App/workshop design-system enforcement passed. |
+| `bun run test` | Pass | 4 unit tests passed. |
+| `bun run test:dom` | Fail | 3 existing static-contract assertions failed: 2 AI package-builder contract expectations and 1 share recipient-token expectation. 120 files passed, 2 files failed, 984 tests passed, 2 skipped. |
+| `bun run build` | Pass | Next.js 16.2.6 production build completed and listed app/proxy routes. |
+
+Non-mutating E2E was not run. The suite contains feature-flagged and seeded flows with mutating setup requirements. Required env/config includes Supabase URL/anon/service role, optional Resend API/webhook variables for email flows, and E2E flags such as `ARCHESTIMATOR_E2E_SHARED_LINK`, `ARCHESTIMATOR_E2E_INVITE_ENTRY`, `ARCHESTIMATOR_E2E_COLLABORATION`, `ARCHESTIMATOR_E2E_AI_PACKAGE_BUILDER`, and `ARCHESTIMATOR_E2E_MUTATING_DND`. Manual replacement smoke is defined in the runbook: allowed/denied Google account, public route, share route, first workspace, estimate, unlink, export, and feedback checks.
+
+### Graph And Impact Baseline
+
+- code-review-graph was used before fallback static reads. The graph reported 387 files, 3633 nodes, 51052 edges, and last update `2026-06-02T01:22:38`.
+- Graph summaries were inspected for `src/proxy.ts`, auth actions/callback/session, pricing page, contact form, Resend email client, and workspace repository.
+- GitNexus was stale against current HEAD, so `npx gitnexus analyze .` was run before impact/query work. The refreshed index reported 10,381 nodes, 19,110 edges, 471 clusters, and 300 flows.
+- GitNexus impact for `resolvePostAuthDestination` returned LOW risk with direct caller `src/app/auth/callback/route.ts:GET`.
+- Broad graph text searches did not fully cover all closed-beta surfaces, so fallback static analysis was used and this limitation is recorded.
+
+### Auth And Access Findings
+
+- Google Sign-In is handled in `src/lib/auth/actions.ts`.
+- OAuth callback is handled in `src/app/auth/callback/route.ts`.
+- `/workshop` protection is currently centralized in `src/proxy.ts`.
+- User/profile context is resolved in `src/lib/auth/session.ts`.
+- Default workspace creation/reuse is handled in `src/lib/repositories/workspace-repository.ts`.
+- Current state: no closed beta allowlist table, no whitelist helper, no callback whitelist gate, no proxy/session whitelist gate, and no access-required page.
+- Recommended blocker location: enforce in callback, proxy, and session/server-action boundaries to avoid stale-session bypass.
+
+### Payment And Pricing Findings
+
+- `package.json` includes no Stripe dependency.
+- `/pricing` exists and currently reads as preview/free/future-pricing copy, not closed-beta allowlist copy.
+- Public landing CTAs currently send users toward workspace/login and must be reframed as request access, contact Philip, or sign in if invited.
+- Payment, checkout, subscriptions, invoices, billing, and plan enforcement are deferred and not P0 for closed beta.
+
+### Resend And Email Findings
+
+- Resend client code exists in `src/lib/email/resend-client.ts`.
+- Resend webhook route exists at `src/app/api/webhooks/resend/route.ts`.
+- Delivery event handling updates share-recipient state and requires webhook signature configuration.
+- For closed beta onboarding, Resend is P1 if Philip sends manual invites. It becomes P0 only for visible share/invite email workflows that beta users must rely on.
+
+### Feedback Findings
+
+- `/contact` and `ContactForm` exist, with feedback-style inquiry options.
+- The contact form currently behaves like a client-side success mock and is not proven as a durable feedback capture path.
+- Closed beta needs a P0 support/feedback path. Safest MVP recommendation: external form link plus support email, with in-app visibility for allowed users.
+
 Commit audited: `681c95e64864f283950a88dba304eaffe8f2f8b3`
 Audit date: 2026-06-02
 Write scope: documentation only.
@@ -47,7 +105,7 @@ No product symbols were edited in this pass, so symbol impact analysis is record
 | Surface | Routes / files | Current state | Launch risk |
 | --- | --- | --- | --- |
 | Marketing/public | `src/app/page.tsx`, `about`, `features`, `pricing`, `contact` | Public pages build; pricing is preview-safe but needs legal/owner claim review. | P1/P0 if claims overstate readiness. |
-| Legal | `src/app/privacy/page.tsx`, `src/app/terms/page.tsx` | Explicit pending-review placeholders. | P0 for public launch and paid prospects. |
+| Legal | `src/app/privacy/page.tsx`, `src/app/terms/page.tsx` | Explicit pending-review placeholders. | P0 for closed beta as beta terms/privacy/AUP/disclaimers; paid customer terms are post-beta. |
 | Auth | `src/app/login/page.tsx`, `src/app/auth/callback/route.ts`, `src/proxy.ts` | Google/email login path exists; callback routes to `/workshop`; protected proxy covers `/workshop`. | P0 hosted provider proof gap. |
 | Workshop | `src/app/workshop/page.tsx`, `layout.tsx`, project/settings/library/templates subroutes | Core app shells exist and build. | P0/P1 based on feature gates below. |
 | Share | `src/app/share/[token]/page.tsx`, `src/app/api/share/[token]/*` | Public view-only receiver with session/comment/decision APIs. | P0 if visible without RLS/token/email proof. |
