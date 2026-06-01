@@ -1,0 +1,18 @@
+{
+  "route": "/workshop/projects/22222222-2222-4222-8222-222222222222/estimates/f04579f8-5097-4b2b-927e-badbb7e3b7f8",
+  "templateName": "Condo Fit-Out Starter",
+  "targetGroupName": "Second Floor",
+  "before": {
+    "nodeCount": 51,
+    "rowCount": 0
+  },
+  "after": {
+    "nodeCount": 56,
+    "rowCount": 8
+  },
+  "expectedInsertedNodes": 5,
+  "expectedInsertedRows": 8,
+  "templateInsertedEventCount": 1,
+  "cleanup": "Estimate fixture deletion and residue verification run in finally block.",
+  "capturedAt": "2026-06-01T22:02:54.932Z"
+}

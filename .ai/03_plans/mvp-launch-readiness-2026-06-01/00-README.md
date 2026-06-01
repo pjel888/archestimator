@@ -112,7 +112,7 @@ Rules: below 90 is not beta-ready; P0 domains below 95 block launch; 100 require
 | Product core | 84 | Local pass; manual smoke gap |
 | Estimate editor | 84 | Local pass; linked/manual proof gap |
 | Component library | 90 | Local screenshot pass; hosted/manual proof gap |
-| Templates | 88 | Local screenshot pass; insertion proof gap |
+| Templates | 91 | Local insertion pass; hosted/manual proof gap |
 | Project-specific unlink | 86 | Local pass; linked/manual proof gap |
 | Excel export | 90 | Local artifact pass; cross-app proof gap |
 | Auth/onboarding | 78 | Env and hosted smoke gap |
@@ -123,7 +123,7 @@ Rules: below 90 is not beta-ready; P0 domains below 95 block launch; 100 require
 | Performance/caching | 65 | P1 unless thresholds fail |
 | Observability/support | 78 | Alert/inbox proof gap |
 | QA/test coverage | 82 | Hosted/manual proof gap |
-| Investor demo readiness | 80 | Workbook artifact and library/template screenshots exist; rehearsal proof gap |
+| Investor demo readiness | 82 | Workbook artifact, library/template screenshots, and local insertion proof exist; rehearsal proof gap |
 | Beta readiness | 40 | P0 blocker |
 
 ## Document Index

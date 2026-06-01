@@ -354,7 +354,7 @@
 - `46-manual-proof-matrix.md` now defines the exact P0 evidence packet required before external closed beta can move from **NO-GO** to go/no-go review.
 - `48-manual-proof-packet-template.md` provides the ready-to-fill `README.md` for the dated `.ai/09_archive/store/<date>-mvp-closed-beta-manual-proof/` artifact folder.
 - It includes proof rows for Supabase backup/PITR, linked migrations/RLS/storage/RPCs, hosted auth allowlist, first-run workspace, Vercel deploy/env/health/rollback, Resend/email, spreadsheet compatibility, project-specific unlink, component/template demo smoke, legal/owner review, support/monitoring, demo rehearsal, and current manual E2E smoke.
-- Current status: the component/template demo row now has local screenshot/JSON smoke evidence, but template insertion and all hosted/provider rows remain open. Closed beta remains **NO-GO** until all P0 rows are captured under `.ai/09_archive/store/<date>-mvp-closed-beta-manual-proof/` and linked back here.
+- Current status: the component/template demo row now has local screenshot/JSON smoke evidence plus local template insertion proof, but all hosted/provider rows remain open. Closed beta remains **NO-GO** until all P0 rows are captured under `.ai/09_archive/store/<date>-mvp-closed-beta-manual-proof/` and linked back here.
 
 ### Goal Completion Audit Evidence
 
@@ -404,7 +404,17 @@
 - Result: pass, 2 Playwright tests in 17.6s.
 - Component coverage: `/workshop/library` rendered the Library page, Component library workspace, component sheet, component search, component tree search, component result count, component cards, and visible `Source` / `Checked` pricing trust fields.
 - Template coverage: `/workshop/templates` rendered the Templates page, Template library workspace, template sheet, template search, template tree search, visible `All Templates` count text, `Structure`, and `Sample rows` preview content.
-- Scope limit: this is local dev-auth proof on `127.0.0.1:3038`; it does not prove hosted auth, production Vercel, RLS, template insertion into an estimate, or project-specific unlink. Closed beta remains **NO-GO**.
+- Scope limit: this is local dev-auth proof on `127.0.0.1:3038`; it does not prove hosted auth, production Vercel, RLS allow/deny, or project-specific unlink. Closed beta remains **NO-GO**.
+
+### Template Insert Local Smoke Evidence
+
+- Artifact note: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/template-insert-local-smoke-2026-06-02.md`.
+- Screenshot/JSON: `template-insert-local-smoke-2026-06-02.png` and `template-insert-local-smoke-2026-06-02.json`.
+- Command: `ARCHESTIMATOR_E2E_TEMPLATE_INSERT_SMOKE=1 ARCHESTIMATOR_DEV_AUTH_BYPASS=1 ARCHESTIMATOR_DEV_AUTH_ADMIN_DB=1 ARCHESTIMATOR_TEMPLATE_INSERT_SMOKE_DIR=.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof PLAYWRIGHT_PORT=3039 bun run test:e2e e2e/workshop-template-insert-smoke.spec.ts --project=chromium`.
+- Result: pass, 1 Playwright test in 46.1s.
+- Covered behavior: created a throwaway user-owned estimate under Lewis Residence, opened the protected estimate workspace through local dev auth, selected the right-sidebar `Templates` tab, inserted `Condo Fit-Out Starter` into `Second Floor`, verified linked Supabase counts changed from 51 nodes / 0 rows to 56 nodes / 8 rows, verified one `template_inserted` event for the target group, then deleted the throwaway estimate.
+- Cleanup proof: post-run residue check found no `E2E Template Insert%` estimates.
+- Scope limit: this is local dev-auth plus linked-Supabase fixture proof. It does not prove hosted auth, production Vercel, RLS allow/deny, provider dashboards, or project-specific unlink. Closed beta remains **NO-GO**.
 
 ### Closed Beta Audit Evidence
 

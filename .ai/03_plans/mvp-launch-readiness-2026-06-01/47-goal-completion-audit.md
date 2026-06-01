@@ -13,11 +13,12 @@ This audit maps the active MVP launch goal in `codex-autopilot-goal.md` to curre
 | Local signed-out auth E2E smoke | `a65b34b`, 2 Playwright checks passed. |
 | Local validation refresh | `a65b34b`, `bun run validate` passed: typecheck, lint with 14 existing warnings, design lint, unit, DOM. |
 | Local build refresh | `e6cf52b`, `bun run build` passed under Next.js 16.2.6 / Turbopack with 29 static pages. |
-| Manual/provider proof matrix | `46-manual-proof-matrix.md`, with packet template `48-manual-proof-packet-template.md`; component/template demo smoke is partial/local pass, while hosted/provider/manual P0 rows still block launch. |
+| Manual/provider proof matrix | `46-manual-proof-matrix.md`, with packet template `48-manual-proof-packet-template.md`; component/template demo smoke and template insertion are partial/local pass, while hosted/provider/manual P0 rows still block launch. |
 | Supabase read-only provider evidence | `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/supabase-read-only-cli-2026-06-02.md`; backup list showed PITR disabled and no listed backups; security advisor returned WARN findings; migration/performance CLI reads were blocked by the temp-role pooler circuit breaker. |
 | Vercel read-only provider evidence | `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/vercel-read-only-cli-2026-06-02.md`; latest preview reached READY and protected `/api/health` returned ok through `vercel curl`, but `vercel env ls` found no env vars, plain curl returned Vercel 401 due to deployment protection, and rollback/production/custom-domain proof is missing. |
 | Spreadsheet artifact evidence | `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/spreadsheet-artifact-local-2026-06-02.md`; generated workbook artifact is loadable, ZIP-valid, formula-backed, and has no blank line totals; Excel/secondary-app open and print proof is blocked because no spreadsheet app is installed locally. |
-| Component/template local demo smoke evidence | `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/library-demo-smoke-local-2026-06-02.md`; local Playwright smoke captured component search/trust fields and template preview screenshots/JSON; hosted proof and template insertion proof remain missing. |
+| Component/template local demo smoke evidence | `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/library-demo-smoke-local-2026-06-02.md`; local Playwright smoke captured component search/trust fields and template preview screenshots/JSON; hosted proof remains missing. |
+| Template insertion local smoke evidence | `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/template-insert-local-smoke-2026-06-02.md`; local Playwright smoke inserted `Condo Fit-Out Starter` into a throwaway estimate, verified 5 copied nodes / 8 copied rows plus one `template_inserted` event, and verified zero fixture residue. |
 
 ## Final Criteria Audit
 
@@ -27,7 +28,7 @@ This audit maps the active MVP launch goal in `codex-autopilot-goal.md` to curre
 | Ask Flip hidden and AI routes disabled by default | UI route/shell tests and env defaults prove default hidden/fail-closed behavior locally. | Local-proven; production env proof pending |
 | No payment/billing requirement | Pricing/landing/FAQ and docs state closed beta/no payment; copy tests pass. | Local-proven |
 | Closed beta pricing/copy/legal posture updated | Local terms/privacy/pricing/beta copy exist with tests; owner/counsel review missing. | Local-proven; legal review missing |
-| Core project/estimate/library/template workflows working | Local tests cover major flows, component/template demo screenshots exist, and current validation/build passes; hosted/manual core smoke and template insertion proof are still missing. | Local-proven; hosted/manual smoke missing |
+| Core project/estimate/library/template workflows working | Local tests cover major flows, component/template demo screenshots exist, template insertion into a throwaway estimate is locally proven, and current validation/build passes; hosted/manual core smoke remains missing. | Local-proven; hosted/manual smoke missing |
 | Project-specific component unlink implemented and tested | RPC/action/hook/UI/tests prove local detach semantics and export compatibility; linked SQL/manual library-unchanged proof missing. | Local-proven; linked/manual proof missing |
 | Excel export upgraded and tested | ExcelJS/model/workbook tests, generated workbook artifact, ZIP integrity, and no-blank-total scan prove local workbook generation; Excel plus secondary spreadsheet open/print proof remains missing. | Local artifact proven; spreadsheet-app proof missing |
 | Beta feedback/support path available | Workshop feedback mailto/contact/support copy exists locally; monitored inbox/form proof missing. | Local-proven; support proof missing |
@@ -50,11 +51,10 @@ These are required before the active goal can be marked complete:
 5. Resend DNS/delivery/webhook proof if visible email flows remain enabled.
 6. Excel plus one secondary spreadsheet app open/recalc/print proof. Current local artifact is valid and loadable, but no spreadsheet app is installed locally to prove open/recalc/print.
 7. Project-specific unlink manual smoke with library unchanged proof.
-8. Template insertion proof from the template library into an estimate.
-9. Owner/counsel review of legal/beta copy.
-10. Monitored support inbox/form and alert owner proof.
-11. Demo rehearsal screenshots, fallback script, and validated exported workbook artifact. Current fallback workbook artifact exists and local component/template screenshots exist; hosted rehearsal proof remains missing.
-12. Current hosted manual E2E smoke across the closed-beta core journey.
+8. Owner/counsel review of legal/beta copy.
+9. Monitored support inbox/form and alert owner proof.
+10. Demo rehearsal screenshots, fallback script, and validated exported workbook artifact. Current fallback workbook artifact exists and local component/template screenshots plus local template insertion proof exist; hosted rehearsal proof remains missing.
+11. Current hosted manual E2E smoke across the closed-beta core journey.
 
 ## Completion Decision
 
