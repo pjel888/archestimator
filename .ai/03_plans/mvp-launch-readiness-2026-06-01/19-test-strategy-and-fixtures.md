@@ -19,7 +19,7 @@ Current local Vitest DOM baseline is green: the latest validation refresh at `a6
 
 ## Third-Pass Test Gate
 
-Commit audited: `681c95e64864f283950a88dba304eaffe8f2f8b3`. Historical third-pass validation found a red DOM baseline and blocked E2E run. Current local validation is green for `type-check`, `lint`, `lint:design-system`, `test`, `test:dom`, and `build`; the MVP gate still requires hosted/manual smoke or a documented no-go for any E2E path that cannot run safely.
+Commit audited: `681c95e64864f283950a88dba304eaffe8f2f8b3`. Historical third-pass validation found a red DOM baseline and blocked E2E run. Current local validation is green for `type-check`, `lint`, `lint:design-system`, `test`, and `test:dom` at `a65b34b`; current local production build is green at `e6cf52b`. The MVP gate still requires hosted/manual smoke or a documented no-go for any E2E path that cannot run safely.
 
 | Area | Required automated tests | Required manual QA | Current gap |
 | --- | --- | --- | --- |

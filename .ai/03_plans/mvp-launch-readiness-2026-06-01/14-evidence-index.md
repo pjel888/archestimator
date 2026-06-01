@@ -10,6 +10,7 @@
 - Current report recommendation: **NO-GO for external closed beta launch** until hosted/provider/manual proof gates are complete.
 - Local baseline recorded in the report: typecheck pass, lint pass with 14 existing warnings, design lint pass, unit pass, full DOM pass at 131 files / 1021 tests / 2 skipped, build pass, graph/GitNexus checks clean.
 - Current local validation refresh at `a65b34b`: `bun run validate` passed typecheck, lint with 14 existing warnings, design lint, unit tests (4 tests / 129 expectations), and DOM tests (131 files / 1022 passed / 2 skipped). This refresh does not change the **NO-GO** recommendation.
+- Current local app build refresh at `e6cf52b`: `bun run build` passed under Next.js 16.2.6 / Turbopack, generated 29 static pages, and listed `/api/health`, `/api/ai/ask`, `/api/ai/package-builder`, `/beta/access-required`, share routes, invite routes, and protected workshop routes. This refresh does not change the **NO-GO** recommendation.
 - Remaining proof gates recorded in the report: linked Supabase backup/RLS/storage/migration proof, hosted auth smoke, Vercel deploy/health/rollback proof, Resend proof if visible email flows remain, spreadsheet open/print proof, legal review, monitored support proof, demo artifacts, and current manual/E2E smoke.
 
 ### AUTH-E2E Local Signed-Out Smoke Evidence
@@ -27,13 +28,14 @@
 | Final report baseline | `8084908` after canonical state/decision/roadmap truth sync |
 | Final report indexed in launch docs | `3e8d7a0` |
 | Current local validation refresh | `a65b34b`, `bun run validate` pass |
+| Current local app build refresh | `e6cf52b`, `bun run build` pass |
 | `bun install --frozen-lockfile` | Pass |
 | `bun run type-check` | Pass |
 | `bun run lint` | Pass with 14 warnings |
 | `bun run lint:design-system` | Pass |
 | `bun run test` | Pass: 4 unit tests / 129 expectations |
 | `bun run test:dom` | Historical baseline pass: 131 files / 1021 tests / 2 skipped; current validation refresh pass: 131 files / 1022 passed / 2 skipped |
-| `bun run build` | Pass |
+| `bun run build` | Historical baseline pass; current build refresh pass at `e6cf52b`, Next.js 16.2.6 / Turbopack, 29 static pages |
 
 ### AI-001 Local Implementation Evidence
 
@@ -335,6 +337,14 @@
 - Result: pass.
 - Covered subcommands: `bun run type-check`; `bun run lint` with the existing 14 warnings; `bun run lint:design-system`; `bun run test` passing 4 unit tests / 129 expectations; `bun run test:dom` passing 131 files / 1022 passed / 2 skipped.
 - Scope limit: this refresh proves the current local command suite only. Hosted/provider/manual launch gates remain open, and closed beta remains **NO-GO**.
+
+### CURRENT-HEAD Local Build Refresh Evidence
+
+- Current app build anchor: `e6cf52b` on `main`, before this docs-only evidence-sync commit.
+- Command: `bun run build`.
+- Result: pass.
+- Build details: Next.js 16.2.6 / Turbopack compiled successfully, finished TypeScript, generated 29 static pages, and listed the app Proxy plus `/api/health`, `/api/ai/ask`, `/api/ai/package-builder`, `/api/projects/[projectId]/estimates/[estimateId]/export/proposal.xlsx`, `/api/share/[token]` routes, `/api/webhooks/resend`, `/beta/access-required`, `/invite/[token]`, `/login`, `/pricing`, `/share/[token]`, `/terms`, and protected `/workshop` routes.
+- Scope limit: this is local production-build proof only. Vercel deploy/env/health/rollback proof remains an external launch gate, and closed beta remains **NO-GO**.
 
 ### Closed Beta Audit Evidence
 

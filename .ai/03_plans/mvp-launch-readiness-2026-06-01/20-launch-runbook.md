@@ -7,14 +7,14 @@ This runbook now operates a closed beta, not a public paid launch.
 ### Command Baseline
 
 - `git status --short`: clean at validation refresh except intentionally untracked `.ai/08_prompts/mvp-launch-goal.md`.
-- `git rev-parse HEAD`: `a65b34b` after local signed-out auth E2E evidence.
+- Evidence anchors: `a65b34b` for `bun run validate`; `e6cf52b` for `bun run build`.
 - `bun install --frozen-lockfile`: pass.
 - `bun run type-check`: pass.
 - `bun run lint`: pass with 14 warnings.
 - `bun run lint:design-system`: pass.
 - `bun run test`: pass.
 - `bun run test:dom`: pass, 131 files / 1022 passed / 2 skipped through `bun run validate`.
-- `bun run build`: pass.
+- `bun run build`: pass at `e6cf52b`, Next.js 16.2.6 / Turbopack, 29 static pages.
 
 ### Closed Beta Operations
 

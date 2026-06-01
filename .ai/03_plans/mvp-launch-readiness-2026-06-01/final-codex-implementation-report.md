@@ -37,6 +37,7 @@ Post-report evidence-sync commits:
 - `8e0e615` - Aligned final command evidence baselines to `c5ca065`, `8084908`, and `3e8d7a0`.
 - `cb87e51` - Synced the launch command-center README with the current local readiness scorecard.
 - `a65b34b` - Recorded local signed-out auth E2E smoke evidence.
+- `e6cf52b` - Recorded the current local validation refresh in the launch evidence pack.
 
 These follow-up commits improve traceability only. They do not change the implementation baseline or the **NO-GO** recommendation. Current local validation refresh at `a65b34b` also passed `bun run validate`: typecheck, lint with 14 existing warnings, design lint, unit tests (4 tests / 129 expectations), and DOM tests (131 files / 1022 passed / 2 skipped).
 
@@ -97,6 +98,12 @@ Current validation refresh at `a65b34b`:
 - `bun run validate` - pass.
 - Subcommands covered: typecheck; lint with 14 existing warnings; design lint; unit tests, 4 tests / 129 expectations; DOM tests, 131 files / 1022 passed / 2 skipped.
 - Launch meaning: local command suite remains green, but hosted/provider/manual proof gates still block external beta.
+
+Current app build refresh at `e6cf52b`:
+
+- `bun run build` - pass.
+- Build details: Next.js 16.2.6 / Turbopack compiled successfully, finished TypeScript, generated 29 static pages, and listed `/api/health`, disabled-by-default AI routes, the proposal export route, share/invite routes, and protected workshop routes.
+- Launch meaning: local production build remains green, but Vercel deploy/env/health/rollback proof still blocks external beta.
 
 Focused red/green evidence for each implementation slice is recorded in `14-evidence-index.md`.
 
