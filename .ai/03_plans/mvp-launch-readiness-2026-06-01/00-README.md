@@ -1,99 +1,105 @@
-# MVP Launch Readiness Plan — Archestimator
+# MVP Launch Readiness Command Center
 
-**Date:** 2026-06-01
-**Status:** Planning phase — implementation approval pending
-**Owner:** Philip Lewis
+Status: SECOND PASS COMPLETE - implementation-ready planning package, not product implementation.
+Commit audited: `b6184cf7123ed46f4cd8b9a467feb5232f0b46bf`
+Audit date: 2026-06-01
+Scope: docs-only upgrade inside `.ai/03_plans/mvp-launch-readiness-2026-06-01`.
 
-## MVP Goal
+## Scope Lock
 
-Launch Archestimator as a structured estimating workspace that lets contractors and sales teams:
-1. Create projects and estimate sheets
-2. Build reusable component libraries
-3. Browse and insert template estimate structures
-4. Drag or click components into estimate rows
-5. Make inserted components project-specific (unlinked from library)
-6. Export professional industry-standard Excel bid/BOQ workbooks
-7. Get a coherent, polished, design-system-compliant experience
+Launch scope is locked to:
 
-## Launch Thesis
+1. Defer Ask Flip and package-builder AI by default.
+2. Ship project-specific estimate rows, including a schema-safe unlink path.
+3. Polish component library route quality without reviving bulk import/export or overbuilt manager scope.
+4. Polish template route quality without duplicate seed migrations.
+5. Replace current Excel export with a professional bid/BOQ workbook contract.
+6. Gate launch through evidence, QA, deployment proof, rollback, and owner sign-off.
 
-Archestimator is already 80% feature-complete for MVP but has critical gaps that would make launch embarrassing:
-- **Ask Flip AI footer** is visible on every workshop page with no off switch
-- **Component unlink** has no UI — users cannot make library-linked rows project-specific
-- **Excel export** is a generic data dump, not an industry bid form
-- **Component library and templates** lack polish, empty states, and browse/search UX
-- **No launch QA** has been performed as an integrated workflow
+Out of scope for MVP launch:
 
-Fix these 5 gaps and the app is launchable. Leave everything else.
+- Full Ask Flip launch.
+- AI Apply beyond disabled/default-off route gates.
+- New template authoring UI.
+- Bulk library import/export.
+- Teamspaces.
+- Public share overhaul expansion.
+- Labor/material split data model migration beyond export compatibility mode.
 
-## Must-Ship List
+## P0 Blockers
 
-| # | Feature | Current State | Gap |
-|---|---------|---------------|-----|
-| 1 | Auth/login works | ✅ Supabase Auth, Google OAuth, magic link | None |
-| 2 | Workshop homebase | ✅ Bento grid with project/favorite shortcuts | Minor polish |
-| 3 | Project create/list/detail | ✅ Full CRUD with modals, images, sharing | None |
-| 4 | Estimate list/create/duplicate/open | ✅ Full CRUD with auto-generated sheet codes | None |
-| 5 | Estimate tree (group/area nodes) | ✅ React Complex Tree with DnD reorder | None |
-| 6 | Estimate row editing (quantity, contingency, miscCost) | ✅ Optimistic local-state mutations | None |
-| 7 | Component library (browse/create/variants/pricing) | ✅ Supabase-backed with Add Component modal | Polish needed |
-| 8 | Templates (browse/preview/insert) | ✅ 3 seed templates, insert into estimate groups | Polish needed |
-| 9 | Component insertion (drag/click) | ✅ Library sidebar drag or click-to-insert | None |
-| 10 | **Project-specific component unlink** | ❌ No UI action, no code path | **Must build** |
-| 11 | **Industry Excel export** | ⚠️ Current export is generic data dump | **Must rebuild** |
-| 12 | **Hide Ask Flip AI** | ❌ Visible on all workshop pages, no off switch | **Must hide** |
-| 13 | Design-system compliance | ✅ Lint passes, 0 violations | Audit needed |
-| 14 | Public legal pages (privacy, terms) | ⚠️ Truthful pending-review status pages | Legal review needed |
+| Blocker | Evidence | Required ticket |
+| --- | --- | --- |
+| Ask Flip is still rendered in every workshop shell route. | `src/components/workshop/WorkshopPageShell.tsx:5`, `src/components/workshop/WorkshopPageShell.tsx:123`; GitNexus impact risk CRITICAL across 7 workshop processes. | MVP-AI-001 |
+| AI ask and package-builder API routes are still build-visible and call handlers directly. | `src/app/api/ai/ask/route.ts:3`, `src/app/api/ai/package-builder/route.ts:3`; build output lists `/api/ai/ask` and `/api/ai/package-builder`. | MVP-AI-002, MVP-AI-003 |
+| Unlink first-pass SQL used invalid schema. | Real row column is `estimate_row_items.node_id`, not `area_node_id`: `src/lib/supabase/types.ts:1127`; real event columns at `src/lib/supabase/types.ts:1241`. | MVP-ROW-001 |
+| Current export is not yet the industry bid-form workbook. | Workbook has only `Proposal Summary`, `Detailed Estimate`, optional `Area Breakdown`: `src/lib/proposal-export/create-proposal-workbook.ts:271`; static totals at `create-proposal-workbook.ts:186` and `create-proposal-workbook.ts:204`. | MVP-XLS-001 to MVP-XLS-003 |
+| `bun run test:dom` fails today. | 2 source-contract failures in AI package-builder security test, 1 source-contract failure in share recipient test. | MVP-QA-001 |
+| Production launch proof is absent. | No Vercel production deployment proof, Supabase migration proof, auth proof, or export manual QA artifact captured in this folder. | MVP-QA-001 |
 
-## Defer List
+## P1 Polish
 
-- Ask Flip footer assistant (hide, don't delete)
-- `/api/ai/ask` route (disable via env flag)
-- `/api/ai/package-builder` route (disable via env flag)
-- AI Package Builder Draft/Apply UI (hide, don't delete)
-- AI memory/ranking (dormant, already default-off)
-- AI audit dashboards (dormant internal code)
-- Proposal comparisons (not built)
-- Revision intelligence (not built)
-- Advanced shared-link commenting/decisions/activity/digests (keep existing, don't expand)
-- Teamspaces collaboration polish beyond current stable state
-- Advanced charts/comparisons beyond current D3 space/category/supplier
-- Library import/export tools
-- Any fake SaaS maturity, unsupported claims
+| Area | Required outcome | Tickets |
+| --- | --- | --- |
+| Component library | Consistent search/filter copy, empty/loading/error states, trust fields, and fixture-backed DOM coverage. | MVP-LIB-001, MVP-LIB-002 |
+| Templates | Preview/details, shared empty states, route error boundary, insertion feedback coverage. | MVP-TPL-001, MVP-TPL-002 |
+| Estimate row UX | Link-state badges, project-specific confirmation, editable detached fields, history tests. | MVP-ROW-002 to MVP-ROW-005 |
+| Excel export | Sheet-by-sheet workbook spec, formulas, no blank line totals, commercial blocks, manual QA. | MVP-XLS-001 to MVP-XLS-003 |
 
-## Top 5 Risks
+## Implementation Sequence
 
-1. **Excel export mismatch** — Current generic export will look unprofessional; industry bid form is a hard MVP requirement. Severity: P0.
-2. **AI leakage into MVP** — Ask Flip button visible everywhere; looks unfinished. Severity: P0.
-3. **Component unlink corrupting source data** — Must not mutate `cost_library_items` when unlinking. Severity: P0.
-4. **RLS/migration drift** — 48 migrations applied to linked remote; need verification before launch. Severity: P1.
-5. **Incomplete test evidence** — 2 failing Vitest tests (pre-existing), 0 E2E for estimate-templates-export workflow. Severity: P1.
+1. PR 1: AI deferral gates (`MVP-AI-001` to `MVP-AI-003`). Stop gate: UI hidden and disabled routes make zero provider/context/audit calls.
+2. PR 2: Schema-safe row unlink contract (`MVP-ROW-001`, `MVP-ROW-002`). Stop gate: migration/RPC proof and row revision conflict tests.
+3. PR 3: Row UX and history (`MVP-ROW-003` to `MVP-ROW-005`). Stop gate: detached row editing and activity proof.
+4. PR 4: Library polish (`MVP-LIB-001`, `MVP-LIB-002`). Stop gate: route DOM and data quality fixtures.
+5. PR 5: Template polish (`MVP-TPL-001`, `MVP-TPL-002`). Stop gate: persisted-template and fallback behavior covered.
+6. PR 6: Export workbook (`MVP-XLS-001` to `MVP-XLS-003`). Stop gate: ExcelJS assertions plus manual QA in Excel/Numbers/LibreOffice/Google Sheets.
+7. PR 7: Launch proof (`MVP-QA-001`). Stop gate: checklist, runbook, deployment evidence, owner sign-off.
 
-## Recommended Implementation Sequence
+## Go/No-Go Rule
 
-1. **Phase 0** — Validation baseline, build, lint, run all tests, record results
-2. **Phase 1** — Hide Ask Flip, route-disable AI APIs, hide AI UI surfaces
-3. **Phase 2** — Build component unlink (project-specific) — RPC, UI, tests
-4. **Phase 3** — Polish component library (browse, search, empty states, design-system)
-5. **Phase 4** — Polish templates (browse, preview, empty states, design-system)
-6. **Phase 5** — Rebuild Excel export as industry-standard bid/BOQ workbook
-7. **Phase 6** — QA, smoke tests, manual workflow testing, deployment prep
-8. **Phase 7** — Launch candidate freeze, owner sign-off
+Go only when:
 
-## Final Launch Gate Checklist
+- All P0 checklist rows in `09-release-readiness-checklist.md` are Pass.
+- `12-final-mvp-launch-gate.md` has owner sign-off.
+- `14-evidence-index.md` has current command output and deployment proof.
+- Ask Flip is hidden and both AI API routes are disabled by default.
+- Excel export manual QA has proof artifacts.
 
-- [ ] All validation gate commands pass: `bun install`, `type-check`, `lint`, `lint:design-system`, `test`, `test:dom`, `build`
-- [ ] Ask Flip not visible on any workshop page
-- [ ] AI API routes return 404 or feature-flag-gated disabled response
-- [ ] Component unlink works: linked → project-specific, edits never mutate library
-- [ ] Component library browse/search/empty-states polished
-- [ ] Templates browse/preview/insert polished
-- [ ] Excel export produces professional bid/BOQ workbook with formulas, sections, summary
-- [ ] Export handles project-specific/unlinked row values
-- [ ] Privacy/Terms pages ready (or accurate pending-review status)
-- [ ] Auth works on deployed environment (Google OAuth + magic link)
-- [ ] RLS verified on all user-data tables
-- [ ] Supabase migrations current and verified on production
-- [ ] Manual QA smoke test of complete workflow: login → create project → create estimate → browse library → insert component → unlink → edit → export → open in Excel
-- [ ] Rollback plan documented
-- [ ] Owner sign-off
+No-go if any P0 remains Open, Waived, or Unknown.
+
+## What Changed From First Pass
+
+- Replaced schema-invalid unlink SQL with a schema-accurate contract grounded in generated types and migrations.
+- Added a data/RPC/migration contract document.
+- Added central blast-radius register with graph/GitNexus evidence.
+- Added PR-sized ticket map.
+- Rewrote Excel export into a workbook engineering specification based on the bid-form patterns supplied in the prompt.
+- Converted generic library/template polish into exact state, source, UI, and test contracts.
+- Added evidence index, test strategy, and launch runbook.
+- Reclassified `bun run test:dom` failures as launch-gate evidence requiring investigation.
+
+## Document Map
+
+| Doc | Purpose |
+| --- | --- |
+| `01-codebase-audit.md` | Verified route, schema, RPC, UI, test, and command baseline. |
+| `02-mvp-scope-cutline.md` | Route/action/API launch visibility and ticket ownership. |
+| `03-deferred-features-plan.md` | Exact Ask Flip/package-builder deferral plan. |
+| `04-mvp-feature-completion-plan.md` | Feature implementation matrix. |
+| `05-component-library-polish-plan.md` | Component library implementation plan. |
+| `06-template-polish-plan.md` | Template route implementation plan. |
+| `07-project-specific-unlink-components-plan.md` | Schema-safe project-specific unlink plan. |
+| `08-excel-export-industry-standard-plan.md` | Workbook engineering specification. |
+| `09-release-readiness-checklist.md` | Owner/evidence/pass-fail launch checklist. |
+| `10-technical-risk-register.md` | Risk register and accepted debt. |
+| `11-implementation-phases.md` | PR sequencing, dependency graph, commands, rollback. |
+| `12-final-mvp-launch-gate.md` | Final go/no-go gate. |
+| `13-second-pass-quality-audit.md` | Meta-review of first pass and second-pass corrections. |
+| `14-evidence-index.md` | Evidence register. |
+| `15-blast-radius-register.md` | Blast-radius evidence by target. |
+| `16-implementation-ticket-map.md` | PR-sized implementation tickets. |
+| `17-data-contracts-rpc-migrations.md` | SQL/RPC/TypeScript data contracts. |
+| `18-excel-reference-analysis.md` | Bid-form reference analysis and product requirements. |
+| `19-test-strategy-and-fixtures.md` | Test and fixture plan. |
+| `20-launch-runbook.md` | Launch operations runbook. |
