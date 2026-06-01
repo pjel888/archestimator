@@ -29,9 +29,13 @@ New fourth-pass documents:
 
 Third-pass audit date: 2026-06-02
 Commit audited: `681c95e64864f283950a88dba304eaffe8f2f8b3`
-Status: **NO-GO for closed beta and investor demo until all closed-beta P0 gates have proof. Public paid launch remains a separate post-beta gate.**
+Status: **NO-GO for closed beta and investor demo until all closed-beta P0 gates have hosted/provider/manual proof. Public paid launch remains a separate post-beta gate.**
 
-This folder is the single launch execution package for the MVP readiness push. Do not create a competing MVP folder. Product code changes are out of scope for this pass.
+Final local implementation report: `final-codex-implementation-report.md`.
+Stable full local baseline: `c5ca065`.
+Final report baseline: `8084908`.
+
+This folder is the single launch execution package for the MVP readiness push. Do not create a competing MVP folder. Local-safe product and documentation slices are now implemented and recorded here; hosted/provider/manual proof gates remain the launch blocker.
 
 ## Scope Lock
 
@@ -60,7 +64,7 @@ Deferred from MVP:
 
 | Area | Third-pass correction |
 | --- | --- |
-| Evidence | Re-ran local command baseline at `681c95e`; recorded `test:dom` failures and E2E port collision. |
+| Evidence | Local baseline is now green through `c5ca065`: typecheck, lint with 14 existing warnings, design lint, unit, full DOM, and build passed locally. Hosted/provider/manual proof remains open. |
 | AI deferral | Upgraded from "defer AI" intent to a concrete global flag, UI-hide, route-fail-closed, provider-call-prevention contract. |
 | Unlinked components | Corrected the contract: project-specific components are `estimate_row_items`, not reusable `cost_library_items`; `detached` is the final state for rows separated from a real library source. |
 | Excel export | Reframed current export as insufficient for launch; added bid-form workbook contract, formula gates, and cross-spreadsheet manual QA. |
@@ -74,16 +78,16 @@ Deferred from MVP:
 
 | ID | Blocker | Required proof |
 | --- | --- | --- |
-| AI-001 | Ask Flip was visible and AI routes were callable by default. | Locally implemented 2026-06-02: AI UI hidden by default, `/api/ai/*` fail closed before handler/provider/session/tool work, no handler calls in route tests. Needs commit/push and production env proof before closed. |
-| EXP-001 | Excel export is not yet an industry bid form. | Formula-driven workbook opens cleanly in Excel and at least one secondary spreadsheet app. |
-| UNLINK-001 | Project-specific unlink UX/RPC is not implementation-complete. | Schema-accurate RPC/action/hook/UI/tests prove library data cannot be mutated. |
+| AI-001 | Ask Flip visible / AI callable risk. | Locally implemented: AI UI hidden by default, `/api/ai/*` fail closed before handler/provider/session/tool work, no handler calls in route tests. Production env proof still required. |
+| EXP-001 | Excel export cross-app proof missing. | Local professional workbook and ExcelJS tests pass; Excel plus at least one secondary spreadsheet app open/print proof remains required. |
+| UNLINK-001 | Project-specific unlink linked/manual proof missing. | Local RPC/action/hook/UI/tests prove library data cannot be mutated; linked SQL verification and manual detach/edit proof remain required. |
 | AUTH-001 | Hosted auth path lacks production proof. | Google OAuth, magic link, callback, first workspace, and logout/session-expiry smoke on staging/prod. |
 | INFRA-001 | Vercel/Supabase/Resend env and rollback proof missing. | Env manifest, callback URLs, DNS, webhooks, storage policies, deploy/rollback runbook proof. |
 | SEC-001 | RLS/security threat model proof missing. | RLS denial queries, route access matrix, storage denial, CSRF/share/invite token tests. |
-| LEGAL-001 | Terms/Privacy are pending-review placeholders. | Reviewed or explicitly approved closed-beta legal copy and public-route updates. |
-| OBS-001 | Monitoring/support path is not launch-ready. | Error tracking, uptime, support inbox, alert thresholds, incident runbook. |
-| DATA-001 | Backup/DR proof missing. | Backup/PITR/storage/migration rollback proof before beta data or migration apply. |
-| QA-002 | Core regression matrix is incomplete. | `test:dom` now passes locally after AI-001/stale source-contract repair; broader zero-defect matrix, lint/build/full validation, and external smoke evidence still required. |
+| LEGAL-001 | Legal review proof missing. | Local closed-beta Terms/Privacy copy exists; owner/counsel review remains required. |
+| OBS-001 | Monitoring/support proof missing. | Local feedback link, runbook, and `/api/health` exist; monitored inbox, uptime alert, and error alert proof remain required. |
+| DATA-001 | Backup/DR proof missing. | Backup/PITR/storage/migration rollback proof before beta data or linked migration apply. |
+| QA-002 | External/manual smoke incomplete. | Local type/lint/design/unit/full DOM/build baseline is green; hosted/manual E2E and provider proof remain required. |
 
 ## P1 Polish / Non-Blocking Debt After P0
 
@@ -100,21 +104,21 @@ Rules: below 90 is not beta-ready; P0 domains below 95 block launch; 100 require
 
 | Domain | Score | Launch posture |
 | --- | ---: | --- |
-| Product core | 78 | Not beta-ready |
-| Estimate editor | 82 | Not beta-ready |
-| Component library | 80 | Not beta-ready |
-| Templates | 74 | Not beta-ready |
-| Project-specific unlink | 35 | P0 blocker |
-| Excel export | 45 | P0 blocker |
-| Auth/onboarding | 78 | P0 proof gap |
-| Infrastructure/deployment | 55 | P0 blocker |
+| Product core | 84 | Local pass; manual smoke gap |
+| Estimate editor | 84 | Local pass; linked/manual proof gap |
+| Component library | 86 | Local polish pass; screenshot/manual proof gap |
+| Templates | 86 | Local polish pass; screenshot/manual proof gap |
+| Project-specific unlink | 86 | Local pass; linked/manual proof gap |
+| Excel export | 88 | Local workbook pass; cross-app proof gap |
+| Auth/onboarding | 82 | Hosted smoke gap |
+| Infrastructure/deployment | 78 | Provider/deploy proof gap |
 | Email/Resend | 50 | P0 if visible share/invite email ships |
-| Security/RLS | 62 | P0 blocker |
-| Legal/privacy | 25 | P0 blocker |
+| Security/RLS | 78 | Linked proof gap |
+| Legal/privacy | 82 | Review proof gap |
 | Performance/caching | 65 | P1 unless thresholds fail |
-| Observability/support | 35 | P0 blocker |
-| QA/test coverage | 58 | P0 blocker |
-| Investor demo readiness | 45 | P0 for investor/incubator showing |
+| Observability/support | 78 | Alert/inbox proof gap |
+| QA/test coverage | 82 | Hosted/manual proof gap |
+| Investor demo readiness | 76 | Rehearsal/artifact proof gap |
 | Beta readiness | 40 | P0 blocker |
 
 ## Document Index
