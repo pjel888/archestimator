@@ -1,5 +1,41 @@
 # Final MVP Launch Gate
 
+## Fourth-Pass Closed Beta Launch Gate - 2026-06-02
+
+This gate is now the closed beta launch gate. It is not a public paid-launch gate.
+
+### Command Evidence
+
+- HEAD audited: `811362ac70d84cf20101f83258ae22c4e8b2c11f`.
+- `bun install --frozen-lockfile`: pass.
+- `bun run type-check`: pass.
+- `bun run lint`: pass with 14 warnings.
+- `bun run lint:design-system`: pass.
+- `bun run test`: pass.
+- `bun run test:dom`: fail, 3 existing static-contract assertions.
+- `bun run build`: pass.
+
+### Closed Beta No-Go
+
+- No whitelist enforcement.
+- Non-whitelisted users can access `/workshop`.
+- Whitelisted users cannot access `/workshop`.
+- Google OAuth fails in production.
+- App creates profile/workspace incorrectly for whitelisted users.
+- Ask Flip is visible while AI is deferred.
+- AI routes are active by default.
+- Pricing/payment copy implies paid launch.
+- Checkout, subscriptions, paid plans, or billing UI are visible.
+- No feedback/support path exists.
+- No beta terms/privacy/AUP/disclaimer path exists.
+- No backup exists before new migrations.
+- No rollback path exists.
+- Component unlink can corrupt library data.
+- Excel export is unprofessional or formulas are untested.
+- Core project/component/template workflows are broken.
+
+Closed beta launch is blocked until the allowlist/auth P0 and beta legal/feedback P0 are implemented and smoked.
+
 Commit audited: `681c95e64864f283950a88dba304eaffe8f2f8b3`
 Gate owner: Philip / Launch lead
 Current decision: **NO-GO**.

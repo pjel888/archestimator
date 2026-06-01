@@ -1,5 +1,19 @@
 # Implementation Phases
 
+## Fourth-Pass Closed Beta Phase Order - 2026-06-02
+
+1. Phase 0 - Audit and validation.
+2. Phase 1 - Closed beta access control and whitelist.
+3. Phase 2 - Hide/defer AI and public paid-launch surfaces.
+4. Phase 3 - Project-specific unlink.
+5. Phase 4 - Component library and templates polish.
+6. Phase 5 - Excel export.
+7. Phase 6 - Onboarding, feedback, and legal beta terms.
+8. Phase 7 - Infra, deployment, observability, and support.
+9. Phase 8 - Closed beta smoke and launch freeze.
+
+Payment, billing, public self-serve signup, and pricing enforcement are post-beta phases, not MVP closed-beta phases.
+
 ## Third-Pass PR Dependency Graph
 
 Commit audited: `681c95e64864f283950a88dba304eaffe8f2f8b3`. Implementation must proceed in evidence-gated slices; do not batch unrelated launch risks into one PR.
