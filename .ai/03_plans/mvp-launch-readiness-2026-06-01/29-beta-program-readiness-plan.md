@@ -1,5 +1,40 @@
 # Beta Program Readiness Plan
 
+## Fourth-Pass Central Beta Program Definition - 2026-06-02
+
+This is now a central closed beta document.
+
+Beta cohort:
+
+- Invited contractors/estimators.
+- Founder-led prospects.
+- Investors and incubator reviewers.
+- Manually curated by Philip.
+
+Beta operations:
+
+- Store access in `closed_beta_allowed_emails`.
+- Manual Supabase management is acceptable for MVP.
+- Manual invite emails are acceptable.
+- Feedback is collected through a visible external form/support path.
+- Weekly beta review summarizes cohort usage, workflow blockers, export feedback, and next fixes.
+
+Beta success metrics:
+
+- Allowed users can enter without support.
+- Denied users understand access status.
+- Users can create project/estimate and export workbook.
+- Component/template/unlink workflows feel useful.
+- Feedback is actionable.
+
+Beta exit criteria:
+
+- Access control stable.
+- Core workflows stable.
+- Export trusted.
+- Feedback themes understood.
+- Public launch/payment/legal plan updated after evidence.
+
 Commit audited: `681c95e64864f283950a88dba304eaffe8f2f8b3`
 
 ## Target Profiles

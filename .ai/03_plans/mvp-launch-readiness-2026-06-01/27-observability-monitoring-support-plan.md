@@ -1,5 +1,24 @@
 # Observability, Monitoring, and Support Plan
 
+## Fourth-Pass Closed Beta Monitoring Reframe - 2026-06-02
+
+Closed beta observability is founder-led but must be real enough to catch launch blockers.
+
+Required:
+
+- Vercel deployment/function error monitoring.
+- Supabase Auth callback and database/RLS error review.
+- Allowed/denied/revoked access smoke results.
+- Feedback/support inbox or external form monitored daily.
+- Export failure capture.
+- Manual bug triage severity labels.
+
+Preferred:
+
+- Security event logging for denied/revoked allowlist access.
+- Lightweight product analytics for project creation, estimate creation, export, and feedback events.
+- GA4/Clarity or equivalent only if privacy copy accurately covers it.
+
 Commit audited: `681c95e64864f283950a88dba304eaffe8f2f8b3`
 
 ## Current State
