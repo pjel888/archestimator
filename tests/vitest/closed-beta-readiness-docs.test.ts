@@ -66,6 +66,11 @@ describe("closed beta readiness docs", () => {
     expect(decisions).toContain("full DOM tests (131 files / 1021 tests / 2 skipped)");
     expect(finalImplementationReport).toContain("**Latest implementation baseline before this report:** `8084908`");
     expect(finalImplementationReport).toContain("`bun run test:dom` - pass, 131 files / 1021 tests / 2 skipped");
+    expect(finalImplementationReport).toContain("Post-report evidence-sync commits:");
+    expect(finalImplementationReport).toContain("`3e8d7a0` - Indexed this final report");
+    expect(finalImplementationReport).toContain("`8e0e615` - Aligned final command evidence baselines");
+    expect(finalImplementationReport).toContain("`cb87e51` - Synced the launch command-center README");
+    expect(finalImplementationReport).toContain("They do not change the implementation baseline or the **NO-GO** recommendation.");
     expect(evidenceIndex).toContain("| Full local implementation baseline | `c5ca065` after demo seed row repair |");
     expect(evidenceIndex).toContain("| Final report baseline | `8084908` after canonical state/decision/roadmap truth sync |");
     expect(evidenceIndex).toContain("| Final report indexed in launch docs | `3e8d7a0` |");
