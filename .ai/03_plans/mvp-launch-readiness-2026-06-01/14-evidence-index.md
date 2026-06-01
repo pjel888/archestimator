@@ -371,6 +371,17 @@
 - Blocked commands: `supabase migration list --linked` and `supabase db advisors --linked --type performance --level warn --fail-on none -o json` failed after retries on the linked temp-role pooler circuit breaker / `SUPABASE_DB_PASSWORD` path.
 - Launch meaning: this is negative/blocked provider evidence. Supabase backup/PITR, migration history, RLS/storage/RPC allow/deny, and security-advisor triage remain **NO-GO** rows.
 
+### Vercel Read-Only Provider Evidence
+
+- Artifact: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/vercel-read-only-cli-2026-06-02.md`.
+- Scope: linked Vercel project `philipjonlewis-projects/archestimator`, CLI/provider reads plus health requests only.
+- Project/link proof: `.vercel/project.json` points to `archestimator`; `vercel whoami` authenticated as `philipjonlewis`; `vercel project inspect archestimator --non-interactive` found a Next.js project with root `.` and Node.js `24.x`.
+- Deployment proof: latest preview for commit `2e5b38d` reached `READY`; previous `db9b224` preview was also `READY`.
+- Env proof: `vercel env ls --non-interactive` returned `No Environment Variables found for philipjonlewis-projects/archestimator`.
+- Health proof: plain curl to the branch alias and ready preview returned Vercel `401 Authentication Required`; authenticated `vercel curl` returned `{"ok":true,"service":"archestimator"}` on the latest preview and branch alias.
+- Protection proof: Vercel reports SSO protection for `all_except_custom_domains`, Git fork protection enabled, and one env-var-backed automation bypass entry remaining after cleanup of the non-env bypass entry generated during this run.
+- Launch meaning: this is partial/blocked Vercel evidence. Preview deploy and protected health route are proven, but env, production/custom-domain behavior, public monitoring path, hosted auth smoke, and rollback proof remain **NO-GO** rows.
+
 ### Closed Beta Audit Evidence
 
 - Auth/proxy: `src/proxy.ts`, `src/lib/auth/actions.ts`, `src/app/auth/callback/route.ts`, `src/lib/auth/account-setup.ts`, `src/lib/auth/session.ts`.
