@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Archestimator | Executive Summary</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --paper: #fffdf8;
+      --ink: #1b1815;
+      --muted: #5c554a;
+      --quiet: #8b8173;
+      --line: #e7ddcf;
+      --accent: #e95d1a;
+      --accent-soft: #fff1e7;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      margin: 0;
+      min-height: 100%;
+      background: #251a13;
+      color: var(--ink);
+      font-family: "Hanken Grotesk", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      -webkit-font-smoothing: antialiased;
+      text-rendering: optimizeLegibility;
+    }
+
+    body {
+      padding: 28px;
+    }
+
+    .page {
+      width: 210mm;
+      height: 297mm;
+      margin: 0 auto;
+      overflow: hidden;
+      background: var(--paper);
+      box-shadow: 0 24px 80px rgba(18, 11, 6, 0.36);
+      padding: 21mm 18mm 16mm;
+    }
+
+    .topbar {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 24px;
+      padding-bottom: 14px;
+      border-bottom: 2px solid var(--accent);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+    }
+
+    .brand img {
+      width: 22px;
+      height: 22px;
+      object-fit: contain;
+    }
+
+    .brand b {
+      font-size: 15px;
+      line-height: 1;
+      font-weight: 650;
+      letter-spacing: 0;
+    }
+
+    .doc-meta {
+      font-family: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 8px;
+      line-height: 1.45;
+      color: var(--quiet);
+      text-align: right;
+      text-transform: uppercase;
+    }
+
+    .hero {
+      padding: 17px 0 14px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .eyebrow {
+      margin-bottom: 7px;
+      font-family: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 8px;
+      line-height: 1.2;
+      color: var(--accent);
+      text-transform: uppercase;
+    }
+
+    h1 {
+      margin: 0 0 9px;
+      max-width: 24ch;
+      font-size: 32px;
+      line-height: 1.02;
+      font-weight: 650;
+      letter-spacing: 0;
+    }
+
+    .one-liner {
+      margin: 0;
+      max-width: 78ch;
+      font-size: 13.2px;
+      line-height: 1.42;
+      color: var(--muted);
+    }
+
+    .body-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+      padding-top: 14px;
+    }
+
+    .column {
+      display: grid;
+      gap: 12px;
+      align-content: start;
+    }
+
+    .section {
+      padding-bottom: 11px;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .section:last-child {
+      border-bottom: 0;
+      padding-bottom: 0;
+    }
+
+    h2 {
+      margin: 0 0 5px;
+      font-size: 13px;
+      line-height: 1.18;
+      font-weight: 650;
+      letter-spacing: 0;
+    }
+
+    p,
+    li {
+      margin: 0;
+      font-size: 10.2px;
+      line-height: 1.42;
+      color: var(--muted);
+    }
+
+    ul {
+      margin: 0;
+      padding-left: 15px;
+    }
+
+    li + li {
+      margin-top: 3px;
+    }
+
+    .summary-box {
+      padding: 12px;
+      background: var(--accent-soft);
+      border-left: 3px solid var(--accent);
+    }
+
+    .summary-box h2 {
+      color: var(--ink);
+    }
+
+    .facts {
+      display: grid;
+      gap: 7px;
+      margin-top: 8px;
+    }
+
+    .fact {
+      display: grid;
+      grid-template-columns: 74px 1fr;
+      gap: 8px;
+    }
+
+    .fact b {
+      font-family: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 7.8px;
+      line-height: 1.35;
+      color: var(--accent);
+      text-transform: uppercase;
+      font-weight: 600;
+    }
+
+    .fact span {
+      font-size: 9.8px;
+      line-height: 1.36;
+      color: var(--muted);
+    }
+
+    .small-note {
+      margin-top: 6px;
+      font-size: 9.1px;
+      line-height: 1.36;
+      color: var(--quiet);
+    }
+
+    @page {
+      size: A4;
+      margin: 0;
+    }
+
+    @media print {
+      html,
+      body {
+        width: 210mm;
+        height: 297mm;
+        padding: 0;
+        background: var(--paper);
+      }
+
+      .page {
+        margin: 0;
+        box-shadow: none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="page" aria-label="Archestimator executive summary">
+    <header class="topbar">
+      <div class="brand">
+        <img src="assets/logo-orange.svg" alt="Archestimator logo">
+        <b>archestimator</b>
+      </div>
+      <div class="doc-meta">Executive Summary<br>Pre-launch MVP | 2026</div>
+    </header>
+
+    <section class="hero">
+      <div class="eyebrow">Company overview</div>
+      <h1>The most intuitive way to work with cost estimates</h1>
+      <p class="one-liner">
+        Archestimator is a structured quote, estimate, and proposal workspace for teams that build itemized commercial offers. The current proof case is construction-style estimating; the broader opportunity is quote-heavy B2B work where reusable cost logic, revisions, approvals, and proposal handoff need to stay connected.
+      </p>
+    </section>
+
+    <section class="body-grid">
+      <div class="column">
+        <article class="section">
+          <div class="eyebrow">Problem</div>
+          <h2>Commercial cost knowledge is still trapped in disposable files.</h2>
+          <p>
+            Teams lose time rebuilding rows, finding supplier notes, checking copied spreadsheets, remembering assumptions, and explaining why the proposal changed. The work is skilled; the workflow is fragmented.
+          </p>
+        </article>
+
+        <article class="section">
+          <div class="eyebrow">Solution</div>
+          <h2>One connected workspace for quote logic.</h2>
+          <p>
+            Archestimator keeps project scope, estimate sheets, reusable components, supplier context, revisions, shared review, exports, and controlled AI drafts in one browser workspace so each quote becomes reusable project memory.
+          </p>
+        </article>
+
+        <article class="section">
+          <div class="eyebrow">Product today</div>
+          <h2>Pre-launch MVP with real workflow depth.</h2>
+          <ul>
+            <li>Project-based estimate sheets with group and area hierarchy.</li>
+            <li>Reusable component library with variants, brands, suppliers, pricing context, media, and attachments.</li>
+            <li>Inline sheet editing, templates, project charts, shared links, comments, decisions, access controls, and Excel proposal export.</li>
+            <li>Ask Flip assistant workflows for workspace Q&amp;A and confirmation-gated package drafting.</li>
+          </ul>
+          <p class="small-note">Revision intelligence and deeper proposal comparisons remain roadmap items, not launch claims.</p>
+        </article>
+
+        <article class="section">
+          <div class="eyebrow">Market</div>
+          <h2>Construction is the wedge. Quote-heavy teams are the opportunity.</h2>
+          <p>
+            Initial users are likely architects, fit-out teams, contractors, design-build teams, and suppliers. The pattern can expand to furniture, restaurant supply, equipment, custom fabrication, facility services, and other itemized-offer teams.
+          </p>
+        </article>
+      </div>
+
+      <div class="column">
+        <article class="section summary-box">
+          <div class="eyebrow">Why now</div>
+          <h2>Fast is useful only if the number is still explainable.</h2>
+          <p>
+            Teams already use spreadsheets because they are flexible. Archestimator keeps that working logic visible while adding structure, reuse, review history, and proposal accountability around it.
+          </p>
+        </article>
+
+        <article class="section">
+          <div class="eyebrow">Business model</div>
+          <h2>B2B SaaS, validated through beta pilots first.</h2>
+          <div class="facts">
+            <div class="fact"><b>Entry</b><span>Solo workspace for practitioners producing repeat itemized offers.</span></div>
+            <div class="fact"><b>Team</b><span>Seats, shared libraries, access control, collaboration, export, and proposal review.</span></div>
+            <div class="fact"><b>Business</b><span>Proposal operations, AI drafting, analytics, and larger-account workflows after validation.</span></div>
+          </div>
+        </article>
+
+        <article class="section">
+          <div class="eyebrow">Status</div>
+          <h2>Built enough to validate, early enough to shape.</h2>
+          <p>
+            Archestimator is bootstrapped and pre-launch. The current objective is to convert MVP workflow depth into real pilot evidence before making public claims about customers, revenue, savings, enterprise readiness, or public launch.
+          </p>
+        </article>
+
+        <article class="section">
+          <div class="eyebrow">Next six months</div>
+          <h2>Ship, validate, and prove paid willingness.</h2>
+          <ul>
+            <li>Harden production readiness, onboarding, QA, legal/privacy posture, and support workflows.</li>
+            <li>Run founder-led beta learning with serious quote-heavy operators.</li>
+            <li>Package paid pilots with clear success criteria and pricing signals.</li>
+          </ul>
+        </article>
+
+        <article class="section">
+          <div class="eyebrow">Founder</div>
+          <h2>Philip Jon Echavez Lewis</h2>
+          <p>
+            Licensed Architect, software engineer, UX/UI designer, and founder. He has lived the estimating and proposal workflow and can translate domain experience into product, design, and technical execution.
+          </p>
+        </article>
+
+        <article class="section">
+          <div class="eyebrow">Current ask</div>
+          <h2>Access to the right validation environment.</h2>
+          <p>
+            Archestimator needs serious design partners, operator feedback, product and technical mentorship, and support turning MVP depth into credible paid pilot evidence.
+          </p>
+        </article>
+      </div>
+    </section>
+  </main>
+</body>
+</html>
