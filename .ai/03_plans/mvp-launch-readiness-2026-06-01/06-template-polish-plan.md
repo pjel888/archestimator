@@ -1,5 +1,17 @@
 # Template Polish Plan
 
+## Fourth-Pass Closed Beta Reframe - 2026-06-02
+
+Closed beta needs enough templates to prove value, not a complete template marketplace or admin suite.
+
+Beta criteria:
+
+- Template preview works.
+- Template insert works without corrupting estimate structure.
+- Seed templates demonstrate a realistic path to first estimate value.
+- Full template admin CRUD, marketplace behavior, and bulk management are deferred unless already trivial.
+- Investor demo should use one polished template path end to end.
+
 ## Third-Pass Launch Audit
 
 Commit audited: `681c95e64864f283950a88dba304eaffe8f2f8b3`. Templates are launch-visible only if discovery, preview, insertion feedback, and seed quality are understandable to a first-time estimator.

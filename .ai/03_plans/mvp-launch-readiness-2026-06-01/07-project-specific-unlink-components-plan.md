@@ -1,5 +1,16 @@
 # Project-Specific / Unlink Components Plan
 
+## Fourth-Pass Closed Beta Reframe - 2026-06-02
+
+Project-specific unlink remains P0. Closed beta users must be able to adapt library components for a project without corrupting shared library data.
+
+Closed beta additions:
+
+- Treat shared-library corruption as a no-go.
+- Include manual beta feedback questions about whether unlink behavior is understandable.
+- Smoke-test unlink before investor/demo walkthroughs.
+- Keep any analytics lightweight; do not add complex instrumentation unless it is already part of the beta feedback path.
+
 ## Third-Pass Schema-Accurate Decision
 
 Commit audited: `681c95e64864f283950a88dba304eaffe8f2f8b3`. The plan below is constrained by current local migrations and generated types. No linked Supabase query was run in this pass, so production schema readiness remains a P0 proof gate.
