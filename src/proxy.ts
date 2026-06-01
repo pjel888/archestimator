@@ -1,12 +1,13 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
+import { buildClosedBetaAccessPath, getClosedBetaAccessForEmail } from "@/lib/auth/closed-beta-access";
 import { isDevAuthBypassRequest } from "@/lib/auth/dev-auth-gate";
 import { AUTH_REQUEST_PATH_HEADER, DEFAULT_AUTH_DESTINATION, LOGIN_PATH, sanitizeNextPath } from "@/lib/auth/redirects";
 import type { Database } from "@/lib/supabase/types";
 
 const PROTECTED_PREFIXES = ["/workshop"];
 const AUTH_ROUTES = [LOGIN_PATH];
-const PUBLIC_ROUTE_PREFIXES = ["/about", "/features", "/pricing", "/contact", "/privacy", "/terms", "/invite", "/share"];
+const PUBLIC_ROUTE_PREFIXES = ["/about", "/features", "/pricing", "/contact", "/privacy", "/terms", "/invite", "/share", "/beta"];
 const MARKETING_PAGE_PATHS = new Set(["/", "/about", "/features", "/pricing", "/contact", "/privacy", "/terms"]);
 const MARKETING_PAGE_CACHE_CONTROL = "private, no-cache, max-age=0, must-revalidate";
 
@@ -82,6 +83,17 @@ export async function proxy(request: NextRequest) {
       sanitizeNextPath(`${pathname}${request.nextUrl.search}`),
     );
     return NextResponse.redirect(loginUrl);
+  }
+
+  if (user && (isProtected || isAuthRoute)) {
+    const access = await getClosedBetaAccessForEmail({
+      email: user.email,
+      supabase,
+    });
+
+    if (!access.allowed) {
+      return NextResponse.redirect(new URL(buildClosedBetaAccessPath(access.status), request.url));
+    }
   }
 
   if (user && isAuthRoute) {

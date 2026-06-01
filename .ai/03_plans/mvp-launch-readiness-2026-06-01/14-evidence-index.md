@@ -32,6 +32,26 @@
 - Post-edit code-review-graph found 0 affected flows for the 21 changed files; minimal review context still reports high risk because `WorkshopPageShell` is a shared shell.
 - Post-edit GitNexus `detect-changes --repo archestimator` reports critical risk through `WorkshopPageShell` and 23 affected processes; this is expected for a shell mount gate and is mitigated by focused shell tests plus full DOM/build evidence.
 
+### BETA-AUTH-001/004 Local Implementation Evidence
+
+- Supabase CLI generated migration `supabase/migrations/20260601182522_closed_beta_allowed_emails.sql` with the current `supabase migration new closed_beta_allowed_emails` command.
+- Migration creates `public.closed_beta_allowed_emails`, enables RLS, revokes anon/authenticated table grants, and grants authenticated execute only on `public.check_closed_beta_access(raw_email text)`.
+- RPC uses `security definer`, `set search_path = ''`, fully qualified table references, and checks the requested normalized email against `auth.jwt() ->> 'email'` so authenticated users cannot enumerate arbitrary allowlist emails through the RPC.
+- `src/lib/auth/closed-beta-access.ts` centralizes email normalization, default-disabled env behavior, fail-closed RPC errors, and revoked access path building.
+- `src/proxy.ts`, `src/app/auth/callback/route.ts`, and `src/lib/auth/session.ts` now enforce missing/revoked access while preserving public `/share`, `/invite`, `/beta`, legal, and marketing routes.
+- `src/app/beta/access-required/page.tsx` provides the public invite-only beta UX and deliberately avoids linking to `/workshop`.
+- Focused red/green evidence: `bun run test:dom tests/vitest/closed-beta-access.test.ts tests/vitest/closed-beta-access-migration.test.ts tests/vitest/beta-access-required-page.test.ts tests/vitest/auth-proxy.test.ts tests/vitest/auth-callback-route.test.ts tests/vitest/auth-session-closed-beta.test.ts` passed 6 files / 32 tests.
+- `bun run type-check` passed after the closed-beta gate.
+- `bun run lint` passed with the existing 14 warnings and 0 errors.
+- `bun run lint:design-system` passed after keeping the access-required page within the 12px app/workshop cap.
+- `bun run test` passed 4 unit tests / 129 expectations.
+- `bun run test:dom` passed 126 files / 1002 tests with 2 skips.
+- `bun run build` passed and lists `/beta/access-required` as a dynamic app route.
+- `git diff --check` passed.
+- Post-edit code-review-graph reported 0 affected flows for the 19 staged changed files, with review gaps on `GET`, `BetaAccessRequiredPage`, helper functions, and `mockUser` despite focused source/route/helper tests.
+- Post-edit GitNexus `detect-changes --repo archestimator --scope staged` reports critical risk through `getCurrentUserContext` and 29 affected processes; this is expected for a session-boundary gate and is mitigated by default-disabled behavior, focused session/proxy/callback tests, full DOM, and build evidence.
+- Remote linked Supabase migration apply is not done in this slice; backup/PITR proof remains required before applying launch/beta migrations.
+
 ### Closed Beta Audit Evidence
 
 - Auth/proxy: `src/proxy.ts`, `src/lib/auth/actions.ts`, `src/app/auth/callback/route.ts`, `src/lib/auth/account-setup.ts`, `src/lib/auth/session.ts`.

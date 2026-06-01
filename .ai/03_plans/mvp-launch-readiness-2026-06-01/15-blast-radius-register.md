@@ -62,6 +62,17 @@ GitNexus impact was run before editing AI route/shell symbols on repo `archestim
 - `handlePackageBuilderRequest` upstream impact: route `POST` plus `ai-package-builder-route.test.ts`, 0 affected processes, risk `LOW`. Mitigation: route dynamically imports handler only when global AI flag is true.
 
 Code-review-graph confirmed the same key shell file nodes before edits. Post-edit `detect_changes` is still required before commit.
+
+## BETA-AUTH-001/004 Pre-Edit Impact Evidence - 2026-06-02
+
+GitNexus impact was run before editing the auth/proxy/session gate:
+
+- `proxy` upstream impact: 0 direct dependents, 0 affected processes, risk `LOW`. Product/security risk remains high because it controls protected route entry and public route exclusions.
+- `src/app/auth/callback/route.ts` `GET` upstream impact: 0 direct dependents, 0 affected processes, risk `LOW`. Product/security risk remains high because it controls the OAuth post-exchange redirect.
+- `getCurrentUserContext` upstream impact: 90 impacted symbols, 2 direct dependents, 28 affected processes, 11 modules, risk `CRITICAL`. Direct dependents are `WorkshopPageShell` and `requireCurrentUserContext`; affected processes include workshop pages, project/estimate actions, media APIs, collaboration, publication, and AI apply paths. Mitigation: default-disabled gate, helper fail-closed only when enabled, proxy/callback/session focused tests, and no profile/workspace creation for denied users.
+- code-review-graph impact for `src/proxy.ts`, `src/app/auth/callback/route.ts`, and `src/lib/auth/session.ts` reported high risk with 500 impacted nodes within 2 hops across 137 files, confirming the need for full validation before launch claim.
+
+Post-edit `detect_changes` and broad test/build evidence are still required before committing this slice.
 | `EstimateSheetContent` | GitNexus specific symbol returned 0 upstream due App Router boundary; other impacts show it is central through hook/export/preview. | Estimate workspace flows. | HIGH by manual assessment | many estimate DOM tests. | Keep row edits scoped; use targeted DOM tests. | Protected estimate route smoke. |
 | `useEstimateRowMutations` | Direct caller: `EstimateSheetContent`; indirect tests. | None reported. | LOW graph, MEDIUM product | estimate sheet tests. | Add unlink as peer mutation with same queue/revision model. | Hook conflict/rollback test. |
 | `insertEstimateRowItemFromLibrary` | `mutationFn` in row hook. | None. | LOW | `estimate-sheet-library-insert.test.tsx`, version-control actions tests. | Do not alter insert semantics. | Regression after unlink action. |
