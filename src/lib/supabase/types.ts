@@ -2635,6 +2635,18 @@ export type Database = {
         }
         Returns: Json
       }
+      unlink_estimate_row_item_from_library_with_history: {
+        Args: {
+          target_project_id: string
+          target_estimate_id: string
+          target_row_id: string
+          expected_row_revision: number
+          acting_user_id?: string
+          correlation_id?: string
+          reason?: string
+        }
+        Returns: Json
+      }
       delete_estimate_row_item_with_history: {
         Args: {
           target_project_id: string

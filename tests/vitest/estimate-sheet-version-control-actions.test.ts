@@ -300,6 +300,51 @@ describe("estimate sheet version control server actions", () => {
     });
   });
 
+  it("detaches linked row items through a revision-aware history RPC", async () => {
+    const supabase = makeSupabase({
+      rpcData: {
+        rowId: "row-1",
+        row: {
+          id: "row-1",
+          nodeId: "node-1",
+          quantity: 3,
+          unitCost: 950,
+          contingencyPercentage: 0,
+          contingencyValue: 0,
+          miscCost: 300,
+          linkState: "detached",
+          rowRevision: 8,
+        },
+      },
+    });
+    supabaseServerMocks.createSupabaseServerClient.mockResolvedValue(supabase);
+    const { detachEstimateRowItemFromLibrary } = await import("@/lib/estimates/actions");
+
+    const result = await detachEstimateRowItemFromLibrary({
+      projectId: "project-1",
+      estimateId: "estimate-1",
+      rowId: "row-1",
+      reason: "Client-specific finish",
+      mutationId: "99999999-9999-4999-8999-999999999999",
+    });
+
+    expect(supabase.rpc).toHaveBeenCalledWith("unlink_estimate_row_item_from_library_with_history", {
+      target_project_id: "project-1",
+      target_estimate_id: "estimate-1",
+      target_row_id: "row-1",
+      expected_row_revision: 7,
+      reason: "Client-specific finish",
+      acting_user_id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+      correlation_id: "99999999-9999-4999-8999-999999999999",
+    });
+    expect(result).toMatchObject({
+      rowId: "row-1",
+      linkState: "detached",
+      rowRevision: 8,
+    });
+    expect(nextCacheMocks.revalidatePath).toHaveBeenCalledWith("/workshop/projects/project-1/estimates/node-1");
+  });
+
   it("inserts library rows through the history RPC with a compact row payload", async () => {
     const supabase = makeSupabase();
     supabaseServerMocks.createSupabaseServerClient.mockResolvedValue(supabase);

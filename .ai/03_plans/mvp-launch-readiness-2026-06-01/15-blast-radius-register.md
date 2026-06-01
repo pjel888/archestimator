@@ -83,6 +83,17 @@ GitNexus impact was run before editing visible pricing copy:
 - `FAQSection` upstream impact: 1 direct dependent (`LandingPage`), 1 affected process, 1 module, risk `LOW`.
 
 Mitigation: source-contract test locks closed-beta/no-payment copy and forbids `₱0`, free-access, and pricing-tier language in the pricing surfaces.
+
+## UNLINK-001 RPC/Action Pre-Edit Impact Evidence - 2026-06-02
+
+GitNexus and code-review-graph impact were run before editing the project-specific row detach contract:
+
+- `updateEstimateRowItem` upstream impact: direct caller `use-estimate-row-mutations.ts:mutationFn`, risk `LOW`; used as the closest existing revision-aware row action pattern.
+- `useEstimateRowMutations` upstream impact: direct caller `EstimateSheetContent`, risk `LOW` in GitNexus but product risk remains medium because the hook owns estimate-row mutation identity and revision updates.
+- `EstimateSheetContent` upstream impact: `MEDIUM`/partial in GitNexus, with direct test coverage from estimate sheet cost input, library insert, version control UI, and context-menu tests. Product risk remains high because it is the central estimate editor.
+- code-review-graph impact for `src/lib/estimates/actions.ts`, `src/hooks/use-estimate-row-mutations.ts`, `src/components/workshop/EstimateSheetContent.tsx`, and row/domain types reported high risk with 500 impacted nodes across 123 files.
+
+Mitigation for this sub-slice: add only the new SQL RPC, generated RPC type, and server action; do not wire the high-blast-radius UI/hook path until the RPC/action contract is green. Focused version-control action/schema tests lock the expected RPC args, revision check, detached link state, event type, provenance metadata, and no library-table mutation.
 | `EstimateSheetContent` | GitNexus specific symbol returned 0 upstream due App Router boundary; other impacts show it is central through hook/export/preview. | Estimate workspace flows. | HIGH by manual assessment | many estimate DOM tests. | Keep row edits scoped; use targeted DOM tests. | Protected estimate route smoke. |
 | `useEstimateRowMutations` | Direct caller: `EstimateSheetContent`; indirect tests. | None reported. | LOW graph, MEDIUM product | estimate sheet tests. | Add unlink as peer mutation with same queue/revision model. | Hook conflict/rollback test. |
 | `insertEstimateRowItemFromLibrary` | `mutationFn` in row hook. | None. | LOW | `estimate-sheet-library-insert.test.tsx`, version-control actions tests. | Do not alter insert semantics. | Regression after unlink action. |
