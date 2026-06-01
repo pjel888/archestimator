@@ -1,6 +1,6 @@
 # Performance, Reliability & Observability Readiness
 
-**Last updated: 2026-05-30**
+**Last updated: 2026-06-02**
 
 ## Summary of Critical Findings
 
@@ -98,7 +98,7 @@ Every cell marked `NO BENCHMARKS` or `UNKNOWN` is a known evidence gap. These ar
 | APM / error tracking | LEFT TO DO | No Sentry, LogRocket, Datadog, or equivalent configured. No error tracking SDK in the app. JavaScript errors, unhandled promise rejections, and server-side 5xx errors are invisible to operators. A production error would only be discovered if a user reports it or if someone checks Vercel logs manually |
 | Log aggregation | LEFT TO DO | `console.log` only. Vercel serverless functions lose all console output on recycle (seconds to minutes after last request). No log shipping to a centralized service (Axiom, Logtail, Datadog, Vercel Logs). No structured logging (JSON format with request IDs, timestamps, severity levels). No correlation IDs across client-server boundaries |
 | Performance monitoring | DEV-ONLY | `PerformanceMonitor` client component exists at `src/components/PerformanceMonitor.tsx`. It logs `performance.now()` route transition timings to `console.log` in development only. No production metrics. No Real User Monitoring (RUM). No Web Vitals reporting (LCP, FCP, CLS, INP are not collected or shipped). No server-side timing (API route duration, DB query time) is measured |
-| Uptime monitoring | LEFT TO DO | No synthetic uptime checks. No health endpoint (`/api/health` does not exist). No third-party monitoring (Checkly, Upptime, Pingdom, Vercel Monitoring). Downtime would not be detected automatically |
+| Uptime monitoring | PARTIAL / LOCAL ONLY | Local `/api/health` exists and returns a JSON 200 health probe for uptime monitors. No deployed synthetic uptime check, provider monitor, alert threshold, alert delivery channel, or hosted proof exists yet. Downtime would still not be detected automatically until Vercel/external monitor proof is captured |
 | Alerting | LEFT TO DO | No alert threshold configuration. No alert delivery channel (email, Slack, PagerDuty). No definition of what constitutes an alert-worthy event. Operators would not be notified of error rate spikes, 5xx increases, auth failure surges, AI provider outages, or database connectivity issues |
 | Incident detection | LEFT TO DO | No incident severity classification. No incident response runbook. No on-call rotation. No postmortem template. No incident communication plan. An incident would be handled ad hoc with no predefined process |
 | SLO / SLA posture | NOT DEFINED | No service level objectives defined for MVP or beta. No uptime target (99.5%, 99.9%, 99.95%). No error budget. No latency SLOs (p50, p95, p99 for API routes). No SLA commitments for any customer tier. These must be defined before production launch or commitments are made |
@@ -137,8 +137,8 @@ Every cell marked `NO BENCHMARKS` or `UNKNOWN` is a known evidence gap. These ar
 2. **Add React error boundaries** to all workshop route segments — prevents full-page crashes from localized JS errors.
 3. **Run bundle analysis** (`@next/bundle-analyzer`) and code-split heavy packages (`three`, `exceljs`, `d3`) behind `next/dynamic`.
 4. **Create custom error pages** (`not-found.tsx`, `error.tsx`, `global-error.tsx`) — low effort, immediate UX improvement.
-5. **Implement health endpoint** (`/api/health`) returning DB connectivity status — prerequisite for uptime monitoring.
-6. **Configure uptime monitoring** (Checkly, Uptime Robot, or Vercel Monitoring) — prerequisite for alerting.
+5. **Configure uptime monitoring** (Checkly, Uptime Robot, or Vercel Monitoring) against `/api/health` — prerequisite for alerting.
+6. **Capture deployed health-check proof** — hosted `/api/health` returns 200 and the monitor sends alerts to the launch owner.
 7. **Define SLO posture** for MVP/beta — uptime target, error budget, latency objectives. Document as accepted risk if relaxed for beta.
 8. **Upgrade rate limiting** from in-memory to persistent (Upstash Redis or similar) — prevents lockout-state loss on deploy.
 9. **Implement AI circuit-breaker** — prevents cascading 30s timeouts when provider is degraded.

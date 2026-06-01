@@ -6,6 +6,12 @@ const releaseChecklist = readFileSync(
   ".ai/03_plans/mvp-launch-readiness-2026-06-01/09-release-readiness-checklist.md",
   "utf8",
 );
+const currentState = readFileSync(".ai/10_state/current-state.md", "utf8");
+const decisions = readFileSync(".ai/10_state/decisions.md", "utf8");
+const observabilityRoadmap = readFileSync(
+  ".ai/01_roadmap/06-performance-reliability-observability.md",
+  "utf8",
+);
 const technicalRiskRegister = readFileSync(
   ".ai/03_plans/mvp-launch-readiness-2026-06-01/10-technical-risk-register.md",
   "utf8",
@@ -41,6 +47,11 @@ const readinessScorecard = readFileSync(
 
 describe("closed beta readiness docs", () => {
   it("keeps the current local QA baseline aligned with passing DOM evidence", () => {
+    expect(currentState).toContain("**Date:** 2026-06-02");
+    expect(currentState).toContain("Latest pushed baseline is `c5ca065`");
+    expect(currentState).toContain("full `bun run test:dom` passed 131 files / 1021 tests / 2 skipped");
+    expect(decisions).toContain("Commit `c5ca065` is the current green local baseline");
+    expect(decisions).toContain("full DOM tests (131 files / 1021 tests / 2 skipped)");
     expect(releaseChecklist).toContain("`bun run test:dom` | Pass: 131 files / 1021 tests / 2 skipped");
     expect(releaseChecklist).not.toContain("`bun run test:dom` | Fail");
     expect(finalLaunchGate).toContain("`bun run test:dom`: pass, 131 files / 1021 tests with 2 skips");
@@ -52,6 +63,9 @@ describe("closed beta readiness docs", () => {
   });
 
   it("keeps launch readiness conservative despite local implementation passes", () => {
+    expect(currentState).toMatch(/Closed beta remains \*\*NO-GO\*\*/);
+    expect(currentState).toMatch(/Do not archive the MVP launch goal or claim launch readiness from local tests alone/i);
+    expect(decisions).toMatch(/This is not a launch approval/);
     expect(releaseChecklist).toMatch(/Current release state: \*\*NO-GO\*\*/);
     expect(releaseChecklist).toMatch(/hosted\/provider\/manual P0 gates are not proven/i);
     expect(zeroDefectMatrix).toMatch(/Launch state remains \*\*NO-GO\*\*/);
@@ -67,6 +81,14 @@ describe("closed beta readiness docs", () => {
     expect(readinessScorecard).toMatch(/Data backup\/rollback \| Yes \| 76 \| Checklist ready; proof missing/);
     expect(readinessScorecard).not.toMatch(/No allowlist table or enforcement exists yet/);
     expect(readinessScorecard).not.toMatch(/Beta-specific terms\/privacy\/AUP not yet implemented/);
+  });
+
+  it("keeps observability roadmap aligned with the local health endpoint", () => {
+    expect(currentState).toContain("`/api/health` uptime probe");
+    expect(observabilityRoadmap).toMatch(/Uptime monitoring \| PARTIAL \/ LOCAL ONLY/);
+    expect(observabilityRoadmap).toContain("Local `/api/health` exists");
+    expect(observabilityRoadmap).toContain("Configure uptime monitoring");
+    expect(observabilityRoadmap).not.toContain("No health endpoint (`/api/health` does not exist)");
   });
 
   it("keeps executive launch docs current on local mitigations", () => {
