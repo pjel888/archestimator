@@ -413,6 +413,17 @@
 - Result: pass, 3 files / 20 tests in 2.97s.
 - Launch meaning: this is not hosted first-run proof. Hosted Google auth, allowlist, Vercel env, production cookies, session expiry/logout, and real fresh beta account evidence remain required.
 
+### Current Local E2E Smoke Evidence
+
+- Artifact: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/current-local-e2e-smoke-2026-06-02.md`.
+- Artifact folder: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/current-local-e2e-smoke-2026-06-02/`.
+- Signed-out auth command: `PLAYWRIGHT_PORT=3039 bun run test:e2e -- e2e/auth.spec.ts --project=chromium`.
+- Signed-out auth result: pass, 2 tests in 5.0s.
+- Local dev-auth command: `PLAYWRIGHT_PORT=3041 ARCHESTIMATOR_DEV_AUTH_BYPASS=1 ARCHESTIMATOR_DEV_AUTH_ADMIN_DB=1 ARCHESTIMATOR_E2E_LIBRARY_DEMO_SMOKE=1 ARCHESTIMATOR_E2E_TEMPLATE_INSERT_SMOKE=1 ... bun run test:e2e -- e2e/workshop-library-demo-smoke.spec.ts e2e/workshop-template-insert-smoke.spec.ts --project=chromium`.
+- Local dev-auth result: pass, 3 tests in 38.9s.
+- Covered: signed-out protected-route redirect/login UI, component library search/trust fields, template preview, and template insertion into a throwaway linked Supabase estimate with 5 nodes / 8 rows / 1 `template_inserted` event and cleanup verification.
+- Launch meaning: partial/local only. Hosted Google OAuth, allowlist allowed/denied/revoked, hosted first-run, project-specific unlink/export, spreadsheet-app open/print, logout/session expiry, and target hosted E2E remain required.
+
 ### Spreadsheet Artifact Local Evidence
 
 - Artifact note: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/spreadsheet-artifact-local-2026-06-02.md`.

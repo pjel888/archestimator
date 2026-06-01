@@ -156,6 +156,11 @@ describe("closed beta readiness docs", () => {
     expect(evidenceIndex).toContain("covers default workspace reuse/creation");
     expect(evidenceIndex).toContain("empty `WorkshopHomebaseClient`");
     expect(evidenceIndex).toContain("not hosted first-run proof");
+    expect(evidenceIndex).toContain("### Current Local E2E Smoke Evidence");
+    expect(evidenceIndex).toContain("current-local-e2e-smoke-2026-06-02.md");
+    expect(evidenceIndex).toContain("Local dev-auth result: pass, 3 tests in 38.9s.");
+    expect(evidenceIndex).toContain("signed-out protected-route redirect/login UI");
+    expect(evidenceIndex).toContain("template insertion into a throwaway linked Supabase estimate");
     expect(evidenceIndex).toContain("Current app build anchor: `e6cf52b` on `main`, before this docs-only evidence-sync commit.");
     expect(evidenceIndex).toContain("PLAYWRIGHT_PORT=3037 bun run test:e2e -- e2e/auth.spec.ts --project=chromium");
     expect(evidenceIndex).toContain("Result: pass, 2 Playwright tests in 9.9s.");
@@ -238,6 +243,9 @@ describe("closed beta readiness docs", () => {
     expect(manualProofMatrix).toContain("monitored inbox/form proof, alert ownership, and incident escalation remain missing");
     expect(manualProofMatrix).toContain("Legal/owner review");
     expect(manualProofMatrix).toContain("Current manual E2E smoke");
+    expect(manualProofMatrix).toContain("current-local-e2e-smoke-2026-06-02.md");
+    expect(manualProofMatrix).toContain("signed-out auth plus local dev-auth library/template/template-insert smoke");
+    expect(manualProofMatrix).toContain("Hosted login, allowlist, unlink/export, logout/session expiry, and target-environment journey remain missing");
     expect(manualProofMatrix).toContain(".ai/09_archive/store/<date>-mvp-closed-beta-manual-proof/");
     expect(manualProofMatrix).not.toMatch(/\| .* \| .* \| .* \| Pass \|/);
   });
@@ -273,6 +281,9 @@ describe("closed beta readiness docs", () => {
     expect(goalCompletionAudit).toContain("First-run Workshop local surface evidence");
     expect(goalCompletionAudit).toContain("empty Workshop homebase with Projects, Components, Templates, and empty favorite states");
     expect(goalCompletionAudit).toContain("Hosted first-run auth smoke remains missing");
+    expect(goalCompletionAudit).toContain("Current local E2E smoke evidence");
+    expect(goalCompletionAudit).toContain("local Playwright passed signed-out auth plus dev-auth component library, template preview, and template insertion with linked Supabase cleanup");
+    expect(goalCompletionAudit).toContain("Hosted/manual target-environment E2E remains missing");
     expect(goalCompletionAudit).toContain("generated workbook artifact is loadable, ZIP-valid, formula-backed, and has no blank line totals");
     expect(goalCompletionAudit).toContain("component/template demo smoke and template insertion are partial/local pass");
     expect(goalCompletionAudit).toContain("Template insertion local smoke evidence");
@@ -305,6 +316,9 @@ describe("closed beta readiness docs", () => {
     expect(currentState).toContain("First-run Workshop local evidence");
     expect(currentState).toContain("empty Workshop homebase with Projects, Components, Templates, and empty favorite states");
     expect(currentState).toContain("hosted fresh-account auth proof remains missing");
+    expect(currentState).toContain("Current local E2E smoke evidence");
+    expect(currentState).toContain("signed-out auth plus local dev-auth component library, template preview, and template insertion with linked cleanup");
+    expect(currentState).toContain("but not hosted/manual target behavior");
     expect(currentState).toContain("Spreadsheet artifact evidence");
     expect(currentState).toContain("missing local spreadsheet apps");
     expect(currentState).toContain("Component/template local demo evidence");
@@ -329,6 +343,8 @@ describe("closed beta readiness docs", () => {
     expect(knownIssues).toContain("visible shared-link/collaboration email paths remain in source");
     expect(knownIssues).toContain("First-run Workshop local evidence on 2026-06-02 proves fallback workspace coverage");
     expect(knownIssues).toContain("hosted fresh-account Google auth and allowlist proof remain missing");
+    expect(knownIssues).toContain("Current local E2E smoke evidence on 2026-06-02 proves signed-out auth plus local dev-auth component library");
+    expect(knownIssues).toContain("hosted/manual target-environment proof remains missing");
     expect(knownIssues).toContain("Local component/template demo evidence on 2026-06-02 proves screenshots/JSON");
     expect(knownIssues).toContain("local template insertion evidence proves throwaway-estimate insertion with zero residue");
     expect(knownIssues).toContain("Support/feedback local evidence on 2026-06-02 proves `/contact`, workshop feedback, terms, and privacy point to `support@archestimator.com`");
