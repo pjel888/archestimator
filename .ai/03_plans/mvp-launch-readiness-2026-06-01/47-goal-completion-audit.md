@@ -13,7 +13,7 @@ This audit maps the active MVP launch goal in `codex-autopilot-goal.md` to curre
 | Local signed-out auth E2E smoke | `a65b34b`, 2 Playwright checks passed. |
 | Local validation refresh | `a65b34b`, `bun run validate` passed: typecheck, lint with 14 existing warnings, design lint, unit, DOM. |
 | Local build refresh | `e6cf52b`, `bun run build` passed under Next.js 16.2.6 / Turbopack with 29 static pages. |
-| Manual/provider proof matrix | `46-manual-proof-matrix.md`, with packet template `48-manual-proof-packet-template.md`; all P0 rows still missing. |
+| Manual/provider proof matrix | `46-manual-proof-matrix.md`, with packet template `48-manual-proof-packet-template.md`; component/template demo smoke is partial/local pass, while hosted/provider/manual P0 rows still block launch. |
 | Supabase read-only provider evidence | `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/supabase-read-only-cli-2026-06-02.md`; backup list showed PITR disabled and no listed backups; security advisor returned WARN findings; migration/performance CLI reads were blocked by the temp-role pooler circuit breaker. |
 | Vercel read-only provider evidence | `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/vercel-read-only-cli-2026-06-02.md`; latest preview reached READY and protected `/api/health` returned ok through `vercel curl`, but `vercel env ls` found no env vars, plain curl returned Vercel 401 due to deployment protection, and rollback/production/custom-domain proof is missing. |
 | Spreadsheet artifact evidence | `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/spreadsheet-artifact-local-2026-06-02.md`; generated workbook artifact is loadable, ZIP-valid, formula-backed, and has no blank line totals; Excel/secondary-app open and print proof is blocked because no spreadsheet app is installed locally. |
@@ -34,7 +34,7 @@ This audit maps the active MVP launch goal in `codex-autopilot-goal.md` to curre
 | `.env.example` updated | Env manifest/source contract tests and runbook entries exist. | Local-proven; Vercel env proof missing |
 | Vercel/Supabase/Resend/readiness docs updated | Launch docs, runbook, env manifest, backup/DR, and proof matrix are updated. | Docs-proven; provider proof missing |
 | `.ai` roadmap/state/decision/readiness docs updated | `current-state.md`, `decisions.md`, known issues, launch pack, scorecard, and final report are synced to current local evidence. | Docs-proven |
-| All changes staged, committed, and pushed in meaningful commits | Current launch-pack commits through `0a5e46f` are pushed before this evidence-sync pass; `.ai/08_prompts/mvp-launch-goal.md` remains intentionally untracked. | Proven for committed work |
+| All changes staged, committed, and pushed in meaningful commits | Current launch-pack evidence commits are pushed; `.ai/08_prompts/mvp-launch-goal.md` remains intentionally untracked. | Proven for committed work |
 | Worktree clean after final push | Worktree is clean except intentionally untracked `.ai/08_prompts/mvp-launch-goal.md`. | Proven with exception |
 | Final evidence recorded in evidence/gate/brief/scorecard | `14-evidence-index.md`, `12-final-mvp-launch-gate.md`, `36-final-executive-launch-brief.md`, and `43-closed-beta-readiness-scorecard.md` record local evidence and remaining no-go gates. | Docs-proven |
 | Final report written | `final-codex-implementation-report.md` exists and records local-safe implementation plus remaining blockers. | Docs-proven; not launch approval |

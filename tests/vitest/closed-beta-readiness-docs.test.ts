@@ -215,10 +215,11 @@ describe("closed beta readiness docs", () => {
     expect(goalCompletionAudit).toContain("Ask Flip hidden and AI routes disabled by default");
     expect(goalCompletionAudit).toContain("Excel export upgraded and tested");
     expect(goalCompletionAudit).toContain("All changes staged, committed, and pushed in meaningful commits");
-    expect(goalCompletionAudit).toContain("Current launch-pack commits through `0a5e46f` are pushed");
+    expect(goalCompletionAudit).toContain("Current launch-pack evidence commits are pushed");
     expect(goalCompletionAudit).toContain("backup list showed PITR disabled and no listed backups");
     expect(goalCompletionAudit).toContain("latest preview reached READY and protected `/api/health` returned ok through `vercel curl`");
     expect(goalCompletionAudit).toContain("generated workbook artifact is loadable, ZIP-valid, formula-backed, and has no blank line totals");
+    expect(goalCompletionAudit).toContain("component/template demo smoke is partial/local pass");
     expect(goalCompletionAudit).toContain("Supabase backup/PITR and restore-drill proof");
     expect(goalCompletionAudit).toContain("Hosted auth allowlist smoke");
     expect(goalCompletionAudit).toContain("Excel plus one secondary spreadsheet app open/recalc/print proof");
