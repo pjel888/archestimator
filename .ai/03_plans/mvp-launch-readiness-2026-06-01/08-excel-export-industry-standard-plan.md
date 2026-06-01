@@ -1,5 +1,19 @@
 # Excel Export Industry-Standard Plan
 
+## Fourth-Pass Closed Beta Reframe - 2026-06-02
+
+Excel export remains P0 because it is a primary beta value proof. Closed beta does not require paid launch readiness, but the exported workbook must be professionally useful.
+
+Closed beta export requirements:
+
+- Workbook opens cleanly in Excel-compatible tools.
+- Totals, formulas, contingency/discount handling, and group summaries are checked.
+- Layout is client/professional enough for beta feedback.
+- Export failures are P0 during beta.
+- Feedback form asks about workbook layout, formula trust, missing fields, and real handoff usefulness.
+
+Export gaps can be beta feedback only if they do not break totals, formulas, readability, or user trust.
+
 ## Third-Pass Workbook Contract
 
 Commit audited: `681c95e64864f283950a88dba304eaffe8f2f8b3`. Current export is not launch-grade: sheets are `Proposal Summary`, `Detailed Estimate`, `Area Breakdown`; totals are static values despite `includeFormulas`; every row is `included`; labor is always `0`; commercial/legal blocks are missing.
