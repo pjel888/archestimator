@@ -1,5 +1,18 @@
 # Component Library Polish Plan
 
+## Fourth-Pass Closed Beta Reframe - 2026-06-02
+
+Closed beta does not require an exhaustive library, but it does require a trustworthy one. The library must help beta users and investors see real estimating value quickly.
+
+Beta success criteria:
+
+- Seed/demo components cover common construction estimating use cases.
+- Component insert/edit flows are stable for beta testers.
+- Project-specific unlink remains safe.
+- Empty states and error states are clear.
+- Bulk import/export and full library administration remain deferred unless already trivial.
+- Feedback prompts ask whether component names, units, rates, and categories match real estimating practice.
+
 ## Third-Pass Launch Audit
 
 Commit audited: `681c95e64864f283950a88dba304eaffe8f2f8b3`. This is P1 unless the investor demo depends on the library; then unresolved trust/empty/error states become demo-blocking.
