@@ -1,5 +1,32 @@
 # Implementation Ticket Map
 
+## Fourth-Pass Closed Beta Ticket Reprioritization - 2026-06-02
+
+New P0/P1 tickets:
+
+- `BETA-AUTH-001` Add closed beta allowlist schema/RLS.
+- `BETA-AUTH-002` Add server-side beta access check helper.
+- `BETA-AUTH-003` Gate workshop access for non-whitelisted authenticated users.
+- `BETA-AUTH-004` Add access denied / pending beta UX.
+- `BETA-AUTH-005` Add tests for whitelist access states.
+- `BETA-AUTH-006` Update `.env.example` and deployment runbook for closed beta mode.
+- `BETA-COPY-001` Closed beta landing/pricing copy update.
+- `BETA-LEGAL-001` Beta terms/privacy/AUP/disclaimer route update.
+- `BETA-FEEDBACK-001` Feedback capture path.
+- `BETA-OPS-001` Closed beta runbook and manual whitelist process.
+- `BETA-DEMO-001` Closed beta demo workspace/data.
+- `BETA-QA-001` Whitelist/auth/onboarding smoke tests.
+
+Payment/billing tickets move to deferred/post-beta:
+
+- Stripe setup.
+- Checkout.
+- Subscription plans.
+- Paid entitlements.
+- Invoices.
+- Billing portal.
+- Public pricing enforcement.
+
 All tickets are PR-ready planning units. Before editing code for any ticket, run targeted graph impact analysis for listed symbols and update `15-blast-radius-register.md`.
 
 ## PR Sequence
