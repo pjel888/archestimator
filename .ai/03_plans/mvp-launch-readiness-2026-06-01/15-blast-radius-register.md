@@ -206,6 +206,19 @@ This slice edits launch-gate, executive brief, risk-register, evidence, and sour
 - Post-edit GitNexus staged detection reports no indexed code changes for the docs/test-only set.
 
 Mitigation: update score/gate docs only when evidence exists, keep all external proof gaps explicit, and rerun the docs contract after each launch-readiness status change.
+
+## DEMO-001 Local Demo Seed Impact Evidence - 2026-06-02
+
+This slice edits local Supabase seed data, demo readiness docs, score/gate docs, and source-contract tests.
+
+- code-review-graph pre-edit impact for `supabase/seed.sql` reported medium risk with 11 impacted files through migration/schema relationships.
+- Runtime product risk is limited to local/staging disposable seed quality; `supabase/seed.sql` is not a production migration.
+- Demo risk is improved but not closed: live demo account, allowlist row, hosted auth smoke, screenshots, and workbook artifact proof remain manual gates.
+- `demo-seed-readiness.test.ts` locks the local seed workspace/project/estimate anchors and requires linked, detached, and manual row coverage.
+- Post-edit code-review-graph reports 0 affected flows, 0 test gaps, and overall risk score 0.30.
+- Post-edit GitNexus staged detection reports no indexed code changes for the seed/docs/test set.
+
+Mitigation: do not run `supabase db reset` against production, keep stable UUIDs for rehearsal, and verify exported workbook/screenshots in the target demo environment before investor/incubator use.
 | `EstimateSheetContent` | GitNexus specific symbol returned 0 upstream due App Router boundary; other impacts show it is central through hook/export/preview. | Estimate workspace flows. | HIGH by manual assessment | many estimate DOM tests. | Keep row edits scoped; use targeted DOM tests. | Protected estimate route smoke. |
 | `useEstimateRowMutations` | Direct caller: `EstimateSheetContent`; indirect tests. | None reported. | LOW graph, MEDIUM product | estimate sheet tests. | Add unlink as peer mutation with same queue/revision model. | Hook conflict/rollback test. |
 | `insertEstimateRowItemFromLibrary` | `mutationFn` in row hook. | None. | LOW | `estimate-sheet-library-insert.test.tsx`, version-control actions tests. | Do not alter insert semantics. | Regression after unlink action. |
