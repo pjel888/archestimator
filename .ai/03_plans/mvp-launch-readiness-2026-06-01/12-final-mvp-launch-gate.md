@@ -41,6 +41,8 @@ This gate is now the closed beta launch gate. It is not a public paid-launch gat
 
 Closed beta launch is blocked until hosted auth/RLS/storage, provider dashboards, manual smoke, backup/restore, deployment/rollback, and spreadsheet-open proof are collected and linked from `14-evidence-index.md`.
 
+Use `46-manual-proof-matrix.md` as the required evidence checklist for those remaining hosted/provider/manual gates.
+
 Commit audited: `681c95e64864f283950a88dba304eaffe8f2f8b3`
 Gate owner: Philip / Launch lead
 Current decision: **NO-GO**.

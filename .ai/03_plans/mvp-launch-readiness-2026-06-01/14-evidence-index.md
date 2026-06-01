@@ -5,6 +5,7 @@
 ### Final Codex Implementation Report Evidence
 
 - Final report artifact: `final-codex-implementation-report.md`.
+- Manual proof matrix artifact: `46-manual-proof-matrix.md`.
 - Stable implementation baseline summarized by the report: `8084908`.
 - Report publication/correction commits: `80f806d`, `579cef0`.
 - Current report recommendation: **NO-GO for external closed beta launch** until hosted/provider/manual proof gates are complete.
@@ -345,6 +346,12 @@
 - Result: pass.
 - Build details: Next.js 16.2.6 / Turbopack compiled successfully, finished TypeScript, generated 29 static pages, and listed the app Proxy plus `/api/health`, `/api/ai/ask`, `/api/ai/package-builder`, `/api/projects/[projectId]/estimates/[estimateId]/export/proposal.xlsx`, `/api/share/[token]` routes, `/api/webhooks/resend`, `/beta/access-required`, `/invite/[token]`, `/login`, `/pricing`, `/share/[token]`, `/terms`, and protected `/workshop` routes.
 - Scope limit: this is local production-build proof only. Vercel deploy/env/health/rollback proof remains an external launch gate, and closed beta remains **NO-GO**.
+
+### Manual Proof Matrix Evidence
+
+- `46-manual-proof-matrix.md` now defines the exact P0 evidence packet required before external closed beta can move from **NO-GO** to go/no-go review.
+- It includes proof rows for Supabase backup/PITR, linked migrations/RLS/storage/RPCs, hosted auth allowlist, first-run workspace, Vercel deploy/env/health/rollback, Resend/email, spreadsheet compatibility, project-specific unlink, component/template demo smoke, legal/owner review, support/monitoring, demo rehearsal, and current manual E2E smoke.
+- Current status: all rows remain missing until dated artifacts are captured under `.ai/09_archive/store/<date>-mvp-closed-beta-manual-proof/` and linked back here.
 
 ### Closed Beta Audit Evidence
 

@@ -44,6 +44,8 @@ No Stripe, checkout, subscriptions, billing UI, invoices, paid tiers, pricing en
 
 Run the provider-backed proof lane next: linked Supabase backup/migration/RLS checks, hosted auth smoke, Vercel preview/prod deploy and rollback, and spreadsheet-open QA. Keep the app closed-beta/no-payment/AI-off while collecting that evidence.
 
+Use `46-manual-proof-matrix.md` as the operator checklist for the next proof lane and link all dated artifacts back to `14-evidence-index.md`.
+
 Commit audited: `681c95e64864f283950a88dba304eaffe8f2f8b3`
 Current decision: **NO-GO**.
 

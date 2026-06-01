@@ -10,6 +10,10 @@ const releaseChecklist = readFileSync(
   ".ai/03_plans/mvp-launch-readiness-2026-06-01/09-release-readiness-checklist.md",
   "utf8",
 );
+const manualProofMatrix = readFileSync(
+  ".ai/03_plans/mvp-launch-readiness-2026-06-01/46-manual-proof-matrix.md",
+  "utf8",
+);
 const currentState = readFileSync(".ai/10_state/current-state.md", "utf8");
 const decisions = readFileSync(".ai/10_state/decisions.md", "utf8");
 const knownIssues = readFileSync(".ai/10_state/known-issues.md", "utf8");
@@ -85,8 +89,10 @@ describe("closed beta readiness docs", () => {
     expect(finalImplementationReport).toContain("`7ba69e6` - Recorded the current local build refresh in the launch evidence pack.");
     expect(finalImplementationReport).toContain("Current local validation refresh at `a65b34b` also passed `bun run validate`");
     expect(finalImplementationReport).toContain("Current app build refresh at `e6cf52b`:");
+    expect(finalImplementationReport).toContain("The remaining manual/provider proof packet is now centralized in `46-manual-proof-matrix.md`");
     expect(finalImplementationReport).toContain("They do not change the implementation baseline or the **NO-GO** recommendation.");
     expect(evidenceIndex).toContain("| Full local implementation baseline | `c5ca065` after demo seed row repair |");
+    expect(evidenceIndex).toContain("Manual proof matrix artifact: `46-manual-proof-matrix.md`.");
     expect(evidenceIndex).toContain("| Final report baseline | `8084908` after canonical state/decision/roadmap truth sync |");
     expect(evidenceIndex).toContain("| Final report indexed in launch docs | `3e8d7a0` |");
     expect(evidenceIndex).toContain("| Current local validation refresh | `a65b34b`, `bun run validate` pass |");
@@ -94,6 +100,7 @@ describe("closed beta readiness docs", () => {
     expect(evidenceIndex).toContain("current validation refresh pass: 131 files / 1022 passed / 2 skipped");
     expect(evidenceIndex).toContain("### CURRENT-HEAD Local Validation Refresh Evidence");
     expect(evidenceIndex).toContain("### CURRENT-HEAD Local Build Refresh Evidence");
+    expect(evidenceIndex).toContain("### Manual Proof Matrix Evidence");
     expect(evidenceIndex).toContain("Current app build anchor: `e6cf52b` on `main`, before this docs-only evidence-sync commit.");
     expect(evidenceIndex).toContain("PLAYWRIGHT_PORT=3037 bun run test:e2e -- e2e/auth.spec.ts --project=chromium");
     expect(evidenceIndex).toContain("Result: pass, 2 Playwright tests in 9.9s.");
@@ -104,15 +111,19 @@ describe("closed beta readiness docs", () => {
     expect(finalLaunchGate).toContain("Current local validation refresh: `a65b34b`, `bun run validate` pass.");
     expect(finalLaunchGate).toContain("Current local app build refresh: `e6cf52b`, `bun run build` pass.");
     expect(finalLaunchGate).toContain("Local signed-out redirect/login UI E2E pass; hosted allowed/denied/revoked proof missing.");
+    expect(finalLaunchGate).toContain("Use `46-manual-proof-matrix.md` as the required evidence checklist");
     expect(finalLaunchGate).not.toContain("HEAD audited: `531f20a`");
     expect(executiveBrief).toContain("Final report indexed in launch docs: `3e8d7a0`.");
     expect(executiveBrief).toContain("Current local validation refresh: `a65b34b`, `bun run validate` passed");
     expect(executiveBrief).toContain("Current local app build refresh: `e6cf52b`, `bun run build` passed");
     expect(executiveBrief).toContain("Local signed-out auth E2E passed");
+    expect(executiveBrief).toContain("Use `46-manual-proof-matrix.md` as the operator checklist");
     expect(executiveBrief).not.toContain("HEAD: `531f20a`");
     expect(readinessScorecard).toContain("local signed-out redirect/login UI E2E passes; hosted callback, allowed/denied/revoked, and first-run smoke are missing");
     expect(readinessScorecard).toContain("records post-report validation/build evidence through `7ba69e6`");
+    expect(readinessScorecard).toContain("Manual proof matrix: `46-manual-proof-matrix.md`");
     expect(launchReadinessReadme).toContain("Final local implementation report: `final-codex-implementation-report.md`.");
+    expect(launchReadinessReadme).toContain("46-manual-proof-matrix.md");
     expect(launchReadinessReadme).toContain("Current local validation refresh: `a65b34b` (`bun run validate` pass; DOM 131 files / 1022 passed / 2 skipped).");
     expect(launchReadinessReadme).toContain("Current local app build refresh: `e6cf52b` (`bun run build` pass; Next.js 16.2.6 / Turbopack; 29 static pages).");
     expect(launchReadinessReadme).toContain("| Product core | 84 | Local pass; manual smoke gap |");
@@ -131,6 +142,20 @@ describe("closed beta readiness docs", () => {
     expect(executiveBrief).toMatch(/DOM tests, and build passed locally/i);
     expect(testStrategy).toMatch(/Current local Vitest DOM baseline is green/i);
     expect(zeroDefectMatrix).toMatch(/Current local command baseline: \*\*green/i);
+  });
+
+  it("keeps manual/provider proof gates operator-ready and unclaimed", () => {
+    expect(manualProofMatrix).toMatch(/Status: Required before external closed beta/);
+    expect(manualProofMatrix).toContain("Closed beta stays **NO-GO**");
+    expect(manualProofMatrix).toContain("Supabase backup/PITR");
+    expect(manualProofMatrix).toContain("Hosted auth allowlist");
+    expect(manualProofMatrix).toContain("Vercel deploy/env/health");
+    expect(manualProofMatrix).toContain("Spreadsheet compatibility");
+    expect(manualProofMatrix).toContain("Project-specific unlink manual smoke");
+    expect(manualProofMatrix).toContain("Legal/owner review");
+    expect(manualProofMatrix).toContain("Current manual E2E smoke");
+    expect(manualProofMatrix).toContain(".ai/09_archive/store/<date>-mvp-closed-beta-manual-proof/");
+    expect(manualProofMatrix).not.toMatch(/\| .* \| .* \| .* \| Pass \|/);
   });
 
   it("keeps launch readiness conservative despite local implementation passes", () => {
