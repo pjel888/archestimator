@@ -157,6 +157,19 @@ No production runtime symbols were changed in this slice. The edited surfaces ar
 - `closed-beta-env-manifest.test.ts` locks required env coverage, conservative local defaults, and manual-beta-invite/Resend posture.
 
 Mitigation: no secret values committed, local defaults stay closed/disabled, external provider proof remains explicitly unclaimed, and full type/lint/unit/DOM/build validation passed.
+
+## OBS-001 Health Endpoint Impact Evidence - 2026-06-02
+
+`/api/health` is a new public App Router route with no pre-existing upstream dependents before this slice.
+
+- Runtime blast radius is low: the route does not import auth, Supabase, Resend, workspace repositories, publication helpers, or AI modules.
+- Product risk is moderate if uptime monitors are pointed at the wrong path or if the payload leaks runtime configuration.
+- `health-route.test.ts` locks the public `200` response, `Cache-Control: no-store`, non-secret payload shape, ISO timestamp, and observability/runbook references.
+- `bun run build` confirms `/api/health` is included as a dynamic app route.
+- Post-edit code-review-graph reports 0 affected flows and overall risk score 0.35, with a source-level `GET` test gap that is covered by direct route-handler invocation in `health-route.test.ts`.
+- Post-edit GitNexus staged detection reports no indexed changes for the new-route/docs/test set.
+
+Mitigation: keep the endpoint data-free and public, use it only as an uptime target, and require deployed monitor proof before claiming production observability complete.
 | `EstimateSheetContent` | GitNexus specific symbol returned 0 upstream due App Router boundary; other impacts show it is central through hook/export/preview. | Estimate workspace flows. | HIGH by manual assessment | many estimate DOM tests. | Keep row edits scoped; use targeted DOM tests. | Protected estimate route smoke. |
 | `useEstimateRowMutations` | Direct caller: `EstimateSheetContent`; indirect tests. | None reported. | LOW graph, MEDIUM product | estimate sheet tests. | Add unlink as peer mutation with same queue/revision model. | Hook conflict/rollback test. |
 | `insertEstimateRowItemFromLibrary` | `mutationFn` in row hook. | None. | LOW | `estimate-sheet-library-insert.test.tsx`, version-control actions tests. | Do not alter insert semantics. | Regression after unlink action. |
