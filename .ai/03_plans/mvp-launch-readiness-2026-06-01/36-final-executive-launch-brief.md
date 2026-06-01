@@ -42,6 +42,10 @@ Run the provider-backed proof lane next: linked Supabase backup/migration/RLS ch
 Commit audited: `681c95e64864f283950a88dba304eaffe8f2f8b3`
 Current decision: **NO-GO**.
 
+### Final Report Artifact
+
+The final Codex implementation report is `final-codex-implementation-report.md`. It summarizes the local-safe implementation baseline through `8084908`, records the report publication/correction commits `80f806d` and `579cef0`, and recommends **NO-GO for external beta testers today** until hosted/provider/manual proof is collected.
+
 ## Launch Thesis
 
 Archestimator can be a credible MVP if it ships a reliable structured estimating workflow: project -> estimate -> library/template insert -> project-specific row adjustments -> professional Excel bid/BOQ export. Credibility comes from data integrity, export quality, auth reliability, and operational/legal readiness. AI is deferred.

@@ -40,6 +40,13 @@ Commit audited: `681c95e64864f283950a88dba304eaffe8f2f8b3`
 Gate owner: Philip / Launch lead
 Current decision: **NO-GO**.
 
+### Final Report Artifact
+
+- Final implementation report: `final-codex-implementation-report.md`.
+- Stable implementation baseline before the report: `8084908`.
+- Report publication/correction commits: `80f806d`, `579cef0`.
+- The final report keeps this gate at **NO-GO for external beta testers today** because hosted/provider/manual proof gates remain incomplete.
+
 ## Final Go / No-Go Table
 
 | Gate | P0? | Required evidence | Current status | Decision |
