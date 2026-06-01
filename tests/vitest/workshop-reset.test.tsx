@@ -156,6 +156,7 @@ describe("workshop sidebar baseline", () => {
     expect(navigation.querySelector('span[class*="bg-white/[0.10]"]')).toBeTruthy();
     expect(navigation.querySelector('span[class*="backdrop-blur-[1px]"]')).toBeTruthy();
     expect(screen.getByLabelText("Workshop empty canvas").childElementCount).toBe(0);
+    expect(screen.queryByRole("button", { name: "Open Ask Flip" })).toBeNull();
   });
 
   test("renders a bento homebase without search chrome and with persisted favorite targets", async () => {

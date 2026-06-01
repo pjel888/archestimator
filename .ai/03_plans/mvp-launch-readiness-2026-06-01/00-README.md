@@ -74,7 +74,7 @@ Deferred from MVP:
 
 | ID | Blocker | Required proof |
 | --- | --- | --- |
-| AI-001 | Ask Flip is visible and AI routes are callable by default. | AI UI hidden by default, `/api/ai/*` fail closed before provider/session/tool work, no provider calls in tests. |
+| AI-001 | Ask Flip was visible and AI routes were callable by default. | Locally implemented 2026-06-02: AI UI hidden by default, `/api/ai/*` fail closed before handler/provider/session/tool work, no handler calls in route tests. Needs commit/push and production env proof before closed. |
 | EXP-001 | Excel export is not yet an industry bid form. | Formula-driven workbook opens cleanly in Excel and at least one secondary spreadsheet app. |
 | UNLINK-001 | Project-specific unlink UX/RPC is not implementation-complete. | Schema-accurate RPC/action/hook/UI/tests prove library data cannot be mutated. |
 | AUTH-001 | Hosted auth path lacks production proof. | Google OAuth, magic link, callback, first workspace, and logout/session-expiry smoke on staging/prod. |
@@ -83,7 +83,7 @@ Deferred from MVP:
 | LEGAL-001 | Terms/Privacy are pending-review placeholders. | Reviewed or explicitly approved closed-beta legal copy and public-route updates. |
 | OBS-001 | Monitoring/support path is not launch-ready. | Error tracking, uptime, support inbox, alert thresholds, incident runbook. |
 | DATA-001 | Backup/DR proof missing. | Backup/PITR/storage/migration rollback proof before beta data or migration apply. |
-| QA-002 | Core regression matrix is incomplete and `test:dom` currently fails. | Zero-defect matrix green or each exception documented as no-go/accepted debt. |
+| QA-002 | Core regression matrix is incomplete. | `test:dom` now passes locally after AI-001/stale source-contract repair; broader zero-defect matrix, lint/build/full validation, and external smoke evidence still required. |
 
 ## P1 Polish / Non-Blocking Debt After P0
 

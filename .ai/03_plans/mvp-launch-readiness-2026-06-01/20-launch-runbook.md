@@ -94,7 +94,7 @@ CI currently runs install, `bun run validate`, build, Chromium install, `bun run
 | Vercel | `NEXT_PUBLIC_APP_URL`, `NEXT_PUBLIC_SITE_URL`, Supabase public vars, server-only service role, Resend vars, publication secrets, AI disable vars, monitoring vars. |
 | Supabase | Auth callback URLs for preview/staging/prod, RLS policies applied, storage buckets/policies, backup/PITR settings. |
 | Resend | Verified sender domain, DKIM/SPF/DMARC, webhook URL, webhook secret, reply-to/support inbox. |
-| AI | `NEXT_PUBLIC_ASK_FLIP_ENABLED=false`, `AI_ASK_ENABLED=false`, `AI_PACKAGE_BUILDER_ENABLED=false` for MVP. |
+| AI | `NEXT_PUBLIC_ASK_FLIP_UI_ENABLED=false`, `ARCHESTIMATOR_AI_ENABLED=false` for MVP. |
 | E2E | Safe staging credentials/flags; no production-mutating tests. |
 
 ## Migration Procedure

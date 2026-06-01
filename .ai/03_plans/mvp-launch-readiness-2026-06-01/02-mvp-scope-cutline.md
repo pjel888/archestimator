@@ -37,7 +37,7 @@ Commit audited: `681c95e64864f283950a88dba304eaffe8f2f8b3`. This section superse
 | Project-specific unlink | estimate row UI/actions | Yes only after PR | none yet | Eng/Product | `UNLINK-001` | Data corruption/user ambiguity | Block until implemented/proven. |
 | Excel export | export preview/dialog/API | Yes only after PR | auth | Eng/Product | `EXP-001` | Raw dump undermines promise | Block until bid workbook proof. |
 | Share/invite/email | `src/app/share/**`, `src/app/invite/**`, Resend webhook | Conditional | publication/invite/email env | Eng/Security | `SEC-001`, `INFRA-002` | Public token/privacy/email risk | Enable only after security/email proof. |
-| Ask Flip / AI | `WorkshopPageShell`, `/api/ai/*` | No | `NEXT_PUBLIC_ASK_FLIP_ENABLED=false`, `AI_ASK_ENABLED=false`, `AI_PACKAGE_BUILDER_ENABLED=false` | Eng | `AI-001` | Unfinished AI visible/cost/write risk | Hide/fail closed for MVP. |
+| Ask Flip / AI | `WorkshopPageShell`, `/api/ai/*` | No | `NEXT_PUBLIC_ASK_FLIP_UI_ENABLED=false`, `ARCHESTIMATOR_AI_ENABLED=false` | Eng | `AI-001` | Unfinished AI visible/cost/write risk | Hide/fail closed for MVP. |
 | Upload/image APIs | component/project image routes | Conditional | auth/storage policies | Eng/Security | `SEC-001` | Storage leak/upload abuse | Prove storage policies first. |
 | Billing/PDF/bid tabulation | no launch-ready implementation | No | none | Product | `32`, `18` | Scope/claim risk | Billing is post-beta; PDF/bid tabulation are post-MVP unless separately approved. |
 
@@ -49,11 +49,11 @@ This cutline is route/action/API based. "Launch visible" means visible or callab
 
 | Surface | Evidence | Launch visible? | MVP decision | Ticket | Owner decision needed? |
 | --- | --- | --- | --- | --- | --- |
-| `/workshop` home shell | `WorkshopPageShell.tsx:123` renders Ask Flip footer. | Yes today | Keep workshop, hide Ask Flip. | AI-001 | No |
-| Ask Flip footer assistant | `EstimateCopilotFloatingButton.tsx:98`, `:533`, `:585`, `:677`, `:920`. | Yes today | Hide by default with public client flag. | AI-001 | No |
-| `/api/ai/ask` | `route.ts:3` delegates to handler. | Yes today | Disabled by default before handler/provider/context/audit. | AI-001 | No |
-| `/api/ai/package-builder` | `route.ts:3` delegates to handler. | Yes today | Disabled by default before handler/provider/context/audit/apply. | AI-001 | No |
-| AI read tools/draft/apply flags | `feature-flags.ts:18` existing partial flags. | Partly internal | Add top-level `AI_ASK_ENABLED` and `AI_PACKAGE_BUILDER_ENABLED`. | AI-001 | No |
+| `/workshop` home shell | `WorkshopPageShell` gates Ask Flip behind `isAskFlipUiEnabled()`. | Yes, AI hidden by default | Keep workshop, hide Ask Flip. | AI-001 | No |
+| Ask Flip footer assistant | `EstimateCopilotFloatingButton.tsx` remains in repo for later reactivation. | No by default | Hide by default with public client flag. | AI-001 | No |
+| `/api/ai/ask` | Route checks `isAiRoutesEnabled()` before dynamic handler import. | No by default | Disabled by default before handler/provider/context/audit. | AI-001 | No |
+| `/api/ai/package-builder` | Route checks `isAiRoutesEnabled()` before dynamic handler import. | No by default | Disabled by default before handler/provider/context/audit/apply. | AI-001 | No |
+| AI read tools/draft/apply flags | Existing package-builder subflags remain handler-local. | Internal while route gate false | Keep behind top-level `ARCHESTIMATOR_AI_ENABLED`. | AI-001 | No |
 | `/workshop/projects` | Build output dynamic; route remains core. | Yes | Keep. | QA-002 | No |
 | Estimate sheet row editing | `EstimateSheetContent.tsx:3294`, `use-estimate-row-mutations.ts:114`. | Yes | Complete project-specific row behavior. | UNLINK-001 | No |
 | Library row insertion/replacement/delete | `actions.ts:1677`, `:1771`, `:1808`. | Yes | Keep and regression-test. | UNLINK-001 | No |
@@ -73,10 +73,9 @@ This cutline is route/action/API based. "Launch visible" means visible or callab
 
 | Flag | Type | Default | Purpose | Ticket |
 | --- | --- | --- | --- | --- |
-| `NEXT_PUBLIC_ASK_FLIP_ENABLED` | Client-public | `false` | Controls footer assistant rendering. | AI-001 |
-| `AI_ASK_ENABLED` | Server-only | `false` | Gates `/api/ai/ask` before handler. | AI-001 |
-| `AI_PACKAGE_BUILDER_ENABLED` | Server-only | `false` | Gates `/api/ai/package-builder` before handler. | AI-001 |
-| Existing `AI_PACKAGE_BUILDER_*` flags | Server-only | Existing defaults | Keep as sub-feature flags behind top-level disabled gate. | AI-001 |
+| `NEXT_PUBLIC_ASK_FLIP_UI_ENABLED` | Client-public | `false` | Controls footer assistant rendering. | AI-001 |
+| `ARCHESTIMATOR_AI_ENABLED` | Server-only | `false` | Gates both AI routes before handler import. | AI-001 |
+| Existing `AI_PACKAGE_BUILDER_*` flags | Server-only | Existing defaults | Keep as sub-feature flags behind top-level disabled route gate. | AI-001 |
 
 ## Unknowns
 

@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 const applySource = readFileSync("src/lib/ai/package-builder/apply.ts", "utf8");
 const auditSource = readFileSync("src/lib/ai/audit.ts", "utf8");
 const draftTokenSource = readFileSync("src/lib/ai/package-builder/draft-token.ts", "utf8");
+const handlerSource = readFileSync("src/app/api/ai/package-builder/handler.ts", "utf8");
 const readContextSource = readFileSync("src/lib/ai/read-context.ts", "utf8");
 const readToolsSource = readFileSync("src/lib/ai/package-builder/read-tools.ts", "utf8");
 const routeSource = readFileSync("src/app/api/ai/package-builder/route.ts", "utf8");
@@ -52,14 +53,16 @@ describe("AI package-builder security contract", () => {
   });
 
   it("requires Supabase workspace auth and explicit Apply confirmation before the RPC can write", () => {
-    expect(routeSource).toContain("AI requires a real Supabase account session");
-    expect(routeSource).toContain("parsePackageBuilderApplyRequest");
-    expect(routeSource).toContain("verifyPackageDraftToken");
-    expect(routeSource).toContain("confirmation");
-    expect(routeSource).toContain("draftHash");
-    expect(routeSource).toContain("recordAiPackageApplyAuthorization");
-    expect(routeSource).toContain("serverConfirmation: true");
-    expect(routeSource).toContain("draftTokenVerified: true");
+    expect(routeSource).toContain("isAiRoutesEnabled");
+    expect(routeSource).toContain("createAiDisabledResponse");
+    expect(handlerSource).toContain("AI requires a real Supabase account session");
+    expect(handlerSource).toContain("parsePackageBuilderApplyRequest");
+    expect(handlerSource).toContain("verifyPackageDraftToken");
+    expect(handlerSource).toContain("confirmation");
+    expect(handlerSource).toContain("draftHash");
+    expect(handlerSource).toContain("recordAiPackageApplyAuthorization");
+    expect(handlerSource).toContain("serverConfirmation: true");
+    expect(handlerSource).toContain("draftTokenVerified: true");
     expect(draftTokenSource).toContain("createHmac");
     expect(auditSource).toContain("recordAiPackageApplyAuthorization");
     expect(applyRpcMigration).toContain("run_row.metadata->>'draftTokenVerified' = 'true'");
@@ -85,8 +88,8 @@ describe("AI package-builder security contract", () => {
 
   it("keeps template row copies on an explicit contract while generic template row sources stay blocked", () => {
     expect(readToolsSource).toContain("rowPreviews");
-    expect(routeSource).toContain("rowPreviews");
-    expect(routeSource).not.toContain("sourceTemplateRowId: row.id");
+    expect(handlerSource).toContain("rowPreviews");
+    expect(handlerSource).not.toContain("sourceTemplateRowId: row.id");
     expect(schemasSource).toContain("templateRowCopyDraft");
     expect(schemasSource).toContain("copy_template_row");
     expect(schemasSource).toContain('row.sourceType === "template"');

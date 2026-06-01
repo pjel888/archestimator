@@ -6,14 +6,31 @@
 
 | Evidence | Result |
 | --- | --- |
-| HEAD | `811362ac70d84cf20101f83258ae22c4e8b2c11f` |
+| HEAD | `1ed86b4f2a3881bf1b946eb81c688071e6736574` |
 | `bun install --frozen-lockfile` | Pass |
 | `bun run type-check` | Pass |
 | `bun run lint` | Pass with 14 warnings |
 | `bun run lint:design-system` | Pass |
 | `bun run test` | Pass |
-| `bun run test:dom` | Fail: AI package-builder contract source expectations and share recipient-token source expectation |
+| `bun run test:dom` | Pass: 122 files / 989 tests passed / 2 skipped after AI-001 and stale source-contract test repair |
 | `bun run build` | Pass |
+
+### AI-001 Local Implementation Evidence
+
+- `src/lib/ai/feature-flags.ts` now defaults `ARCHESTIMATOR_AI_ENABLED=false` and `NEXT_PUBLIC_ASK_FLIP_UI_ENABLED=false`.
+- `src/app/api/ai/ask/route.ts` and `src/app/api/ai/package-builder/route.ts` return `404` `{ error: "AI is disabled for closed beta." }` before dynamically importing their handlers unless `ARCHESTIMATOR_AI_ENABLED=true`.
+- `src/components/workshop/WorkshopPageShell.tsx` renders `AskFlipFooterAssistant` only when `NEXT_PUBLIC_ASK_FLIP_UI_ENABLED=true`.
+- `.env.example` documents the closed-beta access flag plus AI route/UI flags with false defaults.
+- Focused red/green evidence: `bunx vitest run tests/vitest/ai-ask-route.test.ts tests/vitest/ai-package-builder-route.test.ts tests/vitest/workshop-reset.test.tsx tests/vitest/ai-package-builder-security-contract.test.ts tests/vitest/project-publication-actions.test.ts --maxWorkers=1` passed 5 files / 77 tests.
+- `bun run type-check` passed after the AI gate.
+- `bun run lint` passed with the existing 14 warnings and 0 errors.
+- `bun run lint:design-system` passed.
+- `bun run test` passed 4 unit tests.
+- `bun run test:dom` passed 122 files / 989 tests with 2 skips.
+- `bun run build` passed after the route/UI gate.
+- `git diff --check` passed.
+- Post-edit code-review-graph found 0 affected flows for the 21 changed files; minimal review context still reports high risk because `WorkshopPageShell` is a shared shell.
+- Post-edit GitNexus `detect-changes --repo archestimator` reports critical risk through `WorkshopPageShell` and 23 affected processes; this is expected for a shell mount gate and is mitigated by focused shell tests plus full DOM/build evidence.
 
 ### Closed Beta Audit Evidence
 
@@ -40,17 +57,17 @@ Scope: launch planning and readiness audit only.
 | `bun run lint` | Pass with warnings; 0 errors. | Not a lint blocker; warnings should be triaged before launch. |
 | `bun run lint:design-system` | Pass. | Design-system static gate green. |
 | `bun run test` | Pass; 4 tests, 129 expectations. | Bun unit smoke green. |
-| `bun run test:dom` | Fail; 3 failing tests in 2 files. | P0 blocker until corrected or explicitly superseded. |
+| `bun run test:dom` | Initially failed; now pass after stale source-contract updates and AI route/UI gate tests. | DOM baseline blocker closed locally for this slice. |
 | `bun run build` | Pass; Next.js 16.2.6 Turbopack production build. | Buildable locally. |
 | `bun run test:e2e` | Blocked; Playwright webServer failed because another Next dev server was already running on port 3000. | Needs rerun after freeing ports or configuring `PLAYWRIGHT_PORT`. |
 | Export-focused subagent tests | Pass; read-only export lane reported 4 files / 15 tests passed. | Supports current export inventory, but does not prove launch-grade workbook. |
 
-## `test:dom` Failures
+## `test:dom` Failure Repairs
 
 | File | Failure | Required action |
 | --- | --- | --- |
-| `tests/vitest/ai-package-builder-security-contract.test.ts` | Source-string expectations look for auth/security text in the route file, but route now delegates to handler. | Rewrite tests to assert route behavior/handler contract, then add AI global disable tests. |
-| `tests/vitest/project-publication-actions.test.ts` | Source-string expectation looks for `verifySharedLinkRecipientToken` in `share/[token]/page.tsx`; implementation moved to session initializer/API flow. | Update test to current route/session contract. |
+| `tests/vitest/ai-package-builder-security-contract.test.ts` | Source-string expectations looked for auth/security text in the route file, but route delegates to handler. | Repaired: assertions now cover the route AI-disabled gate and handler security contract separately. |
+| `tests/vitest/project-publication-actions.test.ts` | Source-string expectation looked for `verifySharedLinkRecipientToken` in `share/[token]/page.tsx`; implementation moved to session initializer/API route. | Repaired: assertion now covers `SharePageRecipientSessionInitializer` on the page and token verification/session cookie setting in `/api/share/[token]/session`. |
 
 ## Files Inspected
 
@@ -72,10 +89,10 @@ Code audit files:
 
 | Symbol / route | Evidence use |
 | --- | --- |
-| `WorkshopPageShell` | Confirms Ask Flip footer assistant is mounted. |
+| `WorkshopPageShell` | Confirms Ask Flip footer assistant is hidden by default behind `isAskFlipUiEnabled()`. |
 | `AskFlipFooterAssistant` / `EstimateCopilotFloatingButton` | Confirms prompt, Apply, feedback POSTs to AI routes. |
-| `handleAiAskRequest` | Confirms provider path occurs inside handler after route entry. |
-| `handlePackageBuilderRequest` | Confirms Draft/Apply/memory/audit branches and need for global route gate. |
+| `handleAiAskRequest` | Confirms provider path remains inside handler and route entry is default-disabled before handler import. |
+| `handlePackageBuilderRequest` | Confirms Draft/Apply/memory/audit branches remain in handler and route entry is default-disabled before handler import. |
 | `getPackageBuilderFeatureFlags` | Confirms subflags default mostly on and no global MVP kill switch exists. |
 | `EstimateSheetContent` | High-blast-radius editor and row details/history surface. |
 | `useEstimateRowMutations` | Confirms no dedicated unlink mutation hook exists. |

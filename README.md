@@ -182,8 +182,8 @@ The app shell uses `WorkshopPageShell` and `PublicPageShell` React components ra
 | Immutable project publication snapshots with shared links | Available |
 | Shared link commenting, decisions, password protection (P10 brute-force lockout) | Available |
 | Collaboration invitations (email invite, role-based access, Realtime cursors) | Available |
-| AI Copilot "Ask Flip" (read-only workspace Q&A) | Available |
-| AI Package Builder (draft + apply estimates from natural language) | Available |
+| AI Copilot "Ask Flip" (read-only workspace Q&A) | Deferred for closed beta; hidden unless `NEXT_PUBLIC_ASK_FLIP_UI_ENABLED=true` |
+| AI Package Builder (draft + apply estimates from natural language) | Deferred for closed beta; routes disabled unless `ARCHESTIMATOR_AI_ENABLED=true` |
 | Excel proposal export (.xlsx workbook from estimate tree) | Available |
 | Revision intelligence | Planned |
 | Proposal comparisons | Planned |

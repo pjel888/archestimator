@@ -25,6 +25,7 @@ Closed beta can launch only if all P0 domains are 95+ or have a documented no-go
 | Investor demo readiness | Yes | 68 | Needs seeded path | Demo script/data and pricing explanation required. |
 | Data backup/rollback | Yes | 70 | Needs pre-migration backup proof | Runbook exists conceptually; backup before new migrations required. |
 | Payment/pricing readiness | No | N/A | Deferred | Not applicable to closed beta. |
+| AI deferral | No | N/A | Locally gated | `AI-001` hides Ask Flip and disables AI routes by default; keep deferred until a future ADR explicitly reactivates. |
 
 ## P0 Launch Threshold
 

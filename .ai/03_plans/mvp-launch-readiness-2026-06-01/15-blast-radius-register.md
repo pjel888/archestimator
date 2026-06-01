@@ -51,6 +51,17 @@ GitNexus index refreshed on 2026-06-01 with `npx gitnexus analyze`.
 | `handleAiAskRequest` | Route `POST`, `ai-ask-route.test.ts`. | None. | LOW | `ai-ask-route.test.ts`, `ai-ask-read-context.test.ts`, `ai-auth-guard.test.ts`. | Keep handler intact; gate route before handler. | No provider/context/audit when disabled. |
 | `/api/ai/package-builder` route `POST` | No upstream code callers in graph. | None. | LOW | `ai-package-builder-route.test.ts`. | Route-level disabled gate before handler. | Disabled no-call test. |
 | `handlePackageBuilderRequest` | Route `POST`, `ai-package-builder-route.test.ts`. | None. | LOW | package-builder route/security tests. | Keep handler intact; gate route before handler. | Update brittle source-contract test. |
+
+## AI-001 Pre-Edit Impact Evidence - 2026-06-02
+
+GitNexus impact was run before editing AI route/shell symbols on repo `archestimator`:
+
+- `WorkshopPageShell` upstream impact: 9 direct dependents, 7 affected processes (`LibraryPage`, `TemplatesPage`, `ProjectsPage`, `WorkshopPage`, profile/workspace settings, `ProjectLayout`), risk `CRITICAL`. Mitigation: footer-only conditional render, no layout/data contract changes, `workshop-reset.test.tsx` DOM assertion plus full `test:dom`.
+- `EstimateCopilotFloatingButton` upstream impact: 1 direct test dependent, 0 affected processes, risk `LOW`. Mitigation: component left intact; only shell mount is gated.
+- `handleAiAskRequest` upstream impact: route `POST` plus `ai-ask-route.test.ts`, 0 affected processes, risk `LOW`. Mitigation: route dynamically imports handler only when global AI flag is true.
+- `handlePackageBuilderRequest` upstream impact: route `POST` plus `ai-package-builder-route.test.ts`, 0 affected processes, risk `LOW`. Mitigation: route dynamically imports handler only when global AI flag is true.
+
+Code-review-graph confirmed the same key shell file nodes before edits. Post-edit `detect_changes` is still required before commit.
 | `EstimateSheetContent` | GitNexus specific symbol returned 0 upstream due App Router boundary; other impacts show it is central through hook/export/preview. | Estimate workspace flows. | HIGH by manual assessment | many estimate DOM tests. | Keep row edits scoped; use targeted DOM tests. | Protected estimate route smoke. |
 | `useEstimateRowMutations` | Direct caller: `EstimateSheetContent`; indirect tests. | None reported. | LOW graph, MEDIUM product | estimate sheet tests. | Add unlink as peer mutation with same queue/revision model. | Hook conflict/rollback test. |
 | `insertEstimateRowItemFromLibrary` | `mutationFn` in row hook. | None. | LOW | `estimate-sheet-library-insert.test.tsx`, version-control actions tests. | Do not alter insert semantics. | Regression after unlink action. |
