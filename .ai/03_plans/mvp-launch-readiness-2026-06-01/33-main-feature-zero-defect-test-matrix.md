@@ -17,13 +17,13 @@ Add zero-defect rows:
 
 Commit audited: `681c95e64864f283950a88dba304eaffe8f2f8b3`
 
-Current local command baseline: **green for type/lint/unit/DOM/build as of the OBS-001 slice**.
+Current local command baseline: **green for type/lint/unit/DOM/build, with validation refreshed at `a65b34b`**.
 
 - `bun run type-check`: pass.
 - `bun run lint`: pass with the existing 14 warnings and 0 errors.
 - `bun run lint:design-system`: pass.
 - `bun run test`: pass, 4 unit tests / 129 expectations.
-- `bun run test:dom`: pass, 131 files / 1021 tests with 2 skips.
+- `bun run test:dom`: pass, 131 files / 1022 passed / 2 skipped through `bun run validate`.
 - `bun run build`: pass, including `/api/health` as a dynamic route.
 
 Launch state remains **NO-GO** until hosted auth/RLS/provider, manual smoke, backup/restore, spreadsheet open, and deployment/rollback evidence are collected.

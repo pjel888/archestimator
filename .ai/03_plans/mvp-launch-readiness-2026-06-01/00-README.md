@@ -34,6 +34,7 @@ Status: **NO-GO for closed beta and investor demo until all closed-beta P0 gates
 Final local implementation report: `final-codex-implementation-report.md`.
 Stable full local baseline: `c5ca065`.
 Final report baseline: `8084908`.
+Current local validation refresh: `a65b34b` (`bun run validate` pass; DOM 131 files / 1022 passed / 2 skipped).
 
 This folder is the single launch execution package for the MVP readiness push. Do not create a competing MVP folder. Local-safe product and documentation slices are now implemented and recorded here; hosted/provider/manual proof gates remain the launch blocker.
 
@@ -64,7 +65,7 @@ Deferred from MVP:
 
 | Area | Third-pass correction |
 | --- | --- |
-| Evidence | Local baseline is now green through `c5ca065`: typecheck, lint with 14 existing warnings, design lint, unit, full DOM, and build passed locally. Hosted/provider/manual proof remains open. |
+| Evidence | Local baseline is green through `c5ca065`; current validation refresh at `a65b34b` passes `bun run validate` with typecheck, lint with 14 existing warnings, design lint, unit, and full DOM. Hosted/provider/manual proof remains open. |
 | AI deferral | Upgraded from "defer AI" intent to a concrete global flag, UI-hide, route-fail-closed, provider-call-prevention contract. |
 | Unlinked components | Corrected the contract: project-specific components are `estimate_row_items`, not reusable `cost_library_items`; `detached` is the final state for rows separated from a real library source. |
 | Excel export | Reframed current export as insufficient for launch; added bid-form workbook contract, formula gates, and cross-spreadsheet manual QA. |

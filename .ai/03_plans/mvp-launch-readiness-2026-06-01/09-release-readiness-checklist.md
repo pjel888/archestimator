@@ -8,14 +8,14 @@ This checklist is now for closed beta, not public paid launch.
 
 | Command | Status |
 | --- | --- |
-| `git status --short` | Clean after DEMO-001 seed commit except intentionally untracked `.ai/08_prompts/mvp-launch-goal.md`; seed-test fix pending in current evidence refresh. |
-| `git rev-parse HEAD` | `5f9878b` after DEMO-001 seed commit. |
+| `git status --short` | Clean at validation refresh except intentionally untracked `.ai/08_prompts/mvp-launch-goal.md`. |
+| `git rev-parse HEAD` | `a65b34b` after local signed-out auth E2E evidence. |
 | `bun install --frozen-lockfile` | Pass |
 | `bun run type-check` | Pass |
 | `bun run lint` | Pass with 14 warnings |
 | `bun run lint:design-system` | Pass |
 | `bun run test` | Pass |
-| `bun run test:dom` | Pass: 131 files / 1021 tests / 2 skipped |
+| `bun run test:dom` | Pass: 131 files / 1022 passed / 2 skipped through `bun run validate` |
 | `bun run build` | Pass |
 
 ### Closed Beta Gates

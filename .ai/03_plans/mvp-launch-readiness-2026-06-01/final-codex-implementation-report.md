@@ -36,8 +36,9 @@ Post-report evidence-sync commits:
 - `3e8d7a0` - Indexed this final report in the evidence index, final launch gate, executive brief, and readiness scorecard.
 - `8e0e615` - Aligned final command evidence baselines to `c5ca065`, `8084908`, and `3e8d7a0`.
 - `cb87e51` - Synced the launch command-center README with the current local readiness scorecard.
+- `a65b34b` - Recorded local signed-out auth E2E smoke evidence.
 
-These follow-up commits improve traceability only. They do not change the implementation baseline or the **NO-GO** recommendation.
+These follow-up commits improve traceability only. They do not change the implementation baseline or the **NO-GO** recommendation. Current local validation refresh at `a65b34b` also passed `bun run validate`: typecheck, lint with 14 existing warnings, design lint, unit tests (4 tests / 129 expectations), and DOM tests (131 files / 1022 passed / 2 skipped).
 
 ## 2. Features Implemented
 
@@ -90,6 +91,12 @@ Latest doc truth-sync at `8084908`:
 - `git diff --check` and `git diff --cached --check` - pass.
 - code-review-graph detect changes - 4 changed files, 4 changed functions/classes, 0 affected flows, 0 test gaps, risk 0.30.
 - `npx gitnexus detect-changes --repo archestimator --scope staged` - no changes detected.
+
+Current validation refresh at `a65b34b`:
+
+- `bun run validate` - pass.
+- Subcommands covered: typecheck; lint with 14 existing warnings; design lint; unit tests, 4 tests / 129 expectations; DOM tests, 131 files / 1022 passed / 2 skipped.
+- Launch meaning: local command suite remains green, but hosted/provider/manual proof gates still block external beta.
 
 Focused red/green evidence for each implementation slice is recorded in `14-evidence-index.md`.
 

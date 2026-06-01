@@ -6,14 +6,14 @@ This runbook now operates a closed beta, not a public paid launch.
 
 ### Command Baseline
 
-- `git status --short`: clean after QA truth-sync except intentionally untracked `.ai/08_prompts/mvp-launch-goal.md`.
-- `git rev-parse HEAD`: `3180fe2` after QA readiness truth-sync.
+- `git status --short`: clean at validation refresh except intentionally untracked `.ai/08_prompts/mvp-launch-goal.md`.
+- `git rev-parse HEAD`: `a65b34b` after local signed-out auth E2E evidence.
 - `bun install --frozen-lockfile`: pass.
 - `bun run type-check`: pass.
 - `bun run lint`: pass with 14 warnings.
 - `bun run lint:design-system`: pass.
 - `bun run test`: pass.
-- `bun run test:dom`: pass, 131 files / 1021 tests with 2 skips.
+- `bun run test:dom`: pass, 131 files / 1022 passed / 2 skipped through `bun run validate`.
 - `bun run build`: pass.
 
 ### Closed Beta Operations

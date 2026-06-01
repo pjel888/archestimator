@@ -9,12 +9,13 @@ This gate is now the closed beta launch gate. It is not a public paid-launch gat
 - Full local implementation baseline: `c5ca065` after demo seed row repair.
 - Final report baseline: `8084908` after canonical state/decision/roadmap truth sync.
 - Final report indexed in launch docs: `3e8d7a0`.
+- Current local validation refresh: `a65b34b`, `bun run validate` pass.
 - `bun install --frozen-lockfile`: pass.
 - `bun run type-check`: pass.
 - `bun run lint`: pass with 14 warnings.
 - `bun run lint:design-system`: pass.
 - `bun run test`: pass, 4 unit tests / 129 expectations.
-- `bun run test:dom`: pass, 131 files / 1021 tests with 2 skips.
+- `bun run test:dom`: historical baseline pass, 131 files / 1021 tests with 2 skips; current validation refresh pass, 131 files / 1022 passed / 2 skipped.
 - `PLAYWRIGHT_PORT=3037 bun run test:e2e -- e2e/auth.spec.ts --project=chromium`: pass, 2 tests in 9.9s for local signed-out workshop redirect and login UI.
 - `bun run build`: pass.
 
