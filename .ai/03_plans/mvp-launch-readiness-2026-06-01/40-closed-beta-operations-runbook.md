@@ -4,6 +4,14 @@
 
 Philip manually curates the beta cohort. Supabase is the source of truth for closed beta access. Vercel is the deployment surface. Feedback is founder-led.
 
+## Production Env Posture
+
+- Set `CLOSED_BETA_ACCESS_ENABLED=true` in Vercel production before inviting external beta users.
+- Keep `ARCHESTIMATOR_AI_ENABLED=false` and `NEXT_PUBLIC_ASK_FLIP_UI_ENABLED=false` unless a later AI readiness ADR explicitly reactivates Ask Flip.
+- Keep `PROJECT_INVITE_ENTRY_ENABLED=false` until invite email/token proof is complete.
+- Manual beta invites can continue through Philip's email if Resend is unavailable or deliberately deferred.
+- Configure `RESEND_API_KEY`, `RESEND_FROM`, `RESEND_REPLY_TO`, and `RESEND_WEBHOOK_SECRET` before treating any in-app share/invite email workflow as launch-ready.
+
 ## Add A Beta User
 
 1. Confirm the user's Google account email.

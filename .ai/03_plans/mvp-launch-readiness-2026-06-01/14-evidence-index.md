@@ -191,6 +191,26 @@
 - Post-edit GitNexus `detect-changes --repo archestimator --scope staged` reported 5 changed files, 2 changed symbols, 16 affected public legal/landing execution flows, and critical risk. This is expected because the route pages participate in landing/auth-state rendering; the implementation is copy-only and covered by source-contract, full DOM, and build evidence.
 - Counsel/owner review is still required before treating the pages as final external legal sign-off.
 
+### INFRA-001 Env Manifest / Runbook Evidence
+
+- `.env.example` now documents the closed-beta launch runtime set: app/site origins, allowed app origins, Supabase public/server vars, closed-beta access flag, invite flags, publication secrets, Resend vars, AI-off flags, optional analytics IDs, release smoke toggles, Supabase integration toggle, and `DATABASE_URL`.
+- Conservative defaults are preserved locally: `CLOSED_BETA_ACCESS_ENABLED=false`, `PROJECT_INVITE_ENTRY_ENABLED=false`, `ARCHESTIMATOR_AI_ENABLED=false`, and `NEXT_PUBLIC_ASK_FLIP_UI_ENABLED=false`.
+- `22-infrastructure-vercel-supabase-resend-plan.md` now treats `.env.example` as locally complete for manifest coverage while still blocking launch on real Vercel/provider values and proof.
+- `40-closed-beta-operations-runbook.md` now includes production env posture: set `CLOSED_BETA_ACCESS_ENABLED=true`, keep AI disabled, keep invite entry disabled until proof, and defer Resend for manual beta invites while requiring it for visible email workflows.
+- The full goal prompt was persisted to `codex-autopilot-goal.md` in this plan folder for compaction-resilient continuation.
+- Focused red/green evidence: `bun run test:dom tests/vitest/closed-beta-env-manifest.test.ts` first failed on missing env/docs entries, then passed 1 file / 3 tests after the manifest/runbook update.
+- Adjacent focused evidence: `bun run test:dom tests/vitest/closed-beta-env-manifest.test.ts tests/vitest/auth-magic-link.test.ts tests/vitest/project-invite-feature-flag.test.ts tests/vitest/auth-redirect-sanitizer.test.ts` passed 4 files / 45 tests.
+- `bun run type-check` passed.
+- `bun run lint` passed with the existing 14 warnings and 0 errors.
+- `bun run lint:design-system` passed.
+- `bun run test` passed 4 unit tests / 129 expectations.
+- `bun run test:dom` passed 128 files / 1012 tests with 2 skips.
+- `bun run build` passed.
+- `git diff --check` passed.
+- Post-edit code-review-graph `detect_changes` against `HEAD` analyzed 7 changed files, 0 changed functions/classes, 0 affected flows, 0 test gaps, and overall risk score 0.00.
+- Post-edit GitNexus `detect-changes --repo archestimator --scope staged` reported no code changes detected for the config/docs/test-only staged set.
+- Real Vercel env values, Supabase provider screenshots, Resend DNS/webhook proof, deployment smoke, and rollback proof remain external launch gates.
+
 ### Closed Beta Audit Evidence
 
 - Auth/proxy: `src/proxy.ts`, `src/lib/auth/actions.ts`, `src/app/auth/callback/route.ts`, `src/lib/auth/account-setup.ts`, `src/lib/auth/session.ts`.
