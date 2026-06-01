@@ -415,7 +415,7 @@
 - Artifact note: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/resend-email-readiness-blocked-2026-06-02.md`.
 - Vercel env proof: `vercel env ls --non-interactive` returned `No Environment Variables found`.
 - Local key-presence proof: `.env.local` has `RESEND_API_KEY`, but `RESEND_FROM`, `RESEND_REPLY_TO`, and `RESEND_WEBHOOK_SECRET` are missing or empty. Values were not printed.
-- Source proof: `src/lib/email/resend-client.ts` uses `RESEND_API_KEY` outside tests and mock-succeeds without a client; `src/app/api/webhooks/resend/route.ts` returns `503` when `RESEND_WEBHOOK_SECRET` is absent.
+- Source proof: `src/lib/email/resend-client.ts` uses `RESEND_API_KEY` outside tests and now fails closed with `EMAIL_NOT_CONFIGURED` when the key or sender is missing; mock success is restricted to tests. `src/app/api/webhooks/resend/route.ts` returns `503` when `RESEND_WEBHOOK_SECRET` is absent.
 - Visible email-flow proof: shared-link recipient/digest and collaboration invite/resend paths call `sendEmail()`.
 - Existing local test proof: `tests/vitest/resend-webhook-delivery.test.ts` guards raw-body webhook verification, recipient tags, delivery columns, and event-to-recipient status mapping.
 - Launch meaning: this is negative/blocked email-provider evidence. Manual beta invites may remain outside Resend, but visible in-app share/invite email workflows cannot be treated as launch-ready until Vercel env, verified sender/domain/DNS, webhook secret, and real delivery/webhook event proof exist.
@@ -580,7 +580,7 @@ Code audit files:
 | `buildProposalExportModel` | Confirms current material/labor compatibility and all rows included. |
 | `createProposalWorkbook` | Confirms static totals and current sheet layout. |
 | Export route `GET` | Confirms Node runtime XLSX download route. |
-| `sendEmail`, Resend webhook route | Confirms mock-success risk and webhook secret requirement. |
+| `sendEmail`, Resend webhook route | Confirms unconfigured email now fails closed outside tests and that webhook secret proof remains required. |
 
 ## Graph Analyses Performed
 
