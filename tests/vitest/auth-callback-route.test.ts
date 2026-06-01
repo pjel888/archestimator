@@ -26,6 +26,7 @@ describe("auth callback route", () => {
     vi.clearAllMocks();
     vi.stubEnv("NEXT_PUBLIC_APP_URL", "http://localhost:3000");
     vi.stubEnv("ARCHESTIMATOR_ALLOWED_APP_ORIGINS", "http://localhost:3000");
+    vi.stubEnv("CLOSED_BETA_ACCESS_ENABLED", "false");
   });
 
   it("maps missing auth code to a stable public error and sanitized next", async () => {
@@ -91,5 +92,30 @@ describe("auth callback route", () => {
 
     expect(accountSetupMocks.resolvePostAuthDestination).toHaveBeenCalledWith("/workshop/projects");
     expect(response.headers.get("location")).toBe("http://localhost:3000/workshop");
+  });
+
+  it("routes successful but non-allowlisted callbacks to beta access-required", async () => {
+    const rpc = vi.fn(async () => ({
+      data: { allowed: false, status: "missing", normalized_email: "outsider@example.com" },
+      error: null,
+    }));
+    const supabase = {
+      auth: {
+        exchangeCodeForSession: vi.fn(async () => ({ error: null })),
+        getUser: vi.fn(async () => ({
+          data: { user: { id: "user-1", email: "outsider@example.com" } },
+        })),
+      },
+      rpc,
+    };
+    supabaseServerMocks.createSupabaseServerClient.mockResolvedValue(supabase);
+    vi.stubEnv("CLOSED_BETA_ACCESS_ENABLED", "true");
+    const { GET } = await import("@/app/auth/callback/route");
+
+    const response = await GET(request("http://localhost:3000/auth/callback?code=abc&next=/workshop"));
+
+    expect(rpc).toHaveBeenCalledWith("check_closed_beta_access", { raw_email: "outsider@example.com" });
+    expect(accountSetupMocks.resolvePostAuthDestination).not.toHaveBeenCalled();
+    expect(response.headers.get("location")).toBe("http://localhost:3000/beta/access-required");
   });
 });

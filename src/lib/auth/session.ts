@@ -1,5 +1,6 @@
 import { cache } from "react";
 import { redirect } from "next/navigation";
+import { buildClosedBetaAccessPath, getClosedBetaAccessForEmail } from "@/lib/auth/closed-beta-access";
 import { getDevCurrentUserContext } from "@/lib/auth/dev-auth";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { Tables } from "@/lib/supabase/types";
@@ -25,6 +26,12 @@ export const getCurrentUserContext = cache(async (): Promise<CurrentUserContext 
   if (!user) return null;
 
   const email = user.email?.toLowerCase() ?? "";
+  const access = await getClosedBetaAccessForEmail({
+    email,
+    supabase,
+  });
+  if (!access.allowed) redirect(buildClosedBetaAccessPath(access.status));
+
   const metadata = user.user_metadata ?? {};
   const metadataName = typeof metadata.display_name === "string" ? metadata.display_name : typeof metadata.full_name === "string" ? metadata.full_name : typeof metadata.name === "string" ? metadata.name : null;
   const avatarUrl = typeof metadata.avatar_url === "string" ? metadata.avatar_url : typeof metadata.picture === "string" ? metadata.picture : null;

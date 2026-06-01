@@ -13,13 +13,19 @@ function request(url: string) {
 }
 
 function mockUser(user: unknown) {
+  const rpc = vi.fn(async () => ({
+    data: { allowed: true, status: "active", normalized_email: "user@example.com" },
+    error: null,
+  }));
   supabaseSsrMocks.createServerClient.mockReturnValue({
     auth: {
       getUser: vi.fn(async () => ({
         data: { user },
       })),
     },
+    rpc,
   });
+  return { rpc };
 }
 
 describe("auth proxy", () => {
@@ -28,6 +34,7 @@ describe("auth proxy", () => {
     vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", "https://example.supabase.co");
     vi.stubEnv("NEXT_PUBLIC_SUPABASE_ANON_KEY", "anon-key");
     vi.stubEnv("ARCHESTIMATOR_DEV_AUTH_BYPASS", "0");
+    vi.stubEnv("CLOSED_BETA_ACCESS_ENABLED", "false");
   });
 
   it("redirects signed-out protected workshop requests to canonical login with safe next", async () => {
@@ -51,6 +58,48 @@ describe("auth proxy", () => {
 
     expect(response.status).toBe(307);
     expect(response.headers.get("location")).toBe("http://localhost:3000/workshop");
+  });
+
+  it("redirects signed-in protected workshop requests to beta access when the allowlist denies access", async () => {
+    const { rpc } = mockUser({ id: "user-1", email: "outsider@example.com" });
+    rpc.mockResolvedValueOnce({
+      data: { allowed: false, status: "missing", normalized_email: "outsider@example.com" },
+      error: null,
+    });
+    vi.stubEnv("CLOSED_BETA_ACCESS_ENABLED", "true");
+    const { proxy } = await import("@/proxy");
+
+    const response = await proxy(request("http://localhost:3000/workshop/projects"));
+
+    expect(rpc).toHaveBeenCalledWith("check_closed_beta_access", { raw_email: "outsider@example.com" });
+    expect(response.status).toBe(307);
+    expect(response.headers.get("location")).toBe("http://localhost:3000/beta/access-required");
+  });
+
+  it("redirects signed-in login requests to beta access instead of the workshop when revoked", async () => {
+    const { rpc } = mockUser({ id: "user-1", email: "revoked@example.com" });
+    rpc.mockResolvedValueOnce({
+      data: { allowed: false, status: "revoked", normalized_email: "revoked@example.com" },
+      error: null,
+    });
+    vi.stubEnv("CLOSED_BETA_ACCESS_ENABLED", "true");
+    const { proxy } = await import("@/proxy");
+
+    const response = await proxy(request("http://localhost:3000/login"));
+
+    expect(response.status).toBe(307);
+    expect(response.headers.get("location")).toBe("http://localhost:3000/beta/access-required?status=revoked");
+  });
+
+  it("keeps beta access-required public to avoid redirect loops", async () => {
+    mockUser({ id: "user-1", email: "outsider@example.com" });
+    vi.stubEnv("CLOSED_BETA_ACCESS_ENABLED", "true");
+    const { proxy } = await import("@/proxy");
+
+    const response = await proxy(request("http://localhost:3000/beta/access-required"));
+
+    expect(response.status).toBe(200);
+    expect(supabaseSsrMocks.createServerClient).not.toHaveBeenCalled();
   });
 
   it.each([

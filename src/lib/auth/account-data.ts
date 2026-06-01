@@ -100,6 +100,7 @@ export type AccountSecurityEventType =
   | "auth_callback_missing_code"
   | "auth_callback_failed"
   | "auth_callback_succeeded"
+  | "auth_callback_beta_access_denied"
   | "onboarding_completed"
   | "profile_settings_updated"
   | "workspace_settings_updated";

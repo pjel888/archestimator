@@ -2,7 +2,7 @@
 
 ## Objective
 
-Implement closed beta access management with Google Sign-In plus Supabase-backed email allowlist. This spec is implementation-grade but does not implement code in this planning pass.
+Implement closed beta access management with Google Sign-In plus Supabase-backed email allowlist. Local code implementation exists as of 2026-06-02, but linked Supabase apply remains blocked until backup proof is captured.
 
 ## Final Table
 
@@ -10,20 +10,21 @@ Implement closed beta access management with Google Sign-In plus Supabase-backed
 
 ## Migration File
 
-`supabase/migrations/20260602090000_closed_beta_allowed_emails.sql`
+Planned: `supabase/migrations/20260602090000_closed_beta_allowed_emails.sql`
+
+Implemented locally by Supabase CLI: `supabase/migrations/20260601182522_closed_beta_allowed_emails.sql`
 
 ## Schema
 
 ```sql
 create table public.closed_beta_allowed_emails (
   id uuid primary key default gen_random_uuid(),
-  email text not null,
-  normalized_email text generated always as (lower(btrim(email))) stored,
+  normalized_email text not null,
+  status text not null default 'invited'
+    check (status in ('invited', 'active', 'revoked')),
   invited_by uuid null references auth.users(id) on delete set null,
   invited_at timestamptz not null default now(),
   accepted_at timestamptz null,
-  status text not null default 'invited'
-    check (status in ('invited', 'active', 'revoked')),
   notes text null,
   metadata jsonb not null default '{}'::jsonb,
   created_at timestamptz not null default now(),
@@ -54,6 +55,7 @@ Output:
 Rules:
 
 - Missing row: `allowed=false`, `status='missing'`.
+- Input email must equal the authenticated caller email from `auth.jwt() ->> 'email'`; mismatches return missing/denied without exposing the target row.
 - `invited`: `allowed=true`.
 - `active`: `allowed=true`.
 - `revoked`: `allowed=false`.
@@ -64,7 +66,7 @@ Rules:
 Recommended TypeScript helper:
 
 - `src/lib/auth/closed-beta-access.ts`
-- Exports `getClosedBetaAccessForUser(user)` and `requireClosedBetaAccess(user)`.
+- Exports `normalizeClosedBetaEmail`, `isClosedBetaAccessEnabled`, `getClosedBetaAccessForEmail`, and `buildClosedBetaAccessPath`.
 - Reads `CLOSED_BETA_ACCESS_ENABLED`.
 - Uses server-side Supabase access only.
 - Does not expose the allowlist to the client.
@@ -80,7 +82,7 @@ Recommended TypeScript helper:
 | `src/lib/auth/session.ts` | Gate app context or expose a closed-beta-aware wrapper. |
 | `src/app/login/page.tsx` | Show Google-only invited beta copy; hide/disable magic link unless explicitly retained as fallback. |
 | `src/app/beta/access-required/page.tsx` | Add denied/pending UX. |
-| `.env.example` | Document `CLOSED_BETA_ACCESS_ENABLED` and `NEXT_PUBLIC_CLOSED_BETA_MODE`. |
+| `.env.example` | Documents `CLOSED_BETA_ACCESS_ENABLED=false`; no public env flag is required for MVP access enforcement. |
 
 ## Access Denied Route
 

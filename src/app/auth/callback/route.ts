@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 
 import { recordAccountSecurityEvent } from "@/lib/auth/account-audit";
 import { resolvePostAuthDestination } from "@/lib/auth/account-setup";
+import { buildClosedBetaAccessPath, getClosedBetaAccessForEmail } from "@/lib/auth/closed-beta-access";
 import { mapAuthErrorToCode } from "@/lib/auth/error-mapping";
 import {
   buildLoginRedirectUrl,
@@ -77,6 +78,24 @@ export async function GET(request: NextRequest) {
       safe_next: next,
     },
   });
+
+  const access = await getClosedBetaAccessForEmail({
+    email: user?.email,
+    supabase,
+  });
+
+  if (!access.allowed) {
+    await recordAccountSecurityEvent({
+      eventType: "auth_callback_beta_access_denied",
+      userId: user?.id ?? null,
+      ...auditRequest,
+      metadata: {
+        safe_next: next,
+        access_status: access.status,
+      },
+    });
+    return NextResponse.redirect(new URL(buildClosedBetaAccessPath(access.status), origin));
+  }
 
   const destination = resolvePostAuthDestination(next);
   return NextResponse.redirect(new URL(destination, origin));

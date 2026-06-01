@@ -2540,6 +2540,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      check_closed_beta_access: {
+        Args: { raw_email: string }
+        Returns: {
+          allowed: boolean
+          status: string
+          normalized_email: string
+        }[]
+      }
       create_cost_library_component: {
         Args: { target_workspace_id: string; component: Json; price_options: Json }
         Returns: Json
