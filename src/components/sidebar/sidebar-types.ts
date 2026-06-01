@@ -9,6 +9,8 @@ export const SIDEBAR_TRANSITION = {
 } as const;
 
 export type SidebarNavItem = {
+  badgeCount?: number;
+  badgeLabel?: string;
   id: string;
   href: string;
   label: string;

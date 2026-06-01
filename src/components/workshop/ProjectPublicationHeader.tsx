@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useSyncExternalStore, useTransition } from "react";
+import { useMemo, useState, useSyncExternalStore, useTransition } from "react";
 import { ArrowClockwise, ArrowSquareOut, LinkBreak, LinkSimple, LockSimple, Prohibit, UploadSimple } from "@phosphor-icons/react/dist/ssr";
 
 import { Button } from "@/components/ui/button";
@@ -12,10 +12,7 @@ import {
 import { Modal } from "@/components/ui/modal";
 import { cn } from "@/lib/ui/cn";
 import {
-  addSharedLinkRecipients,
   createProjectPublication,
-  listSharedLinkRecipients,
-  removeSharedLinkRecipient,
   republishProjectPublication,
   revokeProjectPublication,
   rotateProjectPublicationLink,
@@ -23,7 +20,7 @@ import {
 import { RecipientEmailComposer } from "./publication/RecipientEmailComposer";
 export { RecipientEmailComposer };
 import SharedLinkActivityFeed from "@/components/share/SharedLinkActivityFeed";
-import { WorkshopTreeTabs, type WorkshopTreeTabItem } from "./workshop-tree";
+import { WorkshopTreeTabs } from "./workshop-tree";
 import type { ProjectEstimateSheet, ProjectPublicationStatus, ProjectPublicationSummary } from "@/lib/publication/types";
 
 type ProjectPublicationHeaderProps = {
@@ -43,6 +40,10 @@ type PublicationLocalResult = {
   status: ProjectPublicationStatus;
   summaryKey: string;
 };
+
+type PublicationTabId = "link" | "sheets" | "access" | "recipients" | "activity";
+type DestructivePublicationAction = "clear-password" | "revoke" | "rotate";
+const SHARED_LINK_ACTIVITY_SEEN_STORAGE_PREFIX = "archestimator_shared_link_last_seen";
 
 function formatDate(value: string | null) {
   if (!value) return "Not recorded";
@@ -66,6 +67,66 @@ function readSummaryKey(summary: ProjectPublicationSummary | null) {
   return summary?.projectId ?? "no-project";
 }
 
+function readActivitySeenStorageKey(summary: ProjectPublicationSummary | null, summaryKey: string) {
+  return `${SHARED_LINK_ACTIVITY_SEEN_STORAGE_PREFIX}:${summary?.publicationId ?? summaryKey}`;
+}
+
+function readLatestPublicationActivityAt(summary: ProjectPublicationSummary | null) {
+  const timestamps = [summary?.latestOpenedAt, summary?.latestRecipientOpen?.openedAt]
+    .filter((value): value is string => Boolean(value))
+    .sort((a, b) => Date.parse(b) - Date.parse(a));
+  return timestamps[0] ?? null;
+}
+
+function readStoredActivitySeenAt(storageKey: string) {
+  if (typeof window === "undefined") return null;
+  try {
+    return window.localStorage.getItem(storageKey);
+  } catch {
+    return null;
+  }
+}
+
+function writeStoredActivitySeenAt(storageKey: string, value: string) {
+  if (typeof window === "undefined") return;
+  try {
+    window.localStorage.setItem(storageKey, value);
+  } catch {}
+}
+
+function isPublicationActivityUnseen(latestActivityAt: string | null, lastSeenAt: string | null) {
+  if (!latestActivityAt) return false;
+  if (!lastSeenAt) return true;
+  return Date.parse(latestActivityAt) > Date.parse(lastSeenAt);
+}
+
+function readDestructivePublicationActionCopy(action: DestructivePublicationAction | null) {
+  if (action === "rotate") {
+    return {
+      title: "Create new shared link?",
+      description: "The current shared link will stop working.",
+      body: "The current shared link will stop working immediately after the new link is created. Existing recipients will need the replacement link.",
+      confirmLabel: "Create new link",
+    };
+  }
+
+  if (action === "clear-password") {
+    return {
+      title: "Clear shared-link password?",
+      description: "Anyone with the link can view it without a password.",
+      body: "Anyone with the link can view this shared page without a password after this update.",
+      confirmLabel: "Clear password",
+    };
+  }
+
+  return {
+    title: "Turn off shared link?",
+    description: "Recipients will lose access to this shared page.",
+    body: "Recipients will lose access to this shared page immediately. You can generate a new shared link later.",
+    confirmLabel: "Turn off link",
+  };
+}
+
 function subscribeToOriginChange() {
   return () => undefined;
 }
@@ -80,9 +141,15 @@ function readServerOrigin() {
 
 export function ProjectPublicationHeader({ summary, projectEstimateSheets = [] }: ProjectPublicationHeaderProps) {
   const summaryKey = readSummaryKey(summary);
+  const activitySeenStorageKey = readActivitySeenStorageKey(summary, summaryKey);
   const [open, setOpen] = useState(false);
   const [actionMessage, setActionMessage] = useState<string | null>(null);
+  const [activitySeenState, setActivitySeenState] = useState<{ storageKey: string; value: string | null }>(() => ({
+    storageKey: activitySeenStorageKey,
+    value: readStoredActivitySeenAt(activitySeenStorageKey),
+  }));
   const [localResult, setLocalResult] = useState<PublicationLocalResult | null>(null);
+  const [destructiveAction, setDestructiveAction] = useState<DestructivePublicationAction | null>(null);
   const [passwordDraft, setPasswordDraft] = useState<PasswordDraft>(() => ({
     password: "",
     requirePassword: Boolean(summary?.passwordRequired),
@@ -91,20 +158,24 @@ export function ProjectPublicationHeader({ summary, projectEstimateSheets = [] }
   const [isPending, startTransition] = useTransition();
 
   // P1: selected sheets for the Sheets tab picker (defaults to all when estimates provided)
-  const [selectedEstimateIds, setSelectedEstimateIds] = useState<string[]>([]);
+  const defaultSelectedEstimateIds = useMemo(
+    () => projectEstimateSheets.map((estimate) => estimate.id),
+    [projectEstimateSheets],
+  );
+  const [selectedEstimateOverride, setSelectedEstimateOverride] = useState<{
+    ids: string[];
+    summaryKey: string;
+  } | null>(null);
+  const selectedEstimateIds =
+    selectedEstimateOverride?.summaryKey === summaryKey
+      ? selectedEstimateOverride.ids
+      : defaultSelectedEstimateIds;
+  const setSelectedEstimateIds = (ids: string[]) => {
+    setSelectedEstimateOverride({ ids, summaryKey });
+  };
 
   // P1/P4/P8: 5-tab navigation (Link / Sheets / Access / Recipients / Activity owner-only)
-  const [activeTab, setActiveTab] = useState<"link" | "sheets" | "access" | "recipients" | "activity">("link");
-
-  // Default picker to all sheets for the project (so republish keeps prior selection by default; user can adjust in Sheets tab).
-  // Resets when project/summaryKey or the available sheets change.
-  useEffect(() => {
-    if (projectEstimateSheets.length > 0) {
-      setSelectedEstimateIds(projectEstimateSheets.map((e) => e.id));
-    } else {
-      setSelectedEstimateIds([]);
-    }
-  }, [projectEstimateSheets, summaryKey]);
+  const [activeTab, setActiveTab] = useState<PublicationTabId>("link");
   const browserOrigin = useSyncExternalStore(subscribeToOriginChange, readBrowserOrigin, readServerOrigin);
   const hasLocalResult = localResult?.summaryKey === summaryKey;
   const hasPasswordDraft = passwordDraft.summaryKey === summaryKey;
@@ -115,10 +186,27 @@ export function ProjectPublicationHeader({ summary, projectEstimateSheets = [] }
   const effectiveStatus = hasLocalResult ? localResult.status : summary?.status ?? "unpublished";
   const effectivePasswordRequired = hasLocalResult ? localResult.passwordRequired : summary?.passwordRequired ?? false;
   const hasLiveClientLink = effectiveStatus === "published";
+  const latestActivityAt = readLatestPublicationActivityAt(summary);
+  const activitySeenAt = activitySeenState.storageKey === activitySeenStorageKey
+    ? activitySeenState.value
+    : readStoredActivitySeenAt(activitySeenStorageKey);
+  const hasHeaderActivity = hasLiveClientLink && isPublicationActivityUnseen(latestActivityAt, activitySeenAt);
+  const latestRecipientOpen = summary?.latestRecipientOpen ?? null;
   const statusLabel = readPublicationStatusLabel(effectiveStatus);
   const absoluteClientLink = clientLinkPath && browserOrigin ? `${browserOrigin}${clientLinkPath}` : clientLinkPath;
   const passwordStateLabel = requirePassword ? "Password on" : "Open access";
   const passwordRequiredForSubmit = requirePassword && !effectivePasswordRequired && !password.trim();
+
+  function markSharedLinkActivitySeen() {
+    const nextSeenAt = latestActivityAt ?? new Date().toISOString();
+    setActivitySeenState({ storageKey: activitySeenStorageKey, value: nextSeenAt });
+    writeStoredActivitySeenAt(activitySeenStorageKey, nextSeenAt);
+  }
+
+  function handlePublicationTabChange(tab: PublicationTabId) {
+    setActiveTab(tab);
+    if (tab === "activity") markSharedLinkActivitySeen();
+  }
 
   async function copyClientLink() {
     if (!clientLinkPath) {
@@ -169,6 +257,37 @@ export function ProjectPublicationHeader({ summary, projectEstimateSheets = [] }
     });
   }
 
+  function runConfirmedDestructiveAction() {
+    if (!summary?.projectId || !destructiveAction) return;
+    const action = destructiveAction;
+    setDestructiveAction(null);
+
+    if (action === "clear-password") {
+      runPublicationAction(() =>
+        republishProjectPublication({
+          projectId: summary.projectId,
+          selectedEstimateIds,
+          password: undefined,
+          clearPassword: true,
+        }),
+      );
+      return;
+    }
+
+    if (action === "rotate") {
+      runPublicationAction(() =>
+        rotateProjectPublicationLink({
+          projectId: summary.projectId,
+          password: requirePassword && password.trim() ? password.trim() : undefined,
+          clearPassword: !requirePassword,
+        }),
+      );
+      return;
+    }
+
+    runPublicationAction(() => revokeProjectPublication({ projectId: summary.projectId }));
+  }
+
   const hasSelectedEstimates = selectedEstimateIds.length > 0;
   const generateDisabled = !canManagePublication || !summary?.projectId || isPending || passwordRequiredForSubmit || !hasSelectedEstimates;
 
@@ -179,7 +298,7 @@ export function ProjectPublicationHeader({ summary, projectEstimateSheets = [] }
           type="button"
           variant="ghost"
           size="sm"
-          className="min-h-6 rounded-xs px-2 text-secondary hover:bg-surfaceMuted hover:text-ink"
+          className="relative min-h-6 rounded-xs px-2 text-secondary hover:bg-surfaceMuted hover:text-ink"
           aria-label="Open shared link"
           onClick={() => {
             setActiveTab("link");
@@ -188,7 +307,30 @@ export function ProjectPublicationHeader({ summary, projectEstimateSheets = [] }
         >
           <UploadSimple size={12} weight="regular" aria-hidden="true" />
           Shared link
+          {hasHeaderActivity ? (
+            <span
+              aria-hidden="true"
+              data-shared-link-activity-dot="true"
+              className="absolute right-1 top-1 size-1.5 rounded-xs bg-orange-500 ring-1 ring-white"
+            />
+          ) : null}
         </Button>
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon-sm"
+          className="size-6 rounded-xs text-tertiary hover:bg-surfaceMuted hover:text-ink"
+          aria-label="Copy shared link from header"
+          disabled={!clientLinkPath}
+          onClick={() => void copyClientLink()}
+        >
+          <LinkSimple size={12} weight="regular" aria-hidden="true" />
+        </Button>
+        {actionMessage ? (
+          <span className="sr-only" role="status">
+            {actionMessage}
+          </span>
+        ) : null}
       </div>
 
       <Modal
@@ -212,6 +354,11 @@ export function ProjectPublicationHeader({ summary, projectEstimateSheets = [] }
                 <p className="mt-1 text-[10px] leading-3 text-secondary">
                   {summary?.selectedEstimateCount ?? 0} estimates · version {summary?.snapshotVersion ?? 0}
                 </p>
+                {summary?.staleSnapshotWarning ? (
+                  <div className="mt-3 rounded-xs border border-amber-200 bg-amber-50 px-2 py-1.5 text-[10px] leading-4 text-amber-950">
+                    Snapshot is {summary.staleSnapshotWarning.daysBehind} days behind current data. Update shared page.
+                  </div>
+                ) : null}
               </div>
               <div className="border-t border-hairline pt-4 space-y-3">
                 <div>
@@ -220,10 +367,21 @@ export function ProjectPublicationHeader({ summary, projectEstimateSheets = [] }
                     <span className="font-medium text-ink">{summary?.openCount ?? 0}</span> times
                   </p>
                 </div>
-                <div>
-                  <p className="text-[9px] font-medium uppercase leading-3 tracking-normal text-tertiary">Latest open</p>
-                  <p className="mt-0.5 text-[10px] leading-3 text-secondary">{formatDate(summary?.latestOpenedAt ?? null)}</p>
-                </div>
+                {latestRecipientOpen ? (
+                  <div>
+                    <p className="text-[9px] font-medium uppercase leading-3 tracking-normal text-tertiary">Last opened by</p>
+                    <p className="mt-0.5 text-[10px] leading-3 text-secondary">
+                      <span className="block text-ink">{latestRecipientOpen.displayName || latestRecipientOpen.email}</span>
+                      <span className="block">{latestRecipientOpen.email}</span>
+                      <span className="block">{formatDate(latestRecipientOpen.openedAt)}</span>
+                    </p>
+                  </div>
+                ) : (
+                  <div>
+                    <p className="text-[9px] font-medium uppercase leading-3 tracking-normal text-tertiary">Latest open</p>
+                    <p className="mt-0.5 text-[10px] leading-3 text-secondary">{formatDate(summary?.latestOpenedAt ?? null)}</p>
+                  </div>
+                )}
                 <div>
                   <p className="text-[9px] font-medium uppercase leading-3 tracking-normal text-tertiary">Published</p>
                   <p className="mt-0.5 text-[10px] leading-3 text-secondary">{formatDate(summary?.publishedAt ?? null)}</p>
@@ -250,7 +408,7 @@ export function ProjectPublicationHeader({ summary, projectEstimateSheets = [] }
               ).filter((tab) => tab.id !== "activity" || canManagePublication)}
               activeTab={activeTab}
               ariaLabel="Shared link settings"
-              onTabChange={(tab) => setActiveTab(tab)}
+              onTabChange={handlePublicationTabChange}
             />
 
             <div className="flex-1 overflow-auto p-6">
@@ -258,7 +416,7 @@ export function ProjectPublicationHeader({ summary, projectEstimateSheets = [] }
                 <div className="space-y-2">
                   <h3 className="text-[9px] font-medium uppercase leading-3 tracking-normal text-tertiary">Shared link activity</h3>
                   <p className="text-[9px] text-tertiary">Comments, decisions, and events from recipients (internal notes visible to you only).</p>
-                  <SharedLinkActivityFeed publicationToken={summary?.clientLinkPath?.split("/").pop() || ""} isOwner={true} onActivitySeen={() => { /* update local seen for badge future */ }} />
+                  <SharedLinkActivityFeed publicationToken={summary?.clientLinkPath?.split("/").pop() || ""} isOwner={true} onActivitySeen={markSharedLinkActivitySeen} />
                 </div>
               )}
 
@@ -396,24 +554,27 @@ export function ProjectPublicationHeader({ summary, projectEstimateSheets = [] }
                   className="min-h-7 rounded-xs px-2 text-[10px]"
                   aria-label={hasLiveClientLink ? "Update shared page" : "Generate shared link"}
                   disabled={generateDisabled}
-                  onClick={() =>
-                    summary?.projectId
-                      ? runPublicationAction(() =>
-                          hasLiveClientLink
-                            ? republishProjectPublication({
-                                projectId: summary.projectId,
-                                selectedEstimateIds,
-                                password: requirePassword && password.trim() ? password.trim() : undefined,
-                                clearPassword: !requirePassword,
-                              })
-                            : createProjectPublication({
-                                projectId: summary.projectId,
-                                selectedEstimateIds,
-                                password: requirePassword ? password.trim() : undefined,
-                              }),
-                        )
-                      : undefined
-                  }
+                  onClick={() => {
+                    if (!summary?.projectId) return;
+                    if (hasLiveClientLink && effectivePasswordRequired && !requirePassword) {
+                      setDestructiveAction("clear-password");
+                      return;
+                    }
+                    runPublicationAction(() =>
+                      hasLiveClientLink
+                        ? republishProjectPublication({
+                            projectId: summary.projectId,
+                            selectedEstimateIds,
+                            password: requirePassword && password.trim() ? password.trim() : undefined,
+                            clearPassword: !requirePassword,
+                          })
+                        : createProjectPublication({
+                            projectId: summary.projectId,
+                            selectedEstimateIds,
+                            password: requirePassword ? password.trim() : undefined,
+                          }),
+                    );
+                  }}
                 >
                   <ArrowClockwise size={11} aria-hidden="true" />
                   {hasLiveClientLink ? "Update shared page" : "Generate shared link"}
@@ -425,17 +586,7 @@ export function ProjectPublicationHeader({ summary, projectEstimateSheets = [] }
                   className="min-h-7 rounded-xs px-2 text-[10px]"
                   aria-label="Create new shared link"
                   disabled={!canManagePublication || !summary?.projectId || !hasLiveClientLink || isPending || passwordRequiredForSubmit}
-                  onClick={() =>
-                    summary?.projectId
-                      ? runPublicationAction(() =>
-                          rotateProjectPublicationLink({
-                            projectId: summary.projectId,
-                            password: requirePassword && password.trim() ? password.trim() : undefined,
-                            clearPassword: !requirePassword,
-                          }),
-                        )
-                      : undefined
-                  }
+                  onClick={() => setDestructiveAction("rotate")}
                 >
                   <LinkBreak size={11} aria-hidden="true" />
                   New link
@@ -447,9 +598,7 @@ export function ProjectPublicationHeader({ summary, projectEstimateSheets = [] }
                   className="min-h-7 rounded-xs px-2 text-[10px]"
                   aria-label="Turn off shared link"
                   disabled={!canManagePublication || !summary?.projectId || !hasLiveClientLink || isPending}
-                  onClick={() =>
-                    summary?.projectId ? runPublicationAction(() => revokeProjectPublication({ projectId: summary.projectId })) : undefined
-                  }
+                  onClick={() => setDestructiveAction("revoke")}
                 >
                   <Prohibit size={11} aria-hidden="true" />
                   Turn off link
@@ -464,6 +613,42 @@ export function ProjectPublicationHeader({ summary, projectEstimateSheets = [] }
                 </p>
               </div>
             ) : null}
+          </div>
+        </div>
+      </Modal>
+
+      <Modal
+        open={destructiveAction !== null}
+        title={readDestructivePublicationActionCopy(destructiveAction).title}
+        description={readDestructivePublicationActionCopy(destructiveAction).description}
+        onOpenChange={(next) => {
+          if (!next) setDestructiveAction(null);
+        }}
+        className="max-w-sm"
+      >
+        <div className="space-y-3">
+          <p className="text-[10px] leading-4 text-secondary">
+            {readDestructivePublicationActionCopy(destructiveAction).body}
+          </p>
+          <div className="flex justify-end gap-1.5">
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="min-h-7 rounded-xs px-2 text-[10px]"
+              onClick={() => setDestructiveAction(null)}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              variant={destructiveAction === "revoke" ? "danger" : "secondary"}
+              size="sm"
+              className="min-h-7 rounded-xs px-2 text-[10px]"
+              onClick={runConfirmedDestructiveAction}
+            >
+              {readDestructivePublicationActionCopy(destructiveAction).confirmLabel}
+            </Button>
           </div>
         </div>
       </Modal>
@@ -567,4 +752,3 @@ export function SheetPickerList({ estimates, selectedIds, onChange, disabled, "a
     </div>
   );
 }
-

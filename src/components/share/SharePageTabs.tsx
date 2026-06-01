@@ -36,18 +36,34 @@ function formatMoney(value: number, currencyCode: string) {
   }).format(value)}`;
 }
 
+function readStoredActiveEstimateId(storageKey: string, estimates: PublicationSnapshotEstimate[]) {
+  if (typeof window === "undefined" || estimates.length === 0) return null;
+  try {
+    const saved = window.sessionStorage.getItem(storageKey);
+    return saved && estimates.some((estimate) => estimate.id === saved) ? saved : null;
+  } catch {
+    return null;
+  }
+}
+
 export default function SharePageTabs({
   estimates,
   currencyCode,
   token,
 }: SharePageTabsProps) {
-  const [activeId, setActiveId] = useState<string>(() => estimates[0]?.id ?? "");
+  const storageKey = `share-tab:${token}`;
+  const [activeIdOverride, setActiveIdOverride] = useState<string | null>(() =>
+    readStoredActiveEstimateId(storageKey, estimates),
+  );
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
 
   // P2: Sub-tab view mode per sheet (Tree View | Grid Preview)
   const [sheetViews, setSheetViews] = useState<Record<string, "tree" | "grid">>({});
+  const [gridSearchByEstimateId, setGridSearchByEstimateId] = useState<Record<string, string>>({});
 
+  const fallbackActiveId = estimates[0]?.id ?? "";
+  const activeId = activeIdOverride && estimates.some((estimate) => estimate.id === activeIdOverride) ? activeIdOverride : fallbackActiveId;
   const currentView = sheetViews[activeId] ?? "tree";
 
   const contentRef = useRef<HTMLDivElement>(null);
@@ -76,28 +92,11 @@ export default function SharePageTabs({
   const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  const storageKey = `share-tab:${token}`;
-
-  // Restore from sessionStorage (or default first)
-  useEffect(() => {
-    if (typeof window === "undefined" || estimates.length === 0) return;
-    try {
-      const saved = window.sessionStorage.getItem(storageKey);
-      if (saved && estimates.some((e) => e.id === saved)) {
-        setActiveId(saved);
-      } else {
-        setActiveId(estimates[0].id);
-      }
-    } catch {
-      setActiveId(estimates[0].id);
-    }
-  }, [storageKey, estimates]);
-
   // Persist on change
   const updateActive = useCallback(
     (id: string) => {
       if (!id || id === activeId) return;
-      setActiveId(id);
+      setActiveIdOverride(id);
       try {
         window.sessionStorage.setItem(storageKey, id);
       } catch {
@@ -190,6 +189,16 @@ export default function SharePageTabs({
     // Reconstruction itself remains pure (fidelity tests + other snapshots unaffected).
     return wrapTreeWithRoot(raw, wouldBeActive.name || "Estimate", wouldBeActive.totalCost);
   }, [wouldBeActive]);
+  const activeGridSearch = wouldBeActive ? gridSearchByEstimateId[wouldBeActive.id] ?? "" : "";
+  const filteredRows = useMemo(() => {
+    if (!wouldBeActive) return [];
+    const normalizedQuery = activeGridSearch.trim().toLowerCase();
+    if (!normalizedQuery) return wouldBeActive.rows;
+    return wouldBeActive.rows.filter((row) =>
+      [row.description, row.designation, row.material, row.discipline]
+        .some((value) => value.toLowerCase().includes(normalizedQuery)),
+    );
+  }, [activeGridSearch, wouldBeActive]);
 
   if (estimates.length === 0) return null;
 
@@ -307,52 +316,73 @@ export default function SharePageTabs({
         id={`share-estimate-panel-${activeEstimate.id}`}
         role="tabpanel"
         aria-labelledby={`tab-${activeEstimate.id}`}
-        className="border border-hairline bg-white"
+        className="share-print-estimate border border-hairline bg-white"
       >
         {currentView === "grid" ? (
-          <div className="overflow-x-auto">
-            <table className="min-w-full border-collapse text-left text-[10px] leading-4">
-            <thead className="bg-surfaceMuted text-[9px] uppercase text-tertiary">
-              <tr>
-                <th className="px-3 py-2 font-medium">Description</th>
-                <th className="px-3 py-2 font-medium">Discipline</th>
-                <th className="px-3 py-2 font-medium">Qty</th>
-                <th className="px-3 py-2 font-medium">Unit</th>
-                <th className="px-3 py-2 text-right font-medium">Total</th>
-              </tr>
-            </thead>
-            <tbody>
-              {activeEstimate.rows.map((row) => (
-                <tr key={row.id} className="border-t border-hairline">
-                  <td className="px-3 py-2 text-secondary">
-                    <div className="flex items-center gap-2">
-                      {/* P9: 32px thumbnail from estimate_row_items.source_snapshot.imageUrl (additive; only when present) */}
-                      {row.imageUrl ? (
-                        <div className="h-8 w-8 flex-shrink-0 overflow-hidden rounded-xs border border-hairline bg-surfaceMuted">
-                          <Image
-                            src={row.imageUrl}
-                            alt=""
-                            width={32}
-                            height={32}
-                            className="h-full w-full object-cover"
-                            loading="lazy"
-                          />
+          <div>
+            <div className="border-b border-hairline bg-white p-2">
+              <input
+                type="search"
+                aria-label="Filter estimate rows"
+                value={activeGridSearch}
+                onChange={(event) => {
+                  const next = event.target.value;
+                  setGridSearchByEstimateId((prev) => ({ ...prev, [activeEstimate.id]: next }));
+                }}
+                placeholder="Filter rows"
+                className="h-7 w-full rounded-xs border border-hairline bg-white px-2 text-[10px] leading-3 text-ink outline-none placeholder:text-tertiary focus:border-focus"
+              />
+            </div>
+            <div className="overflow-x-auto">
+              <table className="min-w-full border-collapse text-left text-[10px] leading-4">
+                <thead className="bg-surfaceMuted text-[9px] uppercase text-tertiary">
+                  <tr>
+                    <th className="px-3 py-2 font-medium">Description</th>
+                    <th className="px-3 py-2 font-medium">Discipline</th>
+                    <th className="px-3 py-2 font-medium">Qty</th>
+                    <th className="px-3 py-2 font-medium">Unit</th>
+                    <th className="px-3 py-2 text-right font-medium">Total</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredRows.length > 0 ? filteredRows.map((row) => (
+                    <tr key={row.id} className="border-t border-hairline">
+                      <td className="px-3 py-2 text-secondary">
+                        <div className="flex items-center gap-2">
+                          {/* P9: 32px thumbnail from estimate_row_items.source_snapshot.imageUrl (additive; only when present) */}
+                          {row.imageUrl ? (
+                            <div className="h-8 w-8 flex-shrink-0 overflow-hidden rounded-xs border border-hairline bg-surfaceMuted">
+                              <Image
+                                src={row.imageUrl}
+                                alt=""
+                                width={32}
+                                height={32}
+                                className="h-full w-full object-cover"
+                                loading="lazy"
+                              />
+                            </div>
+                          ) : null}
+                          <span>{row.description}</span>
                         </div>
-                      ) : null}
-                      <span>{row.description}</span>
-                    </div>
-                  </td>
-                  <td className="px-3 py-2 text-secondary">{row.discipline}</td>
-                  <td className="px-3 py-2 text-secondary">{row.quantity}</td>
-                  <td className="px-3 py-2 text-secondary">{row.unit}</td>
-                  <td className="px-3 py-2 text-right font-medium text-ink">
-                    {formatMoney(row.rowTotal, currencyCode)}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+                      </td>
+                      <td className="px-3 py-2 text-secondary">{row.discipline}</td>
+                      <td className="px-3 py-2 text-secondary">{row.quantity}</td>
+                      <td className="px-3 py-2 text-secondary">{row.unit}</td>
+                      <td className="px-3 py-2 text-right font-medium text-ink">
+                        {formatMoney(row.rowTotal, currencyCode)}
+                      </td>
+                    </tr>
+                  )) : (
+                    <tr className="border-t border-hairline">
+                      <td colSpan={5} className="px-3 py-4 text-center text-[10px] leading-4 text-tertiary">
+                        {`No rows match ${JSON.stringify(activeGridSearch.trim())}`}
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
         ) : (
           <div className="flex gap-0" ref={contentRef}>
             <ShareEstimateTreePanel

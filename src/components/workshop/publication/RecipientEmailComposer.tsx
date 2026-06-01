@@ -1,12 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { ArrowClockwise } from "@phosphor-icons/react/dist/ssr";
 
 import { Button } from "@/components/ui/button";
 import {
   addSharedLinkRecipients,
   listSharedLinkRecipients,
   removeSharedLinkRecipient,
+  resendSharedLinkRecipientEmail,
 } from "@/lib/publication/actions";
 
 /* P4: RecipientEmailComposer — compact, design-system compliant email recipient manager.
@@ -32,7 +34,11 @@ type LocalRecipient = {
   email: string;
   displayName?: string | null;
   delivery_status: "pending" | "sent" | "bounced" | "opened" | "responded";
+  email_unsubscribed_at?: string | null;
 };
+
+type SharedLinkRecipient = Awaited<ReturnType<typeof listSharedLinkRecipients>>[number];
+type RecipientEmailResult = Awaited<ReturnType<typeof addSharedLinkRecipients>>["emailResults"][number];
 
 export function RecipientEmailComposer({ publicationId, baseClientLink, projectName, onMessage }: RecipientEmailComposerProps) {
   const [input, setInput] = useState("");
@@ -40,6 +46,8 @@ export function RecipientEmailComposer({ publicationId, baseClientLink, projectN
   const [isSending, setIsSending] = useState(false);
   const [isLoadingList, setIsLoadingList] = useState(false);
   const [localMessage, setLocalMessage] = useState<string | null>(null);
+  const [resendingRecipientId, setResendingRecipientId] = useState<string | null>(null);
+  const projectLabel = projectName?.trim() || "this project";
 
   // Load existing recipients for this publication (status chips)
   useEffect(() => {
@@ -50,15 +58,16 @@ export function RecipientEmailComposer({ publicationId, baseClientLink, projectN
       try {
         const rows = await listSharedLinkRecipients({ publicationId });
         if (!cancelled) {
-          const mapped: LocalRecipient[] = (rows || []).map((r: any) => ({
+          const mapped: LocalRecipient[] = (rows || []).map((r: SharedLinkRecipient) => ({
             id: r.id,
             email: r.email,
             displayName: r.display_name,
             delivery_status: r.delivery_status || "pending",
+            email_unsubscribed_at: r.email_unsubscribed_at,
           }));
           setChips(mapped);
         }
-      } catch (e) {
+      } catch {
         // Non-fatal for tab; start empty (user can still add)
         if (!cancelled) setChips([]);
       } finally {
@@ -99,7 +108,7 @@ export function RecipientEmailComposer({ publicationId, baseClientLink, projectN
 
     try {
       const payload = chips
-        .filter((c) => c.delivery_status === "pending" || !c.id) // only new/pending
+        .filter((c) => !c.email_unsubscribed_at && (c.delivery_status === "pending" || !c.id)) // only new/pending
         .map((c) => ({ email: c.email, displayName: c.displayName || undefined }));
 
       if (payload.length === 0) {
@@ -116,7 +125,7 @@ export function RecipientEmailComposer({ publicationId, baseClientLink, projectN
 
       // Optimistic merge of results into chips with statuses
       const updated = chips.map((chip) => {
-        const match = result.emailResults.find((e: any) => e.email.toLowerCase() === chip.email.toLowerCase());
+        const match = result.emailResults.find((emailResult: RecipientEmailResult) => emailResult.email.toLowerCase() === chip.email.toLowerCase());
         if (match) {
           return {
             ...chip,
@@ -162,26 +171,58 @@ export function RecipientEmailComposer({ publicationId, baseClientLink, projectN
       const msg = `Removed ${rec.email}`;
       setLocalMessage(msg);
       if (onMessage) onMessage(msg);
-    } catch (e) {
+    } catch {
       const msg = "Remove failed.";
       setLocalMessage(msg);
       if (onMessage) onMessage(msg);
     }
   }
 
-  const pendingCount = chips.filter((c) => c.delivery_status === "pending").length;
+  async function handleResend(rec: LocalRecipient) {
+    if (!rec.id || resendingRecipientId) return;
+    setResendingRecipientId(rec.id);
+    setLocalMessage(null);
+    if (onMessage) onMessage(null);
+
+    try {
+      const result = await resendSharedLinkRecipientEmail({
+        publicationId,
+        recipientId: rec.id,
+        baseClientLink,
+      });
+      setChips((prev) =>
+        prev.map((chip) =>
+          chip.id === rec.id
+            ? { ...chip, delivery_status: result.ok ? "sent" : "pending" }
+            : chip,
+        ),
+      );
+      setLocalMessage(result.message);
+      if (onMessage) onMessage(result.message);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Recipient resend failed.";
+      setLocalMessage(msg);
+      if (onMessage) onMessage(msg);
+    } finally {
+      setResendingRecipientId(null);
+    }
+  }
+
+  const pendingCount = chips.filter((c) => !c.email_unsubscribed_at && c.delivery_status === "pending").length;
   const canSend = pendingCount > 0 && !isSending;
 
   return (
     <div className="text-[10px]">
       <h3 className="text-[9px] font-medium uppercase leading-3 tracking-normal text-tertiary">Email recipients</h3>
-      <p className="text-[9px] leading-3 text-tertiary mb-2">Add emails to receive the unique share link. Delivery is best-effort; link creation always succeeds.</p>
+      <p className="text-[9px] leading-3 text-tertiary mb-2">Add emails to receive the unique share link for {projectLabel}. Delivery is best-effort; link creation always succeeds.</p>
 
       {/* Chip input */}
       <div className="flex flex-wrap items-center gap-1 rounded-xs border border-hairline bg-white p-1 min-h-7">
         {chips.map((chip) => {
           const status = chip.delivery_status;
+          const statusLabel = chip.email_unsubscribed_at ? "unsubscribed" : status === "bounced" ? "failed" : status;
           const statusClass =
+            chip.email_unsubscribed_at ? "bg-surfaceMuted text-tertiary" :
             status === "sent" ? "bg-successSoft text-success" :
             status === "bounced" ? "bg-dangerSoft text-danger" :
             status === "opened" ? "bg-accentSoft text-ink" :
@@ -189,7 +230,20 @@ export function RecipientEmailComposer({ publicationId, baseClientLink, projectN
           return (
             <span key={chip.id || chip.email} className="inline-flex items-center gap-1 rounded-xs border border-hairline bg-surfaceMuted pl-1.5 pr-0.5 py-0 text-[9px] leading-4">
               <span className="truncate max-w-[140px]">{chip.displayName ? `${chip.displayName} <${chip.email}>` : chip.email}</span>
-              <span className={`rounded-xs px-1 py-0 text-[8px] font-medium ${statusClass}`}>{status}</span>
+              <span className={`rounded-xs px-1 py-0 text-[8px] font-medium ${statusClass}`}>{statusLabel}</span>
+              {chip.id ? (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  aria-label={`Resend ${chip.email}`}
+                  className="h-5 px-1 py-0 text-[9px] text-tertiary hover:text-ink"
+                  onClick={() => void handleResend(chip)}
+                  disabled={isSending || Boolean(resendingRecipientId) || Boolean(chip.email_unsubscribed_at)}
+                >
+                  <ArrowClockwise size={10} aria-hidden="true" />
+                </Button>
+              ) : null}
               <Button
                 type="button"
                 variant="ghost"

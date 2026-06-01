@@ -38,7 +38,7 @@ export default function SharedLinkActivityFeed({ publicationToken, isOwner = fal
           cache: "no-store",
           headers: { "Cache-Control": "no-store" },
         });
-        const json = await res.json();
+        const json = (await res.json()) as { activities?: ActivityItem[] };
         setActivities(json.activities || []);
       }
       onActivitySeen?.();
@@ -50,7 +50,10 @@ export default function SharedLinkActivityFeed({ publicationToken, isOwner = fal
   }, [publicationToken, isOwner, onActivitySeen]);
 
   useEffect(() => {
-    load();
+    const timeoutId = window.setTimeout(() => {
+      void load();
+    }, 0);
+    return () => window.clearTimeout(timeoutId);
   }, [load]);
 
   // Supabase Realtime subscription (owner only, for live updates on comment/decision/event)
@@ -58,21 +61,22 @@ export default function SharedLinkActivityFeed({ publicationToken, isOwner = fal
     if (!isOwner) return;
     const supabase = getBrowserSupabase();
     if (!supabase) return;
+    const changeEvent = "postgres_changes" as const;
 
     const channel = supabase
       .channel(`shared-link-activity-${publicationToken}`)
       .on(
-        "postgres_changes" as any,
+        changeEvent,
         { event: "INSERT", schema: "public", table: "shared_link_comments", filter: `publication_id=eq.${/* resolved in action */ ""}` },
         () => load()
       )
       .on(
-        "postgres_changes" as any,
+        changeEvent,
         { event: "INSERT", schema: "public", table: "shared_link_responses", filter: `publication_id=eq.${/* */ ""}` },
         () => load()
       )
       .on(
-        "postgres_changes" as any,
+        changeEvent,
         { event: "INSERT", schema: "public", table: "shared_link_events", filter: `publication_id=eq.${/* */ ""}` },
         () => load()
       )
@@ -120,4 +124,3 @@ export default function SharedLinkActivityFeed({ publicationToken, isOwner = fal
     </div>
   );
 }
-

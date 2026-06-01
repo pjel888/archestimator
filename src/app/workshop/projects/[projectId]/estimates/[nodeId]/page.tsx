@@ -5,10 +5,12 @@ import { ProjectEstimateMetadataPublisher } from "@/components/workshop/ProjectE
 import { requireCurrentUserContext } from "@/lib/auth/session";
 import { getCurrentWorkspaceComponentLibrary } from "@/lib/repositories/component-library-repository";
 import { getProjectEstimateTreeByNode } from "@/lib/repositories/workspace-repository";
+import { assertRouteErrorSmoke } from "@/lib/route-error-smoke";
 import type { Json } from "@/lib/supabase/types";
 
 type ProjectEstimateNodePageProps = {
   params: Promise<{ projectId: string; nodeId: string }>;
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
 };
 
 function readEstimateVersionLabel(metadata: Json): string {
@@ -23,8 +25,10 @@ function readEstimateVersionLabel(metadata: Json): string {
   return "V1";
 }
 
-export default async function ProjectEstimateNodePage({ params }: ProjectEstimateNodePageProps) {
+export default async function ProjectEstimateNodePage({ params, searchParams }: ProjectEstimateNodePageProps) {
   const { projectId, nodeId } = await params;
+  assertRouteErrorSmoke({ routeLabel: "Estimate workspace", searchParams: await searchParams });
+
   const [estimateTreeResult, componentLibrary, currentUser] = await Promise.all([
     getProjectEstimateTreeByNode(projectId, nodeId),
     getCurrentWorkspaceComponentLibrary(),

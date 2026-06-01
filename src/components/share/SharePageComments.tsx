@@ -16,6 +16,12 @@ interface SharePageCommentsProps {
   // publicationId not required for P6 write path
 }
 
+type QueuedComment = { body: string; ts: number };
+
+function readErrorMessage(error: unknown) {
+  return error instanceof Error ? error.message : "";
+}
+
 export default function SharePageComments({ token }: SharePageCommentsProps) {
   const { isValid } = useSharedLinkSession();
   const [comments, setComments] = useState<Comment[]>([]);
@@ -36,16 +42,25 @@ export default function SharePageComments({ token }: SharePageCommentsProps) {
   // Additive to P6 optimistic UI, error states, aria, design tokens. No behavior change on first-try success.
   const QUEUE_KEY = `shared-link-pending-comments-${token}`;
 
-  const loadQueue = useCallback((): Array<{ body: string; ts: number }> => {
+  const loadQueue = useCallback((): QueuedComment[] => {
     try {
       const raw = sessionStorage.getItem(QUEUE_KEY);
-      return raw ? JSON.parse(raw) : [];
+      const parsed = raw ? (JSON.parse(raw) as unknown) : [];
+      return Array.isArray(parsed)
+        ? parsed.filter(
+            (item): item is QueuedComment =>
+              typeof item === "object" &&
+              item !== null &&
+              typeof (item as QueuedComment).body === "string" &&
+              typeof (item as QueuedComment).ts === "number",
+          )
+        : [];
     } catch {
       return [];
     }
   }, [QUEUE_KEY]);
 
-  const saveQueue = useCallback((q: Array<{ body: string; ts: number }>) => {
+  const saveQueue = useCallback((q: QueuedComment[]) => {
     try {
       sessionStorage.setItem(QUEUE_KEY, JSON.stringify(q));
     } catch {}
@@ -58,7 +73,7 @@ export default function SharePageComments({ token }: SharePageCommentsProps) {
     const q = loadQueue();
     if (q.length === 0 || !navigator.onLine) return;
 
-    const remaining: Array<{ body: string; ts: number }> = [];
+    const remaining: QueuedComment[] = [];
     for (const item of q) {
       try {
         // reuse the resilient post path (will do its own 3-attempt retry)
@@ -90,20 +105,24 @@ export default function SharePageComments({ token }: SharePageCommentsProps) {
       flushQueue();
     };
     window.addEventListener("online", onOnline);
-    // initial flush if anything pending and online
-    if (navigator.onLine) {
-      flushQueue();
-    }
-    // update pending badge count
-    const q = loadQueue();
-    setPendingCount(q.length);
-    return () => window.removeEventListener("online", onOnline);
+    const timeoutId = window.setTimeout(() => {
+      // initial flush if anything pending and online
+      if (navigator.onLine) {
+        void flushQueue();
+      }
+      // update pending badge count
+      setPendingCount(loadQueue().length);
+    }, 0);
+    return () => {
+      window.clearTimeout(timeoutId);
+      window.removeEventListener("online", onOnline);
+    };
   }, [flushQueue, loadQueue]);
 
   const postWithRetry = useCallback(async (bodyStr: string): Promise<Response> => {
     const isTest = process.env.NODE_ENV === "test";
     const delays = isTest ? [0, 0, 0] : [0, 2000, 5000]; // real delays only in prod; tests control timing
-    let lastErr: any = null;
+    let lastErr: unknown = null;
     for (let attempt = 1; attempt <= 3; attempt++) {
       setRetryStatus(attempt > 1 ? `Retrying (${attempt}/3)...` : null);
       if (delays[attempt - 1] > 0) {
@@ -122,15 +141,16 @@ export default function SharePageComments({ token }: SharePageCommentsProps) {
           setRetryStatus(null);
           return res;
         }
-        lastErr = new Error((await res.json().catch(() => ({})))?.error || `HTTP ${res.status}`);
+        const errorPayload = (await res.json().catch(() => ({}))) as { error?: string };
+        lastErr = new Error(errorPayload.error || `HTTP ${res.status}`);
         if (attempt === 3) break;
-      } catch (e: any) {
-        lastErr = e;
+      } catch (error: unknown) {
+        lastErr = error;
         if (attempt === 3) break;
       }
     }
     setRetryStatus(null);
-    throw lastErr || new Error("Failed after retries");
+    throw lastErr instanceof Error ? lastErr : new Error("Failed after retries");
   }, [token]);
 
   const submitComment = useCallback(async () => {
@@ -166,7 +186,7 @@ export default function SharePageComments({ token }: SharePageCommentsProps) {
       }
 
       // Success — replace temp with real (server returns id; we keep local body)
-      const { id } = await res.json().catch(() => ({ id: tempId }));
+      const { id } = (await res.json().catch(() => ({ id: tempId }))) as { id?: string };
       setComments((prev) =>
         prev.map((c) =>
           c.id === tempId ? { ...c, id: id || tempId, isOptimistic: false } : c
@@ -175,11 +195,12 @@ export default function SharePageComments({ token }: SharePageCommentsProps) {
       announce("Comment added successfully.");
       // best-effort: if any pending, try flush (reconnect or post-success window)
       if (navigator.onLine) flushQueue();
-    } catch (e: any) {
+    } catch (error: unknown) {
       // Revert optimistic
       setComments((prev) => prev.filter((c) => c.id !== tempId));
+      const errorMessage = readErrorMessage(error);
       const isOffline = !navigator.onLine;
-      if (isOffline || e?.message?.includes("fetch")) {
+      if (isOffline || errorMessage.includes("fetch")) {
         // P12: queue for later (additive; existing offline hint enhanced)
         const q = loadQueue();
         q.push({ body, ts: Date.now() });
@@ -187,7 +208,7 @@ export default function SharePageComments({ token }: SharePageCommentsProps) {
         setPendingCount(q.length);
         setError("You appear to be offline. Comment queued — will retry on reconnect.");
       } else {
-        const msg = e?.message?.includes("rate") || e?.message?.includes("429")
+        const msg = errorMessage.includes("rate") || errorMessage.includes("429")
           ? "Rate limit reached. Slow down and try again."
           : "Failed to post comment. Please try again.";
         setError(msg);
@@ -197,7 +218,7 @@ export default function SharePageComments({ token }: SharePageCommentsProps) {
       setIsPosting(false);
       setRetryStatus(null);
     }
-  }, [draft, isValid, isPosting, token, announce, postWithRetry, loadQueue, saveQueue, flushQueue]);
+  }, [draft, isValid, isPosting, announce, postWithRetry, loadQueue, saveQueue, flushQueue]);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {

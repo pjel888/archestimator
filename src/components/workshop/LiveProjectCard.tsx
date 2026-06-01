@@ -7,18 +7,22 @@ import {
   ArrowsOutSimple,
   Clock,
   ImageSquare,
+  LinkSimple,
   MapPin,
   Star,
 } from "@phosphor-icons/react/dist/ssr";
 
 import { Button } from "@/components/ui/button";
+import { acceptPendingInvitationById } from "@/lib/collaboration/pending-invite-actions";
 import { usePrefetchOnHover } from "@/hooks/use-prefetch-on-hover";
 import type { Json, Tables } from "@/lib/supabase/types";
 import { cn } from "@/lib/ui/cn";
 import type { CollaborationRole } from "@/lib/collaboration/types";
+import type { ProjectPublicationListSummary } from "@/lib/publication/types";
+import type { WorkshopPendingInviteSummary } from "@/lib/repositories/workspace-repository";
 
 export type ProjectCardViewMode = "list" | "small" | "medium" | "large";
-export type ProjectAccessKind = "owned" | "project-member" | "sheet-member";
+export type ProjectAccessKind = "owned" | "pending-invite" | "project-member" | "sheet-member";
 
 type LiveProjectCardProps = {
   project: Tables<"projects">;
@@ -26,6 +30,9 @@ type LiveProjectCardProps = {
   accessKind?: ProjectAccessKind;
   currentUserRole?: CollaborationRole;
   ownerWorkspaceName?: string | null;
+  pendingInvite?: WorkshopPendingInviteSummary | null;
+  pendingInviteCount?: number;
+  publicationSummary?: ProjectPublicationListSummary | null;
   sharedEstimateCount?: number;
   isFavorite?: boolean;
   favoriteBusy?: boolean;
@@ -55,9 +62,18 @@ const roleLabels: Record<CollaborationRole, string> = {
 };
 
 function getAccessBadgeLabel(accessKind: ProjectAccessKind) {
+  if (accessKind === "pending-invite") return "Pending invite";
   if (accessKind === "project-member") return "Shared project";
   if (accessKind === "sheet-member") return "Sheet-only";
   return "Owned";
+}
+
+function formatOpenCount(count: number) {
+  return `${count} ${count === 1 ? "open" : "opens"}`;
+}
+
+function formatPendingInviteCount(count: number) {
+  return `${count} pending ${count === 1 ? "invite" : "invites"}`;
 }
 
 function getAccessibleAccessLabel({
@@ -70,6 +86,7 @@ function getAccessibleAccessLabel({
   role: CollaborationRole;
 }) {
   if (accessKind === "owned") return `${projectName} project, owned access`;
+  if (accessKind === "pending-invite") return `${projectName} project, pending invite, ${role} access`;
   if (accessKind === "sheet-member") return `${projectName} project, sheet-only access, ${role} access`;
   return `${projectName} project, shared project, ${role} access`;
 }
@@ -80,6 +97,9 @@ export function LiveProjectCard({
   accessKind = "owned",
   currentUserRole = "owner",
   ownerWorkspaceName = null,
+  pendingInvite = null,
+  pendingInviteCount = 0,
+  publicationSummary = null,
   sharedEstimateCount = 0,
   isFavorite = false,
   favoriteBusy = false,
@@ -88,7 +108,10 @@ export function LiveProjectCard({
 }: LiveProjectCardProps) {
   const imageUrl = getProjectImageUrl(project.metadata);
   const isListView = viewMode === "list";
-  const isSharedAccess = accessKind !== "owned";
+  const isPendingInvite = accessKind === "pending-invite";
+  const isExpiredPendingInvite = isPendingInvite && pendingInvite?.state === "expired";
+  const isSharedAccess = accessKind !== "owned" && !isPendingInvite;
+  const livePublication = publicationSummary?.status === "published" ? publicationSummary : null;
   const openLabel = accessKind === "sheet-member" && sharedEstimateCount === 1 ? "Open sheet" : "Open";
   const projectHref = `/workshop/projects/${project.id}`;
   const prefetchRoutes = useMemo(() => [{ pathname: projectHref }], [projectHref]);
@@ -105,6 +128,7 @@ export function LiveProjectCard({
       })}
       className={cn(
         "group flex min-w-0 overflow-hidden rounded-xs border border-hairline bg-white shadow-[0_16px_38px_-34px_rgba(17,17,17,0.5)] transition duration-150 hover:-translate-y-0.5 hover:border-divider hover:shadow-[0_24px_52px_-38px_rgba(17,17,17,0.58)]",
+        isPendingInvite ? "border-l-2 border-l-orange-500" : null,
         accessKind === "project-member" ? "border-l-2 border-l-emerald-500" : null,
         accessKind === "sheet-member" ? "border-l-2 border-l-sky-500" : null,
         isListView ? "min-h-[92px] flex-row" : "flex-col",
@@ -136,40 +160,44 @@ export function LiveProjectCard({
               aria-hidden="true"
             />
             <span className="px-1 text-center text-[8px] font-medium uppercase tracking-normal">
-              Add project image
+              {isPendingInvite ? "Pending access" : "Add project image"}
             </span>
           </div>
         )}
-        <Button
-          type="button"
-          variant="secondary"
-          size="icon-sm"
-          className={`absolute left-2 top-2 size-7 border-white/70 bg-white/86 shadow-sm backdrop-blur hover:bg-white disabled:cursor-wait disabled:opacity-70 ${
-            isFavorite
-              ? "text-orange-600 hover:text-orange-700"
-              : "text-tertiary hover:text-ink"
-          }`}
-          aria-label={
-            isFavorite
-              ? `Remove ${project.name} from favorite projects`
-              : `Add ${project.name} to favorite projects`
-          }
-          aria-pressed={isFavorite}
-          disabled={favoriteBusy}
-          onClick={() => onToggleFavorite?.(project.id, !isFavorite)}
-        >
-          <Star size={13} weight="regular" aria-hidden="true" />
-        </Button>
-        <Button
-          type="button"
-          variant="secondary"
-          size="icon-sm"
-          className="absolute right-2 top-2 size-7 border-white/70 bg-white/86 text-ink shadow-sm backdrop-blur hover:bg-white"
-          aria-label={`Expand ${project.name} details`}
-          onClick={() => onExpand?.(project)}
-        >
-          <ArrowsOutSimple size={13} weight="regular" aria-hidden="true" />
-        </Button>
+        {isPendingInvite ? null : (
+          <>
+            <Button
+              type="button"
+              variant="secondary"
+              size="icon-sm"
+              className={`absolute left-2 top-2 size-7 border-white/70 bg-white/86 shadow-sm backdrop-blur hover:bg-white disabled:cursor-wait disabled:opacity-70 ${
+                isFavorite
+                  ? "text-orange-600 hover:text-orange-700"
+                  : "text-tertiary hover:text-ink"
+              }`}
+              aria-label={
+                isFavorite
+                  ? `Remove ${project.name} from favorite projects`
+                  : `Add ${project.name} to favorite projects`
+              }
+              aria-pressed={isFavorite}
+              disabled={favoriteBusy}
+              onClick={() => onToggleFavorite?.(project.id, !isFavorite)}
+            >
+              <Star size={13} weight="regular" aria-hidden="true" />
+            </Button>
+            <Button
+              type="button"
+              variant="secondary"
+              size="icon-sm"
+              className="absolute right-2 top-2 size-7 border-white/70 bg-white/86 text-ink shadow-sm backdrop-blur hover:bg-white"
+              aria-label={`Expand ${project.name} details`}
+              onClick={() => onExpand?.(project)}
+            >
+              <ArrowsOutSimple size={13} weight="regular" aria-hidden="true" />
+            </Button>
+          </>
+        )}
       </div>
 
       <div
@@ -186,16 +214,28 @@ export function LiveProjectCard({
             <p className="min-w-0 flex-1 truncate text-[8px] font-medium uppercase tracking-normal text-tertiary">
               {project.client_name ?? "No client yet"}
             </p>
-            {isSharedAccess ? (
-              <span
-                className={cn(
-                  "shrink-0 rounded-xs px-1.5 py-0.5 text-[8px] font-medium leading-[10px]",
-                  accessKind === "project-member" ? "bg-emerald-50 text-emerald-700" : "bg-sky-50 text-sky-700",
-                )}
-              >
-                {getAccessBadgeLabel(accessKind)}
-              </span>
-            ) : null}
+            <div className="flex shrink-0 items-center gap-1">
+              {isSharedAccess || isPendingInvite ? (
+                <span
+                  className={cn(
+                    "shrink-0 rounded-xs px-1.5 py-0.5 text-[8px] font-medium leading-[10px]",
+                    accessKind === "pending-invite"
+                      ? "bg-orange-50 text-orange-700"
+                      : accessKind === "project-member"
+                        ? "bg-emerald-50 text-emerald-700"
+                        : "bg-sky-50 text-sky-700",
+                  )}
+                >
+                  {getAccessBadgeLabel(accessKind)}
+                </span>
+              ) : null}
+              {livePublication ? (
+                <span className="inline-flex shrink-0 items-center gap-1 rounded-xs bg-orange-50 px-1.5 py-0.5 text-[8px] font-medium leading-[10px] text-orange-700">
+                  <LinkSimple size={9} weight="regular" aria-hidden="true" />
+                  Shared link
+                </span>
+              ) : null}
+            </div>
           </div>
           <h2
             className={cn(
@@ -211,6 +251,15 @@ export function LiveProjectCard({
         </div>
 
         <div className={cn("space-y-1", viewMode === "large" ? "mt-3" : "mt-2")}>
+          {livePublication ? (
+            <p className="flex min-w-0 items-center gap-1.5 text-[9px] leading-3 text-secondary">
+              <LinkSimple size={12} weight="regular" aria-hidden="true" />
+              <span className="truncate">{formatOpenCount(livePublication.openCount)}</span>
+              <span className="shrink-0 rounded-xs bg-surfaceMuted px-1.5 py-0.5 text-[8px] font-medium uppercase leading-[10px] text-tertiary">
+                {livePublication.passwordRequired ? "Password on" : "Open access"}
+              </span>
+            </p>
+          ) : null}
           {isSharedAccess ? (
             <p className="flex min-w-0 items-center gap-1.5 text-[9px] leading-3 text-secondary">
               <span className="shrink-0 rounded-xs bg-surfaceMuted px-1.5 py-0.5 text-[8px] font-medium uppercase leading-[10px] text-tertiary">
@@ -223,6 +272,28 @@ export function LiveProjectCard({
                     ? `Shared by ${ownerWorkspaceName}`
                     : "Shared with you"}
               </span>
+            </p>
+          ) : null}
+          {isPendingInvite ? (
+            <p className="flex min-w-0 items-center gap-1.5 text-[9px] leading-3 text-secondary">
+              <span className="shrink-0 rounded-xs bg-orange-50 px-1.5 py-0.5 text-[8px] font-medium uppercase leading-[10px] text-orange-700">
+                {roleLabels[currentUserRole]}
+              </span>
+              <span className="truncate">
+                {isExpiredPendingInvite
+                  ? "Invite expired"
+                  : pendingInvite?.inviterLabel
+                    ? `Invited by ${pendingInvite.inviterLabel}`
+                    : "Invitation pending"}
+              </span>
+            </p>
+          ) : null}
+          {pendingInviteCount > 0 ? (
+            <p className="flex min-w-0 items-center gap-1.5 text-[9px] leading-3 text-primary">
+              <span className="shrink-0 rounded-xs bg-orange-50 px-1.5 py-0.5 text-[8px] font-medium uppercase leading-[10px] text-orange-700">
+                Invites
+              </span>
+              <span className="truncate">{formatPendingInviteCount(pendingInviteCount)}</span>
             </p>
           ) : null}
           <p className="flex items-center gap-1.5 text-[9px] leading-3 text-tertiary">
@@ -238,7 +309,9 @@ export function LiveProjectCard({
             )}
           >
             <Clock size={12} aria-hidden="true" />
-            Updated {formatUpdatedAt(project.updated_at)}
+            {isPendingInvite && pendingInvite?.expiresAt
+              ? `${isExpiredPendingInvite ? "Expired" : "Expires"} ${formatUpdatedAt(pendingInvite.expiresAt)}`
+              : `Updated ${formatUpdatedAt(project.updated_at)}`}
           </p>
         </div>
 
@@ -251,22 +324,48 @@ export function LiveProjectCard({
           <span className="truncate font-sans text-[9px] font-medium text-tertiary">
             {project.project_code ?? "—"}
           </span>
-          <Link
-            href={projectHref}
-            prefetch={false}
-            onBlur={() => cancel(projectHref)}
-            onFocus={() => prefetch(projectHref)}
-            onMouseEnter={() => prefetch(projectHref)}
-            onMouseLeave={() => cancel(projectHref)}
-            className="inline-flex h-7 shrink-0 items-center gap-1 rounded-xs px-1.5 text-[10px] font-medium text-ink hover:bg-surfaceMuted focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
-          >
-            {openLabel}
-            <ArrowRight
-              size={13}
-              className="shrink-0 transition-transform group-hover:translate-x-0.5"
-              aria-hidden="true"
-            />
-          </Link>
+          {isExpiredPendingInvite ? (
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              className="min-h-7 shrink-0 rounded-xs px-2 text-[10px]"
+              disabled
+            >
+              Expired
+            </Button>
+          ) : isPendingInvite && pendingInvite ? (
+            <form action={acceptPendingInvitationById}>
+              <input type="hidden" name="invitationId" value={pendingInvite.id} />
+              <Button
+                type="submit"
+                variant="secondary"
+                size="sm"
+                className="min-h-7 shrink-0 rounded-xs px-2 text-[10px]"
+                aria-label={`Accept invite for ${project.name}`}
+              >
+                Accept
+                <ArrowRight size={12} className="shrink-0" aria-hidden="true" />
+              </Button>
+            </form>
+          ) : (
+            <Link
+              href={projectHref}
+              prefetch={false}
+              onBlur={() => cancel(projectHref)}
+              onFocus={() => prefetch(projectHref)}
+              onMouseEnter={() => prefetch(projectHref)}
+              onMouseLeave={() => cancel(projectHref)}
+              className="inline-flex h-7 shrink-0 items-center gap-1 rounded-xs px-1.5 text-[10px] font-medium text-ink hover:bg-surfaceMuted focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
+            >
+              {openLabel}
+              <ArrowRight
+                size={13}
+                className="shrink-0 transition-transform group-hover:translate-x-0.5"
+                aria-hidden="true"
+              />
+            </Link>
+          )}
         </div>
       </div>
     </article>
