@@ -157,6 +157,22 @@
 - Post-edit GitNexus `detect-changes --repo archestimator --scope staged` reported 4 changed files, 19 changed symbols, 0 affected processes, and low risk.
 - Manual cross-app workbook QA in Excel, Numbers/LibreOffice, and Google Sheets is not done in this local slice and remains required before launch.
 
+### BETA-FEEDBACK-001 In-App Feedback Link Evidence
+
+- `WorkshopPageShell` footer now shows a quiet `Send beta feedback` mailto link to `support@archestimator.com` for authenticated workshop users.
+- The link is intentionally lightweight and external-email based, matching the closed-beta plan recommendation to avoid building a custom feedback system before launch.
+- Focused red/green evidence: `bun run test:dom tests/vitest/workshop-reset.test.tsx` first failed on the missing `Send beta feedback` link, then passed 1 file / 3 tests after the shell footer update.
+- `bun run type-check` passed.
+- `bun run lint` passed with the existing 14 warnings and 0 errors.
+- `bun run lint:design-system` passed.
+- `bun run test` passed 4 unit tests / 129 expectations.
+- `bun run test:dom` passed 127 files / 1009 tests with 2 skips.
+- `bun run build` passed.
+- `git diff --check` passed.
+- Post-edit code-review-graph `detect_changes` against `HEAD` analyzed 4 changed files, 3 changed functions/classes, 0 affected flows, 1 source-level test gap, and overall risk score 0.40. The reported shell gap is covered through `workshop-reset.test.tsx` plus full DOM/build.
+- Post-edit GitNexus `detect-changes --repo archestimator --scope staged` reported 4 changed files, 2 changed symbols, 23 affected workshop execution flows, and critical risk. This is expected because `WorkshopPageShell` is shared by all protected workshop routes; the implementation is mitigated by being a footer-only `mailto:` link with focused shell DOM coverage, full DOM, and build evidence.
+- External feedback form selection remains open; the current local slice provides the minimum support email path only.
+
 ### Closed Beta Audit Evidence
 
 - Auth/proxy: `src/proxy.ts`, `src/lib/auth/actions.ts`, `src/app/auth/callback/route.ts`, `src/lib/auth/account-setup.ts`, `src/lib/auth/session.ts`.

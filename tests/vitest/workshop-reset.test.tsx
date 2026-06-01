@@ -157,6 +157,10 @@ describe("workshop sidebar baseline", () => {
     expect(navigation.querySelector('span[class*="backdrop-blur-[1px]"]')).toBeTruthy();
     expect(screen.getByLabelText("Workshop empty canvas").childElementCount).toBe(0);
     expect(screen.queryByRole("button", { name: "Open Ask Flip" })).toBeNull();
+    expect(screen.getByRole("link", { name: "Send beta feedback" })).toHaveAttribute(
+      "href",
+      "mailto:support@archestimator.com?subject=Archestimator%20beta%20feedback",
+    );
   });
 
   test("renders a bento homebase without search chrome and with persisted favorite targets", async () => {
