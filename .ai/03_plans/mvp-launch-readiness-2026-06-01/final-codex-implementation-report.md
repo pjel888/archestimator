@@ -37,14 +37,14 @@ Post-report evidence-sync commits:
 - `8e0e615` - Aligned final command evidence baselines to `c5ca065`, `8084908`, and `3e8d7a0`.
 - `cb87e51` - Synced the launch command-center README with the current local readiness scorecard.
 - `a65b34b` - Recorded local signed-out auth E2E smoke evidence.
-- `e6cf52b` - Recorded the current local validation refresh in the launch evidence pack.
+- `e6cf52b` - Recorded the prior local validation refresh in the launch evidence pack.
 - `7ba69e6` - Recorded the current local build refresh in the launch evidence pack.
 - `3b01cd2` - Added the active-goal completion audit.
 - `9d71239` - Added the manual proof packet template.
 - `fd5d4b3` - Failed unconfigured production-like email delivery closed with `EMAIL_NOT_CONFIGURED`.
 - `61160ee` - Disabled shared-link recipient entry/send/resend controls while server email readiness is false.
 
-These follow-up commits improve traceability only. They do not change the implementation baseline or the **NO-GO** recommendation. Current local validation refresh at `a65b34b` also passed `bun run validate`: typecheck, lint with 14 existing warnings, design lint, unit tests (4 tests / 129 expectations), and DOM tests (131 files / 1022 passed / 2 skipped).
+These follow-up commits improve traceability only. They do not change the implementation baseline or the **NO-GO** recommendation. Current local validation refresh at `2587f80` also passed `bun run validate`: typecheck, lint with 14 existing warnings, design lint, unit tests (4 tests / 129 expectations), and DOM tests (133 files / 1034 passed / 2 skipped).
 
 The remaining manual/provider proof packet is now centralized in `46-manual-proof-matrix.md`; it must be filled with dated artifacts before the external beta recommendation changes.
 
@@ -102,13 +102,13 @@ Latest doc truth-sync at `8084908`:
 - code-review-graph detect changes - 4 changed files, 4 changed functions/classes, 0 affected flows, 0 test gaps, risk 0.30.
 - `npx gitnexus detect-changes --repo archestimator --scope staged` - no changes detected.
 
-Current validation refresh at `a65b34b`:
+Current validation refresh at `2587f80`:
 
 - `bun run validate` - pass.
-- Subcommands covered: typecheck; lint with 14 existing warnings; design lint; unit tests, 4 tests / 129 expectations; DOM tests, 131 files / 1022 passed / 2 skipped.
+- Subcommands covered: typecheck; lint with 14 existing warnings; design lint; unit tests, 4 tests / 129 expectations; DOM tests, 133 files / 1034 passed / 2 skipped.
 - Launch meaning: local command suite remains green, but hosted/provider/manual proof gates still block external beta.
 
-Current app build refresh at `e6cf52b`:
+Current app build refresh at `2587f80`:
 
 - `bun run build` - pass.
 - Build details: Next.js 16.2.6 / Turbopack compiled successfully, finished TypeScript, generated 29 static pages, and listed `/api/health`, disabled-by-default AI routes, the proposal export route, share/invite routes, and protected workshop routes.

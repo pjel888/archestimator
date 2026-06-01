@@ -15,11 +15,11 @@ Closed beta requires auth/access tests before launch:
 - First whitelisted user workspace path succeeds.
 - Feedback/support path is visible.
 
-Current local Vitest DOM baseline is green: the latest validation refresh at `a65b34b` ran `bun run validate`, including `bun run test:dom` passing 131 files / 1022 passed / 2 skipped after the AI, auth, library, template, export, feedback, legal, infra, health, demo seed, and local signed-out auth evidence slices. Hosted/manual E2E proof is still required before launch.
+Current local Vitest DOM baseline is green: the latest validation refresh at `2587f80` ran `bun run validate`, including `bun run test:dom` passing 133 files / 1034 passed / 2 skipped after the AI, auth, library, template, export, feedback, legal, infra, health, demo seed, local signed-out auth, and email guardrail evidence slices. Hosted/manual E2E proof is still required before launch.
 
 ## Third-Pass Test Gate
 
-Commit audited: `681c95e64864f283950a88dba304eaffe8f2f8b3`. Historical third-pass validation found a red DOM baseline and blocked E2E run. Current local validation is green for `type-check`, `lint`, `lint:design-system`, `test`, and `test:dom` at `a65b34b`; current local production build is green at `e6cf52b`. The MVP gate still requires hosted/manual smoke or a documented no-go for any E2E path that cannot run safely.
+Commit audited: `681c95e64864f283950a88dba304eaffe8f2f8b3`. Historical third-pass validation found a red DOM baseline and blocked E2E run. Current local validation is green for `type-check`, `lint`, `lint:design-system`, `test`, and `test:dom` at `2587f80`; current local production build is green at `2587f80`. The MVP gate still requires hosted/manual smoke or a documented no-go for any E2E path that cannot run safely.
 
 | Area | Required automated tests | Required manual QA | Current gap |
 | --- | --- | --- | --- |
