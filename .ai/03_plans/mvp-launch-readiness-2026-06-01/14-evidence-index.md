@@ -382,6 +382,19 @@
 - Protection proof: Vercel reports SSO protection for `all_except_custom_domains`, Git fork protection enabled, and one env-var-backed automation bypass entry remaining after cleanup of the non-env bypass entry generated during this run.
 - Launch meaning: this is partial/blocked Vercel evidence. Preview deploy and protected health route are proven, but env, production/custom-domain behavior, public monitoring path, hosted auth smoke, and rollback proof remain **NO-GO** rows.
 
+### Spreadsheet Artifact Local Evidence
+
+- Artifact note: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/spreadsheet-artifact-local-2026-06-02.md`.
+- Workbook artifact: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/lewis-residence-demo-proposal-2026-06-02.xlsx`.
+- ExcelJS summary: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/lewis-residence-demo-proposal-2026-06-02.exceljs-summary.json`.
+- SHA-256: `1b7625fedbcc1855ace1e07add53aa4d90c2a9dd9ff3a1347f11cb0018ab7b48`.
+- Generation path: `buildProposalExportModel()` plus `createProposalWorkbookBuffer()` using a local Lewis Residence demo payload.
+- Integrity checks: `file` reported `Microsoft Excel 2007+`; `unzip -t` found no compressed-data errors; ExcelJS loaded `Bid Form`, `Summary`, `Commercial Terms`, and `Source Breakdown`.
+- Formula/blank-total checks: ExcelJS readback found `blankLineTotalRows: []` and summary grand total formula `B27+B28+B29` with result `55230`.
+- Focused export tests: `bun run test:dom tests/vitest/proposal-workbook.test.ts tests/vitest/proposal-export-model.test.ts tests/vitest/proposal-export-route.test.ts tests/vitest/proposal-export-preview.test.tsx` passed 4 files / 15 tests.
+- App availability blocker: no `libreoffice`, `soffice`, `/Applications/Microsoft Excel.app`, `/Applications/Numbers.app`, or `/Applications/LibreOffice.app` was found locally.
+- Launch meaning: this is partial local artifact proof. Spreadsheet compatibility and demo fallback rows improve, but Excel plus secondary-app open/recalc/print screenshots remain **NO-GO** proof gaps.
+
 ### Closed Beta Audit Evidence
 
 - Auth/proxy: `src/proxy.ts`, `src/lib/auth/actions.ts`, `src/app/auth/callback/route.ts`, `src/lib/auth/account-setup.ts`, `src/lib/auth/session.ts`.

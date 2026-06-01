@@ -114,16 +114,16 @@ Rules: below 90 is not beta-ready; P0 domains below 95 block launch; 100 require
 | Component library | 86 | Local polish pass; screenshot/manual proof gap |
 | Templates | 86 | Local polish pass; screenshot/manual proof gap |
 | Project-specific unlink | 86 | Local pass; linked/manual proof gap |
-| Excel export | 88 | Local workbook pass; cross-app proof gap |
-| Auth/onboarding | 82 | Hosted smoke gap |
-| Infrastructure/deployment | 78 | Provider/deploy proof gap |
+| Excel export | 90 | Local artifact pass; cross-app proof gap |
+| Auth/onboarding | 78 | Env and hosted smoke gap |
+| Infrastructure/deployment | 76 | Partial preview proof; env/rollback gap |
 | Email/Resend | 50 | P0 if visible share/invite email ships |
-| Security/RLS | 78 | Linked proof gap |
+| Security/RLS | 70 | Advisor warns; linked proof gap |
 | Legal/privacy | 82 | Review proof gap |
 | Performance/caching | 65 | P1 unless thresholds fail |
 | Observability/support | 78 | Alert/inbox proof gap |
 | QA/test coverage | 82 | Hosted/manual proof gap |
-| Investor demo readiness | 76 | Rehearsal/artifact proof gap |
+| Investor demo readiness | 78 | Workbook artifact exists; rehearsal proof gap |
 | Beta readiness | 40 | P0 blocker |
 
 ## Document Index

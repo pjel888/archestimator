@@ -1,0 +1,52 @@
+{
+  "generatedAt": "2026-06-02T05:30:00.000Z",
+  "workbookPath": ".ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/lewis-residence-demo-proposal-2026-06-02.xlsx",
+  "byteLength": 13234,
+  "worksheets": [
+    "Bid Form",
+    "Summary",
+    "Commercial Terms",
+    "Source Breakdown"
+  ],
+  "bidFormTitle": "BID FORM / BILL OF QUANTITIES",
+  "bidFormPrintSetup": {
+    "fitToPage": true,
+    "margins": {
+      "left": 0.25,
+      "right": 0.25,
+      "top": 0.5,
+      "bottom": 0.5,
+      "header": 0.2,
+      "footer": 0.2
+    },
+    "paperSize": 9,
+    "orientation": "landscape",
+    "horizontalDpi": 4294967295,
+    "verticalDpi": 4294967295,
+    "pageOrder": "downThenOver",
+    "blackAndWhite": false,
+    "draft": false,
+    "cellComments": "None",
+    "errors": "displayed",
+    "scale": 100,
+    "fitToWidth": 1,
+    "fitToHeight": 0,
+    "firstPageNumber": 1,
+    "useFirstPageNumber": false,
+    "usePrinterDefaults": false,
+    "copies": 1,
+    "printTitlesRow": "17:17"
+  },
+  "firstDataLineTotal": {
+    "formula": "IF(OR(I19=\"EXCLUDED\",I19=\"BY OTHERS\",I19=\"OWNER SUPPLIED\",I19=\"OSM\",I19=\"OFCI\",I19=\"OSCI\",I19=\"OMITTED\",I19=\"NOT APPLICABLE\"),0,D19*G19+0)",
+    "result": 25000
+  },
+  "firstSectionSubtotal": {
+    "formula": "IF(OR(I23=\"EXCLUDED\",I23=\"BY OTHERS\",I23=\"OWNER SUPPLIED\",I23=\"OSM\",I23=\"OFCI\",I23=\"OSCI\",I23=\"OMITTED\",I23=\"NOT APPLICABLE\"),0,D23*G23+250)",
+    "result": 6730
+  },
+  "summaryGrandTotal": {
+    "formula": "B27+B28+B29",
+    "result": 55230
+  }
+}
