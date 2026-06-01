@@ -1,5 +1,18 @@
 # Excel Reference Analysis
 
+## Fourth-Pass Closed Beta Export Feedback - 2026-06-02
+
+Closed beta export acceptance remains strict for professional usefulness. The feedback loop should ask:
+
+- Did the workbook open correctly?
+- Were formulas and totals trusted?
+- Were group summaries understandable?
+- Was contingency/discount handling clear?
+- What columns or tabs were missing for real client/vendor use?
+- Would this export be usable as a working estimate handoff after review?
+
+Gaps can be beta feedback only when they do not break formulas, totals, readability, or professional trust.
+
 ## Third-Pass Domain Translation
 
 Commit audited: `681c95e64864f283950a88dba304eaffe8f2f8b3`. The reference files are treated as domain evidence for `EXP-001`, not as optional polish.
