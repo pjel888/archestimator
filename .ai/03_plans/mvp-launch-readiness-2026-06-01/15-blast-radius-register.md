@@ -148,6 +148,15 @@ GitNexus impact was run before editing the public legal pages:
 - `PrivacyPage` upstream impact: 0 impacted symbols, 0 affected processes, risk `LOW`.
 
 Mitigation: public copy-only page updates, no auth/session/route-boundary changes, source-contract test for login-linked truthful terms/privacy surfaces, full DOM suite, and production build.
+
+## INFRA-001 Env Manifest / Runbook Impact Evidence - 2026-06-02
+
+No production runtime symbols were changed in this slice. The edited surfaces are `.env.example`, launch-readiness docs, and a source-contract env manifest test.
+
+- Product risk is configuration/documentation drift rather than application control flow.
+- `closed-beta-env-manifest.test.ts` locks required env coverage, conservative local defaults, and manual-beta-invite/Resend posture.
+
+Mitigation: no secret values committed, local defaults stay closed/disabled, external provider proof remains explicitly unclaimed, and full type/lint/unit/DOM/build validation passed.
 | `EstimateSheetContent` | GitNexus specific symbol returned 0 upstream due App Router boundary; other impacts show it is central through hook/export/preview. | Estimate workspace flows. | HIGH by manual assessment | many estimate DOM tests. | Keep row edits scoped; use targeted DOM tests. | Protected estimate route smoke. |
 | `useEstimateRowMutations` | Direct caller: `EstimateSheetContent`; indirect tests. | None reported. | LOW graph, MEDIUM product | estimate sheet tests. | Add unlink as peer mutation with same queue/revision model. | Hook conflict/rollback test. |
 | `insertEstimateRowItemFromLibrary` | `mutationFn` in row hook. | None. | LOW | `estimate-sheet-library-insert.test.tsx`, version-control actions tests. | Do not alter insert semantics. | Regression after unlink action. |

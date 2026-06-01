@@ -9,7 +9,7 @@
 - Keep production/preview allowlists separate or clearly environment-scoped.
 - Confirm Supabase RLS remains active for profiles, workspaces, projects, estimates, publications, and new allowlist table.
 - Confirm Supabase storage buckets used by beta flows have production-safe policies.
-- Resend is optional/P1 for manual beta invites, but P0 for any visible email-dependent share/invite workflow.
+- Manual beta invites can proceed without Resend by using Philip's email and the allowlist. Resend is optional/P1 for manual beta invites, but P0 for any visible email-dependent share/invite workflow.
 - Required Resend env if visible: `RESEND_API_KEY`, `RESEND_FROM`, `RESEND_WEBHOOK_SECRET`, and verified sending domain/DNS.
 - Production smoke: allowed login, denied login, revoked login, public share, project/estimate, export, feedback link.
 
@@ -21,7 +21,7 @@ Commit audited: `681c95e64864f283950a88dba304eaffe8f2f8b3`
 | --- | --- | --- |
 | Vercel build/runtime | Local `bun run build` passes; export route declares `runtime = "nodejs"` and `dynamic = "force-dynamic"`. | No Vercel env/deploy/rollback proof. |
 | Next.js routes | App Router route handlers include AI, export, share/invite, webhook. | API timeouts/large export limits not proven on Vercel. |
-| Supabase env | `.env.example` only lists public URL/anon key, dev auth, invite flags, `DATABASE_URL`. | Missing service role, origin, publication, Resend, monitoring, AI disable vars. |
+| Supabase/env manifest | `.env.example` now lists app origins, Supabase public/server vars, closed-beta flags, publication secrets, Resend vars, AI disable vars, optional analytics, release toggles, and `DATABASE_URL`. | Real Vercel values and provider dashboard proof still missing. |
 | Supabase Auth | Login/callback code exists. | Production callback URLs and provider settings unverified. |
 | Supabase RLS | Migrations enable policies. | Linked/staging allow/deny proof missing. |
 | Storage | Component/project image code and Next image remote patterns exist. | Bucket access/policy proof missing; attachment bucket handling needs verification. |
@@ -39,6 +39,7 @@ Commit audited: `681c95e64864f283950a88dba304eaffe8f2f8b3`
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | public | anon key | Public; RLS must enforce access. |
 | `SUPABASE_SERVICE_ROLE_KEY` | server-only | secret | Never expose to client; used for audits/webhooks/admin tasks. |
 | `ARCHESTIMATOR_ALLOWED_APP_ORIGINS` | server-only | prod + preview/staging origins | Required for safe redirects. |
+| `CLOSED_BETA_ACCESS_ENABLED` | server-only | `true` in production closed beta | Local default remains `false`; production beta must enforce allowlist. |
 | `PROJECT_INVITE_ENTRY_ENABLED` | server-only | `false` until proof | Enable only after invite proof. |
 | `ARCHESTIMATOR_INVITE_TOKEN_PEPPER` | server-only | 64-char hex | Required for invite token hashing. |
 | `PUBLICATION_TOKEN_ENCRYPTION_SECRET` | server-only | secret | Required if publication tokens are visible. |
@@ -50,7 +51,11 @@ Commit audited: `681c95e64864f283950a88dba304eaffe8f2f8b3`
 | `RESEND_WEBHOOK_SECRET` | server-only | secret | Webhook returns 503 if absent. |
 | `NEXT_PUBLIC_ASK_FLIP_UI_ENABLED` | public | `false` | MVP AI UI off. |
 | `ARCHESTIMATOR_AI_ENABLED` | server-only | `false` | MVP AI routes off before handler import. |
-| Monitoring vars | mixed | provider-specific | Required by `OBS-001`. |
+| `NEXT_PUBLIC_GA_MEASUREMENT_ID` | public | blank unless approved | Optional landing analytics; privacy copy must cover configured provider. |
+| `NEXT_PUBLIC_CLARITY_PROJECT_ID` | public | blank unless approved | Optional Microsoft Clarity; privacy copy must cover configured provider. |
+| `ARCHESTIMATOR_E2E_ROUTE_ERROR_SMOKE` | server/test | `0` | Enable only for route-error E2E smoke. |
+| `RUN_SUPABASE_INTEGRATION` | test/CI | `0` | Enable only with safe staging credentials. |
+| `DATABASE_URL` | CLI/server-only | secret | Optional linked CLI/database work; never commit a real password. |
 
 ## Required Supabase Config
 
