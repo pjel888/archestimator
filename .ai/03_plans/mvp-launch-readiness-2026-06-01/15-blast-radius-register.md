@@ -1,5 +1,22 @@
 # Blast-Radius Register
 
+## Fourth-Pass Closed Beta Blast Radius - 2026-06-02
+
+| Surface | Blast radius | Risk | Notes |
+| --- | --- | --- | --- |
+| `src/proxy.ts` | All `/workshop` entry and public route exclusions | High | Must avoid redirect loops and preserve `/share`/`/invite`. |
+| `src/app/auth/callback/route.ts` | OAuth completion and first post-auth redirect | High | Add allowlist check after code exchange. |
+| `src/lib/auth/account-setup.ts` | Post-auth destination resolution | Medium | GitNexus impact for `resolvePostAuthDestination` was LOW with callback as direct caller. |
+| `src/lib/auth/session.ts` | Profile/user context for app operations | High | Must gate or wrap for closed-beta access. |
+| `src/lib/repositories/workspace-repository.ts` | Default workspace creation/reuse | Medium | Whitelisted no-workspace users depend on this path. |
+| Proposed `closed_beta_allowed_emails` | Access source of truth | High | Needs RLS, admin workflow, and backup before migration. |
+| `src/app/login/page.tsx` | Auth entry UX | Medium | Must reflect invited Google-only beta and hide/disable magic link if chosen. |
+| `/beta/access-required` | New UX route | Medium | Must be public to avoid loops. |
+| `src/app/pricing/page.tsx` | Public commercial messaging | Medium | Must hide/reframe as beta access. |
+| Landing CTA components | Public self-serve expectations | Medium | Must shift to request/contact/sign-in-if-invited. |
+| Resend routes/modules | Share/invite email delivery | Conditional | P1 unless visible workflows require email. |
+| Feedback route/component | Beta learning loop | Medium | Current contact form is not durable feedback evidence. |
+
 ## Third-Pass Graph Evidence
 
 Commit audited: `681c95e64864f283950a88dba304eaffe8f2f8b3`. Code-review graph evidence was collected before doc edits:

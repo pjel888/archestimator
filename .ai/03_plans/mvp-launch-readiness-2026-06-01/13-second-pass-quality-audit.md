@@ -1,5 +1,18 @@
 # Second-Pass Quality Audit
 
+## Fourth-Pass Closed Beta Review Addendum - 2026-06-02
+
+The fourth pass changes the launch premise:
+
+- Public paid launch assumptions are removed from P0.
+- Closed beta whitelist access is added as the first P0.
+- Payment, checkout, billing, subscription, invoice, and pricing enforcement work is deferred.
+- `/pricing` must be hidden or reframed as closed beta contact/waitlist copy.
+- Legal scope changes from paid customer SaaS terms to beta participation, privacy, acceptable use, and disclaimers.
+- Feedback/support becomes a closed-beta P0 because Philip needs safe cohort learning.
+- Resend is P1 for manual beta invites, conditional P0 only for visible required email workflows.
+- Redis is deferred unless measured closed-beta usage proves need.
+
 ## Third-Pass Audit Verdict
 
 Commit audited: `681c95e64864f283950a88dba304eaffe8f2f8b3`. The second pass found the right themes, but it was not implementation-grade for launch. This third pass corrects these weaknesses:

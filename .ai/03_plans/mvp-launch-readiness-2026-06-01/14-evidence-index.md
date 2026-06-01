@@ -1,5 +1,30 @@
 # Evidence Index
 
+## Fourth-Pass Closed Beta Evidence - 2026-06-02
+
+### Command Evidence
+
+| Evidence | Result |
+| --- | --- |
+| HEAD | `811362ac70d84cf20101f83258ae22c4e8b2c11f` |
+| `bun install --frozen-lockfile` | Pass |
+| `bun run type-check` | Pass |
+| `bun run lint` | Pass with 14 warnings |
+| `bun run lint:design-system` | Pass |
+| `bun run test` | Pass |
+| `bun run test:dom` | Fail: AI package-builder contract source expectations and share recipient-token source expectation |
+| `bun run build` | Pass |
+
+### Closed Beta Audit Evidence
+
+- Auth/proxy: `src/proxy.ts`, `src/lib/auth/actions.ts`, `src/app/auth/callback/route.ts`, `src/lib/auth/account-setup.ts`, `src/lib/auth/session.ts`.
+- Workspace first-run: `src/lib/repositories/workspace-repository.ts`.
+- Pricing/payment: `src/app/pricing/page.tsx`, landing CTA/FAQ components, `package.json` dependency audit showing no Stripe dependency.
+- Resend/email: `src/lib/email/resend-client.ts`, `src/lib/email/resend-webhooks.ts`, `src/app/api/webhooks/resend/route.ts`.
+- Feedback/contact: `src/app/contact/page.tsx`, `src/components/landing/ContactForm.tsx`.
+- Tests: auth proxy/callback/magic-link tests, Resend webhook tests, share/e2e flag docs.
+- Graph: code-review-graph and GitNexus were used first; fallback static analysis was used where graph text search did not surface all closed-beta concepts.
+
 Commit audited: `681c95e64864f283950a88dba304eaffe8f2f8b3`
 Audit date: 2026-06-02
 Scope: launch planning and readiness audit only.
