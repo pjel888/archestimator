@@ -1,5 +1,23 @@
 # Excel Reference Analysis
 
+## Third-Pass Domain Translation
+
+Commit audited: `681c95e64864f283950a88dba304eaffe8f2f8b3`. The reference files are treated as domain evidence for `EXP-001`, not as optional polish.
+
+| Observed reference pattern | MVP workbook requirement | Post-MVP roadmap |
+| --- | --- | --- |
+| Header block: project, location, owner/client, bidder/contractor, date submitted. | Required in `Bid Form`. | Company branding, logo, revision issue history. |
+| General notes: do not leave line total blank; mark included/excluded/by others; double-check formulas/subtotals; use OTHERS rows; remarks for specs. | Required general notes near top of `Bid Form`; formula tests must enforce nonblank line total cells. | Editable note templates per client/contract type. |
+| Material/labor split columns, cost total, line total, subtotal rows. | Required columns and formulas; labor compatibility mode if current schema has no real labor. | True labor/supply-install split after schema decision. |
+| Scope labels: included, omitted, OSM, OFCI, by others, owner supplied, N/A, excluded. | Required scope vocabulary and line-total behavior. | Client-specific scope dictionaries. |
+| Summary: section totals, contingency, VAT, grand total, exclusions, terms, validity/warranty, signature/conforme. | Required `Summary` and `Commercial Terms` sheets. | PDF/formal proposal letter. |
+| Bid tabulation comparing contractors. | Not MVP unless already trivial. | Post-MVP comparison module. |
+| Electrical/contractor quotations use item, description, qty, unit, material/labor, terms, validity, warranty, signature. | Keep generic construction quotation shape. | Trade-specific workbook templates. |
+| Supply/installation distinction. | Note as compatibility limitation; do not fake real labor if absent. | Schema/template support for supply/install. |
+| Formal proposal letter with amount in words, VAT, duration, signature. | Add optional summary placeholders/disclaimer. | PDF/Docx proposal package. |
+
+Manual QA checklist: compare generated workbook against references for header completeness, formula presence, section totals, scope labeling, commercial blocks, and print layout before investor/beta use.
+
 ## Reference File Inventory
 
 Local repo search:
