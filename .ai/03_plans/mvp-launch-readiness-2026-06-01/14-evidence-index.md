@@ -401,6 +401,15 @@
 - Local env refresh: current shell printed no matching `RESEND_`, closed-beta, AI, dev-auth, or Supabase env variables.
 - Launch meaning: this refresh confirms the previous provider blockers are still current. Hosted auth, env-backed Supabase/Resend behavior, production/custom-domain health, rollback, backup/PITR, linked allowlist, and linked unlink proof remain **NO-GO** rows.
 
+### Vercel Custom Domain Readiness Evidence
+
+- Artifact: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/vercel-custom-domain-readiness-blocked-2026-06-02.md`.
+- Domain proof: `vercel domains ls --non-interactive` found `archestimator.com`; DNS returns apex `A` `216.198.79.1` and `www` CNAME `bb7ab57cfa50fcad.vercel-dns-017.com`.
+- Alias proof: `vercel alias ls --non-interactive` maps `archestimator.com`, `www.archestimator.com`, and `archestimator.vercel.app` to `archestimator-3ser9ty2w-philipjonlewis-projects.vercel.app`.
+- Production deployment proof: `vercel inspect archestimator-3ser9ty2w-philipjonlewis-projects.vercel.app --non-interactive` reported production deployment id `dpl_FwfHexBsB1xSHDqHqFwHSYpCYTVH`, status `Ready`, created `Sat May 30 2026 21:09:26 GMT+0800`.
+- Public route proof: `https://archestimator.com/api/health` redirects to `www`; `https://www.archestimator.com/api/health` and `https://archestimator.vercel.app/api/health` return HTTP `404`; `https://www.archestimator.com/` returns HTTP `200` with metadata `Archestimator — Coming Soon`.
+- Launch meaning: custom domains are attached and resolving, but they serve the older coming-soon production deployment, not the current closed-beta app deployment with `/api/health`. Production/custom-domain health remains **NO-GO**.
+
 ### Resend Email Readiness Evidence
 
 - Artifact note: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/resend-email-readiness-blocked-2026-06-02.md`.
