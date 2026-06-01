@@ -56,7 +56,7 @@ describe("closed beta readiness docs", () => {
     expect(currentState).toContain("full `bun run test:dom` passed 131 files / 1021 tests / 2 skipped");
     expect(decisions).toContain("Commit `c5ca065` is the current green local baseline");
     expect(decisions).toContain("full DOM tests (131 files / 1021 tests / 2 skipped)");
-    expect(finalImplementationReport).toContain("**Latest pushed commit:** `8084908`");
+    expect(finalImplementationReport).toContain("**Latest implementation baseline before this report:** `8084908`");
     expect(finalImplementationReport).toContain("`bun run test:dom` - pass, 131 files / 1021 tests / 2 skipped");
     expect(releaseChecklist).toContain("`bun run test:dom` | Pass: 131 files / 1021 tests / 2 skipped");
     expect(releaseChecklist).not.toContain("`bun run test:dom` | Fail");
