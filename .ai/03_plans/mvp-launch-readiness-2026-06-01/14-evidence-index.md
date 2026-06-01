@@ -2,6 +2,15 @@
 
 ## Fourth-Pass Closed Beta Evidence - 2026-06-02
 
+### Final Codex Implementation Report Evidence
+
+- Final report artifact: `final-codex-implementation-report.md`.
+- Stable implementation baseline summarized by the report: `8084908`.
+- Report publication/correction commits: `80f806d`, `579cef0`.
+- Current report recommendation: **NO-GO for external closed beta launch** until hosted/provider/manual proof gates are complete.
+- Local baseline recorded in the report: typecheck pass, lint pass with 14 existing warnings, design lint pass, unit pass, full DOM pass at 131 files / 1021 tests / 2 skipped, build pass, graph/GitNexus checks clean.
+- Remaining proof gates recorded in the report: linked Supabase backup/RLS/storage/migration proof, hosted auth smoke, Vercel deploy/health/rollback proof, Resend proof if visible email flows remain, spreadsheet open/print proof, legal review, monitored support proof, demo artifacts, and current manual/E2E smoke.
+
 ### Command Evidence
 
 | Evidence | Result |

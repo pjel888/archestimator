@@ -1,5 +1,9 @@
 # Closed Beta Readiness Scorecard
 
+## Final Report Artifact
+
+Final implementation report: `final-codex-implementation-report.md`. It summarizes the local-safe implementation baseline through `8084908`, records report publication/correction commits `80f806d` and `579cef0`, and keeps the external closed beta recommendation at **NO-GO** until hosted/provider/manual proof gates are complete.
+
 ## Scoring Rule
 
 Closed beta can launch only if all P0 domains are 95+ or have a documented no-go resolution. Payment/pricing readiness is deferred and not applicable to closed beta. Public launch readiness is separate from this scorecard.

@@ -20,6 +20,10 @@ const finalLaunchGate = readFileSync(
   ".ai/03_plans/mvp-launch-readiness-2026-06-01/12-final-mvp-launch-gate.md",
   "utf8",
 );
+const evidenceIndex = readFileSync(
+  ".ai/03_plans/mvp-launch-readiness-2026-06-01/14-evidence-index.md",
+  "utf8",
+);
 const finalImplementationReport = readFileSync(
   ".ai/03_plans/mvp-launch-readiness-2026-06-01/final-codex-implementation-report.md",
   "utf8",
@@ -75,6 +79,10 @@ describe("closed beta readiness docs", () => {
     expect(finalImplementationReport).toMatch(/\*\*NO-GO for external beta testers today\.\*\*/);
     expect(finalImplementationReport).toMatch(/Linked Supabase backup\/PITR proof/);
     expect(finalImplementationReport).toMatch(/Hosted auth smoke/);
+    expect(evidenceIndex).toMatch(/Current report recommendation: \*\*NO-GO for external closed beta launch\*\*/);
+    expect(finalLaunchGate).toMatch(/final-codex-implementation-report\.md/);
+    expect(executiveBrief).toMatch(/final-codex-implementation-report\.md/);
+    expect(readinessScorecard).toMatch(/final-codex-implementation-report\.md/);
     expect(releaseChecklist).toMatch(/Current release state: \*\*NO-GO\*\*/);
     expect(releaseChecklist).toMatch(/hosted\/provider\/manual P0 gates are not proven/i);
     expect(zeroDefectMatrix).toMatch(/Launch state remains \*\*NO-GO\*\*/);
