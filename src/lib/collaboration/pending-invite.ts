@@ -3,6 +3,7 @@ import "server-only";
 import { createHmac, timingSafeEqual } from "node:crypto";
 
 import {
+  describeInviteEntryConfigFailure,
   hashInviteToken,
   readInviteEntryConfig,
 } from "@/lib/collaboration/invite-entry";
@@ -37,7 +38,7 @@ function signaturesMatch(left: string, right: string) {
 
 export function createPendingInviteBridge(rawToken: string, env: PendingInviteEnv = process.env) {
   const config = readInviteEntryConfig(env);
-  if (!config.enabled) throw new Error("Project invite entry is disabled.");
+  if (!config.enabled) throw new Error(describeInviteEntryConfigFailure(config));
 
   const payload: PendingInviteBridge = {
     version: 1,

@@ -8,13 +8,16 @@ import { resolveAuthOrigin as resolveAllowedAuthOrigin } from "@/lib/auth/redire
 import { requireCurrentUserContext } from "@/lib/auth/session";
 import {
   buildInviteEntryUrl,
+  checkInviteCreateRateLimit,
+  checkInviteResendRateLimit,
   createInviteToken,
   isProjectInviteEntryEnabled,
 } from "@/lib/collaboration/invite-entry";
+import { sendEmail } from "@/lib/email/resend-client";
 import { isUuid } from "@/lib/ids";
 import type { CollaborationRole } from "@/lib/collaboration/types";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import type { Database, Tables } from "@/lib/supabase/types";
+import type { Database, Json, Tables } from "@/lib/supabase/types";
 
 type CollaborationActionResult = {
   ok: boolean;
@@ -26,7 +29,7 @@ type ProjectAccessContext = {
   actorRank: number;
   admin: ReturnType<typeof createCollaborationAdminClient>;
   currentUserId: string;
-  project: Pick<Tables<"projects">, "id" | "workspace_id">;
+  project: Pick<Tables<"projects">, "id" | "name" | "workspace_id">;
 };
 
 type EstimateAccessContext = ProjectAccessContext & {
@@ -43,6 +46,7 @@ const roleRank: Record<CollaborationRole, number> = {
 
 const managerRank = roleRank.admin;
 const INVITE_EXPIRATION_DAYS = 14;
+const RATE_LIMIT_ACTION_MESSAGE_PREFIX = "Too many attempts. Please wait";
 
 function normalizeEmail(email: string) {
   const normalized = email.trim().toLowerCase();
@@ -59,6 +63,13 @@ function assertUuid(value: string, label: string) {
 function assertAssignableRole(actorRank: number, role: CollaborationRole) {
   if (actorRank < managerRank) throw new Error("Only owners and admins can manage access.");
   if (roleRank[role] > actorRank) throw new Error("Cannot assign a role above your own access level.");
+}
+
+function rateLimitActionResult(result: { message: string }): CollaborationActionResult {
+  const message = result.message.includes(RATE_LIMIT_ACTION_MESSAGE_PREFIX)
+    ? result.message
+    : `${RATE_LIMIT_ACTION_MESSAGE_PREFIX}.`;
+  return { ok: false, message };
 }
 
 function createCollaborationAdminClient() {
@@ -130,7 +141,7 @@ async function assertProjectAccessManager(projectId: string): Promise<ProjectAcc
   const admin = createCollaborationAdminClient();
   const { data: project, error: projectError } = await admin
     .from("projects")
-    .select("id, workspace_id")
+    .select("id, name, workspace_id")
     .eq("id", projectId)
     .maybeSingle();
 
@@ -360,6 +371,62 @@ async function sendSupabaseInviteEmail({
   if (error) throw new Error(error.message);
 }
 
+async function recordCollaborationInvitationDelivery({
+  deliveryMethod,
+  invitationId,
+  tokenId,
+}: {
+  deliveryMethod: "email" | "copy_url";
+  invitationId: string;
+  tokenId?: string | null;
+}) {
+  if (!tokenId) return;
+
+  const supabase = await createSupabaseServerClient();
+  const { error } = await supabase.rpc("record_collaboration_invitation_delivery", {
+    invitation_id: invitationId,
+    token_id: tokenId,
+    delivery_method: deliveryMethod,
+  });
+  if (error) throw error;
+}
+
+async function recordCollaborationAuditEvent({
+  context,
+  estimateId = null,
+  eventType,
+  invitationId = null,
+  metadata,
+}: {
+  context: ProjectAccessContext;
+  estimateId?: string | null;
+  eventType: "invite_email_attempted" | "role_changed" | "member_removed";
+  invitationId?: string | null;
+  metadata: Record<string, string | number | boolean | null>;
+}) {
+  try {
+    const { error } = await context.admin.from("collaboration_audit_events").insert({
+      actor_user_id: context.currentUserId,
+      estimate_id: estimateId,
+      event_type: eventType,
+      invitation_id: invitationId,
+      metadata: metadata as Json,
+      project_id: context.project.id,
+    });
+    if (error) {
+      console.warn("[collaboration] audit event skipped", {
+        eventType,
+        projectId: context.project.id,
+      });
+    }
+  } catch {
+    console.warn("[collaboration] audit event skipped", {
+      eventType,
+      projectId: context.project.id,
+    });
+  }
+}
+
 function revalidateCollaborationRoutes(projectId: string) {
   revalidatePath("/workshop/projects");
   revalidatePath(`/workshop/projects/${projectId}`);
@@ -379,21 +446,31 @@ export async function inviteProjectCollaborator({
   assertAssignableRole(context.actorRank, role);
 
   const normalizedEmail = normalizeEmail(email);
-  const invitation = await upsertInvitation({ context, email: normalizedEmail, estimateId: null, role, scope: "project" });
-  const inviteLink = isProjectInviteEntryEnabled()
-    ? await issueInviteEntryLink({
-        invitationId: invitation.id,
-        expiresAt: invitation.expiresAt,
-        deliveryMethod: "email",
-      })
-    : null;
+  const rateLimit = await checkInviteCreateRateLimit({
+    headers: await headers(),
+    projectId: context.project.id,
+    userId: context.currentUserId,
+  });
+  if (!rateLimit.allowed) return rateLimitActionResult(rateLimit);
 
+  const inviteEntryEnabled = isProjectInviteEntryEnabled();
   const { data: profile, error: profileError } = await context.admin
     .from("profiles")
     .select("id")
     .eq("email", normalizedEmail)
     .maybeSingle();
   if (profileError) throw profileError;
+
+  let invitation: Awaited<ReturnType<typeof upsertInvitation>> | null = null;
+  let inviteLink: Awaited<ReturnType<typeof issueInviteEntryLink>> | null = null;
+  if (inviteEntryEnabled) {
+    invitation = await upsertInvitation({ context, email: normalizedEmail, estimateId: null, role, scope: "project" });
+    inviteLink = await issueInviteEntryLink({
+      invitationId: invitation.id,
+      expiresAt: invitation.expiresAt,
+      deliveryMethod: "email",
+    });
+  }
 
   if (profile) {
     const directGrantedAt = new Date().toISOString();
@@ -427,22 +504,63 @@ export async function inviteProjectCollaborator({
     revalidateCollaborationRoutes(context.project.id);
     return {
       ok: true,
-      message: "Existing user added. Copy invite link to let them confirm access.",
+      message: inviteLink
+        ? "Existing user added. Copy invite link to let them confirm access."
+        : "User added directly. They can access the project now.",
       invitePath: inviteLink?.invitePath,
     };
   }
 
-  await sendSupabaseInviteEmail({
-    admin: context.admin,
-    email: normalizedEmail,
-    inviteEntryUrl: inviteLink?.inviteEntryUrl,
-    projectId: context.project.id,
-    role,
-    scope: "project",
+  if (!inviteEntryEnabled || !invitation || !inviteLink) {
+    return {
+      ok: false,
+      message: "Link-based invites are unavailable. Enable project invite entry before inviting new users.",
+    };
+  }
+
+  await recordCollaborationAuditEvent({
+    context,
+    eventType: "invite_email_attempted",
+    invitationId: invitation.id,
+    metadata: {
+      email: normalizedEmail,
+      invite_entry_enabled: Boolean(inviteLink),
+      role,
+      scope: "project",
+    },
+  });
+
+  try {
+    await sendSupabaseInviteEmail({
+      admin: context.admin,
+      email: normalizedEmail,
+      inviteEntryUrl: inviteLink.inviteEntryUrl,
+      projectId: context.project.id,
+      role,
+      scope: "project",
+    });
+  } catch (error) {
+    console.warn("[collaboration] invite email delivery failed", {
+      projectId: context.project.id,
+      scope: "project",
+      error: error instanceof Error ? error.message : "unknown",
+    });
+    revalidateCollaborationRoutes(context.project.id);
+    return {
+      ok: true,
+      message: "Invitation created. Share the invite link manually.",
+      invitePath: inviteLink.invitePath,
+    };
+  }
+
+  await recordCollaborationInvitationDelivery({
+    deliveryMethod: "email",
+    invitationId: invitation.id,
+    tokenId: inviteLink.tokenId,
   });
 
   revalidateCollaborationRoutes(context.project.id);
-  return { ok: true, message: "Invite email sent.", invitePath: inviteLink?.invitePath };
+  return { ok: true, message: "Invite email sent.", invitePath: inviteLink.invitePath };
 }
 
 export async function inviteEstimateSheetCollaborator({
@@ -460,21 +578,31 @@ export async function inviteEstimateSheetCollaborator({
   assertAssignableRole(context.estimateActorRank, role);
 
   const normalizedEmail = normalizeEmail(email);
-  const invitation = await upsertInvitation({ context, email: normalizedEmail, estimateId: context.estimate.id, role, scope: "estimate" });
-  const inviteLink = isProjectInviteEntryEnabled()
-    ? await issueInviteEntryLink({
-        invitationId: invitation.id,
-        expiresAt: invitation.expiresAt,
-        deliveryMethod: "email",
-      })
-    : null;
+  const rateLimit = await checkInviteCreateRateLimit({
+    headers: await headers(),
+    projectId: context.project.id,
+    userId: context.currentUserId,
+  });
+  if (!rateLimit.allowed) return rateLimitActionResult(rateLimit);
 
+  const inviteEntryEnabled = isProjectInviteEntryEnabled();
   const { data: profile, error: profileError } = await context.admin
     .from("profiles")
     .select("id")
     .eq("email", normalizedEmail)
     .maybeSingle();
   if (profileError) throw profileError;
+
+  let invitation: Awaited<ReturnType<typeof upsertInvitation>> | null = null;
+  let inviteLink: Awaited<ReturnType<typeof issueInviteEntryLink>> | null = null;
+  if (inviteEntryEnabled) {
+    invitation = await upsertInvitation({ context, email: normalizedEmail, estimateId: context.estimate.id, role, scope: "estimate" });
+    inviteLink = await issueInviteEntryLink({
+      invitationId: invitation.id,
+      expiresAt: invitation.expiresAt,
+      deliveryMethod: "email",
+    });
+  }
 
   if (profile) {
     const directGrantedAt = new Date().toISOString();
@@ -508,22 +636,64 @@ export async function inviteEstimateSheetCollaborator({
     revalidateCollaborationRoutes(context.project.id);
     return {
       ok: true,
-      message: "Existing user added to this sheet. Copy invite link to let them confirm access.",
+      message: inviteLink
+        ? "Existing user added to this sheet. Copy invite link to let them confirm access."
+        : "User added directly. They can access this estimate sheet now.",
       invitePath: inviteLink?.invitePath,
     };
   }
 
-  await sendSupabaseInviteEmail({
-    admin: context.admin,
-    email: normalizedEmail,
-    inviteEntryUrl: inviteLink?.inviteEntryUrl,
-    projectId: context.project.id,
-    role,
-    scope: "estimate",
+  if (!inviteEntryEnabled || !invitation || !inviteLink) {
+    return {
+      ok: false,
+      message: "Link-based sheet invites are unavailable. Enable project invite entry before inviting new users.",
+    };
+  }
+
+  await recordCollaborationAuditEvent({
+    context,
+    estimateId: context.estimate.id,
+    eventType: "invite_email_attempted",
+    invitationId: invitation.id,
+    metadata: {
+      email: normalizedEmail,
+      invite_entry_enabled: Boolean(inviteLink),
+      role,
+      scope: "estimate",
+    },
+  });
+
+  try {
+    await sendSupabaseInviteEmail({
+      admin: context.admin,
+      email: normalizedEmail,
+      inviteEntryUrl: inviteLink.inviteEntryUrl,
+      projectId: context.project.id,
+      role,
+      scope: "estimate",
+    });
+  } catch (error) {
+    console.warn("[collaboration] invite email delivery failed", {
+      projectId: context.project.id,
+      scope: "estimate",
+      error: error instanceof Error ? error.message : "unknown",
+    });
+    revalidateCollaborationRoutes(context.project.id);
+    return {
+      ok: true,
+      message: "Invitation created. Share the invite link manually.",
+      invitePath: inviteLink.invitePath,
+    };
+  }
+
+  await recordCollaborationInvitationDelivery({
+    deliveryMethod: "email",
+    invitationId: invitation.id,
+    tokenId: inviteLink.tokenId,
   });
 
   revalidateCollaborationRoutes(context.project.id);
-  return { ok: true, message: "Sheet invite email sent.", invitePath: inviteLink?.invitePath };
+  return { ok: true, message: "Sheet invite email sent.", invitePath: inviteLink.invitePath };
 }
 
 export async function copyProjectInviteLink({
@@ -546,19 +716,81 @@ export async function copyProjectInviteLink({
     return { ok: false, message: "Invite links are disabled." };
   }
 
+  const rateLimit = await checkInviteResendRateLimit({
+    headers: await headers(),
+    invitationId,
+    userId: context.currentUserId,
+  });
+  if (!rateLimit.allowed) return rateLimitActionResult(rateLimit);
+
   const inviteLink = await issueInviteEntryLink({
     invitationId,
     expiresAt: invitation.expires_at,
     deliveryMethod: "copy_url",
   });
-  const supabase = await createSupabaseServerClient();
-  await supabase.rpc("record_collaboration_invitation_delivery", {
-    invitation_id: invitationId,
-    token_id: inviteLink.tokenId,
-    delivery_method: "copy_url",
+  await recordCollaborationInvitationDelivery({
+    deliveryMethod: "copy_url",
+    invitationId,
+    tokenId: inviteLink.tokenId,
   });
   revalidateCollaborationRoutes(context.project.id);
   return { ok: true, message: "Copy invite link", invitePath: inviteLink.invitePath };
+}
+
+export async function resendProjectInviteEmail({
+  invitationId,
+}: {
+  invitationId: string;
+}): Promise<CollaborationActionResult> {
+  assertUuid(invitationId, "Invitation");
+  const admin = createCollaborationAdminClient();
+  const { data: invitation, error: invitationError } = await admin
+    .from("collaboration_invitations")
+    .select("project_id, email, role, scope, expires_at, lifecycle_state, revoked_at")
+    .eq("id", invitationId)
+    .maybeSingle();
+  if (invitationError) throw invitationError;
+  if (!invitation) throw new Error("Invitation was not found.");
+  if (invitation.revoked_at || invitation.lifecycle_state !== "pending") {
+    return { ok: false, message: "Only pending invitations can be resent." };
+  }
+  if (new Date(invitation.expires_at).getTime() <= Date.now()) {
+    return { ok: false, message: "This invitation has expired. Create a new invite." };
+  }
+
+  const context = await assertProjectAccessManager(invitation.project_id);
+  if (!isProjectInviteEntryEnabled()) {
+    return { ok: false, message: "Invite email resend requires invite links to be enabled." };
+  }
+
+  const rateLimit = await checkInviteResendRateLimit({
+    headers: await headers(),
+    invitationId,
+    userId: context.currentUserId,
+  });
+  if (!rateLimit.allowed) return rateLimitActionResult(rateLimit);
+
+  const inviteLink = await issueInviteEntryLink({
+    invitationId,
+    expiresAt: invitation.expires_at,
+    deliveryMethod: "email",
+  });
+  const scope = invitation.scope === "estimate" ? "estimate" : "project";
+  await sendSupabaseInviteEmail({
+    admin,
+    email: invitation.email,
+    inviteEntryUrl: inviteLink.inviteEntryUrl,
+    projectId: context.project.id,
+    role: invitation.role,
+    scope,
+  });
+  await recordCollaborationInvitationDelivery({
+    deliveryMethod: "email",
+    invitationId,
+    tokenId: inviteLink.tokenId,
+  });
+  revalidateCollaborationRoutes(context.project.id);
+  return { ok: true, message: "Invite email resent.", invitePath: inviteLink.invitePath };
 }
 
 export async function updateProjectCollaboratorRole({
@@ -599,15 +831,62 @@ export async function updateProjectCollaboratorRole({
   );
   if (error) throw error;
 
+  await recordCollaborationAuditEvent({
+    context,
+    eventType: "role_changed",
+    metadata: {
+      next_role: role,
+      previous_role: existingMember?.role ?? null,
+      target_user_id: userId,
+    },
+  });
+
   revalidateCollaborationRoutes(context.project.id);
   return { ok: true, message: "Role updated." };
 }
 
+async function sendCollaboratorRemovalNotification({
+  context,
+  userId,
+}: {
+  context: ProjectAccessContext;
+  userId: string;
+}): Promise<"sent" | "mocked" | "skipped" | "failed"> {
+  const { data: profile, error: profileError } = await context.admin
+    .from("profiles")
+    .select("email, display_name")
+    .eq("id", userId)
+    .maybeSingle();
+  if (profileError) {
+    console.warn("[collaboration] removal notification skipped after profile lookup failure", {
+      projectId: context.project.id,
+      userId,
+    });
+    return "failed";
+  }
+  if (!profile?.email) return "skipped";
+
+  const displayName = profile.display_name?.trim() || profile.email;
+  const result = await sendEmail({
+    to: profile.email,
+    subject: `Project access removed: ${context.project.name}`,
+    text: `Hello ${displayName},\n\nYour access to "${context.project.name}" in Archestimator has been removed.\n\nIf this looks wrong, contact the project owner.\n\nThe Archestimator Team`,
+    tags: [
+      { name: "archestimator_surface", value: "project_collaboration" },
+      { name: "collaboration_event", value: "member_removed" },
+    ],
+  });
+  if (!result.ok) return "failed";
+  return result.mocked ? "mocked" : "sent";
+}
+
 export async function removeProjectCollaborator({
   projectId,
+  notify = false,
   userId,
 }: {
   projectId: string;
+  notify?: boolean;
   userId: string;
 }): Promise<CollaborationActionResult> {
   assertUuid(userId, "User");
@@ -634,7 +913,35 @@ export async function removeProjectCollaborator({
     .eq("user_id", userId);
   if (error) throw error;
 
+  const { error: favoriteCleanupError } = await context.admin
+    .from("project_favorites")
+    .delete()
+    .eq("project_id", context.project.id)
+    .eq("user_id", userId);
+  if (favoriteCleanupError) throw favoriteCleanupError;
+
+  await recordCollaborationAuditEvent({
+    context,
+    eventType: "member_removed",
+    metadata: {
+      notification_requested: notify,
+      previous_role: existingMember.role,
+      target_user_id: userId,
+    },
+  });
+
+  const notificationStatus = notify
+    ? await sendCollaboratorRemovalNotification({ context, userId })
+    : "skipped";
+
   revalidateCollaborationRoutes(context.project.id);
+  if (notificationStatus === "sent") return { ok: true, message: "Project-specific access removed. Notification sent." };
+  if (notificationStatus === "mocked") {
+    return { ok: true, message: "Project-specific access removed. Notification not sent because email delivery is not configured." };
+  }
+  if (notificationStatus === "failed") {
+    return { ok: true, message: "Project-specific access removed. Notification could not be sent." };
+  }
   return { ok: true, message: "Project-specific access removed." };
 }
 

@@ -22,7 +22,22 @@ export type ProjectPublicationSummary = {
   snapshotVersion: number;
   openCount: number;
   latestOpenedAt: string | null;
+  latestRecipientOpen?: {
+    email: string;
+    displayName: string | null;
+    openedAt: string;
+  } | null;
+  staleSnapshotWarning?: {
+    daysBehind: number;
+    latestEstimateUpdatedAt: string;
+    snapshotGeneratedAt: string;
+  } | null;
 };
+
+export type ProjectPublicationListSummary = Pick<
+  ProjectPublicationSummary,
+  "status" | "clientLinkPath" | "openCount" | "latestOpenedAt" | "passwordRequired"
+>;
 
 export type PublicationSnapshotTreeNode = {
   id: string;
