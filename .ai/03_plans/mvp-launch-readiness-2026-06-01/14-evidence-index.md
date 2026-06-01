@@ -427,6 +427,15 @@
 - Cleanup proof: post-run residue check found no `E2E Template Insert%` estimates.
 - Scope limit: this is local dev-auth plus linked-Supabase fixture proof. It does not prove hosted auth, production Vercel, RLS allow/deny, provider dashboards, or project-specific unlink. Closed beta remains **NO-GO**.
 
+### Support/Feedback Local Surface Evidence
+
+- Artifact note: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/support-feedback-local-surface-2026-06-02.md`.
+- Public contact route: `/contact` source renders `Direct Support`, `support@archestimator.com`, and privacy copy for quote workflow support and access inquiries.
+- Workshop feedback path: `WorkshopPageShell` renders `Send beta feedback` with `mailto:support@archestimator.com?subject=Archestimator%20beta%20feedback`.
+- Legal/deletion copy: `/terms` and `/privacy` both point support, access, beta feedback, and data deletion requests to `support@archestimator.com`.
+- Test coverage: `tests/vitest/support-contact-readiness.test.ts` guards those source contracts, and `tests/vitest/workshop-reset.test.tsx` already renders the workshop feedback link.
+- Launch meaning: this proves a local visible support/feedback surface, not monitored inbox/form delivery, uptime/error alerts, or incident ownership. Support/monitoring remains a **NO-GO** row until manual/provider proof exists.
+
 ### Project-Specific Unlink Linked Smoke Attempt
 
 - Artifact note: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/project-specific-unlink-linked-smoke-blocked-2026-06-02.md`.
