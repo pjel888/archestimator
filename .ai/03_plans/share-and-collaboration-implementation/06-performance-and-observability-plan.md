@@ -3,6 +3,8 @@
 **Date:** 2026-05-30
 **Purpose:** Database index recommendations, query optimization guidance, caching strategy, rate limiter storage architecture, observability metrics, and alerting thresholds.
 
+**2026-06-01 status note:** The unchecked acceptance rows below are pre-implementation planning rows, not the canonical current status. Use `07-implementation-acceptance-criteria.md`, `09-unified-implementation-flow.md`, and `.ai/10_state/known-issues.md` for truth. Current local/live proof covers batched project-list collaboration/publication metadata, optional card props, recipient/session activity tracking, DB-backed public share/invite rate limiting, non-blocking email failure handling, circuit-breaker behavior, and visible pending-invite bridge progress. Remaining performance/observability readiness gates are provider/dashboard proof, linked query/index review under the separate database-indexing plan, and launch monitoring/alerting ownership.
+
 ---
 
 ## Database Indexes

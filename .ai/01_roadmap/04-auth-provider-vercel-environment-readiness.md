@@ -1,7 +1,7 @@
 # Auth Provider & Vercel Environment Readiness
 
-**Last updated:** 2026-05-30
-**Status:** Active audit — evidence gathering in progress.
+**Last updated:** 2026-06-01
+**Status:** Active audit — external provider/dashboard proof still open.
 **Scope:** Authentication provider configuration (Google OAuth, Supabase Auth, Resend SMTP), Vercel deployment environment readiness, and environment variable audit.
 
 ---
@@ -21,7 +21,7 @@ Most auth code paths are implemented in the application layer (`src/lib/auth/`, 
 | Supabase Site URL configuration | N/A (provider dashboard) | Yes — localhost:3000 set | No | No | No |
 | Supabase redirect allow-list | `src/proxy.ts` — `ALLOWED_REDIRECT_HOSTS` | Yes — localhost allowed | No | No | No |
 | Email sign-in link behavior | Supabase Auth + Resend | Yes — magic links deliver to dev email | No | No | No |
-| SMTP/templates | Supabase Auth dashboard + `src/lib/email/resend-client.ts` | Partial — shared-link/recipient Resend template verified; collaboration invite and magic-link provider templates unverified | No | No | No |
+| SMTP/templates | Supabase Auth dashboard + `src/lib/email/resend-client.ts` | Partial — local/shared-link email code and webhook handling exist; collaboration invite, magic-link provider templates, hosted invite template, and confirmation settings are unverified | No | No | No |
 | OTP expiry settings | N/A (Supabase dashboard) | Unknown — default Supabase settings assumed | No | No | No |
 | Resend cooldown configuration | N/A (Resend dashboard) | Unknown — default Resend limits assumed | No | No | No |
 | Signup policy (allow/block) | N/A (Supabase dashboard) | Unknown — default Supabase setting assumed | No | No | No |
@@ -42,7 +42,7 @@ Most auth code paths are implemented in the application layer (`src/lib/auth/`, 
 - **Google OAuth is in testing mode.** The Google Cloud Console app is not verified. This means new users will see an "unverified app" warning during signup and the app is capped at 100 active users. Google verification must be submitted before any public or private beta launch.
 - **CAPTCHA is the highest-priority owner decision** in the auth track. Without CAPTCHA on magic link and auth callback routes, automated abuse is possible. The decision is whether to implement CAPTCHA now or accept the risk for beta.
 - **Supabase Auth dashboard settings are unverified.** RLS deny tests confirm code-level isolation, but no redacted dashboard screenshots exist to confirm that anonymous sign-ins, phone auth, passkeys, and SAML are disabled at the provider level.
-- **Email deliverability is incomplete.** Resend domain verification (SPF/DKIM/DMARC) and Supabase Auth email/provider verification have not been proven. Without them, shared-link recipient emails, collaboration invites, and magic links risk spam folder delivery, rejection, or complete non-delivery.
+- **Email deliverability is incomplete.** Resend domain verification (SPF/DKIM/DMARC), Resend dashboard/webhook delivery proof, and Supabase Auth email/provider verification have not been proven. Without them, shared-link recipient emails, collaboration invites, and magic links risk spam folder delivery, rejection, or complete non-delivery.
 - **No staging environment exists.** Every item marked "Verified in Staging" is No because a dedicated staging Supabase project and Vercel preview environment have not been created. This blocks staging-level evidence for all auth flows.
 
 ---
@@ -145,7 +145,7 @@ Note: The publication secrets have dual naming (`PUBLICATION_*` and `ARCHESTIMAT
 | `PROJECT_INVITE_ENTRY_ENABLED` | Enables custom `/invite/[token]` entry/acceptance path | Missing or not verified | **Required** | **Required** |
 | `ARCHESTIMATOR_INVITE_TOKEN_PEPPER` | Pepper/hash secret for app-owned invite token lookup/lifecycle | Missing or not verified | **Required** | **Required** |
 
-> **⚠️ CRITICAL:** Collaboration invites are currently **non-functional / config-blocked**. The `/invite/[token]` acceptance path is disabled because `PROJECT_INVITE_ENTRY_ENABLED` is not set and `ARCHESTIMATOR_INVITE_TOKEN_PEPPER` is not configured. Additionally, Supabase Auth email/SMTP provider must be configured for invite delivery (a provider-dashboard task, not an env var). This is distinct from Resend shared-link email — collaboration invites rely on Supabase Auth email/invite behavior unless future implementation changes that. See `.ai/03_plans/share-and-collaboration-implementation/` for the full combined audit/readiness pack.
+> **⚠️ CRITICAL:** Collaboration invites and shared-link email are still **not beta-ready** because external proof is missing. Local app code now has fail-closed invite handling, POST-only acceptance, pending-invite visibility, shared-link recipient sessions, and Resend webhook handling, but the target environment still needs `PROJECT_INVITE_ENTRY_ENABLED`, `ARCHESTIMATOR_INVITE_TOKEN_PEPPER`, Supabase Auth email/SMTP/provider dashboard proof, hosted invite template/confirmation proof, Resend API/webhook proof, and real recipient inbox/browser smoke. This is distinct from local route-handler proof. See `.ai/03_plans/share-and-collaboration-implementation/` for the full combined audit/readiness pack.
 
 ### E2E testing flags
 
@@ -181,10 +181,10 @@ Note: The publication secrets have dual naming (`PUBLICATION_*` and `ARCHESTIMAT
 6. Create separate DeepSeek API keys for staging and production.
 7. Document the secret rotation procedure for each provider.
 8. Create a `.env.staging` and `.env.production` template (without values) for documentation.
-9. **Configure Supabase Auth email/SMTP provider** for collaboration invite delivery (provider dashboard task — required before invite testing).
+9. **Configure Supabase Auth email/SMTP provider** for collaboration invite delivery (provider dashboard task — required before real invite testing).
 10. **Add `PROJECT_INVITE_ENTRY_ENABLED` and `ARCHESTIMATOR_INVITE_TOKEN_PEPPER`** to all environment maps (local, staging, production).
 11. **Verify invite E2E** with `ARCHESTIMATOR_E2E_INVITE_ENTRY=1` after config unblock.
-12. **Record redacted dashboard evidence** for Supabase Auth email provider and invite env var configuration.
+12. **Record redacted dashboard evidence** for Supabase Auth email provider, hosted invite template/confirmation settings, Resend webhook configuration, and invite env var configuration.
 
 ---
 

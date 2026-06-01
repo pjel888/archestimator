@@ -124,11 +124,11 @@ Every file in `.ai/01_roadmap/` is classified into exactly one category. Canonic
 
 ### ⚠️ Drift Warning — Collaboration Invites
 
-If a roadmap file says the invite flow is "IMPLEMENTED / NEEDS EVIDENCE" but `.ai/03_plans/share-and-collaboration-implementation/` says the system is config-blocked / non-functional, **the roadmap must be corrected.** The distinction between "code exists" and "system actually works in configured environment" must be explicit. The combined pack is the newer truth for invite operational readiness and shared-link receiver sequencing.
+If a roadmap file says the invite flow, shared-link delivery, or collaboration readiness is DONE/beta-ready while `.ai/03_plans/share-and-collaboration-implementation/` still lists provider/dashboard or real-email smokes as open, **the roadmap must be corrected.** The current distinction is: local/live route implementation is substantially complete, but Supabase Auth email/provider dashboard proof, hosted invite template/confirmation proof, Resend dashboard/webhook proof, and real invite/recipient browser smokes are still not done. The combined pack is the newer truth for invite operational readiness and shared-link receiver sequencing.
 
 ### ⚠️ Drift Warning — Route Transition Performance
 
-If a roadmap file says `proxy.ts` is dead code, recommends `getSession()` in middleware, or claims route transition optimization is complete, **the roadmap must be corrected.** `.ai/03_plans/route-transition-performance-optimization/CURRENT_CANONICAL_PLAN.md` is the conflict-resolution authority. `proxy.ts` is active Next.js 16 middleware. `getUser()` must be used, not `getSession()`. Phase 0 baseline is required before optimization claims.
+If a roadmap file says `proxy.ts` is dead code, recommends `getSession()` in middleware, or claims route transition optimization is complete/archive-ready, **the roadmap must be corrected.** `.ai/03_plans/route-transition-performance-optimization/CURRENT_CANONICAL_PLAN.md` is the conflict-resolution authority. `proxy.ts` is active Next.js 16 middleware. `getUser()` must be used, not `getSession()`. Production-authenticated hover `_rsc` proof, authenticated Lighthouse, true webpack bundle-analyzer, and public bfcache cache-header mitigation are now captured, but the route-transition plan remains incomplete until manual Chrome bfcache DevTools persisted-restore proof and production Chrome React Profiler proof are captured.
 
 ### ⚠️ Drift Warning — Database Indexing / Query Performance
 

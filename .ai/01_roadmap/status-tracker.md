@@ -70,7 +70,7 @@
 | :--- | :--- | :---: | :---: | :--- |
 | **UX-1** | Page-Level Loading Skeletons on Workshop | P0 | **DONE** | Check [src/app/workshop/library/loading.tsx](file:///Users/philiplewis/archestimator/src/app/workshop/library/loading.tsx) |
 | **UX-2** | A/B Testing Infrastructure & Consent Cookie | P0 | **DONE** | Check [src/lib/ab-testing/](file:///Users/philiplewis/archestimator/src/lib/ab-testing/) and [src/lib/landing/consent.ts](file:///Users/philiplewis/archestimator/src/lib/landing/consent.ts) |
-| **UX-3** | Route Transition Optimization (Phases 1-4) | P0 | **LEFT TO DO** | Benchmark transitions under 100ms in development |
+| **UX-3** | Route Transition Optimization | P0 | **PARTIAL / NOT COMPLETE** | Local slices and evidence exist, but production/manual benchmark gates remain open |
 | **UX-4** | Mobile viewport guard on private routes | P1 | **LEFT TO DO** | Add responsive block layout to `/workshop` |
 | **UX-5** | Persistent Offline Mutation Queue | P1 | **LEFT TO DO** | Save queue to IndexDB/localStorage to survive reloads |
 | **UX-6** | GDPR User Data Rights (Delete & Export UI) | P1 | **LEFT TO DO** | Setup self-serve delete button and DSAR zip export |
@@ -89,6 +89,6 @@
 ## 3. Explanations of Core Unsolved Areas
 
 *   **T&C and Privacy Policy (SE-5):** Currently, the `/privacy` and `/terms` routes in the codebase display placeholder status pages. This is a launch blocker. Legal copy must be written and replace these stubs before any marketing launch.
-*   **Transition Performance (UX-3):** Although base transition hooks and skeletons are implemented, the performance optimization plan (Phases 1-4) is not yet carried out. Fast page transitions are not fully solved and are still categorized under "Left to Do."
+*   **Transition Performance (UX-3):** Route-transition implementation slices and local evidence now exist, but the plan is not complete. Production-mode authenticated hover Network proof, manual Chrome bfcache proof, production-authenticated medians/Lighthouse, production Chrome React Profiler proof, and full bundle-analyzer proof remain open before this can move to DONE or be archived.
 *   **Rate Limiting & lockout persistence (SE-7):** Brute-force rate limiting is in-memory only. A server restart will wipe lockouts. Redis integration is required to secure password protection in production.
 *   **Google OAuth Verification (SE-4):** Google login works locally but the OAuth credentials live in "Testing" mode. Verification must be approved by Google to allow more than 100 signups.

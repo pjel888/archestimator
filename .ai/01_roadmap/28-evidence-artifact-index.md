@@ -1,6 +1,6 @@
 # Evidence Artifact Index
 
-**Last updated:** 2026-05-30
+**Last updated:** 2026-06-01
 **Rule:** A roadmap item cannot move to DONE unless it has: evidence artifact path, validation output, screenshots or trace where relevant, performance evidence if feature touches critical path, security evidence if feature touches auth/data/storage/share/API, UX evidence if feature is user-facing, owner signoff if launch decision changes.
 
 ## Directory Structure
@@ -143,8 +143,8 @@ bun run test tests/integration/rls-isolation.test.ts > .ai/09_archive/store/YYYY
 | BETA-P0-ANA-001 | No | No | ops-evidence | BLOCKED |
 | BETA-P0-OPS-001 | No | No | ops-evidence | BLOCKED |
 | BETA-P0-LEGAL-001 | No | No | legal-evidence | BLOCKED |
-| BETA-P0-PERF-001 | No | No | performance-evidence | BLOCKED |
-| BETA-P0-PERF-002 | No | No | performance-evidence | BLOCKED |
+| BETA-P0-PERF-001 | Partial | No | performance-evidence | NOT COMPLETE / MANUAL CHROME BFCACHE + REACT PROFILER PROOF OPEN |
+| BETA-P0-PERF-002 | Partial | No | performance-evidence | TRUE WEBPACK ANALYZER CAPTURED / STILL NOT A BETA DONE PACK |
 | BETA-P0-UX-001 | No | No | user-research-evidence | BLOCKED |
 | BETA-P0-UX-002 | No | No | user-research-evidence | BLOCKED |
 | BETA-P0-UX-003 | No | No | user-research-evidence | BLOCKED |
@@ -157,20 +157,20 @@ bun run test tests/integration/rls-isolation.test.ts > .ai/09_archive/store/YYYY
 | PUBLIC-P0-LEGAL-001 | No | No | public-launch-evidence, legal-evidence | BLOCKED |
 | POST-BETA-PROD-001 | No | No | public-launch-evidence | PLANNED |
 | POST-BETA-MOBILE-001 | No | No | public-launch-evidence | PLANNED |
-| HUMAN-P0-COLLAB-001A | No | No | beta-evidence | BLOCKED — human external setup |
-| CODEX-P0-COLLAB-001B | No | No | beta-evidence | BLOCKED |
-| CODEX-P0-COLLAB-002 | No | No | security-evidence | BLOCKED |
-| CODEX-P0-COLLAB-003 | No | No | beta-evidence | BLOCKED — after external setup |
-| CODEX-P0-COLLAB-004 | No | No | beta-evidence | BLOCKED |
-| CODEX-P1-COLLAB-005 | No | No | user-research-evidence | PLANNED |
-| CODEX-P1-SHARE-001 | No | No | user-research-evidence | PLANNED |
-| CODEX-P1-SHARE-002 | No | No | user-research-evidence | PLANNED |
-| CODEX-P1-SHARE-003 | No | No | user-research-evidence | PLANNED |
-| CODEX-P1-SHARE-004 | No | No | user-research-evidence | PLANNED |
+| HUMAN-P0-COLLAB-001A | No | No | beta-evidence | BLOCKED — Supabase Auth dashboard/provider proof still needed |
+| CODEX-P0-COLLAB-001B | Partial | No | beta-evidence | LOCAL ENV AUDIT DONE / TARGET PROVIDER ENV PROOF OPEN |
+| CODEX-P0-COLLAB-002 | Partial | No | security-evidence | IMPLEMENTED LOCALLY / REAL INVITE SMOKE OPEN |
+| CODEX-P0-COLLAB-003 | No | No | beta-evidence | BLOCKED — real email/provider invite lifecycle smoke still needed |
+| CODEX-P0-COLLAB-004 | Partial | No | beta-evidence | IMPLEMENTED LOCALLY / PROVIDER DELIVERY PROOF OPEN |
+| CODEX-P1-COLLAB-005 | Partial | No | user-research-evidence | IMPLEMENTED LOCALLY / REAL INVITEE SMOKE OPEN |
+| CODEX-P1-SHARE-001 | Partial | No | user-research-evidence | IMPLEMENTED LOCALLY / OWNER ACCEPTANCE PROOF OPEN |
+| CODEX-P1-SHARE-002 | Partial | No | user-research-evidence | IMPLEMENTED LOCALLY / REAL RECIPIENT EMAIL PROOF OPEN |
+| CODEX-P1-SHARE-003 | Partial | No | user-research-evidence | IMPLEMENTED LOCALLY / RESEND DASHBOARD WEBHOOK PROOF OPEN |
+| CODEX-P1-SHARE-004 | Partial | No | user-research-evidence | IMPLEMENTED LOCALLY / OWNER ACCEPTANCE PROOF OPEN |
 | CODEX-P0-DBIDX-001 | No | No | database-performance-evidence | READY — repo-only audit can start; live metrics gated |
 | CODEX-P0-DBIDX-002 | No | No | database-performance-evidence | BLOCKED — staging/read-only DB access required |
 | CODEX-P0-DBIDX-003 | No | No | database-performance-evidence | BLOCKED — staging + representative seed data required |
 | CODEX-P1-DBIDX-004 | No | No | database-performance-evidence | PLANNED — requires DBIDX-001/002/003 + owner approval |
 | CODEX-P1-DBIDX-005 | No | No | database-performance-evidence | PLANNED — server-side search not approved |
 
-**Total evidence artifacts produced: 0 of 47** — DBIDX-001 repo-only audit is ready; all other evidence remains pending execution or dependencies.
+**Evidence status note:** BETA-P0-PERF-001 now has partial route-transition evidence under `.ai/09_archive/store/2026-05-31-BETA-P0-PERF-001-route-transition-optimization-subsequent-phases/` plus 2026-06-01 refresh folders for production-auth perf, Lighthouse/analyzer, sidebar hover-prefetch, and public bfcache cache-control mitigation. It is still not complete and must not be marked DONE or archived because manual Chrome bfcache DevTools persisted-restore proof and production Chrome React Profiler proof are still missing. Share/collaboration cards have substantial local/live route evidence, but they are not beta-DONE until Supabase Auth provider/dashboard proof, Resend dashboard/webhook proof, and real invite/recipient email browser smokes are captured. DBIDX-001 repo-only audit is ready; other evidence remains pending execution or dependencies.
