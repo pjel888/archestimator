@@ -371,6 +371,17 @@
 - Blocked commands: `supabase migration list --linked` and `supabase db advisors --linked --type performance --level warn --fail-on none -o json` failed after retries on the linked temp-role pooler circuit breaker / `SUPABASE_DB_PASSWORD` path.
 - Launch meaning: this is negative/blocked provider evidence. Supabase backup/PITR, migration history, RLS/storage/RPC allow/deny, and security-advisor triage remain **NO-GO** rows.
 
+### Supabase Linked Schema Parity Evidence
+
+- Artifact: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/supabase-linked-schema-parity-2026-06-02.md`.
+- Command path: `supabase db query --linked -o json` through the Supabase Management API SQL route.
+- Result: pass for read-only parity queries.
+- Migration parity: linked history contains `20260522091621`, `20260531164227`, `20260601003000`, and `20260601033000`; linked history is missing `20260601182522_closed_beta_allowed_emails` and `20260601184343_unlink_estimate_row_items`.
+- Object parity: `closed_beta_allowed_emails`, `check_closed_beta_access(text)`, and `unlink_estimate_row_item_from_library_with_history(...)` are absent on linked Supabase.
+- Positive object evidence: template insertion RPCs and node history RPCs are present; the history RPCs have `anon` execute false and `authenticated` execute true.
+- Storage/security evidence: `component-images` bucket is public with `image/webp` MIME restriction and 12 MiB size limit; this matches the security-advisor warning and remains a launch security triage item.
+- Launch meaning: this narrows the linked Supabase blocker. Closed-beta allowlist and project-specific unlink cannot pass hosted/linked proof until the missing migrations are applied/repaired after backup/PITR/restore evidence.
+
 ### Vercel Read-Only Provider Evidence
 
 - Artifact: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/vercel-read-only-cli-2026-06-02.md`.
