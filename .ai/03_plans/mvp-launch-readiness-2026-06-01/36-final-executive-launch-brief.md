@@ -21,22 +21,23 @@ No Stripe, checkout, subscriptions, billing UI, invoices, paid tiers, pricing en
 
 ### Command Evidence
 
-- HEAD: `811362ac70d84cf20101f83258ae22c4e8b2c11f`.
-- Install, type-check, lint, design-system lint, unit tests, and build passed.
-- DOM tests failed 3 existing static-contract assertions; this remains a validation risk to resolve or explicitly scope before beta.
+- HEAD: `531f20a` after the DATA/BETA-OPS runbook truth-sync.
+- Install, type-check, lint, design-system lint, unit tests, DOM tests, and build passed locally.
+- Launch validation still lacks hosted/manual E2E, provider dashboard, backup/restore, deployment rollback, and spreadsheet-open proof.
 
 ### P0 Blockers
 
-- Allowlist schema/enforcement missing.
-- Access-required UX missing.
-- Beta terms/privacy/AUP missing.
-- Durable beta feedback path not proven.
-- Closed-beta copy updates not implemented.
-- Existing DOM static-contract failures remain.
+- Hosted allowed/denied/revoked auth smoke missing.
+- Linked Supabase RLS/storage/migration proof missing.
+- Supabase backup/PITR and restore drill proof missing.
+- Vercel deployment/rollback proof missing.
+- Resend delivery/webhook proof missing if share/invite email remains visible.
+- Excel/secondary spreadsheet open proof missing.
+- Owner/counsel review of beta legal copy missing.
 
-### First PR Recommendation
+### Next Proof Recommendation
 
-Implement `BETA-AUTH-001` through `BETA-AUTH-006` first: allowlist schema/RLS, server helper, workshop gate, access-required UX, tests, and env/runbook updates.
+Run the provider-backed proof lane next: linked Supabase backup/migration/RLS checks, hosted auth smoke, Vercel preview/prod deploy and rollback, and spreadsheet-open QA. Keep the app closed-beta/no-payment/AI-off while collecting that evidence.
 
 Commit audited: `681c95e64864f283950a88dba304eaffe8f2f8b3`
 Current decision: **NO-GO**.
@@ -47,10 +48,10 @@ Archestimator can be a credible MVP if it ships a reliable structured estimating
 
 ## What Ships
 
-- Protected workshop with projects and estimates.
-- Component library and templates after polish.
-- Project-specific detached estimate rows after `UNLINK-001`.
-- Professional Excel bid/BOQ workbook after `EXP-001`.
+- Protected workshop with projects and estimates after hosted auth smoke.
+- Component library and templates with local polish complete and manual demo smoke still required.
+- Project-specific detached estimate rows with local tests complete and linked/manual proof still required.
+- Professional Excel bid/BOQ workbook with local ExcelJS tests complete and cross-app open proof still required.
 - Share/invite/email only after security and Resend proof.
 - Legal/support/observability/backup posture for closed beta.
 
@@ -66,38 +67,36 @@ Ask Flip/AI, billing, PDF proposals, bid tabulation, advanced collaboration/team
 
 ## P0 Blockers
 
-AI visible/callable, `test:dom` red, E2E unproven, export not bid-form quality, unlink not implemented/proven, hosted auth/RLS/Resend/deployment proof missing, legal placeholders, no backup/observability/support proof.
+Hosted auth/RLS/Resend/deployment proof missing, E2E/manual smoke unproven, spreadsheet open proof missing, owner/counsel legal review missing, and backup/restore/rollback proof missing. Local code now hides/fail-closes AI by default, has a green DOM baseline, implements project-specific unlink locally, and generates a professional workbook under ExcelJS tests.
 
 ## Implementation Sequence
 
-1. `AI-001` + env manifest.
-2. Auth/onboarding first-run proof.
-3. Library/template polish.
-4. Detached row implementation.
-5. Excel workbook implementation.
-6. Security/RLS/Resend/deploy proof.
-7. Legal/observability/support.
-8. Backup/DR and zero-defect matrix.
-9. Demo and beta program readiness.
+1. Linked Supabase backup/PITR, migration, RLS, and storage proof.
+2. Hosted auth/onboarding first-run smoke.
+3. Vercel deployment, env, health, and rollback proof.
+4. Spreadsheet open/print QA for the workbook.
+5. Resend delivery/webhook proof if email-dependent flows remain visible.
+6. Owner/counsel review of beta legal copy and monitored support inbox proof.
+7. Demo workspace/script and beta program rehearsal.
 
 ## Readiness Scorecard
 
 | Domain | Score |
 | --- | ---: |
-| Product core | 78 |
-| Estimate editor | 82 |
-| Component library | 80 |
-| Templates | 74 |
-| Project-specific unlink | 35 |
-| Excel export | 45 |
-| Auth/onboarding | 78 |
-| Infrastructure/deployment | 55 |
+| Product core | 84 |
+| Estimate editor | 84 |
+| Component library | 86 |
+| Templates | 86 |
+| Project-specific unlink | 86 |
+| Excel export | 88 |
+| Auth/onboarding | 82 |
+| Infrastructure/deployment | 78 |
 | Email/Resend | 50 |
-| Security/RLS | 62 |
-| Legal/privacy | 25 |
+| Security/RLS | 78 |
+| Legal/privacy | 82 |
 | Performance/caching | 65 |
-| Observability/support | 35 |
-| QA/test coverage | 58 |
+| Observability/support | 78 |
+| QA/test coverage | 82 |
 | Investor demo readiness | 45 |
 | Beta readiness | 40 |
 
@@ -117,11 +116,7 @@ Vercel env/deploy/rollback, Supabase auth/RLS/storage/backups, Resend DNS/webhoo
 
 ## Final Risk Posture
 
-The codebase has strong foundations, but launch risk remains high because the most externally visible trust surfaces are not yet proven: AI off, Excel quality, auth/security, legal/support, and backup/ops.
-
-## First PR Recommendation
-
-Start with `AI-001` plus the env-manifest slice of `INFRA-001`. It removes the highest-embarrassment unfinished surface and gives every later PR a safe production default.
+The codebase has stronger local foundations now, but launch risk remains high because the trust surfaces that require external proof are not yet proven: hosted auth/security, provider backups, deployment rollback, monitored support/alerts, and spreadsheet-app compatibility.
 
 ## Go / No-Go Rule
 

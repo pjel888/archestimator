@@ -261,6 +261,21 @@
 - Post-edit GitNexus `detect-changes --repo archestimator --scope staged` reported no code changes detected for this docs/test-only staged set.
 - Supabase backup/PITR proof, restore drill, production deploy rollback, and provider dashboard artifacts remain external launch gates.
 
+### FINAL-GATE Local Truth-Sync Evidence
+
+- `12-final-mvp-launch-gate.md` now reflects the current local command baseline and marks AI, unlink, export, legal, support, observability, and backup as local-pass or checklist-ready where evidence exists, while preserving no-go decisions for external proof gaps.
+- `36-final-executive-launch-brief.md` now names the next proof lane: linked Supabase backup/migration/RLS, hosted auth smoke, Vercel deploy/rollback, spreadsheet-open QA, Resend proof if email is visible, and owner/counsel review.
+- `10-technical-risk-register.md` now treats DOM, AI, export, unlink, legal, support, and backup risks as locally mitigated where applicable, while keeping them P0 until hosted/manual/provider proof is collected.
+- `closed-beta-readiness-docs.test.ts` now locks the final gate, executive brief, and technical risk register against stale pre-implementation claims.
+- Focused evidence: `bun run test:dom tests/vitest/closed-beta-readiness-docs.test.ts` passed 1 file / 4 tests.
+- `bun run type-check` passed.
+- `bun run lint` passed with the existing 14 warnings and 0 errors.
+- `bun run lint:design-system` passed.
+- `bun run test` passed 4 unit tests / 129 expectations.
+- `git diff --check` passed.
+- Post-edit code-review-graph `detect_changes` against `HEAD` analyzed 6 staged changed files, 4 changed functions/classes from the source-contract test, 0 affected flows, 0 test gaps, and overall risk score 0.30.
+- Post-edit GitNexus `detect-changes --repo archestimator --scope staged` reported no code changes detected for this docs/test-only staged set.
+
 ### Closed Beta Audit Evidence
 
 - Auth/proxy: `src/proxy.ts`, `src/lib/auth/actions.ts`, `src/app/auth/callback/route.ts`, `src/lib/auth/account-setup.ts`, `src/lib/auth/session.ts`.
