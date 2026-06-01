@@ -1,473 +1,287 @@
-# 07 — Project-Specific / Unlink Components Plan
+# Project-Specific / Unlink Components Plan
 
-**Date:** 2026-06-01
-**Priority:** P0 — Critical MVP blocker
+This document replaces the first-pass unlink plan. The first-pass SQL was schema-invalid and must not be reused.
 
-## User Story
+## Current State Evidence
 
-A user drags/clicks a component from the library into an estimate. By default, the row remembers its source library component (`source_library_item_id`, `link_state = "linked-clean"`). The user needs a `"Make project-specific"` action that:
+| Area | Evidence |
+| --- | --- |
+| Row table uses `node_id`. | `src/lib/supabase/types.ts:1127`; migration `20260518090000_archestimator_core_schema.sql:96`. |
+| No `area_node_id` exists. | Repo search found no `area_node_id` in `src/`, `supabase/`, `tests/`, or `e2e/`. |
+| `estimates.workspace_id` does not exist. | `src/lib/supabase/types.ts:1609`; workspace is on `projects.workspace_id` at `types.ts:2432`. |
+| Resolver joins estimate to project. | `20260524033151_estimate_sheet_version_control.sql:77`. |
+| Event columns are fixed. | `src/lib/supabase/types.ts:1241`; `20260524033151_estimate_sheet_version_control.sql:11`. |
+| Event type is text, not enum. | `20260524033151_estimate_sheet_version_control.sql:17`. |
+| Row mutation RPCs exist. | Generated RPC types at `src/lib/supabase/types.ts:2595` to `:2630`. |
+| Server actions exist for insert/update/replace/delete. | `src/lib/estimates/actions.ts:1677`, `:1745`, `:1771`, `:1808`. |
+| Hook exists for insert/update/replace/delete, not unlink. | `src/hooks/use-estimate-row-mutations.ts:114`. |
+| UI uses row buttons/modal, not a generic row action menu. | `EstimateSheetContent.tsx:889`, `EstimateSheetContent.tsx:2504`. |
 
-1. Breaks the link to the library component
-2. Preserves the row values as a frozen project-specific copy
-3. Lets the user edit material, description, supplier, unit, unit cost, notes without affecting the library
-4. Prevents future library changes from affecting this row
-5. Shows the user a visible badge confirming the row is now project-specific
+## Final Data Decisions
 
-## Current Row/Link Architecture
+| Link state | Meaning for MVP |
+| --- | --- |
+| `detached` | Project-specific row that was previously linked and is now explicitly unlinked. |
+| `unlinked` | Manual row that was never linked to a library item. |
+| `linked-clean` | Linked to library and unchanged locally. |
+| `linked-overridden` | Linked with local scalar overrides. |
+| `source-changed` | Future/dormant unless already set by existing data. Do not introduce new behavior in MVP. |
 
-### Database State
+Metadata decision:
 
-**Table:** `estimate_row_items`
-- `source_library_item_id: uuid?` → FK to `cost_library_items.id`, nullable, `ON DELETE SET NULL`
-- `link_state: estimate_row_link_state` → enum: `unlinked | linked-clean | linked-overridden | detached | source-changed`
-- `source_snapshot: jsonb` → frozen copy of library item at insert time (category, brand, supplier, unit_cost, pricing date, image URL, etc.)
-- `row_revision: integer` → optimistic concurrency guard
+- Preserve `source_snapshot` as the frozen original source/provenance snapshot.
+- Store unlink metadata in `estimate_row_items.metadata` and history event `payload`/`metadata`.
+- Do not append unlink metadata to `source_snapshot`.
 
-### Schema Enum Values
+## Final RPC Contract
 
-Defined in `supabase/migrations/20260518090000_archestimator_core_schema.sql`:
+Preferred function name:
+
+`unlink_estimate_row_item_from_library_with_history`
+
+Inputs follow existing convention:
 
 ```sql
-CREATE TYPE public.estimate_row_link_state AS ENUM (
-  'unlinked',        -- No library source (manual rows, blank rows)
-  'linked-clean',    -- Linked, no overrides
-  'linked-overridden', -- Linked, scalar fields edited (quantity, contingency%, miscCost)
-  'detached',         -- Was linked, explicitly unlinked (DEFINED BUT NEVER SET)
-  'source-changed'    -- Library source was updated (DEFINED BUT NEVER SET)
-);
+-- VERIFIED CONTRACT - argument names/types match current RPC style and generated-type conventions.
+target_project_id uuid,
+target_estimate_id uuid,
+target_row_id uuid,
+expected_row_revision integer,
+acting_user_id uuid default null,
+correlation_id uuid default gen_random_uuid(),
+reason text default null
 ```
 
-### Current Code Behavior
+Required behavior:
 
-**Insert (linked):** Sets `link_state = "linked-clean"`, stores `source_library_item_id`, captures `source_snapshot`.
+1. Resolve workspace through existing `resolve_estimate_workspace(target_project_id, target_estimate_id, acting_user_id)`.
+2. Lock target row with `FOR UPDATE`.
+3. Require row belongs to `target_estimate_id`.
+4. Require `row_revision = expected_row_revision`; raise the same conflict shape/convention as existing row RPCs.
+5. Require `source_library_item_id is not null` or return current row as no-op only if product explicitly chooses idempotent unlink. Default: raise invalid operation.
+6. Update `estimate_row_items` only:
+   - `source_library_item_id = null`
+   - `link_state = 'detached'`
+   - `metadata = coalesced existing metadata merged with detached metadata`
+   - `row_revision = row_revision + 1`
+   - Preserve `source_snapshot`.
+7. Do not mutate `cost_library_items`.
+8. Insert one valid `estimate_sheet_events` row using actual columns:
+   - `workspace_id`
+   - `estimate_id`
+   - `estimate_node_id`
+   - `target_row_id`
+   - `event_type = 'row_unlinked'`
+   - `event_source = 'user'`
+   - `correlation_id`
+   - `actor_user_id`
+   - `row_context`
+   - `old_snapshot`
+   - `new_snapshot`
+   - `changed_fields`
+   - `total_delta = 0`
+   - `payload`
+   - `metadata`
+9. Return the canonical row JSON shape expected by current actions.
 
-**Scalar edit (quantity, contingency%, miscCost):** If `source_library_item_id` exists, sets `link_state = "linked-overridden"`. Does NOT clear `source_library_item_id`.
+No enum migration is required for event type because `event_type` is text. A migration is required to add the RPC function and grants.
 
-**Replace component:** New library item replaces old, new snapshot, new `source_library_item_id`.
+## SQL Draft
 
-**Delete row:** Row removed entirely.
-
-**Clear/replace-with-blank:** Sets `source_library_item_id = null`, `link_state = "unlinked"`.
-
-**What's MISSING:** No code path ever writes `link_state = "detached"` or `link_state = "source-changed"`. No user-facing unlink action. No row inspector fields are editable (they're read-only).
-
-### Key Finding
-
-The `"detached"` state already exists in the Postgres enum, TypeScript types, and UI label map. We don't need a new `"project-specific"` state — `"detached"` is the correct term for "was linked but explicitly unlinked." The enum constraint is already in the schema with `"detached"` as a valid value.
-
-## DB Schema Decision
-
-**Prefer no schema change.** Use existing `link_state = "detached"`.
-
-The existing enum supports all needed states:
-- `unlinked` → manual/blank row, never had a library source
-- `linked-clean` → linked, no overrides
-- `linked-overridden` → linked, scalar edits made
-- `detached` → **was linked, now explicitly unlinked (project-specific)**
-- `source-changed` → library source updated (future feature)
-
-**Migration strategy:** No ALTER TYPE needed. No new migration required. Just use `detached` in the new RPC.
-
-## RPC / Server Action Proposal
-
-### New RPC: `unlink_estimate_row_item_from_library`
-
-**Purpose:** Unlink a row from its library source, making it project-specific.
-
-**Signature:**
 ```sql
-CREATE OR REPLACE FUNCTION public.unlink_estimate_row_item_from_library(
-  p_row_id uuid,
-  p_expected_row_revision integer,
-  p_unlink_reason text DEFAULT NULL
-) RETURNS SETOF estimate_row_items
-LANGUAGE plpgsql
-SECURITY DEFINER
-SET search_path = ''
-AS $$
-DECLARE
-  v_workspace_id uuid;
-  v_project_id uuid;
-  v_estimate_id uuid;
-  v_row estimate_row_items;
-BEGIN
-  -- Resolve workspace ownership through the chain
-  SELECT e.workspace_id, e.project_id, e.id
-  INTO v_workspace_id, v_project_id, v_estimate_id
-  FROM estimate_nodes n
-  JOIN estimates e ON e.id = n.estimate_id
-  WHERE n.id = (
-    SELECT area_node_id FROM estimate_row_items WHERE id = p_row_id
+-- IMPLEMENTATION SKETCH - schema columns verified, full PL/pgSQL must be tested during implementation.
+create or replace function public.unlink_estimate_row_item_from_library_with_history(
+  target_project_id uuid,
+  target_estimate_id uuid,
+  target_row_id uuid,
+  expected_row_revision integer,
+  acting_user_id uuid default null,
+  correlation_id uuid default gen_random_uuid(),
+  reason text default null
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  workspace_record record;
+  old_row record;
+  new_row record;
+  old_snapshot jsonb;
+  new_snapshot jsonb;
+  next_metadata jsonb;
+begin
+  workspace_record := resolve_estimate_workspace(target_project_id, target_estimate_id, acting_user_id);
+
+  select *
+    into old_row
+    from public.estimate_row_items
+   where id = target_row_id
+     and estimate_id = target_estimate_id
+   for update;
+
+  if not found then
+    raise exception 'estimate row item not found';
+  end if;
+
+  if old_row.row_revision is distinct from expected_row_revision then
+    raise exception 'estimate row item revision conflict';
+  end if;
+
+  if old_row.source_library_item_id is null then
+    raise exception 'estimate row item is not linked to a library item';
+  end if;
+
+  old_snapshot := to_jsonb(old_row);
+  next_metadata := coalesce(old_row.metadata, '{}'::jsonb) || jsonb_build_object(
+    'detachedAt', timezone('utc', now()),
+    'detachedFromSourceLibraryItemId', old_row.source_library_item_id,
+    'detachedReason', nullif(reason, '')
   );
 
-  -- Verify row exists and revision matches (optimistic concurrency)
-  SELECT * INTO v_row
-  FROM estimate_row_items
-  WHERE id = p_row_id;
+  update public.estimate_row_items
+     set source_library_item_id = null,
+         link_state = 'detached',
+         metadata = next_metadata,
+         row_revision = old_row.row_revision + 1
+   where id = target_row_id
+   returning * into new_row;
 
-  IF NOT FOUND THEN
-    RAISE EXCEPTION 'Row not found' USING ERRCODE = 'no_data_found';
-  END IF;
+  new_snapshot := to_jsonb(new_row);
 
-  IF v_row.row_revision != p_expected_row_revision THEN
-    RAISE EXCEPTION 'Row revision conflict: expected %, got %',
-      p_expected_row_revision, v_row.row_revision
-    USING ERRCODE = 'estimate_sheet_row_revision_conflict';
-  END IF;
-
-  -- Verify row is currently linked (has source_library_item_id)
-  IF v_row.source_library_item_id IS NULL THEN
-    RAISE EXCEPTION 'Row is not linked to a library component'
-    USING ERRCODE = 'check_violation';
-  END IF;
-
-  -- Link state must be linked-clean or linked-overridden (not already detached)
-  IF v_row.link_state NOT IN ('linked-clean', 'linked-overridden') THEN
-    RAISE EXCEPTION 'Row is not in a linkable state: %', v_row.link_state
-    USING ERRCODE = 'check_violation';
-  END IF;
-
-  -- Perform the unlink
-  UPDATE estimate_row_items
-  SET
-    source_library_item_id = NULL,
-    link_state = 'detached',
-    source_snapshot = source_snapshot || jsonb_build_object(
-      'unlinkedFromLibraryItemId', source_library_item_id,
-      'unlinkedFromPriceOptionId', source_snapshot->'priceOptionId',
-      'unlinkedFromComponentVersionId', source_snapshot->'componentVersionId',
-      'unlinkedAt', now()::text,
-      'unlinkedBy', auth.uid()::text,
-      'unlinkReason', p_unlink_reason
-    ),
-    row_revision = row_revision + 1,
-    updated_at = now()
-  WHERE id = p_row_id
-  AND row_revision = p_expected_row_revision;
-
-  -- Record history event
-  INSERT INTO estimate_sheet_events (
-    estimate_id, project_id, workspace_id,
-    event_type, target_type, target_id,
-    actor_id, snapshot, metadata
-  ) VALUES (
-    v_estimate_id, v_project_id, v_workspace_id,
-    'row_unlinked_from_library', 'row_item', p_row_id,
-    auth.uid(),
-    to_jsonb(v_row),
-    jsonb_build_object(
-      'unlinkedLibraryItemId', v_row.source_library_item_id,
-      'unlinkReason', p_unlink_reason
-    )
+  insert into public.estimate_sheet_events (
+    workspace_id,
+    estimate_id,
+    estimate_node_id,
+    target_row_id,
+    event_type,
+    event_source,
+    correlation_id,
+    actor_user_id,
+    row_context,
+    old_snapshot,
+    new_snapshot,
+    changed_fields,
+    total_delta,
+    payload,
+    metadata
+  )
+  values (
+    workspace_record.workspace_id,
+    target_estimate_id,
+    new_row.node_id,
+    new_row.id,
+    'row_unlinked',
+    'user',
+    correlation_id,
+    acting_user_id,
+    jsonb_build_object('nodeId', new_row.node_id),
+    old_snapshot,
+    new_snapshot,
+    array['source_library_item_id', 'link_state', 'metadata'],
+    0,
+    jsonb_build_object('reason', reason),
+    jsonb_build_object('detachedFromSourceLibraryItemId', old_row.source_library_item_id)
   );
 
-  RETURN QUERY
-  SELECT * FROM estimate_row_items WHERE id = p_row_id;
-END;
+  return new_snapshot;
+end;
 $$;
-
--- Grant execute to authenticated only
-GRANT EXECUTE ON FUNCTION public.unlink_estimate_row_item_from_library TO authenticated;
-REVOKE EXECUTE ON FUNCTION public.unlink_estimate_row_item_from_library FROM anon, public;
-
--- Add unlink event type to the estimate sheet event enum
-ALTER TYPE public.estimate_sheet_event_type ADD VALUE IF NOT EXISTS 'row_unlinked_from_library';
 ```
 
-### Server Action (TypeScript)
+## Server Action Contract
 
-**File:** `src/lib/estimates/actions.ts` (new function)
-
-```typescript
-export async function unlinkEstimateRowItem(input: {
+```ts
+// IMPLEMENTATION SKETCH - match action error/refresh conventions during coding.
+export async function unlinkEstimateRowItemFromLibrary(input: {
+  projectId: string;
+  estimateId: string;
   rowId: string;
   expectedRowRevision: number;
-  unlinkReason?: string;
-}) {
-  // Verify user is authenticated workspace member
-  const { workspaceId } = await requireCurrentWorkspace();
-  
-  const supabase = await createClient();
-  
-  const { data, error } = await supabase.rpc(
-    'unlink_estimate_row_item_from_library',
-    {
-      p_row_id: input.rowId,
-      p_expected_row_revision: input.expectedRowRevision,
-      p_unlink_reason: input.unlinkReason ?? null,
-    }
-  ).single();
-
-  if (error) throw error;
-  
-  revalidatePath('/workshop/projects/[projectId]/estimates/[nodeId]');
-  return data;
-}
+  reason?: string;
+}): Promise<{ row: EstimateRowItem }>;
 ```
 
-### Client-Side Mutation Hook
+Action rules:
 
-**File:** `src/hooks/use-estimate-row-mutations.ts` (add new mutation):
+- Use current Supabase server client and user context conventions.
+- Pass `acting_user_id` consistently with existing actions.
+- Pass a generated `correlation_id`.
+- Map returned row to current `EstimateRowItem` plus new link-state fields required by UI.
+- Revalidate the same estimate/workshop paths as update/replace/delete actions.
 
-```typescript
-const unlinkMutation = useMutation({
-  mutationFn: unlinkEstimateRowItem,
-  onMutate: async ({ rowId }) => {
-    // Optimistic: update row in query cache to detached state
-    await queryClient.cancelQueries({ queryKey: estimateQueryKeys.areaTree(estimateId) });
-    const previousTree = queryClient.getQueryData(estimateQueryKeys.areaTree(estimateId));
-    
-    queryClient.setQueryData(estimateQueryKeys.areaTree(estimateId), (old) => {
-      // Traverse tree to find and update the row
-      return updateRowInTree(old, rowId, {
-        sourceLibraryItemId: null,
-        linkState: 'detached',
-        sourceSnapshot: {
-          ...row.sourceSnapshot,
-          unlinkedAt: new Date().toISOString(),
-        },
-      });
-    });
-    
-    return { previousTree };
-  },
-  onError: (_err, _vars, context) => {
-    // Rollback
-    if (context?.previousTree) {
-      queryClient.setQueryData(estimateQueryKeys.areaTree(estimateId), context.previousTree);
-    }
-    toast.error('Failed to unlink component');
-  },
-  onSettled: () => {
-    queryClient.invalidateQueries({ queryKey: estimateQueryKeys.areaTree(estimateId) });
-  },
-  onSuccess: () => {
-    toast.success('Component unlinked — now project-specific');
-  },
-});
-```
+## Hook Contract
 
-## UI Proposal
+Add to `useEstimateRowMutations`:
 
-### 1. Row Link-State Badge
-
-Add a visible badge next to or on each row in the estimate sheet, showing link state:
-
-| link_state | Badge text | Badge style |
-|-----------|-----------|-------------|
-| `linked-clean` | "Linked to library" | Subtle chip, `text-tertiary` |
-| `linked-overridden` | "Linked, edited" | Warning chip, `text-warning` |
-| `detached` | "Project-specific" | Success chip, `text-success` |
-| `unlinked` | (no badge) | — |
-
-**Location:** `src/components/workshop/EstimateSheetContent.tsx` — add a small badge in the component cell (next to material name) or as a separate column.
-
-### 2. "Make Project-Specific" Action
-
-**Location:** Row action menu (the 3-dot action that opens Row Details modal). Add a new action:
-
-```
-┌─────────────────────────┐
-│  Row item details   →   │
-│  Make project-specific   │  ← NEW
-│  Replace component   →   │
-│  Delete row              │
-└─────────────────────────┘
-```
-
-**Condition:** Only shown when `link_state` is `"linked-clean"` or `"linked-overridden"`. Hidden (or disabled with tooltip) for `"detached"` and `"unlinked"`.
-
-### 3. Confirmation Dialog
-
-Before executing unlink, show a confirmation modal:
-
-> **Make this component project-specific?**
-> 
-> This creates a project-specific copy of "{component name}". Future edits to this row will not affect the library component, and library updates will not change this estimate row.
-> 
-> [Cancel]  [Make project-specific]
-
-### 4. Row Inspector — Editable Fields for Project-Specific Rows
-
-**Current state:** Row Details modal is entirely read-only.
-
-**New behavior for `detached` rows:**
-The Component tab becomes editable for these fields:
-- **material/name** — text input
-- **description** — text input
-- **supplier text** — text input
-- **unit** — text input (searchable picker from known units)
-- **unit cost** — numeric input
-- **notes** — text input
-
-Optional (if low risk):
-- category (via category taxonomy picker)
-- brand text
-- pricing source / pricing date / pricing confidence
-
-These edits must mutate ONLY `estimate_row_items` — never `cost_library_items` or price option tables.
-
-**Server action:** New or extended `updateEstimateRowItemComponentFields` — separate from scalar edit path to avoid accidental library mutation:
-
-```typescript
-export async function updateProjectSpecificRowComponent(input: {
+```ts
+// IMPLEMENTATION SKETCH
+unlinkRowComponent: (input: {
   rowId: string;
   expectedRowRevision: number;
-  material?: string;
-  description?: string;
-  supplier?: string;
-  unit?: string;
-  unitCost?: number;
-  notes?: string;
-}) {
-  const supabase = await createClient();
-  
-  const { data, error } = await supabase.rpc(
-    'update_project_specific_row_component',
-    {
-      p_row_id: input.rowId,
-      p_expected_row_revision: input.expectedRowRevision,
-      p_material: input.material,
-      p_description: input.description,
-      p_supplier: input.supplier,
-      p_unit: input.unit,
-      p_unit_cost: input.unitCost,
-      p_notes: input.notes,
-    }
-  ).single();
-  
-  if (error) throw error;
-  
-  revalidatePath('/workshop/projects/[projectId]/estimates/[nodeId]');
-  return data;
-}
+  reason?: string;
+}) => Promise<void>
 ```
 
-**RPC guard:** The RPC must verify `link_state = 'detached'` before allowing component field edits. Rows with `linked-clean` or `linked-overridden` should be rejected — users must unlink first.
+Hook rules:
 
-## Activity / History Event
+- Use same operation identity/queue model as insert/update/replace/delete.
+- Use cached row revision from `getCachedRowRevision`.
+- Optimistically patch row to `detached` only after mutation starts, rollback on failure.
+- Surface revision conflict as user-readable "Row changed elsewhere. Refresh and try again."
 
-**Event type:** `row_unlinked_from_library`
+## UI Contract
 
-**Rendered in Activity tab:**
-> "{actor}" unlinked "{material}" from library component. [Timestamp]
+| Element | Location | Behavior |
+| --- | --- | --- |
+| Link-state badge | Row component cell and row details modal. | `Linked`, `Overridden`, `Project-specific`, `Manual` labels mapped from link state. |
+| Unlink action | Existing component details/row details controls, not invented context menu. | Visible only for `linked-clean` and `linked-overridden`. |
+| Confirmation modal | Existing modal/dialog style. | Copy: "Make this row project-specific? It will stop following library updates. Current values stay in this estimate." |
+| Detached field editor | Row details component tab. | Enable editable supplier/brand/pricing/source notes only for `detached`/`unlinked`; linked states remain protected or routed through replacement. |
+| Disabled states | No source library id, pending mutation, revision conflict. | Disable action and explain reason. |
 
-**Metadata stored:**
-- `unlinkedLibraryItemId` — the library component that was unlinked
-- `unlinkReason` — optional reason text
+## Tests
 
-## Export Behavior
+| Test | File | Assertions |
+| --- | --- | --- |
+| RPC schema | new migration test | Uses `node_id`; inserts event with real columns; no `area_node_id`/invalid event columns. |
+| RPC behavior | SQL/action test | `source_library_item_id` null, `link_state='detached'`, `source_snapshot` preserved, metadata merged, revision increments. |
+| Conflict | action test | stale `expected_row_revision` rejects and leaves row unchanged. |
+| Hook | `use-estimate-row-mutations` test | queued mutation, optimistic patch, rollback on error. |
+| UI | `EstimateSheetContent` DOM test | badge text, confirmation, disabled states, success/error copy. |
+| History | activity/history test | `row_unlinked` event appears with old/new snapshots and target row id. |
 
-The Excel export must use the row's current values regardless of link state:
-- **linked-clean / linked-overridden:** Use row values (which may match library values)
-- **detached:** Use row values (project-specific, may differ from library)
-- **unlinked:** Use row values (manual)
+## Migration Plan
 
-No special handling needed — the export already reads `estimate_row_items` directly. The values are always the row's own values, not library values.
+1. Create migration containing function and grants.
+2. Run linked apply with exact file only after local tests.
+3. Regenerate Supabase types.
+4. Add action/hook/UI.
+5. Run targeted row tests and full command baseline.
 
-## Test Plan
+## Rollback
 
-### Vitest (Unit)
-
-1. **RPC tests:**
-   - `unlink_estimate_row_item_from_library` succeeds for linked-clean row
-   - `unlink_estimate_row_item_from_library` succeeds for linked-overridden row
-   - `unlink_estimate_row_item_from_library` fails for unlinked row
-   - `unlink_estimate_row_item_from_library` fails for already-detached row (idempotency)
-   - `unlink_estimate_row_item_from_library` fails on row revision conflict
-   - Unlink clears `source_library_item_id`
-   - Unlink sets `link_state = 'detached'`
-   - Unlink preserves `source_snapshot` with unlink metadata appended
-   - Unlink writes `row_unlinked_from_library` history event
-   - `update_project_specific_row_component` succeeds for detached row
-   - `update_project_specific_row_component` fails for linked-clean row (must unlink first)
-   - `update_project_specific_row_component` fails for linked-overridden row
-   - Editing detached row component fields does NOT mutate `cost_library_items`
-   - Editing master library component after detach does NOT change detached row
-
-2. **UI tests:**
-   - "Linked to library" badge renders for linked-clean rows
-   - "Linked, edited" badge renders for linked-overridden rows
-   - "Project-specific" badge renders for detached rows
-   - No badge for unlinked rows
-   - "Make project-specific" action visible for linked rows
-   - "Make project-specific" action hidden for detached/unlinked rows
-   - Confirmation dialog renders with correct component name
-   - Row inspector Component tab is editable for detached rows
-   - Row inspector Component tab is read-only for linked rows
-
-3. **Hook tests:**
-   - `useUnlinkRowMutation` optimistically updates cache
-   - `useUnlinkRowMutation` rolls back on failure
-   - `useUnlinkRowMutation` shows success toast
-   - `useUnlinkRowMutation` shows error toast on failure
-
-### E2E (Playwright)
-
-4. **Full workflow:**
-   - Insert library component → verify linked-clean badge → unlink → verify detached badge → edit component fields → verify library unchanged → export → verify export values
+- UI rollback: hide unlink action and badges.
+- App rollback: stop calling new action/hook.
+- DB rollback: drop `unlink_estimate_row_item_from_library_with_history` function if needed.
+- Data rollback: no table rollback needed; detached rows are normal rows. If a bad unlink occurred, relink manually by setting `source_library_item_id`, `link_state`, and `row_revision` through a reviewed repair migration.
 
 ## Edge Cases
 
-| Case | Behavior |
-|------|----------|
-| Unlink a row that's already unlinked | Show disabled action or tooltip: "Already project-specific" |
-| Unlink a manual (never-linked) row | Action hidden (not applicable) |
-| Unlink while another user edits the row | Row revision conflict → rollback with error toast |
-| Unlink then try to "re-link" | Not supported in MVP. User must replace component via drag |
-| Row with `source-changed` state | Treat same as linked-overridden (can unlink) |
-| Export after unlink | Uses current row values, not library |
-| Activity feed | Shows unlink event with actor, component name, timestamp |
-| Duplicate estimate with detached rows | Attached rows stay detached in copy (no re-link) |
-| Template insertion with project-specific components | Templates copy snapshot, inserted rows are linked-clean (not detached) |
-
-## Migration Strategy
-
-1. **No new schema migration needed.** `link_state = 'detached'` already exists in the enum.
-2. Create new migration for the RPC function `unlink_estimate_row_item_from_library`.
-3. Add `row_unlinked_from_library` to `estimate_sheet_event_type` enum if not already present.
-4. Apply to linked Supabase, verify, repair migration history.
-
-## Rollback Strategy
-
-- RPC is read-only except for the row update. Rollback = drop the RPC function.
-- UI changes are additive (new badge, new action, new modal). Rollback = remove the code.
-- No data migration needed — existing rows stay as-is.
+- Row already unlinked: reject by default.
+- Row is `linked-overridden`: allow detach and preserve current scalar overrides.
+- Row has JSON null `source_snapshot`: preserve as-is and rely on metadata.
+- User lacks workspace editor access: resolver/RLS rejects.
+- Row revision conflict: reject.
+- Concurrent replace/delete: reject through row lock/revision.
 
 ## Acceptance Criteria
 
-- [ ] Linked row (linked-clean) can be unlinked to become project-specific (detached)
-- [ ] Linked row (linked-overridden) can be unlinked to become project-specific
-- [ ] Unlinked row clears `source_library_item_id`
-- [ ] Unlinked row sets `link_state = 'detached'`
-- [ ] Unlinked row preserves `source_snapshot` with unlink metadata
-- [ ] Editing detached row component fields does NOT mutate `cost_library_items`
-- [ ] Editing master library component after detach does NOT change detached row
-- [ ] Export uses detached row values, not library values
-- [ ] Activity/history shows `row_unlinked_from_library` event
-- [ ] "Linked to library" badge renders for linked-clean
-- [ ] "Linked, edited" badge renders for linked-overridden
-- [ ] "Project-specific" badge renders for detached
-- [ ] "Make project-specific" action visible with confirmation dialog
-- [ ] Row inspector editable for detached rows, read-only for linked rows
-- [ ] Already detached rows don't show redundant unlink action
-- [ ] Already unlinked (never-linked) rows don't show unlink action
-
-## Files to Touch
-
-### New files
-- `supabase/migrations/XXXXXX_unlink_estimate_row_item.sql` — RPC migration
-
-### Modified files
-- `src/lib/estimates/actions.ts` — add `unlinkEstimateRowItem`, `updateProjectSpecificRowComponent`
-- `src/hooks/use-estimate-row-mutations.ts` — add unlink mutation, project-specific edit mutation
-- `src/components/workshop/EstimateSheetContent.tsx` — add badges, unlink action, editable inspector
-- `src/lib/supabase/types.ts` — update generated types (or manual extension)
-- `tests/vitest/unlink-estimate-row.test.tsx` — new test file
-- `tests/vitest/estimate-sheet-row-mutations.test.tsx` — add unlink tests
-
-### Impact-analysis targets (run BEFORE editing)
-- `updateEstimateRowItem` — all row writes
-- `EstimateSheetContent` — central estimate surface
-- `useEstimateRowMutations` — all row mutation hooks
-- `estimate_row_items` — DB table
+- No schema-invalid SQL remains in this package.
+- Unlink does not mutate `cost_library_items`.
+- Source snapshot remains frozen.
+- Unlink metadata lives in `metadata` and history event metadata/payload.
+- Row revision increments exactly once.
+- Valid `estimate_sheet_events` row is written.
+- UI matches actual row buttons/modal surface.
