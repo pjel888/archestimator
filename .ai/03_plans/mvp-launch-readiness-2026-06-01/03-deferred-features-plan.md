@@ -1,5 +1,22 @@
 # Deferred Features Plan: Ask Flip / AI
 
+## Third-Pass Final AI Deferral Contract
+
+Commit audited: `681c95e64864f283950a88dba304eaffe8f2f8b3`. AI is **not** MVP launch-visible unless a later ADR explicitly reactivates it. Current code does not satisfy that contract because `WorkshopPageShell` imports and renders `AskFlipFooterAssistant`, `/api/ai/ask/route.ts` calls `handleAiAskRequest`, `/api/ai/package-builder/route.ts` calls `handlePackageBuilderRequest`, and package-builder subflags default most capabilities on.
+
+| Surface | Current evidence | Required MVP behavior | Tests |
+| --- | --- | --- | --- |
+| UI | `src/components/workshop/WorkshopPageShell.tsx` renders `AskFlipFooterAssistant`. | Hide unless `NEXT_PUBLIC_ASK_FLIP_ENABLED=true`; default `false`. | DOM test: no Ask Flip button/footer/prompt in workshop. |
+| Ask API | `/api/ai/ask/route.ts` delegates directly to handler. | Return disabled response before provider/session/context work unless `AI_ASK_ENABLED=true`. | Route test: disabled response; provider/context/audit mocks not called. |
+| Package API | `/api/ai/package-builder/route.ts` delegates directly to handler. | Return disabled response before Draft/Apply/audit/memory/tool work unless `AI_PACKAGE_BUILDER_ENABLED=true`. | Route tests for Draft, Apply, feedback disabled. |
+| Subflags | `readTools`, `draft`, `applyShell`, `applyTree`, `applyRows` default true; `memory` false. | Remain inert while global flag false; production `.env.example` must set explicit values false for MVP. | Feature-flag test for global false winning over subflags. |
+
+Final flag names: `NEXT_PUBLIC_ASK_FLIP_ENABLED=false`, `AI_ASK_ENABLED=false`, `AI_PACKAGE_BUILDER_ENABLED=false`. Existing `AI_PACKAGE_BUILDER_*` subflags stay documented as post-MVP and default false in production env.
+
+Route disabled behavior: use a stable disabled status selected in `AI-001`; response body must not reveal provider config or workspace metadata. The route must fail before any provider, tool, memory, audit, or write path.
+
+Reactivation conditions: legal/privacy updated for AI, provider budget/rate limits, audit proof, opt-in UI copy, real-session tests, Apply confirmation tests, and a new ADR in `34-architecture-decision-records.md`.
+
 Launch decision: Ask Flip and package-builder AI are deferred. They must not be visible or callable by default in production.
 
 ## Current Verified State
@@ -65,9 +82,9 @@ When disabled:
 
 | Ticket | Files likely touched | Symbols |
 | --- | --- | --- |
-| MVP-AI-001 | `WorkshopPageShell.tsx`, `EstimateCopilotFloatingButton.tsx`, `.env.example`, relevant DOM tests | `WorkshopPageShell`, `AskFlipFooterAssistant`, `EstimateCopilotFloatingButton` |
-| MVP-AI-002 | `src/app/api/ai/ask/route.ts`, new flag helper or existing AI config helper, route tests | `POST`, `handleAiAskRequest` dependency boundary |
-| MVP-AI-003 | `src/app/api/ai/package-builder/route.ts`, `feature-flags.ts`, route/security tests | `POST`, `handlePackageBuilderRequest`, `parsePackageBuilderFeatureFlags` |
+| AI-001 | `WorkshopPageShell.tsx`, `EstimateCopilotFloatingButton.tsx`, `.env.example`, relevant DOM tests | `WorkshopPageShell`, `AskFlipFooterAssistant`, `EstimateCopilotFloatingButton` |
+| AI-001 | `src/app/api/ai/ask/route.ts`, new flag helper or existing AI config helper, route tests | `POST`, `handleAiAskRequest` dependency boundary |
+| AI-001 | `src/app/api/ai/package-builder/route.ts`, `feature-flags.ts`, route/security tests | `POST`, `handlePackageBuilderRequest`, `parsePackageBuilderFeatureFlags` |
 
 ## Acceptance Criteria
 
