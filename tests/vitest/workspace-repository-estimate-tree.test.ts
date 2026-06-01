@@ -15,7 +15,10 @@ function node(input: Pick<Tables<"estimate_nodes">, "id" | "parent_id" | "kind" 
   };
 }
 
-function row(input: Pick<Tables<"estimate_row_items">, "id" | "node_id" | "material" | "quantity" | "unit_cost" | "misc_cost" | "sort_order">): Tables<"estimate_row_items"> {
+function row(
+  input: Pick<Tables<"estimate_row_items">, "id" | "node_id" | "material" | "quantity" | "unit_cost" | "misc_cost" | "sort_order"> &
+    Partial<Pick<Tables<"estimate_row_items">, "link_state" | "source_library_item_id">>,
+): Tables<"estimate_row_items"> {
   return {
     estimate_id: "estimate-1",
     source_library_item_id: null,
@@ -71,6 +74,35 @@ describe("workspace repository estimate tree projection", () => {
         ],
       }),
     ]);
+  });
+
+  it("preserves detached link state for project-specific row badges", () => {
+    const tree = buildEstimateTree(
+      [
+        node({ id: "scope", parent_id: null, kind: "group", name: "Project Scope", sort_order: 0 }),
+        node({ id: "kitchen", parent_id: "scope", kind: "area", name: "Kitchen", sort_order: 10 }),
+      ],
+      [
+        row({
+          id: "row-1",
+          node_id: "kitchen",
+          material: "Custom Cabinet",
+          quantity: 1,
+          unit_cost: 1000,
+          misc_cost: 0,
+          sort_order: 0,
+          link_state: "detached",
+          source_library_item_id: null,
+        }),
+      ],
+    );
+
+    expect(tree[0]?.children?.[0]?.estimateRowItems?.[0]).toMatchObject({
+      id: "row-1",
+      source: "project",
+      linkState: "detached",
+      sourceLibraryItemId: null,
+    });
   });
 
   it("normalizes legacy organizing node kinds to visible group nodes while preserving nesting", () => {

@@ -84,7 +84,21 @@
 - `git diff --check` passed.
 - Post-edit code-review-graph `detect_changes` against `HEAD` analyzed 7 staged changed files, 6 changed functions/classes, 0 affected flows, 2 source-level test gaps, and overall risk score 0.35.
 - Post-edit GitNexus `detect-changes --repo archestimator --scope staged` reported 7 changed files, 1 changed symbol, 0 affected processes, and low risk.
-- UI/hook wiring is intentionally not part of this green point; `EstimateSheetContent`, `useEstimateRowMutations`, and persisted `linkState` mapping remain the next UNLINK-001 implementation slice.
+- UI/hook wiring is now implemented for the first visible make-project-specific flow:
+  - `buildEstimateTree()` preserves `linkState` as `linkState` so persisted detached rows can render correctly.
+  - `useEstimateRowMutations()` exposes `detachRow` with mutation ids, cached row revisions, optimistic `sourceLibraryItemId = null`, `linkState = "detached"`, rollback, and query invalidation.
+  - `EstimateSheetContent` renders a `Make project-specific` action for linked rows, confirms the operation, calls `detachEstimateRowItemFromLibrary`, and shows `Project-specific` for detached rows without blanking row values.
+- Focused UI/projection evidence: `bun run test:dom tests/vitest/workspace-repository-estimate-tree.test.ts tests/vitest/estimate-sheet-library-insert.test.tsx` passed 2 files / 16 tests.
+- Adjacent row-history/patch evidence: `bun run test:dom tests/vitest/estimate-row-tree-patch.test.ts tests/vitest/estimate-sheet-version-control-actions.test.ts tests/vitest/estimate-sheet-version-control-schema.test.ts` passed 3 files / 36 tests.
+- Post-UI wiring `bun run type-check` passed.
+- Post-UI wiring `bun run lint` passed with the existing 14 warnings and 0 errors.
+- Post-UI wiring `bun run lint:design-system` passed.
+- Post-UI wiring `bun run test` passed 4 unit tests / 129 expectations.
+- Post-UI wiring `bun run test:dom` passed 127 files / 1008 tests with 2 skips.
+- Post-UI wiring `bun run build` passed.
+- Post-UI wiring `git diff --check` passed.
+- Post-UI wiring code-review-graph `detect_changes` against `HEAD` analyzed 9 changed files, 20 changed functions/classes, 0 affected flows, 15 source-level test gaps, and overall risk score 0.50.
+- Post-UI wiring GitNexus `detect-changes --repo archestimator --scope staged` reported 9 changed files, 43 changed symbols, 1 affected process (`GET` export route through `toUiRow`), and medium risk. This is expected from persisted row projection and is mitigated by repository projection tests, export coverage inside full `test:dom`, production build, and focused UI tests.
 - Linked Supabase migration apply and direct SQL verification are not done in this slice; backup/PITR proof remains required before applying launch/beta migrations.
 
 ### Closed Beta Audit Evidence
