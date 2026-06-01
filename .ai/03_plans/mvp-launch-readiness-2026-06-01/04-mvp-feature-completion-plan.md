@@ -1,5 +1,22 @@
 # MVP Feature Completion Matrix
 
+## Fourth-Pass Closed Beta Feature Matrix - 2026-06-02
+
+Closed beta access control is now the first P0 feature because the app is invite-only.
+
+| Feature | Closed beta priority | Required beta behavior |
+| --- | --- | --- |
+| Closed beta allowlist | P0 | Google-authenticated users must match `closed_beta_allowed_emails` before `/workshop` access. |
+| Auth/onboarding | P0 | Whitelisted users enter `/workshop`; non-whitelisted users see access-required UX; no redirect loops. |
+| Workspace first-run | P0 | Whitelisted users with no workspace get the existing default workspace path. |
+| Feedback/support | P0 | Beta users can submit feedback through an external form/support email path. |
+| Project-specific unlink | P0 | Users can safely make project-specific components without corrupting library data. |
+| Component library | P0 | Workable enough for real beta estimates and demos, not exhaustive. |
+| Templates | P0 | Enough templates to demonstrate value; preview/insert must work. |
+| Excel export | P0 | Professionally useful workbook output with formula/layout QA. |
+| Ask Flip/AI | Deferred | Hidden or disabled by default. |
+| Payment/billing | Deferred | No implementation, UI, or enforcement in closed beta P0. |
+
 Commit audited: `681c95e64864f283950a88dba304eaffe8f2f8b3`
 
 | Feature | Current evidence | Missing | Ticket IDs | Exact files / symbols | Automated tests | Manual QA | Rollout | Rollback | Launch gate |

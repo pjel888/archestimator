@@ -1,5 +1,26 @@
 # Deferred Features Plan: Ask Flip / AI
 
+## Fourth-Pass Closed Beta Deferrals - 2026-06-02
+
+Ask Flip remains deferred for closed beta unless a later implementation explicitly proves safe, hidden-by-default, and launch-approved behavior.
+
+Additional deferrals created by the closed beta strategy:
+
+- Paid billing.
+- Pricing enforcement.
+- Stripe setup.
+- Checkout.
+- Subscriptions.
+- Billing portal.
+- Invoices.
+- Paid plan entitlements.
+- Public self-serve signup.
+- Admin beta management UI, because manual Supabase allowlist management is sufficient for MVP.
+- Public launch growth loops, referral loops, and broad onboarding automation.
+- Redis/distributed queues unless measured beta usage proves a need.
+
+Deferred items must not appear in P0 closed-beta scope unless explicitly reframed as future roadmap or internal-only planning.
+
 ## Third-Pass Final AI Deferral Contract
 
 Commit audited: `681c95e64864f283950a88dba304eaffe8f2f8b3`. AI is **not** MVP launch-visible unless a later ADR explicitly reactivates it. Current code does not satisfy that contract because `WorkshopPageShell` imports and renders `AskFlipFooterAssistant`, `/api/ai/ask/route.ts` calls `handleAiAskRequest`, `/api/ai/package-builder/route.ts` calls `handlePackageBuilderRequest`, and package-builder subflags default most capabilities on.
