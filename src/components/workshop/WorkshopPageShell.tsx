@@ -108,7 +108,14 @@ export async function WorkshopPageShell({
         </div>
 
         <footer className={["relative flex min-h-12 shrink-0 items-center justify-between gap-2 overflow-visible border-t border-hairline bg-white text-[10px] text-tertiary", chromePaddingClass].join(" ")}>
-          <div className="min-w-0 flex-1" />
+          <div className="min-w-0 flex-1">
+            <a
+              href="mailto:support@archestimator.com?subject=Archestimator%20beta%20feedback"
+              className="inline-flex h-7 items-center rounded-xs px-2 text-[10px] font-medium leading-none text-tertiary transition hover:bg-surfaceMuted hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+            >
+              Send beta feedback
+            </a>
+          </div>
           {projectId ? (
             <div
               className="absolute inset-y-0 flex items-center"

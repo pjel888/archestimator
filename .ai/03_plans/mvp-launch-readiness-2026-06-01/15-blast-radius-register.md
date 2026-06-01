@@ -131,6 +131,14 @@ GitNexus impact was run before editing the workbook/export seams:
 - code-review-graph file-level analysis is required after the final staged diff.
 
 Mitigation: keep this slice inside `create-proposal-workbook.ts` plus workbook tests, preserve `buildProposalExportModel` data shape, and verify preview/download parity with proposal model, route, preview, and workbook tests before full validation.
+
+## BETA-FEEDBACK-001 In-App Feedback Link Impact Evidence - 2026-06-02
+
+GitNexus impact was run before editing the workshop shell footer:
+
+- `WorkshopPageShell` upstream impact: 7 direct dependents, 7 affected processes (`LibraryPage`, `TemplatesPage`, `ProjectsPage`, `ProfileSettingsPage`, `WorkshopPage`, `WorkspaceSettingsPage`, `ProjectLayout`), risk `CRITICAL`.
+
+Mitigation: footer-only anchor, no route data changes, no sidebar/nav changes, no project-total contract changes, focused shell DOM assertion, full DOM suite, and production build before commit.
 | `EstimateSheetContent` | GitNexus specific symbol returned 0 upstream due App Router boundary; other impacts show it is central through hook/export/preview. | Estimate workspace flows. | HIGH by manual assessment | many estimate DOM tests. | Keep row edits scoped; use targeted DOM tests. | Protected estimate route smoke. |
 | `useEstimateRowMutations` | Direct caller: `EstimateSheetContent`; indirect tests. | None reported. | LOW graph, MEDIUM product | estimate sheet tests. | Add unlink as peer mutation with same queue/revision model. | Hook conflict/rollback test. |
 | `insertEstimateRowItemFromLibrary` | `mutationFn` in row hook. | None. | LOW | `estimate-sheet-library-insert.test.tsx`, version-control actions tests. | Do not alter insert semantics. | Regression after unlink action. |
