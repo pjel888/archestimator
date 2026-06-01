@@ -1,5 +1,19 @@
 # Component Library Polish Plan
 
+## Third-Pass Launch Audit
+
+Commit audited: `681c95e64864f283950a88dba304eaffe8f2f8b3`. This is P1 unless the investor demo depends on the library; then unresolved trust/empty/error states become demo-blocking.
+
+| Requirement | Current/affected files | Required implementation path | Tests | Manual QA | Demo implication |
+| --- | --- | --- | --- | --- | --- |
+| Search/filter clarity | `LibraryPageClient`, `component-library/*`, sidebar `EstimateRightSidebar` | Standardize search, category/supplier filters, empty-result copy, and reset affordance. | Component library UI tests. | Search common trade terms; reset filters. | Investor sees usable catalog, not data dump. |
+| Component row trust fields | `component-library-manager/*`, row/card components, seed helpers | Show source, category, supplier/brand when present, unit, cost, image/attachment status, last updated/version where available. | Render tests with/without supplier/image. | Seeded demo component scan. | Library moat narrative depends on visible structure. |
+| Create/edit path | Library page actions/repositories | Keep form compact; validate unit/cost/category; clear save errors. | Action and DOM validation tests. | Create component and insert into estimate. | Beta users trust data entry. |
+| Empty/loading/error copy | Library route loading/error files and page client | Use concrete actions: Add component, clear filters, retry. | Loading/error/no-data render tests. | Force empty workspace/no seeded components. | Prevents prototype feel. |
+| Seed/demo data quality | seed fixtures/helpers | Require image-backed, trade-realistic names, unit/cost consistency, no placeholder text. | Existing image-backed tests plus fixture assertions. | Demo workspace library scan. | Bad seed data undermines investor review. |
+| Accessibility | buttons, filters, dialogs | Labels for filters/search/actions; keyboard focus order; no text overflow. | Role/name tests. | Keyboard tab through library and insert. | Production polish. |
+| Library mutation boundary | `estimate_row_items`, actions | Inserting creates estimate rows; project-specific edits must not mutate `cost_library_items`. | `UNLINK-001` tests. | Insert then edit detached row, confirm library unchanged. | P0 data integrity issue. |
+
 Do not revive rejected bulk import/export or overbuilt manager UI. This is polish on the current `/workshop/library` route.
 
 ## Current Evidence
@@ -84,8 +98,8 @@ Add fixture-backed repository tests for:
 
 | Ticket | Implementation details | Acceptance criteria | Tests | Rollback |
 | --- | --- | --- | --- | --- |
-| MVP-LIB-001 | Normalize empty/loading/error/search copy; add brand/pricing-source search parity; keep existing state names. | Search and empty states behave consistently across sheet/tree. | `component-library-manager-ui.test.tsx`, route error-boundary test. | Revert copy/filter helper changes. |
-| MVP-LIB-002 | Add trust fields to card/row using existing `EstimateRowItem` data; add malformed-data fixtures. | Cards show available supplier/brand/pricing/confidence/lifecycle without layout shift. | Repository and DOM fixture tests. | Hide added fields; data untouched. |
+| LIB-001 | Normalize empty/loading/error/search copy; add brand/pricing-source search parity; keep existing state names. | Search and empty states behave consistently across sheet/tree. | `component-library-manager-ui.test.tsx`, route error-boundary test. | Revert copy/filter helper changes. |
+| LIB-001 | Add trust fields to card/row using existing `EstimateRowItem` data; add malformed-data fixtures. | Cards show available supplier/brand/pricing/confidence/lifecycle without layout shift. | Repository and DOM fixture tests. | Hide added fields; data untouched. |
 
 ## Visual QA Checklist
 
