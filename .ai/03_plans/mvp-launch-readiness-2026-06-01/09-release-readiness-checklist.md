@@ -1,5 +1,43 @@
 # Release Readiness Checklist
 
+## Fourth-Pass Closed Beta Checklist - 2026-06-02
+
+This checklist is now for closed beta, not public paid launch.
+
+### Required Command Baseline
+
+| Command | Status |
+| --- | --- |
+| `git status --short` | Clean before docs; final worktree expected docs-only. |
+| `git rev-parse HEAD` | `811362ac70d84cf20101f83258ae22c4e8b2c11f` |
+| `bun install --frozen-lockfile` | Pass |
+| `bun run type-check` | Pass |
+| `bun run lint` | Pass with 14 warnings |
+| `bun run lint:design-system` | Pass |
+| `bun run test` | Pass |
+| `bun run test:dom` | Fail: 3 existing static-contract assertions |
+| `bun run build` | Pass |
+
+### Closed Beta Gates
+
+- [ ] `closed_beta_allowed_emails` migration exists and is applied after backup.
+- [ ] `CLOSED_BETA_ACCESS_ENABLED=true` is configured in production when ready.
+- [ ] `NEXT_PUBLIC_CLOSED_BETA_MODE=true` is configured for beta copy if used.
+- [ ] Whitelisted Google user can enter `/workshop`.
+- [ ] Non-whitelisted Google user cannot enter `/workshop`.
+- [ ] Revoked user cannot enter `/workshop`.
+- [ ] Public marketing pages remain public.
+- [ ] Public share links remain accessible according to current sharing rules.
+- [ ] `/pricing` is hidden or reframed as invite-only beta access.
+- [ ] No payment setup is required.
+- [ ] No checkout, subscriptions, invoices, paid plan UI, or billing enforcement is visible.
+- [ ] Beta terms/privacy/AUP/disclaimers are visible.
+- [ ] Feedback/support path is live.
+- [ ] Founder-led support process is ready.
+- [ ] Production Google OAuth callback URLs are verified.
+- [ ] Core project/estimate/component/template/unlink/export smoke passes.
+- [ ] Runbook, rollback, and backup evidence exist.
+
 Commit audited: `681c95e64864f283950a88dba304eaffe8f2f8b3`
 Current release state: **NO-GO**.
 

@@ -1,5 +1,21 @@
 # Technical Risk Register
 
+## Fourth-Pass Closed Beta Risks - 2026-06-02
+
+| Risk | Severity | Closed beta action |
+| --- | --- | --- |
+| Whitelist bypass | Critical | Add server-side allowlist checks at callback, proxy, and session/app boundaries. |
+| Legitimate beta user blocked | High | Manual allowlist verification, access-required copy, support path, and allowed-account smoke. |
+| Revoked user keeps session access | High | Check allowlist status on protected route/session resolution, not only callback. |
+| Pricing/payment copy misleads users | High | Hide or reframe `/pricing` and CTAs as invite-only beta. |
+| Beta feedback not captured | High | Ship external form/support link before cohort invites. |
+| Investor sees public pricing confusion | Medium | Use investor demo script and beta pricing disclaimer. |
+| Manual whitelist management error | Medium | Use exact Google email, notes, status field, and runbook verification. |
+| Google OAuth callback domain mismatch | High | Verify Supabase callback URLs for Vercel production/preview domains. |
+| Resend not verified but email-dependent flow visible | Medium/High | Make Resend P0 only for visible required email flows; otherwise manual invites are acceptable. |
+
+Payment/billing operational risks are downgraded to deferred/not applicable for closed beta because no payment rail ships.
+
 ## Third-Pass Risk Register
 
 Commit audited: `681c95e64864f283950a88dba304eaffe8f2f8b3`. Risks below supersede second-pass severity where they conflict.
