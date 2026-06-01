@@ -15,6 +15,7 @@ This gate is now the closed beta launch gate. It is not a public paid-launch gat
 - `bun run lint:design-system`: pass.
 - `bun run test`: pass, 4 unit tests / 129 expectations.
 - `bun run test:dom`: pass, 131 files / 1021 tests with 2 skips.
+- `PLAYWRIGHT_PORT=3037 bun run test:e2e -- e2e/auth.spec.ts --project=chromium`: pass, 2 tests in 9.9s for local signed-out workshop redirect and login UI.
 - `bun run build`: pass.
 
 ### Closed Beta No-Go
@@ -55,7 +56,7 @@ Current decision: **NO-GO**.
 | --- | --- | --- | --- | --- |
 | Ask Flip hidden and AI routes disabled by default | Yes | UI test, route test, no provider-call test, production env false. | Local pass; production env proof pending. | No-go |
 | Core commands green | Yes | Install, typecheck, lint, design lint, unit, DOM, build, E2E. | Local type/lint/unit/DOM/build pass; hosted/manual E2E not current. | No-go |
-| Auth works in production | Yes | Hosted Google and magic-link callback smoke, logout/session expiry. | Local/code evidence only. | No-go |
+| Auth works in production | Yes | Hosted Google and magic-link callback smoke, logout/session expiry. | Local signed-out redirect/login UI E2E pass; hosted allowed/denied/revoked proof missing. | No-go |
 | RLS/migrations verified | Yes | Linked/staging SQL denial/allow queries, migration history, generated types. | Local migrations/types only. | No-go |
 | Component unlink cannot mutate library data | Yes | RPC/action/UI tests and manual library unchanged proof. | Local code/tests pass; linked/manual proof pending. | No-go |
 | Detached rows are clear to users | Yes | Row details copy/screenshot/manual QA. | Local UI coverage exists; screenshot/manual QA pending. | No-go |
@@ -82,7 +83,7 @@ Rules: below 90 cannot be called beta-ready; P0 below 95 blocks launch; 100 requ
 | Templates | 86 | Local preview tests pass; screenshot/manual insertion smoke remains. |
 | Project-specific unlink | 86 | Local RPC/action/hook/UI tests pass; linked/manual proof remains. |
 | Excel export | 88 | Professional workbook tests pass; cross-app open proof remains. |
-| Auth/onboarding | 82 | Local beta gate coverage exists; hosted callback and first-run smoke missing. |
+| Auth/onboarding | 82 | Local beta gate coverage and signed-out redirect/login UI E2E pass; hosted callback and first-run smoke missing. |
 | Infrastructure/deployment | 78 | Env manifest/runbook pass; live env/deploy/rollback proof missing. |
 | Email/Resend | 50 | Code exists; DNS/delivery/webhook proof missing; mock-success risk. |
 | Security/RLS | 78 | Local RLS/allowlist model exists; linked denial/storage tests missing. |
