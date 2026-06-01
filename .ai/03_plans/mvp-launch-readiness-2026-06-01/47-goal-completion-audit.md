@@ -30,7 +30,7 @@ This audit maps the active MVP launch goal in `codex-autopilot-goal.md` to curre
 | `.env.example` updated | Env manifest/source contract tests and runbook entries exist. | Local-proven; Vercel env proof missing |
 | Vercel/Supabase/Resend/readiness docs updated | Launch docs, runbook, env manifest, backup/DR, and proof matrix are updated. | Docs-proven; provider proof missing |
 | `.ai` roadmap/state/decision/readiness docs updated | `current-state.md`, `decisions.md`, known issues, launch pack, scorecard, and final report are synced to current local evidence. | Docs-proven |
-| All changes staged, committed, and pushed in meaningful commits | Current launch-pack commits through `e85e96f` are pushed; `.ai/08_prompts/mvp-launch-goal.md` remains intentionally untracked. | Proven for committed work |
+| All changes staged, committed, and pushed in meaningful commits | Current launch-pack commits through `3b01cd2` are pushed; `.ai/08_prompts/mvp-launch-goal.md` remains intentionally untracked. | Proven for committed work |
 | Worktree clean after final push | Worktree is clean except intentionally untracked `.ai/08_prompts/mvp-launch-goal.md`. | Proven with exception |
 | Final evidence recorded in evidence/gate/brief/scorecard | `14-evidence-index.md`, `12-final-mvp-launch-gate.md`, `36-final-executive-launch-brief.md`, and `43-closed-beta-readiness-scorecard.md` record local evidence and remaining no-go gates. | Docs-proven |
 | Final report written | `final-codex-implementation-report.md` exists and records local-safe implementation plus remaining blockers. | Docs-proven; not launch approval |

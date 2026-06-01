@@ -91,6 +91,7 @@ describe("closed beta readiness docs", () => {
     expect(finalImplementationReport).toContain("`a65b34b` - Recorded local signed-out auth E2E smoke evidence.");
     expect(finalImplementationReport).toContain("`e6cf52b` - Recorded the current local validation refresh in the launch evidence pack.");
     expect(finalImplementationReport).toContain("`7ba69e6` - Recorded the current local build refresh in the launch evidence pack.");
+    expect(finalImplementationReport).toContain("`3b01cd2` - Added the active-goal completion audit.");
     expect(finalImplementationReport).toContain("Current local validation refresh at `a65b34b` also passed `bun run validate`");
     expect(finalImplementationReport).toContain("Current app build refresh at `e6cf52b`:");
     expect(finalImplementationReport).toContain("The remaining manual/provider proof packet is now centralized in `46-manual-proof-matrix.md`");
@@ -129,7 +130,7 @@ describe("closed beta readiness docs", () => {
     expect(executiveBrief).toContain("Use `47-goal-completion-audit.md` to check whether the active launch goal can be completed");
     expect(executiveBrief).not.toContain("HEAD: `531f20a`");
     expect(readinessScorecard).toContain("local signed-out redirect/login UI E2E passes; hosted callback, allowed/denied/revoked, and first-run smoke are missing");
-    expect(readinessScorecard).toContain("records post-report validation/build evidence through `7ba69e6`");
+    expect(readinessScorecard).toContain("records post-report validation/build/completion-audit evidence through `3b01cd2`");
     expect(readinessScorecard).toContain("Manual proof matrix: `46-manual-proof-matrix.md`");
     expect(readinessScorecard).toContain("Goal completion audit: `47-goal-completion-audit.md`");
     expect(launchReadinessReadme).toContain("Final local implementation report: `final-codex-implementation-report.md`.");
@@ -175,6 +176,7 @@ describe("closed beta readiness docs", () => {
     expect(goalCompletionAudit).toContain("Ask Flip hidden and AI routes disabled by default");
     expect(goalCompletionAudit).toContain("Excel export upgraded and tested");
     expect(goalCompletionAudit).toContain("All changes staged, committed, and pushed in meaningful commits");
+    expect(goalCompletionAudit).toContain("Current launch-pack commits through `3b01cd2` are pushed");
     expect(goalCompletionAudit).toContain("Supabase backup/PITR and restore-drill proof");
     expect(goalCompletionAudit).toContain("Hosted auth allowlist smoke");
     expect(goalCompletionAudit).toContain("Excel plus one secondary spreadsheet app open/recalc/print proof");
