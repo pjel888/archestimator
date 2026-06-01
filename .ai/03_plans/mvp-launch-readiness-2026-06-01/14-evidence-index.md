@@ -416,9 +416,9 @@
 - Vercel env proof: `vercel env ls --non-interactive` returned `No Environment Variables found`.
 - Local key-presence proof: `.env.local` has `RESEND_API_KEY`, but `RESEND_FROM`, `RESEND_REPLY_TO`, and `RESEND_WEBHOOK_SECRET` are missing or empty. Values were not printed.
 - Source proof: `src/lib/email/resend-client.ts` uses `RESEND_API_KEY` outside tests and now fails closed with `EMAIL_NOT_CONFIGURED` when the key or sender is missing; mock success is restricted to tests. `src/app/api/webhooks/resend/route.ts` returns `503` when `RESEND_WEBHOOK_SECRET` is absent.
-- Visible email-flow proof: shared-link recipient/digest and collaboration invite/resend paths call `sendEmail()`.
+- Visible email-flow proof: shared-link recipient controls now disable recipient entry/send/resend while server email delivery readiness is false; shared-link digest and collaboration notification paths still call `sendEmail()` server-side.
 - Existing local test proof: `tests/vitest/resend-webhook-delivery.test.ts` guards raw-body webhook verification, recipient tags, delivery columns, and event-to-recipient status mapping.
-- Launch meaning: this is negative/blocked email-provider evidence. Manual beta invites may remain outside Resend, but visible in-app share/invite email workflows cannot be treated as launch-ready until Vercel env, verified sender/domain/DNS, webhook secret, and real delivery/webhook event proof exist.
+- Launch meaning: this is negative/blocked email-provider evidence. Manual beta invites may remain outside Resend with recipient email controls disabled, but in-app email workflows cannot be treated as launch-ready or re-enabled until Vercel env, verified sender/domain/DNS, webhook secret, and real delivery/webhook event proof exist.
 
 ### First-Run Workshop Local Surface Evidence
 

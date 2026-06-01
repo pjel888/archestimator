@@ -8,6 +8,7 @@ import {
   addSharedLinkRecipients,
   listSharedLinkRecipients,
   removeSharedLinkRecipient,
+  readSharedLinkEmailDeliveryReadiness,
   resendSharedLinkRecipientEmail,
 } from "@/lib/publication/actions";
 
@@ -47,6 +48,8 @@ export function RecipientEmailComposer({ publicationId, baseClientLink, projectN
   const [isLoadingList, setIsLoadingList] = useState(false);
   const [localMessage, setLocalMessage] = useState<string | null>(null);
   const [resendingRecipientId, setResendingRecipientId] = useState<string | null>(null);
+  const [emailDeliveryConfigured, setEmailDeliveryConfigured] = useState<boolean | null>(null);
+  const [emailDeliveryMessage, setEmailDeliveryMessage] = useState<string | null>(null);
   const projectLabel = projectName?.trim() || "this project";
 
   // Load existing recipients for this publication (status chips)
@@ -56,7 +59,10 @@ export function RecipientEmailComposer({ publicationId, baseClientLink, projectN
       if (!publicationId) return;
       setIsLoadingList(true);
       try {
-        const rows = await listSharedLinkRecipients({ publicationId });
+        const [rows, readiness] = await Promise.all([
+          listSharedLinkRecipients({ publicationId }),
+          readSharedLinkEmailDeliveryReadiness(),
+        ]);
         if (!cancelled) {
           const mapped: LocalRecipient[] = (rows || []).map((r: SharedLinkRecipient) => ({
             id: r.id,
@@ -66,10 +72,16 @@ export function RecipientEmailComposer({ publicationId, baseClientLink, projectN
             email_unsubscribed_at: r.email_unsubscribed_at,
           }));
           setChips(mapped);
+          setEmailDeliveryConfigured(readiness.configured);
+          setEmailDeliveryMessage(readiness.message);
         }
       } catch {
-        // Non-fatal for tab; start empty (user can still add)
-        if (!cancelled) setChips([]);
+        // Fail closed: recipient management remains visible, but email sending stays disabled.
+        if (!cancelled) {
+          setChips([]);
+          setEmailDeliveryConfigured(false);
+          setEmailDeliveryMessage("Email delivery status could not be verified. Copy the share link manually.");
+        }
       } finally {
         if (!cancelled) setIsLoadingList(false);
       }
@@ -101,7 +113,7 @@ export function RecipientEmailComposer({ publicationId, baseClientLink, projectN
   }
 
   async function handleSend() {
-    if (chips.length === 0 || isSending) return;
+    if (chips.length === 0 || isSending || emailDeliveryConfigured !== true) return;
     setIsSending(true);
     setLocalMessage(null);
     if (onMessage) onMessage(null);
@@ -179,7 +191,7 @@ export function RecipientEmailComposer({ publicationId, baseClientLink, projectN
   }
 
   async function handleResend(rec: LocalRecipient) {
-    if (!rec.id || resendingRecipientId) return;
+    if (!rec.id || resendingRecipientId || emailDeliveryConfigured !== true) return;
     setResendingRecipientId(rec.id);
     setLocalMessage(null);
     if (onMessage) onMessage(null);
@@ -209,12 +221,17 @@ export function RecipientEmailComposer({ publicationId, baseClientLink, projectN
   }
 
   const pendingCount = chips.filter((c) => !c.email_unsubscribed_at && c.delivery_status === "pending").length;
-  const canSend = pendingCount > 0 && !isSending;
+  const emailDisabled = emailDeliveryConfigured !== true;
+  const canSend = pendingCount > 0 && !isSending && !emailDisabled;
 
   return (
     <div className="text-[10px]">
       <h3 className="text-[9px] font-medium uppercase leading-3 tracking-normal text-tertiary">Email recipients</h3>
-      <p className="text-[9px] leading-3 text-tertiary mb-2">Add emails to receive the unique share link for {projectLabel}. Delivery is best-effort; link creation always succeeds.</p>
+      <p className="text-[9px] leading-3 text-tertiary mb-2">
+        {emailDisabled
+          ? emailDeliveryMessage ?? "Checking email delivery configuration..."
+          : `Add emails to receive the unique share link for ${projectLabel}. Delivery is best-effort; link creation always succeeds.`}
+      </p>
 
       {/* Chip input */}
       <div className="flex flex-wrap items-center gap-1 rounded-xs border border-hairline bg-white p-1 min-h-7">
@@ -239,7 +256,7 @@ export function RecipientEmailComposer({ publicationId, baseClientLink, projectN
                   aria-label={`Resend ${chip.email}`}
                   className="h-5 px-1 py-0 text-[9px] text-tertiary hover:text-ink"
                   onClick={() => void handleResend(chip)}
-                  disabled={isSending || Boolean(resendingRecipientId) || Boolean(chip.email_unsubscribed_at)}
+                  disabled={emailDisabled || isSending || Boolean(resendingRecipientId) || Boolean(chip.email_unsubscribed_at)}
                 >
                   <ArrowClockwise size={10} aria-hidden="true" />
                 </Button>
@@ -274,7 +291,7 @@ export function RecipientEmailComposer({ publicationId, baseClientLink, projectN
             }
           }}
           onBlur={() => { if (input.trim()) parseAndAddEmails(input); }}
-          disabled={isSending || isLoadingList}
+          disabled={emailDisabled || isSending || isLoadingList}
         />
       </div>
 

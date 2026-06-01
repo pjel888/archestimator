@@ -177,7 +177,8 @@ describe("closed beta readiness docs", () => {
     expect(evidenceIndex).toContain("resend-email-readiness-blocked-2026-06-02.md");
     expect(evidenceIndex).toContain("Vercel env proof: `vercel env ls --non-interactive` returned `No Environment Variables found`");
     expect(evidenceIndex).toContain("`RESEND_FROM`, `RESEND_REPLY_TO`, and `RESEND_WEBHOOK_SECRET` are missing or empty");
-    expect(evidenceIndex).toContain("visible in-app share/invite email workflows cannot be treated as launch-ready");
+    expect(evidenceIndex).toContain("recipient email controls disabled");
+    expect(evidenceIndex).toContain("in-app email workflows cannot be treated as launch-ready or re-enabled");
     expect(evidenceIndex).toContain("### First-Run Workshop Local Surface Evidence");
     expect(evidenceIndex).toContain("first-run-workshop-local-surface-2026-06-02.md");
     expect(evidenceIndex).toContain("covers default workspace reuse/creation");
@@ -268,7 +269,7 @@ describe("closed beta readiness docs", () => {
     expect(manualProofMatrix).toContain("still shows `20260601182522_closed_beta_allowed_emails` and `20260601184343_unlink_estimate_row_items` as local-only");
     expect(manualProofMatrix).toContain("resend-email-readiness-blocked-2026-06-02.md");
     expect(manualProofMatrix).toContain("Vercel env list empty");
-    expect(manualProofMatrix).toContain("visible share/invite email paths still present");
+    expect(manualProofMatrix).toContain("disables shared-link recipient entry/send/resend while server email readiness is false");
     expect(manualProofMatrix).toContain("first-run-workshop-local-surface-2026-06-02.md");
     expect(manualProofMatrix).toContain("empty Workshop homebase action links");
     expect(manualProofMatrix).toContain("Hosted whitelisted account proof still missing");
@@ -332,7 +333,7 @@ describe("closed beta readiness docs", () => {
     expect(goalCompletionAudit).toContain("Current provider refresh proves latest preview readiness and protected health only");
     expect(goalCompletionAudit).toContain("Resend email readiness evidence");
     expect(goalCompletionAudit).toContain("Vercel env list is empty, local `RESEND_FROM` / `RESEND_REPLY_TO` / `RESEND_WEBHOOK_SECRET` are missing or empty");
-    expect(goalCompletionAudit).toContain("visible shared-link/collaboration email paths still call `sendEmail()`");
+    expect(goalCompletionAudit).toContain("shared-link recipient entry/send/resend controls are disabled while server email readiness is false");
     expect(goalCompletionAudit).toContain("unconfigured production-like sends now fail closed instead of recording fake success");
     expect(goalCompletionAudit).toContain("First-run Workshop local surface evidence");
     expect(goalCompletionAudit).toContain("empty Workshop homebase with Projects, Components, Templates, and empty favorite states");
@@ -376,7 +377,7 @@ describe("closed beta readiness docs", () => {
     expect(currentState).toContain("Vercel env list is empty");
     expect(currentState).toContain("Resend email readiness evidence");
     expect(currentState).toContain("local `RESEND_FROM`, `RESEND_REPLY_TO`, and `RESEND_WEBHOOK_SECRET` are missing or empty");
-    expect(currentState).toContain("visible shared-link/collaboration email paths remain in source");
+    expect(currentState).toContain("shared-link recipient entry/send/resend controls disable while server email readiness is false");
     expect(currentState).toContain("unconfigured production-like sends now fail closed instead of fake-succeeding");
     expect(currentState).toContain("First-run Workshop local evidence");
     expect(currentState).toContain("empty Workshop homebase with Projects, Components, Templates, and empty favorite states");
@@ -408,7 +409,7 @@ describe("closed beta readiness docs", () => {
     expect(knownIssues).toContain("`component-images` public");
     expect(knownIssues).toContain("Resend email readiness evidence on 2026-06-02 is negative/blocked");
     expect(knownIssues).toContain("local `RESEND_FROM`, `RESEND_REPLY_TO`, and `RESEND_WEBHOOK_SECRET` are missing or empty");
-    expect(knownIssues).toContain("visible shared-link/collaboration email paths remain in source");
+    expect(knownIssues).toContain("shared-link recipient entry/send/resend controls disable while server email readiness is false");
     expect(knownIssues).toContain("unconfigured production-like sends now fail closed instead of fake-succeeding");
     expect(knownIssues).toContain("First-run Workshop local evidence on 2026-06-02 proves fallback workspace coverage");
     expect(knownIssues).toContain("hosted fresh-account Google auth and allowlist proof remain missing");

@@ -11,7 +11,7 @@ No email was sent. No provider dashboard, DNS, webhook configuration, or product
 | Email client | `src/lib/email/resend-client.ts` uses `RESEND_API_KEY` outside tests and now fails closed with `EMAIL_NOT_CONFIGURED` when the key or sender is missing. Mock success is restricted to tests. | Local tests can pass without real delivery; production-like missing config no longer records fake dispatch success. Provider proof is still required before launch-ready email claims. |
 | Sender config | `sendEmail()` uses explicit `input.from` or `RESEND_FROM`; missing sender config returns `EMAIL_NOT_CONFIGURED` outside tests. | A verified sender/domain must be configured before visible email flows are launch-ready. |
 | Webhook route | `src/app/api/webhooks/resend/route.ts` returns `503` when `RESEND_WEBHOOK_SECRET` is absent, verifies raw-body Svix headers when present, and records delivery events. | Webhook delivery proof cannot pass without the secret and provider webhook setup. |
-| Visible email flows | `src/lib/publication/actions.ts` and `src/lib/collaboration/actions.ts` call `sendEmail()` for shared-link recipients, owner digests, and invite/resend paths. | Resend is P0 for these visible email-dependent workflows unless they are intentionally disabled/deferred. |
+| Visible email flows | `src/components/workshop/publication/RecipientEmailComposer.tsx` disables recipient entry, send, and resend controls unless the server reports Resend sender, reply-to, and webhook settings are configured. `src/lib/publication/actions.ts` and `src/lib/collaboration/actions.ts` still call `sendEmail()` for server-side delivery paths. | Manual link sharing can be used while the recipient email controls are disabled, but Resend is still P0 before re-enabling visible email-dependent workflows for launch. |
 
 ## Read-Only Env Evidence
 
@@ -51,6 +51,6 @@ Result: local `.env.local` has a Resend API key, but the sender, reply-to, and w
 ## Launch Meaning
 
 - This is negative/blocked provider readiness evidence.
-- Manual beta invite email can remain outside Resend only if in-app share/invite email workflows are not treated as launch-ready.
-- Visible shared-link recipient email, owner digest, collaboration invite, and resend flows must not be considered launch-ready until Vercel env values, verified sender/domain/DNS, a configured webhook secret, and real delivery/bounce/open webhook evidence are archived.
+- Manual beta invite email can remain outside Resend while unconfigured recipient email controls are disabled.
+- Shared-link recipient email, owner digest, collaboration invite, and resend delivery must not be considered launch-ready or re-enabled as visible email-dependent launch workflows until Vercel env values, verified sender/domain/DNS, a configured webhook secret, and real delivery/bounce/open webhook evidence are archived.
 - The local code now prevents unconfigured production-like email attempts from being recorded as successful Resend dispatches, but this is a guardrail, not provider readiness proof.

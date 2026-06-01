@@ -14,6 +14,7 @@ const publicationActions = vi.hoisted(() => ({
   addSharedLinkRecipients: vi.fn(),
   createProjectPublication: vi.fn(),
   listSharedLinkRecipients: vi.fn(),
+  readSharedLinkEmailDeliveryReadiness: vi.fn(),
   removeSharedLinkRecipient: vi.fn(),
   republishProjectPublication: vi.fn(),
   resendSharedLinkRecipientEmail: vi.fn(),
@@ -83,11 +84,16 @@ describe("ProjectWorkspaceHeaderRow publication control", () => {
     publicationActions.addSharedLinkRecipients.mockReset();
     publicationActions.createProjectPublication.mockReset();
     publicationActions.listSharedLinkRecipients.mockReset();
+    publicationActions.readSharedLinkEmailDeliveryReadiness.mockReset();
     publicationActions.removeSharedLinkRecipient.mockReset();
     publicationActions.republishProjectPublication.mockReset();
     publicationActions.resendSharedLinkRecipientEmail.mockReset();
     publicationActions.revokeProjectPublication.mockReset();
     publicationActions.rotateProjectPublicationLink.mockReset();
+    publicationActions.readSharedLinkEmailDeliveryReadiness.mockResolvedValue({
+      configured: true,
+      message: "Email delivery is configured.",
+    });
 
     Object.defineProperty(navigator, "clipboard", {
       configurable: true,
@@ -585,5 +591,32 @@ describe("P4 — RecipientEmailComposer and Recipients tab (RED until implementa
       baseClientLink: "/share/client-token",
     });
     expect((await within(dialog).findAllByText("Recipient email resent.")).length).toBeGreaterThan(0);
+  });
+
+  it("disables visible recipient email controls when delivery is not configured", async () => {
+    publicationActions.readSharedLinkEmailDeliveryReadiness.mockResolvedValue({
+      configured: false,
+      message: "Email delivery is disabled until Resend sender, reply-to, and webhook settings are configured. Copy the share link manually.",
+    });
+    publicationActions.listSharedLinkRecipients.mockResolvedValue([
+      {
+        id: "recipient-1",
+        email: "client@example.com",
+        display_name: null,
+        delivery_status: "pending",
+      },
+    ]);
+    const user = userEvent.setup();
+
+    render(<ProjectPublicationHeader summary={publicationSummary} projectEstimateSheets={sampleEstimateSheets} />);
+
+    await user.click(screen.getByRole("button", { name: "Open shared link" }));
+    const dialog = screen.getByRole("dialog", { name: "Shared link" });
+    await user.click(within(dialog).getByRole("tab", { name: "Recipients" }));
+
+    expect(await within(dialog).findByText(/Email delivery is disabled until Resend sender/)).toBeInTheDocument();
+    expect(within(dialog).getByPlaceholderText("name@company.com, another@...")).toBeDisabled();
+    expect(within(dialog).getByRole("button", { name: "Resend client@example.com" })).toBeDisabled();
+    expect(within(dialog).getByRole("button", { name: /Send to 1 recipient/ })).toBeDisabled();
   });
 });
