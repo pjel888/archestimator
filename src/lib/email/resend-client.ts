@@ -2,8 +2,8 @@
  * Resend email client wrapper for Shared Link Overhaul (V2).
  *
  * - Thin, typed wrapper around the Resend SDK.
- * - Production: uses RESEND_API_KEY when present and NODE_ENV !== "test".
- * - Test / no-key: automatic mock fallback (no network, always succeeds for tests).
+ * - Production-like runtime: requires RESEND_API_KEY plus an explicit sender.
+ * - Test runtime: automatic mock fallback (no network, always succeeds for tests).
  * - Never throws on send failure in normal paths; returns structured result.
  * - No secrets or keys in source.
  *
@@ -18,7 +18,7 @@ export type SendEmailInput = {
   subject: string;
   html?: string;
   text?: string;
-  from?: string; // optional override; defaults to env-configured or safe sender
+  from?: string; // optional override; otherwise uses RESEND_FROM
   tags?: Array<{ name: string; value: string }>;
 };
 
@@ -27,17 +27,34 @@ export type SendEmailResult =
   | { ok: false; error: string; code?: string };
 
 const isTestEnv = process.env.NODE_ENV === "test";
-const hasResendKey = Boolean(process.env.RESEND_API_KEY?.trim());
 
 let resendInstance: Resend | null = null;
+let resendInstanceApiKey: string | null = null;
 
-function getResendClient(): Resend | null {
-  if (isTestEnv || !hasResendKey) {
+export type EmailDeliveryConfig = {
+  apiKey: string;
+  from: string;
+  configured: boolean;
+};
+
+export function readEmailDeliveryConfig(env: NodeJS.ProcessEnv = process.env): EmailDeliveryConfig {
+  const apiKey = env.RESEND_API_KEY?.trim() ?? "";
+  const from = env.RESEND_FROM?.trim() ?? "";
+  return {
+    apiKey,
+    from,
+    configured: Boolean(apiKey && from),
+  };
+}
+
+function getResendClient(apiKey: string): Resend | null {
+  if (isTestEnv || !apiKey) {
     return null;
   }
-  if (!resendInstance) {
+  if (!resendInstance || resendInstanceApiKey !== apiKey) {
     // Safe: key read only from process.env at runtime
-    resendInstance = new Resend(process.env.RESEND_API_KEY!.trim());
+    resendInstance = new Resend(apiKey);
+    resendInstanceApiKey = apiKey;
   }
   return resendInstance;
 }
@@ -85,7 +102,8 @@ function isEmailCircuitOpen(now: number): boolean {
 
 /**
  * Send a transactional email.
- * In test or missing key: returns mocked success (no-op).
+ * In test: returns mocked success when no real client is configured.
+ * Outside test: fails closed when Resend key or sender config is missing.
  * On real failure: returns structured error (never throws to caller).
  */
 export async function sendEmail(input: SendEmailInput): Promise<SendEmailResult> {
@@ -99,10 +117,32 @@ export async function sendEmail(input: SendEmailInput): Promise<SendEmailResult>
     return { ok: false, error: errMsg, code: "CIRCUIT_OPEN" };
   }
 
-  const client = getResendClient();
+  const config = readEmailDeliveryConfig();
+  const from = input.from?.trim() || config.from;
+  const client = getResendClient(config.apiKey);
 
   if (!client) {
-    // Mock fallback for tests and pre-configured environments
+    if (!isTestEnv) {
+      console.error({
+        level: "error",
+        route: "email/resend-client",
+        errorCode: "EMAIL_NOT_CONFIGURED",
+        ipHash: "n/a",
+        ts: new Date().toISOString(),
+        subject: input.subject.slice(0, 60),
+        missing: {
+          resendApiKey: !config.apiKey,
+          resendFrom: !from,
+        },
+      });
+      return {
+        ok: false,
+        error: "Email delivery is not configured for this environment.",
+        code: "EMAIL_NOT_CONFIGURED",
+      };
+    }
+
+    // Mock fallback is restricted to tests.
     return {
       ok: true,
       mocked: true,
@@ -110,7 +150,25 @@ export async function sendEmail(input: SendEmailInput): Promise<SendEmailResult>
     };
   }
 
-  const from = input.from ?? process.env.RESEND_FROM ?? "Archestimator <no-reply@archestimator.com>";
+  if (!from) {
+    console.error({
+      level: "error",
+      route: "email/resend-client",
+      errorCode: "EMAIL_NOT_CONFIGURED",
+      ipHash: "n/a",
+      ts: new Date().toISOString(),
+      subject: input.subject.slice(0, 60),
+      missing: {
+        resendApiKey: false,
+        resendFrom: true,
+      },
+    });
+    return {
+      ok: false,
+      error: "Email delivery sender is not configured for this environment.",
+      code: "EMAIL_NOT_CONFIGURED",
+    };
+  }
 
   try {
     const response = await client.emails.send({

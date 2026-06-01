@@ -333,6 +333,7 @@ describe("closed beta readiness docs", () => {
     expect(goalCompletionAudit).toContain("Resend email readiness evidence");
     expect(goalCompletionAudit).toContain("Vercel env list is empty, local `RESEND_FROM` / `RESEND_REPLY_TO` / `RESEND_WEBHOOK_SECRET` are missing or empty");
     expect(goalCompletionAudit).toContain("visible shared-link/collaboration email paths still call `sendEmail()`");
+    expect(goalCompletionAudit).toContain("unconfigured production-like sends now fail closed instead of recording fake success");
     expect(goalCompletionAudit).toContain("First-run Workshop local surface evidence");
     expect(goalCompletionAudit).toContain("empty Workshop homebase with Projects, Components, Templates, and empty favorite states");
     expect(goalCompletionAudit).toContain("Hosted first-run auth smoke remains missing");
@@ -376,6 +377,7 @@ describe("closed beta readiness docs", () => {
     expect(currentState).toContain("Resend email readiness evidence");
     expect(currentState).toContain("local `RESEND_FROM`, `RESEND_REPLY_TO`, and `RESEND_WEBHOOK_SECRET` are missing or empty");
     expect(currentState).toContain("visible shared-link/collaboration email paths remain in source");
+    expect(currentState).toContain("unconfigured production-like sends now fail closed instead of fake-succeeding");
     expect(currentState).toContain("First-run Workshop local evidence");
     expect(currentState).toContain("empty Workshop homebase with Projects, Components, Templates, and empty favorite states");
     expect(currentState).toContain("hosted fresh-account auth proof remains missing");
@@ -407,6 +409,7 @@ describe("closed beta readiness docs", () => {
     expect(knownIssues).toContain("Resend email readiness evidence on 2026-06-02 is negative/blocked");
     expect(knownIssues).toContain("local `RESEND_FROM`, `RESEND_REPLY_TO`, and `RESEND_WEBHOOK_SECRET` are missing or empty");
     expect(knownIssues).toContain("visible shared-link/collaboration email paths remain in source");
+    expect(knownIssues).toContain("unconfigured production-like sends now fail closed instead of fake-succeeding");
     expect(knownIssues).toContain("First-run Workshop local evidence on 2026-06-02 proves fallback workspace coverage");
     expect(knownIssues).toContain("hosted fresh-account Google auth and allowlist proof remain missing");
     expect(knownIssues).toContain("Current local E2E smoke evidence on 2026-06-02 proves signed-out auth plus local dev-auth component library");
