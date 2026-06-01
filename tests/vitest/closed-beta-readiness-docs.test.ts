@@ -122,9 +122,17 @@ describe("closed beta readiness docs", () => {
     expect(evidenceIndex).toContain("archestimator-j29iumqi0-philipjonlewis-projects.vercel.app");
     expect(evidenceIndex).toContain("dpl_3UUiMA7Tc6ubJSgckDKBdjGMmnSp");
     expect(evidenceIndex).toContain("still shows `20260601182522_closed_beta_allowed_emails` and `20260601184343_unlink_estimate_row_items` as local-only");
+    expect(evidenceIndex).toContain("### Vercel Custom Domain Readiness Evidence");
+    expect(evidenceIndex).toContain("vercel-custom-domain-readiness-blocked-2026-06-02.md");
+    expect(evidenceIndex).toContain("dpl_FwfHexBsB1xSHDqHqFwHSYpCYTVH");
+    expect(evidenceIndex).toContain("Archestimator — Coming Soon");
+    expect(evidenceIndex).toContain("Production/custom-domain health remains **NO-GO**");
     expect(currentState).toContain("**Provider State Refresh Evidence (2026-06-02):**");
     expect(currentState).toContain("plain health remains deployment-protected with HTTP 401");
+    expect(currentState).toContain("**Vercel Custom Domain Evidence (2026-06-02):**");
+    expect(currentState).toContain("Production/custom-domain app health remains missing");
     expect(knownIssues).toContain("Provider state refresh evidence on 2026-06-02 confirms Vercel and linked Supabase remain blocked");
+    expect(knownIssues).toContain("Vercel custom-domain evidence on 2026-06-02 confirms");
     expect(evidenceIndex).toContain("### Spreadsheet Artifact Local Evidence");
     expect(evidenceIndex).toContain("spreadsheet-quicklook-preview-2026-06-02.md");
     expect(evidenceIndex).toContain("qlmanage -t -s 1200");
@@ -255,6 +263,8 @@ describe("closed beta readiness docs", () => {
     expect(manualProofMatrix).toContain("Vercel deploy/env/health");
     expect(manualProofMatrix).toContain("provider-state-refresh-2026-06-02.md");
     expect(manualProofMatrix).toContain("latest preview `archestimator-j29iumqi0-philipjonlewis-projects.vercel.app` as Ready");
+    expect(manualProofMatrix).toContain("vercel-custom-domain-readiness-blocked-2026-06-02.md");
+    expect(manualProofMatrix).toContain("older Ready coming-soon production deployment where `/api/health` returns 404");
     expect(manualProofMatrix).toContain("still shows `20260601182522_closed_beta_allowed_emails` and `20260601184343_unlink_estimate_row_items` as local-only");
     expect(manualProofMatrix).toContain("resend-email-readiness-blocked-2026-06-02.md");
     expect(manualProofMatrix).toContain("Vercel env list empty");
@@ -315,6 +325,9 @@ describe("closed beta readiness docs", () => {
     expect(goalCompletionAudit).toContain("latest preview reached READY and protected `/api/health` returned ok through `vercel curl`");
     expect(goalCompletionAudit).toContain("Provider state refresh evidence");
     expect(goalCompletionAudit).toContain("latest Vercel preview is Ready and protected health works through `vercel curl`");
+    expect(goalCompletionAudit).toContain("Vercel custom-domain readiness evidence");
+    expect(goalCompletionAudit).toContain("older coming-soon surface and `/api/health` returns 404");
+    expect(goalCompletionAudit).toContain("production/custom domains still point to an older coming-soon deployment");
     expect(goalCompletionAudit).toContain("provider refresh show missing linked migrations `20260601182522` and `20260601184343`");
     expect(goalCompletionAudit).toContain("Current provider refresh proves latest preview readiness and protected health only");
     expect(goalCompletionAudit).toContain("Resend email readiness evidence");
