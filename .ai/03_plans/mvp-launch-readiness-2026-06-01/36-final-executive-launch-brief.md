@@ -26,6 +26,7 @@ No Stripe, checkout, subscriptions, billing UI, invoices, paid tiers, pricing en
 - Final report indexed in launch docs: `3e8d7a0`.
 - Current local validation refresh: `a65b34b`, `bun run validate` passed with DOM at 131 files / 1022 passed / 2 skipped.
 - Current local app build refresh: `e6cf52b`, `bun run build` passed with Next.js 16.2.6 / Turbopack and 29 static pages.
+- Resend guardrail refresh: `fd5d4b3` fails unconfigured production-like email sends closed; `61160ee` disables shared-link recipient entry/send/resend controls while server email readiness is false.
 - Install, type-check, lint, design-system lint, unit tests, full DOM tests, and build passed locally.
 - Local signed-out auth E2E passed: `PLAYWRIGHT_PORT=3037 bun run test:e2e -- e2e/auth.spec.ts --project=chromium`, 2 tests in 9.9s.
 - Launch validation still lacks hosted/manual E2E, provider dashboard, backup/restore, deployment rollback, and spreadsheet-open proof. Local template insertion proof exists only for a throwaway estimate under the local smoke path.
@@ -36,7 +37,7 @@ No Stripe, checkout, subscriptions, billing UI, invoices, paid tiers, pricing en
 - Linked Supabase RLS/storage/migration proof missing.
 - Supabase backup/PITR and restore drill proof missing.
 - Vercel deployment/rollback proof missing.
-- Resend delivery/webhook proof missing if share/invite email remains visible.
+- Resend delivery/webhook proof missing before share/invite email workflows can be re-enabled for launch.
 - Excel/secondary spreadsheet open proof missing.
 - Owner/counsel review of beta legal copy missing.
 
@@ -65,7 +66,7 @@ Archestimator can be a credible MVP if it ships a reliable structured estimating
 - Component library and templates with local polish complete and manual demo smoke still required.
 - Project-specific detached estimate rows with local tests complete and linked/manual proof still required.
 - Professional Excel bid/BOQ workbook with local ExcelJS tests complete and cross-app open proof still required.
-- Share/invite/email only after security and Resend proof.
+- Share/invite/email automation only after security and Resend proof; manual link sharing remains the fallback while recipient email controls are disabled.
 - Legal/support/observability/backup posture for closed beta.
 
 ## What Is Deferred
@@ -80,7 +81,7 @@ Ask Flip/AI, billing, PDF proposals, bid tabulation, advanced collaboration/team
 
 ## P0 Blockers
 
-Hosted auth/RLS/Resend/deployment proof missing, E2E/manual smoke unproven, spreadsheet open proof missing, owner/counsel legal review missing, and backup/restore/rollback proof missing. Local code now hides/fail-closes AI by default, has a green DOM baseline, implements project-specific unlink locally, and generates a professional workbook under ExcelJS tests.
+Hosted auth/RLS/Resend/deployment proof missing, E2E/manual smoke unproven, spreadsheet open proof missing, owner/counsel legal review missing, and backup/restore/rollback proof missing. Local code now hides/fail-closes AI by default, fails unconfigured email delivery closed, disables recipient email controls while server readiness is false, has a green DOM baseline, implements project-specific unlink locally, and generates a professional workbook under ExcelJS tests.
 
 ## Implementation Sequence
 
@@ -88,7 +89,7 @@ Hosted auth/RLS/Resend/deployment proof missing, E2E/manual smoke unproven, spre
 2. Hosted auth/onboarding first-run smoke.
 3. Vercel deployment, env, health, and rollback proof.
 4. Spreadsheet open/print QA for the workbook.
-5. Resend delivery/webhook proof if email-dependent flows remain visible.
+5. Resend delivery/webhook proof before email-dependent workflows are re-enabled.
 6. Owner/counsel review of beta legal copy and monitored support inbox proof.
 7. Demo workspace/script rehearsal, hosted screenshots, and spreadsheet-app validated workbook fallback artifact. Local component/template screenshots, workbook artifact, and template insertion smoke proof now exist, but they do not prove the hosted demo.
 
@@ -104,7 +105,7 @@ Hosted auth/RLS/Resend/deployment proof missing, E2E/manual smoke unproven, spre
 | Excel export | 88 |
 | Auth/onboarding | 82 |
 | Infrastructure/deployment | 78 |
-| Email/Resend | 50 |
+| Email/Resend | 70 |
 | Security/RLS | 78 |
 | Legal/privacy | 82 |
 | Performance/caching | 65 |
@@ -125,7 +126,7 @@ Demo workspace, demo script, validated export artifact, fallback screenshots, FA
 
 ## Infrastructure Requirements
 
-Vercel env/deploy/rollback, Supabase auth/RLS/storage/backups, Resend DNS/webhook/delivery, monitoring/alerts, CI release parity.
+Vercel env/deploy/rollback, Supabase auth/RLS/storage/backups, Resend DNS/webhook/delivery before re-enabling email workflows, monitoring/alerts, CI release parity.
 
 ## Final Risk Posture
 

@@ -97,6 +97,8 @@ describe("closed beta readiness docs", () => {
     expect(finalImplementationReport).toContain("`7ba69e6` - Recorded the current local build refresh in the launch evidence pack.");
     expect(finalImplementationReport).toContain("`3b01cd2` - Added the active-goal completion audit.");
     expect(finalImplementationReport).toContain("`9d71239` - Added the manual proof packet template.");
+    expect(finalImplementationReport).toContain("`fd5d4b3` - Failed unconfigured production-like email delivery closed with `EMAIL_NOT_CONFIGURED`.");
+    expect(finalImplementationReport).toContain("`61160ee` - Disabled shared-link recipient entry/send/resend controls while server email readiness is false.");
     expect(finalImplementationReport).toContain("Current local validation refresh at `a65b34b` also passed `bun run validate`");
     expect(finalImplementationReport).toContain("Current app build refresh at `e6cf52b`:");
     expect(finalImplementationReport).toContain("The remaining manual/provider proof packet is now centralized in `46-manual-proof-matrix.md`");
@@ -207,6 +209,8 @@ describe("closed beta readiness docs", () => {
     expect(finalLaunchGate).toContain("Full local implementation baseline: `c5ca065` after demo seed row repair.");
     expect(finalLaunchGate).toContain("Current local validation refresh: `a65b34b`, `bun run validate` pass.");
     expect(finalLaunchGate).toContain("Current local app build refresh: `e6cf52b`, `bun run build` pass.");
+    expect(finalLaunchGate).toContain("Resend guardrail refresh: `fd5d4b3`");
+    expect(finalLaunchGate).toContain("`61160ee` disables shared-link recipient entry/send/resend controls");
     expect(finalLaunchGate).toContain("Local signed-out redirect/login UI E2E pass; hosted allowed/denied/revoked proof missing.");
     expect(finalLaunchGate).toContain("Use `46-manual-proof-matrix.md` as the required evidence checklist");
     expect(finalLaunchGate).toContain("Use `47-goal-completion-audit.md` before any claim");
@@ -214,13 +218,16 @@ describe("closed beta readiness docs", () => {
     expect(executiveBrief).toContain("Final report indexed in launch docs: `3e8d7a0`.");
     expect(executiveBrief).toContain("Current local validation refresh: `a65b34b`, `bun run validate` passed");
     expect(executiveBrief).toContain("Current local app build refresh: `e6cf52b`, `bun run build` passed");
+    expect(executiveBrief).toContain("Resend guardrail refresh: `fd5d4b3`");
+    expect(executiveBrief).toContain("`61160ee` disables shared-link recipient entry/send/resend controls");
     expect(executiveBrief).toContain("Local signed-out auth E2E passed");
     expect(executiveBrief).toContain("Use `46-manual-proof-matrix.md` as the operator checklist");
     expect(executiveBrief).toContain("Use `47-goal-completion-audit.md` to check whether the active launch goal can be completed");
     expect(executiveBrief).not.toContain("HEAD: `531f20a`");
     expect(readinessScorecard).toContain("local signed-out redirect/login UI E2E passes; Vercel env list is empty");
     expect(readinessScorecard).toContain("records post-report validation/build/completion-audit/proof-template evidence through `9d71239`");
-    expect(readinessScorecard).toContain("records Supabase, Vercel, spreadsheet artifact, local component/template demo, and local template insertion evidence");
+    expect(readinessScorecard).toContain("records provider/manual proof evidence through `61160ee`");
+    expect(readinessScorecard).toContain("records Supabase, Vercel, spreadsheet artifact, local component/template demo, local template insertion evidence, and Resend fail-closed/disabled-controls guardrails");
     expect(readinessScorecard).toContain("Manual proof matrix: `46-manual-proof-matrix.md`");
     expect(readinessScorecard).toContain("Goal completion audit: `47-goal-completion-audit.md`");
     expect(launchReadinessReadme).toContain("Final local implementation report: `final-codex-implementation-report.md`.");
@@ -449,6 +456,7 @@ describe("closed beta readiness docs", () => {
     expect(readinessScorecard).toMatch(/Templates \| Yes \| 91 \| Local insertion pass; hosted proof pending/);
     expect(readinessScorecard).toMatch(/Vercel\/Supabase deployment \| Yes \| 76 \| Partial preview proof/);
     expect(readinessScorecard).toMatch(/Excel export \| Yes \| 90 \| Local artifact pass; app proof pending/);
+    expect(readinessScorecard).toMatch(/Resend\/email readiness \| Conditional \| 70 \| Disabled until provider proof/);
     expect(readinessScorecard).toMatch(/Data backup\/rollback \| Yes \| 60 \| Provider evidence negative/);
     expect(readinessScorecard).toMatch(/Security\/RLS \| Yes \| 70 \| Live advisor warns/);
     expect(readinessScorecard).not.toMatch(/No allowlist table or enforcement exists yet/);
@@ -466,10 +474,12 @@ describe("closed beta readiness docs", () => {
 
   it("keeps executive launch docs current on local mitigations", () => {
     expect(finalLaunchGate).toMatch(/Ask Flip hidden and AI routes disabled by default.+Local pass; production env proof pending/s);
+    expect(finalLaunchGate).toMatch(/Resend delivery\/webhook verified before visible email workflows are re-enabled.+recipient email controls now disable while server readiness is false/s);
     expect(finalLaunchGate).toMatch(/Excel export is professional bid\/BOQ workbook.+cross-app open proof pending/s);
     expect(finalLaunchGate).not.toMatch(/test:dom` fails/);
     expect(finalLaunchGate).not.toMatch(/Current workbook is insufficient/);
     expect(executiveBrief).toMatch(/local code now hides\/fail-closes AI by default/i);
+    expect(executiveBrief).toMatch(/disables recipient email controls while server readiness is false/i);
     expect(executiveBrief).not.toMatch(/AI visible\/callable, `test:dom` red/i);
     expect(technicalRiskRegister).toMatch(/DOM tests regress/);
     expect(technicalRiskRegister).not.toMatch(/DOM tests red/);
