@@ -23,12 +23,22 @@ describe("template library manager UI", () => {
     expect(within(tree).getByRole("treeitem", { name: "Residential Rooms" })).toBeInTheDocument();
     expect(within(tree).getByRole("treeitem", { name: "Condo Fit-Out Starter" })).toBeInTheDocument();
     expect(within(sheet).getByRole("tab", { name: "All Templates" })).toHaveAttribute("aria-selected", "true");
+    expect(within(sheet).getByText("3 of 3 templates")).toBeInTheDocument();
     expect(within(sheet).getByText("Condo Fit-Out Starter")).toBeInTheDocument();
     expect(within(sheet).getByText("2 groups / 3 areas / 8 rows")).toBeInTheDocument();
+    const condoPreview = within(sheet).getByLabelText("Condo Fit-Out Starter template preview");
+    expect(within(condoPreview).getByText("Residential Rooms")).toBeInTheDocument();
+    expect(within(condoPreview).getByText("Structure")).toBeInTheDocument();
+    expect(within(condoPreview).getByText("Interior Fit-Out")).toBeInTheDocument();
+    expect(within(condoPreview).getByText("Living + Dining")).toBeInTheDocument();
+    expect(within(condoPreview).getByText("Sample rows")).toBeInTheDocument();
+    expect(within(condoPreview).getByText("HEMLINGBY Loveseat")).toBeInTheDocument();
+    expect(within(condoPreview).getAllByText("1 pc").length).toBeGreaterThan(0);
     expect(within(sheet).queryByText("Database Steel Frame")).not.toBeInTheDocument();
 
     fireEvent.click(within(tree).getByRole("treeitem", { name: "Condo Fit-Out Starter" }));
     expect(within(sheet).getByRole("tab", { name: "Condo Fit-Out Starter" })).toHaveAttribute("aria-selected", "true");
+    expect(within(sheet).getByText("1 of 1 template")).toBeInTheDocument();
     expect(within(sheet).getAllByText("Condo Fit-Out Starter").length).toBeGreaterThan(0);
   });
 });
