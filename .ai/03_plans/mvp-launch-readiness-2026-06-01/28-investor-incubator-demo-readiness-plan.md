@@ -122,3 +122,7 @@ Use `supabase db reset` only against local/staging disposable data, never produc
 ## Demo Failure Fallback
 
 Use screenshots and the prevalidated workbook artifact. Do not debug live during investor/incubator meeting.
+
+Current local fallback packet: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/demo-rehearsal-fallback-pack-2026-06-02.md`.
+
+This packet is not live rehearsal approval. Hosted reviewer account proof, allowlist proof, target-environment screenshots, spreadsheet-app workbook proof, and owner sign-off remain required.

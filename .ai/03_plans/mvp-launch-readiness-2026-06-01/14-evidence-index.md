@@ -424,6 +424,14 @@
 - Covered: signed-out protected-route redirect/login UI, component library search/trust fields, template preview, and template insertion into a throwaway linked Supabase estimate with 5 nodes / 8 rows / 1 `template_inserted` event and cleanup verification.
 - Launch meaning: partial/local only. Hosted Google OAuth, allowlist allowed/denied/revoked, hosted first-run, project-specific unlink/export, spreadsheet-app open/print, logout/session expiry, and target hosted E2E remain required.
 
+### Demo Rehearsal Fallback Pack
+
+- Artifact: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/demo-rehearsal-fallback-pack-2026-06-02.md`.
+- Scope: local fallback packet assembled from existing seed anchors, screenshots, template insertion proof, and workbook artifact.
+- Assets referenced: `lewis-residence-demo-proposal-2026-06-02.xlsx`, `component-library-demo-smoke-2026-06-02.png`, `template-library-demo-smoke-2026-06-02.png`, and `template-insert-local-smoke-2026-06-02.png`.
+- Script coverage: fallback narrative, component trust fields, template preview, template insertion proof, workbook readback, project-specific safety caveat, and closed-beta posture.
+- Launch meaning: this improves the investor/incubator fallback packet, but it is not a live hosted rehearsal. Hosted reviewer account, allowlist proof, target-environment screenshots, spreadsheet-app open/print proof, and owner demo sign-off remain required.
+
 ### Spreadsheet Artifact Local Evidence
 
 - Artifact note: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/spreadsheet-artifact-local-2026-06-02.md`.
