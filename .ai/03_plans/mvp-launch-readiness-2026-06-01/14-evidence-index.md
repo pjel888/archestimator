@@ -135,6 +135,28 @@
 - Post-edit code-review-graph `detect_changes` against `HEAD` analyzed 4 changed files, 7 changed functions/classes, 0 affected flows, 5 source-level test gaps, and overall risk score 0.40. The reported helper gaps are covered through `template-library-manager-ui.test.tsx` component rendering assertions.
 - Post-edit GitNexus `detect-changes --repo archestimator --scope staged` reported 4 changed files, 11 changed symbols, 0 affected processes, and low risk.
 
+### EXP-001 Professional Workbook Evidence
+
+- Design direction: professional construction bid/BOQ workbook, not a raw estimate dump. Signature differentiator: the export now opens with a `Bid Form` sheet containing the header block, general notes, scope labels, formulas, and section subtotals expected in contractor bid forms.
+- Context7 official ExcelJS documentation was checked for current APIs covering formula cells with cached results, merged cells, frozen panes, print titles, page setup, styling, and `writeBuffer()`.
+- `createProposalWorkbook()` now emits `Bid Form`, `Summary`, `Commercial Terms`, and `Source Breakdown` sheets.
+- `Bid Form` includes project/location/owner/bidder/date header rows, required general notes, the `ITEM / PARTICULARS / UNIT / QTY / MATERIAL / LABOR / COST TOTAL / LINE TOTAL / SCOPE / NOTES` table, frozen header row 17, landscape fit-to-width print setup, and repeated print header row `17:17`.
+- Detail rows now use ExcelJS formula objects for `COST TOTAL` and `LINE TOTAL`; line totals are nonblank and include misc/other cost as a formula addend while preserving a visible `Misc / other` note.
+- `Summary` uses formula references back to `Bid Form` section subtotal rows and formula-backed direct cost/grand total cells.
+- `Commercial Terms` includes exclusions, qualifications, payment terms, validity, warranty, and signature/conforme blocks.
+- Focused red/green evidence: `bun run test:dom tests/vitest/proposal-workbook.test.ts` first failed on the old `Proposal Summary` / `Detailed Estimate` / `Area Breakdown` sheets, then passed 1 file / 4 tests after the workbook rewrite.
+- Export parity evidence: `bun run test:dom tests/vitest/proposal-export-model.test.ts tests/vitest/proposal-export-route.test.ts tests/vitest/proposal-export-preview.test.tsx tests/vitest/proposal-workbook.test.ts` passed 4 files / 15 tests.
+- `bun run type-check` passed.
+- `bun run lint` passed with the existing 14 warnings and 0 errors.
+- `bun run lint:design-system` passed.
+- `bun run test` passed 4 unit tests / 129 expectations.
+- `bun run test:dom` passed 127 files / 1009 tests with 2 skips.
+- `bun run build` passed.
+- `git diff --check` passed.
+- Post-edit code-review-graph `detect_changes` against `HEAD` analyzed 4 changed files, 15 changed functions/classes, 0 affected flows, 10 source-level test gaps, and overall risk score 0.40. The reported helper gaps are covered through `proposal-workbook.test.ts` workbook-level ExcelJS assertions.
+- Post-edit GitNexus `detect-changes --repo archestimator --scope staged` reported 4 changed files, 19 changed symbols, 0 affected processes, and low risk.
+- Manual cross-app workbook QA in Excel, Numbers/LibreOffice, and Google Sheets is not done in this local slice and remains required before launch.
+
 ### Closed Beta Audit Evidence
 
 - Auth/proxy: `src/proxy.ts`, `src/lib/auth/actions.ts`, `src/app/auth/callback/route.ts`, `src/lib/auth/account-setup.ts`, `src/lib/auth/session.ts`.
