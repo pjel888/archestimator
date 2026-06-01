@@ -18,6 +18,10 @@ const goalCompletionAudit = readFileSync(
   ".ai/03_plans/mvp-launch-readiness-2026-06-01/47-goal-completion-audit.md",
   "utf8",
 );
+const manualProofPacketTemplate = readFileSync(
+  ".ai/03_plans/mvp-launch-readiness-2026-06-01/48-manual-proof-packet-template.md",
+  "utf8",
+);
 const currentState = readFileSync(".ai/10_state/current-state.md", "utf8");
 const decisions = readFileSync(".ai/10_state/decisions.md", "utf8");
 const knownIssues = readFileSync(".ai/10_state/known-issues.md", "utf8");
@@ -100,6 +104,7 @@ describe("closed beta readiness docs", () => {
     expect(evidenceIndex).toContain("| Full local implementation baseline | `c5ca065` after demo seed row repair |");
     expect(evidenceIndex).toContain("Manual proof matrix artifact: `46-manual-proof-matrix.md`.");
     expect(evidenceIndex).toContain("Goal completion audit artifact: `47-goal-completion-audit.md`.");
+    expect(evidenceIndex).toContain("Manual proof packet template: `48-manual-proof-packet-template.md`.");
     expect(evidenceIndex).toContain("| Final report baseline | `8084908` after canonical state/decision/roadmap truth sync |");
     expect(evidenceIndex).toContain("| Final report indexed in launch docs | `3e8d7a0` |");
     expect(evidenceIndex).toContain("| Current local validation refresh | `a65b34b`, `bun run validate` pass |");
@@ -136,6 +141,7 @@ describe("closed beta readiness docs", () => {
     expect(launchReadinessReadme).toContain("Final local implementation report: `final-codex-implementation-report.md`.");
     expect(launchReadinessReadme).toContain("46-manual-proof-matrix.md");
     expect(launchReadinessReadme).toContain("47-goal-completion-audit.md");
+    expect(launchReadinessReadme).toContain("48-manual-proof-packet-template.md");
     expect(launchReadinessReadme).toContain("Current local validation refresh: `a65b34b` (`bun run validate` pass; DOM 131 files / 1022 passed / 2 skipped).");
     expect(launchReadinessReadme).toContain("Current local app build refresh: `e6cf52b` (`bun run build` pass; Next.js 16.2.6 / Turbopack; 29 static pages).");
     expect(launchReadinessReadme).toContain("| Product core | 84 | Local pass; manual smoke gap |");
@@ -159,6 +165,7 @@ describe("closed beta readiness docs", () => {
   it("keeps manual/provider proof gates operator-ready and unclaimed", () => {
     expect(manualProofMatrix).toMatch(/Status: Required before external closed beta/);
     expect(manualProofMatrix).toContain("Closed beta stays **NO-GO**");
+    expect(manualProofMatrix).toContain("Use `48-manual-proof-packet-template.md`");
     expect(manualProofMatrix).toContain("Supabase backup/PITR");
     expect(manualProofMatrix).toContain("Hosted auth allowlist");
     expect(manualProofMatrix).toContain("Vercel deploy/env/health");
@@ -168,6 +175,19 @@ describe("closed beta readiness docs", () => {
     expect(manualProofMatrix).toContain("Current manual E2E smoke");
     expect(manualProofMatrix).toContain(".ai/09_archive/store/<date>-mvp-closed-beta-manual-proof/");
     expect(manualProofMatrix).not.toMatch(/\| .* \| .* \| .* \| Pass \|/);
+  });
+
+  it("keeps the manual proof packet template complete but unfilled", () => {
+    expect(manualProofPacketTemplate).toMatch(/# Manual Proof Packet Template/);
+    expect(manualProofPacketTemplate).toContain("Commit tested");
+    expect(manualProofPacketTemplate).toContain("External closed beta recommendation | NO-GO until all P0 rows below pass");
+    expect(manualProofPacketTemplate).toContain("Supabase backup/PITR | pending");
+    expect(manualProofPacketTemplate).toContain("Hosted auth allowlist | pending");
+    expect(manualProofPacketTemplate).toContain("Vercel deploy/env/health | pending");
+    expect(manualProofPacketTemplate).toContain("Spreadsheet compatibility | pending");
+    expect(manualProofPacketTemplate).toContain("Current manual E2E smoke | pending");
+    expect(manualProofPacketTemplate).toContain("Cleanup And Residue");
+    expect(manualProofPacketTemplate).not.toMatch(/\| .* \| pass \|/i);
   });
 
   it("keeps the active goal completion audit evidence-gated", () => {
@@ -181,6 +201,7 @@ describe("closed beta readiness docs", () => {
     expect(goalCompletionAudit).toContain("Hosted auth allowlist smoke");
     expect(goalCompletionAudit).toContain("Excel plus one secondary spreadsheet app open/recalc/print proof");
     expect(goalCompletionAudit).toContain("Current decision: **DO NOT MARK GOAL COMPLETE**.");
+    expect(goalCompletionAudit).toContain("48-manual-proof-packet-template.md");
     expect(goalCompletionAudit).not.toMatch(/Current decision: \*\*COMPLETE\*\*/);
   });
 

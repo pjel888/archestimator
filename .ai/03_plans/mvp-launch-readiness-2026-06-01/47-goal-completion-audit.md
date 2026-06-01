@@ -13,7 +13,7 @@ This audit maps the active MVP launch goal in `codex-autopilot-goal.md` to curre
 | Local signed-out auth E2E smoke | `a65b34b`, 2 Playwright checks passed. |
 | Local validation refresh | `a65b34b`, `bun run validate` passed: typecheck, lint with 14 existing warnings, design lint, unit, DOM. |
 | Local build refresh | `e6cf52b`, `bun run build` passed under Next.js 16.2.6 / Turbopack with 29 static pages. |
-| Manual/provider proof matrix | `46-manual-proof-matrix.md`, all P0 rows still missing. |
+| Manual/provider proof matrix | `46-manual-proof-matrix.md`, with packet template `48-manual-proof-packet-template.md`; all P0 rows still missing. |
 
 ## Final Criteria Audit
 
@@ -56,4 +56,4 @@ These are required before the active goal can be marked complete:
 
 Current decision: **DO NOT MARK GOAL COMPLETE**.
 
-Reason: Local-safe implementation, validation, build, and documentation evidence are strong, but the external/manual proof gates above are still missing. The correct next step is to collect and link the evidence packet defined in `46-manual-proof-matrix.md`, then rerun this audit against the actual artifacts.
+Reason: Local-safe implementation, validation, build, and documentation evidence are strong, but the external/manual proof gates above are still missing. The correct next step is to fill the evidence packet from `48-manual-proof-packet-template.md`, link it through `46-manual-proof-matrix.md` / `14-evidence-index.md`, then rerun this audit against the actual artifacts.
