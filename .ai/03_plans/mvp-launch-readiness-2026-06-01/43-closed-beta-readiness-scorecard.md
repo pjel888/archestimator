@@ -22,7 +22,7 @@ Closed beta can launch only if all P0 domains are 95+ or have a documented no-go
 | Component library | Yes | 86 | Local polish pass | Search/count/trust fields are locally tested; screenshot/manual demo smoke remains required. |
 | Templates | Yes | 86 | Local polish pass | Preview/count/sample rows are locally tested; screenshot/manual insertion smoke remains required. |
 | Project-specific unlink | Yes | 86 | Local pass; linked proof pending | RPC/action/hook/UI coverage exists; linked SQL verification and manual detach/edit proof remain required. |
-| Excel export | Yes | 88 | Local workbook pass | Professional workbook and ExcelJS tests pass; Excel/secondary-app open and print proof remain required. |
+| Excel export | Yes | 90 | Local artifact pass; app proof pending | Professional workbook, ExcelJS tests, ZIP integrity, and no-blank-total artifact proof pass; Excel/secondary-app open and print proof remain required. |
 | Design polish | Yes | 84 | Local pass; manual review pending | Access-required, pricing, legal, feedback, library/template/export surfaces have local coverage; screenshot/manual review remains required. |
 | Feedback loop | Yes | 78 | Minimum local path; external proof pending | Workshop feedback mailto and support copy exist; monitored inbox/form proof remains required. |
 | Vercel/Supabase deployment | Yes | 76 | Partial preview proof | Vercel preview for `2e5b38d` reached READY and protected `/api/health` works through `vercel curl`; Vercel env list is empty, public health is protected, rollback proof is missing, and linked Supabase migration CLI proof is blocked by the temp-role pooler circuit breaker. |
@@ -30,7 +30,7 @@ Closed beta can launch only if all P0 domains are 95+ or have a documented no-go
 | Security/RLS | Yes | 70 | Live advisor warns | Existing RLS work plus allowlist RLS migration exists locally, but linked security advisor returned WARN findings and linked allow/deny/storage proof is still missing. |
 | Legal/beta terms | Yes | 82 | Local copy pass; review pending | Beta-specific terms/privacy copy exists; counsel/owner sign-off is missing. |
 | Observability/support | Yes | 78 | Protected health only | Feedback link, support/runbook, and `/api/health` exist; Vercel protected health works through `vercel curl`, but public uptime/error alert proof is missing. |
-| Investor demo readiness | Yes | 76 | Local seed anchored; rehearsal pending | `supabase/seed.sql` now anchors demo workspace/project/estimate/rows and the demo plan names the path; live rehearsal, screenshots, and workbook artifact proof remain required. |
+| Investor demo readiness | Yes | 78 | Local seed and workbook anchored; rehearsal pending | `supabase/seed.sql` anchors demo workspace/project/estimate/rows and a generated fallback workbook artifact now exists; live rehearsal, screenshots, and hosted account proof remain required. |
 | Data backup/rollback | Yes | 60 | Provider evidence negative | Backup/restore template and migration procedure exist; Supabase CLI readback shows PITR disabled and no listed backups, and restore drill proof is missing. |
 | Payment/pricing readiness | No | N/A | Deferred | Not applicable to closed beta. |
 | AI deferral | No | N/A | Locally gated | `AI-001` hides Ask Flip and disables AI routes by default; keep deferred until a future ADR explicitly reactivates. |

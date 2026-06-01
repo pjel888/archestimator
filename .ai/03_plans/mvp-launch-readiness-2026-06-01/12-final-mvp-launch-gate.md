@@ -88,16 +88,16 @@ Rules: below 90 cannot be called beta-ready; P0 below 95 blocks launch; 100 requ
 | Component library | 86 | Local polish tests pass; screenshot/manual demo smoke remains. |
 | Templates | 86 | Local preview tests pass; screenshot/manual insertion smoke remains. |
 | Project-specific unlink | 86 | Local RPC/action/hook/UI tests pass; linked/manual proof remains. |
-| Excel export | 88 | Professional workbook tests pass; cross-app open proof remains. |
-| Auth/onboarding | 82 | Local beta gate coverage and signed-out redirect/login UI E2E pass; hosted callback and first-run smoke missing. |
-| Infrastructure/deployment | 78 | Env manifest/runbook pass; live env/deploy/rollback proof missing. |
+| Excel export | 90 | Professional workbook tests, generated XLSX artifact, ZIP integrity, and no-blank-total scan pass; cross-app open proof remains. |
+| Auth/onboarding | 78 | Local beta gate coverage and signed-out redirect/login UI E2E pass; Vercel env is empty, so hosted callback and first-run smoke are blocked. |
+| Infrastructure/deployment | 76 | Preview deploy and protected health proof exist; env, public health, rollback, and linked Supabase proof remain blocked. |
 | Email/Resend | 50 | Code exists; DNS/delivery/webhook proof missing; mock-success risk. |
-| Security/RLS | 78 | Local RLS/allowlist model exists; linked denial/storage tests missing. |
+| Security/RLS | 70 | Local RLS/allowlist model exists; linked security advisor warns and linked denial/storage tests are missing. |
 | Legal/privacy | 82 | Local beta terms/privacy copy exists; owner/counsel review missing. |
 | Performance/caching | 65 | Current architecture plausible; export/route/load proof missing. |
 | Observability/support | 78 | Local health route/support runbook exists; external alert proof missing. |
 | QA/test coverage | 82 | Local type/lint/unit/DOM/build pass; hosted/manual E2E proof missing. |
-| Investor demo readiness | 76 | Local seed/demo plan anchors exist; rehearsal, screenshots, and workbook artifact proof remain. |
+| Investor demo readiness | 78 | Local seed/demo plan anchors and fallback workbook artifact exist; rehearsal and screenshots remain missing. |
 | Beta readiness | 40 | P0 legal/security/ops/product gates are unproven. |
 
 ## Explicit Launch No-Go Rules

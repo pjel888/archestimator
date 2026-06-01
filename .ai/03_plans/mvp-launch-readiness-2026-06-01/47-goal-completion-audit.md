@@ -16,6 +16,7 @@ This audit maps the active MVP launch goal in `codex-autopilot-goal.md` to curre
 | Manual/provider proof matrix | `46-manual-proof-matrix.md`, with packet template `48-manual-proof-packet-template.md`; all P0 rows still missing. |
 | Supabase read-only provider evidence | `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/supabase-read-only-cli-2026-06-02.md`; backup list showed PITR disabled and no listed backups; security advisor returned WARN findings; migration/performance CLI reads were blocked by the temp-role pooler circuit breaker. |
 | Vercel read-only provider evidence | `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/vercel-read-only-cli-2026-06-02.md`; latest preview reached READY and protected `/api/health` returned ok through `vercel curl`, but `vercel env ls` found no env vars, plain curl returned Vercel 401 due to deployment protection, and rollback/production/custom-domain proof is missing. |
+| Spreadsheet artifact evidence | `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/spreadsheet-artifact-local-2026-06-02.md`; generated workbook artifact is loadable, ZIP-valid, formula-backed, and has no blank line totals; Excel/secondary-app open and print proof is blocked because no spreadsheet app is installed locally. |
 
 ## Final Criteria Audit
 
@@ -27,12 +28,12 @@ This audit maps the active MVP launch goal in `codex-autopilot-goal.md` to curre
 | Closed beta pricing/copy/legal posture updated | Local terms/privacy/pricing/beta copy exist with tests; owner/counsel review missing. | Local-proven; legal review missing |
 | Core project/estimate/library/template workflows working | Local tests cover major flows and current validation/build passes; hosted/manual core smoke missing. | Local-proven; hosted/manual smoke missing |
 | Project-specific component unlink implemented and tested | RPC/action/hook/UI/tests prove local detach semantics and export compatibility; linked SQL/manual library-unchanged proof missing. | Local-proven; linked/manual proof missing |
-| Excel export upgraded and tested | ExcelJS/model/workbook tests and build prove professional workbook generation locally; Excel plus secondary spreadsheet open/print proof missing. | Local-proven; spreadsheet-app proof missing |
+| Excel export upgraded and tested | ExcelJS/model/workbook tests, generated workbook artifact, ZIP integrity, and no-blank-total scan prove local workbook generation; Excel plus secondary spreadsheet open/print proof remains missing. | Local artifact proven; spreadsheet-app proof missing |
 | Beta feedback/support path available | Workshop feedback mailto/contact/support copy exists locally; monitored inbox/form proof missing. | Local-proven; support proof missing |
 | `.env.example` updated | Env manifest/source contract tests and runbook entries exist. | Local-proven; Vercel env proof missing |
 | Vercel/Supabase/Resend/readiness docs updated | Launch docs, runbook, env manifest, backup/DR, and proof matrix are updated. | Docs-proven; provider proof missing |
 | `.ai` roadmap/state/decision/readiness docs updated | `current-state.md`, `decisions.md`, known issues, launch pack, scorecard, and final report are synced to current local evidence. | Docs-proven |
-| All changes staged, committed, and pushed in meaningful commits | Current launch-pack commits through `db9b224` are pushed before this evidence-sync pass; `.ai/08_prompts/mvp-launch-goal.md` remains intentionally untracked. | Proven for committed work |
+| All changes staged, committed, and pushed in meaningful commits | Current launch-pack commits through `09206e6` are pushed before this evidence-sync pass; `.ai/08_prompts/mvp-launch-goal.md` remains intentionally untracked. | Proven for committed work |
 | Worktree clean after final push | Worktree is clean except intentionally untracked `.ai/08_prompts/mvp-launch-goal.md`. | Proven with exception |
 | Final evidence recorded in evidence/gate/brief/scorecard | `14-evidence-index.md`, `12-final-mvp-launch-gate.md`, `36-final-executive-launch-brief.md`, and `43-closed-beta-readiness-scorecard.md` record local evidence and remaining no-go gates. | Docs-proven |
 | Final report written | `final-codex-implementation-report.md` exists and records local-safe implementation plus remaining blockers. | Docs-proven; not launch approval |
@@ -46,12 +47,12 @@ These are required before the active goal can be marked complete:
 3. Hosted auth allowlist smoke for allowed, denied, revoked, first-run, logout, and session-expiry states.
 4. Vercel deploy/env/health/rollback proof. Current preview health proof is partial only because env vars are absent, public health is deployment-protected, and rollback is not rehearsed.
 5. Resend DNS/delivery/webhook proof if visible email flows remain enabled.
-6. Excel plus one secondary spreadsheet app open/recalc/print proof.
+6. Excel plus one secondary spreadsheet app open/recalc/print proof. Current local artifact is valid and loadable, but no spreadsheet app is installed locally to prove open/recalc/print.
 7. Project-specific unlink manual smoke with library unchanged proof.
 8. Component/template demo screenshots or manual smoke notes.
 9. Owner/counsel review of legal/beta copy.
 10. Monitored support inbox/form and alert owner proof.
-11. Demo rehearsal screenshots, fallback script, and validated exported workbook artifact.
+11. Demo rehearsal screenshots, fallback script, and validated exported workbook artifact. Current fallback workbook artifact exists; screenshots and rehearsal proof remain missing.
 12. Current hosted manual E2E smoke across the closed-beta core journey.
 
 ## Completion Decision
