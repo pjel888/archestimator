@@ -6,13 +6,13 @@ This gate is now the closed beta launch gate. It is not a public paid-launch gat
 
 ### Command Evidence
 
-- HEAD audited: `811362ac70d84cf20101f83258ae22c4e8b2c11f`.
+- HEAD audited: `531f20a` after the DATA/BETA-OPS runbook truth-sync.
 - `bun install --frozen-lockfile`: pass.
 - `bun run type-check`: pass.
 - `bun run lint`: pass with 14 warnings.
 - `bun run lint:design-system`: pass.
 - `bun run test`: pass.
-- `bun run test:dom`: fail, 3 existing static-contract assertions.
+- `bun run test:dom`: pass, 129 files / 1014 tests with 2 skips.
 - `bun run build`: pass.
 
 ### Closed Beta No-Go
@@ -34,7 +34,7 @@ This gate is now the closed beta launch gate. It is not a public paid-launch gat
 - Excel export is unprofessional or formulas are untested.
 - Core project/component/template workflows are broken.
 
-Closed beta launch is blocked until the allowlist/auth P0 and beta legal/feedback P0 are implemented and smoked.
+Closed beta launch is blocked until hosted auth/RLS/storage, provider dashboards, manual smoke, backup/restore, deployment/rollback, and spreadsheet-open proof are collected and linked from `14-evidence-index.md`.
 
 Commit audited: `681c95e64864f283950a88dba304eaffe8f2f8b3`
 Gate owner: Philip / Launch lead
@@ -44,18 +44,18 @@ Current decision: **NO-GO**.
 
 | Gate | P0? | Required evidence | Current status | Decision |
 | --- | --- | --- | --- | --- |
-| Ask Flip hidden and AI routes disabled by default | Yes | UI test, route test, no provider-call test, production env false. | Not implemented. | No-go |
-| Core commands green | Yes | Install, typecheck, lint, design lint, unit, DOM, build, E2E. | `test:dom` fails; E2E blocked by local port collision. | No-go |
+| Ask Flip hidden and AI routes disabled by default | Yes | UI test, route test, no provider-call test, production env false. | Local pass; production env proof pending. | No-go |
+| Core commands green | Yes | Install, typecheck, lint, design lint, unit, DOM, build, E2E. | Local type/lint/unit/DOM/build pass; hosted/manual E2E not current. | No-go |
 | Auth works in production | Yes | Hosted Google and magic-link callback smoke, logout/session expiry. | Local/code evidence only. | No-go |
 | RLS/migrations verified | Yes | Linked/staging SQL denial/allow queries, migration history, generated types. | Local migrations/types only. | No-go |
-| Component unlink cannot mutate library data | Yes | RPC/action/UI tests and manual library unchanged proof. | Planned only. | No-go |
-| Detached rows are clear to users | Yes | Row details copy/screenshot/manual QA. | Planned only. | No-go |
-| Excel export is professional bid/BOQ workbook | Yes | Formula tests, reference contract, Excel + secondary app open proof. | Current workbook is insufficient. | No-go |
+| Component unlink cannot mutate library data | Yes | RPC/action/UI tests and manual library unchanged proof. | Local code/tests pass; linked/manual proof pending. | No-go |
+| Detached rows are clear to users | Yes | Row details copy/screenshot/manual QA. | Local UI coverage exists; screenshot/manual QA pending. | No-go |
+| Excel export is professional bid/BOQ workbook | Yes | Formula tests, reference contract, Excel + secondary app open proof. | Local ExcelJS/workbook tests pass; cross-app open proof pending. | No-go |
 | Resend delivery/webhook verified if visible | Yes | Domain DNS, delivery, webhook, bounce/complaint test. | Missing. | No-go |
-| Legal pages accurate | Yes | Reviewed or closed-beta approved copy. | Pending-review placeholders. | No-go |
-| Support/feedback path exists | Yes | Contact/support inbox and beta bug report route. | Partial public contact only. | No-go |
-| Observability/alerts configured | Yes | Error tracking, uptime, alert owner, export/auth/email alerts. | Missing external stack. | No-go |
-| Backup/rollback plan proven | Yes | Backup proof, migration rollback, Vercel rollback, restore plan. | Planned only. | No-go |
+| Legal pages accurate | Yes | Reviewed or closed-beta approved copy. | Local beta copy pass; owner/counsel sign-off pending. | No-go |
+| Support/feedback path exists | Yes | Contact/support inbox and beta bug report route. | Local workshop feedback link exists; monitored inbox/form proof pending. | No-go |
+| Observability/alerts configured | Yes | Error tracking, uptime, alert owner, export/auth/email alerts. | Local `/api/health` and runbook exist; deployed monitor/alert proof pending. | No-go |
+| Backup/rollback plan proven | Yes | Backup proof, migration rollback, Vercel rollback, restore plan. | Backup/restore checklist exists; provider proof pending. | No-go |
 | Investor demo pack ready | Yes for demo | Demo workspace, script, screenshots, export artifact, fallback. | Planned only. | No-go |
 | Beta program ready | Yes for beta | Cohort, onboarding email, SLA, feedback loop, known limits. | Planned only. | No-go |
 
@@ -67,20 +67,20 @@ Rules: below 90 cannot be called beta-ready; P0 below 95 blocks launch; 100 requ
 
 | Domain | Score | Reason |
 | --- | ---: | --- |
-| Product core | 78 | Core app exists but launch proof and UX polish gaps remain. |
-| Estimate editor | 82 | Strongest area, but DOM failures and manual smoke gaps remain. |
-| Component library | 80 | Functional, but trust fields, empty states, and demo data need proof. |
-| Templates | 74 | Functional path exists; preview/discovery/seed quality gaps remain. |
-| Project-specific unlink | 35 | Schema foundation exists; product flow not complete. |
-| Excel export | 45 | XLSX route exists; bid workbook contract not implemented. |
-| Auth/onboarding | 78 | Code path exists; hosted proof and first-run polish missing. |
-| Infrastructure/deployment | 55 | Build passes; live env/deploy/rollback proof missing. |
+| Product core | 84 | Local DOM baseline is green; protected route/manual smoke gaps remain. |
+| Estimate editor | 84 | Strong area; manual smoke and linked DB proof remain. |
+| Component library | 86 | Local polish tests pass; screenshot/manual demo smoke remains. |
+| Templates | 86 | Local preview tests pass; screenshot/manual insertion smoke remains. |
+| Project-specific unlink | 86 | Local RPC/action/hook/UI tests pass; linked/manual proof remains. |
+| Excel export | 88 | Professional workbook tests pass; cross-app open proof remains. |
+| Auth/onboarding | 82 | Local beta gate coverage exists; hosted callback and first-run smoke missing. |
+| Infrastructure/deployment | 78 | Env manifest/runbook pass; live env/deploy/rollback proof missing. |
 | Email/Resend | 50 | Code exists; DNS/delivery/webhook proof missing; mock-success risk. |
-| Security/RLS | 62 | RLS migrations exist; threat-model proof and live denial tests missing. |
-| Legal/privacy | 25 | Public pages are placeholders. |
+| Security/RLS | 78 | Local RLS/allowlist model exists; linked denial/storage tests missing. |
+| Legal/privacy | 82 | Local beta terms/privacy copy exists; owner/counsel review missing. |
 | Performance/caching | 65 | Current architecture plausible; export/route/load proof missing. |
-| Observability/support | 35 | Mostly logs/dev monitor; no alerting/support operations. |
-| QA/test coverage | 58 | Important coverage exists but `test:dom` fails and E2E is gated/blocked. |
+| Observability/support | 78 | Local health route/support runbook exists; external alert proof missing. |
+| QA/test coverage | 82 | Local type/lint/unit/DOM/build pass; hosted/manual E2E proof missing. |
 | Investor demo readiness | 45 | No reliable demo workspace/export/fallback pack yet. |
 | Beta readiness | 40 | P0 legal/security/ops/product gates are unproven. |
 
@@ -99,7 +99,7 @@ Do not launch beta if:
 - RLS/migrations are not verified.
 - Resend email delivery/webhook is unverified for invite/share paths if those paths are visible.
 - Legal pages are misleading.
-- No support/feedback path exists.
+- No monitored support/feedback path exists.
 - No rollback plan exists.
 - No backup plan exists before migration.
 - No core smoke test is completed.

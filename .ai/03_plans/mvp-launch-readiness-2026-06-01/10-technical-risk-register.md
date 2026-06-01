@@ -4,11 +4,11 @@
 
 | Risk | Severity | Closed beta action |
 | --- | --- | --- |
-| Whitelist bypass | Critical | Add server-side allowlist checks at callback, proxy, and session/app boundaries. |
-| Legitimate beta user blocked | High | Manual allowlist verification, access-required copy, support path, and allowed-account smoke. |
-| Revoked user keeps session access | High | Check allowlist status on protected route/session resolution, not only callback. |
+| Whitelist bypass | Critical | Local callback/proxy/session allowlist checks exist; linked Supabase and hosted allowed/denied smoke remain required. |
+| Legitimate beta user blocked | High | Manual allowlist verification, access-required copy, support path, and allowed-account smoke remain required. |
+| Revoked user keeps session access | High | Local protected route/session status checks exist; hosted revoked-session smoke remains required. |
 | Pricing/payment copy misleads users | High | Hide or reframe `/pricing` and CTAs as invite-only beta. |
-| Beta feedback not captured | High | Ship external form/support link before cohort invites. |
+| Beta feedback not captured | High | Local workshop support mailto exists; monitored inbox/form proof remains required before cohort invites. |
 | Investor sees public pricing confusion | Medium | Use investor demo script and beta pricing disclaimer. |
 | Manual whitelist management error | Medium | Use exact Google email, notes, status field, and runbook verification. |
 | Google OAuth callback domain mismatch | High | Verify Supabase callback URLs for Vercel production/preview domains. |
@@ -22,16 +22,16 @@ Commit audited: `681c95e64864f283950a88dba304eaffe8f2f8b3`. Risks below supersed
 
 | Risk | Domain | Signal | Mitigation | Contingency | Owner | Due phase | Status | Debt/blocker |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| Ask Flip visible/callable while deferred | Product/Security/Cost | UI appears; `/api/ai/*` returns handler response | `AI-001` global disable flags and tests | Flags false + redeploy | Eng | PR-1 | Open | P0 blocker |
-| DOM tests red | QA | `bun run test:dom` fails 3 tests | Fix tests/contracts; add no-provider tests | No launch | QA/Eng | PR-1 | Open | P0 blocker |
-| Excel export raw/static | Product/Domain | Workbook lacks bid form/formulas | `EXP-001` workbook rewrite | Disable export CTA | Eng/Product | PR-5 | Open | P0 blocker |
-| Unlink mutates library or confuses user | Data/Product | Source library row changes after project edit | `UNLINK-001` RPC/action/UI tests | Disable detach | Eng | PR-4 | Open | P0 blocker |
+| Ask Flip visible/callable while deferred | Product/Security/Cost | UI appears; `/api/ai/*` returns handler response | `AI-001` global disable flags and tests | Flags false + redeploy | Eng | PR-1 | Locally mitigated; prod env proof pending | P0 blocker until hosted proof |
+| DOM tests regress | QA | `bun run test:dom` fails after current green baseline | Keep source-contract tests aligned with behavior | No launch | QA/Eng | PR-1 | Locally mitigated | P0 if regressed |
+| Excel export raw/static | Product/Domain | Workbook lacks bid form/formulas | `EXP-001` workbook rewrite | Disable export CTA | Eng/Product | PR-5 | Locally mitigated; app-open proof pending | P0 blocker until manual proof |
+| Unlink mutates library or confuses user | Data/Product | Source library row changes after project edit | `UNLINK-001` RPC/action/UI tests | Disable detach | Eng | PR-4 | Locally mitigated; linked/manual proof pending | P0 blocker until proof |
 | Hosted auth fails | Auth/Ops | Callback/redirect error in prod | `ONB-001` + env proof | Pause invites/CTA | Eng/Release | PR-2 | Open | P0 blocker |
 | RLS/storage gap | Security/Data | Cross-workspace or public access works incorrectly | `SEC-001` allow/deny proof | Disable route/policy rollback | Security | PR-6 | Open | P0 blocker |
-| Legal pages misleading | Legal/Product | Public page says pending/incorrect terms | `LEGAL-001` reviewed copy | Closed beta only/no public launch | Legal/Product | PR-7 | Open | P0 blocker |
+| Legal pages misleading | Legal/Product | Public page says pending/incorrect terms | `LEGAL-001` reviewed copy | Closed beta only/no public launch | Legal/Product | PR-7 | Local copy mitigated; review pending | P0 blocker until sign-off |
 | Resend mock-success masks email failure | Ops/UX | User sees sent but no delivery | `INFRA-002` fail-loud/proof | Hide email sends | Release | PR-6 | Open | P0 if email visible |
-| Missing observability/support | Ops | Error or user issue has no owner | `OBS-001` | Pause beta | Ops | PR-7 | Open | P0 blocker |
-| No backup/restore proof | Data/Ops | Migration/data corruption incident | `DATA-001` | Freeze writes/restore | Ops/DB | PR-8 | Open | P0 blocker |
+| Missing observability/support | Ops | Error or user issue has no owner | `OBS-001` | Pause beta | Ops | PR-7 | Local minimum mitigated; alerts/inbox proof pending | P0 blocker until proof |
+| No backup/restore proof | Data/Ops | Migration/data corruption incident | `DATA-001` | Freeze writes/restore | Ops/DB | PR-8 | Checklist ready; provider proof pending | P0 blocker until proof |
 | Redis/rate limiting insufficient | Performance/Security | Public abuse, Postgres limiter latency | `PERF-001`; Upstash/Vercel KV if thresholds fail | Disable public routes | Eng | PR-5/6 | Open | P1/P0 threshold |
 | Route transition perf proof stale | Performance/Demo | Demo navigation stutters | Baseline route perf in staging/prod | Demo fallback screenshots | Eng/QA | PR-8/9 | Open | P1 |
 | Investor demo data weak | Product/Investor | Seed data looks fake | `DEMO-001` | Use screenshots only | Product | PR-9 | Open | P0 for demo |
@@ -47,7 +47,7 @@ Commit audited: `681c95e64864f283950a88dba304eaffe8f2f8b3`. Risks below supersed
 | History event invalid | Activity/version history broken. | Wrong `estimate_sheet_events` insert. | SQL/action test fails; row activity missing. | Insert only real columns with old/new snapshots. | Disable unlink history or rollback function. | Eng | PR 2 |
 | Export formula incorrect | Client receives wrong bid totals. | Formula ranges/status handling wrong. | ExcelJS formula assertions or manual QA mismatch. | Formula tests and manual QA across apps. | Disable export/download or revert workbook. | Eng/Product | PR 6 |
 | VAT/contingency double-count | Over/under quote. | Row contingency plus summary contingency both applied. | Test mismatch; manual review. | Owner decision: row-level or summary-level contingency. | Default summary contingency 0 until approved. | Philip | Before PR 6 |
-| `test:dom` failure ignored | False launch confidence. | Treating source-contract failures as non-blocking without evidence. | CI remains red. | Fix or formally triage before launch. | No launch. | Eng | PR 7 |
+| `test:dom` regression ignored | False launch confidence. | Treating a future DOM failure as non-blocking without evidence. | CI/local DOM is red. | Fix or formally triage before launch. | No launch. | Eng | PR 7 |
 | Supabase migration drift | Remote schema differs from generated types. | Pending migrations or stale remote. | Linked SQL verify mismatch. | Exact-file apply and direct SQL verify. | Repair migration history or rollback function. | Eng | PR 7 |
 | Vercel env mismatch | Production differs from tested build. | Missing AI flags or Supabase vars. | Env audit/smoke failure. | Vercel env checklist. | Redeploy with corrected env. | Eng | PR 7 |
 
