@@ -1,8 +1,35 @@
 # MVP Launch Readiness Command Center
 
+## Fourth-Pass Closed Beta Revision - 2026-06-02
+
+This folder is now the source of truth for a closed beta MVP launch, not a public paid launch. Any older public-commercial launch wording below is superseded by this fourth-pass decision.
+
+- Launch type: closed beta MVP.
+- Audience: invited beta testers, founder-led prospects, investors, and startup incubator reviewers.
+- Access: Google Sign-In plus server-side email whitelist.
+- Beta cohort: manually approved and managed by Philip.
+- Payments: no Stripe, checkout, subscriptions, billing UI, invoices, paid plans, or plan enforcement.
+- Pricing: hidden or reframed as invitation-only beta access; future pricing only.
+- Ask Flip: deferred/hidden for closed beta unless separately made safe and explicit.
+- Core product: project, estimate, component library, template, unlink, and Excel export workflows must still be useful and production-grade enough for beta.
+- First implementation PR recommendation: `BETA-AUTH-001` through `BETA-AUTH-006` for closed beta access control.
+- Go/no-go rule: closed beta cannot launch until allowlist enforcement, whitelisted first-run access, feedback/support, beta legal/privacy, rollback, and core workflow smoke evidence pass.
+
+New fourth-pass documents:
+
+- `37-closed-beta-access-whitelist-plan.md`
+- `38-closed-beta-scope-and-nonpayment-plan.md`
+- `39-closed-beta-onboarding-and-feedback-plan.md`
+- `40-closed-beta-operations-runbook.md`
+- `41-beta-access-security-threat-model.md`
+- `42-closed-beta-copy-and-legal-pack.md`
+- `43-closed-beta-readiness-scorecard.md`
+- `44-beta-user-management-implementation-spec.md`
+- `45-fourth-pass-closed-beta-council-review.md`
+
 Third-pass audit date: 2026-06-02
 Commit audited: `681c95e64864f283950a88dba304eaffe8f2f8b3`
-Status: **NO-GO for beta, investor demo, and paid launch until all P0 gates have proof.**
+Status: **NO-GO for closed beta and investor demo until all closed-beta P0 gates have proof. Public paid launch remains a separate post-beta gate.**
 
 This folder is the single launch execution package for the MVP readiness push. Do not create a competing MVP folder. Product code changes are out of scope for this pass.
 
@@ -17,14 +44,14 @@ Ships in MVP:
 - Professional Excel bid/BOQ export after workbook contract implementation.
 - Clean auth/onboarding path into `/workshop`.
 - Safe share/invite foundations only if email, token, RLS, and legal proof pass.
-- Vercel + Supabase + Resend launch stack with documented rollback.
+- Vercel + Supabase launch stack with documented rollback; Resend is required only for visible email-dependent flows.
 - Legal/privacy/support/monitoring posture appropriate for closed beta and investor review.
 
 Deferred from MVP:
 
 - Ask Flip / AI assistant UI and callable AI routes.
 - AI package-builder write flows.
-- Billing/payment implementation.
+- Billing/payment implementation, fully deferred until after closed beta.
 - PDF proposal generation.
 - Contractor bid tabulation.
 - Redis-backed queue/export workers unless the performance gate fails.
