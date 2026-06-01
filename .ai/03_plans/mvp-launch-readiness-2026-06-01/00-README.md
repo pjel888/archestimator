@@ -1,105 +1,114 @@
 # MVP Launch Readiness Command Center
 
-Status: SECOND PASS COMPLETE - implementation-ready planning package, not product implementation.
-Commit audited: `b6184cf7123ed46f4cd8b9a467feb5232f0b46bf`
-Audit date: 2026-06-01
-Scope: docs-only upgrade inside `.ai/03_plans/mvp-launch-readiness-2026-06-01`.
+Third-pass audit date: 2026-06-02
+Commit audited: `681c95e64864f283950a88dba304eaffe8f2f8b3`
+Status: **NO-GO for beta, investor demo, and paid launch until all P0 gates have proof.**
+
+This folder is the single launch execution package for the MVP readiness push. Do not create a competing MVP folder. Product code changes are out of scope for this pass.
 
 ## Scope Lock
 
-Launch scope is locked to:
+Ships in MVP:
 
-1. Defer Ask Flip and package-builder AI by default.
-2. Ship project-specific estimate rows, including a schema-safe unlink path.
-3. Polish component library route quality without reviving bulk import/export or overbuilt manager scope.
-4. Polish template route quality without duplicate seed migrations.
-5. Replace current Excel export with a professional bid/BOQ workbook contract.
-6. Gate launch through evidence, QA, deployment proof, rollback, and owner sign-off.
+- Structured project estimating with protected workspace/project/estimate routes.
+- Component library browse/create/insert path.
+- Estimate template browse/preview/insert path.
+- Project-specific estimate rows using `estimate_row_items` as the source of truth.
+- Professional Excel bid/BOQ export after workbook contract implementation.
+- Clean auth/onboarding path into `/workshop`.
+- Safe share/invite foundations only if email, token, RLS, and legal proof pass.
+- Vercel + Supabase + Resend launch stack with documented rollback.
+- Legal/privacy/support/monitoring posture appropriate for closed beta and investor review.
 
-Out of scope for MVP launch:
+Deferred from MVP:
 
-- Full Ask Flip launch.
-- AI Apply beyond disabled/default-off route gates.
-- New template authoring UI.
-- Bulk library import/export.
-- Teamspaces.
-- Public share overhaul expansion.
-- Labor/material split data model migration beyond export compatibility mode.
+- Ask Flip / AI assistant UI and callable AI routes.
+- AI package-builder write flows.
+- Billing/payment implementation.
+- PDF proposal generation.
+- Contractor bid tabulation.
+- Redis-backed queue/export workers unless the performance gate fails.
+
+## What Changed From Second Pass
+
+| Area | Third-pass correction |
+| --- | --- |
+| Evidence | Re-ran local command baseline at `681c95e`; recorded `test:dom` failures and E2E port collision. |
+| AI deferral | Upgraded from "defer AI" intent to a concrete global flag, UI-hide, route-fail-closed, provider-call-prevention contract. |
+| Unlinked components | Corrected the contract: project-specific components are `estimate_row_items`, not reusable `cost_library_items`; `detached` is the final state for rows separated from a real library source. |
+| Excel export | Reframed current export as insufficient for launch; added bid-form workbook contract, formula gates, and cross-spreadsheet manual QA. |
+| Infrastructure | Added Vercel/Supabase/Resend env, DNS, callback, webhook, storage, preview/staging/prod, and rollback requirements. |
+| Performance | Added Redis decision criteria and MVP caching matrix; Redis is not a broad cache requirement, but hot-path limiter adoption remains a P1/P0 decision if public abuse surfaces stay visible. |
+| Security | Added STRIDE, RLS verification, API route matrix, service-role, token, webhook, CSRF, XSS, and logging risks. |
+| Legal/support | Added Terms, Privacy, beta agreement, AUP, data deletion, support inbox, incident response, and no-go conditions. |
+| Ticketing | Converted launch work into PR-ready tickets with files, symbols, tests, rollback, and evidence artifacts. |
 
 ## P0 Blockers
 
-| Blocker | Evidence | Required ticket |
+| ID | Blocker | Required proof |
 | --- | --- | --- |
-| Ask Flip is still rendered in every workshop shell route. | `src/components/workshop/WorkshopPageShell.tsx:5`, `src/components/workshop/WorkshopPageShell.tsx:123`; GitNexus impact risk CRITICAL across 7 workshop processes. | MVP-AI-001 |
-| AI ask and package-builder API routes are still build-visible and call handlers directly. | `src/app/api/ai/ask/route.ts:3`, `src/app/api/ai/package-builder/route.ts:3`; build output lists `/api/ai/ask` and `/api/ai/package-builder`. | MVP-AI-002, MVP-AI-003 |
-| Unlink first-pass SQL used invalid schema. | Real row column is `estimate_row_items.node_id`, not `area_node_id`: `src/lib/supabase/types.ts:1127`; real event columns at `src/lib/supabase/types.ts:1241`. | MVP-ROW-001 |
-| Current export is not yet the industry bid-form workbook. | Workbook has only `Proposal Summary`, `Detailed Estimate`, optional `Area Breakdown`: `src/lib/proposal-export/create-proposal-workbook.ts:271`; static totals at `create-proposal-workbook.ts:186` and `create-proposal-workbook.ts:204`. | MVP-XLS-001 to MVP-XLS-003 |
-| `bun run test:dom` fails today. | 2 source-contract failures in AI package-builder security test, 1 source-contract failure in share recipient test. | MVP-QA-001 |
-| Production launch proof is absent. | No Vercel production deployment proof, Supabase migration proof, auth proof, or export manual QA artifact captured in this folder. | MVP-QA-001 |
+| AI-001 | Ask Flip is visible and AI routes are callable by default. | AI UI hidden by default, `/api/ai/*` fail closed before provider/session/tool work, no provider calls in tests. |
+| EXP-001 | Excel export is not yet an industry bid form. | Formula-driven workbook opens cleanly in Excel and at least one secondary spreadsheet app. |
+| UNLINK-001 | Project-specific unlink UX/RPC is not implementation-complete. | Schema-accurate RPC/action/hook/UI/tests prove library data cannot be mutated. |
+| AUTH-001 | Hosted auth path lacks production proof. | Google OAuth, magic link, callback, first workspace, and logout/session-expiry smoke on staging/prod. |
+| INFRA-001 | Vercel/Supabase/Resend env and rollback proof missing. | Env manifest, callback URLs, DNS, webhooks, storage policies, deploy/rollback runbook proof. |
+| SEC-001 | RLS/security threat model proof missing. | RLS denial queries, route access matrix, storage denial, CSRF/share/invite token tests. |
+| LEGAL-001 | Terms/Privacy are pending-review placeholders. | Reviewed or explicitly approved closed-beta legal copy and public-route updates. |
+| OBS-001 | Monitoring/support path is not launch-ready. | Error tracking, uptime, support inbox, alert thresholds, incident runbook. |
+| DATA-001 | Backup/DR proof missing. | Backup/PITR/storage/migration rollback proof before beta data or migration apply. |
+| QA-002 | Core regression matrix is incomplete and `test:dom` currently fails. | Zero-defect matrix green or each exception documented as no-go/accepted debt. |
 
-## P1 Polish
+## P1 Polish / Non-Blocking Debt After P0
 
-| Area | Required outcome | Tickets |
-| --- | --- | --- |
-| Component library | Consistent search/filter copy, empty/loading/error states, trust fields, and fixture-backed DOM coverage. | MVP-LIB-001, MVP-LIB-002 |
-| Templates | Preview/details, shared empty states, route error boundary, insertion feedback coverage. | MVP-TPL-001, MVP-TPL-002 |
-| Estimate row UX | Link-state badges, project-specific confirmation, editable detached fields, history tests. | MVP-ROW-002 to MVP-ROW-005 |
-| Excel export | Sheet-by-sheet workbook spec, formulas, no blank line totals, commercial blocks, manual QA. | MVP-XLS-001 to MVP-XLS-003 |
+- Component library search/filter trust fields, empty/loading/error copy, and seed data quality.
+- Template discovery/preview/insertion feedback.
+- Route-transition performance production benchmark and manual Chrome proof.
+- Redis/Upstash limiter if public share/invite/AI/email abuse thresholds are exceeded.
+- Sentry/Web Vitals dashboards beyond minimum launch alerts.
+- Investor demo reset tooling and screenshot/export artifact pack.
 
-## Implementation Sequence
+## Readiness Scorecard Summary
 
-1. PR 1: AI deferral gates (`MVP-AI-001` to `MVP-AI-003`). Stop gate: UI hidden and disabled routes make zero provider/context/audit calls.
-2. PR 2: Schema-safe row unlink contract (`MVP-ROW-001`, `MVP-ROW-002`). Stop gate: migration/RPC proof and row revision conflict tests.
-3. PR 3: Row UX and history (`MVP-ROW-003` to `MVP-ROW-005`). Stop gate: detached row editing and activity proof.
-4. PR 4: Library polish (`MVP-LIB-001`, `MVP-LIB-002`). Stop gate: route DOM and data quality fixtures.
-5. PR 5: Template polish (`MVP-TPL-001`, `MVP-TPL-002`). Stop gate: persisted-template and fallback behavior covered.
-6. PR 6: Export workbook (`MVP-XLS-001` to `MVP-XLS-003`). Stop gate: ExcelJS assertions plus manual QA in Excel/Numbers/LibreOffice/Google Sheets.
-7. PR 7: Launch proof (`MVP-QA-001`). Stop gate: checklist, runbook, deployment evidence, owner sign-off.
+Rules: below 90 is not beta-ready; P0 domains below 95 block launch; 100 requires complete evidence, not a plan.
 
-## Go/No-Go Rule
+| Domain | Score | Launch posture |
+| --- | ---: | --- |
+| Product core | 78 | Not beta-ready |
+| Estimate editor | 82 | Not beta-ready |
+| Component library | 80 | Not beta-ready |
+| Templates | 74 | Not beta-ready |
+| Project-specific unlink | 35 | P0 blocker |
+| Excel export | 45 | P0 blocker |
+| Auth/onboarding | 78 | P0 proof gap |
+| Infrastructure/deployment | 55 | P0 blocker |
+| Email/Resend | 50 | P0 if visible share/invite email ships |
+| Security/RLS | 62 | P0 blocker |
+| Legal/privacy | 25 | P0 blocker |
+| Performance/caching | 65 | P1 unless thresholds fail |
+| Observability/support | 35 | P0 blocker |
+| QA/test coverage | 58 | P0 blocker |
+| Investor demo readiness | 45 | P0 for investor/incubator showing |
+| Beta readiness | 40 | P0 blocker |
 
-Go only when:
-
-- All P0 checklist rows in `09-release-readiness-checklist.md` are Pass.
-- `12-final-mvp-launch-gate.md` has owner sign-off.
-- `14-evidence-index.md` has current command output and deployment proof.
-- Ask Flip is hidden and both AI API routes are disabled by default.
-- Excel export manual QA has proof artifacts.
-
-No-go if any P0 remains Open, Waived, or Unknown.
-
-## What Changed From First Pass
-
-- Replaced schema-invalid unlink SQL with a schema-accurate contract grounded in generated types and migrations.
-- Added a data/RPC/migration contract document.
-- Added central blast-radius register with graph/GitNexus evidence.
-- Added PR-sized ticket map.
-- Rewrote Excel export into a workbook engineering specification based on the bid-form patterns supplied in the prompt.
-- Converted generic library/template polish into exact state, source, UI, and test contracts.
-- Added evidence index, test strategy, and launch runbook.
-- Reclassified `bun run test:dom` failures as launch-gate evidence requiring investigation.
-
-## Document Map
+## Document Index
 
 | Doc | Purpose |
 | --- | --- |
-| `01-codebase-audit.md` | Verified route, schema, RPC, UI, test, and command baseline. |
-| `02-mvp-scope-cutline.md` | Route/action/API launch visibility and ticket ownership. |
-| `03-deferred-features-plan.md` | Exact Ask Flip/package-builder deferral plan. |
-| `04-mvp-feature-completion-plan.md` | Feature implementation matrix. |
-| `05-component-library-polish-plan.md` | Component library implementation plan. |
-| `06-template-polish-plan.md` | Template route implementation plan. |
-| `07-project-specific-unlink-components-plan.md` | Schema-safe project-specific unlink plan. |
-| `08-excel-export-industry-standard-plan.md` | Workbook engineering specification. |
-| `09-release-readiness-checklist.md` | Owner/evidence/pass-fail launch checklist. |
-| `10-technical-risk-register.md` | Risk register and accepted debt. |
-| `11-implementation-phases.md` | PR sequencing, dependency graph, commands, rollback. |
-| `12-final-mvp-launch-gate.md` | Final go/no-go gate. |
-| `13-second-pass-quality-audit.md` | Meta-review of first pass and second-pass corrections. |
-| `14-evidence-index.md` | Evidence register. |
-| `15-blast-radius-register.md` | Blast-radius evidence by target. |
-| `16-implementation-ticket-map.md` | PR-sized implementation tickets. |
-| `17-data-contracts-rpc-migrations.md` | SQL/RPC/TypeScript data contracts. |
-| `18-excel-reference-analysis.md` | Bid-form reference analysis and product requirements. |
-| `19-test-strategy-and-fixtures.md` | Test and fixture plan. |
-| `20-launch-runbook.md` | Launch operations runbook. |
+| `01-codebase-audit.md` | Current route/code/schema/test/CI evidence and command results. |
+| `02-mvp-scope-cutline.md` | Visible MVP yes/no cutline for routes, APIs, navigation, and flags. |
+| `03-deferred-features-plan.md` | Ask Flip / AI deferral and reactivation contract. |
+| `04-mvp-feature-completion-plan.md` | Master feature gap matrix tied to ticket IDs. |
+| `05`-`08` | Component library, templates, project-specific unlink, Excel workbook plans. |
+| `09`-`12` | Evidence checklist, risk register, implementation phases, final gate. |
+| `13`-`20` | Quality audit, evidence index, blast radius, ticket map, data contracts, Excel references, tests, runbook. |
+| `21`-`36` | Third-pass enterprise/legal/security/infra/performance/demo/beta/DR/UX/ADR/council/executive package. |
+
+## First Implementation PR Recommendation
+
+Start with **PR-1: MVP hard-disable AI and complete env manifest**.
+
+Tickets: `AI-001`, `INFRA-001` env-manifest slice only, `QA-002` targeted AI disable tests. This has the highest risk reduction per line changed because it removes an unfinished visible feature and prevents provider/write calls by default.
+
+## Final Go / No-Go Rule
+
+Do not launch beta, show an investor demo, or charge a customer until every P0 gate in `12-final-mvp-launch-gate.md` has a pass artifact in `14-evidence-index.md`. A planned fix is not evidence.
