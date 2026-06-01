@@ -170,6 +170,18 @@ Mitigation: no secret values committed, local defaults stay closed/disabled, ext
 - Post-edit GitNexus staged detection reports no indexed changes for the new-route/docs/test set.
 
 Mitigation: keep the endpoint data-free and public, use it only as an uptime target, and require deployed monitor proof before claiming production observability complete.
+
+## QA-002 Local Readiness Truth-Sync Impact Evidence - 2026-06-02
+
+This slice edits launch readiness documentation plus a source-contract test only; no production runtime symbols are changed.
+
+- Product risk is documentation drift: stale red-test language could cause agents or reviewers to misread current local readiness.
+- Launch risk remains high overall because hosted/provider/manual gates are intentionally still no-go.
+- `closed-beta-readiness-docs.test.ts` locks the distinction between green local command evidence and no-go launch status.
+- Post-edit code-review-graph reports 0 affected flows, 0 test gaps, and overall risk score 0.30.
+- Post-edit GitNexus staged detection reports no indexed code changes for the docs/test-only set.
+
+Mitigation: keep QA docs evidence-based, avoid changing external launch gates to pass without proof, and rerun the source-contract test after future evidence updates.
 | `EstimateSheetContent` | GitNexus specific symbol returned 0 upstream due App Router boundary; other impacts show it is central through hook/export/preview. | Estimate workspace flows. | HIGH by manual assessment | many estimate DOM tests. | Keep row edits scoped; use targeted DOM tests. | Protected estimate route smoke. |
 | `useEstimateRowMutations` | Direct caller: `EstimateSheetContent`; indirect tests. | None reported. | LOW graph, MEDIUM product | estimate sheet tests. | Add unlink as peer mutation with same queue/revision model. | Hook conflict/rollback test. |
 | `insertEstimateRowItemFromLibrary` | `mutationFn` in row hook. | None. | LOW | `estimate-sheet-library-insert.test.tsx`, version-control actions tests. | Do not alter insert semantics. | Regression after unlink action. |
