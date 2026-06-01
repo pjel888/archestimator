@@ -2,6 +2,10 @@ import { readFileSync } from "node:fs";
 
 import { describe, expect, it } from "vitest";
 
+const launchReadinessReadme = readFileSync(
+  ".ai/03_plans/mvp-launch-readiness-2026-06-01/00-README.md",
+  "utf8",
+);
 const releaseChecklist = readFileSync(
   ".ai/03_plans/mvp-launch-readiness-2026-06-01/09-release-readiness-checklist.md",
   "utf8",
@@ -72,6 +76,11 @@ describe("closed beta readiness docs", () => {
     expect(finalLaunchGate).not.toContain("HEAD audited: `531f20a`");
     expect(executiveBrief).toContain("Final report indexed in launch docs: `3e8d7a0`.");
     expect(executiveBrief).not.toContain("HEAD: `531f20a`");
+    expect(launchReadinessReadme).toContain("Final local implementation report: `final-codex-implementation-report.md`.");
+    expect(launchReadinessReadme).toContain("| Product core | 84 | Local pass; manual smoke gap |");
+    expect(launchReadinessReadme).toContain("| Excel export | 88 | Local workbook pass; cross-app proof gap |");
+    expect(launchReadinessReadme).not.toContain("| Project-specific unlink | 35 | P0 blocker |");
+    expect(launchReadinessReadme).not.toContain("Product code changes are out of scope for this pass");
     expect(releaseChecklist).toContain("`bun run test:dom` | Pass: 131 files / 1021 tests / 2 skipped");
     expect(releaseChecklist).not.toContain("`bun run test:dom` | Fail");
     expect(finalLaunchGate).toContain("`bun run test:dom`: pass, 131 files / 1021 tests with 2 skips");
