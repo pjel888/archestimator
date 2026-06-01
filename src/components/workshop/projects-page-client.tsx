@@ -1,5 +1,6 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { useMemo, useState, useSyncExternalStore, useTransition } from "react";
 import { useNavigationRouter } from "@/hooks/use-navigation-router";
 import { Cards, GridFour, Plus, Rows, SquaresFour } from "@phosphor-icons/react/dist/ssr";
@@ -9,11 +10,11 @@ import { setProjectFavorite } from "@/lib/workshop/actions";
 import type { Tables } from "@/lib/supabase/types";
 import { cn } from "@/lib/ui/cn";
 import type { CollaborationRole } from "@/lib/collaboration/types";
+import type { ProjectPublicationListSummary } from "@/lib/publication/types";
+import type { WorkshopPendingInviteSummary } from "@/lib/repositories/workspace-repository";
 
 import { LiveProjectCard, type ProjectAccessKind, type ProjectCardViewMode } from "./LiveProjectCard";
-import { NewProjectModal } from "./NewProjectModal";
 import { ProjectCard } from "./ProjectCard";
-import { ProjectDetailsModal } from "./ProjectDetailsModal";
 import { WorkshopCollectionLayout } from "./WorkshopCollectionLayout";
 import { sampleProjects } from "./workshop-sample-projects";
 
@@ -27,6 +28,9 @@ export type ProjectListItem = {
   accessKind: ProjectAccessKind;
   currentUserRole: CollaborationRole;
   ownerWorkspaceName?: string | null;
+  pendingInvite?: WorkshopPendingInviteSummary | null;
+  pendingInviteCount?: number;
+  publicationSummary?: ProjectPublicationListSummary | null;
   sharedEstimateCount?: number;
 };
 
@@ -34,6 +38,8 @@ const EMPTY_FAVORITE_PROJECT_IDS: string[] = [];
 const PROJECT_VIEW_MODE_STORAGE_KEY = "archestimator_projects_view_mode_v1";
 const PROJECT_VIEW_MODE_CHANGE_EVENT = "archestimator:projects-view-mode-change";
 let fallbackProjectViewMode: ProjectCardViewMode = "large";
+const NewProjectModal = dynamic(() => import("./NewProjectModal").then((mod) => mod.NewProjectModal));
+const ProjectDetailsModal = dynamic(() => import("./ProjectDetailsModal").then((mod) => mod.ProjectDetailsModal));
 const PROJECT_VIEW_MODE_OPTIONS: Array<{
   value: ProjectCardViewMode;
   label: string;
@@ -54,13 +60,31 @@ function normalizeProjectListItem(projectOrItem: Tables<"projects"> | ProjectLis
     project: projectOrItem,
     accessKind: "owned",
     currentUserRole: "owner",
+    pendingInviteCount: 0,
+    publicationSummary: null,
     sharedEstimateCount: 0,
   };
 }
 
 function getProjectAccessSearchText(item: ProjectListItem) {
-  const badge = item.accessKind === "project-member" ? "shared project" : item.accessKind === "sheet-member" ? "sheet-only" : "owned";
-  return [badge, item.currentUserRole, item.ownerWorkspaceName, item.sharedEstimateCount ? `${item.sharedEstimateCount} shared sheets` : null]
+  const badge = item.accessKind === "pending-invite"
+    ? "pending invite"
+    : item.accessKind === "project-member"
+      ? "shared project"
+      : item.accessKind === "sheet-member"
+        ? "sheet-only"
+        : "owned";
+  const linkStatus = item.publicationSummary?.status === "published" ? "shared link published" : null;
+  return [
+    badge,
+    item.currentUserRole,
+    item.ownerWorkspaceName,
+    item.pendingInvite?.projectCode,
+    item.pendingInvite?.inviterLabel,
+    item.pendingInvite?.estimateName,
+    item.sharedEstimateCount ? `${item.sharedEstimateCount} shared sheets` : null,
+    linkStatus,
+  ]
     .filter(Boolean)
     .join(" ")
     .toLowerCase();
@@ -266,6 +290,9 @@ export function ProjectsPageClient({
                 accessKind={item.accessKind}
                 currentUserRole={item.currentUserRole}
                 ownerWorkspaceName={item.ownerWorkspaceName}
+                pendingInvite={item.pendingInvite}
+                pendingInviteCount={item.pendingInviteCount}
+                publicationSummary={item.publicationSummary}
                 sharedEstimateCount={item.sharedEstimateCount}
                 viewMode={projectViewMode}
                 isFavorite={favoriteIds.has(item.project.id)}

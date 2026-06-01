@@ -24,6 +24,10 @@ type MainSidebarUser = {
   avatarUrl?: string | null;
 };
 
+export type MainSidebarStatus = {
+  projectsBadgeCount?: number;
+};
+
 const dashboardItem: SidebarNavItem & { icon: PhosphorIcon } = {
   id: "workshop",
   href: "/workshop",
@@ -51,7 +55,11 @@ const sidebarPrefetchRoutes = sidebarNavItems.map((item) => ({ pathname: item.hr
 
 const isActiveHref = (pathname: string | null, href: string) => pathname === href || Boolean(pathname?.startsWith(`${href}/`));
 
-export function MainSidebar({ user }: { user?: MainSidebarUser }) {
+function formatPendingInviteBadgeLabel(count: number) {
+  return `${count} pending ${count === 1 ? "invite" : "invites"}`;
+}
+
+export function MainSidebar({ status, user }: { status?: MainSidebarStatus; user?: MainSidebarUser }) {
   const pathname = usePathname();
   const { prefetch, cancel } = usePrefetchOnHover(sidebarPrefetchRoutes);
   const userName = user?.displayName || user?.email || "Workspace";
@@ -66,6 +74,17 @@ export function MainSidebar({ user }: { user?: MainSidebarUser }) {
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(() =>
     typeof window === "undefined" ? false : window.matchMedia("(prefers-reduced-motion: reduce)").matches,
   );
+  const resolvedSidebarNavItems = useMemo(() => {
+    const projectsBadgeCount = status?.projectsBadgeCount ?? 0;
+    return sidebarNavItems.map((item) => {
+      if (item.id !== "projects" || projectsBadgeCount <= 0) return item;
+      return {
+        ...item,
+        badgeCount: projectsBadgeCount,
+        badgeLabel: formatPendingInviteBadgeLabel(projectsBadgeCount),
+      };
+    });
+  }, [status?.projectsBadgeCount]);
 
   useEffect(() => {
     const media = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -162,7 +181,7 @@ export function MainSidebar({ user }: { user?: MainSidebarUser }) {
           </div>
 
           <div className="flex flex-col gap-2 pb-2 pt-2" style={{ paddingInline: SIDEBAR_PADDING }}>
-            {sidebarNavItems.map((item) => (
+            {resolvedSidebarNavItems.map((item) => (
               <SidebarNavItemRow
                 key={item.id}
                 item={item}

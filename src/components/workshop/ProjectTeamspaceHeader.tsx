@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState, useTransition, type CSSProperties, type FormEvent } from "react";
-import { GearSix, LinkSimple, Trash } from "@phosphor-icons/react/dist/ssr";
+import { GearSix, LinkSimple, PaperPlaneTilt, Trash } from "@phosphor-icons/react/dist/ssr";
 
 import { Button } from "@/components/ui/button";
 import { Modal } from "@/components/ui/modal";
@@ -11,6 +11,7 @@ import {
   inviteEstimateSheetCollaborator,
   inviteProjectCollaborator,
   removeProjectCollaborator,
+  resendProjectInviteEmail,
   setEstimateSheetAccessMode,
   updateProjectCollaboratorRole,
 } from "@/lib/collaboration/actions";
@@ -102,6 +103,11 @@ function EmptyTeamspaceRail() {
   );
 }
 
+function isWarningActionMessage(result: { ok: boolean; message: string }) {
+  if (!result.ok) return true;
+  return /share the invite link manually|unavailable|not sent|could not/i.test(result.message);
+}
+
 export function ProjectTeamspaceHeader({ summary }: ProjectTeamspaceHeaderProps) {
   const [open, setOpen] = useState(false);
   const [inviteEmail, setInviteEmail] = useState("");
@@ -109,6 +115,9 @@ export function ProjectTeamspaceHeader({ summary }: ProjectTeamspaceHeaderProps)
   const [sheetInviteEmailById, setSheetInviteEmailById] = useState<Record<string, string>>({});
   const [sheetInviteRoleById, setSheetInviteRoleById] = useState<Record<string, CollaborationRole>>({});
   const [actionMessage, setActionMessage] = useState<string | null>(null);
+  const [actionMessageTone, setActionMessageTone] = useState<"neutral" | "warning">("neutral");
+  const [pendingRemoval, setPendingRemoval] = useState<ProjectCollaboratorSummary | null>(null);
+  const [notifyRemovedCollaborator, setNotifyRemovedCollaborator] = useState(false);
   const [isPending, startTransition] = useTransition();
   const currentUser = useMemo(
     () => summary?.collaborators.find((collaborator) => collaborator.id === summary.currentUserId) ?? summary?.collaborators[0] ?? null,
@@ -128,14 +137,43 @@ export function ProjectTeamspaceHeader({ summary }: ProjectTeamspaceHeaderProps)
 
   function runAccessAction(action: () => Promise<{ ok: boolean; message: string }>) {
     setActionMessage(null);
+    setActionMessageTone("neutral");
     startTransition(async () => {
       try {
         const result = await action();
+        setActionMessageTone(isWarningActionMessage(result) ? "warning" : "neutral");
         setActionMessage(result.message);
       } catch (error) {
+        setActionMessageTone("warning");
         setActionMessage(error instanceof Error ? error.message : "Access update failed.");
       }
     });
+  }
+
+  function openRemovalConfirmation(collaborator: ProjectCollaboratorSummary) {
+    setNotifyRemovedCollaborator(false);
+    setPendingRemoval(collaborator);
+  }
+
+  function closeRemovalConfirmation() {
+    if (isPending) return;
+    setPendingRemoval(null);
+    setNotifyRemovedCollaborator(false);
+  }
+
+  function confirmCollaboratorRemoval() {
+    if (!pendingRemoval) return;
+    const collaborator = pendingRemoval;
+    const notify = notifyRemovedCollaborator;
+    setPendingRemoval(null);
+    setNotifyRemovedCollaborator(false);
+    runAccessAction(() =>
+      removeProjectCollaborator({
+        projectId: activeSummary.projectId,
+        userId: collaborator.id,
+        notify,
+      }),
+    );
   }
 
   function handleInviteSubmit(event: FormEvent<HTMLFormElement>) {
@@ -158,8 +196,10 @@ export function ProjectTeamspaceHeader({ summary }: ProjectTeamspaceHeaderProps)
       if (!navigator.clipboard?.writeText) throw new Error("Clipboard API unavailable.");
       const projectShareLink = typeof window === "undefined" ? projectSharePath : `${window.location.origin}${projectSharePath}`;
       await navigator.clipboard.writeText(projectShareLink);
+      setActionMessageTone("neutral");
       setActionMessage("Private link copied.");
     } catch {
+      setActionMessageTone("warning");
       setActionMessage("Copy unavailable. Select the link to copy it.");
     }
   }
@@ -176,10 +216,20 @@ export function ProjectTeamspaceHeader({ summary }: ProjectTeamspaceHeaderProps)
       if (!invitePath) throw new Error("Invite link unavailable.");
       const inviteLink = typeof window === "undefined" ? invitePath : `${window.location.origin}${invitePath}`;
       await navigator.clipboard.writeText(inviteLink);
+      setActionMessageTone("neutral");
       setActionMessage("Invite link copied.");
     } catch (error) {
+      setActionMessageTone("warning");
       setActionMessage(error instanceof Error ? error.message : "Copy unavailable. Ask the sender to refresh this invite.");
     }
+  }
+
+  function resendInviteEmail(invitation: ProjectCollaborationSummary["pendingInvitations"][number]) {
+    runAccessAction(() =>
+      resendProjectInviteEmail({
+        invitationId: invitation.id,
+      }),
+    );
   }
 
   function readSheetInviteRole(estimateId: string) {
@@ -364,14 +414,7 @@ export function ProjectTeamspaceHeader({ summary }: ProjectTeamspaceHeaderProps)
                           className="size-6 rounded-xs p-0 text-tertiary hover:bg-dangerSoft hover:text-danger"
                           aria-label={`Remove ${collaborator.displayName}`}
                           disabled={isPending}
-                          onClick={() =>
-                            runAccessAction(() =>
-                              removeProjectCollaborator({
-                                projectId: activeSummary.projectId,
-                                userId: collaborator.id,
-                              }),
-                            )
-                          }
+                          onClick={() => openRemovalConfirmation(collaborator)}
                         >
                           <Trash size={12} aria-hidden="true" />
                         </Button>
@@ -391,18 +434,32 @@ export function ProjectTeamspaceHeader({ summary }: ProjectTeamspaceHeaderProps)
                         </span>
                       </div>
                       {canManageProjectAccess ? (
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          className="min-h-6 shrink-0 rounded-xs px-1.5 text-[9px]"
-                          aria-label={`Copy invite link for ${invitation.email}`}
-                          disabled={isPending}
-                          onClick={() => void copyInviteLink(invitation)}
-                        >
-                          <LinkSimple size={11} aria-hidden="true" />
-                          Copy invite link
-                        </Button>
+                        <div className="flex shrink-0 items-center gap-1">
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="min-h-6 rounded-xs px-1.5 text-[9px]"
+                            aria-label={`Resend invite for ${invitation.email}`}
+                            disabled={isPending}
+                            onClick={() => resendInviteEmail(invitation)}
+                          >
+                            <PaperPlaneTilt size={11} aria-hidden="true" />
+                            Resend
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="min-h-6 rounded-xs px-1.5 text-[9px]"
+                            aria-label={`Copy invite link for ${invitation.email}`}
+                            disabled={isPending}
+                            onClick={() => void copyInviteLink(invitation)}
+                          >
+                            <LinkSimple size={11} aria-hidden="true" />
+                            Copy
+                          </Button>
+                        </div>
                       ) : null}
                     </div>
                   ))}
@@ -538,11 +595,68 @@ export function ProjectTeamspaceHeader({ summary }: ProjectTeamspaceHeaderProps)
             </section>
             {actionMessage ? (
               <section className="p-3">
-                <p className="rounded-xs bg-surfaceMuted px-2 py-1.5 text-[9px] leading-3 text-secondary" role="status">
+                <p
+                  className={cn(
+                    "rounded-xs px-2 py-1.5 text-[9px] leading-3",
+                    actionMessageTone === "warning"
+                      ? "border border-warning/25 bg-warningSoft text-warning"
+                      : "bg-surfaceMuted text-secondary",
+                  )}
+                  role="status"
+                >
                   {actionMessage}
                 </p>
               </section>
             ) : null}
+          </div>
+        </div>
+      </Modal>
+
+      <Modal
+        open={Boolean(pendingRemoval)}
+        title={`Remove ${pendingRemoval?.displayName ?? "collaborator"}?`}
+        onOpenChange={(nextOpen) => {
+          if (!nextOpen) closeRemovalConfirmation();
+        }}
+        className="max-w-sm"
+      >
+        <div className="space-y-3">
+          <p className="text-[10px] leading-4 text-secondary">
+            They will lose access to this project and all estimate sheets.
+          </p>
+          {pendingRemoval ? (
+            <label className="flex items-center gap-2 rounded-xs border border-hairline px-2 py-1.5 text-[10px] font-medium leading-3 text-secondary">
+              <input
+                type="checkbox"
+                className="size-3 rounded-xs border-hairline text-ink focus:ring-focus"
+                checked={notifyRemovedCollaborator}
+                disabled={isPending}
+                onChange={(event) => setNotifyRemovedCollaborator(event.target.checked)}
+              />
+              <span>Notify {pendingRemoval.displayName} of removal</span>
+            </label>
+          ) : null}
+          <div className="flex justify-end gap-2">
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="min-h-7 rounded-xs px-2 text-[10px]"
+              disabled={isPending}
+              onClick={closeRemovalConfirmation}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              variant="danger"
+              size="sm"
+              className="min-h-7 rounded-xs px-2 text-[10px]"
+              disabled={isPending}
+              onClick={confirmCollaboratorRemoval}
+            >
+              Remove
+            </Button>
           </div>
         </div>
       </Modal>

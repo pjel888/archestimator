@@ -1,7 +1,8 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 
 import { ProjectDashboardClient } from "@/components/workshop/ProjectDashboardClient";
 import { sampleProjects } from "@/components/workshop/workshop-sample-projects";
+import { isUuid } from "@/lib/ids";
 import { getCurrentWorkspaceProject } from "@/lib/repositories/workspace-repository";
 
 type ProjectDashboardPageProps = {
@@ -13,7 +14,10 @@ export default async function ProjectDashboardPage({ params }: ProjectDashboardP
   const { project } = await getCurrentWorkspaceProject(projectId);
   const sampleProject = sampleProjects.find((item) => item.id === projectId);
 
-  if (!project && !sampleProject) notFound();
+  if (!project && !sampleProject) {
+    if (isUuid(projectId)) redirect(`/workshop?removedProject=${encodeURIComponent(projectId)}`);
+    notFound();
+  }
 
   const fallback = {
     id: projectId,

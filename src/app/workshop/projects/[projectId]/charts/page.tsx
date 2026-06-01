@@ -4,6 +4,7 @@ import { ProjectChartsClient } from "@/components/workshop/project-charts/Projec
 import { getProjectChartDefaultPair } from "@/lib/project-charts/aggregate-project-charts";
 import type { ProjectChartGroupingMode } from "@/lib/project-charts/types";
 import { getProjectChartsData } from "@/lib/repositories/project-charts-repository";
+import { assertRouteErrorSmoke } from "@/lib/route-error-smoke";
 
 type ProjectChartsPageProps = {
   params: Promise<{ projectId: string }>;
@@ -17,6 +18,8 @@ type ProjectChartsPageProps = {
 export default async function ProjectChartsPage({ params, searchParams }: ProjectChartsPageProps) {
   const { projectId } = await params;
   const resolvedSearchParams = await searchParams;
+  assertRouteErrorSmoke({ routeLabel: "Project charts", searchParams: resolvedSearchParams });
+
   const selectedEstimateIds = [resolvedSearchParams?.left, resolvedSearchParams?.right].filter(
     (value): value is string => typeof value === "string" && value.length > 0,
   );

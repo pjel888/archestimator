@@ -15,6 +15,10 @@ interface DecisionState {
   note?: string;
 }
 
+function readErrorMessage(error: unknown, fallback: string) {
+  return error instanceof Error ? error.message : fallback;
+}
+
 export default function SharePageDecision({ token }: SharePageDecisionProps) {
   const { isValid } = useSharedLinkSession();
   const [decided, setDecided] = useState<DecisionState | null>(null);
@@ -65,7 +69,7 @@ export default function SharePageDecision({ token }: SharePageDecisionProps) {
         body: JSON.stringify(payload),
       });
 
-      const json = await res.json().catch(() => ({}));
+      const json = (await res.json().catch(() => ({}))) as { error?: string };
 
       if (res.status === 409 || /already submitted/i.test(json?.error || "")) {
         // Lock on duplicate (idempotent per P3 unique + RPC)
@@ -83,8 +87,8 @@ export default function SharePageDecision({ token }: SharePageDecisionProps) {
       setDecided({ decision: pendingDecision, note: payload.note || undefined });
       announce(`Decision recorded: ${pendingDecision.replace("_", " ")}.`);
       closeConfirm();
-    } catch (e: any) {
-      const msg = e?.message || "Failed to submit decision. Please try again.";
+    } catch (error: unknown) {
+      const msg = readErrorMessage(error, "Failed to submit decision. Please try again.");
       setError(msg);
     } finally {
       setIsSubmitting(false);

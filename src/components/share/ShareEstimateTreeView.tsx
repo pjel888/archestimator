@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import Image from "next/image";
 import { FolderSimple, Cube, CaretDown } from "@phosphor-icons/react";
 
@@ -240,12 +240,11 @@ export function ShareEstimateTreeView({ nodes, currencyCode, disclaimer, activeN
     return () => mql.removeEventListener("change", update);
   }, []);
 
-  const [expandedNodeIds, setExpandedNodeIds] = useState<string[]>([]);
+  const [manualExpandedNodeIds, setManualExpandedNodeIds] = useState<string[] | null>(null);
 
   // P5: Default expansion respects mobile (collapsed to save space) vs desktop (first 2 levels).
-  // Re-runs when sheet nodes or viewport changes.
-  useEffect(() => {
-    if (nodes.length === 0) return;
+  const defaultExpandedNodeIds = useMemo(() => {
+    if (nodes.length === 0) return [];
     const ids: string[] = [];
     const collect = (nodeList: ShareTreeNode[], level: number) => {
       nodeList.forEach((n) => {
@@ -254,8 +253,10 @@ export function ShareEstimateTreeView({ nodes, currencyCode, disclaimer, activeN
       });
     };
     collect(nodes, 0);
-    setExpandedNodeIds(ids);
+    return ids;
   }, [nodes, isMobile]);
+
+  const expandedNodeIds = manualExpandedNodeIds ?? defaultExpandedNodeIds;
 
   const getNodeId = (n: ShareTreeNode) => n.id;
   const getChildren = (n: ShareTreeNode) => n.children;
@@ -263,9 +264,10 @@ export function ShareEstimateTreeView({ nodes, currencyCode, disclaimer, activeN
   // Toggle handler (P3/P5): wire expand/collapse since WorkshopTree delegates interaction to renderNode consumer.
   // This makes the caret functional and removes dead-code warning on the state setter.
   const toggleNode = (id: string) => {
-    setExpandedNodeIds((prev) =>
-      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
-    );
+    setManualExpandedNodeIds((prev) => {
+      const current = prev ?? expandedNodeIds;
+      return current.includes(id) ? current.filter((x) => x !== id) : [...current, id];
+    });
   };
 
   // Close over currencyCode + toggle + isMobile so the read-only renderer (and its row items) are currency-aware + interactive + mobile-aware.

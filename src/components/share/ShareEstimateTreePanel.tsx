@@ -313,11 +313,15 @@ export function ShareEstimateTreePanel({
   }, []);
 
   const [searchQuery, setSearchQuery] = useState("");
-  const [expandedNodeIds, setExpandedNodeIds] = useState<string[]>([]);
+  const [manualExpandedNodeIds, setManualExpandedNodeIds] = useState<string[] | null>(null);
 
-  // Default expansion: collapsed on mobile, first 2 levels on desktop.
-  useEffect(() => {
-    if (nodes.length === 0 || searchQuery.trim()) return;
+  const filteredNodes = useMemo(() => {
+    return filterTreeNodes(nodes, searchQuery);
+  }, [nodes, searchQuery]);
+
+  const defaultExpandedNodeIds = useMemo(() => {
+    if (searchQuery.trim()) return collectAllNodeIds(filteredNodes);
+    if (nodes.length === 0) return [];
     const ids: string[] = [];
     const collect = (nodeList: ShareTreeNode[], level: number) => {
       nodeList.forEach((n) => {
@@ -326,32 +330,34 @@ export function ShareEstimateTreePanel({
       });
     };
     collect(nodes, 0);
-    setExpandedNodeIds(ids);
-  }, [nodes, isMobile, searchQuery]);
+    return ids;
+  }, [filteredNodes, isMobile, nodes, searchQuery]);
+
+  const expandedNodeIds = manualExpandedNodeIds ?? defaultExpandedNodeIds;
 
   const handleExpandAll = () => {
-    setExpandedNodeIds(collectAllNodeIds(nodes));
+    setManualExpandedNodeIds(collectAllNodeIds(nodes));
   };
 
   const handleCollapseAll = () => {
-    setExpandedNodeIds([]);
+    setManualExpandedNodeIds([]);
   };
 
-  const filteredNodes = useMemo(() => {
-    return filterTreeNodes(nodes, searchQuery);
-  }, [nodes, searchQuery]);
-
-  // Auto-expand all when searching so matches are visible.
-  useEffect(() => {
-    if (searchQuery.trim()) {
-      setExpandedNodeIds(collectAllNodeIds(filteredNodes));
-    }
-  }, [searchQuery, filteredNodes]);
-
   const toggleNode = (id: string) => {
-    setExpandedNodeIds((prev) =>
-      prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]
-    );
+    setManualExpandedNodeIds((prev) => {
+      const current = prev ?? expandedNodeIds;
+      return current.includes(id) ? current.filter((x) => x !== id) : [...current, id];
+    });
+  };
+
+  const updateSearchQuery = (nextQuery: string) => {
+    setSearchQuery(nextQuery);
+    setManualExpandedNodeIds(null);
+  };
+
+  const clearSearchQuery = () => {
+    setSearchQuery("");
+    setManualExpandedNodeIds(null);
   };
 
   const renderNode = (args: WorkshopTreeRenderNodeArgs<ShareTreeNode>) => (
@@ -377,8 +383,8 @@ export function ShareEstimateTreePanel({
             placeholder="Search Tree"
             aria-label="Search Tree"
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            onClear={() => setSearchQuery("")}
+            onChange={(e) => updateSearchQuery(e.target.value)}
+            onClear={clearSearchQuery}
           />
         </div>
         <HeaderIconToolbar

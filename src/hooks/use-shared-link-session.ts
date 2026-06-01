@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useSyncExternalStore } from "react";
 
 export interface UseSharedLinkSessionResult {
   isValid: boolean;
@@ -18,17 +18,15 @@ export interface UseSharedLinkSessionResult {
  * Backwards compatible: returns { isValid: false } for view-only / password-only flows.
  */
 export function useSharedLinkSession(): UseSharedLinkSessionResult {
-  const [result, setResult] = useState<UseSharedLinkSessionResult>({ isValid: false });
+  const isValid = useSyncExternalStore(
+    () => () => undefined,
+    () => {
+      if (typeof document === "undefined") return false;
+      // Flag set by server when the real HttpOnly shared_link_session_* cookie is valid for this publication token.
+      return /shared_link_session_[^=;]+_ok=1/.test(document.cookie || "");
+    },
+    () => false,
+  );
 
-  useEffect(() => {
-    if (typeof document === "undefined") {
-      return;
-    }
-    const cookieStr = document.cookie || "";
-    // Flag set by server when the real HttpOnly shared_link_session_* cookie is valid for this publication token.
-    const isValid = /shared_link_session_[^=;]+_ok=1/.test(cookieStr);
-    setResult({ isValid });
-  }, []);
-
-  return result;
+  return { isValid };
 }
