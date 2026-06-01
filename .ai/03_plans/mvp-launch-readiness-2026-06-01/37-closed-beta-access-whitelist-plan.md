@@ -1,0 +1,176 @@
+# Closed Beta Access Whitelist Plan
+
+## Fourth-Pass Decision
+
+Archestimator's MVP launch is a closed beta, not a public paid launch. Access is limited to Google-authenticated users whose email is present in a Supabase allowlist managed manually by Philip for MVP.
+
+## Access Goals
+
+- Public marketing pages stay public.
+- `/share/[token]` and `/invite/[token]` keep their current public-token behavior.
+- `/workshop` and authenticated app routes require a real Supabase session plus closed beta allowlist approval.
+- Non-whitelisted Google-authenticated users cannot enter `/workshop`.
+- Whitelisted users proceed to the existing profile and default workspace path.
+- Revoked users are blocked even if they still have a browser session.
+- Blocking is clear, reversible, and does not create redirect loops.
+
+## Current Auth Architecture Evidence
+
+- `src/proxy.ts` currently protects `/workshop`, leaves `/pricing`, `/contact`, `/privacy`, `/terms`, `/invite`, and `/share` public, and redirects signed-out workshop users to `/login?next=...`.
+- `src/lib/auth/actions.ts` handles Google OAuth through `signInWithOAuth({ provider: "google" })` and also contains an email magic-link action.
+- `src/app/auth/callback/route.ts` exchanges the OAuth code and redirects through `resolvePostAuthDestination`.
+- `src/lib/auth/account-setup.ts` currently resolves most post-auth paths to `/workshop`.
+- `src/lib/auth/session.ts` resolves the Supabase user, lowercases the email, and reads or creates the `profiles` row. It does not check closed beta access today.
+- `src/lib/repositories/workspace-repository.ts` creates or reuses the default workspace after user context exists. This can remain the whitelisted-user first-run path.
+- `tests/vitest/auth-proxy.test.ts`, `tests/vitest/auth-callback-route.test.ts`, and `tests/vitest/auth-magic-link.test.ts` cover current redirect and auth-entry behavior, but no allowlist states exist yet.
+
+## Google Sign-In Flow
+
+1. Visitor opens `/login`.
+2. User clicks Google Sign-In.
+3. Supabase redirects to `/auth/callback?next=...`.
+4. Callback exchanges the code.
+5. New closed beta access helper checks the authenticated user's verified email against `closed_beta_allowed_emails`.
+6. If allowed, the callback proceeds to `/workshop` or a safe `next` path.
+7. If denied or revoked, callback redirects to `/beta/access-required` or `/beta/access-revoked`.
+
+Magic link should be hidden or disabled for closed beta unless Philip explicitly needs it as a support fallback. If retained, it must pass the same allowlist check before any workshop access.
+
+## Final Table Choice
+
+Use `closed_beta_allowed_emails`.
+
+Rationale: the name is explicit, product-readable, and scoped to the closed beta rather than implying a permanent entitlement system.
+
+## Schema Proposal
+
+```sql
+create table public.closed_beta_allowed_emails (
+  id uuid primary key default gen_random_uuid(),
+  email text not null,
+  normalized_email text generated always as (lower(btrim(email))) stored,
+  invited_by uuid null references auth.users(id) on delete set null,
+  invited_at timestamptz not null default now(),
+  accepted_at timestamptz null,
+  status text not null default 'invited'
+    check (status in ('invited', 'active', 'revoked')),
+  notes text null,
+  metadata jsonb not null default '{}'::jsonb,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  unique (normalized_email)
+);
+```
+
+Migration file: `supabase/migrations/20260602090000_closed_beta_allowed_emails.sql`.
+
+## RLS And Grants
+
+- Enable RLS on `closed_beta_allowed_emails`.
+- Do not grant normal users list access to the table.
+- Philip manages rows through Supabase Table Editor or SQL using admin/service-role access.
+- Provide a security-definer function for server-side checks, for example `public.is_closed_beta_allowed(raw_email text) returns table(status text, allowed boolean)`.
+- The function must match `lower(btrim(raw_email))` to `normalized_email`.
+- Treat `invited` and `active` as allowed; treat `revoked` and missing rows as denied.
+- Optional: update `accepted_at` from a server-side action only after first successful allowed login.
+
+Normal users do not need to see the allowlist table for MVP. The access-denied page can show the signed-in email from the session, not from the table.
+
+## Email Normalization Rules
+
+- Use case-insensitive matching with `lower(btrim(email))`.
+- Do not strip plus addressing for MVP. `philip+demo@example.com` and `philip@example.com` are separate beta identities.
+- Do not apply Gmail dot normalization. Match the email supplied by Google/Supabase exactly after lower/trim.
+- Require Supabase's authenticated user email. Prefer Google provider users for beta; if provider metadata exposes `email_verified`, require it to be true.
+
+## Enforcement Points
+
+| Layer | Required behavior |
+| --- | --- |
+| Auth callback | After code exchange, check allowlist before routing to `/workshop`. Denied users go to beta access page. |
+| Proxy | For `/workshop` and authenticated app routes, signed-in but unallowed users redirect to `/beta/access-required` or `/beta/access-revoked`. Public routes are not checked. |
+| Session helper | `getCurrentUserContext` or a wrapper must fail closed for closed-beta-enabled app routes. |
+| Server actions/API | Workshop mutations must require both user context and closed beta access. |
+| UI | Show clear access-required copy and sign-out/contact actions. |
+
+## Route Behavior Matrix
+
+| Route | Not signed in | Signed in not allowlisted | Allowlisted | Revoked |
+| --- | --- | --- | --- | --- |
+| `/` `/about` `/features` `/contact` | Public | Public | Public | Public |
+| `/pricing` | Public beta/waitlist copy only | Public beta/waitlist copy only | Public beta/waitlist copy only | Public beta/waitlist copy only |
+| `/privacy` `/terms` | Public beta legal copy | Public beta legal copy | Public beta legal copy | Public beta legal copy |
+| `/login` | Shows Google Sign-In | Redirects or links to access-required | Redirects to `/workshop` | Redirects to revoked/access-required |
+| `/auth/callback` | Exchanges code or redirects login | Redirects access-required | Redirects safe app path | Redirects revoked and blocks |
+| `/beta/access-required` | Public explanation and contact | Shows invite-only state and sign out | Link to workshop | Shows revoked variant if needed |
+| `/workshop` and children | Redirect login | Redirect access-required | Allowed | Redirect revoked |
+| `/share/[token]` | Current token rules | Current token rules | Current token rules | Current token rules |
+| `/invite/[token]` | Current token rules | Can view invite but app acceptance requires allowlist | Can accept per invite rules | Block app entry |
+
+## User States
+
+- Not signed in: can view public marketing, legal, share, invite, and login pages.
+- Signed in but not whitelisted: cannot enter `/workshop`; sees closed beta access required page with contact/request access and sign-out actions.
+- Whitelisted but no workspace: proceeds to existing default workspace creation/reuse path.
+- Whitelisted and onboarded: proceeds normally.
+- Revoked: blocked at proxy/session checks and sent to a revoked/access-required page.
+- Invited but not accepted: allowed to sign in; first successful app entry can set `accepted_at`.
+
+## Access Denied UX
+
+Route: `/beta/access-required`.
+
+Required copy:
+
+- "Closed beta access is required."
+- "Archestimator is currently invite-only. Philip personally approves each beta account."
+- "Sign in with the Google account that was invited, or contact Philip to request access."
+- Actions: contact/request access, sign out.
+
+Do not show pricing, checkout, or upgrade language.
+
+## Tests
+
+- Unit: email normalization, invited/active/revoked/missing states.
+- Unit: allowlist helper fails closed when Supabase/RPC errors.
+- Proxy: public routes stay public; `/workshop` blocks denied and revoked users.
+- Callback: allowed Google user reaches `/workshop`; denied user reaches `/beta/access-required`.
+- Session: `requireCurrentUserContext` or closed-beta wrapper blocks revoked users.
+- UI: access-required page renders copy, sign-out, contact/request link.
+- Manual QA: one allowed Google account and one denied Google account in production/staging.
+
+## Migration Strategy
+
+1. Backup production Supabase before migration.
+2. Apply `closed_beta_allowed_emails` migration.
+3. Insert Philip and test allowlisted accounts.
+4. Deploy code with `CLOSED_BETA_ACCESS_ENABLED=false` first if a staged rollout is needed.
+5. Verify callback and workshop access with allowed and denied users.
+6. Enable `CLOSED_BETA_ACCESS_ENABLED=true`.
+7. Re-run smoke checks.
+
+## Rollback Strategy
+
+- Set `CLOSED_BETA_ACCESS_ENABLED=false` to stop enforcement if access is blocking all users.
+- Revert the deployment if callback/proxy behavior breaks.
+- Keep the table; do not drop production allowlist data during emergency rollback.
+- If migration must be undone in a disposable environment, drop function, policies, and table after exporting rows.
+
+## Implementation Tickets
+
+- `BETA-AUTH-001` Add closed beta allowlist schema/RLS.
+- `BETA-AUTH-002` Add server-side beta access check helper.
+- `BETA-AUTH-003` Gate workshop access for non-whitelisted authenticated users.
+- `BETA-AUTH-004` Add access denied / pending beta UX.
+- `BETA-AUTH-005` Add tests for whitelist access states.
+- `BETA-AUTH-006` Update `.env.example` and deployment runbook for closed beta mode.
+
+## No-Go Criteria
+
+- Non-whitelisted Google-authenticated users can access `/workshop`.
+- Whitelisted Google-authenticated users cannot access `/workshop`.
+- Revoked users retain workshop access.
+- Blocking creates redirect loops.
+- Public share links break.
+- Philip cannot manage allowlist entries manually in Supabase.
+- Allowlist lookup is client-side only or exposes the full allowlist.
