@@ -118,6 +118,13 @@ describe("closed beta readiness docs", () => {
     expect(evidenceIndex).toContain("### Supabase Read-Only Provider Evidence");
     expect(evidenceIndex).toContain("### Vercel Read-Only Provider Evidence");
     expect(evidenceIndex).toContain("### Spreadsheet Artifact Local Evidence");
+    expect(evidenceIndex).toContain("spreadsheet-quicklook-preview-2026-06-02.md");
+    expect(evidenceIndex).toContain("qlmanage -t -s 1200");
+    expect(evidenceIndex).toContain("1200 x 892 PNG thumbnail");
+    expect(currentState).toContain("**Spreadsheet Quick Look Preview Evidence (2026-06-02):**");
+    expect(currentState).toContain("local macOS preview rendering only");
+    expect(knownIssues).toContain("Spreadsheet Quick Look preview evidence on 2026-06-02");
+    expect(knownIssues).toContain("Spreadsheet compatibility remains blocked");
     expect(evidenceIndex).toContain("### Component/Template Demo Local Smoke Evidence");
     expect(evidenceIndex).toContain("library-demo-smoke-local-2026-06-02.md");
     expect(evidenceIndex).toContain("component-library-demo-smoke-2026-06-02.png");
@@ -245,6 +252,8 @@ describe("closed beta readiness docs", () => {
     expect(manualProofMatrix).toContain("empty Workshop homebase action links");
     expect(manualProofMatrix).toContain("Hosted whitelisted account proof still missing");
     expect(manualProofMatrix).toContain("Spreadsheet compatibility");
+    expect(manualProofMatrix).toContain("spreadsheet-quicklook-preview-2026-06-02.md");
+    expect(manualProofMatrix).toContain("formula recalculation, and print proof still missing");
     expect(manualProofMatrix).toContain("Project-specific unlink manual smoke");
     expect(manualProofMatrix).toContain("project-specific-unlink-linked-smoke-blocked-2026-06-02.md");
     expect(manualProofMatrix).toContain("linked Supabase returned `PGRST202`");
@@ -305,7 +314,9 @@ describe("closed beta readiness docs", () => {
     expect(goalCompletionAudit).toContain("Demo rehearsal fallback pack");
     expect(goalCompletionAudit).toContain("local fallback script links seed anchors");
     expect(goalCompletionAudit).toContain("owner sign-off remain missing");
-    expect(goalCompletionAudit).toContain("generated workbook artifact is loadable, ZIP-valid, formula-backed, and has no blank line totals");
+    expect(goalCompletionAudit).toContain("generated workbook artifact is loadable, ZIP-valid, formula-backed, has no blank line totals");
+    expect(goalCompletionAudit).toContain("renders a local Quick Look thumbnail");
+    expect(goalCompletionAudit).toContain("valid, loadable, and Quick Look-renderable");
     expect(goalCompletionAudit).toContain("component/template demo smoke and template insertion are partial/local pass");
     expect(goalCompletionAudit).toContain("Template insertion local smoke evidence");
     expect(goalCompletionAudit).toContain("Support/feedback local surface evidence");
