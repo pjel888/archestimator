@@ -2,7 +2,7 @@
 
 ## Final Report Artifact
 
-Final implementation report: `final-codex-implementation-report.md`. It summarizes the local-safe implementation baseline through `8084908`, records report publication/correction commits `80f806d` and `579cef0`, and keeps the external closed beta recommendation at **NO-GO** until hosted/provider/manual proof gates are complete.
+Final implementation report: `final-codex-implementation-report.md`. It summarizes the local-safe implementation baseline through `8084908`, records report publication/correction commits `80f806d` and `579cef0`, records post-report validation/build evidence through `7ba69e6`, and keeps the external closed beta recommendation at **NO-GO** until hosted/provider/manual proof gates are complete.
 
 ## Scoring Rule
 
