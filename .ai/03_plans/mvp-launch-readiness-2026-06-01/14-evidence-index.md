@@ -52,6 +52,22 @@
 - Post-edit GitNexus `detect-changes --repo archestimator --scope staged` reports critical risk through `getCurrentUserContext` and 29 affected processes; this is expected for a session-boundary gate and is mitigated by default-disabled behavior, focused session/proxy/callback tests, full DOM, and build evidence.
 - Remote linked Supabase migration apply is not done in this slice; backup/PITR proof remains required before applying launch/beta migrations.
 
+### NONPAY-001 Local Pricing Copy Evidence
+
+- `/pricing` is reframed as invite-only closed beta access with "No payment is required" and "Pricing will be announced after beta" copy.
+- Landing pricing and FAQ sections no longer show `₱0`, "free access", or active paid-tier language.
+- Primary pricing CTA is request access/contact; already-invited users are directed to sign in with their invited Google account.
+- Focused red/green evidence: `bun run test:dom tests/vitest/closed-beta-pricing-copy.test.ts` passed 1 file / 2 tests.
+- Adjacent focused route/copy evidence: `bun run test:dom tests/vitest/closed-beta-pricing-copy.test.ts tests/vitest/landing-company-proof.test.ts tests/vitest/auth-proxy.test.ts` passed 3 files / 28 tests.
+- `bun run type-check` passed.
+- `bun run lint` passed with the existing 14 warnings and 0 errors after fixing a JSX apostrophe escape in the landing FAQ copy.
+- `bun run lint:design-system` passed.
+- `bun run build` passed.
+- `git diff --check` passed.
+- Post-edit code-review-graph reported 0 affected flows for the 10 staged changed files, with source-contract coverage gaps on the three edited page/section components.
+- Post-edit GitNexus `detect-changes --repo archestimator --scope staged` reports high risk with 8 affected `PricingPage` flows; this is expected for public pricing copy and is mitigated by source-contract tests plus focused landing/proxy tests.
+- Remote/payment evidence is not needed for this slice because Stripe/checkout/subscriptions remain intentionally unimplemented.
+
 ### Closed Beta Audit Evidence
 
 - Auth/proxy: `src/proxy.ts`, `src/lib/auth/actions.ts`, `src/app/auth/callback/route.ts`, `src/lib/auth/account-setup.ts`, `src/lib/auth/session.ts`.

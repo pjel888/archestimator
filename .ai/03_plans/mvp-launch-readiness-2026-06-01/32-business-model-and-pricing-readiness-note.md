@@ -23,7 +23,9 @@ Archestimator MVP should be positioned as a structured estimating workspace for 
 
 ## Pricing Page State
 
-Current pricing route presents an MVP preview/free posture and future tiers. For closed beta it must be hidden or reframed as invite-only access. It can be investor-safe only if:
+Current local pricing route is reframed as invite-only closed beta access. It states no payment is required during beta, pricing will be announced after beta, and there is no checkout/subscription/plan enforcement in this MVP. The landing pricing band and FAQ also avoid `₱0`, free-access, and paid-tier language.
+
+It remains investor-safe only if:
 
 - Copy does not promise unavailable features as currently shipping.
 - Paid claims are framed as planned or future.

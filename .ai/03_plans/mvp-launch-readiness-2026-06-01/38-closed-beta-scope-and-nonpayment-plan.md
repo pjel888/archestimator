@@ -36,6 +36,8 @@ No payment collection is required or allowed for closed beta. Any previous MVP P
 
 Recommended path: keep `/pricing` as a public route only if it is reframed as closed-beta access and not commercial pricing.
 
+Local implementation status 2026-06-02: `/pricing`, the landing pricing section, and the landing FAQ are reframed for invite-only closed beta access. They do not show active checkout, subscription, `₱0`, free-access, or paid-tier language.
+
 Required copy if visible:
 
 - "Closed beta access is by invitation only."
@@ -91,6 +93,7 @@ Closed beta requires beta participation, privacy, acceptable use, and estimate-a
 
 - Public marketing routes remain accessible.
 - `/pricing` shows closed-beta copy or is hidden from navigation.
+- Source-contract test: `tests/vitest/closed-beta-pricing-copy.test.ts`.
 - Login copy says invited users only.
 - No Stripe/payment dependency or route is introduced.
 - Investor demo script mentions pricing as future roadmap only.

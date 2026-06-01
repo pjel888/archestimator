@@ -12,7 +12,7 @@ export default async function PricingPage() {
     "Nest unlimited cost groups and work breakdown areas",
     "Edit quantities and Misc Cost allowances",
     "Access and search the early Component Library flow",
-    "Protected login and secure data persistence"
+    "Protected login and secure data persistence",
   ];
 
   const futureHighlights = [
@@ -24,20 +24,20 @@ export default async function PricingPage() {
   const pricingFaq = [
     {
       q: "Is Archestimator production-ready?",
-      a: "Archestimator is currently in MVP preview / early-access state. It is usable for early MVP trials around structured sheets, rate calculations, and reusable catalog workflows, but is not yet recommended as the sole repository for high-risk commercial, purchasing, legal, or corporate estimation files."
+      a: "Archestimator is in a closed beta. It is useful for structured estimate sheets, reusable catalog logic, and workflow feedback, but it is not yet recommended as the sole repository for high-risk commercial, purchasing, legal, or corporate estimation files.",
     },
     {
-      q: "Why is early access currently free?",
-      a: "We believe in building software directly alongside teams that create quotes, estimates, and proposal packages. During the early-access phase, the platform is free (₱0) to try so we can collect real feedback, run usage diagnostics, and harden the database structures before general commercial release."
+      q: "Is payment required during closed beta?",
+      a: "No payment is required during closed beta. Access is manually approved so we can work closely with a small number of testers and harden the database, export, and collaboration workflows before commercial release.",
     },
     {
-      q: "Will pricing change in the future?",
-      a: "Yes. Once the core workflow matures and features like document handoff and revision histories are released, we will introduce sustainable, professional pricing tiers. We will notify all early-access users well in advance of any tier changes."
+      q: "When will pricing be available?",
+      a: "Pricing will be announced after beta, once the core workflow, legal copy, support process, and operational readiness have been reviewed. There is no checkout, subscription, or paid-plan enforcement in this MVP.",
     },
     {
-      q: "How can I provide feedback or request features?",
-      a: "Suppliers, sales teams, buyers, and estimators can reach us directly via our Contact page or by participating in design-partner discussions. We read every rate-logic, keyboard-nav, and quote-structure suggestion to shape upcoming releases."
-    }
+      q: "How do I request access?",
+      a: "Use the contact page to request access with the Google account you want invited. Beta testers, investors, and incubator reviewers are allowlisted manually before they can enter the workshop.",
+    },
   ];
 
   return (
@@ -46,49 +46,48 @@ export default async function PricingPage() {
       <section className="bg-gradient-to-b from-[#f5f5f3] to-[#eeeeec] py-20 md:py-28">
         <div className="mx-auto w-full max-w-[1120px] px-6 text-center">
           <span className="font-mono text-[11px] font-semibold uppercase tracking-[0.18em] text-[#ff7a1a]">
-            Access & Early Access
+            Closed beta access
           </span>
           <h1 className="mt-5 text-[40px] font-normal leading-[1.08] tracking-[-0.04em] text-[#111111] md:text-[56px]">
-            Simple access. Honest status.
+            Invitation-only while the workspace hardens.
           </h1>
           <p className="mx-auto mt-6 max-w-[620px] text-[16px] leading-7 text-[#626260] md:text-[18px]">
-            Archestimator is in early development. We are making the core quote and estimate workspace available to try today, with no hidden commitments.
+            Archestimator is not selling public plans yet. Closed beta access is approved manually for testers and reviewers who can help validate real estimating workflows.
           </p>
         </div>
       </section>
 
-      {/* Main Pricing Section */}
+      {/* Main Access Section */}
       <section className="bg-[#eeeeec] py-12 md:py-16">
         <div className="mx-auto w-full max-w-[1120px] px-6">
           <div className="grid gap-8 lg:grid-cols-[1.1fr_0.9fr]">
             
-            {/* Card: Early Access Tier */}
             <div className="rounded-[16px] border border-[#cfcfca] bg-[#f5f5f3] p-8 shadow-sm">
               <div className="flex items-center justify-between">
                 <div>
                   <h2 className="text-[22px] font-semibold tracking-tight text-[#111111]">
-                    MVP Preview
+                    Closed beta workspace
                   </h2>
                   <p className="mt-1 text-[13px] text-[#626260]">
-                    Early-access workspace tier
+                    Invite-only access, no payment required.
                   </p>
                 </div>
                 <div className="text-right">
-                  <span className="text-[36px] font-bold text-[#111111]">₱0</span>
-                  <span className="text-[12px] text-[#626260] block font-mono">MVP preview pricing</span>
+                  <span className="text-[14px] font-bold uppercase tracking-[0.08em] text-[#111111]">No checkout</span>
+                  <span className="block font-mono text-[12px] text-[#626260]">pricing after beta</span>
                 </div>
               </div>
 
               <div className="mt-6 rounded-[8px] bg-amber-500/5 p-4 border border-amber-500/15 flex gap-3 text-amber-800 dark:text-amber-300">
                 <Info className="size-5 shrink-0 mt-0.5" />
                 <p className="text-[13px] leading-5">
-                  <strong>Notice:</strong> This is a preview version of Archestimator. We are actively shaping features like exports and revision history based on early user trials.
+                  <strong>Notice:</strong> No payment is required for closed beta. Pricing will be announced after beta, and there is no Stripe, checkout, subscription, or plan enforcement in this MVP.
                 </p>
               </div>
 
               <div className="mt-8">
                 <h3 className="text-[11px] font-mono font-semibold uppercase tracking-[0.08em] text-[#111111]/60">
-                  Included in MVP Workspace
+                  Included for approved testers
                 </h3>
                 <ul className="mt-4 space-y-3.5">
                   {inclusions.map((inc, index) => (
@@ -104,10 +103,10 @@ export default async function PricingPage() {
 
               <div className="mt-8 pt-6 border-t border-[#cfcfca]/60">
                 <Link
-                  href="/login"
+                  href="/contact"
                   className="inline-flex min-h-12 w-full items-center justify-center rounded-[5px] bg-[#ff7a1a] text-[13px] font-bold uppercase tracking-[0.04em] text-white transition hover:bg-[#e06610] active:scale-98"
                 >
-                  Try Workspace
+                  Request access
                 </Link>
               </div>
             </div>
@@ -116,10 +115,10 @@ export default async function PricingPage() {
             <div className="flex flex-col justify-between rounded-[16px] border border-[#cfcfca]/60 bg-[#f5f5f3]/60 p-8">
               <div>
                 <h2 className="text-[20px] font-semibold tracking-tight text-[#111111]">
-                  What we are shaping next
+                  What beta access means
                 </h2>
                 <p className="mt-1.5 text-[14px] leading-6 text-[#626260]">
-                  Early access users will get immediate access to these planned features as soon as they pass our internal verification gates.
+                  Approved testers get the current workshop while planned features stay behind verification gates. The goal is feedback and proof, not public payment conversion.
                 </p>
 
                 <div className="mt-8 space-y-6">
@@ -138,13 +137,13 @@ export default async function PricingPage() {
 
               <div className="mt-8 pt-6 border-t border-[#cfcfca]/30 text-center sm:text-left">
                 <p className="text-[12px] text-[#626260]">
-                  Have specific workflow needs?
+                  Already invited?
                 </p>
                 <Link
-                  href="/contact"
+                  href="/login"
                   className="mt-2 inline-flex items-center gap-1 text-[12px] font-bold uppercase tracking-[0.02em] text-[#ff7a1a] hover:underline"
                 >
-                  Request a specific feature →
+                  Sign in with the invited Google account →
                 </Link>
               </div>
             </div>
@@ -153,15 +152,15 @@ export default async function PricingPage() {
         </div>
       </section>
 
-      {/* Pricing FAQs */}
+      {/* Access FAQs */}
       <section className="bg-[#eeeeec] py-16 md:py-24 border-t border-[#cfcfca]/40">
         <div className="mx-auto w-full max-w-[800px] px-6">
           <div className="text-center">
             <h2 className="text-[28px] font-semibold tracking-tight text-[#111111] md:text-[34px]">
-              Pricing & Access FAQ
+              Closed Beta FAQ
             </h2>
             <p className="mt-3 text-[14px] text-[#626260]">
-              Clear answers to practical questions about the early-access model.
+              Clear answers about access, payment, and what changes after beta.
             </p>
           </div>
 
