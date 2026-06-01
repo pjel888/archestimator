@@ -7,6 +7,7 @@
 - Final report artifact: `final-codex-implementation-report.md`.
 - Manual proof matrix artifact: `46-manual-proof-matrix.md`.
 - Goal completion audit artifact: `47-goal-completion-audit.md`.
+- Manual proof packet template: `48-manual-proof-packet-template.md`.
 - Stable implementation baseline summarized by the report: `8084908`.
 - Report publication/correction commits: `80f806d`, `579cef0`.
 - Current report recommendation: **NO-GO for external closed beta launch** until hosted/provider/manual proof gates are complete.
@@ -351,6 +352,7 @@
 ### Manual Proof Matrix Evidence
 
 - `46-manual-proof-matrix.md` now defines the exact P0 evidence packet required before external closed beta can move from **NO-GO** to go/no-go review.
+- `48-manual-proof-packet-template.md` provides the ready-to-fill `README.md` for the dated `.ai/09_archive/store/<date>-mvp-closed-beta-manual-proof/` artifact folder.
 - It includes proof rows for Supabase backup/PITR, linked migrations/RLS/storage/RPCs, hosted auth allowlist, first-run workspace, Vercel deploy/env/health/rollback, Resend/email, spreadsheet compatibility, project-specific unlink, component/template demo smoke, legal/owner review, support/monitoring, demo rehearsal, and current manual E2E smoke.
 - Current status: all rows remain missing until dated artifacts are captured under `.ai/09_archive/store/<date>-mvp-closed-beta-manual-proof/` and linked back here.
 

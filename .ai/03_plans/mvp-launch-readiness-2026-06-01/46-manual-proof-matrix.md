@@ -4,11 +4,14 @@ Status: Required before external closed beta.
 
 This matrix converts the remaining hosted/provider/manual gates into concrete evidence slots. It does not replace the local validation/build baseline and does not approve launch. Closed beta stays **NO-GO** until each P0 row below has a dated artifact, owner, and pass/fail note linked from `14-evidence-index.md`.
 
+Use `48-manual-proof-packet-template.md` as the `README.md` inside the dated artifact folder when collecting this evidence.
+
 ## Evidence Rules
 
 - Use a throwaway beta tester or demo account where possible.
 - Do not paste secrets, raw tokens, magic links, service-role keys, cookies, or provider dashboard credentials into `.ai`.
 - Store screenshots, sanitized command output, exported workbooks, and smoke notes under `.ai/09_archive/store/<date>-mvp-closed-beta-manual-proof/`.
+- Start from `48-manual-proof-packet-template.md` so every proof row has a result, artifact link, notes, and cleanup entry.
 - Record exact dates, environment, account role, command or browser path, pass/fail result, and cleanup/residue note.
 - If a check cannot run, record it as `blocked`, name the blocker, and keep the launch gate **NO-GO**.
 
