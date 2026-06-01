@@ -59,6 +59,8 @@ Current decision: **NO-GO**.
 | Investor demo pack ready | Yes for demo | Demo workspace, script, screenshots, export artifact, fallback. | Planned only. | No-go |
 | Beta program ready | Yes for beta | Cohort, onboarding email, SLA, feedback loop, known limits. | Planned only. | No-go |
 
+Local update 2026-06-02: visible pricing/payment copy is no longer a local no-go. `/pricing`, landing pricing, and FAQ now state closed beta / invite-only / no payment required / pricing after beta, with `closed-beta-pricing-copy` test coverage. Overall launch remains **NO-GO** because the other P0 rows above are still unproven.
+
 ## Readiness Scorecard
 
 Rules: below 90 cannot be called beta-ready; P0 below 95 blocks launch; 100 requires completed proof.

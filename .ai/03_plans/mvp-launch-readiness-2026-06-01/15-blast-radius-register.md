@@ -73,6 +73,16 @@ GitNexus impact was run before editing the auth/proxy/session gate:
 - code-review-graph impact for `src/proxy.ts`, `src/app/auth/callback/route.ts`, and `src/lib/auth/session.ts` reported high risk with 500 impacted nodes within 2 hops across 137 files, confirming the need for full validation before launch claim.
 
 Post-edit `detect_changes` and broad test/build evidence are still required before committing this slice.
+
+## NONPAY-001 Pre-Edit Impact Evidence - 2026-06-02
+
+GitNexus impact was run before editing visible pricing copy:
+
+- `PricingPage` upstream impact: 0 direct dependents, 0 affected processes, risk `LOW`.
+- `PricingSection` upstream impact: 1 direct dependent (`LandingPage`), 1 affected process, 1 module, risk `LOW`.
+- `FAQSection` upstream impact: 1 direct dependent (`LandingPage`), 1 affected process, 1 module, risk `LOW`.
+
+Mitigation: source-contract test locks closed-beta/no-payment copy and forbids `₱0`, free-access, and pricing-tier language in the pricing surfaces.
 | `EstimateSheetContent` | GitNexus specific symbol returned 0 upstream due App Router boundary; other impacts show it is central through hook/export/preview. | Estimate workspace flows. | HIGH by manual assessment | many estimate DOM tests. | Keep row edits scoped; use targeted DOM tests. | Protected estimate route smoke. |
 | `useEstimateRowMutations` | Direct caller: `EstimateSheetContent`; indirect tests. | None reported. | LOW graph, MEDIUM product | estimate sheet tests. | Add unlink as peer mutation with same queue/revision model. | Hook conflict/rollback test. |
 | `insertEstimateRowItemFromLibrary` | `mutationFn` in row hook. | None. | LOW | `estimate-sheet-library-insert.test.tsx`, version-control actions tests. | Do not alter insert semantics. | Regression after unlink action. |

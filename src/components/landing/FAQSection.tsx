@@ -11,8 +11,8 @@ interface FAQItem {
 
 const faqData: FAQItem[] = [
   {
-    question: "How does the MVP preview work?",
-    answer: "The MVP preview offers free access (₱0) to our early-stage estimating workspace. By participating, you get direct access to the tool, and your usage and feedback directly help us shape the product features, interfaces, and roadmap before our public release.",
+    question: "How does the closed beta work?",
+    answer: "Archestimator is invite-only during closed beta. Request access with the Google account you want enabled; approved testers can enter the workspace after their email is allowlisted.",
   },
   {
     question: "Can I import my existing Excel quote sheets?",
@@ -51,7 +51,7 @@ export function FAQSection() {
               Frequently Asked Questions
             </h2>
             <p className="mx-auto mt-4 max-w-[540px] text-[14px] leading-[1.5] text-[#626260]">
-              Everything you need to know about the Archestimator MVP preview and our product direction.
+              Everything you need to know about Archestimator&apos;s closed beta access and product direction.
             </p>
           </div>
         </MotionReveal>
