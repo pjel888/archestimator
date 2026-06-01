@@ -8,22 +8,22 @@ Closed beta can launch only if all P0 domains are 95+ or have a documented no-go
 
 | Domain | P0? | Score | Status | Reason |
 | --- | --- | ---: | --- | --- |
-| Closed beta access control | Yes | 35 | Blocked | No allowlist table or enforcement exists yet. |
-| Auth/onboarding | Yes | 70 | Needs beta gate | Google Sign-In and workspace flow exist; allowlist and access-denied UX missing. |
-| Core estimating workflow | Yes | 80 | Needs smoke proof | Core app exists but closed-beta smoke evidence still required. |
-| Component library | Yes | 78 | Needs polish | Must be workable, not exhaustive. |
-| Templates | Yes | 76 | Needs polish | Enough templates needed for beta value and investor demo. |
-| Project-specific unlink | Yes | 75 | P0 feature | Must prevent shared-library corruption. |
-| Excel export | Yes | 82 | P0 feature | Build includes export route; professional workbook QA still required. |
-| Design polish | Yes | 78 | Needs focused pass | Access-denied, onboarding, feedback, pricing copy need polish. |
-| Feedback loop | Yes | 45 | Blocked | Public contact form exists, but durable beta feedback path is not proven. |
-| Vercel/Supabase deployment | Yes | 72 | Needs env/runbook | Deployment shape exists; closed-beta env and OAuth smoke missing. |
+| Closed beta access control | Yes | 82 | Local pass; linked proof pending | Allowlist migration/helper/proxy/callback/session/access-required UX exist locally; linked Supabase apply and hosted allowed/denied smoke are missing. |
+| Auth/onboarding | Yes | 82 | Needs hosted smoke | Google Sign-In and workspace flow exist with local beta gate coverage; hosted callback and first-run smoke are missing. |
+| Core estimating workflow | Yes | 84 | Needs smoke proof | Core app exists and local DOM baseline is green; protected route/manual smoke remains required. |
+| Component library | Yes | 86 | Local polish pass | Search/count/trust fields are locally tested; screenshot/manual demo smoke remains required. |
+| Templates | Yes | 86 | Local polish pass | Preview/count/sample rows are locally tested; screenshot/manual insertion smoke remains required. |
+| Project-specific unlink | Yes | 86 | Local pass; linked proof pending | RPC/action/hook/UI coverage exists; linked SQL verification and manual detach/edit proof remain required. |
+| Excel export | Yes | 88 | Local workbook pass | Professional workbook and ExcelJS tests pass; Excel/secondary-app open and print proof remain required. |
+| Design polish | Yes | 84 | Local pass; manual review pending | Access-required, pricing, legal, feedback, library/template/export surfaces have local coverage; screenshot/manual review remains required. |
+| Feedback loop | Yes | 78 | Minimum local path; external proof pending | Workshop feedback mailto and support copy exist; monitored inbox/form proof remains required. |
+| Vercel/Supabase deployment | Yes | 78 | Needs provider proof | Env manifest/runbook exist; Vercel env, OAuth callback, linked migrations, deployment, and rollback proof are missing. |
 | Resend/email readiness | Conditional | 65 | P1 unless visible flows require it | Required for share/invite email workflows if exposed, not required for manual beta invites. |
-| Security/RLS | Yes | 70 | Needs allowlist threat fixes | Existing RLS work exists; allowlist RLS absent. |
-| Legal/beta terms | Yes | 40 | Blocked | Beta-specific terms/privacy/AUP not yet implemented. |
-| Observability/support | Yes | 60 | Needs beta support setup | Logs exist by platform; feedback/support process needs launch-ready path. |
+| Security/RLS | Yes | 78 | Local model pass; live proof pending | Existing RLS work plus allowlist RLS migration exists locally; linked allow/deny/storage proof is missing. |
+| Legal/beta terms | Yes | 82 | Local copy pass; review pending | Beta-specific terms/privacy copy exists; counsel/owner sign-off is missing. |
+| Observability/support | Yes | 78 | Local minimum pass; alerts pending | Feedback link, support/runbook, and `/api/health` exist; deployed uptime/error alert proof is missing. |
 | Investor demo readiness | Yes | 68 | Needs seeded path | Demo script/data and pricing explanation required. |
-| Data backup/rollback | Yes | 70 | Needs pre-migration backup proof | Runbook exists conceptually; backup before new migrations required. |
+| Data backup/rollback | Yes | 76 | Checklist ready; proof missing | Backup/restore template and migration procedure exist; Supabase backup/PITR and restore drill proof are missing. |
 | Payment/pricing readiness | No | N/A | Deferred | Not applicable to closed beta. |
 | AI deferral | No | N/A | Locally gated | `AI-001` hides Ask Flip and disables AI routes by default; keep deferred until a future ADR explicitly reactivates. |
 

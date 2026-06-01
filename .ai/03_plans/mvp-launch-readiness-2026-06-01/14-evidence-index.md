@@ -245,6 +245,22 @@
 - Post-edit code-review-graph `detect_changes` against `HEAD` analyzed 6 staged changed files, 3 changed functions/classes from the source-contract test, 0 affected flows, 0 test gaps, and overall risk score 0.30.
 - Post-edit GitNexus `detect-changes --repo archestimator --scope staged` reported no code changes detected for this docs/test-only staged set.
 
+### DATA-001 / BETA-OPS Local Runbook Evidence
+
+- `20-launch-runbook.md` now reflects the current local command baseline and expands migration procedure with pre-migration inventory, backup/PITR status, restore owner, staging proof, and post-migration evidence requirements.
+- `30-data-backup-disaster-recovery-plan.md` now includes a pre-migration backup evidence template and dry-run restore checklist.
+- `43-closed-beta-readiness-scorecard.md` now reflects local implementation progress for access control, legal copy, feedback, component/template polish, unlink, export, observability, and backup checklist readiness while keeping all external proof gates below launch threshold.
+- `closed-beta-readiness-docs.test.ts` now locks the runbook/scorecard against stale DOM failure wording and stale "not implemented" scorecard claims while requiring provider-proof gaps to remain explicit.
+- Focused evidence: `bun run test:dom tests/vitest/closed-beta-readiness-docs.test.ts` passed 1 file / 3 tests.
+- `bun run type-check` passed.
+- `bun run lint` passed with the existing 14 warnings and 0 errors.
+- `bun run lint:design-system` passed.
+- `bun run test` passed 4 unit tests / 129 expectations.
+- `git diff --check` passed.
+- Post-edit code-review-graph `detect_changes` against `HEAD` analyzed 6 staged changed files, 3 changed functions/classes from the source-contract test, 0 affected flows, 0 test gaps, and overall risk score 0.30.
+- Post-edit GitNexus `detect-changes --repo archestimator --scope staged` reported no code changes detected for this docs/test-only staged set.
+- Supabase backup/PITR proof, restore drill, production deploy rollback, and provider dashboard artifacts remain external launch gates.
+
 ### Closed Beta Audit Evidence
 
 - Auth/proxy: `src/proxy.ts`, `src/lib/auth/actions.ts`, `src/app/auth/callback/route.ts`, `src/lib/auth/account-setup.ts`, `src/lib/auth/session.ts`.

@@ -26,6 +26,39 @@ Commit audited: `681c95e64864f283950a88dba304eaffe8f2f8b3`
 | Export artifacts | XLSX artifacts can be regenerated; no need to store as source of truth unless product changes. |
 | Beta data retention | Retention/deletion terms match legal copy. |
 
+## Pre-Migration Backup Evidence Template
+
+Record this in `14-evidence-index.md` before applying any launch/beta migration to linked staging or production. Store screenshots, backup IDs, provider URLs, and credentials outside the repo.
+
+| Field | Required value |
+| --- | --- |
+| Environment | `staging` or `production`; never ambiguous. |
+| Supabase project ref | Non-secret project identifier or redacted dashboard reference. |
+| Backup mode | PITR enabled, scheduled backup, or manual SQL dump; include retention window. |
+| Backup checkpoint time | ISO timestamp before migration start. |
+| Restore owner | Named person who can initiate restore. |
+| Restore target | Staging restore project, branch, or documented Supabase restore flow. |
+| Migration files | Exact file names and order. |
+| Table counts | `workspaces`, `workspace_members`, `projects`, `estimate_nodes`, `estimate_row_items`, `estimate_sheet_events`, `cost_library_items`, templates, publication/share/invite tables, `closed_beta_allowed_emails`. |
+| Storage buckets | Bucket names and backup/export status for images/attachments. |
+| Rollback approach | Revert migration, compensating migration, restore backup, or disable feature flag. |
+| Verification after restore | Auth/access smoke, project/estimate smoke, row history check, export smoke, storage image check. |
+
+## Dry-Run Restore Checklist
+
+Use staging unless a provider-managed restore drill is unavailable. If a full restore cannot be executed before beta, document that as no-go debt and do not apply beta migrations to production.
+
+1. Create or identify a disposable staging restore target.
+2. Restore the pre-migration backup or equivalent snapshot.
+3. Verify table counts and a representative workspace/project/estimate tree.
+4. Verify `closed_beta_allowed_emails` rows and statuses.
+5. Verify at least one component-library image/attachment object if storage is in scope.
+6. Run allowed/denied access smoke.
+7. Run estimate open, detach/edit if applicable, and export smoke.
+8. Record elapsed restore time against the closed-beta RTO.
+9. Record data-loss window against the closed-beta RPO.
+10. Archive proof outside the repo and summarize non-secret outcomes in `14-evidence-index.md`.
+
 ## RPO / RTO Targets
 
 | Tier | Target |
