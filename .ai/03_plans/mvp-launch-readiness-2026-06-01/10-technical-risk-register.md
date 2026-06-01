@@ -1,5 +1,25 @@
 # Technical Risk Register
 
+## Third-Pass Risk Register
+
+Commit audited: `681c95e64864f283950a88dba304eaffe8f2f8b3`. Risks below supersede second-pass severity where they conflict.
+
+| Risk | Domain | Signal | Mitigation | Contingency | Owner | Due phase | Status | Debt/blocker |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Ask Flip visible/callable while deferred | Product/Security/Cost | UI appears; `/api/ai/*` returns handler response | `AI-001` global disable flags and tests | Flags false + redeploy | Eng | PR-1 | Open | P0 blocker |
+| DOM tests red | QA | `bun run test:dom` fails 3 tests | Fix tests/contracts; add no-provider tests | No launch | QA/Eng | PR-1 | Open | P0 blocker |
+| Excel export raw/static | Product/Domain | Workbook lacks bid form/formulas | `EXP-001` workbook rewrite | Disable export CTA | Eng/Product | PR-5 | Open | P0 blocker |
+| Unlink mutates library or confuses user | Data/Product | Source library row changes after project edit | `UNLINK-001` RPC/action/UI tests | Disable detach | Eng | PR-4 | Open | P0 blocker |
+| Hosted auth fails | Auth/Ops | Callback/redirect error in prod | `ONB-001` + env proof | Pause invites/CTA | Eng/Release | PR-2 | Open | P0 blocker |
+| RLS/storage gap | Security/Data | Cross-workspace or public access works incorrectly | `SEC-001` allow/deny proof | Disable route/policy rollback | Security | PR-6 | Open | P0 blocker |
+| Legal pages misleading | Legal/Product | Public page says pending/incorrect terms | `LEGAL-001` reviewed copy | Closed beta only/no public launch | Legal/Product | PR-7 | Open | P0 blocker |
+| Resend mock-success masks email failure | Ops/UX | User sees sent but no delivery | `INFRA-002` fail-loud/proof | Hide email sends | Release | PR-6 | Open | P0 if email visible |
+| Missing observability/support | Ops | Error or user issue has no owner | `OBS-001` | Pause beta | Ops | PR-7 | Open | P0 blocker |
+| No backup/restore proof | Data/Ops | Migration/data corruption incident | `DATA-001` | Freeze writes/restore | Ops/DB | PR-8 | Open | P0 blocker |
+| Redis/rate limiting insufficient | Performance/Security | Public abuse, Postgres limiter latency | `PERF-001`; Upstash/Vercel KV if thresholds fail | Disable public routes | Eng | PR-5/6 | Open | P1/P0 threshold |
+| Route transition perf proof stale | Performance/Demo | Demo navigation stutters | Baseline route perf in staging/prod | Demo fallback screenshots | Eng/QA | PR-8/9 | Open | P1 |
+| Investor demo data weak | Product/Investor | Seed data looks fake | `DEMO-001` | Use screenshots only | Product | PR-9 | Open | P0 for demo |
+
 ## Launch Blockers
 
 | Risk | Impact | Trigger | Detection signal | Mitigation | Contingency | Owner | Due phase |
