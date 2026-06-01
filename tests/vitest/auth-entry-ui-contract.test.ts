@@ -32,8 +32,14 @@ describe("/login auth entry UI contract", () => {
   it("links to truthful privacy and terms surfaces", () => {
     expect(loginSource).toMatch(/href=["']\/privacy["']/);
     expect(loginSource).toMatch(/href=["']\/terms["']/);
-    expect(privacySource).toMatch(/public self-serve launch is blocked/i);
-    expect(termsSource).toMatch(/public self-serve launch is blocked/i);
+    expect(privacySource).toMatch(/closed beta privacy notice/i);
+    expect(privacySource).toMatch(/account email/i);
+    expect(privacySource).toMatch(/project and estimate data/i);
+    expect(privacySource).toMatch(/support@archestimator\.com/i);
+    expect(termsSource).toMatch(/closed beta terms/i);
+    expect(termsSource).toMatch(/invite-only access/i);
+    expect(termsSource).toMatch(/No payment or subscription contract/i);
+    expect(termsSource).toMatch(/Construction estimate accuracy/i);
   });
 
   it("does not echo submitted email addresses in the success query state", () => {
