@@ -20,6 +20,10 @@ const finalLaunchGate = readFileSync(
   ".ai/03_plans/mvp-launch-readiness-2026-06-01/12-final-mvp-launch-gate.md",
   "utf8",
 );
+const finalImplementationReport = readFileSync(
+  ".ai/03_plans/mvp-launch-readiness-2026-06-01/final-codex-implementation-report.md",
+  "utf8",
+);
 const testStrategy = readFileSync(
   ".ai/03_plans/mvp-launch-readiness-2026-06-01/19-test-strategy-and-fixtures.md",
   "utf8",
@@ -52,6 +56,8 @@ describe("closed beta readiness docs", () => {
     expect(currentState).toContain("full `bun run test:dom` passed 131 files / 1021 tests / 2 skipped");
     expect(decisions).toContain("Commit `c5ca065` is the current green local baseline");
     expect(decisions).toContain("full DOM tests (131 files / 1021 tests / 2 skipped)");
+    expect(finalImplementationReport).toContain("**Latest pushed commit:** `8084908`");
+    expect(finalImplementationReport).toContain("`bun run test:dom` - pass, 131 files / 1021 tests / 2 skipped");
     expect(releaseChecklist).toContain("`bun run test:dom` | Pass: 131 files / 1021 tests / 2 skipped");
     expect(releaseChecklist).not.toContain("`bun run test:dom` | Fail");
     expect(finalLaunchGate).toContain("`bun run test:dom`: pass, 131 files / 1021 tests with 2 skips");
@@ -66,6 +72,9 @@ describe("closed beta readiness docs", () => {
     expect(currentState).toMatch(/Closed beta remains \*\*NO-GO\*\*/);
     expect(currentState).toMatch(/Do not archive the MVP launch goal or claim launch readiness from local tests alone/i);
     expect(decisions).toMatch(/This is not a launch approval/);
+    expect(finalImplementationReport).toMatch(/\*\*NO-GO for external beta testers today\.\*\*/);
+    expect(finalImplementationReport).toMatch(/Linked Supabase backup\/PITR proof/);
+    expect(finalImplementationReport).toMatch(/Hosted auth smoke/);
     expect(releaseChecklist).toMatch(/Current release state: \*\*NO-GO\*\*/);
     expect(releaseChecklist).toMatch(/hosted\/provider\/manual P0 gates are not proven/i);
     expect(zeroDefectMatrix).toMatch(/Launch state remains \*\*NO-GO\*\*/);
