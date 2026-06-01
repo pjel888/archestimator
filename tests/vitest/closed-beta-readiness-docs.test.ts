@@ -118,6 +118,12 @@ describe("closed beta readiness docs", () => {
     expect(evidenceIndex).toContain("### Supabase Read-Only Provider Evidence");
     expect(evidenceIndex).toContain("### Vercel Read-Only Provider Evidence");
     expect(evidenceIndex).toContain("### Spreadsheet Artifact Local Evidence");
+    expect(evidenceIndex).toContain("### Component/Template Demo Local Smoke Evidence");
+    expect(evidenceIndex).toContain("library-demo-smoke-local-2026-06-02.md");
+    expect(evidenceIndex).toContain("component-library-demo-smoke-2026-06-02.png");
+    expect(evidenceIndex).toContain("template-library-demo-smoke-2026-06-02.png");
+    expect(evidenceIndex).toContain("Result: pass, 2 Playwright tests in 17.6s.");
+    expect(evidenceIndex).toContain("it does not prove hosted auth, production Vercel, RLS, template insertion into an estimate, or project-specific unlink");
     expect(evidenceIndex).toContain("no listed backups, `pitr_enabled=false`");
     expect(evidenceIndex).toContain("linked temp-role pooler circuit breaker");
     expect(evidenceIndex).toContain("Current app build anchor: `e6cf52b` on `main`, before this docs-only evidence-sync commit.");
@@ -142,7 +148,7 @@ describe("closed beta readiness docs", () => {
     expect(executiveBrief).not.toContain("HEAD: `531f20a`");
     expect(readinessScorecard).toContain("local signed-out redirect/login UI E2E passes; Vercel env list is empty");
     expect(readinessScorecard).toContain("records post-report validation/build/completion-audit/proof-template evidence through `9d71239`");
-    expect(readinessScorecard).toContain("records Supabase and Vercel read-only provider evidence");
+    expect(readinessScorecard).toContain("records Supabase, Vercel, spreadsheet artifact, and local component/template demo evidence");
     expect(readinessScorecard).toContain("Manual proof matrix: `46-manual-proof-matrix.md`");
     expect(readinessScorecard).toContain("Goal completion audit: `47-goal-completion-audit.md`");
     expect(launchReadinessReadme).toContain("Final local implementation report: `final-codex-implementation-report.md`.");
@@ -152,6 +158,8 @@ describe("closed beta readiness docs", () => {
     expect(launchReadinessReadme).toContain("Current local validation refresh: `a65b34b` (`bun run validate` pass; DOM 131 files / 1022 passed / 2 skipped).");
     expect(launchReadinessReadme).toContain("Current local app build refresh: `e6cf52b` (`bun run build` pass; Next.js 16.2.6 / Turbopack; 29 static pages).");
     expect(launchReadinessReadme).toContain("| Product core | 84 | Local pass; manual smoke gap |");
+    expect(launchReadinessReadme).toContain("| Component library | 90 | Local screenshot pass; hosted/manual proof gap |");
+    expect(launchReadinessReadme).toContain("| Templates | 88 | Local screenshot pass; insertion proof gap |");
     expect(launchReadinessReadme).toContain("| Excel export | 90 | Local artifact pass; cross-app proof gap |");
     expect(launchReadinessReadme).toContain("| Auth/onboarding | 78 | Env and hosted smoke gap |");
     expect(launchReadinessReadme).toContain("| Security/RLS | 70 | Advisor warns; linked proof gap |");
@@ -180,6 +188,8 @@ describe("closed beta readiness docs", () => {
     expect(manualProofMatrix).toContain("Vercel deploy/env/health");
     expect(manualProofMatrix).toContain("Spreadsheet compatibility");
     expect(manualProofMatrix).toContain("Project-specific unlink manual smoke");
+    expect(manualProofMatrix).toContain("library-demo-smoke-local-2026-06-02.md");
+    expect(manualProofMatrix).toContain("Template insertion remains unproven");
     expect(manualProofMatrix).toContain("Legal/owner review");
     expect(manualProofMatrix).toContain("Current manual E2E smoke");
     expect(manualProofMatrix).toContain(".ai/09_archive/store/<date>-mvp-closed-beta-manual-proof/");
@@ -205,7 +215,7 @@ describe("closed beta readiness docs", () => {
     expect(goalCompletionAudit).toContain("Ask Flip hidden and AI routes disabled by default");
     expect(goalCompletionAudit).toContain("Excel export upgraded and tested");
     expect(goalCompletionAudit).toContain("All changes staged, committed, and pushed in meaningful commits");
-    expect(goalCompletionAudit).toContain("Current launch-pack commits through `09206e6` are pushed");
+    expect(goalCompletionAudit).toContain("Current launch-pack commits through `0a5e46f` are pushed");
     expect(goalCompletionAudit).toContain("backup list showed PITR disabled and no listed backups");
     expect(goalCompletionAudit).toContain("latest preview reached READY and protected `/api/health` returned ok through `vercel curl`");
     expect(goalCompletionAudit).toContain("generated workbook artifact is loadable, ZIP-valid, formula-backed, and has no blank line totals");
@@ -225,11 +235,15 @@ describe("closed beta readiness docs", () => {
     expect(currentState).toContain("Vercel env list is empty");
     expect(currentState).toContain("Spreadsheet artifact evidence");
     expect(currentState).toContain("missing local spreadsheet apps");
+    expect(currentState).toContain("Component/template local demo evidence");
+    expect(currentState).toContain("not hosted auth, template insertion, or unlink");
     expect(currentState).toMatch(/Do not archive the MVP launch goal or claim launch readiness from local tests alone/i);
     expect(decisions).toMatch(/This is not a launch approval/);
     expect(knownIssues).toContain("Local validation/build evidence is now current");
     expect(knownIssues).toContain("`a65b34b` passed `bun run validate`");
     expect(knownIssues).toContain("`e6cf52b` passed `bun run build`");
+    expect(knownIssues).toContain("Local component/template demo evidence on 2026-06-02 proves screenshots/JSON");
+    expect(knownIssues).toContain("template insertion, unlink detach/edit/library-unchanged/export, and current hosted E2E proof remain missing");
     expect(knownIssues).not.toContain("full validation/build, and storage/security evidence");
     expect(finalImplementationReport).toMatch(/\*\*NO-GO for external beta testers today\.\*\*/);
     expect(finalImplementationReport).toMatch(/Linked Supabase backup\/PITR proof/);
@@ -251,6 +265,8 @@ describe("closed beta readiness docs", () => {
     expect(backupPlan).toMatch(/Dry-Run Restore Checklist/);
     expect(readinessScorecard).toMatch(/Closed beta access control \| Yes \| 82 \| Local pass; linked proof pending/);
     expect(readinessScorecard).toMatch(/Auth\/onboarding \| Yes \| 78 \| Needs env and hosted smoke/);
+    expect(readinessScorecard).toMatch(/Component library \| Yes \| 90 \| Local screenshot pass; hosted proof pending/);
+    expect(readinessScorecard).toMatch(/Templates \| Yes \| 88 \| Local screenshot pass; insertion proof pending/);
     expect(readinessScorecard).toMatch(/Vercel\/Supabase deployment \| Yes \| 76 \| Partial preview proof/);
     expect(readinessScorecard).toMatch(/Excel export \| Yes \| 90 \| Local artifact pass; app proof pending/);
     expect(readinessScorecard).toMatch(/Data backup\/rollback \| Yes \| 60 \| Provider evidence negative/);
