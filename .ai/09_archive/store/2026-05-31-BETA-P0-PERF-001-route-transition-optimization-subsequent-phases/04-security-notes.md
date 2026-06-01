@@ -28,6 +28,12 @@ New route fallbacks do not include project ids, user ids, emails, SQL, tokens, s
 
 The Slice 1 route error boundaries remain in place for library, charts, and estimate workspace routes. They expose only retry UI to users and keep sanitized development-only logging.
 
+Fresh route-error regression coverage renders the actual `error.tsx` route components with an error object containing SQL text, a token-like value, a local file path, stack text, a digest, and a specific error name. The user-visible alert does not include those details, and the development log assertion only permits route label, error name, and digest metadata.
+
+Screenshot artifact `route-error-boundary-forced-render.png` is component-level proof only. No production route throw switch was added.
+
+The live route-error smoke harness is gated by both `ARCHESTIMATOR_E2E_ROUTE_ERROR_SMOKE=1` and the query parameter `routeErrorSmoke=1`. The helper throws only sanitized route labels such as `Library`, `Project charts`, and `Estimate workspace`, and the gate regression proves no throw occurs unless both the environment flag and query flag are present. This harness is for local/dev-auth verification only; it does not add production auth behavior or expose secrets.
+
 ## Validation Notes
 
 The signed-out protected redirect Playwright smoke passed in dev-server and production-like runs, proving `/workshop/projects` still redirects to `/login?next=%2Fworkshop%2Fprojects` with no stuck route overlay.

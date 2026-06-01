@@ -1,0 +1,12 @@
+$ vitest run --maxWorkers=1
+
+ RUN  v4.1.7 /Users/philiplewis/archestimator
+
+Warning: A vi.mock("next/image") call in "/Users/philiplewis/archestimator/tests/vitest/project-publication-page.test.tsx" is not at the top level of the module. Although it appears nested, it will be hoisted and executed before any tests run. Move it to the top level to reflect its actual execution order. This will become an error in a future version.
+See: https://vitest.dev/guide/mocking/modules#how-it-works
+
+ Test Files  118 passed (118)
+      Tests  918 passed | 2 skipped (920)
+   Start at  23:07:35
+   Duration  117.57s (transform 2.45s, setup 2.81s, import 22.61s, tests 44.64s, environment 34.33s)
+

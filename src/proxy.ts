@@ -7,9 +7,15 @@ import type { Database } from "@/lib/supabase/types";
 const PROTECTED_PREFIXES = ["/workshop"];
 const AUTH_ROUTES = [LOGIN_PATH];
 const PUBLIC_ROUTE_PREFIXES = ["/about", "/features", "/pricing", "/contact", "/privacy", "/terms", "/invite", "/share"];
+const MARKETING_PAGE_PATHS = new Set(["/", "/about", "/features", "/pricing", "/contact", "/privacy", "/terms"]);
+const MARKETING_PAGE_CACHE_CONTROL = "private, no-cache, max-age=0, must-revalidate";
 
 function isPublicRoute(pathname: string) {
   return pathname === "/" || PUBLIC_ROUTE_PREFIXES.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`));
+}
+
+function isMarketingPage(pathname: string) {
+  return MARKETING_PAGE_PATHS.has(pathname);
 }
 
 function createRequestPathResponse(request: NextRequest) {
@@ -42,6 +48,9 @@ export async function proxy(request: NextRequest) {
   let response = createRequestPathResponse(request);
 
   if (isPublicRoute(pathname)) {
+    if (isMarketingPage(pathname)) {
+      response.headers.set("Cache-Control", MARKETING_PAGE_CACHE_CONTROL);
+    }
     return response;
   }
 

@@ -1,0 +1,143 @@
+{
+  "generatedAt": "2026-06-01T09:41:31.310Z",
+  "baseUrl": "http://127.0.0.1:3064",
+  "networkProfile": "No throttle",
+  "runsPerScenario": 3,
+  "scenarioFilter": "authenticated",
+  "skipAuthenticated": false,
+  "skippedScenarios": [],
+  "results": [
+    {
+      "scenario": "Authenticated: Workshop to Projects",
+      "from": "/workshop",
+      "expectedPathname": "/workshop/projects",
+      "networkProfile": "No throttle",
+      "runs": [
+        {
+          "run": 1,
+          "durationMs": 2726,
+          "overlayVisible": true,
+          "rscRequestCount": 4,
+          "finalPathname": "/workshop/projects"
+        },
+        {
+          "run": 2,
+          "durationMs": 2325,
+          "overlayVisible": true,
+          "rscRequestCount": 4,
+          "finalPathname": "/workshop/projects"
+        },
+        {
+          "run": 3,
+          "durationMs": 2282,
+          "overlayVisible": true,
+          "rscRequestCount": 4,
+          "finalPathname": "/workshop/projects"
+        }
+      ],
+      "failures": [],
+      "medianMs": 2325,
+      "overlayVisibilityRate": 1,
+      "rscRequestCount": 12
+    },
+    {
+      "scenario": "Authenticated: Workshop to Library",
+      "from": "/workshop",
+      "expectedPathname": "/workshop/library",
+      "networkProfile": "No throttle",
+      "runs": [
+        {
+          "run": 1,
+          "durationMs": 2591,
+          "overlayVisible": true,
+          "rscRequestCount": 4,
+          "finalPathname": "/workshop/library"
+        },
+        {
+          "run": 2,
+          "durationMs": 3631,
+          "overlayVisible": false,
+          "rscRequestCount": 4,
+          "finalPathname": "/workshop/library"
+        },
+        {
+          "run": 3,
+          "durationMs": 2675,
+          "overlayVisible": true,
+          "rscRequestCount": 4,
+          "finalPathname": "/workshop/library"
+        }
+      ],
+      "failures": [],
+      "medianMs": 2675,
+      "overlayVisibilityRate": 0.6666666666666666,
+      "rscRequestCount": 12
+    },
+    {
+      "scenario": "Authenticated: Workshop to Templates",
+      "from": "/workshop",
+      "expectedPathname": "/workshop/templates",
+      "networkProfile": "No throttle",
+      "runs": [
+        {
+          "run": 1,
+          "durationMs": 1857,
+          "overlayVisible": true,
+          "rscRequestCount": 4,
+          "finalPathname": "/workshop/templates"
+        },
+        {
+          "run": 2,
+          "durationMs": 2489,
+          "overlayVisible": true,
+          "rscRequestCount": 4,
+          "finalPathname": "/workshop/templates"
+        },
+        {
+          "run": 3,
+          "durationMs": 1850,
+          "overlayVisible": true,
+          "rscRequestCount": 7,
+          "finalPathname": "/workshop/templates"
+        }
+      ],
+      "failures": [],
+      "medianMs": 1857,
+      "overlayVisibilityRate": 1,
+      "rscRequestCount": 15
+    },
+    {
+      "scenario": "Authenticated: Workshop to Settings",
+      "from": "/workshop",
+      "expectedPathname": "/workshop/settings/profile",
+      "networkProfile": "No throttle",
+      "runs": [
+        {
+          "run": 1,
+          "durationMs": 3102,
+          "overlayVisible": false,
+          "rscRequestCount": 13,
+          "finalPathname": "/workshop/settings/profile"
+        },
+        {
+          "run": 2,
+          "durationMs": 2725,
+          "overlayVisible": true,
+          "rscRequestCount": 14,
+          "finalPathname": "/workshop/settings/profile"
+        },
+        {
+          "run": 3,
+          "durationMs": 2400,
+          "overlayVisible": true,
+          "rscRequestCount": 8,
+          "finalPathname": "/workshop/settings/profile"
+        }
+      ],
+      "failures": [],
+      "medianMs": 2725,
+      "overlayVisibilityRate": 0.6666666666666666,
+      "rscRequestCount": 35
+    }
+  ]
+}

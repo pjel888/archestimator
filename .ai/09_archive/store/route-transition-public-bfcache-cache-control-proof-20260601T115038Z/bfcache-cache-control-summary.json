@@ -1,0 +1,25 @@
+{
+  "implemented": "Public marketing page responses now use private, no-cache, max-age=0, must-revalidate instead of no-store so Chrome can evaluate bfcache eligibility for those main documents.",
+  "verifiedHeaders": {
+    "/": "private, no-cache, max-age=0, must-revalidate",
+    "/features": "private, no-cache, max-age=0, must-revalidate"
+  },
+  "automatedPerfSmoke": {
+    "command": "PLAYWRIGHT_PORT=3071 bun run test:e2e:perf -- --project=chromium --grep \"captures public back-forward cache restore evidence\"",
+    "result": "passed",
+    "navigationTypes": ["back_forward"],
+    "pageshowPersisted": [false],
+    "bfcachePersisted": false,
+    "restoreMs": 53,
+    "notRestoredReasons": [null]
+  },
+  "automationControl": {
+    "description": "A trivial two-page HTTP control with the same cache-control header also reported pageshow.persisted=false under Playwright Chromium and Playwright-launched Chrome channel automation.",
+    "result": {
+      "navigationTypes": ["back_forward"],
+      "pageshowPersisted": [false],
+      "notRestoredReasons": [null]
+    }
+  },
+  "remainingGate": "Manual Chrome DevTools bfcache proof remains required; this headless automation path proves fast back/forward route health and no stuck overlay, not persisted bfcache restoration."
+}

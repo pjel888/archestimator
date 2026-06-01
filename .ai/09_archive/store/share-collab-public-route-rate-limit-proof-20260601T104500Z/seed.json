@@ -1,0 +1,9 @@
+{
+  "generatedAt": "2026-06-01T11:12:15.070Z",
+  "redacted": true,
+  "note": "Raw publication, recipient, and password proof values removed after cleanup. See seed-redacted.json for non-secret identifiers.",
+  "publicationId": "8cb60206-e759-4ff2-bb4d-f0a599b30f19",
+  "projectId": "acdf62da-f372-4a09-bdf2-cb923d259e99",
+  "workspaceId": "1100aa88-a59a-41e8-b521-a04174d5930d",
+  "recipientId": "d086b4fe-ddd1-4141-9244-4c1d774c5c81"
+}

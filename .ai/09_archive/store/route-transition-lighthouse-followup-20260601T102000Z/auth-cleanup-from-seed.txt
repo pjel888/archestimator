@@ -1,0 +1,29 @@
+{
+  "seed": {
+    "userId": "6244a1fb-2757-486f-99d4-b2865e85dd6c",
+    "workspaceId": "17cb6681-bac7-43d0-a9bb-a457416c3d62"
+  },
+  "notes": [
+    {
+      "label": "delete workspace",
+      "ok": true,
+      "error": null
+    },
+    {
+      "label": "delete profile",
+      "ok": true,
+      "error": null
+    },
+    {
+      "label": "delete auth user",
+      "ok": false,
+      "error": "User not found"
+    }
+  ],
+  "residue": {
+    "workspaceResidue": 0,
+    "profileResidue": 0,
+    "authResidue": 0,
+    "authLookupError": "User not found"
+  }
+}

@@ -1,0 +1,14 @@
+[2m[WebServer] [22m[0m[2m[35m$[0m [2m[1mnext dev --port "3020"[0m
+[2m[WebServer] [22m(node:89297) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[2m[WebServer] [22m(Use `node --trace-warnings ...` to show where the warning was created)
+[2m[WebServer] [22m(node:89321) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[2m[WebServer] [22m(Use `node --trace-warnings ...` to show where the warning was created)
+[2m[WebServer] [22m(node:89326) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[2m[WebServer] [22m(Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 2 tests using 1 worker
+
+  -  1 [chromium] › e2e/workshop-route-error-boundaries.spec.ts:20:7 › workshop route error boundary smoke › captures live library route error boundary screenshot
+  -  2 [chromium] › e2e/workshop-route-error-boundaries.spec.ts:30:7 › workshop route error boundary smoke › captures live charts and estimate route error boundary screenshots
+
+  2 skipped

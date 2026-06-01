@@ -1,0 +1,5 @@
+$ tsc --noEmit
+src/components/workshop/ProjectPublicationHeader.tsx(325,21): error TS2322: Type 'Dispatch<SetStateAction<{ ids: string[]; summaryKey: string; } | null>>' is not assignable to type '(ids: string[]) => void'.
+  Types of parameters 'value' and 'ids' are incompatible.
+    Type 'string[]' is not assignable to type 'SetStateAction<{ ids: string[]; summaryKey: string; } | null>'.
+src/lib/publication/actions.ts(274,44): error TS2552: Cannot find name 'Json'. Did you mean 'JSON'?

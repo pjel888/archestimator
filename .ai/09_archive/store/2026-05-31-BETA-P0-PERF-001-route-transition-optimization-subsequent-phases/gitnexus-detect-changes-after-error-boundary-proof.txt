@@ -1,0 +1,34 @@
+npm warn Unknown user config "always-auth" (//skand-124087294415.d.codeartifact.ap-southeast-2.amazonaws.com/npm/core/:always-auth). This will stop working in the next major version of npm. See `npm help npmrc` for supported config options.
+Changes: 45 files, 166 symbols
+Affected processes: 19
+Risk level: critical
+
+Changed symbols:
+  undefined supabase → src/app/api/share/[token]/activity/route.ts
+  undefined pubHash → src/app/api/share/[token]/activity/route.ts
+  undefined pubId → src/app/api/share/[token]/activity/route.ts
+  undefined cookieHeader → src/app/api/share/[token]/activity/route.ts
+  undefined sessionName → src/app/api/share/[token]/activity/route.ts
+  undefined sessionValue → src/app/api/share/[token]/activity/route.ts
+  undefined recipientId → src/app/api/share/[token]/activity/route.ts
+  undefined prefix → src/app/api/share/[token]/activity/route.ts
+  undefined parts → src/app/api/share/[token]/activity/route.ts
+  undefined p → src/app/api/share/[token]/activity/route.ts
+  undefined sessionOk → src/app/api/share/[token]/activity/route.ts
+  undefined GET → src/app/api/share/[token]/activity/route.ts
+  undefined sameOrigin → src/app/api/share/[token]/comment/route.ts
+  undefined body → src/app/api/share/[token]/comment/route.ts
+  undefined rawBody → src/app/api/share/[token]/comment/route.ts
+  ... and 151 more
+
+Affected execution flows:
+  • SharePage → ToBase64Url (5 steps) — changed: SharePage
+  • POST → ToBase64Url (5 steps) — changed: recordProjectPublicationEvent, POST
+  • RotateProjectPublicationLink → IsUuid (5 steps) — changed: createProjectPublication
+  • RotateProjectPublicationLink → DeriveKey (5 steps) — changed: createProjectPublication
+  • SharePage → ReadPublicationTokenHashSecret (4 steps) — changed: SharePage
+  • SharePage → SignPublicationAccessCookiePayload (4 steps) — changed: SharePage
+  • SharePage → ConstantTimeEqual (4 steps) — changed: SharePage
+  • ProjectPublicationHeader → Cn (4 steps) — changed: ProjectPublicationHeader
+  • POST → ReadPublicationTokenHashSecret (4 steps) — changed: recordProjectPublicationEvent, POST
+  • RotateProjectPublicationLink → CreatePublicationAdminClient (4 steps) — changed: createProjectPublication

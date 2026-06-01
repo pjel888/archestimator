@@ -1,0 +1,12 @@
+{
+  "finalUrl": "http://127.0.0.1:3066/workshop/projects",
+  "performanceScore": 0.71,
+  "fcp": 1254.0930000000003,
+  "lcp": 3585.6627499999995,
+  "cls": 0,
+  "tbt": 533.4302499999997,
+  "speedIndex": 5830.605501916392,
+  "serverResponseTime": 2303.784,
+  "bfcacheScore": 0,
+  "scriptTransfer": 220719
+}

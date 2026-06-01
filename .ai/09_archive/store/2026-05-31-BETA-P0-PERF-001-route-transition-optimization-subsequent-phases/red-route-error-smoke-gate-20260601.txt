@@ -1,0 +1,32 @@
+
+ RUN  v4.1.7 /Users/philiplewis/archestimator
+
+ ❯ tests/vitest/route-error-smoke-gate.test.ts (0 test)
+
+⎯⎯⎯⎯⎯⎯ Failed Suites 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/vitest/route-error-smoke-gate.test.ts [ tests/vitest/route-error-smoke-gate.test.ts ]
+Error: Failed to resolve import "@/lib/route-error-smoke" from "tests/vitest/route-error-smoke-gate.test.ts". Does the file exist?
+  Plugin: vite:import-analysis
+  File: /Users/philiplewis/archestimator/tests/vitest/route-error-smoke-gate.test.ts:3:38
+  1  |  import { afterEach, describe, expect, it, vi } from "vitest";
+  2  |  import { assertRouteErrorSmoke } from "@/lib/route-error-smoke";
+     |                                         ^
+  3  |  afterEach(() => {
+  4  |  	vi.unstubAllEnvs();
+ ❯ TransformPluginContext._formatLog node_modules/vite/dist/node/chunks/node.js:30486:39
+ ❯ TransformPluginContext.error node_modules/vite/dist/node/chunks/node.js:30483:14
+ ❯ normalizeUrl node_modules/vite/dist/node/chunks/node.js:27725:18
+ ❯ node_modules/vite/dist/node/chunks/node.js:27788:30
+ ❯ TransformPluginContext.transform node_modules/vite/dist/node/chunks/node.js:27756:4
+ ❯ EnvironmentPluginContainer.transform node_modules/vite/dist/node/chunks/node.js:30271:14
+ ❯ loadAndTransform node_modules/vite/dist/node/chunks/node.js:24532:26
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed (1)
+      Tests  no tests
+   Start at  23:48:18
+   Duration  496ms (transform 12ms, setup 36ms, import 0ms, tests 0ms, environment 334ms)
+

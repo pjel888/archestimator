@@ -18,6 +18,12 @@ The fallback UI keeps the existing workshop chrome shape, uses neutral palette/h
 
 Estimate workspace, library manager, add-component modal, landing wireframe background, and project bubble chart now load lazily. The dynamic boundaries use stable skeleton or null fallbacks rather than spinner UI.
 
+## Error Boundaries
+
+Workshop library, project charts, and estimate workspace route errors share the same compact retry state. The latest evidence refresh added direct DOM tests for the actual `error.tsx` route components, a component-level forced-render screenshot for all three route labels, and live dev-auth screenshots for each thrown route via the gated route-error smoke harness.
+
+The route-error UI shows only user-safe copy: route label, "This view could not load", continuation guidance, and a Retry button. The regression test uses an error object containing SQL text, a token-like value, a local file path, a stack string, and a digest, then verifies those details are not visible to the user.
+
 ## Route Overlay
 
 The existing route overlay behavior was preserved:
@@ -39,4 +45,4 @@ Still missing:
 - Authenticated workshop visual timing.
 - Production-mode authenticated hover/focus Network screenshots for sidebar/project/estimate-row prefetch that prove `_rsc` requests happen before click.
 - Manual slow-transition skeleton screenshot.
-- Forced error-boundary screenshots.
+- Production-mode route-error screenshots. Live dev-auth route-error screenshots are captured in `live-route-error-screenshots/`, but they include the local Next.js dev issue notifier and should not be treated as production UI proof.

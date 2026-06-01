@@ -2,7 +2,7 @@
 
 ## Measurement Context
 
-This evidence includes local dev-server, production-like `next start`, public Link-transition median, automated bfcache/back-forward no-overlay diagnostics, Slow 3G route-load and Slow 3G Link-transition measurements, protected redirect, isolated authenticated RSC transition data, isolated project-card/estimate-row hover instrumentation, Lighthouse public-route samples, and a Next.js client-reference manifest bundle comparison for `/workshop/library`. It is stronger than the earlier baseline, but it is still not a complete manual benchmark protocol because production-mode authenticated hover-before-click Network proof, manual Chrome screenshots/DevTools bfcache proof, forced error screenshots, and full bundle-analyzer artifacts were not captured.
+This evidence includes local dev-server, production-like `next start`, public Link-transition median, automated bfcache/back-forward no-overlay diagnostics, Slow 3G route-load and Slow 3G Link-transition measurements, protected redirect, isolated authenticated RSC transition data, isolated project-card/estimate-row hover instrumentation, Lighthouse public-route samples, component-level forced-render error-boundary screenshot proof, live dev-auth thrown-route screenshots, and a Next.js client-reference manifest bundle comparison for `/workshop/library`. It is stronger than the earlier baseline, but it is still not a complete manual benchmark protocol because production-mode authenticated hover-before-click Network proof, manual Chrome DevTools bfcache proof, production-mode route-error screenshots, production Chrome React Profiler proof, and full bundle-analyzer artifacts were not captured.
 
 ## Production-Like Perf Smoke
 
@@ -335,6 +335,7 @@ The current build emits separate server chunks for `ComponentLibraryManager`, `A
 ## Limitations
 
 - No production-mode authenticated hover-before-click `_rsc` Network proof was captured; refreshed local dev-auth browser evidence observed transition `_rsc` on click but not hover prefetch, and local Next.js source explains that prefetch URL creation is disabled in development.
+- Component-level forced-render error-boundary screenshot proof is captured in `route-error-boundary-forced-render.png`; live dev-auth thrown-route browser screenshots are captured in `live-route-error-screenshots/`. Production-mode route-error screenshots remain missing.
 - No manual Chrome screenshot/Network panel artifact was captured. Automated bfcache/back-forward evidence now exists, but manual Chrome DevTools persisted-state proof remains missing.
 - Lighthouse public-route samples were captured with `npx --yes lighthouse`; `/` and `/features` do not meet a 0.90 performance score in the local production-like run, and authenticated workshop Lighthouse evidence remains missing.
 - No `@next/bundle-analyzer` artifact was captured because the dependency is not installed and this run avoided adding new dependencies.

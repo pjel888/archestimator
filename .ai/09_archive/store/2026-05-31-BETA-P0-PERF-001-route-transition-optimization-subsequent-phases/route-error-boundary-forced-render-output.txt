@@ -1,0 +1,5 @@
+{
+  "htmlPath": ".ai/09_archive/store/2026-05-31-BETA-P0-PERF-001-route-transition-optimization-subsequent-phases/route-error-boundary-forced-render.html",
+  "pngPath": ".ai/09_archive/store/2026-05-31-BETA-P0-PERF-001-route-transition-optimization-subsequent-phases/route-error-boundary-forced-render.png",
+  "notesPath": ".ai/09_archive/store/2026-05-31-BETA-P0-PERF-001-route-transition-optimization-subsequent-phases/route-error-boundary-forced-render-notes.md"
+}

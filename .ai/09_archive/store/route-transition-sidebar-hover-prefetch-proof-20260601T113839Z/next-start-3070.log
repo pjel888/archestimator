@@ -1,0 +1,8 @@
+▲ Next.js 16.2.6
+- Local:         http://localhost:3070
+- Network:       http://127.0.2.2:3070
+✓ Ready in 120ms
+⨯ Error: {"code":"42501","details":null,"hint":null,"message":"new row violates row-level security policy for table \"workspaces\""}
+    at ignore-listed frames {
+  digest: '3923869928@E394'
+}

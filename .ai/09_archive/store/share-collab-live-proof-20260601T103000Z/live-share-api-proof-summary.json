@@ -1,0 +1,66 @@
+{
+  "base": "http://127.0.0.1:3067",
+  "firstShareStatus": 500,
+  "firstShareRenderedProject": true,
+  "hasHttpOnlySessionCookie": false,
+  "hasClientOkCookie": false,
+  "secondShareStatus": 200,
+  "secondShareRenderedRecipientBanner": false,
+  "commentStatuses": [
+    {
+      "attempt": 1,
+      "status": 403,
+      "retryAfter": null
+    },
+    {
+      "attempt": 2,
+      "status": 403,
+      "retryAfter": null
+    },
+    {
+      "attempt": 3,
+      "status": 403,
+      "retryAfter": null
+    },
+    {
+      "attempt": 4,
+      "status": 403,
+      "retryAfter": null
+    },
+    {
+      "attempt": 5,
+      "status": 403,
+      "retryAfter": null
+    },
+    {
+      "attempt": 6,
+      "status": 403,
+      "retryAfter": null
+    }
+  ],
+  "snapshotStatusTail": [
+    200,
+    200,
+    200,
+    200,
+    200
+  ],
+  "snapshotRateLimited": false,
+  "activityStatusTail": [
+    403,
+    403,
+    403,
+    403,
+    403
+  ],
+  "activityRateLimited": false,
+  "db": {
+    "rateRows": 31,
+    "commentRows": 0,
+    "eventRows": 0,
+    "recipient": {
+      "delivery_status": "sent",
+      "last_opened_at": null
+    }
+  }
+}

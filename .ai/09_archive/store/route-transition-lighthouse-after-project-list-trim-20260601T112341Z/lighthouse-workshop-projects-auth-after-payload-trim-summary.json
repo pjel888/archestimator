@@ -1,0 +1,14 @@
+{
+  "finalUrl": "http://127.0.0.1:3069/workshop/projects",
+  "performanceScore": 0.86,
+  "fcp": 1208.692,
+  "lcp": 3865.73,
+  "cls": 0,
+  "tbt": 124.654,
+  "speedIndex": 3514.5071240001976,
+  "serverResponseTime": 630,
+  "bfcacheScore": 0,
+  "scriptTransfer": 220719,
+  "generatedAt": "2026-06-01T11:25:41.311Z",
+  "note": "Report JSON has configSettings.extraHeaders.Cookie redacted before archival."
+}

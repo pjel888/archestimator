@@ -1,0 +1,21 @@
+▲ Next.js 16.2.6 (webpack)
+- Environments: .env.local
+- Experiments (use with caution):
+  · optimizePackageImports
+
+  Creating an optimized production build ...
+Webpack Bundle Analyzer saved report to /Users/philiplewis/archestimator/.next/analyze/nodejs.html
+
+No bundles were parsed. Analyzer will show only original module sizes from stats file.
+
+Webpack Bundle Analyzer saved report to /Users/philiplewis/archestimator/.next/analyze/edge.html
+Webpack Bundle Analyzer saved report to /Users/philiplewis/archestimator/.next/analyze/client.html
+✓ Compiled successfully in 2.8min
+  Running TypeScript ...
+Failed to type check.
+
+src/app/api/ai/ask/route.ts
+Type error: Route "src/app/api/ai/ask/route.ts" does not match the required types of a Next.js Route.
+  "handleAiAskRequest" is not a valid Route export field.
+
+Next.js build worker exited with code: 1 and signal: null

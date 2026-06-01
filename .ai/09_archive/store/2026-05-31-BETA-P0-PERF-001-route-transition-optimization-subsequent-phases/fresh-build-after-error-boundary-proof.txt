@@ -1,0 +1,67 @@
+$ next build
+▲ Next.js 16.2.6 (Turbopack)
+- Environments: .env.local
+- Experiments (use with caution):
+  · optimizePackageImports
+
+  Creating an optimized production build ...
+✓ Compiled successfully in 9.7s
+  Running TypeScript ...
+  Finished TypeScript in 13.5s ...
+  Collecting page data using 7 workers ...
+  Generating static pages using 7 workers (0/27) ...
+  Generating static pages using 7 workers (6/27) 
+  Generating static pages using 7 workers (13/27) 
+  Generating static pages using 7 workers (20/27) 
+✓ Generating static pages using 7 workers (27/27) in 233ms
+  Finalizing page optimization ...
+
+Route (app)
+┌ ƒ /
+├ ○ /_not-found
+├ ƒ /about
+├ ƒ /api/ai/ask
+├ ƒ /api/ai/package-builder
+├ ƒ /api/component-library/attachments
+├ ƒ /api/component-library/images
+├ ƒ /api/projects/[projectId]/estimates/[estimateId]/export/proposal.xlsx
+├ ƒ /api/projects/images
+├ ƒ /api/share/[token]
+├ ƒ /api/share/[token]/activity
+├ ƒ /api/share/[token]/comment
+├ ƒ /api/share/[token]/decision
+├ ƒ /api/share/[token]/events
+├ ƒ /api/share/[token]/password
+├ ƒ /auth/callback
+├ ƒ /contact
+├ ƒ /features
+├ ƒ /invite/[token]
+├ ƒ /invite/[token]/accept
+├ ƒ /invite/[token]/continue
+├ ƒ /invite/[token]/sign-out
+├ ƒ /login
+├ ƒ /pricing
+├ ƒ /privacy
+├ ƒ /share/[token]
+├ ƒ /terms
+├ ƒ /workshop
+├ ○ /workshop/components
+├ ƒ /workshop/library
+├ ○ /workshop/onboarding
+├ ƒ /workshop/pending-invite
+├ ƒ /workshop/projects
+├ ƒ /workshop/projects/[projectId]
+├ ƒ /workshop/projects/[projectId]/charts
+├ ƒ /workshop/projects/[projectId]/estimates
+├ ƒ /workshop/projects/[projectId]/estimates/[nodeId]
+├ ○ /workshop/settings
+├ ƒ /workshop/settings/profile
+├ ƒ /workshop/settings/workspace
+└ ƒ /workshop/templates
+
+
+ƒ Proxy (Middleware)
+
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand
+

@@ -1,0 +1,111 @@
+{
+  "session": {
+    "status": 200,
+    "hasSessionCookie": true,
+    "hasSessionOkCookie": true
+  },
+  "passwordTail": [
+    {
+      "attempt": 5,
+      "status": 401,
+      "retryAfter": null,
+      "body": {
+        "error": "Publication password is invalid."
+      }
+    },
+    {
+      "attempt": 6,
+      "status": 429,
+      "retryAfter": "900",
+      "body": {
+        "error": "Too many attempts. Please wait 900 seconds."
+      }
+    }
+  ],
+  "passwordSuccess": {
+    "status": 204,
+    "hasAccessCookie": true
+  },
+  "snapshot": {
+    "200": 60,
+    "429": 5
+  },
+  "event": {
+    "204": 60,
+    "429": 5
+  },
+  "activity": {
+    "200": 60,
+    "429": 5
+  },
+  "decision": {
+    "201": 1,
+    "409": 4,
+    "429": 1
+  },
+  "decisionTail": [
+    {
+      "attempt": 1,
+      "status": 201,
+      "retryAfter": null,
+      "body": {
+        "id": "9fab6ad1-9695-4bfb-9d9d-c7f3a8184361",
+        "decision": "accepted",
+        "created": true
+      }
+    },
+    {
+      "attempt": 2,
+      "status": 409,
+      "retryAfter": null,
+      "body": {
+        "error": "Decision already submitted."
+      }
+    },
+    {
+      "attempt": 3,
+      "status": 409,
+      "retryAfter": null,
+      "body": {
+        "error": "Decision already submitted."
+      }
+    },
+    {
+      "attempt": 4,
+      "status": 409,
+      "retryAfter": null,
+      "body": {
+        "error": "Decision already submitted."
+      }
+    },
+    {
+      "attempt": 5,
+      "status": 409,
+      "retryAfter": null,
+      "body": {
+        "error": "Decision already submitted."
+      }
+    },
+    {
+      "attempt": 6,
+      "status": 429,
+      "retryAfter": "60",
+      "body": {
+        "error": "Too many attempts. Please wait 60 seconds."
+      }
+    }
+  ],
+  "rateCounts": {
+    "project_publication_activity": 65,
+    "project_publication_event": 65,
+    "project_publication_password": 5,
+    "project_publication_snapshot": 65,
+    "shared_link_decision": 6
+  },
+  "publicationEvents": 127,
+  "sharedEvents": 0,
+  "responseRows": 1,
+  "durationMs": 85164,
+  "generatedAt": "2026-06-01T11:11:25.558Z",
+  "claim": "Public shared-link password, snapshot, event, activity, and decision routes enforce durable rate limits; duplicate decisions return 409 before the limit returns 429."
+}
