@@ -1,22 +1,58 @@
-# 10 — Technical Risk Register
+# Technical Risk Register
 
-**Date:** 2026-06-01
+## Launch Blockers
 
-| # | Risk | Severity | Probability | Affected Surface | Trigger | Mitigation | Owner | Deadline | Launch Decision |
-|---|------|----------|-------------|------------------|---------|------------|-------|----------|-----------------|
-| R1 | **Excel export looks unprofessional (generic data dump)** | 🔴 P0 Critical | High | Export API, client perception | Export used by real client | Complete rebuild per doc 08; manual QA in 3+ spreadsheet apps | Engineering | Phase 5 | **Block launch until fixed** |
-| R2 | **Ask Flip AI visible in MVP (looks unfinished)** | 🔴 P0 Critical | Certain (currently visible) | All workshop pages | Any user visits workshop | Hide via feature flag per doc 03; test visibility is gone | Engineering | Phase 1 | **Block launch until fixed** |
-| R3 | **Component unlink corrupts source library data** | 🔴 P0 Critical | Medium | `cost_library_items`, `estimate_row_items` | User edits unlinked row component fields | RPC must verify link_state before allowing write; never mutate cost_library_items from row edit path; test coverage | Engineering | Phase 2 | **Block launch until fixed and tested** |
-| R4 | **RLS / migration drift on production Supabase** | 🟠 P1 High | Low | All user data | Migration applied to local but not production | Verify all 48 migrations applied to production; run RLS audit query; test new migration on production | Engineering | Phase 6 | **Must verify before launch** |
-| R5 | **2 failing Vitest DOM tests (pre-existing)** | 🟡 P2 Medium | Certain (known) | Shared-link session tests | CI run | Investigate and fix, or document as known with skip | Engineering | Phase 6 | **Should fix or document before launch** |
-| R6 | **Legal pages are placeholder text** | 🔴 P0 Critical | Certain (known) | `/privacy`, `/terms` | Any user visits legal pages | Get reviewed legal copy or keep accurate pending-review status | Philip / Legal | Phase 6 | **Block public launch until resolved** |
-| R7 | **Design-system regressions from new features** | 🟠 P1 High | Medium | All new UI (unlink badges, export dialog) | New UI code not following design tokens | `lint:design-system` in CI; visual audit checklist; use shared primitives | Engineering | Phase 3-5 | **Must pass lint before merge** |
-| R8 | **Route performance degrades with new features** | 🟡 P2 Medium | Low | Workshop pages | New components add bundle size | Keep `bun run build` fast; monitor bundle analyzer; lazy-load new components | Engineering | Phase 3-5 | Monitor, not block |
-| R9 | **Auth / provider issues on production** | 🟠 P1 High | Low | Login, protected routes | Google OAuth config differs from local | Test auth on production deploy; verify callback URLs; test magic link | Engineering | Phase 6 | **Must test on production before launch** |
-| R10 | **Scope status (INCLUDED/EXCLUDED/etc.) not supported in export** | 🟡 P2 Medium | Low | Export | Row doesn't have scope_status field | Store scopeStatus in source_snapshot or add column; implement in export per doc 08 | Engineering | Phase 5 | Should have for MVP; can ship without if complexity too high |
-| R11 | **Seed component data has stale pricing or broken images** | 🟡 P2 Medium | Medium | Component library | User browses library and sees stale $0 pricing or broken thumbnails | Audit seed data per doc 05; verify thumbnails load; update stale pricing | Engineering | Phase 3 | Should fix before launch |
-| R12 | **No E2E test for core estimate-templates-export workflow** | 🟠 P1 High | Certain (gap) | Estimate, templates, export | Regression breaks the core workflow | Add E2E smoke test (manual or Playwright) for the full workflow | Engineering | Phase 6 | **Must have smoke test coverage** |
-| R13 | **Template insertion creates orphan/dangling rows** | 🟡 P2 Medium | Low | Estimate data integrity | Template insert fails mid-transaction | Use transactional RPC (`insert_estimate_template_into_estimate_with_history`); test with rollback | Engineering | Phase 4 | Should verify |
-| R14 | **Invite entry disabled but sends confusing error** | 🟡 P2 Low | Low | Teamspaces | User tries to invite without env configured | Fail-closed messaging per existing implementation; verify disabled state is clear | Engineering | Phase 6 | Verify not regression |
-| R15 | **Supabase pooler / connection issues on production** | 🟠 P1 High | Low | All data access | Production load exceeds connection pool | Use Supabase connection pooling; test with production-like load | DevOps | Phase 6 | Should test |
-| R16 | **Unlink RPC has row revision conflict failures under load** | 🟡 P2 Medium | Low | Estimate editing | Multiple users edit same row | Optimistic concurrency with row_revision guard; show conflict error to user | Engineering | Phase 2 | Acceptable behavior (handled gracefully) |
+| Risk | Impact | Trigger | Detection signal | Mitigation | Contingency | Owner | Due phase |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| AI route leakage | Provider spend, privacy, unfinished UX exposure. | Missing/incorrect AI disabled flag. | Provider/context/audit mocks called in disabled tests; production provider logs. | Route-level gates before handlers. | Set env false, redeploy, inspect logs. | Eng | PR 1 |
+| Ask Flip visible by default | Launch shows deferred feature. | `WorkshopPageShell` renders assistant without flag. | DOM/smoke sees Ask Flip trigger. | Client-public flag default false. | Redeploy with footer hidden. | Eng | PR 1 |
+| Schema-invalid unlink migration | Data corruption or failed deploy. | Reusing first-pass invalid SQL. | Migration/test failure; references `area_node_id` or invalid event columns. | Use `17` contract; migration tests; linked proof. | Drop function, hide UI. | Eng | PR 2 |
+| Row revision conflict mishandled | Lost updates. | Concurrent row edits/unlink. | Conflict test fails; stale revision accepted. | Match existing RPC conflict behavior. | Disable unlink UI. | Eng | PR 2 |
+| History event invalid | Activity/version history broken. | Wrong `estimate_sheet_events` insert. | SQL/action test fails; row activity missing. | Insert only real columns with old/new snapshots. | Disable unlink history or rollback function. | Eng | PR 2 |
+| Export formula incorrect | Client receives wrong bid totals. | Formula ranges/status handling wrong. | ExcelJS formula assertions or manual QA mismatch. | Formula tests and manual QA across apps. | Disable export/download or revert workbook. | Eng/Product | PR 6 |
+| VAT/contingency double-count | Over/under quote. | Row contingency plus summary contingency both applied. | Test mismatch; manual review. | Owner decision: row-level or summary-level contingency. | Default summary contingency 0 until approved. | Philip | Before PR 6 |
+| `test:dom` failure ignored | False launch confidence. | Treating source-contract failures as non-blocking without evidence. | CI remains red. | Fix or formally triage before launch. | No launch. | Eng | PR 7 |
+| Supabase migration drift | Remote schema differs from generated types. | Pending migrations or stale remote. | Linked SQL verify mismatch. | Exact-file apply and direct SQL verify. | Repair migration history or rollback function. | Eng | PR 7 |
+| Vercel env mismatch | Production differs from tested build. | Missing AI flags or Supabase vars. | Env audit/smoke failure. | Vercel env checklist. | Redeploy with corrected env. | Eng | PR 7 |
+
+## Security/RLS Risks
+
+| Risk | Impact | Mitigation |
+| --- | --- | --- |
+| Unlink RPC bypasses workspace membership | Cross-workspace row mutation. | Use `resolve_estimate_workspace` and existing RLS/grant conventions. |
+| Acting user null misuse | Audit attribution gaps. | Follow existing action conventions; reject when user context unavailable except vetted dev paths. |
+| Public export route exposure | Unauthorized workbook download. | Keep existing route auth/project access checks; route tests. |
+| AI audit writes while disabled | Privacy and false audit records. | Disabled route returns before handler. |
+
+## Performance Risks
+
+| Risk | Impact | Mitigation |
+| --- | --- | --- |
+| Workbook generation too slow for large estimates | Timeout or poor UX. | Use streaming/buffer only after model limits measured; test large fixture. |
+| Template preview renders deep trees poorly | Slow route. | Cap preview depth/rows and lazy expand. |
+| Library trust fields bloat cards | Visual density loss. | Responsive truncation and visual QA. |
+
+## Legal/Privacy Risks
+
+| Risk | Impact | Mitigation |
+| --- | --- | --- |
+| Export commercial terms imply legal commitments. | Client dispute. | Owner-approved defaults; editable post-MVP path documented. |
+| Warranty/validity/payment terms wrong. | Commercial risk. | Owner sign-off before launch. |
+| AI disabled route returns detailed internal info. | Endpoint disclosure. | Simple 403 message, no stack/details. |
+
+## Test Risks
+
+| Risk | Impact | Mitigation |
+| --- | --- | --- |
+| Source-contract tests become brittle. | CI false negatives. | Test behavior and handler boundaries, not only source strings. |
+| ExcelJS formulas not verified by recalculation. | Hidden workbook errors. | Assert formulas and manual recalc in Excel/Numbers/LibreOffice/Sheets. |
+| Focused tests pass while full DOM fails. | False confidence. | Full `bun run test:dom` must pass before launch. |
+
+## Accepted Debt
+
+| Debt | Reason | Review point |
+| --- | --- | --- |
+| Labor cost compatibility mode | Current schema consolidated labor/supplementary into `misc_cost`. | Post-MVP costing model. |
+| Template route has no authoring UI | MVP only needs seeded reusable structure browsing and estimate insertion path. | Post-launch template management. |
+| AI deferred rather than removed | Preserves future implementation while preventing launch leakage. | Post-MVP AI readiness plan. |
+| Export commercial defaults may be static | MVP needs professional output; configurable terms can follow. | Owner feedback after first launch exports. |
