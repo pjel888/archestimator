@@ -72,7 +72,7 @@ Current decision: **NO-GO**.
 | Excel export is professional bid/BOQ workbook | Yes | Formula tests, reference contract, Excel + secondary app open proof. | Local ExcelJS/workbook tests pass; cross-app open proof pending. | No-go |
 | Resend delivery/webhook verified before visible email workflows are re-enabled | Yes | Domain DNS, delivery, webhook, bounce/complaint test. | Missing; recipient email controls now disable while server readiness is false. | No-go |
 | Legal pages accurate | Yes | Reviewed or closed-beta approved copy. | Local beta copy pass; owner/counsel sign-off pending. | No-go |
-| Support/feedback path exists | Yes | Contact/support inbox and beta bug report route. | Local workshop feedback link exists; monitored inbox/form proof pending. | No-go |
+| Support/feedback path exists | Yes | Contact/support inbox and beta bug report route. | Local workshop feedback link exists; public contact form opens a structured support email draft; monitored inbox/form proof pending. | No-go |
 | Observability/alerts configured | Yes | Error tracking, uptime, alert owner, export/auth/email alerts. | Local `/api/health` and runbook exist; deployed monitor/alert proof pending. | No-go |
 | Backup/rollback plan proven | Yes | Backup proof, migration rollback, Vercel rollback, restore plan. | Backup/restore checklist exists; provider proof pending. | No-go |
 | Investor demo pack ready | Yes for demo | Demo workspace, script, screenshots, export artifact, fallback. | Local seed/demo script anchors, component/template screenshots, workbook artifact, and template insertion proof exist; rehearsal and hosted proof pending. | No-go |
@@ -118,7 +118,7 @@ Do not launch beta if:
 - RLS/migrations are not verified.
 - Resend email delivery/webhook is unverified before invite/share email workflows are re-enabled.
 - Legal pages are misleading.
-- No monitored support/feedback path exists.
+- No monitored support/feedback path exists. Local contact/support links and structured email draft handoff are not enough without inbox/form monitoring proof.
 - No rollback plan exists.
 - No backup plan exists before migration.
 - No core smoke test is completed.

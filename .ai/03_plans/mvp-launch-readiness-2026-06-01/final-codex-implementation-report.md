@@ -60,6 +60,7 @@ The active-goal completion audit is centralized in `47-goal-completion-audit.md`
 - Template library polish: result counts, structure preview, category/sample-row visibility before insertion.
 - Professional Excel bid/BOQ workbook with `Bid Form`, `Summary`, `Commercial Terms`, formula-backed totals, scope labels, and source breakdown.
 - Authenticated workshop beta feedback mailto link to `support@archestimator.com`.
+- Public contact form now prepares a structured support email draft instead of simulating backend receipt.
 - Closed-beta `/terms` and `/privacy` copy with support/data deletion contact and no-payment caveats.
 - `.env.example`, infrastructure/runbook docs, support/backup/rollback docs, and compaction-safe goal copy.
 - Public `/api/health` route for uptime monitor target.

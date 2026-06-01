@@ -31,7 +31,7 @@ Commit audited: `681c95e64864f283950a88dba304eaffe8f2f8b3`
 | Resend webhook logs | Route can record delivery state. | Delivery/webhook proof missing. |
 | Health endpoint | `/api/health` returns `200` JSON with `Cache-Control: no-store` and no auth/data dependency. | Production uptime monitor proof missing. |
 | Performance monitor | Dev-only monitor exists. | No production RUM/APM. |
-| Support | Public contact route likely exists. | No beta support inbox/SLA/bug flow. |
+| Support | Public contact route exists, workshop footer links to beta feedback email, and the public contact form prepares a structured support email draft instead of fake-submitting. | No monitored inbox/form delivery proof, SLA owner proof, or bug triage workflow proof. |
 
 ## MVP Stack Decision
 

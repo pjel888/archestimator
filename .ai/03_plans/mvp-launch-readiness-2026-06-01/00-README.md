@@ -90,7 +90,7 @@ Deferred from MVP:
 | INFRA-001 | Vercel/Supabase/Resend env and rollback proof missing. | Env manifest, callback URLs, DNS, webhooks, storage policies, deploy/rollback runbook proof. |
 | SEC-001 | RLS/security threat model proof missing. | RLS denial queries, route access matrix, storage denial, CSRF/share/invite token tests. |
 | LEGAL-001 | Legal review proof missing. | Local closed-beta Terms/Privacy copy exists; owner/counsel review remains required. |
-| OBS-001 | Monitoring/support proof missing. | Local feedback link, runbook, and `/api/health` exist; monitored inbox, uptime alert, and error alert proof remain required. |
+| OBS-001 | Monitoring/support proof missing. | Local feedback link, structured support email draft, runbook, and `/api/health` exist; monitored inbox, uptime alert, and error alert proof remain required. |
 | DATA-001 | Backup/DR proof missing. | Backup/PITR/storage/migration rollback proof before beta data or linked migration apply. |
 | QA-002 | External/manual smoke incomplete. | Local type/lint/design/unit/full DOM/build baseline is green; hosted/manual E2E and provider proof remain required. |
 
@@ -121,7 +121,7 @@ Rules: below 90 is not beta-ready; P0 domains below 95 block launch; 100 require
 | Security/RLS | 70 | Advisor warns; linked proof gap |
 | Legal/privacy | 82 | Review proof gap |
 | Performance/caching | 65 | P1 unless thresholds fail |
-| Observability/support | 78 | Alert/inbox proof gap |
+| Observability/support | 79 | Alert/inbox proof gap |
 | QA/test coverage | 82 | Hosted/manual proof gap |
 | Investor demo readiness | 82 | Workbook artifact, library/template screenshots, and local insertion proof exist; rehearsal proof gap |
 | Beta readiness | 40 | P0 blocker |

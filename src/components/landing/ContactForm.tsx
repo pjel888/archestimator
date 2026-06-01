@@ -1,7 +1,40 @@
 "use client";
 
 import { useState, FormEvent } from "react";
-import { EnvelopeOpen, Spinner } from "@phosphor-icons/react/dist/ssr";
+import { EnvelopeOpen } from "@phosphor-icons/react/dist/ssr";
+
+const SUPPORT_EMAIL = "support@archestimator.com";
+
+type SupportMailtoInput = {
+  name: string;
+  email: string;
+  org: string;
+  inquiryType: string;
+  message: string;
+};
+
+const inquiryLabels: Record<string, string> = {
+  access: "Closed beta access request",
+  demo: "Product demo request",
+  feedback: "Beta product feedback",
+  other: "General question",
+};
+
+export function buildSupportMailto(input: SupportMailtoInput) {
+  const inquiryLabel = inquiryLabels[input.inquiryType] ?? inquiryLabels.other;
+  const subject = `Archestimator ${inquiryLabel}`;
+  const body = [
+    `Name: ${input.name.trim()}`,
+    `Email: ${input.email.trim()}`,
+    `Organization: ${input.org.trim() || "Not provided"}`,
+    `Inquiry type: ${inquiryLabel}`,
+    "",
+    "Message:",
+    input.message.trim(),
+  ].join("\n");
+
+  return `mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+}
 
 export function ContactForm() {
   const [name, setName] = useState("");
@@ -9,35 +42,24 @@ export function ContactForm() {
   const [org, setOrg] = useState("");
   const [inquiryType, setInquiryType] = useState("access");
   const [message, setMessage] = useState("");
-  
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isSubmitted, setIsSubmitted] = useState(false);
+  const [mailtoLink, setMailtoLink] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
 
-  const handleSubmit = async (e: FormEvent) => {
+  const handleSubmit = (e: FormEvent) => {
     e.preventDefault();
-    setIsSubmitting(true);
     setErrorMsg("");
 
-    // Basic validation
     if (!name.trim() || !email.trim() || !message.trim()) {
       setErrorMsg("Please fill out all required fields.");
-      setIsSubmitting(false);
       return;
     }
 
-    // Mock API call delay
-    try {
-      await new Promise((resolve) => setTimeout(resolve, 1200));
-      setIsSubmitted(true);
-    } catch {
-      setErrorMsg("Something went wrong. Please try again.");
-    } finally {
-      setIsSubmitting(false);
-    }
+    const nextMailtoLink = buildSupportMailto({ name, email, org, inquiryType, message });
+    setMailtoLink(nextMailtoLink);
+    window.open(nextMailtoLink, "_self");
   };
 
-  if (isSubmitted) {
+  if (mailtoLink) {
     return (
       <div 
         className="rounded-[16px] border border-[#cfcfca] bg-[#f5f5f3] p-8 text-center shadow-sm"
@@ -48,28 +70,35 @@ export function ContactForm() {
           <EnvelopeOpen className="size-7" weight="bold" />
         </div>
         <h2 className="mt-5 text-[22px] font-semibold tracking-tight text-[#111111]">
-          Message Sent Successfully
+          Support email draft prepared
         </h2>
         <p className="mt-3 text-[14px] leading-6 text-[#626260]">
-          Thank you for reaching out, <strong>{name}</strong>. We have received your inquiry regarding <strong>{
-            inquiryType === "access" ? "early access" : 
-            inquiryType === "demo" ? "a product demo" : 
-            inquiryType === "feedback" ? "product feedback" : "general questions"
-          }</strong>. A member of our team will review it and follow up at <strong>{email}</strong> shortly.
+          Your email app should open a draft addressed to <strong>{SUPPORT_EMAIL}</strong>. Send that draft to request access, share beta feedback, or report a workflow issue.
         </p>
-        <button
-          onClick={() => {
-            setIsSubmitted(false);
-            setName("");
-            setEmail("");
-            setOrg("");
-            setInquiryType("access");
-            setMessage("");
-          }}
-          className="mt-6 inline-flex min-h-10 items-center justify-center rounded-[5px] bg-[#17181c] px-5 text-[11px] font-bold uppercase tracking-[0.02em] text-white transition hover:bg-[#2a2b30] active:scale-95"
-        >
-          Send Another Message
-        </button>
+        <p className="mt-2 text-[12px] leading-5 text-[#626260]">
+          If the draft did not open, email <strong>{SUPPORT_EMAIL}</strong> directly and include your Google sign-in email plus the project or estimate context.
+        </p>
+        <div className="mt-6 flex flex-col items-center justify-center gap-3 sm:flex-row">
+          <a
+            href={mailtoLink}
+            className="inline-flex min-h-10 items-center justify-center rounded-[5px] bg-[#17181c] px-5 text-[11px] font-bold uppercase tracking-[0.02em] text-white transition hover:bg-[#2a2b30] active:scale-95"
+          >
+            Open email draft
+          </a>
+          <button
+            onClick={() => {
+              setMailtoLink("");
+              setName("");
+              setEmail("");
+              setOrg("");
+              setInquiryType("access");
+              setMessage("");
+            }}
+            className="inline-flex min-h-10 items-center justify-center rounded-[5px] border border-[#cfcfca] bg-white px-5 text-[11px] font-bold uppercase tracking-[0.02em] text-[#17181c] transition hover:bg-[#eeeeec] active:scale-95"
+          >
+            Start another message
+          </button>
+        </div>
       </div>
     );
   }
@@ -112,7 +141,6 @@ export function ContactForm() {
             aria-required="true"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            disabled={isSubmitting}
             placeholder="John Doe"
             className="mt-2 w-full min-h-10 rounded-[6px] border border-[#cfcfca] bg-white px-3 text-[14px] text-[#111111] placeholder-[#a6a6a4] outline-none transition focus:border-[#ff7a1a] focus:ring-1 focus:ring-[#ff7a1a] disabled:bg-[#eeeeec]/50"
           />
@@ -133,7 +161,6 @@ export function ContactForm() {
             aria-required="true"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            disabled={isSubmitting}
             placeholder="john@example.com"
             className="mt-2 w-full min-h-10 rounded-[6px] border border-[#cfcfca] bg-white px-3 text-[14px] text-[#111111] placeholder-[#a6a6a4] outline-none transition focus:border-[#ff7a1a] focus:ring-1 focus:ring-[#ff7a1a] disabled:bg-[#eeeeec]/50"
           />
@@ -152,7 +179,6 @@ export function ContactForm() {
             type="text"
             value={org}
             onChange={(e) => setOrg(e.target.value)}
-            disabled={isSubmitting}
             placeholder="e.g. Acme Construction"
             className="mt-2 w-full min-h-10 rounded-[6px] border border-[#cfcfca] bg-white px-3 text-[14px] text-[#111111] placeholder-[#a6a6a4] outline-none transition focus:border-[#ff7a1a] focus:ring-1 focus:ring-[#ff7a1a] disabled:bg-[#eeeeec]/50"
           />
@@ -171,7 +197,6 @@ export function ContactForm() {
               id="contact-inquiry"
               value={inquiryType}
               onChange={(e) => setInquiryType(e.target.value)}
-              disabled={isSubmitting}
               className="w-full min-h-10 rounded-[6px] border border-[#cfcfca] bg-white px-3 text-[14px] text-[#111111] outline-none transition focus:border-[#ff7a1a] focus:ring-1 focus:ring-[#ff7a1a] appearance-none disabled:bg-[#eeeeec]/50"
             >
               <option value="access">Request Early Access</option>
@@ -200,7 +225,6 @@ export function ContactForm() {
             rows={4}
             value={message}
             onChange={(e) => setMessage(e.target.value)}
-            disabled={isSubmitting}
             placeholder="Tell us about your team and estimating workflow needs..."
             className="mt-2 w-full rounded-[6px] border border-[#cfcfca] bg-white p-3 text-[14px] text-[#111111] placeholder-[#a6a6a4] outline-none transition focus:border-[#ff7a1a] focus:ring-1 focus:ring-[#ff7a1a] disabled:bg-[#eeeeec]/50 resize-y"
           />
@@ -214,17 +238,9 @@ export function ContactForm() {
 
         <button
           type="submit"
-          disabled={isSubmitting}
           className="inline-flex min-h-11 items-center justify-center gap-2 rounded-[5px] bg-[#ff7a1a] px-6 text-[12px] font-bold uppercase tracking-[0.02em] text-white transition hover:bg-[#e06610] disabled:bg-[#cfcfca] disabled:text-[#626260]"
         >
-          {isSubmitting ? (
-            <>
-              <Spinner className="size-4 animate-spin" />
-              Sending...
-            </>
-          ) : (
-            "Send Message"
-          )}
+          Open Email Draft
         </button>
       </div>
     </form>
