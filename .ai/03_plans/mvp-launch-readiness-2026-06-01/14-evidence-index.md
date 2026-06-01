@@ -393,6 +393,16 @@
 - Protection proof: Vercel reports SSO protection for `all_except_custom_domains`, Git fork protection enabled, and one env-var-backed automation bypass entry remaining after cleanup of the non-env bypass entry generated during this run.
 - Launch meaning: this is partial/blocked Vercel evidence. Preview deploy and protected health route are proven, but env, production/custom-domain behavior, public monitoring path, hosted auth smoke, and rollback proof remain **NO-GO** rows.
 
+### Resend Email Readiness Evidence
+
+- Artifact note: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/resend-email-readiness-blocked-2026-06-02.md`.
+- Vercel env proof: `vercel env ls --non-interactive` returned `No Environment Variables found`.
+- Local key-presence proof: `.env.local` has `RESEND_API_KEY`, but `RESEND_FROM`, `RESEND_REPLY_TO`, and `RESEND_WEBHOOK_SECRET` are missing or empty. Values were not printed.
+- Source proof: `src/lib/email/resend-client.ts` uses `RESEND_API_KEY` outside tests and mock-succeeds without a client; `src/app/api/webhooks/resend/route.ts` returns `503` when `RESEND_WEBHOOK_SECRET` is absent.
+- Visible email-flow proof: shared-link recipient/digest and collaboration invite/resend paths call `sendEmail()`.
+- Existing local test proof: `tests/vitest/resend-webhook-delivery.test.ts` guards raw-body webhook verification, recipient tags, delivery columns, and event-to-recipient status mapping.
+- Launch meaning: this is negative/blocked email-provider evidence. Manual beta invites may remain outside Resend, but visible in-app share/invite email workflows cannot be treated as launch-ready until Vercel env, verified sender/domain/DNS, webhook secret, and real delivery/webhook event proof exist.
+
 ### Spreadsheet Artifact Local Evidence
 
 - Artifact note: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/spreadsheet-artifact-local-2026-06-02.md`.

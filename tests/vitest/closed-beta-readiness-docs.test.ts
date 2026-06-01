@@ -146,6 +146,11 @@ describe("closed beta readiness docs", () => {
     expect(evidenceIndex).toContain("linked history is missing `20260601182522_closed_beta_allowed_emails` and `20260601184343_unlink_estimate_row_items`");
     expect(evidenceIndex).toContain("`closed_beta_allowed_emails`, `check_closed_beta_access(text)`, and `unlink_estimate_row_item_from_library_with_history(...)` are absent on linked Supabase");
     expect(evidenceIndex).toContain("`component-images` bucket is public");
+    expect(evidenceIndex).toContain("### Resend Email Readiness Evidence");
+    expect(evidenceIndex).toContain("resend-email-readiness-blocked-2026-06-02.md");
+    expect(evidenceIndex).toContain("Vercel env proof: `vercel env ls --non-interactive` returned `No Environment Variables found`");
+    expect(evidenceIndex).toContain("`RESEND_FROM`, `RESEND_REPLY_TO`, and `RESEND_WEBHOOK_SECRET` are missing or empty");
+    expect(evidenceIndex).toContain("visible in-app share/invite email workflows cannot be treated as launch-ready");
     expect(evidenceIndex).toContain("Current app build anchor: `e6cf52b` on `main`, before this docs-only evidence-sync commit.");
     expect(evidenceIndex).toContain("PLAYWRIGHT_PORT=3037 bun run test:e2e -- e2e/auth.spec.ts --project=chromium");
     expect(evidenceIndex).toContain("Result: pass, 2 Playwright tests in 9.9s.");
@@ -210,6 +215,9 @@ describe("closed beta readiness docs", () => {
     expect(manualProofMatrix).toContain("`closed_beta_allowed_emails`, `check_closed_beta_access`, and `unlink_estimate_row_item_from_library_with_history` are absent");
     expect(manualProofMatrix).toContain("Hosted auth allowlist");
     expect(manualProofMatrix).toContain("Vercel deploy/env/health");
+    expect(manualProofMatrix).toContain("resend-email-readiness-blocked-2026-06-02.md");
+    expect(manualProofMatrix).toContain("Vercel env list empty");
+    expect(manualProofMatrix).toContain("visible share/invite email paths still present");
     expect(manualProofMatrix).toContain("Spreadsheet compatibility");
     expect(manualProofMatrix).toContain("Project-specific unlink manual smoke");
     expect(manualProofMatrix).toContain("project-specific-unlink-linked-smoke-blocked-2026-06-02.md");
@@ -251,6 +259,9 @@ describe("closed beta readiness docs", () => {
     expect(goalCompletionAudit).toContain("linked migration history missing `20260601182522` and `20260601184343`");
     expect(goalCompletionAudit).toContain("`closed_beta_allowed_emails`, `check_closed_beta_access`, and `unlink_estimate_row_item_from_library_with_history` are absent");
     expect(goalCompletionAudit).toContain("latest preview reached READY and protected `/api/health` returned ok through `vercel curl`");
+    expect(goalCompletionAudit).toContain("Resend email readiness evidence");
+    expect(goalCompletionAudit).toContain("Vercel env list is empty, local `RESEND_FROM` / `RESEND_REPLY_TO` / `RESEND_WEBHOOK_SECRET` are missing or empty");
+    expect(goalCompletionAudit).toContain("visible shared-link/collaboration email paths still call `sendEmail()`");
     expect(goalCompletionAudit).toContain("generated workbook artifact is loadable, ZIP-valid, formula-backed, and has no blank line totals");
     expect(goalCompletionAudit).toContain("component/template demo smoke and template insertion are partial/local pass");
     expect(goalCompletionAudit).toContain("Template insertion local smoke evidence");
@@ -277,6 +288,9 @@ describe("closed beta readiness docs", () => {
     expect(currentState).toContain("`component-images` is public");
     expect(currentState).toContain("Read-only Vercel CLI evidence");
     expect(currentState).toContain("Vercel env list is empty");
+    expect(currentState).toContain("Resend email readiness evidence");
+    expect(currentState).toContain("local `RESEND_FROM`, `RESEND_REPLY_TO`, and `RESEND_WEBHOOK_SECRET` are missing or empty");
+    expect(currentState).toContain("visible shared-link/collaboration email paths remain in source");
     expect(currentState).toContain("Spreadsheet artifact evidence");
     expect(currentState).toContain("missing local spreadsheet apps");
     expect(currentState).toContain("Component/template local demo evidence");
@@ -287,7 +301,7 @@ describe("closed beta readiness docs", () => {
     expect(currentState).toContain("monitored inbox/form and alert ownership proof remain missing");
     expect(currentState).toContain("Project-specific unlink linked smoke evidence");
     expect(currentState).toContain("linked Supabase returned `PGRST202`");
-    expect(currentState).toContain("do not prove hosted auth, linked RLS/security, project-specific unlink, monitored support/alerts, or current hosted E2E/manual smoke");
+    expect(currentState).toContain("do not prove hosted auth, linked RLS/security, Resend delivery/webhooks, project-specific unlink, monitored support/alerts, or current hosted E2E/manual smoke");
     expect(currentState).toMatch(/Do not archive the MVP launch goal or claim launch readiness from local tests alone/i);
     expect(decisions).toMatch(/This is not a launch approval/);
     expect(knownIssues).toContain("Local validation/build evidence is now current");
@@ -296,13 +310,16 @@ describe("closed beta readiness docs", () => {
     expect(knownIssues).toContain("Linked Supabase schema parity evidence on 2026-06-02 is negative/blocked");
     expect(knownIssues).toContain("`20260601182522_closed_beta_allowed_emails` and `20260601184343_unlink_estimate_row_items` missing from linked migration history");
     expect(knownIssues).toContain("`component-images` public");
+    expect(knownIssues).toContain("Resend email readiness evidence on 2026-06-02 is negative/blocked");
+    expect(knownIssues).toContain("local `RESEND_FROM`, `RESEND_REPLY_TO`, and `RESEND_WEBHOOK_SECRET` are missing or empty");
+    expect(knownIssues).toContain("visible shared-link/collaboration email paths remain in source");
     expect(knownIssues).toContain("Local component/template demo evidence on 2026-06-02 proves screenshots/JSON");
     expect(knownIssues).toContain("local template insertion evidence proves throwaway-estimate insertion with zero residue");
     expect(knownIssues).toContain("Support/feedback local evidence on 2026-06-02 proves `/contact`, workshop feedback, terms, and privacy point to `support@archestimator.com`");
     expect(knownIssues).toContain("monitored inbox/form and alert ownership proof remain missing");
     expect(knownIssues).toContain("Project-specific unlink linked smoke evidence is negative/blocked");
     expect(knownIssues).toContain("missing `unlink_estimate_row_item_from_library_with_history`");
-    expect(knownIssues).toContain("hosted auth, unlink detach/edit/library-unchanged/export, monitored support/alerts, and current hosted E2E proof remain missing");
+    expect(knownIssues).toContain("hosted auth, Resend delivery/webhooks, unlink detach/edit/library-unchanged/export, monitored support/alerts, and current hosted E2E proof remain missing");
     expect(knownIssues).not.toContain("full validation/build, and storage/security evidence");
     expect(finalImplementationReport).toMatch(/\*\*NO-GO for external beta testers today\.\*\*/);
     expect(finalImplementationReport).toMatch(/Linked Supabase backup\/PITR proof/);
