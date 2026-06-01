@@ -120,6 +120,17 @@ GitNexus impact was run before editing the template-library sheet/count/preview 
 - code-review-graph file-level impact for `TemplateLibraryManager.tsx` reported high risk across unrelated-looking graph nodes; this is treated as a broad/stale graph warning and mitigated with symbol-level GitNexus impact plus full local validation.
 
 Mitigation: keep the change display-only inside the existing manager, add no dependencies, preserve template filtering/selection contracts, and lock result-count plus structure/sample preview rendering with `template-library-manager-ui.test.tsx`.
+
+## EXP-001 Professional Workbook Impact Evidence - 2026-06-02
+
+GitNexus impact was run before editing the workbook/export seams:
+
+- `createProposalWorkbook` upstream impact returned partial `LOW` with 0 impacted symbols because GitNexus hit a read-only depth traversal warning; manual source impact is the export workbook flow through `createProposalWorkbookBuffer`.
+- `createProposalWorkbookBuffer` upstream impact returned partial `LOW` with 0 impacted symbols with the same read-only traversal warning; manual source impact is the XLSX route response path.
+- `buildProposalExportModel` upstream impact: 4 impacted symbols, direct dependents are export route `GET` and `EstimateSheetContent.buildProposalPreview`, 1 affected process (`GET` export route), risk `LOW`.
+- code-review-graph file-level analysis is required after the final staged diff.
+
+Mitigation: keep this slice inside `create-proposal-workbook.ts` plus workbook tests, preserve `buildProposalExportModel` data shape, and verify preview/download parity with proposal model, route, preview, and workbook tests before full validation.
 | `EstimateSheetContent` | GitNexus specific symbol returned 0 upstream due App Router boundary; other impacts show it is central through hook/export/preview. | Estimate workspace flows. | HIGH by manual assessment | many estimate DOM tests. | Keep row edits scoped; use targeted DOM tests. | Protected estimate route smoke. |
 | `useEstimateRowMutations` | Direct caller: `EstimateSheetContent`; indirect tests. | None reported. | LOW graph, MEDIUM product | estimate sheet tests. | Add unlink as peer mutation with same queue/revision model. | Hook conflict/rollback test. |
 | `insertEstimateRowItemFromLibrary` | `mutationFn` in row hook. | None. | LOW | `estimate-sheet-library-insert.test.tsx`, version-control actions tests. | Do not alter insert semantics. | Regression after unlink action. |

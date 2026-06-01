@@ -3,9 +3,9 @@ import { describe, expect, it } from "vitest";
 
 import { buildProposalExportModel } from "@/lib/proposal-export/build-proposal-export-model";
 import {
+  BID_FORM_COLUMNS,
   createProposalWorkbook,
   createProposalWorkbookBuffer,
-  DETAILED_ESTIMATE_COLUMNS,
 } from "@/lib/proposal-export/create-proposal-workbook";
 import type { ProposalExportMetadata } from "@/lib/proposal-export/types";
 import type { EstimateRowItem, EstimateTreeNode } from "@/lib/estimates/types";
@@ -77,7 +77,7 @@ function modelTree(): EstimateTreeNode[] {
 }
 
 describe("proposal workbook generation", () => {
-  it("creates the contractor proposal sheets with the planned detailed estimate columns", () => {
+  it("creates a professional bid workbook with bid form, summary, commercial terms, and source sheets", () => {
     const model = buildProposalExportModel({ metadata, nodes: modelTree(), generatedAt: "2026-05-23T00:00:00.000Z" });
 
     const workbook = createProposalWorkbook(model);
@@ -85,52 +85,72 @@ describe("proposal workbook generation", () => {
     expect(workbook.creator).toBe("Archestimator");
     expect(workbook.subject).toBe("Industry-standard proposal workbook");
     expect(workbook.worksheets.map((sheet) => sheet.name)).toEqual([
-      "Proposal Summary",
-      "Detailed Estimate",
-      "Area Breakdown",
+      "Bid Form",
+      "Summary",
+      "Commercial Terms",
+      "Source Breakdown",
     ]);
 
-    const detailed = workbook.getWorksheet("Detailed Estimate");
-    expect(detailed).toBeDefined();
-    expect(detailed?.views[0]).toMatchObject({ state: "frozen", ySplit: 8 });
-    expect(detailed?.getRow(8).values).toEqual([undefined, ...DETAILED_ESTIMATE_COLUMNS.map((column) => column.header)]);
+    const bidForm = workbook.getWorksheet("Bid Form");
+    expect(bidForm).toBeDefined();
+    expect(bidForm?.views[0]).toMatchObject({ state: "frozen", ySplit: 17 });
+    expect(bidForm?.pageSetup).toMatchObject({
+      orientation: "landscape",
+      fitToPage: true,
+      fitToWidth: 1,
+      fitToHeight: 0,
+      printTitlesRow: "17:17",
+    });
+    expect(bidForm?.getCell("A1").value).toBe("BID FORM / BILL OF QUANTITIES");
+    expect(bidForm?.getCell("A2").value).toBe("Project");
+    expect(bidForm?.getCell("B2").value).toBe(metadata.projectName);
+    expect(bidForm?.getCell("A4").value).toBe("Owner / Client");
+    expect(bidForm?.getCell("A9").value).toBe("General Notes");
+    expect(bidForm?.getCell("A11").value).toContain("Do not leave LINE TOTAL blank");
+    expect(bidForm?.getRow(17).values).toEqual([undefined, ...BID_FORM_COLUMNS.map((column) => column.header)]);
   });
 
-  it("writes consolidated quantities, subtotals, misc cost, and grand total into the detailed sheet", () => {
+  it("writes bid-form rows with formulas and nonblank line totals", () => {
     const model = buildProposalExportModel({ metadata, nodes: modelTree(), generatedAt: "2026-05-23T00:00:00.000Z" });
 
     const workbook = createProposalWorkbook(model);
-    const detailed = workbook.getWorksheet("Detailed Estimate");
-    expect(detailed).toBeDefined();
+    const bidForm = workbook.getWorksheet("Bid Form");
+    expect(bidForm).toBeDefined();
 
-    expect(detailed?.getRow(9).values).toEqual([
+    expect(bidForm?.getRow(19).values).toEqual([
       undefined,
       "1",
-      "Floor Finish",
       "Mariwasa 600 × 600 Porcelain Tile — Supply and install porcelain floor tile",
-      22,
       "sqm",
+      22,
       950,
       0,
-      20_900,
-      0,
-      800,
-      21_700,
-      expect.stringContaining("Supplier: Wilcon Depot / Mariwasa"),
+      { formula: "E19+F19", result: 950 },
+      { formula: 'IF(OR(I19="EXCLUDED",I19="BY OTHERS",I19="OWNER SUPPLIED",I19="OSM",I19="OFCI",I19="OSCI",I19="OMITTED",I19="NOT APPLICABLE"),0,D19*G19+800)', result: 21_700 },
+      "INCLUDED",
+      expect.stringContaining("Misc / other: ₱800.00"),
     ]);
-    expect(detailed?.getCell("K10").value).toBe(21_700);
+    expect(bidForm?.getCell("H19").value).not.toBeNull();
+    expect(bidForm?.getCell("H20").value).toEqual({ formula: "SUM(H19:H19)", result: 21_700 });
   });
 
-  it("writes summary and area breakdown traceability sheets", () => {
+  it("writes formula-backed summary, commercial terms, and source breakdown traceability sheets", () => {
     const model = buildProposalExportModel({ metadata, nodes: modelTree(), generatedAt: "2026-05-23T00:00:00.000Z" });
 
     const workbook = createProposalWorkbook(model);
-    const summary = workbook.getWorksheet("Proposal Summary");
-    const breakdown = workbook.getWorksheet("Area Breakdown");
+    const summary = workbook.getWorksheet("Summary");
+    const terms = workbook.getWorksheet("Commercial Terms");
+    const breakdown = workbook.getWorksheet("Source Breakdown");
 
-    expect(summary?.getCell("B7").value).toBe(21_700);
-    expect(summary?.getRow(11).values).toEqual([undefined, "Finishes", 1, 22, 20_900, 0, 800, 21_700]);
-    expect(breakdown?.getRow(8).values).toEqual([
+    expect(summary?.getCell("A1").value).toBe("SUMMARY OF BID");
+    expect(summary?.getRow(14).values).toEqual([undefined, "SECTION", "ROWS", "AMOUNT"]);
+    expect(summary?.getRow(15).values).toEqual([undefined, "Finishes", 1, { formula: "'Bid Form'!H20", result: 21_700 }]);
+    expect(summary?.getCell("B27").value).toEqual({ formula: "SUM(C15:C15)", result: 21_700 });
+    expect(summary?.getCell("B30").value).toEqual({ formula: "B27+B28+B29", result: 21_700 });
+    expect(terms?.getCell("A1").value).toBe("COMMERCIAL TERMS");
+    expect(terms?.getCell("A3").value).toBe("Exclusions");
+    expect(terms?.getCell("A13").value).toBe("Signature / Conforme");
+    expect(breakdown?.getRow(7).values).toEqual([
       undefined,
       "1",
       "bed-a-tile",
@@ -156,6 +176,9 @@ describe("proposal workbook generation", () => {
     await loadedWorkbook.xlsx.load(buffer);
 
     expect(buffer.byteLength).toBeGreaterThan(4_000);
-    expect(loadedWorkbook.getWorksheet("Detailed Estimate")?.getCell("K10").value).toBe(21_700);
+    expect(loadedWorkbook.getWorksheet("Bid Form")?.getCell("H19").value).toEqual({
+      formula: 'IF(OR(I19="EXCLUDED",I19="BY OTHERS",I19="OWNER SUPPLIED",I19="OSM",I19="OFCI",I19="OSCI",I19="OMITTED",I19="NOT APPLICABLE"),0,D19*G19+800)',
+      result: 21_700,
+    });
   });
 });
