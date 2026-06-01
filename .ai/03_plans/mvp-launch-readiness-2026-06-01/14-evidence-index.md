@@ -276,6 +276,23 @@
 - Post-edit code-review-graph `detect_changes` against `HEAD` analyzed 6 staged changed files, 4 changed functions/classes from the source-contract test, 0 affected flows, 0 test gaps, and overall risk score 0.30.
 - Post-edit GitNexus `detect-changes --repo archestimator --scope staged` reported no code changes detected for this docs/test-only staged set.
 
+### DEMO-001 Local Demo Seed Evidence
+
+- `supabase/seed.sql` now seeds five estimate row items for the local `Archestimator Demo Workspace` / `Lewis Residence` / `Lewis Residence Baseline Estimate`.
+- Seed rows include manual `unlinked` rows, one `linked-clean` tile row tied to the demo library item, and one `detached` project-specific paint row with preserved `source_snapshot`.
+- `28-investor-incubator-demo-readiness-plan.md` now names exact local seed anchors, the linked row, the detached row, and a rehearsal checklist that keeps Ask Flip, billing, provider dashboards, and real customer data out of the demo.
+- `12-final-mvp-launch-gate.md`, `36-final-executive-launch-brief.md`, and `43-closed-beta-readiness-scorecard.md` now credit demo seed anchors while preserving no-go status until live rehearsal, screenshots, and workbook artifact proof exist.
+- Focused evidence: `bun run test:dom tests/vitest/demo-seed-readiness.test.ts` passed 1 file / 3 tests.
+- Adjacent docs evidence: `bun run test:dom tests/vitest/demo-seed-readiness.test.ts tests/vitest/closed-beta-readiness-docs.test.ts` passed 2 files / 7 tests.
+- `bun run type-check` passed.
+- `bun run lint` passed with the existing 14 warnings and 0 errors.
+- `bun run lint:design-system` passed.
+- `bun run test` passed 4 unit tests / 129 expectations.
+- `git diff --check` passed.
+- Post-edit code-review-graph `detect_changes` against `HEAD` analyzed 8 staged changed files, 4 changed functions/classes from the source-contract tests, 0 affected flows, 0 test gaps, and overall risk score 0.30.
+- Post-edit GitNexus `detect-changes --repo archestimator --scope staged` reported no code changes detected for this seed/docs/test staged set.
+- Live demo account, allowlist entry, hosted auth smoke, screenshots, and validated workbook artifact remain external/manual gates.
+
 ### Closed Beta Audit Evidence
 
 - Auth/proxy: `src/proxy.ts`, `src/lib/auth/actions.ts`, `src/app/auth/callback/route.ts`, `src/lib/auth/account-setup.ts`, `src/lib/auth/session.ts`.

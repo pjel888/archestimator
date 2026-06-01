@@ -56,7 +56,7 @@ Current decision: **NO-GO**.
 | Support/feedback path exists | Yes | Contact/support inbox and beta bug report route. | Local workshop feedback link exists; monitored inbox/form proof pending. | No-go |
 | Observability/alerts configured | Yes | Error tracking, uptime, alert owner, export/auth/email alerts. | Local `/api/health` and runbook exist; deployed monitor/alert proof pending. | No-go |
 | Backup/rollback plan proven | Yes | Backup proof, migration rollback, Vercel rollback, restore plan. | Backup/restore checklist exists; provider proof pending. | No-go |
-| Investor demo pack ready | Yes for demo | Demo workspace, script, screenshots, export artifact, fallback. | Planned only. | No-go |
+| Investor demo pack ready | Yes for demo | Demo workspace, script, screenshots, export artifact, fallback. | Local seed/demo script anchors exist; rehearsal, screenshots, and workbook artifact proof pending. | No-go |
 | Beta program ready | Yes for beta | Cohort, onboarding email, SLA, feedback loop, known limits. | Planned only. | No-go |
 
 Local update 2026-06-02: visible pricing/payment copy is no longer a local no-go. `/pricing`, landing pricing, and FAQ now state closed beta / invite-only / no payment required / pricing after beta, with `closed-beta-pricing-copy` test coverage. Overall launch remains **NO-GO** because the other P0 rows above are still unproven.
@@ -81,7 +81,7 @@ Rules: below 90 cannot be called beta-ready; P0 below 95 blocks launch; 100 requ
 | Performance/caching | 65 | Current architecture plausible; export/route/load proof missing. |
 | Observability/support | 78 | Local health route/support runbook exists; external alert proof missing. |
 | QA/test coverage | 82 | Local type/lint/unit/DOM/build pass; hosted/manual E2E proof missing. |
-| Investor demo readiness | 45 | No reliable demo workspace/export/fallback pack yet. |
+| Investor demo readiness | 76 | Local seed/demo plan anchors exist; rehearsal, screenshots, and workbook artifact proof remain. |
 | Beta readiness | 40 | P0 legal/security/ops/product gates are unproven. |
 
 ## Explicit Launch No-Go Rules

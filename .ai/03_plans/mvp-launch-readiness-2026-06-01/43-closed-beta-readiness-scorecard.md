@@ -22,7 +22,7 @@ Closed beta can launch only if all P0 domains are 95+ or have a documented no-go
 | Security/RLS | Yes | 78 | Local model pass; live proof pending | Existing RLS work plus allowlist RLS migration exists locally; linked allow/deny/storage proof is missing. |
 | Legal/beta terms | Yes | 82 | Local copy pass; review pending | Beta-specific terms/privacy copy exists; counsel/owner sign-off is missing. |
 | Observability/support | Yes | 78 | Local minimum pass; alerts pending | Feedback link, support/runbook, and `/api/health` exist; deployed uptime/error alert proof is missing. |
-| Investor demo readiness | Yes | 68 | Needs seeded path | Demo script/data and pricing explanation required. |
+| Investor demo readiness | Yes | 76 | Local seed anchored; rehearsal pending | `supabase/seed.sql` now anchors demo workspace/project/estimate/rows and the demo plan names the path; live rehearsal, screenshots, and workbook artifact proof remain required. |
 | Data backup/rollback | Yes | 76 | Checklist ready; proof missing | Backup/restore template and migration procedure exist; Supabase backup/PITR and restore drill proof are missing. |
 | Payment/pricing readiness | No | N/A | Deferred | Not applicable to closed beta. |
 | AI deferral | No | N/A | Locally gated | `AI-001` hides Ask Flip and disables AI routes by default; keep deferred until a future ADR explicitly reactivates. |
