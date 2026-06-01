@@ -1,5 +1,22 @@
 # Legal, Terms, Privacy, and Compliance Plan
 
+## Fourth-Pass Closed Beta Legal Reframe - 2026-06-02
+
+Closed beta requires beta legal posture, not active paid SaaS customer terms.
+
+P0 legal/beta requirements:
+
+- Beta participation terms.
+- Privacy page covering Supabase, Vercel, feedback form provider, Resend if used, and analytics/observability if configured.
+- Acceptable use policy.
+- Construction estimate accuracy disclaimer.
+- Excel export disclaimer.
+- No-payment/no-commercial-contract disclaimer.
+- Data deletion request path.
+- Support/contact path.
+
+Do not publish active subscription, billing, invoice, tax, or paid-plan terms as if closed beta users are paying customers.
+
 Commit audited: `681c95e64864f283950a88dba304eaffe8f2f8b3`
 
 This is not legal advice. It is an operational product/legal readiness plan and starter copy requirement list for legal review.

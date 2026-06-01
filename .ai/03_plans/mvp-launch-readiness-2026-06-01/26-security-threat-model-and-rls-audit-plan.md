@@ -1,5 +1,22 @@
 # Security Threat Model and RLS Audit Plan
 
+## Fourth-Pass Closed Beta Security Addendum - 2026-06-02
+
+Closed beta adds a new primary threat: whitelist bypass.
+
+Required controls:
+
+- Server-side allowlist enforcement only.
+- RLS on `closed_beta_allowed_emails`.
+- No full allowlist reads by normal users.
+- Exact Google/Supabase authenticated email matching after lower/trim.
+- Revoked status checked on protected route/session access.
+- Public share/invite routes remain separated from workshop access.
+- Service role key remains server-only.
+- Denied/revoked access should be logged through existing security/event surfaces if feasible.
+
+See `41-beta-access-security-threat-model.md` for the detailed threat model.
+
 Commit audited: `681c95e64864f283950a88dba304eaffe8f2f8b3`
 
 ## Assets, Actors, Boundaries
