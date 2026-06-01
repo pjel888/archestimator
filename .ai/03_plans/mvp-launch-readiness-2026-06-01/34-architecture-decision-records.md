@@ -1,5 +1,39 @@
 # Architecture Decision Records
 
+## Fourth-Pass Closed Beta ADRs - 2026-06-02
+
+### ADR: Closed Beta Instead Of Public Launch
+
+Decision: launch as invite-only closed beta. Public paid launch is deferred.
+
+### ADR: Google Sign-In Plus Email Whitelist
+
+Decision: require Google-authenticated Supabase user plus server-side `closed_beta_allowed_emails` status for `/workshop`.
+
+### ADR: Manual Supabase Whitelist Management
+
+Decision: Philip manages allowlist rows manually for MVP. Admin UI is deferred.
+
+### ADR: No Payment/Billing In Closed Beta
+
+Decision: no Stripe, checkout, subscriptions, paid tiers, invoices, or plan enforcement.
+
+### ADR: Pricing Page Hidden Or Reframed
+
+Decision: `/pricing` can remain public only as closed-beta access/contact copy.
+
+### ADR: Redis Deferred
+
+Decision: Redis is deferred unless beta metrics show distributed rate limiting, queueing, or export status needs.
+
+### ADR: Manual Beta Invite Workflow
+
+Decision: Philip can send invite emails manually; Resend beta-invite automation is not P0.
+
+### ADR: Feedback Collection Approach
+
+Decision: P0 feedback is external form/support email visible to beta users; custom in-app feedback database is P1.
+
 Commit audited: `681c95e64864f283950a88dba304eaffe8f2f8b3`
 
 ## ADR-001 — Defer Ask Flip From MVP

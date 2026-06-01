@@ -1,5 +1,20 @@
 # Main Feature Zero-Defect Test Matrix
 
+## Fourth-Pass Closed Beta Test Rows - 2026-06-02
+
+Add zero-defect rows:
+
+| Feature | Required closed beta result |
+| --- | --- |
+| Allowlist access | Non-whitelisted Google-authenticated user cannot access `/workshop`. |
+| Whitelisted access | Whitelisted Google-authenticated user can access `/workshop`. |
+| Revoked access | Revoked user is blocked even with an existing session. |
+| Public routes | Marketing, legal, share, and invite routes remain accessible as designed. |
+| First-run onboarding | Whitelisted no-workspace user reaches default workspace path. |
+| Feedback path | Beta user can report feedback/support from visible route or in-app link. |
+| Pricing copy | No visible copy implies active payment, checkout, or public paid launch. |
+| Beta legal | Terms/privacy/AUP/disclaimers match closed beta status. |
+
 Commit audited: `681c95e64864f283950a88dba304eaffe8f2f8b3`
 
 Current state: **not green**. `bun run test:dom` fails and E2E was blocked by a local port collision.
