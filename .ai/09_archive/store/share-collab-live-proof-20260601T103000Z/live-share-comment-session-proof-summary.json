@@ -1,0 +1,54 @@
+{
+  "base": "http://localhost:3067",
+  "firstStatus": 200,
+  "firstRenderedProject": true,
+  "sessionPostStatus": 200,
+  "sessionPostBody": {
+    "ok": true
+  },
+  "setCookie": {
+    "hasSession": true,
+    "hasHttpOnly": true,
+    "hasOk": true,
+    "redactedNames": [
+      "shared_link_session_DkjYLTLYqlteKsVE39bw",
+      "shared_link_session_DkjYLTLYqlteKsVE39bw_ok"
+    ]
+  },
+  "secondStatus": 200,
+  "recipientBanner": true,
+  "commentStatuses": [
+    {
+      "status": 201,
+      "retryAfter": null
+    },
+    {
+      "status": 201,
+      "retryAfter": null
+    },
+    {
+      "status": 201,
+      "retryAfter": null
+    },
+    {
+      "status": 201,
+      "retryAfter": null
+    },
+    {
+      "status": 201,
+      "retryAfter": null
+    },
+    {
+      "status": 429,
+      "retryAfter": "60"
+    }
+  ],
+  "db": {
+    "rateRows": 6,
+    "commentRows": 5,
+    "recipient": {
+      "delivery_status": "opened",
+      "last_opened_at": "2026-06-01T10:41:48.431+00:00"
+    }
+  }
+}

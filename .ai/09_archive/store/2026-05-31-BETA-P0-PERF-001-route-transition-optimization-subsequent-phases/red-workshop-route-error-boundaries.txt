@@ -1,0 +1,9 @@
+
+ RUN  v4.1.7 /Users/philiplewis/archestimator
+
+No test files found, exiting with code 1
+
+filter: tests/vitest/workshop-route-error-boundaries.test.tsx
+include: tests/vitest/**/*.test.{ts,tsx}
+exclude:  node_modules, .next, e2e
+

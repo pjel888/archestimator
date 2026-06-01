@@ -1,0 +1,12 @@
+$ playwright test e2e/route-transition-performance.spec.ts "--project=chromium" --grep "captures public back-forward cache restore evidence"
+
+Running 1 test using 1 worker
+
+(node:60751) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:60751) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+route-transition-public-bfcache {"href":"http://127.0.0.1:3071/","navigationTypes":["back_forward"],"pageshowPersisted":[false],"bfcachePersisted":false,"notRestoredReasons":[null],"restoreMs":53}
+  ✓  1 [chromium] › e2e/route-transition-performance.spec.ts:265:7 › route transition performance evidence › captures public back-forward cache restore evidence without stuck overlay (799ms)
+
+  1 passed (1.4s)

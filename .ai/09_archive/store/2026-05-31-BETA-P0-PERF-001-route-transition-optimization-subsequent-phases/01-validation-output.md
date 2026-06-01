@@ -1,5 +1,221 @@
 # Validation Output
 
+## Latest Live Route-Error Smoke And Full E2E Refresh
+
+`bunx vitest run tests/vitest/route-error-smoke-gate.test.ts --maxWorkers=1 2>&1 | tee "$EVIDENCE_DIR/red-route-error-smoke-gate-20260601.txt"`
+
+- Result: RED as expected.
+- Summary: the test failed before `src/lib/route-error-smoke.ts` existed, proving the gate coverage started from a missing behavior.
+
+`bunx vitest run tests/vitest/route-error-smoke-gate.test.ts --maxWorkers=1 2>&1 | tee "$EVIDENCE_DIR/green-route-error-smoke-gate-20260601.txt"`
+
+- Result: PASS.
+- Summary: 1 file passed, 2 tests passed. The helper throws only when `ARCHESTIMATOR_E2E_ROUTE_ERROR_SMOKE=1` and query `routeErrorSmoke=1` are both present.
+
+`ARCHESTIMATOR_E2E_ROUTE_ERROR_SMOKE=1 ARCHESTIMATOR_DEV_AUTH_BYPASS=1 ARCHESTIMATOR_DEV_AUTH_ADMIN_DB=1 ARCHESTIMATOR_ROUTE_ERROR_SCREENSHOT_DIR="$EVIDENCE_DIR/live-route-error-screenshots" PLAYWRIGHT_PORT=3026 bunx playwright test e2e/workshop-route-error-boundaries.spec.ts --project=chromium --reporter=list 2>&1 | tee "$EVIDENCE_DIR/route-error-boundary-live-smoke-with-files-20260601.txt"`
+
+- Result: PASS.
+- Summary: 2 Playwright tests passed. Standalone screenshots were written for live dev-auth thrown-route states at library, project charts, and estimate workspace routes.
+- Screenshot files: `live-route-error-screenshots/library-route-error-boundary.png`, `live-route-error-screenshots/project-charts-route-error-boundary.png`, and `live-route-error-screenshots/estimate-workspace-route-error-boundary.png`.
+- Note: the screenshots include the local Next.js dev issue notifier and are not production-mode screenshots.
+
+`bun run test:e2e 2>&1 | tee "$EVIDENCE_DIR/full-e2e-after-live-error-smoke-20260601.txt"`
+
+- Result: PASS.
+- Summary: 9 passed, 20 skipped. Passing coverage included auth smoke, landing audit, and route-transition perf smoke. The skipped specs are gated AI/DND/invite/share/collaboration scenarios plus the route-error smoke when its env flags are not enabled.
+
+`bun run type-check 2>&1 | tee "$EVIDENCE_DIR/type-check-after-live-error-smoke-20260601.txt"`
+
+- Result: PASS.
+
+`bun run lint:design-system 2>&1 | tee "$EVIDENCE_DIR/design-system-after-live-error-smoke-20260601.txt"`
+
+- Result: PASS.
+
+`bun run lint 2>&1 | tee "$EVIDENCE_DIR/lint-after-live-error-smoke-20260601.txt"`
+
+- Result: PASS.
+- Summary: 0 errors, 18 warnings.
+
+`bun run build 2>&1 | tee "$EVIDENCE_DIR/build-after-live-error-smoke-20260601.txt"`
+
+- Result: PASS.
+
+`mcp__code_review_graph.get_review_context_tool`
+
+- Result: PASS / analyzed.
+- Summary: focused route-error smoke delta reports high risk, 6 changed files, 498 impacted nodes across 114 files, and 5 graph-reported test gaps. The broad impact is expected for app route pages and does not change the remaining production-readiness blockers.
+
+`bunx vitest run tests/vitest/route-error-smoke-gate.test.ts tests/vitest/workshop-route-error-boundaries.test.tsx --maxWorkers=1 2>&1 | tee "$EVIDENCE_DIR/final-route-error-focused-vitest-20260601.txt"`
+
+- Result: PASS.
+- Summary: 2 files passed, 6 tests passed.
+
+`bunx eslint src/lib/route-error-smoke.ts src/app/workshop/library/page.tsx 'src/app/workshop/projects/[projectId]/charts/page.tsx' 'src/app/workshop/projects/[projectId]/estimates/[nodeId]/page.tsx' tests/vitest/route-error-smoke-gate.test.ts e2e/workshop-route-error-boundaries.spec.ts 2>&1 | tee "$EVIDENCE_DIR/final-route-error-eslint-20260601.txt"`
+
+- Result: PASS.
+- Notes: no output.
+
+`bun run type-check 2>&1 | tee "$EVIDENCE_DIR/final-type-check-after-doc-sync-20260601.txt"`
+
+- Result: PASS.
+
+`git diff --check 2>&1 | tee "$EVIDENCE_DIR/final-diff-check-after-doc-sync-20260601.txt"`
+
+- Result: PASS.
+
+## Latest Blocker Refresh
+
+`bun run type-check 2>&1 | tee "$EVIDENCE_DIR/fresh-type-check-20260531-blocker-refresh.txt"`
+
+- Result: PASS.
+- Notes: no TypeScript errors on the latest rerun.
+
+`bun run lint 2>&1 | tee "$EVIDENCE_DIR/fresh-full-lint-20260531-blocker-refresh.txt"`
+
+- Result: PASS.
+- Summary: 0 errors, 18 warnings. Remaining warnings are in the pitch-deck script, `PerformanceMonitor`, TanStack Table React Compiler compatibility for `ProjectEstimatesTable`, `resend-client`, and active publication/share tests; they are warnings, not a failing lint gate.
+
+`bun run lint:design-system 2>&1 | tee "$EVIDENCE_DIR/fresh-design-system-20260531-blocker-refresh.txt"`
+
+- Result: PASS.
+- Notes: app/workshop design-system enforcement passed.
+
+`bunx eslint e2e/route-transition-performance.spec.ts tests/vitest/workshop-route-error-boundaries.test.tsx 2>&1 | tee "$EVIDENCE_DIR/fresh-eslint-route-transition-20260531-blocker-refresh.txt"`
+
+- Result: PASS.
+- Notes: no output.
+
+`bunx vitest run tests/vitest/workshop-route-error-boundaries.test.tsx tests/vitest/use-prefetch-on-hover.test.tsx tests/vitest/project-estimates-table-inline-edit.test.tsx tests/vitest/route-transition-measure-script.test.ts tests/vitest/route-transition-performance-spec.test.ts tests/vitest/route-transition-peak-load-profile.test.tsx --maxWorkers=1 2>&1 | tee "$EVIDENCE_DIR/fresh-route-transition-targeted-20260531-blocker-refresh.txt"`
+
+- Result: PASS.
+- Summary: 6 files passed, 22 tests passed.
+
+`PLAYWRIGHT_PORT=3021 bunx playwright test e2e/route-transition-performance.spec.ts --grep "Slow 3G public link-transition" 2>&1 | tee "$EVIDENCE_DIR/red-e2e-slow3g-link-20260531.txt"`
+
+- Result: PASS.
+- Summary: isolated rerun of the previously failing Slow 3G link-transition test passed on a clean Playwright port, with median `/features` to `/pricing` transition 6907 ms and overlay visibility rate 0.
+
+`PLAYWRIGHT_PORT=3022 bun run test:e2e:perf 2>&1 | tee "$EVIDENCE_DIR/fresh-e2e-perf-20260531-port3022-rerun.txt"`
+
+- Result: PASS with two intentional dev-auth skips.
+- Summary: 6 passed, 2 skipped. Public baseline, Slow 3G public route, Slow 3G public Link-transition medians, normal public Link-transition medians, public bfcache/no-overlay, and signed-out protected redirect passed. Latest medians: Slow 3G `/features` to `/pricing` 6938 ms with overlay visibility 0; normal `/features` to `/pricing` 272 ms with overlay visibility 1; bfcache/back-forward restore 30 ms with no stuck overlay; protected redirect 378.9 ms.
+- Note: an earlier same-command run on port 3020 failed after the dev server stopped accepting connections (`ERR_CONNECTION_REFUSED`). The isolated Slow 3G test and full clean-port rerun passed, so the failure is recorded as a local harness/server-lifecycle flake, not an application regression.
+
+`bun run test 2>&1 | tee "$EVIDENCE_DIR/fresh-unit-tests-20260531-blocker-refresh.txt"`
+
+- Result: PASS.
+- Summary: 4 unit tests passed.
+
+`bun run build 2>&1 | tee "$EVIDENCE_DIR/fresh-build-20260531-blocker-refresh.txt"`
+
+- Result: PASS.
+- Notes: Next.js production build completed and emitted the app route table plus `Proxy (Middleware)`.
+
+`bun run type-check 2>&1 | tee "$EVIDENCE_DIR/fresh-type-check-after-doc-refresh-20260531.txt"`
+
+- Result: PASS.
+- Notes: final rerun after documentation refresh and `next-env.d.ts` restoration had no TypeScript errors.
+
+`git diff --check 2>&1 | tee "$EVIDENCE_DIR/fresh-diff-check-after-doc-refresh-20260531.txt"`
+
+- Result: PASS.
+- Notes: no whitespace errors after the documentation refresh.
+
+`mcp__code_review_graph.detect_changes_tool`
+
+- Result: PASS / analyzed.
+- Summary: 11 changed files in the route-transition blocker-refresh scope, 261 changed functions/classes, 0 affected flows, 125 graph-reported test gaps, and risk score 0.60.
+- Artifact: `fresh-code-review-graph-after-doc-refresh-20260531.md`.
+
+## Latest Error-Boundary Proof Refresh
+
+`bunx vitest run tests/vitest/workshop-route-error-boundaries.test.tsx --maxWorkers=1 2>&1 | tee "$EVIDENCE_DIR/red-workshop-route-error-boundaries.txt"`
+
+- Result: RED as expected.
+- Summary: no matching test file existed before the error-boundary proof refresh.
+
+`bunx vitest run tests/vitest/workshop-route-error-boundaries.test.tsx --maxWorkers=1 2>&1 | tee "$EVIDENCE_DIR/green-workshop-route-error-boundaries.txt"`
+
+- Result: PASS.
+- Summary: 1 file passed, 4 tests passed. The actual `library/error.tsx`, `projects/[projectId]/charts/error.tsx`, and `projects/[projectId]/estimates/[nodeId]/error.tsx` components render sanitized retry UI and call `reset()`; development logging is limited to route/name/digest metadata and does not include sensitive error message or stack details.
+
+`bunx eslint tests/vitest/workshop-route-error-boundaries.test.tsx 2>&1 | tee "$EVIDENCE_DIR/eslint-workshop-route-error-boundaries.txt"`
+
+- Result: PASS.
+- Notes: no output.
+
+`bun --eval "<render WorkshopRouteErrorState with sensitive error object and screenshot with Playwright>" 2>&1 | tee "$EVIDENCE_DIR/route-error-boundary-forced-render-output.txt"`
+
+- Result: PASS.
+- Artifacts: `route-error-boundary-forced-render.html`, `route-error-boundary-forced-render.png`, and `route-error-boundary-forced-render-notes.md`.
+- Summary: generated a component-level forced-render screenshot for Library, Project charts, and Estimate workspace error states after checking the generated HTML did not contain SQL text, token-like values, local file paths, stack text, error name, or digest.
+
+`bunx vitest run tests/vitest/workshop-route-error-boundaries.test.tsx tests/vitest/use-prefetch-on-hover.test.tsx tests/vitest/route-transition-performance-spec.test.ts tests/vitest/route-transition-peak-load-profile.test.tsx tests/vitest/route-transition-measure-script.test.ts --maxWorkers=1 2>&1 | tee "$EVIDENCE_DIR/fresh-route-transition-governance-with-error-boundaries.txt"`
+
+- Result: PASS.
+- Summary: 5 files passed, 15 tests passed.
+
+`bunx eslint tests/vitest/workshop-route-error-boundaries.test.tsx tests/vitest/use-prefetch-on-hover.test.tsx tests/vitest/route-transition-performance-spec.test.ts tests/vitest/route-transition-peak-load-profile.test.tsx tests/vitest/route-transition-measure-script.test.ts 2>&1 | tee "$EVIDENCE_DIR/fresh-eslint-route-transition-governance-with-error-boundaries.txt"`
+
+- Result: PASS.
+- Notes: no output.
+
+`bun run type-check 2>&1 | tee "$EVIDENCE_DIR/fresh-type-check-after-error-boundary-proof.txt"`
+
+- Result: PASS.
+- Notes: no TypeScript errors.
+
+`bun run lint:design-system 2>&1 | tee "$EVIDENCE_DIR/fresh-design-system-after-error-boundary-proof.txt"`
+
+- Result: PASS.
+- Notes: app/workshop design-system enforcement passed.
+
+`git diff --check 2>&1 | tee "$EVIDENCE_DIR/fresh-diff-check-after-error-boundary-proof.txt"`
+
+- Result: PASS.
+- Notes: no whitespace errors.
+
+`bun run test 2>&1 | tee "$EVIDENCE_DIR/fresh-unit-tests-after-error-boundary-proof.txt"`
+
+- Result: PASS.
+- Summary: 4 unit tests passed.
+
+`bun run test:dom 2>&1 | tee "$EVIDENCE_DIR/fresh-dom-tests-after-error-boundary-proof.txt"`
+
+- Result: PASS.
+- Summary: 118 files passed; 918 tests passed, 2 skipped.
+
+`bun run build 2>&1 | tee "$EVIDENCE_DIR/fresh-build-after-error-boundary-proof.txt"`
+
+- Result: PASS.
+- Notes: Next.js production build completed and emitted the app route table plus `Proxy (Middleware)`.
+
+`bun run type-check 2>&1 | tee "$EVIDENCE_DIR/fresh-type-check-after-next-env-restore-error-boundary-proof.txt"`
+
+- Result: FAIL / superseded.
+- Summary: this intermediate full type-check rerun failed in concurrent share/collaboration files: `src/components/workshop/ProjectPublicationHeader.tsx(325,21)` and `src/lib/publication/actions.ts(274,44)`. The latest blocker-refresh `bun run type-check` now passes.
+
+`bunx vitest run tests/vitest/workshop-route-error-boundaries.test.tsx tests/vitest/use-prefetch-on-hover.test.tsx tests/vitest/route-transition-performance-spec.test.ts tests/vitest/route-transition-peak-load-profile.test.tsx tests/vitest/route-transition-measure-script.test.ts --maxWorkers=1 2>&1 | tee "$EVIDENCE_DIR/fresh-route-transition-governance-after-concurrent-share-typecheck-blocker.txt"`
+
+- Result: PASS.
+- Summary: 5 files passed, 15 tests passed after the concurrent share/collaboration type-check blocker appeared.
+
+`git diff --check 2>&1 | tee "$EVIDENCE_DIR/fresh-diff-check-after-concurrent-share-typecheck-note.txt"`
+
+- Result: PASS.
+- Notes: no whitespace errors after recording the concurrent share/collaboration type-check blocker.
+
+`npx gitnexus detect-changes --repo archestimator 2>&1 | tee "$EVIDENCE_DIR/gitnexus-detect-changes-after-error-boundary-proof.txt"`
+
+- Result: PASS / analyzed.
+- Summary: 45 changed files, 166 symbols, 19 affected processes, critical risk. The changed-symbol list is dominated by active share/publication work in this shared worktree, so this still blocks readiness/archive claims.
+
+`EVIDENCE_DIR="$EVIDENCE_DIR" bash -o pipefail -c 'bun run lint 2>&1 | tee "$EVIDENCE_DIR/fresh-full-lint-after-error-boundary-proof-pipefail.txt"'`
+
+- Result: FAIL / superseded.
+- Summary: 105 errors and 31 warnings at that intermediate point. The latest blocker-refresh `bun run lint` now passes with 0 errors and 18 warnings.
+
 ## Passing Commands
 
 `bunx vitest run tests/vitest/route-transition-performance-spec.test.ts --maxWorkers=1 2>&1 | tee "$EVIDENCE_DIR/red-route-transition-spec-hover-evidence-contract.txt"`
@@ -835,13 +1051,13 @@
 `bun run lint 2>&1 | tee "$EVIDENCE_DIR/full-lint-after-auth-smoke-fix.txt"`
 
 - Result: FAIL.
-- Current count: 91 errors, 32 warnings.
+- Historical count: 91 errors, 32 warnings.
 - Classification: remaining errors are in share/publication/shared-link and pitch-deck scopes outside this route-transition work. Targeted route-transition lint passed.
 
 `bun run lint 2>&1 | tee "$EVIDENCE_DIR/full-lint-after-chart-fix.txt"`
 
 - Result: FAIL.
-- Current count: 91 errors, 32 warnings.
+- Historical count: 91 errors, 32 warnings.
 - Classification: remaining errors are share/publication/shared-link tests and presentation/deck warnings outside this route-transition scope. The `CostDonutChart` lint errors from a touched route-transition file were fixed and no longer appear.
 
 `bun run test:dom 2>&1 | tee "$EVIDENCE_DIR/full-test-dom-after-perf-gates.txt"`
@@ -853,31 +1069,31 @@
 `bun run lint 2>&1 | tee "$EVIDENCE_DIR/fresh-full-lint-after-route-adjacent-test-fixes.txt"`
 
 - Result: FAIL.
-- Current count: 91 errors, 32 warnings.
+- Historical count: 91 errors, 32 warnings.
 - Classification: remaining errors are in unrelated share/publication/shared-link, project-publication, unit P3 shared-link migration, and pitch-deck scopes. The only route-transition touched warning is the known TanStack Table React Compiler `incompatible-library` warning in `ProjectEstimatesTable.tsx`; targeted route-transition lint passed.
 
 `bun run test:dom 2>&1 | tee "$EVIDENCE_DIR/fresh-full-test-dom-after-route-adjacent-test-fixes.txt"` (superseded by the later `fresh-full-test-dom-after-component-library-cleanup.txt` rerun)
 
 - Result: FAIL.
-- Current count at that point: 6 failed files, 12 failed tests, 109 passed files, 894 passed tests, 2 skipped tests.
-- Classification: remaining failures were unrelated share/publication/security-header/project-creation tests. A later continuation rerun also fixed route/library-adjacent `component-library-ui.test.tsx` full-DOM timeouts and produced the current 109 passed files / 896 passed tests result.
+- Historical count at that point: 6 failed files, 12 failed tests, 109 passed files, 894 passed tests, 2 skipped tests.
+- Classification: remaining failures were unrelated share/publication/security-header/project-creation tests. A later continuation rerun also fixed route/library-adjacent `component-library-ui.test.tsx` full-DOM timeouts and produced the historical 109 passed files / 896 passed tests result; latest full DOM now passes.
 
 `bun run lint 2>&1 | tee "$EVIDENCE_DIR/fresh-full-lint-continuation.txt"`
 
 - Result: FAIL.
-- Current count: 91 errors, 32 warnings.
+- Historical count: 91 errors, 32 warnings.
 - Classification: unchanged unrelated validation debt in share/publication/shared-link, publication tests/actions, and pitch-deck warnings. The route-transition/library cleanup did not add lint errors.
 
 `bun run test:dom 2>&1 | tee "$EVIDENCE_DIR/fresh-full-test-dom-continuation.txt"`
 
 - Result: FAIL.
-- Current count before component-library cleanup: 7 failed files, 19 failed tests, including route/library-adjacent `component-library-ui.test.tsx` timeouts plus unrelated publication/security/project-creation failures.
+- Historical count before component-library cleanup: 7 failed files, 19 failed tests, including route/library-adjacent `component-library-ui.test.tsx` timeouts plus unrelated publication/security/project-creation failures.
 - Classification: the component-library failures were in scope because route-transition bundle/code-splitting touched library surfaces.
 
 `bun run test:dom 2>&1 | tee "$EVIDENCE_DIR/fresh-full-test-dom-after-component-library-cleanup.txt"`
 
 - Result: FAIL.
-- Current count after component-library cleanup: 6 failed files, 12 failed tests, 109 passed files, 896 passed tests, 2 skipped tests.
+- Historical count after component-library cleanup: 6 failed files, 12 failed tests, 109 passed files, 896 passed tests, 2 skipped tests.
 - Classification: the route/library-adjacent `component-library-ui.test.tsx` failures are resolved. Remaining failures are unrelated landing/project-publication/project-creation tests and still block `bun run validate`, archive, and readiness claims.
 
 `PLAYWRIGHT_PORT=3000 bun run test:e2e 2>&1 | tee "$EVIDENCE_DIR/full-e2e-port3000-after-perf-gates.txt"`
@@ -886,7 +1102,8 @@
 - Passing in this run: auth redirect/login smoke plus all route-transition perf tests.
 - Failing in this run: `e2e/landing-audit.spec.ts` timed out. This is outside route-transition scope.
 - Skipped: 17 gated auth/data/collaboration specs because their env gates were absent.
+- Superseded by: `full-e2e-after-live-error-smoke-20260601.txt`, which passed with 9 passed and 20 intentionally skipped.
 
 ## Notes
 
-The full `bun run validate` gate cannot pass until the unrelated share/publication/landing validation debt is addressed. This route-transition run did not modify those scopes except for documenting validation failures as blockers.
+Full type-check, lint, design-system lint, unit tests, build, targeted route-transition tests, `test:e2e:perf`, live dev-auth route-error smoke, and full `bun run test:e2e` now pass in the latest evidence. Full DOM passed in the latest prior full-DOM evidence. This route-transition run did not modify active share/collaboration implementation scopes except for documenting transient validation failures as superseded blockers.

@@ -1,0 +1,50 @@
+$ eslint
+
+/Users/philiplewis/archestimator/archestimator_pitch deck/deck-stage.js
+   638:16   warning  'e' is defined but never used    @typescript-eslint/no-unused-vars
+   719:18   warning  'e' is defined but never used    @typescript-eslint/no-unused-vars
+   741:16   warning  'e' is defined but never used    @typescript-eslint/no-unused-vars
+   919:94   warning  'err' is defined but never used  @typescript-eslint/no-unused-vars
+   969:16   warning  'err' is defined but never used  @typescript-eslint/no-unused-vars
+  1088:72   warning  'e' is defined but never used    @typescript-eslint/no-unused-vars
+  1103:147  warning  'e' is defined but never used    @typescript-eslint/no-unused-vars
+  1228:90   warning  'e' is defined but never used    @typescript-eslint/no-unused-vars
+  1472:86   warning  'err' is defined but never used  @typescript-eslint/no-unused-vars
+  1718:152  warning  'e' is defined but never used    @typescript-eslint/no-unused-vars
+
+/Users/philiplewis/archestimator/src/components/performance-monitor.tsx
+  17:11  warning  Unused eslint-disable directive (no problems were reported from 'no-console')
+
+/Users/philiplewis/archestimator/src/components/workshop/ProjectEstimatesTable.tsx
+  790:17  warning  Compilation Skipped: Use of incompatible library
+
+This API returns functions which cannot be memoized without leading to stale UI. To prevent this, by default React Compiler will skip memoizing this component/hook. However, you may see issues if values from this API are passed to other components/hooks that are memoized.
+
+/Users/philiplewis/archestimator/src/components/workshop/ProjectEstimatesTable.tsx:790:17
+  788 |   );
+  789 |
+> 790 |   const table = useReactTable({
+      |                 ^^^^^^^^^^^^^ TanStack Table's `useReactTable()` API returns functions that cannot be memoized safely
+  791 |     data: estimates,
+  792 |     columns,
+  793 |     state: { sorting, columnSizing },  react-hooks/incompatible-library
+
+/Users/philiplewis/archestimator/src/lib/email/resend-client.ts
+  155:1  warning  Assign object to a variable before exporting as module default  import/no-anonymous-default-export
+
+/Users/philiplewis/archestimator/tests/vitest/project-publication-activity.test.tsx
+  3:8  warning  'userEvent' is defined but never used  @typescript-eslint/no-unused-vars
+
+/Users/philiplewis/archestimator/tests/vitest/project-publication-decision.test.tsx
+  218:15  warning  'container' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/Users/philiplewis/archestimator/tests/vitest/project-publication-page.test.tsx
+  280:15  warning  'container' is assigned a value but never used  @typescript-eslint/no-unused-vars
+
+/Users/philiplewis/archestimator/tests/vitest/share/reconstruct-share-tree.test.ts
+  105:46  warning  '_' is defined but never used  @typescript-eslint/no-unused-vars
+  105:49  warning  'i' is defined but never used  @typescript-eslint/no-unused-vars
+
+✖ 18 problems (0 errors, 18 warnings)
+  0 errors and 1 warning potentially fixable with the `--fix` option.
+

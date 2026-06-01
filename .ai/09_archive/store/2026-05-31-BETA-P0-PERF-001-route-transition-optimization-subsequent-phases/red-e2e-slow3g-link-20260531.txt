@@ -1,0 +1,18 @@
+[2m[WebServer] [22m[0m[2m[35m$[0m [2m[1mnext dev --port "3021"[0m
+[2m[WebServer] [22m(node:9466) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[2m[WebServer] [22m(Use `node --trace-warnings ...` to show where the warning was created)
+[2m[WebServer] [22m(node:9467) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[2m[WebServer] [22m(Use `node --trace-warnings ...` to show where the warning was created)
+[2m[WebServer] [22m(node:9553) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[2m[WebServer] [22m(Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 1 test using 1 worker
+
+(node:9643) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:9643) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+route-transition-slow-3g-public-link-medians {"runs":[{"from":"/features","to":"/pricing","durationMs":21360,"overlayVisible":false},{"from":"/features","to":"/pricing","durationMs":5058,"overlayVisible":false},{"from":"/features","to":"/pricing","durationMs":6907,"overlayVisible":false}],"medianMs":6907,"overlayVisibilityRate":0}
+  ✓  1 [chromium] › e2e/route-transition-performance.spec.ts:181:7 › route transition performance evidence › captures Slow 3G public link-transition medians and overlay visibility (40.2s)
+
+  1 passed (44.8s)

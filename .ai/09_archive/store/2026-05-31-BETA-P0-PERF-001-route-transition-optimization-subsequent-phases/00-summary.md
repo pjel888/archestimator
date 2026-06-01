@@ -17,13 +17,14 @@ Implemented:
 - Phase 5 coverage and audit: hover/focus prefetch has direct regression tests; estimate row prefetch is covered with real `estimateQueryKeys` query functions; repository duplicate-call audit found no additional safe cache candidate with profiling proof beyond request-local `cache()` on `getCurrentWorkspaceProject`.
 - Phase 6 peak-load hardening setup: added a non-destructive seed manifest script that generates a 50 project / 1,500 estimate / 300,000 row-item performance fixture manifest without writing to Supabase, plus a local jsdom peak-load render profile for 50 project estimate rows and 200 estimate sheet rows.
 - Phase 7 monitoring setup: added route-transition budget config, expanded Playwright perf smoke coverage, refreshed `perf:measure-routes` with JSON output, scenario filtering, overlay visibility rate, RSC request counts, and safe authenticated-scenario skipping, added `perf:seed-fixture`, wired `test:e2e:perf` into CI, and refined authenticated RSC evidence so hover-before-click requests are separated from click-transition requests.
+- Error-boundary evidence refresh: added direct DOM coverage for the actual workshop library, project charts, and estimate workspace route `error.tsx` components, including retry behavior and user-facing secret redaction; generated a component-level forced-render screenshot artifact for the shared route-error UI; added an env/query-gated live route-error smoke harness and captured live dev-auth screenshots for library, project charts, and estimate workspace route boundaries.
 
 Not done:
 
 - No virtualization or broad `React.memo` was added because the local peak-load render profile did not prove either is needed; production Chrome React Profiler proof remains pending.
 - No `unstable_cache`, `cacheTag`, or `"use cache"` was added.
 - Authenticated RSC transition proof was refreshed in an isolated temp app on port 3034 with `ARCHESTIMATOR_DEV_AUTH_BYPASS=1` and the local-only `ARCHESTIMATOR_DEV_AUTH_ADMIN_DB=1` server DB bypass. The refreshed test separates hover-before-click requests from click-transition requests; this environment did not observe hover `_rsc` requests before click. Local Next.js source/docs inspection now explains this as a development-mode limitation: App Router prefetch URL creation returns `null` when `NODE_ENV === "development"`. Browser Network proof for hover prefetch therefore remains a production-authenticated evidence gap rather than a completed claim.
-- Full plan folder was not archived because full validation still has unrelated share/publication/landing blockers, manual benchmark screenshots are still missing, and full bundle-analyzer/Lighthouse tooling is still not installed by design.
+- Full plan folder was not archived because production-authenticated hover Network proof, manual bfcache DevTools proof, production Chrome React Profiler proof, and full bundle-analyzer production evidence remain pending.
 
 ## Files Changed
 
@@ -61,6 +62,7 @@ Tests and evidence:
 - `tests/vitest/route-transition-measure-script.test.ts`
 - `tests/vitest/route-transition-peak-load-profile.test.tsx`
 - `tests/vitest/route-transition-performance-spec.test.ts`
+- `tests/vitest/workshop-route-error-boundaries.test.tsx`
 - `tests/vitest/workshop-library-consolidation-ui.test.tsx`
 
 Docs/state:
@@ -80,9 +82,20 @@ Fresh verification after the route-adjacent test cleanup:
 - Expanded route/workshop Vitest suite passed: 10 files, 122 tests (`fresh-expanded-route-transition-workshop-vitest-after-route-adjacent-fixes.txt`).
 - Expanded route/workshop Vitest suite passed after the bfcache capture correction: 10 files, 124 tests (`fresh-expanded-route-transition-workshop-vitest-after-bfcache-capture.txt`).
 - Expanded route/workshop/library Vitest suite passed after the component-library cleanup: 12 files, 162 tests (`fresh-expanded-route-workshop-vitest-with-component-library-cleanup.txt`).
-- TypeScript, design-system lint, unit tests, production build, and whitespace check passed.
-- Full `bun run lint` still reports 91 errors and 32 warnings in unrelated share/publication/pitch-deck scopes; route-transition targeted lint is clean.
-- Full `bun run test:dom` now completes with 12 failures, all in unrelated landing/project-publication/project-creation scopes. The route/library-adjacent `component-library-ui.test.tsx` timeouts from the fresh continuation were fixed with explicit Testing Library cleanup.
+- Error-boundary route component regression passed: 1 file, 4 tests (`green-workshop-route-error-boundaries.txt`).
+- Route-error smoke gate regression passed after an expected red run: 1 file, 2 tests (`red-route-error-smoke-gate-20260601.txt`, then `green-route-error-smoke-gate-20260601.txt`).
+- Live route-error boundary smoke passed with dev-auth enabled: 2 Playwright tests passed and wrote standalone screenshots for library, project charts, and estimate workspace (`route-error-boundary-live-smoke-with-files-20260601.txt`, `live-route-error-screenshots/`). The screenshots include the local Next.js dev issue notifier in the lower-right corner and are evidence of the route-boundary harness, not production screenshots.
+- Fresh route-transition targeted suite passed: 6 files, 22 tests (`fresh-route-transition-targeted-20260531-blocker-refresh.txt`).
+- Fresh route-transition targeted ESLint passed (`fresh-eslint-route-transition-20260531-blocker-refresh.txt`).
+- Fresh `bun run type-check` passed (`fresh-type-check-20260531-blocker-refresh.txt`).
+- Fresh `bun run lint` passed with 0 errors and 18 warnings (`fresh-full-lint-20260531-blocker-refresh.txt`).
+- Fresh design-system lint passed (`fresh-design-system-20260531-blocker-refresh.txt`).
+- Fresh unit tests passed: 4 tests (`fresh-unit-tests-20260531-blocker-refresh.txt`).
+- Fresh production build passed (`fresh-build-20260531-blocker-refresh.txt`).
+- Fresh `bun run test:e2e:perf` on a clean Playwright-owned port 3022 passed 6 public/protected checks with 2 expected dev-auth skips (`fresh-e2e-perf-20260531-port3022-rerun.txt`). An earlier same-command run on port 3020 failed with `ERR_CONNECTION_REFUSED` after the local dev server stopped accepting connections; the isolated Slow 3G test and clean-port full rerun passed.
+- Fresh full `bun run test:e2e` passed locally after the live route-error smoke refresh: 9 passed and 20 skipped (`full-e2e-after-live-error-smoke-20260601.txt`). The skipped tests are explicitly gated AI/DND/invite/share/collaboration or route-error-smoke scenarios.
+- Initial TypeScript, design-system lint, unit tests, full DOM suite, production build, and whitespace check passed after the error-boundary proof refresh. A later intermediate `bun run type-check` rerun failed in concurrent share/collaboration files, but the latest blocker-refresh `bun run type-check` now passes.
+- Full `bun run test:dom` now passes: 118 files, 918 tests passed, 2 skipped.
 - Fresh production-like route perf smoke now includes Slow 3G Link-transition medians: latest `/features` to `/pricing` median 1389 ms across 3 runs, overlay visibility rate 0.0.
 - The refreshed standalone `perf:measure-routes` script now writes JSON artifacts and captured focused production-like Contact route medians on port 3042: no-throttle About to Contact 779 ms / Pricing to Contact 737 ms, and Slow 3G About to Contact 1893 ms / Pricing to Contact 3177 ms.
 - The same standalone script captured local dev-auth workshop route medians on `next dev` port 3043: no-throttle Workshop to Projects 1940 ms, Library 4496 ms, Templates 2405 ms, Settings/Profile 2716 ms, and Slow 3G Workshop to Projects 6158 ms. These are local authenticated evidence, not production-mode authenticated browser-session proof.
@@ -90,4 +103,4 @@ Fresh verification after the route-adjacent test cleanup:
 - Automated production-like bfcache/back-forward evidence now captures `back_forward` navigation, no stuck route overlay, `notRestoredReasons:[null]`, and `pageshow.persisted=false` in headless Chromium. Manual Chrome DevTools persisted-state proof remains missing.
 - Lighthouse public-route samples were captured on the production-like server: `/` score 0.38, `/features` score 0.71, `/pricing` score 0.92. This is partial benchmark evidence, not a full pass.
 
-This is not beta-ready or production-ready because full clean lint/DOM/E2E still have unrelated blockers, the manual benchmark protocol is not fully complete, production-mode authenticated hover Network screenshots remain missing, and GitNexus classifies the accumulated branch diff as critical blast radius across shared route/shell/repository flows.
+This is not beta-ready or production-ready because the manual/production benchmark protocol is not fully complete, production-mode authenticated hover Network screenshots remain missing, manual Chrome DevTools bfcache proof remains missing, production Chrome React Profiler proof remains missing, full bundle-analyzer proof is missing, and GitNexus/code-review graph classify the accumulated shared-worktree diff as high/critical blast radius across shared route/shell/repository and concurrent share/publication flows.

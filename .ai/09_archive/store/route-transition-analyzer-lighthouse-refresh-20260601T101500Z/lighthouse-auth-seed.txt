@@ -1,0 +1,1 @@
+{"userId":"b8159bed-5c05-4b07-a216-5151ef5b20a4","storageStatePath":"/tmp/archestimator-lighthouse-auth-20260601T101500Z/storage-state.json","cookieCount":1,"cookieNames":["sb-ebxxqidacheyapmmzavr-auth-token"]}

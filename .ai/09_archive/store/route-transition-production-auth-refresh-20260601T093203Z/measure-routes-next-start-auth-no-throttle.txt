@@ -1,0 +1,288 @@
+$ bun run scripts/measure-route-transitions.ts
+Archestimator route transition benchmark
+Base URL: http://127.0.0.1:3064
+Network: No throttle
+Runs per scenario: 3
+
+Scenario: Public: Landing to Login
+   Run 1: FAILED - waitForFunction: Timeout 15000ms exceeded.
+   Run 2: FAILED - waitForFunction: Timeout 15000ms exceeded.
+   Run 3: FAILED - waitForFunction: Timeout 15000ms exceeded.
+
+Scenario: Public: About to Contact
+   Run 1: 994ms, overlay=true, rsc=2
+   Run 2: 1100ms, overlay=true, rsc=2
+   Run 3: 956ms, overlay=true, rsc=2
+
+Scenario: Public: Pricing to Contact
+   Run 1: 911ms, overlay=true, rsc=2
+   Run 2: 885ms, overlay=true, rsc=2
+   Run 3: 881ms, overlay=true, rsc=2
+
+Scenario: Authenticated: Workshop to Projects
+   Run 1: 2633ms, overlay=true, rsc=4
+   Run 2: 2710ms, overlay=false, rsc=4
+   Run 3: 2265ms, overlay=true, rsc=4
+
+Scenario: Authenticated: Workshop to Library
+   Run 1: 3261ms, overlay=true, rsc=4
+   Run 2: 2604ms, overlay=true, rsc=4
+   Run 3: 2673ms, overlay=true, rsc=7
+
+Scenario: Authenticated: Workshop to Templates
+   Run 1: 2193ms, overlay=true, rsc=4
+   Run 2: 1697ms, overlay=true, rsc=4
+   Run 3: 1888ms, overlay=true, rsc=7
+
+Scenario: Authenticated: Workshop to Settings
+   Run 1: 2396ms, overlay=true, rsc=11
+   Run 2: 2117ms, overlay=true, rsc=11
+   Run 3: 2502ms, overlay=true, rsc=11
+
+| Scenario | Median (ms) | Overlay rate | RSC requests | Runs | Failures |
+|----------|-------------|--------------|--------------|------|----------|
+| Public: Landing to Login | n/a | 0.00 | 0 | 0 | 3 |
+| Public: About to Contact | 994 | 1.00 | 6 | 3 | 0 |
+| Public: Pricing to Contact | 885 | 1.00 | 6 | 3 | 0 |
+| Authenticated: Workshop to Projects | 2633 | 0.67 | 12 | 3 | 0 |
+| Authenticated: Workshop to Library | 2673 | 1.00 | 15 | 3 | 0 |
+| Authenticated: Workshop to Templates | 1888 | 1.00 | 15 | 3 | 0 |
+| Authenticated: Workshop to Settings | 2396 | 1.00 | 33 | 3 | 0 |
+
+Wrote benchmark JSON: .ai/09_archive/store/route-transition-production-auth-refresh-20260601T093203Z/measure-routes-next-start-auth-no-throttle.json
+
+--- JSON OUTPUT ---
+{
+  "generatedAt": "2026-06-01T09:39:45.937Z",
+  "baseUrl": "http://127.0.0.1:3064",
+  "networkProfile": "No throttle",
+  "runsPerScenario": 3,
+  "scenarioFilter": null,
+  "skipAuthenticated": false,
+  "skippedScenarios": [],
+  "results": [
+    {
+      "scenario": "Public: Landing to Login",
+      "from": "/",
+      "expectedPathname": "/login",
+      "networkProfile": "No throttle",
+      "runs": [],
+      "failures": [
+        {
+          "run": 1,
+          "message": "waitForFunction: Timeout 15000ms exceeded."
+        },
+        {
+          "run": 2,
+          "message": "waitForFunction: Timeout 15000ms exceeded."
+        },
+        {
+          "run": 3,
+          "message": "waitForFunction: Timeout 15000ms exceeded."
+        }
+      ],
+      "medianMs": null,
+      "overlayVisibilityRate": 0,
+      "rscRequestCount": 0
+    },
+    {
+      "scenario": "Public: About to Contact",
+      "from": "/about",
+      "expectedPathname": "/contact",
+      "networkProfile": "No throttle",
+      "runs": [
+        {
+          "run": 1,
+          "durationMs": 994,
+          "overlayVisible": true,
+          "rscRequestCount": 2,
+          "finalPathname": "/contact"
+        },
+        {
+          "run": 2,
+          "durationMs": 1100,
+          "overlayVisible": true,
+          "rscRequestCount": 2,
+          "finalPathname": "/contact"
+        },
+        {
+          "run": 3,
+          "durationMs": 956,
+          "overlayVisible": true,
+          "rscRequestCount": 2,
+          "finalPathname": "/contact"
+        }
+      ],
+      "failures": [],
+      "medianMs": 994,
+      "overlayVisibilityRate": 1,
+      "rscRequestCount": 6
+    },
+    {
+      "scenario": "Public: Pricing to Contact",
+      "from": "/pricing",
+      "expectedPathname": "/contact",
+      "networkProfile": "No throttle",
+      "runs": [
+        {
+          "run": 1,
+          "durationMs": 911,
+          "overlayVisible": true,
+          "rscRequestCount": 2,
+          "finalPathname": "/contact"
+        },
+        {
+          "run": 2,
+          "durationMs": 885,
+          "overlayVisible": true,
+          "rscRequestCount": 2,
+          "finalPathname": "/contact"
+        },
+        {
+          "run": 3,
+          "durationMs": 881,
+          "overlayVisible": true,
+          "rscRequestCount": 2,
+          "finalPathname": "/contact"
+        }
+      ],
+      "failures": [],
+      "medianMs": 885,
+      "overlayVisibilityRate": 1,
+      "rscRequestCount": 6
+    },
+    {
+      "scenario": "Authenticated: Workshop to Projects",
+      "from": "/workshop",
+      "expectedPathname": "/workshop/projects",
+      "networkProfile": "No throttle",
+      "runs": [
+        {
+          "run": 1,
+          "durationMs": 2633,
+          "overlayVisible": true,
+          "rscRequestCount": 4,
+          "finalPathname": "/workshop/projects"
+        },
+        {
+          "run": 2,
+          "durationMs": 2710,
+          "overlayVisible": false,
+          "rscRequestCount": 4,
+          "finalPathname": "/workshop/projects"
+        },
+        {
+          "run": 3,
+          "durationMs": 2265,
+          "overlayVisible": true,
+          "rscRequestCount": 4,
+          "finalPathname": "/workshop/projects"
+        }
+      ],
+      "failures": [],
+      "medianMs": 2633,
+      "overlayVisibilityRate": 0.6666666666666666,
+      "rscRequestCount": 12
+    },
+    {
+      "scenario": "Authenticated: Workshop to Library",
+      "from": "/workshop",
+      "expectedPathname": "/workshop/library",
+      "networkProfile": "No throttle",
+      "runs": [
+        {
+          "run": 1,
+          "durationMs": 3261,
+          "overlayVisible": true,
+          "rscRequestCount": 4,
+          "finalPathname": "/workshop/library"
+        },
+        {
+          "run": 2,
+          "durationMs": 2604,
+          "overlayVisible": true,
+          "rscRequestCount": 4,
+          "finalPathname": "/workshop/library"
+        },
+        {
+          "run": 3,
+          "durationMs": 2673,
+          "overlayVisible": true,
+          "rscRequestCount": 7,
+          "finalPathname": "/workshop/library"
+        }
+      ],
+      "failures": [],
+      "medianMs": 2673,
+      "overlayVisibilityRate": 1,
+      "rscRequestCount": 15
+    },
+    {
+      "scenario": "Authenticated: Workshop to Templates",
+      "from": "/workshop",
+      "expectedPathname": "/workshop/templates",
+      "networkProfile": "No throttle",
+      "runs": [
+        {
+          "run": 1,
+          "durationMs": 2193,
+          "overlayVisible": true,
+          "rscRequestCount": 4,
+          "finalPathname": "/workshop/templates"
+        },
+        {
+          "run": 2,
+          "durationMs": 1697,
+          "overlayVisible": true,
+          "rscRequestCount": 4,
+          "finalPathname": "/workshop/templates"
+        },
+        {
+          "run": 3,
+          "durationMs": 1888,
+          "overlayVisible": true,
+          "rscRequestCount": 7,
+          "finalPathname": "/workshop/templates"
+        }
+      ],
+      "failures": [],
+      "medianMs": 1888,
+      "overlayVisibilityRate": 1,
+      "rscRequestCount": 15
+    },
+    {
+      "scenario": "Authenticated: Workshop to Settings",
+      "from": "/workshop",
+      "expectedPathname": "/workshop/settings/profile",
+      "networkProfile": "No throttle",
+      "runs": [
+        {
+          "run": 1,
+          "durationMs": 2396,
+          "overlayVisible": true,
+          "rscRequestCount": 11,
+          "finalPathname": "/workshop/settings/profile"
+        },
+        {
+          "run": 2,
+          "durationMs": 2117,
+          "overlayVisible": true,
+          "rscRequestCount": 11,
+          "finalPathname": "/workshop/settings/profile"
+        },
+        {
+          "run": 3,
+          "durationMs": 2502,
+          "overlayVisible": true,
+          "rscRequestCount": 11,
+          "finalPathname": "/workshop/settings/profile"
+        }
+      ],
+      "failures": [],
+      "medianMs": 2396,
+      "overlayVisibilityRate": 1,
+      "rscRequestCount": 33
+    }
+  ]
+}
+error: script "perf:measure-routes" exited with code 1

@@ -1,0 +1,110 @@
+$ playwright test
+[2m[WebServer] [22m[0m[2m[35m$[0m [2m[1mnext dev --port "3020"[0m
+[2m[WebServer] [22m(node:7015) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[2m[WebServer] [22m(Use `node --trace-warnings ...` to show where the warning was created)
+[2m[WebServer] [22m(node:7016) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[2m[WebServer] [22m(Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 29 tests using 4 workers
+
+  -   1 [chromium] › e2e/ask-flip-package-builder-live.spec.ts:497:7 › Ask Flip live package-builder smoke › creates a 3-bedroom condo project from real scoped user data and persists audit evidence
+  -   2 [chromium] › e2e/ask-flip-package-builder-live.spec.ts:614:7 › Ask Flip live package-builder smoke › creates a component-library item from real scoped user data without project or estimate side effects
+  -   3 [chromium] › e2e/ask-flip-package-builder-live.spec.ts:839:7 › Ask Flip live package-builder smoke › fills an existing estimate shell from real scoped user data and persists row history
+  -   4 [chromium] › e2e/estimate-tree-dnd.spec.ts:419:7 › estimate tree drag/drop seamlessness › reorders root Group Nodes without route reload, tree blanking, or lost persistence
+  -   5 [chromium] › e2e/estimate-tree-dnd.spec.ts:437:7 › estimate tree drag/drop seamlessness › reorders sibling Area Nodes without route reload, tree blanking, or lost persistence
+  -   6 [chromium] › e2e/estimate-tree-dnd.spec.ts:455:7 › estimate tree drag/drop seamlessness › reparents one Group Node under another Group Node and persists after reload
+  -   7 [chromium] › e2e/estimate-tree-dnd.spec.ts:473:7 › estimate tree drag/drop seamlessness › reparents an Area Node with its row attachment intact and persists after reload
+  -   8 [chromium] › e2e/estimate-tree-dnd.spec.ts:494:7 › estimate tree drag/drop seamlessness › blocks invalid Area-parent, cycle, and self drops before any server action POST
+  -   9 [chromium] › e2e/project-invite-entry.spec.ts:245:7 › Project invite entry › accepts signed-out invitees through workshop and labels shared project access
+  -  10 [chromium] › e2e/project-invite-entry.spec.ts:291:7 › Project invite entry › renders matching-account, wrong-account, and terminal invite states
+  -  11 [chromium] › e2e/shared-link-receiver.spec.ts:25:7 › Shared Link V2 Receiver (per 12-testing-strategy-plan.md) › 4.1 owner selects sheets and generates a shared link
+  -  12 [chromium] › e2e/shared-link-receiver.spec.ts:35:7 › Shared Link V2 Receiver (per 12-testing-strategy-plan.md) › 4.2 client opens link, views tabs, and accepts
+  -  13 [chromium] › e2e/shared-link-receiver.spec.ts:54:7 › Shared Link V2 Receiver (per 12-testing-strategy-plan.md) › 4.3 blocks password after 5 failed attempts (P10 lockout)
+  -  14 [chromium] › e2e/shared-link-receiver.spec.ts:63:7 › Shared Link V2 Receiver (per 12-testing-strategy-plan.md) › 4.4 mobile layout (swipe tabs + sticky decision bar)
+  -  15 [chromium] › e2e/shared-link-receiver.spec.ts:72:7 › Shared Link V2 Receiver (per 12-testing-strategy-plan.md) › 4.5 tabs are keyboard navigable (a11y)
+  -  16 [chromium] › e2e/teamspace-collaboration.spec.ts:153:7 › Teamspaces collaboration › shows two real authenticated users, remote cursors, and stable headers
+  -  17 [chromium] › e2e/workshop-route-error-boundaries.spec.ts:38:7 › workshop route error boundary smoke › captures live library route error boundary screenshot
+  -  18 [chromium] › e2e/workshop-route-error-boundaries.spec.ts:45:7 › workshop route error boundary smoke › captures live charts and estimate route error boundary screenshots
+(node:7272) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:7271) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:7270) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:7271) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:7270) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:7272) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  19 [chromium] › e2e/auth.spec.ts:3:5 › protected workshop projects redirects signed-out users to login (2.7s)
+  ✓  22 [chromium] › e2e/auth.spec.ts:10:5 › login page keeps compact shared-control UI visible (804ms)
+
+=== PERFORMANCE AUDIT ===
+Initial page load time: 1907ms
+DOM Interactive: 1608.4ms
+DOM Content Loaded: 1608.4ms
+Full Page Load Event: 1902.0ms
+HTML Transfer Size: 31.55 KB
+HTML Decoded Size: 152.07 KB
+route-transition-public-baseline [{"href":"http://127.0.0.1:3020/","navigation":{"domContentLoaded":1599,"loadEventEnd":1888.1999999955297,"duration":1888.1999999955297,"transferSize":32303,"decodedBodySize":155723},"resources":{"count":28,"transferSize":1140556,"scriptCount":20,"rscCount":0,"nextAssetCount":27,"prefetchCount":0}},{"href":"http://127.0.0.1:3020/features","navigation":{"domContentLoaded":2357.60000000149,"loadEventEnd":2423.7999999970198,"duration":2423.7999999970198,"transferSize":28310,"decodedBodySize":102018},"resources":{"count":28,"transferSize":6966,"scriptCount":20,"rscCount":0,"nextAssetCount":27,"prefetchCount":0}},{"href":"http://127.0.0.1:3020/pricing","navigation":{"domContentLoaded":317.5,"loadEventEnd":320.09999999403954,"duration":320.09999999403954,"transferSize":19154,"decodedBodySize":71069},"resources":{"count":29,"transferSize":8074,"scriptCount":20,"rscCount":0,"nextAssetCount":27,"prefetchCount":0}}]
+
+Resource Counts (Total 30 requests, ~ 1.11 MB transferred):
+- Scripts: 22
+- Stylesheets: 3
+- Images: 1
+- Fonts: 4
+- Others: 0
+  ✓  20 [chromium] › e2e/route-transition-performance.spec.ts:141:7 › route transition performance evidence › captures public route baseline metrics (5.9s)
+route-transition-slow-3g-public {"href":"http://127.0.0.1:3020/features","navigation":{"domContentLoaded":4087.10000000149,"loadEventEnd":0,"duration":4087.10000000149,"transferSize":28310,"decodedBodySize":102018},"resources":{"count":5,"transferSize":72206,"scriptCount":1,"rscCount":0,"nextAssetCount":4,"prefetchCount":0}}
+  ✓  23 [chromium] › e2e/route-transition-performance.spec.ts:164:7 › route transition performance evidence › captures Slow 3G public-route budget evidence (4.5s)
+
+=== SEO AUDIT ===
+Title: "Archestimator | Quote, Proposal & Estimate Workspace" (Length: 52 chars)
+Meta Description: "A workspace for teams that build quotes, estimates, and proposals from reusable line items, supplier context, assumptions, and document-ready handoff steps."
+Meta Viewport: "width=device-width, initial-scale=1"
+Heading Structure:
+- H1 count: 1
+  - H1: Only the smart ones create quotes this way.
+  - H2: A clearer way to create quotes, estimates, and proposal-ready documents
+  - H2: Quote logic should stay connected from first quantity to proposal.
+  - H2: Less spreadsheet drift. More quote control.
+  - H3: Structured quote sheets
+  - H3: Reusable catalog items
+  - H3: Revision context
+  - H3: Proposal handoff direction
+  - H2: Early access to the quote workspace
+  - H2: Frequently Asked Questions
+  - H2: Build your next quote with the logic still connected.
+  - H2: A clearer quote and proposal workspace for sales teams, suppliers, and estimating teams.
+
+=== UX/UI PLACEHOLDER AUDIT ===
+Found 1 visible elements with 'placeholder' in text:
+  1. "Placeholder profiles only. Real customer proof will replace this rail before any public trust claim."
+Found 0 DOM elements with 'placeholder' in ID/class.
+
+=== RESPONSIVENESS AUDIT ===
+Desktop (1280px) - Body scroll width: 1280px, Viewport: 1280px. Overflow: false
+Mobile (375px) - Body scroll width: 375px, Viewport: 375px. Overflow: false
+
+=== CONSOLE AUDIT ===
+Console Errors (0):
+Console Warnings (4):
+  - [.WebGL-0x1040057fe00]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels
+  - [.WebGL-0x1040057fe00]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels
+  - [.WebGL-0x1040057fe00]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels
+  - [.WebGL-0x1040057fe00]GL Driver Message (OpenGL, Performance, GL_CLOSE_PATH_NV, High): GPU stall due to ReadPixels (this message will no longer repeat)
+  ✓  21 [chromium] › e2e/landing-audit.spec.ts:20:7 › Landing Page Comprehensive Audit › Measures performance, SEO, accessibility, and UI/UX (15.4s)
+route-transition-slow-3g-public-link-medians {"runs":[{"from":"/features","to":"/pricing","durationMs":21474,"overlayVisible":false},{"from":"/features","to":"/pricing","durationMs":6470,"overlayVisible":false},{"from":"/features","to":"/pricing","durationMs":5706,"overlayVisible":false}],"medianMs":6470,"overlayVisibilityRate":0}
+  ✓  24 [chromium] › e2e/route-transition-performance.spec.ts:181:7 › route transition performance evidence › captures Slow 3G public link-transition medians and overlay visibility (40.2s)
+route-transition-public-link-medians {"runs":[{"from":"/features","to":"/pricing","durationMs":457,"overlayVisible":true},{"from":"/features","to":"/pricing","durationMs":506,"overlayVisible":true},{"from":"/features","to":"/pricing","durationMs":319,"overlayVisible":true},{"from":"/features","to":"/pricing","durationMs":233,"overlayVisible":true},{"from":"/features","to":"/pricing","durationMs":219,"overlayVisible":true}],"medianMs":319,"overlayVisibilityRate":1}
+  ✓  25 [chromium] › e2e/route-transition-performance.spec.ts:222:7 › route transition performance evidence › captures Link-based public route transition medians and overlay visibility (2.9s)
+route-transition-public-bfcache {"href":"http://127.0.0.1:3020/","navigationTypes":["back_forward"],"pageshowPersisted":[false],"bfcachePersisted":false,"notRestoredReasons":[null],"restoreMs":48}
+  ✓  26 [chromium] › e2e/route-transition-performance.spec.ts:261:7 › route transition performance evidence › captures public back-forward cache restore evidence without stuck overlay (826ms)
+route-transition-protected-redirect-budget {"href":"http://127.0.0.1:3020/login?next=%2Fworkshop%2Fprojects","navigation":{"domContentLoaded":69.90000000596046,"loadEventEnd":0,"duration":69.90000000596046,"transferSize":7466,"decodedBodySize":21907},"resources":{"count":20,"transferSize":943781,"scriptCount":15,"rscCount":0,"nextAssetCount":20,"prefetchCount":0}}
+  ✓  27 [chromium] › e2e/route-transition-performance.spec.ts:303:7 › route transition performance evidence › keeps protected redirect within the route performance budget (356ms)
+  -  28 [chromium] › e2e/route-transition-performance.spec.ts:316:7 › route transition performance evidence › captures authenticated transition budget and separates hover-prefetch evidence when dev auth is enabled
+  -  29 [chromium] › e2e/route-transition-performance.spec.ts:359:7 › route transition performance evidence › records project-card and estimate-row hover-prefetch evidence when dev auth data is enabled
+
+  20 skipped
+  9 passed (1.0m)

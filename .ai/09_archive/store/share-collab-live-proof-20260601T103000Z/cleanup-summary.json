@@ -1,0 +1,38 @@
+{
+  "seed": {
+    "workspaceId": "19b27f92-0059-4751-8bbe-2aff6ec1211f",
+    "projectId": "f816f8cc-edb1-4878-b792-a0c420701991",
+    "publicationId": "2ad8c493-33d7-4b20-a24f-1c075d229725",
+    "recipientId": "5af71066-b403-46b4-a0cc-05407501fe03"
+  },
+  "notes": [
+    {
+      "label": "delete rate limit rows",
+      "ok": true,
+      "error": null
+    },
+    {
+      "label": "delete publication",
+      "ok": true,
+      "error": null
+    },
+    {
+      "label": "delete project",
+      "ok": true,
+      "error": null
+    },
+    {
+      "label": "delete workspace",
+      "ok": true,
+      "error": null
+    }
+  ],
+  "residue": {
+    "publicationResidue": 0,
+    "recipientResidue": 0,
+    "commentResidue": 0,
+    "eventResidue": 0,
+    "projectResidue": 0,
+    "workspaceResidue": 0
+  }
+}

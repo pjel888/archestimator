@@ -1,0 +1,93 @@
+[2m[WebServer] [22m[0m[2m[35m$[0m [2m[1mnext dev --port "3025"[0m
+[2m[WebServer] [22m(node:97365) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[2m[WebServer] [22m(Use `node --trace-warnings ...` to show where the warning was created)
+[2m[WebServer] [22m(node:97529) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[2m[WebServer] [22m(Use `node --trace-warnings ...` to show where the warning was created)
+[2m[WebServer] [22m(node:97622) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[2m[WebServer] [22m(Use `node --trace-warnings ...` to show where the warning was created)
+
+Running 2 tests using 1 worker
+
+(node:97809) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:97809) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+[2m[WebServer] [22m⨯ Error: Route error smoke: Library
+[2m[WebServer] [22m    at assertRouteErrorSmoke (src/lib/route-error-smoke.ts:15:9)
+[2m[WebServer] [22m    at LibraryPage (src/app/workshop/library/page.tsx:11:24)
+[2m[WebServer] [22m  [90m13 |[0m   [36mif[0m (!isEnabled) [36mreturn[0m;
+[2m[WebServer] [22m  [90m14 |[0m
+[2m[WebServer] [22m[31m[1m>[0m [90m15 |[0m   [36mthrow[0m [36mnew[0m [33mError[0m([32m`Route error smoke: [0m${routeLabel[32m}`[0m);
+[2m[WebServer] [22m  [90m   |[0m         [31m[1m^[0m
+[2m[WebServer] [22m  [90m16 |[0m }
+[2m[WebServer] [22m  [90m17 |[0m {
+[2m[WebServer] [22m  digest: [32m'1786338145'[39m
+[2m[WebServer] [22m}
+[2m[WebServer] [22m[browser] Workshop route error { digest: [32m'1786338145'[39m, name: [32m'Error'[39m, route: [32m'Library'[39m } 
+[2m[WebServer] [22m    at WorkshopRouteErrorState.useEffect (src/components/workshop/WorkshopRouteErrorState.tsx:16:15)
+[2m[WebServer] [22m  14 |   useEffect(() => {
+[2m[WebServer] [22m  15 |     if (process.env.NODE_ENV !== "production") {
+[2m[WebServer] [22m> 16 |       console.error("Workshop route error", {
+[2m[WebServer] [22m     |               ^
+[2m[WebServer] [22m  17 |         route: routeLabel,
+[2m[WebServer] [22m  18 |         name: error.name,
+[2m[WebServer] [22m  19 |         digest: error.digest ?? null, (src/components/workshop/WorkshopRouteErrorState.tsx:16:15)
+[2m[WebServer] [22m[browser] Workshop route error { digest: [32m'1786338145'[39m, name: [32m'Error'[39m, route: [32m'Library'[39m } 
+[2m[WebServer] [22m    at WorkshopRouteErrorState.useEffect (src/components/workshop/WorkshopRouteErrorState.tsx:16:15)
+[2m[WebServer] [22m  14 |   useEffect(() => {
+[2m[WebServer] [22m  15 |     if (process.env.NODE_ENV !== "production") {
+[2m[WebServer] [22m> 16 |       console.error("Workshop route error", {
+[2m[WebServer] [22m     |               ^
+[2m[WebServer] [22m  17 |         route: routeLabel,
+[2m[WebServer] [22m  18 |         name: error.name,
+[2m[WebServer] [22m  19 |         digest: error.digest ?? null, (src/components/workshop/WorkshopRouteErrorState.tsx:16:15)
+  ✓  1 [chromium] › e2e/workshop-route-error-boundaries.spec.ts:20:7 › workshop route error boundary smoke › captures live library route error boundary screenshot (927ms)
+[2m[WebServer] [22m(node:98151) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[2m[WebServer] [22m(Use `node --trace-warnings ...` to show where the warning was created)
+[2m[WebServer] [22m⨯ Error: Route error smoke: Project charts
+[2m[WebServer] [22m    at assertRouteErrorSmoke (src/lib/route-error-smoke.ts:15:9)
+[2m[WebServer] [22m    at ProjectChartsPage (src/app/workshop/projects/[projectId]/charts/page.tsx:21:24)
+[2m[WebServer] [22m  [90m13 |[0m   [36mif[0m (!isEnabled) [36mreturn[0m;
+[2m[WebServer] [22m  [90m14 |[0m
+[2m[WebServer] [22m[31m[1m>[0m [90m15 |[0m   [36mthrow[0m [36mnew[0m [33mError[0m([32m`Route error smoke: [0m${routeLabel[32m}`[0m);
+[2m[WebServer] [22m  [90m   |[0m         [31m[1m^[0m
+[2m[WebServer] [22m  [90m16 |[0m }
+[2m[WebServer] [22m  [90m17 |[0m {
+[2m[WebServer] [22m  digest: [32m'2123923727'[39m
+[2m[WebServer] [22m}
+[2m[WebServer] [22m[browser] Workshop route error { digest: [32m'2123923727'[39m, name: [32m'Error'[39m, route: [32m'Project charts'[39m } 
+[2m[WebServer] [22m    at WorkshopRouteErrorState.useEffect (src/components/workshop/WorkshopRouteErrorState.tsx:16:15)
+[2m[WebServer] [22m  14 |   useEffect(() => {
+[2m[WebServer] [22m  15 |     if (process.env.NODE_ENV !== "production") {
+[2m[WebServer] [22m> 16 |       console.error("Workshop route error", {
+[2m[WebServer] [22m     |               ^
+[2m[WebServer] [22m  17 |         route: routeLabel,
+[2m[WebServer] [22m  18 |         name: error.name,
+[2m[WebServer] [22m  19 |         digest: error.digest ?? null, (src/components/workshop/WorkshopRouteErrorState.tsx:16:15)
+[2m[WebServer] [22m(node:98401) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[2m[WebServer] [22m(Use `node --trace-warnings ...` to show where the warning was created)
+[2m[WebServer] [22m(node:98654) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+[2m[WebServer] [22m(Use `node --trace-warnings ...` to show where the warning was created)
+[2m[WebServer] [22m⨯ Error: Route error smoke: Estimate workspace
+[2m[WebServer] [22m    at assertRouteErrorSmoke (src/lib/route-error-smoke.ts:15:9)
+[2m[WebServer] [22m    at ProjectEstimateNodePage (src/app/workshop/projects/[projectId]/estimates/[nodeId]/page.tsx:30:24)
+[2m[WebServer] [22m  [90m13 |[0m   [36mif[0m (!isEnabled) [36mreturn[0m;
+[2m[WebServer] [22m  [90m14 |[0m
+[2m[WebServer] [22m[31m[1m>[0m [90m15 |[0m   [36mthrow[0m [36mnew[0m [33mError[0m([32m`Route error smoke: [0m${routeLabel[32m}`[0m);
+[2m[WebServer] [22m  [90m   |[0m         [31m[1m^[0m
+[2m[WebServer] [22m  [90m16 |[0m }
+[2m[WebServer] [22m  [90m17 |[0m {
+[2m[WebServer] [22m  digest: [32m'264692622'[39m
+[2m[WebServer] [22m}
+[2m[WebServer] [22m[browser] Workshop route error { digest: [32m'264692622'[39m, name: [32m'Error'[39m, route: [32m'Estimate workspace'[39m } 
+[2m[WebServer] [22m    at WorkshopRouteErrorState.useEffect (src/components/workshop/WorkshopRouteErrorState.tsx:16:15)
+[2m[WebServer] [22m  14 |   useEffect(() => {
+[2m[WebServer] [22m  15 |     if (process.env.NODE_ENV !== "production") {
+[2m[WebServer] [22m> 16 |       console.error("Workshop route error", {
+[2m[WebServer] [22m     |               ^
+[2m[WebServer] [22m  17 |         route: routeLabel,
+[2m[WebServer] [22m  18 |         name: error.name,
+[2m[WebServer] [22m  19 |         digest: error.digest ?? null, (src/components/workshop/WorkshopRouteErrorState.tsx:16:15)
+  ✓  2 [chromium] › e2e/workshop-route-error-boundaries.spec.ts:30:7 › workshop route error boundary smoke › captures live charts and estimate route error boundary screenshots (10.3s)
+
+  2 passed (16.0s)

@@ -13,6 +13,7 @@ export default defineConfig({
   reporter: [["list"], ["html", { open: "never" }]],
   use: {
     baseURL,
+    storageState: process.env.PLAYWRIGHT_STORAGE_STATE || undefined,
     trace: "on-first-retry",
   },
   webServer: {

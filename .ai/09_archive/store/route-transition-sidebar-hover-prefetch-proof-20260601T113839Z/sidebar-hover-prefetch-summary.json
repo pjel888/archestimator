@@ -1,0 +1,10 @@
+{
+  "generatedAt": "2026-06-01T11:42:55.502Z",
+  "authMode": "storage-state",
+  "hoverRscRequestCount": 6,
+  "projectsHoverRscRequestCount": 2,
+  "transitionRscRequestCount": 1,
+  "transitionMs": 456,
+  "hoverPrefetchNote": "Hover prefetch RSC requests were observed before click.",
+  "proof": "sidebar hover emitted /workshop/projects RSC prefetch before click"
+}

@@ -1,0 +1,76 @@
+$ playwright test e2e/route-transition-performance.spec.ts "--project=chromium"
+
+Running 8 tests using 1 worker
+
+(node:41774) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:41774) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+route-transition-public-baseline [{"href":"http://127.0.0.1:3064/","navigation":{"domContentLoaded":685.1000000000931,"loadEventEnd":686.7000000000698,"duration":686.7000000000698,"transferSize":28954,"decodedBodySize":128071},"resources":{"count":24,"transferSize":502116,"scriptCount":14,"rscCount":1,"nextAssetCount":22,"prefetchCount":1}},{"href":"http://127.0.0.1:3064/features","navigation":{"domContentLoaded":856.4000000000233,"loadEventEnd":858.4000000000233,"duration":858.4000000000233,"transferSize":24921,"decodedBodySize":88573},"resources":{"count":29,"transferSize":6722,"scriptCount":13,"rscCount":7,"nextAssetCount":21,"prefetchCount":7}},{"href":"http://127.0.0.1:3064/pricing","navigation":{"domContentLoaded":357.5999999999767,"loadEventEnd":359.30000000004657,"duration":359.30000000004657,"transferSize":16722,"decodedBodySize":60687},"resources":{"count":31,"transferSize":8296,"scriptCount":13,"rscCount":8,"nextAssetCount":21,"prefetchCount":8}}]
+  ✓  1 [chromium] › e2e/route-transition-performance.spec.ts:145:7 › route transition performance evidence › captures public route baseline metrics (3.1s)
+route-transition-slow-3g-public {"href":"http://127.0.0.1:3064/features","navigation":{"domContentLoaded":3264.4000000000233,"loadEventEnd":0,"duration":3264.4000000000233,"transferSize":24921,"decodedBodySize":88573},"resources":{"count":5,"transferSize":39455,"scriptCount":1,"rscCount":0,"nextAssetCount":4,"prefetchCount":0}}
+  ✓  2 [chromium] › e2e/route-transition-performance.spec.ts:168:7 › route transition performance evidence › captures Slow 3G public-route budget evidence (3.7s)
+route-transition-slow-3g-public-link-medians {"runs":[{"from":"/features","to":"/pricing","durationMs":9427,"overlayVisible":false},{"from":"/features","to":"/pricing","durationMs":833,"overlayVisible":true},{"from":"/features","to":"/pricing","durationMs":828,"overlayVisible":true}],"medianMs":833,"overlayVisibilityRate":0.6666666666666666}
+  ✓  3 [chromium] › e2e/route-transition-performance.spec.ts:185:7 › route transition performance evidence › captures Slow 3G public link-transition medians and overlay visibility (16.4s)
+route-transition-public-link-medians {"runs":[{"from":"/features","to":"/pricing","durationMs":522,"overlayVisible":true},{"from":"/features","to":"/pricing","durationMs":402,"overlayVisible":true},{"from":"/features","to":"/pricing","durationMs":354,"overlayVisible":true},{"from":"/features","to":"/pricing","durationMs":398,"overlayVisible":true},{"from":"/features","to":"/pricing","durationMs":387,"overlayVisible":true}],"medianMs":398,"overlayVisibilityRate":1}
+  ✓  4 [chromium] › e2e/route-transition-performance.spec.ts:226:7 › route transition performance evidence › captures Link-based public route transition medians and overlay visibility (3.9s)
+  ✘  5 [chromium] › e2e/route-transition-performance.spec.ts:265:7 › route transition performance evidence › captures public back-forward cache restore evidence without stuck overlay (998ms)
+(node:42826) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:42826) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✘  6 [chromium] › e2e/route-transition-performance.spec.ts:307:7 › route transition performance evidence › keeps protected redirect within the route performance budget (6.9s)
+(node:43036) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:43036) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+route-transition-authenticated-hover-prefetch {"authMode":"storage-state","beforeClick":{"href":"http://127.0.0.1:3064/workshop","navigation":{"domContentLoaded":2354.4000000000233,"loadEventEnd":2356.5999999999767,"duration":2356.5999999999767,"transferSize":16862,"decodedBodySize":68864},"resources":{"count":12,"transferSize":105811,"scriptCount":9,"rscCount":3,"nextAssetCount":9,"prefetchCount":3}},"afterClick":{"href":"http://127.0.0.1:3064/workshop/projects","navigation":{"domContentLoaded":2354.4000000000233,"loadEventEnd":2356.5999999999767,"duration":2356.5999999999767,"transferSize":16862,"decodedBodySize":68864},"resources":{"count":12,"transferSize":105811,"scriptCount":9,"rscCount":3,"nextAssetCount":9,"prefetchCount":3}},"hoverRscRequests":[],"transitionRscRequests":["http://127.0.0.1:3064/workshop/projects?_rsc=OznWCFeHklegrbGZ"],"allRscRequests":["http://127.0.0.1:3064/workshop/projects?_rsc=OznWCFeHklegrbGZ"],"hoverPrefetchNote":"Hover prefetch RSC requests were not observed before click in this environment.","transitionMs":358}
+  ✓  7 [chromium] › e2e/route-transition-performance.spec.ts:320:7 › route transition performance evidence › captures authenticated transition budget and separates hover-prefetch evidence when auth is enabled (3.5s)
+route-transition-project-estimate-hover-prefetch {"authMode":"storage-state","projectHref":"/workshop/projects/351cb9b9-1bb1-41cb-a79b-34ca0363e28b","estimateHref":"/workshop/projects/351cb9b9-1bb1-41cb-a79b-34ca0363e28b/estimates/8b7a645d-fb96-40a0-a8b6-bf301374ad12","projectCardHoverRscRequests":["http://127.0.0.1:3064/workshop/projects/351cb9b9-1bb1-41cb-a79b-34ca0363e28b?_rsc=OS139lymGrs1QpO4"],"estimateRowHoverRscRequests":["http://127.0.0.1:3064/workshop/projects/351cb9b9-1bb1-41cb-a79b-34ca0363e28b/estimates/8b7a645d-fb96-40a0-a8b6-bf301374ad12?_rsc=FE9ktx3Kg_xS9utF"],"projectCardHoverMetrics":{"href":"http://127.0.0.1:3064/workshop/projects","navigation":{"domContentLoaded":1671.8999999999069,"loadEventEnd":1672.8999999999069,"duration":1672.8999999999069,"transferSize":20926,"decodedBodySize":105259},"resources":{"count":0,"transferSize":0,"scriptCount":0,"rscCount":0,"nextAssetCount":0,"prefetchCount":0}},"estimateRowHoverMetrics":{"href":"http://127.0.0.1:3064/workshop/projects/351cb9b9-1bb1-41cb-a79b-34ca0363e28b/estimates","navigation":{"domContentLoaded":2397.5,"loadEventEnd":2402.1999999999534,"duration":2402.1999999999534,"transferSize":26921,"decodedBodySize":188402},"resources":{"count":1,"transferSize":1272,"scriptCount":0,"rscCount":1,"nextAssetCount":0,"prefetchCount":1}},"projectCardHoverPrefetchNote":"Project-card hover prefetch RSC requests were observed before click.","estimateRowHoverPrefetchNote":"Estimate-row hover prefetch RSC requests were observed before click."}
+  ✓  8 [chromium] › e2e/route-transition-performance.spec.ts:375:7 › route transition performance evidence › records project-card and estimate-row hover-prefetch evidence when dev auth data is enabled (6.2s)
+
+
+  1) [chromium] › e2e/route-transition-performance.spec.ts:265:7 › route transition performance evidence › captures public back-forward cache restore evidence without stuck overlay 
+
+    Error: page.evaluate: Execution context was destroyed, most likely because of a navigation
+
+      280 |     await page.waitForTimeout(100);
+      281 |
+    > 282 |     const evidence = await page.evaluate(() => {
+          |                                 ^
+      283 |       const scopedWindow = window as Window & { __routeTransitionPageshowPersisted?: boolean[] };
+      284 |       const navigationEntries = performance.getEntriesByType("navigation") as PerformanceNavigationTiming[];
+      285 |       const pageshowPersisted = scopedWindow.__routeTransitionPageshowPersisted ?? [];
+        at /Users/philiplewis/archestimator/e2e/route-transition-performance.spec.ts:282:33
+
+    Error Context: test-results/route-transition-performan-603ba-dence-without-stuck-overlay-chromium/error-context.md
+
+  2) [chromium] › e2e/route-transition-performance.spec.ts:307:7 › route transition performance evidence › keeps protected redirect within the route performance budget 
+
+    Error: [2mexpect([22m[31mpage[39m[2m).[22mtoHaveURL[2m([22m[32mexpected[39m[2m)[22m failed
+
+    Expected pattern: [32m/\/login\?next=%2Fworkshop%2Fprojects/[39m
+    Received string:  [31m"http://127.0.0.1:3064/workshop/projects"[39m
+    Timeout: 5000ms
+
+    Call log:
+    [2m  - Expect "toHaveURL" with timeout 5000ms[22m
+    [2m    14 × unexpected value "http://127.0.0.1:3064/workshop/projects"[22m
+
+
+      308 |     await page.goto("/workshop/projects", { waitUntil: "domcontentloaded" });
+      309 |
+    > 310 |     await expect(page).toHaveURL(/\/login\?next=%2Fworkshop%2Fprojects/);
+          |                        ^
+      311 |     await expect(page.locator("[data-route-overlay]")).toHaveCount(routeTransitionBudgets.protectedRedirect.overlayCount);
+      312 |
+      313 |     const metrics = await collectRouteMetrics(page);
+        at /Users/philiplewis/archestimator/e2e/route-transition-performance.spec.ts:310:24
+
+    Error Context: test-results/route-transition-performan-7859e-he-route-performance-budget-chromium/error-context.md
+
+  2 failed
+    [chromium] › e2e/route-transition-performance.spec.ts:265:7 › route transition performance evidence › captures public back-forward cache restore evidence without stuck overlay 
+    [chromium] › e2e/route-transition-performance.spec.ts:307:7 › route transition performance evidence › keeps protected redirect within the route performance budget 
+  6 passed (47.7s)
+error: script "test:e2e:perf" exited with code 1

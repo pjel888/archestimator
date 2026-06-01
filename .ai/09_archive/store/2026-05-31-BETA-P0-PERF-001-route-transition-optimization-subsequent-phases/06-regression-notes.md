@@ -15,6 +15,7 @@
 - `perf:measure-routes` now supports focused production-like benchmark collection with `OUTPUT_FILE`, `SCENARIO_FILTER`, authenticated-scenario gating, overlay visibility rate, and RSC request counts. Watch future changes to public route link labels/selectors because the script measures real clickable links, not synthetic `page.goto()` transitions.
 - Local dev-auth `perf:measure-routes` runs now target the visible collapsed-sidebar icon position for authenticated workshop links and expect the settings profile subroute. Keep these details aligned with sidebar and settings navigation changes.
 - `perf:profile-peak-load` now writes a local jsdom render-profile JSON artifact for the 50-project / 200-row Phase 6 decision. Treat its numbers as local harness evidence only; use Chrome React Profiler before adding virtualization or broad memoization.
+- Workshop route error boundaries now have direct DOM regression coverage for sanitized retry UI and reset behavior, plus an env/query-gated live dev-auth Playwright smoke that captures thrown-route screenshots for library, project charts, and estimate workspace. Those screenshots are local dev-mode evidence and include the Next.js dev issue notifier.
 
 ## Validation Coverage
 
@@ -38,7 +39,7 @@ Covered:
 - Fresh expanded route/workshop suite after the bfcache capture correction: 10 files, 124 tests passed.
 - Fresh expanded route/workshop/library suite after component-library cleanup: 12 files, 162 tests passed.
 - Fresh full DOM rerun completed without route/workshop failures after fixing route-adjacent test debt in `live-estimate-node-route.test.ts`, `estimate-tree-context-menu.test.tsx`, `estimate-sheet-cost-inputs.test.tsx`, and `workshop-library-consolidation-ui.test.tsx`.
-- Fresh full DOM rerun after the component-library cleanup completed without component-library failures. Latest full DOM result: 6 failed files, 12 failed tests, 109 passed files, 896 passed tests, 2 skipped; remaining failures are landing/project-publication/project-creation validation debt.
+- Earlier full DOM rerun after the component-library cleanup completed without component-library failures but still had unrelated landing/project-publication/project-creation failures. A later fresh full DOM rerun after the error-boundary proof refresh now passes 118 files / 918 tests with 2 skips.
 - Standalone `perf:measure-routes` no-throttle focused run on production-like `next start` port 3042: About to Contact median 779 ms, Pricing to Contact median 737 ms, both 0 failures.
 - Standalone `perf:measure-routes` Slow 3G focused run on production-like `next start` port 3042: About to Contact median 1893 ms, Pricing to Contact median 3177 ms, both 0 failures.
 - Standalone `perf:measure-routes` local dev-auth no-throttle run on `next dev` port 3043: Workshop to Projects median 1940 ms, Library 4496 ms, Templates 2405 ms, Settings/Profile 2716 ms, all 0 failures.
@@ -46,16 +47,22 @@ Covered:
 - Local peak-load render profile: `ProjectEstimatesTable` 50-row initial render 720.61 ms; `EstimateSheetContent` 200-row initial render 1390.33 ms in jsdom; no virtualization or broad memoization added.
 - Fresh route-transition perf governance tests after the authenticated measurement-script fixes: 2 files, 5 tests passed.
 - Fresh peak-load governance/profile tests: 2 files, 6 tests passed.
+- Fresh error-boundary proof: direct route error component test passed 1 file / 4 tests; refreshed route-transition governance with error-boundary coverage passed 5 files / 15 tests.
 - Fresh targeted ESLint, type-check, design-system lint, and whitespace checks passed after the authenticated measurement-script evidence update.
+- Latest blocker-refresh validation passes: full `bun run type-check`; full `bun run lint` with 0 errors / 18 warnings; design-system lint; unit tests; production build; targeted route-transition ESLint; targeted route-transition Vitest at 6 files / 22 tests; and `bun run test:e2e:perf` on clean Playwright port 3022 with 6 passed / 2 expected dev-auth skips.
+- Initial fresh type-check, design-system lint, unit tests, full DOM suite, production build, and whitespace checks passed after the error-boundary proof refresh. A later intermediate full type-check rerun failed in concurrent share/collaboration files (`ProjectPublicationHeader.tsx`, `publication/actions.ts`), but the latest blocker-refresh type-check now passes.
+- Fresh full DOM suite now passes: 118 files, 918 tests passed, 2 skipped.
+- Component-level forced-render screenshot captured in `route-error-boundary-forced-render.png` after generated HTML redaction checks.
 - GitNexus detect-changes after the authenticated measurement-script update: 61 changed files, 122 changed symbols, 58 affected processes, critical risk. This still blocks readiness/archive claims because it reflects broad accumulated route-transition branch breadth plus unrelated dirty worktree changes.
+- GitNexus detect-changes after the error-boundary proof refresh: 45 changed files, 166 symbols, 19 affected processes, critical risk. The current changed-symbol list is dominated by active share/publication work in this shared worktree, so it remains a readiness/archive blocker but not a route-transition-owned regression.
+- Live route-error smoke: 2 Playwright tests passed with `ARCHESTIMATOR_E2E_ROUTE_ERROR_SMOKE=1`, `ARCHESTIMATOR_DEV_AUTH_BYPASS=1`, and `ARCHESTIMATOR_DEV_AUTH_ADMIN_DB=1`; screenshots were written under `live-route-error-screenshots/`.
+- Full E2E after live route-error smoke passed locally: 9 passed, 20 skipped. The new route-error Playwright spec is skipped by default unless the smoke env flags are enabled.
 
 Not fully covered:
 
-- Full clean lint, due unrelated share/publication validation debt.
-- Full clean DOM suite, due unrelated landing/publication/security-header/project-creation failures. Latest full DOM result: 6 failed files, 12 failed tests, 109 passed files, 896 passed tests, 2 skipped.
 - Manual bfcache DevTools proof. Automated back-forward/no-overlay evidence exists, but headless Chromium reported `pageshow.persisted=false`.
 - Production-mode authenticated sidebar/project/estimate-row Network screenshots that prove hover-before-click `_rsc` requests, if achievable outside the local dev-auth environment.
-- Forced route-error screenshots.
+- Production-mode route-error screenshots. Live dev-auth screenshots exist, but they are not production-mode proof.
 - Full `@next/bundle-analyzer` report.
 - Production deployment/Vercel runtime proof.
 
@@ -64,6 +71,6 @@ Not fully covered:
 Before archiving the route-transition plan folder, finish the unrelated validation debt or explicitly narrow the completion gate. Then run:
 
 - Production-mode authenticated hover/focus Network proof for sidebar, project-card, and estimate-row surfaces; refreshed automation records the gap but cannot prove hover prefetch in the local dev-auth environment because Next.js disables App Router prefetch URL creation in development.
-- Manual or automated forced error-boundary screenshot proof.
+- Production-mode route-error screenshot proof if a safe non-production fixture is approved; current evidence covers component-level forced-render screenshot, direct route `error.tsx` tests, and live dev-auth thrown-route screenshots.
 - Production Chrome React Profiler trace for the 50-project / 200-row profile before adding virtualization or broad memoization.
 - Broaden `perf:measure-routes` with an authenticated Playwright storage state when one is available, then rerun the workshop scenarios in production-like mode instead of local dev-auth mode.

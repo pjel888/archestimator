@@ -1,0 +1,6 @@
+$ next start --port "3066"
+▲ Next.js 16.2.6
+- Local:         http://localhost:3066
+- Network:       http://127.0.2.2:3066
+✓ Ready in 1383ms
+error: script "start" exited with code 143

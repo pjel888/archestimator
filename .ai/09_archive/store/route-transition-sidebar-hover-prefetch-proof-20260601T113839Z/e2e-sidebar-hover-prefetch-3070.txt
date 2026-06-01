@@ -1,0 +1,28 @@
+
+Running 1 test using 1 worker
+
+  ✘  1 [chromium] › e2e/route-transition-performance.spec.ts:327:7 › route transition performance evidence › captures authenticated transition budget and separates hover-prefetch evidence when auth is enabled (1.5m)
+
+
+  1) [chromium] › e2e/route-transition-performance.spec.ts:327:7 › route transition performance evidence › captures authenticated transition budget and separates hover-prefetch evidence when auth is enabled 
+
+    [31mTest timeout of 90000ms exceeded.[39m
+
+    Error: locator.hover: Test timeout of 90000ms exceeded.
+    Call log:
+    [2m  - waiting for locator('a[href="/workshop/projects"]').first()[22m
+
+
+      344 |     const projectsLink = page.locator('a[href="/workshop/projects"]').first();
+      345 |     const collapsedSidebarIconPosition = { x: 24, y: 16 };
+    > 346 |     await projectsLink.hover({ position: collapsedSidebarIconPosition });
+          |                        ^
+      347 |     await page.waitForTimeout(250);
+      348 |     const hoverRscRequests = [...rscRequests];
+      349 |     const beforeClick = await collectRouteMetrics(page);
+        at /Users/philiplewis/archestimator/e2e/route-transition-performance.spec.ts:346:24
+
+    Error Context: test-results/route-transition-performan-85c8a-idence-when-auth-is-enabled-chromium/error-context.md
+
+  1 failed
+    [chromium] › e2e/route-transition-performance.spec.ts:327:7 › route transition performance evidence › captures authenticated transition budget and separates hover-prefetch evidence when auth is enabled 
