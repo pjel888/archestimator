@@ -4,3 +4,4 @@ args = [
     "serve",
 ]
 command = "uvx"
+suppress_unstable_features_warning = true
