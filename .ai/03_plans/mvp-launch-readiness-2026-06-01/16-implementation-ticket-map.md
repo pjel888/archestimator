@@ -51,8 +51,8 @@ All tickets are PR-ready planning units. Before editing code for any ticket, run
 - Priority: P0
 - Owner: Engineering
 - Goal: No AI UI is visible and no AI route can call provider/tools/audit/write paths unless explicit post-MVP flags re-enable it.
-- Exact files/symbols: `src/components/workshop/WorkshopPageShell.tsx`, `src/components/workshop/EstimateCopilotFloatingButton.tsx`, `src/app/api/ai/ask/route.ts`, `src/app/api/ai/package-builder/route.ts`, `src/lib/ai/package-builder/feature-flags.ts`, `.env.example`.
-- Implementation steps: add `NEXT_PUBLIC_ASK_FLIP_ENABLED=false`, `AI_ASK_ENABLED=false`, `AI_PACKAGE_BUILDER_ENABLED=false`; gate UI before rendering; gate route handlers before importing/calling provider-capable work if feasible; keep existing subflags inert while global flag is false; document reactivation conditions.
+- Exact files/symbols: `src/components/workshop/WorkshopPageShell.tsx`, `src/components/workshop/EstimateCopilotFloatingButton.tsx`, `src/app/api/ai/ask/route.ts`, `src/app/api/ai/package-builder/route.ts`, `src/lib/ai/feature-flags.ts`, `.env.example`.
+- Implementation steps: add `NEXT_PUBLIC_ASK_FLIP_UI_ENABLED=false` and `ARCHESTIMATOR_AI_ENABLED=false`; gate UI before rendering; gate route handlers before importing/calling provider-capable work; keep existing subflags inert while global flag is false; document reactivation conditions.
 - Data/schema changes: none.
 - Env/config changes: add production defaults false to env manifest.
 - Tests: UI absence test, route disabled status test, provider mock not called, package-builder Apply/Draft not reached.

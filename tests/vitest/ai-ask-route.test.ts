@@ -36,6 +36,23 @@ function makeEmptyReadContext(): AiAskReadContext {
 describe("AI Ask route", () => {
   afterEach(() => {
     vi.restoreAllMocks();
+    vi.doUnmock("@/app/api/ai/ask/handler");
+    vi.unstubAllEnvs();
+    vi.resetModules();
+  });
+
+  it("keeps the public route disabled by default before calling the Ask handler", async () => {
+    const routeHandler = vi.fn(async () => new Response(JSON.stringify({ message: "handler reached" }), { status: 200 }));
+    vi.doMock("@/app/api/ai/ask/handler", () => ({
+      handleAiAskRequest: routeHandler,
+    }));
+
+    const { POST } = await import("@/app/api/ai/ask/route");
+    const response = await POST(makeRequest({ message: "How many projects do I have?" }));
+
+    expect(response.status).toBe(404);
+    expect(routeHandler).not.toHaveBeenCalled();
+    await expect(response.json()).resolves.toMatchObject({ error: "AI is disabled for closed beta." });
   });
 
   it("rejects an empty message", async () => {

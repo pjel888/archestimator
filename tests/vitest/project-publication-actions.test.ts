@@ -177,9 +177,13 @@ describe("project publication manager actions (Shared Link Overhaul V2)", () => 
 
   it("P5 share page verifies recipient token on ?recipient= load, sets session cookie, and scopes open tracking (password/view-only paths unchanged)", () => {
     const pageSrc = readFileSync("src/app/share/[token]/page.tsx", "utf8");
+    const sessionRouteSrc = readFileSync("src/app/api/share/[token]/session/route.ts", "utf8");
     expect(pageSrc).toContain("searchParams");
     expect(pageSrc).toContain("?recipient");
-    expect(pageSrc).toContain("verifySharedLinkRecipientToken");
+    expect(pageSrc).toContain("SharePageRecipientSessionInitializer");
+    expect(sessionRouteSrc).toContain("verifySharedLinkRecipientToken");
+    expect(sessionRouteSrc).toContain("getSharedLinkSessionCookieParts");
+    expect(sessionRouteSrc).toContain("response.cookies.set");
     expect(pageSrc).toContain("recipientIdForOpenEvent");
     expect(pageSrc).toContain("createSharedLinkSessionCookieName"); // P5 session cookie name construction used on recipient path + subsequent loads
     expect(pageSrc).toContain("verifySharedLinkSessionCookieValue");

@@ -48,9 +48,8 @@ Commit audited: `681c95e64864f283950a88dba304eaffe8f2f8b3`
 | `RESEND_FROM` | server-only | verified sender | Must match verified domain. |
 | `RESEND_REPLY_TO` | server-only | support inbox | Required for replies. |
 | `RESEND_WEBHOOK_SECRET` | server-only | secret | Webhook returns 503 if absent. |
-| `NEXT_PUBLIC_ASK_FLIP_ENABLED` | public | `false` | MVP AI UI off. |
-| `AI_ASK_ENABLED` | server-only | `false` | MVP ask route off. |
-| `AI_PACKAGE_BUILDER_ENABLED` | server-only | `false` | MVP package-builder off. |
+| `NEXT_PUBLIC_ASK_FLIP_UI_ENABLED` | public | `false` | MVP AI UI off. |
+| `ARCHESTIMATOR_AI_ENABLED` | server-only | `false` | MVP AI routes off before handler import. |
 | Monitoring vars | mixed | provider-specific | Required by `OBS-001`. |
 
 ## Required Supabase Config

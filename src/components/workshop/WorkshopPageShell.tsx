@@ -5,6 +5,7 @@ import { MainSidebar, type MainSidebarStatus } from "@/components/sidebar/MainSi
 import { AskFlipFooterAssistant } from "@/components/workshop/EstimateCopilotFloatingButton";
 import { ProjectTotalHeader } from "@/components/workshop/ProjectTotalHeader";
 import { Skeleton } from "@/components/ui/skeleton";
+import { isAskFlipUiEnabled } from "@/lib/ai/feature-flags";
 import { cn } from "@/lib/ui/cn";
 import { getCurrentUserContext } from "@/lib/auth/session";
 import { ESTIMATE_CENTER_COLUMN_CSS_VARIABLES } from "./EstimateCenterColumnBoundary";
@@ -77,6 +78,7 @@ export async function WorkshopPageShell({
   const sidebarUser = currentUser
     ? { displayName: currentUser.displayName, email: currentUser.email, avatarUrl: currentUser.avatarUrl }
     : undefined;
+  const showAskFlip = isAskFlipUiEnabled();
   const resolvedBreadcrumbs = breadcrumbs ?? [eyebrow, title];
   const chromePaddingClass = alignChromeToProjectSidebar ? "p-2 lg:py-2 lg:pr-2 lg:pl-[25px]" : "p-2";
 
@@ -120,7 +122,7 @@ export async function WorkshopPageShell({
               <ProjectTotalHeader projectId={projectId} />
             </div>
           ) : null}
-          <AskFlipFooterAssistant />
+          {showAskFlip ? <AskFlipFooterAssistant /> : null}
         </footer>
       </section>
     </main>

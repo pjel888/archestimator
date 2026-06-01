@@ -425,6 +425,24 @@ describe("AI package-builder route", () => {
   afterEach(() => {
     delete process.env.AI_PACKAGE_BUILDER_APPLY_ROWS_ENABLED;
     delete process.env.AI_PACKAGE_BUILDER_MEMORY_ENABLED;
+    vi.restoreAllMocks();
+    vi.doUnmock("@/app/api/ai/package-builder/handler");
+    vi.unstubAllEnvs();
+    vi.resetModules();
+  });
+
+  it("keeps the public package-builder route disabled by default before calling the handler", async () => {
+    const routeHandler = vi.fn(async () => new Response(JSON.stringify({ mode: "draft" }), { status: 200 }));
+    vi.doMock("@/app/api/ai/package-builder/handler", () => ({
+      handlePackageBuilderRequest: routeHandler,
+    }));
+
+    const { POST } = await import("@/app/api/ai/package-builder/route");
+    const response = await POST(makeRequest({ mode: "draft", message: "Assemble a 3 bedroom package." }));
+
+    expect(response.status).toBe(404);
+    expect(routeHandler).not.toHaveBeenCalled();
+    await expect(response.json()).resolves.toMatchObject({ error: "AI is disabled for closed beta." });
   });
 
   it("rejects local dev-bypass pseudo users before read tools or provider calls", async () => {
