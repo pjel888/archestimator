@@ -1,27 +1,46 @@
 # Implementation Phases
 
+## Third-Pass PR Dependency Graph
+
+Commit audited: `681c95e64864f283950a88dba304eaffe8f2f8b3`. Implementation must proceed in evidence-gated slices; do not batch unrelated launch risks into one PR.
+
+| Phase | PR / Tickets | Can run in parallel with | Stop/go gate | Commands | Evidence | Rollback |
+| --- | --- | --- | --- | --- | --- | --- |
+| 0 | Fix current red DOM tests if separate from `AI-001` | Docs/legal drafting | `bun run test:dom` green or superseded by stronger tests | `bun run test:dom` | test log | Revert test changes |
+| 1 | `AI-001`, env slice of `INFRA-001` | Legal drafting, demo planning | AI hidden and routes disabled | typecheck, lint, targeted tests, build | no-provider tests, screenshot | flags false/revert UI gate |
+| 2 | `ONB-001`, `AUTH-001` | `LIB-001` analysis | Hosted auth/first-run smoke green | validate, auth E2E | staging/prod auth log | revert env/callback changes |
+| 3 | `LIB-001`, `TPL-001` | legal/support docs | Library/template UI credible | DOM tests, manual screenshots | screenshot set | hide nav or revert UI |
+| 4 | `UNLINK-001`, unlink slice of `SEC-001` | `EXP-001` model planning | Detached row safe; library unchanged | RPC/action/UI tests, SQL proof | SQL/test/manual log | revert migration/action/UI |
+| 5 | `EXP-001`, export slice of `PERF-001` | `INFRA-002` DNS setup | Workbook opens/formulas pass | ExcelJS tests, build, manual open | XLSX artifact | disable export/revert workbook |
+| 6 | `INFRA-002`, platform `SEC-001` | `OBS-001` setup | RLS/storage/email proof green | SQL, webhook tests, deploy smoke | logs/dashboard | disable share/invite/email |
+| 7 | `LEGAL-001`, `OBS-001` | `DATA-001` prep | legal/support/alerts ready | route tests, alert smoke | sign-off/dashboard | closed beta hold |
+| 8 | `DATA-001`, full `QA-002` | demo script | backup/restore and zero-defect matrix pass | full baseline + safe E2E | backup and command logs | restore/revert |
+| 9 | `DEMO-001`, `BETA-001` | none | demo/beta checklists green | smoke rehearsal | demo/beta artifacts | pause demo/invites |
+
+Parallelization map: docs/legal/demo planning can run while engineering PRs proceed; code touching `EstimateSheetContent`, row RPCs, export model/workbook, and share/invite routes should be staged to avoid shared-file conflicts.
+
 Phases are PR-sized and evidence-gated. Do not merge downstream work until upstream stop/go gates pass.
 
 ## Dependency Graph
 
 ```text
-MVP-AI-001 -> MVP-AI-002 -> MVP-AI-003 -> MVP-QA-001
-MVP-ROW-001 -> MVP-ROW-002 -> MVP-ROW-003 -> MVP-ROW-004 -> MVP-ROW-005 -> MVP-QA-001
-MVP-LIB-001 -> MVP-LIB-002 -> MVP-QA-001
-MVP-TPL-001 -> MVP-TPL-002 -> MVP-QA-001
-MVP-XLS-001 -> MVP-XLS-002 -> MVP-XLS-003 -> MVP-QA-001
+AI-001 -> AI-001 -> AI-001 -> QA-002
+UNLINK-001 -> UNLINK-001 -> UNLINK-001 -> UNLINK-001 -> UNLINK-001 -> QA-002
+LIB-001 -> LIB-001 -> QA-002
+TPL-001 -> TPL-001 -> QA-002
+EXP-001 -> EXP-001 -> EXP-001 -> QA-002
 ```
 
 Parallelization:
 
 - AI PR can run in parallel with library/template polish.
 - Row SQL/RPC work should not run in parallel with row UI edits unless interface is locked.
-- Export model and workbook can split only after `MVP-XLS-001` type contract is accepted.
+- Export model and workbook can split only after `EXP-001` type contract is accepted.
 - Final QA runs after all PRs land.
 
 ## Phase 1: AI Deferral
 
-Tickets: MVP-AI-001, MVP-AI-002, MVP-AI-003
+Tickets: AI-001
 
 Files:
 
@@ -52,7 +71,7 @@ Rollback:
 
 ## Phase 2: Row Unlink Data Contract
 
-Tickets: MVP-ROW-001, MVP-ROW-002
+Tickets: UNLINK-001
 
 Files:
 
@@ -80,7 +99,7 @@ Rollback:
 
 ## Phase 3: Row UX
 
-Tickets: MVP-ROW-003, MVP-ROW-004, MVP-ROW-005
+Tickets: UNLINK-001
 
 Files:
 
@@ -108,7 +127,7 @@ Rollback:
 
 ## Phase 4: Library Polish
 
-Tickets: MVP-LIB-001, MVP-LIB-002
+Tickets: LIB-001
 
 Commands:
 
@@ -128,7 +147,7 @@ Rollback:
 
 ## Phase 5: Template Polish
 
-Tickets: MVP-TPL-001, MVP-TPL-002
+Tickets: TPL-001
 
 Commands:
 
@@ -148,7 +167,7 @@ Rollback:
 
 ## Phase 6: Excel Export
 
-Tickets: MVP-XLS-001, MVP-XLS-002, MVP-XLS-003
+Tickets: EXP-001
 
 Commands:
 
@@ -167,7 +186,7 @@ Rollback:
 
 ## Phase 7: Launch Proof
 
-Ticket: MVP-QA-001
+Ticket: QA-002
 
 Commands:
 
