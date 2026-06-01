@@ -2,7 +2,7 @@
 
 ## Final Report Artifact
 
-Final implementation report: `final-codex-implementation-report.md`. It summarizes the local-safe implementation baseline through `8084908`, records report publication/correction commits `80f806d` and `579cef0`, records post-report validation/build/completion-audit evidence through `3b01cd2`, and keeps the external closed beta recommendation at **NO-GO** until hosted/provider/manual proof gates are complete.
+Final implementation report: `final-codex-implementation-report.md`. It summarizes the local-safe implementation baseline through `8084908`, records report publication/correction commits `80f806d` and `579cef0`, records post-report validation/build/completion-audit/proof-template evidence through `9d71239`, and keeps the external closed beta recommendation at **NO-GO** until hosted/provider/manual proof gates are complete.
 
 Manual proof matrix: `46-manual-proof-matrix.md`. It is the required checklist for collecting the remaining hosted/provider/manual evidence before any external closed-beta go/no-go review.
 
