@@ -393,6 +393,14 @@
 - Protection proof: Vercel reports SSO protection for `all_except_custom_domains`, Git fork protection enabled, and one env-var-backed automation bypass entry remaining after cleanup of the non-env bypass entry generated during this run.
 - Launch meaning: this is partial/blocked Vercel evidence. Preview deploy and protected health route are proven, but env, production/custom-domain behavior, public monitoring path, hosted auth smoke, and rollback proof remain **NO-GO** rows.
 
+### Provider State Refresh Evidence
+
+- Artifact: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/provider-state-refresh-2026-06-02.md`.
+- Vercel refresh: `vercel env ls --non-interactive` still returned `No Environment Variables found`; latest preview `https://archestimator-j29iumqi0-philipjonlewis-projects.vercel.app` is `Ready`; `vercel inspect` reported deployment id `dpl_3UUiMA7Tc6ubJSgckDKBdjGMmnSp`; `vercel curl` to `/api/health` returned `{"ok":true,"service":"archestimator"}`; plain curl returned HTTP `401`.
+- Supabase refresh: linked project remains `Archestimator` / `ebxxqidacheyapmmzavr`; `supabase migration list --linked` succeeded and still shows `20260601182522_closed_beta_allowed_emails` and `20260601184343_unlink_estimate_row_items` as local-only.
+- Local env refresh: current shell printed no matching `RESEND_`, closed-beta, AI, dev-auth, or Supabase env variables.
+- Launch meaning: this refresh confirms the previous provider blockers are still current. Hosted auth, env-backed Supabase/Resend behavior, production/custom-domain health, rollback, backup/PITR, linked allowlist, and linked unlink proof remain **NO-GO** rows.
+
 ### Resend Email Readiness Evidence
 
 - Artifact note: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/resend-email-readiness-blocked-2026-06-02.md`.
