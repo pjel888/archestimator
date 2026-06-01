@@ -20,6 +20,7 @@ This audit maps the active MVP launch goal in `codex-autopilot-goal.md` to curre
 | Spreadsheet artifact evidence | `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/spreadsheet-artifact-local-2026-06-02.md`; generated workbook artifact is loadable, ZIP-valid, formula-backed, and has no blank line totals; Excel/secondary-app open and print proof is blocked because no spreadsheet app is installed locally. |
 | Component/template local demo smoke evidence | `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/library-demo-smoke-local-2026-06-02.md`; local Playwright smoke captured component search/trust fields and template preview screenshots/JSON; hosted proof remains missing. |
 | Template insertion local smoke evidence | `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/template-insert-local-smoke-2026-06-02.md`; local Playwright smoke inserted `Condo Fit-Out Starter` into a throwaway estimate, verified 5 copied nodes / 8 copied rows plus one `template_inserted` event, and verified zero fixture residue. |
+| Support/feedback local surface evidence | `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/support-feedback-local-surface-2026-06-02.md`; `/contact`, workshop `Send beta feedback`, terms, and privacy source point beta support, feedback, and deletion requests to `support@archestimator.com`; monitored inbox/form and alert owner proof remain missing. |
 | Project-specific unlink linked smoke attempt | `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/project-specific-unlink-linked-smoke-blocked-2026-06-02.md`; local UI reached the Make project-specific confirmation, but linked Supabase returned `PGRST202` because `unlink_estimate_row_item_from_library_with_history` is absent from the schema cache; fixture cleanup returned zero residue. |
 
 ## Final Criteria Audit
@@ -33,7 +34,7 @@ This audit maps the active MVP launch goal in `codex-autopilot-goal.md` to curre
 | Core project/estimate/library/template workflows working | Local tests cover major flows, component/template demo screenshots exist, template insertion into a throwaway estimate is locally proven, and current validation/build passes; hosted/manual core smoke remains missing. | Local-proven; hosted/manual smoke missing |
 | Project-specific component unlink implemented and tested | RPC/action/hook/UI/tests prove local detach semantics and export compatibility; linked SQL/manual library-unchanged proof missing. | Local-proven; linked/manual proof missing |
 | Excel export upgraded and tested | ExcelJS/model/workbook tests, generated workbook artifact, ZIP integrity, and no-blank-total scan prove local workbook generation; Excel plus secondary spreadsheet open/print proof remains missing. | Local artifact proven; spreadsheet-app proof missing |
-| Beta feedback/support path available | Workshop feedback mailto/contact/support copy exists locally; monitored inbox/form proof missing. | Local-proven; support proof missing |
+| Beta feedback/support path available | Workshop feedback mailto/contact/support copy exists locally and is covered by source/DOM tests; monitored inbox/form and alert-owner proof are missing. | Local-proven; support proof missing |
 | `.env.example` updated | Env manifest/source contract tests and runbook entries exist. | Local-proven; Vercel env proof missing |
 | Vercel/Supabase/Resend/readiness docs updated | Launch docs, runbook, env manifest, backup/DR, and proof matrix are updated. | Docs-proven; provider proof missing |
 | `.ai` roadmap/state/decision/readiness docs updated | `current-state.md`, `decisions.md`, known issues, launch pack, scorecard, and final report are synced to current local evidence. | Docs-proven |
@@ -54,7 +55,7 @@ These are required before the active goal can be marked complete:
 6. Excel plus one secondary spreadsheet app open/recalc/print proof. Current local artifact is valid and loadable, but no spreadsheet app is installed locally to prove open/recalc/print.
 7. Project-specific unlink manual smoke with library unchanged proof. Current linked smoke attempt is blocked by missing linked RPC `unlink_estimate_row_item_from_library_with_history`; do not rerun as a pass until backup/PITR and linked migration/RPC proof are resolved.
 8. Owner/counsel review of legal/beta copy.
-9. Monitored support inbox/form and alert owner proof.
+9. Monitored support inbox/form and alert owner proof. Local source proof now shows `/contact` and workshop feedback routes point to `support@archestimator.com`, but it does not prove the inbox/form is monitored or alerts reach an owner.
 10. Demo rehearsal screenshots, fallback script, and validated exported workbook artifact. Current fallback workbook artifact exists and local component/template screenshots plus local template insertion proof exist; hosted rehearsal proof remains missing.
 11. Current hosted manual E2E smoke across the closed-beta core journey.
 
