@@ -19,7 +19,7 @@ describe("auth onboarding workspace guard", () => {
     nextHeadersMocks.headers.mockResolvedValue(new Headers());
   });
 
-  it("resolves every successful post-auth destination to the workshop homebase", async () => {
+  it("resolves ordinary successful post-auth destinations to the workshop homebase", async () => {
     const { resolvePostAuthDestination } = await import("@/lib/auth/account-setup");
 
     expect(resolvePostAuthDestination("/workshop/projects")).toBe("/workshop");
@@ -27,6 +27,12 @@ describe("auth onboarding workspace guard", () => {
     expect(resolvePostAuthDestination("/workshop/onboarding?next=/workshop/projects")).toBe("/workshop");
     expect(resolvePostAuthDestination("https://evil.example")).toBe("/workshop");
     expect(nextNavigationMocks.redirect).not.toHaveBeenCalled();
+  });
+
+  it("preserves the invite bridge destination after successful auth", async () => {
+    const { resolvePostAuthDestination } = await import("@/lib/auth/account-setup");
+
+    expect(resolvePostAuthDestination("/workshop/pending-invite")).toBe("/workshop/pending-invite");
   });
 
   it("reuses an invited collaborator workspace before creating a fallback workspace", async () => {

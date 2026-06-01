@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { handlePackageBuilderRequest } from "@/app/api/ai/package-builder/route";
+import { handlePackageBuilderRequest } from "@/app/api/ai/package-builder/handler";
 import { createPackageDraftToken } from "@/lib/ai/package-builder/draft-token";
 import type { PackageBuilderReadToolsData } from "@/lib/ai/package-builder/read-tools";
 import { buildPackageDraftHash, parsePackageBuilderDraft } from "@/lib/ai/package-builder/schemas";

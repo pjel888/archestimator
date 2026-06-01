@@ -4,13 +4,19 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { ProjectWorkspaceHeaderRow } from "@/components/workshop/ProjectWorkspaceHeaderRow";
-import { SheetPickerList } from "@/components/workshop/ProjectPublicationHeader";
+import { ProjectPublicationHeader, SheetPickerList } from "@/components/workshop/ProjectPublicationHeader";
 import type { ProjectCollaborationSummary } from "@/lib/collaboration/types";
 import type { ProjectEstimateSheet, ProjectPublicationSummary } from "@/lib/publication/types";
 
+const workspaceRepositorySource = readFileSync("src/lib/repositories/workspace-repository.ts", "utf8");
+
 const publicationActions = vi.hoisted(() => ({
+  addSharedLinkRecipients: vi.fn(),
   createProjectPublication: vi.fn(),
+  listSharedLinkRecipients: vi.fn(),
+  removeSharedLinkRecipient: vi.fn(),
   republishProjectPublication: vi.fn(),
+  resendSharedLinkRecipientEmail: vi.fn(),
   revokeProjectPublication: vi.fn(),
   rotateProjectPublicationLink: vi.fn(),
 }));
@@ -73,8 +79,13 @@ const sampleEstimateSheets: ProjectEstimateSheet[] = [
 
 describe("ProjectWorkspaceHeaderRow publication control", () => {
   beforeEach(() => {
+    window.localStorage.clear();
+    publicationActions.addSharedLinkRecipients.mockReset();
     publicationActions.createProjectPublication.mockReset();
+    publicationActions.listSharedLinkRecipients.mockReset();
+    publicationActions.removeSharedLinkRecipient.mockReset();
     publicationActions.republishProjectPublication.mockReset();
+    publicationActions.resendSharedLinkRecipientEmail.mockReset();
     publicationActions.revokeProjectPublication.mockReset();
     publicationActions.rotateProjectPublicationLink.mockReset();
 
@@ -112,6 +123,61 @@ describe("ProjectWorkspaceHeaderRow publication control", () => {
     expect(within(dialog).getByRole("button", { name: "Create new shared link" })).toBeEnabled();
     expect(within(dialog).queryByText("Project share link")).not.toBeInTheDocument();
     expect(within(dialog).queryByText("Client publication snapshot")).not.toBeInTheDocument();
+  });
+
+  it("offers one-click header copy and marks shared-link activity before opening the modal", async () => {
+    const user = userEvent.setup();
+    const writeText = vi.fn(async () => undefined);
+    Object.defineProperty(navigator, "clipboard", {
+      configurable: true,
+      value: { writeText },
+    });
+    const { container } = render(
+      <ProjectWorkspaceHeaderRow
+        projectId="project-1"
+        projectCode="PRJ-001"
+        collaborationSummary={collaborationSummary}
+        publicationSummary={publicationSummary}
+        projectEstimateSheets={sampleEstimateSheets}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Copy shared link from header" }));
+
+    expect(writeText).toHaveBeenCalledWith("http://localhost:3000/share/client-token");
+    expect(container.querySelector('[data-shared-link-activity-dot="true"]')).toBeInTheDocument();
+    expect(screen.getByRole("status")).toHaveTextContent("Shared link copied.");
+  });
+
+  it("persists shared-link activity last seen and clears the header dot from the Activity tab", async () => {
+    const user = userEvent.setup();
+    const { container } = render(
+      <ProjectPublicationHeader
+        summary={publicationSummary}
+        projectEstimateSheets={sampleEstimateSheets}
+      />,
+    );
+
+    expect(container.querySelector('[data-shared-link-activity-dot="true"]')).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Open shared link" }));
+    await user.click(screen.getByRole("tab", { name: "Activity" }));
+
+    expect(container.querySelector('[data-shared-link-activity-dot="true"]')).not.toBeInTheDocument();
+    expect(window.localStorage.getItem("archestimator_shared_link_last_seen:publication-1")).toBe("2026-05-27T01:00:00.000Z");
+  });
+
+  it("does not show the shared-link activity dot after the latest activity is already seen", () => {
+    window.localStorage.setItem("archestimator_shared_link_last_seen:publication-1", "2026-05-27T02:00:00.000Z");
+
+    const { container } = render(
+      <ProjectPublicationHeader
+        summary={publicationSummary}
+        projectEstimateSheets={sampleEstimateSheets}
+      />,
+    );
+
+    expect(container.querySelector('[data-shared-link-activity-dot="true"]')).not.toBeInTheDocument();
   });
 
   it("generates a public view-only link with an optional password and shows it immediately", async () => {
@@ -187,12 +253,85 @@ describe("ProjectWorkspaceHeaderRow publication control", () => {
     const dialog = screen.getByRole("dialog", { name: "Shared link" });
     await user.click(within(dialog).getByRole("button", { name: "Create new shared link" }));
 
+    expect(publicationActions.rotateProjectPublicationLink).not.toHaveBeenCalled();
+    const confirmDialog = screen.getByRole("dialog", { name: "Create new shared link?" });
+    expect(within(confirmDialog).getAllByText(/current shared link will stop working/i).length).toBeGreaterThan(0);
+    await user.click(within(confirmDialog).getByRole("button", { name: "Create new link" }));
+
     expect(publicationActions.rotateProjectPublicationLink).toHaveBeenCalledWith({
       projectId: "project-1",
       password: undefined,
       clearPassword: false,
     });
     expect(await within(dialog).findByDisplayValue("http://localhost:3000/share/rotated-token")).toBeInTheDocument();
+  });
+
+  it("confirms before turning off a live shared link", async () => {
+    publicationActions.revokeProjectPublication.mockResolvedValueOnce({
+      ok: true,
+      message: "Shared link turned off.",
+      clientLinkPath: null,
+    });
+
+    const user = userEvent.setup();
+    render(
+      <ProjectWorkspaceHeaderRow
+        projectId="project-1"
+        projectCode="PRJ-001"
+        collaborationSummary={null}
+        publicationSummary={publicationSummary}
+        projectEstimateSheets={sampleEstimateSheets}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Open shared link" }));
+    const dialog = screen.getByRole("dialog", { name: "Shared link" });
+    await user.click(within(dialog).getByRole("button", { name: "Turn off shared link" }));
+
+    expect(publicationActions.revokeProjectPublication).not.toHaveBeenCalled();
+    const confirmDialog = screen.getByRole("dialog", { name: "Turn off shared link?" });
+    expect(within(confirmDialog).getAllByText(/recipients will lose access/i).length).toBeGreaterThan(0);
+    await user.click(within(confirmDialog).getByRole("button", { name: "Turn off link" }));
+
+    expect(publicationActions.revokeProjectPublication).toHaveBeenCalledWith({ projectId: "project-1" });
+    expect(await within(dialog).findByRole("status")).toHaveTextContent("Shared link turned off.");
+  });
+
+  it("confirms before clearing an existing shared-link password", async () => {
+    publicationActions.republishProjectPublication.mockResolvedValueOnce({
+      ok: true,
+      message: "Shared page updated.",
+      clientLinkPath: "/share/client-token",
+    });
+
+    const user = userEvent.setup();
+    render(
+      <ProjectWorkspaceHeaderRow
+        projectId="project-1"
+        projectCode="PRJ-001"
+        collaborationSummary={null}
+        publicationSummary={publicationSummary}
+        projectEstimateSheets={sampleEstimateSheets}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Open shared link" }));
+    const dialog = screen.getByRole("dialog", { name: "Shared link" });
+    await user.click(within(dialog).getByRole("tab", { name: "Access" }));
+    await user.click(within(dialog).getByLabelText("Require password"));
+    await user.click(within(dialog).getByRole("button", { name: "Update shared page" }));
+
+    expect(publicationActions.republishProjectPublication).not.toHaveBeenCalled();
+    const confirmDialog = screen.getByRole("dialog", { name: "Clear shared-link password?" });
+    expect(within(confirmDialog).getByText(/anyone with the link can view it without a password/i)).toBeInTheDocument();
+    await user.click(within(confirmDialog).getByRole("button", { name: "Clear password" }));
+
+    expect(publicationActions.republishProjectPublication).toHaveBeenCalledWith({
+      projectId: "project-1",
+      selectedEstimateIds: ["est-1", "est-2"],
+      password: undefined,
+      clearPassword: true,
+    });
   });
 
   it("disables generate when 0 estimates selected (sheet filter validation)", async () => {
@@ -213,6 +352,58 @@ describe("ProjectWorkspaceHeaderRow publication control", () => {
     await user.click(within(dialog).getByRole("tab", { name: "Sheets" }));
     const generateBtn = within(dialog).getByRole("button", { name: "Generate shared link" });
     expect(generateBtn).toBeDisabled();
+  });
+
+  it("computes stale snapshot warnings from snapshot generatedAt and latest estimate updates", () => {
+    expect(workspaceRepositorySource).toContain("readPublicationSnapshotStaleness");
+    expect(workspaceRepositorySource).toContain("snapshot_json");
+    expect(workspaceRepositorySource).toContain("latestEstimateUpdatedAt");
+    expect(workspaceRepositorySource).toContain("PUBLICATION_SNAPSHOT_STALENESS_CACHE_TTL_MS");
+    expect(workspaceRepositorySource).toContain("staleSnapshotWarning");
+  });
+
+  it("loads the latest recipient-scoped open for the manager sidebar", () => {
+    expect(workspaceRepositorySource).toContain("readLatestSharedLinkRecipientOpen");
+    expect(workspaceRepositorySource).toContain("last_opened_at");
+    expect(workspaceRepositorySource).toContain("latestRecipientOpen");
+  });
+
+  it("shows stale snapshot warning in the shared-link modal sidebar", async () => {
+    const user = userEvent.setup();
+    const staleSummary = {
+      ...publicationSummary,
+      staleSnapshotWarning: {
+        daysBehind: 9,
+        latestEstimateUpdatedAt: "2026-05-31T00:00:00.000Z",
+        snapshotGeneratedAt: "2026-05-22T00:00:00.000Z",
+      },
+    } as ProjectPublicationSummary;
+
+    render(<ProjectPublicationHeader summary={staleSummary} projectEstimateSheets={sampleEstimateSheets} />);
+
+    await user.click(screen.getByRole("button", { name: "Open shared link" }));
+
+    expect(screen.getByText("Snapshot is 9 days behind current data. Update shared page.")).toBeInTheDocument();
+  });
+
+  it("shows the latest recipient open email in the shared-link modal sidebar", async () => {
+    const user = userEvent.setup();
+    const recipientOpenSummary = {
+      ...publicationSummary,
+      latestRecipientOpen: {
+        email: "client@example.com",
+        displayName: "Client Receiver",
+        openedAt: "2026-05-27T01:00:00.000Z",
+      },
+    } as ProjectPublicationSummary;
+
+    render(<ProjectPublicationHeader summary={recipientOpenSummary} projectEstimateSheets={sampleEstimateSheets} />);
+
+    await user.click(screen.getByRole("button", { name: "Open shared link" }));
+
+    expect(screen.getByText("Last opened by")).toBeInTheDocument();
+    expect(screen.getByText(/Client Receiver/)).toBeInTheDocument();
+    expect(screen.getByText(/client@example.com/)).toBeInTheDocument();
   });
 
   // Historical red placeholder (P0/P2): "Tab rendering on receiver — red until P2 SharePageTabs"
@@ -317,6 +508,7 @@ describe("SheetPickerList (P1)", () => {
 // status chips (Pending/Sent/Bounced/Opened), graceful Resend, integrated as 4th tab in ProjectPublicationHeader.
 describe("P4 — RecipientEmailComposer and Recipients tab (RED until implementation)", () => {
   const headerSrc = readFileSync("src/components/workshop/ProjectPublicationHeader.tsx", "utf8");
+  const recipientComposerSrc = readFileSync("src/components/workshop/publication/RecipientEmailComposer.tsx", "utf8");
 
   it("exports and wires RecipientEmailComposer for the Recipients tab (chip email UI)", () => {
     // RED until component defined + exported (co-located export like SheetPickerList) and tab added
@@ -330,16 +522,16 @@ describe("P4 — RecipientEmailComposer and Recipients tab (RED until implementa
 
   it("RecipientEmailComposer supports email chip input, validation, add/remove chips (RED)", () => {
     // Key behaviors required by P4 UX: enter/comma adds valid email chip; invalid rejected; remove chip; dedupe
-    expect(headerSrc).toMatch(/RecipientEmailComposer|recipients|chip|email.*input/i);
+    expect(`${headerSrc}\n${recipientComposerSrc}`).toMatch(/RecipientEmailComposer|recipients|chip|email.*input/i);
     expect(headerSrc).toContain("RecipientEmailComposer");
   });
 
   it("RecipientEmailComposer shows send states, calls add action, displays delivery status chips (RED)", () => {
     // Send button, loading/disabled during send, success message or list update
     // Status chips: Pending (default), Sent (on Resend ok), Bounced/Opened (from table)
-    expect(headerSrc).toMatch(/delivery_status|Pending|Sent|Bounced|Opened|status.*chip|chip.*(pending|sent)/i);
-    expect(headerSrc).toContain("addSharedLinkRecipients");
-    expect(headerSrc).toMatch(/isPending|startTransition|loading|disabled.*send/i);
+    expect(recipientComposerSrc).toMatch(/delivery_status|Pending|Sent|Bounced|Opened|status.*chip|chip.*(pending|sent)/i);
+    expect(recipientComposerSrc).toContain("addSharedLinkRecipients");
+    expect(`${headerSrc}\n${recipientComposerSrc}`).toMatch(/isPending|startTransition|loading|disabled.*send/i);
   });
 
   it("Recipients tab integrates cleanly without breaking Link/Sheets/Access (backwards compat RED gate)", () => {
@@ -361,5 +553,37 @@ describe("P4 — RecipientEmailComposer and Recipients tab (RED until implementa
     // Expectation: input for emails, chips list, send button, status badges with correct labels
     expect(RecipientEmailComposer).toBeTruthy();
     // (Full userEvent chip add/validate/remove/send would be added here post-export; current red via source + import)
+  });
+
+  it("renders a per-recipient resend action and sends the existing recipient a fresh secure link", async () => {
+    publicationActions.listSharedLinkRecipients.mockResolvedValue([
+      {
+        id: "recipient-1",
+        email: "client@example.com",
+        display_name: null,
+        delivery_status: "sent",
+      },
+    ]);
+    publicationActions.resendSharedLinkRecipientEmail.mockResolvedValue({
+      ok: true,
+      message: "Recipient email resent.",
+    });
+    const user = userEvent.setup();
+
+    render(<ProjectPublicationHeader summary={publicationSummary} projectEstimateSheets={sampleEstimateSheets} />);
+
+    await user.click(screen.getByRole("button", { name: "Open shared link" }));
+    const dialog = screen.getByRole("dialog", { name: "Shared link" });
+    await user.click(within(dialog).getByRole("tab", { name: "Recipients" }));
+
+    expect(await within(dialog).findByText("client@example.com")).toBeInTheDocument();
+    await user.click(within(dialog).getByRole("button", { name: "Resend client@example.com" }));
+
+    expect(publicationActions.resendSharedLinkRecipientEmail).toHaveBeenCalledWith({
+      publicationId: "publication-1",
+      recipientId: "recipient-1",
+      baseClientLink: "/share/client-token",
+    });
+    expect((await within(dialog).findAllByText("Recipient email resent.")).length).toBeGreaterThan(0);
   });
 });

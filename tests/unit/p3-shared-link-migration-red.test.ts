@@ -24,10 +24,10 @@ import type { Database } from '@/lib/supabase/types';
 describe('P3 Shared Link Overhaul — Database Migration Red Verification', () => {
   it('requires the 4 new shared_link_* tables in generated Database types (RED until P3 migration + regen)', () => {
     // These assignments will FAIL type-check until the tables exist in types.ts
-    const _recipients: Database['Tables']['shared_link_recipients'] = null as any;
-    const _comments: Database['Tables']['shared_link_comments'] = null as any;
-    const _responses: Database['Tables']['shared_link_responses'] = null as any;
-    const _events: Database['Tables']['shared_link_events'] = null as any;
+    const _recipients: Database['public']['Tables']['shared_link_recipients'] = null as unknown as Database['public']['Tables']['shared_link_recipients'];
+    const _comments: Database['public']['Tables']['shared_link_comments'] = null as unknown as Database['public']['Tables']['shared_link_comments'];
+    const _responses: Database['public']['Tables']['shared_link_responses'] = null as unknown as Database['public']['Tables']['shared_link_responses'];
+    const _events: Database['public']['Tables']['shared_link_events'] = null as unknown as Database['public']['Tables']['shared_link_events'];
 
     // Force reference so tsc sees the missing keys before regen
     void _recipients;
@@ -38,8 +38,8 @@ describe('P3 Shared Link Overhaul — Database Migration Red Verification', () =
 
   it('requires the 2 new Security Definer RPCs in generated Database types (RED until P3 migration + regen)', () => {
     // RPCs appear under Database['Functions'] after type generation
-    const _insertComment: Database['Functions']['insert_client_comment'] = null as any;
-    const _submitResponse: Database['Functions']['submit_client_response'] = null as any;
+    const _insertComment: Database['public']['Functions']['insert_client_comment'] = null as unknown as Database['public']['Functions']['insert_client_comment'];
+    const _submitResponse: Database['public']['Functions']['submit_client_response'] = null as unknown as Database['public']['Functions']['submit_client_response'];
 
     void _insertComment;
     void _submitResponse;

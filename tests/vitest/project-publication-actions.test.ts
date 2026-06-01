@@ -78,6 +78,81 @@ describe("project publication manager actions (Shared Link Overhaul V2)", () => 
     expect(actions).toContain("invited_by");
   });
 
+  it("supports per-recipient resend with a fresh secure recipient token and a 5 minute rate limit", () => {
+    expect(actions).toContain("resendSharedLinkRecipientEmail");
+    expect(actions).toContain("shared_link_recipient_resend");
+    expect(actions).toContain("security_rate_limit_events");
+    expect(actions).toContain("5 * 60");
+    expect(actions).toContain("recipient_token_hash");
+    expect(actions).toContain("createPublicationToken");
+    expect(actions).toContain("hashPublicationToken");
+  });
+
+  it("recipient emails emit the same canonical query parameter that the share page accepts", () => {
+    const pageSrc = readFileSync("src/app/share/[token]/page.tsx", "utf8");
+
+    expect(actions).toContain("recipient=");
+    expect(actions).not.toContain("rt=${encodeURIComponent(rawToken)}");
+    expect(pageSrc).toContain("searchParamsData.recipient");
+    expect(pageSrc).toContain("searchParamsData.rt");
+  });
+
+  it("recipient and owner digest emails do not use placeholder sender or owner identities", () => {
+    expect(actions).not.toContain('"A team member"');
+    expect(actions).not.toContain('"owner@archestimator.test"');
+    expect(actions).toContain("readPublicationSenderIdentity");
+    expect(actions).toContain("resolvePublicationDigestOwner");
+    expect(actions).toContain('"An Archestimator user"');
+    expect(actions).toContain("workspace_members");
+    expect(actions).toContain('role", "owner"');
+    expect(actions).toContain("created_by");
+    expect(actions).toContain("owner digest skipped");
+  });
+
+  it("recipient emails include a compliance unsubscribe footer", () => {
+    expect(actions).toContain("buildPublicationEmailComplianceFooter");
+    expect(actions).toContain("unsubscribe");
+    expect(actions).toContain("mailto:");
+    expect(actions).toContain("${action}?recipient=");
+    expect(actions).toContain("complianceFooter");
+  });
+
+  it("recipient unsubscribe links suppress future recipient emails", () => {
+    const unsubscribeRoute = readFileSync("src/app/api/share/[token]/unsubscribe/route.ts", "utf8");
+    const publicRepository = readFileSync("src/lib/publication/public-repository.ts", "utf8");
+    const recipientComposer = readFileSync("src/components/workshop/publication/RecipientEmailComposer.tsx", "utf8");
+    const migrationText = readFileSync("supabase/migrations/20260531175141_shared_link_recipient_unsubscribe.sql", "utf8");
+    const types = readFileSync("src/lib/supabase/types.ts", "utf8");
+
+    expect(migrationText).toContain("email_unsubscribed_at timestamptz");
+    expect(types).toContain("email_unsubscribed_at: string | null");
+    expect(unsubscribeRoute).toContain("unsubscribeSharedLinkRecipientByToken");
+    expect(unsubscribeRoute).toContain("searchParams.get(\"recipient\")");
+    expect(unsubscribeRoute).toContain("Cache-Control");
+    expect(publicRepository).toContain("unsubscribeSharedLinkRecipientByToken");
+    expect(publicRepository).toContain("email_unsubscribed_at");
+    expect(actions).toContain("Recipient has unsubscribed from follow-up emails");
+    expect(recipientComposer).toContain("email_unsubscribed_at");
+    expect(recipientComposer).toContain("unsubscribed");
+    expect(recipientComposer).toContain("failed");
+  });
+
+  it("recipient opens update recipient status and write recipient-scoped activity without exposing raw tokens", () => {
+    const pageSrc = readFileSync("src/app/share/[token]/page.tsx", "utf8");
+    const publicRepository = readFileSync("src/lib/publication/public-repository.ts", "utf8");
+    const security = readFileSync("src/lib/publication/security.ts", "utf8");
+
+    expect(security).toContain("readSharedLinkSessionCookieRecipientId");
+    expect(pageSrc).toContain("recipientIdForOpenEvent");
+    expect(pageSrc).toContain("metadata: recipientIdForOpenEvent ? { recipient_id: recipientIdForOpenEvent } : {}");
+    expect(publicRepository).toContain("shared_link_recipients");
+    expect(publicRepository).toContain('delivery_status: "opened"');
+    expect(publicRepository).toContain("last_opened_at");
+    expect(publicRepository).toContain("shared_link_events");
+    expect(publicRepository).toContain("recipient_id: recipientId");
+    expect(publicRepository).not.toContain("raw-recipient-token");
+  });
+
   // ============================================================================
   // P5 RED TESTS (Recipient Session & Security Cookie — Packet P5)
   // Per Master Prompt + exact P5 task: additive shared_link_session_[token] HttpOnly cookie,
@@ -100,12 +175,12 @@ describe("project publication manager actions (Shared Link Overhaul V2)", () => 
     expect(security).toContain("createPublicationAccessCookie");
   });
 
-  it("P5 share page verifies recipient token on ?recipient= load, sets session cookie, computes hasValidRecipientSession (password/view-only paths unchanged)", () => {
+  it("P5 share page verifies recipient token on ?recipient= load, sets session cookie, and scopes open tracking (password/view-only paths unchanged)", () => {
     const pageSrc = readFileSync("src/app/share/[token]/page.tsx", "utf8");
     expect(pageSrc).toContain("searchParams");
     expect(pageSrc).toContain("?recipient");
     expect(pageSrc).toContain("verifySharedLinkRecipientToken");
-    expect(pageSrc).toContain("hasValidRecipientSession");
+    expect(pageSrc).toContain("recipientIdForOpenEvent");
     expect(pageSrc).toContain("createSharedLinkSessionCookieName"); // P5 session cookie name construction used on recipient path + subsequent loads
     expect(pageSrc).toContain("verifySharedLinkSessionCookieValue");
     // Existing password gate and cookie logic must remain identical for backwards compat
@@ -124,10 +199,14 @@ describe("project publication manager actions (Shared Link Overhaul V2)", () => 
     }
     expect(hookSrc).toContain("useSharedLinkSession");
     // P5 hook uses cookie-flag approach (no Provider needed; simpler for HttpOnly + non-secret _ok flag; future P6+ can extend with context if desired)
-    // Guard/blocking in tabs (additive, design-system compliant message using existing tokens)
-    const tabs = readFileSync("src/components/share/SharePageTabs.tsx", "utf8");
-    expect(tabs).toContain("hasValidRecipientSession");
-    expect(tabs).toContain("Recipient session required for interactive features");
-    expect(tabs).toContain("text-[9px]"); // design system typography
+    // Guard/blocking is split between the page-level session banner and interactive widgets.
+    const banner = readFileSync("src/components/share/SharePageSessionBanner.tsx", "utf8");
+    const comments = readFileSync("src/components/share/SharePageComments.tsx", "utf8");
+    const decision = readFileSync("src/components/share/SharePageDecision.tsx", "utf8");
+    expect(banner).toContain("hasValidRecipientSession");
+    expect(banner).toContain("Recipient session required for interactive features");
+    expect(banner).toContain("text-[9px]"); // design system typography
+    expect(comments).toContain("useSharedLinkSession");
+    expect(decision).toContain("useSharedLinkSession");
   });
 });

@@ -17,7 +17,8 @@ vi.mock("@/lib/proposal-export/create-proposal-workbook", () => ({
   createProposalWorkbookBuffer: mocks.createProposalWorkbookBuffer,
 }));
 
-import { GET, buildProposalWorkbookFilename } from "@/app/api/projects/[projectId]/estimates/[estimateId]/export/proposal.xlsx/route";
+import { GET } from "@/app/api/projects/[projectId]/estimates/[estimateId]/export/proposal.xlsx/route";
+import { buildProposalWorkbookFilename } from "@/app/api/projects/[projectId]/estimates/[estimateId]/export/proposal.xlsx/filename";
 
 const tree: EstimateTreeNode[] = [
   {

@@ -1,9 +1,12 @@
+import { readFileSync } from "node:fs";
 import { cleanup, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { ProjectTeamspaceHeader } from "@/components/workshop/ProjectTeamspaceHeader";
 import type { ProjectCollaborationSummary } from "@/lib/collaboration/types";
+
+const headerSource = readFileSync("src/components/workshop/ProjectTeamspaceHeader.tsx", "utf8");
 
 const summary: ProjectCollaborationSummary = {
   projectId: "project-1",
@@ -156,9 +159,33 @@ describe("ProjectTeamspaceHeader", () => {
     const dialog = screen.getByRole("dialog", { name: "Teamspace settings" });
     expect(within(dialog).getByRole("button", { name: "Copy private link" })).toBeInTheDocument();
     expect(within(dialog).getByText("new.collaborator@example.com")).toBeInTheDocument();
+    expect(within(dialog).getByRole("button", { name: "Resend invite for new.collaborator@example.com" })).toBeInTheDocument();
 
     await user.click(within(dialog).getByRole("button", { name: "Copy invite link for new.collaborator@example.com" }));
 
     expect(await within(dialog).findByRole("status")).toHaveTextContent("Invite link copied.");
+  });
+
+  it("requires explicit confirmation before removing a project collaborator", async () => {
+    const user = userEvent.setup();
+
+    render(<ProjectTeamspaceHeader summary={summary} />);
+
+    await user.click(screen.getByRole("button", { name: "Open teamspace settings" }));
+    await user.click(screen.getByRole("button", { name: "Remove Ana Builder" }));
+
+    const dialog = screen.getByRole("dialog", { name: "Remove Ana Builder?" });
+    expect(within(dialog).getByText("They will lose access to this project and all estimate sheets.")).toBeInTheDocument();
+    expect(within(dialog).getByRole("checkbox", { name: "Notify Ana Builder of removal" })).toBeInTheDocument();
+    expect(within(dialog).getByRole("button", { name: "Cancel" })).toBeInTheDocument();
+    expect(within(dialog).getByRole("button", { name: "Remove" })).toBeInTheDocument();
+  });
+
+  it("renders uncertain invite outcomes with warning status styling", () => {
+    expect(headerSource).toContain("actionMessageTone");
+    expect(headerSource).toContain("isWarningActionMessage");
+    expect(headerSource).toContain("share the invite link manually");
+    expect(headerSource).toContain("bg-warningSoft");
+    expect(headerSource).toContain("text-warning");
   });
 });

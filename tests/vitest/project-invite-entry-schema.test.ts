@@ -63,14 +63,34 @@ describe("project invite entry schema", () => {
   it("grants only narrow invite RPCs to browser roles", () => {
     expect(migrationText).toContain("public.resolve_collaboration_invitation(invitation_token_hash text)");
     expect(migrationText).toContain("public.accept_collaboration_invitation(invitation_token_hash text)");
+    expect(migrationText).toContain("public.accept_collaboration_invitation_by_id(target_invitation_id uuid)");
+    expect(migrationText).toContain("public.list_pending_collaboration_invitations()");
+    expect(migrationText).toContain("last_opened_at timestamptz");
     expect(migrationText).toContain("public.issue_collaboration_invitation_token(invitation_id uuid, invitation_token_hash text, token_hint text, delivery_method text, token_expires_at timestamptz, revoke_existing boolean)");
     expect(migrationText).toContain("grant execute on function public.resolve_collaboration_invitation(text) to anon, authenticated");
     expect(migrationText).toContain("grant execute on function public.accept_collaboration_invitation(text) to authenticated");
+    expect(migrationText).toContain("grant execute on function public.accept_collaboration_invitation_by_id(uuid) to authenticated");
+    expect(migrationText).toContain("grant execute on function public.list_pending_collaboration_invitations() to authenticated");
     expect(migrationText).toContain("revoke all on function public.accept_collaboration_invitation(text) from anon");
+    expect(migrationText).toContain("revoke all on function public.accept_collaboration_invitation_by_id(uuid) from anon");
     expect(migrationText).toContain("revoke all on function public.revoke_collaboration_invitation(uuid) from anon");
     expect(migrationText).toContain("revoke all on function public.issue_collaboration_invitation_token(uuid, text, text, text, timestamptz, boolean) from anon");
     expect(migrationText).toContain("revoke all on function public.record_collaboration_invitation_delivery(uuid, uuid, text) from anon");
     expect(migrationText).toContain("revoke all on table public.collaboration_invitation_tokens from public, anon, authenticated");
+  });
+
+  it("returns expired pending invitations for disabled invitee cards without exposing raw tokens", () => {
+    const pendingListFunctions = migrationText.match(
+      /create or replace function public\.list_pending_collaboration_invitations[\s\S]*?end;\n\$\$;/g,
+    ) ?? [""];
+    const latestPendingListFunction = pendingListFunctions.at(-1) ?? "";
+
+    expect(migrationText).toContain("drop function if exists public.list_pending_collaboration_invitations()");
+    expect(latestPendingListFunction).toContain("state text");
+    expect(latestPendingListFunction).toContain("invitation.lifecycle_state in ('pending', 'expired')");
+    expect(latestPendingListFunction).toContain("then 'expired'");
+    expect(latestPendingListFunction).not.toContain("and invitation.expires_at > now()");
+    expect(latestPendingListFunction).not.toMatch(/raw_token|token_hash|token_hint/);
   });
 
   it("creates collaboration audit events without browser write grants", () => {
@@ -78,6 +98,21 @@ describe("project invite entry schema", () => {
     expect(migrationText).toContain("alter table public.collaboration_audit_events enable row level security");
     expect(migrationText).toContain("revoke insert, update, delete on table public.collaboration_audit_events from public, anon, authenticated");
     expect(migrationText).not.toMatch(/raw_token|token_hash.*metadata/);
+  });
+
+  it("records invite opens through the invite-resolution RPC without raw token metadata", () => {
+    const resolveFunctions = migrationText.match(
+      /create or replace function public\.resolve_collaboration_invitation[\s\S]*?end;\n\$\$;/g,
+    ) ?? [""];
+    const latestResolveFunction = resolveFunctions.at(-1) ?? "";
+
+    expect(latestResolveFunction).toContain("collaboration_invite_opened");
+    expect(latestResolveFunction).toContain("insert into public.collaboration_audit_events");
+    expect(latestResolveFunction).toContain("'token_id', token.token_id");
+    expect(latestResolveFunction).toContain("inviter.email as inviter_email");
+    expect(latestResolveFunction).toContain("return query select 'revoked'::text, token.invitation_id");
+    expect(migrationText).toContain("drop function if exists public.resolve_collaboration_invitation(text)");
+    expect(latestResolveFunction).not.toMatch(/'raw_token'|'token_hash'|rawToken|tokenHash/);
   });
 
   it("does not expose lifecycle helper execution to browser roles", () => {
@@ -112,6 +147,11 @@ describe("project invite entry schema", () => {
     expect(types).toContain("lifecycle_state: string");
     expect(types).toContain("accepted_via: string | null");
     expect(types).toContain("resolve_collaboration_invitation: {");
+    expect(types).toContain("inviter_email: string | null");
     expect(types).toContain("accept_collaboration_invitation: {");
+    expect(types).toContain("accept_collaboration_invitation_by_id: {");
+    expect(types).toContain("list_pending_collaboration_invitations: {");
+    expect(types).toContain("state: string | null");
+    expect(types).toContain("last_opened_at: string | null");
   });
 });

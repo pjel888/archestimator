@@ -154,9 +154,7 @@ describe("project creation UI governance", () => {
       "updateProjectImageMetadata(project.id, uploadedImage)",
     );
     expect(newProjectForm).toContain("removeProjectImageUpload(uploadedImage)");
-    expect(newProjectForm).toContain(
-      "router.push(`/workshop/projects/${project.id}`)",
-    );
+    expect(newProjectForm).toContain("router.refresh()");
     expect(projectActions).toContain(
       "export async function createProjectRecord",
     );
