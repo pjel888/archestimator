@@ -42,6 +42,8 @@ Post-report evidence-sync commits:
 
 These follow-up commits improve traceability only. They do not change the implementation baseline or the **NO-GO** recommendation. Current local validation refresh at `a65b34b` also passed `bun run validate`: typecheck, lint with 14 existing warnings, design lint, unit tests (4 tests / 129 expectations), and DOM tests (131 files / 1022 passed / 2 skipped).
 
+The remaining manual/provider proof packet is now centralized in `46-manual-proof-matrix.md`; it must be filled with dated artifacts before the external beta recommendation changes.
+
 ## 2. Features Implemented
 
 - Closed beta allowlist schema/helper/proxy/callback/session gate with `/beta/access-required` UX.

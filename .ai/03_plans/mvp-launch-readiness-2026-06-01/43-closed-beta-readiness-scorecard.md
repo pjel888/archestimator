@@ -4,6 +4,8 @@
 
 Final implementation report: `final-codex-implementation-report.md`. It summarizes the local-safe implementation baseline through `8084908`, records report publication/correction commits `80f806d` and `579cef0`, records post-report validation/build evidence through `7ba69e6`, and keeps the external closed beta recommendation at **NO-GO** until hosted/provider/manual proof gates are complete.
 
+Manual proof matrix: `46-manual-proof-matrix.md`. It is the required checklist for collecting the remaining hosted/provider/manual evidence before any external closed-beta go/no-go review.
+
 ## Scoring Rule
 
 Closed beta can launch only if all P0 domains are 95+ or have a documented no-go resolution. Payment/pricing readiness is deferred and not applicable to closed beta. Public launch readiness is separate from this scorecard.

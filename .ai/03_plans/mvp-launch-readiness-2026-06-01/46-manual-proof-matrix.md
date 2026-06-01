@@ -1,0 +1,55 @@
+# Manual Proof Matrix
+
+Status: Required before external closed beta.
+
+This matrix converts the remaining hosted/provider/manual gates into concrete evidence slots. It does not replace the local validation/build baseline and does not approve launch. Closed beta stays **NO-GO** until each P0 row below has a dated artifact, owner, and pass/fail note linked from `14-evidence-index.md`.
+
+## Evidence Rules
+
+- Use a throwaway beta tester or demo account where possible.
+- Do not paste secrets, raw tokens, magic links, service-role keys, cookies, or provider dashboard credentials into `.ai`.
+- Store screenshots, sanitized command output, exported workbooks, and smoke notes under `.ai/09_archive/store/<date>-mvp-closed-beta-manual-proof/`.
+- Record exact dates, environment, account role, command or browser path, pass/fail result, and cleanup/residue note.
+- If a check cannot run, record it as `blocked`, name the blocker, and keep the launch gate **NO-GO**.
+
+## P0 Proof Rows
+
+| Gate | Required artifact | Acceptance criteria | Current status |
+| --- | --- | --- | --- |
+| Supabase backup/PITR | Dashboard screenshot or CLI/provider note plus restore-drill log | Backup/PITR status is known before linked migrations; dry-run restore target and owner are documented. | Missing |
+| Linked/staging Supabase migrations | Migration history output plus direct SQL/RLS allow/deny notes | Closed-beta allowlist migration and required launch migrations are applied or intentionally deferred; anon cannot enumerate private tables; authenticated access matches role. | Missing |
+| Storage/RPC security | Bucket policy and RPC grant proof | Public buckets are intentionally public only where needed; private buckets deny anon; critical RPCs have expected grants only. | Missing |
+| Hosted auth allowlist | Browser smoke screenshots/logs for allowed, denied, revoked, logout/session expiry | Allowed Google user reaches `/workshop`; denied/revoked users reach `/beta/access-required`; logout/session expiry returns to login/access flow without loop. | Missing |
+| First-run workspace | Browser smoke notes for a whitelisted fresh user | Fresh allowed user lands in `/workshop`, sees clear empty/project-start state, and can create/open first project path. | Missing |
+| Vercel deploy/env/health | Vercel deployment URL, env checklist, `/api/health` response, rollback note | Preview or production deploy is green; env values are present without leaking secrets; `/api/health` returns 200; rollback path is demonstrated or rehearsed. | Missing |
+| Resend/email if visible | Domain DNS/provider screenshot, sent email proof, webhook event proof | Any visible invite/share email flow has delivery proof and webhook reconciliation; if email is manual-only, document that visible app email flows are disabled. | Missing |
+| Spreadsheet compatibility | Exported workbook plus Excel and one secondary spreadsheet screenshot/notes | Workbook opens, formulas recalc, no blank line total cells, print preview is usable, and bid/BOQ tabs retain structure. | Missing |
+| Project-specific unlink manual smoke | Browser notes/screenshots plus library unchanged proof | Detach linked row, edit detached values, verify library/source component remains unchanged and export uses detached values. | Missing |
+| Component/template demo smoke | Browser screenshots/notes | Component search/trust fields and template preview/insert path are understandable for a beta/demo user. | Missing |
+| Legal/owner review | Dated owner/counsel sign-off note or explicit pending-review acceptance | Terms/privacy/beta disclaimers are approved for closed beta or launch remains blocked. | Missing |
+| Support/monitoring | Support inbox/form proof and alert/uptime owner note | Feedback link reaches a monitored destination; uptime/error alert owner and escalation path are documented. | Missing |
+| Demo rehearsal | Screenshots, exported workbook, fallback script, rehearsal note | Demo can be shown without Ask Flip, payments, raw debug data, or provider dashboards; fallback artifacts are ready. | Missing |
+| Current manual E2E smoke | Browser smoke log across login, project, estimate, library, template, unlink, export, logout | Core closed-beta journey works in target hosted environment with no local-only assumptions. | Missing |
+
+## Minimum Evidence Packet
+
+Before changing the launch decision, add a subsection to `14-evidence-index.md` with:
+
+1. Artifact folder path under `.ai/09_archive/store/...`.
+2. Exact environment and commit tested.
+3. One row per P0 proof row above, with `pass`, `fail`, or `blocked`.
+4. Links or filenames for screenshots, workbooks, provider notes, SQL output, and smoke logs.
+5. Cleanup and residue notes for any temporary users/workspaces/projects.
+6. Remaining no-go rows, if any.
+
+## Stop Conditions
+
+Keep closed beta **NO-GO** if any of these occur:
+
+- Any required provider proof is missing, inaccessible, or unsanitized.
+- A denied or revoked user can access protected `/workshop` routes.
+- A local-only env flag or dev-auth bypass is needed for the hosted smoke.
+- Spreadsheet apps show broken formulas, blank line totals, or unusable print layout.
+- Legal/owner review is absent.
+- Support inbox/form or alert ownership cannot be verified.
+- Temporary test data cannot be cleaned up or residue cannot be checked.
