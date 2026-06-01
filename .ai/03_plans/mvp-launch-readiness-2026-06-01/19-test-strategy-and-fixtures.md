@@ -15,7 +15,7 @@ Closed beta requires auth/access tests before launch:
 - First whitelisted user workspace path succeeds.
 - Feedback/support path is visible.
 
-Current local Vitest DOM baseline is green: `bun run test:dom` passed 129 files / 1014 tests with 2 skips after the AI, auth, library, template, export, feedback, legal, infra, and health slices. Hosted/manual E2E proof is still required before launch.
+Current local Vitest DOM baseline is green: `bun run test:dom` passed 131 files / 1021 tests with 2 skips after the AI, auth, library, template, export, feedback, legal, infra, and health slices. Hosted/manual E2E proof is still required before launch.
 
 ## Third-Pass Test Gate
 

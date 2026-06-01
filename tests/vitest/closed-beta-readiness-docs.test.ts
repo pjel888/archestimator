@@ -41,10 +41,10 @@ const readinessScorecard = readFileSync(
 
 describe("closed beta readiness docs", () => {
   it("keeps the current local QA baseline aligned with passing DOM evidence", () => {
-    expect(releaseChecklist).toContain("`bun run test:dom` | Pass: 129 files / 1014 tests / 2 skipped");
+    expect(releaseChecklist).toContain("`bun run test:dom` | Pass: 131 files / 1021 tests / 2 skipped");
     expect(releaseChecklist).not.toContain("`bun run test:dom` | Fail");
-    expect(finalLaunchGate).toContain("`bun run test:dom`: pass, 129 files / 1014 tests with 2 skips");
-    expect(launchRunbook).toContain("`bun run test:dom`: pass, 129 files / 1014 tests with 2 skips");
+    expect(finalLaunchGate).toContain("`bun run test:dom`: pass, 131 files / 1021 tests with 2 skips");
+    expect(launchRunbook).toContain("`bun run test:dom`: pass, 131 files / 1021 tests with 2 skips");
     expect(launchRunbook).not.toContain("`bun run test:dom`: fail");
     expect(executiveBrief).toMatch(/DOM tests, and build passed locally/i);
     expect(testStrategy).toMatch(/Current local Vitest DOM baseline is green/i);

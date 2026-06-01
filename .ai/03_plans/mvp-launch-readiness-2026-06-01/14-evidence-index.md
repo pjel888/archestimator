@@ -222,7 +222,7 @@
 - `bun run lint` passed with the existing 14 warnings and 0 errors.
 - `bun run lint:design-system` passed.
 - `bun run test` passed 4 unit tests / 129 expectations.
-- `bun run test:dom` passed 129 files / 1014 tests with 2 skips.
+- `bun run test:dom` passed 131 files / 1021 tests with 2 skips.
 - `bun run build` passed and lists `/api/health` as a dynamic app route.
 - `git diff --check` passed.
 - Post-edit code-review-graph `detect_changes` against `HEAD` analyzed 6 staged changed files, 4 changed functions/classes, 0 affected flows, 1 source-level test gap (`GET`), and overall risk score 0.35. The reported `GET` gap is covered by `health-route.test.ts` importing and invoking the route handler directly.
@@ -293,6 +293,21 @@
 - Post-edit GitNexus `detect-changes --repo archestimator --scope staged` reported no code changes detected for this seed/docs/test staged set.
 - Live demo account, allowlist entry, hosted auth smoke, screenshots, and validated workbook artifact remain external/manual gates.
 
+### BASELINE-REFRESH After DEMO-001 Seed Evidence
+
+- Full DOM initially caught a stale seed-source contract in `supabase-seed-migrations.test.ts`: the migration must remain tree-only, but the local development seed now intentionally includes demo row items.
+- `supabase-seed-migrations.test.ts` now preserves the tree-only migration assertion while allowing local seed row items and requiring linked/detached demo rows.
+- Focused repair evidence: `bun run test:dom tests/vitest/supabase-seed-migrations.test.ts tests/vitest/demo-seed-readiness.test.ts` passed 2 files / 7 tests.
+- `bun run type-check` passed.
+- `bun run lint` passed with the existing 14 warnings and 0 errors.
+- `bun run lint:design-system` passed.
+- `bun run test` passed 4 unit tests / 129 expectations.
+- `bun run test:dom` passed 131 files / 1021 tests with 2 skips.
+- `bun run build` passed and lists `/api/health` as a dynamic app route.
+- `git diff --check` passed.
+- Post-edit code-review-graph `detect_changes` against `HEAD` analyzed 9 staged changed files, 4 changed functions/classes from the source-contract tests, 0 affected flows, 0 test gaps, and overall risk score 0.30.
+- Post-edit GitNexus `detect-changes --repo archestimator --scope staged` reported no code changes detected for this docs/test staged set.
+
 ### Closed Beta Audit Evidence
 
 - Auth/proxy: `src/proxy.ts`, `src/lib/auth/actions.ts`, `src/app/auth/callback/route.ts`, `src/lib/auth/account-setup.ts`, `src/lib/auth/session.ts`.
@@ -318,7 +333,7 @@ Scope: launch planning and readiness audit only.
 | `bun run lint` | Pass with warnings; 0 errors. | Not a lint blocker; warnings should be triaged before launch. |
 | `bun run lint:design-system` | Pass. | Design-system static gate green. |
 | `bun run test` | Pass; 4 tests, 129 expectations. | Bun unit smoke green. |
-| `bun run test:dom` | Initially failed; now pass after stale source-contract updates and AI route/UI gate tests. | DOM baseline blocker closed locally for this slice. |
+| `bun run test:dom` | Pass; 131 files / 1021 tests / 2 skipped after seed-contract repair. | DOM baseline blocker closed locally for this slice. |
 | `bun run build` | Pass; Next.js 16.2.6 Turbopack production build. | Buildable locally. |
 | `bun run test:e2e` | Blocked; Playwright webServer failed because another Next dev server was already running on port 3000. | Needs rerun after freeing ports or configuring `PLAYWRIGHT_PORT`. |
 | Export-focused subagent tests | Pass; read-only export lane reported 4 files / 15 tests passed. | Supports current export inventory, but does not prove launch-grade workbook. |

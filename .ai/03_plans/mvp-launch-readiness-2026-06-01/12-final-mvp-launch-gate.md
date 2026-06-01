@@ -12,7 +12,7 @@ This gate is now the closed beta launch gate. It is not a public paid-launch gat
 - `bun run lint`: pass with 14 warnings.
 - `bun run lint:design-system`: pass.
 - `bun run test`: pass.
-- `bun run test:dom`: pass, 129 files / 1014 tests with 2 skips.
+- `bun run test:dom`: pass, 131 files / 1021 tests with 2 skips.
 - `bun run build`: pass.
 
 ### Closed Beta No-Go
