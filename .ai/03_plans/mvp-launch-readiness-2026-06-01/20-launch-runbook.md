@@ -6,14 +6,14 @@ This runbook now operates a closed beta, not a public paid launch.
 
 ### Command Baseline
 
-- `git status --short`: clean before docs, docs-only after fourth pass.
-- `git rev-parse HEAD`: `811362ac70d84cf20101f83258ae22c4e8b2c11f`.
+- `git status --short`: clean after QA truth-sync except intentionally untracked `.ai/08_prompts/mvp-launch-goal.md`.
+- `git rev-parse HEAD`: `3180fe2` after QA readiness truth-sync.
 - `bun install --frozen-lockfile`: pass.
 - `bun run type-check`: pass.
 - `bun run lint`: pass with 14 warnings.
 - `bun run lint:design-system`: pass.
 - `bun run test`: pass.
-- `bun run test:dom`: fail with 3 existing static-contract assertions.
+- `bun run test:dom`: pass, 129 files / 1014 tests with 2 skips.
 - `bun run build`: pass.
 
 ### Closed Beta Operations
@@ -71,11 +71,11 @@ bun run build
 bun run test:e2e
 ```
 
-Current results at `681c95e`:
+Current local results through OBS-001/QA-002:
 
-- Pass: install, type-check, lint with warnings, design lint, unit tests, build.
-- Fail: `bun run test:dom`.
-- Blocked: `bun run test:e2e` because Playwright could not start its dev server while another Next dev server was active.
+- Pass: install, type-check, lint with 14 warnings and 0 errors, design lint, unit tests, DOM tests, build.
+- Not rerun in current local slices: `bun run test:e2e`.
+- Still required before launch: hosted/manual smoke for auth, RLS/storage, share/invite if visible, Excel cross-app open, backup/restore, deploy/rollback, support/monitoring alerts.
 
 Do not treat this baseline as launch-ready.
 
@@ -100,12 +100,14 @@ CI currently runs install, `bun run validate`, build, Chromium install, `bun run
 ## Migration Procedure
 
 1. Confirm `DATA-001` backup proof is complete.
-2. Freeze beta writes if migration touches live beta data.
-3. Run migration in staging.
-4. Run RLS/storage/schema verification queries.
-5. Run targeted app smoke.
-6. Apply to production only after staging proof.
-7. Record migration IDs, output, and rollback plan in `14-evidence-index.md`.
+2. Export a pre-migration inventory: migration versions, table counts for beta-critical tables, allowlist rows, and storage bucket names.
+3. Capture Supabase backup/PITR status, retention window, restore permission owner, and dashboard/link evidence outside the repo if it contains sensitive details.
+4. Freeze beta writes if migration touches live beta data.
+5. Run migration in staging.
+6. Run RLS/storage/schema verification queries.
+7. Run targeted app smoke.
+8. Apply to production only after staging proof.
+9. Record migration IDs, output, backup checkpoint, and rollback plan in `14-evidence-index.md`.
 
 ## Deployment Procedure
 
