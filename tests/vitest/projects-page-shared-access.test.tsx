@@ -17,6 +17,10 @@ vi.mock("@/lib/workshop/actions", () => ({
   setProjectFavorite: vi.fn(async () => undefined),
 }));
 
+vi.mock("@/lib/collaboration/pending-invite-actions", () => ({
+  acceptPendingInvitationById: vi.fn(async () => undefined),
+}));
+
 const STORAGE_KEY = "archestimator_projects_view_mode_v1";
 
 const OWNED_PROJECT = {
@@ -84,6 +88,20 @@ const PROJECTS: ProjectListItem[] = [
   },
 ];
 
+const PENDING_INVITE_PROJECT = {
+  id: "77777777-7777-4777-8777-777777777777",
+  workspace_id: "88888888-8888-4888-8888-888888888888",
+  name: "Pending Museum Wing",
+  client_name: "Pending invite",
+  location: null,
+  project_code: "AE-PM-301",
+  currency_code: "PHP",
+  metadata: {},
+  created_at: "2026-06-01T00:00:00.000Z",
+  updated_at: "2026-06-01T00:00:00.000Z",
+  created_by: null,
+} satisfies Tables<"projects">;
+
 describe("ProjectsPageClient shared access", () => {
   beforeEach(() => {
     window.localStorage.clear();
@@ -102,6 +120,30 @@ describe("ProjectsPageClient shared access", () => {
     expect(screen.getByText("Shared by Studio Partner")).toBeInTheDocument();
   });
 
+  it("surfaces live shared-link status and open activity on owned project cards", () => {
+    render(
+      <ProjectsPageClient
+        projects={[
+          {
+            ...PROJECTS[0],
+            publicationSummary: {
+              status: "published",
+              clientLinkPath: "/share/client-token",
+              openCount: 4,
+              latestOpenedAt: "2026-05-27T01:00:00.000Z",
+              passwordRequired: true,
+            },
+          },
+        ]}
+      />,
+    );
+
+    const card = screen.getByLabelText("Lewis Residence project, owned access");
+    expect(within(card).getByText("Shared link")).toBeInTheDocument();
+    expect(within(card).getByText("4 opens")).toBeInTheDocument();
+    expect(within(card).getByText("Password on")).toBeInTheDocument();
+  });
+
   it("does not show the empty sample state when only shared projects exist", () => {
     render(<ProjectsPageClient projects={[PROJECTS[1], PROJECTS[2]]} />);
 
@@ -109,6 +151,75 @@ describe("ProjectsPageClient shared access", () => {
     expect(screen.queryByText("No live projects yet.")).not.toBeInTheDocument();
     expect(screen.getByText("Shared project")).toBeInTheDocument();
     expect(screen.getByText("Sheet-only")).toBeInTheDocument();
+  });
+
+  it("renders invitee pending-invite project cards with accept actions", () => {
+    render(
+      <ProjectsPageClient
+        projects={[
+          ...PROJECTS,
+          {
+            project: PENDING_INVITE_PROJECT,
+            accessKind: "pending-invite",
+            currentUserRole: "viewer",
+            ownerWorkspaceName: "Studio Partner",
+            pendingInvite: {
+              id: "invitation-1",
+              projectId: PENDING_INVITE_PROJECT.id,
+              estimateId: null,
+              projectName: PENDING_INVITE_PROJECT.name,
+              projectCode: PENDING_INVITE_PROJECT.project_code,
+              estimateName: null,
+              role: "viewer",
+              scope: "project",
+              inviterLabel: "Studio Partner",
+              state: "pending",
+              expiresAt: "2026-06-10T00:00:00.000Z",
+              lastOpenedAt: "2026-06-01T00:00:00.000Z",
+            },
+          },
+          {
+            project: {
+              ...PENDING_INVITE_PROJECT,
+              id: "99999999-9999-4999-8999-999999999999",
+              name: "Expired Gallery Wing",
+              project_code: "AE-EG-401",
+            },
+            accessKind: "pending-invite",
+            currentUserRole: "viewer",
+            ownerWorkspaceName: "Studio Partner",
+            pendingInvite: {
+              id: "invitation-expired",
+              projectId: "99999999-9999-4999-8999-999999999999",
+              estimateId: null,
+              projectName: "Expired Gallery Wing",
+              projectCode: "AE-EG-401",
+              estimateName: null,
+              role: "viewer",
+              scope: "project",
+              inviterLabel: "Studio Partner",
+              state: "expired",
+              expiresAt: "2026-06-01T00:00:00.000Z",
+              lastOpenedAt: null,
+            },
+          },
+        ]}
+      />,
+    );
+
+    const pendingCard = screen.getByLabelText("Pending Museum Wing project, pending invite, viewer access");
+    expect(pendingCard).toHaveAttribute("data-project-access-kind", "pending-invite");
+    expect(within(pendingCard).getAllByText("Pending invite")).toHaveLength(2);
+    expect(within(pendingCard).getByText("Viewer")).toBeInTheDocument();
+    expect(within(pendingCard).getByText("Invited by Studio Partner")).toBeInTheDocument();
+    expect(within(pendingCard).getByText("Expires Jun 10")).toBeInTheDocument();
+    expect(within(pendingCard).getByRole("button", { name: "Accept invite for Pending Museum Wing" })).toBeInTheDocument();
+
+    const expiredCard = screen.getByLabelText("Expired Gallery Wing project, pending invite, viewer access");
+    expect(within(expiredCard).getByText("Invite expired")).toBeInTheDocument();
+    expect(within(expiredCard).getByText("Expired Jun 1")).toBeInTheDocument();
+    expect(within(expiredCard).getByRole("button", { name: "Expired" })).toBeDisabled();
+    expect(within(expiredCard).queryByRole("button", { name: "Accept invite for Expired Gallery Wing" })).not.toBeInTheDocument();
   });
 
   it("search matches shared projects and exposes owned/shared filters", async () => {

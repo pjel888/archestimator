@@ -8,6 +8,7 @@ import { WorkshopHomebaseClient } from "@/components/workshop/WorkshopHomebaseCl
 import { WorkshopPageShell } from "@/components/workshop/WorkshopPageShell";
 
 const mocks = vi.hoisted(() => ({
+  routerReplace: vi.fn(),
   routerRefresh: vi.fn(),
   setProjectFavorite: vi.fn(async () => {}),
   setEstimateFavorite: vi.fn(async () => {}),
@@ -24,6 +25,7 @@ vi.mock("next/headers", () => ({
 vi.mock("next/navigation", () => ({
   usePathname: () => "/workshop",
   useRouter: () => ({
+    replace: mocks.routerReplace,
     refresh: mocks.routerRefresh,
   }),
 }));
@@ -63,6 +65,18 @@ const workshopHomebase = {
       updated_at: "2026-05-22T00:00:00.000Z",
       isFavorite: true,
       favoriteCreatedAt: "2026-05-23T00:00:00.000Z",
+      accessKind: "project-member",
+      currentUserRole: "viewer",
+      ownerWorkspaceName: "Studio Partner",
+      sharedEstimateCount: 1,
+      pendingInviteCount: 2,
+      publicationSummary: {
+        status: "published",
+        clientLinkPath: "/share/client-token",
+        openCount: 4,
+        latestOpenedAt: "2026-05-27T01:00:00.000Z",
+        passwordRequired: true,
+      },
     },
     {
       id: "33333333-3333-4333-8333-333333333333",
@@ -73,6 +87,11 @@ const workshopHomebase = {
       updated_at: "2026-05-20T00:00:00.000Z",
       isFavorite: false,
       favoriteCreatedAt: null,
+      accessKind: "owned",
+      currentUserRole: "owner",
+      ownerWorkspaceName: null,
+      sharedEstimateCount: 0,
+      pendingInviteCount: 0,
     },
   ],
   estimates: [
@@ -101,9 +120,13 @@ const workshopHomebase = {
       favoriteCreatedAt: null,
     },
   ],
+  pendingInvites: [],
+  removedProjectFavorites: [],
+  receivedPendingInviteCount: 3,
 };
 
 afterEach(() => {
+  mocks.routerReplace.mockClear();
   mocks.routerRefresh.mockClear();
   mocks.setProjectFavorite.mockClear();
   mocks.setEstimateFavorite.mockClear();
@@ -118,6 +141,7 @@ describe("workshop sidebar baseline", () => {
         showEyebrow: false,
         breadcrumbs: ["Workshop"],
         contentClassName: "",
+        sidebarStatus: { projectsBadgeCount: 3 },
         children: <div className="h-full bg-white" aria-label="Workshop empty canvas" />,
       }),
     );
@@ -128,6 +152,7 @@ describe("workshop sidebar baseline", () => {
     const navigation = screen.getByRole("navigation", { name: "Main navigation" });
     expect(navigation).toBeTruthy();
     expect(screen.getByRole("button", { name: "Expand sidebar" }).getAttribute("aria-expanded")).toBe("false");
+    expect(screen.getByRole("link", { name: "Projects, 3 pending invites" })).toBeTruthy();
     expect(navigation.querySelector('span[class*="bg-white/[0.10]"]')).toBeTruthy();
     expect(navigation.querySelector('span[class*="backdrop-blur-[1px]"]')).toBeTruthy();
     expect(screen.getByLabelText("Workshop empty canvas").childElementCount).toBe(0);
@@ -172,6 +197,12 @@ describe("workshop sidebar baseline", () => {
       "href",
       "/workshop/projects/22222222-2222-4222-8222-222222222222",
     );
+    expect(within(favorites).getByText("Shared link")).toBeInTheDocument();
+    expect(within(favorites).getByText("4 opens")).toBeInTheDocument();
+    expect(within(favorites).getByText("Shared project")).toBeInTheDocument();
+    expect(within(favorites).getByText("Viewer")).toBeInTheDocument();
+    expect(within(favorites).getByText("Shared by Studio Partner")).toBeInTheDocument();
+    expect(within(favorites).getByText("2 pending invites")).toBeInTheDocument();
     expect(screen.getAllByRole("button", { name: "Remove Lewis Residence from favorite projects" })[0]).toHaveAttribute(
       "aria-pressed",
       "true",
@@ -198,5 +229,35 @@ describe("workshop sidebar baseline", () => {
     expect(screen.queryByText("Recent Projects")).toBeNull();
     expect(screen.queryByText("Sample Projects")).toBeNull();
     expect(screen.queryByText("View all")).toBeNull();
+  });
+
+  test("renders removed favorite project banner and lets the user clear the stale favorite", async () => {
+    const user = userEvent.setup();
+    render(
+      <WorkshopHomebaseClient
+        homebase={{
+          ...workshopHomebase,
+          removedProjectFavorites: [
+            {
+              id: "44444444-4444-4444-8444-444444444444",
+              name: "Shared Clinic Fit-Out",
+              projectCode: "AE-SC-101",
+              favoriteCreatedAt: "2026-05-30T00:00:00.000Z",
+            },
+          ],
+        }}
+      />,
+    );
+
+    const banner = screen.getByRole("region", { name: "Project access removed" });
+    expect(within(banner).getByText("Project access removed")).toBeInTheDocument();
+    expect(within(banner).getByText("You no longer have access to Shared Clinic Fit-Out. The project owner may have changed your access.")).toBeInTheDocument();
+
+    await user.click(within(banner).getByRole("button", { name: "Remove from favorites" }));
+    expect(mocks.setProjectFavorite).toHaveBeenCalledWith({
+      projectId: "44444444-4444-4444-8444-444444444444",
+      favorite: false,
+    });
+    expect(mocks.routerReplace).toHaveBeenCalledWith("/workshop", { scroll: false });
   });
 });

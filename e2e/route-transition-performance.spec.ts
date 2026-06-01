@@ -69,6 +69,10 @@ const slow3gNetworkProfile: NetworkProfile = {
   latency: 400,
 };
 
+const hasDevAuthBypass = process.env.ARCHESTIMATOR_DEV_AUTH_BYPASS === "1";
+const hasDevAuthAdminDb = process.env.ARCHESTIMATOR_DEV_AUTH_ADMIN_DB === "1";
+const hasStorageStateAuth = Boolean(process.env.PLAYWRIGHT_STORAGE_STATE);
+
 async function collectRouteMetrics(page: Page): Promise<RouteMetricSnapshot> {
   return page.evaluate(() => {
     const [navigation] = performance.getEntriesByType("navigation") as PerformanceNavigationTiming[];
@@ -116,6 +120,15 @@ async function attachMetrics(testInfo: TestInfo, name: string, metrics: unknown)
   });
 }
 
+async function clickNamedLinkAndWaitForPath(page: Page, name: RegExp, targetPathname: string, timeout: number) {
+  const link = page.getByRole("link", { name }).first();
+  await expect(link).toBeVisible({ timeout: 15_000 });
+  await Promise.all([
+    page.waitForURL((url) => url.pathname === targetPathname, { timeout }),
+    link.click(),
+  ]);
+}
+
 function expectNavigationDuration(snapshot: RouteMetricSnapshot, budgetMs: number) {
   expect(snapshot.navigation).not.toBeNull();
   expect(snapshot.navigation?.duration ?? Number.POSITIVE_INFINITY).toBeLessThanOrEqual(budgetMs);
@@ -155,54 +168,59 @@ test.describe("route transition performance evidence", () => {
   test("captures Slow 3G public-route budget evidence", async ({ page }, testInfo) => {
     const client = await emulateNetworkProfile(page, slow3gNetworkProfile);
 
-    await page.goto("/features", { waitUntil: "domcontentloaded" });
-    await page.waitForTimeout(300);
+    try {
+      await page.goto("/features", { waitUntil: "domcontentloaded" });
+      await page.waitForTimeout(300);
 
-    const metrics = await collectRouteMetrics(page);
-    await attachMetrics(testInfo, "slow-3g-public-route.json", metrics);
-    console.log("route-transition-slow-3g-public", JSON.stringify(metrics));
+      const metrics = await collectRouteMetrics(page);
+      await attachMetrics(testInfo, "slow-3g-public-route.json", metrics);
+      console.log("route-transition-slow-3g-public", JSON.stringify(metrics));
 
-    expectNavigationDuration(metrics, routeTransitionBudgets.slow3gPublicRoute.navigationDurationMs);
-    await client.detach();
+      expectNavigationDuration(metrics, routeTransitionBudgets.slow3gPublicRoute.navigationDurationMs);
+    } finally {
+      await client.detach().catch(() => undefined);
+    }
   });
 
   test("captures Slow 3G public link-transition medians and overlay visibility", async ({ page }, testInfo) => {
     const client = await emulateNetworkProfile(page, slow3gNetworkProfile);
     const transitionRuns: Array<{ from: string; to: string; durationMs: number; overlayVisible: boolean }> = [];
 
-    for (let runIndex = 0; runIndex < 3; runIndex += 1) {
-      await page.goto("/features", { waitUntil: "domcontentloaded" });
-      const targetHref = "/pricing";
-      const overlaySeen = page
-        .locator("[data-route-overlay]")
-        .waitFor({ state: "attached", timeout: 1000 })
-        .then(() => true)
-        .catch(() => false);
-      const startedAt = Date.now();
-      await page.locator(`a[href="${targetHref}"]`).first().click();
-      await page.waitForFunction((expectedPathname) => window.location.pathname === expectedPathname, targetHref, { timeout: 30_000 });
-      await page.waitForTimeout(100);
-      transitionRuns.push({
-        from: "/features",
-        to: targetHref,
-        durationMs: Date.now() - startedAt,
-        overlayVisible: await overlaySeen,
-      });
+    try {
+      for (let runIndex = 0; runIndex < 3; runIndex += 1) {
+        await page.goto("/features", { waitUntil: "domcontentloaded" });
+        const targetHref = "/pricing";
+        const overlaySeen = page
+          .locator("[data-route-overlay]")
+          .waitFor({ state: "attached", timeout: 1000 })
+          .then(() => true)
+          .catch(() => false);
+        const startedAt = Date.now();
+        await clickNamedLinkAndWaitForPath(page, /^Pricing$/, targetHref, 30_000);
+        await page.waitForTimeout(100);
+        transitionRuns.push({
+          from: "/features",
+          to: targetHref,
+          durationMs: Date.now() - startedAt,
+          overlayVisible: await overlaySeen,
+        });
+      }
+
+      const durations = transitionRuns.map((run) => run.durationMs);
+      const evidence = {
+        runs: transitionRuns,
+        medianMs: getMedian(durations),
+        overlayVisibilityRate: transitionRuns.filter((run) => run.overlayVisible).length / transitionRuns.length,
+      };
+
+      await attachMetrics(testInfo, "slow-3g-public-link-transition-medians.json", evidence);
+      console.log("route-transition-slow-3g-public-link-medians", JSON.stringify(evidence));
+
+      expect(evidence.medianMs).toBeLessThanOrEqual(routeTransitionBudgets.slow3gPublicRouteTransition.medianTransitionMs);
+      expect(evidence.overlayVisibilityRate).toBeLessThanOrEqual(routeTransitionBudgets.slow3gPublicRouteTransition.overlayVisibilityRateMax);
+    } finally {
+      await client.detach().catch(() => undefined);
     }
-
-    const durations = transitionRuns.map((run) => run.durationMs);
-    const evidence = {
-      runs: transitionRuns,
-      medianMs: getMedian(durations),
-      overlayVisibilityRate: transitionRuns.filter((run) => run.overlayVisible).length / transitionRuns.length,
-    };
-
-    await attachMetrics(testInfo, "slow-3g-public-link-transition-medians.json", evidence);
-    console.log("route-transition-slow-3g-public-link-medians", JSON.stringify(evidence));
-
-    expect(evidence.medianMs).toBeLessThanOrEqual(routeTransitionBudgets.slow3gPublicRouteTransition.medianTransitionMs);
-    expect(evidence.overlayVisibilityRate).toBeLessThanOrEqual(routeTransitionBudgets.slow3gPublicRouteTransition.overlayVisibilityRateMax);
-    await client.detach();
   });
 
   test("captures Link-based public route transition medians and overlay visibility", async ({ page }, testInfo) => {
@@ -217,8 +235,7 @@ test.describe("route transition performance evidence", () => {
         .then(() => true)
         .catch(() => false);
       const startedAt = Date.now();
-      await page.locator(`a[href="${targetHref}"]`).first().click();
-      await page.waitForFunction((expectedPathname) => window.location.pathname === expectedPathname, targetHref, { timeout: 15_000 });
+      await clickNamedLinkAndWaitForPath(page, /^Pricing$/, targetHref, 15_000);
       await page.waitForTimeout(100);
       const durationMs = Date.now() - startedAt;
       const overlayVisible = await overlaySeen;
@@ -259,6 +276,7 @@ test.describe("route transition performance evidence", () => {
     await page.goto("/features", { waitUntil: "domcontentloaded" });
     const startedAt = Date.now();
     await page.goBack({ waitUntil: "domcontentloaded" });
+    await page.waitForURL((url) => url.pathname === "/", { timeout: 5_000 }).catch(() => undefined);
     const restoreMs = Date.now() - startedAt;
     await page.waitForTimeout(100);
 
@@ -287,21 +305,30 @@ test.describe("route transition performance evidence", () => {
     expect(restoreMs).toBeLessThanOrEqual(routeTransitionBudgets.bfcache.backForwardRestoreMs);
   });
 
-  test("keeps protected redirect within the route performance budget", async ({ page }, testInfo) => {
+  test("keeps protected redirect within the route performance budget", async ({ browser }, testInfo) => {
+    const context = await browser.newContext({ storageState: { cookies: [], origins: [] } });
+    const page = await context.newPage();
     await page.goto("/workshop/projects", { waitUntil: "domcontentloaded" });
 
-    await expect(page).toHaveURL(/\/login\?next=%2Fworkshop%2Fprojects/);
-    await expect(page.locator("[data-route-overlay]")).toHaveCount(routeTransitionBudgets.protectedRedirect.overlayCount);
+    try {
+      await expect(page).toHaveURL(/\/login\?next=%2Fworkshop%2Fprojects/);
+      await expect(page.locator("[data-route-overlay]")).toHaveCount(routeTransitionBudgets.protectedRedirect.overlayCount);
 
-    const metrics = await collectRouteMetrics(page);
-    await attachMetrics(testInfo, "protected-redirect-route-budget.json", metrics);
-    console.log("route-transition-protected-redirect-budget", JSON.stringify(metrics));
+      const metrics = await collectRouteMetrics(page);
+      await attachMetrics(testInfo, "protected-redirect-route-budget.json", metrics);
+      console.log("route-transition-protected-redirect-budget", JSON.stringify(metrics));
 
-    expectNavigationDuration(metrics, routeTransitionBudgets.protectedRedirect.navigationDurationMs);
+      expectNavigationDuration(metrics, routeTransitionBudgets.protectedRedirect.navigationDurationMs);
+    } finally {
+      await context.close();
+    }
   });
 
-  test("captures authenticated transition budget and separates hover-prefetch evidence when dev auth is enabled", async ({ page }, testInfo) => {
-    test.skip(process.env.ARCHESTIMATOR_DEV_AUTH_BYPASS !== "1", "Requires ARCHESTIMATOR_DEV_AUTH_BYPASS=1 and a local seeded dev profile.");
+  test("captures authenticated transition budget and separates hover-prefetch evidence when auth is enabled", async ({ page }, testInfo) => {
+    test.skip(
+      !hasDevAuthBypass && !hasStorageStateAuth,
+      "Requires ARCHESTIMATOR_DEV_AUTH_BYPASS=1 or PLAYWRIGHT_STORAGE_STATE with a real authenticated session.",
+    );
 
     const rscRequests = new Set<string>();
     page.on("request", (request) => {
@@ -335,7 +362,16 @@ test.describe("route transition performance evidence", () => {
     const hoverPrefetchNote = hoverRscRequests.length > 0
       ? "Hover prefetch RSC requests were observed before click."
       : "Hover prefetch RSC requests were not observed before click in this environment.";
-    const evidence = { beforeClick, afterClick, hoverRscRequests, transitionRscRequests, allRscRequests, hoverPrefetchNote, transitionMs };
+    const evidence = {
+      authMode: hasStorageStateAuth ? "storage-state" : "dev-auth",
+      beforeClick,
+      afterClick,
+      hoverRscRequests,
+      transitionRscRequests,
+      allRscRequests,
+      hoverPrefetchNote,
+      transitionMs,
+    };
     await attachMetrics(testInfo, "authenticated-hover-prefetch-and-transition-budget.json", evidence);
     console.log("route-transition-authenticated-hover-prefetch", JSON.stringify(evidence));
 
@@ -345,8 +381,8 @@ test.describe("route transition performance evidence", () => {
 
   test("records project-card and estimate-row hover-prefetch evidence when dev auth data is enabled", async ({ page }, testInfo) => {
     test.skip(
-      process.env.ARCHESTIMATOR_DEV_AUTH_BYPASS !== "1" || process.env.ARCHESTIMATOR_DEV_AUTH_ADMIN_DB !== "1",
-      "Requires ARCHESTIMATOR_DEV_AUTH_BYPASS=1, ARCHESTIMATOR_DEV_AUTH_ADMIN_DB=1, and seeded project/estimate data.",
+      !(hasDevAuthBypass && hasDevAuthAdminDb) && !hasStorageStateAuth,
+      "Requires dev-auth admin data or PLAYWRIGHT_STORAGE_STATE with seeded project/estimate data.",
     );
 
     const rscRequests = new Set<string>();
@@ -392,6 +428,7 @@ test.describe("route transition performance evidence", () => {
     const estimateRowHoverMetrics = await collectRouteMetrics(page);
 
     const evidence = {
+      authMode: hasStorageStateAuth ? "storage-state" : "dev-auth",
       projectHref,
       estimateHref,
       projectCardHoverRscRequests,

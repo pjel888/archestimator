@@ -8,7 +8,7 @@ describe("project publication security headers (Shared Link V2)", () => {
     const shareHeaders = headers?.find((entry) => entry.source === "/share/:path*");
 
     expect(shareHeaders).toBeDefined();
-    const csp = shareHeaders?.headers.find((header) => header.key === "Content-Security-Policy-Report-Only")?.value;
+    const csp = shareHeaders?.headers.find((header) => header.key === "Content-Security-Policy")?.value;
     expect(csp).toContain("default-src 'self'");
     expect(csp).toContain("frame-ancestors 'none'");
     expect(csp).toContain("form-action 'self'");
@@ -16,5 +16,14 @@ describe("project publication security headers (Shared Link V2)", () => {
     expect(csp).toContain("img-src 'self' data: blob: https://*.supabase.co");
     expect(csp).not.toContain("img-src *");
     expect(csp).not.toContain("img-src https:");
+
+    const shareApiHeaders = headers?.find((entry) => entry.source === "/api/share/:path*");
+    expect(shareApiHeaders?.headers).toEqual(
+      expect.arrayContaining([
+        { key: "X-Content-Type-Options", value: "nosniff" },
+        { key: "X-Frame-Options", value: "DENY" },
+        { key: "Referrer-Policy", value: "no-referrer-when-downgrade" },
+      ]),
+    );
   });
 });

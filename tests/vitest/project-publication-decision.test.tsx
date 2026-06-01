@@ -11,6 +11,7 @@ const mocks = vi.hoisted(() => ({
   useSharedLinkSession: vi.fn(),
   // P7 repo extension (additive)
   submitSharedLinkDecision: vi.fn(),
+  checkSharedLinkDecisionRateLimit: vi.fn(),
 }));
 
 vi.mock("@/lib/publication/security", () => ({
@@ -28,6 +29,7 @@ vi.mock("@/lib/publication/public-repository", async () => {
   return {
     ...actual,
     submitSharedLinkDecision: mocks.submitSharedLinkDecision,
+    checkSharedLinkDecisionRateLimit: mocks.checkSharedLinkDecisionRateLimit,
   };
 });
 
@@ -53,6 +55,7 @@ describe("P7 — Shared Link Decisions API & UI (red tests written FIRST before 
     mocks.createSharedLinkSessionCookieName.mockReturnValue("shared_link_session_abc123");
     mocks.useSharedLinkSession.mockReturnValue({ isValid: true });
     mocks.submitSharedLinkDecision.mockResolvedValue({ id: "decision-123" });
+    mocks.checkSharedLinkDecisionRateLimit.mockResolvedValue({ allowed: true });
     // reset fetch spy if any
     // @ts-expect-error test env
     global.fetch = vi.fn();
@@ -121,6 +124,31 @@ describe("P7 — Shared Link Decisions API & UI (red tests written FIRST before 
           note: "Please revise pricing on line 3",
         })
       );
+    });
+
+    it("uses durable decision rate limiting before submitting a decision", async () => {
+      mocks.assertSameOriginPublicPost.mockReturnValue({ ok: true });
+      mocks.verifySharedLinkSessionCookieValue.mockReturnValue(true);
+      mocks.checkSharedLinkDecisionRateLimit.mockResolvedValueOnce({
+        allowed: false,
+        message: "Too many attempts. Please wait 60 seconds.",
+        retryAfter: 60,
+      });
+      const parsableSession = "shared-link-session-v1:eyJyZWNpcGllbnRJZCI6InJlY2lwLTEyMyIsInB1YmxpY2F0aW9uSWQiOiJwdWIxIiwic25hcHNob3RWZXJzaW9uIjoiMSJ9:dummy";
+      const req = makeRequest(
+        { decision: "accepted" },
+        {
+          cookie: `shared_link_session_abc123=${encodeURIComponent(parsableSession)}`,
+          "x-archestimator-csrf": "csrf-token-xyz",
+        },
+      );
+
+      const res = await POST(req, params());
+
+      expect(res.status).toBe(429);
+      expect(res.headers.get("retry-after")).toBe("60");
+      expect(await res.json()).toEqual({ error: "Too many attempts. Please wait 60 seconds." });
+      expect(mocks.submitSharedLinkDecision).not.toHaveBeenCalled();
     });
 
     it("maps other RPC errors (e.g. not found) to appropriate status without leaking internals", async () => {
@@ -215,7 +243,7 @@ describe("P7 — Shared Link Decisions API & UI (red tests written FIRST before 
     it("keeps SharePageComments (or post-decision comments) usable/rendered after decision lock (per owner decision allowance)", () => {
       mocks.useSharedLinkSession.mockReturnValue({ isValid: true });
       // After internal lock simulation (component manages its decided state)
-      const { container } = render(
+      render(
         <>
           <SharePageDecision token="t1" />
           {/* Comments remain independently usable post-decision */}

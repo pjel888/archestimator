@@ -23,7 +23,7 @@ describe("workshop sidebar baseline", () => {
     expect(source).not.toContain("resolveWorkshopPendingInvite");
     expect(source).not.toContain("clearPendingInviteCookie");
     expect(source).toContain("archestimator_pending_invite");
-    expect(source).toContain("<WorkshopHomebaseClient homebase={homebase} inviteBanner={inviteBanner} />");
+    expect(source).toContain("removedProjectBanner={removedProjectBanner}");
     expect(homebase).not.toContain("WorkshopCollectionLayout");
     expect(homebase).not.toContain("Search Workshop");
     expect(homebase).not.toContain("Workshop tools");
@@ -33,8 +33,8 @@ describe("workshop sidebar baseline", () => {
     expect(homebase).not.toContain("onCollapseAll");
     expect(homebase).not.toContain("filterOptions");
     expect(homebase).not.toContain("searchTerms");
-    expect(homebase).toContain('className="h-full min-h-0 bg-white p-2"');
-    expect(homebase).toContain("grid h-full min-h-0 grid-cols-12");
+    expect(homebase).toContain('className="flex h-full min-h-0 flex-col gap-2 bg-white p-2"');
+    expect(homebase).toContain("grid min-h-0 flex-1 grid-cols-12");
     expect(homebase).toContain("auto-rows-min content-start gap-2 overflow-y-auto");
     expect(homebase).toContain("xl:grid-rows-[auto_minmax(0,1fr)]");
     expect(homebase).toContain("xl:content-stretch xl:overflow-hidden");
@@ -146,7 +146,7 @@ describe("workshop sidebar baseline", () => {
     expect(sidebar).not.toContain("border-b border-hairline");
     expect(sidebar).not.toContain("mt-auto");
     expect(sidebarHeader).not.toContain("absolute bottom-0 border-b border-hairline");
-    expect(sidebarNavItemRow).toContain("w-full grid-cols-[48px_minmax(0,1fr)]");
+    expect(sidebarNavItemRow).toContain("w-full grid-cols-[48px_minmax(0,1fr)_auto]");
     expect(sidebarNavItemRow).not.toContain('expanded ? "w-full pr-2"');
     expect(sidebar).toContain("clipPath");
   });

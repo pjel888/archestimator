@@ -9,15 +9,21 @@ describe("landing security headers", () => {
     expect(headers).toBeDefined();
 
     const sources = headers?.map((entry) => entry.source) ?? [];
-    expect(sources).toEqual(["/", "/about", "/features", "/pricing", "/contact", "/share/:path*"]);
+    expect(sources).toEqual(["/", "/about", "/features", "/pricing", "/contact", "/share/:path*", "/api/share/:path*"]);
     expect(sources).not.toContain("/workshop/:path*");
 
-    for (const entry of headers ?? []) {
+    for (const entry of headers?.filter((header) => ["/", "/about", "/features", "/pricing", "/contact"].includes(header.source)) ?? []) {
       const reportOnly = entry.headers.find((header) => header.key === "Content-Security-Policy-Report-Only");
       expect(reportOnly?.value).toContain("default-src 'self'");
       expect(reportOnly?.value).toContain("frame-ancestors 'none'");
       expect(reportOnly?.value).toContain("https://www.googletagmanager.com");
       expect(reportOnly?.value).toContain("https://www.clarity.ms");
     }
+
+    const sharePage = headers?.find((entry) => entry.source === "/share/:path*");
+    expect(sharePage?.headers.some((header) => header.key === "Content-Security-Policy")).toBe(true);
+
+    const shareApi = headers?.find((entry) => entry.source === "/api/share/:path*");
+    expect(shareApi?.headers.some((header) => header.key === "X-Content-Type-Options")).toBe(true);
   });
 });

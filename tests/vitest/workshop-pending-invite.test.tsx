@@ -1,5 +1,5 @@
 import { readFileSync } from "node:fs";
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
 import { WorkshopHomebaseClient } from "@/components/workshop/WorkshopHomebaseClient";
@@ -17,6 +17,7 @@ vi.mock("@/lib/workshop/actions", () => ({
 }));
 
 vi.mock("@/lib/collaboration/pending-invite-actions", () => ({
+  acceptPendingInvitationById: vi.fn(async () => undefined),
   signOutForPendingInvite: vi.fn(async () => undefined),
 }));
 
@@ -31,18 +32,29 @@ const emptyHomebase = {
   },
   projects: [],
   estimates: [],
+  pendingInvites: [],
+  removedProjectFavorites: [],
+  receivedPendingInviteCount: 0,
 } satisfies WorkshopHomebaseData;
 
 describe("workshop pending invite bridge", () => {
   const workshopPage = readFileSync("src/app/workshop/page.tsx", "utf8");
   const homebaseClient = readFileSync("src/components/workshop/WorkshopHomebaseClient.tsx", "utf8");
+  const pendingInviteActions = readFileSync("src/lib/collaboration/pending-invite-actions.ts", "utf8");
   const pendingInviteResolver = readFileSync("src/lib/collaboration/workshop-pending-invite.ts", "utf8");
   const pendingInviteRoute = readFileSync("src/app/workshop/pending-invite/route.ts", "utf8");
+  const projectDashboardPage = readFileSync("src/app/workshop/projects/[projectId]/page.tsx", "utf8");
 
   it("successful auth still lands on workshop and consumes a pending invite cookie there", () => {
+    const authSetup = readFileSync("src/lib/auth/account-setup.ts", "utf8");
+
+    expect(authSetup).toContain('PENDING_INVITE_AUTH_DESTINATION = "/workshop/pending-invite"');
     expect(workshopPage).toContain('redirect("/workshop/pending-invite")');
     expect(pendingInviteRoute).toContain("acceptPendingInviteBridge");
     expect(pendingInviteRoute).toContain("clearPendingInviteCookie(response)");
+    expect(pendingInviteRoute).toContain("createPendingInviteProgressHtml");
+    expect(pendingInviteRoute).toContain("window.location.replace");
+    expect(pendingInviteRoute).toContain('"Cache-Control": "no-store"');
     expect(workshopPage).toContain("archestimator_pending_invite");
     expect(workshopPage).toContain("<WorkshopHomebaseClient");
     expect(workshopPage).not.toContain("Promise.all");
@@ -51,16 +63,54 @@ describe("workshop pending invite bridge", () => {
 
   it("renders invite resolution as a non-blocking banner and never as an onboarding gate", () => {
     expect(homebaseClient).toContain("inviteBanner");
+    expect(homebaseClient).toContain("removedProjectBanner");
+    expect(homebaseClient).toContain("Project access removed");
     expect(homebaseClient).toContain("Project added");
     expect(homebaseClient).toContain("Sheet shared");
+    expect(homebaseClient).toContain("roleLabel");
+    expect(homebaseClient).toContain("projectName");
     expect(homebaseClient).not.toContain("country");
     expect(homebaseClient).not.toContain("profile gate");
+  });
+
+  it("routes inaccessible project opens back to the workshop removed-access banner", () => {
+    expect(workshopPage).toContain("readRemovedProjectBannerFromSearchParams");
+    expect(workshopPage).toContain("removedProjectBanner={removedProjectBanner}");
+    expect(projectDashboardPage).toContain('redirect(`/workshop?removedProject=${encodeURIComponent(projectId)}`)');
+  });
+
+  it("renders accepted invite banners with role and project context when provided", () => {
+    render(
+      <WorkshopHomebaseClient
+        homebase={emptyHomebase}
+        inviteBanner={{
+          kind: "accepted",
+          scope: "project",
+          targetHref: "/workshop/projects/project-1",
+          targetLabel: "Open project",
+          projectName: "Shared Clinic Fit-Out",
+          roleLabel: "Viewer",
+        }}
+      />,
+    );
+
+    expect(screen.getByRole("region", { name: "Project added" })).toBeInTheDocument();
+    expect(screen.getByText("You've been added as Viewer to Shared Clinic Fit-Out.")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Open project" })).toHaveAttribute("href", "/workshop/projects/project-1");
   });
 
   it("keeps wrong-account bridge state retryable and includes invited email when available", () => {
     expect(pendingInviteResolver).toContain('if (state === "wrong_account")');
     expect(pendingInviteResolver).toContain("invited_email");
     expect(pendingInviteRoute).toContain('banner.kind !== "wrong-account"');
+  });
+
+  it("wires signed-in pending invite cards to accept by invitation id without raw tokens", () => {
+    expect(homebaseClient).toContain("PendingInvitesPanel");
+    expect(homebaseClient).toContain("acceptPendingInvitationById");
+    expect(homebaseClient).toContain('name="invitationId"');
+    expect(pendingInviteActions).toContain("accept_collaboration_invitation_by_id");
+    expect(pendingInviteActions).not.toContain("invitation_token_hash");
   });
 
   it("renders wrong-account recovery with the invited email and a sign-out path", () => {
@@ -74,5 +124,57 @@ describe("workshop pending invite bridge", () => {
     expect(screen.getByRole("region", { name: "Invite unavailable" })).toBeInTheDocument();
     expect(screen.getByText(/teammate@example.com/)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Sign out and continue" })).toBeInTheDocument();
+  });
+
+  it("renders signed-in pending invite cards on the homebase", () => {
+    render(
+      <WorkshopHomebaseClient
+        homebase={{
+          ...emptyHomebase,
+          pendingInvites: [
+            {
+              id: "invitation-1",
+              projectId: "project-1",
+              estimateId: null,
+              projectName: "Shared Clinic Fit-Out",
+              projectCode: "AE-SC-101",
+              estimateName: null,
+              role: "viewer",
+              scope: "project",
+              inviterLabel: "Studio Partner",
+              state: "pending",
+              expiresAt: "2026-06-10T00:00:00.000Z",
+              lastOpenedAt: "2026-06-01T00:00:00.000Z",
+            },
+            {
+              id: "invitation-expired",
+              projectId: "project-expired",
+              estimateId: null,
+              projectName: "Expired Gallery Wing",
+              projectCode: "AE-EG-401",
+              estimateName: null,
+              role: "viewer",
+              scope: "project",
+              inviterLabel: "Studio Partner",
+              state: "expired",
+              expiresAt: "2026-06-01T00:00:00.000Z",
+              lastOpenedAt: null,
+            },
+          ],
+          receivedPendingInviteCount: 1,
+        }}
+      />,
+    );
+
+    const pendingInvites = screen.getByRole("region", { name: "Pending invites" });
+    expect(within(pendingInvites).getByText("Shared Clinic Fit-Out")).toBeInTheDocument();
+    expect(within(pendingInvites).getByText("AE-SC-101")).toBeInTheDocument();
+    expect(within(pendingInvites).getAllByText("Viewer")).toHaveLength(2);
+    expect(within(pendingInvites).getAllByText("Studio Partner")).toHaveLength(2);
+    expect(within(pendingInvites).getByText("Opened Jun 1")).toBeInTheDocument();
+    expect(within(pendingInvites).getByRole("button", { name: "Accept invite for Shared Clinic Fit-Out" })).toBeInTheDocument();
+    expect(within(pendingInvites).getByText("Expired Gallery Wing")).toBeInTheDocument();
+    expect(within(pendingInvites).getByText("Expired Jun 1")).toBeInTheDocument();
+    expect(within(pendingInvites).getByRole("button", { name: "Expired" })).toBeDisabled();
   });
 });

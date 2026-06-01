@@ -8,6 +8,7 @@ const projectTotalHeader = readFileSync("src/components/workshop/ProjectTotalHea
 const projectMiniSidebar = readFileSync("src/components/workshop/ProjectMiniSidebar.tsx", "utf8");
 const workshopTitleHeader = readFileSync("src/components/workshop/WorkshopTitleHeader.tsx", "utf8");
 const workshopPageShell = readFileSync("src/components/workshop/WorkshopPageShell.tsx", "utf8");
+const workshopBreadcrumbs = readFileSync("src/components/workshop/WorkshopBreadcrumbs.tsx", "utf8");
 const projectWorkspaceHeaderRow = readFileSync("src/components/workshop/ProjectWorkspaceHeaderRow.tsx", "utf8");
 const projectWorkspaceProjectCode = readFileSync("src/components/workshop/ProjectWorkspaceProjectCode.tsx", "utf8");
 const estimateCenterColumnBoundary = readFileSync("src/components/workshop/EstimateCenterColumnBoundary.tsx", "utf8");
@@ -160,6 +161,18 @@ describe("project dashboard UI governance", () => {
     expect(projectEstimateMetadataStrip).toContain("delete workshopCanvas.dataset.estimateSheetRoute");
     expect(workshopPageShell).toContain("data-workshop-page-shell-canvas");
     expect(projectDashboardLayout).toContain("ProjectWorkspaceHeaderRow");
+    expect(projectDashboardLayout).toContain('{ label: "Projects", href: "/workshop/projects" }');
+    expect(projectDashboardLayout).toContain('{ label: title, href: `/workshop/projects/${projectId}` }');
+    expect(workshopPageShell).toContain('import type { WorkshopBreadcrumb } from "./WorkshopBreadcrumbs"');
+    expect(workshopPageShell).toContain("breadcrumbs={resolvedBreadcrumbs}");
+    expect(workshopPageShell).toContain("projectId={projectId}");
+    expect(workshopPageShell).not.toContain("breadcrumbNav");
+    expect(workshopTitleHeader).toContain("WorkshopBreadcrumbs");
+    expect(workshopTitleHeader).toContain("data-workshop-title-region");
+    expect(workshopBreadcrumbs).toContain('data-workshop-layout="workshop-breadcrumbs"');
+    expect(workshopBreadcrumbs).toContain('aria-label="Project breadcrumbs"');
+    expect(workshopBreadcrumbs).toContain('label: "Estimates"');
+    expect(workshopBreadcrumbs).toContain('`${projectRoute}/estimates`');
     expect(projectWorkspaceHeaderRow).toContain("ProjectWorkspaceHeaderSurface");
     expect(projectWorkspaceHeaderRow).toContain("ProjectWorkspaceProjectCode");
     expect(projectWorkspaceHeaderRow).toContain("<ProjectEstimateMetadataStrip />");

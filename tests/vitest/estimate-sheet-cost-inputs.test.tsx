@@ -60,6 +60,7 @@ describe("estimate shell chrome", () => {
         title: "Modern Bungalow",
         eyebrow: "Project",
         breadcrumbs: ["Workshop", "Projects", "Modern Bungalow"],
+        projectId: "project-1",
         children: (
         <div>Estimate workspace</div>
         ),
@@ -70,6 +71,9 @@ describe("estimate shell chrome", () => {
     expect(within(breadcrumbs).getByText("Workshop")).toBeInTheDocument();
     expect(within(breadcrumbs).getByText("Projects")).toBeInTheDocument();
     expect(within(breadcrumbs).getByText("Modern Bungalow")).toBeInTheDocument();
+    expect(within(breadcrumbs).getByText("Estimates")).toBeInTheDocument();
+    expect(screen.getByRole("banner")).toContainElement(breadcrumbs);
+    expect(screen.getByRole("contentinfo")).not.toContainElement(breadcrumbs);
   });
 });
 

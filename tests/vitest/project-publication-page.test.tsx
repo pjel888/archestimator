@@ -1,18 +1,28 @@
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { createElement, type ImgHTMLAttributes } from "react";
+
+import type { PublicationSnapshotEstimate, ProjectPublicationSnapshot } from "@/lib/publication/types";
 
 const mocks = vi.hoisted(() => ({
   resolveProjectPublicationAccessByToken: vi.fn(),
   resolveProjectPublicationSnapshotByToken: vi.fn(),
+  resolveSharedLinkRecipientIdentity: vi.fn(),
+  unsubscribeSharedLinkRecipientByToken: vi.fn(),
+  verifySharedLinkRecipientToken: vi.fn(),
   recordProjectPublicationEvent: vi.fn(),
   cookieGet: vi.fn(),
+  cookieSet: vi.fn(),
 }));
 
 vi.mock("@/lib/publication/public-repository", () => ({
   resolveProjectPublicationAccessByToken: mocks.resolveProjectPublicationAccessByToken,
   resolveProjectPublicationSnapshotByToken: mocks.resolveProjectPublicationSnapshotByToken,
+  resolveSharedLinkRecipientIdentity: mocks.resolveSharedLinkRecipientIdentity,
+  unsubscribeSharedLinkRecipientByToken: mocks.unsubscribeSharedLinkRecipientByToken,
+  verifySharedLinkRecipientToken: mocks.verifySharedLinkRecipientToken,
   recordProjectPublicationEvent: mocks.recordProjectPublicationEvent,
 }));
 
@@ -23,18 +33,30 @@ vi.mock("next/navigation", () => ({
 }));
 
 vi.mock("next/headers", () => ({
-  cookies: vi.fn(async () => ({ get: mocks.cookieGet })),
+  cookies: vi.fn(async () => ({ get: mocks.cookieGet, set: mocks.cookieSet })),
   headers: vi.fn(async () => new Headers({ host: "archestimator.test", "user-agent": "vitest" })),
 }));
 
+vi.mock("next/image", () => ({
+  default: (props: ImgHTMLAttributes<HTMLImageElement>) => createElement("img", props),
+}));
+
 import SharePage from "@/app/share/[token]/page";
+import { createSharedLinkSessionCookie } from "@/lib/publication/security";
 
 const passwordFormSource = readFileSync("src/components/share/ProjectPublicationPasswordForm.tsx", "utf8");
+const sharePageSource = readFileSync("src/app/share/[token]/page.tsx", "utf8");
+const shareSessionBannerSource = readFileSync("src/components/share/SharePageSessionBanner.tsx", "utf8");
+const shareSessionRouteSource = existsSync("src/app/api/share/[token]/session/route.ts") ? readFileSync("src/app/api/share/[token]/session/route.ts", "utf8") : "";
+const sharePrintSource = existsSync("src/app/share/print.css") ? readFileSync("src/app/share/print.css", "utf8") : "";
 
 describe("shared link (receiver publication) page — Shared Link Overhaul V2", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.stubGlobal("fetch", vi.fn(async () => ({ ok: true })) as unknown as typeof fetch);
     mocks.cookieGet.mockReturnValue(undefined);
+    mocks.resolveSharedLinkRecipientIdentity.mockResolvedValue(null);
+    mocks.verifySharedLinkRecipientToken.mockResolvedValue(null);
     mocks.resolveProjectPublicationAccessByToken.mockResolvedValue({
       publicationId: "publication-1",
       status: "published",
@@ -115,6 +137,158 @@ describe("shared link (receiver publication) page — Shared Link Overhaul V2", 
     });
   });
 
+  it("loads print styles and marks receiver-only chrome as non-printing", async () => {
+    expect(sharePageSource).toContain("../print.css");
+    expect(sharePrintSource).toContain("@media print");
+    expect(sharePrintSource).toContain(".share-print-hidden");
+    expect(sharePrintSource).toContain(".share-print-estimate");
+
+    const { container } = render(await SharePage({ params: Promise.resolve({ token: "client-token" }) }));
+
+    expect(container.querySelector(".share-print-content")).toBeInTheDocument();
+    expect(container.querySelectorAll(".share-print-hidden").length).toBeGreaterThanOrEqual(2);
+  });
+
+  it("defers recipient query session creation to the route-handler mutation boundary", async () => {
+    render(
+      await SharePage({
+        params: Promise.resolve({ token: "client-token" }),
+        searchParams: Promise.resolve({ recipient: "raw-recipient-token" }),
+      }),
+    );
+
+    expect(sharePageSource).toContain("SharePageRecipientSessionInitializer");
+    expect(sharePageSource).toContain("recipientToken={recipientToken}");
+    expect(mocks.verifySharedLinkRecipientToken).not.toHaveBeenCalled();
+    expect(mocks.cookieSet).not.toHaveBeenCalled();
+    expect(mocks.recordProjectPublicationEvent).toHaveBeenCalledWith({
+      token: "client-token",
+      eventType: "open",
+      request: expect.any(Request),
+      metadata: {},
+      recipientId: undefined,
+    });
+  });
+
+  it("keeps malformed recipient query values out of server-side cookie mutation", async () => {
+    render(
+      await SharePage({
+        params: Promise.resolve({ token: "client-token" }),
+        searchParams: Promise.resolve({ recipient: "not-a-valid-recipient-token" }),
+      }),
+    );
+
+    expect(screen.queryByText(/Viewing as/)).not.toBeInTheDocument();
+    expect(mocks.verifySharedLinkRecipientToken).not.toHaveBeenCalled();
+    expect(mocks.cookieSet).not.toHaveBeenCalledWith(
+      expect.stringMatching(/^shared_link_session_/),
+      expect.any(String),
+      expect.any(Object),
+    );
+    expect(mocks.recordProjectPublicationEvent).toHaveBeenCalledWith({
+      token: "client-token",
+      eventType: "open",
+      request: expect.any(Request),
+      metadata: {},
+      recipientId: undefined,
+    });
+  });
+
+  it("offers a Not you recovery that clears HttpOnly recipient-session cookies server-side", async () => {
+    const sessionCookie = createSharedLinkSessionCookie({
+      token: "client-token",
+      publicationId: "publication-1",
+      snapshotVersion: "2026-05-27T00:00:00.000Z",
+      recipientId: "recipient-1",
+    });
+    const sessionValue = encodeURIComponent(sessionCookie.split(";")[0]?.split("=").slice(1).join("=") ?? "");
+    mocks.cookieGet.mockReturnValue({ value: sessionValue });
+    mocks.resolveSharedLinkRecipientIdentity.mockResolvedValueOnce({
+      recipientId: "recipient-1",
+      recipientEmail: "recipient@example.com",
+      recipientDisplayName: "Client Receiver",
+    });
+
+    render(
+      await SharePage({
+        params: Promise.resolve({ token: "client-token" }),
+      }),
+    );
+
+    expect(screen.getByRole("button", { name: /not you/i })).toBeInTheDocument();
+    expect(sharePageSource).toContain("<SharePageSessionBanner recipientEmail={recipientEmail} token={token}");
+    expect(shareSessionBannerSource).toContain("method: \"DELETE\"");
+    expect(shareSessionRouteSource).toContain("createSharedLinkSessionCookieName");
+    expect(shareSessionRouteSource).toContain("Max-Age=0");
+    expect(shareSessionRouteSource).toContain("_ok");
+  });
+
+  it("creates recipient session cookies through the route handler without rendering raw tokens", async () => {
+    mocks.verifySharedLinkRecipientToken.mockResolvedValueOnce({
+      publicationId: "publication-1",
+      snapshotVersion: "2026-05-27T00:00:00.000Z",
+      recipientId: "recipient-1",
+      recipientEmail: "recipient@example.com",
+      recipientDisplayName: "Client Receiver",
+    });
+    const { POST } = await import("@/app/api/share/[token]/session/route");
+
+    const response = await POST(
+      new Request("https://archestimator.test/api/share/client-token/session", {
+        method: "POST",
+        headers: { "content-type": "application/json", origin: "https://archestimator.test" },
+        body: JSON.stringify({ recipientToken: "raw-recipient-token" }),
+      }),
+      { params: Promise.resolve({ token: "client-token" }) },
+    );
+    const setCookieHeader = response.headers.get("set-cookie") ?? "";
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(mocks.verifySharedLinkRecipientToken).toHaveBeenCalledWith("client-token", "raw-recipient-token");
+    expect(setCookieHeader).toContain("shared_link_session_");
+    expect(setCookieHeader).toContain("_ok=");
+    expect(setCookieHeader).toContain("HttpOnly");
+    expect(setCookieHeader).not.toContain("client-token");
+    expect(setCookieHeader).not.toContain("raw-recipient-token");
+  });
+
+  it("expires recipient session cookies without exposing the raw share token", async () => {
+    const { DELETE } = await import("@/app/api/share/[token]/session/route");
+
+    const response = await DELETE(new Request("https://archestimator.test/api/share/client-token/session"), {
+      params: Promise.resolve({ token: "client-token" }),
+    });
+    const setCookieHeader = response.headers.get("set-cookie") ?? "";
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(setCookieHeader).toContain("shared_link_session_");
+    expect(setCookieHeader).toContain("_ok=");
+    expect(setCookieHeader).toContain("Max-Age=0");
+    expect(setCookieHeader).toContain("HttpOnly");
+    expect(setCookieHeader).not.toContain("client-token");
+  });
+
+  it("lets recipient email unsubscribe links suppress follow-up recipient emails", async () => {
+    mocks.unsubscribeSharedLinkRecipientByToken.mockResolvedValueOnce({
+      recipientId: "recipient-1",
+      recipientEmail: "recipient@example.com",
+      recipientDisplayName: "Client Receiver",
+    });
+    const { GET } = await import("@/app/api/share/[token]/unsubscribe/route");
+
+    const response = await GET(new Request("https://archestimator.test/api/share/client-token/unsubscribe?recipient=raw-recipient-token"), {
+      params: Promise.resolve({ token: "client-token" }),
+    });
+    const body = await response.text();
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(body).toContain("unsubscribed");
+    expect(mocks.unsubscribeSharedLinkRecipientByToken).toHaveBeenCalledWith("client-token", "raw-recipient-token");
+  });
+
   it("renders a password gate instead of snapshot rows until access is unlocked", async () => {
     mocks.resolveProjectPublicationAccessByToken.mockResolvedValueOnce({
       publicationId: "publication-1",
@@ -139,11 +313,12 @@ describe("shared link (receiver publication) page — Shared Link Overhaul V2", 
     const { ProjectPublicationPasswordForm } = await import("@/components/share/ProjectPublicationPasswordForm");
     const user = userEvent.setup();
     // Mock fetch to simulate server returning lockout (before form handles 429 -> locked state + msg + disabled)
-    // @ts-expect-error test stub
-    global.fetch = vi.fn().mockResolvedValueOnce({
-      status: 429,
-      json: async () => ({ error: "Too many attempts. Please try again later." }),
-    } as any);
+    global.fetch = vi.fn(async () =>
+      new Response(JSON.stringify({ error: "Too many attempts. Please try again later." }), {
+        status: 429,
+        headers: { "Content-Type": "application/json" },
+      }),
+    ) as typeof fetch;
 
     render(<ProjectPublicationPasswordForm token="p10-lock-red-token" />);
 
@@ -183,7 +358,7 @@ describe("shared link (receiver publication) page — Shared Link Overhaul V2", 
   // ========================================================================
 
   describe("SharePageTabs (P2 — red until implemented)", () => {
-    const baseEstimate = {
+    const baseEstimate: PublicationSnapshotEstimate = {
       id: "estimate-1",
       name: "Main Estimate",
       sheetCode: "ES-001",
@@ -205,18 +380,18 @@ describe("shared link (receiver publication) page — Shared Link Overhaul V2", 
           rowTotal: 2300,
         },
       ],
-    } as const;
+    };
 
-    const secondEstimate = {
+    const secondEstimate: PublicationSnapshotEstimate = {
       ...baseEstimate,
       id: "estimate-2",
       name: "Alternative Layout",
       sheetCode: "ES-002",
       totalCost: 1800,
       rows: [{ ...baseEstimate.rows[0], id: "row-2", description: "Electrical", rowTotal: 1800 }],
-    } as const;
+    };
 
-    const multiEstimates = [baseEstimate, secondEstimate];
+    const multiEstimates: PublicationSnapshotEstimate[] = [baseEstimate, secondEstimate];
 
     function createMockSessionStorage() {
       const store = new Map<string, string>();
@@ -236,9 +411,9 @@ describe("shared link (receiver publication) page — Shared Link Overhaul V2", 
     it("renders a tablist with role=tablist, aria-label, and role=tab buttons (one per estimate) with aria-selected and aria-controls", async () => {
       // Will import the not-yet-created client component → immediate red
       const SharePageTabs = (await import("@/components/share/SharePageTabs")).default;
-      const { container } = render(
+      render(
         <SharePageTabs
-          estimates={multiEstimates as any}
+          estimates={multiEstimates}
           currencyCode="PHP"
           token="client-token-123"
         />
@@ -247,7 +422,7 @@ describe("shared link (receiver publication) page — Shared Link Overhaul V2", 
       const tablist = screen.getByRole("tablist", { name: /estimate sheets/i });
       expect(tablist).toBeInTheDocument();
 
-      const tabs = screen.getAllByRole("tab");
+      const tabs = within(tablist).getAllByRole("tab");
       expect(tabs).toHaveLength(2);
       expect(tabs[0]).toHaveAttribute("aria-selected", "true");
       expect(tabs[0]).toHaveAttribute("aria-controls");
@@ -263,7 +438,7 @@ describe("shared link (receiver publication) page — Shared Link Overhaul V2", 
       const user = userEvent.setup();
       render(
         <SharePageTabs
-          estimates={multiEstimates as any}
+          estimates={multiEstimates}
           currencyCode="PHP"
           token="client-token-123"
         />
@@ -284,12 +459,45 @@ describe("shared link (receiver publication) page — Shared Link Overhaul V2", 
       expect(screen.getByRole("tabpanel")).toBeInTheDocument();
     });
 
+    it("filters grid preview rows by text and shows an empty state", async () => {
+      const SharePageTabs = (await import("@/components/share/SharePageTabs")).default;
+      const user = userEvent.setup();
+      const filterEstimate: PublicationSnapshotEstimate = {
+        ...baseEstimate,
+        rows: [
+          baseEstimate.rows[0],
+          {
+            ...baseEstimate.rows[0],
+            id: "row-oak",
+            description: "Oak cabinetry",
+            designation: "CAB-01",
+            discipline: "Joinery",
+            material: "Oak veneer",
+            rowTotal: 8200,
+          },
+        ],
+      };
+
+      render(<SharePageTabs estimates={[filterEstimate]} currencyCode="PHP" token="client-token-filter" />);
+
+      await user.click(screen.getByRole("tab", { name: "Grid Preview" }));
+      const search = screen.getByRole("searchbox", { name: "Filter estimate rows" });
+      await user.type(search, "oak");
+
+      expect(screen.getByText("Oak cabinetry")).toBeInTheDocument();
+      expect(screen.queryByText("Concrete works")).not.toBeInTheDocument();
+
+      await user.clear(search);
+      await user.type(search, "zzz");
+      expect(screen.getByText('No rows match "zzz"')).toBeInTheDocument();
+    });
+
     it("supports full keyboard navigation: ArrowRight/Left cycle, Home/End, Enter/Space activation with roving focus", async () => {
       const SharePageTabs = (await import("@/components/share/SharePageTabs")).default;
       const user = userEvent.setup();
       render(
         <SharePageTabs
-          estimates={multiEstimates as any}
+          estimates={multiEstimates}
           currencyCode="PHP"
           token="client-token-123"
         />
@@ -329,7 +537,7 @@ describe("shared link (receiver publication) page — Shared Link Overhaul V2", 
       // first mount -> default first, writes storage
       const { unmount } = render(
         <SharePageTabs
-          estimates={multiEstimates as any}
+          estimates={multiEstimates}
           currencyCode="PHP"
           token="client-token-123"
         />
@@ -342,7 +550,7 @@ describe("shared link (receiver publication) page — Shared Link Overhaul V2", 
 
       render(
         <SharePageTabs
-          estimates={multiEstimates as any}
+          estimates={multiEstimates}
           currencyCode="PHP"
           token="client-token-123"
         />
@@ -362,7 +570,7 @@ describe("shared link (receiver publication) page — Shared Link Overhaul V2", 
       const SharePageTabs = (await import("@/components/share/SharePageTabs")).default;
       const { container } = render(
         <SharePageTabs
-          estimates={multiEstimates as any}
+          estimates={multiEstimates}
           currencyCode="PHP"
           token="client-token-123"
         />
@@ -380,13 +588,14 @@ describe("shared link (receiver publication) page — Shared Link Overhaul V2", 
       const SharePageTabs = (await import("@/components/share/SharePageTabs")).default;
       render(
         <SharePageTabs
-          estimates={[baseEstimate] as any}
+          estimates={[baseEstimate]}
           currencyCode="PHP"
           token="single-token"
         />
       );
 
-      const tabs = screen.getAllByRole("tab");
+      const tablist = screen.getByRole("tablist", { name: /estimate sheets/i });
+      const tabs = within(tablist).getAllByRole("tab");
       expect(tabs).toHaveLength(1);
       expect(screen.getByRole("heading", { name: "Main Estimate" })).toBeInTheDocument();
       expect(screen.getByText("Concrete works")).toBeInTheDocument();
@@ -397,7 +606,7 @@ describe("shared link (receiver publication) page — Shared Link Overhaul V2", 
     it("generateMetadata returns title with project name, description containing sheet count, and handles image from projects.metadata (inline query path)", async () => {
       // Real exercise now that generateMetadata + inline getProjectImageUrl + service client is in page
       const pageMod = await import("@/app/share/[token]/page");
-      const { generateMetadata } = pageMod as any;
+      const { generateMetadata } = pageMod;
 
       // Ensure the hoisted repo mocks return the snapshot (they already do from beforeEach)
       const meta = await generateMetadata({ params: Promise.resolve({ token: "client-token" }) });
@@ -422,21 +631,7 @@ describe("shared link (receiver publication) page — Shared Link Overhaul V2", 
   // Only this test file + src/ for impl (additive, no breaking snapshot shape for old published links).
   // ========================================================================
   describe("P9 — SharePageHero + thumbnails + lazy images + responsive (RED until implemented)", () => {
-    // Mock next/image to render as <img> for assertions in jsdom
-    beforeAll(() => {
-      vi.mock("next/image", () => ({
-        default: (props: any) => {
-          // eslint-disable-next-line jsx-a11y/alt-text
-          return <img {...props} />;
-        },
-      }));
-    });
-
-    afterAll(() => {
-      vi.resetAllMocks();
-    });
-
-    const heroProject = {
+    const heroProject: ProjectPublicationSnapshot["project"] = {
       id: "p1",
       name: "Valencia Residence",
       projectCode: "VR-001",
@@ -463,7 +658,7 @@ describe("shared link (receiver publication) page — Shared Link Overhaul V2", 
       imageUrl: "https://example.supabase.co/storage/v1/object/public/project-images/ws/u/p1/comp.webp",
     };
 
-    const estimateWithThumbRow = {
+    const estimateWithThumbRow: PublicationSnapshotEstimate = {
       id: "e1",
       name: "Main",
       sheetCode: "ES-001",
@@ -476,7 +671,7 @@ describe("shared link (receiver publication) page — Shared Link Overhaul V2", 
     it("SharePageHero renders Next/Image (as img) for cover with loading=lazy, alt from project, design tokens (rounded-xs, hairline, proposal surface)", async () => {
       const mod = await import("@/components/share/SharePageHero");
       const SharePageHero = mod.default;
-      const { container } = render(<SharePageHero project={heroProject as any} />);
+      const { container } = render(<SharePageHero project={heroProject} />);
 
       const img = container.querySelector("img");
       expect(img).toBeInTheDocument();
@@ -492,11 +687,12 @@ describe("shared link (receiver publication) page — Shared Link Overhaul V2", 
       const SharePageTabs = (await import("@/components/share/SharePageTabs")).default;
       const { container } = render(
         <SharePageTabs
-          estimates={[estimateWithThumbRow] as any}
+          estimates={[estimateWithThumbRow]}
           currencyCode="PHP"
           token="p9-token"
         />
       );
+      await userEvent.click(screen.getByRole("tab", { name: /grid preview/i }));
 
       // 32px thumbnail present for row with imageUrl
       const thumbs = container.querySelectorAll('img[width="32"], img[height="32"], img[width="32px"]');
@@ -507,7 +703,7 @@ describe("shared link (receiver publication) page — Shared Link Overhaul V2", 
       expect(thumb.getAttribute("src")).toContain("project-images");
 
       // Now test row without image: no erroneous thumbnail
-      const noThumbEstimate = { ...estimateWithThumbRow, rows: [{ ...rowWithThumb, imageUrl: undefined }] } as any;
+      const noThumbEstimate: PublicationSnapshotEstimate = { ...estimateWithThumbRow, rows: [{ ...rowWithThumb, imageUrl: undefined }] };
       const { container: c2 } = render(
         <SharePageTabs estimates={[noThumbEstimate]} currencyCode="PHP" token="p9-token-2" />
       );
@@ -519,7 +715,7 @@ describe("shared link (receiver publication) page — Shared Link Overhaul V2", 
     it("receiver surfaces (tabs, side panels) include responsive hooks: horizontal scroll on tabs (already), sticky decision affordance, safe-area-inset-bottom padding for mobile bars", async () => {
       const SharePageTabs = (await import("@/components/share/SharePageTabs")).default;
       const { container: tabsC } = render(
-        <SharePageTabs estimates={[estimateWithThumbRow] as any} currencyCode="PHP" token="p9-resp" />
+        <SharePageTabs estimates={[estimateWithThumbRow]} currencyCode="PHP" token="p9-resp" />
       );
       // tabs already ship overflow-x-auto + fade masks (P2); ensure still present for swipe
       expect(tabsC.innerHTML).toMatch(/overflow-x-auto/);
@@ -536,7 +732,7 @@ describe("shared link (receiver publication) page — Shared Link Overhaul V2", 
       // Covered by explicit asserts in hero + thumb tests above
       const SharePageTabs = (await import("@/components/share/SharePageTabs")).default;
       const { container } = render(
-        <SharePageTabs estimates={[estimateWithThumbRow] as any} currencyCode="PHP" token="p9-lazy" />
+        <SharePageTabs estimates={[estimateWithThumbRow]} currencyCode="PHP" token="p9-lazy" />
       );
       const lazyImgs = container.querySelectorAll('img[loading="lazy"]');
       expect(lazyImgs.length).toBeGreaterThan(0);

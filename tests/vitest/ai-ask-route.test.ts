@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { handleAiAskRequest } from "@/app/api/ai/ask/route";
+import { handleAiAskRequest } from "@/app/api/ai/ask/handler";
 import type { DeepSeekChatMessage } from "@/lib/ai/deepseek";
 import type { AiAskReadContext } from "@/lib/ai/read-context";
 

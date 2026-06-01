@@ -74,6 +74,30 @@ describe("auth proxy", () => {
     expect(response.headers.get(`x-middleware-request-${AUTH_REQUEST_PATH_HEADER}`)).toBe(new URL(url).pathname);
   });
 
+  it.each([
+    ["landing", "http://localhost:3000/"],
+    ["features", "http://localhost:3000/features"],
+  ])("removes no-store from public marketing %s responses so Chrome can evaluate bfcache", async (_label, url) => {
+    mockUser({ id: "user-1" });
+    const { proxy } = await import("@/proxy");
+
+    const response = await proxy(request(url));
+
+    expect(response.headers.get("Cache-Control")).toBe("private, no-cache, max-age=0, must-revalidate");
+  });
+
+  it.each([
+    ["invite", "http://localhost:3000/invite/invite-token"],
+    ["share", "http://localhost:3000/share/share-token"],
+  ])("does not add marketing cache headers to %s public routes", async (_label, url) => {
+    mockUser({ id: "user-1" });
+    const { proxy } = await import("@/proxy");
+
+    const response = await proxy(request(url));
+
+    expect(response.headers.get("Cache-Control")).toBeNull();
+  });
+
   it("does not early-return login because signed-in users still need redirect behavior", async () => {
     mockUser({ id: "user-1" });
     const { proxy } = await import("@/proxy");

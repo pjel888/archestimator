@@ -26,6 +26,7 @@ type E2EUser = {
 
 type E2EInvite = {
   invitationId: string;
+  invitePath: string;
   rawToken: string;
   email: string;
 };
@@ -53,6 +54,12 @@ function getCookieUrls(baseURL: string) {
     urls.push(`${parsed.protocol}//127.0.0.1${parsed.port ? `:${parsed.port}` : ""}`);
   }
   return Array.from(new Set(urls));
+}
+
+function getLocalhostBaseURL(baseURL: string) {
+  const parsed = new URL(baseURL);
+  if (parsed.hostname === "127.0.0.1") parsed.hostname = "localhost";
+  return parsed.origin;
 }
 
 function createAuthCookies(session: Session, baseURL: string) {
@@ -105,6 +112,16 @@ function createAnonClient() {
   return createClient<Database>(env.supabaseUrl, env.anonKey, {
     auth: { autoRefreshToken: false, persistSession: false },
   });
+}
+
+async function createAuthenticatedSupabaseClient(session: Session) {
+  const supabase = createAnonClient();
+  const { error } = await supabase.auth.setSession({
+    access_token: session.access_token,
+    refresh_token: session.refresh_token,
+  });
+  if (error) throw error;
+  return supabase;
 }
 
 async function createE2EUser(label: string, projectRole?: "owner" | "admin" | "editor" | "viewer") {
@@ -172,8 +189,11 @@ async function createProjectInvite({
 }): Promise<E2EInvite> {
   const admin = createAdminClient();
   const now = new Date();
-  const expiresAt = new Date(now.getTime() + (state === "expired" ? -60_000 : 24 * 60 * 60 * 1000)).toISOString();
+  const activeExpiresAt = new Date(now.getTime() + 24 * 60 * 60 * 1000).toISOString();
+  const terminalExpiresAt = new Date(now.getTime() - 60_000).toISOString();
+  const expiresAt = state === "expired" ? terminalExpiresAt : activeExpiresAt;
   const rawToken = randomBytes(32).toString("base64url");
+  const invitePath = `/invite/${encodeURIComponent(rawToken)}`;
 
   const { data: invitation, error: invitationError } = await admin
     .from("collaboration_invitations")
@@ -185,29 +205,52 @@ async function createProjectInvite({
       email: email.toLowerCase(),
       role: "viewer",
       invited_by: inviter.id,
-      expires_at: expiresAt,
+      expires_at: activeExpiresAt,
       lifecycle_state: "pending",
     })
     .select("id")
     .single();
   if (invitationError) throw invitationError;
 
-  const { error: tokenError } = await admin
-    .from("collaboration_invitation_tokens")
-    .insert({
+  const inviterClient = await createAuthenticatedSupabaseClient(inviter.session);
+  const { data: tokenId, error: tokenError } = await inviterClient
+    .rpc("issue_collaboration_invitation_token", {
       invitation_id: invitation.id,
-      token_hash: hashInviteToken(rawToken),
+      invitation_token_hash: hashInviteToken(rawToken),
       token_hint: rawToken.slice(-6),
       delivery_method: "copy_url",
-      created_by: inviter.id,
-      expires_at: expiresAt,
-      used_at: state === "used" ? now.toISOString() : null,
-      revoked_at: state === "revoked" ? now.toISOString() : null,
-      revoked_by: state === "revoked" ? inviter.id : null,
+      token_expires_at: activeExpiresAt,
+      revoke_existing: true,
     });
   if (tokenError) throw tokenError;
+  if (!tokenId) throw new Error("Supabase did not return an invitation token id.");
 
-  return { invitationId: invitation.id, rawToken, email };
+  if (state === "expired") {
+    const { error: expireInvitationError } = await admin
+      .from("collaboration_invitations")
+      .update({ expires_at: expiresAt, lifecycle_state: "expired" })
+      .eq("id", invitation.id);
+    if (expireInvitationError) throw expireInvitationError;
+    const { error: expireTokenError } = await admin
+      .from("collaboration_invitation_tokens")
+      .update({ expires_at: expiresAt })
+      .eq("id", tokenId);
+    if (expireTokenError) throw expireTokenError;
+  } else if (state === "revoked") {
+    const { error: revokeTokenError } = await admin
+      .from("collaboration_invitation_tokens")
+      .update({ revoked_at: now.toISOString(), revoked_by: inviter.id })
+      .eq("id", tokenId);
+    if (revokeTokenError) throw revokeTokenError;
+  } else if (state === "used") {
+    const { error: useTokenError } = await admin
+      .from("collaboration_invitation_tokens")
+      .update({ used_at: now.toISOString() })
+      .eq("id", tokenId);
+    if (useTokenError) throw useTokenError;
+  }
+
+  return { invitationId: invitation.id, invitePath, rawToken, email };
 }
 
 async function createAuthenticatedContext(browserContext: BrowserContext, baseURL: string, session: Session) {
@@ -256,16 +299,20 @@ test.describe.serial("Project invite entry", () => {
     const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
     const page = await context.newPage();
 
-    await page.goto(`/invite/${invite.rawToken}`);
+    expect(invite.invitePath).toMatch(/^\/invite\/[A-Za-z0-9_-]{43}$/);
+    await page.goto(invite.invitePath);
     await expect(page.locator("[data-invite-state]")).toHaveAttribute("data-invite-state", "signed-out-preview");
     await expect(page.getByText("Project invite")).toBeVisible();
     await expect(page.getByRole("link", { name: "Continue to Archestimator" })).toBeVisible();
     await page.screenshot({ fullPage: true, path: testInfo.outputPath("signed-out-preview-desktop.png") });
 
     await page.getByRole("link", { name: "Continue to Archestimator" }).click();
-    await expect(page).toHaveURL(/\/login\?next=%2Fworkshop/);
+    await expect(page).toHaveURL(/\/login\?next=%2Fworkshop%2Fpending-invite/);
     await createAuthenticatedContext(context, baseURL, recipient.session);
-    await page.goto("/workshop");
+    const pendingInviteResponse = await page.goto("/workshop/pending-invite");
+    expect(pendingInviteResponse?.headers()["cache-control"]).toContain("no-store");
+    await page.waitForURL(/\/workshop\?invite=accepted/, { timeout: 20_000 });
+    expect(page.url()).not.toContain(invite.rawToken);
     const projectAddedBanner = page.getByRole("region", { name: "Project added" });
     await expect(projectAddedBanner).toBeVisible({ timeout: 20_000 });
     await expect(projectAddedBanner.getByRole("link", { name: "Open project" })).toBeVisible();
@@ -312,31 +359,39 @@ test.describe.serial("Project invite entry", () => {
     const matchingContext = await browser.newContext({ viewport: { width: 390, height: 844 } });
     await createAuthenticatedContext(matchingContext, baseURL, matchingUser.session);
     const matchingPage = await matchingContext.newPage();
-    await matchingPage.goto(`/invite/${matchingInvite.rawToken}`);
+    const localhostBaseURL = getLocalhostBaseURL(baseURL);
+    expect(matchingInvite.invitePath).toMatch(/^\/invite\/[A-Za-z0-9_-]{43}$/);
+    await matchingPage.goto(`${localhostBaseURL}${matchingInvite.invitePath}`);
     await expect(matchingPage.locator("[data-invite-state]")).toHaveAttribute("data-invite-state", "signed-in-preview");
-    await expect(matchingPage.getByRole("link", { name: "Accept invite" })).toBeVisible();
+    const confirmAcceptanceButton = matchingPage.getByRole("button", { name: "Confirm acceptance" });
+    await expect(confirmAcceptanceButton).toBeVisible();
     await matchingPage.screenshot({ fullPage: true, path: testInfo.outputPath("signed-in-preview-mobile.png") });
-    await matchingPage.getByRole("link", { name: "Accept invite" }).click();
+    await confirmAcceptanceButton.click();
+    await matchingPage.waitForURL(/\/workshop\?invite=accepted/, { timeout: 20_000 });
+    expect(matchingPage.url()).not.toContain(matchingInvite.rawToken);
+    const matchingProjectAddedBanner = matchingPage.getByRole("region", { name: "Project added" });
+    await expect(matchingProjectAddedBanner).toBeVisible({ timeout: 20_000 });
+    await matchingProjectAddedBanner.getByRole("link", { name: "Open project" }).click();
     await expect(matchingPage).toHaveURL(new RegExp(`/workshop/projects/${projectId}`));
     await matchingContext.close();
 
     const wrongContext = await browser.newContext({ viewport: { width: 900, height: 900 } });
     await createAuthenticatedContext(wrongContext, baseURL, wrongUser.session);
     const wrongPage = await wrongContext.newPage();
-    await wrongPage.goto(`/invite/${wrongAccountInvite.rawToken}`);
+    await wrongPage.goto(`${localhostBaseURL}${wrongAccountInvite.invitePath}`);
     await expect(wrongPage.locator("[data-invite-state]")).toHaveAttribute("data-invite-state", "wrong-account");
-    await expect(wrongPage.getByText(intendedWrongAccountUser.email)).toBeVisible();
+    await expect(wrongPage.getByText(intendedWrongAccountUser.email, { exact: true })).toBeVisible();
     await expect(wrongPage.getByRole("link", { name: "Sign out and continue" })).toBeVisible();
     await wrongPage.screenshot({ fullPage: true, path: testInfo.outputPath("wrong-account-tablet.png") });
     await wrongContext.close();
 
     const terminalContext = await browser.newContext({ viewport: { width: 1440, height: 900 } });
     const terminalPage = await terminalContext.newPage();
-    await terminalPage.goto(`/invite/${expiredInvite.rawToken}`);
+    await terminalPage.goto(expiredInvite.invitePath);
     await expect(terminalPage.locator("[data-invite-state]")).toHaveAttribute("data-invite-state", "expired");
-    await terminalPage.goto(`/invite/${revokedInvite.rawToken}`);
+    await terminalPage.goto(revokedInvite.invitePath);
     await expect(terminalPage.locator("[data-invite-state]")).toHaveAttribute("data-invite-state", "revoked");
-    await terminalPage.goto(`/invite/${usedInvite.rawToken}`);
+    await terminalPage.goto(usedInvite.invitePath);
     await expect(terminalPage.locator("[data-invite-state]")).toHaveAttribute("data-invite-state", "already-used");
     await terminalPage.goto("/invite/not-a-token");
     await expect(terminalPage.locator("[data-invite-state]")).toHaveAttribute("data-invite-state", "invalid");

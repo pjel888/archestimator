@@ -5,6 +5,11 @@ const mocks = vi.hoisted(() => ({
   resolveProjectPublicationSnapshotByToken: vi.fn(),
   recordProjectPublicationEvent: vi.fn(),
   verifyProjectPublicationPasswordByToken: vi.fn(),
+  checkProjectPublicationEventRateLimit: vi.fn(),
+  checkProjectPublicationPasswordRateLimit: vi.fn(),
+  checkProjectPublicationSnapshotRateLimit: vi.fn(),
+  clearProjectPublicationPasswordFailures: vi.fn(),
+  recordProjectPublicationPasswordFailure: vi.fn(),
 }));
 
 vi.mock("@/lib/publication/public-repository", () => mocks);
@@ -52,6 +57,11 @@ describe("shared link publication route handlers (Shared Link V2 audit)", () => 
       snapshot,
     });
     mocks.recordProjectPublicationEvent.mockResolvedValue(undefined);
+    mocks.checkProjectPublicationEventRateLimit.mockResolvedValue({ allowed: true });
+    mocks.checkProjectPublicationPasswordRateLimit.mockResolvedValue({ allowed: true });
+    mocks.checkProjectPublicationSnapshotRateLimit.mockResolvedValue({ allowed: true });
+    mocks.clearProjectPublicationPasswordFailures.mockResolvedValue(undefined);
+    mocks.recordProjectPublicationPasswordFailure.mockResolvedValue({ delayMs: 0 });
   });
 
   it("serves a token-scoped snapshot without current-user workspace auth", async () => {
@@ -74,6 +84,22 @@ describe("shared link publication route handlers (Shared Link V2 audit)", () => 
       request: expect.any(Request),
       metadata: {},
     });
+  });
+
+  it("rate limits snapshot reads before resolving publication state", async () => {
+    mocks.checkProjectPublicationSnapshotRateLimit.mockResolvedValueOnce({
+      allowed: false,
+      message: "Too many attempts. Please wait 60 seconds.",
+      retryAfter: 60,
+    });
+
+    const response = await GET(new Request("https://archestimator.test/api/share/client-token"), params());
+
+    expect(response.status).toBe(429);
+    expect(response.headers.get("retry-after")).toBe("60");
+    expect(await response.json()).toEqual({ error: "Too many attempts. Please wait 60 seconds." });
+    expect(mocks.resolveProjectPublicationAccessByToken).not.toHaveBeenCalled();
+    expect(mocks.recordProjectPublicationEvent).not.toHaveBeenCalled();
   });
 
   it("returns 404 for an unknown, expired, or revoked token", async () => {
@@ -148,6 +174,32 @@ describe("shared link publication route handlers (Shared Link V2 audit)", () => 
     });
   });
 
+  it("rate limits public event writes before recording the event", async () => {
+    mocks.checkProjectPublicationEventRateLimit.mockResolvedValueOnce({
+      allowed: false,
+      message: "Too many attempts. Please wait 60 seconds.",
+      retryAfter: 60,
+    });
+
+    const response = await POST(
+      new Request("https://archestimator.test/api/share/client-token/events", {
+        method: "POST",
+        headers: {
+          origin: "https://archestimator.test",
+          cookie: "ae_publication_csrf=csrf-token",
+          "x-archestimator-csrf": "csrf-token",
+        },
+        body: JSON.stringify({ eventType: "open" }),
+      }),
+      params(),
+    );
+
+    expect(response.status).toBe(429);
+    expect(response.headers.get("retry-after")).toBe("60");
+    expect(await response.json()).toEqual({ error: "Too many attempts. Please wait 60 seconds." });
+    expect(mocks.recordProjectPublicationEvent).not.toHaveBeenCalled();
+  });
+
   it("blocks cross-origin public event writes", async () => {
     const response = await POST(
       new Request("https://archestimator.test/api/share/client-token/events", {
@@ -200,6 +252,37 @@ describe("shared link publication route handlers (Shared Link V2 audit)", () => 
       request: expect.any(Request),
       metadata: { success: true },
     });
+    expect(mocks.clearProjectPublicationPasswordFailures).toHaveBeenCalledWith({
+      token: "client-token",
+      request: expect.any(Request),
+    });
+  });
+
+  it("rate limits publication password attempts before password verification", async () => {
+    mocks.checkProjectPublicationPasswordRateLimit.mockResolvedValueOnce({
+      allowed: false,
+      message: "Too many attempts. Please wait 900 seconds.",
+      retryAfter: 900,
+    });
+
+    const response = await POST_PASSWORD(
+      new Request("https://archestimator.test/api/share/client-token/password", {
+        method: "POST",
+        headers: {
+          origin: "https://archestimator.test",
+          cookie: "ae_publication_csrf=csrf-token",
+          "content-type": "application/json",
+          "x-archestimator-csrf": "csrf-token",
+        },
+        body: JSON.stringify({ password: "wrong" }),
+      }),
+      params(),
+    );
+
+    expect(response.status).toBe(429);
+    expect(response.headers.get("retry-after")).toBe("900");
+    expect(await response.json()).toEqual({ error: "Too many attempts. Please wait 900 seconds." });
+    expect(mocks.verifyProjectPublicationPasswordByToken).not.toHaveBeenCalled();
   });
 
   it("rejects invalid publication passwords without setting an access cookie", async () => {
@@ -226,6 +309,10 @@ describe("shared link publication route handlers (Shared Link V2 audit)", () => 
       eventType: "password_attempt",
       request: expect.any(Request),
       metadata: { success: false },
+    });
+    expect(mocks.recordProjectPublicationPasswordFailure).toHaveBeenCalledWith({
+      token: "client-token",
+      request: expect.any(Request),
     });
   });
 });

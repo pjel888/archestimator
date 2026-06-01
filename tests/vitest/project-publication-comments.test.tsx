@@ -12,6 +12,7 @@ const mocks = vi.hoisted(() => ({
   useSharedLinkSession: vi.fn(),
   // P6 repo
   insertSharedLinkComment: vi.fn(),
+  checkSharedLinkCommentRateLimit: vi.fn(),
 }));
 
 vi.mock("@/lib/publication/security", () => ({
@@ -29,6 +30,7 @@ vi.mock("@/lib/publication/public-repository", async () => {
   return {
     ...actual,
     insertSharedLinkComment: mocks.insertSharedLinkComment,
+    checkSharedLinkCommentRateLimit: mocks.checkSharedLinkCommentRateLimit,
   };
 });
 
@@ -54,6 +56,7 @@ describe("P6 — Shared Link Comments (red tests written FIRST before any impl)"
     mocks.createSharedLinkSessionCookieName.mockReturnValue("shared_link_session_abc123");
     mocks.useSharedLinkSession.mockReturnValue({ isValid: true });
     mocks.insertSharedLinkComment.mockResolvedValue({ id: "comment-123" });
+    mocks.checkSharedLinkCommentRateLimit.mockResolvedValue({ allowed: true });
   });
 
   describe("POST /api/share/[token]/comment route (CSRF + session + rate + sanitize + RPC)", () => {
@@ -91,6 +94,33 @@ describe("P6 — Shared Link Comments (red tests written FIRST before any impl)"
           // rate or validation or env guard
         }
       }
+    });
+
+    it("uses durable comment rate limiting before inserting a comment", async () => {
+      mocks.assertSameOriginPublicPost.mockReturnValue({ ok: true });
+      mocks.verifySharedLinkSessionCookieValue.mockReturnValue(true);
+      mocks.checkSharedLinkCommentRateLimit.mockResolvedValueOnce({
+        allowed: false,
+        message: "Too many comments. Please wait 60 seconds.",
+        retryAfter: 60,
+      });
+      const parsableSession = "shared-link-session-v1:eyJyZWNpcGllbnRJZCI6InJlY2lwLTEyMyIsInB1YmxpY2F0aW9uSWQiOiJwdWIxIiwic25hcHNob3RWZXJzaW9uIjoiMSJ9:dummy";
+
+      const res = await POST(
+        makeRequest(
+          { body: "rate limited comment" },
+          {
+            cookie: `shared_link_session_abc123=${encodeURIComponent(parsableSession)}`,
+            "x-archestimator-csrf": "csrf",
+          },
+        ),
+        params(),
+      );
+
+      expect(res.status).toBe(429);
+      expect(res.headers.get("retry-after")).toBe("60");
+      expect(await res.json()).toEqual({ error: "Too many comments. Please wait 60 seconds." });
+      expect(mocks.insertSharedLinkComment).not.toHaveBeenCalled();
     });
 
     it("sanitizes input (strips HTML/scripts, truncates >1000) before RPC", async () => {
@@ -274,9 +304,23 @@ describe("P6 — Shared Link Comments (red tests written FIRST before any impl)"
         await POST(req, params());
 
         // After impl: at least one log with required fields
-        const logged = consoleSpy.mock.calls.find((c: any[]) => c[0] && typeof c[0] === "object" && c[0].level && c[0].route && c[0].errorCode && c[0].ipHash);
+        const logged = consoleSpy.mock.calls.find((call) => {
+          const [entry] = call;
+          return Boolean(
+            entry &&
+              typeof entry === "object" &&
+              "level" in entry &&
+              "route" in entry &&
+              "errorCode" in entry &&
+              "ipHash" in entry,
+          );
+        });
         expect(logged).toBeTruthy();
-        const entry = logged?.[0] as any;
+        const entry = logged?.[0] as {
+          level: string;
+          route: string;
+          ipHash: string;
+        };
         expect(entry.level).toMatch(/error|warn/);
         expect(entry.route).toMatch(/comment|decision|resend/);
         expect(entry.ipHash).toBeTruthy();
