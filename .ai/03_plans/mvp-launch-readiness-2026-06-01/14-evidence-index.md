@@ -15,13 +15,15 @@
 
 | Evidence | Result |
 | --- | --- |
-| HEAD | `1ed86b4f2a3881bf1b946eb81c688071e6736574` |
+| Full local implementation baseline | `c5ca065` after demo seed row repair |
+| Final report baseline | `8084908` after canonical state/decision/roadmap truth sync |
+| Final report indexed in launch docs | `3e8d7a0` |
 | `bun install --frozen-lockfile` | Pass |
 | `bun run type-check` | Pass |
 | `bun run lint` | Pass with 14 warnings |
 | `bun run lint:design-system` | Pass |
-| `bun run test` | Pass |
-| `bun run test:dom` | Pass: 122 files / 989 tests passed / 2 skipped after AI-001 and stale source-contract test repair |
+| `bun run test` | Pass: 4 unit tests / 129 expectations |
+| `bun run test:dom` | Pass: 131 files / 1021 tests / 2 skipped |
 | `bun run build` | Pass |
 
 ### AI-001 Local Implementation Evidence

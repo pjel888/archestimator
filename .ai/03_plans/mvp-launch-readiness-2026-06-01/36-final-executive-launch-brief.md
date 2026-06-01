@@ -21,8 +21,10 @@ No Stripe, checkout, subscriptions, billing UI, invoices, paid tiers, pricing en
 
 ### Command Evidence
 
-- HEAD: `531f20a` after the DATA/BETA-OPS runbook truth-sync.
-- Install, type-check, lint, design-system lint, unit tests, DOM tests, and build passed locally.
+- Full local implementation baseline: `c5ca065` after demo seed row repair.
+- Final report baseline: `8084908` after canonical state/decision/roadmap truth sync.
+- Final report indexed in launch docs: `3e8d7a0`.
+- Install, type-check, lint, design-system lint, unit tests, full DOM tests, and build passed locally.
 - Launch validation still lacks hosted/manual E2E, provider dashboard, backup/restore, deployment rollback, and spreadsheet-open proof.
 
 ### P0 Blockers
