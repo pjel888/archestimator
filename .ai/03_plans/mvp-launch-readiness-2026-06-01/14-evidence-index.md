@@ -467,6 +467,14 @@
 - Test coverage: `tests/vitest/support-contact-readiness.test.ts` guards those source contracts, and `tests/vitest/workshop-reset.test.tsx` already renders the workshop feedback link.
 - Launch meaning: this proves a local visible support/feedback surface, not monitored inbox/form delivery, uptime/error alerts, or incident ownership. Support/monitoring remains a **NO-GO** row until manual/provider proof exists.
 
+### Support Email DNS Readiness Evidence
+
+- Artifact note: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/support-email-dns-readiness-2026-06-02.md`.
+- DNS proof: `dig +noall +answer MX archestimator.com` returned five `eforward*.registrar-servers.com` MX records.
+- SPF proof: `dig +noall +answer TXT archestimator.com` returned `v=spf1 include:spf.efwd.registrar-servers.com ~all`.
+- DMARC proof: `dig +noall +answer TXT _dmarc.archestimator.com` returned no answer.
+- Launch meaning: this proves DNS mail-routing evidence for the support domain, not inbox monitoring, form delivery, alert ownership, or incident escalation. Support/monitoring remains a **NO-GO** row.
+
 ### Project-Specific Unlink Linked Smoke Attempt
 
 - Artifact note: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/project-specific-unlink-linked-smoke-blocked-2026-06-02.md`.
