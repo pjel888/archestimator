@@ -362,6 +362,15 @@
 - Current result: local-safe implementation, validation, build, and docs are proven; hosted/provider/manual evidence remains missing.
 - Completion decision in the audit: **DO NOT MARK GOAL COMPLETE** until the `46-manual-proof-matrix.md` evidence packet is captured and linked.
 
+### Supabase Read-Only Provider Evidence
+
+- Artifact: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/supabase-read-only-cli-2026-06-02.md`.
+- Scope: linked Supabase project `ebxxqidacheyapmmzavr`, read-only CLI commands only.
+- Backup command: `supabase backups list --project-ref ebxxqidacheyapmmzavr -o json` passed and returned no listed backups, `pitr_enabled=false`, region `ap-southeast-2`, and `walg_enabled=true`.
+- Security advisor command: `supabase db advisors --linked --type security --level warn --fail-on none -o json` passed with WARN findings, including mutable function search paths, public `component-images` bucket listing, anon/authenticated executable `SECURITY DEFINER` functions, and leaked password protection disabled.
+- Blocked commands: `supabase migration list --linked` and `supabase db advisors --linked --type performance --level warn --fail-on none -o json` failed after retries on the linked temp-role pooler circuit breaker / `SUPABASE_DB_PASSWORD` path.
+- Launch meaning: this is negative/blocked provider evidence. Supabase backup/PITR, migration history, RLS/storage/RPC allow/deny, and security-advisor triage remain **NO-GO** rows.
+
 ### Closed Beta Audit Evidence
 
 - Auth/proxy: `src/proxy.ts`, `src/lib/auth/actions.ts`, `src/app/auth/callback/route.ts`, `src/lib/auth/account-setup.ts`, `src/lib/auth/session.ts`.

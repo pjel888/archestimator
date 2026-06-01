@@ -14,6 +14,7 @@ This audit maps the active MVP launch goal in `codex-autopilot-goal.md` to curre
 | Local validation refresh | `a65b34b`, `bun run validate` passed: typecheck, lint with 14 existing warnings, design lint, unit, DOM. |
 | Local build refresh | `e6cf52b`, `bun run build` passed under Next.js 16.2.6 / Turbopack with 29 static pages. |
 | Manual/provider proof matrix | `46-manual-proof-matrix.md`, with packet template `48-manual-proof-packet-template.md`; all P0 rows still missing. |
+| Supabase read-only provider evidence | `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/supabase-read-only-cli-2026-06-02.md`; backup list showed PITR disabled and no listed backups; security advisor returned WARN findings; migration/performance CLI reads were blocked by the temp-role pooler circuit breaker. |
 
 ## Final Criteria Audit
 
@@ -30,7 +31,7 @@ This audit maps the active MVP launch goal in `codex-autopilot-goal.md` to curre
 | `.env.example` updated | Env manifest/source contract tests and runbook entries exist. | Local-proven; Vercel env proof missing |
 | Vercel/Supabase/Resend/readiness docs updated | Launch docs, runbook, env manifest, backup/DR, and proof matrix are updated. | Docs-proven; provider proof missing |
 | `.ai` roadmap/state/decision/readiness docs updated | `current-state.md`, `decisions.md`, known issues, launch pack, scorecard, and final report are synced to current local evidence. | Docs-proven |
-| All changes staged, committed, and pushed in meaningful commits | Current launch-pack commits through `3b01cd2` are pushed; `.ai/08_prompts/mvp-launch-goal.md` remains intentionally untracked. | Proven for committed work |
+| All changes staged, committed, and pushed in meaningful commits | Current launch-pack commits through `db9b224` are pushed before this evidence-sync pass; `.ai/08_prompts/mvp-launch-goal.md` remains intentionally untracked. | Proven for committed work |
 | Worktree clean after final push | Worktree is clean except intentionally untracked `.ai/08_prompts/mvp-launch-goal.md`. | Proven with exception |
 | Final evidence recorded in evidence/gate/brief/scorecard | `14-evidence-index.md`, `12-final-mvp-launch-gate.md`, `36-final-executive-launch-brief.md`, and `43-closed-beta-readiness-scorecard.md` record local evidence and remaining no-go gates. | Docs-proven |
 | Final report written | `final-codex-implementation-report.md` exists and records local-safe implementation plus remaining blockers. | Docs-proven; not launch approval |
@@ -39,8 +40,8 @@ This audit maps the active MVP launch goal in `codex-autopilot-goal.md` to curre
 
 These are required before the active goal can be marked complete:
 
-1. Supabase backup/PITR and restore-drill proof.
-2. Linked/staging Supabase migration, RLS, storage, and RPC allow/deny proof.
+1. Supabase backup/PITR and restore-drill proof. Current CLI evidence says PITR is disabled and no backups are listed.
+2. Linked/staging Supabase migration, RLS, storage, and RPC allow/deny proof. Current CLI migration/performance reads are blocked by the linked temp-role pooler circuit breaker, and the security advisor returned WARN findings that require triage.
 3. Hosted auth allowlist smoke for allowed, denied, revoked, first-run, logout, and session-expiry states.
 4. Vercel deploy/env/health/rollback proof.
 5. Resend DNS/delivery/webhook proof if visible email flows remain enabled.

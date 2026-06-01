@@ -115,6 +115,9 @@ describe("closed beta readiness docs", () => {
     expect(evidenceIndex).toContain("### CURRENT-HEAD Local Build Refresh Evidence");
     expect(evidenceIndex).toContain("### Manual Proof Matrix Evidence");
     expect(evidenceIndex).toContain("### Goal Completion Audit Evidence");
+    expect(evidenceIndex).toContain("### Supabase Read-Only Provider Evidence");
+    expect(evidenceIndex).toContain("no listed backups, `pitr_enabled=false`");
+    expect(evidenceIndex).toContain("linked temp-role pooler circuit breaker");
     expect(evidenceIndex).toContain("Current app build anchor: `e6cf52b` on `main`, before this docs-only evidence-sync commit.");
     expect(evidenceIndex).toContain("PLAYWRIGHT_PORT=3037 bun run test:e2e -- e2e/auth.spec.ts --project=chromium");
     expect(evidenceIndex).toContain("Result: pass, 2 Playwright tests in 9.9s.");
@@ -137,6 +140,7 @@ describe("closed beta readiness docs", () => {
     expect(executiveBrief).not.toContain("HEAD: `531f20a`");
     expect(readinessScorecard).toContain("local signed-out redirect/login UI E2E passes; hosted callback, allowed/denied/revoked, and first-run smoke are missing");
     expect(readinessScorecard).toContain("records post-report validation/build/completion-audit/proof-template evidence through `9d71239`");
+    expect(readinessScorecard).toContain("records Supabase read-only provider evidence");
     expect(readinessScorecard).toContain("Manual proof matrix: `46-manual-proof-matrix.md`");
     expect(readinessScorecard).toContain("Goal completion audit: `47-goal-completion-audit.md`");
     expect(launchReadinessReadme).toContain("Final local implementation report: `final-codex-implementation-report.md`.");
@@ -197,7 +201,8 @@ describe("closed beta readiness docs", () => {
     expect(goalCompletionAudit).toContain("Ask Flip hidden and AI routes disabled by default");
     expect(goalCompletionAudit).toContain("Excel export upgraded and tested");
     expect(goalCompletionAudit).toContain("All changes staged, committed, and pushed in meaningful commits");
-    expect(goalCompletionAudit).toContain("Current launch-pack commits through `3b01cd2` are pushed");
+    expect(goalCompletionAudit).toContain("Current launch-pack commits through `db9b224` are pushed");
+    expect(goalCompletionAudit).toContain("backup list showed PITR disabled and no listed backups");
     expect(goalCompletionAudit).toContain("Supabase backup/PITR and restore-drill proof");
     expect(goalCompletionAudit).toContain("Hosted auth allowlist smoke");
     expect(goalCompletionAudit).toContain("Excel plus one secondary spreadsheet app open/recalc/print proof");
@@ -208,6 +213,8 @@ describe("closed beta readiness docs", () => {
 
   it("keeps launch readiness conservative despite local implementation passes", () => {
     expect(currentState).toMatch(/Closed beta remains \*\*NO-GO\*\*/);
+    expect(currentState).toContain("Read-only Supabase CLI evidence");
+    expect(currentState).toContain("PITR is disabled");
     expect(currentState).toMatch(/Do not archive the MVP launch goal or claim launch readiness from local tests alone/i);
     expect(decisions).toMatch(/This is not a launch approval/);
     expect(knownIssues).toContain("Local validation/build evidence is now current");
@@ -233,7 +240,8 @@ describe("closed beta readiness docs", () => {
     expect(backupPlan).toMatch(/Pre-Migration Backup Evidence Template/);
     expect(backupPlan).toMatch(/Dry-Run Restore Checklist/);
     expect(readinessScorecard).toMatch(/Closed beta access control \| Yes \| 82 \| Local pass; linked proof pending/);
-    expect(readinessScorecard).toMatch(/Data backup\/rollback \| Yes \| 76 \| Checklist ready; proof missing/);
+    expect(readinessScorecard).toMatch(/Data backup\/rollback \| Yes \| 60 \| Provider evidence negative/);
+    expect(readinessScorecard).toMatch(/Security\/RLS \| Yes \| 70 \| Live advisor warns/);
     expect(readinessScorecard).not.toMatch(/No allowlist table or enforcement exists yet/);
     expect(readinessScorecard).not.toMatch(/Beta-specific terms\/privacy\/AUP not yet implemented/);
   });
