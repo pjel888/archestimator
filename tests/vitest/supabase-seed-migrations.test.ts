@@ -81,14 +81,18 @@ describe("Lewis Residence Supabase seed migration", () => {
     });
   });
 
-  it("keeps the migration tree-only and mirrors the full node fixture in the local development seed", () => {
+  it("keeps the migration tree-only while the local development seed mirrors nodes and adds demo rows", () => {
     expect(migrationNodes).toHaveLength(47);
     expect(new Set(migrationNodes.map((node) => node.id)).size).toBe(migrationNodes.length);
     expect(localSeedNodes).toEqual(migrationNodes);
 
     expect(migration).not.toContain("public.estimate_row_items");
     expect(migration).not.toMatch(/insert\s+into\s+public\.estimate_row_items/i);
-    expect(localSeed).not.toMatch(/insert\s+into\s+public\.estimate_row_items/i);
+    expect(localSeed).toMatch(/insert\s+into\s+public\.estimate_row_items/i);
+    expect(localSeed).toContain("600x600 Porcelain Floor Tile");
+    expect(localSeed).toContain("Master bedroom low-VOC paint system");
+    expect(localSeed).toContain("'linked-clean'");
+    expect(localSeed).toContain("'detached'");
     expect(localSeed).not.toContain("Demo Residential Fit-out");
     expect(localSeed).not.toContain("Lot Group A");
   });

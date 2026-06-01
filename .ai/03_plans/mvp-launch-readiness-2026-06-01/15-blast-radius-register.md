@@ -219,6 +219,18 @@ This slice edits local Supabase seed data, demo readiness docs, score/gate docs,
 - Post-edit GitNexus staged detection reports no indexed code changes for the seed/docs/test set.
 
 Mitigation: do not run `supabase db reset` against production, keep stable UUIDs for rehearsal, and verify exported workbook/screenshots in the target demo environment before investor/incubator use.
+
+## BASELINE-REFRESH Seed Contract Repair Impact Evidence - 2026-06-02
+
+This slice edits the seed migration source-contract test plus evidence/checklist docs only.
+
+- The full DOM suite caught a stale assertion that `supabase/seed.sql` must not insert row items.
+- Product risk is test-contract drift, not runtime application behavior: the migration remains tree-only while the local development seed now intentionally includes demo row items.
+- Updated coverage preserves the tree-only migration constraint and requires linked/detached local seed rows.
+- Post-edit code-review-graph reports 0 affected flows, 0 test gaps, and overall risk score 0.30.
+- Post-edit GitNexus staged detection reports no indexed code changes for the docs/test repair set.
+
+Mitigation: keep production migrations separate from local seed data, rerun full DOM after seed contract changes, and avoid applying local `supabase db reset` to production.
 | `EstimateSheetContent` | GitNexus specific symbol returned 0 upstream due App Router boundary; other impacts show it is central through hook/export/preview. | Estimate workspace flows. | HIGH by manual assessment | many estimate DOM tests. | Keep row edits scoped; use targeted DOM tests. | Protected estimate route smoke. |
 | `useEstimateRowMutations` | Direct caller: `EstimateSheetContent`; indirect tests. | None reported. | LOW graph, MEDIUM product | estimate sheet tests. | Add unlink as peer mutation with same queue/revision model. | Hook conflict/rollback test. |
 | `insertEstimateRowItemFromLibrary` | `mutationFn` in row hook. | None. | LOW | `estimate-sheet-library-insert.test.tsx`, version-control actions tests. | Do not alter insert semantics. | Regression after unlink action. |
