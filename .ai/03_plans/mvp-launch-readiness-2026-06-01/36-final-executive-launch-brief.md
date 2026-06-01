@@ -24,6 +24,7 @@ No Stripe, checkout, subscriptions, billing UI, invoices, paid tiers, pricing en
 - Full local implementation baseline: `c5ca065` after demo seed row repair.
 - Final report baseline: `8084908` after canonical state/decision/roadmap truth sync.
 - Final report indexed in launch docs: `3e8d7a0`.
+- Current local validation refresh: `a65b34b`, `bun run validate` passed with DOM at 131 files / 1022 passed / 2 skipped.
 - Install, type-check, lint, design-system lint, unit tests, full DOM tests, and build passed locally.
 - Local signed-out auth E2E passed: `PLAYWRIGHT_PORT=3037 bun run test:e2e -- e2e/auth.spec.ts --project=chromium`, 2 tests in 9.9s.
 - Launch validation still lacks hosted/manual E2E, provider dashboard, backup/restore, deployment rollback, and spreadsheet-open proof.
