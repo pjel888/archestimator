@@ -130,6 +130,11 @@ describe("closed beta readiness docs", () => {
     expect(evidenceIndex).toContain("verified linked Supabase counts changed from 51 nodes / 0 rows to 56 nodes / 8 rows");
     expect(evidenceIndex).toContain("Cleanup proof: post-run residue check found no `E2E Template Insert%` estimates.");
     expect(evidenceIndex).toContain("It does not prove hosted auth, production Vercel, RLS allow/deny, provider dashboards, or project-specific unlink.");
+    expect(evidenceIndex).toContain("### Project-Specific Unlink Linked Smoke Attempt");
+    expect(evidenceIndex).toContain("project-specific-unlink-linked-smoke-blocked-2026-06-02.md");
+    expect(evidenceIndex).toContain("linked Supabase returned `PGRST202`");
+    expect(evidenceIndex).toContain("unlink_estimate_row_item_from_library_with_history");
+    expect(evidenceIndex).toContain("Cleanup proof: post-run residue check found no `E2E Project Specific%` estimates.");
     expect(evidenceIndex).toContain("no listed backups, `pitr_enabled=false`");
     expect(evidenceIndex).toContain("linked temp-role pooler circuit breaker");
     expect(evidenceIndex).toContain("Current app build anchor: `e6cf52b` on `main`, before this docs-only evidence-sync commit.");
@@ -195,6 +200,8 @@ describe("closed beta readiness docs", () => {
     expect(manualProofMatrix).toContain("Vercel deploy/env/health");
     expect(manualProofMatrix).toContain("Spreadsheet compatibility");
     expect(manualProofMatrix).toContain("Project-specific unlink manual smoke");
+    expect(manualProofMatrix).toContain("project-specific-unlink-linked-smoke-blocked-2026-06-02.md");
+    expect(manualProofMatrix).toContain("linked Supabase returned `PGRST202`");
     expect(manualProofMatrix).toContain("library-demo-smoke-local-2026-06-02.md");
     expect(manualProofMatrix).toContain("template-insert-local-smoke-2026-06-02.md");
     expect(manualProofMatrix).toContain("records local template insertion into a throwaway estimate with zero residue");
@@ -229,6 +236,8 @@ describe("closed beta readiness docs", () => {
     expect(goalCompletionAudit).toContain("generated workbook artifact is loadable, ZIP-valid, formula-backed, and has no blank line totals");
     expect(goalCompletionAudit).toContain("component/template demo smoke and template insertion are partial/local pass");
     expect(goalCompletionAudit).toContain("Template insertion local smoke evidence");
+    expect(goalCompletionAudit).toContain("Project-specific unlink linked smoke attempt");
+    expect(goalCompletionAudit).toContain("linked Supabase returned `PGRST202`");
     expect(goalCompletionAudit).toContain("Supabase backup/PITR and restore-drill proof");
     expect(goalCompletionAudit).toContain("Hosted auth allowlist smoke");
     expect(goalCompletionAudit).toContain("Excel plus one secondary spreadsheet app open/recalc/print proof");
@@ -248,6 +257,8 @@ describe("closed beta readiness docs", () => {
     expect(currentState).toContain("Component/template local demo evidence");
     expect(currentState).toContain("Template insertion local evidence");
     expect(currentState).toContain("local insertion into a throwaway estimate with zero residue");
+    expect(currentState).toContain("Project-specific unlink linked smoke evidence");
+    expect(currentState).toContain("linked Supabase returned `PGRST202`");
     expect(currentState).toContain("do not prove hosted auth, linked RLS/security, project-specific unlink, or current hosted E2E/manual smoke");
     expect(currentState).toMatch(/Do not archive the MVP launch goal or claim launch readiness from local tests alone/i);
     expect(decisions).toMatch(/This is not a launch approval/);
@@ -256,6 +267,8 @@ describe("closed beta readiness docs", () => {
     expect(knownIssues).toContain("`e6cf52b` passed `bun run build`");
     expect(knownIssues).toContain("Local component/template demo evidence on 2026-06-02 proves screenshots/JSON");
     expect(knownIssues).toContain("local template insertion evidence proves throwaway-estimate insertion with zero residue");
+    expect(knownIssues).toContain("Project-specific unlink linked smoke evidence is negative/blocked");
+    expect(knownIssues).toContain("missing `unlink_estimate_row_item_from_library_with_history`");
     expect(knownIssues).toContain("hosted auth, unlink detach/edit/library-unchanged/export, and current hosted E2E proof remain missing");
     expect(knownIssues).not.toContain("full validation/build, and storage/security evidence");
     expect(finalImplementationReport).toMatch(/\*\*NO-GO for external beta testers today\.\*\*/);

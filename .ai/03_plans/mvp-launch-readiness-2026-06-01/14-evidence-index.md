@@ -416,6 +416,16 @@
 - Cleanup proof: post-run residue check found no `E2E Template Insert%` estimates.
 - Scope limit: this is local dev-auth plus linked-Supabase fixture proof. It does not prove hosted auth, production Vercel, RLS allow/deny, provider dashboards, or project-specific unlink. Closed beta remains **NO-GO**.
 
+### Project-Specific Unlink Linked Smoke Attempt
+
+- Artifact note: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/project-specific-unlink-linked-smoke-blocked-2026-06-02.md`.
+- Command: `ARCHESTIMATOR_E2E_UNLINK_SMOKE=1 ARCHESTIMATOR_DEV_AUTH_BYPASS=1 ARCHESTIMATOR_DEV_AUTH_ADMIN_DB=1 ARCHESTIMATOR_UNLINK_SMOKE_DIR=.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof PLAYWRIGHT_PORT=3040 bun run test:e2e e2e/workshop-project-specific-unlink-smoke.spec.ts --project=chromium`.
+- Result: blocked/fail at the linked detach step.
+- Blocking error: linked Supabase returned `PGRST202` because `public.unlink_estimate_row_item_from_library_with_history(acting_user_id, correlation_id, expected_row_revision, reason, target_estimate_id, target_project_id, target_row_id)` is absent from the schema cache.
+- Observed state: the throwaway row remained `linked-clean`, `row_revision=1`, and `source_library_item_id='44444444-4444-4444-8444-444444444441'`.
+- Cleanup proof: post-run residue check found no `E2E Project Specific%` estimates.
+- Scope limit: this is negative linked-provider evidence. The local unlink implementation remains code/test covered, but linked/manual unlink proof cannot pass until backup/PITR and linked migration/RPC proof are resolved. Closed beta remains **NO-GO**.
+
 ### Closed Beta Audit Evidence
 
 - Auth/proxy: `src/proxy.ts`, `src/lib/auth/actions.ts`, `src/app/auth/callback/route.ts`, `src/lib/auth/account-setup.ts`, `src/lib/auth/session.ts`.

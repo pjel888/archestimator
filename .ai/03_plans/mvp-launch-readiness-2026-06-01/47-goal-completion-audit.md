@@ -19,6 +19,7 @@ This audit maps the active MVP launch goal in `codex-autopilot-goal.md` to curre
 | Spreadsheet artifact evidence | `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/spreadsheet-artifact-local-2026-06-02.md`; generated workbook artifact is loadable, ZIP-valid, formula-backed, and has no blank line totals; Excel/secondary-app open and print proof is blocked because no spreadsheet app is installed locally. |
 | Component/template local demo smoke evidence | `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/library-demo-smoke-local-2026-06-02.md`; local Playwright smoke captured component search/trust fields and template preview screenshots/JSON; hosted proof remains missing. |
 | Template insertion local smoke evidence | `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/template-insert-local-smoke-2026-06-02.md`; local Playwright smoke inserted `Condo Fit-Out Starter` into a throwaway estimate, verified 5 copied nodes / 8 copied rows plus one `template_inserted` event, and verified zero fixture residue. |
+| Project-specific unlink linked smoke attempt | `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/project-specific-unlink-linked-smoke-blocked-2026-06-02.md`; local UI reached the Make project-specific confirmation, but linked Supabase returned `PGRST202` because `unlink_estimate_row_item_from_library_with_history` is absent from the schema cache; fixture cleanup returned zero residue. |
 
 ## Final Criteria Audit
 
@@ -50,7 +51,7 @@ These are required before the active goal can be marked complete:
 4. Vercel deploy/env/health/rollback proof. Current preview health proof is partial only because env vars are absent, public health is deployment-protected, and rollback is not rehearsed.
 5. Resend DNS/delivery/webhook proof if visible email flows remain enabled.
 6. Excel plus one secondary spreadsheet app open/recalc/print proof. Current local artifact is valid and loadable, but no spreadsheet app is installed locally to prove open/recalc/print.
-7. Project-specific unlink manual smoke with library unchanged proof.
+7. Project-specific unlink manual smoke with library unchanged proof. Current linked smoke attempt is blocked by missing linked RPC `unlink_estimate_row_item_from_library_with_history`; do not rerun as a pass until backup/PITR and linked migration/RPC proof are resolved.
 8. Owner/counsel review of legal/beta copy.
 9. Monitored support inbox/form and alert owner proof.
 10. Demo rehearsal screenshots, fallback script, and validated exported workbook artifact. Current fallback workbook artifact exists and local component/template screenshots plus local template insertion proof exist; hosted rehearsal proof remains missing.
