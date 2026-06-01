@@ -1,376 +1,252 @@
-# 08 — Excel Export Industry-Standard Plan
+# Excel Export Industry-Standard Plan
 
-**Date:** 2026-06-01
-**Priority:** P0 — Critical MVP blocker
+Goal: turn the current proposal export into a professional bid/BOQ workbook matching the reference bid-form patterns supplied in the 2026-06-01 prompt.
 
-## Current Export Architecture
+## Current Export Code Audit
 
-### Files
-- **Route:** `src/app/api/projects/[projectId]/estimates/[estimateId]/export/proposal.xlsx/route.ts` (69 lines)
-- **Model builder:** `src/lib/proposal-export/build-proposal-export-model.ts` (371 lines)
-- **Workbook creator:** `src/lib/proposal-export/create-proposal-workbook.ts` (285 lines)
-- **Types:** `src/lib/proposal-export/types.ts` (158 lines)
-- **Filename builder:** `src/app/api/projects/[projectId]/estimates/[estimateId]/export/proposal.xlsx/filename.ts`
+| Area | Evidence | Gap |
+| --- | --- | --- |
+| Route | `src/app/api/projects/[projectId]/estimates/[estimateId]/export/proposal.xlsx/route.ts:41` fetches tree, builds model, creates workbook, returns attachment. | Route is usable but model/workbook contract is too thin. |
+| Filename | `filename.ts:1` sanitizes project/estimate. | Keep. |
+| Types | `src/lib/proposal-export/types.ts:1` to `:157`. Scope supports only `included`, `excluded`, `alternate`. | Add bid-form scope labels/status strategy without breaking current data. |
+| Model | `build-proposal-export-model.ts:24` defaults `includeFormulas=true`; `:89` labor cost is 0; `:96` every row is `included`; `:351` emits compatibility info. | Add explicit material/labor compatibility contract and commercial defaults. |
+| Workbook | `create-proposal-workbook.ts:15` defines current columns; sheets created at `:271`. | Needs professional sheet layout, formulas, notes, commercial blocks. |
+| Static totals | Detail rows at `create-proposal-workbook.ts:186`; total row at `:204` uses static values. | Must use formulas where possible. |
+| Preview | `ProposalExportPreviewDialog.tsx:40`; preview path uses `buildProposalExportModel` impact path. | Preview/download parity must be tested. |
 
-### Current Output (3 sheets)
+## Reference Bid-Form Requirements
 
-1. **Proposal Summary** — Flat table with sections, particulars, unit, qty, unit cost, subtotal, total. Grouped by area.
-2. **Detailed Estimate** — Full row-by-row list with all estimate rows.
-3. **Area Breakdown** — Rows grouped by area node.
+Local search found no attached industry bid XLSX/PDF files in the repo. This spec is grounded in the user-provided reference summary from the 2026-06-01 prompt. Full attached-file review remains a manual launch evidence item in `18-excel-reference-analysis.md`.
 
-### Current Gaps vs Industry Bid Form
+Observed requirements:
 
-| Requirement | Current state | Gap |
-|------------|---------------|-----|
-| Header block (project, location, client, bidder, date, sheet code, currency) | Missing | Build from scratch |
-| General notes (LINE TOTAL, INCLUDED/EXCLUDED/BY OTHERS, formulas) | Missing | Build |
-| Bid form columns (ITEM, PARTICULARS, UNIT, QTY, MATERIAL, LABOR, COST TOTAL, LINE TOTAL, REMARKS) | Generic columns | Remap and add |
-| Formula-driven line totals | Static values | Add ExcelJS formulas |
-| Section structure (A-H + Others) | Area-based grouping | Remap to trade sections |
-| Summary (by section, running total, direct cost, contingency, VAT, grand total, cost/sqm, duration) | Partial totals only | Build |
-| Commercial/legal blocks (exclusions, qualifications, terms, validity, warranty, signature) | Missing | Build |
-| Scope status (INCLUDED, EXCLUDED, BY OTHERS, OSM/OFCI/OSCI) | Missing | Build |
-| Material/labor split | Labor always 0 | Add minimal split or compatibility mode |
-| Print layout / styling | Basic ExcelJS styling | Enhance |
-| Formula-driven subtotals and grand total | Static values | Add formulas |
+- Header block: Project, Location, Owner/Client, Bidder/Contractor, Date Submitted.
+- General notes:
+  1. Do not leave LINE TOTAL blank.
+  2. Indicate INCLUDED, EXCLUDED, BY OTHERS, etc.
+  3. Double-check formulas and subtotals.
+  4. Additional items must be under OTHERS.
+  5. Use Bidder's Notes / Remarks for specifications or considerations.
+- Detail columns: ITEM, PARTICULARS, UNIT, QTY, UNIT COSTS MATERIAL, LABOR, COST TOTAL, LINE TOTAL, NOTES/REMARKS.
+- Sections: A General Preliminaries, B Site Works, C Architectural Works, D Glass and Glazing, E Doors and Windows, F Furniture Fixtures and Equipment, G Electrical Works, H Mechanical Works, I Plumbing / Sanitary / Fire Protection, Others / Miscellaneous.
+- Summary: section totals, direct cost, contingency, VAT, grand total, cost per sqm, estimated duration.
+- Commercial blocks: exclusions, qualifications, payment terms, validity, warranty, signature/conforme.
+- Scope/status language: INCLUDED, EXCLUDED, BY OTHERS, OWNER, OSM, OFCI, OSCI, omitted, not applicable.
 
-## Gap Analysis Against Industry Bid Forms
+## Export Model Proposal
 
-The reference bid forms follow this structure:
+Add model fields in `src/lib/proposal-export/types.ts`:
 
-```
-┌──────────────────────────────────────────────────────────────┐
-│                       HEADER BLOCK                           │
-│  Project:          [name]                                    │
-│  Location:         [location]                                │
-│  Owner/Client:     [client]                                  │
-│  Bidder/Contractor:[workspace/organization]                   │
-│  Date Submitted:   [date]                                    │
-│  Estimate Code:    [sheet code]                              │
-│  Currency:         [PHP/USD/etc.]                            │
-├──────────────────────────────────────────────────────────────┤
-│                      GENERAL NOTES                           │
-│  1. Do not leave LINE TOTAL blank.                           │
-│  2. Use INCLUDED, EXCLUDED, BY OTHERS, OSM/OFCI/OSCI.       │
-│  3. Double-check formulas and subtotals.                     │
-│  4. Additional items under OTHERS rows.                      │
-│  5. Bidder notes/remarks column is required.                 │
-├──────────────────────────────────────────────────────────────┤
-│                    DETAILED BID FORM                          │
-│  ITEM │ PARTICULARS │ UNIT │ QTY │ MATERIAL │ LABOR │       │
-│       │             │      │     │ UNIT $   │ UNIT $ │       │
-│  ─────┼─────────────┼──────┼─────┼──────────┼────────┼───────┤
-│       │             │      │     │ COST     │ LINE   │ NOTES │
-│       │             │      │     │ TOTAL    │ TOTAL  │       │
-├───────┴─────────────┴──────┴─────┴──────────┴────────┴───────┤
-│  A. GENERAL PRELIMINARIES                                    │
-│  ... section rows ...                                        │
-│  B. SITE WORKS                                               │
-│  ...                                                         │
-│  ... through H. MECHANICAL WORKS ...                         │
-├──────────────────────────────────────────────────────────────┤
-│                        SUMMARY                               │
-│  Section A Subtotal    PHP xxx,xxx.xx                        │
-│  Section B Subtotal    PHP xxx,xxx.xx                        │
-│  ...                                                         │
-│  Direct Cost:          PHP xxx,xxx.xx                        │
-│  Contingency (x%):     PHP xxx,xxx.xx                        │
-│  VAT (x%):             PHP xxx,xxx.xx                        │
-│  GRAND TOTAL:          PHP xxx,xxx.xx                        │
-│  Cost per sqm:         PHP xxx.xx                            │
-│  Est. Duration:        x months                              │
-├──────────────────────────────────────────────────────────────┤
-│                   COMMERCIAL / LEGAL                          │
-│  Exclusions:           [list]                                │
-│  Qualifications:       [list]                                │
-│  Terms of Payment:     [terms]                               │
-│  Validity:             [period]                              │
-│  Warranty:             [period]                              │
-│  _______________________________________                     │
-│  Signature / Conforme                                        │
-└──────────────────────────────────────────────────────────────┘
+```ts
+// IMPLEMENTATION SKETCH - type names to verify during coding.
+type BidScopeStatus =
+  | "included"
+  | "excluded"
+  | "by_others"
+  | "owner"
+  | "osm"
+  | "ofci"
+  | "osci"
+  | "omitted"
+  | "not_applicable";
+
+type CommercialTerms = {
+  exclusions: string[];
+  qualifications: string[];
+  paymentTerms: string[];
+  validityDays: number | null;
+  warranty: string | null;
+  estimatedDuration: string | null;
+  vatRate: number;
+  projectAreaSqm: number | null;
+};
 ```
 
-## Workbook Sheet Proposal
+MVP default if no UI exists:
 
-### Sheet 1: "Bid Summary"
+- `scopeStatus = included` for all current rows.
+- `vatRate = 0` unless owner chooses 12% default before implementation.
+- `projectAreaSqm = null`; cost per sqm cell shows `0` or `N/A` per chosen display contract.
+- Terms/exclusions/qualifications use safe defaults approved by owner before launch.
 
-Purpose: Executive summary for the client.
+## Sheet-by-Sheet Workbook Spec
 
-**Rows:**
-1. Header block — merged cells, centered title
-2. Project metadata table (label-value pairs)
-3. General notes (bullet list)
-4. Summary by section (table: Section | Subtotal)
-5. Direct cost
-6. Contingency (if configured)
-7. VAT (if configured)
-8. Grand total (bold, prominent)
-9. Cost per sqm (if project area available)
-10. Estimated duration (if available)
-11. Exclusions
-12. Qualifications / assumptions
-13. Terms of payment
-14. Validity period
-15. Warranty
-16. Signature / conforme block
+### Sheet 1: `Bid Form`
 
-### Sheet 2: "Detailed Bid Form"
+| Row range | Content |
+| --- | --- |
+| 1 | Workbook title: `BID FORM / BILL OF QUANTITIES`. Merge `A1:J1`. |
+| 2-7 | Header block: Project, Location, Owner/Client, Bidder/Contractor, Estimate/Revision, Date Submitted. |
+| 9-15 | General Notes block with five required notes. |
+| 17 | Detail table header. Freeze pane at row 18. Repeat print header row 17. |
+| 18:N | Detail rows grouped by section. |
+| N+1 | Final detail grand-total row. |
 
-Purpose: Primary bid/BOQ form with columns, formulas, sections.
+Columns:
 
-**Columns:**
-| Col | Header | Width | Type | Source |
-|-----|--------|-------|------|--------|
-| A | ITEM | 8 | Integer | Row number within section |
-| B | PARTICULARS | 45 | Text | Row `material` or `description` |
-| C | UNIT | 10 | Text | Row `unit` |
-| D | QTY | 10 | Number | Row `quantity` |
-| E | MATERIAL UNIT COST | 14 | Currency | Row `unit_cost` (see material/labor split) |
-| F | LABOR UNIT COST | 14 | Currency | Row `labor_cost` (see material/labor split) |
-| G | COST TOTAL | 16 | Number | `=D{n}*(E{n}+F{n})` formula |
-| H | LINE TOTAL | 16 | Number | Formula based on scope status |
-| I | NOTES / REMARKS | 25 | Text | Row `notes` + scope status |
+| Column | Width | Header | Format |
+| --- | --- | --- | --- |
+| A | 9 | ITEM | text |
+| B | 42 | PARTICULARS | wrapped text |
+| C | 10 | UNIT | text |
+| D | 12 | QTY | `#,##0.####` |
+| E | 16 | MATERIAL | PHP currency |
+| F | 16 | LABOR | PHP currency |
+| G | 16 | COST TOTAL | PHP currency |
+| H | 16 | LINE TOTAL | PHP currency/formula |
+| I | 16 | SCOPE | text |
+| J | 42 | NOTES / REMARKS | wrapped text |
 
-**Section structure (by estimate group nodes):**
-Each top-level Group Node becomes a section lettered A-I:
-- A: General Preliminaries
-- B: Site Works
-- C: Architectural Works
-- D: Glass and Glazing
-- E: Doors and Windows
-- F: Furniture, Fixtures, Equipment
-- G: Electrical Works
-- H: Mechanical Works
-- I: Plumbing / Sanitary / Fire Protection
-- Others: remaining groups
+Formula examples:
 
-Area Nodes become sub-sections with subtotal rows. Estimate row items become numbered rows within each section.
-
-**Formula strategy:**
-- `COST TOTAL` = `QTY * (MATERIAL UNIT COST + LABOR UNIT COST)` — Excel formula
-- `LINE TOTAL` = cell reference to `COST TOTAL` — handles INCLUDED case; for EXCLUDED/BY OTHERS, set to 0 or display text
-- Section subtotals = `SUM` of LINE TOTAL cells in section
-- Grand total = `SUM` of section subtotals
-
-**Scope status strategy:**
-Add a `scopeStatus` field to estimate_row_items (or store in `source_snapshot` or metadata):
-
-| Scope | LINE TOTAL behavior | Default source |
-|-------|---------------------|---------------|
-| `included` | Normal line total (formula) | Default for all rows |
-| `excluded` | Display "EXCLUDED" text, zero in totals | User sets per row |
-| `by_others` | Display "BY OTHERS" text, zero in totals | User sets per row |
-| `osm` (Owner Supplied Material) | Display "OSM", zero in material column totals | User sets per row |
-| `ofci` (Owner Furnished Contractor Installed) | Display "OFCI", handle specially | User sets per row |
-| `osci` (Owner Supplied Contractor Installed) | Display "OSCI", handle specially | User sets per row |
-
-**MVP approach:** Add `scope_status` to `estimate_row_items` (simplest safe path — single nullable column, default null = included). A `scope_status` enum: `included | excluded | by_others | osm | ofci | osci`. Or store in `source_snapshot` to avoid schema change. For MVP, storing in `source_snapshot.scopeStatus` avoids a schema migration.
-
-### Sheet 3: "Area Breakdown" (keep current, polish)
-
-Purpose: Per-area cost breakdown for detail reference.
-
-Structure: Area Nodes as groups, rows within each area. Same columns as Detailed Bid Form, organized by area.
-
-## Material / Labor Split Strategy
-
-**Current state:** `estimate_row_items.unit_cost` is a single field. `itemCost` maps to it. There is no labor cost field. Export currently sets labor to 0.
-
-**Decision: Choose the safest MVP path — Path A (compatibility mode).**
-
-**Path A — Compatibility mode (recommended for MVP):**
-- Keep single `unit_cost` as material unit cost
-- Labor unit cost appears as 0 (or blank) in the bid form
-- COST TOTAL = QTY * UNIT COST (material only)
-- Add a note in General Notes: "Unit costs are material costs unless otherwise noted. Labor costs are not separately itemized."
-- The workbook still looks professional — just honest about current data model limits.
-
-**Path B — Add material/labor split (more work, more risk):**
-- Add `labor_unit_cost` and `labor_cost` columns to `estimate_row_items`
-- Add inline editing for labor cost in estimate sheet
-- Update totals, charts, templates, snapshots, RPCs
-- **Risk:** Touches every row mutation path, chart aggregation, template insertion, proposal export
-
-**Recommendation: Path A for MVP.** If a client specifically needs material/labor split, it can be added post-MVP with proper schema migration and full regression testing. The compatibility mode is honest and professional.
-
-## VAT / Contingency Strategy
-
-- **Contingency:** Already stored per-row as `contingency_percentage`. Calculate contingency amount = SUM(subtotal * contingency_percentage / 100). Display as separate line in Summary.
-- **VAT:** Not currently stored. Add `vat_percentage` to `estimate_sheet.metadata` (or a settings field). Display as separate line in Summary.
-- Both contingency and VAT are optional — only show if configured.
-
-## Styling / Print Layout Strategy
-
-**ExcelJS styling:**
-- **Font:** Calibri 10pt body, Calibri 11pt bold headers, Calibri 14pt bold title
-- **Colors:** White background, #292929 header text, #F5F5F5 section banding
-- **Borders:** Thin borders on all data cells, medium bottom border on section totals
-- **Number format:** `#,##0.00` for costs, `#,##0` for quantities
-- **Alignment:** Left for text, right for numbers and currency
-- **Column widths:** Fixed widths matching bid form layout
-- **Row heights:** 20px data rows, 24px section headers, 30px title row
-- **Freeze panes:** Freeze header row(s)
-- **Print layout:** Landscape, fit to width, repeat header rows on each page
-- **Footer:** Page number, filename, date generated
-
-## Exclusions / Terms / Warranty / Signature Block Strategy
-
-**Source of data:** Estimate sheet metadata OR project metadata. Store as structured fields in `estimate_sheets.metadata`:
-
-```json
-{
-  "exportSettings": {
-    "exclusions": ["string list"],
-    "qualifications": ["string list"],
-    "termsOfPayment": "30 days from invoice date",
-    "validityPeriod": "30 days from date of bid",
-    "warranty": "1 year on workmanship, manufacturer warranty on materials",
-    "estimatedDuration": "4 months",
-    "vatPercentage": 12
-  }
-}
+```text
+EXAMPLE ONLY - actual row numbers depend on generated row offsets.
+G18 = E18+F18
+H18 = IF(OR(I18="EXCLUDED",I18="BY OTHERS",I18="OWNER",I18="OSM",I18="OFCI",I18="OSCI",I18="OMITTED",I18="NOT APPLICABLE"),0,D18*G18)
+Section subtotal = SUM(H18:H42)
 ```
 
-**MVP approach:** Hardcode reasonable defaults in the export, with a note that these should be customized. Add UI to edit these later (post-MVP). The export should not ship with blank exclusions/terms blocks.
+No blank total rule:
 
-**Default values for MVP:**
-- Exclusions: "See detailed bid form for scope. Items marked EXCLUDED, BY OTHERS, OSM, OFCI, or OSCI are not included in this bid."
-- Qualifications: "Prices are based on current supplier quotations. Material prices subject to change without notice."
-- Terms of Payment: "As per contract agreement."
-- Validity: "30 days from date of submission."
-- Warranty: "As per contract agreement and manufacturer warranties."
+- Numeric total cells (`G`, `H`) must always contain either a formula or `0`.
+- Text scope labels live in `I`, never in numeric total columns.
+- Excluded/by-others rows show `0` in `LINE TOTAL` and the status in `SCOPE`.
 
-## Column Proposal Detail
+### Sheet 2: `Summary`
 
-For the Detailed Bid Form sheet, row-by-row:
+| Row range | Content |
+| --- | --- |
+| 1 | `SUMMARY OF BID`. |
+| 3-12 | Header recap. |
+| 14 | Section summary header. |
+| 15-25 | Section rows A-I and Others when present. |
+| 27 | Direct Cost. |
+| 28 | Contingency. |
+| 29 | VAT. |
+| 30 | Grand Total. |
+| 31 | Cost per sqm. |
+| 32 | Estimated duration. |
 
+Formula examples:
+
+```text
+EXAMPLE ONLY
+B27 = SUM(B15:B25)
+B28 = direct_cost * contingency_rate
+B29 = (B27+B28) * vat_rate
+B30 = B27+B28+B29
+B31 = IF(project_area_sqm>0,B30/project_area_sqm,0)
 ```
-Row 1-3:  Header block (merged cells)
-Row 4:    (blank)
-Row 5:    Column headers: ITEM | PARTICULARS | UNIT | QTY | MATERIAL UNIT COST | LABOR UNIT COST | COST TOTAL | LINE TOTAL | NOTES / REMARKS
-Row 6:    (blank)
-Row 7:    A. GENERAL PRELIMINARIES (section header, bold, merged)
-Row 8-N:  Rows for section A
-Row N+1:  Section A Subtotal
-Row N+2:  (blank)
-Row N+3:  B. SITE WORKS
-...
-Last:     GRAND TOTAL (bold, double underline)
-```
 
-## Test Plan
+### Sheet 3: `Commercial Terms`
 
-### Vitest (Unit)
+Blocks:
 
-1. **Workbook structure tests:**
-   - Export produces valid XLSX with expected sheet names
-   - Sheet 1 has header block, metadata, general notes, summary, legal blocks
-   - Sheet 2 has column headers: ITEM, PARTICULARS, UNIT, QTY, MATERIAL UNIT COST, LABOR UNIT COST, COST TOTAL, LINE TOTAL, NOTES/REMARKS
-   - Sheet 2 has section headers (A-I or as configured)
-   - Sheet 3 has area breakdown
+- Exclusions.
+- Qualifications.
+- Payment terms.
+- Validity.
+- Warranty.
+- Signature / Conforme.
 
-2. **Formula tests:**
-   - COST TOTAL column contains formula referencing QTY * (MATERIAL + LABOR)
-   - LINE TOTAL column contains formula for INCLUDED rows
-   - LINE TOTAL displays text for EXCLUDED/BY OTHERS rows
-   - Section subtotals are SUM formulas
-   - Grand total is SUM of all section subtotals
+No formulas required except dates if owner approves.
 
-3. **Value tests:**
-   - Row quantity matches estimate_row_items.quantity
-   - Material unit cost matches estimate_row_items.unit_cost
-   - Labor unit cost is 0 (compatibility mode)
-   - Detached row values used (not library values)
-   - Totals are correct
+### Sheet 4: `Source Breakdown`
 
-4. **Scope status tests:**
-   - INCLUDED rows have normal LINE TOTAL formula
-   - EXCLUDED rows show "EXCLUDED" text
-   - BY OTHERS rows show "BY OTHERS" text
-   - OSM/OFCI/OSCI rows show appropriate text
-   - Subtotals exclude EXCLUDED/BY OTHERS rows
+Keep optional internal sheet for traceability:
 
-### E2E (Playwright)
+- Proposal item number.
+- Source row id.
+- Source node/area path.
+- Original material/description.
+- Quantity/unit/cost.
+- Link state after row DTO mapping if available.
 
-5. **Download + verify:**
-   - Navigate to estimate workspace → click export → download XLSX
-   - Verify file can be opened (file type check)
-   - Optionally: Use ExcelJS to read the downloaded file and verify structure
+This sheet may be hidden by default for client exports if owner wants a cleaner deliverable.
 
-### Manual QA Checklist
+## Styling and Print Layout
 
-Open the downloaded workbook in:
-- [ ] Microsoft Excel (desktop) — opens cleanly, formulas calculate, print layout correct
-- [ ] Apple Numbers — opens cleanly, formatting preserved
-- [ ] LibreOffice Calc — opens cleanly, formulas calculate
-- [ ] Google Sheets (upload) — imports correctly
+| Element | Token/format |
+| --- | --- |
+| Font | System/Arial-compatible. |
+| Header fill | Dark ink (`FF111827`) with white text, matching current workbook style. |
+| Section rows | Light grey fill (`FFF3F4F6`), bold. |
+| Total rows | Bold, top border, double bottom border. |
+| Page setup | Landscape, fit to width 1, narrow margins. |
+| Freeze panes | `Bid Form` row 18; `Summary` row 14. |
+| Repeated print headers | Detail table header row on `Bid Form`; summary header on `Summary`. |
+| Number formats | PHP currency, quantity format from current workbook. |
+
+## Section Mapping
+
+Map current row category/discipline to the reference sections:
+
+1. Normalize category/discipline text.
+2. Map known trade names to A-I labels.
+3. Put unmatched/additional items under `Others / Miscellaneous`.
+4. Preserve original category in remarks or source breakdown.
+
+## Material/Labor Compatibility
+
+Current generated row type has no `labor_cost`; legacy migration consolidated labor/supplementary costs into `misc_cost`. MVP export must:
+
+- Use current `itemCost` as material unit cost.
+- Set labor unit cost to `0`.
+- Put `miscCost` in cost total or a remarks-compatible amount according to final model.
+- Include an informational validation issue explaining compatibility mode.
+- Do not claim labor data is impossible historically; say current schema is consolidated.
+
+## VAT/Contingency
+
+- Contingency percentage exists on rows and should be represented either in line totals or summary, not both.
+- First implementation must choose one calculation path and test it:
+  - Option A: row-level contingency included in line total; summary contingency is 0.
+  - Option B: direct row cost excludes contingency; summary contingency applies once.
+- Owner decision required before coding to avoid double-counting.
+- VAT default requires owner decision.
+
+## Preview/Download Parity
+
+- Preview model and downloaded workbook must share `buildProposalExportModel`.
+- Preview must display the same summary totals, section totals, validation issues, and commercial defaults.
+- Export route tests must assert headers and workbook content.
+
+## ExcelJS Test Assertions
+
+- Sheet names exactly match spec.
+- Header cells contain required labels.
+- Column widths match expected widths.
+- Freeze panes and page setup are set.
+- Print titles/repeated rows are set where ExcelJS exposes them.
+- `LINE TOTAL` cells are never blank.
+- Included rows have formulas.
+- Excluded/by-others rows have numeric `0` in line total.
+- Section subtotal formulas reference the correct row bands.
+- Grand total formula references summary cells.
+- Commercial blocks exist.
+- Workbook opens from buffer and preserves formulas.
+
+## Manual QA
+
+Open generated workbook in:
+
+- Microsoft Excel.
+- Apple Numbers.
+- LibreOffice.
+- Google Sheets.
 
 Verify:
-- [ ] Header block has project name, location, client, date, sheet code, currency
-- [ ] General notes are present and accurate
-- [ ] Sections are lettered and organized
-- [ ] Row numbering is sequential within sections
-- [ ] COST TOTAL column has formulas
-- [ ] LINE TOTAL column not blank for any row
-- [ ] Section subtotals are formulas
-- [ ] Grand total is formula
-- [ ] INCLUSIONS/EXCLUSIONS handled correctly
-- [ ] Exclusions/qualifications/terms/warranty/signature blocks present
-- [ ] Print layout fits page width
-- [ ] No blank total cells
-- [ ] Currency formatting consistent (PHP with comma separators)
-- [ ] No raw "NaN", "undefined", or "null" in any cell
 
-## MVP vs Post-MVP Export Roadmap
+- No blank line total cells.
+- Formulas recalculate.
+- Print preview fits landscape width.
+- Header and notes are visible.
+- Section totals and grand total match preview.
+- Scope labels do not break formulas.
+- Commercial blocks are legible.
 
-**MVP (this plan):**
-- Professional bid/BOQ format with sections, formulas, summary
-- Material-only unit costs (compatibility mode)
-- Hardcoded reasonable defaults for legal blocks
-- Basic styling
+## Tickets
 
-**Post-MVP:**
-- Material/labor split with separate columns
-- Configurable export settings UI (exclusions, terms, VAT, warranty)
-- Multiple export templates (bid form, quotation, BOQ)
-- PDF export with formal proposal letter
-- Customizable header/footer branding
-- Multi-currency support
-- Export history / snapshot tracking
-
-## Files Likely Touched
-
-- `src/lib/proposal-export/types.ts` — new types for sections, scope status, legal blocks
-- `src/lib/proposal-export/build-proposal-export-model.ts` — major rewrite for bid form structure
-- `src/lib/proposal-export/create-proposal-workbook.ts` — major rewrite for bid form layout, formulas, styling
-- `src/app/api/projects/[projectId]/estimates/[estimateId]/export/proposal.xlsx/route.ts` — minor updates
-- `tests/vitest/export-bid-form.test.ts` — new comprehensive test file
-
-## Impact-Analysis Targets
-
-Before editing, run impact analysis on:
-- `buildProposalExportModel` — blast radius ~3 callers
-- `createProposalWorkbook` — blast radius ~3 callers
-- `ProposalExportPreviewDialog` — depends on export model structure
-
-## Acceptance Criteria
-
-- [ ] Workbook opens cleanly in Excel, Numbers, LibreOffice
-- [ ] Workbook has professional bid-form summary sheet
-- [ ] Detailed sheet has: ITEM, PARTICULARS, UNIT, QTY, MATERIAL UNIT COST, LABOR UNIT COST, COST TOTAL, LINE TOTAL, NOTES/REMARKS
-- [ ] COST TOTAL is formula-driven (QTY * UNIT COST)
-- [ ] LINE TOTAL is formula-driven for included rows
-- [ ] Section subtotals are formula-driven
-- [ ] Grand total is formula-driven
-- [ ] No blank LINE TOTAL cells
-- [ ] INCLUDED/EXCLUDED/BY OTHERS handled correctly
-- [ ] Header block populated with project metadata
-- [ ] General notes present
-- [ ] Summary section with direct cost, contingency, VAT, grand total
-- [ ] Commercial/legal blocks present (exclusions, terms, warranty, signature)
-- [ ] Export uses current estimate row values (not stale)
-- [ ] Export handles detached (project-specific) row values
-- [ ] Print layout is landscape, fits to page width
-- [ ] Currency formatting is consistent
-- [ ] Styling is professional (not raw data dump)
+- MVP-XLS-001 Export model contract rewrite.
+- MVP-XLS-002 Workbook builder bid-form layout.
+- MVP-XLS-003 Export formula/scope/status tests.
