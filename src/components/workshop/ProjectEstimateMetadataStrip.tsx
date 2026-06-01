@@ -53,20 +53,15 @@ export function ProjectEstimateMetadataPublisher({ metadata }: ProjectEstimateMe
 
   useLayoutEffect(() => {
     const workshopCanvas = document.querySelector<HTMLElement>("[data-workshop-page-shell-canvas]");
-    const workshopTitleBlock = document.querySelector<HTMLElement>("[data-workshop-title-block]");
     const previousProjectMiniSidebarWidth = workshopCanvas?.style.getPropertyValue(PROJECT_MINI_SIDEBAR_WIDTH_CSS_VARIABLE);
     const previousEstimateSheetRoute = workshopCanvas?.dataset.estimateSheetRoute;
-    const previousWorkshopTitleBlockHidden = workshopTitleBlock?.hidden ?? false;
 
     if (workshopCanvas) workshopCanvas.dataset.estimateSheetRoute = "true";
-    if (workshopTitleBlock) workshopTitleBlock.hidden = true;
     workshopCanvas?.style.setProperty(PROJECT_MINI_SIDEBAR_WIDTH_CSS_VARIABLE, "0px");
     dispatchProjectEstimateMetadataChange({ projectName, estimateName, estimateSheetCode, projectBudget });
     dispatchProjectBudgetChange(projectBudget ?? 0);
 
     return () => {
-      if (workshopTitleBlock) workshopTitleBlock.hidden = previousWorkshopTitleBlockHidden;
-
       if (previousEstimateSheetRoute) {
         if (workshopCanvas) workshopCanvas.dataset.estimateSheetRoute = previousEstimateSheetRoute;
       } else if (workshopCanvas) {
