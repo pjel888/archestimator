@@ -1,139 +1,110 @@
-# 03 — Deferred Features Plan
+# Deferred Features Plan: Ask Flip / AI
 
-**Date:** 2026-06-01
+Launch decision: Ask Flip and package-builder AI are deferred. They must not be visible or callable by default in production.
 
-## Deferral Scope
+## Current Verified State
 
-Three AI surfaces must be hidden for MVP:
-1. **Ask Flip footer assistant** — visible button on all workshop pages
-2. **AI `/api/ai/ask` route** — read-only chat endpoint
-3. **AI `/api/ai/package-builder` route** — draft/apply pipeline
+| Claim | Evidence |
+| --- | --- |
+| Workshop shell renders Ask Flip today. | `src/components/workshop/WorkshopPageShell.tsx:5` imports `AskFlipFooterAssistant`; `WorkshopPageShell.tsx:123` renders it. |
+| Ask Flip routes to both ask and package-builder endpoints. | `EstimateCopilotFloatingButton.tsx:533`, `:585`, `:677`. |
+| `/api/ai/ask` calls handler directly. | `src/app/api/ai/ask/route.ts:3`. |
+| Ask handler performs DB context and provider work after auth/API key. | `handler.ts:105`, `handler.ts:122`, `handler.ts:173`. |
+| `/api/ai/package-builder` calls handler directly. | `src/app/api/ai/package-builder/route.ts:3`. |
+| Package handler performs auth, read tools, provider, apply, audit. | `handler.ts:191`, `:265`, `:350`, `:366`, `:479`. |
+| Existing package-builder flags are sub-feature flags only. | `src/lib/ai/package-builder/feature-flags.ts:18`. |
+| `.env.example` has no top-level AI launch flags today. | `.env.example` inspected on 2026-06-01. |
 
-The AI code must NOT be deleted. It must be hidden, route-disabled, and test-verified as hidden.
+## Final Feature Flags
 
-## Current AI Surface Inventory
+| Flag | Visibility | Default | Required behavior |
+| --- | --- | --- | --- |
+| `NEXT_PUBLIC_ASK_FLIP_ENABLED` | Client-public | `false` | When false, `WorkshopPageShell` must not render `AskFlipFooterAssistant`. |
+| `AI_ASK_ENABLED` | Server-only | `false` | When false, `/api/ai/ask` returns disabled response before calling `handleAiAskRequest`. |
+| `AI_PACKAGE_BUILDER_ENABLED` | Server-only | `false` | When false, `/api/ai/package-builder` returns disabled response before calling `handlePackageBuilderRequest`. |
 
-| Surface | Location | Visibility Control | Current State |
-|---------|----------|-------------------|---------------|
-| Ask Flip footer button | `src/components/workshop/WorkshopPageShell.tsx:123` | None — always renders | `<AskFlipFooterAssistant />` with no conditional |
-| `/api/ai/ask` route | `src/app/api/ai/ask/route.ts` | No feature flag gate in route | Always active |
-| `/api/ai/package-builder` route | `src/app/api/ai/package-builder/route.ts` | Feature flags for sub-operations only | Active if authenticated |
-| AI read-context engine | `src/lib/ai/read-context.ts` (1877 lines) | Called by ask route only | Dormant if route disabled |
-| AI package-builder apply | `src/lib/ai/package-builder/apply.ts` (529 lines) | Called by package-builder route only | Dormant if route disabled |
-| AI audit tables | `supabase/migrations/20260523144932_ai_audit_foundation.sql` | DB tables, no user-facing surface | Dormant |
-| AI memory | `src/lib/ai/package-builder/memory.ts` | `AI_PACKAGE_BUILDER_MEMORY_ENABLED=false` | Already disabled |
+Keep existing `AI_PACKAGE_BUILDER_READ_TOOLS_ENABLED`, `AI_PACKAGE_BUILDER_DRAFT_ENABLED`, `AI_PACKAGE_BUILDER_APPLY_*`, and `AI_PACKAGE_BUILDER_MEMORY_ENABLED` behind `AI_PACKAGE_BUILDER_ENABLED`.
 
-## Ask Flip Deferral Plan
+## Disabled Route Behavior
 
-### 1. Hide the footer button
+Decision: return HTTP `403` JSON for disabled private AI APIs.
 
-**Location:** `src/components/workshop/WorkshopPageShell.tsx`, line 120-124
+Rationale:
 
-**Current code:**
-```tsx
-<footer className="...">
-  <div className="min-w-0 flex-1" />
-  {/* ProjectTotalHeader conditional */}
-  <AskFlipFooterAssistant />
-</footer>
+- Existing package-builder disabled semantics already use `403` for disabled sub-features.
+- These are authenticated product APIs, not public marketing endpoints.
+- A disabled feature is an authorization/configuration denial, not a missing resource.
+
+Response contract:
+
+```ts
+// VERIFIED CONTRACT - status/shape to implement in routes; no provider/context/audit call allowed.
+return NextResponse.json(
+  { error: "Ask Flip is disabled for MVP launch." },
+  { status: 403 },
+);
 ```
 
-**Action:** Wrap in an environment-controlled feature flag:
-```tsx
-{process.env.NEXT_PUBLIC_ASK_FLIP_ENABLED === "true" && <AskFlipFooterAssistant />}
-```
+Package-builder route should use `"Package Builder is disabled for MVP launch."`.
 
-**Env variable:** `NEXT_PUBLIC_ASK_FLIP_ENABLED` — `"false"` by default, `"true"` to enable. Using `NEXT_PUBLIC_` prefix makes it available on client for the conditional render.
+## No-Call Contract
 
-**`.env.example` addition:**
-```bash
-# Ask Flip AI assistant (MVP launch: disabled)
-NEXT_PUBLIC_ASK_FLIP_ENABLED=false
-```
+When disabled:
 
-### 2. Disable `/api/ai/ask` route
+- Do not call `handleAiAskRequest`.
+- Do not call `handlePackageBuilderRequest`.
+- Do not call DeepSeek/OpenAI provider code.
+- Do not read estimate/workspace AI context.
+- Do not call package-builder read tools.
+- Do not call Apply auth or mutation RPCs.
+- Do not write AI audit rows.
+- Do not write package-builder memory.
+- Do not require provider API key.
 
-**Location:** `src/app/api/ai/ask/route.ts` (or handler)
+## Implementation Tickets
 
-**Action:** Add early-return gate at route entry:
-```typescript
-// In route handler, before any AI logic:
-if (process.env.AI_ASK_ENABLED !== "true") {
-  return NextResponse.json(
-    { error: "Ask Flip is not available" },
-    { status: 404 }
-  );
-}
-```
+| Ticket | Files likely touched | Symbols |
+| --- | --- | --- |
+| MVP-AI-001 | `WorkshopPageShell.tsx`, `EstimateCopilotFloatingButton.tsx`, `.env.example`, relevant DOM tests | `WorkshopPageShell`, `AskFlipFooterAssistant`, `EstimateCopilotFloatingButton` |
+| MVP-AI-002 | `src/app/api/ai/ask/route.ts`, new flag helper or existing AI config helper, route tests | `POST`, `handleAiAskRequest` dependency boundary |
+| MVP-AI-003 | `src/app/api/ai/package-builder/route.ts`, `feature-flags.ts`, route/security tests | `POST`, `handlePackageBuilderRequest`, `parsePackageBuilderFeatureFlags` |
 
-**Env variable:** `AI_ASK_ENABLED` — server-side only, `"false"` by default
+## Acceptance Criteria
 
-### 3. Disable `/api/ai/package-builder` route
+- With default env, no Ask Flip footer appears on `/workshop`, `/workshop/library`, `/workshop/templates`, `/workshop/projects`, or project estimate routes.
+- With default env, both AI APIs return `403` without handler invocation.
+- Tests prove provider mocks, context mocks, audit mocks, and package-builder read-tool mocks are not called when disabled.
+- `.env.example` documents all new flags with production default `false`.
+- Re-enabling requires setting both client and server flags explicitly.
 
-**Location:** `src/app/api/ai/package-builder/route.ts` (or handler)
+## Tests To Add/Update
 
-**Action:** Add early-return gate before mode dispatch:
-```typescript
-if (process.env.AI_PACKAGE_BUILDER_ENABLED !== "true") {
-  return NextResponse.json(
-    { error: "Package builder is not available" },
-    { status: 404 }
-  );
-}
-```
+| Test | File | Assertions |
+| --- | --- | --- |
+| Footer hidden by default | `tests/vitest/estimate-copilot-floating-button.test.tsx` or shell route test | Ask Flip trigger absent when `NEXT_PUBLIC_ASK_FLIP_ENABLED` false/undefined. |
+| Footer visible when enabled | same | Trigger appears only when flag is true. |
+| Ask disabled before handler | `tests/vitest/ai-ask-route.test.ts` | `handleAiAskRequest` mock not called; provider/context/audit mocks not called; status 403. |
+| Package disabled before handler | `tests/vitest/ai-package-builder-route.test.ts` | `handlePackageBuilderRequest` mock not called; read tools/provider/apply/audit/memory mocks not called; status 403. |
+| Security contract drift | `tests/vitest/ai-package-builder-security-contract.test.ts` | Source-contract assertions point to handler or route gate correctly. |
 
-**Env variable:** `AI_PACKAGE_BUILDER_ENABLED` — server-side only, `"false"` by default
+## Reactivation Conditions
 
-### Feature Flags Summary
+Ask Flip can be reactivated only after:
 
-| Env Variable | Scope | Default (MVP) | Effect |
-|-------------|-------|---------------|--------|
-| `NEXT_PUBLIC_ASK_FLIP_ENABLED` | Browser + Server | `false` | Hides Ask Flip button in footer |
-| `AI_ASK_ENABLED` | Server only | `false` | Returns 404 from ask route |
-| `AI_PACKAGE_BUILDER_ENABLED` | Server only | `false` | Returns 404 from package-builder route |
-| `AI_PACKAGE_BUILDER_MEMORY_ENABLED` | Server only | `false` | Already disabled, no change |
+- AI security contract tests pass.
+- Real Supabase account session gating is verified.
+- Provider key behavior is verified in staging.
+- Audit tables are verified for allowed requests.
+- Product owner signs off on visible Ask Flip launch.
 
-### Code NOT to Delete
+## Rollback
 
-These files stay in the repo unchanged:
+If AI leaks into launch:
 
-- `src/components/workshop/EstimateCopilotFloatingButton.tsx` — full Ask Flip UI
-- `src/app/api/ai/ask/route.ts` — ask route
-- `src/app/api/ai/ask/handler.ts` — ask handler
-- `src/lib/ai/read-context.ts` — read-context engine
-- `src/lib/ai/deepseek.ts` — DeepSeek client
-- `src/lib/ai/audit.ts` — AI audit trail
-- `src/app/api/ai/package-builder/route.ts` — package-builder route
-- `src/app/api/ai/package-builder/handler.ts` — package-builder handler
-- `src/lib/ai/package-builder/*` — all package-builder modules
-- `src/lib/ai/auth.ts` — AI auth gates
-- All AI-related tests in `tests/vitest/`
-
-### Tests to Prove AI is Not Visible
-
-**Vitest (browser unit):**
-- `tests/vitest/estimate-copilot-floating-button.test.tsx` — Update existing test "is no longer mounted by global app providers" to also verify the button is absent from `WorkshopPageShell` when `NEXT_PUBLIC_ASK_FLIP_ENABLED=false`
-- New test: Verify the button IS present when `NEXT_PUBLIC_ASK_FLIP_ENABLED=true`
-
-**Vitest (route):**
-- New test: `GET/POST /api/ai/ask` returns 404 when `AI_ASK_ENABLED!==true`
-- New test: `POST /api/ai/package-builder` returns 404 when `AI_PACKAGE_BUILDER_ENABLED!==true`
-
-**Design-system lint:**
-- Add check: No "Ask Flip" text, no `AskFlipFooterAssistant` import in any workshop page render path when disabled
-
-### Post-MVP Reactivation Conditions
-
-Reactivate Ask Flip when ALL of these are true:
-1. AI properly handles the full estimate workflow (not just read-only Q&A)
-2. Package builder Apply is robustly tested with zero data corruption risk
-3. Memory and ranking are user-visible and configurable
-4. The footer UX doesn't look like a half-finished product
-5. Legal/privacy review covers AI data handling
-
-Reactivation is a single flag flip:
-```bash
-NEXT_PUBLIC_ASK_FLIP_ENABLED=true
-AI_ASK_ENABLED=true
-AI_PACKAGE_BUILDER_ENABLED=true
-```
+1. Set production `NEXT_PUBLIC_ASK_FLIP_ENABLED=false`, `AI_ASK_ENABLED=false`, `AI_PACKAGE_BUILDER_ENABLED=false`.
+2. Redeploy Vercel.
+3. Verify build and route smoke:
+   - Ask footer absent.
+   - `/api/ai/ask` returns 403.
+   - `/api/ai/package-builder` returns 403.
+4. Inspect provider logs for zero calls after rollback timestamp.

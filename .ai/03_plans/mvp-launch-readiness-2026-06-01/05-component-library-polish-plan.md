@@ -1,122 +1,96 @@
-# 05 — Component Library Polish Plan
+# Component Library Polish Plan
 
-**Date:** 2026-06-01
+Do not revive rejected bulk import/export or overbuilt manager UI. This is polish on the current `/workshop/library` route.
 
-## Current State
+## Current Evidence
 
-`/workshop/library` has a working component library with:
-- **Tree views:** Default (library_folders with create/rename/delete/reorder via RCT), Suppliers, Brand
-- **Center sheet:** Component rows filtered by selected tree node
-- **Add Component modal:** Identity + variant tabs (SKU, unit, pricing, images, attachments)
-- **154 seeded components** with WebP thumbnails under `component-images/seeded-component-thumbnails/v1/`
-- **RLS:** Working — authenticated workspace members can read; editors can mutate
+| Area | Evidence |
+| --- | --- |
+| Route data | `src/app/workshop/library/page.tsx:13` loads `getCurrentWorkspaceComponentRowsLibrary()`. |
+| Client shell | `LibraryPageClient.tsx:12` dynamic-loads `ComponentLibraryManager`; fallback skeleton at `LibraryPageClient.tsx:19`. |
+| Manager state | `localFolders`, `viewMode`, `selectedFolderId`, `selectedSupplierNodeId`, `selectedBrandNodeId`, `reorderStatus`, `sheetStatus`, `addComponentOpen`, `libraryItemState` at `ComponentLibraryManager.tsx:824`. |
+| Sheet search | `itemMatchesSheetQuery` searches name, supplier, brand, category, unit, description, category path at `ComponentLibraryManager.tsx:138`. |
+| Tree search | Folder tree search uses `filterFolderTree` at `LibraryFolderTree.tsx:138` and component matching at `LibraryFolderTree.tsx:87`. |
+| Shared primitives | `SearchInput`, `HeaderIconToolbar`, `ResizableSidePanel`, `WorkshopTree`, `WorkshopTreeRow`, `WorkshopTreeTabs`, `EmptyState`. |
+| Current empty state | Sheet uses `EmptyState` at `ComponentLibraryManager.tsx:745`; some folder rows use custom copy. |
+| Mutation status | `SheetStatus` supports `idle`, `saving`, `saved`, `error` at `ComponentLibraryManager.tsx:105`. |
 
-## Gap Analysis
+## UX Contract
 
-| Area | Current | Gap |
-|------|---------|-----|
-| **Browse/search UX** | No search input on library page | Missing search across component names, descriptions, suppliers, brands |
-| **Filter UX** | Tree-based folder/supplier/brand filtering only | No in-sheet filter for category, lifecycle state, pricing date |
-| **Empty states** | No empty state for empty folders/suppliers/brands | User doesn't know a folder is empty vs. loading |
-| **Error states** | No explicit error state for failed loads | Silent failure looks broken |
-| **Loading states** | Static loading shell at route level | No skeleton loading inside tree/sheet when switching folders |
-| **Component rows** | Basic rows with name, supplier, unit, cost, thumbnail | Could use compact card-style rows with more trust-building fields |
-| **Add Component modal UX** | Functional but not design-system-polished | Variant tab switching could be smoother; image upload flow clunky |
-| **Supplier/brand comboboxes** | Searchable creatable comboboxes | Works, but no empty state for "no suppliers yet" |
-| **Design-system compliance** | Passes lint | Needs visual audit — some surfaces may have ad-hoc styling |
-| **Seed data quality** | 154 components from seeding scripts | May contain stale pricing, missing images, taxonomy misfiles |
-| **Tree usability** | RCT with DnD | Folder reorder via DnD works, but "no folders yet" state unhelpful |
-| **Performance** | Routes build clean | No lazy loading of component images in sheet |
+| State | Trigger | Copy | Component |
+| --- | --- | --- | --- |
+| Loading route | Dynamic manager or route loading | Existing skeleton; keep compact row rhythm. | `LibraryManagerFallback`, route `loading.tsx`. |
+| Empty all components | `libraryItems.length === 0` and no search | "No components in this workspace yet." Secondary: "Add a component to start building reusable estimate rows." | `EmptyState` |
+| Empty filtered view | `visibleItems.length === 0` with `searchQuery` | `No components match "<query>".` | `EmptyState` |
+| Empty folder | Selected folder has no rows | "No components in this folder yet." | `EmptyState` or row-level equivalent |
+| Repository error | Route error boundary | "Component library could not load." Action: retry. | Existing `/workshop/library/error.tsx` |
+| Mutation saving | create/rename/delete/reorder | Existing `saving` message, visible in toolbar/status region. | Existing status slot |
+| Mutation error | action rejects | Error text from caught error, capped to one line plus tooltip if long. | Existing status slot |
 
-## Implementation Tasks
+## Search/Filter Contract
 
-### P0 — Must fix before MVP launch
+Keep current state variables:
 
-1. **Add search input to library page**
-   - Add SearchInput above center sheet (or in header toolbar)
-   - Search across: `cost_library_items.name`, `description`, `supplier` text, `brand` text
-   - Client-side filtering of already-loaded rows for instant feedback
-   - Clear search to return to tree-filtered view
-   - Files: `src/components/workshop/LibraryPageClient.tsx`, `src/components/ui/search-input.tsx`
+- `viewMode`
+- `selectedFolderId`
+- `selectedSupplierNodeId`
+- `selectedBrandNodeId`
+- sheet-local `searchQuery`
+- tree-local `searchQuery`
 
-2. **Add empty states for all tree views**
-   - Default view: "No library folders yet. Create a folder to organize your components."
-   - Suppliers view: "No suppliers yet. Add a supplier when creating a component."
-   - Brand view: "No brands yet. Add a brand when creating a component."
-   - Center sheet when no folder selected: "Select a folder, supplier, or brand to browse components."
-   - Center sheet when filter returns no results: "No components match your search."
-   - Files: `src/components/workshop/LibraryPageClient.tsx`, `src/components/ui/empty-state.tsx`
+Filtering rules:
 
-3. **Add loading states**
-   - Skeleton rows in center sheet while data loads
-   - Spinner/skeleton in tree while folders load
-   - Files: `src/components/workshop/LibraryPageClient.tsx`, `src/components/ui/skeleton.tsx`
+1. Text search normalizes case and punctuation.
+2. Sheet search must match: `material`, `supplier`, `brand`, `category`, `unit`, `description`, `categoryPath`, and pricing source if present.
+3. Tree search must match folder labels plus child component rows; add brand matching if absent in tree helper.
+4. Filter count must display `visible / total` for the selected view.
+5. Clearing search restores selected folder/supplier/brand view without changing selection.
 
-### P1 — Should fix before MVP launch
+## Component Row Display Fields
 
-4. **Improve component row display**
-   - Show pricing date prominently (helps trust)
-   - Show lifecycle state as small badge (draft/in_production/available)
-   - Show supplier brand context
-   - Compact row height consistent with estimate sheet rows
-   - Files: `src/components/workshop/LibraryPageClient.tsx`
+Each component card/row should show, when present:
 
-5. **Design-system visual audit**
-   - Verify all text is SF Pro, regular/medium weights only
-   - Verify no font size exceeds 12px
-   - Verify all border radius is xs (3px)
-   - Verify zero letter-spacing
-   - Verify icons are regular weight (not fill/bold)
-   - Files: All library components
+- Name/material.
+- Category path.
+- Unit and item cost.
+- Supplier.
+- Brand.
+- Pricing date/source.
+- Confidence.
+- Lifecycle/state if available in row data.
+- Folder path or "No folder assigned" for unassigned cards.
 
-6. **Seed data cleanup**
-   - Audit seed component names (no brand prefixes, no "allowance" suffixes)
-   - Verify taxonomy placement for all 154 components
-   - Verify thumbnail URLs resolve and display correctly
-   - Update stale pricing if possible
-   - Files: `supabase/migrations/20260525095729*`, seed scripts
+Do not invent new data. Use `EstimateRowItem` fields already mapped by `normalizeComponentLibraryItem` in `component-library-repository.ts:104`.
 
-### P2 — Nice to have for MVP
+## Data Quality Checks
 
-7. **Lazy-load component thumbnails**
-   - Use `loading="lazy"` on all component images
-   - Add blur placeholder while loading
-   - Files: `src/components/workshop/LibraryPageClient.tsx`
+Add fixture-backed repository tests for:
 
-## Acceptance Criteria
+- Missing supplier/brand/category does not crash UI.
+- Duplicate component names remain distinguishable by supplier/brand/unit.
+- Missing price renders a nonblank placeholder and does not sort as a valid cost.
+- Folder assignment missing renders under unassigned.
+- Component rows never include templates in `/workshop/library`.
 
-- [ ] Search input filters component rows by name, description, supplier, brand
-- [ ] Clearing search returns to tree-filtered view
-- [ ] Empty state shown when no folder/supplier/brand selected
-- [ ] Empty state shown when search returns no results
-- [ ] "No folders yet" empty state for Default view
-- [ ] Loading skeleton displayed during data fetch
-- [ ] Component rows show name, supplier, unit, cost, pricing date, lifecycle badge
-- [ ] Design-system lint passes with 0 violations
-- [ ] No text exceeds 12px font size
-- [ ] All border radius is xs (3px)
-- [ ] All icons are regular weight
-- [ ] Seed components have clean names (no brand prefixes or allowance suffixes)
-- [ ] Thumbnails load correctly for all seeded components
+## Accessibility Requirements
 
-## Files Likely Touched
+- Search inputs have stable `aria-label`.
+- Tree rows keep `role="treeitem"`, selected state, and keyboard-compatible focus.
+- Icon buttons use tooltips/accessible labels.
+- Empty states are announced through visible text, not icons only.
+- Status errors are visible text and not color-only.
 
-- `src/components/workshop/LibraryPageClient.tsx` — main library page
-- `src/components/ui/search-input.tsx` — search input primitive (may need variant)
-- `src/components/ui/empty-state.tsx` — empty state primitive (may need variant)
-- `src/components/ui/skeleton.tsx` — loading skeleton
-- `src/lib/repositories/component-library-repository.ts` — data fetching
-- `supabase/migrations/` — seed data cleanup migration (optional)
+## Tickets
 
-## Impact-Analysis Targets
+| Ticket | Implementation details | Acceptance criteria | Tests | Rollback |
+| --- | --- | --- | --- | --- |
+| MVP-LIB-001 | Normalize empty/loading/error/search copy; add brand/pricing-source search parity; keep existing state names. | Search and empty states behave consistently across sheet/tree. | `component-library-manager-ui.test.tsx`, route error-boundary test. | Revert copy/filter helper changes. |
+| MVP-LIB-002 | Add trust fields to card/row using existing `EstimateRowItem` data; add malformed-data fixtures. | Cards show available supplier/brand/pricing/confidence/lifecycle without layout shift. | Repository and DOM fixture tests. | Hide added fields; data untouched. |
 
-Before editing, run impact analysis on:
-- `LibraryPageClient` — blast radius ~5 components
-- `getCurrentWorkspaceComponentRowsLibrary` — blast radius ~3 callers
-- `SearchInput` — blast radius ~10 usages across workshop
+## Visual QA Checklist
 
-## Tests
-
-- Vitest: Search input filters rows, empty states render, loading skeleton renders
-- Vitest: Design-system tokens are correct (font, size, radius, weight, tracking)
-- E2E: Browse library → search → select component → verify details
+- 1440px desktop: library tree and sheet do not overlap.
+- 1024px laptop: filter counts and trust fields truncate cleanly.
+- Mobile/tablet fallback: no text overflow in toolbar/search/buttons.
+- Empty states use shared tone and do not create nested cards.
+- Icons use the existing icon system and sizes.
