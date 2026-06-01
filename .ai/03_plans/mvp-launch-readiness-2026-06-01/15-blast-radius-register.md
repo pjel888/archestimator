@@ -1,5 +1,27 @@
 # Blast-Radius Register
 
+## Third-Pass Graph Evidence
+
+Commit audited: `681c95e64864f283950a88dba304eaffe8f2f8b3`. Code-review graph evidence was collected before doc edits:
+
+- Minimal graph context: 3,633 nodes, 51,052 edges, 387 files, low risk for docs-only changes.
+- Architecture communities: `workshop-estimate`, `estimates-estimate`, `workshop-project`, `component-library-component`, and related route/test communities.
+- Bridge nodes: `EstimateSheetContent`, `EstimateSheetTree`, `EstimateRightSidebar`, `ProjectPublicationHeader`, `ProjectTeamspaceHeader`, invite/share E2E paths.
+- Critical flows: auth sign-in, project create/open, estimate tree fetch, estimate create/open, estimate row handlers, export route, share/invite routes.
+- Post-edit docs review: `detect_changes` on tracked plan docs reported 0 changed functions/classes, 0 affected flows, 0 test gaps, and risk score 0.00.
+- Limitation: graph search did not cover every phrase; fallback static analysis and native explorers filled gaps.
+
+| Planned ticket | High-blast-radius symbols/files | Risk | Required pre-edit impact analysis |
+| --- | --- | --- | --- |
+| `AI-001` | `WorkshopPageShell`, `EstimateCopilotFloatingButton`, `/api/ai/*`, `src/lib/ai/*` | High | callers/imports of shell assistant and route handlers. |
+| `UNLINK-001` | `EstimateSheetContent`, `useEstimateRowMutations`, `src/lib/estimates/actions.ts`, row RPCs | High | upstream/downstream of row mutation actions, tests, public DTOs. |
+| `EXP-001` | `buildProposalExportModel`, `createProposalWorkbook`, export route, preview dialog | Moderate/high | route/model/workbook tests and client preview dependency. |
+| `SEC-001` | share/invite APIs, Supabase policies, storage routes | High | route access matrix and RLS impact before policy edits. |
+| `ONB-001` | auth callback, proxy, login/workshop routes | High | redirect/origin/auth flows. |
+| `LIB-001`/`TPL-001` | sidebar/library/template components | Moderate | insert paths and estimate sheet drag/drop tests. |
+
+No production symbols were edited in this pass. Run targeted graph impact analysis again inside each implementation PR and copy the results here.
+
 GitNexus index refreshed on 2026-06-01 with `npx gitnexus analyze`.
 
 ## Targets
