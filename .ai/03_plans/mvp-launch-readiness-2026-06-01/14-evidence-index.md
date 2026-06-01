@@ -68,6 +68,25 @@
 - Post-edit GitNexus `detect-changes --repo archestimator --scope staged` reports high risk with 8 affected `PricingPage` flows; this is expected for public pricing copy and is mitigated by source-contract tests plus focused landing/proxy tests.
 - Remote/payment evidence is not needed for this slice because Stripe/checkout/subscriptions remain intentionally unimplemented.
 
+### UNLINK-001 RPC/Action Contract Evidence
+
+- Supabase migration `supabase/migrations/20260601184343_unlink_estimate_row_items.sql` defines `public.unlink_estimate_row_item_from_library_with_history(...)` for project-specific row detach.
+- The RPC resolves workspace access with `public.resolve_estimate_workspace`, locks the estimate and row, enforces `expected_row_revision`, rejects already-unlinked rows, preserves `source_snapshot`, sets `source_library_item_id = null`, sets `link_state = 'detached'`, increments `row_revision`, and inserts a `row_unlinked` history event with `detachedFromSourceLibraryItemId` metadata.
+- `src/lib/estimates/actions.ts` exports `detachEstimateRowItemFromLibrary(...)`, passes acting user and mutation correlation id, uses the current row revision by default, returns the canonical history row result, and revalidates the affected estimate node path.
+- `src/lib/supabase/types.ts` includes the new RPC Args/Returns surface.
+- Focused red/green evidence: `bun run test:dom tests/vitest/estimate-sheet-version-control-actions.test.ts tests/vitest/estimate-sheet-version-control-schema.test.ts` passed 2 files / 31 tests.
+- `bun run type-check` passed.
+- `bun run lint` passed with the existing 14 warnings and 0 errors.
+- `bun run lint:design-system` passed.
+- `bun run test` passed 4 unit tests / 129 expectations.
+- `bun run test:dom` passed 127 files / 1006 tests with 2 skips.
+- `bun run build` passed.
+- `git diff --check` passed.
+- Post-edit code-review-graph `detect_changes` against `HEAD` analyzed 7 staged changed files, 6 changed functions/classes, 0 affected flows, 2 source-level test gaps, and overall risk score 0.35.
+- Post-edit GitNexus `detect-changes --repo archestimator --scope staged` reported 7 changed files, 1 changed symbol, 0 affected processes, and low risk.
+- UI/hook wiring is intentionally not part of this green point; `EstimateSheetContent`, `useEstimateRowMutations`, and persisted `linkState` mapping remain the next UNLINK-001 implementation slice.
+- Linked Supabase migration apply and direct SQL verification are not done in this slice; backup/PITR proof remains required before applying launch/beta migrations.
+
 ### Closed Beta Audit Evidence
 
 - Auth/proxy: `src/proxy.ts`, `src/lib/auth/actions.ts`, `src/app/auth/callback/route.ts`, `src/lib/auth/account-setup.ts`, `src/lib/auth/session.ts`.

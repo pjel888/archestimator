@@ -29,6 +29,15 @@ if (!discountMigrationPath) throw new Error("Missing estimate row discount migra
 
 const discountMigration = readFileSync(join(process.cwd(), "supabase/migrations", discountMigrationPath), "utf8");
 
+function readMigrationBySuffix(suffix: string) {
+  const migrationFile = readdirSync(join(process.cwd(), "supabase/migrations"))
+    .filter((file) => file.endsWith(suffix))
+    .sort()
+    .at(-1);
+  if (!migrationFile) throw new Error(`Missing migration ending in ${suffix}.`);
+  return readFileSync(join(process.cwd(), "supabase/migrations", migrationFile), "utf8");
+}
+
 describe("estimate sheet version control schema", () => {
   it("adds append-only events, named versions, row revisions, and safety indexes", () => {
     expect(migration).toContain("add column if not exists row_revision integer not null default 1");
@@ -138,5 +147,25 @@ describe("estimate sheet version control schema", () => {
     expect(migration).toContain("grant execute on function public.insert_estimate_template_into_estimate_with_history");
     expect(migration).toContain("grant execute on function public.update_estimate_details_with_history");
     expect(migration).toContain("grant execute on function public.delete_estimate_node_with_history");
+  });
+
+  it("defines project-specific row detach RPC with revision, provenance, and history contracts", () => {
+    const unlinkMigration = readMigrationBySuffix("_unlink_estimate_row_items.sql");
+
+    expect(unlinkMigration).toContain("create or replace function public.unlink_estimate_row_item_from_library_with_history");
+    expect(unlinkMigration).toContain("security definer");
+    expect(unlinkMigration).toContain("set search_path = ''");
+    expect(unlinkMigration).toContain("public.resolve_estimate_workspace");
+    expect(unlinkMigration).toContain("for update");
+    expect(unlinkMigration).toContain("estimate_sheet_row_revision_conflict");
+    expect(unlinkMigration).toContain("source_library_item_id = null");
+    expect(unlinkMigration).toContain("link_state = 'detached'");
+    expect(unlinkMigration).toContain("source_snapshot = row_item.source_snapshot");
+    expect(unlinkMigration).toContain("row_revision = row_item.row_revision + 1");
+    expect(unlinkMigration).toContain("'row_unlinked'");
+    expect(unlinkMigration).toContain("'detachedFromSourceLibraryItemId'");
+    expect(unlinkMigration).toContain("grant execute on function public.unlink_estimate_row_item_from_library_with_history");
+    expect(unlinkMigration).not.toContain("area_node_id");
+    expect(unlinkMigration).not.toContain("cost_library_items");
   });
 });

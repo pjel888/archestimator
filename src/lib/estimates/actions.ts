@@ -62,6 +62,15 @@ type UpdateEstimateRowItemInput = {
   expectedRowRevision?: number;
 };
 
+type DetachEstimateRowItemInput = {
+  projectId: string;
+  estimateId: string;
+  rowId: string;
+  reason?: string;
+  mutationId?: string;
+  expectedRowRevision?: number;
+};
+
 export type UpdateEstimateRowItemResult = {
   rowId: string;
   nodeId: string;
@@ -261,6 +270,7 @@ type RpcFunctionName =
   | "insert_estimate_row_item_with_history"
   | "update_estimate_row_item_with_history"
   | "replace_estimate_row_item_with_history"
+  | "unlink_estimate_row_item_from_library_with_history"
   | "delete_estimate_row_item_with_history"
   | "reorder_estimate_nodes_with_history"
   | "create_estimate_node_with_history"
@@ -1803,6 +1813,34 @@ export async function replaceEstimateRowItemWithLibrary({ projectId, estimateId,
   if (error) throw error;
 
   revalidatePath(`/workshop/projects/${project.id}/estimates/${row.node_id}`);
+}
+
+export async function detachEstimateRowItemFromLibrary({
+  projectId,
+  estimateId,
+  rowId,
+  reason,
+  mutationId,
+  expectedRowRevision,
+}: DetachEstimateRowItemInput): Promise<UpdateEstimateRowItemResult> {
+  const { project, supabase, row } = await getValidatedEstimateRow(projectId, estimateId, rowId);
+  const currentUser = await requireCurrentUserContext();
+  const trimmedReason = reason?.trim() || null;
+  const { data, error } = await asEstimateHistoryRpcClient(supabase).rpc("unlink_estimate_row_item_from_library_with_history", {
+    target_project_id: project.id,
+    target_estimate_id: estimateId,
+    target_row_id: row.id,
+    expected_row_revision: expectedRowRevision ?? row.row_revision,
+    reason: trimmedReason,
+    acting_user_id: currentUser.userId,
+    correlation_id: getMutationCorrelationId(mutationId),
+  });
+
+  if (error) throw error;
+
+  const detachedRow = readHistoryRowResult(data);
+  revalidatePath(`/workshop/projects/${project.id}/estimates/${row.node_id}`);
+  return detachedRow;
 }
 
 export async function deleteEstimateRowItem({ projectId, estimateId, rowId, mutationId, expectedRowRevision }: DeleteEstimateRowItemInput) {
