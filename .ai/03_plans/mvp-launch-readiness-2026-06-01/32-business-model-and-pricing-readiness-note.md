@@ -1,5 +1,20 @@
 # Business Model and Pricing Readiness Note
 
+## Fourth-Pass Closed Beta Pricing Decision - 2026-06-02
+
+No payment ships in closed beta.
+
+- No Stripe.
+- No checkout.
+- No subscriptions.
+- No paid tiers.
+- No invoices.
+- No billing UI.
+- No pricing enforcement.
+- No payment collection.
+
+Pricing is a post-beta roadmap item. If `/pricing` remains visible, it must say closed beta access is by invitation only, pricing will be announced after beta, and users can contact Philip/request access. Investor demos can discuss pricing as future strategy only.
+
 Commit audited: `681c95e64864f283950a88dba304eaffe8f2f8b3`
 
 ## MVP Positioning
@@ -8,16 +23,16 @@ Archestimator MVP should be positioned as a structured estimating workspace for 
 
 ## Pricing Page State
 
-Current pricing route presents an MVP preview/free posture and future tiers. This can be investor-safe only if:
+Current pricing route presents an MVP preview/free posture and future tiers. For closed beta it must be hidden or reframed as invite-only access. It can be investor-safe only if:
 
 - Copy does not promise unavailable features as currently shipping.
 - Paid claims are framed as planned or future.
 - Legal copy clarifies beta/preview limits.
-- No payment/billing UI implies customers can subscribe if billing is deferred.
+- No payment/billing UI or copy implies customers can subscribe while billing is deferred.
 
 ## What Not To Implement For MVP
 
-- Stripe/payment flow unless already scoped separately.
+- Stripe/payment flow.
 - Complex plans/seat management.
 - Usage metering.
 - Enterprise procurement flow.
@@ -25,7 +40,7 @@ Current pricing route presents an MVP preview/free posture and future tiers. Thi
 
 ## Billing Decision
 
-Billing/payment is deferred unless a separate explicit decision is made. Early paying prospects can be handled manually only after legal, support, privacy, and data protection terms are ready.
+Billing/payment is deferred for closed beta. Early paying prospects must not be handled in-app; any future paid pilot requires a separate post-beta decision and reviewed legal, support, privacy, and data protection terms.
 
 ## Beta / Free Trial Handling
 
