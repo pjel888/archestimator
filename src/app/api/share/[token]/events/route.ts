@@ -1,5 +1,9 @@
 import { assertSameOriginPublicPost } from "@/lib/publication/security";
-import { recordProjectPublicationEvent, type ProjectPublicationEventType } from "@/lib/publication/public-repository";
+import {
+  checkProjectPublicationEventRateLimit,
+  recordProjectPublicationEvent,
+  type ProjectPublicationEventType,
+} from "@/lib/publication/public-repository";
 
 export const dynamic = "force-dynamic";
 
@@ -21,6 +25,17 @@ export async function POST(request: Request, { params }: { params: Promise<{ tok
   const eventType = body.eventType;
   if (!eventType || !allowedEvents.has(eventType as ProjectPublicationEventType)) {
     return Response.json({ error: "Publication event is invalid." }, { status: 400, headers: { "Cache-Control": "no-store" } });
+  }
+
+  const rateLimit = await checkProjectPublicationEventRateLimit({ token, request });
+  if (!rateLimit.allowed) {
+    return Response.json(
+      { error: rateLimit.message },
+      {
+        status: 429,
+        headers: { "Cache-Control": "no-store", "Retry-After": String(rateLimit.retryAfter) },
+      },
+    );
   }
 
   await recordProjectPublicationEvent({

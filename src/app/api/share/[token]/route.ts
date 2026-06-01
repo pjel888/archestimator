@@ -1,4 +1,5 @@
 import {
+  checkProjectPublicationSnapshotRateLimit,
   recordProjectPublicationEvent,
   resolveProjectPublicationAccessByToken,
   resolveProjectPublicationSnapshotByToken,
@@ -13,6 +14,17 @@ const noStoreHeaders = {
 
 export async function GET(request: Request, { params }: { params: Promise<{ token: string }> }) {
   const { token } = await params;
+  const rateLimit = await checkProjectPublicationSnapshotRateLimit({ token, request });
+  if (!rateLimit.allowed) {
+    return Response.json(
+      { error: rateLimit.message },
+      {
+        status: 429,
+        headers: { ...noStoreHeaders, "Retry-After": String(rateLimit.retryAfter) },
+      },
+    );
+  }
+
   const publicationAccess = await resolveProjectPublicationAccessByToken(token);
 
   if (!publicationAccess) {

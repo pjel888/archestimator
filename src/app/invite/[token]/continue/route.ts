@@ -2,6 +2,9 @@ import { NextResponse } from "next/server";
 
 import { LOGIN_PATH } from "@/lib/auth/redirects";
 import {
+  checkInviteContinueRateLimit,
+} from "@/lib/collaboration/invite-entry";
+import {
   PENDING_INVITE_COOKIE,
   PENDING_INVITE_MAX_AGE_SECONDS,
   createPendingInviteBridge,
@@ -10,6 +13,8 @@ import {
 type InviteRouteContext = {
   params: Promise<{ token: string }>;
 };
+
+const PENDING_INVITE_ACCEPT_PATH = "/workshop/pending-invite";
 
 function decodeInviteRouteToken(token: string) {
   try {
@@ -35,6 +40,17 @@ async function continueToAuth(request: Request, { params }: InviteRouteContext) 
   const { token } = await params;
   const rawToken = decodeInviteRouteToken(token);
 
+  const rateLimit = await checkInviteContinueRateLimit({ rawToken, request });
+  if (!rateLimit.allowed) {
+    return NextResponse.json(
+      { error: rateLimit.message },
+      {
+        status: 429,
+        headers: { "Cache-Control": "no-store", "Retry-After": String(rateLimit.retryAfter) },
+      },
+    );
+  }
+
   let bridge: ReturnType<typeof createPendingInviteBridge>;
   try {
     bridge = createPendingInviteBridge(rawToken);
@@ -43,7 +59,7 @@ async function continueToAuth(request: Request, { params }: InviteRouteContext) 
   }
 
   const response = NextResponse.redirect(
-    new URL(`${LOGIN_PATH}?next=${encodeURIComponent("/workshop")}`, request.url),
+    new URL(`${LOGIN_PATH}?next=${encodeURIComponent(PENDING_INVITE_ACCEPT_PATH)}`, request.url),
   );
   response.cookies.set(PENDING_INVITE_COOKIE, bridge.cookieValue, {
     httpOnly: true,

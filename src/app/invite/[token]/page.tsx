@@ -1,4 +1,7 @@
+import { headers } from "next/headers";
+
 import {
+  checkInviteResolutionRateLimit,
   hashInviteToken,
   readInviteEntryConfig,
 } from "@/lib/collaboration/invite-entry";
@@ -19,13 +22,15 @@ type InviteResolutionRow = {
   role: string | null;
   scope: string | null;
   inviter_label: string | null;
+  inviter_email: string | null;
   invited_email: string | null;
   expires_at: string | null;
   token_id: string | null;
 };
 
 const SAFE_INVALID_COPY = "This invite link is invalid or no longer available. Ask the sender to invite this email again.";
-const EXPIRED_COPY = "Invite expired. Ask the sender to send a new invite for this email.";
+const EXPIRED_COPY = "Invite expired.";
+const TERMINAL_INVITE_RECOVERY_COPY = "Ask the sender for a new invite.";
 const TOKEN_SHAPE_PATTERN = /^[A-Za-z0-9_-]{32,256}$/;
 const inviteActionClassName =
   "inline-flex min-h-8 items-center justify-center gap-2 rounded-xs bg-primary p-2 !text-[10px] !font-medium leading-none text-white transition hover:bg-accentDark focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-2";
@@ -67,10 +72,15 @@ function targetHref(row: InviteResolutionRow) {
   return row.project_id ? `/workshop/projects/${row.project_id}` : "/workshop/projects";
 }
 
-async function resolveInviteEntryState(rawToken: string) {
+async function resolveInviteEntryState(rawToken: string, requestHeaders: Headers) {
   const config = readInviteEntryConfig();
   if (!config.enabled || !isRouteTokenShapeValid(rawToken)) {
     return { kind: "invalid" as const, row: null, currentEmail: null };
+  }
+
+  const rateLimit = await checkInviteResolutionRateLimit({ rawToken, headers: requestHeaders });
+  if (!rateLimit.allowed) {
+    return { kind: "rate-limited" as const, row: null, currentEmail: null, message: rateLimit.message };
   }
 
   const invitationTokenHash = hashInviteToken(rawToken, config.pepper);
@@ -84,7 +94,7 @@ async function resolveInviteEntryState(rawToken: string) {
     return { kind: "invalid" as const, row: null, currentEmail: null };
   }
   if (row.state === "expired") return { kind: "expired" as const, row, currentEmail: null };
-  if (row.state === "revoked") return { kind: "revoked" as const, row: null, currentEmail: null };
+  if (row.state === "revoked") return { kind: "revoked" as const, row, currentEmail: null };
   if (row.state === "already_used") return { kind: "already-used" as const, row, currentEmail: null };
 
   let currentEmail: string | null = null;
@@ -151,14 +161,45 @@ function InvitePreview({
         </div>
       </dl>
       {signedIn ? (
-        <a className={inviteActionClassName} href={`/invite/${encodeURIComponent(rawToken)}/accept`}>
-          Accept invite
-        </a>
+        <form action={`/invite/${encodeURIComponent(rawToken)}/accept`} method="post">
+          <input type="hidden" name="projectName" value={row.project_name ?? "Archestimator project"} />
+          <input type="hidden" name="roleLabel" value={roleLabel(row.role)} />
+          <button className={inviteActionClassName} type="submit">
+            Confirm acceptance
+          </button>
+        </form>
       ) : (
         <a className={inviteActionClassName} href={`/invite/${encodeURIComponent(rawToken)}/continue`}>
           Continue to Archestimator
         </a>
       )}
+    </InviteShell>
+  );
+}
+
+function TerminalInviteState({
+  row,
+  state,
+  title,
+}: {
+  row: InviteResolutionRow | null;
+  state: "expired" | "revoked";
+  title: string;
+}) {
+  const senderEmail = row?.inviter_email?.trim() || null;
+
+  return (
+    <InviteShell state={state}>
+      <h1 className="text-[12px] font-medium leading-4">{title}</h1>
+      <p className="text-[10px] leading-4 text-secondary">{TERMINAL_INVITE_RECOVERY_COPY}</p>
+      {senderEmail ? (
+        <p className="text-[10px] leading-4 text-secondary">
+          Contact the sender at <span className="font-medium text-ink">{senderEmail}</span>.
+        </p>
+      ) : null}
+      <a className={inviteSecondaryActionClassName} href="/contact">
+        Contact Archestimator
+      </a>
     </InviteShell>
   );
 }
@@ -169,7 +210,8 @@ export default async function InviteEntryPage({ params }: InviteEntryPageProps) 
   // Pending auth bridge cookie: archestimator_pending_invite.
   const { token } = await params;
   const decodedToken = decodeInviteRouteToken(token);
-  const state = await resolveInviteEntryState(decodedToken);
+  const requestHeaders = await headers();
+  const state = await resolveInviteEntryState(decodedToken, requestHeaders);
 
   if (state.kind === "signed-out-preview" && state.row) {
     return <InvitePreview row={state.row} rawToken={decodedToken} signedIn={false} />;
@@ -184,6 +226,16 @@ export default async function InviteEntryPage({ params }: InviteEntryPageProps) 
         <p className="text-[10px] leading-4 text-secondary">
           Sign out and continue with {state.row.invited_email ?? "the invited email"} to accept this invite.
         </p>
+        <dl className="grid gap-2 rounded-xs bg-surfaceMuted p-3 text-[10px] leading-4 text-secondary">
+          <div className="flex justify-between gap-3">
+            <dt className="text-tertiary">Signed in as</dt>
+            <dd>{state.currentEmail ?? "Unknown"}</dd>
+          </div>
+          <div className="flex justify-between gap-3">
+            <dt className="text-tertiary">Invited email</dt>
+            <dd>{state.row.invited_email ?? "Not available"}</dd>
+          </div>
+        </dl>
         <a className={inviteSecondaryActionClassName} href={`/invite/${encodeURIComponent(decodedToken)}/sign-out`}>
           Sign out and continue
         </a>
@@ -202,16 +254,16 @@ export default async function InviteEntryPage({ params }: InviteEntryPageProps) 
     );
   }
   if (state.kind === "expired") {
-    return (
-      <InviteShell state="expired">
-        <h1 className="text-[12px] font-medium leading-4">{EXPIRED_COPY}</h1>
-      </InviteShell>
-    );
+    return <TerminalInviteState row={state.row} state="expired" title={EXPIRED_COPY} />;
   }
   if (state.kind === "revoked") {
+    return <TerminalInviteState row={state.row} state="revoked" title="This invite was revoked." />;
+  }
+  if (state.kind === "rate-limited") {
     return (
-      <InviteShell state="revoked">
-        <h1 className="text-[12px] font-medium leading-4">This invite was revoked. Ask the sender for a new link.</h1>
+      <InviteShell state="rate-limited">
+        <h1 className="text-[12px] font-medium leading-4">Too many attempts.</h1>
+        <p className="text-[10px] leading-4 text-secondary">{state.message}</p>
       </InviteShell>
     );
   }

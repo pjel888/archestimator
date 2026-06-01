@@ -1,5 +1,5 @@
 import { assertSameOriginPublicPost, createSharedLinkSessionCookieName, verifySharedLinkSessionCookieValue } from "@/lib/publication/security";
-import { submitSharedLinkDecision, createPublicationServiceClient } from "@/lib/publication/public-repository";
+import { checkSharedLinkDecisionRateLimit, submitSharedLinkDecision } from "@/lib/publication/public-repository";
 import { createHash } from "crypto";
 
 export const dynamic = "force-dynamic";
@@ -23,6 +23,40 @@ function logStructured(level: "error" | "warn", route: string, errorCode: string
   console.error({ level, route, errorCode, ipHash, ts: new Date().toISOString(), ...extra });
 }
 
+const allowedDecisions = ["accepted", "declined", "revision_requested"] as const;
+type DecisionType = (typeof allowedDecisions)[number];
+
+function isDecisionType(value: string): value is DecisionType {
+  return allowedDecisions.some((decision) => decision === value);
+}
+
+function readSessionPayload(value: string | undefined) {
+  try {
+    const prefix = "shared-link-session-v1";
+    const parts = (value || "").split(":");
+    if (parts[0] !== prefix || !parts[1]) return {};
+    const payload = JSON.parse(Buffer.from(parts[1], "base64url").toString("utf8")) as {
+      publicationId?: unknown;
+      snapshotVersion?: unknown;
+      recipientId?: unknown;
+    };
+    return {
+      publicationId: typeof payload.publicationId === "string" ? payload.publicationId : undefined,
+      snapshotVersion:
+        typeof payload.snapshotVersion === "string" || typeof payload.snapshotVersion === "number"
+          ? payload.snapshotVersion
+          : undefined,
+      recipientId: typeof payload.recipientId === "string" ? payload.recipientId : undefined,
+    };
+  } catch {
+    return {};
+  }
+}
+
+function readErrorMessage(error: unknown, fallback: string) {
+  return error instanceof Error ? error.message : fallback;
+}
+
 export async function POST(request: Request, { params }: { params: Promise<{ token: string }> }) {
   const sameOrigin = assertSameOriginPublicPost(request);
   if (!sameOrigin.ok) {
@@ -36,8 +70,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ tok
   };
 
   const decision = (body.decision || "").toString().trim();
-  const allowedDecisions = ["accepted", "declined", "revision_requested"] as const;
-  if (!allowedDecisions.includes(decision as any)) {
+  if (!isDecisionType(decision)) {
     const ipHash = getIpHash(request);
     logStructured("error", "/api/share/[token]/decision", "VALIDATION_INVALID_DECISION", ipHash);
     return Response.json({ error: "Invalid decision. Must be accepted, declined, or revision_requested." }, { status: 400, headers: { "Cache-Control": "no-store" } });
@@ -52,17 +85,10 @@ export async function POST(request: Request, { params }: { params: Promise<{ tok
   // Lightweight parse of signed P5 session payload for ids (no DB). Full crypto verify below.
   let publicationId = "unknown-pub";
   let snapshotVersion: string | number = "1";
-  let recipientIdFromCookie: string | undefined;
-  try {
-    const prefix = "shared-link-session-v1";
-    const parts = (sessionValue || "").split(":");
-    if (parts[0] === prefix && parts[1]) {
-      const p = JSON.parse(Buffer.from(parts[1], "base64url").toString("utf8"));
-      if (p?.publicationId) publicationId = p.publicationId;
-      if (p?.snapshotVersion) snapshotVersion = p.snapshotVersion;
-      recipientIdFromCookie = p?.recipientId;
-    }
-  } catch {}
+  const sessionPayload = readSessionPayload(sessionValue);
+  if (sessionPayload.publicationId) publicationId = sessionPayload.publicationId;
+  if (sessionPayload.snapshotVersion) snapshotVersion = sessionPayload.snapshotVersion;
+  const recipientIdFromCookie = sessionPayload.recipientId;
 
   // Verify P5 session (crypto + expiry + match, no DB required)
   const sessionOk = verifySharedLinkSessionCookieValue(sessionValue, {
@@ -84,11 +110,21 @@ export async function POST(request: Request, { params }: { params: Promise<{ tok
     return Response.json({ error: "Recipient context missing from session." }, { status: 400, headers: { "Cache-Control": "no-store" } });
   }
 
+  const rateCheck = await checkSharedLinkDecisionRateLimit({ publicationId, recipientId });
+  if (!rateCheck.allowed) {
+    const ipHash = getIpHash(request);
+    logStructured("warn", "/api/share/[token]/decision", "RATE_LIMITED", ipHash, { status: 429 });
+    return Response.json(
+      { error: rateCheck.message },
+      { status: 429, headers: { "Cache-Control": "no-store", "Retry-After": String(rateCheck.retryAfter) } },
+    );
+  }
+
   try {
     const { id } = await submitSharedLinkDecision({
       publicationToken: token,
       recipientId,
-      decision: decision as "accepted" | "declined" | "revision_requested",
+      decision,
       note,
     });
 
@@ -101,8 +137,8 @@ export async function POST(request: Request, { params }: { params: Promise<{ tok
     } catch {}
 
     return Response.json({ id, decision, created: true }, { status: 201, headers: { "Cache-Control": "no-store" } });
-  } catch (e: any) {
-    const msg = e?.message || "Failed to submit decision.";
+  } catch (error: unknown) {
+    const msg = readErrorMessage(error, "Failed to submit decision.");
     if (/already submitted/i.test(msg)) {
       const ipHash = getIpHash(request);
       logStructured("warn", "/api/share/[token]/decision", "DECISION_ALREADY_SUBMITTED", ipHash);

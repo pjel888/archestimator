@@ -1,5 +1,8 @@
 import {
+  checkProjectPublicationPasswordRateLimit,
+  clearProjectPublicationPasswordFailures,
   recordProjectPublicationEvent,
+  recordProjectPublicationPasswordFailure,
   verifyProjectPublicationPasswordByToken,
 } from "@/lib/publication/public-repository";
 import {
@@ -17,6 +20,16 @@ const noStoreHeaders = {
   "Cache-Control": "no-store",
 };
 
+function rateLimitedResponse(message: string, retryAfter: number) {
+  return Response.json(
+    { error: message },
+    {
+      status: 429,
+      headers: { ...noStoreHeaders, "Retry-After": String(retryAfter) },
+    },
+  );
+}
+
 export async function POST(request: Request, { params }: { params: Promise<{ token: string }> }) {
   const sameOrigin = assertSameOriginPublicPost(request);
   if (!sameOrigin.ok) {
@@ -29,6 +42,17 @@ export async function POST(request: Request, { params }: { params: Promise<{ tok
 
   const ip = getClientIp(request);
 
+  const durableRateLimit = await checkProjectPublicationPasswordRateLimit({ token, request });
+  if (!durableRateLimit.allowed) {
+    await recordProjectPublicationEvent({
+      token,
+      eventType: "password_attempt",
+      request,
+      metadata: { success: false, reason: "locked" },
+    });
+    return rateLimitedResponse(durableRateLimit.message, durableRateLimit.retryAfter);
+  }
+
   // P10: hard lockout check (additive; no-pw tokens bypass entirely via page gate)
   if (isPasswordLocked(ip, token)) {
     await recordProjectPublicationEvent({
@@ -37,7 +61,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ tok
       request,
       metadata: { success: false, reason: "locked" },
     });
-    return Response.json({ error: "Too many attempts. Please try again later." }, { status: 429, headers: noStoreHeaders });
+    return rateLimitedResponse("Too many attempts. Please try again later.", 15 * 60);
   }
 
   const publicationAccess = await verifyProjectPublicationPasswordByToken(token, password);
@@ -46,13 +70,14 @@ export async function POST(request: Request, { params }: { params: Promise<{ tok
   // P10: always record password_attempt (success/failure in meta) on every attempt (post-CSRF)
   await recordProjectPublicationEvent({
     token,
-    eventType: "password_attempt" as any,
+    eventType: "password_attempt",
     request,
     metadata: { success },
   });
 
   if (!success) {
-    const delayMs = recordPasswordFailure(ip, token);
+    const durableFailure = await recordProjectPublicationPasswordFailure({ token, request });
+    const delayMs = Math.max(durableFailure.delayMs, recordPasswordFailure(ip, token));
     if (delayMs > 0) {
       await new Promise((resolve) => setTimeout(resolve, delayMs));
     }
@@ -60,6 +85,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ tok
   }
 
   recordPasswordSuccess(ip, token);
+  await clearProjectPublicationPasswordFailures({ token, request });
 
   return new Response(null, {
     status: 204,
