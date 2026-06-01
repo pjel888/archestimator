@@ -1,5 +1,23 @@
 # Data Contracts, RPCs, and Migrations
 
+## Third-Pass Schema Corrections
+
+Commit audited: `681c95e64864f283950a88dba304eaffe8f2f8b3`. Local migrations and generated types were inspected; linked Supabase was not queried, so production schema readiness is a P0 proof gap.
+
+**VERIFIED CONTRACT — checked against current local schema/types:** `estimate_row_items` has `source_library_item_id`, `source_snapshot`, `metadata`, `link_state`, and `row_revision`; `estimate_row_link_state` includes `unlinked`, `linked-clean`, `linked-overridden`, `detached`, `source-changed`; row RPCs use revision checks and write `estimate_sheet_events`.
+
+| Contract | Current state | Launch requirement |
+| --- | --- | --- |
+| Project-specific rows | Persist as `estimate_row_items`, not library items. | Docs/UI must not call them reusable library components unless promoted later. |
+| Detached state | Enum exists. | Use for intentional severing from a real library source; preserve source snapshot. |
+| Unlinked state | Enum/default exists. | Use for manual/blank/never-linked rows with null `source_library_item_id`. |
+| Source metadata | `source_snapshot` and `metadata` JSONB exist. | Store user-safe provenance; avoid oversized payloads and public leaks. |
+| History | `estimate_sheet_events` stores row context and snapshots. | Detach/unlink must emit event with old/new source state. |
+| RPC discipline | Existing row RPCs revision-check and increment `row_revision`. | New write path must not direct-write table or bypass revision/history. |
+| Discount constraint | Signed discount migration exists locally. | Linked remote must be repaired/verified before relying on negative adjustment. |
+
+RLS verification queries and migration rollback steps are required by `26-security-threat-model-and-rls-audit-plan.md` and `30-data-backup-disaster-recovery-plan.md`.
+
 This document is the source of truth for row unlink/project-specific data work.
 
 ## Current `estimate_row_items`
