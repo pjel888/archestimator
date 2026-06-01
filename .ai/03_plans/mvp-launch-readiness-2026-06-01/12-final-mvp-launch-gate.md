@@ -1,109 +1,105 @@
 # Final MVP Launch Gate
 
-Current decision: NO-GO.
+Commit audited: `681c95e64864f283950a88dba304eaffe8f2f8b3`
+Gate owner: Philip / Launch lead
+Current decision: **NO-GO**.
 
-Reason: P0 implementation and evidence gates remain open, and `bun run test:dom` fails at commit `b6184cf7123ed46f4cd8b9a467feb5232f0b46bf`.
+## Final Go / No-Go Table
 
-## Required Linked Docs
+| Gate | P0? | Required evidence | Current status | Decision |
+| --- | --- | --- | --- | --- |
+| Ask Flip hidden and AI routes disabled by default | Yes | UI test, route test, no provider-call test, production env false. | Not implemented. | No-go |
+| Core commands green | Yes | Install, typecheck, lint, design lint, unit, DOM, build, E2E. | `test:dom` fails; E2E blocked by local port collision. | No-go |
+| Auth works in production | Yes | Hosted Google and magic-link callback smoke, logout/session expiry. | Local/code evidence only. | No-go |
+| RLS/migrations verified | Yes | Linked/staging SQL denial/allow queries, migration history, generated types. | Local migrations/types only. | No-go |
+| Component unlink cannot mutate library data | Yes | RPC/action/UI tests and manual library unchanged proof. | Planned only. | No-go |
+| Detached rows are clear to users | Yes | Row details copy/screenshot/manual QA. | Planned only. | No-go |
+| Excel export is professional bid/BOQ workbook | Yes | Formula tests, reference contract, Excel + secondary app open proof. | Current workbook is insufficient. | No-go |
+| Resend delivery/webhook verified if visible | Yes | Domain DNS, delivery, webhook, bounce/complaint test. | Missing. | No-go |
+| Legal pages accurate | Yes | Reviewed or closed-beta approved copy. | Pending-review placeholders. | No-go |
+| Support/feedback path exists | Yes | Contact/support inbox and beta bug report route. | Partial public contact only. | No-go |
+| Observability/alerts configured | Yes | Error tracking, uptime, alert owner, export/auth/email alerts. | Missing external stack. | No-go |
+| Backup/rollback plan proven | Yes | Backup proof, migration rollback, Vercel rollback, restore plan. | Planned only. | No-go |
+| Investor demo pack ready | Yes for demo | Demo workspace, script, screenshots, export artifact, fallback. | Planned only. | No-go |
+| Beta program ready | Yes for beta | Cohort, onboarding email, SLA, feedback loop, known limits. | Planned only. | No-go |
 
-- Checklist: `09-release-readiness-checklist.md`
-- Risk register: `10-technical-risk-register.md`
-- Evidence index: `14-evidence-index.md`
-- Blast radius: `15-blast-radius-register.md`
-- Ticket map: `16-implementation-ticket-map.md`
-- Data contracts: `17-data-contracts-rpc-migrations.md`
-- Test strategy: `19-test-strategy-and-fixtures.md`
-- Runbook: `20-launch-runbook.md`
+## Readiness Scorecard
 
-## Go/No-Go Table
+Rules: below 90 cannot be called beta-ready; P0 below 95 blocks launch; 100 requires completed proof.
 
-| Gate | Current status | Go condition |
-| --- | --- | --- |
-| AI hidden by default | Open | Footer absent with default env. |
-| AI routes disabled by default | Open | 403 before handler, no provider/context/audit. |
-| Unlink data contract | Open | Migration/RPC/action tests pass with real schema. |
-| Row UX | Open | Badge/confirmation/editor/history tests pass. |
-| Library polish | Open | DOM/repository tests and visual QA pass. |
-| Template polish | Open | DOM/repository/action tests and visual QA pass. |
-| Excel export | Open | Workbook spec, formula tests, and manual QA pass. |
-| Full command baseline | Fail | All required commands pass. |
-| Supabase proof | Open | Linked apply/verify artifact captured. |
-| Vercel proof | Open | Deployment/env/smoke artifact captured. |
-| Production auth proof | Open | Login/callback/workshop smoke pass. |
-| Owner sign-off | Open | Philip signs final section. |
+| Domain | Score | Reason |
+| --- | ---: | --- |
+| Product core | 78 | Core app exists but launch proof and UX polish gaps remain. |
+| Estimate editor | 82 | Strongest area, but DOM failures and manual smoke gaps remain. |
+| Component library | 80 | Functional, but trust fields, empty states, and demo data need proof. |
+| Templates | 74 | Functional path exists; preview/discovery/seed quality gaps remain. |
+| Project-specific unlink | 35 | Schema foundation exists; product flow not complete. |
+| Excel export | 45 | XLSX route exists; bid workbook contract not implemented. |
+| Auth/onboarding | 78 | Code path exists; hosted proof and first-run polish missing. |
+| Infrastructure/deployment | 55 | Build passes; live env/deploy/rollback proof missing. |
+| Email/Resend | 50 | Code exists; DNS/delivery/webhook proof missing; mock-success risk. |
+| Security/RLS | 62 | RLS migrations exist; threat-model proof and live denial tests missing. |
+| Legal/privacy | 25 | Public pages are placeholders. |
+| Performance/caching | 65 | Current architecture plausible; export/route/load proof missing. |
+| Observability/support | 35 | Mostly logs/dev monitor; no alerting/support operations. |
+| QA/test coverage | 58 | Important coverage exists but `test:dom` fails and E2E is gated/blocked. |
+| Investor demo readiness | 45 | No reliable demo workspace/export/fallback pack yet. |
+| Beta readiness | 40 | P0 legal/security/ops/product gates are unproven. |
 
-## Current Command Proof
+## Explicit Launch No-Go Rules
 
-Pass:
+Do not launch beta if:
 
-- `bun install --frozen-lockfile`
-- `bun run type-check`
-- `bun run lint` with warnings only
-- `bun run lint:design-system`
-- `bun run test`
-- `bun run build`
-- Focused AI, row, library/template, and export bundles
+- Ask Flip is visible while AI is deferred.
+- AI routes are callable by default.
+- Component unlink can mutate library data.
+- Detached/project-specific rows are ambiguous to users.
+- Excel export still looks like a raw data dump.
+- Export formulas are untested.
+- Export cannot open cleanly in Excel and at least one secondary spreadsheet app.
+- Auth fails in production.
+- RLS/migrations are not verified.
+- Resend email delivery/webhook is unverified for invite/share paths if those paths are visible.
+- Legal pages are misleading.
+- No support/feedback path exists.
+- No rollback plan exists.
+- No backup plan exists before migration.
+- No core smoke test is completed.
 
-Fail:
+## Beta Gates
 
-- `bun run test:dom`: 2 failed files, 3 failed tests.
-
-## Manual QA Proof Required
-
-| Proof | Required artifact |
+| Gate | Required state |
 | --- | --- |
-| Excel opens in Microsoft Excel | Screenshot or notes with generated filename, date, totals checked. |
-| Excel opens in Apple Numbers | Screenshot or notes. |
-| Excel opens in LibreOffice | Screenshot or notes. |
-| Excel opens in Google Sheets | Screenshot or notes. |
-| Export formulas recalc | Formula cell sample and total match. |
-| No blank line totals | Row inspection summary. |
-| Workshop protected smoke | Route checklist. |
-| Auth callback | Login/callback proof. |
+| Closed beta legal | Terms/Privacy/Beta Agreement approved for limited beta or accurate pending-review copy with explicit access limitation. |
+| Support loop | Support inbox, bug severity definitions, first 24/72-hour monitoring owner. |
+| Data safety | Backup before migrations, RPO/RTO, restore owner, beta data retention terms. |
+| Core workflow | Login -> workshop -> project -> estimate -> library/template insert -> export smoke passes. |
+| Known limitations | AI deferred, billing deferred, PDF/bid tabulation post-MVP, no hidden prototype claims. |
 
-## Production Proof Required
+## Investor Demo Gates
 
-- Vercel deployment URL.
-- Vercel env variable list with secret values redacted.
-- Supabase migration version list.
-- `/workshop` auth smoke.
-- `/workshop/library` smoke.
-- `/workshop/templates` smoke.
-- Estimate sheet row edit smoke.
-- Export download smoke.
-- AI disabled route smoke.
+| Gate | Required state |
+| --- | --- |
+| Demo account | Seeded, resettable, non-production-client data only. |
+| Demo script | Core promise in under 8 minutes; no AI or unfinished pages shown. |
+| Export artifact | Pre-validated workbook opens in Excel and secondary app. |
+| FAQ answers | Why AI deferred, why Excel first, data protection, scale, library moat, revenue path. |
+| Fallback | Screenshots and validated workbook if live app fails. |
 
-## Unresolved Debt List
+## Production Gates
 
-- Labor/material split remains compatibility mode.
-- Terms/VAT/warranty defaults need owner approval.
-- AI feature remains deferred.
-- Template authoring UI deferred.
-- Bulk library import/export deferred.
-- Route-transition production benchmark remains outside this MVP launch package unless required by owner.
+| Gate | Required state |
+| --- | --- |
+| Vercel | Env vars, custom domain/SSL, preview/prod separation, rollback tested. |
+| Supabase | Auth callback URLs, migrations, RLS/storage proof, backup/PITR plan. |
+| Resend | Domain DNS, DKIM/SPF/DMARC, webhook secret, delivery proof. |
+| Observability | Error tracking, uptime, slow route/export/auth/email alerts. |
+| CI | Release branch cannot pass while critical E2E specs silently skip. |
 
-## Do Not Launch If
+## Unresolved Debt
 
-- Any P0 gate in `09-release-readiness-checklist.md` is not Pass.
-- Any AI route can reach provider/context/audit with default env.
-- Ask Flip footer is visible by default.
-- Unlink RPC uses invalid schema or lacks row revision conflict protection.
-- Export workbook has blank line total cells.
-- Export total formulas do not match preview totals.
-- Supabase migration proof is missing.
-- Vercel env proof is missing.
-- Production auth proof is missing.
-- Owner signature is missing.
+Redis decision can remain MVP debt if public abuse surfaces are disabled or low-volume and durable Postgres rate limits pass smoke. It becomes launch-blocking if share/invite/email/AI public routes remain visible without reliable hot-path throttling. Billing, PDF export, bid tabulation, and full AI can remain deferred if product copy is honest.
 
 ## Owner Signature
 
-Owner: Philip Lewis
-
-Decision:
-
-- [ ] GO
-- [ ] NO-GO
-
-Signature/date:
-
-Notes:
+Launch owner must add a dated sign-off only after every P0 row above has a linked proof artifact in `14-evidence-index.md`.

@@ -1,5 +1,21 @@
 # Second-Pass Quality Audit
 
+## Third-Pass Audit Verdict
+
+Commit audited: `681c95e64864f283950a88dba304eaffe8f2f8b3`. The second pass found the right themes, but it was not implementation-grade for launch. This third pass corrects these weaknesses:
+
+| Weak second-pass pattern | Third-pass correction |
+| --- | --- |
+| "Needs polish" without exact route/file/symbol. | Tickets now name exact files/symbols and evidence artifacts. |
+| AI defer described as product decision only. | AI defer is now a flag/route/test/no-provider contract. |
+| Unlink risk centered on schema uncertainty. | Contract now distinguishes `unlinked`, `detached`, `linked-overridden`, and row-history RPC requirements. |
+| Excel export treated as near-ready. | Current workbook is explicitly not launch-grade; bid-form formula contract added. |
+| Infra/legal/ops treated as supporting tasks. | They are P0 launch gates with owners and rollback paths. |
+| Command evidence stale. | Current command baseline recorded at `681c95e`. |
+| LLM council missing. | Added `35-third-pass-llm-council-review.md`. |
+
+Remaining no-go concerns: `test:dom` red, E2E blocked by local port collision, no live Supabase/Vercel/Resend proof, legal pages pending, AI visible/callable, export not professional, and no backup/observability/support proof.
+
 ## What Was Good In First Pass
 
 - Correct MVP direction: defer AI, finish project-specific row behavior, polish library/templates, upgrade export, create launch gate.
@@ -69,7 +85,7 @@ Added `15-blast-radius-register.md` with:
 
 | Uncertainty | Owner | Required resolution |
 | --- | --- | --- |
-| VAT default and contingency calculation strategy. | Philip | Approve before MVP-XLS-001. |
-| Commercial terms, validity, warranty copy. | Philip | Approve before MVP-XLS-002. |
+| VAT default and contingency calculation strategy. | Philip | Approve before EXP-001. |
+| Commercial terms, validity, warranty copy. | Philip | Approve before EXP-001. |
 | Attached bid files were not present locally. | Philip/Eng | Provide or manually review references before launch QA. |
 | `test:dom` share source-contract failure scope. | Eng | Fix or formally classify before final gate. |
