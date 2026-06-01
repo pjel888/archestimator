@@ -125,6 +125,15 @@ const workshopHomebase = {
   receivedPendingInviteCount: 3,
 };
 
+const emptyWorkshopHomebase = {
+  ...workshopHomebase,
+  projects: [],
+  estimates: [],
+  pendingInvites: [],
+  removedProjectFavorites: [],
+  receivedPendingInviteCount: 0,
+};
+
 afterEach(() => {
   mocks.routerReplace.mockClear();
   mocks.routerRefresh.mockClear();
@@ -234,6 +243,38 @@ describe("workshop sidebar baseline", () => {
     expect(screen.queryByText("Recent Projects")).toBeNull();
     expect(screen.queryByText("Sample Projects")).toBeNull();
     expect(screen.queryByText("View all")).toBeNull();
+  });
+
+  test("keeps a first-run workshop homebase actionable without projects or favorites", async () => {
+    const user = userEvent.setup();
+    render(<WorkshopHomebaseClient homebase={emptyWorkshopHomebase} />);
+
+    const routePanel = screen.getByRole("region", { name: "Workshop routes" });
+    expect(routePanel).toBeTruthy();
+    expect(within(routePanel).getByRole("link", { name: /Open Projects/ })).toHaveAttribute(
+      "href",
+      "/workshop/projects",
+    );
+    expect(within(routePanel).getByRole("link", { name: /Open Components/ })).toHaveAttribute(
+      "href",
+      "/workshop/library",
+    );
+    expect(within(routePanel).getByRole("link", { name: /Open Templates/ })).toHaveAttribute(
+      "href",
+      "/workshop/templates",
+    );
+
+    const favorites = screen.getByRole("region", { name: "Favorites" });
+    expect(within(favorites).getByText("No favorite projects yet")).toBeInTheDocument();
+    expect(within(favorites).getByText("Star a project below to keep it pinned here.")).toBeInTheDocument();
+    expect(screen.queryByText("Recent Projects")).toBeNull();
+    expect(screen.queryByText("Sample Projects")).toBeNull();
+    expect(screen.queryByRole("button", { name: "Open Ask Flip" })).toBeNull();
+
+    await user.click(within(favorites).getByRole("tab", { name: "Estimate Sheets" }));
+    expect(within(favorites).getByRole("tabpanel", { name: "Favorite estimate sheets" })).toBeTruthy();
+    expect(within(favorites).getByText("No favorite estimate sheets yet")).toBeInTheDocument();
+    expect(within(favorites).getByText("Star a sheet below for direct access from Workshop.")).toBeInTheDocument();
   });
 
   test("renders removed favorite project banner and lets the user clear the stale favorite", async () => {

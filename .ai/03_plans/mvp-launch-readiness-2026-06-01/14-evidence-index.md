@@ -403,6 +403,16 @@
 - Existing local test proof: `tests/vitest/resend-webhook-delivery.test.ts` guards raw-body webhook verification, recipient tags, delivery columns, and event-to-recipient status mapping.
 - Launch meaning: this is negative/blocked email-provider evidence. Manual beta invites may remain outside Resend, but visible in-app share/invite email workflows cannot be treated as launch-ready until Vercel env, verified sender/domain/DNS, webhook secret, and real delivery/webhook event proof exist.
 
+### First-Run Workshop Local Surface Evidence
+
+- Artifact: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/first-run-workshop-local-surface-2026-06-02.md`.
+- Scope: local source and DOM proof only.
+- Source proof: `tests/vitest/auth-onboarding-guard.test.ts` covers default workspace reuse/creation before fallback workspace creation for authenticated users.
+- DOM proof: `tests/vitest/workshop-reset.test.tsx` covers an empty `WorkshopHomebaseClient` with no projects, no estimates, no pending invites, and no favorites while preserving `/workshop/projects`, `/workshop/library`, and `/workshop/templates` links plus empty favorite states.
+- Command: `bun run test:dom tests/vitest/auth-onboarding-guard.test.ts tests/vitest/workshop-reset.test.tsx tests/vitest/closed-beta-readiness-docs.test.ts`.
+- Result: pass, 3 files / 20 tests in 2.97s.
+- Launch meaning: this is not hosted first-run proof. Hosted Google auth, allowlist, Vercel env, production cookies, session expiry/logout, and real fresh beta account evidence remain required.
+
 ### Spreadsheet Artifact Local Evidence
 
 - Artifact note: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/spreadsheet-artifact-local-2026-06-02.md`.

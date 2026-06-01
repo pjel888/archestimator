@@ -151,6 +151,11 @@ describe("closed beta readiness docs", () => {
     expect(evidenceIndex).toContain("Vercel env proof: `vercel env ls --non-interactive` returned `No Environment Variables found`");
     expect(evidenceIndex).toContain("`RESEND_FROM`, `RESEND_REPLY_TO`, and `RESEND_WEBHOOK_SECRET` are missing or empty");
     expect(evidenceIndex).toContain("visible in-app share/invite email workflows cannot be treated as launch-ready");
+    expect(evidenceIndex).toContain("### First-Run Workshop Local Surface Evidence");
+    expect(evidenceIndex).toContain("first-run-workshop-local-surface-2026-06-02.md");
+    expect(evidenceIndex).toContain("covers default workspace reuse/creation");
+    expect(evidenceIndex).toContain("empty `WorkshopHomebaseClient`");
+    expect(evidenceIndex).toContain("not hosted first-run proof");
     expect(evidenceIndex).toContain("Current app build anchor: `e6cf52b` on `main`, before this docs-only evidence-sync commit.");
     expect(evidenceIndex).toContain("PLAYWRIGHT_PORT=3037 bun run test:e2e -- e2e/auth.spec.ts --project=chromium");
     expect(evidenceIndex).toContain("Result: pass, 2 Playwright tests in 9.9s.");
@@ -218,6 +223,9 @@ describe("closed beta readiness docs", () => {
     expect(manualProofMatrix).toContain("resend-email-readiness-blocked-2026-06-02.md");
     expect(manualProofMatrix).toContain("Vercel env list empty");
     expect(manualProofMatrix).toContain("visible share/invite email paths still present");
+    expect(manualProofMatrix).toContain("first-run-workshop-local-surface-2026-06-02.md");
+    expect(manualProofMatrix).toContain("empty Workshop homebase action links");
+    expect(manualProofMatrix).toContain("Hosted whitelisted account proof still missing");
     expect(manualProofMatrix).toContain("Spreadsheet compatibility");
     expect(manualProofMatrix).toContain("Project-specific unlink manual smoke");
     expect(manualProofMatrix).toContain("project-specific-unlink-linked-smoke-blocked-2026-06-02.md");
@@ -262,6 +270,9 @@ describe("closed beta readiness docs", () => {
     expect(goalCompletionAudit).toContain("Resend email readiness evidence");
     expect(goalCompletionAudit).toContain("Vercel env list is empty, local `RESEND_FROM` / `RESEND_REPLY_TO` / `RESEND_WEBHOOK_SECRET` are missing or empty");
     expect(goalCompletionAudit).toContain("visible shared-link/collaboration email paths still call `sendEmail()`");
+    expect(goalCompletionAudit).toContain("First-run Workshop local surface evidence");
+    expect(goalCompletionAudit).toContain("empty Workshop homebase with Projects, Components, Templates, and empty favorite states");
+    expect(goalCompletionAudit).toContain("Hosted first-run auth smoke remains missing");
     expect(goalCompletionAudit).toContain("generated workbook artifact is loadable, ZIP-valid, formula-backed, and has no blank line totals");
     expect(goalCompletionAudit).toContain("component/template demo smoke and template insertion are partial/local pass");
     expect(goalCompletionAudit).toContain("Template insertion local smoke evidence");
@@ -291,6 +302,9 @@ describe("closed beta readiness docs", () => {
     expect(currentState).toContain("Resend email readiness evidence");
     expect(currentState).toContain("local `RESEND_FROM`, `RESEND_REPLY_TO`, and `RESEND_WEBHOOK_SECRET` are missing or empty");
     expect(currentState).toContain("visible shared-link/collaboration email paths remain in source");
+    expect(currentState).toContain("First-run Workshop local evidence");
+    expect(currentState).toContain("empty Workshop homebase with Projects, Components, Templates, and empty favorite states");
+    expect(currentState).toContain("hosted fresh-account auth proof remains missing");
     expect(currentState).toContain("Spreadsheet artifact evidence");
     expect(currentState).toContain("missing local spreadsheet apps");
     expect(currentState).toContain("Component/template local demo evidence");
@@ -313,6 +327,8 @@ describe("closed beta readiness docs", () => {
     expect(knownIssues).toContain("Resend email readiness evidence on 2026-06-02 is negative/blocked");
     expect(knownIssues).toContain("local `RESEND_FROM`, `RESEND_REPLY_TO`, and `RESEND_WEBHOOK_SECRET` are missing or empty");
     expect(knownIssues).toContain("visible shared-link/collaboration email paths remain in source");
+    expect(knownIssues).toContain("First-run Workshop local evidence on 2026-06-02 proves fallback workspace coverage");
+    expect(knownIssues).toContain("hosted fresh-account Google auth and allowlist proof remain missing");
     expect(knownIssues).toContain("Local component/template demo evidence on 2026-06-02 proves screenshots/JSON");
     expect(knownIssues).toContain("local template insertion evidence proves throwaway-estimate insertion with zero residue");
     expect(knownIssues).toContain("Support/feedback local evidence on 2026-06-02 proves `/contact`, workshop feedback, terms, and privacy point to `support@archestimator.com`");
