@@ -38,6 +38,7 @@ Post-report evidence-sync commits:
 - `cb87e51` - Synced the launch command-center README with the current local readiness scorecard.
 - `a65b34b` - Recorded local signed-out auth E2E smoke evidence.
 - `e6cf52b` - Recorded the current local validation refresh in the launch evidence pack.
+- `7ba69e6` - Recorded the current local build refresh in the launch evidence pack.
 
 These follow-up commits improve traceability only. They do not change the implementation baseline or the **NO-GO** recommendation. Current local validation refresh at `a65b34b` also passed `bun run validate`: typecheck, lint with 14 existing warnings, design lint, unit tests (4 tests / 129 expectations), and DOM tests (131 files / 1022 passed / 2 skipped).
 

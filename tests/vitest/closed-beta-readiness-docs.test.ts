@@ -12,6 +12,7 @@ const releaseChecklist = readFileSync(
 );
 const currentState = readFileSync(".ai/10_state/current-state.md", "utf8");
 const decisions = readFileSync(".ai/10_state/decisions.md", "utf8");
+const knownIssues = readFileSync(".ai/10_state/known-issues.md", "utf8");
 const observabilityRoadmap = readFileSync(
   ".ai/01_roadmap/06-performance-reliability-observability.md",
   "utf8",
@@ -81,6 +82,7 @@ describe("closed beta readiness docs", () => {
     expect(finalImplementationReport).toContain("`cb87e51` - Synced the launch command-center README");
     expect(finalImplementationReport).toContain("`a65b34b` - Recorded local signed-out auth E2E smoke evidence.");
     expect(finalImplementationReport).toContain("`e6cf52b` - Recorded the current local validation refresh in the launch evidence pack.");
+    expect(finalImplementationReport).toContain("`7ba69e6` - Recorded the current local build refresh in the launch evidence pack.");
     expect(finalImplementationReport).toContain("Current local validation refresh at `a65b34b` also passed `bun run validate`");
     expect(finalImplementationReport).toContain("Current app build refresh at `e6cf52b`:");
     expect(finalImplementationReport).toContain("They do not change the implementation baseline or the **NO-GO** recommendation.");
@@ -109,6 +111,7 @@ describe("closed beta readiness docs", () => {
     expect(executiveBrief).toContain("Local signed-out auth E2E passed");
     expect(executiveBrief).not.toContain("HEAD: `531f20a`");
     expect(readinessScorecard).toContain("local signed-out redirect/login UI E2E passes; hosted callback, allowed/denied/revoked, and first-run smoke are missing");
+    expect(readinessScorecard).toContain("records post-report validation/build evidence through `7ba69e6`");
     expect(launchReadinessReadme).toContain("Final local implementation report: `final-codex-implementation-report.md`.");
     expect(launchReadinessReadme).toContain("Current local validation refresh: `a65b34b` (`bun run validate` pass; DOM 131 files / 1022 passed / 2 skipped).");
     expect(launchReadinessReadme).toContain("Current local app build refresh: `e6cf52b` (`bun run build` pass; Next.js 16.2.6 / Turbopack; 29 static pages).");
@@ -134,6 +137,10 @@ describe("closed beta readiness docs", () => {
     expect(currentState).toMatch(/Closed beta remains \*\*NO-GO\*\*/);
     expect(currentState).toMatch(/Do not archive the MVP launch goal or claim launch readiness from local tests alone/i);
     expect(decisions).toMatch(/This is not a launch approval/);
+    expect(knownIssues).toContain("Local validation/build evidence is now current");
+    expect(knownIssues).toContain("`a65b34b` passed `bun run validate`");
+    expect(knownIssues).toContain("`e6cf52b` passed `bun run build`");
+    expect(knownIssues).not.toContain("full validation/build, and storage/security evidence");
     expect(finalImplementationReport).toMatch(/\*\*NO-GO for external beta testers today\.\*\*/);
     expect(finalImplementationReport).toMatch(/Linked Supabase backup\/PITR proof/);
     expect(finalImplementationReport).toMatch(/Hosted auth smoke/);
