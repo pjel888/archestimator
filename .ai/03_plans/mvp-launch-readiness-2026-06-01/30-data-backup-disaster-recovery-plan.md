@@ -1,5 +1,17 @@
 # Data Backup and Disaster Recovery Plan
 
+## Fourth-Pass Closed Beta Backup Requirements - 2026-06-02
+
+Before closed beta migrations:
+
+- Take a Supabase backup before `closed_beta_allowed_emails` migration.
+- Take a Supabase backup before unlink-related migrations.
+- Record restore/rollback path in the runbook.
+- Keep allowlist data exportable before any destructive rollback.
+- Treat beta user project/estimate data as real user data, not disposable demo data.
+
+Disaster response must cover auth lockout, data corruption, export failures, and accidental allowlist revocation.
+
 Commit audited: `681c95e64864f283950a88dba304eaffe8f2f8b3`
 
 ## Required Backup Status To Verify

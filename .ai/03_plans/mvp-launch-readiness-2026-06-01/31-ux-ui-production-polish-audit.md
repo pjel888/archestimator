@@ -1,5 +1,19 @@
 # UX / UI Production Polish Audit
 
+## Fourth-Pass Closed Beta UX Additions - 2026-06-02
+
+New or reframed beta surfaces:
+
+- `/beta/access-required` access denied/pending page.
+- Optional revoked-access state.
+- Login page invite-only Google Sign-In copy.
+- Pricing/waitlist/contact page replacing paid pricing.
+- Workshop empty state for first beta project.
+- Feedback/support link in app or support surface.
+- Investor demo path with no payment or AI overpromise.
+
+Polish standard: quiet, direct, production-grade. Do not use marketing-heavy cards or copy inside operational app surfaces.
+
 Commit audited: `681c95e64864f283950a88dba304eaffe8f2f8b3`
 
 Design-system source: `DESIGN.md`. Launch UI must be compact, work-focused, clear, accessible, and free of unfinished AI.
