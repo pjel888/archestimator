@@ -1,5 +1,16 @@
 # Enterprise Readiness Gap Analysis
 
+## Fourth-Pass Readiness Separation - 2026-06-02
+
+Readiness is now separated into four tracks:
+
+- Closed beta readiness: required now for invited users.
+- Public launch readiness: deferred until after beta validation.
+- Enterprise readiness: deferred further; requires stronger admin, audit, procurement, legal, support, and security posture.
+- Investor readiness: required for demo credibility but not equivalent to paid public readiness.
+
+Closed beta does not need enterprise SSO, billing procurement, SLA terms, or public support scale. It does need whitelist access, privacy/beta terms, feedback capture, backup/rollback, and reliable core workflows.
+
 Commit audited: `681c95e64864f283950a88dba304eaffe8f2f8b3`
 Decision: MVP is not enterprise-ready or beta-ready yet. The current codebase has credible foundations, but launch proof and several launch-visible contracts are missing.
 

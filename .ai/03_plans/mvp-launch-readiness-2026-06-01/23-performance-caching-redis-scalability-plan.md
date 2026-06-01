@@ -1,5 +1,26 @@
 # Performance, Caching, Redis, and Scalability Plan
 
+## Fourth-Pass Closed Beta Redis Decision - 2026-06-02
+
+Redis is deferred for closed beta unless evidence appears during beta smoke or monitoring.
+
+Rationale:
+
+- Cohort is manually curated and expected to be small.
+- Existing Supabase/Postgres, TanStack Query, Next.js caching, and current rate-limit mechanisms are sufficient for initial beta assumptions.
+- No background job queue is required for manual invites.
+- Export generation should be monitored first before adding infrastructure.
+
+Redis triggers post-beta or later beta:
+
+- Distributed rate limiting is required for public abuse surfaces.
+- Export jobs need async status/queues.
+- Share/invite traffic grows beyond Supabase-backed limits.
+- Realtime cursor/activity volume exceeds current constraints.
+- Vercel function constraints require durable queue/cache support.
+
+If adopted later, specify provider, env vars, data retention, tests, and rollback in a separate implementation spec.
+
 Commit audited: `681c95e64864f283950a88dba304eaffe8f2f8b3`
 
 ## Current Performance Model
