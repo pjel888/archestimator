@@ -26,7 +26,7 @@ Commit audited: `681c95e64864f283950a88dba304eaffe8f2f8b3`
 | Supabase RLS | Migrations enable policies. | Linked/staging allow/deny proof missing. |
 | Storage | Component/project image code and Next image remote patterns exist. | Bucket access/policy proof missing; attachment bucket handling needs verification. |
 | Realtime | No launch-critical realtime dependency identified. | If enabled later, document channels and rate limits. |
-| Resend | Client and Svix webhook route exist. | DNS/API key/from/webhook proof missing; send mock-success risk. |
+| Resend | Client and Svix webhook route exist; unconfigured production-like sends fail closed and shared-link recipient controls disable while server readiness is false. | DNS/API key/from/reply-to/webhook proof missing before email workflows can be re-enabled. |
 | Env separation | CI exists. | Preview/staging/prod variable matrix missing. |
 
 ## Required Vercel Env Vars

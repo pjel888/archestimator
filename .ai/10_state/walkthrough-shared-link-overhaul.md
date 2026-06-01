@@ -10,11 +10,11 @@ V1 (archived 2026-05-27, `.ai/09_archive/store/2026-05-27-project-client-publica
 
 V2 ("Shared Link Overhaul") standardizes terminology to "Shared link", adds production hardening, collaboration surfaces, and resilience:
 
-- **Manager (owner) surfaces**: Project header "Shared link" modal with 5 tabs (Link / Sheets / Access / Recipients / Activity). Create/rotate/revoke/republish links, select specific estimate sheets (SheetPickerList), add/manage recipients (email chips + Resend delivery with graceful fallback), view activity feed, set/remove password.
+- **Manager (owner) surfaces**: Project header "Shared link" modal with 5 tabs (Link / Sheets / Access / Recipients / Activity). Create/rotate/revoke/republish links, select specific estimate sheets (SheetPickerList), add/manage recipients when server email readiness is configured, view activity feed, set/remove password. When Resend sender/reply-to/webhook readiness is false, recipient entry/send/resend controls disable and manual link sharing is the fallback.
 - **Receiver (client) surfaces**: `/share/[token]` public view-only page (no login). Password gate (if set) with signed HttpOnly cookie. Tabbed or responsive layout showing project snapshot + per-sheet estimate cards/tables (thumbnails from source_snapshot). Submit decisions (accept/reject/revise with comments), add threaded comments (P6), view-only after decision lock.
 - **Security & resilience (P5, P10–P12)**: Recipient session cookies (context-bound), same-origin CSRF on password/POSTs, scrypt password hashes, in-memory progressive lockout (5 attempts → 15min block, delays 1s/2s/4s/8s), password_attempt audit events, circuit breakers + retry + offline queue for comments/emails/decisions, structured logging, CSP hardening (P11).
 - **Activity & notifications (P8)**: Owner activity ledger in modal (filtered), best-effort rate-limited email digests on comments/decisions/activity (non-blocking), badge signals.
-- **Email (P0/P4)**: Resend client (mock fallback in tests), RecipientEmailComposer extracted, delivery tracking, graceful error states.
+- **Email (P0/P4)**: Resend client (mock fallback in tests only, production-like unconfigured sends fail closed), RecipientEmailComposer extracted, delivery tracking, disabled recipient controls while server readiness is false, graceful error states.
 - **Visual & a11y (P2/P9)**: Tabbed navigation (SharePageTabs, ARIA fixed), hero cover images (from project metadata), row thumbnails, responsive (sticky bars, safe-area), compact design-system (SF Pro, ≤12px, regular/medium, 0 tracking, xs radius, reference tokens).
 - **Data**: P3 migration added `shared_link_*` tables, SECURITY DEFINER RPCs for comments/decisions/recipients (no direct anon grants). Snapshots are sanitized DTOs (not live authz).
 
@@ -23,7 +23,7 @@ All changes additive, backwards compatible with V1 tokens/snapshots/tests (excep
 ## How to Use — Owner / Manager Flow
 1. In protected `/workshop/projects/[projectId]`, open the project header "Shared link" (or "Public client link") control.
 2. Create new shared link (or rotate/revoke existing). Optionally select specific Sheets via SheetPickerList (defaults to all; 0-selected validation prevents empty publish).
-3. Add Recipients: type emails → chips (normalize/validate). Send invites via Resend (delivery_status tracked; mocks in tests).
+3. Add Recipients: when email readiness is configured, type emails -> chips (normalize/validate) and send invites via Resend (delivery_status tracked; mocks in tests). When readiness is false, copy the share link manually.
 4. Set optional password (scrypt hashed server-side).
 5. Copy the `/share/[token]` URL. Open to preview.
 6. Monitor: Switch to Activity tab for owner feed (comments, decisions, opens, password attempts). Digests emailed (rate-limited ~1/15min).
@@ -47,7 +47,7 @@ All changes additive, backwards compatible with V1 tokens/snapshots/tests (excep
 - **P3 Docker blocker**: Local Supabase verification (Docker) blocked in CI/dev; authorized to proceed with linked remote + sims/tests. Migration applied and grant-verified on `ebxxqidacheyapmmzavr`.
 - **In-memory state**: Rate limiting, circuit breakers, lockout, offline queues, and some session flags are in-memory / sessionStorage. Not durable across restarts or multi-instance until Redis/infra slice. Production impact: short windows of reset on deploy.
 - **P13 testing**: Full E2E/penetration/load via Playwright sims + focused Vitest (publication tests, password, actions, security, header). Live unauthed Docker matrix limited by env; all targeted tests green at P13 commit. No critical gaps.
-- **Email/Resend**: Mock fallback for tests; real sends use server-only key. Type casts in some paths (temporary).
+- **Email/Resend**: Mock fallback is test-only; real sends use server-only key and fail closed without key/sender. Recipient email controls disable unless sender, reply-to, and webhook settings are configured. Type casts in some paths (temporary).
 - **Launch gates**: Still blocked by Phase 7 (reviewed Privacy Notice/Terms, subprocessor list, Vercel evidence, provider audit, support runbooks). Public claims limited.
 - **No PDF/artifacts yet**: Per V1 remaining + future plan.
 - **TypeScript**: Some legacy casts in email + publication paths (addressed in quality fixes; full regen later).
@@ -57,7 +57,7 @@ All changes additive, backwards compatible with V1 tokens/snapshots/tests (excep
 - **"Invalid / expired / revoked token"**: Normal for rotate/revoke. Owner must issue new link. Check `readLatestProjectPublication` + RPCs.
 - **Password gate loops or "Too many attempts" (429)**: Lockout active (15min in-mem). Wait or owner removes password. Check `password_attempt` events in activity. Same-origin CSRF failures → generic error (no leak).
 - **Comments / decisions not submitting or "session required"**: Missing/invalid recipient session cookie (P5). Re-enter password or clear site data for the token origin. Hook `useSharedLinkSession` + `verifySharedLinkSessionCookieValue`.
-- **Emails not received (recipients)**: Resend delivery_status != sent. Check Resend dashboard (server key), rate limits, or test mocks. Graceful UI states shown (P4).
+- **Emails not received (recipients)**: Resend delivery_status != sent. Check Resend dashboard (server key), readiness status, rate limits, or test mocks. If readiness is false, recipient send/resend controls should be disabled and the owner should copy the link manually.
 - **Activity / digest missing**: Rate-limited (1/15min). Non-blocking best-effort. Check `maybeTriggerSharedLinkActivityDigest` + `shouldSendDigest`.
 - **CSP blocks or console errors on /share**: P11 headers (Report-Only in dev). Safe; strict in prod. Images/thumbnails from allowed storage.
 - **"Shared link" vs old "Public link" UI text**: P1 rename complete + P13 test string updates. Old tokens continue to work.

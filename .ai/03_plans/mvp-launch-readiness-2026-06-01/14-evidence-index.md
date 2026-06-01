@@ -14,7 +14,7 @@
 - Local baseline recorded in the report: typecheck pass, lint pass with 14 existing warnings, design lint pass, unit pass, full DOM pass at 131 files / 1021 tests / 2 skipped, build pass, graph/GitNexus checks clean.
 - Current local validation refresh at `a65b34b`: `bun run validate` passed typecheck, lint with 14 existing warnings, design lint, unit tests (4 tests / 129 expectations), and DOM tests (131 files / 1022 passed / 2 skipped). This refresh does not change the **NO-GO** recommendation.
 - Current local app build refresh at `e6cf52b`: `bun run build` passed under Next.js 16.2.6 / Turbopack, generated 29 static pages, and listed `/api/health`, `/api/ai/ask`, `/api/ai/package-builder`, `/beta/access-required`, share routes, invite routes, and protected workshop routes. This refresh does not change the **NO-GO** recommendation.
-- Remaining proof gates recorded in the report: linked Supabase backup/RLS/storage/migration proof, hosted auth smoke, Vercel deploy/health/rollback proof, Resend proof if visible email flows remain, spreadsheet open/print proof, legal review, monitored support proof, demo artifacts, and current manual/E2E smoke.
+- Remaining proof gates recorded in the report: linked Supabase backup/RLS/storage/migration proof, hosted auth smoke, Vercel deploy/health/rollback proof, Resend proof before email workflows are re-enabled, spreadsheet open/print proof, legal review, monitored support proof, demo artifacts, and current manual/E2E smoke.
 
 ### AUTH-E2E Local Signed-Out Smoke Evidence
 

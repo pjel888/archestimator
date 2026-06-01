@@ -41,6 +41,8 @@ Post-report evidence-sync commits:
 - `7ba69e6` - Recorded the current local build refresh in the launch evidence pack.
 - `3b01cd2` - Added the active-goal completion audit.
 - `9d71239` - Added the manual proof packet template.
+- `fd5d4b3` - Failed unconfigured production-like email delivery closed with `EMAIL_NOT_CONFIGURED`.
+- `61160ee` - Disabled shared-link recipient entry/send/resend controls while server email readiness is false.
 
 These follow-up commits improve traceability only. They do not change the implementation baseline or the **NO-GO** recommendation. Current local validation refresh at `a65b34b` also passed `bun run validate`: typecheck, lint with 14 existing warnings, design lint, unit tests (4 tests / 129 expectations), and DOM tests (131 files / 1022 passed / 2 skipped).
 
@@ -125,6 +127,7 @@ Build, type-check, design lint, unit tests, and full DOM tests are green locally
 - Hosted auth smoke for allowed, denied, revoked, and first-run Google accounts.
 - Vercel deployment, env, `/api/health`, and rollback proof.
 - Resend DNS/delivery/webhook proof if share/invite email workflows remain visible.
+- Resend DNS/delivery/webhook proof before share/invite email workflows are re-enabled; current local guardrails disable recipient email controls and fail unconfigured sends closed.
 - Excel/secondary spreadsheet app open, formula, print, and workbook artifact proof.
 - Owner/counsel legal review of beta terms/privacy/support/data deletion copy.
 - Monitored support inbox or external feedback form proof.
