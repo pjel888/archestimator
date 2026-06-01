@@ -4,6 +4,7 @@ import userEvent from "@testing-library/user-event";
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { EstimateSheetContent } from "@/components/workshop/EstimateSheetContent";
+import { ProjectEstimateMetadataPublisher } from "@/components/workshop/ProjectEstimateMetadataStrip";
 import { WorkshopPageShell } from "@/components/workshop/WorkshopPageShell";
 import { estimateLibraryItems, type EstimateTreeNode } from "@/components/workshop/estimate-tree-data";
 import { resetEstimateWorkspaceState, useEstimateWorkspaceState } from "@/hooks/use-estimate-workspace-state";
@@ -74,6 +75,35 @@ describe("estimate shell chrome", () => {
     expect(within(breadcrumbs).getByText("Estimates")).toBeInTheDocument();
     expect(screen.getByRole("banner")).toContainElement(breadcrumbs);
     expect(screen.getByRole("contentinfo")).not.toContainElement(breadcrumbs);
+  });
+
+  it("keeps the project title and breadcrumbs visible when an estimate sheet publishes metadata", async () => {
+    render(
+      await WorkshopPageShell({
+        title: "Modern Bungalow",
+        eyebrow: "Project",
+        breadcrumbs: ["Workshop", "Projects", "Modern Bungalow"],
+        projectId: "project-1",
+        children: (
+          <>
+            <ProjectEstimateMetadataPublisher
+              metadata={{
+                projectName: "Modern Bungalow",
+                estimateName: "Modern Bungalow - 001",
+                estimateSheetCode: "ES-001",
+                projectBudget: 2_000_000,
+              }}
+            />
+            <div>Estimate workspace</div>
+          </>
+        ),
+      }),
+    );
+
+    expect(screen.getByRole("heading", { name: "Modern Bungalow" })).toBeVisible();
+    const breadcrumbs = screen.getByLabelText("Project breadcrumbs");
+    expect(within(breadcrumbs).getByText("Modern Bungalow")).toBeVisible();
+    expect(within(breadcrumbs).getByText("Estimates")).toBeVisible();
   });
 });
 

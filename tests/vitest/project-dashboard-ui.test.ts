@@ -154,9 +154,8 @@ describe("project dashboard UI governance", () => {
     expect(resizableSidePanel).toContain("document.cookie");
     expect(workshopTitleHeader).toContain("EstimateCenterColumnBoundary");
     expect(workshopTitleHeader).toContain("data-workshop-title-block");
-    expect(projectEstimateMetadataStrip).toContain('document.querySelector<HTMLElement>("[data-workshop-title-block]")');
-    expect(projectEstimateMetadataStrip).toContain("workshopTitleBlock.hidden = true");
-    expect(projectEstimateMetadataStrip).toContain("workshopTitleBlock.hidden = previousWorkshopTitleBlockHidden");
+    expect(projectEstimateMetadataStrip).not.toContain('document.querySelector<HTMLElement>("[data-workshop-title-block]")');
+    expect(projectEstimateMetadataStrip).not.toContain("workshopTitleBlock.hidden");
     expect(projectEstimateMetadataStrip).toContain('workshopCanvas.dataset.estimateSheetRoute = "true"');
     expect(projectEstimateMetadataStrip).toContain("delete workshopCanvas.dataset.estimateSheetRoute");
     expect(workshopPageShell).toContain("data-workshop-page-shell-canvas");
