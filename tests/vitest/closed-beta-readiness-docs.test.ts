@@ -165,6 +165,15 @@ describe("closed beta readiness docs", () => {
     expect(evidenceIndex).toContain("Local dev-auth result: pass, 3 tests in 38.9s.");
     expect(evidenceIndex).toContain("signed-out protected-route redirect/login UI");
     expect(evidenceIndex).toContain("template insertion into a throwaway linked Supabase estimate");
+    expect(evidenceIndex).toContain("### Demo Rehearsal Fallback Pack");
+    expect(evidenceIndex).toContain("demo-rehearsal-fallback-pack-2026-06-02.md");
+    expect(evidenceIndex).toContain("component-library-demo-smoke-2026-06-02.png");
+    expect(evidenceIndex).toContain("not a live hosted rehearsal");
+    expect(currentState).toContain("**Demo Rehearsal Fallback Pack (2026-06-02):**");
+    expect(currentState).toContain("local investor/incubator fallback packet");
+    expect(currentState).toContain("live rehearsal, and owner sign-off remain missing");
+    expect(knownIssues).toContain("Demo rehearsal fallback evidence on 2026-06-02");
+    expect(knownIssues).toContain("it is not a live rehearsal pass");
     expect(evidenceIndex).toContain("Current app build anchor: `e6cf52b` on `main`, before this docs-only evidence-sync commit.");
     expect(evidenceIndex).toContain("PLAYWRIGHT_PORT=3037 bun run test:e2e -- e2e/auth.spec.ts --project=chromium");
     expect(evidenceIndex).toContain("Result: pass, 2 Playwright tests in 9.9s.");
@@ -252,6 +261,9 @@ describe("closed beta readiness docs", () => {
     expect(manualProofMatrix).toContain("current-local-e2e-smoke-2026-06-02.md");
     expect(manualProofMatrix).toContain("signed-out auth plus local dev-auth library/template/template-insert smoke");
     expect(manualProofMatrix).toContain("Hosted login, allowlist, unlink/export, logout/session expiry, and target-environment journey remain missing");
+    expect(manualProofMatrix).toContain("demo-rehearsal-fallback-pack-2026-06-02.md");
+    expect(manualProofMatrix).toContain("fallback script");
+    expect(manualProofMatrix).toContain("owner demo sign-off remain missing");
     expect(manualProofMatrix).toContain(".ai/09_archive/store/<date>-mvp-closed-beta-manual-proof/");
     expect(manualProofMatrix).not.toMatch(/\| .* \| .* \| .* \| Pass \|/);
   });
@@ -290,6 +302,9 @@ describe("closed beta readiness docs", () => {
     expect(goalCompletionAudit).toContain("Current local E2E smoke evidence");
     expect(goalCompletionAudit).toContain("local Playwright passed signed-out auth plus dev-auth component library, template preview, and template insertion with linked Supabase cleanup");
     expect(goalCompletionAudit).toContain("Hosted/manual target-environment E2E remains missing");
+    expect(goalCompletionAudit).toContain("Demo rehearsal fallback pack");
+    expect(goalCompletionAudit).toContain("local fallback script links seed anchors");
+    expect(goalCompletionAudit).toContain("owner sign-off remain missing");
     expect(goalCompletionAudit).toContain("generated workbook artifact is loadable, ZIP-valid, formula-backed, and has no blank line totals");
     expect(goalCompletionAudit).toContain("component/template demo smoke and template insertion are partial/local pass");
     expect(goalCompletionAudit).toContain("Template insertion local smoke evidence");
@@ -395,6 +410,7 @@ describe("closed beta readiness docs", () => {
     expect(readinessScorecard).toMatch(/Security\/RLS \| Yes \| 70 \| Live advisor warns/);
     expect(readinessScorecard).not.toMatch(/No allowlist table or enforcement exists yet/);
     expect(readinessScorecard).not.toMatch(/Beta-specific terms\/privacy\/AUP not yet implemented/);
+    expect(evidenceIndex).toContain("fallback narrative");
   });
 
   it("keeps observability roadmap aligned with the local health endpoint", () => {
