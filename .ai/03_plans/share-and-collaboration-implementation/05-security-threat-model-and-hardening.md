@@ -3,6 +3,8 @@
 **Date:** 2026-05-30
 **Purpose:** Formal threat model for both collaboration invite and shared link systems. Includes attack vectors, controls, rate limiting matrix, token lifecycle, cookie policy, audit event matrix, and acceptance criteria.
 
+**2026-06-01 status note:** This threat model was written before the later implementation/proof slices. Use `07-implementation-acceptance-criteria.md`, `09-unified-implementation-flow.md`, and `.ai/10_state/known-issues.md` as the canonical status source where checklist rows below conflict. Current local/live proof covers POST-only invite acceptance, durable `security_rate_limit_events` limiting for the public share and invite surfaces, no raw invite/shared/recipient tokens in archived proof, recipient-session cookies, invite bridge cookies, Resend webhook handling, audit writes, and fail-closed invite env behavior. Remaining security readiness gates are external/provider or launch-governance proof: hosted Supabase Auth email/template/dashboard state, real dashboard email receipt, verified email domain/provider proof, broader legal/support/owner readiness, and any future security-review rerun before launch.
+
 ---
 
 ## Scope

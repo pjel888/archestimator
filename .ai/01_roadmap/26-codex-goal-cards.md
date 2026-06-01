@@ -1,6 +1,6 @@
 # Codex /goal Cards — Atomic Split Edition
 
-**Last updated:** 2026-05-30
+**Last updated:** 2026-06-01
 **Total atomic executable cards:** 93 (78 original + 10 new collab/share + 5 new DBIDX from 2026-05-30 sync)
 **EPIC headers / non-executable reference nodes:** 15
 **Ready for Codex (immediately):** 60
@@ -12,7 +12,7 @@
 **Public launch / legal blocked:** 2
 **Post-MVP / deferred:** 2
 **Decision-coded DONE:** 1
-**Evidence artifacts produced:** 0
+**Evidence artifacts produced:** Partial route-transition evidence exists; 0 beta-ready DONE evidence packs
 
 ## Atomic Goal-Card Standard
 
@@ -70,8 +70,8 @@ The topic is valid, but Codex must not execute it directly. It must be split int
 | BETA-P0-OBS-001D | READY FOR CODEX AFTER SENTRY INTEGRATION |
 | BETA-P0-OBS-001E | READY FOR CODEX |
 | BETA-P0-PERF-001 | **EPIC / SPLIT REQUIRED** — see sub-cards |
-| BETA-P0-PERF-001A | IMPLEMENTED / NEEDS FULL VALIDATION CLEANUP |
-| BETA-P0-PERF-001B | IMPLEMENTED / NEEDS MANUAL BENCHMARK + CLEAN GATES |
+| BETA-P0-PERF-001A | PARTIAL / MANUAL CHROME PROOF OPEN |
+| BETA-P0-PERF-001B | PARTIAL / MANUAL CHROME PROOF OPEN |
 | BETA-P0-PERF-001C | READY FOR CODEX |
 | BETA-P0-PERF-001D | READY FOR CODEX |
 | BETA-P0-PERF-001E | READY FOR CODEX |
@@ -80,7 +80,7 @@ The topic is valid, but Codex must not execute it directly. It must be split int
 | BETA-P0-PERF-002A | READY FOR CODEX |
 | BETA-P0-PERF-002B | READY FOR CODEX |
 | BETA-P0-PERF-002C | READY FOR CODEX |
-| BETA-P0-PERF-002D | IMPLEMENTED / NEEDS BUNDLE ANALYZER PROOF |
+| BETA-P0-PERF-002D | IMPLEMENTED / TRUE ANALYZER CAPTURED / NOT BETA DONE |
 | BETA-P0-PERF-002E | IMPLEMENTED / NEEDS FULL CI GREEN |
 | BETA-P0-UX-001 | **EPIC / SPLIT REQUIRED** — see sub-cards |
 | BETA-P0-UX-001A | READY FOR CODEX |
@@ -119,16 +119,16 @@ The topic is valid, but Codex must not execute it directly. It must be split int
 
 | Goal ID | Status |
 |---------|--------|
-| HUMAN-P0-COLLAB-001A | READY FOR HUMAN EXTERNAL SETUP |
-| CODEX-P0-COLLAB-001B | READY FOR CODEX |
-| CODEX-P0-COLLAB-002 | READY FOR CODEX |
-| CODEX-P0-COLLAB-003 | READY FOR CODEX AFTER EXTERNAL SETUP |
-| CODEX-P0-COLLAB-004 | READY FOR CODEX |
-| CODEX-P1-COLLAB-005 | READY FOR CODEX |
-| CODEX-P1-SHARE-001 | READY FOR CODEX |
-| CODEX-P1-SHARE-002 | READY FOR CODEX |
-| CODEX-P1-SHARE-003 | READY FOR CODEX |
-| CODEX-P1-SHARE-004 | READY FOR CODEX |
+| HUMAN-P0-COLLAB-001A | BLOCKED — SUPABASE AUTH PROVIDER/DASHBOARD PROOF NEEDED |
+| CODEX-P0-COLLAB-001B | PARTIAL — TARGET ENV/PROVIDER PROOF OPEN |
+| CODEX-P0-COLLAB-002 | IMPLEMENTED LOCALLY / REAL INVITE SMOKE OPEN |
+| CODEX-P0-COLLAB-003 | BLOCKED — REAL EMAIL PROVIDER LIFECYCLE SMOKE NEEDED |
+| CODEX-P0-COLLAB-004 | IMPLEMENTED LOCALLY / PROVIDER DELIVERY PROOF OPEN |
+| CODEX-P1-COLLAB-005 | IMPLEMENTED LOCALLY / REAL INVITEE SMOKE OPEN |
+| CODEX-P1-SHARE-001 | IMPLEMENTED LOCALLY / OWNER ACCEPTANCE PROOF OPEN |
+| CODEX-P1-SHARE-002 | IMPLEMENTED LOCALLY / REAL RECIPIENT EMAIL PROOF OPEN |
+| CODEX-P1-SHARE-003 | IMPLEMENTED LOCALLY / RESEND DASHBOARD WEBHOOK PROOF OPEN |
+| CODEX-P1-SHARE-004 | IMPLEMENTED LOCALLY / OWNER ACCEPTANCE PROOF OPEN |
 | CODEX-P0-DBIDX-001 | READY FOR CODEX (repo-only audit; live metrics gated by DB access) |
 | CODEX-P0-DBIDX-002 | READY FOR CODEX AFTER STAGING TARGET CONFIRMED |
 | CODEX-P0-DBIDX-003 | READY FOR CODEX AFTER STAGING TARGET CONFIRMED |
@@ -1767,12 +1767,12 @@ Harness module path, helper inventory, seed data summary.
 |---|---|
 | Wave | 3 |
 | Lane | BETA P0 |
-| Status | IMPLEMENTED / NEEDS MANUAL BENCHMARK + CLEAN GATES |
+| Status | PARTIAL / MANUAL CHROME PROOF OPEN |
 | Owner | Codex |
 | Dependencies | BETA-P0-PERF-001A |
 | Explicit non-goals | Optimizing routes, implementing prefetch |
 
-**2026-05-31 evidence:** route-transition local smoke and production-like `next start` smoke exist at `.ai/09_archive/store/2026-05-31-BETA-P0-PERF-001-route-transition-optimization-subsequent-phases/`. Public routes, Slow 3G public route, public Link-transition medians, bfcache/no-overlay, signed-out protected redirect, authenticated transition RSC evidence, explicit hover-before-click limitation evidence, Next.js dev-mode prefetch source inspection, and `/workshop/library` route manifest byte comparison are captured. Production-mode authenticated hover Network screenshots, Lighthouse/full bundle analyzer proof, and full clean lint/DOM/E2E gates remain pending.
+**2026-05-31 / 2026-06-01 evidence:** route-transition local smoke and production-like `next start` smoke exist at `.ai/09_archive/store/2026-05-31-BETA-P0-PERF-001-route-transition-optimization-subsequent-phases/` plus 2026-06-01 refresh folders. Public routes, Slow 3G public route, public Link-transition medians, bfcache/no-overlay, signed-out protected redirect, authenticated storage-state transition evidence, sidebar/project-card/estimate-row hover `_rsc` proof, authenticated Lighthouse score `0.86`, true webpack analyzer reports, public bfcache cache-header mitigation, component-level forced-render error-boundary screenshot proof, live dev-auth route-error screenshots, full E2E pass evidence, and `/workshop/library` route manifest byte comparison are captured. This card is still not DONE: manual Chrome bfcache DevTools persisted-restore proof and production Chrome React Profiler proof remain pending.
 
 ### Outcome
 Route transition benchmarks measured for all workshop routes. Beta target: < 200ms.
@@ -1809,7 +1809,7 @@ Median per route, any violations, baseline saved.
 |---|---|
 | Wave | 3 |
 | Lane | BETA P0 |
-| Status | IMPLEMENTED / NEEDS BUNDLE ANALYZER PROOF |
+| Status | IMPLEMENTED / TRUE ANALYZER CAPTURED / NOT BETA DONE |
 | Owner | Codex |
 | Dependencies | BETA-P0-PERF-001A |
 | Explicit non-goals | Optimizing edit latency, implementing batching |
@@ -2116,12 +2116,12 @@ Before/after main chunk size, lazy chunk size, export functionality verification
 |---|---|
 | Wave | 3 |
 | Lane | BETA P0 |
-| Status | IMPLEMENTED / NEEDS BUNDLE ANALYZER PROOF |
+| Status | IMPLEMENTED / TRUE ANALYZER CAPTURED / NOT BETA DONE |
 | Owner | Codex |
 | Dependencies | BETA-P0-PERF-002A |
 | Explicit non-goals | Rewriting chart components, removing Three.js |
 
-**2026-05-31 evidence:** route-transition slice dynamically imports the landing wireframe background, estimate workspace tree/content wrapper, component library manager, add-component modal, library folder tree surface, and project bubble chart, and uses D3 submodule imports. `/workshop/library` initial JS in the Next.js client reference manifest dropped from 618,452 bytes at `HEAD` to 231,552 bytes in this branch. Evidence is in `.ai/09_archive/store/2026-05-31-BETA-P0-PERF-001-route-transition-optimization-subsequent-phases/`. Full bundle analyzer proof remains pending.
+**2026-05-31 / 2026-06-01 evidence:** route-transition slice dynamically imports the landing wireframe background, estimate workspace tree/content wrapper, component library manager, add-component modal, library folder tree surface, and project bubble chart, and uses D3 submodule imports. `/workshop/library` initial JS in the Next.js client reference manifest dropped from 618,452 bytes at `HEAD` to roughly 232-234KB in this branch. True webpack analyzer reports (`client.html`, `nodejs.html`, `edge.html`) are captured under `.ai/09_archive/store/route-transition-analyzer-lighthouse-refresh-20260601T101500Z/`. This is not a beta-DONE pack because the broader route-transition card still needs manual Chrome bfcache and React Profiler proof.
 
 ### Outcome
 D3 and Three.js loaded via next/dynamic. Only loaded when charts/3D views accessed.
@@ -2167,7 +2167,7 @@ Before/after chunk sizes, chart functionality verification.
 | Dependencies | BETA-P0-PERF-002C, BETA-P0-PERF-002D |
 | Explicit non-goals | Enforcing all public-launch budgets, blocking builds aggressively |
 
-**2026-05-31 evidence:** `test:e2e:perf`, `e2e/route-transition-performance-budgets.json`, and CI route-transition perf smoke wiring were added. The perf smoke passes locally and under production-like `next start`; isolated local dev-auth authenticated transition and project/estimate hover-evidence recording also pass, but hover-before-click `_rsc` requests were not observed in that environment. Local Next.js source inspection shows App Router prefetch URL creation is disabled in development, so production-mode authenticated hover Network proof remains pending. Full lint/DOM/E2E remain blocked by unrelated share/publication/landing debt.
+**2026-05-31 / 2026-06-01 evidence:** `test:e2e:perf`, `e2e/route-transition-performance-budgets.json`, and CI route-transition perf smoke wiring were added. The perf smoke passes locally and under production-like `next start`; authenticated storage-state proof now captures sidebar/project-card/estimate-row hover `_rsc` requests, authenticated Lighthouse score `0.86`, and public bfcache cache-header mitigation. This still is not a beta-DONE card because manual Chrome bfcache DevTools persisted-restore proof and production Chrome React Profiler proof remain open.
 
 ### Outcome
 CI enforces main bundle size budget. Build fails if main chunk exceeds 200KB gzipped.
@@ -2230,7 +2230,7 @@ First-time user can go from login to their first estimate with guided empty stat
 |---|---|
 | Wave | 4 |
 | Lane | BETA P0 |
-| Status | READY FOR CODEX |
+| Status | IMPLEMENTED LOCALLY / REAL INVITEE SMOKE OPEN |
 | Owner | Codex |
 | Dependencies | BETA-P0-REL-001 (error boundaries) |
 | Explicit non-goals | Full onboarding wizard, product tour, multi-step walkthrough |
@@ -2271,7 +2271,7 @@ Screenshot of empty state, user test notes.
 |---|---|
 | Wave | 4 |
 | Lane | BETA P0 |
-| Status | READY FOR CODEX |
+| Status | IMPLEMENTED LOCALLY / OWNER ACCEPTANCE PROOF OPEN |
 | Owner | Codex |
 | Dependencies | BETA-P0-UX-001A |
 | Explicit non-goals | Auto-creating estimates, complex bootstrap logic |
@@ -2311,7 +2311,7 @@ Screenshot per step, time-to-first-value measurement.
 |---|---|
 | Wave | 4 |
 | Lane | BETA P0 |
-| Status | READY FOR CODEX |
+| Status | IMPLEMENTED LOCALLY / REAL RECIPIENT EMAIL PROOF OPEN |
 | Owner | Codex |
 | Dependencies | BETA-P0-UX-001B |
 | Explicit non-goals | Redesigning export UI, adding new export formats |
@@ -2351,7 +2351,7 @@ Screenshots of export/share button states, user test notes.
 |---|---|
 | Wave | 4 |
 | Lane | BETA P0 |
-| Status | READY FOR CODEX |
+| Status | IMPLEMENTED LOCALLY / RESEND DASHBOARD WEBHOOK PROOF OPEN |
 | Owner | Codex |
 | Dependencies | BETA-P0-UX-001A |
 | Explicit non-goals | Redesigning invite flow, adding invite templates |
@@ -2391,7 +2391,7 @@ Screenshots of invite flow, user test notes.
 |---|---|
 | Wave | 4 |
 | Lane | BETA P0 |
-| Status | READY FOR CODEX |
+| Status | IMPLEMENTED LOCALLY / OWNER ACCEPTANCE PROOF OPEN |
 | Owner | Codex |
 | Dependencies | BETA-P0-UX-001C |
 | Explicit non-goals | Redesigning shared link receiver, adding interactive tour |
@@ -3771,7 +3771,7 @@ PDF performance budget doc, async strategy doc, UX wireframe for progress.
 |---|---|
 | Wave | 1 |
 | Lane | BETA P0 |
-| Status | READY FOR HUMAN EXTERNAL SETUP |
+| Status | BLOCKED — SUPABASE AUTH PROVIDER/DASHBOARD PROOF NEEDED |
 | Primary risk reduced | Collaboration |
 | Owner | Philip (manual, provider dashboard) |
 | Dependencies | None |
@@ -3781,7 +3781,7 @@ PDF performance budget doc, async strategy doc, UX wireframe for progress.
 Supabase Auth email/SMTP provider configured for collaboration invite delivery. This unblocks the entire invite system.
 
 ### Why now
-Collaboration invites are currently **BROKEN / CONFIG BLOCKED**. Without email provider configuration, no invite can be delivered, no acceptance path can be tested, and the invite lifecycle is non-functional.
+Collaboration invites are locally hardened but **external provider proof is still open**. Without Supabase Auth email/provider configuration, target invite env vars, hosted template/confirmation proof, and real inbox click-through, the invite lifecycle cannot be called beta-ready.
 
 ### Likely areas touched
 Supabase dashboard (Authentication → Email → SMTP Provider Settings)
@@ -3818,7 +3818,7 @@ Redacted Supabase dashboard screenshot, test invite delivery evidence, provider 
 |---|---|
 | Wave | 1 |
 | Lane | BETA P0 |
-| Status | READY FOR CODEX |
+| Status | PARTIAL — TARGET ENV/PROVIDER PROOF OPEN |
 | Primary risk reduced | Collaboration |
 | Owner | Codex |
 | Dependencies | None |
@@ -3862,7 +3862,7 @@ Updated env inventory, env template diff, cross-reference with audit pack.
 |---|---|
 | Wave | 2 |
 | Lane | BETA P0 |
-| Status | READY FOR CODEX |
+| Status | IMPLEMENTED LOCALLY / REAL INVITE SMOKE OPEN |
 | Primary risk reduced | Security |
 | Owner | Codex |
 | Dependencies | HUMAN-P0-COLLAB-001A (email provider), CODEX-P0-COLLAB-001B (env var inventory) |
@@ -3911,7 +3911,7 @@ Route audit results, POST-only verification test output, fail-closed evidence.
 |---|---|
 | Wave | 2 |
 | Lane | BETA P0 |
-| Status | READY FOR CODEX AFTER EXTERNAL SETUP |
+| Status | BLOCKED — REAL EMAIL PROVIDER LIFECYCLE SMOKE NEEDED |
 | Primary risk reduced | Collaboration |
 | Owner | Codex |
 | Dependencies | HUMAN-P0-COLLAB-001A (email provider configured), CODEX-P0-COLLAB-001B (invite env vars configured), staging target exists |
@@ -3958,7 +3958,7 @@ E2E test output, lifecycle state matrix, replay protection evidence.
 |---|---|
 | Wave | 2 |
 | Lane | BETA P0 |
-| Status | READY FOR CODEX |
+| Status | IMPLEMENTED LOCALLY / PROVIDER DELIVERY PROOF OPEN |
 | Primary risk reduced | UX |
 | Owner | Codex |
 | Dependencies | None (can audit current messaging without config) |

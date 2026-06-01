@@ -54,7 +54,7 @@ When this document conflicts with lane-local phase numbers, this document wins.
 - `PROJECT_INVITE_ENTRY_ENABLED` and pepper presence verified without exposing the secret.
 - `ARCHESTIMATOR_E2E_INVITE_ENTRY=1 bun run test:e2e -- e2e/project-invite-entry.spec.ts --project=chromium` passes, or the exact external blocker is recorded.
 
-**Important:** This wave is not required for no-API receiver UX work, but it is required before claiming invite flow readiness or shipping pending-invite UX that depends on live invitations.
+**Important:** This wave is not required for no-API receiver UX work or fixture-backed pending-invite UI work, but it is required before claiming invite flow readiness or shipping live pending-invite UX.
 
 ### Wave 2 - Safety Foundation
 
@@ -64,10 +64,11 @@ When this document conflicts with lane-local phase numbers, this document wins.
 
 - Make `/invite/[token]/accept` POST-only; GET must not mutate.
 - Replace false-positive invite delivery messaging with accurate created/sent/uncertain states.
+  - **2026-05-31 local progress:** disabled app-owned invite entry now returns honest direct-grant messages for existing users and actionable disabled-link errors for new project/sheet invitees instead of reporting email delivery.
 - Fix the recipient-token query mismatch before relying on recipient sessions: recipient emails currently append `?rt=...` while `src/app/share/[token]/page.tsx` reads `?recipient=...`. Either emit `?recipient=` from email links or support both query names with tests.
-- Add durable rate limiting for invite resolution, invite accept, invite continue, public share password/comment/snapshot/event routes, or explicitly stage this behind a local-only exception.
-- Add missing audit events for invite lifecycle and publication lifecycle.
-- Verify raw tokens are not logged or stored in analytics/audit metadata.
+- Add durable rate limiting for invite resolution, invite accept, invite continue, public share password/comment/snapshot/event routes, or explicitly stage this behind a local-only exception. **2026-05-31 progress:** `security_rate_limit_events` plus route/repository/action helpers now cover invite resolve/continue/accept, invite creation, invite-link reissue/copy, and public share snapshot/activity/event/password/comment/decision with route `429`/`Retry-After` or server-action errors. Migration `20260601003000_security_rate_limit_events` is applied and verified on linked Supabase project `ebxxqidacheyapmmzavr`. **2026-06-01 progress:** live `next start` proof at `.ai/09_archive/store/share-collab-live-proof-20260601T103000Z/` verifies shared-link comment rate limiting against linked Supabase: five comments insert, the sixth returns `429` with `Retry-After: 60`, and `security_rate_limit_events` records six durable `shared_link_comment` rows. Live proof at `.ai/09_archive/store/share-collab-public-route-rate-limit-proof-20260601T104500Z/` verifies the non-comment public share routes: password fails five times then returns `429` on the sixth bad attempt, valid password still returns `204`, snapshot/event/activity each return 60 allowed responses followed by five `429`s, and decision returns `201`, four duplicate `409`s, then `429`. Remaining proof is external invite provider/email proof and broader launch readiness, not public shared-link route limiter behavior.
+- Add missing audit events for invite lifecycle and publication lifecycle. **2026-05-31 local progress:** email invite sends now record `record_collaboration_invitation_delivery` after Supabase Auth accepts the send, matching copied invite-link delivery auditing. Project and estimate invite-email attempts now write best-effort `invite_email_attempted` rows; role updates write `role_changed`; member removal writes `member_removed`; linked migration `20260601023000_collaboration_invitation_open_audit.sql` now records `collaboration_invite_opened` inside `resolve_collaboration_invitation(text)`. Remaining audit work is broader publication lifecycle coverage and live end-to-end proof.
+- Verify raw tokens are not logged or stored in analytics/audit metadata. **2026-05-31 local progress:** collaboration audit metadata excludes raw invite tokens and token hashes in focused regression coverage, and linked remote function verification confirms no `'token_hash'` metadata key in the invite-open audit path.
 
 **Critical files:**
 
@@ -102,6 +103,8 @@ When this document conflicts with lane-local phase numbers, this document wins.
 - Add invitee-side pending invite records only after acceptance-by-id is planned or implemented.
 - Preserve owned/shared/sheet-only access semantics.
 
+**2026-05-31 local progress:** `listCurrentWorkspaceProjects()` and `getWorkshopHomebaseData()` now share owned/shared/sheet-only access semantics, batch publication summaries, batch pending invitation counts, expose owner-side `pendingInviteCount`, expose `receivedPendingInviteCount` for the Workshop Projects sidebar badge, and expose invitee-side `pendingInvites` records from `list_pending_collaboration_invitations()`. Accept-by-id semantics are implemented through `accept_collaboration_invitation_by_id(uuid)` so pending cards do not need raw invite tokens.
+
 **Critical files:**
 
 - `src/lib/repositories/workspace-repository.ts`
@@ -120,6 +123,9 @@ When this document conflicts with lane-local phase numbers, this document wins.
 ### Wave 4 - Shared Link Manager Visibility
 
 **Goal:** Improve sender/manager visibility without changing receiver security.
+
+**2026-05-31 local progress:** Project-list cards and Workshop favorite-project rows now render live shared-link status/open-count signifiers from a batched publication lookup, and the project header now has one-click copy plus an activity dot. Linked/browser smoke is still required before launch claims.
+**2026-05-31 confirmation progress:** Project header destructive shared-link actions now open confirmation dialogs before creating a replacement link or turning off the current link; Vitest and local dev-auth Playwright visual smoke passed.
 
 **Primary work:**
 
@@ -191,17 +197,19 @@ This order follows `shared-link-receiver-ux/13-implementation-prd-and-slice-cont
 
 - Wave 1 live data available, or fixture-backed implementation with no readiness claim.
 - Wave 2 POST-only accept complete.
-- Accept-by-invitation-id route/RPC designed before pending invite cards ship, because raw invite tokens are not recoverable from hashed storage.
+- Wave 2 durable rate-limit slice complete for invite resolve/continue/accept, invite creation/link reissue, and public share snapshot/activity/event/password/comment/decision. Linked migration apply proof for `20260601003000_security_rate_limit_events` is complete; live public shared-link route proof is complete for comment, password, snapshot, event, activity, and decision. External invite provider/email proof remains open.
+- Accept-by-invitation-id route/RPC designed before pending invite cards ship, because raw invite tokens are not recoverable from hashed storage. **2026-05-31 progress:** `20260531164227_collaboration_invitation_accept_by_id.sql` implements and links `list_pending_collaboration_invitations()` plus `accept_collaboration_invitation_by_id(uuid)` as authenticated-only security-definer RPCs; linked verification found authenticated execute grants, anon revoked, and `last_opened_at` in the list RPC return shape.
 - Wave 3 shared data extension complete or intentionally staged.
 
 **Primary work:**
 
-- Pending-invite project cards.
-- Sidebar pending invite badge.
-- Homebase pending invite banner.
-- Owner-side pending count indicators.
-- `last_opened_at` in pending invite list.
-- Removal confirmation/favorites cleanup when scheduled.
+- Pending-invite project cards. **2026-05-31 local progress:** `/workshop` renders fixture/test-backed pending invite cards from `homebase.pendingInvites` with project, role, inviter, expiry, and an accept form posting only `invitationId`.
+- Sidebar pending invite badge. **2026-05-31 local progress:** Workshop shell supports a Projects badge and `/workshop` feeds it from `receivedPendingInviteCount`.
+- Homebase pending invite banner/panel. **2026-05-31 local progress:** The Workshop homebase now renders a compact `Pending invites` panel when signed-in pending invites exist.
+- Owner-side pending count indicators. **2026-05-31 local progress:** Workshop favorite-project rows and project cards can render batched owner-side pending invite counts.
+- `last_opened_at` in pending invite list. **2026-05-31 local progress:** Pending invite records carry `lastOpenedAt`, and the Workshop pending-invite panel renders opened context when present.
+- Pending invitation resend. **2026-05-31 local progress:** The Teamspaces pending-invite row now has a Resend action that reissues an app-owned invite token, calls Supabase Auth invite email again, records email delivery, and uses the existing durable per-invitation resend rate limit.
+- Removal confirmation/favorites cleanup. **2026-05-31 local progress:** Teamspaces removal now opens an explicit confirmation dialog with optional notification intent, and `removeProjectCollaborator()` deletes the removed user's `project_favorites` row for that project after access removal.
 
 **Exit evidence:**
 
@@ -210,26 +218,40 @@ This order follows `shared-link-receiver-ux/13-implementation-prd-and-slice-cont
 - Pending card does not require raw invite token.
 - Project-list and homebase UI maintain shared-project/sheet-only badges.
 
+**2026-05-31 verification:** Red/green `project-invite-entry-schema` + `workshop-pending-invite` passed 17 tests; focused collaboration/homebase regression set passed 7 files / 38 tests; `bun run type-check`, focused ESLint, `bun run lint:design-system`, and `git diff --check` passed. Linked migration apply/repair and remote grant/return-shape verification passed for `20260531164227`.
+
 ### Wave 7 - Recipient Identity, Tracking, Email, and Compliance
 
 **Goal:** Improve notification fidelity and recipient accountability after safety and visibility are stable.
 
+**2026-05-31 local progress:** Recipient opens are recipient-scoped, verified recipient links render "Viewing as {email}", verified recipients can use "Not you?" to clear the server-owned recipient session and `_ok` companion flag, subsequent valid HttpOnly sessions can resolve recipient identity by id, the manager sidebar shows the latest recipient open identity when available, owner digests resolve workspace owner profile email with project creator / publisher fallback before skipping with a warning, recipient emails use the acting manager's resolved display name with "An Archestimator user" fallback instead of placeholders, recipient invitations plus owner digests include a compliance footer, recipient invitation footers now include a direct unsubscribe path that persists `shared_link_recipients.email_unsubscribed_at` and suppresses future recipient resends, existing recipients can be resent a fresh secure recipient link under durable 5-minute rate limiting, Resend webhooks can reconcile recipient `delivery_status` from verified raw-body events, and the local P3 polish items are implemented: stale snapshot sidebar warning with a five-minute timestamp-comparison cache, Grid Preview row filtering, `/share/[token]` print styles, and destructive-action confirmations including password clearing. **2026-06-01 live proof:** recipient session creation now happens in `POST /api/share/[token]/session` because Next 16 production mode rejects cookie mutation inside Server Components; live `next start` proof verifies the session POST, HttpOnly session cookie, `_ok` flag, subsequent recipient banner render, recipient opened tracking, and durable comment limiter behavior. Linked apply/repair is complete for the shared-link V2 base migration, password-attempt enum migration, recipient unsubscribe migration, and Resend webhook metadata migration after remote verification showed the base shared-link tables had not yet been applied. Live provider proof remains open.
+
 **Primary work:**
 
 - Receiver "Viewing as {email}" identity banner.
+- Receiver "Not you?" session recovery. **Implemented locally 2026-05-31 with a no-store DELETE route that expires both recipient-session cookies.**
 - Per-recipient open tracking.
 - Real owner/sender email resolution.
 - Resend recipient email.
-- Resend webhooks for delivery statuses.
-- Unsubscribe/compliance footer.
-- Stale snapshot warning and print styles if not completed earlier.
+- Recipient resend. **Implemented locally 2026-05-31 with a fresh recipient token and `shared_link_recipient_resend` durable rate-limit scope.**
+- Resend webhooks for delivery statuses. **Implemented locally and applied to linked Supabase 2026-05-31; live dashboard/provider proof remains open.**
+- Unsubscribe/compliance footer. **Implemented locally 2026-05-31.**
+- Direct recipient unsubscribe suppression. **Implemented and linked 2026-05-31 via `email_unsubscribed_at`; recipient resends skip opted-out rows.**
+- Stale snapshot warning, Grid Preview filtering, and print styles. **Implemented locally 2026-05-31.**
 
 **Exit evidence:**
 
 - Owner digest uses real owner email.
 - Recipient view events map to recipient session without leaking tokens.
 - Recipient session setup is proven from the same query parameter used in generated recipient emails.
+- Latest recipient open tests assert sidebar identity display from `shared_link_recipients.last_opened_at`.
+- Recipient identity-banner tests assert the "Not you?" control and server-side cookie expiry route.
 - Email tests assert no placeholder owner/sender in production paths.
+- Email tests assert recipient invitations and owner digests include unsubscribe/compliance footer copy.
+- Unsubscribe tests assert the direct route, durable recipient flag, and resend suppression.
+- Resend webhook tests assert raw-body signature verification, recipient email tags, provider message-id persistence, and event-to-delivery-status mapping.
+- Recipient resend tests assert the Recipients tab button calls the server action, the server action mints a new recipient token, and durable rate-limit storage is used.
+- P3 polish tests assert stale snapshot detection, sidebar warning text, grid filtering/no-match state, print stylesheet hooks, and share page build compatibility.
 
 ### Wave 8 - Advanced / Deferred
 
