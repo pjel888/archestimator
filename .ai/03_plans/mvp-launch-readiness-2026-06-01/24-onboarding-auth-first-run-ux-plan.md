@@ -1,5 +1,18 @@
 # Onboarding, Auth, and First-Run UX Plan
 
+## Fourth-Pass Closed Beta Onboarding Reframe - 2026-06-02
+
+The first-run path is now:
+
+1. Invited user signs in with Google.
+2. Server checks `closed_beta_allowed_emails`.
+3. Denied user sees `/beta/access-required`.
+4. Whitelisted user enters `/workshop`.
+5. Existing profile/default workspace path creates or reuses workspace context.
+6. User creates first project, first estimate, uses components/templates, exports workbook, and submits feedback.
+
+Login and onboarding copy must say invite-only closed beta. Magic link should be hidden/disabled for beta unless retained as a support fallback behind the same allowlist.
+
 Commit audited: `681c95e64864f283950a88dba304eaffe8f2f8b3`
 
 ## Audit
