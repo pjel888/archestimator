@@ -62,6 +62,16 @@ describe("closed beta readiness docs", () => {
     expect(decisions).toContain("full DOM tests (131 files / 1021 tests / 2 skipped)");
     expect(finalImplementationReport).toContain("**Latest implementation baseline before this report:** `8084908`");
     expect(finalImplementationReport).toContain("`bun run test:dom` - pass, 131 files / 1021 tests / 2 skipped");
+    expect(evidenceIndex).toContain("| Full local implementation baseline | `c5ca065` after demo seed row repair |");
+    expect(evidenceIndex).toContain("| Final report baseline | `8084908` after canonical state/decision/roadmap truth sync |");
+    expect(evidenceIndex).toContain("| Final report indexed in launch docs | `3e8d7a0` |");
+    expect(evidenceIndex).toContain("| `bun run test:dom` | Pass: 131 files / 1021 tests / 2 skipped |");
+    expect(evidenceIndex).not.toContain("| HEAD | `1ed86b4f2a3881bf1b946eb81c688071e6736574` |");
+    expect(evidenceIndex).not.toContain("Pass: 122 files / 989 tests passed / 2 skipped after AI-001");
+    expect(finalLaunchGate).toContain("Full local implementation baseline: `c5ca065` after demo seed row repair.");
+    expect(finalLaunchGate).not.toContain("HEAD audited: `531f20a`");
+    expect(executiveBrief).toContain("Final report indexed in launch docs: `3e8d7a0`.");
+    expect(executiveBrief).not.toContain("HEAD: `531f20a`");
     expect(releaseChecklist).toContain("`bun run test:dom` | Pass: 131 files / 1021 tests / 2 skipped");
     expect(releaseChecklist).not.toContain("`bun run test:dom` | Fail");
     expect(finalLaunchGate).toContain("`bun run test:dom`: pass, 131 files / 1021 tests with 2 skips");

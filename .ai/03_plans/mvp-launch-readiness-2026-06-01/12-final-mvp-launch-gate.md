@@ -6,12 +6,14 @@ This gate is now the closed beta launch gate. It is not a public paid-launch gat
 
 ### Command Evidence
 
-- HEAD audited: `531f20a` after the DATA/BETA-OPS runbook truth-sync.
+- Full local implementation baseline: `c5ca065` after demo seed row repair.
+- Final report baseline: `8084908` after canonical state/decision/roadmap truth sync.
+- Final report indexed in launch docs: `3e8d7a0`.
 - `bun install --frozen-lockfile`: pass.
 - `bun run type-check`: pass.
 - `bun run lint`: pass with 14 warnings.
 - `bun run lint:design-system`: pass.
-- `bun run test`: pass.
+- `bun run test`: pass, 4 unit tests / 129 expectations.
 - `bun run test:dom`: pass, 131 files / 1021 tests with 2 skips.
 - `bun run build`: pass.
 
