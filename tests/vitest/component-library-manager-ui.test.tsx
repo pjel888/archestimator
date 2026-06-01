@@ -398,6 +398,29 @@ describe("component library manager UI", () => {
     expect(within(sheet).queryByText("Database Steel Frame")).not.toBeInTheDocument();
   });
 
+  it("shows catalogue result counts and searches pricing source trust fields", async () => {
+    await renderLibrary({
+      libraryItems: sharedLibraryItems.map((item) =>
+        item.id === "db-library-steel-frame"
+          ? { ...item, pricingSource: "May quote ledger", confidence: "supplier quote" }
+          : item,
+      ),
+    });
+
+    const sheet = screen.getByLabelText("Component sheet");
+    expect(within(sheet).getByText("3 of 3 components")).toBeInTheDocument();
+    expect(within(sheet).getByText("Source: May quote ledger")).toBeInTheDocument();
+    expect(within(sheet).getAllByText("Checked 2026-05-22").length).toBeGreaterThan(0);
+    expect(within(sheet).getByText("Confidence: supplier quote")).toBeInTheDocument();
+
+    fireEvent.change(within(sheet).getByRole("searchbox", { name: "Search component sheet" }), { target: { value: "quote ledger" } });
+
+    expect(within(sheet).getByText("1 of 3 components")).toBeInTheDocument();
+    expect(within(sheet).getByText("Database Steel Frame")).toBeInTheDocument();
+    expect(within(sheet).queryByText("Custom Cabinet Pull")).not.toBeInTheDocument();
+    expect(within(sheet).queryByText("Owner Supplied Sink")).not.toBeInTheDocument();
+  });
+
   it("moves supplier organization under Components instead of a top-level Suppliers tab", async () => {
     await renderLibrary();
 

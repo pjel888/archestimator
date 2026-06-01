@@ -101,6 +101,24 @@
 - Post-UI wiring GitNexus `detect-changes --repo archestimator --scope staged` reported 9 changed files, 43 changed symbols, 1 affected process (`GET` export route through `toUiRow`), and medium risk. This is expected from persisted row projection and is mitigated by repository projection tests, export coverage inside full `test:dom`, production build, and focused UI tests.
 - Linked Supabase migration apply and direct SQL verification are not done in this slice; backup/PITR proof remains required before applying launch/beta migrations.
 
+### LIB-001 Component Library Polish Evidence
+
+- Design direction: compact estimator catalogue, optimized for scanning trust signals rather than marketing-style cards. Signature differentiator: each card now carries pricing provenance (`Source`, `Checked`, optional `Confidence`) directly under unit cost.
+- Next.js version check for UI-design skill gate: installed `next` is `16.2.6`, which is above the patched `16.0.7` threshold for the referenced CVE.
+- `ComponentLibraryManager` sheet search now includes `pricingSource`, `pricingDate`, and `confidence`.
+- Component sheet tabs now show a visible result count such as `3 of 3 components` or `1 of 3 components`.
+- Catalogue cards now show compact pricing trust fields without adding dependencies or changing the folder/tree model.
+- Focused red/green evidence: `bun run test:dom tests/vitest/component-library-manager-ui.test.tsx` passed 1 file / 16 tests.
+- `bun run type-check` passed.
+- `bun run lint` passed with the existing 14 warnings and 0 errors.
+- `bun run lint:design-system` passed.
+- `bun run test` passed 4 unit tests / 129 expectations.
+- `bun run test:dom` passed 127 files / 1009 tests with 2 skips.
+- `bun run build` passed.
+- `git diff --check` passed.
+- Post-edit code-review-graph `detect_changes` against `HEAD` analyzed 4 changed files, 7 changed functions/classes, 0 affected flows, 5 source-level test gaps, and overall risk score 0.55.
+- Post-edit GitNexus `detect-changes --repo archestimator --scope staged` reported 4 changed files, 13 changed symbols, 3 affected `ComponentLibraryManager` flows, and medium risk. This is expected for visible sheet/card/search changes and is mitigated by focused manager UI coverage plus full DOM/build.
+
 ### Closed Beta Audit Evidence
 
 - Auth/proxy: `src/proxy.ts`, `src/lib/auth/actions.ts`, `src/app/auth/callback/route.ts`, `src/lib/auth/account-setup.ts`, `src/lib/auth/session.ts`.

@@ -146,6 +146,9 @@ function itemMatchesSheetQuery(item: EstimateRowItem, query: string): boolean {
     item.category,
     item.unit,
     item.description,
+    item.pricingSource,
+    item.pricingDate,
+    item.confidence,
     ...(item.categoryPath ?? []),
   ]
     .flatMap((value) => (typeof value === "string" && value.length > 0 ? [value] : []));
@@ -264,6 +267,15 @@ function getItemBrandLabel(item: EstimateRowItem) {
   return item.brand?.trim() || "Brand not set";
 }
 
+function getItemPricingSourceLabel(item: EstimateRowItem) {
+  return item.pricingSource?.trim() || "Source not set";
+}
+
+function getCatalogueResultSummary(visibleCount: number, totalCount: number) {
+  const label = totalCount === 1 ? "component" : "components";
+  return `${visibleCount} of ${totalCount} ${label}`;
+}
+
 function isNextImageSafeComponentSource(src: string) {
   if (!src) return false;
   if (src.startsWith("/")) return true;
@@ -287,6 +299,7 @@ function ComponentCatalogueCard({ card }: { card: CatalogueCard }) {
   const item = card.item;
   const name = getComponentName(item);
   const brand = getItemBrandLabel(item);
+  const pricingSource = getItemPricingSourceLabel(item);
 
   return (
     <li
@@ -340,6 +353,19 @@ function ComponentCatalogueCard({ card }: { card: CatalogueCard }) {
           <p className="truncate text-[9px] font-normal leading-3 text-tertiary">
             Cost / {item.unit}
           </p>
+          <div className="mt-1 space-y-0.5 border-t border-hairline pt-1">
+            <p className="truncate text-[8px] font-normal leading-3 text-tertiary" title={pricingSource}>
+              Source: {pricingSource}
+            </p>
+            <p className="truncate text-[8px] font-normal leading-3 text-tertiary">
+              Checked {item.pricingDate || "date not set"}
+            </p>
+            {item.confidence ? (
+              <p className="truncate text-[8px] font-normal leading-3 text-tertiary" title={item.confidence}>
+                Confidence: {item.confidence}
+              </p>
+            ) : null}
+          </div>
         </div>
       </div>
     </li>
@@ -638,6 +664,7 @@ function ComponentLibrarySheet({
     [folderNodes, searchQuery, selectedFolderNode, visibleItems],
   );
   const hasCatalogueResults = catalogueOutline.branches.length > 0 || catalogueOutline.items.length > 0;
+  const resultSummary = getCatalogueResultSummary(visibleItems.length, sheetItems.length);
   const toggleCatalogueBranch = (branchId: string) => {
     setCollapsedCatalogueBranchIds((current) => {
       const next = new Set(current);
@@ -698,6 +725,9 @@ function ComponentLibrarySheet({
           >
             {selectedLabel}
           </button>
+          <p className="ml-auto self-center px-2 text-[9px] font-medium leading-3 text-tertiary" aria-label="Component sheet result count">
+            {resultSummary}
+          </p>
         </div>
         {status.state !== "idle" ? (
           <div

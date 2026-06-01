@@ -97,6 +97,18 @@ GitNexus and code-review-graph impact were run before editing the project-specif
 - `patchEstimateRowItem` and `patchEstimateRowItemInTree` upstream impact before detach optimistic patching: 1 and 4 impacted symbols respectively, 0 affected processes, risk `LOW`.
 
 Mitigation for this sub-slice: first add the SQL RPC, generated RPC type, and server action, then wire the UI/hook only after that contract is green. Focused version-control action/schema tests lock the expected RPC args, revision check, detached link state, event type, provenance metadata, and no library-table mutation. Repository/UI tests now lock persisted `linkState`, confirmation behavior, revision-aware mutation identity, and preserved row values.
+
+## LIB-001 Component Library Polish Impact Evidence - 2026-06-02
+
+GitNexus impact was run before editing the component-library card/search/count seams:
+
+- `LibraryPageClient` upstream impact: 4 impacted symbols, direct dependents include `LibraryPage` and component-library tests, 1 affected process (`LibraryPage`), risk `LOW`.
+- `ComponentLibraryManager` upstream impact: 0 graph dependents reported, risk `LOW`; product risk remains moderate because it owns the visible `/workshop/library` workspace.
+- `itemMatchesSheetQuery` upstream impact: 1 impacted symbol (`visibleItems`), 0 affected processes, risk `LOW`.
+- `ComponentCatalogueCard` upstream impact: 4 impacted symbols through catalogue grid/branch/sheet, 1 affected process (`ComponentLibraryManager`), risk `LOW`.
+- `ComponentLibrarySheet` upstream impact: 2 impacted symbols through sheet panel/manager, 1 affected process (`ComponentLibraryManager`), risk `LOW`.
+
+Mitigation: keep the design within the existing compact catalogue direction, add no new dependencies, and lock pricing-source search, visible result counts, and pricing trust fields with `component-library-manager-ui.test.tsx`.
 | `EstimateSheetContent` | GitNexus specific symbol returned 0 upstream due App Router boundary; other impacts show it is central through hook/export/preview. | Estimate workspace flows. | HIGH by manual assessment | many estimate DOM tests. | Keep row edits scoped; use targeted DOM tests. | Protected estimate route smoke. |
 | `useEstimateRowMutations` | Direct caller: `EstimateSheetContent`; indirect tests. | None reported. | LOW graph, MEDIUM product | estimate sheet tests. | Add unlink as peer mutation with same queue/revision model. | Hook conflict/rollback test. |
 | `insertEstimateRowItemFromLibrary` | `mutationFn` in row hook. | None. | LOW | `estimate-sheet-library-insert.test.tsx`, version-control actions tests. | Do not alter insert semantics. | Regression after unlink action. |
