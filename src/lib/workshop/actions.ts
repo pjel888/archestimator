@@ -28,6 +28,20 @@ export async function setProjectFavorite({ projectId, favorite }: ProjectFavorit
   const { workspace, profile } = await ensureDefaultWorkspace();
   const supabase = await createSupabaseServerClient();
 
+  if (!favorite) {
+    const { error } = await supabase
+      .from("project_favorites")
+      .delete()
+      .eq("user_id", profile.id)
+      .eq("project_id", projectId);
+
+    if (error) throw error;
+
+    revalidatePath("/workshop");
+    revalidatePath("/workshop/projects");
+    return;
+  }
+
   const { data: project, error: projectError } = await supabase
     .from("projects")
     .select("id, workspace_id")
@@ -38,29 +52,18 @@ export async function setProjectFavorite({ projectId, favorite }: ProjectFavorit
   if (projectError) throw projectError;
   if (!project) throw new Error("Project was not found in this workspace.");
 
-  if (favorite) {
-    const { error } = await supabase
-      .from("project_favorites")
-      .upsert(
-        {
-          workspace_id: workspace.id,
-          user_id: profile.id,
-          project_id: project.id,
-        },
-        { onConflict: "user_id,project_id" },
-      );
+  const { error } = await supabase
+    .from("project_favorites")
+    .upsert(
+      {
+        workspace_id: workspace.id,
+        user_id: profile.id,
+        project_id: project.id,
+      },
+      { onConflict: "user_id,project_id" },
+    );
 
-    if (error) throw error;
-  } else {
-    const { error } = await supabase
-      .from("project_favorites")
-      .delete()
-      .eq("workspace_id", workspace.id)
-      .eq("user_id", profile.id)
-      .eq("project_id", project.id);
-
-    if (error) throw error;
-  }
+  if (error) throw error;
 
   revalidatePath("/workshop");
   revalidatePath("/workshop/projects");

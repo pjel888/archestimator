@@ -7,7 +7,14 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export type WorkshopInviteBannerState =
   | { kind: "none" }
-  | { kind: "accepted"; targetHref: string; targetLabel: string; scope: "project" | "estimate" }
+  | {
+      kind: "accepted";
+      projectName?: string | null;
+      roleLabel?: string | null;
+      scope: "project" | "estimate";
+      targetHref: string;
+      targetLabel: string;
+    }
   | { kind: "wrong-account"; invitedEmail: string | null }
   | { kind: "unavailable"; reason: "expired" | "revoked" | "invalid" | "already-used" | "error" };
 

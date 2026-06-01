@@ -1998,6 +1998,255 @@ export type Database = {
           },
         ]
       }
+      security_rate_limit_events: {
+        Row: {
+          expires_at: string
+          id: string
+          key_hash: string
+          metadata_json: Json
+          occurred_at: string
+          scope: string
+        }
+        Insert: {
+          expires_at: string
+          id?: string
+          key_hash: string
+          metadata_json?: Json
+          occurred_at?: string
+          scope: string
+        }
+        Update: {
+          expires_at?: string
+          id?: string
+          key_hash?: string
+          metadata_json?: Json
+          occurred_at?: string
+          scope?: string
+        }
+        Relationships: []
+      }
+      shared_link_recipients: {
+        Row: {
+          created_at: string
+          delivery_status: string
+          display_name: string | null
+          email_unsubscribed_at: string | null
+          email: string
+          id: string
+          invited_at: string
+          invited_by: string | null
+          last_opened_at: string | null
+          publication_id: string
+          recipient_token_hash: string
+          resend_delivery_metadata: Json
+          resend_email_id: string | null
+          resend_last_event_at: string | null
+          resend_last_event_id: string | null
+          resend_last_event_type: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          delivery_status?: string
+          display_name?: string | null
+          email_unsubscribed_at?: string | null
+          email: string
+          id?: string
+          invited_at?: string
+          invited_by?: string | null
+          last_opened_at?: string | null
+          publication_id: string
+          recipient_token_hash: string
+          resend_delivery_metadata?: Json
+          resend_email_id?: string | null
+          resend_last_event_at?: string | null
+          resend_last_event_id?: string | null
+          resend_last_event_type?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          delivery_status?: string
+          display_name?: string | null
+          email_unsubscribed_at?: string | null
+          email?: string
+          id?: string
+          invited_at?: string
+          invited_by?: string | null
+          last_opened_at?: string | null
+          publication_id?: string
+          recipient_token_hash?: string
+          resend_delivery_metadata?: Json
+          resend_email_id?: string | null
+          resend_last_event_at?: string | null
+          resend_last_event_id?: string | null
+          resend_last_event_type?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shared_link_recipients_invited_by_fkey"
+            columns: ["invited_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shared_link_recipients_publication_id_fkey"
+            columns: ["publication_id"]
+            isOneToOne: false
+            referencedRelation: "project_publications"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      shared_link_comments: {
+        Row: {
+          author_email: string
+          author_name: string | null
+          body: string
+          created_at: string
+          estimate_id: string | null
+          id: string
+          is_internal: boolean
+          publication_id: string
+          recipient_id: string | null
+          row_id: string | null
+        }
+        Insert: {
+          author_email: string
+          author_name?: string | null
+          body: string
+          created_at?: string
+          estimate_id?: string | null
+          id?: string
+          is_internal?: boolean
+          publication_id: string
+          recipient_id?: string | null
+          row_id?: string | null
+        }
+        Update: {
+          author_email?: string
+          author_name?: string | null
+          body?: string
+          created_at?: string
+          estimate_id?: string | null
+          id?: string
+          is_internal?: boolean
+          publication_id?: string
+          recipient_id?: string | null
+          row_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shared_link_comments_publication_id_fkey"
+            columns: ["publication_id"]
+            isOneToOne: false
+            referencedRelation: "project_publications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shared_link_comments_recipient_id_fkey"
+            columns: ["recipient_id"]
+            isOneToOne: false
+            referencedRelation: "shared_link_recipients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      shared_link_responses: {
+        Row: {
+          created_at: string
+          decision: string
+          id: string
+          note: string | null
+          publication_id: string
+          recipient_id: string
+          snapshot_version_at_decision: number
+        }
+        Insert: {
+          created_at?: string
+          decision: string
+          id?: string
+          note?: string | null
+          publication_id: string
+          recipient_id: string
+          snapshot_version_at_decision: number
+        }
+        Update: {
+          created_at?: string
+          decision?: string
+          id?: string
+          note?: string | null
+          publication_id?: string
+          recipient_id?: string
+          snapshot_version_at_decision?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shared_link_responses_publication_id_fkey"
+            columns: ["publication_id"]
+            isOneToOne: false
+            referencedRelation: "project_publications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shared_link_responses_recipient_id_fkey"
+            columns: ["recipient_id"]
+            isOneToOne: false
+            referencedRelation: "shared_link_recipients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      shared_link_events: {
+        Row: {
+          created_at: string
+          event_type: string
+          id: string
+          ip_hash: string | null
+          metadata_json: Json
+          publication_id: string
+          recipient_id: string | null
+          user_agent_hash: string | null
+        }
+        Insert: {
+          created_at?: string
+          event_type: string
+          id?: string
+          ip_hash?: string | null
+          metadata_json?: Json
+          publication_id: string
+          recipient_id?: string | null
+          user_agent_hash?: string | null
+        }
+        Update: {
+          created_at?: string
+          event_type?: string
+          id?: string
+          ip_hash?: string | null
+          metadata_json?: Json
+          publication_id?: string
+          recipient_id?: string | null
+          user_agent_hash?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shared_link_events_publication_id_fkey"
+            columns: ["publication_id"]
+            isOneToOne: false
+            referencedRelation: "project_publications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shared_link_events_recipient_id_fkey"
+            columns: ["recipient_id"]
+            isOneToOne: false
+            referencedRelation: "shared_link_recipients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       project_publications: {
         Row: {
           created_at: string
@@ -2548,6 +2797,7 @@ export type Database = {
           role: string | null
           scope: string | null
           inviter_label: string | null
+          inviter_email: string | null
           invited_email: string | null
           expires_at: string | null
           token_id: string | null
@@ -2556,6 +2806,28 @@ export type Database = {
       accept_collaboration_invitation: {
         Args: { invitation_token_hash: string }
         Returns: Json
+      }
+      accept_collaboration_invitation_by_id: {
+        Args: { target_invitation_id: string }
+        Returns: Json
+      }
+      list_pending_collaboration_invitations: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          invitation_id: string
+          project_id: string | null
+          estimate_id: string | null
+          project_name: string | null
+          project_code: string | null
+          estimate_name: string | null
+          role: string | null
+          scope: string | null
+          inviter_label: string | null
+          state: string | null
+          expires_at: string | null
+          last_opened_at: string | null
+          created_at: string | null
+        }[]
       }
       revoke_collaboration_invitation: {
         Args: { invitation_id: string }
@@ -2583,6 +2855,25 @@ export type Database = {
       increment_project_publication_open: {
         Args: { target_publication_id: string }
         Returns: undefined
+      }
+      insert_client_comment: {
+        Args: {
+          p_token_hash: string
+          p_recipient_token_hash: string
+          p_estimate_id: string | null
+          p_row_id: string | null
+          p_body: string
+        }
+        Returns: string
+      }
+      submit_client_response: {
+        Args: {
+          p_token_hash: string
+          p_recipient_token_hash: string
+          p_decision: string
+          p_note: string | null
+        }
+        Returns: string
       }
     }
     Enums: {
@@ -2617,6 +2908,7 @@ export type Database = {
         | "password_success"
         | "password_failure"
         | "download_attempt_blocked"
+        | "password_attempt"
       project_publication_status: "published" | "expired" | "revoked"
       estimate_row_link_state:
         | "unlinked"
@@ -2786,6 +3078,7 @@ export const Constants = {
         "password_success",
         "password_failure",
         "download_attempt_blocked",
+        "password_attempt",
       ],
       project_publication_status: ["published", "expired", "revoked"],
       estimate_row_link_state: [

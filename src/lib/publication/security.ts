@@ -330,6 +330,16 @@ export function verifySharedLinkSessionCookieValue(
   );
 }
 
+export function readSharedLinkSessionCookieRecipientId(
+  value: string | undefined,
+  { now = Date.now(), secret = readPublicationAccessCookieSecret() }: PublicationAccessCookieOptions = {},
+) {
+  if (!value) return undefined;
+  const payload = parseSharedLinkSessionCookiePayload(value, secret);
+  if (!payload || payload.expiresAt <= now) return undefined;
+  return payload.recipientId;
+}
+
 export function getSharedLinkSessionCookieParts(
   context: SharedLinkSessionContext,
   {

@@ -16,7 +16,8 @@ import type {
   ProjectCollaboratorSummary,
 } from "@/lib/collaboration/types";
 import { decryptPublicationToken, readPublicationTokenEncryptionSecret } from "@/lib/publication/security";
-import type { ProjectPublicationSummary } from "@/lib/publication/types";
+import type { ProjectPublicationListSummary, ProjectPublicationSummary } from "@/lib/publication/types";
+import type { Json } from "@/lib/supabase/types";
 
 export type WorkspaceBootstrap = {
   workspace: Tables<"workspaces">;
@@ -40,8 +41,15 @@ export type WorkshopProjectSummary = Pick<
   Tables<"projects">,
   "id" | "name" | "client_name" | "project_code" | "location" | "updated_at"
 > & {
+  accessKind: WorkshopProjectAccessKind;
+  currentUserRole: CollaborationRole;
   isFavorite: boolean;
   favoriteCreatedAt: string | null;
+  ownerWorkspaceName: string | null;
+  pendingInvite?: WorkshopPendingInviteSummary | null;
+  pendingInviteCount: number;
+  publicationSummary?: ProjectPublicationListSummary | null;
+  sharedEstimateCount: number;
 };
 
 export type WorkshopEstimateSummary = Pick<
@@ -55,19 +63,47 @@ export type WorkshopEstimateSummary = Pick<
   favoriteCreatedAt: string | null;
 };
 
+export type WorkshopPendingInviteSummary = {
+  id: string;
+  projectId: string;
+  estimateId: string | null;
+  projectName: string;
+  projectCode: string | null;
+  estimateName: string | null;
+  role: CollaborationRole;
+  scope: "project" | "estimate";
+  inviterLabel: string | null;
+  state: "pending" | "expired";
+  expiresAt: string | null;
+  lastOpenedAt: string | null;
+};
+
+export type WorkshopRemovedProjectFavoriteSummary = {
+  id: string;
+  name: string | null;
+  projectCode: string | null;
+  favoriteCreatedAt: string | null;
+};
+
 export type WorkshopHomebaseData = {
   workspace: Tables<"workspaces">;
   projects: WorkshopProjectSummary[];
   estimates: WorkshopEstimateSummary[];
+  pendingInvites: WorkshopPendingInviteSummary[];
+  removedProjectFavorites: WorkshopRemovedProjectFavoriteSummary[];
+  receivedPendingInviteCount: number;
 };
 
-type WorkshopProjectAccessKind = "owned" | "project-member" | "sheet-member";
+type WorkshopProjectAccessKind = "owned" | "pending-invite" | "project-member" | "sheet-member";
 
 type WorkshopProjectListItem = {
   project: Tables<"projects">;
   accessKind: WorkshopProjectAccessKind;
   currentUserRole: CollaborationRole;
   ownerWorkspaceName: string | null;
+  pendingInvite?: WorkshopPendingInviteSummary | null;
+  pendingInviteCount: number;
+  publicationSummary: ProjectPublicationListSummary | null;
   sharedEstimateCount: number;
 };
 
@@ -75,7 +111,7 @@ const WORKSHOP_HOMEBASE_ITEM_LIMIT = 12;
 
 type WorkshopProjectRecord = Pick<
   Tables<"projects">,
-  "id" | "name" | "client_name" | "project_code" | "location" | "updated_at"
+  "id" | "name" | "client_name" | "project_code" | "location" | "updated_at" | "workspace_id" | "created_by"
 >;
 
 type WorkshopEstimateRecord = Pick<
@@ -88,7 +124,7 @@ type EstimateSheetMemberRow = Pick<Tables<"estimate_sheet_members">, "estimate_i
 type EstimateSheetAccessSettingsRow = Pick<Tables<"estimate_sheet_access_settings">, "estimate_id" | "inherit_project_access">;
 type CollaborationInvitationRow = Pick<
   Tables<"collaboration_invitations">,
-  "email" | "estimate_id" | "expires_at" | "id" | "role" | "scope"
+  "email" | "estimate_id" | "expires_at" | "id" | "project_id" | "role" | "scope"
 >;
 type CollaborationProfileRow = Pick<Tables<"profiles">, "avatar_url" | "display_name" | "email" | "id">;
 type ProjectPublicationRow = Pick<
@@ -99,12 +135,29 @@ type ProjectPublicationRow = Pick<
   | "latest_opened_at"
   | "open_count"
   | "password_hash"
+  | "project_id"
   | "published_at"
   | "revoked_at"
   | "selected_estimate_ids"
+  | "snapshot_json"
   | "snapshot_version"
   | "status"
 >;
+type ProjectPublicationListRow = Omit<ProjectPublicationRow, "selected_estimate_ids" | "snapshot_json">;
+
+type WorkshopProjectAccessContext = {
+  profileId: string;
+  projectMembers: ProjectMemberRow[];
+  sheetMembers: EstimateSheetMemberRow[];
+  workspace: Tables<"workspaces">;
+  workspaceRole: CollaborationRole | null;
+};
+
+type PendingCollaborationVisibilitySummary = {
+  receivedPendingInvites: WorkshopPendingInviteSummary[];
+  receivedPendingInviteCount: number;
+  sentPendingInviteCountByProjectId: Map<string, number>;
+};
 
 const collaborationRoleRank: Record<CollaborationRole, number> = {
   owner: 40,
@@ -127,6 +180,55 @@ function readHighestCollaborationRole(current: CollaborationRole | undefined, ne
 
 function canManageCollaborationRole(role: CollaborationRole) {
   return collaborationRoleRank[role] >= collaborationRoleRank.admin;
+}
+
+function normalizeCollaborationRole(role: string | null | undefined): CollaborationRole {
+  if (role === "owner" || role === "admin" || role === "editor" || role === "viewer") return role;
+  return "viewer";
+}
+
+function normalizePendingInviteScope(scope: string | null | undefined): "project" | "estimate" {
+  return scope === "estimate" ? "estimate" : "project";
+}
+
+function createWorkshopProjectAccessResolver({
+  profileId,
+  projectMembers,
+  sheetMembers,
+  workspace,
+  workspaceRole,
+}: WorkshopProjectAccessContext) {
+  const sheetCountByProjectId = new Map<string, number>();
+  const sheetRoleByProjectId = new Map<string, CollaborationRole>();
+  for (const member of sheetMembers) {
+    sheetCountByProjectId.set(member.project_id, (sheetCountByProjectId.get(member.project_id) ?? 0) + 1);
+    sheetRoleByProjectId.set(member.project_id, readHighestCollaborationRole(sheetRoleByProjectId.get(member.project_id), member.role));
+  }
+
+  const projectRoleByProjectId = new Map(projectMembers.map((member) => [member.project_id, member.role]));
+
+  return (project: Pick<Tables<"projects">, "id" | "workspace_id" | "created_by">) => {
+    const projectRole = projectRoleByProjectId.get(project.id);
+    const sheetRole = sheetRoleByProjectId.get(project.id);
+    const ownsProjectThroughWorkspace = project.workspace_id === workspace.id && (Boolean(workspaceRole) || project.created_by === profileId);
+    const accessKind: WorkshopProjectAccessKind = ownsProjectThroughWorkspace
+      ? "owned"
+      : projectRole
+        ? "project-member"
+        : sheetRole
+          ? "sheet-member"
+          : "owned";
+    const currentUserRole = accessKind === "owned"
+      ? workspaceRole ?? projectRole ?? "owner"
+      : projectRole ?? sheetRole ?? "viewer";
+
+    return {
+      accessKind,
+      currentUserRole,
+      ownerWorkspaceName: accessKind === "owned" ? null : project.workspace_id === workspace.id ? workspace.name : null,
+      sharedEstimateCount: sheetCountByProjectId.get(project.id) ?? 0,
+    };
+  };
 }
 
 function isMissingOptionalCollaborationTable(error: unknown) {
@@ -197,7 +299,7 @@ async function readOptionalCollaborationInvitations(
 ): Promise<CollaborationInvitationRow[]> {
   const { data, error } = await supabase
     .from("collaboration_invitations")
-    .select("id, email, role, scope, estimate_id, expires_at")
+    .select("id, project_id, email, role, scope, estimate_id, expires_at")
     .eq("project_id", projectId)
     .eq("lifecycle_state", "pending")
     .is("accepted_at", null)
@@ -212,6 +314,104 @@ async function readOptionalCollaborationInvitations(
   return data ?? [];
 }
 
+async function readPendingCollaborationVisibilitySummary({
+  email,
+  projectIds,
+  supabase,
+}: {
+  email: string | null;
+  projectIds: string[];
+  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>;
+}): Promise<PendingCollaborationVisibilitySummary> {
+  const sentPendingInviteCountByProjectId = new Map<string, number>();
+  const expiresAfter = new Date().toISOString();
+  const uniqueProjectIds = Array.from(new Set(projectIds));
+
+  const [receivedResult, sentResult] = await Promise.all([
+    email?.trim()
+      ? supabase.rpc("list_pending_collaboration_invitations")
+      : Promise.resolve({ data: [], error: null }),
+    uniqueProjectIds.length > 0
+      ? supabase
+          .from("collaboration_invitations")
+          .select("id, project_id")
+          .in("project_id", uniqueProjectIds)
+          .eq("lifecycle_state", "pending")
+          .is("accepted_at", null)
+          .is("revoked_at", null)
+          .gt("expires_at", expiresAfter)
+      : Promise.resolve({ data: [], error: null }),
+  ]);
+
+  if (receivedResult.error && !isMissingOptionalCollaborationTable(receivedResult.error)) throw receivedResult.error;
+  if (sentResult.error && !isMissingOptionalCollaborationTable(sentResult.error)) throw sentResult.error;
+
+  const receivedRows = receivedResult.error ? [] : receivedResult.data ?? [];
+  const receivedPendingInvites = receivedRows
+    .filter((invitation) => invitation.invitation_id && invitation.project_id && invitation.project_name)
+    .map((invitation) => ({
+      id: invitation.invitation_id,
+      projectId: invitation.project_id ?? "",
+      estimateId: invitation.estimate_id ?? null,
+      projectName: invitation.project_name ?? "Shared project",
+      projectCode: invitation.project_code ?? null,
+      estimateName: invitation.estimate_name ?? null,
+      role: normalizeCollaborationRole(invitation.role),
+      scope: normalizePendingInviteScope(invitation.scope),
+      inviterLabel: invitation.inviter_label ?? null,
+      state: invitation.state === "expired" ? "expired" as const : "pending" as const,
+      expiresAt: invitation.expires_at ?? null,
+      lastOpenedAt: invitation.last_opened_at ?? null,
+    }));
+  const sentRows = sentResult.error ? [] : sentResult.data ?? [];
+  for (const invitation of sentRows) {
+    sentPendingInviteCountByProjectId.set(
+      invitation.project_id,
+      (sentPendingInviteCountByProjectId.get(invitation.project_id) ?? 0) + 1,
+    );
+  }
+
+  return {
+    receivedPendingInvites,
+    receivedPendingInviteCount: receivedPendingInvites.filter((invite) => invite.state !== "expired").length,
+    sentPendingInviteCountByProjectId,
+  };
+}
+
+function createPendingInviteProjectListItem({
+  invite,
+  profileId,
+  workspaceId,
+}: {
+  invite: WorkshopPendingInviteSummary;
+  profileId: string;
+  workspaceId: string;
+}): WorkshopProjectListItem {
+  const timestamp = invite.lastOpenedAt ?? invite.expiresAt ?? new Date(0).toISOString();
+  return {
+    project: {
+      id: invite.projectId,
+      workspace_id: workspaceId,
+      name: invite.projectName,
+      client_name: invite.scope === "estimate" && invite.estimateName ? invite.estimateName : "Pending invite",
+      location: null,
+      project_code: invite.projectCode,
+      currency_code: "PHP",
+      metadata: {},
+      created_at: timestamp,
+      updated_at: timestamp,
+      created_by: profileId,
+    },
+    accessKind: "pending-invite",
+    currentUserRole: invite.role,
+    ownerWorkspaceName: invite.inviterLabel,
+    pendingInvite: invite,
+    pendingInviteCount: 0,
+    publicationSummary: null,
+    sharedEstimateCount: invite.scope === "estimate" ? 1 : 0,
+  };
+}
+
 async function readOptionalProjectPublication(
   supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
   projectId: string,
@@ -219,7 +419,7 @@ async function readOptionalProjectPublication(
   const { data, error } = await supabase
     .from("project_publications")
     .select(
-      "id, encrypted_token, password_hash, status, snapshot_version, selected_estimate_ids, published_at, expires_at, revoked_at, open_count, latest_opened_at",
+      "id, project_id, encrypted_token, password_hash, status, snapshot_json, snapshot_version, selected_estimate_ids, published_at, expires_at, revoked_at, open_count, latest_opened_at",
     )
     .eq("project_id", projectId)
     .order("published_at", { ascending: false })
@@ -234,7 +434,29 @@ async function readOptionalProjectPublication(
   return data;
 }
 
-function readPublicationClientLinkPath(publication: ProjectPublicationRow | null) {
+async function readOptionalProjectPublications(
+  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
+  projectIds: string[],
+): Promise<ProjectPublicationListRow[]> {
+  if (projectIds.length === 0) return [];
+
+  const { data, error } = await supabase
+    .from("project_publications")
+    .select(
+      "id, project_id, encrypted_token, password_hash, status, snapshot_version, published_at, expires_at, revoked_at, open_count, latest_opened_at",
+    )
+    .in("project_id", projectIds)
+    .order("published_at", { ascending: false });
+
+  if (error) {
+    if (isMissingOptionalCollaborationTable(error)) return [];
+    throw error;
+  }
+
+  return data ?? [];
+}
+
+function readPublicationClientLinkPath(publication: Pick<ProjectPublicationRow, "encrypted_token"> | null) {
   if (!publication) return null;
   try {
     return `/share/${decryptPublicationToken(publication.encrypted_token, readPublicationTokenEncryptionSecret())}`;
@@ -243,12 +465,133 @@ function readPublicationClientLinkPath(publication: ProjectPublicationRow | null
   }
 }
 
-function readPublicationStatus(publication: ProjectPublicationRow | null): ProjectPublicationSummary["status"] {
+function readPublicationStatus(
+  publication: Pick<ProjectPublicationRow, "expires_at" | "revoked_at" | "status"> | null,
+): ProjectPublicationSummary["status"] {
   if (!publication) return "unpublished";
   if (publication.revoked_at || publication.status === "revoked") return "revoked";
   if (publication.status === "expired") return "expired";
   if (publication.expires_at && new Date(publication.expires_at).getTime() <= Date.now()) return "expired";
   return "published";
+}
+
+function readProjectPublicationListSummary(publication: ProjectPublicationListRow | null): ProjectPublicationListSummary | null {
+  if (!publication) return null;
+
+  const status = readPublicationStatus(publication);
+  return {
+    status,
+    clientLinkPath: status === "published" ? readPublicationClientLinkPath(publication) : null,
+    openCount: publication.open_count ?? 0,
+    latestOpenedAt: publication.latest_opened_at ?? null,
+    passwordRequired: Boolean(publication.password_hash),
+  };
+}
+
+function readSnapshotGeneratedAt(snapshot: Json | null | undefined) {
+  if (!snapshot || typeof snapshot !== "object" || Array.isArray(snapshot)) return null;
+  const generatedAt = snapshot.generatedAt;
+  return typeof generatedAt === "string" && Number.isFinite(Date.parse(generatedAt)) ? generatedAt : null;
+}
+
+const PUBLICATION_SNAPSHOT_STALENESS_CACHE_TTL_MS = 5 * 60 * 1000;
+const publicationSnapshotStalenessCache = new Map<
+  string,
+  {
+    expiresAt: number;
+    value: ProjectPublicationSummary["staleSnapshotWarning"];
+  }
+>();
+
+function computePublicationSnapshotStaleness({
+  latestEstimateUpdatedAt,
+  snapshotGeneratedAt,
+}: {
+  latestEstimateUpdatedAt: string | null;
+  snapshotGeneratedAt: string | null;
+}): ProjectPublicationSummary["staleSnapshotWarning"] {
+  if (!latestEstimateUpdatedAt || !snapshotGeneratedAt) return null;
+
+  const latestTime = Date.parse(latestEstimateUpdatedAt);
+  const snapshotTime = Date.parse(snapshotGeneratedAt);
+  if (!Number.isFinite(latestTime) || !Number.isFinite(snapshotTime) || latestTime <= snapshotTime) return null;
+
+  const daysBehind = Math.floor((latestTime - snapshotTime) / (24 * 60 * 60 * 1000));
+  if (daysBehind <= 7) return null;
+
+  return {
+    daysBehind,
+    latestEstimateUpdatedAt,
+    snapshotGeneratedAt,
+  };
+}
+
+export function readPublicationSnapshotStaleness({
+  latestEstimateUpdatedAt,
+  snapshotGeneratedAt,
+}: {
+  latestEstimateUpdatedAt: string | null;
+  snapshotGeneratedAt: string | null;
+}): ProjectPublicationSummary["staleSnapshotWarning"] {
+  const cacheKey = `${latestEstimateUpdatedAt ?? "none"}:${snapshotGeneratedAt ?? "none"}`;
+  const now = Date.now();
+  const cached = publicationSnapshotStalenessCache.get(cacheKey);
+  if (cached && cached.expiresAt > now) return cached.value;
+  if (cached) publicationSnapshotStalenessCache.delete(cacheKey);
+
+  const value = computePublicationSnapshotStaleness({ latestEstimateUpdatedAt, snapshotGeneratedAt });
+  publicationSnapshotStalenessCache.set(cacheKey, {
+    expiresAt: now + PUBLICATION_SNAPSHOT_STALENESS_CACHE_TTL_MS,
+    value,
+  });
+  return value;
+}
+
+async function readLatestEstimateUpdatedAt(
+  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
+  projectId: string,
+  estimateIds: string[],
+) {
+  let query = supabase
+    .from("estimates")
+    .select("updated_at")
+    .eq("project_id", projectId)
+    .order("updated_at", { ascending: false })
+    .limit(1);
+
+  if (estimateIds.length > 0) query = query.in("id", estimateIds);
+
+  const { data, error } = await query.maybeSingle();
+  if (error) throw error;
+  return data?.updated_at ?? null;
+}
+
+async function readLatestSharedLinkRecipientOpen(
+  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
+  publicationId: string | null | undefined,
+): Promise<ProjectPublicationSummary["latestRecipientOpen"]> {
+  if (!publicationId) return null;
+
+  const { data, error } = await supabase
+    .from("shared_link_recipients")
+    .select("email, display_name, last_opened_at")
+    .eq("publication_id", publicationId)
+    .not("last_opened_at", "is", null)
+    .order("last_opened_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) {
+    if (isMissingOptionalCollaborationTable(error)) return null;
+    throw error;
+  }
+  if (!data?.email || !data.last_opened_at) return null;
+
+  return {
+    email: data.email,
+    displayName: data.display_name ?? null,
+    openedAt: data.last_opened_at,
+  };
 }
 
 async function readCollaborationProfiles(
@@ -416,38 +759,20 @@ export async function listCurrentWorkspaceProjects() {
     sharedProjects = data ?? [];
   }
 
-  const sheetCountByProjectId = new Map<string, number>();
-  const sheetRoleByProjectId = new Map<string, CollaborationRole>();
-  for (const member of sheetMembers) {
-    sheetCountByProjectId.set(member.project_id, (sheetCountByProjectId.get(member.project_id) ?? 0) + 1);
-    sheetRoleByProjectId.set(member.project_id, readHighestCollaborationRole(sheetRoleByProjectId.get(member.project_id), member.role));
-  }
+  const resolveProjectAccess = createWorkshopProjectAccessResolver({
+    profileId: profile.id,
+    projectMembers,
+    sheetMembers,
+    workspace,
+    workspaceRole,
+  });
 
-  const projectRoleByProjectId = new Map(projectMembers.map((member) => [member.project_id, member.role]));
   function createProjectListItem(project: Tables<"projects">): WorkshopProjectListItem {
-    const projectRole = projectRoleByProjectId.get(project.id);
-    const sheetRole = sheetRoleByProjectId.get(project.id);
-    const ownsProjectThroughWorkspace = Boolean(workspaceRole) || project.created_by === profile.id;
-    const accessKind: WorkshopProjectAccessKind = ownsProjectThroughWorkspace
-      ? "owned"
-      : projectRole
-        ? "project-member"
-        : sheetRole
-          ? "sheet-member"
-          : "owned";
-
     return {
       project,
-      accessKind,
-      currentUserRole: accessKind === "owned"
-        ? workspaceRole ?? projectRole ?? "owner"
-        : projectRole ?? sheetRole ?? "viewer",
-      ownerWorkspaceName: accessKind === "owned"
-        ? null
-        : project.workspace_id === workspace.id
-          ? workspace.name
-          : null,
-      sharedEstimateCount: sheetCountByProjectId.get(project.id) ?? 0,
+      ...resolveProjectAccess(project),
+      pendingInviteCount: 0,
+      publicationSummary: null,
     };
   }
 
@@ -457,10 +782,48 @@ export async function listCurrentWorkspaceProjects() {
       return createProjectListItem(project);
     }),
   ];
+  const publicationRows = await readOptionalProjectPublications(
+    supabase,
+    Array.from(new Set(projectItems.map((item) => item.project.id))),
+  );
+  const publicationByProjectId = new Map<string, ProjectPublicationListRow>();
+  for (const publication of publicationRows) {
+    if (!publicationByProjectId.has(publication.project_id)) {
+      publicationByProjectId.set(publication.project_id, publication);
+    }
+  }
+  const pendingInviteVisibility = await readPendingCollaborationVisibilitySummary({
+    email: profile.email,
+    projectIds: projectItems
+      .filter((item) => canManageCollaborationRole(item.currentUserRole))
+      .map((item) => item.project.id),
+    supabase,
+  });
+  const acceptedProjectIds = new Set(projectItems.map((item) => item.project.id));
+  const pendingInviteItemsByProjectId = new Map<string, WorkshopProjectListItem>();
+  for (const invite of pendingInviteVisibility.receivedPendingInvites) {
+    if (acceptedProjectIds.has(invite.projectId) || pendingInviteItemsByProjectId.has(invite.projectId)) continue;
+    pendingInviteItemsByProjectId.set(
+      invite.projectId,
+      createPendingInviteProjectListItem({
+        invite,
+        profileId: profile.id,
+        workspaceId: workspace.id,
+      }),
+    );
+  }
 
   return {
     workspace,
-    projects: projectItems,
+    projects: [
+      ...projectItems.map((item) => ({
+        ...item,
+        pendingInvite: null,
+        pendingInviteCount: pendingInviteVisibility.sentPendingInviteCountByProjectId.get(item.project.id) ?? 0,
+        publicationSummary: readProjectPublicationListSummary(publicationByProjectId.get(item.project.id) ?? null),
+      })),
+      ...pendingInviteItemsByProjectId.values(),
+    ],
     favoriteProjectIds: (favoritesResult.data ?? []).map((favorite) => favorite.project_id),
   };
 }
@@ -500,7 +863,14 @@ export async function getWorkshopHomebaseData(): Promise<WorkshopHomebaseData> {
   const { workspace, profile } = await ensureDefaultWorkspace();
   const supabase = await createSupabaseServerClient();
 
-  const [projectFavoritesResult, estimateFavoritesResult, recentProjectsResult] = await Promise.all([
+  const [
+    projectFavoritesResult,
+    estimateFavoritesResult,
+    recentProjectsResult,
+    projectMembersResult,
+    sheetMembersResult,
+    workspaceMembershipResult,
+  ] = await Promise.all([
     supabase
       .from("project_favorites")
       .select("project_id, created_at")
@@ -517,15 +887,32 @@ export async function getWorkshopHomebaseData(): Promise<WorkshopHomebaseData> {
       .limit(WORKSHOP_HOMEBASE_ITEM_LIMIT),
     supabase
       .from("projects")
-      .select("id, name, client_name, project_code, location, updated_at")
+      .select("id, name, client_name, project_code, location, updated_at, workspace_id, created_by")
       .eq("workspace_id", workspace.id)
       .order("updated_at", { ascending: false })
       .limit(WORKSHOP_HOMEBASE_ITEM_LIMIT),
+    supabase
+      .from("project_members")
+      .select("project_id, workspace_id, role, user_id")
+      .eq("user_id", profile.id),
+    supabase
+      .from("estimate_sheet_members")
+      .select("estimate_id, project_id, role, user_id")
+      .eq("user_id", profile.id),
+    supabase
+      .from("workspace_members")
+      .select("role")
+      .eq("workspace_id", workspace.id)
+      .eq("user_id", profile.id)
+      .maybeSingle(),
   ]);
 
   if (projectFavoritesResult.error) throw projectFavoritesResult.error;
   if (estimateFavoritesResult.error) throw estimateFavoritesResult.error;
   if (recentProjectsResult.error) throw recentProjectsResult.error;
+  if (projectMembersResult.error && !isMissingOptionalCollaborationTable(projectMembersResult.error)) throw projectMembersResult.error;
+  if (sheetMembersResult.error && !isMissingOptionalCollaborationTable(sheetMembersResult.error)) throw sheetMembersResult.error;
+  if (workspaceMembershipResult.error) throw workspaceMembershipResult.error;
 
   const projectFavoriteCreatedAt = new Map(
     (projectFavoritesResult.data ?? []).map((favorite) => [favorite.project_id, favorite.created_at]),
@@ -535,18 +922,39 @@ export async function getWorkshopHomebaseData(): Promise<WorkshopHomebaseData> {
   );
   const favoriteProjectIds = Array.from(projectFavoriteCreatedAt.keys());
   const favoriteEstimateIds = Array.from(estimateFavoriteCreatedAt.keys());
+  const projectMembers = (projectMembersResult.error ? [] : projectMembersResult.data ?? []) as ProjectMemberRow[];
+  const sheetMembers = (sheetMembersResult.error ? [] : sheetMembersResult.data ?? []) as EstimateSheetMemberRow[];
+  const workspaceRole = workspaceMembershipResult.data?.role
+    ? mapWorkspaceRoleToCollaborationRole(workspaceMembershipResult.data.role)
+    : null;
+  const resolveProjectAccess = createWorkshopProjectAccessResolver({
+    profileId: profile.id,
+    projectMembers,
+    sheetMembers,
+    workspace,
+    workspaceRole,
+  });
 
   let favoriteProjects: WorkshopProjectRecord[] = [];
   if (favoriteProjectIds.length > 0) {
     const { data, error } = await supabase
       .from("projects")
-      .select("id, name, client_name, project_code, location, updated_at")
-      .eq("workspace_id", workspace.id)
+      .select("id, name, client_name, project_code, location, updated_at, workspace_id, created_by")
       .in("id", favoriteProjectIds);
 
     if (error) throw error;
     favoriteProjects = data ?? [];
   }
+
+  const visibleFavoriteProjectIds = new Set(favoriteProjects.map((project) => project.id));
+  const removedProjectFavorites = favoriteProjectIds
+    .filter((projectId) => !visibleFavoriteProjectIds.has(projectId))
+    .map((projectId) => ({
+      id: projectId,
+      name: null,
+      projectCode: null,
+      favoriteCreatedAt: projectFavoriteCreatedAt.get(projectId) ?? null,
+    }));
 
   const projects = mergeHomebaseRecords(
     sortByFavoriteCreatedAt(favoriteProjects, projectFavoriteCreatedAt),
@@ -587,8 +995,7 @@ export async function getWorkshopHomebaseData(): Promise<WorkshopHomebaseData> {
   if (missingProjectIds.length > 0) {
     const { data, error } = await supabase
       .from("projects")
-      .select("id, name, client_name, project_code, location, updated_at")
-      .eq("workspace_id", workspace.id)
+      .select("id, name, client_name, project_code, location, updated_at, workspace_id, created_by")
       .in("id", missingProjectIds);
 
     if (error) throw error;
@@ -596,6 +1003,23 @@ export async function getWorkshopHomebaseData(): Promise<WorkshopHomebaseData> {
   }
 
   const projectById = new Map(projects.map((project) => [project.id, project]));
+  const homebasePublicationRows = await readOptionalProjectPublications(
+    supabase,
+    Array.from(new Set(projects.map((project) => project.id))),
+  );
+  const homebasePublicationByProjectId = new Map<string, ProjectPublicationListRow>();
+  for (const publication of homebasePublicationRows) {
+    if (!homebasePublicationByProjectId.has(publication.project_id)) {
+      homebasePublicationByProjectId.set(publication.project_id, publication);
+    }
+  }
+  const pendingInviteVisibility = await readPendingCollaborationVisibilitySummary({
+    email: profile.email,
+    projectIds: projects
+      .filter((project) => canManageCollaborationRole(resolveProjectAccess(project).currentUserRole))
+      .map((project) => project.id),
+    supabase,
+  });
   const estimateIds = estimates.map((estimate) => estimate.id);
   let firstNodeByEstimateId = new Map<string, string>();
   if (estimateIds.length > 0) {
@@ -611,11 +1035,22 @@ export async function getWorkshopHomebaseData(): Promise<WorkshopHomebaseData> {
 
   return {
     workspace,
-    projects: projects.map((project) => ({
-      ...project,
-      isFavorite: projectFavoriteCreatedAt.has(project.id),
-      favoriteCreatedAt: projectFavoriteCreatedAt.get(project.id) ?? null,
-    })),
+    projects: projects.map((project) => {
+      const access = resolveProjectAccess(project);
+      return {
+        id: project.id,
+        name: project.name,
+        client_name: project.client_name,
+        project_code: project.project_code,
+        location: project.location,
+        updated_at: project.updated_at,
+        ...access,
+        isFavorite: projectFavoriteCreatedAt.has(project.id),
+        favoriteCreatedAt: projectFavoriteCreatedAt.get(project.id) ?? null,
+        pendingInviteCount: pendingInviteVisibility.sentPendingInviteCountByProjectId.get(project.id) ?? 0,
+        publicationSummary: readProjectPublicationListSummary(homebasePublicationByProjectId.get(project.id) ?? null),
+      };
+    }),
     estimates: estimates.map((estimate) => {
       const project = projectById.get(estimate.project_id);
       return {
@@ -631,6 +1066,9 @@ export async function getWorkshopHomebaseData(): Promise<WorkshopHomebaseData> {
         favoriteCreatedAt: estimateFavoriteCreatedAt.get(estimate.id) ?? null,
       };
     }),
+    pendingInvites: pendingInviteVisibility.receivedPendingInvites,
+    removedProjectFavorites,
+    receivedPendingInviteCount: pendingInviteVisibility.receivedPendingInviteCount,
   };
 }
 
@@ -855,6 +1293,16 @@ export async function getProjectPublicationSummary(projectId: string): Promise<P
   const canManagePublication = profile.role === "ceo" || profile.role === "admin" || canManageCollaborationRole(currentUserRole);
   const publicationStatus = readPublicationStatus(publication);
   const clientLinkPath = publicationStatus === "published" ? readPublicationClientLinkPath(publication) : null;
+  const [latestEstimateUpdatedAt, latestRecipientOpen] = publication
+    ? await Promise.all([
+        readLatestEstimateUpdatedAt(supabase, project.id, publication.selected_estimate_ids ?? []),
+        readLatestSharedLinkRecipientOpen(supabase, publication.id),
+      ])
+    : [null, null];
+  const staleSnapshotWarning = readPublicationSnapshotStaleness({
+    latestEstimateUpdatedAt,
+    snapshotGeneratedAt: readSnapshotGeneratedAt(publication?.snapshot_json),
+  });
 
   return {
     projectId: project.id,
@@ -871,6 +1319,8 @@ export async function getProjectPublicationSummary(projectId: string): Promise<P
     snapshotVersion: publication?.snapshot_version ?? 0,
     openCount: publication?.open_count ?? 0,
     latestOpenedAt: publication?.latest_opened_at ?? null,
+    latestRecipientOpen,
+    staleSnapshotWarning,
   };
 }
 

@@ -1,7 +1,9 @@
 "use server";
 
+import { createHash } from "node:crypto";
 import { createClient } from "@supabase/supabase-js";
 import { revalidatePath } from "next/cache";
+import { headers } from "next/headers";
 
 import { requireCurrentUserContext } from "@/lib/auth/session";
 import { isUuid } from "@/lib/ids";
@@ -15,7 +17,7 @@ import {
   readPublicationTokenHashSecret,
 } from "@/lib/publication/security";
 import { buildProjectPublicationSnapshot } from "@/lib/publication/snapshot";
-import type { Database, Tables } from "@/lib/supabase/types";
+import type { Database, Json, Tables } from "@/lib/supabase/types";
 import { sendEmail } from "@/lib/email/resend-client";
 import { normalizeEstimateTreeNodeKind } from "@/lib/estimates/tree-hierarchy";
 
@@ -27,6 +29,8 @@ type PublicationActionResult = {
 
 type PublicationManagerContext = {
   admin: ReturnType<typeof createPublicationAdminClient>;
+  currentUserDisplayName: string;
+  currentUserEmail: string;
   currentUserId: string;
   project: Pick<Tables<"projects">, "client_name" | "currency_code" | "id" | "location" | "name" | "project_code" | "workspace_id" | "metadata">;
 };
@@ -42,16 +46,32 @@ type EstimateRowSource = Pick<
   | "id"
   | "material"
   | "misc_cost"
+  | "node_id"
   | "quantity"
   | "unit"
   | "unit_cost"
   // P9: for source_snapshot.imageUrl extraction (additive to Pick)
   | "source_snapshot"
 >;
+type EstimateNodeSource = {
+  id: string;
+  name: string;
+  kind: string;
+  parent_id: string | null;
+  sort_order: number;
+  estimate_id: string;
+};
 type LatestPublication = Pick<
   Tables<"project_publications">,
   "encrypted_token" | "expires_at" | "id" | "password_hash" | "selected_estimate_ids" | "snapshot_version"
 >;
+type PublicationEmailIdentity = {
+  email: string;
+  label: string;
+};
+type HeaderReader = {
+  get(name: string): string | null;
+};
 
 const roleRank = {
   owner: 40,
@@ -60,6 +80,8 @@ const roleRank = {
   viewer: 10,
 } as const;
 const managerRank = roleRank.admin;
+const SHARED_LINK_RECIPIENT_RESEND_SCOPE = "shared_link_recipient_resend";
+const SHARED_LINK_RECIPIENT_RESEND_WINDOW_SECONDS = 5 * 60;
 
 function createPublicationAdminClient() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
@@ -135,9 +157,163 @@ async function assertProjectPublicationManager(projectId: string): Promise<Publi
 
   return {
     admin,
+    currentUserDisplayName: currentUser.displayName,
+    currentUserEmail: currentUser.email,
     currentUserId: currentUser.userId,
     project,
   };
+}
+
+function readPublicationSenderIdentity(context: PublicationManagerContext): PublicationEmailIdentity {
+  const email = context.currentUserEmail.trim().toLowerCase();
+  const displayName = context.currentUserDisplayName.trim();
+  return {
+    email,
+    label: displayName && displayName.toLowerCase() !== email ? displayName : "An Archestimator user",
+  };
+}
+
+function escapePublicationEmailHtml(value: string): string {
+  return value
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#39;");
+}
+
+function readPublicationComplianceEmail(fallbackEmail: string): string {
+  const replyTo = process.env.RESEND_REPLY_TO?.trim().toLowerCase();
+  if (replyTo && isValidEmail(replyTo)) return replyTo;
+
+  const from = process.env.RESEND_FROM?.trim();
+  const fromMatch = from?.match(/<([^>]+)>/);
+  const fromEmail = (fromMatch?.[1] ?? from)?.trim().toLowerCase();
+  if (fromEmail && isValidEmail(fromEmail)) return fromEmail;
+
+  return fallbackEmail;
+}
+
+function buildPublicationEmailComplianceFooter({
+  recipientEmail,
+  sender,
+  senderEmail,
+  projectName,
+  unsubscribeHref,
+}: {
+  recipientEmail: string;
+  sender: string;
+  senderEmail: string;
+  projectName: string;
+  unsubscribeHref?: string | null;
+}) {
+  const complianceEmail = readPublicationComplianceEmail(senderEmail);
+  const mailtoHref = `mailto:${complianceEmail}?subject=${encodeURIComponent(`Unsubscribe from ${projectName} shared link updates`)}`;
+  const directUnsubscribeHref = unsubscribeHref?.trim() || mailtoHref;
+  const recipientContext = recipientEmail ? ` at ${recipientEmail}` : "";
+  const text =
+    `\n\nYou received this email because ${sender} shared an Archestimator project link${recipientContext}. ` +
+    `To unsubscribe from follow-up emails for this shared link, email ${complianceEmail} or use: ${directUnsubscribeHref}`;
+  const html = `<hr style="border:0;border-top:1px solid #e5e5e5;margin:20px 0;" /><p style="color:#666;font-size:12px;line-height:1.5;">You received this email because ${escapePublicationEmailHtml(sender)} shared an Archestimator project link${escapePublicationEmailHtml(recipientContext)}. To <a href="${escapePublicationEmailHtml(directUnsubscribeHref)}" style="color:#292929;">unsubscribe</a> from follow-up emails for this shared link, email <a href="mailto:${escapePublicationEmailHtml(complianceEmail)}" style="color:#292929;">${escapePublicationEmailHtml(complianceEmail)}</a>.</p>`;
+
+  return { text, html };
+}
+
+function buildSharedLinkRecipientActionHref(linkBase: string, action: "unsubscribe", rawToken: string) {
+  try {
+    const parsed = new URL(linkBase, "https://archestimator.local");
+    const [surface, shareToken] = parsed.pathname.split("/").filter(Boolean);
+    if (surface !== "share" || !shareToken) return null;
+
+    const href = `/api/share/${encodeURIComponent(shareToken)}/${action}?recipient=${encodeURIComponent(rawToken)}`;
+    return linkBase.startsWith("http://") || linkBase.startsWith("https://")
+      ? `${parsed.origin}${href}`
+      : href;
+  } catch {
+    return null;
+  }
+}
+
+async function resolvePublicationDigestOwner(
+  admin: ReturnType<typeof createPublicationAdminClient>,
+  publicationId: string,
+): Promise<PublicationEmailIdentity | null> {
+  const { data: publication, error: publicationError } = await admin
+    .from("project_publications")
+    .select("id, project_id, published_by")
+    .eq("id", publicationId)
+    .maybeSingle();
+
+  if (publicationError) throw publicationError;
+  if (!publication?.project_id) return null;
+
+  const { data: project, error: projectError } = await admin
+    .from("projects")
+    .select("id, workspace_id, created_by")
+    .eq("id", publication.project_id)
+    .maybeSingle();
+  if (projectError) throw projectError;
+  if (!project) return null;
+
+  const { data: workspaceOwners, error: workspaceOwnerError } = await admin
+    .from("workspace_members")
+    .select("user_id")
+    .eq("workspace_id", project.workspace_id)
+    .eq("role", "owner")
+    .limit(10);
+  if (workspaceOwnerError) throw workspaceOwnerError;
+
+  const ownerIds = (workspaceOwners ?? []).map((owner) => owner.user_id);
+  if (ownerIds.length) {
+    const { data: ownerProfiles, error: ownerProfilesError } = await admin
+      .from("profiles")
+      .select("id, email, display_name")
+      .in("id", ownerIds);
+    if (ownerProfilesError) throw ownerProfilesError;
+
+    const ownerProfile = ownerProfiles?.find((profile) => Boolean(profile.email));
+    if (ownerProfile?.email) {
+      const displayName = ownerProfile.display_name?.trim() ?? "";
+      return {
+        email: ownerProfile.email.trim().toLowerCase(),
+        label: displayName || ownerProfile.email,
+      };
+    }
+  }
+
+  if (project.created_by) {
+    const { data: creatorProfile, error: creatorProfileError } = await admin
+      .from("profiles")
+      .select("email, display_name")
+      .eq("id", project.created_by)
+      .maybeSingle();
+    if (creatorProfileError) throw creatorProfileError;
+    if (creatorProfile?.email) {
+      const displayName = creatorProfile.display_name?.trim() ?? "";
+      return {
+        email: creatorProfile.email.trim().toLowerCase(),
+        label: displayName || creatorProfile.email,
+      };
+    }
+  }
+
+  if (publication.published_by) {
+    const { data: publisherProfile, error: publisherProfileError } = await admin
+      .from("profiles")
+      .select("email, display_name")
+      .eq("id", publication.published_by)
+      .maybeSingle();
+    if (publisherProfileError) throw publisherProfileError;
+    if (publisherProfile?.email) {
+      const displayName = publisherProfile.display_name?.trim() ?? "";
+      return {
+        email: publisherProfile.email.trim().toLowerCase(),
+        label: displayName || publisherProfile.email,
+      };
+    }
+  }
+
+  return null;
 }
 
 async function readLatestProjectPublication(context: PublicationManagerContext): Promise<LatestPublication | null> {
@@ -195,7 +371,7 @@ async function buildSnapshotForProject(context: PublicationManagerContext, selec
       rowsByEstimateId.set(row.estimate_id, current);
     }
 
-    for (const node of (nodes ?? []) as any[]) {
+    for (const node of (nodes ?? []) as EstimateNodeSource[]) {
       const current = nodesByEstimateId.get(node.estimate_id) ?? [];
       current.push(node);
       nodesByEstimateId.set(node.estimate_id, current);
@@ -213,8 +389,8 @@ async function buildSnapshotForProject(context: PublicationManagerContext, selec
       currencyCode: context.project.currency_code,
       // P9: capture cover for receiver hero (from metadata at publish; additive)
       coverImageUrl:
-        (context.project as any)?.metadata?.projectImageUrl ??
-        (context.project as any)?.metadata?.coverImageUrl ??
+        readStringMetadataValue(context.project.metadata, "projectImageUrl") ??
+        readStringMetadataValue(context.project.metadata, "coverImageUrl") ??
         null,
     },
     estimates: estimateRows.map((estimate) => ({
@@ -223,11 +399,10 @@ async function buildSnapshotForProject(context: PublicationManagerContext, selec
       sheetCode: estimate.sheet_code,
       updatedAt: estimate.updated_at,
       rows: (rowsByEstimateId.get(estimate.id) ?? []).map((row) => {
-        const snap = (row as any).source_snapshot as Record<string, unknown> | null | undefined;
-        const imageUrl = typeof snap?.imageUrl === "string" ? snap.imageUrl : undefined;
+        const imageUrl = readStringMetadataValue(row.source_snapshot, "imageUrl") ?? undefined;
         return {
           id: row.id,
-          nodeId: (row as any).node_id as string | undefined,
+          nodeId: row.node_id ?? undefined,
           description: row.description,
           designation: row.designation,
           discipline: row.discipline,
@@ -261,6 +436,12 @@ function revalidatePublicationRoutes(projectId: string, ...clientLinkPaths: Arra
   for (const clientLinkPath of clientLinkPaths) {
     if (clientLinkPath) revalidatePath(clientLinkPath);
   }
+}
+
+function readStringMetadataValue(metadata: Json | null | undefined, key: string) {
+  if (!metadata || typeof metadata !== "object" || Array.isArray(metadata)) return null;
+  const value = metadata[key];
+  return typeof value === "string" ? value : null;
 }
 
 function readClientLinkPath(publication: Pick<LatestPublication, "encrypted_token">) {
@@ -435,7 +616,7 @@ export async function revokeProjectPublication({ projectId }: { projectId: strin
 // addSharedLinkRecipients + removeSharedLinkRecipient (Security Definer style via admin client)
 // + list helper for manager display. Graceful Resend failures: inserts succeed, emails best-effort.
 // Uses same token/hash primitives as publication tokens for recipient_token_hash.
-// Recipient link: base share link + ?rt=<raw-token> (receiver ignores unknown query for backwards compat).
+// Recipient link: base share link + ?recipient=<raw-token>. The receiver also accepts legacy ?rt links.
 // ============================================================================
 
 // Temporary local shape until supabase types regen (Docker blocked per P3; casts keep compile)
@@ -446,16 +627,27 @@ interface SharedLinkRecipientRow {
   publication_id: string;
   email: string;
   display_name: string | null;
+  email_unsubscribed_at: string | null;
   invited_by: string | null;
   invited_at: string;
   recipient_token_hash: string;
   delivery_status: RecipientDeliveryStatus;
   last_opened_at: string | null;
+  resend_delivery_metadata: Json;
+  resend_email_id: string | null;
+  resend_last_event_at: string | null;
+  resend_last_event_id: string | null;
+  resend_last_event_type: string | null;
   created_at: string;
   updated_at: string;
 }
 
 type RecipientInput = { email: string; displayName?: string };
+
+function normalizeRecipientDeliveryStatus(status: string): RecipientDeliveryStatus {
+  if (status === "sent" || status === "bounced" || status === "opened" || status === "responded") return status;
+  return "pending";
+}
 
 function normalizeEmail(e: string): string {
   return e.trim().toLowerCase();
@@ -464,6 +656,143 @@ function normalizeEmail(e: string): string {
 function isValidEmail(email: string): boolean {
   // Simple RFC-ish check sufficient for MVP (no external dep)
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
+
+function getClientIp(headersList: HeaderReader) {
+  const forwardedFor = headersList.get("x-forwarded-for");
+  if (forwardedFor) return forwardedFor.split(",")[0]?.trim() || "unknown";
+  return headersList.get("x-real-ip") || headersList.get("cf-connecting-ip") || "unknown";
+}
+
+function hashPublicationRateLimitKey(scope: string, parts: string[]) {
+  return createHash("sha256")
+    .update([scope, ...parts.map((part) => part.trim() || "-")].join("\u001f"))
+    .digest("base64url");
+}
+
+function publicationRateLimitMessage(retryAfter: number) {
+  return `Too many attempts. Please wait ${retryAfter} seconds.`;
+}
+
+async function checkPublicationActionRateLimit({
+  admin,
+  headersList,
+  keyParts,
+  limit,
+  metadata,
+  scope,
+  windowSeconds,
+}: {
+  admin: ReturnType<typeof createPublicationAdminClient>;
+  headersList: HeaderReader;
+  keyParts: string[];
+  limit: number;
+  metadata: Record<string, string>;
+  scope: string;
+  windowSeconds: number;
+}): Promise<{ allowed: true } | { allowed: false; message: string; retryAfter: number }> {
+  const keyHash = hashPublicationRateLimitKey(scope, [
+    createHash("sha256").update(getClientIp(headersList)).digest("base64url"),
+    ...keyParts,
+  ]);
+  const now = Date.now();
+  const windowStart = new Date(now - windowSeconds * 1000).toISOString();
+  const expiresAt = new Date(now + windowSeconds * 1000).toISOString();
+
+  const { error: cleanupError } = await admin
+    .from("security_rate_limit_events")
+    .delete()
+    .lt("expires_at", new Date().toISOString());
+  if (cleanupError) throw cleanupError;
+
+  const { error: insertError } = await admin.from("security_rate_limit_events").insert({
+    scope,
+    key_hash: keyHash,
+    metadata_json: metadata as Json,
+    expires_at: expiresAt,
+  });
+  if (insertError) throw insertError;
+
+  const { count, error: countError } = await admin
+    .from("security_rate_limit_events")
+    .select("id", { count: "exact", head: true })
+    .eq("scope", scope)
+    .eq("key_hash", keyHash)
+    .gte("occurred_at", windowStart);
+  if (countError) throw countError;
+
+  if ((count ?? 0) > limit) {
+    return { allowed: false, message: publicationRateLimitMessage(windowSeconds), retryAfter: windowSeconds };
+  }
+  return { allowed: true };
+}
+
+async function checkSharedLinkRecipientResendRateLimit({
+  admin,
+  headersList,
+  publicationId,
+  recipientId,
+  userId,
+}: {
+  admin: ReturnType<typeof createPublicationAdminClient>;
+  headersList: HeaderReader;
+  publicationId: string;
+  recipientId: string;
+  userId: string;
+}) {
+  return checkPublicationActionRateLimit({
+    admin,
+    headersList,
+    keyParts: [userId, publicationId, recipientId],
+    limit: 1,
+    metadata: { publication_id: publicationId, recipient_id: recipientId, route: SHARED_LINK_RECIPIENT_RESEND_SCOPE },
+    scope: SHARED_LINK_RECIPIENT_RESEND_SCOPE,
+    windowSeconds: SHARED_LINK_RECIPIENT_RESEND_WINDOW_SECONDS,
+  });
+}
+
+async function sendSharedLinkRecipientInvitationEmail({
+  linkBase,
+  projectName,
+  publicationId,
+  rawToken,
+  recipientEmail,
+  recipientId,
+  senderIdentity,
+}: {
+  linkBase: string;
+  projectName: string;
+  publicationId: string;
+  rawToken: string;
+  recipientEmail: string;
+  recipientId: string;
+  senderIdentity: PublicationEmailIdentity;
+}) {
+  const recipientLink = `${linkBase}${linkBase.includes("?") ? "&" : "?"}recipient=${encodeURIComponent(rawToken)}`;
+  const unsubscribeHref = buildSharedLinkRecipientActionHref(linkBase, "unsubscribe", rawToken);
+  const sender = senderIdentity.label;
+  const subject = `Project Estimate: ${projectName} shared by ${sender}`;
+  const complianceFooter = buildPublicationEmailComplianceFooter({
+    recipientEmail,
+    sender,
+    senderEmail: senderIdentity.email,
+    projectName,
+    unsubscribeHref,
+  });
+  const textBody = `Hello,\n\n${sender} has shared a view-only estimate for the project "${projectName}" with you.\n\nYou can view the estimate using the following link:\n${recipientLink}\n\nIf you have any questions, please contact ${sender} at ${senderIdentity.email}.\n\nBest regards,\nThe Archestimator Team${complianceFooter.text}`;
+  const htmlBody = `<!doctype html><html><body style="font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color:#333; line-height:1.5; font-size:14px;"><p>Hello,</p><p><strong>${escapePublicationEmailHtml(sender)}</strong> has shared a view-only estimate for the project <strong>${escapePublicationEmailHtml(projectName)}</strong> with you.</p><p style="margin:16px 0;"><a href="${escapePublicationEmailHtml(recipientLink)}" style="background:#292929;color:#fff;padding:10px 16px;text-decoration:none;border-radius:3px;display:inline-block;font-weight:500;">View Project Estimate</a></p><p>If you have any questions, please contact ${escapePublicationEmailHtml(sender)} directly.</p><p>Best regards,<br>The Archestimator Team</p>${complianceFooter.html}</body></html>`;
+
+  return sendEmail({
+    to: recipientEmail,
+    subject,
+    text: textBody,
+    html: htmlBody,
+    tags: [
+      { name: "archestimator_surface", value: "shared_link" },
+      { name: "publication_id", value: publicationId },
+      { name: "shared_link_recipient_id", value: recipientId },
+    ],
+  });
 }
 
 async function getPublicationProjectId(admin: ReturnType<typeof createPublicationAdminClient>, publicationId: string): Promise<{ projectId: string; workspaceId: string; clientLinkPath?: string | null }> {
@@ -494,12 +823,15 @@ export async function listSharedLinkRecipients({ publicationId }: { publicationI
   await assertProjectPublicationManager(pubCtx.projectId); // reuses RBAC
 
   const { data, error } = await admin
-    .from("shared_link_recipients" as any)
+    .from("shared_link_recipients")
     .select("*")
     .eq("publication_id", publicationId)
     .order("created_at", { ascending: false });
   if (error) throw error;
-  return (data ?? []) as any as SharedLinkRecipientRow[];
+  return (data ?? []).map((row) => ({
+    ...row,
+    delivery_status: normalizeRecipientDeliveryStatus(row.delivery_status),
+  }));
 }
 
 export async function addSharedLinkRecipients({
@@ -531,6 +863,7 @@ export async function addSharedLinkRecipients({
   let added = 0;
   const failedEmails: string[] = [];
   const secret = readPublicationTokenHashSecret();
+  const senderIdentity = readPublicationSenderIdentity(context);
 
   // Fetch project name for email copy (best effort)
   let projectName = "your project";
@@ -546,14 +879,18 @@ export async function addSharedLinkRecipients({
       const tokenHash = hashPublicationToken(rawToken, secret);
 
       // Insert (idempotent per unique pub+lower(email) index)
-      const { error: insertErr } = await admin.from("shared_link_recipients" as any).insert({
-        publication_id: publicationId,
-        email: r.email,
-        display_name: r.displayName,
-        invited_by: context.currentUserId,
-        recipient_token_hash: tokenHash,
-        delivery_status: "pending",
-      } as any);
+      const { data: insertedRecipient, error: insertErr } = await admin
+        .from("shared_link_recipients")
+        .insert({
+          publication_id: publicationId,
+          email: r.email,
+          display_name: r.displayName,
+          invited_by: context.currentUserId,
+          recipient_token_hash: tokenHash,
+          delivery_status: "pending",
+        })
+        .select("id")
+        .single();
 
       if (insertErr) {
         // Likely duplicate (unique constraint) — treat as non-fatal for this recipient
@@ -564,30 +901,28 @@ export async function addSharedLinkRecipients({
         throw insertErr;
       }
       added++;
+      const recipientId = insertedRecipient.id;
 
-      // Build per-recipient link (append rt for future receiver identification; safe query param)
       const linkBase = baseClientLink || pubCtx.clientLinkPath || `/share/${publicationId}`; // fallback
-      const recipientLink = `${linkBase}${linkBase.includes("?") ? "&" : "?"}rt=${encodeURIComponent(rawToken)}`;
-
-      // Email templates (from agy research + UX best practice; professional, concise)
-      const sender = "A team member"; // could enrich with profile in future
-      const subject = `Project Estimate: ${projectName} shared by ${sender}`;
-      const textBody = `Hello,\n\n${sender} has shared a view-only estimate for the project "${projectName}" with you.\n\nYou can view the estimate using the following link:\n${recipientLink}\n\nIf you have any questions, please contact ${sender} directly.\n\nBest regards,\nThe Archestimator Team`;
-      const htmlBody = `<!doctype html><html><body style="font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color:#333; line-height:1.5; font-size:14px;"><p>Hello,</p><p><strong>${sender}</strong> has shared a view-only estimate for the project <strong>${projectName}</strong> with you.</p><p style="margin:16px 0;"><a href="${recipientLink}" style="background:#292929;color:#fff;padding:10px 16px;text-decoration:none;border-radius:3px;display:inline-block;font-weight:500;">View Project Estimate</a></p><p>If you have any questions, please contact ${sender} directly.</p><p>Best regards,<br>The Archestimator Team</p></body></html>`;
-
-      const sendResult = await sendEmail({
-        to: r.email,
-        subject,
-        text: textBody,
-        html: htmlBody,
+      const sendResult = await sendSharedLinkRecipientInvitationEmail({
+        linkBase,
+        projectName,
+        publicationId,
+        rawToken,
+        recipientEmail: r.email,
+        recipientId,
+        senderIdentity,
       });
 
       if (sendResult.ok) {
         // Mark sent (optimistic; real bounces via future webhooks/Resend events)
-        await admin.from("shared_link_recipients" as any)
-          .update({ delivery_status: "sent", updated_at: new Date().toISOString() } as any)
-          .eq("publication_id", publicationId)
-          .eq("recipient_token_hash", tokenHash);
+        await admin.from("shared_link_recipients")
+          .update({
+            delivery_status: "sent",
+            resend_email_id: sendResult.messageId ?? null,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", recipientId);
         emailResults.push({ email: r.email, ok: true });
       } else {
         // Graceful: do not fail the overall operation or link creation. Leave as pending (or could mark bounced on permanent error)
@@ -611,6 +946,89 @@ export async function addSharedLinkRecipients({
   return { ok: added > 0 || successCount > 0, message, added, failedEmails, emailResults };
 }
 
+export async function resendSharedLinkRecipientEmail({
+  publicationId,
+  recipientId,
+  baseClientLink,
+}: {
+  publicationId: string;
+  recipientId: string;
+  baseClientLink?: string | null;
+}): Promise<{ ok: boolean; message: string }> {
+  assertUuid(publicationId, "Publication");
+  assertUuid(recipientId, "Recipient");
+
+  const admin = createPublicationAdminClient();
+  const pubCtx = await getPublicationProjectId(admin, publicationId);
+  const context = await assertProjectPublicationManager(pubCtx.projectId);
+  const rateLimit = await checkSharedLinkRecipientResendRateLimit({
+    admin,
+    headersList: await headers(),
+    publicationId,
+    recipientId,
+    userId: context.currentUserId,
+  });
+  if (!rateLimit.allowed) return { ok: false, message: rateLimit.message };
+
+  const { data: recipient, error: recipientError } = await admin
+    .from("shared_link_recipients")
+    .select("id, email, display_name, email_unsubscribed_at")
+    .eq("publication_id", publicationId)
+    .eq("id", recipientId)
+    .maybeSingle();
+  if (recipientError) throw recipientError;
+  if (!recipient?.email) return { ok: false, message: "Recipient not found." };
+  if (recipient.email_unsubscribed_at) {
+    return { ok: false, message: "Recipient has unsubscribed from follow-up emails for this shared link." };
+  }
+
+  const rawToken = createPublicationToken();
+  const tokenHash = hashPublicationToken(rawToken, readPublicationTokenHashSecret());
+  const linkBase = baseClientLink || pubCtx.clientLinkPath || `/share/${publicationId}`;
+  const now = new Date().toISOString();
+
+  const { error: updateError } = await admin
+    .from("shared_link_recipients")
+    .update({
+      recipient_token_hash: tokenHash,
+      delivery_status: "pending",
+      invited_by: context.currentUserId,
+      updated_at: now,
+    })
+    .eq("publication_id", publicationId)
+    .eq("id", recipientId);
+  if (updateError) throw updateError;
+
+  const sendResult = await sendSharedLinkRecipientInvitationEmail({
+    linkBase,
+    projectName: context.project.name || "your project",
+    publicationId,
+    rawToken,
+    recipientEmail: recipient.email,
+    recipientId,
+    senderIdentity: readPublicationSenderIdentity(context),
+  });
+
+  if (!sendResult.ok) {
+    console.warn("[P4] recipient email resend non-fatal failure", { email: recipient.email, error: sendResult.error });
+    return { ok: false, message: "Recipient email resend failed. The recipient remains pending." };
+  }
+
+  const { error: sentUpdateError } = await admin
+    .from("shared_link_recipients")
+    .update({
+      delivery_status: "sent",
+      resend_email_id: sendResult.messageId ?? null,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("publication_id", publicationId)
+    .eq("id", recipientId);
+  if (sentUpdateError) throw sentUpdateError;
+
+  revalidatePublicationRoutes(pubCtx.projectId, linkBase);
+  return { ok: true, message: "Recipient email resent." };
+}
+
 export async function removeSharedLinkRecipient({
   publicationId,
   recipientId,
@@ -628,7 +1046,7 @@ export async function removeSharedLinkRecipient({
   const pubCtx = await getPublicationProjectId(admin, publicationId);
   await assertProjectPublicationManager(pubCtx.projectId); // RBAC
 
-  let query = admin.from("shared_link_recipients" as any).delete().eq("publication_id", publicationId);
+  let query = admin.from("shared_link_recipients").delete().eq("publication_id", publicationId);
   if (recipientId) {
     query = query.eq("id", recipientId);
   } else if (email) {
@@ -678,13 +1096,26 @@ function shouldSendDigest(publicationId: string, now = Date.now()): boolean {
 
 async function triggerOwnerDigestIfAllowed(publicationId: string, publicationToken: string, kind: "comment" | "decision") {
   if (!shouldSendDigest(publicationId)) return { ok: true, skipped: "rate-limited" };
-  // Lightweight digest (no secrets, best-effort, P0 graceful path)
-  const subject = `New activity on your shared project link`;
-  const text = `There is new ${kind} activity on the shared link for publication ${publicationId.slice(0, 8)}.\nView in the Shared link > Activity tab in your project workspace.`;
-  const html = `<p>There is new <strong>${kind}</strong> activity on your shared project link.</p><p>Open the Shared link modal in the project workspace and select the Activity tab to review.</p>`;
   try {
-    const res = await sendEmail({ to: "owner@archestimator.test", subject, text, html }); // owner email would be resolved from publication/workspace in full impl
-    return { ok: res.ok, mocked: (res as any).mocked };
+    const admin = createPublicationAdminClient();
+    const owner = await resolvePublicationDigestOwner(admin, publicationId);
+    if (!owner) {
+      console.warn("[publication] owner digest skipped: owner email unavailable", { publicationId });
+      return { ok: true, skipped: "owner-email-unavailable" };
+    }
+
+    // Lightweight digest (no secrets, best-effort, P0 graceful path)
+    const subject = "New activity on your shared project link";
+    const complianceFooter = buildPublicationEmailComplianceFooter({
+      recipientEmail: owner.email,
+      sender: "Archestimator",
+      senderEmail: owner.email,
+      projectName: "your shared project link",
+    });
+    const text = `Hi ${owner.label},\n\nThere is new ${kind} activity on your shared project link.\n\nReview it from the Shared link > Activity tab in your project workspace.${complianceFooter.text}`;
+    const html = `<p>Hi ${escapePublicationEmailHtml(owner.label)},</p><p>There is new <strong>${kind}</strong> activity on your shared project link.</p><p>Open the Shared link modal in the project workspace and select the Activity tab to review.</p>${complianceFooter.html}`;
+    const res = await sendEmail({ to: owner.email, subject, text, html });
+    return { ok: res.ok, mocked: res.ok ? res.mocked : undefined };
   } catch {
     return { ok: false, error: "digest-send-failed" };
   }
@@ -719,27 +1150,27 @@ export async function loadSharedLinkActivity(
   // Parallel loads (additive, service role bypasses RLS for owner-verified path)
   const [commentsRes, responsesRes, eventsRes] = await Promise.all([
     admin
-      .from("shared_link_comments" as any)
+      .from("shared_link_comments")
       .select("id, created_at, body, is_internal, author_email, estimate_id, row_id")
       .eq("publication_id", pubId)
       .order("created_at", { ascending: false })
       .limit(limit + 1),
     admin
-      .from("shared_link_responses" as any)
+      .from("shared_link_responses")
       .select("id, created_at, decision, note, recipient_id")
       .eq("publication_id", pubId)
       .order("created_at", { ascending: false })
       .limit(limit + 1),
     admin
-      .from("shared_link_events" as any)
+      .from("shared_link_events")
       .select("id, created_at, event_type, metadata_json, recipient_id")
       .eq("publication_id", pubId)
       .order("created_at", { ascending: false })
       .limit(limit + 1),
   ]);
 
-  const raw: any[] = [];
-  (commentsRes.data ?? []).forEach((c: any) =>
+  const raw: ActivityItem[] = [];
+  (commentsRes.data ?? []).forEach((c) =>
     raw.push({
       id: c.id,
       type: "comment",
@@ -749,7 +1180,7 @@ export async function loadSharedLinkActivity(
       is_internal: !!c.is_internal,
     })
   );
-  (responsesRes.data ?? []).forEach((r: any) =>
+  (responsesRes.data ?? []).forEach((r) =>
     raw.push({
       id: r.id,
       type: "decision",
@@ -759,12 +1190,15 @@ export async function loadSharedLinkActivity(
       body: r.note || undefined,
     })
   );
-  (eventsRes.data ?? []).forEach((e: any) =>
+  (eventsRes.data ?? []).forEach((e) =>
     raw.push({
       id: e.id,
       type: "event",
       created_at: e.created_at,
-      metadata: e.metadata_json || {},
+      metadata:
+        e.metadata_json && typeof e.metadata_json === "object" && !Array.isArray(e.metadata_json)
+          ? e.metadata_json
+          : {},
     })
   );
 
