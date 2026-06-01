@@ -1,181 +1,112 @@
-# 01 — Codebase Audit
+# Codebase Audit
 
-**Date:** 2026-06-01
-**Evidence basis:** Live repo inspection, graph tools, GitNexus, code review, test runs
+Audit commit: `b6184cf7123ed46f4cd8b9a467feb5232f0b46bf`
+Audit mode: read-only evidence plus documentation edits only.
 
-## App Architecture Summary
+## Required Context Read
 
-**Stack:** Next.js 16.2.6 App Router, React 19.2.4, TypeScript (strict), Tailwind CSS v4, Bun
-**Backend:** Supabase/PostgreSQL 17 (project `ebxxqidacheyapmmzavr`, 48 migrations, RLS everywhere)
-**State:** TanStack Query 5 (server cache), Zustand 5 (high-frequency UI state)
-**Auth:** Supabase Auth (Google OAuth primary, magic link fallback, SSR helpers, middleware session gate)
-**Key packages:** React Complex Tree 2 (tree UI), D3 7 (charts), ExcelJS 4 (export), Phosphor Icons, Radix Context Menu
+Read before editing this package:
 
-**Architecture pattern:** Server-actions-first with optimistic local-state mutations. Client components trigger server actions that validate and persist to Supabase via RPC functions. TanStack Query caches server state (30s staleTime). Zustand handles selections, expansions, loading overlays.
+- `AGENTS.md`
+- `DESIGN.md`
+- `.ai/README.md`
+- `.ai/00_system/ai-folder-canonical-map.md`
+- `.ai/00_system/AGENT_OPERATING_PROTOCOL.md`
+- `.ai/10_state/current-state.md`
+- `.ai/10_state/decisions.md`
+- `README.md`
+- `package.json`
+- `.env.example`
+- `.github/workflows/ci.yml`
+- `.ai/06_specs/`
+- Every existing file in this plan folder.
 
 ## Route Map
 
-### Public (unauthenticated)
-| Route | File | Status |
-|-------|------|--------|
-| `/` | `src/app/page.tsx` | Landing with A/B hero, pricing, features, FAQ |
-| `/login` | `src/app/login/page.tsx` | Supabase Auth gate |
-| `/auth/callback` | `src/app/auth/callback/route.ts` | OAuth callback handler |
-| `/about`, `/features`, `/pricing`, `/contact` | `src/app/{route}/page.tsx` | Static marketing |
-| `/terms`, `/privacy` | `src/app/{route}/page.tsx` | Pending-review status pages |
-| `/share/[token]` | `src/app/share/[token]/page.tsx` | Client publication viewer |
-| `/invite/[token]` | `src/app/invite/[token]/page.tsx` | Collaboration invite entry |
+| Route/surface | File evidence | Launch status |
+| --- | --- | --- |
+| `/workshop` shell | `src/components/workshop/WorkshopPageShell.tsx:5`, `src/components/workshop/WorkshopPageShell.tsx:123` imports/renders `AskFlipFooterAssistant`. | Needs AI footer hidden by default. |
+| `/api/ai/ask` | `src/app/api/ai/ask/route.ts:3` calls `handleAiAskRequest(request)`. Handler does auth/API key/read/provider/audit at `handler.ts:105`, `handler.ts:122`, `handler.ts:173`, `handler.ts:187`. | Needs route-level disabled gate before handler/provider/context/audit. |
+| `/api/ai/package-builder` | `src/app/api/ai/package-builder/route.ts:3` calls `handlePackageBuilderRequest(request)`. Handler does auth/flags/apply/read/provider/audit at `handler.ts:191`, `handler.ts:265`, `handler.ts:350`, `handler.ts:366`, `handler.ts:479`. | Needs route-level disabled gate before handler/provider/context/audit. |
+| `/workshop/library` | `src/app/workshop/library/page.tsx:13` loads current workspace library; `LibraryPageClient.tsx:55` passes library data to `ComponentLibraryManager`. | In MVP, polish only. |
+| `/workshop/templates` | `src/app/workshop/templates/page.tsx:6` loads `getCurrentWorkspaceEstimateTemplates`; `TemplatesPageClient.tsx:10` renders `TemplateLibraryManager`. | In MVP, preview/details and states only. |
+| `/workshop/components` | Build output marks route static; memory and current repo indicate it is not the primary route. | Keep as compatibility/redirect surface; do not invest. |
+| Export download | `src/app/api/projects/[projectId]/estimates/[estimateId]/export/proposal.xlsx/route.ts:41` builds model/workbook and returns private no-store attachment. | Needs workbook rewrite. |
+| Export preview | `src/components/workshop/ProposalExportPreviewDialog.tsx:40`; opened from `EstimateSheetContent.tsx:3357` and toolbar area around `EstimateSheetContent.tsx:3222`. | Must stay parity-checked with download. |
 
-### Protected workshop (authenticated)
-| Route | File | Status |
-|-------|------|--------|
-| `/workshop` | `src/app/workshop/page.tsx` | Homebase bento grid |
-| `/workshop/projects` | `src/app/workshop/projects/page.tsx` | Project list with favorites |
-| `/workshop/projects/[projectId]` | `src/app/workshop/projects/[projectId]/page.tsx` | Project dashboard |
-| `/workshop/projects/[projectId]/estimates` | `.../estimates/page.tsx` | Estimate list |
-| `/workshop/projects/[projectId]/estimates/[nodeId]` | `.../estimates/[nodeId]/page.tsx` | **Estimate workspace** |
-| `/workshop/projects/[projectId]/charts` | `.../charts/page.tsx` | D3 comparison charts |
-| `/workshop/library` | `src/app/workshop/library/page.tsx` | **Component library** |
-| `/workshop/templates` | `src/app/workshop/templates/page.tsx` | **Templates** |
-| `/workshop/settings/profile` | `src/app/workshop/settings/profile/page.tsx` | Profile settings |
-| `/workshop/settings/workspace` | `src/app/workshop/settings/workspace/page.tsx` | Workspace settings |
-
-### API routes
-| Route | Method | Purpose | MVP? |
-|-------|--------|---------|------|
-| `/api/ai/ask` | POST | Ask Flip chat (read-only) | **Defer** |
-| `/api/ai/package-builder` | POST | AI draft/apply pipeline | **Defer** |
-| `/api/component-library/attachments` | POST/DELETE | Variant PDF/Excel uploads | Keep |
-| `/api/component-library/images` | POST/DELETE | Component image uploads | Keep |
-| `/api/projects/images` | POST/DELETE | Project cover images | Keep |
-| `/api/projects/[projectId]/estimates/[estimateId]/export/proposal.xlsx` | GET | Excel export | **Rebuild** |
-| `/api/share/[token]/*` | GET/POST/DELETE | Publication APIs | Keep as-is |
-| `/api/webhooks/resend` | POST | Resend email webhook | Keep |
+Build output on 2026-06-01 also confirmed both AI API routes are live route entries.
 
 ## Data Model Map
 
-### Core hierarchy
-```
-workspaces → projects → estimates → estimate_nodes (group/area tree) → estimate_row_items
-```
+| Table/type | Verified columns | Notes |
+| --- | --- | --- |
+| `estimate_row_items` | Generated type at `src/lib/supabase/types.ts:1127` includes `node_id`, `source_library_item_id`, `source_snapshot`, `link_state`, `metadata`, `row_revision`, `misc_cost`, `contingency_percentage`. | No `area_node_id`. Current schema no longer has `labor_cost`; legacy migration consolidated `labor_cost` and `supplementary_cost` into `misc_cost` in `20260522025929_combine_misc_cost.sql`. |
+| `estimate_sheet_events` | Generated type at `src/lib/supabase/types.ts:1241` includes `workspace_id`, `estimate_id`, `actor_user_id`, `target_row_id`, `estimate_node_id`, `old_snapshot`, `new_snapshot`, `row_context`, `payload`, `metadata`, `correlation_id`, `event_source`. | No `project_id`, `target_type`, `target_id`, `actor_id`, or `snapshot`. |
+| `estimates` | Generated type at `src/lib/supabase/types.ts:1609` has `project_id`, not `workspace_id`. | Workspace resolves through `projects.workspace_id`. |
+| `projects` | Generated type at `src/lib/supabase/types.ts:2432` has `workspace_id`. | Resolver joins estimates to projects in `20260524033151_estimate_sheet_version_control.sql:77`. |
+| `estimate_row_link_state` | Generated enum at `src/lib/supabase/types.ts:2913`: `unlinked`, `linked-clean`, `linked-overridden`, `detached`, `source-changed`. | Use `detached` for explicitly unlinked project-specific rows. |
 
-### Component library
-```
-component_category_nodes (global taxonomy, 9 top-level organizers)
-  → component_suppliers (workspace-scoped)
-  → component_brands (workspace-scoped)
-  → library_folders (workspace-scoped, user-created)
-  → cost_library_items (components with lifecycle states)
-    → cost_library_item_versions
-    → cost_library_item_price_options (variants with pricing, images, attachments)
-      → cost_library_item_variant_cost_entries (selectable dated costs)
-```
+## RPC/Action Map
 
-### Templates
-```
-estimate_templates → estimate_template_nodes → estimate_template_row_items
-```
+| Contract | Evidence | Launch implication |
+| --- | --- | --- |
+| `insert_estimate_row_item_with_history` | Generated RPC at `src/lib/supabase/types.ts:2595`; action at `src/lib/estimates/actions.ts:1677`; hook caller via `use-estimate-row-mutations.ts:114`. | Existing convention for new unlink RPC naming and args. |
+| `update_estimate_row_item_with_history` | Generated RPC at `src/lib/supabase/types.ts:2606`; action at `src/lib/estimates/actions.ts:1745`. | Existing update path can express unlink-like patch, but dedicated unlink RPC is safer for event semantics. |
+| `replace_estimate_row_item_with_history` | Generated RPC at `src/lib/supabase/types.ts:2618`; action at `src/lib/estimates/actions.ts:1771`. | Preserve replacement path separate from unlink. |
+| `delete_estimate_row_item_with_history` | Generated RPC at `src/lib/supabase/types.ts:2630`; action at `src/lib/estimates/actions.ts:1808`. | Preserve delete path separate from unlink. |
+| `insert_estimate_template_into_estimate_with_history` | Action at `src/lib/estimates/actions.ts:1645`, migration function at `20260524033151_estimate_sheet_version_control.sql:1000`. | Template insertion already exists through estimate workspace. |
 
-### Key row columns for MVP
-`estimate_row_items`:
-- `id: uuid` — PK
-- `source_library_item_id: uuid?` — FK to cost_library_items, nullable
-- `link_state: estimate_row_link_state` — enum: unlinked, linked-clean, linked-overridden, detached, source-changed
-- `source_snapshot: jsonb` — frozen copy of library item at insert time
-- `quantity: numeric`, `unit_cost: numeric`, `misc_cost: numeric`, `contingency_percentage: numeric`
-- `row_revision: integer` — optimistic concurrency guard
-- `material: text`, `description: text`, `unit: text`, `supplier: text`, `notes: text`
+## UI Surface Map
 
-## Server Action / RPC Map
+| Surface | Current state | Gap |
+| --- | --- | --- |
+| Ask Flip footer | Rendered unconditionally from `WorkshopPageShell`. | Gate with `NEXT_PUBLIC_ASK_FLIP_ENABLED=false` by default. |
+| Estimate row component controls | Actual UI is row buttons/modal, not a generic row action menu. Evidence: `EstimateSheetContent.tsx` component cell button cluster around `EstimateSheetContent.tsx:889` and row details modal around `EstimateSheetContent.tsx:2504`. | Unlink action must live in current row details/component controls. |
+| Row model | `src/lib/estimates/types.ts:80` defines `EstimateRowItem` without public `linkState`. | Add DTO mapping before badges. |
+| Tree patch | `src/lib/estimates/estimate-row-tree-patch.ts` only patches scalar cost fields and revision today. | Extend optimistic patch for unlink/project-specific fields. |
+| Library | `ComponentLibraryManager` already has state `localFolders`, `viewMode`, `selectedFolderId`, `selectedSupplierNodeId`, `selectedBrandNodeId`, `reorderStatus`, `sheetStatus`, `addComponentOpen`, `libraryItemState` at `ComponentLibraryManager.tsx:824`. | Polish states and trust fields; do not add broad new manager scope. |
+| Templates | `TemplateLibraryManager` state is `searchQuery`, `expandedNodeIds`, `selectedTemplateNodeId` at `TemplateLibraryManager.tsx:58`, `TemplateLibraryManager.tsx:157`, `TemplateLibraryManager.tsx:299`. | Add preview/details and shared empty/error states. |
+| Export | Current columns at `create-proposal-workbook.ts:15`; summary/detail/source sheets at `create-proposal-workbook.ts:271`. | Rewrite to bid-form workbook spec. |
 
-### Estimate mutations (`src/lib/estimates/actions.ts`)
-- `createEstimateNode` → `create_estimate_node_with_history`
-- `renameEstimateNode` → `rename_estimate_node_with_history`
-- `deleteEstimateNode` → RPC cascade delete
-- `reorderEstimateNodes` → `reorder_estimate_nodes`
-- `insertEstimateRowItemFromLibrary` → `insert_estimate_row_item_with_history`
-- `updateEstimateRowItem` → `update_estimate_row_item_with_history`
-- `deleteEstimateRowItem` → `delete_estimate_row_item_with_history`
-- `replaceEstimateRowItemWithLibrary` → `replace_estimate_row_item_with_history`
-- `duplicateEstimateSheet` → server-side estimate/node/row copy
-- `insertEstimateTemplateIntoEstimate` → `insert_estimate_template_into_estimate_with_history`
+## Command Baseline
 
-### Component library mutations (`src/lib/component-library/actions.ts`)
-- `createCostLibraryComponent` → Component creation RPCs
-- All RPCs use `SECURITY DEFINER`, require authenticated workspace membership
+| Command | Status | Summary |
+| --- | --- | --- |
+| `git status --short` | Dirty | Before docs edits: `.codex/config.toml`; later also `AGENTS.md` and `CLAUDE.md` were dirty and were not edited by this pass. |
+| `git rev-parse HEAD` | Pass | `b6184cf7123ed46f4cd8b9a467feb5232f0b46bf`. |
+| `bun install --frozen-lockfile` | Pass | Bun 1.3.10, checked 703 installs across 775 packages, no changes. |
+| `bun run type-check` | Pass | `tsc --noEmit`, exit 0. |
+| `bun run lint` | Pass with warnings | 0 errors, 14 warnings: unused variables in pitch deck script, unused eslint-disable in performance monitor, TanStack React Compiler warning, test unused vars. |
+| `bun run lint:design-system` | Pass | Design-system enforcement passed. |
+| `bun run test` | Pass | 2 files, 4 tests, 129 expects. |
+| `bun run test:dom` | Fail | 2 failed files, 3 failed tests, 120 passed files, 984 passed tests, 2 skipped. |
+| `bun run build` | Pass | Next.js 16.2.6 production build succeeded and listed AI routes. |
 
-## Component Library Surface Map
+## Focused Test Baseline
 
-- **Route:** `/workshop/library` (`src/components/workshop/LibraryPageClient.tsx`)
-- **Tree:** Default (library_folders), Suppliers, Brand views via React Complex Tree
-- **Center sheet:** Component rows filtered by selected folder/supplier/brand
-- **Add Component modal:** Identity fields + variant tabs (SKU, unit, pricing, images, attachments)
-- **Library sidebar (estimate page):** Category taxonomy tree + draggable/clickable rows in `EstimateSheetContent`
-- **RLS:** authenticated workspace members can read; editors can mutate
+| Bundle | Status | Summary |
+| --- | --- | --- |
+| AI routes/footer | Pass | 5 files, 87 tests. |
+| Estimate rows/version control | Pass | 4 files, 69 tests. |
+| Library/templates | Pass | 4 files, 26 tests. |
+| Proposal export | Pass | 4 files, 15 tests. |
 
-## Templates Surface Map
+## Current `test:dom` Failure Triage
 
-- **Route:** `/workshop/templates` (`src/components/workshop/TemplatesPageClient.tsx`)
-- **Data:** 3 seed templates (Condo Fit-Out, Powder Room, Roof Deck) + DB-created templates
-- **Sidebar:** Templates tab on estimate page right sidebar
-- **Insertion:** `insert_estimate_template_into_estimate_with_history` — copies nodes + rows atomically
-- **Template source:** Immutable during insertion; row snapshots reference source template
+| Failure | File | Root-cause classification | Launch action |
+| --- | --- | --- | --- |
+| Package-builder security route source no longer contains real-session/apply guard strings. | `tests/vitest/ai-package-builder-security-contract.test.ts:55` | Source-contract drift after handler extraction; route delegates to handler. | In AI deferral PR, update tests to assert disabled gate and handler guard location. |
+| Package-builder route source no longer contains `rowPreviews`. | `tests/vitest/ai-package-builder-security-contract.test.ts:88` | Source-contract drift after handler extraction. | Same as above. |
+| Share recipient token source assertion cannot find `verifySharedLinkRecipientToken`. | `tests/vitest/project-publication-actions.test.ts:182` | Source-contract drift in share page implementation; outside MVP core but blocks launch gate until triaged. | Assign to MVP-QA-001 or separate share stabilization PR before launch. |
 
-## Estimate Editor Surface Map
+## Known Stale Docs
 
-- **Route:** `/workshop/projects/[projectId]/estimates/[nodeId]`
-- **Left tree:** `EstimateSheetTree` — React Complex Tree, DnD reorder, inline rename, context menu
-- **Center grid:** `EstimateSheetContent` — spreadsheet-like rows, inline quantity/contingency/miscCost editing
-- **Right sidebar:** Component library with Categories, Suppliers, Brand trees + Templates tab
-- **Row details modal:** Details/Component/Activity tabs (read-only currently)
-- **State:** TanStack Query `estimateQueryKeys.areaTree(estimateId)` + Zustand per-estimate selection
+| Doc | Stale claim | Impact |
+| --- | --- | --- |
+| `README.md` | Presents Ask Flip/package-builder as available. | Needs launch-facing wording after AI deferral. |
+| `.ai/06_specs/proposal-package-system.md:23` | Describes formula-driven export intent beyond current implementation. | Must not be treated as current-state proof; this package supersedes for MVP launch. |
+| First-pass `07-project-specific-unlink-components-plan.md` | Used invalid `area_node_id`, `estimates.workspace_id`, and invalid event columns. | Rewritten in this pass. |
 
-## Export Surface Map
+## Evidence Index
 
-- **API:** `GET /api/projects/[projectId]/estimates/[estimateId]/export/proposal.xlsx`
-- **Engine:** `src/lib/proposal-export/build-proposal-export-model.ts` (flatten tree, consolidate rows, compute totals)
-- **Workbook:** `src/lib/proposal-export/create-proposal-workbook.ts` (ExcelJS, 3 sheets)
-- **Preview dialog:** `ProposalExportPreviewDialog`
-- **Current state:** Generic data dump. No material/labor split (labor always 0). No industry bid form sections. No formula-driven subtotals. No exclusions/terms/warranty blocks.
-
-## Auth / RLS / Security Notes
-
-- **Middleware:** `src/proxy.ts` — session refresh, route gating for `/workshop/*`
-- **RLS:** Every user-data table has RLS enabled with policies for workspace membership
-- **Dev bypass:** `ARCHESTIMATOR_DEV_AUTH_BYPASS=1` (localhost only, NODE_ENV ≠ production)
-- **AI routes internally auth-gated:** Reject dev-admin bypass
-- **Invite entry:** Feature-flagged (`PROJECT_INVITE_ENTRY_ENABLED`), requires pepper
-- **Rate limiting:** Durable `security_rate_limit_events` for share/invite routes
-
-## Test Coverage Map
-
-| Category | Count | Status |
-|----------|-------|--------|
-| Vitest DOM tests | 122 files, 989 tests | 2 failing (pre-existing, shared-link session) |
-| Bun unit tests | 2 files, 4 tests | All passing |
-| Playwright E2E | 7 spec files | Gated on env flags, not run |
-| Design-system lint | 1 enforcement script | 0 violations |
-| ESLint | 1 flat config | 0 errors, 14 warnings |
-
-**Test gap areas:** No E2E for estimate-templates-export workflow. No tests for component unlink. No tests for export workbook structure. AI package builder live smoke gated on env flags with DEEPSEEK_API_KEY.
-
-## Known Stale / Contradictory Docs
-
-- `.ai/03_plans/current-post-reset-workshop-slice.md` — superseded, moved to archive
-- `.ai/01_roadmap/README.md` — references pre-shared-link-overhaul state
-- Some `.ai/09_archive/store/` folders reference features now implemented since archiving
-- `DESIGN.md` — current and authoritative for app/workshop UI
-- `src/lib/component-library/estimate-templates.ts` — hardcoded seed data, may need refresh
-
-## Validation Baseline Results (2026-06-01)
-
-| Command | Result |
-|---------|--------|
-| `bun install --frozen-lockfile` | ✅ Passed (no changes, 703 packages) |
-| `bun run type-check` | ✅ Passed (0 errors) |
-| `bun run lint` | ✅ Passed (0 errors, 14 warnings) |
-| `bun run lint:design-system` | ✅ Passed (0 violations) |
-| `bun run test` | ✅ Passed (4 tests, 2 files) |
-| `bun run test:dom` | ⚠️ 2 files failing (3 tests, pre-existing shared-link session issue) |
-| `bun run build` | ✅ Passed (all routes built) |
-| `bun run test:e2e` | ❌ Not run (requires env flags, DEEPSEEK_API_KEY, service-role key) |
+All detailed proof pointers are centralized in `14-evidence-index.md`.
