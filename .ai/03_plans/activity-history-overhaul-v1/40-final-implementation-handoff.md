@@ -1,7 +1,7 @@
 # 40 — Final Implementation Handoff
 
 **Date:** 2026-06-02
-**Status:** Fifth pass — ready for implementation
+**Status:** Seventh pass — final micro-refinement complete
 **Audience:** Engineer/AI implementing PR 2 and subsequent PRs
 
 ---
@@ -12,8 +12,8 @@
 |------|--------|
 | Planning phase | ✅ Complete (5 audit passes) |
 | Docs internally consistent | ✅ Yes (after this pass) |
-| Activity code unchanged since planning | ✅ Yes (HEAD `65b21eb` = planning baseline `5a0481d` + 4 proof/ops commits; no activity code changed) |
-| Folder file count | 42 files (41 numbered docs + README) → 46 files (adding 41-44) |
+| Activity code unchanged since planning | ✅ Yes (HEAD `87f603e` = planning baseline `65b21eb` + proof/ops/docs commits; no activity code changed) |
+| Folder file count | 47 files (README + 46 numbered docs 00–45) |
 
 ---
 
@@ -27,8 +27,9 @@
 | PR 4 | ✅ **GO** | Estimate Activity UI integration (composer consumer) |
 | PR 5 | ✅ **GO** | Shared-link Activity API integration (composer consumer) |
 | PR 6 | ✅ **GO** | Recipient actor resolution + comments/decisions copy |
-| PR 8 | ✅ **GO** (after PR 7) | Realtime/pagination hardening |
-| PR 9 | ✅ **GO** (after PR 8) | UI polish, accessibility, manual QA |
+| PR 8A | ✅ **GO** (after PRs 2-6) | Shared-link pagination + Realtime hardening — NOT gated on PR 7 |
+| PR 8B | 🔴 **NO-GO** (gated on PR 7) | Access telemetry hardening — requires PR 7 data |
+| PR 9 | ✅ **GO** (after PR 8A or 8B) | UI polish, accessibility, manual QA |
 
 ---
 
@@ -104,6 +105,157 @@ When approved:
 
 ---
 
+## PR 3 — Test File Paths
+
+Create or update these test files for the Activity Composer module:
+
+- `tests/vitest/fixtures/activity-events.ts` — Shared test fixtures (14 estimate + shared-link event mocks)
+- `tests/vitest/activity-composer.test.ts` — Composer unit tests (~100 tests: formatting, compose, merge, sort)
+- `tests/vitest/activity-copy-regression.test.ts` — Banned-term regression (no raw event types in copy)
+- `tests/vitest/activity-security.test.ts` — Security: no raw UUIDs, no internal leaks, no server_action
+- `tests/vitest/activity-view-model.test.ts` — Type-shape tests (if separated from composer tests)
+
+Coverage requirements:
+- All 14 raw estimate event types (12 active + 2 dormant: `sheet_version_created`, `sheet_restored_as_copy`)
+- Shared-link comments (public + internal), decisions (accept/decline/revision), events
+- Unknown event fallback ("Activity recorded.")
+- Visibility filtering (owner vs client stripping)
+- No raw technical copy in any `title`, `summary`, `summary`, `actor.displayName`
+- No UUID leaks in client-safe output
+- No `server_action`, `row_updated`, `revision_requested`, `linked-overridden` in primary copy
+
+---
+
+## PR 5 — Public Activity API Response Contract
+
+When composer integration lands, `GET /api/share/[token]/activity` must return client-safe composed activity items.
+
+### Response Shape
+
+```json
+{
+  "activities": "ActivityViewModel[]",
+  "hasMore": "boolean",
+  "nextCursor?": "string",
+  "recipientSession": "boolean"
+}
+```
+
+### Client-Visible `ActivityViewModel` MUST Include Only
+
+- `id`, `source`, `action`, `visibility`, `occurredAt`
+- `title` (required — composed human-readable sentence)
+- `summary?`, `body?`, `badges?`
+- `target?` — with safe labels only (no raw UUIDs)
+- `meta?` — timestamp/location context
+
+### Client-Visible `ActivityViewModel` MUST NOT Include
+
+- `raw` — completely absent for client visibility
+- `event_type` — raw technical name never in public JSON
+- `metadata_json`
+- `actorUserId`
+- `recipient_id`
+- Raw UUIDs (any field)
+- Internal comments (items with `visibility === "internal"`)
+- Raw decision enums (`revision_requested`, `accepted`, `declined`)
+- Raw event names (`row_updated`, `server_action`)
+- IP hash, user-agent hash
+- Device/location metadata unless explicitly approved
+
+### PR 2 vs PR 5 Clarification
+
+- **PR 2**: `event_type` is selected in DB query (already done). Do NOT expose in public JSON response. Add TODO for PR 5.
+- **PR 5**: Consume `event_type` server-side, transform into human-readable `title` in `ActivityViewModel[]`.
+- Public response must never expose raw technical event names after PR 5.
+
+### Test Expectations for Public API
+
+- Public response has `title` (required field)
+- Public response does NOT contain raw `event_type` as a top-level key
+- Public response does NOT contain `metadata_json` as a top-level key
+- Public response does NOT contain raw UUID patterns
+- Public response does NOT include internal comments
+- Public decision copy says "requested revisions", NOT `revision_requested`
+
+---
+
+## PR 8A / 8B Split Decision
+
+If PR 7 access telemetry is delayed by Product/Legal approval, split PR 8:
+
+### PR 8A — Shared-Link Pagination + Realtime Hardening
+Can proceed without PR 7 if PRs 2–6 are complete.
+
+**Scope:**
+- Query-level cursor pagination with composite `(created_at, id)` cursor strategy
+- Owner shared-link activity pagination
+- Public activity route pagination
+- Realtime stability not already covered by PR 2
+- No new access telemetry data collection
+- No privacy-impacting changes
+
+### PR 8B — Access Telemetry Hardening
+Only after PR 7 is approved and implemented.
+
+**Scope:**
+- Access telemetry pagination/filtering
+- Access event dedupe rendering
+- Bot filtering in owner/support views
+- Access telemetry observability metrics
+
+### Updated Dependency Graph
+
+- PRs 1–6 can proceed ✅
+- PR 7 remains gated 🔴
+- PR 8A can proceed after PRs 2–6 ✅
+- PR 8B waits for PR 7 🔴
+- PR 9 final polish may merge non-telemetry polish earlier, but telemetry polish waits for PR 7/8B
+
+---
+
+## PR 2 — Manual QA Checklist
+
+After automated tests pass, manually verify:
+
+### Activity Filter
+- [ ] Open Activity History modal → open filter dropdown
+- [ ] Confirm there is NO "Inserted rows" / `row_inserted` option
+- [ ] Confirm "Added rows" and "Added blank rows" appear
+- [ ] Confirm each filter returns matching activity if fixture data exists
+
+### Shared-Link Realtime
+- [ ] Open owner Shared Link Activity tab → confirm no console errors
+- [ ] Confirm manual Refresh button still works
+- [ ] If Realtime is enabled, create activity for the same publication → verify refresh
+- [ ] Create activity for a different publication → verify this feed does NOT refresh
+
+### Public Activity GET Route
+- [ ] Call `GET /api/share/[token]/activity` same-origin → returns 200 (no CSRF cookie/header required)
+- [ ] Call with mismatched Origin header → returns 403
+- [ ] Call with expired/revoked token → returns 404
+
+### Comments
+- [ ] Open shared link as recipient → submit a comment → comment succeeds
+- [ ] Confirm no CSRF error on comment submission
+- [ ] Test offline queue path: manually simulate offline → confirm retry includes CSRF header
+
+### Decisions
+- [ ] Submit Accept on test shared link → decision succeeds
+- [ ] Submit Decline → decision succeeds
+- [ ] Submit Request Revision → decision succeeds
+- [ ] Submit duplicate decision → returns expected locked/already-submitted state
+- [ ] Confirm no CSRF error on any decision path
+
+### Regression
+- [ ] Password form still works (existing CSRF pattern unaffected)
+- [ ] Owner activity tab still loads
+- [ ] No internal comments appear publicly
+- [ ] `bun run validate` passes
+- [ ] `bun run build` passes
+
+---
+
 ## Risk Summary
 
 | Risk | PR | Mitigation |
@@ -148,6 +300,7 @@ bun run build
 ## Where to Start
 
 1. **Read these first:**
+   - `45-final-next-actions-micro-refinement.md` — this pass's summary and final go/no-go
    - `39-source-of-truth-and-doc-authority-index.md` — know which docs are authoritative
    - `35-code-truth-map.md` — verify code behavior before editing
    - `38-pr2-test-command-and-fixture-plan.md` — test plan
@@ -157,7 +310,7 @@ bun run build
 
 3. **Recommended fix order (safest first):**
    - Fix 1 (row_inserted filter) — safest, UI-only
-   - Fix 3 (event_type select) — safest, unused route
+   - Fix 3 (event_type select verification) — safest, just add TODO
    - Fix 2 (Realtime filter) — safe, owner-only
    - Fix 4 (GET /activity CSRF) — extract assertSameOrigin first, then apply
    - Fix 5 (Comments/Decisions CSRF) — most impactful, test thoroughly
@@ -165,6 +318,8 @@ bun run build
 4. **After PR 2 merges:**
    - PR 3 (composer) can begin immediately
    - PRs 4-6 after PR 3
+   - PR 8A (pagination/realtime) can proceed after PRs 2-6 without waiting for PR 7
+   - PR 7 is gated on Product/Legal — PR 8B waits for PR 7
 
 ---
 
@@ -172,6 +327,7 @@ bun run build
 
 | For | See |
 |-----|-----|
+| **Seventh-pass summary** | `45-final-next-actions-micro-refinement.md` |
 | Current audit summary | `34-final-preimplementation-audit.md` |
 | Code truth | `35-code-truth-map.md` |
 | Side effects audit | `36-access-telemetry-side-effects-audit.md` |
@@ -181,6 +337,6 @@ bun run build
 | Decision log | `29-final-decision-log-and-approval-matrix.md` |
 | PR sequence | `11-pr-sequencing-plan.md` |
 | PR 2 brief | `31-pr2-preflight-implementation-brief.md` |
-| Readiness scorecard | `32-final-implementation-readiness-scorecard.md` |
+| Readiness scorecard | `42-98-100-readiness-scorecard.md` |
 | Composer spec | `21-activity-composer-spec.md` |
 | Event taxonomy | `16-event-taxonomy-and-lifecycle-map.md` |
