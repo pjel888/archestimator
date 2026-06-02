@@ -1,6 +1,9 @@
 # 67 — Final Access Telemetry Production Readiness Scorecard
 
 **Date:** 2026-06-02
+**Activity-code audit baseline:** `65b21eb`
+**Latest planning certification commit:** `8b0929f`
+**Latest repo HEAD at this audit:** `cdb9fdc`
 **Purpose:** Final three-domain readiness scoring for access telemetry production enablement.
 **Status:** Planning 100% ready. Execution 0% (pending operational actions).
 
