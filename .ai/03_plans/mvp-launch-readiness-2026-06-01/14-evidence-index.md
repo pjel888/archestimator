@@ -357,11 +357,14 @@
 - `ComponentLibraryManager` sheet search now includes `pricingSource`, `pricingDate`, and `confidence`.
 - 2026-06-02 local parity refresh: component tree search now also matches component `brand`, `pricingSource`, `pricingDate`, and `confidence`, and shared supplier/brand tree filtering now searches the same component trust fields.
 - 2026-06-02 focused UI coverage now asserts both the component tree search and component sheet search find a component by `quote ledger` pricing source and `database brand` brand text while hiding non-matching component rows.
+- 2026-06-02 local seed-quality refresh: `supabase/seed.sql` replaces placeholder component-library supplier/pricing trust text with concrete demo supplier labels and dated supplier-canvas pricing sources for the Lewis Residence seed.
+- 2026-06-02 local seed-quality refresh: `tests/vitest/demo-seed-readiness.test.ts` now rejects `Supplier quote required`, `editable allowance`, and `requires-quote-verification` in local seed trust fields.
 - Component sheet tabs now show a visible result count such as `3 of 3 components` or `1 of 3 components`.
 - Catalogue cards now show compact pricing trust fields without adding dependencies or changing the folder/tree model.
 - 2026-06-02 local refresh: `bunx vitest run tests/vitest/component-library-manager-ui.test.tsx --maxWorkers=1` passed 1 file / 16 tests.
 - 2026-06-02 local refresh: `bunx vitest run tests/vitest/workshop-route-error-boundaries.test.tsx --maxWorkers=1` passed 1 file / 4 tests.
 - 2026-06-02 local refresh: `bun run type-check` passed after the additive search-helper change.
+- 2026-06-02 local seed-quality refresh: `bunx vitest run tests/vitest/demo-seed-readiness.test.ts tests/vitest/supabase-seed-migrations.test.ts --maxWorkers=1` passed 2 files / 8 tests.
 - Focused red/green evidence: `bun run test:dom tests/vitest/component-library-manager-ui.test.tsx` passed 1 file / 16 tests.
 - `bun run type-check` passed.
 - `bun run lint` passed with the existing 14 warnings and 0 errors.

@@ -28,6 +28,17 @@ describe("demo seed readiness", () => {
     expect(seedSql.match(/66666666-6666-4666-8666-66666666666[1-5]/g)?.length).toBeGreaterThanOrEqual(10);
   });
 
+  it("keeps seeded component trust fields demo-realistic instead of placeholder allowances", () => {
+    expect(seedSql).toContain("Quezon City Tile Depot");
+    expect(seedSql).toContain("Metro Manila Paint Center");
+    expect(seedSql).toContain("May 2026 QC supplier canvas");
+    expect(seedSql).toContain("May 2026 paint supplier canvas");
+    expect(seedSql).toContain("'supplier-canvas'");
+    expect(seedSql).not.toContain("Supplier quote required");
+    expect(seedSql).not.toContain("'editable allowance'");
+    expect(seedSql).not.toContain("requires-quote-verification");
+  });
+
   it("keeps the investor demo plan pointed at the concrete seed anchors without exposing unfinished surfaces", () => {
     expect(demoPlan).toContain("supabase/seed.sql");
     expect(demoPlan).toContain("Lewis Residence Baseline Estimate");
