@@ -63,6 +63,16 @@
 - Current refresh: `VERCEL_ENV_LIST_TEXT="$(vercel env ls --non-interactive 2>&1)" OUTPUT_FILE=.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/vercel-env-readiness-3ce3269-2026-06-02.json bun run launch:check-vercel-env` wrote sanitized JSON and exited `1` because no env names were discovered.
 - Launch meaning: this makes Vercel env-name proof repeatable, but it does not prove secret values, callback URL correctness, provider dashboard configuration, delivery, rollback, or hosted auth behavior. Vercel env readiness remains **NO-GO**.
 
+### Vercel Public Health Readiness Helper
+
+- Script: `scripts/check-vercel-health-readiness.ts`.
+- Package command: `bun run launch:check-vercel-health`.
+- Proof artifact: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/vercel-health-readiness-2776a32-2026-06-02.json`.
+- Scope: probes configured `/api/health` URLs and passes only when every URL returns HTTP `200` with JSON `{ "ok": true, "service": "archestimator" }`. Optional auth header/cookie inputs are request-only and never written to the report.
+- Current refresh: `VERCEL_HEALTH_URLS='https://archestimator-git-main-philipjonlewis-projects.vercel.app/api/health,https://www.archestimator.com/api/health,https://archestimator.com/api/health,https://archestimator.vercel.app/api/health' OUTPUT_FILE=.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/vercel-health-readiness-2776a32-2026-06-02.json bun run launch:check-vercel-health` wrote sanitized JSON and exited `1`.
+- Result: branch-alias public health returned HTTP `401`; `www.archestimator.com/api/health` and `archestimator.vercel.app/api/health` returned HTTP `404`; apex `archestimator.com/api/health` returned HTTP `307` to `www`; no URL returned the app health JSON; `vercelHealthReady: false`.
+- Launch meaning: this makes public/custom-domain health proof repeatable, but it does not prove Vercel env values, protected preview health through `vercel curl`, production promotion, rollback, hosted auth, or app behavior behind deployment protection. Public/custom-domain health remains **NO-GO**.
+
 ### Hosted Auth Route Proof Helper
 
 - Script: `scripts/verify-hosted-auth-routes.ts`.
