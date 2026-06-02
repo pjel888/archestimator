@@ -599,7 +599,7 @@ The workstreams are not 7 independent parallel tracks — they **activate at dif
 
 | Field | Value |
 |---|---|
-| Status | `ACTIVE — Milestone 4 full verification passed; PR 6 recipient actor resolution next after commit` |
+| Status | `ACTIVE — Milestone 4 pushed; PR 6 recipient actor resolution next` |
 | Branch | `feat/activity-history-overhaul-v1` |
 | Active plan | `.ai/03_plans/activity-history-overhaul-v1/` |
 | Evidence ledger | `.ai/01_roadmap/35-activity-history-overhaul-v1-execution.md` |
