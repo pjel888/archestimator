@@ -2,7 +2,9 @@
 
 **Date:** 2026-06-02
 **Status:** Tenth pass — all gates cleared; certified 100% implementation-handoff ready
-**Current HEAD:** `6aaa0b7`
+**Audited implementation baseline HEAD:** `65b21eb`
+**Last planning certification commit:** `e559e60`
+**Current repository HEAD:** `b6873b4`
 
 **Ninth pass: 2026-06-02 — PR 7+8B gates cleared.** All gating decisions (D-017, D-018, D-023) approved under conservative privacy constraints. PR 7 can proceed.
 
@@ -44,7 +46,7 @@ Five targeted refinements executed to move the planning pack from ~98.5% to ~99.
 
 ## Exact Next Action
 
-1. **PR 1 — Merge planning docs.** All 52 files (README + 51 numbered docs 00–50) are internally consistent and certified. Ready to merge.
+1. **PR 1 — Merge planning docs.** All 63 files (README + 62 numbered docs 00–61) are internally consistent and certified. Ready to merge.
 
 2. **PR 2 — Preflight fixes.** See `40-final-implementation-handoff.md` and `31-pr2-preflight-implementation-brief.md`.
 

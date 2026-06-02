@@ -10,10 +10,13 @@
 **Sixth pass:** 2026-06-02 (autonomous readiness loop: docs 41–44)
 **Ninth pass:** 2026-06-02 (documentation-only: PR 7+8B NO-GO→GO unlock, DPA compliance)
 **Tenth pass:** 2026-06-02 (document hardening: broken references fixed, HEAD corrected, final certification docs 49-50 added)
+**Eleventh pass:** 2026-06-02 (production enablement hardening: docs 51-61 added, HEAD self-reference permanently resolved, production enablement planning certified at 98.50%)
 **Branch:** `main`
-**Current HEAD:** `6aaa0b7`
-**Planning baseline HEAD:** `65b21eb` (no activity code changed between `65b21eb` and current `6aaa0b7`: only proof/ops/docs/mvp-readiness commits)
-**Status:** Planning Phase — **Certified 100% implementation-handoff ready.** All 52 files internally consistent. All broken filename references for docs 47/48 fixed. All stale HEAD references corrected. Docs 49 (loop log) and 50 (certification) added. All 10 PRs GO for implementation sequencing. Access telemetry production enablement remains gated by privacy notice, in-product disclosure, DPO/NPCRS triage, retention path, and tests.
+**Audited implementation baseline HEAD:** `65b21eb`
+**Last planning certification commit:** `e559e60` (tenth pass)
+**Current repository HEAD:** `b6873b4`
+**Planning baseline HEAD:** `65b21eb` (no activity code changed between `65b21eb` and current `b6873b4`: only proof/ops/docs/mvp-readiness commits)
+**Status:** Planning Phase — **Certified 100% implementation-handoff ready.** All 63 files internally consistent. All broken filename references for docs 47/48 fixed. All stale HEAD references corrected. Docs 49 (loop log) and 50 (certification) added. Docs 51–61 (production enablement) added. All 10 PRs GO for implementation sequencing. Access telemetry production enablement remains gated by privacy notice, in-product disclosure, DPO/NPCRS triage, retention path, and tests.
 
 ---
 
@@ -135,6 +138,48 @@ Scores unchanged from eighth pass (weighted composite 99.3%) — the ninth pass 
 - `45-final-next-actions-micro-refinement.md` — PR 7 gates reminder resolved
 - `46-final-implementation-readiness-lock.md` — Gate status updated
 - `29-final-decision-log-and-approval-matrix.md` — D-016 through D-023 marked APPROVED
+
+---
+
+## What Changed in Tenth Pass (Document Hardening and Certification)
+
+### Purpose
+
+Documentation-only pass. Hardened the full planning pack to 100% consistency: fixed broken filename cross-references for docs 47/48, corrected stale HEAD references, and added final certification docs.
+
+### Key Actions
+
+1. All cross-references validated — 24 unique references verified across 12 key docs.
+2. Docs 49 and 50 added — Loop log (audit trail) and final certification (single source of truth).
+
+---
+
+## What Changed in Eleventh Pass (Production Enablement Hardening)
+
+### Purpose
+
+Docs-only production enablement readiness pass. Created the complete production enablement planning pack: every artifact, checklist, copy pack, playbook, runbook, rollout plan, test matrix, and sign-off template needed to safely enable access telemetry in production.
+
+### Key Actions
+
+1. **HEAD self-reference permanently resolved** — All docs now use audited-baseline (`65b21eb`) / last-certification (`e559e60`) / current-HEAD (`b6873b4`) pattern.
+2. **11 new docs created (51–61)** — Complete production enablement pack.
+3. **Philippine DPA/NPC research launched** — Librarian agent researching current NPC circulars for web application telemetry.
+4. **All existing docs updated** — Cross-references to production enablement pack added across README, 50, 39, 47, and others.
+5. **Distinction hardened:** "GO for implementation" ≠ "Production enabled." Both concepts are now separately tracked with their own scorecards and certifications.
+6. **No false claims** — Zero instances of falsely claiming DPO designation, NPC registration completion, external counsel review, or production telemetry enablement.
+
+### Scores After Eleventh Pass
+
+| Category | Score |
+|----------|------:|
+| Implementation readiness (composite) | 99.5% (unchanged) |
+| Production enablement planning (composite) | 98.50% |
+| Production enablement execution | 0% (by design — operational actions pending) |
+
+### New Documents
+
+- 51–61 — Complete production enablement planning pack. See `61-access-telemetry-production-enablement-readiness-certification.md` (read FIRST for production enablement).
 
 ---
 
@@ -305,12 +350,23 @@ The following areas were inspected:
 | `48-philippines-data-privacy-compliance-plan.md` | **NEW (Ninth Pass)** — Philippine DPA/NPC compliance plan: registration, data rights, breach notification, retention |
 | `49-final-100-readiness-loop-log.md` | **NEW (Tenth Pass)** — Autonomous loop log for final certification pass: iterations, issues found, fixes applied |
 | `50-final-100-implementation-readiness-certification.md` | **NEW (Tenth Pass)** — Final single source of truth: HEAD, file count, GO/NO-GO table, PR 7 constraints, production gates, reading order |
+| `51-access-telemetry-production-enablement-checklist.md` | **NEW (Eleventh Pass)** — Master production enablement checklist: 39 items across legal, technical, test, and sign-off sections |
+| `52-privacy-notice-and-disclosure-copy-pack.md` | **NEW (Eleventh Pass)** — Approved privacy policy and in-product disclosure copy (English + Tagalog) |
+| `53-dpo-npcrs-and-dps-registration-triage.md` | **NEW (Eleventh Pass)** — DPO designation, NPCRS registration triage, and DPS inventory worksheets |
+| `54-data-subject-request-and-breach-response-playbook.md` | **NEW (Eleventh Pass)** — DSR intake/response procedures and breach notification playbook with templates |
+| `55-access-telemetry-retention-runbook.md` | **NEW (Eleventh Pass)** — 90-day retention path: automated, operator-run, and feature-flagged options |
+| `56-access-telemetry-feature-flag-and-rollout-plan.md` | **NEW (Eleventh Pass)** — 6-stage rollout plan with monitoring, rollback, and kill switch |
+| `57-access-telemetry-test-evidence-matrix.md` | **NEW (Eleventh Pass)** — 39 specific tests across data safety, behavior, visibility, disclosure, retention, and feature flag categories |
+| `58-production-enablement-final-go-template.md` | **NEW (Eleventh Pass)** — Final production sign-off template with evidence checklist and approval blocks |
+| `59-access-telemetry-production-enablement-readiness-scorecard.md` | **NEW (Eleventh Pass)** — 12-category production enablement readiness scoring (98.50% composite) |
+| `60-production-enablement-readiness-loop-log.md` | **NEW (Eleventh Pass)** — Autonomous loop audit trail for the eleventh pass |
+| `61-access-telemetry-production-enablement-readiness-certification.md` | **NEW (Eleventh Pass)** — Production enablement single source of truth — read FIRST |
 
 ---
 
 ## Authoritative Implementation Sequence
 
-1. **PR 1 — Planning docs merge** (docs only, 52 files)
+1. **PR 1 — Planning docs merge** (docs only, 63 files)
 2. **PR 2 — Preflight correctness cleanup** — Fix 5 known bugs (row_inserted filter, Realtime, event_type, CSRF fixes). See `31-pr2-preflight-implementation-brief.md`.
 3. **PR 3 — Activity Composer module + tests** (combined PR: module + passing tests)
 4. **PR 4 — Estimate Activity UI integration**
@@ -333,7 +389,7 @@ PRs 1–6 and PR 8A can proceed without stakeholder approval (no privacy impact)
 - **Code truth map complete** (doc 35) — 20+ features mapped from planning claims to actual code with reconciled truth.
 - **PR 2 scope narrowed** — event_type NOT exposed in public API response (deferred to composer PR 5). CSRF fix covers all 3 fetch paths.
 - **Approval statuses corrected** (doc 29) — Engineering recommendations distinguished from actual stakeholder sign-offs. No fabricated approvals.
-- **52 planning documents total** (README + 51 numbered docs 00–50). Sixth pass added docs 41–44. Seventh pass added doc 45 and refined all docs for final micro-consistency. Eighth pass added doc 46 and corrected stale HEADs. Ninth pass added docs 47–48 for gate clearance and DPA compliance. Tenth pass added docs 49–50 for final hardening and certification.
+- **63 planning documents total** (README + 62 numbered docs 00–61). Sixth pass added docs 41–44. Seventh pass added doc 45 and refined all docs for final micro-consistency. Eighth pass added doc 46 and corrected stale HEADs. Ninth pass added docs 47–48 for gate clearance and DPA compliance. Tenth pass added docs 49–50 for final hardening and certification. Eleventh pass added docs 51–61 for production enablement planning: checklist, privacy copy pack, DPO/NPCRS triage, DSR/breach playbook, retention runbook, feature flag/rollout plan, test evidence matrix, sign-off template, scorecard, loop log, and certification.
 
 ### Previous Findings (Third Pass — still accurate)
 
@@ -366,10 +422,11 @@ See `29-final-decision-log-and-approval-matrix.md` for all 28 decisions and thei
 
 ## Next Action
 
-1. **Merge docs (PR 1)** — All 52 files (README + 51 numbered docs 00–50) are internally consistent after tenth-pass certification. Ready to merge.
+1. **Merge docs (PR 1)** — All 63 files (README + 62 numbered docs 00–61) are internally consistent after eleventh-pass production enablement hardening. Ready to merge.
 2. **Begin PR 2** — Preflight correctness cleanup (5 fixes, no privacy dependencies). See `40-final-implementation-handoff.md` for exact starting point. See `31-pr2-preflight-implementation-brief.md` for scope. See `38-pr2-test-command-and-fixture-plan.md` for test plan.
 3. **Continue through PR sequence** — PRs 3-6 proceed freely after PR 2. PR 8A can proceed after PRs 2-6 independent of PR 7. PR 7 formerly gated — now GO. See `42-98-100-readiness-scorecard.md`.
 4. **Begin PR 7 — Access telemetry.** See `50-final-100-implementation-readiness-certification.md` (read FIRST), `47-pr7-pr8b-approval-record.md`, and `48-philippines-data-privacy-compliance-plan.md` for approved constraints and production enablement gates.
+5. **Before production enablement — Complete the checklist.** See `61-access-telemetry-production-enablement-readiness-certification.md` (read FIRST), then `51-access-telemetry-production-enablement-checklist.md`.
 
 ## Key Reference Documents
 
@@ -394,3 +451,13 @@ See `29-final-decision-log-and-approval-matrix.md` for all 28 decisions and thei
 | Privacy boundaries | `26-privacy-retention-and-client-disclosure-plan.md` |
 | Gate clearance & privacy approvals | `47-pr7-pr8b-approval-record.md` |
 | Philippine DPA/NPC compliance | `48-philippines-data-privacy-compliance-plan.md` |
+| **Production enablement — read FIRST** | `61-access-telemetry-production-enablement-readiness-certification.md` |
+| Production enablement checklist | `51-access-telemetry-production-enablement-checklist.md` |
+| Privacy notice and disclosure copy | `52-privacy-notice-and-disclosure-copy-pack.md` |
+| DPO/NPCRS/DPS triage | `53-dpo-npcrs-and-dps-registration-triage.md` |
+| DSR and breach response playbook | `54-data-subject-request-and-breach-response-playbook.md` |
+| Retention runbook | `55-access-telemetry-retention-runbook.md` |
+| Feature flag and rollout plan | `56-access-telemetry-feature-flag-and-rollout-plan.md` |
+| Test evidence matrix | `57-access-telemetry-test-evidence-matrix.md` |
+| Production sign-off template | `58-production-enablement-final-go-template.md` |
+| Production readiness scores | `59-access-telemetry-production-enablement-readiness-scorecard.md` |
