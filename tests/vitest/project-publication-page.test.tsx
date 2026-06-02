@@ -42,7 +42,7 @@ vi.mock("next/image", () => ({
 }));
 
 import SharePage from "@/app/share/[token]/page";
-import { createSharedLinkSessionCookie } from "@/lib/publication/security";
+import { createPublicationAccessCookie, createSharedLinkSessionCookie } from "@/lib/publication/security";
 
 const passwordFormSource = readFileSync("src/components/share/ProjectPublicationPasswordForm.tsx", "utf8");
 const sharePageSource = readFileSync("src/app/share/[token]/page.tsx", "utf8");
@@ -251,6 +251,62 @@ describe("shared link (receiver publication) page — Shared Link Overhaul V2", 
     expect(setCookieHeader).toContain("HttpOnly");
     expect(setCookieHeader).not.toContain("client-token");
     expect(setCookieHeader).not.toContain("raw-recipient-token");
+  });
+
+  it("requires the publication password access cookie before creating recipient sessions for locked links", async () => {
+    mocks.resolveProjectPublicationAccessByToken.mockResolvedValue({
+      publicationId: "publication-1",
+      status: "published",
+      passwordRequired: true,
+      snapshotVersion: "2026-05-27T00:00:00.000Z",
+    });
+    mocks.verifySharedLinkRecipientToken.mockResolvedValue({
+      publicationId: "publication-1",
+      snapshotVersion: "2026-05-27T00:00:00.000Z",
+      recipientId: "recipient-1",
+      recipientEmail: "recipient@example.com",
+      recipientDisplayName: "Client Receiver",
+    });
+    const { POST } = await import("@/app/api/share/[token]/session/route");
+
+    const lockedResponse = await POST(
+      new Request("https://archestimator.test/api/share/client-token/session", {
+        method: "POST",
+        headers: { "content-type": "application/json", origin: "https://archestimator.test" },
+        body: JSON.stringify({ recipientToken: "raw-recipient-token" }),
+      }),
+      { params: Promise.resolve({ token: "client-token" }) },
+    );
+
+    expect(lockedResponse.status).toBe(423);
+    expect(await lockedResponse.json()).toEqual({
+      error: "Publication password required.",
+      passwordRequired: true,
+    });
+    expect(lockedResponse.headers.get("set-cookie")).toBeNull();
+    expect(mocks.verifySharedLinkRecipientToken).not.toHaveBeenCalled();
+
+    const signedCookie = createPublicationAccessCookie({
+      token: "client-token",
+      publicationId: "publication-1",
+      snapshotVersion: "2026-05-27T00:00:00.000Z",
+    });
+    const unlockedResponse = await POST(
+      new Request("https://archestimator.test/api/share/client-token/session", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          cookie: signedCookie.split(";")[0],
+          origin: "https://archestimator.test",
+        },
+        body: JSON.stringify({ recipientToken: "raw-recipient-token" }),
+      }),
+      { params: Promise.resolve({ token: "client-token" }) },
+    );
+
+    expect(unlockedResponse.status).toBe(200);
+    expect(mocks.verifySharedLinkRecipientToken).toHaveBeenCalledWith("client-token", "raw-recipient-token");
+    expect(unlockedResponse.headers.get("set-cookie") ?? "").toContain("shared_link_session_");
   });
 
   it("expires recipient session cookies without exposing the raw share token", async () => {
