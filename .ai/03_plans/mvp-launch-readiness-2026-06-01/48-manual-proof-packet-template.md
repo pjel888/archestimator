@@ -14,6 +14,8 @@ Do not record secrets, raw cookies, raw invite tokens, magic links, service-role
 | Environment | TBD |
 | App URL | TBD |
 | Commit tested | TBD |
+| Repo-local freeze baseline | `6ab5b38` unless a later app/runtime commit is intentionally tested |
+| Docs/status handoff baseline | `f2ed23c` |
 | Operator | TBD |
 | Test accounts | TBD, sanitized |
 | Related deployment | TBD |

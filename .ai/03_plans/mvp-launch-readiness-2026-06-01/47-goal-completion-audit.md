@@ -2,6 +2,8 @@
 
 Status: Goal active; completion not proven.
 
+Repo-local implementation handoff as of 2026-06-02: local implementation is frozen at `6ab5b38`, and docs/status handoff is pushed at `f2ed23c`. This is not goal completion. The full MVP launch objective remains incomplete until the P0 hosted/provider/manual proof rows in `46-manual-proof-matrix.md` pass and are linked from `14-evidence-index.md`.
+
 This audit maps the active MVP launch goal in `codex-autopilot-goal.md` to current evidence. It is intentionally conservative: local code/tests/docs can prove local implementation readiness, but they cannot prove external closed-beta readiness without the manual/provider artifacts listed in `46-manual-proof-matrix.md`.
 
 ## Current Evidence Anchors
