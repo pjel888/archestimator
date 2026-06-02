@@ -15,6 +15,12 @@
 - Guardrail evidence: `bunx vitest run tests/vitest/beta-access-required-page.test.ts tests/vitest/auth-callback-route.test.ts tests/vitest/auth-entry-ui-contract.test.ts --maxWorkers=1` passed 3 files / 9 tests.
 - Launch meaning: this closes a local support-copy mismatch only. It does not prove hosted OAuth callbacks, allowlist behavior, email monitoring, or expired-link manual QA; those gates remain **NO-GO**.
 
+### Local Login Legal Label Slice
+
+- Scope: `/login` now labels legal links as `closed beta terms` and `privacy notice` instead of status-oriented placeholder labels.
+- Guardrail evidence: `bunx vitest run tests/vitest/auth-entry-ui-contract.test.ts tests/vitest/auth-callback-route.test.ts tests/vitest/beta-access-required-page.test.ts --maxWorkers=1` passed 3 files / 9 tests.
+- Launch meaning: this closes the local legal-link label mismatch only. It does not prove hosted Google OAuth, magic-link delivery, callback configuration, or manual auth journey proof; those gates remain **NO-GO**.
+
 ### Final Codex Implementation Report Evidence
 
 - Final report artifact: `final-codex-implementation-report.md`.
