@@ -9,7 +9,7 @@ Required:
 - Vercel deployment/function error monitoring.
 - Supabase Auth callback and database/RLS error review.
 - Allowed/denied/revoked access smoke results.
-- Feedback/support inbox and protected `/workshop/feedback` table review monitored daily.
+- Feedback/support inbox, protected `/workshop/feedback`, and platform-admin `/workshop/settings/feedback` review monitored daily.
 - Export failure capture.
 - Manual bug triage severity labels.
 
@@ -31,7 +31,7 @@ Commit audited: `681c95e64864f283950a88dba304eaffe8f2f8b3`
 | Resend webhook logs | Route can record delivery state. | Delivery/webhook proof missing. |
 | Health endpoint | `/api/health` returns `200` JSON with `Cache-Control: no-store` and no auth/data dependency. | Production uptime monitor proof missing. |
 | Performance monitor | Dev-only monitor exists. | No production RUM/APM. |
-| Support | Public contact route exists, workshop footer links to protected `/workshop/feedback`, local code can persist authenticated feedback to `beta_feedback_submissions`, and the public contact form prepares a structured support email draft instead of fake-submitting. | Linked migration apply, hosted feedback smoke, monitored inbox/table review proof, SLA owner proof, and bug triage workflow proof remain missing. |
+| Support | Public contact route exists, workshop footer links to protected `/workshop/feedback`, local code can persist authenticated feedback to `beta_feedback_submissions`, platform admins have a local `/workshop/settings/feedback` status queue, and the public contact form prepares a structured support email draft instead of fake-submitting. | Linked migration apply, hosted feedback/review smoke, monitored inbox/table review proof, SLA owner proof, and bug triage workflow proof remain missing. |
 
 ## MVP Stack Decision
 
@@ -67,8 +67,8 @@ Commit audited: `681c95e64864f283950a88dba304eaffe8f2f8b3`
 
 | Window | Required monitoring |
 | --- | --- |
-| First 24h | Watch `/api/health`, auth, project/estimate creation, export, share/invite email, support inbox, 5xx logs every 2-4 hours. |
-| First 72h | Daily review of support tickets, slow routes, export failures, email failures, RLS/security alerts, beta feedback themes. |
+| First 24h | Watch `/api/health`, auth, project/estimate creation, export, share/invite email, support inbox, `/workshop/settings/feedback`, and 5xx logs every 2-4 hours. |
+| First 72h | Daily review of support tickets, `/workshop/settings/feedback` status queue, slow routes, export failures, email failures, RLS/security alerts, beta feedback themes. |
 
 ## No-Go Criteria
 

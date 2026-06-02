@@ -65,7 +65,7 @@ Do not delete rows during beta unless required by a data deletion request. Statu
 - Vercel deployment health and function errors.
 - Supabase Auth errors and callback failures.
 - Supabase database errors and RLS denials.
-- Protected `/workshop/feedback` submissions in `beta_feedback_submissions` after the migration is applied, plus support email.
+- Protected `/workshop/feedback` submissions in `beta_feedback_submissions` after the migration is applied, platform-admin status triage at `/workshop/settings/feedback` after the review migration is applied, plus support email.
 - Support email.
 - Export failures.
 - Resend delivery logs if email workflows are visible.
@@ -129,14 +129,14 @@ Options:
 - Allowed and denied login smoke after deployment.
 - First workspace/project/estimate smoke.
 - Excel export smoke.
-- `/workshop/feedback` submission smoke, `beta_feedback_submissions` review check, and support inbox check.
+- `/workshop/feedback` submission smoke, `/workshop/settings/feedback` platform-admin review/status check, `beta_feedback_submissions` review check, and support inbox check.
 - Vercel error logs check.
 - Supabase Auth and DB logs check.
 - Confirm pricing/payment surfaces are hidden or beta-reframed.
 
 ## First 72-Hour Checklist
 
-- Review all `beta_feedback_submissions` rows and support inbox messages.
+- Review all `/workshop/settings/feedback` rows, direct `beta_feedback_submissions` rows if needed, and support inbox messages.
 - Review access denied/support requests.
 - Check for repeated export or component/template issues.
 - Check database growth and slow queries.
