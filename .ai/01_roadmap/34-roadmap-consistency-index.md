@@ -196,3 +196,9 @@ All evidence under `.ai/09_archive/store/YYYY-MM-DD-[goal-id]/`. Index in `28-ev
 ---
 
 *This index is the single source of truth for roadmap structure. When in doubt about which document to read or update, consult this index first.*
+
+---
+
+## Activity History Overhaul V1 consistency rule
+
+Activity History Overhaul V1 is completed and tracked by `.ai/01_roadmap/35-activity-history-overhaul-v1-execution.md`. The archived plan path is `.ai/09_archive/store/activity-history-overhaul-v1/`. No roadmap doc may claim access telemetry is production-enabled unless docs 64/66/68 in the plan pack have real completed evidence.

@@ -21,6 +21,7 @@ import { ArchestimatorLogo } from "@/components/brand/ArchestimatorLogo";
  * Re-run detect_changes + impact will be executed pre-commit. No symbol edits without prior graph analysis.
  */
 import {
+  recordProjectPublicationAnalyticsEvent,
   recordProjectPublicationEvent,
   resolveProjectPublicationAccessByToken,
   resolveProjectPublicationSnapshotByToken,
@@ -78,6 +79,7 @@ function ProjectPublicationView({
           <p className="text-[9px] font-medium uppercase leading-3 tracking-normal text-tertiary">Client publication</p>
           <h1 className="mt-1.5 text-[12px] font-medium leading-4 text-ink">{snapshot.project.name}</h1>
           <p className="mt-1 text-[10px] leading-4 text-secondary">View-only project page</p>
+          <p className="mt-1 text-[9px] leading-3 text-tertiary">Visits are logged for project security and activity history.</p>
           <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-[10px] leading-3 text-secondary">
             {snapshot.project.projectCode ? <span>{snapshot.project.projectCode}</span> : null}
             {snapshot.project.clientName ? <span>{snapshot.project.clientName}</span> : null}
@@ -132,6 +134,7 @@ function ProjectPublicationPasswordGate({ token }: { token: string }) {
         <p className="text-[9px] font-medium uppercase leading-3 text-tertiary">Client publication</p>
         <h1 className="mt-2 text-[12px] font-medium leading-4 text-ink">Enter publication password</h1>
         <p className="mt-1 text-[10px] leading-4 text-secondary">This publication is password protected.</p>
+        <p className="mt-2 text-[9px] leading-4 text-tertiary">Visits to this shared page are logged. The project owner can see when the link was opened and whether the proposal was viewed. We do not store raw IP addresses, exact GPS location, or password values.</p>
         <ProjectPublicationPasswordForm token={token} />
       </section>
     </main>
@@ -158,6 +161,14 @@ export default async function SharePage({ params, searchParams }: SharePageProps
         snapshotVersion: publicationAccess.snapshotVersion,
       })
     ) {
+      const requestHeaders = new Headers(await headers());
+      await recordProjectPublicationAnalyticsEvent({
+        token,
+        eventType: "open",
+        accessStage: "password_gate_viewed",
+        recipientKnown: false,
+        request: createPublicationEventRequest(token, requestHeaders),
+      });
       return <ProjectPublicationPasswordGate token={token} />;
     }
   }
@@ -195,10 +206,19 @@ export default async function SharePage({ params, searchParams }: SharePageProps
   if (!publication) notFound();
 
   const requestHeaders = new Headers(await headers());
+  const publicationEventRequest = createPublicationEventRequest(token, requestHeaders);
+  await recordProjectPublicationAnalyticsEvent({
+    token,
+    eventType: "open",
+    accessStage: "page_visit",
+    recipientKnown: Boolean(recipientIdForOpenEvent),
+    request: publicationEventRequest,
+    recipientId: recipientIdForOpenEvent,
+  });
   await recordProjectPublicationEvent({
     token,
     eventType: "open",
-    request: createPublicationEventRequest(token, requestHeaders),
+    request: publicationEventRequest,
     metadata: recipientIdForOpenEvent ? { recipient_id: recipientIdForOpenEvent } : {},
     recipientId: recipientIdForOpenEvent,
   });

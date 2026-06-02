@@ -1,7 +1,7 @@
 # E-010 — Retention Cleanup Proof
 
 **Evidence ID:** E-010
-**Status:** Ready for engineering action
+**Status:** Repo-local operator procedure documented; production execution proof pending
 **Owner:** Engineer / Philip Echavez Lewis
 **Blocks production?:** ✅ YES
 
@@ -206,4 +206,6 @@ Operator signature: ______________________________
 **Source doc:** `55-access-telemetry-retention-runbook.md`
 **Gate:** G-10
 **Depends on:** PR 8B OR documented operator procedure
+**Repo-local PR8B note (2026-06-02):** Automated retention was not added in this repo-local pass. The approved 90-day retention path is the operator-run SQL procedure above. Production enablement remains NO-GO until at least one production/staging-equivalent operator run or scheduled cleanup proof is captured and reviewed.
+
 **Next:** After cleanup path is operational and verified, update `64-access-telemetry-production-evidence-ledger.md` to mark E-010 as Complete.

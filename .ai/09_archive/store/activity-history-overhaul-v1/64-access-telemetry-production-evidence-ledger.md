@@ -1,10 +1,9 @@
 # 64 — Access Telemetry Production Evidence Ledger
 
 **Date:** 2026-06-02
-**Last updated:** 2026-06-02 (evidence preparation pass — templates created)
 **Purpose:** Central evidence tracker for access telemetry production enablement. Every item defaults to "Missing" until actual evidence exists. Each evidence item includes the exact artifact required, owner, storage location, completion criteria, verification method, and whether it blocks production.
-**Last updated:** 2026-06-02 (sixteenth pass — cross-doc consistency)
-**Status:** Evidence templates prepared (see `production-evidence/`). No operational evidence completed yet. Evidence preparation: 100%. Actual evidence completion: 0%.
+**Last updated:** 2026-06-02 (PR7 repo-local implementation evidence recorded; production remains NO-GO)
+**Status:** Evidence templates prepared (see `production-evidence/`). Repo-local PR7 implementation and tests now exist, but production operational evidence is still incomplete. Evidence preparation: 100%. Actual production evidence completion: 0%.
 
 ---
 
@@ -13,8 +12,8 @@
 | Evidence ID | Requirement | Evidence link/path | Status | Owner | Blocks production? |
 | ----------- | ----------- | ------------------ | ------ | ----- | ------------------ |
 | E-001 | Privacy notice live URL — access telemetry disclosure published at `/privacy` | `production-evidence/E-001-privacy-notice/privacy-notice-draft.md` | **Ready for owner action** | Owner | ✅ YES |
-| E-002 | Shared page disclosure screenshot — in-product disclosure visible on shared page footer | `production-evidence/E-002-shared-page-disclosure/screenshot-requirements.md` | **Ready for engineering action** | Owner | ✅ YES |
-| E-003 | Password gate disclosure screenshot — in-product disclosure visible before password input | `production-evidence/E-003-password-gate-disclosure/screenshot-requirements.md` | **Ready for engineering action** | Owner | ✅ YES |
+| E-002 | Shared page disclosure screenshot — in-product disclosure visible on shared page footer | `production-evidence/E-002-shared-page-disclosure/screenshot-requirements.md` | **Repo-local implemented; production screenshot pending** | Owner | ✅ YES |
+| E-003 | Password gate disclosure screenshot — in-product disclosure visible before password input | `production-evidence/E-003-password-gate-disclosure/screenshot-requirements.md` | **Repo-local implemented; production screenshot pending** | Owner | ✅ YES |
 | E-004 | DPO / privacy officer designation artifact — formal designation document or email | `production-evidence/E-004-dpo-designation/dpo-designation-template.md` | **Ready for owner action** | Owner | ✅ YES |
 | E-005 | NPCRS triage result — completed NPC registration triage worksheet | `production-evidence/E-005-npcrs-triage/npcrs-triage-worksheet.md` | **Ready for owner action** | Owner | ✅ YES |
 | E-006 | DPS inventory — completed Data Processing System inventory | `production-evidence/E-006-dps-inventory/dps-inventory-draft.md` | **Ready for owner review** | Owner | ✅ YES |
@@ -22,8 +21,8 @@
 | E-008 | Breach response process document — operationalized breach notification process | `production-evidence/E-008-breach-response/breach-response-ready-for-review.md` | **Ready for owner review** | Owner | ✅ YES |
 | E-009 | Vendor/processor DPA review evidence — reviewed and signed DPAs for Supabase and Vercel | `production-evidence/E-009-vendor-dpa-review/vendor-dpa-review-worksheet.md` | **Ready for owner action** | Owner | ✅ YES |
 | E-010 | Retention cleanup proof — evidence of 90-day retention cleanup running or operator-run procedure documented | `production-evidence/E-010-retention-proof/retention-operator-procedure.md` | **Ready for engineering action** | Owner | ✅ YES |
-| E-011 | Feature flag default-off proof — `ACCESS_TELEMETRY_ENABLED` verified `false` in production environment | `production-evidence/E-011-feature-flag-proof/feature-flag-proof-template.md` | **Ready for engineering action** | Owner | ✅ YES |
-| E-012 | Test run report — all 39 tests from doc 57 passing with output captured | `production-evidence/E-012-test-run-report/test-run-report-template.md` | **Ready for engineering action** | Engineer | ✅ YES |
+| E-011 | Feature flag default-off proof — `ACCESS_TELEMETRY_ENABLED` verified `false` in production environment | `production-evidence/E-011-feature-flag-proof/feature-flag-proof-template.md` | **Repo-local default-off tests pass; production env proof pending** | Owner | ✅ YES |
+| E-012 | Test run report — all 39 tests from doc 57 passing with output captured | `production-evidence/E-012-test-run-report/test-run-report-template.md` | **Repo-local PR7 tests/build pass; formal report pending** | Engineer | ✅ YES |
 | E-013 | Manual QA report — all 9 manual QA items from doc 57 completed with evidence | `production-evidence/E-013-manual-qa-report/manual-qa-report-template.md` | **Ready for QA action** | QA / Engineer | ✅ YES |
 | E-014 | Rollout approval — staged rollout approval per doc 56 (Phase 5 or Phase 6 sign-off) | `production-evidence/E-014-rollout-approval/rollout-approval-template.md` | **Ready for owner action** | Owner | ✅ YES |
 | E-015 | Final production sign-off — completed doc 58 with all blocks signed | `production-evidence/E-015-final-production-signoff/final-production-signoff-template.md` | **Ready for future completion** | Owner | ✅ YES |
@@ -78,8 +77,8 @@
 
 **Blocks production?:** ✅ YES
 
-**Preparation status:** Ready for engineering action (template created in `production-evidence/E-002-shared-page-disclosure/`)
-**Execution status:** Missing (disclosure not yet implemented)
+**Preparation status:** Repo-local implementation complete; production screenshot still required (template in `production-evidence/E-002-shared-page-disclosure/`)
+**Execution status:** Repo-local disclosure implemented; production screenshot evidence missing
 
 ---
 
@@ -103,8 +102,8 @@
 
 **Blocks production?:** ✅ YES
 
-**Preparation status:** Ready for engineering action (template created in `production-evidence/E-003-password-gate-disclosure/`)
-**Execution status:** Missing (disclosure not yet implemented)
+**Preparation status:** Repo-local implementation complete; production screenshot still required (template in `production-evidence/E-003-password-gate-disclosure/`)
+**Execution status:** Repo-local disclosure implemented; production screenshot evidence missing
 
 ---
 
@@ -304,8 +303,8 @@
 
 **Blocks production?:** ✅ YES
 
-**Preparation status:** Ready for engineering action (template created in `production-evidence/E-011-feature-flag-proof/`)
-**Execution status:** Missing (feature flag not yet verified in production)
+**Preparation status:** Repo-local default-off tests pass; production environment proof still required (template in `production-evidence/E-011-feature-flag-proof/`)
+**Execution status:** Production flag not yet verified; production telemetry remains NO-GO
 
 ---
 
@@ -329,8 +328,8 @@
 
 **Blocks production?:** ✅ YES
 
-**Preparation status:** Ready for engineering action (template created in `production-evidence/E-012-test-run-report/`)
-**Execution status:** Missing (tests not yet implemented or run)
+**Preparation status:** Repo-local PR7 tests and build pass; formal doc 57 test report still required (template in `production-evidence/E-012-test-run-report/`)
+**Execution status:** Formal production test-run artifact not complete; PR8B coverage still pending
 
 ---
 
@@ -442,7 +441,8 @@
 | Missing | 0 | — |
 | Drafted | 0 | — |
 | Ready for owner action | 5 | E-001, E-004, E-005, E-009, E-014 |
-| Ready for engineering action | 5 | E-002, E-003, E-010, E-011, E-012 |
+| Ready for engineering action | 1 | E-010 |
+| Repo-local proof exists; production evidence pending | 4 | E-002, E-003, E-011, E-012 |
 | Ready for owner review | 3 | E-006, E-007, E-008 |
 | Ready for QA action | 1 | E-013 |
 | Ready for future completion | 1 | E-015 |
@@ -452,7 +452,7 @@
 | Not applicable | 0 | — |
 
 **Evidence preparation readiness**: 16/16 templates created = **100% template preparation**.
-**Actual evidence completion**: 0/15 required items complete = **0% execution readiness**.
+**Actual production evidence completion**: 0/15 required items complete = **0% execution readiness**. Repo-local PR7 code/test evidence exists but does not satisfy production evidence completion by itself.
 
 ---
 
@@ -473,7 +473,7 @@ Production enablement execution readiness = (Complete items / Total blocking ite
 To reach 100% production enablement execution readiness:
 
 1. **E-001**: Publish privacy notice with access telemetry disclosure on the live `/privacy` page. Capture URL and screenshot.
-2. **E-002, E-003**: Implement in-product disclosure on shared page footer and password gate. Capture screenshots at both breakpoints.
+2. **E-002, E-003**: Repo-local disclosure copy is implemented; capture production screenshots at both breakpoints.
 3. **E-004**: Designate DPO/privacy officer. Produce signed designation document or dated email.
 4. **E-005, E-006**: Complete NPCRS triage worksheet and DPS inventory. Produce dated, signed documents.
 5. **E-007, E-008**: Write and operationalize DSR intake/response process and breach notification playbook. Produce dated process documents.

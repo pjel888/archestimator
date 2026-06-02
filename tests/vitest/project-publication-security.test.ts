@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
 
 import {
+  assertSameOrigin,
   assertSameOriginPublicPost,
   createPublicPostCsrfToken,
   createPublicationAccessCookie,
@@ -41,6 +42,22 @@ describe("project publication security helpers (Shared Link V2)", () => {
     expect(passwordHash).not.toContain("client-passphrase");
     await expect(verifyPublicationPassword("client-passphrase", passwordHash)).resolves.toBe(true);
     await expect(verifyPublicationPassword("wrong-passphrase", passwordHash)).resolves.toBe(false);
+  });
+
+  it("allows same-origin public GETs without CSRF while rejecting mismatched origins", () => {
+    const sameOriginGet = new Request("https://archestimator.test/api/share/public-token/activity", {
+      method: "GET",
+      headers: { origin: "https://archestimator.test" },
+    });
+    const noOriginGet = new Request("https://archestimator.test/api/share/public-token/activity", { method: "GET" });
+    const crossOriginGet = new Request("https://archestimator.test/api/share/public-token/activity", {
+      method: "GET",
+      headers: { origin: "https://evil.example" },
+    });
+
+    expect(assertSameOrigin(sameOriginGet)).toEqual({ ok: true });
+    expect(assertSameOrigin(noOriginGet)).toEqual({ ok: true });
+    expect(assertSameOrigin(crossOriginGet)).toEqual({ ok: false, status: 403, message: "Cross-origin publication requests are blocked." });
   });
 
   it("requires same-origin public POSTs and a matching CSRF header/cookie pair", () => {

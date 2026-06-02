@@ -3,6 +3,7 @@
 import React, { useState, useCallback } from "react";
 import { useSharedLinkSession } from "@/hooks/use-shared-link-session";
 import { Button } from "@/components/ui/button";
+import { createPublicationCsrfHeaders } from "@/lib/publication/client-csrf";
 
 type DecisionType = "accepted" | "declined" | "revision_requested";
 
@@ -63,8 +64,8 @@ export default function SharePageDecision({ token }: SharePageDecisionProps) {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          // CSRF: mirrors P6 comment pattern (server enforces cookie+header pair via assertSameOriginPublicPost)
-          "x-archestimator-csrf": "client-post",
+          // CSRF: server enforces a matching cookie+header pair via assertSameOriginPublicPost.
+          ...createPublicationCsrfHeaders(),
         },
         body: JSON.stringify(payload),
       });
