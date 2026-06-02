@@ -1,0 +1,42 @@
+{
+  "generatedAt": "2026-06-02T02:56:03.121Z",
+  "mode": "local-proposal-workbook-benchmark",
+  "note": "Synthetic local benchmark for createProposalWorkbookBuffer(); does not prove Vercel runtime limits or spreadsheet-app open/recalc/print behavior.",
+  "rowCounts": [
+    500,
+    1000,
+    2500
+  ],
+  "runs": [
+    {
+      "rowCount": 500,
+      "sourceBreakdownRowCount": 500,
+      "summaryRowCount": 10,
+      "durationMs": 148.12,
+      "bufferBytes": 93073,
+      "bufferMiB": 0.09,
+      "rssMiB": 151.72,
+      "heapUsedMiB": 20.75
+    },
+    {
+      "rowCount": 1000,
+      "sourceBreakdownRowCount": 1000,
+      "summaryRowCount": 10,
+      "durationMs": 165.56,
+      "bufferBytes": 170029,
+      "bufferMiB": 0.16,
+      "rssMiB": 200.52,
+      "heapUsedMiB": 39.98
+    },
+    {
+      "rowCount": 2500,
+      "sourceBreakdownRowCount": 2500,
+      "summaryRowCount": 10,
+      "durationMs": 362.06,
+      "bufferBytes": 402284,
+      "bufferMiB": 0.38,
+      "rssMiB": 270.56,
+      "heapUsedMiB": 76.65
+    }
+  ]
+}

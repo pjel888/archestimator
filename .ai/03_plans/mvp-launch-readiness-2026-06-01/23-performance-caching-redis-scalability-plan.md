@@ -45,6 +45,8 @@ Commit audited: `681c95e64864f283950a88dba304eaffe8f2f8b3`
 
 MVP decision: **Redis is not required as a broad cache for launch** if AI remains disabled, share/invite email surfaces are limited/proven, and route/export performance thresholds pass. Current Next.js, Supabase, TanStack Query, and durable Postgres rate-limit audit are sufficient for closed beta scale.
 
+Current local export benchmark evidence: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/proposal-workbook-large-fixture-benchmark-2026-06-02.md` records the synthetic `createProposalWorkbookBuffer()` benchmark for 500 / 1,000 / 2,500 proposal rows. The 2,500-row workbook generated in 362.06ms, produced a 402,284 byte (0.38 MiB) buffer, and reported local process RSS at 270.56 MiB. This supports keeping export generation synchronous locally for closed-beta scale, but it does not replace Vercel preview/staging route timing or memory proof.
+
 Redis becomes required before launch if any of these fail:
 
 - Public share/invite endpoints are enabled and Postgres limiter adds unacceptable latency or can be abused.
@@ -97,7 +99,7 @@ Candidate providers:
 ## Load Test Plan
 
 - Seed fixture: 50 projects, 200 estimate rows, realistic library/templates.
-- Export fixture: 500, 1,000, and 2,500 rows if app supports it.
+- Export fixture: 500, 1,000, and 2,500 rows if app supports it. Local synthetic workbook-buffer proof now exists for these row counts; hosted route proof is still required.
 - Run local, Vercel preview, and staging.
 - Record cold/warm timings, memory errors, server logs, and browser screenshots.
 

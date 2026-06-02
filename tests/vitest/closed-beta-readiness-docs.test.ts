@@ -49,6 +49,10 @@ const testStrategy = readFileSync(
   ".ai/03_plans/mvp-launch-readiness-2026-06-01/19-test-strategy-and-fixtures.md",
   "utf8",
 );
+const performancePlan = readFileSync(
+  ".ai/03_plans/mvp-launch-readiness-2026-06-01/23-performance-caching-redis-scalability-plan.md",
+  "utf8",
+);
 const launchRunbook = readFileSync(
   ".ai/03_plans/mvp-launch-readiness-2026-06-01/20-launch-runbook.md",
   "utf8",
@@ -217,6 +221,10 @@ describe("closed beta readiness docs", () => {
     expect(evidenceIndex).toContain("### Spreadsheet Artifact Local Evidence");
     expect(evidenceIndex).toContain("spreadsheet-quicklook-preview-2026-06-02.md");
     expect(evidenceIndex).toContain("spreadsheet-app-availability-refresh-2026-06-02.md");
+    expect(evidenceIndex).toContain("proposal-workbook-large-fixture-benchmark-2026-06-02.md");
+    expect(evidenceIndex).toContain("synthetic 500 / 1,000 / 2,500 row proposal models generated buffers in 148.12ms / 165.56ms / 362.06ms");
+    expect(performancePlan).toContain("The 2,500-row workbook generated in 362.06ms");
+    expect(performancePlan).toContain("hosted route proof is still required");
     expect(evidenceIndex).toContain("`Google Sheets.app` is installed, but it is a Google Drive shortcut app");
     expect(evidenceIndex).toContain("qlmanage -t -s 1200");
     expect(evidenceIndex).toContain("1200 x 892 PNG thumbnail");
@@ -524,7 +532,7 @@ describe("closed beta readiness docs", () => {
     expect(goalCompletionAudit).toContain("owner sign-off remain missing");
     expect(goalCompletionAudit).toContain("generated workbook artifact is loadable, ZIP-valid, formula-backed, has no blank line totals");
     expect(goalCompletionAudit).toContain("renders a local Quick Look thumbnail");
-    expect(goalCompletionAudit).toContain("valid, loadable, and Quick Look-renderable");
+    expect(goalCompletionAudit).toContain("synthetic 500 / 1,000 / 2,500 row workbook buffers generate locally under the 15s threshold");
     expect(goalCompletionAudit).toContain("component/template demo smoke and template insertion are partial/local pass");
     expect(goalCompletionAudit).toContain("Template insertion local smoke evidence");
     expect(goalCompletionAudit).toContain("Support/feedback local surface evidence");
@@ -543,6 +551,8 @@ describe("closed beta readiness docs", () => {
     expect(goalCompletionAudit).toContain("Supabase backup/PITR and restore-drill proof");
     expect(goalCompletionAudit).toContain("Hosted auth allowlist smoke");
     expect(goalCompletionAudit).toContain("Excel plus one secondary spreadsheet app open/recalc/print proof");
+    expect(goalCompletionAudit).toContain("synthetic large-fixture benchmarked");
+    expect(goalCompletionAudit).toContain("Vercel export-route timing/memory proof remains missing");
     expect(goalCompletionAudit).toContain("Current decision: **DO NOT MARK GOAL COMPLETE**.");
     expect(goalCompletionAudit).toContain("48-manual-proof-packet-template.md");
     expect(goalCompletionAudit).not.toMatch(/Current decision: \*\*COMPLETE\*\*/);
@@ -574,6 +584,8 @@ describe("closed beta readiness docs", () => {
     expect(currentState).toContain("but not hosted/manual target behavior");
     expect(currentState).toContain("Spreadsheet artifact evidence");
     expect(currentState).toContain("missing local spreadsheet apps");
+    expect(currentState).toContain("**Proposal Workbook Large-Fixture Benchmark (2026-06-02):**");
+    expect(currentState).toContain("The 2,500-row fixture generated in 362.06ms");
     expect(currentState).toContain("Component/template local demo evidence");
     expect(currentState).toContain("Template insertion local evidence");
     expect(currentState).toContain("local insertion into a throwaway estimate with zero residue");
@@ -600,6 +612,7 @@ describe("closed beta readiness docs", () => {
     expect(decisions).toMatch(/This is not a launch approval/);
     expect(knownIssues).toContain("Local validation/build evidence is now current");
     expect(knownIssues).toContain("`bc1c715` passed `bun install --frozen-lockfile`, `bun run validate`, and `bun run build`");
+    expect(knownIssues).toContain("Proposal workbook large-fixture evidence on 2026-06-02");
     expect(knownIssues).toContain("Linked Supabase schema parity evidence on 2026-06-02 is negative/blocked");
     expect(knownIssues).toContain("`20260601182522_closed_beta_allowed_emails` and `20260601184343_unlink_estimate_row_items` missing from linked migration history");
     expect(knownIssues).toContain("Closed beta allowlist admin evidence on 2026-06-02 adds local `/workshop/settings/beta-users` platform-admin management");
@@ -651,7 +664,7 @@ describe("closed beta readiness docs", () => {
     expect(readinessScorecard).toMatch(/Component library \| Yes \| 90 \| Local screenshot pass; hosted proof pending/);
     expect(readinessScorecard).toMatch(/Templates \| Yes \| 91 \| Local insertion pass; hosted proof pending/);
     expect(readinessScorecard).toMatch(/Vercel\/Supabase deployment \| Yes \| 76 \| Partial preview proof/);
-    expect(readinessScorecard).toMatch(/Excel export \| Yes \| 90 \| Local artifact pass; app proof pending/);
+    expect(readinessScorecard).toMatch(/Excel export \| Yes \| 91 \| Local artifact and benchmark pass; app\/hosted proof pending/);
     expect(readinessScorecard).toMatch(/Resend\/email readiness \| Conditional \| 70 \| Disabled until provider proof/);
     expect(readinessScorecard).toMatch(/Data backup\/rollback \| Yes \| 60 \| Provider evidence negative/);
     expect(readinessScorecard).toMatch(/Security\/RLS \| Yes \| 70 \| Live advisor warns/);
@@ -671,7 +684,7 @@ describe("closed beta readiness docs", () => {
   it("keeps executive launch docs current on local mitigations", () => {
     expect(finalLaunchGate).toMatch(/Ask Flip hidden and AI routes disabled by default.+Local pass; production env proof pending/s);
     expect(finalLaunchGate).toMatch(/Resend delivery\/webhook verified before visible email workflows are re-enabled.+recipient email controls now disable while server readiness is false/s);
-    expect(finalLaunchGate).toMatch(/Excel export is professional bid\/BOQ workbook.+cross-app open proof pending/s);
+    expect(finalLaunchGate).toMatch(/Excel export is professional bid\/BOQ workbook.+cross-app open and hosted route proof pending/s);
     expect(finalLaunchGate).not.toMatch(/test:dom` fails/);
     expect(finalLaunchGate).not.toMatch(/Current workbook is insufficient/);
     expect(executiveBrief).toMatch(/local code now hides\/fail-closes AI by default/i);
