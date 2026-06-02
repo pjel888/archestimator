@@ -41,4 +41,29 @@ describe("template library manager UI", () => {
     expect(within(sheet).getByText("1 of 1 template")).toBeInTheDocument();
     expect(within(sheet).getAllByText("Condo Fit-Out Starter").length).toBeGreaterThan(0);
   });
+
+  it("renders the shared empty state copy when no templates exist", () => {
+    render(<TemplatesPageClient templates={[]} />);
+
+    const sheet = screen.getByLabelText("Template sheet");
+    expect(within(sheet).getByRole("tab", { name: "All Templates" })).toHaveAttribute("aria-selected", "true");
+    expect(within(sheet).getByText("No templates in this workspace yet.")).toBeInTheDocument();
+    expect(within(sheet).queryByText("No templates in this folder yet.")).not.toBeInTheDocument();
+  });
+
+  it("renders shared no-match states for sheet and tree filters", () => {
+    render(<TemplatesPageClient templates={estimateTemplates} />);
+
+    const sheet = screen.getByLabelText("Template sheet");
+    fireEvent.change(screen.getByLabelText("Search template sheet"), { target: { value: "zzzz-template" } });
+
+    expect(within(sheet).getByRole("tab", { name: "All Templates" })).toHaveAttribute("aria-selected", "true");
+    expect(within(sheet).getByText('No templates match "zzzz-template".')).toBeInTheDocument();
+
+    const tree = screen.getByLabelText("Template library tree");
+    fireEvent.change(screen.getByLabelText("Search template library tree"), { target: { value: "zzzz-folder" } });
+
+    expect(within(tree).getByText("No template folders")).toBeInTheDocument();
+    expect(within(tree).getByText('No templates match "zzzz-folder".')).toBeInTheDocument();
+  });
 });

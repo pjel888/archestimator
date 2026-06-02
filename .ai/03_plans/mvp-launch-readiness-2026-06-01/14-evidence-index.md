@@ -383,6 +383,9 @@
 - Template sheet rows now expose a labeled preview region with `Structure`, category, representative group/area labels, `Sample rows`, and compact quantity/unit signals.
 - 2026-06-02 local route-state refresh: `/workshop/templates/error.tsx` now uses `WorkshopRouteErrorState` with the route label `Templates`, matching the Library, Project charts, and Estimate workspace route retry boundary.
 - 2026-06-02 local route-state refresh: `workshop-route-error-boundaries.test.tsx` now proves Templates route failures render sanitized retry UI and do not expose SQL/token/path/digest details.
+- 2026-06-02 local empty-state refresh: `TemplateLibraryManager` now uses shared `EmptyState` for the template sheet workspace-empty/no-match copy and tree no-match copy.
+- 2026-06-02 local empty-state refresh: `template-library-manager-ui.test.tsx` now covers empty-template workspace copy, sheet no-match copy, tree no-match copy, and rejects the old `No templates in this folder yet.` placeholder.
+- 2026-06-02 local empty-state refresh: `bunx vitest run tests/vitest/template-library-manager-ui.test.tsx --maxWorkers=1` passed 1 file / 3 tests.
 - Focused red/green evidence: `bun run test:dom tests/vitest/template-library-manager-ui.test.tsx` first failed on the old `3 / 3` result-count copy, then passed 1 file / 1 test after the preview implementation.
 - `bun run type-check` passed.
 - `bun run lint` passed with the existing 14 warnings and 0 errors.
