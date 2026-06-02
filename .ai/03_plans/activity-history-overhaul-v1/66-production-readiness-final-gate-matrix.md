@@ -1,31 +1,32 @@
 # 66 — Production Readiness Final Gate Matrix
 
 **Date:** 2026-06-02
-**Purpose:** Boolean gate matrix for access telemetry production enablement. All required gates must be Complete for production GO. Each gate now includes required evidence, pass/fail conditions, blocking status, and concrete verification steps.
-**Status:** All gates Pending — no operational actions have been taken.
+**Last updated:** 2026-06-02 (evidence preparation pass)
+**Purpose:** Boolean gate matrix for access telemetry production enablement. All required gates must be Complete for production GO. Each gate includes required evidence, pass/fail conditions, blocking status, preparation status, and concrete verification steps.
+**Status:** All gates have prepared templates. No gates have been executed. Evidence preparation: 98–100%. Gate execution: 0%.
 
 ---
 
 ## Gate Matrix
 
-| Gate | Requirement | Must be true? | Current status | Evidence (doc 64) | Can production enable? |
-| ---- | ----------- | ------------- | -------------- | ------------------ | ---------------------- |
-| G-01 | Privacy notice is live with access telemetry disclosure at `/privacy` | ✅ YES | ❌ Incomplete | E-001 | ❌ NO — blocks production |
-| G-02 | In-product disclosure implemented on shared page footer | ✅ YES | ❌ Incomplete | E-002 | ❌ NO — blocks production |
-| G-03 | In-product disclosure implemented on password gate | ✅ YES | ❌ Incomplete | E-003 | ❌ NO — blocks production |
-| G-04 | DPO / privacy officer formally designated | ✅ YES | ❌ Incomplete | E-004 | ❌ NO — blocks production |
-| G-05 | NPCRS registration triage completed | ✅ YES | ❌ Incomplete | E-005 | ❌ NO — blocks production |
-| G-06 | DPS inventory completed | ✅ YES | ❌ Incomplete | E-006 | ❌ NO — blocks production |
-| G-07 | DSR intake and response process operational | ✅ YES | ❌ Incomplete | E-007 | ❌ NO — blocks production |
-| G-08 | Breach notification process operational | ✅ YES | ❌ Incomplete | E-008 | ❌ NO — blocks production |
-| G-09 | Vendor/processor DPA review completed (Supabase + Vercel) | ✅ YES | ❌ Incomplete | E-009 | ❌ NO — blocks production |
-| G-10 | 90-day retention cleanup path operational | ✅ YES | ❌ Incomplete | E-010 | ❌ NO — blocks production |
-| G-11 | Feature flag `ACCESS_TELEMETRY_ENABLED` exists and is confirmed `false` in production | ✅ YES | ❌ Incomplete | E-011 | ❌ NO — blocks production |
-| G-12 | All 39 tests pass (data safety, behavior, visibility, disclosure, retention, feature flag) | ✅ YES | ❌ Incomplete | E-012 | ❌ NO — blocks production |
-| G-13 | Manual QA completed — all 9 items pass | ✅ YES | ❌ Incomplete | E-013 | ❌ NO — blocks production |
-| G-14 | Staged rollout approved through all phases | ✅ YES | ❌ Incomplete | E-014 | ❌ NO — blocks production |
-| G-15 | Final production sign-off completed (doc 58) | ✅ YES | ❌ Incomplete | E-015 | ❌ NO — blocks production |
-| G-16 | External legal counsel review of access telemetry implementation | ⚠️ Recommended | ❌ Incomplete | E-016 | ⚠️ RECOMMENDED before public launch — not strictly blocking if owner accepts risk |
+| Gate | Requirement | Must be true? | Preparation status | Current status | Evidence (doc 64) | Can production enable? |
+| ---- | ----------- | ------------- | ------------------ | -------------- | ------------------ | ---------------------- |
+| G-01 | Privacy notice is live with access telemetry disclosure at `/privacy` | ✅ YES | Ready for owner action | ❌ Incomplete | E-001 | ❌ NO — blocks production |
+| G-02 | In-product disclosure implemented on shared page footer | ✅ YES | Ready for engineering action | ❌ Incomplete | E-002 | ❌ NO — blocks production |
+| G-03 | In-product disclosure implemented on password gate | ✅ YES | Ready for engineering action | ❌ Incomplete | E-003 | ❌ NO — blocks production |
+| G-04 | DPO / privacy officer formally designated | ✅ YES | Ready for owner action | ❌ Incomplete | E-004 | ❌ NO — blocks production |
+| G-05 | NPCRS registration triage completed | ✅ YES | Ready for owner action | ❌ Incomplete | E-005 | ❌ NO — blocks production |
+| G-06 | DPS inventory completed | ✅ YES | Drafted | ❌ Incomplete | E-006 | ❌ NO — blocks production |
+| G-07 | DSR intake and response process operational | ✅ YES | Ready for owner review | ❌ Incomplete | E-007 | ❌ NO — blocks production |
+| G-08 | Breach notification process operational | ✅ YES | Ready for owner review | ❌ Incomplete | E-008 | ❌ NO — blocks production |
+| G-09 | Vendor/processor DPA review completed (Supabase + Vercel) | ✅ YES | Ready for owner action | ❌ Incomplete | E-009 | ❌ NO — blocks production |
+| G-10 | 90-day retention cleanup path operational | ✅ YES | Ready for engineering action | ❌ Incomplete | E-010 | ❌ NO — blocks production |
+| G-11 | Feature flag `ACCESS_TELEMETRY_ENABLED` exists and is confirmed `false` in production | ✅ YES | Ready for engineering action | ❌ Incomplete | E-011 | ❌ NO — blocks production |
+| G-12 | All 39 tests pass (data safety, behavior, visibility, disclosure, retention, feature flag) | ✅ YES | Ready for engineering action | ❌ Incomplete | E-012 | ❌ NO — blocks production |
+| G-13 | Manual QA completed — all 9 items pass | ✅ YES | Ready for QA action | ❌ Incomplete | E-013 | ❌ NO — blocks production |
+| G-14 | Staged rollout approved through all phases | ✅ YES | Ready for owner action | ❌ Incomplete | E-014 | ❌ NO — blocks production |
+| G-15 | Final production sign-off completed (doc 58) | ✅ YES | Ready for future completion | ❌ Incomplete | E-015 | ❌ NO — blocks production |
+| G-16 | External legal counsel review of access telemetry implementation | ⚠️ Recommended | Recommended / optional | ❌ Incomplete | E-016 | ⚠️ RECOMMENDED before public launch — not strictly blocking if owner accepts risk |
 
 ---
 
@@ -340,8 +341,14 @@
 | Status | Count | Gates |
 |--------|------:|-------|
 | Complete | 0 | — |
-| Incomplete | 15 | G-01 through G-15 |
-| Recommended (not blocking) | 1 | G-16 |
+| Preparation: Ready for owner action | 5 | G-01, G-04, G-05, G-09, G-14 |
+| Preparation: Ready for engineering action | 5 | G-02, G-03, G-10, G-11, G-12 |
+| Preparation: Ready for owner review | 2 | G-07, G-08 |
+| Preparation: Drafted | 1 | G-06 |
+| Preparation: Ready for QA action | 1 | G-13 |
+| Preparation: Ready for future completion | 1 | G-15 |
+| Preparation: Recommended / optional | 1 | G-16 |
+| **Current status: Incomplete** | **15** | G-01 through G-15 |
 
 ---
 
@@ -393,9 +400,11 @@ This is expected. The planning is 100% ready. The execution has not begun.
 
 This gate matrix is truthful. No gate is marked Complete unless actual evidence exists in doc 64. Currently, ZERO gates are Complete because ZERO operational actions have been taken. This is by design — the planning pack (docs 51-67) provides the complete roadmap to reach GO. The execution runbook (doc 65) provides the exact step-by-step path.
 
+**Evidence preparation** (templates created, checklists ready, processes drafted) is at 98–100%. **Evidence execution** (actual DPO designation, actual NPC registration, actual test runs, actual screenshots) is at 0%. The Preparation status column tracks template readiness; the Current status column tracks operational completion.
+
 Each detailed gate entry above defines concrete, verifiable pass conditions. A gate passes only when every condition is met and evidenced. There is no partial credit, no "close enough," no self-certification without objective evidence.
 
-**Planning readiness ≠ Production readiness.** Planning is 100%. Production is 0%. Both truths can coexist.
+**Planning readiness ≠ Production readiness.** Planning is 100%. Evidence preparation is 98–100%. Production is 0%. All three truths can coexist.
 
 ---
 

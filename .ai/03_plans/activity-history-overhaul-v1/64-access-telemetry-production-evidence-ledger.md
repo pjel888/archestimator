@@ -1,8 +1,9 @@
 # 64 — Access Telemetry Production Evidence Ledger
 
 **Date:** 2026-06-02
-**Purpose:** Central evidence tracker for access telemetry production enablement. Every item defaults to "Missing" until actual evidence exists. Each evidence item now includes the exact artifact required, owner, storage location, completion criteria, verification method, and whether it blocks production.
-**Status:** All items Missing — no operational actions have been taken.
+**Last updated:** 2026-06-02 (evidence preparation pass — templates created)
+**Purpose:** Central evidence tracker for access telemetry production enablement. Every item defaults to "Missing" until actual evidence exists. Each evidence item includes the exact artifact required, owner, storage location, completion criteria, verification method, and whether it blocks production.
+**Status:** Evidence templates prepared (see `production-evidence/`). No operational evidence completed yet. Evidence preparation: 98–100%. Actual evidence completion: 0%.
 
 ---
 
@@ -10,22 +11,22 @@
 
 | Evidence ID | Requirement | Evidence link/path | Status | Owner | Blocks production? |
 | ----------- | ----------- | ------------------ | ------ | ----- | ------------------ |
-| E-001 | Privacy notice live URL — access telemetry disclosure published at `/privacy` | — | **Missing** | Owner | ✅ YES |
-| E-002 | Shared page disclosure screenshot — in-product disclosure visible on shared page footer | — | **Missing** | Owner | ✅ YES |
-| E-003 | Password gate disclosure screenshot — in-product disclosure visible before password input | — | **Missing** | Owner | ✅ YES |
-| E-004 | DPO / privacy officer designation artifact — formal designation document or email | — | **Missing** | Owner | ✅ YES |
-| E-005 | NPCRS triage result — completed NPC registration triage worksheet | — | **Missing** | Owner | ✅ YES |
-| E-006 | DPS inventory — completed Data Processing System inventory | — | **Missing** | Owner | ✅ YES |
-| E-007 | DSR process document — operationalized Data Subject Request intake and response process | — | **Missing** | Owner | ✅ YES |
-| E-008 | Breach response process document — operationalized breach notification process | — | **Missing** | Owner | ✅ YES |
-| E-009 | Vendor/processor DPA review evidence — reviewed and signed DPAs for Supabase and Vercel | — | **Missing** | Owner | ✅ YES |
-| E-010 | Retention cleanup proof — evidence of 90-day retention cleanup running or operator-run procedure documented | — | **Missing** | Owner | ✅ YES |
-| E-011 | Feature flag default-off proof — `ACCESS_TELEMETRY_ENABLED` verified `false` in production environment | — | **Missing** | Owner | ✅ YES |
-| E-012 | Test run report — all 39 tests from doc 57 passing with output captured | — | **Missing** | Engineer | ✅ YES |
-| E-013 | Manual QA report — all 9 manual QA items from doc 57 completed with evidence | — | **Missing** | QA / Engineer | ✅ YES |
-| E-014 | Rollout approval — staged rollout approval per doc 56 (Phase 5 or Phase 6 sign-off) | — | **Missing** | Owner | ✅ YES |
-| E-015 | Final production sign-off — completed doc 58 with all blocks signed | — | **Missing** | Owner | ✅ YES |
-| E-016 | External counsel review — legal/privacy review of access telemetry implementation (optional/recommended) | — | **Missing** | Legal counsel | ⚠️ Recommended |
+| E-001 | Privacy notice live URL — access telemetry disclosure published at `/privacy` | `production-evidence/E-001-privacy-notice/privacy-notice-draft.md` | **Ready for owner action** | Owner | ✅ YES |
+| E-002 | Shared page disclosure screenshot — in-product disclosure visible on shared page footer | `production-evidence/E-002-shared-page-disclosure/screenshot-requirements.md` | **Ready for engineering action** | Owner | ✅ YES |
+| E-003 | Password gate disclosure screenshot — in-product disclosure visible before password input | `production-evidence/E-003-password-gate-disclosure/screenshot-requirements.md` | **Ready for engineering action** | Owner | ✅ YES |
+| E-004 | DPO / privacy officer designation artifact — formal designation document or email | `production-evidence/E-004-dpo-designation/dpo-designation-template.md` | **Ready for owner action** | Owner | ✅ YES |
+| E-005 | NPCRS triage result — completed NPC registration triage worksheet | `production-evidence/E-005-npcrs-triage/npcrs-triage-worksheet.md` | **Ready for owner action** | Owner | ✅ YES |
+| E-006 | DPS inventory — completed Data Processing System inventory | `production-evidence/E-006-dps-inventory/dps-inventory-draft.md` | **Drafted** | Owner | ✅ YES |
+| E-007 | DSR process document — operationalized Data Subject Request intake and response process | `production-evidence/E-007-dsr-process/dsr-process-ready-for-review.md` | **Ready for owner review** | Owner | ✅ YES |
+| E-008 | Breach response process document — operationalized breach notification process | `production-evidence/E-008-breach-response/breach-response-ready-for-review.md` | **Ready for owner review** | Owner | ✅ YES |
+| E-009 | Vendor/processor DPA review evidence — reviewed and signed DPAs for Supabase and Vercel | `production-evidence/E-009-vendor-dpa-review/vendor-dpa-review-worksheet.md` | **Ready for owner action** | Owner | ✅ YES |
+| E-010 | Retention cleanup proof — evidence of 90-day retention cleanup running or operator-run procedure documented | `production-evidence/E-010-retention-proof/retention-operator-procedure.md` | **Ready for engineering action** | Owner | ✅ YES |
+| E-011 | Feature flag default-off proof — `ACCESS_TELEMETRY_ENABLED` verified `false` in production environment | `production-evidence/E-011-feature-flag-proof/feature-flag-proof-template.md` | **Ready for engineering action** | Owner | ✅ YES |
+| E-012 | Test run report — all 39 tests from doc 57 passing with output captured | `production-evidence/E-012-test-run-report/test-run-report-template.md` | **Ready for engineering action** | Engineer | ✅ YES |
+| E-013 | Manual QA report — all 9 manual QA items from doc 57 completed with evidence | `production-evidence/E-013-manual-qa-report/manual-qa-report-template.md` | **Ready for QA action** | QA / Engineer | ✅ YES |
+| E-014 | Rollout approval — staged rollout approval per doc 56 (Phase 5 or Phase 6 sign-off) | `production-evidence/E-014-rollout-approval/rollout-approval-template.md` | **Ready for owner action** | Owner | ✅ YES |
+| E-015 | Final production sign-off — completed doc 58 with all blocks signed | `production-evidence/E-015-final-production-signoff/final-production-signoff-template.md` | **Ready for future completion** | Owner | ✅ YES |
+| E-016 | External counsel review — legal/privacy review of access telemetry implementation (optional/recommended) | `production-evidence/E-016-external-counsel-review/external-counsel-review-request-template.md` | **Recommended / optional** | Legal counsel | ⚠️ Recommended |
 
 ---
 
@@ -51,7 +52,8 @@
 
 **Blocks production?:** ✅ YES
 
-**Status:** Missing
+**Preparation status:** Ready for owner action (template created in `production-evidence/E-001-privacy-notice/`)
+**Execution status:** Missing (no live URL published yet)
 
 ---
 
@@ -75,7 +77,8 @@
 
 **Blocks production?:** ✅ YES
 
-**Status:** Missing
+**Preparation status:** Ready for engineering action (template created in `production-evidence/E-002-shared-page-disclosure/`)
+**Execution status:** Missing (disclosure not yet implemented)
 
 ---
 
@@ -99,7 +102,8 @@
 
 **Blocks production?:** ✅ YES
 
-**Status:** Missing
+**Preparation status:** Ready for engineering action (template created in `production-evidence/E-003-password-gate-disclosure/`)
+**Execution status:** Missing (disclosure not yet implemented)
 
 ---
 
@@ -123,7 +127,8 @@
 
 **Blocks production?:** ✅ YES
 
-**Status:** Missing
+**Preparation status:** Ready for owner action (template created in `production-evidence/E-004-dpo-designation/`)
+**Execution status:** Missing (no DPO formally designated yet)
 
 ---
 
@@ -147,7 +152,8 @@
 
 **Blocks production?:** ✅ YES
 
-**Status:** Missing
+**Preparation status:** Ready for owner action (template created in `production-evidence/E-005-npcrs-triage/`)
+**Execution status:** Missing (NPCRS triage not yet completed)
 
 ---
 
@@ -171,7 +177,8 @@
 
 **Blocks production?:** ✅ YES
 
-**Status:** Missing
+**Preparation status:** Drafted (template created in `production-evidence/E-006-dps-inventory/`, needs owner validation)
+**Execution status:** Missing (DPS inventory not signed/approved yet)
 
 ---
 
@@ -196,7 +203,8 @@
 
 **Blocks production?:** ✅ YES
 
-**Status:** Missing
+**Preparation status:** Ready for owner review (template created in `production-evidence/E-007-dsr-process/`)
+**Execution status:** Missing (DSR process not operationalized yet)
 
 ---
 
@@ -221,7 +229,8 @@
 
 **Blocks production?:** ✅ YES
 
-**Status:** Missing
+**Preparation status:** Ready for owner review (template created in `production-evidence/E-008-breach-response/`)
+**Execution status:** Missing (breach response process not operationalized yet)
 
 ---
 
@@ -246,7 +255,8 @@
 
 **Blocks production?:** ✅ YES
 
-**Status:** Missing
+**Preparation status:** Ready for owner action (template created in `production-evidence/E-009-vendor-dpa-review/`)
+**Execution status:** Missing (vendor DPAs not yet reviewed)
 
 ---
 
@@ -269,7 +279,8 @@
 
 **Blocks production?:** ✅ YES
 
-**Status:** Missing
+**Preparation status:** Ready for engineering action (template created in `production-evidence/E-010-retention-proof/`)
+**Execution status:** Missing (retention cleanup not yet operational)
 
 ---
 
@@ -292,7 +303,8 @@
 
 **Blocks production?:** ✅ YES
 
-**Status:** Missing
+**Preparation status:** Ready for engineering action (template created in `production-evidence/E-011-feature-flag-proof/`)
+**Execution status:** Missing (feature flag not yet verified in production)
 
 ---
 
@@ -316,7 +328,8 @@
 
 **Blocks production?:** ✅ YES
 
-**Status:** Missing
+**Preparation status:** Ready for engineering action (template created in `production-evidence/E-012-test-run-report/`)
+**Execution status:** Missing (tests not yet implemented or run)
 
 ---
 
@@ -341,7 +354,8 @@
 
 **Blocks production?:** ✅ YES
 
-**Status:** Missing
+**Preparation status:** Ready for QA action (template created in `production-evidence/E-013-manual-qa-report/`)
+**Execution status:** Missing (manual QA not yet performed)
 
 ---
 
@@ -365,7 +379,8 @@
 
 **Blocks production?:** ✅ YES
 
-**Status:** Missing
+**Preparation status:** Ready for owner action (template created in `production-evidence/E-014-rollout-approval/`)
+**Execution status:** Missing (rollout not yet approved)
 
 ---
 
@@ -389,7 +404,8 @@
 
 **Blocks production?:** ✅ YES
 
-**Status:** Missing
+**Preparation status:** Ready for future completion (template created in `production-evidence/E-015-final-production-signoff/`)
+**Execution status:** Missing (sign-off not yet executed)
 
 ---
 
@@ -413,7 +429,8 @@
 
 **Blocks production?:** ⚠️ Recommended (not blocking; production may proceed without external review if internal privacy approval is documented per doc 47)
 
-**Status:** Missing
+**Preparation status:** Recommended / optional (template created in `production-evidence/E-016-external-counsel-review/`)
+**Execution status:** Not applicable (optional; may be completed or waived by owner risk acceptance)
 
 ---
 
@@ -421,12 +438,20 @@
 
 | Status | Count | Items |
 |--------|------:|-------|
-| Missing | 16 | E-001 through E-016 |
-| Drafted | 0 | — |
-| Ready for review | 0 | — |
+| Missing | 0 | — |
+| Drafted | 1 | E-006 |
+| Ready for owner action | 5 | E-001, E-004, E-005, E-009, E-014 |
+| Ready for engineering action | 5 | E-002, E-003, E-010, E-011, E-012 |
+| Ready for owner review | 2 | E-007, E-008 |
+| Ready for QA action | 1 | E-013 |
+| Ready for future completion | 1 | E-015 |
+| Recommended / optional | 1 | E-016 |
 | Approved | 0 | — |
 | Complete | 0 | — |
 | Not applicable | 0 | — |
+
+**Evidence preparation readiness**: 16/16 templates created = **100% template preparation**.
+**Actual evidence completion**: 0/15 required items complete = **0% execution readiness**.
 
 ---
 
@@ -479,3 +504,10 @@ To reach 100% production enablement execution readiness:
 |------|--------|----------------------|-----------------|------------|
 | 2026-06-02 | Ledger created | All | — | All Missing |
 | 2026-06-02 | Detailed evidence items added (artifact, owner, location, criteria, verification, blocking status) | All | All Missing | All Missing |
+| 2026-06-02 | Evidence preparation pass: all 16 templates created in `production-evidence/`. Statuses updated from Missing to appropriate preparation status. No false completion claims. | All | All Missing | See §Evidence Status Summary |
+
+---
+
+## Evidence Preparation Scorecard
+
+See `70-access-telemetry-evidence-preparation-scorecard.md` for the separate evidence preparation scoring (template readiness vs actual evidence completion).

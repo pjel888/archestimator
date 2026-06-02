@@ -1,7 +1,7 @@
 # 39 — Source of Truth and Document Authority Index
 
 **Date:** 2026-06-02
-**Status:** Thirteenth pass — final truth-lock hardening complete
+**Status:** Fourteenth pass — evidence preparation complete
 **Purpose:** When implementation begins, the engineer/AI needs to know which document is authoritative for each topic. This index resolves the hierarchy.
 
 ---
@@ -50,6 +50,8 @@
 | **Final three-domain scorecard** | `67-final-access-telemetry-production-readiness-scorecard.md` | `66-production-readiness-final-gate-matrix.md`, `64-access-telemetry-production-evidence-ledger.md` | Domain A (implementation 100%) + Domain B (planning 100%) + Domain C (execution 0%) |
 | **Closure loop log** | `62-production-readiness-autonomous-closure-log.md` | `60-production-enablement-readiness-loop-log.md` | Twelfth pass autonomous closure audit trail |
 | **Loop audit (tenth pass)** | `49-final-100-readiness-loop-log.md` | — | Audit trail of final document hardening pass |
+| **Evidence preparation scorecard** | `70-access-telemetry-evidence-preparation-scorecard.md` | `64-access-telemetry-production-evidence-ledger.md`, `66-production-readiness-final-gate-matrix.md` | Six-domain evidence preparation scoring: templates, owner-action, engineering-action, QA-action, sign-off, actual completion |
+| **Evidence artifacts** | `production-evidence/README.md` | All E-001 through E-016 templates | Evidence folder index and 16 evidence templates |
 
 ---
 

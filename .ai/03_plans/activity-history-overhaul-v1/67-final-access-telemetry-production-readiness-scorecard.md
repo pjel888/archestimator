@@ -1,23 +1,25 @@
 # 67 — Final Access Telemetry Production Readiness Scorecard
 
 **Date:** 2026-06-02
+**Last updated:** 2026-06-02 (fourteenth pass — evidence preparation)
 **Activity-code audit baseline:** `65b21eb`
 **Latest planning certification commit:** `8b0929f`
-**Latest repo HEAD at this audit:** `cdb9fdc`
-**Purpose:** Final three-domain readiness scoring for access telemetry production enablement.
-**Status:** Planning 100% ready. Execution 0% (pending operational actions).
+**Latest repo HEAD at this audit:** `b95ff16`
+**Purpose:** Final multi-domain readiness scoring for access telemetry production enablement.
+**Status:** Implementation 100%, Planning 100%, Evidence preparation 98–100%. Execution 0% (pending operational actions).
 
 ---
 
 ## Scoring Architecture
 
-This scorecard separates three fundamentally different domains:
+This scorecard separates four fundamentally different domains:
 
 1. **Domain A — Implementation Readiness**: Can PR 7 and PR 8B be implemented? (code quality, scope clarity, test plan)
 2. **Domain B — Production Enablement Planning Readiness**: Do all planning artifacts exist? (checklists, playbooks, runbooks, templates)
-3. **Domain C — Actual Production Enablement Execution**: Have operational tasks been completed? (evidence-based, requires real proof)
+3. **Domain C — Evidence Preparation Readiness**: Are all evidence templates, checklists, and procedures created and ready for execution?
+4. **Domain D — Actual Production Enablement Execution**: Have operational tasks been completed? (evidence-based, requires real proof)
 
-**Only Domain C determines whether production enablement is GO.**
+**Only Domain D determines whether production enablement is GO.**
 
 ---
 
@@ -56,29 +58,59 @@ This scorecard separates three fundamentally different domains:
 
 ---
 
-## Domain C — Actual Production Enablement Execution
+---
+
+## Domain C — Evidence Preparation Readiness
+
+This domain measures whether all evidence templates, checklists, drafts, and procedures are created and ready for execution. All 16 templates created in `production-evidence/`.
+
+| Evidence | Template created | Status | Preparation |
+|----------|:---------------:|--------|-----------:|
+| E-001 — Privacy notice | ✅ | Ready for owner action | 100% |
+| E-002 — Shared page disclosure | ✅ | Ready for engineering action | 100% |
+| E-003 — Password gate disclosure | ✅ | Ready for engineering action | 100% |
+| E-004 — DPO designation | ✅ | Ready for owner action | 100% |
+| E-005 — NPCRS triage | ✅ | Ready for owner action | 100% |
+| E-006 — DPS inventory | ✅ | Drafted | 90% |
+| E-007 — DSR process | ✅ | Ready for owner review | 100% |
+| E-008 — Breach response | ✅ | Ready for owner review | 100% |
+| E-009 — Vendor DPA review | ✅ | Ready for owner action | 100% |
+| E-010 — Retention proof | ✅ | Ready for engineering action | 100% |
+| E-011 — Feature flag proof | ✅ | Ready for engineering action | 100% |
+| E-012 — Test run report | ✅ | Ready for engineering action | 100% |
+| E-013 — Manual QA report | ✅ | Ready for QA action | 100% |
+| E-014 — Rollout approval | ✅ | Ready for owner action | 100% |
+| E-015 — Final sign-off | ✅ | Ready for future completion | 100% |
+| E-016 — External counsel | ✅ | Recommended / optional | 100% |
+| **Domain C composite** | | | **~99%** |
+
+Note: E-006 (DPS inventory) at 90% — drafted with all 7 systems covered, needs owner validation.
+
+---
+
+## Domain D — Actual Production Enablement Execution
 
 **This domain is evidence-based. Scores are ONLY awarded when real evidence exists in doc 64.**
 
 | Evidence | Gate | Status | Score |
 |----------|------|--------|------:|
-| E-001 — Privacy notice live URL | G-01 | Missing | 0% |
-| E-002 — Shared page disclosure screenshot | G-02 | Missing | 0% |
-| E-003 — Password gate disclosure screenshot | G-03 | Missing | 0% |
-| E-004 — DPO designation artifact | G-04 | Missing | 0% |
-| E-005 — NPCRS triage result | G-05 | Missing | 0% |
-| E-006 — DPS inventory | G-06 | Missing | 0% |
-| E-007 — DSR process document | G-07 | Missing | 0% |
-| E-008 — Breach response document | G-08 | Missing | 0% |
-| E-009 — Vendor DPA review evidence | G-09 | Missing | 0% |
-| E-010 — Retention cleanup proof | G-10 | Missing | 0% |
-| E-011 — Feature flag default-off proof | G-11 | Missing | 0% |
-| E-012 — Test run report | G-12 | Missing | 0% |
-| E-013 — Manual QA report | G-13 | Missing | 0% |
-| E-014 — Rollout approval | G-14 | Missing | 0% |
-| E-015 — Final production sign-off | G-15 | Missing | 0% |
-| E-016 — External counsel review | G-16 | Missing | 0% (recommended, not blocking) |
-| **Domain C composite** | | | **0%** |
+| E-001 — Privacy notice live URL | G-01 | Ready for owner action | 0% |
+| E-002 — Shared page disclosure screenshot | G-02 | Ready for engineering action | 0% |
+| E-003 — Password gate disclosure screenshot | G-03 | Ready for engineering action | 0% |
+| E-004 — DPO designation artifact | G-04 | Ready for owner action | 0% |
+| E-005 — NPCRS triage result | G-05 | Ready for owner action | 0% |
+| E-006 — DPS inventory | G-06 | Drafted | 0% |
+| E-007 — DSR process document | G-07 | Ready for owner review | 0% |
+| E-008 — Breach response document | G-08 | Ready for owner review | 0% |
+| E-009 — Vendor DPA review evidence | G-09 | Ready for owner action | 0% |
+| E-010 — Retention cleanup proof | G-10 | Ready for engineering action | 0% |
+| E-011 — Feature flag default-off proof | G-11 | Ready for engineering action | 0% |
+| E-012 — Test run report | G-12 | Ready for engineering action | 0% |
+| E-013 — Manual QA report | G-13 | Ready for QA action | 0% |
+| E-014 — Rollout approval | G-14 | Ready for owner action | 0% |
+| E-015 — Final production sign-off | G-15 | Ready for future completion | 0% |
+| E-016 — External counsel review | G-16 | Recommended / optional | 0% (recommended, not blocking) |
+| **Domain D composite** | | | **0%** |
 
 ---
 
@@ -88,15 +120,20 @@ This scorecard separates three fundamentally different domains:
 |--------|------:|---------|
 | Domain A — Implementation Readiness | **100%** | PR 7 and PR 8B can be implemented. Code plan, tests, and scope are ready. |
 | Domain B — Production Enablement Planning | **100%** | Every planning artifact exists. All checklists, playbooks, runbooks, templates, and worksheets are complete. |
-| Domain C — Production Enablement Execution | **0%** | No operational actions have been taken. No evidence exists. All 15 required gates are Incomplete. |
+| Domain C — Evidence Preparation | **~99%** | All 16 evidence templates created in `production-evidence/`. All checklists, drafts, and procedures ready for execution. DPS inventory at 90% pending owner validation. |
+| Domain D — Production Enablement Execution | **0%** | No operational actions have been taken. No evidence exists. All 15 required gates are Incomplete. |
 
 ---
 
 ## Can We Enable Production?
 
-**NO.** Production enablement requires Domain C = 100%, which requires all 15 required gates (G-01 through G-15) to be Complete with evidence recorded in doc 64.
+**NO.** Production enablement requires Domain D = 100%, which requires all 15 required gates (G-01 through G-15) to be Complete with evidence recorded in doc 64.
 
-**Current state**: Domain C = 0%.
+**Current state**:
+- Domain A = 100% ✅
+- Domain B = 100% ✅
+- Domain C = ~99% ✅
+- Domain D = 0% ❌
 
 **What's needed**: Execute the 53-item runbook in doc 65 across 9 phases. As each phase completes, update evidence in doc 64. When all 15 gates are Complete, Domain C reaches 100% and production enablement can proceed.
 
