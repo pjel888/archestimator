@@ -17,6 +17,6 @@ describe("route transition measurement script governance", () => {
     expect(measureScript).toContain('state: "hidden"');
     expect(measureScript).toContain("clickPosition");
     expect(measureScript).toContain("collapsedSidebarIconPosition");
-    expect(measureScript).toContain('expectedPathname: "/workshop/settings/profile"');
+    expect(measureScript).toContain('expectedPathname: "/workshop/settings"');
   });
 });

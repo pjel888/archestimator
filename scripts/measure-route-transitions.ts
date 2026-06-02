@@ -125,7 +125,7 @@ const SCENARIOS: Scenario[] = [
   {
     name: "Authenticated: Workshop to Settings",
     from: "/workshop",
-    expectedPathname: "/workshop/settings/profile",
+    expectedPathname: "/workshop/settings",
     requiresAuth: true,
     clickPosition: collapsedSidebarIconPosition,
     action: async (page) => {
