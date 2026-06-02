@@ -60,6 +60,10 @@ describe("project collaboration management actions", () => {
   });
 
   it("returns honest invite messages when app-owned invite links are disabled", () => {
+    expect(actions).toContain("readProjectInviteDeliveryReadiness");
+    expect(actions).toContain("Teamspace invite delivery is disabled until project invite entry and token settings are configured.");
+    expect(header).toContain("readProjectInviteDeliveryReadiness");
+    expect(header).toContain("inviteControlsDisabled");
     expect(actions).toContain("Invitation created. Share the invite link manually.");
     expect(actions).toContain("[collaboration] invite email delivery failed");
     expect(actions).toContain("User added directly. They can access the project now.");

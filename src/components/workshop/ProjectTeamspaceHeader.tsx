@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useTransition, type CSSProperties, type FormEvent } from "react";
+import { useEffect, useMemo, useState, useTransition, type CSSProperties, type FormEvent } from "react";
 import { GearSix, LinkSimple, PaperPlaneTilt, Trash } from "@phosphor-icons/react/dist/ssr";
 
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,7 @@ import {
   inviteEstimateSheetCollaborator,
   inviteProjectCollaborator,
   removeProjectCollaborator,
+  readProjectInviteDeliveryReadiness,
   resendProjectInviteEmail,
   setEstimateSheetAccessMode,
   updateProjectCollaboratorRole,
@@ -118,6 +119,8 @@ export function ProjectTeamspaceHeader({ summary }: ProjectTeamspaceHeaderProps)
   const [actionMessageTone, setActionMessageTone] = useState<"neutral" | "warning">("neutral");
   const [pendingRemoval, setPendingRemoval] = useState<ProjectCollaboratorSummary | null>(null);
   const [notifyRemovedCollaborator, setNotifyRemovedCollaborator] = useState(false);
+  const [inviteDeliveryConfigured, setInviteDeliveryConfigured] = useState<boolean | null>(null);
+  const [inviteDeliveryMessage, setInviteDeliveryMessage] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const currentUser = useMemo(
     () => summary?.collaborators.find((collaborator) => collaborator.id === summary.currentUserId) ?? summary?.collaborators[0] ?? null,
@@ -129,10 +132,35 @@ export function ProjectTeamspaceHeader({ summary }: ProjectTeamspaceHeaderProps)
     enabled: Boolean(summary),
   });
 
+  useEffect(() => {
+    if (!open || !summary) return;
+    let cancelled = false;
+
+    async function loadInviteDeliveryReadiness() {
+      try {
+        const readiness = await readProjectInviteDeliveryReadiness();
+        if (cancelled) return;
+        setInviteDeliveryConfigured(readiness.configured);
+        setInviteDeliveryMessage(readiness.message);
+      } catch {
+        if (cancelled) return;
+        setInviteDeliveryConfigured(false);
+        setInviteDeliveryMessage("Teamspace invite delivery status could not be verified. Send beta invites manually outside the app.");
+      }
+    }
+
+    void loadInviteDeliveryReadiness();
+    return () => {
+      cancelled = true;
+    };
+  }, [open, summary]);
+
   if (!summary) return <EmptyTeamspaceRail />;
 
   const activeSummary = summary;
   const canManageProjectAccess = activeSummary.canManageAccess;
+  const canUseInviteDelivery = inviteDeliveryConfigured === true;
+  const inviteControlsDisabled = !canManageProjectAccess || !canUseInviteDelivery || isPending;
   const projectSharePath = `/workshop/projects/${activeSummary.projectId}`;
 
   function runAccessAction(action: () => Promise<{ ok: boolean; message: string }>) {
@@ -180,6 +208,11 @@ export function ProjectTeamspaceHeader({ summary }: ProjectTeamspaceHeaderProps)
     event.preventDefault();
     const email = inviteEmail.trim();
     if (!email) return;
+    if (!canUseInviteDelivery) {
+      setActionMessageTone("warning");
+      setActionMessage(inviteDeliveryMessage ?? "Teamspace invite delivery is disabled.");
+      return;
+    }
     runAccessAction(async () => {
       const result = await inviteProjectCollaborator({
         projectId: activeSummary.projectId,
@@ -206,6 +239,7 @@ export function ProjectTeamspaceHeader({ summary }: ProjectTeamspaceHeaderProps)
 
   async function copyInviteLink(invitation: ProjectCollaborationSummary["pendingInvitations"][number]) {
     try {
+      if (!canUseInviteDelivery) throw new Error(inviteDeliveryMessage ?? "Teamspace invite delivery is disabled.");
       if (!navigator.clipboard?.writeText) throw new Error("Clipboard API unavailable.");
       let invitePath = invitation.invitePath;
       if (!invitePath) {
@@ -225,6 +259,11 @@ export function ProjectTeamspaceHeader({ summary }: ProjectTeamspaceHeaderProps)
   }
 
   function resendInviteEmail(invitation: ProjectCollaborationSummary["pendingInvitations"][number]) {
+    if (!canUseInviteDelivery) {
+      setActionMessageTone("warning");
+      setActionMessage(inviteDeliveryMessage ?? "Teamspace invite delivery is disabled.");
+      return;
+    }
     runAccessAction(() =>
       resendProjectInviteEmail({
         invitationId: invitation.id,
@@ -248,6 +287,11 @@ export function ProjectTeamspaceHeader({ summary }: ProjectTeamspaceHeaderProps)
     event.preventDefault();
     const email = (sheetInviteEmailById[estimateId] ?? "").trim();
     if (!email) return;
+    if (!canUseInviteDelivery) {
+      setActionMessageTone("warning");
+      setActionMessage(inviteDeliveryMessage ?? "Teamspace invite delivery is disabled.");
+      return;
+    }
     runAccessAction(async () => {
       const result = await inviteEstimateSheetCollaborator({
         projectId: activeSummary.projectId,
@@ -345,7 +389,7 @@ export function ProjectTeamspaceHeader({ summary }: ProjectTeamspaceHeaderProps)
                   value={inviteEmail}
                   placeholder="email@company.com"
                   aria-label="Invite by email"
-                  disabled={!canManageProjectAccess || isPending}
+                  disabled={inviteControlsDisabled}
                   onChange={(event) => setInviteEmail(event.target.value)}
                 />
                 <label className="sr-only" htmlFor="teamspace-invite-role">
@@ -356,7 +400,7 @@ export function ProjectTeamspaceHeader({ summary }: ProjectTeamspaceHeaderProps)
                   className="min-h-7 rounded-xs border border-hairline bg-white px-1 text-[10px] leading-3 text-secondary outline-none focus:border-focus"
                   value={inviteRole}
                   aria-label="Invite role"
-                  disabled={!canManageProjectAccess || isPending}
+                  disabled={inviteControlsDisabled}
                   onChange={(event) => setInviteRole(event.target.value as CollaborationRole)}
                 >
                   {assignableRoles.map((role) => (
@@ -370,11 +414,16 @@ export function ProjectTeamspaceHeader({ summary }: ProjectTeamspaceHeaderProps)
                   variant="secondary"
                   size="sm"
                   className="min-h-7 rounded-xs px-2 text-[10px]"
-                  disabled={!canManageProjectAccess || isPending || !inviteEmail.trim()}
+                  disabled={inviteControlsDisabled || !inviteEmail.trim()}
                 >
                   Send invite
                 </Button>
               </form>
+              {inviteDeliveryConfigured === false && inviteDeliveryMessage ? (
+                <p className="mt-2 rounded-xs border border-warning/25 bg-warningSoft px-2 py-1.5 text-[9px] leading-3 text-warning">
+                  {inviteDeliveryMessage}
+                </p>
+              ) : null}
               <div className="mt-2 space-y-1">
                 {activeSummary.collaborators.map((collaborator) => (
                   <div key={collaborator.id} className="flex items-center justify-between gap-2 rounded-xs border border-hairline px-2 py-1.5">
@@ -441,7 +490,7 @@ export function ProjectTeamspaceHeader({ summary }: ProjectTeamspaceHeaderProps)
                             size="sm"
                             className="min-h-6 rounded-xs px-1.5 text-[9px]"
                             aria-label={`Resend invite for ${invitation.email}`}
-                            disabled={isPending}
+                            disabled={!canUseInviteDelivery || isPending}
                             onClick={() => resendInviteEmail(invitation)}
                           >
                             <PaperPlaneTilt size={11} aria-hidden="true" />
@@ -453,7 +502,7 @@ export function ProjectTeamspaceHeader({ summary }: ProjectTeamspaceHeaderProps)
                             size="sm"
                             className="min-h-6 rounded-xs px-1.5 text-[9px]"
                             aria-label={`Copy invite link for ${invitation.email}`}
-                            disabled={isPending}
+                            disabled={!canUseInviteDelivery || isPending}
                             onClick={() => void copyInviteLink(invitation)}
                           >
                             <LinkSimple size={11} aria-hidden="true" />
@@ -518,7 +567,7 @@ export function ProjectTeamspaceHeader({ summary }: ProjectTeamspaceHeaderProps)
                             value={sheetInviteEmailById[sheet.estimateId] ?? ""}
                             placeholder="sheet email"
                             aria-label={`Invite to ${sheet.name}`}
-                            disabled={isPending}
+                            disabled={!canUseInviteDelivery || isPending}
                             onChange={(event) => updateSheetInviteEmail(sheet.estimateId, event.target.value)}
                           />
                           <label className="sr-only" htmlFor={`sheet-role-${sheet.estimateId}`}>
@@ -529,7 +578,7 @@ export function ProjectTeamspaceHeader({ summary }: ProjectTeamspaceHeaderProps)
                             className="min-h-6 rounded-xs border border-hairline bg-white px-1 text-[9px] leading-3 text-secondary outline-none focus:border-focus"
                             value={readSheetInviteRole(sheet.estimateId)}
                             aria-label={`Sheet role for ${sheet.name}`}
-                            disabled={isPending}
+                            disabled={!canUseInviteDelivery || isPending}
                             onChange={(event) => updateSheetInviteRole(sheet.estimateId, event.target.value as CollaborationRole)}
                           >
                             {assignableRoles.map((role) => (
@@ -543,7 +592,7 @@ export function ProjectTeamspaceHeader({ summary }: ProjectTeamspaceHeaderProps)
                             variant="ghost"
                             size="sm"
                             className="min-h-6 rounded-xs px-1.5 text-[9px]"
-                            disabled={isPending || !(sheetInviteEmailById[sheet.estimateId] ?? "").trim()}
+                            disabled={!canUseInviteDelivery || isPending || !(sheetInviteEmailById[sheet.estimateId] ?? "").trim()}
                           >
                             Invite
                           </Button>
