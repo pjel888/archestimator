@@ -73,6 +73,7 @@ Do not delete rows during beta unless required by a data deletion request. Statu
 - Resend delivery logs if email workflows are visible.
 - Support DNS helper: run `bun run launch:check-support-dns` with optional `SUPPORT_EMAIL_DOMAIN=archestimator.com` and `OUTPUT_FILE=.ai/09_archive/store/<date>-mvp-closed-beta-manual-proof/support-email-dns-readiness.json` to capture MX/SPF/DMARC/A records. DNS readiness is not monitoring proof.
 - Vercel env helper: capture `vercel env ls --non-interactive` output as sanitized text, then run `VERCEL_ENV_LIST_TEXT="<output>" OUTPUT_FILE=.ai/09_archive/store/<date>-mvp-closed-beta-manual-proof/vercel-env-readiness.json bun run launch:check-vercel-env` to record env-name coverage without secret values. Env-name readiness is not hosted auth, callback, delivery, or rollback proof.
+- Hosted auth route helper: after provider/env/callback setup and real test accounts are ready, run `HOSTED_AUTH_BASE_URL=https://<preview-or-prod> HOSTED_AUTH_ALLOWED_COOKIE="<cookie>" HOSTED_AUTH_DENIED_COOKIE="<cookie>" HOSTED_AUTH_REVOKED_COOKIE="<cookie>" HOSTED_AUTH_EXPIRED_COOKIE="<cookie>" OUTPUT_FILE=.ai/09_archive/store/<date>-mvp-closed-beta-manual-proof/hosted-auth-route-smoke.json bun run launch:verify-hosted-auth`. Use optional `HOSTED_AUTH_PLATFORM_COOKIE` or `HOSTED_AUTH_PLATFORM_AUTH_HEADER` only when deployment protection must be bypassed. Do not store raw cookies, headers, magic links, or provider credentials; the helper report is sanitized route/status/location evidence only.
 
 ## Triage Bugs
 
