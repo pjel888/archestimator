@@ -360,3 +360,11 @@ Owner: Philip for all items.
 | **Total** | **143** | **0** | **55** | **57** | **25** | **64** |
 
 Launch blockers remain. Several route-transition and share/collaboration items now have local/live route evidence, but no affected gate should move to beta-DONE until the named external/manual proofs are captured. The project is in implementation-progress / evidence-pending state. Beta is conditionally achievable after the provider/dashboard, real-invite, manual Chrome performance, security, staging, and operations gates are closed. Enterprise MVP requires beta completion plus immutable proposals, PDF packages, CSP hardening, DSAR workflow, and backup verification. Production launch requires full gate clearance.
+
+---
+
+## Active repo-local implementation overlay — Activity History Overhaul V1
+
+Status: **ACTIVE / repo-local implementation in progress / production telemetry enablement NO-GO**.
+
+The Activity History Overhaul V1 plan pack at `.ai/03_plans/activity-history-overhaul-v1/` is being implemented on `feat/activity-history-overhaul-v1`. Milestone evidence and commit SHAs are tracked in `.ai/01_roadmap/35-activity-history-overhaul-v1-execution.md`. Access telemetry implementation is allowed only behind production-safe default-off gates; production enablement still requires real privacy/legal/owner/provider evidence per docs 64, 66, and 68.
