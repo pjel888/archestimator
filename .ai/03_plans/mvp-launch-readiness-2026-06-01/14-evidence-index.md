@@ -147,6 +147,13 @@
 - Clean deploy attempt: a detached clean worktree at `c8e25e2` was used to avoid unrelated dirty checkout files. The first CLI preview deploy hit Vercel's upload file-size limit; after a temporary deploy-only `.vercelignore` excluded non-runtime evidence/deck folders, the retry failed before deployment with `api-deployments-free-per-day`.
 - Launch meaning: the fail-closed auth fix is committed and pushed, but hosted `/workshop` proof remains blocked until Vercel can create a fresh `c8e25e2` or later deployment and `vercel curl <deployment>/workshop -I` proves it no longer returns HTTP `500`.
 
+### Vercel CLI Upload Scope Mitigation at 6a26759
+
+- Artifact: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/vercel-cli-upload-scope-mitigation-6a26759-2026-06-02.md`.
+- Change: added repo-level `.vercelignore` so CLI deployments skip non-runtime evidence/planning/deck/test/report folders, local generated state, logs, and `.env*` files while keeping app runtime source/assets/config and `.env.example`.
+- Reason: the prior clean preview deploy attempt showed non-runtime folders in the upload path, with `archestimator_pitch deck` around 98 MiB and `.ai` around 25 MiB in the detached worktree.
+- Launch meaning: this removes a known CLI-upload obstacle for future preview retries, but hosted proof remains blocked until a fresh deployment is actually created and checked.
+
 ### Hosted Export Route Auth-Blocked Probe at 231c27e
 
 - Artifact: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/hosted-export-route-auth-blocked-231c27e-2026-06-02.md`.

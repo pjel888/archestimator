@@ -102,6 +102,7 @@ const closedBetaOperationsRunbook = readFileSync(
   ".ai/03_plans/mvp-launch-readiness-2026-06-01/40-closed-beta-operations-runbook.md",
   "utf8",
 );
+const vercelIgnore = readFileSync(".vercelignore", "utf8");
 const manualProofPacketDir = ".ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof";
 
 function extractManualProofArtifactFilenames(packet: string) {
@@ -249,6 +250,10 @@ describe("closed beta readiness docs", () => {
     expect(evidenceIndex).toContain("vercel-preview-deploy-blocked-c8e25e2-2026-06-02.md");
     expect(evidenceIndex).toContain("api-deployments-free-per-day");
     expect(evidenceIndex).toContain("the fail-closed auth fix is committed and pushed");
+    expect(evidenceIndex).toContain("### Vercel CLI Upload Scope Mitigation at 6a26759");
+    expect(evidenceIndex).toContain("vercel-cli-upload-scope-mitigation-6a26759-2026-06-02.md");
+    expect(evidenceIndex).toContain("added repo-level `.vercelignore`");
+    expect(evidenceIndex).toContain("hosted proof remains blocked until a fresh deployment is actually created and checked");
     expect(currentState).toContain("**Provider State Refresh Evidence (2026-06-02):**");
     expect(currentState).toContain("plain health remains deployment-protected with HTTP 401");
     expect(currentState).toContain("**Provider State Refresh at b33f56d (2026-06-02):**");
@@ -280,6 +285,9 @@ describe("closed beta readiness docs", () => {
     expect(currentState).toContain("**Vercel Preview Deploy Blocked at c8e25e2 (2026-06-02):**");
     expect(currentState).toContain("fail-closed auth fix commit `c8e25e2` was pushed to `origin/main`");
     expect(currentState).toContain("failed before deployment with `api-deployments-free-per-day`");
+    expect(currentState).toContain("**Vercel CLI Upload Scope Mitigation (2026-06-02):**");
+    expect(currentState).toContain("`.vercelignore` now excludes `.ai`, agent/plugin state, docs/guidance");
+    expect(currentState).toContain("it is not hosted proof until a fresh Vercel deployment is created and checked");
     expect(currentState).toContain("one env-var-backed `automation-bypass` entry remains");
     expect(currentState).toContain("Vercel env vars remain absent");
     expect(currentState).toContain("public preview and branch-alias health remain deployment-protected with HTTP 401");
@@ -298,6 +306,8 @@ describe("closed beta readiness docs", () => {
     expect(knownIssues).toContain("protected `/workshop` returned HTTP `500` when Vercel Supabase env was absent");
     expect(knownIssues).toContain("Vercel preview deployment for `c8e25e2` is blocked as of 2026-06-02");
     expect(knownIssues).toContain("Vercel's daily deployment limit `api-deployments-free-per-day`");
+    expect(knownIssues).toContain("Vercel CLI upload scope mitigation on 2026-06-02 adds repo-level `.vercelignore`");
+    expect(knownIssues).toContain("it does not bypass the current Vercel daily deployment limit or prove hosted `/workshop` behavior");
     expect(knownIssues).toContain("Supabase linked readiness refresh on 2026-06-02 confirms linked launch migrations and objects remain absent");
     expect(knownIssues).toContain("Vercel current-head read-only evidence on 2026-06-02 confirms latest app-runtime commit `638f681` has Ready preview deployment");
     expect(knownIssues).toContain("Vercel protection read-only evidence on 2026-06-02 confirms SSO protection remains");
@@ -793,6 +803,9 @@ describe("closed beta readiness docs", () => {
     expect(goalCompletionAudit).toContain("Vercel deployment/recheck is blocked by the daily deployment limit");
     expect(goalCompletionAudit).toContain("Vercel preview deploy blocked at `c8e25e2`");
     expect(goalCompletionAudit).toContain("Hosted `/workshop` recheck remains blocked until a fresh `c8e25e2` or later deployment is available");
+    expect(goalCompletionAudit).toContain("Vercel CLI upload scope mitigation");
+    expect(goalCompletionAudit).toContain("repo-level `.vercelignore` now excludes non-runtime evidence/planning/deck/test/report folders");
+    expect(goalCompletionAudit).toContain("no post-mitigation deployment has run");
     expect(goalCompletionAudit).toContain("no passing hosted-session artifact exists");
     expect(goalCompletionAudit).toContain("Excel plus one secondary spreadsheet app open/recalc/print proof");
     expect(goalCompletionAudit).toContain("synthetic large-fixture benchmarked");
@@ -934,6 +947,15 @@ describe("closed beta readiness docs", () => {
     expect(testStrategy).toMatch(/Hosted\/manual E2E proof is still required/i);
     expect(finalLaunchGate).toMatch(/Current decision: \*\*NO-GO\*\*/);
     expect(executiveBrief).toMatch(/Current decision: \*\*NO-GO\*\*/);
+  });
+
+  it("keeps Vercel CLI deploy uploads scoped to runtime files", () => {
+    expect(vercelIgnore).toContain(".ai");
+    expect(vercelIgnore).toContain("archestimator_pitch deck");
+    expect(vercelIgnore).toContain("tests");
+    expect(vercelIgnore).toContain("e2e");
+    expect(vercelIgnore).toContain(".env*");
+    expect(vercelIgnore).toContain("!.env.example");
   });
 
   it("keeps backup and scorecard docs actionable without claiming provider proof", () => {
