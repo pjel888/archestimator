@@ -53,6 +53,16 @@
 - Supabase: CLI `2.98.2` is linked to project `Archestimator` / `ebxxqidacheyapmmzavr`; `supabase migration list --linked` succeeds and still shows launch migrations `20260601182522`, `20260601184343`, `20260602005649`, `20260602083000`, and `20260602084500` absent remotely; `bun run launch:supabase-readiness` fails on the linked temp-role pooler `ECIRCUITBREAKER` / `SUPABASE_DB_PASSWORD` path.
 - Launch meaning: this refresh confirms the latest pushed `main` commit has a Ready protected preview, but it does not close Vercel env/public/custom-domain/rollback, hosted auth, linked Supabase migration/RLS/RPC/storage, Resend, spreadsheet-app, legal, support, or hosted/manual E2E gates.
 
+### Vercel Env Readiness Helper
+
+- Script: `scripts/check-vercel-env-readiness.ts`.
+- Package command: `bun run launch:check-vercel-env`.
+- Proof artifact: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/vercel-env-readiness-3ce3269-2026-06-02.json`.
+- Scope: parses a sanitized `vercel env ls --non-interactive` transcript for variable names only and reports core closed-beta runtime, email delivery, and invite delivery env-name coverage.
+- Guardrail evidence: `bunx vitest run tests/vitest/vercel-env-readiness-script.test.ts --maxWorkers=1` passed 4 tests covering env-name extraction, empty-list fail-closed behavior, core runtime pass behavior, and separate email/invite readiness groups.
+- Current refresh: `VERCEL_ENV_LIST_TEXT="$(vercel env ls --non-interactive 2>&1)" OUTPUT_FILE=.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/vercel-env-readiness-3ce3269-2026-06-02.json bun run launch:check-vercel-env` wrote sanitized JSON and exited `1` because no env names were discovered.
+- Launch meaning: this makes Vercel env-name proof repeatable, but it does not prove secret values, callback URL correctness, provider dashboard configuration, delivery, rollback, or hosted auth behavior. Vercel env readiness remains **NO-GO**.
+
 ### Hosted Export Route Auth-Blocked Probe at 231c27e
 
 - Artifact: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/hosted-export-route-auth-blocked-231c27e-2026-06-02.md`.
