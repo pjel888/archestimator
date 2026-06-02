@@ -20,7 +20,7 @@ Design-system source: `DESIGN.md`. Launch UI must be compact, work-focused, clea
 
 | Screen | Path/file | Current status | Issue | Severity | Ticket | Acceptance criteria | Screenshot/manual QA |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| Landing | `src/app/page.tsx` | Public | Claims need evidence/legal check. | P1/P0 | `LEGAL-001` | No unsupported proof claims. | Desktop/mobile screenshot. |
+| Landing | `src/app/page.tsx` | Local hero claims grounded | Desktop/mobile screenshot and broader public claims review still needed. | P1/P0 | `LEGAL-001` | Hero avoids unsupported competitor/smart-user claims and frames the workspace as a closed-beta preview. | Local DOM/source-contract pass; screenshots still required. |
 | Login | `src/app/login/page.tsx` | Local legal labels covered | Hosted auth journey proof still needed. | P0 | `ONB-001` | Google/email clear; links read as closed beta terms and privacy notice. | Local source-contract pass; hosted auth journey still required. |
 | Auth callback failure | `src/app/auth/callback/route.ts` | Local denied-access support contact aligned | Hosted callback smoke still needed. | P0 | `ONB-001` | Retry/support path clear and access-required users see the monitored beta support address. | Local source-contract pass; expired link QA still required. |
 | Workshop homebase | `src/app/workshop/page.tsx`, `WorkshopPageShell` | Exists | Ask Flip visible; first-run states need proof. | P0 | `AI-001`, `ONB-001` | No AI; clear next action. | Empty account screenshot. |

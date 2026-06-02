@@ -11,17 +11,23 @@ vi.mock("@/components/landing/NeatWireframeBackground", () => ({
 }));
 
 describe("landing page below-hero interactivity", () => {
-  it("keeps the stronger hero A/B copy options available", () => {
+  it("keeps closed-beta hero A/B copy grounded in product workflow", () => {
     render(<HeroSection />);
 
-    expect(screen.getByRole("heading", { name: /only the smart ones create quotes this way/i })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: /clearer workspace for quote sheets and proposal handoff/i })).toBeInTheDocument();
     expect(heroCopyVariants.map((variant) => variant.headline)).toEqual(
       expect.arrayContaining([
-        "Only the smart ones create quotes this way.",
-        "Your competitors are already a step ahead.",
+        "A clearer workspace for quote sheets and proposal handoff.",
+        "Build estimate logic buyers can actually review.",
       ]),
     );
-    expect(screen.queryByRole("heading", { name: /your competitors are already a step ahead/i })).not.toBeInTheDocument();
+    expect(heroCopyVariants.map((variant) => variant.support).join(" ")).toMatch(
+      /closed-beta/i,
+    );
+    expect(heroCopyVariants.map((variant) => variant.headline).join(" ")).not.toMatch(
+      /smart ones|competitors are already/i,
+    );
+    expect(screen.queryByRole("heading", { name: /competitors are already/i })).not.toBeInTheDocument();
   });
 
   it("switches product preview content through accessible product tabs", async () => {
