@@ -1,7 +1,7 @@
 # 21 — Activity Composer Specification
 
 **Date:** 2026-06-02  
-**Status:** Second-pass proposed — implementation-ready spec
+**Status:** Seventh pass — implementation-ready spec with explicit test file paths
 
 ---
 
@@ -515,6 +515,16 @@ See `08-test-strategy.md` for full test list. Key composer test categories:
 
 Total: ~100+ composer unit tests.
 
+### Implementation Test File Paths
+
+Create or update:
+
+- `tests/vitest/fixtures/activity-events.ts` — Shared test fixtures (14 estimate event mocks + shared-link comment/decision/event mocks)
+- `tests/vitest/activity-composer.test.ts` — Core composer unit tests (~100 tests)
+- `tests/vitest/activity-copy-regression.test.ts` — Banned-term regression tests
+- `tests/vitest/activity-security.test.ts` — Security: no raw UUIDs, no internal leaks
+- `tests/vitest/activity-view-model.test.ts` — Type-shape assertions (if separated from composer tests)
+
 ---
 
 ## 9. File Paths (Reference During Implementation)
@@ -558,3 +568,4 @@ try {
 - See `03-data-contract-and-event-model-plan.md` for view model design rationale
 - See `16-event-taxonomy-and-lifecycle-map.md` for event-to-action mapping
 - See `20-edge-case-and-failure-mode-matrix.md` for edge case handling
+- See `40-final-implementation-handoff.md` for PR 5 public API ActivityViewModel[] response contract (must-include + must-NOT-include)

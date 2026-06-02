@@ -1,7 +1,7 @@
 # 03 — Data Contract and Event Model Plan
 
-**Date:** 2026-06-02 (second pass: 2026-06-02; third pass: 2026-06-02)  
-**Status:** Proposed (pending approval) — Second pass: added ActivityAudience, ActivityVisibility, ActivityActor, ActivityTarget, ActivityChange types. Corrected shared-link event_type handling. Third pass: added `activityAccessContext` for shared page access telemetry.
+**Date:** 2026-06-02 (second pass: 2026-06-02; third pass: 2026-06-02; seventh pass: 2026-06-02)  
+**Status:** Proposed (pending approval) — Second pass: added ActivityAudience, ActivityVisibility, ActivityActor, ActivityTarget, ActivityChange types. Corrected shared-link event_type handling. Third pass: added `activityAccessContext` for shared page access telemetry. Seventh pass: added PR 5 public API response contract.
 
 ---
 
@@ -19,7 +19,7 @@ The current `estimate_sheet_events` table provides:
 - `actor_user_id` — FK to auth.users (nullable)
 - `created_at` — timestamptz
 
-**Verdict: Sufficient for rich human-readable copy for all 13 event types.** No schema changes needed.
+**Verdict: Sufficient for rich human-readable copy for all 14 raw estimate event types (12 active + 2 dormant).** No schema changes needed.
 
 ### shared_link_comments, shared_link_responses, shared_link_events — Good, Minor Gaps
 
@@ -309,7 +309,53 @@ The public route currently returns a union of raw comment/decision/event shapes.
 
 ---
 
-## 9. Access Context Type (Third Pass Addition)
+## 9. PR 5 Public Activity API Contract (Seventh Pass Addition)
+
+When composer integration lands, `GET /api/share/[token]/activity` must return client-safe composed activity items.
+
+### Response Shape
+
+```json
+{
+  "activities": "ActivityViewModel[]",
+  "hasMore": "boolean",
+  "nextCursor?": "string",
+  "recipientSession": "boolean"
+}
+```
+
+### Client-Visible Fields (Must Include)
+
+- `id`, `source`, `action`, `visibility`, `occurredAt`
+- `title` (required — composed human-readable sentence, never raw event_type)
+- `summary?`, `body?`, `badges?`
+- `target?` with safe labels only
+- `meta?`
+
+### Client-Visible Fields (Must NOT Include)
+
+- `raw` — completely absent for client visibility
+- `event_type` — raw technical name never in public JSON
+- `metadata_json`
+- `actorUserId`, `recipient_id`
+- Raw UUIDs in any field
+- Internal comments (visibility === "internal")
+- Raw decision enums (`revision_requested`, `accepted`, `declined`)
+- Raw event names (`row_updated`, `server_action`)
+- IP hash, user-agent hash
+- Device/location metadata unless explicitly approved
+
+### PR 2 vs PR 5
+
+- PR 2: `event_type` stays in DB query. NOT in public JSON. TODO added for PR 5.
+- PR 5: `event_type` consumed server-side → transformed into `title` in `ActivityViewModel[]`.
+- Public response must never expose raw technical event names after PR 5.
+
+Cross-reference: see `40-final-implementation-handoff.md` for complete PR 5 contract.
+
+---
+
+## 10. Access Context Type (Third Pass Addition)
 
 ```ts
 type ActivityAccessContext = {
@@ -342,7 +388,7 @@ Access context belongs in `facts[]` and `raw` metadata, not in the primary `Acti
 
 ---
 
-## 8. Open Questions for Approval
+## 11. Open Questions for Approval
 
 1. Should `loadSharedLinkActivity` return pre-composed `ActivityViewModel[]` or keep returning `ActivityItem[]` and let the client compose? (Recommendation: let client compose for consistency with estimate history pattern)
 2. Should the public API return `ActivityViewModel[]` with the `title` already computed, or just the structured data? (Recommendation: pre-computed title — it's the API's job to provide the presentable data)
