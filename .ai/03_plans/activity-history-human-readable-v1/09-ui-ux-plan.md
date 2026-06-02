@@ -1,6 +1,6 @@
 # 09 — UI/UX Plan: Activity Timeline
 
-**Date:** 2026-06-02
+**Date:** 2026-06-02 (second pass: 2026-06-02)
 
 ---
 
@@ -399,3 +399,13 @@ When new activity arrives via Realtime (shared link owner view):
 │  └────────────┘  └───────────────────────────┘│
 └───────────────────────────────────────────────┘
 ```
+
+---
+
+## 19. Cross-References to Second-Pass Documents
+
+- See `13-north-star-and-product-principles.md` for North Star and design principles
+- See `14-user-journeys-and-ux-paths.md` for detailed user journey maps with triggers, goals, and edge cases
+- See `15-information-architecture-and-surface-map.md` for surface inventory and data flow diagrams
+- See `18-manual-qa-and-acceptance-matrix.md` for manual QA scripts per surface
+

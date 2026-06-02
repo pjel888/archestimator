@@ -1,7 +1,7 @@
 # 03 — Data Contract and Event Model Plan
 
-**Date:** 2026-06-02  
-**Status:** Proposed (pending approval)
+**Date:** 2026-06-02 (second pass: 2026-06-02)  
+**Status:** Proposed (pending approval) — Second pass: added ActivityAudience, ActivityVisibility, ActivityActor, ActivityTarget, ActivityChange types. Corrected shared-link event_type handling. Noted migration stance nuance.
 
 ---
 
@@ -295,15 +295,17 @@ The public route currently returns a union of raw comment/decision/event shapes.
 
 ---
 
-## 7. Migration Path (No DB Migration)
+## 7. Migration Path
 
-No database migration is required. The view model is a projection layer.
+**V1: No database migration required.** The view model is a projection layer using existing columns. All composer functions read from current schema.
 
-1. Add `src/lib/activity/activity-view-model.ts` with all types and composer functions
-2. Add `src/lib/activity/activity-copy.ts` with field/value/actor formatters
-3. Add `src/lib/activity/index.ts` as barrel export
-4. Import in existing UI components and API routes
-5. Replace inline copy logic incrementally (PR 4, PR 5)
+**V2/V3: Additive migrations likely needed.** See `19-migration-and-backfill-decision-matrix.md` for detailed analysis.
+
+1. Add `src/lib/activity/` with all types and composer functions
+2. Import in existing UI components and API routes
+3. Replace inline copy logic incrementally
+
+**Note on migration stance:** First pass stated "No database migration required" as definitive. Second pass clarifies: true for V1 copy-only work. V2 features need additive migrations. See `19-migration-and-backfill-decision-matrix.md`.
 
 ---
 

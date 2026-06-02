@@ -1,7 +1,7 @@
 # 02 — Activity Copywriting System
 
-**Date:** 2026-06-02  
-**Status:** Proposed (pending approval)
+**Date:** 2026-06-02 (second pass: 2026-06-02)  
+**Status:** Proposed (pending approval) — Second pass: added role-based copy rules, improved blank row copy, added decision body rules, added "customized from library" improvement
 
 ---
 
@@ -138,7 +138,7 @@ These must NEVER appear in user-facing primary copy:
 | Sheet code | literal, as-is | "ES-001" |
 | Node name | literal, as-is | "Living Area" |
 | Material name | literal, as-is | "Hardwood Oak Flooring" |
-| Blank row material | "Empty row slot" | "Empty row slot" (current, acceptable) |
+| Blank row material | "Placeholder row" | "Placeholder row" (improved from "Empty row slot") |
 
 ---
 
@@ -153,11 +153,17 @@ These must NEVER appear in user-facing primary copy:
 
 ### Client/Public View
 
-- Client actions: "Client"
-- Known recipient name (if resolved from recipient session): "Maria"
-- Unknown: "Unknown user"
+- Client actions: Resolved recipient name ("Maria") if name is available and matches session
+- Generic client: "Client" when recipient name cannot be resolved
+- Client's own actions: "You" when the viewer is the actor (based on session match)
 - System: "System"
-- **Never:** raw UUID, email address, service role name
+- **Never:** raw UUID, email address for non-own actions, service role name, other recipients' emails
+
+**Email visibility rule (second pass clarification):**
+- A recipient's own email may appear in the comment author field on the shared page (they submitted it)
+- Other recipients' emails must never be visible to a given recipient
+- Internal team emails must never appear in any client view
+- The public API currently returns `author_email` for comments — this is acceptable ONLY for the submitter's own email. If multi-recipient views are added, this must be scoped.
 
 ### Actor Label Resolution Logic
 
@@ -253,11 +259,11 @@ Audit facts (expandable, owner-only or owner-audit) may include:
 **Context:** "Living Area · May 24, 10:30 AM · +₱ 12,000.00"
 
 #### Blank row slot added
-**Primary:** "Philip added an empty row slot."
+**Primary:** "Philip added a placeholder row."
 **Context:** "Living Area · May 24, 10:30 AM"
 
 #### Blank row slot removed
-**Primary:** "Philip removed an empty row slot."
+**Primary:** "Philip removed a placeholder row."
 **Context:** "Living Area · May 24, 11:30 AM"
 
 #### Row deleted
@@ -277,7 +283,7 @@ Audit facts (expandable, owner-only or owner-audit) may include:
 **Audit:** Library status: Customized from library
 
 #### Library status changed
-**Primary:** "Library status for Hardwood Oak Flooring changed to custom."
+**Primary:** "Philip customized Hardwood Oak Flooring from the library."
 **Context:** "Living Area · May 24, 2:00 PM"
 **Audit:** Previous: Using library values, Current: Customized from library
 

@@ -1,6 +1,6 @@
 # 08 — Test Strategy
 
-**Date:** 2026-06-02
+**Date:** 2026-06-02 (second pass: 2026-06-02)
 
 ---
 
@@ -337,7 +337,20 @@ export const mockSharedLinkUnknownItem: ActivityItem = { ... };
 
 ---
 
-## 10. What's NOT Tested (Known Gaps)
+## 10. What's NOT Tested (Known Gaps) + Second-Pass Corrections
+
+### Existing Partial Protection
+
+**Correction from second pass:** The first-pass claim "No tests prevent regression into technical copy" is slightly overstated. Existing tests DO assert some things:
+- `estimate-sheet-version-control-ui.test.tsx` asserts human-readable event labels
+- `project-publication-activity.test.tsx` tests that internal comments are filtered from public route
+- `project-publication-comments.test.tsx` tests CSRF and sanitization
+- `project-publication-security.test.ts` tests token hashing
+- Some tests assert no raw `User <uuid>`, no `Server action`, no raw `Linked Overridden`
+
+**However** there is no centralized, exhaustive copy regression suite that covers all event types across all surfaces.
+
+### Known Test Gaps (Unchanged)
 
 1. **Realtime subscription actual behavior** — Deferred (requires Supabase local/CI integration)
 2. **Live DB integration** — Always skipped unless `RUN_SUPABASE_INTEGRATION=1`
@@ -347,3 +360,19 @@ export const mockSharedLinkUnknownItem: ActivityItem = { ... };
 6. **Mobile responsive layout** — Visual QA only
 7. **Dark mode rendering** — Visual QA only
 8. **Screen reader announcement of new activity** — Requires real screen reader (manual testing)
+9. **Realtime filter fix behavior** — Must be verified in preflight (PR 2) with two-publication test
+10. **`row_inserted` filter bug** — Must be fixed and regression-tested in PR 2
+11. **Decision digest content** — Verify digest fires and contains no internal comments (manual or route test)
+
+---
+
+## 11. Merge-Safe Test Strategy (Second Pass)
+
+**First-pass issue:** PR 2 proposed tests that "will FAIL initially" against current code. This is not merge-safe for `main`.
+
+**Revised approach:**
+- **PR 2 (Preflight):** Fix bugs, add regression tests that PASS against fixed code
+- **PR 3 (Composer + Tests):** Module and tests ship together — all tests GREEN on `main`. No red CI
+- If separation is needed: use `.skip` for tests that depend on not-yet-merged composer, then unskip in the composer PR
+
+**No intentionally failing tests should land on `main`.**

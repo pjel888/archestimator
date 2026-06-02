@@ -1,6 +1,6 @@
 # 07 — Security and Privacy Readiness
 
-**Date:** 2026-06-02
+**Date:** 2026-06-02 (second pass: 2026-06-02)
 
 ---
 
@@ -23,17 +23,23 @@
 
 **Phase 3 risk:** Internal activity must remain visible in owner view with "Internal" badge. Must NOT accidentally become visible in public view.
 
-### Public Route Must Not Leak Raw Metadata
+| Public Route Must Not Leak Raw Metadata
 
-**Current state:** ⚠️ Partial. `shared_link_events.metadata_json` is returned verbatim as `metadata` in the public API response. While currently only the `open` event writes to it (and writes minimal data), this is a leak vector.
+**Current state:** ⚠️ Partial. `shared_link_events.metadata_json` is returned verbatim as `metadata` in the public API response.  
+**Second-pass verification:** Confirmed. The route returns `metadata: e.metadata_json` directly. The composer must strip/transform this for client visibility.
 
-**Phase 3 fix:** Public API route returns composed `ActivityViewModel[]` with `raw` field stripped. No metadata_json pass-through.
+### Public Route Uses Service-Role, Not Anon RLS
+
+**First-pass claim:** "service client (anon RLS)" — INCORRECT.  
+**Current state:** `createPublicationServiceClient()` uses `SUPABASE_SERVICE_ROLE_KEY`, which bypasses all RLS policies. Protection for public activity reads is entirely application-level: query filtering (`is_internal = false`), response shape construction, and rate limiting.  
+**Phase 3 risk:** When composing on the public route, all sanitization must happen in application code since RLS provides no protection.  
+**Defense in depth:** Query filter + composer visibility stripping + response shape allowlist.
 
 ### Public Route Must Not Leak Actor UUIDs
 
-**Current state:** ✅ Not currently leaked (public route doesn't include `actor_user_id`).
-
-**Phase 3 risk:** When composing, ensure `raw.actorUserId` is stripped for client visibility.
+**Current state:** ✅ Not currently leaked (public route doesn't include `actor_user_id`).  
+**Second-pass verification:** Confirmed — public route returns `author: c.author_email` for comments (submitter's own email) and no actor for decisions/events.  
+**Phase 3 risk:** When composing, ensure `raw.actorUserId` is stripped for client visibility. Actor label rules for client views must be explicit (see `02-activity-copywriting-system.md`).
 
 ### Public Route Must Not Leak Internal Event Source Names
 

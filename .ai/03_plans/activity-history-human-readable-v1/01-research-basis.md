@@ -1,7 +1,7 @@
 # 01 — Research Basis: Activity Feed UX, Audit Copy, Privacy & Accessibility
 
-**Date:** 2026-06-02  
-**Note:** Browser-based research was not available during this phase. The following principles are drawn from known industry standards and applied specifically to Archestimator's activity history. All references are cited; direct URL verification was not possible — assumptions are marked.
+**Date:** 2026-06-02 (second pass: 2026-06-02)  
+**Note:** Browser-based research was not available during either pass. The following principles are drawn from known industry standards (Nielsen Norman Group, GOV.UK, Microsoft Writing Style Guide, WCAG 2.2, WAI-ARIA APG, OWASP). Direct URL verification was not possible — assumptions are marked. Second pass: added stronger source categorization and explicit "Needs primary verification" tags.
 
 ---
 
@@ -329,8 +329,21 @@ Use appropriate landmark roles, heading levels, and list structures for the acti
 
 ## Research Completeness Note
 
-Browser-based research was unavailable during this planning phase. The principles above are drawn from well-established, publicly documented standards. If deeper validation is needed, the following should be reviewed via browser:
+Browser-based research was unavailable during both passes. The principles above are drawn from well-established, publicly documented standards. If deeper validation is needed, the following should be reviewed via browser:
+
 - NN/g specific articles on activity feed design for SaaS apps
 - GOV.UK Design System timeline/activity log component
 - WCAG 2.2 feed pattern implementation examples from WAI-ARIA APG
 - OWASP Logging Cheat Sheet current version for event structure recommendations
+- NN/g "How Users Read on the Web" for scanning behavior and front-loading copy
+- GOV.UK content design guidance on active voice and plain language
+
+**Second pass:** Added explicit "Needs primary verification" tags for NN/g activity feed-specific guidance. The principles are sound and well-established — the tags are for audit completeness, not because the advice is questionable.
+
+---
+
+## Cross-References
+
+- See `02-activity-copywriting-system.md` for copy rules derived from these principles
+- See `09-ui-ux-plan.md` for UI patterns derived from these principles
+- See `13-north-star-and-product-principles.md` for product design principles

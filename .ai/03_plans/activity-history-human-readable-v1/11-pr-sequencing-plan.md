@@ -1,269 +1,288 @@
-# 11 — PR Sequencing Plan
+# 11 — PR Sequencing Plan (Revised — Second Pass)
 
-**Date:** 2026-06-02  
-**Principle:** Small PRs, each independently revertible, each with clear acceptance criteria.
+**Date:** 2026-06-02 (second pass: 2026-06-02)
+**Principle:** Small PRs, each independently revertible, each merge-safe (no failing CI). Second pass revision: tests + composer combined into one merge-safe PR; preflight cleanup added.
 
 ---
 
-## PR 1 — Planning Docs
+## Revised PR Sequence
 
-**Purpose:** Add all planning documents to the `.ai/` directory. No production code changes.
+```
+PR 1 (planning docs — this PR)
+  ↓
+PR 2 (preflight cleanup) ← NEW — fixes known bugs before composer
+  ↓
+PR 3 (composer module + tests) ← combined from old PR 2 + PR 3
+  ↓
+PR 4 (estimate UI integration) ← was old PR 4
+  ↓
+PR 5 (shared-link API integration) ← was old PR 5
+  ↓
+PR 6 (recipient actor resolution + decisions copy) ← expanded from old PR 6
+  ↓
+PR 7 (realtime/pagination hardening) ← split from old PR 7
+  ↓
+PR 8 (UI polish + accessibility + manual QA) ← was old PR 7
+```
 
-**Files:**
-- `.ai/03_plans/activity-history-human-readable-v1/README.md`
-- `.ai/03_plans/activity-history-human-readable-v1/00-current-state-audit.md`
-- `.ai/03_plans/activity-history-human-readable-v1/01-research-basis.md`
-- `.ai/03_plans/activity-history-human-readable-v1/02-activity-copywriting-system.md`
-- `.ai/03_plans/activity-history-human-readable-v1/03-data-contract-and-event-model-plan.md`
-- `.ai/03_plans/activity-history-human-readable-v1/04-implementation-plan.md`
-- `.ai/03_plans/activity-history-human-readable-v1/05-blast-radius-analysis.md`
-- `.ai/03_plans/activity-history-human-readable-v1/06-performance-analysis-plan.md`
-- `.ai/03_plans/activity-history-human-readable-v1/07-security-privacy-readiness.md`
-- `.ai/03_plans/activity-history-human-readable-v1/08-test-strategy.md`
-- `.ai/03_plans/activity-history-human-readable-v1/09-ui-ux-plan.md`
-- `.ai/03_plans/activity-history-human-readable-v1/10-readiness-checklist.md`
-- `.ai/03_plans/activity-history-human-readable-v1/11-pr-sequencing-plan.md`
+PR 4 and PR 5 can be worked on in parallel (different surfaces, same composer).
+PR 6 depends on PR 5 (shared-link composer in place).
+PR 7 depends on PR 5 (shared-link activity loading in place).
+PR 8 depends on all previous PRs.
+
+---
+
+## PR 1 — Second-Pass Planning Docs
+
+**Purpose:** Add/update all planning documents in the `.ai/` directory. No production code changes.
+
+**Files:** All 21 files in `.ai/03_plans/activity-history-human-readable-v1/`
 
 **Tests:** None required (documentation only)
 
 **Rollback:** Revert the PR (delete the planning folder)
 
 **Acceptance Criteria:**
-- All 13 planning files exist in `.ai/03_plans/activity-history-human-readable-v1/`
-- README.md correctly indexes all files
-- No production files modified
+- [ ] All 21 files exist
+- [ ] README.md correctly indexes all files
+- [ ] Second-pass verification audit complete
+- [ ] All known issues addressed
+- [ ] No production files modified
 
 ---
 
-## PR 2 — Activity Composer Tests and Fixtures
+## PR 2 — Preflight Correctness Cleanup
 
-**Purpose:** Add test fixtures and all unit tests for the Activity Composer. Tests will FAIL initially (they test code that doesn't exist yet) — this is expected and documented in CI.
+**Purpose:** Fix known bugs identified in second-pass audit before composer work begins. Small, targeted fixes.
 
 **Files:**
-- **NEW:** `tests/vitest/fixtures/activity-events.ts` — all mock events
-- **NEW:** `tests/vitest/activity-composer.test.ts` — unit tests for composer
-- **NEW:** `tests/vitest/activity-copy-regression.test.ts` — banned-term regression tests
-- **NEW:** `tests/vitest/activity-view-model.test.ts` — type safety tests
-- **NEW:** `tests/vitest/activity-accessibility.test.tsx` — accessibility tests (may fail if no markup)
-- **NEW:** `tests/vitest/activity-security.test.ts` — security/privacy tests
+- **MODIFIED:** `src/components/workshop/EstimateSheetContent.tsx` — Fix `row_inserted` → `row_added` + `row_blank_added` in `ACTIVITY_FILTER_EVENT_TYPES`
+- **MODIFIED:** `src/components/share/SharedLinkActivityFeed.tsx` — Fix Realtime filter (pass `publicationId` prop) OR remove Realtime from component
+- **MODIFIED:** `tests/vitest/estimate-sheet-version-control-ui.test.tsx` — Fix `eventType: "row_inserted"` in test mock
+- **POTENTIALLY:** `src/app/api/share/[token]/activity/route.ts` — Add `event_type` to shared_link_events select
+- **POTENTIALLY:** `src/lib/publication/actions.ts` — Fix shared-link owner pagination (apply cursor at query level, per-table)
 
-**Tests:** ~120 new test cases (see `08-test-strategy.md` for full list)
+**Tests:** Existing tests pass. Add regression tests for filter fix.
 
-**Rollback:** Delete the new test files
+**Risks:** LOW — small fixes, no behavior changes other than correct filter matching and Realtime scope.
+
+**Rollback:** Revert individual file changes.
 
 **Acceptance Criteria:**
-- Test files exist with all mandatory test cases
-- Tests initially fail against current code (expected — documented with `.skip` or test failures in CI)
-- Fixtures cover all 13 estimate event types, 3 decision types, comments, and shared-link events
-- No production files modified
+- [ ] `row_inserted` filter replaced with `row_added` and `row_blank_added`
+- [ ] Realtime filter uses actual `publicationId` OR Realtime removed from V1 claims with flag
+- [ ] All existing tests pass
+- [ ] `bun run type-check` passes
+- [ ] `bun run lint` passes
 
 ---
 
-## PR 3 — Central Activity Composer
+## PR 3 — Activity Composer Module + Tests (Combined)
 
-**Purpose:** Create the `src/lib/activity/` module with all composer and formatter functions. All tests from PR 2 now pass.
+**Purpose:** Create the `src/lib/activity/` module with all composer functions AND all tests. Combined PR ensures tests pass on `main` with no red CI.
 
 **Files:**
-- **NEW:** `src/lib/activity/activity-view-model.ts` — types and composers
-- **NEW:** `src/lib/activity/activity-copy.ts` — formatters
-- **NEW:** `src/lib/activity/index.ts` — barrel export
+- **NEW:** `tests/vitest/fixtures/activity-events.ts`
+- **NEW:** `tests/vitest/activity-composer.test.ts`
+- **NEW:** `tests/vitest/activity-copy-regression.test.ts`
+- **NEW:** `tests/vitest/activity-security.test.ts`
+- **NEW:** `src/lib/activity/types.ts`
+- **NEW:** `src/lib/activity/activity-composer.ts`
+- **NEW:** `src/lib/activity/activity-formatters.ts`
+- **NEW:** `src/lib/activity/activity-visibility.ts`
+- **NEW:** `src/lib/activity/activity-copy-dictionary.ts`
+- **NEW:** `src/lib/activity/activity-fallback.ts`
+- **NEW:** `src/lib/activity/index.ts`
 
-**Tests:** All tests from PR 2 now pass
+**Spec reference:** See `21-activity-composer-spec.md` for exact types, functions, and contracts.
 
-**Rollback:** Delete the `src/lib/activity/` directory; delete test files from PR 2
+**Tests:** ~100+ test cases, all passing. Covers all event types, edge cases, visibility filtering, and banned-term regression.
+
+**Risks:** LOW — new module, no existing code modified.
+
+**Rollback:** Delete `src/lib/activity/` and new test files.
 
 **Acceptance Criteria:**
-- All composer unit tests pass
-- All copy regression tests pass
-- All visibility filter tests pass
-- All accessibility tests pass (for pure functions)
-- All security tests pass (for pure functions)
-- `bun run type-check` passes
-- `bun run lint` passes
-- No existing tests broken
-- No UI/component changes
+- [ ] All composer tests pass
+- [ ] All copy regression tests pass
+- [ ] All visibility filter tests pass
+- [ ] All security tests pass
+- [ ] `bun run type-check` passes
+- [ ] `bun run lint` passes
+- [ ] No existing tests broken
+- [ ] No UI/component changes
 
 ---
 
 ## PR 4 — Estimate Activity UI Integration
 
-**Purpose:** Replace local copy logic in `EstimateSheetContent.tsx` with the composer. Preserve all existing behavior and UI structure.
+**Purpose:** Replace local copy logic in `EstimateSheetContent.tsx` with the central composer. Preserve all existing behavior and UI structure.
 
 **Files:**
 - **MODIFIED:** `src/components/workshop/EstimateSheetContent.tsx`
   - Replace `getEventLabel()` → `activity.title`
   - Replace `getEventSummary()` → `activity.summary` or `activity.changes`
   - Replace `getAuditEventDescription()` → `activity.title`
-  - Replace `getActorLabel()` → `activity.actorLabel`
+  - Replace `getActorLabel()` → `activity.actor.displayName`
   - Replace `humanizeAuditField()` → `formatActivityFieldLabel()`
   - Replace `formatAuditFieldValue()` → `formatActivityValue()`
-  - Replace `getHistoryChangeLabel()` → composed from title + summary
-- **MODIFIED:** `tests/vitest/estimate-sheet-version-control-ui.test.tsx` — update DOM assertions for new copy, add copy-specific assertions
+  - Keep grouping, filtering, scope tree, pagination logic
+- **MODIFIED:** `tests/vitest/estimate-sheet-version-control-ui.test.tsx` — update DOM assertions
 
-**Tests:**
-- All existing `estimate-sheet-version-control-ui.test.tsx` tests pass
-- All existing `estimate-sheet-version-control-actions.test.ts` tests pass (no action changes)
-- New copy assertions in UI test file
+**Risks:** MEDIUM — `EstimateSheetContent.tsx` is ~3000 lines. Incremental replacement recommended.
 
-**Rollback:** Revert `EstimateSheetContent.tsx` to previous version
+**Rollback:** Revert `EstimateSheetContent.tsx` to previous version.
 
 **Acceptance Criteria:**
-- Activity History modal renders human-readable copy for all 13 event types
-- Activity cards show complete sentences with actor names
-- No raw event types in primary card display
-- Audit facts still expandable with full detail
-- Filters, search, day grouping, correlation grouping unchanged
-- Load-more pagination unchanged
-- Scope tree selection unchanged
-- Row Activity tab shows human-readable copy
-- Node Activity scope shows human-readable copy
-- `bun run type-check` passes
-- `bun run lint` passes
+- [ ] All 13 event types render human-readable copy
+- [ ] Activity cards show complete sentences with actor names
+- [ ] No raw event types in primary card display
+- [ ] Audit facts still expandable with full detail
+- [ ] Filters, search, day grouping, correlation grouping unchanged
+- [ ] Load-more pagination unchanged
+- [ ] Scope tree selection unchanged
+- [ ] Row Activity tab shows human-readable copy
+- [ ] All existing tests pass
+- [ ] `bun run type-check` passes
 
 ---
 
-## PR 5 — Shared Link Activity Integration
+## PR 5 — Shared Link Activity API Integration
 
 **Purpose:** Replace raw shared-link activity copy with composer-based view model. Public API route returns composed items.
 
 **Files:**
 - **MODIFIED:** `src/app/api/share/[token]/activity/route.ts`
+  - Select `event_type` from `shared_link_events` (currently not selected)
   - Return `ActivityViewModel[]` instead of `PublicActivityItem[]`
-  - Compose all items with `visibility: "client"` before sending
-  - Strip `raw` field from all items
+  - Compose all items server-side with `visibility: "client"`
+  - Strip `raw` field from all client-visible items
 - **MODIFIED:** `src/components/share/SharedLinkActivityFeed.tsx`
   - Accept `ActivityViewModel[]` and render from it
   - Replace `a.type.toUpperCase()` → badge rendering
   - Replace `Decision: {a.decision}` → `activity.title`
   - Replace raw event rendering → human-readable title
-  - Keep Realtime subscription logic unchanged
-- **MODIFIED:** `tests/vitest/project-publication-activity.test.tsx` — update response shape assertions, add copy assertions
+- **MODIFIED:** `tests/vitest/project-publication-activity.test.tsx` — update response shape assertions
 
-**Tests:**
-- All existing `project-publication-activity.test.tsx` tests pass
-- All existing `project-publication-header.test.tsx` tests pass
-- New copy assertions in activity test file
+**Risks:** MEDIUM — changing public API response shape. Only consumed by `SharedLinkActivityFeed`.
 
-**Rollback:** Revert API route and `SharedLinkActivityFeed.tsx` to previous versions
+**Rollback:** Revert API route and `SharedLinkActivityFeed.tsx`.
 
 **Acceptance Criteria:**
-- Public API returns `ActivityViewModel[]` with `title` field
-- Public API response has NO `raw` field
-- Public API response has NO raw UUIDs
-- Public API response has NO raw event types
-- Public API response has NO internal comments
-- `SharedLinkActivityFeed` renders human-readable copy
-- Owner view still shows internal comments with badge
-- Realtime subscription still triggers refresh
-- Public shared link page shows human-readable activity
-- `bun run type-check` passes
+- [ ] Public API returns `ActivityViewModel[]` with `title` field
+- [ ] Public API response has NO `raw` field for client visibility
+- [ ] Public API response has NO raw UUIDs
+- [ ] Public API response has NO raw event types
+- [ ] Public API response has NO internal comments
+- [ ] `SharedLinkActivityFeed` renders human-readable copy
+- [ ] Owner view still shows internal comments with badge
+- [ ] All existing tests pass
 
 ---
 
-## PR 6 — Comments/Decisions Timeline Integration
+## PR 6 — Recipient Actor Resolution + Comments/Decisions Copy
 
-**Purpose:** Ensure comments, approvals, declines, and revision requests all render with human-readable copy. Add decision digest to owner email notifications.
+**Purpose:** Resolve recipient names for decision/comment/event actors. Make decision and comment copy fully human-readable.
 
 **Files:**
-- **MODIFIED:** `src/lib/activity/activity-view-model.ts` — ensure comment/decision composers handle all edge cases (body text, missing notes, decision states)
-- **MODIFIED:** `src/components/share/SharedLinkActivityFeed.tsx` — render comment body as secondary text, render decision body as secondary text
-- **MODIFIED:** `src/lib/publication/actions.ts` — extend `triggerOwnerDigestIfAllowed` to handle `kind: "decision"`
-- **MODIFIED:** `src/app/api/share/[token]/decision/route.ts` — trigger digest after decision submission
+- **MODIFIED:** `src/lib/publication/actions.ts` — Add batched recipient lookup in `loadSharedLinkActivity()`. Replace hardcoded `author: "recipient"` with resolved names.
+- **MODIFIED:** `src/lib/activity/activity-composer.ts` — Accept `recipientDisplayName` option for `composeSharedLinkActivity()`
+- **MODIFIED:** `src/components/share/SharedLinkActivityFeed.tsx` — Render resolved names in owner view
+- **MODIFIED:** `src/lib/publication/actions.ts` — Improve digest email copy for decisions
 - **MODIFIED:** `tests/vitest/project-publication-comments.test.tsx` — add copy assertions
 - **MODIFIED:** `tests/vitest/project-publication-decision.test.tsx` — add copy assertions
-- **MODIFIED:** `tests/vitest/project-publication-activity.test.tsx` — add decision digest test
 
-**Tests:**
-- All existing comment and decision tests pass
-- New copy assertions for each decision type
-- New digest trigger test for decisions
+**Risks:** LOW — additive; adds a query for recipient names but uses batched lookup.
 
-**Rollback:** Revert changes to individual files
+**Rollback:** Revert changes to individual files.
 
 **Acceptance Criteria:**
-- "Accepted" → "Maria approved the proposal." with green badge
-- "Declined" → "Maria declined the proposal." with red badge, note if present
-- "Revision requested" → "Maria requested revisions." with amber badge, note if present
-- Internal comments show "Internal" badge (owner only)
-- Internal comments never visible to client
-- Comment body renders with `whitespace-pre-wrap`
-- Decision digest email fires for decisions (rate-limited to 15 min)
-- `bun run type-check` passes
+- [ ] "Maria approved the proposal." not "Decision: accepted"
+- [ ] "Maria declined the proposal." not "Decision: declined"
+- [ ] "Maria requested revisions." not "Decision: revision_requested"
+- [ ] "Maria commented on Living Area." with resolved name
+- [ ] Internal comments show owner name with "Internal" badge
+- [ ] Client view shows "Client" or recipient's own name
+- [ ] Decision digest email copy improved
+- [ ] All existing tests pass
 
 ---
 
-## PR 7 — UI Polish, Accessibility, Performance
+## PR 7 — Realtime/Pagination Hardening
 
-**Purpose:** Final UI refinements, accessibility improvements, realtime indicator, and performance verification.
+**Purpose:** Fix shared-link owner pagination (query-level cursor) and finalize Realtime strategy.
 
 **Files:**
-- **MODIFIED:** `src/components/workshop/EstimateSheetContent.tsx` — card layout refinements, expand/collapse keyboard support, aria attributes
-- **MODIFIED:** `src/components/share/SharedLinkActivityFeed.tsx` — card layout, badges, empty state, loading skeleton, new activity banner, aria attributes
-- **MODIFIED:** `src/app/api/share/[token]/activity/route.ts` — add cursor pagination
-- **MODIFIED:** Supabase migrations (optional) — add missing indexes if needed
+- **MODIFIED:** `src/lib/publication/actions.ts` — Apply cursor per-table before limit+1. Use composite `(created_at, id)` cursor.
+- **MODIFIED:** `src/components/share/SharedLinkActivityFeed.tsx` — Realtime fix finalization (if not completed in PR 2)
+- **MODIFIED:** `src/app/api/share/[token]/activity/route.ts` — Add cursor pagination for public API
+- **MODIFIED:** `tests/vitest/project-publication-activity.test.tsx` — Deep pagination test
 
-**Tests:**
-- Accessibility tests pass (axe-core or manual)
-- Performance smoke tests pass
-- Cursor pagination test for public API
+**Risks:** MEDIUM — pagination changes affect data fetching. Needs careful edge case testing.
 
-**Rollback:** Revert individual component changes
+**Rollback:** Revert per-file changes.
 
 **Acceptance Criteria:**
-- Cards follow new anatomy (primary → context → badges → body → audit)
-- Badges render for all event types
-- Expand/collapse audit facts keyboard-operable (Enter/Space)
-- Realtime "New activity" banner (not auto-scroll)
-- Screen reader announces new activity via `aria-live`
-- Empty states show guidance copy
-- Loading skeleton renders during load
-- Public API supports cursor pagination
-- Mobile responsive verified
-- Accessibility audit passes
-- Performance: 200 events render without lag
-- No N+1 queries
-- Index analysis completed (indexes exist or deemed unnecessary)
-- `bun run type-check` passes
-- `bun run lint` passes
-- Final QA pass on all activity surfaces
+- [ ] Deep pagination correctly fetches older events from all source tables
+- [ ] Cursor is composite `(created_at, id)`
+- [ ] hasMore correctly computed
+- [ ] Public API supports cursor pagination
+- [ ] Realtime subscription fires only for correct publication
+- [ ] All existing tests pass
 
 ---
 
-## Dependency Graph
+## PR 8 — UI Polish, Accessibility, Manual QA
 
-```
-PR 1 (planning docs)
-  ↓
-PR 2 (tests + fixtures) ────────┐
-  ↓                              │
-PR 3 (composer module) ──────────┤
-  ↓                              │
-PR 4 (estimate UI) ──┐           │
-  ↓                  ├─ independent
-PR 5 (shared link) ──┘           │
-  ↓                              │
-PR 6 (comments/decisions) ───────┘ (depends on PR 5)
-  ↓
-PR 7 (UI polish + perf)
-```
+**Purpose:** Final UI refinements, accessibility improvements, empty/loading/error states, and manual QA pass.
 
-PR 4 and PR 5 can be worked on in parallel (different surfaces, same composer).
-PR 6 depends on PR 5 (shared link composer in place).
-PR 7 depends on all previous PRs.
+**Files:**
+- **MODIFIED:** `src/components/workshop/EstimateSheetContent.tsx` — Card layout, aria attributes, keyboard nav
+- **MODIFIED:** `src/components/share/SharedLinkActivityFeed.tsx` — Card layout, badges, empty state, aria-live
+- **POTENTIALLY:** Supabase migrations — additive indexes if needed
+
+**Accessibility checklist:**
+- [ ] `role="feed"` on activity list
+- [ ] `role="article"` on activity cards with `aria-label`
+- [ ] `aria-live="polite"` for new activity announcements
+- [ ] Keyboard navigation: Tab through cards, Enter/Space to expand audit
+- [ ] Day groups with `aria-label`
+- [ ] Screen reader smoke test passed
+
+**Acceptance Criteria:**
+- [ ] Cards follow new anatomy (primary → context → badges → body → audit)
+- [ ] Badges render for all event types
+- [ ] Expand/collapse keyboard-operable
+- [ ] Realtime "New activity" banner (not auto-scroll) if Realtime enabled
+- [ ] Empty states show guidance copy
+- [ ] Loading skeleton renders
+- [ ] Mobile responsive verified
+- [ ] Accessibility audit passes (axe-core + manual screen reader)
+- [ ] Manual QA scripts executed and passing
+- [ ] Performance: 200 events render without lag
+- [ ] `bun run type-check` passes
 
 ---
 
 ## Review Strategy
 
-Each PR should be:
-1. Self-contained (can be reviewed without reading other PRs)
-2. Independently testable (all tests pass for that PR)
-3. Revertible (revert PR without affecting others)
-4. Small (<500 lines changed per PR, except PR 4 which touches a large existing file)
+Each PR should:
+1. Be self-contained
+2. Be independently testable (all tests pass)
+3. Be revertible
+4. Be small (<500 lines changed per PR)
 
 Each PR description should include:
 - What was changed and why
 - Screenshots (for UI changes)
-- Link to the relevant planning doc
+- Link to relevant planning doc
 - Rollback instructions
 - Manual QA checklist
+
+---
+
+## Cross-References
+
+- See `04-implementation-plan.md` for full phase details
+- See `05-blast-radius-analysis.md` for per-file risk assessment
+- See `12-second-pass-verification-audit.md` for corrections applied
