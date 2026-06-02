@@ -750,6 +750,16 @@
 - Quick Look result: `qlmanage -t -s 1200` produced a 1200 x 892 PNG thumbnail showing the bid form header, notes, line-item table, section rows, and subtotal bands.
 - Launch meaning: this is partial local artifact, preview, route-handler, and synthetic performance proof. Spreadsheet compatibility and demo fallback rows improve, but Vercel export-route timing plus Excel secondary-app open/recalc/print screenshots remain **NO-GO** proof gaps.
 
+### Route-Transition Benchmark Readiness Helper
+
+- Script: `scripts/check-route-transition-readiness.ts`.
+- Package command: `bun run perf:check-routes`.
+- Scope: parses a JSON artifact produced by `scripts/measure-route-transitions.ts` / `bun run perf:measure-routes` and fails closed when benchmark scenario results are missing, successful run count is below threshold, failures are present, medians exceed route-transition budgets, or overlay visibility exceeds the configured maximum.
+- Default thresholds: public median `15000ms`, Slow 3G public median `30000ms`, authenticated workshop median `10000ms`, minimum successful runs `3`, overlay visibility max `1`.
+- Guardrail evidence: `bunx vitest run tests/vitest/route-transition-readiness-script.test.ts tests/vitest/route-transition-measure-script.test.ts --maxWorkers=1` passed 2 files / 8 tests.
+- Type evidence: `bun run type-check` passed after adding the checker.
+- Launch meaning: this makes route-transition benchmark artifacts objectively checkable in repo-local or future hosted runs. It does not create hosted/manual browser proof, does not prove production navigation, and does not change the route-transition **NO-GO** proof gap by itself.
+
 ### Component/Template Demo Local Smoke Evidence
 
 - Artifact note: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/library-demo-smoke-local-2026-06-02.md`.
