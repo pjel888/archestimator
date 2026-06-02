@@ -5,6 +5,8 @@ import { useMemo, useState, useSyncExternalStore, useTransition } from "react";
 import { useNavigationRouter } from "@/hooks/use-navigation-router";
 import { Cards, GridFour, Plus, Rows, SquaresFour } from "@phosphor-icons/react/dist/ssr";
 
+import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
 import type { HeaderIconToolbarAddAction } from "@/components/ui/header-icon-toolbar";
 import { setProjectFavorite } from "@/lib/workshop/actions";
 import type { Tables } from "@/lib/supabase/types";
@@ -303,21 +305,37 @@ export function ProjectsPageClient({
             ))}
           </section>
         ) : (
-          <div className="flex flex-col items-center justify-center py-8 text-center">
-            <p className="text-[11px] font-medium text-ink">
-              No projects match your search
-            </p>
-            <p className="mt-1 text-[10px] text-tertiary">
-              Try adjusting your search terms
-            </p>
-          </div>
+          <EmptyState
+            icon={<SquaresFour size={18} weight="regular" aria-hidden="true" />}
+            title="No projects match your search"
+            description="Try a project name, client, code, location, shared status, or owner."
+            className="border-0 bg-white"
+          />
         )
       ) : (
         <section aria-label="Sample project references" className="space-y-2">
-          <div className="rounded-xs border border-dashed border-hairline bg-white p-2 text-[10px] leading-4 text-tertiary">
-            No live projects yet. Create the first project to get started;
-            sample cards below are references only.
-          </div>
+          <EmptyState
+            icon={<SquaresFour size={18} weight="regular" aria-hidden="true" />}
+            title={searchQuery ? "No sample references match" : "Create the first live project"}
+            description={
+              searchQuery
+                ? "Clear search or create a live project to start estimating from your own scope."
+                : "Sample cards below are references only. Start a project to create estimates, insert components, and export a bid workbook."
+            }
+            action={
+              <Button
+                type="button"
+                variant="primary"
+                size="sm"
+                onClick={() => setIsModalOpen(true)}
+                aria-label="Create the first project"
+              >
+                <Plus size={12} weight="regular" aria-hidden="true" />
+                Create project
+              </Button>
+            }
+            className="bg-white"
+          />
           <div
             data-project-view-mode={projectViewMode}
             className={cn(

@@ -114,6 +114,32 @@ describe("ProjectsPageClient view modes", () => {
     );
   });
 
+  it("guides first-run users to create a live project while keeping samples as references", async () => {
+    const user = userEvent.setup();
+    render(<ProjectsPageClient projects={[]} />);
+
+    expect(screen.getByLabelText("Sample project references")).toBeInTheDocument();
+    expect(screen.getByText("Create the first live project")).toBeInTheDocument();
+    expect(screen.getByText(/Sample cards below are references only/)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Create the first project" })).toBeInTheDocument();
+    expect(screen.queryByText("No live projects yet.")).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Create the first project" }));
+
+    expect(await screen.findByRole("dialog", { name: "Create project" })).toBeInTheDocument();
+  });
+
+  it("uses shared no-result copy for live project search", async () => {
+    const user = userEvent.setup();
+    render(<ProjectsPageClient projects={[PROJECT_FIXTURE]} />);
+
+    await user.type(screen.getByRole("searchbox", { name: "Search projects" }), "zzzz-project");
+
+    expect(screen.getByText("No projects match your search")).toBeInTheDocument();
+    expect(screen.getByText("Try a project name, client, code, location, shared status, or owner.")).toBeInTheDocument();
+    expect(screen.queryByText("Try adjusting your search terms")).not.toBeInTheDocument();
+  });
+
   it("labels shared project memberships without hiding them behind the owned view", () => {
     const { container } = render(
       <ProjectsPageClient

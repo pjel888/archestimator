@@ -24,7 +24,7 @@ Design-system source: `DESIGN.md`. Launch UI must be compact, work-focused, clea
 | Login | `src/app/login/page.tsx` | Exists | Hosted proof and legal link labels needed. | P0 | `ONB-001` | Google/email clear; terms/privacy accurate. | Auth journey. |
 | Auth callback failure | `src/app/auth/callback/route.ts` | Exists | Failure UX/support path needs smoke. | P0 | `ONB-001` | Retry/support path clear. | Expired link QA. |
 | Workshop homebase | `src/app/workshop/page.tsx`, `WorkshopPageShell` | Exists | Ask Flip visible; first-run states need proof. | P0 | `AI-001`, `ONB-001` | No AI; clear next action. | Empty account screenshot. |
-| Project list | `src/app/workshop/projects/*` | Exists | Empty/create/error states need proof. | P0/P1 | `ONB-001` | Create first project obvious. | New account QA. |
+| Project list | `src/app/workshop/projects/*` | Local first-run state covered | Hosted new-account manual proof still needed. | P0/P1 | `ONB-001` | Create first project obvious; sample cards are clearly references only. | Local DOM pass; new account QA still required. |
 | Project create modal | project components/actions | Exists | Validation/error copy needs check. | P1 | `QA-002` | Required fields and errors clear. | Manual create. |
 | Project dashboard | project detail routes | Exists | Demo data/empty state proof missing. | P1 | `DEMO-001` | Project status understandable. | Demo screenshot. |
 | Estimate list | project estimates route | Exists | Empty/duplicate/open QA required. | P0 | `QA-002` | Can create/open/duplicate. | Core smoke. |

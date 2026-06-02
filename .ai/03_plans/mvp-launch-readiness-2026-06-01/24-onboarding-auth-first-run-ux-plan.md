@@ -26,7 +26,7 @@ Commit audited: `681c95e64864f283950a88dba304eaffe8f2f8b3`
 | Workspace creation/membership | Auth setup path exists. | First-account smoke and empty workspace screenshots. |
 | Onboarding profile | Old onboarding redirects to settings. | Optional profile/settings copy. |
 | Workshop first load | Protected route exists. | Empty/loading/error first-run polish. |
-| Empty project list | Route exists. | Clear create-first-project CTA/copy proof. |
+| Empty project list | `/workshop/projects` now shows a shared empty state with a visible `Create project` action, sample-reference disclosure, and DOM coverage in `projects-page-view-mode.test.tsx`. | Hosted new-account screenshot/manual proof. |
 | Create first estimate | Project/estimate flows exist. | Guided first estimate path proof. |
 | Library/template first state | Routes exist. | Seed/no-seed behavior and copy. |
 | First export | Route exists. | Launch-grade workbook not ready. |
