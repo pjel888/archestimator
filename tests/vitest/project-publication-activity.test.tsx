@@ -5,6 +5,7 @@ import React from "react";
 // Hoisted mocks for route, repo, security, hook, Realtime, email, component deps (P8 red tests written FIRST per Master Prompt + subagent TDD red-first rule + full graph impact completed before any symbol touch)
 const mocks = vi.hoisted(() => ({
   assertSameOriginPublicPost: vi.fn(),
+  assertSameOrigin: vi.fn(),
   verifySharedLinkSessionCookieValue: vi.fn(),
   createSharedLinkSessionCookieName: vi.fn(),
   hashPublicationToken: vi.fn(),
@@ -32,6 +33,7 @@ vi.mock("@/lib/publication/security", async () => {
   return {
     ...actual,
     assertSameOriginPublicPost: mocks.assertSameOriginPublicPost,
+    assertSameOrigin: mocks.assertSameOrigin,
     verifySharedLinkSessionCookieValue: mocks.verifySharedLinkSessionCookieValue,
     createSharedLinkSessionCookieName: mocks.createSharedLinkSessionCookieName,
     hashPublicationToken: mocks.hashPublicationToken,
@@ -242,6 +244,7 @@ describe("P8 — Shared Link Activity Feed & Notifications (red tests written FI
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = "anon-key";
     process.env.SUPABASE_SERVICE_ROLE_KEY = "service-role";
     mocks.assertSameOriginPublicPost.mockReturnValue({ ok: true });
+    mocks.assertSameOrigin.mockReturnValue({ ok: true });
     mocks.createSharedLinkSessionCookieName.mockReturnValue("shared_link_session_abc123");
     mocks.hashPublicationToken.mockReturnValue("publication-token-hash");
     mocks.readPublicationTokenHashSecret.mockReturnValue("publication-hash-secret");
@@ -281,6 +284,29 @@ describe("P8 — Shared Link Activity Feed & Notifications (red tests written FI
   });
 
   describe("GET /api/share/[token]/activity route (public filtered + session aware, is_internal filter for unauth)", () => {
+    it("allows same-origin GET without CSRF header or cookie", async () => {
+      mocks.assertSameOriginPublicPost.mockReturnValue({ ok: false, status: 403, message: "Publication request verification failed." });
+      mocks.assertSameOrigin.mockReturnValue({ ok: true });
+
+      const res = await GET(makeRequest({ origin: "http://localhost" }), params());
+
+      expect(res.status).toBe(200);
+      expect(mocks.assertSameOriginPublicPost).not.toHaveBeenCalled();
+      const json = (await res.json()) as { activities?: unknown[]; recipientSession?: boolean };
+      expect(Array.isArray(json.activities)).toBe(true);
+      expect(json.recipientSession).toBe(false);
+    });
+
+    it("rejects cross-origin GET requests", async () => {
+      mocks.assertSameOrigin.mockReturnValue({ ok: false, status: 403, message: "Cross-origin publication requests are blocked." });
+
+      const res = await GET(makeRequest({ origin: "https://evil.example" }), params());
+
+      expect(res.status).toBe(403);
+      expect(await res.json()).toEqual({ error: "Cross-origin publication requests are blocked." });
+      expect(mocks.createPublicationServiceClient).not.toHaveBeenCalled();
+    });
+
     it("rejects missing or invalid CSRF for POST-like but allows safe GET (reuses assert pattern from P5/P6)", async () => {
       // GET is read, but security boundary still applies for token validation
       const res = await GET(new Request("http://localhost/api/share/client-pub-token-123/activity"), params());
@@ -348,10 +374,27 @@ describe("P8 — Shared Link Activity Feed & Notifications (red tests written FI
       }, { timeout: 1000 });
     });
 
-    it("subscribes to Supabase Realtime on mount (owner path) and unsubscribes on unmount", async () => {
+    it("scopes owner Realtime subscriptions to the active publication id", async () => {
+      render(<SharedLinkActivityFeed publicationToken="client-pub-token-123" publicationId="pub1" isOwner={true} />);
+
+      await waitFor(() => expect(mocks.channel).toHaveBeenCalled());
+      const channelApi = mocks.channel.mock.results.at(-1)?.value;
+      const filterArgs = channelApi.on.mock.calls.map((call: unknown[]) => call[1]);
+
+      expect(filterArgs).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ table: "shared_link_comments", filter: "publication_id=eq.pub1" }),
+          expect.objectContaining({ table: "shared_link_responses", filter: "publication_id=eq.pub1" }),
+          expect.objectContaining({ table: "shared_link_events", filter: "publication_id=eq.pub1" }),
+        ]),
+      );
+    });
+
+    it("does not subscribe to Realtime without a publication id", async () => {
       render(<SharedLinkActivityFeed publicationToken="client-pub-token-123" isOwner={true} />);
-      // Realtime subscription exercised in component (useEffect + channel). In this vitest env the direct createClient in feed may use unmocked path or async effect; intent verified by prior graph + manual review. Non-blocking for P8 core.
-      expect(true).toBe(true);
+
+      await waitFor(() => expect(screen.getByTestId("activity-feed")).toBeInTheDocument());
+      expect(mocks.channel).not.toHaveBeenCalled();
     });
 
     it("does not render internal items for non-owner / public context", () => {

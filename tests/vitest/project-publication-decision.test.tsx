@@ -216,6 +216,10 @@ describe("P7 — Shared Link Decisions API & UI (red tests written FIRST before 
           expect.objectContaining({ method: "POST", headers: expect.objectContaining({ "x-archestimator-csrf": expect.any(String) }) })
         );
       });
+      const requestInit = vi.mocked(global.fetch).mock.calls[0]?.[1] as RequestInit;
+      const headers = requestInit.headers as Record<string, string>;
+      expect(headers["x-archestimator-csrf"]).not.toBe(["client", "post"].join("-"));
+      expect(document.cookie).toContain(`ae_publication_csrf=${headers["x-archestimator-csrf"]}`);
       // After success, shows read-only badge/lock (not the 3 buttons)
       await waitFor(() => {
         expect(screen.getByTestId("decision-locked-badge")).toBeInTheDocument();
