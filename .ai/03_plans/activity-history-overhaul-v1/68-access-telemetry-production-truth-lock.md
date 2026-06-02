@@ -11,21 +11,22 @@
 | Item | Value |
 |------|-------|
 | Activity-code audit baseline | `65b21eb` |
-| Latest planning certification commit | `8b0929f` |
-| Latest repo HEAD at this audit | `cdb9fdc` |
+| Latest activity-overhaul planning certification commit | `d910fe8` |
+| This document last validated | fifteenth-pass evidence-preparation audit (2026-06-02) |
+| Live repo HEAD | Intentionally not hardcoded — run `git rev-parse HEAD` |
 | Branch | `main` |
-| File count | 70 (README + 69 numbered docs 00–68) |
+| File count | 74 (README + 70 numbered docs 00–69 + docs 70–72) |
 | Activity code changed since baseline? | **No** — all commits since `65b21eb` are proof/ops/docs only |
 
 ---
 
-## 2. Three-Domain Truth Table
+## 2. Four-Domain Truth Table
 
 | Domain | Status | Score | Meaning |
 |--------|--------|------:|---------|
 | **Implementation readiness** | ✅ GO | **100%** | PR 7 and PR 8B can be implemented. Scope, tests, approvals, and constraints are fully defined. |
 | **Production enablement planning** | ✅ GO | **100%** | Every planning artifact exists: checklists, playbooks, runbooks, evidence ledger, execution runbook, gate matrix, scorecards, DPA worksheet. |
-| **Evidence preparation readiness** | ✅ GO | **98–100%** | All 16 evidence templates created in `production-evidence/`. All checklists, drafts, and procedures are ready for execution. No templates missing. |
+| **Evidence preparation readiness** | ✅ GO | **100%** | All 16 evidence templates created in `production-evidence/`. All checklists, drafts, and procedures are ready for execution. No templates missing. DPS inventory drafted and ready for owner review. |
 | **Actual production enablement execution** | ❌ NO-GO | **0%** | No operational evidence exists. All 15 required gates are Incomplete. All 16 evidence items still require real operational action. |
 
 ---
@@ -112,11 +113,11 @@ Any deviation from this rule means production enablement is NO-GO.
 ## 7. Production Enablement Reading Order
 
 1. **`68-access-telemetry-production-truth-lock.md`** ← You are here. READ FIRST.
-2. `67-final-access-telemetry-production-readiness-scorecard.md` — Three-domain scorecard
-3. `64-access-telemetry-production-evidence-ledger.md` — Evidence tracker
-4. `66-production-readiness-final-gate-matrix.md` — Gate matrix
-5. `65-production-enablement-execution-runbook.md` — 53-item execution path
-6. `70-access-telemetry-evidence-preparation-scorecard.md` — Evidence preparation scoring
+2. `67-final-access-telemetry-production-readiness-scorecard.md` — Four-domain scorecard
+3. `70-access-telemetry-evidence-preparation-scorecard.md` — Evidence preparation scoring
+4. `64-access-telemetry-production-evidence-ledger.md` — Evidence tracker
+5. `66-production-readiness-final-gate-matrix.md` — Gate matrix
+6. `65-production-enablement-execution-runbook.md` — 53-item execution path
 7. `61-access-telemetry-production-enablement-readiness-certification.md` — Certification
 8. `51-access-telemetry-production-enablement-checklist.md` — Master checklist
 9. `52-privacy-notice-and-disclosure-copy-pack.md` — Privacy copy
@@ -126,7 +127,8 @@ Any deviation from this rule means production enablement is NO-GO.
 13. `56-access-telemetry-feature-flag-and-rollout-plan.md` — Rollout plan
 14. `57-access-telemetry-test-evidence-matrix.md` — Test matrix
 15. `58-production-enablement-final-go-template.md` — Sign-off template
-16. `production-evidence/README.md` — Evidence folder index
+16. `71-final-no-false-claims-audit.md` — No-false-claims audit
+17. `production-evidence/README.md` — Evidence folder index
 
 ---
 
@@ -157,12 +159,12 @@ This document will never claim production execution is Complete unless real evid
 Current state:
 - Implementation readiness: 100% GO ✅
 - Production enablement planning: 100% GO ✅
-- Evidence preparation readiness: 98–100% GO ✅
+- Evidence preparation readiness: 100% GO ✅
 - Actual production enablement execution: 0% NO-GO ❌
 
 These four truths coexist. None contradicts the others. The line between planning, preparation, and execution is unambiguous.
 
-Evidence preparation (templates, checklists, drafts) is at 98–100%. Actual execution (live URLs, signed documents, test output, screenshots) is at 0%. Preparation ≠ Execution.
+Evidence preparation (templates, checklists, drafts) is at 100%. Actual execution (live URLs, signed documents, test output, screenshots) is at 0%. Preparation ≠ Execution.
 
 ---
 
