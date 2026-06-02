@@ -312,7 +312,8 @@ describe("closed beta readiness docs", () => {
     expect(currentState).toContain("one env-var-backed `automation-bypass` entry remains");
     expect(currentState).toContain("Vercel env vars remain absent");
     expect(currentState).toContain("vercel-env-readiness-6aaa0b7-2026-06-02.json");
-    expect(currentState).toContain("still discovers zero env names");
+    expect(currentState).toContain("vercel-env-readiness-9cbf6c3-2026-06-02.json");
+    expect(currentState).toContain("still discover zero env names");
     expect(currentState).toContain("all app-owned invite delivery env names missing");
     expect(currentState).toContain("public preview and branch-alias health remain deployment-protected with HTTP 401");
     expect(currentState).toContain("**Vercel Custom Domain Evidence (2026-06-02):**");
@@ -321,7 +322,8 @@ describe("closed beta readiness docs", () => {
     expect(knownIssues).toContain("Provider state refresh at `d78686f` on 2026-06-02 confirms the latest pushed `main` preview is Ready");
     expect(knownIssues).toContain("Provider state refresh at `4fdf0de` on 2026-06-02 confirms the latest pushed `main` preview is Ready");
     expect(knownIssues).toContain("vercel-env-readiness-6aaa0b7-2026-06-02.json");
-    expect(knownIssues).toContain("still discovers zero env names");
+    expect(knownIssues).toContain("vercel-env-readiness-9cbf6c3-2026-06-02.json");
+    expect(knownIssues).toContain("still discover zero env names");
     expect(knownIssues).toContain("all app-owned invite delivery env names missing");
     expect(knownIssues).toContain("Vercel public health readiness evidence on 2026-06-02 remains blocked");
     expect(knownIssues).toContain("`vercel-health-readiness-4fdf0de-2026-06-02.json` and latest `vercel-health-readiness-02f3a9c-2026-06-02.json` report branch-alias public `/api/health` is HTTP `401`");
@@ -438,6 +440,7 @@ describe("closed beta readiness docs", () => {
     expect(evidenceIndex).toContain("`bun run launch:check-resend-readiness`");
     expect(evidenceIndex).toContain("Vercel env proof: `vercel env ls --non-interactive` returned `No Environment Variables found`");
     expect(evidenceIndex).toContain("vercel-env-readiness-6aaa0b7-2026-06-02.json");
+    expect(evidenceIndex).toContain("vercel-env-readiness-9cbf6c3-2026-06-02.json");
     expect(evidenceIndex).toContain("because no env names were discovered");
     expect(evidenceIndex).toContain("`RESEND_FROM`, `RESEND_REPLY_TO`, and `RESEND_WEBHOOK_SECRET` are missing or empty");
     expect(evidenceIndex).toContain("zero Vercel Resend env names discovered");
@@ -595,7 +598,8 @@ describe("closed beta readiness docs", () => {
     expect(manualProofMatrix).toContain("resend-readiness-eb0aef5-2026-06-02.json");
     expect(manualProofMatrix).toContain("Vercel env list empty");
     expect(manualProofMatrix).toContain("vercel-env-readiness-6aaa0b7-2026-06-02.json");
-    expect(manualProofMatrix).toContain("still discovers zero env names");
+    expect(manualProofMatrix).toContain("vercel-env-readiness-9cbf6c3-2026-06-02.json");
+    expect(manualProofMatrix).toContain("zero env names");
     expect(manualProofMatrix).toContain("all required core, Resend, and invite delivery names missing");
     expect(manualProofMatrix).toContain("disables shared-link recipient entry/send/resend while server email readiness is false");
     expect(manualProofMatrix).toContain("first-run-workshop-local-surface-2026-06-02.md");
@@ -756,6 +760,7 @@ describe("closed beta readiness docs", () => {
     expect(artifactFilenames).toContain("supabase-linked-readiness-4fdf0de-2026-06-02.json");
     expect(artifactFilenames).toContain("supabase-linked-readiness-mcp-bc798a9-2026-06-02.json");
     expect(artifactFilenames).toContain("vercel-env-readiness-6aaa0b7-2026-06-02.json");
+    expect(artifactFilenames).toContain("vercel-env-readiness-9cbf6c3-2026-06-02.json");
     expect(artifactFilenames).toContain("vercel-health-readiness-02f3a9c-2026-06-02.json");
     expect(artifactFilenames).toContain("vercel-production-readiness-4fdf0de-2026-06-02.json");
     expect(artifactFilenames).toContain("vercel-production-readiness-9e253e7-2026-06-02.json");
@@ -813,6 +818,7 @@ describe("closed beta readiness docs", () => {
     expect(goalCompletionAudit).toContain("Provider state refresh evidence");
     expect(goalCompletionAudit).toContain("latest Vercel preview is Ready and protected health works through `vercel curl`");
     expect(goalCompletionAudit).toContain("vercel-env-readiness-6aaa0b7-2026-06-02.json");
+    expect(goalCompletionAudit).toContain("vercel-env-readiness-9cbf6c3-2026-06-02.json");
     expect(goalCompletionAudit).toContain("zero discovered env names");
     expect(goalCompletionAudit).toContain("Vercel custom-domain readiness evidence");
     expect(goalCompletionAudit).toContain("Vercel public health readiness helper");
@@ -928,6 +934,7 @@ describe("closed beta readiness docs", () => {
     expect(currentState).toContain("Read-only Vercel CLI evidence");
     expect(currentState).toContain("Vercel env list is empty");
     expect(currentState).toContain("vercel-env-readiness-6aaa0b7-2026-06-02.json");
+    expect(currentState).toContain("vercel-env-readiness-9cbf6c3-2026-06-02.json");
     expect(currentState).toContain("Resend email readiness evidence");
     expect(currentState).toContain("resend-readiness-b0e04f4-2026-06-02.json");
     expect(currentState).toContain("resend-readiness-eb0aef5-2026-06-02.json");
