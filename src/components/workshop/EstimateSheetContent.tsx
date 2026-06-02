@@ -14,6 +14,7 @@ import { useEstimateCursorCollaboration, type RemoteEstimateCursor } from "@/hoo
 import { useEstimateAreaTreeQuery } from "@/hooks/use-estimate-query";
 import { resolveEstimateWorkspaceSelection, useEstimateWorkspaceSelection } from "@/hooks/use-estimate-workspace-state";
 import { fetchEstimateSheetVersionControl, insertEstimateTemplateIntoEstimate, type EstimateSheetHistoryEvent, type EstimateSheetVersionControlData } from "@/lib/estimates/actions";
+import { composeEstimateActivity, formatActivityActor, formatActivityFieldLabel, formatActivityValue } from "@/lib/activity";
 import { getCollaborationColorForUser } from "@/lib/collaboration/colors";
 import { getEstimateNodeDisplayKind } from "@/lib/estimates/tree-hierarchy";
 import { buildProposalExportModel } from "@/lib/proposal-export/build-proposal-export-model";
@@ -581,7 +582,8 @@ function flattenEstimateRows(nodes: EstimateTreeNode[], editableRows: Record<str
   return rows;
 }
 
-function getEventLabel(eventType: string) {
+
+function getLegacyEventAccessibilityLabel(eventType: string) {
   const labels: Record<string, string> = {
     row_added: "Row added",
     row_blank_added: "Blank row added",
@@ -592,11 +594,21 @@ function getEventLabel(eventType: string) {
     template_inserted: "Template inserted",
     sheet_code_updated: "Sheet code updated",
     sheet_metadata_updated: "Sheet metadata updated",
+    sheet_version_created: "Version snapshot created",
+    sheet_restored_as_copy: "Version restored as copy",
     node_created: "Node created",
     node_renamed: "Node renamed",
     node_deleted_with_children: "Area deleted",
   };
-  return labels[eventType] ?? eventType.replace(/_/g, " ");
+  return labels[eventType] ?? "Activity recorded";
+}
+
+function composeEstimateHistoryActivity(event: EstimateSheetHistoryEvent) {
+  return composeEstimateActivity(event, { audience: "owner", visibility: "owner" });
+}
+
+function getEventLabel(event: EstimateSheetHistoryEvent) {
+  return composeEstimateHistoryActivity(event).title;
 }
 
 function isBlankEstimateRowAuditMaterial(value: unknown) {
@@ -629,27 +641,11 @@ function formatAuditMaterialName(value: string) {
 }
 
 function getEventSummary(event: EstimateSheetHistoryEvent) {
-  const rowContext = event.rowContext;
-  const payload = event.payload;
-  const material = formatAuditMaterialName(readStringValue(rowContext.material));
-  if (isBlankEstimateRowAuditEvent(event)) {
-    return event.eventType === "row_deleted" ? `${BLANK_ESTIMATE_ROW_AUDIT_LABEL} removed` : `${BLANK_ESTIMATE_ROW_AUDIT_LABEL} added`;
-  }
-  if (event.eventType === "row_replaced") {
-    const oldSnapshot = getEventSnapshotRecord(event.oldSnapshot);
-    const newSnapshot = getEventSnapshotRecord(event.newSnapshot);
-    return `${formatAuditComponentIdentity(oldSnapshot, material)} -> ${formatAuditComponentIdentity(newSnapshot, material)}`;
-  }
-  if (event.eventType === "row_updated" && event.changedFields.length) return event.changedFields.map(summarizeChangedAuditField).join(", ");
-  if (event.eventType === "template_inserted") return "Template rows were inserted into the estimate tree";
-  if (event.eventType === "sheet_code_updated") return "Sheet code changed";
-  if (event.eventType === "sheet_metadata_updated") return "Estimate sheet metadata changed";
-  if (event.eventType === "node_created") return `${readStringValue(payload.kind, "Node")} ${readStringValue(payload.name, "created")}`;
-  if (event.eventType === "node_renamed") return `${readStringValue(payload.oldName, "Node")} -> ${readStringValue(payload.newName, "renamed")}`;
-  if (event.eventType === "tree_reordered") return "Estimate tree order changed";
-  if (event.eventType === "node_deleted_with_children") return "Area and nested rows removed";
-  if (material) return material;
-  return readStringValue(payload.title) || "Estimate sheet activity";
+  const activity = composeEstimateHistoryActivity(event);
+  if (activity.changes?.length) return activity.changes.map((change) => change.label.toLowerCase()).join(", ");
+  if (activity.summary) return activity.summary;
+  if (activity.target.secondaryLabel) return activity.target.secondaryLabel;
+  return activity.target.label || "Estimate sheet activity";
 }
 
 function createProposalPreviewSignature(nodes: EstimateTreeNode[], editableRows: Record<string, EditableRowValue>, metadata: ProposalExportMetadata | null) {
@@ -1693,32 +1689,7 @@ const ROW_HISTORY_COMPONENT_EVENT_TYPES = new Set(["row_added", "row_replaced", 
 const ROW_HISTORY_COMPONENT_FIELDS = new Set(["linkState", "sourceLibraryItemId", "sourceSnapshot"]);
 const ROW_HISTORY_SCALAR_FIELDS = new Set(["quantity", "contingencyPercentage", "miscCost"]);
 const AUDIT_DETAIL_LIMIT = 5;
-const AUDIT_FIELD_LABELS: Record<string, string> = {
-  categoryNodeId: "Category",
-  contingencyPercentage: "Adjustment",
-  description: "Description",
-  discipline: "Discipline",
-  linkState: "Library status",
-  material: "Material",
-  metadata: "Metadata",
-  miscCost: "Misc cost",
-  quantity: "Quantity",
-  sheetCode: "Sheet code",
-  sourceLibraryItemId: "Component source",
-  sourceSnapshot: "Component source",
-  supplier: "Supplier",
-  supplierId: "Supplier",
-  unit: "Unit",
-  unitCost: "Unit cost",
-};
 
-const AUDIT_LINK_STATE_LABELS: Record<string, string> = {
-  "linked-clean": "Using library values",
-  "linked-overridden": "Customized from library",
-  unlinked: "Manual row",
-  detached: "Detached from library",
-  "source-changed": "Library source changed",
-};
 
 const ROW_REPLACED_DETAIL_FIELDS = ["material", "supplier", "unitCost", "unit", "quantity", "contingencyPercentage", "miscCost"];
 const HIDDEN_AUDIT_FIELDS = new Set(["metadata"]);
@@ -1785,113 +1756,31 @@ function formatAuditNumber(value: number) {
 }
 
 function humanizeAuditField(field: string) {
-  return AUDIT_FIELD_LABELS[field] ?? field.replace(/([A-Z])/g, " $1").replace(/^./, (char) => char.toUpperCase());
-}
-
-function summarizeChangedAuditField(field: string) {
-  if (field === "linkState") return "library status";
-  if (field === "contingencyPercentage") return "adjustment percentage";
-  return field.replace(/([A-Z])/g, " $1").toLowerCase();
+  return formatActivityFieldLabel(field);
 }
 
 function humanizeAuditValue(value: string) {
   return value.replace(/[_-]/g, " ").replace(/\b\w/g, (char) => char.toUpperCase());
 }
 
-function formatAuditLinkStateValue(value: unknown) {
-  const key = String(value);
-  return AUDIT_LINK_STATE_LABELS[key] ?? humanizeAuditValue(key);
-}
-
-function readSnapshotTextValue(snapshot: Record<string, unknown>, keys: string[]) {
-  for (const key of keys) {
-    const value = snapshot[key];
-    if (typeof value === "string" && value.trim()) return value.trim();
-  }
-  return "";
-}
-
-function inferAuditBrandFromSupplier(supplier: string) {
-  if (!supplier) return "";
-  const supplierParts = supplier.split("/").map((part) => part.trim()).filter(Boolean);
-  const likelyBrand = supplierParts[supplierParts.length - 1] ?? supplier;
-  return likelyBrand
-    .replace(/\b(dealers?|suppliers?|quote required|allowance|philippines|ph)\b/gi, "")
-    .replace(/\s+/g, " ")
-    .trim();
-}
-
-function getAuditSnapshotSupplier(snapshot: Record<string, unknown>) {
-  const sourceSnapshot = getAuditSnapshotSourceRecord(snapshot);
-  return readSnapshotTextValue(snapshot, ["supplier", "supplierName"])
-    || readSnapshotTextValue(sourceSnapshot, ["supplier", "supplierName", "supplier_name"]);
-}
-
-function getAuditSnapshotBrand(snapshot: Record<string, unknown>) {
-  const sourceSnapshot = getAuditSnapshotSourceRecord(snapshot);
-  return readSnapshotTextValue(snapshot, ["brand", "brandName"])
-    || readSnapshotTextValue(sourceSnapshot, ["brand", "brandName", "brand_name"])
-    || inferAuditBrandFromSupplier(getAuditSnapshotSupplier(snapshot));
-}
-
-function formatAuditComponentIdentity(snapshot: Record<string, unknown>, fallback: string) {
-  const material = formatAuditMaterialName(readStringValue(snapshot.material, fallback));
-  const brand = getAuditSnapshotBrand(snapshot);
-  const supplier = getAuditSnapshotSupplier(snapshot);
-  const identity = [
-    brand ? `Brand: ${brand}` : "",
-    supplier ? `Supplier: ${supplier}` : "",
-  ].filter(Boolean);
-
-  return identity.length ? `${material} (${identity.join("; ")})` : material;
-}
-
 function getSnapshotUnit(snapshot: Record<string, unknown>) {
   return readStringValue(snapshot.unit, "unit");
 }
 
-function formatSourceSnapshotValue(snapshot: Record<string, unknown>) {
-  const sourceSnapshot = readRecord(snapshot.sourceSnapshot);
-  const material = readStringValue(snapshot.material);
-  const versionNumber = readOptionalNumber(sourceSnapshot.componentVersionNumber);
-  const priceOptionLabel = readStringValue(sourceSnapshot.priceOptionLabel);
-  const category = readStringValue(sourceSnapshot.category);
-  const parts = [
-    material,
-    versionNumber !== null ? `V${versionNumber}` : "",
-    priceOptionLabel,
-    category,
-  ].filter(Boolean);
-  return parts.join(" · ") || "Component source";
-}
-
 function formatAuditFieldValue(field: string, value: unknown, snapshot: Record<string, unknown>) {
   if (value === null || value === undefined || value === "") return "—";
-  if (field === "material") return formatAuditMaterialName(String(value));
-
+  const formatted = formatActivityValue(field, value);
+  if (field === "material") return formatAuditMaterialName(formatted);
   if (field === "quantity") {
     const parsed = readOptionalNumber(value);
-    return parsed === null ? String(value) : `${formatAuditNumber(parsed)} ${getSnapshotUnit(snapshot)}`;
+    return parsed === null ? formatted : `${formatted} ${getSnapshotUnit(snapshot)}`;
   }
-
   if (field === "contingencyPercentage") {
-    const parsed = readOptionalNumber(value);
-    if (parsed === null) return String(value);
     const contingencyValue = readOptionalNumber(snapshot.contingencyValue);
-    return contingencyValue === null ? formatCostAdjustmentPercentage(parsed) : `${formatCostAdjustmentPercentage(parsed)} (${formatPeso(contingencyValue)})`;
+    const percentage = formatted.startsWith("Contingency ") ? formatted : `Contingency ${formatted}`;
+    return contingencyValue === null ? percentage : `${percentage} (${formatPeso(contingencyValue)})`;
   }
-
-  if (field === "miscCost" || field === "unitCost" || field === "lineTotal") {
-    const parsed = readOptionalNumber(value);
-    return parsed === null ? String(value) : formatPeso(parsed);
-  }
-
-  if (field === "linkState") return formatAuditLinkStateValue(value);
-  if (field === "sourceLibraryItemId") return value ? "Library component" : "Manual component";
-  if (field === "sourceSnapshot") return formatSourceSnapshotValue(snapshot);
-
-  if (typeof value === "object") return "Changed";
-  return String(value);
+  return formatted;
 }
 
 function getOrderedAuditFields(event: EstimateSheetHistoryEvent) {
@@ -2014,11 +1903,13 @@ function getAuditComponentSnapshots(event: EstimateSheetHistoryEvent): AuditComp
 }
 
 function getHistoryChangeLabel(event: EstimateSheetHistoryEvent) {
-  return `${getEventLabel(event.eventType)} · ${getEventSummary(event)}`;
+  const activity = composeEstimateHistoryActivity(event);
+  const summary = getEventSummary(event);
+  return summary && summary !== activity.title ? `${activity.title} · ${summary}` : activity.title;
 }
 
 function getActorLabel(event: EstimateSheetHistoryEvent) {
-  return event.actorLabel || (event.actorUserId ? "Unknown user" : "System/backfill");
+  return formatActivityActor(event.actorUserId, event.actorLabel, "owner").displayName;
 }
 
 function getAuditDeltaClassName(value: number | null | undefined) {
@@ -2028,12 +1919,6 @@ function getAuditDeltaClassName(value: number | null | undefined) {
   return value > 0
     ? "border-emerald-200 bg-emerald-50 text-emerald-700"
     : "border-red-200 bg-red-50 text-red-700";
-}
-
-function formatAuditLabelList(labels: string[]) {
-  if (labels.length <= 1) return labels[0] ?? "activity";
-  if (labels.length === 2) return `${labels[0]} and ${labels[1]}`;
-  return `${labels.slice(0, -1).join(", ")}, and ${labels[labels.length - 1]}`;
 }
 
 function getAuditTargetLabel(event: EstimateSheetHistoryEvent) {
@@ -2048,33 +1933,8 @@ function getAuditDetailSentence(detail: AuditChangeDetail) {
   return `Changed ${detail.label.toLowerCase()} value from ${detail.oldValue} to ${detail.newValue}.`;
 }
 
-function getAuditEventDescription(event: EstimateSheetHistoryEvent, details: AuditChangeDetail[]) {
-  const diffDetails = details.filter((detail): detail is Extract<AuditChangeDetail, { kind: "diff" }> => detail.kind === "diff");
-
-  if (event.eventType === "row_added" || event.eventType === "row_blank_added") {
-    return `Added ${getAuditTargetLabel(event)} to the estimate.`;
-  }
-
-  if (event.eventType === "row_deleted") {
-    return `Removed ${getAuditTargetLabel(event)} from the estimate.`;
-  }
-
-  if (event.eventType === "row_replaced") {
-    const oldSnapshot = getEventSnapshotRecord(event.oldSnapshot);
-    const newSnapshot = getEventSnapshotRecord(event.newSnapshot);
-    const fallback = getAuditTargetLabel(event);
-    return `Replaced ${formatAuditComponentIdentity(oldSnapshot, fallback)} with ${formatAuditComponentIdentity(newSnapshot, fallback)}.`;
-  }
-
-  if (diffDetails.length === 1) return `Changed ${diffDetails[0].label.toLowerCase()} for ${getAuditTargetLabel(event)}.`;
-
-  if (diffDetails.length > 1) {
-    return `Changed ${formatAuditLabelList(diffDetails.map((detail) => detail.label.toLowerCase()))} for ${getAuditTargetLabel(event)}.`;
-  }
-
-  if (details.length === 1) return getAuditDetailSentence(details[0]);
-
-  return getEventSummary(event);
+function getAuditEventDescription(event: EstimateSheetHistoryEvent) {
+  return composeEstimateHistoryActivity(event).title;
 }
 
 function getAuditSupportingSummary(event: EstimateSheetHistoryEvent, summary: string, description: string) {
@@ -2256,15 +2116,15 @@ function AuditEventCard({
   event: EstimateSheetHistoryEvent;
   componentSnapshots?: AuditComponentSnapshot[];
 }) {
-  const title = getEventLabel(event.eventType);
+  const title = getEventLabel(event);
   const summary = getEventSummary(event);
   const details = getAuditChangeDetails(event);
   const deltaClass = getAuditDeltaClassName(event.totalDelta);
   const changeLabel = getHistoryChangeLabel(event);
-  const description = getAuditEventDescription(event, details);
+  const description = getAuditEventDescription(event);
   const supportingSummary = getAuditSupportingSummary(event, summary, description);
   const actorLabel = getActorLabel(event);
-  const eventAriaLabel = `${title} audit event for ${getAuditTargetLabel(event)} at ${formatShortDateTime(event.createdAt)} by ${actorLabel}: ${description}`;
+  const eventAriaLabel = `${getLegacyEventAccessibilityLabel(event.eventType)} audit event for ${getAuditTargetLabel(event)} at ${formatShortDateTime(event.createdAt)} by ${actorLabel}: ${description}`;
   const snapshots = componentSnapshots ?? [];
 
   return (
@@ -2406,7 +2266,7 @@ function AuditEventGroup({
   events: EstimateSheetHistoryEvent[];
 }) {
   const firstEvent = events[0];
-  const eventTypes = Array.from(new Set(events.map((event) => getEventLabel(event.eventType)))).join(", ");
+  const eventTypes = Array.from(new Set(events.map((event) => getEventLabel(event)))).join(", ");
   const eventTotal = events.reduce((total, event) => total + (event.totalDelta ?? 0), 0);
 
   return (

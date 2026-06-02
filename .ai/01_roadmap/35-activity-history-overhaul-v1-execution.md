@@ -1,11 +1,11 @@
 # Activity History Overhaul V1 Execution Ledger
 
-**Last updated:** 2026-06-02 14:50 UTC
+**Last updated:** 2026-06-02 15:11 UTC
 **Branch:** `feat/activity-history-overhaul-v1`
 **Starting commit:** `3b896d8`
 **Active plan path:** `.ai/03_plans/activity-history-overhaul-v1/`
 **Archive target after completion:** `.ai/09_archive/store/activity-history-overhaul-v1/`
-**Status:** `ACTIVE — Milestone 2 pushed; PR 4 estimate UI integration next`
+**Status:** `ACTIVE — Milestone 3 full verification passed; commit pending`
 
 ## Scope
 
@@ -24,7 +24,7 @@ Implement the repo-local Activity History Overhaul V1 plan pack through PR 2–P
 | 0 — Orientation, safety, roadmap execution start | `COMPLETE / PUSHED` | `pwd`; `git rev-parse --show-toplevel`; `git branch --show-current`; `git worktree list`; `git status --short`; `git log --oneline --decorate -n 20`; `git remote -v`; `npx gitnexus analyze`; required docs intake; `git diff --check`; `bun run type-check`; `bun run lint`; `bun run test`; `bun run test:dom` | `30697fe` | Product code intentionally untouched. `bun install` repaired missing local dependencies; lint passed with 14 existing warnings. Pushed to `origin/feat/activity-history-overhaul-v1`. |
 | 1 — PR 2 preflight correctness cleanup | `COMPLETE / PUSHED` | RED targeted tests failed for missing PR2 behavior; GREEN targeted `bun run test:dom -- tests/vitest/publication-client-csrf.test.ts tests/vitest/project-publication-activity.test.tsx tests/vitest/estimate-sheet-version-control-ui.test.tsx tests/vitest/project-publication-comments.test.tsx tests/vitest/project-publication-decision.test.tsx tests/vitest/project-publication-security.test.ts`; full pre-commit `git diff --check`; `bun run type-check`; `bun run lint`; `bun run test`; `bun run test:dom` | `2394ebe` | Fixed row-added filters, scoped Realtime by publication id, replaced GET POST-CSRF check with same-origin validation, kept raw `event_type` internal, and replaced live hardcoded CSRF fetch paths with generated cookie/header pairs. |
 | 2 — PR 3 composer module and tests | `COMPLETE / PUSHED` | Created pure `src/lib/activity/` composer surface with 103 DOM/unit tests; `bun run test:dom -- tests/vitest/activity-composer.test.ts tests/vitest/activity-copy-regression.test.ts tests/vitest/activity-security.test.ts tests/vitest/activity-view-model.test.ts`; `git diff --check`; `bun run type-check`; `bun run lint`; `bun run test`; `bun run test:dom`; `npx gitnexus analyze` + staged change detection. | `2717172` | No UI/component/API integration in this milestone. Client audience strips raw/internal/UUID/email/diagnostic fields; owner audience preserves internal/raw audit details. |
-| 3 — PR 4 estimate Activity UI integration | `PENDING` | Pending | Pending | Estimate history uses composer output without losing grouping/filtering/pagination. |
+| 3 — PR 4 estimate Activity UI integration | `VERIFIED — COMMIT PENDING` | Integrated estimate Activity UI with composer copy/actor/field/value formatters; targeted `bun run test:dom -- tests/vitest/activity-composer.test.ts tests/vitest/activity-copy-regression.test.ts tests/vitest/activity-security.test.ts tests/vitest/activity-view-model.test.ts tests/vitest/estimate-sheet-version-control-ui.test.tsx`; full pre-commit `git diff --check`; `bun run type-check`; `bun run lint`; `bun run test`; `bun run test:dom`. | Pending | Preserves grouping, filtering, day grouping, correlation grouping, row activity tab, stale-scope protection, pagination, and audit details. |
 | 4 — PR 5 shared-link Activity API integration | `PENDING` | Pending | Pending | Public API returns client-safe `ActivityViewModel[]`. |
 | 5 — PR 6 recipient actor resolution and copy | `PENDING` | Pending | Pending | Resolve safe recipient display names for comments/decisions. |
 | 6 — PR 7 privacy-safe access telemetry | `PENDING` | Pending | Pending | Analytics-only helper, disclosure, privacy tests, production default-off. |
@@ -68,6 +68,11 @@ Implement the repo-local Activity History Overhaul V1 plan pack through PR 2–P
 
 | 2026-06-02 14:50 UTC | `git commit feat(activity): add activity composer module` | PASS | Milestone 2 commit `2717172` created. |
 | 2026-06-02 14:50 UTC | `git push -u origin feat/activity-history-overhaul-v1` | PASS | Milestone 2 commit `2717172` pushed to origin; this ledger correction records the immutable pushed SHA. |
+
+| 2026-06-02 14:58 UTC | `bun run test:dom -- tests/vitest/activity-composer.test.ts tests/vitest/activity-copy-regression.test.ts tests/vitest/activity-security.test.ts tests/vitest/activity-view-model.test.ts tests/vitest/estimate-sheet-version-control-ui.test.tsx` | PASS | Milestone 3 targeted composer + estimate UI suite: 5 files, 124 tests. |
+| 2026-06-02 14:58 UTC | `bun run type-check` | PASS | Milestone 3 targeted type check before full gate. |
+| 2026-06-02 14:58 UTC | `bun run lint -- --quiet` | PASS | No new lint errors/warnings in changed files. |
+| 2026-06-02 15:11 UTC | `git diff --check && bun run type-check && bun run lint && bun run test && bun run test:dom` | PASS | Milestone 3 full pre-commit gate passed; lint retained the existing 14-warning baseline and DOM suite passed 160 files / 1,259 tests with 2 skipped. |
 
 ## Roadmap references to keep current
 

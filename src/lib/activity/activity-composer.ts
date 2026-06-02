@@ -23,10 +23,14 @@ function snapshot(value: unknown): Record<string, unknown> {
   return {};
 }
 
+const BLANK_ESTIMATE_ROW_COMPONENT_LABEL = "Drag or add a component here";
+const BLANK_ESTIMATE_ROW_AUDIT_LABEL = "Empty row slot";
+
 function rowMaterial(event: EstimateActivityInput) {
   const oldData = snapshot(event.oldSnapshot);
   const newData = snapshot(event.newSnapshot);
-  return readString(event.rowContext?.material, newData.material, newData.name, oldData.material, oldData.name, "row");
+  const material = readString(event.rowContext?.material, newData.material, newData.name, oldData.material, oldData.name, "row");
+  return material === BLANK_ESTIMATE_ROW_COMPONENT_LABEL ? BLANK_ESTIMATE_ROW_AUDIT_LABEL : material;
 }
 
 function nodeName(event: EstimateActivityInput) {
@@ -67,7 +71,7 @@ function estimateTitle(event: EstimateActivityInput, actor: string, target: Acti
   const material = rowMaterial(event);
   switch (event.eventType) {
     case "row_updated":
-      return `${actor} changed ${event.changedFields?.map(formatActivityFieldLabel).join(", ") || "details"} for ${material}.`;
+      return `${actor} changed ${event.changedFields?.map((field) => formatActivityFieldLabel(field).toLowerCase()).join(", ") || "details"} for ${material}.`;
     case "row_added":
       return `${actor} added ${material} to the estimate.`;
     case "row_blank_added":
