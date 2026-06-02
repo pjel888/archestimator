@@ -35,7 +35,7 @@
 
 ## Docs Audited
 
-All original 35 files in the planning folder were read or spot-checked during the fifth pass. The sixth pass (autonomous readiness loop) added docs 41-44 and audited all 46 files.
+The planning folder contains 47 files (README + 46 numbered docs). The fifth pass read or spot-checked all files. The sixth pass added docs 41-44. The seventh pass (final micro-refinement) added doc 45 and updated all files.
 
 | Doc | Audit status | Issues found |
 |-----|-------------|--------------|
