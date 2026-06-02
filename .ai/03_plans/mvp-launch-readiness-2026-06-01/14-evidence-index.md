@@ -497,12 +497,13 @@
 - Workbook artifact: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/lewis-residence-demo-proposal-2026-06-02.xlsx`.
 - ExcelJS summary: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/lewis-residence-demo-proposal-2026-06-02.exceljs-summary.json`.
 - Quick Look preview artifact: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/spreadsheet-quicklook-preview-2026-06-02.md` plus `spreadsheet-quicklook-preview-2026-06-02/lewis-residence-demo-proposal-2026-06-02.xlsx.png`.
+- App availability refresh: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/spreadsheet-app-availability-refresh-2026-06-02.md`.
 - SHA-256: `1b7625fedbcc1855ace1e07add53aa4d90c2a9dd9ff3a1347f11cb0018ab7b48`.
 - Generation path: `buildProposalExportModel()` plus `createProposalWorkbookBuffer()` using a local Lewis Residence demo payload.
 - Integrity checks: `file` reported `Microsoft Excel 2007+`; `unzip -t` found no compressed-data errors; ExcelJS loaded `Bid Form`, `Summary`, `Commercial Terms`, and `Source Breakdown`.
 - Formula/blank-total checks: ExcelJS readback found `blankLineTotalRows: []` and summary grand total formula `B27+B28+B29` with result `55230`.
 - Focused export tests: `bun run test:dom tests/vitest/proposal-workbook.test.ts tests/vitest/proposal-export-model.test.ts tests/vitest/proposal-export-route.test.ts tests/vitest/proposal-export-preview.test.tsx` passed 4 files / 15 tests.
-- App availability blocker: no `libreoffice`, `soffice`, `/Applications/Microsoft Excel.app`, `/Applications/Numbers.app`, or `/Applications/LibreOffice.app` was found locally.
+- App availability blocker: no `libreoffice`, `soffice`, Microsoft Excel, Apple Numbers, or LibreOffice was found locally. `Google Sheets.app` is installed, but it is a Google Drive shortcut app (`com.google.drivefs.shortcuts.sheets`), not a native local spreadsheet engine; using it for proof would likely require sign-in and/or workbook upload/transmission to Google, which needs owner-approved manual QA.
 - Quick Look result: `qlmanage -t -s 1200` produced a 1200 x 892 PNG thumbnail showing the bid form header, notes, line-item table, section rows, and subtotal bands.
 - Launch meaning: this is partial local artifact and preview proof. Spreadsheet compatibility and demo fallback rows improve, but Excel plus secondary-app open/recalc/print screenshots remain **NO-GO** proof gaps.
 
