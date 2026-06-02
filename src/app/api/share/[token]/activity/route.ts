@@ -8,7 +8,7 @@ import {
   hashPublicationToken,
   readPublicationTokenHashSecret,
 } from "@/lib/publication/security";
-import { createSharedLinkTargetLabelMap, readSharedLinkRecipientDisplayName, resolveSharedLinkTargetLabel } from "@/lib/publication/activity-helpers";
+import { compareSharedLinkActivityDesc, createSharedLinkTargetLabelMap, decodeSharedLinkActivityCursor, encodeSharedLinkActivityCursor, isBeforeSharedLinkActivityCursor, readSharedLinkRecipientDisplayName, resolveSharedLinkTargetLabel, sharedLinkActivityCursorFilter } from "@/lib/publication/activity-helpers";
 import { checkProjectPublicationActivityRateLimit, createPublicationServiceClient } from "@/lib/publication/public-repository";
 import type { Tables } from "@/lib/supabase/types";
 import type { NextRequest } from "next/server";
@@ -98,6 +98,11 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     return Response.json({ error: "Publication not found or inactive." }, { status: 404, headers: { "Cache-Control": "no-store" } });
   }
 
+  const url = new URL(request.url);
+  const limitParam = Number(url.searchParams.get("limit"));
+  const limit = Math.min(Math.max(Number.isFinite(limitParam) && limitParam > 0 ? Math.floor(limitParam) : 100, 1), 100);
+  const cursor = decodeSharedLinkActivityCursor(url.searchParams.get("cursor"));
+  const cursorFilter = sharedLinkActivityCursorFilter(cursor);
   const pubId = pub.id;
   const cookieHeader = request.headers.get("cookie") || "";
   const sessionName = createSharedLinkSessionCookieName(token);
@@ -117,26 +122,29 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       ? recipientId
       : undefined;
 
+  let commentsQuery = supabase
+    .from("shared_link_comments")
+    .select("id, created_at, body, is_internal, author_email, author_name, recipient_id, estimate_id, row_id")
+    .eq("publication_id", pubId)
+    .eq("is_internal", false);
+  let responsesQuery = supabase
+    .from("shared_link_responses")
+    .select("id, created_at, decision, note, recipient_id")
+    .eq("publication_id", pubId);
+  let eventsQuery = supabase
+    .from("shared_link_events")
+    .select("id, created_at, event_type, metadata_json, recipient_id")
+    .eq("publication_id", pubId);
+  if (cursorFilter) {
+    commentsQuery = commentsQuery.or(cursorFilter);
+    responsesQuery = responsesQuery.or(cursorFilter);
+    eventsQuery = eventsQuery.or(cursorFilter);
+  }
+
   const [commentsRes, responsesRes, eventsRes] = await Promise.all([
-    supabase
-      .from("shared_link_comments")
-      .select("id, created_at, body, is_internal, author_email, author_name, recipient_id, estimate_id, row_id")
-      .eq("publication_id", pubId)
-      .eq("is_internal", false)
-      .order("created_at", { ascending: false })
-      .limit(100),
-    supabase
-      .from("shared_link_responses")
-      .select("id, created_at, decision, note, recipient_id")
-      .eq("publication_id", pubId)
-      .order("created_at", { ascending: false })
-      .limit(50),
-    supabase
-      .from("shared_link_events")
-      .select("id, created_at, event_type, metadata_json, recipient_id")
-      .eq("publication_id", pubId)
-      .order("created_at", { ascending: false })
-      .limit(50),
+    commentsQuery.order("created_at", { ascending: false }).order("id", { ascending: false }).limit(limit + 1),
+    responsesQuery.order("created_at", { ascending: false }).order("id", { ascending: false }).limit(limit + 1),
+    eventsQuery.order("created_at", { ascending: false }).order("id", { ascending: false }).limit(limit + 1),
   ]);
 
   const recipientIds = new Set<string>();
@@ -193,17 +201,22 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     });
   });
 
-  const activities = rawActivities
-    .sort((a, b) => (a.created_at < b.created_at ? 1 : -1))
-    .slice(0, 100)
+  const sortedActivities = rawActivities
+    .filter((activity) => isBeforeSharedLinkActivityCursor(activity, cursor))
+    .sort(compareSharedLinkActivityDesc);
+  const pageActivities = sortedActivities.slice(0, limit);
+  const activities = pageActivities
     .map((activity) => composeSharedLinkActivity(activity, { audience: "client", visibility: "public" }))
     .filter((activity) => activity.visibility !== "internal")
     .map(toPublicActivityViewModel);
+  const hasMore = sortedActivities.length > limit;
+  const nextCursor = hasMore && pageActivities.length ? encodeSharedLinkActivityCursor(pageActivities[pageActivities.length - 1]!) : undefined;
 
   return Response.json(
     {
       activities,
-      hasMore: false,
+      hasMore,
+      ...(nextCursor ? { nextCursor } : {}),
       recipientSession: Boolean(verifiedRecipientId),
     },
     { headers: { "Cache-Control": "no-store" } },

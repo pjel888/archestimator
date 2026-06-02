@@ -73,3 +73,49 @@ export function resolveSharedLinkTargetLabel(
   if (estimateId && labels.estimateLabels.has(estimateId)) return labels.estimateLabels.get(estimateId);
   return undefined;
 }
+
+export type SharedLinkActivityCursor = {
+  createdAt: string;
+  id: string;
+};
+
+export type SharedLinkActivitySortable = {
+  created_at: string;
+  id: string;
+};
+
+export function encodeSharedLinkActivityCursor(item: SharedLinkActivitySortable): string {
+  return Buffer.from(JSON.stringify({ createdAt: item.created_at, id: item.id }), "utf8").toString("base64url");
+}
+
+export function decodeSharedLinkActivityCursor(value: string | null | undefined): SharedLinkActivityCursor | null {
+  if (!value) return null;
+  try {
+    const parsed = JSON.parse(Buffer.from(value, "base64url").toString("utf8")) as Partial<SharedLinkActivityCursor>;
+    if (typeof parsed.createdAt !== "string" || typeof parsed.id !== "string") return null;
+    if (Number.isNaN(new Date(parsed.createdAt).getTime()) || !parsed.id.trim()) return null;
+    return { createdAt: parsed.createdAt, id: parsed.id };
+  } catch {
+    return null;
+  }
+}
+
+export function compareSharedLinkActivityDesc(a: SharedLinkActivitySortable, b: SharedLinkActivitySortable) {
+  if (a.created_at !== b.created_at) return a.created_at < b.created_at ? 1 : -1;
+  if (a.id === b.id) return 0;
+  return a.id < b.id ? 1 : -1;
+}
+
+export function isBeforeSharedLinkActivityCursor(item: SharedLinkActivitySortable, cursor: SharedLinkActivityCursor | null) {
+  if (!cursor) return true;
+  if (item.created_at < cursor.createdAt) return true;
+  if (item.created_at === cursor.createdAt && item.id < cursor.id) return true;
+  return false;
+}
+
+export function sharedLinkActivityCursorFilter(cursor: SharedLinkActivityCursor | null) {
+  if (!cursor) return null;
+  const createdAt = cursor.createdAt.replaceAll('"', "");
+  const id = cursor.id.replaceAll('"', "");
+  return `created_at.lt.${createdAt},and(created_at.eq.${createdAt},id.lt.${id})`;
+}

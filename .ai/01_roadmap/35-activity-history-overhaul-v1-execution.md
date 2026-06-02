@@ -1,11 +1,11 @@
 # Activity History Overhaul V1 Execution Ledger
 
-**Last updated:** 2026-06-02 15:42 UTC
+**Last updated:** 2026-06-02 15:49 UTC
 **Branch:** `feat/activity-history-overhaul-v1`
 **Starting commit:** `3b896d8`
 **Active plan path:** `.ai/03_plans/activity-history-overhaul-v1/`
 **Archive target after completion:** `.ai/09_archive/store/activity-history-overhaul-v1/`
-**Status:** `ACTIVE — Milestone 6 pushed; PR 8A pagination and Realtime hardening next`
+**Status:** `ACTIVE — Milestone 7 full verification passed; commit pending`
 
 ## Scope
 
@@ -28,7 +28,7 @@ Implement the repo-local Activity History Overhaul V1 plan pack through PR 2–P
 | 4 — PR 5 shared-link Activity API integration | `COMPLETE / PUSHED` | RED public API/feed tests failed on raw activity shape; GREEN targeted `bun run test:dom -- tests/vitest/project-publication-activity.test.tsx tests/vitest/project-publication-comments.test.tsx tests/vitest/project-publication-decision.test.tsx tests/vitest/activity-composer.test.ts tests/vitest/activity-copy-regression.test.ts tests/vitest/activity-security.test.ts tests/vitest/activity-view-model.test.ts`; `bun run lint -- --quiet`; full pre-commit `git diff --check`; `bun run type-check`; `bun run lint`; `bun run test`; `bun run test:dom`; `npx gitnexus analyze` + staged change detection. | `66320c2` | Public route returns hashed-id, client-safe composed activity items without raw event/database fields; feed renders composed titles; owner path remains composer-backed. GitNexus staged detection reported HIGH because the public GET flow is reachable; targeted leak tests and full gate passed. |
 | 5 — PR 6 recipient actor resolution and copy | `COMPLETE / PUSHED` | RED recipient-copy assertions failed for public/owner activity; GREEN targeted `bun run test:dom -- tests/vitest/project-publication-activity.test.tsx tests/vitest/project-publication-comments.test.tsx tests/vitest/project-publication-decision.test.tsx tests/vitest/activity-composer.test.ts tests/vitest/activity-copy-regression.test.ts tests/vitest/activity-security.test.ts tests/vitest/activity-view-model.test.ts`; full pre-commit `git diff --check`; `bun run type-check`; `bun run lint`; `bun run test`; `bun run test:dom`; `npx gitnexus analyze` + staged change detection. | `f48b5ba` | Batched recipient display-name lookup drives safe Maria/Maria-style actor copy for comments, decisions, and events; snapshot target labels support location copy; internal notes keep owner names plus Internal badge. GitNexus staged detection reported HIGH because the public GET flow is reachable; targeted recipient-copy tests and full gate passed. |
 | 6 — PR 7 privacy-safe access telemetry | `COMPLETE / PUSHED` | RED telemetry/disclosure/default-off tests failed before implementation; GREEN targeted `bun run test:dom -- tests/vitest/project-publication-public-repository.test.ts tests/vitest/project-publication-route.test.ts tests/vitest/project-publication-page.test.tsx tests/vitest/project-publication-security.test.ts tests/vitest/project-publication-activity.test.tsx`; full pre-commit `git diff --check`; `bun run type-check`; `bun run lint`; `bun run test`; `bun run test:dom`; major-gate `bun run validate`; `bun run build`; `npx gitnexus analyze` + staged change detection. | `1d42df8` | Adds default-off analytics-only access telemetry helper, coarse metadata only, disclosure copy, password/session supplemental telemetry, and production NO-GO docs. Existing proposal-view open counter path remains unchanged. GitNexus staged detection reported HIGH because public share/password/session flows are reachable; targeted privacy/side-effect tests, validate, and build passed. |
-| 7 — PR 8A pagination and Realtime hardening | `PENDING` | Pending | Pending | Composite cursor pagination and current-publication Realtime refresh only. |
+| 7 — PR 8A pagination and Realtime hardening | `VERIFIED — COMMIT PENDING` | RED pagination tests failed because public route ignored `limit` and owner action lacked `nextCursor`; GREEN targeted `bun run test:dom -- tests/vitest/project-publication-activity.test.tsx tests/vitest/project-publication-comments.test.tsx tests/vitest/project-publication-decision.test.tsx tests/vitest/activity-composer.test.ts tests/vitest/activity-security.test.ts`; full pre-commit `git diff --check`; `bun run type-check`; `bun run lint`; `bun run test`; `bun run test:dom`. | Pending | Adds stable `(created_at,id)` cursor helpers, applies cursor per source query before `limit+1`, returns `nextCursor`, and lets the feed load older activity without changing telemetry collection. |
 | 8 — PR 8B access telemetry hardening | `PENDING` | Pending | Pending | Bot filtering, retention path, observability, support/admin boundaries. |
 | 9 — PR 9 UI polish, accessibility, QA, performance | `PENDING` | Pending | Pending | Accessible feed/card semantics and performance verification. |
 | Archive | `PENDING` | Pending | Pending | `git mv` plan folder to archive and add `ARCHIVE.md`. |
@@ -93,6 +93,9 @@ Implement the repo-local Activity History Overhaul V1 plan pack through PR 2–P
 | 2026-06-02 15:42 UTC | `gitnexus detect-changes --scope staged` | PASS / HIGH RISK | Public share/password/session flow reachability caused HIGH graph risk; changed scope was expected and covered by targeted privacy/side-effect tests, validate, and build. |
 | 2026-06-02 15:42 UTC | `git commit feat(activity): add privacy-safe access telemetry` | PASS | Milestone 6 commit `1d42df8` created. |
 | 2026-06-02 15:42 UTC | `git push -u origin feat/activity-history-overhaul-v1` | PASS | Milestone 6 commit `1d42df8` pushed to origin; PR 8A pagination/realtime hardening is next. |
+| 2026-06-02 15:43 UTC | `bun run test:dom -- tests/vitest/project-publication-activity.test.tsx` | FAIL → RED | Added PR8A composite cursor tests; public route returned all rows and owner action omitted `nextCursor`. |
+| 2026-06-02 15:46 UTC | `bun run test:dom -- tests/vitest/project-publication-activity.test.tsx tests/vitest/project-publication-comments.test.tsx tests/vitest/project-publication-decision.test.tsx tests/vitest/activity-composer.test.ts tests/vitest/activity-security.test.ts` | PASS | Milestone 7 targeted GREEN suite: 5 files, 82 tests. |
+| 2026-06-02 15:49 UTC | `git diff --check && bun run type-check && bun run lint && bun run test && bun run test:dom` | PASS | Milestone 7 full pre-commit gate passed; lint retained the existing 14-warning baseline and DOM suite passed 160 files / 1,265 tests with 2 skipped. |
 
 ## Roadmap references to keep current
 
