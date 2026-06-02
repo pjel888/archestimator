@@ -4,6 +4,7 @@ import {
   verifySharedLinkSessionCookieValue,
   hashPublicationToken,
   readPublicationTokenHashSecret,
+  hasPublicationAccessCookie,
 } from "@/lib/publication/security";
 import { checkProjectPublicationActivityRateLimit, createPublicationServiceClient } from "@/lib/publication/public-repository";
 import type { Tables } from "@/lib/supabase/types";
@@ -79,7 +80,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
   const { data: pub, error: pubErr } = await supabase
     .from("project_publications")
-    .select("id, status, revoked_at, expires_at")
+    .select("id, status, revoked_at, expires_at, password_hash, snapshot_version")
     .eq("token_hash", pubHash)
     .maybeSingle();
 
@@ -90,6 +91,21 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
   const pubId = pub.id;
   const cookieHeader = request.headers.get("cookie") || "";
+
+  if (
+    pub.password_hash &&
+    !hasPublicationAccessCookie(cookieHeader, {
+      token,
+      publicationId: pubId,
+      snapshotVersion: pub.snapshot_version,
+    })
+  ) {
+    return Response.json(
+      { error: "Publication password required.", passwordRequired: true },
+      { status: 423, headers: { "Cache-Control": "no-store" } },
+    );
+  }
+
   const sessionName = createSharedLinkSessionCookieName(token);
   const sessionValue = parseCookieValue(cookieHeader, sessionName);
 
@@ -101,13 +117,15 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     verifySharedLinkSessionCookieValue(sessionValue, {
       token,
       publicationId: pubId,
-      snapshotVersion: "1",
+      snapshotVersion: String(pub.snapshot_version),
       recipientId,
     })
       ? recipientId
       : undefined;
 
-  // Load comments (filter is_internal for this public route), responses, events
+  // Load comments (filter is_internal for this public route), responses, events.
+  // Recipient-scoped decisions/events require a verified shared-link session; managers use loadSharedLinkActivity.
+  const emptyRecipientActivity = { data: [], error: null };
   const [commentsRes, responsesRes, eventsRes] = await Promise.all([
     supabase
       .from("shared_link_comments")
@@ -116,18 +134,24 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       .eq("is_internal", false) // public/unauth view: never leak internal owner notes
       .order("created_at", { ascending: false })
       .limit(100),
-    supabase
-      .from("shared_link_responses")
-      .select("id, created_at, decision, note")
-      .eq("publication_id", pubId)
-      .order("created_at", { ascending: false })
-      .limit(50),
-    supabase
-      .from("shared_link_events")
-      .select("id, created_at, event_type, metadata_json")
-      .eq("publication_id", pubId)
-      .order("created_at", { ascending: false })
-      .limit(50),
+    verifiedRecipientId
+      ? supabase
+          .from("shared_link_responses")
+          .select("id, created_at, decision, note")
+          .eq("publication_id", pubId)
+          .eq("recipient_id", verifiedRecipientId)
+          .order("created_at", { ascending: false })
+          .limit(50)
+      : Promise.resolve(emptyRecipientActivity),
+    verifiedRecipientId
+      ? supabase
+          .from("shared_link_events")
+          .select("id, created_at, event_type, metadata_json")
+          .eq("publication_id", pubId)
+          .eq("recipient_id", verifiedRecipientId)
+          .order("created_at", { ascending: false })
+          .limit(50)
+      : Promise.resolve(emptyRecipientActivity),
   ]);
 
   const activities: PublicActivityItem[] = [];

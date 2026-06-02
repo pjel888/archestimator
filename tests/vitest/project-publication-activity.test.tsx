@@ -9,6 +9,7 @@ const mocks = vi.hoisted(() => ({
   createSharedLinkSessionCookieName: vi.fn(),
   hashPublicationToken: vi.fn(),
   readPublicationTokenHashSecret: vi.fn(),
+  hasPublicationAccessCookie: vi.fn(),
   useSharedLinkSession: vi.fn(),
   requireCurrentUserContext: vi.fn(),
   // P8 extensions (additive)
@@ -36,6 +37,7 @@ vi.mock("@/lib/publication/security", async () => {
     createSharedLinkSessionCookieName: mocks.createSharedLinkSessionCookieName,
     hashPublicationToken: mocks.hashPublicationToken,
     readPublicationTokenHashSecret: mocks.readPublicationTokenHashSecret,
+    hasPublicationAccessCookie: mocks.hasPublicationAccessCookie,
   };
 });
 
@@ -108,6 +110,8 @@ function createActivityRouteSupabaseMock() {
           status: "published",
           revoked_at: null,
           expires_at: null,
+          password_hash: null,
+          snapshot_version: 1,
         });
       }
       if (table === "shared_link_comments") {
@@ -246,6 +250,7 @@ describe("P8 — Shared Link Activity Feed & Notifications (red tests written FI
     mocks.hashPublicationToken.mockReturnValue("publication-token-hash");
     mocks.readPublicationTokenHashSecret.mockReturnValue("publication-hash-secret");
     mocks.verifySharedLinkSessionCookieValue.mockReturnValue(false);
+    mocks.hasPublicationAccessCookie.mockReturnValue(false);
     mocks.checkProjectPublicationActivityRateLimit.mockResolvedValue({ allowed: true });
     mocks.useSharedLinkSession.mockReturnValue({ isValid: true });
     mocks.requireCurrentUserContext.mockResolvedValue({
@@ -298,6 +303,42 @@ describe("P8 — Shared Link Activity Feed & Notifications (red tests written FI
         // Red expectation: public sees only !is_internal
         expect(json.activities?.every((activity) => activity.type !== "comment" || activity.is_internal === false)).toBe(true);
       }
+    });
+
+    it("requires the publication access cookie before exposing password-protected activity", async () => {
+      mocks.createPublicationServiceClient.mockReturnValueOnce({
+        from: vi.fn((table: string) => {
+          if (table === "project_publications") {
+            return createQueryResult({
+              id: "pub1",
+              status: "published",
+              revoked_at: null,
+              expires_at: null,
+              password_hash: "hashed-password",
+              snapshot_version: 7,
+            });
+          }
+          return createQueryResult([]);
+        }),
+      });
+
+      const res = await GET(makeRequest({ cookie: "" }), params());
+
+      expect(res.status).toBe(423);
+      expect(await res.json()).toEqual({ error: "Publication password required.", passwordRequired: true });
+      expect(mocks.hasPublicationAccessCookie).toHaveBeenCalledWith("", {
+        token: "client-pub-token-123",
+        publicationId: "pub1",
+        snapshotVersion: 7,
+      });
+    });
+
+    it("does not expose recipient decisions or events without a verified recipient session", async () => {
+      const res = await GET(makeRequest({ cookie: "" }), params());
+
+      expect(res.status).toBe(200);
+      const json = (await res.json()) as { activities?: Array<{ type?: string }> };
+      expect(json.activities?.some((activity) => activity.type === "decision" || activity.type === "event")).toBe(false);
     });
 
     it("uses durable rate limiting before loading public activity", async () => {
