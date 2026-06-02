@@ -21,6 +21,7 @@ import type { Database, Json, Tables } from "@/lib/supabase/types";
 import { readEmailDeliveryConfig, sendEmail } from "@/lib/email/resend-client";
 import { normalizeEstimateTreeNodeKind } from "@/lib/estimates/tree-hierarchy";
 import { composeSharedLinkActivity, type ActivityViewModel, type SharedLinkActivityInput } from "@/lib/activity";
+import { createSharedLinkTargetLabelMap, readSharedLinkRecipientDisplayName, resolveSharedLinkTargetLabel } from "@/lib/publication/activity-helpers";
 
 type PublicationActionResult = {
   ok: boolean;
@@ -1147,7 +1148,7 @@ export async function loadSharedLinkActivity(
   const pubHash = hashPublicationToken(publicationToken, readPublicationTokenHashSecret());
   const { data: pub, error: pubErr } = await admin
     .from("project_publications")
-    .select("id, project_id, status, revoked_at, expires_at")
+    .select("id, project_id, status, revoked_at, expires_at, snapshot_json")
     .eq("token_hash", pubHash)
     .maybeSingle();
   if (pubErr) throw pubErr;
@@ -1164,7 +1165,7 @@ export async function loadSharedLinkActivity(
   const [commentsRes, responsesRes, eventsRes] = await Promise.all([
     admin
       .from("shared_link_comments")
-      .select("id, created_at, body, is_internal, author_email, estimate_id, row_id")
+      .select("id, created_at, body, is_internal, author_email, author_name, recipient_id, estimate_id, row_id")
       .eq("publication_id", pubId)
       .order("created_at", { ascending: false })
       .limit(limit + 1),
@@ -1182,25 +1183,48 @@ export async function loadSharedLinkActivity(
       .limit(limit + 1),
   ]);
 
+  const recipientIds = new Set<string>();
+  for (const comment of commentsRes.data ?? []) if (comment.recipient_id) recipientIds.add(comment.recipient_id);
+  for (const response of responsesRes.data ?? []) if (response.recipient_id) recipientIds.add(response.recipient_id);
+  for (const event of eventsRes.data ?? []) if (event.recipient_id) recipientIds.add(event.recipient_id);
+
+  const recipientDisplayNames = new Map<string, string>();
+  if (recipientIds.size) {
+    const { data: recipients, error: recipientsError } = await admin
+      .from("shared_link_recipients")
+      .select("id, display_name")
+      .eq("publication_id", pubId)
+      .in("id", Array.from(recipientIds))
+      .limit(500);
+    if (recipientsError) throw recipientsError;
+    for (const recipient of recipients ?? []) {
+      recipientDisplayNames.set(recipient.id, readSharedLinkRecipientDisplayName(recipient));
+    }
+  }
+
+  const targetLabels = createSharedLinkTargetLabelMap(pub.snapshot_json);
   const raw: SharedLinkActivityInput[] = [];
-  (commentsRes.data ?? []).forEach((c) =>
+  (commentsRes.data ?? []).forEach((c) => {
+    const recipientDisplayName = c.recipient_id ? recipientDisplayNames.get(c.recipient_id) : undefined;
     raw.push({
       id: c.id,
       type: "comment",
       created_at: c.created_at,
-      author: c.author_email,
+      author: c.is_internal ? (c.author_name?.trim() || "Project owner") : (recipientDisplayName ?? "Client"),
       body: c.body,
       is_internal: !!c.is_internal,
-    })
-  );
+      recipientDisplayName,
+      metadata: { targetLabel: resolveSharedLinkTargetLabel(targetLabels, c.row_id, c.estimate_id) ?? "the proposal" },
+    });
+  });
   (responsesRes.data ?? []).forEach((r) =>
     raw.push({
       id: r.id,
       type: "decision",
       created_at: r.created_at,
-      author: "recipient",
       decision: r.decision,
       body: r.note || undefined,
+      recipientDisplayName: recipientDisplayNames.get(r.recipient_id),
     })
   );
   (eventsRes.data ?? []).forEach((e) => {
@@ -1210,6 +1234,7 @@ export async function loadSharedLinkActivity(
       type: "event",
       created_at: e.created_at,
       metadata: { ...metadata, eventType: e.event_type },
+      recipientDisplayName: e.recipient_id ? recipientDisplayNames.get(e.recipient_id) : undefined,
     });
   });
 

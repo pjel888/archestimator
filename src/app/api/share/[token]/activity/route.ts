@@ -8,6 +8,7 @@ import {
   hashPublicationToken,
   readPublicationTokenHashSecret,
 } from "@/lib/publication/security";
+import { createSharedLinkTargetLabelMap, readSharedLinkRecipientDisplayName, resolveSharedLinkTargetLabel } from "@/lib/publication/activity-helpers";
 import { checkProjectPublicationActivityRateLimit, createPublicationServiceClient } from "@/lib/publication/public-repository";
 import type { Tables } from "@/lib/supabase/types";
 import type { NextRequest } from "next/server";
@@ -88,7 +89,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
   const { data: pub, error: pubErr } = await supabase
     .from("project_publications")
-    .select("id, status, revoked_at, expires_at")
+    .select("id, status, revoked_at, expires_at, snapshot_json")
     .eq("token_hash", pubHash)
     .maybeSingle();
 
@@ -119,39 +120,76 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   const [commentsRes, responsesRes, eventsRes] = await Promise.all([
     supabase
       .from("shared_link_comments")
-      .select("id, created_at, body, is_internal, author_email")
+      .select("id, created_at, body, is_internal, author_email, author_name, recipient_id, estimate_id, row_id")
       .eq("publication_id", pubId)
       .eq("is_internal", false)
       .order("created_at", { ascending: false })
       .limit(100),
     supabase
       .from("shared_link_responses")
-      .select("id, created_at, decision, note")
+      .select("id, created_at, decision, note, recipient_id")
       .eq("publication_id", pubId)
       .order("created_at", { ascending: false })
       .limit(50),
     supabase
       .from("shared_link_events")
-      .select("id, created_at, event_type, metadata_json")
+      .select("id, created_at, event_type, metadata_json, recipient_id")
       .eq("publication_id", pubId)
       .order("created_at", { ascending: false })
       .limit(50),
   ]);
 
+  const recipientIds = new Set<string>();
+  for (const comment of commentsRes.data ?? []) if (comment.recipient_id) recipientIds.add(comment.recipient_id);
+  for (const response of responsesRes.data ?? []) if (response.recipient_id) recipientIds.add(response.recipient_id);
+  for (const event of eventsRes.data ?? []) if (event.recipient_id) recipientIds.add(event.recipient_id);
+
+  const recipientDisplayNames = new Map<string, string>();
+  if (recipientIds.size) {
+    const { data: recipients, error: recipientsError } = await supabase
+      .from("shared_link_recipients")
+      .select("id, display_name")
+      .eq("publication_id", pubId)
+      .in("id", Array.from(recipientIds))
+      .limit(500);
+    if (recipientsError) throw recipientsError;
+    for (const recipient of recipients ?? []) {
+      recipientDisplayNames.set(recipient.id, readSharedLinkRecipientDisplayName(recipient));
+    }
+  }
+
+  const targetLabels = createSharedLinkTargetLabelMap(pub.snapshot_json);
   const rawActivities: SharedLinkActivityInput[] = [];
-  (commentsRes.data ?? []).forEach((c: Pick<Tables<"shared_link_comments">, "author_email" | "body" | "created_at" | "id">) => {
-    rawActivities.push({ id: c.id, type: "comment", created_at: c.created_at, author: c.author_email, body: c.body, is_internal: false });
+  (commentsRes.data ?? []).forEach((c: Pick<Tables<"shared_link_comments">, "author_email" | "author_name" | "body" | "created_at" | "estimate_id" | "id" | "recipient_id" | "row_id">) => {
+    rawActivities.push({
+      id: c.id,
+      type: "comment",
+      created_at: c.created_at,
+      author: recipientDisplayNames.get(c.recipient_id ?? "") ?? "Client",
+      body: c.body,
+      is_internal: false,
+      recipientDisplayName: recipientDisplayNames.get(c.recipient_id ?? ""),
+      metadata: { targetLabel: resolveSharedLinkTargetLabel(targetLabels, c.row_id, c.estimate_id) ?? "the proposal" },
+    });
   });
-  (responsesRes.data ?? []).forEach((r: Pick<Tables<"shared_link_responses">, "created_at" | "decision" | "id" | "note">) => {
-    rawActivities.push({ id: r.id, type: "decision", created_at: r.created_at, decision: r.decision, body: r.note || undefined });
+  (responsesRes.data ?? []).forEach((r: Pick<Tables<"shared_link_responses">, "created_at" | "decision" | "id" | "note" | "recipient_id">) => {
+    rawActivities.push({
+      id: r.id,
+      type: "decision",
+      created_at: r.created_at,
+      decision: r.decision,
+      body: r.note || undefined,
+      recipientDisplayName: recipientDisplayNames.get(r.recipient_id),
+    });
   });
-  (eventsRes.data ?? []).forEach((e: Pick<Tables<"shared_link_events">, "created_at" | "event_type" | "id" | "metadata_json">) => {
+  (eventsRes.data ?? []).forEach((e: Pick<Tables<"shared_link_events">, "created_at" | "event_type" | "id" | "metadata_json" | "recipient_id">) => {
     const metadata = e.metadata_json && typeof e.metadata_json === "object" && !Array.isArray(e.metadata_json) ? e.metadata_json : {};
     rawActivities.push({
       id: e.id,
       type: "event",
       created_at: e.created_at,
       metadata: { ...metadata, eventType: e.event_type },
+      recipientDisplayName: e.recipient_id ? recipientDisplayNames.get(e.recipient_id) : undefined,
     });
   });
 

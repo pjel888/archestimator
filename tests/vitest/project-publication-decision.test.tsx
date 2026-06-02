@@ -36,6 +36,7 @@ vi.mock("@/lib/publication/public-repository", async () => {
 // Modules under test (will fail to import or execute until P7 impl — intentionally red first)
 import { POST } from "@/app/api/share/[token]/decision/route";
 import SharePageDecision from "@/components/share/SharePageDecision";
+import { composeSharedLinkActivity } from "@/lib/activity";
 
 function params(token = "client-pub-token-123") {
   return { params: Promise.resolve({ token }) };
@@ -161,6 +162,20 @@ describe("P7 — Shared Link Decisions API & UI (red tests written FIRST before 
       expect(res.status).toBe(403);
       const json = await res.json();
       expect(json.error).toMatch(/not found|recipient/i);
+    });
+  });
+
+
+  describe("recipient-aware activity copy", () => {
+    it("renders safe recipient decision digest copy", () => {
+      const accepted = composeSharedLinkActivity({ id: "decision-a", type: "decision", created_at: "2026-06-02T00:00:00.000Z", recipientDisplayName: "Maria", decision: "accepted" }, { audience: "client", visibility: "public" });
+      const declined = composeSharedLinkActivity({ id: "decision-d", type: "decision", created_at: "2026-06-02T00:01:00.000Z", recipientDisplayName: "Maria", decision: "declined" }, { audience: "client", visibility: "public" });
+      const revision = composeSharedLinkActivity({ id: "decision-r", type: "decision", created_at: "2026-06-02T00:02:00.000Z", recipientDisplayName: "Maria", decision: "revision_requested" }, { audience: "client", visibility: "public" });
+
+      expect(accepted.title).toBe("Maria approved the proposal.");
+      expect(declined.title).toBe("Maria declined the proposal.");
+      expect(revision.title).toBe("Maria requested revisions.");
+      expect([accepted, declined, revision].map((activity) => activity.raw)).toEqual([undefined, undefined, undefined]);
     });
   });
 
