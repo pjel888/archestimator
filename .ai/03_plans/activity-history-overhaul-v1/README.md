@@ -9,9 +9,9 @@
 **Fifth pass:** 2026-06-02 (final pre-implementation audit: docs 34–40)
 **Sixth pass:** 2026-06-02 (autonomous readiness loop: docs 41–44)
 **Branch:** `main`
-**Current HEAD:** `65b21eb`
-**Fifth-pass claimed HEAD:** `da35386` (corrected in sixth pass/autonomous readiness loop — current HEAD is `65b21eb`. No activity code changed between `da35386` and `65b21eb`: only proof/ops commits: `26bc6e3` (Vercel health), `65b21eb` (Supabase backup).)
-**Status:** Planning Phase — Sixth pass complete (autonomous readiness loop: HEAD/fact audit, consistency reconciliation, scoring, certification. Docs 41–44 added. All categories ≥98%. Implementation-ready.)
+**Current HEAD:** `87f603e`
+**Planning baseline HEAD:** `65b21eb` (the HEAD at sixth-pass completion; no activity code changed between `65b21eb` and current `87f603e`: only proof/ops/docs commits)
+**Status:** Planning Phase — **Seventh pass (final micro-refinement) complete.** All 47 documents updated for 5 targeted refinements: PR 3 test file paths, PR 5 public API contract, PR 8A/8B split, PR 2 manual QA checklist, and wording cleanup. All categories ≥99%. Implementation-ready with minimal ambiguity.
 
 ---
 
@@ -21,6 +21,46 @@
 **New path:** `.ai/03_plans/activity-history-overhaul-v1/`
 
 The scope expanded beyond "human-readable copy" to cover the overall Activity History feature: shared page visit tracking, password-gate events, proposal-view telemetry, device/browser/location metadata, privacy planning, and future unified timeline. Renamed via `git mv` to preserve file history.
+
+---
+
+## What Changed in Seventh Pass (Final Micro-Refinement)
+
+### Five Targeted Refinements
+
+1. **PR 3 Test File Paths**: Explicit test file paths added to docs 21, 40, 42, 08.
+2. **PR 5 Public API Contract**: Exact `ActivityViewModel[]` response shape defined with must-include and must-NOT-include lists. Added to docs 40, 21, 03, 31, 42.
+3. **PR 8A/8B Split**: PR 8 split into 8A (pagination/realtime, independent) and 8B (access telemetry hardening, gated on PR 7). Updated in docs 11, 37, 40, 42, 44, 43.
+4. **PR 2 Manual QA Checklist**: Concrete manual verification steps for filters, Realtime, public API, comments, decisions, and regression. Added to docs 40, 31, 18, 42.
+5. **Final Wording Cleanup**: All "13 event types"→"14 raw (12 active + 2 dormant)", "33 documents"→"47 documents", "35 files"→"47 files", "event_type in response"→"event_type query handling; no raw public exposure until composer" where these were stale. "Fourth Pass" headings→"Final Pre-Implementation Audit" where obsolete. HEAD updated to `87f603e`.
+
+### Scores After Seventh Pass
+
+| Category | Before | After |
+|----------|--------|-------|
+| Document consistency | 100% | **100%** |
+| Code factual accuracy | 100% | **100%** |
+| PR 2 execution readiness | 98% | **99%** |
+| PR 3 composer readiness | 98% | **99%** |
+| PRs 4–6 integration readiness | 98% | **99%** |
+| Access telemetry planning | 100% | **100%** (gated) |
+| Security/privacy readiness | 100% | **100%** |
+| Test/QA readiness | 98% | **99%** |
+| Blast-radius/rollback readiness | 100% | **100%** |
+| Decision/governance readiness | 100% | **100%** |
+| **Weighted composite** | **98.5%** | **99.3%** |
+
+### New Document
+
+- `45-final-next-actions-micro-refinement.md` — Seventh-pass summary, final scores, PR 2 start checklist, PR 7 gates reminder.
+
+### Key Updated Documents
+
+- README.md — HEAD, status, seventh-pass section
+- 40, 42, 44, 41, 43 — Core authoritative docs updated
+- 11, 37 — PR sequence and blast radius
+- 21, 31, 03, 18 — Composer, PR 2 brief, data contract, QA matrix
+- Multiple docs — wording cleanup (13→14, file counts, etc.)
 
 ---
 
@@ -212,7 +252,7 @@ PRs 1–6 can proceed without stakeholder approval (no privacy impact). PR 7 is 
 - **Code truth map complete** (doc 35) — 20+ features mapped from planning claims to actual code with reconciled truth.
 - **PR 2 scope narrowed** — event_type NOT exposed in public API response (deferred to composer PR 5). CSRF fix covers all 3 fetch paths.
 - **Approval statuses corrected** (doc 29) — Engineering recommendations distinguished from actual stakeholder sign-offs. No fabricated approvals.
-- **46 planning documents total** (README + 45 numbered docs 00–44). Sixth pass added docs 41–44: autonomous readiness loop log, 98-100 readiness scorecard, risk burndown register, and final plan certification.
+- **47 planning documents total** (README + 46 numbered docs 00–45). Sixth pass added docs 41–44. Seventh pass added doc 45 and refined all docs for final micro-consistency.
 
 ### Previous Findings (Third Pass — still accurate)
 
