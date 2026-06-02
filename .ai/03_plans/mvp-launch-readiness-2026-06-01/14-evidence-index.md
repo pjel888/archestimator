@@ -21,7 +21,7 @@
 
 - Artifact: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/README.md`.
 - Environment: local repo evidence plus read-only Vercel/Supabase/DNS checks.
-- Anchors: local validation/build `b60f911`, latest read-only Vercel/Supabase provider proof `d78686f`, latest packet/report sync `d78686f`.
+- Anchors: local validation/build `b60f911`, latest read-only Vercel/Supabase provider proof `87f603e`, latest packet/report sync `87f603e`.
 - Result: **NO-GO** packet. The packet consolidates current proof rows as `partial-local`, `partial-blocked`, or `blocked`; no P0 external launch blocker is relabeled as passed.
 - Remaining blocked rows: Supabase backup/PITR, linked migrations/RLS/storage/RPC, hosted auth, Vercel env/custom-domain/rollback, Resend proof, spreadsheet-app open/recalc/print, linked project-specific unlink smoke, legal sign-off, monitored support/alerts, demo sign-off, hosted/manual E2E.
 - Launch meaning: this improves artifact organization and future proof collection only. It does not add hosted/provider/manual proof and does not change the **NO-GO** recommendation.
@@ -52,6 +52,15 @@
 - Env/custom domains: `vercel env ls --non-interactive` still returns no env vars; `www.archestimator.com/api/health`, redirected `archestimator.com/api/health`, and `archestimator.vercel.app/api/health` still return HTTP `404` on production deployment `dpl_FwfHexBsB1xSHDqHqFwHSYpCYTVH`.
 - Supabase: CLI `2.98.2` is linked to project `Archestimator` / `ebxxqidacheyapmmzavr`; `supabase migration list --linked` succeeds and still shows launch migrations `20260601182522`, `20260601184343`, `20260602005649`, `20260602083000`, and `20260602084500` absent remotely; `bun run launch:supabase-readiness` fails on the linked temp-role pooler `ECIRCUITBREAKER` / `SUPABASE_DB_PASSWORD` path.
 - Launch meaning: this refresh confirms the latest pushed `main` commit has a Ready protected preview, but it does not close Vercel env/public/custom-domain/rollback, hosted auth, linked Supabase migration/RLS/RPC/storage, Resend, spreadsheet-app, legal, support, or hosted/manual E2E gates.
+
+### Provider State Refresh at 87f603e
+
+- Artifact: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/provider-state-refresh-87f603e-2026-06-02.md`.
+- Vercel: latest `main` preview `archestimator-bssvp0rrd-philipjonlewis-projects.vercel.app`, deployment `dpl_GdDjZoaGocCpAVVEa3oaSm9nCody`, status `READY`.
+- Health: `vercel curl` returns app health JSON for the latest preview and branch alias `/api/health`; plain public preview and branch-alias health still return HTTP `401`.
+- Env/custom domains: `vercel env ls --non-interactive` still returns no env vars; custom-domain `/api/health` still returns HTTP `404` for `www` and `archestimator.vercel.app`, with apex redirecting `307` to `www`; custom domains still alias to `archestimator-3ser9ty2w-philipjonlewis-projects.vercel.app`.
+- Supabase: `supabase migration list --linked` still shows launch migrations `20260601182522`, `20260601184343`, `20260602005649`, `20260602083000`, and `20260602084500` absent remotely; the linked SQL parser exits `1` with `linkedSupabaseLaunchReady=false`.
+- Launch meaning: this refresh confirms current `HEAD` has a Ready protected preview, but it does not close Vercel env/public/custom-domain/rollback, hosted auth, linked Supabase migration/RLS/RPC/storage, Resend, spreadsheet-app, legal, support, or hosted/manual E2E gates.
 
 ### Vercel Env Readiness Helper
 
