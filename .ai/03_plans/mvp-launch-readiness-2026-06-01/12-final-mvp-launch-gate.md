@@ -9,8 +9,8 @@ This gate is now the closed beta launch gate. It is not a public paid-launch gat
 - Full local implementation baseline: `c5ca065` after demo seed row repair.
 - Final report baseline: `8084908` after canonical state/decision/roadmap truth sync.
 - Final report indexed in launch docs: `3e8d7a0`.
-- Current local validation refresh: `51e72e1`, `bun run validate` pass.
-- Current local app build refresh: `51e72e1`, `bun run build` pass.
+- Current local validation refresh: `bc1c715`, `bun run validate` pass.
+- Current local app build refresh: `bc1c715`, `bun run build` pass.
 - Latest app-runtime Vercel preview refresh: `638f681`, Ready preview deployment `dpl_8cpgQgEtrAgo6P5gX1fn3LwBJzdS` at `archestimator-4s6wzqt08-philipjonlewis-projects.vercel.app`; protected `/api/health` works through `vercel curl`, but Vercel env vars remain absent, public preview health returns HTTP 401, custom domains still point at old production deployment `dpl_FwfHexBsB1xSHDqHqFwHSYpCYTVH`, and rollback proof is missing.
 - Current linked Supabase readiness refresh: `08a58dd`, read-only SQL found linked migrations `20260601182522`, `20260601184343`, `20260602005649`, `20260602083000`, and `20260602084500` absent; `closed_beta_allowed_emails`, `beta_feedback_submissions`, `check_closed_beta_access`, and `unlink_estimate_row_item_from_library_with_history` absent; `component-images` still public; migration list and performance advisors hit temp-role pooler `ECIRCUITBREAKER`; security advisor WARN findings remain.
 - Resend guardrail refresh: `fd5d4b3` fails unconfigured production-like email sends closed with `EMAIL_NOT_CONFIGURED`; `61160ee` disables shared-link recipient entry/send/resend controls while server email readiness is false; local Teamspaces invite controls now disable when project invite delivery readiness is false.
@@ -23,7 +23,7 @@ This gate is now the closed beta launch gate. It is not a public paid-launch gat
 - `PLAYWRIGHT_PORT=3037 bun run test:e2e -- e2e/auth.spec.ts --project=chromium`: pass, 2 tests in 9.9s for local signed-out workshop redirect and login UI.
 - `ARCHESTIMATOR_E2E_LIBRARY_DEMO_SMOKE=1 ... PLAYWRIGHT_PORT=3038 bun run test:e2e e2e/workshop-library-demo-smoke.spec.ts --project=chromium`: pass, 2 tests in 14.9s for local component/template demo screenshots.
 - `ARCHESTIMATOR_E2E_TEMPLATE_INSERT_SMOKE=1 ARCHESTIMATOR_DEV_AUTH_BYPASS=1 ARCHESTIMATOR_DEV_AUTH_ADMIN_DB=1 ARCHESTIMATOR_TEMPLATE_INSERT_SMOKE_DIR=.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof PLAYWRIGHT_PORT=3039 bun run test:e2e e2e/workshop-template-insert-smoke.spec.ts --project=chromium`: pass, 1 test in 46.1s for local template insertion into a throwaway estimate, with node count `51 -> 56`, row count `0 -> 8`, one `template_inserted` event, screenshot/JSON artifacts, and zero fixture residue.
-- `bun run build`: historical baseline pass; current build refresh pass at `51e72e1`, Next.js 16.2.6 / Turbopack, 32 static pages.
+- `bun run build`: historical baseline pass; current build refresh pass at `bc1c715`, Next.js 16.2.6 / Turbopack, 32 static pages.
 
 ### Closed Beta No-Go
 
