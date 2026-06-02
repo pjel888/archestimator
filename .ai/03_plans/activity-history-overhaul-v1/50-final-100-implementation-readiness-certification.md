@@ -253,7 +253,7 @@ These must be completed before access telemetry can be enabled in production:
 
 ## Recommended Next Action
 
-1. **Merge docs (PR 1)** — All 63 files (README + 62 numbered docs 00–61) are internally consistent and certified.
+1. **Merge docs (PR 1)** — All 74 files (README + 70 numbered docs 00–69 + docs 70–72) are internally consistent and certified.
 2. **Begin PR 2** — Preflight correctness cleanup. See `40-final-implementation-handoff.md` and `31-pr2-preflight-implementation-brief.md`.
 3. **Continue through PR sequence** — PRs 3–6, then 7, 8A, 8B, 9.
 4. **Before PR 7 production enablement** — Complete all items in the Production Enablement Gate section above.

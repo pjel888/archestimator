@@ -4,7 +4,7 @@
 **Last updated:** 2026-06-02 (fifteenth pass — evidence-preparation hardening)
 **Activity-code audit baseline:** `65b21eb`
 **Latest activity-overhaul planning certification commit:** `d15b6a0`
-**Validated at:** 2026-06-02 fifteenth-pass evidence-preparation audit
+**Validated at:** 2026-06-02 sixteenth-pass Oracle-verified corrections
 **Live repo HEAD:** intentionally not hardcoded — run `git rev-parse HEAD`
 **Purpose:** Measures evidence preparation readiness (template completeness) separately from actual evidence completion (operational execution). This scorecard tracks documentation/template readiness, NOT production readiness.
 

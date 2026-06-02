@@ -12,7 +12,7 @@
 |------|-------|
 | Activity-code audit baseline | `65b21eb` |
 | Latest activity-overhaul planning certification commit | `d15b6a0` |
-| This document last validated | fifteenth-pass evidence-preparation audit (2026-06-02) |
+| This document last validated | sixteenth-pass Oracle-verified corrections (2026-06-02) |
 | Live repo HEAD | Intentionally not hardcoded — run `git rev-parse HEAD` |
 | Branch | `main` |
 | File count | 74 (README + 70 numbered docs 00–69 + docs 70–72) |
@@ -40,7 +40,7 @@
 | E-003 Password gate disclosure screenshot | ✅ YES | Ready for engineering action |
 | E-004 DPO designation artifact | ✅ YES | Ready for owner action |
 | E-005 NPCRS triage result | ✅ YES | Ready for owner action |
-| E-006 DPS inventory | ✅ YES | Drafted |
+| E-006 DPS inventory | ✅ YES | Ready for owner review |
 | E-007 DSR process document | ✅ YES | Ready for owner review |
 | E-008 Breach response document | ✅ YES | Ready for owner review |
 | E-009 Vendor DPA review evidence | ✅ YES | Ready for owner action |
