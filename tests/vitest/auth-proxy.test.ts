@@ -50,6 +50,34 @@ describe("auth proxy", () => {
     );
   });
 
+  it("fails closed to login before creating a Supabase client when hosted env is missing", async () => {
+    vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", "");
+    vi.stubEnv("NEXT_PUBLIC_SUPABASE_ANON_KEY", "");
+    mockUser({ id: "user-1" });
+    const { proxy } = await import("@/proxy");
+
+    const response = await proxy(request("http://localhost:3000/workshop?tab=projects"));
+
+    expect(supabaseSsrMocks.createServerClient).not.toHaveBeenCalled();
+    expect(response.status).toBe(307);
+    expect(response.headers.get("location")).toBe(
+      "http://localhost:3000/login?next=%2Fworkshop%3Ftab%3Dprojects",
+    );
+  });
+
+  it("keeps the login route renderable instead of creating a Supabase client when hosted env is missing", async () => {
+    vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", "");
+    vi.stubEnv("NEXT_PUBLIC_SUPABASE_ANON_KEY", "");
+    mockUser({ id: "user-1" });
+    const { proxy } = await import("@/proxy");
+
+    const response = await proxy(request("http://localhost:3000/login"));
+
+    expect(supabaseSsrMocks.createServerClient).not.toHaveBeenCalled();
+    expect(response.status).toBe(200);
+    expect(response.headers.get(`x-middleware-request-${AUTH_REQUEST_PATH_HEADER}`)).toBe("/login");
+  });
+
   it("redirects signed-in login requests away from the canonical auth entry", async () => {
     mockUser({ id: "user-1" });
     const { proxy } = await import("@/proxy");

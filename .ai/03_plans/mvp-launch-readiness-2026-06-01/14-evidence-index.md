@@ -154,6 +154,15 @@
 - Reason: the prior clean preview deploy attempt showed non-runtime folders in the upload path, with `archestimator_pitch deck` around 98 MiB and `.ai` around 25 MiB in the detached worktree.
 - Launch meaning: this removes a known CLI-upload obstacle for future preview retries, but hosted proof remains blocked until a fresh deployment is actually created and checked.
 
+### Hosted Auth Proxy Env Fail-Closed Fix at 8e11d36
+
+- Artifact: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/hosted-auth-proxy-env-fail-closed-fix-8e11d36-2026-06-02.md`.
+- Hosted finding: preview `archestimator-r92lz7qug-philipjonlewis-projects.vercel.app` / deployment `dpl_8kYE4UfAiGCwSXoWp7648buPX4YL` was `READY` and `/api/health` passed through `vercel curl`, but both `HEAD /workshop` and `GET /workshop` returned HTTP `500`.
+- Root cause: `src/proxy.ts` constructed the Supabase SSR client with non-null asserted env values before it could redirect signed-out protected routes.
+- Local fix: proxy now checks for required Supabase env before calling `createServerClient()`; missing env redirects protected `/workshop` routes to `/login?next=...` and leaves `/login` renderable without constructing the Supabase client.
+- Verification: GitNexus impact for `Function:src/proxy.ts:proxy` reported low risk / zero upstream affected processes; focused auth proxy/session tests passed 2 files / 23 tests; `bun run type-check` and `bun run build` passed.
+- Launch meaning: this is local fail-closed proof only until committed, pushed, deployed, and rechecked on Vercel. It does not prove hosted allowed/denied/revoked/expired sessions, callback URLs, linked allowlist data, Vercel env values, custom-domain health, or rollback.
+
 ### Hosted Export Route Auth-Blocked Probe at 231c27e
 
 - Artifact: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/hosted-export-route-auth-blocked-231c27e-2026-06-02.md`.
