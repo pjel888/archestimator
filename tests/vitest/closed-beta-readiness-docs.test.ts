@@ -586,10 +586,12 @@ describe("closed beta readiness docs", () => {
     expect(manualProofMatrix).toContain("records local template insertion into a throwaway estimate with zero residue");
     expect(manualProofMatrix).toContain("support-feedback-local-surface-2026-06-02.md");
     expect(manualProofMatrix).toContain("support-email-dns-readiness-2026-06-02.md");
+    expect(manualProofMatrix).toContain("support-email-dns-readiness-refresh-ec31121-2026-06-02.json");
     expect(manualProofMatrix).toContain("support-monitoring-readiness-c9c1141-2026-06-02.json");
     expect(manualProofMatrix).toContain("beta-feedback-review-queue-local-2026-06-02.md");
     expect(manualProofMatrix).toContain("platform-admin `/workshop/settings/feedback` review/status queue coverage");
     expect(manualProofMatrix).toContain("MX/SPF DNS evidence and no DMARC answer");
+    expect(manualProofMatrix).toContain("latest refresh still has five `eforward*.registrar-servers.com` MX hosts");
     expect(manualProofMatrix).toContain("workshop `Send beta feedback`, terms, and privacy point to `support@archestimator.com`");
     expect(manualProofMatrix).toContain("Support inbox/table proof and alert/uptime owner note");
     expect(manualProofMatrix).toContain("monitored inbox/table ownership proof, alert ownership, and incident escalation remain missing");
@@ -702,6 +704,9 @@ describe("closed beta readiness docs", () => {
     expect(consolidatedManualProofPacket).toContain("Current manual E2E smoke | partial-local");
     expect(consolidatedManualProofPacket).toContain("full-local-e2e-refresh-bb9006d-2026-06-02.md");
     expect(consolidatedManualProofPacket).toContain("full local E2E command now passes 9 ungated checks with 24 env-gated/live-provider specs skipped");
+    expect(consolidatedManualProofPacket).toContain("support-email-dns-readiness-refresh-ec31121-2026-06-02.json");
+    expect(consolidatedManualProofPacket).toContain("A record `216.198.79.1`");
+    expect(consolidatedManualProofPacket).toContain("`dnsReady: false`");
     expect(consolidatedManualProofPacket).toContain("support-monitoring-readiness-c9c1141-2026-06-02.json");
     expect(consolidatedManualProofPacket).toContain("`supportMonitoringReady: false`");
     expect(consolidatedManualProofPacket).toContain("Do not change the launch decision until `47-goal-completion-audit.md` is rerun");
@@ -723,6 +728,7 @@ describe("closed beta readiness docs", () => {
     expect(artifactFilenames).toContain("current-head-local-validation-build-353dd48-2026-06-02.md");
     expect(artifactFilenames).toContain("full-local-e2e-refresh-bb9006d-2026-06-02.md");
     expect(artifactFilenames).toContain("legal-owner-readiness-ede0f32-2026-06-02.json");
+    expect(artifactFilenames).toContain("support-email-dns-readiness-refresh-ec31121-2026-06-02.json");
     expect(artifactFilenames).toContain("support-monitoring-readiness-c9c1141-2026-06-02.json");
     expect(artifactFilenames).toContain("lewis-residence-demo-proposal-2026-06-02.xlsx");
     expect(artifactFilenames.length).toBeGreaterThanOrEqual(30);
@@ -812,7 +818,9 @@ describe("closed beta readiness docs", () => {
     expect(goalCompletionAudit).toContain("Profile, Workspace, Beta users, and Beta feedback cards from `/workshop/settings`");
     expect(goalCompletionAudit).toContain("admin tool discovery is local source/browser proof only");
     expect(goalCompletionAudit).toContain("Support email DNS readiness evidence");
+    expect(goalCompletionAudit).toContain("support-email-dns-readiness-refresh-ec31121-2026-06-02.json");
     expect(goalCompletionAudit).toContain("has registrar email-forwarding MX records and SPF TXT");
+    expect(goalCompletionAudit).toContain("`hasDmarc: false` / `dnsReady: false`");
     expect(goalCompletionAudit).toContain("monitored inbox/table review and alert owner proof remain missing");
     expect(goalCompletionAudit).toContain("DNS proof shows MX/SPF mail-routing records");
     expect(goalCompletionAudit).toContain("Support monitoring readiness helper");
@@ -919,6 +927,9 @@ describe("closed beta readiness docs", () => {
     expect(currentState).toContain("Support Email DNS Evidence");
     expect(currentState).toContain("five registrar email-forwarding MX records");
     expect(currentState).toContain("no `_dmarc.archestimator.com` TXT answer");
+    expect(currentState).toContain("support-email-dns-readiness-refresh-ec31121-2026-06-02.json");
+    expect(currentState).toContain("A record `216.198.79.1`");
+    expect(currentState).toContain("`dnsReady: false`");
     expect(currentState).toContain("Support Monitoring Readiness Helper (2026-06-02)");
     expect(currentState).toContain("support-monitoring-readiness-c9c1141-2026-06-02.json");
     expect(currentState).toContain("`supportMonitoringReady: false`");
@@ -961,6 +972,9 @@ describe("closed beta readiness docs", () => {
     expect(knownIssues).toContain("hosted admin smoke and linked migrations remain missing");
     expect(knownIssues).toContain("Linked feedback/review migration apply, hosted feedback/admin smoke, monitored inbox/table ownership, and alert ownership proof remain missing");
     expect(knownIssues).toContain("Support email DNS evidence on 2026-06-02 proves `archestimator.com` has registrar email-forwarding MX records");
+    expect(knownIssues).toContain("support-email-dns-readiness-refresh-ec31121-2026-06-02.json");
+    expect(knownIssues).toContain("A record `216.198.79.1`");
+    expect(knownIssues).toContain("`dnsReady: false`");
     expect(knownIssues).toContain("This still does not prove `support@archestimator.com` is monitored");
     expect(knownIssues).toContain("Support monitoring readiness helper evidence on 2026-06-02 is negative/blocked");
     expect(knownIssues).toContain("`supportMonitoringReady: false`");

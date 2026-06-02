@@ -212,7 +212,7 @@
 - Package command: `bun run launch:check-support-dns`.
 - Scope: public DNS lookup for support email readiness, including MX hosts, apex SPF TXT records, `_dmarc` TXT records, and A records.
 - Guardrail evidence: `bunx vitest run tests/vitest/support-email-dns-script.test.ts --maxWorkers=1` passed 4 tests covering domain normalization, split TXT flattening, positive MX/SPF/DMARC readiness, and missing-DMARC failure.
-- Current DNS refresh: `OUTPUT_FILE=.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/support-email-dns-readiness-refresh-792076e-2026-06-02.json bun run launch:check-support-dns` wrote sanitized JSON and exited `1` because MX/SPF/A records exist but DMARC is missing.
+- Current DNS refreshes: `OUTPUT_FILE=.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/support-email-dns-readiness-refresh-792076e-2026-06-02.json bun run launch:check-support-dns` and later `OUTPUT_FILE=.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/support-email-dns-readiness-refresh-ec31121-2026-06-02.json bun run launch:check-support-dns` wrote sanitized JSON and exited `1` because MX/SPF/A records exist but DMARC is missing.
 - Launch meaning: this makes DNS proof collection repeatable and sanitized, but DNS readiness is not support monitoring proof. Closed beta remains blocked until inbox/table monitoring, alert owner, and incident escalation proof are captured.
 
 ### Support Monitoring Readiness Helper
@@ -799,10 +799,10 @@
 ### Support Email DNS Readiness Evidence
 
 - Artifact note: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/support-email-dns-readiness-2026-06-02.md`.
-- Helper refresh artifact: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/support-email-dns-readiness-refresh-792076e-2026-06-02.json`.
+- Helper refresh artifacts: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/support-email-dns-readiness-refresh-792076e-2026-06-02.json` and `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/support-email-dns-readiness-refresh-ec31121-2026-06-02.json`.
 - DNS proof: `dig +noall +answer MX archestimator.com` returned five `eforward*.registrar-servers.com` MX records.
 - SPF proof: `dig +noall +answer TXT archestimator.com` returned `v=spf1 include:spf.efwd.registrar-servers.com ~all`.
-- DMARC proof: `dig +noall +answer TXT _dmarc.archestimator.com` returned no answer; the repeatable helper also reports `hasDmarc: false` and `dnsReady: false`.
+- DMARC proof: `dig +noall +answer TXT _dmarc.archestimator.com` returned no answer; both repeatable helper refreshes also report `hasDmarc: false` and `dnsReady: false`. The `ec31121` refresh still found five `eforward*.registrar-servers.com` MX hosts, SPF `v=spf1 include:spf.efwd.registrar-servers.com ~all`, A record `216.198.79.1`, and no DMARC record.
 - Launch meaning: this proves DNS mail-routing evidence for the support domain, not inbox monitoring, form delivery, alert ownership, or incident escalation. Support/monitoring remains a **NO-GO** row.
 
 ### Beta Operations Runbook Readiness Evidence
