@@ -2,7 +2,10 @@
 
 import { useMemo, useRef, useState } from "react";
 import { useNavigationRouter } from "@/hooks/use-navigation-router";
+import { FileText, Plus } from "@phosphor-icons/react/dist/ssr";
 
+import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
 import { HeaderIconToolbar } from "@/components/ui/header-icon-toolbar";
 import { SearchInput } from "@/components/ui/search-input";
 import { ProjectEstimatesTable, type ProjectEstimateTableRow } from "@/components/workshop/ProjectEstimatesTable";
@@ -32,6 +35,8 @@ export function ProjectEstimatesClient({ estimates, projectId, projectName }: Pr
   const [createError, setCreateError] = useState<string | null>(null);
   const filteredEstimates = useMemo(() => filterEstimateSheets(estimates, searchQuery), [estimates, searchQuery]);
   const emptyMessage = searchQuery.trim() ? "No matching estimate sheets" : "No estimate sheets yet";
+  const hasEstimates = estimates.length > 0;
+  const hasFilteredEstimates = filteredEstimates.length > 0;
 
   function handleCreateEstimateSheet() {
     if (createInFlightRef.current) return;
@@ -80,11 +85,39 @@ export function ProjectEstimatesClient({ estimates, projectId, projectName }: Pr
       ) : null}
 
       <div className="min-h-0 flex-1 bg-white">
-        <ProjectEstimatesTable
-          projectId={projectId}
-          estimates={filteredEstimates}
-          emptyMessage={emptyMessage}
-        />
+        {hasFilteredEstimates ? (
+          <ProjectEstimatesTable
+            projectId={projectId}
+            estimates={filteredEstimates}
+            emptyMessage={emptyMessage}
+          />
+        ) : (
+          <EmptyState
+            icon={<FileText size={18} weight="regular" aria-hidden="true" />}
+            title={hasEstimates ? "No matching estimate sheets" : "Create the first estimate sheet"}
+            description={
+              hasEstimates
+                ? "Try a sheet code, estimate name, or clear search to return to all sheets."
+                : "Start an estimate sheet before adding groups, inserting components, or exporting a bid workbook."
+            }
+            action={
+              hasEstimates ? null : (
+                <Button
+                  type="button"
+                  variant="primary"
+                  size="sm"
+                  onClick={handleCreateEstimateSheet}
+                  disabled={isCreating}
+                  aria-label={isCreating ? "Creating first estimate sheet" : "Create first estimate sheet"}
+                >
+                  <Plus size={12} weight="regular" aria-hidden="true" />
+                  {isCreating ? "Creating" : "Create estimate"}
+                </Button>
+              )
+            }
+            className="h-full border-0 bg-white"
+          />
+        )}
       </div>
     </section>
   );

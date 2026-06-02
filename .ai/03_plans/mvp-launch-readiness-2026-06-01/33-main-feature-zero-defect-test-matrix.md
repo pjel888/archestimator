@@ -32,7 +32,7 @@ Launch state remains **NO-GO** until hosted auth/RLS/provider, manual smoke, bac
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | Auth/onboarding | Login -> callback -> workshop -> first project | bad callback, no workspace, expired magic link | auth callback/proxy/magic link/E2E | new/returning/expired/invited | hosted auth smoke | Product/Eng | auth fails |
 | Project creation/list/detail | Create/list/open project | RLS denial false positive/negative, validation failure | project action/DOM/RLS | create/open/delete if visible | staging/prod project smoke | Eng | cannot create/open |
-| Estimate sheet create/open/duplicate | Create/open/duplicate estimate | wrong project, stale cache, duplicate missing rows | estimate action/DOM | create/open/duplicate | core smoke | Eng/QA | estimate inaccessible |
+| Estimate sheet create/open/duplicate | Create/open/duplicate estimate | wrong project, stale cache, duplicate missing rows | estimate action/DOM; local estimate-list empty/create/search states covered in `project-estimates-client-create.test.tsx` | create/open/duplicate | core smoke | Eng/QA | estimate inaccessible |
 | Component library browse/create/insert | Browse/search/create/insert | missing seed, wrong source ID, insert fails | library UI/actions | search/create/insert | demo smoke | Product/Eng | insert fails |
 | Template browse/preview/insert | Browse/preview/insert | fallback masks empty, wrong insertion target | template UI/actions | preview/insert into group | demo smoke | Product/Eng | template insert fails |
 | Estimate row edit/delete/replace | Edit/delete/replace row | lost history, revision conflict, wrong totals | row mutation tests | edit/delete/replace and Activity | core smoke | Eng/QA | data corruption |
