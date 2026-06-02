@@ -19,7 +19,7 @@ export default async function PrivacyPage() {
               Archestimator is being tested with invited beta users. This notice summarizes the data used to operate the beta and support testers.
             </p>
             <p>
-              Philip should review this copy with counsel before inviting external testers or publishing final production privacy terms.
+              This closed-beta privacy notice is limited to invited review use and may be updated before any public or paid launch.
             </p>
             <section>
               <h2 className="text-[11px] font-medium leading-4 text-[#111111]">Data collected</h2>
@@ -51,6 +51,9 @@ export default async function PrivacyPage() {
                 To request deletion of beta account or workspace data, contact Philip at <span className="font-medium">support@archestimator.com</span> with the Google email used for beta access.
               </p>
             </section>
+            <p className="border-t border-[#d9d8d4] pt-3 text-[9px] leading-4 text-[#5f615f]">
+              Last updated for closed beta review: June 2, 2026.
+            </p>
           </div>
         </div>
       </section>

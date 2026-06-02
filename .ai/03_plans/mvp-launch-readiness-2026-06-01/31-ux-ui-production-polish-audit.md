@@ -39,7 +39,7 @@ Design-system source: `DESIGN.md`. Launch UI must be compact, work-focused, clea
 | Settings pages | `src/app/workshop/settings/*` | Local support/legal hub covered | Hosted screenshot, monitored support, and legal sign-off still needed. | P1/P0 | `LEGAL-001`, `OBS-001` | Support, legal, and data request paths are reachable from Settings. | Local source-contract pass; screenshot still required. |
 | Share page | `src/app/share/*` | Exists | Security/email proof before visible use. | P0 | `SEC-001` | View-only, no leaks. | Share QA. |
 | Invite page | `src/app/invite/*` | Exists | Env-gated; email/auth proof needed. | P0 | `INFRA-002` | Expired/revoked/wrong-account clear. | Invite QA. |
-| Legal pages | `terms`, `privacy` | Placeholder | Pending-review blocks launch. | P0 | `LEGAL-001` | Accurate reviewed copy. | Route screenshot. |
+| Legal pages | `terms`, `privacy` | Local beta-limited copy covered | Owner/counsel sign-off and route screenshot still block launch. | P0 | `LEGAL-001` | User-facing closed-beta copy has no owner-instruction placeholders and keeps launch limits explicit. | Local source-contract pass; legal sign-off and screenshot still required. |
 | Mobile/responsive | all public/workshop | Not proven in this pass | Need no overlap/text overflow. | P1/P0 for demo | `QA-002` | Key flows usable at mobile/tablet/desktop. | Browser screenshots. |
 | Keyboard/screen reader | forms, dialogs, buttons | Partial | Role/name/focus proof missing. | P1 | `QA-002` | Named controls; focus order works. | Keyboard pass. |
 
