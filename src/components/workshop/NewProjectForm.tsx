@@ -33,10 +33,13 @@ type NewProjectFormProps = {
 export function NewProjectForm({ onSuccess }: NewProjectFormProps) {
   const router = useNavigationRouter();
   const imageInputId = useId();
+  const statusId = useId();
   const [projectCode, setProjectCode] = useState(generateProjectCode);
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState("");
   const [status, setStatus] = useState<CreateProjectStatus>({ state: "idle" });
+  const isProjectNameInvalid =
+    status.state === "error" && status.field === "projectName";
   const isSubmitting =
     status.state === "creating" ||
     status.state === "uploading" ||
@@ -79,8 +82,20 @@ export function NewProjectForm({ onSuccess }: NewProjectFormProps) {
 
     let uploadedImage: ProjectImageDraft | null = null;
     try {
-      setStatus({ state: "creating", message: "Creating project..." });
       const formData = new FormData(event.currentTarget);
+      const projectName = String(formData.get("name") ?? "").trim();
+      if (!projectName) {
+        setStatus({
+          state: "error",
+          field: "projectName",
+          message: "Add a project name before creating this project.",
+        });
+        const nameInput = event.currentTarget.elements.namedItem("name");
+        if (nameInput instanceof HTMLInputElement) nameInput.focus();
+        return;
+      }
+
+      setStatus({ state: "creating", message: "Creating project..." });
       const project = await createProjectRecord(formData);
 
       if (selectedImage) {
@@ -123,6 +138,7 @@ export function NewProjectForm({ onSuccess }: NewProjectFormProps) {
   return (
     <form
       onSubmit={handleSubmit}
+      noValidate
       className="grid min-h-[560px] grid-rows-[auto_1fr]"
     >
       <CreateProjectHeader />
@@ -140,7 +156,13 @@ export function NewProjectForm({ onSuccess }: NewProjectFormProps) {
         <div className="flex min-h-0 flex-col bg-white">
           <div className="flex flex-1 flex-col gap-2 p-2">
             <div className="grid gap-2 md:grid-cols-2">
-              <ProjectFields />
+              <ProjectFields
+                isProjectNameInvalid={isProjectNameInvalid}
+                projectNameErrorId={statusId}
+                onProjectNameChange={() => {
+                  if (isProjectNameInvalid) setStatus({ state: "idle" });
+                }}
+              />
             </div>
             <ProjectCodeField
               isSubmitting={isSubmitting}
@@ -149,7 +171,11 @@ export function NewProjectForm({ onSuccess }: NewProjectFormProps) {
               onGenerate={() => setProjectCode(generateProjectCode())}
             />
           </div>
-          <CreateProjectFooter isSubmitting={isSubmitting} status={status} />
+          <CreateProjectFooter
+            isSubmitting={isSubmitting}
+            status={status}
+            statusId={statusId}
+          />
         </div>
       </div>
     </form>

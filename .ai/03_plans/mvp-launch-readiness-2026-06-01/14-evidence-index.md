@@ -2,6 +2,13 @@
 
 ## Fourth-Pass Closed Beta Evidence - 2026-06-02
 
+### Local Project Create Modal Validation Slice
+
+- Implementation commits: `779f806` baseline plus follow-on local create-modal validation slice.
+- Scope: `NewProjectForm` now stops empty or whitespace-only project names locally before calling project creation, focuses and marks the Project name field invalid, announces a field-scoped error, and clears the scoped error once the user types again.
+- Guardrail evidence: `bunx vitest run tests/vitest/new-project-form-validation.test.tsx tests/vitest/project-creation-ui.test.ts --maxWorkers=1` passed 2 files / 12 tests.
+- Launch meaning: this closes the local validation/error-copy gap for the create-project modal only. It does not prove hosted create/open/delete behavior, RLS denial handling, Supabase availability, or manual production smoke; those gates remain **NO-GO**.
+
 ### Final Codex Implementation Report Evidence
 
 - Final report artifact: `final-codex-implementation-report.md`.
