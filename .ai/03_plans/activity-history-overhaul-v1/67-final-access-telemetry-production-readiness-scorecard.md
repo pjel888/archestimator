@@ -100,7 +100,7 @@ Note: All 16 evidence templates verified at 100% preparation readiness. E-006 (D
 | E-003 — Password gate disclosure screenshot | G-03 | Ready for engineering action | 0% |
 | E-004 — DPO designation artifact | G-04 | Ready for owner action | 0% |
 | E-005 — NPCRS triage result | G-05 | Ready for owner action | 0% |
-| E-006 — DPS inventory | G-06 | Drafted | 0% |
+| E-006 — DPS inventory | G-06 | Ready for owner review | 0% |
 | E-007 — DSR process document | G-07 | Ready for owner review | 0% |
 | E-008 — Breach response document | G-08 | Ready for owner review | 0% |
 | E-009 — Vendor DPA review evidence | G-09 | Ready for owner action | 0% |
