@@ -89,6 +89,7 @@ type QueryResultMock = {
   order: ReturnType<typeof vi.fn>;
   limit: ReturnType<typeof vi.fn>;
   maybeSingle: ReturnType<typeof vi.fn>;
+  in: ReturnType<typeof vi.fn>;
 };
 
 function createQueryResult(data: unknown, error: Error | null = null) {
@@ -96,6 +97,7 @@ function createQueryResult(data: unknown, error: Error | null = null) {
   query.select = vi.fn(() => query);
   query.eq = vi.fn(() => query);
   query.order = vi.fn(() => query);
+  query.in = vi.fn(() => query);
   query.limit = vi.fn(async () => ({ data, error }));
   query.maybeSingle = vi.fn(async () => ({ data, error }));
   return query;
@@ -110,6 +112,16 @@ function createActivityRouteSupabaseMock() {
           status: "published",
           revoked_at: null,
           expires_at: null,
+          snapshot_json: {
+            estimates: [
+              {
+                id: "est-1",
+                name: "Main Estimate",
+                rows: [{ id: "row-1", material: "Hardwood Oak Flooring", nodeId: "node-1" }],
+                nodes: [{ id: "node-1", name: "Living Area" }],
+              },
+            ],
+          },
         });
       }
       if (table === "shared_link_comments") {
@@ -120,6 +132,9 @@ function createActivityRouteSupabaseMock() {
             body: "Looks good",
             is_internal: false,
             author_email: "recipient@example.com",
+            recipient_id: "recipient-1",
+            estimate_id: "est-1",
+            row_id: "row-1",
           },
         ]);
       }
@@ -130,6 +145,7 @@ function createActivityRouteSupabaseMock() {
             created_at: "2026-05-28T11:00:00Z",
             decision: "accepted",
             note: null,
+            recipient_id: "recipient-1",
           },
         ]);
       }
@@ -140,8 +156,12 @@ function createActivityRouteSupabaseMock() {
             created_at: "2026-05-28T12:00:00Z",
             event_type: "open",
             metadata_json: {},
+            recipient_id: "recipient-1",
           },
         ]);
+      }
+      if (table === "shared_link_recipients") {
+        return createQueryResult([{ id: "recipient-1", display_name: "Maria" }]);
       }
       return createQueryResult([]);
     }),
@@ -161,6 +181,16 @@ function createPublicationActionsSupabaseMock() {
           status: "published",
           revoked_at: null,
           expires_at: null,
+          snapshot_json: {
+            estimates: [
+              {
+                id: "est-1",
+                name: "Main Estimate",
+                rows: [{ id: "row-1", material: "Hardwood Oak Flooring", nodeId: "node-1" }],
+                nodes: [{ id: "node-1", name: "Living Area" }],
+              },
+            ],
+          },
         });
       }
       if (table === "projects") {
@@ -190,8 +220,10 @@ function createPublicationActionsSupabaseMock() {
             body: "Looks good",
             is_internal: false,
             author_email: "recipient@example.com",
-            estimate_id: null,
-            row_id: null,
+            author_name: null,
+            recipient_id: "recipient-1",
+            estimate_id: "est-1",
+            row_id: "row-1",
           },
           {
             id: "c2",
@@ -199,8 +231,10 @@ function createPublicationActionsSupabaseMock() {
             body: "Internal note",
             is_internal: true,
             author_email: "owner@example.com",
-            estimate_id: null,
-            row_id: null,
+            author_name: "Philip Lewis",
+            recipient_id: null,
+            estimate_id: "est-1",
+            row_id: "row-1",
           },
         ]);
       }
@@ -225,6 +259,9 @@ function createPublicationActionsSupabaseMock() {
             recipient_id: "recipient-1",
           },
         ]);
+      }
+      if (table === "shared_link_recipients") {
+        return createQueryResult([{ id: "recipient-1", display_name: "Maria" }]);
       }
       return createQueryResult([]);
     }),
@@ -375,7 +412,9 @@ describe("P8 — Shared Link Activity Feed & Notifications (red tests written FI
       expect(serialized).not.toContain("accepted");
       expect(serialized).not.toContain("revision_requested");
       expect(serialized).not.toMatch(/[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}/i);
-      expect(json.activities.some((activity: { title?: string }) => activity.title?.includes("approved the proposal"))).toBe(true);
+      expect(json.activities.some((activity: { title?: string }) => activity.title === "Maria approved the proposal.")).toBe(true);
+      expect(json.activities.some((activity: { title?: string }) => activity.title === "Maria commented on Living Area.")).toBe(true);
+      expect(serialized).not.toContain("recipient@example.com");
       expect(json.activities.every((activity: { title?: string }) => activity.title && !activity.title.includes("EVENT"))).toBe(true);
     });
 
@@ -393,7 +432,12 @@ describe("P8 — Shared Link Activity Feed & Notifications (red tests written FI
       const result = await loadSharedLinkActivity("client-pub-token-123");
       expect(result).toBeDefined();
       expect(Array.isArray(result?.activities)).toBe(true);
-      // Red until impl: expects joined shape with author, type, created_at, optional is_internal/body/decision
+      const titles = result.activities.map((activity) => activity.title);
+      expect(titles).toContain("Maria approved the proposal.");
+      expect(titles).toContain("Maria commented on Living Area.");
+      expect(titles).toContain("Philip Lewis added an internal note.");
+      expect(result.activities.some((activity) => activity.badges?.includes("Internal"))).toBe(true);
+      expect(JSON.stringify(result.activities)).not.toContain("recipient@example.com");
     });
 
     it("supports pagination cursor and filters for manager modal", async () => {

@@ -37,6 +37,7 @@ vi.mock("@/lib/publication/public-repository", async () => {
 // The modules under test (will fail import / behavior until P6 impl — red first)
 import { POST } from "@/app/api/share/[token]/comment/route";
 import SharePageComments from "@/components/share/SharePageComments";
+import { composeSharedLinkActivity } from "@/lib/activity";
 
 function params(token = "client-pub-token-123") {
   return { params: Promise.resolve({ token }) };
@@ -142,6 +143,27 @@ describe("P6 — Shared Link Comments (red tests written FIRST before any impl)"
       const res = await POST(req, params());
       // red: will fail until route does the RPC call via service client and returns success
       expect([201, 400, 503]).toContain(res.status);
+    });
+  });
+
+
+  describe("recipient-aware activity copy", () => {
+    it("renders safe recipient comment copy with location context", () => {
+      const activity = composeSharedLinkActivity(
+        {
+          id: "comment-copy",
+          type: "comment",
+          created_at: "2026-06-02T00:00:00.000Z",
+          recipientDisplayName: "Maria",
+          body: "Looks good",
+          metadata: { targetLabel: "Living Area" },
+        },
+        { audience: "client", visibility: "public" },
+      );
+
+      expect(activity.title).toBe("Maria commented on Living Area.");
+      expect(activity.title).not.toContain("recipient@example.com");
+      expect(activity.raw).toBeUndefined();
     });
   });
 
