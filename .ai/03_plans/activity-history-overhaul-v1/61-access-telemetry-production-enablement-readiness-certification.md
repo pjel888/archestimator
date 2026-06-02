@@ -139,7 +139,7 @@ All items must be completed before `ACCESS_TELEMETRY_ENABLED` is set to `true` i
 
 ## Recommended Next Action
 
-1. **Merge docs (PR 1)** — All 72 files (README + 70 numbered docs 00–69 + doc 70) are internally consistent after fourteenth-pass evidence preparation.
+1. **Merge docs (PR 1)** — All 74 files (README + 70 numbered docs 00–69 + docs 70–72) are internally consistent after sixteenth-pass Oracle-verified corrections.
 2. **Begin PR 2** — Preflight correctness cleanup. See `40-final-implementation-handoff.md`.
 3. **Continue through PR sequence** — PRs 3–6, then PR 7.
 4. **Before PR 7 production enablement** — Complete the checklist in doc 51.

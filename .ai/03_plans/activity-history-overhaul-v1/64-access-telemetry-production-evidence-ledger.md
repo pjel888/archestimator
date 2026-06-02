@@ -3,7 +3,8 @@
 **Date:** 2026-06-02
 **Last updated:** 2026-06-02 (evidence preparation pass — templates created)
 **Purpose:** Central evidence tracker for access telemetry production enablement. Every item defaults to "Missing" until actual evidence exists. Each evidence item includes the exact artifact required, owner, storage location, completion criteria, verification method, and whether it blocks production.
-**Status:** Evidence templates prepared (see `production-evidence/`). No operational evidence completed yet. Evidence preparation: 98–100%. Actual evidence completion: 0%.
+**Last updated:** 2026-06-02 (sixteenth pass — cross-doc consistency)
+**Status:** Evidence templates prepared (see `production-evidence/`). No operational evidence completed yet. Evidence preparation: 100%. Actual evidence completion: 0%.
 
 ---
 
@@ -16,7 +17,7 @@
 | E-003 | Password gate disclosure screenshot — in-product disclosure visible before password input | `production-evidence/E-003-password-gate-disclosure/screenshot-requirements.md` | **Ready for engineering action** | Owner | ✅ YES |
 | E-004 | DPO / privacy officer designation artifact — formal designation document or email | `production-evidence/E-004-dpo-designation/dpo-designation-template.md` | **Ready for owner action** | Owner | ✅ YES |
 | E-005 | NPCRS triage result — completed NPC registration triage worksheet | `production-evidence/E-005-npcrs-triage/npcrs-triage-worksheet.md` | **Ready for owner action** | Owner | ✅ YES |
-| E-006 | DPS inventory — completed Data Processing System inventory | `production-evidence/E-006-dps-inventory/dps-inventory-draft.md` | **Drafted** | Owner | ✅ YES |
+| E-006 | DPS inventory — completed Data Processing System inventory | `production-evidence/E-006-dps-inventory/dps-inventory-draft.md` | **Ready for owner review** | Owner | ✅ YES |
 | E-007 | DSR process document — operationalized Data Subject Request intake and response process | `production-evidence/E-007-dsr-process/dsr-process-ready-for-review.md` | **Ready for owner review** | Owner | ✅ YES |
 | E-008 | Breach response process document — operationalized breach notification process | `production-evidence/E-008-breach-response/breach-response-ready-for-review.md` | **Ready for owner review** | Owner | ✅ YES |
 | E-009 | Vendor/processor DPA review evidence — reviewed and signed DPAs for Supabase and Vercel | `production-evidence/E-009-vendor-dpa-review/vendor-dpa-review-worksheet.md` | **Ready for owner action** | Owner | ✅ YES |
@@ -177,8 +178,8 @@
 
 **Blocks production?:** ✅ YES
 
-**Preparation status:** Drafted (template created in `production-evidence/E-006-dps-inventory/`, needs owner validation)
-**Execution status:** Missing (DPS inventory not signed/approved yet)
+**Preparation status:** Ready for owner review (template created in `production-evidence/E-006-dps-inventory/`, needs owner validation)
+**Execution status:** Not complete (DPS inventory not signed/approved yet)
 
 ---
 
@@ -439,10 +440,10 @@
 | Status | Count | Items |
 |--------|------:|-------|
 | Missing | 0 | — |
-| Drafted | 1 | E-006 |
+| Drafted | 0 | — |
 | Ready for owner action | 5 | E-001, E-004, E-005, E-009, E-014 |
 | Ready for engineering action | 5 | E-002, E-003, E-010, E-011, E-012 |
-| Ready for owner review | 2 | E-007, E-008 |
+| Ready for owner review | 3 | E-006, E-007, E-008 |
 | Ready for QA action | 1 | E-013 |
 | Ready for future completion | 1 | E-015 |
 | Recommended / optional | 1 | E-016 |
