@@ -2,6 +2,7 @@
 
 **Date:** 2026-06-02
 **Status:** Fourth-pass final — pending stakeholder review
+**Ninth-pass reconciliation — stakeholder approvals received (2026-06-02)**
 **Audience:** Product, Legal/Privacy, Engineering stakeholders
 **Purpose:** Concise, non-technical review packet for stakeholder sign-off before implementation begins.
 
@@ -98,23 +99,23 @@ Single timeline merging estimate changes, client activity, and access events. De
 
 ### Product Decisions
 
-| # | Decision | Recommendation | Why |
-|---|----------|---------------|-----|
-| P1 | Should device/browser appear in owner UI? | Yes — in audit details only, not primary timeline. | Owners want to know if client viewed on mobile vs desktop. But primary timeline should stay clean. |
-| P2 | Should anonymous visits appear in owner activity? | Yes — "Anonymous viewer opened the shared link." | Provides signal that the link was opened without PII exposure. |
-| P3 | Should client-facing activity feed exist in V1? | No — defer to V2. | Current effort is owner-focused. Adding client feed increases scope and risk. |
-| P4 | Should bot/email preview opens be hidden? | Yes — hide by default. | Prevents false "client opened" signals from email preview bots. |
-| P5 | Should "You viewed the proposal" appear to clients? | Yes — simple confirmation message. | Builds trust. Not a full activity feed. |
+| # | Decision | Recommendation | Why | Status |
+|---|----------|---------------|-----|--------|
+| P1 | Should device/browser appear in owner UI? | Yes — in audit details only, not primary timeline. | Owners want to know if client viewed on mobile vs desktop. But primary timeline should stay clean. | APPROVED (2026-06-02) |
+| P2 | Should anonymous visits appear in owner activity? | Yes — "Anonymous viewer opened the shared link." | Provides signal that the link was opened without PII exposure. | APPROVED (2026-06-02) |
+| P3 | Should client-facing activity feed exist in V1? | No — defer to V2. | Current effort is owner-focused. Adding client feed increases scope and risk. | APPROVED (2026-06-02) |
+| P4 | Should bot/email preview opens be hidden? | Yes — hide by default. | Prevents false "client opened" signals from email preview bots. | APPROVED (2026-06-02) |
+| P5 | Should "You viewed the proposal" appear to clients? | Yes — simple confirmation message. | Builds trust. Not a full activity feed. | APPROVED (2026-06-02) |
 
 ### Legal/Privacy Decisions
 
-| # | Decision | Recommendation | Why |
-|---|----------|---------------|-----|
-| L1 | In-product disclosure for access logging? | Privacy policy update minimum. In-product notice optional. | Most SaaS products log access. Privacy policy update ensures compliance. |
-| L2 | City-level location or country only? | Country only by default. City requires explicit approval. | Country-level is sufficient for owner context. City-level increases privacy risk. |
-| L3 | Hashed IP — acceptable to retain? | Yes, but classify as pseudonymized personal data. | One-way hash cannot be reversed, but same IP → same hash enables correlation. |
-| L4 | Retention period for access telemetry? | Keep indefinitely for now. Define 90-day policy before V2. | Access logs are light. Deletion policy can be defined later. |
-| L5 | Privacy policy update required before shipping? | Yes — update before any access data collection begins. | Legal compliance. |
+| # | Decision | Recommendation | Why | Status |
+|---|----------|---------------|-----|--------|
+| L1 | In-product disclosure for access logging? | Privacy policy update minimum. In-product notice optional. | Most SaaS products log access. Privacy policy update ensures compliance. | APPROVED (2026-06-02) |
+| L2 | City-level location or country only? | Country only by default. City requires explicit approval. | Country-level is sufficient for owner context. City-level increases privacy risk. | APPROVED (2026-06-02) |
+| L3 | Hashed IP — acceptable to retain? | Yes, but classify as pseudonymized personal data. | One-way hash cannot be reversed, but same IP → same hash enables correlation. | APPROVED (2026-06-02) |
+| L4 | Retention period for access telemetry? | Keep indefinitely for now. Define 90-day policy before V2. | Access logs are light. Deletion policy can be defined later. | APPROVED (2026-06-02) |
+| L5 | Privacy policy update required before shipping? | Yes — update before any access data collection begins. | Legal compliance. | APPROVED (2026-06-02) |
 
 ### Engineering Decisions (for awareness)
 
@@ -126,22 +127,24 @@ Single timeline merging estimate changes, client activity, and access events. De
 | E4 | Fix broken CSRF on public activity GET route | Approved (PR 2 preflight) |
 | E5 | Dedupe strategy: always record, collapse in UI | Approved |
 
+> **All Product and Legal/Privacy decisions above are now APPROVED (2026-06-02).** Owner/Product approval and Internal Privacy approval recorded in doc 47. Philippine DPA/NPC compliance documented in doc 48.
+
 ---
 
 ## 7. Approval Checklist
 
 | Decision | Options | Recommendation | Owner | Status |
 |----------|---------|---------------|-------|--------|
-| P1 — Device/browser in owner UI | Yes (audit) / No / Yes (primary) | Audit details only | Product | ☐ Pending |
-| P2 — Anonymous visits visible | Yes / No | Yes | Product | ☐ Pending |
-| P3 — Client-facing activity feed V1 | Yes / No / V2 | Defer to V2 | Product | ☐ Pending |
-| P4 — Bot opens hidden | Yes / No | Yes | Product | ☐ Pending |
-| P5 — "You viewed" to clients | Yes / No | Yes | Product | ☐ Pending |
-| L1 — In-product disclosure | Required / Not required / Policy only | Policy minimum | Legal | ☐ Pending |
-| L2 — Location granularity | None / Country / Region / City | Country only (default) | Legal | ☐ Pending |
-| L3 — IP hash retention | Indefinite / Limited / Delete | Indefinite (pseudonymized) | Legal | ☐ Pending |
-| L4 — Access log retention | Indefinite / 90-day / Other | Define before V2 | Legal | ☐ Pending |
-| L5 — Privacy policy update | Required / Not required | Required before V1.1 | Legal | ☐ Pending |
+| P1 — Device/browser in owner UI | Yes (audit) / No / Yes (primary) | Audit details only | Product | ✅ Approved |
+| P2 — Anonymous visits visible | Yes / No | Yes | Product | ✅ Approved |
+| P3 — Client-facing activity feed V1 | Yes / No / V2 | Defer to V2 | Product | ✅ Approved |
+| P4 — Bot opens hidden | Yes / No | Yes | Product | ✅ Approved |
+| P5 — "You viewed" to clients | Yes / No | Yes | Product | ✅ Approved |
+| L1 — In-product disclosure | Required / Not required / Policy only | Policy minimum | Legal | ✅ Approved |
+| L2 — Location granularity | None / Country / Region / City | Country only (default) | Legal | ✅ Approved |
+| L3 — IP hash retention | Indefinite / Limited / Delete | Indefinite (pseudonymized) | Legal | ✅ Approved |
+| L4 — Access log retention | Indefinite / 90-day / Other | Define before V2 | Legal | ✅ Approved |
+| L5 — Privacy policy update | Required / Not required | Required before V1.1 | Legal | ✅ Approved |
 | E1 — No migration for V1.1 | metadata_json / Add enum / New table | metadata_json | Engineering | ✅ Approved |
 | E2 — Server-side event recording | Server-side / Client beacon / Hybrid | Server-side | Engineering | ✅ Approved |
 | E3 — PR sequence | 9 PRs | As documented | Engineering | ✅ Approved |
@@ -152,13 +155,14 @@ Single timeline merging estimate changes, client activity, and access events. De
 
 ## 8. What Happens Next
 
-1. **Review this packet** — Product and Legal/Privacy stakeholders review the decisions above.
-2. **Schedule a review meeting** — Use `33-stakeholder-review-script.md` for meeting agenda.
-3. **Sign off on decisions** — Update `29-final-decision-log-and-approval-matrix.md` with approvals.
+1. ~~**Review this packet**~~ — Complete. All P1-P5 and L1-L5 approved by stakeholders 2026-06-02.
+2. ~~**Schedule a review meeting**~~ — Not required. Approvals obtained without meeting.
+3. ~~**Sign off on decisions**~~ — Recorded in `29-final-decision-log-and-approval-matrix.md` and docs 47, 48.
 4. **Merge planning docs** — PR 1 (docs only, no code changes).
 5. **Begin PR 2** — Preflight bug fixes (safe, no privacy dependencies).
 6. **Begin PRs 3-6** — Composer + UI integration (no access telemetry yet).
-7. **Gate PR 7** — Access telemetry only after stakeholder sign-off on P1-P5, L1-L5.
+7. **Begin PR 7** — Access telemetry. All gates cleared (P1-P5, L1-L5 approved 2026-06-02).
+8. **Begin PR 8B** — Access telemetry hardening. No longer gated.
 
 ---
 
@@ -183,3 +187,5 @@ Single timeline merging estimate changes, client activity, and access events. De
 - See `30-final-technical-reconciliation-audit.md` for code-verified findings
 - See `32-final-implementation-readiness-scorecard.md` for go/no-go assessment
 - See `33-stakeholder-review-script.md` for meeting facilitation guide
+- See `47-pr7-pr8b-approval-record.md` for Owner/Product and Internal Privacy approval record
+- See `48-philippines-data-privacy-compliance-plan.md` for Philippine DPA/NPC compliance

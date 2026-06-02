@@ -89,21 +89,22 @@
 
 ---
 
-## PR 7 — Shared Page Access Telemetry ⚠️ GATED
+## PR 7 — Shared Page Access Telemetry ✅ APPROVED
 
 | Metric | Value |
 |--------|-------|
 | **Files touched** | `share/[token]/page.tsx`, `public-repository.ts` (new helper), `security.ts`, 5+ test files |
 | **Data touched** | Writes to `project_publication_events` (existing table, new helper). NO new tables. NO migrations. |
 | **User surfaces affected** | None (analytics only in V1.1). Owner UI in future PR. |
-| **Risk** | 🔴 **HIGH** — Privacy-impacting. New data collection (access stages). Requires product + legal sign-off. |
+| **Risk** | 🟡 **MEDIUM** — Privacy gates cleared by Owner/Product + Internal Privacy (2026-06-02). Implementation risk remains. |
 | **Rollback** | Remove analytics helper calls from page.tsx. No data cleanup needed (existing table). |
 | **Tests** | 25+ access telemetry tests covering all access stages, side effects, bot detection, deduplication. |
 
-**GATE:** PR 7 MUST NOT proceed until:
+**GATE:** ✅ APPROVED — All gates cleared by Owner/Product + Internal Privacy (2026-06-02):
 - D-017 (device/browser in UI) approved by Product
 - D-018 (location granularity) approved by Legal
 - D-023 (in-product disclosure) approved by Legal
+- Implementation proceeds under conservative privacy constraints (see doc 47). No stakeholder blockers.
 
 ---
 
@@ -131,7 +132,7 @@
 | **Risk** | 🟡 MEDIUM — Depends on PR 7 data. Dedupe and bot filtering logic must be correct. |
 | **Rollback** | Revert per-file changes. PR 8A remains independent. |
 | **Tests** | Dedupe rendering tests, bot filtering tests, observability tests. |
-| **Dependency** | GATED on PR 7. Only after Product/Legal sign-off.
+| **Dependency** | GO after PR 7 (gate cleared). |
 
 ---
 
@@ -160,10 +161,10 @@ PR 1 (docs) ──► PR 2 (preflight) ──► PR 3 (composer) ──► PR 4 
                                    └──► (independent path)
                                         
 PR 7 (access telemetry) ──► PR 8B (telemetry hardening) ──► PR 9 (polish)
-     ⚠️ GATED
+      ✅ GO (gates cleared)
 ```
 
-PRs 2-6 are sequential after PR 1. PRs 3-6 can partially parallelize (3 must finish before 4/5/6 can begin, but 4/5/6 can go in any order or parallel). PR 8A can proceed after PRs 2-6 — NOT gated on PR 7. PR 8B is gated on PR 7. PR 9 follows the relevant path (8A or 8B).
+PRs 2-6 are sequential after PR 1. PRs 3-6 can partially parallelize (3 must finish before 4/5/6 can begin, but 4/5/6 can go in any order or parallel). PR 8A can proceed after PRs 2-6 — NOT gated on PR 7. PR 8B follows PR 7 (gates cleared, no stakeholder blockers). PR 9 follows the relevant path (8A or 8B).
 
 ---
 
@@ -177,7 +178,7 @@ PRs 2-6 are sequential after PR 1. PRs 3-6 can partially parallelize (3 must fin
 | PR 4 | 🟡 MEDIUM | Touches existing Activity UI |
 | PR 5 | 🟡 MEDIUM | Touches owner activity feed |
 | PR 6 | 🟢 LOW | Read-only actor resolution |
-| PR 7 | 🔴 HIGH | Privacy-impacting, gated |
+| PR 7 | 🟡 MEDIUM | Privacy gates cleared; implementation risk remains |
 | PR 8A | 🟡 MEDIUM | Pagination changes affect data retrieval |
 | PR 8B | 🟡 MEDIUM | Depends on PR 7 data correctness |
 | PR 9 | 🟢 LOW | Visual polish only |
@@ -191,3 +192,5 @@ PRs 2-6 are sequential after PR 1. PRs 3-6 can partially parallelize (3 must fin
 - `36-access-telemetry-side-effects-audit.md` — Side effects matrix
 - `38-pr2-test-command-and-fixture-plan.md` — PR 2 test plan
 - `40-final-implementation-handoff.md` — Implementation handoff
+- `47-pr7-gate-clearance-and-privacy-approvals.md` — PR 7 gate clearance and privacy approvals
+- `48-ph-dpa-npc-compliance-plan.md` — Philippine DPA/NPC compliance plan
