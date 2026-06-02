@@ -508,7 +508,7 @@ describe("closed beta readiness docs", () => {
     expect(evidenceIndex).toContain("`linkedMigrationsReady: false`");
     expect(evidenceIndex).toContain("### Supabase Linked Readiness Parser Helper");
     expect(evidenceIndex).toContain("scripts/check-supabase-linked-readiness.ts");
-    expect(evidenceIndex).toContain("supabase-linked-readiness-4fdf0de-2026-06-02.json");
+    expect(evidenceIndex).toContain("supabase-linked-readiness-f56838d-2026-06-02.json");
     expect(evidenceIndex).toContain("`linkedSupabaseLaunchReady: false`");
     expect(evidenceIndex).toContain("### Supabase Linked Readiness MCP Refresh at bc798a9");
     expect(evidenceIndex).toContain("supabase-linked-readiness-mcp-bc798a9-2026-06-02.json");
@@ -588,7 +588,7 @@ describe("closed beta readiness docs", () => {
     expect(manualProofMatrix).toContain("parsed 71 rows from a successful linked migration-list transcript");
     expect(manualProofMatrix).toContain("supabase-linked-schema-parity-2026-06-02.md");
     expect(manualProofMatrix).toContain("supabase-linked-readiness-refresh-2026-06-02.md");
-    expect(manualProofMatrix).toContain("supabase-linked-readiness-4fdf0de-2026-06-02.json");
+    expect(manualProofMatrix).toContain("supabase-linked-readiness-f56838d-2026-06-02.json");
     expect(manualProofMatrix).toContain("supabase-linked-readiness-mcp-bc798a9-2026-06-02.json");
     expect(manualProofMatrix).toContain("all five launch migrations present locally but missing remotely");
     expect(manualProofMatrix).toContain("36 anon executable `SECURITY DEFINER` functions, 62 authenticated executable `SECURITY DEFINER` functions");
@@ -760,7 +760,7 @@ describe("closed beta readiness docs", () => {
     expect(consolidatedManualProofPacket).toContain("zero listed backups");
     expect(consolidatedManualProofPacket).toContain("supabase-migration-readiness-28f7a2a-2026-06-02.json");
     expect(consolidatedManualProofPacket).toContain("`linkedMigrationsReady: false`");
-    expect(consolidatedManualProofPacket).toContain("supabase-linked-readiness-4fdf0de-2026-06-02.json");
+    expect(consolidatedManualProofPacket).toContain("supabase-linked-readiness-f56838d-2026-06-02.json");
     expect(consolidatedManualProofPacket).toContain("supabase-linked-readiness-mcp-bc798a9-2026-06-02.json");
     expect(consolidatedManualProofPacket).toContain("`linkedSupabaseLaunchReady: false`");
     expect(consolidatedManualProofPacket).toContain("13 total checks / 13 failed rows");
@@ -798,7 +798,7 @@ describe("closed beta readiness docs", () => {
     expect(artifactFilenames).toContain("supabase-read-only-cli-2026-06-02.md");
     expect(artifactFilenames).toContain("supabase-backup-readiness-b77245a-2026-06-02.json");
     expect(artifactFilenames).toContain("supabase-migration-readiness-28f7a2a-2026-06-02.json");
-    expect(artifactFilenames).toContain("supabase-linked-readiness-4fdf0de-2026-06-02.json");
+    expect(artifactFilenames).toContain("supabase-linked-readiness-f56838d-2026-06-02.json");
     expect(artifactFilenames).toContain("supabase-linked-readiness-mcp-bc798a9-2026-06-02.json");
     expect(artifactFilenames).toContain("vercel-env-readiness-6aaa0b7-2026-06-02.json");
     expect(artifactFilenames).toContain("vercel-env-readiness-9cbf6c3-2026-06-02.json");
@@ -861,7 +861,7 @@ describe("closed beta readiness docs", () => {
     expect(goalCompletionAudit).toContain("`bun run launch:check-supabase-migrations` now gives a repeatable sanitized migration-list check");
     expect(goalCompletionAudit).toContain("`linkedMigrationsReady: false`");
     expect(goalCompletionAudit).toContain("Supabase linked SQL readiness parser helper");
-    expect(goalCompletionAudit).toContain("`bun run launch:check-supabase-linked-readiness` gives a repeatable sanitized parser");
+    expect(goalCompletionAudit).toContain("The current direct CLI refresh parses all categories");
     expect(goalCompletionAudit).toContain("`linkedSupabaseLaunchReady: false`");
     expect(goalCompletionAudit).toContain("Supabase linked readiness MCP refresh at `bc798a9`");
     expect(goalCompletionAudit).toContain("13 total checks / 13 failed rows");
@@ -986,11 +986,13 @@ describe("closed beta readiness docs", () => {
     expect(currentState).toContain("`linkedMigrationsReady: false`");
     expect(knownIssues).toContain("Supabase migration-list readiness evidence on 2026-06-02 remains blocked");
     expect(currentState).toContain("**Supabase Linked SQL Readiness Parser Helper (2026-06-02):**");
+    expect(currentState).toContain("13 total checks / 13 failed rows");
+    expect(knownIssues).toContain("Supabase linked SQL readiness evidence on 2026-06-02 remains blocked");
     expect(currentState).toContain("`linkedSupabaseLaunchReady: false`");
     expect(currentState).toContain("supabase-linked-readiness-mcp-bc798a9-2026-06-02.json");
     expect(currentState).toContain("13 total checks / 13 failed rows");
     expect(knownIssues).toContain("Supabase linked SQL readiness evidence on 2026-06-02 is no longer limited to the CLI SASL blocker");
-    expect(knownIssues).toContain("supabase-linked-readiness-4fdf0de-2026-06-02.json");
+    expect(knownIssues).toContain("supabase-linked-readiness-f56838d-2026-06-02.json");
     expect(knownIssues).toContain("supabase-linked-readiness-mcp-bc798a9-2026-06-02.json");
     expect(knownIssues).toContain("parsed all readiness categories through Supabase MCP");
     expect(currentState).toContain("Linked Supabase schema parity evidence");
