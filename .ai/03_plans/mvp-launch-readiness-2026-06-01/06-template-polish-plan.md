@@ -33,10 +33,10 @@ Templates are estimate-structure bundles, not cost-library rows. Do not create d
 | --- | --- |
 | Route | `src/app/workshop/templates/page.tsx:6` loads `getCurrentWorkspaceEstimateTemplates()`. |
 | Client | `TemplatesPageClient.tsx:10` renders `TemplateLibraryManager`. |
-| Manager state | `searchQuery` at `TemplateLibraryManager.tsx:58`, `expandedNodeIds` at `TemplateLibraryManager.tsx:157`, `selectedTemplateNodeId` at `TemplateLibraryManager.tsx:299`. |
-| Search | `templateMatchesSheetQuery` matches name, description, category, and node names at `TemplateLibraryManager.tsx:34`. |
-| Empty state | Custom empty block at `TemplateLibraryManager.tsx:130`; tree empty state at `TemplateLibraryManager.tsx:286`. |
-| No create action | `HeaderIconToolbar addActions={[]}` at `TemplateLibraryManager.tsx:87` and `:196`. |
+| Manager state | `TemplateLibraryManager.tsx` keeps independent sheet search, tree search/expansion, and selected template node state. |
+| Search | `templateMatchesSheetQuery` matches name, description, category, and node names. |
+| Empty state | `TemplateLibraryManager.tsx` now uses shared `EmptyState` for sheet and tree no-result states, with workspace-empty and filter-empty copy covered by `template-library-manager-ui.test.tsx`. |
+| No create action | Template sheet and tree toolbars keep `HeaderIconToolbar addActions={[]}`. |
 | Persisted-first source | Repository persisted template path at `component-library-repository.ts:700`; fallback path at `component-library-repository.ts:717` and `:503`. |
 | Existing migration/seed | `20260522091621_component_library_templates.sql:4` creates tables; seed starts at `:425`; copy RPC starts at `:207`. |
 | Insert into estimate | `EstimateSheetContent.tsx:3759` calls action; `actions.ts:1645` calls `insert_estimate_template_into_estimate_with_history`. |
@@ -85,7 +85,7 @@ Template insertion happens inside estimate workspace, not the standalone templat
 
 | Ticket | Implementation details | Acceptance criteria | Tests | Rollback |
 | --- | --- | --- | --- | --- |
-| TPL-001 | Add preview/details UI, shared empty states, `/workshop/templates/error.tsx`, persisted/fallback tests. Local route error boundary implemented 2026-06-02. | Templates route shows useful structure without authoring scope; route states are consistent. | `template-library-manager-ui.test.tsx`, route error test, repository tests. | Revert preview/details and error boundary; current view-only list remains. |
+| TPL-001 | Add preview/details UI, shared empty states, `/workshop/templates/error.tsx`, persisted/fallback tests. Local route error boundary and shared empty states implemented 2026-06-02. | Templates route shows useful structure without authoring scope; route states are consistent. | `template-library-manager-ui.test.tsx`, route error test, repository tests. | Revert preview/details and error boundary; current view-only list remains. |
 | TPL-001 | Improve estimate-workspace template insertion feedback and error handling. | Insert action gives pending/success/error feedback and no duplicate inserts. | `estimate-node-reorder-action.test.ts`, DOM insertion smoke. | Revert UI feedback; RPC remains unchanged. |
 
 ## Visual QA

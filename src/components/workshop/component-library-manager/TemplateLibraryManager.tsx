@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { CaretDown, CaretRight, FolderSimple, SquaresFour } from "@phosphor-icons/react/dist/ssr";
 
+import { EmptyState } from "@/components/ui/empty-state";
 import { HeaderIconToolbar } from "@/components/ui/header-icon-toolbar";
 import { SearchInput } from "@/components/ui/search-input";
 import { ResizableSidePanel } from "@/components/workshop/ResizableSidePanel";
@@ -51,6 +52,21 @@ function templateMatchesSheetQuery(template: EstimateTemplate, query: string): b
 function formatTemplateResultCount(visibleCount: number, totalCount: number): string {
   const noun = totalCount === 1 ? "template" : "templates";
   return `${visibleCount} of ${totalCount} ${noun}`;
+}
+
+function getTemplateEmptyDescription({
+  searchQuery,
+  selectedNode,
+  totalTemplateCount,
+}: {
+  searchQuery: string;
+  selectedNode: LibraryTreeNode | null;
+  totalTemplateCount: number;
+}): string {
+  if (searchQuery) return `No templates match "${searchQuery}".`;
+  if (totalTemplateCount === 0) return "No templates in this workspace yet.";
+  if (selectedNode?.kind === "template-category") return "No templates in this category yet.";
+  return "No templates in this view yet.";
 }
 
 function getTemplateStructure(template: EstimateTemplate): string[] {
@@ -198,15 +214,16 @@ function TemplateLibrarySheet({
             })}
           </ul>
         ) : (
-          <div className="flex h-full items-center justify-center bg-white p-2 text-center">
-            <div>
-              <SquaresFour size={18} weight="regular" className="mx-auto mb-2 text-tertiary" aria-hidden="true" />
-              <p className="text-[11px] font-medium leading-4 text-ink">{selectedLabel}</p>
-              <p className="mt-0.5 max-w-56 text-[9px] leading-4 text-tertiary">
-                {searchQuery ? `No templates match "${searchQuery}".` : "No templates in this folder yet."}
-              </p>
-            </div>
-          </div>
+          <EmptyState
+            icon={<SquaresFour size={18} weight="regular" aria-hidden="true" />}
+            title={selectedLabel}
+            description={getTemplateEmptyDescription({
+              searchQuery,
+              selectedNode,
+              totalTemplateCount: templates.length,
+            })}
+            className="h-full border-0 bg-white"
+          />
         )}
       </div>
     </section>
@@ -354,9 +371,12 @@ function TemplateLibraryTreePanel({
               }}
             />
           ) : (
-            <div className="rounded-xs border border-dashed border-hairline bg-surfaceMuted p-2 text-[10px] leading-4 text-tertiary">
-              No templates match &quot;{searchQuery}&quot;.
-            </div>
+            <EmptyState
+              icon={<FolderSimple size={18} weight="regular" aria-hidden="true" />}
+              title="No template folders"
+              description={`No templates match "${searchQuery}".`}
+              className="min-h-24 rounded-xs"
+            />
           )}
         </div>
       </div>
