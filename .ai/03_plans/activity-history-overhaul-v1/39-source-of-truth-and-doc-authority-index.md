@@ -21,7 +21,10 @@
 | **Blast radius** | `37-final-blast-radius-and-rollback-map.md` | `05-blast-radius-analysis.md` | 37 supersedes 05 for final risk assessment |
 | **Test strategy** | `08-test-strategy.md` + `38-pr2-test-command-and-fixture-plan.md` | `18-manual-qa-and-acceptance-matrix.md` | 08 for overall, 38 for PR 2 specifics |
 | **Manual QA** | `18-manual-qa-and-acceptance-matrix.md` | None | Canonical QA matrix |
-| **Readiness/go-no-go** | `32-final-implementation-readiness-scorecard.md` + `34-final-preimplementation-audit.md` | `10-readiness-checklist.md` | 34 for current audit, 32 for scorecard |
+| **Readiness/go-no-go** | `42-98-100-readiness-scorecard.md` + `34-final-preimplementation-audit.md` | `32-final-implementation-readiness-scorecard.md`, `10-readiness-checklist.md` | 42 for current scoring (sixth pass), 34 for audit summary |
+| **Risks** | `43-final-risk-burndown-register.md` | `37-final-blast-radius-and-rollback-map.md` | 43 for risk register, 37 for blast radius |
+| **Certification** | `44-final-plan-certification.md` | `40-final-implementation-handoff.md` | 44 is sign-off; 40 is entry point |
+| **Loop audit** | `41-autonomous-readiness-loop-log.md` | — | Audit trail of this autonomous readiness loop |
 | **Code truth** | `35-code-truth-map.md` | None | When docs and code disagree, 35 is authority |
 | **Implementation handoff** | `40-final-implementation-handoff.md` | All above | Last doc to read before coding |
 | **Stakeholder review** | `28-fourth-pass-stakeholder-review-packet.md` + `33-stakeholder-review-script.md` | None | For stakeholder meetings |
@@ -47,7 +50,7 @@ These documents contain useful historical context but are NO LONGER authoritativ
 
 | Doc | Status | Notes |
 |-----|--------|-------|
-| `00-current-state-audit.md` | **Authoritative** (with noted corrections) | HEAD stale (`d78686f`), "13 event types" → "14". Otherwise accurate. |
+| `00-current-state-audit.md` | **Authoritative** (with noted corrections) | HEAD stale (`d78686f`→current `65b21eb` via multiple passes), "13 event types" → "14". Otherwise accurate. |
 | `01-research-basis.md` | **Authoritative** | Research unchanged |
 | `02-activity-copywriting-system.md` | **Authoritative** | Copy model unchanged |
 | `03-data-contract-and-event-model-plan.md` | **Authoritative** | Data contract unchanged |
@@ -65,7 +68,7 @@ These documents contain useful historical context but are NO LONGER authoritativ
 | `25-access-event-data-model-and-migration-plan.md` | **Authoritative** (with noted update) | Reconcile side effects per doc 36 |
 | `29-final-decision-log-and-approval-matrix.md` | **Authoritative** (with noted corrections) | Approval statuses corrected in this pass. See doc 34 Finding 9. |
 | `31-pr2-preflight-implementation-brief.md` | **Authoritative** (with noted updates) | event_type exposure and CSRF coverage updated per this pass. |
-| `32-final-implementation-readiness-scorecard.md` | **Authoritative** (with noted updates) | Scorecard made conservative per this pass. |
+| `32-final-implementation-readiness-scorecard.md` | **Superseded** | `42-98-100-readiness-scorecard.md` | 42 is the final sixth-pass scorecard with HEAD `65b21eb` and complete 10-category scoring. |
 
 ---
 
@@ -77,6 +80,7 @@ These documents contain useful historical context but are NO LONGER authoritativ
 3. `38-pr2-test-command-and-fixture-plan.md` — test plan per fix
 4. `35-code-truth-map.md` — verify code behavior before editing
 5. `37-final-blast-radius-and-rollback-map.md` — risk awareness
+6. `43-final-risk-burndown-register.md` — risk register for context
 
 ### For PR 3 Implementer
 1. `40-final-implementation-handoff.md` — PR 3 scope
@@ -85,15 +89,20 @@ These documents contain useful historical context but are NO LONGER authoritativ
 4. `02-activity-copywriting-system.md` — copy rules and forbidden terms
 
 ### For Stakeholder Review
-1. `28-fourth-pass-stakeholder-review-packet.md` — stakeholder-friendly summary
-2. `29-final-decision-log-and-approval-matrix.md` — pending decisions
-3. `33-stakeholder-review-script.md` — meeting agenda
-4. `32-final-implementation-readiness-scorecard.md` — go/no-go
-5. `34-final-preimplementation-audit.md` — latest audit status
+1. `44-final-plan-certification.md` — certified readiness summary (SIXTH PASS — authoritative)
+2. `28-fourth-pass-stakeholder-review-packet.md` — stakeholder-friendly summary
+3. `29-final-decision-log-and-approval-matrix.md` — pending decisions
+4. `33-stakeholder-review-script.md` — meeting agenda
+5. `42-98-100-readiness-scorecard.md` — final go/no-go scoring
+6. `43-final-risk-burndown-register.md` — risk register
 
 ---
 
 ## Cross-References
 
 - `34-final-preimplementation-audit.md` — Current audit status and findings
+- `41-autonomous-readiness-loop-log.md` — Autonomous loop audit trail
+- `42-98-100-readiness-scorecard.md` — Final scoring by category
+- `43-final-risk-burndown-register.md` — Risk burndown register
+- `44-final-plan-certification.md` — Certified sign-off
 - `40-final-implementation-handoff.md` — Handoff packet for implementation

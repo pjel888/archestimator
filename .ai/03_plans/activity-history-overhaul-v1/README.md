@@ -6,10 +6,12 @@
 **Second pass:** 2026-06-02
 **Third pass:** 2026-06-02
 **Fourth pass:** 2026-06-02
+**Fifth pass:** 2026-06-02 (final pre-implementation audit: docs 34–40)
+**Sixth pass:** 2026-06-02 (autonomous readiness loop: docs 41–44)
 **Branch:** `main`
-**Current HEAD:** `da35386`
-**Fourth-pass claimed HEAD:** `405d6ac` (corrected in fifth pass — current HEAD is `da35386`. No activity code changed between `405d6ac` and `da35386`.)
-**Status:** Planning Phase — Fifth pass complete (final pre-implementation audit: code truth map, side effects audit, blast radius, test plan, authority index, handoff packet. 7 new docs added. All contradictions resolved. Implementation-ready.)
+**Current HEAD:** `65b21eb`
+**Fifth-pass claimed HEAD:** `da35386` (corrected in sixth pass/autonomous readiness loop — current HEAD is `65b21eb`. No activity code changed between `da35386` and `65b21eb`: only proof/ops commits: `26bc6e3` (Vercel health), `65b21eb` (Supabase backup).)
+**Status:** Planning Phase — Sixth pass complete (autonomous readiness loop: HEAD/fact audit, consistency reconciliation, scoring, certification. Docs 41–44 added. All categories ≥98%. Implementation-ready.)
 
 ---
 
@@ -68,7 +70,7 @@ Documents 34–40 added covering: final audit summary, code truth map, access te
 
 ### New Documents Added
 
-6 new documents (28–33) added covering stakeholder review packet, decision log, reconciliation audit, PR2 preflight brief, readiness scorecard, and stakeholder review script. Total: 33 documents.
+6 new documents (28–33) added covering stakeholder review packet, decision log, reconciliation audit, PR2 preflight brief, readiness scorecard, and stakeholder review script.
 
 ### Existing Document Updates
 
@@ -179,10 +181,14 @@ The following areas were inspected:
 | `38-pr2-test-command-and-fixture-plan.md` | **NEW (Fifth Pass)** — Exact test files, mocks, assertions, and commands for each PR 2 fix |
 | `39-source-of-truth-and-doc-authority-index.md` | **NEW (Fifth Pass)** — Document hierarchy: which docs are authoritative, superseded, or historical |
 | `40-final-implementation-handoff.md` | **NEW (Fifth Pass)** — Concise handoff packet: status, scope, blockers, test commands, where to start |
+| `41-autonomous-readiness-loop-log.md` | **NEW (Sixth Pass)** — Autonomous loop audit trail: iterations, findings, doc changes per loop |
+| `42-98-100-readiness-scorecard.md` | **NEW (Sixth Pass)** — Final readiness scoring by 10 categories with weighted composite |
+| `43-final-risk-burndown-register.md` | **NEW (Sixth Pass)** — 9 risks catalogued with score impact, mitigation, owner, blocker status |
+| `44-final-plan-certification.md` | **NEW (Sixth Pass)** — Sign-off document: scores, gated items, authoritative docs, next action |
 
 ---
 
-## Recommended Implementation Sequence (Fourth Pass)
+## Authoritative Implementation Sequence
 
 1. **PR 1 — Fourth-pass planning docs** (docs only, 6 new docs + 8 doc updates)
 2. **PR 2 — Preflight correctness cleanup** — Fix 5 known bugs (row_inserted filter, Realtime, event_type, CSRF fixes). See `31-pr2-preflight-implementation-brief.md`.
@@ -200,13 +206,13 @@ PRs 1–6 can proceed without stakeholder approval (no privacy impact). PR 7 is 
 
 ## Key Findings (Fifth Pass — Final Audit)
 
-- **Current HEAD is `da35386`**, not `405d6ac` as fourth-pass docs stated. No activity code changed (only 1 unrelated commit: "Make Vercel env proof repeatable").
+- **Current HEAD is `65b21eb`**, 2 commits ahead of the `da35386` fifth-pass baseline. No activity code changed between `da35386` and `65b21eb` (only proof/ops commits: `26bc6e3` "Make Vercel health proof repeatable", `65b21eb` "Make Supabase backup proof repeatable").
 - **12 major findings documented** in doc 34 — including: event count is 14 not 13, event_type exposure risk, access telemetry side effects critical gap, approval statuses inconsistent, CSRF affects 3 fetch paths not 2.
 - **Side effects matrix finalized** (doc 36) — `recordProjectPublicationEvent("open")` triggers 3 side effects (open_count, recipient update, shared_link_events insert). New `recordProjectPublicationAnalyticsEvent()` helper recommended for analytics-only access tracking.
 - **Code truth map complete** (doc 35) — 20+ features mapped from planning claims to actual code with reconciled truth.
 - **PR 2 scope narrowed** — event_type NOT exposed in public API response (deferred to composer PR 5). CSRF fix covers all 3 fetch paths.
 - **Approval statuses corrected** (doc 29) — Engineering recommendations distinguished from actual stakeholder sign-offs. No fabricated approvals.
-- **41 planning documents total** (34 numbered docs + README + 7 new docs 34-40).
+- **46 planning documents total** (README + 45 numbered docs 00–44). Sixth pass added docs 41–44: autonomous readiness loop log, 98-100 readiness scorecard, risk burndown register, and final plan certification.
 
 ### Previous Findings (Third Pass — still accurate)
 
@@ -239,7 +245,7 @@ See `29-final-decision-log-and-approval-matrix.md` for all 28 decisions and thei
 
 ## Next Action
 
-1. **Merge docs (PR 1)** — All 41 planning documents are internally consistent after fifth-pass audit. Ready to merge.
+1. **Merge docs (PR 1)** — All 46 planning documents are internally consistent after sixth-pass autonomous readiness loop. Ready to merge.
 2. **Begin PR 2** — Preflight correctness cleanup (5 fixes, no privacy dependencies). See `40-final-implementation-handoff.md` for exact starting point. See `31-pr2-preflight-implementation-brief.md` for scope. See `38-pr2-test-command-and-fixture-plan.md` for test plan.
 3. **Continue through PR sequence** — PRs 3-6 proceed freely after PR 2. PR 7 gated on stakeholder sign-off (D-017, D-018, D-023). See `32-final-implementation-readiness-scorecard.md`.
 

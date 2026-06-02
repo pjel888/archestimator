@@ -12,8 +12,8 @@
 |------|--------|
 | Planning phase | ✅ Complete (5 audit passes) |
 | Docs internally consistent | ✅ Yes (after this pass) |
-| Activity code unchanged since planning | ✅ Yes (HEAD `da35386` = planning commit `5a0481d` + 1 unrelated commit) |
-| Folder file count | 35 files (34 numbered docs + README) → 42 files (adding 34-40) |
+| Activity code unchanged since planning | ✅ Yes (HEAD `65b21eb` = planning baseline `5a0481d` + 4 proof/ops commits; no activity code changed) |
+| Folder file count | 42 files (41 numbered docs + README) → 46 files (adding 41-44) |
 
 ---
 
