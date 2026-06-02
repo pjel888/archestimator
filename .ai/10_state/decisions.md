@@ -2,6 +2,7 @@
 
 ## Confirmed active decisions
 
+- 2026-06-02 — MVP closed beta repo-local implementation is frozen at `6ab5b38` for the deferred-provider scope. Do not keep adding local code for launch readiness unless a newly discovered repo-local defect appears. The next pass should continue with external/provider/manual proof gates and evidence orchestration: Vercel env/custom-domain/rollback, hosted auth allow/deny/revoke, linked Supabase migrations/RLS/storage/RPC/backup/PITR, Resend delivery/webhooks, spreadsheet-app open/print, legal/owner signoff, support/alert monitoring, and hosted/manual E2E. Closed beta remains NO-GO until those gates pass.
 - 2026-05-16 — Project name: Archestimator.
 - 2026-05-16 — Project folder: `/Users/philiplewis/archestimator`.
 - 2026-05-16 — `.ai/` is the shared intelligence folder for all AI agents, not only one tool.
