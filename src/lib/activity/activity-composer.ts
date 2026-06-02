@@ -184,7 +184,7 @@ export function composeSharedLinkActivity(item: SharedLinkActivityInput, opts: C
       action = DECISION_ACTIONS[item.decision ?? ""] ?? "recorded";
       if (action === "approved") title = `${actor.displayName} approved the proposal.`;
       else if (action === "requested_revision") title = `${actor.displayName} requested revisions.`;
-      else if (action === "declined") title = `${actor.displayName} did not approve the proposal.`;
+      else if (action === "declined") title = `${actor.displayName} declined the proposal.`;
       else title = "Activity recorded.";
     } else if (item.type === "event") {
       const eventType = String(metadata.eventType ?? metadata.event_type ?? "");

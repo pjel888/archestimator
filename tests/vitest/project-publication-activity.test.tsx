@@ -115,7 +115,7 @@ function createActivityRouteSupabaseMock() {
       if (table === "shared_link_comments") {
         return createQueryResult([
           {
-            id: "c1",
+            id: "11111111-1111-4111-8111-111111111111",
             created_at: "2026-05-28T10:00:00Z",
             body: "Looks good",
             is_internal: false,
@@ -126,7 +126,7 @@ function createActivityRouteSupabaseMock() {
       if (table === "shared_link_responses") {
         return createQueryResult([
           {
-            id: "d1",
+            id: "22222222-2222-4222-8222-222222222222",
             created_at: "2026-05-28T11:00:00Z",
             decision: "accepted",
             note: null,
@@ -136,7 +136,7 @@ function createActivityRouteSupabaseMock() {
       if (table === "shared_link_events") {
         return createQueryResult([
           {
-            id: "e1",
+            id: "33333333-3333-4333-8333-333333333333",
             created_at: "2026-05-28T12:00:00Z",
             event_type: "open",
             metadata_json: {},
@@ -342,6 +342,43 @@ describe("P8 — Shared Link Activity Feed & Notifications (red tests written FI
       expect(mocks.createPublicationServiceClient).not.toHaveBeenCalled();
     });
 
+    it("returns composed client-safe ActivityViewModel items without raw database fields", async () => {
+      const res = await GET(makeRequest({ origin: "http://localhost" }), params());
+
+      expect(res.status).toBe(200);
+      const json = await res.json();
+      expect(json).toEqual(
+        expect.objectContaining({
+          hasMore: false,
+          recipientSession: false,
+          activities: expect.any(Array),
+        }),
+      );
+      expect(json.activities.length).toBeGreaterThan(0);
+      expect(json.activities[0]).toEqual(
+        expect.objectContaining({
+          id: expect.stringMatching(/^act_[a-f0-9]{16}$/),
+          source: expect.any(String),
+          action: expect.any(String),
+          visibility: "public",
+          occurredAt: expect.any(String),
+          title: expect.any(String),
+        }),
+      );
+      const serialized = JSON.stringify(json);
+      expect(serialized).not.toContain("event_type");
+      expect(serialized).not.toContain("metadata_json");
+      expect(serialized).not.toContain("created_at");
+      expect(serialized).not.toContain("author_email");
+      expect(serialized).not.toContain("recipient_id");
+      expect(serialized).not.toContain("raw");
+      expect(serialized).not.toContain("accepted");
+      expect(serialized).not.toContain("revision_requested");
+      expect(serialized).not.toMatch(/[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}/i);
+      expect(json.activities.some((activity: { title?: string }) => activity.title?.includes("approved the proposal"))).toBe(true);
+      expect(json.activities.every((activity: { title?: string }) => activity.title && !activity.title.includes("EVENT"))).toBe(true);
+    });
+
     it("returns full activity (including internal) when owner/manager context via session or server action path", async () => {
       mocks.verifySharedLinkSessionCookieValue.mockReturnValue(true);
       const parsableSession = "shared-link-session-v1:eyJyZWNpcGllbnRJZCI6InJlY2lwLTEyMyIsInB1YmxpY2F0aW9uSWQiOiJwdWIxIiwic25hcHNob3RWZXJzaW9uIjoiMSJ9:dummy";
@@ -372,6 +409,35 @@ describe("P8 — Shared Link Activity Feed & Notifications (red tests written FI
       await waitFor(() => {
         expect(screen.queryByText(/Looks good|activity/i) || screen.queryByTestId("activity-item")).toBeTruthy();
       }, { timeout: 1000 });
+    });
+
+    it("renders composed activity copy instead of raw type or decision labels", async () => {
+      vi.mocked(global.fetch).mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            activities: [
+              {
+                id: "act_deadbeef12345678",
+                source: "decision",
+                action: "approved",
+                visibility: "public",
+                occurredAt: "2026-05-28T11:00:00Z",
+                title: "Client approved the proposal.",
+                body: "Ready to proceed.",
+              },
+            ],
+            hasMore: false,
+            recipientSession: false,
+          }),
+          { status: 200, headers: { "content-type": "application/json" } },
+        ),
+      );
+
+      render(<SharedLinkActivityFeed publicationToken="client-pub-token-123" isOwner={false} />);
+
+      await waitFor(() => expect(screen.getByText("Client approved the proposal.")).toBeInTheDocument());
+      expect(screen.queryByText(/DECISION/)).not.toBeInTheDocument();
+      expect(screen.queryByText(/Decision:\s*accepted/i)).not.toBeInTheDocument();
     });
 
     it("scopes owner Realtime subscriptions to the active publication id", async () => {

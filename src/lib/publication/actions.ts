@@ -20,6 +20,7 @@ import { buildProjectPublicationSnapshot } from "@/lib/publication/snapshot";
 import type { Database, Json, Tables } from "@/lib/supabase/types";
 import { readEmailDeliveryConfig, sendEmail } from "@/lib/email/resend-client";
 import { normalizeEstimateTreeNodeKind } from "@/lib/estimates/tree-hierarchy";
+import { composeSharedLinkActivity, type ActivityViewModel, type SharedLinkActivityInput } from "@/lib/activity";
 
 type PublicationActionResult = {
   ok: boolean;
@@ -1086,16 +1087,7 @@ export async function removeSharedLinkRecipient({
 // Rate-limited owner digest (in-memory MVP; 1 per 15min per publication) using P0 sendEmail
 // ============================================================================
 
-export type ActivityItem = {
-  id: string;
-  type: "comment" | "decision" | "event";
-  created_at: string;
-  author?: string;
-  body?: string;
-  decision?: string;
-  is_internal?: boolean;
-  metadata?: Record<string, unknown>;
-};
+export type ActivityItem = ActivityViewModel;
 
 type LoadActivityResult = {
   activities: ActivityItem[];
@@ -1190,7 +1182,7 @@ export async function loadSharedLinkActivity(
       .limit(limit + 1),
   ]);
 
-  const raw: ActivityItem[] = [];
+  const raw: SharedLinkActivityInput[] = [];
   (commentsRes.data ?? []).forEach((c) =>
     raw.push({
       id: c.id,
@@ -1211,17 +1203,15 @@ export async function loadSharedLinkActivity(
       body: r.note || undefined,
     })
   );
-  (eventsRes.data ?? []).forEach((e) =>
+  (eventsRes.data ?? []).forEach((e) => {
+    const metadata = e.metadata_json && typeof e.metadata_json === "object" && !Array.isArray(e.metadata_json) ? e.metadata_json : {};
     raw.push({
       id: e.id,
       type: "event",
       created_at: e.created_at,
-      metadata:
-        e.metadata_json && typeof e.metadata_json === "object" && !Array.isArray(e.metadata_json)
-          ? e.metadata_json
-          : {},
-    })
-  );
+      metadata: { ...metadata, eventType: e.event_type },
+    });
+  });
 
   // Sort + cursor filter + limit
   raw.sort((a, b) => (a.created_at < b.created_at ? 1 : -1));
@@ -1230,7 +1220,9 @@ export async function loadSharedLinkActivity(
     filtered = filtered.filter((a) => new Date(a.created_at) < cursor);
   }
   const hasMore = filtered.length > limit;
-  const activities = filtered.slice(0, limit);
+  const activities = filtered
+    .slice(0, limit)
+    .map((activity) => composeSharedLinkActivity(activity, { audience: "owner", visibility: activity.is_internal ? "internal" : "owner" }));
 
   return { activities, hasMore };
 }

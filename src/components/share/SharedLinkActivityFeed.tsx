@@ -111,12 +111,15 @@ export default function SharedLinkActivityFeed({ publicationToken, publicationId
       ) : (
         <ul className="space-y-2">
           {activities.map((a) => (
-            <li key={a.id} className="rounded-xs border border-hairline bg-surface p-2 text-[10px]">
-              <div className="font-medium text-secondary">{a.type.toUpperCase()} · {new Date(a.created_at).toLocaleString()}</div>
-              {a.author && <div className="text-tertiary">{a.author}</div>}
+            <li key={a.id} data-testid="activity-item" className="rounded-xs border border-hairline bg-surface p-2 text-[10px]">
+              <div className="font-medium text-secondary">{a.title}</div>
+              <div className="text-[9px] text-tertiary">{new Date(a.occurredAt).toLocaleString()}</div>
+              {a.summary && <div className="mt-0.5 text-tertiary">{a.summary}</div>}
               {a.body && <div className="mt-0.5 whitespace-pre-wrap text-ink">{a.body}</div>}
-              {a.decision && <div className="mt-0.5 text-success">Decision: {a.decision}</div>}
-              {a.is_internal && isOwner && <span className="text-[8px] text-warning">Internal</span>}
+              {a.badges?.map((badge) => (
+                <span key={badge} className="mt-1 inline-flex rounded-xs border border-hairline px-1 text-[8px] text-warning">{badge}</span>
+              ))}
+              {a.visibility === "internal" && isOwner && !a.badges?.includes("Internal") && <span className="text-[8px] text-warning">Internal</span>}
             </li>
           ))}
         </ul>
