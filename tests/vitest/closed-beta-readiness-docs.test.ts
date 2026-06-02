@@ -198,6 +198,11 @@ describe("closed beta readiness docs", () => {
     expect(evidenceIndex).toContain("`/workshop/settings/feedback` renders the review/filter/status-update queue for platform admins");
     expect(evidenceIndex).toContain("non-admin users receive an unauthorized state instead of feedback rows");
     expect(evidenceIndex).toContain("hosted admin access, daily review cadence, monitored inbox/table ownership");
+    expect(evidenceIndex).toContain("### Settings Hub Local Evidence");
+    expect(evidenceIndex).toContain("settings-hub-local-2026-06-02.md");
+    expect(evidenceIndex).toContain("`/workshop/settings` is now a protected hub instead of an immediate profile redirect");
+    expect(evidenceIndex).toContain("Profile, Workspace, Beta users, and Beta feedback cards are discoverable from one Settings entry");
+    expect(evidenceIndex).toContain("platform-operation cards render only for `ceo` or `admin` roles");
     expect(evidenceIndex).toContain("### Support Email DNS Readiness Evidence");
     expect(evidenceIndex).toContain("support-email-dns-readiness-2026-06-02.md");
     expect(evidenceIndex).toContain("five `eforward*.registrar-servers.com` MX records");
@@ -445,6 +450,9 @@ describe("closed beta readiness docs", () => {
     expect(goalCompletionAudit).toContain("beta-feedback-review-queue-local-2026-06-02.md");
     expect(goalCompletionAudit).toContain("beta support, feedback, and deletion requests to `support@archestimator.com`");
     expect(goalCompletionAudit).toContain("platform-admin `/workshop/settings/feedback` can review/filter/update feedback status locally");
+    expect(goalCompletionAudit).toContain("Settings hub local evidence");
+    expect(goalCompletionAudit).toContain("Profile, Workspace, Beta users, and Beta feedback cards from `/workshop/settings`");
+    expect(goalCompletionAudit).toContain("admin tool discovery is local source/browser proof only");
     expect(goalCompletionAudit).toContain("Support email DNS readiness evidence");
     expect(goalCompletionAudit).toContain("has registrar email-forwarding MX records and SPF TXT");
     expect(goalCompletionAudit).toContain("monitored inbox/table review and alert owner proof remain missing");
@@ -496,6 +504,10 @@ describe("closed beta readiness docs", () => {
     expect(currentState).toContain("`20260602084500_beta_feedback_review_queue.sql`");
     expect(currentState).toContain("local review UI at `/workshop/settings/feedback`");
     expect(currentState).toContain("The workshop footer `Send beta feedback` opens `/workshop/feedback`");
+    expect(currentState).toContain("Settings Hub Local Slice");
+    expect(currentState).toContain("`/workshop/settings` now lands on a protected Settings hub instead of redirecting immediately to profile");
+    expect(currentState).toContain("Profile, Workspace, Beta users, and Beta feedback cards");
+    expect(currentState).toContain("platform-operation cards are visible only to `ceo` or `admin` roles");
     expect(currentState).toContain("Support Email DNS Evidence");
     expect(currentState).toContain("five registrar email-forwarding MX records");
     expect(currentState).toContain("no `_dmarc.archestimator.com` TXT answer");
@@ -525,6 +537,8 @@ describe("closed beta readiness docs", () => {
     expect(knownIssues).toContain("Support/feedback local evidence now proves `/contact`, protected `/workshop/feedback`, platform-admin `/workshop/settings/feedback`, terms, and privacy point to `support@archestimator.com`");
     expect(knownIssues).toContain("the public contact form prepares a structured support email draft instead of fake-submitting");
     expect(knownIssues).toContain("local code can persist authenticated feedback to `beta_feedback_submissions` after its migration is applied and locally triage status after the review migration is applied");
+    expect(knownIssues).toContain("Settings hub local evidence on 2026-06-02 makes `/workshop/settings` a discoverable protected hub for profile, workspace, beta-user, and beta-feedback tools");
+    expect(knownIssues).toContain("hosted admin smoke and linked migrations remain missing");
     expect(knownIssues).toContain("Linked feedback/review migration apply, hosted feedback/admin smoke, monitored inbox/table ownership, and alert ownership proof remain missing");
     expect(knownIssues).toContain("Support email DNS evidence on 2026-06-02 proves `archestimator.com` has registrar email-forwarding MX records");
     expect(knownIssues).toContain("This still does not prove `support@archestimator.com` is monitored");

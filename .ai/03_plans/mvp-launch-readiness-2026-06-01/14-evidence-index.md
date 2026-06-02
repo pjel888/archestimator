@@ -519,6 +519,14 @@
 - Focused evidence: `bunx vitest run tests/vitest/beta-feedback.test.ts --maxWorkers=1` passed 1 file / 6 tests; `bun run type-check` passed.
 - Launch meaning: this adds a local app-owned review queue, but does not prove linked Supabase migration apply, hosted admin access, daily review cadence, monitored inbox/table ownership, alert ownership, or incident escalation. Support/monitoring remains a **NO-GO** row.
 
+### Settings Hub Local Evidence
+
+- Artifact note: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/settings-hub-local-2026-06-02.md`.
+- Local source proof: `/workshop/settings` is now a protected hub instead of an immediate profile redirect.
+- Covered links: Profile, Workspace, Beta users, and Beta feedback cards are discoverable from one Settings entry.
+- Role boundary: platform-operation cards render only for `ceo` or `admin` roles.
+- Launch meaning: this improves local admin discoverability only. Hosted platform-admin smoke, linked beta migrations, monitored feedback operations, and owner launch sign-off remain open.
+
 ### Support Email DNS Readiness Evidence
 
 - Artifact note: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/support-email-dns-readiness-2026-06-02.md`.

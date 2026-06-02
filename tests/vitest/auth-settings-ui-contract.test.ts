@@ -24,6 +24,17 @@ describe("auth onboarding and settings route contracts", () => {
     expect(read("src/app/workshop/settings/workspace/page.tsx")).toMatch(/updateWorkspaceSettings/);
   });
 
+  it("keeps settings as a discoverable hub for beta operations", () => {
+    const source = read("src/app/workshop/settings/page.tsx");
+
+    expect(source).toContain('href: "/workshop/settings/profile"');
+    expect(source).toContain('href: "/workshop/settings/workspace"');
+    expect(source).toContain('href: "/workshop/settings/beta-users"');
+    expect(source).toContain('href: "/workshop/settings/feedback"');
+    expect(source).toContain('context.role === "ceo" || context.role === "admin"');
+    expect(source).not.toContain('redirect("/workshop/settings/profile")');
+  });
+
   it("points the sidebar Settings item at the settings route", () => {
     expect(read("src/components/sidebar/MainSidebar.tsx")).toMatch(
       /href:\s*["']\/workshop\/settings["']/,
