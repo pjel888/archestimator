@@ -407,6 +407,13 @@
 - Protection proof: Vercel reports SSO protection for `all_except_custom_domains`, Git fork protection enabled, and one env-var-backed automation bypass entry remaining after cleanup of the non-env bypass entry generated during this run.
 - Launch meaning: this is partial/blocked Vercel evidence. Preview deploy and protected health route are proven, but env, production/custom-domain behavior, public monitoring path, hosted auth smoke, and rollback proof remain **NO-GO** rows.
 
+### Vercel Protection Read-Only Refresh
+
+- Artifact: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/vercel-protection-read-only-2026-06-02.md`.
+- Command: `vercel project protection archestimator --format json --non-interactive`.
+- Result: SSO protection remains `all_except_custom_domains`, Git fork protection is enabled, and one env-var-backed `automation-bypass` entry remains. Raw provider entry/user ids are redacted from the artifact.
+- Launch meaning: owner review is still required to decide whether the remaining automation bypass is intentional and approved. This does not satisfy Vercel env, public uptime, production/custom-domain health, hosted auth, or rollback proof.
+
 ### Provider State Refresh Evidence
 
 - Artifact: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/provider-state-refresh-2026-06-02.md`.

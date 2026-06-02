@@ -166,6 +166,9 @@ describe("closed beta readiness docs", () => {
     expect(evidenceIndex).toContain("the app does not grant delete access");
     expect(evidenceIndex).toContain("### Supabase Read-Only Provider Evidence");
     expect(evidenceIndex).toContain("### Vercel Read-Only Provider Evidence");
+    expect(evidenceIndex).toContain("### Vercel Protection Read-Only Refresh");
+    expect(evidenceIndex).toContain("vercel-protection-read-only-2026-06-02.md");
+    expect(evidenceIndex).toContain("one env-var-backed `automation-bypass` entry remains");
     expect(evidenceIndex).toContain("### Provider State Refresh Evidence");
     expect(evidenceIndex).toContain("provider-state-refresh-2026-06-02.md");
     expect(evidenceIndex).toContain("archestimator-j29iumqi0-philipjonlewis-projects.vercel.app");
@@ -194,6 +197,8 @@ describe("closed beta readiness docs", () => {
     expect(currentState).toContain("Linked Supabase remains **NO-GO**");
     expect(currentState).toContain("**Vercel Current-Head Evidence (2026-06-02):**");
     expect(currentState).toContain("current `main` commit `638f681` has Ready preview deployment");
+    expect(currentState).toContain("**Vercel Protection Evidence (2026-06-02):**");
+    expect(currentState).toContain("one env-var-backed `automation-bypass` entry remains");
     expect(currentState).toContain("Vercel env vars remain absent");
     expect(currentState).toContain("public preview and branch-alias health remain deployment-protected with HTTP 401");
     expect(currentState).toContain("**Vercel Custom Domain Evidence (2026-06-02):**");
@@ -201,6 +206,7 @@ describe("closed beta readiness docs", () => {
     expect(knownIssues).toContain("Provider state refresh evidence on 2026-06-02 confirms Vercel and linked Supabase remain blocked");
     expect(knownIssues).toContain("Supabase linked readiness refresh on 2026-06-02 confirms linked launch migrations and objects remain absent");
     expect(knownIssues).toContain("Vercel current-head read-only evidence on 2026-06-02 confirms current `main` commit `638f681` has Ready preview deployment");
+    expect(knownIssues).toContain("Vercel protection read-only evidence on 2026-06-02 confirms SSO protection remains");
     expect(knownIssues).toContain("Vercel custom-domain evidence on 2026-06-02 confirms");
     expect(evidenceIndex).toContain("### Spreadsheet Artifact Local Evidence");
     expect(evidenceIndex).toContain("spreadsheet-quicklook-preview-2026-06-02.md");
@@ -362,6 +368,8 @@ describe("closed beta readiness docs", () => {
     expect(manualProofMatrix).toContain("Vercel deploy/env/health");
     expect(manualProofMatrix).toContain("vercel-read-only-cli-2026-06-02.md");
     expect(manualProofMatrix).toContain("vercel-current-head-read-only-638f681-2026-06-02.md");
+    expect(manualProofMatrix).toContain("vercel-protection-read-only-2026-06-02.md");
+    expect(manualProofMatrix).toContain("one env-var-backed automation bypass still needs owner review");
     expect(manualProofMatrix).toContain("current `main` preview `archestimator-4s6wzqt08-philipjonlewis-projects.vercel.app`");
     expect(manualProofMatrix).toContain("public preview health returns HTTP `401`");
     expect(manualProofMatrix).toContain("vercel-custom-domain-readiness-blocked-2026-06-02.md");
