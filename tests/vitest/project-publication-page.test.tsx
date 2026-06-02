@@ -13,6 +13,7 @@ const mocks = vi.hoisted(() => ({
   unsubscribeSharedLinkRecipientByToken: vi.fn(),
   verifySharedLinkRecipientToken: vi.fn(),
   recordProjectPublicationEvent: vi.fn(),
+  recordProjectPublicationAnalyticsEvent: vi.fn(),
   cookieGet: vi.fn(),
   cookieSet: vi.fn(),
 }));
@@ -24,6 +25,7 @@ vi.mock("@/lib/publication/public-repository", () => ({
   unsubscribeSharedLinkRecipientByToken: mocks.unsubscribeSharedLinkRecipientByToken,
   verifySharedLinkRecipientToken: mocks.verifySharedLinkRecipientToken,
   recordProjectPublicationEvent: mocks.recordProjectPublicationEvent,
+  recordProjectPublicationAnalyticsEvent: mocks.recordProjectPublicationAnalyticsEvent,
 }));
 
 vi.mock("next/navigation", () => ({
@@ -56,6 +58,7 @@ describe("shared link (receiver publication) page — Shared Link Overhaul V2", 
     vi.stubGlobal("fetch", vi.fn(async () => ({ ok: true })) as unknown as typeof fetch);
     mocks.cookieGet.mockReturnValue(undefined);
     mocks.resolveSharedLinkRecipientIdentity.mockResolvedValue(null);
+    mocks.recordProjectPublicationAnalyticsEvent.mockResolvedValue({ recorded: true });
     mocks.verifySharedLinkRecipientToken.mockResolvedValue(null);
     mocks.resolveProjectPublicationAccessByToken.mockResolvedValue({
       publicationId: "publication-1",
@@ -119,6 +122,7 @@ describe("shared link (receiver publication) page — Shared Link Overhaul V2", 
     expect(screen.getByRole("main", { name: "Client publication" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Valencia Residence" })).toBeInTheDocument();
     expect(screen.getByText("View-only project page")).toBeInTheDocument();
+    expect(screen.getByText(/Visits are logged for project security and activity history/i)).toBeInTheDocument();
     expect(screen.getByText("VR-001")).toBeInTheDocument();
     expect(screen.getByText("Client Family")).toBeInTheDocument();
 
@@ -134,6 +138,13 @@ describe("shared link (receiver publication) page — Shared Link Overhaul V2", 
       eventType: "open",
       request: expect.any(Request),
       metadata: {},
+    });
+    expect(mocks.recordProjectPublicationAnalyticsEvent).toHaveBeenCalledWith({
+      token: "client-token",
+      eventType: "open",
+      accessStage: "page_visit",
+      recipientKnown: false,
+      request: expect.any(Request),
     });
   });
 
@@ -301,6 +312,7 @@ describe("shared link (receiver publication) page — Shared Link Overhaul V2", 
 
     expect(screen.getByRole("main", { name: "Client publication password" })).toBeInTheDocument();
     expect(screen.getByText("Enter publication password")).toBeInTheDocument();
+    expect(screen.getByText(/Visits to this shared page are logged/i)).toBeInTheDocument();
     expect(screen.queryByText("Valencia Residence")).not.toBeInTheDocument();
     expect(screen.queryByText("Concrete works")).not.toBeInTheDocument();
     expect(mocks.resolveProjectPublicationSnapshotByToken).not.toHaveBeenCalled();

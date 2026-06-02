@@ -1,6 +1,7 @@
 import {
   checkProjectPublicationPasswordRateLimit,
   clearProjectPublicationPasswordFailures,
+  recordProjectPublicationAnalyticsEvent,
   recordProjectPublicationEvent,
   recordProjectPublicationPasswordFailure,
   verifyProjectPublicationPasswordByToken,
@@ -73,6 +74,13 @@ export async function POST(request: Request, { params }: { params: Promise<{ tok
     eventType: "password_attempt",
     request,
     metadata: { success },
+  });
+  await recordProjectPublicationAnalyticsEvent({
+    token,
+    eventType: "password_attempt",
+    accessStage: "password_unlocked",
+    passwordSuccess: success,
+    request,
   });
 
   if (!success) {
