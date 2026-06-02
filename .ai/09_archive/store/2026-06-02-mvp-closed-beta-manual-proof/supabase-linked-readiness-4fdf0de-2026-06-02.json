@@ -1,0 +1,23 @@
+{
+  "generatedAt": "2026-06-02T07:02:17.242Z",
+  "mode": "supabase-linked-readiness",
+  "source": "/tmp/arch-provider-refresh-4fdf0de/supabase-linked-readiness.txt",
+  "projectRef": "ebxxqidacheyapmmzavr",
+  "parsedLinkedReadiness": false,
+  "parseError": "No JSON array or object found in linked Supabase readiness input.",
+  "blockedReason": "Supabase linked database SASL authentication failed.",
+  "totalChecks": 0,
+  "failedChecks": [],
+  "missingCategories": [
+    "migration",
+    "table",
+    "grant",
+    "function",
+    "storage",
+    "summary"
+  ],
+  "categorySummary": {},
+  "summaryPassed": false,
+  "linkedSupabaseLaunchReady": false,
+  "note": "Sanitized linked Supabase readiness parser. It parses output from the read-only `scripts/sql/linked-supabase-launch-readiness.sql` query and does not connect to Supabase, apply migrations, repair migration history, mutate storage, or perform RLS/browser allow-deny proof."
+}
