@@ -2350,7 +2350,7 @@ function EventList({
   }
 
   return (
-    <div className="space-y-5" data-activity-timeline>
+    <div className="space-y-5" data-activity-timeline role="feed" aria-label="Activity history events">
       {groupActivityTimelineByDay(events).map((dayGroup) => (
         <section key={dayGroup.day} aria-label={`${dayGroup.day} activity`} className="space-y-3">
           <div className="px-1 pb-1 pt-2">
