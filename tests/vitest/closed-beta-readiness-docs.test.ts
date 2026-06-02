@@ -318,6 +318,7 @@ describe("closed beta readiness docs", () => {
     expect(currentState).toContain("vercel-env-readiness-6aaa0b7-2026-06-02.json");
     expect(currentState).toContain("vercel-env-readiness-9cbf6c3-2026-06-02.json");
     expect(currentState).toContain("vercel-env-readiness-4b89b72-2026-06-02.json");
+    expect(currentState).toContain("vercel-env-readiness-d1c4335-2026-06-02.json");
     expect(currentState).toContain("still discover zero env names");
     expect(currentState).toContain("all app-owned invite delivery env names missing");
     expect(currentState).toContain("public preview and branch-alias health remain deployment-protected with HTTP 401");
@@ -329,6 +330,7 @@ describe("closed beta readiness docs", () => {
     expect(knownIssues).toContain("vercel-env-readiness-6aaa0b7-2026-06-02.json");
     expect(knownIssues).toContain("vercel-env-readiness-9cbf6c3-2026-06-02.json");
     expect(knownIssues).toContain("vercel-env-readiness-4b89b72-2026-06-02.json");
+    expect(knownIssues).toContain("vercel-env-readiness-d1c4335-2026-06-02.json");
     expect(knownIssues).toContain("still discover zero env names");
     expect(knownIssues).toContain("all app-owned invite delivery env names missing");
     expect(knownIssues).toContain("Vercel public health readiness evidence on 2026-06-02 remains blocked");
@@ -454,6 +456,7 @@ describe("closed beta readiness docs", () => {
     expect(evidenceIndex).toContain("vercel-env-readiness-6aaa0b7-2026-06-02.json");
     expect(evidenceIndex).toContain("vercel-env-readiness-9cbf6c3-2026-06-02.json");
     expect(evidenceIndex).toContain("vercel-env-readiness-4b89b72-2026-06-02.json");
+    expect(evidenceIndex).toContain("vercel-env-readiness-d1c4335-2026-06-02.json");
     expect(evidenceIndex).toContain("because no env names were discovered");
     expect(evidenceIndex).toContain("`RESEND_FROM`, `RESEND_REPLY_TO`, and `RESEND_WEBHOOK_SECRET` are missing or empty");
     expect(evidenceIndex).toContain("zero Vercel Resend env names discovered");
@@ -617,6 +620,7 @@ describe("closed beta readiness docs", () => {
     expect(manualProofMatrix).toContain("vercel-env-readiness-6aaa0b7-2026-06-02.json");
     expect(manualProofMatrix).toContain("vercel-env-readiness-9cbf6c3-2026-06-02.json");
     expect(manualProofMatrix).toContain("vercel-env-readiness-4b89b72-2026-06-02.json");
+    expect(manualProofMatrix).toContain("vercel-env-readiness-d1c4335-2026-06-02.json");
     expect(manualProofMatrix).toContain("zero env names");
     expect(manualProofMatrix).toContain("all required core, Resend, and invite delivery names missing");
     expect(manualProofMatrix).toContain("disables shared-link recipient entry/send/resend while server email readiness is false");
@@ -787,6 +791,7 @@ describe("closed beta readiness docs", () => {
     expect(artifactFilenames).toContain("vercel-env-readiness-6aaa0b7-2026-06-02.json");
     expect(artifactFilenames).toContain("vercel-env-readiness-9cbf6c3-2026-06-02.json");
     expect(artifactFilenames).toContain("vercel-env-readiness-4b89b72-2026-06-02.json");
+    expect(artifactFilenames).toContain("vercel-env-readiness-d1c4335-2026-06-02.json");
     expect(artifactFilenames).toContain("vercel-health-readiness-02f3a9c-2026-06-02.json");
     expect(artifactFilenames).toContain("vercel-health-readiness-b6873b4-2026-06-02.json");
     expect(artifactFilenames).toContain("vercel-health-readiness-6685d78-2026-06-02.json");
@@ -853,6 +858,7 @@ describe("closed beta readiness docs", () => {
     expect(goalCompletionAudit).toContain("vercel-env-readiness-6aaa0b7-2026-06-02.json");
     expect(goalCompletionAudit).toContain("vercel-env-readiness-9cbf6c3-2026-06-02.json");
     expect(goalCompletionAudit).toContain("vercel-env-readiness-4b89b72-2026-06-02.json");
+    expect(goalCompletionAudit).toContain("vercel-env-readiness-d1c4335-2026-06-02.json");
     expect(goalCompletionAudit).toContain("zero discovered env names");
     expect(goalCompletionAudit).toContain("Vercel custom-domain readiness evidence");
     expect(goalCompletionAudit).toContain("Vercel public health readiness helper");
