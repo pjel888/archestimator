@@ -28,6 +28,19 @@ const platformSettings = [
   },
 ] as const;
 
+const supportSettings = [
+  {
+    description: "Report workflow blockers, export issues, and confusing estimating details during beta.",
+    href: "/workshop/feedback",
+    label: "Send beta feedback",
+  },
+  {
+    description: "Review beta terms, privacy status, estimate accuracy limits, and data deletion contact paths.",
+    href: "/terms",
+    label: "Terms and privacy",
+  },
+] as const;
+
 function SettingsLinkCard({
   description,
   href,
@@ -76,6 +89,18 @@ export default async function WorkshopSettingsPage() {
               <SettingsLinkCard key={item.href} {...item} />
             ))}
           </div>
+        </section>
+
+        <section className="space-y-2">
+          <h2 className="text-[10px] font-medium leading-4 text-secondary">Support and legal</h2>
+          <div className="grid gap-2 md:grid-cols-2">
+            {supportSettings.map((item) => (
+              <SettingsLinkCard key={item.href} {...item} />
+            ))}
+          </div>
+          <p className="max-w-2xl text-[10px] leading-4 text-tertiary">
+            For account deletion or data export requests during beta, send feedback or email support@archestimator.com.
+          </p>
         </section>
 
         {canManagePlatform ? (

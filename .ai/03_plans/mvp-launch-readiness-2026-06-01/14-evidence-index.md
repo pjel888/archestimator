@@ -815,9 +815,11 @@
 
 - Artifact note: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/settings-hub-local-2026-06-02.md`.
 - Local source proof: `/workshop/settings` is now a protected hub instead of an immediate profile redirect.
-- Covered links: Profile, Workspace, Beta users, and Beta feedback cards are discoverable from one Settings entry.
+- Covered links: Profile, Workspace, Beta support/legal/data request paths, Beta users, and Beta feedback cards are discoverable from one Settings entry.
+- 2026-06-02 local refresh: non-admin beta users now see Settings cards for `/workshop/feedback`, `/terms`, and `support@archestimator.com` data request copy without needing platform-admin access.
+- Focused evidence: `bunx vitest run tests/vitest/auth-settings-ui-contract.test.ts tests/vitest/beta-feedback.test.ts --maxWorkers=1` passed 2 files / 12 tests.
 - Role boundary: platform-operation cards render only for `ceo` or `admin` roles.
-- Launch meaning: this improves local admin discoverability only. Hosted platform-admin smoke, linked beta migrations, monitored feedback operations, and owner launch sign-off remain open.
+- Launch meaning: this improves local support/legal discoverability only. Hosted platform-admin smoke, linked beta migrations, monitored feedback operations, inbox ownership, legal sign-off, and owner launch sign-off remain open.
 
 ### Support Email DNS Readiness Evidence
 
