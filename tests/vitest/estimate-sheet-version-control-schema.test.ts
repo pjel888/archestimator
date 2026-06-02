@@ -11,6 +11,11 @@ if (!migrationPath) throw new Error("Missing estimate sheet version control migr
 
 const migration = readFileSync(join(process.cwd(), "supabase/migrations", migrationPath), "utf8");
 
+const authorizationFixMigration = readFileSync(
+  join(process.cwd(), "supabase/migrations/20260601153000_fix_estimate_history_rpc_authorization.sql"),
+  "utf8",
+);
+
 const contingencyMigrationPath = readdirSync(join(process.cwd(), "supabase/migrations"))
   .filter((file) => file.endsWith("_add_estimate_row_contingency_percentage.sql"))
   .sort()
@@ -138,5 +143,21 @@ describe("estimate sheet version control schema", () => {
     expect(migration).toContain("grant execute on function public.insert_estimate_template_into_estimate_with_history");
     expect(migration).toContain("grant execute on function public.update_estimate_details_with_history");
     expect(migration).toContain("grant execute on function public.delete_estimate_node_with_history");
+  });
+
+  it("keeps SECURITY DEFINER authorization tied to the verified Supabase role", () => {
+    expect(migration).toContain("select coalesce(auth.role(), '') = 'service_role'");
+    expect(migration).not.toContain("select current_user in ('postgres', 'service_role', 'supabase_admin')");
+    expect(migration).toContain("revoke execute on function public.estimate_sheet_can_bypass_auth() from public, anon, authenticated");
+    expect(migration).toContain("revoke execute on function public.resolve_estimate_workspace(uuid, uuid, uuid) from public, anon, authenticated");
+    expect(migration).not.toContain("grant execute on function public.get_estimate_sheet_version_control_preflight() to authenticated");
+    expect(migration).not.toContain("grant execute on function public.backfill_estimate_sheet_baseline_versions(integer, uuid) to authenticated");
+    expect(migration).toContain("grant execute on function public.get_estimate_sheet_version_control_preflight() to service_role");
+    expect(migration).toContain("grant execute on function public.backfill_estimate_sheet_baseline_versions(integer, uuid) to service_role");
+    expect(contingencyMigration).not.toContain("grant execute on function public.get_estimate_sheet_version_control_preflight() to authenticated");
+    expect(contingencyMigration).not.toContain("grant execute on function public.backfill_estimate_sheet_baseline_versions(integer, uuid) to authenticated");
+    expect(authorizationFixMigration).toContain("select coalesce(auth.role(), '') = 'service_role'");
+    expect(authorizationFixMigration).toContain("revoke execute on function public.get_estimate_sheet_version_control_preflight() from public, anon, authenticated");
+    expect(authorizationFixMigration).toContain("grant execute on function public.backfill_estimate_sheet_baseline_versions(integer, uuid) to service_role");
   });
 });
