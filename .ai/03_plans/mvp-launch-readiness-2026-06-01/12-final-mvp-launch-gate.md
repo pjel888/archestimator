@@ -71,7 +71,7 @@ Current decision: **NO-GO**.
 | RLS/migrations verified | Yes | Linked/staging SQL denial/allow queries, migration history, generated types. | Local migrations/types only. | No-go |
 | Component unlink cannot mutate library data | Yes | RPC/action/UI tests and manual library unchanged proof. | Local code/tests pass; linked/manual proof pending. | No-go |
 | Detached rows are clear to users | Yes | Row details copy/screenshot/manual QA. | Local UI coverage exists; screenshot/manual QA pending. | No-go |
-| Excel export is professional bid/BOQ workbook | Yes | Formula tests, reference contract, large-fixture benchmark, Excel + secondary app open proof, hosted route timing. | Local ExcelJS/workbook tests and synthetic 2,500-row benchmark pass; cross-app open and hosted route proof pending. | No-go |
+| Excel export is professional bid/BOQ workbook | Yes | Formula tests, reference contract, route-handler proof, large-fixture benchmark, Excel + secondary app open proof, hosted route timing. | Local ExcelJS/workbook tests, local route-handler workbook proof, and synthetic 2,500-row benchmark pass; cross-app open and hosted route proof pending. | No-go |
 | Resend delivery/webhook verified before visible email workflows are re-enabled | Yes | Domain DNS, delivery, webhook, bounce/complaint test. | Missing; recipient email controls now disable while server readiness is false, and Teamspaces invite delivery controls now disable while invite delivery readiness is false. | No-go |
 | Legal pages accurate | Yes | Reviewed or closed-beta approved copy. | Local beta copy pass; owner/counsel sign-off pending. | No-go |
 | Support/feedback path exists | Yes | Contact/support inbox and beta bug report route. | Protected `/workshop/feedback` exists and can persist to `beta_feedback_submissions` after migration apply; public contact form opens a structured support email draft; monitored inbox/table proof pending. | No-go |
@@ -93,7 +93,7 @@ Rules: below 90 cannot be called beta-ready; P0 below 95 blocks launch; 100 requ
 | Component library | 90 | Local polish tests and screenshot smoke pass; hosted/manual proof remains. |
 | Templates | 91 | Local preview tests, screenshot smoke, and insertion smoke pass; hosted/manual proof remains. |
 | Project-specific unlink | 86 | Local RPC/action/hook/UI tests pass; linked/manual proof remains. |
-| Excel export | 91 | Professional workbook tests, generated XLSX artifact, ZIP integrity, no-blank-total scan, and synthetic 2,500-row benchmark pass; cross-app open and hosted route proof remain. |
+| Excel export | 92 | Professional workbook tests, generated XLSX artifact, ZIP integrity, no-blank-total scan, local route-handler workbook proof, and synthetic 2,500-row benchmark pass; cross-app open and hosted route proof remain. |
 | Auth/onboarding | 78 | Local beta gate coverage and signed-out redirect/login UI E2E pass; Vercel env is empty, so hosted callback and first-run smoke are blocked. |
 | Infrastructure/deployment | 76 | Latest app-runtime preview deploy `dpl_8cpgQgEtrAgo6P5gX1fn3LwBJzdS` is Ready and protected health works through `vercel curl`; env, public health, custom-domain app health, rollback, and linked Supabase proof remain blocked. |
 | Email/Resend | 70 | Code fails closed when unconfigured, shared-link recipient email controls disable while readiness is false, and Teamspaces invite controls disable while invite delivery readiness is false; DNS/delivery/webhook/provider proof still missing. |
