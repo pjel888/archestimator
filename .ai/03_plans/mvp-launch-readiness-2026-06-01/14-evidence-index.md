@@ -48,6 +48,7 @@
 ### Repo-Local Implementation Freeze
 
 - Implementation freeze commit: `6ab5b38`.
+- Handoff artifact: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/repo-local-freeze-external-proof-handoff-2026-06-02.md`, with docs/status freeze `f2ed23c` and external proof handoff `c32540e`.
 - Scope: repo-local implementation for the deferred-provider launch scope is complete. Remaining work should be evidence/doc orchestration and external/provider/manual proof, not additional local code, unless a new repo-local defect is found.
 - Focused final proof refresh: `bunx vitest run tests/vitest/workshop-reset.test.tsx tests/vitest/template-library-manager-ui.test.tsx tests/vitest/estimate-sheet-cost-inputs.test.tsx tests/vitest/estimate-sheet-library-insert.test.tsx --maxWorkers=1` passed 4 files / 52 tests.
 - Launch meaning: this does **not** approve closed beta launch. Hosted auth, linked Supabase migrations/RLS/storage/RPC/backup/PITR, Vercel env/custom-domain/rollback, Resend delivery/webhook proof, spreadsheet-app open/print, legal/owner signoff, support/alert monitoring, and hosted/manual E2E remain **NO-GO** until proven in a later pass.
