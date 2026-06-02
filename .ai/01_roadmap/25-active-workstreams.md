@@ -595,15 +595,15 @@ The workstreams are not 7 independent parallel tracks — they **activate at dif
 
 ---
 
-## Activity History Overhaul V1 — active implementation workstream
+## Activity History Overhaul V1 — completed archived workstream
 
 | Field | Value |
 |---|---|
-| Status | `ACTIVE — Milestone 9 pushed; final quality gate and archive next` |
+| Status | `COMPLETED / ARCHIVED — repo-local implementation complete; final main merge pending` |
 | Branch | `feat/activity-history-overhaul-v1` |
-| Active plan | `.ai/03_plans/activity-history-overhaul-v1/` |
+| Archived plan | `.ai/09_archive/store/activity-history-overhaul-v1/` |
 | Evidence ledger | `.ai/01_roadmap/35-activity-history-overhaul-v1-execution.md` |
-| Archive target | `.ai/09_archive/store/activity-history-overhaul-v1/` after verified completion |
+| Archive path | `.ai/09_archive/store/activity-history-overhaul-v1/` |
 | Production telemetry | `NO-GO` until docs 64/66/68 gates have real evidence |
 
 This workstream covers PR 2 through PR 9 repo-local implementation: preflight correctness, composer module, estimate UI integration, shared-link API integration, recipient actor copy, privacy-safe access telemetry, pagination/Realtime hardening, telemetry operations hardening, and UI/accessibility/performance polish.

@@ -201,4 +201,4 @@ All evidence under `.ai/09_archive/store/YYYY-MM-DD-[goal-id]/`. Index in `28-ev
 
 ## Activity History Overhaul V1 consistency rule
 
-Activity History Overhaul V1 is currently tracked by `.ai/01_roadmap/35-activity-history-overhaul-v1-execution.md` while implementation is active. The active plan path is `.ai/03_plans/activity-history-overhaul-v1/`; after verified completion and archive, current roadmap references must point to `.ai/09_archive/store/activity-history-overhaul-v1/`. No roadmap doc may claim access telemetry is production-enabled unless docs 64/66/68 in the plan pack have real completed evidence.
+Activity History Overhaul V1 is completed and tracked by `.ai/01_roadmap/35-activity-history-overhaul-v1-execution.md`. The archived plan path is `.ai/09_archive/store/activity-history-overhaul-v1/`. No roadmap doc may claim access telemetry is production-enabled unless docs 64/66/68 in the plan pack have real completed evidence.
