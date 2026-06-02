@@ -140,6 +140,13 @@
 - Verification: graph impact flagged high auth-session blast radius; `bunx vitest run tests/vitest/auth-session-closed-beta.test.ts tests/vitest/auth-callback-route.test.ts tests/vitest/auth-proxy.test.ts --maxWorkers=1` passed 3 files / 25 tests; `bun run type-check` passed; focused ESLint passed.
 - Launch meaning: this is local fail-closed proof only until committed, pushed, deployed, and rechecked on Vercel. It does not prove allowed/denied/revoked/expired hosted sessions, callback URLs, linked allowlist data, Vercel env values, or first-run workspace behavior.
 
+### Vercel Preview Deploy Blocked at c8e25e2
+
+- Artifact: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/vercel-preview-deploy-blocked-c8e25e2-2026-06-02.md`.
+- Scope: commit `c8e25e2ce63dd3004db8085480432ba847900e10` was pushed to `origin/main`, but `vercel ls --non-interactive` still showed the pre-fix `dpl_3T35FnYXNspPUP3QL43tCASC4CMF` preview as newest/branch-alias target during the polling window.
+- Clean deploy attempt: a detached clean worktree at `c8e25e2` was used to avoid unrelated dirty checkout files. The first CLI preview deploy hit Vercel's upload file-size limit; after a temporary deploy-only `.vercelignore` excluded non-runtime evidence/deck folders, the retry failed before deployment with `api-deployments-free-per-day`.
+- Launch meaning: the fail-closed auth fix is committed and pushed, but hosted `/workshop` proof remains blocked until Vercel can create a fresh `c8e25e2` or later deployment and `vercel curl <deployment>/workshop -I` proves it no longer returns HTTP `500`.
+
 ### Hosted Export Route Auth-Blocked Probe at 231c27e
 
 - Artifact: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/hosted-export-route-auth-blocked-231c27e-2026-06-02.md`.
