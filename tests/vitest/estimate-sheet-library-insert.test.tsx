@@ -161,6 +161,18 @@ const nodesWithLinkedRow: EstimateTreeNode[] = [
   },
 ];
 
+const nodesWithOverriddenLinkedRow: EstimateTreeNode[] = [
+  {
+    ...nodesWithLinkedRow[0],
+    estimateRowItems: [
+      {
+        ...nodesWithLinkedRow[0].estimateRowItems![0],
+        linkState: "linked-overridden",
+      },
+    ],
+  },
+];
+
 function deferred<T>() {
   let resolve!: (value: T) => void;
   let reject!: (reason?: unknown) => void;
@@ -409,6 +421,19 @@ describe("estimate sheet library insertion persistence", () => {
     expect(within(kitchenSection).getByText("Kitchen Cabinet")).toBeInTheDocument();
     expect(within(kitchenSection).getByText("Project-specific")).toBeInTheDocument();
     expect(within(kitchenSection).getByText("₱ 210.00")).toBeInTheDocument();
+  });
+
+  it("shows exact library sync state in row component details", async () => {
+    const user = userEvent.setup();
+    renderPersistedEstimateSheet(nodesWithOverriddenLinkedRow);
+
+    const kitchenSection = screen.getByLabelText("Kitchen");
+    await user.click(within(kitchenSection).getByRole("button", { name: "Open component details for Kitchen Cabinet" }));
+
+    const dialog = screen.getByRole("dialog", { name: "Row item details" });
+    expect(within(dialog).getAllByText("Customized library component").length).toBeGreaterThan(0);
+    expect(within(dialog).getAllByText("This row is linked to the library, but one or more estimate values have project-specific overrides.").length).toBeGreaterThan(0);
+    expect(within(dialog).getByText("Source library id")).toBeInTheDocument();
   });
 
   it("rolls back a failed quantity save without rendering spreadsheet save pills", async () => {
