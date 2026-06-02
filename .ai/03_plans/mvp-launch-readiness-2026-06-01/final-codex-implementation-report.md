@@ -43,8 +43,18 @@ Post-report evidence-sync commits:
 - `9d71239` - Added the manual proof packet template.
 - `fd5d4b3` - Failed unconfigured production-like email delivery closed with `EMAIL_NOT_CONFIGURED`.
 - `61160ee` - Disabled shared-link recipient entry/send/resend controls while server email readiness is false.
+- `2587f80` - Synced launch docs with the email guardrails and current validation/build refresh.
+- `ff76431` - Kept launch evidence anchored to the current validation refresh.
+- `5ef9e4b` - Made the beta contact handoff honest.
+- `03156d9` - Disabled Teamspaces invite controls when delivery proof is missing.
+- `9066726` - Made beta feedback persistable before launch.
+- `c481b3b` - Kept beta feedback operations honest.
+- `948c859` - Aligned feedback launch docs with the feedback table path.
+- `21e2f43` - Made beta feedback reviewable before launch.
+- `2667583` - Made beta allowlist management available before launch.
+- `70e80c9` - Made closed-beta settings tools discoverable.
 
-These follow-up commits improve traceability only. They do not change the implementation baseline or the **NO-GO** recommendation. Current local validation refresh at `2587f80` also passed `bun run validate`: typecheck, lint with 14 existing warnings, design lint, unit tests (4 tests / 129 expectations), and DOM tests (133 files / 1034 passed / 2 skipped).
+These follow-up commits improve traceability only. They do not change the implementation baseline or the **NO-GO** recommendation. Current local validation refresh at `70e80c9` also passed `bun run validate`: typecheck, lint with 14 existing warnings, design lint, unit tests (4 tests / 129 expectations), and DOM tests (136 files / 1050 passed / 2 skipped).
 
 The remaining manual/provider proof packet is now centralized in `46-manual-proof-matrix.md`; it must be filled with dated artifacts before the external beta recommendation changes.
 
@@ -103,16 +113,16 @@ Latest doc truth-sync at `8084908`:
 - code-review-graph detect changes - 4 changed files, 4 changed functions/classes, 0 affected flows, 0 test gaps, risk 0.30.
 - `npx gitnexus detect-changes --repo archestimator --scope staged` - no changes detected.
 
-Current validation refresh at `2587f80`:
+Current validation refresh at `70e80c9`:
 
 - `bun run validate` - pass.
-- Subcommands covered: typecheck; lint with 14 existing warnings; design lint; unit tests, 4 tests / 129 expectations; DOM tests, 133 files / 1034 passed / 2 skipped.
+- Subcommands covered: typecheck; lint with 14 existing warnings; design lint; unit tests, 4 tests / 129 expectations; DOM tests, 136 files / 1050 passed / 2 skipped.
 - Launch meaning: local command suite remains green, but hosted/provider/manual proof gates still block external beta.
 
-Current app build refresh at `2587f80`:
+Current app build refresh at `70e80c9`:
 
 - `bun run build` - pass.
-- Build details: Next.js 16.2.6 / Turbopack compiled successfully, finished TypeScript, generated 29 static pages, and listed `/api/health`, disabled-by-default AI routes, the proposal export route, share/invite routes, and protected workshop routes.
+- Build details: Next.js 16.2.6 / Turbopack compiled successfully, finished TypeScript, generated 32 static pages, and listed `/api/health`, disabled-by-default AI routes, the proposal export route, share/invite routes, and protected workshop routes.
 - Launch meaning: local production build remains green, but Vercel deploy/env/health/rollback proof still blocks external beta.
 
 Focused red/green evidence for each implementation slice is recorded in `14-evidence-index.md`.
