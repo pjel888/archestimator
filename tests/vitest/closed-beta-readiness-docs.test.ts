@@ -283,7 +283,9 @@ describe("closed beta readiness docs", () => {
     expect(currentState).toContain("Later evidence-only commits `c93ae7a` and `13f5acb` do not invalidate the `638f681` Vercel app-runtime proof");
     expect(currentState).toContain("**Vercel Protection Evidence (2026-06-02):**");
     expect(currentState).toContain("**Vercel Public Health Readiness Helper (2026-06-02):**");
+    expect(currentState).toContain("vercel-health-readiness-02f3a9c-2026-06-02.json");
     expect(currentState).toContain("`vercelHealthReady` is `false`");
+    expect(currentState).toContain("latest refresh again has zero ready URLs");
     expect(currentState).toContain("**Vercel Production Alias/Rollback Readiness Helper (2026-06-02):**");
     expect(currentState).toContain("`vercelProductionReady` is `false`");
     expect(currentState).toContain("**Hosted Auth Route Proof Helper (2026-06-02):**");
@@ -317,7 +319,9 @@ describe("closed beta readiness docs", () => {
     expect(knownIssues).toContain("still discovers zero env names");
     expect(knownIssues).toContain("all app-owned invite delivery env names missing");
     expect(knownIssues).toContain("Vercel public health readiness evidence on 2026-06-02 remains blocked");
-    expect(knownIssues).toContain("`vercel-health-readiness-4fdf0de-2026-06-02.json` reports branch-alias public `/api/health` is HTTP `401`");
+    expect(knownIssues).toContain("`vercel-health-readiness-4fdf0de-2026-06-02.json` and latest `vercel-health-readiness-02f3a9c-2026-06-02.json` report branch-alias public `/api/health` is HTTP `401`");
+    expect(knownIssues).toContain("vercel-health-readiness-02f3a9c-2026-06-02.json");
+    expect(knownIssues).toContain("zero ready URLs are present");
     expect(knownIssues).toContain("Vercel production alias/rollback readiness evidence on 2026-06-02 remains blocked");
     expect(knownIssues).toContain("vercel-production-readiness-4fdf0de-2026-06-02.json");
     expect(knownIssues).toContain("`bun run launch:verify-hosted-auth` is available as a sanitized hosted `/workshop` route helper");
@@ -565,6 +569,7 @@ describe("closed beta readiness docs", () => {
     expect(manualProofMatrix).toContain("dpl_Fj4vLSMVm9iUqUFxcYe7fjsYmT4G");
     expect(manualProofMatrix).toContain("vercel-protection-read-only-2026-06-02.md");
     expect(manualProofMatrix).toContain("vercel-health-readiness-4fdf0de-2026-06-02.json");
+    expect(manualProofMatrix).toContain("vercel-health-readiness-02f3a9c-2026-06-02.json");
     expect(manualProofMatrix).toContain("zero ready URLs");
     expect(manualProofMatrix).toContain("vercel-production-readiness-4fdf0de-2026-06-02.json");
     expect(manualProofMatrix).toContain("19 ready rollback candidates");
@@ -733,6 +738,7 @@ describe("closed beta readiness docs", () => {
     expect(artifactFilenames).toContain("supabase-linked-readiness-4fdf0de-2026-06-02.json");
     expect(artifactFilenames).toContain("supabase-linked-readiness-mcp-bc798a9-2026-06-02.json");
     expect(artifactFilenames).toContain("vercel-env-readiness-6aaa0b7-2026-06-02.json");
+    expect(artifactFilenames).toContain("vercel-health-readiness-02f3a9c-2026-06-02.json");
     expect(artifactFilenames).toContain("vercel-production-readiness-4fdf0de-2026-06-02.json");
     expect(artifactFilenames).toContain("provider-state-refresh-b33f56d-2026-06-02.md");
     expect(artifactFilenames).toContain("provider-state-refresh-d78686f-2026-06-02.md");
@@ -788,6 +794,7 @@ describe("closed beta readiness docs", () => {
     expect(goalCompletionAudit).toContain("zero discovered env names");
     expect(goalCompletionAudit).toContain("Vercel custom-domain readiness evidence");
     expect(goalCompletionAudit).toContain("Vercel public health readiness helper");
+    expect(goalCompletionAudit).toContain("vercel-health-readiness-02f3a9c-2026-06-02.json");
     expect(goalCompletionAudit).toContain("`bun run launch:check-vercel-health` now gives a repeatable sanitized public/custom-domain health check");
     expect(goalCompletionAudit).toContain("`vercelHealthReady: false`");
     expect(goalCompletionAudit).toContain("Vercel production alias/rollback readiness helper");
