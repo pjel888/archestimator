@@ -410,6 +410,15 @@
 - Local env refresh: current shell printed no matching `RESEND_`, closed-beta, AI, dev-auth, or Supabase env variables.
 - Launch meaning: this refresh confirms the previous provider blockers are still current. Hosted auth, env-backed Supabase/Resend behavior, production/custom-domain health, rollback, backup/PITR, linked allowlist, and linked unlink proof remain **NO-GO** rows.
 
+### Supabase Linked Readiness Refresh Evidence
+
+- Artifact: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/supabase-linked-readiness-refresh-2026-06-02.md`.
+- Linked project proof: Supabase CLI `2.98.2` is linked to `Archestimator` / `ebxxqidacheyapmmzavr`.
+- CLI-read blocker: `supabase migration list --linked` and `supabase db advisors --linked --type performance --output json` failed with temp-role pooler `ECIRCUITBREAKER` and `SUPABASE_DB_PASSWORD` guidance.
+- Targeted SQL parity proof: linked read-only SQL returned `false` for migrations `20260601182522`, `20260601184343`, `20260602005649`, `20260602083000`, and `20260602084500`; `false` for `closed_beta_allowed_emails`, `beta_feedback_submissions`, `check_closed_beta_access`, and `unlink_estimate_row_item_from_library_with_history`; and `true` for `component-images` public bucket status.
+- Current security advisor summary: 36 `anon_security_definer_function_executable`, 62 `authenticated_security_definer_function_executable`, 3 `function_search_path_mutable`, 1 `public_bucket_allows_listing`, and 1 `auth_leaked_password_protection` WARN findings.
+- Launch meaning: linked Supabase remains **NO-GO**. Do not run hosted allowlist, feedback, or project-specific unlink pass candidates until backup/PITR proof exists and linked migrations/RPCs/tables are applied and directly verified.
+
 ### Vercel Current-Head Read-Only Evidence
 
 - Artifact: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/vercel-current-head-read-only-165e4a3-2026-06-02.md`.
