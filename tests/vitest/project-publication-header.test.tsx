@@ -131,6 +131,14 @@ describe("ProjectWorkspaceHeaderRow publication control", () => {
     expect(within(dialog).queryByText("Client publication snapshot")).not.toBeInTheDocument();
   });
 
+  it("keeps the shared-link modal responsive instead of forcing a desktop grid on mobile", () => {
+    const headerSource = readFileSync("src/components/workshop/ProjectPublicationHeader.tsx", "utf8");
+
+    expect(headerSource).toContain("grid-cols-1 lg:grid-cols-[260px_minmax(0,1fr)]");
+    expect(headerSource).toContain("border-b border-hairline bg-surfaceMuted p-4 lg:border-b-0 lg:border-r lg:p-6");
+    expect(headerSource).not.toContain('className="grid min-h-[600px] grid-cols-[260px_minmax(0,1fr)]"');
+  });
+
   it("offers one-click header copy and marks shared-link activity before opening the modal", async () => {
     const user = userEvent.setup();
     const writeText = vi.fn(async () => undefined);

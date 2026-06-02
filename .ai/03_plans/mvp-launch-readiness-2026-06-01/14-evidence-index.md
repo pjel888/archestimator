@@ -33,6 +33,12 @@
 - Guardrail evidence: `bunx vitest run tests/vitest/landing-interactivity.test.tsx tests/vitest/landing-company-proof.test.ts --maxWorkers=1` passed 2 files / 12 tests.
 - Launch meaning: this closes the local hero-copy risk only. It does not provide desktop/mobile screenshot evidence, owner/counsel legal review, or proof for every public landing claim; those gates remain **NO-GO**.
 
+### Local Shared-Link Responsive Modal Slice
+
+- Scope: the project shared-link modal now uses a single-column shell on small screens and keeps the existing two-column layout at large breakpoints, preventing the owner workflow from forcing desktop columns on mobile-width viewports.
+- Guardrail evidence: `bunx vitest run tests/vitest/project-publication-header.test.tsx --maxWorkers=1` passed 1 file / 30 tests.
+- Launch meaning: this closes one concrete responsive-layout risk only. It does not provide browser screenshot evidence, hosted share smoke, recipient email proof, or a full responsive sweep; those gates remain **NO-GO**.
+
 ### Final Codex Implementation Report Evidence
 
 - Final report artifact: `final-codex-implementation-report.md`.

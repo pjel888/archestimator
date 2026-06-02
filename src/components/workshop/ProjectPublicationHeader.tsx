@@ -344,9 +344,9 @@ export function ProjectPublicationHeader({ summary, projectEstimateSheets = [] }
         className="max-w-5xl"
         bodyClassName="p-0"
       >
-        <div className="grid min-h-[600px] grid-cols-[260px_minmax(0,1fr)]">
+        <div className="grid min-h-[600px] grid-cols-1 lg:grid-cols-[260px_minmax(0,1fr)]">
           {/* Sidebar */}
-          <aside className="border-r border-hairline bg-surfaceMuted p-6">
+          <aside className="border-b border-hairline bg-surfaceMuted p-4 lg:border-b-0 lg:border-r lg:p-6">
             <div className="space-y-4">
               <div>
                 <p className="text-[9px] font-medium uppercase leading-3 tracking-normal text-tertiary">Shared link</p>
