@@ -116,10 +116,10 @@
 
 - Script: `scripts/check-supabase-linked-readiness.ts`.
 - Package command: `bun run launch:check-supabase-linked-readiness`.
-- Proof artifact: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/supabase-linked-readiness-4fdf0de-2026-06-02.json`.
+- Proof artifact: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/supabase-linked-readiness-f56838d-2026-06-02.json`.
 - Scope: parses sanitized JSON output from the read-only `scripts/sql/linked-supabase-launch-readiness.sql` query and records migration, table/RLS, anon grant, function, storage, and summary pass/fail counts.
-- Current refresh: `SUPABASE_LINKED_READINESS_FILE=/tmp/arch-provider-refresh-4fdf0de/supabase-linked-readiness.txt SUPABASE_LINKED_PROJECT_REF=ebxxqidacheyapmmzavr OUTPUT_FILE=.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/supabase-linked-readiness-4fdf0de-2026-06-02.json bun run launch:check-supabase-linked-readiness` wrote sanitized JSON and exited `1` after the underlying read-only SQL command was stopped during linked database SASL auth retries.
-- Result: no JSON rows parsed; the artifact records `blockedReason: "Supabase linked database SASL authentication failed."`, all readiness categories missing, and `linkedSupabaseLaunchReady: false`.
+- Current refresh: `supabase db query --linked --file scripts/sql/linked-supabase-launch-readiness.sql --output json` returned sanitized read-only JSON; `SUPABASE_LINKED_READINESS_FILE=/tmp/arch-provider-refresh-f56838d/supabase-linked-readiness.json SUPABASE_LINKED_PROJECT_REF=ebxxqidacheyapmmzavr OUTPUT_FILE=.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/supabase-linked-readiness-f56838d-2026-06-02.json bun run launch:check-supabase-linked-readiness` wrote sanitized JSON and exited `1`.
+- Result: all required categories parsed; 13 total checks / 13 failed rows; five launch migrations missing, two required tables missing, two private-table grant checks at `table_missing`, two required functions missing, `storage.buckets.component-images:public`, `summaryPassed: false`, and `linkedSupabaseLaunchReady: false`.
 - Launch meaning: this makes the deeper linked Supabase SQL readiness proof repeatable, but it does not apply migrations, repair migration history, mutate storage, perform RLS/browser allow-deny checks, prove backup/PITR, or run a restore. Linked Supabase remains **NO-GO**.
 
 ### Supabase Linked Readiness MCP Refresh at bc798a9
