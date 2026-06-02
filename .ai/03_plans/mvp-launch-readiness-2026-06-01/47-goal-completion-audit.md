@@ -11,8 +11,8 @@ This audit maps the active MVP launch goal in `codex-autopilot-goal.md` to curre
 | Local implementation baseline | `c5ca065` green implementation baseline after demo seed repair. |
 | Final local implementation report baseline | `8084908`. |
 | Local signed-out auth E2E smoke | `a65b34b`, 2 Playwright checks passed. |
-| Local validation refresh | `2587f80`, `bun run validate` passed: typecheck, lint with 14 existing warnings, design lint, unit, DOM. |
-| Local build refresh | `2587f80`, `bun run build` passed under Next.js 16.2.6 / Turbopack with 29 static pages. |
+| Local validation refresh | `70e80c9`, `bun run validate` passed: typecheck, lint with 14 existing warnings, design lint, unit, DOM. |
+| Local build refresh | `70e80c9`, `bun run build` passed under Next.js 16.2.6 / Turbopack with 32 static pages. |
 | Manual/provider proof matrix | `46-manual-proof-matrix.md`, with packet template `48-manual-proof-packet-template.md`; component/template demo smoke and template insertion are partial/local pass, while hosted/provider/manual P0 rows still block launch. |
 | Supabase read-only provider evidence | `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/supabase-read-only-cli-2026-06-02.md`; backup list showed PITR disabled and no listed backups; security advisor returned WARN findings; migration/performance CLI reads were blocked by the temp-role pooler circuit breaker. |
 | Supabase linked schema parity evidence | `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/supabase-linked-schema-parity-2026-06-02.md`; Management API SQL readback succeeded and found linked migration history missing `20260601182522` and `20260601184343`, with `closed_beta_allowed_emails`, `check_closed_beta_access`, and `unlink_estimate_row_item_from_library_with_history` absent. |

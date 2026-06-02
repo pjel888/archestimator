@@ -24,8 +24,8 @@ No Stripe, checkout, subscriptions, billing UI, invoices, paid tiers, pricing en
 - Full local implementation baseline: `c5ca065` after demo seed row repair.
 - Final report baseline: `8084908` after canonical state/decision/roadmap truth sync.
 - Final report indexed in launch docs: `3e8d7a0`.
-- Current local validation refresh: `2587f80`, `bun run validate` passed with DOM at 133 files / 1034 passed / 2 skipped.
-- Current local app build refresh: `2587f80`, `bun run build` passed with Next.js 16.2.6 / Turbopack and 29 static pages.
+- Current local validation refresh: `70e80c9`, `bun run validate` passed with DOM at 136 files / 1050 passed / 2 skipped.
+- Current local app build refresh: `70e80c9`, `bun run build` passed with Next.js 16.2.6 / Turbopack and 32 static pages.
 - Resend guardrail refresh: `fd5d4b3` fails unconfigured production-like email sends closed; `61160ee` disables shared-link recipient entry/send/resend controls while server email readiness is false; local Teamspaces invite controls now disable while project invite delivery readiness is false.
 - Install, type-check, lint, design-system lint, unit tests, full DOM tests, and build passed locally.
 - Local signed-out auth E2E passed: `PLAYWRIGHT_PORT=3037 bun run test:e2e -- e2e/auth.spec.ts --project=chromium`, 2 tests in 9.9s.
