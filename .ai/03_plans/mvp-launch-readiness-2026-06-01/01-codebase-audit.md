@@ -56,7 +56,7 @@ Non-mutating E2E was not run. The suite contains feature-flagged and seeded flow
 
 - `/contact` and `ContactForm` exist, with feedback-style inquiry options.
 - The contact form currently behaves like a client-side success mock and is not proven as a durable feedback capture path.
-- Closed beta needs a P0 support/feedback path. Safest MVP recommendation: external form link plus support email, with in-app visibility for allowed users.
+- Closed beta needs a P0 support/feedback path. Current local implementation provides protected `/workshop/feedback` plus support email fallback; linked migration apply, hosted smoke, and monitored review proof remain launch gates.
 
 Commit audited: `681c95e64864f283950a88dba304eaffe8f2f8b3`
 Audit date: 2026-06-02

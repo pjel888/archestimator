@@ -501,7 +501,7 @@
 - Workshop feedback path: `WorkshopPageShell` renders `Send beta feedback`.
 - Legal/deletion copy: `/terms` and `/privacy` both point support, access, beta feedback, and data deletion requests to `support@archestimator.com`.
 - Test coverage: `tests/vitest/support-contact-readiness.test.ts` guards those source contracts, and `tests/vitest/workshop-reset.test.tsx` already renders the workshop feedback link.
-- Launch meaning: this proves a local visible support/feedback surface, not monitored inbox/form delivery, uptime/error alerts, or incident ownership. Support/monitoring remains a **NO-GO** row until manual/provider proof exists.
+- Launch meaning: this proves a local visible support/feedback surface, not monitored inbox/table review, uptime/error alerts, or incident ownership. Support/monitoring remains a **NO-GO** row until manual/provider proof exists.
 
 ### Beta Feedback In-App Local Evidence
 

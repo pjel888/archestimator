@@ -8,7 +8,7 @@
 | Legitimate beta user blocked | High | Manual allowlist verification, access-required copy, support path, and allowed-account smoke remain required. |
 | Revoked user keeps session access | High | Local protected route/session status checks exist; hosted revoked-session smoke remains required. |
 | Pricing/payment copy misleads users | High | Hide or reframe `/pricing` and CTAs as invite-only beta. |
-| Beta feedback not captured | High | Local workshop support mailto exists; monitored inbox/form proof remains required before cohort invites. |
+| Beta feedback not captured | High | Local protected `/workshop/feedback` and support email paths exist; linked migration apply, hosted feedback smoke, monitored inbox/table review, and alert ownership proof remain required before cohort invites. |
 | Investor sees public pricing confusion | Medium | Use investor demo script and beta pricing disclaimer. |
 | Manual whitelist management error | Medium | Use exact Google email, notes, status field, and runbook verification. |
 | Google OAuth callback domain mismatch | High | Verify Supabase callback URLs for Vercel production/preview domains. |

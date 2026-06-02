@@ -131,7 +131,7 @@ Build, type-check, design lint, unit tests, and full DOM tests are green locally
 - Resend DNS/delivery/webhook proof before share/invite email workflows are re-enabled; current local guardrails disable recipient email controls and fail unconfigured sends closed.
 - Excel/secondary spreadsheet app open, formula, print, and workbook artifact proof.
 - Owner/counsel legal review of beta terms/privacy/support/data deletion copy.
-- Monitored support inbox or external feedback form proof.
+- Monitored support inbox/table review proof.
 - Demo rehearsal screenshots and validated exported workbook artifact.
 - Current Playwright/manual E2E smoke for the protected happy path.
 
@@ -139,7 +139,7 @@ Build, type-check, design lint, unit tests, and full DOM tests are green locally
 
 - Centralized error tracking/APM and log aggregation are not configured.
 - Large-estimate performance, bundle size, export timeout, and production route-transition benchmarks remain unproven.
-- Custom in-app feedback database is deferred in favor of the lightweight support email path.
+- Linked migration, hosted smoke, and monitored review proof for the protected feedback table remain open.
 - Full template/admin CRUD, bulk import/export, and broader library management remain post-beta unless specifically prioritized.
 - AI remains deferred; any reactivation needs a new ADR, provider/legal/budget/security review, and live proof.
 
@@ -157,7 +157,7 @@ Build, type-check, design lint, unit tests, and full DOM tests are green locally
 - First project, first estimate, component insert, template insert, project-specific detach/edit, and export smoke.
 - Excel workbook open/print/formula verification in at least Excel plus one secondary spreadsheet app.
 - Demo rehearsal using seeded data with screenshots and exported workbook artifact.
-- Support/feedback link and inbox/form monitoring proof.
+- Support/feedback link plus inbox/table monitoring proof.
 - Provider dashboard screenshots/checklists for Supabase, Vercel, and Resend where applicable.
 
 ## 10. Closed Beta Go/No-Go Recommendation
