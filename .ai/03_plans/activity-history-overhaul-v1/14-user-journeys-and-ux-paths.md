@@ -503,3 +503,4 @@
 - See `15-information-architecture-and-surface-map.md` for surface mapping
 - See `18-manual-qa-and-acceptance-matrix.md` for QA scripts per journey
 - See `20-edge-case-and-failure-mode-matrix.md` for edge case coverage
+- See `23-shared-page-access-activity-plan.md` for access telemetry journeys

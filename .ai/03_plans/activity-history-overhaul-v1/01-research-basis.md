@@ -1,7 +1,7 @@
 # 01 — Research Basis: Activity Feed UX, Audit Copy, Privacy & Accessibility
 
-**Date:** 2026-06-02 (second pass: 2026-06-02)  
-**Note:** Browser-based research was not available during either pass. The following principles are drawn from known industry standards (Nielsen Norman Group, GOV.UK, Microsoft Writing Style Guide, WCAG 2.2, WAI-ARIA APG, OWASP). Direct URL verification was not possible — assumptions are marked. Second pass: added stronger source categorization and explicit "Needs primary verification" tags.
+**Date:** 2026-06-02 (second pass: 2026-06-02; third pass: 2026-06-02)  
+**Note:** Browser-based research was not available during any pass. The following principles are drawn from known industry standards (Nielsen Norman Group, GOV.UK, Microsoft Writing Style Guide, WCAG 2.2, WAI-ARIA APG, OWASP). Direct URL verification was not possible — assumptions are marked. Second pass: added stronger source categorization and explicit "Needs primary verification" tags. Third pass: added access logging, IP privacy, and user-agent parsing research areas.
 
 ---
 

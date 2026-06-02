@@ -3,6 +3,8 @@
 **Date:** 2026-06-02 (second pass: 2026-06-02)  
 **Status:** Proposed (pending approval) — Second pass: added role-based copy rules, improved blank row copy, added decision body rules, added "customized from library" improvement
 
+
+
 ---
 
 ## 1. Activity Sentence Formula
@@ -499,3 +501,47 @@ Audit facts (expandable, owner-only or owner-audit) may include:
 5. **Decision without note** renders no secondary body — just the primary sentence.
 6. **Internal comments must never appear** in public API responses, client views, or client email digests.
 7. **Correlation-grouped events** show aggregated primary sentence, then expandable per-event detail.
+
+---
+
+## 18. Access Telemetry Copy (Third Pass)
+
+### Page/Proposal View Events
+
+| Event concept | Primary copy (owner) | Client copy (own view only) |
+|---|---|---|
+| Page visited (anonymous) | "Anonymous viewer opened the shared link." | Not shown |
+| Page visited (known recipient) | "{name} opened the shared link." | "You opened the shared link." |
+| Password gate viewed | "Client reached the password page." | Not shown |
+| Password attempted (success) | "Client unlocked the shared link." | Not shown |
+| Password attempted (failure) | "Client entered an incorrect password." | Not shown |
+| Password locked | "Client's password attempt was blocked." | Not shown |
+| Proposal viewed (anonymous) | "Anonymous viewer viewed the proposal." | Not shown |
+| Proposal viewed (known recipient) | "{name} viewed the proposal." | "You viewed the proposal." |
+| Recipient session started | "{name}'s session started." | Not shown |
+
+### Device/Location Audit Facts
+
+Device/browser/location appear in audit facts (expandable), not primary copy:
+
+- **Audit fact:** "Device: Chrome 125 on macOS (Desktop)"
+- **Audit fact:** "Location: Makati, NCR, PH (approximate)"
+- **Audit fact:** "Password protected: Yes"
+- **Audit fact:** "Access stage: Proposal viewed"
+
+Primary copy remains focused on the event. Device/location is context, not the headline.
+
+### Access Copy Rules
+
+1. Never put device/location in primary sentence unless it IS the point of the event.
+2. "Client unlocked the shared link" is a primary sentence — password unlock is the event.
+3. "Client entered an incorrect password" is a primary sentence — failure is the event.
+4. Device/location always goes in secondary/audit context.
+5. Location is always marked "approximate" when shown.
+6. Owner sees device/location in audit facts. Client never sees it.
+7. Bot/crawler visits: "System detected a bot visit" with bot type in audit facts.
+
+### Cross-References
+
+- See `23-shared-page-access-activity-plan.md` for access telemetry implementation
+- See `26-privacy-retention-and-client-disclosure-plan.md` for privacy boundaries

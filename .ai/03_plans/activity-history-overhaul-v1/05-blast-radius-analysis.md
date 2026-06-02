@@ -1,10 +1,10 @@
 # 05 — Blast-Radius Analysis
 
-**Date:** 2026-06-02 (second pass: 2026-06-02)
+**Date:** 2026-06-02 (second pass: 2026-06-02; third pass: 2026-06-02)
 
 ## Scope
 
-This analysis covers all files, components, routes, database tables, tests, and integration surfaces affected by the Activity History Human-Readable V1 implementation.
+This analysis covers all files, components, routes, database tables, tests, and integration surfaces affected by the Activity History Overhaul V1 implementation, including access telemetry.
 
 ---
 

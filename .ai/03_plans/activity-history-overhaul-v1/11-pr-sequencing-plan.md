@@ -1,7 +1,8 @@
-# 11 — PR Sequencing Plan (Revised — Second Pass)
+# 11 — PR Sequencing Plan (Revised — Third Pass)
 
-**Date:** 2026-06-02 (second pass: 2026-06-02)
-**Principle:** Small PRs, each independently revertible, each merge-safe (no failing CI). Second pass revision: tests + composer combined into one merge-safe PR; preflight cleanup added.
+**Date:** 2026-06-02 (second pass: 2026-06-02; third pass: 2026-06-02)
+**Principle:** Small PRs, each independently revertible, each merge-safe (no failing CI).
+**Note:** See `27-third-pass-master-implementation-blueprint.md` for the definitive 9-PR sequence including access telemetry.
 
 ---
 

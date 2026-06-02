@@ -15,10 +15,12 @@
 - [x] Blast radius mapped — 22 files, 2 critical, 2 high, 10 medium, 12 low-risk items
 - [x] Performance risks documented — index analysis needed, payload sizes understood
 - [x] Security/privacy risks documented — 2 critical (internal comment leak, raw field leak)
-- [x] Migration decision: **No database migration required**
+- [x] Migration decision: **No database migration required for V1.0 copy-only. `metadata_json` for V1.1 access telemetry (no migration). Structured columns deferred to V2.**
+- [x] Third-pass planning docs complete — 27 documents
 - [x] Feature flag decision: **Not required** — phased PRs provide natural rollout control
-- [x] Rollout plan: **7 small PRs, each independently revertible**
-- [x] PR split documented in `11-pr-sequencing-plan.md`
+- [x] Rollout plan: **9 small PRs, each independently revertible**
+- [x] PR split documented in `11-pr-sequencing-plan.md` and `27-third-pass-master-implementation-blueprint.md`
+- [x] Third-pass verification complete at `d78686f` — `22-third-pass-verification-audit.md`
 
 ---
 
@@ -131,28 +133,27 @@
 
 ## Go/No-Go Recommendation
 
-### RECOMMENDATION: GO for Phase 0 preflight only ✅
+### RECOMMENDATION: GO for third-pass documentation merge ✅
 
-**Rationale after second-pass audit:**
+**Rationale after third-pass audit at HEAD `d78686f`:**
 
-1. **No database migration required for V1.** The composer is a pure projection layer.
-2. **Several critical issues need preflight fixes before composer work:**
-   - Realtime subscription filter is broken (empty string) — must fix or remove from V1 claims
-   - `row_inserted` filter is a bug — must fix before users encounter it
-   - Shared-link owner pagination is flawed — needs query-level cursor
-   - Public API response shape missing `event_type` from `shared_link_events`
-3. **Strong existing foundation remains.** The data model supports rich human-readable copy.
-4. **Decision digest already exists** — focus on improvement, not creation.
-5. **New second-pass documents provide implementation-ready specs.** The composer spec (`21-activity-composer-spec.md`) is detailed enough to begin coding.
+1. **Third-pass verification confirmed all second-pass findings.** No activity code changed between `97c7d60` and `d78686f`.
+2. **Three new gaps documented** — shared page access telemetry, device/browser/location metadata, first-recipient visit resolution.
+3. **Access telemetry plan created** (`23-shared-page-access-activity-plan.md`) — implementation ready but requires privacy/legal sign-off.
+4. **Data model decision: `metadata_json` for V1.1, structured columns deferred to V2.**
+5. **PR sequence updated to 9 PRs** — preflight + composer + estimate UI + shared-link UI + recipient resolution + access telemetry + realtime/pagination + UI polish.
+6. **Migration stance: No migration for V1 copy-only. `metadata_json` for V1.1 access telemetry (no migration). Structured columns deferred to V2.**
 
-**Go decision:** GO for Phase 0 preflight fixes. Re-evaluate after preflight for full implementation go-ahead.
+**Go decision:** GO for third-pass documentation merge. GO for preflight after docs approval. **NO-GO for full implementation until access telemetry privacy stance, in-product disclosure, bot filtering approach, and location data policy are approved by stakeholders.**
 
-**The primary risk** remains `EstimateSheetContent.tsx` is a large, complex file — mitigated by incremental replacement with full test coverage.
+See `27-third-pass-master-implementation-blueprint.md` for the definitive go/no-go and `26-privacy-retention-and-client-disclosure-plan.md` for privacy boundaries that need approval.
 
-### Blocker: Realtime status must be decided before Phase 3
+### Blocker: Access telemetry privacy/product decisions must be approved before PR 7
 
-- If Realtime is broken and cannot be fixed quickly, remove from V1 claims and use manual refresh.
-- This decision gates the shared-link activity PR sequencing.
+- In-product disclosure of access logging (legal/compliance)
+- Bot/crawler event filtering in UI
+- Location data granularity policy
+- These decisions gate the shared page access telemetry implementation. See `26-privacy-retention-and-client-disclosure-plan.md`.
 
 ---
 

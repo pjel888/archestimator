@@ -1,10 +1,16 @@
 # 12 — Second-Pass Verification Audit
+## 8. Third-Pass Note (2026-06-02)
 
-**Date:** 2026-06-02  
-**Branch:** `main`  
-**Current HEAD:** `97c7d608b530eca135289c8d8418570a5fffacc7` (`Benchmark proposal workbook export scale`)  
-**First-pass claimed commit:** `638f681` (`Refresh local validation at current head`)  
-**Status:** Second-pass audit complete, docs updated
+Third-pass verification at HEAD `d78686f` confirmed no activity-related code changed between `97c7d60` (second-pass HEAD) and `d78686f` (current HEAD). The second-pass audit findings remain accurate for the current codebase. New findings (access telemetry gaps, device/location metadata missing) are documented in `22-third-pass-verification-audit.md`.
+
+## Cross-References
+
+- See `22-third-pass-verification-audit.md` for third-pass verification at `d78686f`
+**Date:** 2026-06-02
+**Branch:** `main`
+**Current HEAD:** `d78686f` (`Refresh current-head launch validation proof`) — **NOTE: HEAD was `97c7d60` at second-pass time. Updated in third pass. No activity code changed between the two.**
+**First-pass claimed commit:** `638f681` (`Refresh local validation at current head`)
+**Status:** Second-pass audit complete, docs updated. **Third-pass verification at `d78686f` in `22-third-pass-verification-audit.md`.**
 
 ---
 
