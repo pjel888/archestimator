@@ -303,7 +303,18 @@ revoke all on table public.shared_link_responses from public, anon, authenticate
 revoke all on table public.shared_link_events from public, anon, authenticated;
 
 -- Managers (authenticated) get read via RLS policies above
-grant select on table public.shared_link_recipients to authenticated;
+grant select (
+  id,
+  publication_id,
+  email,
+  display_name,
+  invited_by,
+  invited_at,
+  delivery_status,
+  last_opened_at,
+  created_at,
+  updated_at
+) on table public.shared_link_recipients to authenticated;
 grant select on table public.shared_link_comments to authenticated;
 grant select on table public.shared_link_responses to authenticated;
 grant select on table public.shared_link_events to authenticated;
@@ -313,8 +324,8 @@ grant select on table public.shared_link_events to authenticated;
 revoke all on function public.insert_client_comment(text, text, uuid, uuid, text) from public, anon, authenticated;
 revoke all on function public.submit_client_response(text, text, text, text) from public, anon, authenticated;
 
-grant execute on function public.insert_client_comment(text, text, uuid, uuid, text) to anon, authenticated, service_role;
-grant execute on function public.submit_client_response(text, text, text, text) to anon, authenticated, service_role;
+grant execute on function public.insert_client_comment(text, text, uuid, uuid, text) to service_role;
+grant execute on function public.submit_client_response(text, text, text, text) to service_role;
 
 -- Service role can insert events directly if future paths require (in addition to RPC patterns)
 grant insert on table public.shared_link_events to service_role;

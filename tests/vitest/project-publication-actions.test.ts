@@ -78,6 +78,22 @@ describe("project publication manager actions (Shared Link Overhaul V2)", () => 
     expect(actions).toContain("invited_by");
   });
 
+  it("does not expose recipient token hashes through manager recipient listing or public grants", () => {
+    const migration = readFileSync("supabase/migrations/20260601145000_lock_down_shared_link_recipient_credentials.sql", "utf8");
+    const listRecipientAction = actions.match(/export async function listSharedLinkRecipients[\s\S]*?^}/m)?.[0] ?? "";
+
+    expect(listRecipientAction).not.toContain('select("*")');
+    expect(listRecipientAction).not.toContain("recipient_token_hash");
+    expect(listRecipientAction).toContain("id, publication_id, email, display_name");
+    expect(migration).toContain("revoke all on table public.shared_link_recipients from public, anon, authenticated;");
+    expect(migration).toContain("grant select (");
+    expect(migration).not.toMatch(/grant select on table public\.shared_link_recipients to authenticated/);
+    expect(migration).not.toMatch(/grant execute on function public\.insert_client_comment\(text, text, uuid, uuid, text\) to .*\banon\b/);
+    expect(migration).not.toMatch(/grant execute on function public\.submit_client_response\(text, text, text, text\) to .*\bauthenticated\b/);
+    expect(migration).toContain("grant execute on function public.insert_client_comment(text, text, uuid, uuid, text) to service_role;");
+    expect(migration).toContain("grant execute on function public.submit_client_response(text, text, text, text) to service_role;");
+  });
+
   it("supports per-recipient resend with a fresh secure recipient token and a 5 minute rate limit", () => {
     expect(actions).toContain("resendSharedLinkRecipientEmail");
     expect(actions).toContain("shared_link_recipient_resend");
