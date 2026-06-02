@@ -213,9 +213,9 @@ describe("estimate sheet version control UI", () => {
     const afterSnapshot = within(replacementCard).getByLabelText("After component snapshot for HEMLINGBY Loveseat");
     expect(within(rowDialog).getByText("May 24, 10:30 AM")).toBeInTheDocument();
     expect(within(rowDialog).getByText("May 24, 10:45 AM")).toBeInTheDocument();
-    expect(within(replacementCard).getByText("Row replaced")).toBeInTheDocument();
-    expect(within(replacementCard).getByText("Replaced Hardwood Oak Flooring (Brand: Oakline; Supplier: Elegant Floors Inc.) with HEMLINGBY Loveseat (Brand: IKEA; Supplier: IKEA Philippines).")).toBeInTheDocument();
-    expect(within(replacementCard).getByText("Hardwood Oak Flooring (Brand: Oakline; Supplier: Elegant Floors Inc.) -> HEMLINGBY Loveseat (Brand: IKEA; Supplier: IKEA Philippines)")).toBeInTheDocument();
+    expect(within(replacementCard).getAllByText("System replaced Hardwood Oak Flooring with HEMLINGBY Loveseat.").length).toBeGreaterThan(0);
+    expect(within(replacementCard).queryByText("Row replaced")).not.toBeInTheDocument();
+    expect(within(replacementCard).getByText("material, supplier, unit cost, source snapshot")).toBeInTheDocument();
     expect(within(replacementCard).getByText("Audit facts")).toBeInTheDocument();
     expect(within(replacementCard).getByText("Component snapshot evidence")).toBeInTheDocument();
     expect(replacementCard.querySelectorAll("[data-row-history-component-card]")).toHaveLength(2);
@@ -231,8 +231,8 @@ describe("estimate sheet version control UI", () => {
     expect(within(afterSnapshot).getByText("IKEA Philippines loveseat, Knisa dark gray.")).toBeInTheDocument();
     expect(within(afterSnapshot).getByText("Furniture")).toBeInTheDocument();
     expect(within(afterSnapshot).getByText("pc")).toBeInTheDocument();
-    expect(within(scalarCard).getByText("Row updated")).toBeInTheDocument();
-    expect(within(scalarCard).getByText("Changed quantity, adjustment, and misc cost for Hardwood Oak Flooring.")).toBeInTheDocument();
+    expect(within(scalarCard).getAllByText("System changed quantity, adjustment percentage, misc cost for Hardwood Oak Flooring.").length).toBeGreaterThan(0);
+    expect(within(scalarCard).queryByText("Row updated")).not.toBeInTheDocument();
     expect(within(scalarCard).getByText("Affected fields: quantity, adjustment percentage, misc cost")).toBeInTheDocument();
     expect(within(scalarCard).getByText("Audit facts")).toBeInTheDocument();
     expect(within(scalarCard).getByText("Quantity")).toBeInTheDocument();
@@ -240,11 +240,11 @@ describe("estimate sheet version control UI", () => {
     expect(within(scalarCard).getAllByText("Current").length).toBeGreaterThan(0);
     expect(within(scalarCard).getByText("48 sqm")).toBeInTheDocument();
     expect(within(scalarCard).getByText("50 sqm")).toBeInTheDocument();
-    expect(within(scalarCard).getByText("Adjustment")).toBeInTheDocument();
+    expect(within(scalarCard).getByText("Adjustment percentage")).toBeInTheDocument();
     expect(within(scalarCard).getByText("Contingency 0% (₱ 0.00)")).toBeInTheDocument();
     expect(within(scalarCard).getByText("Contingency 10% (₱ 6,000.00)")).toBeInTheDocument();
     expect(within(scalarCard).getByText("Misc cost")).toBeInTheDocument();
-    expect(within(scalarCard).getByText("₱ 1,200.00")).toBeInTheDocument();
+    expect(within(scalarCard).getByText(/₱\s?1,200\.00/)).toBeInTheDocument();
     expect(scalarCard.querySelector("[data-audit-component-snapshots]")).not.toBeInTheDocument();
   });
 
@@ -333,7 +333,7 @@ describe("estimate sheet version control UI", () => {
     const sheetDialog = await screen.findByRole("dialog", { name: "Activity History" });
     const sheetActivityCard = within(sheetDialog).getByLabelText(/^Sheet code updated audit event/);
 
-    expect(within(sheetActivityCard).getByText("Sheet code updated")).toBeInTheDocument();
+    expect(within(sheetActivityCard).getAllByText("Philip Lewis changed sheet code from ES-001 to ES-002.").length).toBeGreaterThan(0);
     const dayRegion = within(sheetDialog).getByRole("region", { name: "May 24, 2026 activity" });
     expect(dayRegion).toBeInTheDocument();
     expect(within(dayRegion).getByText("May 24, 2026").parentElement).not.toHaveClass("sticky");
@@ -398,7 +398,7 @@ describe("estimate sheet version control UI", () => {
     const sheetDialog = await screen.findByRole("dialog", { name: "Activity History" });
     const auditCard = within(sheetDialog).getByLabelText(/^Row updated audit event/);
 
-    expect(within(auditCard).getByText("Changed library status and quantity for Side and coffee tables.")).toBeInTheDocument();
+    expect(within(auditCard).getAllByText("Philip Lewis changed library status, quantity for Side and coffee tables.").length).toBeGreaterThan(0);
     expect(within(auditCard).getByText("Affected fields: library status, quantity")).toBeInTheDocument();
     expect(within(auditCard).getByText("Library status")).toBeInTheDocument();
     expect(within(auditCard).getByText("Using library values")).toBeInTheDocument();
@@ -475,8 +475,8 @@ describe("estimate sheet version control UI", () => {
     await user.click(screen.getByRole("button", { name: "Activity" }));
     const sheetDialog = await screen.findByRole("dialog", { name: "Activity History" });
 
-    expect(within(sheetDialog).getByText("Empty row slot added")).toBeInTheDocument();
-    expect(within(sheetDialog).getByText("Empty row slot removed")).toBeInTheDocument();
+    expect(within(sheetDialog).getAllByText(/added an empty row slot/i).length).toBeGreaterThan(0);
+    expect(within(sheetDialog).getAllByText(/removed Empty row slot from the estimate/i).length).toBeGreaterThan(0);
     expect(within(sheetDialog).getAllByText("Unknown user").length).toBeGreaterThan(0);
     expect(within(sheetDialog).queryByText(/User 4E23801D/i)).not.toBeInTheDocument();
     expect(within(sheetDialog).queryByText("Drag or add a component here")).not.toBeInTheDocument();
@@ -928,7 +928,7 @@ describe("estimate sheet version control UI", () => {
     await user.click(within(nodeDialog).getByRole("treeitem", { name: /Living Area/i }));
     const nodeActivityCard = within(nodeDialog).getByLabelText(/^Node renamed audit event/);
 
-    expect(within(nodeActivityCard).getByText("Node renamed")).toBeInTheDocument();
+    expect(within(nodeActivityCard).getAllByText("Philip Lewis renamed Living to Living Area.").length).toBeGreaterThan(0);
     expect(within(nodeActivityCard).getByText("Philip Lewis")).toBeInTheDocument();
     expect(within(nodeDialog).queryByRole("tab", { name: "Versions" })).not.toBeInTheDocument();
     expect(actionMocks.fetchEstimateSheetVersionControl).toHaveBeenLastCalledWith(expect.objectContaining({
@@ -982,6 +982,65 @@ describe("estimate sheet version control UI", () => {
       includeDescendants: true,
       scope: "node",
     }));
+  });
+
+
+  it("renders composer copy for every estimate activity event type without raw technical labels", async () => {
+    const user = userEvent.setup();
+    const eventTypes = [
+      "row_updated",
+      "row_added",
+      "row_blank_added",
+      "row_deleted",
+      "row_replaced",
+      "template_inserted",
+      "sheet_code_updated",
+      "sheet_metadata_updated",
+      "sheet_version_created",
+      "sheet_restored_as_copy",
+      "node_created",
+      "node_renamed",
+      "node_deleted_with_children",
+      "tree_reordered",
+    ];
+    actionMocks.fetchEstimateSheetVersionControl.mockResolvedValue({
+      events: eventTypes.map((eventType, index) => ({
+        id: `composer-event-${eventType}`,
+        eventType,
+        eventSource: "server_action",
+        createdAt: `2026-05-24T03:${String(index).padStart(2, "0")}:00.000Z`,
+        actorUserId: "user-1",
+        actorLabel: "Philip Lewis",
+        targetRowId: eventType.startsWith("row_") || eventType === "template_inserted" ? `row-${index}` : null,
+        estimateNodeId: eventType.startsWith("node_") || eventType === "tree_reordered" ? "living-area" : null,
+        rowContext: { material: "Hardwood Oak Flooring", nodePath: "Main House / Living Area" },
+        oldSnapshot: { material: "Old Tile", quantity: 1, unitCost: 1000, sheetCode: "ES-001", name: "Old Living Area" },
+        newSnapshot: { material: "Hardwood Oak Flooring", quantity: 2, unitCost: 1500, sheetCode: "ES-002", name: "Living Area" },
+        changedFields: ["quantity", "unitCost"],
+        totalDelta: 5000,
+        payload: { templateName: "Living Package", name: "Living Area", oldName: "Old Living Area", newName: "Living Area", updatedCount: 3 },
+        correlationId: `composer-${index}`,
+      })),
+      rowEvents: [],
+      nodeEvents: [],
+      nextCursor: null,
+      rowNextCursor: null,
+      nodeNextCursor: null,
+    });
+
+    renderEstimateSheet();
+
+    await user.click(screen.getByRole("button", { name: "Activity" }));
+    const sheetDialog = await screen.findByRole("dialog", { name: "Activity History" });
+    expect(within(sheetDialog).getAllByText("Philip Lewis changed quantity, unit cost for Hardwood Oak Flooring.").length).toBeGreaterThan(0);
+    expect(within(sheetDialog).getAllByText("Philip Lewis added Hardwood Oak Flooring to the estimate.").length).toBeGreaterThan(0);
+    expect(within(sheetDialog).getAllByText("Philip Lewis reorganized the estimate tree.").length).toBeGreaterThan(0);
+    expect(within(sheetDialog).queryByText("Row updated")).not.toBeInTheDocument();
+    expect(within(sheetDialog).queryByText("Template inserted")).not.toBeInTheDocument();
+    const renderedText = sheetDialog.textContent ?? "";
+    for (const eventType of eventTypes) {
+      expect(renderedText).not.toContain(eventType);
+    }
   });
 
   it("offers real row-added filter values instead of the removed legacy inserted-row event", async () => {

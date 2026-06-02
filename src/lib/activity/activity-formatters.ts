@@ -21,6 +21,8 @@ const fieldLabels: Record<string, string> = {
   sheet_code: "Sheet code",
   name: "Name",
   budget: "Budget",
+  linkState: "Library status",
+  link_state: "Library status",
 };
 
 export function stripUnsafeText(value: unknown, fallback = "Activity"): string {
@@ -29,7 +31,7 @@ export function stripUnsafeText(value: unknown, fallback = "Activity"): string {
   const cleaned = text
     .replace(uuidPattern, "")
     .replace(emailPattern, "")
-    .replace(/User\s+/gi, "")
+    .replace(/User\s+(?=[0-9a-f]{8}-)/gi, "")
     .replace(/\b(row_updated|row_replaced|row_deleted|row_added|row_blank_added|sheet_code_updated|sheet_metadata_updated|node_created|node_renamed|node_deleted_with_children|tree_reordered|template_inserted|revision_requested|accepted|declined|server_action|metadata_json|sourceSnapshot|oldSnapshot|newSnapshot|changedFields|correlation_id|target_row_id|estimate_node_id|linked-clean|linked-overridden|source-changed|detached|COMMENT|DECISION|EVENT)\b/gi, "")
     .replace(/\s+/g, " ")
     .trim();
