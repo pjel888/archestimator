@@ -15,11 +15,11 @@ Closed beta requires auth/access tests before launch:
 - First whitelisted user workspace path succeeds.
 - Feedback/support path is visible.
 
-Current local Vitest DOM baseline is green: the latest validation refresh at `02f7d13` ran `bun run validate`, including `bun run test:dom` passing 149 files / 1110 passed / 2 skipped after the AI, auth, library, template, export, feedback, legal, infra, health, demo seed, local signed-out auth, email guardrail, Supabase evidence, Vercel evidence, export-route proof, benchmark proof, provider-refresh proof, proof-packet guard, local E2E refresh, and current validation/build refresh slices. Hosted/manual E2E proof is still required before launch.
+Current local Vitest DOM baseline is green: the latest validation refresh at `1a6dcc5` ran `bun run validate`, including `bun run test:dom` passing 151 files / 1119 passed / 2 skipped after the AI, auth, library, template, export, feedback, legal, infra, health, demo seed, local signed-out auth, email guardrail, Supabase evidence, Vercel evidence, export-route proof, benchmark proof, provider-refresh proof, proof-packet guard, local E2E refresh, and current validation/build refresh slices. Hosted/manual E2E proof is still required before launch.
 
 ## Third-Pass Test Gate
 
-Commit audited: `681c95e64864f283950a88dba304eaffe8f2f8b3`. Historical third-pass validation found a red DOM baseline and blocked E2E run. Current local validation is green for `type-check`, `lint`, `lint:design-system`, `test`, and `test:dom` at `02f7d13`; current local production build is green at `02f7d13`. The MVP gate still requires hosted/manual smoke or a documented no-go for any E2E path that cannot run safely.
+Commit audited: `681c95e64864f283950a88dba304eaffe8f2f8b3`. Historical third-pass validation found a red DOM baseline and blocked E2E run. Current local validation is green for `type-check`, `lint`, `lint:design-system`, `test`, and `test:dom` at `1a6dcc5`; current local production build is green at `1a6dcc5`. The MVP gate still requires hosted/manual smoke or a documented no-go for any E2E path that cannot run safely.
 
 | Area | Required automated tests | Required manual QA | Current gap |
 | --- | --- | --- | --- |
