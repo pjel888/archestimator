@@ -1,8 +1,9 @@
 # 32 — Final Implementation Readiness Scorecard
 
 **Date:** 2026-06-02
-**Status:** Fourth-pass final
-**Purpose:** Final go/no-go assessment across 12 categories. Each category scored Green (ready), Yellow (caution — action needed), or Red (blocked — must resolve before proceeding).
+**Status:** Fifth pass — conservative re-score
+
+**⚠️ Fifth-pass corrections:** Security area re-assessed. Approval statuses corrected (no fabricated approvals). Scorecard now distinguishes Docs readiness from PR-specific readiness.
 
 ---
 
@@ -13,7 +14,7 @@
 | **Product strategy** | 🟡 Yellow | North Star, user journeys, and surface maps are comprehensive. But 5 open product decisions (P1-P5 in doc 28) need sign-off before access telemetry ships. | Product stakeholder review of doc 28 §6. Approve P1-P5. |
 | **UX/Copy** | 🟢 Green | 13 estimate event types + shared-link types all have copy templates. Activity Composer spec is implementation-ready. Copy dictionary covers all surfaces. | None — proceed with PR 3 (composer module). |
 | **Privacy/Legal** | 🔴 Red | 5 legal/privacy decisions (L1-L5) are open. Access telemetry collects IP hashes, parsed device metadata, and approximate location — all require legal review before collection begins. Location granularity, retention policy, and in-product disclosure are not yet approved. | Legal/Privacy review of doc 28 §6. Approve L1-L5. **Gate: PR 7 (access telemetry) MUST NOT proceed without L1-L5 approved.** |
-| **Security** | 🟡 Yellow | Two CSRF issues found in fourth-pass audit: (1) `GET /api/share/[token]/activity` uses POST-only CSRF check (broken). (2) `SharePageComments` and `SharePageDecision` hardcode CSRF header without setting cookie. Both are fixable. No data leakage vectors identified. Internal comment isolation is defense-in-depth. | Fix CSRF issues in PR 2 (preflight). See doc 31 for fix details. After fixes: Green. |
+| **Security** | 🔴 Red → 🟡 Yellow after PR 2 | Two live CSRF bugs in production: (1) `GET /api/share/[token]/activity` uses POST-only CSRF check — always 403 for browsers. (2) `SharePageComments` and `SharePageDecision` hardcode CSRF header `"client-post"` without setting cookie — 3 fetch paths affected. No data leakage vectors identified. Internal comment isolation is defense-in-depth. | Fix CSRF issues in PR 2 (preflight). See doc 31 for fix details and doc 38 for test plan. After fixes: 🟢 Green. |
 | **Data model** | 🟢 Green | V1 copy-only composer needs zero DB changes. V1.1 access telemetry uses existing `metadata_json` columns — no migration needed. Enum/CHECK additions deferred to V2. Event taxonomy is finalized. | None for V1.0. For V1.1: ensure GIN index on `metadata_json` if query performance is needed (optional). |
 | **Performance** | 🟢 Green | Composer is a pure projection layer — O(n) per event, negligible overhead. Access telemetry adds one DB write per page view — already at ~1 write per page load. GIN index optional for metadata_json queries. Pagination fixed in PR 8. | Verify index coverage in PR 8. |
 | **Accessibility** | 🟢 Green | Planned: role="feed", role="article", aria-live for new activity, keyboard navigation for audit expand/collapse, screen reader testing. | Execute in PR 9. |

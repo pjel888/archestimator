@@ -7,9 +7,9 @@
 **Third pass:** 2026-06-02
 **Fourth pass:** 2026-06-02
 **Branch:** `main`
-**Current HEAD:** `405d6ac`
-**Third-pass claimed HEAD:** `d78686f` (corrected in fourth pass — current HEAD is `405d6ac`. No activity code changed.)
-**Status:** Planning Phase — Fourth pass complete (stakeholder review packet, reconciliation audit, decision log, PR2 brief, readiness scorecard, review script. Contradictions resolved. Implementation-ready pending stakeholder sign-off.)
+**Current HEAD:** `da35386`
+**Fourth-pass claimed HEAD:** `405d6ac` (corrected in fifth pass — current HEAD is `da35386`. No activity code changed between `405d6ac` and `da35386`.)
+**Status:** Planning Phase — Fifth pass complete (final pre-implementation audit: code truth map, side effects audit, blast radius, test plan, authority index, handoff packet. 7 new docs added. All contradictions resolved. Implementation-ready.)
 
 ---
 
@@ -19,6 +19,36 @@
 **New path:** `.ai/03_plans/activity-history-overhaul-v1/`
 
 The scope expanded beyond "human-readable copy" to cover the overall Activity History feature: shared page visit tracking, password-gate events, proposal-view telemetry, device/browser/location metadata, privacy planning, and future unified timeline. Renamed via `git mv` to preserve file history.
+
+---
+
+## What Changed in Fifth Pass (Final Pre-Implementation Audit)
+
+### Verification Corrections
+
+1. **Current HEAD corrected** from `405d6ac` → `da35386`. No activity-related code changed.
+2. **Event type count corrected** from "13" → "14 raw types (12 active + 2 dormant)" across all docs.
+3. **Approval statuses audited** — D-019 (IP hash) and D-016 (visibility model) changed from "APPROVED" → "Engineering recommended; NEEDS stakeholder sign-off." No fabricated approvals.
+4. **event_type exposure clarified** — PR 2 should NOT expose raw event_type in public API response. Defer to composer integration (PR 5).
+
+### Major New Documents (7 added)
+
+Documents 34–40 added covering: final audit summary, code truth map, access telemetry side effects audit, final blast radius and rollback map, PR 2 test command and fixture plan, source of truth and document authority index, and final implementation handoff.
+
+### Existing Document Updates
+
+- README.md — HEAD, file count, new docs
+- 29-final-decision-log — approval status corrections
+- 31-pr2-preflight — event_type exposure, CSRF coverage (3 paths), risk level
+- 32-scorecard — conservative security assessment
+- 23, 25 — access telemetry side effects reconciliation
+- 30 — marked as superseded by 34–36
+
+### Key Audit Findings
+
+- **12 findings documented** in doc 34 — including: HEAD staleness, event count error, event_type exposure risk, access telemetry side effects critical gap, /events route unused, assertSameOrigin() already exists, CSRF covers 3 fetch paths not 2, Realtime fix needs prop drilling, approval statuses inconsistent, scorecard security area overstated, V1.0 data collection wording ambiguous, D-006 description inaccurate.
+- **Side effects matrix finalized** (doc 36) — New `recordProjectPublicationAnalyticsEvent()` helper recommended for access telemetry. Side effects (open_count, recipient update, shared_link_events) ONLY for actual proposal views.
+- **Code truth map** (doc 35) — 20+ features mapped from planning claims to actual code behavior.
 
 ---
 
@@ -142,6 +172,13 @@ The following areas were inspected:
 | `31-pr2-preflight-implementation-brief.md` | **NEW** — Execution-ready PR 2 engineering brief (5 fix items) |
 | `32-final-implementation-readiness-scorecard.md` | **NEW** — 12-category go/no-go: Green/Yellow/Red with rationale |
 | `33-stakeholder-review-script.md` | **NEW** — 30/60-min meeting agendas with stakeholder questions |
+| `34-final-preimplementation-audit.md` | **NEW (Fifth Pass)** — Top-level final audit summary: 12 findings, per-PR readiness, go/no-go |
+| `35-code-truth-map.md` | **NEW (Fifth Pass)** — Map of every planning claim to actual code behavior (20+ features) |
+| `36-access-telemetry-side-effects-audit.md` | **NEW (Fifth Pass)** — Full side effects analysis of `recordProjectPublicationEvent()` with per-stage matrix |
+| `37-final-blast-radius-and-rollback-map.md` | **NEW (Fifth Pass)** — Per-PR blast radius, risk, rollback, and dependency map (PRs 2-9) |
+| `38-pr2-test-command-and-fixture-plan.md` | **NEW (Fifth Pass)** — Exact test files, mocks, assertions, and commands for each PR 2 fix |
+| `39-source-of-truth-and-doc-authority-index.md` | **NEW (Fifth Pass)** — Document hierarchy: which docs are authoritative, superseded, or historical |
+| `40-final-implementation-handoff.md` | **NEW (Fifth Pass)** — Concise handoff packet: status, scope, blockers, test commands, where to start |
 
 ---
 
@@ -161,16 +198,15 @@ PRs 1–6 can proceed without stakeholder approval (no privacy impact). PR 7 is 
 
 ---
 
-## Key Findings (Fourth Pass)
+## Key Findings (Fifth Pass — Final Audit)
 
-- **Current HEAD is `405d6ac`**, not `d78686f` as third-pass docs stated. No activity code changed.
-- **15 contradictions resolved** — Including: enum/CHECK additions ARE migrations, GET /activity CSRF broken, client-facing feed doesn't exist, comments/decisions CSRF broken. See `30-final-technical-reconciliation-audit.md`.
-- **Access telemetry strategy finalized** — Use existing `event_type` values + `metadata_json.access_stage`. No migration needed for V1.1.
-- **Three-tier visibility model** — Primary timeline (who/what/when), audit details (device/location), support (full diagnostics).
-- **PR 2 scope expanded** — Now includes CSRF fixes for GET /activity route and comments/decisions components. See `31-pr2-preflight-implementation-brief.md`.
-- **2 latent CSRF bugs found** — Not just planning issues; actual bugs in production code:
-  1. `GET /api/share/[token]/activity` calls `assertSameOriginPublicPost()` — POST-only CSRF on GET, always 403 for browser clients.
-  2. `SharePageComments.tsx` and `SharePageDecision.tsx` hardcode `"client-post"` CSRF header without setting matching cookie.
+- **Current HEAD is `da35386`**, not `405d6ac` as fourth-pass docs stated. No activity code changed (only 1 unrelated commit: "Make Vercel env proof repeatable").
+- **12 major findings documented** in doc 34 — including: event count is 14 not 13, event_type exposure risk, access telemetry side effects critical gap, approval statuses inconsistent, CSRF affects 3 fetch paths not 2.
+- **Side effects matrix finalized** (doc 36) — `recordProjectPublicationEvent("open")` triggers 3 side effects (open_count, recipient update, shared_link_events insert). New `recordProjectPublicationAnalyticsEvent()` helper recommended for analytics-only access tracking.
+- **Code truth map complete** (doc 35) — 20+ features mapped from planning claims to actual code with reconciled truth.
+- **PR 2 scope narrowed** — event_type NOT exposed in public API response (deferred to composer PR 5). CSRF fix covers all 3 fetch paths.
+- **Approval statuses corrected** (doc 29) — Engineering recommendations distinguished from actual stakeholder sign-offs. No fabricated approvals.
+- **41 planning documents total** (34 numbered docs + README + 7 new docs 34-40).
 
 ### Previous Findings (Third Pass — still accurate)
 
@@ -203,21 +239,22 @@ See `29-final-decision-log-and-approval-matrix.md` for all 28 decisions and thei
 
 ## Next Action
 
-1. **Stakeholder review** — Review `28-fourth-pass-stakeholder-review-packet.md` and sign off on 10 pending decisions.
-2. **Schedule stakeholder meeting** — Use `33-stakeholder-review-script.md` for meeting agenda.
-3. **Once product/legal decisions approved:**
-   - Update `29-final-decision-log-and-approval-matrix.md` with approvals.
-   - Merge PR 1 (these 33 planning docs).
-4. **Begin PR 2** — Preflight correctness cleanup (5 fixes, no privacy dependencies). See `31-pr2-preflight-implementation-brief.md`.
-5. **Continue through PR sequence** — PRs 3-6 proceed freely. PR 7 gated on stakeholder sign-off. See `32-final-implementation-readiness-scorecard.md`.
+1. **Merge docs (PR 1)** — All 41 planning documents are internally consistent after fifth-pass audit. Ready to merge.
+2. **Begin PR 2** — Preflight correctness cleanup (5 fixes, no privacy dependencies). See `40-final-implementation-handoff.md` for exact starting point. See `31-pr2-preflight-implementation-brief.md` for scope. See `38-pr2-test-command-and-fixture-plan.md` for test plan.
+3. **Continue through PR sequence** — PRs 3-6 proceed freely after PR 2. PR 7 gated on stakeholder sign-off (D-017, D-018, D-023). See `32-final-implementation-readiness-scorecard.md`.
 
 ## Key Reference Documents
 
 | For | See |
 |-----|-----|
+| **Implementation handoff** | `40-final-implementation-handoff.md` |
+| **Document authority index** | `39-source-of-truth-and-doc-authority-index.md` |
+| **Code truth map** | `35-code-truth-map.md` |
+| **Side effects audit** | `36-access-telemetry-side-effects-audit.md` |
+| **Final audit summary** | `34-final-preimplementation-audit.md` |
+| **PR 2 test plan** | `38-pr2-test-command-and-fixture-plan.md` |
 | Stakeholder-friendly summary | `28-fourth-pass-stakeholder-review-packet.md` |
 | All 28 decisions and statuses | `29-final-decision-log-and-approval-matrix.md` |
-| 15 contradictions resolved | `30-final-technical-reconciliation-audit.md` |
 | PR 2 execution plan | `31-pr2-preflight-implementation-brief.md` |
 | Go/no-go by category | `32-final-implementation-readiness-scorecard.md` |
 | Meeting agenda | `33-stakeholder-review-script.md` |

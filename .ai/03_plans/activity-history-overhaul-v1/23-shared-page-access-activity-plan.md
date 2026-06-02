@@ -1,9 +1,17 @@
 # 23 — Shared Page Access Activity Plan
 
 **Date:** 2026-06-02
-**Status:** Fourth-pass reconciled
+**Status:** Fifth-pass reconciled — side effects strategy finalized
 
 ---
+
+**Fifth-pass note (2026-06-02):** This document has been reconciled against live code at HEAD `da35386`. Key additions:
+- **Side effects audit complete** — See `36-access-telemetry-side-effects-audit.md` for the full matrix of which events trigger open_count, recipient update, and shared_link_events side effects.
+- **New helper recommended** — `recordProjectPublicationAnalyticsEvent()` for analytics-only events that should NOT trigger business side effects. Existing `recordProjectPublicationEvent()` preserved for actual proposal views only.
+- **Access stages mapped to helpers:**
+  - `proposal_viewed` → `recordProjectPublicationEvent({eventType:"open"})` — triggers ALL side effects (correct)
+  - `page_visit`, `password_gate_viewed`, `password_unlocked`, `recipient_session_started` → `recordProjectPublicationAnalyticsEvent()` — NO side effects (analytics only)
+- HEAD updated: `405d6ac` → `da35386`. No activity code changed.
 
 **Fourth-pass note (2026-06-02):** This document has been reconciled against live code at HEAD `405d6ac`. Key corrections:
 - Access telemetry uses existing `event_type` values (`open`, `password_attempt`) with `metadata_json.access_stage` — NO enum/CHECK migration in V1.1. See D-009 in `29-final-decision-log-and-approval-matrix.md`.

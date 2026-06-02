@@ -1,8 +1,13 @@
 # 31 — PR 2 Preflight Implementation Brief
 
 **Date:** 2026-06-02
-**Status:** Fourth-pass final — execution-ready
+**Status:** Fifth pass — scope narrowed, CSRF coverage clarified
 **Purpose:** Narrow engineering brief for PR 2: preflight correctness cleanup. Safe, low-risk fixes that unblock composer work. No access telemetry. No privacy dependencies.
+
+**⚠️ Fifth-pass corrections:**
+- Fix #3: event_type selected internally but NOT exposed in public API response (deferred to PR 5). Prevents technical leakage.
+- Fix #5: CSRF fix covers 3 fetch paths (not 2) — Comments normal POST, Comments queue flush, Decision POST. Shared utility recommended.
+- Risk: Upgraded from LOW → MEDIUM for CSRF fixes (affects live client interactions).
 
 ---
 
@@ -14,9 +19,9 @@
 |---|-----|------|---------------|
 | 1 | Fix `row_inserted` filter mismatch | LOW | ~3 |
 | 2 | Fix Realtime subscription filter | LOW | ~5 |
-| 3 | Add `event_type` to public activity API select | LOW | ~2 |
-| 4 | Fix GET /activity route CSRF mismatch | MEDIUM | ~5 |
-| 5 | Fix Comments/Decision CSRF token handling | MEDIUM | ~10 per component |
+| 3 | Add `event_type` to public activity API select (internal only) | LOW | ~2 |
+| 4 | Fix GET /activity route CSRF mismatch | MEDIUM | ~10 |
+| 5 | Fix Comments/Decision CSRF token handling (3 fetch paths) | MEDIUM | ~20 per component |
 
 ---
 
@@ -102,37 +107,53 @@ Revert `SharedLinkActivityFeed.tsx` changes.
 
 ---
 
-## Fix 3: Add `event_type` to public activity API select
+## Fix 3: Add `event_type` to public activity API select (internal only)
 
 ### Current code path
 **File:** `src/app/api/share/[token]/activity/route.ts`
 
-The query selects from `shared_link_events` but does not include `event_type` in the result. The composer (PR 3) needs `event_type` to generate correct copy.
-
-### Problem
-Without `event_type`, the composer cannot distinguish between `open`, `comment_add`, `accept_decision`, etc.
-
-### Proposed fix
-Add `event_type` to the SELECT clause:
+The query at line 127 ALREADY selects `event_type` from `shared_link_events`:
 ```sql
-SELECT id, publication_id, recipient_id, event_type, metadata_json, ...
+SELECT id, created_at, event_type, metadata_json ...
 ```
 
+But the response destructuring at lines 140-149 does NOT include `event_type`:
+```ts
+(e: Pick<Tables<"shared_link_events">, "created_at" | "id" | "metadata_json">) =>
+```
+
+The composer (PR 3) needs `event_type` to generate correct copy. However, exposing raw `event_type` in the public JSON response before the composer exists would leak technical details.
+
+### Problem
+`event_type` is selected from DB but not exposed in the response. The composer needs it internally.
+
+### ⚠️ Fifth-Pass Scope Decision
+
+**PR 2 should NOT expose raw `event_type` in the public API response.** The route is currently unused by any client (SharedLinkActivityFeed is owner-only and uses a separate server action).
+
+- ✅ PR 2: Ensure `event_type` is selected in the DB query (already done)
+- ❌ PR 2: Do NOT add `event_type` to PublicActivityItem or the JSON response
+- ✅ PR 5: When composer integration happens, `event_type` will be consumed internally and transformed into human-readable `title` in `ActivityViewModel[]`
+
+**Rationale:** Prevents technical leakage before the composer can sanitize event_type into human-readable copy.
+
 ### Files touched
-- **MODIFIED:** `src/app/api/share/[token]/activity/route.ts`
+- **POTENTIALLY MODIFIED:** `src/app/api/share/[token]/activity/route.ts` — add TODO comment for PR 5
+- **No response shape change** in PR 2
 
 ### Tests
-- [ ] Public API response now includes `event_type` field
-- [ ] Existing tests updated if they assert on response shape
-- [ ] No regression in public API behavior
+- [ ] Verify `event_type` is in DB query SELECT (already true)
+- [ ] Verify `event_type` is NOT in JSON response
+- [ ] Add TODO: "PR 5: include event_type for composer consumption"
 
 ### Acceptance criteria
-- [ ] `event_type` present in public API response
+- [ ] `event_type` selected in DB query (already true — verify)
+- [ ] `event_type` NOT in public JSON response
+- [ ] TODO comment added for PR 5 composer integration
 - [ ] All existing tests pass
-- [ ] `bun run type-check` passes
 
 ### Rollback
-Revert route change.
+Revert TODO comment if added.
 
 ---
 
@@ -191,43 +212,45 @@ Revert route change.
 
 ---
 
-## Fix 5: Comments/Decision CSRF token handling
+## Fix 5: Comments/Decision CSRF token handling (3 fetch paths)
 
 ### Current code path
-**File:** `src/components/share/SharePageComments.tsx` lines 84, 136
-**File:** `src/components/share/SharePageDecision.tsx` line 67
+**File:** `src/components/share/SharePageComments.tsx` lines 84 (flushQueue), 136 (postWithRetry)
+**File:** `src/components/share/SharePageDecision.tsx` line 67 (confirmDecision)
 
-Both components hardcode:
+**3 affected fetch paths:**
+1. `SharePageComments.tsx:136` — `postWithRetry()` normal POST (with 3-attempt retry loop)
+2. `SharePageComments.tsx:84` — `flushQueue()` offline queue flush POST
+3. `SharePageDecision.tsx:67` — `confirmDecision()` POST
+
+All three hardcode:
 ```ts
 "x-archestimator-csrf": "client-post",
 ```
 
-But NEITHER component sets the `ae_publication_csrf` cookie. The CSRF check in `assertSameOriginPublicPost()` compares header value to cookie value — they won't match unless the user previously submitted the password form (which sets a random cookie, not "client-post").
+But NONE of the components set the `ae_publication_csrf` cookie. The CSRF check in `assertSameOriginPublicPost()` compares header value to cookie value — they won't match unless the user previously submitted the password form (which sets a random cookie, not "client-post").
 
 ### Problem
-The double-submit cookie CSRF pattern requires: set cookie, send matching header. These components send the header but skip the cookie. The check may fail in production (tests mock `assertSameOriginPublicPost` so CI doesn't catch this).
+The double-submit cookie CSRF pattern requires: set cookie, send matching header. These components send the header but skip the cookie. The check may fail in production (tests mock `assertSameOriginPublicPost` so CI doesn't catch this). All 3 fetch paths are affected — including the offline queue flush which must retry with valid CSRF.
 
 ### Proposed fix
-Follow the same pattern as `ProjectPublicationPasswordForm.tsx` (the only component that does CSRF correctly):
+Follow the same pattern as `ProjectPublicationPasswordForm.tsx` (the only component that does CSRF correctly). Create a **shared utility** to avoid duplication across 3 fetch paths:
 
 ```ts
-// Generate random token
-const csrfToken = window.crypto.randomUUID ? crypto.randomUUID() 
-  : Array.from(crypto.getRandomValues(new Uint8Array(16)), b => b.toString(16).padStart(2, '0')).join('');
-
-// Set cookie
-document.cookie = `ae_publication_csrf=${csrfToken}; path=/; SameSite=Lax; max-age=3600`;
-
-// Send matching header
-headers: { "x-archestimator-csrf": csrfToken, ... }
+// Recommended: shared utility (src/lib/publication/csrf.ts or src/hooks/use-publication-csrf.ts)
+function createPublicationCsrfHeaders() {
+  const token = crypto.randomUUID?.() ?? 
+    Array.from(crypto.getRandomValues(new Uint8Array(16)), 
+      b => b.toString(16).padStart(2, '0')).join('');
+  document.cookie = `ae_publication_csrf=${token}; path=/; SameSite=Lax; max-age=3600`;
+  return { headers: { "x-archestimator-csrf": token } };
+}
 ```
 
-Or extract a shared `usePublicationCsrf()` hook.
-
 ### Files touched
-- **MODIFIED:** `src/components/share/SharePageComments.tsx`
-- **MODIFIED:** `src/components/share/SharePageDecision.tsx`
-- **POTENTIALLY NEW:** `src/hooks/use-publication-csrf.ts`
+- **MODIFIED:** `src/components/share/SharePageComments.tsx` — 2 fetch paths (normal POST + queue flush)
+- **MODIFIED:** `src/components/share/SharePageDecision.tsx` — 1 fetch path
+- **POTENTIALLY NEW:** `src/lib/publication/csrf.ts` or `src/hooks/use-publication-csrf.ts`
 
 ### Tests
 - [ ] Comments POST includes correct CSRF cookie and header pair
@@ -251,13 +274,13 @@ Revert component changes.
 
 | Metric | Value |
 |--------|-------|
-| Files modified | ~5-7 |
-| Lines changed | ~30-50 |
-| New files | 0-1 (optional CSRF hook) |
-| Risk | LOW |
-| Tests affected | 2-3 test files need updates |
+| Files modified | ~5-8 |
+| Lines changed | ~40-70 |
+| New files | 0-1 (optional CSRF utility) |
+| Risk | MEDIUM (CSRF fixes affect live client interactions) |
+| Tests affected | 4-5 test files need updates |
 | Dependencies | None — no other PRs required |
-| Blocks | PR 3 (composer needs event_type from public API) |
+| Blocks | PR 3 (composer needs event_type from DB query) |
 | Privacy impact | None |
 | Migration required | No |
 
