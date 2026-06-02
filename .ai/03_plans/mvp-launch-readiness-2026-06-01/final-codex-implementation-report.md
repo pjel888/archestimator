@@ -55,8 +55,9 @@ Post-report evidence-sync commits:
 - `70e80c9` - Made closed-beta settings tools discoverable.
 - `3beda01` - Anchored launch evidence to the current local validation/build head.
 - `165e4a3` - Recorded current-head Vercel preview proof before launch.
+- `08a58dd` - Refreshed linked Supabase launch blockers with read-only proof.
 
-These follow-up commits improve traceability only. They do not change the implementation baseline or the **NO-GO** recommendation. Current local validation refresh at `70e80c9` also passed `bun run validate`: typecheck, lint with 14 existing warnings, design lint, unit tests (4 tests / 129 expectations), and DOM tests (136 files / 1050 passed / 2 skipped). Current Vercel preview refresh at `165e4a3` reached Ready deployment `dpl_BebUf77ozLLxqpNYHroCErRZwBf9`, and protected `/api/health` works through `vercel curl`; Vercel env vars are still absent, public preview health returns 401, custom domains still point at the older production deployment, and rollback proof remains missing.
+These follow-up commits improve traceability only. They do not change the implementation baseline or the **NO-GO** recommendation. Current local validation refresh at `70e80c9` also passed `bun run validate`: typecheck, lint with 14 existing warnings, design lint, unit tests (4 tests / 129 expectations), and DOM tests (136 files / 1050 passed / 2 skipped). Current Vercel preview refresh at `165e4a3` reached Ready deployment `dpl_BebUf77ozLLxqpNYHroCErRZwBf9`, and protected `/api/health` works through `vercel curl`; Vercel env vars are still absent, public preview health returns 401, custom domains still point at the older production deployment, and rollback proof remains missing. Current linked Supabase readiness refresh at `08a58dd` found five launch migrations and the allowlist/feedback/unlink objects absent, `component-images` public, temp-role `ECIRCUITBREAKER` on migration/performance reads, and security advisor WARN findings.
 
 The remaining manual/provider proof packet is now centralized in `46-manual-proof-matrix.md`; it must be filled with dated artifacts before the external beta recommendation changes.
 
@@ -135,6 +136,13 @@ Current Vercel preview refresh at `165e4a3`:
 - `vercel env ls --non-interactive` still returned no environment variables, plain public preview health returned HTTP 401, custom-domain `/api/health` returned 404 on the older production deployment, and rollback proof remains missing.
 - Artifact: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/vercel-current-head-read-only-165e4a3-2026-06-02.md`.
 
+Current linked Supabase readiness refresh at `08a58dd`:
+
+- Linked read-only SQL found migrations `20260601182522`, `20260601184343`, `20260602005649`, `20260602083000`, and `20260602084500` absent.
+- `closed_beta_allowed_emails`, `beta_feedback_submissions`, `check_closed_beta_access`, and `unlink_estimate_row_item_from_library_with_history` are absent on the linked project.
+- `component-images` remains public, `supabase migration list --linked` and performance advisors hit temp-role pooler `ECIRCUITBREAKER`, and security advisors still return WARN findings.
+- Artifact: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/supabase-linked-readiness-refresh-2026-06-02.md`.
+
 Focused red/green evidence for each implementation slice is recorded in `14-evidence-index.md`.
 
 ## 5. Build / Lint / Type-Check Results
@@ -144,7 +152,7 @@ Build, type-check, design lint, unit tests, and full DOM tests are green locally
 ## 6. Remaining P0 Blockers
 
 - Linked Supabase backup/PITR proof and dry-run restore drill.
-- Linked/staging Supabase migration, RLS, storage, and RPC allow/deny verification.
+- Linked/staging Supabase migration, RLS, storage, and RPC allow/deny verification. Current `08a58dd` evidence shows five launch migrations plus allowlist/feedback/unlink objects absent, with `component-images` public and security advisor WARN findings.
 - Hosted auth smoke for allowed, denied, revoked, and first-run Google accounts.
 - Vercel env, public `/api/health`, production/custom-domain app health, and rollback proof. Current `165e4a3` preview is Ready and protected health works through `vercel curl`, but env vars are absent and public/custom-domain/rollback proof remains blocked.
 - Resend DNS/delivery/webhook proof if share/invite email workflows remain visible.

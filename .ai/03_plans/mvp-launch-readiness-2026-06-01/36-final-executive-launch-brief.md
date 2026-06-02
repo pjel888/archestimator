@@ -27,6 +27,7 @@ No Stripe, checkout, subscriptions, billing UI, invoices, paid tiers, pricing en
 - Current local validation refresh: `70e80c9`, `bun run validate` passed with DOM at 136 files / 1050 passed / 2 skipped.
 - Current local app build refresh: `70e80c9`, `bun run build` passed with Next.js 16.2.6 / Turbopack and 32 static pages.
 - Current Vercel preview refresh: `165e4a3`, Ready preview deployment `dpl_BebUf77ozLLxqpNYHroCErRZwBf9` at `archestimator-7wb28vtv2-philipjonlewis-projects.vercel.app`; protected `/api/health` works through `vercel curl`, but Vercel env vars remain absent, public preview health returns HTTP 401, custom domains still point at old production deployment `dpl_FwfHexBsB1xSHDqHqFwHSYpCYTVH`, and rollback proof is missing.
+- Current linked Supabase readiness refresh: `08a58dd`, read-only linked SQL proves five launch migrations and the allowlist/feedback/unlink RPC objects are absent, `component-images` remains public, migration list/performance reads hit `ECIRCUITBREAKER`, and security advisor WARN findings remain.
 - Resend guardrail refresh: `fd5d4b3` fails unconfigured production-like email sends closed; `61160ee` disables shared-link recipient entry/send/resend controls while server email readiness is false; local Teamspaces invite controls now disable while project invite delivery readiness is false.
 - Install, type-check, lint, design-system lint, unit tests, full DOM tests, and build passed locally.
 - Local signed-out auth E2E passed: `PLAYWRIGHT_PORT=3037 bun run test:e2e -- e2e/auth.spec.ts --project=chromium`, 2 tests in 9.9s.
@@ -35,7 +36,7 @@ No Stripe, checkout, subscriptions, billing UI, invoices, paid tiers, pricing en
 ### P0 Blockers
 
 - Hosted allowed/denied/revoked auth smoke missing; local signed-out redirect/login UI E2E now passes.
-- Linked Supabase RLS/storage/migration proof missing.
+- Linked Supabase RLS/storage/migration proof missing; current `08a58dd` evidence shows five launch migrations and the allowlist/feedback/unlink objects are absent on the linked project.
 - Supabase backup/PITR and restore drill proof missing.
 - Vercel production/custom-domain deployment and rollback proof missing; current preview health is only protected `vercel curl` proof.
 - Resend delivery/webhook proof missing before share/invite email workflows can be re-enabled for launch.
