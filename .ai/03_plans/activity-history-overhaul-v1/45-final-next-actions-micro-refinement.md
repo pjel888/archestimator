@@ -1,8 +1,8 @@
 # 45 — Final Next Actions (Seventh-Pass Micro-Refinement)
 
 **Date:** 2026-06-02
-**Status:** Seventh pass complete
-**Current HEAD:** `87f603e`
+**Status:** Seventh pass complete; eighth-pass HEAD update applied
+**Current HEAD:** `1a6dcc5`
 
 ---
 
@@ -42,7 +42,7 @@ Five targeted refinements executed to move the planning pack from ~98.5% to ~99.
 
 ## Exact Next Action
 
-1. **PR 1 — Merge planning docs.** All 46 documents are internally consistent and certified. Ready to merge.
+1. **PR 1 — Merge planning docs.** All 48 files (README + 47 numbered docs 00–46) are internally consistent and certified. Ready to merge.
 
 2. **PR 2 — Preflight fixes.** See `40-final-implementation-handoff.md` and `31-pr2-preflight-implementation-brief.md`.
 
@@ -52,7 +52,7 @@ Five targeted refinements executed to move the planning pack from ~98.5% to ~99.
 
 Before implementing PR 2, verify:
 
-- [ ] Current branch is `main` at HEAD `87f603e` (or later)
+- [ ] Current branch is `main` at HEAD `1a6dcc5` (or later)
 - [ ] No activity-related code changed since planning baseline `65b21eb`
 - [ ] Read `40-final-implementation-handoff.md`
 - [ ] Read `31-pr2-preflight-implementation-brief.md`

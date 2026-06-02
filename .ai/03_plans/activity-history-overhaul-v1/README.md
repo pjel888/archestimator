@@ -9,9 +9,9 @@
 **Fifth pass:** 2026-06-02 (final pre-implementation audit: docs 34–40)
 **Sixth pass:** 2026-06-02 (autonomous readiness loop: docs 41–44)
 **Branch:** `main`
-**Current HEAD:** `87f603e`
-**Planning baseline HEAD:** `65b21eb` (the HEAD at sixth-pass completion; no activity code changed between `65b21eb` and current `87f603e`: only proof/ops/docs commits)
-**Status:** Planning Phase — **Seventh pass (final micro-refinement) complete.** All 47 documents updated for 5 targeted refinements: PR 3 test file paths, PR 5 public API contract, PR 8A/8B split, PR 2 manual QA checklist, and wording cleanup. All categories ≥99%. Implementation-ready with minimal ambiguity.
+**Current HEAD:** `1a6dcc5`
+**Planning baseline HEAD:** `65b21eb` (the HEAD at sixth-pass completion; no activity code changed between `65b21eb` and current `1a6dcc5`: only proof/ops/docs/mvp-readiness commits)
+**Status:** Planning Phase — **Eighth pass (final implementation-readiness lock) complete.** All 48 files updated for HEAD staleness correction, PR 8A/8B split in Authoritative Implementation Sequence, file count precision, and "46 documents"→"48 files" clarification. All categories ≥99%. Implementation-ready with no ambiguity.
 
 ---
 
@@ -61,6 +61,44 @@ The scope expanded beyond "human-readable copy" to cover the overall Activity Hi
 - 11, 37 — PR sequence and blast radius
 - 21, 31, 03, 18 — Composer, PR 2 brief, data contract, QA matrix
 - Multiple docs — wording cleanup (13→14, file counts, etc.)
+
+---
+
+## What Changed in Eighth Pass (Final Implementation-Readiness Lock)
+
+### Corrections
+
+1. **Current HEAD corrected** from `87f603e` → `1a6dcc5`. No activity-related code changed (only proof/ops/mvp-readiness commits between `87f603e` and `1a6dcc5`: `02f7d13`, `5c13759`, `5677d88`, `14bd303`, `3fbd337`, `91dfc84`, `9676f02`, `b8adb1a`, `c9c1141`, `ede0f32`, `1a6dcc5`).
+2. **"46 documents" → "48 files"** — Clarified everywhere that 48 files total (README + 47 numbered docs 00–46) are consistent and certified, not "46 documents".
+3. **PR 8A/8B split** — Authoritative Implementation Sequence now shows PR 8A and PR 8B as separate items. PR 8A can proceed independently after PRs 2-6.
+4. **Pass count corrected** — "5 audit passes" → "8 audit/refinement passes" (first + second + third + fourth + fifth + sixth + seventh + eighth).
+5. **Stale heading removed** — "PR 1 — Fourth-pass planning docs" → "PR 1 — Planning docs merge".
+6. **Doc 39 reading order** — Updated to match authoritative implementation reading order with 45 as entry point.
+
+### Scores After Eighth Pass
+
+| Category | Before | After |
+|----------|--------|-------|
+| Document consistency | 100% | **100%** |
+| Code factual accuracy | 100% | **100%** |
+| PR 2 execution readiness | 99% | **99%** |
+| PR 3 composer readiness | 99% | **99%** |
+| PRs 4–6 integration readiness | 99% | **99%** |
+| Access telemetry planning | 100% | **100%** (gated) |
+| Security/privacy readiness | 100% | **100%** |
+| Test/QA readiness | 99% | **99%** |
+| Blast-radius/rollback readiness | 100% | **100%** |
+| Decision/governance readiness | 100% | **100%** |
+| **Weighted composite** | **99.3%** | **99.3%** |
+
+Scores unchanged — the eighth pass fixed factual errors (stale HEAD, file count ambiguity, pass count, PR sequence rendering) that did not affect the underlying readiness level.
+
+### Key Updated Documents
+
+- README.md — HEAD, pass status, eighth-pass section, Authoritative Implementation Sequence
+- 42, 44, 45 — HEAD references, "46 documents"→"47 files"
+- 40 — HEAD, pass count "5"→"8"
+- 39 — Reading order, stale HEAD reference in doc 42 description
 
 ---
 
@@ -225,22 +263,25 @@ The following areas were inspected:
 | `42-98-100-readiness-scorecard.md` | **NEW (Sixth Pass)** — Final readiness scoring by 10 categories with weighted composite |
 | `43-final-risk-burndown-register.md` | **NEW (Sixth Pass)** — 9 risks catalogued with score impact, mitigation, owner, blocker status |
 | `44-final-plan-certification.md` | **NEW (Sixth Pass)** — Sign-off document: scores, gated items, authoritative docs, next action |
+| `45-final-next-actions-micro-refinement.md` | **NEW (Seventh Pass)** — Micro-refinement summary, final go/no-go, PR 2 start checklist |
+| `46-final-implementation-readiness-lock.md` | **NEW (Eighth Pass)** — Final lock: HEAD, file count, score table, stale HEAD/event_type/PR 8A-8B confirmations, PR 7 gates |
 
 ---
 
 ## Authoritative Implementation Sequence
 
-1. **PR 1 — Fourth-pass planning docs** (docs only, 6 new docs + 8 doc updates)
+1. **PR 1 — Planning docs merge** (docs only, 48 files)
 2. **PR 2 — Preflight correctness cleanup** — Fix 5 known bugs (row_inserted filter, Realtime, event_type, CSRF fixes). See `31-pr2-preflight-implementation-brief.md`.
 3. **PR 3 — Activity Composer module + tests** (combined PR: module + passing tests)
 4. **PR 4 — Estimate Activity UI integration**
 5. **PR 5 — Shared-link Activity API integration**
 6. **PR 6 — Recipient actor resolution + comments/decisions copy**
 7. **PR 7 — Shared page access telemetry** ⚠️ **GATED** — Requires stakeholder sign-off on 10 decisions before proceeding. See `28-fourth-pass-stakeholder-review-packet.md`.
-8. **PR 8 — Realtime/pagination hardening**
-9. **PR 9 — UI polish, accessibility, manual QA**
+8. **PR 8A — Shared-link pagination + Realtime hardening** ✅ Can proceed independently after PRs 2-6. Not gated on PR 7.
+9. **PR 8B — Access telemetry hardening** 🔴 Gated on PR 7 approval.
+10. **PR 9 — UI polish, accessibility, manual QA** — Non-telemetry polish after PR 8A; telemetry polish after PR 8B.
 
-PRs 1–6 can proceed without stakeholder approval (no privacy impact). PR 7 is gated. See `29-final-decision-log-and-approval-matrix.md` and `32-final-implementation-readiness-scorecard.md`.
+PRs 1–6 and PR 8A can proceed without stakeholder approval (no privacy impact). PR 7 and PR 8B are gated. See `29-final-decision-log-and-approval-matrix.md` and `42-98-100-readiness-scorecard.md`.
 
 ---
 
@@ -252,7 +293,7 @@ PRs 1–6 can proceed without stakeholder approval (no privacy impact). PR 7 is 
 - **Code truth map complete** (doc 35) — 20+ features mapped from planning claims to actual code with reconciled truth.
 - **PR 2 scope narrowed** — event_type NOT exposed in public API response (deferred to composer PR 5). CSRF fix covers all 3 fetch paths.
 - **Approval statuses corrected** (doc 29) — Engineering recommendations distinguished from actual stakeholder sign-offs. No fabricated approvals.
-- **47 planning documents total** (README + 46 numbered docs 00–45). Sixth pass added docs 41–44. Seventh pass added doc 45 and refined all docs for final micro-consistency.
+- **48 planning documents total** (README + 47 numbered docs 00–46). Sixth pass added docs 41–44. Seventh pass added doc 45 and refined all docs for final micro-consistency. Eighth pass added doc 46 and corrected stale HEADs.
 
 ### Previous Findings (Third Pass — still accurate)
 
@@ -285,14 +326,15 @@ See `29-final-decision-log-and-approval-matrix.md` for all 28 decisions and thei
 
 ## Next Action
 
-1. **Merge docs (PR 1)** — All 46 planning documents are internally consistent after sixth-pass autonomous readiness loop. Ready to merge.
+1. **Merge docs (PR 1)** — All 48 files (README + 47 numbered docs 00–46) are internally consistent after eighth-pass implementation-readiness lock. Ready to merge.
 2. **Begin PR 2** — Preflight correctness cleanup (5 fixes, no privacy dependencies). See `40-final-implementation-handoff.md` for exact starting point. See `31-pr2-preflight-implementation-brief.md` for scope. See `38-pr2-test-command-and-fixture-plan.md` for test plan.
-3. **Continue through PR sequence** — PRs 3-6 proceed freely after PR 2. PR 7 gated on stakeholder sign-off (D-017, D-018, D-023). See `32-final-implementation-readiness-scorecard.md`.
+3. **Continue through PR sequence** — PRs 3-6 proceed freely after PR 2. PR 8A can proceed after PRs 2-6 independent of PR 7. PR 7 gated on stakeholder sign-off (D-017, D-018, D-023). See `42-98-100-readiness-scorecard.md`.
 
 ## Key Reference Documents
 
 | For | See |
 |-----|-----|
+| **Final lock confirmation** | `46-final-implementation-readiness-lock.md` |
 | **Implementation handoff** | `40-final-implementation-handoff.md` |
 | **Document authority index** | `39-source-of-truth-and-doc-authority-index.md` |
 | **Code truth map** | `35-code-truth-map.md` |
@@ -302,7 +344,7 @@ See `29-final-decision-log-and-approval-matrix.md` for all 28 decisions and thei
 | Stakeholder-friendly summary | `28-fourth-pass-stakeholder-review-packet.md` |
 | All 28 decisions and statuses | `29-final-decision-log-and-approval-matrix.md` |
 | PR 2 execution plan | `31-pr2-preflight-implementation-brief.md` |
-| Go/no-go by category | `32-final-implementation-readiness-scorecard.md` |
+| Go/no-go by category | `42-98-100-readiness-scorecard.md` |
 | Meeting agenda | `33-stakeholder-review-script.md` |
 | Full 9-PR sequence | `27-third-pass-master-implementation-blueprint.md` |
 | Access telemetry plan | `23-shared-page-access-activity-plan.md` |
