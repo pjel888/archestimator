@@ -1,0 +1,39 @@
+# Non-runtime evidence, docs, and local agent state.
+.ai
+.agents
+.claude
+.commandcode
+.github
+docs
+AGENTS.md
+CLAUDE.md
+
+# Presentation artifacts are large and not required by the app runtime.
+archestimator_pitch deck
+
+# Tests and local reports are validated before deploy but should not be uploaded.
+tests
+e2e
+coverage
+playwright-report
+test-results
+
+# Local-only state and generated outputs.
+.code-review-graph
+.chunkhound
+.chunkhound.json
+.gemini
+.antigravitycli
+.omo
+.worktrees
+data/local
+build
+out
+
+# Never upload local environment files through CLI deploys.
+.env*
+!.env.example
+
+# Logs and OS noise.
+*.log
+.DS_Store
