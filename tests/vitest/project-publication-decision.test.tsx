@@ -36,6 +36,7 @@ vi.mock("@/lib/publication/public-repository", async () => {
 // Modules under test (will fail to import or execute until P7 impl — intentionally red first)
 import { POST } from "@/app/api/share/[token]/decision/route";
 import SharePageDecision from "@/components/share/SharePageDecision";
+import { composeSharedLinkActivity } from "@/lib/activity";
 
 function params(token = "client-pub-token-123") {
   return { params: Promise.resolve({ token }) };
@@ -164,6 +165,20 @@ describe("P7 — Shared Link Decisions API & UI (red tests written FIRST before 
     });
   });
 
+
+  describe("recipient-aware activity copy", () => {
+    it("renders safe recipient decision digest copy", () => {
+      const accepted = composeSharedLinkActivity({ id: "decision-a", type: "decision", created_at: "2026-06-02T00:00:00.000Z", recipientDisplayName: "Maria", decision: "accepted" }, { audience: "client", visibility: "public" });
+      const declined = composeSharedLinkActivity({ id: "decision-d", type: "decision", created_at: "2026-06-02T00:01:00.000Z", recipientDisplayName: "Maria", decision: "declined" }, { audience: "client", visibility: "public" });
+      const revision = composeSharedLinkActivity({ id: "decision-r", type: "decision", created_at: "2026-06-02T00:02:00.000Z", recipientDisplayName: "Maria", decision: "revision_requested" }, { audience: "client", visibility: "public" });
+
+      expect(accepted.title).toBe("Maria approved the proposal.");
+      expect(declined.title).toBe("Maria declined the proposal.");
+      expect(revision.title).toBe("Maria requested revisions.");
+      expect([accepted, declined, revision].map((activity) => activity.raw)).toEqual([undefined, undefined, undefined]);
+    });
+  });
+
   describe("SharePageDecision component (Accept/Decline/Request Revision buttons + confirmation modal + read-only lock + 409 handling + post-decision comments allowed)", () => {
     it("renders nothing or disabled state when no valid session (P5 hook)", () => {
       mocks.useSharedLinkSession.mockReturnValue({ isValid: false });
@@ -216,6 +231,10 @@ describe("P7 — Shared Link Decisions API & UI (red tests written FIRST before 
           expect.objectContaining({ method: "POST", headers: expect.objectContaining({ "x-archestimator-csrf": expect.any(String) }) })
         );
       });
+      const requestInit = vi.mocked(global.fetch).mock.calls[0]?.[1] as RequestInit;
+      const headers = requestInit.headers as Record<string, string>;
+      expect(headers["x-archestimator-csrf"]).not.toBe(["client", "post"].join("-"));
+      expect(document.cookie).toContain(`ae_publication_csrf=${headers["x-archestimator-csrf"]}`);
       // After success, shows read-only badge/lock (not the 3 buttons)
       await waitFor(() => {
         expect(screen.getByTestId("decision-locked-badge")).toBeInTheDocument();

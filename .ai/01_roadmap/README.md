@@ -370,3 +370,9 @@ The app has substantial product surface:
 ---
 
 *Historical feature-progress detail preserved in superseded documents and `.ai/09_archive/`.*
+
+---
+
+## Completed repo-local implementation addendum — Activity History Overhaul V1
+
+Activity History Overhaul V1 is completed and archived after repo-local implementation on `feat/activity-history-overhaul-v1`. Track milestone status, validation evidence, commit SHAs, and final archive location in [`35-activity-history-overhaul-v1-execution.md`](./35-activity-history-overhaul-v1-execution.md). Production access telemetry enablement remains **NO-GO** unless the evidence gates in the plan pack docs 64/66/68 are actually completed.

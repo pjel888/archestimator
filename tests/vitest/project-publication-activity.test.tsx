@@ -1,10 +1,11 @@
 import { beforeEach, describe, expect, it, vi, afterEach } from "vitest";
-import { render, screen, waitFor, cleanup } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, cleanup, within } from "@testing-library/react";
 import React from "react";
 
 // Hoisted mocks for route, repo, security, hook, Realtime, email, component deps (P8 red tests written FIRST per Master Prompt + subagent TDD red-first rule + full graph impact completed before any symbol touch)
 const mocks = vi.hoisted(() => ({
   assertSameOriginPublicPost: vi.fn(),
+  assertSameOrigin: vi.fn(),
   verifySharedLinkSessionCookieValue: vi.fn(),
   createSharedLinkSessionCookieName: vi.fn(),
   hashPublicationToken: vi.fn(),
@@ -32,6 +33,7 @@ vi.mock("@/lib/publication/security", async () => {
   return {
     ...actual,
     assertSameOriginPublicPost: mocks.assertSameOriginPublicPost,
+    assertSameOrigin: mocks.assertSameOrigin,
     verifySharedLinkSessionCookieValue: mocks.verifySharedLinkSessionCookieValue,
     createSharedLinkSessionCookieName: mocks.createSharedLinkSessionCookieName,
     hashPublicationToken: mocks.hashPublicationToken,
@@ -69,6 +71,7 @@ vi.mock("@supabase/supabase-js", () => ({
 import { GET } from "@/app/api/share/[token]/activity/route";
 import { loadSharedLinkActivity, maybeTriggerSharedLinkActivityDigest } from "@/lib/publication/actions";
 import SharedLinkActivityFeed from "@/components/share/SharedLinkActivityFeed";
+import { summarizeProjectPublicationAccessTelemetryMetrics } from "@/lib/publication/activity-helpers";
 
 function params(token = "client-pub-token-123") {
   return { params: Promise.resolve({ token }) };
@@ -87,6 +90,8 @@ type QueryResultMock = {
   order: ReturnType<typeof vi.fn>;
   limit: ReturnType<typeof vi.fn>;
   maybeSingle: ReturnType<typeof vi.fn>;
+  in: ReturnType<typeof vi.fn>;
+  or: ReturnType<typeof vi.fn>;
 };
 
 function createQueryResult(data: unknown, error: Error | null = null) {
@@ -94,6 +99,8 @@ function createQueryResult(data: unknown, error: Error | null = null) {
   query.select = vi.fn(() => query);
   query.eq = vi.fn(() => query);
   query.order = vi.fn(() => query);
+  query.in = vi.fn(() => query);
+  query.or = vi.fn(() => query);
   query.limit = vi.fn(async () => ({ data, error }));
   query.maybeSingle = vi.fn(async () => ({ data, error }));
   return query;
@@ -108,36 +115,92 @@ function createActivityRouteSupabaseMock() {
           status: "published",
           revoked_at: null,
           expires_at: null,
+          snapshot_json: {
+            estimates: [
+              {
+                id: "est-1",
+                name: "Main Estimate",
+                rows: [{ id: "row-1", material: "Hardwood Oak Flooring", nodeId: "node-1" }],
+                nodes: [{ id: "node-1", name: "Living Area" }],
+              },
+            ],
+          },
         });
       }
       if (table === "shared_link_comments") {
         return createQueryResult([
           {
-            id: "c1",
+            id: "11111111-1111-4111-8111-111111111111",
             created_at: "2026-05-28T10:00:00Z",
             body: "Looks good",
             is_internal: false,
             author_email: "recipient@example.com",
+            recipient_id: "recipient-1",
+            estimate_id: "est-1",
+            row_id: "row-1",
+          },
+          {
+            id: "11111111-1111-4111-8111-111111111110",
+            created_at: "2026-05-28T10:00:00Z",
+            body: "Duplicate timestamp comment",
+            is_internal: false,
+            author_email: "recipient@example.com",
+            recipient_id: "recipient-1",
+            estimate_id: "est-1",
+            row_id: "row-1",
           },
         ]);
       }
       if (table === "shared_link_responses") {
         return createQueryResult([
           {
-            id: "d1",
+            id: "22222222-2222-4222-8222-222222222222",
             created_at: "2026-05-28T11:00:00Z",
             decision: "accepted",
             note: null,
+            recipient_id: "recipient-1",
           },
         ]);
       }
       if (table === "shared_link_events") {
         return createQueryResult([
           {
-            id: "e1",
+            id: "33333333-3333-4333-8333-333333333333",
             created_at: "2026-05-28T12:00:00Z",
             event_type: "open",
             metadata_json: {},
+            recipient_id: "recipient-1",
+          },
+        ]);
+      }
+      if (table === "shared_link_recipients") {
+        return createQueryResult([{ id: "recipient-1", display_name: "Maria" }]);
+      }
+      if (table === "project_publication_events") {
+        return createQueryResult([
+          {
+            id: "access-2",
+            created_at: "2026-05-28T12:30:00Z",
+            event_type: "open",
+            metadata_json: { access_stage: "page_visit", eventType: "open", recipient_known: true, bot: false, device_type: "desktop", browser_family: "Chrome", os_family: "macOS", country: "PH" },
+            ip_hash: "ip-secret",
+            user_agent_hash: "ua-secret",
+          },
+          {
+            id: "access-2-duplicate",
+            created_at: "2026-05-28T12:30:00Z",
+            event_type: "open",
+            metadata_json: { access_stage: "page_visit", eventType: "open", recipient_known: true, bot: false, device_type: "desktop", browser_family: "Chrome", os_family: "macOS", country: "PH" },
+            ip_hash: "ip-secret",
+            user_agent_hash: "ua-secret",
+          },
+          {
+            id: "access-bot",
+            created_at: "2026-05-28T12:31:00Z",
+            event_type: "open",
+            metadata_json: { access_stage: "page_visit", eventType: "open", recipient_known: false, bot: true, device_type: "bot" },
+            ip_hash: "bot-ip-secret",
+            user_agent_hash: "bot-ua-secret",
           },
         ]);
       }
@@ -159,6 +222,16 @@ function createPublicationActionsSupabaseMock() {
           status: "published",
           revoked_at: null,
           expires_at: null,
+          snapshot_json: {
+            estimates: [
+              {
+                id: "est-1",
+                name: "Main Estimate",
+                rows: [{ id: "row-1", material: "Hardwood Oak Flooring", nodeId: "node-1" }],
+                nodes: [{ id: "node-1", name: "Living Area" }],
+              },
+            ],
+          },
         });
       }
       if (table === "projects") {
@@ -188,8 +261,21 @@ function createPublicationActionsSupabaseMock() {
             body: "Looks good",
             is_internal: false,
             author_email: "recipient@example.com",
-            estimate_id: null,
-            row_id: null,
+            author_name: null,
+            recipient_id: "recipient-1",
+            estimate_id: "est-1",
+            row_id: "row-1",
+          },
+          {
+            id: "c0",
+            created_at: "2026-05-28T10:00:00Z",
+            body: "Duplicate timestamp comment",
+            is_internal: false,
+            author_email: "recipient@example.com",
+            author_name: null,
+            recipient_id: "recipient-1",
+            estimate_id: "est-1",
+            row_id: "row-1",
           },
           {
             id: "c2",
@@ -197,8 +283,10 @@ function createPublicationActionsSupabaseMock() {
             body: "Internal note",
             is_internal: true,
             author_email: "owner@example.com",
-            estimate_id: null,
-            row_id: null,
+            author_name: "Philip Lewis",
+            recipient_id: null,
+            estimate_id: "est-1",
+            row_id: "row-1",
           },
         ]);
       }
@@ -224,6 +312,37 @@ function createPublicationActionsSupabaseMock() {
           },
         ]);
       }
+      if (table === "shared_link_recipients") {
+        return createQueryResult([{ id: "recipient-1", display_name: "Maria" }]);
+      }
+      if (table === "project_publication_events") {
+        return createQueryResult([
+          {
+            id: "access-2",
+            created_at: "2026-05-28T12:30:00Z",
+            event_type: "open",
+            metadata_json: { access_stage: "page_visit", eventType: "open", recipient_known: true, bot: false, device_type: "desktop", browser_family: "Chrome", os_family: "macOS", country: "PH" },
+            ip_hash: "ip-secret",
+            user_agent_hash: "ua-secret",
+          },
+          {
+            id: "access-2-duplicate",
+            created_at: "2026-05-28T12:30:00Z",
+            event_type: "open",
+            metadata_json: { access_stage: "page_visit", eventType: "open", recipient_known: true, bot: false, device_type: "desktop", browser_family: "Chrome", os_family: "macOS", country: "PH" },
+            ip_hash: "ip-secret",
+            user_agent_hash: "ua-secret",
+          },
+          {
+            id: "access-bot",
+            created_at: "2026-05-28T12:31:00Z",
+            event_type: "open",
+            metadata_json: { access_stage: "page_visit", eventType: "open", recipient_known: false, bot: true, device_type: "bot" },
+            ip_hash: "bot-ip-secret",
+            user_agent_hash: "bot-ua-secret",
+          },
+        ]);
+      }
       return createQueryResult([]);
     }),
   };
@@ -242,6 +361,7 @@ describe("P8 — Shared Link Activity Feed & Notifications (red tests written FI
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY = "anon-key";
     process.env.SUPABASE_SERVICE_ROLE_KEY = "service-role";
     mocks.assertSameOriginPublicPost.mockReturnValue({ ok: true });
+    mocks.assertSameOrigin.mockReturnValue({ ok: true });
     mocks.createSharedLinkSessionCookieName.mockReturnValue("shared_link_session_abc123");
     mocks.hashPublicationToken.mockReturnValue("publication-token-hash");
     mocks.readPublicationTokenHashSecret.mockReturnValue("publication-hash-secret");
@@ -281,6 +401,29 @@ describe("P8 — Shared Link Activity Feed & Notifications (red tests written FI
   });
 
   describe("GET /api/share/[token]/activity route (public filtered + session aware, is_internal filter for unauth)", () => {
+    it("allows same-origin GET without CSRF header or cookie", async () => {
+      mocks.assertSameOriginPublicPost.mockReturnValue({ ok: false, status: 403, message: "Publication request verification failed." });
+      mocks.assertSameOrigin.mockReturnValue({ ok: true });
+
+      const res = await GET(makeRequest({ origin: "http://localhost" }), params());
+
+      expect(res.status).toBe(200);
+      expect(mocks.assertSameOriginPublicPost).not.toHaveBeenCalled();
+      const json = (await res.json()) as { activities?: unknown[]; recipientSession?: boolean };
+      expect(Array.isArray(json.activities)).toBe(true);
+      expect(json.recipientSession).toBe(false);
+    });
+
+    it("rejects cross-origin GET requests", async () => {
+      mocks.assertSameOrigin.mockReturnValue({ ok: false, status: 403, message: "Cross-origin publication requests are blocked." });
+
+      const res = await GET(makeRequest({ origin: "https://evil.example" }), params());
+
+      expect(res.status).toBe(403);
+      expect(await res.json()).toEqual({ error: "Cross-origin publication requests are blocked." });
+      expect(mocks.createPublicationServiceClient).not.toHaveBeenCalled();
+    });
+
     it("rejects missing or invalid CSRF for POST-like but allows safe GET (reuses assert pattern from P5/P6)", async () => {
       // GET is read, but security boundary still applies for token validation
       const res = await GET(new Request("http://localhost/api/share/client-pub-token-123/activity"), params());
@@ -316,6 +459,60 @@ describe("P8 — Shared Link Activity Feed & Notifications (red tests written FI
       expect(mocks.createPublicationServiceClient).not.toHaveBeenCalled();
     });
 
+    it("returns composed client-safe ActivityViewModel items without raw database fields", async () => {
+      const res = await GET(makeRequest({ origin: "http://localhost" }), params());
+
+      expect(res.status).toBe(200);
+      const json = await res.json();
+      expect(json).toEqual(
+        expect.objectContaining({
+          hasMore: false,
+          recipientSession: false,
+          activities: expect.any(Array),
+        }),
+      );
+      expect(json.activities.length).toBeGreaterThan(0);
+      expect(json.activities[0]).toEqual(
+        expect.objectContaining({
+          id: expect.stringMatching(/^act_[a-f0-9]{16}$/),
+          source: expect.any(String),
+          action: expect.any(String),
+          visibility: "public",
+          occurredAt: expect.any(String),
+          title: expect.any(String),
+        }),
+      );
+      const serialized = JSON.stringify(json);
+      expect(serialized).not.toContain("event_type");
+      expect(serialized).not.toContain("metadata_json");
+      expect(serialized).not.toContain("created_at");
+      expect(serialized).not.toContain("author_email");
+      expect(serialized).not.toContain("recipient_id");
+      expect(serialized).not.toContain("raw");
+      expect(serialized).not.toContain("accepted");
+      expect(serialized).not.toContain("revision_requested");
+      expect(serialized).not.toMatch(/[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}/i);
+      expect(json.activities.some((activity: { title?: string }) => activity.title === "Maria approved the proposal.")).toBe(true);
+      expect(json.activities.some((activity: { title?: string }) => activity.title === "Maria commented on Living Area.")).toBe(true);
+      expect(serialized).not.toContain("recipient@example.com");
+      expect(json.activities.every((activity: { title?: string }) => activity.title && !activity.title.includes("EVENT"))).toBe(true);
+    });
+
+
+    it("supports stable composite cursor pagination without raw cursor fields", async () => {
+      const res = await GET(new Request("http://localhost/api/share/client-pub-token-123/activity?limit=2"), params());
+      expect(res.status).toBe(200);
+      const firstPage = await res.json();
+      expect(firstPage.activities).toHaveLength(2);
+      expect(firstPage.hasMore).toBe(true);
+      expect(firstPage.nextCursor).toEqual(expect.any(String));
+      expect(JSON.stringify(firstPage)).not.toContain("created_at");
+
+      const secondPage = await GET(new Request(`http://localhost/api/share/client-pub-token-123/activity?limit=2&cursor=${encodeURIComponent(firstPage.nextCursor)}`), params());
+      expect(secondPage.status).toBe(200);
+      expect((await secondPage.json()).activities.length).toBeGreaterThan(0);
+    });
+
     it("returns full activity (including internal) when owner/manager context via session or server action path", async () => {
       mocks.verifySharedLinkSessionCookieValue.mockReturnValue(true);
       const parsableSession = "shared-link-session-v1:eyJyZWNpcGllbnRJZCI6InJlY2lwLTEyMyIsInB1YmxpY2F0aW9uSWQiOiJwdWIxIiwic25hcHNob3RWZXJzaW9uIjoiMSJ9:dummy";
@@ -330,12 +527,52 @@ describe("P8 — Shared Link Activity Feed & Notifications (red tests written FI
       const result = await loadSharedLinkActivity("client-pub-token-123");
       expect(result).toBeDefined();
       expect(Array.isArray(result?.activities)).toBe(true);
-      // Red until impl: expects joined shape with author, type, created_at, optional is_internal/body/decision
+      const titles = result.activities.map((activity) => activity.title);
+      expect(titles).toContain("Maria approved the proposal.");
+      expect(titles).toContain("Maria commented on Living Area.");
+      expect(titles).toContain("Philip Lewis added an internal note.");
+      expect(result.activities.some((activity) => activity.badges?.includes("Internal"))).toBe(true);
+      expect(JSON.stringify(result.activities)).not.toContain("recipient@example.com");
     });
 
     it("supports pagination cursor and filters for manager modal", async () => {
-      const result = await loadSharedLinkActivity("client-pub-token-123", { limit: 20, cursor: "2026-05-28T09:00:00Z" });
+      const firstPage = await loadSharedLinkActivity("client-pub-token-123", { limit: 2 });
+      expect(firstPage.activities).toHaveLength(2);
+      expect(firstPage.hasMore).toBe(true);
+      expect(firstPage.nextCursor).toEqual(expect.any(String));
+
+      const result = await loadSharedLinkActivity("client-pub-token-123", { limit: 20, cursor: firstPage.nextCursor });
       expect(result).toBeDefined();
+    });
+
+
+    it("loads access telemetry only when requested, dedupes duplicate access events, hides bots, and omits diagnostic hashes", async () => {
+      const hiddenByDefault = await loadSharedLinkActivity("client-pub-token-123", { limit: 20 });
+      expect(hiddenByDefault.activities.some((activity) => activity.meta === "access_telemetry")).toBe(false);
+
+      const result = await loadSharedLinkActivity("client-pub-token-123", { limit: 20, includeAccessTelemetry: true });
+      const accessItems = result.activities.filter((activity) => activity.meta === "access_telemetry");
+      expect(accessItems).toHaveLength(1);
+      expect(accessItems[0]?.title).toMatch(/viewed the proposal/i);
+      expect(JSON.stringify(accessItems)).not.toContain("ip-secret");
+      expect(JSON.stringify(accessItems)).not.toContain("ua-secret");
+      expect(JSON.stringify(accessItems)).not.toContain("access-bot");
+
+      const withBots = await loadSharedLinkActivity("client-pub-token-123", { limit: 20, includeAccessTelemetry: true, includeBots: true });
+      expect(withBots.activities.filter((activity) => activity.meta === "access_telemetry")).toHaveLength(2);
+
+      const firstPage = await loadSharedLinkActivity("client-pub-token-123", { limit: 1, includeAccessTelemetry: true });
+      expect(firstPage.activities[0]?.meta).toBe("access_telemetry");
+      expect(firstPage.hasMore).toBe(true);
+      expect(firstPage.nextCursor).toEqual(expect.any(String));
+      const secondPage = await loadSharedLinkActivity("client-pub-token-123", { limit: 20, includeAccessTelemetry: true, cursor: firstPage.nextCursor });
+      expect(secondPage.activities.map((activity) => activity.id)).not.toContain(firstPage.activities[0]?.id);
+
+      const metrics = summarizeProjectPublicationAccessTelemetryMetrics([
+        { accessStage: "page_visit", bot: false },
+        { accessStage: "page_visit", bot: true },
+      ]);
+      expect(metrics).toEqual({ total: 2, bot: 1, human: 1, byStage: { page_visit: 2 } });
     });
   });
 
@@ -348,10 +585,139 @@ describe("P8 — Shared Link Activity Feed & Notifications (red tests written FI
       }, { timeout: 1000 });
     });
 
-    it("subscribes to Supabase Realtime on mount (owner path) and unsubscribes on unmount", async () => {
+    it("renders composed activity copy instead of raw type or decision labels", async () => {
+      vi.mocked(global.fetch).mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            activities: [
+              {
+                id: "act_deadbeef12345678",
+                source: "decision",
+                action: "approved",
+                visibility: "public",
+                occurredAt: "2026-05-28T11:00:00Z",
+                title: "Client approved the proposal.",
+                body: "Ready to proceed.",
+              },
+            ],
+            hasMore: false,
+            recipientSession: false,
+          }),
+          { status: 200, headers: { "content-type": "application/json" } },
+        ),
+      );
+
+      render(<SharedLinkActivityFeed publicationToken="client-pub-token-123" isOwner={false} />);
+
+      await waitFor(() => expect(screen.getByText("Client approved the proposal.")).toBeInTheDocument());
+      expect(screen.queryByText(/DECISION/)).not.toBeInTheDocument();
+      expect(screen.queryByText(/Decision:\s*accepted/i)).not.toBeInTheDocument();
+    });
+
+
+    it("renders accessible feed articles with keyboard-operable activity details", async () => {
+      vi.mocked(global.fetch).mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            activities: [
+              {
+                id: "act_access1234567890",
+                source: "share",
+                action: "viewed",
+                visibility: "public",
+                occurredAt: "2026-05-28T12:30:00Z",
+                title: "Maria viewed the proposal.",
+                facts: [
+                  { label: "Device type", value: "Desktop" },
+                  { label: "Browser family", value: "Chrome" },
+                  { label: "Country", value: "PH" },
+                ],
+              },
+            ],
+            hasMore: false,
+            recipientSession: false,
+          }),
+          { status: 200, headers: { "content-type": "application/json" } },
+        ),
+      );
+
+      render(<SharedLinkActivityFeed publicationToken="client-pub-token-123" isOwner={false} />);
+
+      const feed = await screen.findByRole("feed", { name: "Shared link activity feed" });
+      const article = within(feed).getByRole("article", { name: /Maria viewed the proposal/i });
+      expect(article).toHaveAttribute("tabindex", "0");
+      const detailsToggle = within(article).getByText("Activity details");
+      fireEvent.click(detailsToggle);
+      expect(within(article).getByText("Device type")).toBeInTheDocument();
+      expect(within(article).getByText("Desktop")).toBeInTheDocument();
+      expect(article.textContent).not.toContain("ip_hash");
+      expect(article.textContent).not.toContain("user_agent_hash");
+    });
+
+    it("scopes owner Realtime subscriptions to the active publication id", async () => {
+      render(<SharedLinkActivityFeed publicationToken="client-pub-token-123" publicationId="pub1" isOwner={true} />);
+
+      await waitFor(() => expect(mocks.channel).toHaveBeenCalled());
+      const channelApi = mocks.channel.mock.results.at(-1)?.value;
+      const filterArgs = channelApi.on.mock.calls.map((call: unknown[]) => call[1]);
+
+      expect(filterArgs).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ table: "shared_link_comments", filter: "publication_id=eq.pub1" }),
+          expect.objectContaining({ table: "shared_link_responses", filter: "publication_id=eq.pub1" }),
+          expect.objectContaining({ table: "shared_link_events", filter: "publication_id=eq.pub1" }),
+        ]),
+      );
+    });
+
+
+    it("announces Realtime activity refreshes with a polite new-activity banner", async () => {
+      render(<SharedLinkActivityFeed publicationToken="client-pub-token-123" publicationId="pub1" isOwner={true} />);
+
+      await waitFor(() => expect(mocks.channel).toHaveBeenCalled());
+      const channelApi = mocks.channel.mock.results.at(-1)?.value;
+      const insertHandler = channelApi.on.mock.calls[0]?.[2] as (() => void) | undefined;
+      expect(insertHandler).toBeDefined();
+      insertHandler?.();
+
+      await waitFor(() => expect(screen.getByText("New activity loaded.")).toBeInTheDocument());
+      expect(screen.getByText("New shared link activity loaded.")).toBeInTheDocument();
+    });
+
+
+    it("renders a 200-item shared activity feed without raw-copy regressions", async () => {
+      vi.mocked(global.fetch).mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            activities: Array.from({ length: 200 }, (_, index) => ({
+              id: `act_perf_${index}`,
+              source: "share",
+              action: "viewed",
+              visibility: "public",
+              occurredAt: `2026-05-28T12:${String(index % 60).padStart(2, "0")}:00Z`,
+              title: `Client viewed proposal update ${index + 1}.`,
+            })),
+            hasMore: false,
+            recipientSession: false,
+          }),
+          { status: 200, headers: { "content-type": "application/json" } },
+        ),
+      );
+
+      const startedAt = performance.now();
+      render(<SharedLinkActivityFeed publicationToken="client-pub-token-123" isOwner={false} />);
+
+      await screen.findByText("Client viewed proposal update 200.");
+      expect(screen.getAllByTestId("activity-item")).toHaveLength(200);
+      expect(performance.now() - startedAt).toBeLessThan(2_000);
+      expect(screen.queryByText(/row_updated|event_type|metadata_json|DECISION/)).not.toBeInTheDocument();
+    });
+
+    it("does not subscribe to Realtime without a publication id", async () => {
       render(<SharedLinkActivityFeed publicationToken="client-pub-token-123" isOwner={true} />);
-      // Realtime subscription exercised in component (useEffect + channel). In this vitest env the direct createClient in feed may use unmocked path or async effect; intent verified by prior graph + manual review. Non-blocking for P8 core.
-      expect(true).toBe(true);
+
+      await waitFor(() => expect(screen.getByTestId("activity-feed")).toBeInTheDocument());
+      expect(mocks.channel).not.toHaveBeenCalled();
     });
 
     it("does not render internal items for non-owner / public context", () => {

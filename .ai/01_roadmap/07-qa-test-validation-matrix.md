@@ -100,3 +100,14 @@ All pre-beta gates, plus:
 14. AI safety boundaries
 15. Full component DOM test expansion
 16. Regression release checklist
+
+## Activity History Overhaul V1 repo-local QA overlay — 2026-06-02
+
+Milestone 9 added automated accessibility/performance assertions for the Activity History surfaces while preserving the broader roadmap truth that full production accessibility still needs aXe/WAVE and manual screen-reader walkthrough evidence. Current repo-local evidence:
+
+- Shared-link activity feed uses `role=feed`, focusable activity articles, native details disclosure for audit facts, loading skeletons, alert/status states, and an `aria-live=polite` Realtime new-activity announcement.
+- Estimate Activity History timeline exposes `role=feed` with accessible day regions and existing article labels.
+- Targeted validation: `bun run test:dom -- tests/vitest/project-publication-activity.test.tsx tests/vitest/estimate-sheet-version-control-ui.test.tsx` and `bun run lint:design-system`.
+- Performance smoke: 200 shared-feed activity items render under the test budget in Vitest/JSDOM.
+
+This is repo-local automated evidence only. It does not replace browser aXe/WAVE scans or manual assistive-technology walkthroughs before production.

@@ -225,6 +225,18 @@ export function createPublicationAccessCookie(
   return `${createPublicationAccessCookieName(context.token)}=${accessCookiePrefix}:${encodedPayload}:${signature}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${maxAgeSeconds}${secureCookie}`;
 }
 
+export function assertSameOrigin(request: Request): { ok: true } | { ok: false; status: number; message: string } {
+  const origin = request.headers.get("origin");
+  if (!origin) return { ok: true };
+
+  const requestOrigin = new URL(request.url).origin;
+  if (origin !== requestOrigin) {
+    return { ok: false, status: 403, message: "Cross-origin publication requests are blocked." };
+  }
+
+  return { ok: true };
+}
+
 export function assertSameOriginPublicPost(request: Request): { ok: true } | { ok: false; status: number; message: string } {
   const origin = request.headers.get("origin");
   const requestOrigin = new URL(request.url).origin;

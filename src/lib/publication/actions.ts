@@ -20,6 +20,8 @@ import { buildProjectPublicationSnapshot } from "@/lib/publication/snapshot";
 import type { Database, Json, Tables } from "@/lib/supabase/types";
 import { readEmailDeliveryConfig, sendEmail } from "@/lib/email/resend-client";
 import { normalizeEstimateTreeNodeKind } from "@/lib/estimates/tree-hierarchy";
+import { composeSharedLinkActivity, type ActivityViewModel, type SharedLinkActivityInput } from "@/lib/activity";
+import { compareSharedLinkActivityDesc, createSharedLinkTargetLabelMap, decodeSharedLinkActivityCursor, encodeSharedLinkActivityCursor, isBeforeSharedLinkActivityCursor, readSharedLinkRecipientDisplayName, resolveSharedLinkTargetLabel, sharedLinkActivityCursorFilter } from "@/lib/publication/activity-helpers";
 
 type PublicationActionResult = {
   ok: boolean;
@@ -1086,20 +1088,12 @@ export async function removeSharedLinkRecipient({
 // Rate-limited owner digest (in-memory MVP; 1 per 15min per publication) using P0 sendEmail
 // ============================================================================
 
-export type ActivityItem = {
-  id: string;
-  type: "comment" | "decision" | "event";
-  created_at: string;
-  author?: string;
-  body?: string;
-  decision?: string;
-  is_internal?: boolean;
-  metadata?: Record<string, unknown>;
-};
+export type ActivityItem = ActivityViewModel;
 
 type LoadActivityResult = {
   activities: ActivityItem[];
   hasMore: boolean;
+  nextCursor?: string;
 };
 
 // In-memory rate limiter for digest emails (MVP; per-process, resets on restart; production would use DB row or Redis)
@@ -1146,7 +1140,7 @@ async function triggerOwnerDigestIfAllowed(publicationId: string, publicationTok
 // resolved from token. Sorted by created_at desc. Supports basic cursor (timestamp). Internal comments visible only to owners.
 export async function loadSharedLinkActivity(
   publicationToken: string,
-  opts: { limit?: number; cursor?: string } = {}
+  opts: { includeAccessTelemetry?: boolean; includeBots?: boolean; limit?: number; cursor?: string } = {}
 ): Promise<LoadActivityResult> {
   const limit = Math.min(Math.max(1, opts.limit ?? 50), 100);
   await requireCurrentUserContext(); // enforces authenticated owner for shared link activity load (P8); no .token on context type — publicationToken param used for lookup
@@ -1155,7 +1149,7 @@ export async function loadSharedLinkActivity(
   const pubHash = hashPublicationToken(publicationToken, readPublicationTokenHashSecret());
   const { data: pub, error: pubErr } = await admin
     .from("project_publications")
-    .select("id, project_id, status, revoked_at, expires_at")
+    .select("id, project_id, status, revoked_at, expires_at, snapshot_json")
     .eq("token_hash", pubHash)
     .maybeSingle();
   if (pubErr) throw pubErr;
@@ -1166,73 +1160,126 @@ export async function loadSharedLinkActivity(
   await assertProjectPublicationManager(pub.project_id);
 
   const pubId = pub.id;
-  const cursor = opts.cursor ? new Date(opts.cursor) : null;
+  const cursor = decodeSharedLinkActivityCursor(opts.cursor);
+  const cursorFilter = sharedLinkActivityCursorFilter(cursor);
 
   // Parallel loads (additive, service role bypasses RLS for owner-verified path)
-  const [commentsRes, responsesRes, eventsRes] = await Promise.all([
-    admin
-      .from("shared_link_comments")
-      .select("id, created_at, body, is_internal, author_email, estimate_id, row_id")
-      .eq("publication_id", pubId)
-      .order("created_at", { ascending: false })
-      .limit(limit + 1),
-    admin
-      .from("shared_link_responses")
-      .select("id, created_at, decision, note, recipient_id")
-      .eq("publication_id", pubId)
-      .order("created_at", { ascending: false })
-      .limit(limit + 1),
-    admin
-      .from("shared_link_events")
-      .select("id, created_at, event_type, metadata_json, recipient_id")
-      .eq("publication_id", pubId)
-      .order("created_at", { ascending: false })
-      .limit(limit + 1),
+  let commentsQuery = admin
+    .from("shared_link_comments")
+    .select("id, created_at, body, is_internal, author_email, author_name, recipient_id, estimate_id, row_id")
+    .eq("publication_id", pubId);
+  let responsesQuery = admin
+    .from("shared_link_responses")
+    .select("id, created_at, decision, note, recipient_id")
+    .eq("publication_id", pubId);
+  let eventsQuery = admin
+    .from("shared_link_events")
+    .select("id, created_at, event_type, metadata_json, recipient_id")
+    .eq("publication_id", pubId);
+  let accessTelemetryQuery = admin
+    .from("project_publication_events")
+    .select("id, created_at, event_type, metadata_json")
+    .eq("publication_id", pubId);
+  if (cursorFilter) {
+    commentsQuery = commentsQuery.or(cursorFilter);
+    responsesQuery = responsesQuery.or(cursorFilter);
+    eventsQuery = eventsQuery.or(cursorFilter);
+    accessTelemetryQuery = accessTelemetryQuery.or(cursorFilter);
+  }
+
+  const [commentsRes, responsesRes, eventsRes, accessTelemetryRes] = await Promise.all([
+    commentsQuery.order("created_at", { ascending: false }).order("id", { ascending: false }).limit(limit + 1),
+    responsesQuery.order("created_at", { ascending: false }).order("id", { ascending: false }).limit(limit + 1),
+    eventsQuery.order("created_at", { ascending: false }).order("id", { ascending: false }).limit(limit + 1),
+    opts.includeAccessTelemetry
+      ? accessTelemetryQuery.order("created_at", { ascending: false }).order("id", { ascending: false }).limit(limit + 1)
+      : Promise.resolve({ data: [], error: null }),
   ]);
 
-  const raw: ActivityItem[] = [];
-  (commentsRes.data ?? []).forEach((c) =>
+  const recipientIds = new Set<string>();
+  for (const comment of commentsRes.data ?? []) if (comment.recipient_id) recipientIds.add(comment.recipient_id);
+  for (const response of responsesRes.data ?? []) if (response.recipient_id) recipientIds.add(response.recipient_id);
+  for (const event of eventsRes.data ?? []) if (event.recipient_id) recipientIds.add(event.recipient_id);
+
+  const recipientDisplayNames = new Map<string, string>();
+  if (recipientIds.size) {
+    const { data: recipients, error: recipientsError } = await admin
+      .from("shared_link_recipients")
+      .select("id, display_name")
+      .eq("publication_id", pubId)
+      .in("id", Array.from(recipientIds))
+      .limit(500);
+    if (recipientsError) throw recipientsError;
+    for (const recipient of recipients ?? []) {
+      recipientDisplayNames.set(recipient.id, readSharedLinkRecipientDisplayName(recipient));
+    }
+  }
+
+  const targetLabels = createSharedLinkTargetLabelMap(pub.snapshot_json);
+  const raw: SharedLinkActivityInput[] = [];
+  (commentsRes.data ?? []).forEach((c) => {
+    const recipientDisplayName = c.recipient_id ? recipientDisplayNames.get(c.recipient_id) : undefined;
     raw.push({
       id: c.id,
       type: "comment",
       created_at: c.created_at,
-      author: c.author_email,
+      author: c.is_internal ? (c.author_name?.trim() || "Project owner") : (recipientDisplayName ?? "Client"),
       body: c.body,
       is_internal: !!c.is_internal,
-    })
-  );
+      recipientDisplayName,
+      metadata: { targetLabel: resolveSharedLinkTargetLabel(targetLabels, c.row_id, c.estimate_id) ?? "the proposal" },
+    });
+  });
   (responsesRes.data ?? []).forEach((r) =>
     raw.push({
       id: r.id,
       type: "decision",
       created_at: r.created_at,
-      author: "recipient",
       decision: r.decision,
       body: r.note || undefined,
+      recipientDisplayName: recipientDisplayNames.get(r.recipient_id),
     })
   );
-  (eventsRes.data ?? []).forEach((e) =>
+  (eventsRes.data ?? []).forEach((e) => {
+    const metadata = e.metadata_json && typeof e.metadata_json === "object" && !Array.isArray(e.metadata_json) ? e.metadata_json : {};
     raw.push({
       id: e.id,
       type: "event",
       created_at: e.created_at,
-      metadata:
-        e.metadata_json && typeof e.metadata_json === "object" && !Array.isArray(e.metadata_json)
-          ? e.metadata_json
-          : {},
-    })
-  );
+      metadata: { ...metadata, eventType: e.event_type },
+      recipientDisplayName: e.recipient_id ? recipientDisplayNames.get(e.recipient_id) : undefined,
+    });
+  });
+
+  if (accessTelemetryRes.error) throw accessTelemetryRes.error;
+  const seenAccessEvents = new Set<string>();
+  (accessTelemetryRes.data ?? []).forEach((e) => {
+    const metadata = e.metadata_json && typeof e.metadata_json === "object" && !Array.isArray(e.metadata_json) ? e.metadata_json as Record<string, unknown> : {};
+    if (!metadata.access_stage) return;
+    if (metadata.bot === true && !opts.includeBots) return;
+    const dedupeKey = [e.event_type, e.created_at, metadata.access_stage, metadata.recipient_known, metadata.bot].join("|");
+    if (seenAccessEvents.has(dedupeKey)) return;
+    seenAccessEvents.add(dedupeKey);
+    raw.push({
+      id: e.id,
+      type: "event",
+      created_at: e.created_at,
+      metadata: { ...metadata, eventType: e.event_type, accessTelemetry: true },
+      recipientDisplayName: metadata.recipient_known ? "Client" : undefined,
+    });
+  });
 
   // Sort + cursor filter + limit
-  raw.sort((a, b) => (a.created_at < b.created_at ? 1 : -1));
-  let filtered = raw;
-  if (cursor) {
-    filtered = filtered.filter((a) => new Date(a.created_at) < cursor);
-  }
+  const filtered = raw.filter((activity) => isBeforeSharedLinkActivityCursor(activity, cursor)).sort(compareSharedLinkActivityDesc);
+  const pageActivities = filtered.slice(0, limit);
   const hasMore = filtered.length > limit;
-  const activities = filtered.slice(0, limit);
+  const activities = pageActivities.map((activity) => {
+    const viewModel = composeSharedLinkActivity(activity, { audience: "owner", visibility: activity.is_internal ? "internal" : "owner" });
+    return activity.metadata?.accessTelemetry ? { ...viewModel, meta: "access_telemetry" as const } : viewModel;
+  });
+  const nextCursor = hasMore && pageActivities.length ? encodeSharedLinkActivityCursor(pageActivities[pageActivities.length - 1]!) : undefined;
 
-  return { activities, hasMore };
+  return { activities, hasMore, ...(nextCursor ? { nextCursor } : {}) };
 }
 
 // Internal trigger for P8 email digest (called from comment/decision routes after successful insert)

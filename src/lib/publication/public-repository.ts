@@ -7,6 +7,13 @@ import type { Database, Json, Tables } from "@/lib/supabase/types";
 
 export type ProjectPublicationEventType = "open" | "password_success" | "password_failure" | "download_attempt_blocked" | "password_attempt";
 
+export type ProjectPublicationAccessStage =
+  | "page_visit"
+  | "password_gate_viewed"
+  | "password_unlocked"
+  | "proposal_viewed"
+  | "recipient_session_started";
+
 export type ResolvedProjectPublicationAccess = {
   publicationId: string;
   status: "published";
@@ -65,6 +72,69 @@ function readTokenHash(token: string) {
 function hashRequestValue(value: string | null) {
   if (!value) return null;
   return createHash("sha256").update(value).digest("base64url");
+}
+
+export function isProjectPublicationAccessTelemetryEnabled(env: Partial<Pick<NodeJS.ProcessEnv, "NODE_ENV" | "ARCHESTIMATOR_ACCESS_TELEMETRY_ENABLED" | "ARCHESTIMATOR_ACCESS_TELEMETRY_PRODUCTION_READY">> = process.env) {
+  if (env.ARCHESTIMATOR_ACCESS_TELEMETRY_ENABLED !== "true") return false;
+  if (env.NODE_ENV === "production" && env.ARCHESTIMATOR_ACCESS_TELEMETRY_PRODUCTION_READY !== "true") return false;
+  return true;
+}
+
+function readTrustedCountry(request: Request) {
+  const country = request.headers.get("x-vercel-ip-country") ?? request.headers.get("cf-ipcountry");
+  const normalized = country?.trim().toUpperCase();
+  return normalized && /^[A-Z]{2}$/.test(normalized) ? normalized : undefined;
+}
+
+function readDeviceType(userAgent: string): "desktop" | "mobile" | "tablet" | "bot" | "unknown" {
+  if (!userAgent.trim()) return "unknown";
+  if (/bot|crawler|spider|preview|facebookexternalhit|slackbot|discordbot/i.test(userAgent)) return "bot";
+  if (/ipad|tablet|kindle|silk/i.test(userAgent)) return "tablet";
+  if (/mobile|iphone|android.*mobile/i.test(userAgent)) return "mobile";
+  if (/macintosh|windows|linux|x11|cros/i.test(userAgent)) return "desktop";
+  return "unknown";
+}
+
+function readBrowserFamily(userAgent: string): "Chrome" | "Safari" | "Firefox" | "Edge" | "unknown" {
+  if (/edg\//i.test(userAgent)) return "Edge";
+  if (/firefox\//i.test(userAgent)) return "Firefox";
+  if (/chrome\//i.test(userAgent) || /crios\//i.test(userAgent)) return "Chrome";
+  if (/safari\//i.test(userAgent)) return "Safari";
+  return "unknown";
+}
+
+function readOsFamily(userAgent: string): "macOS" | "Windows" | "iOS" | "Android" | "unknown" {
+  if (/iphone|ipad|ipod/i.test(userAgent)) return "iOS";
+  if (/android/i.test(userAgent)) return "Android";
+  if (/macintosh|mac os x/i.test(userAgent)) return "macOS";
+  if (/windows/i.test(userAgent)) return "Windows";
+  return "unknown";
+}
+
+function buildAccessTelemetryMetadata({
+  accessStage,
+  passwordSuccess,
+  recipientKnown,
+  request,
+}: {
+  accessStage: ProjectPublicationAccessStage;
+  passwordSuccess?: boolean;
+  recipientKnown: boolean;
+  request: Request;
+}) {
+  const userAgent = request.headers.get("user-agent") ?? "";
+  const deviceType = readDeviceType(userAgent);
+  return {
+    observed_at: new Date().toISOString(),
+    access_stage: accessStage,
+    recipient_known: recipientKnown,
+    ...(typeof passwordSuccess === "boolean" ? { password_success: passwordSuccess } : {}),
+    device_type: deviceType,
+    browser_family: deviceType === "bot" ? "unknown" : readBrowserFamily(userAgent),
+    os_family: deviceType === "bot" ? "unknown" : readOsFamily(userAgent),
+    ...(readTrustedCountry(request) ? { country: readTrustedCountry(request) } : {}),
+    bot: deviceType === "bot",
+  } satisfies Record<string, Json>;
 }
 
 export type DurableRateLimitResult =
@@ -401,6 +471,52 @@ export async function verifyProjectPublicationPasswordByToken(token: string, pas
 
   const passwordValid = await verifyPublicationPassword(password, data.password_hash);
   return passwordValid ? toResolvedAccess(data) : null;
+}
+
+export async function recordProjectPublicationAnalyticsEvent({
+  token,
+  eventType,
+  accessStage,
+  request,
+  recipientId,
+  recipientKnown = Boolean(recipientId),
+  passwordSuccess,
+}: {
+  token: string;
+  eventType: ProjectPublicationEventType;
+  accessStage: ProjectPublicationAccessStage;
+  request: Request;
+  recipientId?: string;
+  recipientKnown?: boolean;
+  passwordSuccess?: boolean;
+}): Promise<{ recorded: boolean; reason?: "disabled" | "inactive" }> {
+  if (!isProjectPublicationAccessTelemetryEnabled()) return { recorded: false, reason: "disabled" };
+
+  const supabase = createPublicationServiceClient();
+  const { data: publication, error: publicationError } = await supabase
+    .from("project_publications")
+    .select("id, status, password_hash, expires_at, revoked_at, snapshot_version")
+    .eq("token_hash", readTokenHash(token))
+    .maybeSingle();
+
+  if (publicationError) throw publicationError;
+  if (!publication || !isActivePublication(publication)) return { recorded: false, reason: "inactive" };
+
+  const ipHash = hashRequestValue(request.headers.get("x-forwarded-for") ?? getClientIp(request));
+  const userAgentHash = hashRequestValue(request.headers.get("user-agent"));
+  const metadata = buildAccessTelemetryMetadata({ accessStage, passwordSuccess, recipientKnown, request });
+  const eventMetadata = recipientId ? { ...metadata, recipient_known: true } : metadata;
+
+  const { error: eventError } = await supabase.from("project_publication_events").insert({
+    publication_id: publication.id,
+    event_type: eventType,
+    metadata_json: eventMetadata as Json,
+    ip_hash: ipHash,
+    user_agent_hash: userAgentHash,
+  });
+  if (eventError) throw eventError;
+
+  return { recorded: true };
 }
 
 export async function recordProjectPublicationEvent({

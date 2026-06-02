@@ -187,3 +187,9 @@ bun run test tests/integration/rls-isolation.test.ts > .ai/09_archive/store/YYYY
 | CODEX-P1-DBIDX-005 | No | No | database-performance-evidence | PLANNED — server-side search not approved |
 
 **Evidence status note:** BETA-P0-PERF-001 now has partial route-transition evidence under `.ai/09_archive/store/2026-05-31-BETA-P0-PERF-001-route-transition-optimization-subsequent-phases/` plus 2026-06-01 refresh folders for production-auth perf, Lighthouse/analyzer, sidebar hover-prefetch, and public bfcache cache-control mitigation. It is still not complete and must not be marked DONE or archived because manual Chrome bfcache DevTools persisted-restore proof and production Chrome React Profiler proof are still missing. Share/collaboration cards have substantial local/live route evidence, but they are not beta-DONE until Supabase Auth provider/dashboard proof, Resend dashboard/webhook proof, and real invite/recipient email browser smokes are captured. DBIDX-001 repo-only audit is ready; other evidence remains pending execution or dependencies.
+
+---
+
+## Activity History Overhaul V1 evidence
+
+The evidence ledger for completed Activity History Overhaul V1 is `.ai/01_roadmap/35-activity-history-overhaul-v1-execution.md`. It records milestone status, validation commands, commit SHAs, production telemetry NO-GO truth, and the final archive location at `.ai/09_archive/store/activity-history-overhaul-v1/`.
