@@ -71,7 +71,7 @@ language sql
 stable
 set search_path = public
 as $$
-  select current_user in ('postgres', 'service_role', 'supabase_admin');
+  select coalesce(auth.role(), '') = 'service_role';
 $$;
 
 create or replace function public.resolve_estimate_workspace(
@@ -1684,7 +1684,8 @@ revoke all on public.estimate_sheet_versions from public;
 grant select on public.estimate_sheet_events to authenticated;
 grant select on public.estimate_sheet_versions to authenticated;
 
-revoke execute on function public.resolve_estimate_workspace(uuid, uuid, uuid) from public;
+revoke execute on function public.estimate_sheet_can_bypass_auth() from public, anon, authenticated;
+revoke execute on function public.resolve_estimate_workspace(uuid, uuid, uuid) from public, anon, authenticated;
 revoke execute on function public.estimate_row_item_snapshot(public.estimate_row_items) from public;
 revoke execute on function public.estimate_row_context(public.estimate_row_items) from public;
 revoke execute on function public.estimate_sheet_total(uuid) from public;
@@ -1701,8 +1702,8 @@ revoke execute on function public.reorder_estimate_nodes_with_history(uuid, json
 revoke execute on function public.insert_estimate_template_into_estimate_with_history(uuid, uuid, uuid, uuid, uuid, uuid) from public;
 revoke execute on function public.update_estimate_details_with_history(uuid, uuid, jsonb, uuid, uuid) from public;
 revoke execute on function public.delete_estimate_node_with_history(uuid, uuid, uuid, uuid, uuid) from public;
-revoke execute on function public.get_estimate_sheet_version_control_preflight() from public;
-revoke execute on function public.backfill_estimate_sheet_baseline_versions(integer, uuid) from public;
+revoke execute on function public.get_estimate_sheet_version_control_preflight() from public, anon, authenticated;
+revoke execute on function public.backfill_estimate_sheet_baseline_versions(integer, uuid) from public, anon, authenticated;
 
 grant execute on function public.insert_estimate_row_item_with_history(uuid, uuid, uuid, jsonb, uuid, uuid) to authenticated;
 grant execute on function public.update_estimate_row_item_with_history(uuid, uuid, uuid, integer, jsonb, uuid, uuid) to authenticated;
@@ -1714,5 +1715,5 @@ grant execute on function public.reorder_estimate_nodes_with_history(uuid, jsonb
 grant execute on function public.insert_estimate_template_into_estimate_with_history(uuid, uuid, uuid, uuid, uuid, uuid) to authenticated;
 grant execute on function public.update_estimate_details_with_history(uuid, uuid, jsonb, uuid, uuid) to authenticated;
 grant execute on function public.delete_estimate_node_with_history(uuid, uuid, uuid, uuid, uuid) to authenticated;
-grant execute on function public.get_estimate_sheet_version_control_preflight() to authenticated;
-grant execute on function public.backfill_estimate_sheet_baseline_versions(integer, uuid) to authenticated;
+grant execute on function public.get_estimate_sheet_version_control_preflight() to service_role;
+grant execute on function public.backfill_estimate_sheet_baseline_versions(integer, uuid) to service_role;

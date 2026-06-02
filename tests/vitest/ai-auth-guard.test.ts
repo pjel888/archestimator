@@ -5,8 +5,8 @@ const aiAuthSource = readFileSync("src/lib/ai/auth.ts", "utf8");
 
 describe("AI auth guard", () => {
   it("rejects the admin DB bypass before resolving AI user context", () => {
-    expect(aiAuthSource).toContain("isDevAdminDatabaseBypassRequest(hostHeader)");
-    expect(aiAuthSource.indexOf("isDevAdminDatabaseBypassRequest(hostHeader)")).toBeLessThan(aiAuthSource.indexOf("isDevAuthBypassRequest(hostHeader)"));
+    expect(aiAuthSource).toContain("isDevAdminDatabaseBypassRequest(hostHeader, devAuthBypassCredential)");
+    expect(aiAuthSource.indexOf("isDevAdminDatabaseBypassRequest(hostHeader, devAuthBypassCredential)")).toBeLessThan(aiAuthSource.indexOf("isDevAuthBypassRequest(hostHeader, devAuthBypassCredential)"));
     expect(aiAuthSource).toContain("AI routes cannot use the local admin database bypass.");
   });
 

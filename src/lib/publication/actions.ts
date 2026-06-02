@@ -653,13 +653,10 @@ interface SharedLinkRecipientRow {
   email_unsubscribed_at: string | null;
   invited_by: string | null;
   invited_at: string;
-  recipient_token_hash: string;
   delivery_status: RecipientDeliveryStatus;
   last_opened_at: string | null;
-  resend_delivery_metadata: Json;
   resend_email_id: string | null;
   resend_last_event_at: string | null;
-  resend_last_event_id: string | null;
   resend_last_event_type: string | null;
   created_at: string;
   updated_at: string;
@@ -847,7 +844,9 @@ export async function listSharedLinkRecipients({ publicationId }: { publicationI
 
   const { data, error } = await admin
     .from("shared_link_recipients")
-    .select("*")
+    .select(
+      "id, publication_id, email, display_name, email_unsubscribed_at, invited_by, invited_at, delivery_status, last_opened_at, resend_email_id, resend_last_event_at, resend_last_event_type, created_at, updated_at",
+    )
     .eq("publication_id", publicationId)
     .order("created_at", { ascending: false });
   if (error) throw error;

@@ -1,11 +1,13 @@
 import { createServerClient } from "@supabase/ssr";
 import { cookies, headers } from "next/headers";
-import { createDevSupabaseAdminClient, isDevAdminDatabaseBypassRequest } from "@/lib/auth/dev-auth";
+import { createDevSupabaseAdminClient, getDevAuthBypassCredentialFromRequestParts, isDevAdminDatabaseBypassRequest } from "@/lib/auth/dev-auth";
 import type { Database } from "./types";
 
 export async function createSupabaseServerClient() {
-  const hostHeader = (await headers()).get("host");
-  if (isDevAdminDatabaseBypassRequest(hostHeader)) {
+  const requestHeaders = await headers();
+  const hostHeader = requestHeaders.get("host");
+  const devAuthBypassCredential = getDevAuthBypassCredentialFromRequestParts(requestHeaders, await cookies());
+  if (isDevAdminDatabaseBypassRequest(hostHeader, devAuthBypassCredential)) {
     return createDevSupabaseAdminClient();
   }
 

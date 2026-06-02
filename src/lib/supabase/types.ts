@@ -2665,6 +2665,32 @@ export type Database = {
           normalized_email: string
         }[]
       }
+      create_closed_beta_allowlist_entry: {
+        Args: { entry_email: string; entry_status: string; entry_notes?: string | null }
+        Returns: string
+      }
+      read_closed_beta_allowlist_queue: {
+        Args: { requested_status?: string | null }
+        Returns: {
+          accepted_at: string | null
+          created_at: string
+          id: string
+          invited_at: string
+          invited_by: string | null
+          normalized_email: string
+          notes: string | null
+          status: string
+          updated_at: string
+        }[]
+      }
+      update_closed_beta_allowlist_entry: {
+        Args: { entry_id: string; entry_status: string; entry_notes?: string | null }
+        Returns: undefined
+      }
+      ensure_current_user_profile: {
+        Args: { profile_display_name?: string | null; profile_avatar_url?: string | null }
+        Returns: Database["public"]["Tables"]["profiles"]["Row"]
+      }
       create_cost_library_component: {
         Args: { target_workspace_id: string; component: Json; price_options: Json }
         Returns: Json

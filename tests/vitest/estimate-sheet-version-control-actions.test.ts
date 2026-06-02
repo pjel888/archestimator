@@ -89,10 +89,12 @@ function makeLibraryItem(overrides: Record<string, unknown> = {}) {
 function makeSupabase({
   rowRevision = 7,
   sourceLibraryItemId = "33333333-3333-4333-8333-333333333333",
+  canEditEstimate = true,
   rpcData,
 }: {
   rowRevision?: number;
   sourceLibraryItemId?: string | null;
+  canEditEstimate?: boolean;
   rpcData?: unknown;
 } = {}) {
   const rowQuery = queryResult({
@@ -118,8 +120,11 @@ function makeSupabase({
   });
   const existingRowsQuery = queryResult({ data: [{ sort_order: 4 }], error: null });
   const supabase = {
-    rpc: vi.fn(async () => ({
-      data: rpcData ?? {
+    rpc: vi.fn(async (fn: string) => {
+      if (fn === "can_edit_estimate") return { data: canEditEstimate, error: null };
+
+      return {
+        data: rpcData ?? {
         rowId: "row-1",
         row: {
           id: "row-1",
@@ -133,8 +138,9 @@ function makeSupabase({
           rowRevision: rowRevision + 1,
         },
       },
-      error: null,
-    })),
+        error: null,
+      };
+    }),
     from: vi.fn((table: string) => {
       if (table === "estimate_row_items") return rowQuery;
       if (table === "estimate_nodes") return targetNodeQuery;
@@ -343,6 +349,24 @@ describe("estimate sheet version control server actions", () => {
       rowRevision: 8,
     });
     expect(nextCacheMocks.revalidatePath).toHaveBeenCalledWith("/workshop/projects/project-1/estimates/node-1");
+  });
+
+  it("blocks project-specific row detach when the caller cannot edit the estimate", async () => {
+    const supabase = makeSupabase({ canEditEstimate: false });
+    supabaseServerMocks.createSupabaseServerClient.mockResolvedValue(supabase);
+    const { detachEstimateRowItemFromLibrary } = await import("@/lib/estimates/actions");
+
+    await expect(
+      detachEstimateRowItemFromLibrary({
+        projectId: "project-1",
+        estimateId: "estimate-1",
+        rowId: "row-1",
+        reason: "Client-specific finish",
+      }),
+    ).rejects.toThrow("Estimate edit access denied.");
+
+    expect(supabase.rpc).toHaveBeenCalledWith("can_edit_estimate", { target_estimate_id: "estimate-1" });
+    expect(supabase.rpc).not.toHaveBeenCalledWith("unlink_estimate_row_item_from_library_with_history", expect.anything());
   });
 
   it("inserts library rows through the history RPC with a compact row payload", async () => {
