@@ -410,6 +410,16 @@
 - Local env refresh: current shell printed no matching `RESEND_`, closed-beta, AI, dev-auth, or Supabase env variables.
 - Launch meaning: this refresh confirms the previous provider blockers are still current. Hosted auth, env-backed Supabase/Resend behavior, production/custom-domain health, rollback, backup/PITR, linked allowlist, and linked unlink proof remain **NO-GO** rows.
 
+### Vercel Current-Head Read-Only Evidence
+
+- Artifact: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/vercel-current-head-read-only-2026-06-02.md`.
+- Current `main` preview: `archestimator-1mdd0d7nd-philipjonlewis-projects.vercel.app`, commit `3beda01e6e70651fdb3f8fe14b6c6eeffcaccd22`, deployment id `dpl_DAWEUUFGA3hqaW8uJ4KxcEwGWM5G`, target `preview`, status `Ready`.
+- Current branch alias: `archestimator-git-main-philipjonlewis-projects.vercel.app` maps to the current deployment and `vercel curl` returns `{"ok":true,"service":"archestimator"}` for `/api/health`.
+- Env proof: `vercel env ls --non-interactive` still returned `No Environment Variables found for philipjonlewis-projects/archestimator`.
+- Public preview proof: plain `curl -I` to the preview and `git-main` health routes still returns HTTP `401` due to Vercel authentication.
+- Custom-domain proof: `vercel alias ls --non-interactive` still maps `archestimator.com`, `www.archestimator.com`, and `archestimator.vercel.app` to older production deployment `dpl_FwfHexBsB1xSHDqHqFwHSYpCYTVH`; `/api/health` on those domains returns `404`.
+- Scope limit: this improves current-preview proof only. Hosted env/auth, production/custom-domain app health, rollback rehearsal, linked Supabase launch migrations, and hosted manual E2E remain **NO-GO**.
+
 ### Vercel Custom Domain Readiness Evidence
 
 - Artifact: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/vercel-custom-domain-readiness-blocked-2026-06-02.md`.
