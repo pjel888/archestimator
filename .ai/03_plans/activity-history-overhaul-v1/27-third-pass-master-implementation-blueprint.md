@@ -125,7 +125,7 @@ PR 9 depends on all previous PRs.
 
 ### Gate C: Estimate UI
 
-- [ ] All 13 event types render human-readable copy
+- [ ] All 14 raw estimate event types (12 active + 2 dormant) render human-readable copy
 - [ ] All existing estimate tests pass
 - [ ] Manual QA: Activity History modal
 

@@ -21,7 +21,7 @@ Today, Archestimator's activity history shows technical labels like "row_inserte
 
 Fix existing bugs and make all activity copy readable:
 
-- **Workshop estimate history**: 13 event types get full sentences with actor names, field changes, before/after values.
+- **Workshop estimate history**: 14 raw estimate event types (12 active + 2 dormant) get full sentences with actor names, field changes, before/after values.
 - **Shared-link owner activity**: Comments, decisions, and proposal views get human-readable copy.
 - **Email digests**: Same readable copy in email notifications.
 

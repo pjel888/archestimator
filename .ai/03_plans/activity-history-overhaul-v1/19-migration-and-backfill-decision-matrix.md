@@ -23,7 +23,7 @@ Clarify whether database migrations are needed for V1, V1.1, and V2 of the Activ
 
 | Need | Can V1 solve without migration? | Migration option | Risk | Recommendation |
 |------|-------------------------------|-----------------|------|----------------|
-| Human-readable copy for all 13 estimate event types | ✅ Yes — old/new snapshots, changed_fields, payload, row_context all present | None needed | None | No migration |
+| Human-readable copy for all 14 raw estimate event types (12 active + 2 dormant) | ✅ Yes — old/new snapshots, changed_fields, payload, row_context all present | None needed | None | No migration |
 | Human-readable copy for shared-link comments | ✅ Yes — author_email, body, is_internal all present | None needed | None | No migration |
 | Human-readable copy for shared-link decisions | ✅ Yes — decision, note, recipient_id present | None needed, but joining recipients table for name/email needed at query level | None | No migration — join at query level |
 | Human-readable copy for shared-link events | ✅ Yes — event_type, metadata_json present | None needed | None | No migration |

@@ -1,4 +1,4 @@
-# 30 — Final Technical Reconciliation Audit (Fourth Pass)
+# 30 — Final Technical Reconciliation Audit (Fourth Pass — Historical)
 
 **Date:** 2026-06-02
 **Status:** Fourth pass — **Superseded by docs 34–36 for final reconciliation**

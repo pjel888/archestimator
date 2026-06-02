@@ -34,7 +34,7 @@ V3.0   — Cross-project activity center, analytics, notifications
 | **Excluded** | Access telemetry, device/browser/location metadata, unified timeline, client-visible estimate changes |
 | **Migrations needed?** | No |
 | **Risk** | Medium — `EstimateSheetContent.tsx` is ~3000 lines |
-| **Success criteria** | All 13 estimate event types + all shared-link types render human-readable copy. No raw event types in primary copy. No regression into technical copy. |
+| **Success criteria** | All 14 raw estimate event types (12 active + 2 dormant) + all shared-link types render human-readable copy. No raw event types in primary copy. No regression into technical copy. |
 
 ---
 

@@ -8,7 +8,7 @@
 ## Planning Readiness
 
 - [x] Research completed — UX principles, copy rules, audit best practices, accessibility
-- [x] Current event types inventoried — 13 estimate event types, 5 shared-link event types, 3 decision types
+- [x] Current event types inventoried — 14 raw estimate event types (12 active + 2 dormant), 5 shared-link event types, 3 decision types
 - [x] Copy dictionary approved (pending final review)
 - [x] Data contract approved (pending final review)
 - [x] Visibility rules explicit — owner/client/internal with defense-in-depth
@@ -63,7 +63,7 @@
 - [ ] All existing `estimate-sheet-version-control-ui.test.tsx` tests pass
 - [ ] All existing `estimate-sheet-version-control-actions.test.ts` tests pass
 - [ ] Manual QA: Activity History modal renders correctly
-- [ ] Manual QA: All 13 event types produce expected copy
+- [ ] Manual QA: All 14 raw estimate event types (12 active + 2 dormant) produce expected copy
 - [ ] Manual QA: Filters, search, day grouping, correlation grouping work
 - [ ] Manual QA: Load-more pagination works
 - [ ] Manual QA: Scope tree (sheet/row/node) works

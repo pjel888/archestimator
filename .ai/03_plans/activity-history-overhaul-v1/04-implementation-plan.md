@@ -88,7 +88,7 @@ Replace local copy logic in `EstimateSheetContent.tsx` with the central composer
 - Medium risk — `EstimateSheetContent.tsx` is ~3000 lines
 
 ### Exit Criteria
-- [ ] All 13 event types render human-readable copy
+- [ ] All 14 raw estimate event types (12 active + 2 dormant) render human-readable copy
 - [ ] No raw event types in primary card display
 - [ ] All existing tests pass
 
