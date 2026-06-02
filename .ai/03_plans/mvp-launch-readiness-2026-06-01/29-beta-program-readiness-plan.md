@@ -16,7 +16,7 @@ Beta operations:
 - Store access in `closed_beta_allowed_emails`.
 - Manual Supabase management is acceptable for MVP.
 - Manual invite emails are acceptable.
-- Feedback is collected through a visible external form/support path.
+- Feedback is collected through protected `/workshop/feedback` plus the support email path.
 - Weekly beta review summarizes cohort usage, workflow blockers, export feedback, and next fixes.
 
 Beta success metrics:
@@ -51,7 +51,7 @@ Commit audited: `681c95e64864f283950a88dba304eaffe8f2f8b3`
 | Onboarding email | Explain beta scope, login steps, known limitations, support email, feedback link, data/confidentiality warning. |
 | Invite flow | Use controlled invite list; share/invite email only after Resend proof. |
 | Access control | Workspace membership, no public self-serve until legal/security gates pass. |
-| Feedback collection | One structured form plus support inbox; tag feedback by project workflow. |
+| Feedback collection | Protected `/workshop/feedback` writes to `beta_feedback_submissions` after migration apply; support inbox remains the fallback/contact path; tag feedback by project workflow. |
 | Support SLA | P0 data/security: same business day; P1 blocker: 1 business day; P2 usability: weekly review. |
 | Known limitations | AI disabled, billing deferred, PDF/bid tabulation post-MVP, export workbook still user-reviewed. |
 | Success metrics | Activation, first project, first estimate, component/template insert, export, feedback count, support severity. |
