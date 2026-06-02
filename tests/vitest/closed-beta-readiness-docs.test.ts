@@ -1,4 +1,5 @@
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
+import { join } from "node:path";
 
 import { describe, expect, it } from "vitest";
 
@@ -101,6 +102,13 @@ const closedBetaOperationsRunbook = readFileSync(
   ".ai/03_plans/mvp-launch-readiness-2026-06-01/40-closed-beta-operations-runbook.md",
   "utf8",
 );
+const manualProofPacketDir = ".ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof";
+
+function extractManualProofArtifactFilenames(packet: string) {
+  return Array.from(packet.matchAll(/`([^`]+)`/g), (match) => match[1])
+    .filter((value) => /^[\w.-]+\.(md|json|png|xlsx)$/.test(value))
+    .filter((value) => !["14-evidence-index.md", "47-goal-completion-audit.md", "48-manual-proof-packet-template.md"].includes(value));
+}
 
 describe("closed beta readiness docs", () => {
   it("keeps the current local QA baseline aligned with passing DOM evidence", () => {
@@ -531,6 +539,18 @@ describe("closed beta readiness docs", () => {
     expect(consolidatedManualProofPacket).toContain("Current manual E2E smoke | partial-local");
     expect(consolidatedManualProofPacket).toContain("Do not change the launch decision until `47-goal-completion-audit.md` is rerun");
     expect(consolidatedManualProofPacket).not.toMatch(/\| .* \| pass \|/i);
+  });
+
+  it("keeps consolidated manual proof packet artifact references resolvable", () => {
+    const artifactFilenames = extractManualProofArtifactFilenames(consolidatedManualProofPacket);
+
+    expect(artifactFilenames).toContain("supabase-read-only-cli-2026-06-02.md");
+    expect(artifactFilenames).toContain("provider-state-refresh-b33f56d-2026-06-02.md");
+    expect(artifactFilenames).toContain("lewis-residence-demo-proposal-2026-06-02.xlsx");
+    expect(artifactFilenames.length).toBeGreaterThanOrEqual(30);
+
+    const missingArtifacts = artifactFilenames.filter((filename) => !existsSync(join(manualProofPacketDir, filename)));
+    expect(missingArtifacts).toEqual([]);
   });
 
   it("keeps the active goal completion audit evidence-gated", () => {
