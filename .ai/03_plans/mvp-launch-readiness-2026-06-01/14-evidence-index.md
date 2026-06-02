@@ -158,6 +158,15 @@
 - Current DNS refresh: `OUTPUT_FILE=.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/support-email-dns-readiness-refresh-792076e-2026-06-02.json bun run launch:check-support-dns` wrote sanitized JSON and exited `1` because MX/SPF/A records exist but DMARC is missing.
 - Launch meaning: this makes DNS proof collection repeatable and sanitized, but DNS readiness is not support monitoring proof. Closed beta remains blocked until inbox/table monitoring, alert owner, and incident escalation proof are captured.
 
+### Support Monitoring Readiness Helper
+
+- Script: `scripts/check-support-monitoring-readiness.ts`.
+- Package command: `bun run launch:check-support-monitoring`.
+- Scope: parses operator-confirmed support inbox monitoring, feedback review, uptime alert, error alert, incident escalation, and owner-label proof flags into sanitized JSON.
+- Guardrail evidence: `bunx vitest run tests/vitest/support-monitoring-readiness-script.test.ts --maxWorkers=1` passed 4 tests covering proof-flag parsing, owner-label sanitization, missing-proof fail-closed behavior, and all-proof pass behavior.
+- Current monitoring refresh: `OUTPUT_FILE=.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/support-monitoring-readiness-c9c1141-2026-06-02.json bun run launch:check-support-monitoring` wrote sanitized JSON and exited `1`; it reports all five proof flags false, all owner labels missing, 9 missing checks, and `supportMonitoringReady: false`.
+- Launch meaning: this makes support/alert ownership proof repeatable and sanitized, but it does not verify inbox access, alert dashboards, linked feedback rows, hosted auth, or incident delivery by itself. Support/monitoring remains **NO-GO** until the operator supplies real proof and the helper passes.
+
 ### AUTH-E2E Local Signed-Out Smoke Evidence
 
 - Local command: `PLAYWRIGHT_PORT=3037 bun run test:e2e -- e2e/auth.spec.ts --project=chromium`.

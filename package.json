@@ -21,6 +21,7 @@
     "launch:check-supabase-backup": "bun run scripts/check-supabase-backup-readiness.ts",
     "launch:check-supabase-migrations": "bun run scripts/check-supabase-migration-readiness.ts",
     "launch:check-support-dns": "bun run scripts/check-support-email-dns.ts",
+    "launch:check-support-monitoring": "bun run scripts/check-support-monitoring-readiness.ts",
     "launch:check-vercel-env": "bun run scripts/check-vercel-env-readiness.ts",
     "launch:check-vercel-health": "bun run scripts/check-vercel-health-readiness.ts",
     "launch:check-vercel-production": "bun run scripts/check-vercel-production-readiness.ts",

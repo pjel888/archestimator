@@ -337,6 +337,14 @@ describe("closed beta readiness docs", () => {
     expect(evidenceIndex).toContain("support-email-dns-readiness-2026-06-02.md");
     expect(evidenceIndex).toContain("five `eforward*.registrar-servers.com` MX records");
     expect(evidenceIndex).toContain("returned no answer");
+    expect(evidenceIndex).toContain("### Support Monitoring Readiness Helper");
+    expect(evidenceIndex).toContain("scripts/check-support-monitoring-readiness.ts");
+    expect(evidenceIndex).toContain("`bun run launch:check-support-monitoring`");
+    expect(evidenceIndex).toContain("support-monitoring-readiness-c9c1141-2026-06-02.json");
+    expect(evidenceIndex).toContain("`supportMonitoringReady: false`");
+    expect(evidenceIndex).toContain("all five proof flags false");
+    expect(evidenceIndex).toContain("all owner labels missing");
+    expect(evidenceIndex).toContain("9 missing checks");
     expect(evidenceIndex).toContain("### Project-Specific Unlink Linked Smoke Attempt");
     expect(evidenceIndex).toContain("project-specific-unlink-linked-smoke-blocked-2026-06-02.md");
     expect(evidenceIndex).toContain("linked Supabase returned `PGRST202`");
@@ -519,12 +527,15 @@ describe("closed beta readiness docs", () => {
     expect(manualProofMatrix).toContain("records local template insertion into a throwaway estimate with zero residue");
     expect(manualProofMatrix).toContain("support-feedback-local-surface-2026-06-02.md");
     expect(manualProofMatrix).toContain("support-email-dns-readiness-2026-06-02.md");
+    expect(manualProofMatrix).toContain("support-monitoring-readiness-c9c1141-2026-06-02.json");
     expect(manualProofMatrix).toContain("beta-feedback-review-queue-local-2026-06-02.md");
     expect(manualProofMatrix).toContain("platform-admin `/workshop/settings/feedback` review/status queue coverage");
     expect(manualProofMatrix).toContain("MX/SPF DNS evidence and no DMARC answer");
     expect(manualProofMatrix).toContain("workshop `Send beta feedback`, terms, and privacy point to `support@archestimator.com`");
     expect(manualProofMatrix).toContain("Support inbox/table proof and alert/uptime owner note");
     expect(manualProofMatrix).toContain("monitored inbox/table ownership proof, alert ownership, and incident escalation remain missing");
+    expect(manualProofMatrix).toContain("`supportMonitoringReady: false`");
+    expect(manualProofMatrix).toContain("all proof flags false, all owner labels missing, and 9 missing checks");
     expect(manualProofMatrix).toContain("Support inbox/table review, `/workshop/settings/feedback` monitoring cadence, or alert ownership cannot be verified");
     expect(manualProofPacketTemplate).toContain("Include monitored inbox/table review and alert/uptime owner proof");
     expect(evidenceIndex).toContain("### Beta Operations Runbook Readiness Evidence");
@@ -625,6 +636,8 @@ describe("closed beta readiness docs", () => {
     expect(consolidatedManualProofPacket).toContain("Current manual E2E smoke | partial-local");
     expect(consolidatedManualProofPacket).toContain("full-local-e2e-refresh-bb9006d-2026-06-02.md");
     expect(consolidatedManualProofPacket).toContain("full local E2E command now passes 9 ungated checks with 24 env-gated/live-provider specs skipped");
+    expect(consolidatedManualProofPacket).toContain("support-monitoring-readiness-c9c1141-2026-06-02.json");
+    expect(consolidatedManualProofPacket).toContain("`supportMonitoringReady: false`");
     expect(consolidatedManualProofPacket).toContain("Do not change the launch decision until `47-goal-completion-audit.md` is rerun");
     expect(consolidatedManualProofPacket).not.toMatch(/\| .* \| pass \|/i);
   });
@@ -642,6 +655,7 @@ describe("closed beta readiness docs", () => {
     expect(artifactFilenames).toContain("provider-state-refresh-87f603e-2026-06-02.md");
     expect(artifactFilenames).toContain("current-head-local-validation-build-02f7d13-2026-06-02.md");
     expect(artifactFilenames).toContain("full-local-e2e-refresh-bb9006d-2026-06-02.md");
+    expect(artifactFilenames).toContain("support-monitoring-readiness-c9c1141-2026-06-02.json");
     expect(artifactFilenames).toContain("lewis-residence-demo-proposal-2026-06-02.xlsx");
     expect(artifactFilenames.length).toBeGreaterThanOrEqual(30);
 
@@ -726,6 +740,11 @@ describe("closed beta readiness docs", () => {
     expect(goalCompletionAudit).toContain("has registrar email-forwarding MX records and SPF TXT");
     expect(goalCompletionAudit).toContain("monitored inbox/table review and alert owner proof remain missing");
     expect(goalCompletionAudit).toContain("DNS proof shows MX/SPF mail-routing records");
+    expect(goalCompletionAudit).toContain("Support monitoring readiness helper");
+    expect(goalCompletionAudit).toContain("support-monitoring-readiness-c9c1141-2026-06-02.json");
+    expect(goalCompletionAudit).toContain("`supportMonitoringReady: false`");
+    expect(goalCompletionAudit).toContain("all support/feedback/uptime/error/escalation proof flags false");
+    expect(goalCompletionAudit).toContain("owner labels missing, 9 missing checks");
     expect(goalCompletionAudit).toContain("Project-specific unlink linked smoke attempt");
     expect(goalCompletionAudit).toContain("linked Supabase returned `PGRST202`");
     expect(goalCompletionAudit).toContain("Supabase backup/PITR and restore-drill proof");
@@ -804,6 +823,10 @@ describe("closed beta readiness docs", () => {
     expect(currentState).toContain("Support Email DNS Evidence");
     expect(currentState).toContain("five registrar email-forwarding MX records");
     expect(currentState).toContain("no `_dmarc.archestimator.com` TXT answer");
+    expect(currentState).toContain("Support Monitoring Readiness Helper (2026-06-02)");
+    expect(currentState).toContain("support-monitoring-readiness-c9c1141-2026-06-02.json");
+    expect(currentState).toContain("`supportMonitoringReady: false`");
+    expect(currentState).toContain("all proof flags false, all owner labels missing, and 9 missing checks");
     expect(currentState).toContain("monitored review workflow, and alert ownership remain open");
     expect(currentState).toContain("Project-specific unlink linked smoke evidence");
     expect(currentState).toContain("linked Supabase returned `PGRST202`");
@@ -840,6 +863,9 @@ describe("closed beta readiness docs", () => {
     expect(knownIssues).toContain("Linked feedback/review migration apply, hosted feedback/admin smoke, monitored inbox/table ownership, and alert ownership proof remain missing");
     expect(knownIssues).toContain("Support email DNS evidence on 2026-06-02 proves `archestimator.com` has registrar email-forwarding MX records");
     expect(knownIssues).toContain("This still does not prove `support@archestimator.com` is monitored");
+    expect(knownIssues).toContain("Support monitoring readiness helper evidence on 2026-06-02 is negative/blocked");
+    expect(knownIssues).toContain("`supportMonitoringReady: false`");
+    expect(knownIssues).toContain("all proof flags false, all owner labels missing, and 9 missing checks");
     expect(knownIssues).toContain("Linked feedback/review migration apply, hosted feedback/admin smoke, monitored inbox/table ownership, and alert ownership proof remain missing");
     expect(knownIssues).toContain("Project-specific unlink linked smoke evidence is negative/blocked");
     expect(knownIssues).toContain("missing `unlink_estimate_row_item_from_library_with_history`");
