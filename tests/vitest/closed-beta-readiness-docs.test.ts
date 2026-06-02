@@ -236,7 +236,8 @@ describe("closed beta readiness docs", () => {
     expect(evidenceIndex).toContain("vercel-production-readiness-4fdf0de-2026-06-02.json");
     expect(evidenceIndex).toContain("vercel-production-readiness-9e253e7-2026-06-02.json");
     expect(evidenceIndex).toContain("vercel-production-readiness-79ecf99-2026-06-02.json");
-    expect(evidenceIndex).toContain("dpl_CMwcaTbTrYnda2RsVBUeqrQHdJw2");
+    expect(evidenceIndex).toContain("vercel-production-readiness-a537ae3-2026-06-02.json");
+    expect(evidenceIndex).toContain("dpl_H3CBHKaBWCJqHVhiVe4e3cadQwyw");
     expect(evidenceIndex).toContain("19 ready rollback candidates");
     expect(evidenceIndex).toContain("`vercelProductionReady: false`");
     expect(evidenceIndex).toContain("### Provider State Refresh at 4fdf0de");
@@ -295,7 +296,8 @@ describe("closed beta readiness docs", () => {
     expect(currentState).toContain("**Vercel Production Alias/Rollback Readiness Helper (2026-06-02):**");
     expect(currentState).toContain("vercel-production-readiness-9e253e7-2026-06-02.json");
     expect(currentState).toContain("vercel-production-readiness-79ecf99-2026-06-02.json");
-    expect(currentState).toContain("dpl_CMwcaTbTrYnda2RsVBUeqrQHdJw2");
+    expect(currentState).toContain("vercel-production-readiness-a537ae3-2026-06-02.json");
+    expect(currentState).toContain("dpl_H3CBHKaBWCJqHVhiVe4e3cadQwyw");
     expect(currentState).toContain("`vercelProductionReady` is `false`");
     expect(currentState).toContain("**Hosted Auth Route Proof Helper (2026-06-02):**");
     expect(currentState).toContain("`bun run launch:verify-hosted-auth` now provides a sanitized operator helper");
@@ -343,6 +345,7 @@ describe("closed beta readiness docs", () => {
     expect(knownIssues).toContain("vercel-production-readiness-4fdf0de-2026-06-02.json");
     expect(knownIssues).toContain("vercel-production-readiness-9e253e7-2026-06-02.json");
     expect(knownIssues).toContain("vercel-production-readiness-79ecf99-2026-06-02.json");
+    expect(knownIssues).toContain("vercel-production-readiness-a537ae3-2026-06-02.json");
     expect(knownIssues).toContain("19 ready rollback candidates");
     expect(knownIssues).toContain("`bun run launch:verify-hosted-auth` is available as a sanitized hosted `/workshop` route helper");
     expect(knownIssues).toContain("Hosted auth env fail-closed evidence on 2026-06-02 is now partially hosted-proven for the signed-out missing-env path");
@@ -605,6 +608,7 @@ describe("closed beta readiness docs", () => {
     expect(manualProofMatrix).toContain("vercel-production-readiness-4fdf0de-2026-06-02.json");
     expect(manualProofMatrix).toContain("vercel-production-readiness-9e253e7-2026-06-02.json");
     expect(manualProofMatrix).toContain("vercel-production-readiness-79ecf99-2026-06-02.json");
+    expect(manualProofMatrix).toContain("vercel-production-readiness-a537ae3-2026-06-02.json");
     expect(manualProofMatrix).toContain("19 ready rollback candidates");
     expect(manualProofMatrix).toContain("`vercelProductionReady: false`");
     expect(manualProofMatrix).toContain("one env-var-backed automation bypass still needs owner review");
@@ -798,6 +802,7 @@ describe("closed beta readiness docs", () => {
     expect(artifactFilenames).toContain("vercel-production-readiness-4fdf0de-2026-06-02.json");
     expect(artifactFilenames).toContain("vercel-production-readiness-9e253e7-2026-06-02.json");
     expect(artifactFilenames).toContain("vercel-production-readiness-79ecf99-2026-06-02.json");
+    expect(artifactFilenames).toContain("vercel-production-readiness-a537ae3-2026-06-02.json");
     expect(artifactFilenames).toContain("resend-readiness-eb0aef5-2026-06-02.json");
     expect(artifactFilenames).toContain("resend-readiness-ce7a4e5-2026-06-02.json");
     expect(artifactFilenames).toContain("provider-state-refresh-b33f56d-2026-06-02.md");
