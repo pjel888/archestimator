@@ -1,10 +1,11 @@
 # 71 — Final No-False-Claims Audit
 
 **Date:** 2026-06-02
+**Last updated:** 2026-06-02 (sixteenth pass — Oracle-verified corrections)
 **Purpose:** Prove the docs do not claim production execution is complete when it is not.
 **Activity-code audit baseline:** `65b21eb`
-**Latest activity-overhaul planning certification commit:** `d910fe8` (fifteenth pass)
-**Validated at:** 2026-06-02 fifteenth-pass evidence-preparation audit
+**Latest activity-overhaul planning certification commit:** `d15b6a0` (fifteenth pass)
+**Validated at:** 2026-06-02 sixteenth-pass Oracle-verified corrections
 **Live repo HEAD:** intentionally not hardcoded — run `git rev-parse HEAD`
 
 ---

@@ -3,7 +3,7 @@
 **Date:** 2026-06-02
 **Last updated:** 2026-06-02 (fifteenth pass — evidence-preparation hardening)
 **Activity-code audit baseline:** `65b21eb`
-**Latest activity-overhaul planning certification commit:** `d910fe8`
+**Latest activity-overhaul planning certification commit:** `d15b6a0`
 **Validated at:** 2026-06-02 fifteenth-pass evidence-preparation audit
 **Live repo HEAD:** intentionally not hardcoded — run `git rev-parse HEAD`
 **Purpose:** Final multi-domain readiness scoring for access telemetry production enablement.

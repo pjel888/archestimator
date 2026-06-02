@@ -3,7 +3,7 @@
 **Date:** 2026-06-02
 **Audited implementation baseline HEAD:** `65b21eb`
 **Activity-code audit baseline:** `65b21eb`
-**Latest activity-overhaul planning certification commit:** `d910fe8` (fifteenth pass)
+**Latest activity-overhaul planning certification commit:** `d15b6a0` (fifteenth pass)
 **Validated at:** 2026-06-02 fifteenth-pass evidence-preparation audit
 **Live repo HEAD:** intentionally not hardcoded — run `git rev-parse HEAD`
 **Status:** APPROVED — PR 7 and PR 8B gates cleared

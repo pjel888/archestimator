@@ -3,11 +3,12 @@
 **Date:** 2026-06-02
 **Tenth pass:** 2026-06-02
 **Fifteenth pass:** 2026-06-02 (HEAD drift permanently resolved)
-**Status:** LOCKED — ready for implementation (fifteenth-pass evidence-preparation hardening; all references hardened)
+**Sixteenth pass:** 2026-06-02 (Oracle-verified corrections)
+**Status:** LOCKED — ready for implementation (sixteenth-pass Oracle-verified corrections)
 **Audited implementation baseline HEAD:** `65b21eb`
 **Activity-code audit baseline:** `65b21eb`
-**Latest activity-overhaul planning certification commit:** `d910fe8` (fifteenth pass)
-**Validated at:** 2026-06-02 fifteenth-pass evidence-preparation audit
+**Latest activity-overhaul planning certification commit:** `d15b6a0` (fifteenth pass)
+**Validated at:** 2026-06-02 sixteenth-pass Oracle-verified corrections
 **Live repo HEAD:** intentionally not hardcoded — run `git rev-parse HEAD`
 
 ---
@@ -16,20 +17,17 @@
 
 The Activity History Overhaul V1 planning pack is **locked for implementation**.
 
-### Current HEAD
-
-```
-b6873b47075c863ef5f6598e523d405e69bcdbd2
-```
+### Repository Baseline
 
 **Audited implementation baseline:** `65b21eb`
-**Last planning certification commit:** `e559e60` (tenth pass)
+**Latest planning certification pass:** fifteenth pass (`d15b6a0`), sixteenth pass corrections
+**Live repo HEAD:** intentionally not hardcoded — run `git rev-parse HEAD`
 
-No activity-related production code has changed since the planning baseline `65b21eb`. All commits between `65b21eb` and `cdb9fdc` are proof/ops/docs only.
+No activity-related production code has changed since the planning baseline `65b21eb`. All commits since `65b21eb` are proof/ops/docs only.
 
 ### File Count
 
-**63 files total:** `README.md` + 62 numbered documents (`00`–`61`).
+**74 files total:** `README.md` + 70 numbered documents (`00`–`69`) + docs 70–72.
 
 ### Final Corrected Score Table
 

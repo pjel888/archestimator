@@ -2,7 +2,7 @@
 
 **Date:** 2026-06-02
 **Status:** CERTIFIED — 100% implementation-handoff ready
-**Auditor:** Sisyphus (AI orchestrator, tenth-pass document hardening)
+**Auditor:** Sisyphus (AI orchestrator, tenth-pass + sixteenth-pass corrections)
 **This document:** The single source of truth for implementation-handoff readiness. **Read this FIRST.**
 
 ---
@@ -12,16 +12,17 @@
 | Item | Value |
 |------|-------|
 | Activity-code audit baseline | `65b21eb` |
-| Latest activity-overhaul planning certification commit | `d910fe8` (fifteenth pass) |
-| Validated at | 2026-06-02 fifteenth-pass evidence-preparation audit |
+| Latest activity-overhaul planning certification commit | `d15b6a0` (fifteenth pass) |
+| Validated at | 2026-06-02 sixteenth-pass Oracle-verified corrections |
 | Live repo HEAD | Intentionally not hardcoded — run `git rev-parse HEAD` |
-| Activity code changed since baseline? | **No** — all commits between `65b21eb` and current are proof/ops/docs only |
-| Actual file count in planning folder | 72 (README + 70 numbered docs 00–69 + doc 70) |
-| Production enablement docs | 20 (docs 51–70) |
+| Activity code changed since baseline? | **No** — all commits since `65b21eb` are proof/ops/docs only |
+| Actual file count in planning folder | 74 (README + 70 numbered docs 00–69 + docs 70–72) |
+| Production enablement docs | 22 (docs 51–72) |
 | Doc 47 filename | `47-pr7-pr8b-approval-record.md` |
 | Doc 48 filename | `48-philippines-data-privacy-compliance-plan.md` |
-| Last commit touching planning folder | `d910fe8` (fourteenth pass) |
-| Fifteenth pass commit | This pass (evidence-preparation hardening) |
+| Fourteenth pass commit | `d910fe8` (evidence preparation) |
+| Fifteenth pass commit | `d15b6a0` (evidence-preparation hardening) |
+| Sixteenth pass (current) | Oracle-verified corrections |
 
 ---
 

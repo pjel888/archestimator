@@ -11,7 +11,7 @@
 | Item | Value |
 |------|-------|
 | Activity-code audit baseline | `65b21eb` |
-| Latest activity-overhaul planning certification commit | `d910fe8` |
+| Latest activity-overhaul planning certification commit | `d15b6a0` |
 | This document last validated | fifteenth-pass evidence-preparation audit (2026-06-02) |
 | Live repo HEAD | Intentionally not hardcoded — run `git rev-parse HEAD` |
 | Branch | `main` |
