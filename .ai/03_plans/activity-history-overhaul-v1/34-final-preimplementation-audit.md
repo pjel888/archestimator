@@ -11,13 +11,13 @@
 | Field | Value |
 |-------|-------|
 | Branch | `main` |
-| HEAD (short) | `da35386` |
-| HEAD (full) | `da3538681caabfc67a42798155cb231d93d2dd9d` |
-| Docs claimed HEAD | `405d6ac` (stale — off by 1 commit) |
-| Latest planning commit | `5a0481d` — "docs: fourth-pass stakeholder review and final reconciliation" |
-| Commit after planning | `da35386` — "Make Vercel env proof repeatable" (no activity code changed) |
+| HEAD (short) | `65b21eb` |
+| HEAD (full) | `65b21eb9d0116531682177c61d3365954d1e7bb4` |
+| Docs claimed HEAD | `da35386` (stale — off by 2 commits) |
+| Latest planning commit | `ae322a0` — "docs: fifth-pass final pre-implementation audit of Activity History Overhaul" |
+| Commits after planning | `26bc6e3` — "Make Vercel health proof repeatable", `65b21eb` — "Make Supabase backup proof repeatable" (no activity code changed) |
 
-**Finding:** HEAD `da35386` is 1 commit ahead of the `405d6ac` claimed in the planning docs. The delta commit (`da35386`) touches `.ai/03_plans/mvp-launch-readiness-2026-06-01/`, `package.json`, `scripts/check-vercel-env-readiness.ts`, and a test file — no activity-related code changed. Stale but low-impact.
+**Finding:** HEAD `65b21eb` is 2 commits ahead of the `da35386` claimed in the planning docs. The delta commits touch proof/ops files only — no activity-related code changed. Stale but low-impact.
 
 ---
 
@@ -25,17 +25,17 @@
 
 | Source | Count | Notes |
 |--------|-------|-------|
-| `ls | wc -l` | 35 entries | 34 numbered docs (00–33) + README.md |
-| README.md claim | "33 documents" | Refers to numbered docs only (00–33), plus README = 35 total |
-| Commit message | "35 files total" | Consistent with current folder (34 docs + README = 35) |
+| `ls \| wc -l` | 42 entries | 41 numbered docs (00–40) + README.md |
+| README.md claim | "41 numbered docs" | Consistent with current folder (00–40 = 41 + README = 42) |
+| After sixth pass | 46 files | Adding docs 41–44 (loop log, scorecard, risk register, certification) |
 
-**Finding:** File count is consistent. README "33 documents" means numbered docs 00–33 (34 files). Plus README = 35 total files. No discrepancy.
+**Finding:** File count is now 42 (41 numbered + README). After this sixth pass, 46 files total. No discrepancy.
 
 ---
 
 ## Docs Audited
 
-All 35 files in the planning folder were read or spot-checked:
+All original 35 files in the planning folder were read or spot-checked during the fifth pass. The sixth pass (autonomous readiness loop) added docs 41-44 and audited all 46 files.
 
 | Doc | Audit status | Issues found |
 |-----|-------------|--------------|
@@ -102,7 +102,7 @@ All 35 files in the planning folder were read or spot-checked:
 
 **Impact:** All docs claiming HEAD `405d6ac` are 1 commit stale. No activity code changed between `405d6ac` and `da35386`, so no factual errors — but referencing a non-existent HEAD is inaccurate.
 
-**Action:** Update all HEAD references from `405d6ac` → `da35386`. Note that no activity code changed.
+**Action:** Update all HEAD references from `da35386` → `65b21eb`. Note that no activity code changed.
 
 **Docs affected:** README.md, 00, 10, 22, 23, 27, 30, 32
 
@@ -228,7 +228,7 @@ The decision log must distinguish between:
 
 | # | Contradiction | Between | Resolution |
 |---|--------------|---------|------------|
-| 1 | HEAD `405d6ac` vs actual `da35386` | All docs vs git | Update to `da35386` |
+| 1 | HEAD `da35386` vs actual `65b21eb` | All docs vs git | Update to `65b21eb` |
 | 2 | "13 event types" vs 14 listed | 00, 16, 29 vs code | Say "14 raw (12 active, 2 dormant)" |
 | 3 | "Add event_type to select" vs already selected | 29-D006, 31-Fix3 vs code | Clarify: select already in query, but not in response |
 | 4 | D-019 "APPROVED Legal/Privacy" vs checklist "☐ Pending" | 29 line 31 vs 29 line 73 | Change to "Engineering recommended; NEEDS LEGAL" |

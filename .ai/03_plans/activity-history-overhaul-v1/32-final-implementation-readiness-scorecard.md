@@ -1,9 +1,10 @@
 # 32 — Final Implementation Readiness Scorecard
 
 **Date:** 2026-06-02
-**Status:** Fifth pass — conservative re-score
+**Status:** Sixth pass — autonomous readiness loop final scoring
+**Current HEAD:** `65b21eb`
 
-**⚠️ Fifth-pass corrections:** Security area re-assessed. Approval statuses corrected (no fabricated approvals). Scorecard now distinguishes Docs readiness from PR-specific readiness.
+**⚠️ Sixth-pass corrections:** HEAD updated `da35386` → `65b21eb`. All "13 event types" references corrected to "14". Document count updated to 46 total.
 
 ---
 
@@ -12,7 +13,7 @@
 | Area | Status | Why | Required action |
 |------|--------|-----|-----------------|
 | **Product strategy** | 🟡 Yellow | North Star, user journeys, and surface maps are comprehensive. But 5 open product decisions (P1-P5 in doc 28) need sign-off before access telemetry ships. | Product stakeholder review of doc 28 §6. Approve P1-P5. |
-| **UX/Copy** | 🟢 Green | 13 estimate event types + shared-link types all have copy templates. Activity Composer spec is implementation-ready. Copy dictionary covers all surfaces. | None — proceed with PR 3 (composer module). |
+| **UX/Copy** | 🟢 Green | 14 estimate event types + shared-link types all have copy templates. Activity Composer spec is implementation-ready. Copy dictionary covers all surfaces. | None — proceed with PR 3 (composer module). |
 | **Privacy/Legal** | 🔴 Red | 5 legal/privacy decisions (L1-L5) are open. Access telemetry collects IP hashes, parsed device metadata, and approximate location — all require legal review before collection begins. Location granularity, retention policy, and in-product disclosure are not yet approved. | Legal/Privacy review of doc 28 §6. Approve L1-L5. **Gate: PR 7 (access telemetry) MUST NOT proceed without L1-L5 approved.** |
 | **Security** | 🔴 Red → 🟡 Yellow after PR 2 | Two live CSRF bugs in production: (1) `GET /api/share/[token]/activity` uses POST-only CSRF check — always 403 for browsers. (2) `SharePageComments` and `SharePageDecision` hardcode CSRF header `"client-post"` without setting cookie — 3 fetch paths affected. No data leakage vectors identified. Internal comment isolation is defense-in-depth. | Fix CSRF issues in PR 2 (preflight). See doc 31 for fix details and doc 38 for test plan. After fixes: 🟢 Green. |
 | **Data model** | 🟢 Green | V1 copy-only composer needs zero DB changes. V1.1 access telemetry uses existing `metadata_json` columns — no migration needed. Enum/CHECK additions deferred to V2. Event taxonomy is finalized. | None for V1.0. For V1.1: ensure GIN index on `metadata_json` if query performance is needed (optional). |
@@ -29,7 +30,7 @@
 ## Overall Go/No-Go
 
 ### GO ✅ — Documentation merge (PR 1)
-All 33 planning documents are internally consistent after fourth-pass reconciliation. The planning pack is comprehensive, accurate, and stakeholders can review with confidence.
+All 46 planning documents are internally consistent after sixth-pass autonomous readiness loop. The planning pack is comprehensive, accurate, and stakeholders can review with confidence.
 
 ### GO ✅ — PR 2 (Preflight bug fixes)
 Small, low-risk fixes. No privacy dependencies. Fixes known bugs identified in second and third passes. Safe to ship immediately after docs approval.
