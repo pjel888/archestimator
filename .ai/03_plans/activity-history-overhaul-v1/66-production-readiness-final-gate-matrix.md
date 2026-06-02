@@ -343,8 +343,7 @@
 | Complete | 0 | — |
 | Preparation: Ready for owner action | 5 | G-01, G-04, G-05, G-09, G-14 |
 | Preparation: Ready for engineering action | 5 | G-02, G-03, G-10, G-11, G-12 |
-| Preparation: Ready for owner review | 2 | G-07, G-08 |
-| Preparation: Drafted | 1 | G-06 |
+| Preparation: Ready for owner review | 3 | G-06, G-07, G-08 |
 | Preparation: Ready for QA action | 1 | G-13 |
 | Preparation: Ready for future completion | 1 | G-15 |
 | Preparation: Recommended / optional | 1 | G-16 |
