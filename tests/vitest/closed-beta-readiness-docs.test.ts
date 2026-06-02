@@ -27,6 +27,10 @@ const consolidatedManualProofPacket = readFileSync(
   ".ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/README.md",
   "utf8",
 );
+const repoLocalFreezeHandoff = readFileSync(
+  ".ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/repo-local-freeze-external-proof-handoff-2026-06-02.md",
+  "utf8",
+);
 const currentState = readFileSync(".ai/10_state/current-state.md", "utf8");
 const decisions = readFileSync(".ai/10_state/decisions.md", "utf8");
 const knownIssues = readFileSync(".ai/10_state/known-issues.md", "utf8");
@@ -425,7 +429,7 @@ describe("closed beta readiness docs", () => {
     expect(evidenceIndex).toContain("### Settings Hub Local Evidence");
     expect(evidenceIndex).toContain("settings-hub-local-2026-06-02.md");
     expect(evidenceIndex).toContain("`/workshop/settings` is now a protected hub instead of an immediate profile redirect");
-    expect(evidenceIndex).toContain("Profile, Workspace, Beta users, and Beta feedback cards are discoverable from one Settings entry");
+    expect(evidenceIndex).toContain("Profile, Workspace, Beta support/legal/data request paths, Beta users, and Beta feedback cards are discoverable from one Settings entry");
     expect(evidenceIndex).toContain("platform-operation cards render only for `ceo` or `admin` roles");
     expect(evidenceIndex).toContain("### Support Email DNS Readiness Evidence");
     expect(evidenceIndex).toContain("support-email-dns-readiness-2026-06-02.md");
@@ -578,12 +582,15 @@ describe("closed beta readiness docs", () => {
     expect(launchRunbook).not.toContain("`bun run test:dom`: fail");
     expect(executiveBrief).toMatch(/DOM tests, and build passed locally/i);
     expect(testStrategy).toMatch(/Current local Vitest DOM baseline is green/i);
-    expect(zeroDefectMatrix).toMatch(/Current local command baseline: \*\*green/i);
+    expect(zeroDefectMatrix).toContain("Current local command baseline: **repo-local implementation frozen at `6ab5b38`; green");
+    expect(zeroDefectMatrix).toContain("final focused local proof refreshed at 4 files / 52 tests");
   });
 
   it("keeps manual/provider proof gates operator-ready and unclaimed", () => {
     expect(manualProofMatrix).toMatch(/Status: Required before external closed beta/);
     expect(manualProofMatrix).toContain("Closed beta stays **NO-GO**");
+    expect(manualProofMatrix).toContain("implementation is frozen at `6ab5b38`");
+    expect(manualProofMatrix).toContain("docs/status sync is pushed at `f2ed23c`");
     expect(manualProofMatrix).toContain("Use `48-manual-proof-packet-template.md`");
     expect(manualProofMatrix).toContain("Current consolidated packet: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/README.md`");
     expect(manualProofMatrix).toContain("provider-state-refresh-4fdf0de-2026-06-02.md");
@@ -761,6 +768,9 @@ describe("closed beta readiness docs", () => {
   it("keeps the consolidated manual proof packet no-go until external gates pass", () => {
     expect(consolidatedManualProofPacket).toContain("MVP Closed Beta Manual Proof Packet - 2026-06-02");
     expect(consolidatedManualProofPacket).toContain("External closed beta recommendation | NO-GO");
+    expect(consolidatedManualProofPacket).toContain("repo-local-freeze-external-proof-handoff-2026-06-02.md");
+    expect(consolidatedManualProofPacket).toContain("repo-local implementation freeze `6ab5b38`");
+    expect(consolidatedManualProofPacket).toContain("external proof handoff `c32540e`");
     expect(consolidatedManualProofPacket).toContain("latest read-only Vercel/Supabase provider anchor `4fdf0de`");
     expect(consolidatedManualProofPacket).toContain("provider-state-refresh-b33f56d-2026-06-02.md");
     expect(consolidatedManualProofPacket).toContain("provider-state-refresh-d78686f-2026-06-02.md");
@@ -803,6 +813,18 @@ describe("closed beta readiness docs", () => {
     expect(consolidatedManualProofPacket).toContain("`supportMonitoringReady: false`");
     expect(consolidatedManualProofPacket).toContain("Do not change the launch decision until `47-goal-completion-audit.md` is rerun");
     expect(consolidatedManualProofPacket).not.toMatch(/\| .* \| pass \|/i);
+  });
+
+  it("locks the repo-local freeze handoff as external-proof-only", () => {
+    expect(repoLocalFreezeHandoff).toContain("Status: repo-local implementation frozen; external closed beta remains **NO-GO**.");
+    expect(repoLocalFreezeHandoff).toContain("| Repo-local implementation freeze | `6ab5b38`");
+    expect(repoLocalFreezeHandoff).toContain("| Docs/status freeze | `f2ed23c`");
+    expect(repoLocalFreezeHandoff).toContain("| External proof handoff | `c32540e`");
+    expect(repoLocalFreezeHandoff).toContain("Do not reopen local launch implementation unless a new repo-local defect is found.");
+    expect(repoLocalFreezeHandoff).toContain("46-manual-proof-matrix.md");
+    expect(repoLocalFreezeHandoff).toContain("47-goal-completion-audit.md");
+    expect(evidenceIndex).toContain("repo-local-freeze-external-proof-handoff-2026-06-02.md");
+    expect(evidenceIndex).toContain("docs/status freeze `f2ed23c` and external proof handoff `c32540e`");
   });
 
   it("keeps consolidated manual proof packet artifact references resolvable", () => {
