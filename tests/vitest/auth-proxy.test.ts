@@ -108,4 +108,35 @@ describe("auth proxy", () => {
     expect(response.status).toBe(307);
     expect(response.headers.get("location")).toBe("http://localhost:3000/workshop");
   });
+
+  it("does not trust a spoofed localhost host for dev auth bypass without the shared secret", async () => {
+    vi.stubEnv("NODE_ENV", "development");
+    vi.stubEnv("ARCHESTIMATOR_DEV_AUTH_BYPASS", "1");
+    vi.stubEnv("ARCHESTIMATOR_DEV_AUTH_BYPASS_SECRET", "local-dev-secret-with-at-least-32-chars");
+    mockUser(null);
+    const { proxy } = await import("@/proxy");
+
+    const response = await proxy(request("http://localhost:3000/workshop/projects"));
+
+    expect(supabaseSsrMocks.createServerClient).toHaveBeenCalledTimes(1);
+    expect(response.status).toBe(307);
+    expect(response.headers.get("location")).toBe("http://localhost:3000/login?next=%2Fworkshop%2Fprojects");
+  });
+
+  it("allows explicit local dev auth bypass requests that provide the shared secret", async () => {
+    vi.stubEnv("NODE_ENV", "development");
+    vi.stubEnv("ARCHESTIMATOR_DEV_AUTH_BYPASS", "1");
+    vi.stubEnv("ARCHESTIMATOR_DEV_AUTH_BYPASS_SECRET", "local-dev-secret-with-at-least-32-chars");
+    mockUser(null);
+    const { proxy } = await import("@/proxy");
+
+    const localRequest = request("http://localhost:3000/workshop/projects");
+    localRequest.headers.set("x-archestimator-dev-auth-bypass", "local-dev-secret-with-at-least-32-chars");
+    const response = await proxy(localRequest);
+
+    expect(supabaseSsrMocks.createServerClient).not.toHaveBeenCalled();
+    expect(response.status).toBe(200);
+    expect(response.headers.get(`x-middleware-request-${AUTH_REQUEST_PATH_HEADER}`)).toBe("/workshop/projects");
+  });
+
 });

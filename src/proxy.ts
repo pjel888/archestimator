@@ -1,6 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
-import { isDevAuthBypassRequest } from "@/lib/auth/dev-auth-gate";
+import { getDevAuthBypassCredentialFromRequestParts, isDevAuthBypassRequest } from "@/lib/auth/dev-auth-gate";
 import { AUTH_REQUEST_PATH_HEADER, DEFAULT_AUTH_DESTINATION, LOGIN_PATH, sanitizeNextPath } from "@/lib/auth/redirects";
 import type { Database } from "@/lib/supabase/types";
 
@@ -37,7 +37,9 @@ export async function proxy(request: NextRequest) {
   const isProtected = PROTECTED_PREFIXES.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`));
   const isAuthRoute = AUTH_ROUTES.includes(pathname);
 
-  if (isDevAuthBypassRequest(request.nextUrl.hostname)) {
+  const devAuthBypassCredential = getDevAuthBypassCredentialFromRequestParts(request.headers, request.cookies);
+
+  if (isDevAuthBypassRequest(request.nextUrl.hostname, devAuthBypassCredential)) {
     if (isAuthRoute) {
       return NextResponse.redirect(new URL(DEFAULT_AUTH_DESTINATION, request.url));
     }
