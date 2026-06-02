@@ -63,8 +63,12 @@ Post-report evidence-sync commits:
 - `13f5acb` - Recorded Vercel protection bypass risk.
 - `6c22c3f` - Stopped treating docs-only commits as runtime-preview invalidation.
 - `bc1c715` - Clarified the spreadsheet app proof blocker.
+- `988d3c2` - Refreshed local validation evidence at current head.
+- `97c7d60` - Benchmarked proposal workbook export scale.
+- `5aa345d` - Proved the proposal export route builds workbooks locally.
+- `1ea3b6a` - Proved the proposal benchmark fixture stays coherent.
 
-These follow-up commits improve traceability only. They do not change the implementation baseline or the **NO-GO** recommendation. Current local validation refresh at `bc1c715` passed `bun install --frozen-lockfile` and `bun run validate`: typecheck, lint with 14 warnings and 0 errors, design lint, unit tests (4 tests / 129 expectations), and DOM tests (136 files / 1050 passed / 2 skipped). Latest app-runtime Vercel preview refresh at `638f681` reached Ready deployment `dpl_8cpgQgEtrAgo6P5gX1fn3LwBJzdS`, and protected `/api/health` works through `vercel curl`; Vercel env vars are still absent, public preview health returns 401, custom domains still point at the older production deployment, and rollback proof remains missing. Current linked Supabase readiness refresh at `08a58dd` found five launch migrations and the allowlist/feedback/unlink objects absent, `component-images` public, temp-role `ECIRCUITBREAKER` on migration/performance reads, and security advisor WARN findings.
+These follow-up commits improve traceability, local validation evidence, and local export proof only. They do not change the implementation baseline or the **NO-GO** recommendation. Current local validation refresh at `bc1c715` passed `bun install --frozen-lockfile` and `bun run validate`: typecheck, lint with 14 warnings and 0 errors, design lint, unit tests (4 tests / 129 expectations), and DOM tests (136 files / 1050 passed / 2 skipped). Latest app-runtime Vercel preview refresh at `638f681` reached Ready deployment `dpl_8cpgQgEtrAgo6P5gX1fn3LwBJzdS`, and protected `/api/health` works through `vercel curl`; Vercel env vars are still absent, public preview health returns 401, custom domains still point at the older production deployment, and rollback proof remains missing. Current linked Supabase readiness refresh at `08a58dd` found five launch migrations and the allowlist/feedback/unlink objects absent, `component-images` public, temp-role `ECIRCUITBREAKER` on migration/performance reads, and security advisor WARN findings. Latest local export evidence adds the synthetic 500 / 1,000 / 2,500-row workbook benchmark, local route-handler workbook proof, and benchmark-fixture regression coverage; it still does not prove hosted Vercel route timing/memory or spreadsheet-app open/recalc/print behavior.
 
 The remaining manual/provider proof packet is now centralized in `46-manual-proof-matrix.md`; it must be filled with dated artifacts before the external beta recommendation changes.
 
@@ -136,6 +140,14 @@ Current app build refresh at `bc1c715`:
 - Build details: Next.js 16.2.6 / Turbopack compiled successfully, finished TypeScript, generated 32 static pages, and listed `/api/health`, disabled-by-default AI routes, the proposal export route, share/invite routes, and protected workshop routes.
 - Launch meaning: local production build remains green, but Vercel deploy/env/health/rollback proof still blocks external beta.
 
+Current local export proof through `1ea3b6a`:
+
+- `97c7d60` benchmarked `createProposalWorkbookBuffer()` with synthetic 500 / 1,000 / 2,500-row proposal fixtures; the 2,500-row fixture generated in 362.06ms with a 402,284 byte buffer, 270.56 MiB local RSS, and 76.65 MiB heap used.
+- `5aa345d` added local route-handler proof that the proposal XLSX route can call the real `buildProposalExportModel()` and `createProposalWorkbookBuffer()` path and return loadable workbook bytes.
+- `1ea3b6a` made the benchmark script import-safe and added regression coverage for row-count parsing, deterministic BOQ fixture rows, summary/source/totals consistency, and a tiny real workbook-builder run.
+- Verification: `bunx vitest run tests/vitest/proposal-workbook-benchmark.test.ts tests/vitest/proposal-workbook.test.ts tests/vitest/closed-beta-readiness-docs.test.ts --maxWorkers=1` passed 3 files / 16 tests; `bun run type-check` passed; `bun run lint` passed with 14 warnings and 0 errors.
+- Launch meaning: local export artifact, route, performance, and benchmark-fixture evidence are stronger, but Vercel export route timing/memory, hosted authenticated export smoke, and Excel/secondary spreadsheet open/recalc/print proof remain required.
+
 Latest app-runtime Vercel preview refresh at `638f681`:
 
 - `vercel list --format json --non-interactive` showed current `main` deployment `archestimator-4s6wzqt08-philipjonlewis-projects.vercel.app` at commit `638f6813017fd3460c35fcf5917b3049ff7403cf`.
@@ -165,7 +177,7 @@ Build, type-check, design lint, unit tests, and full DOM tests are green locally
 - Vercel env, public `/api/health`, production/custom-domain app health, and rollback proof. Latest app-runtime `638f681` preview is Ready and protected health works through `vercel curl`, but env vars are absent and public/custom-domain/rollback proof remains blocked.
 - Resend DNS/delivery/webhook proof if share/invite email workflows remain visible.
 - Resend DNS/delivery/webhook proof before share/invite email workflows are re-enabled; current local guardrails disable recipient email controls and fail unconfigured sends closed.
-- Excel/secondary spreadsheet app open, formula, print, and workbook artifact proof.
+- Excel/secondary spreadsheet app open, formula, and print proof. Local workbook artifact, route-handler, large-fixture benchmark, and benchmark-regression proof now exist, but app compatibility remains unproven.
 - Owner/counsel legal review of beta terms/privacy/support/data deletion copy.
 - Monitored support inbox/table review proof.
 - Demo rehearsal screenshots and validated exported workbook artifact.

@@ -136,8 +136,15 @@ describe("closed beta readiness docs", () => {
     expect(finalImplementationReport).toContain("`567f3c5` - Synced the launch gate to the current linked Supabase refresh.");
     expect(finalImplementationReport).toContain("`6c22c3f` - Stopped treating docs-only commits as runtime-preview invalidation.");
     expect(finalImplementationReport).toContain("`bc1c715` - Clarified the spreadsheet app proof blocker.");
+    expect(finalImplementationReport).toContain("`988d3c2` - Refreshed local validation evidence at current head.");
+    expect(finalImplementationReport).toContain("`97c7d60` - Benchmarked proposal workbook export scale.");
+    expect(finalImplementationReport).toContain("`5aa345d` - Proved the proposal export route builds workbooks locally.");
+    expect(finalImplementationReport).toContain("`1ea3b6a` - Proved the proposal benchmark fixture stays coherent.");
     expect(finalImplementationReport).toContain("Current local validation refresh at `bc1c715` passed `bun install --frozen-lockfile` and `bun run validate`");
+    expect(finalImplementationReport).toContain("Latest local export evidence adds the synthetic 500 / 1,000 / 2,500-row workbook benchmark");
     expect(finalImplementationReport).toContain("Current app build refresh at `bc1c715`:");
+    expect(finalImplementationReport).toContain("Current local export proof through `1ea3b6a`:");
+    expect(finalImplementationReport).toContain("benchmark-fixture regression coverage");
     expect(finalImplementationReport).toContain("Latest app-runtime Vercel preview refresh at `638f681`:");
     expect(finalImplementationReport).toContain("Current linked Supabase readiness refresh at `08a58dd`:");
     expect(finalImplementationReport).toContain("dpl_8cpgQgEtrAgo6P5gX1fn3LwBJzdS");
