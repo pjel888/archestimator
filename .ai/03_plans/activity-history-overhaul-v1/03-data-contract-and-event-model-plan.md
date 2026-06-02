@@ -1,7 +1,7 @@
 # 03 — Data Contract and Event Model Plan
 
-**Date:** 2026-06-02 (second pass: 2026-06-02)  
-**Status:** Proposed (pending approval) — Second pass: added ActivityAudience, ActivityVisibility, ActivityActor, ActivityTarget, ActivityChange types. Corrected shared-link event_type handling. Noted migration stance nuance.
+**Date:** 2026-06-02 (second pass: 2026-06-02; third pass: 2026-06-02)  
+**Status:** Proposed (pending approval) — Second pass: added ActivityAudience, ActivityVisibility, ActivityActor, ActivityTarget, ActivityChange types. Corrected shared-link event_type handling. Third pass: added `activityAccessContext` for shared page access telemetry.
 
 ---
 
@@ -305,7 +305,40 @@ The public route currently returns a union of raw comment/decision/event shapes.
 2. Import in existing UI components and API routes
 3. Replace inline copy logic incrementally
 
-**Note on migration stance:** First pass stated "No database migration required" as definitive. Second pass clarifies: true for V1 copy-only work. V2 features need additive migrations. See `19-migration-and-backfill-decision-matrix.md`.
+**Note on migration stance:** First pass stated "No database migration required" as definitive. Second pass clarifies: true for V1 copy-only work. V2 features need additive migrations. Third pass: access telemetry uses `metadata_json` for V1.1, structured columns deferred to V2. See `19-migration-and-backfill-decision-matrix.md` and `25-access-event-data-model-and-migration-plan.md`.
+
+---
+
+## 9. Access Context Type (Third Pass Addition)
+
+```ts
+type ActivityAccessContext = {
+  accessStage?: "page_visit" | "password_gate" | "password_attempt" | "proposal_view" | "session_start";
+  accessResult?: "success" | "failure" | "locked" | "not_required" | "unknown";
+  passwordProtected?: boolean;
+  recipientKnown?: boolean;
+  device?: {
+    type?: "desktop" | "mobile" | "tablet" | "bot" | "unknown";
+    browser?: string;
+    browserVersion?: string;
+    os?: string;
+  };
+  location?: {
+    country?: string;
+    region?: string;
+    city?: string;
+    timezone?: string;
+    approximate: true;
+  };
+};
+```
+
+Access context belongs in `facts[]` and `raw` metadata, not in the primary `ActivityViewModel` body. Device and location are audit facts, not primary copy elements.
+
+### Cross-References
+
+- See `23-shared-page-access-activity-plan.md` for access telemetry plan
+- See `25-access-event-data-model-and-migration-plan.md` for metadata schema decisions
 
 ---
 

@@ -1,15 +1,16 @@
 # 04 — Implementation Plan (Revised — Second Pass)
 
-**Date:** 2026-06-02 (second pass: 2026-06-02)
-**Status:** Proposed (pending approval after second-pass corrections)
+**Date:** 2026-06-02 (second pass: 2026-06-02; third pass: 2026-06-02)
+**Status:** Proposed (pending approval after third-pass corrections)
 
 ---
 
 ## Overview
 
-The implementation is split into 8 phases (Phases 0–7), each delivered as a separate PR. Each phase is independently revertible.
+The implementation is split into 9 phases (Phases 0–8), each delivered as a separate PR.
 
-**Second pass addition:** Phase 0 added for preflight bug fixes. Phases 0+1 from first pass combined into single merge-safe Phase 1 with tests and composer deploying together (no red CI).
+**Second pass addition:** Phase 0 added for preflight bug fixes.
+**Third pass addition:** Phase 6 added for shared page access telemetry. See `27-third-pass-master-implementation-blueprint.md` for the authoritative sequence.
 
 ---
 
@@ -175,12 +176,13 @@ Final UI refinements, accessibility, empty/loading/error states, manual QA pass.
 
 ## Rollback Strategy
 
-Each phase is independently revertible. No database migrations are required for V1. No data loss risk.
+Each phase is independently revertible. No database migrations are required for V1.0. V1.1 access telemetry uses `metadata_json` (no migration). No data loss risk.
 
 ---
 
 ## Cross-References
 
-- See `11-pr-sequencing-plan.md` for merged-safe PR sequence
-- See `12-second-pass-verification-audit.md` for corrections applied
+- See `11-pr-sequencing-plan.md` and `27-third-pass-master-implementation-blueprint.md` for the authoritative PR sequence
+- See `12-second-pass-verification-audit.md` and `22-third-pass-verification-audit.md` for corrections
 - See `21-activity-composer-spec.md` for implementation-ready spec
+- See `23-shared-page-access-activity-plan.md` for access telemetry phase

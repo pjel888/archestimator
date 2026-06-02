@@ -1,6 +1,6 @@
 # 07 — Security and Privacy Readiness
 
-**Date:** 2026-06-02 (second pass: 2026-06-02)
+**Date:** 2026-06-02 (second pass: 2026-06-02; third pass: 2026-06-02)
 
 ---
 

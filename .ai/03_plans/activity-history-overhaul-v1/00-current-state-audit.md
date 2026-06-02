@@ -1,10 +1,12 @@
 # 00 — Current State Audit: Activity History System
 
-**Date:** 2026-06-02 (second pass: 2026-06-02)  
+**Date:** 2026-06-02 (second pass: 2026-06-02; third pass: 2026-06-02)  
 **Branch:** `main`  
-**Current HEAD:** `97c7d60` (`Benchmark proposal workbook export scale`)  
+**Current HEAD:** `d78686f` (`Refresh current-head launch validation proof`)  
 **First-pass commit:** `638f681` (stale — corrected in second pass)  
-**Second-pass verification:** See `12-second-pass-verification-audit.md`
+**Second-pass claimed HEAD:** `97c7d60` (corrected in third pass — no activity code changed between `97c7d60` and `d78686f`)  
+**Second-pass verification:** See `12-second-pass-verification-audit.md`  
+**Third-pass verification:** See `22-third-pass-verification-audit.md`
 
 ---
 
@@ -32,6 +34,12 @@ The activity history system spans two distinct surfaces connected by a shared Su
 - **Data source:** `estimate_sheet_events` via `readAskCurrentEstimateActivityHistory()` in `src/lib/ai/read-context.ts`
 - **Purpose:** Provides compact activity summaries for the Ask Flip AI feature
 - **Audience:** Internal AI prompt context only
+
+### Surface D: Shared Page Access Tracking (Analytics/Security)
+
+- **Data source:** `project_publication_events` via `recordProjectPublicationEvent()` in `src/lib/publication/public-repository.ts`
+- **Owner path:** Not currently surfaced in activity feeds. Events stored in `project_publication_events` for internal analytics.
+- **Client path:** `shared_link_events` for owner-visible activity (currently only `open` events with known `recipientId`)
 
 ---
 
@@ -404,7 +412,44 @@ No extensible formatter for future locales.
 
 ---
 
-## 11. Corrections from Second Pass
+## 11. Third-Pass Additions: Shared Page Access / Page Visit Activity Current State
+
+### 11.0.1 Share Page Open Tracking — Incomplete
+
+**File:** `src/app/share/[token]/page.tsx`
+
+`recordProjectPublicationEvent({ eventType: "open" })` is called **after** the password gate check. If a publication requires a password and no valid access cookie exists, the password gate is rendered BEFORE the open event is recorded. Password-gate visits are invisible.
+
+**Gap documented in:** `23-shared-page-access-activity-plan.md`
+
+### 11.0.2 First Recipient-Token Visit — Anonymous Open
+
+When `?recipient=` param is present, `SharePageRecipientSessionInitializer` runs client-side (after server render). The server-side `recordProjectPublicationEvent("open")` fires before the session cookie exists, so the first visit records an anonymous open event even though the URL had a recipient token. Subsequent reloads resolve recipient from cookie.
+
+**Gap documented in:** `23-shared-page-access-activity-plan.md`
+
+### 11.0.3 Password Route — Attempts, Not Gate Views
+
+`POST /api/share/[token]/password` records `password_attempt` for success/failure/locked via `project_publication_events`. It does NOT record that the password gate page was viewed before form submission.
+
+**Gap documented in:** `23-shared-page-access-activity-plan.md`
+
+### 11.0.4 `/events` Route — Exists, Limited Usage
+
+`POST /api/share/[token]/events` accepts `open`, `password_success`, `password_failure`, `download_attempt_blocked`. It is NOT called from `page.tsx` (which uses direct server-side `recordProjectPublicationEvent()`). Currently unused in the share page open flow. Should be evaluated for client-side password-gate beacon.
+
+**Gap documented in:** `23-shared-page-access-activity-plan.md`
+
+### 11.0.5 `recordProjectPublicationEvent()` — What's Stored vs Missing
+
+**Currently stored:** `ip_hash` (SHA-256), `user_agent_hash` (SHA-256), `metadata_json`, `event_type`.
+**Currently missing:** Parsed device/browser/OS metadata, approximate location from provider headers, access stage/password_protected flag.
+
+**Gap documented in:** `25-access-event-data-model-and-migration-plan.md`
+
+---
+
+## 12. Corrections from Second Pass
 
 The second pass at HEAD `97c7d60` verified all first-pass claims against current code. The following corrections were applied:
 
