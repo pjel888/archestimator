@@ -8,7 +8,8 @@ describe("/beta/access-required page contract", () => {
     const source = readFileSync(join(process.cwd(), "src/app/beta/access-required/page.tsx"), "utf8");
 
     expect(source).toMatch(/invite-only beta/i);
-    expect(source).toMatch(/philipjonlewis@gmail\.com/);
+    expect(source).toMatch(/support@archestimator\.com/);
+    expect(source).not.toMatch(/philipjonlewis@gmail\.com/);
     expect(source).toMatch(/href=["']\/login["']/);
     expect(source).not.toMatch(/\/workshop/);
   });

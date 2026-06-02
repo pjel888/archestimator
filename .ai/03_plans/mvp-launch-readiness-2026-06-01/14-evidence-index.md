@@ -9,6 +9,12 @@
 - Guardrail evidence: `bunx vitest run tests/vitest/new-project-form-validation.test.tsx tests/vitest/project-creation-ui.test.ts --maxWorkers=1` passed 2 files / 12 tests.
 - Launch meaning: this closes the local validation/error-copy gap for the create-project modal only. It does not prove hosted create/open/delete behavior, RLS denial handling, Supabase availability, or manual production smoke; those gates remain **NO-GO**.
 
+### Local Access-Required Support Contact Slice
+
+- Scope: `/beta/access-required` now routes denied or revoked beta users to `support@archestimator.com` instead of a personal inbox, keeping the auth/onboarding support surface aligned with the public contact, legal, and Settings support copy.
+- Guardrail evidence: `bunx vitest run tests/vitest/beta-access-required-page.test.ts tests/vitest/auth-callback-route.test.ts tests/vitest/auth-entry-ui-contract.test.ts --maxWorkers=1` passed 3 files / 9 tests.
+- Launch meaning: this closes a local support-copy mismatch only. It does not prove hosted OAuth callbacks, allowlist behavior, email monitoring, or expired-link manual QA; those gates remain **NO-GO**.
+
 ### Final Codex Implementation Report Evidence
 
 - Final report artifact: `final-codex-implementation-report.md`.
