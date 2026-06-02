@@ -546,12 +546,17 @@
 ### Resend Email Readiness Evidence
 
 - Artifact note: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/resend-email-readiness-blocked-2026-06-02.md`.
+- Repeatable readiness artifact: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/resend-readiness-b0e04f4-2026-06-02.json`.
+- Script: `scripts/check-resend-readiness.ts`.
+- Package command: `bun run launch:check-resend-readiness`.
 - Vercel env proof: `vercel env ls --non-interactive` returned `No Environment Variables found`.
 - Local key-presence proof: `.env.local` has `RESEND_API_KEY`, but `RESEND_FROM`, `RESEND_REPLY_TO`, and `RESEND_WEBHOOK_SECRET` are missing or empty. Values were not printed.
+- Current helper refresh: `VERCEL_ENV_LIST_TEXT="$(vercel env ls --non-interactive 2>&1)" OUTPUT_FILE=.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/resend-readiness-b0e04f4-2026-06-02.json bun run launch:check-resend-readiness` wrote sanitized JSON and exited `1`; it reports local runtime `present: ["RESEND_API_KEY"]`, local missing `RESEND_FROM`, `RESEND_REPLY_TO`, and `RESEND_WEBHOOK_SECRET`, zero Vercel Resend env names discovered, and `resendReady: false`.
 - Source proof: `src/lib/email/resend-client.ts` uses `RESEND_API_KEY` outside tests and now fails closed with `EMAIL_NOT_CONFIGURED` when the key or sender is missing; mock success is restricted to tests. `src/app/api/webhooks/resend/route.ts` returns `503` when `RESEND_WEBHOOK_SECRET` is absent.
 - Visible email-flow proof: shared-link recipient controls now disable recipient entry/send/resend while server email delivery readiness is false; shared-link digest and collaboration notification paths still call `sendEmail()` server-side.
 - Existing local test proof: `tests/vitest/resend-webhook-delivery.test.ts` guards raw-body webhook verification, recipient tags, delivery columns, and event-to-recipient status mapping.
-- Launch meaning: this is negative/blocked email-provider evidence. Manual beta invites may remain outside Resend with recipient email controls disabled, but in-app email workflows cannot be treated as launch-ready or re-enabled until Vercel env, verified sender/domain/DNS, webhook secret, and real delivery/webhook event proof exist.
+- Guardrail evidence: `bunx vitest run tests/vitest/resend-readiness-script.test.ts tests/vitest/resend-readiness-docs.test.ts --maxWorkers=1` passed 2 files / 9 tests covering dotenv presence parsing, Vercel env-name extraction, fail-closed readiness, local secret redaction, and existing Resend launch-doc constraints.
+- Launch meaning: this is negative/blocked email-provider evidence. Manual beta invites may remain outside Resend with recipient email controls disabled, but in-app email workflows cannot be treated as launch-ready or re-enabled until Vercel env, verified sender/domain/DNS, webhook secret, and real delivery/webhook event proof exist. The helper checks env-name/value presence only and does not prove sender/domain verification, DNS, webhook registration, delivery, bounce, complaint, or open events.
 
 ### First-Run Workshop Local Surface Evidence
 
