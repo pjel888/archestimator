@@ -214,11 +214,16 @@ describe("closed beta readiness docs", () => {
     expect(knownIssues).toContain("Vercel custom-domain evidence on 2026-06-02 confirms");
     expect(evidenceIndex).toContain("### Spreadsheet Artifact Local Evidence");
     expect(evidenceIndex).toContain("spreadsheet-quicklook-preview-2026-06-02.md");
+    expect(evidenceIndex).toContain("spreadsheet-app-availability-refresh-2026-06-02.md");
+    expect(evidenceIndex).toContain("`Google Sheets.app` is installed, but it is a Google Drive shortcut app");
     expect(evidenceIndex).toContain("qlmanage -t -s 1200");
     expect(evidenceIndex).toContain("1200 x 892 PNG thumbnail");
     expect(currentState).toContain("**Spreadsheet Quick Look Preview Evidence (2026-06-02):**");
+    expect(currentState).toContain("**Spreadsheet App Availability Refresh (2026-06-02):**");
+    expect(currentState).toContain("Google Sheets.app` is present as a Google Drive shortcut app");
     expect(currentState).toContain("local macOS preview rendering only");
     expect(knownIssues).toContain("Spreadsheet Quick Look preview evidence on 2026-06-02");
+    expect(knownIssues).toContain("Google Sheets.app` exists only as a Google Drive shortcut app");
     expect(knownIssues).toContain("Spreadsheet compatibility remains blocked");
     expect(evidenceIndex).toContain("### Component/Template Demo Local Smoke Evidence");
     expect(evidenceIndex).toContain("library-demo-smoke-local-2026-06-02.md");
@@ -386,6 +391,8 @@ describe("closed beta readiness docs", () => {
     expect(manualProofMatrix).toContain("Hosted whitelisted account proof still missing");
     expect(manualProofMatrix).toContain("Spreadsheet compatibility");
     expect(manualProofMatrix).toContain("spreadsheet-quicklook-preview-2026-06-02.md");
+    expect(manualProofMatrix).toContain("spreadsheet-app-availability-refresh-2026-06-02.md");
+    expect(manualProofMatrix).toContain("Google Sheets.app` exists only as a Google Drive shortcut");
     expect(manualProofMatrix).toContain("formula recalculation, and print proof still missing");
     expect(manualProofMatrix).toContain("Project-specific unlink manual smoke");
     expect(manualProofMatrix).toContain("project-specific-unlink-linked-smoke-blocked-2026-06-02.md");
