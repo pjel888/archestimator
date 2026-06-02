@@ -334,6 +334,8 @@ describe("estimate sheet version control UI", () => {
     const sheetActivityCard = within(sheetDialog).getByLabelText(/^Sheet code updated audit event/);
 
     expect(within(sheetActivityCard).getAllByText("Philip Lewis changed sheet code from ES-001 to ES-002.").length).toBeGreaterThan(0);
+    const activityFeed = within(sheetDialog).getByRole("feed", { name: "Activity history events" });
+    expect(activityFeed).toBeInTheDocument();
     const dayRegion = within(sheetDialog).getByRole("region", { name: "May 24, 2026 activity" });
     expect(dayRegion).toBeInTheDocument();
     expect(within(dayRegion).getByText("May 24, 2026").parentElement).not.toHaveClass("sticky");

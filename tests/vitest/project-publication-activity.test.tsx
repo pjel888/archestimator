@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi, afterEach } from "vitest";
-import { render, screen, waitFor, cleanup } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, cleanup, within } from "@testing-library/react";
 import React from "react";
 
 // Hoisted mocks for route, repo, security, hook, Realtime, email, component deps (P8 red tests written FIRST per Master Prompt + subagent TDD red-first rule + full graph impact completed before any symbol touch)
@@ -614,6 +614,46 @@ describe("P8 — Shared Link Activity Feed & Notifications (red tests written FI
       expect(screen.queryByText(/Decision:\s*accepted/i)).not.toBeInTheDocument();
     });
 
+
+    it("renders accessible feed articles with keyboard-operable activity details", async () => {
+      vi.mocked(global.fetch).mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            activities: [
+              {
+                id: "act_access1234567890",
+                source: "share",
+                action: "viewed",
+                visibility: "public",
+                occurredAt: "2026-05-28T12:30:00Z",
+                title: "Maria viewed the proposal.",
+                facts: [
+                  { label: "Device type", value: "Desktop" },
+                  { label: "Browser family", value: "Chrome" },
+                  { label: "Country", value: "PH" },
+                ],
+              },
+            ],
+            hasMore: false,
+            recipientSession: false,
+          }),
+          { status: 200, headers: { "content-type": "application/json" } },
+        ),
+      );
+
+      render(<SharedLinkActivityFeed publicationToken="client-pub-token-123" isOwner={false} />);
+
+      const feed = await screen.findByRole("feed", { name: "Shared link activity feed" });
+      const article = within(feed).getByRole("article", { name: /Maria viewed the proposal/i });
+      expect(article).toHaveAttribute("tabindex", "0");
+      const detailsToggle = within(article).getByText("Activity details");
+      fireEvent.click(detailsToggle);
+      expect(within(article).getByText("Device type")).toBeInTheDocument();
+      expect(within(article).getByText("Desktop")).toBeInTheDocument();
+      expect(article.textContent).not.toContain("ip_hash");
+      expect(article.textContent).not.toContain("user_agent_hash");
+    });
+
     it("scopes owner Realtime subscriptions to the active publication id", async () => {
       render(<SharedLinkActivityFeed publicationToken="client-pub-token-123" publicationId="pub1" isOwner={true} />);
 
@@ -628,6 +668,49 @@ describe("P8 — Shared Link Activity Feed & Notifications (red tests written FI
           expect.objectContaining({ table: "shared_link_events", filter: "publication_id=eq.pub1" }),
         ]),
       );
+    });
+
+
+    it("announces Realtime activity refreshes with a polite new-activity banner", async () => {
+      render(<SharedLinkActivityFeed publicationToken="client-pub-token-123" publicationId="pub1" isOwner={true} />);
+
+      await waitFor(() => expect(mocks.channel).toHaveBeenCalled());
+      const channelApi = mocks.channel.mock.results.at(-1)?.value;
+      const insertHandler = channelApi.on.mock.calls[0]?.[2] as (() => void) | undefined;
+      expect(insertHandler).toBeDefined();
+      insertHandler?.();
+
+      await waitFor(() => expect(screen.getByText("New activity loaded.")).toBeInTheDocument());
+      expect(screen.getByText("New shared link activity loaded.")).toBeInTheDocument();
+    });
+
+
+    it("renders a 200-item shared activity feed without raw-copy regressions", async () => {
+      vi.mocked(global.fetch).mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            activities: Array.from({ length: 200 }, (_, index) => ({
+              id: `act_perf_${index}`,
+              source: "share",
+              action: "viewed",
+              visibility: "public",
+              occurredAt: `2026-05-28T12:${String(index % 60).padStart(2, "0")}:00Z`,
+              title: `Client viewed proposal update ${index + 1}.`,
+            })),
+            hasMore: false,
+            recipientSession: false,
+          }),
+          { status: 200, headers: { "content-type": "application/json" } },
+        ),
+      );
+
+      const startedAt = performance.now();
+      render(<SharedLinkActivityFeed publicationToken="client-pub-token-123" isOwner={false} />);
+
+      await screen.findByText("Client viewed proposal update 200.");
+      expect(screen.getAllByTestId("activity-item")).toHaveLength(200);
+      expect(performance.now() - startedAt).toBeLessThan(2_000);
+      expect(screen.queryByText(/row_updated|event_type|metadata_json|DECISION/)).not.toBeInTheDocument();
     });
 
     it("does not subscribe to Realtime without a publication id", async () => {
