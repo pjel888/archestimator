@@ -37,8 +37,8 @@ Status: **NO-GO for closed beta and investor demo until all closed-beta P0 gates
 Final local implementation report: `final-codex-implementation-report.md`.
 Stable full local baseline: `c5ca065`.
 Final report baseline: `8084908`.
-Current local validation refresh: `70e80c9` (`bun run validate` pass; DOM 136 files / 1050 passed / 2 skipped).
-Current local app build refresh: `70e80c9` (`bun run build` pass; Next.js 16.2.6 / Turbopack; 32 static pages).
+Current local validation refresh: `51e72e1` (`bun run validate` pass; DOM 136 files / 1050 passed / 2 skipped).
+Current local app build refresh: `51e72e1` (`bun run build` pass; Next.js 16.2.6 / Turbopack; 32 static pages).
 
 This folder is the single launch execution package for the MVP readiness push. Do not create a competing MVP folder. Local-safe product and documentation slices are now implemented and recorded here; hosted/provider/manual proof gates remain the launch blocker.
 
@@ -69,7 +69,7 @@ Deferred from MVP:
 
 | Area | Third-pass correction |
 | --- | --- |
-| Evidence | Local baseline is green through `c5ca065`; current validation and app build refresh at `70e80c9` passes `bun run validate` and `bun run build`. Hosted/provider/manual proof remains open. |
+| Evidence | Local baseline is green through `c5ca065`; current validation and app build refresh at `51e72e1` passes `bun run validate` and `bun run build`. Hosted/provider/manual proof remains open. |
 | AI deferral | Upgraded from "defer AI" intent to a concrete global flag, UI-hide, route-fail-closed, provider-call-prevention contract. |
 | Unlinked components | Corrected the contract: project-specific components are `estimate_row_items`, not reusable `cost_library_items`; `detached` is the final state for rows separated from a real library source. |
 | Excel export | Reframed current export as insufficient for launch; added bid-form workbook contract, formula gates, and cross-spreadsheet manual QA. |

@@ -58,7 +58,7 @@ Post-report evidence-sync commits:
 - `08a58dd` - Refreshed linked Supabase launch blockers with read-only proof.
 - `567f3c5` - Synced the launch gate to the current linked Supabase refresh.
 
-These follow-up commits improve traceability only. They do not change the implementation baseline or the **NO-GO** recommendation. Current local validation refresh at `70e80c9` also passed `bun run validate`: typecheck, lint with 14 existing warnings, design lint, unit tests (4 tests / 129 expectations), and DOM tests (136 files / 1050 passed / 2 skipped). Current Vercel preview refresh at `567f3c5` reached Ready deployment `dpl_3Q8s2oTgL1KDDi5Z131BwiCRgQ5P`, and protected `/api/health` works through `vercel curl`; Vercel env vars are still absent, public preview health returns 401, custom domains still point at the older production deployment, and rollback proof remains missing. Current linked Supabase readiness refresh at `08a58dd` found five launch migrations and the allowlist/feedback/unlink objects absent, `component-images` public, temp-role `ECIRCUITBREAKER` on migration/performance reads, and security advisor WARN findings.
+These follow-up commits improve traceability only. They do not change the implementation baseline or the **NO-GO** recommendation. Current local validation refresh at `51e72e1` passed `bun install --frozen-lockfile` and `bun run validate`: typecheck, lint with 14 warnings and 0 errors, design lint, unit tests (4 tests / 129 expectations), and DOM tests (136 files / 1050 passed / 2 skipped). Current Vercel preview refresh at `567f3c5` reached Ready deployment `dpl_3Q8s2oTgL1KDDi5Z131BwiCRgQ5P`, and protected `/api/health` works through `vercel curl`; Vercel env vars are still absent, public preview health returns 401, custom domains still point at the older production deployment, and rollback proof remains missing. Current linked Supabase readiness refresh at `08a58dd` found five launch migrations and the allowlist/feedback/unlink objects absent, `component-images` public, temp-role `ECIRCUITBREAKER` on migration/performance reads, and security advisor WARN findings.
 
 The remaining manual/provider proof packet is now centralized in `46-manual-proof-matrix.md`; it must be filled with dated artifacts before the external beta recommendation changes.
 
@@ -117,13 +117,14 @@ Latest doc truth-sync at `8084908`:
 - code-review-graph detect changes - 4 changed files, 4 changed functions/classes, 0 affected flows, 0 test gaps, risk 0.30.
 - `npx gitnexus detect-changes --repo archestimator --scope staged` - no changes detected.
 
-Current validation refresh at `70e80c9`:
+Current validation refresh at `51e72e1`:
 
+- `bun install --frozen-lockfile` - pass, no dependency or lockfile changes.
 - `bun run validate` - pass.
-- Subcommands covered: typecheck; lint with 14 existing warnings; design lint; unit tests, 4 tests / 129 expectations; DOM tests, 136 files / 1050 passed / 2 skipped.
+- Subcommands covered: typecheck; lint with 14 warnings and 0 errors; design lint; unit tests, 4 tests / 129 expectations; DOM tests, 136 files / 1050 passed / 2 skipped.
 - Launch meaning: local command suite remains green, but hosted/provider/manual proof gates still block external beta.
 
-Current app build refresh at `70e80c9`:
+Current app build refresh at `51e72e1`:
 
 - `bun run build` - pass.
 - Build details: Next.js 16.2.6 / Turbopack compiled successfully, finished TypeScript, generated 32 static pages, and listed `/api/health`, disabled-by-default AI routes, the proposal export route, share/invite routes, and protected workshop routes.
