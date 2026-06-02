@@ -283,8 +283,18 @@ type EstimateHistoryRpcClient = {
   rpc: (fn: RpcFunctionName, args: Record<string, unknown>) => Promise<{ data: unknown; error: { message: string } | null }>;
 };
 
+type EstimatePermissionRpcClient = {
+  rpc: (fn: "can_edit_estimate", args: { target_estimate_id: string }) => Promise<{ data: boolean | null; error: { message: string } | null }>;
+};
+
 function asEstimateHistoryRpcClient(supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>) {
   return supabase as unknown as EstimateHistoryRpcClient;
+}
+
+async function assertCanEditEstimate(supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>, estimateId: string) {
+  const { data, error } = await (supabase as unknown as EstimatePermissionRpcClient).rpc("can_edit_estimate", { target_estimate_id: estimateId });
+  if (error) throw error;
+  if (data !== true) throw new Error("Estimate edit access denied.");
 }
 
 type EstimateActivityRetentionMetricsRpcClient = {
@@ -1824,6 +1834,7 @@ export async function detachEstimateRowItemFromLibrary({
   expectedRowRevision,
 }: DetachEstimateRowItemInput): Promise<UpdateEstimateRowItemResult> {
   const { project, supabase, row } = await getValidatedEstimateRow(projectId, estimateId, rowId);
+  await assertCanEditEstimate(supabase, estimateId);
   const currentUser = await requireCurrentUserContext();
   const trimmedReason = reason?.trim() || null;
   const { data, error } = await asEstimateHistoryRpcClient(supabase).rpc("unlink_estimate_row_item_from_library_with_history", {

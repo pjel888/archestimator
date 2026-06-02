@@ -10,6 +10,7 @@ const mocks = vi.hoisted(() => ({
   createSharedLinkSessionCookieName: vi.fn(),
   hashPublicationToken: vi.fn(),
   readPublicationTokenHashSecret: vi.fn(),
+  hasPublicationAccessCookie: vi.fn(),
   useSharedLinkSession: vi.fn(),
   requireCurrentUserContext: vi.fn(),
   // P8 extensions (additive)
@@ -38,6 +39,7 @@ vi.mock("@/lib/publication/security", async () => {
     createSharedLinkSessionCookieName: mocks.createSharedLinkSessionCookieName,
     hashPublicationToken: mocks.hashPublicationToken,
     readPublicationTokenHashSecret: mocks.readPublicationTokenHashSecret,
+    hasPublicationAccessCookie: mocks.hasPublicationAccessCookie,
   };
 });
 
@@ -115,6 +117,8 @@ function createActivityRouteSupabaseMock() {
           status: "published",
           revoked_at: null,
           expires_at: null,
+          password_hash: null,
+          snapshot_version: 7,
           snapshot_json: {
             estimates: [
               {
@@ -222,6 +226,8 @@ function createPublicationActionsSupabaseMock() {
           status: "published",
           revoked_at: null,
           expires_at: null,
+          password_hash: null,
+          snapshot_version: 7,
           snapshot_json: {
             estimates: [
               {
@@ -366,6 +372,7 @@ describe("P8 — Shared Link Activity Feed & Notifications (red tests written FI
     mocks.hashPublicationToken.mockReturnValue("publication-token-hash");
     mocks.readPublicationTokenHashSecret.mockReturnValue("publication-hash-secret");
     mocks.verifySharedLinkSessionCookieValue.mockReturnValue(false);
+    mocks.hasPublicationAccessCookie.mockReturnValue(false);
     mocks.checkProjectPublicationActivityRateLimit.mockResolvedValue({ allowed: true });
     mocks.useSharedLinkSession.mockReturnValue({ isValid: true });
     mocks.requireCurrentUserContext.mockResolvedValue({
@@ -443,6 +450,44 @@ describe("P8 — Shared Link Activity Feed & Notifications (red tests written FI
       }
     });
 
+    it("requires the publication access cookie before exposing password-protected activity", async () => {
+      mocks.createPublicationServiceClient.mockReturnValueOnce({
+        from: vi.fn((table: string) => {
+          if (table === "project_publications") {
+            return createQueryResult({
+              id: "pub1",
+              status: "published",
+              revoked_at: null,
+              expires_at: null,
+              password_hash: "hashed-password",
+              snapshot_version: 7,
+              snapshot_json: {},
+            });
+          }
+          return createQueryResult([]);
+        }),
+      });
+
+      const res = await GET(makeRequest({ cookie: "" }), params());
+
+      expect(res.status).toBe(423);
+      expect(await res.json()).toEqual({ error: "Publication password required.", passwordRequired: true });
+      expect(mocks.hasPublicationAccessCookie).toHaveBeenCalledWith("", {
+        token: "client-pub-token-123",
+        publicationId: "pub1",
+        snapshotVersion: 7,
+      });
+    });
+
+    it("does not expose recipient decisions or events without a verified recipient session", async () => {
+      const res = await GET(makeRequest({ cookie: "" }), params());
+
+      expect(res.status).toBe(200);
+      const json = (await res.json()) as { activities?: Array<{ title?: string }> };
+      expect(JSON.stringify(json)).not.toContain("approved the proposal");
+      expect(json.activities?.some((activity) => activity.title === "Maria commented on Living Area.")).toBe(true);
+    });
+
     it("uses durable rate limiting before loading public activity", async () => {
       mocks.checkProjectPublicationActivityRateLimit.mockResolvedValueOnce({
         allowed: false,
@@ -492,7 +537,7 @@ describe("P8 — Shared Link Activity Feed & Notifications (red tests written FI
       expect(serialized).not.toContain("accepted");
       expect(serialized).not.toContain("revision_requested");
       expect(serialized).not.toMatch(/[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}/i);
-      expect(json.activities.some((activity: { title?: string }) => activity.title === "Maria approved the proposal.")).toBe(true);
+      expect(json.activities.some((activity: { title?: string }) => activity.title === "Maria approved the proposal.")).toBe(false);
       expect(json.activities.some((activity: { title?: string }) => activity.title === "Maria commented on Living Area.")).toBe(true);
       expect(serialized).not.toContain("recipient@example.com");
       expect(json.activities.every((activity: { title?: string }) => activity.title && !activity.title.includes("EVENT"))).toBe(true);
@@ -504,13 +549,9 @@ describe("P8 — Shared Link Activity Feed & Notifications (red tests written FI
       expect(res.status).toBe(200);
       const firstPage = await res.json();
       expect(firstPage.activities).toHaveLength(2);
-      expect(firstPage.hasMore).toBe(true);
-      expect(firstPage.nextCursor).toEqual(expect.any(String));
+      expect(firstPage.hasMore).toBe(false);
+      expect(firstPage.nextCursor).toBeUndefined();
       expect(JSON.stringify(firstPage)).not.toContain("created_at");
-
-      const secondPage = await GET(new Request(`http://localhost/api/share/client-pub-token-123/activity?limit=2&cursor=${encodeURIComponent(firstPage.nextCursor)}`), params());
-      expect(secondPage.status).toBe(200);
-      expect((await secondPage.json()).activities.length).toBeGreaterThan(0);
     });
 
     it("returns full activity (including internal) when owner/manager context via session or server action path", async () => {

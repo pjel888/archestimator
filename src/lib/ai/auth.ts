@@ -1,7 +1,7 @@
-import { headers } from "next/headers";
+import { cookies, headers } from "next/headers";
 
 import { getDevAuthEmail } from "@/lib/auth/dev-auth";
-import { isDevAdminDatabaseBypassRequest, isDevAuthBypassRequest } from "@/lib/auth/dev-auth-gate";
+import { getDevAuthBypassCredentialFromRequestParts, isDevAdminDatabaseBypassRequest, isDevAuthBypassRequest } from "@/lib/auth/dev-auth-gate";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export type AiRequestUserContext = {
@@ -12,11 +12,13 @@ export type AiRequestUserContext = {
 };
 
 export async function getAiRequestUserContext(): Promise<AiRequestUserContext | null> {
-  const hostHeader = (await headers()).get("host");
-  if (isDevAdminDatabaseBypassRequest(hostHeader)) {
+  const requestHeaders = await headers();
+  const hostHeader = requestHeaders.get("host");
+  const devAuthBypassCredential = getDevAuthBypassCredentialFromRequestParts(requestHeaders, await cookies());
+  if (isDevAdminDatabaseBypassRequest(hostHeader, devAuthBypassCredential)) {
     throw new Error("AI routes cannot use the local admin database bypass.");
   }
-  if (isDevAuthBypassRequest(hostHeader)) {
+  if (isDevAuthBypassRequest(hostHeader, devAuthBypassCredential)) {
     return {
       userId: "dev-auth-bypass",
       email: getDevAuthEmail(),

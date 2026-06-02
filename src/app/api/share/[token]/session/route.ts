@@ -1,9 +1,14 @@
 import { NextResponse } from "next/server";
 
-import { recordProjectPublicationAnalyticsEvent, verifySharedLinkRecipientToken } from "@/lib/publication/public-repository";
+import {
+  recordProjectPublicationAnalyticsEvent,
+  resolveProjectPublicationAccessByToken,
+  verifySharedLinkRecipientToken,
+} from "@/lib/publication/public-repository";
 import {
   createSharedLinkSessionCookieName,
   getSharedLinkSessionCookieParts,
+  hasPublicationAccessCookie,
 } from "@/lib/publication/security";
 
 export const dynamic = "force-dynamic";
@@ -43,8 +48,27 @@ export async function POST(request: Request, { params }: { params: Promise<{ tok
     return NextResponse.json({ error: "Recipient token is required." }, { status: 400, headers: noStoreHeaders });
   }
 
+  const publicationAccess = await resolveProjectPublicationAccessByToken(token);
+  if (!publicationAccess) {
+    return NextResponse.json({ error: "Publication not found." }, { status: 404, headers: noStoreHeaders });
+  }
+
+  if (
+    publicationAccess.passwordRequired &&
+    !hasPublicationAccessCookie(request.headers.get("cookie") ?? "", {
+      token,
+      publicationId: publicationAccess.publicationId,
+      snapshotVersion: publicationAccess.snapshotVersion,
+    })
+  ) {
+    return NextResponse.json(
+      { error: "Publication password required.", passwordRequired: true },
+      { status: 423, headers: noStoreHeaders },
+    );
+  }
+
   const verified = await verifySharedLinkRecipientToken(token, recipientToken);
-  if (!verified) {
+  if (!verified || verified.publicationId !== publicationAccess.publicationId) {
     return NextResponse.json({ error: "Recipient token is invalid." }, { status: 404, headers: noStoreHeaders });
   }
 

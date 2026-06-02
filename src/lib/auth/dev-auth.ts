@@ -1,9 +1,9 @@
 import { createClient } from "@supabase/supabase-js";
-import { headers } from "next/headers";
-import { isDevAuthBypassRequest } from "@/lib/auth/dev-auth-gate";
+import { cookies, headers } from "next/headers";
+import { getDevAuthBypassCredentialFromRequestParts, isDevAuthBypassRequest } from "@/lib/auth/dev-auth-gate";
 import type { Database, Tables } from "@/lib/supabase/types";
 
-export { isDevAdminDatabaseBypassEnabled, isDevAdminDatabaseBypassRequest, isDevAuthBypassEnabled, isDevAuthBypassRequest } from "@/lib/auth/dev-auth-gate";
+export { getDevAuthBypassCredentialFromRequestParts, isDevAdminDatabaseBypassEnabled, isDevAdminDatabaseBypassRequest, isDevAuthBypassEnabled, isDevAuthBypassRequest } from "@/lib/auth/dev-auth-gate";
 
 const DEV_AUTH_BYPASS_FLAG = "ARCHESTIMATOR_DEV_AUTH_BYPASS";
 const DEV_AUTH_EMAIL = "ARCHESTIMATOR_DEV_AUTH_EMAIL";
@@ -48,8 +48,10 @@ export function createDevSupabaseAdminClient() {
 }
 
 export async function getDevCurrentUserContext(): Promise<DevCurrentUserContext | null> {
-  const hostHeader = (await headers()).get("host");
-  if (!isDevAuthBypassRequest(hostHeader)) return null;
+  const requestHeaders = await headers();
+  const hostHeader = requestHeaders.get("host");
+  const devAuthBypassCredential = getDevAuthBypassCredentialFromRequestParts(requestHeaders, await cookies());
+  if (!isDevAuthBypassRequest(hostHeader, devAuthBypassCredential)) return null;
 
   const email = getDevAuthEmail();
   const supabase = createDevSupabaseAdminClient();

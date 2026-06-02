@@ -14,6 +14,16 @@ export type CurrentUserContext = {
   avatarUrl: string | null;
 };
 
+type EnsureCurrentUserProfileRpcClient = {
+  rpc: (
+    functionName: "ensure_current_user_profile",
+    args: { profile_display_name: string | null; profile_avatar_url: string | null },
+  ) => PromiseLike<{
+    data: Tables<"profiles"> | null;
+    error: { message?: string } | null;
+  }>;
+};
+
 function hasSupabaseServerEnv(env: NodeJS.ProcessEnv = process.env) {
   return Boolean(env.NEXT_PUBLIC_SUPABASE_URL?.trim() && env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim());
 }
@@ -54,14 +64,16 @@ export const getCurrentUserContext = cache(async (): Promise<CurrentUserContext 
     };
   }
 
-  const role = email === "philipjonlewis@gmail.com" ? "ceo" : "member";
-  const { data: createdProfile, error } = await supabase
-    .from("profiles")
-    .insert({ id: user.id, email, display_name: user.user_metadata?.display_name ?? user.user_metadata?.full_name ?? null, avatar_url: avatarUrl, role })
-    .select("*")
-    .single();
+  const { data: createdProfile, error } = await (supabase as EnsureCurrentUserProfileRpcClient).rpc(
+    "ensure_current_user_profile",
+    {
+      profile_avatar_url: avatarUrl,
+      profile_display_name: metadataName,
+    },
+  );
 
   if (error) throw error;
+  if (!createdProfile) throw new Error("Authenticated profile could not be created.");
   return {
     userId: user.id,
     email,

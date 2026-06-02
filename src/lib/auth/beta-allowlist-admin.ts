@@ -28,6 +28,16 @@ export type ClosedBetaAllowlistQueue = {
   rows: ClosedBetaAllowlistRow[];
 };
 
+type ReadClosedBetaAllowlistRpcClient = {
+  rpc: (
+    functionName: "read_closed_beta_allowlist_queue",
+    args: { requested_status: ClosedBetaAllowlistStatus | null },
+  ) => PromiseLike<{
+    data: ClosedBetaAllowlistRow[] | null;
+    error: { message?: string } | null;
+  }>;
+};
+
 export function canManageClosedBetaAllowlist(role: string | null | undefined) {
   return role === "ceo" || role === "admin";
 }
@@ -75,17 +85,10 @@ export async function readClosedBetaAllowlistQueue(status?: string): Promise<Clo
   }
 
   const supabase = await createSupabaseServerClient();
-  let query = supabase
-    .from("closed_beta_allowed_emails")
-    .select("id, normalized_email, status, invited_by, invited_at, accepted_at, notes, created_at, updated_at")
-    .order("created_at", { ascending: false })
-    .limit(100);
-
-  if (status && isClosedBetaAllowlistStatus(status)) {
-    query = query.eq("status", status);
-  }
-
-  const { data, error } = await query;
+  const requestedStatus = status && isClosedBetaAllowlistStatus(status) ? status : null;
+  const { data, error } = await (supabase as ReadClosedBetaAllowlistRpcClient).rpc("read_closed_beta_allowlist_queue", {
+    requested_status: requestedStatus,
+  });
   return {
     authorized: true,
     error: error ? "Closed beta allowlist could not be loaded." : null,

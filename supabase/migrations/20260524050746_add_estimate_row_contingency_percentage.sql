@@ -1470,8 +1470,8 @@ revoke execute on function public.reorder_estimate_nodes_with_history(uuid, json
 revoke execute on function public.insert_estimate_template_into_estimate_with_history(uuid, uuid, uuid, uuid, uuid, uuid) from public, anon;
 revoke execute on function public.update_estimate_details_with_history(uuid, uuid, jsonb, uuid, uuid) from public, anon;
 revoke execute on function public.delete_estimate_node_with_history(uuid, uuid, uuid, uuid, uuid) from public, anon;
-revoke execute on function public.get_estimate_sheet_version_control_preflight() from public, anon;
-revoke execute on function public.backfill_estimate_sheet_baseline_versions(integer, uuid) from public, anon;
+revoke execute on function public.get_estimate_sheet_version_control_preflight() from public, anon, authenticated;
+revoke execute on function public.backfill_estimate_sheet_baseline_versions(integer, uuid) from public, anon, authenticated;
 revoke execute on function public.reorder_estimate_nodes(uuid, jsonb) from public, anon, authenticated;
 revoke execute on function public.insert_estimate_template_into_estimate(uuid, uuid, uuid, uuid) from public, anon, authenticated;
 
@@ -1487,7 +1487,7 @@ grant execute on function public.reorder_estimate_nodes_with_history(uuid, jsonb
 grant execute on function public.insert_estimate_template_into_estimate_with_history(uuid, uuid, uuid, uuid, uuid, uuid) to authenticated;
 grant execute on function public.update_estimate_details_with_history(uuid, uuid, jsonb, uuid, uuid) to authenticated;
 grant execute on function public.delete_estimate_node_with_history(uuid, uuid, uuid, uuid, uuid) to authenticated;
-grant execute on function public.get_estimate_sheet_version_control_preflight() to authenticated;
-grant execute on function public.backfill_estimate_sheet_baseline_versions(integer, uuid) to authenticated;
+grant execute on function public.get_estimate_sheet_version_control_preflight() to service_role;
+grant execute on function public.backfill_estimate_sheet_baseline_versions(integer, uuid) to service_role;
 
 set constraints all immediate;

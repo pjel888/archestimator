@@ -381,7 +381,7 @@ as $$
     from public.estimates e
     where e.id = target_estimate_id
       and public.estimate_inherits_project_access(e.id)
-      and public.can_access_project(e.project_id)
+      and public.current_project_access_rank(e.project_id) > 0
   );
 $$;
 

@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { isDevAdminDatabaseBypassEnabled, isDevAdminDatabaseBypassRequest, isDevAuthBypassRequest, isLocalDevHostname } from "@/lib/auth/dev-auth-gate";
+import { DEV_AUTH_BYPASS_SECRET_HEADER, isDevAdminDatabaseBypassEnabled, isDevAdminDatabaseBypassRequest, isDevAuthBypassCredentialValid, isDevAuthBypassRequest, isLocalDevHostname } from "@/lib/auth/dev-auth-gate";
 
 const root = process.cwd();
 
@@ -61,36 +61,44 @@ describe("magic-link auth callback", () => {
     expect(devAuth).toContain("SUPABASE_SERVICE_ROLE_KEY");
     expect(devAuth).toContain("persistSession: false");
     expect(devAuth).toContain("getDevCurrentUserContext");
-    expect(proxy).toContain("isDevAuthBypassRequest(request.nextUrl.hostname)");
+    expect(proxy).toContain("getDevAuthBypassCredentialFromRequestParts(request.headers, request.cookies)");
+    expect(proxy).toContain("isDevAuthBypassRequest(request.nextUrl.hostname, devAuthBypassCredential)");
     expect(session).toContain("getDevCurrentUserContext()");
     expect(devAuth).toContain("headers");
-    expect(devAuth).toContain("isDevAuthBypassRequest(hostHeader)");
+    expect(devAuth).toContain("getDevAuthBypassCredentialFromRequestParts(requestHeaders, await cookies())");
+    expect(devAuth).toContain("isDevAuthBypassRequest(hostHeader, devAuthBypassCredential)");
     expect(serverClient).toContain("headers");
-    expect(serverClient).toContain("isDevAdminDatabaseBypassRequest(hostHeader)");
+    expect(serverClient).toContain("isDevAdminDatabaseBypassRequest(hostHeader, devAuthBypassCredential)");
     expect(envExample).toContain("ARCHESTIMATOR_DEV_AUTH_BYPASS=0");
     expect(envExample).toContain("ARCHESTIMATOR_DEV_AUTH_ADMIN_DB=0");
+    expect(envExample).toContain("ARCHESTIMATOR_DEV_AUTH_BYPASS_SECRET=");
   });
 
   it("requires explicit local-only flags for dev auth and admin database bypasses", () => {
     vi.stubEnv("NODE_ENV", "development");
     vi.stubEnv("ARCHESTIMATOR_DEV_AUTH_BYPASS", "1");
+    vi.stubEnv("ARCHESTIMATOR_DEV_AUTH_BYPASS_SECRET", "local-dev-secret-with-at-least-32-chars");
 
     expect(isLocalDevHostname("localhost")).toBe(true);
     expect(isLocalDevHostname("127.0.0.1")).toBe(true);
     expect(isLocalDevHostname("[::1]")).toBe(true);
     expect(isLocalDevHostname("project.localhost")).toBe(true);
     expect(isLocalDevHostname("example.com")).toBe(false);
-    expect(isDevAuthBypassRequest("localhost")).toBe(true);
-    expect(isDevAuthBypassRequest("example.com")).toBe(false);
+    expect(isDevAuthBypassCredentialValid("local-dev-secret-with-at-least-32-chars")).toBe(true);
+    expect(isDevAuthBypassRequest("localhost", null)).toBe(false);
+    expect(isDevAuthBypassRequest("localhost", "wrong-secret")).toBe(false);
+    expect(isDevAuthBypassRequest("localhost", "local-dev-secret-with-at-least-32-chars")).toBe(true);
+    expect(isDevAuthBypassRequest("example.com", "local-dev-secret-with-at-least-32-chars")).toBe(false);
     expect(isDevAdminDatabaseBypassEnabled()).toBe(false);
 
     vi.stubEnv("ARCHESTIMATOR_DEV_AUTH_ADMIN_DB", "1");
     expect(isDevAdminDatabaseBypassEnabled()).toBe(true);
-    expect(isDevAdminDatabaseBypassRequest("localhost")).toBe(true);
-    expect(isDevAdminDatabaseBypassRequest("example.com")).toBe(false);
+    expect(isDevAdminDatabaseBypassRequest("localhost", "local-dev-secret-with-at-least-32-chars")).toBe(true);
+    expect(isDevAdminDatabaseBypassRequest("example.com", "local-dev-secret-with-at-least-32-chars")).toBe(false);
 
     vi.stubEnv("NODE_ENV", "production");
-    expect(isDevAuthBypassRequest("localhost")).toBe(false);
+    expect(isDevAuthBypassRequest("localhost", "local-dev-secret-with-at-least-32-chars")).toBe(false);
     expect(isDevAdminDatabaseBypassEnabled()).toBe(false);
+    expect(DEV_AUTH_BYPASS_SECRET_HEADER).toBe("x-archestimator-dev-auth-bypass");
   });
 });

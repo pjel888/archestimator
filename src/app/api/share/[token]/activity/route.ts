@@ -4,6 +4,7 @@ import { composeSharedLinkActivity, type ActivityViewModel, type SharedLinkActiv
 import {
   assertSameOrigin,
   createSharedLinkSessionCookieName,
+  hasPublicationAccessCookie,
   verifySharedLinkSessionCookieValue,
   hashPublicationToken,
   readPublicationTokenHashSecret,
@@ -89,7 +90,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
   const { data: pub, error: pubErr } = await supabase
     .from("project_publications")
-    .select("id, status, revoked_at, expires_at, snapshot_json")
+    .select("id, status, revoked_at, expires_at, password_hash, snapshot_json, snapshot_version")
     .eq("token_hash", pubHash)
     .maybeSingle();
 
@@ -105,6 +106,21 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   const cursorFilter = sharedLinkActivityCursorFilter(cursor);
   const pubId = pub.id;
   const cookieHeader = request.headers.get("cookie") || "";
+
+  if (
+    pub.password_hash &&
+    !hasPublicationAccessCookie(cookieHeader, {
+      token,
+      publicationId: pubId,
+      snapshotVersion: pub.snapshot_version,
+    })
+  ) {
+    return Response.json(
+      { error: "Publication password required.", passwordRequired: true },
+      { status: 423, headers: { "Cache-Control": "no-store" } },
+    );
+  }
+
   const sessionName = createSharedLinkSessionCookieName(token);
   const sessionValue = parseCookieValue(cookieHeader, sessionName);
 
@@ -116,7 +132,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     verifySharedLinkSessionCookieValue(sessionValue, {
       token,
       publicationId: pubId,
-      snapshotVersion: "1",
+      snapshotVersion: String(pub.snapshot_version),
       recipientId,
     })
       ? recipientId
@@ -127,24 +143,35 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     .select("id, created_at, body, is_internal, author_email, author_name, recipient_id, estimate_id, row_id")
     .eq("publication_id", pubId)
     .eq("is_internal", false);
-  let responsesQuery = supabase
-    .from("shared_link_responses")
-    .select("id, created_at, decision, note, recipient_id")
-    .eq("publication_id", pubId);
-  let eventsQuery = supabase
-    .from("shared_link_events")
-    .select("id, created_at, event_type, metadata_json, recipient_id")
-    .eq("publication_id", pubId);
+  let responsesQuery = verifiedRecipientId
+    ? supabase
+        .from("shared_link_responses")
+        .select("id, created_at, decision, note, recipient_id")
+        .eq("publication_id", pubId)
+        .eq("recipient_id", verifiedRecipientId)
+    : null;
+  let eventsQuery = verifiedRecipientId
+    ? supabase
+        .from("shared_link_events")
+        .select("id, created_at, event_type, metadata_json, recipient_id")
+        .eq("publication_id", pubId)
+        .eq("recipient_id", verifiedRecipientId)
+    : null;
   if (cursorFilter) {
     commentsQuery = commentsQuery.or(cursorFilter);
-    responsesQuery = responsesQuery.or(cursorFilter);
-    eventsQuery = eventsQuery.or(cursorFilter);
+    responsesQuery = responsesQuery?.or(cursorFilter) ?? null;
+    eventsQuery = eventsQuery?.or(cursorFilter) ?? null;
   }
 
+  const emptyRecipientActivity = { data: [], error: null };
   const [commentsRes, responsesRes, eventsRes] = await Promise.all([
     commentsQuery.order("created_at", { ascending: false }).order("id", { ascending: false }).limit(limit + 1),
-    responsesQuery.order("created_at", { ascending: false }).order("id", { ascending: false }).limit(limit + 1),
-    eventsQuery.order("created_at", { ascending: false }).order("id", { ascending: false }).limit(limit + 1),
+    responsesQuery
+      ? responsesQuery.order("created_at", { ascending: false }).order("id", { ascending: false }).limit(limit + 1)
+      : Promise.resolve(emptyRecipientActivity),
+    eventsQuery
+      ? eventsQuery.order("created_at", { ascending: false }).order("id", { ascending: false }).limit(limit + 1)
+      : Promise.resolve(emptyRecipientActivity),
   ]);
 
   const recipientIds = new Set<string>();
