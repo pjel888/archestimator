@@ -246,6 +246,8 @@ describe("closed beta readiness docs", () => {
     expect(currentState).toContain("**Runtime Proof Anchor Policy (2026-06-02):**");
     expect(currentState).toContain("Later evidence-only commits `c93ae7a` and `13f5acb` do not invalidate the `638f681` Vercel app-runtime proof");
     expect(currentState).toContain("**Vercel Protection Evidence (2026-06-02):**");
+    expect(currentState).toContain("**Vercel Public Health Readiness Helper (2026-06-02):**");
+    expect(currentState).toContain("`vercelHealthReady` is `false`");
     expect(currentState).toContain("**Hosted Auth Route Proof Helper (2026-06-02):**");
     expect(currentState).toContain("`bun run launch:verify-hosted-auth` now provides a sanitized operator helper");
     expect(currentState).toContain("one env-var-backed `automation-bypass` entry remains");
@@ -255,6 +257,8 @@ describe("closed beta readiness docs", () => {
     expect(currentState).toContain("Production/custom-domain app health remains missing");
     expect(knownIssues).toContain("Provider state refresh evidence on 2026-06-02 confirms Vercel and linked Supabase remain blocked");
     expect(knownIssues).toContain("Provider state refresh at `d78686f` on 2026-06-02 confirms the latest pushed `main` preview is Ready");
+    expect(knownIssues).toContain("Vercel public health readiness evidence on 2026-06-02 remains blocked");
+    expect(knownIssues).toContain("`vercel-health-readiness-2776a32-2026-06-02.json` reports branch-alias public `/api/health` is HTTP `401`");
     expect(knownIssues).toContain("`bun run launch:verify-hosted-auth` is available as a sanitized hosted `/workshop` route helper");
     expect(knownIssues).toContain("Supabase linked readiness refresh on 2026-06-02 confirms linked launch migrations and objects remain absent");
     expect(knownIssues).toContain("Vercel current-head read-only evidence on 2026-06-02 confirms latest app-runtime commit `638f681` has Ready preview deployment");
@@ -442,6 +446,8 @@ describe("closed beta readiness docs", () => {
     expect(manualProofMatrix).toContain("vercel-read-only-cli-2026-06-02.md");
     expect(manualProofMatrix).toContain("archestimator-ll6yo0r97-philipjonlewis-projects.vercel.app");
     expect(manualProofMatrix).toContain("vercel-protection-read-only-2026-06-02.md");
+    expect(manualProofMatrix).toContain("vercel-health-readiness-2776a32-2026-06-02.json");
+    expect(manualProofMatrix).toContain("zero ready URLs");
     expect(manualProofMatrix).toContain("one env-var-backed automation bypass still needs owner review");
     expect(manualProofMatrix).toContain("commit `d78686f259b07349220aefd9eb64f5a86c752456` as Ready");
     expect(manualProofMatrix).toContain("public preview health returns HTTP `401`");
@@ -599,6 +605,9 @@ describe("closed beta readiness docs", () => {
     expect(goalCompletionAudit).toContain("Provider state refresh evidence");
     expect(goalCompletionAudit).toContain("latest Vercel preview is Ready and protected health works through `vercel curl`");
     expect(goalCompletionAudit).toContain("Vercel custom-domain readiness evidence");
+    expect(goalCompletionAudit).toContain("Vercel public health readiness helper");
+    expect(goalCompletionAudit).toContain("`bun run launch:check-vercel-health` now gives a repeatable sanitized public/custom-domain health check");
+    expect(goalCompletionAudit).toContain("`vercelHealthReady: false`");
     expect(goalCompletionAudit).toContain("older coming-soon surface and `/api/health` returns 404");
     expect(goalCompletionAudit).toContain("production/custom domains still point to an older coming-soon deployment");
     expect(goalCompletionAudit).toContain("Current linked readiness refresh and later `b33f56d` / `d78686f` migration-list refreshes show missing linked migrations `20260601182522`, `20260601184343`, `20260602005649`, `20260602083000`, and `20260602084500`");
