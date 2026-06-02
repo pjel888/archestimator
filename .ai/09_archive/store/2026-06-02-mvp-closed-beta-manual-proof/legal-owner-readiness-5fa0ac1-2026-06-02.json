@@ -1,0 +1,28 @@
+{
+  "generatedAt": "2026-06-02T08:39:10.219Z",
+  "mode": "legal-owner-readiness",
+  "proofFlags": {
+    "LEGAL_OWNER_TERMS_CONFIRMED": false,
+    "LEGAL_OWNER_PRIVACY_CONFIRMED": false,
+    "LEGAL_OWNER_BETA_COPY_CONFIRMED": false,
+    "LEGAL_OWNER_DATA_RETENTION_CONFIRMED": false,
+    "LEGAL_OWNER_SUPPORT_COMMS_CONFIRMED": false
+  },
+  "productOwner": null,
+  "legalReviewer": null,
+  "approvalDate": null,
+  "approvalReference": null,
+  "missing": [
+    "terms review confirmed",
+    "privacy review confirmed",
+    "closed-beta copy approval confirmed",
+    "data retention wording confirmed",
+    "support communications wording confirmed",
+    "product owner label",
+    "legal reviewer label",
+    "approval date in YYYY-MM-DD format",
+    "approval reference label"
+  ],
+  "legalOwnerReady": false,
+  "note": "Sanitized legal/owner readiness check. It records operator-confirmed proof flags and labels only; it does not provide legal advice, verify counsel review, inspect contracts, or approve public launch by itself."
+}
