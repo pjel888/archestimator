@@ -1,8 +1,10 @@
 # 27 — Third-Pass Master Implementation Blueprint
 
 **Date:** 2026-06-02
-**Status:** Third-pass final
+**Status:** Third-pass (superseded by fourth-pass scorecard)
 **Supersedes:** `04-implementation-plan.md` (for sequencing), `10-readiness-checklist.md` (for go/no-go), `11-pr-sequencing-plan.md` (for PR count)
+
+> ⚠️ **Fourth-pass note (2026-06-02):** This document was the third-pass blueprint. The fourth pass found 15 contradictions (see `30-final-technical-reconciliation-audit.md`). The claim "All 27 documents are internally consistent" (§9) was incorrect. For the definitive go/no-go, see `32-final-implementation-readiness-scorecard.md`. For the decision source of truth, see `29-final-decision-log-and-approval-matrix.md`. This document remains useful for PR sequence and scope reference but is NOT the authoritative implementation guide.
 
 ---
 

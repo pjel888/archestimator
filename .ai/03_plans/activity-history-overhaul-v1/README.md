@@ -5,10 +5,11 @@
 **Created:** 2026-06-02
 **Second pass:** 2026-06-02
 **Third pass:** 2026-06-02
+**Fourth pass:** 2026-06-02
 **Branch:** `main`
-**Current HEAD:** `d78686f` (`Refresh current-head launch validation proof`)
-**Second-pass claimed HEAD:** `97c7d60` (corrected in third pass — current HEAD is `d78686f`)
-**Status:** Planning Phase — Third pass complete (documentation, verification, scope expansion. No implementation.)
+**Current HEAD:** `405d6ac`
+**Third-pass claimed HEAD:** `d78686f` (corrected in fourth pass — current HEAD is `405d6ac`. No activity code changed.)
+**Status:** Planning Phase — Fourth pass complete (stakeholder review packet, reconciliation audit, decision log, PR2 brief, readiness scorecard, review script. Contradictions resolved. Implementation-ready pending stakeholder sign-off.)
 
 ---
 
@@ -18,6 +19,35 @@
 **New path:** `.ai/03_plans/activity-history-overhaul-v1/`
 
 The scope expanded beyond "human-readable copy" to cover the overall Activity History feature: shared page visit tracking, password-gate events, proposal-view telemetry, device/browser/location metadata, privacy planning, and future unified timeline. Renamed via `git mv` to preserve file history.
+
+---
+
+## What Changed in Fourth Pass
+
+### Verification Corrections
+
+1. **Current HEAD corrected** from `d78686f` → `405d6ac`. No activity-related code changed.
+2. **15 contradictions resolved** — Enum/CHECK changes ARE migrations, CSRF mismatches found in GET /activity route and comments/decisions components, client-facing activity feed confirmed non-existent, server-side cookie feasibility verified. See `30-final-technical-reconciliation-audit.md`.
+
+### Major New Decisions
+
+1. **Access telemetry strategy finalized** — Use existing `event_type` values (`open`, `password_attempt`) with `metadata_json.access_stage` for V1.1. No enum/CHECK migration needed. See `29-final-decision-log-and-approval-matrix.md`.
+2. **Three-tier visibility model** — Primary timeline (who/what/when), audit details (device/location), support view (full diagnostics). Location default: country only unless explicitly approved.
+3. **PR 7 gated** — Access telemetry implementation requires stakeholder sign-off on 10 product/legal decisions. See `28-fourth-pass-stakeholder-review-packet.md`.
+4. **CSRF bugs identified** — GET /activity route broken (POST-only CSRF on GET). Comments/Decisions hardcode CSRF token without cookie. Both fixed in PR 2. See `31-pr2-preflight-implementation-brief.md`.
+
+### New Documents Added
+
+6 new documents (28–33) added covering stakeholder review packet, decision log, reconciliation audit, PR2 preflight brief, readiness scorecard, and stakeholder review script. Total: 33 documents.
+
+### Existing Document Updates
+
+8 documents updated for:
+- Corrected HEAD (`405d6ac`)
+- Fixed contradictions (no-migration vs enum/CHECK, client feed status, CSRF)
+- Aligned PR count (9 PRs) across all docs
+- Conservative privacy language (IP hash, location data)
+- Updated go/no-go with fourth-pass status
 
 ---
 
@@ -105,52 +135,92 @@ The following areas were inspected:
 | `24-activity-history-overhaul-roadmap.md` | **NEW** — V1 → V3 roadmap with versioned scope |
 | `25-access-event-data-model-and-migration-plan.md` | **NEW** — Schema options for access telemetry |
 | `26-privacy-retention-and-client-disclosure-plan.md` | **NEW** — Safe tracking boundaries, data retention |
-| `27-third-pass-master-implementation-blueprint.md` | **NEW** — Consolidated implementation guide |
+| `27-third-pass-master-implementation-blueprint.md` | **NEW** — Consolidated implementation guide (superseded by doc 32 for go/no-go) |
+| `28-fourth-pass-stakeholder-review-packet.md` | **NEW** — Non-engineer-readable review packet with approval checklist |
+| `29-final-decision-log-and-approval-matrix.md` | **NEW** — Source of truth: 28 decisions with status, rationale, approver |
+| `30-final-technical-reconciliation-audit.md` | **NEW** — 15 contradictions resolved against live codebase |
+| `31-pr2-preflight-implementation-brief.md` | **NEW** — Execution-ready PR 2 engineering brief (5 fix items) |
+| `32-final-implementation-readiness-scorecard.md` | **NEW** — 12-category go/no-go: Green/Yellow/Red with rationale |
+| `33-stakeholder-review-script.md` | **NEW** — 30/60-min meeting agendas with stakeholder questions |
 
 ---
 
-## Recommended Implementation Sequence (Third Pass)
+## Recommended Implementation Sequence (Fourth Pass)
 
-1. **PR 1 — Third-pass planning docs** (docs only, folder rename + 6 new docs + updates)
-2. **PR 2 — Preflight correctness cleanup** — Fix `row_inserted` filter, verify Realtime, add regression tests
+1. **PR 1 — Fourth-pass planning docs** (docs only, 6 new docs + 8 doc updates)
+2. **PR 2 — Preflight correctness cleanup** — Fix 5 known bugs (row_inserted filter, Realtime, event_type, CSRF fixes). See `31-pr2-preflight-implementation-brief.md`.
 3. **PR 3 — Activity Composer module + tests** (combined PR: module + passing tests)
 4. **PR 4 — Estimate Activity UI integration**
 5. **PR 5 — Shared-link Activity API integration**
 6. **PR 6 — Recipient actor resolution + comments/decisions copy**
-7. **PR 7 — Shared page access telemetry** — Page visits, password-gate, proposal views, device/browser/location
+7. **PR 7 — Shared page access telemetry** ⚠️ **GATED** — Requires stakeholder sign-off on 10 decisions before proceeding. See `28-fourth-pass-stakeholder-review-packet.md`.
 8. **PR 8 — Realtime/pagination hardening**
 9. **PR 9 — UI polish, accessibility, manual QA**
 
-See `11-pr-sequencing-plan.md` and `27-third-pass-master-implementation-blueprint.md` for full details.
+PRs 1–6 can proceed without stakeholder approval (no privacy impact). PR 7 is gated. See `29-final-decision-log-and-approval-matrix.md` and `32-final-implementation-readiness-scorecard.md`.
 
 ---
 
-## Key Findings (Third Pass)
+## Key Findings (Fourth Pass)
 
-- **Current HEAD is `d78686f`**, not `97c7d60` as second-pass docs stated. No activity code changed between the two.
+- **Current HEAD is `405d6ac`**, not `d78686f` as third-pass docs stated. No activity code changed.
+- **15 contradictions resolved** — Including: enum/CHECK additions ARE migrations, GET /activity CSRF broken, client-facing feed doesn't exist, comments/decisions CSRF broken. See `30-final-technical-reconciliation-audit.md`.
+- **Access telemetry strategy finalized** — Use existing `event_type` values + `metadata_json.access_stage`. No migration needed for V1.1.
+- **Three-tier visibility model** — Primary timeline (who/what/when), audit details (device/location), support (full diagnostics).
+- **PR 2 scope expanded** — Now includes CSRF fixes for GET /activity route and comments/decisions components. See `31-pr2-preflight-implementation-brief.md`.
+- **2 latent CSRF bugs found** — Not just planning issues; actual bugs in production code:
+  1. `GET /api/share/[token]/activity` calls `assertSameOriginPublicPost()` — POST-only CSRF on GET, always 403 for browser clients.
+  2. `SharePageComments.tsx` and `SharePageDecision.tsx` hardcode `"client-post"` CSRF header without setting matching cookie.
+
+### Previous Findings (Third Pass — still accurate)
+
 - **Share page open tracking is incomplete** — Open event recorded only AFTER password check passes. Password-gate visits are not recorded.
-- **First recipient-token visit records anonymous open** — Server-side `recordProjectPublicationEvent("open")` runs before client-side session initializer, so first click with `?recipient=` logs an anonymous event.
-- **Password route records attempts, not gate views** — `password_attempt` events cover success/failure/locked but the gate page being viewed is not recorded.
-- **No device/browser/location metadata** — Current `recordProjectPublicationEvent()` stores `ip_hash` and `user_agent_hash` only. No parsed device/browser/OS, no approximate location.
-- **`/api/share/[token]/events` route exists** — Accepts `open`, `password_success`, `password_failure`, `download_attempt_blocked`. Used only for `project_publication_events` writes. Not called from `page.tsx`.
+- **First recipient-token visit records anonymous open** — Server-side `recordProjectPublicationEvent("open")` runs before client-side session initializer.
+- **No device/browser/location metadata** — Current storage: `ip_hash` and `user_agent_hash` only.
 - **`metadata_json` is unstructured** — No defined schema for access stage, password gate state, device info.
 
 ---
 
 ## Open Questions
 
-1. Should old estimates with incomplete snapshots get backfilled copy or graceful fallback? (Recommendation: graceful fallback.)
-2. Should the shared-link Activity tab and workshop Activity History modal converge on a single timeline? (Recommendation: Not in V1.)
-3. Should `loadSharedLinkActivity` return pre-formatted copy or raw + composed? (Recommendation: raw + client-side compose for consistency.)
-4. Should email digests receive the same human-readable copy as in-app? (Recommendation: Yes.)
-5. Should access telemetry use `metadata_json` (no migration) or structured columns/new table? (Recommendation: `metadata_json` for V1.1, structured columns deferred to V2.)
-6. Should access events be shown to clients? (Recommendation: Only "You viewed the proposal" if recipient-identified. No anonymous visit logs visible to clients.)
+See `29-final-decision-log-and-approval-matrix.md` for all 28 decisions and their statuses.
+
+### Resolved (Fourth Pass)
+1. ✅ Access telemetry storage: `metadata_json` with existing event types (no migration). See D-009.
+2. ✅ Access events to clients: Only "You viewed the proposal" if recipient-identified. No full feed. See D-015, D-028.
+3. ✅ Event type naming: Use existing `open` + `password_attempt` with `metadata_json.access_stage`. See D-009.
+4. ✅ Server-side vs client-side recording: Server-side for access events. See D-013.
+5. ✅ Enum/CHECK additions: Deferred to V2. Not needed for V1.1. See D-010.
+
+### Pending Stakeholder Approval
+1. 🔴 Location granularity: country-only default vs city. See D-018.
+2. 🔴 Device/browser metadata in owner UI: audit details only vs primary timeline. See D-017.
+3. 🔴 In-product disclosure: required vs privacy policy only. See D-023.
+4. 🔴 Retention policy: define before V2. See D-022.
+5. 🔴 Bot/crawler filtering: hide from owner by default. See D-020.
 
 ---
 
 ## Next Action
 
-Review all planning documents including the 6 new third-pass documents. Once approved:
-1. Merge PR 1 (these planning docs)
-2. Begin PR 2 (preflight correctness cleanup)
-3. Proceed to PR 3 (composer module + tests)
+1. **Stakeholder review** — Review `28-fourth-pass-stakeholder-review-packet.md` and sign off on 10 pending decisions.
+2. **Schedule stakeholder meeting** — Use `33-stakeholder-review-script.md` for meeting agenda.
+3. **Once product/legal decisions approved:**
+   - Update `29-final-decision-log-and-approval-matrix.md` with approvals.
+   - Merge PR 1 (these 33 planning docs).
+4. **Begin PR 2** — Preflight correctness cleanup (5 fixes, no privacy dependencies). See `31-pr2-preflight-implementation-brief.md`.
+5. **Continue through PR sequence** — PRs 3-6 proceed freely. PR 7 gated on stakeholder sign-off. See `32-final-implementation-readiness-scorecard.md`.
+
+## Key Reference Documents
+
+| For | See |
+|-----|-----|
+| Stakeholder-friendly summary | `28-fourth-pass-stakeholder-review-packet.md` |
+| All 28 decisions and statuses | `29-final-decision-log-and-approval-matrix.md` |
+| 15 contradictions resolved | `30-final-technical-reconciliation-audit.md` |
+| PR 2 execution plan | `31-pr2-preflight-implementation-brief.md` |
+| Go/no-go by category | `32-final-implementation-readiness-scorecard.md` |
+| Meeting agenda | `33-stakeholder-review-script.md` |
+| Full 9-PR sequence | `27-third-pass-master-implementation-blueprint.md` |
+| Access telemetry plan | `23-shared-page-access-activity-plan.md` |
+| Privacy boundaries | `26-privacy-retention-and-client-disclosure-plan.md` |

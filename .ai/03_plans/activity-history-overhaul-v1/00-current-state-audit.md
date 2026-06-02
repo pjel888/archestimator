@@ -2,7 +2,7 @@
 
 **Date:** 2026-06-02 (second pass: 2026-06-02; third pass: 2026-06-02)  
 **Branch:** `main`  
-**Current HEAD:** `d78686f` (`Refresh current-head launch validation proof`)  
+**Current HEAD:** `d78686f` (`Refresh current-head launch validation proof`) — **Fourth-pass note: actual HEAD is now `405d6ac`. No activity code changed.**  
 **First-pass commit:** `638f681` (stale — corrected in second pass)  
 **Second-pass claimed HEAD:** `97c7d60` (corrected in third pass — no activity code changed between `97c7d60` and `d78686f`)  
 **Second-pass verification:** See `12-second-pass-verification-audit.md`  

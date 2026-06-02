@@ -1,7 +1,20 @@
 # 23 — Shared Page Access Activity Plan
 
 **Date:** 2026-06-02
-**Status:** Third-pass proposed
+**Status:** Fourth-pass reconciled
+
+---
+
+**Fourth-pass note (2026-06-02):** This document has been reconciled against live code at HEAD `405d6ac`. Key corrections:
+- Access telemetry uses existing `event_type` values (`open`, `password_attempt`) with `metadata_json.access_stage` — NO enum/CHECK migration in V1.1. See D-009 in `29-final-decision-log-and-approval-matrix.md`.
+- Server-side session cookie in page.tsx is feasible but REJECTED (D-012). Keep current client-side session init flow with UI dedupe.
+- Password gate view recorded server-side in page.tsx, not client beacon (D-013).
+- `/events` route reserved for interactive actions only — NOT for access telemetry (D-014).
+- Client-facing activity feed does NOT currently exist. `SharedLinkActivityFeed` is owner-only (D-015).
+- Event dedupe policy: always record, collapse in UI with 5-min window (D-021).
+- Bot/crawler: parse UA, check `Sec-Purpose: prefetch` (skip recording), hide from owner (D-020).
+- Visibility model: three-tier — primary timeline, audit details, support view (D-016).
+See `30-final-technical-reconciliation-audit.md` for all 15 resolved contradictions.
 
 ---
 

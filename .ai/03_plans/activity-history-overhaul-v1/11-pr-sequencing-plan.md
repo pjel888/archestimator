@@ -2,7 +2,7 @@
 
 **Date:** 2026-06-02 (second pass: 2026-06-02; third pass: 2026-06-02)
 **Principle:** Small PRs, each independently revertible, each merge-safe (no failing CI).
-**Note:** See `27-third-pass-master-implementation-blueprint.md` for the definitive 9-PR sequence including access telemetry.
+**Note:** See `27-third-pass-master-implementation-blueprint.md` for the definitive 9-PR sequence including access telemetry. **Fourth pass:** PR 2 scope expanded to 5 fixes including CSRF repairs — see `31-pr2-preflight-implementation-brief.md`. PR 7 gated on stakeholder sign-off — see `32-final-implementation-readiness-scorecard.md`.
 
 ---
 
@@ -37,7 +37,7 @@ PR 8 depends on all previous PRs.
 
 **Purpose:** Add/update all planning documents in the `.ai/` directory. No production code changes.
 
-**Files:** All 21 files in `.ai/03_plans/activity-history-human-readable-v1/`
+**Files:** All files in `.ai/03_plans/activity-history-overhaul-v1/` (now 33 documents after fourth pass)
 
 **Tests:** None required (documentation only)
 

@@ -1,7 +1,7 @@
 # 04 — Implementation Plan (Revised — Second Pass)
 
 **Date:** 2026-06-02 (second pass: 2026-06-02; third pass: 2026-06-02)
-**Status:** Proposed (pending approval after third-pass corrections)
+**Status:** Fourth-pass reconciled — see `32-final-implementation-readiness-scorecard.md` for go/no-go
 
 ---
 
@@ -10,7 +10,8 @@
 The implementation is split into 9 phases (Phases 0–8), each delivered as a separate PR.
 
 **Second pass addition:** Phase 0 added for preflight bug fixes.
-**Third pass addition:** Phase 6 added for shared page access telemetry. See `27-third-pass-master-implementation-blueprint.md` for the authoritative sequence.
+**Third pass addition:** Phase 6 added for shared page access telemetry.
+**Fourth pass note:** PR 2 scope expanded to include CSRF fixes (GET /activity route, comments/decisions CSRF). See `31-pr2-preflight-implementation-brief.md` for exact scope. PR 7 (access telemetry) gated on stakeholder sign-off — see `28-fourth-pass-stakeholder-review-packet.md`.
 
 ---
 
@@ -176,7 +177,7 @@ Final UI refinements, accessibility, empty/loading/error states, manual QA pass.
 
 ## Rollback Strategy
 
-Each phase is independently revertible. No database migrations are required for V1.0. V1.1 access telemetry uses `metadata_json` (no migration). No data loss risk.
+Each phase is independently revertible. V1.0: no database migrations. V1.1: uses existing `event_type` values + `metadata_json.access_stage` (no migration). Enum/CHECK additions ARE migrations — deferred to V2 (D-010). No data loss risk.
 
 ---
 

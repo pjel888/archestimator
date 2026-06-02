@@ -1,6 +1,7 @@
 # 10 — Readiness Checklist
 
 **Date:** 2026-06-02
+**Fourth-pass note:** See `32-final-implementation-readiness-scorecard.md` for the definitive go/no-go assessment.
 
 ---
 
@@ -15,7 +16,8 @@
 - [x] Blast radius mapped — 22 files, 2 critical, 2 high, 10 medium, 12 low-risk items
 - [x] Performance risks documented — index analysis needed, payload sizes understood
 - [x] Security/privacy risks documented — 2 critical (internal comment leak, raw field leak)
-- [x] Migration decision: **No database migration required for V1.0 copy-only. `metadata_json` for V1.1 access telemetry (no migration). Structured columns deferred to V2.**
+- [x] Migration decision: **No database migration for V1.0 copy-only. V1.1 uses existing `event_type` values + `metadata_json.access_stage` (no migration). Enum/CHECK additions deferred to V2 — these ARE migrations. See D-009, D-010.**
+- [x] Fourth-pass reconciliation complete: 15 contradictions resolved, 28 decisions documented, stakeholder review packet ready. See `30-final-technical-reconciliation-audit.md` and `29-final-decision-log-and-approval-matrix.md`.
 - [x] Third-pass planning docs complete — 27 documents
 - [x] Feature flag decision: **Not required** — phased PRs provide natural rollout control
 - [x] Rollout plan: **9 small PRs, each independently revertible**
@@ -133,20 +135,11 @@
 
 ## Go/No-Go Recommendation
 
-### RECOMMENDATION: GO for third-pass documentation merge ✅
+### Go/No-Go: See `32-final-implementation-readiness-scorecard.md` for definitive fourth-pass assessment.
+### GO for PRs 1-6 (no privacy dependencies) ✅
+### NO-GO for PR 7 (access telemetry) until stakeholder sign-off 🔴
 
-**Rationale after third-pass audit at HEAD `d78686f`:**
-
-1. **Third-pass verification confirmed all second-pass findings.** No activity code changed between `97c7d60` and `d78686f`.
-2. **Three new gaps documented** — shared page access telemetry, device/browser/location metadata, first-recipient visit resolution.
-3. **Access telemetry plan created** (`23-shared-page-access-activity-plan.md`) — implementation ready but requires privacy/legal sign-off.
-4. **Data model decision: `metadata_json` for V1.1, structured columns deferred to V2.**
-5. **PR sequence updated to 9 PRs** — preflight + composer + estimate UI + shared-link UI + recipient resolution + access telemetry + realtime/pagination + UI polish.
-6. **Migration stance: No migration for V1 copy-only. `metadata_json` for V1.1 access telemetry (no migration). Structured columns deferred to V2.**
-
-**Go decision:** GO for third-pass documentation merge. GO for preflight after docs approval. **NO-GO for full implementation until access telemetry privacy stance, in-product disclosure, bot filtering approach, and location data policy are approved by stakeholders.**
-
-See `27-third-pass-master-implementation-blueprint.md` for the definitive go/no-go and `26-privacy-retention-and-client-disclosure-plan.md` for privacy boundaries that need approval.
+**Blocker:** Access telemetry privacy/product decisions must be approved before PR 7. See `28-fourth-pass-stakeholder-review-packet.md`.
 
 ### Blocker: Access telemetry privacy/product decisions must be approved before PR 7
 
