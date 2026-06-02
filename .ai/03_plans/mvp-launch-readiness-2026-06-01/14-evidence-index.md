@@ -44,6 +44,15 @@
 - Supabase: CLI `2.98.2` is linked to project `Archestimator` / `ebxxqidacheyapmmzavr`; `supabase migration list --linked` succeeds and still shows launch migrations `20260601182522`, `20260601184343`, `20260602005649`, `20260602083000`, and `20260602084500` absent remotely.
 - Launch meaning: this refresh confirms the latest pushed `main` evidence commit has a Ready protected preview, but it does not close Vercel env/public/custom-domain/rollback, hosted auth, linked Supabase migration/RLS/RPC/storage, Resend, spreadsheet-app, legal, support, or hosted/manual E2E gates.
 
+### Provider State Refresh at 0b4628d
+
+- Artifact: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/provider-state-refresh-0b4628d-2026-06-02.md`.
+- Vercel: latest `main` preview `archestimator-44evue0nd-philipjonlewis-projects.vercel.app`, deployment `dpl_4nTom5BnUZMyeAPDx4ZPMEhcHpSp`, commit `0b4628d413e0c17725e7a092af2fdec17de5ee84`, status Ready.
+- Health: `vercel curl` returns `{"ok":true,"service":"archestimator"}` for the latest preview and branch alias `/api/health`; plain public preview and branch-alias health still return HTTP `401`.
+- Env/custom domains: `vercel env ls --non-interactive` still returns no env vars; `www.archestimator.com/api/health`, redirected `archestimator.com/api/health`, and `archestimator.vercel.app/api/health` still return HTTP `404` on production deployment `dpl_FwfHexBsB1xSHDqHqFwHSYpCYTVH`.
+- Supabase: CLI `2.98.2` is linked to project `Archestimator` / `ebxxqidacheyapmmzavr`; `supabase migration list --linked` succeeds and still shows launch migrations `20260601182522`, `20260601184343`, `20260602005649`, `20260602083000`, and `20260602084500` absent remotely; `bun run launch:supabase-readiness` fails on the linked temp-role pooler `ECIRCUITBREAKER` / `SUPABASE_DB_PASSWORD` path.
+- Launch meaning: this refresh confirms the latest pushed `main` commit has a Ready protected preview, but it does not close Vercel env/public/custom-domain/rollback, hosted auth, linked Supabase migration/RLS/RPC/storage, Resend, spreadsheet-app, legal, support, or hosted/manual E2E gates.
+
 ### Hosted Export Route Auth-Blocked Probe at 231c27e
 
 - Artifact: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/hosted-export-route-auth-blocked-231c27e-2026-06-02.md`.
