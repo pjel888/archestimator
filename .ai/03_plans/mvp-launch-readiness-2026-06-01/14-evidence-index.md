@@ -27,6 +27,12 @@
 - Guardrail evidence: `bunx vitest run tests/vitest/support-contact-readiness.test.ts tests/vitest/auth-entry-ui-contract.test.ts --maxWorkers=1` passed 2 files / 8 tests.
 - Launch meaning: this closes the visible placeholder-copy gap only. It does not provide legal advice, counsel review, owner approval, screenshots, or public-launch approval; legal/owner proof remains **NO-GO**.
 
+### Local Landing Hero Claims Slice
+
+- Scope: landing hero A/B copy no longer uses unsupported competitor-pressure or smart-user framing; both variants now describe closed-beta quote/proposal workflow value in product-grounded terms.
+- Guardrail evidence: `bunx vitest run tests/vitest/landing-interactivity.test.tsx tests/vitest/landing-company-proof.test.ts --maxWorkers=1` passed 2 files / 12 tests.
+- Launch meaning: this closes the local hero-copy risk only. It does not provide desktop/mobile screenshot evidence, owner/counsel legal review, or proof for every public landing claim; those gates remain **NO-GO**.
+
 ### Final Codex Implementation Report Evidence
 
 - Final report artifact: `final-codex-implementation-report.md`.

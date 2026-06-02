@@ -17,18 +17,18 @@ const NeatWireframeBackground = dynamic(() =>
 
 export const heroCopyVariants = [
   {
-    id: 'smart-way',
-    headline: 'Only the smart ones create quotes this way.',
+    id: 'connected-workflow',
+    headline: 'A clearer workspace for quote sheets and proposal handoff.',
     support:
-      'Move from item selection to proposal handoff without losing supplier details, assumptions, or revision context.',
-    evidenceGate: 'Can test now',
+      'Keep item selection, supplier details, assumptions, and revision context in one closed-beta workflow before proposal handoff.',
+    evidenceGate: 'Closed beta preview',
   },
   {
-    id: 'competitive-pressure',
-    headline: 'Your competitors are already a step ahead.',
+    id: 'review-ready-quotes',
+    headline: 'Build estimate logic buyers can actually review.',
     support:
-      'Build quote logic faster without letting the proposal drift away from the details buyers need to review.',
-    evidenceGate: 'Can test now',
+      'Structure quote logic without letting the proposal drift away from the quantities, rates, and notes behind it.',
+    evidenceGate: 'Closed beta preview',
   },
 ] as const
 
@@ -84,7 +84,7 @@ export function HeroSection({ variant = "A" }: { variant?: "A" | "B" }) {
               {activeHeroCopy.support}
             </p>
             <br />
-            <p>This is the Archestimator way.</p>
+            <p>Closed beta workspace preview.</p>
             <div className='mt-7 flex flex-wrap gap-3'>
               {trustBadges.map((badge) => (
                 <span
