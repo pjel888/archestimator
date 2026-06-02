@@ -11,7 +11,7 @@ This gate is now the closed beta launch gate. It is not a public paid-launch gat
 - Final report indexed in launch docs: `3e8d7a0`.
 - Current local validation refresh: `2587f80`, `bun run validate` pass.
 - Current local app build refresh: `2587f80`, `bun run build` pass.
-- Resend guardrail refresh: `fd5d4b3` fails unconfigured production-like email sends closed with `EMAIL_NOT_CONFIGURED`; `61160ee` disables shared-link recipient entry/send/resend controls while server email readiness is false.
+- Resend guardrail refresh: `fd5d4b3` fails unconfigured production-like email sends closed with `EMAIL_NOT_CONFIGURED`; `61160ee` disables shared-link recipient entry/send/resend controls while server email readiness is false; local Teamspaces invite controls now disable when project invite delivery readiness is false.
 - `bun install --frozen-lockfile`: pass.
 - `bun run type-check`: pass.
 - `bun run lint`: pass with 14 warnings.
@@ -70,7 +70,7 @@ Current decision: **NO-GO**.
 | Component unlink cannot mutate library data | Yes | RPC/action/UI tests and manual library unchanged proof. | Local code/tests pass; linked/manual proof pending. | No-go |
 | Detached rows are clear to users | Yes | Row details copy/screenshot/manual QA. | Local UI coverage exists; screenshot/manual QA pending. | No-go |
 | Excel export is professional bid/BOQ workbook | Yes | Formula tests, reference contract, Excel + secondary app open proof. | Local ExcelJS/workbook tests pass; cross-app open proof pending. | No-go |
-| Resend delivery/webhook verified before visible email workflows are re-enabled | Yes | Domain DNS, delivery, webhook, bounce/complaint test. | Missing; recipient email controls now disable while server readiness is false. | No-go |
+| Resend delivery/webhook verified before visible email workflows are re-enabled | Yes | Domain DNS, delivery, webhook, bounce/complaint test. | Missing; recipient email controls now disable while server readiness is false, and Teamspaces invite delivery controls now disable while invite delivery readiness is false. | No-go |
 | Legal pages accurate | Yes | Reviewed or closed-beta approved copy. | Local beta copy pass; owner/counsel sign-off pending. | No-go |
 | Support/feedback path exists | Yes | Contact/support inbox and beta bug report route. | Local workshop feedback link exists; public contact form opens a structured support email draft; monitored inbox/form proof pending. | No-go |
 | Observability/alerts configured | Yes | Error tracking, uptime, alert owner, export/auth/email alerts. | Local `/api/health` and runbook exist; deployed monitor/alert proof pending. | No-go |
@@ -94,7 +94,7 @@ Rules: below 90 cannot be called beta-ready; P0 below 95 blocks launch; 100 requ
 | Excel export | 90 | Professional workbook tests, generated XLSX artifact, ZIP integrity, and no-blank-total scan pass; cross-app open proof remains. |
 | Auth/onboarding | 78 | Local beta gate coverage and signed-out redirect/login UI E2E pass; Vercel env is empty, so hosted callback and first-run smoke are blocked. |
 | Infrastructure/deployment | 76 | Preview deploy and protected health proof exist; env, public health, rollback, and linked Supabase proof remain blocked. |
-| Email/Resend | 70 | Code fails closed when unconfigured and recipient email controls disable while readiness is false; DNS/delivery/webhook proof still missing. |
+| Email/Resend | 70 | Code fails closed when unconfigured, shared-link recipient email controls disable while readiness is false, and Teamspaces invite controls disable while invite delivery readiness is false; DNS/delivery/webhook/provider proof still missing. |
 | Security/RLS | 70 | Local RLS/allowlist model exists; linked security advisor warns and linked denial/storage tests are missing. |
 | Legal/privacy | 82 | Local beta terms/privacy copy exists; owner/counsel review missing. |
 | Performance/caching | 65 | Current architecture plausible; export/route/load proof missing. |

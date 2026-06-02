@@ -9,7 +9,7 @@
 - Keep production/preview allowlists separate or clearly environment-scoped.
 - Confirm Supabase RLS remains active for profiles, workspaces, projects, estimates, publications, and new allowlist table.
 - Confirm Supabase storage buckets used by beta flows have production-safe policies.
-- Manual beta invites can proceed without Resend by using Philip's email and the allowlist. Resend is optional/P1 for manual beta invites, but P0 for any visible email-dependent share/invite workflow.
+- Manual beta invites can proceed without Resend by using Philip's email and the allowlist. Resend is optional/P1 for manual beta invites, but P0 for any visible email-dependent share/invite workflow. Teamspaces app invite controls must stay disabled until invite-entry token settings and Supabase Auth/provider proof exist.
 - Required Resend env if visible: `RESEND_API_KEY`, `RESEND_FROM`, `RESEND_WEBHOOK_SECRET`, and verified sending domain/DNS.
 - Production smoke: allowed login, denied login, revoked login, public share, project/estimate, export, feedback link.
 
@@ -26,7 +26,7 @@ Commit audited: `681c95e64864f283950a88dba304eaffe8f2f8b3`
 | Supabase RLS | Migrations enable policies. | Linked/staging allow/deny proof missing. |
 | Storage | Component/project image code and Next image remote patterns exist. | Bucket access/policy proof missing; attachment bucket handling needs verification. |
 | Realtime | No launch-critical realtime dependency identified. | If enabled later, document channels and rate limits. |
-| Resend | Client and Svix webhook route exist; unconfigured production-like sends fail closed and shared-link recipient controls disable while server readiness is false. | DNS/API key/from/reply-to/webhook proof missing before email workflows can be re-enabled. |
+| Resend | Client and Svix webhook route exist; unconfigured production-like sends fail closed, shared-link recipient controls disable while server readiness is false, and Teamspaces invite controls disable while invite delivery readiness is false. | DNS/API key/from/reply-to/webhook proof plus Supabase Auth invite provider proof missing before email workflows can be re-enabled. |
 | Env separation | CI exists. | Preview/staging/prod variable matrix missing. |
 
 ## Required Vercel Env Vars

@@ -26,7 +26,7 @@ No Stripe, checkout, subscriptions, billing UI, invoices, paid tiers, pricing en
 - Final report indexed in launch docs: `3e8d7a0`.
 - Current local validation refresh: `2587f80`, `bun run validate` passed with DOM at 133 files / 1034 passed / 2 skipped.
 - Current local app build refresh: `2587f80`, `bun run build` passed with Next.js 16.2.6 / Turbopack and 29 static pages.
-- Resend guardrail refresh: `fd5d4b3` fails unconfigured production-like email sends closed; `61160ee` disables shared-link recipient entry/send/resend controls while server email readiness is false.
+- Resend guardrail refresh: `fd5d4b3` fails unconfigured production-like email sends closed; `61160ee` disables shared-link recipient entry/send/resend controls while server email readiness is false; local Teamspaces invite controls now disable while project invite delivery readiness is false.
 - Install, type-check, lint, design-system lint, unit tests, full DOM tests, and build passed locally.
 - Local signed-out auth E2E passed: `PLAYWRIGHT_PORT=3037 bun run test:e2e -- e2e/auth.spec.ts --project=chromium`, 2 tests in 9.9s.
 - Launch validation still lacks hosted/manual E2E, provider dashboard, backup/restore, deployment rollback, and spreadsheet-open proof. Local template insertion proof exists only for a throwaway estimate under the local smoke path.
@@ -66,7 +66,7 @@ Archestimator can be a credible MVP if it ships a reliable structured estimating
 - Component library and templates with local polish complete and manual demo smoke still required.
 - Project-specific detached estimate rows with local tests complete and linked/manual proof still required.
 - Professional Excel bid/BOQ workbook with local ExcelJS tests complete and cross-app open proof still required.
-- Share/invite/email automation only after security and Resend proof; manual link sharing remains the fallback while recipient email controls are disabled.
+- Share/invite/email automation only after security, provider, and Resend proof; manual link sharing/manual beta invites remain the fallback while recipient email and Teamspaces invite delivery controls are disabled.
 - Legal/support/observability/backup posture for closed beta.
 
 ## What Is Deferred
@@ -81,7 +81,7 @@ Ask Flip/AI, billing, PDF proposals, bid tabulation, advanced collaboration/team
 
 ## P0 Blockers
 
-Hosted auth/RLS/Resend/deployment proof missing, E2E/manual smoke unproven, spreadsheet open proof missing, owner/counsel legal review missing, and backup/restore/rollback proof missing. Local code now hides/fail-closes AI by default, fails unconfigured email delivery closed, disables recipient email controls while server readiness is false, has a green DOM baseline, implements project-specific unlink locally, and generates a professional workbook under ExcelJS tests.
+Hosted auth/RLS/Resend/deployment proof missing, E2E/manual smoke unproven, spreadsheet open proof missing, owner/counsel legal review missing, and backup/restore/rollback proof missing. Local code now hides/fail-closes AI by default, fails unconfigured email delivery closed, disables recipient email controls while server readiness is false, disables Teamspaces invite controls while invite delivery readiness is false, has a green DOM baseline, implements project-specific unlink locally, and generates a professional workbook under ExcelJS tests.
 
 ## Implementation Sequence
 

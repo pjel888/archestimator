@@ -25,6 +25,11 @@ type CollaborationActionResult = {
   invitePath?: string;
 };
 
+export type ProjectInviteDeliveryReadiness = {
+  configured: boolean;
+  message: string;
+};
+
 type ProjectAccessContext = {
   actorRank: number;
   admin: ReturnType<typeof createCollaborationAdminClient>;
@@ -431,6 +436,18 @@ function revalidateCollaborationRoutes(projectId: string) {
   revalidatePath("/workshop/projects");
   revalidatePath(`/workshop/projects/${projectId}`);
   revalidatePath(`/workshop/projects/${projectId}/estimates`);
+}
+
+export async function readProjectInviteDeliveryReadiness(): Promise<ProjectInviteDeliveryReadiness> {
+  await requireCurrentUserContext();
+
+  const configured = isProjectInviteEntryEnabled();
+  return {
+    configured,
+    message: configured
+      ? "Teamspace invite delivery is configured."
+      : "Teamspace invite delivery is disabled until project invite entry and token settings are configured. Send beta invites manually outside the app.",
+  };
 }
 
 export async function inviteProjectCollaborator({

@@ -1,10 +1,23 @@
 import { readFileSync } from "node:fs";
-import { cleanup, render, screen, within } from "@testing-library/react";
+import { cleanup, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { ProjectTeamspaceHeader } from "@/components/workshop/ProjectTeamspaceHeader";
 import type { ProjectCollaborationSummary } from "@/lib/collaboration/types";
+
+const collaborationActions = vi.hoisted(() => ({
+  copyProjectInviteLink: vi.fn(),
+  inviteEstimateSheetCollaborator: vi.fn(),
+  inviteProjectCollaborator: vi.fn(),
+  removeProjectCollaborator: vi.fn(),
+  readProjectInviteDeliveryReadiness: vi.fn(),
+  resendProjectInviteEmail: vi.fn(),
+  setEstimateSheetAccessMode: vi.fn(),
+  updateProjectCollaboratorRole: vi.fn(),
+}));
+
+vi.mock("@/lib/collaboration/actions", () => collaborationActions);
 
 const headerSource = readFileSync("src/components/workshop/ProjectTeamspaceHeader.tsx", "utf8");
 
@@ -79,11 +92,22 @@ describe("ProjectTeamspaceHeader", () => {
         writeText: clipboardWriteText,
       },
     });
+    collaborationActions.copyProjectInviteLink.mockResolvedValue({ ok: true, message: "Copy invite link", invitePath: "/invite/copied" });
+    collaborationActions.inviteEstimateSheetCollaborator.mockResolvedValue({ ok: true, message: "Sheet invite email sent." });
+    collaborationActions.inviteProjectCollaborator.mockResolvedValue({ ok: true, message: "Invite email sent." });
+    collaborationActions.removeProjectCollaborator.mockResolvedValue({ ok: true, message: "Project-specific access removed." });
+    collaborationActions.readProjectInviteDeliveryReadiness.mockResolvedValue({
+      configured: true,
+      message: "Teamspace invite delivery is configured.",
+    });
+    collaborationActions.resendProjectInviteEmail.mockResolvedValue({ ok: true, message: "Invite email resent." });
+    collaborationActions.setEstimateSheetAccessMode.mockResolvedValue({ ok: true, message: "Sheet now inherits project access." });
+    collaborationActions.updateProjectCollaboratorRole.mockResolvedValue({ ok: true, message: "Role updated." });
   });
 
   afterEach(() => {
     cleanup();
-    vi.restoreAllMocks();
+    vi.clearAllMocks();
   });
 
   it("renders the compact Teamspaces rail and opens the settings modal", async () => {
@@ -161,9 +185,48 @@ describe("ProjectTeamspaceHeader", () => {
     expect(within(dialog).getByText("new.collaborator@example.com")).toBeInTheDocument();
     expect(within(dialog).getByRole("button", { name: "Resend invite for new.collaborator@example.com" })).toBeInTheDocument();
 
-    await user.click(within(dialog).getByRole("button", { name: "Copy invite link for new.collaborator@example.com" }));
+    const copyInviteButton = within(dialog).getByRole("button", { name: "Copy invite link for new.collaborator@example.com" });
+    await waitFor(() => expect(copyInviteButton).toBeEnabled());
+    await user.click(copyInviteButton);
 
     expect(await within(dialog).findByRole("status")).toHaveTextContent("Invite link copied.");
+  });
+
+  it("disables visible teamspace invite controls when invite delivery is not configured", async () => {
+    collaborationActions.readProjectInviteDeliveryReadiness.mockResolvedValue({
+      configured: false,
+      message:
+        "Teamspace invite delivery is disabled until project invite entry and token settings are configured. Send beta invites manually outside the app.",
+    });
+    const user = userEvent.setup();
+    const summaryWithInvite: ProjectCollaborationSummary = {
+      ...summary,
+      pendingInvitations: [
+        {
+          id: "invite-1",
+          email: "new.collaborator@example.com",
+          role: "viewer",
+          scope: "project",
+          estimateId: null,
+          expiresAt: "2026-06-01T00:00:00.000Z",
+          invitePath: "/invite/token-abc123",
+        },
+      ],
+    };
+
+    render(<ProjectTeamspaceHeader summary={summaryWithInvite} />);
+
+    await user.click(screen.getByRole("button", { name: "Open teamspace settings" }));
+
+    const dialog = screen.getByRole("dialog", { name: "Teamspace settings" });
+    expect(await within(dialog).findByText(/Teamspace invite delivery is disabled until project invite entry/)).toBeInTheDocument();
+    expect(within(dialog).getByRole("textbox", { name: "Invite by email" })).toBeDisabled();
+    expect(within(dialog).getByLabelText("Invite role")).toBeDisabled();
+    expect(within(dialog).getByRole("button", { name: "Send invite" })).toBeDisabled();
+    expect(within(dialog).getByRole("textbox", { name: "Invite to Main Estimate" })).toBeDisabled();
+    expect(within(dialog).getByLabelText("Sheet role for Main Estimate")).toBeDisabled();
+    expect(within(dialog).getByRole("button", { name: "Resend invite for new.collaborator@example.com" })).toBeDisabled();
+    expect(within(dialog).getByRole("button", { name: "Copy invite link for new.collaborator@example.com" })).toBeDisabled();
   });
 
   it("requires explicit confirmation before removing a project collaborator", async () => {
