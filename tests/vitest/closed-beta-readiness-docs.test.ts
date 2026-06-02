@@ -328,6 +328,13 @@ describe("closed beta readiness docs", () => {
     expect(evidenceIndex).toContain("`/workshop/settings/feedback` renders the review/filter/status-update queue for platform admins");
     expect(evidenceIndex).toContain("non-admin users receive an unauthorized state instead of feedback rows");
     expect(evidenceIndex).toContain("hosted admin access, daily review cadence, monitored inbox/table ownership");
+    expect(evidenceIndex).toContain("### Legal/Owner Readiness Helper");
+    expect(evidenceIndex).toContain("scripts/check-legal-owner-readiness.ts");
+    expect(evidenceIndex).toContain("`bun run launch:check-legal-owner`");
+    expect(evidenceIndex).toContain("legal-owner-readiness-ede0f32-2026-06-02.json");
+    expect(evidenceIndex).toContain("`legalOwnerReady: false`");
+    expect(evidenceIndex).toContain("all five proof flags false");
+    expect(evidenceIndex).toContain("product owner / legal reviewer / approval date / approval reference missing");
     expect(evidenceIndex).toContain("### Settings Hub Local Evidence");
     expect(evidenceIndex).toContain("settings-hub-local-2026-06-02.md");
     expect(evidenceIndex).toContain("`/workshop/settings` is now a protected hub instead of an immediate profile redirect");
@@ -589,6 +596,9 @@ describe("closed beta readiness docs", () => {
     expect(finalImplementationReport).not.toContain("Custom in-app feedback database is deferred");
     expect(finalLaunchGate).not.toContain("monitored inbox/form proof pending");
     expect(manualProofMatrix).toContain("Legal/owner review");
+    expect(manualProofMatrix).toContain("legal-owner-readiness-ede0f32-2026-06-02.json");
+    expect(manualProofMatrix).toContain("`legalOwnerReady: false`");
+    expect(manualProofMatrix).toContain("product owner / legal reviewer / approval date / approval reference missing");
     expect(manualProofMatrix).toContain("Current manual E2E smoke");
     expect(manualProofMatrix).toContain("current-local-e2e-smoke-2026-06-02.md");
     expect(manualProofMatrix).toContain("signed-out auth plus local dev-auth library/template/template-insert smoke");
@@ -631,6 +641,8 @@ describe("closed beta readiness docs", () => {
     expect(consolidatedManualProofPacket).toContain("`linkedSupabaseLaunchReady: false`");
     expect(consolidatedManualProofPacket).toContain("vercel-production-readiness-fc8f53e-2026-06-02.json");
     expect(consolidatedManualProofPacket).toContain("`vercelProductionReady: false`");
+    expect(consolidatedManualProofPacket).toContain("legal-owner-readiness-ede0f32-2026-06-02.json");
+    expect(consolidatedManualProofPacket).toContain("`legalOwnerReady: false`");
     expect(consolidatedManualProofPacket).toContain("Spreadsheet compatibility | partial-local");
     expect(consolidatedManualProofPacket).toContain("current-head-local-validation-build-02f7d13-2026-06-02.md");
     expect(consolidatedManualProofPacket).toContain("Current manual E2E smoke | partial-local");
@@ -655,6 +667,7 @@ describe("closed beta readiness docs", () => {
     expect(artifactFilenames).toContain("provider-state-refresh-87f603e-2026-06-02.md");
     expect(artifactFilenames).toContain("current-head-local-validation-build-02f7d13-2026-06-02.md");
     expect(artifactFilenames).toContain("full-local-e2e-refresh-bb9006d-2026-06-02.md");
+    expect(artifactFilenames).toContain("legal-owner-readiness-ede0f32-2026-06-02.json");
     expect(artifactFilenames).toContain("support-monitoring-readiness-c9c1141-2026-06-02.json");
     expect(artifactFilenames).toContain("lewis-residence-demo-proposal-2026-06-02.xlsx");
     expect(artifactFilenames.length).toBeGreaterThanOrEqual(30);
@@ -724,6 +737,11 @@ describe("closed beta readiness docs", () => {
     expect(goalCompletionAudit).toContain("Demo rehearsal fallback pack");
     expect(goalCompletionAudit).toContain("local fallback script links seed anchors");
     expect(goalCompletionAudit).toContain("owner sign-off remain missing");
+    expect(goalCompletionAudit).toContain("Legal/owner readiness helper");
+    expect(goalCompletionAudit).toContain("legal-owner-readiness-ede0f32-2026-06-02.json");
+    expect(goalCompletionAudit).toContain("`legalOwnerReady: false`");
+    expect(goalCompletionAudit).toContain("all terms/privacy/beta-copy/data-retention/support-comms proof flags false");
+    expect(goalCompletionAudit).toContain("product owner / legal reviewer / approval date / approval reference missing");
     expect(goalCompletionAudit).toContain("generated workbook artifact is loadable, ZIP-valid, formula-backed, has no blank line totals");
     expect(goalCompletionAudit).toContain("renders a local Quick Look thumbnail");
     expect(goalCompletionAudit).toContain("synthetic 500 / 1,000 / 2,500 row workbook buffers generate locally under the 15s threshold");
@@ -808,6 +826,10 @@ describe("closed beta readiness docs", () => {
     expect(currentState).toContain("Component/template local demo evidence");
     expect(currentState).toContain("Template insertion local evidence");
     expect(currentState).toContain("local insertion into a throwaway estimate with zero residue");
+    expect(currentState).toContain("Legal/Owner Readiness Helper (2026-06-02)");
+    expect(currentState).toContain("legal-owner-readiness-ede0f32-2026-06-02.json");
+    expect(currentState).toContain("`legalOwnerReady: false`");
+    expect(currentState).toContain("product owner / legal reviewer / approval date / approval reference missing");
     expect(currentState).toContain("Support/feedback local evidence");
     expect(currentState).toContain("`/contact`, protected `/workshop/feedback`, platform-admin `/workshop/settings/feedback`, terms, and privacy point to `support@archestimator.com`");
     expect(currentState).toContain("the public contact form prepares a structured support email draft instead of fake-submitting");
@@ -855,6 +877,9 @@ describe("closed beta readiness docs", () => {
     expect(knownIssues).toContain("hosted/manual target-environment proof remains missing");
     expect(knownIssues).toContain("Local component/template demo evidence on 2026-06-02 proves screenshots/JSON");
     expect(knownIssues).toContain("local template insertion evidence proves throwaway-estimate insertion with zero residue");
+    expect(knownIssues).toContain("Legal/owner readiness helper evidence on 2026-06-02 is negative/blocked");
+    expect(knownIssues).toContain("`legalOwnerReady: false`");
+    expect(knownIssues).toContain("product owner / legal reviewer / approval date / approval reference missing");
     expect(knownIssues).toContain("Support/feedback local evidence now proves `/contact`, protected `/workshop/feedback`, platform-admin `/workshop/settings/feedback`, terms, and privacy point to `support@archestimator.com`");
     expect(knownIssues).toContain("the public contact form prepares a structured support email draft instead of fake-submitting");
     expect(knownIssues).toContain("local code can persist authenticated feedback to `beta_feedback_submissions` after its migration is applied and locally triage status after the review migration is applied");

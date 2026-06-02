@@ -149,6 +149,15 @@
 - Guardrail evidence: `bun run launch:verify-hosted-export` without required inputs fails closed and names the missing variables; `bunx vitest run tests/vitest/hosted-export-route-smoke-script.test.ts --maxWorkers=1` passed 5 tests covering missing-input refusal, encoded route generation, sanitized auth handling, non-workbook failure, XLSX ZIP magic, and request header construction.
 - Launch meaning: this makes the authenticated hosted export smoke operator-ready, but it does not complete the proof row until a real hosted session and authorized estimate produce a passing JSON artifact.
 
+### Legal/Owner Readiness Helper
+
+- Script: `scripts/check-legal-owner-readiness.ts`.
+- Package command: `bun run launch:check-legal-owner`.
+- Scope: parses operator-confirmed terms, privacy, closed-beta copy, data-retention wording, support-communications wording, product owner, legal reviewer, approval date, and approval reference proof into sanitized JSON.
+- Guardrail evidence: `bunx vitest run tests/vitest/legal-owner-readiness-script.test.ts --maxWorkers=1` passed 5 tests covering proof-flag parsing, label sanitization, real `YYYY-MM-DD` approval-date validation, missing-proof fail-closed behavior, and all-proof pass behavior.
+- Current legal refresh: `OUTPUT_FILE=.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/legal-owner-readiness-ede0f32-2026-06-02.json bun run launch:check-legal-owner` wrote sanitized JSON and exited `1`; it reports all five proof flags false, product owner / legal reviewer / approval date / approval reference missing, 9 missing checks, and `legalOwnerReady: false`.
+- Launch meaning: this makes legal/owner proof repeatable and sanitized, but it does not provide legal advice, verify counsel review, inspect contracts, or approve public launch by itself. Legal/owner review remains **NO-GO** until the operator supplies real approval proof and the helper passes.
+
 ### Support Email DNS Proof Helper
 
 - Script: `scripts/check-support-email-dns.ts`.
