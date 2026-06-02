@@ -31,7 +31,7 @@ Tests confirming no prohibited data is ever stored in telemetry records.
 |---|-------------|-----------|-----------------|-------------------|-------------------|
 | B1 | `recordProjectPublicationAnalyticsEvent()` does NOT increment `open_count` | Unit | `tests/vitest/access-telemetry-behavior.test.ts` | Call analytics-only helper, query `project_publications.open_count` — assert unchanged | ✅ YES |
 | B2 | `recordProjectPublicationEvent("open")` still increments `open_count` only for actual proposal views | Unit | `tests/vitest/access-telemetry-behavior.test.ts` | Call with `metadata.access_stage: "proposal_viewed"` → assert `open_count` increments by 1 | ✅ YES |
-| B3 | `recordProjectPublicationEvent("open")` for non-proposal-view stages does NOT increment `open_count` | Unit | `tests/vitest/access-telemetry-behavior.test.ts` | Call with `metadata.access_stage: "page_visited"` → assert `open_count` unchanged | ✅ YES |
+| B3 | Non-proposal-view stages use `recordProjectPublicationAnalyticsEvent()`, not `recordProjectPublicationEvent("open")` | Unit / Integration | `tests/vitest/access-telemetry-behavior.test.ts` | Assert analytics-only helper does not increment `open_count`. Assert non-proposal access stages never call `recordProjectPublicationEvent("open")`. | ✅ YES |
 | B4 | Access telemetry event writes do not throw when feature flag is disabled | Unit | `tests/vitest/access-telemetry-behavior.test.ts` | Flag `false` → call all telemetry functions → assert no errors, no rows written | ✅ YES |
 | B5 | Access telemetry event writes succeed when feature flag is enabled | Unit | `tests/vitest/access-telemetry-behavior.test.ts` | Flag `true` → call telemetry functions → assert rows written, correct field values | ✅ YES |
 

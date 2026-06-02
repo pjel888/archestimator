@@ -205,3 +205,5 @@ Use `password_attempt` for password-related stages and `open` only for proposal_
 - `29-final-decision-log-and-approval-matrix.md` — D-009 (access telemetry storage strategy)
 - `34-final-preimplementation-audit.md` — Overall audit summary (Finding 4)
 - `35-code-truth-map.md` — Code truth map (recordProjectPublicationEvent section)
+- `57-access-telemetry-test-evidence-matrix.md` — Test evidence matrix (B3 test corrected in twelfth pass: analytics-only helper, not recordProjectPublicationEvent for non-proposal stages)
+- `63-vendor-processor-dpa-evidence-worksheet.md` — Vendor/processor DPA worksheet (twelfth pass)
