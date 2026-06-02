@@ -223,14 +223,14 @@ The planning pack is comprehensive, accurate, and implementation-ready. All 27 d
 
 Preflight fixes are small, low-risk, and unblock the composer work.
 
-### NO-GO for full implementation (PRs 3–9) until:
+### GO for full implementation (PRs 3–9) — all gates cleared (ninth pass, 2026-06-02)
 
-- [ ] Access telemetry privacy stance is approved by stakeholders
-- [ ] In-product disclosure decision is made (legal/compliance)
-- [ ] Bot filtering approach is agreed
-- [ ] Location data policy is approved
+- [x] Access telemetry privacy stance approved by Owner/Product + Internal Privacy
+- [x] In-product disclosure decision made — APPROVED (see doc 47)
+- [x] Bot filtering approach agreed — APPROVED by Engineering
+- [x] Location data policy approved — country-only
 
-These are product/legal decisions, not engineering ones. The implementation plan is ready — the decisions need sign-off.
+All product/legal decisions are now approved. PRs 7 and 8B are GO. See `47-pr7-pr8b-approval-record.md` for approval record.
 
 ---
 

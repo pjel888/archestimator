@@ -2,7 +2,7 @@
 
 **Date:** 2026-06-02 (second pass: 2026-06-02; third pass: 2026-06-02)
 **Principle:** Small PRs, each independently revertible, each merge-safe (no failing CI).
-**Note:** See `27-third-pass-master-implementation-blueprint.md` for the definitive 9-PR sequence including access telemetry. **Fourth pass:** PR 2 scope expanded to 5 fixes including CSRF repairs — see `31-pr2-preflight-implementation-brief.md`. PR 7 gated on stakeholder sign-off — see `32-final-implementation-readiness-scorecard.md`.
+**Note:** See `27-third-pass-master-implementation-blueprint.md` for the definitive 9-PR sequence including access telemetry. **Fourth pass:** PR 2 scope expanded to 5 fixes including CSRF repairs — see `31-pr2-preflight-implementation-brief.md`. **Ninth pass (2026-06-02):** All gating decisions approved. PR 7 gates cleared. See doc 47 for approval record.
 
 ---
 
@@ -21,20 +21,20 @@ PR 5 (shared-link API integration) ← was old PR 5
   ↓
 PR 6 (recipient actor resolution + decisions copy) ← expanded from old PR 6
   ↓
-PR 7 (access telemetry) ← ⚠️ GATED on Product/Legal
+PR 7 (access telemetry) — gates cleared by Owner/Product + Internal Privacy (2026-06-02)
   ↓
 PR 8A (shared-link pagination + Realtime hardening) ← can proceed without PR 7
   ↓
-PR 8B (access telemetry hardening) ← gated on PR 7
+PR 8B (access telemetry hardening) ← after PR 7 implementation (gate cleared 2026-06-02)
   ↓
 PR 9 (UI polish + accessibility + manual QA)
 ```
 
 PRs 4 and 5 can be worked on in parallel (different surfaces, same composer).
 PR 6 depends on PR 5 (shared-link composer in place).
-PR 7 depends on Product/Legal sign-off for access telemetry.
+PR 7 gates cleared. Implementation can proceed under approved constraints.
 PR 8A can proceed independently after PRs 2-6 (not gated on PR 7).
-PR 8B depends on PR 7 (needs access telemetry data).
+PR 8B depends on PR 7 implementation (approval gate cleared).
 PR 9 depends on the relevant path (8A or 8B).
 
 ---
@@ -43,7 +43,7 @@ PR 9 depends on the relevant path (8A or 8B).
 
 **Purpose:** Add/update all planning documents in the `.ai/` directory. No production code changes.
 
-**Files:** All files in `.ai/03_plans/activity-history-overhaul-v1/` (47 documents total: README + 46 numbered docs 00–45)
+**Files:** All files in `.ai/03_plans/activity-history-overhaul-v1/` (50 files total: README + 49 numbered docs 00–48)
 
 **Tests:** None required (documentation only)
 

@@ -1,10 +1,13 @@
 # 29 — Final Decision Log and Approval Matrix
 
 **Date:** 2026-06-02
-**Status:** Fifth pass — corrected approval statuses
+**Ninth pass date:** 2026-06-02
+**Status:** Ninth pass — PR 7+8B gates cleared by Owner/Product + Internal Privacy Approval
 **Purpose:** Source of truth for all decisions across the Activity History Overhaul. This document gates implementation — no implementation work should proceed for any decision still marked "Proposed" or "Needs X" unless explicitly approved.
 
-**⚠️ Fifth-pass correction:** Several decisions previously marked "APPROVED" were engineering team recommendations, NOT actual stakeholder sign-offs. Statuses updated to distinguish Engineering recommendations from Product/Legal approvals. See doc 34 Finding 9 and doc 39 for authority hierarchy.
+**⚠️ Ninth-pass update:** PR 7+8B implementation gates now cleared. Six decisions (D-016, D-017, D-018, D-019, D-022, D-023) approved by Owner/Product + Internal Privacy. Approval recorded in doc 47. DPA compliance basis in doc 48.
+
+**⚠️ Fifth-pass correction (historical):** Several decisions previously marked "APPROVED" were engineering team recommendations, NOT actual stakeholder sign-offs. Statuses updated to distinguish Engineering recommendations from Product/Legal approvals. See doc 34 Finding 9 and doc 39 for authority hierarchy.
 
 ---
 
@@ -27,14 +30,14 @@
 | D-013 | Password gate view recording | **APPROVED** | Record server-side in page.tsx before gate render | When page detects password gate condition (!hasPasswordAccess && passwordRequired), call `recordProjectPublicationEvent("open", { access_stage: "password_gate_viewed" })` before returning the gate component. No client beacon needed. No CSRF complexity. | Engineering | 2026-06-02 | PR 7 |
 | D-014 | `/events` route usage for access telemetry | **REJECTED** | Reserve `/events` for interactive actions with existing CSRF setup. Access events recorded server-side. | `/events` route requires full double-submit cookie CSRF which access tracking components don't have. Server-side recording is more reliable and avoids CSRF. `/events` stays for password form, comments, decisions. | Engineering | 2026-06-02 | PR 7 |
 | D-015 | Client-facing activity feed | **DEFERRED to V2** | Deferred | No client-facing activity feed exists today. SharedLinkActivityFeed is owner-only. Building client feed requires UI design, permission model, and privacy review. | Product | 2026-06-02 | V2 |
-| D-016 | Access telemetry visibility model | **Engineering recommended; NEEDS PRODUCT** | Three-tier: (1) Primary owner timeline — who/what/when. (2) Audit details (expandable) — browser, OS, device, location, exact timestamp, IP hash. (3) Support/admin — full diagnostics including bot traffic. | Tiered visibility balances owner transparency with clean UI. Primary timeline stays readable. Drill-down available. Full diagnostics reserved for support. **Fifth-pass correction:** Changed from "APPROVED" to "Engineering recommended; NEEDS PRODUCT" — Product sign-off is still pending per approval checklist. | Product | — | PR 7 |
-| D-017 | Device/browser metadata in owner UI | **NEEDS PRODUCT** | Show in audit details only, not primary timeline. Stakeholder must approve. | Device/browser adds value for owners but may feel intrusive. Audit details only (expandable). Requires product sign-off on which fields appear and labels. | Product | — | PR 7 |
-| D-018 | Location data granularity | **NEEDS LEGAL** | Default: country only from provider headers OR omit entirely. City-level requires explicit stakeholder/legal approval. | Country-level provides context without privacy risk. City-level increases identifiability. Default: country only. Omit entirely if legal objects. | Legal/Privacy | — | PR 7 |
-| D-019 | IP hash privacy language | **Engineering recommended; NEEDS LEGAL** | "Lower risk than raw IP; may still be classified as personal data in some jurisdictions." Requires privacy/legal review. | SHA-256 hashed IP is pseudonymous, not anonymous. Same IP always produces same hash — enables correlation. Language in docs and UI must be accurate. Legal review required before disclosure. **Fifth-pass correction:** Changed from "APPROVED Legal/Privacy" to "Engineering recommended; NEEDS LEGAL" — no evidence of actual Legal/Privacy sign-off exists. | Legal/Privacy | — | PR 7 |
+| D-016 | Access telemetry visibility model | **APPROVED — Owner/Product** | Three-tier visibility: 1. Primary owner timeline: who/what/when only. 2. Owner audit details: approved safe telemetry details only. 3. Support/admin view: diagnostic details only when needed. Constraint: Device/browser/location must NOT appear in primary sentence. IP hash must NOT appear in normal owner UI. Support/admin diagnostics may expose hashes when needed for incident investigation. | Tiered visibility balances owner transparency with clean UI. Primary timeline stays readable. Drill-down available. Full diagnostics reserved for support. **Ninth-pass update:** APPROVED by Owner/Product (2026-06-02). **Fifth-pass correction (historical):** Changed from "APPROVED" to "Engineering recommended; NEEDS PRODUCT" — Product sign-off was still pending per approval checklist. Now resolved. | Product | 2026-06-02 | PR 7 |
+| D-017 | Device/browser metadata in owner UI | **APPROVED — Owner/Product** | Device/browser may appear only in expandable owner audit details. Approved display fields: device type (desktop/mobile/tablet/bot/unknown), browser family (Chrome/Safari/Firefox/Edge/unknown), OS family (macOS/Windows/iOS/Android/unknown). Do NOT show: full user-agent string, exact browser minor/build version, full OS version, screen size, fonts, fingerprinting fields. | Device/browser adds value for owners but may feel intrusive. Audit details only (expandable). **Ninth-pass update:** APPROVED by Owner/Product (2026-06-02) with field allowlist. | Product | 2026-06-02 | PR 7 |
+| D-018 | Location data granularity | **APPROVED — Owner/Internal Privacy Approval** | Country only for V1.1. Approved: country code or label from trusted provider headers. Not approved: city, region/province, precise GPS, third-party IP geolocation lookup, storing raw IP, showing location in primary timeline. Fallback: "Location unavailable". If provider headers are absent, do not call external geo service. | Country-level provides context without privacy risk. City-level increases identifiability. **Ninth-pass update:** APPROVED by Owner/Internal Privacy Approval (2026-06-02) — country only, provider headers only, no external geo lookup. | Legal/Privacy | 2026-06-02 | PR 7 |
+| D-019 | IP hash privacy language | **APPROVED — Owner/Internal Privacy Approval** | IP hash may be stored for security and audit correlation, treated as pseudonymized/potential personal data. Constraints: raw IP never stored, IP hash not shown in normal owner UI, IP hash only in support/admin diagnostics or audit export if explicitly needed, privacy notice must disclose access logging, retention must be defined. | SHA-256 hashed IP is pseudonymous, not anonymous. Same IP always produces same hash — enables correlation. **Ninth-pass update:** APPROVED by Owner/Internal Privacy Approval (2026-06-02) with constraints on storage, display, and disclosure.**Fifth-pass correction (historical):** Changed from "APPROVED Legal/Privacy" to "Engineering recommended; NEEDS LEGAL" — no evidence of actual Legal/Privacy sign-off existed. Now resolved. | Legal/Privacy | 2026-06-02 | PR 7 |
 | D-020 | Bot/crawler detection | **APPROVED** | Parse UA for bot detection. Check `Sec-Purpose: prefetch` (skip recording). Flag bots in metadata. Hide from owner activity by default. Show in support/admin only. Record for security audit. | Bots generate noise. UA parsing + prefetch detection catches most. Bot events recorded but hidden from owner. Prevents false "client opened" signals. | Engineering | 2026-06-02 | PR 7 |
 | D-021 | Event dedupe policy | **APPROVED** | Always record (audit trail). Collapse in UI: `publication_id + COALESCE(recipient_id, ip_hash) + access_stage + 5min_bucket`. Show count badge. | Never drop events at ingest — preserve audit trail. UI deduplication uses composite key with 5-minute time bucket. Collapsed events show count: "Viewed 3 times." | Engineering | 2026-06-02 | PR 7 |
-| D-022 | Retention policy | **DEFERRED to V2** | No automated deletion in V1.1. Define before V2. | Retention requires legal input on data minimization, right-to-deletion, and backup implications. V1.1 stores indefinitely; define policy before V2. | Legal/Privacy | — | V2 |
-| D-023 | In-product disclosure | **NEEDS LEGAL** | Privacy notice update minimum. In-product disclosure requires legal/compliance sign-off. | Privacy policy must be updated to disclose access logging. In-product notice on shared page is a product decision requiring legal review of exact language. | Legal/Privacy | — | PR 7 |
+| D-022 | Retention policy | **APPROVED FOR V1.1 — 90-day retention target** | Access telemetry retention: 90 days. Estimate audit history retention: unchanged. Comments/decisions retention: unchanged. Implementation note: PR 7 may create telemetry behind a feature flag. PR 8B must implement or document the retention enforcement path before production enablement. | Retention requires legal input on data minimization, right-to-deletion, and backup implications. **Ninth-pass update:** APPROVED by Owner/Internal Privacy Approval (2026-06-02) — 90-day retention for access telemetry. | Legal/Privacy | 2026-06-02 | V1.1 |
+| D-023 | In-product disclosure | **APPROVED — Owner/Internal Privacy Approval** | Privacy policy update required before access telemetry goes live. Small in-product disclosure required on shared page/password gate. Approved disclosure: "Visits to this shared page are logged. The project owner can see when the link was opened and whether the proposal was viewed. We do not store raw IP addresses, exact GPS location, or password values." Optional shorter footer: "Visits are logged for project security and activity history." | Privacy policy must be updated to disclose access logging. **Ninth-pass update:** APPROVED by Owner/Internal Privacy Approval (2026-06-02) with approved in-product language. | Legal/Privacy | 2026-06-02 | PR 7 |
 | D-024 | PR sequence (9 PRs) | **APPROVED** | PRs 1-6 proceed without privacy approval. PR 7 (access telemetry) gated on stakeholder sign-off for D-017, D-018, D-023. | PRs 1-6 are copy-only or bug fixes — no privacy impact. PR 7 collects new data — gated. PRs 8-9 follow PR 7. | Engineering | 2026-06-02 | All PRs |
 | D-025 | Comments/Decisions CSRF fix | **APPROVED** | Fix in PR 2. Generate random token, set cookie, send matching header — same pattern as ProjectPublicationPasswordForm. | Current code hardcodes `"client-post"` as CSRF header without setting cookie. Double-submit check always fails (or is a no-op if cookie absent). Fix: follow password form pattern. | Engineering | 2026-06-02 | PR 2 |
 | D-026 | Estimate history convergence | **DEFERRED to V2** | Deferred | Unifying estimate history with shared-link activity requires migration and backward-compatible API changes. Too large for V1. | Engineering | 2026-06-02 | V2 |
@@ -47,10 +50,11 @@
 
 | Status | Count | Decisions |
 |--------|-------|-----------|
-| **APPROVED** | 16 | D-001–D-005, D-006, D-007–D-009, D-013, D-014, D-020, D-021, D-024, D-025, D-028 |
-| **Engineering recommended; NEEDS PRODUCT** | 2 | D-016, D-017 |
-| **NEEDS LEGAL** | 3 | D-018, D-019, D-023 |
-| **DEFERRED to V2** | 5 | D-010, D-011, D-015, D-022, D-026 |
+| **APPROVED** | 22 | D-001–D-009, D-013, D-014, D-016–D-021, D-023–D-025, D-028 |
+| **APPROVED FOR V1.1** | 1 | D-022 |
+| **Engineering recommended; NEEDS PRODUCT** | 0 | — |
+| **NEEDS LEGAL** | 0 | — |
+| **DEFERRED to V2** | 4 | D-010, D-011, D-015, D-026 |
 | **REJECTED** | 2 | D-012, D-027 |
 
 ---
@@ -60,8 +64,9 @@
 | Gate | Condition | Status |
 |------|-----------|--------|
 | PRs 1-6 | All engineering decisions approved (D-001–D-009, D-025) | **UNLOCKED** ✅ |
-| PR 7 (access telemetry) | D-017 + D-018 + D-023 approved by Product/Legal | **LOCKED** 🔴 |
-| PR 8 (client message) | D-028 approved | **UNLOCKED** ✅ |
+| PR 7 (access telemetry) | D-017 + D-018 + D-023 APPROVED by Owner/Product + Internal Privacy (2026-06-02) | **UNLOCKED** ✅ |
+| PR 8A (pagination+realtime) | Independent; not gated on PR 7 | **UNLOCKED** ✅ |
+| PR 8B (access telemetry hardening) | PR 7 implemented; retention/audit hardening | **UNLOCKED** ✅ (GO after PR 7) |
 | PR 9 (polish) | PRs 1-8 merged, no regressions | **LOCKED** 🔴 |
 | V2 scope | Deferred decisions re-evaluated | **FUTURE** |
 
@@ -71,8 +76,8 @@
 
 | Approver role | Decisions to review | Status |
 |--------------|-------------------|--------|
-| Product | D-017 (device in UI), D-016 (visibility model), D-015 (client feed) | ☐ Pending |
-| Legal/Privacy | D-018 (location), D-019 (IP hash), D-023 (disclosure), D-022 (retention) | ☐ Pending |
+| Product | D-017 (device in UI), D-016 (visibility model), D-015 (client feed) | ✅ Approved (Owner/Product, 2026-06-02) |
+| Legal/Privacy | D-018 (location), D-019 (IP hash), D-023 (disclosure), D-022 (retention) | ✅ Approved (Owner/Internal Privacy Approval, 2026-06-02) |
 | Engineering | D-001–D-009, D-013, D-014, D-020, D-021, D-024, D-025 | ✅ Recommended |
 
 ---
@@ -83,3 +88,5 @@
 - See `30-final-technical-reconciliation-audit.md` for contradiction audit
 - See `32-final-implementation-readiness-scorecard.md` for go/no-go assessment
 - See `33-stakeholder-review-script.md` for meeting facilitation guide
+- See `47-ninth-pass-approval-record.md` for Owner/Product + Internal Privacy approval details
+- See `48-dpa-compliance-basis.md` for DPA compliance basis

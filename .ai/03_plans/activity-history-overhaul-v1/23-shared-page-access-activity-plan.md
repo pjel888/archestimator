@@ -5,6 +5,8 @@
 
 ---
 
+**Ninth pass (2026-06-02):** All privacy/legal gates cleared. PR 7 → GO under approved conservative constraints. See doc 47 for approval record and doc 48 for Philippine DPA/NPC compliance.
+
 **Fifth-pass note (2026-06-02):** This document has been reconciled against live code at HEAD `da35386`. Key additions:
 - **Side effects audit complete** — See `36-access-telemetry-side-effects-audit.md` for the full matrix of which events trigger open_count, recipient update, and shared_link_events side effects.
 - **New helper recommended** — `recordProjectPublicationAnalyticsEvent()` for analytics-only events that should NOT trigger business side effects. Existing `recordProjectPublicationEvent()` preserved for actual proposal views only.
@@ -261,6 +263,8 @@ This avoids migration while still providing structured access telemetry.
 - Never expose raw IP or raw user-agent in any UI
 - Location is approximate only, from provider headers, never browser GPS
 
+**Philippine DPA/NPC compliance:** See doc 48 for full Philippine Data Privacy Act (Republic Act 10173) and National Privacy Commission compliance plan. Operators collecting access telemetry in the Philippines must ensure NPC registration (if applicable), data subject rights (access/correction/deletion), and breach notification readiness. The conservative privacy constraints in this plan (IP hashing, country-only location, no raw IP storage) align with DPA data minimization principles.
+
 ---
 
 ## 7. Implementation Options Compared
@@ -396,3 +400,5 @@ recipient_session_started → Add to session route POST handler
 - See `26-privacy-retention-and-client-disclosure-plan.md` for privacy boundaries
 - See `16-event-taxonomy-and-lifecycle-map.md` for expanded event taxonomy
 - See `20-edge-case-and-failure-mode-matrix.md` for access telemetry edge cases
+- See `47-pr7-gate-clearance-and-privacy-approvals.md` for PR 7 approval record
+- See `48-ph-dpa-npc-compliance-plan.md` for Philippine DPA/NPC compliance

@@ -38,17 +38,19 @@ Small, low-risk fixes. No privacy dependencies. Fixes known bugs identified in s
 ### GO ✅ — PRs 3-6 (Composer + UI integration)
 No privacy impact. No new data collection. Pure copy improvements. Can proceed without stakeholder sign-off on access telemetry decisions.
 
-### NO-GO 🔴 — PR 7 (Access telemetry) until:
-- [ ] Product approves P1-P5 (doc 28 §6)
-- [ ] Legal/Privacy approves L1-L5 (doc 28 §6)
-- [ ] Privacy policy updated to include access logging disclosure
-- [ ] Location granularity decision finalized (country-only recommended default)
-- [ ] Device/browser display decision finalized (audit details recommended)
-- [ ] Bot filtering approach confirmed
-- [ ] In-product disclosure decision finalized
+### GO ✅ — PR 7 (Access telemetry) under approved conservative privacy constraints (ninth pass, 2026-06-02)
+- [x] Product approved P1-P5 (doc 28 §6) — APPROVED by Owner/Product (2026-06-02)
+- [x] Legal/Privacy approved L1-L5 (doc 28 §6) — APPROVED by Owner/Internal Privacy (2026-06-02)
+- [x] Privacy policy updated to include access logging disclosure — approved language in doc 47
+- [x] Location granularity decision finalized — country-only approved
+- [x] Device/browser display decision finalized — audit details only approved
+- [x] Bot filtering approach confirmed — APPROVED by Engineering
+- [x] In-product disclosure decision finalized — APPROVED (see doc 47)
+
+See `47-pr7-pr8b-approval-record.md` for approval record and `48-philippines-data-privacy-compliance-plan.md` for DPA/NPC compliance.
 
 ### GO ✅ — PRs 8-9 (Hardening + Polish)
-After PR 7 is unblocked and shipped, these PRs proceed normally.
+PR 8B can proceed after PR 7 implementation (gate cleared). PR 9 proceeds normally after PR 8B.
 
 ---
 

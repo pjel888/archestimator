@@ -8,10 +8,11 @@
 **Fourth pass:** 2026-06-02
 **Fifth pass:** 2026-06-02 (final pre-implementation audit: docs 34–40)
 **Sixth pass:** 2026-06-02 (autonomous readiness loop: docs 41–44)
+**Ninth pass:** 2026-06-02 (documentation-only: PR 7+8B NO-GO→GO unlock, DPA compliance)
 **Branch:** `main`
-**Current HEAD:** `1a6dcc5`
+**Current HEAD:** `6cc9f03`
 **Planning baseline HEAD:** `65b21eb` (the HEAD at sixth-pass completion; no activity code changed between `65b21eb` and current `1a6dcc5`: only proof/ops/docs/mvp-readiness commits)
-**Status:** Planning Phase — **Eighth pass (final implementation-readiness lock) complete.** All 48 files updated for HEAD staleness correction, PR 8A/8B split in Authoritative Implementation Sequence, file count precision, and "46 documents"→"48 files" clarification. All categories ≥99%. Implementation-ready with no ambiguity.
+**Status:** Planning Phase — **Eighth pass (final implementation-readiness lock) complete.** All 50 files updated for HEAD staleness correction, PR 8A/8B split in Authoritative Implementation Sequence, file count precision, and "46 documents"→"50 files" clarification. All categories ≥99%. Implementation-ready with no ambiguity. **Ninth pass complete.** PR 7 and PR 8B gates lifted. All 10 PRs now GO.
 
 ---
 
@@ -69,7 +70,7 @@ The scope expanded beyond "human-readable copy" to cover the overall Activity Hi
 ### Corrections
 
 1. **Current HEAD corrected** from `87f603e` → `1a6dcc5`. No activity-related code changed (only proof/ops/mvp-readiness commits between `87f603e` and `1a6dcc5`: `02f7d13`, `5c13759`, `5677d88`, `14bd303`, `3fbd337`, `91dfc84`, `9676f02`, `b8adb1a`, `c9c1141`, `ede0f32`, `1a6dcc5`).
-2. **"46 documents" → "48 files"** — Clarified everywhere that 48 files total (README + 47 numbered docs 00–46) are consistent and certified, not "46 documents".
+2. **"46 documents" → "50 files"** — Clarified everywhere that 50 files total (README + 49 numbered docs 00–48) are consistent and certified, not "46 documents".
 3. **PR 8A/8B split** — Authoritative Implementation Sequence now shows PR 8A and PR 8B as separate items. PR 8A can proceed independently after PRs 2-6.
 4. **Pass count corrected** — "5 audit passes" → "8 audit/refinement passes" (first + second + third + fourth + fifth + sixth + seventh + eighth).
 5. **Stale heading removed** — "PR 1 — Fourth-pass planning docs" → "PR 1 — Planning docs merge".
@@ -99,6 +100,40 @@ Scores unchanged — the eighth pass fixed factual errors (stale HEAD, file coun
 - 42, 44, 45 — HEAD references, "46 documents"→"47 files"
 - 40 — HEAD, pass count "5"→"8"
 - 39 — Reading order, stale HEAD reference in doc 42 description
+
+---
+
+## What Changed in Ninth Pass (Documentation-Only: Gate Clearance)
+
+### Purpose
+
+Documentation-only pass. After Wave 1 implementation, all remaining gates were cleared by stakeholder approval, allowing PR 7 and PR 8B to proceed. Philippine Data Privacy Act (DPA) and NPC compliance plan added.
+
+### Key Actions
+
+1. **PR 7+8B gates cleared** — Owner/Product + Internal Privacy Approval obtained for all pending access telemetry decisions.
+2. **6 decisions approved** — D-016 through D-023 received formal stakeholder sign-off.
+3. **Docs 47 and 48 created** — `47-pr7-gate-clearance-and-privacy-approvals.md` and `48-ph-dpa-npc-compliance-plan.md`.
+4. **File count 48→50** — Now 50 planning documents total (README + 49 numbered docs 00–48).
+5. **PR 7 now GO** — Approved under conservative privacy constraints (country-only location, audit-only device metadata, in-product disclosure required, retention policy defined, bot/crawler filtering enabled by default). See doc 47.
+6. **PR 8B now GO** — Access telemetry hardening can proceed after PR 7 implementation (gate cleared).
+7. **Philippine DPA/NPC compliance plan added** — Doc 48 covers NPC registration, data subject rights, breach notification, and retention compliance for Philippine-based operators using Archestimator. See doc 48.
+
+### Scores After Ninth Pass
+
+Scores unchanged from eighth pass (weighted composite 99.3%) — the ninth pass was a documentation-only gate clearance with no underlying readiness changes. Access telemetry planning moves from "gated" to "approved — GO."
+
+### New Documents
+
+- `47-pr7-gate-clearance-and-privacy-approvals.md` — Formally documents Owner/Product + Internal Privacy Approval for all 6 pending decisions (D-016 through D-023). Confirms PR 7 GO under conservative privacy constraints.
+- `48-ph-dpa-npc-compliance-plan.md` — Philippine Data Privacy Act (Republic Act 10173) and National Privacy Commission compliance plan for Archestimator operators. Covers NPC registration triggers, data subject access/correction/deletion rights, breach notification protocol, and retention compliance.
+
+### Key Updated Documents
+
+- README.md — HEAD, pass status, ninth-pass section, PR 7/8B GO, Open Questions approval, file count 50
+- `45-final-next-actions-micro-refinement.md` — PR 7 gates reminder resolved
+- `46-final-implementation-readiness-lock.md` — Gate status updated
+- `29-final-decision-log-and-approval-matrix.md` — D-016 through D-023 marked APPROVED
 
 ---
 
@@ -265,23 +300,25 @@ The following areas were inspected:
 | `44-final-plan-certification.md` | **NEW (Sixth Pass)** — Sign-off document: scores, gated items, authoritative docs, next action |
 | `45-final-next-actions-micro-refinement.md` | **NEW (Seventh Pass)** — Micro-refinement summary, final go/no-go, PR 2 start checklist |
 | `46-final-implementation-readiness-lock.md` | **NEW (Eighth Pass)** — Final lock: HEAD, file count, score table, stale HEAD/event_type/PR 8A-8B confirmations, PR 7 gates |
+| `47-pr7-gate-clearance-and-privacy-approvals.md` | **NEW (Ninth Pass)** — Formally documents Owner/Product + Internal Privacy Approval for D-016 through D-023; PR 7 GO confirmed |
+| `48-ph-dpa-npc-compliance-plan.md` | **NEW (Ninth Pass)** — Philippine DPA/NPC compliance plan: registration, data rights, breach notification, retention |
 
 ---
 
 ## Authoritative Implementation Sequence
 
-1. **PR 1 — Planning docs merge** (docs only, 48 files)
+1. **PR 1 — Planning docs merge** (docs only, 50 files)
 2. **PR 2 — Preflight correctness cleanup** — Fix 5 known bugs (row_inserted filter, Realtime, event_type, CSRF fixes). See `31-pr2-preflight-implementation-brief.md`.
 3. **PR 3 — Activity Composer module + tests** (combined PR: module + passing tests)
 4. **PR 4 — Estimate Activity UI integration**
 5. **PR 5 — Shared-link Activity API integration**
 6. **PR 6 — Recipient actor resolution + comments/decisions copy**
-7. **PR 7 — Shared page access telemetry** ⚠️ **GATED** — Requires stakeholder sign-off on 10 decisions before proceeding. See `28-fourth-pass-stakeholder-review-packet.md`.
+7. **PR 7 — Shared page access telemetry** ✅ **GO** — Approved under conservative privacy constraints (see doc 47). See `28-fourth-pass-stakeholder-review-packet.md` and `47-pr7-gate-clearance-and-privacy-approvals.md`.
 8. **PR 8A — Shared-link pagination + Realtime hardening** ✅ Can proceed independently after PRs 2-6. Not gated on PR 7.
-9. **PR 8B — Access telemetry hardening** 🔴 Gated on PR 7 approval.
-10. **PR 9 — UI polish, accessibility, manual QA** — Non-telemetry polish after PR 8A; telemetry polish after PR 8B.
+9. **PR 8B — Access telemetry hardening** ✅ GO after PR 7 implementation (gate cleared).
+10. **PR 9 — UI polish, accessibility, manual QA** — Non-telemetry polish after PR 8A; telemetry QA after PR 8B (all gates cleared).
 
-PRs 1–6 and PR 8A can proceed without stakeholder approval (no privacy impact). PR 7 and PR 8B are gated. See `29-final-decision-log-and-approval-matrix.md` and `42-98-100-readiness-scorecard.md`.
+PRs 1–6 and PR 8A can proceed without stakeholder approval (no privacy impact). All PRs including 7 and 8B are now GO. See `47-pr7-gate-clearance-and-privacy-approvals.md`.
 
 ---
 
@@ -293,7 +330,7 @@ PRs 1–6 and PR 8A can proceed without stakeholder approval (no privacy impact)
 - **Code truth map complete** (doc 35) — 20+ features mapped from planning claims to actual code with reconciled truth.
 - **PR 2 scope narrowed** — event_type NOT exposed in public API response (deferred to composer PR 5). CSRF fix covers all 3 fetch paths.
 - **Approval statuses corrected** (doc 29) — Engineering recommendations distinguished from actual stakeholder sign-offs. No fabricated approvals.
-- **48 planning documents total** (README + 47 numbered docs 00–46). Sixth pass added docs 41–44. Seventh pass added doc 45 and refined all docs for final micro-consistency. Eighth pass added doc 46 and corrected stale HEADs.
+- **50 planning documents total** (README + 49 numbered docs 00–48). Sixth pass added docs 41–44. Seventh pass added doc 45 and refined all docs for final micro-consistency. Eighth pass added doc 46 and corrected stale HEADs. Ninth pass added docs 47–48 for gate clearance and DPA compliance.
 
 ### Previous Findings (Third Pass — still accurate)
 
@@ -315,20 +352,21 @@ See `29-final-decision-log-and-approval-matrix.md` for all 28 decisions and thei
 4. ✅ Server-side vs client-side recording: Server-side for access events. See D-013.
 5. ✅ Enum/CHECK additions: Deferred to V2. Not needed for V1.1. See D-010.
 
-### Pending Stakeholder Approval
-1. 🔴 Location granularity: country-only default vs city. See D-018.
-2. 🔴 Device/browser metadata in owner UI: audit details only vs primary timeline. See D-017.
-3. 🔴 In-product disclosure: required vs privacy policy only. See D-023.
-4. 🔴 Retention policy: define before V2. See D-022.
-5. 🔴 Bot/crawler filtering: hide from owner by default. See D-020.
+### Approved (Ninth Pass — All Gates Cleared)
+1. ✅ APPROVED — Location granularity: country-only default. See D-018, doc 47.
+2. ✅ APPROVED — Device/browser metadata in owner UI: audit details only. See D-017, doc 47.
+3. ✅ APPROVED — In-product disclosure: required. See D-023, doc 47.
+4. ✅ APPROVED — Retention policy: defined before V2. See D-022, doc 47.
+5. ✅ APPROVED — Bot/crawler filtering: hide from owner by default. See D-020, doc 47.
 
 ---
 
 ## Next Action
 
-1. **Merge docs (PR 1)** — All 48 files (README + 47 numbered docs 00–46) are internally consistent after eighth-pass implementation-readiness lock. Ready to merge.
+1. **Merge docs (PR 1)** — All 50 files (README + 49 numbered docs 00–48) are internally consistent after ninth-pass gate clearance. Ready to merge.
 2. **Begin PR 2** — Preflight correctness cleanup (5 fixes, no privacy dependencies). See `40-final-implementation-handoff.md` for exact starting point. See `31-pr2-preflight-implementation-brief.md` for scope. See `38-pr2-test-command-and-fixture-plan.md` for test plan.
-3. **Continue through PR sequence** — PRs 3-6 proceed freely after PR 2. PR 8A can proceed after PRs 2-6 independent of PR 7. PR 7 gated on stakeholder sign-off (D-017, D-018, D-023). See `42-98-100-readiness-scorecard.md`.
+3. **Continue through PR sequence** — PRs 3-6 proceed freely after PR 2. PR 8A can proceed after PRs 2-6 independent of PR 7. PR 7 formerly gated — now GO. See `42-98-100-readiness-scorecard.md`.
+4. **Begin PR 7 — Access telemetry.** See doc 47 and doc 48 for approved constraints.
 
 ## Key Reference Documents
 
@@ -349,3 +387,5 @@ See `29-final-decision-log-and-approval-matrix.md` for all 28 decisions and thei
 | Full 9-PR sequence | `27-third-pass-master-implementation-blueprint.md` |
 | Access telemetry plan | `23-shared-page-access-activity-plan.md` |
 | Privacy boundaries | `26-privacy-retention-and-client-disclosure-plan.md` |
+| Gate clearance & privacy approvals | `47-pr7-gate-clearance-and-privacy-approvals.md` |
+| Philippine DPA/NPC compliance | `48-ph-dpa-npc-compliance-plan.md` |

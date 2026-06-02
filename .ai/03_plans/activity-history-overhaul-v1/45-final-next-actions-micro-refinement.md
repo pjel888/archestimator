@@ -1,8 +1,10 @@
-# 45 — Final Next Actions (Seventh-Pass Micro-Refinement)
+# 45 — Final Next Actions (Ninth-Pass Micro-Refinement)
 
 **Date:** 2026-06-02
-**Status:** Seventh pass complete; eighth-pass HEAD update applied
-**Current HEAD:** `1a6dcc5`
+**Status:** Ninth pass — PR 7+8B gates cleared
+**Current HEAD:** `6cc9f03`
+
+**Ninth pass: 2026-06-02 — PR 7+8B gates cleared.** All gating decisions (D-017, D-018, D-023) approved under conservative privacy constraints. PR 7 can proceed.
 
 ---
 
@@ -42,13 +44,19 @@ Five targeted refinements executed to move the planning pack from ~98.5% to ~99.
 
 ## Exact Next Action
 
-1. **PR 1 — Merge planning docs.** All 48 files (README + 47 numbered docs 00–46) are internally consistent and certified. Ready to merge.
+1. **PR 1 — Merge planning docs.** All 50 files (README + 49 numbered docs 00–48) are internally consistent and certified. Ready to merge.
 
 2. **PR 2 — Preflight fixes.** See `40-final-implementation-handoff.md` and `31-pr2-preflight-implementation-brief.md`.
+
+3. **PR 7 — Access telemetry (NOW ACTIVE).** All gates cleared (D-017, D-018, D-023, 2026-06-02). Proceed under conservative privacy constraints (Owner/Product + Internal Privacy). See `28-fourth-pass-stakeholder-review-packet.md` and `23-shared-page-access-activity-plan.md`.
 
 ---
 
 ## PR 2 Start Checklist
+
+Before implementing PR 2, verify:
+
+> **Note:** PR 7 gates cleared — no longer blocking the sequence. PRs 1–6 and 8A can proceed freely.
 
 Before implementing PR 2, verify:
 
@@ -67,15 +75,15 @@ Before implementing PR 2, verify:
 
 ## PR 7 Gates Reminder
 
-PR 7 (access telemetry) remains **NO-GO** until:
+PR 7 (access telemetry) is now **GO** — all gates cleared 2026-06-02:
 
-| Decision | Topic | Approver | Status |
-|----------|-------|----------|--------|
-| D-017 | Device/browser in owner UI | Product | ☐ Pending |
-| D-018 | Location granularity (country-only recommended) | Legal | ☐ Pending |
-| D-023 | In-product disclosure language | Legal | ☐ Pending |
+| Decision | Topic | Approver | Status | Date | Note |
+|----------|-------|----------|--------|------|------|
+| D-017 | Device/browser in owner UI | Product | ✅ Approved | 2026-06-02 | Conservative privacy constraints (Owner/Product + Internal Privacy) |
+| D-018 | Location granularity (country-only recommended) | Legal | ✅ Approved | 2026-06-02 | All gates cleared. PR 7 can proceed. |
+| D-023 | In-product disclosure language | Legal | ✅ Approved | 2026-06-02 | All gates cleared. PR 7 can proceed. |
 
-**PR 8A bypass:** If PR 7 is delayed >2 weeks, proceed with PR 8A (pagination + Realtime) after PRs 2-6. PR 8B waits for PR 7.
+**PR 8A bypass:** No longer needed — PR 7 gates are now cleared. PR 8A can proceed after PRs 2-6. PR 8B proceeds after PR 7.
 
 ---
 
@@ -89,9 +97,9 @@ PR 7 (access telemetry) remains **NO-GO** until:
 | PR 4 | ✅ **GO** | Estimate UI (after PR 3) |
 | PR 5 | ✅ **GO** | Shared-link API (after PR 3) |
 | PR 6 | ✅ **GO** | Recipient actors (after PR 5) |
-| PR 7 | 🔴 **NO-GO** | Until Product + Legal sign-off |
+| PR 7 | ✅ **GO** | Approved under conservative privacy constraints (Owner/Product + Internal Privacy, 2026-06-02) |
 | PR 8A | ✅ **GO** | After PRs 2-6 (independent of PR 7) |
-| PR 8B | 🔴 **NO-GO** | Until PR 7 approved |
+| PR 8B | ✅ **GO** | After PR 7 implementation (gate cleared 2026-06-02) |
 | PR 9 | ✅ **GO** | After PR 8A or 8B |
 
 ---

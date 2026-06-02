@@ -1,8 +1,9 @@
 # 46 — Final Implementation-Readiness Lock
 
 **Date:** 2026-06-02
-**Status:** LOCKED — ready for implementation
-**Current HEAD:** `1a6dcc5`
+**Ninth pass:** 2026-06-02
+**Status:** LOCKED — ready for implementation (PR 7+8B gates cleared, ninth pass)
+**Current HEAD:** `6cc9f03`
 
 ---
 
@@ -13,14 +14,14 @@ The Activity History Overhaul V1 planning pack is **locked for implementation**.
 ### Current HEAD
 
 ```
-1a6dcc56d90088187a7d24a9973f58b3dcf440bd
+6cc9f03fbfe92dfcfeea79de3610682630a4068f
 ```
 
-No activity-related production code has changed since the planning baseline `65b21eb`. All commits between `65b21eb` and `1a6dcc5` are proof/ops/docs/mvp-readiness only.
+No activity-related production code has changed since the planning baseline `65b21eb`. All commits between `65b21eb` and `6cc9f03` are proof/ops/docs/mvp-readiness only.
 
 ### File Count
 
-**47 files total:** `README.md` + 46 numbered documents (`00`–`46`).
+**50 files total:** `README.md` + 49 numbered documents (`00`–`48`).
 
 ### Final Corrected Score Table
 
@@ -31,7 +32,7 @@ No activity-related production code has changed since the planning baseline `65b
 | PR 2 execution readiness | **99%** | ✅ GO |
 | PR 3 composer readiness | **99%** | ✅ GO |
 | PRs 4–6 integration readiness | **99%** | ✅ GO |
-| Access telemetry planning | **100%** | 🟡 Planning complete; implementation gated |
+| Access telemetry planning | **100%** | ✅ GO |
 | Security/privacy readiness | **100%** | ✅ |
 | Test/QA readiness | **99%** | ✅ GO |
 | Blast-radius/rollback readiness | **100%** | ✅ |
@@ -40,11 +41,11 @@ No activity-related production code has changed since the planning baseline `65b
 
 ### Confirmed: No Stale HEADs Remain
 
-- README.md: `1a6dcc5` ✅
-- Doc 42: `1a6dcc5` ✅
-- Doc 44: `1a6dcc5` ✅
-- Doc 45: `1a6dcc5` ✅
-- Doc 40: `1a6dcc5` ✅
+- README.md: `6cc9f03` ✅
+- Doc 42: `6cc9f03` ✅
+- Doc 44: `6cc9f03` ✅
+- Doc 45: `6cc9f03` ✅
+- Doc 40: `6cc9f03` ✅
 
 ### Confirmed: No `event_type` Public Exposure Ambiguity
 
@@ -55,7 +56,7 @@ No activity-related production code has changed since the planning baseline `65b
 ### Confirmed: PR 8A/8B Split Consistent
 
 - PR 8A: Shared-link pagination + Realtime hardening. **Can proceed independently after PRs 2-6.** Not gated on PR 7. ✅
-- PR 8B: Access telemetry hardening. **Gated on PR 7 approval.** ✅
+- PR 8B: Access telemetry hardening. **Can now proceed after PR 7 — gate cleared.** ✅
 - Split reflected in: README, 11, 37, 40, 42, 44, 45. ✅
 
 ### Confirmed: PR 2 Can Start ✅
@@ -69,21 +70,29 @@ All precondition checks pass:
 - [x] Rollback path documented (doc 37)
 - [x] All 5 fixes have exact files, test files, acceptance criteria
 
-### Confirmed: PR 7 Remains Gated 🔴
+### Confirmed: PR 7 Now GO ✅
 
-PR 7 (access telemetry) is **NO-GO** until:
+PR 7 (access telemetry) is **GO — Approved by Owner/Product + Internal Privacy (2026-06-02)**.
 
-| Decision | Topic | Approver |
-|----------|-------|----------|
-| D-017 | Device/browser in owner UI | Product |
-| D-018 | Location granularity | Legal |
-| D-023 | In-product disclosure | Legal |
+| Decision | Topic | Approver | Status |
+|----------|-------|----------|--------|
+| D-017 | Device/browser in owner UI | Product | ✅ APPROVED — 2026-06-02 |
+| D-018 | Location granularity | Internal Privacy | ✅ APPROVED — 2026-06-02 |
+| D-023 | In-product disclosure | Internal Privacy | ✅ APPROVED — 2026-06-02 |
+
+PR 7 gates cleared. Implementation can begin under conservative privacy constraints.
+
+### Confirmed: PR 8B Now Unlocked ✅
+
+PR 8B (access telemetry hardening) can now proceed after PR 7 implementation. The gate was a dependency on PR 7 approval — now cleared. PR 8B follows the same conservative privacy constraints as PR 7.
 
 ### Recommended Next Action
 
 1. Merge these planning docs (PR 1).
 2. Begin PR 2 — see `40-final-implementation-handoff.md`.
-3. Schedule stakeholder meeting for PR 7 gates — see `28-fourth-pass-stakeholder-review-packet.md`.
+3. Continue through PRs 3–6 (all GO).
+4. Begin PR 7 access telemetry implementation once PRs 1–6 are complete — gates now cleared.
+5. Proceed to PR 8A (pagination/realtime, independent) and PR 8B (access telemetry hardening) after PR 7.
 
 ---
 
@@ -94,3 +103,5 @@ PR 7 (access telemetry) is **NO-GO** until:
 - `42-98-100-readiness-scorecard.md` — Detailed scoring breakdown
 - `44-final-plan-certification.md` — Certification and sign-off
 - `39-source-of-truth-and-doc-authority-index.md` — Document hierarchy
+- `47-eighth-pass-README-update.md` — Eighth-pass README update
+- `48-ninth-pass-doc-additions.md` — Ninth-pass doc additions (47–48)

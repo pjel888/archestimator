@@ -137,16 +137,16 @@
 
 ### Go/No-Go: See `32-final-implementation-readiness-scorecard.md` for definitive fourth-pass assessment.
 ### GO for PRs 1-6 (no privacy dependencies) ✅
-### NO-GO for PR 7 (access telemetry) until stakeholder sign-off 🔴
+### GO for PR 7 (access telemetry) under approved privacy constraints ✅ (ninth pass, 2026-06-02)
 
-**Blocker:** Access telemetry privacy/product decisions must be approved before PR 7. See `28-fourth-pass-stakeholder-review-packet.md`.
+**Gates cleared:** Owner/Product + Internal Privacy approval obtained for all access telemetry decisions. See `47-pr7-pr8b-approval-record.md`.
 
-### Blocker: Access telemetry privacy/product decisions must be approved before PR 7
+### PR 7 gates cleared (ninth pass)
 
-- In-product disclosure of access logging (legal/compliance)
-- Bot/crawler event filtering in UI
-- Location data granularity policy
-- These decisions gate the shared page access telemetry implementation. See `26-privacy-retention-and-client-disclosure-plan.md`.
+- ✅ In-product disclosure of access logging — APPROVED by Owner/Internal Privacy
+- ✅ Bot/crawler event filtering in UI — APPROVED by Engineering
+- ✅ Location data granularity policy — APPROVED: country-only
+- See `47-pr7-pr8b-approval-record.md` for approval record. See `48-philippines-data-privacy-compliance-plan.md` for DPA compliance.
 
 ---
 

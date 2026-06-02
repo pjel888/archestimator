@@ -2,6 +2,7 @@
 
 **Date:** 2026-06-02
 **Status:** Eighth pass — final implementation-readiness lock complete
+**Ninth pass: 2026-06-02 — PR 7+8B gates cleared**
 **Audience:** Engineer/AI implementing PR 2 and subsequent PRs
 
 ---
@@ -12,8 +13,8 @@
 |------|--------|
 | Planning phase | ✅ Complete (8 audit/refinement passes) |
 | Docs internally consistent | ✅ Yes (after this pass) |
-| Activity code unchanged since planning | ✅ Yes (HEAD `1a6dcc5` = planning baseline `65b21eb` + proof/ops/docs/mvp-readiness commits; no activity code changed) |
-| Folder file count | 48 files (README + 47 numbered docs 00–46) |
+| Activity code unchanged since planning | ✅ Yes (HEAD `6cc9f03` = planning baseline `65b21eb` + proof/ops/docs/mvp-readiness commits; no activity code changed) |
+| Folder file count | 50 files (README + 49 numbered docs 00–48) |
 
 ---
 
@@ -28,7 +29,7 @@
 | PR 5 | ✅ **GO** | Shared-link Activity API integration (composer consumer) |
 | PR 6 | ✅ **GO** | Recipient actor resolution + comments/decisions copy |
 | PR 8A | ✅ **GO** (after PRs 2-6) | Shared-link pagination + Realtime hardening — NOT gated on PR 7 |
-| PR 8B | 🔴 **NO-GO** (gated on PR 7) | Access telemetry hardening — requires PR 7 data |
+| PR 8B | ✅ **GO** after PR 7 implementation (gate cleared). | Access telemetry hardening — requires PR 7 data |
 | PR 9 | ✅ **GO** (after PR 8A or 8B) | UI polish, accessibility, manual QA |
 
 ---
@@ -37,7 +38,7 @@
 
 | PR | Blocker | Resolution |
 |----|---------|-----------|
-| PR 7 (access telemetry) | 🔴 Product + Legal sign-off needed | D-017 (device in UI → Product), D-018 (location → Legal), D-023 (disclosure → Legal) |
+| PR 7 (access telemetry) | ✅ GO under approved privacy constraints. See doc 47. | All gates cleared 2026-06-02 |
 
 ---
 
@@ -90,13 +91,13 @@
 
 ## PR 7 — Access Telemetry Blockers
 
-**Must NOT start PR 7 until these are resolved:**
+**All blockers cleared 2026-06-02. PR 7 can proceed.**
 
 | Decision | Topic | Approver | Status |
 |----------|-------|----------|--------|
-| D-017 | Device/browser in owner UI (audit details only) | Product | ☐ Pending |
-| D-018 | Location granularity (country-only recommended) | Legal | ☐ Pending |
-| D-023 | In-product disclosure language | Legal | ☐ Pending |
+| D-017 | Device/browser in owner UI (audit details only) | Product | ✅ Approved |
+| D-018 | Location granularity (country-only recommended) | Legal | ✅ Approved |
+| D-023 | In-product disclosure language | Legal | ✅ Approved |
 
 When approved:
 - Implement `recordProjectPublicationAnalyticsEvent()` helper (doc 36)
@@ -207,10 +208,10 @@ Only after PR 7 is approved and implemented.
 ### Updated Dependency Graph
 
 - PRs 1–6 can proceed ✅
-- PR 7 remains gated 🔴
+- PR 7 gates cleared ✅. Implementation can proceed.
 - PR 8A can proceed after PRs 2–6 ✅
-- PR 8B waits for PR 7 🔴
-- PR 9 final polish may merge non-telemetry polish earlier, but telemetry polish waits for PR 7/8B
+- PR 8B can proceed after PR 7 ✅ (gate cleared).
+- PR 9 final polish can proceed after PR 8B (gate cleared; both telemetry and non-telemetry polish now unblocked).
 
 ---
 
@@ -319,7 +320,7 @@ bun run build
    - PR 3 (composer) can begin immediately
    - PRs 4-6 after PR 3
    - PR 8A (pagination/realtime) can proceed after PRs 2-6 without waiting for PR 7
-   - PR 7 is gated on Product/Legal — PR 8B waits for PR 7
+    - PR 7 gates cleared (Product/Legal approved 2026-06-02). PR 8B can proceed after PR 7.
 
 ---
 

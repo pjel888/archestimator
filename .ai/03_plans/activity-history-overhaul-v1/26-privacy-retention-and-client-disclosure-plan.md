@@ -2,6 +2,7 @@
 
 **Date:** 2026-06-02
 **Status:** Fourth-pass reconciled
+**Ninth pass (2026-06-02):** Retention policy approved for V1.1 — 90-day target. Philippine DPA/NPC compliance documented in doc 48.
 
 ---
 
@@ -24,8 +25,8 @@ Define safe tracking boundaries for shared page access telemetry. Document what 
 | Parsed OS | `macOS` | ✅ Yes (metadata_json) | ✅ Audit facts | ❌ | Low | Show in audit only |
 | Parsed device type | `desktop`, `mobile`, `tablet`, `bot` | ✅ Yes (metadata_json) | ✅ Audit facts | ❌ | Low | Show in audit only |
 | Country (provider) | `PH`, `US` | ✅ Yes (if available from headers) | ✅ Audit facts | ❌ | Low — coarse, provider-derived | Show as approximate |
-| Region (provider) | `NCR`, `CA` | ✅ Yes (if available) | ✅ Audit facts | ❌ | Low | Show as approximate |
-| City (provider) | `Makati`, `San Francisco` | ✅ Yes (if available) | ✅ Audit facts | ❌ | Medium — city-level increases identifiability risk; requires explicit approval | Show as approximate |
+| Region (provider) | `NCR`, `CA` | ❌ **No** (per D-018) | ❌ | ❌ | Low — country-only policy. Region-level data is NOT collected. | Not collected |
+| City (provider) | `Makati`, `San Francisco` | ❌ **No** (per D-018) | ❌ | ❌ | Low — APPROVED: country-only from provider headers. City-level data is NOT collected. | Not collected |
 | Timezone | `Asia/Manila` | ✅ Yes (if available from headers) | ✅ Audit facts | ❌ | Low | Show as approximate |
 | Recipient email | `maria@example.com` | ✅ Yes (in `shared_link_recipients`) | ✅ Yes | Own only | Medium — PII | Existing pattern; keep |
 | Recipient display name | `Maria Santos` | ✅ Yes (in `shared_link_recipients`) | ✅ Yes | Own only | Low | Keep |
@@ -61,7 +62,7 @@ Owners can see (for their own shared links):
 - Whether the shared link was opened (page visit + proposal view)
 - Whether the password gate was reached
 - Whether a password was attempted (success/failure/locked)
-- The approximate location (country/region/city) of the viewer
+- The approximate location (country/region) of the viewer
 - The device/browser used (parsed friendly labels)
 - The exact timestamp with milliseconds (in audit facts)
 - The IP hash (for correlation, in audit facts)
@@ -89,17 +90,17 @@ Support staff (with appropriate access) can see:
 
 | Data type | Retention | Rationale |
 |-----------|-----------|-----------|
-| `project_publication_events` | Indefinite (current) | Security/audit trail. Evaluate 90-day retention for access events in V2. |
-| `shared_link_events` | Indefinite (current) | Activity history for owner. |
-| `shared_link_recipients` | Indefinite (current) | Operational data (recipient management). |
+| `project_publication_events` | 90 days (APPROVED per D-022) | Security/audit trail. Approved for V1.1 — 90-day retention target. |
+| `shared_link_events` | 90 days (APPROVED per D-022) | Activity history for owner. Approved for V1.1 — 90-day retention target. |
+| `shared_link_recipients` | Until project deletion or manual removal | Operational data (recipient management). Retained while project is published. |
 | IP hash | Same as parent event row | Hashed, no PII concern. |
 | User-agent hash | Same as parent event row | Hashed, no PII concern. |
 | Location data | Same as parent event row | Coarse, provider-derived. Low privacy risk. |
 | Parsed device/browser | Same as parent event row | Aggregated data, not PII. |
 
-**No automated deletion is planned for V1.1.** Events are append-only. Future retention policy (V2+):
-- Access events: 90-day retention (GDPR-friendly)
-- Estimate events: 1-year retention (audit purposes)
+**Automated deletion is approved for V1.1** per D-022. Access events and shared link events: 90-day retention target. Events are append-only. Implementation details:
+- Access events (`project_publication_events`, `shared_link_events`): 90-day retention (GDPR-friendly, DPA-compliant)
+- Estimate events (`estimate_sheet_events`): 1-year retention (audit purposes)
 - Data deletion on project deletion (cascade from FK constraints)
 
 ---
@@ -110,15 +111,13 @@ Support staff (with appropriate access) can see:
 
 The existing privacy policy or terms should be updated to include:
 
-> **Activity Logging:** When a shared project link is opened, Archestimator records the visit including the approximate city and country (based on network provider data), device type, and browser used. This information is visible to the project owner. Raw IP addresses and precise locations are never stored. Your activity (comments, decisions, views) is visible to the project owner. Other recipients cannot see your device or location information.
+> **Activity Logging:** When a shared project link is opened, Archestimator records limited access activity such as the time the link was opened, whether the proposal was viewed, whether a password attempt succeeded or failed, device type/browser family, and country-level location when available from trusted network headers. This helps project owners understand client activity and protects shared links from abuse. Archestimator does not store raw IP addresses, raw user-agent strings, exact GPS location, password values, browser fingerprinting data, or referrer URLs.
 
 ### In-Product Disclosure
 
-For V1.1, consider adding a small notice on the shared page footer or password gate:
+**APPROVED by Owner/Internal Privacy (2026-06-02).** Approved disclosure language in doc 47. The following disclosure copy is approved for display on the shared page footer and password gate:
 
-> "Visits to this page are logged. The project owner can see when this link was opened, from what approximate location, and what device was used."
-
-This is optional — many SaaS products log access without in-product disclosure. The decision should be made with legal/compliance input.
+> "Visits to this page are logged for security and activity tracking. The project owner can see when this link was opened, whether the proposal was viewed, the type of device used, and the visitor's country. Archestimator does not store raw IP addresses, password values, or personal identifiers."
 
 ---
 
@@ -154,7 +153,7 @@ If a security incident occurs (e.g., unauthorized access to publication data):
 |-------------|--------|-----------|
 | IP hash | Low — one-way hash, not reversible | No raw IP to leak |
 | User-agent hash | Low — one-way hash | No raw UA to leak |
-| Location data | Low — coarse, city-level at most | Approximate only |
+| Location data | Low — coarse, country-level at most. City data not collected. | Approximate only |
 | Recipient emails | Medium — PII in `shared_link_recipients` | Already hashed tokens for access |
 | Password values | None — never stored | N/A |
 
@@ -164,10 +163,10 @@ If a security incident occurs (e.g., unauthorized access to publication data):
 
 | Decision | Status | Recommendation |
 |----------|--------|---------------|
-| In-product disclosure of access logging | Open | Consult legal. Optional for V1.1 — many SaaS skip. Add to privacy notice at minimum. |
-| Bot/crawler event filtering in UI | Open | Filter by default in owner activity feed. Show in advanced/support view. |
-| Retention policy timeline | Open | No automated deletion in V1.1. Define policy before V2. |
-| Location data granularity | Open | City-level from provider headers. If headers unavailable, omit entirely. Do not use fallback IP geolocation services. |
+| In-product disclosure of access logging | APPROVED (2026-06-02) | Owner/Internal Privacy approved. Disclosure language in doc 47. |
+| Bot/crawler event filtering in UI | APPROVED (2026-06-02) | Filter by default in owner activity feed. Show in advanced/support view. |
+| Retention policy timeline | APPROVED (2026-06-02) per D-022 | 90-day retention target for access events. Automated deletion approved for V1.1. |
+| Location data granularity | APPROVED (2026-06-02) per D-018 | Country-only from provider headers. City-level data is NOT collected. |
 
 ---
 
@@ -177,3 +176,5 @@ If a security incident occurs (e.g., unauthorized access to publication data):
 - See `25-access-event-data-model-and-migration-plan.md` for schema decisions
 - See `07-security-privacy-readiness.md` for broader security context
 - See `20-edge-case-and-failure-mode-matrix.md` for edge cases including bot traffic
+- See `47-pr7-gate-clearance-and-privacy-approvals.md` for Owner/Internal Privacy sign-off on all disclosure and retention decisions
+- See `48-ph-dpa-npc-compliance-plan.md` for Philippine DPA (RA 10173) and NPC compliance — 90-day retention, data subject rights, breach notification protocol

@@ -28,6 +28,8 @@
 | **Code truth** | `35-code-truth-map.md` | None | When docs and code disagree, 35 is authority |
 | **Implementation handoff** | `40-final-implementation-handoff.md` | All above | Last doc to read before coding |
 | **Stakeholder review** | `28-fourth-pass-stakeholder-review-packet.md` + `33-stakeholder-review-script.md` | None | For stakeholder meetings |
+| **Gate clearance** | `47-pr7-gate-clearance-and-privacy-approvals.md` | `48-ph-dpa-npc-compliance-plan.md` | PR 7 and PR 8B formal approvals |
+| **DPA/NPC compliance** | `48-ph-dpa-npc-compliance-plan.md` | `26-privacy-retention-and-client-disclosure-plan.md` | Philippine DPA compliance |
 
 ---
 
@@ -69,6 +71,8 @@ These documents contain useful historical context but are NO LONGER authoritativ
 | `29-final-decision-log-and-approval-matrix.md` | **Authoritative** (with noted corrections) | Approval statuses corrected in this pass. See doc 34 Finding 9. |
 | `31-pr2-preflight-implementation-brief.md` | **Authoritative** (with noted updates) | event_type exposure and CSRF coverage updated per this pass. |
 | `32-final-implementation-readiness-scorecard.md` | **Superseded** | `42-98-100-readiness-scorecard.md` | 42 is the final eighth-pass scorecard with HEAD `1a6dcc5` and complete 10-category scoring. |
+| `47-pr7-gate-clearance-and-privacy-approvals.md` | **Authoritative** | Approval record with signature blocks — gate clearance for PR 7 and PR 8B |
+| `48-ph-dpa-npc-compliance-plan.md` | **Authoritative** | Philippine DPA/NPC compliance plan |
 
 ---
 
@@ -106,6 +110,23 @@ These documents contain useful historical context but are NO LONGER authoritativ
 4. `33-stakeholder-review-script.md` — meeting agenda
 5. `42-98-100-readiness-scorecard.md` — final go/no-go scoring
 6. `43-final-risk-burndown-register.md` — risk register
+
+### For PR 7 Implementer
+1. `47-pr7-gate-clearance-and-privacy-approvals.md` — formal approval record, privacy constraints
+2. `48-ph-dpa-npc-compliance-plan.md` — DPA/NPC compliance requirements
+3. `46-final-implementation-readiness-lock.md` — final lock: HEAD, scores, go/no-go
+4. `40-final-implementation-handoff.md` — PR 7 scope and starting point
+5. `36-access-telemetry-side-effects-audit.md` — side effects matrix for access telemetry
+6. `23-shared-page-access-activity-plan.md` — access telemetry plan
+7. `26-privacy-retention-and-client-disclosure-plan.md` — privacy boundaries and retention
+8. `29-final-decision-log-and-approval-matrix.md` — D-016 through D-023 decisions
+
+### For PR 8B Implementer
+1. `47-pr7-gate-clearance-and-privacy-approvals.md` — formal approval record
+2. `48-ph-dpa-npc-compliance-plan.md` — DPA/NPC compliance context
+3. `37-final-blast-radius-and-rollback-map.md` — blast radius and dependency map
+4. `43-final-risk-burndown-register.md` — risk register for context
+5. `17-observability-analytics-and-quality-plan.md` — observability and analytics quality
 
 ---
 

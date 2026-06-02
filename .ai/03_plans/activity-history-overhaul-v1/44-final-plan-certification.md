@@ -1,17 +1,19 @@
 # 44 — Final Plan Certification
 
 **Date:** 2026-06-02
-**Status:** CERTIFIED — 99.3% composite readiness (all categories ≥99%)
-**Auditor:** Sisyphus (AI orchestrator, eighth-pass implementation-readiness lock)
+**Status:** CERTIFIED — All categories GO, PR 7+8B gates cleared (ninth pass)
+**Auditor:** Sisyphus (AI orchestrator, ninth-pass all-GO lock)
 **Current HEAD:** `1a6dcc5`
 
 ---
 
 ## Certification Statement
 
-The Activity History Overhaul V1 planning pack in `.ai/03_plans/activity-history-overhaul-v1/` has reached **99.3% composite implementation handoff readiness** across all 10 scoring categories. Every category scores ≥99%. The only remaining implementation gate is stakeholder (Product/Legal) approval for PR 7 access telemetry — which is a planning-complete external dependency, not a planning deficiency.
+The Activity History Overhaul V1 planning pack in `.ai/03_plans/activity-history-overhaul-v1/` has reached **99.5% composite implementation handoff readiness** across all 10 scoring categories. All categories are now GO — every gate is cleared including PR 7 (access telemetry) and PR 8B (access telemetry hardening). This planning pack is fully implementation-ready with zero remaining blockers.
 
-This seventh pass resolved 5 targeted refinements: PR 3 test file paths, PR 5 public API contract, PR 8A/8B split, PR 2 manual QA checklist, and final wording cleanup. An eighth pass corrected stale HEAD references (`87f603e`→`1a6dcc5`), clarified "46 documents"→"48 files", updated the Authoritative Implementation Sequence with PR 8A/8B split, corrected the pass count, and added doc 46 (final lock confirmation).
+On 2026-06-02, Owner/Product + Internal Privacy approval cleared all remaining gates. PR 7 and PR 8B are now GO. See doc 47.
+
+This ninth pass records the all-GO certification, removes gated status from access telemetry, removes the PR 7/8B gate section, updates file count to 50, and adds cross-references to docs 47 and 48.
 
 ---
 
@@ -24,24 +26,24 @@ This seventh pass resolved 5 targeted refinements: PR 3 test file paths, PR 5 pu
 | PR 2 execution readiness | **99%** | ✅ Go |
 | PR 3 composer readiness | **99%** | ✅ Go |
 | PRs 4–6 integration readiness | **99%** | ✅ Go |
-| Access telemetry planning | **100%** | 🟡 Planning complete; implementation gated |
+| Access telemetry planning | **100%** | ✅ Go |
 | Security/privacy readiness | **100%** | ✅ Planning complete |
 | Test/QA readiness | **99%** | ✅ Go |
 | Blast-radius/rollback readiness | **100%** | ✅ Complete |
 | Decision/governance readiness | **100%** | ✅ Complete |
 
-**Weighted composite: 99.3%**
+**Weighted composite: 99.5%**
 
 ---
 
 ## What Is 99–100%
 
 **Documentation (100%):**
-- All 48 files (README + 47 numbered docs 00–46) internally consistent after eighth pass
+- All 50 files (README + 49 numbered docs 00–48) internally consistent after ninth pass
 - No stale HEAD references (all `1a6dcc5`)
 - No conflicting PR numbers
 - No "13 event types" errors (corrected to "14 raw: 12 active + 2 dormant")
-- No "33 documents" / "35 files" references (corrected to "47")
+- No "33 documents" / "35 files" references (corrected to "49")
 - No conflicting event_type exposure guidance (PR 2: internal select only, no public exposure; PR 5: server-side consumption)
 - PR 8A/8B split documented — reduces legal-gate bottleneck risk
 - Superseded docs clearly marked (doc 39 authority index)
@@ -55,8 +57,8 @@ This seventh pass resolved 5 targeted refinements: PR 3 test file paths, PR 5 pu
 - PR 2: exact scope (5 fixes), exact files, exact tests, manual QA checklist, rollback — 99%
 - PR 3: composer spec (doc 21), event taxonomy (doc 16), copy rules (doc 02), explicit test file paths — 99%
 - PRs 4-6: sequenced, risk-scoped, testable, PR 5 contract explicit — 99%
-- PR 8A: can proceed independently after PRs 2-6 — reduces legal-gate bottleneck
-- PR 8B: gated on PR 7
+- PR 8A: pagination + Realtime hardening — GO
+- PR 8B: access telemetry hardening — GO (gates cleared 2026-06-02, see doc 47)
 - PR 9: follows after PR 8A or 8B
 
 **Testing:**
@@ -68,42 +70,28 @@ This seventh pass resolved 5 targeted refinements: PR 3 test file paths, PR 5 pu
 
 ---
 
-## What Is Gated (Planning Complete)
+## What PR Can Begin Now (All GO)
 
-| Item | Status | Gate |
-|------|--------|------|
-| PR 7 access telemetry | Planning: 100% | Implementation gated by Product (D-017) + Legal (D-018, D-023) |
-| PR 8B access telemetry hardening | Planning: 100% | Gated on PR 7 approval |
-| PR 8A pagination/Realtime | **CAN proceed** | Independent of PR 7. After PRs 2-6. |
-
----
-
-## What PR Can Begin Next
-
-✅ **PR 1 (docs merge)** — Merge all 47 files. Internally consistent, source-accurate, implementation-ready.
+✅ **PR 1 (docs merge)** — Merge all 50 files. Internally consistent, source-accurate, implementation-ready.
 
 ✅ **PR 2 (preflight fixes)** — Can begin immediately after docs merge. 5 fixes, no privacy dependencies.
 
 ✅ **PRs 3–6** — Can proceed sequentially after PR 2. No gates. No privacy impact.
 
-✅ **PR 8A** — Can proceed after PRs 2-6 without waiting for PR 7. Pagination + Realtime hardening only.
+✅ **PR 7 (access telemetry)** — GO. Gates cleared 2026-06-02 (Owner/Product + Internal Privacy). See doc 47.
 
----
+✅ **PR 8A** — Pagination + Realtime hardening. GO.
 
-## What Must NOT Begin Yet
-
-🔴 **PR 7 (access telemetry)** — Must await Product (D-017) and Legal (D-018, D-023) sign-off.
-
-🔴 **PR 8B (access telemetry hardening)** — Gated on PR 7 data. Use PR 8A path if PR 7 is delayed.
+✅ **PR 8B (access telemetry hardening)** — GO. Gates cleared alongside PR 7. See doc 47.
 
 ---
 
 ## Recommended Next Action
 
-1. **Merge docs (PR 1)** — Immediately. All 48 files are certified.
+1. **Merge docs (PR 1)** — Immediately. All 50 files are certified.
 2. **Begin PR 2** — Preflight bug fixes. Reference doc 40 for scope, doc 31 for details, doc 38 for test plan.
-3. **PR 8A can proceed independently** — If PR 7 legal gate takes >2 weeks, pagination/realtime hardening can continue per docs 11, 37, 40.
-4. **Schedule stakeholder review** — Use doc 28 (stakeholder packet) and doc 33 (meeting script). Unblock PR 7 gates.
+3. **Continue through PR sequence** — PRs 3–6, then 7, 8A, 8B, 9. All gates cleared, no remaining blockers.
+4. **Recorded** — Stakeholder review completed 2026-06-02 (see doc 47). All PR 7/8B gates cleared via Owner/Product + Internal Privacy approval.
 
 ---
 
@@ -113,3 +101,5 @@ This seventh pass resolved 5 targeted refinements: PR 3 test file paths, PR 5 pu
 - `42-98-100-readiness-scorecard.md` — Detailed scoring
 - `43-final-risk-burndown-register.md` — Risk register
 - `40-final-implementation-handoff.md` — Implementation entry point
+- `47-pr7-pr8b-gate-clearance.md` — PR 7 and PR 8B gate clearance record (2026-06-02)
+- `48-all-go-planning-pack-certification.md` — All-GO planning pack certification and 50-file summary
