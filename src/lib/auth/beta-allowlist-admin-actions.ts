@@ -13,6 +13,20 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 const betaUsersPath = "/workshop/settings/beta-users";
 
+type ClosedBetaAllowlistMutationRpcClient = {
+  rpc: (
+    ...args:
+      | [
+          functionName: "create_closed_beta_allowlist_entry",
+          args: { entry_email: string; entry_status: string; entry_notes: string | null },
+        ]
+      | [
+          functionName: "update_closed_beta_allowlist_entry",
+          args: { entry_id: string; entry_status: string; entry_notes: string | null },
+        ]
+  ) => PromiseLike<{ data: unknown; error: { message?: string } | null }>;
+};
+
 export async function createClosedBetaAllowlistEntry(formData: FormData) {
   const parsed = parseClosedBetaAllowlistCreate(formData);
   if (!parsed.ok) redirect(`${betaUsersPath}?error=invalid`);
@@ -21,12 +35,10 @@ export async function createClosedBetaAllowlistEntry(formData: FormData) {
   if (!canManageClosedBetaAllowlist(context.role)) redirect(`${betaUsersPath}?error=forbidden`);
 
   const supabase = await createSupabaseServerClient();
-  const { error } = await supabase.from("closed_beta_allowed_emails").insert({
-    invited_by: context.userId,
-    metadata: {},
-    normalized_email: parsed.email,
-    notes: parsed.notes,
-    status: parsed.status,
+  const { error } = await (supabase as ClosedBetaAllowlistMutationRpcClient).rpc("create_closed_beta_allowlist_entry", {
+    entry_email: parsed.email,
+    entry_notes: parsed.notes,
+    entry_status: parsed.status,
   });
 
   if (error) redirect(`${betaUsersPath}?error=save`);
@@ -43,13 +55,11 @@ export async function updateClosedBetaAllowlistEntry(formData: FormData) {
   if (!canManageClosedBetaAllowlist(context.role)) redirect(`${betaUsersPath}?error=forbidden`);
 
   const supabase = await createSupabaseServerClient();
-  const { error } = await supabase
-    .from("closed_beta_allowed_emails")
-    .update({
-      notes: parsed.notes,
-      status: parsed.status,
-    })
-    .eq("id", parsed.id);
+  const { error } = await (supabase as ClosedBetaAllowlistMutationRpcClient).rpc("update_closed_beta_allowlist_entry", {
+    entry_id: parsed.id,
+    entry_notes: parsed.notes,
+    entry_status: parsed.status,
+  });
 
   if (error) redirect(`${betaUsersPath}?error=save`);
 
