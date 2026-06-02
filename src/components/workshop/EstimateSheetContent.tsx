@@ -2531,6 +2531,60 @@ const ROW_DETAIL_TABS: readonly WorkshopTreeTabItem<RowDetailTab>[] = [
   { id: "activity", label: "Activity" },
 ];
 
+function getRowDetailComponentStatus(item: EstimateRowItem | null | undefined, isBlankRow: boolean) {
+  if (isBlankRow) {
+    return {
+      label: "No linked component",
+      description: "This row is a manual placeholder. Add or drag a component into the row to link current component data.",
+    };
+  }
+
+  if (!item) {
+    return {
+      label: "Manual component",
+      description: "Component source details are not available for this row.",
+    };
+  }
+
+  switch (item.linkState) {
+    case "detached":
+      return {
+        label: "Project-specific component",
+        description: "This component keeps the current row values and no longer follows library updates.",
+      };
+    case "linked-clean":
+      return {
+        label: "Synced library component",
+        description: "This row is following the current library component values.",
+      };
+    case "linked-overridden":
+      return {
+        label: "Customized library component",
+        description: "This row is linked to the library, but one or more estimate values have project-specific overrides.",
+      };
+    case "source-changed":
+      return {
+        label: "Library source changed",
+        description: "The source library component changed after this row was added. Review before replacing or detaching it.",
+      };
+    case "unlinked":
+      return {
+        label: "Manual component",
+        description: "This row is not linked to a library component.",
+      };
+    default:
+      return item.sourceLibraryItemId
+        ? {
+            label: "Library component",
+            description: "This row has a saved library source but no explicit sync state.",
+          }
+        : {
+            label: "Manual component",
+            description: "This row is not linked to a library component.",
+          };
+  }
+}
+
 function RowDetailField({ label, value }: { label: string; value: string | number | null | undefined }) {
   return (
     <div className="min-w-0 border-b border-hairline py-2">
@@ -2617,13 +2671,7 @@ function RowDetailsModal({
   const contingencyPercentage = row?.contingencyPercentage ?? item?.contingencyPercentage ?? 0;
   const contingencyValue = row?.contingencyValue ?? item?.contingencyValue ?? 0;
   const miscCost = row?.miscCost ?? item?.miscCost ?? 0;
-  const componentStatus = isBlankRow
-    ? "No linked component"
-    : item && isProjectSpecificRowItem(item)
-      ? "Project-specific"
-      : item?.sourceLibraryItemId
-        ? "Library component"
-        : "Manual component";
+  const componentStatus = getRowDetailComponentStatus(item, isBlankRow);
 
   return (
     <div
@@ -2685,7 +2733,7 @@ function RowDetailsModal({
             <div className="border-b border-hairline bg-white p-3">
               <div className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-start gap-3">
                 <div className="min-w-0">
-                  <p className="font-sans text-[8px] font-medium uppercase text-tertiary">{componentStatus}</p>
+                  <p className="font-sans text-[8px] font-medium uppercase text-tertiary">{componentStatus.label}</p>
                   <p className="truncate text-[10px] font-medium text-ink">{item?.material ?? "Row item"}</p>
                   <p className="mt-0.5 truncate text-[9px] text-tertiary">{row?.nodePath.join(" › ") ?? "Current estimate row"}</p>
                 </div>
@@ -2717,11 +2765,12 @@ function RowDetailsModal({
                   <div className="border border-hairline bg-white p-3">
                     <p className="text-[12px] font-medium text-ink">Current component</p>
                     <p className="mt-1 text-[10px] leading-4 text-tertiary">
-                      {isBlankRow ? "This row is a manual placeholder. Add or drag a component into the row to link current component data." : item?.description}
+                      {componentStatus.description}
                     </p>
                   </div>
                   <div className="grid grid-cols-2 gap-x-4 border border-hairline bg-white px-3 max-sm:grid-cols-1">
-                    <RowDetailField label="Component source" value={componentStatus} />
+                    <RowDetailField label="Component source" value={componentStatus.label} />
+                    <RowDetailField label="Library sync" value={componentStatus.description} />
                     <RowDetailField label="Source library id" value={item?.sourceLibraryItemId} />
                     <RowDetailField label="Component version" value={item?.componentVersionNumber ? `V${item.componentVersionNumber}` : item?.componentVersionId} />
                     <RowDetailField label="Price option" value={item?.priceOptionLabel ?? item?.priceOptionId} />

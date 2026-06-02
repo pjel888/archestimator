@@ -39,6 +39,12 @@
 - Guardrail evidence: `bunx vitest run tests/vitest/project-publication-header.test.tsx --maxWorkers=1` passed 1 file / 30 tests.
 - Launch meaning: this closes one concrete responsive-layout risk only. It does not provide browser screenshot evidence, hosted share smoke, recipient email proof, or a full responsive sweep; those gates remain **NO-GO**.
 
+### Local Row Details Library Sync State Slice
+
+- Scope: the estimate row details modal now distinguishes synced library rows, customized library rows, project-specific detached rows, source-changed rows, unlinked/manual rows, and fallback library-source rows instead of collapsing linked rows into generic source copy.
+- Guardrail evidence: `bunx vitest run tests/vitest/estimate-sheet-library-insert.test.tsx --maxWorkers=1` passed 1 file / 13 tests; `bun run type-check` passed.
+- Launch meaning: this closes the local row-details source/link-state clarity gap only. It does not prove linked Supabase project-specific unlink, hosted/manual detach QA, route-performance proof, AI provider behavior, or proposal/spreadsheet export proof; those gates remain **NO-GO**.
+
 ### Final Codex Implementation Report Evidence
 
 - Final report artifact: `final-codex-implementation-report.md`.

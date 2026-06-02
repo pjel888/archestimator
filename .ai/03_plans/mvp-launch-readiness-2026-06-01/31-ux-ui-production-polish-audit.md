@@ -33,7 +33,7 @@ Design-system source: `DESIGN.md`. Launch UI must be compact, work-focused, clea
 | Estimate grid | `EstimateSheetContent` | Exists | Row edit/delete/replace zero-defect matrix missing. | P0 | `QA-002` | Edits persist/history correct. | Core smoke. |
 | Right library sidebar | `component-library/index.tsx` | Exists | Search/empty/trust fields. | P1 | `LIB-001` | Insert component confidently. | Screenshot. |
 | Templates sidebar | template/sidebar components | Exists | Preview/insertion feedback. | P1 | `TPL-001` | Insert result obvious. | Screenshot. |
-| Row details modal | `EstimateSheetContent` row details | Exists | Detached/project-specific state unclear. | P0 | `UNLINK-001` | Clear source/link state. | Detach QA. |
+| Row details modal | `EstimateSheetContent` row details | Local source/link-state clarity covered | Linked Supabase/manual detach QA still needed. | P0 | `UNLINK-001` | Synced, customized, detached project-specific, source-changed, unlinked, and fallback library-source states render distinct source/sync copy. | Local DOM pass; linked detach QA still required. |
 | Library page | `LibraryPageClient` | Exists | Polish/seed audit. | P1 | `LIB-001` | Search/filter/create pass. | Screenshot. |
 | Templates page | `TemplatesPageClient` | Exists | Preview/empty states. | P1 | `TPL-001` | Browse/preview/insert pass. | Screenshot. |
 | Settings pages | `src/app/workshop/settings/*` | Local support/legal hub covered | Hosted screenshot, monitored support, and legal sign-off still needed. | P1/P0 | `LEGAL-001`, `OBS-001` | Support, legal, and data request paths are reachable from Settings. | Local source-contract pass; screenshot still required. |
