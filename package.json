@@ -28,6 +28,7 @@
     "launch:check-legal-owner": "bun run scripts/check-legal-owner-readiness.ts",
     "launch:check-resend-readiness": "bun run scripts/check-resend-readiness.ts",
     "launch:check-supabase-linked-readiness": "bun run scripts/check-supabase-linked-readiness.ts",
+    "dbidx:audit-repo": "bun run scripts/audit-dbidx-repo.ts",
     "perf:measure-routes": "bun run scripts/measure-route-transitions.ts",
     "perf:seed-fixture": "bun run scripts/seed-performance-test-data.ts",
     "perf:profile-peak-load": "vitest run tests/vitest/route-transition-peak-load-profile.test.tsx --maxWorkers=1",
