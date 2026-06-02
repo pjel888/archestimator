@@ -14,9 +14,15 @@ export type CurrentUserContext = {
   avatarUrl: string | null;
 };
 
+function hasSupabaseServerEnv(env: NodeJS.ProcessEnv = process.env) {
+  return Boolean(env.NEXT_PUBLIC_SUPABASE_URL?.trim() && env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim());
+}
+
 export const getCurrentUserContext = cache(async (): Promise<CurrentUserContext | null> => {
   const devContext = await getDevCurrentUserContext();
   if (devContext) return devContext;
+
+  if (!hasSupabaseServerEnv()) return null;
 
   const supabase = await createSupabaseServerClient();
   const {

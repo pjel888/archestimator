@@ -239,6 +239,12 @@ describe("closed beta readiness docs", () => {
     expect(evidenceIndex).toContain("archestimator-lr6t14h58-philipjonlewis-projects.vercel.app");
     expect(evidenceIndex).toContain("dpl_Fj4vLSMVm9iUqUFxcYe7fjsYmT4G");
     expect(evidenceIndex).toContain("linked SQL readiness command is currently blocked by linked database SASL auth before JSON output");
+    expect(evidenceIndex).toContain("### Hosted Auth Env Fail-Closed Fix at 6cc9f03");
+    expect(evidenceIndex).toContain("hosted-auth-env-fail-closed-fix-6cc9f03-2026-06-02.md");
+    expect(evidenceIndex).toContain("archestimator-lsv22sg4z-philipjonlewis-projects.vercel.app");
+    expect(evidenceIndex).toContain("dpl_3T35FnYXNspPUP3QL43tCASC4CMF");
+    expect(evidenceIndex).toContain("protected `/workshop` returned HTTP `500`");
+    expect(evidenceIndex).toContain("this is local fail-closed proof only until committed, pushed, deployed, and rechecked on Vercel");
     expect(currentState).toContain("**Provider State Refresh Evidence (2026-06-02):**");
     expect(currentState).toContain("plain health remains deployment-protected with HTTP 401");
     expect(currentState).toContain("**Provider State Refresh at b33f56d (2026-06-02):**");
@@ -264,6 +270,9 @@ describe("closed beta readiness docs", () => {
     expect(currentState).toContain("`vercelProductionReady` is `false`");
     expect(currentState).toContain("**Hosted Auth Route Proof Helper (2026-06-02):**");
     expect(currentState).toContain("`bun run launch:verify-hosted-auth` now provides a sanitized operator helper");
+    expect(currentState).toContain("**Hosted Auth Env Fail-Closed Fix (2026-06-02):**");
+    expect(currentState).toContain("protected `/workshop` returned HTTP `500` because `getCurrentUserContext()` constructed the Supabase server client before failing closed");
+    expect(currentState).toContain("This still needs commit, Vercel deployment, and hosted `/workshop` recheck before it counts as hosted proof");
     expect(currentState).toContain("one env-var-backed `automation-bypass` entry remains");
     expect(currentState).toContain("Vercel env vars remain absent");
     expect(currentState).toContain("public preview and branch-alias health remain deployment-protected with HTTP 401");
@@ -277,6 +286,9 @@ describe("closed beta readiness docs", () => {
     expect(knownIssues).toContain("Vercel production alias/rollback readiness evidence on 2026-06-02 remains blocked");
     expect(knownIssues).toContain("vercel-production-readiness-4fdf0de-2026-06-02.json");
     expect(knownIssues).toContain("`bun run launch:verify-hosted-auth` is available as a sanitized hosted `/workshop` route helper");
+    expect(knownIssues).toContain("Hosted auth env fail-closed evidence on 2026-06-02 remains incomplete");
+    expect(knownIssues).toContain("pre-fix Vercel preview `archestimator-lsv22sg4z-philipjonlewis-projects.vercel.app`");
+    expect(knownIssues).toContain("protected `/workshop` returned HTTP `500` when Vercel Supabase env was absent");
     expect(knownIssues).toContain("Supabase linked readiness refresh on 2026-06-02 confirms linked launch migrations and objects remain absent");
     expect(knownIssues).toContain("Vercel current-head read-only evidence on 2026-06-02 confirms latest app-runtime commit `638f681` has Ready preview deployment");
     expect(knownIssues).toContain("Vercel protection read-only evidence on 2026-06-02 confirms SSO protection remains");
@@ -767,6 +779,9 @@ describe("closed beta readiness docs", () => {
     expect(goalCompletionAudit).toContain("Supabase backup/PITR and restore-drill proof");
     expect(goalCompletionAudit).toContain("Hosted auth allowlist smoke");
     expect(goalCompletionAudit).toContain("`scripts/verify-hosted-auth-routes.ts` / `bun run launch:verify-hosted-auth` now provides a sanitized operator helper");
+    expect(goalCompletionAudit).toContain("Hosted auth env fail-closed fix at `6cc9f03`");
+    expect(goalCompletionAudit).toContain("protected `/workshop` returned HTTP `500` because missing Vercel Supabase env made `createSupabaseServerClient()` throw");
+    expect(goalCompletionAudit).toContain("the local fail-closed fix still needs deployment and Vercel recheck");
     expect(goalCompletionAudit).toContain("no passing hosted-session artifact exists");
     expect(goalCompletionAudit).toContain("Excel plus one secondary spreadsheet app open/recalc/print proof");
     expect(goalCompletionAudit).toContain("synthetic large-fixture benchmarked");

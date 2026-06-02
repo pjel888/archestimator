@@ -131,6 +131,15 @@
 - Guardrail evidence: `bunx vitest run tests/vitest/hosted-auth-route-smoke-script.test.ts --maxWorkers=1` covers base URL refusal, request-only cookie/header handling, redirect classification, missing-session fail-closed behavior, and proof-report redaction.
 - Launch meaning: this makes hosted auth allowlist proof operator-ready and sanitized, but it does not prove Google OAuth, hosted cookies, callback URLs, linked allowlist data, or first-run workspace behavior until a real hosted run writes a passing artifact. Hosted auth remains **NO-GO**.
 
+### Hosted Auth Env Fail-Closed Fix at 6cc9f03
+
+- Artifact: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/hosted-auth-env-fail-closed-fix-6cc9f03-2026-06-02.md`.
+- Hosted finding: latest observed preview `archestimator-lsv22sg4z-philipjonlewis-projects.vercel.app` / deployment `dpl_3T35FnYXNspPUP3QL43tCASC4CMF` was `READY` and `/api/health` passed through `vercel curl`, but protected `/workshop` returned HTTP `500`.
+- Root cause: `getCurrentUserContext()` created the Supabase server client before determining signed-out state; missing Vercel Supabase env caused `createSupabaseServerClient()` to throw.
+- Local fix: `src/lib/auth/session.ts` now checks for required Supabase server env before constructing the server client and returns `null` so `requireCurrentUserContext()` redirects to `/login` instead of surfacing a 500.
+- Verification: graph impact flagged high auth-session blast radius; `bunx vitest run tests/vitest/auth-session-closed-beta.test.ts tests/vitest/auth-callback-route.test.ts tests/vitest/auth-proxy.test.ts --maxWorkers=1` passed 3 files / 25 tests; `bun run type-check` passed; focused ESLint passed.
+- Launch meaning: this is local fail-closed proof only until committed, pushed, deployed, and rechecked on Vercel. It does not prove allowed/denied/revoked/expired hosted sessions, callback URLs, linked allowlist data, Vercel env values, or first-run workspace behavior.
+
 ### Hosted Export Route Auth-Blocked Probe at 231c27e
 
 - Artifact: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/hosted-export-route-auth-blocked-231c27e-2026-06-02.md`.
