@@ -3,7 +3,9 @@
 **Date:** 2026-06-02
 **Tenth pass:** 2026-06-02
 **Status:** LOCKED — ready for implementation (tenth-pass final certification; all references hardened)
-**Current HEAD:** `6aaa0b7`
+**Audited implementation baseline HEAD:** `65b21eb`
+**Last planning certification commit:** `e559e60`
+**Current repository HEAD:** `b6873b4`
 
 ---
 
@@ -14,14 +16,17 @@ The Activity History Overhaul V1 planning pack is **locked for implementation**.
 ### Current HEAD
 
 ```
-6aaa0b7ea55e41f5ba1129c44c3fcfe640a9fdda
+b6873b47075c863ef5f6598e523d405e69bcdbd2
 ```
 
-No activity-related production code has changed since the planning baseline `65b21eb`. All commits between `65b21eb` and `6aaa0b7` are proof/ops/docs/mvp-readiness only.
+**Audited implementation baseline:** `65b21eb`
+**Last planning certification commit:** `e559e60` (tenth pass)
+
+No activity-related production code has changed since the planning baseline `65b21eb`. All commits between `65b21eb` and `b6873b4` are proof/ops/docs/mvp-readiness only.
 
 ### File Count
 
-**52 files total:** `README.md` + 51 numbered documents (`00`–`50`).
+**63 files total:** `README.md` + 62 numbered documents (`00`–`61`).
 
 ### Final Corrected Score Table
 
@@ -41,11 +46,11 @@ No activity-related production code has changed since the planning baseline `65b
 
 ### Confirmed: No Stale HEADs Remain
 
-- README.md: `6aaa0b7` ✅
-- Doc 42: `6aaa0b7` ✅
-- Doc 44: `6aaa0b7` ✅
-- Doc 45: `6aaa0b7` ✅
-- Doc 40: `6aaa0b7` ✅
+- README.md: `b6873b4` ✅
+- Doc 42: `b6873b4` ✅
+- Doc 44: `b6873b4` ✅
+- Doc 45: `b6873b4` ✅
+- Doc 40: `b6873b4` ✅
 
 ### Confirmed: No `event_type` Public Exposure Ambiguity
 

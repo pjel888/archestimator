@@ -2,7 +2,9 @@
 
 **Date:** 2026-06-02
 **Status:** Tenth pass — final certification; all references fixed, all gates cleared
-**Current HEAD:** `6aaa0b7`
+**Audited implementation baseline HEAD:** `65b21eb`
+**Last planning certification commit:** `e559e60`
+**Current repository HEAD:** `b6873b4`
 
 ---
 
@@ -10,8 +12,8 @@
 
 | Category | Weight | Score | Status | Rationale |
 |----------|-------:|------:|--------|-----------|
-| Document consistency | 10 | **100%** | ✅ Complete | No stale HEADs (`6aaa0b7`), no path errors, no conflicting PR numbers. File counts accurate: 50 total files. All "13 event types"→"14", "33 documents"→"50", "35 files"→"50". |
-| Code factual accuracy | 15 | **100%** | ✅ Complete | Every major claim verified against current code (HEAD `6aaa0b7`). No activity code changed since planning baseline `65b21eb`. Doc 35 code truth map validated. |
+| Document consistency | 10 | **100%** | ✅ Complete | HEAD references use audited-baseline/certification/current pattern. No path errors, no conflicting PR numbers. File counts accurate: 63 total files (README + 62 numbered docs 00–61). All "13 event types"→"14", "33 documents"→"63", "35 files"→"63". |
+| Code factual accuracy | 15 | **100%** | ✅ Complete | Every major claim verified against current code (HEAD `b6873b4`). No activity code changed since planning baseline `65b21eb`. Doc 35 code truth map validated. |
 | PR 2 execution readiness | 15 | **99%** | ✅ Go | 5 fixes with exact files, tests, rollback, acceptance criteria. Fix #3 heading corrected. Manual QA checklist added with 6 verification categories. Minor: Fix #3 is a verification + TODO, not a code change (by design). |
 | PR 3 composer readiness | 10 | **99%** | ✅ Go | Activity composer spec (doc 21) now includes explicit test file paths: fixtures/activity-events.ts, activity-composer.test.ts, activity-copy-regression.test.ts, activity-security.test.ts, activity-view-model.test.ts. Covers all 14 raw estimate event types + shared-link types. |
 | PRs 4–6 integration readiness | 10 | **99%** | ✅ Go | PR 5 public API response contract now explicit: ActivityViewModel[] must-include and must-NOT-include lists defined. PR 2 vs PR 5 event_type handling clarified. Public response must never expose raw technical event names after PR 5. |

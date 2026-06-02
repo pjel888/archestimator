@@ -11,16 +11,19 @@
 
 | Item | Value |
 |------|-------|
-| Current HEAD (full SHA) | `6aaa0b7ea55e41f5ba1129c44c3fcfe640a9fdda` |
-| Current HEAD (short) | `6aaa0b7` |
+| Current repository HEAD (full SHA) | `b6873b47075c863ef5f6598e523d405e69bcdbd2` |
+| Current repository HEAD (short) | `b6873b4` |
 | Branch | `main` |
-| Planning baseline HEAD | `65b21eb` |
-| Activity code changed since baseline? | **No** — all commits between `65b21eb` and `6aaa0b7` are proof/ops/docs/mvp-readiness only |
-| Actual file count in planning folder | 52 (README + 51 numbered docs 00–50) |
+| Audited implementation baseline HEAD | `65b21eb` |
+| Last planning certification commit | `e559e60` (tenth pass) |
+| Activity code changed since baseline? | **No** — all commits between `65b21eb` and `b6873b4` are proof/ops/docs/mvp-readiness only |
+| Actual file count in planning folder | 63 (README + 62 numbered docs 00–61) |
+| Production enablement docs | 11 (docs 51–61) — eleventh pass |
 | Doc 47 filename | `47-pr7-pr8b-approval-record.md` |
 | Doc 48 filename | `48-philippines-data-privacy-compliance-plan.md` |
 | Last commit touching planning folder | `82cc691` (ninth pass) |
-| Tenth pass commit | This pass (document hardening + certification) |
+| Tenth pass commit | `e559e60` (document hardening + certification) |
+| Production enablement pass | This pass (eleventh pass — production enablement hardening) |
 
 ---
 
@@ -191,6 +194,8 @@ These must be completed before access telemetry can be enabled in production:
 
 ## Read This First — Authoritative Reading Order
 
+### Implementation
+
 1. **`50-final-100-implementation-readiness-certification.md`** ← You are here
 2. `47-pr7-pr8b-approval-record.md` — PR 7/PR 8B formal approvals, privacy constraints
 3. `48-philippines-data-privacy-compliance-plan.md` — DPA/NPC compliance plan, launch-gate checklist
@@ -202,6 +207,19 @@ These must be completed before access telemetry can be enabled in production:
 9. `31-pr2-preflight-implementation-brief.md` — PR 2 exact scope (5 fixes)
 10. `38-pr2-test-command-and-fixture-plan.md` — PR 2 test plan per fix
 11. `29-final-decision-log-and-approval-matrix.md` — All 28 decisions and statuses
+
+### Production Enablement
+
+1. **`61-access-telemetry-production-enablement-readiness-certification.md`** — Production enablement certification — read FIRST
+2. `51-access-telemetry-production-enablement-checklist.md` — Master checklist (39 items)
+3. `52-privacy-notice-and-disclosure-copy-pack.md` — Approved copy pack
+4. `53-dpo-npcrs-and-dps-registration-triage.md` — DPO/NPCRS/DPS triage
+5. `54-data-subject-request-and-breach-response-playbook.md` — DSR and breach playbook
+6. `55-access-telemetry-retention-runbook.md` — Retention runbook
+7. `56-access-telemetry-feature-flag-and-rollout-plan.md` — Feature flag and rollout
+8. `57-access-telemetry-test-evidence-matrix.md` — Test evidence matrix
+9. `58-production-enablement-final-go-template.md` — Sign-off template
+10. `59-access-telemetry-production-enablement-readiness-scorecard.md` — Production readiness scores
 
 ---
 
@@ -224,20 +242,19 @@ These must be completed before access telemetry can be enabled in production:
 | 29-decision-log | `47-pr7-pr8b-approval-record.md` | ✅ yes |
 | 29-decision-log | `48-philippines-data-privacy-compliance-plan.md` | ✅ yes |
 | 37-blast-radius | `47-pr7-pr8b-approval-record.md` | ✅ yes |
-| 37-blast-radius | `48-philippines-data-privacy-compliance-plan.md` | ✅ yes |
-| 26-privacy | `47-pr7-pr8b-approval-record.md` | ✅ yes |
-| 26-privacy | `48-philippines-data-privacy-compliance-plan.md` | ✅ yes |
-| 23-access-plan | `47-pr7-pr8b-approval-record.md` | ✅ yes |
-| 23-access-plan | `48-philippines-data-privacy-compliance-plan.md` | ✅ yes |
-| 48-dpa-plan | `47-pr7-pr8b-approval-record.md` | ✅ yes |
-| 47-approval | `48-philippines-data-privacy-compliance-plan.md` | ✅ yes |
-| 40-handoff | `47-pr7-pr8b-approval-record.md` | ✅ yes |
+| 37-blast-radius | `61-access-telemetry-production-enablement-readiness-certification.md` | ✅ yes |
+| 37-blast-radius | `51-access-telemetry-production-enablement-checklist.md` | ✅ yes |
+| 26-privacy | `61-access-telemetry-production-enablement-readiness-certification.md` | ✅ yes |
+| 23-access-plan | `61-access-telemetry-production-enablement-readiness-certification.md` | ✅ yes |
+| 48-dpa-plan | `61-access-telemetry-production-enablement-readiness-certification.md` | ✅ yes |
+| 47-approval | `61-access-telemetry-production-enablement-readiness-certification.md` | ✅ yes |
+| 40-handoff | `61-access-telemetry-production-enablement-readiness-certification.md` | ✅ yes |
 
 ---
 
 ## Recommended Next Action
 
-1. **Merge docs (PR 1)** — All 52 files are internally consistent and certified.
+1. **Merge docs (PR 1)** — All 63 files (README + 62 numbered docs 00–61) are internally consistent and certified.
 2. **Begin PR 2** — Preflight correctness cleanup. See `40-final-implementation-handoff.md` and `31-pr2-preflight-implementation-brief.md`.
 3. **Continue through PR sequence** — PRs 3–6, then 7, 8A, 8B, 9.
 4. **Before PR 7 production enablement** — Complete all items in the Production Enablement Gate section above.

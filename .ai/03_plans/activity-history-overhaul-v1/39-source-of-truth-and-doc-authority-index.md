@@ -30,7 +30,18 @@
 | **Stakeholder review** | `28-fourth-pass-stakeholder-review-packet.md` + `33-stakeholder-review-script.md` | None | For stakeholder meetings |
 | **Gate clearance** | `47-pr7-pr8b-approval-record.md` | `48-philippines-data-privacy-compliance-plan.md` | PR 7 and PR 8B formal approvals |
 | **DPA/NPC compliance** | `48-philippines-data-privacy-compliance-plan.md` | `26-privacy-retention-and-client-disclosure-plan.md` | Philippine DPA compliance |
-| **Final certification** | `50-final-100-implementation-readiness-certification.md` | `47-pr7-pr8b-approval-record.md`, `48-philippines-data-privacy-compliance-plan.md` | Final single source of truth — read FIRST |
+| **Final certification (implementation)** | `50-final-100-implementation-readiness-certification.md` | `47-pr7-pr8b-approval-record.md`, `48-philippines-data-privacy-compliance-plan.md` | Final single source of truth — read FIRST |
+| **Production enablement checklist** | `51-access-telemetry-production-enablement-checklist.md` | `52-privacy-notice-and-disclosure-copy-pack.md` through `58-production-enablement-final-go-template.md` | Master production enablement checklist |
+| **Production enablement copy** | `52-privacy-notice-and-disclosure-copy-pack.md` | `47-pr7-pr8b-approval-record.md` | Approved privacy notice and disclosure copy |
+| **DPO/NPCRS/DPS triage** | `53-dpo-npcrs-and-dps-registration-triage.md` | `48-philippines-data-privacy-compliance-plan.md` | DPO designation, NPCRS registration, DPS inventory |
+| **DSR/breach playbook** | `54-data-subject-request-and-breach-response-playbook.md` | `48-philippines-data-privacy-compliance-plan.md` | Data subject request and breach response procedures |
+| **Retention runbook** | `55-access-telemetry-retention-runbook.md` | `48-philippines-data-privacy-compliance-plan.md` | 90-day retention path |
+| **Feature flag/rollout** | `56-access-telemetry-feature-flag-and-rollout-plan.md` | `51-access-telemetry-production-enablement-checklist.md` | 6-stage rollout plan |
+| **Test evidence matrix** | `57-access-telemetry-test-evidence-matrix.md` | `47-pr7-pr8b-approval-record.md` | 39 tests required before production |
+| **Production sign-off template** | `58-production-enablement-final-go-template.md` | `51-access-telemetry-production-enablement-checklist.md` | Final sign-off template |
+| **Production readiness scorecard** | `59-access-telemetry-production-enablement-readiness-scorecard.md` | `61-access-telemetry-production-enablement-readiness-certification.md` | 12-category production enablement scoring |
+| **Production loop log** | `60-production-enablement-readiness-loop-log.md` | `61-access-telemetry-production-enablement-readiness-certification.md` | Eleventh pass loop audit trail |
+| **Final certification (production)** | `61-access-telemetry-production-enablement-readiness-certification.md` | `51-access-telemetry-production-enablement-checklist.md` through `59-access-telemetry-production-enablement-readiness-scorecard.md` | Production enablement single source of truth — read FIRST |
 | **Loop audit (tenth pass)** | `49-final-100-readiness-loop-log.md` | — | Audit trail of final document hardening pass |
 
 ---
@@ -134,6 +145,18 @@ These documents contain useful historical context but are NO LONGER authoritativ
 4. `37-final-blast-radius-and-rollback-map.md` — blast radius and dependency map
 5. `43-final-risk-burndown-register.md` — risk register for context
 6. `17-observability-analytics-and-quality-plan.md` — observability and analytics quality
+
+### For Production Enablement
+1. `61-access-telemetry-production-enablement-readiness-certification.md` — read FIRST
+2. `51-access-telemetry-production-enablement-checklist.md` — master checklist
+3. `52-privacy-notice-and-disclosure-copy-pack.md` — privacy notice and disclosure copy
+4. `53-dpo-npcrs-and-dps-registration-triage.md` — DPO/NPCRS/DPS triage
+5. `54-data-subject-request-and-breach-response-playbook.md` — DSR and breach playbook
+6. `55-access-telemetry-retention-runbook.md` — retention runbook
+7. `56-access-telemetry-feature-flag-and-rollout-plan.md` — feature flag and rollout
+8. `57-access-telemetry-test-evidence-matrix.md` — test evidence matrix
+9. `58-production-enablement-final-go-template.md` — final sign-off template
+10. `59-access-telemetry-production-enablement-readiness-scorecard.md` — production readiness scores
 
 ---
 

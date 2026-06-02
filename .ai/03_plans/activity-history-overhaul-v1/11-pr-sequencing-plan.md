@@ -43,7 +43,7 @@ PR 9 depends on the relevant path (8A or 8B).
 
 **Purpose:** Add/update all planning documents in the `.ai/` directory. No production code changes.
 
-**Files:** All files in `.ai/03_plans/activity-history-overhaul-v1/` (52 files total: README + 51 numbered docs 00–50)
+**Files:** All files in `.ai/03_plans/activity-history-overhaul-v1/` (63 files total: README + 62 numbered docs 00–61)
 
 **Tests:** None required (documentation only)
 

@@ -1,7 +1,9 @@
 # 47 — PR 7 / PR 8B Approval Record
 
 **Date:** 2026-06-02
-**Current HEAD:** `6aaa0b7`
+**Audited implementation baseline HEAD:** `65b21eb`
+**Last planning certification commit:** `e559e60`
+**Current repository HEAD:** `b6873b4`
 **Status:** APPROVED — PR 7 and PR 8B gates cleared
 
 ---
@@ -186,11 +188,12 @@ The following decisions, previously gating PR 7, are now **APPROVED**:
 ## Production Enablement Conditions
 
 PR 7 implementation is GO, but production enablement requires:
-- [ ] Privacy notice updated
-- [ ] In-product disclosure added to shared page + password gate
-- [ ] DPO / NPCRS registration triage completed (see doc 48 §6)
-- [ ] 90-day retention path documented or implemented
-- [ ] Tests confirming no raw IP, raw UA, GPS, city, region, password values, or fingerprinting data
+- [ ] Privacy notice updated (see doc 52 for approved copy)
+- [ ] In-product disclosure added to shared page + password gate (see doc 52)
+- [ ] DPO / NPCRS registration triage completed (see doc 48 §6, doc 53)
+- [ ] 90-day retention path documented or implemented (see doc 55)
+- [ ] Tests confirming no raw IP, raw UA, GPS, city, region, password values, or fingerprinting data (see doc 57)
+- [ ] Full production enablement checklist completed (see doc 51)
 
 ---
 
@@ -233,3 +236,7 @@ Recommended before public launch or wide commercial rollout.
 - `23-shared-page-access-activity-plan.md` — Access telemetry implementation plan
 - `26-privacy-retention-and-client-disclosure-plan.md` — Privacy and retention plan
 - `36-access-telemetry-side-effects-audit.md` — Side effects audit and compliance helper
+- `51-access-telemetry-production-enablement-checklist.md` — Production enablement checklist
+- `52-privacy-notice-and-disclosure-copy-pack.md` — Approved disclosure copy
+- `55-access-telemetry-retention-runbook.md` — Retention runbook
+- `61-access-telemetry-production-enablement-readiness-certification.md` — Production enablement certification
