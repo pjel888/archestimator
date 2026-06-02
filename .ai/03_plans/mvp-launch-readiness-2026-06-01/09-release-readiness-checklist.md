@@ -32,7 +32,7 @@ This checklist is now for closed beta, not public paid launch.
 - [ ] No payment setup is required.
 - [ ] No checkout, subscriptions, invoices, paid plan UI, or billing enforcement is visible.
 - [ ] Beta terms/privacy/AUP/disclaimers are visible.
-- [ ] Feedback/support path is live and monitored. Local contact/workshop links plus structured support email draft are implemented; inbox/form monitoring proof remains open.
+- [ ] Feedback/support path is live and monitored. Protected `/workshop/feedback`, local contact/workshop links, and structured support email draft are implemented; linked migration, hosted smoke, inbox/table monitoring, and alert ownership proof remain open.
 - [ ] Founder-led support process is ready.
 - [ ] Production Google OAuth callback URLs are verified.
 - [ ] Core project/estimate/component/template/unlink/export smoke passes.
@@ -70,7 +70,7 @@ Current release state: **NO-GO**.
 | RLS/security proof | P0 | `SEC-001` | Security/Eng | RLS denial, storage denial, route access matrix pass. | SQL output + test logs | PR-6 | Blocked |
 | Resend delivery/webhook | P0 if email visible | `INFRA-002` | Release | Domain verified, inbox delivery, webhook receipt. | Resend dashboard + webhook log | PR-6 | Blocked |
 | Legal pages approved | P0 | `LEGAL-001` | Legal/Product | Terms, Privacy, beta agreement, AUP approved or beta-limited copy accepted. | Legal sign-off note | PR-7 | Local beta copy pass; counsel/owner sign-off pending |
-| Observability/support | P0 | `OBS-001` | Ops | Error tracking, uptime, alert owner, support inbox. | Dashboard links/runbook | PR-7 | Local feedback link, honest support email draft, and health route pass; deployed monitor/alert proof pending |
+| Observability/support | P0 | `OBS-001` | Ops | Error tracking, uptime, alert owner, support inbox/table review. | Dashboard links/runbook | PR-7 | Local protected feedback path, honest support email draft, and health route pass; deployed monitor/alert proof pending |
 | Backup/DR | P0 | `DATA-001` | Ops/Eng | Pre-migration backup, restore plan, RPO/RTO documented. | Backup proof + drill notes | PR-8 | Blocked |
 | Zero-defect matrix | P0 | `QA-002` | QA/Eng | Main feature matrix passes or no-go remains. | `33-main-feature-zero-defect-test-matrix.md` | PR-8 | Blocked |
 | Investor demo pack | P0 for demo | `DEMO-001` | Product | Demo workspace, script, export artifact, fallback. | Demo checklist/screenshots | PR-9 | Blocked |

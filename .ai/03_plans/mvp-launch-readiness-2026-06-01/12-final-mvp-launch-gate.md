@@ -72,7 +72,7 @@ Current decision: **NO-GO**.
 | Excel export is professional bid/BOQ workbook | Yes | Formula tests, reference contract, Excel + secondary app open proof. | Local ExcelJS/workbook tests pass; cross-app open proof pending. | No-go |
 | Resend delivery/webhook verified before visible email workflows are re-enabled | Yes | Domain DNS, delivery, webhook, bounce/complaint test. | Missing; recipient email controls now disable while server readiness is false, and Teamspaces invite delivery controls now disable while invite delivery readiness is false. | No-go |
 | Legal pages accurate | Yes | Reviewed or closed-beta approved copy. | Local beta copy pass; owner/counsel sign-off pending. | No-go |
-| Support/feedback path exists | Yes | Contact/support inbox and beta bug report route. | Local workshop feedback link exists; public contact form opens a structured support email draft; monitored inbox/form proof pending. | No-go |
+| Support/feedback path exists | Yes | Contact/support inbox and beta bug report route. | Protected `/workshop/feedback` exists and can persist to `beta_feedback_submissions` after migration apply; public contact form opens a structured support email draft; monitored inbox/table proof pending. | No-go |
 | Observability/alerts configured | Yes | Error tracking, uptime, alert owner, export/auth/email alerts. | Local `/api/health` and runbook exist; deployed monitor/alert proof pending. | No-go |
 | Backup/rollback plan proven | Yes | Backup proof, migration rollback, Vercel rollback, restore plan. | Backup/restore checklist exists; provider proof pending. | No-go |
 | Investor demo pack ready | Yes for demo | Demo workspace, script, screenshots, export artifact, fallback. | Local seed/demo script anchors, component/template screenshots, workbook artifact, and template insertion proof exist; rehearsal and hosted proof pending. | No-go |
@@ -98,7 +98,7 @@ Rules: below 90 cannot be called beta-ready; P0 below 95 blocks launch; 100 requ
 | Security/RLS | 70 | Local RLS/allowlist model exists; linked security advisor warns and linked denial/storage tests are missing. |
 | Legal/privacy | 82 | Local beta terms/privacy copy exists; owner/counsel review missing. |
 | Performance/caching | 65 | Current architecture plausible; export/route/load proof missing. |
-| Observability/support | 78 | Local health route/support runbook exists; external alert proof missing. |
+| Observability/support | 82 | Local health route, support runbook, and protected feedback-table path exist; external alert/monitoring proof missing. |
 | QA/test coverage | 82 | Local type/lint/unit/DOM/build pass; hosted/manual E2E proof missing. |
 | Investor demo readiness | 82 | Local seed/demo plan anchors, fallback workbook artifact, library/template screenshots, and insertion smoke proof exist; rehearsal proof remains missing. |
 | Beta readiness | 40 | P0 legal/security/ops/product gates are unproven. |
@@ -118,7 +118,7 @@ Do not launch beta if:
 - RLS/migrations are not verified.
 - Resend email delivery/webhook is unverified before invite/share email workflows are re-enabled.
 - Legal pages are misleading.
-- No monitored support/feedback path exists. Local contact/support links and structured email draft handoff are not enough without inbox/form monitoring proof.
+- No monitored support/feedback path exists. Local contact/support links, protected `/workshop/feedback`, and structured email draft handoff are not enough without linked migration, hosted smoke, inbox/table monitoring, and alert-owner proof.
 - No rollback plan exists.
 - No backup plan exists before migration.
 - No core smoke test is completed.

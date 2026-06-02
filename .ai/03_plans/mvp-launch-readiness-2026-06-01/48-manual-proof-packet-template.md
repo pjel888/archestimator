@@ -42,7 +42,7 @@ Do not record secrets, raw cookies, raw invite tokens, magic links, service-role
 | Project-specific unlink manual smoke | pending | TBD | Include detach/edit/library unchanged/export proof. |
 | Component/template demo smoke | pending | TBD | Include screenshots/notes for component search/trust and template preview/insert. |
 | Legal/owner review | pending | TBD | Include dated owner/counsel sign-off or keep launch blocked. |
-| Support/monitoring | pending | TBD | Include monitored inbox/form and alert/uptime owner proof. |
+| Support/monitoring | pending | TBD | Include monitored inbox/table review and alert/uptime owner proof. |
 | Demo rehearsal | pending | TBD | Include screenshots, exported workbook, fallback script, rehearsal note. |
 | Current manual E2E smoke | pending | TBD | Include hosted journey across login, project, estimate, library, template, unlink, export, logout. |
 

@@ -9,7 +9,7 @@ Closed beta access control is now the first P0 feature because the app is invite
 | Closed beta allowlist | P0 | Google-authenticated users must match `closed_beta_allowed_emails` before `/workshop` access. |
 | Auth/onboarding | P0 | Whitelisted users enter `/workshop`; non-whitelisted users see access-required UX; no redirect loops. |
 | Workspace first-run | P0 | Whitelisted users with no workspace get the existing default workspace path. |
-| Feedback/support | P0 | Beta users can submit feedback through an external form/support email path. |
+| Feedback/support | P0 | Beta users can submit feedback through protected `/workshop/feedback`; support email remains the fallback/contact path. |
 | Project-specific unlink | P0 | Users can safely make project-specific components without corrupting library data. |
 | Component library | P0 | Workable enough for real beta estimates and demos, not exhaustive. |
 | Templates | P0 | Enough templates to demonstrate value; preview/insert must work. |

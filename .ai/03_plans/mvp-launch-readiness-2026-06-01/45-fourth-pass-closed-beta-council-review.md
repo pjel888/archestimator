@@ -29,7 +29,7 @@ External model council tools were not used in this pass. This is an internal sim
 | Is Resend P0 or P1? | P1 for manual beta invites; P0 only for visible share/invite email workflows that beta users must use. |
 | Is Redis required? | Deferred for closed beta unless measured load or a specific distributed rate-limit/job need appears. |
 | Is manual whitelist management acceptable? | Yes for MVP closed beta. Admin UI deferred. |
-| Is beta feedback path P0 or P1? | P0 as a lightweight external form/support link; in-app feedback database can be P1. |
+| Is beta feedback path P0 or P1? | P0. The local implementation now uses protected `/workshop/feedback` plus support email fallback; linked migration apply, hosted smoke, and monitored review proof remain launch gates. |
 | Are legal beta terms P0? | Yes. |
 
 ## Final No-Go Conditions

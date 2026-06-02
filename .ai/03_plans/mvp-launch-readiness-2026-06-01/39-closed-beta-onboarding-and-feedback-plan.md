@@ -71,7 +71,7 @@ Recommended MVP path:
 - Feedback type: bug, confusing UX, missing feature, export issue, estimate accuracy, other.
 - Severity: blocker, high, medium, low.
 - Message.
-- Optional screenshot/upload if the external form supports it.
+- Optional screenshot/upload only if a later feedback provider or app-owned attachment flow supports it.
 
 ## Abuse Prevention
 

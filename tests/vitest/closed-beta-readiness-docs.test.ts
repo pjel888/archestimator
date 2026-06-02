@@ -61,12 +61,24 @@ const zeroDefectMatrix = readFileSync(
   ".ai/03_plans/mvp-launch-readiness-2026-06-01/33-main-feature-zero-defect-test-matrix.md",
   "utf8",
 );
+const mvpFeatureCompletionPlan = readFileSync(
+  ".ai/03_plans/mvp-launch-readiness-2026-06-01/04-mvp-feature-completion-plan.md",
+  "utf8",
+);
 const executiveBrief = readFileSync(
   ".ai/03_plans/mvp-launch-readiness-2026-06-01/36-final-executive-launch-brief.md",
   "utf8",
 );
+const architectureDecisionRecords = readFileSync(
+  ".ai/03_plans/mvp-launch-readiness-2026-06-01/34-architecture-decision-records.md",
+  "utf8",
+);
 const readinessScorecard = readFileSync(
   ".ai/03_plans/mvp-launch-readiness-2026-06-01/43-closed-beta-readiness-scorecard.md",
+  "utf8",
+);
+const closedBetaCouncilReview = readFileSync(
+  ".ai/03_plans/mvp-launch-readiness-2026-06-01/45-fourth-pass-closed-beta-council-review.md",
   "utf8",
 );
 const observabilityPlan = readFileSync(
@@ -174,7 +186,7 @@ describe("closed beta readiness docs", () => {
     expect(evidenceIndex).toContain("20260602083000_beta_feedback_submissions.sql");
     expect(evidenceIndex).toContain("`/workshop/feedback` renders a protected feedback form");
     expect(evidenceIndex).toContain("Linked Supabase migration apply, hosted browser smoke, monitored review workflow");
-    expect(evidenceIndex).toContain("monitored inbox/form delivery, uptime/error alerts, or incident ownership");
+    expect(evidenceIndex).toContain("monitored inbox/table review, uptime/error alerts, or incident ownership");
     expect(evidenceIndex).toContain("### Support Email DNS Readiness Evidence");
     expect(evidenceIndex).toContain("support-email-dns-readiness-2026-06-02.md");
     expect(evidenceIndex).toContain("five `eforward*.registrar-servers.com` MX records");
@@ -309,7 +321,10 @@ describe("closed beta readiness docs", () => {
     expect(manualProofMatrix).toContain("support-email-dns-readiness-2026-06-02.md");
     expect(manualProofMatrix).toContain("MX/SPF DNS evidence and no DMARC answer");
     expect(manualProofMatrix).toContain("workshop `Send beta feedback`, terms, and privacy point to `support@archestimator.com`");
+    expect(manualProofMatrix).toContain("Support inbox/table proof and alert/uptime owner note");
     expect(manualProofMatrix).toContain("monitored inbox/table review proof, alert ownership, and incident escalation remain missing");
+    expect(manualProofMatrix).toContain("Support inbox/table review or alert ownership cannot be verified");
+    expect(manualProofPacketTemplate).toContain("Include monitored inbox/table review and alert/uptime owner proof");
     expect(observabilityPlan).toContain("Feedback/support inbox and protected `/workshop/feedback` table review monitored daily");
     expect(observabilityPlan).toContain("local code can persist authenticated feedback to `beta_feedback_submissions`");
     expect(observabilityPlan).toContain("monitored inbox/table review proof");
@@ -322,8 +337,25 @@ describe("closed beta readiness docs", () => {
     expect(executiveBrief).toContain("monitored support inbox/table proof");
     expect(executiveBrief).toContain("| Observability/support | 82 |");
     expect(executiveBrief).toContain("feedback-table review");
+    expect(mvpFeatureCompletionPlan).toContain("Beta users can submit feedback through protected `/workshop/feedback`; support email remains the fallback/contact path");
+    expect(technicalRiskRegister).toContain("Local protected `/workshop/feedback` and support email paths exist");
+    expect(technicalRiskRegister).toContain("monitored inbox/table review, and alert ownership proof remain required");
+    expect(releaseChecklist).toContain("Protected `/workshop/feedback`, local contact/workshop links, and structured support email draft are implemented");
+    expect(releaseChecklist).toContain("support inbox/table review");
+    expect(finalLaunchGate).toContain("Protected `/workshop/feedback` exists and can persist to `beta_feedback_submissions` after migration apply");
+    expect(finalLaunchGate).toContain("| Observability/support | 82 |");
+    expect(finalLaunchGate).toContain("Local health route, support runbook, and protected feedback-table path exist");
+    expect(finalLaunchGate).toContain("Local contact/support links, protected `/workshop/feedback`, and structured email draft handoff are not enough");
+    expect(architectureDecisionRecords).toContain("P0 feedback is protected `/workshop/feedback` plus support email fallback");
+    expect(architectureDecisionRecords).toContain("insert-only `beta_feedback_submissions` table path");
+    expect(closedBetaCouncilReview).toContain("The local implementation now uses protected `/workshop/feedback` plus support email fallback");
+    expect(finalImplementationReport).toContain("Monitored support inbox/table review proof");
+    expect(finalImplementationReport).toContain("Linked migration, hosted smoke, and monitored review proof for the protected feedback table remain open");
     expect(betaProgramPlan).not.toContain("visible external form/support path");
     expect(observabilityPlan).not.toContain("monitored inbox/form delivery proof");
+    expect(architectureDecisionRecords).not.toContain("custom in-app feedback database is P1");
+    expect(finalImplementationReport).not.toContain("Custom in-app feedback database is deferred");
+    expect(finalLaunchGate).not.toContain("monitored inbox/form proof pending");
     expect(manualProofMatrix).toContain("Legal/owner review");
     expect(manualProofMatrix).toContain("Current manual E2E smoke");
     expect(manualProofMatrix).toContain("current-local-e2e-smoke-2026-06-02.md");
@@ -390,7 +422,7 @@ describe("closed beta readiness docs", () => {
     expect(goalCompletionAudit).toContain("beta support, feedback, and deletion requests to `support@archestimator.com`");
     expect(goalCompletionAudit).toContain("Support email DNS readiness evidence");
     expect(goalCompletionAudit).toContain("has registrar email-forwarding MX records and SPF TXT");
-    expect(goalCompletionAudit).toContain("Inbox monitoring, form delivery, alert owner, and incident escalation proof remain missing");
+    expect(goalCompletionAudit).toContain("monitored inbox/table review and alert owner proof remain missing");
     expect(goalCompletionAudit).toContain("DNS proof shows MX/SPF mail-routing records");
     expect(goalCompletionAudit).toContain("Project-specific unlink linked smoke attempt");
     expect(goalCompletionAudit).toContain("linked Supabase returned `PGRST202`");
