@@ -63,6 +63,15 @@
 - Current refresh: `VERCEL_ENV_LIST_TEXT="$(vercel env ls --non-interactive 2>&1)" OUTPUT_FILE=.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/vercel-env-readiness-3ce3269-2026-06-02.json bun run launch:check-vercel-env` wrote sanitized JSON and exited `1` because no env names were discovered.
 - Launch meaning: this makes Vercel env-name proof repeatable, but it does not prove secret values, callback URL correctness, provider dashboard configuration, delivery, rollback, or hosted auth behavior. Vercel env readiness remains **NO-GO**.
 
+### Hosted Auth Route Proof Helper
+
+- Script: `scripts/verify-hosted-auth-routes.ts`.
+- Package command: `bun run launch:verify-hosted-auth`.
+- Required operator inputs for a complete pass: `HOSTED_AUTH_BASE_URL`, `HOSTED_AUTH_ALLOWED_COOKIE`, `HOSTED_AUTH_DENIED_COOKIE`, `HOSTED_AUTH_REVOKED_COOKIE`, and `HOSTED_AUTH_EXPIRED_COOKIE`, with optional `HOSTED_AUTH_PLATFORM_COOKIE` / `HOSTED_AUTH_PLATFORM_AUTH_HEADER` for deployment-protection bypass. Store only sanitized JSON via `OUTPUT_FILE`.
+- Scope: probes `/workshop` for signed-out, allowed, denied, revoked, and expired-session cases. Expected results are signed-out/expired redirecting to `/login?next=%2Fworkshop`, allowed reaching the protected workshop, denied redirecting to `/beta/access-required`, and revoked redirecting to `/beta/access-required?status=revoked`.
+- Guardrail evidence: `bunx vitest run tests/vitest/hosted-auth-route-smoke-script.test.ts --maxWorkers=1` covers base URL refusal, request-only cookie/header handling, redirect classification, missing-session fail-closed behavior, and proof-report redaction.
+- Launch meaning: this makes hosted auth allowlist proof operator-ready and sanitized, but it does not prove Google OAuth, hosted cookies, callback URLs, linked allowlist data, or first-run workspace behavior until a real hosted run writes a passing artifact. Hosted auth remains **NO-GO**.
+
 ### Hosted Export Route Auth-Blocked Probe at 231c27e
 
 - Artifact: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/hosted-export-route-auth-blocked-231c27e-2026-06-02.md`.

@@ -246,6 +246,8 @@ describe("closed beta readiness docs", () => {
     expect(currentState).toContain("**Runtime Proof Anchor Policy (2026-06-02):**");
     expect(currentState).toContain("Later evidence-only commits `c93ae7a` and `13f5acb` do not invalidate the `638f681` Vercel app-runtime proof");
     expect(currentState).toContain("**Vercel Protection Evidence (2026-06-02):**");
+    expect(currentState).toContain("**Hosted Auth Route Proof Helper (2026-06-02):**");
+    expect(currentState).toContain("`bun run launch:verify-hosted-auth` now provides a sanitized operator helper");
     expect(currentState).toContain("one env-var-backed `automation-bypass` entry remains");
     expect(currentState).toContain("Vercel env vars remain absent");
     expect(currentState).toContain("public preview and branch-alias health remain deployment-protected with HTTP 401");
@@ -253,6 +255,7 @@ describe("closed beta readiness docs", () => {
     expect(currentState).toContain("Production/custom-domain app health remains missing");
     expect(knownIssues).toContain("Provider state refresh evidence on 2026-06-02 confirms Vercel and linked Supabase remain blocked");
     expect(knownIssues).toContain("Provider state refresh at `d78686f` on 2026-06-02 confirms the latest pushed `main` preview is Ready");
+    expect(knownIssues).toContain("`bun run launch:verify-hosted-auth` is available as a sanitized hosted `/workshop` route helper");
     expect(knownIssues).toContain("Supabase linked readiness refresh on 2026-06-02 confirms linked launch migrations and objects remain absent");
     expect(knownIssues).toContain("Vercel current-head read-only evidence on 2026-06-02 confirms latest app-runtime commit `638f681` has Ready preview deployment");
     expect(knownIssues).toContain("Vercel protection read-only evidence on 2026-06-02 confirms SSO protection remains");
@@ -355,6 +358,9 @@ describe("closed beta readiness docs", () => {
     expect(evidenceIndex).toContain("PLAYWRIGHT_PORT=3037 bun run test:e2e -- e2e/auth.spec.ts --project=chromium");
     expect(evidenceIndex).toContain("Result: pass, 2 Playwright tests in 9.9s.");
     expect(evidenceIndex).toContain("Hosted Google auth, allowed/denied/revoked allowlist smoke, first-run workspace entry, and session expiry/logout proof remain external/manual gates.");
+    expect(evidenceIndex).toContain("### Hosted Auth Route Proof Helper");
+    expect(evidenceIndex).toContain("scripts/verify-hosted-auth-routes.ts");
+    expect(evidenceIndex).toContain("does not prove Google OAuth, hosted cookies, callback URLs, linked allowlist data, or first-run workspace behavior");
     expect(evidenceIndex).not.toContain("| HEAD | `1ed86b4f2a3881bf1b946eb81c688071e6736574` |");
     expect(evidenceIndex).not.toContain("Pass: 122 files / 989 tests passed / 2 skipped after AI-001");
     expect(finalLaunchGate).toContain("Full local implementation baseline: `c5ca065` after demo seed row repair.");
@@ -627,6 +633,8 @@ describe("closed beta readiness docs", () => {
     expect(goalCompletionAudit).toContain("linked Supabase returned `PGRST202`");
     expect(goalCompletionAudit).toContain("Supabase backup/PITR and restore-drill proof");
     expect(goalCompletionAudit).toContain("Hosted auth allowlist smoke");
+    expect(goalCompletionAudit).toContain("`scripts/verify-hosted-auth-routes.ts` / `bun run launch:verify-hosted-auth` now provides a sanitized operator helper");
+    expect(goalCompletionAudit).toContain("no passing hosted-session artifact exists");
     expect(goalCompletionAudit).toContain("Excel plus one secondary spreadsheet app open/recalc/print proof");
     expect(goalCompletionAudit).toContain("synthetic large-fixture benchmarked");
     expect(goalCompletionAudit).toContain("local route-handler workbook proof");
