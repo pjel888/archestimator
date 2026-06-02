@@ -53,6 +53,15 @@
 - Probe result: anonymous/fake-ID `vercel curl` did not produce XLSX bytes. One raw probe surfaced a Next.js 404 not-found page, and a clean rerun returned zero captured response bytes after roughly 3 seconds.
 - Launch meaning: this is not hosted workbook timing/memory proof. It narrows the blocker to the exact prerequisite: a logged-in hosted app session plus real authorized project/estimate IDs are required before the export route can be measured on Vercel.
 
+### Hosted Export Proof Helper
+
+- Script: `scripts/verify-hosted-export-route.ts`.
+- Package command: `bun run launch:verify-hosted-export`.
+- Required inputs: `HOSTED_EXPORT_BASE_URL`, `HOSTED_EXPORT_PROJECT_ID`, `HOSTED_EXPORT_ESTIMATE_ID`, and either `HOSTED_EXPORT_AUTH_COOKIE` or `HOSTED_EXPORT_AUTH_HEADER`.
+- Sanitization: the helper uses auth material only as request headers and never writes cookies or authorization headers to the JSON proof report.
+- Guardrail evidence: `bun run launch:verify-hosted-export` without required inputs fails closed and names the missing variables; `bunx vitest run tests/vitest/hosted-export-route-smoke-script.test.ts --maxWorkers=1` passed 5 tests covering missing-input refusal, encoded route generation, sanitized auth handling, non-workbook failure, XLSX ZIP magic, and request header construction.
+- Launch meaning: this makes the authenticated hosted export smoke operator-ready, but it does not complete the proof row until a real hosted session and authorized estimate produce a passing JSON artifact.
+
 ### AUTH-E2E Local Signed-Out Smoke Evidence
 
 - Local command: `PLAYWRIGHT_PORT=3037 bun run test:e2e -- e2e/auth.spec.ts --project=chromium`.
