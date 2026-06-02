@@ -36,8 +36,8 @@ Do not revive rejected bulk import/export or overbuilt manager UI. This is polis
 | Route data | `src/app/workshop/library/page.tsx:13` loads `getCurrentWorkspaceComponentRowsLibrary()`. |
 | Client shell | `LibraryPageClient.tsx:12` dynamic-loads `ComponentLibraryManager`; fallback skeleton at `LibraryPageClient.tsx:19`. |
 | Manager state | `localFolders`, `viewMode`, `selectedFolderId`, `selectedSupplierNodeId`, `selectedBrandNodeId`, `reorderStatus`, `sheetStatus`, `addComponentOpen`, `libraryItemState` at `ComponentLibraryManager.tsx:824`. |
-| Sheet search | `itemMatchesSheetQuery` searches name, supplier, brand, category, unit, description, category path at `ComponentLibraryManager.tsx:138`. |
-| Tree search | Folder tree search uses `filterFolderTree` at `LibraryFolderTree.tsx:138` and component matching at `LibraryFolderTree.tsx:87`. |
+| Sheet search | `itemMatchesSheetQuery` searches name, supplier, brand, category, unit, description, pricing source/date/confidence, and category path in `ComponentLibraryManager.tsx`. |
+| Tree search | Folder tree search uses `filterFolderTree` and component matching in `LibraryFolderTree.tsx`; shared supplier/brand tree filtering uses `component-library/tree/helpers.ts`. Both local tree paths now include brand and pricing trust fields. |
 | Shared primitives | `SearchInput`, `HeaderIconToolbar`, `ResizableSidePanel`, `WorkshopTree`, `WorkshopTreeRow`, `WorkshopTreeTabs`, `EmptyState`. |
 | Current empty state | Sheet uses `EmptyState` at `ComponentLibraryManager.tsx:745`; some folder rows use custom copy. |
 | Mutation status | `SheetStatus` supports `idle`, `saving`, `saved`, `error` at `ComponentLibraryManager.tsx:105`. |
@@ -68,8 +68,8 @@ Keep current state variables:
 Filtering rules:
 
 1. Text search normalizes case and punctuation.
-2. Sheet search must match: `material`, `supplier`, `brand`, `category`, `unit`, `description`, `categoryPath`, and pricing source if present.
-3. Tree search must match folder labels plus child component rows; add brand matching if absent in tree helper.
+2. Sheet search must match: `material`, `supplier`, `brand`, `category`, `unit`, `description`, `categoryPath`, and pricing trust fields if present.
+3. Tree search must match folder labels plus child component rows, including brand and pricing trust fields on component rows.
 4. Filter count must display `visible / total` for the selected view.
 5. Clearing search restores selected folder/supplier/brand view without changing selection.
 
@@ -111,7 +111,7 @@ Add fixture-backed repository tests for:
 
 | Ticket | Implementation details | Acceptance criteria | Tests | Rollback |
 | --- | --- | --- | --- | --- |
-| LIB-001 | Normalize empty/loading/error/search copy; add brand/pricing-source search parity; keep existing state names. | Search and empty states behave consistently across sheet/tree. | `component-library-manager-ui.test.tsx`, route error-boundary test. | Revert copy/filter helper changes. |
+| LIB-001 | Normalize empty/loading/error/search copy; add brand/pricing-source search parity; keep existing state names. Local search parity implemented 2026-06-02; external/manual launch proof remains separate. | Search and empty states behave consistently across sheet/tree. | `component-library-manager-ui.test.tsx`, route error-boundary test. | Revert copy/filter helper changes. |
 | LIB-001 | Add trust fields to card/row using existing `EstimateRowItem` data; add malformed-data fixtures. | Cards show available supplier/brand/pricing/confidence/lifecycle without layout shift. | Repository and DOM fixture tests. | Hide added fields; data untouched. |
 
 ## Visual QA Checklist

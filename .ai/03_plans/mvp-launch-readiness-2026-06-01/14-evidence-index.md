@@ -355,8 +355,13 @@
 - Design direction: compact estimator catalogue, optimized for scanning trust signals rather than marketing-style cards. Signature differentiator: each card now carries pricing provenance (`Source`, `Checked`, optional `Confidence`) directly under unit cost.
 - Next.js version check for UI-design skill gate: installed `next` is `16.2.6`, which is above the patched `16.0.7` threshold for the referenced CVE.
 - `ComponentLibraryManager` sheet search now includes `pricingSource`, `pricingDate`, and `confidence`.
+- 2026-06-02 local parity refresh: component tree search now also matches component `brand`, `pricingSource`, `pricingDate`, and `confidence`, and shared supplier/brand tree filtering now searches the same component trust fields.
+- 2026-06-02 focused UI coverage now asserts both the component tree search and component sheet search find a component by `quote ledger` pricing source and `database brand` brand text while hiding non-matching component rows.
 - Component sheet tabs now show a visible result count such as `3 of 3 components` or `1 of 3 components`.
 - Catalogue cards now show compact pricing trust fields without adding dependencies or changing the folder/tree model.
+- 2026-06-02 local refresh: `bunx vitest run tests/vitest/component-library-manager-ui.test.tsx --maxWorkers=1` passed 1 file / 16 tests.
+- 2026-06-02 local refresh: `bunx vitest run tests/vitest/workshop-route-error-boundaries.test.tsx --maxWorkers=1` passed 1 file / 4 tests.
+- 2026-06-02 local refresh: `bun run type-check` passed after the additive search-helper change.
 - Focused red/green evidence: `bun run test:dom tests/vitest/component-library-manager-ui.test.tsx` passed 1 file / 16 tests.
 - `bun run type-check` passed.
 - `bun run lint` passed with the existing 14 warnings and 0 errors.

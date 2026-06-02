@@ -413,12 +413,30 @@ describe("component library manager UI", () => {
     expect(within(sheet).getAllByText("Checked 2026-05-22").length).toBeGreaterThan(0);
     expect(within(sheet).getByText("Confidence: supplier quote")).toBeInTheDocument();
 
+    const tree = screen.getByLabelText("Component library tree");
+    fireEvent.change(within(tree).getByRole("searchbox", { name: "Search component library tree" }), { target: { value: "quote ledger" } });
+
+    expect(within(tree).getByRole("treeitem", { name: "Database Steel Frame" })).toBeInTheDocument();
+    expect(within(tree).queryByRole("treeitem", { name: "Custom Cabinet Pull" })).not.toBeInTheDocument();
+    expect(within(tree).queryByRole("treeitem", { name: "Owner Supplied Sink" })).not.toBeInTheDocument();
+
+    fireEvent.change(within(tree).getByRole("searchbox", { name: "Search component library tree" }), { target: { value: "database brand" } });
+
+    expect(within(tree).getByRole("treeitem", { name: "Database Steel Frame" })).toBeInTheDocument();
+    expect(within(tree).queryByRole("treeitem", { name: "Custom Cabinet Pull" })).not.toBeInTheDocument();
+
     fireEvent.change(within(sheet).getByRole("searchbox", { name: "Search component sheet" }), { target: { value: "quote ledger" } });
 
     expect(within(sheet).getByText("1 of 3 components")).toBeInTheDocument();
     expect(within(sheet).getByText("Database Steel Frame")).toBeInTheDocument();
     expect(within(sheet).queryByText("Custom Cabinet Pull")).not.toBeInTheDocument();
     expect(within(sheet).queryByText("Owner Supplied Sink")).not.toBeInTheDocument();
+
+    fireEvent.change(within(sheet).getByRole("searchbox", { name: "Search component sheet" }), { target: { value: "database brand" } });
+
+    expect(within(sheet).getByText("1 of 3 components")).toBeInTheDocument();
+    expect(within(sheet).getByText("Database Steel Frame")).toBeInTheDocument();
+    expect(within(sheet).queryByText("Custom Cabinet Pull")).not.toBeInTheDocument();
   });
 
   it("moves supplier organization under Components instead of a top-level Suppliers tab", async () => {

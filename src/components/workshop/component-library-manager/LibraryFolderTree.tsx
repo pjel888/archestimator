@@ -90,12 +90,16 @@ function itemMatchesQuery(item: EstimateRowItem, query: string): boolean {
   return [
     getComponentName(item),
     item.supplier,
+    item.brand,
     item.category,
     item.unit,
     item.description,
+    item.pricingSource,
+    item.pricingDate,
+    item.confidence,
     ...(item.categoryPath ?? []),
   ]
-    .filter(Boolean)
+    .filter((value): value is string => typeof value === "string" && value.length > 0)
     .some((value) => normalizeLabel(value).includes(normalizedQuery));
 }
 

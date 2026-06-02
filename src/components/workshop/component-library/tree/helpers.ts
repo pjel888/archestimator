@@ -10,7 +10,14 @@ export function matchesQuery(node: LibraryTreeNode, query: string): boolean {
     ...(node.aliases ?? []),
     node.item?.material,
     node.item?.supplier,
+    node.item?.brand,
     node.item?.category,
+    node.item?.unit,
+    node.item?.description,
+    node.item?.pricingSource,
+    node.item?.pricingDate,
+    node.item?.confidence,
+    ...(node.item?.categoryPath ?? []),
   ]
     .filter(Boolean)
     .join(" ")
