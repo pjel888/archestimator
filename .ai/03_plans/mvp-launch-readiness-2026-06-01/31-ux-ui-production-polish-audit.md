@@ -21,7 +21,7 @@ Design-system source: `DESIGN.md`. Launch UI must be compact, work-focused, clea
 | Screen | Path/file | Current status | Issue | Severity | Ticket | Acceptance criteria | Screenshot/manual QA |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | Landing | `src/app/page.tsx` | Public | Claims need evidence/legal check. | P1/P0 | `LEGAL-001` | No unsupported proof claims. | Desktop/mobile screenshot. |
-| Login | `src/app/login/page.tsx` | Exists | Hosted proof and legal link labels needed. | P0 | `ONB-001` | Google/email clear; terms/privacy accurate. | Auth journey. |
+| Login | `src/app/login/page.tsx` | Local legal labels covered | Hosted auth journey proof still needed. | P0 | `ONB-001` | Google/email clear; links read as closed beta terms and privacy notice. | Local source-contract pass; hosted auth journey still required. |
 | Auth callback failure | `src/app/auth/callback/route.ts` | Local denied-access support contact aligned | Hosted callback smoke still needed. | P0 | `ONB-001` | Retry/support path clear and access-required users see the monitored beta support address. | Local source-contract pass; expired link QA still required. |
 | Workshop homebase | `src/app/workshop/page.tsx`, `WorkshopPageShell` | Exists | Ask Flip visible; first-run states need proof. | P0 | `AI-001`, `ONB-001` | No AI; clear next action. | Empty account screenshot. |
 | Project list | `src/app/workshop/projects/*` | Local first-run state covered | Hosted new-account manual proof still needed. | P0/P1 | `ONB-001` | Create first project obvious; sample cards are clearly references only. | Local DOM pass; new account QA still required. |

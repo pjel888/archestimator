@@ -32,6 +32,9 @@ describe("/login auth entry UI contract", () => {
   it("links to truthful privacy and terms surfaces", () => {
     expect(loginSource).toMatch(/href=["']\/privacy["']/);
     expect(loginSource).toMatch(/href=["']\/terms["']/);
+    expect(loginSource).toMatch(/closed beta terms/);
+    expect(loginSource).toMatch(/privacy notice/);
+    expect(loginSource).not.toMatch(/terms status|privacy status/);
     expect(privacySource).toMatch(/closed beta privacy notice/i);
     expect(privacySource).toMatch(/account email/i);
     expect(privacySource).toMatch(/project and estimate data/i);

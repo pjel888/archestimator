@@ -77,11 +77,11 @@ export default async function LoginPage({
           <p className="mt-2 text-[9px] leading-4 text-muted">
             By continuing, you agree to the current{" "}
             <a href="/terms" className="font-medium text-ink underline decoration-hairline underline-offset-2">
-              terms status
+              closed beta terms
             </a>{" "}
             and{" "}
             <a href="/privacy" className="font-medium text-ink underline decoration-hairline underline-offset-2">
-              privacy status
+              privacy notice
             </a>
             .
           </p>
