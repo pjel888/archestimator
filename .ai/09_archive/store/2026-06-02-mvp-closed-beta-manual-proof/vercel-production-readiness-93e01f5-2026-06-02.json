@@ -1,0 +1,47 @@
+{
+  "generatedAt": "2026-06-02T06:46:09.112Z",
+  "mode": "vercel-production-readiness",
+  "currentDeployment": {
+    "id": "dpl_AV1RHNmGMptbRkEW6X8P2UGBv21x",
+    "url": "archestimator-irjs5qb0z-philipjonlewis-projects.vercel.app",
+    "target": "preview",
+    "readyState": "READY",
+    "aliases": [
+      "archestimator-git-main-philipjonlewis-projects.vercel.app"
+    ]
+  },
+  "expectedCustomDomains": [
+    "archestimator.com",
+    "archestimator.vercel.app",
+    "www.archestimator.com"
+  ],
+  "aliasMappings": [
+    {
+      "domain": "archestimator.com",
+      "source": "archestimator-3ser9ty2w-philipjonlewis-projects.vercel.app",
+      "matchesCurrentDeployment": false
+    },
+    {
+      "domain": "archestimator.vercel.app",
+      "source": "archestimator-3ser9ty2w-philipjonlewis-projects.vercel.app",
+      "matchesCurrentDeployment": false
+    },
+    {
+      "domain": "www.archestimator.com",
+      "source": "archestimator-3ser9ty2w-philipjonlewis-projects.vercel.app",
+      "matchesCurrentDeployment": false
+    }
+  ],
+  "deploymentReady": true,
+  "customDomainsReady": false,
+  "rollbackCandidateCount": 19,
+  "rollbackCandidateAvailable": true,
+  "rollbackDrillStatus": "not-provided",
+  "rollbackDrillPassed": false,
+  "missing": [
+    "custom domains aliased to current deployment",
+    "rollback drill passed"
+  ],
+  "vercelProductionReady": false,
+  "note": "Sanitized Vercel production readiness check. It parses inspect, alias, and optional deployment-list transcripts only; it does not promote deployments, change aliases, run health checks, verify env values, exercise hosted auth, or perform a rollback."
+}

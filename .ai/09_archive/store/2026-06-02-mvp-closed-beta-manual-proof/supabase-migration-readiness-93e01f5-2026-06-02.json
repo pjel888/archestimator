@@ -1,0 +1,26 @@
+{
+  "generatedAt": "2026-06-02T06:46:09.108Z",
+  "mode": "supabase-migration-readiness",
+  "source": "SUPABASE_MIGRATION_LIST_TEXT",
+  "projectRef": "ebxxqidacheyapmmzavr",
+  "requiredMigrations": [
+    "20260601182522",
+    "20260601184343",
+    "20260602005649",
+    "20260602083000",
+    "20260602084500"
+  ],
+  "parsedRows": 0,
+  "localVersions": [],
+  "remoteVersions": [],
+  "missingRemoteMigrations": [
+    "20260601182522",
+    "20260601184343",
+    "20260602005649",
+    "20260602083000",
+    "20260602084500"
+  ],
+  "localOnlyRequiredMigrations": [],
+  "linkedMigrationsReady": false,
+  "note": "Sanitized Supabase migration-list readiness check. It parses `supabase migration list --linked` text and proves only migration-history parity for required launch migrations, not RLS, grants, storage posture, object existence, backup/PITR, or restore safety."
+}
