@@ -67,8 +67,12 @@ Post-report evidence-sync commits:
 - `97c7d60` - Benchmarked proposal workbook export scale.
 - `5aa345d` - Proved the proposal export route builds workbooks locally.
 - `1ea3b6a` - Proved the proposal benchmark fixture stays coherent.
+- `a246f6b` - Kept the final launch report current.
+- `b33f56d` - Consolidated the manual proof packet.
+- `1e0510b` - Refreshed read-only provider proof.
+- `b60f911` - Guarded manual proof packet references.
 
-These follow-up commits improve traceability, local validation evidence, and local export proof only. They do not change the implementation baseline or the **NO-GO** recommendation. Current local validation refresh at `bc1c715` passed `bun install --frozen-lockfile` and `bun run validate`: typecheck, lint with 14 warnings and 0 errors, design lint, unit tests (4 tests / 129 expectations), and DOM tests (136 files / 1050 passed / 2 skipped). Latest app-runtime Vercel preview refresh at `638f681` reached Ready deployment `dpl_8cpgQgEtrAgo6P5gX1fn3LwBJzdS`, and protected `/api/health` works through `vercel curl`; Vercel env vars are still absent, public preview health returns 401, custom domains still point at the older production deployment, and rollback proof remains missing. Current linked Supabase readiness refresh at `08a58dd` found five launch migrations and the allowlist/feedback/unlink objects absent, `component-images` public, temp-role `ECIRCUITBREAKER` on migration/performance reads, and security advisor WARN findings. Latest local export evidence adds the synthetic 500 / 1,000 / 2,500-row workbook benchmark, local route-handler workbook proof, and benchmark-fixture regression coverage; it still does not prove hosted Vercel route timing/memory or spreadsheet-app open/recalc/print behavior.
+These follow-up commits improve traceability, local validation evidence, local export proof, packet integrity, and read-only provider evidence only. They do not change the implementation baseline or the **NO-GO** recommendation. Current local validation refresh at `b60f911` passed `bun run validate`: typecheck, lint with 14 warnings and 0 errors, design lint, unit tests (4 tests / 129 expectations), and DOM tests (138 files / 1057 passed / 2 skipped). Current app build refresh at `b60f911` passed `bun run build`: Next.js 16.2.6 / Turbopack compiled successfully, generated 32 static pages, and listed `/api/health`, disabled-by-default AI routes, proposal XLSX export, share/invite routes, Resend webhook route, and protected workshop routes. Latest app-runtime Vercel preview refresh at `638f681` reached Ready deployment `dpl_8cpgQgEtrAgo6P5gX1fn3LwBJzdS`, and protected `/api/health` works through `vercel curl`; Vercel env vars are still absent, public preview health returns 401, custom domains still point at the older production deployment, and rollback proof remains missing. Latest read-only provider refresh at `b33f56d` reached Ready deployment `dpl_6psx8VnKmAgcU17jHk9xVSpavTi4`; `supabase migration list --linked` now succeeds but still shows the five launch migrations absent remotely. Current linked Supabase readiness refresh at `08a58dd` found five launch migrations and the allowlist/feedback/unlink objects absent, `component-images` public, temp-role `ECIRCUITBREAKER` on migration/performance reads, and security advisor WARN findings. Latest local export evidence adds the synthetic 500 / 1,000 / 2,500-row workbook benchmark, local route-handler workbook proof, and benchmark-fixture regression coverage; it still does not prove hosted Vercel route timing/memory or spreadsheet-app open/recalc/print behavior.
 
 The remaining manual/provider proof packet is now centralized in `46-manual-proof-matrix.md`; it must be filled with dated artifacts before the external beta recommendation changes.
 
@@ -127,17 +131,16 @@ Latest doc truth-sync at `8084908`:
 - code-review-graph detect changes - 4 changed files, 4 changed functions/classes, 0 affected flows, 0 test gaps, risk 0.30.
 - `npx gitnexus detect-changes --repo archestimator --scope staged` - no changes detected.
 
-Current validation refresh at `bc1c715`:
+Current validation refresh at `b60f911`:
 
-- `bun install --frozen-lockfile` - pass, no dependency or lockfile changes.
 - `bun run validate` - pass.
-- Subcommands covered: typecheck; lint with 14 warnings and 0 errors; design lint; unit tests, 4 tests / 129 expectations; DOM tests, 136 files / 1050 passed / 2 skipped.
+- Subcommands covered: typecheck; lint with 14 warnings and 0 errors; design lint; unit tests, 4 tests / 129 expectations; DOM tests, 138 files / 1057 passed / 2 skipped.
 - Launch meaning: local command suite remains green, but hosted/provider/manual proof gates still block external beta.
 
-Current app build refresh at `bc1c715`:
+Current app build refresh at `b60f911`:
 
 - `bun run build` - pass.
-- Build details: Next.js 16.2.6 / Turbopack compiled successfully, finished TypeScript, generated 32 static pages, and listed `/api/health`, disabled-by-default AI routes, the proposal export route, share/invite routes, and protected workshop routes.
+- Build details: Next.js 16.2.6 / Turbopack compiled successfully, finished TypeScript, generated 32 static pages, and listed `/api/health`, disabled-by-default AI routes, the proposal export route, share/invite routes, `/api/webhooks/resend`, and protected workshop routes.
 - Launch meaning: local production build remains green, but Vercel deploy/env/health/rollback proof still blocks external beta.
 
 Current local export proof through `1ea3b6a`:

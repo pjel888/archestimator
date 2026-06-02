@@ -13,15 +13,15 @@
 - Report publication/correction commits: `80f806d`, `579cef0`.
 - Current report recommendation: **NO-GO for external closed beta launch** until hosted/provider/manual proof gates are complete.
 - Local baseline recorded in the report: typecheck pass, lint pass with 14 existing warnings, design lint pass, unit pass, full DOM pass at 131 files / 1021 tests / 2 skipped, build pass, graph/GitNexus checks clean.
-- Current local validation refresh at `bc1c715`: `bun install --frozen-lockfile` and `bun run validate` passed; validation covered typecheck, lint with 14 warnings and 0 errors, design lint, unit tests (4 tests / 129 expectations), and DOM tests (136 files / 1050 passed / 2 skipped). This refresh does not change the **NO-GO** recommendation.
-- Current local app build refresh at `bc1c715`: `bun run build` passed under Next.js 16.2.6 / Turbopack, generated 32 static pages, and listed `/api/health`, `/api/ai/ask`, `/api/ai/package-builder`, `/beta/access-required`, share routes, invite routes, and protected workshop routes. This refresh does not change the **NO-GO** recommendation.
+- Current local validation refresh at `b60f911`: `bun run validate` passed; validation covered typecheck, lint with 14 warnings and 0 errors, design lint, unit tests (4 tests / 129 expectations), and DOM tests (138 files / 1057 passed / 2 skipped). This refresh does not change the **NO-GO** recommendation.
+- Current local app build refresh at `b60f911`: `bun run build` passed under Next.js 16.2.6 / Turbopack, generated 32 static pages, and listed `/api/health`, `/api/ai/ask`, `/api/ai/package-builder`, `/api/projects/[projectId]/estimates/[estimateId]/export/proposal.xlsx`, `/api/webhooks/resend`, `/beta/access-required`, share routes, invite routes, and protected workshop routes. This refresh does not change the **NO-GO** recommendation.
 - Remaining proof gates recorded in the report: linked Supabase backup/RLS/storage/migration proof, hosted auth smoke, Vercel deploy/health/rollback proof, Resend proof before email workflows are re-enabled, spreadsheet open/print proof, legal review, monitored support proof, demo artifacts, and current manual/E2E smoke.
 
 ### Consolidated Manual Proof Packet
 
 - Artifact: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/README.md`.
 - Environment: local repo evidence plus read-only Vercel/Supabase/DNS checks.
-- Anchors: local validation/build `bc1c715`, latest read-only Vercel provider proof `b33f56d`, latest packet/report sync `b33f56d`.
+- Anchors: local validation/build `b60f911`, latest read-only Vercel provider proof `b33f56d`, latest packet/report sync `b60f911`.
 - Result: **NO-GO** packet. The packet consolidates current proof rows as `partial-local`, `partial-blocked`, or `blocked`; no P0 external launch blocker is relabeled as passed.
 - Remaining blocked rows: Supabase backup/PITR, linked migrations/RLS/storage/RPC, hosted auth, Vercel env/custom-domain/rollback, Resend proof, spreadsheet-app open/recalc/print, linked project-specific unlink smoke, legal sign-off, monitored support/alerts, demo sign-off, hosted/manual E2E.
 - Launch meaning: this improves artifact organization and future proof collection only. It does not add hosted/provider/manual proof and does not change the **NO-GO** recommendation.
@@ -57,15 +57,15 @@
 | Full local implementation baseline | `c5ca065` after demo seed row repair |
 | Final report baseline | `8084908` after canonical state/decision/roadmap truth sync |
 | Final report indexed in launch docs | `3e8d7a0` |
-| Current local validation refresh | `bc1c715`, `bun install --frozen-lockfile` and `bun run validate` pass |
-| Current local app build refresh | `bc1c715`, `bun run build` pass |
+| Current local validation refresh | `b60f911`, `bun run validate` pass |
+| Current local app build refresh | `b60f911`, `bun run build` pass |
 | `bun install --frozen-lockfile` | Pass |
 | `bun run type-check` | Pass |
 | `bun run lint` | Pass with 14 warnings |
 | `bun run lint:design-system` | Pass |
 | `bun run test` | Pass: 4 unit tests / 129 expectations |
-| `bun run test:dom` | Historical baseline pass: 131 files / 1021 tests / 2 skipped; current validation refresh pass: 136 files / 1050 passed / 2 skipped |
-| `bun run build` | Historical baseline pass; current build refresh pass at `bc1c715`, Next.js 16.2.6 / Turbopack, 32 static pages |
+| `bun run test:dom` | Historical baseline pass: 131 files / 1021 tests / 2 skipped; current validation refresh pass: 138 files / 1057 passed / 2 skipped |
+| `bun run build` | Historical baseline pass; current build refresh pass at `b60f911`, Next.js 16.2.6 / Turbopack, 32 static pages |
 
 ### AI-001 Local Implementation Evidence
 
@@ -363,20 +363,20 @@
 
 ### CURRENT-HEAD Local Validation Refresh Evidence
 
-- Artifact: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/current-head-local-validation-build-bc1c715-2026-06-02.md`.
-- Current validation anchor: `bc1c715` on `main`.
-- Install command: `bun install --frozen-lockfile`.
-- Install result: pass; no dependency or lockfile changes.
+- Superseded artifact: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/current-head-local-validation-build-bc1c715-2026-06-02.md`.
+- Current artifact: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/current-head-local-validation-build-b60f911-2026-06-02.md`.
+- Current validation anchor: `b60f911` on `main`.
 - Command: `bun run validate`.
 - Result: pass.
-- Covered subcommands: `bun run type-check`; `bun run lint` with the existing 14 warnings; `bun run lint:design-system`; `bun run test` passing 4 unit tests / 129 expectations; `bun run test:dom` passing 136 files / 1050 passed / 2 skipped.
+- Covered subcommands: `bun run type-check`; `bun run lint` with the existing 14 warnings; `bun run lint:design-system`; `bun run test` passing 4 unit tests / 129 expectations; `bun run test:dom` passing 138 files / 1057 passed / 2 skipped.
 - Working tree caveat: unrelated skill/config churn and untracked `.ai/08_prompts/mvp-launch-goal.md` were present; no launch evidence files were staged before the commands.
 - Scope limit: this refresh proves the current local command suite only. Hosted/provider/manual launch gates remain open, and closed beta remains **NO-GO**.
 
 ### CURRENT-HEAD Local Build Refresh Evidence
 
-- Artifact: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/current-head-local-validation-build-bc1c715-2026-06-02.md`.
-- Current app build anchor: `bc1c715` on `main`, before this docs-only evidence-sync commit.
+- Superseded artifact: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/current-head-local-validation-build-bc1c715-2026-06-02.md`.
+- Current artifact: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/current-head-local-validation-build-b60f911-2026-06-02.md`.
+- Current app build anchor: `b60f911` on `main`, before this docs-only evidence-sync commit.
 - Command: `bun run build`.
 - Result: pass.
 - Build details: Next.js 16.2.6 / Turbopack compiled successfully, finished TypeScript, generated 32 static pages, and listed the app Proxy plus `/api/health`, `/api/ai/ask`, `/api/ai/package-builder`, `/api/projects/[projectId]/estimates/[estimateId]/export/proposal.xlsx`, `/api/share/[token]` routes, `/api/webhooks/resend`, `/beta/access-required`, `/invite/[token]`, `/login`, `/pricing`, `/share/[token]`, `/terms`, and protected `/workshop` routes.
