@@ -26,8 +26,6 @@ type BenchmarkReport = {
 };
 
 const DEFAULT_ROW_COUNTS = "500,1000,2500";
-const OUTPUT_FILE = process.env.OUTPUT_FILE;
-const ROW_COUNTS = parseRowCounts(process.env.PROPOSAL_WORKBOOK_BENCHMARK_ROWS ?? DEFAULT_ROW_COUNTS);
 const SECTION_LABELS = [
   "General Preliminaries",
   "Site Works",
@@ -41,7 +39,7 @@ const SECTION_LABELS = [
   "Others / Miscellaneous",
 ] as const;
 
-function parseRowCounts(value: string) {
+export function parseRowCounts(value: string) {
   const parsed = value
     .split(",")
     .map((part) => Number.parseInt(part.trim(), 10))
@@ -51,16 +49,16 @@ function parseRowCounts(value: string) {
   return parsed;
 }
 
-function round(value: number, precision = 2) {
+export function round(value: number, precision = 2) {
   const factor = 10 ** precision;
   return Math.round(value * factor) / factor;
 }
 
-function toMiB(bytes: number) {
+export function toMiB(bytes: number) {
   return round(bytes / 1024 / 1024);
 }
 
-function getMemoryUsage() {
+export function getMemoryUsage() {
   if (typeof process.memoryUsage !== "function") {
     return { rssMiB: null, heapUsedMiB: null };
   }
@@ -72,7 +70,7 @@ function getMemoryUsage() {
   };
 }
 
-function makeProposalRow(index: number): ProposalExportRow {
+export function makeProposalRow(index: number): ProposalExportRow {
   const sectionIndex = index % SECTION_LABELS.length;
   const sectionLabel = SECTION_LABELS[sectionIndex];
   const quantity = 1 + (index % 12);
@@ -123,7 +121,7 @@ function makeProposalRow(index: number): ProposalExportRow {
   };
 }
 
-function makeBenchmarkModel(rowCount: number): ProposalExportModel {
+export function makeBenchmarkModel(rowCount: number): ProposalExportModel {
   const proposalRows = Array.from({ length: rowCount }, (_, index) => makeProposalRow(index));
   const summaryRows: ProposalSummaryRow[] = SECTION_LABELS.map((sectionLabel) => {
     const sectionKey = sectionLabel.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
@@ -201,7 +199,7 @@ function makeBenchmarkModel(rowCount: number): ProposalExportModel {
   };
 }
 
-async function runBenchmark(rowCount: number): Promise<BenchmarkRun> {
+export async function runBenchmark(rowCount: number): Promise<BenchmarkRun> {
   const model = makeBenchmarkModel(rowCount);
   const startedAt = performance.now();
   const buffer = await createProposalWorkbookBuffer(model);
@@ -219,26 +217,38 @@ async function runBenchmark(rowCount: number): Promise<BenchmarkRun> {
   };
 }
 
-const runs: BenchmarkRun[] = [];
-for (const rowCount of ROW_COUNTS) {
-  const run = await runBenchmark(rowCount);
-  runs.push(run);
-  console.log(
-    `${run.rowCount} rows: ${run.durationMs}ms, ${run.bufferBytes} bytes (${run.bufferMiB} MiB), rss ${run.rssMiB ?? "n/a"} MiB`,
-  );
+export async function runBenchmarks(rowCounts: number[]): Promise<BenchmarkReport> {
+  const runs: BenchmarkRun[] = [];
+  for (const rowCount of rowCounts) {
+    const run = await runBenchmark(rowCount);
+    runs.push(run);
+    console.log(
+      `${run.rowCount} rows: ${run.durationMs}ms, ${run.bufferBytes} bytes (${run.bufferMiB} MiB), rss ${run.rssMiB ?? "n/a"} MiB`,
+    );
+  }
+
+  return {
+    generatedAt: new Date().toISOString(),
+    mode: "local-proposal-workbook-benchmark",
+    note: "Synthetic local benchmark for createProposalWorkbookBuffer(); does not prove Vercel runtime limits or spreadsheet-app open/recalc/print behavior.",
+    rowCounts,
+    runs,
+  };
 }
 
-const report: BenchmarkReport = {
-  generatedAt: new Date().toISOString(),
-  mode: "local-proposal-workbook-benchmark",
-  note: "Synthetic local benchmark for createProposalWorkbookBuffer(); does not prove Vercel runtime limits or spreadsheet-app open/recalc/print behavior.",
-  rowCounts: ROW_COUNTS,
-  runs,
-};
+async function main() {
+  const outputFile = process.env.OUTPUT_FILE;
+  const rowCounts = parseRowCounts(process.env.PROPOSAL_WORKBOOK_BENCHMARK_ROWS ?? DEFAULT_ROW_COUNTS);
+  const report = await runBenchmarks(rowCounts);
 
-if (OUTPUT_FILE) {
-  const outputPath = resolve(OUTPUT_FILE);
-  mkdirSync(dirname(outputPath), { recursive: true });
-  writeFileSync(outputPath, `${JSON.stringify(report, null, 2)}\n`);
-  console.log(`Wrote benchmark JSON: ${outputPath}`);
+  if (outputFile) {
+    const outputPath = resolve(outputFile);
+    mkdirSync(dirname(outputPath), { recursive: true });
+    writeFileSync(outputPath, `${JSON.stringify(report, null, 2)}\n`);
+    console.log(`Wrote benchmark JSON: ${outputPath}`);
+  }
+}
+
+if (import.meta.main) {
+  await main();
 }
