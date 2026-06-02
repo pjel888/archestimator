@@ -1,7 +1,7 @@
 # 26 — Privacy, Retention, and Client Disclosure Plan
 
 **Date:** 2026-06-02
-**Status:** Third-pass proposed
+**Status:** Fourth-pass reconciled
 
 ---
 
@@ -16,7 +16,7 @@ Define safe tracking boundaries for shared page access telemetry. Document what 
 | Data | Example | Stored? | Visible to owner? | Visible to client? | Risk | Recommendation |
 |------|---------|---------|-------------------|-------------------|------|---------------|
 | Raw IP | `203.0.113.42` | ❌ **No** | ❌ | ❌ | High — PII, GDPR concern | Hash only |
-| IP hash | `base64url(SHA-256(ip))` | ✅ Yes | ✅ Audit facts | ❌ | Low — one-way, not reversible | Keep (already implemented) |
+| IP hash | `base64url(SHA-256(ip))` | ✅ Yes | ✅ Audit facts | ❌ | Medium — pseudonymized personal data; same IP always produces same hash (correlation risk) | Keep (already implemented) |
 | User-agent hash | `base64url(SHA-256(ua))` | ✅ Yes | ✅ Audit facts | ❌ | Low | Keep (already implemented) |
 | Raw user-agent | `Mozilla/5.0... Chrome/125...` | ❌ **No** | ❌ | ❌ | Medium — contains version details | Hash only; parse, don't store raw |
 | Parsed browser name | `Chrome` | ✅ Yes (metadata_json) | ✅ Audit facts | ❌ | Low | Show in audit only |
@@ -25,7 +25,7 @@ Define safe tracking boundaries for shared page access telemetry. Document what 
 | Parsed device type | `desktop`, `mobile`, `tablet`, `bot` | ✅ Yes (metadata_json) | ✅ Audit facts | ❌ | Low | Show in audit only |
 | Country (provider) | `PH`, `US` | ✅ Yes (if available from headers) | ✅ Audit facts | ❌ | Low — coarse, provider-derived | Show as approximate |
 | Region (provider) | `NCR`, `CA` | ✅ Yes (if available) | ✅ Audit facts | ❌ | Low | Show as approximate |
-| City (provider) | `Makati`, `San Francisco` | ✅ Yes (if available) | ✅ Audit facts | ❌ | Low | Show as approximate |
+| City (provider) | `Makati`, `San Francisco` | ✅ Yes (if available) | ✅ Audit facts | ❌ | Medium — city-level increases identifiability risk; requires explicit approval | Show as approximate |
 | Timezone | `Asia/Manila` | ✅ Yes (if available from headers) | ✅ Audit facts | ❌ | Low | Show as approximate |
 | Recipient email | `maria@example.com` | ✅ Yes (in `shared_link_recipients`) | ✅ Yes | Own only | Medium — PII | Existing pattern; keep |
 | Recipient display name | `Maria Santos` | ✅ Yes (in `shared_link_recipients`) | ✅ Yes | Own only | Low | Keep |

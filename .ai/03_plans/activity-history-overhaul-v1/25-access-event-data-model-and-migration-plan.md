@@ -1,7 +1,7 @@
 # 25 — Access Event Data Model and Migration Plan
 
 **Date:** 2026-06-02
-**Status:** Third-pass proposed
+**Status:** Fourth-pass reconciled
 
 ---
 
@@ -210,11 +210,32 @@ CREATE TABLE public.shared_link_access_events (
 4. If access telemetry proves valuable and query patterns emerge, migrate to Option B or C in V2.
 5. Existing `project_publication_events` and `shared_link_events` tables already have `metadata_json` — zero new infrastructure needed.
 
-### V1.1 Implementation Without Migration
+### V1.1 Implementation: metadata_json Approach (No Migration)
 
-- **New event types:** Add `page_visit`, `password_gate_viewed`, `password_unlocked` to `project_publication_event_type` enum (for internal analytics table). Add `proposal_viewed` to `shared_link_events` CHECK constraint.
+**What requires NO migration:**
+- Storing `access_stage`, `access_result`, `password_protected`, `recipient_known`, device info, location data → all in existing `metadata_json` JSONB column.
+- Using existing `event_type` values: `open` (for page_visit, password_gate_viewed, proposal_viewed, recipient_session_started) and `password_attempt` (for password attempts).
+
+**What IS a migration (deferred to V2):**
+- Adding values to `project_publication_event_type` PostgreSQL enum (`ALTER TYPE ... ADD VALUE`)
+- Adding values to `shared_link_events.event_type` CHECK constraint (`ALTER TABLE ... DROP/ADD CONSTRAINT`)
+- Both are additive and safe but require migration files. Deferred to V2 when event taxonomy is stable. See D-010.
+
+**V1.1 event taxonomy (no migration):**
+
+| Event concept | event_type used | metadata_json.access_stage | Migration? |
+|--------------|----------------|---------------------------|------------|
+| Page visited | `open` | `page_visit` | No |
+| Password gate viewed | `open` | `password_gate_viewed` | No |
+| Password attempted | `password_attempt` | — | No (already exists) |
+| Password unlocked | `open` | `password_unlocked` | No |
+| Proposal viewed (named) | `open` | `proposal_viewed` | No |
+| Proposal viewed (anon) | `open` | `proposal_viewed` | No |
+| Recipient session started | `open` | `recipient_session_started` | No |
+| Bot/crawler access | `open` | (any stage) | No |
+
 - **Metadata schema:** Define and enforce via TypeScript interface (not DB constraint).
-- **Query:** `SELECT * FROM project_publication_events WHERE publication_id = $1 AND metadata_json->>'access_stage' IN ('page_visit', 'proposal_view', 'password_gate_viewed') ORDER BY created_at DESC`.
+- **Query:** `SELECT * FROM project_publication_events WHERE publication_id = $1 AND metadata_json->>'access_stage' IN ('page_visit', 'proposal_viewed', 'password_gate_viewed') ORDER BY created_at DESC`.
 - **GIN index:** Add if needed: `CREATE INDEX idx_publication_events_metadata ON project_publication_events USING GIN (metadata_json)`.
 
 ### V2 Migration Path (if needed)
