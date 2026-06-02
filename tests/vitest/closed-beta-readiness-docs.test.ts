@@ -245,6 +245,10 @@ describe("closed beta readiness docs", () => {
     expect(evidenceIndex).toContain("dpl_3T35FnYXNspPUP3QL43tCASC4CMF");
     expect(evidenceIndex).toContain("protected `/workshop` returned HTTP `500`");
     expect(evidenceIndex).toContain("this is local fail-closed proof only until committed, pushed, deployed, and rechecked on Vercel");
+    expect(evidenceIndex).toContain("### Vercel Preview Deploy Blocked at c8e25e2");
+    expect(evidenceIndex).toContain("vercel-preview-deploy-blocked-c8e25e2-2026-06-02.md");
+    expect(evidenceIndex).toContain("api-deployments-free-per-day");
+    expect(evidenceIndex).toContain("the fail-closed auth fix is committed and pushed");
     expect(currentState).toContain("**Provider State Refresh Evidence (2026-06-02):**");
     expect(currentState).toContain("plain health remains deployment-protected with HTTP 401");
     expect(currentState).toContain("**Provider State Refresh at b33f56d (2026-06-02):**");
@@ -273,6 +277,9 @@ describe("closed beta readiness docs", () => {
     expect(currentState).toContain("**Hosted Auth Env Fail-Closed Fix (2026-06-02):**");
     expect(currentState).toContain("protected `/workshop` returned HTTP `500` because `getCurrentUserContext()` constructed the Supabase server client before failing closed");
     expect(currentState).toContain("This still needs commit, Vercel deployment, and hosted `/workshop` recheck before it counts as hosted proof");
+    expect(currentState).toContain("**Vercel Preview Deploy Blocked at c8e25e2 (2026-06-02):**");
+    expect(currentState).toContain("fail-closed auth fix commit `c8e25e2` was pushed to `origin/main`");
+    expect(currentState).toContain("failed before deployment with `api-deployments-free-per-day`");
     expect(currentState).toContain("one env-var-backed `automation-bypass` entry remains");
     expect(currentState).toContain("Vercel env vars remain absent");
     expect(currentState).toContain("public preview and branch-alias health remain deployment-protected with HTTP 401");
@@ -289,6 +296,8 @@ describe("closed beta readiness docs", () => {
     expect(knownIssues).toContain("Hosted auth env fail-closed evidence on 2026-06-02 remains incomplete");
     expect(knownIssues).toContain("pre-fix Vercel preview `archestimator-lsv22sg4z-philipjonlewis-projects.vercel.app`");
     expect(knownIssues).toContain("protected `/workshop` returned HTTP `500` when Vercel Supabase env was absent");
+    expect(knownIssues).toContain("Vercel preview deployment for `c8e25e2` is blocked as of 2026-06-02");
+    expect(knownIssues).toContain("Vercel's daily deployment limit `api-deployments-free-per-day`");
     expect(knownIssues).toContain("Supabase linked readiness refresh on 2026-06-02 confirms linked launch migrations and objects remain absent");
     expect(knownIssues).toContain("Vercel current-head read-only evidence on 2026-06-02 confirms latest app-runtime commit `638f681` has Ready preview deployment");
     expect(knownIssues).toContain("Vercel protection read-only evidence on 2026-06-02 confirms SSO protection remains");
@@ -781,7 +790,9 @@ describe("closed beta readiness docs", () => {
     expect(goalCompletionAudit).toContain("`scripts/verify-hosted-auth-routes.ts` / `bun run launch:verify-hosted-auth` now provides a sanitized operator helper");
     expect(goalCompletionAudit).toContain("Hosted auth env fail-closed fix at `6cc9f03`");
     expect(goalCompletionAudit).toContain("protected `/workshop` returned HTTP `500` because missing Vercel Supabase env made `createSupabaseServerClient()` throw");
-    expect(goalCompletionAudit).toContain("the local fail-closed fix still needs deployment and Vercel recheck");
+    expect(goalCompletionAudit).toContain("Vercel deployment/recheck is blocked by the daily deployment limit");
+    expect(goalCompletionAudit).toContain("Vercel preview deploy blocked at `c8e25e2`");
+    expect(goalCompletionAudit).toContain("Hosted `/workshop` recheck remains blocked until a fresh `c8e25e2` or later deployment is available");
     expect(goalCompletionAudit).toContain("no passing hosted-session artifact exists");
     expect(goalCompletionAudit).toContain("Excel plus one secondary spreadsheet app open/recalc/print proof");
     expect(goalCompletionAudit).toContain("synthetic large-fixture benchmarked");
