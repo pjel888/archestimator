@@ -961,6 +961,14 @@ No linked Supabase query was run in this pass. Production/staging schema readine
 - Scope limit: this intentionally skips external/provider/manual gates while provider setup is pending. It does not run Supabase advisor, `pg_stat_statements`, live FK coverage, migration parity, or EXPLAIN, and it does not create/apply candidate indexes.
 - Guardrail evidence: `bunx vitest run tests/vitest/dbidx-repo-audit.test.ts --maxWorkers=1` verifies the helper remains local-only/non-mutating and the artifact preserves the required DBIDX-001 sections without fabricating live metrics.
 
+## ONB-001 First-Run Project List Local Evidence - 2026-06-02
+
+- `/workshop/projects` first-run state now uses shared `EmptyState` copy with a visible `Create project` action and explicit sample-reference disclosure.
+- Filtered live-project no-results now use shared no-result copy instead of the old `Try adjusting your search terms` placeholder.
+- `projects-page-view-mode.test.tsx` covers empty project state, sample-reference disclosure, create-project modal launch, and filtered live-project no-results.
+- Local proof: `bunx vitest run tests/vitest/projects-page-view-mode.test.tsx --maxWorkers=1` passed 1 file / 5 tests.
+- Scope limit: this is local DOM proof only. Hosted Google auth, first-account creation, real workspace seeding, and new-account screenshots remain in the manual/provider proof queue.
+
 ## Excel Reference Evidence Reviewed
 
 The workbook plan incorporates provided bid/quotation patterns:
