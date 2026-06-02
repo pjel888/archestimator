@@ -15,11 +15,11 @@ Closed beta requires auth/access tests before launch:
 - First whitelisted user workspace path succeeds.
 - Feedback/support path is visible.
 
-Current local Vitest DOM baseline is green: the latest validation refresh at `bc1c715` ran `bun install --frozen-lockfile` and `bun run validate`, including `bun run test:dom` passing 136 files / 1050 passed / 2 skipped after the AI, auth, library, template, export, feedback, legal, infra, health, demo seed, local signed-out auth, email guardrail, Supabase evidence, and Vercel evidence slices. Hosted/manual E2E proof is still required before launch.
+Current local Vitest DOM baseline is green: the latest validation refresh at `b60f911` ran `bun run validate`, including `bun run test:dom` passing 138 files / 1057 passed / 2 skipped after the AI, auth, library, template, export, feedback, legal, infra, health, demo seed, local signed-out auth, email guardrail, Supabase evidence, Vercel evidence, export-route proof, benchmark proof, provider-refresh proof, and proof-packet guard slices. Hosted/manual E2E proof is still required before launch.
 
 ## Third-Pass Test Gate
 
-Commit audited: `681c95e64864f283950a88dba304eaffe8f2f8b3`. Historical third-pass validation found a red DOM baseline and blocked E2E run. Current local validation is green for `type-check`, `lint`, `lint:design-system`, `test`, and `test:dom` at `bc1c715`; current local production build is green at `bc1c715`. The MVP gate still requires hosted/manual smoke or a documented no-go for any E2E path that cannot run safely.
+Commit audited: `681c95e64864f283950a88dba304eaffe8f2f8b3`. Historical third-pass validation found a red DOM baseline and blocked E2E run. Current local validation is green for `type-check`, `lint`, `lint:design-system`, `test`, and `test:dom` at `b60f911`; current local production build is green at `b60f911`. The MVP gate still requires hosted/manual smoke or a documented no-go for any E2E path that cannot run safely.
 
 | Area | Required automated tests | Required manual QA | Current gap |
 | --- | --- | --- | --- |
