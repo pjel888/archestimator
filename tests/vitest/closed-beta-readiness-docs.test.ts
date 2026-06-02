@@ -590,6 +590,8 @@ describe("closed beta readiness docs", () => {
     expect(currentState).toContain("missing local spreadsheet apps");
     expect(currentState).toContain("**Proposal Workbook Large-Fixture Benchmark (2026-06-02):**");
     expect(currentState).toContain("The 2,500-row fixture generated in 362.06ms");
+    expect(currentState).toContain("**Proposal Workbook Benchmark Regression Coverage (2026-06-02):**");
+    expect(currentState).toContain("row-count parsing, deterministic BOQ row/source metadata");
     expect(currentState).toContain("**Proposal Export Route Workbook Local Proof (2026-06-02):**");
     expect(currentState).toContain("The returned response has XLSX headers");
     expect(currentState).toContain("Component/template local demo evidence");
