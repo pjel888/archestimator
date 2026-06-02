@@ -1,8 +1,11 @@
 "use client";
 
+import Link from "next/link";
 import { useMemo, useRef, useTransition } from "react";
+import { ChartPieSlice, ClipboardText, ListChecks } from "@phosphor-icons/react/dist/ssr";
 
 import { ControlInput } from "@/components/ui/control-input";
+import { EmptyState } from "@/components/ui/empty-state";
 import { updateProjectDetails } from "@/lib/projects/actions";
 import type { Json, Tables } from "@/lib/supabase/types";
 
@@ -59,6 +62,26 @@ function ProjectTimestampField({ label, value }: { label: string; value: string 
   );
 }
 
+function ProjectDashboardLink({
+  href,
+  label,
+  icon,
+}: {
+  href: string;
+  label: string;
+  icon: React.ReactNode;
+}) {
+  return (
+    <Link
+      href={href}
+      className="inline-flex min-h-8 items-center justify-center gap-1.5 rounded-xs border border-divider bg-white px-2 !text-[10px] font-medium leading-none text-ink transition hover:bg-surfaceMuted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+    >
+      {icon}
+      {label}
+    </Link>
+  );
+}
+
 function AutoSubmitForm({
   projectId,
   projectImageUrl,
@@ -104,6 +127,7 @@ export function ProjectDashboardClient({ project, fallback }: ProjectDashboardCl
   const location = project?.location ?? fallback.location;
   const projectCode = project?.project_code ?? fallback.projectCode;
   const projectId = project?.id ?? fallback.id;
+  const projectRoute = `/workshop/projects/${projectId}`;
 
   return (
     <section className="flex h-full min-h-0 justify-start bg-white" aria-label={`${name} project information`}>
@@ -147,6 +171,33 @@ export function ProjectDashboardClient({ project, fallback }: ProjectDashboardCl
           </div>
         </AutoSubmitForm>
       </aside>
+      <main className="min-h-0 flex-1 overflow-auto p-2" aria-label="Project dashboard next steps">
+        <EmptyState
+          icon={<ClipboardText size={18} weight="regular" aria-hidden="true" />}
+          title="Build this project from estimates"
+          description="Open the estimate list to create your first sheet, use Charts to review cost mix, or return to Projects when you are choosing another job."
+          action={
+            <div className="flex flex-wrap items-center justify-center gap-1">
+              <ProjectDashboardLink
+                href={`${projectRoute}/estimates`}
+                label="Open estimates"
+                icon={<ListChecks size={12} weight="regular" aria-hidden="true" />}
+              />
+              <ProjectDashboardLink
+                href={`${projectRoute}/charts`}
+                label="View charts"
+                icon={<ChartPieSlice size={12} weight="regular" aria-hidden="true" />}
+              />
+              <ProjectDashboardLink
+                href="/workshop/projects"
+                label="All projects"
+                icon={<ClipboardText size={12} weight="regular" aria-hidden="true" />}
+              />
+            </div>
+          }
+          className="h-full bg-white"
+        />
+      </main>
     </section>
   );
 }

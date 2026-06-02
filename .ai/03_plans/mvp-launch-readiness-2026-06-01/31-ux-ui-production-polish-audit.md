@@ -26,7 +26,7 @@ Design-system source: `DESIGN.md`. Launch UI must be compact, work-focused, clea
 | Workshop homebase | `src/app/workshop/page.tsx`, `WorkshopPageShell` | Exists | Ask Flip visible; first-run states need proof. | P0 | `AI-001`, `ONB-001` | No AI; clear next action. | Empty account screenshot. |
 | Project list | `src/app/workshop/projects/*` | Local first-run state covered | Hosted new-account manual proof still needed. | P0/P1 | `ONB-001` | Create first project obvious; sample cards are clearly references only. | Local DOM pass; new account QA still required. |
 | Project create modal | project components/actions | Exists | Validation/error copy needs check. | P1 | `QA-002` | Required fields and errors clear. | Manual create. |
-| Project dashboard | project detail routes | Exists | Demo data/empty state proof missing. | P1 | `DEMO-001` | Project status understandable. | Demo screenshot. |
+| Project dashboard | project detail routes | Local next-step panel covered | Demo screenshot/manual proof still needed. | P1 | `DEMO-001` | Project details are editable and route links to estimates/charts/projects are clear. | Local DOM pass; demo screenshot still required. |
 | Estimate list | project estimates route | Exists | Empty/duplicate/open QA required. | P0 | `QA-002` | Can create/open/duplicate. | Core smoke. |
 | Estimate workspace | `EstimateSheetContent` | Exists | High-blast-radius; route perf/AI/export/unlink gaps. | P0 | `AI-001`, `UNLINK-001`, `EXP-001` | Core grid stable. | Full smoke. |
 | Left tree | `EstimateSheetTree` | Exists | DnD/context-menu E2E env-gated. | P1 | `QA-002` | No layout shift; keyboard paths. | Manual/E2E. |
