@@ -156,6 +156,8 @@ describe("estimate sheet version control schema", () => {
     expect(unlinkMigration).toContain("security definer");
     expect(unlinkMigration).toContain("set search_path = ''");
     expect(unlinkMigration).toContain("public.resolve_estimate_workspace");
+    expect(unlinkMigration).toContain("public.can_edit_estimate");
+    expect(unlinkMigration).toContain("Estimate edit access denied.");
     expect(unlinkMigration).toContain("for update");
     expect(unlinkMigration).toContain("estimate_sheet_row_revision_conflict");
     expect(unlinkMigration).toContain("source_library_item_id = null");

@@ -26,6 +26,10 @@ declare
 begin
   resolved_workspace_id := public.resolve_estimate_workspace(target_project_id, target_estimate_id, acting_user_id);
 
+  if not public.estimate_sheet_can_bypass_auth() and not public.can_edit_estimate(target_estimate_id) then
+    raise exception 'Estimate edit access denied.';
+  end if;
+
   perform 1 from public.estimates estimate where estimate.id = target_estimate_id for update;
 
   committed_result := public.estimate_sheet_event_result(target_estimate_id, correlation_id);
