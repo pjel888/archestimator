@@ -477,6 +477,14 @@
 - Current security advisor summary: 36 `anon_security_definer_function_executable`, 62 `authenticated_security_definer_function_executable`, 3 `function_search_path_mutable`, 1 `public_bucket_allows_listing`, and 1 `auth_leaked_password_protection` WARN findings.
 - Launch meaning: linked Supabase remains **NO-GO**. Do not run hosted allowlist, feedback, or project-specific unlink pass candidates until backup/PITR proof exists and linked migrations/RPCs/tables are applied and directly verified.
 
+### Linked Supabase Readiness SQL Helper
+
+- SQL helper: `scripts/sql/linked-supabase-launch-readiness.sql`.
+- Package command: `bun run launch:supabase-readiness`.
+- Scope: read-only linked query for the five launch migrations, `closed_beta_allowed_emails`, `beta_feedback_submissions`, `check_closed_beta_access`, `unlink_estimate_row_item_from_library_with_history`, anon table/function exposure, table RLS posture, and `component-images` bucket public/private posture.
+- Guardrail evidence: `bunx vitest run tests/vitest/linked-supabase-readiness-sql.test.ts --maxWorkers=1` passed 3 tests proving the SQL has no mutating statements and includes the launch-critical migration/object/storage checks.
+- Launch meaning: this makes linked Supabase proof collection repeatable after backup/PITR evidence exists. It does not apply migrations, repair history, change grants, change storage, or close the linked Supabase **NO-GO** row by itself.
+
 ### Vercel Current-Head Read-Only Evidence
 
 - Superseded artifacts: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/vercel-current-head-read-only-165e4a3-2026-06-02.md` and `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/vercel-current-head-read-only-567f3c5-2026-06-02.md`.
