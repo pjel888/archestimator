@@ -17,14 +17,14 @@ Add zero-defect rows:
 
 Commit audited: `681c95e64864f283950a88dba304eaffe8f2f8b3`
 
-Current local command baseline: **green for type/lint/unit/DOM/build, with validation and build refreshed at `b60f911`**.
+Current local command baseline: **green for type/lint/unit/DOM/build, with validation and build refreshed at `02f7d13`**.
 
 - `bun run type-check`: pass.
 - `bun run lint`: pass with the existing 14 warnings and 0 errors.
 - `bun run lint:design-system`: pass.
 - `bun run test`: pass, 4 unit tests / 129 expectations.
-- `bun run test:dom`: pass, 138 files / 1057 passed / 2 skipped through `bun run validate`.
-- `bun run build`: pass at `b60f911`, including `/api/health` as a dynamic route and 32 static pages.
+- `bun run test:dom`: pass, 149 files / 1110 passed / 2 skipped through `bun run validate`.
+- `bun run build`: pass at `02f7d13`, including `/api/health` as a dynamic route and 32 static pages.
 
 Launch state remains **NO-GO** until hosted auth/RLS/provider, manual smoke, backup/restore, spreadsheet open, and deployment/rollback evidence are collected.
 
