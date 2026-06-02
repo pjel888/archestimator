@@ -969,6 +969,14 @@ No linked Supabase query was run in this pass. Production/staging schema readine
 - Local proof: `bunx vitest run tests/vitest/projects-page-view-mode.test.tsx --maxWorkers=1` passed 1 file / 5 tests.
 - Scope limit: this is local DOM proof only. Hosted Google auth, first-account creation, real workspace seeding, and new-account screenshots remain in the manual/provider proof queue.
 
+## DEMO-001 Project Dashboard Local Evidence - 2026-06-02
+
+- Project dashboard content area now shows a compact next-step panel instead of a blank project-detail route.
+- The panel links directly to project estimates, project charts, and all projects while keeping editable project details in the left rail.
+- `project-dashboard-client.test.tsx` covers live project detail values, sample fallback dashboards, and the route links for estimates/charts/projects.
+- Local proof: `bunx vitest run tests/vitest/project-dashboard-client.test.tsx --maxWorkers=1` passed 1 file / 2 tests.
+- Scope limit: this is local DOM proof only. Investor demo screenshots and hosted/manual route walkthroughs remain open.
+
 ## Excel Reference Evidence Reviewed
 
 The workbook plan incorporates provided bid/quotation patterns:
