@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-import { verifySharedLinkRecipientToken } from "@/lib/publication/public-repository";
+import { recordProjectPublicationAnalyticsEvent, verifySharedLinkRecipientToken } from "@/lib/publication/public-repository";
 import {
   createSharedLinkSessionCookieName,
   getSharedLinkSessionCookieParts,
@@ -63,6 +63,15 @@ export async function POST(request: Request, { params }: { params: Promise<{ tok
     sameSite: "lax",
     maxAge: 86400,
     secure: process.env.NODE_ENV === "production",
+  });
+
+  await recordProjectPublicationAnalyticsEvent({
+    token,
+    eventType: "open",
+    accessStage: "recipient_session_started",
+    recipientKnown: true,
+    recipientId: verified.recipientId,
+    request,
   });
 
   return response;

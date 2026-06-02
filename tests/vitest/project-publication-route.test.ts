@@ -4,6 +4,7 @@ const mocks = vi.hoisted(() => ({
   resolveProjectPublicationAccessByToken: vi.fn(),
   resolveProjectPublicationSnapshotByToken: vi.fn(),
   recordProjectPublicationEvent: vi.fn(),
+  recordProjectPublicationAnalyticsEvent: vi.fn(),
   verifyProjectPublicationPasswordByToken: vi.fn(),
   checkProjectPublicationEventRateLimit: vi.fn(),
   checkProjectPublicationPasswordRateLimit: vi.fn(),
@@ -57,6 +58,7 @@ describe("shared link publication route handlers (Shared Link V2 audit)", () => 
       snapshot,
     });
     mocks.recordProjectPublicationEvent.mockResolvedValue(undefined);
+    mocks.recordProjectPublicationAnalyticsEvent.mockResolvedValue({ recorded: true });
     mocks.checkProjectPublicationEventRateLimit.mockResolvedValue({ allowed: true });
     mocks.checkProjectPublicationPasswordRateLimit.mockResolvedValue({ allowed: true });
     mocks.checkProjectPublicationSnapshotRateLimit.mockResolvedValue({ allowed: true });
@@ -251,6 +253,13 @@ describe("shared link publication route handlers (Shared Link V2 audit)", () => 
       eventType: "password_attempt",
       request: expect.any(Request),
       metadata: { success: true },
+    });
+    expect(mocks.recordProjectPublicationAnalyticsEvent).toHaveBeenCalledWith({
+      token: "client-token",
+      eventType: "password_attempt",
+      accessStage: "password_unlocked",
+      passwordSuccess: true,
+      request: expect.any(Request),
     });
     expect(mocks.clearProjectPublicationPasswordFailures).toHaveBeenCalledWith({
       token: "client-token",
