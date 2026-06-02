@@ -11,7 +11,7 @@ This packet follows `48-manual-proof-packet-template.md` as the dated folder REA
 | Date | 2026-06-02 |
 | Environment | Local repo evidence plus read-only Vercel/Supabase/DNS checks |
 | App URL | Local app plus protected Vercel preview evidence where listed |
-| Commit tested | Local validation/build anchor `b60f911`; latest read-only Vercel/Supabase provider anchor `87f603e`; latest packet sync `87f603e` |
+| Commit tested | Local validation/build anchor `b60f911`; latest read-only Vercel/Supabase provider anchor `87f603e`; latest full local E2E refresh anchor `bb9006d` |
 | Operator | Codex |
 | Test accounts | Sanitized local/dev-auth and temporary fixture accounts only where artifact says so |
 | Related deployment | `dpl_GdDjZoaGocCpAVVEa3oaSm9nCody`; custom domains still point at older production deployment `archestimator-3ser9ty2w-philipjonlewis-projects.vercel.app` |
@@ -42,7 +42,7 @@ This packet follows `48-manual-proof-packet-template.md` as the dated folder REA
 | Legal/owner review | blocked | None | Owner/counsel sign-off missing. |
 | Support/monitoring | partial-local | `support-feedback-local-surface-2026-06-02.md`, `beta-feedback-in-app-local-2026-06-02.md`, `beta-feedback-review-queue-local-2026-06-02.md`, `support-email-dns-readiness-2026-06-02.md`, `support-email-dns-readiness-refresh-792076e-2026-06-02.json`, `beta-ops-runbook-readiness-2026-06-02.md` | Local feedback/contact/review path and DNS MX/SPF evidence exist; repeatable DNS helper refresh still shows missing DMARC; linked migration, hosted smoke, monitored inbox/table ownership, alert owner, and escalation proof missing. |
 | Demo rehearsal | partial-local | `demo-rehearsal-fallback-pack-2026-06-02.md`, `lewis-residence-demo-proposal-2026-06-02.xlsx`, component/template screenshots, `template-insert-local-smoke-2026-06-02.png` | Local fallback pack exists; live hosted rehearsal, target-environment screenshots, spreadsheet-app workbook proof, and owner sign-off missing. |
-| Current manual E2E smoke | partial-local | `current-local-e2e-smoke-2026-06-02.md` | Local signed-out auth plus dev-auth library/template/template-insert smoke passed; hosted login/allowlist/unlink/export/logout/session-expiry journey missing. |
+| Current manual E2E smoke | partial-local | `current-local-e2e-smoke-2026-06-02.md`, `full-local-e2e-refresh-bb9006d-2026-06-02.md` | Local signed-out auth plus dev-auth library/template/template-insert smoke passed; full local E2E command now passes 9 ungated checks with 24 env-gated/live-provider specs skipped; hosted login/allowlist/unlink/export/logout/session-expiry journey missing. |
 
 ## Cleanup And Residue
 
