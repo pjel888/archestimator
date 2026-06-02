@@ -106,9 +106,9 @@
 
 - Script: `scripts/check-supabase-migration-readiness.ts`.
 - Package command: `bun run launch:check-supabase-migrations`.
-- Proof artifact: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/supabase-migration-readiness-4fdf0de-2026-06-02.json`.
+- Proof artifact: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/supabase-migration-readiness-28f7a2a-2026-06-02.json`.
 - Scope: parses sanitized `supabase migration list --linked` text and checks that launch migrations `20260601182522`, `20260601184343`, `20260602005649`, `20260602083000`, and `20260602084500` appear in remote migration history.
-- Current refresh: `SUPABASE_MIGRATION_LIST_FILE=/tmp/arch-provider-refresh-4fdf0de/supabase-migration-list.txt SUPABASE_MIGRATION_PROJECT_REF=ebxxqidacheyapmmzavr OUTPUT_FILE=.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/supabase-migration-readiness-4fdf0de-2026-06-02.json bun run launch:check-supabase-migrations` wrote sanitized JSON and exited `1`.
+- Current refresh: `SUPABASE_MIGRATION_LIST_FILE=/tmp/arch-provider-refresh-28f7a2a/supabase-migration-list.txt SUPABASE_MIGRATION_PROJECT_REF=ebxxqidacheyapmmzavr OUTPUT_FILE=.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/supabase-migration-readiness-28f7a2a-2026-06-02.json bun run launch:check-supabase-migrations` wrote sanitized JSON and exited `1`.
 - Result: 71 migration rows parsed from the successful linked migration-list transcript; all five required launch migrations are present locally but missing remotely; `linkedMigrationsReady: false`.
 - Launch meaning: this makes migration-list parity proof repeatable, but it does not prove RLS, grants, storage posture, object existence, backup/PITR, restore safety, or the deeper SQL readiness query. Linked Supabase remains **NO-GO**.
 
