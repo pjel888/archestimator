@@ -45,6 +45,13 @@
 - Guardrail evidence: `bunx vitest run tests/vitest/estimate-sheet-library-insert.test.tsx --maxWorkers=1` passed 1 file / 13 tests; `bun run type-check` passed.
 - Launch meaning: this closes the local row-details source/link-state clarity gap only. It does not prove linked Supabase project-specific unlink, hosted/manual detach QA, route-performance proof, AI provider behavior, or proposal/spreadsheet export proof; those gates remain **NO-GO**.
 
+### Repo-Local Implementation Freeze
+
+- Implementation freeze commit: `6ab5b38`.
+- Scope: repo-local implementation for the deferred-provider launch scope is complete. Remaining work should be evidence/doc orchestration and external/provider/manual proof, not additional local code, unless a new repo-local defect is found.
+- Focused final proof refresh: `bunx vitest run tests/vitest/workshop-reset.test.tsx tests/vitest/template-library-manager-ui.test.tsx tests/vitest/estimate-sheet-cost-inputs.test.tsx tests/vitest/estimate-sheet-library-insert.test.tsx --maxWorkers=1` passed 4 files / 52 tests.
+- Launch meaning: this does **not** approve closed beta launch. Hosted auth, linked Supabase migrations/RLS/storage/RPC/backup/PITR, Vercel env/custom-domain/rollback, Resend delivery/webhook proof, spreadsheet-app open/print, legal/owner signoff, support/alert monitoring, and hosted/manual E2E remain **NO-GO** until proven in a later pass.
+
 ### Final Codex Implementation Report Evidence
 
 - Final report artifact: `final-codex-implementation-report.md`.

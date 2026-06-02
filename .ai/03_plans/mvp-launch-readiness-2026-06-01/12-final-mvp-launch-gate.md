@@ -7,6 +7,7 @@ This gate is now the closed beta launch gate. It is not a public paid-launch gat
 ### Command Evidence
 
 - Full local implementation baseline: `c5ca065` after demo seed row repair.
+- Repo-local implementation freeze: `6ab5b38`; no further local implementation is planned for this deferred-provider launch pass unless a new repo-local defect is discovered.
 - Final report baseline: `8084908` after canonical state/decision/roadmap truth sync.
 - Final report indexed in launch docs: `3e8d7a0`.
 - Current local validation refresh: `353dd48`, `bun run validate` pass.
@@ -21,6 +22,7 @@ This gate is now the closed beta launch gate. It is not a public paid-launch gat
 - `bun run lint:design-system`: pass.
 - `bun run test`: pass, 4 unit tests / 129 expectations.
 - `bun run test:dom`: historical baseline pass, 131 files / 1021 tests with 2 skips; current validation refresh pass, 151 files / 1119 passed / 2 skipped.
+- `bunx vitest run tests/vitest/workshop-reset.test.tsx tests/vitest/template-library-manager-ui.test.tsx tests/vitest/estimate-sheet-cost-inputs.test.tsx tests/vitest/estimate-sheet-library-insert.test.tsx --maxWorkers=1`: pass, 4 files / 52 tests for final repo-local surface proof.
 - `PLAYWRIGHT_PORT=3037 bun run test:e2e -- e2e/auth.spec.ts --project=chromium`: pass, 2 tests in 9.9s for local signed-out workshop redirect and login UI.
 - `ARCHESTIMATOR_E2E_LIBRARY_DEMO_SMOKE=1 ... PLAYWRIGHT_PORT=3038 bun run test:e2e e2e/workshop-library-demo-smoke.spec.ts --project=chromium`: pass, 2 tests in 14.9s for local component/template demo screenshots.
 - `ARCHESTIMATOR_E2E_TEMPLATE_INSERT_SMOKE=1 ARCHESTIMATOR_DEV_AUTH_BYPASS=1 ARCHESTIMATOR_DEV_AUTH_ADMIN_DB=1 ARCHESTIMATOR_TEMPLATE_INSERT_SMOKE_DIR=.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof PLAYWRIGHT_PORT=3039 bun run test:e2e e2e/workshop-template-insert-smoke.spec.ts --project=chromium`: pass, 1 test in 46.1s for local template insertion into a throwaway estimate, with node count `51 -> 56`, row count `0 -> 8`, one `template_inserted` event, screenshot/JSON artifacts, and zero fixture residue.
@@ -45,7 +47,7 @@ This gate is now the closed beta launch gate. It is not a public paid-launch gat
 - Excel export is unprofessional or formulas are untested.
 - Core project/component/template workflows are broken.
 
-Closed beta launch is blocked until hosted auth/RLS/storage, provider dashboards, manual smoke, backup/restore, deployment/rollback, and spreadsheet-open proof are collected and linked from `14-evidence-index.md`.
+Repo-local implementation is frozen at `6ab5b38`. Closed beta launch is still blocked until hosted auth/RLS/storage, provider dashboards, manual smoke, backup/restore, deployment/rollback, and spreadsheet-open proof are collected and linked from `14-evidence-index.md`.
 
 Use `46-manual-proof-matrix.md` as the required evidence checklist for those remaining hosted/provider/manual gates.
 
