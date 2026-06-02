@@ -254,6 +254,11 @@ describe("closed beta readiness docs", () => {
     expect(evidenceIndex).toContain("vercel-cli-upload-scope-mitigation-6a26759-2026-06-02.md");
     expect(evidenceIndex).toContain("added repo-level `.vercelignore`");
     expect(evidenceIndex).toContain("hosted proof remains blocked until a fresh deployment is actually created and checked");
+    expect(evidenceIndex).toContain("### Hosted Auth Proxy Env Fail-Closed Fix at 8e11d36");
+    expect(evidenceIndex).toContain("hosted-auth-proxy-env-fail-closed-fix-8e11d36-2026-06-02.md");
+    expect(evidenceIndex).toContain("dpl_8kYE4UfAiGCwSXoWp7648buPX4YL");
+    expect(evidenceIndex).toContain("both `HEAD /workshop` and `GET /workshop` returned HTTP `500`");
+    expect(evidenceIndex).toContain("proxy now checks for required Supabase env before calling `createServerClient()`");
     expect(currentState).toContain("**Provider State Refresh Evidence (2026-06-02):**");
     expect(currentState).toContain("plain health remains deployment-protected with HTTP 401");
     expect(currentState).toContain("**Provider State Refresh at b33f56d (2026-06-02):**");
@@ -288,6 +293,9 @@ describe("closed beta readiness docs", () => {
     expect(currentState).toContain("**Vercel CLI Upload Scope Mitigation (2026-06-02):**");
     expect(currentState).toContain("`.vercelignore` now excludes `.ai`, agent/plugin state, docs/guidance");
     expect(currentState).toContain("it is not hosted proof until a fresh Vercel deployment is created and checked");
+    expect(currentState).toContain("**Hosted Auth Proxy Env Fail-Closed Fix (2026-06-02):**");
+    expect(currentState).toContain("both `HEAD /workshop` and `GET /workshop` still returned HTTP `500`");
+    expect(currentState).toContain("redirects protected `/workshop` routes to `/login?next=...`");
     expect(currentState).toContain("one env-var-backed `automation-bypass` entry remains");
     expect(currentState).toContain("Vercel env vars remain absent");
     expect(currentState).toContain("public preview and branch-alias health remain deployment-protected with HTTP 401");
@@ -308,6 +316,8 @@ describe("closed beta readiness docs", () => {
     expect(knownIssues).toContain("Vercel's daily deployment limit `api-deployments-free-per-day`");
     expect(knownIssues).toContain("Vercel CLI upload scope mitigation on 2026-06-02 adds repo-level `.vercelignore`");
     expect(knownIssues).toContain("it does not bypass the current Vercel daily deployment limit or prove hosted `/workshop` behavior");
+    expect(knownIssues).toContain("Hosted auth proxy env fail-closed evidence on 2026-06-02 remains incomplete");
+    expect(knownIssues).toContain("fresh preview `dpl_8kYE4UfAiGCwSXoWp7648buPX4YL` passed `/api/health` but still returned HTTP `500`");
     expect(knownIssues).toContain("Supabase linked readiness refresh on 2026-06-02 confirms linked launch migrations and objects remain absent");
     expect(knownIssues).toContain("Vercel current-head read-only evidence on 2026-06-02 confirms latest app-runtime commit `638f681` has Ready preview deployment");
     expect(knownIssues).toContain("Vercel protection read-only evidence on 2026-06-02 confirms SSO protection remains");
@@ -800,12 +810,15 @@ describe("closed beta readiness docs", () => {
     expect(goalCompletionAudit).toContain("`scripts/verify-hosted-auth-routes.ts` / `bun run launch:verify-hosted-auth` now provides a sanitized operator helper");
     expect(goalCompletionAudit).toContain("Hosted auth env fail-closed fix at `6cc9f03`");
     expect(goalCompletionAudit).toContain("protected `/workshop` returned HTTP `500` because missing Vercel Supabase env made `createSupabaseServerClient()` throw");
-    expect(goalCompletionAudit).toContain("Vercel deployment/recheck is blocked by the daily deployment limit");
+    expect(goalCompletionAudit).toContain("fresh preview `dpl_8kYE4UfAiGCwSXoWp7648buPX4YL` still returned HTTP `500` until a local proxy env guard was added");
     expect(goalCompletionAudit).toContain("Vercel preview deploy blocked at `c8e25e2`");
     expect(goalCompletionAudit).toContain("Hosted `/workshop` recheck remains blocked until a fresh `c8e25e2` or later deployment is available");
     expect(goalCompletionAudit).toContain("Vercel CLI upload scope mitigation");
     expect(goalCompletionAudit).toContain("repo-level `.vercelignore` now excludes non-runtime evidence/planning/deck/test/report folders");
-    expect(goalCompletionAudit).toContain("no post-mitigation deployment has run");
+    expect(goalCompletionAudit).toContain("fresh preview `dpl_8kYE4UfAiGCwSXoWp7648buPX4YL` passed protected `/api/health` but showed protected `/workshop` HTTP `500`");
+    expect(goalCompletionAudit).toContain("Hosted auth proxy env fail-closed fix at `8e11d36`");
+    expect(goalCompletionAudit).toContain("fresh preview `archestimator-r92lz7qug-philipjonlewis-projects.vercel.app`");
+    expect(goalCompletionAudit).toContain("That proxy fix still needs deployment and Vercel recheck");
     expect(goalCompletionAudit).toContain("no passing hosted-session artifact exists");
     expect(goalCompletionAudit).toContain("Excel plus one secondary spreadsheet app open/recalc/print proof");
     expect(goalCompletionAudit).toContain("synthetic large-fixture benchmarked");

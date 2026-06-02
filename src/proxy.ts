@@ -11,6 +11,10 @@ const PUBLIC_ROUTE_PREFIXES = ["/about", "/features", "/pricing", "/contact", "/
 const MARKETING_PAGE_PATHS = new Set(["/", "/about", "/features", "/pricing", "/contact", "/privacy", "/terms"]);
 const MARKETING_PAGE_CACHE_CONTROL = "private, no-cache, max-age=0, must-revalidate";
 
+function hasSupabaseProxyEnv() {
+  return Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL?.trim() && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim());
+}
+
 function isPublicRoute(pathname: string) {
   return pathname === "/" || PUBLIC_ROUTE_PREFIXES.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`));
 }
@@ -52,6 +56,19 @@ export async function proxy(request: NextRequest) {
     if (isMarketingPage(pathname)) {
       response.headers.set("Cache-Control", MARKETING_PAGE_CACHE_CONTROL);
     }
+    return response;
+  }
+
+  if (!hasSupabaseProxyEnv()) {
+    if (isProtected) {
+      const loginUrl = new URL(LOGIN_PATH, request.url);
+      loginUrl.searchParams.set(
+        "next",
+        sanitizeNextPath(`${pathname}${request.nextUrl.search}`),
+      );
+      return NextResponse.redirect(loginUrl);
+    }
+
     return response;
   }
 
