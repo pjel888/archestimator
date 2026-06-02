@@ -44,6 +44,15 @@
 - Supabase: CLI `2.98.2` is linked to project `Archestimator` / `ebxxqidacheyapmmzavr`; `supabase migration list --linked` succeeds and still shows launch migrations `20260601182522`, `20260601184343`, `20260602005649`, `20260602083000`, and `20260602084500` absent remotely.
 - Launch meaning: this refresh confirms the latest pushed `main` evidence commit has a Ready protected preview, but it does not close Vercel env/public/custom-domain/rollback, hosted auth, linked Supabase migration/RLS/RPC/storage, Resend, spreadsheet-app, legal, support, or hosted/manual E2E gates.
 
+### Hosted Export Route Auth-Blocked Probe at 231c27e
+
+- Artifact: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/hosted-export-route-auth-blocked-231c27e-2026-06-02.md`.
+- Vercel: preview `archestimator-41fhr533d-philipjonlewis-projects.vercel.app`, deployment `dpl_HUvjmre3YPya25GVDir18qHxmfSN`, commit `231c27e2b95291b8c9770e327344ba3809f03f9d`, status Ready.
+- Health: protected `/api/health` returned `{"ok":true,"service":"archestimator"}` through `vercel curl`.
+- Route map: the XLSX export route calls `getProjectEstimateTreeByEstimate(...)`, which resolves workspace context through `requireCurrentUserContext()`; `/api` is bypassed by proxy, so the auth boundary is inside the route's repository chain.
+- Probe result: anonymous/fake-ID `vercel curl` did not produce XLSX bytes. One raw probe surfaced a Next.js 404 not-found page, and a clean rerun returned zero captured response bytes after roughly 3 seconds.
+- Launch meaning: this is not hosted workbook timing/memory proof. It narrows the blocker to the exact prerequisite: a logged-in hosted app session plus real authorized project/estimate IDs are required before the export route can be measured on Vercel.
+
 ### AUTH-E2E Local Signed-Out Smoke Evidence
 
 - Local command: `PLAYWRIGHT_PORT=3037 bun run test:e2e -- e2e/auth.spec.ts --project=chromium`.
