@@ -6,6 +6,8 @@ This matrix converts the remaining hosted/provider/manual gates into concrete ev
 
 Use `48-manual-proof-packet-template.md` as the `README.md` inside the dated artifact folder when collecting this evidence.
 
+Current consolidated packet: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/README.md`. It organizes the current local/read-only/blocked artifacts and keeps external closed beta **NO-GO** because P0 rows remain blocked.
+
 ## Evidence Rules
 
 - Use a throwaway beta tester or demo account where possible.

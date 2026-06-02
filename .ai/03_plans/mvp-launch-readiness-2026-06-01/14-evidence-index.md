@@ -6,6 +6,7 @@
 
 - Final report artifact: `final-codex-implementation-report.md`.
 - Manual proof matrix artifact: `46-manual-proof-matrix.md`.
+- Consolidated manual proof packet: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/README.md`.
 - Goal completion audit artifact: `47-goal-completion-audit.md`.
 - Manual proof packet template: `48-manual-proof-packet-template.md`.
 - Stable implementation baseline summarized by the report: `8084908`.
@@ -15,6 +16,15 @@
 - Current local validation refresh at `bc1c715`: `bun install --frozen-lockfile` and `bun run validate` passed; validation covered typecheck, lint with 14 warnings and 0 errors, design lint, unit tests (4 tests / 129 expectations), and DOM tests (136 files / 1050 passed / 2 skipped). This refresh does not change the **NO-GO** recommendation.
 - Current local app build refresh at `bc1c715`: `bun run build` passed under Next.js 16.2.6 / Turbopack, generated 32 static pages, and listed `/api/health`, `/api/ai/ask`, `/api/ai/package-builder`, `/beta/access-required`, share routes, invite routes, and protected workshop routes. This refresh does not change the **NO-GO** recommendation.
 - Remaining proof gates recorded in the report: linked Supabase backup/RLS/storage/migration proof, hosted auth smoke, Vercel deploy/health/rollback proof, Resend proof before email workflows are re-enabled, spreadsheet open/print proof, legal review, monitored support proof, demo artifacts, and current manual/E2E smoke.
+
+### Consolidated Manual Proof Packet
+
+- Artifact: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/README.md`.
+- Environment: local repo evidence plus read-only Vercel/Supabase/DNS checks.
+- Anchors: local validation/build `bc1c715`, latest app-runtime Vercel proof `638f681`, latest packet/report sync `a246f6b`.
+- Result: **NO-GO** packet. The packet consolidates current proof rows as `partial-local`, `partial-blocked`, or `blocked`; no P0 external launch blocker is relabeled as passed.
+- Remaining blocked rows: Supabase backup/PITR, linked migrations/RLS/storage/RPC, hosted auth, Vercel env/custom-domain/rollback, Resend proof, spreadsheet-app open/recalc/print, linked project-specific unlink smoke, legal sign-off, monitored support/alerts, demo sign-off, hosted/manual E2E.
+- Launch meaning: this improves artifact organization and future proof collection only. It does not add hosted/provider/manual proof and does not change the **NO-GO** recommendation.
 
 ### AUTH-E2E Local Signed-Out Smoke Evidence
 

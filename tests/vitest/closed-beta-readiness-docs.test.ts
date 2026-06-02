@@ -22,6 +22,10 @@ const manualProofPacketTemplate = readFileSync(
   ".ai/03_plans/mvp-launch-readiness-2026-06-01/48-manual-proof-packet-template.md",
   "utf8",
 );
+const consolidatedManualProofPacket = readFileSync(
+  ".ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/README.md",
+  "utf8",
+);
 const currentState = readFileSync(".ai/10_state/current-state.md", "utf8");
 const decisions = readFileSync(".ai/10_state/decisions.md", "utf8");
 const knownIssues = readFileSync(".ai/10_state/known-issues.md", "utf8");
@@ -161,6 +165,7 @@ describe("closed beta readiness docs", () => {
     expect(finalImplementationReport).toContain("They do not change the implementation baseline or the **NO-GO** recommendation.");
     expect(evidenceIndex).toContain("| Full local implementation baseline | `c5ca065` after demo seed row repair |");
     expect(evidenceIndex).toContain("Manual proof matrix artifact: `46-manual-proof-matrix.md`.");
+    expect(evidenceIndex).toContain("Consolidated manual proof packet: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/README.md`.");
     expect(evidenceIndex).toContain("Goal completion audit artifact: `47-goal-completion-audit.md`.");
     expect(evidenceIndex).toContain("Manual proof packet template: `48-manual-proof-packet-template.md`.");
     expect(evidenceIndex).toContain("| Final report baseline | `8084908` after canonical state/decision/roadmap truth sync |");
@@ -171,6 +176,8 @@ describe("closed beta readiness docs", () => {
     expect(evidenceIndex).toContain("### CURRENT-HEAD Local Validation Refresh Evidence");
     expect(evidenceIndex).toContain("### CURRENT-HEAD Local Build Refresh Evidence");
     expect(evidenceIndex).toContain("### Manual Proof Matrix Evidence");
+    expect(evidenceIndex).toContain("### Consolidated Manual Proof Packet");
+    expect(evidenceIndex).toContain("The packet consolidates current proof rows as `partial-local`, `partial-blocked`, or `blocked`");
     expect(evidenceIndex).toContain("### Goal Completion Audit Evidence");
     expect(evidenceIndex).toContain("### Beta Allowlist Admin Local Evidence");
     expect(evidenceIndex).toContain("beta-allowlist-admin-local-2026-06-02.md");
@@ -385,6 +392,7 @@ describe("closed beta readiness docs", () => {
     expect(manualProofMatrix).toMatch(/Status: Required before external closed beta/);
     expect(manualProofMatrix).toContain("Closed beta stays **NO-GO**");
     expect(manualProofMatrix).toContain("Use `48-manual-proof-packet-template.md`");
+    expect(manualProofMatrix).toContain("Current consolidated packet: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/README.md`");
     expect(manualProofMatrix).toContain("Supabase backup/PITR");
     expect(manualProofMatrix).toContain("supabase-linked-schema-parity-2026-06-02.md");
     expect(manualProofMatrix).toContain("supabase-linked-readiness-refresh-2026-06-02.md");
@@ -505,8 +513,20 @@ describe("closed beta readiness docs", () => {
     expect(manualProofPacketTemplate).not.toMatch(/\| .* \| pass \|/i);
   });
 
+  it("keeps the consolidated manual proof packet no-go until external gates pass", () => {
+    expect(consolidatedManualProofPacket).toContain("MVP Closed Beta Manual Proof Packet - 2026-06-02");
+    expect(consolidatedManualProofPacket).toContain("External closed beta recommendation | NO-GO");
+    expect(consolidatedManualProofPacket).toContain("Supabase backup/PITR | blocked");
+    expect(consolidatedManualProofPacket).toContain("Spreadsheet compatibility | partial-local");
+    expect(consolidatedManualProofPacket).toContain("Current manual E2E smoke | partial-local");
+    expect(consolidatedManualProofPacket).toContain("Do not change the launch decision until `47-goal-completion-audit.md` is rerun");
+    expect(consolidatedManualProofPacket).not.toMatch(/\| .* \| pass \|/i);
+  });
+
   it("keeps the active goal completion audit evidence-gated", () => {
     expect(goalCompletionAudit).toMatch(/Status: Goal active; completion not proven/);
+    expect(goalCompletionAudit).toContain("Consolidated manual proof packet");
+    expect(goalCompletionAudit).toContain("current packet organizes existing artifacts into `partial-local`, `partial-blocked`, and `blocked` rows");
     expect(goalCompletionAudit).toContain("Closed beta allowlist access implemented and tested");
     expect(goalCompletionAudit).toContain("platform-admin `/workshop/settings/beta-users` management");
     expect(goalCompletionAudit).toContain("Ask Flip hidden and AI routes disabled by default");
