@@ -42,6 +42,12 @@
 | **Production readiness scorecard** | `59-access-telemetry-production-enablement-readiness-scorecard.md` | `61-access-telemetry-production-enablement-readiness-certification.md` | 12-category production enablement scoring |
 | **Production loop log** | `60-production-enablement-readiness-loop-log.md` | `61-access-telemetry-production-enablement-readiness-certification.md` | Eleventh pass loop audit trail |
 | **Final certification (production)** | `61-access-telemetry-production-enablement-readiness-certification.md` | `51-access-telemetry-production-enablement-checklist.md` through `59-access-telemetry-production-enablement-readiness-scorecard.md` | Production enablement single source of truth — read FIRST |
+| **Vendor/processor DPA worksheet** | `63-vendor-processor-dpa-evidence-worksheet.md` | `59-access-telemetry-production-enablement-readiness-scorecard.md`, `53-dpo-npcrs-and-dps-registration-triage.md` | Vendor DPA evidence tracking, data flow analysis, review checklists |
+| **Evidence ledger** | `64-access-telemetry-production-evidence-ledger.md` | `66-production-readiness-final-gate-matrix.md`, `67-final-access-telemetry-production-readiness-scorecard.md` | Central tracker for all 16 production enablement evidence items |
+| **Execution runbook** | `65-production-enablement-execution-runbook.md` | `64-access-telemetry-production-evidence-ledger.md`, `51-access-telemetry-production-enablement-checklist.md` | 53-item, 9-phase step-by-step execution path |
+| **Final gate matrix** | `66-production-readiness-final-gate-matrix.md` | `64-access-telemetry-production-evidence-ledger.md`, `67-final-access-telemetry-production-readiness-scorecard.md` | Boolean gate matrix: 15 required + 1 recommended gate |
+| **Final three-domain scorecard** | `67-final-access-telemetry-production-readiness-scorecard.md` | `66-production-readiness-final-gate-matrix.md`, `64-access-telemetry-production-evidence-ledger.md` | Domain A (implementation 100%) + Domain B (planning 100%) + Domain C (execution 0%) |
+| **Closure loop log** | `62-production-readiness-autonomous-closure-log.md` | `60-production-enablement-readiness-loop-log.md` | Twelfth pass autonomous closure audit trail |
 | **Loop audit (tenth pass)** | `49-final-100-readiness-loop-log.md` | — | Audit trail of final document hardening pass |
 
 ---
@@ -157,6 +163,11 @@ These documents contain useful historical context but are NO LONGER authoritativ
 8. `57-access-telemetry-test-evidence-matrix.md` — test evidence matrix
 9. `58-production-enablement-final-go-template.md` — final sign-off template
 10. `59-access-telemetry-production-enablement-readiness-scorecard.md` — production readiness scores
+11. `63-vendor-processor-dpa-evidence-worksheet.md` — vendor DPA evidence worksheet
+12. `64-access-telemetry-production-evidence-ledger.md` — evidence ledger
+13. `65-production-enablement-execution-runbook.md` — execution runbook
+14. `66-production-readiness-final-gate-matrix.md` — final gate matrix
+15. `67-final-access-telemetry-production-readiness-scorecard.md` — final three-domain scorecard
 
 ---
 

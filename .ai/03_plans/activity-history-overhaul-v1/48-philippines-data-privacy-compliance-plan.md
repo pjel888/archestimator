@@ -305,4 +305,9 @@ Access telemetry implementation (PR 7) is **GO for implementation** under approv
 - `26-privacy-retention-and-client-disclosure-plan.md` — Privacy, retention, and client disclosure
 - `23-shared-page-access-activity-plan.md` — Access telemetry implementation plan
 - `07-security-privacy-readiness.md` — Security and privacy readiness assessment
+- `63-vendor-processor-dpa-evidence-worksheet.md` — Vendor/processor DPA evidence worksheet (twelfth pass)
+- `64-access-telemetry-production-evidence-ledger.md` — Evidence ledger (E-005 NPCRS triage, E-006 DPS inventory)
+- `65-production-enablement-execution-runbook.md` — Execution runbook (Phase 2: DPO/NPC/DPS, Phase 4: Vendor/Processor)
+- `66-production-readiness-final-gate-matrix.md` — Gate matrix (G-04, G-05, G-06, G-09)
+- `67-final-access-telemetry-production-readiness-scorecard.md` — Final scorecard (Domain B: DPO/NPCRS/DPS triage package 100%)
 - `36-access-telemetry-side-effects-audit.md` — Side effects audit and analytics helper

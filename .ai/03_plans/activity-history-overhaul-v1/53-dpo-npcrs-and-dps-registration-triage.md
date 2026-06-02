@@ -184,4 +184,9 @@ PIA:                       ⬜ Not started / ⬜ In progress / ⬜ Complete
 - `48-philippines-data-privacy-compliance-plan.md` — Full DPA/NPC compliance plan
 - `51-access-telemetry-production-enablement-checklist.md` — Items A7–A9, A12–A13
 - `47-pr7-pr8b-approval-record.md` — PR 7 approval record
+- `63-vendor-processor-dpa-evidence-worksheet.md` — Vendor/processor DPA evidence worksheet (twelfth pass)
+- `64-access-telemetry-production-evidence-ledger.md` — Evidence ledger (E-004, E-005, E-006)
+- `65-production-enablement-execution-runbook.md` — Execution runbook (Phase 2: DPO/NPC/DPS)
+- `66-production-readiness-final-gate-matrix.md` — Gate matrix (G-04, G-05, G-06)
+- `67-final-access-telemetry-production-readiness-scorecard.md` — Final scorecard (Domain B: DPO/NPCRS/DPS triage package 100%)
 - `54-data-subject-request-and-breach-response-playbook.md` — DSR and breach playbook

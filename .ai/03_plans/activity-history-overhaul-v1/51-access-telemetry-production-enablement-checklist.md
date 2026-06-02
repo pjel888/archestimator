@@ -21,7 +21,7 @@
 | A9 | DPS inventory completed | ⬜ Pending | Doc 53 provides DPS inventory template | Philip Echavez Lewis |
 | A10 | Data subject request process documented | ⬜ Pending | Doc 54 provides DSR playbook | Philip Echavez Lewis |
 | A11 | Breach notification process documented | ⬜ Pending | Doc 54 provides breach playbook | Philip Echavez Lewis |
-| A12 | Vendor/processor list documented | ⬜ Pending | Doc 53 §processors | Philip Echavez Lewis |
+| A12 | Vendor/processor list documented and DPA evidence worksheet complete | ✅ Worksheet ready (doc 63) | Doc 63 provides full vendor DPA worksheet with review checklists | Philip Echavez Lewis |
 | A13 | Privacy impact assessment (PIA) completed | ⬜ Pending | Doc 48 §6 | Philip Echavez Lewis |
 
 ---
@@ -109,3 +109,8 @@
 - `57-access-telemetry-test-evidence-matrix.md` — Test evidence matrix
 - `58-production-enablement-final-go-template.md` — Final sign-off template
 - `50-final-100-implementation-readiness-certification.md` — Implementation readiness certification
+- `63-vendor-processor-dpa-evidence-worksheet.md` — Vendor/processor DPA worksheet
+- `64-access-telemetry-production-evidence-ledger.md` — Evidence ledger (tracks all operational evidence)
+- `65-production-enablement-execution-runbook.md` — Execution runbook (53-item step-by-step path)
+- `66-production-readiness-final-gate-matrix.md` — Boolean gate matrix (15 required gates)
+- `67-final-access-telemetry-production-readiness-scorecard.md` — Final three-domain scorecard

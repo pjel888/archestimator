@@ -13,7 +13,7 @@
 |------|--------|
 | Planning phase | ✅ Complete (8 audit/refinement passes) |
 | Docs internally consistent | ✅ Yes (after this pass) |
-| Activity code unchanged since planning | ✅ Yes (HEAD `b6873b4` = baseline `65b21eb` + certification `e559e60` + proof/ops/docs commits; no activity code changed) |
+| Activity code unchanged since planning | ✅ Yes (HEAD `453ac68` = baseline `65b21eb` + certification `e559e60` + proof/ops/docs commits; no activity code changed) |
 | Folder file count | 63 files (README + 62 numbered docs 00–61) |
 
 ---
