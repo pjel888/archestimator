@@ -599,7 +599,7 @@ The workstreams are not 7 independent parallel tracks — they **activate at dif
 
 | Field | Value |
 |---|---|
-| Status | `ACTIVE — Milestone 6 full verification/build passed; PR 8A pagination/realtime next after commit` |
+| Status | `ACTIVE — Milestone 6 pushed; PR 8A pagination and Realtime hardening next` |
 | Branch | `feat/activity-history-overhaul-v1` |
 | Active plan | `.ai/03_plans/activity-history-overhaul-v1/` |
 | Evidence ledger | `.ai/01_roadmap/35-activity-history-overhaul-v1-execution.md` |
