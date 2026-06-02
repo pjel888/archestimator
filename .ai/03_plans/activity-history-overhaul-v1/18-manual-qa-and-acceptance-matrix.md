@@ -200,7 +200,7 @@ Define manual QA scripts to verify Activity History correctness across browsers,
 
 | Surface | Criteria | Status |
 |---------|----------|--------|
-| Estimate Activity History | All 13 event types render human-readable copy; no raw event types; filters work; pagination works; keyboard navigable | [ ] |
+| Estimate Activity History | All 14 raw estimate event types (12 active + 2 dormant) render human-readable copy; no raw event types; filters work; pagination works; keyboard navigable | [ ] |
 | Shared-link Activity (owner) | All comment types, decisions, events render human-readable; internal badge visible; Realtime functional or removed; pagination fixed | [ ] |
 | Shared-link Activity (client) | No internal comments; no raw UUIDs; no raw event types; decisions human-readable; pagination added | [ ] |
 | Email digest | Both comment and decision triggers work; improved copy; no internal comment leak | [ ] |

@@ -110,7 +110,7 @@
 
 The planning pack now covers the full Activity History feature:
 
-- ✅ Estimate history events (13 event types, human-readable copy)
+- ✅ Estimate history events (14 raw estimate event types: 12 active + 2 dormant, human-readable copy)
 - ✅ Shared-link comment/decision/event activity
 - ✅ Human-readable copy system (composer spec)
 - ✅ **NEW** Shared page access/visit tracking
