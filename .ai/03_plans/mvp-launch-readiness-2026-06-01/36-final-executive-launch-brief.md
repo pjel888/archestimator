@@ -24,8 +24,8 @@ No Stripe, checkout, subscriptions, billing UI, invoices, paid tiers, pricing en
 - Full local implementation baseline: `c5ca065` after demo seed row repair.
 - Final report baseline: `8084908` after canonical state/decision/roadmap truth sync.
 - Final report indexed in launch docs: `3e8d7a0`.
-- Current local validation refresh: `70e80c9`, `bun run validate` passed with DOM at 136 files / 1050 passed / 2 skipped.
-- Current local app build refresh: `70e80c9`, `bun run build` passed with Next.js 16.2.6 / Turbopack and 32 static pages.
+- Current local validation refresh: `51e72e1`, `bun install --frozen-lockfile` and `bun run validate` passed with DOM at 136 files / 1050 passed / 2 skipped.
+- Current local app build refresh: `51e72e1`, `bun run build` passed with Next.js 16.2.6 / Turbopack and 32 static pages.
 - Current Vercel preview refresh: `567f3c5`, Ready preview deployment `dpl_3Q8s2oTgL1KDDi5Z131BwiCRgQ5P` at `archestimator-phs8e66w1-philipjonlewis-projects.vercel.app`; protected `/api/health` works through `vercel curl`, but Vercel env vars remain absent, public preview health returns HTTP 401, custom domains still point at old production deployment `dpl_FwfHexBsB1xSHDqHqFwHSYpCYTVH`, and rollback proof is missing.
 - Current linked Supabase readiness refresh: `08a58dd`, read-only linked SQL proves five launch migrations and the allowlist/feedback/unlink RPC objects are absent, `component-images` remains public, migration list/performance reads hit `ECIRCUITBREAKER`, and security advisor WARN findings remain.
 - Resend guardrail refresh: `fd5d4b3` fails unconfigured production-like email sends closed; `61160ee` disables shared-link recipient entry/send/resend controls while server email readiness is false; local Teamspaces invite controls now disable while project invite delivery readiness is false.
