@@ -161,7 +161,15 @@
 - Root cause: `src/proxy.ts` constructed the Supabase SSR client with non-null asserted env values before it could redirect signed-out protected routes.
 - Local fix: proxy now checks for required Supabase env before calling `createServerClient()`; missing env redirects protected `/workshop` routes to `/login?next=...` and leaves `/login` renderable without constructing the Supabase client.
 - Verification: GitNexus impact for `Function:src/proxy.ts:proxy` reported low risk / zero upstream affected processes; focused auth proxy/session tests passed 2 files / 23 tests; `bun run type-check` and `bun run build` passed.
-- Launch meaning: this is local fail-closed proof only until committed, pushed, deployed, and rechecked on Vercel. It does not prove hosted allowed/denied/revoked/expired sessions, callback URLs, linked allowlist data, Vercel env values, custom-domain health, or rollback.
+- Launch meaning: this was local fail-closed proof before the `b2a0a03` postdeploy recheck. It does not prove hosted allowed/denied/revoked/expired sessions, callback URLs, linked allowlist data, Vercel env values, custom-domain health, or rollback.
+
+### Hosted Auth Proxy Env Postdeploy Recheck at b2a0a03
+
+- Artifact: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/hosted-auth-proxy-env-postdeploy-b2a0a03-2026-06-02.md`.
+- Vercel: preview `archestimator-opxqsyo4t-philipjonlewis-projects.vercel.app` reached `READY` after commit `b2a0a03`.
+- Health: `vercel curl https://archestimator-opxqsyo4t-philipjonlewis-projects.vercel.app/api/health` returned app health JSON with `"ok": true` and `"service": "archestimator"`.
+- Protected-route result: `vercel curl https://archestimator-opxqsyo4t-philipjonlewis-projects.vercel.app/workshop -I` returned HTTP `307` with `location: /login?next=%2Fworkshop`.
+- Launch meaning: this closes only the signed-out missing-env protected-route recheck that previously returned HTTP `500`. It does not prove hosted Google OAuth, allowed/denied/revoked/expired hosted sessions, callback URLs, linked allowlist data, Vercel env values, custom-domain health, rollback, first-run workspace, or hosted manual E2E.
 
 ### Hosted Export Route Auth-Blocked Probe at 231c27e
 
