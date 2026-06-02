@@ -11,6 +11,7 @@ This gate is now the closed beta launch gate. It is not a public paid-launch gat
 - Final report indexed in launch docs: `3e8d7a0`.
 - Current local validation refresh: `70e80c9`, `bun run validate` pass.
 - Current local app build refresh: `70e80c9`, `bun run build` pass.
+- Current Vercel preview refresh: `165e4a3`, Ready preview deployment `dpl_BebUf77ozLLxqpNYHroCErRZwBf9` at `archestimator-7wb28vtv2-philipjonlewis-projects.vercel.app`; protected `/api/health` works through `vercel curl`, but Vercel env vars remain absent, public preview health returns HTTP 401, custom domains still point at old production deployment `dpl_FwfHexBsB1xSHDqHqFwHSYpCYTVH`, and rollback proof is missing.
 - Resend guardrail refresh: `fd5d4b3` fails unconfigured production-like email sends closed with `EMAIL_NOT_CONFIGURED`; `61160ee` disables shared-link recipient entry/send/resend controls while server email readiness is false; local Teamspaces invite controls now disable when project invite delivery readiness is false.
 - `bun install --frozen-lockfile`: pass.
 - `bun run type-check`: pass.
@@ -93,7 +94,7 @@ Rules: below 90 cannot be called beta-ready; P0 below 95 blocks launch; 100 requ
 | Project-specific unlink | 86 | Local RPC/action/hook/UI tests pass; linked/manual proof remains. |
 | Excel export | 90 | Professional workbook tests, generated XLSX artifact, ZIP integrity, and no-blank-total scan pass; cross-app open proof remains. |
 | Auth/onboarding | 78 | Local beta gate coverage and signed-out redirect/login UI E2E pass; Vercel env is empty, so hosted callback and first-run smoke are blocked. |
-| Infrastructure/deployment | 76 | Preview deploy and protected health proof exist; env, public health, rollback, and linked Supabase proof remain blocked. |
+| Infrastructure/deployment | 76 | Current `main` preview deploy `dpl_BebUf77ozLLxqpNYHroCErRZwBf9` is Ready and protected health works through `vercel curl`; env, public health, custom-domain app health, rollback, and linked Supabase proof remain blocked. |
 | Email/Resend | 70 | Code fails closed when unconfigured, shared-link recipient email controls disable while readiness is false, and Teamspaces invite controls disable while invite delivery readiness is false; DNS/delivery/webhook/provider proof still missing. |
 | Security/RLS | 70 | Local RLS/allowlist model exists; linked security advisor warns and linked denial/storage tests are missing. |
 | Legal/privacy | 82 | Local beta terms/privacy copy exists; owner/counsel review missing. |
