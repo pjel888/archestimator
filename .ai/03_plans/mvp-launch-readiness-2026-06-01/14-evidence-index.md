@@ -73,6 +73,16 @@
 - Result: branch-alias public health returned HTTP `401`; `www.archestimator.com/api/health` and `archestimator.vercel.app/api/health` returned HTTP `404`; apex `archestimator.com/api/health` returned HTTP `307` to `www`; no URL returned the app health JSON; `vercelHealthReady: false`.
 - Launch meaning: this makes public/custom-domain health proof repeatable, but it does not prove Vercel env values, protected preview health through `vercel curl`, production promotion, rollback, hosted auth, or app behavior behind deployment protection. Public/custom-domain health remains **NO-GO**.
 
+### Supabase Backup/PITR Readiness Helper
+
+- Script: `scripts/check-supabase-backup-readiness.ts`.
+- Package command: `bun run launch:check-supabase-backup`.
+- Proof artifact: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/supabase-backup-readiness-26bc6e3-2026-06-02.json`.
+- Scope: parses sanitized `supabase backups list --project-ref <ref> -o json` or Management API backup-list JSON and records backup count, PITR status, WAL status, region, restore-drill status, and missing proof rows without storing provider tokens or credentials.
+- Current refresh: `SUPABASE_BACKUP_LIST_JSON="$(supabase backups list --project-ref ebxxqidacheyapmmzavr -o json 2>&1)" SUPABASE_BACKUP_PROJECT_REF=ebxxqidacheyapmmzavr OUTPUT_FILE=.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/supabase-backup-readiness-26bc6e3-2026-06-02.json bun run launch:check-supabase-backup` wrote sanitized JSON and exited `1`.
+- Result: region `ap-southeast-2`; zero listed backups; `pitrEnabled: false`; `walgEnabled: true`; `restoreDrillStatus: not-provided`; missing `listed backups`, `PITR enabled`, and `restore drill passed`; `supabaseBackupReady: false`.
+- Launch meaning: this makes backup/PITR proof repeatable, but it does not enable PITR, create/list a backup, perform a restore, or prove linked migration safety. Supabase backup/PITR and restore-drill readiness remains **NO-GO**.
+
 ### Hosted Auth Route Proof Helper
 
 - Script: `scripts/verify-hosted-auth-routes.ts`.

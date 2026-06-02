@@ -18,6 +18,7 @@
     "launch:verify-hosted-auth": "bun run scripts/verify-hosted-auth-routes.ts",
     "launch:verify-hosted-export": "bun run scripts/verify-hosted-export-route.ts",
     "launch:supabase-readiness": "supabase db query --linked --file scripts/sql/linked-supabase-launch-readiness.sql --output json",
+    "launch:check-supabase-backup": "bun run scripts/check-supabase-backup-readiness.ts",
     "launch:check-support-dns": "bun run scripts/check-support-email-dns.ts",
     "launch:check-vercel-env": "bun run scripts/check-vercel-env-readiness.ts",
     "launch:check-vercel-health": "bun run scripts/check-vercel-health-readiness.ts",
