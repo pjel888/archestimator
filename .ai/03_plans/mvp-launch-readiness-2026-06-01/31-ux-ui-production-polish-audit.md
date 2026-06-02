@@ -27,7 +27,7 @@ Design-system source: `DESIGN.md`. Launch UI must be compact, work-focused, clea
 | Project list | `src/app/workshop/projects/*` | Local first-run state covered | Hosted new-account manual proof still needed. | P0/P1 | `ONB-001` | Create first project obvious; sample cards are clearly references only. | Local DOM pass; new account QA still required. |
 | Project create modal | project components/actions | Exists | Validation/error copy needs check. | P1 | `QA-002` | Required fields and errors clear. | Manual create. |
 | Project dashboard | project detail routes | Local next-step panel covered | Demo screenshot/manual proof still needed. | P1 | `DEMO-001` | Project details are editable and route links to estimates/charts/projects are clear. | Local DOM pass; demo screenshot still required. |
-| Estimate list | project estimates route | Exists | Empty/duplicate/open QA required. | P0 | `QA-002` | Can create/open/duplicate. | Core smoke. |
+| Estimate list | project estimates route | Local empty/create/search states covered | Open/duplicate core smoke still needed. | P0 | `QA-002` | First estimate creation is obvious; filtered no-match state is clear; open/duplicate actions remain test-covered at table level. | Local DOM pass; core smoke still required. |
 | Estimate workspace | `EstimateSheetContent` | Exists | High-blast-radius; route perf/AI/export/unlink gaps. | P0 | `AI-001`, `UNLINK-001`, `EXP-001` | Core grid stable. | Full smoke. |
 | Left tree | `EstimateSheetTree` | Exists | DnD/context-menu E2E env-gated. | P1 | `QA-002` | No layout shift; keyboard paths. | Manual/E2E. |
 | Estimate grid | `EstimateSheetContent` | Exists | Row edit/delete/replace zero-defect matrix missing. | P0 | `QA-002` | Edits persist/history correct. | Core smoke. |

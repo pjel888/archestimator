@@ -977,6 +977,14 @@ No linked Supabase query was run in this pass. Production/staging schema readine
 - Local proof: `bunx vitest run tests/vitest/project-dashboard-client.test.tsx --maxWorkers=1` passed 1 file / 2 tests.
 - Scope limit: this is local DOM proof only. Investor demo screenshots and hosted/manual route walkthroughs remain open.
 
+## QA-002 Estimate List Local Evidence - 2026-06-02
+
+- Project estimate lists now show a shared empty state with a visible first-estimate action when a project has no estimate sheets.
+- Filtered estimate lists now show no-match copy that points users toward sheet code/name search or clearing filters, without duplicating create actions while estimates already exist.
+- `project-estimates-client-create.test.tsx` covers guarded create submission, first-estimate empty-state copy/action, and filtered no-match copy.
+- Local proof: `bunx vitest run tests/vitest/project-estimates-client-create.test.tsx --maxWorkers=1` passed 1 file / 3 tests.
+- Scope limit: this is local DOM proof only. Full create/open/duplicate core smoke, hosted route behavior, and manual estimate-list screenshots remain open.
+
 ## Excel Reference Evidence Reviewed
 
 The workbook plan incorporates provided bid/quotation patterns:
