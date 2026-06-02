@@ -11,10 +11,10 @@ This packet follows `48-manual-proof-packet-template.md` as the dated folder REA
 | Date | 2026-06-02 |
 | Environment | Local repo evidence plus read-only Vercel/Supabase/DNS checks |
 | App URL | Local app plus protected Vercel preview evidence where listed |
-| Commit tested | Local validation/build anchor `b60f911`; latest read-only Vercel provider anchor `b33f56d`; latest packet sync `b60f911` |
+| Commit tested | Local validation/build anchor `b60f911`; latest read-only Vercel/Supabase provider anchor `d78686f`; latest packet sync `d78686f` |
 | Operator | Codex |
 | Test accounts | Sanitized local/dev-auth and temporary fixture accounts only where artifact says so |
-| Related deployment | `dpl_6psx8VnKmAgcU17jHk9xVSpavTi4`; custom domains still point at older production deployment `dpl_FwfHexBsB1xSHDqHqFwHSYpCYTVH` |
+| Related deployment | `dpl_BxmQY4ufymmGUxAEJyK9fyRcGvmh`; custom domains still point at older production deployment `dpl_FwfHexBsB1xSHDqHqFwHSYpCYTVH` |
 | Cleanup owner | Philip / operator of future hosted proof run |
 
 ## Summary Decision
@@ -30,11 +30,11 @@ This packet follows `48-manual-proof-packet-template.md` as the dated folder REA
 | Gate | Result | Artifact filenames / links | Notes |
 | --- | --- | --- | --- |
 | Supabase backup/PITR | blocked | `supabase-read-only-cli-2026-06-02.md` | PITR is disabled and no backups were listed; restore drill missing. |
-| Linked/staging Supabase migrations | blocked | `supabase-linked-schema-parity-2026-06-02.md`, `supabase-linked-readiness-refresh-2026-06-02.md`, `provider-state-refresh-b33f56d-2026-06-02.md` | Five launch migrations and allowlist/feedback/unlink objects are absent; latest migration-list read succeeds but still shows the five launch migrations absent remotely; RLS allow/deny proof missing. |
+| Linked/staging Supabase migrations | blocked | `supabase-linked-schema-parity-2026-06-02.md`, `supabase-linked-readiness-refresh-2026-06-02.md`, `provider-state-refresh-b33f56d-2026-06-02.md`, `provider-state-refresh-d78686f-2026-06-02.md` | Five launch migrations and allowlist/feedback/unlink objects are absent; latest migration-list read succeeds but still shows the five launch migrations absent remotely; RLS allow/deny proof missing. |
 | Storage/RPC security | blocked | `supabase-linked-readiness-refresh-2026-06-02.md` | Security advisor WARN findings and public `component-images` bucket remain unresolved. |
-| Hosted auth allowlist | blocked | `vercel-read-only-cli-2026-06-02.md`, `provider-state-refresh-b33f56d-2026-06-02.md` | Vercel env list is empty; hosted allowed/denied/revoked/logout/session-expiry smoke not run. |
+| Hosted auth allowlist | blocked | `vercel-read-only-cli-2026-06-02.md`, `provider-state-refresh-b33f56d-2026-06-02.md`, `provider-state-refresh-d78686f-2026-06-02.md` | Vercel env list is empty; hosted allowed/denied/revoked/logout/session-expiry smoke not run. |
 | First-run workspace | partial-local | `first-run-workshop-local-surface-2026-06-02.md` | Local fallback workspace and empty Workshop homebase coverage exists; hosted whitelisted fresh-user proof missing. |
-| Vercel deploy/env/health | partial-blocked | `provider-state-refresh-b33f56d-2026-06-02.md`, `vercel-protection-read-only-2026-06-02.md`, `vercel-custom-domain-readiness-blocked-2026-06-02.md` | Latest `b33f56d` preview is Ready and protected `/api/health` works through `vercel curl`; env vars absent, public preview is 401, custom domains use old coming-soon deployment, rollback proof missing. |
+| Vercel deploy/env/health | partial-blocked | `provider-state-refresh-b33f56d-2026-06-02.md`, `provider-state-refresh-d78686f-2026-06-02.md`, `vercel-protection-read-only-2026-06-02.md`, `vercel-custom-domain-readiness-blocked-2026-06-02.md` | Latest `d78686f` preview is Ready and protected `/api/health` works through `vercel curl`; env vars absent, public preview is 401, custom domains use old coming-soon deployment, rollback proof missing. |
 | Resend/email if visible | blocked | `resend-email-readiness-blocked-2026-06-02.md` | Vercel env and local Resend env are absent; app email controls fail/disable closed; delivery/webhook proof missing. |
 | Spreadsheet compatibility | partial-local | `spreadsheet-artifact-local-2026-06-02.md`, `spreadsheet-quicklook-preview-2026-06-02.md`, `spreadsheet-app-availability-refresh-2026-06-02.md`, `proposal-workbook-large-fixture-benchmark-2026-06-02.md`, `proposal-export-route-workbook-local-2026-06-02.md`, `proposal-workbook-benchmark-regression-coverage-2026-06-02.md`, `current-head-local-validation-build-b60f911-2026-06-02.md` | Local workbook, ZIP/ExcelJS/no-blank-total, Quick Look, route-handler, benchmark, fixture-regression, validation, and build proof exist; Excel/secondary-app open/recalc/print and hosted route timing missing. |
 | Project-specific unlink manual smoke | blocked | `project-specific-unlink-linked-smoke-blocked-2026-06-02.md` | Linked RPC is absent from schema cache; UI reached confirmation but linked smoke cannot pass until migration/RPC proof is resolved. |

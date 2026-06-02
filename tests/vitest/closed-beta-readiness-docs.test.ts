@@ -191,6 +191,11 @@ describe("closed beta readiness docs", () => {
     expect(evidenceIndex).toContain("provider-state-refresh-b33f56d-2026-06-02.md");
     expect(evidenceIndex).toContain("deployment `dpl_6psx8VnKmAgcU17jHk9xVSpavTi4`");
     expect(evidenceIndex).toContain("`supabase migration list --linked` now succeeds and still shows launch migrations");
+    expect(evidenceIndex).toContain("### Provider State Refresh at d78686f");
+    expect(evidenceIndex).toContain("provider-state-refresh-d78686f-2026-06-02.md");
+    expect(evidenceIndex).toContain("deployment `dpl_BxmQY4ufymmGUxAEJyK9fyRcGvmh`");
+    expect(evidenceIndex).toContain("archestimator-ll6yo0r97-philipjonlewis-projects.vercel.app");
+    expect(evidenceIndex).toContain("plain public preview and branch-alias health still return HTTP `401`");
     expect(evidenceIndex).toContain("### Goal Completion Audit Evidence");
     expect(evidenceIndex).toContain("### Beta Allowlist Admin Local Evidence");
     expect(evidenceIndex).toContain("beta-allowlist-admin-local-2026-06-02.md");
@@ -230,6 +235,9 @@ describe("closed beta readiness docs", () => {
     expect(currentState).toContain("**Provider State Refresh at b33f56d (2026-06-02):**");
     expect(currentState).toContain("deployment `dpl_6psx8VnKmAgcU17jHk9xVSpavTi4` for commit `b33f56d` is Ready");
     expect(currentState).toContain("`supabase migration list --linked` now succeeds instead of hitting the prior temp-role circuit breaker");
+    expect(currentState).toContain("**Provider State Refresh at d78686f (2026-06-02):**");
+    expect(currentState).toContain("deployment `dpl_BxmQY4ufymmGUxAEJyK9fyRcGvmh` for commit `d78686f` is Ready");
+    expect(currentState).toContain("public preview and branch-alias health return HTTP 401");
     expect(currentState).toContain("**Supabase Linked Readiness Refresh (2026-06-02):**");
     expect(currentState).toContain("`closed_beta_allowed_emails`, `beta_feedback_submissions`, `check_closed_beta_access`, and `unlink_estimate_row_item_from_library_with_history` absent");
     expect(currentState).toContain("Linked Supabase remains **NO-GO**");
@@ -244,6 +252,7 @@ describe("closed beta readiness docs", () => {
     expect(currentState).toContain("**Vercel Custom Domain Evidence (2026-06-02):**");
     expect(currentState).toContain("Production/custom-domain app health remains missing");
     expect(knownIssues).toContain("Provider state refresh evidence on 2026-06-02 confirms Vercel and linked Supabase remain blocked");
+    expect(knownIssues).toContain("Provider state refresh at `d78686f` on 2026-06-02 confirms the latest pushed `main` preview is Ready");
     expect(knownIssues).toContain("Supabase linked readiness refresh on 2026-06-02 confirms linked launch migrations and objects remain absent");
     expect(knownIssues).toContain("Vercel current-head read-only evidence on 2026-06-02 confirms latest app-runtime commit `638f681` has Ready preview deployment");
     expect(knownIssues).toContain("Vercel protection read-only evidence on 2026-06-02 confirms SSO protection remains");
@@ -369,7 +378,8 @@ describe("closed beta readiness docs", () => {
     expect(executiveBrief).not.toContain("HEAD: `531f20a`");
     expect(readinessScorecard).toContain("local signed-out redirect/login UI E2E passes; Vercel env list is empty");
     expect(readinessScorecard).toContain("records current local validation/build evidence through `b60f911`");
-    expect(readinessScorecard).toContain("records app-runtime provider/manual proof evidence through `638f681` and evidence-only provider-risk docs through `13f5acb`");
+    expect(readinessScorecard).toContain("latest read-only provider refresh evidence through `d78686f`");
+    expect(readinessScorecard).toContain("records app-runtime provider/manual proof evidence through `638f681`, evidence-only provider-risk docs through `13f5acb`, and latest read-only provider refresh evidence through `d78686f`");
     expect(readinessScorecard).toContain("records linked Supabase readiness refresh evidence through `08a58dd`");
     expect(readinessScorecard).toContain("records Supabase, Vercel, spreadsheet artifact/app-availability, local component/template demo, local template insertion evidence, beta operations runbook readiness, and Resend fail-closed/disabled-controls guardrails");
     expect(readinessScorecard).toContain("| Beta operations | Yes | 82 | Procedures documented; live ops proof pending |");
@@ -409,7 +419,7 @@ describe("closed beta readiness docs", () => {
     expect(manualProofMatrix).toContain("Closed beta stays **NO-GO**");
     expect(manualProofMatrix).toContain("Use `48-manual-proof-packet-template.md`");
     expect(manualProofMatrix).toContain("Current consolidated packet: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/README.md`");
-    expect(manualProofMatrix).toContain("provider-state-refresh-b33f56d-2026-06-02.md");
+    expect(manualProofMatrix).toContain("provider-state-refresh-d78686f-2026-06-02.md");
     expect(manualProofMatrix).toContain("Supabase backup/PITR");
     expect(manualProofMatrix).toContain("supabase-linked-schema-parity-2026-06-02.md");
     expect(manualProofMatrix).toContain("supabase-linked-readiness-refresh-2026-06-02.md");
@@ -421,10 +431,10 @@ describe("closed beta readiness docs", () => {
     expect(manualProofMatrix).toContain("Hosted auth allowlist");
     expect(manualProofMatrix).toContain("Vercel deploy/env/health");
     expect(manualProofMatrix).toContain("vercel-read-only-cli-2026-06-02.md");
-    expect(manualProofMatrix).toContain("archestimator-bk9xr4ea0-philipjonlewis-projects.vercel.app");
+    expect(manualProofMatrix).toContain("archestimator-ll6yo0r97-philipjonlewis-projects.vercel.app");
     expect(manualProofMatrix).toContain("vercel-protection-read-only-2026-06-02.md");
     expect(manualProofMatrix).toContain("one env-var-backed automation bypass still needs owner review");
-    expect(manualProofMatrix).toContain("commit `b33f56df19cc3d74540fb71369c3da1461ffb61b` as Ready");
+    expect(manualProofMatrix).toContain("commit `d78686f259b07349220aefd9eb64f5a86c752456` as Ready");
     expect(manualProofMatrix).toContain("public preview health returns HTTP `401`");
     expect(manualProofMatrix).toContain("vercel-custom-domain-readiness-blocked-2026-06-02.md");
     expect(manualProofMatrix).toContain("older Ready coming-soon production deployment where `/api/health` returns `404`");
@@ -533,8 +543,9 @@ describe("closed beta readiness docs", () => {
   it("keeps the consolidated manual proof packet no-go until external gates pass", () => {
     expect(consolidatedManualProofPacket).toContain("MVP Closed Beta Manual Proof Packet - 2026-06-02");
     expect(consolidatedManualProofPacket).toContain("External closed beta recommendation | NO-GO");
-    expect(consolidatedManualProofPacket).toContain("latest read-only Vercel provider anchor `b33f56d`");
+    expect(consolidatedManualProofPacket).toContain("latest read-only Vercel/Supabase provider anchor `d78686f`");
     expect(consolidatedManualProofPacket).toContain("provider-state-refresh-b33f56d-2026-06-02.md");
+    expect(consolidatedManualProofPacket).toContain("provider-state-refresh-d78686f-2026-06-02.md");
     expect(consolidatedManualProofPacket).toContain("Supabase backup/PITR | blocked");
     expect(consolidatedManualProofPacket).toContain("Spreadsheet compatibility | partial-local");
     expect(consolidatedManualProofPacket).toContain("Current manual E2E smoke | partial-local");
@@ -547,6 +558,7 @@ describe("closed beta readiness docs", () => {
 
     expect(artifactFilenames).toContain("supabase-read-only-cli-2026-06-02.md");
     expect(artifactFilenames).toContain("provider-state-refresh-b33f56d-2026-06-02.md");
+    expect(artifactFilenames).toContain("provider-state-refresh-d78686f-2026-06-02.md");
     expect(artifactFilenames).toContain("lewis-residence-demo-proposal-2026-06-02.xlsx");
     expect(artifactFilenames.length).toBeGreaterThanOrEqual(30);
 
@@ -560,6 +572,8 @@ describe("closed beta readiness docs", () => {
     expect(goalCompletionAudit).toContain("current packet organizes existing artifacts into `partial-local`, `partial-blocked`, and `blocked` rows");
     expect(goalCompletionAudit).toContain("Provider refresh at `b33f56d`");
     expect(goalCompletionAudit).toContain("`supabase migration list --linked` now succeeds while still showing the five launch migrations absent remotely");
+    expect(goalCompletionAudit).toContain("Provider refresh at `d78686f`");
+    expect(goalCompletionAudit).toContain("public preview and branch-alias health are 401");
     expect(goalCompletionAudit).toContain("Closed beta allowlist access implemented and tested");
     expect(goalCompletionAudit).toContain("platform-admin `/workshop/settings/beta-users` management");
     expect(goalCompletionAudit).toContain("Ask Flip hidden and AI routes disabled by default");
@@ -577,9 +591,9 @@ describe("closed beta readiness docs", () => {
     expect(goalCompletionAudit).toContain("Vercel custom-domain readiness evidence");
     expect(goalCompletionAudit).toContain("older coming-soon surface and `/api/health` returns 404");
     expect(goalCompletionAudit).toContain("production/custom domains still point to an older coming-soon deployment");
-    expect(goalCompletionAudit).toContain("Current linked readiness refresh and the later `b33f56d` migration-list refresh show missing linked migrations `20260601182522`, `20260601184343`, `20260602005649`, `20260602083000`, and `20260602084500`");
+    expect(goalCompletionAudit).toContain("Current linked readiness refresh and later `b33f56d` / `d78686f` migration-list refreshes show missing linked migrations `20260601182522`, `20260601184343`, `20260602005649`, `20260602083000`, and `20260602084500`");
     expect(goalCompletionAudit).toContain("local platform-admin beta-users queue and feedback review path depend on unapplied migrations");
-    expect(goalCompletionAudit).toContain("Current provider refresh proves latest `b33f56d` preview readiness and protected health only");
+    expect(goalCompletionAudit).toContain("Current provider refresh proves latest `d78686f` preview readiness and protected health only");
     expect(goalCompletionAudit).toContain("Resend email readiness evidence");
     expect(goalCompletionAudit).toContain("Vercel env list is empty, local `RESEND_FROM` / `RESEND_REPLY_TO` / `RESEND_WEBHOOK_SECRET` are missing or empty");
     expect(goalCompletionAudit).toContain("shared-link recipient entry/send/resend controls are disabled while server email readiness is false");
