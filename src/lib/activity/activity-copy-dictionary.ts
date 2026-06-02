@@ -1,0 +1,26 @@
+import type { ActivityAction } from "./types";
+
+export const ESTIMATE_EVENT_ACTIONS: Record<string, ActivityAction> = {
+  row_updated: "changed",
+  row_added: "added",
+  row_blank_added: "added",
+  row_deleted: "removed",
+  row_replaced: "replaced",
+  template_inserted: "inserted_template",
+  sheet_code_updated: "changed",
+  sheet_metadata_updated: "changed",
+  sheet_version_created: "created",
+  sheet_restored_as_copy: "created",
+  node_created: "created",
+  node_renamed: "renamed",
+  node_deleted_with_children: "deleted",
+  tree_reordered: "reorganized",
+};
+
+export const DECISION_ACTIONS: Record<string, ActivityAction> = {
+  accepted: "approved",
+  declined: "declined",
+  revision_requested: "requested_revision",
+};
+
+export const ESTIMATE_EVENT_TYPES = Object.keys(ESTIMATE_EVENT_ACTIONS);
