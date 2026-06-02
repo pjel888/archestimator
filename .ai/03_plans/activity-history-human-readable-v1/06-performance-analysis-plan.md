@@ -1,8 +1,29 @@
 # 06 — Performance Analysis Plan
 
-**Date:** 2026-06-02
+**Date:** 2026-06-02 (second pass: 2026-06-02)
 
 ---
+
+## 13. Second-Pass Corrections (from `12-second-pass-verification-audit.md`)
+
+### 13.1 Shared-Link Owner Pagination Is Flawed
+
+**Verified:** `loadSharedLinkActivity()` in `actions.ts`:
+1. Queries `limit + 1` from each of 3 tables independently (no cursor filter)
+2. Merges and sorts in memory
+3. Applies cursor filter AFTER merging
+
+**Problem:** If the first page is dominated by comments, responses/events with timestamps between the initial page and the cursor cutoff are never fetched.
+
+**Required fix:** Apply cursor filter `WHERE created_at < cursor` at the DB query level for each table independently BEFORE `limit`. Use composite cursor `(created_at, id)`. Each table independently fetches `limit + 1`.
+
+### 13.2 Decision Digest Already Exists
+
+**Verified:** Both `comment/route.ts` and `decision/route.ts` call `maybeTriggerSharedLinkActivityDigest()`. Performance plan should focus on improving digest copy, not creating new digest functionality. No performance impact.
+
+### 13.3 Realtime Filter Fix Has No Performance Degradation
+
+Fixing the filter to use actual `publicationId` instead of empty string will IMPROVE performance by preventing unnecessary `load()` calls from other publications' activity. No additional index needed.
 
 ## 1. Current Activity Fetch Patterns
 

@@ -1,6 +1,6 @@
 # 05 — Blast-Radius Analysis
 
-**Date:** 2026-06-02
+**Date:** 2026-06-02 (second pass: 2026-06-02)
 
 ## Scope
 
@@ -180,6 +180,20 @@ This analysis covers all files, components, routes, database tables, tests, and 
 |------|-----------|-------|
 | Critical | 2 | Raw field leakage prevention, internal comment visibility |
 | High | 2 | `EstimateSheetContent.tsx` changes, Activity History modal rendering |
-| Medium | 10 | API route changes, `SharedLinkActivityFeed`, test updates, public surface, accessibility |
+| Medium | 12 | API route changes, `SharedLinkActivityFeed`, test updates, public surface, accessibility, **Realtime filter fix**, **shared-link pagination fix**, **decision digest iteration**, **event filter mismatch fix** |
 | Low | 12 | New module files, action enrichments, email digests, Realtime, performance |
 | None | 7 | AI context, schema, insert-only routes, unchanged components |
+
+---
+
+## Second-Pass Risk Additions (from `12-second-pass-verification-audit.md`)
+
+| New/Updated Risk | Risk Level | Description |
+|-----------------|-----------|-------------|
+| Realtime filter is broken | MEDIUM | Filter uses `publication_id=eq.${""}` — subscriptions fire on ALL inserts |
+| Shared-link owner pagination flawed | MEDIUM | In-memory merge + cursor filter applied after merge; deep pagination unreliable |
+| Public API service-role sanitization | MEDIUM | Service-role bypasses RLS; must ensure application-level sanitization is exhaustive |
+| Activity filter event mismatch | MEDIUM | `row_inserted` in filter options but valid types are `row_added`/`row_blank_added` |
+| Decision digest already exists | LOW | Plan shifted from "add" to "improve" — lower risk than creating new functionality |
+| Recipient actor resolution | MEDIUM | Decisions hardcoded to "recipient" — need batched join to `shared_link_recipients` |
+| Public API response contract change | MEDIUM | Changing from `PublicActivityItem[]` to `ActivityViewModel[]` — needs consumer update |

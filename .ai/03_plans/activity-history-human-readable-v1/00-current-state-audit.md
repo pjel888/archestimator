@@ -1,8 +1,10 @@
 # 00 — Current State Audit: Activity History System
 
-**Date:** 2026-06-02  
+**Date:** 2026-06-02 (second pass: 2026-06-02)  
 **Branch:** `main`  
-**Commit:** `638f681`
+**Current HEAD:** `97c7d60` (`Benchmark proposal workbook export scale`)  
+**First-pass commit:** `638f681` (stale — corrected in second pass)  
+**Second-pass verification:** See `12-second-pass-verification-audit.md`
 
 ---
 
@@ -392,10 +394,88 @@ No extensible formatter for future locales.
     Current: `formatAuditFieldValue()` returns `"—"`. Acceptable.
 
 18. **What tests prevent regression into technical copy?**  
-    **None.** This is a critical gap.
+    **Partial.** Existing tests assert some things (no raw `User <uuid>`, no `Server action`, no `Linked Overridden` in certain tests, internal comments filtered in public route). But no centralized, exhaustive copy regression suite exists. This is a gap for V1.
 
 19. **What is the safest implementation order?**  
     See `04-implementation-plan.md` and `11-pr-sequencing-plan.md`.
 
 20. **What can be shipped independently?**  
     Central Activity Composer module (PR 3) can ship without UI changes. Shared-link activity copy improvements (PR 5) can ship independently. UI polish (PR 7) can ship independently.
+
+---
+
+## 11. Corrections from Second Pass
+
+The second pass at HEAD `97c7d60` verified all first-pass claims against current code. The following corrections were applied:
+
+### 11.1 Shared-Link Realtime — NOT a Strong Foundation
+
+**First-pass claim:** "Realtime is wired" — treats it as a strong foundation.  
+**Verified reality:** The filter uses `publication_id=eq.${""}` (empty string), meaning subscriptions fire on ALL inserts across ALL publications. The `load()` function refetches only the current publication's activity, so it works functionally — but with unnecessary overhead.  
+**Correction:** Realtime is marked as "wired but likely ineffective — filter needs fix." Updated blast-radius analysis, performance plan, and PR sequencing.
+
+### 11.2 Decision Digest — Already Exists
+
+**First-pass claim:** "Only comment triggers digest; decisions missing."  
+**Verified reality:** Both `comment/route.ts` and `decision/route.ts` call `maybeTriggerSharedLinkActivityDigest(publicationId, token, "decision")`. Decision digest already exists.  
+**Correction:** Updated plan from "add decision digest" to "verify and improve existing decision digest."
+
+### 11.3 `row_inserted` Filter — Bug Confirmed
+
+**First-pass status:** Not mentioned.  
+**Verified reality:** Line 156 of `EstimateSheetContent.tsx` includes `{ value: "row_inserted", label: "Inserted rows" }`. Actual event types are `row_added` and `row_blank_added`. Selecting this filter matches zero events.  
+**Correction:** Added to Phase 0 preflight cleanup. Must fix before composer work.
+
+### 11.4 Public API Uses Service-Role, Not RLS
+
+**First-pass claim:** "service client (anon RLS)."  
+**Verified reality:** `createPublicationServiceClient()` uses `SUPABASE_SERVICE_ROLE_KEY`, bypassing RLS entirely. Protection is application-level: query filtering + response shaping.  
+**Correction:** Updated security plan to be explicit. RLS is NOT the main protection for public activity reads.
+
+### 11.5 Shared-Link Owner Pagination Flawed
+
+**First-pass claim:** "cursor pagination" works.  
+**Verified reality:** Per-table limit+1, in-memory merge, cursor filter AFTER merge. Deep pagination may miss older events from tables that had fewer items in the initial page.  
+**Correction:** Updated performance plan with proposed fix (query-level cursor filter, composite cursor).
+
+### 11.6 Two Event Tables Distinguished
+
+**First-pass claim:** Listed shared-link event types without distinguishing tables.  
+**Verified reality:** `shared_link_events` (recipient-visible: open, comment_add, accept_decision, decline_decision, password_attempt) vs `project_publication_events` (analytics: open, password_success, password_failure, download_attempt_blocked, password_attempt).  
+**Correction:** Created `16-event-taxonomy-and-lifecycle-map.md` with clear distinction.
+
+### 11.7 Shared-link Events Response Shape
+
+**First-pass claim:** Public API returns raw event_type strings.  
+**Verified reality:** The public route returns `type: "event"` (hardcoded string) and does NOT include `event_type` from `shared_link_events`. Raw decision values ARE returned. Raw metadata JSON IS returned.  
+**Correction:** Updated docs to precisely describe current response shape.
+
+### 11.8 Migration Stance Nuanced
+
+**First-pass claim:** "No database migration required" (repeated across multiple docs).  
+**Verified reality:** True for V1 copy-only work. False for V2 features (correlation_id, recipient snapshots, unified view).  
+**Correction:** Updated docs to "V1 requires no migration; V2/V3 likely require additive migrations." Created `19-migration-and-backfill-decision-matrix.md`.
+
+### 11.9 `node_deleted_with_children` Missing Name — Confirmed
+
+**Verified reality:** The payload stores `deletedRowCount` and `deletedNodeCount` but may not include node name. The current copy "Area deleted" / "Area and nested rows removed" lacks the actual area name.
+
+### 11.10 `correlation_id` Missing on Shared-Link Tables — Confirmed
+
+**Verified reality:** `shared_link_comments`, `shared_link_responses`, `shared_link_events` have no `correlation_id` column. This prevents grouping related events.
+
+### 11.11 Tests Partially Exist — Corrected
+
+**First-pass claim:** "No tests prevent regression into technical copy."  
+**Verified reality:** Existing tests DO protect against some technical copy leakage (no raw `User <uuid>`, no `Server action`, no `Linked Overridden`, internal comments filtered). The gap is a centralized, exhaustive regression suite.  
+**Correction:** Updated answer #18 to "Partial" and documented existing protections.
+
+### 11.12 Public Activity Route Missing `event_type` in Response
+
+**Verified reality:** The route selects `created_at, metadata_json, id` from `shared_link_events` but NOT `event_type`. The composer needs `event_type` to produce correct copy. The route must be updated to include `event_type` in the query OR the composer must work from what's available.
+
+---
+
+## Cross-References
+
+See `12-second-pass-verification-audit.md` for the full claim-by-claim verification table.

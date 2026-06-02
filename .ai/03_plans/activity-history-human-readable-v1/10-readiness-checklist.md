@@ -131,17 +131,28 @@
 
 ## Go/No-Go Recommendation
 
-### RECOMMENDATION: GO ✅
+### RECOMMENDATION: GO for Phase 0 preflight only ✅
 
-**Rationale:**
+**Rationale after second-pass audit:**
 
-1. **No database migration required.** Risk is entirely in the application layer.
-2. **Strong existing foundation.** The data model has all fields needed for rich human-readable copy.
-3. **Small, independently revertible PRs.** Each phase can be shipped, validated, and rolled back without affecting others.
-4. **Critical security risks are already addressed in current code** (internal comment filtering, rate limiting). The composer adds defense-in-depth but doesn't create new attack surfaces.
-5. **The primary risk** (`EstimateSheetContent.tsx` is a large, complex file) is mitigated by incremental replacement with full test coverage.
+1. **No database migration required for V1.** The composer is a pure projection layer.
+2. **Several critical issues need preflight fixes before composer work:**
+   - Realtime subscription filter is broken (empty string) — must fix or remove from V1 claims
+   - `row_inserted` filter is a bug — must fix before users encounter it
+   - Shared-link owner pagination is flawed — needs query-level cursor
+   - Public API response shape missing `event_type` from `shared_link_events`
+3. **Strong existing foundation remains.** The data model supports rich human-readable copy.
+4. **Decision digest already exists** — focus on improvement, not creation.
+5. **New second-pass documents provide implementation-ready specs.** The composer spec (`21-activity-composer-spec.md`) is detailed enough to begin coding.
 
-**The only blocking concern would be if stakeholders reject the copy model or view model.** If those are approved, implementation can begin immediately.
+**Go decision:** GO for Phase 0 preflight fixes. Re-evaluate after preflight for full implementation go-ahead.
+
+**The primary risk** remains `EstimateSheetContent.tsx` is a large, complex file — mitigated by incremental replacement with full test coverage.
+
+### Blocker: Realtime status must be decided before Phase 3
+
+- If Realtime is broken and cannot be fixed quickly, remove from V1 claims and use manual refresh.
+- This decision gates the shared-link activity PR sequencing.
 
 ---
 
@@ -149,6 +160,27 @@
 
 - None currently. Planning is complete.
 - If stakeholders request changes to the copy system, update `02-activity-copywriting-system.md` and re-evaluate.
+
+## Second-Pass Verification
+
+- [x] All 15 known issues verified against current code (`12-second-pass-verification-audit.md`)
+- [x] Shared-link Realtime status assessed (broken filter — needs fix)
+- [x] Decision digest confirmed (already exists)
+- [x] `row_inserted` filter bug confirmed
+- [x] Public API service-role model documented
+- [x] Shared-link pagination flaw documented
+- [x] Two event tables mapped distinctly
+- [x] `node_deleted_with_children` missing name confirmed
+- [x] Actor context gaps documented
+- [x] North Star and product principles defined (`13-north-star-and-product-principles.md`)
+- [x] UX paths and user journeys mapped (`14-user-journeys-and-ux-paths.md`)
+- [x] Surface map created (`15-information-architecture-and-surface-map.md`)
+- [x] Event taxonomy canonicalized (`16-event-taxonomy-and-lifecycle-map.md`)
+- [x] Observability plan defined (`17-observability-analytics-and-quality-plan.md`)
+- [x] Manual QA matrix created (`18-manual-qa-and-acceptance-matrix.md`)
+- [x] Migration stance nuanced (`19-migration-and-backfill-decision-matrix.md`)
+- [x] Edge cases catalogued (`20-edge-case-and-failure-mode-matrix.md`)
+- [x] Composer spec ready (`21-activity-composer-spec.md`)
 
 ## Open Questions (for stakeholder review)
 
