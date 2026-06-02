@@ -49,8 +49,8 @@ on conflict (id) do update
 
 insert into public.cost_library_items (id, workspace_id, kind, name, description, category, supplier, unit, unit_cost, misc_cost, pricing_source, confidence, metadata)
 values
-  ('44444444-4444-4444-8444-444444444441', '11111111-1111-4111-8111-111111111111', 'material', '600x600 Porcelain Floor Tile', 'Editable allowance for PH-available porcelain tile.', 'Finishes', 'Supplier quote required', 'sqm', 950.00, 300.00, 'editable allowance', 'requires-quote-verification', '{"seeded": true}'::jsonb),
-  ('44444444-4444-4444-8444-444444444442', '11111111-1111-4111-8111-111111111111', 'material', 'Interior Latex Paint System', 'Primer plus two coats; verify brand and surface condition.', 'Finishes', 'Supplier quote required', 'sqm', 180.00, 140.00, 'editable allowance', 'requires-quote-verification', '{"seeded": true}'::jsonb)
+  ('44444444-4444-4444-8444-444444444441', '11111111-1111-4111-8111-111111111111', 'material', '600x600 Porcelain Floor Tile', 'Mid-range PH porcelain floor tile baseline with setting materials.', 'Finishes', 'Quezon City Tile Depot', 'sqm', 950.00, 300.00, 'May 2026 QC supplier canvas', 'supplier-canvas', '{"seeded": true}'::jsonb),
+  ('44444444-4444-4444-8444-444444444442', '11111111-1111-4111-8111-111111111111', 'material', 'Interior Latex Paint System', 'Primer plus two coats for typical skim-coated interior walls.', 'Finishes', 'Metro Manila Paint Center', 'sqm', 180.00, 140.00, 'May 2026 paint supplier canvas', 'supplier-canvas', '{"seeded": true}'::jsonb)
 on conflict (id) do update
   set workspace_id = excluded.workspace_id,
       kind = excluded.kind,
@@ -188,10 +188,10 @@ values
     '77777777-7777-4777-8777-777777777721',
     10,
     '44444444-4444-4444-8444-444444444441',
-    '{"sourceLibraryItemId": "44444444-4444-4444-8444-444444444441", "material": "600x600 Porcelain Floor Tile", "supplier": "Supplier quote required", "unit": "sqm", "unitCost": 950, "miscCost": 300, "pricingSource": "editable allowance"}'::jsonb,
+    '{"sourceLibraryItemId": "44444444-4444-4444-8444-444444444441", "material": "600x600 Porcelain Floor Tile", "supplier": "Quezon City Tile Depot", "unit": "sqm", "unitCost": 950, "miscCost": 300, "pricingSource": "May 2026 QC supplier canvas"}'::jsonb,
     '600x600 Porcelain Floor Tile',
-    'Living room floor finish linked to the demo library allowance.',
-    'Supplier quote required',
+    'Living room floor finish linked to the demo library tile baseline.',
+    'Quezon City Tile Depot',
     'sqm',
     42.0000,
     950.00,
@@ -209,9 +209,9 @@ values
     '77777777-7777-4777-8777-777777777729',
     10,
     null,
-    '{"sourceLibraryItemId": "44444444-4444-4444-8444-444444444442", "material": "Interior Latex Paint System", "supplier": "Supplier quote required", "unit": "sqm", "unitCost": 180, "miscCost": 140, "pricingSource": "editable allowance", "detachedReason": "demo project-specific room finish"}'::jsonb,
+    '{"sourceLibraryItemId": "44444444-4444-4444-8444-444444444442", "material": "Interior Latex Paint System", "supplier": "Metro Manila Paint Center", "unit": "sqm", "unitCost": 180, "miscCost": 140, "pricingSource": "May 2026 paint supplier canvas", "detachedReason": "demo project-specific room finish"}'::jsonb,
     'Master bedroom low-VOC paint system',
-    'Project-specific paint allowance detached from the shared library for demo purposes.',
+    'Project-specific paint line detached from the shared library after room finish adjustment.',
     'Owner-approved finish allowance',
     'sqm',
     68.0000,
@@ -254,7 +254,7 @@ values
     null,
     'Shared service bathroom plumbing fixture set',
     'Allowance for toilet, lavatory, faucet, accessories, and rough-in coordination.',
-    'Supplier quote required',
+    'San Juan plumbing supplier canvas',
     'set',
     1.0000,
     48000.00,
