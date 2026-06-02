@@ -1140,7 +1140,7 @@ async function triggerOwnerDigestIfAllowed(publicationId: string, publicationTok
 // resolved from token. Sorted by created_at desc. Supports basic cursor (timestamp). Internal comments visible only to owners.
 export async function loadSharedLinkActivity(
   publicationToken: string,
-  opts: { limit?: number; cursor?: string } = {}
+  opts: { includeAccessTelemetry?: boolean; includeBots?: boolean; limit?: number; cursor?: string } = {}
 ): Promise<LoadActivityResult> {
   const limit = Math.min(Math.max(1, opts.limit ?? 50), 100);
   await requireCurrentUserContext(); // enforces authenticated owner for shared link activity load (P8); no .token on context type — publicationToken param used for lookup
@@ -1176,16 +1176,24 @@ export async function loadSharedLinkActivity(
     .from("shared_link_events")
     .select("id, created_at, event_type, metadata_json, recipient_id")
     .eq("publication_id", pubId);
+  let accessTelemetryQuery = admin
+    .from("project_publication_events")
+    .select("id, created_at, event_type, metadata_json")
+    .eq("publication_id", pubId);
   if (cursorFilter) {
     commentsQuery = commentsQuery.or(cursorFilter);
     responsesQuery = responsesQuery.or(cursorFilter);
     eventsQuery = eventsQuery.or(cursorFilter);
+    accessTelemetryQuery = accessTelemetryQuery.or(cursorFilter);
   }
 
-  const [commentsRes, responsesRes, eventsRes] = await Promise.all([
+  const [commentsRes, responsesRes, eventsRes, accessTelemetryRes] = await Promise.all([
     commentsQuery.order("created_at", { ascending: false }).order("id", { ascending: false }).limit(limit + 1),
     responsesQuery.order("created_at", { ascending: false }).order("id", { ascending: false }).limit(limit + 1),
     eventsQuery.order("created_at", { ascending: false }).order("id", { ascending: false }).limit(limit + 1),
+    opts.includeAccessTelemetry
+      ? accessTelemetryQuery.order("created_at", { ascending: false }).order("id", { ascending: false }).limit(limit + 1)
+      : Promise.resolve({ data: [], error: null }),
   ]);
 
   const recipientIds = new Set<string>();
@@ -1243,11 +1251,32 @@ export async function loadSharedLinkActivity(
     });
   });
 
+  if (accessTelemetryRes.error) throw accessTelemetryRes.error;
+  const seenAccessEvents = new Set<string>();
+  (accessTelemetryRes.data ?? []).forEach((e) => {
+    const metadata = e.metadata_json && typeof e.metadata_json === "object" && !Array.isArray(e.metadata_json) ? e.metadata_json as Record<string, unknown> : {};
+    if (!metadata.access_stage) return;
+    if (metadata.bot === true && !opts.includeBots) return;
+    const dedupeKey = [e.event_type, e.created_at, metadata.access_stage, metadata.recipient_known, metadata.bot].join("|");
+    if (seenAccessEvents.has(dedupeKey)) return;
+    seenAccessEvents.add(dedupeKey);
+    raw.push({
+      id: e.id,
+      type: "event",
+      created_at: e.created_at,
+      metadata: { ...metadata, eventType: e.event_type, accessTelemetry: true },
+      recipientDisplayName: metadata.recipient_known ? "Client" : undefined,
+    });
+  });
+
   // Sort + cursor filter + limit
   const filtered = raw.filter((activity) => isBeforeSharedLinkActivityCursor(activity, cursor)).sort(compareSharedLinkActivityDesc);
   const pageActivities = filtered.slice(0, limit);
   const hasMore = filtered.length > limit;
-  const activities = pageActivities.map((activity) => composeSharedLinkActivity(activity, { audience: "owner", visibility: activity.is_internal ? "internal" : "owner" }));
+  const activities = pageActivities.map((activity) => {
+    const viewModel = composeSharedLinkActivity(activity, { audience: "owner", visibility: activity.is_internal ? "internal" : "owner" });
+    return activity.metadata?.accessTelemetry ? { ...viewModel, meta: "access_telemetry" as const } : viewModel;
+  });
   const nextCursor = hasMore && pageActivities.length ? encodeSharedLinkActivityCursor(pageActivities[pageActivities.length - 1]!) : undefined;
 
   return { activities, hasMore, ...(nextCursor ? { nextCursor } : {}) };

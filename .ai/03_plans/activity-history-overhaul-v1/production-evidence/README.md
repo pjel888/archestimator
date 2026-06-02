@@ -19,9 +19,9 @@
 | E-007 | DSR process document | Ready for owner review | [dsr-process-ready-for-review.md](E-007-dsr-process/dsr-process-ready-for-review.md) |
 | E-008 | Breach response document | Ready for owner review | [breach-response-ready-for-review.md](E-008-breach-response/breach-response-ready-for-review.md) |
 | E-009 | Vendor DPA review evidence | Ready for owner action | [vendor-dpa-review-worksheet.md](E-009-vendor-dpa-review/vendor-dpa-review-worksheet.md) |
-| E-010 | Retention cleanup proof | Ready for engineering action | [retention-operator-procedure.md](E-010-retention-proof/retention-operator-procedure.md) |
+| E-010 | Retention cleanup proof | Repo-local operator-run procedure documented; production execution proof pending | [retention-operator-procedure.md](E-010-retention-proof/retention-operator-procedure.md) |
 | E-011 | Feature flag default-off proof | Repo-local default-off tests pass; production env proof pending | [feature-flag-proof-template.md](E-011-feature-flag-proof/feature-flag-proof-template.md) |
-| E-012 | Test run report | Repo-local PR7 tests/build pass; formal report pending | [test-run-report-template.md](E-012-test-run-report/test-run-report-template.md) |
+| E-012 | Test run report | Repo-local PR7/PR8B targeted tests pass; full formal report pending | [test-run-report-template.md](E-012-test-run-report/test-run-report-template.md) |
 | E-013 | Manual QA report | Ready for QA action | [manual-qa-report-template.md](E-013-manual-qa-report/manual-qa-report-template.md) |
 | E-014 | Rollout approval | Ready for owner action | [rollout-approval-template.md](E-014-rollout-approval/rollout-approval-template.md) |
 | E-015 | Final production sign-off | Ready for future completion | [final-production-signoff-template.md](E-015-final-production-signoff/final-production-signoff-template.md) |
@@ -74,3 +74,16 @@ Repo-local implementation for privacy-safe access telemetry has been completed o
 - Verification passed: `git diff --check`, `bun run type-check`, `bun run lint`, `bun run test`, `bun run test:dom`, `bun run validate`, `bun run build`.
 
 This is **repo-local evidence only**. It does not replace production screenshots, owner/legal/DPO/provider approvals, retention proof, manual QA, or final sign-off.
+
+## Repo-local PR8B hardening evidence — 2026-06-02
+
+Repo-local PR8B access telemetry operations hardening is implemented on `feat/activity-history-overhaul-v1` with production enablement still **NO-GO**. Evidence now available in-repo:
+
+- Owner/support action path can opt in to access telemetry with composite cursor pagination. Normal owner activity load remains comments/decisions/shared-link events only.
+- Bot/email-preview telemetry is hidden by default; `includeBots` is explicit for diagnostic paths.
+- Duplicate access telemetry rows are deduped for rendering by event type, timestamp, access stage, recipient-known state, and bot flag.
+- Owner query does not select `ip_hash` or `user_agent_hash`; diagnostic hashes remain outside normal owner timeline output.
+- `summarizeProjectPublicationAccessTelemetryMetrics()` provides repo-local observability counts by stage and bot/human split.
+- E-010 retention path remains the documented 90-day operator-run SQL procedure until a production operator run or cron job is evidenced.
+
+This is **repo-local evidence only**. It does not replace production screenshots, owner/legal/DPO/provider approvals, production retention execution logs, manual QA, or final sign-off.
