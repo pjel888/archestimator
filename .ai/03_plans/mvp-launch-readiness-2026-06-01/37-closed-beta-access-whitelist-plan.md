@@ -140,17 +140,19 @@ Do not show pricing, checkout, or upgrade language.
 - Callback: allowed Google user reaches `/workshop`; denied user reaches `/beta/access-required`.
 - Session: `requireCurrentUserContext` or closed-beta wrapper blocks revoked users.
 - UI: access-required page renders copy, sign-out, contact/request link.
+- UI/static: platform-admin `/workshop/settings/beta-users` renders add/filter/status/notes controls and denies non-admin review.
 - Manual QA: one allowed Google account and one denied Google account in production/staging.
 
 ## Migration Strategy
 
 1. Backup production Supabase before migration.
 2. Apply `closed_beta_allowed_emails` migration.
-3. Insert Philip and test allowlisted accounts.
-4. Deploy code with `CLOSED_BETA_ACCESS_ENABLED=false` first if a staged rollout is needed.
-5. Verify callback and workshop access with allowed and denied users.
-6. Enable `CLOSED_BETA_ACCESS_ENABLED=true`.
-7. Re-run smoke checks.
+3. Apply the platform-admin allowlist management migration if app-owned admin edits are desired.
+4. Insert Philip and test allowlisted accounts through `/workshop/settings/beta-users` or Supabase Studio.
+5. Deploy code with `CLOSED_BETA_ACCESS_ENABLED=false` first if a staged rollout is needed.
+6. Verify callback and workshop access with allowed and denied users.
+7. Enable `CLOSED_BETA_ACCESS_ENABLED=true`.
+8. Re-run smoke checks.
 
 ## Rollback Strategy
 
@@ -167,6 +169,7 @@ Do not show pricing, checkout, or upgrade language.
 - `BETA-AUTH-004` Add access denied / pending beta UX.
 - `BETA-AUTH-005` Add tests for whitelist access states.
 - `BETA-AUTH-006` Update `.env.example` and deployment runbook for closed beta mode.
+- `BETA-AUTH-007` Add platform-admin allowlist management route for add/status/notes operations.
 
 ## No-Go Criteria
 
@@ -175,5 +178,5 @@ Do not show pricing, checkout, or upgrade language.
 - Revoked users retain workshop access.
 - Blocking creates redirect loops.
 - Public share links break.
-- Philip cannot manage allowlist entries manually in Supabase.
+- Philip cannot manage allowlist entries through Supabase Studio or the platform-admin beta users page.
 - Allowlist lookup is client-side only or exposes the full allowlist.

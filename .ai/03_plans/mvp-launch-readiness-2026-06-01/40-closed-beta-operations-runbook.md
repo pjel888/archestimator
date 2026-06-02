@@ -2,7 +2,7 @@
 
 ## Operating Model
 
-Philip manually curates the beta cohort. Supabase is the source of truth for closed beta access. Vercel is the deployment surface. Feedback is founder-led.
+Philip manually curates the beta cohort. Supabase is the source of truth for closed beta access, with platform-admin app management available at `/workshop/settings/beta-users` after the allowlist admin migration is applied. Vercel is the deployment surface. Feedback is founder-led.
 
 ## Production Env Posture
 
@@ -16,7 +16,7 @@ Philip manually curates the beta cohort. Supabase is the source of truth for clo
 ## Add A Beta User
 
 1. Confirm the user's Google account email.
-2. Insert into `closed_beta_allowed_emails`:
+2. Add the row through `/workshop/settings/beta-users` or insert into `closed_beta_allowed_emails`:
    - `email`
    - `status = 'invited'`
    - optional `notes`
@@ -27,7 +27,7 @@ Philip manually curates the beta cohort. Supabase is the source of truth for clo
 
 ## Remove Or Revoke A User
 
-1. Set `status = 'revoked'` for the normalized email.
+1. Set `status = 'revoked'` for the normalized email through `/workshop/settings/beta-users` or Supabase Studio.
 2. Confirm the user can no longer access `/workshop`.
 3. If needed, revoke Supabase sessions from the Auth admin console.
 4. Record the reason in `notes`.

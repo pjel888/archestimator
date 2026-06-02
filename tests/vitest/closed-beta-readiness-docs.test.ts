@@ -140,6 +140,11 @@ describe("closed beta readiness docs", () => {
     expect(evidenceIndex).toContain("### CURRENT-HEAD Local Build Refresh Evidence");
     expect(evidenceIndex).toContain("### Manual Proof Matrix Evidence");
     expect(evidenceIndex).toContain("### Goal Completion Audit Evidence");
+    expect(evidenceIndex).toContain("### Beta Allowlist Admin Local Evidence");
+    expect(evidenceIndex).toContain("beta-allowlist-admin-local-2026-06-02.md");
+    expect(evidenceIndex).toContain("20260602005649_beta_allowlist_admin_queue.sql");
+    expect(evidenceIndex).toContain("`/workshop/settings/beta-users` renders add/filter/status/notes controls for platform admins");
+    expect(evidenceIndex).toContain("the app does not grant delete access");
     expect(evidenceIndex).toContain("### Supabase Read-Only Provider Evidence");
     expect(evidenceIndex).toContain("### Vercel Read-Only Provider Evidence");
     expect(evidenceIndex).toContain("### Provider State Refresh Evidence");
@@ -301,6 +306,7 @@ describe("closed beta readiness docs", () => {
     expect(manualProofMatrix).toContain("supabase-linked-schema-parity-2026-06-02.md");
     expect(manualProofMatrix).toContain("`supabase migration list --linked` still shows `20260601182522_closed_beta_allowed_emails` and `20260601184343_unlink_estimate_row_items` as local-only");
     expect(manualProofMatrix).toContain("`closed_beta_allowed_emails`, `check_closed_beta_access`, and `unlink_estimate_row_item_from_library_with_history` are absent");
+    expect(manualProofMatrix).toContain("Local `beta-allowlist-admin-local-2026-06-02.md` proves a platform-admin allowlist queue only after migrations are applied");
     expect(manualProofMatrix).toContain("Hosted auth allowlist");
     expect(manualProofMatrix).toContain("Vercel deploy/env/health");
     expect(manualProofMatrix).toContain("provider-state-refresh-2026-06-02.md");
@@ -338,6 +344,9 @@ describe("closed beta readiness docs", () => {
     expect(observabilityPlan).toContain("platform admins have a local `/workshop/settings/feedback` status queue");
     expect(observabilityPlan).toContain("monitored inbox/table review proof");
     expect(closedBetaOperationsRunbook).toContain("Protected `/workshop/feedback` submissions in `beta_feedback_submissions`");
+    expect(closedBetaOperationsRunbook).toContain("platform-admin app management available at `/workshop/settings/beta-users`");
+    expect(closedBetaOperationsRunbook).toContain("Add the row through `/workshop/settings/beta-users` or insert into `closed_beta_allowed_emails`");
+    expect(closedBetaOperationsRunbook).toContain("Set `status = 'revoked'` for the normalized email through `/workshop/settings/beta-users`");
     expect(closedBetaOperationsRunbook).toContain("platform-admin status triage at `/workshop/settings/feedback`");
     expect(closedBetaOperationsRunbook).toContain("`/workshop/feedback` submission smoke, `/workshop/settings/feedback` platform-admin review/status check");
     expect(closedBetaOperationsRunbook).toContain("Review all `/workshop/settings/feedback` rows");
@@ -395,10 +404,12 @@ describe("closed beta readiness docs", () => {
   it("keeps the active goal completion audit evidence-gated", () => {
     expect(goalCompletionAudit).toMatch(/Status: Goal active; completion not proven/);
     expect(goalCompletionAudit).toContain("Closed beta allowlist access implemented and tested");
+    expect(goalCompletionAudit).toContain("platform-admin `/workshop/settings/beta-users` management");
     expect(goalCompletionAudit).toContain("Ask Flip hidden and AI routes disabled by default");
     expect(goalCompletionAudit).toContain("Excel export upgraded and tested");
     expect(goalCompletionAudit).toContain("All changes staged, committed, and pushed in meaningful commits");
     expect(goalCompletionAudit).toContain("Current launch-pack evidence commits are pushed");
+    expect(goalCompletionAudit).toContain("current local status includes unrelated skill/config churn");
     expect(goalCompletionAudit).toContain("backup list showed PITR disabled and no listed backups");
     expect(goalCompletionAudit).toContain("Supabase linked schema parity evidence");
     expect(goalCompletionAudit).toContain("linked migration history missing `20260601182522` and `20260601184343`");
@@ -410,6 +421,7 @@ describe("closed beta readiness docs", () => {
     expect(goalCompletionAudit).toContain("older coming-soon surface and `/api/health` returns 404");
     expect(goalCompletionAudit).toContain("production/custom domains still point to an older coming-soon deployment");
     expect(goalCompletionAudit).toContain("provider refresh show missing linked migrations `20260601182522` and `20260601184343`");
+    expect(goalCompletionAudit).toContain("local platform-admin beta-users queue also depends on unapplied allowlist/admin migrations");
     expect(goalCompletionAudit).toContain("Current provider refresh proves latest preview readiness and protected health only");
     expect(goalCompletionAudit).toContain("Resend email readiness evidence");
     expect(goalCompletionAudit).toContain("Vercel env list is empty, local `RESEND_FROM` / `RESEND_REPLY_TO` / `RESEND_WEBHOOK_SECRET` are missing or empty");
@@ -462,6 +474,10 @@ describe("closed beta readiness docs", () => {
     expect(currentState).toContain("shared-link recipient entry/send/resend controls disable while server email readiness is false");
     expect(currentState).toContain("unconfigured production-like sends now fail closed instead of fake-succeeding");
     expect(currentState).toContain("First-run Workshop local evidence");
+    expect(currentState).toContain("Closed Beta Allowlist Admin Local Slice");
+    expect(currentState).toContain("`/workshop/settings/beta-users`");
+    expect(currentState).toContain("`20260602005649_beta_allowlist_admin_queue.sql`");
+    expect(currentState).toContain("hosted platform-admin smoke");
     expect(currentState).toContain("empty Workshop homebase with Projects, Components, Templates, and empty favorite states");
     expect(currentState).toContain("hosted fresh-account auth proof remains missing");
     expect(currentState).toContain("Current local E2E smoke evidence");
@@ -493,6 +509,8 @@ describe("closed beta readiness docs", () => {
     expect(knownIssues).toContain("`2587f80` passed both `bun run validate` and `bun run build`");
     expect(knownIssues).toContain("Linked Supabase schema parity evidence on 2026-06-02 is negative/blocked");
     expect(knownIssues).toContain("`20260601182522_closed_beta_allowed_emails` and `20260601184343_unlink_estimate_row_items` missing from linked migration history");
+    expect(knownIssues).toContain("Closed beta allowlist admin evidence on 2026-06-02 adds local `/workshop/settings/beta-users` platform-admin management");
+    expect(knownIssues).toContain("linked allowlist/admin migration apply and hosted platform-admin allow/deny/revoke proof remain missing");
     expect(knownIssues).toContain("`component-images` public");
     expect(knownIssues).toContain("Resend email readiness evidence on 2026-06-02 is negative/blocked");
     expect(knownIssues).toContain("local `RESEND_FROM`, `RESEND_REPLY_TO`, and `RESEND_WEBHOOK_SECRET` are missing or empty");
@@ -533,7 +551,7 @@ describe("closed beta readiness docs", () => {
   it("keeps backup and scorecard docs actionable without claiming provider proof", () => {
     expect(backupPlan).toMatch(/Pre-Migration Backup Evidence Template/);
     expect(backupPlan).toMatch(/Dry-Run Restore Checklist/);
-    expect(readinessScorecard).toMatch(/Closed beta access control \| Yes \| 82 \| Local pass; linked proof pending/);
+    expect(readinessScorecard).toMatch(/Closed beta access control \| Yes \| 84 \| Local pass plus admin queue; linked proof pending/);
     expect(readinessScorecard).toMatch(/Auth\/onboarding \| Yes \| 78 \| Needs env and hosted smoke/);
     expect(readinessScorecard).toMatch(/Component library \| Yes \| 90 \| Local screenshot pass; hosted proof pending/);
     expect(readinessScorecard).toMatch(/Templates \| Yes \| 91 \| Local insertion pass; hosted proof pending/);

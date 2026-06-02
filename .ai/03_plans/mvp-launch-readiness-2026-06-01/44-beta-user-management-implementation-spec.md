@@ -2,7 +2,7 @@
 
 ## Objective
 
-Implement closed beta access management with Google Sign-In plus Supabase-backed email allowlist. Local code implementation exists as of 2026-06-02, but linked Supabase apply remains blocked until backup proof is captured.
+Implement closed beta access management with Google Sign-In plus Supabase-backed email allowlist. Local code implementation exists as of 2026-06-02, including a platform-admin app management route, but linked Supabase apply remains blocked until backup proof is captured.
 
 ## Final Table
 
@@ -97,12 +97,13 @@ Keep the route public to avoid redirect loops.
 
 ## Admin Workflow
 
-MVP admin UI is deferred. Philip manages rows manually in Supabase:
+Local app-owned admin UI now exists at `/workshop/settings/beta-users` for platform admins after the admin migration is applied. Supabase Studio remains the fallback management path.
 
-- Add: insert email with `status='invited'`.
+- Add: enter the Google email with `status='invited'`, `active`, or `revoked`.
 - Activate: status can remain `invited` or be set `active` after first login.
-- Revoke: set `status='revoked'`.
+- Revoke: set `status='revoked'`; do not delete beta rows during normal operations.
 - Notes: record cohort, source, or support context.
+- Scope: non-admin users receive an unauthorized state and cannot enumerate allowlist rows.
 
 ## Edge Cases
 
@@ -122,6 +123,7 @@ MVP admin UI is deferred. Philip manages rows manually in Supabase:
 - `BETA-AUTH-004`: access-required page DOM test.
 - `BETA-AUTH-005`: callback tests for allowed and denied users.
 - `BETA-AUTH-006`: env/runbook doc test or static checklist.
+- `BETA-AUTH-007`: allowlist admin migration/UI/action static contract.
 
 ## Rollback
 
@@ -138,3 +140,4 @@ MVP admin UI is deferred. Philip manages rows manually in Supabase:
 - `BETA-AUTH-004` Add access denied / pending beta UX.
 - `BETA-AUTH-005` Add tests for whitelist access states.
 - `BETA-AUTH-006` Update `.env.example` and deployment runbook for closed beta mode.
+- `BETA-AUTH-007` Add platform-admin allowlist management route for add/status/notes operations.
