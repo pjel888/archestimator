@@ -8,9 +8,11 @@ export const BETA_FEEDBACK_TYPES = [
 ] as const;
 
 export const BETA_FEEDBACK_SEVERITIES = ["blocker", "high", "medium", "low"] as const;
+export const BETA_FEEDBACK_STATUSES = ["new", "reviewing", "resolved", "archived"] as const;
 
 export type BetaFeedbackType = (typeof BETA_FEEDBACK_TYPES)[number];
 export type BetaFeedbackSeverity = (typeof BETA_FEEDBACK_SEVERITIES)[number];
+export type BetaFeedbackStatus = (typeof BETA_FEEDBACK_STATUSES)[number];
 
 export type BetaFeedbackPayload = {
   feedbackType: BetaFeedbackType;
@@ -40,6 +42,10 @@ function isFeedbackType(value: string): value is BetaFeedbackType {
 
 function isSeverity(value: string): value is BetaFeedbackSeverity {
   return BETA_FEEDBACK_SEVERITIES.includes(value as BetaFeedbackSeverity);
+}
+
+export function isBetaFeedbackStatus(value: string): value is BetaFeedbackStatus {
+  return BETA_FEEDBACK_STATUSES.includes(value as BetaFeedbackStatus);
 }
 
 export function parseBetaFeedbackSubmission(formData: FormData): BetaFeedbackParseResult {

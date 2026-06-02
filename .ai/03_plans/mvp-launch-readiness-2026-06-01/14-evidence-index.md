@@ -511,6 +511,14 @@
 - Focused evidence: `bunx vitest run tests/vitest/beta-feedback.test.ts tests/vitest/support-contact-readiness.test.ts tests/vitest/workshop-reset.test.tsx --maxWorkers=1` passed 3 files / 12 tests.
 - Launch meaning: this proves local in-app feedback code and RLS intent only. Linked Supabase migration apply, hosted browser smoke, monitored review workflow, alert ownership, and incident escalation remain **NO-GO** evidence gaps.
 
+### Beta Feedback Review Queue Local Evidence
+
+- Artifact note: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/beta-feedback-review-queue-local-2026-06-02.md`.
+- Local schema/action/UI: `20260602084500_beta_feedback_review_queue.sql` opens platform-admin-only review of `beta_feedback_submissions` through `public.is_platform_admin()`, grants only `status` updates, and `/workshop/settings/feedback` renders the review/filter/status-update queue for platform admins.
+- Status contract: review statuses are `new`, `reviewing`, `resolved`, and `archived`; non-admin users receive an unauthorized state instead of feedback rows.
+- Focused evidence: `bunx vitest run tests/vitest/beta-feedback.test.ts --maxWorkers=1` passed 1 file / 6 tests; `bun run type-check` passed.
+- Launch meaning: this adds a local app-owned review queue, but does not prove linked Supabase migration apply, hosted admin access, daily review cadence, monitored inbox/table ownership, alert ownership, or incident escalation. Support/monitoring remains a **NO-GO** row.
+
 ### Support Email DNS Readiness Evidence
 
 - Artifact note: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/support-email-dns-readiness-2026-06-02.md`.

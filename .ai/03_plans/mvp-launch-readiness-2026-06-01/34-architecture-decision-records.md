@@ -32,7 +32,7 @@ Decision: Philip can send invite emails manually; Resend beta-invite automation 
 
 ### ADR: Feedback Collection Approach
 
-Decision: P0 feedback is protected `/workshop/feedback` plus support email fallback. The local app now includes an insert-only `beta_feedback_submissions` table path; launch still requires linked migration apply, hosted smoke, monitored review workflow, and alert ownership proof.
+Decision: P0 feedback is protected `/workshop/feedback` plus support email fallback, with platform-admin review at `/workshop/settings/feedback`. The local app now includes an insert-only `beta_feedback_submissions` table path plus a status-only platform-admin review queue; launch still requires linked migration apply, hosted smoke, monitored review workflow, and alert ownership proof.
 
 Commit audited: `681c95e64864f283950a88dba304eaffe8f2f8b3`
 

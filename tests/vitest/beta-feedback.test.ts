@@ -2,13 +2,19 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
 import {
+  BETA_FEEDBACK_STATUSES,
   buildBetaFeedbackMailto,
+  isBetaFeedbackStatus,
   parseBetaFeedbackSubmission,
 } from "@/lib/workshop/beta-feedback";
 
 const migration = readFileSync("supabase/migrations/20260602083000_beta_feedback_submissions.sql", "utf8");
+const reviewMigration = readFileSync("supabase/migrations/20260602084500_beta_feedback_review_queue.sql", "utf8");
 const actionSource = readFileSync("src/lib/workshop/beta-feedback-actions.ts", "utf8");
 const pageSource = readFileSync("src/app/workshop/feedback/page.tsx", "utf8");
+const reviewPageSource = readFileSync("src/app/workshop/settings/feedback/page.tsx", "utf8");
+const reviewSource = readFileSync("src/lib/workshop/beta-feedback-review.ts", "utf8");
+const reviewActionSource = readFileSync("src/lib/workshop/beta-feedback-review-actions.ts", "utf8");
 
 function feedbackFormData(overrides: Record<string, string> = {}) {
   const formData = new FormData();
@@ -44,6 +50,12 @@ describe("closed beta feedback", () => {
     });
   });
 
+  it("validates review statuses for admin triage", () => {
+    expect(BETA_FEEDBACK_STATUSES).toEqual(["new", "reviewing", "resolved", "archived"]);
+    expect(isBetaFeedbackStatus("reviewing")).toBe(true);
+    expect(isBetaFeedbackStatus("deleted")).toBe(false);
+  });
+
   it("builds an email fallback with context when persistence is unavailable", () => {
     const mailto = buildBetaFeedbackMailto({
       email: "reviewer@example.com",
@@ -68,6 +80,22 @@ describe("closed beta feedback", () => {
     expect(migration).toContain("grant insert on public.beta_feedback_submissions to authenticated");
     expect(migration).toContain("with check (auth.uid() = user_id)");
     expect(migration).not.toContain("grant select on public.beta_feedback_submissions to authenticated");
+  });
+
+  it("opens feedback review only to platform admins", () => {
+    expect(reviewMigration).toContain("grant select on table public.beta_feedback_submissions to authenticated");
+    expect(reviewMigration).toContain("grant update (status) on table public.beta_feedback_submissions to authenticated");
+    expect(reviewMigration).toContain('create policy "platform admins can review beta feedback"');
+    expect(reviewMigration).toContain("for select");
+    expect(reviewMigration).toContain("using (public.is_platform_admin())");
+    expect(reviewMigration).toContain('create policy "platform admins can update beta feedback status"');
+    expect(reviewMigration).toContain("for update");
+    expect(reviewSource).toContain('role === "ceo" || role === "admin"');
+    expect(reviewSource).toContain('from("beta_feedback_submissions")');
+    expect(reviewActionSource).toContain("parseBetaFeedbackStatusUpdate");
+    expect(reviewActionSource).toContain('update({ status: parsed.status })');
+    expect(reviewPageSource).toContain("Only platform admins can review beta feedback.");
+    expect(reviewPageSource).toContain("Showing {queue.submissions.length} latest beta feedback submissions.");
   });
 
   it("keeps the protected feedback page tied to persistence and fallback", () => {
