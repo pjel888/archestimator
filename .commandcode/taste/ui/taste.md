@@ -6,3 +6,4 @@
 - For tree drag-and-drop: render exactly 2 "Drop at top level" ghost containers — one at the very top of the full tree and one at the very bottom, never between top-level sibling rows. Nested between-item targets use "Drop between rows"; inside-folder hover uses "Drop inside". Confidence: 0.80
 - Estimate tree uses exactly 2 node types: Group Nodes (folder icon, no bg/border, nestable, organizational only) and Area Nodes (box icon). Only Area Nodes can contain EstimateRowItems. Confidence: 0.85
 - Group Nodes use a simple folder icon with no background color and no border to keep the UI clean. Confidence: 0.75
+- Maintain consistent header/breadcrumb layout across all project subpages: breadcrumbs in the topmost header, contained in one component, including the current page in the breadcrumb path (e.g., Workshop / Projects / Lewis Residence / Estimates). Confidence: 0.70
