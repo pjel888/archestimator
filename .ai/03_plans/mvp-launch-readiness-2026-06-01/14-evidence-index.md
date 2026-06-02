@@ -929,6 +929,15 @@ Graph limitation: some FTS semantic searches returned no matches and GitNexus st
 
 No linked Supabase query was run in this pass. Production/staging schema readiness remains unproven.
 
+## Local DBIDX Repo Audit Slice - 2026-06-02
+
+- Script: `scripts/audit-dbidx-repo.ts`.
+- Package command: `bun run dbidx:audit-repo`.
+- Artifact: `.ai/09_archive/store/2026-06-02-CODEX-P0-DBIDX-001/repo-only-query-index-audit.md`.
+- Result: local-only CODEX-P0-DBIDX-001 repo audit generated 251 source query references and 99 migration-derived index statements. The artifact includes the required repo query map, migration index inventory, live-metrics section, and explicit live-metrics-unavailable note.
+- Scope limit: this intentionally skips external/provider/manual gates while provider setup is pending. It does not run Supabase advisor, `pg_stat_statements`, live FK coverage, migration parity, or EXPLAIN, and it does not create/apply candidate indexes.
+- Guardrail evidence: `bunx vitest run tests/vitest/dbidx-repo-audit.test.ts --maxWorkers=1` verifies the helper remains local-only/non-mutating and the artifact preserves the required DBIDX-001 sections without fabricating live metrics.
+
 ## Excel Reference Evidence Reviewed
 
 The workbook plan incorporates provided bid/quotation patterns:

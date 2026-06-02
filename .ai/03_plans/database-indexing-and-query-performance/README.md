@@ -1,7 +1,7 @@
 # Database Indexing & Query Performance Strategy
 
 **Date:** 2026-05-30
-**Status:** Planning pack created. No indexes implemented. No migrations created.
+**Status:** Repo-only DBIDX-001 audit helper implemented on 2026-06-02. No indexes implemented. No migrations created.
 
 ## Purpose
 
@@ -41,9 +41,15 @@ Formal strategy for database indexing, query-plan validation, and Supabase perfo
 - No speculative index bloat
 - No migration created without EXPLAIN before/after comparison
 
+## Current Local Artifact
+
+- `bun run dbidx:audit-repo`
+- `.ai/09_archive/store/2026-06-02-CODEX-P0-DBIDX-001/repo-only-query-index-audit.md`
+
+The local artifact covers the repo-derived query map and migration-derived index inventory. Live Supabase metrics are explicitly unavailable and not fabricated.
+
 ## Next Safe Action
 
-Run `CODEX-P0-DBIDX-001` as a repo-only/read-only audit first.
+Run `CODEX-P0-DBIDX-002` / `CODEX-P0-DBIDX-003` only after staging/read-only DB access is confirmed, or after an owner-approved local staging database with representative seed data is available.
 
-Do not run DBIDX-002, DBIDX-003, or DBIDX-004 until staging/read-only DB access is confirmed.
 Do not create a migration until DBIDX-001/002/003 are complete and Philip approves the candidate shortlist.
