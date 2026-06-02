@@ -47,13 +47,14 @@ This does **NOT** mean:
 | Item | Value |
 |------|-------|
 | Activity-code audit baseline | `65b21eb` |
-| Latest planning certification commit | `8b0929f` (twelfth pass) |
-| Latest repo HEAD at this audit | `cdb9fdc` |
+| Latest activity-overhaul planning certification commit | `d910fe8` (fifteenth pass) |
+| Validated at | 2026-06-02 fifteenth-pass evidence-preparation audit |
+| Live repo HEAD | Intentionally not hardcoded — run `git rev-parse HEAD` |
 | Branch | `main` |
-| Activity code changed since baseline? | **No** — all commits between `65b21eb` and `cdb9fdc` are proof/ops/docs only |
-| Total files in planning folder | 72 (README + 70 numbered docs 00–69 + doc 70) |
-| Production enablement docs | 20 (docs 51–70) |
-| Evidence folder | `production-evidence/` — 17 files (README + 16 templates) |
+| Activity code changed since baseline? | **No** — all commits since `65b21eb` are proof/ops/docs only |
+| Total files in planning folder | 74 (README + 70 numbered docs 00–69 + docs 70–72) |
+| Production enablement docs | 22 (docs 51–72) |
+| Evidence folder | `production-evidence/` — 18 files (README + 16 templates + loop log) |
 
 ---
 
