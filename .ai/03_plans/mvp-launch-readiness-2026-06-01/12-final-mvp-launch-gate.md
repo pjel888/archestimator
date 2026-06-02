@@ -77,7 +77,7 @@ Current decision: **NO-GO**.
 | Observability/alerts configured | Yes | Error tracking, uptime, alert owner, export/auth/email alerts. | Local `/api/health` and runbook exist; deployed monitor/alert proof pending. | No-go |
 | Backup/rollback plan proven | Yes | Backup proof, migration rollback, Vercel rollback, restore plan. | Backup/restore checklist exists; provider proof pending. | No-go |
 | Investor demo pack ready | Yes for demo | Demo workspace, script, screenshots, export artifact, fallback. | Local seed/demo script anchors, component/template screenshots, workbook artifact, and template insertion proof exist; rehearsal and hosted proof pending. | No-go |
-| Beta program ready | Yes for beta | Cohort, onboarding email, SLA, feedback loop, known limits. | Planned only. | No-go |
+| Beta program ready | Yes for beta | Cohort, onboarding email, SLA, feedback loop, known limits. | Partial/docs: `40-closed-beta-operations-runbook.md` and `29-beta-program-readiness-plan.md` document add/revoke/manual invite/access verification/feedback triage/pause/rollback/24-72h monitoring procedures; hosted ops proof, monitoring ownership, legal sign-off, and live beta evidence remain missing. | No-go |
 
 Local update 2026-06-02: visible pricing/payment copy is no longer a local no-go. `/pricing`, landing pricing, and FAQ now state closed beta / invite-only / no payment required / pricing after beta, with `closed-beta-pricing-copy` test coverage. Overall launch remains **NO-GO** because the other P0 rows above are still unproven.
 

@@ -545,6 +545,13 @@
 - DMARC proof: `dig +noall +answer TXT _dmarc.archestimator.com` returned no answer.
 - Launch meaning: this proves DNS mail-routing evidence for the support domain, not inbox monitoring, form delivery, alert ownership, or incident escalation. Support/monitoring remains a **NO-GO** row.
 
+### Beta Operations Runbook Readiness Evidence
+
+- Artifact note: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/beta-ops-runbook-readiness-2026-06-02.md`.
+- Operator-doc proof: `40-closed-beta-operations-runbook.md` covers add beta user, revoke beta user, manual invite, access verification, feedback collection/review, bug triage, pause beta, rollback, production auth issues, email delivery issues, export failures, first 24-hour checks, first 72-hour checks, and weekly beta review.
+- Beta-program proof: `29-beta-program-readiness-plan.md` defines target profiles, onboarding email requirements, invite flow, access control, support SLA, known limitations, success metrics, cohort rollout, backup before beta, weekly loop, feature-request triage, data-loss response, and beta data sunset/migration.
+- Launch meaning: beta operations are no longer only conceptual, but this is documentation-only proof. Linked migrations, hosted admin/auth smoke, monitored inbox/table ownership, alert ownership, rollback rehearsal, legal sign-off, and live beta operation proof remain **NO-GO**.
+
 ### Project-Specific Unlink Linked Smoke Attempt
 
 - Artifact note: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/project-specific-unlink-linked-smoke-blocked-2026-06-02.md`.
