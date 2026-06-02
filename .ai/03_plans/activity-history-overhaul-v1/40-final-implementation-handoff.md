@@ -13,8 +13,8 @@
 |------|--------|
 | Planning phase | ✅ Complete (8 audit/refinement passes) |
 | Docs internally consistent | ✅ Yes (after this pass) |
-| Activity code unchanged since planning | ✅ Yes (HEAD `6cc9f03` = planning baseline `65b21eb` + proof/ops/docs/mvp-readiness commits; no activity code changed) |
-| Folder file count | 50 files (README + 49 numbered docs 00–48) |
+| Activity code unchanged since planning | ✅ Yes (HEAD `6aaa0b7` = planning baseline `65b21eb` + proof/ops/docs/mvp-readiness commits; no activity code changed) |
+| Folder file count | 52 files (README + 51 numbered docs 00–50) |
 
 ---
 

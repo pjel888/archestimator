@@ -1,7 +1,7 @@
 # 47 — PR 7 / PR 8B Approval Record
 
 **Date:** 2026-06-02
-**Current HEAD:** `6cc9f03`
+**Current HEAD:** `6aaa0b7`
 **Status:** APPROVED — PR 7 and PR 8B gates cleared
 
 ---

@@ -176,5 +176,5 @@ If a security incident occurs (e.g., unauthorized access to publication data):
 - See `25-access-event-data-model-and-migration-plan.md` for schema decisions
 - See `07-security-privacy-readiness.md` for broader security context
 - See `20-edge-case-and-failure-mode-matrix.md` for edge cases including bot traffic
-- See `47-pr7-gate-clearance-and-privacy-approvals.md` for Owner/Internal Privacy sign-off on all disclosure and retention decisions
-- See `48-ph-dpa-npc-compliance-plan.md` for Philippine DPA (RA 10173) and NPC compliance — 90-day retention, data subject rights, breach notification protocol
+- See `47-pr7-pr8b-approval-record.md` for Owner/Internal Privacy sign-off on all disclosure and retention decisions
+- See `48-philippines-data-privacy-compliance-plan.md` for Philippine DPA (RA 10173) and NPC compliance — 90-day retention, data subject rights, breach notification protocol

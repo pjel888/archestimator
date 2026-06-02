@@ -400,5 +400,5 @@ recipient_session_started → Add to session route POST handler
 - See `26-privacy-retention-and-client-disclosure-plan.md` for privacy boundaries
 - See `16-event-taxonomy-and-lifecycle-map.md` for expanded event taxonomy
 - See `20-edge-case-and-failure-mode-matrix.md` for access telemetry edge cases
-- See `47-pr7-gate-clearance-and-privacy-approvals.md` for PR 7 approval record
-- See `48-ph-dpa-npc-compliance-plan.md` for Philippine DPA/NPC compliance
+- See `47-pr7-pr8b-approval-record.md` for PR 7 approval record
+- See `48-philippines-data-privacy-compliance-plan.md` for Philippine DPA/NPC compliance
