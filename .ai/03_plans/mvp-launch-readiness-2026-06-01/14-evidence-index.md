@@ -21,10 +21,19 @@
 
 - Artifact: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/README.md`.
 - Environment: local repo evidence plus read-only Vercel/Supabase/DNS checks.
-- Anchors: local validation/build `bc1c715`, latest app-runtime Vercel proof `638f681`, latest packet/report sync `a246f6b`.
+- Anchors: local validation/build `bc1c715`, latest read-only Vercel provider proof `b33f56d`, latest packet/report sync `b33f56d`.
 - Result: **NO-GO** packet. The packet consolidates current proof rows as `partial-local`, `partial-blocked`, or `blocked`; no P0 external launch blocker is relabeled as passed.
 - Remaining blocked rows: Supabase backup/PITR, linked migrations/RLS/storage/RPC, hosted auth, Vercel env/custom-domain/rollback, Resend proof, spreadsheet-app open/recalc/print, linked project-specific unlink smoke, legal sign-off, monitored support/alerts, demo sign-off, hosted/manual E2E.
 - Launch meaning: this improves artifact organization and future proof collection only. It does not add hosted/provider/manual proof and does not change the **NO-GO** recommendation.
+
+### Provider State Refresh at b33f56d
+
+- Artifact: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/provider-state-refresh-b33f56d-2026-06-02.md`.
+- Vercel: latest `main` preview `archestimator-bk9xr4ea0-philipjonlewis-projects.vercel.app`, deployment `dpl_6psx8VnKmAgcU17jHk9xVSpavTi4`, commit `b33f56df19cc3d74540fb71369c3da1461ffb61b`, status Ready.
+- Health: `vercel curl` returns `{"ok":true,"service":"archestimator"}` for the latest preview and branch alias `/api/health`; plain public preview health still returns HTTP `401`.
+- Env/custom domains: `vercel env ls --non-interactive` still returns no env vars; `www.archestimator.com/api/health` and redirected `archestimator.com/api/health` still return HTTP `404`.
+- Supabase: `supabase migration list --linked` now succeeds and still shows launch migrations `20260601182522`, `20260601184343`, `20260602005649`, `20260602083000`, and `20260602084500` absent remotely.
+- Launch meaning: this refresh removes the earlier migration-list read blocker but confirms the linked schema is still missing required launch migrations. Vercel env/public/custom-domain/rollback and hosted auth proof remain **NO-GO**.
 
 ### AUTH-E2E Local Signed-Out Smoke Evidence
 
