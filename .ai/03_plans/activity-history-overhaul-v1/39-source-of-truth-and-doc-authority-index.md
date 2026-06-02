@@ -21,7 +21,7 @@
 | **Blast radius** | `37-final-blast-radius-and-rollback-map.md` | `05-blast-radius-analysis.md` | 37 supersedes 05 for final risk assessment |
 | **Test strategy** | `08-test-strategy.md` + `38-pr2-test-command-and-fixture-plan.md` | `18-manual-qa-and-acceptance-matrix.md` | 08 for overall, 38 for PR 2 specifics |
 | **Manual QA** | `18-manual-qa-and-acceptance-matrix.md` | None | Canonical QA matrix |
-| **Readiness/go-no-go** | `42-98-100-readiness-scorecard.md` + `34-final-preimplementation-audit.md` | `32-final-implementation-readiness-scorecard.md`, `10-readiness-checklist.md` | 42 for current scoring (sixth pass), 34 for audit summary |
+| **Readiness/go-no-go** | `42-98-100-readiness-scorecard.md` + `34-final-preimplementation-audit.md` | `32-final-implementation-readiness-scorecard.md`, `10-readiness-checklist.md` | 42 for current scoring (eighth pass), 34 for audit summary |
 | **Risks** | `43-final-risk-burndown-register.md` | `37-final-blast-radius-and-rollback-map.md` | 43 for risk register, 37 for blast radius |
 | **Certification** | `44-final-plan-certification.md` | `40-final-implementation-handoff.md` | 44 is sign-off; 40 is entry point |
 | **Loop audit** | `41-autonomous-readiness-loop-log.md` | — | Audit trail of this autonomous readiness loop |
@@ -50,7 +50,7 @@ These documents contain useful historical context but are NO LONGER authoritativ
 
 | Doc | Status | Notes |
 |-----|--------|-------|
-| `00-current-state-audit.md` | **Authoritative** (with noted corrections) | HEAD stale (`d78686f`→current `65b21eb` via multiple passes), "13 event types" → "14". Otherwise accurate. |
+| `00-current-state-audit.md` | **Authoritative** (with noted corrections) | HEAD stale (`d78686f`→`65b21eb` via third/fourth/fifth passes; current is `1a6dcc5`), "13 event types" → "14". Otherwise accurate. |
 | `01-research-basis.md` | **Authoritative** | Research unchanged |
 | `02-activity-copywriting-system.md` | **Authoritative** | Copy model unchanged |
 | `03-data-contract-and-event-model-plan.md` | **Authoritative** | Data contract unchanged |
@@ -68,11 +68,22 @@ These documents contain useful historical context but are NO LONGER authoritativ
 | `25-access-event-data-model-and-migration-plan.md` | **Authoritative** (with noted update) | Reconcile side effects per doc 36 |
 | `29-final-decision-log-and-approval-matrix.md` | **Authoritative** (with noted corrections) | Approval statuses corrected in this pass. See doc 34 Finding 9. |
 | `31-pr2-preflight-implementation-brief.md` | **Authoritative** (with noted updates) | event_type exposure and CSRF coverage updated per this pass. |
-| `32-final-implementation-readiness-scorecard.md` | **Superseded** | `42-98-100-readiness-scorecard.md` | 42 is the final sixth-pass scorecard with HEAD `65b21eb` and complete 10-category scoring. |
+| `32-final-implementation-readiness-scorecard.md` | **Superseded** | `42-98-100-readiness-scorecard.md` | 42 is the final eighth-pass scorecard with HEAD `1a6dcc5` and complete 10-category scoring. |
 
 ---
 
 ## Document Reading Order for Implementation
+
+### Authoritative Implementation Reading Order
+1. `46-final-implementation-readiness-lock.md` — final lock confirmation: HEAD, scores, go/no-go, PR 7 gates
+2. `45-final-next-actions-micro-refinement.md` — go/no-go summary, PR gates, start checklist
+3. `40-final-implementation-handoff.md` — what to do, where to start, exact scope
+4. `39-source-of-truth-and-doc-authority-index.md` (this doc) — which docs are authoritative
+5. `35-code-truth-map.md` — verify code behavior before editing
+6. `31-pr2-preflight-implementation-brief.md` — PR 2 exact scope of 5 fixes
+7. `38-pr2-test-command-and-fixture-plan.md` — PR 2 test plan per fix
+8. `37-final-blast-radius-and-rollback-map.md` — risk awareness and dependency map
+9. `29-final-decision-log-and-approval-matrix.md` — all 28 decisions and statuses
 
 ### For PR 2 Implementer
 1. `40-final-implementation-handoff.md` — what to do, where to start
@@ -89,7 +100,7 @@ These documents contain useful historical context but are NO LONGER authoritativ
 4. `02-activity-copywriting-system.md` — copy rules and forbidden terms
 
 ### For Stakeholder Review
-1. `44-final-plan-certification.md` — certified readiness summary (SIXTH PASS — authoritative)
+1. `44-final-plan-certification.md` — certified readiness summary (EIGHTH PASS — authoritative)
 2. `28-fourth-pass-stakeholder-review-packet.md` — stakeholder-friendly summary
 3. `29-final-decision-log-and-approval-matrix.md` — pending decisions
 4. `33-stakeholder-review-script.md` — meeting agenda

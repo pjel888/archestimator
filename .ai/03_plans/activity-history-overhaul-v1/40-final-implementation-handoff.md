@@ -1,7 +1,7 @@
 # 40 — Final Implementation Handoff
 
 **Date:** 2026-06-02
-**Status:** Seventh pass — final micro-refinement complete
+**Status:** Eighth pass — final implementation-readiness lock complete
 **Audience:** Engineer/AI implementing PR 2 and subsequent PRs
 
 ---
@@ -10,10 +10,10 @@
 
 | Item | Status |
 |------|--------|
-| Planning phase | ✅ Complete (5 audit passes) |
+| Planning phase | ✅ Complete (8 audit/refinement passes) |
 | Docs internally consistent | ✅ Yes (after this pass) |
-| Activity code unchanged since planning | ✅ Yes (HEAD `87f603e` = planning baseline `65b21eb` + proof/ops/docs commits; no activity code changed) |
-| Folder file count | 47 files (README + 46 numbered docs 00–45) |
+| Activity code unchanged since planning | ✅ Yes (HEAD `1a6dcc5` = planning baseline `65b21eb` + proof/ops/docs/mvp-readiness commits; no activity code changed) |
+| Folder file count | 48 files (README + 47 numbered docs 00–46) |
 
 ---
 

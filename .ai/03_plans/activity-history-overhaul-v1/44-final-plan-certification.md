@@ -2,8 +2,8 @@
 
 **Date:** 2026-06-02
 **Status:** CERTIFIED — 99.3% composite readiness (all categories ≥99%)
-**Auditor:** Sisyphus (AI orchestrator, seventh-pass micro-refinement)
-**Current HEAD:** `87f603e`
+**Auditor:** Sisyphus (AI orchestrator, eighth-pass implementation-readiness lock)
+**Current HEAD:** `1a6dcc5`
 
 ---
 
@@ -11,7 +11,7 @@
 
 The Activity History Overhaul V1 planning pack in `.ai/03_plans/activity-history-overhaul-v1/` has reached **99.3% composite implementation handoff readiness** across all 10 scoring categories. Every category scores ≥99%. The only remaining implementation gate is stakeholder (Product/Legal) approval for PR 7 access telemetry — which is a planning-complete external dependency, not a planning deficiency.
 
-This seventh pass resolved 5 targeted refinements: PR 3 test file paths, PR 5 public API contract, PR 8A/8B split, PR 2 manual QA checklist, and final wording cleanup.
+This seventh pass resolved 5 targeted refinements: PR 3 test file paths, PR 5 public API contract, PR 8A/8B split, PR 2 manual QA checklist, and final wording cleanup. An eighth pass corrected stale HEAD references (`87f603e`→`1a6dcc5`), clarified "46 documents"→"48 files", updated the Authoritative Implementation Sequence with PR 8A/8B split, corrected the pass count, and added doc 46 (final lock confirmation).
 
 ---
 
@@ -37,8 +37,8 @@ This seventh pass resolved 5 targeted refinements: PR 3 test file paths, PR 5 pu
 ## What Is 99–100%
 
 **Documentation (100%):**
-- All 46 documents internally consistent after seventh pass
-- No stale HEAD references (all `87f603e`)
+- All 48 files (README + 47 numbered docs 00–46) internally consistent after eighth pass
+- No stale HEAD references (all `1a6dcc5`)
 - No conflicting PR numbers
 - No "13 event types" errors (corrected to "14 raw: 12 active + 2 dormant")
 - No "33 documents" / "35 files" references (corrected to "47")
@@ -47,7 +47,7 @@ This seventh pass resolved 5 targeted refinements: PR 3 test file paths, PR 5 pu
 - Superseded docs clearly marked (doc 39 authority index)
 
 **Code Accuracy (100%):**
-- Every active plan claim traces to current code (HEAD `87f603e`)
+- Every active plan claim traces to current code (HEAD `1a6dcc5`)
 - No activity code changed since planning baseline `65b21eb`
 - Future/planned behavior labelled as such
 
@@ -80,7 +80,7 @@ This seventh pass resolved 5 targeted refinements: PR 3 test file paths, PR 5 pu
 
 ## What PR Can Begin Next
 
-✅ **PR 1 (docs merge)** — Merge all 46 planning documents. Internally consistent, source-accurate, implementation-ready.
+✅ **PR 1 (docs merge)** — Merge all 47 files. Internally consistent, source-accurate, implementation-ready.
 
 ✅ **PR 2 (preflight fixes)** — Can begin immediately after docs merge. 5 fixes, no privacy dependencies.
 
@@ -100,7 +100,7 @@ This seventh pass resolved 5 targeted refinements: PR 3 test file paths, PR 5 pu
 
 ## Recommended Next Action
 
-1. **Merge docs (PR 1)** — Immediately. All 46 documents are certified.
+1. **Merge docs (PR 1)** — Immediately. All 48 files are certified.
 2. **Begin PR 2** — Preflight bug fixes. Reference doc 40 for scope, doc 31 for details, doc 38 for test plan.
 3. **PR 8A can proceed independently** — If PR 7 legal gate takes >2 weeks, pagination/realtime hardening can continue per docs 11, 37, 40.
 4. **Schedule stakeholder review** — Use doc 28 (stakeholder packet) and doc 33 (meeting script). Unblock PR 7 gates.
