@@ -10,7 +10,7 @@ export type CreateProjectStatus =
   | { state: "creating"; message: string }
   | { state: "uploading"; message: string; progress: number }
   | { state: "saving"; message: string }
-  | { state: "error"; message: string };
+  | { state: "error"; message: string; field?: "projectName" };
 
 type ProjectCodeFieldProps = {
   isSubmitting: boolean;
@@ -22,6 +22,7 @@ type ProjectCodeFieldProps = {
 type CreateProjectFooterProps = {
   isSubmitting: boolean;
   status: CreateProjectStatus;
+  statusId: string;
 };
 
 export function CreateProjectHeader() {
@@ -76,7 +77,17 @@ export function ProjectCodeField({
   );
 }
 
-export function ProjectFields() {
+type ProjectFieldsProps = {
+  isProjectNameInvalid?: boolean;
+  projectNameErrorId?: string;
+  onProjectNameChange?: () => void;
+};
+
+export function ProjectFields({
+  isProjectNameInvalid,
+  projectNameErrorId,
+  onProjectNameChange,
+}: ProjectFieldsProps) {
   return (
     <>
       <label className="space-y-1.5 md:col-span-2">
@@ -87,6 +98,11 @@ export function ProjectFields() {
           name="name"
           placeholder="e.g. Lewis Residence Renovation"
           required
+          aria-describedby={
+            isProjectNameInvalid ? projectNameErrorId : undefined
+          }
+          invalid={isProjectNameInvalid}
+          onChange={onProjectNameChange}
           className="h-10 px-2 !text-[12px]"
         />
       </label>
@@ -117,6 +133,7 @@ export function ProjectFields() {
 export function CreateProjectFooter({
   isSubmitting,
   status,
+  statusId,
 }: CreateProjectFooterProps) {
   return (
     <div className="grid gap-2 border-t border-hairline bg-white/94 p-2">
@@ -136,6 +153,9 @@ export function CreateProjectFooter({
         status.state === "saving" ||
         status.state === "error" ? (
         <p
+          id={statusId}
+          aria-live="polite"
+          role={status.state === "error" ? "alert" : undefined}
           className={[
             "text-[9px] font-medium leading-3",
             status.state === "error" ? "text-danger" : "text-tertiary",
