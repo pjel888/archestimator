@@ -418,6 +418,7 @@ describe("closed beta readiness docs", () => {
     expect(evidenceIndex).toContain("legal-owner-readiness-5fa0ac1-2026-06-02.json");
     expect(evidenceIndex).toContain("legal-owner-readiness-b74baea-2026-06-02.json");
     expect(evidenceIndex).toContain("legal-owner-readiness-6556584-2026-06-02.json");
+    expect(evidenceIndex).toContain("legal-owner-readiness-874e645-2026-06-02.json");
     expect(evidenceIndex).toContain("`legalOwnerReady: false`");
     expect(evidenceIndex).toContain("all five proof flags false");
     expect(evidenceIndex).toContain("product owner / legal reviewer / approval date / approval reference missing");
@@ -727,6 +728,7 @@ describe("closed beta readiness docs", () => {
     expect(manualProofMatrix).toContain("legal-owner-readiness-5fa0ac1-2026-06-02.json");
     expect(manualProofMatrix).toContain("legal-owner-readiness-b74baea-2026-06-02.json");
     expect(manualProofMatrix).toContain("legal-owner-readiness-6556584-2026-06-02.json");
+    expect(manualProofMatrix).toContain("legal-owner-readiness-874e645-2026-06-02.json");
     expect(manualProofMatrix).toContain("`legalOwnerReady: false`");
     expect(manualProofMatrix).toContain("product owner / legal reviewer / approval date / approval reference missing");
     expect(manualProofMatrix).toContain("Current manual E2E smoke");
@@ -780,6 +782,7 @@ describe("closed beta readiness docs", () => {
     expect(consolidatedManualProofPacket).toContain("legal-owner-readiness-5fa0ac1-2026-06-02.json");
     expect(consolidatedManualProofPacket).toContain("legal-owner-readiness-b74baea-2026-06-02.json");
     expect(consolidatedManualProofPacket).toContain("legal-owner-readiness-6556584-2026-06-02.json");
+    expect(consolidatedManualProofPacket).toContain("legal-owner-readiness-874e645-2026-06-02.json");
     expect(consolidatedManualProofPacket).toContain("`legalOwnerReady: false`");
     expect(consolidatedManualProofPacket).toContain("Spreadsheet compatibility | partial-local");
     expect(consolidatedManualProofPacket).toContain("current-head-local-validation-build-353dd48-2026-06-02.md");
@@ -833,6 +836,7 @@ describe("closed beta readiness docs", () => {
     expect(artifactFilenames).toContain("legal-owner-readiness-5fa0ac1-2026-06-02.json");
     expect(artifactFilenames).toContain("legal-owner-readiness-b74baea-2026-06-02.json");
     expect(artifactFilenames).toContain("legal-owner-readiness-6556584-2026-06-02.json");
+    expect(artifactFilenames).toContain("legal-owner-readiness-874e645-2026-06-02.json");
     expect(artifactFilenames).toContain("support-email-dns-readiness-refresh-ec31121-2026-06-02.json");
     expect(artifactFilenames).toContain("support-email-dns-readiness-refresh-c72f9fb-2026-06-02.json");
     expect(artifactFilenames).toContain("support-monitoring-readiness-c9c1141-2026-06-02.json");
@@ -930,6 +934,7 @@ describe("closed beta readiness docs", () => {
     expect(goalCompletionAudit).toContain("legal-owner-readiness-5fa0ac1-2026-06-02.json");
     expect(goalCompletionAudit).toContain("legal-owner-readiness-b74baea-2026-06-02.json");
     expect(goalCompletionAudit).toContain("legal-owner-readiness-6556584-2026-06-02.json");
+    expect(goalCompletionAudit).toContain("legal-owner-readiness-874e645-2026-06-02.json");
     expect(goalCompletionAudit).toContain("`legalOwnerReady: false`");
     expect(goalCompletionAudit).toContain("all terms/privacy/beta-copy/data-retention/support-comms proof flags false");
     expect(goalCompletionAudit).toContain("product owner / legal reviewer / approval date / approval reference missing");
@@ -1055,6 +1060,7 @@ describe("closed beta readiness docs", () => {
     expect(currentState).toContain("legal-owner-readiness-5fa0ac1-2026-06-02.json");
     expect(currentState).toContain("legal-owner-readiness-b74baea-2026-06-02.json");
     expect(currentState).toContain("legal-owner-readiness-6556584-2026-06-02.json");
+    expect(currentState).toContain("legal-owner-readiness-874e645-2026-06-02.json");
     expect(currentState).toContain("`legalOwnerReady: false`");
     expect(currentState).toContain("product owner / legal reviewer / approval date / approval reference missing");
     expect(currentState).toContain("Support/feedback local evidence");
@@ -1115,6 +1121,7 @@ describe("closed beta readiness docs", () => {
     expect(knownIssues).toContain("legal-owner-readiness-5fa0ac1-2026-06-02.json");
     expect(knownIssues).toContain("legal-owner-readiness-b74baea-2026-06-02.json");
     expect(knownIssues).toContain("legal-owner-readiness-6556584-2026-06-02.json");
+    expect(knownIssues).toContain("legal-owner-readiness-874e645-2026-06-02.json");
     expect(knownIssues).toContain("`legalOwnerReady: false`");
     expect(knownIssues).toContain("product owner / legal reviewer / approval date / approval reference missing");
     expect(knownIssues).toContain("Support/feedback local evidence now proves `/contact`, protected `/workshop/feedback`, platform-admin `/workshop/settings/feedback`, terms, and privacy point to `support@archestimator.com`");
