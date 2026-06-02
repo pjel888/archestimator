@@ -22,7 +22,7 @@ Design-system source: `DESIGN.md`. Launch UI must be compact, work-focused, clea
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | Landing | `src/app/page.tsx` | Public | Claims need evidence/legal check. | P1/P0 | `LEGAL-001` | No unsupported proof claims. | Desktop/mobile screenshot. |
 | Login | `src/app/login/page.tsx` | Exists | Hosted proof and legal link labels needed. | P0 | `ONB-001` | Google/email clear; terms/privacy accurate. | Auth journey. |
-| Auth callback failure | `src/app/auth/callback/route.ts` | Exists | Failure UX/support path needs smoke. | P0 | `ONB-001` | Retry/support path clear. | Expired link QA. |
+| Auth callback failure | `src/app/auth/callback/route.ts` | Local denied-access support contact aligned | Hosted callback smoke still needed. | P0 | `ONB-001` | Retry/support path clear and access-required users see the monitored beta support address. | Local source-contract pass; expired link QA still required. |
 | Workshop homebase | `src/app/workshop/page.tsx`, `WorkshopPageShell` | Exists | Ask Flip visible; first-run states need proof. | P0 | `AI-001`, `ONB-001` | No AI; clear next action. | Empty account screenshot. |
 | Project list | `src/app/workshop/projects/*` | Local first-run state covered | Hosted new-account manual proof still needed. | P0/P1 | `ONB-001` | Create first project obvious; sample cards are clearly references only. | Local DOM pass; new account QA still required. |
 | Project create modal | project components/actions | Local validation/error copy covered | Hosted/manual create proof still needed. | P1 | `QA-002` | Required project name errors are clear, field-scoped, and do not call the create action before valid input. | Local DOM pass; manual create still required. |

@@ -1,3 +1,7 @@
+const SUPPORT_EMAIL = "support@archestimator.com";
+const SUPPORT_MAILTO =
+  "mailto:support@archestimator.com?subject=Archestimator%20beta%20access";
+
 export default function BetaAccessRequiredPage({
   searchParams,
 }: {
@@ -25,7 +29,7 @@ export default function BetaAccessRequiredPage({
               Use another account
             </a>
             <a
-              href="mailto:philipjonlewis@gmail.com?subject=Archestimator%20beta%20access"
+              href={SUPPORT_MAILTO}
               className="inline-flex h-9 flex-1 items-center justify-center rounded-xs bg-ink px-3 text-[10px] font-medium text-white hover:bg-ink/90"
             >
               Request access
@@ -51,8 +55,8 @@ async function BetaAccessStatusCopy({
       className="mt-2 rounded-xs border border-accent/25 bg-accentSoft p-2 text-[10px] leading-4 text-ink"
     >
       {isRevoked
-        ? "Access for this account has been paused. Contact Philip if this looks wrong."
-        : "Beta access is granted manually while the product is in closed testing. Contact Philip with the email you want enabled."}
+        ? `Access for this account has been paused. Email ${SUPPORT_EMAIL} if this looks wrong.`
+        : `Beta access is granted manually while the product is in closed testing. Email ${SUPPORT_EMAIL} with the account you want enabled.`}
     </div>
   );
 }
