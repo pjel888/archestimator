@@ -145,7 +145,7 @@ Production enablement = GO
   ⟺ All 15 required gates Complete
 ```
 
-Evidence preparation can be 98–100%. Actual evidence completion remains evidence-based and may still be 0%. These two metrics are separate and must not be conflated.
+Evidence preparation is at 100%. Actual evidence completion remains evidence-based and may still be 0%. These two metrics are separate and must not be conflated.
 
 ---
 

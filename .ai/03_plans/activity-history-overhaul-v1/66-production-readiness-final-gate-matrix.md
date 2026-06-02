@@ -16,7 +16,7 @@
 | G-03 | In-product disclosure implemented on password gate | ✅ YES | Ready for engineering action | ❌ Incomplete | E-003 | ❌ NO — blocks production |
 | G-04 | DPO / privacy officer formally designated | ✅ YES | Ready for owner action | ❌ Incomplete | E-004 | ❌ NO — blocks production |
 | G-05 | NPCRS registration triage completed | ✅ YES | Ready for owner action | ❌ Incomplete | E-005 | ❌ NO — blocks production |
-| G-06 | DPS inventory completed | ✅ YES | Drafted | ❌ Incomplete | E-006 | ❌ NO — blocks production |
+| G-06 | DPS inventory completed | ✅ YES | Ready for owner review | ❌ Incomplete | E-006 | ❌ NO — blocks production |
 | G-07 | DSR intake and response process operational | ✅ YES | Ready for owner review | ❌ Incomplete | E-007 | ❌ NO — blocks production |
 | G-08 | Breach notification process operational | ✅ YES | Ready for owner review | ❌ Incomplete | E-008 | ❌ NO — blocks production |
 | G-09 | Vendor/processor DPA review completed (Supabase + Vercel) | ✅ YES | Ready for owner action | ❌ Incomplete | E-009 | ❌ NO — blocks production |
