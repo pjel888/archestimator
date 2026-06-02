@@ -8,6 +8,10 @@ const artifact = readFileSync(
   ".ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/resend-email-readiness-blocked-2026-06-02.md",
   "utf8",
 );
+const readinessArtifact = JSON.parse(readFileSync(
+  ".ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/resend-readiness-b0e04f4-2026-06-02.json",
+  "utf8",
+));
 const envExample = readFileSync(".env.example", "utf8");
 const emailClient = readFileSync("src/lib/email/resend-client.ts", "utf8");
 const resendWebhookRoute = readFileSync("src/app/api/webhooks/resend/route.ts", "utf8");
@@ -24,6 +28,11 @@ describe("Resend launch readiness docs", () => {
     expect(artifact).toContain("RESEND_FROM=missing_or_empty");
     expect(artifact).toContain("RESEND_REPLY_TO=missing_or_empty");
     expect(artifact).toContain("RESEND_WEBHOOK_SECRET=missing_or_empty");
+    expect(readinessArtifact.resendReady).toBe(false);
+    expect(readinessArtifact.localRuntimeEnv.present).toEqual(["RESEND_API_KEY"]);
+    expect(readinessArtifact.localRuntimeEnv.missing).toContain("RESEND_FROM");
+    expect(readinessArtifact.vercelEnv.missing).toContain("RESEND_WEBHOOK_SECRET");
+    expect(JSON.stringify(readinessArtifact)).not.toMatch(/re_/);
   });
 
   it("keeps source proof tied to real email and webhook behavior", () => {
@@ -56,5 +65,6 @@ describe("Resend launch readiness docs", () => {
     expect(artifact).toContain("recipient email controls are disabled");
     expect(artifact).toContain("must not be considered launch-ready or re-enabled");
     expect(artifact).toContain("Vercel env values, verified sender/domain/DNS, a configured webhook secret, and real delivery/bounce/open webhook evidence");
+    expect(readinessArtifact.note).toContain("does not prove sender/domain verification");
   });
 });
