@@ -365,6 +365,6 @@ Launch blockers remain. Several route-transition and share/collaboration items n
 
 ## Active repo-local implementation overlay — Activity History Overhaul V1
 
-Status: **ACTIVE / Milestone 3 full verification passed / production telemetry enablement NO-GO**.
+Status: **ACTIVE / Milestone 3 pushed / production telemetry enablement NO-GO**.
 
 The Activity History Overhaul V1 plan pack at `.ai/03_plans/activity-history-overhaul-v1/` is being implemented on `feat/activity-history-overhaul-v1`. Milestone evidence and commit SHAs are tracked in `.ai/01_roadmap/35-activity-history-overhaul-v1-execution.md`. Access telemetry implementation is allowed only behind production-safe default-off gates; production enablement still requires real privacy/legal/owner/provider evidence per docs 64, 66, and 68.
