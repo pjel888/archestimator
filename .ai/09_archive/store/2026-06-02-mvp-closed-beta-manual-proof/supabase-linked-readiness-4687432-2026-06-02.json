@@ -1,0 +1,55 @@
+{
+  "generatedAt": "2026-06-02T05:42:30.418Z",
+  "mode": "supabase-linked-readiness",
+  "source": "SUPABASE_LINKED_READINESS_JSON",
+  "projectRef": "ebxxqidacheyapmmzavr",
+  "parsedLinkedReadiness": true,
+  "parseError": null,
+  "blockedReason": null,
+  "totalChecks": 13,
+  "failedChecks": [
+    "summary:launch_readiness_passed=failed",
+    "migration:20260601182522_closed_beta_allowed_emails=missing",
+    "migration:20260601184343_unlink_estimate_row_items=missing",
+    "migration:20260602005649_beta_allowlist_admin_queue=missing",
+    "migration:20260602083000_beta_feedback_submissions=missing",
+    "migration:20260602084500_beta_feedback_review_queue=missing",
+    "table:public.beta_feedback_submissions=missing",
+    "table:public.closed_beta_allowed_emails=missing",
+    "grant:public.beta_feedback_submissions:anon_select=table_missing",
+    "grant:public.closed_beta_allowed_emails:anon_select=table_missing",
+    "function:public.check_closed_beta_access=missing",
+    "function:public.unlink_estimate_row_item_from_library_with_history=missing",
+    "storage:storage.buckets.component-images:public=public"
+  ],
+  "missingCategories": [],
+  "categorySummary": {
+    "summary": {
+      "total": 1,
+      "failed": 1
+    },
+    "migration": {
+      "total": 5,
+      "failed": 5
+    },
+    "table": {
+      "total": 2,
+      "failed": 2
+    },
+    "grant": {
+      "total": 2,
+      "failed": 2
+    },
+    "function": {
+      "total": 2,
+      "failed": 2
+    },
+    "storage": {
+      "total": 1,
+      "failed": 1
+    }
+  },
+  "summaryPassed": false,
+  "linkedSupabaseLaunchReady": false,
+  "note": "Sanitized linked Supabase readiness parser. It parses output from the read-only `scripts/sql/linked-supabase-launch-readiness.sql` query and does not connect to Supabase, apply migrations, repair migration history, mutate storage, or perform RLS/browser allow-deny proof."
+}

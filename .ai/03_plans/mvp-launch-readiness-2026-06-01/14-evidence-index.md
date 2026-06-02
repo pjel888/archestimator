@@ -103,6 +103,16 @@
 - Result: 71 migration rows parsed; all five required launch migrations are present locally but missing remotely; `linkedMigrationsReady: false`.
 - Launch meaning: this makes migration-list parity proof repeatable, but it does not prove RLS, grants, storage posture, object existence, backup/PITR, restore safety, or the deeper SQL readiness query. Linked Supabase remains **NO-GO**.
 
+### Supabase Linked Readiness Parser Helper
+
+- Script: `scripts/check-supabase-linked-readiness.ts`.
+- Package command: `bun run launch:check-supabase-linked-readiness`.
+- Proof artifact: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/supabase-linked-readiness-4687432-2026-06-02.json`.
+- Scope: parses sanitized JSON output from the read-only `scripts/sql/linked-supabase-launch-readiness.sql` query and records migration, table/RLS, anon grant, function, storage, and summary pass/fail counts.
+- Current refresh: `SUPABASE_LINKED_READINESS_JSON="$(bun run launch:supabase-readiness 2>&1)" SUPABASE_LINKED_PROJECT_REF=ebxxqidacheyapmmzavr OUTPUT_FILE=.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/supabase-linked-readiness-4687432-2026-06-02.json bun run launch:check-supabase-linked-readiness` wrote sanitized JSON and exited `1`; the underlying read-only SQL command exited `0`.
+- Result: 13 checks parsed; summary failed; all five launch migrations are missing remotely; `closed_beta_allowed_emails` and `beta_feedback_submissions` are missing; anon-select checks cannot pass because the tables are missing; `check_closed_beta_access` and `unlink_estimate_row_item_from_library_with_history` are missing; `component-images` is public; `linkedSupabaseLaunchReady: false`.
+- Launch meaning: this makes the deeper linked Supabase SQL readiness proof repeatable, but it does not apply migrations, repair migration history, mutate storage, perform RLS/browser allow-deny checks, prove backup/PITR, or run a restore. Linked Supabase remains **NO-GO**.
+
 ### Hosted Auth Route Proof Helper
 
 - Script: `scripts/verify-hosted-auth-routes.ts`.
