@@ -4,9 +4,11 @@ Status: Required before external closed beta.
 
 This matrix converts the remaining hosted/provider/manual gates into concrete evidence slots. It does not replace the local validation/build baseline and does not approve launch. Closed beta stays **NO-GO** until each P0 row below has a dated artifact, owner, and pass/fail note linked from `14-evidence-index.md`.
 
+Current repo-local handoff: implementation is frozen at `6ab5b38`, and the docs/status sync is pushed at `f2ed23c`. Treat later work as external/provider/manual proof collection unless a new repo-local defect is found.
+
 Use `48-manual-proof-packet-template.md` as the `README.md` inside the dated artifact folder when collecting this evidence.
 
-Current consolidated packet: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/README.md`. It organizes the current local/read-only/blocked artifacts and keeps external closed beta **NO-GO** because P0 rows remain blocked. Latest read-only provider refresh: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/provider-state-refresh-4fdf0de-2026-06-02.md`.
+Current consolidated packet: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/README.md`. It organizes the current local/read-only/blocked artifacts and keeps external closed beta **NO-GO** because P0 rows remain blocked. Latest read-only provider refresh: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/provider-state-refresh-4fdf0de-2026-06-02.md`; latest repo-local freeze evidence is recorded in `14-evidence-index.md` under `Repo-Local Implementation Freeze`.
 
 ## Evidence Rules
 
