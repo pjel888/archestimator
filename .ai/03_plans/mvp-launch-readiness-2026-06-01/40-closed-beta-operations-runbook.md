@@ -4,6 +4,8 @@
 
 Philip manually curates the beta cohort. Supabase is the source of truth for closed beta access, with platform-admin app management available at `/workshop/settings/beta-users` after the allowlist admin migration is applied. Vercel is the deployment surface. Feedback is founder-led.
 
+Status: operator procedures are documented and locally reviewed in `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/beta-ops-runbook-readiness-2026-06-02.md`. This runbook is not live-ops proof: hosted auth/admin smoke, linked migrations, monitored inbox/table ownership, alert ownership, rollback rehearsal, and owner/counsel sign-off still block launch.
+
 ## Production Env Posture
 
 - Set `CLOSED_BETA_ACCESS_ENABLED=true` in Vercel production before inviting external beta users.

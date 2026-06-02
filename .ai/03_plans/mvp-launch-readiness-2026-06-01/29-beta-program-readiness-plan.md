@@ -4,6 +4,8 @@
 
 This is now a central closed beta document.
 
+Status: partial operator-documentation pass. The beta cohort model, onboarding requirements, invite fallback, support SLA, known limits, rollout sequence, weekly review, and data-loss response are documented. This does not prove live beta operations; linked migrations, hosted access smoke, monitored support/feedback ownership, alert ownership, legal sign-off, and owner go/no-go remain required.
+
 Beta cohort:
 
 - Invited contractors/estimators.
@@ -18,6 +20,7 @@ Beta operations:
 - Manual invite emails are acceptable.
 - Feedback is collected through protected `/workshop/feedback` plus the support email path, then triaged through platform-admin `/workshop/settings/feedback` after review migration apply.
 - Weekly beta review summarizes cohort usage, workflow blockers, export feedback, and next fixes.
+- Detailed operating procedures live in `40-closed-beta-operations-runbook.md`; dated local runbook review evidence is archived at `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/beta-ops-runbook-readiness-2026-06-02.md`.
 
 Beta success metrics:
 
