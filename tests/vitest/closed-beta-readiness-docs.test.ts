@@ -825,6 +825,8 @@ describe("closed beta readiness docs", () => {
     expect(repoLocalFreezeHandoff).toContain("47-goal-completion-audit.md");
     expect(evidenceIndex).toContain("repo-local-freeze-external-proof-handoff-2026-06-02.md");
     expect(evidenceIndex).toContain("docs/status freeze `f2ed23c` and external proof handoff `c32540e`");
+    expect(evidenceIndex).toContain("Source-contract guard: `3279048`");
+    expect(evidenceIndex).toContain("cannot claim external/provider/manual gates from local-only evidence");
   });
 
   it("keeps consolidated manual proof packet artifact references resolvable", () => {
