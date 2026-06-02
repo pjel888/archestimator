@@ -382,6 +382,11 @@ describe("closed beta readiness docs", () => {
     expect(evidenceIndex).toContain("PLAYWRIGHT_PORT=3037 bun run test:e2e -- e2e/auth.spec.ts --project=chromium");
     expect(evidenceIndex).toContain("Result: pass, 2 Playwright tests in 9.9s.");
     expect(evidenceIndex).toContain("Hosted Google auth, allowed/denied/revoked allowlist smoke, first-run workspace entry, and session expiry/logout proof remain external/manual gates.");
+    expect(evidenceIndex).toContain("### Full Local E2E Refresh at bb9006d");
+    expect(evidenceIndex).toContain("full-local-e2e-refresh-bb9006d-2026-06-02.md");
+    expect(evidenceIndex).toContain("PLAYWRIGHT_PORT=3020 bun run test:e2e -- --project=chromium");
+    expect(evidenceIndex).toContain("9 Playwright tests passed and 24 env-gated/live-provider specs skipped");
+    expect(evidenceIndex).toContain("retires the stale full-suite local blocker");
     expect(evidenceIndex).toContain("### Hosted Auth Route Proof Helper");
     expect(evidenceIndex).toContain("### Supabase Backup/PITR Readiness Helper");
     expect(evidenceIndex).toContain("scripts/check-supabase-backup-readiness.ts");
@@ -576,6 +581,8 @@ describe("closed beta readiness docs", () => {
     expect(manualProofMatrix).toContain("Current manual E2E smoke");
     expect(manualProofMatrix).toContain("current-local-e2e-smoke-2026-06-02.md");
     expect(manualProofMatrix).toContain("signed-out auth plus local dev-auth library/template/template-insert smoke");
+    expect(manualProofMatrix).toContain("full-local-e2e-refresh-bb9006d-2026-06-02.md");
+    expect(manualProofMatrix).toContain("passing 9 ungated checks with 24 env-gated/live-provider specs skipped");
     expect(manualProofMatrix).toContain("Hosted login, allowlist, unlink/export, logout/session expiry, and target-environment journey remain missing");
     expect(manualProofMatrix).toContain("demo-rehearsal-fallback-pack-2026-06-02.md");
     expect(manualProofMatrix).toContain("fallback script");
@@ -615,6 +622,8 @@ describe("closed beta readiness docs", () => {
     expect(consolidatedManualProofPacket).toContain("`vercelProductionReady: false`");
     expect(consolidatedManualProofPacket).toContain("Spreadsheet compatibility | partial-local");
     expect(consolidatedManualProofPacket).toContain("Current manual E2E smoke | partial-local");
+    expect(consolidatedManualProofPacket).toContain("full-local-e2e-refresh-bb9006d-2026-06-02.md");
+    expect(consolidatedManualProofPacket).toContain("full local E2E command now passes 9 ungated checks with 24 env-gated/live-provider specs skipped");
     expect(consolidatedManualProofPacket).toContain("Do not change the launch decision until `47-goal-completion-audit.md` is rerun");
     expect(consolidatedManualProofPacket).not.toMatch(/\| .* \| pass \|/i);
   });
@@ -630,6 +639,7 @@ describe("closed beta readiness docs", () => {
     expect(artifactFilenames).toContain("provider-state-refresh-b33f56d-2026-06-02.md");
     expect(artifactFilenames).toContain("provider-state-refresh-d78686f-2026-06-02.md");
     expect(artifactFilenames).toContain("provider-state-refresh-87f603e-2026-06-02.md");
+    expect(artifactFilenames).toContain("full-local-e2e-refresh-bb9006d-2026-06-02.md");
     expect(artifactFilenames).toContain("lewis-residence-demo-proposal-2026-06-02.xlsx");
     expect(artifactFilenames.length).toBeGreaterThanOrEqual(30);
 
@@ -692,6 +702,8 @@ describe("closed beta readiness docs", () => {
     expect(goalCompletionAudit).toContain("Hosted first-run auth smoke remains missing");
     expect(goalCompletionAudit).toContain("Current local E2E smoke evidence");
     expect(goalCompletionAudit).toContain("local Playwright passed signed-out auth plus dev-auth component library, template preview, and template insertion with linked Supabase cleanup");
+    expect(goalCompletionAudit).toContain("Full local E2E refresh at `bb9006d`");
+    expect(goalCompletionAudit).toContain("passed 9 ungated Playwright checks with 24 env-gated/live-provider specs skipped");
     expect(goalCompletionAudit).toContain("Hosted/manual target-environment E2E remains missing");
     expect(goalCompletionAudit).toContain("Demo rehearsal fallback pack");
     expect(goalCompletionAudit).toContain("local fallback script links seed anchors");
@@ -761,7 +773,9 @@ describe("closed beta readiness docs", () => {
     expect(currentState).toContain("hosted fresh-account auth proof remains missing");
     expect(currentState).toContain("Current local E2E smoke evidence");
     expect(currentState).toContain("signed-out auth plus local dev-auth component library, template preview, and template insertion with linked cleanup");
-    expect(currentState).toContain("but not hosted/manual target behavior");
+    expect(currentState).toContain("full local E2E refresh");
+    expect(currentState).toContain("passes 9 ungated checks with 24 env-gated specs skipped");
+    expect(currentState).toContain("neither artifact proves hosted/manual target behavior");
     expect(currentState).toContain("Spreadsheet artifact evidence");
     expect(currentState).toContain("missing local spreadsheet apps");
     expect(currentState).toContain("**Proposal Workbook Large-Fixture Benchmark (2026-06-02):**");
@@ -811,6 +825,8 @@ describe("closed beta readiness docs", () => {
     expect(knownIssues).toContain("First-run Workshop local evidence on 2026-06-02 proves fallback workspace coverage");
     expect(knownIssues).toContain("hosted fresh-account Google auth and allowlist proof remain missing");
     expect(knownIssues).toContain("Current local E2E smoke evidence on 2026-06-02 proves signed-out auth plus local dev-auth component library");
+    expect(knownIssues).toContain("Full local E2E refresh on 2026-06-02 at `bb9006d` proves");
+    expect(knownIssues).toContain("9 ungated Playwright checks with 24 env-gated/live-provider specs skipped");
     expect(knownIssues).toContain("hosted/manual target-environment proof remains missing");
     expect(knownIssues).toContain("Local component/template demo evidence on 2026-06-02 proves screenshots/JSON");
     expect(knownIssues).toContain("local template insertion evidence proves throwaway-estimate insertion with zero residue");

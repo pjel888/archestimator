@@ -71,10 +71,10 @@ bun run build
 bun run test:e2e
 ```
 
-Current local results through OBS-001/QA-002:
+Current local results through OBS-001/QA-002 plus the `bb9006d` local E2E refresh:
 
 - Pass: install, type-check, lint with 14 warnings and 0 errors, design lint, unit tests, DOM tests, build.
-- Not rerun in current local slices: `bun run test:e2e`.
+- Pass with gated skips: `PLAYWRIGHT_PORT=3020 bun run test:e2e -- --project=chromium` passed 9 ungated Playwright checks with 24 env-gated/live-provider specs skipped.
 - Still required before launch: hosted/manual smoke for auth, RLS/storage, share/invite if visible, Excel cross-app open, backup/restore, deploy/rollback, support/monitoring alerts.
 
 Do not treat this baseline as launch-ready.

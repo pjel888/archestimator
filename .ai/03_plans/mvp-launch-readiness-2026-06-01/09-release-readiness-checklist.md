@@ -52,7 +52,7 @@ Current release state: **NO-GO**.
 | `bun run test` | P0 | Eng | Bun tests pass. | `14-evidence-index.md` | Pass |
 | `bun run test:dom` | P0 | Eng | Vitest DOM suite passes. | `14-evidence-index.md` | Pass |
 | `bun run build` | P0 | Eng | Production build exits 0. | `14-evidence-index.md` | Pass |
-| `bun run test:e2e` | P0 | QA | Safe E2E smoke passes or documented env block. | `14-evidence-index.md` | Not rerun in current local slices; hosted/manual smoke still required |
+| `bun run test:e2e` | P0 | QA | Safe E2E smoke passes or documented env block. | `14-evidence-index.md` | Local pass at `bb9006d`: `PLAYWRIGHT_PORT=3020 bun run test:e2e -- --project=chromium` passed 9 ungated checks with 24 env-gated specs skipped; hosted/manual smoke still required |
 | CI parity | P0 | Eng | CI runs same or stricter gates. | `.github/workflows/ci.yml` | Partial; env-gated specs can skip |
 
 ## Launch Checklist

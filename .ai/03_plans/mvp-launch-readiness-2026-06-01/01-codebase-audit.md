@@ -88,6 +88,8 @@ Read or inspected before document edits:
 | `bun run build` | Pass | Next.js 16.2.6 Turbopack build succeeded; 28 static pages generated. |
 | `bun run test:e2e` | Blocked by environment | Playwright webServer could not start because another Next dev server was already running on port 3000. No production E2E was run. |
 
+Superseding local E2E note: later `bb9006d` refresh evidence in `14-evidence-index.md` and `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/full-local-e2e-refresh-bb9006d-2026-06-02.md` shows `PLAYWRIGHT_PORT=3020 bun run test:e2e -- --project=chromium` passed 9 ungated local checks with 24 env-gated/live-provider specs skipped. Hosted/manual E2E remains unproven.
+
 ## Graph / Blast-Radius Evidence
 
 Code-review graph was used before manual fallback:

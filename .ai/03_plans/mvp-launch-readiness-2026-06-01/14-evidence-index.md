@@ -165,6 +165,14 @@
 - Covered behavior: signed-out `/workshop/projects` redirects to `/login?next=%2Fworkshop%2Fprojects`, and `/login?next=/workshop/projects` renders the compact email-link sign-in controls.
 - Scope limit: this is local signed-out route/login UI proof only. Hosted Google auth, allowed/denied/revoked allowlist smoke, first-run workspace entry, and session expiry/logout proof remain external/manual gates.
 
+### Full Local E2E Refresh at bb9006d
+
+- Artifact: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/full-local-e2e-refresh-bb9006d-2026-06-02.md`.
+- Command: `PLAYWRIGHT_PORT=3020 bun run test:e2e -- --project=chromium`.
+- Result: pass, 9 Playwright tests passed and 24 env-gated/live-provider specs skipped in 1.2m.
+- Covered ungated behavior: signed-out auth redirect/login UI, landing audit, public route-transition budgets, Slow 3G public budgets, public link-transition medians, public back-forward restore, and protected redirect budget.
+- Launch meaning: this retires the stale full-suite local blocker that cited a port-3000 webServer conflict, but it is still local Playwright proof only. Hosted auth, linked Supabase/RLS/storage/RPC, production Vercel env/custom-domain/rollback, project-specific unlink, spreadsheet-app, legal, support monitoring, and current hosted/manual E2E remain **NO-GO**.
+
 ### SUPPORT-001 Honest Contact Handoff Evidence
 
 - `src/components/landing/ContactForm.tsx` opens a structured `mailto:support@archestimator.com` draft containing name, email, organization, inquiry type, and message instead of simulating backend receipt.
@@ -783,7 +791,7 @@ Scope: launch planning and readiness audit only.
 | `bun run test` | Pass; 4 tests, 129 expectations. | Bun unit smoke green. |
 | `bun run test:dom` | Pass; 131 files / 1021 tests / 2 skipped after seed-contract repair. | DOM baseline blocker closed locally for this slice. |
 | `bun run build` | Pass; Next.js 16.2.6 Turbopack production build. | Buildable locally. |
-| `bun run test:e2e` | Blocked; Playwright webServer failed because another Next dev server was already running on port 3000. | Needs rerun after freeing ports or configuring `PLAYWRIGHT_PORT`. |
+| `PLAYWRIGHT_PORT=3020 bun run test:e2e -- --project=chromium` | Pass; 9 Playwright tests passed and 24 env-gated/live-provider specs skipped in 1.2m. | Retires the stale local port-conflict blocker, but this is not hosted/manual E2E proof. |
 | Export-focused subagent tests | Pass; read-only export lane reported 4 files / 15 tests passed. | Supports current export inventory, but does not prove launch-grade workbook. |
 
 ## `test:dom` Failure Repairs
