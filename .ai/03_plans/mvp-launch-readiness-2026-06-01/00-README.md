@@ -128,6 +128,8 @@ Rules: below 90 is not beta-ready; P0 domains below 95 block launch; 100 require
 
 ## Document Index
 
+Partial archive cleanup: implemented/superseded local planning docs now live under `.ai/09_archive/store/mvp-launch-readiness-2026-06-01/implemented-local-docs/`. The active files `11`, `13`, `16`, `21`, and `35` are intentionally small forwarding stubs.
+
 | Doc | Purpose |
 | --- | --- |
 | `01-codebase-audit.md` | Current route/code/schema/test/CI evidence and command results. |
@@ -135,9 +137,9 @@ Rules: below 90 is not beta-ready; P0 domains below 95 block launch; 100 require
 | `03-deferred-features-plan.md` | Ask Flip / AI deferral and reactivation contract. |
 | `04-mvp-feature-completion-plan.md` | Master feature gap matrix tied to ticket IDs. |
 | `05`-`08` | Component library, templates, project-specific unlink, Excel workbook plans. |
-| `09`-`12` | Evidence checklist, risk register, implementation phases, final gate. |
-| `13`-`20` | Quality audit, evidence index, blast radius, ticket map, data contracts, Excel references, tests, runbook. |
-| `21`-`36` | Third-pass enterprise/legal/security/infra/performance/demo/beta/DR/UX/ADR/council/executive package. |
+| `09`-`12` | Evidence checklist, risk register, archived implementation phase pointer, final gate. |
+| `13`-`20` | Archived quality-audit pointer, evidence index, blast radius, archived ticket-map pointer, data contracts, Excel references, tests, runbook. |
+| `21`-`36` | Archived enterprise-gap pointer, third-pass legal/security/infra/performance/demo/beta/DR/UX/ADR/council/executive package, and archived third-pass council pointer. |
 | `37`-`46` | Fourth-pass closed-beta access, nonpayment, onboarding, operations, threat model, legal pack, scorecard, user management, council review, and manual proof matrix. |
 | `47` | Completion audit mapping the active goal criteria to current evidence and missing proof. |
 | `48` | Fill-in template for the dated manual/provider proof artifact packet. |

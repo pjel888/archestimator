@@ -1,7 +1,13 @@
 # Codex /goal Execution Plan
 
-**Last updated:** 2026-05-30
+**Last updated:** 2026-06-02
 **Purpose:** The single document that tells Codex how to use the roadmap. This is the most important document in the roadmap.
+
+## Current MVP Launch Handoff
+
+The broad MVP launch `/goal` is blocked, not complete. Repo-local implementation is frozen at `6ab5b38`; docs/status/contract guard evidence is pushed through `bdf9b03`.
+
+Do not run another broad implementation goal against `.ai/03_plans/mvp-launch-readiness-2026-06-01/`. The next bounded goal should be an external/provider/manual proof lane from `46-manual-proof-matrix.md`, after the relevant provider configuration exists. Local code should only reopen if a new repo-local defect is found.
 
 ## Execution Philosophy
 

@@ -1,6 +1,14 @@
 # Production Readiness Dashboard
 
-**Last updated:** 2026-06-01
+**Last updated:** 2026-06-02
+
+## Current MVP Launch Handoff
+
+Status: **NO-GO / repo-local implementation frozen / external proof open**.
+
+The MVP launch-readiness local implementation pass is frozen at `6ab5b38`, with docs/status/contract guard evidence pushed through `bdf9b03`. The active broad launch goal was marked blocked, not complete, because continuing now requires external/provider/manual configuration and proof rather than more repo-local implementation.
+
+Next pass should start from `.ai/03_plans/mvp-launch-readiness-2026-06-01/46-manual-proof-matrix.md`, `47-goal-completion-audit.md`, `48-manual-proof-packet-template.md`, and `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/`.
 
 ## Owner Defaults Now Decided
 
@@ -56,7 +64,7 @@ Recommended first implementation sequence for Ralph Loop execution:
 | Decision Level | Verdict | Rationale |
 |---|---|---|
 | **Public Launch** | **NO-GO** | Security gate incomplete (RLS/RPC audit, rate limiting, CSP), legal gate missing all provider evidence (ToS, GDPR, DPA, OAuth verification), deployment pipeline absent (no CD, no staging), performance untested at scale |
-| **Controlled Beta** | **CONDITIONAL / OWNER DEFAULTS NOW DECIDED / EXTERNAL PROOF STILL OPEN** | 21 owner decisions resolved. 88 atomic goal cards + 15 EPIC headers defined. Local share/collaboration and route-transition evidence exists, but beta is still blocked by external/manual proof: Supabase Auth email/provider dashboard settings, hosted invite template/confirmation settings, Resend dashboard/webhook delivery proof, real invite email/browser smoke, manual Chrome bfcache DevTools proof, and production Chrome React Profiler proof. See `.ai/03_plans/share-and-collaboration-implementation/` and `.ai/03_plans/route-transition-performance-optimization/`. |
+| **Controlled Beta** | **NO-GO / LOCAL IMPLEMENTATION FROZEN / EXTERNAL PROOF STILL OPEN** | The MVP launch-readiness local implementation pass is frozen at `6ab5b38`. Remaining work is external/provider/manual proof: Vercel env/custom-domain/health/rollback, hosted auth allow/deny/revoke, linked Supabase migrations/RLS/storage/RPC/backup/PITR, Resend delivery/webhooks, spreadsheet-app open/print, legal/owner signoff, support/alert monitoring, demo rehearsal, and hosted/manual E2E. |
 | **Enterprise MVP** | **PLANNED** | Depends on controlled beta completion. Requires immutable proposals, PDF packages, CSP hardening, DSAR workflow, backup verification. |
 
 ## Documentation Sync Status

@@ -1,7 +1,15 @@
 # Active Workstreams
 
-**Last updated:** 2026-05-30
+**Last updated:** 2026-06-02
 **Purpose:** Organizes the implementation roadmap into 8 concurrent workstream tracks. Each workstream activates at a different wave. Within a wave, workstreams can run in parallel.
+
+## Current MVP Launch Handoff
+
+Status: repo-local launch implementation is frozen at `6ab5b38`; the broad MVP launch goal is blocked until external/provider/manual proof is configured and captured.
+
+Active next workstream for the MVP launch pack: proof collection against `.ai/03_plans/mvp-launch-readiness-2026-06-01/46-manual-proof-matrix.md`.
+
+Do not schedule more local launch implementation unless a new repo-local defect is found. The remaining work is Vercel/Supabase/Resend provider proof, hosted auth/manual E2E, spreadsheet-app proof, legal/owner signoff, support/alert ownership, rollback, and demo rehearsal evidence.
 
 ---
 

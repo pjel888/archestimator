@@ -1,7 +1,20 @@
 # Evidence Artifact Index
 
-**Last updated:** 2026-06-01
+**Last updated:** 2026-06-02
 **Rule:** A roadmap item cannot move to DONE unless it has: evidence artifact path, validation output, screenshots or trace where relevant, performance evidence if feature touches critical path, security evidence if feature touches auth/data/storage/share/API, UX evidence if feature is user-facing, owner signoff if launch decision changes.
+
+## Current MVP Launch Evidence Handoff
+
+The MVP launch-readiness local implementation lane is frozen at `6ab5b38`; docs/status/contract guard evidence is pushed through `bdf9b03`. Closed beta remains **NO-GO** until the external/provider/manual evidence packet is completed.
+
+Use these active artifacts for the next pass:
+
+- `.ai/03_plans/mvp-launch-readiness-2026-06-01/46-manual-proof-matrix.md`
+- `.ai/03_plans/mvp-launch-readiness-2026-06-01/47-goal-completion-audit.md`
+- `.ai/03_plans/mvp-launch-readiness-2026-06-01/48-manual-proof-packet-template.md`
+- `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/`
+
+Archive cleanup folder: `.ai/09_archive/store/mvp-launch-readiness-2026-06-01/`.
 
 ## Directory Structure
 
