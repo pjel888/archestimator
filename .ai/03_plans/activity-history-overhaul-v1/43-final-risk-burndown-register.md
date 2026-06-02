@@ -1,7 +1,7 @@
 # 43 — Final Risk Burndown Register
 
 **Date:** 2026-06-02
-**Status:** Sixth pass — final risk assessment
+**Status:** Seventh pass — final risk assessment with PR 8A/8B split
 **Purpose:** Catalog all meaningful risks, current score impact, mitigation, owner, blocker status, and residual risk.
 
 ---
@@ -16,7 +16,7 @@
 | R4 | Access telemetry side effects | -5% (Access telemetry) | Use new `recordProjectPublicationAnalyticsEvent()` for analytics-only stages. Reserve `recordProjectPublicationEvent("open")` for actual proposal views. Follow doc 36 side effects matrix exactly. | Engineering | PR 7 | LOW (after fix) — clear breakout between business-logic and analytics-only |
 | R5 | PR 4 large-file regression | -1% (PRs 4-6) | PR 4 modifies EstimateSheetContent.tsx (>1500 lines). Risk of scope creep or regression. Keep composer integration minimal — replace inline copy with composer calls only. Preserve optimistic updates. | Engineering | PR 4 | LOW-MEDIUM — large file, but change is substitution not addition |
 | R6 | PR 5 public route shape change | -1% (PRs 4-6) | Public activity GET route shape changes when composer integrates. Currently unused by production UI. Verify backward compatibility or document breaking change. | Engineering | PR 5 | LOW — route is currently unused |
-| R7 | Stakeholder/legal gate delays | -10% (Access telemetry) | PR 7 cannot proceed without D-017, D-018, D-023 approved. If approval takes >2 weeks, PR 8 (realtime/pagination) can proceed independently. PR 9 (polish) can integrate PR 7 later if needed. | Product/Legal | PR 7 | MEDIUM — dependent on external scheduling |
+| R7 | Stakeholder/legal gate delays | -10% (Access telemetry) | PR 7 cannot proceed without D-017, D-018, D-023 approved. **Mitigation: PR 8A can proceed independently after PRs 2-6** — pagination + Realtime hardening does not depend on PR 7. PR 8B (access telemetry hardening) gated on PR 7. PR 9 (polish) can integrate either path. | Product/Legal | PR 7, 8B | MEDIUM — external scheduling mitigated by PR 8A independent path |
 | R8 | Test fragility | -1% (Test/QA) | CSRF tests may break if mock patterns change during PR 2. Keep mock updates minimal. Run full suite after each PR. Use test plan from doc 38. | Engineering | PR 2-6 | LOW — tests use standard patterns, mocks well-established |
 | R9 | Old docs being followed accidentally | -2% (Document consistency) | Doc 39 source-of-truth index now authoritative. Superseded docs clearly marked (docs 04, 10, 22, 27, 30). Implementation handoff (doc 40) is the entry point. README updated with sixth-pass status. | Engineering | All PRs | LOW — authority hierarchy is explicit, implementation reads doc 40 first |
 
@@ -44,9 +44,11 @@ No HIGH or CRITICAL risks. The only MEDIUM risk is stakeholder/legal gate delays
 | PR 2 (preflight) | R1 (CSRF fix), R2 (Realtime fix), R3 (event_type guard) |
 | PR 3 (composer) | — (test fragility mitigated) |
 | PR 4 (estimate UI) | R5 (large file regression verified) |
-| PR 5 (shared-link API) | R6 (route shape resolved) |
+| PR 5 (shared-link API) | R6 (route shape resolved — contract now explicit) |
 | PR 7 (access telemetry) | R4 (side effects fix), R7 (gate resolved) |
-| PR 8-9 | R8 (full test stabilization) |
+| PR 8A (pagination/Realtime) | — (independent, can proceed without PR 7) |
+| PR 8B (telemetry hardening) | R7 (gate resolved after PR 7 approved) |
+| PR 9 (polish) | R8 (full test stabilization) |
 
 ---
 

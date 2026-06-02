@@ -1,13 +1,12 @@
 # 31 — PR 2 Preflight Implementation Brief
 
 **Date:** 2026-06-02
-**Status:** Fifth pass — scope narrowed, CSRF coverage clarified
+**Status:** Seventh pass — Fix #3 heading corrected, PR 5 contract notes added
 **Purpose:** Narrow engineering brief for PR 2: preflight correctness cleanup. Safe, low-risk fixes that unblock composer work. No access telemetry. No privacy dependencies.
 
-**⚠️ Fifth-pass corrections:**
-- Fix #3: event_type selected internally but NOT exposed in public API response (deferred to PR 5). Prevents technical leakage.
-- Fix #5: CSRF fix covers 3 fetch paths (not 2) — Comments normal POST, Comments queue flush, Decision POST. Shared utility recommended.
-- Risk: Upgraded from LOW → MEDIUM for CSRF fixes (affects live client interactions).
+**⚠️ Seventh-pass corrections:**
+- Fix #3 heading corrected from "Add event_type to public activity API select" → "Ensure event_type selected in DB query for composer". Code already selects event_type; fix is about NOT exposing it yet.
+- PR 5 public API response contract now explicit in doc 40. event_type consumed server-side, never in public JSON.
 
 ---
 
@@ -19,7 +18,7 @@
 |---|-----|------|---------------|
 | 1 | Fix `row_inserted` filter mismatch | LOW | ~3 |
 | 2 | Fix Realtime subscription filter | LOW | ~5 |
-| 3 | Add `event_type` to public activity API select (internal only) | LOW | ~2 |
+| 3 | Ensure `event_type` selected in DB query (for composer); add TODO for PR 5 integration | LOW | ~1 |
 | 4 | Fix GET /activity route CSRF mismatch | MEDIUM | ~10 |
 | 5 | Fix Comments/Decision CSRF token handling (3 fetch paths) | MEDIUM | ~20 per component |
 
@@ -107,7 +106,7 @@ Revert `SharedLinkActivityFeed.tsx` changes.
 
 ---
 
-## Fix 3: Add `event_type` to public activity API select (internal only)
+## Fix 3: Ensure `event_type` selected in DB query for composer (add TODO for PR 5 integration)
 
 ### Current code path
 **File:** `src/app/api/share/[token]/activity/route.ts`
@@ -294,11 +293,14 @@ Revert component changes.
 - [ ] `bun run type-check` passes
 - [ ] `bun run lint` passes
 - [ ] `bun run validate` passes
-- [ ] Manual QA: Activity filter shows correct row event types
-- [ ] Manual QA: Realtime subscription scoped correctly
-- [ ] Manual QA: Public activity API returns event_type
-- [ ] Manual QA: Activity GET route returns 200 (not 403)
-- [ ] Manual QA: Comment and Decision POST succeed with correct CSRF
+- [ ] **Manual QA: Activity filter** — dropdown shows "Added rows" and "Added blank rows" (no "Inserted rows")
+- [ ] **Manual QA: Shared-link Realtime** — no console errors, manual Refresh works, Realtime scoped to current publication
+- [ ] **Manual QA: Public activity GET route** — same-origin returns 200 (no CSRF header needed), mismatched Origin returns 403
+- [ ] **Manual QA: Comments** — submit succeeds, no CSRF error, offline queue retry includes CSRF header
+- [ ] **Manual QA: Decisions** — Accept/Decline/Request Revision succeed, no CSRF error
+- [ ] **Manual QA: Regression** — password form still works, owner activity tab loads, no internal comments appear publicly
+
+For complete manual QA checklist see doc 40.
 
 ---
 

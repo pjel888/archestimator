@@ -23,7 +23,7 @@
 |-----|--------------|------|-------|
 | 1: row_inserted filter | `EstimateSheetContent.tsx`, `estimate-sheet-version-control-ui.test.tsx` | 🟢 LOW | UI-only filter label change. No behavior change beyond filter results. |
 | 2: Realtime filter | `SharedLinkActivityFeed.tsx`, `ProjectPublicationHeader.tsx` | 🟢 LOW | Owner-only. Adds prop. Scopes existing subscription. |
-| 3: event_type in response | `activity/route.ts` | 🟢 LOW | Currently unused route. Adds field to response. |
+| 3: event_type query handling | `activity/route.ts` | 🟢 LOW | Currently unused route. Query already selects event_type; PR 2 adds TODO for PR 5 composer integration. No raw event_type in public JSON response. |
 | 4: GET /activity CSRF | `activity/route.ts`, `security.ts` | 🟡 MEDIUM | Changes CSRF on currently-broken route. Extract assertSameOrigin to security.ts as shared utility. |
 | 5: Comments/Decisions CSRF | `SharePageComments.tsx` (2 paths), `SharePageDecision.tsx` (1 path), possibly new `use-publication-csrf.ts` hook | 🟡 MEDIUM | 3 fetch paths. MUST test normal POST + offline queue flush. Shared utility recommended. |
 
@@ -107,7 +107,7 @@
 
 ---
 
-## PR 8 — Realtime/Pagination Hardening
+## PR 8A — Shared-Link Pagination + Realtime Hardening
 
 | Metric | Value |
 |--------|-------|
@@ -115,8 +115,23 @@
 | **Data touched** | None (query-level changes only) |
 | **User surfaces affected** | SharedLinkActivityFeed, Activity History modal |
 | **Risk** | 🟡 MEDIUM — Pagination changes affect data retrieval. Must not introduce data loss at page boundaries. |
-| **Rollback** | Revert pagination changes. |
+| **Rollback** | Revert pagination changes. PR 8B unaffected. |
 | **Tests** | Deep pagination tests, cursor boundary tests, Realtime filter verification. |
+| **Dependency** | Can proceed after PRs 2–6. NOT gated on PR 7. |
+
+---
+
+## PR 8B — Access Telemetry Hardening
+
+| Metric | Value |
+|--------|-------|
+| **Files touched** | `actions.ts`, `SharedLinkActivityFeed.tsx`, owner/support views, observability |
+| **Data touched** | Reads access telemetry data from PR 7 |
+| **User surfaces affected** | Owner activity views, support views |
+| **Risk** | 🟡 MEDIUM — Depends on PR 7 data. Dedupe and bot filtering logic must be correct. |
+| **Rollback** | Revert per-file changes. PR 8A remains independent. |
+| **Tests** | Dedupe rendering tests, bot filtering tests, observability tests. |
+| **Dependency** | GATED on PR 7. Only after Product/Legal sign-off.
 
 ---
 
@@ -140,13 +155,15 @@ PR 1 (docs) ──► PR 2 (preflight) ──► PR 3 (composer) ──► PR 4 
                                    │                      ├──► PR 5 (shared-link API)
                                    │                      └──► PR 6 (actors)
                                    │
+                                   ├──► PR 8A (pagination + Realtime) ← can proceed without PR 7
+                                   │
                                    └──► (independent path)
                                         
-PR 7 (access telemetry) ──► PR 8 (hardening) ──► PR 9 (polish)
+PR 7 (access telemetry) ──► PR 8B (telemetry hardening) ──► PR 9 (polish)
      ⚠️ GATED
 ```
 
-PRs 2-6 are sequential after PR 1. PRs 7-9 are sequential after PR 7 unblocks. PRs 3-6 can partially parallelize (3 must finish before 4/5/6 can begin, but 4/5/6 can go in any order or parallel).
+PRs 2-6 are sequential after PR 1. PRs 3-6 can partially parallelize (3 must finish before 4/5/6 can begin, but 4/5/6 can go in any order or parallel). PR 8A can proceed after PRs 2-6 — NOT gated on PR 7. PR 8B is gated on PR 7. PR 9 follows the relevant path (8A or 8B).
 
 ---
 
@@ -161,7 +178,8 @@ PRs 2-6 are sequential after PR 1. PRs 7-9 are sequential after PR 7 unblocks. P
 | PR 5 | 🟡 MEDIUM | Touches owner activity feed |
 | PR 6 | 🟢 LOW | Read-only actor resolution |
 | PR 7 | 🔴 HIGH | Privacy-impacting, gated |
-| PR 8 | 🟡 MEDIUM | Pagination changes affect data retrieval |
+| PR 8A | 🟡 MEDIUM | Pagination changes affect data retrieval |
+| PR 8B | 🟡 MEDIUM | Depends on PR 7 data correctness |
 | PR 9 | 🟢 LOW | Visual polish only |
 
 ---

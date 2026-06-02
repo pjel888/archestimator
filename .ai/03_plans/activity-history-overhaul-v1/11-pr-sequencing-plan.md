@@ -21,15 +21,21 @@ PR 5 (shared-link API integration) ← was old PR 5
   ↓
 PR 6 (recipient actor resolution + decisions copy) ← expanded from old PR 6
   ↓
-PR 7 (realtime/pagination hardening) ← split from old PR 7
+PR 7 (access telemetry) ← ⚠️ GATED on Product/Legal
   ↓
-PR 8 (UI polish + accessibility + manual QA) ← was old PR 7
+PR 8A (shared-link pagination + Realtime hardening) ← can proceed without PR 7
+  ↓
+PR 8B (access telemetry hardening) ← gated on PR 7
+  ↓
+PR 9 (UI polish + accessibility + manual QA)
 ```
 
-PR 4 and PR 5 can be worked on in parallel (different surfaces, same composer).
+PRs 4 and 5 can be worked on in parallel (different surfaces, same composer).
 PR 6 depends on PR 5 (shared-link composer in place).
-PR 7 depends on PR 5 (shared-link activity loading in place).
-PR 8 depends on all previous PRs.
+PR 7 depends on Product/Legal sign-off for access telemetry.
+PR 8A can proceed independently after PRs 2-6 (not gated on PR 7).
+PR 8B depends on PR 7 (needs access telemetry data).
+PR 9 depends on the relevant path (8A or 8B).
 
 ---
 
@@ -37,7 +43,7 @@ PR 8 depends on all previous PRs.
 
 **Purpose:** Add/update all planning documents in the `.ai/` directory. No production code changes.
 
-**Files:** All files in `.ai/03_plans/activity-history-overhaul-v1/` (now 33 documents after fourth pass)
+**Files:** All files in `.ai/03_plans/activity-history-overhaul-v1/` (47 documents total: README + 46 numbered docs 00–45)
 
 **Tests:** None required (documentation only)
 
@@ -135,7 +141,7 @@ PR 8 depends on all previous PRs.
 **Rollback:** Revert `EstimateSheetContent.tsx` to previous version.
 
 **Acceptance Criteria:**
-- [ ] All 13 event types render human-readable copy
+- [ ] All 14 raw estimate event types (12 active + 2 dormant) render human-readable copy
 - [ ] Activity cards show complete sentences with actor names
 - [ ] No raw event types in primary card display
 - [ ] Audit facts still expandable with full detail
@@ -209,9 +215,9 @@ PR 8 depends on all previous PRs.
 
 ---
 
-## PR 7 — Realtime/Pagination Hardening
+## PR 8A — Shared-Link Pagination + Realtime Hardening
 
-**Purpose:** Fix shared-link owner pagination (query-level cursor) and finalize Realtime strategy.
+**Purpose:** Fix shared-link owner pagination (query-level cursor) and finalize Realtime strategy. **Can proceed without PR 7** if PRs 2–6 are complete.
 
 **Files:**
 - **MODIFIED:** `src/lib/publication/actions.ts` — Apply cursor per-table before limit+1. Use composite `(created_at, id)` cursor.
@@ -230,10 +236,35 @@ PR 8 depends on all previous PRs.
 - [ ] Public API supports cursor pagination
 - [ ] Realtime subscription fires only for correct publication
 - [ ] All existing tests pass
+- [ ] No new access telemetry data collection
+- [ ] No privacy-impacting changes
 
 ---
 
-## PR 8 — UI Polish, Accessibility, Manual QA
+## PR 8B — Access Telemetry Hardening
+
+**Purpose:** Access telemetry pagination, filtering, dedupe rendering, and observability. **ONLY after PR 7 is approved and implemented.**
+
+**Files:**
+- **MODIFIED:** `src/lib/publication/actions.ts` — Access telemetry pagination/filtering
+- **MODIFIED:** `src/components/share/SharedLinkActivityFeed.tsx` — Access event dedupe rendering
+- **MODIFIED:** Owner/support views — Bot filtering in owner/support views
+- **MODIFIED:** Observability — Access telemetry metrics
+
+**Risks:** MEDIUM — depends on PR 7 data collection being correct.
+
+**Rollback:** Revert per-file changes. PR 8A remains independent.
+
+**Acceptance Criteria:**
+- [ ] Access telemetry pagination/filtering functional
+- [ ] Access event dedupe rendering correct
+- [ ] Bot filtering active in owner/support views
+- [ ] Access telemetry observability metrics active
+- [ ] All existing tests pass
+
+---
+
+## PR 9 — UI Polish, Accessibility, Manual QA
 
 **Purpose:** Final UI refinements, accessibility improvements, empty/loading/error states, and manual QA pass.
 
