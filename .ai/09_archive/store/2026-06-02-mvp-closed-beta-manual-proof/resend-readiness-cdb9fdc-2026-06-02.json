@@ -1,0 +1,43 @@
+{
+  "generatedAt": "2026-06-02T10:12:43.596Z",
+  "mode": "resend-readiness",
+  "localRuntimeEnv": {
+    "source": "process.env + .env.local",
+    "required": [
+      "RESEND_API_KEY",
+      "RESEND_FROM",
+      "RESEND_REPLY_TO",
+      "RESEND_WEBHOOK_SECRET"
+    ],
+    "present": [
+      "RESEND_API_KEY"
+    ],
+    "missing": [
+      "RESEND_FROM",
+      "RESEND_REPLY_TO",
+      "RESEND_WEBHOOK_SECRET"
+    ],
+    "ready": false
+  },
+  "vercelEnv": {
+    "source": "/tmp/arch-provider-refresh-cdb9fdc/vercel-env-list.txt",
+    "required": [
+      "RESEND_API_KEY",
+      "RESEND_FROM",
+      "RESEND_REPLY_TO",
+      "RESEND_WEBHOOK_SECRET"
+    ],
+    "present": [],
+    "missing": [
+      "RESEND_API_KEY",
+      "RESEND_FROM",
+      "RESEND_REPLY_TO",
+      "RESEND_WEBHOOK_SECRET"
+    ],
+    "ready": false,
+    "checked": true,
+    "discoveredNames": []
+  },
+  "resendReady": false,
+  "note": "Resend readiness checks required variable presence only. It never writes secret values and does not prove sender/domain verification, DNS, webhook registration, delivery, bounce, complaint, or open events."
+}
