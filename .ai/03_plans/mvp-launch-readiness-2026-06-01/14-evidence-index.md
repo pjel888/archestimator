@@ -381,6 +381,8 @@
 - Design direction: compact template browser, optimized for quickly understanding reusable estimate structure before insertion. Signature differentiator: each template row now previews category, top-level structure, and sample row quantities directly in the sheet.
 - `TemplateLibraryManager` sheet tabs now show readable result counts such as `3 of 3 templates` and `1 of 1 template`.
 - Template sheet rows now expose a labeled preview region with `Structure`, category, representative group/area labels, `Sample rows`, and compact quantity/unit signals.
+- 2026-06-02 local route-state refresh: `/workshop/templates/error.tsx` now uses `WorkshopRouteErrorState` with the route label `Templates`, matching the Library, Project charts, and Estimate workspace route retry boundary.
+- 2026-06-02 local route-state refresh: `workshop-route-error-boundaries.test.tsx` now proves Templates route failures render sanitized retry UI and do not expose SQL/token/path/digest details.
 - Focused red/green evidence: `bun run test:dom tests/vitest/template-library-manager-ui.test.tsx` first failed on the old `3 / 3` result-count copy, then passed 1 file / 1 test after the preview implementation.
 - `bun run type-check` passed.
 - `bun run lint` passed with the existing 14 warnings and 0 errors.
