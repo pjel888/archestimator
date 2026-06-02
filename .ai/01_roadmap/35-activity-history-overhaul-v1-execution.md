@@ -3,13 +3,13 @@
 **Last updated:** 2026-06-02 16:18 UTC
 **Branch:** `feat/activity-history-overhaul-v1`
 **Starting commit:** `3b896d8`
-**Active plan path:** `.ai/03_plans/activity-history-overhaul-v1/`
-**Archive target after completion:** `.ai/09_archive/store/activity-history-overhaul-v1/`
-**Status:** `ACTIVE — Milestone 9 pushed; final quality gate and archive next`
+**Archived plan path:** `.ai/09_archive/store/activity-history-overhaul-v1/`
+**Archive path:** `.ai/09_archive/store/activity-history-overhaul-v1/`
+**Status:** `COMPLETED / ARCHIVED — repo-local implementation complete; final main merge pending`
 
 ## Scope
 
-Implement the repo-local Activity History Overhaul V1 plan pack through PR 2–PR 9, keeping production access telemetry enablement separate from implementation readiness. This ledger is the active roadmap evidence thread for milestone status, validation commands, commit SHAs, and honest external-production blockers.
+Implement the repo-local Activity History Overhaul V1 plan pack through PR 2–PR 9, keeping production access telemetry enablement separate from implementation readiness. This ledger is the roadmap evidence thread for milestone status, validation commands, commit SHAs, archive status, and honest external-production blockers.
 
 ## Production enablement truth
 
@@ -31,7 +31,7 @@ Implement the repo-local Activity History Overhaul V1 plan pack through PR 2–P
 | 7 — PR 8A pagination and Realtime hardening | `COMPLETE / PUSHED` | RED pagination tests failed because public route ignored `limit` and owner action lacked `nextCursor`; GREEN targeted `bun run test:dom -- tests/vitest/project-publication-activity.test.tsx tests/vitest/project-publication-comments.test.tsx tests/vitest/project-publication-decision.test.tsx tests/vitest/activity-composer.test.ts tests/vitest/activity-security.test.ts`; full pre-commit `git diff --check`; `bun run type-check`; `bun run lint`; `bun run test`; `bun run test:dom`; `npx gitnexus analyze` + staged change detection. | `d5d9f8c` | Adds stable `(created_at,id)` cursor helpers, applies cursor per source query before `limit+1`, returns `nextCursor`, and lets the feed load older activity without changing telemetry collection. GitNexus staged detection reported HIGH because public activity GET flow is reachable; targeted pagination/realtime tests and full gate passed. |
 | 8 — PR 8B access telemetry hardening | `COMPLETE / PUSHED` | GREEN targeted `bun run test:dom -- tests/vitest/project-publication-activity.test.tsx`; GREEN targeted telemetry/security suite `bun run test:dom -- tests/vitest/project-publication-activity.test.tsx tests/vitest/project-publication-public-repository.test.ts tests/vitest/project-publication-route.test.ts tests/vitest/project-publication-security.test.ts tests/vitest/activity-security.test.ts`; full pre-commit and major gate `git diff --check`; `bun run type-check`; `bun run lint`; `bun run test`; `bun run test:dom`; `bun run validate`; `bun run build`; `npx gitnexus analyze`; code-review-graph change/impact checks. | `bb9138c` | Adds owner-only opt-in access telemetry loading with composite cursor pagination, bot filtering default, support/admin diagnostic hash exclusion from owner query, dedupe rendering, and a pure telemetry metric summary helper. Retention remains operator-run/documented; production enablement remains NO-GO pending real production evidence. |
 | 9 — PR 9 UI polish, accessibility, QA, performance | `COMPLETE / PUSHED` | GREEN targeted `bun run test:dom -- tests/vitest/project-publication-activity.test.tsx tests/vitest/estimate-sheet-version-control-ui.test.tsx`; full pre-commit and major gate `git diff --check`; `bun run type-check`; `bun run lint`; `bun run test`; `bun run test:dom`; `bun run validate`; `bun run build`; `npx gitnexus analyze`; code-review-graph change/impact checks. | `75e5e80` | Adds shared-link feed `role=feed`, focusable articles, polite Realtime new-activity banner, loading skeletons, alert/status states, native details disclosure for audit facts, estimate Activity History feed semantics, and a 200-item shared-feed performance regression. |
-| Archive | `PENDING` | Pending | Pending | `git mv` plan folder to archive and add `ARCHIVE.md`. |
+| Archive | `COMPLETE / COMMIT PENDING` | `git mv` from the original active plan folder to `.ai/09_archive/store/activity-history-overhaul-v1/`; `ARCHIVE.md` added; active roadmap references updated to archive path. | Pending | Archive commit pending. | |
 | Final merge | `PENDING` | Pending | Pending | Feature branch merged into `main`, `main` pushed. |
 
 ## Running validation log

@@ -192,4 +192,4 @@ bun run test tests/integration/rls-isolation.test.ts > .ai/09_archive/store/YYYY
 
 ## Activity History Overhaul V1 evidence
 
-The active evidence ledger for Activity History Overhaul V1 is `.ai/01_roadmap/35-activity-history-overhaul-v1-execution.md`. It records milestone status, validation commands, commit SHAs, production telemetry NO-GO truth, and final archive location. After completion, the plan pack must be moved with `git mv` to `.ai/09_archive/store/activity-history-overhaul-v1/`, and roadmap links must point to that archive path.
+The evidence ledger for completed Activity History Overhaul V1 is `.ai/01_roadmap/35-activity-history-overhaul-v1-execution.md`. It records milestone status, validation commands, commit SHAs, production telemetry NO-GO truth, and the final archive location at `.ai/09_archive/store/activity-history-overhaul-v1/`.
