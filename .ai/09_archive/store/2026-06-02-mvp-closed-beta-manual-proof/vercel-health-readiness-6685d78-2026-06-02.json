@@ -1,0 +1,74 @@
+{
+  "generatedAt": "2026-06-02T09:31:21.597Z",
+  "mode": "vercel-health-readiness",
+  "urls": [
+    "https://archestimator-git-main-philipjonlewis-projects.vercel.app/api/health",
+    "https://www.archestimator.com/api/health",
+    "https://archestimator.com/api/health",
+    "https://archestimator.vercel.app/api/health"
+  ],
+  "usedAuthMaterial": false,
+  "probes": [
+    {
+      "url": "https://archestimator-git-main-philipjonlewis-projects.vercel.app/api/health",
+      "status": 401,
+      "ok": false,
+      "durationMs": 647,
+      "contentType": "text/html; charset=utf-8",
+      "location": null,
+      "bodySummary": "<!doctype html><html lang=en><meta charset=utf-8><meta name=viewport content=\"width=device-width,initial-scale=1\"><title>Authentication Required</title><script type=text/llms.txt> ",
+      "healthJsonOk": false,
+      "healthService": null,
+      "passed": false,
+      "error": null
+    },
+    {
+      "url": "https://www.archestimator.com/api/health",
+      "status": 404,
+      "ok": false,
+      "durationMs": 985,
+      "contentType": "text/html; charset=utf-8",
+      "location": null,
+      "bodySummary": "<!DOCTYPE html><html lang=\"en\"><head><meta charSet=\"utf-8\"/><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"/><link rel=\"stylesheet\" href=\"/_next/static/chunks/0",
+      "healthJsonOk": false,
+      "healthService": null,
+      "passed": false,
+      "error": null
+    },
+    {
+      "url": "https://archestimator.com/api/health",
+      "status": 307,
+      "ok": false,
+      "durationMs": 217,
+      "contentType": "text/plain",
+      "location": "https://www.archestimator.com/api/health",
+      "bodySummary": "Redirecting...",
+      "healthJsonOk": false,
+      "healthService": null,
+      "passed": false,
+      "error": null
+    },
+    {
+      "url": "https://archestimator.vercel.app/api/health",
+      "status": 404,
+      "ok": false,
+      "durationMs": 307,
+      "contentType": "text/html; charset=utf-8",
+      "location": null,
+      "bodySummary": "<!DOCTYPE html><html lang=\"en\"><head><meta charSet=\"utf-8\"/><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"/><link rel=\"stylesheet\" href=\"/_next/static/chunks/0",
+      "healthJsonOk": false,
+      "healthService": null,
+      "passed": false,
+      "error": null
+    }
+  ],
+  "readyUrls": [],
+  "blockedUrls": [
+    "https://archestimator-git-main-philipjonlewis-projects.vercel.app/api/health",
+    "https://www.archestimator.com/api/health",
+    "https://archestimator.com/api/health",
+    "https://archestimator.vercel.app/api/health"
+  ],
+  "vercelHealthReady": false,
+  "note": "Sanitized Vercel health readiness check. Optional auth headers/cookies are used only for requests and are never written to this report. Passing /api/health does not prove environment values, rollback, custom-domain alias correctness beyond the probed URLs, or hosted auth."
+}
