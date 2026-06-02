@@ -11,14 +11,12 @@
 
 | Item | Value |
 |------|-------|
-| Current repository HEAD (full SHA) | `453ac68323cbe1e61272e49c589576764f2f5448` |
-| Current repository HEAD (short) | `453ac68` |
-| Branch | `main` |
-| Audited implementation baseline HEAD | `65b21eb` |
-| Last planning certification commit | `e559e60` (tenth pass) |
-| Activity code changed since baseline? | **No** — all commits between `65b21eb` and `b6873b4` are proof/ops/docs/mvp-readiness only |
-| Actual file count in planning folder | 69 (README + 68 numbered docs 00–67) |
-| Production enablement docs | 17 (docs 51–67) — eleventh + twelfth passes |
+| Activity-code audit baseline | `65b21eb` |
+| Latest planning certification commit | `8b0929f` (twelfth pass) |
+| Latest repo HEAD at this audit | `cdb9fdc` |
+| Activity code changed since baseline? | **No** — all commits between `65b21eb` and `cdb9fdc` are proof/ops/docs only |
+| Actual file count in planning folder | 70 (README + 69 numbered docs 00–68) |
+| Production enablement docs | 18 (docs 51–68) |
 | Doc 47 filename | `47-pr7-pr8b-approval-record.md` |
 | Doc 48 filename | `48-philippines-data-privacy-compliance-plan.md` |
 | Last commit touching planning folder | `82cc691` (ninth pass) |

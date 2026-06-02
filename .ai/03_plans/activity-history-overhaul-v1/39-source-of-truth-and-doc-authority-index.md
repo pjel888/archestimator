@@ -1,7 +1,7 @@
 # 39 — Source of Truth and Document Authority Index
 
 **Date:** 2026-06-02
-**Status:** Tenth pass — final certification and hardening complete
+**Status:** Thirteenth pass — final truth-lock hardening complete
 **Purpose:** When implementation begins, the engineer/AI needs to know which document is authoritative for each topic. This index resolves the hierarchy.
 
 ---
@@ -41,7 +41,8 @@
 | **Production sign-off template** | `58-production-enablement-final-go-template.md` | `51-access-telemetry-production-enablement-checklist.md` | Final sign-off template |
 | **Production readiness scorecard** | `59-access-telemetry-production-enablement-readiness-scorecard.md` | `61-access-telemetry-production-enablement-readiness-certification.md` | 12-category production enablement scoring |
 | **Production loop log** | `60-production-enablement-readiness-loop-log.md` | `61-access-telemetry-production-enablement-readiness-certification.md` | Eleventh pass loop audit trail |
-| **Final certification (production)** | `61-access-telemetry-production-enablement-readiness-certification.md` | `51-access-telemetry-production-enablement-checklist.md` through `59-access-telemetry-production-enablement-readiness-scorecard.md` | Production enablement single source of truth — read FIRST |
+| **Production enablement truth lock** | `68-access-telemetry-production-truth-lock.md` | `67-final-access-telemetry-production-readiness-scorecard.md`, `64-access-telemetry-production-evidence-ledger.md`, `66-production-readiness-final-gate-matrix.md` | **THE final truth — read FIRST.** Single authority for production enablement: implementation, planning, execution. |
+| **Final certification (production)** | `61-access-telemetry-production-enablement-readiness-certification.md` | `51-access-telemetry-production-enablement-checklist.md` through `59-access-telemetry-production-enablement-readiness-scorecard.md` | Production enablement certification (eleventh pass) |
 | **Vendor/processor DPA worksheet** | `63-vendor-processor-dpa-evidence-worksheet.md` | `59-access-telemetry-production-enablement-readiness-scorecard.md`, `53-dpo-npcrs-and-dps-registration-triage.md` | Vendor DPA evidence tracking, data flow analysis, review checklists |
 | **Evidence ledger** | `64-access-telemetry-production-evidence-ledger.md` | `66-production-readiness-final-gate-matrix.md`, `67-final-access-telemetry-production-readiness-scorecard.md` | Central tracker for all 16 production enablement evidence items |
 | **Execution runbook** | `65-production-enablement-execution-runbook.md` | `64-access-telemetry-production-evidence-ledger.md`, `51-access-telemetry-production-enablement-checklist.md` | 53-item, 9-phase step-by-step execution path |
@@ -153,21 +154,20 @@ These documents contain useful historical context but are NO LONGER authoritativ
 6. `17-observability-analytics-and-quality-plan.md` — observability and analytics quality
 
 ### For Production Enablement
-1. `61-access-telemetry-production-enablement-readiness-certification.md` — read FIRST
-2. `51-access-telemetry-production-enablement-checklist.md` — master checklist
-3. `52-privacy-notice-and-disclosure-copy-pack.md` — privacy notice and disclosure copy
-4. `53-dpo-npcrs-and-dps-registration-triage.md` — DPO/NPCRS/DPS triage
-5. `54-data-subject-request-and-breach-response-playbook.md` — DSR and breach playbook
-6. `55-access-telemetry-retention-runbook.md` — retention runbook
-7. `56-access-telemetry-feature-flag-and-rollout-plan.md` — feature flag and rollout
-8. `57-access-telemetry-test-evidence-matrix.md` — test evidence matrix
-9. `58-production-enablement-final-go-template.md` — final sign-off template
-10. `59-access-telemetry-production-enablement-readiness-scorecard.md` — production readiness scores
-11. `63-vendor-processor-dpa-evidence-worksheet.md` — vendor DPA evidence worksheet
-12. `64-access-telemetry-production-evidence-ledger.md` — evidence ledger
-13. `65-production-enablement-execution-runbook.md` — execution runbook
-14. `66-production-readiness-final-gate-matrix.md` — final gate matrix
-15. `67-final-access-telemetry-production-readiness-scorecard.md` — final three-domain scorecard
+1. `68-access-telemetry-production-truth-lock.md` — **read FIRST**: the final truth lock
+2. `67-final-access-telemetry-production-readiness-scorecard.md` — three-domain scorecard
+3. `64-access-telemetry-production-evidence-ledger.md` — evidence tracker (all items Missing)
+4. `66-production-readiness-final-gate-matrix.md` — gate matrix (all gates Incomplete)
+5. `65-production-enablement-execution-runbook.md` — 53-item execution path
+6. `61-access-telemetry-production-enablement-readiness-certification.md` — certification
+7. `51-access-telemetry-production-enablement-checklist.md` — master checklist
+8. `52-privacy-notice-and-disclosure-copy-pack.md` — privacy notice and disclosure copy
+9. `53-dpo-npcrs-and-dps-registration-triage.md` — DPO/NPCRS/DPS triage
+10. `54-data-subject-request-and-breach-response-playbook.md` — DSR and breach playbook
+11. `55-access-telemetry-retention-runbook.md` — retention runbook
+12. `56-access-telemetry-feature-flag-and-rollout-plan.md` — feature flag and rollout
+13. `57-access-telemetry-test-evidence-matrix.md` — test evidence matrix
+14. `58-production-enablement-final-go-template.md` — final sign-off template
 
 ---
 

@@ -2,8 +2,9 @@
 
 **Date:** 2026-06-02
 **Audited implementation baseline HEAD:** `65b21eb`
-**Last planning certification commit:** `e559e60`
-**Current repository HEAD:** `453ac68`
+**Activity-code audit baseline:** `65b21eb`
+**Latest planning certification commit:** `8b0929f`
+**Latest repo HEAD at this audit:** `cdb9fdc`
 **Status:** APPROVED — PR 7 and PR 8B gates cleared
 
 ---

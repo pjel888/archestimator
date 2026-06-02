@@ -1,7 +1,7 @@
 # 65 — Production Enablement Execution Runbook
 
 **Date:** 2026-06-02
-**Purpose:** Exact step-by-step execution path from planning readiness to actual production readiness for access telemetry.
+**Purpose:** Exact step-by-step execution path from planning readiness to actual production readiness for access telemetry. Every step is mapped to evidence items (E-XXX) from doc 64, gates (G-XX) from doc 66, and rollback/failure modes.
 **Status:** Runbook ready — awaiting execution.
 
 ---
@@ -10,15 +10,15 @@
 
 **Exit criteria**: All preconditions confirmed before any operational action begins.
 
-| # | Precondition | Owner | Verification | Status |
-|---|-------------|-------|-------------|--------|
-| P0-1 | PR 7 (access telemetry) implemented and code merged to `main` | Engineer | `git log --oneline main` shows PR 7 merge commit | ❌ Pending |
-| P0-2 | PR 8B (retention hardening) implemented OR operator-run retention path documented per doc 55 | Engineer | PR 8B merged OR retention procedure documented | ❌ Pending |
-| P0-3 | Feature flag exists: `ACCESS_TELEMETRY_ENABLED` env var | Engineer | `grep ACCESS_TELEMETRY_ENABLED` returns env var definition | ❌ Pending |
-| P0-4 | Feature flag confirmed `false` in production Vercel env | Engineer / Owner | Vercel dashboard → Environment Variables → `ACCESS_TELEMETRY_ENABLED=false` | ❌ Pending |
-| P0-5 | All 39 tests exist (from doc 57) | Engineer | Test files present at specified paths | ❌ Pending |
-| P0-6 | Doc 63 (vendor DPA worksheet) reviewed | Owner | Worksheet reviewed, no blockers identified | ❌ Pending |
-| P0-7 | Doc 64 (evidence ledger) ready for tracking | Owner | Ledger exists, all items Missing | ✅ Complete (this pass) |
+| # | Precondition | Owner | Verification | Evidence produced | Gate unlocked | Rollback / failure mode | Status |
+|---|-------------|-------|-------------|-------------------|---------------|------------------------|--------|
+| P0-1 | PR 7 (access telemetry) implemented and code merged to `main` | Engineer | `git log --oneline main` shows PR 7 merge commit | E-011 (feature flag code deployed; flag gates telemetry writes) | G-11 (flag exists and is confirmed false in production) | If PR 7 not merged: check for merge conflicts, fix, re-merge. If CI fails: review CI logs, fix failures, re-push. If code review blocks: address review comments and re-submit. Do NOT proceed past Phase 0 until merge confirmed. | ❌ Pending |
+| P0-2 | PR 8B (retention hardening) implemented OR operator-run retention path documented per doc 55 | Engineer | PR 8B merged OR retention procedure documented | E-010 (retention cleanup proof: automated job exists OR documented operator procedure) | G-10 (90-day retention cleanup path operational) | If neither path exists: fall back to doc 55 option B (operator-run SQL procedure). Document exact SQL and schedule. If PR 8B is in progress but blocked: use operator path as interim, note in evidence ledger. Do NOT skip. | ❌ Pending |
+| P0-3 | Feature flag exists: `ACCESS_TELEMETRY_ENABLED` env var | Engineer | `grep ACCESS_TELEMETRY_ENABLED` returns env var definition | E-011 (feature flag code is present and gating logic is verifiable) | G-11 (flag exists in codebase) | If flag not found: implement feature flag per doc 56. Add to `.env.local` and Vercel env configuration. Add gating check in telemetry write path. Verify with `grep` before proceeding. | ❌ Pending |
+| P0-4 | Feature flag confirmed `false` in production Vercel env | Engineer / Owner | Vercel dashboard → Environment Variables → `ACCESS_TELEMETRY_ENABLED=false` | E-011 (production flag value confirmed false via dashboard screenshot or `vercel env ls production`) | G-11 (flag is false in production: telemetry writes are disabled) | If flag is `true` or missing: immediately set to `false` in Vercel production env, redeploy. If Vercel dashboard is inaccessible: use `vercel env pull production` CLI. Verify with a production request that telemetry is NOT writing. Do NOT proceed with flag in truthy state. | ❌ Pending |
+| P0-5 | All 39 tests exist (from doc 57) | Engineer | Test files present at specified paths | E-012 (test infrastructure in place; test files exist and are runnable) | G-12 (tests exist and can be executed) | If tests missing: write them per doc 57. If test files exist but don't compile/run: fix imports, dependencies, and test setup. Verify with `bun run test:dom -- --list` or equivalent. Do NOT claim tests "exist" if they don't run. | ❌ Pending |
+| P0-6 | Doc 63 (vendor DPA worksheet) reviewed | Owner | Worksheet reviewed, no blockers identified | E-009 (worksheet is reviewed; DPA URLs and checklist are ready for formal review in Phase 4) | G-09 (vendor readiness prep complete; formal DPA review in Phase 4) | If worksheet has unresolved blockers: escalate to owner. If DPA URLs are stale: update from vendor legal pages. If data flow diagram is inaccurate: correct per current architecture. If owner review identifies gaps: document gaps, assign compensating controls per doc 63, proceed with caveat noted in evidence ledger. | ❌ Pending |
+| P0-7 | Doc 64 (evidence ledger) ready for tracking | Owner | Ledger exists, all items Missing | Infrastructure — enables tracking of E-001 through E-016 | Infrastructure — enables verification of G-01 through G-16 | If ledger is missing or corrupt: recreate from doc 64 template. If tracking folder (`evidence/`) is missing: create it. If ledger statuses are inaccurate: audit and correct before using as source of truth. | ✅ Complete (this pass) |
 
 ---
 
@@ -26,13 +26,13 @@
 
 **Exit criteria**: Privacy notice live, in-product disclosure implemented, evidence captured in doc 64.
 
-| # | Action | Owner | Commands / Steps | Evidence required | Status |
-|---|--------|-------|-----------------|-------------------|--------|
-| P1-1 | Publish privacy notice with access telemetry disclosure | Owner | Use approved copy from doc 52 §2. Update `/privacy` page. Verify live at production URL. | E-001: URL of live privacy page with disclosure visible | ❌ Pending |
-| P1-2 | Add disclosure to shared page footer | Engineer | Implement disclosure component per doc 52 §3. Place in shared page footer (above copyright). | E-002: Screenshot of shared page showing disclosure text | ❌ Pending |
-| P1-3 | Add disclosure to password gate | Engineer | Implement disclosure text per doc 52 §4. Place above/before password input. | E-003: Screenshot of password gate showing disclosure | ❌ Pending |
-| P1-4 | Capture screenshots for evidence ledger | QA / Owner | Screenshot shared page (desktop + mobile), screenshot password gate (desktop + mobile) | E-002, E-003 updated with screenshot paths | ❌ Pending |
-| P1-5 | Update evidence ledger | Owner | Update doc 64: E-001 → Complete, E-002 → Complete, E-003 → Complete | E-001, E-002, E-003 status changed | ❌ Pending |
+| # | Action | Owner | Commands / Steps | Evidence produced | Gate unlocked | Rollback / failure mode | Evidence required | Status |
+|---|--------|-------|-----------------|-------------------|---------------|------------------------|-------------------|--------|
+| P1-1 | Publish privacy notice with access telemetry disclosure | Owner | Use approved copy from doc 52 §2. Update `/privacy` page. Verify live at production URL. | E-001 (privacy notice live URL with disclosure paragraph visible) | G-01 (privacy notice is live with access telemetry disclosure at `/privacy`) | If `/privacy` page deployment fails: revert to previous version, fix deployment issue, re-deploy. If disclosure copy is incorrect: compare against doc 52 §2, correct, re-deploy. If page is 404 or behind auth: fix routing/middleware to make `/privacy` publicly accessible. Verify with incognito browser before marking complete. | E-001: URL of live privacy page with disclosure visible | ❌ Pending |
+| P1-2 | Add disclosure to shared page footer | Engineer | Implement disclosure component per doc 52 §3. Place in shared page footer (above copyright). | E-002 (disclosure component rendered on shared page footer) | G-02 (in-product disclosure implemented on shared page footer) | If component fails to render: check component import, placement in component tree, conditional rendering logic. If disclosure text is wrong: compare against doc 52 §3. If footer is hidden by CSS/layout: fix z-index, overflow, or positioning. Verify on mobile (375px) and desktop (1280px) before marking complete. Rollback: remove component, fix, re-deploy. | E-002: Screenshot of shared page showing disclosure text | ❌ Pending |
+| P1-3 | Add disclosure to password gate | Engineer | Implement disclosure text per doc 52 §4. Place above/before password input. | E-003 (disclosure text rendered above password input on password-gate screen) | G-03 (in-product disclosure implemented on password gate) | If text doesn't appear before password input: check JSX order — disclosure must render BEFORE the password `<input>`. If disclosure only appears after password entry: fix conditional rendering. If text is wrong: compare against doc 52 §4. Verify with incognito browser on a password-protected link before marking complete. Rollback: remove component, fix ordering, re-deploy. | E-003: Screenshot of password gate showing disclosure | ❌ Pending |
+| P1-4 | Capture screenshots for evidence ledger | QA / Owner | Screenshot shared page (desktop + mobile), screenshot password gate (desktop + mobile) | E-002 and E-003 (screenshots captured and stored at evidence paths) | G-02 and G-03 (visual evidence of disclosure rendering confirmed) | If screenshots are blurry or incomplete: re-capture at correct resolutions. If mobile rendering is broken: fix responsive layout before re-capturing. If evidence directory is missing: create `.ai/03_plans/activity-history-overhaul-v1/evidence/`. Store screenshots as PNG with descriptive filenames (`e002-shared-page-footer-375px.png`, etc.). | E-002, E-003 updated with screenshot paths | ❌ Pending |
+| P1-5 | Update evidence ledger | Owner | Update doc 64: E-001 → Complete, E-002 → Complete, E-003 → Complete | E-001, E-002, E-003 (ledger updated; all three evidence items marked Complete with artifact paths) | G-01, G-02, G-03 (evidence ledger confirms gates are Complete) | If evidence paths are missing: go back to P1-1/P1-4 and capture artifacts. If any evidence item fails completion criteria per doc 64: do NOT mark it Complete. Fix the underlying issue, re-verify, then update ledger. | E-001, E-002, E-003 status changed | ❌ Pending |
 
 ---
 
@@ -40,13 +40,13 @@
 
 **Exit criteria**: DPO designated, NPCRS triage completed, DPS inventory completed, evidence captured.
 
-| # | Action | Owner | Commands / Steps | Evidence required | Status |
-|---|--------|-------|-----------------|-------------------|--------|
-| P2-1 | Designate DPO / privacy officer | Owner | Formal designation (document or email). See doc 53 §2 for template. | E-004: Designation artifact | ❌ Pending |
-| P2-2 | Complete NPCRS registration triage | Owner / DPO | Use NPCRS triage worksheet from doc 53 §4. Determine: registration required / exempt / voluntary. | E-005: Completed triage worksheet | ❌ Pending |
-| P2-3 | Complete DPS inventory | Owner / DPO | Use DPS inventory template from doc 53 §5. Document all processing systems. | E-006: Completed DPS inventory | ❌ Pending |
-| P2-4 | Determine registration path | Owner / DPO | Based on triage result: register with NPC, claim exemption, or voluntary register. Follow doc 48 §6. | Documented decision and path forward | ❌ Pending |
-| P2-5 | Update evidence ledger | Owner / DPO | Update doc 64: E-004, E-005, E-006 | Evidence status updated | ❌ Pending |
+| # | Action | Owner | Commands / Steps | Evidence produced | Gate unlocked | Rollback / failure mode | Evidence required | Status |
+|---|--------|-------|-----------------|-------------------|---------------|------------------------|-------------------|--------|
+| P2-1 | Designate DPO / privacy officer | Owner | Formal designation (document or email). See doc 53 §2 for template. | E-004 (DPO designation artifact: signed document or dated email naming a specific individual) | G-04 (DPO / privacy officer formally designated) | If designation is informal or verbal-only: it does NOT count. Produce a written record (memo, appointment letter, or dated email). If the designated person declines or is unavailable: designate a replacement and document. If contact information is missing: add DPO email and phone to the designation document. Store at evidence path: `evidence/e004-dpo-designation.pdf`. | E-004: Designation artifact | ❌ Pending |
+| P2-2 | Complete NPCRS registration triage | Owner / DPO | Use NPCRS triage worksheet from doc 53 §4. Determine: registration required / exempt / voluntary. | E-005 (completed NPCRS triage worksheet with determination, rationale, and date) | G-05 (NPCRS registration triage completed) | If worksheet is incomplete: do NOT proceed. Fill all fields. If determination is ambiguous: re-read NPC circulars referenced in doc 48 and doc 53. If "registration required" is the outcome but registration form cannot be submitted immediately: document the trigger condition and target date in the worksheet. If "exempt" is claimed without supporting references: add the specific NPC circular or guideline that supports the exemption. Store at evidence path: `evidence/e005-npcrs-triage.pdf`. | E-005: Completed triage worksheet | ❌ Pending |
+| P2-3 | Complete DPS inventory | Owner / DPO | Use DPS inventory template from doc 53 §5. Document all processing systems. | E-006 (completed DPS inventory listing all access telemetry processing activities with data categories, purpose, retention, and legal basis) | G-06 (DPS inventory completed) | If inventory does not list access telemetry as a distinct processing activity: add it. If Supabase or Vercel processing is omitted: add both. If legal basis is missing for any entry: determine the applicable basis (legitimate interest, consent, legal obligation) and document. If retention period is not specified: add "90 days from collection" per doc 55. Store at evidence path: `evidence/e006-dps-inventory.pdf`. | E-006: Completed DPS inventory | ❌ Pending |
+| P2-4 | Determine registration path | Owner / DPO | Based on triage result: register with NPC, claim exemption, or voluntary register. Follow doc 48 §6. | E-005 (supports — triage determination drives registration path; path decision is captured in triage worksheet) | G-05 (registration path decision is documented and actionable) | If registration is required but form submission is delayed: set a calendar deadline. If exemption is claimed: ensure the exemption basis is documented and defensible. If voluntary registration is chosen: proceed with NPC registration form per doc 48. Escalate any unresolved NPC questions to legal counsel (E-016). | Documented decision and path forward | ❌ Pending |
+| P2-5 | Update evidence ledger | Owner / DPO | Update doc 64: E-004, E-005, E-006 | E-004, E-005, E-006 (ledger updated; all three evidence items marked Complete with artifact paths) | G-04, G-05, G-06 (evidence ledger confirms gates are Complete) | If any evidence item fails doc 64 completion criteria: do NOT mark Complete. Re-visit the underlying step (P2-1, P2-2, or P2-3). If artifact files are missing from evidence directory: locate and copy them to the correct path. | Evidence status updated | ❌ Pending |
 
 ---
 
@@ -54,13 +54,13 @@
 
 **Exit criteria**: DSR and breach response processes operationalized, internal owner assigned, SLAs defined.
 
-| # | Action | Owner | Commands / Steps | Evidence required | Status |
-|---|--------|-------|-----------------|-------------------|--------|
-| P3-1 | Operationalize DSR intake process | Owner / DPO | Set up DSR intake channel (email/form). Use templates from doc 54 §3. Define response SLA. | E-007: DSR process document with intake channel and SLA | ❌ Pending |
-| P3-2 | Operationalize breach response process | Owner / DPO | Document breach response procedure. Use playbook from doc 54 §4. Assign incident response team. | E-008: Breach response document with team and procedure | ❌ Pending |
-| P3-3 | Assign internal privacy owner | Owner | Designate who handles DSR/breach intake. Define escalation path. | E-004 may cover this if DPO is internal owner | ❌ Pending |
-| P3-4 | Define SLAs | Owner / DPO | DSR response SLA (e.g., 30 days per Philippine DPA). Breach notification SLA (e.g., 72 hours per NPC Circular). | SLAs documented in E-007 and E-008 | ❌ Pending |
-| P3-5 | Update evidence ledger | Owner / DPO | Update doc 64: E-007, E-008 | Evidence status updated | ❌ Pending |
+| # | Action | Owner | Commands / Steps | Evidence produced | Gate unlocked | Rollback / failure mode | Evidence required | Status |
+|---|--------|-------|-----------------|-------------------|---------------|------------------------|-------------------|--------|
+| P3-1 | Operationalize DSR intake process | Owner / DPO | Set up DSR intake channel (email/form). Use templates from doc 54 §3. Define response SLA. | E-007 (DSR process document with intake channel, verification procedure, response templates, SLA, and DSR log template) | G-07 (DSR intake and response process operational) | If intake channel is not set up: create a dedicated email alias (e.g., `privacy@[domain]`) or form. If response templates are missing: populate from doc 54 §3. If dry-run test fails: fix the identified gaps, re-run dry-run, document results. If SLA is undefined: set to 30 calendar days per Philippine DPA. Store at evidence path: `evidence/e007-dsr-process.pdf`. | E-007: DSR process document with intake channel and SLA | ❌ Pending |
+| P3-2 | Operationalize breach response process | Owner / DPO | Document breach response procedure. Use playbook from doc 54 §4. Assign incident response team. | E-008 (breach response process document with detection, containment, assessment, notification procedures and NPC/data subject templates) | G-08 (breach notification process operational) | If escalation contacts are undefined: assign specific individuals with phone/email. If NPC notification template is blank: populate from doc 54 §4. If tabletop exercise reveals gaps: document gaps, fix the procedure, re-run exercise, document results. If 72-hour SLA cannot be met: escalate — this is a hard Philippine DPA requirement. Store at evidence path: `evidence/e008-breach-response-process.pdf`. | E-008: Breach response document with team and procedure | ❌ Pending |
+| P3-3 | Assign internal privacy owner | Owner | Designate who handles DSR/breach intake. Define escalation path. | E-004 (may cover this if DPO is internal owner; if separate, document the internal owner separately) | G-04 (supports — internal owner ensures operational accountability for DPO-designated processes) | If the DPO designated in P2-1 is the internal privacy owner: note this cross-reference in E-004. If a different person handles operational intake: document their name, contact, and relationship to the DPO. If escalation path is undefined: define it (who to contact for which severity, in what order). | E-004 may cover this if DPO is internal owner | ❌ Pending |
+| P3-4 | Define SLAs | Owner / DPO | DSR response SLA (e.g., 30 days per Philippine DPA). Breach notification SLA (e.g., 72 hours per NPC Circular). | E-007 and E-008 (SLAs documented within the DSR and breach response process documents) | G-07 and G-08 (SLAs are explicitly defined and defensible against Philippine DPA requirements) | If SLAs exceed Philippine DPA maximums (30 days for DSR, 72 hours for breach): reduce to at or below legal maximums. If SLAs are unrealistic given team size: document compensating controls (e.g., automated acknowledgment, pre-written templates). If SLAs conflict with vendor SLAs: reconcile and document the effective end-to-end SLA. | SLAs documented in E-007 and E-008 | ❌ Pending |
+| P3-5 | Update evidence ledger | Owner / DPO | Update doc 64: E-007, E-008 | E-007 and E-008 (ledger updated; both evidence items marked Complete with artifact paths) | G-07 and G-08 (evidence ledger confirms gates are Complete) | If process documents are incomplete per doc 64 criteria: do NOT mark Complete. If dry-run or tabletop exercise results are not included: add them. If DPO signature is missing: obtain and add. | Evidence status updated | ❌ Pending |
 
 ---
 
@@ -68,13 +68,13 @@
 
 **Exit criteria**: Vendor DPAs reviewed, evidence captured.
 
-| # | Action | Owner | Commands / Steps | Evidence required | Status |
-|---|--------|-------|-----------------|-------------------|--------|
-| P4-1 | Review Supabase DPA | Owner | Visit https://supabase.com/legal/dpa. Review per doc 63 §3 checklist. Accept/sign if acceptable. | E-009: DPA review evidence for Supabase | ❌ Pending |
-| P4-2 | Review Vercel DPA | Owner | Visit https://vercel.com/legal/dpa. Review per doc 63 §3 checklist. Accept/sign if acceptable. | E-009: DPA review evidence for Vercel | ❌ Pending |
-| P4-3 | Review Resend DPA (advisory) | Owner | Visit https://resend.com/legal/dpa. Advisory review only — access telemetry data not sent to Resend. | Document review outcome | ❌ Pending |
-| P4-4 | Document subprocessor status | Owner | Review subprocessor lists for Supabase and Vercel per doc 63 §4. | Subprocessor list documented | ❌ Pending |
-| P4-5 | Update evidence ledger | Owner | Update doc 64: E-009 | Evidence status updated | ❌ Pending |
+| # | Action | Owner | Commands / Steps | Evidence produced | Gate unlocked | Rollback / failure mode | Evidence required | Status |
+|---|--------|-------|-----------------|-------------------|---------------|------------------------|-------------------|--------|
+| P4-1 | Review Supabase DPA | Owner | Visit https://supabase.com/legal/dpa. Review per doc 63 §3 checklist. Accept/sign if acceptable. | E-009 (Supabase DPA review completed: DPA reviewed, processing location confirmed, sub-processor list noted, gaps documented) | G-09 (vendor/processor DPA review completed for Supabase) | If DPA URL is broken: check Supabase legal page for updated URL. If DPA terms do not cover Philippine data subject protections: document gaps and compensating controls (e.g., contractual addendum, data processing agreement supplement). If DPA requires organizational acceptance (click-through or signature): complete the acceptance step and capture evidence. If Supabase processing location changes: update doc 63 data flow diagram. | E-009: DPA review evidence for Supabase | ❌ Pending |
+| P4-2 | Review Vercel DPA | Owner | Visit https://vercel.com/legal/dpa. Review per doc 63 §3 checklist. Accept/sign if acceptable. | E-009 (Vercel DPA review completed: DPA reviewed, processing location confirmed, sub-processor list noted, gaps documented) | G-09 (vendor/processor DPA review completed for Vercel) | If DPA URL is broken: check Vercel legal page for updated URL. If Vercel edge network processing locations are ambiguous: document the known regions and any uncertainty. If DPA does not explicitly cover edge function logs or request metadata: note this gap and confirm whether access telemetry data traverses these paths. If acceptance requires organizational acknowledgment: complete it and capture evidence. | E-009: DPA review evidence for Vercel | ❌ Pending |
+| P4-3 | Review Resend DPA (advisory) | Owner | Visit https://resend.com/legal/dpa. Advisory review only — access telemetry data not sent to Resend. | E-009 (supports — advisory review confirms Resend is out of scope for access telemetry data flow; document this exclusion) | G-09 (supports — confirms no additional processor DPA is needed for access telemetry) | If Resend DPA review reveals that access telemetry data could transit through Resend (unexpected): stop, document the finding, add Resend to the formal DPA review scope. If Resend is confirmed out of scope: document this finding with rationale in the vendor review memo. No rollback needed if standard result (out of scope). | Document review outcome | ❌ Pending |
+| P4-4 | Document subprocessor status | Owner | Review subprocessor lists for Supabase and Vercel per doc 63 §4. | E-009 (supports — subprocessor lists reviewed and documented for both vendors) | G-09 (subprocessor awareness is documented) | If subprocessor lists are extensive: note the key subprocessors relevant to data storage/compute. If a subprocessor operates in a jurisdiction with inadequate data protection: flag as a gap, document compensating controls. If subprocessor list is stale: fetch the current list from the vendor's published subprocessor page. | Subprocessor list documented | ❌ Pending |
+| P4-5 | Update evidence ledger | Owner | Update doc 64: E-009 | E-009 (ledger updated; vendor DPA review evidence marked Complete with artifact paths) | G-09 (evidence ledger confirms gate is Complete) | If any vendor's DPA review is incomplete per doc 63 checklist: do NOT mark Complete. Go back to P4-1/P4-2 and complete the review. If review memo is unsigned or undated: add signature and date. If gaps were identified but not documented: document them. | Evidence status updated | ❌ Pending |
 
 ---
 
@@ -82,13 +82,13 @@
 
 **Exit criteria**: Retention path operational, dry-run completed, proof captured.
 
-| # | Action | Owner | Commands / Steps | Evidence required | Status |
-|---|--------|-------|-----------------|-------------------|--------|
-| P5-1 | Choose retention path | Owner / Engineer | Select from doc 55 options: A (automated cron), B (operator-run SQL), or C (feature-flagged). | Retention path documented | ❌ Pending |
-| P5-2 | Run dry-run | Engineer | Execute dry-run query from doc 55 §3. Verify correct count of rows >90 days. | Dry-run output captured | ❌ Pending |
-| P5-3 | Schedule automated cleanup OR document operator procedure | Engineer | If automated: set up cron job. If operator: document exact SQL and schedule. | E-010: Cleanup proof (cron config or documented procedure) | ❌ Pending |
-| P5-4 | Verify retention does not affect estimate audit events | Engineer | Run test R3 from doc 57. Verify estimate events preserved. | Test output | ❌ Pending |
-| P5-5 | Update evidence ledger | Owner / Engineer | Update doc 64: E-010 | Evidence status updated | ❌ Pending |
+| # | Action | Owner | Commands / Steps | Evidence produced | Gate unlocked | Rollback / failure mode | Evidence required | Status |
+|---|--------|-------|-----------------|-------------------|---------------|------------------------|-------------------|--------|
+| P5-1 | Choose retention path | Owner / Engineer | Select from doc 55 options: A (automated cron), B (operator-run SQL), or C (feature-flagged). | E-010 (retention path selection documented with rationale) | G-10 (retention cleanup path is chosen and documented) | If no path can be chosen (all options blocked): revisit doc 55 for feasibility analysis. Option B (operator-run SQL) is the fallback — it requires no automation infrastructure. If the chosen path is later found infeasible: switch to option B as interim and document the switch. Do NOT leave retention path undefined. | Retention path documented | ❌ Pending |
+| P5-2 | Run dry-run | Engineer | Execute dry-run query from doc 55 §3. Verify correct count of rows >90 days. | E-010 (dry-run output showing count of rows that would be deleted, with query and timestamp) | G-10 (retention cleanup behavior is verified in a non-destructive dry-run) | If dry-run query errors: fix the SQL syntax, verify table/column names against schema. If dry-run returns unexpected row count (too many, too few, zero): investigate — possible issue with event_type filtering or timestamp comparison. If dry-run would affect non-telemetry data: the SQL is too broad — fix the WHERE clause to target only access telemetry events. Never run destructive cleanup without a verified dry-run. | Dry-run output captured | ❌ Pending |
+| P5-3 | Schedule automated cleanup OR document operator procedure | Engineer | If automated: set up cron job. If operator: document exact SQL and schedule. | E-010 (cleanup proof: cron job configuration and execution log OR documented operator procedure with dated execution log entry) | G-10 (90-day retention cleanup path is operational) | If automated cron fails silently: add alerting/monitoring on job failure. If operator procedure is undocumented: write exact SQL, schedule, and responsible person. If cleanup job deletes wrong data: immediately stop the job, restore from backup if needed, fix the WHERE clause, re-run dry-run, re-enable. If cron infrastructure is unavailable: fall back to option B (operator-run). | E-010: Cleanup proof (cron config or documented procedure) | ❌ Pending |
+| P5-4 | Verify retention does not affect estimate audit events | Engineer | Run test R3 from doc 57. Verify estimate events preserved. | E-010 (supports — verification that estimate audit events are excluded from access telemetry retention cleanup) | G-10 (retention cleanup is scoped correctly — only access telemetry data is targeted) | If estimate events are incorrectly targeted for deletion: stop immediately. Fix the cleanup query to filter only access telemetry event types (those with `metadata_json->>'access_stage'` or specific `event_type` values). Re-run dry-run. If estimate events were accidentally deleted: restore from backup. Do NOT proceed to automated cleanup until this verification passes. | Test output | ❌ Pending |
+| P5-5 | Update evidence ledger | Owner / Engineer | Update doc 64: E-010 | E-010 (ledger updated; retention cleanup proof marked Complete with artifact paths) | G-10 (evidence ledger confirms gate is Complete) | If cleanup path is not operational (no cron job AND no documented procedure): do NOT mark Complete. If dry-run output is not captured: re-run dry-run and capture output. If P5-4 verification failed: do NOT mark Complete until it passes. | Evidence status updated | ❌ Pending |
 
 ---
 
@@ -96,17 +96,17 @@
 
 **Exit criteria**: All 39 tests pass, manual QA completed, evidence captured.
 
-| # | Action | Owner | Commands / Steps | Evidence required | Status |
-|---|--------|-------|-----------------|-------------------|--------|
-| P6-1 | Run data safety tests (DS1-DS10) | Engineer | `bun run test:dom -- tests/vitest/access-telemetry-safety.test.ts` | E-012: Test output showing 10/10 pass | ❌ Pending |
-| P6-2 | Run behavior tests (B1-B5) | Engineer | `bun run test:dom -- tests/vitest/access-telemetry-behavior.test.ts` | E-012: Test output showing 5/5 pass | ❌ Pending |
-| P6-3 | Run visibility tests (V1-V5) | Engineer | `bun run test:dom -- tests/vitest/access-telemetry-visibility.test.ts` | E-012: Test output showing 5/5 pass | ❌ Pending |
-| P6-4 | Run disclosure UI tests (U1-U4) | Engineer | `bun run test:dom -- tests/vitest/access-telemetry-disclosure.test.tsx` | E-012: Test output showing 4/4 pass | ❌ Pending |
-| P6-5 | Run retention tests (R1-R3) | Engineer | `bun run test:dom -- tests/vitest/access-telemetry-retention.test.ts` | E-012: Test output showing 3/3 pass | ❌ Pending |
-| P6-6 | Run feature flag tests (F1-F3) | Engineer | `bun run test:dom -- tests/vitest/access-telemetry-feature-flag.test.ts` | E-012: Test output showing 3/3 pass | ❌ Pending |
-| P6-7 | Run full test suite | Engineer | `bun run validate` — all existing tests still pass | Full suite output | ❌ Pending |
-| P6-8 | Complete manual QA (M1-M9) | QA / Engineer | Execute all 9 items from doc 57 §7. Capture screenshots/logs. | E-013: Manual QA report with all 9 items checked | ❌ Pending |
-| P6-9 | Update evidence ledger | Engineer | Update doc 64: E-012, E-013 | Evidence status updated | ❌ Pending |
+| # | Action | Owner | Commands / Steps | Evidence produced | Gate unlocked | Rollback / failure mode | Evidence required | Status |
+|---|--------|-------|-----------------|-------------------|---------------|------------------------|-------------------|--------|
+| P6-1 | Run data safety tests (DS1-DS10) | Engineer | `bun run test:dom -- tests/vitest/access-telemetry-safety.test.ts` | E-012 (test output showing data safety tests passing; contributory to overall E-012) | G-12 (data safety test category passes) | If any test fails: review the failure output. Fix the code or test assertion. Re-run until all 10 pass. If a test is flaky: investigate test isolation (shared state, async timing). If a test cannot pass due to a known limitation: document as a skipped test with rationale — skipped tests count against G-12 pass condition per doc 66. | E-012: Test output showing 10/10 pass | ❌ Pending |
+| P6-2 | Run behavior tests (B1-B5) | Engineer | `bun run test:dom -- tests/vitest/access-telemetry-behavior.test.ts` | E-012 (test output showing behavior tests passing; contributory to overall E-012) | G-12 (behavior test category passes) | If any test fails: review the failure output. If behavior mismatch is found (e.g., telemetry fires on wrong event): trace the event flow in code, fix the trigger logic, re-run. If test expects behavior not yet implemented: implement the behavior before re-running. | E-012: Test output showing 5/5 pass | ❌ Pending |
+| P6-3 | Run visibility tests (V1-V5) | Engineer | `bun run test:dom -- tests/vitest/access-telemetry-visibility.test.ts` | E-012 (test output showing visibility tests passing; contributory to overall E-012) | G-12 (visibility test category passes) | If any test fails: review what data is exposed vs expected. If visibility rules are wrong in code: fix the filtering/masking logic. If test expectations are wrong: verify against doc 03 data contract, then update test. Do NOT change tests to match buggy behavior. | E-012: Test output showing 5/5 pass | ❌ Pending |
+| P6-4 | Run disclosure UI tests (U1-U4) | Engineer | `bun run test:dom -- tests/vitest/access-telemetry-disclosure.test.tsx` | E-012 (test output showing disclosure UI tests passing; contributory to overall E-012) | G-12 (disclosure test category passes) | If any test fails: check if disclosure component is rendered, if text content matches doc 52 copy. Fix component or test as needed. If component uses conditional rendering that test doesn't account for: ensure test setup matches all rendering conditions. | E-012: Test output showing 4/4 pass | ❌ Pending |
+| P6-5 | Run retention tests (R1-R3) | Engineer | `bun run test:dom -- tests/vitest/access-telemetry-retention.test.ts` | E-012 (test output showing retention tests passing; contributory to overall E-012) | G-12 (retention test category passes) | If any test fails: review retention logic. R3 verifies estimate events are preserved — if this fails, retention cleanup scope is wrong and MUST be fixed before proceeding (see P5-4). If R1 or R2 fail: fix cleanup query or scheduling logic. | E-012: Test output showing 3/3 pass | ❌ Pending |
+| P6-6 | Run feature flag tests (F1-F3) | Engineer | `bun run test:dom -- tests/vitest/access-telemetry-feature-flag.test.ts` | E-012 (test output showing feature flag tests passing; contributory to overall E-012) | G-12 (feature flag test category passes) | If any test fails: check flag gating logic. If telemetry writes when flag is false: critical bug — fix immediately. If telemetry does NOT write when flag is true: check flag resolution code. If flag is not read correctly: fix env var access pattern (e.g., `process.env` vs Next.js server-side env). | E-012: Test output showing 3/3 pass | ❌ Pending |
+| P6-7 | Run full test suite | Engineer | `bun run validate` — all existing tests still pass | E-012 (full test suite output; new access telemetry tests must pass AND all existing tests must still pass — no regressions) | G-12 (full test suite passes — new tests green, no regressions) | If existing tests fail: the access telemetry changes introduced a regression. Isolate the breaking change (git bisect if needed), fix, re-run full suite. Do NOT proceed with only access telemetry tests passing — full suite must be green. If pre-existing failures exist (unrelated to access telemetry): document them, assess whether they block G-12 per doc 66. | Full suite output | ❌ Pending |
+| P6-8 | Complete manual QA (M1-M9) | QA / Engineer | Execute all 9 items from doc 57 §7. Capture screenshots/logs. | E-013 (manual QA report with all 9 items checked, each with pass/fail/notes, tester name, date, and attached evidence) | G-13 (manual QA completed — all 9 items pass) | If any QA item fails: document the failure with reproduction steps. Fix the underlying issue, re-test, update the QA report. If an item is blocked (e.g., requires external service): document the blocker and target resolution date. If QA was performed against a non-production environment: re-run in staging before marking G-13 complete. If tester attribution is missing: add tester name and date. | E-013: Manual QA report with all 9 items checked | ❌ Pending |
+| P6-9 | Update evidence ledger | Engineer | Update doc 64: E-012, E-013 | E-012 and E-013 (ledger updated; both evidence items marked Complete with artifact paths) | G-12 and G-13 (evidence ledger confirms gates are Complete) | If test output is not captured: re-run tests and capture stdout. If manual QA report is incomplete: go back to P6-8. If any test category has failures: do NOT mark E-012 Complete. If commit SHA is not recorded in test output: add it. | Evidence status updated | ❌ Pending |
 
 ---
 
@@ -114,15 +114,15 @@
 
 **Exit criteria**: Telemetry enabled through all rollout stages, monitoring confirmed, no issues.
 
-| # | Action | Owner | Commands / Steps | Evidence required | Status |
-|---|--------|-------|-----------------|-------------------|--------|
-| P7-1 | Enable in local dev | Engineer | Set `ACCESS_TELEMETRY_ENABLED=true` in `.env.local`. Verify telemetry writes. | Dev telemetry working | ❌ Pending |
-| P7-2 | Enable in staging (Vercel Preview) | Engineer | Set env var in Vercel Preview. Deploy preview. Verify telemetry writes to staging DB. | Staging telemetry working | ❌ Pending |
-| P7-3 | Internal owner-only rollout | Owner / Engineer | Set `ACCESS_TELEMETRY_ENABLED=true` in production Vercel env. Owner only tests. Monitor for 24-48 hours. | No errors, expected telemetry data | ❌ Pending |
-| P7-4 | Selected beta rollout | Owner | Expand to limited beta users if applicable. Monitor. | No issues reported | ❌ Pending |
-| P7-5 | Monitor telemetry volume | Engineer | Check Supabase: `SELECT count(*) FROM shared_link_events WHERE metadata_json->>'access_stage' IS NOT NULL` | Expected volume, no anomalies | ❌ Pending |
-| P7-6 | Verify rollback capability | Engineer | Test: set `ACCESS_TELEMETRY_ENABLED=false` → confirm telemetry stops. Re-enable. | Rollback tested | ❌ Pending |
-| P7-7 | Update evidence ledger | Owner / Engineer | Update doc 64: E-014 | Evidence status updated | ❌ Pending |
+| # | Action | Owner | Commands / Steps | Evidence produced | Gate unlocked | Rollback / failure mode | Evidence required | Status |
+|---|--------|-------|-----------------|-------------------|---------------|------------------------|-------------------|--------|
+| P7-1 | Enable in local dev | Engineer | Set `ACCESS_TELEMETRY_ENABLED=true` in `.env.local`. Verify telemetry writes. | E-014 (supports — local dev verification that telemetry writes correctly when enabled; builds confidence for staged rollout) | G-14 (rollout Phase 0 — dev verification complete) | If telemetry does not write when flag is true: debug the flag gating logic. Check that the env var is read correctly. If telemetry writes but data is malformed: fix the telemetry payload construction. If local DB is not accessible: check Supabase local stack (`npx supabase status`). | Dev telemetry working | ❌ Pending |
+| P7-2 | Enable in staging (Vercel Preview) | Engineer | Set env var in Vercel Preview. Deploy preview. Verify telemetry writes to staging DB. | E-014 (supports — staging verification that telemetry writes in a deployed environment; builds confidence for production rollout) | G-14 (rollout Phase 1 — staging verification complete) | If Preview deploy fails: check build logs, fix errors, re-deploy. If env var is not set in Preview: add via `vercel env add ACCESS_TELEMETRY_ENABLED preview`. If telemetry writes to wrong database: verify Preview environment connects to staging DB, not production. If staging DB is not accessible: check connection string and network access. | Staging telemetry working | ❌ Pending |
+| P7-3 | Internal owner-only rollout | Owner / Engineer | Set `ACCESS_TELEMETRY_ENABLED=true` in production Vercel env. Owner only tests. Monitor for 24-48 hours. | E-014 (internal rollout evidence: production telemetry data confirmed writing for owner sessions only; no errors in monitoring during observation period) | G-14 (rollout Phase 2/3 — internal production verification complete; also validates G-11: flag toggled to true without issues) | If production errors occur: immediately set flag back to `false` (P7-6 rollback capability must be tested first). Investigate errors, fix, re-enable. If telemetry volume is unexpectedly high: check for bot/crawler traffic, verify bot filtering is active per doc 47 constraints. If telemetry writes unexpected data: audit the payload, fix, re-deploy. Monitor must cover the full 24-48 hour window before proceeding. | No errors, expected telemetry data | ❌ Pending |
+| P7-4 | Selected beta rollout | Owner | Expand to limited beta users if applicable. Monitor. | E-014 (supports — beta rollout evidence: telemetry data from expanded user set; no issues reported) | G-14 (rollout Phase 4 — beta verification complete) | If beta users report issues: triage severity. If critical: revert flag to false, fix, re-deploy. If non-critical: document issue, fix in follow-up, continue rollout with caveat. If no beta users are available: this step may be skipped — document the skip in evidence ledger with rationale. | No issues reported | ❌ Pending |
+| P7-5 | Monitor telemetry volume | Engineer | Check Supabase: `SELECT count(*) FROM shared_link_events WHERE metadata_json->>'access_stage' IS NOT NULL` | E-014 (monitoring evidence: query results showing expected telemetry volume; no anomalies detected) | G-14 (rollout monitoring confirms expected behavior) | If volume is anomalously high (10x+ expected): investigate for bot traffic, event duplication, or infinite loops. If volume is zero despite flag being true: check flag resolution, telemetry write path, DB connection. If specific event types show unexpected patterns: investigate each anomalous type. Set up a monitoring dashboard or alert before marking this step complete. | Expected volume, no anomalies | ❌ Pending |
+| P7-6 | Verify rollback capability | Engineer | Test: set `ACCESS_TELEMETRY_ENABLED=false` → confirm telemetry stops. Re-enable. | E-014 (rollback verification evidence: proof that toggling flag to false immediately stops all telemetry writes; proof that re-enabling resumes writes) | G-14 (rollback capability verified — critical safety net for production) | If telemetry continues to write after flag is set to false: critical bug. The flag gating is not working correctly. Fix immediately — all telemetry write paths must check the flag. If re-enabling does not resume telemetry: check for caching or stale flag values. If flag toggle takes >60 seconds to take effect: document the propagation delay and account for it in the rollback SLA. Do NOT proceed to full rollout without verified instant-rollback capability. | Rollback tested | ❌ Pending |
+| P7-7 | Update evidence ledger | Owner / Engineer | Update doc 64: E-014 | E-014 (ledger updated; rollout approval marked Complete with all phase evidence and monitoring data) | G-14 (evidence ledger confirms gate is Complete) | If any rollout phase was skipped: document the skip with rationale. If monitoring data shows anomalies: do NOT mark Complete until anomalies are explained or resolved. If rollback was not verified: go back to P7-6. If current rollout phase is not explicitly documented: add it. | Evidence status updated | ❌ Pending |
 
 ---
 
@@ -130,29 +130,29 @@
 
 **Exit criteria**: All gates passed, doc 58 completed, production readiness declared GO.
 
-| # | Action | Owner | Commands / Steps | Evidence required | Status |
-|---|--------|-------|-----------------|-------------------|--------|
-| P8-1 | Complete doc 58 (production sign-off template) | Owner | Fill in all sections. Attach evidence references from doc 64. | Completed doc 58 | ❌ Pending |
-| P8-2 | Verify all blocking evidence items (E-001 through E-015) are Complete | Owner | Review doc 64. Confirm all 15 blocking items are Complete. | All 15 evidence items Complete | ❌ Pending |
-| P8-3 | Final production GO declaration | Owner | Sign doc 58. Update doc 64: E-015 → Complete. | E-015: Final production sign-off | ❌ Pending |
-| P8-4 | Update doc 67 (final scorecard) | Owner | Update Domain C from 0% to 100% | Scorecard updated | ❌ Pending |
-| P8-5 | Archive planning pack | Owner | Move from active planning to archive. Update `.ai/10_state/current-state.md`. | Planning pack archived | ❌ Pending |
+| # | Action | Owner | Commands / Steps | Evidence produced | Gate unlocked | Rollback / failure mode | Evidence required | Status |
+|---|--------|-------|-----------------|-------------------|---------------|------------------------|-------------------|--------|
+| P8-1 | Complete doc 58 (production sign-off template) | Owner | Fill in all sections. Attach evidence references from doc 64. | E-015 (completed doc 58 sign-off template with all sections filled, all evidence references attached, and all signature blocks ready for signing) | G-15 (sign-off template is prepared and evidence references are complete) | If any section of doc 58 is incomplete: fill it in. If evidence references from doc 64 are not attached: add them — cross-reference each E-ID with its doc 64 status. If the template references evidence that is not yet Complete in doc 64: do NOT fill in that section until the evidence exists. | Completed doc 58 | ❌ Pending |
+| P8-2 | Verify all blocking evidence items (E-001 through E-015) are Complete | Owner | Review doc 64. Confirm all 15 blocking items are Complete. | E-015 (supports — cross-verification that all 15 blocking evidence items are Complete in doc 64) | G-15 (prerequisite verification: all upstream evidence exists before sign-off) | If any evidence item is still Missing: go back to the corresponding phase and complete it. If any evidence item is marked Complete but does not meet doc 64 completion criteria: revert to Missing, complete the underlying action, re-verify. If E-016 (external counsel review) is the only missing item: it is recommended, not blocking — document the risk acceptance decision from doc 47. | All 15 evidence items Complete | ❌ Pending |
+| P8-3 | Final production GO declaration | Owner | Sign doc 58. Update doc 64: E-015 → Complete. | E-015 (final production sign-off: signed doc 58 with all three signature blocks completed; E-015 marked Complete in doc 64) | G-15 (final production sign-off completed — all 15 required gates are now Complete) | If any signature block is missing: obtain the required signature (Implementer, DPO/Privacy Officer, Product Owner). If the "Production GO" statement is not explicitly checked: add it. If the sign-off date is missing: add it. If the deployment target version/commit SHA is missing: add it. Once E-015 is Complete, production enablement is GO per doc 68 Section 5. | E-015: Final production sign-off | ❌ Pending |
+| P8-4 | Update doc 67 (final scorecard) | Owner | Update Domain C from 0% to 100% | E-015 (supports — scorecard reflects the completed execution; Domain C moves from 0% to 100%) | G-15 (supports — scorecard reflects the gate completion) | If doc 67 is not updated: do it now. Domain C (Execution Readiness) must move from 0% to 100%. If Domain C cannot reach 100% due to unresolved items: those items must block P8-3 — do NOT declare GO with incomplete Domain C. | Scorecard updated | ❌ Pending |
+| P8-5 | Archive planning pack | Owner | Move from active planning to archive. Update `.ai/10_state/current-state.md`. | E-015 (supports — planning pack archived, current state updated to reflect production enablement completion) | G-15 (supports — planning pack closure confirms no outstanding planning work) | If archiving would lose access to evidence: ensure all evidence files are copied to a permanent location before archiving. If `.ai/10_state/current-state.md` update is blocked: at minimum add a dated note that production enablement is complete with reference to this runbook and doc 64. | Planning pack archived | ❌ Pending |
 
 ---
 
 ## Execution Summary
 
-| Phase | Items | Blocking? | Dependencies |
-|-------|------:|-----------|-------------|
-| Phase 0 — Preconditions | 7 | ✅ YES (blocks all phases) | PR 7 + PR 8B implementation |
-| Phase 1 — Privacy Artifacts | 5 | ✅ YES | Phase 0 complete |
-| Phase 2 — DPO / NPC / DPS | 5 | ✅ YES | Phase 0 complete |
-| Phase 3 — Operational Processes | 5 | ✅ YES | Phase 2 (DPO designated) |
-| Phase 4 — Vendor / Processor | 5 | ✅ YES | Phase 0 complete |
-| Phase 5 — Retention | 5 | ✅ YES | Phase 0 complete (PR 8B or operator path) |
-| Phase 6 — Test Evidence | 9 | ✅ YES | Phase 0 complete (tests exist) |
-| Phase 7 — Staged Rollout | 7 | ✅ YES | Phases 1-6 complete |
-| Phase 8 — Final Sign-Off | 5 | ✅ YES | Phases 1-7 complete |
+| Phase | Items | Blocking? | Dependencies | Evidence produced | Gates unlocked |
+|-------|------:|-----------|-------------|-------------------|----------------|
+| Phase 0 — Preconditions | 7 | ✅ YES (blocks all phases) | PR 7 + PR 8B implementation | E-009 (worksheet review), E-010 (retention path prep), E-011 (flag infrastructure), E-012 (test infrastructure) | G-09, G-10, G-11, G-12 (precondition verification) |
+| Phase 1 — Privacy Artifacts | 5 | ✅ YES | Phase 0 complete | E-001, E-002, E-003 | G-01, G-02, G-03 |
+| Phase 2 — DPO / NPC / DPS | 5 | ✅ YES | Phase 0 complete | E-004, E-005, E-006 | G-04, G-05, G-06 |
+| Phase 3 — Operational Processes | 5 | ✅ YES | Phase 2 (DPO designated) | E-007, E-008 | G-07, G-08 |
+| Phase 4 — Vendor / Processor | 5 | ✅ YES | Phase 0 complete | E-009 | G-09 |
+| Phase 5 — Retention | 5 | ✅ YES | Phase 0 complete (PR 8B or operator path) | E-010 | G-10 |
+| Phase 6 — Test Evidence | 9 | ✅ YES | Phase 0 complete (tests exist) | E-012, E-013 | G-12, G-13 |
+| Phase 7 — Staged Rollout | 7 | ✅ YES | Phases 1-6 complete | E-014 | G-14 |
+| Phase 8 — Final Sign-Off | 5 | ✅ YES | Phases 1-7 complete | E-015 | G-15 |
 
 **Total items across all phases: 53**
 **Current completion: 1 (P0-7: evidence ledger ready)**
@@ -172,3 +172,43 @@
 - `63-vendor-processor-dpa-evidence-worksheet.md` — Vendor DPAs (Phase 4)
 - `64-access-telemetry-production-evidence-ledger.md` — Evidence tracking
 - `66-production-readiness-final-gate-matrix.md` — Gate matrix
+- `67-final-access-telemetry-production-readiness-scorecard.md` — Final scorecard
+- `68-access-telemetry-production-truth-lock.md` — THE final truth document (read FIRST)
+
+---
+
+## Advisory Note: External Counsel Review (E-016 / G-16)
+
+This runbook does not include a dedicated phase for external legal counsel review because E-016 and G-16 are recommended, not blocking, per doc 64 and doc 66. If the owner chooses to pursue external counsel review, insert it after Phase 6 (Test Evidence) and before Phase 7 (Staged Rollout). The review memo (E-016) and gate (G-16) would then be marked Complete before staged rollout begins. If external counsel review is skipped, the owner must document a formal risk acceptance per doc 47 and doc 66 G-16 fail condition.
+
+---
+
+## Runbook Completion Summary
+
+This runbook, when fully executed, produces:
+
+- **E-001 through E-015 Complete** in doc 64 — all 15 blocking evidence items captured, verified, and stored at their evidence paths
+- **G-01 through G-15 Complete** in doc 66 — all 15 required gates satisfied with concrete, verifiable pass conditions met
+- **Doc 58 (final sign-off template)** completed and signed by all three required approvers (Implementer, DPO/Privacy Officer, Product Owner)
+- **Doc 67 Domain C** updated from 0% to 100% (Execution Readiness)
+- **E-016 and G-16** optionally Complete if external counsel review is pursued (recommended, not blocking)
+
+**Runbook completion = production GO per doc 68 Section 5 absolute rule.**
+
+When the final step (P8-3) is executed and E-015 is marked Complete, access telemetry production enablement transitions from NO-GO to GO. The feature flag `ACCESS_TELEMETRY_ENABLED` may then be set to `true` in production per the staged rollout plan in doc 56.
+
+---
+
+## Change Log
+
+| Date | Change | Steps affected | Previous status | New status |
+|------|--------|---------------|-----------------|------------|
+| 2026-06-02 | Runbook created | All | — | All Pending |
+| 2026-06-02 | Evidence IDs (E-XXX) mapped to every step | All | — | Evidence columns added |
+| 2026-06-02 | Gates (G-XX) mapped to every step | All | — | Gate columns added |
+| 2026-06-02 | Rollback/failure modes added to every step | All | — | Rollback columns added |
+| 2026-06-02 | Execution summary updated with Evidence/Gates columns | Summary table | — | Two new columns added |
+| 2026-06-02 | Runbook Completion Summary section added | End of document | — | Final summary section added |
+| 2026-06-02 | Advisory Note: E-016/G-16 added | After Cross-References | — | Advisory note added |
+
+(End of file)

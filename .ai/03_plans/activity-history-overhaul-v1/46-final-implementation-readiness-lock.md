@@ -4,8 +4,9 @@
 **Tenth pass:** 2026-06-02
 **Status:** LOCKED — ready for implementation (tenth-pass final certification; all references hardened)
 **Audited implementation baseline HEAD:** `65b21eb`
-**Last planning certification commit:** `e559e60`
-**Current repository HEAD:** `453ac68`
+**Activity-code audit baseline:** `65b21eb`
+**Latest planning certification commit:** `8b0929f`
+**Latest repo HEAD at this audit:** `cdb9fdc`
 
 ---
 
@@ -22,7 +23,7 @@ b6873b47075c863ef5f6598e523d405e69bcdbd2
 **Audited implementation baseline:** `65b21eb`
 **Last planning certification commit:** `e559e60` (tenth pass)
 
-No activity-related production code has changed since the planning baseline `65b21eb`. All commits between `65b21eb` and `453ac68` are proof/ops/docs/mvp-readiness only.
+No activity-related production code has changed since the planning baseline `65b21eb`. All commits between `65b21eb` and `cdb9fdc` are proof/ops/docs only.
 
 ### File Count
 
