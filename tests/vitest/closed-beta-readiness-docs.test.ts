@@ -425,6 +425,7 @@ describe("closed beta readiness docs", () => {
     expect(evidenceIndex).toContain("`bun run launch:check-support-monitoring`");
     expect(evidenceIndex).toContain("support-monitoring-readiness-c9c1141-2026-06-02.json");
     expect(evidenceIndex).toContain("support-monitoring-readiness-5fa0ac1-2026-06-02.json");
+    expect(evidenceIndex).toContain("support-monitoring-readiness-453ac68-2026-06-02.json");
     expect(evidenceIndex).toContain("`supportMonitoringReady: false`");
     expect(evidenceIndex).toContain("all five proof flags false");
     expect(evidenceIndex).toContain("all owner labels missing");
@@ -636,6 +637,7 @@ describe("closed beta readiness docs", () => {
     expect(manualProofMatrix).toContain("support-email-dns-readiness-refresh-04e3b28-2026-06-02.json");
     expect(manualProofMatrix).toContain("support-monitoring-readiness-c9c1141-2026-06-02.json");
     expect(manualProofMatrix).toContain("support-monitoring-readiness-5fa0ac1-2026-06-02.json");
+    expect(manualProofMatrix).toContain("support-monitoring-readiness-453ac68-2026-06-02.json");
     expect(manualProofMatrix).toContain("beta-feedback-review-queue-local-2026-06-02.md");
     expect(manualProofMatrix).toContain("platform-admin `/workshop/settings/feedback` review/status queue coverage");
     expect(manualProofMatrix).toContain("MX/SPF DNS evidence and no DMARC answer");
@@ -765,6 +767,7 @@ describe("closed beta readiness docs", () => {
     expect(consolidatedManualProofPacket).toContain("`dnsReady: false`");
     expect(consolidatedManualProofPacket).toContain("support-monitoring-readiness-c9c1141-2026-06-02.json");
     expect(consolidatedManualProofPacket).toContain("support-monitoring-readiness-5fa0ac1-2026-06-02.json");
+    expect(consolidatedManualProofPacket).toContain("support-monitoring-readiness-453ac68-2026-06-02.json");
     expect(consolidatedManualProofPacket).toContain("`supportMonitoringReady: false`");
     expect(consolidatedManualProofPacket).toContain("Do not change the launch decision until `47-goal-completion-audit.md` is rerun");
     expect(consolidatedManualProofPacket).not.toMatch(/\| .* \| pass \|/i);
@@ -800,6 +803,7 @@ describe("closed beta readiness docs", () => {
     expect(artifactFilenames).toContain("support-email-dns-readiness-refresh-04e3b28-2026-06-02.json");
     expect(artifactFilenames).toContain("support-monitoring-readiness-c9c1141-2026-06-02.json");
     expect(artifactFilenames).toContain("support-monitoring-readiness-5fa0ac1-2026-06-02.json");
+    expect(artifactFilenames).toContain("support-monitoring-readiness-453ac68-2026-06-02.json");
     expect(artifactFilenames).toContain("lewis-residence-demo-proposal-2026-06-02.xlsx");
     expect(artifactFilenames.length).toBeGreaterThanOrEqual(30);
 
@@ -909,6 +913,7 @@ describe("closed beta readiness docs", () => {
     expect(goalCompletionAudit).toContain("Support monitoring readiness helper");
     expect(goalCompletionAudit).toContain("support-monitoring-readiness-c9c1141-2026-06-02.json");
     expect(goalCompletionAudit).toContain("support-monitoring-readiness-5fa0ac1-2026-06-02.json");
+    expect(goalCompletionAudit).toContain("support-monitoring-readiness-453ac68-2026-06-02.json");
     expect(goalCompletionAudit).toContain("`supportMonitoringReady: false`");
     expect(goalCompletionAudit).toContain("all support/feedback/uptime/error/escalation proof flags false");
     expect(goalCompletionAudit).toContain("owner labels missing, 9 missing checks");
@@ -1024,6 +1029,7 @@ describe("closed beta readiness docs", () => {
     expect(currentState).toContain("Support Monitoring Readiness Helper (2026-06-02)");
     expect(currentState).toContain("support-monitoring-readiness-c9c1141-2026-06-02.json");
     expect(currentState).toContain("support-monitoring-readiness-5fa0ac1-2026-06-02.json");
+    expect(currentState).toContain("support-monitoring-readiness-453ac68-2026-06-02.json");
     expect(currentState).toContain("`supportMonitoringReady: false`");
     expect(currentState).toContain("all proof flags false, all owner labels missing, and 9 missing checks");
     expect(currentState).toContain("monitored review workflow, and alert ownership remain open");
@@ -1072,6 +1078,7 @@ describe("closed beta readiness docs", () => {
     expect(knownIssues).toContain("This still does not prove `support@archestimator.com` is monitored");
     expect(knownIssues).toContain("Support monitoring readiness helper evidence on 2026-06-02 is negative/blocked");
     expect(knownIssues).toContain("support-monitoring-readiness-5fa0ac1-2026-06-02.json");
+    expect(knownIssues).toContain("support-monitoring-readiness-453ac68-2026-06-02.json");
     expect(knownIssues).toContain("`supportMonitoringReady: false`");
     expect(knownIssues).toContain("all proof flags false, all owner labels missing, and 9 missing checks");
     expect(knownIssues).toContain("Linked feedback/review migration apply, hosted feedback/admin smoke, monitored inbox/table ownership, and alert ownership proof remain missing");
