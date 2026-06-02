@@ -36,7 +36,7 @@ Design-system source: `DESIGN.md`. Launch UI must be compact, work-focused, clea
 | Row details modal | `EstimateSheetContent` row details | Exists | Detached/project-specific state unclear. | P0 | `UNLINK-001` | Clear source/link state. | Detach QA. |
 | Library page | `LibraryPageClient` | Exists | Polish/seed audit. | P1 | `LIB-001` | Search/filter/create pass. | Screenshot. |
 | Templates page | `TemplatesPageClient` | Exists | Preview/empty states. | P1 | `TPL-001` | Browse/preview/insert pass. | Screenshot. |
-| Settings pages | `src/app/workshop/settings/*` | Exists | Support/legal/account deletion copy. | P1/P0 | `LEGAL-001`, `OBS-001` | Support/legal reachable. | Screenshot. |
+| Settings pages | `src/app/workshop/settings/*` | Local support/legal hub covered | Hosted screenshot, monitored support, and legal sign-off still needed. | P1/P0 | `LEGAL-001`, `OBS-001` | Support, legal, and data request paths are reachable from Settings. | Local source-contract pass; screenshot still required. |
 | Share page | `src/app/share/*` | Exists | Security/email proof before visible use. | P0 | `SEC-001` | View-only, no leaks. | Share QA. |
 | Invite page | `src/app/invite/*` | Exists | Env-gated; email/auth proof needed. | P0 | `INFRA-002` | Expired/revoked/wrong-account clear. | Invite QA. |
 | Legal pages | `terms`, `privacy` | Placeholder | Pending-review blocks launch. | P0 | `LEGAL-001` | Accurate reviewed copy. | Route screenshot. |

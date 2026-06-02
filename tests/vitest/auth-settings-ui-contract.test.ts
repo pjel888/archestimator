@@ -29,6 +29,10 @@ describe("auth onboarding and settings route contracts", () => {
 
     expect(source).toContain('href: "/workshop/settings/profile"');
     expect(source).toContain('href: "/workshop/settings/workspace"');
+    expect(source).toContain('href: "/workshop/feedback"');
+    expect(source).toContain('href: "/terms"');
+    expect(source).toContain("Support and legal");
+    expect(source).toContain("support@archestimator.com");
     expect(source).toContain('href: "/workshop/settings/beta-users"');
     expect(source).toContain('href: "/workshop/settings/feedback"');
     expect(source).toContain('context.role === "ceo" || context.role === "admin"');
