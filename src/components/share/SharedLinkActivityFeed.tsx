@@ -23,30 +23,41 @@ function getBrowserSupabase() {
 export default function SharedLinkActivityFeed({ publicationToken, publicationId = null, isOwner = false, onActivitySeen }: SharedLinkActivityFeedProps) {
   const [activities, setActivities] = useState<ActivityItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [hasMore, setHasMore] = useState(false);
+  const [nextCursor, setNextCursor] = useState<string | null>(null);
 
-  const load = useCallback(async () => {
-    setLoading(true);
+  const load = useCallback(async (cursor?: string | null) => {
+    if (cursor) setLoadingMore(true);
+    else setLoading(true);
     setError(null);
     try {
       if (isOwner) {
         // Owner path: server action (full, including internal via RBAC inside action)
-        const res = await loadSharedLinkActivity(publicationToken, { limit: 50 });
-        setActivities(res.activities as ActivityItem[]);
+        const res = await loadSharedLinkActivity(publicationToken, { limit: 50, cursor: cursor ?? undefined });
+        setActivities((current) => cursor ? [...current, ...(res.activities as ActivityItem[])] : (res.activities as ActivityItem[]));
+        setHasMore(res.hasMore);
+        setNextCursor(res.nextCursor ?? null);
       } else {
         // Public/recipient path: filtered route (never leaks is_internal)
-        const res = await fetch(`/api/share/${encodeURIComponent(publicationToken)}/activity`, {
+        const url = new URL(`/api/share/${encodeURIComponent(publicationToken)}/activity`, window.location.origin);
+        if (cursor) url.searchParams.set("cursor", cursor);
+        const res = await fetch(url.pathname + url.search, {
           cache: "no-store",
           headers: { "Cache-Control": "no-store" },
         });
-        const json = (await res.json()) as { activities?: ActivityItem[] };
-        setActivities(json.activities || []);
+        const json = (await res.json()) as { activities?: ActivityItem[]; hasMore?: boolean; nextCursor?: string };
+        setActivities((current) => cursor ? [...current, ...(json.activities || [])] : (json.activities || []));
+        setHasMore(Boolean(json.hasMore));
+        setNextCursor(json.nextCursor ?? null);
       }
       onActivitySeen?.();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to load activity");
     } finally {
       setLoading(false);
+      setLoadingMore(false);
     }
   }, [publicationToken, isOwner, onActivitySeen]);
 
@@ -95,7 +106,7 @@ export default function SharedLinkActivityFeed({ publicationToken, publicationId
   if (error) {
     return (
       <div data-testid="activity-error" className="rounded-xs p-2 text-[10px] text-warning">
-        {error} <Button variant="ghost" size="sm" onClick={load} className="h-5 px-1 py-0 text-[9px] underline">Retry</Button>
+        {error} <Button variant="ghost" size="sm" onClick={() => load()} className="h-5 px-1 py-0 text-[9px] underline">Retry</Button>
       </div>
     );
   }
@@ -104,7 +115,7 @@ export default function SharedLinkActivityFeed({ publicationToken, publicationId
     <div data-testid="activity-feed" className="rounded-xs text-[10px] text-ink">
       <div className="mb-2 flex items-center justify-between text-[9px] text-tertiary">
         <span>Activity</span>
-        <Button type="button" variant="ghost" size="sm" onClick={load} className="h-5 px-1.5 py-0 text-[9px]">Refresh</Button>
+        <Button type="button" variant="ghost" size="sm" onClick={() => load()} className="h-5 px-1.5 py-0 text-[9px]">Refresh</Button>
       </div>
       {activities.length === 0 ? (
         <p className="text-tertiary">No activity yet.</p>
@@ -124,6 +135,11 @@ export default function SharedLinkActivityFeed({ publicationToken, publicationId
           ))}
         </ul>
       )}
+      {hasMore && nextCursor ? (
+        <Button type="button" variant="ghost" size="sm" onClick={() => load(nextCursor)} disabled={loadingMore} className="mt-2 h-6 px-1.5 py-0 text-[9px]">
+          {loadingMore ? "Loading…" : "Load older activity"}
+        </Button>
+      ) : null}
       <p className="mt-2 text-[8px] text-tertiary">Live updates via Realtime (owner).</p>
     </div>
   );

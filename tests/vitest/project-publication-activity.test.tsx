@@ -90,6 +90,7 @@ type QueryResultMock = {
   limit: ReturnType<typeof vi.fn>;
   maybeSingle: ReturnType<typeof vi.fn>;
   in: ReturnType<typeof vi.fn>;
+  or: ReturnType<typeof vi.fn>;
 };
 
 function createQueryResult(data: unknown, error: Error | null = null) {
@@ -98,6 +99,7 @@ function createQueryResult(data: unknown, error: Error | null = null) {
   query.eq = vi.fn(() => query);
   query.order = vi.fn(() => query);
   query.in = vi.fn(() => query);
+  query.or = vi.fn(() => query);
   query.limit = vi.fn(async () => ({ data, error }));
   query.maybeSingle = vi.fn(async () => ({ data, error }));
   return query;
@@ -130,6 +132,16 @@ function createActivityRouteSupabaseMock() {
             id: "11111111-1111-4111-8111-111111111111",
             created_at: "2026-05-28T10:00:00Z",
             body: "Looks good",
+            is_internal: false,
+            author_email: "recipient@example.com",
+            recipient_id: "recipient-1",
+            estimate_id: "est-1",
+            row_id: "row-1",
+          },
+          {
+            id: "11111111-1111-4111-8111-111111111110",
+            created_at: "2026-05-28T10:00:00Z",
+            body: "Duplicate timestamp comment",
             is_internal: false,
             author_email: "recipient@example.com",
             recipient_id: "recipient-1",
@@ -218,6 +230,17 @@ function createPublicationActionsSupabaseMock() {
             id: "c1",
             created_at: "2026-05-28T10:00:00Z",
             body: "Looks good",
+            is_internal: false,
+            author_email: "recipient@example.com",
+            author_name: null,
+            recipient_id: "recipient-1",
+            estimate_id: "est-1",
+            row_id: "row-1",
+          },
+          {
+            id: "c0",
+            created_at: "2026-05-28T10:00:00Z",
+            body: "Duplicate timestamp comment",
             is_internal: false,
             author_email: "recipient@example.com",
             author_name: null,
@@ -418,6 +441,21 @@ describe("P8 — Shared Link Activity Feed & Notifications (red tests written FI
       expect(json.activities.every((activity: { title?: string }) => activity.title && !activity.title.includes("EVENT"))).toBe(true);
     });
 
+
+    it("supports stable composite cursor pagination without raw cursor fields", async () => {
+      const res = await GET(new Request("http://localhost/api/share/client-pub-token-123/activity?limit=2"), params());
+      expect(res.status).toBe(200);
+      const firstPage = await res.json();
+      expect(firstPage.activities).toHaveLength(2);
+      expect(firstPage.hasMore).toBe(true);
+      expect(firstPage.nextCursor).toEqual(expect.any(String));
+      expect(JSON.stringify(firstPage)).not.toContain("created_at");
+
+      const secondPage = await GET(new Request(`http://localhost/api/share/client-pub-token-123/activity?limit=2&cursor=${encodeURIComponent(firstPage.nextCursor)}`), params());
+      expect(secondPage.status).toBe(200);
+      expect((await secondPage.json()).activities.length).toBeGreaterThan(0);
+    });
+
     it("returns full activity (including internal) when owner/manager context via session or server action path", async () => {
       mocks.verifySharedLinkSessionCookieValue.mockReturnValue(true);
       const parsableSession = "shared-link-session-v1:eyJyZWNpcGllbnRJZCI6InJlY2lwLTEyMyIsInB1YmxpY2F0aW9uSWQiOiJwdWIxIiwic25hcHNob3RWZXJzaW9uIjoiMSJ9:dummy";
@@ -441,7 +479,12 @@ describe("P8 — Shared Link Activity Feed & Notifications (red tests written FI
     });
 
     it("supports pagination cursor and filters for manager modal", async () => {
-      const result = await loadSharedLinkActivity("client-pub-token-123", { limit: 20, cursor: "2026-05-28T09:00:00Z" });
+      const firstPage = await loadSharedLinkActivity("client-pub-token-123", { limit: 2 });
+      expect(firstPage.activities).toHaveLength(2);
+      expect(firstPage.hasMore).toBe(true);
+      expect(firstPage.nextCursor).toEqual(expect.any(String));
+
+      const result = await loadSharedLinkActivity("client-pub-token-123", { limit: 20, cursor: firstPage.nextCursor });
       expect(result).toBeDefined();
     });
   });

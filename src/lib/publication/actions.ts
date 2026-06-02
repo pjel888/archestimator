@@ -21,7 +21,7 @@ import type { Database, Json, Tables } from "@/lib/supabase/types";
 import { readEmailDeliveryConfig, sendEmail } from "@/lib/email/resend-client";
 import { normalizeEstimateTreeNodeKind } from "@/lib/estimates/tree-hierarchy";
 import { composeSharedLinkActivity, type ActivityViewModel, type SharedLinkActivityInput } from "@/lib/activity";
-import { createSharedLinkTargetLabelMap, readSharedLinkRecipientDisplayName, resolveSharedLinkTargetLabel } from "@/lib/publication/activity-helpers";
+import { compareSharedLinkActivityDesc, createSharedLinkTargetLabelMap, decodeSharedLinkActivityCursor, encodeSharedLinkActivityCursor, isBeforeSharedLinkActivityCursor, readSharedLinkRecipientDisplayName, resolveSharedLinkTargetLabel, sharedLinkActivityCursorFilter } from "@/lib/publication/activity-helpers";
 
 type PublicationActionResult = {
   ok: boolean;
@@ -1093,6 +1093,7 @@ export type ActivityItem = ActivityViewModel;
 type LoadActivityResult = {
   activities: ActivityItem[];
   hasMore: boolean;
+  nextCursor?: string;
 };
 
 // In-memory rate limiter for digest emails (MVP; per-process, resets on restart; production would use DB row or Redis)
@@ -1159,28 +1160,32 @@ export async function loadSharedLinkActivity(
   await assertProjectPublicationManager(pub.project_id);
 
   const pubId = pub.id;
-  const cursor = opts.cursor ? new Date(opts.cursor) : null;
+  const cursor = decodeSharedLinkActivityCursor(opts.cursor);
+  const cursorFilter = sharedLinkActivityCursorFilter(cursor);
 
   // Parallel loads (additive, service role bypasses RLS for owner-verified path)
+  let commentsQuery = admin
+    .from("shared_link_comments")
+    .select("id, created_at, body, is_internal, author_email, author_name, recipient_id, estimate_id, row_id")
+    .eq("publication_id", pubId);
+  let responsesQuery = admin
+    .from("shared_link_responses")
+    .select("id, created_at, decision, note, recipient_id")
+    .eq("publication_id", pubId);
+  let eventsQuery = admin
+    .from("shared_link_events")
+    .select("id, created_at, event_type, metadata_json, recipient_id")
+    .eq("publication_id", pubId);
+  if (cursorFilter) {
+    commentsQuery = commentsQuery.or(cursorFilter);
+    responsesQuery = responsesQuery.or(cursorFilter);
+    eventsQuery = eventsQuery.or(cursorFilter);
+  }
+
   const [commentsRes, responsesRes, eventsRes] = await Promise.all([
-    admin
-      .from("shared_link_comments")
-      .select("id, created_at, body, is_internal, author_email, author_name, recipient_id, estimate_id, row_id")
-      .eq("publication_id", pubId)
-      .order("created_at", { ascending: false })
-      .limit(limit + 1),
-    admin
-      .from("shared_link_responses")
-      .select("id, created_at, decision, note, recipient_id")
-      .eq("publication_id", pubId)
-      .order("created_at", { ascending: false })
-      .limit(limit + 1),
-    admin
-      .from("shared_link_events")
-      .select("id, created_at, event_type, metadata_json, recipient_id")
-      .eq("publication_id", pubId)
-      .order("created_at", { ascending: false })
-      .limit(limit + 1),
+    commentsQuery.order("created_at", { ascending: false }).order("id", { ascending: false }).limit(limit + 1),
+    responsesQuery.order("created_at", { ascending: false }).order("id", { ascending: false }).limit(limit + 1),
+    eventsQuery.order("created_at", { ascending: false }).order("id", { ascending: false }).limit(limit + 1),
   ]);
 
   const recipientIds = new Set<string>();
@@ -1239,17 +1244,13 @@ export async function loadSharedLinkActivity(
   });
 
   // Sort + cursor filter + limit
-  raw.sort((a, b) => (a.created_at < b.created_at ? 1 : -1));
-  let filtered = raw;
-  if (cursor) {
-    filtered = filtered.filter((a) => new Date(a.created_at) < cursor);
-  }
+  const filtered = raw.filter((activity) => isBeforeSharedLinkActivityCursor(activity, cursor)).sort(compareSharedLinkActivityDesc);
+  const pageActivities = filtered.slice(0, limit);
   const hasMore = filtered.length > limit;
-  const activities = filtered
-    .slice(0, limit)
-    .map((activity) => composeSharedLinkActivity(activity, { audience: "owner", visibility: activity.is_internal ? "internal" : "owner" }));
+  const activities = pageActivities.map((activity) => composeSharedLinkActivity(activity, { audience: "owner", visibility: activity.is_internal ? "internal" : "owner" }));
+  const nextCursor = hasMore && pageActivities.length ? encodeSharedLinkActivityCursor(pageActivities[pageActivities.length - 1]!) : undefined;
 
-  return { activities, hasMore };
+  return { activities, hasMore, ...(nextCursor ? { nextCursor } : {}) };
 }
 
 // Internal trigger for P8 email digest (called from comment/decision routes after successful insert)
