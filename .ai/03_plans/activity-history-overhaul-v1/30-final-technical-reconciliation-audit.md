@@ -1,7 +1,14 @@
-# 30 — Final Technical Reconciliation Audit
+# 30 — Final Technical Reconciliation Audit (Fourth Pass)
 
 **Date:** 2026-06-02
-**Status:** Fourth-pass final
+**Status:** Fourth pass — **Superseded by docs 34–36 for final reconciliation**
+
+**⚠️ Fifth-pass note (2026-06-02):** This document captured 15 contradictions resolved in the fourth pass. It is retained for audit trail. The fifth-pass (final) reconciliation is in:
+- `34-final-preimplementation-audit.md` — 12 additional findings including HEAD staleness, event count error, side effects gap, approval statuses
+- `35-code-truth-map.md` — Complete code-to-docs truth mapping for 20+ features
+- `36-access-telemetry-side-effects-audit.md` — Definitive side effects analysis and helper strategy
+
+**Current HEAD:** `da35386` (was `405d6ac` at fourth-pass time)
 **Branch:** `main`
 **Current HEAD:** `405d6ac`
 **Purpose:** Resolve contradictions and feasibility issues across all 27 planning documents by verifying claims against actual source code and database schemas.
