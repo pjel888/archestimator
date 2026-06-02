@@ -1,0 +1,65 @@
+# Provider State Refresh at b33f56d - 2026-06-02
+
+Status: read-only provider evidence refresh; external closed beta remains **NO-GO**.
+
+## Scope
+
+Read-only Vercel and linked Supabase checks only. No deploy, promote, alias, rollback, env, migration, repair, policy, storage, DNS, auth-provider, Resend, production data, or legal/manual QA state was changed.
+
+## Git / Deployment Anchor
+
+- Local `main` / `origin/main`: `b33f56d`
+- Latest Vercel preview inspected: `archestimator-bk9xr4ea0-philipjonlewis-projects.vercel.app`
+- Vercel deployment id: `dpl_6psx8VnKmAgcU17jHk9xVSpavTi4`
+- Vercel deployment commit: `b33f56df19cc3d74540fb71369c3da1461ffb61b`
+- Vercel deployment status: Ready
+- Vercel branch alias: `archestimator-git-main-philipjonlewis-projects.vercel.app`
+
+## Commands
+
+```bash
+vercel list --format json --non-interactive
+vercel env ls --non-interactive
+vercel project ls --non-interactive
+vercel inspect archestimator-bk9xr4ea0-philipjonlewis-projects.vercel.app --non-interactive
+vercel curl https://archestimator-bk9xr4ea0-philipjonlewis-projects.vercel.app/api/health
+vercel curl https://archestimator-git-main-philipjonlewis-projects.vercel.app/api/health
+curl -I -L --max-time 15 https://archestimator-bk9xr4ea0-philipjonlewis-projects.vercel.app/api/health
+curl -I -L --max-time 15 https://www.archestimator.com/api/health
+curl -I -L --max-time 15 https://archestimator.com/api/health
+supabase migration list --linked
+```
+
+## Vercel Result
+
+- `vercel list` initially saw the latest `b33f56d` deployment building, then `vercel inspect` reported it Ready.
+- `vercel env ls --non-interactive` still returned `No Environment Variables found for philipjonlewis-projects/archestimator`.
+- `vercel project ls --non-interactive` listed `archestimator` with latest production URL `https://www.archestimator.com` and Node version `24.x`.
+- Authenticated `vercel curl` returned `{"ok":true,"service":"archestimator"}` for both the latest preview and the branch alias `/api/health`.
+- Plain public `curl -I -L` to the latest preview `/api/health` returned HTTP `401` with Vercel SSO protection headers.
+- `https://www.archestimator.com/api/health` returned HTTP `404`.
+- `https://archestimator.com/api/health` redirected to `www` and then returned HTTP `404`.
+
+## Supabase Result
+
+`supabase migration list --linked` succeeded in this refresh instead of hitting the previous temp-role `ECIRCUITBREAKER`.
+
+The linked migration list still shows the launch-critical local migrations absent on remote:
+
+- `20260601182522`
+- `20260601184343`
+- `20260602005649`
+- `20260602083000`
+- `20260602084500`
+
+The output also still shows other local/remote divergence outside this launch slice, so linked schema remains unsuitable for hosted beta proof until migration/repair strategy is approved and backup/PITR/restore evidence exists.
+
+## Launch Meaning
+
+This refresh improves provider freshness:
+
+- Latest `main` preview for `b33f56d` is Ready.
+- Protected preview and branch-alias health work through `vercel curl`.
+- Supabase migration list is readable again and confirms the five launch migrations are still not applied remotely.
+
+It does not approve launch. Remaining blockers include Vercel env, public preview/custom-domain app health, production promotion/rollback, hosted auth allowlist smoke, linked Supabase backup/PITR and migration/RLS/storage/RPC proof, Resend proof before email workflows, spreadsheet-app compatibility, legal sign-off, monitored support/alerts, and hosted/manual E2E.
