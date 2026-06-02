@@ -15,7 +15,7 @@
 | E-003 | Password gate disclosure screenshot | Ready for engineering action | [screenshot-requirements.md](E-003-password-gate-disclosure/screenshot-requirements.md) |
 | E-004 | DPO / privacy officer designation | Ready for owner action | [dpo-designation-template.md](E-004-dpo-designation/dpo-designation-template.md) |
 | E-005 | NPCRS triage result | Ready for owner action | [npcrs-triage-worksheet.md](E-005-npcrs-triage/npcrs-triage-worksheet.md) |
-| E-006 | DPS inventory | Drafted | [dps-inventory-draft.md](E-006-dps-inventory/dps-inventory-draft.md) |
+| E-006 | DPS inventory | Ready for owner review | [dps-inventory-draft.md](E-006-dps-inventory/dps-inventory-draft.md) |
 | E-007 | DSR process document | Ready for owner review | [dsr-process-ready-for-review.md](E-007-dsr-process/dsr-process-ready-for-review.md) |
 | E-008 | Breach response document | Ready for owner review | [breach-response-ready-for-review.md](E-008-breach-response/breach-response-ready-for-review.md) |
 | E-009 | Vendor DPA review evidence | Ready for owner action | [vendor-dpa-review-worksheet.md](E-009-vendor-dpa-review/vendor-dpa-review-worksheet.md) |
