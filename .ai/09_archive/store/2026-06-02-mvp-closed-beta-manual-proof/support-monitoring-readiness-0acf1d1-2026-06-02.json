@@ -1,0 +1,28 @@
+{
+  "generatedAt": "2026-06-02T10:22:24.196Z",
+  "mode": "support-monitoring-readiness",
+  "proofFlags": {
+    "SUPPORT_MONITORING_INBOX_CONFIRMED": false,
+    "SUPPORT_MONITORING_FEEDBACK_REVIEW_CONFIRMED": false,
+    "SUPPORT_MONITORING_UPTIME_ALERT_CONFIRMED": false,
+    "SUPPORT_MONITORING_ERROR_ALERT_CONFIRMED": false,
+    "SUPPORT_MONITORING_INCIDENT_ESCALATION_CONFIRMED": false
+  },
+  "supportOwner": null,
+  "alertOwner": null,
+  "first24HourReviewOwner": null,
+  "first72HourReviewOwner": null,
+  "missing": [
+    "support inbox monitoring confirmed",
+    "feedback table review confirmed",
+    "uptime alert delivery confirmed",
+    "error alert delivery confirmed",
+    "incident escalation path confirmed",
+    "support owner label",
+    "alert owner label",
+    "first 24-hour review owner label",
+    "first 72-hour review owner label"
+  ],
+  "supportMonitoringReady": false,
+  "note": "Sanitized support monitoring readiness check. It records operator-confirmed proof flags and owner labels only; it does not verify inbox access, alert dashboards, linked feedback rows, hosted auth, or incident delivery by itself."
+}
