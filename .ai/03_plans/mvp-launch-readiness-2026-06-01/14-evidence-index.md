@@ -59,7 +59,7 @@
 - Vercel: latest `main` preview `archestimator-lr6t14h58-philipjonlewis-projects.vercel.app`, deployment `dpl_Fj4vLSMVm9iUqUFxcYe7fjsYmT4G`, status `READY`.
 - Health: `vercel curl` returns app health JSON for the latest preview and branch alias `/api/health`; plain public preview and branch-alias health still return HTTP `401`.
 - Env/custom domains: `vercel env ls --non-interactive` still returns no env vars; custom-domain `/api/health` still returns HTTP `404` for `www` and `archestimator.vercel.app`, with apex redirecting `307` to `www`; custom domains still alias to `archestimator-3ser9ty2w-philipjonlewis-projects.vercel.app`.
-- Supabase: `supabase migration list --linked` succeeds, the repeatable migration parser reads 71 rows, and all five launch migrations remain local-only / missing remotely; the deeper linked SQL readiness command is currently blocked by linked database SASL auth before JSON output, so the parser exits `1` with `linkedSupabaseLaunchReady: false`.
+- Supabase: `supabase migration list --linked` succeeds, the repeatable migration parser reads 71 rows, and all five launch migrations remain local-only / missing remotely. A later Supabase MCP read-only execution of `scripts/sql/linked-supabase-launch-readiness.sql` parsed all readiness categories and reported `linkedSupabaseLaunchReady: false` with 13 total checks / 13 failed rows.
 - Launch meaning: this refresh confirms current `HEAD` has a Ready protected preview, but it does not close Vercel env/public/custom-domain/rollback, hosted auth, linked Supabase migration/RLS/RPC/storage, Resend, spreadsheet-app, legal, support, or hosted/manual E2E gates.
 
 ### Vercel Env Readiness Helper
@@ -121,6 +121,14 @@
 - Current refresh: `SUPABASE_LINKED_READINESS_FILE=/tmp/arch-provider-refresh-4fdf0de/supabase-linked-readiness.txt SUPABASE_LINKED_PROJECT_REF=ebxxqidacheyapmmzavr OUTPUT_FILE=.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/supabase-linked-readiness-4fdf0de-2026-06-02.json bun run launch:check-supabase-linked-readiness` wrote sanitized JSON and exited `1` after the underlying read-only SQL command was stopped during linked database SASL auth retries.
 - Result: no JSON rows parsed; the artifact records `blockedReason: "Supabase linked database SASL authentication failed."`, all readiness categories missing, and `linkedSupabaseLaunchReady: false`.
 - Launch meaning: this makes the deeper linked Supabase SQL readiness proof repeatable, but it does not apply migrations, repair migration history, mutate storage, perform RLS/browser allow-deny checks, prove backup/PITR, or run a restore. Linked Supabase remains **NO-GO**.
+
+### Supabase Linked Readiness MCP Refresh at bc798a9
+
+- Artifact: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/supabase-linked-readiness-mcp-bc798a9-2026-06-02.json`.
+- Scope: read-only Supabase MCP `execute_sql` run of `scripts/sql/linked-supabase-launch-readiness.sql` against project `ebxxqidacheyapmmzavr` / `Archestimator`, status `ACTIVE_HEALTHY`, region `ap-southeast-2`, database version `17.6.1.121`.
+- Result: JSON parsed successfully; `blockedReason` is `null`; `missingCategories` is empty; `linkedSupabaseLaunchReady` is `false`.
+- Failed checks: 13 total / 13 failed. Five launch migrations are missing, `public.closed_beta_allowed_emails` and `public.beta_feedback_submissions` are missing, both private-table anon-select grant checks are `table_missing`, `public.check_closed_beta_access` and `public.unlink_estimate_row_item_from_library_with_history` are missing, and `storage.buckets.component-images:public` is `public`.
+- Launch meaning: this removes the earlier linked SQL parser uncertainty caused by CLI SASL auth failure and replaces it with concrete read-only database evidence. It still does not apply migrations, change grants, mutate storage, prove RLS/browser allow-deny behavior, prove backup/PITR, or run a restore. Linked Supabase remains **NO-GO**.
 
 ### Hosted Auth Route Proof Helper
 
