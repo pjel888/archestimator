@@ -2,6 +2,7 @@
 
 import React, { useState, useCallback, useEffect } from "react";
 import { useSharedLinkSession } from "@/hooks/use-shared-link-session";
+import { createPublicationCsrfHeaders } from "@/lib/publication/client-csrf";
 
 interface Comment {
   id: string;
@@ -81,7 +82,7 @@ export default function SharePageComments({ token }: SharePageCommentsProps) {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            "x-archestimator-csrf": "client-post",
+            ...createPublicationCsrfHeaders(),
           },
           body: JSON.stringify({ body: item.body }),
         });
@@ -133,7 +134,7 @@ export default function SharePageComments({ token }: SharePageCommentsProps) {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            "x-archestimator-csrf": "client-post",
+            ...createPublicationCsrfHeaders(),
           },
           body: JSON.stringify({ body: bodyStr }),
         });

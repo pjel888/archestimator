@@ -1,11 +1,11 @@
 # Activity History Overhaul V1 Execution Ledger
 
-**Last updated:** 2026-06-02 14:20 UTC
+**Last updated:** 2026-06-02 14:32 UTC
 **Branch:** `feat/activity-history-overhaul-v1`
 **Starting commit:** `3b896d8`
 **Active plan path:** `.ai/03_plans/activity-history-overhaul-v1/`
 **Archive target after completion:** `.ai/09_archive/store/activity-history-overhaul-v1/`
-**Status:** `ACTIVE — Milestone 0 complete; PR 2 next`
+**Status:** `ACTIVE — Milestone 1 complete; PR 3 next`
 
 ## Scope
 
@@ -22,7 +22,7 @@ Implement the repo-local Activity History Overhaul V1 plan pack through PR 2–P
 | Milestone | Status | Evidence / validation | Commit SHA | Notes |
 |---|---|---|---|---|
 | 0 — Orientation, safety, roadmap execution start | `COMPLETE / PUSHED` | `pwd`; `git rev-parse --show-toplevel`; `git branch --show-current`; `git worktree list`; `git status --short`; `git log --oneline --decorate -n 20`; `git remote -v`; `npx gitnexus analyze`; required docs intake; `git diff --check`; `bun run type-check`; `bun run lint`; `bun run test`; `bun run test:dom` | `30697fe` | Product code intentionally untouched. `bun install` repaired missing local dependencies; lint passed with 14 existing warnings. Pushed to `origin/feat/activity-history-overhaul-v1`. |
-| 1 — PR 2 preflight correctness cleanup | `PENDING` | Pending | Pending | Fix row filter, Realtime scoping, GET same-origin validation, client CSRF token generation. |
+| 1 — PR 2 preflight correctness cleanup | `COMPLETE / READY TO PUSH` | RED targeted tests failed for missing PR2 behavior; GREEN targeted `bun run test:dom -- tests/vitest/publication-client-csrf.test.ts tests/vitest/project-publication-activity.test.tsx tests/vitest/estimate-sheet-version-control-ui.test.tsx tests/vitest/project-publication-comments.test.tsx tests/vitest/project-publication-decision.test.tsx tests/vitest/project-publication-security.test.ts`; full pre-commit `git diff --check`; `bun run type-check`; `bun run lint`; `bun run test`; `bun run test:dom` | Pending post-push ledger correction | Fixed row-added filters, scoped Realtime by publication id, replaced GET POST-CSRF check with same-origin validation, kept raw `event_type` internal, and replaced live hardcoded CSRF fetch paths with generated cookie/header pairs. |
 | 2 — PR 3 composer module and tests | `PENDING` | Pending | Pending | Add pure `src/lib/activity/` composer and security/copy tests. |
 | 3 — PR 4 estimate Activity UI integration | `PENDING` | Pending | Pending | Estimate history uses composer output without losing grouping/filtering/pagination. |
 | 4 — PR 5 shared-link Activity API integration | `PENDING` | Pending | Pending | Public API returns client-safe `ActivityViewModel[]`. |
@@ -45,6 +45,15 @@ Implement the repo-local Activity History Overhaul V1 plan pack through PR 2–P
 | 2026-06-02 14:19 UTC | `bun run test` | PASS | 4 unit tests passed. |
 | 2026-06-02 14:19 UTC | `bun run test:dom` | PASS | 155 files passed; 1146 passed / 2 skipped. |
 | 2026-06-02 14:20 UTC | `git push -u origin feat/activity-history-overhaul-v1` | PASS | Milestone 0 commit `30697fe` pushed. |
+
+| 2026-06-02 14:31 UTC | `bun run test:dom -- tests/vitest/publication-client-csrf.test.ts tests/vitest/project-publication-activity.test.tsx tests/vitest/estimate-sheet-version-control-ui.test.tsx tests/vitest/project-publication-comments.test.tsx tests/vitest/project-publication-decision.test.tsx tests/vitest/project-publication-security.test.ts` | PASS | Milestone 1 targeted PR2 regression suite: 6 files, 81 tests. |
+| 2026-06-02 14:31 UTC | `git diff --check` | PASS | Milestone 1 full pre-commit whitespace check. |
+| 2026-06-02 14:31 UTC | `bun run type-check` | PASS | Milestone 1 full pre-commit type check. |
+| 2026-06-02 14:31 UTC | `bun run lint` | PASS | 0 errors, 14 existing warnings. |
+| 2026-06-02 14:31 UTC | `bun run test` | PASS | 4 unit tests passed. |
+| 2026-06-02 14:31 UTC | `bun run test:dom` | PASS | 156 files passed; 1155 passed / 2 skipped. |
+
+| 2026-06-02 14:32 UTC | `git commit fix(activity): complete preflight correctness cleanup` | PASS | Milestone 1 commit created; exact self-referential SHA recorded in the post-push ledger correction. |
 
 ## Roadmap references to keep current
 

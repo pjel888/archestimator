@@ -7,6 +7,7 @@ import { loadSharedLinkActivity, type ActivityItem } from "@/lib/publication/act
 
 type SharedLinkActivityFeedProps = {
   publicationToken: string;
+  publicationId?: string | null;
   isOwner?: boolean;
   onActivitySeen?: () => void;
 };
@@ -19,7 +20,7 @@ function getBrowserSupabase() {
   return createClient(url, anon, { auth: { persistSession: false, autoRefreshToken: false } });
 }
 
-export default function SharedLinkActivityFeed({ publicationToken, isOwner = false, onActivitySeen }: SharedLinkActivityFeedProps) {
+export default function SharedLinkActivityFeed({ publicationToken, publicationId = null, isOwner = false, onActivitySeen }: SharedLinkActivityFeedProps) {
   const [activities, setActivities] = useState<ActivityItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -58,26 +59,26 @@ export default function SharedLinkActivityFeed({ publicationToken, isOwner = fal
 
   // Supabase Realtime subscription (owner only, for live updates on comment/decision/event)
   useEffect(() => {
-    if (!isOwner) return;
+    if (!isOwner || !publicationId) return;
     const supabase = getBrowserSupabase();
     if (!supabase) return;
     const changeEvent = "postgres_changes" as const;
 
     const channel = supabase
-      .channel(`shared-link-activity-${publicationToken}`)
+      .channel(`shared-link-activity-${publicationId}`)
       .on(
         changeEvent,
-        { event: "INSERT", schema: "public", table: "shared_link_comments", filter: `publication_id=eq.${/* resolved in action */ ""}` },
+        { event: "INSERT", schema: "public", table: "shared_link_comments", filter: `publication_id=eq.${publicationId}` },
         () => load()
       )
       .on(
         changeEvent,
-        { event: "INSERT", schema: "public", table: "shared_link_responses", filter: `publication_id=eq.${/* */ ""}` },
+        { event: "INSERT", schema: "public", table: "shared_link_responses", filter: `publication_id=eq.${publicationId}` },
         () => load()
       )
       .on(
         changeEvent,
-        { event: "INSERT", schema: "public", table: "shared_link_events", filter: `publication_id=eq.${/* */ ""}` },
+        { event: "INSERT", schema: "public", table: "shared_link_events", filter: `publication_id=eq.${publicationId}` },
         () => load()
       )
       .subscribe();
@@ -85,7 +86,7 @@ export default function SharedLinkActivityFeed({ publicationToken, isOwner = fal
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [isOwner, publicationToken, load]);
+  }, [isOwner, publicationId, load]);
 
   if (loading) {
     return <div data-testid="activity-loading" className="rounded-xs p-2 text-[10px] text-tertiary">Loading activity…</div>;

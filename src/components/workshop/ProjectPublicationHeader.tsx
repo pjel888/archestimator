@@ -416,7 +416,7 @@ export function ProjectPublicationHeader({ summary, projectEstimateSheets = [] }
                 <div className="space-y-2">
                   <h3 className="text-[9px] font-medium uppercase leading-3 tracking-normal text-tertiary">Shared link activity</h3>
                   <p className="text-[9px] text-tertiary">Comments, decisions, and events from recipients (internal notes visible to you only).</p>
-                  <SharedLinkActivityFeed publicationToken={summary?.clientLinkPath?.split("/").pop() || ""} isOwner={true} onActivitySeen={markSharedLinkActivitySeen} />
+                  <SharedLinkActivityFeed publicationToken={summary?.clientLinkPath?.split("/").pop() || ""} publicationId={summary?.publicationId ?? null} isOwner={true} onActivitySeen={markSharedLinkActivitySeen} />
                 </div>
               )}
 

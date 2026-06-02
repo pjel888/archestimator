@@ -984,6 +984,29 @@ describe("estimate sheet version control UI", () => {
     }));
   });
 
+  it("offers real row-added filter values instead of the removed legacy inserted-row event", async () => {
+    const user = userEvent.setup();
+    renderEstimateSheet();
+
+    await user.click(screen.getByRole("button", { name: "Activity" }));
+    const sheetDialog = await screen.findByRole("dialog", { name: "Activity History" });
+    await user.click(within(sheetDialog).getByRole("button", { name: "Filter activity" }));
+    const eventTypeSelect = within(sheetDialog).getByLabelText("Filter activity by event type") as HTMLSelectElement;
+
+    expect(within(eventTypeSelect).queryByRole("option", { name: "Inserted rows" })).not.toBeInTheDocument();
+    expect(within(eventTypeSelect).queryByRole("option", { name: "Added rows" })).toHaveValue("row_added");
+    expect(within(eventTypeSelect).queryByRole("option", { name: "Added blank rows" })).toHaveValue("row_blank_added");
+
+    await user.selectOptions(eventTypeSelect, "row_blank_added");
+
+    await waitFor(() => {
+      expect(actionMocks.fetchEstimateSheetVersionControl).toHaveBeenLastCalledWith(expect.objectContaining({
+        eventTypes: ["row_blank_added"],
+        scope: "sheet",
+      }));
+    });
+  });
+
   it("passes sheet activity filters into the history read action", async () => {
     const user = userEvent.setup();
     renderEstimateSheet();
@@ -1051,7 +1074,7 @@ describe("estimate sheet version control UI", () => {
         },
         {
           id: "group-event-2",
-          eventType: "row_inserted",
+          eventType: "row_added",
           eventSource: "server_action",
           createdAt: "2026-05-24T02:59:00.000Z",
           actorUserId: null,

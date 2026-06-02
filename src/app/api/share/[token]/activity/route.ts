@@ -1,5 +1,5 @@
 import {
-  assertSameOriginPublicPost,
+  assertSameOrigin,
   createSharedLinkSessionCookieName,
   verifySharedLinkSessionCookieValue,
   hashPublicationToken,
@@ -57,7 +57,7 @@ function readRecipientIdFromSession(value: string | undefined) {
 }
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ token: string }> }) {
-  const sameOrigin = assertSameOriginPublicPost(request as unknown as Request);
+  const sameOrigin = assertSameOrigin(request as unknown as Request);
   if (!sameOrigin.ok) {
     return Response.json({ error: sameOrigin.message }, { status: sameOrigin.status, headers: { "Cache-Control": "no-store" } });
   }
@@ -124,6 +124,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       .limit(50),
     supabase
       .from("shared_link_events")
+      // PR 5 composer integration consumes event_type internally; raw event_type must never be returned in public JSON.
       .select("id, created_at, event_type, metadata_json")
       .eq("publication_id", pubId)
       .order("created_at", { ascending: false })

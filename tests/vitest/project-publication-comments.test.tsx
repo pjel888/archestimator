@@ -146,6 +146,39 @@ describe("P6 — Shared Link Comments (red tests written FIRST before any impl)"
   });
 
   describe("SharePageComments component (flat list, composer, optimistic, errors, aria-live)", () => {
+    it("normal comment POSTs create a fresh matching CSRF header/cookie pair", async () => {
+      mocks.useSharedLinkSession.mockReturnValue({ isValid: true });
+      const user = userEvent.setup();
+      let lastCookie = "";
+      Object.defineProperty(document, "cookie", {
+        configurable: true,
+        get: () => lastCookie,
+        set: (value: string) => {
+          lastCookie = value;
+        },
+      });
+      // @ts-expect-error fetch mock
+      global.fetch = vi.fn().mockResolvedValue({ ok: true, status: 201, json: async () => ({ id: "c1" }) });
+
+      render(<SharePageComments token="t1" publicationId="pub1" />);
+      await user.type(screen.getByPlaceholderText(/add a comment/i), "fresh csrf");
+      await user.click(screen.getByRole("button", { name: /post|send|comment/i }));
+
+      await waitFor(() => expect(global.fetch).toHaveBeenCalled());
+      const firstCall = vi.mocked(global.fetch).mock.calls[0]?.[1] as RequestInit;
+      const firstHeaders = firstCall.headers as Record<string, string>;
+      expect(firstHeaders["x-archestimator-csrf"]).toEqual(expect.any(String));
+      expect(firstHeaders["x-archestimator-csrf"]).not.toBe(["client", "post"].join("-"));
+      expect(lastCookie).toContain(`ae_publication_csrf=${firstHeaders["x-archestimator-csrf"]}`);
+      expect(lastCookie).toContain("SameSite=Lax");
+      expect(lastCookie).toContain("Max-Age=3600");
+    });
+
+    it("offline queue flush uses the same shared CSRF helper instead of a hardcoded token", () => {
+      expect(SharePageComments.toString()).toContain("createPublicationCsrfHeaders");
+      expect(SharePageComments.toString()).not.toContain(["client", "post"].join("-"));
+    });
+
     it("renders flat chronological list + composer textarea + character counter (1000)", () => {
       const { container } = render(<SharePageComments token="t1" publicationId="pub1" />);
       expect(screen.getByRole("region", { name: /comments/i })).toBeInTheDocument();
