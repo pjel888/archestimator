@@ -432,6 +432,7 @@ describe("closed beta readiness docs", () => {
     expect(evidenceIndex).toContain("### Resend Email Readiness Evidence");
     expect(evidenceIndex).toContain("resend-email-readiness-blocked-2026-06-02.md");
     expect(evidenceIndex).toContain("resend-readiness-b0e04f4-2026-06-02.json");
+    expect(evidenceIndex).toContain("resend-readiness-eb0aef5-2026-06-02.json");
     expect(evidenceIndex).toContain("`bun run launch:check-resend-readiness`");
     expect(evidenceIndex).toContain("Vercel env proof: `vercel env ls --non-interactive` returned `No Environment Variables found`");
     expect(evidenceIndex).toContain("vercel-env-readiness-6aaa0b7-2026-06-02.json");
@@ -589,6 +590,7 @@ describe("closed beta readiness docs", () => {
     expect(manualProofMatrix).toContain("older Ready coming-soon production deployment where `/api/health` returns `404`");
     expect(manualProofMatrix).toContain("resend-email-readiness-blocked-2026-06-02.md");
     expect(manualProofMatrix).toContain("resend-readiness-b0e04f4-2026-06-02.json");
+    expect(manualProofMatrix).toContain("resend-readiness-eb0aef5-2026-06-02.json");
     expect(manualProofMatrix).toContain("Vercel env list empty");
     expect(manualProofMatrix).toContain("vercel-env-readiness-6aaa0b7-2026-06-02.json");
     expect(manualProofMatrix).toContain("still discovers zero env names");
@@ -751,6 +753,7 @@ describe("closed beta readiness docs", () => {
     expect(artifactFilenames).toContain("vercel-health-readiness-02f3a9c-2026-06-02.json");
     expect(artifactFilenames).toContain("vercel-production-readiness-4fdf0de-2026-06-02.json");
     expect(artifactFilenames).toContain("vercel-production-readiness-9e253e7-2026-06-02.json");
+    expect(artifactFilenames).toContain("resend-readiness-eb0aef5-2026-06-02.json");
     expect(artifactFilenames).toContain("provider-state-refresh-b33f56d-2026-06-02.md");
     expect(artifactFilenames).toContain("provider-state-refresh-d78686f-2026-06-02.md");
     expect(artifactFilenames).toContain("provider-state-refresh-4fdf0de-2026-06-02.md");
@@ -818,7 +821,8 @@ describe("closed beta readiness docs", () => {
     expect(goalCompletionAudit).toContain("local platform-admin beta-users queue and feedback review path depend on unapplied migrations");
     expect(goalCompletionAudit).toContain("Current provider refresh at `4fdf0de` proves the latest pushed `main` preview is Ready");
     expect(goalCompletionAudit).toContain("Resend email readiness evidence");
-    expect(goalCompletionAudit).toContain("the repeatable helper reports only `RESEND_API_KEY` present locally");
+    expect(goalCompletionAudit).toContain("resend-readiness-eb0aef5-2026-06-02.json");
+    expect(goalCompletionAudit).toContain("the repeatable helper still reports only `RESEND_API_KEY` present locally");
     expect(goalCompletionAudit).toContain("`resendReady: false`");
     expect(goalCompletionAudit).toContain("shared-link recipient entry/send/resend controls are disabled while server email readiness is false");
     expect(goalCompletionAudit).toContain("unconfigured production-like sends now fail closed instead of recording fake success");
@@ -916,6 +920,7 @@ describe("closed beta readiness docs", () => {
     expect(currentState).toContain("vercel-env-readiness-6aaa0b7-2026-06-02.json");
     expect(currentState).toContain("Resend email readiness evidence");
     expect(currentState).toContain("resend-readiness-b0e04f4-2026-06-02.json");
+    expect(currentState).toContain("resend-readiness-eb0aef5-2026-06-02.json");
     expect(currentState).toContain("all four Resend names missing from Vercel");
     expect(currentState).toContain("shared-link recipient entry/send/resend controls disable while server email readiness is false");
     expect(currentState).toContain("unconfigured production-like sends now fail closed instead of fake-succeeding");
@@ -984,7 +989,7 @@ describe("closed beta readiness docs", () => {
     expect(knownIssues).toContain("linked allowlist/admin migration apply and hosted platform-admin allow/deny/revoke proof remain missing");
     expect(knownIssues).toContain("`component-images` public");
     expect(knownIssues).toContain("Resend email readiness evidence on 2026-06-02 is negative/blocked");
-    expect(knownIssues).toContain("`resend-readiness-b0e04f4-2026-06-02.json` reports only `RESEND_API_KEY` present locally");
+    expect(knownIssues).toContain("`resend-readiness-b0e04f4-2026-06-02.json` and latest `resend-readiness-eb0aef5-2026-06-02.json` report only `RESEND_API_KEY` present locally");
     expect(knownIssues).toContain("`resendReady: false`");
     expect(knownIssues).toContain("shared-link recipient entry/send/resend controls disable while server email readiness is false");
     expect(knownIssues).toContain("unconfigured production-like sends now fail closed instead of fake-succeeding");
