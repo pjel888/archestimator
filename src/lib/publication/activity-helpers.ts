@@ -119,3 +119,19 @@ export function sharedLinkActivityCursorFilter(cursor: SharedLinkActivityCursor 
   const id = cursor.id.replaceAll('"', "");
   return `created_at.lt.${createdAt},and(created_at.eq.${createdAt},id.lt.${id})`;
 }
+
+export type ProjectPublicationAccessTelemetryMetricInput = {
+  accessStage?: string | null;
+  bot?: boolean | null;
+};
+
+export function summarizeProjectPublicationAccessTelemetryMetrics(events: ProjectPublicationAccessTelemetryMetricInput[]) {
+  const byStage: Record<string, number> = {};
+  let bot = 0;
+  for (const event of events) {
+    const stage = event.accessStage?.trim() || "unknown";
+    byStage[stage] = (byStage[stage] ?? 0) + 1;
+    if (event.bot) bot += 1;
+  }
+  return { total: events.length, bot, human: events.length - bot, byStage };
+}

@@ -71,6 +71,7 @@ vi.mock("@supabase/supabase-js", () => ({
 import { GET } from "@/app/api/share/[token]/activity/route";
 import { loadSharedLinkActivity, maybeTriggerSharedLinkActivityDigest } from "@/lib/publication/actions";
 import SharedLinkActivityFeed from "@/components/share/SharedLinkActivityFeed";
+import { summarizeProjectPublicationAccessTelemetryMetrics } from "@/lib/publication/activity-helpers";
 
 function params(token = "client-pub-token-123") {
   return { params: Promise.resolve({ token }) };
@@ -174,6 +175,34 @@ function createActivityRouteSupabaseMock() {
       }
       if (table === "shared_link_recipients") {
         return createQueryResult([{ id: "recipient-1", display_name: "Maria" }]);
+      }
+      if (table === "project_publication_events") {
+        return createQueryResult([
+          {
+            id: "access-2",
+            created_at: "2026-05-28T12:30:00Z",
+            event_type: "open",
+            metadata_json: { access_stage: "page_visit", eventType: "open", recipient_known: true, bot: false, device_type: "desktop", browser_family: "Chrome", os_family: "macOS", country: "PH" },
+            ip_hash: "ip-secret",
+            user_agent_hash: "ua-secret",
+          },
+          {
+            id: "access-2-duplicate",
+            created_at: "2026-05-28T12:30:00Z",
+            event_type: "open",
+            metadata_json: { access_stage: "page_visit", eventType: "open", recipient_known: true, bot: false, device_type: "desktop", browser_family: "Chrome", os_family: "macOS", country: "PH" },
+            ip_hash: "ip-secret",
+            user_agent_hash: "ua-secret",
+          },
+          {
+            id: "access-bot",
+            created_at: "2026-05-28T12:31:00Z",
+            event_type: "open",
+            metadata_json: { access_stage: "page_visit", eventType: "open", recipient_known: false, bot: true, device_type: "bot" },
+            ip_hash: "bot-ip-secret",
+            user_agent_hash: "bot-ua-secret",
+          },
+        ]);
       }
       return createQueryResult([]);
     }),
@@ -285,6 +314,34 @@ function createPublicationActionsSupabaseMock() {
       }
       if (table === "shared_link_recipients") {
         return createQueryResult([{ id: "recipient-1", display_name: "Maria" }]);
+      }
+      if (table === "project_publication_events") {
+        return createQueryResult([
+          {
+            id: "access-2",
+            created_at: "2026-05-28T12:30:00Z",
+            event_type: "open",
+            metadata_json: { access_stage: "page_visit", eventType: "open", recipient_known: true, bot: false, device_type: "desktop", browser_family: "Chrome", os_family: "macOS", country: "PH" },
+            ip_hash: "ip-secret",
+            user_agent_hash: "ua-secret",
+          },
+          {
+            id: "access-2-duplicate",
+            created_at: "2026-05-28T12:30:00Z",
+            event_type: "open",
+            metadata_json: { access_stage: "page_visit", eventType: "open", recipient_known: true, bot: false, device_type: "desktop", browser_family: "Chrome", os_family: "macOS", country: "PH" },
+            ip_hash: "ip-secret",
+            user_agent_hash: "ua-secret",
+          },
+          {
+            id: "access-bot",
+            created_at: "2026-05-28T12:31:00Z",
+            event_type: "open",
+            metadata_json: { access_stage: "page_visit", eventType: "open", recipient_known: false, bot: true, device_type: "bot" },
+            ip_hash: "bot-ip-secret",
+            user_agent_hash: "bot-ua-secret",
+          },
+        ]);
       }
       return createQueryResult([]);
     }),
@@ -486,6 +543,36 @@ describe("P8 — Shared Link Activity Feed & Notifications (red tests written FI
 
       const result = await loadSharedLinkActivity("client-pub-token-123", { limit: 20, cursor: firstPage.nextCursor });
       expect(result).toBeDefined();
+    });
+
+
+    it("loads access telemetry only when requested, dedupes duplicate access events, hides bots, and omits diagnostic hashes", async () => {
+      const hiddenByDefault = await loadSharedLinkActivity("client-pub-token-123", { limit: 20 });
+      expect(hiddenByDefault.activities.some((activity) => activity.meta === "access_telemetry")).toBe(false);
+
+      const result = await loadSharedLinkActivity("client-pub-token-123", { limit: 20, includeAccessTelemetry: true });
+      const accessItems = result.activities.filter((activity) => activity.meta === "access_telemetry");
+      expect(accessItems).toHaveLength(1);
+      expect(accessItems[0]?.title).toMatch(/viewed the proposal/i);
+      expect(JSON.stringify(accessItems)).not.toContain("ip-secret");
+      expect(JSON.stringify(accessItems)).not.toContain("ua-secret");
+      expect(JSON.stringify(accessItems)).not.toContain("access-bot");
+
+      const withBots = await loadSharedLinkActivity("client-pub-token-123", { limit: 20, includeAccessTelemetry: true, includeBots: true });
+      expect(withBots.activities.filter((activity) => activity.meta === "access_telemetry")).toHaveLength(2);
+
+      const firstPage = await loadSharedLinkActivity("client-pub-token-123", { limit: 1, includeAccessTelemetry: true });
+      expect(firstPage.activities[0]?.meta).toBe("access_telemetry");
+      expect(firstPage.hasMore).toBe(true);
+      expect(firstPage.nextCursor).toEqual(expect.any(String));
+      const secondPage = await loadSharedLinkActivity("client-pub-token-123", { limit: 20, includeAccessTelemetry: true, cursor: firstPage.nextCursor });
+      expect(secondPage.activities.map((activity) => activity.id)).not.toContain(firstPage.activities[0]?.id);
+
+      const metrics = summarizeProjectPublicationAccessTelemetryMetrics([
+        { accessStage: "page_visit", bot: false },
+        { accessStage: "page_visit", bot: true },
+      ]);
+      expect(metrics).toEqual({ total: 2, bot: 1, human: 1, byStage: { page_visit: 2 } });
     });
   });
 
