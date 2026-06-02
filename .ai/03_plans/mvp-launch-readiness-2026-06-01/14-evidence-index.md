@@ -96,9 +96,9 @@
 
 - Script: `scripts/check-supabase-backup-readiness.ts`.
 - Package command: `bun run launch:check-supabase-backup`.
-- Proof artifact: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/supabase-backup-readiness-26bc6e3-2026-06-02.json`.
+- Proof artifact: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/supabase-backup-readiness-b77245a-2026-06-02.json`.
 - Scope: parses sanitized `supabase backups list --project-ref <ref> -o json` or Management API backup-list JSON and records backup count, PITR status, WAL status, region, restore-drill status, and missing proof rows without storing provider tokens or credentials.
-- Current refresh: `SUPABASE_BACKUP_LIST_JSON="$(supabase backups list --project-ref ebxxqidacheyapmmzavr -o json 2>&1)" SUPABASE_BACKUP_PROJECT_REF=ebxxqidacheyapmmzavr OUTPUT_FILE=.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/supabase-backup-readiness-26bc6e3-2026-06-02.json bun run launch:check-supabase-backup` wrote sanitized JSON and exited `1`.
+- Current refresh: `supabase backups list --project-ref ebxxqidacheyapmmzavr -o json` returned sanitized JSON with no listed backups and PITR disabled; `SUPABASE_BACKUP_LIST_JSON='{"backups":[],"physical_backup_data":{},"pitr_enabled":false,"region":"ap-southeast-2","walg_enabled":true}' SUPABASE_BACKUP_PROJECT_REF=ebxxqidacheyapmmzavr OUTPUT_FILE=.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/supabase-backup-readiness-b77245a-2026-06-02.json bun run launch:check-supabase-backup` wrote sanitized JSON and exited `1`.
 - Result: region `ap-southeast-2`; zero listed backups; `pitrEnabled: false`; `walgEnabled: true`; `restoreDrillStatus: not-provided`; missing `listed backups`, `PITR enabled`, and `restore drill passed`; `supabaseBackupReady: false`.
 - Launch meaning: this makes backup/PITR proof repeatable, but it does not enable PITR, create/list a backup, perform a restore, or prove linked migration safety. Supabase backup/PITR and restore-drill readiness remains **NO-GO**.
 

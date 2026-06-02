@@ -1,0 +1,22 @@
+{
+  "generatedAt": "2026-06-02T10:01:12.050Z",
+  "mode": "supabase-backup-readiness",
+  "source": "SUPABASE_BACKUP_LIST_JSON",
+  "projectRef": "ebxxqidacheyapmmzavr",
+  "parsedBackupList": true,
+  "parseError": null,
+  "region": "ap-southeast-2",
+  "backupCount": 0,
+  "hasListedBackups": false,
+  "pitrEnabled": false,
+  "walgEnabled": true,
+  "restoreDrillStatus": "not-provided",
+  "restoreDrillPassed": false,
+  "missing": [
+    "listed backups",
+    "PITR enabled",
+    "restore drill passed"
+  ],
+  "supabaseBackupReady": false,
+  "note": "Sanitized Supabase backup/PITR readiness check. It parses operator-provided `supabase backups list --output json` or Management API JSON and never performs a restore. Passing requires listed backups, PITR enabled, and an explicit restore-drill status of passed."
+}

@@ -500,7 +500,7 @@ describe("closed beta readiness docs", () => {
     expect(evidenceIndex).toContain("### Hosted Auth Route Proof Helper");
     expect(evidenceIndex).toContain("### Supabase Backup/PITR Readiness Helper");
     expect(evidenceIndex).toContain("scripts/check-supabase-backup-readiness.ts");
-    expect(evidenceIndex).toContain("supabase-backup-readiness-26bc6e3-2026-06-02.json");
+    expect(evidenceIndex).toContain("supabase-backup-readiness-b77245a-2026-06-02.json");
     expect(evidenceIndex).toContain("`supabaseBackupReady: false`");
     expect(evidenceIndex).toContain("### Supabase Migration List Readiness Helper");
     expect(evidenceIndex).toContain("scripts/check-supabase-migration-readiness.ts");
@@ -582,7 +582,7 @@ describe("closed beta readiness docs", () => {
     expect(manualProofMatrix).toContain("Current consolidated packet: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/README.md`");
     expect(manualProofMatrix).toContain("provider-state-refresh-4fdf0de-2026-06-02.md");
     expect(manualProofMatrix).toContain("Supabase backup/PITR");
-    expect(manualProofMatrix).toContain("supabase-backup-readiness-26bc6e3-2026-06-02.json");
+    expect(manualProofMatrix).toContain("supabase-backup-readiness-b77245a-2026-06-02.json");
     expect(manualProofMatrix).toContain("restore drill not provided");
     expect(manualProofMatrix).toContain("supabase-migration-readiness-4fdf0de-2026-06-02.json");
     expect(manualProofMatrix).toContain("parsed 71 rows from a successful linked migration-list transcript");
@@ -756,7 +756,7 @@ describe("closed beta readiness docs", () => {
     expect(consolidatedManualProofPacket).toContain("provider-state-refresh-d78686f-2026-06-02.md");
     expect(consolidatedManualProofPacket).toContain("provider-state-refresh-4fdf0de-2026-06-02.md");
     expect(consolidatedManualProofPacket).toContain("Supabase backup/PITR | blocked");
-    expect(consolidatedManualProofPacket).toContain("supabase-backup-readiness-26bc6e3-2026-06-02.json");
+    expect(consolidatedManualProofPacket).toContain("supabase-backup-readiness-b77245a-2026-06-02.json");
     expect(consolidatedManualProofPacket).toContain("zero listed backups");
     expect(consolidatedManualProofPacket).toContain("supabase-migration-readiness-4fdf0de-2026-06-02.json");
     expect(consolidatedManualProofPacket).toContain("`linkedMigrationsReady: false`");
@@ -796,7 +796,7 @@ describe("closed beta readiness docs", () => {
     const artifactFilenames = extractManualProofArtifactFilenames(consolidatedManualProofPacket);
 
     expect(artifactFilenames).toContain("supabase-read-only-cli-2026-06-02.md");
-    expect(artifactFilenames).toContain("supabase-backup-readiness-26bc6e3-2026-06-02.json");
+    expect(artifactFilenames).toContain("supabase-backup-readiness-b77245a-2026-06-02.json");
     expect(artifactFilenames).toContain("supabase-migration-readiness-4fdf0de-2026-06-02.json");
     expect(artifactFilenames).toContain("supabase-linked-readiness-4fdf0de-2026-06-02.json");
     expect(artifactFilenames).toContain("supabase-linked-readiness-mcp-bc798a9-2026-06-02.json");
