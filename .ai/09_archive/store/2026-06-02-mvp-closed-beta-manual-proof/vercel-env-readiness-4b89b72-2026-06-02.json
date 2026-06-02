@@ -1,0 +1,68 @@
+{
+  "generatedAt": "2026-06-02T09:10:17.389Z",
+  "mode": "vercel-env-readiness",
+  "source": "VERCEL_ENV_LIST_TEXT",
+  "discoveredNames": [],
+  "coreClosedBetaRuntime": {
+    "required": [
+      "NEXT_PUBLIC_APP_URL",
+      "NEXT_PUBLIC_SITE_URL",
+      "ARCHESTIMATOR_ALLOWED_APP_ORIGINS",
+      "NEXT_PUBLIC_SUPABASE_URL",
+      "NEXT_PUBLIC_SUPABASE_ANON_KEY",
+      "SUPABASE_SERVICE_ROLE_KEY",
+      "CLOSED_BETA_ACCESS_ENABLED",
+      "PUBLICATION_TOKEN_ENCRYPTION_SECRET",
+      "PUBLICATION_TOKEN_HASH_SECRET",
+      "PUBLICATION_ACCESS_COOKIE_SECRET",
+      "ARCHESTIMATOR_AI_ENABLED",
+      "NEXT_PUBLIC_ASK_FLIP_UI_ENABLED"
+    ],
+    "present": [],
+    "missing": [
+      "NEXT_PUBLIC_APP_URL",
+      "NEXT_PUBLIC_SITE_URL",
+      "ARCHESTIMATOR_ALLOWED_APP_ORIGINS",
+      "NEXT_PUBLIC_SUPABASE_URL",
+      "NEXT_PUBLIC_SUPABASE_ANON_KEY",
+      "SUPABASE_SERVICE_ROLE_KEY",
+      "CLOSED_BETA_ACCESS_ENABLED",
+      "PUBLICATION_TOKEN_ENCRYPTION_SECRET",
+      "PUBLICATION_TOKEN_HASH_SECRET",
+      "PUBLICATION_ACCESS_COOKIE_SECRET",
+      "ARCHESTIMATOR_AI_ENABLED",
+      "NEXT_PUBLIC_ASK_FLIP_UI_ENABLED"
+    ],
+    "ready": false
+  },
+  "emailDelivery": {
+    "required": [
+      "RESEND_API_KEY",
+      "RESEND_FROM",
+      "RESEND_REPLY_TO",
+      "RESEND_WEBHOOK_SECRET"
+    ],
+    "present": [],
+    "missing": [
+      "RESEND_API_KEY",
+      "RESEND_FROM",
+      "RESEND_REPLY_TO",
+      "RESEND_WEBHOOK_SECRET"
+    ],
+    "ready": false
+  },
+  "inviteDelivery": {
+    "required": [
+      "PROJECT_INVITE_ENTRY_ENABLED",
+      "ARCHESTIMATOR_INVITE_TOKEN_PEPPER"
+    ],
+    "present": [],
+    "missing": [
+      "PROJECT_INVITE_ENTRY_ENABLED",
+      "ARCHESTIMATOR_INVITE_TOKEN_PEPPER"
+    ],
+    "ready": false
+  },
+  "vercelEnvReady": false,
+  "note": "Vercel env readiness checks variable names only. It does not read or prove secret values, callback URL correctness, provider dashboard configuration, delivery, rollback, or hosted auth behavior."
+}
