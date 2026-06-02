@@ -72,6 +72,7 @@ Do not delete rows during beta unless required by a data deletion request. Statu
 - Export failures.
 - Resend delivery logs if email workflows are visible.
 - Support DNS helper: run `bun run launch:check-support-dns` with optional `SUPPORT_EMAIL_DOMAIN=archestimator.com` and `OUTPUT_FILE=.ai/09_archive/store/<date>-mvp-closed-beta-manual-proof/support-email-dns-readiness.json` to capture MX/SPF/DMARC/A records. DNS readiness is not monitoring proof.
+- Vercel env helper: capture `vercel env ls --non-interactive` output as sanitized text, then run `VERCEL_ENV_LIST_TEXT="<output>" OUTPUT_FILE=.ai/09_archive/store/<date>-mvp-closed-beta-manual-proof/vercel-env-readiness.json bun run launch:check-vercel-env` to record env-name coverage without secret values. Env-name readiness is not hosted auth, callback, delivery, or rollback proof.
 
 ## Triage Bugs
 
