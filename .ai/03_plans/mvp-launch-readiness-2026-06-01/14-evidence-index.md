@@ -62,6 +62,15 @@
 - Guardrail evidence: `bun run launch:verify-hosted-export` without required inputs fails closed and names the missing variables; `bunx vitest run tests/vitest/hosted-export-route-smoke-script.test.ts --maxWorkers=1` passed 5 tests covering missing-input refusal, encoded route generation, sanitized auth handling, non-workbook failure, XLSX ZIP magic, and request header construction.
 - Launch meaning: this makes the authenticated hosted export smoke operator-ready, but it does not complete the proof row until a real hosted session and authorized estimate produce a passing JSON artifact.
 
+### Support Email DNS Proof Helper
+
+- Script: `scripts/check-support-email-dns.ts`.
+- Package command: `bun run launch:check-support-dns`.
+- Scope: public DNS lookup for support email readiness, including MX hosts, apex SPF TXT records, `_dmarc` TXT records, and A records.
+- Guardrail evidence: `bunx vitest run tests/vitest/support-email-dns-script.test.ts --maxWorkers=1` passed 4 tests covering domain normalization, split TXT flattening, positive MX/SPF/DMARC readiness, and missing-DMARC failure.
+- Current DNS refresh: `OUTPUT_FILE=.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/support-email-dns-readiness-refresh-792076e-2026-06-02.json bun run launch:check-support-dns` wrote sanitized JSON and exited `1` because MX/SPF/A records exist but DMARC is missing.
+- Launch meaning: this makes DNS proof collection repeatable and sanitized, but DNS readiness is not support monitoring proof. Closed beta remains blocked until inbox/table monitoring, alert owner, and incident escalation proof are captured.
+
 ### AUTH-E2E Local Signed-Out Smoke Evidence
 
 - Local command: `PLAYWRIGHT_PORT=3037 bun run test:e2e -- e2e/auth.spec.ts --project=chromium`.
@@ -624,9 +633,10 @@
 ### Support Email DNS Readiness Evidence
 
 - Artifact note: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/support-email-dns-readiness-2026-06-02.md`.
+- Helper refresh artifact: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/support-email-dns-readiness-refresh-792076e-2026-06-02.json`.
 - DNS proof: `dig +noall +answer MX archestimator.com` returned five `eforward*.registrar-servers.com` MX records.
 - SPF proof: `dig +noall +answer TXT archestimator.com` returned `v=spf1 include:spf.efwd.registrar-servers.com ~all`.
-- DMARC proof: `dig +noall +answer TXT _dmarc.archestimator.com` returned no answer.
+- DMARC proof: `dig +noall +answer TXT _dmarc.archestimator.com` returned no answer; the repeatable helper also reports `hasDmarc: false` and `dnsReady: false`.
 - Launch meaning: this proves DNS mail-routing evidence for the support domain, not inbox monitoring, form delivery, alert ownership, or incident escalation. Support/monitoring remains a **NO-GO** row.
 
 ### Beta Operations Runbook Readiness Evidence

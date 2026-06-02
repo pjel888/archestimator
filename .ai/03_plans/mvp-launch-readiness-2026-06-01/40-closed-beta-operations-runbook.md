@@ -71,6 +71,7 @@ Do not delete rows during beta unless required by a data deletion request. Statu
 - Support email.
 - Export failures.
 - Resend delivery logs if email workflows are visible.
+- Support DNS helper: run `bun run launch:check-support-dns` with optional `SUPPORT_EMAIL_DOMAIN=archestimator.com` and `OUTPUT_FILE=.ai/09_archive/store/<date>-mvp-closed-beta-manual-proof/support-email-dns-readiness.json` to capture MX/SPF/DMARC/A records. DNS readiness is not monitoring proof.
 
 ## Triage Bugs
 

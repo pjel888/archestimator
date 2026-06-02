@@ -17,6 +17,7 @@
     "test:e2e:perf": "playwright test e2e/route-transition-performance.spec.ts",
     "launch:verify-hosted-export": "bun run scripts/verify-hosted-export-route.ts",
     "launch:supabase-readiness": "supabase db query --linked --file scripts/sql/linked-supabase-launch-readiness.sql --output json",
+    "launch:check-support-dns": "bun run scripts/check-support-email-dns.ts",
     "perf:measure-routes": "bun run scripts/measure-route-transitions.ts",
     "perf:seed-fixture": "bun run scripts/seed-performance-test-data.ts",
     "perf:profile-peak-load": "vitest run tests/vitest/route-transition-peak-load-profile.test.tsx --maxWorkers=1",
