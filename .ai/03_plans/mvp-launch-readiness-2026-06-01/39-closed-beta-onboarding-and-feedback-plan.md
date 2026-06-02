@@ -54,14 +54,15 @@ Manual invites are acceptable for MVP. App-generated beta invite emails are defe
 
 ## Feedback Recommendation
 
-Use a P0 lightweight external form link plus support email for closed beta.
+Use a P0 lightweight feedback path plus support email for closed beta.
 
 Recommended MVP path:
 
 - Add a visible "Send feedback" link in the app shell or support/contact surface.
-- Link to a Google Form, Tally, Typeform, or Notion form managed by Philip.
+- Current local code routes authenticated users to `/workshop/feedback` and writes to `beta_feedback_submissions` when the local migration is applied.
+- Keep an external email fallback because linked/hosted persistence and monitoring proof are still missing.
 - Keep `support@archestimator.com` visible.
-- Defer custom in-app feedback table/modal unless it is implemented in a narrow, tested PR.
+- Custom in-app feedback remains launch-blocked until the migration is applied remotely and Philip proves the table/inbox is monitored.
 
 ## Minimum Feedback Fields
 

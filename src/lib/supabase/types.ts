@@ -65,6 +65,76 @@ export type Database = {
           },
         ]
       }
+      beta_feedback_submissions: {
+        Row: {
+          created_at: string
+          feedback_type: string
+          id: string
+          message: string
+          metadata_json: Json
+          page_path: string | null
+          project_id: string | null
+          severity: string
+          status: string
+          updated_at: string
+          user_email: string
+          user_id: string
+          workspace_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          feedback_type: string
+          id?: string
+          message: string
+          metadata_json?: Json
+          page_path?: string | null
+          project_id?: string | null
+          severity: string
+          status?: string
+          updated_at?: string
+          user_email: string
+          user_id: string
+          workspace_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          feedback_type?: string
+          id?: string
+          message?: string
+          metadata_json?: Json
+          page_path?: string | null
+          project_id?: string | null
+          severity?: string
+          status?: string
+          updated_at?: string
+          user_email?: string
+          user_id?: string
+          workspace_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "beta_feedback_submissions_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "beta_feedback_submissions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "beta_feedback_submissions_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_onboarding_profiles: {
         Row: {
           country_region: string
