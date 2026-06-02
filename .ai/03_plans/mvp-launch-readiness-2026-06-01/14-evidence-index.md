@@ -21,7 +21,7 @@
 
 - Artifact: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/README.md`.
 - Environment: local repo evidence plus read-only Vercel/Supabase/DNS checks.
-- Anchors: local validation/build `1a6dcc5`, latest read-only Vercel/Supabase provider proof `87f603e`, latest full local E2E refresh `bb9006d`.
+- Anchors: local validation/build `1a6dcc5`, latest read-only Vercel/Supabase provider proof `93e01f5`, latest full local E2E refresh `bb9006d`.
 - Result: **NO-GO** packet. The packet consolidates current proof rows as `partial-local`, `partial-blocked`, or `blocked`; no P0 external launch blocker is relabeled as passed.
 - Remaining blocked rows: Supabase backup/PITR, linked migrations/RLS/storage/RPC, hosted auth, Vercel env/custom-domain/rollback, Resend proof, spreadsheet-app open/recalc/print, linked project-specific unlink smoke, legal sign-off, monitored support/alerts, demo sign-off, hosted/manual E2E.
 - Launch meaning: this improves artifact organization and future proof collection only. It does not add hosted/provider/manual proof and does not change the **NO-GO** recommendation.
@@ -53,32 +53,32 @@
 - Supabase: CLI `2.98.2` is linked to project `Archestimator` / `ebxxqidacheyapmmzavr`; `supabase migration list --linked` succeeds and still shows launch migrations `20260601182522`, `20260601184343`, `20260602005649`, `20260602083000`, and `20260602084500` absent remotely; `bun run launch:supabase-readiness` fails on the linked temp-role pooler `ECIRCUITBREAKER` / `SUPABASE_DB_PASSWORD` path.
 - Launch meaning: this refresh confirms the latest pushed `main` commit has a Ready protected preview, but it does not close Vercel env/public/custom-domain/rollback, hosted auth, linked Supabase migration/RLS/RPC/storage, Resend, spreadsheet-app, legal, support, or hosted/manual E2E gates.
 
-### Provider State Refresh at 87f603e
+### Provider State Refresh at 93e01f5
 
-- Artifact: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/provider-state-refresh-87f603e-2026-06-02.md`.
-- Vercel: latest `main` preview `archestimator-bssvp0rrd-philipjonlewis-projects.vercel.app`, deployment `dpl_GdDjZoaGocCpAVVEa3oaSm9nCody`, status `READY`.
+- Artifact: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/provider-state-refresh-93e01f5-2026-06-02.md`.
+- Vercel: latest `main` preview `archestimator-irjs5qb0z-philipjonlewis-projects.vercel.app`, deployment `dpl_AV1RHNmGMptbRkEW6X8P2UGBv21x`, status `READY`.
 - Health: `vercel curl` returns app health JSON for the latest preview and branch alias `/api/health`; plain public preview and branch-alias health still return HTTP `401`.
 - Env/custom domains: `vercel env ls --non-interactive` still returns no env vars; custom-domain `/api/health` still returns HTTP `404` for `www` and `archestimator.vercel.app`, with apex redirecting `307` to `www`; custom domains still alias to `archestimator-3ser9ty2w-philipjonlewis-projects.vercel.app`.
-- Supabase: `supabase migration list --linked` still shows launch migrations `20260601182522`, `20260601184343`, `20260602005649`, `20260602083000`, and `20260602084500` absent remotely; the linked SQL parser exits `1` with `linkedSupabaseLaunchReady=false`.
+- Supabase: `supabase migration list --linked` is currently blocked by `failed SASL auth` and `ECIRCUITBREAKER`; the linked SQL parser exits `1` with `linkedSupabaseLaunchReady=false`.
 - Launch meaning: this refresh confirms current `HEAD` has a Ready protected preview, but it does not close Vercel env/public/custom-domain/rollback, hosted auth, linked Supabase migration/RLS/RPC/storage, Resend, spreadsheet-app, legal, support, or hosted/manual E2E gates.
 
 ### Vercel Env Readiness Helper
 
 - Script: `scripts/check-vercel-env-readiness.ts`.
 - Package command: `bun run launch:check-vercel-env`.
-- Proof artifact: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/vercel-env-readiness-3ce3269-2026-06-02.json`.
+- Proof artifact: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/vercel-env-readiness-93e01f5-2026-06-02.json`.
 - Scope: parses a sanitized `vercel env ls --non-interactive` transcript for variable names only and reports core closed-beta runtime, email delivery, and invite delivery env-name coverage.
 - Guardrail evidence: `bunx vitest run tests/vitest/vercel-env-readiness-script.test.ts --maxWorkers=1` passed 4 tests covering env-name extraction, empty-list fail-closed behavior, core runtime pass behavior, and separate email/invite readiness groups.
-- Current refresh: `VERCEL_ENV_LIST_TEXT="$(vercel env ls --non-interactive 2>&1)" OUTPUT_FILE=.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/vercel-env-readiness-3ce3269-2026-06-02.json bun run launch:check-vercel-env` wrote sanitized JSON and exited `1` because no env names were discovered.
+- Current refresh: `VERCEL_ENV_LIST_TEXT="$(vercel env ls --non-interactive 2>&1)" OUTPUT_FILE=.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/vercel-env-readiness-93e01f5-2026-06-02.json bun run launch:check-vercel-env` wrote sanitized JSON and exited `1` because no env names were discovered.
 - Launch meaning: this makes Vercel env-name proof repeatable, but it does not prove secret values, callback URL correctness, provider dashboard configuration, delivery, rollback, or hosted auth behavior. Vercel env readiness remains **NO-GO**.
 
 ### Vercel Public Health Readiness Helper
 
 - Script: `scripts/check-vercel-health-readiness.ts`.
 - Package command: `bun run launch:check-vercel-health`.
-- Proof artifact: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/vercel-health-readiness-2776a32-2026-06-02.json`.
+- Proof artifact: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/vercel-health-readiness-93e01f5-2026-06-02.json`.
 - Scope: probes configured `/api/health` URLs and passes only when every URL returns HTTP `200` with JSON `{ "ok": true, "service": "archestimator" }`. Optional auth header/cookie inputs are request-only and never written to the report.
-- Current refresh: `VERCEL_HEALTH_URLS='https://archestimator-git-main-philipjonlewis-projects.vercel.app/api/health,https://www.archestimator.com/api/health,https://archestimator.com/api/health,https://archestimator.vercel.app/api/health' OUTPUT_FILE=.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/vercel-health-readiness-2776a32-2026-06-02.json bun run launch:check-vercel-health` wrote sanitized JSON and exited `1`.
+- Current refresh: `VERCEL_HEALTH_URLS='https://archestimator-git-main-philipjonlewis-projects.vercel.app/api/health,https://www.archestimator.com/api/health,https://archestimator.com/api/health,https://archestimator.vercel.app/api/health' OUTPUT_FILE=.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/vercel-health-readiness-93e01f5-2026-06-02.json bun run launch:check-vercel-health` wrote sanitized JSON and exited `1`.
 - Result: branch-alias public health returned HTTP `401`; `www.archestimator.com/api/health` and `archestimator.vercel.app/api/health` returned HTTP `404`; apex `archestimator.com/api/health` returned HTTP `307` to `www`; no URL returned the app health JSON; `vercelHealthReady: false`.
 - Launch meaning: this makes public/custom-domain health proof repeatable, but it does not prove Vercel env values, protected preview health through `vercel curl`, production promotion, rollback, hosted auth, or app behavior behind deployment protection. Public/custom-domain health remains **NO-GO**.
 
@@ -86,10 +86,10 @@
 
 - Script: `scripts/check-vercel-production-readiness.ts`.
 - Package command: `bun run launch:check-vercel-production`.
-- Proof artifact: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/vercel-production-readiness-fc8f53e-2026-06-02.json`.
+- Proof artifact: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/vercel-production-readiness-93e01f5-2026-06-02.json`.
 - Scope: parses sanitized `vercel inspect --format=json`, `vercel alias ls`, and optional `vercel ls` transcripts to check current deployment readiness, whether custom domains alias to that deployment, ready rollback-candidate availability, and explicit rollback-drill status.
-- Current refresh: `VERCEL_INSPECT_TEXT="$(vercel inspect archestimator-q1r5xdbpm-philipjonlewis-projects.vercel.app --format=json --non-interactive 2>&1)" VERCEL_ALIAS_LIST_TEXT="$(vercel alias ls --non-interactive 2>&1)" VERCEL_DEPLOYMENT_LIST_TEXT="$(vercel ls --non-interactive 2>&1)" VERCEL_EXPECTED_CUSTOM_DOMAINS='archestimator.com,www.archestimator.com,archestimator.vercel.app' OUTPUT_FILE=.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/vercel-production-readiness-fc8f53e-2026-06-02.json bun run launch:check-vercel-production` wrote sanitized JSON and exited `1`.
-- Result: current preview deployment `dpl_3fYxPhQ6jTv9xUfvjo8Sw5AWtEBJ` at `archestimator-q1r5xdbpm-philipjonlewis-projects.vercel.app` is `READY`; `archestimator.com`, `www.archestimator.com`, and `archestimator.vercel.app` still alias to `archestimator-3ser9ty2w-philipjonlewis-projects.vercel.app`; 19 ready rollback candidates were found; rollback drill was not provided; `vercelProductionReady: false`.
+- Current refresh: `VERCEL_INSPECT_TEXT="$(vercel inspect archestimator-irjs5qb0z-philipjonlewis-projects.vercel.app --format=json --non-interactive 2>&1)" VERCEL_ALIAS_LIST_TEXT="$(vercel alias ls --non-interactive 2>&1)" VERCEL_DEPLOYMENT_LIST_TEXT="$(vercel ls --non-interactive 2>&1)" VERCEL_EXPECTED_CUSTOM_DOMAINS='archestimator.com,www.archestimator.com,archestimator.vercel.app' OUTPUT_FILE=.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/vercel-production-readiness-93e01f5-2026-06-02.json bun run launch:check-vercel-production` wrote sanitized JSON and exited `1`.
+- Result: current preview deployment `dpl_AV1RHNmGMptbRkEW6X8P2UGBv21x` at `archestimator-irjs5qb0z-philipjonlewis-projects.vercel.app` is `READY`; `archestimator.com`, `www.archestimator.com`, and `archestimator.vercel.app` still alias to `archestimator-3ser9ty2w-philipjonlewis-projects.vercel.app`; 19 ready rollback candidates were found; rollback drill was not provided; `vercelProductionReady: false`.
 - Launch meaning: this makes custom-domain/rollback proof repeatable, but it does not promote deployments, change aliases, run health checks, verify env values, exercise hosted auth, or perform a rollback. Production/custom-domain and rollback readiness remains **NO-GO**.
 
 ### Supabase Backup/PITR Readiness Helper
@@ -106,19 +106,19 @@
 
 - Script: `scripts/check-supabase-migration-readiness.ts`.
 - Package command: `bun run launch:check-supabase-migrations`.
-- Proof artifact: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/supabase-migration-readiness-65b21eb-2026-06-02.json`.
+- Proof artifact: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/supabase-migration-readiness-93e01f5-2026-06-02.json`.
 - Scope: parses sanitized `supabase migration list --linked` text and checks that launch migrations `20260601182522`, `20260601184343`, `20260602005649`, `20260602083000`, and `20260602084500` appear in remote migration history.
-- Current refresh: `SUPABASE_MIGRATION_LIST_TEXT="$(supabase migration list --linked 2>&1)" SUPABASE_MIGRATION_PROJECT_REF=ebxxqidacheyapmmzavr OUTPUT_FILE=.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/supabase-migration-readiness-65b21eb-2026-06-02.json bun run launch:check-supabase-migrations` wrote sanitized JSON and exited `1`.
-- Result: 71 migration rows parsed; all five required launch migrations are present locally but missing remotely; `linkedMigrationsReady: false`.
+- Current refresh: `SUPABASE_MIGRATION_LIST_TEXT=<blocked failed-SASL-auth and ECIRCUITBREAKER transcript> SUPABASE_MIGRATION_PROJECT_REF=ebxxqidacheyapmmzavr OUTPUT_FILE=.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/supabase-migration-readiness-93e01f5-2026-06-02.json bun run launch:check-supabase-migrations` wrote sanitized JSON and exited `1`.
+- Result: 0 migration rows parsed from the blocked migration-list transcript; all five required launch migrations are treated as missing remotely; `linkedMigrationsReady: false`.
 - Launch meaning: this makes migration-list parity proof repeatable, but it does not prove RLS, grants, storage posture, object existence, backup/PITR, restore safety, or the deeper SQL readiness query. Linked Supabase remains **NO-GO**.
 
 ### Supabase Linked Readiness Parser Helper
 
 - Script: `scripts/check-supabase-linked-readiness.ts`.
 - Package command: `bun run launch:check-supabase-linked-readiness`.
-- Proof artifact: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/supabase-linked-readiness-4687432-2026-06-02.json`.
+- Proof artifact: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/supabase-linked-readiness-93e01f5-2026-06-02.json`.
 - Scope: parses sanitized JSON output from the read-only `scripts/sql/linked-supabase-launch-readiness.sql` query and records migration, table/RLS, anon grant, function, storage, and summary pass/fail counts.
-- Current refresh: `SUPABASE_LINKED_READINESS_JSON="$(bun run launch:supabase-readiness 2>&1)" SUPABASE_LINKED_PROJECT_REF=ebxxqidacheyapmmzavr OUTPUT_FILE=.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/supabase-linked-readiness-4687432-2026-06-02.json bun run launch:check-supabase-linked-readiness` wrote sanitized JSON and exited `1`; the underlying read-only SQL command exited `0`.
+- Current refresh: `SUPABASE_LINKED_READINESS_JSON="$(bun run launch:supabase-readiness 2>&1)" SUPABASE_LINKED_PROJECT_REF=ebxxqidacheyapmmzavr OUTPUT_FILE=.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/supabase-linked-readiness-93e01f5-2026-06-02.json bun run launch:check-supabase-linked-readiness` wrote sanitized JSON and exited `1`; the underlying read-only SQL command exited `0`.
 - Result: 13 checks parsed; summary failed; all five launch migrations are missing remotely; `closed_beta_allowed_emails` and `beta_feedback_submissions` are missing; anon-select checks cannot pass because the tables are missing; `check_closed_beta_access` and `unlink_estimate_row_item_from_library_with_history` are missing; `component-images` is public; `linkedSupabaseLaunchReady: false`.
 - Launch meaning: this makes the deeper linked Supabase SQL readiness proof repeatable, but it does not apply migrations, repair migration history, mutate storage, perform RLS/browser allow-deny checks, prove backup/PITR, or run a restore. Linked Supabase remains **NO-GO**.
 
