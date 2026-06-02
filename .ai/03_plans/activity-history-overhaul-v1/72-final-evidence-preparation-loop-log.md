@@ -1,10 +1,10 @@
 # 72 — Final Evidence Preparation Loop Log
 
 **Date:** 2026-06-02
-**Pass:** Fifteenth — evidence-preparation hardening
+**Passes:** Fifteenth (evidence-preparation hardening) + Sixteenth (Oracle-verified corrections)
 **Activity-code audit baseline:** `65b21eb`
-**Latest activity-overhaul planning certification commit:** `d910fe8`
-**Validated at:** 2026-06-02 fifteenth-pass evidence-preparation audit
+**Latest activity-overhaul planning certification commit:** `d15b6a0` (fifteenth pass)
+**Validated at:** 2026-06-02 sixteenth-pass Oracle-verified corrections
 **Live repo HEAD:** intentionally not hardcoded — run `git rev-parse HEAD`
 
 ---
@@ -16,6 +16,7 @@
 | **1** | HEAD drift in 8+ authoritative docs (README, 68, 50, 61, 46, 47, 67, 70, 39); evidence prep at 98–100% not 100%; stale file counts; doc 68 had stale cdb9fdc reference | 10 files (README, 68, 67, 70, 50, 61, 46, 47, 39, 68 reading order) | ✅ All HEAD references stabilized; doc 68 truth lock updated; evidence prep → 100% | All 15 gates still Incomplete; all 16 evidence items need operational action |
 | **2** | DPS inventory (E-006) at 90%/Drafted → advanced to 100%/Ready for owner review; scorecards (67, 70) reflected ~99% → updated to 100%; doc 67 domain C updated; doc 61 certification updated | 4 files (67, 70, 61, verification) | ✅ All scorecards at 100% prep readiness; no false completion claims | All 15 gates still Incomplete; all 16 evidence items need operational action |
 | **3** | Validation search confirmed no false claims; doc 71 created (no-false-claims audit with 19/19 PASS); doc 72 created (this loop log); evidence templates verified (16/16 folders with artifacts) | 2 files created (71, 72); validation search run | ✅ 19/19 no-false-claims checks pass; 16/16 evidence folders confirmed; no volatile HEAD in authoritative docs | All 15 gates still Incomplete; execute doc 65 runbook |
+| **4 (Sixteenth)** | Oracle verification found: (1) cert commit d910fe8 (fourteenth pass) mislabeled as fifteenth — corrected to d15b6a0; (2) doc 46 body had stale HEAD b6873b4/cdb9fdc and file count 63 — fully cleaned; (3) doc 50 internal contradiction (same table had d910fe8 as both "fifteenth" and "fourteenth" pass) — resolved; (4) doc 50 file count 72→74; (5) doc 70 Domain F E-006 "Drafted"→"Ready for owner review" contradiction fixed | 12 files (47, 67, 68, 70, 61, 46, 50, 71, 72, README — d15b6a0 replacement + structural fixes in 46, 50, 70, 71, 72, README) | ✅ Oracle-verified issues resolved; cert commit corrected systemically; no contradictions remain | All 15 gates still Incomplete; execute doc 65 runbook |
 
 ---
 
@@ -36,7 +37,7 @@
 All authoritative docs now use:
 ```
 Activity-code audit baseline: 65b21eb
-Latest activity-overhaul planning certification commit: d910fe8 (fifteenth pass)
+Latest activity-overhaul planning certification commit: d15b6a0 (fifteenth pass)
 Validated at: 2026-06-02 fifteenth-pass evidence-preparation audit
 Live repo HEAD: intentionally not hardcoded — run `git rev-parse HEAD`
 ```

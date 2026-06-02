@@ -3,7 +3,7 @@
 **Date:** 2026-06-02
 **Last updated:** 2026-06-02 (fifteenth pass — evidence-preparation hardening)
 **Activity-code audit baseline:** `65b21eb`
-**Latest activity-overhaul planning certification commit:** `d910fe8`
+**Latest activity-overhaul planning certification commit:** `d15b6a0`
 **Validated at:** 2026-06-02 fifteenth-pass evidence-preparation audit
 **Live repo HEAD:** intentionally not hardcoded — run `git rev-parse HEAD`
 **Purpose:** Measures evidence preparation readiness (template completeness) separately from actual evidence completion (operational execution). This scorecard tracks documentation/template readiness, NOT production readiness.
@@ -101,7 +101,7 @@ This scorecard separates two fundamentally different metrics:
 | E-003 | Ready for engineering action | ❌ |
 | E-004 | Ready for owner action | ❌ |
 | E-005 | Ready for owner action | ❌ |
-| E-006 | Drafted | ❌ |
+| E-006 | Ready for owner review | ❌ |
 | E-007 | Ready for owner review | ❌ |
 | E-008 | Ready for owner review | ❌ |
 | E-009 | Ready for owner action | ❌ |
