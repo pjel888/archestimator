@@ -192,5 +192,5 @@ PRs 2-6 are sequential after PR 1. PRs 3-6 can partially parallelize (3 must fin
 - `36-access-telemetry-side-effects-audit.md` — Side effects matrix
 - `38-pr2-test-command-and-fixture-plan.md` — PR 2 test plan
 - `40-final-implementation-handoff.md` — Implementation handoff
-- `47-pr7-gate-clearance-and-privacy-approvals.md` — PR 7 gate clearance and privacy approvals
-- `48-ph-dpa-npc-compliance-plan.md` — Philippine DPA/NPC compliance plan
+- `47-pr7-pr8b-approval-record.md` — PR 7 gate clearance and privacy approvals
+- `48-philippines-data-privacy-compliance-plan.md` — Philippine DPA/NPC compliance plan

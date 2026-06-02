@@ -1,9 +1,9 @@
 # 44 — Final Plan Certification
 
 **Date:** 2026-06-02
-**Status:** CERTIFIED — All categories GO, PR 7+8B gates cleared (ninth pass)
-**Auditor:** Sisyphus (AI orchestrator, ninth-pass all-GO lock)
-**Current HEAD:** `1a6dcc5`
+**Status:** CERTIFIED — All categories GO, PR 7+8B gates cleared (tenth-pass final certification)
+**Auditor:** Sisyphus (AI orchestrator, tenth-pass document hardening and certification)
+**Current HEAD:** `6aaa0b7`
 
 ---
 
@@ -39,17 +39,16 @@ This ninth pass records the all-GO certification, removes gated status from acce
 ## What Is 99–100%
 
 **Documentation (100%):**
-- All 50 files (README + 49 numbered docs 00–48) internally consistent after ninth pass
-- No stale HEAD references (all `1a6dcc5`)
+- All 52 files (README + 51 numbered docs 00–50) internally consistent after tenth pass
+- No stale HEAD references (all `6aaa0b7`)
 - No conflicting PR numbers
 - No "13 event types" errors (corrected to "14 raw: 12 active + 2 dormant")
-- No "33 documents" / "35 files" references (corrected to "49")
+- No "33 documents" / "35 files" references (corrected to "52")
 - No conflicting event_type exposure guidance (PR 2: internal select only, no public exposure; PR 5: server-side consumption)
 - PR 8A/8B split documented — reduces legal-gate bottleneck risk
 - Superseded docs clearly marked (doc 39 authority index)
 
 **Code Accuracy (100%):**
-- Every active plan claim traces to current code (HEAD `1a6dcc5`)
 - No activity code changed since planning baseline `65b21eb`
 - Future/planned behavior labelled as such
 
@@ -72,7 +71,7 @@ This ninth pass records the all-GO certification, removes gated status from acce
 
 ## What PR Can Begin Now (All GO)
 
-✅ **PR 1 (docs merge)** — Merge all 50 files. Internally consistent, source-accurate, implementation-ready.
+✅ **PR 1 (docs merge)** — Merge all 52 files. Internally consistent, source-accurate, implementation-ready.
 
 ✅ **PR 2 (preflight fixes)** — Can begin immediately after docs merge. 5 fixes, no privacy dependencies.
 
@@ -88,7 +87,7 @@ This ninth pass records the all-GO certification, removes gated status from acce
 
 ## Recommended Next Action
 
-1. **Merge docs (PR 1)** — Immediately. All 50 files are certified.
+1. **Merge docs (PR 1)** — Immediately. All 52 files are certified.
 2. **Begin PR 2** — Preflight bug fixes. Reference doc 40 for scope, doc 31 for details, doc 38 for test plan.
 3. **Continue through PR sequence** — PRs 3–6, then 7, 8A, 8B, 9. All gates cleared, no remaining blockers.
 4. **Recorded** — Stakeholder review completed 2026-06-02 (see doc 47). All PR 7/8B gates cleared via Owner/Product + Internal Privacy approval.
@@ -101,5 +100,5 @@ This ninth pass records the all-GO certification, removes gated status from acce
 - `42-98-100-readiness-scorecard.md` — Detailed scoring
 - `43-final-risk-burndown-register.md` — Risk register
 - `40-final-implementation-handoff.md` — Implementation entry point
-- `47-pr7-pr8b-gate-clearance.md` — PR 7 and PR 8B gate clearance record (2026-06-02)
-- `48-all-go-planning-pack-certification.md` — All-GO planning pack certification and 50-file summary
+- `47-pr7-pr8b-approval-record.md` — PR 7 and PR 8B gate clearance record (2026-06-02)
+- `50-final-100-implementation-readiness-certification.md` — Final certification and all-GO planning pack summary

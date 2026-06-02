@@ -88,5 +88,28 @@
 - See `30-final-technical-reconciliation-audit.md` for contradiction audit
 - See `32-final-implementation-readiness-scorecard.md` for go/no-go assessment
 - See `33-stakeholder-review-script.md` for meeting facilitation guide
-- See `47-ninth-pass-approval-record.md` for Owner/Product + Internal Privacy approval details
-- See `48-dpa-compliance-basis.md` for DPA compliance basis
+- See `47-pr7-pr8b-approval-record.md` for Owner/Product + Internal Privacy approval details
+- See `48-philippines-data-privacy-compliance-plan.md` for DPA compliance basis
+
+---
+
+## External Counsel Status
+
+External legal counsel review is **recommended before public launch or wide commercial rollout**, but is **not represented in this approval record**. All approvals recorded here are Owner/Product + Internal Privacy approvals only. They authorize implementation planning and development under conservative privacy constraints. They do not constitute formal external legal review of Data Privacy Act compliance.
+
+---
+
+## Production Enablement Conditions
+
+PR 7 implementation is GO, but access telemetry must not be enabled in production until:
+
+- [ ] Privacy notice updated to disclose access logging
+- [ ] In-product disclosure visible on password gate and shared page
+- [ ] DPO / privacy officer designated
+- [ ] NPCRS registration triage completed (see doc 48 §6)
+- [ ] DPS inventory completed
+- [ ] Data subject request process documented
+- [ ] Breach notification process documented
+- [ ] Vendor/processor list documented
+- [ ] 90-day retention cleanup implemented or operator-run cleanup procedure documented
+- [ ] Tests confirm no raw IP, raw UA, GPS, city, region, password values, fingerprinting, or referrer URL stored

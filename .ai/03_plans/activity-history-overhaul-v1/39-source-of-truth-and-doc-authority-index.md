@@ -1,7 +1,7 @@
 # 39 — Source of Truth and Document Authority Index
 
 **Date:** 2026-06-02
-**Status:** Fifth pass — resolves document hierarchy
+**Status:** Tenth pass — final certification and hardening complete
 **Purpose:** When implementation begins, the engineer/AI needs to know which document is authoritative for each topic. This index resolves the hierarchy.
 
 ---
@@ -28,8 +28,10 @@
 | **Code truth** | `35-code-truth-map.md` | None | When docs and code disagree, 35 is authority |
 | **Implementation handoff** | `40-final-implementation-handoff.md` | All above | Last doc to read before coding |
 | **Stakeholder review** | `28-fourth-pass-stakeholder-review-packet.md` + `33-stakeholder-review-script.md` | None | For stakeholder meetings |
-| **Gate clearance** | `47-pr7-gate-clearance-and-privacy-approvals.md` | `48-ph-dpa-npc-compliance-plan.md` | PR 7 and PR 8B formal approvals |
-| **DPA/NPC compliance** | `48-ph-dpa-npc-compliance-plan.md` | `26-privacy-retention-and-client-disclosure-plan.md` | Philippine DPA compliance |
+| **Gate clearance** | `47-pr7-pr8b-approval-record.md` | `48-philippines-data-privacy-compliance-plan.md` | PR 7 and PR 8B formal approvals |
+| **DPA/NPC compliance** | `48-philippines-data-privacy-compliance-plan.md` | `26-privacy-retention-and-client-disclosure-plan.md` | Philippine DPA compliance |
+| **Final certification** | `50-final-100-implementation-readiness-certification.md` | `47-pr7-pr8b-approval-record.md`, `48-philippines-data-privacy-compliance-plan.md` | Final single source of truth — read FIRST |
+| **Loop audit (tenth pass)** | `49-final-100-readiness-loop-log.md` | — | Audit trail of final document hardening pass |
 
 ---
 
@@ -71,23 +73,27 @@ These documents contain useful historical context but are NO LONGER authoritativ
 | `29-final-decision-log-and-approval-matrix.md` | **Authoritative** (with noted corrections) | Approval statuses corrected in this pass. See doc 34 Finding 9. |
 | `31-pr2-preflight-implementation-brief.md` | **Authoritative** (with noted updates) | event_type exposure and CSRF coverage updated per this pass. |
 | `32-final-implementation-readiness-scorecard.md` | **Superseded** | `42-98-100-readiness-scorecard.md` | 42 is the final eighth-pass scorecard with HEAD `1a6dcc5` and complete 10-category scoring. |
-| `47-pr7-gate-clearance-and-privacy-approvals.md` | **Authoritative** | Approval record with signature blocks — gate clearance for PR 7 and PR 8B |
-| `48-ph-dpa-npc-compliance-plan.md` | **Authoritative** | Philippine DPA/NPC compliance plan |
+| `47-pr7-pr8b-approval-record.md` | **Authoritative** | Approval record with signature blocks — gate clearance for PR 7 and PR 8B |
+| `48-philippines-data-privacy-compliance-plan.md` | **Authoritative** | Philippine DPA/NPC compliance plan |
+| `49-final-100-readiness-loop-log.md` | **Authoritative** | Loop log for final certification pass |
+| `50-final-100-implementation-readiness-certification.md` | **Authoritative** — **read FIRST** | Final single source of truth for implementation-handoff readiness |
 
 ---
 
 ## Document Reading Order for Implementation
 
 ### Authoritative Implementation Reading Order
-1. `46-final-implementation-readiness-lock.md` — final lock confirmation: HEAD, scores, go/no-go, PR 7 gates
-2. `45-final-next-actions-micro-refinement.md` — go/no-go summary, PR gates, start checklist
-3. `40-final-implementation-handoff.md` — what to do, where to start, exact scope
-4. `39-source-of-truth-and-doc-authority-index.md` (this doc) — which docs are authoritative
-5. `35-code-truth-map.md` — verify code behavior before editing
-6. `31-pr2-preflight-implementation-brief.md` — PR 2 exact scope of 5 fixes
-7. `38-pr2-test-command-and-fixture-plan.md` — PR 2 test plan per fix
-8. `37-final-blast-radius-and-rollback-map.md` — risk awareness and dependency map
-9. `29-final-decision-log-and-approval-matrix.md` — all 28 decisions and statuses
+1. `50-final-100-implementation-readiness-certification.md` — **read FIRST**: final HEAD, file count, GO/NO-GO, production gates
+2. `47-pr7-pr8b-approval-record.md` — PR 7 and PR 8B formal approvals, privacy constraints
+3. `48-philippines-data-privacy-compliance-plan.md` — DPA/NPC compliance requirements, launch-gate checklist
+4. `45-final-next-actions-micro-refinement.md` — go/no-go summary, PR gates, start checklist
+5. `40-final-implementation-handoff.md` — what to do, where to start, exact scope
+6. `39-source-of-truth-and-doc-authority-index.md` (this doc) — which docs are authoritative
+7. `35-code-truth-map.md` — verify code behavior before editing
+8. `36-access-telemetry-side-effects-audit.md` — side effects matrix for access telemetry
+9. `31-pr2-preflight-implementation-brief.md` — PR 2 exact scope of 5 fixes
+10. `38-pr2-test-command-and-fixture-plan.md` — PR 2 test plan per fix
+11. `29-final-decision-log-and-approval-matrix.md` — all 28 decisions and statuses
 
 ### For PR 2 Implementer
 1. `40-final-implementation-handoff.md` — what to do, where to start
@@ -112,9 +118,9 @@ These documents contain useful historical context but are NO LONGER authoritativ
 6. `43-final-risk-burndown-register.md` — risk register
 
 ### For PR 7 Implementer
-1. `47-pr7-gate-clearance-and-privacy-approvals.md` — formal approval record, privacy constraints
-2. `48-ph-dpa-npc-compliance-plan.md` — DPA/NPC compliance requirements
-3. `46-final-implementation-readiness-lock.md` — final lock: HEAD, scores, go/no-go
+1. `50-final-100-implementation-readiness-certification.md` — read FIRST
+2. `47-pr7-pr8b-approval-record.md` — formal approval record, privacy constraints
+3. `48-philippines-data-privacy-compliance-plan.md` — DPA/NPC compliance requirements, launch-gate checklist
 4. `40-final-implementation-handoff.md` — PR 7 scope and starting point
 5. `36-access-telemetry-side-effects-audit.md` — side effects matrix for access telemetry
 6. `23-shared-page-access-activity-plan.md` — access telemetry plan
@@ -122,11 +128,12 @@ These documents contain useful historical context but are NO LONGER authoritativ
 8. `29-final-decision-log-and-approval-matrix.md` — D-016 through D-023 decisions
 
 ### For PR 8B Implementer
-1. `47-pr7-gate-clearance-and-privacy-approvals.md` — formal approval record
-2. `48-ph-dpa-npc-compliance-plan.md` — DPA/NPC compliance context
-3. `37-final-blast-radius-and-rollback-map.md` — blast radius and dependency map
-4. `43-final-risk-burndown-register.md` — risk register for context
-5. `17-observability-analytics-and-quality-plan.md` — observability and analytics quality
+1. `50-final-100-implementation-readiness-certification.md` — read FIRST
+2. `47-pr7-pr8b-approval-record.md` — formal approval record
+3. `48-philippines-data-privacy-compliance-plan.md` — DPA/NPC compliance context
+4. `37-final-blast-radius-and-rollback-map.md` — blast radius and dependency map
+5. `43-final-risk-burndown-register.md` — risk register for context
+6. `17-observability-analytics-and-quality-plan.md` — observability and analytics quality
 
 ---
 
@@ -138,3 +145,7 @@ These documents contain useful historical context but are NO LONGER authoritativ
 - `43-final-risk-burndown-register.md` — Risk burndown register
 - `44-final-plan-certification.md` — Certified sign-off
 - `40-final-implementation-handoff.md` — Handoff packet for implementation
+- `47-pr7-pr8b-approval-record.md` — PR 7/PR 8B approval record
+- `48-philippines-data-privacy-compliance-plan.md` — DPA/NPC compliance plan
+- `49-final-100-readiness-loop-log.md` — Tenth-pass loop audit log
+- `50-final-100-implementation-readiness-certification.md` — **Final certification — read FIRST**

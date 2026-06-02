@@ -1,9 +1,9 @@
 # 46 — Final Implementation-Readiness Lock
 
 **Date:** 2026-06-02
-**Ninth pass:** 2026-06-02
-**Status:** LOCKED — ready for implementation (PR 7+8B gates cleared, ninth pass)
-**Current HEAD:** `6cc9f03`
+**Tenth pass:** 2026-06-02
+**Status:** LOCKED — ready for implementation (tenth-pass final certification; all references hardened)
+**Current HEAD:** `6aaa0b7`
 
 ---
 
@@ -14,14 +14,14 @@ The Activity History Overhaul V1 planning pack is **locked for implementation**.
 ### Current HEAD
 
 ```
-6cc9f03fbfe92dfcfeea79de3610682630a4068f
+6aaa0b7ea55e41f5ba1129c44c3fcfe640a9fdda
 ```
 
-No activity-related production code has changed since the planning baseline `65b21eb`. All commits between `65b21eb` and `6cc9f03` are proof/ops/docs/mvp-readiness only.
+No activity-related production code has changed since the planning baseline `65b21eb`. All commits between `65b21eb` and `6aaa0b7` are proof/ops/docs/mvp-readiness only.
 
 ### File Count
 
-**50 files total:** `README.md` + 49 numbered documents (`00`–`48`).
+**52 files total:** `README.md` + 51 numbered documents (`00`–`50`).
 
 ### Final Corrected Score Table
 
@@ -41,11 +41,11 @@ No activity-related production code has changed since the planning baseline `65b
 
 ### Confirmed: No Stale HEADs Remain
 
-- README.md: `6cc9f03` ✅
-- Doc 42: `6cc9f03` ✅
-- Doc 44: `6cc9f03` ✅
-- Doc 45: `6cc9f03` ✅
-- Doc 40: `6cc9f03` ✅
+- README.md: `6aaa0b7` ✅
+- Doc 42: `6aaa0b7` ✅
+- Doc 44: `6aaa0b7` ✅
+- Doc 45: `6aaa0b7` ✅
+- Doc 40: `6aaa0b7` ✅
 
 ### Confirmed: No `event_type` Public Exposure Ambiguity
 
@@ -103,5 +103,5 @@ PR 8B (access telemetry hardening) can now proceed after PR 7 implementation. Th
 - `42-98-100-readiness-scorecard.md` — Detailed scoring breakdown
 - `44-final-plan-certification.md` — Certification and sign-off
 - `39-source-of-truth-and-doc-authority-index.md` — Document hierarchy
-- `47-eighth-pass-README-update.md` — Eighth-pass README update
-- `48-ninth-pass-doc-additions.md` — Ninth-pass doc additions (47–48)
+- `47-pr7-pr8b-approval-record.md` — PR 7/PR 8B approval record
+- `50-final-100-implementation-readiness-certification.md` — Final certification — read FIRST

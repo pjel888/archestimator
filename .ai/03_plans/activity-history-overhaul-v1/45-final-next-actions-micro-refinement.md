@@ -1,8 +1,8 @@
 # 45 — Final Next Actions (Ninth-Pass Micro-Refinement)
 
 **Date:** 2026-06-02
-**Status:** Ninth pass — PR 7+8B gates cleared
-**Current HEAD:** `6cc9f03`
+**Status:** Tenth pass — all gates cleared; certified 100% implementation-handoff ready
+**Current HEAD:** `6aaa0b7`
 
 **Ninth pass: 2026-06-02 — PR 7+8B gates cleared.** All gating decisions (D-017, D-018, D-023) approved under conservative privacy constraints. PR 7 can proceed.
 
@@ -44,7 +44,7 @@ Five targeted refinements executed to move the planning pack from ~98.5% to ~99.
 
 ## Exact Next Action
 
-1. **PR 1 — Merge planning docs.** All 50 files (README + 49 numbered docs 00–48) are internally consistent and certified. Ready to merge.
+1. **PR 1 — Merge planning docs.** All 52 files (README + 51 numbered docs 00–50) are internally consistent and certified. Ready to merge.
 
 2. **PR 2 — Preflight fixes.** See `40-final-implementation-handoff.md` and `31-pr2-preflight-implementation-brief.md`.
 
@@ -60,7 +60,7 @@ Before implementing PR 2, verify:
 
 Before implementing PR 2, verify:
 
-- [ ] Current branch is `main` at HEAD `1a6dcc5` (or later)
+- [ ] Current branch is `main` at HEAD `6aaa0b7` (or later)
 - [ ] No activity-related code changed since planning baseline `65b21eb`
 - [ ] Read `40-final-implementation-handoff.md`
 - [ ] Read `31-pr2-preflight-implementation-brief.md`
