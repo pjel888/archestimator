@@ -1,7 +1,7 @@
 # 39 — Source of Truth and Document Authority Index
 
 **Date:** 2026-06-02
-**Status:** Fourteenth pass — evidence preparation complete
+**Status:** Fifteenth pass — evidence-preparation hardening complete
 **Purpose:** When implementation begins, the engineer/AI needs to know which document is authoritative for each topic. This index resolves the hierarchy.
 
 ---
@@ -52,6 +52,8 @@
 | **Loop audit (tenth pass)** | `49-final-100-readiness-loop-log.md` | — | Audit trail of final document hardening pass |
 | **Evidence preparation scorecard** | `70-access-telemetry-evidence-preparation-scorecard.md` | `64-access-telemetry-production-evidence-ledger.md`, `66-production-readiness-final-gate-matrix.md` | Six-domain evidence preparation scoring: templates, owner-action, engineering-action, QA-action, sign-off, actual completion |
 | **Evidence artifacts** | `production-evidence/README.md` | All E-001 through E-016 templates | Evidence folder index and 16 evidence templates |
+| **No-false-claims audit** | `71-final-no-false-claims-audit.md` | `68-access-telemetry-production-truth-lock.md` | Final audit proving docs do not claim execution is complete when it is not |
+| **Loop log (fifteenth pass)** | `72-final-evidence-preparation-loop-log.md` | All above | Audit trail for fifteenth-pass evidence-preparation hardening |
 
 ---
 
@@ -74,7 +76,7 @@ These documents contain useful historical context but are NO LONGER authoritativ
 
 | Doc | Status | Notes |
 |-----|--------|-------|
-| `00-current-state-audit.md` | **Authoritative** (with noted corrections) | HEAD stale (`d78686f`→`65b21eb` via third/fourth/fifth passes; current is `1a6dcc5`), "13 event types" → "14". Otherwise accurate. |
+| `00-current-state-audit.md` | **Authoritative** (with noted corrections) | HEAD updated via multiple passes. "13 event types" → "14". Otherwise accurate. |
 | `01-research-basis.md` | **Authoritative** | Research unchanged |
 | `02-activity-copywriting-system.md` | **Authoritative** | Copy model unchanged |
 | `03-data-contract-and-event-model-plan.md` | **Authoritative** | Data contract unchanged |
@@ -158,18 +160,21 @@ These documents contain useful historical context but are NO LONGER authoritativ
 ### For Production Enablement
 1. `68-access-telemetry-production-truth-lock.md` — **read FIRST**: the final truth lock
 2. `67-final-access-telemetry-production-readiness-scorecard.md` — three-domain scorecard
-3. `64-access-telemetry-production-evidence-ledger.md` — evidence tracker (all items Missing)
-4. `66-production-readiness-final-gate-matrix.md` — gate matrix (all gates Incomplete)
-5. `65-production-enablement-execution-runbook.md` — 53-item execution path
-6. `61-access-telemetry-production-enablement-readiness-certification.md` — certification
-7. `51-access-telemetry-production-enablement-checklist.md` — master checklist
-8. `52-privacy-notice-and-disclosure-copy-pack.md` — privacy notice and disclosure copy
-9. `53-dpo-npcrs-and-dps-registration-triage.md` — DPO/NPCRS/DPS triage
-10. `54-data-subject-request-and-breach-response-playbook.md` — DSR and breach playbook
-11. `55-access-telemetry-retention-runbook.md` — retention runbook
-12. `56-access-telemetry-feature-flag-and-rollout-plan.md` — feature flag and rollout
-13. `57-access-telemetry-test-evidence-matrix.md` — test evidence matrix
-14. `58-production-enablement-final-go-template.md` — final sign-off template
+3. `70-access-telemetry-evidence-preparation-scorecard.md` — evidence preparation scoring
+4. `64-access-telemetry-production-evidence-ledger.md` — evidence tracker (all items Missing)
+5. `66-production-readiness-final-gate-matrix.md` — gate matrix (all gates Incomplete)
+6. `65-production-enablement-execution-runbook.md` — 53-item execution path
+7. `61-access-telemetry-production-enablement-readiness-certification.md` — certification
+8. `51-access-telemetry-production-enablement-checklist.md` — master checklist
+9. `52-privacy-notice-and-disclosure-copy-pack.md` — privacy notice and disclosure copy
+10. `53-dpo-npcrs-and-dps-registration-triage.md` — DPO/NPCRS/DPS triage
+11. `54-data-subject-request-and-breach-response-playbook.md` — DSR and breach playbook
+12. `55-access-telemetry-retention-runbook.md` — retention runbook
+13. `56-access-telemetry-feature-flag-and-rollout-plan.md` — feature flag and rollout
+14. `57-access-telemetry-test-evidence-matrix.md` — test evidence matrix
+15. `58-production-enablement-final-go-template.md` — final sign-off template
+16. `71-final-no-false-claims-audit.md` — no-false-claims audit
+17. `production-evidence/README.md` — evidence folder index
 
 ---
 

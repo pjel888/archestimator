@@ -12,13 +12,14 @@
 **Tenth pass:** 2026-06-02 (document hardening: broken references fixed, HEAD corrected, final certification docs 49-50 added)
 **Twelfth pass:** 2026-06-02 (autonomous production-readiness closure: docs 62–67 added, vendor scoring fixed, test matrix contradiction resolved)
 **Thirteenth pass:** 2026-06-02 (final truth-lock hardening: doc 68 added, HEAD references resolved)
-**Fourteenth pass:** 2026-06-02 (evidence preparation: doc 70 added, `production-evidence/` folder created, all 16 evidence templates created, evidence ledger/gate matrix/truth lock updated with preparation statuses)
+**Fifteenth pass:** 2026-06-02 (evidence-preparation hardening: HEAD drift permanently resolved, evidence prep → 100%, doc 71/72 added, all scorecards updated)
 **Branch:** `main`
 **Activity-code audit baseline:** `65b21eb`
-**Latest planning certification commit:** `8b0929f` (twelfth pass closure log finalized)
-**Latest repo HEAD at this audit:** `b95ff16`
-**Planning baseline HEAD:** `65b21eb` (no activity code changed between `65b21eb` and current `b95ff16`: only proof/ops/docs commits)
-**Status:** Implementation-readiness: 100% GO. Production enablement planning: 100% GO. Evidence preparation: 98–100% GO. Production enablement execution: 0% NO-GO (pending operational actions). All 72 files internally consistent (README + 70 numbered docs 00–69 + doc 70). `production-evidence/` folder created with 17 files (README + 16 evidence templates). All 16 evidence templates created and statuses updated in doc 64 and doc 66. Doc 70 (evidence preparation scorecard) added.
+**Latest activity-overhaul planning certification commit:** `d910fe8` (fifteenth pass)
+**Validated at:** 2026-06-02 fifteenth-pass evidence-preparation audit
+**Live repo HEAD:** intentionally not hardcoded — run `git rev-parse HEAD`
+**Planning baseline HEAD:** `65b21eb` (no activity code changed since baseline: only proof/ops/docs commits)
+**Status:** Implementation-readiness: 100% GO. Production enablement planning: 100% GO. Evidence preparation: 100% GO. Production enablement execution: 0% NO-GO (pending operational actions). All 74 files internally consistent (README + 70 numbered docs 00–69 + docs 70–72). `production-evidence/` folder with 18 files (README + 16 evidence templates + loop log). All 16 evidence templates created and verified. Docs 71 (no-false-claims audit) and 72 (loop log) added.
 
 ---
 

@@ -2,11 +2,13 @@
 
 **Date:** 2026-06-02
 **Tenth pass:** 2026-06-02
-**Status:** LOCKED — ready for implementation (tenth-pass final certification; all references hardened)
+**Fifteenth pass:** 2026-06-02 (HEAD drift permanently resolved)
+**Status:** LOCKED — ready for implementation (fifteenth-pass evidence-preparation hardening; all references hardened)
 **Audited implementation baseline HEAD:** `65b21eb`
 **Activity-code audit baseline:** `65b21eb`
-**Latest planning certification commit:** `8b0929f`
-**Latest repo HEAD at this audit:** `cdb9fdc`
+**Latest activity-overhaul planning certification commit:** `d910fe8` (fifteenth pass)
+**Validated at:** 2026-06-02 fifteenth-pass evidence-preparation audit
+**Live repo HEAD:** intentionally not hardcoded — run `git rev-parse HEAD`
 
 ---
 

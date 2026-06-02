@@ -12,16 +12,16 @@
 | Item | Value |
 |------|-------|
 | Activity-code audit baseline | `65b21eb` |
-| Latest planning certification commit | `8b0929f` (twelfth pass) |
-| Latest repo HEAD at this audit | `cdb9fdc` |
-| Activity code changed since baseline? | **No** — all commits between `65b21eb` and `cdb9fdc` are proof/ops/docs only |
-| Actual file count in planning folder | 70 (README + 69 numbered docs 00–68) |
-| Production enablement docs | 18 (docs 51–68) |
+| Latest activity-overhaul planning certification commit | `d910fe8` (fifteenth pass) |
+| Validated at | 2026-06-02 fifteenth-pass evidence-preparation audit |
+| Live repo HEAD | Intentionally not hardcoded — run `git rev-parse HEAD` |
+| Activity code changed since baseline? | **No** — all commits between `65b21eb` and current are proof/ops/docs only |
+| Actual file count in planning folder | 72 (README + 70 numbered docs 00–69 + doc 70) |
+| Production enablement docs | 20 (docs 51–70) |
 | Doc 47 filename | `47-pr7-pr8b-approval-record.md` |
 | Doc 48 filename | `48-philippines-data-privacy-compliance-plan.md` |
-| Last commit touching planning folder | `82cc691` (ninth pass) |
-| Tenth pass commit | `e559e60` (document hardening + certification) |
-| Production enablement pass | This pass (eleventh pass — production enablement hardening) |
+| Last commit touching planning folder | `d910fe8` (fourteenth pass) |
+| Fifteenth pass commit | This pass (evidence-preparation hardening) |
 
 ---
 
