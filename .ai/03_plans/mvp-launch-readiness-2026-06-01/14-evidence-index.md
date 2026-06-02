@@ -551,6 +551,14 @@ Commit audited: `681c95e64864f283950a88dba304eaffe8f2f8b3`
 Audit date: 2026-06-02
 Scope: launch planning and readiness audit only.
 
+### Beta Allowlist Admin Local Evidence
+
+- Artifact note: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/beta-allowlist-admin-local-2026-06-02.md`.
+- Local schema/action/UI: `20260602005649_beta_allowlist_admin_queue.sql` opens platform-admin-only access to `closed_beta_allowed_emails` through `public.is_platform_admin()`, grants select plus insert/update on the narrow allowlist columns needed for beta operations, and `/workshop/settings/beta-users` renders add/filter/status/notes controls for platform admins.
+- Status contract: allowlist statuses remain `invited`, `active`, and `revoked`; non-admin users receive an unauthorized state instead of allowlist rows, and the app does not grant delete access.
+- Focused evidence: `bunx vitest run tests/vitest/closed-beta-allowlist-admin.test.ts --maxWorkers=1` passed 1 file / 4 tests; `bun run type-check` passed.
+- Launch meaning: this removes the local need for direct Supabase Studio allowlist edits, but it does not prove linked Supabase migration apply, hosted platform-admin access, hosted Google auth allow/deny/revoke behavior, backup/PITR, or rollback readiness. Closed beta remains **NO-GO**.
+
 ## Command Outputs
 
 | Command | Exact result summary | Launch meaning |

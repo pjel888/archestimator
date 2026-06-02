@@ -34,7 +34,7 @@ This audit maps the active MVP launch goal in `codex-autopilot-goal.md` to curre
 
 | Goal criterion | Current evidence | Completion state |
 | --- | --- | --- |
-| Closed beta allowlist access implemented and tested | Migration/helper/proxy/callback/session/access-required UX are locally implemented and covered by source/DOM tests; local first-run workspace fallback and empty Workshop homebase are covered; linked/hosted allow/deny/revoked/fresh-user smoke is missing. | Local-proven; externally unproven |
+| Closed beta allowlist access implemented and tested | Migration/helper/proxy/callback/session/access-required UX and platform-admin `/workshop/settings/beta-users` management are locally implemented and covered by source/DOM/static tests; local first-run workspace fallback and empty Workshop homebase are covered; linked/hosted allow/deny/revoked/fresh-user smoke is missing. | Local-proven; externally unproven |
 | Ask Flip hidden and AI routes disabled by default | UI route/shell tests and env defaults prove default hidden/fail-closed behavior locally. | Local-proven; production env proof pending |
 | No payment/billing requirement | Pricing/landing/FAQ and docs state closed beta/no payment; copy tests pass. | Local-proven |
 | Closed beta pricing/copy/legal posture updated | Local terms/privacy/pricing/beta copy exist with tests; owner/counsel review missing. | Local-proven; legal review missing |
@@ -46,7 +46,7 @@ This audit maps the active MVP launch goal in `codex-autopilot-goal.md` to curre
 | Vercel/Supabase/Resend/readiness docs updated | Launch docs, runbook, env manifest, backup/DR, proof matrix, and Resend readiness evidence are updated. | Docs-proven; provider proof missing |
 | `.ai` roadmap/state/decision/readiness docs updated | `current-state.md`, `decisions.md`, known issues, launch pack, scorecard, and final report are synced to current local evidence. | Docs-proven |
 | All changes staged, committed, and pushed in meaningful commits | Current launch-pack evidence commits are pushed; `.ai/08_prompts/mvp-launch-goal.md` remains intentionally untracked. | Proven for committed work |
-| Worktree clean after final push | Worktree is clean except intentionally untracked `.ai/08_prompts/mvp-launch-goal.md`. | Proven with exception |
+| Worktree clean after final push | Not currently proven: current local status includes unrelated skill/config churn plus intentionally untracked `.ai/08_prompts/mvp-launch-goal.md`; committed launch slices remain pushed separately. | Incomplete |
 | Final evidence recorded in evidence/gate/brief/scorecard | `14-evidence-index.md`, `12-final-mvp-launch-gate.md`, `36-final-executive-launch-brief.md`, and `43-closed-beta-readiness-scorecard.md` record local evidence and remaining no-go gates. | Docs-proven |
 | Final report written | `final-codex-implementation-report.md` exists and records local-safe implementation plus remaining blockers. | Docs-proven; not launch approval |
 
@@ -55,7 +55,7 @@ This audit maps the active MVP launch goal in `codex-autopilot-goal.md` to curre
 These are required before the active goal can be marked complete:
 
 1. Supabase backup/PITR and restore-drill proof. Current CLI evidence says PITR is disabled and no backups are listed.
-2. Linked/staging Supabase migration, RLS, storage, and RPC allow/deny proof. Current Management API SQL parity proof and provider refresh show missing linked migrations `20260601182522` and `20260601184343`; `closed_beta_allowed_emails`, `check_closed_beta_access`, and `unlink_estimate_row_item_from_library_with_history` are absent. Security advisor WARN findings and `component-images` public bucket exposure still require triage.
+2. Linked/staging Supabase migration, RLS, storage, and RPC allow/deny proof. Current Management API SQL parity proof and provider refresh show missing linked migrations `20260601182522` and `20260601184343`; `closed_beta_allowed_emails`, `check_closed_beta_access`, and `unlink_estimate_row_item_from_library_with_history` are absent. The local platform-admin beta-users queue also depends on unapplied allowlist/admin migrations. Security advisor WARN findings and `component-images` public bucket exposure still require triage.
 3. Hosted auth allowlist smoke for allowed, denied, revoked, first-run, logout, and session-expiry states. Local first-run fallback/homebase evidence exists, but it does not prove Google OAuth, allowlist, hosted cookies, or a real fresh beta account.
 4. Vercel deploy/env/health/rollback proof. Current provider refresh proves latest preview readiness and protected health only; env vars are absent, public preview health is deployment-protected, production/custom domains still point to an older coming-soon deployment where `/api/health` returns 404, and rollback is not rehearsed.
 5. Resend DNS/delivery/webhook proof before visible email flows are re-enabled for launch. Current evidence shows Vercel env is empty, local sender/reply-to/webhook secret are missing or empty, and shared-link recipient controls disable entry/send/resend while server email readiness is false.
