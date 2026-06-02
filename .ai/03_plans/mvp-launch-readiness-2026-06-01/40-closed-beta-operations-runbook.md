@@ -120,6 +120,7 @@ Options:
 ## Linked Supabase Readiness Proof
 
 - Before applying or repairing launch migrations, capture backup/PITR and restore-owner proof.
+- Supabase backup helper: capture read-only backup-list JSON with `supabase backups list --project-ref <project-ref> -o json`, then run `SUPABASE_BACKUP_LIST_JSON="<json>" SUPABASE_BACKUP_PROJECT_REF=<project-ref> OUTPUT_FILE=.ai/09_archive/store/<date>-mvp-closed-beta-manual-proof/supabase-backup-readiness.json bun run launch:check-supabase-backup`. Add `SUPABASE_RESTORE_DRILL_STATUS=passed` only after a separate restore-drill artifact exists. The helper is sanitized parser proof only; it does not create backups, enable PITR, or run a restore.
 - After backup proof exists, use `bun run launch:supabase-readiness` to run `scripts/sql/linked-supabase-launch-readiness.sql` against the linked project and save the sanitized JSON output into the manual proof packet.
 - The SQL is read-only and checks the five launch migrations, `closed_beta_allowed_emails`, `beta_feedback_submissions`, `check_closed_beta_access`, `unlink_estimate_row_item_from_library_with_history`, anon table/function exposure, RLS posture, and `component-images` public/private bucket posture.
 - A failed or missing `launch_readiness_passed` summary keeps linked Supabase **NO-GO**.
