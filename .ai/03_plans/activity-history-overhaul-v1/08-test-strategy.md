@@ -22,7 +22,12 @@
 
 ## 1. Unit Tests — Activity Composer
 
-**File:** `tests/vitest/activity-composer.test.ts`
+**Test files:**
+- `tests/vitest/fixtures/activity-events.ts` — Shared fixtures for all activity tests
+- `tests/vitest/activity-composer.test.ts` — Core composer unit tests (~100 tests)
+- `tests/vitest/activity-copy-regression.test.ts` — Banned-term regression tests
+- `tests/vitest/activity-security.test.ts` — Security/privacy guard tests
+- `tests/vitest/activity-view-model.test.ts` — Type-shape assertions (if separated)
 
 All tests use shared fixtures from `tests/vitest/fixtures/activity-events.ts`.
 
