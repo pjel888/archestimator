@@ -73,6 +73,16 @@
 - Result: branch-alias public health returned HTTP `401`; `www.archestimator.com/api/health` and `archestimator.vercel.app/api/health` returned HTTP `404`; apex `archestimator.com/api/health` returned HTTP `307` to `www`; no URL returned the app health JSON; `vercelHealthReady: false`.
 - Launch meaning: this makes public/custom-domain health proof repeatable, but it does not prove Vercel env values, protected preview health through `vercel curl`, production promotion, rollback, hosted auth, or app behavior behind deployment protection. Public/custom-domain health remains **NO-GO**.
 
+### Vercel Production Alias/Rollback Readiness Helper
+
+- Script: `scripts/check-vercel-production-readiness.ts`.
+- Package command: `bun run launch:check-vercel-production`.
+- Proof artifact: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/vercel-production-readiness-fc8f53e-2026-06-02.json`.
+- Scope: parses sanitized `vercel inspect --format=json`, `vercel alias ls`, and optional `vercel ls` transcripts to check current deployment readiness, whether custom domains alias to that deployment, ready rollback-candidate availability, and explicit rollback-drill status.
+- Current refresh: `VERCEL_INSPECT_TEXT="$(vercel inspect archestimator-q1r5xdbpm-philipjonlewis-projects.vercel.app --format=json --non-interactive 2>&1)" VERCEL_ALIAS_LIST_TEXT="$(vercel alias ls --non-interactive 2>&1)" VERCEL_DEPLOYMENT_LIST_TEXT="$(vercel ls --non-interactive 2>&1)" VERCEL_EXPECTED_CUSTOM_DOMAINS='archestimator.com,www.archestimator.com,archestimator.vercel.app' OUTPUT_FILE=.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/vercel-production-readiness-fc8f53e-2026-06-02.json bun run launch:check-vercel-production` wrote sanitized JSON and exited `1`.
+- Result: current preview deployment `dpl_3fYxPhQ6jTv9xUfvjo8Sw5AWtEBJ` at `archestimator-q1r5xdbpm-philipjonlewis-projects.vercel.app` is `READY`; `archestimator.com`, `www.archestimator.com`, and `archestimator.vercel.app` still alias to `archestimator-3ser9ty2w-philipjonlewis-projects.vercel.app`; 19 ready rollback candidates were found; rollback drill was not provided; `vercelProductionReady: false`.
+- Launch meaning: this makes custom-domain/rollback proof repeatable, but it does not promote deployments, change aliases, run health checks, verify env values, exercise hosted auth, or perform a rollback. Production/custom-domain and rollback readiness remains **NO-GO**.
+
 ### Supabase Backup/PITR Readiness Helper
 
 - Script: `scripts/check-supabase-backup-readiness.ts`.

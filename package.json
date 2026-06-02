@@ -23,6 +23,7 @@
     "launch:check-support-dns": "bun run scripts/check-support-email-dns.ts",
     "launch:check-vercel-env": "bun run scripts/check-vercel-env-readiness.ts",
     "launch:check-vercel-health": "bun run scripts/check-vercel-health-readiness.ts",
+    "launch:check-vercel-production": "bun run scripts/check-vercel-production-readiness.ts",
     "launch:check-resend-readiness": "bun run scripts/check-resend-readiness.ts",
     "perf:measure-routes": "bun run scripts/measure-route-transitions.ts",
     "perf:seed-fixture": "bun run scripts/seed-performance-test-data.ts",
