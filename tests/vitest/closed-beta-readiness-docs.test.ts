@@ -287,6 +287,7 @@ describe("closed beta readiness docs", () => {
     expect(currentState).toContain("**Vercel Protection Evidence (2026-06-02):**");
     expect(currentState).toContain("**Vercel Public Health Readiness Helper (2026-06-02):**");
     expect(currentState).toContain("vercel-health-readiness-02f3a9c-2026-06-02.json");
+    expect(currentState).toContain("vercel-health-readiness-b6873b4-2026-06-02.json");
     expect(currentState).toContain("`vercelHealthReady` is `false`");
     expect(currentState).toContain("latest refresh again has zero ready URLs");
     expect(currentState).toContain("**Vercel Production Alias/Rollback Readiness Helper (2026-06-02):**");
@@ -326,8 +327,9 @@ describe("closed beta readiness docs", () => {
     expect(knownIssues).toContain("still discover zero env names");
     expect(knownIssues).toContain("all app-owned invite delivery env names missing");
     expect(knownIssues).toContain("Vercel public health readiness evidence on 2026-06-02 remains blocked");
-    expect(knownIssues).toContain("`vercel-health-readiness-4fdf0de-2026-06-02.json` and latest `vercel-health-readiness-02f3a9c-2026-06-02.json` report branch-alias public `/api/health` is HTTP `401`");
+    expect(knownIssues).toContain("`vercel-health-readiness-4fdf0de-2026-06-02.json`, `vercel-health-readiness-02f3a9c-2026-06-02.json`, and latest `vercel-health-readiness-b6873b4-2026-06-02.json` report branch-alias public `/api/health` is HTTP `401`");
     expect(knownIssues).toContain("vercel-health-readiness-02f3a9c-2026-06-02.json");
+    expect(knownIssues).toContain("vercel-health-readiness-b6873b4-2026-06-02.json");
     expect(knownIssues).toContain("zero ready URLs are present");
     expect(knownIssues).toContain("Vercel production alias/rollback readiness evidence on 2026-06-02 remains blocked");
     expect(knownIssues).toContain("vercel-production-readiness-4fdf0de-2026-06-02.json");
@@ -583,6 +585,7 @@ describe("closed beta readiness docs", () => {
     expect(manualProofMatrix).toContain("vercel-protection-read-only-2026-06-02.md");
     expect(manualProofMatrix).toContain("vercel-health-readiness-4fdf0de-2026-06-02.json");
     expect(manualProofMatrix).toContain("vercel-health-readiness-02f3a9c-2026-06-02.json");
+    expect(manualProofMatrix).toContain("vercel-health-readiness-b6873b4-2026-06-02.json");
     expect(manualProofMatrix).toContain("zero ready URLs");
     expect(manualProofMatrix).toContain("vercel-production-readiness-4fdf0de-2026-06-02.json");
     expect(manualProofMatrix).toContain("vercel-production-readiness-9e253e7-2026-06-02.json");
@@ -762,6 +765,7 @@ describe("closed beta readiness docs", () => {
     expect(artifactFilenames).toContain("vercel-env-readiness-6aaa0b7-2026-06-02.json");
     expect(artifactFilenames).toContain("vercel-env-readiness-9cbf6c3-2026-06-02.json");
     expect(artifactFilenames).toContain("vercel-health-readiness-02f3a9c-2026-06-02.json");
+    expect(artifactFilenames).toContain("vercel-health-readiness-b6873b4-2026-06-02.json");
     expect(artifactFilenames).toContain("vercel-production-readiness-4fdf0de-2026-06-02.json");
     expect(artifactFilenames).toContain("vercel-production-readiness-9e253e7-2026-06-02.json");
     expect(artifactFilenames).toContain("resend-readiness-eb0aef5-2026-06-02.json");
@@ -823,6 +827,7 @@ describe("closed beta readiness docs", () => {
     expect(goalCompletionAudit).toContain("Vercel custom-domain readiness evidence");
     expect(goalCompletionAudit).toContain("Vercel public health readiness helper");
     expect(goalCompletionAudit).toContain("vercel-health-readiness-02f3a9c-2026-06-02.json");
+    expect(goalCompletionAudit).toContain("vercel-health-readiness-b6873b4-2026-06-02.json");
     expect(goalCompletionAudit).toContain("`bun run launch:check-vercel-health` now gives a repeatable sanitized public/custom-domain health check");
     expect(goalCompletionAudit).toContain("`vercelHealthReady: false`");
     expect(goalCompletionAudit).toContain("Vercel production alias/rollback readiness helper");
