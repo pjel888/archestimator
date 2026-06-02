@@ -21,6 +21,12 @@
 - Guardrail evidence: `bunx vitest run tests/vitest/auth-entry-ui-contract.test.ts tests/vitest/auth-callback-route.test.ts tests/vitest/beta-access-required-page.test.ts --maxWorkers=1` passed 3 files / 9 tests.
 - Launch meaning: this closes the local legal-link label mismatch only. It does not prove hosted Google OAuth, magic-link delivery, callback configuration, or manual auth journey proof; those gates remain **NO-GO**.
 
+### Local Legal Page Placeholder Removal Slice
+
+- Scope: `/terms` and `/privacy` no longer show owner-facing counsel-review placeholder instructions to beta users; both pages now keep user-facing closed-beta limits and dated review copy.
+- Guardrail evidence: `bunx vitest run tests/vitest/support-contact-readiness.test.ts tests/vitest/auth-entry-ui-contract.test.ts --maxWorkers=1` passed 2 files / 8 tests.
+- Launch meaning: this closes the visible placeholder-copy gap only. It does not provide legal advice, counsel review, owner approval, screenshots, or public-launch approval; legal/owner proof remains **NO-GO**.
+
 ### Final Codex Implementation Report Evidence
 
 - Final report artifact: `final-codex-implementation-report.md`.

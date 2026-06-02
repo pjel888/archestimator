@@ -41,7 +41,13 @@ describe("closed beta support contact readiness", () => {
   it("keeps legal copy aligned to the same support and deletion contact", () => {
     expect(termsPage).toContain("support@archestimator.com");
     expect(termsPage).toContain("beta feedback");
+    expect(termsPage).toContain("Last updated for closed beta review");
+    expect(termsPage).toContain("may be updated before any public or paid launch");
+    expect(termsPage).not.toContain("review this copy with counsel");
     expect(privacyPage).toContain("support@archestimator.com");
     expect(privacyPage).toContain("request deletion of beta account or workspace data");
+    expect(privacyPage).toContain("Last updated for closed beta review");
+    expect(privacyPage).toContain("may be updated before any public or paid launch");
+    expect(privacyPage).not.toContain("review this copy with counsel");
   });
 });

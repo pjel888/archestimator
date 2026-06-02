@@ -19,7 +19,7 @@ export default async function TermsPage() {
               Archestimator is in an invite-only access closed beta. These terms explain the current beta status and do not create a public self-serve SaaS or paid subscription offer.
             </p>
             <p>
-              Philip should review this copy with counsel before inviting external testers or using it as final commercial terms.
+              These closed-beta terms are intentionally limited to invited reviewers and may be updated before any public or paid launch.
             </p>
             <section>
               <h2 className="text-[11px] font-medium leading-4 text-[#111111]">Invite-only access</h2>
@@ -57,6 +57,9 @@ export default async function TermsPage() {
                 For access issues, data deletion requests, export problems, or beta feedback, contact Philip at <span className="font-medium">support@archestimator.com</span>.
               </p>
             </section>
+            <p className="border-t border-[#d9d8d4] pt-3 text-[9px] leading-4 text-[#5f615f]">
+              Last updated for closed beta review: June 2, 2026.
+            </p>
           </div>
         </div>
       </section>
