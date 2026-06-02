@@ -435,7 +435,8 @@
 
 - Superseded artifacts: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/vercel-current-head-read-only-165e4a3-2026-06-02.md` and `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/vercel-current-head-read-only-567f3c5-2026-06-02.md`.
 - Current artifact: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/vercel-current-head-read-only-638f681-2026-06-02.md`.
-- Current `main` preview: `archestimator-4s6wzqt08-philipjonlewis-projects.vercel.app`, commit `638f6813017fd3460c35fcf5917b3049ff7403cf`, deployment id `dpl_8cpgQgEtrAgo6P5gX1fn3LwBJzdS`, target `preview`, status `Ready`.
+- Runtime-proof policy: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/runtime-proof-anchor-policy-2026-06-02.md` records that later docs/evidence-only commits do not invalidate this app-runtime proof unless app/runtime inputs change.
+- Latest app-runtime preview: `archestimator-4s6wzqt08-philipjonlewis-projects.vercel.app`, commit `638f6813017fd3460c35fcf5917b3049ff7403cf`, deployment id `dpl_8cpgQgEtrAgo6P5gX1fn3LwBJzdS`, target `preview`, status `Ready`.
 - Current branch alias: `archestimator-git-main-philipjonlewis-projects.vercel.app` maps to the current deployment and `vercel curl` returns `{"ok":true,"service":"archestimator"}` for `/api/health`.
 - Env proof: `vercel env ls --non-interactive` still returned `No Environment Variables found for philipjonlewis-projects/archestimator`.
 - Public preview proof: plain `curl -I` to the preview and `git-main` health routes still returns HTTP `401` due to Vercel authentication.
