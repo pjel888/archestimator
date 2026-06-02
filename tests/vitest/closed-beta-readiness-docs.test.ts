@@ -370,6 +370,10 @@ describe("closed beta readiness docs", () => {
     expect(evidenceIndex).toContain("scripts/check-supabase-backup-readiness.ts");
     expect(evidenceIndex).toContain("supabase-backup-readiness-26bc6e3-2026-06-02.json");
     expect(evidenceIndex).toContain("`supabaseBackupReady: false`");
+    expect(evidenceIndex).toContain("### Supabase Migration List Readiness Helper");
+    expect(evidenceIndex).toContain("scripts/check-supabase-migration-readiness.ts");
+    expect(evidenceIndex).toContain("supabase-migration-readiness-65b21eb-2026-06-02.json");
+    expect(evidenceIndex).toContain("`linkedMigrationsReady: false`");
     expect(evidenceIndex).toContain("scripts/verify-hosted-auth-routes.ts");
     expect(evidenceIndex).toContain("does not prove Google OAuth, hosted cookies, callback URLs, linked allowlist data, or first-run workspace behavior");
     expect(evidenceIndex).not.toContain("| HEAD | `1ed86b4f2a3881bf1b946eb81c688071e6736574` |");
@@ -440,11 +444,13 @@ describe("closed beta readiness docs", () => {
     expect(manualProofMatrix).toContain("Supabase backup/PITR");
     expect(manualProofMatrix).toContain("supabase-backup-readiness-26bc6e3-2026-06-02.json");
     expect(manualProofMatrix).toContain("restore drill not provided");
+    expect(manualProofMatrix).toContain("supabase-migration-readiness-65b21eb-2026-06-02.json");
+    expect(manualProofMatrix).toContain("parsed 71 rows");
     expect(manualProofMatrix).toContain("supabase-linked-schema-parity-2026-06-02.md");
     expect(manualProofMatrix).toContain("supabase-linked-readiness-refresh-2026-06-02.md");
-    expect(manualProofMatrix).toContain("migrations `20260601182522`, `20260601184343`, `20260602005649`, `20260602083000`, and `20260602084500` absent");
+    expect(manualProofMatrix).toContain("migrations `20260601182522`, `20260601184343`, `20260602005649`, `20260602083000`, and `20260602084500` present locally but absent remotely");
     expect(manualProofMatrix).toContain("36 anon executable `SECURITY DEFINER` functions, 62 authenticated executable `SECURITY DEFINER` functions");
-    expect(manualProofMatrix).toContain("latest `supabase migration list --linked` read succeeded");
+    expect(manualProofMatrix).toContain("The repeatable migration-list helper parsed 71 rows");
     expect(manualProofMatrix).toContain("`closed_beta_allowed_emails`, `beta_feedback_submissions`, `check_closed_beta_access`, and `unlink_estimate_row_item_from_library_with_history` absent");
     expect(manualProofMatrix).toContain("RLS/storage allow/deny proof still missing");
     expect(manualProofMatrix).toContain("Hosted auth allowlist");
@@ -571,6 +577,8 @@ describe("closed beta readiness docs", () => {
     expect(consolidatedManualProofPacket).toContain("Supabase backup/PITR | blocked");
     expect(consolidatedManualProofPacket).toContain("supabase-backup-readiness-26bc6e3-2026-06-02.json");
     expect(consolidatedManualProofPacket).toContain("zero listed backups");
+    expect(consolidatedManualProofPacket).toContain("supabase-migration-readiness-65b21eb-2026-06-02.json");
+    expect(consolidatedManualProofPacket).toContain("`linkedMigrationsReady: false`");
     expect(consolidatedManualProofPacket).toContain("Spreadsheet compatibility | partial-local");
     expect(consolidatedManualProofPacket).toContain("Current manual E2E smoke | partial-local");
     expect(consolidatedManualProofPacket).toContain("Do not change the launch decision until `47-goal-completion-audit.md` is rerun");
@@ -582,6 +590,7 @@ describe("closed beta readiness docs", () => {
 
     expect(artifactFilenames).toContain("supabase-read-only-cli-2026-06-02.md");
     expect(artifactFilenames).toContain("supabase-backup-readiness-26bc6e3-2026-06-02.json");
+    expect(artifactFilenames).toContain("supabase-migration-readiness-65b21eb-2026-06-02.json");
     expect(artifactFilenames).toContain("provider-state-refresh-b33f56d-2026-06-02.md");
     expect(artifactFilenames).toContain("provider-state-refresh-d78686f-2026-06-02.md");
     expect(artifactFilenames).toContain("lewis-residence-demo-proposal-2026-06-02.xlsx");
@@ -610,6 +619,9 @@ describe("closed beta readiness docs", () => {
     expect(goalCompletionAudit).toContain("Supabase backup/PITR readiness helper");
     expect(goalCompletionAudit).toContain("`bun run launch:check-supabase-backup` now gives a repeatable sanitized backup/PITR check");
     expect(goalCompletionAudit).toContain("`supabaseBackupReady: false`");
+    expect(goalCompletionAudit).toContain("Supabase migration-list readiness helper");
+    expect(goalCompletionAudit).toContain("`bun run launch:check-supabase-migrations` now gives a repeatable sanitized migration-list check");
+    expect(goalCompletionAudit).toContain("`linkedMigrationsReady: false`");
     expect(goalCompletionAudit).toContain("Supabase linked schema parity evidence");
     expect(goalCompletionAudit).toContain("linked migration history missing `20260601182522` and `20260601184343`");
     expect(goalCompletionAudit).toContain("`closed_beta_allowed_emails`, `beta_feedback_submissions`, `check_closed_beta_access`, and `unlink_estimate_row_item_from_library_with_history` are absent");
@@ -677,6 +689,9 @@ describe("closed beta readiness docs", () => {
     expect(currentState).toContain("**Supabase Backup/PITR Readiness Helper (2026-06-02):**");
     expect(currentState).toContain("`supabaseBackupReady: false`");
     expect(knownIssues).toContain("Supabase backup readiness evidence on 2026-06-02 remains blocked");
+    expect(currentState).toContain("**Supabase Migration List Readiness Helper (2026-06-02):**");
+    expect(currentState).toContain("`linkedMigrationsReady: false`");
+    expect(knownIssues).toContain("Supabase migration-list readiness evidence on 2026-06-02 remains blocked");
     expect(currentState).toContain("Linked Supabase schema parity evidence");
     expect(currentState).toContain("Management API SQL readback succeeded");
     expect(currentState).toContain("`20260601182522_closed_beta_allowed_emails` and `20260601184343_unlink_estimate_row_items`");

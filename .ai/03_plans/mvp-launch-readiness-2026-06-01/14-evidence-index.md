@@ -83,6 +83,16 @@
 - Result: region `ap-southeast-2`; zero listed backups; `pitrEnabled: false`; `walgEnabled: true`; `restoreDrillStatus: not-provided`; missing `listed backups`, `PITR enabled`, and `restore drill passed`; `supabaseBackupReady: false`.
 - Launch meaning: this makes backup/PITR proof repeatable, but it does not enable PITR, create/list a backup, perform a restore, or prove linked migration safety. Supabase backup/PITR and restore-drill readiness remains **NO-GO**.
 
+### Supabase Migration List Readiness Helper
+
+- Script: `scripts/check-supabase-migration-readiness.ts`.
+- Package command: `bun run launch:check-supabase-migrations`.
+- Proof artifact: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/supabase-migration-readiness-65b21eb-2026-06-02.json`.
+- Scope: parses sanitized `supabase migration list --linked` text and checks that launch migrations `20260601182522`, `20260601184343`, `20260602005649`, `20260602083000`, and `20260602084500` appear in remote migration history.
+- Current refresh: `SUPABASE_MIGRATION_LIST_TEXT="$(supabase migration list --linked 2>&1)" SUPABASE_MIGRATION_PROJECT_REF=ebxxqidacheyapmmzavr OUTPUT_FILE=.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/supabase-migration-readiness-65b21eb-2026-06-02.json bun run launch:check-supabase-migrations` wrote sanitized JSON and exited `1`.
+- Result: 71 migration rows parsed; all five required launch migrations are present locally but missing remotely; `linkedMigrationsReady: false`.
+- Launch meaning: this makes migration-list parity proof repeatable, but it does not prove RLS, grants, storage posture, object existence, backup/PITR, restore safety, or the deeper SQL readiness query. Linked Supabase remains **NO-GO**.
+
 ### Hosted Auth Route Proof Helper
 
 - Script: `scripts/verify-hosted-auth-routes.ts`.
