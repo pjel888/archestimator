@@ -168,7 +168,7 @@ describe("workshop sidebar baseline", () => {
     expect(screen.queryByRole("button", { name: "Open Ask Flip" })).toBeNull();
     expect(screen.getByRole("link", { name: "Send beta feedback" })).toHaveAttribute(
       "href",
-      "mailto:support@archestimator.com?subject=Archestimator%20beta%20feedback",
+      "/workshop/feedback",
     );
   });
 

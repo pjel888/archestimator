@@ -5,6 +5,8 @@ import { describe, expect, it } from "vitest";
 const contactPage = readFileSync("src/app/contact/page.tsx", "utf8");
 const contactForm = readFileSync("src/components/landing/ContactForm.tsx", "utf8");
 const workshopShell = readFileSync("src/components/workshop/WorkshopPageShell.tsx", "utf8");
+const betaFeedbackPage = readFileSync("src/app/workshop/feedback/page.tsx", "utf8");
+const betaFeedbackAction = readFileSync("src/lib/workshop/beta-feedback-actions.ts", "utf8");
 const termsPage = readFileSync("src/app/terms/page.tsx", "utf8");
 const privacyPage = readFileSync("src/app/privacy/page.tsx", "utf8");
 
@@ -28,9 +30,12 @@ describe("closed beta support contact readiness", () => {
     expect(contactForm).not.toContain("We have received your inquiry");
   });
 
-  it("keeps authenticated workshop users one click from beta feedback email", () => {
+  it("keeps authenticated workshop users one click from persisted beta feedback", () => {
     expect(workshopShell).toContain("Send beta feedback");
-    expect(workshopShell).toContain("mailto:support@archestimator.com?subject=Archestimator%20beta%20feedback");
+    expect(workshopShell).toContain('href="/workshop/feedback"');
+    expect(betaFeedbackPage).toContain("BetaFeedbackForm");
+    expect(betaFeedbackAction).toContain("beta_feedback_submissions");
+    expect(betaFeedbackAction).toContain('feedbackRedirect({ fallback: "1" })');
   });
 
   it("keeps legal copy aligned to the same support and deletion contact", () => {

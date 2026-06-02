@@ -498,10 +498,18 @@
 
 - Artifact note: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/support-feedback-local-surface-2026-06-02.md`.
 - Public contact route: `/contact` source renders `Direct Support`, `support@archestimator.com`, and privacy copy for quote workflow support and access inquiries.
-- Workshop feedback path: `WorkshopPageShell` renders `Send beta feedback` with `mailto:support@archestimator.com?subject=Archestimator%20beta%20feedback`.
+- Workshop feedback path: `WorkshopPageShell` renders `Send beta feedback`.
 - Legal/deletion copy: `/terms` and `/privacy` both point support, access, beta feedback, and data deletion requests to `support@archestimator.com`.
 - Test coverage: `tests/vitest/support-contact-readiness.test.ts` guards those source contracts, and `tests/vitest/workshop-reset.test.tsx` already renders the workshop feedback link.
 - Launch meaning: this proves a local visible support/feedback surface, not monitored inbox/form delivery, uptime/error alerts, or incident ownership. Support/monitoring remains a **NO-GO** row until manual/provider proof exists.
+
+### Beta Feedback In-App Local Evidence
+
+- Artifact note: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/beta-feedback-in-app-local-2026-06-02.md`.
+- Local schema/action/UI: `20260602083000_beta_feedback_submissions.sql` adds an insert-only authenticated feedback table, `/workshop/feedback` renders a protected feedback form, and `submitBetaFeedback()` persists validated type/severity/message/page/project context when the table exists.
+- Fallback behavior: persistence failure does not fake success; the feedback page shows an email fallback to `support@archestimator.com`.
+- Focused evidence: `bunx vitest run tests/vitest/beta-feedback.test.ts tests/vitest/support-contact-readiness.test.ts tests/vitest/workshop-reset.test.tsx --maxWorkers=1` passed 3 files / 12 tests.
+- Launch meaning: this proves local in-app feedback code and RLS intent only. Linked Supabase migration apply, hosted browser smoke, monitored review workflow, alert ownership, and incident escalation remain **NO-GO** evidence gaps.
 
 ### Support Email DNS Readiness Evidence
 
