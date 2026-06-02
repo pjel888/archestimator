@@ -1,7 +1,13 @@
 # Launch Gates Master Checklist
 
-**Last updated:** 2026-06-01
-**Status:** Pre-launch MVP audit complete. Gates enumerated: Beta Minimum, Enterprise MVP, and Public Launch Gates 2-6.
+**Last updated:** 2026-06-02
+**Status:** Pre-launch MVP audit complete. Repo-local launch implementation is frozen; external/provider/manual proof gates remain open.
+
+## Current MVP Launch Handoff
+
+Closed beta remains **NO-GO**. The local launch-readiness implementation lane is frozen at `6ab5b38`, with docs/status guard evidence pushed through `bdf9b03`. The broad launch goal was marked blocked, not complete, because the remaining work requires external/provider/manual proof.
+
+Use `.ai/03_plans/mvp-launch-readiness-2026-06-01/46-manual-proof-matrix.md` as the remaining proof checklist and `.ai/03_plans/mvp-launch-readiness-2026-06-01/47-goal-completion-audit.md` before any future completion claim.
 
 ---
 
@@ -18,8 +24,8 @@
 | PARTIAL / MANUAL OR PROVIDER PROOF OPEN | 8+ |
 | PLANNED / DRAFTED | 12 |
 | LEFT TO DO | 26 |
-| HARD CONFIG BLOCKED | 0 known after local hardening; provider/env proof remains open |
-| BLOCKED | 0 |
+| HARD CONFIG BLOCKED | External/provider/manual proof lane open: Vercel, Supabase, Resend, legal, support, spreadsheet, hosted E2E |
+| BLOCKED | Broad MVP launch goal blocked until proof lane is configured and captured |
 | OWNER DECISION REQUIRED | 3 (remaining — all public launch only) |
 | UNKNOWN | 4 |
 | DECIDED / APPROVED DEFAULT | 21 (owner decisions resolved 2026-05-30) |

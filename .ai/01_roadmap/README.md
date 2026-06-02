@@ -1,7 +1,22 @@
 # Archestimator Production-Readiness Command Center
 
-**Last updated:** 2026-05-30
-**Status:** Pre-launch MVP — Owner defaults decided. Ralph Loop execution layer active.
+**Last updated:** 2026-06-02
+**Status:** Pre-launch MVP — repo-local launch implementation frozen; external/provider/manual proof lane remains open.
+
+## Current MVP Launch Handoff
+
+The broad MVP launch `/goal` is blocked, not complete. Repo-local implementation for `.ai/03_plans/mvp-launch-readiness-2026-06-01/` is frozen at `6ab5b38`; docs/status freeze and guard evidence are pushed through `bdf9b03`. Do not reopen local launch implementation unless a new repo-local defect is found.
+
+Next launch-readiness work is external/provider/manual proof collection:
+
+- Vercel env/custom-domain/health/rollback proof.
+- Hosted auth allow/deny/revoke/logout/session-expiry smoke.
+- Linked Supabase migrations, RLS/storage/RPC, backup/PITR, and restore proof.
+- Resend delivery/webhook proof before visible email workflows are re-enabled.
+- Spreadsheet-app open/recalc/print proof and hosted authorized export timing.
+- Legal/owner signoff, monitored support/alert ownership, demo rehearsal, and hosted/manual E2E proof.
+
+Use `.ai/03_plans/mvp-launch-readiness-2026-06-01/46-manual-proof-matrix.md`, `47-goal-completion-audit.md`, `48-manual-proof-packet-template.md`, and `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/` as the handoff packet.
 
 ---
 
@@ -10,7 +25,7 @@
 | Level | Status |
 |---|---|
 | **PUBLIC LAUNCH** | `NO-GO` |
-| **CONTROLLED BETA** | `CONDITIONAL / OWNER DEFAULTS NOW DECIDED` |
+| **CONTROLLED BETA** | `NO-GO / LOCAL IMPLEMENTATION FROZEN / EXTERNAL PROOF OPEN` |
 | **ENTERPRISE MVP** | `PLANNED` |
 | **DOCS / PLANNING** | `ACTIVE` |
 | **IMPLEMENTATION** | `NOT PART OF THIS TASK` |
