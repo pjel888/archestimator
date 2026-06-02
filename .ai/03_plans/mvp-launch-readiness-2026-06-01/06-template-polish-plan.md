@@ -67,7 +67,7 @@ No create/edit/delete/import controls in MVP.
 | State | Copy | Component |
 | --- | --- | --- |
 | Loading | Keep route `loading.tsx` skeleton. | Existing route loading. |
-| Route error | Add `/workshop/templates/error.tsx` using `WorkshopRouteErrorState`. | New file in ticket TPL-001. |
+| Route error | `/workshop/templates/error.tsx` uses `WorkshopRouteErrorState`. | Implemented locally in ticket TPL-001. |
 | No templates | "No templates in this workspace yet." | Shared `EmptyState`. |
 | No matches | `No templates match "<query>".` | Shared `EmptyState`. |
 | Empty category | "No templates in this category yet." | Shared `EmptyState`. |
@@ -85,7 +85,7 @@ Template insertion happens inside estimate workspace, not the standalone templat
 
 | Ticket | Implementation details | Acceptance criteria | Tests | Rollback |
 | --- | --- | --- | --- | --- |
-| TPL-001 | Add preview/details UI, shared empty states, `/workshop/templates/error.tsx`, persisted/fallback tests. | Templates route shows useful structure without authoring scope; route states are consistent. | `template-library-manager-ui.test.tsx`, route error test, repository tests. | Revert preview/details and error boundary; current view-only list remains. |
+| TPL-001 | Add preview/details UI, shared empty states, `/workshop/templates/error.tsx`, persisted/fallback tests. Local route error boundary implemented 2026-06-02. | Templates route shows useful structure without authoring scope; route states are consistent. | `template-library-manager-ui.test.tsx`, route error test, repository tests. | Revert preview/details and error boundary; current view-only list remains. |
 | TPL-001 | Improve estimate-workspace template insertion feedback and error handling. | Insert action gives pending/success/error feedback and no duplicate inserts. | `estimate-node-reorder-action.test.ts`, DOM insertion smoke. | Revert UI feedback; RPC remains unchanged. |
 
 ## Visual QA

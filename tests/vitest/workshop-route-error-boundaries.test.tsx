@@ -4,6 +4,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import LibraryRouteError from "@/app/workshop/library/error";
 import ChartsRouteError from "@/app/workshop/projects/[projectId]/charts/error";
 import EstimateRouteError from "@/app/workshop/projects/[projectId]/estimates/[nodeId]/error";
+import TemplatesRouteError from "@/app/workshop/templates/error";
 import { WorkshopRouteErrorState } from "@/components/workshop/WorkshopRouteErrorState";
 
 const sensitiveError = Object.assign(
@@ -36,6 +37,7 @@ afterEach(() => {
 describe("workshop route error boundaries", () => {
   it.each([
     ["Library", LibraryRouteError],
+    ["Templates", TemplatesRouteError],
     ["Project charts", ChartsRouteError],
     ["Estimate workspace", EstimateRouteError],
   ])("renders sanitized retry UI for %s route failures", (routeLabel, ErrorComponent) => {
