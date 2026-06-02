@@ -11,7 +11,7 @@ Archestimator should launch next as a closed beta MVP: invite-only, Google-authe
 - Google Sign-In plus `closed_beta_allowed_emails`.
 - Founder-managed cohort.
 - Working project, estimate, component library, template, unlink, and Excel export workflows.
-- Visible feedback/support path.
+- Visible `/workshop/feedback` plus support email path.
 - Beta legal/privacy/AUP/disclaimers.
 - Vercel/Supabase production deployment with rollback and smoke evidence.
 
@@ -90,7 +90,7 @@ Hosted auth/RLS/Resend/deployment proof missing, E2E/manual smoke unproven, spre
 3. Vercel deployment, env, health, and rollback proof.
 4. Spreadsheet open/print QA for the workbook.
 5. Resend delivery/webhook proof before email-dependent workflows are re-enabled.
-6. Owner/counsel review of beta legal copy and monitored support inbox proof.
+6. Owner/counsel review of beta legal copy and monitored support inbox/table proof.
 7. Demo workspace/script rehearsal, hosted screenshots, and spreadsheet-app validated workbook fallback artifact. Local component/template screenshots, workbook artifact, and template insertion smoke proof now exist, but they do not prove the hosted demo.
 
 ## Readiness Scorecard
@@ -109,7 +109,7 @@ Hosted auth/RLS/Resend/deployment proof missing, E2E/manual smoke unproven, spre
 | Security/RLS | 78 |
 | Legal/privacy | 82 |
 | Performance/caching | 65 |
-| Observability/support | 79 |
+| Observability/support | 82 |
 | QA/test coverage | 82 |
 | Investor demo readiness | 82 |
 | Beta readiness | 40 |
@@ -130,7 +130,7 @@ Vercel env/deploy/rollback, Supabase auth/RLS/storage/backups, Resend DNS/webhoo
 
 ## Final Risk Posture
 
-The codebase has stronger local foundations now, and the contact flow no longer pretends to submit support messages without a backend. Launch risk remains high because the trust surfaces that require external proof are not yet proven: hosted auth/security, provider backups, deployment rollback, monitored support/alerts, and spreadsheet-app compatibility.
+The codebase has stronger local foundations now, and the contact flow no longer pretends to submit support messages without a backend. Protected `/workshop/feedback` can persist beta feedback after migration apply. Launch risk remains high because the trust surfaces that require external proof are not yet proven: hosted auth/security, provider backups, deployment rollback, monitored support/alerts, feedback-table review, and spreadsheet-app compatibility.
 
 ## Go / No-Go Rule
 

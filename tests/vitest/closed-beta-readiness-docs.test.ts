@@ -69,6 +69,18 @@ const readinessScorecard = readFileSync(
   ".ai/03_plans/mvp-launch-readiness-2026-06-01/43-closed-beta-readiness-scorecard.md",
   "utf8",
 );
+const observabilityPlan = readFileSync(
+  ".ai/03_plans/mvp-launch-readiness-2026-06-01/27-observability-monitoring-support-plan.md",
+  "utf8",
+);
+const betaProgramPlan = readFileSync(
+  ".ai/03_plans/mvp-launch-readiness-2026-06-01/29-beta-program-readiness-plan.md",
+  "utf8",
+);
+const closedBetaOperationsRunbook = readFileSync(
+  ".ai/03_plans/mvp-launch-readiness-2026-06-01/40-closed-beta-operations-runbook.md",
+  "utf8",
+);
 
 describe("closed beta readiness docs", () => {
   it("keeps the current local QA baseline aligned with passing DOM evidence", () => {
@@ -298,6 +310,20 @@ describe("closed beta readiness docs", () => {
     expect(manualProofMatrix).toContain("MX/SPF DNS evidence and no DMARC answer");
     expect(manualProofMatrix).toContain("workshop `Send beta feedback`, terms, and privacy point to `support@archestimator.com`");
     expect(manualProofMatrix).toContain("monitored inbox/table review proof, alert ownership, and incident escalation remain missing");
+    expect(observabilityPlan).toContain("Feedback/support inbox and protected `/workshop/feedback` table review monitored daily");
+    expect(observabilityPlan).toContain("local code can persist authenticated feedback to `beta_feedback_submissions`");
+    expect(observabilityPlan).toContain("monitored inbox/table review proof");
+    expect(closedBetaOperationsRunbook).toContain("Protected `/workshop/feedback` submissions in `beta_feedback_submissions`");
+    expect(closedBetaOperationsRunbook).toContain("`/workshop/feedback` submission smoke, `beta_feedback_submissions` review check, and support inbox check");
+    expect(closedBetaOperationsRunbook).toContain("Review all `beta_feedback_submissions` rows and support inbox messages");
+    expect(betaProgramPlan).toContain("Feedback is collected through protected `/workshop/feedback` plus the support email path");
+    expect(betaProgramPlan).toContain("Protected `/workshop/feedback` writes to `beta_feedback_submissions` after migration apply");
+    expect(executiveBrief).toContain("Visible `/workshop/feedback` plus support email path");
+    expect(executiveBrief).toContain("monitored support inbox/table proof");
+    expect(executiveBrief).toContain("| Observability/support | 82 |");
+    expect(executiveBrief).toContain("feedback-table review");
+    expect(betaProgramPlan).not.toContain("visible external form/support path");
+    expect(observabilityPlan).not.toContain("monitored inbox/form delivery proof");
     expect(manualProofMatrix).toContain("Legal/owner review");
     expect(manualProofMatrix).toContain("Current manual E2E smoke");
     expect(manualProofMatrix).toContain("current-local-e2e-smoke-2026-06-02.md");
