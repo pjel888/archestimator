@@ -1,3 +1,6 @@
+import { createHash } from "node:crypto";
+
+import { composeSharedLinkActivity, type ActivityViewModel, type SharedLinkActivityInput } from "@/lib/activity";
 import {
   assertSameOrigin,
   createSharedLinkSessionCookieName,
@@ -19,28 +22,10 @@ function parseCookieValue(cookieHeader: string, name: string): string | undefine
   return match ? decodeURIComponent(match[1]) : undefined;
 }
 
-type PublicActivityItem =
-  | {
-      id: string;
-      type: "comment";
-      created_at: string;
-      author: string;
-      body: string;
-      is_internal: false;
-    }
-  | {
-      id: string;
-      type: "decision";
-      created_at: string;
-      decision: string;
-      body?: string;
-    }
-  | {
-      id: string;
-      type: "event";
-      created_at: string;
-      metadata: Record<string, unknown>;
-    };
+type PublicActivityViewModel = Pick<
+  ActivityViewModel,
+  "id" | "source" | "action" | "visibility" | "occurredAt" | "title" | "summary" | "body" | "badges" | "target" | "meta"
+>;
 
 function readRecipientIdFromSession(value: string | undefined) {
   try {
@@ -54,6 +39,30 @@ function readRecipientIdFromSession(value: string | undefined) {
   } catch {
     return undefined;
   }
+}
+
+function createPublicActivityId(source: ActivityViewModel["source"], rawId: string) {
+  return `act_${createHash("sha256").update(`${source}:${rawId}`).digest("hex").slice(0, 16)}`;
+}
+
+function toPublicActivityViewModel(activity: ActivityViewModel): PublicActivityViewModel {
+  return {
+    id: createPublicActivityId(activity.source, activity.id),
+    source: activity.source,
+    action: activity.action,
+    visibility: "public",
+    occurredAt: activity.occurredAt,
+    title: activity.title,
+    summary: activity.summary,
+    body: activity.body,
+    badges: activity.badges,
+    target: {
+      kind: activity.target.kind,
+      label: activity.target.label,
+      secondaryLabel: activity.target.secondaryLabel,
+    },
+    meta: activity.meta,
+  };
 }
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ token: string }> }) {
@@ -94,7 +103,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   const sessionValue = parseCookieValue(cookieHeader, sessionName);
 
   // Optional session (P5) — if valid recipient, we still filter is_internal for the public activity view per task.
-  // (Full internal visible only via authenticated manager server action.)
+  // Full internal visibility is available only through the authenticated manager server action.
   const recipientId = readRecipientIdFromSession(sessionValue);
   const verifiedRecipientId =
     recipientId &&
@@ -107,13 +116,12 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       ? recipientId
       : undefined;
 
-  // Load comments (filter is_internal for this public route), responses, events
   const [commentsRes, responsesRes, eventsRes] = await Promise.all([
     supabase
       .from("shared_link_comments")
       .select("id, created_at, body, is_internal, author_email")
       .eq("publication_id", pubId)
-      .eq("is_internal", false) // public/unauth view: never leak internal owner notes
+      .eq("is_internal", false)
       .order("created_at", { ascending: false })
       .limit(100),
     supabase
@@ -124,37 +132,39 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       .limit(50),
     supabase
       .from("shared_link_events")
-      // PR 5 composer integration consumes event_type internally; raw event_type must never be returned in public JSON.
       .select("id, created_at, event_type, metadata_json")
       .eq("publication_id", pubId)
       .order("created_at", { ascending: false })
       .limit(50),
   ]);
 
-  const activities: PublicActivityItem[] = [];
-  (commentsRes.data ?? []).forEach((c: Pick<Tables<"shared_link_comments">, "author_email" | "body" | "created_at" | "id">) =>
-    activities.push({ id: c.id, type: "comment", created_at: c.created_at, author: c.author_email, body: c.body, is_internal: false })
-  );
-  (responsesRes.data ?? []).forEach((r: Pick<Tables<"shared_link_responses">, "created_at" | "decision" | "id" | "note">) =>
-    activities.push({ id: r.id, type: "decision", created_at: r.created_at, decision: r.decision, body: r.note || undefined })
-  );
-  (eventsRes.data ?? []).forEach((e: Pick<Tables<"shared_link_events">, "created_at" | "id" | "metadata_json">) =>
-    activities.push({
+  const rawActivities: SharedLinkActivityInput[] = [];
+  (commentsRes.data ?? []).forEach((c: Pick<Tables<"shared_link_comments">, "author_email" | "body" | "created_at" | "id">) => {
+    rawActivities.push({ id: c.id, type: "comment", created_at: c.created_at, author: c.author_email, body: c.body, is_internal: false });
+  });
+  (responsesRes.data ?? []).forEach((r: Pick<Tables<"shared_link_responses">, "created_at" | "decision" | "id" | "note">) => {
+    rawActivities.push({ id: r.id, type: "decision", created_at: r.created_at, decision: r.decision, body: r.note || undefined });
+  });
+  (eventsRes.data ?? []).forEach((e: Pick<Tables<"shared_link_events">, "created_at" | "event_type" | "id" | "metadata_json">) => {
+    const metadata = e.metadata_json && typeof e.metadata_json === "object" && !Array.isArray(e.metadata_json) ? e.metadata_json : {};
+    rawActivities.push({
       id: e.id,
       type: "event",
       created_at: e.created_at,
-      metadata:
-        e.metadata_json && typeof e.metadata_json === "object" && !Array.isArray(e.metadata_json)
-          ? e.metadata_json
-          : {},
-    })
-  );
+      metadata: { ...metadata, eventType: e.event_type },
+    });
+  });
 
-  activities.sort((a, b) => (a.created_at < b.created_at ? 1 : -1));
+  const activities = rawActivities
+    .sort((a, b) => (a.created_at < b.created_at ? 1 : -1))
+    .slice(0, 100)
+    .map((activity) => composeSharedLinkActivity(activity, { audience: "client", visibility: "public" }))
+    .filter((activity) => activity.visibility !== "internal")
+    .map(toPublicActivityViewModel);
 
   return Response.json(
     {
-      activities: activities.slice(0, 100),
+      activities,
       hasMore: false,
       recipientSession: Boolean(verifiedRecipientId),
     },
