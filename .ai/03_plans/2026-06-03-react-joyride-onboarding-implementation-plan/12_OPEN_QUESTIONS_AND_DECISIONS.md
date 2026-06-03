@@ -11,9 +11,9 @@
 
 | # | Question | Context | Options | Recommendation | Status |
 |---|----------|---------|---------|----------------|--------|
-| Q1 | **Approve React Joyride as the onboarding library?** | Phase 1 installs the package. If rejected, alternative must be chosen before any work. | A) React Joyride, B) Shepherd.js, C) Custom build | **Recommend A.** Battle-tested, React-native, 20k+ stars, controlled mode API fits our needs perfectly. | **BLOCKING — Philip must approve** |
-| Q2 | **Approve `src/features/onboarding/` folder structure?** | Sets precedent for future feature folders. | A) `src/features/onboarding/`, B) `src/components/workshop/onboarding/`, C) `src/lib/onboarding/` | **Recommend A.** Clean feature isolation, co-located components/hooks/services/tests. | **BLOCKING — Philip must approve** |
-| Q3 | **Approve `user_onboarding_tours` table schema?** | Must match before migration is created. | Schema documented in 03_ARCHITECTURE. Alternative: store in `profiles.metadata` JSON. | **Recommend dedicated table.** Versioned keys, proper indexing, clean RLS. JSON blob in profiles is harder to query and version. | **BLOCKING — Philip must approve** |
+| Q1 | **Approve React Joyride as the onboarding library?** | Phase 1 installs the package. All three blocking questions approved together. | A) React Joyride ✅ | **RESOLVED — Philip approved 2026-06-03.** React Joyride selected. Phase 1 may proceed. | **✅ APPROVED** |
+| Q2 | **Approve `src/features/onboarding/` folder structure?** | Sets precedent for future feature folders. | A) `src/features/onboarding/` ✅ | **RESOLVED — Philip approved 2026-06-03.** Feature folder structure confirmed. | **✅ APPROVED** |
+| Q3 | **Approve `user_onboarding_tours` table schema?** | Must match before migration is created. | Dedicated table with versioned keys, RLS, UNIQUE constraint ✅ | **RESOLVED — Philip approved 2026-06-03.** Schema confirmed. Migration may be created at Phase 4. | **✅ APPROVED** |
 
 ### Non-Blocking (Implementation Agent May Decide)
 
@@ -41,6 +41,7 @@
 | D10 | Pause tour when modals open | Prevents z-index fights and confusing UX | `17_risks_decisions_and_open_questions.md` |
 | D11 | Skip is permanent for that tour version | User is never forced to re-take a tour. Replay is opt-in only. | Product onboarding principles |
 | D12 | No DELETE on `user_onboarding_tours` | Rows persist for audit. Replay updates existing row (UPSERT). | Standard RLS audit pattern |
+| D13 | **All three blocking questions approved by Philip on 2026-06-03** | React Joyride selected, `src/features/onboarding/` folder confirmed, `user_onboarding_tours` schema confirmed. No blockers remain. | Owner approval — all recommendations accepted as-is. |
 
 ---
 
@@ -59,11 +60,11 @@
 
 ## Items Requiring Philip
 
-1. **Approve React Joyride** (Q1) — go/no-go on the primary package
-2. **Approve feature folder location** (Q2) — sets precedent
-3. **Approve persistence schema** (Q3) — before migration creation
-4. **Review tour copy** — content in `10_copywriting_and_step_content.md` needs product owner review
-5. **Decide rollout timing** — when to enable in production (Phase 7)
+1. ~~Approve React Joyride (Q1)~~ — **APPROVED 2026-06-03.** React Joyride selected.
+2. ~~Approve feature folder location (Q2)~~ — **APPROVED 2026-06-03.** `src/features/onboarding/` confirmed.
+3. ~~Approve persistence schema (Q3)~~ — **APPROVED 2026-06-03.** `user_onboarding_tours` table confirmed.
+4. **Review tour copy** — content in `10_copywriting_and_step_content.md` needs product owner review (non-blocking, can proceed)
+5. **Decide rollout timing** — when to enable in production (Phase 7, not blocking Phase 1)
 
 ## Items Implementation Agent May Decide
 
