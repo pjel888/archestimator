@@ -1,5 +1,14 @@
 # Evidence Index
 
+## Cheaper-Path Provider Launch Update - 2026-06-03
+
+- Primary artifact: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/provider-ops-mutation-pass-2cddb0e-2026-06-03.md`.
+- Supabase PITR was not enabled after the dashboard showed the 7-day add-on at `$100.00 / month`; the accepted pre-launch-MVP safety path is daily physical backup proof plus a fresh off-repo logical dump. Proof: `supabase-cheaper-backup-readiness-2cddb0e-2026-06-03.json`.
+- Linked Supabase migrations `20260601145000` through `20260603160000` were applied exactly and recorded in remote migration history without broad `db push`. Proof: `supabase-linked-migrations-applied-cheaper-path-2cddb0e-2026-06-03.json`.
+- Closed-beta allowlist now contains exactly `philipjonlewis@gmail.com` as the one active/invited email; allowed, missing, and transaction-local revoked RPC checks passed. Proof: `supabase-closed-beta-allowlist-2cddb0e-2026-06-03.json`.
+- Production deployment `dpl_Cxeq5ATpif6Yk1zn4FmNmnX7nzhT` is `READY`; `archestimator.com` and `www.archestimator.com` alias to it; `www` serves the beta app instead of the teaser; `/api/health` returns app health JSON; signed-out `/workshop` redirects to login. Proof: `vercel-hosted-http-smoke-cheaper-path-2cddb0e-2026-06-03.json`, `vercel-health-readiness-cheaper-path-2cddb0e-2026-06-03.json`, and `vercel-production-readiness-cheaper-path-2cddb0e-2026-06-03.json`.
+- Still open before calling the proof packet fully green: real browser Google OAuth allowed/denied/revoked hosted smoke, Vercel rollback drill, Resend MX/sending-domain completion, legal/owner signoff, support/alert monitoring proof, hosted authenticated export, hosted feedback review, and full hosted beta journey.
+
 ## Fourth-Pass Closed Beta Evidence - 2026-06-02
 
 ### Local Project Create Modal Validation Slice
@@ -702,6 +711,16 @@
 - Supabase refresh: linked project remains `Archestimator` / `ebxxqidacheyapmmzavr`; this earlier refresh showed `20260601182522_closed_beta_allowed_emails` and `20260601184343_unlink_estimate_row_items` as local-only. The later Supabase linked readiness refresh below supersedes this with a broader five-migration absence check.
 - Local env refresh: current shell printed no matching `RESEND_`, closed-beta, AI, dev-auth, or Supabase env variables.
 - Launch meaning: this refresh confirms the previous provider blockers are still current. Hosted auth, env-backed Supabase/Resend behavior, production/custom-domain health, rollback, backup/PITR, linked allowlist, and linked unlink proof remain **NO-GO** rows.
+
+### Provider Ops Mutation Pass at 2cddb0e
+
+- Artifact: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/provider-ops-mutation-pass-2cddb0e-2026-06-03.md`.
+- Vercel env result: Production and Preview(`main`) now have the required core closed-beta runtime env names plus invite token env names. Latest sanitized helper artifact `vercel-env-readiness-2cddb0e-2026-06-03.json` reports `coreClosedBetaRuntime.ready=true`, `inviteDelivery.ready=true`, and `vercelEnvReady=true`. Email delivery remains incomplete because `RESEND_WEBHOOK_SECRET` is not set.
+- Supabase Auth result: hosted Site URL and HTTPS redirect allowlist were repaired for `www`, apex, and the `git-main` Vercel branch alias. Google provider is enabled in Supabase, but Google Cloud consent/callback proof and hosted allowed/denied/revoked smoke remain open.
+- Supabase backup/migration result: `supabase-backup-readiness-2cddb0e-2026-06-03.json` still reports zero listed backups, `pitrEnabled=false`, and no restore drill. `supabase db push --linked --dry-run` still refuses due remote migration versions missing locally, so no linked migrations were applied.
+- Resend/DNS result: Resend domain `contact.archestimator.com` is pending; DKIM, `send.contact` SPF, and apex DMARC TXT records were confirmed. `resend-readiness-2cddb0e-2026-06-03.json` still reports `resendReady=false` because local runtime and Vercel are missing `RESEND_WEBHOOK_SECRET`; `support-email-dns-readiness-refresh-2cddb0e-2026-06-03.json` still reports `dnsReady=false` because the support DNS helper requires apex SPF.
+- Custom-domain/deploy result: no production alias switch was performed. `archestimator.com` / `www.archestimator.com` remain **NO-GO** for beta-app promotion until backup/PITR, migration repair/apply, hosted auth, and rollback proof are complete.
+- Launch meaning: this is a partial provider-ops improvement, not launch approval. External closed beta remains **NO-GO**.
 
 ### Supabase Linked Readiness Refresh Evidence
 

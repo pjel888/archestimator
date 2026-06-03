@@ -1,5 +1,16 @@
 # Agent Payloads
 
-Model-specific instruction payloads go here. Do not fork core policy; reference `.ai/00_system/` instead.
+Payloads define role-specific constraints for each agent or harness. They are
+thin adapters to shared project rules, not independent policy.
 
-Active payloads should cover the current agent bench: Claude, Codex, OpenCode, CommandCode, Antigravity CLI (`agy`), Kimi, and DeepSeek. Antigravity replaces Gemini as the extra terminal-agent lane for separate terminal/task work. Kimi should be considered a strong frontend/product UI lane as well as a long-context synthesis lane. Ollama is intentionally not an agent payload because the only approved active Ollama use is the nomic embedding model used by ChunkHound.
+Required shared files:
+
+1. `.ai/00_system/AGENT_FRAMEWORK_PROTOCOL.md`
+2. `.ai/00_system/AGENT_OPERATING_PROTOCOL.md`
+3. `.ai/00_system/AGENT_SELF_DIAGNOSTIC_PROTOCOL.md`
+4. `.ai/00_system/VALIDATION_MATRIX.md`
+5. `.ai/10_state/current-state.md`
+6. `.ai/10_state/decisions.md`
+
+Use `_template.md` for new payloads. Deprecated, unapproved, and non-agent
+payloads must still state their fail-closed behavior.

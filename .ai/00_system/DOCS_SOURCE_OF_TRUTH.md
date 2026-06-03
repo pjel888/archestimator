@@ -9,6 +9,7 @@ The `.ai` folder prevents agent drift. Each type of knowledge has one canonical 
 - Roadmap and launch cutline: `.ai/01_roadmap/README.md`
 - Validation matrix: `.ai/00_system/VALIDATION_MATRIX.md`
 - Agent operating protocol: `.ai/00_system/AGENT_OPERATING_PROTOCOL.md`
+- Agent framework protocol: `.ai/00_system/AGENT_FRAMEWORK_PROTOCOL.md`
 - Agent self-diagnostic protocol: `.ai/00_system/AGENT_SELF_DIAGNOSTIC_PROTOCOL.md`
 - Known issues and risks: `.ai/10_state/known-issues.md`
 - Feature inventory (code↔doc cross-reference): `.ai/06_specs/feature-inventory.md`
@@ -43,6 +44,8 @@ Do not treat an older plan as active if these docs or `.ai/10_state/*` say the i
 - Project overview and navigation: `.ai/README.md`
 - Folder map and policy: `.ai/00_system/ai-folder-canonical-map.md`
 - Operating protocol: `.ai/00_system/AGENT_OPERATING_PROTOCOL.md`
+- Agent framework, payload schema, receipt, proof boundaries, and harness
+  adapter rules: `.ai/00_system/AGENT_FRAMEWORK_PROTOCOL.md`
 - Performance degradation / stale-context recovery: `.ai/00_system/AGENT_SELF_DIAGNOSTIC_PROTOCOL.md`
 - Validation commands and evidence expectations: `.ai/00_system/VALIDATION_MATRIX.md`
 - Current state: `.ai/10_state/current-state.md`

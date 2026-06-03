@@ -15,6 +15,7 @@ Repo-level entrypoints outside `.ai` still matter:
 ## Top-level canonical folders
 
 - `00_system/` — governance, routing, structure, naming, validation, workflow
+- `00_system/AGENT_FRAMEWORK_PROTOCOL.md` - canonical agent receipt, mode, payload, evidence, and provider-proof rules
 - `00_system/AGENT_SELF_DIAGNOSTIC_PROTOCOL.md` — canonical recovery loop when agent quality degrades, context is stale, or repeated mistakes appear
 - `01_roadmap/` — roadmap, phases, milestones, launch cutline
 - `02_audits/` — audits, reviews, risk reports, quality checks
@@ -55,6 +56,7 @@ Repo-level entrypoints outside `.ai` still matter:
 - Current feature and route truth: `10_state/current-state.md`, then `10_state/decisions.md`.
 - Launch sequence and startup priorities: `01_roadmap/README.md`.
 - Agent recovery from stale context: `00_system/AGENT_SELF_DIAGNOSTIC_PROTOCOL.md`.
+- Agent framework and payload/harness rules: `00_system/AGENT_FRAMEWORK_PROTOCOL.md`.
 - Validation gates: `00_system/VALIDATION_MATRIX.md`.
 - Feature-specific implementation contracts: the active plan/spec named by `10_state/current-state.md`.
 - Historical plans under `03_plans/` or `09_archive/store/` are not active instructions unless current-state links them as current.
