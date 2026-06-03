@@ -226,13 +226,13 @@ MERGE POLICY:
 - DO NOT merge to main automatically unless explicitly authorized
 - Default repo policy: Philip must approve merge
 
-PHILIP DECISION REQUIRED (BEFORE PHASE 5):
+PHILIP DECISION RESOLVED (2026-06-03):
 
-P4: Approve adding lightweight GET routes for comment/decision state loading?
-- Recommended: YES (Option 1 in 24_API_CONTRACT_PLAN.md)
-- If YES: proceed with Phase 5
-- If NO: skip Phase 5, comment/decision state loading is deferred
-- If alternate approach: adjust Phase 5 per Philip's direction
+P4: ✅ APPROVED — Add lightweight GET routes for comment/decision state loading.
+     Follow Option 1 in 24_API_CONTRACT_PLAN.md. Proceed with Phase 5.
+P7: ✅ APPROVED — Priority upgrade for AC-FUNC-008 and AC-FUNC-009 (SHOULD→MUST).
+
+All human decisions resolved. Plan is fully ready for implementation.
 
 KNOWN BUGS TO FIX:
 

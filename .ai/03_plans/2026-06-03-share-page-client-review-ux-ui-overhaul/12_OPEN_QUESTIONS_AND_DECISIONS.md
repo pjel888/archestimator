@@ -47,7 +47,7 @@
 | P4 | ✅ **APPROVED (2026-06-03):** Add lightweight GET routes (`GET /api/share/[token]/comment` and `GET /api/share/[token]/decision`) for comment/decision state loading | Approved by Philip. Option 1 in 24_API_CONTRACT_PLAN.md. Implementation agent should follow the GET route contracts specified there. | HIGH |
 | P5 | Approve merge to main after PR review | Per repo policy: no automatic main merge | HIGH |
 | P6 | Approve final visual design after implementation | Subjective quality gate | MEDIUM |
-| P7 | Approve priority upgrade for comment/decision state loading (SHOULD → MUST) | Product priority decision — returning clients seeing empty comment/decision state is broken UX | HIGH |
+| P7 | ✅ **APPROVED (2026-06-03):** Priority upgrade for comment/decision state loading (SHOULD → MUST) | Approved by Philip. AC-FUNC-008 and AC-FUNC-009 are now MUST priority per 01_REQUIREMENTS. | HIGH |
 
 ---
 
@@ -75,13 +75,12 @@ All decisions are explicitly called out above. The plan has:
 - ✅ Clear rollback strategy (3 options)
 - ✅ Clear security boundaries (all preserved)
 - ✅ Clear design constraints (DESIGN.md compliant)
-- ⚠️ One pending decision: API strategy (lightweight GET routes) — see P4 above
-- ⚠️ One pending decision: priority upgrade for comment/decision state loading — see P7 above
+- ✅ All human decisions resolved — Philip approved P4 and P7 on 2026-06-03
 
 ## Second-Pass Refinement Notes
 
 - Added D11: priority upgrade for comment/decision state loading (SHOULD → MUST)
-- Added P7: explicit approval item for priority upgrade
+- Added P7: explicit approval item for priority upgrade — APPROVED by Philip
 - Updated D7: now references 24_API_CONTRACT_PLAN.md with full contracts
-- Updated P4: now HIGH priority, references API contract plan
-- Status: NEEDS_HUMAN_DECISION pending Philip's approval on P4 and P7
+- Updated P4: APPROVED by Philip (2026-06-03) — lightweight GET routes for comment/decision state loading
+- Status: READY_FOR_IMPLEMENTATION — all human decisions resolved

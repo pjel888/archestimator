@@ -164,7 +164,7 @@ Manual QA: Navigate to target share URL, verify zero hydration warnings, clean v
 1. **Bug plans created** for 4 previously-untracked defects: debug badge (B2), comment history (B3), decision persistence (B4), modal accessibility (B5)
 2. **API contract plan created** (`24_API_CONTRACT_PLAN.md`) — resolves the contradiction between "no new API routes" non-goal and the requirement to load comment/decision state. Recommends lightweight GET routes. Marks as needing Philip approval.
 3. **Bug triage register created** (`25_BUG_TRIAGE_AND_BLOCKER_REGISTER.md`) — all 9 related bugs tracked with severity and blocking status
-4. **Score contradictions fixed** — all documents now agree on 95% readiness after refinement. Previous package had 95% (scorecard), 98%+ (INDEX text), and 99% (current-state.md). All now say 95%.
+4. **Score contradictions fixed** — all documents now agree on 98% readiness after refinement and Philip's API approval. Previous package had contradictory scores (95%/98%+/99%). Second-pass normalized to 95%, then Philip's approval upgraded to 98%.
 5. **Implementation prompt expanded** — added repo safety checks, Next.js 16 docs requirement, GitNexus requirement, TDD expectations, bug plan references
 6. **Design-system violations catalogued** — confirmed fontWeight={600}, tracking-normal, hardcoded colors, emoji in CostDonutChart
 7. **API scope clarified** — plan now explicitly says GET routes are additive only, existing POST/DELETE routes unchanged, and recommends the approach with full contracts
