@@ -13,6 +13,7 @@ type AuthCaseInput = {
 
 type VerifyInputs = {
   baseUrl: string;
+  allowedOrigins?: string[];
   platformCookie?: string;
   platformAuthHeader?: string;
   outputFile?: string;
@@ -45,6 +46,11 @@ type VerifyResult = {
 const WORKSHOP_ROUTE = "/workshop";
 const LOGIN_ROUTE = "/login";
 const ACCESS_REQUIRED_ROUTE = "/beta/access-required";
+const DEFAULT_ALLOWED_ORIGINS = [
+  "https://archestimator.com",
+  "https://www.archestimator.com",
+  "https://archestimator.vercel.app",
+];
 
 function readEnv(name: string) {
   const value = process.env[name];
@@ -55,15 +61,53 @@ export function normalizeBaseUrl(value: string) {
   return value.replace(/\/+$/, "");
 }
 
+export function parseAllowedOrigins(value?: string) {
+  const origins = (value ?? "")
+    .split(",")
+    .map((origin) => origin.trim())
+    .filter(Boolean);
+  return origins.length ? origins : DEFAULT_ALLOWED_ORIGINS;
+}
+
+function normalizeOrigin(value: string, label: string) {
+  let parsed: URL;
+  try {
+    parsed = new URL(value);
+  } catch {
+    throw new Error(`${label} must be an absolute URL origin.`);
+  }
+
+  if (parsed.protocol !== "https:") {
+    throw new Error(`${label} must use https before hosted auth cookies are sent.`);
+  }
+
+  return parsed.origin;
+}
+
+export function validateHostedAuthBaseUrl(baseUrl: string, allowedOrigins: string[] = DEFAULT_ALLOWED_ORIGINS) {
+  const normalizedBaseOrigin = normalizeOrigin(baseUrl, "HOSTED_AUTH_BASE_URL");
+  const normalizedAllowedOrigins = allowedOrigins.map((origin) => normalizeOrigin(origin, "HOSTED_AUTH_ALLOWED_ORIGINS"));
+
+  if (!normalizedAllowedOrigins.includes(normalizedBaseOrigin)) {
+    throw new Error(
+      `HOSTED_AUTH_BASE_URL origin ${normalizedBaseOrigin} is not in HOSTED_AUTH_ALLOWED_ORIGINS. Refusing to send hosted auth cookies.`,
+    );
+  }
+
+  return normalizedBaseOrigin;
+}
+
 export function parseInputsFromEnv(): VerifyInputs {
   const baseUrl = readEnv("HOSTED_AUTH_BASE_URL");
 
   if (!baseUrl) {
     throw new Error("Missing required hosted auth proof input: HOSTED_AUTH_BASE_URL.");
   }
+  const allowedOrigins = parseAllowedOrigins(readEnv("HOSTED_AUTH_ALLOWED_ORIGINS"));
 
   return {
-    baseUrl: normalizeBaseUrl(baseUrl),
+    baseUrl: validateHostedAuthBaseUrl(normalizeBaseUrl(baseUrl), allowedOrigins),
+    allowedOrigins,
     platformCookie: readEnv("HOSTED_AUTH_PLATFORM_COOKIE"),
     platformAuthHeader: readEnv("HOSTED_AUTH_PLATFORM_AUTH_HEADER"),
     outputFile: readEnv("OUTPUT_FILE"),
@@ -149,6 +193,7 @@ function missingCaseResult(name: AuthCaseName): AuthCaseResult {
 }
 
 export async function verifyHostedAuthRoutes(inputs: VerifyInputs, fetchImpl: typeof fetch = fetch): Promise<VerifyResult> {
+  const baseUrl = validateHostedAuthBaseUrl(normalizeBaseUrl(inputs.baseUrl), inputs.allowedOrigins);
   const cases: AuthCaseResult[] = [];
 
   for (const authCase of inputs.cases) {
@@ -158,14 +203,14 @@ export async function verifyHostedAuthRoutes(inputs: VerifyInputs, fetchImpl: ty
     }
 
     const startedAt = performance.now();
-    const response = await fetchImpl(`${inputs.baseUrl}${WORKSHOP_ROUTE}`, {
+    const response = await fetchImpl(`${baseUrl}${WORKSHOP_ROUTE}`, {
       method: "GET",
       headers: buildHeaders(inputs, authCase.cookie),
       redirect: "manual",
     });
     const durationMs = performance.now() - startedAt;
     const location = response.headers.get("location");
-    const normalizedLocationPath = normalizeLocationPath(location, inputs.baseUrl);
+    const normalizedLocationPath = normalizeLocationPath(location, baseUrl);
     const passed = evaluateCase({
       name: authCase.name,
       status: response.status,
@@ -192,7 +237,7 @@ export async function verifyHostedAuthRoutes(inputs: VerifyInputs, fetchImpl: ty
   return {
     generatedAt: new Date().toISOString(),
     mode: "hosted-auth-route-smoke",
-    baseUrl: inputs.baseUrl,
+    baseUrl,
     cases,
     passed: cases.every((authCase) => authCase.passed),
     note: "Sanitized hosted auth smoke. Session cookies and platform bypass headers are used only for requests and are never written to this report.",

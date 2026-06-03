@@ -174,13 +174,12 @@ export async function previewBulkDeleteProjects(input: BulkDeleteProjectsInput):
   const { ids, issues } = normalizeBulkActionIds(input.projectIds, { label: "projects", max: 50 });
   if (issues.length > 0) return buildRejectedPreviewResult("project", ids, issues);
 
-  const [supabase, currentUser] = await Promise.all([
+  const [supabase] = await Promise.all([
     createSupabaseServerClient(),
     requireCurrentUserContext(),
   ]);
   const { data, error } = await supabase.rpc("preview_bulk_delete_projects", {
     target_project_ids: ids,
-    acting_user_id: currentUser.userId,
   });
 
   if (error) {
@@ -202,14 +201,13 @@ export async function executeBulkDeleteProjects(input: ExecuteBulkDeleteProjects
     };
   }
 
-  const [supabase, currentUser] = await Promise.all([
+  const [supabase] = await Promise.all([
     createSupabaseServerClient(),
     requireCurrentUserContext(),
   ]);
   const { data, error } = await supabase.rpc("execute_bulk_delete_projects", {
     target_project_ids: ids,
     expected_preview_hash: input.expectedPreviewHash,
-    acting_user_id: currentUser.userId,
     correlation_id: getMassDeletionCorrelationId(input.correlationId),
   });
 

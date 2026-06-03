@@ -5,6 +5,7 @@ import {
   evaluateCase,
   normalizeLocationPath,
   parseInputsFromEnv,
+  validateHostedAuthBaseUrl,
   verifyHostedAuthRoutes,
 } from "@/../scripts/verify-hosted-auth-routes";
 
@@ -84,6 +85,18 @@ describe("hosted auth route smoke script", () => {
     );
   });
 
+  it("refuses to send hosted session cookies to unapproved origins", () => {
+    expect(() => validateHostedAuthBaseUrl(
+      "https://evil.example",
+      ["https://www.archestimator.com"],
+    )).toThrow(/not in HOSTED_AUTH_ALLOWED_ORIGINS/);
+
+    expect(validateHostedAuthBaseUrl(
+      "https://www.archestimator.com/workshop",
+      ["https://www.archestimator.com"],
+    )).toBe("https://www.archestimator.com");
+  });
+
   it("fails closed when required hosted session cookies are missing", async () => {
     const fetchMock = vi.fn(async () => new Response(null, {
       status: 307,
@@ -92,6 +105,7 @@ describe("hosted auth route smoke script", () => {
 
     const result = await verifyHostedAuthRoutes({
       baseUrl: "https://preview.example",
+      allowedOrigins: ["https://preview.example"],
       cases: [
         { name: "signedOut", required: true },
         { name: "allowed", required: true },
@@ -122,6 +136,7 @@ describe("hosted auth route smoke script", () => {
 
     const result = await verifyHostedAuthRoutes({
       baseUrl: "https://preview.example",
+      allowedOrigins: ["https://preview.example"],
       platformCookie: "platform-cookie-secret",
       platformAuthHeader: "Bearer platform-header-secret",
       cases: [

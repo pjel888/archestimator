@@ -3,11 +3,15 @@ import { join } from "node:path";
 
 import { describe, expect, it } from "vitest";
 
-const migrationPath = readdirSync(join(process.cwd(), "supabase/migrations"))
+const massDeletionMigrationPaths = readdirSync(join(process.cwd(), "supabase/migrations"))
   .filter((name) => name.includes("mass_deletion"))
-  .sort()
-  .at(-1);
-const migration = migrationPath ? readFileSync(join(process.cwd(), "supabase/migrations", migrationPath), "utf8") : "";
+  .sort();
+const migration = massDeletionMigrationPaths
+  .map((migrationPath) => readFileSync(join(process.cwd(), "supabase/migrations", migrationPath), "utf8"))
+  .join("\n");
+const latestMigration = massDeletionMigrationPaths.at(-1)
+  ? readFileSync(join(process.cwd(), "supabase/migrations", massDeletionMigrationPaths.at(-1)!), "utf8")
+  : "";
 
 describe("mass deletion backend contract", () => {
   it("adds a durable audit table, preview/execute RPC split, permission checks, and grants", () => {
@@ -30,6 +34,18 @@ describe("mass deletion backend contract", () => {
     expect(migration).toContain("pg_advisory_xact_lock");
     expect(migration).toContain("revoke execute on function public.execute_bulk_delete_projects");
     expect(migration).toContain("grant execute on function public.execute_bulk_delete_projects");
+  });
+
+  it("derives mass deletion audit actors from auth.uid instead of caller input", () => {
+    expect(latestMigration).toContain("actor_id uuid := auth.uid()");
+    expect(latestMigration).toContain("actor_id is null");
+    expect(latestMigration).toContain("actor_user_id, target_type");
+    expect(latestMigration).toContain("values (workspace_id, actor_id, 'project'");
+    expect(latestMigration).toContain("values (workspace_id, actor_id, 'estimate_sheet'");
+    expect(latestMigration).toContain("values (target_workspace_id, actor_id, 'library_component'");
+    expect(latestMigration).not.toContain("acting_user_id uuid default auth.uid()");
+    expect(latestMigration).not.toContain("values (workspace_id, acting_user_id");
+    expect(latestMigration).not.toContain("values (target_workspace_id, acting_user_id");
   });
 
   it("keeps generated types aware of mass deletion RPCs and project-access manager checks", () => {

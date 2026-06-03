@@ -423,7 +423,7 @@ export async function previewBulkArchiveLibraryComponents(input: BulkArchiveLibr
   const { ids, issues } = normalizeBulkActionIds(input.itemIds, { label: "components", max: 500 });
   if (issues.length > 0) return buildRejectedPreviewResult("library_component", ids, issues);
 
-  const [{ workspace }, currentUser] = await Promise.all([
+  const [{ workspace }] = await Promise.all([
     ensureDefaultWorkspace(),
     requireCurrentUserContext(),
   ]);
@@ -431,7 +431,6 @@ export async function previewBulkArchiveLibraryComponents(input: BulkArchiveLibr
   const { data, error } = await supabase.rpc("preview_bulk_archive_library_components", {
     target_workspace_id: workspace.id,
     target_item_ids: ids,
-    acting_user_id: currentUser.userId,
   });
 
   if (error) {
@@ -453,7 +452,7 @@ export async function executeBulkArchiveLibraryComponents(input: ExecuteBulkArch
     };
   }
 
-  const [{ workspace }, currentUser] = await Promise.all([
+  const [{ workspace }] = await Promise.all([
     ensureDefaultWorkspace(),
     requireCurrentUserContext(),
   ]);
@@ -462,7 +461,6 @@ export async function executeBulkArchiveLibraryComponents(input: ExecuteBulkArch
     target_workspace_id: workspace.id,
     target_item_ids: ids,
     expected_preview_hash: input.expectedPreviewHash,
-    acting_user_id: currentUser.userId,
     correlation_id: getMassDeletionCorrelationId(input.correlationId),
   });
 
