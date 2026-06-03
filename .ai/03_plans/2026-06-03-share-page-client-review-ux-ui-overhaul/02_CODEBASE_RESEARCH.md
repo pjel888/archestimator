@@ -2,6 +2,7 @@
 
 **Plan:** Share Page Client Review UX/UI Overhaul
 **Date:** 2026-06-03
+**Second-Pass Refinement:** 2026-06-03
 
 ---
 
@@ -12,15 +13,15 @@
 |------|---------|--------------|
 | `src/app/share/[token]/page.tsx` | Route handler (Server Component) | `force-dynamic`, resolves access/snapshot, handles password gate + recipient session, renders `ProjectPublicationView` |
 | `src/components/share/SharePageTabs.tsx` | Client component — estimate tabs, chart, tree/grid | Uses D3 `CostDonutChart`, manages tab state with sessionStorage, sub-tabs for tree/grid view |
-| `src/components/share/SharePageComments.tsx` | Client component — comment composer + list | Uses `useSharedLinkSession`, optimistic add, offline queue, retry logic |
-| `src/components/share/SharePageDecision.tsx` | Client component — accept/decline/revision | Uses `useSharedLinkSession`, confirmation modal, 409 handling |
+| `src/components/share/SharePageComments.tsx` | Client component — comment composer + list | Uses `useSharedLinkSession`, optimistic add, offline queue, retry logic. **BUG: Starts with `useState([])` — no server comment loading (line 28)** |
+| `src/components/share/SharePageDecision.tsx` | Client component — accept/decline/revision | Uses `useSharedLinkSession`, confirmation modal, 409 handling. **BUG: Starts with `useState(null)` — no server decision loading (line 25)** |
 | `src/components/share/SharePageHero.tsx` | Client component — cover image | `next/image` with lazy loading, gracefully handles null |
 | `src/components/share/SharePageSessionBanner.tsx` | Client component — session status | Shows "Viewing as {email}" or session-required info |
 | `src/components/share/SharePageRecipientSessionInitializer.tsx` | Client component — initializes session | POSTs to session route on `?recipient=` presence |
 | `src/components/share/ProjectPublicationPasswordForm.tsx` | Client component — password gate | Lockout-aware form with progressive delay |
 | `src/components/share/ShareEstimateTreeView.tsx` | Client component — tree rendering | Read-only `WorkshopTree<TNode>` |
 | `src/components/share/ShareEstimateTreePanel.tsx` | Client component — tree nav panel | Floating nav with IntersectionObserver |
-| `src/components/charts/CostDonutChart.tsx` | Shared D3 donut chart | **Hydration bug source** — floating-point precision mismatch in SVG path `d` attributes |
+| `src/components/charts/CostDonutChart.tsx` | Shared D3 donut chart | **Hydration bug source** (line 375) — floating-point precision mismatch. **Visible debug badge** (lines 325-327): `🍩 buckets:{data.length} total:{safeTotal}`. **Design violation**: `fontWeight={600}` (line 382) |
 
 ### API Routes
 | Route | Method | Purpose |
@@ -57,7 +58,7 @@
 | `tests/vitest/project-publication-snapshot.test.ts` | Snapshot builder |
 | `tests/vitest/project-publication-summary.test.ts` | Summary aggregation |
 | `tests/vitest/share/reconstruct-share-tree.test.ts` | Tree reconstruction |
-| `tests/vitest/project-publication-route.test.ts` | Publication route handler | (previously omitted from inventory) |
+| `tests/vitest/project-publication-route.test.ts` | Publication route handler |
 
 ### Additional Share Components (Not Modified)
 | File | Purpose |
@@ -142,7 +143,7 @@ SharePage (Server Component, force-dynamic)
 <h1 className="mt-1.5 text-[12px] font-medium leading-4 text-ink">{snapshot.project.name}</h1>
 <p className="mt-1 text-[10px] leading-4 text-secondary">View-only project page</p>
 ```
-**Issue:** "Client publication" and "View-only project page" are internal product terms, not client-friendly language. A client should see "Proposal Review" or "Project Estimate — For Your Review".
+**Issue:** "Client publication" and "View-only project page" are internal product terms, not client-friendly language.
 
 ### 4. Weak Visual Hierarchy
 - Project name is 12px — same as estimate tab titles and other secondary headings
@@ -151,26 +152,26 @@ SharePage (Server Component, force-dynamic)
 - Comment area feels like an afterthought, not a collaboration tool
 
 ### 5. Desktop-First Layout
-- The lg:flex-row split forces desktop layout
+- The `lg:flex-row` split forces desktop layout
 - Mobile: decision/comments stack below estimates — requires excessive scrolling
 - No mobile-first consideration for the review flow
 
 ### 6. Inline Header Has Internal Feel
-**File:** `src/app/share/[token]/page.tsx:71-76`
-```tsx
-<header className="share-print-hidden border-b border-hairline bg-white">
-  <div className="mx-auto flex h-12 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
-    <ArchestimatorLogo markSize={24} showWordmark className="text-ink" />
-    <span className="text-[9px] font-medium uppercase tracking-normal text-tertiary">View-only</span>
-  </div>
-</header>
-```
-**Issue:** The Archestimator logo + "View-only" header feels like a developer preview, not a client-facing proposal. For a client, the sender's branding should be secondary to the proposal content.
+- The Archestimator logo + "View-only" header feels like a developer preview, not a client-facing proposal
 
 ### 7. Hydration Warning
 **File:** `src/components/charts/CostDonutChart.tsx:375`
 D3 floating-point precision causes server/client SVG `d` attribute mismatch.
 See bug plan: `.ai/15_Bugs/2026-06-03-share-page-cost-donut-chart-hydration-mismatch.md`
+
+### 8. Visible Debug Badge
+**File:** `src/components/charts/CostDonutChart.tsx:325-327`
+```tsx
+<div className="absolute right-1 top-1 z-10 rounded-xs bg-black/70 px-1.5 py-px text-[8px] text-white tabular-nums">
+  🍩 buckets:{data.length} total:{safeTotal}
+</div>
+```
+**Issue:** Permanently visible developer debug output on a client-facing page. Emoji, hardcoded colors, internal data counts. See bug plan: `.ai/15_Bugs/2026-06-03-share-page-cost-donut-chart-visible-debug-badge.md`
 
 ---
 
@@ -189,7 +190,7 @@ See bug plan: `.ai/15_Bugs/2026-06-03-share-page-cost-donut-chart-hydration-mism
 
 ---
 
-## Commands Run
+## Commands Run (First Pass)
 
 ```bash
 pwd                          # /Users/philiplewis/archestimator
@@ -199,8 +200,17 @@ git branch --show-current     # main
 git worktree list             # 2 worktrees (safe)
 git remote -v                 # origin https://github.com/pjel888/archestimator.git
 git fetch --prune origin      # Done
-git log --oneline -5          # Latest: 4fbce80 refactor(prompts)
+git log --oneline -5          # Latest: e69fe0a docs(ai): fix score consistency
 date '+%Y-%m-%d'              # 2026-06-03
+```
+
+---
+
+## Commands Run (Second Pass)
+
+```bash
+git status --short --branch   # main, M next-env.d.ts (unrelated)
+git log --oneline -5          # e69fe0a docs(ai): fix score consistency in INDEX (99% → 95%)
 ```
 
 ---
@@ -223,6 +233,43 @@ date '+%Y-%m-%d'              # 2026-06-03
 
 ## Gaps / Unknowns
 
-1. **Comment history loading**: Current implementation only shows optimistically added comments. The `GET /api/share/[token]/comment` route does not appear to exist — comments may not load existing server comments on page load. This is a confirmed UX gap: a returning client won't see prior comments they or the team made.
-2. **Decision state persistence**: Decision state is stored in `useState` only — it's not loaded from the server on page load. A returning client won't see their prior decision.
+1. **Comment history loading**: Current implementation only shows optimistically added comments. No GET route for public comment reads. See bug plan B3.
+2. **Decision state persistence**: Decision state is stored in `useState` only — not loaded from server on page load. See bug plan B4.
 3. **Activity feed on share page**: Currently only visible to owners via workspace-side activity tab, not on the public share page
+4. **API route strategy**: Needs Philip approval for lightweight GET routes — see `24_API_CONTRACT_PLAN.md`
+
+---
+
+## Second-Pass Findings
+
+### Contradictions Found and Resolved
+1. **Readiness score**: Plan package had three different scores (95%, 98%+, 99%). Reconciled to 95% with honest evidence. The 5% gap is the pending human decision on API strategy.
+2. **API scope**: Non-goal "no new API routes" contradicted architecture requiring GET routes. Resolved by `24_API_CONTRACT_PLAN.md` — recommends additive GET routes, marks as needing Philip approval.
+3. **AC-FUNC-003 vs AC-FUNC-009**: Both describe decision persistence at different priority levels (MUST vs SHOULD). Resolved: decision persistence is MUST per AC-FUNC-003.
+
+### Confirmed Current UX Defects (Source-Verified)
+| # | Defect | File:Line | Bug Plan |
+|---|--------|-----------|----------|
+| D1 | "View-only" badge visible | `page.tsx:74` | In plan |
+| D2 | "Visits are logged" in main content | `page.tsx:82` | In plan |
+| D3 | "Client publication" jargon | `page.tsx:79` | In plan |
+| D4 | "View-only project page" jargon | `page.tsx:81` | In plan |
+| D5 | Two-column layout on lg+ | `page.tsx:96` | In plan |
+| D6 | Hydration warning on chart | `CostDonutChart.tsx:375` | B1 |
+| D7 | Debug badge "🍩 buckets:..." | `CostDonutChart.tsx:325-327` | B2 |
+| D8 | Comments don't load history | `SharePageComments.tsx:28` | B3 |
+| D9 | Decision doesn't persist | `SharePageDecision.tsx:25` | B4 |
+
+### Confirmed Current Technical Defects
+| # | Defect | File:Line | Bug Plan |
+|---|--------|-----------|----------|
+| T1 | `fontWeight={600}` violates DESIGN.md | `CostDonutChart.tsx:382` | B2 |
+| T2 | `tracking-normal` violates zero letter-spacing | `page.tsx:74,79` | In plan |
+| T3 | `bg-black/70`, `text-white` — hardcoded colors | `CostDonutChart.tsx:325` | B2 |
+| T4 | Modal focus trap not verified | `SharePageDecision.tsx` | B5 |
+
+### Not Confirmed / Needs Implementation-Time Verification
+1. Exact SVG numeric outputs beyond connector path in CostDonutChart need cataloguing at implementation time
+2. Whether `public-repository.ts` has existing functions supporting public comment/decision reads — implementation agent must verify
+3. Exact repository function signatures and return types for GET route implementation
+4. Whether workshop charts are affected by CostDonutChart deterministic rounding changes

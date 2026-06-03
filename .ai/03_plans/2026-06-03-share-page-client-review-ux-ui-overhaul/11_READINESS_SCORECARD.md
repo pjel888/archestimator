@@ -2,6 +2,7 @@
 
 **Plan:** Share Page Client Review UX/UI Overhaul
 **Date:** 2026-06-03
+**Second-Pass Refinement:** 2026-06-03
 
 ---
 
@@ -11,64 +12,74 @@
 |-------|---------|
 | 100% | Zero gaps, zero assumptions, production-ready instructions |
 | 98-99% | Minor ambiguity that won't block implementation |
-| 95-97% | Some details deferred to implementation agent judgment |
+| 95-97% | Some details deferred to implementation agent judgment or human decision |
 | 90-94% | Significant gaps — needs refinement before implementation |
 | <90% | Not ready — major rework needed |
 
 ---
 
-## Per-Document Scores
+## Per-Document Scores (After Second-Pass Refinement)
 
-| # | Document | Score | Evidence |
-|---|----------|-------|----------|
-| 00 | INDEX | 100% | Complete navigation, scope, non-goals, risk summary, start-here instructions. All links valid. |
-| 01 | Requirements | 100% | All MUST/SHOULD/COULD prioritized. 20 pass/fail acceptance criteria. Non-goals explicit. Assumptions documented. |
-| 02 | Codebase Research | 100% | All 20+ files inspected. Concrete evidence for every UX issue found. Commands documented. Gaps identified. |
-| 03 | Architecture | 98% | Clear approach with rationale. Before/after component diagrams. 6 architectural decisions with alternatives documented. Minor: implementation agent must verify CostDonutChart approach against workshop chart usage. |
-| 04 | Implementation Sequence | 100% | 20 atomic steps across 7 phases. Each step has: files, changes, validation, rollback point. Dependencies mapped. |
-| 05 | Blast Radius | 98% | All affected flows, modules, tests listed. Risk matrix complete. Edge cases covered. Minor: exact test file impact depends on implementation details. |
-| 06 | Testing | 98% | New test specs written. Existing tests mapped. Manual QA protocol detailed. Minor: E2E tests gated behind env flag — may not be runnable. |
-| 07 | UI/UX | 100% | Complete visual hierarchy diagram. Every component state documented. Copy replacements table. Design-system compliance checklist. Accessibility requirements explicit. |
-| 08 | Security | 100% | All 10+ security boundaries confirmed preserved. New risks assessed. Input validation documented. Failure modes covered. |
-| 09 | Deployment | 98% | No migration needed — confirmed. Pre/post deploy checklists. Three rollback strategies. Minor: Vercel deploy depends on external infrastructure availability. |
-| 10 | Prompt Draft | 100% | Complete future agent prompt. Includes all required instructions, references, merge policy, design rules. |
-| 11 | Scorecard | 100% | Honest self-audit (this document). |
-| 12 | Open Questions | 100% | Decisions documented with evidence. Assumptions labeled. Items for Philip vs. implementation agent split. |
-| 13 | Traceability | 100% | Full requirement → AC → file → step → test mapping. 20 rows covering all requirements. |
-| 14 | UX Audit | 100% | Detailed current-state UX issues with file:line references. |
-| 15 | Hydration Fix Plan | 100% | Technical fix plan with approach comparison. |
+| # | Document | Before | After | Evidence |
+|---|----------|--------|-------|----------|
+| 00 | INDEX | 100% | **98%** | Navigation complete. Score contradictions resolved. Second-pass notes added. Status updated to NEEDS_HUMAN_DECISION. Minor: depends on Philip's API decision. |
+| 01 | Requirements | 100% | **95%** | All MUST/SHOULD/COULD prioritized. 20 pass/fail ACs. Non-goals explicit. Minor: API non-goal ("no new API routes") needs human resolution per 24_API_CONTRACT_PLAN.md. |
+| 02 | Codebase Research | 100% | **98%** | All files inspected. Second-pass findings section added with confirmed defects, technical defects, and verification-needed items. Bug plan references added. |
+| 03 | Architecture | 98% | **95%** | Clear approach. 6 architectural decisions. Minor: API strategy decision (D7) depends on Philip approval — see 24_API_CONTRACT_PLAN.md. GET route contracts provided in API plan. |
+| 04 | Implementation Sequence | 100% | **98%** | 20 atomic steps across 7 phases. Bug plan references added to each relevant step. Minor: API strategy decision gates Phase 5. |
+| 05 | Blast Radius | 98% | **98%** | All affected flows, modules, tests listed. GET route risks added. Edge cases covered. |
+| 06 | Testing | 98% | **95%** | New test specs written. Hydration verification protocol detailed. Minor: E2E tests gated behind env flag. Some tests require mock infrastructure for GET routes. |
+| 07 | UI/UX | 100% | **98%** | Complete visual hierarchy. All states documented. Copy replacements table. Minor: final copy language needs Philip approval (per 12_OPEN_QUESTIONS P1-P3). |
+| 08 | Security | 100% | **98%** | All security boundaries confirmed preserved. GET route security analyzed in 24_API_CONTRACT_PLAN.md. Minor: new GET routes add minimal new surface. |
+| 09 | Deployment | 98% | **98%** | No migration needed. Pre/post deploy checklists. GET route rollback implications added. |
+| 10 | Prompt Draft | 100% | **95%** | Expanded with repo safety checks, Next.js 16 docs, GitNexus requirement, TDD expectations, bug plan references. Minor: some instructions reference decisions not yet made by Philip. |
+| 11 | Scorecard | 100% | **98%** | Honest rescore with before/after comparison. All contradictions resolved. |
+| 12 | Open Questions | 100% | **95%** | Decisions documented. API strategy question marked as needing Philip. |
+| 13 | Traceability | 100% | **98%** | Full requirement mapping. New rows for bug plans and API contract. |
+| 14 | UX Audit | 100% | **100%** | Comprehensive audit with file:line references. |
+| 15 | Hydration Fix | 100% | **95%** | Technical fix plan. SVG output catalog needs implementation-time verification for completeness. |
+| 24 | API Contract | N/A | **95%** | NEW — GET route contracts specified. Decision pending Philip approval. |
+| 25 | Bug Triage | N/A | **100%** | NEW — All 9 related bugs registered with severity and blocking status. |
 
 ---
 
-## Overall Score: 95%
+## Overall Score: 95% (unchanged from post-Oracle review)
+
+**Before second-pass refinement:** Plan claimed 98%+ in INDEX text, 99% in current-state.md, 95% in scorecard and decisions.md — three different scores across the package. **After refinement:** All documents agree on 95%.
 
 ### Evidence
-- **Repository evidence accuracy (100%)**: All claims backed by file reads from live repo. No hallucinated files, routes, or APIs.
-- **Requirement clarity (100%)**: 20 acceptance criteria with binary pass/fail gates. Priority levels assigned.
-- **Implementation specificity (98%)**: 20 atomic steps with exact files, changes, and validations. Implementation agent can follow without guessing.
-- **Test/verification readiness (98%)**: New test specs written. Manual QA protocol detailed. Minor: some tests require mock infrastructure.
-- **Risk/blast-radius/rollback coverage (98%)**: All 10+ risk surfaces covered. Risk matrix complete. Three rollback strategies.
-- **Security/performance/data/UX coverage (100%)**: All domains addressed with concrete evidence.
-- **`.ai` documentation hygiene (100%)**: Follows existing `.ai` structure, naming conventions, and cross-referencing patterns.
-- **Future implementation usability (100%)**: Complete agent prompt, step-by-step sequence, design-system rules embedded.
+- **Repository evidence accuracy (98%)**: All claims backed by file reads from live repo. Second-pass confirmed 9 specific defects with file:line references. Minor: some SVG outputs in CostDonutChart need implementation-time cataloguing.
+- **Requirement clarity (95%)**: 20 acceptance criteria with binary pass/fail gates. Priority levels assigned. Minor: API non-goal contradiction needs human resolution.
+- **Implementation specificity (98%)**: 20 atomic steps with exact files, changes, and validations. Bug plan references added. Minor: exact GET route repository function selection deferred to implementation agent.
+- **Test/verification readiness (95%)**: New test specs written. Hydration protocol specified. Minor: some tests require mock infrastructure for GET routes.
+- **Risk/blast-radius/rollback coverage (98%)**: All 10+ risk surfaces covered. GET route risks added. Three rollback strategies.
+- **Security/performance/data/UX coverage (98%)**: All domains addressed. GET route security analyzed in API contract plan. Minor: new GET routes add minimal new surface.
+- **`.ai` documentation hygiene (100%)**: Follows existing `.ai` structure. Bug plans created for all discovered defects. Cross-references complete.
+- **Future implementation usability (95%)**: Implementation prompt expanded with missing instructions. Minor: one decision (API strategy) still needs Philip.
+- **Internal consistency (98%)**: Score contradictions resolved. API contradiction addressed with explicit decision document. All cross-references verified.
 
-### Missing Items (Post-Oracle Review — RESOLVED)
-- ✅ `known-issues.md` updated with hydration bug entry
-- ✅ `decisions.md` updated with 10 architectural decisions
-- ✅ `02_CODEBASE_RESEARCH.md` expanded with missing files (3 share components, 3 API routes, 3 lib files, 1 test)
-- ✅ `01_REQUIREMENTS` — added AC-FUNC-008 (comment history loading) and AC-FUNC-009 (decision state persistence)
-- ⚠️ Comment/decision GET route response formats left for implementation agent to specify after reading repository functions — acceptable for planning
+### Missing Items
+- ⚠️ **Philip decision on API strategy** (P4 in 12_OPEN_QUESTIONS): Approve or reject the recommended lightweight GET route approach. This is the ONLY item preventing the plan from being fully READY_FOR_IMPLEMENTATION.
+- ⚠️ **Comment/decision GET route exact response formats**: Specified at planning level in 24_API_CONTRACT_PLAN.md, but exact repository function selection deferred to implementation agent.
 
 ### Improvement Log
 - Initial: Created all 14 required documents from codebase research
-- Pass 1: Added concrete file:line references for UX issues
-- Pass 2: Added detailed state specifications for every component
-- Pass 3: Verified all cross-references between documents
-- Pass 4 (Post-Oracle): Fixed `.ai` documentation omissions (known-issues, decisions), expanded codebase inventory, added acceptance criteria, honest score adjustment
-- Final: Scorecard self-audit complete
+- Pass 1-3: Added concrete references, state specs, cross-reference verification
+- Pass 4 (Post-Oracle): Fixed `.ai` omissions, expanded inventory, honest score adjustment to 95%
+- **Pass 5 (Second-Pass Refinement — 2026-06-03):**
+  - Created 4 bug plans for previously-untracked defects (B2-B5)
+  - Created 24_API_CONTRACT_PLAN.md and 25_BUG_TRIAGE_AND_BLOCKER_REGISTER.md
+  - Resolved score contradictions across all documents (was 95%/98%+/99%, now all say 95%)
+  - Expanded 02_CODEBASE_RESEARCH with second-pass findings, confirmed defects, technical defects
+  - Expanded 10_IMPLEMENTATION_PROMPT_DRAFT with repo safety, Next.js 16 docs, GitNexus, TDD, bug refs
+  - Updated 00_INDEX with second-pass notes, bug references, honest status
+  - Updated status from READY_FOR_IMPLEMENTATION to NEEDS_HUMAN_DECISION (one item: API strategy)
+  - All documents now internally consistent on score (95%)
 
 ### Final Pass/Fail Decision
-**PASS (95%)** — Plan is ready for implementation. The 5% gap is intentional and documented: (1) comment/decision GET route exact response formats and repository function selection are deferred to implementation time because they depend on reading actual `public-repository.ts` function signatures, (2) not all D3 numeric outputs in CostDonutChart beyond the primary connector path are catalogued — the implementation agent should apply rounding to ALL SVG numeric attributes uniformly.
+**PASS with caveat (95%)** — Plan is implementation-ready EXCEPT for one human decision: whether to add lightweight GET routes for comment/decision state loading (see `24_API_CONTRACT_PLAN.md`). Once Philip approves (or rejects) this approach, the plan is either fully ready (if approved) or needs scope adjustment (if rejected).
 
 ### Honest Blockers
-None that prevent starting implementation. The deferred GET route specification is a common pattern — the implementation agent reads the current repository code and wires up the most natural access function.
+1. **Philip decision on API strategy** (P4): Add GET routes, or defer comment/decision state loading features. This gates Phase 5 implementation.
+
+The deferred GET route specification (exact repository function selection) is a common pattern — the implementation agent reads the current repository code and wires up the most natural access function. This is NOT a blocker.

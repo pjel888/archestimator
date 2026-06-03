@@ -108,12 +108,16 @@ SharePage (Server Component - UNCHANGED)
 **Rationale:** Smaller, focused components are easier to test, style, and maintain. Follows existing pattern of component extraction in the codebase.
 
 ### Decision 2: Comment History Loading
-**Decision:** Load existing comments via a client-side fetch to the existing comment/activity infrastructure. If no dedicated GET route exists for public comment reads, use the existing public activity route or add a lightweight GET handler under the existing route pattern.
-**Rationale:** Without loading existing comments, returning clients see an empty comment list — breaking trust. This is the minimum viable fix for comment state.
+**Decision:** Load existing comments via new lightweight GET handler at `GET /api/share/[token]/comment`. This is additive — the existing POST handler is unchanged. The GET handler returns publicly-visible comments only (never internal/workshop comments) and respects the publication's password gate.
+**Rationale:** Without loading existing comments, returning clients see an empty comment list — breaking trust. The GET route is read-only, unauthenticated, and scoped to publicly-visible comments.
+**API Contract:** See `24_API_CONTRACT_PLAN.md` for full request/response shapes, error codes, and test contracts.
+**Status:** NEEDS PHILIP APPROVAL (P4). If approved, implementation proceeds. If rejected, comment history loading is deferred.
 
 ### Decision 3: Decision State Loading
-**Decision:** Load prior decision state via client-side fetch. If the existing decision table stores recipient decisions, add a lightweight GET handler or use existing repository functions.
-**Rationale:** Decision state must survive page reload. Currently it's `useState` only — reload loses the decision.
+**Decision:** Load prior decision state via new lightweight GET handler at `GET /api/share/[token]/decision`. This is additive — the existing POST handler is unchanged. The GET handler returns only the requesting recipient's own decision (never other recipients' decisions) and respects the publication's password gate and session cookie.
+**Rationale:** Decision state must survive page reload. Currently it's `useState` only — reload loses the decision, confusing returning clients and potentially causing duplicate submission attempts.
+**API Contract:** See `24_API_CONTRACT_PLAN.md` for full request/response shapes, error codes, and test contracts.
+**Status:** NEEDS PHILIP APPROVAL (P4). If approved, implementation proceeds. If rejected, decision state loading is deferred.
 
 ### Decision 4: Chart Hydration Fix
 **Decision:** Apply deterministic rounding to all SVG numeric output from D3 in `CostDonutChart`. Use a utility that rounds to 4 decimal places for path coordinates.

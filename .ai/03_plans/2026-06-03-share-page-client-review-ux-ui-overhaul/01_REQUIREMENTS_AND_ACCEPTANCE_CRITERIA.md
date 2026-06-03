@@ -152,6 +152,8 @@ Every component must handle:
 | AC-VISUAL-005 | No visible developer/debug artifacts | MUST |
 | AC-VISUAL-006 | Mobile layout is usable at 320px width | MUST |
 | AC-VISUAL-007 | Desktop layout has clear information hierarchy | MUST |
+| AC-VISUAL-008 | Decision confirmation modal traps focus, closes on Escape, and restores focus on close | MUST |
+| AC-VISUAL-009 | Share page prints cleanly without interactive UI elements (decision buttons, comment composer hidden) | SHOULD |
 
 ### Functional
 | ID | Criterion | Priority |
@@ -160,8 +162,8 @@ Every component must handle:
 | AC-FUNC-002 | Recipient can accept, decline, or request revision | MUST |
 | AC-FUNC-003 | Decision state is maintained on page reload | MUST |
 | AC-FUNC-004 | Duplicate decision submission returns clear message (not error) | MUST |
-| AC-FUNC-008 | Existing comments load and display on page mount (not just optimistically added comments) | SHOULD |
-| AC-FUNC-009 | Prior decision state loads and displays on page reload (recipient sees their previous decision) | SHOULD |
+| AC-FUNC-008 | Existing comments load and display on page mount (not just optimistically added comments) | MUST |
+| AC-FUNC-009 | Prior decision state loads and displays on page reload (recipient sees their previous decision) | MUST |
 | AC-FUNC-005 | Password-gated publication flow still works | MUST |
 | AC-FUNC-006 | Recipient session initialization via `?recipient=` still works | MUST |
 | AC-FUNC-007 | "Not you?" clears session and reloads page | MUST |
@@ -193,7 +195,7 @@ Every component must handle:
 
 - Adding new database tables or migrations
 - Changing Supabase RLS policies
-- Adding new API routes
+- Changing existing API route behavior (POST/DELETE handlers unchanged)
 - Modifying the workshop/owner publication manager
 - Adding PDF export or download features
 - Adding real-time features (WebSocket, Supabase Realtime)
@@ -207,8 +209,9 @@ Every component must handle:
 ## Assumptions
 
 1. The existing `useSharedLinkSession` hook works correctly for session detection
-2. The existing API routes (`/api/share/[token]/comment`, `/decision`, `/session`, `/activity`) are stable and should not be changed
-3. Existing recipient sessions and passwords will not be invalidated by UI-only changes
+2. The existing API routes (`/api/share/[token]/comment`, `/decision`, `/session`, `/activity`) are stable — existing POST/DELETE behavior must not change
+3. New lightweight GET routes (additive only, read-only) are required for comment/decision state loading — see `24_API_CONTRACT_PLAN.md` for contracts
+4. Existing recipient sessions and passwords will not be invalidated by UI-only changes
 4. The D3 `CostDonutChart` component is shared between share page and workshop charts — changes must not break workshop charts
 5. The design system constraints in `DESIGN.md` are non-negotiable
 6. The implementation agent has access to a running local dev server for manual QA

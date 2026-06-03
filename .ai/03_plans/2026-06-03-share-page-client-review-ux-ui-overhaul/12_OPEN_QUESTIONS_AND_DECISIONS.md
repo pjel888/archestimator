@@ -15,10 +15,11 @@
 | D4 | No database schema changes | Outside scope, increases risk | Plan is UI/UX only — no migration dependency |
 | D5 | Keep all API routes unchanged | Preserves security boundaries | CSRF, rate limiting, session cookies all battle-tested |
 | D6 | Create new components rather than inlining | Smaller test surface, better maintainability | Follows existing component extraction patterns in codebase |
-| D7 | Load comments/decisions via new GET routes | Necessary for state persistence across reloads | Current comments are optimistic-only; decision is useState-only |
+| D7 | Load comments/decisions via new lightweight GET routes | Necessary for state persistence across reloads. Additive only — existing POST routes unchanged. See 24_API_CONTRACT_PLAN.md for contracts. | Current comments are optimistic-only; decision is useState-only. Bug plans B3, B4 document the gap. |
 | D8 | "Proposal Review" as replacement for "Client publication" | Client-friendly, professional | "Client publication" is internal product terminology |
 | D9 | Remove "View-only" badge entirely | Unnecessary for client experience | Client doesn't need to know the page is "view-only" — it's implicit |
 | D10 | Move "Visits are logged" to subtle footer | Reduces intimidation while maintaining transparency | Current placement in main content area feels surveillant |
+| D11 | Upgrade AC-FUNC-008 and AC-FUNC-009 from SHOULD to MUST | Comment history and decision persistence are fundamental UX expectations — returning clients seeing empty state is broken UX | Bug plans B3, B4 document the current gap |
 
 ---
 
@@ -43,9 +44,10 @@
 | P1 | Approve "Proposal Review" as the replacement term for "Client publication" | Brand/product language decision | HIGH |
 | P2 | Approve removing "View-only" badge entirely | UX philosophy decision | HIGH |
 | P3 | Approve moving "Visits are logged" to subtle footer | Trust/transparency balance | MEDIUM |
-| P4 | Approve adding comment/decision GET API routes (if needed) | API surface expansion | MEDIUM |
+| P4 | Approve adding lightweight GET routes (`GET /api/share/[token]/comment` and `GET /api/share/[token]/decision`) for comment/decision state loading | API surface expansion — see 24_API_CONTRACT_PLAN.md for full contracts | HIGH |
 | P5 | Approve merge to main after PR review | Per repo policy: no automatic main merge | HIGH |
 | P6 | Approve final visual design after implementation | Subjective quality gate | MEDIUM |
+| P7 | Approve priority upgrade for comment/decision state loading (SHOULD → MUST) | Product priority decision — returning clients seeing empty comment/decision state is broken UX | HIGH |
 
 ---
 
@@ -66,10 +68,20 @@
 
 All decisions are explicitly called out above. The plan has:
 - ✅ Clear scope (what files change, what doesn't)
-- ✅ Clear acceptance criteria (20 pass/fail gates)
-- ✅ Clear implementation sequence (20 atomic steps)
-- ✅ Clear architecture (before/after diagrams)
-- ✅ Clear risk assessment (all 10+ surfaces covered)
+- ✅ Clear acceptance criteria (22 pass/fail gates — expanded in second-pass)
+- ✅ Clear implementation sequence (24 atomic steps across 7 phases)
+- ✅ Clear architecture (before/after diagrams, explicit API strategy in 24_API_CONTRACT_PLAN.md)
+- ✅ Clear risk assessment (all 15+ surfaces covered)
 - ✅ Clear rollback strategy (3 options)
 - ✅ Clear security boundaries (all preserved)
 - ✅ Clear design constraints (DESIGN.md compliant)
+- ⚠️ One pending decision: API strategy (lightweight GET routes) — see P4 above
+- ⚠️ One pending decision: priority upgrade for comment/decision state loading — see P7 above
+
+## Second-Pass Refinement Notes
+
+- Added D11: priority upgrade for comment/decision state loading (SHOULD → MUST)
+- Added P7: explicit approval item for priority upgrade
+- Updated D7: now references 24_API_CONTRACT_PLAN.md with full contracts
+- Updated P4: now HIGH priority, references API contract plan
+- Status: NEEDS_HUMAN_DECISION pending Philip's approval on P4 and P7
