@@ -7,6 +7,7 @@
 - Tracker: `.ai/15_Bugs/2026-06-04-codex-cloud-security-findings-refresh.md`.
 - The Speed Insights finding has repo and production remediation evidence, but dashboard rescan/closure is pending; the overall security blocker remains open.
 - A 2026-06-04 follow-up remediation batch at `a062e56` fixed or removed repo-local evidence for share review GET rate limits, denied/revoked beta session persistence, raw authed Lighthouse reports, share proof seed identifiers, and the client-identifying proposal sample. It is deployed as Vercel production `dpl_8ZQDQopHv95H94m1uR6xZgU8RvYD` with health/login/workshop smoke proof. These remain pending Codex Security rescan/closure and do not close the overall blocker.
+- A later 2026-06-04 local/linked batch now has targeted verification for hosted auth smoke origin validation, beta feedback forged-context RLS hardening, authenticated owner digest gating, mass deletion audit actor derivation, and the self-blocking role-demotion migration. New linked migrations `20260603191535` and `20260603191903` were applied/repaired by exact file with targeted readback proof. It remains pending commit, production deploy, hosted smoke, and Codex Security rescan/closure.
 
 **Last updated:** 2026-06-04
 

@@ -789,6 +789,21 @@ describe("P8 — Shared Link Activity Feed & Notifications (red tests written FI
     it("resolves the real owner email and sender label for activity digests", async () => {
       mocks.sendEmail.mockClear();
 
+      mocks.requireCurrentUserContext.mockRejectedValueOnce(new Error("auth required"));
+      await expect(maybeTriggerSharedLinkActivityDigest("pub-real-owner", "client-pub-token-123", "comment")).resolves.toEqual({
+        ok: false,
+        error: "digest-auth-required",
+      });
+      expect(mocks.sendEmail).not.toHaveBeenCalled();
+
+      mocks.requireCurrentUserContext.mockResolvedValueOnce({
+        userId: "manager-user",
+        email: "manager@example.com",
+        displayName: "Manager",
+        role: "admin",
+        profile: {},
+        avatarUrl: null,
+      });
       await maybeTriggerSharedLinkActivityDigest("pub-real-owner", "client-pub-token-123", "comment");
 
       expect(mocks.sendEmail).toHaveBeenCalledWith(

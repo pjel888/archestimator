@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
 import {
@@ -10,6 +10,11 @@ import {
 
 const migration = readFileSync("supabase/migrations/20260602083000_beta_feedback_submissions.sql", "utf8");
 const reviewMigration = readFileSync("supabase/migrations/20260602084500_beta_feedback_review_queue.sql", "utf8");
+const allMigrations = readdirSync("supabase/migrations")
+  .filter((file) => file.endsWith(".sql"))
+  .sort()
+  .map((file) => readFileSync(`supabase/migrations/${file}`, "utf8"))
+  .join("\n");
 const actionSource = readFileSync("src/lib/workshop/beta-feedback-actions.ts", "utf8");
 const pageSource = readFileSync("src/app/workshop/feedback/page.tsx", "utf8");
 const reviewPageSource = readFileSync("src/app/workshop/settings/feedback/page.tsx", "utf8");
@@ -80,6 +85,17 @@ describe("closed beta feedback", () => {
     expect(migration).toContain("grant insert on public.beta_feedback_submissions to authenticated");
     expect(migration).toContain("with check (auth.uid() = user_id)");
     expect(migration).not.toContain("grant select on public.beta_feedback_submissions to authenticated");
+  });
+
+  it("prevents forged workspace or project context in beta feedback RLS", () => {
+    expect(allMigrations).toContain("beta feedback inserts must match actor context");
+    expect(allMigrations).toContain("(workspace_id is null or public.is_workspace_member(workspace_id))");
+    expect(allMigrations).toContain("(project_id is null or public.can_access_project(project_id))");
+    expect(allMigrations).toContain("workspace_id is null");
+    expect(allMigrations).toContain("project_id is null");
+    expect(allMigrations).toContain("or exists (");
+    expect(allMigrations).toContain("projects.id = beta_feedback_submissions.project_id");
+    expect(allMigrations).toContain("projects.workspace_id = beta_feedback_submissions.workspace_id");
   });
 
   it("opens feedback review only to platform admins", () => {

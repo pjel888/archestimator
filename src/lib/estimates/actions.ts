@@ -1554,7 +1554,7 @@ export async function executeBulkDeleteEstimateSheets(input: ExecuteBulkDeleteEs
     };
   }
 
-  const [supabase, currentUser] = await Promise.all([
+  const [supabase] = await Promise.all([
     createSupabaseServerClient(),
     requireCurrentUserContext(),
   ]);
@@ -1562,7 +1562,6 @@ export async function executeBulkDeleteEstimateSheets(input: ExecuteBulkDeleteEs
     target_project_id: project.id,
     target_estimate_ids: ids,
     expected_preview_hash: input.expectedPreviewHash,
-    acting_user_id: currentUser.userId,
     correlation_id: getMutationCorrelationId(input.correlationId),
   });
 

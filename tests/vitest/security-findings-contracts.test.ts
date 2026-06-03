@@ -52,6 +52,17 @@ describe("Codex security findings hardening contracts", () => {
     expect(sessionSource).not.toContain('.from("profiles")\n    .insert');
   });
 
+  it("lets the beta allowlist hardening migration demote unexpected roles without tripping its own trigger", () => {
+    const hardeningMigration = read("supabase/migrations/20260602090000_harden_beta_allowlist_admin.sql");
+    const disableIndex = hardeningMigration.indexOf("alter table public.profiles disable trigger profiles_prevent_role_self_update");
+    const demotionIndex = hardeningMigration.indexOf("with candidates as (");
+    const enableIndex = hardeningMigration.indexOf("alter table public.profiles enable trigger profiles_prevent_role_self_update");
+
+    expect(disableIndex).toBeGreaterThanOrEqual(0);
+    expect(demotionIndex).toBeGreaterThan(disableIndex);
+    expect(enableIndex).toBeGreaterThan(demotionIndex);
+  });
+
   it("routes closed beta allowlist admin through actor-derived RPCs instead of direct table reachability", () => {
     expect(migrationText).toContain("20260602090000_harden_beta_allowlist_admin");
     expect(migrationText).toContain("revoke all on table public.closed_beta_allowed_emails from anon, authenticated");

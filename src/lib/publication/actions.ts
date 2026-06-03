@@ -1287,5 +1287,11 @@ export async function maybeTriggerSharedLinkActivityDigest(
   publicationToken: string,
   kind: "comment" | "decision"
 ) {
+  try {
+    await requireCurrentUserContext();
+  } catch {
+    return { ok: false, error: "digest-auth-required" };
+  }
+
   return triggerOwnerDigestIfAllowed(publicationId, publicationToken, kind);
 }

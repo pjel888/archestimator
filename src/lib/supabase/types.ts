@@ -3005,27 +3005,27 @@ export type Database = {
         Returns: boolean
       }
       preview_bulk_delete_projects: {
-        Args: { target_project_ids: string[]; acting_user_id?: string }
+        Args: { target_project_ids: string[] }
         Returns: Json
       }
       execute_bulk_delete_projects: {
-        Args: { target_project_ids: string[]; expected_preview_hash: string; acting_user_id?: string; correlation_id?: string }
+        Args: { target_project_ids: string[]; expected_preview_hash: string; correlation_id?: string }
         Returns: Json
       }
       preview_bulk_delete_estimate_sheets: {
-        Args: { target_project_id: string; target_estimate_ids: string[]; acting_user_id?: string }
+        Args: { target_project_id: string; target_estimate_ids: string[] }
         Returns: Json
       }
       execute_bulk_delete_estimate_sheets: {
-        Args: { target_project_id: string; target_estimate_ids: string[]; expected_preview_hash: string; acting_user_id?: string; correlation_id?: string }
+        Args: { target_project_id: string; target_estimate_ids: string[]; expected_preview_hash: string; correlation_id?: string }
         Returns: Json
       }
       preview_bulk_archive_library_components: {
-        Args: { target_workspace_id: string; target_item_ids: string[]; acting_user_id?: string }
+        Args: { target_workspace_id: string; target_item_ids: string[] }
         Returns: Json
       }
       execute_bulk_archive_library_components: {
-        Args: { target_workspace_id: string; target_item_ids: string[]; expected_preview_hash: string; acting_user_id?: string; correlation_id?: string }
+        Args: { target_workspace_id: string; target_item_ids: string[]; expected_preview_hash: string; correlation_id?: string }
         Returns: Json
       }
       record_mass_deletion_storage_cleanup_result: {

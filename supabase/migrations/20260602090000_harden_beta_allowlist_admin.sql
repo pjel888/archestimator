@@ -23,6 +23,8 @@ create table if not exists public.profile_role_hardening_audit (
 
 revoke all on table public.profile_role_hardening_audit from public, anon, authenticated;
 
+alter table public.profiles disable trigger profiles_prevent_role_self_update;
+
 with candidates as (
   select id, email, role as old_role
   from public.profiles
@@ -40,6 +42,8 @@ demoted as (
 insert into public.profile_role_hardening_audit (profile_id, email, old_role, new_role, reason)
 select d.id, d.email, d.old_role, d.new_role, 'demoted unexpected elevated role during beta allowlist hardening'
 from demoted d;
+
+alter table public.profiles enable trigger profiles_prevent_role_self_update;
 
 create or replace function public.ensure_current_user_profile(
   profile_display_name text default null,
