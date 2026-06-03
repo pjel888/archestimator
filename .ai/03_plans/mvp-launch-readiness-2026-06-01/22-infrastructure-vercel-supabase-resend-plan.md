@@ -1,5 +1,16 @@
 # Infrastructure, Vercel, Supabase, and Resend Plan
 
+## Cheaper-Path Provider Launch Update - 2026-06-03
+
+- Supabase PITR remains intentionally disabled after the dashboard showed 7-day PITR at `$100.00 / month`; for the pre-launch one-person MVP beta, the accepted safety path is Pro daily physical backup proof plus a fresh off-repo logical dump before migrations.
+- Backup proof now records 9 completed physical backups, `walg_enabled=true`, `pitr_enabled=false`, and manual dump files under `/Users/philiplewis/archestimator-provider-backups/2026-06-03T173005Z-pre-closed-beta-2cddb0e`.
+- Linked migrations `20260601145000` through `20260603160000` were applied exactly and recorded in remote history without broad `db push`.
+- `closed_beta_allowed_emails` exists remotely and currently has exactly one active/invited tester: `philipjonlewis@gmail.com`.
+- Vercel Production now points to deployment `dpl_Cxeq5ATpif6Yk1zn4FmNmnX7nzhT`; both `archestimator.com` and `www.archestimator.com` alias to the beta app, and `www` returns app health JSON at `/api/health`.
+- Vercel env-name readiness is now green for core closed-beta runtime and Resend names, including `RESEND_WEBHOOK_SECRET`.
+- Resend webhook exists and its secret is configured in Vercel, but the sending domain remains pending until the `send.contact.archestimator.com` MX record is added without breaking apex Email Forwarding/support mail.
+- Open proof gaps: real browser Google OAuth hosted smoke, Vercel rollback drill, Resend MX/domain verification, legal/owner signoff, support/alert monitoring proof, hosted authenticated export, hosted feedback review, and full hosted beta journey.
+
 ## Fourth-Pass Closed Beta Infrastructure Decisions - 2026-06-02
 
 - Add server env: `CLOSED_BETA_ACCESS_ENABLED=true`.
@@ -19,15 +30,15 @@ Commit audited: `681c95e64864f283950a88dba304eaffe8f2f8b3`
 
 | Area | Current evidence | Gap |
 | --- | --- | --- |
-| Vercel build/runtime | Local `bun run build` passes; export route declares `runtime = "nodejs"` and `dynamic = "force-dynamic"`. | No Vercel env/deploy/rollback proof. |
+| Vercel build/runtime | Local `bun run build` passes; export route declares `runtime = "nodejs"` and `dynamic = "force-dynamic"`; Vercel core closed-beta env-name coverage is now recorded. | No redeploy, production alias, hosted health, or rollback proof after env setup. |
 | Next.js routes | App Router route handlers include AI, export, share/invite, webhook. | API timeouts/large export limits not proven on Vercel. |
-| Supabase/env manifest | `.env.example` now lists app origins, Supabase public/server vars, closed-beta flags, publication secrets, Resend vars, AI disable vars, optional analytics, release toggles, and `DATABASE_URL`. | Real Vercel values and provider dashboard proof still missing. |
-| Supabase Auth | Login/callback code exists. | Production callback URLs and provider settings unverified. |
+| Supabase/env manifest | `.env.example` now lists app origins, Supabase public/server vars, closed-beta flags, publication secrets, Resend vars, AI disable vars, optional analytics, release toggles, and `DATABASE_URL`; `provider-ops-mutation-pass-2cddb0e-2026-06-03.md` records Vercel core closed-beta env-name coverage for Production and Preview(`main`). | Secret values are intentionally not recorded; hosted auth, production alias, rollback, Resend webhook, and provider/manual smoke proof still missing. |
+| Supabase Auth | Login/callback code exists; Supabase Auth Site URL and HTTPS redirect allowlist have been repaired for `www`, apex, and the `git-main` Vercel branch alias. | Google Cloud consent/callback dashboard proof and hosted allowed/denied/revoked smoke still missing. |
 | Supabase RLS | Migrations enable policies. | Linked/staging allow/deny proof missing. |
 | Storage | Component/project image code and Next image remote patterns exist. | Bucket access/policy proof missing; attachment bucket handling needs verification. |
 | Realtime | No launch-critical realtime dependency identified. | If enabled later, document channels and rate limits. |
-| Resend | Client and Svix webhook route exist; unconfigured production-like sends fail closed, shared-link recipient controls disable while server readiness is false, and Teamspaces invite controls disable while invite delivery readiness is false. | DNS/API key/from/reply-to/webhook proof plus Supabase Auth invite provider proof missing before email workflows can be re-enabled. |
-| Env separation | CI exists. | Preview/staging/prod variable matrix missing. |
+| Resend | Client and Svix webhook route exist; unconfigured production-like sends fail closed, shared-link recipient controls disable while server readiness is false, and Teamspaces invite controls disable while invite delivery readiness is false; Vercel now has `RESEND_API_KEY`, `RESEND_FROM`, and `RESEND_REPLY_TO` env names. | Resend domain remains pending, required MX/webhook proof is missing, `RESEND_WEBHOOK_SECRET` is not set, and Supabase Auth invite provider proof is still missing before email workflows can be re-enabled. |
+| Env separation | CI exists; Production and Preview(`main`) have the current closed-beta env-name set. | Staging/non-main preview matrix, secret value proof by provider UI, redeploy proof, and rollback proof still missing. |
 
 ## Required Vercel Env Vars
 

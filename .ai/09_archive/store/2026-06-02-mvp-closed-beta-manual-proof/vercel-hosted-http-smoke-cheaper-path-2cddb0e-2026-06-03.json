@@ -1,0 +1,67 @@
+{
+  "generatedAt": "2026-06-03T17:53:40.876Z",
+  "deploymentId": "dpl_Cxeq5ATpif6Yk1zn4FmNmnX7nzhT",
+  "productionUrl": "https://archestimator-ra4uriydo-philipjonlewis-projects.vercel.app",
+  "probes": [
+    {
+      "url": "https://archestimator.com",
+      "status": 307,
+      "ok": false,
+      "location": "https://www.archestimator.com/",
+      "contentType": "text/plain",
+      "durationMs": 207,
+      "title": null,
+      "teaserDetected": false,
+      "appDetected": false,
+      "bodySummary": "Redirecting..."
+    },
+    {
+      "url": "https://www.archestimator.com",
+      "status": 200,
+      "ok": true,
+      "location": null,
+      "contentType": "text/html; charset=utf-8",
+      "durationMs": 482,
+      "title": "Archestimator | Quote, Proposal &amp; Estimate Workspace",
+      "teaserDetected": false,
+      "appDetected": true,
+      "bodySummary": "<!DOCTYPE html><html data-dpl-id=\"dpl_Cxeq5ATpif6Yk1zn4FmNmnX7nzhT\" lang=\"en\"><head><meta charSet=\"utf-8\"/><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"/><lin"
+    },
+    {
+      "url": "https://www.archestimator.com/api/health",
+      "status": 200,
+      "ok": true,
+      "location": null,
+      "contentType": "application/json",
+      "durationMs": 344,
+      "title": null,
+      "teaserDetected": false,
+      "appDetected": false,
+      "bodySummary": "{\"ok\":true,\"service\":\"archestimator\",\"timestamp\":\"2026-06-03T17:53:40.380Z\"}"
+    },
+    {
+      "url": "https://www.archestimator.com/login",
+      "status": 200,
+      "ok": true,
+      "location": null,
+      "contentType": "text/html; charset=utf-8",
+      "durationMs": 339,
+      "title": "Archestimator | Quote, Proposal &amp; Estimate Workspace",
+      "teaserDetected": false,
+      "appDetected": true,
+      "bodySummary": "<!DOCTYPE html><html data-dpl-id=\"dpl_Cxeq5ATpif6Yk1zn4FmNmnX7nzhT\" lang=\"en\"><head><meta charSet=\"utf-8\"/><meta name=\"viewport\" content=\"width=device-width, initial-scale=1\"/><lin"
+    },
+    {
+      "url": "https://www.archestimator.com/workshop",
+      "status": 307,
+      "ok": false,
+      "location": "/login?next=%2Fworkshop",
+      "contentType": "text/plain",
+      "durationMs": 66,
+      "title": null,
+      "teaserDetected": false,
+      "appDetected": false,
+      "bodySummary": "Redirecting..."
+    }
+  ]
+}

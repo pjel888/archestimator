@@ -1,0 +1,65 @@
+{
+  "checkedAtUtc": "2026-06-03T17:44:32.093Z",
+  "projectRef": "ebxxqidacheyapmmzavr",
+  "applyMethod": "exact local migration files applied one transaction per file via temporary Supabase login with SET ROLE postgres; broad db push intentionally avoided",
+  "applyRoot": "/tmp/archestimator-apply-migrations.P3ZFcq",
+  "appliedMigrations": [
+    {
+      "version": "20260601145000",
+      "name": "lock_down_shared_link_recipient_credentials",
+      "status": "ok"
+    },
+    {
+      "version": "20260601151500",
+      "name": "restrict_sheet_collaborator_estimate_inheritance",
+      "status": "ok"
+    },
+    {
+      "version": "20260601153000",
+      "name": "fix_estimate_history_rpc_authorization",
+      "status": "ok"
+    },
+    {
+      "version": "20260601165000",
+      "name": "prevent_profile_role_self_escalation",
+      "status": "ok"
+    },
+    {
+      "version": "20260601182522",
+      "name": "closed_beta_allowed_emails",
+      "status": "ok"
+    },
+    {
+      "version": "20260601184343",
+      "name": "unlink_estimate_row_items",
+      "status": "ok"
+    },
+    {
+      "version": "20260602005649",
+      "name": "beta_allowlist_admin_queue",
+      "status": "ok"
+    },
+    {
+      "version": "20260602083000",
+      "name": "beta_feedback_submissions",
+      "status": "ok"
+    },
+    {
+      "version": "20260602084500",
+      "name": "beta_feedback_review_queue",
+      "status": "ok"
+    },
+    {
+      "version": "20260602090000",
+      "name": "harden_beta_allowlist_admin",
+      "status": "ok"
+    },
+    {
+      "version": "20260603160000",
+      "name": "mass_deletion_governance",
+      "status": "ok"
+    }
+  ],
+  "verifyOutputText": "{                                                                      +\n     \"objects\": {                                                       +\n         \"unlink_with_history\": true,                                   +\n         \"mass_deletion_events\": true,                                  +\n         \"check_closed_beta_access\": true,                              +\n         \"beta_feedback_submissions\": true,                             +\n         \"closed_beta_allowed_emails\": true,                            +\n         \"execute_bulk_delete_projects\": true,                          +\n         \"preview_bulk_delete_projects\": true,                          +\n         \"read_closed_beta_allowlist_queue\": true,                      +\n         \"create_closed_beta_allowlist_entry\": true                     +\n     },                                                                 +\n     \"migrations\": [                                                    +\n         {                                                              +\n             \"name\": \"lock_down_shared_link_recipient_credentials\",     +\n             \"version\": \"20260601145000\"                                +\n         },                                                             +\n         {                                                              +\n             \"name\": \"restrict_sheet_collaborator_estimate_inheritance\",+\n             \"version\": \"20260601151500\"                                +\n         },                                                             +\n         {                                                              +\n             \"name\": \"fix_estimate_history_rpc_authorization\",          +\n             \"version\": \"20260601153000\"                                +\n         },                                                             +\n         {                                                              +\n             \"name\": \"prevent_profile_role_self_escalation\",            +\n             \"version\": \"20260601165000\"                                +\n         },                                                             +\n         {                                                              +\n             \"name\": \"closed_beta_allowed_emails\",                      +\n             \"version\": \"20260601182522\"                                +\n         },                                                             +\n         {                                                              +\n             \"name\": \"unlink_estimate_row_items\",                       +\n             \"version\": \"20260601184343\"                                +\n         },                                                             +\n         {                                                              +\n             \"name\": \"beta_allowlist_admin_queue\",                      +\n             \"version\": \"20260602005649\"                                +\n         },                                                             +\n         {                                                              +\n             \"name\": \"beta_feedback_submissions\",                       +\n             \"version\": \"20260602083000\"                                +\n         },                                                             +\n         {                                                              +\n             \"name\": \"beta_feedback_review_queue\",                      +\n             \"version\": \"20260602084500\"                                +\n         },                                                             +\n         {                                                              +\n             \"name\": \"harden_beta_allowlist_admin\",                     +\n             \"version\": \"20260602090000\"                                +\n         },                                                             +\n         {                                                              +\n             \"name\": \"mass_deletion_governance\",                        +\n             \"version\": \"20260603160000\"                                +\n         }                                                              +\n     ]                                                                  +\n }",
+  "secretHandling": "Temporary Supabase dry-run credential files were deleted; retained apply logs contain no credentials."
+}

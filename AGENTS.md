@@ -14,22 +14,26 @@ Start here:
 1. `.ai/README.md`
 2. `.ai/00_system/ai-folder-canonical-map.md`
 3. `.ai/00_system/AGENT_OPERATING_PROTOCOL.md`
-4. `.ai/10_state/current-state.md`
-5. `.ai/10_state/decisions.md`
-6. `DESIGN.md`
+4. `.ai/00_system/AGENT_FRAMEWORK_PROTOCOL.md`
+5. `.ai/10_state/current-state.md`
+6. `.ai/10_state/decisions.md`
+7. `DESIGN.md`
 
 ## Core rules
 
 - Do not create separate tool-specific knowledge silos.
 - Keep durable decisions, plans, specs, prompts, skills, and agent instructions inside `.ai/`.
 - Do not store secrets in the repository or `.ai`.
-- Stack baseline is Next.js + Bun, local-first data while the product model changes rapidly.
-- Prepare data-access boundaries for future Supabase/Postgres migration, but do not connect Supabase until explicitly approved.
+- Stack baseline is Next.js 16 + React 19 + Bun + TypeScript + Tailwind v4 + Supabase/Postgres.
+- Supabase/Postgres is active for Archestimator project `ebxxqidacheyapmmzavr`; never mutate unrelated provider projects such as SlateCamp.
+- Closed-beta cost posture: keep Supabase PITR disabled unless the owner explicitly re-approves the extra cost; rely on daily physical backups plus manual logical dumps for the cheaper beta path.
 - If project reality changes, update `.ai/10_state/current-state.md` and the relevant canonical doc.
+- Tool-specific adapters and model payloads must stay subordinate to
+  `.ai/00_system/AGENT_FRAMEWORK_PROTOCOL.md` and `.ai/12_agents/`.
 
 ## Current stage
 
-Archestimator is entering MVP implementation setup. Prioritize the estimating sheet, cost library, proposal package, versioning, local-first data repositories, validation gates, and design-system consistency.
+Archestimator is preparing a closed beta. Prioritize beta auth, estimating workflows, cost library, proposal package, collaboration/publication proof, provider evidence, and design-system consistency.
 
 <!-- gitnexus:start -->
 # GitNexus — Code Intelligence

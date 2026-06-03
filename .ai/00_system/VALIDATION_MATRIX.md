@@ -119,6 +119,20 @@ npx supabase@2.98.2 migration list
 - Update feature specs and roadmap when implementation state changes.
 - Run `git diff --check` before finalizing.
 
+## Agent-framework documentation changes
+
+For `.ai/00_system`, `.ai/12_agents`, `.ai/08_prompts/templates`,
+`.ai/11_skills`, or tool-adapter documentation changes:
+
+- Verify `.ai/00_system/AGENT_FRAMEWORK_PROTOCOL.md` exists and is linked from
+  `.ai/00_system/DOCS_SOURCE_OF_TRUTH.md`.
+- Verify `.ai/12_agents/payloads/_template.md` exists.
+- Verify payloads use the shared schema headings or intentionally fail closed.
+- Verify tool adapters point back to `.ai` and do not duplicate long policy.
+- Run `git diff --check`.
+- Run `bun run validate` and `bun run build` only when production source,
+  package, framework, UI, route, or test behavior changes.
+
 If the documentation change is meant to fix agent drift, degraded performance, stale context, or repeated mistakes, also verify:
 
 - `.ai/00_system/AGENT_SELF_DIAGNOSTIC_PROTOCOL.md` exists and is linked from `.ai/README.md` and `.ai/00_system/DOCS_SOURCE_OF_TRUTH.md`;
