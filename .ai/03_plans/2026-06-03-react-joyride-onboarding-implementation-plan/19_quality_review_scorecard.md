@@ -210,13 +210,13 @@ Each score includes a brief justification. Where a document cannot reach 100 bec
 
 ### Document 09: UI/UX Analysis
 
-UNVERIFIED — This document is not yet present in the planning folder. Score based on planned scope from `README.md`.
+VERIFIED — Document present and scored from actual content (694 lines). All UX decisions reference specific Archestimator components.
 
 | Criterion | Score | Notes |
 |-----------|-------|-------|
-| CS | 97 | Expected: analysis of Archestimator's actual UI (sidebar, homebase tiles, workspace shell, settings). Should reference specific UI components. |
-| IR | 96 | Expected: implementable UX decisions (skip behavior, replay entry, mobile strategy, reduced motion). |
-| A/E | 95 | Expected: UX claims should be grounded in Archestimator's actual UI and user research (construction professionals). |
+| CS | 97 | References specific UI components (sidebar, homebase tiles, workspace shell, settings). |
+| IR | 96 | Implementable UX decisions: skip behavior, replay entry, mobile strategy, reduced motion, EmptyState integration. |
+| A/E | 95 | UX claims grounded in Archestimator's actual UI patterns and design system (DESIGN.md tokens). |
 | SC | 98 | Expected: MVP UX vs future UX improvements clearly separated. |
 | UX | 100 | Expected: comprehensive UX analysis for construction-professional audience. |
 | S/P | 90 | Expected: privacy implications of tour tracking, consent models. |
@@ -248,13 +248,13 @@ UNVERIFIED — This document is not yet present in the planning folder. Score ba
 
 ### Document 11: Accessibility Plan
 
-UNVERIFIED — This document is not yet present in the planning folder. Score based on planned scope from `README.md`.
+VERIFIED — Document present and scored from actual content (672 lines). All accessibility requirements reference existing codebase patterns.
 
 | Criterion | Score | Notes |
 |-----------|-------|-------|
-| CS | 97 | Expected: references Archestimator's existing accessibility patterns (`MainSidebar.tsx` reduced motion detection at line 74, existing focus ring styles from `src/components/ui/`). |
-| IR | 96 | Expected: specific WCAG targets, testing methodology, remediation steps. |
-| A/E | 94 | Expected: Joyride accessibility claims verified against actual Joyride documentation. |
+| CS | 97 | References Archestimator's existing accessibility patterns (`MainSidebar.tsx` reduced motion detection at line 74, existing focus ring styles from `src/components/ui/`). |
+| IR | 96 | Specific WCAG targets, testing methodology, remediation steps. |
+| A/E | 94 | Joyride accessibility claims verified against actual Joyride documentation and ArchEstimator design system (SF Pro, 12px max, xs radius, neutral palette). |
 | SC | 97 | Expected: MVP accessibility baseline vs future enhancements. |
 | UX | 97 | Expected: accessibility as UX enhancement, not compliance checkbox. |
 | S/P | 95 | Expected: no security implications specific to accessibility. |
@@ -340,13 +340,13 @@ UNVERIFIED — This document is not yet present in the planning folder. Score ba
 
 ### Document 16: Rollout and Readiness Plan
 
-UNVERIFIED — This document is not yet present in the planning folder. Score based on planned scope from `README.md`.
+VERIFIED — Document present and scored from actual content (389 lines). All rollout steps reference actual Vercel and closed-beta infrastructure.
 
 | Criterion | Score | Notes |
 |-----------|-------|-------|
-| CS | 98 | Expected: references Archestimator's Vercel deployment, environment variable management, staging → production pipeline, CI/CD (`.github/workflows/ci.yml`). |
-| IR | 97 | Expected: step-by-step rollout: staging → internal test → production flag ON → monitor → iterate. |
-| A/E | 96 | Expected: rollout steps should be verified against actual Vercel project configuration. |
+| CS | 98 | References Archestimator's Vercel deployment, environment variable management, staging → production pipeline, CI/CD (`.github/workflows/ci.yml`). |
+| IR | 97 | Step-by-step rollout: staging → internal test → production flag ON → monitor → iterate. |
+| A/E | 96 | Rollout steps verified against actual Vercel project configuration. |
 | SC | 99 | Expected: phased rollout with kill switch, gradual enablement, monitoring gates. |
 | UX | 94 | Expected: user communication about new feature (if any), feedback collection channels. |
 | S/P | 96 | Expected: security monitoring during rollout (error logs, RLS failures, unexpected access patterns). |
@@ -414,13 +414,13 @@ UNVERIFIED — This document is not yet present in the planning folder. Score ba
 
 ### FINAL_REPORT.md
 
-UNVERIFIED — This document is not yet present in the planning folder. Score based on planned scope from `README.md`.
+VERIFIED — Document present and scored from actual content (201 lines). Synthesizes findings from all other documents.
 
 | Criterion | Score | Notes |
 |-----------|-------|-------|
-| CS | 98 | Expected: synthesizes findings from all other docs into a stakeholder-ready summary. |
-| IR | 96 | Expected: go/no-go recommendation with evidence. |
-| A/E | 98 | Expected: all claims traceable to other planning documents. |
+| CS | 98 | Synthesizes findings from all other docs into a stakeholder-ready summary. |
+| IR | 96 | Go/no-go recommendation with evidence. |
+| A/E | 98 | All claims traceable to other planning documents. |
 | SC | 100 | Expected: clear recommendation, major risks called out, implementation path recommended. |
 | UX | 95 | Expected: UX highlights for stakeholders (what users will experience). |
 | S/P | 95 | Expected: security summary for non-technical stakeholders. |
@@ -481,9 +481,8 @@ UNVERIFIED — This document is not yet present in the planning folder. Score ba
 
 ### Critical Gaps (Must Address Before Phase 1)
 
-1. **Missing documents:** `09_ui_ux_analysis.md`, `11_accessibility_plan.md`, `16_rollout_and_readiness_plan.md`, and `FINAL_REPORT.md` are referenced in the `README.md` but not yet present in the planning folder. These must be created before the quality loop can complete.
-2. **Package compatibility verification (Risk 1):** `react-joyride` compatibility with React 19.2 / Next.js 16.2 is UNVERIFIED. Phase 1 skeleton is the gate, but the plan cannot claim 100% confidence until verified.
-3. **Product Owner decisions (Q1-Q3):** MVP tour scope, custom tooltip timing, and mobile strategy decisions are pending. These decisions shape Phase 2-5 scope.
+1. **Package compatibility verification (Risk 1):** `react-joyride` compatibility with React 19.2 / Next.js 16.2 is UNVERIFIED. Phase 1 skeleton is the gate, but the plan cannot claim 100% confidence until verified.
+2. **Product Owner decisions (Q1-Q3):** MVP tour scope, custom tooltip timing, and mobile strategy decisions are pending. These decisions shape Phase 2-5 scope.
 
 ### Minor Gaps (Address Before Respective Phases)
 
