@@ -218,6 +218,70 @@ describe("P6 — Shared Link Comments (red tests written FIRST before any impl)"
       const live = container.querySelector('[aria-live="polite"]');
       expect(live).toBeTruthy();
     });
+    it("loads existing public comments on mount and appends a new submitted comment", async () => {
+      mocks.useSharedLinkSession.mockReturnValue({ isValid: true });
+      const user = userEvent.setup();
+      // @ts-expect-error fetch mock
+      global.fetch = vi
+        .fn()
+        .mockResolvedValueOnce({
+          ok: true,
+          status: 200,
+          json: async () => ({
+            comments: [
+              {
+                id: "comment-existing",
+                content: "Can we confirm the tile allowance?",
+                authorName: "Client",
+                authorType: "recipient",
+                createdAt: "2026-06-03T01:00:00.000Z",
+              },
+            ],
+          }),
+        })
+        .mockResolvedValueOnce({ ok: true, status: 201, json: async () => ({ id: "comment-new" }) })
+        .mockResolvedValueOnce({
+          ok: true,
+          status: 200,
+          json: async () => ({
+            comments: [
+              {
+                id: "comment-existing",
+                content: "Can we confirm the tile allowance?",
+                authorName: "Client",
+                authorType: "recipient",
+                createdAt: "2026-06-03T01:00:00.000Z",
+              },
+              {
+                id: "comment-new",
+                content: "Please include this in the final proposal.",
+                authorName: "You",
+                authorType: "recipient",
+                createdAt: "2026-06-03T01:05:00.000Z",
+              },
+            ],
+          }),
+        });
+
+      render(<SharePageComments token="t1" publicationId="pub1" />);
+
+      expect(await screen.findByText("Can we confirm the tile allowance?")).toBeInTheDocument();
+      expect(global.fetch).toHaveBeenCalledWith(
+        "/api/share/t1/comment",
+        expect.objectContaining({ method: "GET", headers: { Accept: "application/json" } }),
+      );
+
+      await user.type(screen.getByPlaceholderText(/add a comment/i), "Please include this in the final proposal.");
+      await user.click(screen.getByRole("button", { name: /post|send|comment/i }));
+
+      await waitFor(() => {
+        expect(screen.getByText("Please include this in the final proposal.")).toBeInTheDocument();
+      });
+      expect(
+        vi.mocked(global.fetch).mock.calls.some(([, init]) => (init as RequestInit | undefined)?.method === "POST"),
+      ).toBe(true);
+    });
+
 
     it("is disabled / shows session error when !useSharedLinkSession().isValid (P5)", () => {
       mocks.useSharedLinkSession.mockReturnValue({ isValid: false });
