@@ -12,7 +12,12 @@ import type {
 } from "../project-charts/types";
 
 const ESTIMATE_CHART_LIMIT = 20;
+const ESTIMATE_OPTION_LIMIT = 100;
 const ESTIMATE_ROW_LIMIT = 5000;
+const ESTIMATE_NODE_LIMIT = 1500;
+const CATEGORY_FACT_LIMIT = 1000;
+const SUPPLIER_FACT_LIMIT = 1000;
+const SELECTED_ESTIMATE_LOAD_LIMIT = 3;
 
 type GetProjectChartsDataOptions = {
   selectedEstimateIds?: string[];
@@ -24,6 +29,10 @@ type EstimateRowItemChartRow = Pick<
   "id" | "estimate_id" | "node_id" | "source_snapshot" | "supplier" | "quantity" | "unit_cost" | "contingency_percentage" | "misc_cost"
 >;
 type EstimateNodeChartRow = Pick<Tables<"estimate_nodes">, "id" | "estimate_id" | "parent_id" | "kind" | "name" | "sort_order">;
+type LimitedLoadResult<T> = {
+  rows: T[];
+  didHitLimit: boolean;
+};
 
 export async function getProjectChartsData(
   projectId: string,
@@ -40,13 +49,15 @@ export async function getProjectChartsData(
     .from("estimates")
     .select("id, name, sheet_code, currency_code, updated_at")
     .eq("project_id", project.id)
-    .order("updated_at", { ascending: false });
+    .order("updated_at", { ascending: false })
+    .limit(ESTIMATE_OPTION_LIMIT + 1);
 
   if (estimateError) {
     throw new Error(`Failed to load chart estimates: ${estimateError.message}`);
   }
 
-  const estimates = (estimateRows ?? []).map((estimate) => ({
+  const didHitEstimateOptionLimit = (estimateRows ?? []).length > ESTIMATE_OPTION_LIMIT;
+  const estimates = (estimateRows ?? []).slice(0, ESTIMATE_OPTION_LIMIT).map((estimate) => ({
     id: estimate.id,
     name: estimate.name,
     sheetCode: estimate.sheet_code,
@@ -64,16 +75,27 @@ export async function getProjectChartsData(
     options.selectedEstimateIds ?? [],
     estimates.map((estimate) => estimate.id),
   );
-  const loadMode = estimates.length > ESTIMATE_CHART_LIMIT ? "selected-pair" : "all-estimates";
+  const loadMode = estimates.length > ESTIMATE_CHART_LIMIT || didHitEstimateOptionLimit ? "selected-pair" : "all-estimates";
+  const defaultEstimateIds = estimates.slice(0, 2).map((estimate) => estimate.id);
   const estimateIdsToLoad =
-    loadMode === "selected-pair" && selectedIds.length > 0 ? selectedIds : estimates.map((estimate) => estimate.id);
+    loadMode === "selected-pair"
+      ? selectedIds.length > 0
+        ? selectedIds.slice(0, SELECTED_ESTIMATE_LOAD_LIMIT)
+        : defaultEstimateIds
+      : estimates.map((estimate) => estimate.id);
 
-  const [rowFacts, nodeFacts, categoryNodeFacts, supplierFacts] = await Promise.all([
+  const [rowFactsResult, nodeFactsResult, categoryNodeFactsResult, supplierFactsResult] = await Promise.all([
     loadRowFacts(supabase, estimateIdsToLoad),
     loadNodeFacts(supabase, estimateIdsToLoad),
     loadCategoryFacts(supabase),
     loadSupplierFacts(supabase, workspace.id),
   ]);
+  const rowFacts = rowFactsResult.rows;
+  const nodeFacts = nodeFactsResult.rows;
+  const categoryNodeFacts = categoryNodeFactsResult.rows;
+  const supplierFacts = supplierFactsResult.rows;
+  const didHitRowLimit = rowFactsResult.didHitLimit;
+  const didHitNodeLimit = nodeFactsResult.didHitLimit;
 
   const estimateOptions = estimates.map((estimate) => {
     const estimateRowsForOption = rowFacts.filter((row) => row.estimateId === estimate.id);
@@ -96,7 +118,13 @@ export async function getProjectChartsData(
     categoryNodeFacts,
     supplierFacts,
     loadMode,
-    requiresSelectedPair: estimates.length > ESTIMATE_CHART_LIMIT || rowFacts.length > ESTIMATE_ROW_LIMIT,
+    requiresSelectedPair:
+      loadMode === "selected-pair"
+      || didHitEstimateOptionLimit
+      || didHitRowLimit
+      || didHitNodeLimit
+      || categoryNodeFactsResult.didHitLimit
+      || supplierFactsResult.didHitLimit,
     rowLimit: ESTIMATE_ROW_LIMIT,
     estimateLimit: ESTIMATE_CHART_LIMIT,
   };
@@ -125,106 +153,133 @@ function emptyProjectChartsData(
 async function loadRowFacts(
   supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
   estimateIds: string[],
-): Promise<ProjectChartRowFact[]> {
+): Promise<LimitedLoadResult<ProjectChartRowFact>> {
   const { data, error } = await supabase
     .from("estimate_row_items")
     .select("id, estimate_id, node_id, supplier, source_snapshot, quantity, unit_cost, contingency_percentage, misc_cost")
-    .in("estimate_id", estimateIds);
+    .in("estimate_id", estimateIds)
+    .limit(ESTIMATE_ROW_LIMIT + 1);
 
   if (error) {
     throw new Error(`Failed to load chart rows: ${error.message}`);
   }
 
-  return ((data ?? []) as EstimateRowItemChartRow[]).map((row) => {
-    const sourceSnapshot = readJsonRecord(row.source_snapshot);
-    const supplierId = readString(sourceSnapshot.supplierId);
-    return {
-      id: row.id,
-      estimateId: row.estimate_id,
-      nodeId: row.node_id,
-      categoryNodeId: readString(sourceSnapshot.categoryNodeId),
-      supplierId,
-      supplierName: row.supplier,
-      sourceSupplierId: supplierId,
-      sourceSupplierName: readString(sourceSnapshot.supplier),
-      quantity: finite(Number(row.quantity)),
-      unitCost: finite(Number(row.unit_cost)),
-      contingencyPercentage: finite(Number(row.contingency_percentage ?? 0)),
-      miscCost: finite(Number(row.misc_cost)),
-    };
-  });
+  const limitedRows = limitLoadedRows((data ?? []) as EstimateRowItemChartRow[], ESTIMATE_ROW_LIMIT);
+  return {
+    didHitLimit: limitedRows.didHitLimit,
+    rows: limitedRows.rows.map((row) => {
+      const sourceSnapshot = readJsonRecord(row.source_snapshot);
+      const supplierId = readString(sourceSnapshot.supplierId);
+      return {
+        id: row.id,
+        estimateId: row.estimate_id,
+        nodeId: row.node_id,
+        categoryNodeId: readString(sourceSnapshot.categoryNodeId),
+        supplierId,
+        supplierName: row.supplier,
+        sourceSupplierId: supplierId,
+        sourceSupplierName: readString(sourceSnapshot.supplier),
+        quantity: finite(Number(row.quantity)),
+        unitCost: finite(Number(row.unit_cost)),
+        contingencyPercentage: finite(Number(row.contingency_percentage ?? 0)),
+        miscCost: finite(Number(row.misc_cost)),
+      };
+    }),
+  };
 }
 
 async function loadNodeFacts(
   supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
   estimateIds: string[],
-): Promise<ProjectChartNodeFact[]> {
+): Promise<LimitedLoadResult<ProjectChartNodeFact>> {
   const { data, error } = await supabase
     .from("estimate_nodes")
     .select("id, estimate_id, parent_id, kind, name, sort_order")
     .in("estimate_id", estimateIds)
-    .order("sort_order", { ascending: true });
+    .order("sort_order", { ascending: true })
+    .limit(ESTIMATE_NODE_LIMIT + 1);
 
   if (error) {
     throw new Error(`Failed to load chart estimate nodes: ${error.message}`);
   }
 
-  return ((data ?? []) as EstimateNodeChartRow[]).map((node) => ({
-    id: node.id,
-    estimateId: node.estimate_id,
-    parentId: node.parent_id,
-    kind: node.kind === "area" ? "Area" : "Group",
-    name: node.name,
-    sortOrder: node.sort_order ?? 0,
-  }));
+  const limitedRows = limitLoadedRows((data ?? []) as EstimateNodeChartRow[], ESTIMATE_NODE_LIMIT);
+  return {
+    didHitLimit: limitedRows.didHitLimit,
+    rows: limitedRows.rows.map((node) => ({
+      id: node.id,
+      estimateId: node.estimate_id,
+      parentId: node.parent_id,
+      kind: node.kind === "area" ? "Area" : "Group",
+      name: node.name,
+      sortOrder: node.sort_order ?? 0,
+    })),
+  };
 }
 
 async function loadCategoryFacts(
   supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
-): Promise<ProjectChartCategoryNodeFact[]> {
+): Promise<LimitedLoadResult<ProjectChartCategoryNodeFact>> {
   const { data, error } = await supabase
     .from("component_category_nodes")
     .select("id, parent_id, node_type, label, sort_order")
-    .order("sort_order", { ascending: true });
+    .order("sort_order", { ascending: true })
+    .limit(CATEGORY_FACT_LIMIT + 1);
 
   if (error) {
     throw new Error(`Failed to load chart categories: ${error.message}`);
   }
 
-  return (data ?? []).map((node) => ({
-    id: node.id,
-    parentId: node.parent_id,
-    nodeType: node.node_type,
-    label: node.label,
-    sortOrder: node.sort_order ?? 0,
-  }));
+  const limitedRows = limitLoadedRows(data ?? [], CATEGORY_FACT_LIMIT);
+  return {
+    didHitLimit: limitedRows.didHitLimit,
+    rows: limitedRows.rows.map((node) => ({
+      id: node.id,
+      parentId: node.parent_id,
+      nodeType: node.node_type,
+      label: node.label,
+      sortOrder: node.sort_order ?? 0,
+    })),
+  };
 }
 
 async function loadSupplierFacts(
   supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
   workspaceId: string,
-): Promise<ProjectChartSupplierFact[]> {
+): Promise<LimitedLoadResult<ProjectChartSupplierFact>> {
   const { data, error } = await supabase
     .from("component_suppliers")
     .select("id, name, normalized_name, sort_order")
     .eq("workspace_id", workspaceId)
-    .order("sort_order", { ascending: true });
+    .order("sort_order", { ascending: true })
+    .limit(SUPPLIER_FACT_LIMIT + 1);
 
   if (error) {
     throw new Error(`Failed to load chart suppliers: ${error.message}`);
   }
 
-  return (data ?? []).map((supplier) => ({
-    id: supplier.id,
-    name: supplier.name,
-    normalizedName: supplier.normalized_name,
-    sortOrder: supplier.sort_order ?? 0,
-  }));
+  const limitedRows = limitLoadedRows(data ?? [], SUPPLIER_FACT_LIMIT);
+  return {
+    didHitLimit: limitedRows.didHitLimit,
+    rows: limitedRows.rows.map((supplier) => ({
+      id: supplier.id,
+      name: supplier.name,
+      normalizedName: supplier.normalized_name,
+      sortOrder: supplier.sort_order ?? 0,
+    })),
+  };
 }
 
 function normalizeSelectedEstimateIds(selectedEstimateIds: string[], allowedEstimateIds: string[]): string[] {
   const allowed = new Set(allowedEstimateIds);
   return [...new Set(selectedEstimateIds)].filter((id) => allowed.has(id));
+}
+
+function limitLoadedRows<T>(rows: T[], limit: number): LimitedLoadResult<T> {
+  return {
+    didHitLimit: rows.length > limit,
+    rows: rows.slice(0, limit),
+  };
 }
 
 function readJsonRecord(value: unknown): JsonRecord {

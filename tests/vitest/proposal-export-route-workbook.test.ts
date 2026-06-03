@@ -104,6 +104,14 @@ describe("proposal xlsx export route workbook integration", () => {
     const buffer = Buffer.from(await response.arrayBuffer());
 
     expect(response.status).toBe(200);
+    expect(mocks.getProjectEstimateTreeByEstimate).toHaveBeenCalledWith(
+      "project-1",
+      "estimate-1",
+      expect.objectContaining({
+        maxNodeCount: expect.any(Number),
+        maxRowItemCount: expect.any(Number),
+      }),
+    );
     expect(response.headers.get("content-type")).toBe("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
     expect(response.headers.get("content-disposition")).toContain("RTE-001-RTE-EST-proposal.xlsx");
     expect(Number(response.headers.get("content-length"))).toBe(buffer.byteLength);

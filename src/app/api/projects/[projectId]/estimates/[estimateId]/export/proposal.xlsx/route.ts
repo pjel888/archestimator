@@ -9,6 +9,9 @@ import { buildProposalWorkbookFilename } from "./filename";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
+const PROPOSAL_EXPORT_NODE_LIMIT = 1200;
+const PROPOSAL_EXPORT_ROW_ITEM_LIMIT = 3000;
+
 type ProposalExportRouteContext = {
   params: Promise<{ projectId: string; estimateId: string }>;
 };
@@ -40,10 +43,26 @@ function createXlsxResponse(buffer: Buffer, filename: string) {
 
 export async function GET(_request: NextRequest, context: ProposalExportRouteContext) {
   const { projectId, estimateId } = await context.params;
-  const result = await getProjectEstimateTreeByEstimate(projectId, estimateId);
+  const result = await getProjectEstimateTreeByEstimate(projectId, estimateId, {
+    maxNodeCount: PROPOSAL_EXPORT_NODE_LIMIT,
+    maxRowItemCount: PROPOSAL_EXPORT_ROW_ITEM_LIMIT,
+  });
 
   if (!result.project || !result.estimate) {
     return NextResponse.json({ error: "Estimate not found." }, { status: 404 });
+  }
+
+  if (result.loadLimitState?.didExceedNodeLimit || result.loadLimitState?.didExceedRowItemLimit) {
+    return NextResponse.json(
+      {
+        error: "Estimate is too large to export as XLSX right now.",
+        limits: {
+          maxNodeCount: PROPOSAL_EXPORT_NODE_LIMIT,
+          maxRowItemCount: PROPOSAL_EXPORT_ROW_ITEM_LIMIT,
+        },
+      },
+      { status: 413 },
+    );
   }
 
   const model = buildProposalExportModel({

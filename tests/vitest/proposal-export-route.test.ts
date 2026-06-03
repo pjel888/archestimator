@@ -83,7 +83,14 @@ describe("proposal xlsx export route", () => {
       params: Promise.resolve({ projectId: "project-1", estimateId: "estimate-1" }),
     });
 
-    expect(mocks.getProjectEstimateTreeByEstimate).toHaveBeenCalledWith("project-1", "estimate-1");
+    expect(mocks.getProjectEstimateTreeByEstimate).toHaveBeenCalledWith(
+      "project-1",
+      "estimate-1",
+      expect.objectContaining({
+        maxNodeCount: expect.any(Number),
+        maxRowItemCount: expect.any(Number),
+      }),
+    );
     expect(mocks.createProposalWorkbookBuffer).toHaveBeenCalledWith(
       expect.objectContaining({
         metadata: expect.objectContaining({
@@ -141,6 +148,50 @@ describe("proposal xlsx export route", () => {
 
     expect(response.status).toBe(404);
     expect(await response.json()).toEqual({ error: "Estimate not found." });
+    expect(mocks.createProposalWorkbookBuffer).not.toHaveBeenCalled();
+  });
+
+  it("rejects oversized exports before building the workbook", async () => {
+    mocks.getProjectEstimateTreeByEstimate.mockResolvedValueOnce({
+      workspace: { id: "workspace-1" },
+      project: {
+        id: "project-1",
+        name: "Grand Hyatt Fit-Out Study",
+        project_code: "GH-001",
+        location: "Taguig City",
+        currency_code: "PHP",
+      },
+      estimate: {
+        id: "estimate-1",
+        name: "Interior Fit-Out Estimate",
+        sheet_code: "EST-001",
+        currency_code: "PHP",
+        metadata: { versionNumber: 3 },
+      },
+      selectedNodeId: "area-1",
+      tree,
+      loadLimitState: {
+        maxNodeCount: 1200,
+        maxRowItemCount: 3000,
+        fetchedNodeCount: 1201,
+        fetchedRowItemCount: 3001,
+        didExceedNodeLimit: true,
+        didExceedRowItemLimit: true,
+      },
+    });
+
+    const response = await GET(request(), {
+      params: Promise.resolve({ projectId: "project-1", estimateId: "estimate-1" }),
+    });
+
+    expect(response.status).toBe(413);
+    expect(await response.json()).toEqual({
+      error: "Estimate is too large to export as XLSX right now.",
+      limits: {
+        maxNodeCount: 1200,
+        maxRowItemCount: 3000,
+      },
+    });
     expect(mocks.createProposalWorkbookBuffer).not.toHaveBeenCalled();
   });
 
