@@ -1,0 +1,66 @@
+{
+  "artifact": "ai-ask-quota-audit-fail-closed-2026-06-04",
+  "created_at_utc": "2026-06-03T23:15:07Z",
+  "created_at_local": "2026-06-04T07:15:07+08:00",
+  "finding": "AI Ask endpoint lacks quota and fails open on audit",
+  "status": "repo_fixed_and_deployed_pending_codex_security_rescan",
+  "repo_fix_commit": "e48eb0f",
+  "production_deployment": {
+    "id": "dpl_GbaEYo8NPmFVS6MQCirpqRBs5RF3",
+    "url": "https://archestimator-i39jy03k5-philipjonlewis-projects.vercel.app",
+    "ready_state": "READY",
+    "target": "production",
+    "aliases": [
+      "https://www.archestimator.com",
+      "https://archestimator.com",
+      "https://archestimator.vercel.app",
+      "https://archestimator-philipjonlewis-projects.vercel.app",
+      "https://archestimator-philipjonlewis-philipjonlewis-projects.vercel.app"
+    ]
+  },
+  "implemented_controls": [
+    "AI Ask now checks durable quota before reading workspace context or calling the provider.",
+    "Quota uses the existing security_rate_limit_events table with workspace, user, and client IP keyed scope.",
+    "Quota storage failures return HTTP 503 before provider spend.",
+    "Started audit persistence is required before DeepSeek is called.",
+    "Completed audit persistence is required before a successful provider response is returned to the client.",
+    "Read-context and provider failures require failed audit persistence before returning their normal error response.",
+    "AI remains disabled for closed beta unless ARCHESTIMATOR_AI_ENABLED is explicitly true."
+  ],
+  "hosted_smoke": {
+    "www_health": {
+      "url": "https://www.archestimator.com/api/health",
+      "status": 200,
+      "cache_control": "no-store"
+    },
+    "apex_health": {
+      "url": "https://archestimator.com/api/health",
+      "status": 307,
+      "location": "https://www.archestimator.com/api/health"
+    },
+    "ai_ask_disabled": {
+      "method": "POST",
+      "url": "https://www.archestimator.com/api/ai/ask",
+      "status": 404,
+      "body": {
+        "error": "AI is disabled for closed beta."
+      }
+    }
+  },
+  "local_verification": [
+    "bunx vitest run tests/vitest/ai-ask-route.test.ts --maxWorkers=1 passed 23 tests",
+    "bunx vitest run tests/vitest/ai-ask-route.test.ts tests/vitest/ai-audit-flow.test.ts --maxWorkers=1 passed 29 tests",
+    "bunx vitest run tests/vitest/ai-ask-route.test.ts tests/vitest/ai-audit-flow.test.ts tests/vitest/ai-audit-schema.test.ts tests/vitest/ai-auth-guard.test.ts tests/vitest/ai-package-builder-route.test.ts --maxWorkers=1 passed 5 files / 66 tests",
+    "bun run type-check passed",
+    "bun run lint passed with 12 existing warnings / 0 errors",
+    "bun run build passed locally under Next.js 16.2.6 / Turbopack",
+    "vercel --prod --yes built and deployed production successfully",
+    "git diff --check passed",
+    "GitNexus staged detect-changes reported low risk with 0 affected processes"
+  ],
+  "proof_gaps": [
+    "Codex Security dashboard rescan/closure remains pending.",
+    "Hosted enabled-AI provider request with a real DeepSeek key was not run because AI remains intentionally off for closed beta.",
+    "Linked live audit/quota row insertion with AI enabled was not run because enabling AI would materially change the closed-beta posture."
+  ]
+}
