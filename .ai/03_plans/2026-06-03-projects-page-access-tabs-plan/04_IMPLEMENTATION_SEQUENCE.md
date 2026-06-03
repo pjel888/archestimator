@@ -222,6 +222,34 @@ bun run lint
 
 Rollback point: restore old `hasLiveProjects` rendering block.
 
+## Step 4.5 — Reconcile bulk-delete selection with tab filtering
+
+**Purpose:** Ensure bulk delete selection/execution works safely with the new two-tab model. The current code uses `selectableDisplayProjectIds` derived from `displayProjects`, which will become the active-tab filtered list after step 4.
+
+Expected changes:
+
+1. `selectableDisplayProjectIds` already derives from `displayProjects` (line 230 of current source). After tab filtering, this naturally scopes to the active tab. Verify this behavior is correct.
+
+2. `selectedVisibleProjectIds` (line 234) filters `selectedProjectIds` to those visible in the active tab. Verify the BulkActionToolbar shows counts correctly without changes.
+
+3. "Select all visible" (`onSelectVisible`, line 391) uses `selectableDisplayProjectIds` which will be tab-scoped. This is correct behavior — selecting all visible should select only what the user can see.
+
+4. "Clear selection" (`onClear`, line 390) resets the entire `selectedProjectIds` Set. This should remain global (clear everything across both tabs) to avoid orphaned selections.
+
+5. **Important edge case**: When a project is selected in one tab and the user switches tabs, `selectedVisibleProjectIds` will return 0 (because the selected project is in the other tab). The BulkActionToolbar will hide. This is acceptable — the selection persists in the Set and will reappear if the user switches back. Document this as intended behavior.
+
+6. **Delete execution safety**: `openProjectDeletePreview()` (line 292) already filters by `canSelectProjectForDeletion` and uses `projectItems` (full list, not tab-filtered). Verify it uses the full `projectItems` array, not `displayProjects`, so that selected items in the non-active tab can still be deleted correctly. If it uses `displayProjects`, change to use `projectItems`.
+
+Validation after step:
+
+```bash
+bun run type-check
+```
+
+Manual verification: select an owned project, switch to shared tab — BulkActionToolbar should hide. Switch back — toolbar should reappear with the selection.
+
+**Rollback point:** restore original `displayProjects`/`selectableDisplayProjectIds` derivation.
+
 ## Step 5 — Fix/suppress shared favorite behavior
 
 **Purpose:** Prevent the new shared tab from exposing a known broken favorite action.
@@ -262,9 +290,25 @@ Validation after step:
 
 Rollback point: revert `LiveProjectCard.tsx` and restore original favorite handler passing. If reverting, document that the shared favorite bug remains.
 
-## Step 6 — Add focused DOM tests
+## Step 6.5 — Preserve existing bulk delete machinery
+
+**Purpose:** Verify that `canSelectProjectForDeletion`, `getProjectDeletionDisabledReason`, `BulkActionToolbar`, `BulkDestructivePreviewModal`, `previewBulkDeleteProjects`, `executeBulkDeleteProjects`, and all bulk-delete state (`selectedProjectIds`, `deleteProjectTargetIds`, `deleteProjectPreview`, `deleteProjectError`, `deleteProjectState`) remain intact and functional after the tab changes.
+
+Key checks:
+- `canSelectProjectForDeletion(item)` (line 148): owned=true, project-member with owner/admin role=true, sheet-member=false, pending-invite=false. No changes needed.
+- `getProjectDeletionDisabledReason(item)` (line 154): No changes needed.
+- `openProjectDeletePreview(projectIds)` (line 292): Must use full `projectItems` (not tab-filtered) to authorize deletion of projects selected in other tabs.
+- `executeProjectDeletePreview()` (line 320): Removes deleted project IDs from `selectedProjectIds` Set and closes the modal. No changes needed.
+
+**Do not** introduce a separate per-tab selection model. The single `selectedProjectIds` Set is correct.
+
+Validation: code review pass over bulk-delete functions to confirm no regression.
+
+## Step 7 — Add focused DOM tests
 
 **Purpose:** Prove the UI behavior without Supabase or browser E2E dependency.
+
+File to create: `tests/vitest/projects-page-access-tabs.test.tsx`
 
 Create:
 
@@ -312,7 +356,7 @@ bun run test:dom -- tests/vitest/projects-page-access-tabs.test.tsx --maxWorkers
 
 Rollback point: remove the new test file and revert source changes.
 
-## Step 7 — Full verification
+## Step 8 — Full verification
 
 Run:
 
@@ -337,7 +381,7 @@ Recommended smoke checks:
 
 Rollback point: revert the feature branch. No migration rollback required.
 
-## Step 8 — Documentation and git finalization
+## Step 9 — Documentation and git finalization
 
 Update `.ai`:
 

@@ -46,3 +46,12 @@ Only one future product decision needs Philip if it is brought into scope:
 **Shared project favorites:** Should collaborators be able to favorite projects shared to them? If yes, define whether the favorite belongs to the viewer user only, the viewer's workspace, or the owner workspace, and update schema/RLS/action/query semantics accordingly.
 
 This decision does not block the requested tabs. The safe behavior is to hide non-owned favorite controls now.
+
+## Refinement-era decisions (2026-06-03)
+
+| Decision | Outcome | Evidence |
+|---|---|---|
+| Bulk delete selection scoping | Single `selectedProjectIds` Set persists globally across tab switches. `selectedVisibleProjectIds` scoped to active tab for BulkActionToolbar display. `openProjectDeletePreview()` uses full `projectItems` (not `displayProjects`) to authorize deletion of all selected projects. | Current code already uses `selectedProjectIds` Set and `selectedVisibleProjectIds` derived from `displayProjects`. After tab filtering, `displayProjects` becomes active-tab only, so visible selections naturally scope to active tab. Delete preview must use `projectItems` for full authorization. |
+| "Select all visible" behavior | Selects only active-tab visible eligible projects (via `selectableDisplayProjectIds` which is tab-scoped). | Existing behavior, correct after tab filtering. |
+| "Clear selection" behavior | Clears ALL selections across both tabs (resets `selectedProjectIds` Set). | Existing behavior, correct. |
+| Plan folder naming | All references use `2026-06-03-projects-page-access-tabs-plan` (with `-plan` suffix). | Stale refs without `-plan` were fixed during refinement. |

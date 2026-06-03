@@ -11,7 +11,7 @@ The Projects page can render shared project cards, and `ProjectsPageClient` curr
 
 ## Discovery context
 
-Discovered while planning `.ai/03_plans/2026-06-03-projects-page-access-tabs/`. The requested feature makes the shared project context first-class, so this existing behavior becomes more visible and must be addressed or suppressed.
+Discovered while planning `.ai/03_plans/2026-06-03-projects-page-access-tabs-plan/`. The requested feature makes the shared project context first-class, so this existing behavior becomes more visible and must be addressed or suppressed.
 
 ## Reproduction steps or evidence
 

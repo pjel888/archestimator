@@ -72,7 +72,7 @@ Relevant conventions:
 - `.ai/04_tasks/README.md` says to create a new task board only after a current narrow screen/workflow brief is approved.
 - `.ai/05_logs/README.md` says logs should summarize what happened, evidence, unresolved risks, and next action.
 - `.ai/10_state/current-state.md` is the canonical state file.
-- `.ai/15_Bugs` was not found as an existing folder/file through `README.md`; this package creates it because the attached protocol requires it when a bug is discovered.
+- `.ai/15_Bugs` was not found as an existing folder when the plan was originally drafted via GitHub-read-only inspection. Local verification during 2026-06-03 refinement confirmed `.ai/15_Bugs/` exists with 6 bug files, including `2026-06-03-shared-project-favorite-action-rejects-visible-shared-projects.md`.
 
 ## Product/design system evidence
 

@@ -9,7 +9,7 @@ You are implementing the Archestimator Projects page access tabs feature.
 This is no longer a planning task. Implement the plan in:
 
 ```text
-.ai/03_plans/2026-06-03-projects-page-access-tabs/
+.ai/03_plans/2026-06-03-projects-page-access-tabs-plan/
 ```
 
 ## Goal
