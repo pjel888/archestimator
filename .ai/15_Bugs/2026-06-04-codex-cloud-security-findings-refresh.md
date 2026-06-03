@@ -68,6 +68,10 @@ The cheaper closed-beta provider path is partially proven, but the current Codex
 
 ## Additional Repo Remediation Pending Rescan
 
+- Production deploy: `dpl_4pGbs2jq95XDaXJotdc84D2QMy4n`, Ready, target `production`, URL `https://archestimator-9xupmkzu7-philipjonlewis-projects.vercel.app`.
+- Aliases verified by Vercel inspect: `https://www.archestimator.com`, `https://archestimator.com`, and `https://archestimator.vercel.app`.
+- Hosted smoke after deploy: `https://www.archestimator.com/api/health` returned app health JSON with HTTP 200; `https://archestimator.vercel.app/api/health` returned HTTP 200; apex `/api/health` redirected to `www`; signed-out `HEAD /workshop` returned HTTP 307 to `/login?next=%2Fworkshop`; `HEAD /login` returned HTTP 200.
+- HTML marker scan after deploy: homepage contained 0 `SpeedInsights`, `speed-insights`, `/_vercel/speed-insights`, or `va.vercel-scripts.com` markers.
 - Production deploy: `dpl_8ZQDQopHv95H94m1uR6xZgU8RvYD`, Ready, target `production`, URL `https://archestimator-f6dbdasoj-philipjonlewis-projects.vercel.app`.
 - Aliases verified by Vercel inspect: `https://www.archestimator.com`, `https://archestimator.com`, and `https://archestimator.vercel.app`.
 - Hosted smoke after deploy: `https://www.archestimator.com/api/health` returned HTTP 200; signed-out `HEAD /workshop` returned HTTP 307 to `/login?next=%2Fworkshop`; `HEAD /login` returned HTTP 200.
@@ -82,21 +86,21 @@ The cheaper closed-beta provider path is partially proven, but the current Codex
   - Repo fix: raw authenticated Lighthouse `.report.html` / `.report.json` artifacts were deleted, old auth/share seed evidence was redacted or removed, and the client-identifying Grand Hyatt proposal extraction was replaced with a redacted README.
   - Verification: targeted repository scan no longer finds the raw Supabase auth cookie value patterns, raw access/refresh tokens, or the removed Grand Hyatt client-identifying terms in the cleaned archive paths.
 - Finding: `Hosted auth smoke sends cookies to unvalidated URL`.
-  - Local repo fix pending deploy: `scripts/verify-hosted-auth-routes.ts` now validates `HOSTED_AUTH_BASE_URL` against `HOSTED_AUTH_ALLOWED_ORIGINS` (or safe production defaults) and refuses to send hosted cookies to unapproved or non-HTTPS origins.
+  - Repo fix deployed in `e5b17dc` / production `dpl_4pGbs2jq95XDaXJotdc84D2QMy4n`: `scripts/verify-hosted-auth-routes.ts` now validates `HOSTED_AUTH_BASE_URL` against `HOSTED_AUTH_ALLOWED_ORIGINS` (or safe production defaults) and refuses to send hosted cookies to unapproved or non-HTTPS origins.
   - Verification: `tests/vitest/hosted-auth-route-smoke-script.test.ts` passed inside the 12-file / 127-test security-focused suite.
 - Finding: `Beta feedback RLS allows forged cross-tenant context`.
   - Local repo fix: new forward migration `20260603191535_harden_beta_feedback_context.sql` replaces the insert policy so authenticated direct inserts must match `auth.uid()`, the JWT email, actor workspace membership, actor project access, and project/workspace consistency.
   - Linked Supabase proof: exact-file `db query --linked` apply succeeded, `migration repair --status applied 20260603191535` succeeded, and targeted readback verified exactly 1 hardened feedback insert policy with actor/email/workspace/project checks.
   - Verification: `tests/vitest/beta-feedback.test.ts` passed inside the 12-file / 127-test security-focused suite.
 - Finding: `Unauthenticated digest server action emails owners`.
-  - Local repo fix pending deploy: `maybeTriggerSharedLinkActivityDigest` now returns `digest-auth-required` before sending when invoked without an authenticated current-user context.
+  - Repo fix deployed in `e5b17dc` / production `dpl_4pGbs2jq95XDaXJotdc84D2QMy4n`: `maybeTriggerSharedLinkActivityDigest` now returns `digest-auth-required` before sending when invoked without an authenticated current-user context.
   - Verification: `tests/vitest/project-publication-activity.test.tsx` passed inside the 12-file / 127-test security-focused suite.
 - Finding: `Mass deletion audit records are caller-tamperable`.
-  - Local repo fix pending deploy: new forward migration `20260603191903_harden_mass_deletion_actor_derivation.sql` drops the caller-supplied execute signatures and recreates mass deletion execute RPCs with `actor_id := auth.uid()`; app RPC calls and generated Supabase types no longer pass `acting_user_id` for project/sheet/component bulk delete/archive.
+  - Repo fix deployed in `e5b17dc` / production `dpl_4pGbs2jq95XDaXJotdc84D2QMy4n`: new forward migration `20260603191903_harden_mass_deletion_actor_derivation.sql` drops the caller-supplied execute signatures and recreates mass deletion execute RPCs with `actor_id := auth.uid()`; app RPC calls and generated Supabase types no longer pass `acting_user_id` for project/sheet/component bulk delete/archive.
   - Linked Supabase proof: exact-file `db query --linked` apply succeeded, `migration repair --status applied 20260603191903` succeeded, and targeted readback verified 3 actor-derived execute RPCs, 0 legacy `acting_user_id` execute args, and applied version `20260603191903`.
   - Verification: `tests/vitest/mass-deletion-contract.test.ts`, `tests/vitest/mass-deletion-action-contract.test.ts`, and `tests/vitest/mass-deletion-ui-contract.test.ts` passed inside focused verification.
 - Finding: `Role demotion migration is blocked by its own trigger`.
-  - Local repo fix pending commit only: `20260602090000_harden_beta_allowlist_admin.sql` now disables `profiles_prevent_role_self_update` only around its controlled demotion repair and re-enables it immediately afterward. This already-applied historical migration was not re-run on linked Supabase during the follow-up pass.
+  - Repo fix committed in `e5b17dc`: `20260602090000_harden_beta_allowlist_admin.sql` now disables `profiles_prevent_role_self_update` only around its controlled demotion repair and re-enables it immediately afterward. This already-applied historical migration was not re-run on linked Supabase during the follow-up pass.
   - Verification: `tests/vitest/security-findings-contracts.test.ts` passed after adding the trigger-order contract.
 - Dashboard status: all entries in this section still require Codex cloud rescan/closure before they can be treated as closed.
 
