@@ -124,6 +124,63 @@ describe("P6 — Shared Link Comments (red tests written FIRST before any impl)"
       expect(mocks.insertSharedLinkComment).not.toHaveBeenCalled();
     });
 
+    it("rejects malformed optional target UUIDs before rate limits, RPC calls, or circuit failures", async () => {
+      mocks.assertSameOriginPublicPost.mockReturnValue({ ok: true });
+      mocks.verifySharedLinkSessionCookieValue.mockReturnValue(true);
+      const parsableSession = "shared-link-session-v1:eyJyZWNpcGllbnRJZCI6InJlY2lwLTEyMyIsInB1YmxpY2F0aW9uSWQiOiJwdWIxIiwic25hcHNob3RWZXJzaW9uIjoiMSJ9:dummy";
+      const csrfHeaders = {
+        cookie: `shared_link_session_abc123=${encodeURIComponent(parsableSession)}`,
+        "x-archestimator-csrf": "csrf",
+      };
+
+      mocks.insertSharedLinkComment.mockImplementation(({ estimateId, rowId }) => {
+        if (estimateId === "not-a-uuid" || rowId === "not-a-uuid") {
+          return Promise.reject(new Error('invalid input syntax for type uuid: "not-a-uuid"'));
+        }
+        return Promise.resolve({ id: "comment-valid" });
+      });
+
+      const invalidTargetCases: Array<["estimateId" | "rowId", RegExp]> = [
+        ["estimateId", /estimate id.*uuid/i],
+        ["rowId", /row id.*uuid/i],
+      ];
+
+      for (const [field, messagePattern] of invalidTargetCases) {
+        for (let attempt = 0; attempt < 4; attempt++) {
+          const response = await POST(
+            makeRequest({ body: `bad target ${field} ${attempt}`, [field]: "not-a-uuid" }, csrfHeaders),
+            params(),
+          );
+
+          expect(response.status).toBe(400);
+          await expect(response.json()).resolves.toEqual({ error: expect.stringMatching(messagePattern) });
+        }
+      }
+
+      expect(mocks.checkSharedLinkCommentRateLimit).not.toHaveBeenCalled();
+      expect(mocks.insertSharedLinkComment).not.toHaveBeenCalled();
+
+      const response = await POST(
+        makeRequest(
+          {
+            body: "valid comment after malformed target ids",
+            estimateId: "11111111-1111-4111-8111-111111111111",
+            rowId: "22222222-2222-4222-8222-222222222222",
+          },
+          csrfHeaders,
+        ),
+        params(),
+      );
+
+      expect(response.status).toBe(201);
+      expect(mocks.insertSharedLinkComment).toHaveBeenCalledWith(
+        expect.objectContaining({
+          estimateId: "11111111-1111-4111-8111-111111111111",
+          rowId: "22222222-2222-4222-8222-222222222222",
+        }),
+      );
+    });
+
     it("sanitizes input (strips HTML/scripts, truncates >1000) before RPC", async () => {
       mocks.assertSameOriginPublicPost.mockReturnValue({ ok: true });
       mocks.verifySharedLinkSessionCookieValue.mockReturnValue(true);

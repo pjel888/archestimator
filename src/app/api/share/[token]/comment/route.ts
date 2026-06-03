@@ -122,6 +122,18 @@ function readErrorMessage(error: unknown, fallback: string) {
 }
 
 const noStoreHeaders = { "Cache-Control": "no-store" };
+const CANONICAL_UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+function readOptionalUuid(value: unknown, label: string): { ok: true; value: string | null } | { ok: false; message: string } {
+  if (value == null) return { ok: true, value: null };
+  if (typeof value !== "string") return { ok: false, message: `${label} must be a UUID.` };
+
+  const trimmed = value.trim();
+  if (!trimmed) return { ok: true, value: null };
+  if (!CANONICAL_UUID_PATTERN.test(trimmed)) return { ok: false, message: `${label} must be a UUID.` };
+
+  return { ok: true, value: trimmed.toLowerCase() };
+}
 
 export async function GET(request: Request, { params }: { params: Promise<{ token: string }> }) {
   const { token } = await params;
@@ -183,8 +195,8 @@ export async function POST(request: Request, { params }: { params: Promise<{ tok
   const { token } = await params;
   const body = (await request.json().catch(() => ({}))) as {
     body?: string;
-    estimateId?: string | null;
-    rowId?: string | null;
+    estimateId?: unknown;
+    rowId?: unknown;
   };
 
   const rawBody = (body.body || "").toString();
@@ -226,6 +238,20 @@ export async function POST(request: Request, { params }: { params: Promise<{ tok
     return Response.json({ error: "Recipient context missing from session." }, { status: 400, headers: { "Cache-Control": "no-store" } });
   }
 
+  const estimateId = readOptionalUuid(body.estimateId, "Estimate id");
+  if (!estimateId.ok) {
+    const ipHash = getIpHash(request);
+    logStructured("warn", "/api/share/[token]/comment", "VALIDATION_INVALID_ESTIMATE_ID", ipHash);
+    return Response.json({ error: estimateId.message }, { status: 400, headers: { "Cache-Control": "no-store" } });
+  }
+
+  const rowId = readOptionalUuid(body.rowId, "Row id");
+  if (!rowId.ok) {
+    const ipHash = getIpHash(request);
+    logStructured("warn", "/api/share/[token]/comment", "VALIDATION_INVALID_ROW_ID", ipHash);
+    return Response.json({ error: rowId.message }, { status: 400, headers: { "Cache-Control": "no-store" } });
+  }
+
   // P12 circuit breaker check (early, before rate/RPC)
   const now = Date.now();
   recordAttempt(now);
@@ -259,8 +285,8 @@ export async function POST(request: Request, { params }: { params: Promise<{ tok
       publicationToken: token,
       recipientId,
       body: sanitized,
-      estimateId: body.estimateId ?? null,
-      rowId: body.rowId ?? null,
+      estimateId: estimateId.value,
+      rowId: rowId.value,
     });
 
     // P8: best-effort lightweight owner email digest (rate-limited 1/15min inside helper). Non-blocking for receiver.
