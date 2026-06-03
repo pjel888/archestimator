@@ -1,11 +1,13 @@
 "use client";
 
-import type { ButtonHTMLAttributes, ComponentProps, HTMLAttributes, ReactNode } from "react";
+import type { ButtonHTMLAttributes, ComponentProps, HTMLAttributes, CSSProperties, ReactNode } from "react";
 
 import { ContextActionMenuContent, type ActionMenuGroup } from "@/components/ui/action-menu";
 import { ContextMenu, ContextMenuContent, ContextMenuTrigger } from "@/components/ui/context-menu";
 import { cn } from "@/lib/ui/cn";
 import {
+  WORKSHOP_TREE_INDENT_STEP,
+  WORKSHOP_TREE_MAX_INDENT,
   WORKSHOP_TREE_ROW_GAP_CLASS,
   WORKSHOP_TREE_ROW_MIN_HEIGHT_CLASS,
   WORKSHOP_TREE_TEXT_CLASS,
@@ -43,6 +45,14 @@ type WorkshopTreeRowCommonProps = {
   contextMenuGroups?: ActionMenuGroup[];
   contextMenuContentProps?: Omit<ComponentProps<typeof ContextMenuContent>, "children">;
   children: ReactNode;
+  /** Rendered at far left, before indent. For drag handle grip icon. */
+  dragHandleSlot?: ReactNode;
+  /** Rendered at far left, before indent. For selection affordance (rare — usually use leadingSlot). */
+  selectionSlot?: ReactNode;
+  /** Rendered after indent, before children. For checkbox. */
+  leadingSlot?: ReactNode;
+  /** When true, applies a subtle selection-mode visual indicator on the row. */
+  selectionMode?: boolean;
 };
 
 type WorkshopTreeButtonRowProps = WorkshopTreeRowCommonProps &
@@ -68,32 +78,77 @@ export function WorkshopTreeRow({
   contextMenuContentProps,
   children,
   style,
+  dragHandleSlot,
+  selectionSlot,
+  leadingSlot,
+  selectionMode,
   ...props
 }: WorkshopTreeRowProps) {
-  const rowClassName = cn(
+  const hasSlots = !!dragHandleSlot || !!selectionSlot || !!leadingSlot;
+  const hasUnindentedContent = !!dragHandleSlot || !!selectionSlot;
+
+  // Nesting interactive elements inside a button is invalid HTML.
+  // When any slot is provided, force a div regardless of the `as` prop.
+  const effectiveAs = hasSlots ? "div" : as;
+
+  const indentPx =
+    depth !== undefined ? Math.min(depth * WORKSHOP_TREE_INDENT_STEP, WORKSHOP_TREE_MAX_INDENT) : 0;
+  const indentStyle: CSSProperties | undefined =
+    indentPx > 0 ? { paddingLeft: `${indentPx}px` } : undefined;
+
+  const baseClassName = cn(
     "group flex w-full min-w-0 items-center rounded-xs border px-1.5 py-0 text-left text-ink outline-none transition focus-visible:ring-2 focus-visible:ring-focus",
     WORKSHOP_TREE_ROW_MIN_HEIGHT_CLASS,
     WORKSHOP_TREE_TEXT_CLASS,
-    selected ? "border-accent bg-accent-soft" : "border-transparent bg-white hover:bg-surfaceMuted",
-    editing ? "overflow-visible border-accent bg-accentSoft ring-1 ring-accent shadow-[inset_0_0_0_1px_rgba(255,122,26,0.18)] hover:bg-accentSoft" : "overflow-hidden",
-    intent ? "border-[#8bbce8] bg-[#eef7ff] ring-1 ring-[#8bbce8] shadow-[inset_0_0_0_1px_rgba(44,120,180,0.18)]" : "",
+    selected
+      ? "border-accent bg-accent-soft"
+      : "border-transparent bg-white hover:bg-surfaceMuted",
+    editing
+      ? "overflow-visible border-accent bg-accentSoft ring-1 ring-accent shadow-[inset_0_0_0_1px_rgba(255,122,26,0.18)] hover:bg-accentSoft"
+      : "overflow-hidden",
+    intent
+      ? "border-[#8bbce8] bg-[#eef7ff] ring-1 ring-[#8bbce8] shadow-[inset_0_0_0_1px_rgba(44,120,180,0.18)]"
+      : "",
+    selectionMode && !selected && "border-hairline bg-surfaceMuted",
     className,
   );
-  const rowStyle = depth === undefined ? style : { ...workshopTreeIndentStyle(depth), ...style };
-  const row =
-    as === "div" ? (
-      <div data-workshop-tree-row="true" className={rowClassName} style={rowStyle} {...(props as HTMLAttributes<HTMLDivElement>)}>
+
+  // When no slots: indent is on the outer element (existing behavior).
+  // When slots present: indent moves to an inner wrapper; outer element
+  // gets user-supplied style only.
+  const outerStyle = hasSlots ? style : (depth === undefined ? style : { ...workshopTreeIndentStyle(depth), ...style });
+
+  const innerContent = hasSlots ? (
+    <>
+      {hasUnindentedContent && (
+        <span className="flex shrink-0 items-center">
+          {dragHandleSlot}
+          {selectionSlot}
+        </span>
+      )}
+      <div className="flex flex-1 min-w-0 items-center" style={indentStyle}>
+        {leadingSlot}
         {children}
+      </div>
+    </>
+  ) : (
+    children
+  );
+
+  const row =
+    effectiveAs === "div" ? (
+      <div data-workshop-tree-row="true" className={baseClassName} style={outerStyle} {...(props as HTMLAttributes<HTMLDivElement>)}>
+        {innerContent}
       </div>
     ) : (
       <button
         type="button"
         data-workshop-tree-row="true"
-        className={rowClassName}
-        style={rowStyle}
+        className={baseClassName}
+        style={outerStyle}
         {...(props as ButtonHTMLAttributes<HTMLButtonElement>)}
       >
-        {children}
+        {innerContent}
       </button>
     );
 
