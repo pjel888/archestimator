@@ -1,0 +1,65 @@
+{
+  "source": "SUPABASE_DASHBOARD_AND_CLI_PROVIDER_PROOF",
+  "generatedAtUtc": "2026-06-03T21:23:22Z",
+  "projectRef": "ebxxqidacheyapmmzavr",
+  "projectName": "Archestimator",
+  "decision": "Use the cheaper closed-beta path: Supabase MICRO compute, PITR disabled, Pro physical backups plus off-repo logical dumps before risky migrations.",
+  "compute": {
+    "before": {
+      "size": "SMALL",
+      "dashboardMonthlyUsd": 14.83
+    },
+    "after": {
+      "size": "MICRO",
+      "dashboardMonthlyUsd": 9.68
+    },
+    "dashboardMonthlySavingsUsd": 5.15,
+    "postResizeDashboardSelectedSize": "MICRO",
+    "postResizeProjectStatus": "ACTIVE_HEALTHY"
+  },
+  "backups": {
+    "pitrEnabled": false,
+    "walgEnabled": true,
+    "completedPhysicalBackupCount": 9,
+    "latestBackup": {
+      "id": 818157842,
+      "insertedAt": "2026-06-03T16:58:05.191Z",
+      "status": "COMPLETED",
+      "isPhysicalBackup": true
+    },
+    "offRepoLogicalDumpBundle": "/Users/philiplewis/archestimator-provider-backups/2026-06-03T173005Z-pre-closed-beta-2cddb0e"
+  },
+  "postResizeChecks": {
+    "linkedSqlProbe": "passed",
+    "linkedSqlProbeQuery": "select now() as db_now, current_database() as db_name;",
+    "appHealthWww": {
+      "url": "https://www.archestimator.com/api/health",
+      "status": 200
+    },
+    "appHealthApex": {
+      "url": "https://archestimator.com/api/health",
+      "status": 307,
+      "location": "https://www.archestimator.com/api/health"
+    }
+  },
+  "closedBetaAllowlist": {
+    "hasAllowlist": true,
+    "activeOrInvitedCount": 1,
+    "rows": [
+      {
+        "email": "philipjonlewis@gmail.com",
+        "status": "active"
+      }
+    ]
+  },
+  "openGates": [
+    "Codex Security rescan or owner acceptance for remaining findings",
+    "Hosted Google OAuth allowed/denied/revoked browser smoke",
+    "Vercel rollback drill",
+    "Resend sending-domain DNS and delivery/webhook event proof",
+    "Legal/owner signoff",
+    "Support inbox, feedback table, and alert monitoring proof",
+    "Hosted authenticated export and full hosted beta journey proof"
+  ],
+  "secretsRecorded": false
+}
