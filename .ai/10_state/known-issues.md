@@ -5,6 +5,7 @@
 - Authenticated Codex Security dashboard refresh on 2026-06-04 showed 42 open findings: 27 medium, 6 low, 9 informational.
 - This blocks truthful closed-beta launch-ready language until medium findings are fixed, explicitly accepted, or proven stale/false-positive.
 - Tracker: `.ai/15_Bugs/2026-06-04-codex-cloud-security-findings-refresh.md`.
+- The Speed Insights finding has repo and production remediation evidence, but dashboard rescan/closure is pending; the overall security blocker remains open.
 
 **Last updated:** 2026-06-03
 
