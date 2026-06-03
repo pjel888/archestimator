@@ -285,7 +285,7 @@ function renderTreeWithSheet(nodes = fixtureTree(), selectedNodeId: string | nul
 
 function treeNodeButton(id: string) {
   const element = document.querySelector(`[data-estimate-tree-node-id="${id}"]`);
-  if (!(element instanceof HTMLButtonElement)) throw new Error(`Missing tree node button ${id}`);
+  if (!(element instanceof HTMLElement)) throw new Error(`Missing tree node row ${id}`);
   return element;
 }
 
@@ -349,7 +349,7 @@ describe("estimate tree context menu", () => {
 
     const input = screen.getByLabelText("Rename Kitchen") as HTMLInputElement;
     expect(input).toHaveValue("Kitchen");
-    expect(screen.getByRole("button", { name: /Living Area/ })).toBeInTheDocument();
+    expect(treeNodeButton("living")).toHaveTextContent("Living Area");
     expect(screen.getByRole("button", { name: "Confirm rename Kitchen" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Reset rename Kitchen" })).toBeInTheDocument();
     await waitFor(() => expect(input.selectionStart).toBe(0));
@@ -363,7 +363,7 @@ describe("estimate tree context menu", () => {
 
     const input = screen.getByLabelText("Rename Kitchen");
     fireEvent.change(input, { target: { value: "Chef Kitchen" } });
-    fireEvent.mouseOver(screen.getByRole("button", { name: /Living Area/ }));
+    fireEvent.mouseOver(treeNodeButton("living"));
     fireEvent.mouseMove(document.body);
 
     expect(screen.getByLabelText("Rename Kitchen")).toHaveValue("Chef Kitchen");
@@ -391,7 +391,7 @@ describe("estimate tree context menu", () => {
     fireEvent.change(screen.getByLabelText("Rename Kitchen"), { target: { value: " Chef Kitchen " } });
     fireEvent.click(screen.getByRole("button", { name: "Confirm rename Kitchen" }));
 
-    expect(await screen.findByRole("button", { name: /Chef Kitchen/ })).toBeInTheDocument();
+    await waitFor(() => expect(treeNodeButton("kitchen")).toHaveTextContent("Chef Kitchen"));
     await waitFor(() => expect(actionMocks.renameEstimateNode).toHaveBeenCalledWith("project-1", "estimate-1", "kitchen", "Chef Kitchen"));
   });
 
@@ -419,7 +419,7 @@ describe("estimate tree context menu", () => {
     fireEvent.keyDown(screen.getByLabelText("Rename Kitchen"), { key: "Escape" });
 
     expect(screen.queryByLabelText("Rename Kitchen")).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Kitchen/ })).toBeInTheDocument();
+    expect(treeNodeButton("kitchen")).toHaveTextContent("Kitchen");
     expect(actionMocks.renameEstimateNode).not.toHaveBeenCalled();
   });
 
@@ -432,7 +432,7 @@ describe("estimate tree context menu", () => {
     fireEvent.change(screen.getByLabelText("Rename Kitchen"), { target: { value: " Chef Kitchen " } });
     fireEvent.keyDown(screen.getByLabelText("Rename Kitchen"), { key: "Enter" });
 
-    expect(await screen.findByRole("button", { name: /Chef Kitchen/ })).toBeInTheDocument();
+    await waitFor(() => expect(treeNodeButton("kitchen")).toHaveTextContent("Chef Kitchen"));
     await waitFor(() => expect(actionMocks.renameEstimateNode).toHaveBeenCalledWith("project-1", "estimate-1", "kitchen", "Chef Kitchen"));
     await waitFor(() => expect(queryClient.getQueryData(estimateQueryKeys.areaTree("estimate-1"))).toEqual(renameTree(fixtureTree(), "kitchen", "Chef Kitchen")));
     expect(routerMock.refresh).not.toHaveBeenCalled();
@@ -441,7 +441,7 @@ describe("estimate tree context menu", () => {
       pending.resolve({ nodeId: "kitchen", name: "Chef Kitchen" });
       await pending.promise;
     });
-    expect(screen.getByRole("button", { name: /Chef Kitchen/ })).toBeInTheDocument();
+    expect(treeNodeButton("kitchen")).toHaveTextContent("Chef Kitchen");
     expect(queryClient.getQueryData(estimateQueryKeys.areaTree("estimate-1"))).toEqual(renameTree(fixtureTree(), "kitchen", "Chef Kitchen"));
     expect(routerMock.refresh).not.toHaveBeenCalled();
   });
@@ -458,20 +458,20 @@ describe("estimate tree context menu", () => {
     await chooseMenuItem("kitchen", "Rename");
     fireEvent.change(screen.getByLabelText("Rename Kitchen"), { target: { value: "Chef Kitchen" } });
     fireEvent.keyDown(screen.getByLabelText("Rename Kitchen"), { key: "Enter" });
-    expect(await screen.findByRole("button", { name: /Chef Kitchen/ })).toBeInTheDocument();
+    await waitFor(() => expect(treeNodeButton("kitchen")).toHaveTextContent("Chef Kitchen"));
 
     await act(async () => {
       staleFetch.resolve(fixtureTree());
       await refetchPromise;
     });
-    expect(screen.getByRole("button", { name: /Chef Kitchen/ })).toBeInTheDocument();
+    expect(treeNodeButton("kitchen")).toHaveTextContent("Chef Kitchen");
     expect(queryClient.getQueryData(estimateQueryKeys.areaTree("estimate-1"))).toEqual(renameTree(fixtureTree(), "kitchen", "Chef Kitchen"));
 
     await act(async () => {
       pendingRename.resolve({ nodeId: "kitchen", name: "Chef Kitchen" });
       await pendingRename.promise;
     });
-    expect(screen.getByRole("button", { name: /Chef Kitchen/ })).toBeInTheDocument();
+    expect(treeNodeButton("kitchen")).toHaveTextContent("Chef Kitchen");
   });
 
   it(
@@ -530,7 +530,7 @@ describe("estimate tree context menu", () => {
     fireEvent.change(screen.getByLabelText("Rename Kitchen"), { target: { value: "Bad Name" } });
     fireEvent.keyDown(screen.getByLabelText("Rename Kitchen"), { key: "Enter" });
 
-    expect(await screen.findByRole("button", { name: /Bad Name/ })).toBeInTheDocument();
+    await waitFor(() => expect(treeNodeButton("kitchen")).toHaveTextContent("Bad Name"));
     await act(async () => {
       pending.reject(new Error("Rename failed"));
       await pending.promise.catch(() => undefined);
@@ -550,12 +550,12 @@ describe("estimate tree context menu", () => {
     fireEvent.change(screen.getByLabelText("Rename Kitchen"), { target: { value: "Bad Name" } });
     fireEvent.keyDown(screen.getByLabelText("Rename Kitchen"), { key: "Enter" });
 
-    expect(await screen.findByRole("button", { name: /Bad Name/ })).toBeInTheDocument();
+    await waitFor(() => expect(treeNodeButton("kitchen")).toHaveTextContent("Bad Name"));
     const newerTree = deleteKitchenTree();
     act(() => {
       queryClient.setQueryData(estimateQueryKeys.areaTree("estimate-1"), newerTree);
     });
-    await waitFor(() => expect(screen.queryByRole("button", { name: /Bad Name/ })).not.toBeInTheDocument());
+    await waitFor(() => expect(document.querySelector('[data-estimate-tree-node-id="kitchen"]')).not.toBeInTheDocument());
 
     await act(async () => {
       pending.reject(new Error("Rename failed"));
@@ -564,7 +564,7 @@ describe("estimate tree context menu", () => {
 
     expect(queryClient.getQueryData(estimateQueryKeys.areaTree("estimate-1"))).toEqual(newerTree);
     expect(screen.queryByLabelText("Rename Kitchen")).not.toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /Kitchen/ })).not.toBeInTheDocument();
+    expect(document.querySelector('[data-estimate-tree-node-id="kitchen"]')).not.toBeInTheDocument();
   });
 
   it("disables Rename and Delete while another tree mutation is saving", async () => {
@@ -576,7 +576,7 @@ describe("estimate tree context menu", () => {
     fireEvent.change(screen.getByLabelText("Rename Kitchen"), { target: { value: "Chef Kitchen" } });
     fireEvent.keyDown(screen.getByLabelText("Rename Kitchen"), { key: "Enter" });
 
-    await screen.findByRole("button", { name: /Chef Kitchen/ });
+    await waitFor(() => expect(treeNodeButton("kitchen")).toHaveTextContent("Chef Kitchen"));
     await openContextMenu("living");
     expect(screen.getByRole("menuitem", { name: "Rename" })).toHaveAttribute("data-disabled");
     expect(screen.getByRole("menuitem", { name: "Delete" })).toHaveAttribute("data-disabled");
@@ -593,7 +593,7 @@ describe("estimate tree context menu", () => {
 
     expect(screen.getByRole("dialog", { name: "Delete Kitchen" })).toBeInTheDocument();
     expect(screen.getByText("This removes the area and its estimate rows.")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Kitchen/ })).toBeInTheDocument();
+    expect(treeNodeButton("kitchen")).toHaveTextContent("Kitchen");
     expect(actionMocks.deleteEstimateNode).not.toHaveBeenCalled();
   });
 
@@ -696,7 +696,7 @@ describe("estimate tree context menu", () => {
     const deleteFailureAlert = await screen.findByRole("alert");
     expect(deleteFailureAlert).toHaveTextContent("Delete failed");
     expect(deleteFailureAlert.closest("[data-toast-viewport='true']")).not.toBeNull();
-    expect(screen.getByRole("button", { name: /Kitchen/ })).toHaveAttribute("aria-current", "page");
+    expect(treeNodeButton("kitchen")).toHaveAttribute("aria-current", "page");
     expect(queryClient.getQueryData(estimateQueryKeys.areaTree("estimate-1"))).toEqual(initialTree);
     expect(routerMock.replace).toHaveBeenNthCalledWith(1, "/workshop/projects/project-1/estimates/living");
     expect(routerMock.replace).toHaveBeenNthCalledWith(2, "/workshop/projects/project-1/estimates/kitchen");

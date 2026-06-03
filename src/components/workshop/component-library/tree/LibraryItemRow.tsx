@@ -2,6 +2,7 @@
 
 import { Plus, Package } from "@phosphor-icons/react/dist/ssr";
 import { Button } from "@/components/ui/button";
+import { TreeDragHandle } from "@/components/workshop/tree-row-affordances";
 import { WorkshopTreeRow } from "@/components/workshop/workshop-tree";
 import type { LibraryItemRowProps } from "./types";
 import {
@@ -42,6 +43,7 @@ export function LibraryItemRow({
         onDragStart={onDragStart}
         depth={depth}
         selected={selected}
+        dragHandleSlot={onDragStart ? <TreeDragHandle /> : undefined}
         contextMenuGroups={contextMenuGroups}
         className="cursor-pointer gap-1.5"
         onClick={onPreview}

@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -11,6 +11,8 @@ const routerMock = vi.hoisted(() => ({
 }));
 
 const actionMocks = vi.hoisted(() => ({
+  deleteEstimateSheet: vi.fn(),
+  deleteEstimateSheetsBulk: vi.fn(),
   duplicateEstimateSheet: vi.fn(),
   fetchEstimateTree: vi.fn(),
   regenerateEstimateSheetCode: vi.fn(),
@@ -53,7 +55,8 @@ function makeEstimate(overrides: Partial<ProjectEstimateTableRow> = {}): Project
   };
 }
 
-function renderTable(estimate = makeEstimate()) {
+function renderTable(estimateOrEstimates: ProjectEstimateTableRow | ProjectEstimateTableRow[] = makeEstimate()) {
+  const estimates = Array.isArray(estimateOrEstimates) ? estimateOrEstimates : [estimateOrEstimates];
   const queryClient = new QueryClient({
     defaultOptions: {
       queries: { retry: false },
@@ -61,7 +64,7 @@ function renderTable(estimate = makeEstimate()) {
   });
   render(
     <QueryClientProvider client={queryClient}>
-      <ProjectEstimatesTable estimates={[estimate]} projectId="project-1" />
+      <ProjectEstimatesTable estimates={estimates} projectId="project-1" />
     </QueryClientProvider>,
   );
 }
@@ -69,6 +72,8 @@ function renderTable(estimate = makeEstimate()) {
 describe("project estimates table inline editing", () => {
   beforeEach(() => {
     actionMocks.duplicateEstimateSheet.mockReset();
+    actionMocks.deleteEstimateSheet.mockReset();
+    actionMocks.deleteEstimateSheetsBulk.mockReset();
     actionMocks.fetchEstimateTree.mockReset();
     actionMocks.regenerateEstimateSheetCode.mockReset();
     actionMocks.updateEstimateDetails.mockReset();
@@ -237,6 +242,40 @@ describe("project estimates table inline editing", () => {
     await waitFor(() => expect(duplicateButton).toBeDisabled());
 
     resolveDuplicate?.({ estimateId: "estimate-2", firstNodeId: "node-2", sheetCode: "ES-002" });
+    await waitFor(() => expect(routerMock.refresh).toHaveBeenCalledTimes(1));
+  });
+
+  it("selects visible estimate sheets from the header and bulk deletes after typed confirmation", async () => {
+    actionMocks.deleteEstimateSheetsBulk.mockResolvedValue({ deletedEstimateIds: ["estimate-1", "estimate-2"] });
+    const user = userEvent.setup();
+    renderTable([
+      makeEstimate({ id: "estimate-1", name: "Original Estimate", sheet_code: "ES-001" }),
+      makeEstimate({ id: "estimate-2", name: "Alternate Estimate", sheet_code: "ES-002" }),
+    ]);
+
+    await user.click(screen.getByRole("checkbox", { name: "Select visible estimate sheets" }));
+    expect(screen.getByRole("toolbar", { name: "Bulk actions" })).toHaveTextContent("2 estimate sheets selected");
+
+    await user.click(screen.getByRole("button", { name: "Delete selected" }));
+    const dialog = screen.getByRole("dialog", { name: "Delete 2 estimate sheets" });
+    await user.type(screen.getByLabelText("Estimate sheet delete confirmation"), "DELETE ESTIMATE SHEETS");
+    await user.click(within(dialog).getByRole("button", { name: "Delete" }));
+
+    await waitFor(() => expect(actionMocks.deleteEstimateSheetsBulk).toHaveBeenCalledWith("project-1", ["estimate-1", "estimate-2"]));
+    await waitFor(() => expect(routerMock.refresh).toHaveBeenCalledTimes(1));
+  });
+
+  it("wires row delete to the single estimate sheet server action", async () => {
+    actionMocks.deleteEstimateSheet.mockResolvedValue({ deletedEstimateIds: ["estimate-1"] });
+    const user = userEvent.setup();
+    renderTable();
+
+    await user.click(screen.getByRole("button", { name: "Delete Original Estimate" }));
+    const dialog = screen.getByRole("dialog", { name: "Delete estimate sheet" });
+    await user.type(screen.getByLabelText("Estimate sheet delete confirmation"), "DELETE ESTIMATE SHEETS");
+    await user.click(within(dialog).getByRole("button", { name: "Delete" }));
+
+    await waitFor(() => expect(actionMocks.deleteEstimateSheet).toHaveBeenCalledWith("project-1", "estimate-1"));
     await waitFor(() => expect(routerMock.refresh).toHaveBeenCalledTimes(1));
   });
 });

@@ -18,10 +18,12 @@ async function waitForLibraryWorkspace() {
 }
 
 const actionMocks = vi.hoisted(() => ({
+  archiveCostLibraryComponentsBulk: vi.fn(),
   changeCostLibraryComponentLifecycleState: vi.fn(),
   createCostLibraryComponent: vi.fn(),
   createLibraryFolder: vi.fn(),
   deleteLibraryFolder: vi.fn(),
+  deleteLibraryFoldersBulk: vi.fn(),
   renameLibraryFolder: vi.fn(),
   reorderLibraryFolders: vi.fn(),
   upsertCostLibraryComponentPriceOption: vi.fn(),
@@ -232,8 +234,10 @@ describe("workshop library consolidation UI", () => {
 
   beforeEach(() => {
     actionMocks.createLibraryFolder.mockReset();
+    actionMocks.archiveCostLibraryComponentsBulk.mockReset();
     actionMocks.createCostLibraryComponent.mockReset();
     actionMocks.deleteLibraryFolder.mockReset();
+    actionMocks.deleteLibraryFoldersBulk.mockReset();
     actionMocks.changeCostLibraryComponentLifecycleState.mockReset();
     actionMocks.renameLibraryFolder.mockReset();
     actionMocks.reorderLibraryFolders.mockReset();
@@ -532,7 +536,7 @@ describe("workshop library consolidation UI", () => {
     expect(costInput).toHaveValue("1,250.00");
     expect(within(dialog).queryByRole("listbox", { name: "Cost entries" })).not.toBeInTheDocument();
     fireEvent.click(openCostEntriesButton);
-    const costEntriesList = within(dialog).getByRole("listbox", { name: "Cost entries" });
+    const costEntriesList = await within(dialog).findByRole("listbox", { name: "Cost entries" });
     expect(within(costEntriesList).getByRole("option", { name: /1,250.00/ })).toHaveAttribute("aria-selected", "true");
     expect(within(costEntriesList).getByRole("button", { name: /Delete cost entry/ })).toBeDisabled();
     expect(within(dialog).queryByLabelText("New cost amount")).not.toBeInTheDocument();
@@ -542,7 +546,7 @@ describe("workshop library consolidation UI", () => {
     fireEvent.blur(costInput, { relatedTarget: nameInput });
     expect(costInput).toHaveValue("1,300.00");
     fireEvent.click(openCostEntriesButton);
-    const updatedCostEntriesList = within(dialog).getByRole("listbox", { name: "Cost entries" });
+    const updatedCostEntriesList = await within(dialog).findByRole("listbox", { name: "Cost entries" });
     const currentCostDate = todayIsoDate();
     expect(within(updatedCostEntriesList).getByRole("option", { name: new RegExp(`${currentCostDate}.*1,300.00`) })).toHaveAttribute(
       "aria-selected",

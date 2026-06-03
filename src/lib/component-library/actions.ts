@@ -396,6 +396,43 @@ export async function changeCostLibraryComponentLifecycleState(input: {
   };
 }
 
+export async function archiveCostLibraryComponentsBulk(itemIds: string[]): Promise<{ archivedItemIds: string[] }> {
+  const requestedItemIds = [...new Set(itemIds.map((itemId) => itemId.trim()).filter(Boolean))];
+  if (requestedItemIds.length === 0) throw new Error("At least one library component is required for bulk archive.");
+
+  const [{ workspace }, currentUser] = await Promise.all([ensureDefaultWorkspace(), requireCurrentUserContext()]);
+  const supabase = await createSupabaseServerClient();
+  const { data: scopedItems, error: scopedError } = await supabase
+    .from("cost_library_items")
+    .select("id")
+    .eq("workspace_id", workspace.id)
+    .in("id", requestedItemIds);
+
+  if (scopedError) throw scopedError;
+  const scopedItemIds = new Set((scopedItems ?? []).map((item) => item.id));
+  const missingItemId = requestedItemIds.find((itemId) => !scopedItemIds.has(itemId));
+  if (missingItemId) throw new Error(`Library component not found in the current workspace: ${missingItemId}.`);
+
+  for (const itemId of requestedItemIds) {
+    const { error } = await supabase.rpc("set_cost_library_component_lifecycle_state", {
+      target_workspace_id: workspace.id,
+      target_item_id: itemId,
+      next_state: "archived",
+      change_reason: "Bulk archive from component catalogue",
+      effective_at: new Date().toISOString(),
+      acting_user_id: currentUser.userId,
+    });
+    if (error) throw new Error(`Could not archive selected components: ${error.message}`);
+  }
+
+  revalidateLibraryRoutes();
+  return { archivedItemIds: requestedItemIds };
+}
+
+export async function deleteCostLibraryComponentsBulk(): Promise<never> {
+  throw new Error("Hard delete for library components requires admin access and zero-reference proof before it can be enabled.");
+}
+
 export async function createLibraryFolder(parentId: string | null, name: string, options: CreateLibraryFolderOptions = {}): Promise<LibraryFolderActionResult> {
   const [{ workspace }, currentUser] = await Promise.all([ensureDefaultWorkspace(), requireCurrentUserContext()]);
   const supabase = await createSupabaseServerClient();
@@ -454,14 +491,14 @@ export async function renameLibraryFolder(folderId: string, name: string): Promi
   return { folder: data };
 }
 
-export async function deleteLibraryFolder(folderId: string): Promise<void> {
-  const { workspace } = await ensureDefaultWorkspace();
-  const supabase = await createSupabaseServerClient();
+type LibraryFolderMutationClient = Awaited<ReturnType<typeof createSupabaseServerClient>>;
+
+async function deleteLibraryFolderWithClient(supabase: LibraryFolderMutationClient, workspaceId: string, folderId: string): Promise<void> {
   const { data: folder, error: folderError } = await supabase
     .from("library_folders")
     .select("id, workspace_id, parent_id, name, sort_order, source_category_node_id, folder_kind")
     .eq("id", folderId)
-    .eq("workspace_id", workspace.id)
+    .eq("workspace_id", workspaceId)
     .maybeSingle();
 
   if (folderError) throw folderError;
@@ -470,7 +507,7 @@ export async function deleteLibraryFolder(folderId: string): Promise<void> {
   const targetSiblingsQuery = supabase
     .from("library_folders")
     .select("id, workspace_id, parent_id, name, sort_order, source_category_node_id, folder_kind")
-    .eq("workspace_id", workspace.id)
+    .eq("workspace_id", workspaceId)
     .neq("id", folder.id)
     .order("sort_order", { ascending: true });
   const targetSiblings = folder.parent_id
@@ -479,7 +516,7 @@ export async function deleteLibraryFolder(folderId: string): Promise<void> {
   const children = supabase
     .from("library_folders")
     .select("id, workspace_id, parent_id, name, sort_order, source_category_node_id, folder_kind")
-    .eq("workspace_id", workspace.id)
+    .eq("workspace_id", workspaceId)
     .eq("parent_id", folder.id)
     .order("sort_order", { ascending: true });
   const [{ data: siblingFolders, error: siblingError }, { data: childFolders, error: childError }] = await Promise.all([targetSiblings, children]);
@@ -494,7 +531,7 @@ export async function deleteLibraryFolder(folderId: string): Promise<void> {
     const { error: liftError } = await supabase
       .from("library_folders")
       .update({ parent_id: update.parentId, sort_order: update.sortOrder })
-      .eq("workspace_id", workspace.id)
+      .eq("workspace_id", workspaceId)
       .eq("id", update.id);
     if (liftError) throw liftError;
   }
@@ -502,18 +539,65 @@ export async function deleteLibraryFolder(folderId: string): Promise<void> {
   const { error: itemError } = await supabase
     .from("cost_library_items")
     .update({ library_folder_id: null })
-    .eq("workspace_id", workspace.id)
+    .eq("workspace_id", workspaceId)
     .eq("library_folder_id", folder.id);
   if (itemError) throw itemError;
 
   const { error: deleteError } = await supabase
     .from("library_folders")
     .delete()
-    .eq("workspace_id", workspace.id)
+    .eq("workspace_id", workspaceId)
     .eq("id", folder.id);
   if (deleteError) throw deleteError;
+}
+
+export async function deleteLibraryFolder(folderId: string): Promise<void> {
+  const { workspace } = await ensureDefaultWorkspace();
+  const supabase = await createSupabaseServerClient();
+
+  await deleteLibraryFolderWithClient(supabase, workspace.id, folderId);
 
   revalidateLibraryRoutes();
+}
+
+function getLibraryFolderDepth(foldersById: Map<string, { parent_id: string | null }>, folderId: string): number {
+  let depth = 0;
+  let parentId = foldersById.get(folderId)?.parent_id ?? null;
+  const visited = new Set<string>([folderId]);
+  while (parentId && !visited.has(parentId)) {
+    visited.add(parentId);
+    depth += 1;
+    parentId = foldersById.get(parentId)?.parent_id ?? null;
+  }
+  return depth;
+}
+
+export async function deleteLibraryFoldersBulk(folderIds: string[]): Promise<{ deletedFolderIds: string[] }> {
+  const requestedFolderIds = [...new Set(folderIds.map((folderId) => folderId.trim()).filter(Boolean))];
+  if (requestedFolderIds.length === 0) throw new Error("At least one library folder is required for bulk delete.");
+
+  const { workspace } = await ensureDefaultWorkspace();
+  const supabase = await createSupabaseServerClient();
+  const { data: folders, error } = await supabase
+    .from("library_folders")
+    .select("id, parent_id")
+    .eq("workspace_id", workspace.id);
+
+  if (error) throw error;
+  const foldersById = new Map((folders ?? []).map((folder) => [folder.id, folder]));
+  const missingFolderId = requestedFolderIds.find((folderId) => !foldersById.has(folderId));
+  if (missingFolderId) throw new Error(`Library folder not found in the current workspace: ${missingFolderId}.`);
+
+  const deleteOrder = requestedFolderIds.toSorted(
+    (left, right) => getLibraryFolderDepth(foldersById, right) - getLibraryFolderDepth(foldersById, left),
+  );
+
+  for (const folderId of deleteOrder) {
+    await deleteLibraryFolderWithClient(supabase, workspace.id, folderId);
+  }
+
+  revalidateLibraryRoutes();
+  return { deletedFolderIds: deleteOrder };
 }
 
 export async function reorderLibraryFolders(input: ReorderLibraryFoldersInput): Promise<void> {

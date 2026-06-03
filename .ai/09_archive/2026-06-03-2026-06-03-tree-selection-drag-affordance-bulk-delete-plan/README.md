@@ -2,19 +2,19 @@
 
 ## Purpose
 
-This folder is the canonical planning package for adding visible tree drag affordances, independent bulk selection, and safe bulk destructive workflows across Archestimator tree, table, card, and catalogue surfaces. It is an implementation handoff package only; it does not implement product code.
+This folder is the archived planning and implementation evidence package for visible tree drag affordances, independent bulk selection, and safe bulk destructive workflows across Archestimator tree, table, card, and catalogue surfaces. Product implementation completed locally on 2026-06-03 and the plan is no longer active under `.ai/03_plans`.
 
 ## Status
 
-Implementation-ready planning package. Product implementation has not started in this workstream.
+Implemented locally and archived after validation. Hosted/manual beta evidence remains governed by the launch-readiness roadmap and is not implied by this archive.
 
 ## Canonical Path
 
-`.ai/03_plans/2026-06-03-tree-selection-drag-affordance-bulk-delete-plan/`
+`.ai/09_archive/2026-06-03-2026-06-03-tree-selection-drag-affordance-bulk-delete-plan/`
 
 ## Strict Scope Boundary
 
-This package may be used to guide future implementation, but this planning task changes documentation only. Future implementation agents must not treat these documents as evidence that product behavior already exists.
+This archive records the completed local implementation. Future agents must treat hosted/manual launch proof as still separate unless fresh evidence is added to the launch-readiness evidence store.
 
 Related but separate workstream. This plan does not supersede, replace, or modify `.ai/03_plans/2026-06-03-mass-deletion-projects-estimate-sheets-library-components.md`.
 
@@ -32,7 +32,8 @@ Related but separate workstream. This plan does not supersede, replace, or modif
 | `07-risk-register-and-open-decisions.md` | Prioritized risk table and strategic decisions. |
 | `08-readiness-scorecard.md` | Initial and final readiness scoring against the required rubric. |
 | `09-implementation-agent-prompt.md` | Copy-paste prompt for the future implementation agent. |
-| `10-final-planning-report-template.md` | Final report template for this planning pass and later implementation passes. |
+| `10-final-planning-report-template.md` | Final report template preserved from planning. |
+| `IMPLEMENTATION_REPORT.md` | Completed local implementation report, validation evidence, risks, and follow-up gates. |
 
 ## Recommended Reading Order
 
@@ -62,7 +63,7 @@ Related but separate workstream. This plan does not supersede, replace, or modif
 
 ## Final Readiness Score
 
-98/100. The package is implementation-ready for a future coding agent. The only deliberate residual risk is that cascade/RLS facts are migration-backed, not live-database-introspected.
+Implemented locally and validation-green on 2026-06-03. The remaining deliberate risks are hosted/manual beta proof and future database transaction consolidation for multi-entity destructive operations.
 
 ## Last Audit Date
 
@@ -70,4 +71,4 @@ Related but separate workstream. This plan does not supersede, replace, or modif
 
 ## Commit Hash
 
-Recorded in the final planning report after commit. The final SHA cannot be embedded in this committed README without changing the SHA.
+Recorded in git history for the final implementation commit and push; see `IMPLEMENTATION_REPORT.md` for validation evidence and final response for the pushed SHA.

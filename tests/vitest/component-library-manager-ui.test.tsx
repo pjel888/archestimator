@@ -15,9 +15,11 @@ const navigationMocks = vi.hoisted(() => ({
 }));
 
 const actionMocks = vi.hoisted(() => ({
+  archiveCostLibraryComponentsBulk: vi.fn(),
   createCostLibraryComponent: vi.fn(),
   createLibraryFolder: vi.fn(),
   deleteLibraryFolder: vi.fn(),
+  deleteLibraryFoldersBulk: vi.fn(),
   renameLibraryFolder: vi.fn(),
   reorderLibraryFolders: vi.fn(),
 }));
@@ -542,6 +544,25 @@ describe("component library manager UI", () => {
 
     promptSpy.mockRestore();
     confirmSpy.mockRestore();
+  });
+
+  it("archives selected catalogue components through the bulk toolbar", async () => {
+    actionMocks.archiveCostLibraryComponentsBulk.mockReset();
+    navigationMocks.refresh.mockReset();
+    actionMocks.archiveCostLibraryComponentsBulk.mockResolvedValueOnce({
+      archivedItemIds: ["db-library-steel-frame"],
+    });
+    await renderLibrary();
+
+    fireEvent.click(screen.getByRole("checkbox", { name: "Select Database Steel Frame" }));
+    expect(screen.getByRole("toolbar", { name: "Bulk actions" })).toHaveTextContent("1 component selected");
+
+    fireEvent.click(screen.getByRole("button", { name: "Archive selected" }));
+    const dialog = screen.getByRole("dialog", { name: "Archive 1 selected component" });
+    fireEvent.click(within(dialog).getByRole("button", { name: "Archive" }));
+
+    await waitFor(() => expect(actionMocks.archiveCostLibraryComponentsBulk).toHaveBeenCalledWith(["db-library-steel-frame"]));
+    await waitFor(() => expect(navigationMocks.refresh).toHaveBeenCalledTimes(1));
   });
 
   it("keeps supplier typing in the current Add Component tree view and stages the supplier folder", async () => {

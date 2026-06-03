@@ -2,6 +2,7 @@
 
 import { CaretDown, CaretRight, FolderSimple } from "@phosphor-icons/react/dist/ssr";
 import { WORKSHOP_TREE_ICON_SLOT_CLASS } from "@/components/workshop/tree-visual-style";
+import { TreeDragHandle } from "@/components/workshop/tree-row-affordances";
 import { WorkshopTreeRow } from "@/components/workshop/workshop-tree";
 import { cn } from "@/lib/ui/cn";
 import type { LibraryFolderRowProps } from "./types";
@@ -27,6 +28,7 @@ export function LibraryFolderRow({
         data-component-library-tree-node-id={node.id}
         depth={depth}
         selected={selected}
+        dragHandleSlot={<TreeDragHandle />}
         contextMenuGroups={contextMenuGroups}
         className="gap-1"
         onClick={() => onSelect()}

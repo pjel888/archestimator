@@ -1,13 +1,16 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useMemo, useState, useSyncExternalStore, useTransition } from "react";
+import { useEffect, useMemo, useState, useSyncExternalStore, useTransition } from "react";
 import { useNavigationRouter } from "@/hooks/use-navigation-router";
 import { Cards, GridFour, Plus, Rows, SquaresFour } from "@phosphor-icons/react/dist/ssr";
 
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import type { HeaderIconToolbarAddAction } from "@/components/ui/header-icon-toolbar";
+import { Modal } from "@/components/ui/modal";
+import { TreeBulkActionBar } from "@/components/workshop/tree-row-affordances";
+import { deleteProjectsBulk } from "@/lib/projects/actions";
 import { setProjectFavorite } from "@/lib/workshop/actions";
 import type { Tables } from "@/lib/supabase/types";
 import { cn } from "@/lib/ui/cn";
@@ -157,6 +160,11 @@ export function ProjectsPageClient({
   );
   const [favoriteOverrides, setFavoriteOverrides] = useState<Record<string, boolean>>({});
   const [pendingFavoriteId, setPendingFavoriteId] = useState<string | null>(null);
+  const [selectedProjectIds, setSelectedProjectIds] = useState<Set<string>>(() => new Set());
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [deleteConfirmationText, setDeleteConfirmationText] = useState("");
+  const [deletePending, setDeletePending] = useState(false);
+  const [bulkError, setBulkError] = useState<string | null>(null);
   const [, startTransition] = useTransition();
 
   const favoriteIds = useMemo(() => {
@@ -201,9 +209,32 @@ export function ProjectsPageClient({
   }, [searchQuery]);
 
   const hasLiveProjects = projectItems.length > 0;
-  const displayProjects = hasLiveProjects ? filteredProjects : [];
+  const displayProjects = useMemo(() => (hasLiveProjects ? filteredProjects : []), [filteredProjects, hasLiveProjects]);
   const displaySamples = filteredSamples;
   const projectLayoutClassName = getProjectGridClassName(projectViewMode);
+  const selectableProjectItems = useMemo(
+    () => displayProjects.filter((item) => item.accessKind === "owned" && item.currentUserRole === "owner"),
+    [displayProjects],
+  );
+  const selectedProjectItems = useMemo(
+    () => selectableProjectItems.filter((item) => selectedProjectIds.has(item.project.id)),
+    [selectableProjectItems, selectedProjectIds],
+  );
+
+  useEffect(() => {
+    const visibleSelectableIds = new Set(selectableProjectItems.map((item) => item.project.id));
+    let cancelled = false;
+    queueMicrotask(() => {
+      if (cancelled) return;
+      setSelectedProjectIds((current) => {
+        const next = new Set([...current].filter((projectId) => visibleSelectableIds.has(projectId)));
+        return next.size === current.size && [...next].every((projectId) => current.has(projectId)) ? current : next;
+      });
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [selectableProjectItems]);
 
   const projectViewModeActions = useMemo<HeaderIconToolbarAddAction[]>(() => {
     return PROJECT_VIEW_MODE_OPTIONS.map((option) => {
@@ -247,6 +278,35 @@ export function ProjectsPageClient({
     });
   }
 
+  function toggleProjectSelection(projectId: string, checked: boolean) {
+    setSelectedProjectIds((current) => {
+      const next = new Set(current);
+      if (checked) next.add(projectId);
+      else next.delete(projectId);
+      return next;
+    });
+  }
+
+  function clearProjectSelection() {
+    setSelectedProjectIds(new Set());
+  }
+
+  function confirmDeleteSelectedProjects() {
+    if (selectedProjectItems.length === 0 || deletePending || deleteConfirmationText !== "DELETE PROJECTS") return;
+    const projectIds = selectedProjectItems.map((item) => item.project.id);
+    setDeletePending(true);
+    setBulkError(null);
+    void deleteProjectsBulk(projectIds)
+      .then(() => {
+        clearProjectSelection();
+        setDeleteConfirmOpen(false);
+        setDeleteConfirmationText("");
+        router.refresh();
+      })
+      .catch((error: unknown) => setBulkError(error instanceof Error ? error.message : "Could not delete selected projects."))
+      .finally(() => setDeletePending(false));
+  }
+
   return (
     <WorkshopCollectionLayout
       searchLabel="Search projects"
@@ -259,6 +319,19 @@ export function ProjectsPageClient({
       leadingActionsLabel="Project view mode"
       addActions={projectToolbarActions}
     >
+      {bulkError ? (
+        <p className="mb-2 rounded-xs border border-dangerSoft bg-dangerSoft/40 px-2 py-1 text-[10px] font-medium text-danger" role="alert">
+          {bulkError}
+        </p>
+      ) : null}
+      <TreeBulkActionBar
+        selectedCount={selectedProjectIds.size}
+        entityLabel="project"
+        onClearSelection={clearProjectSelection}
+        onDelete={() => setDeleteConfirmOpen(true)}
+        deleteDisabled={deletePending || selectedProjectItems.length === 0}
+        disabledReason={deletePending ? "Finish the current project delete before deleting more projects." : "Select at least one owned project."}
+      />
       {hasSharedProjects ? (
         <div className="mb-2 inline-flex rounded-xs border border-hairline bg-white p-0.5" role="tablist" aria-label="Project access filter">
           {PROJECT_ACCESS_FILTER_OPTIONS.map((option) => (
@@ -299,6 +372,11 @@ export function ProjectsPageClient({
                 viewMode={projectViewMode}
                 isFavorite={favoriteIds.has(item.project.id)}
                 favoriteBusy={pendingFavoriteId === item.project.id}
+                selectionMode={selectedProjectIds.size > 0}
+                selectionChecked={selectedProjectIds.has(item.project.id)}
+                selectionDisabled={item.accessKind !== "owned" || item.currentUserRole !== "owner"}
+                selectionDisabledReason="Cannot delete shared projects"
+                onToggleSelection={toggleProjectSelection}
                 onToggleFavorite={toggleProjectFavorite}
                 onExpand={setExpandedProject}
               />
@@ -358,6 +436,58 @@ export function ProjectsPageClient({
           onClose={() => setExpandedProject(null)}
         />
       ) : null}
+      <Modal
+        open={deleteConfirmOpen}
+        title={`Delete ${selectedProjectItems.length} selected ${selectedProjectItems.length === 1 ? "project" : "projects"}`}
+        description="Type DELETE PROJECTS to confirm this destructive action."
+        onOpenChange={(open) => {
+          if (!open && !deletePending) {
+            setDeleteConfirmOpen(false);
+            setDeleteConfirmationText("");
+          }
+        }}
+        closeLabel="Cancel project bulk delete"
+        className="max-w-sm"
+      >
+        <div className="space-y-3">
+          <p className="text-[10px] leading-4 text-tertiary">
+            This deletes selected owned projects and their dependent estimate data. Shared and pending invite projects are excluded.
+          </p>
+          <label className="block space-y-1 text-[10px] font-medium leading-4 text-ink">
+            <span>Confirmation text</span>
+            <input
+              className="h-8 w-full rounded-xs border border-hairline px-2 text-[10px] font-medium text-ink outline-none focus:border-accent focus:ring-2 focus:ring-focus/25"
+              value={deleteConfirmationText}
+              onChange={(event) => setDeleteConfirmationText(event.currentTarget.value)}
+              placeholder="DELETE PROJECTS"
+              aria-label="Project delete confirmation"
+            />
+          </label>
+          <div className="flex justify-end gap-2">
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              disabled={deletePending}
+              onClick={() => {
+                setDeleteConfirmOpen(false);
+                setDeleteConfirmationText("");
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              variant="danger"
+              size="sm"
+              disabled={deletePending || deleteConfirmationText !== "DELETE PROJECTS" || selectedProjectItems.length === 0}
+              onClick={confirmDeleteSelectedProjects}
+            >
+              Delete
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </WorkshopCollectionLayout>
   );
 }
