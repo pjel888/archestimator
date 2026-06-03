@@ -1,0 +1,52 @@
+{
+  "artifact": "shared-link-comment-snapshot-lock-2026-06-04",
+  "status": "applied_deployed_pending_security_rescan",
+  "finding": "Stale recipient sessions can post share comments",
+  "commit": "d4b5733",
+  "linkedSupabase": {
+    "projectRef": "ebxxqidacheyapmmzavr",
+    "migration": "20260603214151_lock_shared_link_comment_snapshot_version.sql",
+    "applyMethod": "supabase db query --linked --file supabase/migrations/20260603214151_lock_shared_link_comment_snapshot_version.sql",
+    "historyRepair": "supabase migration repair --linked --status applied 20260603214151",
+    "readbackPath": "/Users/philiplewis/.codex/backups/archestimator/supabase/20260603-214151-comment-snapshot-lock/post-readback.json",
+    "oldSignatureCount": 0,
+    "newSignatureCount": 1,
+    "hasExpectedSnapshotArg": true,
+    "hasSnapshotGuard": true,
+    "migrationRecorded": true,
+    "serviceRoleExecute": true,
+    "anonExecute": false,
+    "authenticatedExecute": false
+  },
+  "vercel": {
+    "deploymentId": "dpl_2Ne8GUjgs1TT8tjj24Z3SaZLHxQ2",
+    "deploymentUrl": "https://archestimator-qu89kzlz6-philipjonlewis-projects.vercel.app",
+    "target": "production",
+    "readyState": "READY",
+    "aliases": [
+      "https://www.archestimator.com",
+      "https://archestimator.com",
+      "https://archestimator.vercel.app"
+    ]
+  },
+  "verification": [
+    "bunx vitest run tests/vitest/project-publication-comments.test.tsx tests/vitest/project-publication-public-repository.test.ts tests/vitest/security-findings-contracts.test.ts --maxWorkers=1",
+    "bun run type-check",
+    "bun run lint",
+    "git diff --check",
+    "bun run build",
+    "https://www.archestimator.com/api/health returned HTTP 200",
+    "https://archestimator.com/api/health returned HTTP 307 to https://www.archestimator.com/api/health",
+    "https://www.archestimator.com/login returned HTTP 200",
+    "https://www.archestimator.com/workshop returned HTTP 307 to /login?next=%2Fworkshop"
+  ],
+  "openGates": [
+    "Codex Security rescan or owner acceptance",
+    "hosted Google OAuth allow/deny/revoke proof",
+    "Vercel rollback drill",
+    "Resend sending-domain verification",
+    "legal/owner signoff",
+    "support and alert monitoring proof",
+    "full hosted beta journey"
+  ]
+}
