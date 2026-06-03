@@ -194,6 +194,33 @@ describe("P7 — Shared Link Decisions API & UI (red tests written FIRST before 
       expect(screen.getByRole("button", { name: /decline/i })).toBeInTheDocument();
       expect(screen.getByRole("button", { name: /request revision|revision/i })).toBeInTheDocument();
     });
+    it("loads a prior recipient decision on mount and keeps the response locked after reload", async () => {
+      mocks.useSharedLinkSession.mockReturnValue({ isValid: true });
+      // @ts-expect-error fetch mock
+      global.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        json: async () => ({
+          decision: {
+            type: "accepted",
+            note: "Looks good.",
+            submittedAt: "2026-06-03T01:00:00.000Z",
+          },
+        }),
+      });
+
+      render(<SharePageDecision token="t1" />);
+
+      expect(await screen.findByTestId("decision-locked-badge")).toBeInTheDocument();
+      expect(screen.getByText("Accepted")).toBeInTheDocument();
+      expect(screen.getByText("Note: Looks good.")).toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: /accept/i })).not.toBeInTheDocument();
+      expect(global.fetch).toHaveBeenCalledWith(
+        "/api/share/t1/decision",
+        expect.objectContaining({ method: "GET", headers: { Accept: "application/json" } }),
+      );
+    });
+
 
     it("opens confirmation modal with tailored copy before finalizing (no POST until confirm)", async () => {
       mocks.useSharedLinkSession.mockReturnValue({ isValid: true });
@@ -213,6 +240,30 @@ describe("P7 — Shared Link Decisions API & UI (red tests written FIRST before 
         vi.mocked(global.fetch).mock.calls.filter(([, init]) => (init as RequestInit | undefined)?.method === "POST"),
       ).toHaveLength(0);
     });
+    it("traps modal focus, closes on Escape, and restores focus to the trigger", async () => {
+      mocks.useSharedLinkSession.mockReturnValue({ isValid: true });
+      const user = userEvent.setup();
+      render(<SharePageDecision token="t1" />);
+
+      const acceptButton = screen.getByRole("button", { name: /accept/i });
+      acceptButton.focus();
+      await user.click(acceptButton);
+
+      const dialog = await screen.findByRole("dialog", { name: /accept this proposal/i });
+      expect(dialog).toHaveAttribute("aria-modal", "true");
+      expect(dialog).toHaveAttribute("aria-labelledby", "decision-confirm-title");
+      await waitFor(() => expect(screen.getByLabelText(/note \(optional\)/i)).toHaveFocus());
+
+      await user.tab({ shift: true });
+      expect(screen.getByRole("button", { name: /^Confirm$/i })).toHaveFocus();
+      await user.tab();
+      expect(screen.getByLabelText(/note \(optional\)/i)).toHaveFocus();
+
+      await user.keyboard("{Escape}");
+      await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+      await waitFor(() => expect(acceptButton).toHaveFocus());
+    });
+
 
     it("on confirm in modal, POSTs to /api/share/[token]/decision with CSRF header + decision + note, then locks to read-only badge", async () => {
       mocks.useSharedLinkSession.mockReturnValue({ isValid: true });
