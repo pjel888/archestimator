@@ -6,9 +6,9 @@
 - Supabase compute has been reduced from `SMALL` to `MICRO` for the one-person closed beta. Dashboard proof showed `$14.83/month -> $9.68/month` (`-$5.15/month`), then post-resize proof showed `MICRO` selected, project status `ACTIVE_HEALTHY`, linked SQL connectivity, and live app health still green.
 - Backup proof now records 9 completed physical backups, `walg_enabled=true`, `pitr_enabled=false`, and manual dump files under `/Users/philiplewis/archestimator-provider-backups/2026-06-03T173005Z-pre-closed-beta-2cddb0e`.
 - Linked migrations `20260601145000` through `20260603160000` were applied exactly and recorded in remote history without broad `db push`.
-- Later exact-file linked security migrations through `20260603214151` are also recorded remotely; broad `supabase db push` is still intentionally avoided while local/remote history drift remains.
+- Later exact-file linked security migrations through `20260603224800` are also recorded remotely; broad `supabase db push` is still intentionally avoided while local/remote history drift remains.
 - `closed_beta_allowed_emails` exists remotely and currently has exactly one active/invited tester: `philipjonlewis@gmail.com` with status `active`.
-- Vercel Production currently points the custom domains at the beta app deployment stream; latest verified production deployment is `dpl_5MXgQGJYUr8QjEmRgvX2DhioPZ2o`, and both `archestimator.com` and `www.archestimator.com` reach app health (`apex` redirects to `www`).
+- Vercel Production currently points the custom domains at the beta app deployment stream; latest verified production deployment is `dpl_AinsiY5f2yaS3pED1zGnfKzKumwE`, and both `archestimator.com` and `www.archestimator.com` reach app health (`apex` redirects to `www`).
 - Vercel env-name readiness is now green for core closed-beta runtime and Resend names, including `RESEND_WEBHOOK_SECRET`.
 - Resend webhook exists and its secret is configured in Vercel, but the sending domain remains pending until the `send.contact.archestimator.com` MX record is added without breaking apex Email Forwarding/support mail.
 - Open proof gaps: Codex Security rescan/remaining-finding closure or owner acceptance, real browser Google OAuth hosted smoke, Vercel rollback drill, Resend MX/domain verification, legal/owner signoff, support/alert monitoring proof, hosted authenticated export, hosted feedback review, and full hosted beta journey.
@@ -37,7 +37,7 @@ Commit audited: `681c95e64864f283950a88dba304eaffe8f2f8b3`
 | Supabase/env manifest | `.env.example` now lists app origins, Supabase public/server vars, closed-beta flags, publication secrets, Resend vars, AI disable vars, optional analytics, release toggles, and `DATABASE_URL`; Vercel env-name coverage exists for Production and Preview(`main`); Supabase compute is now `MICRO`, PITR is off, backups are present, and linked SQL works after resize. | Secret values are intentionally not recorded; hosted auth, rollback, Resend sending-domain proof, and provider/manual smoke proof still missing. |
 | Supabase Auth | Login/callback code exists; Supabase Auth Site URL and HTTPS redirect allowlist have been repaired for `www`, apex, and the `git-main` Vercel branch alias. | Google Cloud consent/callback dashboard proof and hosted allowed/denied/revoked smoke still missing. |
 | Supabase RLS | Migrations enable policies. | Linked/staging allow/deny proof missing. |
-| Storage | Component/project image code and Next image remote patterns exist. | Bucket access/policy proof missing; attachment bucket handling needs verification. |
+| Storage | Component images remain the public bucket surface while project covers now upload to private `project-images` and serve through authenticated `/api/projects/images`; linked readback proves private bucket policy, 6 migrated objects, 0 remaining public project-image objects, 3 project metadata rows rewritten to private route URLs, and old public object access returning `Object not found`. | Component attachment bucket handling and hosted signed-in image-view smoke remain useful follow-up proof. |
 | Realtime | No launch-critical realtime dependency identified. | If enabled later, document channels and rate limits. |
 | Resend | Client and Svix webhook route exist; unconfigured production-like sends fail closed, shared-link recipient controls disable while server readiness is false, and Teamspaces invite controls disable while invite delivery readiness is false; Vercel now has `RESEND_API_KEY`, `RESEND_FROM`, `RESEND_REPLY_TO`, and `RESEND_WEBHOOK_SECRET` env names. | Resend sending-domain DNS/MX verification and delivery/webhook event proof remain pending before email workflows can be re-enabled. |
 | Env separation | CI exists; Production and Preview(`main`) have the current closed-beta env-name set. | Staging/non-main preview matrix, secret value proof by provider UI, redeploy proof, and rollback proof still missing. |
@@ -77,8 +77,8 @@ Commit audited: `681c95e64864f283950a88dba304eaffe8f2f8b3`
 - Magic-link email template/domain verified.
 - RLS policies applied and tested for workspace/project/estimate/library/share/invite tables.
 - Storage buckets verified:
-  - `component-images`: public or signed-read strategy documented.
-  - `project-images`: public or signed-read strategy documented.
+  - `component-images`: public for component imagery only; linked policy excludes `/project-images/` paths.
+  - `project-images`: private, authenticated project-access read route only; no public object endpoint for project covers.
   - `component-attachments`: private/signed-only if attachments exist.
 - Service role only in server runtime; no client bundle exposure.
 - Backups/PITR confirmed before migrations.
