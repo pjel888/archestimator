@@ -5,9 +5,11 @@ const mocks = vi.hoisted(() => ({
   createSharedLinkSessionCookieName: vi.fn(),
   hasPublicationAccessCookie: vi.fn(),
   verifySharedLinkSessionCookieValue: vi.fn(),
+  checkSharedLinkCommentReadRateLimit: vi.fn(),
   checkSharedLinkCommentRateLimit: vi.fn(),
   insertSharedLinkComment: vi.fn(),
   loadSharedLinkPublicComments: vi.fn(),
+  checkSharedLinkDecisionReadRateLimit: vi.fn(),
   checkSharedLinkDecisionRateLimit: vi.fn(),
   loadSharedLinkRecipientDecision: vi.fn(),
   resolveProjectPublicationAccessByToken: vi.fn(),
@@ -22,9 +24,11 @@ vi.mock("@/lib/publication/security", () => ({
 }));
 
 vi.mock("@/lib/publication/public-repository", () => ({
+  checkSharedLinkCommentReadRateLimit: mocks.checkSharedLinkCommentReadRateLimit,
   checkSharedLinkCommentRateLimit: mocks.checkSharedLinkCommentRateLimit,
   insertSharedLinkComment: mocks.insertSharedLinkComment,
   loadSharedLinkPublicComments: mocks.loadSharedLinkPublicComments,
+  checkSharedLinkDecisionReadRateLimit: mocks.checkSharedLinkDecisionReadRateLimit,
   checkSharedLinkDecisionRateLimit: mocks.checkSharedLinkDecisionRateLimit,
   loadSharedLinkRecipientDecision: mocks.loadSharedLinkRecipientDecision,
   resolveProjectPublicationAccessByToken: mocks.resolveProjectPublicationAccessByToken,
@@ -57,6 +61,8 @@ describe("share page comment and decision GET route contracts", () => {
     mocks.createSharedLinkSessionCookieName.mockReturnValue("shared_link_session_abc123");
     mocks.verifySharedLinkSessionCookieValue.mockReturnValue(true);
     mocks.hasPublicationAccessCookie.mockReturnValue(true);
+    mocks.checkSharedLinkCommentReadRateLimit.mockResolvedValue({ allowed: true });
+    mocks.checkSharedLinkDecisionReadRateLimit.mockResolvedValue({ allowed: true });
     mocks.resolveProjectPublicationAccessByToken.mockResolvedValue({
       publicationId: "pub-1",
       status: "published",
@@ -93,6 +99,10 @@ describe("share page comment and decision GET route contracts", () => {
     expect(response.status).toBe(200);
     await expect(response.json()).resolves.toMatchObject({ comments: expect.any(Array) });
     expect(response.headers.get("cache-control")).toMatch(/no-store|private|max-age/i);
+    expect(mocks.checkSharedLinkCommentReadRateLimit).toHaveBeenCalledWith({
+      publicationId: "pub-1",
+      recipientId: "recip-123",
+    });
   });
 
   it("comment route rejects missing recipient session before loading comment history", async () => {
@@ -102,6 +112,7 @@ describe("share page comment and decision GET route contracts", () => {
 
     expect(response.status).toBe(401);
     await expect(response.json()).resolves.toEqual({ error: "Valid recipient session required for comments." });
+    expect(mocks.checkSharedLinkCommentReadRateLimit).not.toHaveBeenCalled();
     expect(mocks.loadSharedLinkPublicComments).not.toHaveBeenCalled();
   });
 
@@ -118,6 +129,7 @@ describe("share page comment and decision GET route contracts", () => {
 
     expect(response.status).toBe(401);
     await expect(response.json()).resolves.toEqual({ error: "Valid recipient session required for comments." });
+    expect(mocks.checkSharedLinkCommentReadRateLimit).not.toHaveBeenCalled();
     expect(mocks.loadSharedLinkPublicComments).not.toHaveBeenCalled();
   });
 
@@ -140,6 +152,28 @@ describe("share page comment and decision GET route contracts", () => {
 
     expect(response.status).toBe(401);
     await expect(response.json()).resolves.toEqual({ error: "password_required" });
+    expect(mocks.checkSharedLinkCommentReadRateLimit).not.toHaveBeenCalled();
+    expect(mocks.loadSharedLinkPublicComments).not.toHaveBeenCalled();
+  });
+
+  it("comment route rate limits public comment history reads before loading comments", async () => {
+    const GET = expectGetHandler(commentRoute);
+    mocks.checkSharedLinkCommentReadRateLimit.mockResolvedValueOnce({
+      allowed: false,
+      message: "Too many attempts. Please wait 60 seconds.",
+      retryAfter: 60,
+    });
+
+    const response = await GET(
+      new Request("http://localhost/api/share/client-pub-token-123/comment", {
+        headers: { cookie: recipientSessionCookie() },
+      }),
+      params(),
+    );
+
+    expect(response.status).toBe(429);
+    expect(response.headers.get("retry-after")).toBe("60");
+    await expect(response.json()).resolves.toEqual({ error: "Too many attempts. Please wait 60 seconds." });
     expect(mocks.loadSharedLinkPublicComments).not.toHaveBeenCalled();
   });
 
@@ -156,5 +190,30 @@ describe("share page comment and decision GET route contracts", () => {
     expect(response.status).toBe(200);
     await expect(response.json()).resolves.toMatchObject({ decision: expect.anything() });
     expect(response.headers.get("cache-control")).toMatch(/no-store|private|max-age/i);
+    expect(mocks.checkSharedLinkDecisionReadRateLimit).toHaveBeenCalledWith({
+      publicationId: "pub-1",
+      recipientId: "recip-123",
+    });
+  });
+
+  it("decision route rate limits public decision-state reads before loading decisions", async () => {
+    const GET = expectGetHandler(decisionRoute);
+    mocks.checkSharedLinkDecisionReadRateLimit.mockResolvedValueOnce({
+      allowed: false,
+      message: "Too many attempts. Please wait 60 seconds.",
+      retryAfter: 60,
+    });
+
+    const response = await GET(
+      new Request("http://localhost/api/share/client-pub-token-123/decision", {
+        headers: { cookie: recipientSessionCookie() },
+      }),
+      params(),
+    );
+
+    expect(response.status).toBe(429);
+    expect(response.headers.get("retry-after")).toBe("60");
+    await expect(response.json()).resolves.toEqual({ error: "Too many attempts. Please wait 60 seconds." });
+    expect(mocks.loadSharedLinkRecipientDecision).not.toHaveBeenCalled();
   });
 });

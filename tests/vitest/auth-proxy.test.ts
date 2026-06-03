@@ -17,15 +17,29 @@ function mockUser(user: unknown) {
     data: { allowed: true, status: "active", normalized_email: "user@example.com" },
     error: null,
   }));
-  supabaseSsrMocks.createServerClient.mockReturnValue({
-    auth: {
-      getUser: vi.fn(async () => ({
-        data: { user },
-      })),
-    },
-    rpc,
+  const signOut = vi.fn(async () => ({ error: null }));
+  supabaseSsrMocks.createServerClient.mockImplementation((_url, _key, options) => {
+    return {
+      auth: {
+        getUser: vi.fn(async () => ({
+          data: { user },
+        })),
+        signOut: vi.fn(async () => {
+          await signOut();
+          options.cookies.setAll([
+            {
+              name: "sb-test-auth-token",
+              value: "",
+              options: { maxAge: 0, path: "/" },
+            },
+          ]);
+          return { error: null };
+        }),
+      },
+      rpc,
+    };
   });
-  return { rpc };
+  return { rpc, signOut };
 }
 
 describe("auth proxy", () => {
@@ -89,7 +103,7 @@ describe("auth proxy", () => {
   });
 
   it("redirects signed-in protected workshop requests to beta access when the allowlist denies access", async () => {
-    const { rpc } = mockUser({ id: "user-1", email: "outsider@example.com" });
+    const { rpc, signOut } = mockUser({ id: "user-1", email: "outsider@example.com" });
     rpc.mockResolvedValueOnce({
       data: { allowed: false, status: "missing", normalized_email: "outsider@example.com" },
       error: null,
@@ -100,12 +114,14 @@ describe("auth proxy", () => {
     const response = await proxy(request("http://localhost:3000/workshop/projects"));
 
     expect(rpc).toHaveBeenCalledWith("check_closed_beta_access", { raw_email: "outsider@example.com" });
+    expect(signOut).toHaveBeenCalledTimes(1);
     expect(response.status).toBe(307);
     expect(response.headers.get("location")).toBe("http://localhost:3000/beta/access-required");
+    expect(response.cookies.get("sb-test-auth-token")?.value).toBe("");
   });
 
   it("redirects signed-in login requests to beta access instead of the workshop when revoked", async () => {
-    const { rpc } = mockUser({ id: "user-1", email: "revoked@example.com" });
+    const { rpc, signOut } = mockUser({ id: "user-1", email: "revoked@example.com" });
     rpc.mockResolvedValueOnce({
       data: { allowed: false, status: "revoked", normalized_email: "revoked@example.com" },
       error: null,
@@ -115,8 +131,10 @@ describe("auth proxy", () => {
 
     const response = await proxy(request("http://localhost:3000/login"));
 
+    expect(signOut).toHaveBeenCalledTimes(1);
     expect(response.status).toBe(307);
     expect(response.headers.get("location")).toBe("http://localhost:3000/beta/access-required?status=revoked");
+    expect(response.cookies.get("sb-test-auth-token")?.value).toBe("");
   });
 
   it("keeps beta access-required public to avoid redirect loops", async () => {

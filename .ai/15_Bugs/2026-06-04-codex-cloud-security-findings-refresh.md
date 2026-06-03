@@ -66,6 +66,19 @@ The cheaper closed-beta provider path is partially proven, but the current Codex
 - HTML marker scan: homepage contained no `SpeedInsights`, `speed-insights`, `/_vercel/speed-insights`, or `va.vercel-scripts.com` markers after deploy.
 - Dashboard status: still pending Codex cloud rescan/closure; do not mark the overall 42-finding blocker closed from this single fix.
 
+## Additional Repo Remediation Pending Rescan
+
+- Finding: `New share review GET APIs are not rate limited`.
+  - Repo fix: comment-history and decision-state GET handlers now apply durable recipient-scoped read rate limits before loading review data.
+  - Verification: focused publication/auth suites passed 8 files / 106 tests.
+- Finding: `Denied beta users keep Supabase sessions`.
+  - Repo fix: denied or revoked beta access in both `/auth/callback` and `src/proxy.ts` now calls Supabase `signOut()` before redirecting to `/beta/access-required`; proxy redirects preserve cookie-clearing response cookies.
+  - Verification: focused auth suites passed 3 files / 27 tests, then passed again inside the 8-file focused suite.
+- Findings: `Committed Lighthouse reports leak Supabase session cookies`, `Committed public share token and user project data`, and `Confidential client proposal committed to repository`.
+  - Repo fix: raw authenticated Lighthouse `.report.html` / `.report.json` artifacts were deleted, old auth/share seed evidence was redacted or removed, and the client-identifying Grand Hyatt proposal extraction was replaced with a redacted README.
+  - Verification: targeted repository scan no longer finds the raw Supabase auth cookie value patterns, raw access/refresh tokens, or the removed Grand Hyatt client-identifying terms in the cleaned archive paths.
+- Dashboard status: all entries in this section still require Codex cloud rescan/closure before they can be treated as closed.
+
 ## Immediate Triage Order
 
 1. Fix or disable unscoped Speed Insights on sensitive routes before beta traffic.
