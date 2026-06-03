@@ -1,5 +1,23 @@
 # Data Backup and Disaster Recovery Plan
 
+## Cheaper Closed-Beta DR Decision - 2026-06-04
+
+For the pre-launch one-person closed beta, do not enable paid PITR yet. Supabase
+showed 7-day PITR at about `$100/month`; the accepted lower-cost path is:
+
+- Supabase Pro daily physical backups with 7-day retention, verified by `supabase backups list`.
+- PITR intentionally disabled (`pitr_enabled=false`) until beta usage/revenue/risk justifies the add-on.
+- Fresh off-repo logical dump bundle before linked migrations or high-risk data changes.
+- Exact-file migration apply/repair only; no broad `supabase db push` while migration history drift remains.
+- Supabase compute kept at `MICRO` for the one-person beta; dashboard proof showed `$14.83/month -> $9.68/month`, then linked SQL and live app health passed after the resize.
+
+Current proof refresh: 9 completed physical backups, `walg_enabled=true`,
+`pitr_enabled=false`, off-repo dump bundle
+`/Users/philiplewis/archestimator-provider-backups/2026-06-03T173005Z-pre-closed-beta-2cddb0e`,
+linked SQL connectivity after compute resize, and allowlist readback showing
+only `philipjonlewis@gmail.com` active. This is sufficient for the cheaper beta
+path but is not equivalent to a PITR restore drill.
+
 ## Fourth-Pass Closed Beta Backup Requirements - 2026-06-02
 
 Before closed beta migrations:
@@ -90,7 +108,8 @@ Use staging unless a provider-managed restore drill is unavailable. If a full re
 
 ## Launch Gate Requirements
 
-- Backup/PITR proof captured.
+- Backup/PITR decision proof captured; for the cheaper closed beta this means
+  PITR-off proof, daily physical backup proof, and off-repo logical dump proof.
 - Restore drill or documented Supabase restore process complete.
 - Storage bucket backup approach documented.
 - Migration rollback path for `UNLINK-001` and other schema changes.

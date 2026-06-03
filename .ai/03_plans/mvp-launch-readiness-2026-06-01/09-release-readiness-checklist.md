@@ -20,8 +20,8 @@ This checklist is now for closed beta, not public paid launch.
 
 ### Closed Beta Gates
 
-- [ ] `closed_beta_allowed_emails` migration exists and is applied after backup.
-- [ ] `CLOSED_BETA_ACCESS_ENABLED=true` is configured in production when ready.
+- [x] `closed_beta_allowed_emails` migration exists and is applied after backup.
+- [x] `CLOSED_BETA_ACCESS_ENABLED=true` is configured in production when ready.
 - [ ] `NEXT_PUBLIC_CLOSED_BETA_MODE=true` is configured for beta copy if used.
 - [ ] Whitelisted Google user can enter `/workshop`.
 - [ ] Non-whitelisted Google user cannot enter `/workshop`.
@@ -36,7 +36,10 @@ This checklist is now for closed beta, not public paid launch.
 - [ ] Founder-led support process is ready.
 - [ ] Production Google OAuth callback URLs are verified.
 - [ ] Core project/estimate/component/template/unlink/export smoke passes.
-- [ ] Runbook, rollback, and backup evidence exist.
+- [ ] Runbook, rollback, and backup evidence exist. Cheaper-path backup/compute
+  proof exists with PITR intentionally off, 9 physical backups, off-repo logical
+  dump, Supabase `MICRO` compute, and linked SQL/app health passing after the
+  resize; rollback drill remains open.
 
 Commit audited: `681c95e64864f283950a88dba304eaffe8f2f8b3`
 Current release state: **NO-GO**.
