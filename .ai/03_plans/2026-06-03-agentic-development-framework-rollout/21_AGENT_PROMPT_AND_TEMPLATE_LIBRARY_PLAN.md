@@ -1,27 +1,10 @@
 # Agent Prompt and Template Library Plan
 
-**Date:** 2026-06-03
+## Storage
+Use `.ai/08_prompts/templates/` for reusable prompt templates and `.ai/11_skills/` for procedures/playbooks. Keep canonical policy in `.ai/00_system`.
 
-| Template | Target agent | Use case | Required reading | Required artifacts | Required validation | Stop conditions | Commit/push rules |
-|---|---|---|---|---|---|---|---|
-| Feature plan creation | Codex/Claude Code/OpenCode/Kimi as role-appropriate | Use when running feature plan creation work | AGENTS.md + `.ai` source chain + relevant plan/spec | Brief, evidence, run log, validation, rollback | `git diff --check` plus work-type gate | Stop for provider/protected/destructive actions or failed validation | Commit/push only per branch policy |
-| Feature implementation | Codex/Claude Code/OpenCode/Kimi as role-appropriate | Use when running feature implementation work | AGENTS.md + `.ai` source chain + relevant plan/spec | Brief, evidence, run log, validation, rollback | `git diff --check` plus work-type gate | Stop for provider/protected/destructive actions or failed validation | Commit/push only per branch policy |
-| Bug investigation | Codex/Claude Code/OpenCode/Kimi as role-appropriate | Use when running bug investigation work | AGENTS.md + `.ai` source chain + relevant plan/spec | Brief, evidence, run log, validation, rollback | `git diff --check` plus work-type gate | Stop for provider/protected/destructive actions or failed validation | Commit/push only per branch policy |
-| Bug fix implementation | Codex/Claude Code/OpenCode/Kimi as role-appropriate | Use when running bug fix implementation work | AGENTS.md + `.ai` source chain + relevant plan/spec | Brief, evidence, run log, validation, rollback | `git diff --check` plus work-type gate | Stop for provider/protected/destructive actions or failed validation | Commit/push only per branch policy |
-| Hotfix | Codex/Claude Code/OpenCode/Kimi as role-appropriate | Use when running hotfix work | AGENTS.md + `.ai` source chain + relevant plan/spec | Brief, evidence, run log, validation, rollback | `git diff --check` plus work-type gate | Stop for provider/protected/destructive actions or failed validation | Commit/push only per branch policy |
-| CI failure | Codex/Claude Code/OpenCode/Kimi as role-appropriate | Use when running ci failure work | AGENTS.md + `.ai` source chain + relevant plan/spec | Brief, evidence, run log, validation, rollback | `git diff --check` plus work-type gate | Stop for provider/protected/destructive actions or failed validation | Commit/push only per branch policy |
-| Release candidate | Codex/Claude Code/OpenCode/Kimi as role-appropriate | Use when running release candidate work | AGENTS.md + `.ai` source chain + relevant plan/spec | Brief, evidence, run log, validation, rollback | `git diff --check` plus work-type gate | Stop for provider/protected/destructive actions or failed validation | Commit/push only per branch policy |
-| Code review | Codex/Claude Code/OpenCode/Kimi as role-appropriate | Use when running code review work | AGENTS.md + `.ai` source chain + relevant plan/spec | Brief, evidence, run log, validation, rollback | `git diff --check` plus work-type gate | Stop for provider/protected/destructive actions or failed validation | Commit/push only per branch policy |
-| Security review | Codex/Claude Code/OpenCode/Kimi as role-appropriate | Use when running security review work | AGENTS.md + `.ai` source chain + relevant plan/spec | Brief, evidence, run log, validation, rollback | `git diff --check` plus work-type gate | Stop for provider/protected/destructive actions or failed validation | Commit/push only per branch policy |
-| UI/UX review | Codex/Claude Code/OpenCode/Kimi as role-appropriate | Use when running ui/ux review work | AGENTS.md + `.ai` source chain + relevant plan/spec | Brief, evidence, run log, validation, rollback | `git diff --check` plus work-type gate | Stop for provider/protected/destructive actions or failed validation | Commit/push only per branch policy |
-| Supabase/RLS review | Codex/Claude Code/OpenCode/Kimi as role-appropriate | Use when running supabase/rls review work | AGENTS.md + `.ai` source chain + relevant plan/spec | Brief, evidence, run log, validation, rollback | `git diff --check` plus work-type gate | Stop for provider/protected/destructive actions or failed validation | Commit/push only per branch policy |
-| Notion sync | Codex/Claude Code/OpenCode/Kimi as role-appropriate | Use when running notion sync work | AGENTS.md + `.ai` source chain + relevant plan/spec | Brief, evidence, run log, validation, rollback | `git diff --check` plus work-type gate | Stop for provider/protected/destructive actions or failed validation | Commit/push only per branch policy |
-| .ai memory update | Codex/Claude Code/OpenCode/Kimi as role-appropriate | Use when running .ai memory update work | AGENTS.md + `.ai` source chain + relevant plan/spec | Brief, evidence, run log, validation, rollback | `git diff --check` plus work-type gate | Stop for provider/protected/destructive actions or failed validation | Commit/push only per branch policy |
-| Agent self-diagnostic | Codex/Claude Code/OpenCode/Kimi as role-appropriate | Use when running agent self-diagnostic work | AGENTS.md + `.ai` source chain + relevant plan/spec | Brief, evidence, run log, validation, rollback | `git diff --check` plus work-type gate | Stop for provider/protected/destructive actions or failed validation | Commit/push only per branch policy |
+## Required templates
+Feature plan creation, feature implementation, bug investigation, bug fix, hotfix, release candidate, CI failure, code review, security review, UI/UX review, Supabase/RLS review, Notion sync, `.ai` memory update, self-diagnostic, multi-agent orchestration, read-only audit, plan refinement, readiness audit, provider proof packet, GitHub ruleset setup prep, dry-run/eval.
 
-## Storage plan
-
-- Keep reusable prompts under `.ai/08_prompts`.
-- Keep reusable procedures/playbooks under `.ai/11_skills` only when they are stable beyond a single prompt.
-- Keep agent role contracts under `.ai/12_agents` as thin adapters that reference shared `.ai/00_system` rules.
-- Do not duplicate canonical rules in every prompt; link to canonical docs.
+## Template fields
+Target agents, mode, required reading, allowed write scope, disallowed scope, validation, stop conditions, final report, provider/GitHub/Notion boundary.

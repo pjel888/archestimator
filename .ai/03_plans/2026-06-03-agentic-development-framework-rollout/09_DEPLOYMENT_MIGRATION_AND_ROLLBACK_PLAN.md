@@ -1,55 +1,32 @@
 # Deployment, Migration, and Rollback Plan
 
-**Date:** 2026-06-03
+## Current task boundaries
+No deployment, migration, feature flag, package, runtime config, provider, GitHub settings, or Notion changes occur in this plan-refinement task.
 
-## Planning task boundaries
+## Future deployment considerations
+- Agent framework docs/payload changes can ship as docs-only commits.
+- PR/CI/GitHub rulesets must move from advisory to enforced only after dry-runs pass and Philip approves.
+- Provider proof gates remain manual/external until scripts are explicitly approved.
 
-- No deployment during planning.
-- No migrations during planning.
-- No Vercel, Supabase, Resend, GitHub protection, or Notion external mutation during planning.
+## Rollback for agent instruction changes
+- Commit Phase 1 docs/payload/harness changes separately.
+- Revert the smallest commit if an adapter causes agent confusion.
+- Keep `.ai` source-of-truth intact even when reverting a tool-specific adapter.
 
-## Future branch-to-environment mapping
+## Rollback for GitHub rulesets/protection
+- Start with advisory/evaluate mode.
+- Preserve admin/emergency bypass for Philip.
+- Document exact ruleset names/settings and rollback toggle before enforcement.
+- If rules block urgent recovery, relax rulesets and record incident.
 
-| Branch/source | Environment | Notes |
-|---|---|---|
-| `feat/*`, `fix/*`, `spike/*` | Vercel preview only | No production data mutation; preview may be deployment-protected |
-| `beta` | Closed beta/staging | Separate Supabase/Vercel/Resend config; provider proof required |
-| `release/*` | Release candidate preview/staging | Freeze window, release checklist, rollback rehearsal |
-| `main` | Production | Protected production branch and deployment source |
-| `hotfix/*` | Temporary preview plus production PR | Branch from `main`; minimal fix; backmerge after release |
+## Rollback for CI workflows
+- Separate docs-compliance checks from runtime validation.
+- Keep feature-branch CI fast.
+- Disable or downgrade flaky/heavy checks before broad enforcement.
 
-## Future promotion flow
-
-1. Feature/fix branch -> PR -> `beta`.
-2. `beta` -> `release/*` when candidate is ready.
-3. `release/*` -> `main` only after release checklist, provider/manual proof, rollback proof, and Philip approval.
-4. `hotfix/*` -> `main` emergency PR -> production -> backmerge to `beta`/`dev` if used.
-
-## Future provider checks
-
-- Vercel env proof.
-- Supabase migration parity.
-- Supabase RLS proof.
-- Resend proof.
-- Hosted auth proof.
-- Hosted E2E/manual smoke.
-- Rollback proof.
-
-## Rollback playbooks
-
-| Change type | Rollback |
-|---|---|
-| Docs/protocol change | Revert docs commit and add superseded note if already referenced |
-| CI workflow change | Revert `.github/workflows/ci.yml`; rerun PR check |
-| Branch protection change | Disable/relax only with Philip approval and decision log |
-| Vercel deployment | Roll back deployment in Vercel dashboard/CLI under provider plan |
-| Database migration | Separate migration-specific rollback plan; never improvise |
-| Notion mirror | Mark page stale or update from `.ai` source |
+## Rollback for Notion drift
+- `.ai` always wins.
+- Correct Notion mirror content only after authorization; record mirror sync date and source commit.
 
 ## Post-deploy checks for future implementation
-
-- `bun run validate` and `bun run build` pass before deploy.
-- Hosted `/api/health` and protected-route auth behavior verified.
-- Core beta journey smoke captured.
-- Rollback path tested or explicitly rehearsed.
-- `.ai/05_logs` and Notion mirror updated with commit hash and evidence link.
+Verify branch/commit, `git diff --check`, relevant validations, payload schema compliance, run-log entry, bug links, and final report standard.

@@ -1,37 +1,28 @@
 # UI, UX, and Accessibility Plan
 
-**Date:** 2026-06-03
-**Scope:** Workflow/docs plan. App UI is N/A for this planning task.
+## Current task UI status
+N/A for this docs-only plan refinement. No user-facing screen, component, route, form, or visual behavior changes are authorized.
 
-## Planning-task UI status
+## Future internal UI implications
+If ArchEstimator adds an internal agent dashboard/run-log viewer, it must support:
+- Run list by date/branch/agent/mode/status.
+- Evidence drawer with commands, exit codes, graph outputs, validation, bug links, commit/push status.
+- Provider-proof status clearly separated from local proof.
+- Keyboard navigable tables, focus order, visible focus, empty/loading/error states, responsive behavior.
 
-- No `src/app` or `src/components` UI code changes are in scope.
-- No app behavior, dependencies, migrations, generated files, or runtime configuration are in scope.
-- Any future internal admin/workflow UI must be separately planned and tested.
-
-## Future internal UI constraints
-
-If a future ADD enforcement/admin surface is added, it must follow `DESIGN.md` and `.ai/00_system/AGENT_OPERATING_PROTOCOL.md`:
-
-- SF Pro stack for non-landing app/workshop UI.
+## ArchEstimator design-system constraints
+For any non-landing app/workshop UI:
+- Follow `DESIGN.md`.
+- SF Pro stack.
 - Regular/medium weights only.
-- Visible app/workshop text maximum 12px unless explicitly approved.
+- 12px maximum visible app/workshop text unless explicitly approved.
 - Normal controls/body/table/input/button text around 10px.
-- Labels/meta/helper text around 8-9px and never larger than paired controls.
+- Labels/meta/helper text around 8–9px.
 - Zero letter spacing.
 - xs/3px radius only.
 - Phosphor regular outline icon style.
-- Reuse `src/components/ui` and `src/components/workshop` primitives before creating local controls.
+- Reuse `src/components/ui` and `src/components/workshop` primitives before local controls.
 - `bun run lint:design-system` failures are blocking.
 
-## Accessibility requirements for future workflow UI
-
-- Keyboard-visible focus for branch/release/admin controls.
-- Accessible names for evidence links and status chips.
-- No color-only pass/fail status.
-- Confirmation dialogs for branch/protection/provider-affecting actions.
-- Respect reduced motion.
-
-## Validation
-
-Future UI changes require `bun run lint:design-system`, focused Vitest DOM coverage, and Playwright/browser verification when the behavior is user-flow-visible.
+## Accessibility checks for future UI
+Keyboard operation, focus trap/restoration for dialogs, semantic headings, accessible names, contrast, reduced-motion where relevant, error announcements, and no pointer-only controls.

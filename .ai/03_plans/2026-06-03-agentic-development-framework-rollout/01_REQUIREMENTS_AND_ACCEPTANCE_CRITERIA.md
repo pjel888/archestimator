@@ -1,72 +1,48 @@
 # Requirements and Acceptance Criteria
 
-**Date:** 2026-06-03
-**Status:** READY_FOR_IMPLEMENTATION for plan-driven Phase 1.
+## Functional requirements
 
-## MUST requirements
+| ID | Priority | Requirement | Acceptance criterion |
+|---|---|---|---|
+| FR-001 | MUST | `.ai` remains canonical project brain. | Every future tool-specific instruction points to `.ai/00_system` and `.ai/12_agents`; no competing source-of-truth is created. |
+| FR-002 | MUST | `AGENTS.md` remains thin repo entrypoint. | Future changes add only pointers/reading order and do not duplicate all policy. |
+| FR-003 | MUST | `.ai/12_agents/payloads` becomes thin but operationally enforceable. | Each payload follows schema in `26_AGENT_PAYLOAD_STANDARDIZATION_PLAN.md`. |
+| FR-004 | MUST | Missing Hermes/Cursor/Ollama-policy payload decisions are resolved. | Either files are created as thin payloads/prohibition notes or docs remove them from active roster. |
+| FR-005 | MUST | Deprecated Gemini is fail-closed. | `gemini.md`, `GEMINI.md`, and `.gemini` state handling all say Gemini is deprecated unless Philip reapproves. |
+| FR-006 | MUST | `.agents/` is handled without drift. | If kept, `.agents/README.md` is a thin compatibility shim to `.ai`; skills remain playbooks, not an alternate brain. |
+| FR-007 | MUST | Agent preflight is enforceable. | Every prompt/payload demands safety checks, source-of-truth read, scope/non-goals, validation gates, and mode declaration. |
+| FR-008 | MUST | Runtime multi-agent rules are enforceable. | Disjoint write scopes, worktree isolation, leader-owned integration, dirty-worktree handling, and conflict detection are documented. |
+| FR-009 | MUST | Evidence protocol is enforceable. | Run logs capture branch/commit, commands, graph evidence, tests, provider proof boundaries, bugs, `.ai` updates, and final report. |
+| FR-010 | MUST | Notion remains mirror-only. | No Notion page/database may be cited as repo implementation truth over `.ai`/source/test evidence. |
+| FR-011 | MUST | GitHub and CI hardening is staged. | Advisory/dry-run first; rulesets/protection/required checks require approval before enforcement. |
+| FR-012 | MUST | Provider/GitHub/admin claims require proof. | Agents may not claim provider state from local evidence or plan text. |
 
-| ID | Requirement | Pass/fail acceptance check | Owner type | Evidence / validation | Rollback note |
-|---|---|---|---|---|---|
-| M-01 | Define production branch strategy | Plan chooses whether `main` remains production and records rationale | human + codebase AI | Inspect `.github/workflows/ci.yml`, `git remote show origin`, branch list | Revert `.ai/00_system/BRANCH_ENVIRONMENT_STRATEGY.md` update before protection changes |
-| M-02 | Define beta/staging branch strategy | Plan names the pre-production branch and environment mapping | human + GitHub admin | Branch list and future GitHub environment review | Delete unapproved branch only after no PRs depend on it |
-| M-03 | Define testing/QA branch strategy | Plan says when `test/*` or temporary QA branches are allowed | codebase AI | Branch naming table exists | Prune temporary branches after evidence is archived |
-| M-04 | Define feature branch strategy | Feature work uses short-lived `feat/*` branches with PRs | codebase AI | PR checklist and branch table | Close stale branch and preserve evidence in `.ai/05_logs` |
-| M-05 | Define hotfix branch strategy | Hotfix starts from production branch and backmerges to beta/dev if used | human + codebase AI | Hotfix workflow table | Revert hotfix or backmerge correction PR |
-| M-06 | Define release candidate strategy | Release candidates use `release/*` only for gated promotion windows | human | Release workflow doc and tag policy | Delete RC branch after rollback or release |
-| M-07 | Define PR and merge rules | Every non-trivial change uses PR review and no automatic main merge | GitHub admin + codebase AI | PR template checklist | Temporarily relax template only with Philip decision log |
-| M-08 | Define branch protection requirements | Protection matrix covers main, beta, release, hotfix, and feature branches | GitHub admin | GitHub settings manual proof | Rollback protection only with explicit owner approval |
-| M-09 | Define CI/CD gates by branch type | CI table maps branch type to commands and deploy gates | codebase AI + GitHub admin | Workflow dry-run or PR run evidence | Revert workflow YAML change |
-| M-10 | Define required validation commands by work type | Validation matrix extends current `bun run validate`, build, design lint, e2e rules | codebase AI | `.ai/00_system/VALIDATION_MATRIX.md` and future ADD docs | Revert doc update and restore previous matrix |
-| M-11 | Define feature implementation protocol using ADD phases | Feature workflow uses DEFINE/DISCOVER/DESIGN/SETUP/BUILD/VALIDATE/RELEASE | codebase AI | Dry-run feature plan evidence | Mark protocol advisory until dry-run passes |
-| M-12 | Define bug investigation/fix protocol | Bug workflow requires evidence, reproduction, root cause, regression test, validation | codebase AI | Bug plan in `.ai/15_Bugs` | Archive or revise bug plan with reason |
-| M-13 | Define hotfix protocol | Hotfix workflow is minimal, scoped, reviewed, rollback-backed | human + codebase AI | Hotfix checklist | Back out hotfix branch/protection rule |
-| M-14 | Define release promotion protocol | Promotion requires beta no-go evidence, provider proof, rollback proof, post-release smoke | human + provider admin | Manual proof matrix and release checklist | Stop release; revert promotion PR |
-| M-15 | Define codebase AI operating protocol updates | Future Phase 1 names exact `.ai/00_system` docs to add/update | codebase AI | Docs diff and agent dry-run | Revert ADD docs |
-| M-16 | Define `.ai` source-of-truth updates | `.ai` remains canonical; Notion cannot contradict it | codebase AI | DOCS_SOURCE_OF_TRUTH update in Phase 1 | Restore previous source map |
-| M-17 | Define Notion mirror/update requirements | Notion is executive/project mirror with links back to `.ai` | Notion admin | Paste-ready payload or connector proof | Remove stale Notion links/status |
-| M-18 | Define run log / journal requirements | Every meaningful task records a run log with command evidence and commit hash | codebase AI | `.ai/05_logs` entry exists before merge | Correct log entry or mark superseded |
-| M-19 | Define decision log / ADR requirements | Durable branch/process decisions enter `.ai/10_state/decisions.md` or ADR home | human + codebase AI | Decision entry with date and scope | Add superseded decision note |
-| M-20 | Define interface contract requirements | Boundary changes require contract artifact and validation method | codebase AI | Contract template and traceability matrix | Revert boundary change or update contract |
-| M-21 | Define agent context file requirements | Agents must read AGENTS.md and `.ai` chain before implementation | codebase AI | Prompt templates include required reading | Patch template and rerun dry-run |
-| M-22 | Define rollback requirements | Every branch, CI, provider, and protocol change has rollback notes | human + codebase AI | Rollback table per phase | Execute documented revert path |
-| M-23 | Define security/no-secrets requirements | No secrets in `.ai`; provider settings require proof not claims | all owners | Secret scan/manual review | Rotate leaked secret and remove from history under separate incident plan |
-| M-24 | Define provider-state evidence requirements | Vercel/Supabase/Resend claims need dashboard or CLI proof | provider admin | Manual/provider proof packet | Downgrade status to unproven |
-| M-25 | Define beta no-go gate integration | Release protocol maps current no-go blockers into promotion gates | human + provider admin | `.ai/10_state/current-state.md` and manual proof matrix | Stop beta promotion |
-| M-26 | Define adoption dry-run requirement | One real feature and one real bug must pass ADD before global enforcement | human + codebase AI | Dry-run report in `22_DRY_RUN...` | Keep protocol advisory |
+## Agent-specific requirements
 
-## SHOULD requirements
+| Agent/harness | Status target | Primary lane | Requirements |
+|---|---|---|---|
+| Codex | Approved | implementation/tests/PR diffs | Must run safety preflight, graph checks, TDD where source changes, validation, `.ai` updates, no provider mutations without approval. |
+| Claude / Claude Code | Approved | planning/architecture/review/writing | Must read `.ai`, use hooks/settings safely, avoid source edits unless explicitly assigned, record evidence. |
+| OpenCode | Approved/conditional | exploration/fallback/review | Must verify installed schema before config changes; no config drift from `.ai`. |
+| CommandCode | Approved/conditional | taste/review/sentinel lanes | `.commandcode/agents` must be subordinate to `.ai`; sentinels are reviewers unless implementation is explicitly assigned. |
+| Kimi | Approved/conditional | UI/product/long-context | UI-capable changes must follow `DESIGN.md` and design-system lint. |
+| Antigravity CLI / `agy` | Approved | isolated terminal lane | Must use branch/worktree isolation for edits; extra terminal lane replaces Gemini. |
+| DeepSeek | Approved/conditional | debug/logic critique | Default read-only/diagnostic; implementation only with explicit assignment and validation. |
+| Hermes | Listed but missing payload | orchestration/evidence | Must get payload or be removed from active roster; cannot orchestrate without run-log/concurrency rules. |
+| Cursor | Local MCP only/conditional | editor support/review | Create rules only if approved; `.cursor/mcp.json` currently only configures code-review-graph. |
+| Gemini | Deprecated | none | Fail closed unless Philip explicitly reapproves for a task. |
+| Ollama | Non-agent | embeddings only | No chat/planning/coding via Ollama unless Philip explicitly approves and documents it. |
+| GitNexus/code-review-graph | Intelligence harness | graph/evidence | Use before broad grep and before code-symbol edits; record CLI/tool failures honestly. |
 
-| ID | Requirement | Pass/fail acceptance check | Owner type | Evidence / validation | Rollback note |
-|---|---|---|---|---|---|
-| S-01 | Add GitHub issue templates if convention allows | Template plan names feature/bug/hotfix/release forms | codebase AI | Future `.github/ISSUE_TEMPLATE` diff | Remove templates if noisy |
-| S-02 | Add PR template checklist if convention allows | Template includes ADD phase/evidence gates | codebase AI | Future `.github/pull_request_template.md` | Revert template |
-| S-03 | Add CODEOWNERS or reviewer expectations | Plan recommends lightweight owner review before CODEOWNERS enforcement | GitHub admin | GitHub settings or CODEOWNERS diff | Delete CODEOWNERS if it blocks solo workflow |
-| S-04 | Add GitHub environment strategy | preview/beta/production environments are specified | GitHub admin + provider admin | GitHub environment settings screenshots | Remove unapproved environment rules |
-| S-05 | Add branch naming examples | Examples exist for feat/fix/hotfix/release/test/spike | codebase AI | Strategy doc table | Patch docs |
-| S-06 | Add Notion database properties/templates | Notion page tree and databases are paste-ready | Notion admin | Notion payload file | Archive stale payload |
-| S-07 | Add agent prompt templates | Codex, Claude Code, OpenCode, CommandCode, Kimi and other approved agents have template coverage | codebase AI | Template library plan | Patch template library |
+## Non-functional requirements
+- Lean startup velocity: minimal ceremony, small branches, fast checks, dry-run before enforcement.
+- Security: no secrets, no provider/admin mutations, no destructive commands, no long-lived deployment secrets when OIDC/provider-native safe flow is available and approved.
+- Performance: keep CI fast for feature branches and fuller for beta/main/release.
+- Accessibility/UI: N/A for the docs-only framework itself, but future internal dashboards must follow `DESIGN.md` and `07_UI_UX_AND_ACCESSIBILITY_PLAN.md`.
+- Compatibility: all tools must tolerate `.ai` as source of truth; no duplicated policy forks.
 
-## COULD requirements
+## Non-goals
+- Do not implement source behavior, migrations, providers, GitHub settings, Notion, package files, dependencies, or generated files in this plan-refinement task.
 
-| ID | Requirement | Pass/fail acceptance check | Owner type | Evidence / validation | Rollback note |
-|---|---|---|---|---|---|
-| C-01 | Commit message conventions beyond current usage | Plan uses Lore trailers for future commits without blocking urgent fixes | human + codebase AI | Commit examples | Revert to simpler convention |
-| C-02 | Release notes/changelog conventions | Plan describes release notes source and owner | codebase AI | Release checklist | Archive unused changelog |
-| C-03 | GitHub labels/milestones strategy | Recommended labels map ADD phases and severity | GitHub admin | Label screenshot/export | Delete noisy labels |
-| C-04 | Sprint/adoption scorecard | Scorecard tracks dry-run process overhead and mistakes prevented | human | Dry-run report | Drop scorecard if overhead exceeds value |
-| C-05 | Future docs-compliance automation | Plan defers automation until dry-run proves templates | codebase AI | Future CI check proposal | Remove automation |
-
-## OUT_OF_SCOPE requirements
-
-| ID | Requirement | Pass/fail acceptance check | Owner type | Evidence / validation | Rollback note |
-|---|---|---|---|---|---|
-| O-01 | No production source code changes in this planning task | Only `.ai` docs and plan artifacts changed | codebase AI | `git diff --stat` excludes `src/` | Revert source changes |
-| O-02 | No dependency changes | No package or lockfile diff | codebase AI | `git diff -- package.json bun.lock` empty | Revert package diffs |
-| O-03 | No provider changes | No Vercel/Supabase/Resend writes | provider admin | No provider command output claiming mutation | Revert provider settings manually |
-| O-04 | No branch creation/deletion | No new local or remote branch created | codebase AI | `git branch -a` evidence | Delete accidental branch after approval |
-| O-05 | No direct Notion update claim unless tool used | Plan says direct update not performed and provides payload | Notion admin | Payload file exists | Correct Notion page or docs |
-| O-06 | No production deploy/migration/Vercel config mutation/secret handling | Plan-only status preserved | all owners | Diff and command log | Incident-specific rollback |
-
-## Pass/fail rule
-
-A future implementation phase passes only when every scoped requirement has current evidence, the owner type is explicit, validation has run or is blocked with an evidence-backed reason, and the rollback note is executable without deleting unrelated work.
+## Pass/fail
+Pass if a future implementation agent can execute Phase 1 without asking for missing schema/routing/run-log/concurrency/compliance requirements. Fail if any agent/harness lane lacks status, role, scope, validation, or evidence rules.
