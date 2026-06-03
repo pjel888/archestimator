@@ -1,0 +1,69 @@
+{
+  "artifact": "chart-xlsx-load-bounds-2026-06-04",
+  "created_at_utc": "2026-06-03T23:35:48Z",
+  "created_at_local": "2026-06-04T07:35:48+08:00",
+  "finding": "Unbounded chart and XLSX export loading can exhaust server resources",
+  "status": "repo_fixed_and_deployed_pending_codex_security_rescan",
+  "repo_fix_commit": "0e5dfff",
+  "production_deployment": {
+    "id": "dpl_3zUJ5kvqkT9QUA75boNcGA75Ref8",
+    "url": "https://archestimator-7ixkqkx7m-philipjonlewis-projects.vercel.app",
+    "ready_state": "READY",
+    "target": "production",
+    "aliases": [
+      "https://www.archestimator.com",
+      "https://archestimator.com",
+      "https://archestimator.vercel.app",
+      "https://archestimator-philipjonlewis-projects.vercel.app",
+      "https://archestimator-philipjonlewis-philipjonlewis-projects.vercel.app"
+    ]
+  },
+  "implemented_controls": [
+    "Project chart estimate option reads use a 100 item sentinel limit.",
+    "Project chart row fact reads use a 5000 row sentinel limit.",
+    "Project chart node, category, and supplier reads use query-level sentinel limits.",
+    "Large chart projects load selected estimate IDs only, falling back to the newest default pair instead of loading every estimate.",
+    "The XLSX route passes export-only tree loader limits of 1200 nodes and 3000 row items.",
+    "The XLSX route returns HTTP 413 before building the proposal model or allocating an ExcelJS workbook when the tree loader reports sentinel overflow.",
+    "The shared estimate-tree loader defaults remain unchanged for editing, reorder, delete, and template flows unless a caller passes explicit limits."
+  ],
+  "hosted_smoke": {
+    "www_health": {
+      "url": "https://www.archestimator.com/api/health",
+      "status": 200,
+      "cache_control": "no-store"
+    },
+    "apex_health": {
+      "url": "https://archestimator.com/api/health",
+      "status": 307,
+      "location": "https://www.archestimator.com/api/health"
+    },
+    "ai_ask_disabled_regression": {
+      "method": "POST",
+      "url": "https://www.archestimator.com/api/ai/ask",
+      "status": 404,
+      "body": {
+        "error": "AI is disabled for closed beta."
+      }
+    }
+  },
+  "local_verification": [
+    "red/green focused export/chart/auth suite passed 4 files / 29 tests",
+    "broader export/chart/tree suite passed 9 files / 51 tests",
+    "estimate-action regression suite passed 3 files / 53 tests",
+    "bun run type-check passed",
+    "bun run lint passed with 12 existing warnings / 0 errors",
+    "bun run build passed locally under Next.js 16.2.6 / Turbopack",
+    "git diff --check passed",
+    "code-review graph detect_changes reported 0 affected flows",
+    "GitNexus staged detect-changes reported high risk from expected shared-loader fan-out"
+  ],
+  "deployment_notes": [
+    "The initial vercel --prod command returned a transient deploy_failed / Not authorized message after upload, but Vercel inspect later showed the same deployment Ready and aliased to production domains."
+  ],
+  "proof_gaps": [
+    "Codex Security dashboard rescan/closure remains pending.",
+    "Hosted authenticated oversized XLSX export against a real beta project was not run.",
+    "Hosted chart page smoke with a real oversized project was not run."
+  ]
+}
