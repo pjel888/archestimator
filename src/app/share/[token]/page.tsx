@@ -218,6 +218,15 @@ export default async function SharePage({ params, searchParams }: SharePageProps
 // Image omitted (no direct service-role Supabase query on public route).
 // ============================================================================
 
+const protectedPublicationMetadata = {
+  title: "Proposal Review | Archestimator",
+  description: "This proposal is password protected.",
+  openGraph: {
+    title: "Proposal Review | Archestimator",
+    description: "This proposal is password protected.",
+  },
+} satisfies Metadata;
+
 export async function generateMetadata({ params }: SharePageProps): Promise<Metadata> {
   const { token } = await params;
 
@@ -225,6 +234,9 @@ export async function generateMetadata({ params }: SharePageProps): Promise<Meta
     const access = await resolveProjectPublicationAccessByToken(token);
     if (!access) {
       return { title: "Shared Link | Archestimator" };
+    }
+    if (access.passwordRequired) {
+      return protectedPublicationMetadata;
     }
 
     const publication = await resolveProjectPublicationSnapshotByToken(token);

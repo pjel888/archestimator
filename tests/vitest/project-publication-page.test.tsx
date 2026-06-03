@@ -632,6 +632,33 @@ describe("shared link (receiver publication) page — Shared Link Overhaul V2", 
       expect(meta.openGraph?.title).toContain("Valencia Residence");
       expect(meta.openGraph?.description).toContain("Prepared for client review");
     });
+
+    it("keeps password-protected share metadata generic before resolving the snapshot", async () => {
+      mocks.resolveProjectPublicationAccessByToken.mockResolvedValueOnce({
+        publicationId: "publication-1",
+        status: "published",
+        passwordRequired: true,
+        snapshotVersion: "2026-05-27T00:00:00.000Z",
+      });
+      const pageMod = await import("@/app/share/[token]/page");
+      const { generateMetadata } = pageMod;
+
+      const meta = await generateMetadata({ params: Promise.resolve({ token: "client-token" }) });
+      const serialized = JSON.stringify(meta);
+
+      expect(mocks.resolveProjectPublicationSnapshotByToken).not.toHaveBeenCalled();
+      expect(meta.title).toBe("Proposal Review | Archestimator");
+      expect(meta.description).toBe("This proposal is password protected.");
+      expect(meta.openGraph).toEqual({
+        title: "Proposal Review | Archestimator",
+        description: "This proposal is password protected.",
+      });
+      expect(serialized).not.toContain("Valencia Residence");
+      expect(serialized).not.toContain("VR-001");
+      expect(serialized).not.toContain("Client Family");
+      expect(serialized).not.toContain("PHP");
+      expect(serialized).not.toContain("2300");
+    });
   });
 
   // ========================================================================
