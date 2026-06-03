@@ -145,7 +145,7 @@ Phase 3: Language & Artifacts
 - Step 3.2: Create SharePageProposalHeader component (NEW)
 - Step 3.3: Integrate ProposalHeader into page layout
 - Step 3.4: REMOVE debug badge from CostDonutChart.tsx:325-327
-  - Bug: B2 (.ai/15_Bugs/2026-06-03-share-page-cost-donut-chart-debug-badge.md)
+  - Bug: B2 (.ai/15_Bugs/2026-06-03-share-page-cost-donut-chart-visible-debug-badge.md)
 - Validation: bun run lint:design-system after each change
 
 Phase 4: Layout & Visual Redesign
