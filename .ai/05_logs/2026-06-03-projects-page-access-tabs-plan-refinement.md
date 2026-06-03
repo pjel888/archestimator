@@ -50,4 +50,4 @@ This was a docs-only refinement. No source code was modified. No tests were crea
 
 ## Commit
 
-Commit hash will be recorded after git operations.
+Commit: `dbca74b` — pushed to `origin/main`. 14 files changed, 602 insertions, 126 deletions. Oracle verified: PASS, READY_FOR_IMPLEMENTATION at 98% readiness.
