@@ -137,7 +137,20 @@ export function WorkshopTreeRow({
 
   const row =
     effectiveAs === "div" ? (
-      <div data-workshop-tree-row="true" className={baseClassName} style={outerStyle} {...(props as HTMLAttributes<HTMLDivElement>)}>
+      <div
+        data-workshop-tree-row="true"
+        className={baseClassName}
+        style={outerStyle}
+        {...(() => {
+          const divProps = { ...(props as HTMLAttributes<HTMLDivElement> & {
+            type?: unknown;
+            disabled?: unknown;
+          }) };
+          delete (divProps as Record<string, unknown>).type;
+          delete (divProps as Record<string, unknown>).disabled;
+          return divProps;
+        })()}
+      >
         {innerContent}
       </div>
     ) : (

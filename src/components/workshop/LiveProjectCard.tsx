@@ -36,6 +36,11 @@ type LiveProjectCardProps = {
   sharedEstimateCount?: number;
   isFavorite?: boolean;
   favoriteBusy?: boolean;
+  selectionMode?: boolean;
+  selectionChecked?: boolean;
+  selectionDisabled?: boolean;
+  selectionDisabledReason?: string;
+  onToggleSelection?: (projectId: string, checked: boolean) => void;
   onToggleFavorite?: (projectId: string, favorite: boolean) => void;
   onExpand?: (project: Tables<"projects">) => void;
 };
@@ -103,6 +108,11 @@ export function LiveProjectCard({
   sharedEstimateCount = 0,
   isFavorite = false,
   favoriteBusy = false,
+  selectionMode = false,
+  selectionChecked = false,
+  selectionDisabled = false,
+  selectionDisabledReason,
+  onToggleSelection,
   onToggleFavorite,
   onExpand,
 }: LiveProjectCardProps) {
@@ -121,6 +131,7 @@ export function LiveProjectCard({
     <article
       data-project-card-view={viewMode}
       data-project-access-kind={accessKind}
+      data-project-bulk-selected={selectionChecked ? "true" : undefined}
       aria-label={getAccessibleAccessLabel({
         accessKind,
         projectName: project.name,
@@ -132,6 +143,7 @@ export function LiveProjectCard({
         accessKind === "project-member" ? "border-l-2 border-l-emerald-500" : null,
         accessKind === "sheet-member" ? "border-l-2 border-l-sky-500" : null,
         isListView ? "min-h-[92px] flex-row" : "flex-col",
+        selectionChecked ? "border-accent bg-accentSoft" : null,
       )}
     >
       <div
@@ -164,13 +176,31 @@ export function LiveProjectCard({
             </span>
           </div>
         )}
+        <label
+          className={cn(
+            "absolute left-2 top-2 z-10 grid size-7 place-items-center rounded-xs border border-white/70 bg-white/86 shadow-sm backdrop-blur transition",
+            selectionMode ? "opacity-100" : "opacity-0 group-hover:opacity-100 group-focus-within:opacity-100",
+            selectionDisabled ? "cursor-not-allowed opacity-60" : "cursor-pointer",
+          )}
+          title={selectionDisabled ? selectionDisabledReason : `Select ${project.name}`}
+          onClick={(event) => event.stopPropagation()}
+        >
+          <input
+            type="checkbox"
+            className="size-3 rounded-xs accent-ink"
+            aria-label={`Select ${project.name}`}
+            checked={selectionChecked}
+            disabled={selectionDisabled}
+            onChange={(event) => onToggleSelection?.(project.id, event.currentTarget.checked)}
+          />
+        </label>
         {isPendingInvite ? null : (
           <>
             <Button
               type="button"
               variant="secondary"
               size="icon-sm"
-              className={`absolute left-2 top-2 size-7 border-white/70 bg-white/86 shadow-sm backdrop-blur hover:bg-white disabled:cursor-wait disabled:opacity-70 ${
+              className={`absolute left-10 top-2 size-7 border-white/70 bg-white/86 shadow-sm backdrop-blur hover:bg-white disabled:cursor-wait disabled:opacity-70 ${
                 isFavorite
                   ? "text-orange-600 hover:text-orange-700"
                   : "text-tertiary hover:text-ink"

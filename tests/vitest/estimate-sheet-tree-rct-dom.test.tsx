@@ -96,7 +96,7 @@ function renderTree(nodes = fixtureTree(), selectedNodeId: string | null = "kitc
 
 function treeNodeButton(id: string) {
   const element = document.querySelector(`[data-estimate-tree-node-id="${id}"]`);
-  if (!(element instanceof HTMLButtonElement)) throw new Error(`Missing tree node button ${id}`);
+  if (!(element instanceof HTMLElement)) throw new Error(`Missing tree node row ${id}`);
   return element;
 }
 
@@ -104,6 +104,13 @@ function treeNodeRow(id: string) {
   const row = treeNodeButton(id).closest("[data-estimate-tree-row]");
   if (!(row instanceof HTMLElement)) throw new Error(`Missing tree node row ${id}`);
   return row;
+}
+
+function treeNodeIndentedContent(id: string) {
+  const title = treeNodeButton(id).querySelector("[data-estimate-tree-title-offset]");
+  const content = title?.parentElement;
+  if (!(content instanceof HTMLElement)) throw new Error(`Missing indented content for tree node ${id}`);
+  return content;
 }
 
 function rootDropZone(edge: "top" | "bottom") {
@@ -188,12 +195,12 @@ describe("estimate sheet tree React Complex Tree DOM integration", () => {
     expect(kitchen).toHaveClass("min-h-7", "w-full", "!text-[10px]", "leading-4", "rounded-xs");
     expect(kitchen.closest("[data-workshop-tree-row]")).toBe(kitchen);
 
-    expect(projectScope).toHaveStyle({ paddingLeft: "0px" });
-    expect(groundFloor).toHaveStyle({ paddingLeft: "20px" });
-    expect(kitchen).toHaveStyle({ paddingLeft: "40px" });
-    expect(alternates).toHaveStyle({ paddingLeft: "20px" });
-    expect(phaseTwo).toHaveStyle({ paddingLeft: "0px" });
-    expect(phaseThree).toHaveStyle({ paddingLeft: "0px" });
+    expect(treeNodeIndentedContent("project-scope").style.paddingLeft).toBe("");
+    expect(treeNodeIndentedContent("ground-floor")).toHaveStyle({ paddingLeft: "20px" });
+    expect(treeNodeIndentedContent("kitchen")).toHaveStyle({ paddingLeft: "40px" });
+    expect(treeNodeIndentedContent("alternates")).toHaveStyle({ paddingLeft: "20px" });
+    expect(treeNodeIndentedContent("phase-two").style.paddingLeft).toBe("");
+    expect(treeNodeIndentedContent("phase-three").style.paddingLeft).toBe("");
   });
 
   it("renders the estimate tree under the shared Sheets tab strip", () => {

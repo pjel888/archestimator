@@ -19,7 +19,9 @@ import {
 } from "@tanstack/react-table";
 
 import { Button } from "@/components/ui/button";
-import { duplicateEstimateSheet, fetchEstimateTree, regenerateEstimateSheetCode, updateEstimateDetails } from "@/lib/estimates/actions";
+import { Modal } from "@/components/ui/modal";
+import { TreeBulkActionBar } from "@/components/workshop/tree-row-affordances";
+import { deleteEstimateSheet, deleteEstimateSheetsBulk, duplicateEstimateSheet, fetchEstimateTree, regenerateEstimateSheetCode, updateEstimateDetails } from "@/lib/estimates/actions";
 import { estimateQueryKeys } from "@/hooks/use-estimate-query";
 import { estimateRepository } from "@/lib/repositories/estimate-repository";
 import type { Tables } from "@/lib/supabase/types";
@@ -173,16 +175,49 @@ type ProjectEstimateRowActionsProps = {
   estimate: ProjectEstimateTableRow;
   isSelected: boolean;
   onDuplicateError: (message: string | null) => void;
+  onDelete: (estimate: ProjectEstimateTableRow) => void;
   onPrefetchCancel: (href: string) => void;
   onPrefetchStart: (href: string) => void;
   onToggleSelected: (estimateId: string) => void;
   projectId: string;
 };
 
+function HeaderSelectAllCheckbox({
+  checked,
+  indeterminate,
+  disabled,
+  onChange,
+}: {
+  checked: boolean;
+  indeterminate: boolean;
+  disabled?: boolean;
+  onChange: (checked: boolean) => void;
+}) {
+  const ref = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (ref.current) ref.current.indeterminate = indeterminate;
+  }, [indeterminate]);
+
+  return (
+    <input
+      ref={ref}
+      type="checkbox"
+      className="size-3 rounded-xs border-hairline accent-ink"
+      aria-label="Select visible estimate sheets"
+      checked={checked}
+      disabled={disabled}
+      onChange={(event) => onChange(event.currentTarget.checked)}
+      onClick={(event) => event.stopPropagation()}
+    />
+  );
+}
+
 function ProjectEstimateRowActions({
   estimate,
   isSelected,
   onDuplicateError,
+  onDelete,
   onPrefetchCancel,
   onPrefetchStart,
   onToggleSelected,
@@ -222,8 +257,8 @@ function ProjectEstimateRowActions({
         type="button"
         className="grid size-6 place-items-center rounded-xs text-tertiary transition hover:bg-surface-muted hover:text-danger focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus disabled:cursor-not-allowed disabled:opacity-40"
         aria-label={`Delete ${estimate.name}`}
-        title="Delete action is not wired yet"
-        disabled
+        title="Delete estimate sheet"
+        onClick={() => onDelete(estimate)}
       >
         <Trash size={12} weight="regular" aria-hidden="true" />
       </button>
@@ -619,6 +654,9 @@ function ProjectEstimatesTableComponent({ estimates, projectId, emptyMessage = "
   const [sorting, setSorting] = useState<SortingState>([{ id: "updated_at", desc: true }]);
   const [columnSizing, setColumnSizing] = useState<ColumnSizingState>(() => readColumnSizingFromStorage(columnWidthStorageKey));
   const [selectedEstimateIds, setSelectedEstimateIds] = useState<Set<string>>(() => new Set());
+  const [deleteTarget, setDeleteTarget] = useState<{ ids: string[]; names: string[]; mode: "single" | "bulk" } | null>(null);
+  const [deleteConfirmationText, setDeleteConfirmationText] = useState("");
+  const [deletePending, setDeletePending] = useState(false);
   const [duplicateError, setDuplicateError] = useState<string | null>(null);
   const prefetchRoutes = useMemo(
     () =>
@@ -659,11 +697,82 @@ function ProjectEstimatesTableComponent({ estimates, projectId, emptyMessage = "
     });
   }, []);
 
+  useEffect(() => {
+    const visibleEstimateIds = new Set(estimates.map((estimate) => estimate.id));
+    setSelectedEstimateIds((current) => {
+      const next = new Set([...current].filter((estimateId) => visibleEstimateIds.has(estimateId)));
+      return next.size === current.size && [...next].every((estimateId) => current.has(estimateId)) ? current : next;
+    });
+  }, [estimates]);
+
+  const selectedVisibleEstimateCount = estimates.filter((estimate) => selectedEstimateIds.has(estimate.id)).length;
+  const allVisibleSelected = estimates.length > 0 && selectedVisibleEstimateCount === estimates.length;
+  const someVisibleSelected = selectedVisibleEstimateCount > 0 && selectedVisibleEstimateCount < estimates.length;
+
+  const toggleVisibleEstimateSelection = useCallback((checked: boolean) => {
+    setSelectedEstimateIds((current) => {
+      const next = new Set(current);
+      for (const estimate of estimates) {
+        if (checked) next.add(estimate.id);
+        else next.delete(estimate.id);
+      }
+      return next;
+    });
+  }, [estimates]);
+
+  const clearSelection = useCallback(() => setSelectedEstimateIds(new Set()), []);
+
+  const openDeleteDialog = useCallback((target: ProjectEstimateTableRow | ProjectEstimateTableRow[]) => {
+    const rows = Array.isArray(target) ? target : [target];
+    if (rows.length === 0) return;
+    setDeleteConfirmationText("");
+    setDeleteTarget({
+      ids: rows.map((row) => row.id),
+      names: rows.map((row) => row.name),
+      mode: rows.length === 1 ? "single" : "bulk",
+    });
+  }, []);
+
+  const selectedEstimateRows = useMemo(
+    () => estimates.filter((estimate) => selectedEstimateIds.has(estimate.id)),
+    [estimates, selectedEstimateIds],
+  );
+
+  const handleConfirmDelete = useCallback(() => {
+    if (!deleteTarget || deleteConfirmationText !== "DELETE ESTIMATE SHEETS" || deletePending) return;
+    setDeletePending(true);
+    const action = deleteTarget.mode === "single"
+      ? deleteEstimateSheet(projectId, deleteTarget.ids[0]!)
+      : deleteEstimateSheetsBulk(projectId, deleteTarget.ids);
+
+    void action
+      .then(() => {
+        setSelectedEstimateIds((current) => {
+          const next = new Set(current);
+          for (const estimateId of deleteTarget.ids) next.delete(estimateId);
+          return next;
+        });
+        void queryClient.invalidateQueries({ queryKey: ["estimate"] });
+        router.refresh();
+        setDeleteTarget(null);
+        setDeleteConfirmationText("");
+      })
+      .catch((error: unknown) => setDuplicateError(error instanceof Error ? error.message : "Could not delete estimate sheets."))
+      .finally(() => setDeletePending(false));
+  }, [deleteConfirmationText, deletePending, deleteTarget, projectId, queryClient, router]);
+
   const columns = useMemo<ColumnDef<ProjectEstimateTableRow>[]>(
     () => [
       {
         id: "row_actions",
-        header: "",
+        header: () => (
+          <HeaderSelectAllCheckbox
+            checked={allVisibleSelected}
+            indeterminate={someVisibleSelected}
+            disabled={estimates.length === 0 || deletePending}
+            onChange={toggleVisibleEstimateSelection}
+          />
+        ),
         size: 140,
         minSize: 124,
         maxSize: 160,
@@ -676,6 +785,7 @@ function ProjectEstimatesTableComponent({ estimates, projectId, emptyMessage = "
             <ProjectEstimateRowActions
               estimate={estimate}
               isSelected={selectedEstimateIds.has(estimate.id)}
+              onDelete={openDeleteDialog}
               onDuplicateError={setDuplicateError}
               onPrefetchCancel={cancelEstimateRoute}
               onPrefetchStart={prefetchEstimateRoute}
@@ -784,7 +894,19 @@ function ProjectEstimatesTableComponent({ estimates, projectId, emptyMessage = "
         cell: ({ row }) => <span className="whitespace-nowrap font-medium text-tertiary">{formatDateTime(row.original.created_at)}</span>,
       },
     ],
-    [cancelEstimateRoute, prefetchEstimateRoute, projectId, selectedEstimateIds, toggleEstimateSelection],
+    [
+      allVisibleSelected,
+      cancelEstimateRoute,
+      deletePending,
+      estimates.length,
+      openDeleteDialog,
+      prefetchEstimateRoute,
+      projectId,
+      selectedEstimateIds,
+      someVisibleSelected,
+      toggleEstimateSelection,
+      toggleVisibleEstimateSelection,
+    ],
   );
 
   const table = useReactTable({
@@ -814,6 +936,14 @@ function ProjectEstimatesTableComponent({ estimates, projectId, emptyMessage = "
           {duplicateError}
         </p>
       ) : null}
+      <TreeBulkActionBar
+        selectedCount={selectedEstimateIds.size}
+        entityLabel="estimate sheet"
+        onClearSelection={clearSelection}
+        onDelete={() => openDeleteDialog(selectedEstimateRows)}
+        deleteDisabled={deletePending || selectedEstimateRows.length === 0}
+        disabledReason={deletePending ? "Finish the current estimate sheet delete before deleting more sheets." : "Select at least one visible estimate sheet."}
+      />
       <div className="min-h-0 flex-1 overflow-auto [scrollbar-gutter:stable]">
         <table className="table-fixed border-collapse text-left text-[10px]" style={tableStyle}>
           <ProjectEstimatesColGroup table={table} />
@@ -879,6 +1009,60 @@ function ProjectEstimatesTableComponent({ estimates, projectId, emptyMessage = "
           Reset Column Widths
         </button>
       </div>
+      <Modal
+        open={Boolean(deleteTarget)}
+        title={deleteTarget?.mode === "single" ? "Delete estimate sheet" : `Delete ${deleteTarget?.ids.length ?? 0} estimate sheets`}
+        description="Type DELETE ESTIMATE SHEETS to confirm this destructive action."
+        onOpenChange={(open) => {
+          if (!open && !deletePending) {
+            setDeleteTarget(null);
+            setDeleteConfirmationText("");
+          }
+        }}
+        closeLabel="Cancel estimate sheet delete"
+        className="max-w-sm"
+      >
+        <div className="space-y-3">
+          <p className="text-[10px] leading-4 text-tertiary">
+            {deleteTarget?.mode === "single"
+              ? `This deletes ${deleteTarget.names[0] ?? "the selected estimate sheet"} and its estimate tree rows.`
+              : `This deletes ${deleteTarget?.ids.length ?? 0} selected estimate sheets and their estimate tree rows.`}
+          </p>
+          <label className="block space-y-1 text-[10px] font-medium leading-4 text-ink">
+            <span>Confirmation text</span>
+            <input
+              className="h-8 w-full rounded-xs border border-hairline px-2 text-[10px] font-medium text-ink outline-none focus:border-accent focus:ring-2 focus:ring-focus/25"
+              value={deleteConfirmationText}
+              onChange={(event) => setDeleteConfirmationText(event.currentTarget.value)}
+              placeholder="DELETE ESTIMATE SHEETS"
+              aria-label="Estimate sheet delete confirmation"
+            />
+          </label>
+          <div className="flex justify-end gap-2">
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              disabled={deletePending}
+              onClick={() => {
+                setDeleteTarget(null);
+                setDeleteConfirmationText("");
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              variant="danger"
+              size="sm"
+              disabled={deletePending || deleteConfirmationText !== "DELETE ESTIMATE SHEETS"}
+              onClick={handleConfirmDelete}
+            >
+              Delete
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }
