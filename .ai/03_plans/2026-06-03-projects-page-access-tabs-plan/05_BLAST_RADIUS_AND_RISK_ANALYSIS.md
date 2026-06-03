@@ -66,6 +66,10 @@ Potential E2E impact:
 | Keyboard tab navigation fails accessibility expectations. | Medium | Medium | Add keyboard tests for Arrow/Home/End. |
 | Tab panel IDs duplicate when multiple ProjectsPageClient instances render in tests. | Low | Low | Use deterministic IDs and a single instance per page; React `useId` optional. |
 | Existing modal dynamic import breaks tests. | Low | Medium | Mock `next/dynamic` only if test render fails; do not open modals except create-action test if covered. |
+| Selected projects in non-active tab become invisible to BulkActionToolbar. | Medium | High | `selectedVisibleProjectIds` filters by active-tab visible projects; toolbar count drops to 0 for non-visible selections. Accept this as intended behavior — selections persist in `selectedProjectIds` Set. |
+| "Select all visible" selects across tab boundary. | Low | Low | `selectableDisplayProjectIds` is tab-scoped; selecting all visible selects only active-tab eligible projects. |
+| Bulk delete preview uses tab-filtered project list instead of full list. | High | Medium | `openProjectDeletePreview()` must use full `projectItems`, not `displayProjects`, to authorize deletion of all selected projects including those in non-active tabs. Verify in Step 6.5. |
+| Bulk delete execution removes projects from non-active tab without UI feedback. | Medium | Low | The delete modal shows a preview count and required phrase confirmation. After execution, the route refreshes and tab state resets. Acceptable UX. |
 
 ## Edge cases
 

@@ -23,6 +23,7 @@ The task is a UI/data-flow refinement, not a new collaboration system. The exist
 | FR-08 | Pending invite cards must appear in `Projects shared to you` and keep their Accept action. | Existing `LiveProjectCard` already renders pending-invite accept forms when `accessKind === "pending-invite"`. |
 | FR-09 | Users with no owned projects but at least one shared project should land on `Projects shared to you`. | Prevents an invited collaborator from seeing an empty owned tab after accepting an invite. |
 | FR-10 | The shared-project favorite defect must not ship into the new shared tab experience. | Either suppress favorite buttons for non-owned project cards or implement a tested data-model-safe shared favorite flow. Low-risk recommendation: suppress for non-owned in this task. |
+| FR-11 | Existing bulk project deletion semantics must be preserved and reconciled with active tab visibility. Selection state persists in `selectedProjectIds` Set across tab switches. `selectableDisplayProjectIds` and `selectedVisibleProjectIds` derive from tab-filtered display list. `openProjectDeletePreview()` uses full `projectItems` (not `displayProjects`) for authorization. | `canSelectProjectForDeletion`, `getProjectDeletionDisabledReason`, `BulkActionToolbar`, and all bulk delete state machinery remain intact. See implementation sequence Steps 4.5 and 6.5. |
 
 ## Non-functional requirements
 
