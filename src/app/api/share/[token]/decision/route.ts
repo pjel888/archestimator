@@ -1,5 +1,15 @@
-import { assertSameOriginPublicPost, createSharedLinkSessionCookieName, verifySharedLinkSessionCookieValue } from "@/lib/publication/security";
-import { checkSharedLinkDecisionRateLimit, submitSharedLinkDecision } from "@/lib/publication/public-repository";
+import {
+  assertSameOriginPublicPost,
+  createSharedLinkSessionCookieName,
+  hasPublicationAccessCookie,
+  verifySharedLinkSessionCookieValue,
+} from "@/lib/publication/security";
+import {
+  checkSharedLinkDecisionRateLimit,
+  loadSharedLinkRecipientDecision,
+  resolveProjectPublicationAccessByToken,
+  submitSharedLinkDecision,
+} from "@/lib/publication/public-repository";
 import { createHash } from "crypto";
 
 export const dynamic = "force-dynamic";
@@ -55,6 +65,52 @@ function readSessionPayload(value: string | undefined) {
 
 function readErrorMessage(error: unknown, fallback: string) {
   return error instanceof Error ? error.message : fallback;
+}
+
+const noStoreHeaders = { "Cache-Control": "no-store" };
+
+export async function GET(request: Request, { params }: { params: Promise<{ token: string }> }) {
+  const { token } = await params;
+  const access = await resolveProjectPublicationAccessByToken(token);
+  if (!access) {
+    return Response.json({ error: "Publication not found." }, { status: 404, headers: noStoreHeaders });
+  }
+
+  const cookieHeader = request.headers.get("cookie") || "";
+  if (
+    access.passwordRequired &&
+    !hasPublicationAccessCookie(cookieHeader, {
+      token,
+      publicationId: access.publicationId,
+      snapshotVersion: access.snapshotVersion,
+    })
+  ) {
+    return Response.json({ error: "password_required" }, { status: 401, headers: noStoreHeaders });
+  }
+
+  const sessionName = createSharedLinkSessionCookieName(token);
+  const sessionValue = parseCookieValue(cookieHeader, sessionName);
+  const sessionPayload = readSessionPayload(sessionValue);
+  const recipientId = sessionPayload.recipientId;
+
+  if (
+    !recipientId ||
+    !verifySharedLinkSessionCookieValue(sessionValue, {
+      token,
+      publicationId: access.publicationId,
+      snapshotVersion: access.snapshotVersion,
+      recipientId,
+    })
+  ) {
+    return Response.json({ error: "Valid recipient session required for decisions." }, { status: 401, headers: noStoreHeaders });
+  }
+
+  const decision = await loadSharedLinkRecipientDecision({
+    publicationId: access.publicationId,
+    recipientId,
+  });
+
+  return Response.json({ decision }, { headers: noStoreHeaders });
 }
 
 export async function POST(request: Request, { params }: { params: Promise<{ token: string }> }) {

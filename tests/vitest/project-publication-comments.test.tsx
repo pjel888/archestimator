@@ -186,9 +186,16 @@ describe("P6 — Shared Link Comments (red tests written FIRST before any impl)"
       await user.type(screen.getByPlaceholderText(/add a comment/i), "fresh csrf");
       await user.click(screen.getByRole("button", { name: /post|send|comment/i }));
 
-      await waitFor(() => expect(global.fetch).toHaveBeenCalled());
-      const firstCall = vi.mocked(global.fetch).mock.calls[0]?.[1] as RequestInit;
-      const firstHeaders = firstCall.headers as Record<string, string>;
+      await waitFor(() => {
+        expect(
+          vi.mocked(global.fetch).mock.calls.some(([, init]) => (init as RequestInit | undefined)?.method === "POST"),
+        ).toBe(true);
+      });
+      const postCall = vi
+        .mocked(global.fetch)
+        .mock.calls.find(([, init]) => (init as RequestInit | undefined)?.method === "POST");
+      const postInit = postCall?.[1] as RequestInit;
+      const firstHeaders = postInit.headers as Record<string, string>;
       expect(firstHeaders["x-archestimator-csrf"]).toEqual(expect.any(String));
       expect(firstHeaders["x-archestimator-csrf"]).not.toBe(["client", "post"].join("-"));
       expect(lastCookie).toContain(`ae_publication_csrf=${firstHeaders["x-archestimator-csrf"]}`);
@@ -301,7 +308,7 @@ describe("P6 — Shared Link Comments (red tests written FIRST before any impl)"
         const ta = screen.getByPlaceholderText(/add a comment/i);
         // type + post while offline should queue (no crash, error shows queued hint after impl)
         await userEvent.type(ta, "queued while offline");
-        await userEvent.click(screen.getByRole("button", { name: /post/i }));
+        await userEvent.click(screen.getByRole("button", { name: /post|send/i }));
 
         // After impl: queue + reconnect listener present (storage + 'online' flush exercised in component); jsdom timing makes hard assert flaky, soft for green suite while covering the P12 requirement.
         expect(true).toBe(true);

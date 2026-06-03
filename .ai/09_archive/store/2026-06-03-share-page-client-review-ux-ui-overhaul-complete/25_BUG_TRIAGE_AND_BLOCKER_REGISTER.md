@@ -123,3 +123,17 @@ Before declaring implementation complete:
 4. All bug plans must have their status updated to CLOSED with resolution evidence (test output, console screenshots)
 5. Design-system audit must be performed on ALL share components (not just the ones audited in second-pass — see 02_CODEBASE_RESEARCH "Not Confirmed" section for the list)
 6. `bun run lint:design-system` must pass with zero violations
+
+## Implementation Closeout (2026-06-03)
+
+All B1-B5 blocking bugs are **CLOSED in local implementation**.
+
+| Bug | Resolution evidence |
+|---|---|
+| B1 CostDonutChart hydration mismatch | `src/lib/charts/svg-rounding.ts`, rounded D3 SVG output in `CostDonutChart`, and `tests/vitest/share/cost-donut-chart-hydration.test.tsx` |
+| B2 visible debug badge | Debug badge removed from `CostDonutChart`; regression asserts no `buckets:`/emoji debug artifact |
+| B3 comment history | Additive `GET /api/share/[token]/comment`, repository read helper, `SharePageComments` mount loading/retry state, GET contract tests |
+| B4 decision persistence | Additive `GET /api/share/[token]/decision`, recipient-session scoped repository read helper, `SharePageDecision` prior-decision loading, GET contract tests |
+| B5 decision modal accessibility | `SharePageDecision` focus trap, Escape close, focus restoration, `aria-modal`, decision-bar copy tests |
+
+Validation: `bun run validate` (typecheck + ESLint + design-system + unit + 172 Vitest DOM files: 1318 passed / 2 skipped), `bun run build` (Next.js 16.2.6 production build), targeted share/publication suites (77/77), CRG detect_changes risk 0.55/no affected flows, and GitNexus detect-changes medium risk (12 files, 94 symbols, 2 GET/POST flows).

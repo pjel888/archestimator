@@ -6,9 +6,9 @@ import SharePageTabs from "@/components/share/SharePageTabs";
 import SharePageComments from "@/components/share/SharePageComments";
 import SharePageDecision from "@/components/share/SharePageDecision";
 import SharePageHero from "@/components/share/SharePageHero";
+import { SharePageProposalHeader } from "@/components/share/SharePageProposalHeader";
 import { SharePageRecipientSessionInitializer } from "@/components/share/SharePageRecipientSessionInitializer";
 import { SharePageSessionBanner } from "@/components/share/SharePageSessionBanner";
-import { ArchestimatorLogo } from "@/components/brand/ArchestimatorLogo";
 
 /* GitNexus / code-review-graph MCP impact analysis (per Master Prompt + AGENTS.md/CLAUDE.md + .ai/00_system/AGENT_OPERATING_PROTOCOL.md):
  * - search_tool invoked for schemas: code-review-graph__get_impact_radius_tool, code-review-graph__detect_changes_tool,
@@ -65,48 +65,26 @@ function ProjectPublicationView({
   token: string;
 }) {
   return (
-    <main aria-label="Client publication" className="min-h-dvh bg-white text-ink">
+    <main aria-label="Proposal review" className="min-h-dvh bg-white text-ink">
       {recipientToken ? <SharePageRecipientSessionInitializer recipientToken={recipientToken} token={token} /> : null}
       <SharePageSessionBanner recipientEmail={recipientEmail} token={token} />
-      <header className="share-print-hidden border-b border-hairline bg-white">
-        <div className="mx-auto flex h-12 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
-          <ArchestimatorLogo markSize={24} showWordmark className="text-ink" />
-          <span className="text-[9px] font-medium uppercase tracking-normal text-tertiary">View-only</span>
-        </div>
-      </header>
-      <div className="share-print-content mx-auto flex w-full max-w-7xl flex-col gap-5 px-4 py-6 sm:px-6 lg:px-8">
-        <div className="border-b border-hairline pb-4">
-          <p className="text-[9px] font-medium uppercase leading-3 tracking-normal text-tertiary">Client publication</p>
-          <h1 className="mt-1.5 text-[12px] font-medium leading-4 text-ink">{snapshot.project.name}</h1>
-          <p className="mt-1 text-[10px] leading-4 text-secondary">View-only project page</p>
-          <p className="mt-1 text-[9px] leading-3 text-tertiary">Visits are logged for project security and activity history.</p>
-          <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-[10px] leading-3 text-secondary">
-            {snapshot.project.projectCode ? <span>{snapshot.project.projectCode}</span> : null}
-            {snapshot.project.clientName ? <span>{snapshot.project.clientName}</span> : null}
-            {snapshot.project.location ? <span>{snapshot.project.location}</span> : null}
-          </div>
-        </div>
+      <div className="share-print-content mx-auto flex w-full max-w-[960px] flex-col gap-5 px-4 py-6 sm:px-6">
+        <SharePageProposalHeader project={snapshot.project} />
+        <SharePageDecision token={token} />
 
         {/* P9: Hero cover (from snapshot.project.coverImageUrl populated from projects.metadata at publish).
             Next/Image + lazy. Null when absent (old snapshots / no cover) — additive, no layout shift. */}
         <SharePageHero project={snapshot.project} />
 
-        {/* P2: Tabbed navigation (replaces previous vertical stack). SharePageTabs encapsulates per-estimate card+table. */}
-        {/* P6/P7: Right column — decision (P7) above comments (P6). Both session-gated via P5 hook. Decision locks to read-only badge after submit/409; comments remain usable post-decision (additive, per owner allowance). */}
-        <div className="flex flex-col gap-5 lg:flex-row">
-          <div className="min-w-0 flex-1">
-            <SharePageTabs
-              estimates={snapshot.estimates}
-              currencyCode={snapshot.project.currencyCode}
-              token={token}
-            />
-          </div>
-          {/* P9: sticky decision rail on lg+ (desktop polish); safe-area-inset-bottom on mobile for interactive bars (additive, no behavior change) */}
-          <div className="share-print-hidden w-full lg:w-80 flex-shrink-0 flex flex-col gap-3 lg:sticky lg:top-4 pb-[env(safe-area-inset-bottom)] lg:pb-0">
-            <SharePageDecision token={token} />
-            <SharePageComments token={token} />
-          </div>
-        </div>
+        <SharePageTabs
+          estimates={snapshot.estimates}
+          currencyCode={snapshot.project.currencyCode}
+          token={token}
+        />
+        <SharePageComments token={token} />
+        <footer className="share-print-hidden border-t border-hairline pt-3 text-[8px] leading-[10px] text-tertiary">
+          Shared via Archestimator • Activity logged for security
+        </footer>
       </div>
     </main>
   );
@@ -129,12 +107,12 @@ function decodeCookieValue(value: string | undefined) {
 
 function ProjectPublicationPasswordGate({ token }: { token: string }) {
   return (
-    <main aria-label="Client publication password" className="share-print-hidden grid min-h-dvh place-items-center bg-white px-4 py-6 text-ink">
+    <main aria-label="Proposal review password" className="share-print-hidden grid min-h-dvh place-items-center bg-white px-4 py-6 text-ink">
       <section className="w-full max-w-sm border border-hairline bg-white p-4">
-        <p className="text-[9px] font-medium uppercase leading-3 text-tertiary">Client publication</p>
-        <h1 className="mt-2 text-[12px] font-medium leading-4 text-ink">Enter publication password</h1>
-        <p className="mt-1 text-[10px] leading-4 text-secondary">This publication is password protected.</p>
-        <p className="mt-2 text-[9px] leading-4 text-tertiary">Visits to this shared page are logged. The project owner can see when the link was opened and whether the proposal was viewed. We do not store raw IP addresses, exact GPS location, or password values.</p>
+        <p className="text-[9px] font-medium uppercase leading-3 text-tertiary">Proposal Review</p>
+        <h1 className="mt-2 text-[12px] font-medium leading-4 text-ink">Enter proposal password</h1>
+        <p className="mt-1 text-[10px] leading-4 text-secondary">This proposal is password protected.</p>
+        <p className="mt-2 text-[9px] leading-4 text-tertiary">Access attempts may be recorded for security. We do not store raw IP addresses, exact GPS location, or password values.</p>
         <ProjectPublicationPasswordForm token={token} />
       </section>
     </main>
@@ -258,8 +236,8 @@ export async function generateMetadata({ params }: SharePageProps): Promise<Meta
     const p = snap.project;
     const count = snap.estimateCount;
 
-    const title = `${p.name}${p.projectCode ? ` (${p.projectCode})` : ""} — Shared Estimate`;
-    const desc = `${count} estimate sheet${count === 1 ? "" : "s"} • ${snap.rowCount} rows • Total ${formatMoney(snap.totalCost, p.currencyCode)}${p.clientName ? ` for ${p.clientName}` : ""}. View-only client publication.`;
+    const title = `${p.name}${p.projectCode ? ` (${p.projectCode})` : ""} — Proposal Review`;
+    const desc = `${count} estimate sheet${count === 1 ? "" : "s"} • ${snap.rowCount} rows • Total ${formatMoney(snap.totalCost, p.currencyCode)}${p.clientName ? ` for ${p.clientName}` : ""}. Prepared for client review.`;
 
     // OG image deliberately omitted here to avoid introducing direct
     // `createClient` + service-role + `supabase.from("projects")` access
