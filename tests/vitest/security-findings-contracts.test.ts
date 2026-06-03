@@ -127,6 +127,20 @@ describe("Codex security findings hardening contracts", () => {
     expect(publicRepository).toContain("p_expected_snapshot_version: params.expectedSnapshotVersion");
   });
 
+  it("locks shared-link comments to the recipient-viewed publication snapshot version", () => {
+    const commentRoute = read("src/app/api/share/[token]/comment/route.ts");
+    const publicRepository = read("src/lib/publication/public-repository.ts");
+    const latestInsertClientComment = latestFunction("insert_client_comment");
+
+    expect(migrationText).toContain("drop function if exists public.insert_client_comment(text, text, uuid, uuid, text)");
+    expect(latestInsertClientComment).toContain("p_expected_snapshot_version integer");
+    expect(latestInsertClientComment).toContain("v_snapshot_version is distinct from p_expected_snapshot_version");
+    expect(commentRoute).toContain("resolveProjectPublicationAccessByToken(token)");
+    expect(commentRoute).toContain("snapshotVersion: access.snapshotVersion");
+    expect(publicRepository).toContain("expectedSnapshotVersion: number");
+    expect(publicRepository).toContain("p_expected_snapshot_version: params.expectedSnapshotVersion");
+  });
+
   it("prevents sheet-only collaborators from inheriting project-wide estimate access", () => {
     const originalCollaborationMigration = read("supabase/migrations/20260526142913_project_sheet_collaboration_access.sql");
     const latestCanAccessEstimate = latestFunction("can_access_estimate");

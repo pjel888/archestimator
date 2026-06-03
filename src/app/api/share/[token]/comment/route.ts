@@ -210,19 +210,23 @@ export async function POST(request: Request, { params }: { params: Promise<{ tok
   const sessionName = createSharedLinkSessionCookieName(token);
   const sessionValue = parseCookieValue(cookieHeader, sessionName);
 
-  // Lightweight parse of signed P5 session payload for ids (no DB). Full crypto verify below.
-  let publicationId = "unknown-pub";
-  let snapshotVersion: string | number = "1";
+  // Lightweight parse of signed P5 session payload for the recipient id.
+  // The publication id and snapshot must come from the current DB row below.
   const sessionPayload = readSessionPayload(sessionValue);
-  if (sessionPayload.publicationId) publicationId = sessionPayload.publicationId;
-  if (sessionPayload.snapshotVersion) snapshotVersion = sessionPayload.snapshotVersion;
   const recipientIdFromCookie = sessionPayload.recipientId;
 
-  // Verify P5 session (crypto + expiry + match, no DB required)
-  const sessionOk = verifySharedLinkSessionCookieValue(sessionValue, {
+  const access = await resolveProjectPublicationAccessByToken(token);
+  if (!access) {
+    const ipHash = getIpHash(request);
+    logStructured("warn", "/api/share/[token]/comment", "PUBLICATION_NOT_FOUND", ipHash);
+    return Response.json({ error: "Publication not found." }, { status: 404, headers: { "Cache-Control": "no-store" } });
+  }
+
+  // Verify P5 session against the current DB publication snapshot, not the cookie-derived snapshot.
+  const sessionOk = Boolean(recipientIdFromCookie) && verifySharedLinkSessionCookieValue(sessionValue, {
     token,
-    publicationId,
-    snapshotVersion,
+    publicationId: access.publicationId,
+    snapshotVersion: access.snapshotVersion,
     recipientId: recipientIdFromCookie,
   });
   if (!sessionOk) {
@@ -262,7 +266,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ tok
   }
 
   // Durable rate limit (server, per-recipient).
-  const rateCheck = await checkSharedLinkCommentRateLimit({ publicationId, recipientId });
+  const rateCheck = await checkSharedLinkCommentRateLimit({ publicationId: access.publicationId, recipientId });
   if (!rateCheck.allowed) {
     const ipHash = getIpHash(request);
     logStructured("warn", "/api/share/[token]/comment", "RATE_LIMITED", ipHash, { status: 429 });
@@ -284,6 +288,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ tok
     const { id } = await insertSharedLinkComment({
       publicationToken: token,
       recipientId,
+      expectedSnapshotVersion: access.snapshotVersion,
       body: sanitized,
       estimateId: estimateId.value,
       rowId: rowId.value,
@@ -292,14 +297,17 @@ export async function POST(request: Request, { params }: { params: Promise<{ tok
     // P8: best-effort lightweight owner email digest (rate-limited 1/15min inside helper). Non-blocking for receiver.
     try {
       const { maybeTriggerSharedLinkActivityDigest } = await import("@/lib/publication/actions");
-      if (publicationId && publicationId !== "unknown-pub") {
-        maybeTriggerSharedLinkActivityDigest(publicationId, token, "comment");
-      }
+      maybeTriggerSharedLinkActivityDigest(access.publicationId, token, "comment");
     } catch {}
 
     return Response.json({ id, created: true }, { status: 201, headers: { "Cache-Control": "no-store" } });
   } catch (error: unknown) {
     const msg = readErrorMessage(error, "Failed to post comment.");
+    if (/snapshot|stale|changed/i.test(msg)) {
+      const ipHash = getIpHash(request);
+      logStructured("warn", "/api/share/[token]/comment", "SNAPSHOT_VERSION_CHANGED", ipHash);
+      return Response.json({ error: "Publication snapshot changed. Please reload before posting a comment." }, { status: 409, headers: { "Cache-Control": "no-store" } });
+    }
     const status = /rate|too many/i.test(msg) ? 429 : /not found|expired|recipient/i.test(msg) ? 403 : 500;
     const ipHash = getIpHash(request);
     if (status === 500) {

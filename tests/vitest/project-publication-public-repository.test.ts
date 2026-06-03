@@ -62,6 +62,50 @@ describe("project publication public repository (Shared Link V2 context)", () =>
     );
   });
 
+  it("passes the viewed snapshot version into insert_client_comment for stale-comment locking", async () => {
+    vi.resetModules();
+
+    process.env.NEXT_PUBLIC_SUPABASE_URL = "https://archestimator.test";
+    process.env.SUPABASE_SERVICE_ROLE_KEY = "service-role-key";
+    process.env.PUBLICATION_TOKEN_HASH_SECRET = "publication-token-hash-secret";
+
+    const recipientQuery = {
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      maybeSingle: vi.fn().mockResolvedValue({
+        data: { recipient_token_hash: "recipient-token-hash" },
+        error: null,
+      }),
+    };
+    const rpc = vi.fn().mockResolvedValue({ data: "comment-id", error: null });
+
+    vi.doMock("@supabase/supabase-js", () => ({
+      createClient: vi.fn(() => ({
+        from: vi.fn((table: string) => {
+          if (table === "shared_link_recipients") return recipientQuery;
+          throw new Error(`Unexpected table: ${table}`);
+        }),
+        rpc,
+      })),
+    }));
+
+    const { insertSharedLinkComment } = await import("@/lib/publication/public-repository");
+
+    await expect(
+      insertSharedLinkComment({
+        publicationToken: "publication-token",
+        recipientId: "recipient-id",
+        expectedSnapshotVersion: 4,
+        body: "Can we confirm this line item?",
+      }),
+    ).resolves.toEqual({ id: "comment-id" });
+
+    expect(rpc).toHaveBeenCalledWith(
+      "insert_client_comment",
+      expect.objectContaining({ p_body: "Can we confirm this line item?", p_expected_snapshot_version: 4 }),
+    );
+  });
+
   it("wraps submit_client_response RPC error objects so duplicate decisions stay mappable to 409", async () => {
     vi.resetModules();
 

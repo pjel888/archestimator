@@ -13,6 +13,7 @@ const mocks = vi.hoisted(() => ({
   // P6 repo
   insertSharedLinkComment: vi.fn(),
   checkSharedLinkCommentRateLimit: vi.fn(),
+  resolveProjectPublicationAccessByToken: vi.fn(),
 }));
 
 vi.mock("@/lib/publication/security", () => ({
@@ -31,6 +32,7 @@ vi.mock("@/lib/publication/public-repository", async () => {
     ...actual,
     insertSharedLinkComment: mocks.insertSharedLinkComment,
     checkSharedLinkCommentRateLimit: mocks.checkSharedLinkCommentRateLimit,
+    resolveProjectPublicationAccessByToken: mocks.resolveProjectPublicationAccessByToken,
   };
 });
 
@@ -51,6 +53,12 @@ function makeRequest(body: unknown, headers: Record<string, string> = {}) {
   });
 }
 
+const validSharedLinkSession = "shared-link-session-v1:eyJyZWNpcGllbnRJZCI6InJlY2lwLTEyMyIsInB1YmxpY2F0aW9uSWQiOiJwdWIxIiwic25hcHNob3RWZXJzaW9uIjoiMSJ9:dummy";
+
+function validSessionCookie() {
+  return `shared_link_session_abc123=${encodeURIComponent(validSharedLinkSession)}`;
+}
+
 describe("P6 — Shared Link Comments (red tests written FIRST before any impl)", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -58,6 +66,12 @@ describe("P6 — Shared Link Comments (red tests written FIRST before any impl)"
     mocks.useSharedLinkSession.mockReturnValue({ isValid: true });
     mocks.insertSharedLinkComment.mockResolvedValue({ id: "comment-123" });
     mocks.checkSharedLinkCommentRateLimit.mockResolvedValue({ allowed: true });
+    mocks.resolveProjectPublicationAccessByToken.mockResolvedValue({
+      publicationId: "pub1",
+      status: "published",
+      passwordRequired: false,
+      snapshotVersion: 1,
+    });
   });
 
   describe("POST /api/share/[token]/comment route (CSRF + session + rate + sanitize + RPC)", () => {
@@ -85,14 +99,19 @@ describe("P6 — Shared Link Comments (red tests written FIRST before any impl)"
     it("enforces server-side rate limit (5/min, 20/hour per recipient) with 429", async () => {
       mocks.assertSameOriginPublicPost.mockReturnValue({ ok: true });
       mocks.verifySharedLinkSessionCookieValue.mockReturnValue(true);
-      // Simulate rapid fire — first 5 should eventually pass after mock, but rate logic inside must 429 on 6th
-      // (test will stay red until rate impl + in-memory LRU TTL)
-      const csrfHeaders = { cookie: "shared_link_session_abc123=valid", "x-archestimator-csrf": "csrf" };
+      let rateLimitCalls = 0;
+      mocks.checkSharedLinkCommentRateLimit.mockImplementation(async () => {
+        rateLimitCalls += 1;
+        return rateLimitCalls > 5
+          ? { allowed: false, message: "Too many comments. Please wait 60 seconds.", retryAfter: 60 }
+          : { allowed: true };
+      });
+
+      const csrfHeaders = { cookie: validSessionCookie(), "x-archestimator-csrf": "csrf" };
       for (let i = 0; i < 6; i++) {
         const r = await POST(makeRequest({ body: `c${i}` }, csrfHeaders), params());
         if (i >= 5) {
-          expect([400, 429, 503]).toContain(r.status);
-          // rate or validation or env guard
+          expect(r.status).toBe(429);
         }
       }
     });
@@ -105,13 +124,11 @@ describe("P6 — Shared Link Comments (red tests written FIRST before any impl)"
         message: "Too many comments. Please wait 60 seconds.",
         retryAfter: 60,
       });
-      const parsableSession = "shared-link-session-v1:eyJyZWNpcGllbnRJZCI6InJlY2lwLTEyMyIsInB1YmxpY2F0aW9uSWQiOiJwdWIxIiwic25hcHNob3RWZXJzaW9uIjoiMSJ9:dummy";
-
       const res = await POST(
         makeRequest(
           { body: "rate limited comment" },
           {
-            cookie: `shared_link_session_abc123=${encodeURIComponent(parsableSession)}`,
+            cookie: validSessionCookie(),
             "x-archestimator-csrf": "csrf",
           },
         ),
@@ -124,12 +141,49 @@ describe("P6 — Shared Link Comments (red tests written FIRST before any impl)"
       expect(mocks.insertSharedLinkComment).not.toHaveBeenCalled();
     });
 
+    it("rejects stale recipient sessions against the current publication snapshot before inserting comments", async () => {
+      mocks.assertSameOriginPublicPost.mockReturnValue({ ok: true });
+      mocks.resolveProjectPublicationAccessByToken.mockResolvedValueOnce({
+        publicationId: "pub1",
+        status: "published",
+        passwordRequired: false,
+        snapshotVersion: 2,
+      });
+      mocks.verifySharedLinkSessionCookieValue.mockImplementation((_value, context) => context.snapshotVersion === 1);
+      const staleSession = "shared-link-session-v1:eyJyZWNpcGllbnRJZCI6InJlY2lwLTEyMyIsInB1YmxpY2F0aW9uSWQiOiJwdWIxIiwic25hcHNob3RWZXJzaW9uIjoiMSJ9:dummy";
+
+      const response = await POST(
+        makeRequest(
+          { body: "comment after owner republished" },
+          {
+            cookie: `shared_link_session_abc123=${encodeURIComponent(staleSession)}`,
+            "x-archestimator-csrf": "csrf",
+          },
+        ),
+        params(),
+      );
+
+      expect(response.status).toBe(401);
+      await expect(response.json()).resolves.toEqual({ error: "Valid recipient session required for comments." });
+      expect(mocks.resolveProjectPublicationAccessByToken).toHaveBeenCalledWith("client-pub-token-123");
+      expect(mocks.verifySharedLinkSessionCookieValue).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.objectContaining({
+          token: "client-pub-token-123",
+          publicationId: "pub1",
+          snapshotVersion: 2,
+          recipientId: "recip-123",
+        }),
+      );
+      expect(mocks.checkSharedLinkCommentRateLimit).not.toHaveBeenCalled();
+      expect(mocks.insertSharedLinkComment).not.toHaveBeenCalled();
+    });
+
     it("rejects malformed optional target UUIDs before rate limits, RPC calls, or circuit failures", async () => {
       mocks.assertSameOriginPublicPost.mockReturnValue({ ok: true });
       mocks.verifySharedLinkSessionCookieValue.mockReturnValue(true);
-      const parsableSession = "shared-link-session-v1:eyJyZWNpcGllbnRJZCI6InJlY2lwLTEyMyIsInB1YmxpY2F0aW9uSWQiOiJwdWIxIiwic25hcHNob3RWZXJzaW9uIjoiMSJ9:dummy";
       const csrfHeaders = {
-        cookie: `shared_link_session_abc123=${encodeURIComponent(parsableSession)}`,
+        cookie: validSessionCookie(),
         "x-archestimator-csrf": "csrf",
       };
 
@@ -175,6 +229,7 @@ describe("P6 — Shared Link Comments (red tests written FIRST before any impl)"
       expect(response.status).toBe(201);
       expect(mocks.insertSharedLinkComment).toHaveBeenCalledWith(
         expect.objectContaining({
+          expectedSnapshotVersion: 1,
           estimateId: "11111111-1111-4111-8111-111111111111",
           rowId: "22222222-2222-4222-8222-222222222222",
         }),
@@ -185,7 +240,7 @@ describe("P6 — Shared Link Comments (red tests written FIRST before any impl)"
       mocks.assertSameOriginPublicPost.mockReturnValue({ ok: true });
       mocks.verifySharedLinkSessionCookieValue.mockReturnValue(true);
       const malicious = "<script>alert(1)</script><b>bold</b> " + "x".repeat(1100);
-      const req = makeRequest({ body: malicious }, { cookie: "shared_link_session_abc123=valid", "x-archestimator-csrf": "csrf" });
+      const req = makeRequest({ body: malicious }, { cookie: validSessionCookie(), "x-archestimator-csrf": "csrf" });
       // Expect 200 or 201, and body sent to RPC is cleaned + <=1000
       // (red until sanitize + truncate + RPC call implemented)
       const res = await POST(req, params());
@@ -196,7 +251,7 @@ describe("P6 — Shared Link Comments (red tests written FIRST before any impl)"
     it("calls insert_client_comment RPC (P3) with hashed token + recipient context on valid input", async () => {
       mocks.assertSameOriginPublicPost.mockReturnValue({ ok: true });
       mocks.verifySharedLinkSessionCookieValue.mockReturnValue(true);
-      const req = makeRequest({ body: "Valid comment here", estimateId: "est-1" }, { cookie: "shared_link_session_abc123=valid", "x-archestimator-csrf": "csrf" });
+      const req = makeRequest({ body: "Valid comment here", estimateId: "est-1" }, { cookie: validSessionCookie(), "x-archestimator-csrf": "csrf" });
       const res = await POST(req, params());
       // red: will fail until route does the RPC call via service client and returns success
       expect([201, 400, 503]).toContain(res.status);
@@ -451,7 +506,7 @@ describe("P6 — Shared Link Comments (red tests written FIRST before any impl)"
         mocks.verifySharedLinkSessionCookieValue.mockReturnValue(true);
         mocks.insertSharedLinkComment.mockRejectedValue(new Error("db 500"));
 
-        const csrf = { cookie: "shared_link_session_abc123=valid", "x-archestimator-csrf": "csrf" };
+        const csrf = { cookie: validSessionCookie(), "x-archestimator-csrf": "csrf" };
         let lastStatus = 0;
         // Limit to <5 to hit 5xx path before P6 rate limit (5/min) kicks in; 5 attempts all 500 -> breaker trips
         for (let i = 0; i < 6; i++) {
@@ -483,7 +538,7 @@ describe("P6 — Shared Link Comments (red tests written FIRST before any impl)"
         mocks.verifySharedLinkSessionCookieValue.mockReturnValue(true);
         mocks.insertSharedLinkComment.mockRejectedValue(new Error("simulated failure for log test"));
 
-        const req = makeRequest({ body: "log test" }, { cookie: "shared_link_session_abc123=valid", "x-archestimator-csrf": "csrf", "x-forwarded-for": "203.0.113.50" });
+        const req = makeRequest({ body: "log test" }, { cookie: validSessionCookie(), "x-archestimator-csrf": "csrf", "x-forwarded-for": "203.0.113.50" });
         await POST(req, params());
 
         // After impl: at least one log with required fields
