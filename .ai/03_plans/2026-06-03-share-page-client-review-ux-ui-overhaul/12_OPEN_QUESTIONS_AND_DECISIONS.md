@@ -44,7 +44,7 @@
 | P1 | Approve "Proposal Review" as the replacement term for "Client publication" | Brand/product language decision | HIGH |
 | P2 | Approve removing "View-only" badge entirely | UX philosophy decision | HIGH |
 | P3 | Approve moving "Visits are logged" to subtle footer | Trust/transparency balance | MEDIUM |
-| P4 | Approve adding lightweight GET routes (`GET /api/share/[token]/comment` and `GET /api/share/[token]/decision`) for comment/decision state loading | API surface expansion — see 24_API_CONTRACT_PLAN.md for full contracts | HIGH |
+| P4 | ✅ **APPROVED (2026-06-03):** Add lightweight GET routes (`GET /api/share/[token]/comment` and `GET /api/share/[token]/decision`) for comment/decision state loading | Approved by Philip. Option 1 in 24_API_CONTRACT_PLAN.md. Implementation agent should follow the GET route contracts specified there. | HIGH |
 | P5 | Approve merge to main after PR review | Per repo policy: no automatic main merge | HIGH |
 | P6 | Approve final visual design after implementation | Subjective quality gate | MEDIUM |
 | P7 | Approve priority upgrade for comment/decision state loading (SHOULD → MUST) | Product priority decision — returning clients seeing empty comment/decision state is broken UX | HIGH |

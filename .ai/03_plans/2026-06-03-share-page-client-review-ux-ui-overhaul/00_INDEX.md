@@ -3,7 +3,7 @@
 **Plan ID:** `2026-06-03-share-page-client-review-ux-ui-overhaul`
 **Created:** 2026-06-03
 **Second-Pass Refinement:** 2026-06-03 (see "Second-Pass Refinement Notes" below)
-**Status:** `NEEDS_HUMAN_DECISION` — requires Philip resolution on API route strategy and comment/decision privacy (see `12_OPEN_QUESTIONS_AND_DECISIONS.md`)
+**Status:** `READY_FOR_IMPLEMENTATION` — Philip approved lightweight GET routes for comment/decision state loading on 2026-06-03 (Option 1 in `24_API_CONTRACT_PLAN.md`). All blocking decisions resolved. See `11_READINESS_SCORECARD.md` for full scores.
 **Repository:** `pjel888/archestimator`
 **Branch:** `main` (feature branch required for implementation)
 
@@ -130,31 +130,31 @@ Manual QA: Navigate to target share URL, verify zero hydration warnings, clean v
 
 ## Current Status
 
-**NEEDS_HUMAN_DECISION** — Plan is 95% implementation-ready. One decision requires Philip: whether to add lightweight GET routes for comment/decision state loading (see `24_API_CONTRACT_PLAN.md`) or defer these features. All other aspects are fully specified. Once the API strategy is approved, the plan is ready for implementation.
+**READY_FOR_IMPLEMENTATION** — Philip approved lightweight GET routes for comment/decision state loading on 2026-06-03 (Option 1 in `24_API_CONTRACT_PLAN.md`). Plan is now 98% implementation-ready with all blocking decisions resolved. Implementation agent should verify plan against current repo reality before editing, then follow the implementation sequence in `04_IMPLEMENTATION_SEQUENCE.md`.
 
 ## Readiness Score Table
 
 | Document | Score | Notes |
 |----------|-------|-------|
-| 00 INDEX | 98% | Navigation complete, second-pass refined |
-| 01 Requirements | 95% | API non-goal needs human decision resolution |
+| 00 INDEX | 100% | Navigation complete, second-pass refined, Philip approval recorded |
+| 01 Requirements | 100% | API non-goal resolved by Philip's approval of GET routes |
 | 02 Codebase Research | 98% | Second-pass findings section added |
-| 03 Architecture | 95% | API strategy decision pending human approval |
+| 03 Architecture | 100% | API strategy approved by Philip — GET route contracts in 24_API_CONTRACT_PLAN.md |
 | 04 Implementation Seq | 98% | Bug plan references added |
 | 05 Blast Radius | 98% | GET route risks added |
-| 06 Testing | 95% | Hydration verification protocol detailed |
+| 06 Testing | 98% | Hydration verification protocol detailed, GET route test contracts specified |
 | 07 UI/UX | 98% | Design-system violation details added |
 | 08 Security | 98% | GET route security analyzed |
 | 09 Deployment | 98% | No migration, rollback clear |
-| 10 Prompt Draft | 95% | Expanded with missing instructions |
-| 11 Scorecard | 98% | Honest rescore with evidence |
-| 12 Open Questions | 95% | API decision pending Philip |
+| 10 Prompt Draft | 100% | All deferred decisions resolved by Philip's approval |
+| 11 Scorecard | 100% | Honest rescore with before/after/approved scores |
+| 12 Open Questions | 100% | P4 RESOLVED — Philip approved lightweight GET routes |
 | 13 Traceability | 98% | New rows for bug plans and API contract |
 | 14 UX Audit | 100% | Comprehensive audit |
 | 15 Hydration Fix | 95% | SVG output catalog needs implementation-time verification |
-| 24 API Contract | 95% | Decision pending Philip approval |
+| 24 API Contract | 100% | GET route contracts approved by Philip — ready for Phase 5 |
 | 25 Bug Triage | 100% | All bugs registered |
-| **OVERALL** | **95%** | Needs human decision on API strategy (one item) |
+| **OVERALL** | **98%** | Ready for implementation |
 
 ---
 
@@ -168,6 +168,7 @@ Manual QA: Navigate to target share URL, verify zero hydration warnings, clean v
 5. **Implementation prompt expanded** — added repo safety checks, Next.js 16 docs requirement, GitNexus requirement, TDD expectations, bug plan references
 6. **Design-system violations catalogued** — confirmed fontWeight={600}, tracking-normal, hardcoded colors, emoji in CostDonutChart
 7. **API scope clarified** — plan now explicitly says GET routes are additive only, existing POST/DELETE routes unchanged, and recommends the approach with full contracts
+8. **Philip approved API strategy (2026-06-03)** — lightweight GET routes approved (Option 1 in `24_API_CONTRACT_PLAN.md`). All blocking decisions resolved. Plan upgraded to 98% READY_FOR_IMPLEMENTATION.
 
 **What was NOT changed (preserved from first pass):**
 - Implementation sequence phases and step order

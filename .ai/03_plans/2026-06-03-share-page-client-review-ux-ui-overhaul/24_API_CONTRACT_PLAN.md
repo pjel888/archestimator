@@ -2,7 +2,7 @@
 
 **Plan:** Share Page Client Review UX/UI Overhaul
 **Date:** 2026-06-03 (second-pass refinement)
-**Status:** Decision required — resolves API scope contradiction in plan
+**Status:** `APPROVED` — Philip approved Option 1 (lightweight GET routes) on 2026-06-03. Implementation agent should follow the GET route contracts specified below.
 
 ---
 
