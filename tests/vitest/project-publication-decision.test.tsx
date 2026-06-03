@@ -10,6 +10,7 @@ const mocks = vi.hoisted(() => ({
   createSharedLinkSessionCookieName: vi.fn(),
   useSharedLinkSession: vi.fn(),
   // P7 repo extension (additive)
+  resolveProjectPublicationAccessByToken: vi.fn(),
   submitSharedLinkDecision: vi.fn(),
   checkSharedLinkDecisionRateLimit: vi.fn(),
 }));
@@ -28,6 +29,7 @@ vi.mock("@/lib/publication/public-repository", async () => {
   const actual = await vi.importActual("@/lib/publication/public-repository");
   return {
     ...actual,
+    resolveProjectPublicationAccessByToken: mocks.resolveProjectPublicationAccessByToken,
     submitSharedLinkDecision: mocks.submitSharedLinkDecision,
     checkSharedLinkDecisionRateLimit: mocks.checkSharedLinkDecisionRateLimit,
   };
@@ -55,6 +57,13 @@ describe("P7 — Shared Link Decisions API & UI (red tests written FIRST before 
     vi.clearAllMocks();
     mocks.createSharedLinkSessionCookieName.mockReturnValue("shared_link_session_abc123");
     mocks.useSharedLinkSession.mockReturnValue({ isValid: true });
+    mocks.resolveProjectPublicationAccessByToken.mockResolvedValue({
+      publicationId: "pub1",
+      snapshotVersion: 1,
+      passwordRequired: false,
+      status: "published",
+      expiresAt: null,
+    });
     mocks.submitSharedLinkDecision.mockResolvedValue({ id: "decision-123" });
     mocks.checkSharedLinkDecisionRateLimit.mockResolvedValue({ allowed: true });
     // reset fetch spy if any
@@ -105,6 +114,39 @@ describe("P7 — Shared Link Decisions API & UI (red tests written FIRST before 
       expect(json.error).toMatch(/already submitted|duplicate|decision/i);
     });
 
+    it("rejects stale recipient sessions that were issued for an older publication snapshot", async () => {
+      mocks.assertSameOriginPublicPost.mockReturnValue({ ok: true });
+      mocks.resolveProjectPublicationAccessByToken.mockResolvedValue({
+        publicationId: "pub1",
+        snapshotVersion: 2,
+        passwordRequired: false,
+        status: "published",
+        expiresAt: null,
+      });
+      mocks.verifySharedLinkSessionCookieValue.mockImplementation((_value, context) => context.snapshotVersion === 1);
+      const staleSession = "shared-link-session-v1:eyJyZWNpcGllbnRJZCI6InJlY2lwLTEyMyIsInB1YmxpY2F0aW9uSWQiOiJwdWIxIiwic25hcHNob3RWZXJzaW9uIjoiMSJ9:dummy";
+      const req = makeRequest(
+        { decision: "accepted", note: "I approve the old version" },
+        { cookie: `shared_link_session_abc123=${encodeURIComponent(staleSession)}`, "x-archestimator-csrf": "csrf-token-xyz" },
+      );
+
+      const res = await POST(req, params());
+
+      expect(res.status).toBe(401);
+      await expect(res.json()).resolves.toEqual({ error: "Valid recipient session required for decisions." });
+      expect(mocks.verifySharedLinkSessionCookieValue).toHaveBeenCalledWith(
+        staleSession,
+        expect.objectContaining({
+          token: "client-pub-token-123",
+          publicationId: "pub1",
+          snapshotVersion: 2,
+          recipientId: "recip-123",
+        }),
+      );
+      expect(mocks.checkSharedLinkDecisionRateLimit).not.toHaveBeenCalled();
+      expect(mocks.submitSharedLinkDecision).not.toHaveBeenCalled();
+    });
+
     it("accepts valid CSRF + session, calls submitSharedLinkDecision with correct payload, returns 201", async () => {
       mocks.assertSameOriginPublicPost.mockReturnValue({ ok: true });
       mocks.verifySharedLinkSessionCookieValue.mockReturnValue(true);
@@ -121,6 +163,8 @@ describe("P7 — Shared Link Decisions API & UI (red tests written FIRST before 
       expect(mocks.submitSharedLinkDecision).toHaveBeenCalledWith(
         expect.objectContaining({
           publicationToken: "client-pub-token-123",
+          recipientId: "recip-123",
+          expectedSnapshotVersion: 1,
           decision: "revision_requested",
           note: "Please revise pricing on line 3",
         })

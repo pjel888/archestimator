@@ -112,6 +112,21 @@ describe("Codex security findings hardening contracts", () => {
     expect(migrationText).not.toMatch(/grant execute on function public\.insert_client_comment\(text, text, uuid, uuid, text\) to .*\banon\b/);
   });
 
+  it("locks shared-link decisions to the recipient-viewed publication snapshot version", () => {
+    const decisionRoute = read("src/app/api/share/[token]/decision/route.ts");
+    const publicRepository = read("src/lib/publication/public-repository.ts");
+    const latestSubmitClientResponse = latestFunction("submit_client_response");
+
+    expect(migrationText).toContain("drop function if exists public.submit_client_response(text, text, text, text)");
+    expect(latestSubmitClientResponse).toContain("p_expected_snapshot_version integer");
+    expect(latestSubmitClientResponse).toContain("v_snapshot_version is distinct from p_expected_snapshot_version");
+    expect(latestSubmitClientResponse).toContain("p_decision, left(p_note, 2000), p_expected_snapshot_version");
+    expect(decisionRoute).toContain("resolveProjectPublicationAccessByToken(token)");
+    expect(decisionRoute).toContain("snapshotVersion: access.snapshotVersion");
+    expect(publicRepository).toContain("expectedSnapshotVersion: number");
+    expect(publicRepository).toContain("p_expected_snapshot_version: params.expectedSnapshotVersion");
+  });
+
   it("prevents sheet-only collaborators from inheriting project-wide estimate access", () => {
     const originalCollaborationMigration = read("supabase/migrations/20260526142913_project_sheet_collaboration_access.sql");
     const latestCanAccessEstimate = latestFunction("can_access_estimate");

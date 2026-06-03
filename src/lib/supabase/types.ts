@@ -3136,6 +3136,7 @@ export type Database = {
           p_recipient_token_hash: string
           p_decision: string
           p_note: string | null
+          p_expected_snapshot_version: number
         }
         Returns: string
       }
