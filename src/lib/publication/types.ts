@@ -19,6 +19,7 @@ export type ProjectPublicationSummary = {
   expiresAt: string | null;
   passwordRequired: boolean;
   selectedEstimateCount: number;
+  selectedEstimateIds: string[];
   snapshotVersion: number;
   openCount: number;
   latestOpenedAt: string | null;

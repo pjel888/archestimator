@@ -1316,6 +1316,7 @@ export async function getProjectPublicationSummary(projectId: string): Promise<P
     expiresAt: publication?.expires_at ?? null,
     passwordRequired: Boolean(publication?.password_hash),
     selectedEstimateCount: publication?.selected_estimate_ids.length ?? 0,
+    selectedEstimateIds: publication?.selected_estimate_ids ?? [],
     snapshotVersion: publication?.snapshot_version ?? 0,
     openCount: publication?.open_count ?? 0,
     latestOpenedAt: publication?.latest_opened_at ?? null,
