@@ -56,6 +56,16 @@ The cheaper closed-beta provider path is partially proven, but the current Codex
 | 41 | informational | Luna Heights seed estimate is rebuilt then deleted |
 | 42 | informational | Production grid accepts negative estimate numbers |
 
+## Speed Insights Finding Remediation
+
+- Finding: `Unscoped Speed Insights exposes sensitive app URLs`.
+- Repo fix: `5b9c3cb` on `main` removes `@vercel/speed-insights`, the root-layout import, and `<SpeedInsights />`.
+- Production deploy: `dpl_CrCtjK3HfEKszvS44DWdQy8mEj8a`, Ready, target `production`, URL `https://archestimator-rb9kpgrst-philipjonlewis-projects.vercel.app`.
+- Aliases verified by Vercel inspect: `https://www.archestimator.com`, `https://archestimator.com`, and `https://archestimator.vercel.app`.
+- Hosted smoke: `https://www.archestimator.com/api/health` returned HTTP 200 after deploy.
+- HTML marker scan: homepage contained no `SpeedInsights`, `speed-insights`, `/_vercel/speed-insights`, or `va.vercel-scripts.com` markers after deploy.
+- Dashboard status: still pending Codex cloud rescan/closure; do not mark the overall 42-finding blocker closed from this single fix.
+
 ## Immediate Triage Order
 
 1. Fix or disable unscoped Speed Insights on sensitive routes before beta traffic.
