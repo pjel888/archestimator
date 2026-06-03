@@ -1,8 +1,8 @@
 # Agentic-Driven Development Framework Rollout — Index
 
-**Plan folder:** `.ai/03_plans/2026-06-03-agentic-development-framework-rollout`
-**Absolute path:** `/Users/philiplewis/archestimator/.ai/03_plans/2026-06-03-agentic-development-framework-rollout`
-**Current implementation status:** `PHASE_1A_REPO_LOCAL_IMPLEMENTED_PENDING_FINAL_COMMIT_AND_PHASE_1B_NOTION`.
+**Archive folder:** `.ai/09_archive/store/2026-06-03-agentic-development-framework-rollout`
+**Absolute path:** `/Users/philiplewis/archestimator/.ai/09_archive/store/2026-06-03-agentic-development-framework-rollout`
+**Current implementation status:** `PHASE_1A_COMPLETE_PHASE_1B_MIRRORED_ARCHIVED`.
 
 This was originally a plan-refinement package. The 2026-06-04 implementation
 pass has now implemented the Phase 1A repo-local framework artifacts without
@@ -18,8 +18,8 @@ Make the existing Agentic-Driven Development Framework rollout plan honest, spec
 
 | Area | Status |
 |---|---|
-| Phase 1A repo-local implementation | Implemented locally / pending commit hash |
-| Phase 1B Notion mirror plan readiness | Pending Phase 1A commit hash |
+| Phase 1A repo-local implementation | Complete and committed at `539e32a` |
+| Phase 1B Notion mirror | Complete: https://app.notion.com/p/3748e5dd822b8156a7f5f61da243579c |
 | Global enforcement readiness | Not ready |
 | Enforcement implemented | Repo-local docs/payloads only |
 | Closed beta | Cheaper provider path partially proven; hosted OAuth/legal/support gaps still open |

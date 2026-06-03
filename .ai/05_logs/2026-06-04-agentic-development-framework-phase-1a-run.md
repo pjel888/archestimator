@@ -3,8 +3,8 @@
 **Date:** 2026-06-04 local / 2026-06-03 UTC
 **Mode:** implementation, docs-only/framework
 **Branch:** `codex/cheaper-beta-agentic-rollout`
-**Plan folder:** `.ai/03_plans/2026-06-03-agentic-development-framework-rollout`
-**Proof boundary:** repo-local Phase 1A only; Phase 1B Notion mirror pending commit hash.
+**Plan folder:** `.ai/09_archive/store/2026-06-03-agentic-development-framework-rollout`
+**Proof boundary:** repo-local Phase 1A plus Phase 1B Notion mirror proof; global enforcement and launch gates remain separate.
 
 ## Agent Receipt
 
@@ -75,8 +75,14 @@ stop_condition=Phase 1A commit/push then Phase 1B Notion mirror or blocker
   HTTP 200; `https://www.archestimator.com/login` returned title
   `Archestimator | Quote, Proposal &amp; Estimate Workspace`.
 
+## Commit And Mirror Proof
+
+- Phase 1A commit: `539e32a`.
+- Branch push: `origin/codex/cheaper-beta-agentic-rollout`.
+- Notion mirror: https://app.notion.com/p/3748e5dd822b8156a7f5f61da243579c.
+- Notion fetch proof: page returned under `Archestimator Homebase` with the archived plan path on 2026-06-03T18:33:39.234Z.
+
 ## Remaining Gaps
 
-- Phase 1A commit and push are pending.
-- Phase 1B Notion mirror is pending until commit hash exists.
 - Global framework enforcement remains deferred.
+- Hosted OAuth, Resend sending-domain, rollback drill, and owner/legal/support-monitoring gates remain launch blockers.

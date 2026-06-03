@@ -1,5 +1,13 @@
 # Decisions
 
+## 2026-06-03 - Agentic framework Phase 1A/1B archived after Notion mirror
+
+**Decision:** Treat the repo-local agentic development framework rollout as complete for Phase 1A/1B after commit `539e32a`, branch push, and Notion mirror creation under Archestimator Homebase.
+
+**Rationale:** The framework is documentation/payload/playbook enforcement only; global provider/GitHub ruleset enforcement would be a separate higher-risk change.
+
+**Follow-up:** Do not claim closed-beta launch ready until hosted Google OAuth, Resend sending-domain, rollback drill, and owner/legal/support monitoring gates close.
+
 ## Confirmed active decisions
 
 - 2026-06-03 — Closed-beta backup/DR cost posture: do not enable Supabase PITR
@@ -198,7 +206,7 @@ Directive: Future share receiver changes must preserve password and recipient-se
 
 ## 2026-06-03 — Agentic-Driven Development rollout planning baseline
 
-Decision: Use `.ai/03_plans/2026-06-03-agentic-development-framework-rollout/` as the planning package for a future ADD operating framework. Recommended branch model is Option A: keep `main` as protected production/default branch, add `beta` as closed-beta/staging branch after approval, keep `dev` optional and not created by default, and use short-lived `feat/*`, `fix/*`, `hotfix/*`, and `release/*` branches. `.ai` remains canonical implementation truth; Notion is mirror-only.
+Decision: Use `.ai/09_archive/store/2026-06-03-agentic-development-framework-rollout/` as the planning package for a future ADD operating framework. Recommended branch model is Option A: keep `main` as protected production/default branch, add `beta` as closed-beta/staging branch after approval, keep `dev` optional and not created by default, and use short-lived `feat/*`, `fix/*`, `hotfix/*`, and `release/*` branches. `.ai` remains canonical implementation truth; Notion is mirror-only.
 
 Constraint: Planning task only; no production source, dependency, migration, provider, GitHub protection, branch, or direct Notion mutation was in scope.
 Rejected: separate `production` branch with `main` as integration | too much branch/CI/provider migration risk before beta proof is stable.

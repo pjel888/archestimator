@@ -2,8 +2,8 @@
 
 **Date:** 2026-06-04
 **Branch:** `codex/cheaper-beta-agentic-rollout`
-**Plan folder:** `.ai/03_plans/2026-06-03-agentic-development-framework-rollout`
-**Status:** IN_PROGRESS
+**Plan folder:** `.ai/09_archive/store/2026-06-03-agentic-development-framework-rollout`
+**Status:** COMPLETE
 
 ## Scope
 
@@ -29,6 +29,6 @@
 
 - [x] Update active plan completion evidence.
 - [x] Run final docs validation and code-review-graph change detection.
-- [ ] Commit and push Phase 1A.
-- [ ] Perform or block Phase 1B Notion mirror with proof.
-- [ ] Archive plan if completion/blocked status is ready.
+- [x] Commit and push Phase 1A (`539e32a`, pushed to origin).
+- [x] Perform Phase 1B Notion mirror with proof: https://app.notion.com/p/3748e5dd822b8156a7f5f61da243579c.
+- [x] Archive plan if completion/blocked status is ready.

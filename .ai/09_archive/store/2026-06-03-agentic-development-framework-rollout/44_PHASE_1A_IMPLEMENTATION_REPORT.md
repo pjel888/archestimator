@@ -2,7 +2,7 @@
 
 **Date:** 2026-06-04 local / 2026-06-03 UTC
 **Branch:** `codex/cheaper-beta-agentic-rollout`
-**Status:** `PHASE_1A_REPO_LOCAL_IMPLEMENTED_PENDING_FINAL_COMMIT_AND_PHASE_1B_NOTION`
+**Status:** `PHASE_1A_COMPLETE_PHASE_1B_MIRRORED_ARCHIVED`
 
 ## Goal
 
@@ -32,9 +32,7 @@ app code.
 
 ## Proof Boundary
 
-This is repo-local framework implementation only. It does not create global
-enforcement, mutate GitHub rulesets, mutate Notion, mutate providers, enable
-paid Supabase PITR, or prove hosted Google OAuth behavior.
+This is repo-local framework implementation plus a Notion mirror proof. It does not create global enforcement, mutate GitHub rulesets, mutate providers, enable paid Supabase PITR, or prove hosted Google OAuth behavior.
 
 ## Validation
 
@@ -42,12 +40,11 @@ paid Supabase PITR, or prove hosted Google OAuth behavior.
 - ASCII scan passed for new framework/payload/template/playbook files.
 - `git diff --check` passed.
 
-Pending before final closeout:
+Closeout proof:
 
-- code-review-graph detect changes.
-- final git status/diff review.
-- commit and push.
-- Phase 1B Notion mirror or blocker.
+- Phase 1A commit `539e32a` pushed to origin.
+- code-review-graph detect changes passed on the staged Phase 1A diff.
+- Phase 1B Notion mirror created and fetched: https://app.notion.com/p/3748e5dd822b8156a7f5f61da243579c.
 
 ## Bugs Created
 
@@ -58,9 +55,9 @@ Pending before final closeout:
 
 - Functional completeness: 25/25 for Phase 1A repo-local scope.
 - Codebase integration: 20/20; no production source changes.
-- Testing/verification: 18/20 pending final graph detection and post-commit proof.
+- Testing/verification: 20/20 for docs/provider-proof scope.
 - Risk/security/data: 15/15; no secrets or provider mutation.
-- `.ai` documentation/archive hygiene: 9/10 pending archive after Phase 1B outcome.
-- Git/worktree hygiene: 6/10 pending commit, push, merge/cleanup decision.
+- `.ai` documentation/archive hygiene: 10/10 after archive.
+- Git/worktree hygiene: 9/10 after commit and branch push; main merge/cleanup remains separate.
 
-Current score: 93/100 pending final closeout gates. Do not call Phase 1 complete.
+Current score: 99/100 for Phase 1A/1B scope.pending final closeout gates. Do not call Phase 1 complete.
