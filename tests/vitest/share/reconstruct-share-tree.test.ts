@@ -15,6 +15,7 @@ import {
   getBestShareTree,
   wrapTreeWithRoot,
   buildShareTreeFromSnapshotNodes,
+  TREE_CONSTANTS,
   ShareTreeNode,
 } from "@/lib/share/reconstruct-share-tree";
 import type { PublicationSnapshotTreeNode } from "@/lib/publication/types";
@@ -89,6 +90,47 @@ describe("reconstructTreeFromRows (designation-based)", () => {
   it("returns empty array for empty input", () => {
     expect(reconstructTreeFromRows([])).toEqual([]);
   });
+
+  it("bounds hostile long delimiter-heavy designations without dropping the row", () => {
+    const source = publicationSnapshotFixtures.richHierarchical[0];
+    const hostileDesignation = Array.from({ length: 80 }, (_, index) => `Segment${index}`).join(" > ");
+    const rows = [
+      {
+        ...source,
+        id: "hostile-long-designation",
+        designation: hostileDesignation,
+        rowTotal: 12345,
+      },
+    ];
+
+    const tree = reconstructTreeFromRows(rows);
+    const flattened = flattenNodes(tree);
+
+    expect(sumRowCounts(tree)).toBe(1);
+    expect(sumTotals(tree)).toBe(12345);
+    expect(Math.max(...flattened.map((node) => node.depth))).toBeLessThanOrEqual(TREE_CONSTANTS.MAX_DEPTH);
+    expect(flattened.some((node) => node.rows.some((row) => row.id === "hostile-long-designation"))).toBe(true);
+  });
+
+  it("caps oversized designation labels before constructing tree node labels", () => {
+    const source = publicationSnapshotFixtures.richHierarchical[0];
+    const rows = [
+      {
+        ...source,
+        id: "hostile-long-label",
+        designation: "A".repeat(2000),
+        rowTotal: 400,
+      },
+    ];
+
+    const tree = reconstructTreeFromRows(rows);
+    const flattened = flattenNodes(tree);
+
+    expect(flattened[0].label.length).toBeLessThanOrEqual(160);
+    expect(flattened[0].label).not.toBe(rows[0].designation);
+    expect(sumRowCounts(tree)).toBe(1);
+    expect(sumTotals(tree)).toBe(400);
+  });
 });
 
 describe("reconstructTreeByDiscipline (fallback)", () => {
@@ -102,7 +144,7 @@ describe("reconstructTreeByDiscipline (fallback)", () => {
   });
 
   it("caps large discipline lists and creates 'Other Disciplines'", () => {
-    const many = Array.from({ length: 20 }, (_, i) =>
+    const many = Array.from({ length: 20 }, () =>
       publicationSnapshotFixtures.singleDisciplineEdge[0]
     ).map((r, i) => ({ ...r, id: `d-${i}`, discipline: `Disc-${i}` }));
 

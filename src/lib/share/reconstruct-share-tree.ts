@@ -11,7 +11,7 @@ import type { PublicationSnapshotRow, PublicationSnapshotTreeNode } from "@/lib/
  * - A9b: Reuse WorkshopTree<TNode> + read-only renderNode (no new recursion engine).
  * - Designation split on common delimiters with normalization.
  * - Discipline fallback when designation is absent/empty.
- * - Strict DoS guards (MAX_ROWS, MAX_DEPTH).
+ * - Strict DoS guards (MAX_ROWS, MAX_DEPTH, designation length/segment caps).
  * - All output values are safe React children (XSS test required in P3).
  */
 
@@ -28,6 +28,9 @@ export type ShareTreeNode = {
 
 const MAX_ROWS_FOR_TREE = 500;
 const MAX_DEPTH = 20;
+const MAX_DESIGNATION_LENGTH = 2048;
+const MAX_DESIGNATION_SEGMENTS = MAX_DEPTH + 1;
+const MAX_DESIGNATION_SEGMENT_LENGTH = 120;
 const TOP_BUCKET_LIMIT = 8; // For consistency with chart aggregation
 
 const DELIMITER_REGEX = /\s*[>\/\-–—]\s*/; // " > ", ">", " - ", " / ", etc.
@@ -43,13 +46,21 @@ function normalizeDesignation(designation: string | null | undefined): string[] 
   const trimmed = designation.trim();
   if (!trimmed) return [];
 
-  // Split on common delimiters, filter empty segments
-  const parts = trimmed
-    .split(DELIMITER_REGEX)
-    .map((p) => p.trim())
+  const bounded = trimmed.slice(0, MAX_DESIGNATION_LENGTH);
+
+  // Bound split output before allocation can scale with attacker-controlled text.
+  const parts = bounded
+    .split(DELIMITER_REGEX, MAX_DESIGNATION_SEGMENTS)
+    .map((p) => normalizeDesignationSegment(p))
     .filter(Boolean);
 
   return parts.length > 0 ? parts : [];
+}
+
+function normalizeDesignationSegment(segment: string): string {
+  const trimmed = segment.trim();
+  if (trimmed.length <= MAX_DESIGNATION_SEGMENT_LENGTH) return trimmed;
+  return `${trimmed.slice(0, MAX_DESIGNATION_SEGMENT_LENGTH - 3)}...`;
 }
 
 function aggregateRows(rows: PublicationSnapshotRow[]): { total: number; rowCount: number } {
@@ -345,6 +356,9 @@ export function getBestShareTree(
 export const TREE_CONSTANTS = {
   MAX_ROWS_FOR_TREE,
   MAX_DEPTH,
+  MAX_DESIGNATION_LENGTH,
+  MAX_DESIGNATION_SEGMENTS,
+  MAX_DESIGNATION_SEGMENT_LENGTH,
   TOP_BUCKET_LIMIT,
 } as const;
 
