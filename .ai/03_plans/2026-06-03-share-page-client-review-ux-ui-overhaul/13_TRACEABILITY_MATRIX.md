@@ -23,6 +23,8 @@
 | 12 | Decision functionality | AC-FUNC-002 | MUST | `SharePageDecisionBar.tsx` | 4.1, 4.2 | Existing + new tests + manual QA | Decision submission breakage |
 | 13 | Decision state on reload | AC-FUNC-003 | MUST | `SharePageDecisionBar.tsx` | 5.2 | `share-page-decision-state.test.tsx` | GET route not implemented |
 | 14 | Duplicate decision handling | AC-FUNC-004 | MUST | `SharePageDecisionBar.tsx` | 4.1 | Existing decision tests | 409 handling regression |
+| 14a | Comment history loads on mount | AC-FUNC-008 | SHOULD | `SharePageComments.tsx`, GET route | 5.1 | `share-page-comments-state.test.tsx` | GET route not implemented |
+| 14b | Decision state persists on reload | AC-FUNC-009 | SHOULD | `SharePageDecisionBar.tsx`, GET route | 5.2 | `share-page-decision-state.test.tsx` | GET route not implemented |
 | 15 | Password gate preserved | AC-FUNC-005 | MUST | `page.tsx` (password gate path) | Unchanged | Existing publication tests + manual QA | Gate logic accidentally modified |
 | 16 | Recipient session preserved | AC-FUNC-006 | MUST | `RecipientSessionInitializer.tsx` | Unchanged | Existing publication tests + manual QA | Cookie logic accidentally modified |
 | 17 | "Not you?" clears session | AC-FUNC-007 | MUST | `SessionBanner.tsx` | 6.3 | Manual QA: click "Not you?" | Session clear logic regression |

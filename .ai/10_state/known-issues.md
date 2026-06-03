@@ -1,6 +1,8 @@
 # Known Issues / Open Risks
 
-**Last updated:** 2026-06-02
+**Last updated:** 2026-06-03
+
+- **Share page `CostDonutChart` SVG path hydration mismatch (2026-06-03):** The `CostDonutChart` component at `src/components/charts/CostDonutChart.tsx:375` produces a React/Next hydration warning on every `/share/[token]` page load. Server and client D3 computations differ by floating-point precision in the connector path `d` attribute (e.g., `177.28813627494236` vs `177.28813627494233`). The effect is a console warning only — no visual defect — but it erodes client trust in the application. Bug plan: `.ai/15_Bugs/2026-06-03-share-page-cost-donut-chart-hydration-mismatch.md`. Fix plan: `.ai/03_plans/2026-06-03-share-page-client-review-ux-ui-overhaul/15_HYDRATION_FIX_PLAN.md`. Proposed fix: deterministic SVG numeric rounding at 4 decimal places via `src/lib/charts/svg-rounding.ts` utility. The `CostDonutChart` is shared with workshop charts (`ProjectCostDonutChart.tsx` re-export) — fix must not break workshop chart rendering.
 
 ## Current blockers
 
