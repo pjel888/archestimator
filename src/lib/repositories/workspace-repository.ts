@@ -1432,6 +1432,21 @@ type LiveEstimateTreeResult = {
   estimate: Tables<"estimates"> | null;
   selectedNodeId: string | null;
   tree: EstimateTreeNode[];
+  loadLimitState?: LiveEstimateTreeLoadLimitState;
+};
+
+type LiveEstimateTreeLoadOptions = {
+  maxNodeCount?: number;
+  maxRowItemCount?: number;
+};
+
+type LiveEstimateTreeLoadLimitState = {
+  maxNodeCount: number | null;
+  maxRowItemCount: number | null;
+  fetchedNodeCount: number;
+  fetchedRowItemCount: number;
+  didExceedNodeLimit: boolean;
+  didExceedRowItemLimit: boolean;
 };
 
 function getDisplayNodeKind(kind: EstimateNodeKind): EstimateTreeNode["kind"] | null {
@@ -1498,6 +1513,18 @@ function toUiRow(row: EstimateRowItemRow): EstimateRowItem {
   };
 }
 
+function normalizeTreeLoadLimit(value: number | undefined): number | null {
+  return typeof value === "number" && Number.isInteger(value) && value > 0 ? value : null;
+}
+
+function limitTreeRows<T>(rows: T[], limit: number | null): { rows: T[]; didExceedLimit: boolean } {
+  if (!limit) return { rows, didExceedLimit: false };
+  return {
+    rows: rows.slice(0, limit),
+    didExceedLimit: rows.length > limit,
+  };
+}
+
 export function buildEstimateTree(nodes: EstimateNodeRow[], rows: EstimateRowItemRow[]): EstimateTreeNode[] {
   const rowItemsByNode = new Map<string, EstimateRowItem[]>();
   for (const row of rows) {
@@ -1552,7 +1579,11 @@ export function buildEstimateTree(nodes: EstimateNodeRow[], rows: EstimateRowIte
   return sortedRoots;
 }
 
-export async function getProjectEstimateTreeByEstimate(projectId: string, estimateId: string): Promise<LiveEstimateTreeResult> {
+export async function getProjectEstimateTreeByEstimate(
+  projectId: string,
+  estimateId: string,
+  options: LiveEstimateTreeLoadOptions = {},
+): Promise<LiveEstimateTreeResult> {
   const { workspace, project } = await getCurrentWorkspaceProject(projectId);
   if (!project) return { workspace, project, estimate: null, selectedNodeId: null, tree: [] };
 
@@ -1567,18 +1598,37 @@ export async function getProjectEstimateTreeByEstimate(projectId: string, estima
   if (estimateError) throw estimateError;
   if (!estimate) return { workspace, project, estimate: null, selectedNodeId: null, tree: [] };
 
+  const maxNodeCount = normalizeTreeLoadLimit(options.maxNodeCount);
+  const maxRowItemCount = normalizeTreeLoadLimit(options.maxRowItemCount);
+  const nodesQuery = supabase.from("estimate_nodes").select("*").eq("estimate_id", estimate.id).order("sort_order", { ascending: true });
+  const rowsQuery = supabase.from("estimate_row_items").select("*").eq("estimate_id", estimate.id).order("sort_order", { ascending: true });
+
   const [nodesResult, rowsResult] = await Promise.all([
-    supabase.from("estimate_nodes").select("*").eq("estimate_id", estimate.id).order("sort_order", { ascending: true }),
-    supabase.from("estimate_row_items").select("*").eq("estimate_id", estimate.id).order("sort_order", { ascending: true }),
+    maxNodeCount ? nodesQuery.limit(maxNodeCount + 1) : nodesQuery,
+    maxRowItemCount ? rowsQuery.limit(maxRowItemCount + 1) : rowsQuery,
   ]);
 
   if (nodesResult.error) throw nodesResult.error;
   if (rowsResult.error) throw rowsResult.error;
 
-  const nodes = nodesResult.data ?? [];
+  const rawNodes = nodesResult.data ?? [];
+  const rawRows = rowsResult.data ?? [];
+  const limitedNodes = limitTreeRows(rawNodes, maxNodeCount);
+  const limitedRows = limitTreeRows(rawRows, maxRowItemCount);
+  const loadLimitState = maxNodeCount || maxRowItemCount
+    ? {
+      maxNodeCount,
+      maxRowItemCount,
+      fetchedNodeCount: rawNodes.length,
+      fetchedRowItemCount: rawRows.length,
+      didExceedNodeLimit: limitedNodes.didExceedLimit,
+      didExceedRowItemLimit: limitedRows.didExceedLimit,
+    }
+    : undefined;
+  const nodes = limitedNodes.rows;
   const normalizedEstimate = normalizeEstimateRecord(estimate as EstimateRecordWithLegacy);
-  const tree = buildEstimateTree(nodes, rowsResult.data ?? []);
-  return { workspace, project, estimate: normalizedEstimate, selectedNodeId: tree[0]?.id ?? null, tree };
+  const tree = buildEstimateTree(nodes, limitedRows.rows);
+  return { workspace, project, estimate: normalizedEstimate, selectedNodeId: tree[0]?.id ?? null, tree, loadLimitState };
 }
 
 export async function getProjectEstimateTreeByNode(projectId: string, nodeId: string): Promise<LiveEstimateTreeResult> {

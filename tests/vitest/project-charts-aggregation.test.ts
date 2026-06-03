@@ -63,6 +63,19 @@ describe("project chart aggregation", () => {
     expect(repositorySource).not.toContain("restore_estimate_sheet_version_as_copy");
   });
 
+  it("bounds every expensive chart repository read before aggregation", () => {
+    const repositorySource = readFileSync(join(process.cwd(), "src/lib/repositories/project-charts-repository.ts"), "utf8");
+
+    expect(repositorySource).toContain("ESTIMATE_OPTION_LIMIT + 1");
+    expect(repositorySource).toContain("ESTIMATE_ROW_LIMIT + 1");
+    expect(repositorySource).toContain("ESTIMATE_NODE_LIMIT + 1");
+    expect(repositorySource).toContain("CATEGORY_FACT_LIMIT + 1");
+    expect(repositorySource).toContain("SUPPLIER_FACT_LIMIT + 1");
+    expect(repositorySource).toContain("defaultEstimateIds");
+    expect(repositorySource).toContain("didHitRowLimit");
+    expect(repositorySource).toContain("didHitNodeLimit");
+  });
+
   it("treats invalid numeric inputs as zero when calculating row totals", () => {
     expect(
       calculateProjectChartRowTotal({

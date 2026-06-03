@@ -142,7 +142,7 @@ describe("sensitive API auth boundaries", () => {
       "src/app/api/projects/[projectId]/estimates/[estimateId]/export/proposal.xlsx/route.ts",
     );
 
-    expect(source).toContain("getProjectEstimateTreeByEstimate(projectId, estimateId)");
+    expect(source).toContain("getProjectEstimateTreeByEstimate(projectId, estimateId,");
     expect(source).toContain('Cache-Control": "private, no-store"');
     expect(source).toContain('status: 404');
   });
