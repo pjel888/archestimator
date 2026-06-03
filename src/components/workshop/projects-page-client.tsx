@@ -1,7 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useMemo, useState, useSyncExternalStore, useTransition } from "react";
+import { useMemo, useRef, useState, useSyncExternalStore, useTransition, type KeyboardEvent } from "react";
 import { useNavigationRouter } from "@/hooks/use-navigation-router";
 import { Cards, GridFour, Plus, Rows, SquaresFour } from "@phosphor-icons/react/dist/ssr";
 
@@ -57,9 +57,18 @@ const PROJECT_VIEW_MODE_OPTIONS: Array<{
   { value: "medium", label: "Medium thumbnails", icon: GridFour },
   { value: "large", label: "Large thumbnails", icon: Cards },
 ];
-const PROJECT_ACCESS_FILTER_OPTIONS = ["all", "owned", "shared"] as const;
+const PROJECT_ACCESS_TABS = [
+  { id: "your-projects", label: "Your Projects" },
+  { id: "shared-to-you", label: "Projects shared to you" },
+] as const;
 
-type ProjectAccessFilter = (typeof PROJECT_ACCESS_FILTER_OPTIONS)[number];
+type ProjectAccessTab = (typeof PROJECT_ACCESS_TABS)[number]["id"];
+type ProjectAccessTabsProps = {
+  activeTab: ProjectAccessTab;
+  ownedCount: number;
+  sharedCount: number;
+  onTabChange: (tab: ProjectAccessTab) => void;
+};
 
 function normalizeProjectListItem(projectOrItem: Tables<"projects"> | ProjectListItem): ProjectListItem {
   if ("project" in projectOrItem) return projectOrItem;
@@ -145,6 +154,102 @@ function getProjectGridClassName(viewMode: ProjectCardViewMode) {
   return "grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5";
 }
 
+function getProjectAccessTabId(tab: ProjectAccessTab) {
+  return `projects-tab-${tab}`;
+}
+
+function getProjectAccessPanelId(tab: ProjectAccessTab) {
+  return `projects-panel-${tab}`;
+}
+
+function formatProjectCount(count: number) {
+  return `${count} ${count === 1 ? "project" : "projects"}`;
+}
+
+function ProjectAccessTabs({
+  activeTab,
+  ownedCount,
+  sharedCount,
+  onTabChange,
+}: ProjectAccessTabsProps) {
+  const tabRefs = useRef<Record<ProjectAccessTab, HTMLButtonElement | null>>({
+    "your-projects": null,
+    "shared-to-you": null,
+  });
+
+  function activateTab(tab: ProjectAccessTab) {
+    onTabChange(tab);
+    tabRefs.current[tab]?.focus();
+  }
+
+  function handleKeyDown(event: KeyboardEvent<HTMLButtonElement>, currentTab: ProjectAccessTab) {
+    const currentIndex = PROJECT_ACCESS_TABS.findIndex((tab) => tab.id === currentTab);
+    let nextTab: ProjectAccessTab | null = null;
+
+    if (event.key === "ArrowRight") {
+      nextTab = PROJECT_ACCESS_TABS[(currentIndex + 1) % PROJECT_ACCESS_TABS.length].id;
+    } else if (event.key === "ArrowLeft") {
+      nextTab = PROJECT_ACCESS_TABS[(currentIndex - 1 + PROJECT_ACCESS_TABS.length) % PROJECT_ACCESS_TABS.length].id;
+    } else if (event.key === "Home") {
+      nextTab = PROJECT_ACCESS_TABS[0].id;
+    } else if (event.key === "End") {
+      nextTab = PROJECT_ACCESS_TABS[PROJECT_ACCESS_TABS.length - 1].id;
+    }
+
+    if (!nextTab) return;
+    event.preventDefault();
+    activateTab(nextTab);
+  }
+
+  return (
+    <div className="border-b border-hairline bg-white px-2 py-1">
+      <div
+        role="tablist"
+        aria-label="Project access tabs"
+        className="inline-flex max-w-full items-center rounded-xs border border-hairline bg-surfaceMuted p-0.5"
+      >
+        {PROJECT_ACCESS_TABS.map((tab) => {
+          const isActive = activeTab === tab.id;
+          const count = tab.id === "your-projects" ? ownedCount : sharedCount;
+
+          return (
+            <button
+              key={tab.id}
+              id={getProjectAccessTabId(tab.id)}
+              ref={(node) => {
+                tabRefs.current[tab.id] = node;
+              }}
+              type="button"
+              role="tab"
+              aria-controls={getProjectAccessPanelId(tab.id)}
+              aria-label={`${tab.label}, ${formatProjectCount(count)}`}
+              aria-selected={isActive}
+              tabIndex={isActive ? 0 : -1}
+              className={cn(
+                "inline-flex h-6 min-w-0 items-center gap-1 rounded-xs px-2 text-[10px] font-medium leading-3 tracking-normal text-tertiary transition hover:bg-white/70 hover:text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus focus-visible:ring-offset-1",
+                isActive ? "bg-white text-ink shadow-sm" : null,
+              )}
+              onClick={() => activateTab(tab.id)}
+              onKeyDown={(event) => handleKeyDown(event, tab.id)}
+            >
+              <span>{tab.label}</span>
+              <span
+                aria-hidden="true"
+                className={cn(
+                  "ml-1 rounded-xs border border-hairline bg-white/80 px-1 text-[8px] font-medium leading-[10px] text-tertiary",
+                  isActive ? "text-secondary" : null,
+                )}
+              >
+                {count}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 function canSelectProjectForDeletion(item: ProjectListItem) {
   if (item.accessKind === "pending-invite" || item.accessKind === "sheet-member") return false;
   if (item.accessKind === "owned") return true;
@@ -167,7 +272,18 @@ export function ProjectsPageClient({
   const [expandedProject, setExpandedProject] =
     useState<Tables<"projects"> | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
-  const [accessFilter, setAccessFilter] = useState<ProjectAccessFilter>("all");
+  const projectItems = useMemo(() => projects.map(normalizeProjectListItem), [projects]);
+  const ownedProjectItems = useMemo(
+    () => projectItems.filter((item) => item.accessKind === "owned"),
+    [projectItems],
+  );
+  const sharedProjectItems = useMemo(
+    () => projectItems.filter((item) => item.accessKind !== "owned"),
+    [projectItems],
+  );
+  const initialTab: ProjectAccessTab =
+    ownedProjectItems.length === 0 && sharedProjectItems.length > 0 ? "shared-to-you" : "your-projects";
+  const [activeTab, setActiveTab] = useState<ProjectAccessTab>(initialTab);
   const projectViewMode = useSyncExternalStore(
     subscribeProjectViewModePreference,
     readProjectViewModePreference,
@@ -191,18 +307,12 @@ export function ProjectsPageClient({
     return ids;
   }, [favoriteProjectIds, favoriteOverrides]);
 
-  const projectItems = useMemo(() => projects.map(normalizeProjectListItem), [projects]);
-  const hasSharedProjects = projectItems.some((item) => item.accessKind !== "owned");
+  const activeBaseProjects = activeTab === "your-projects" ? ownedProjectItems : sharedProjectItems;
 
-  const filteredProjects = useMemo(() => {
-    const byAccess = projectItems.filter((item) => {
-      if (accessFilter === "owned") return item.accessKind === "owned";
-      if (accessFilter === "shared") return item.accessKind !== "owned";
-      return true;
-    });
-    if (!searchQuery.trim()) return byAccess;
+  const displayProjects = useMemo(() => {
+    if (!searchQuery.trim()) return activeBaseProjects;
     const q = searchQuery.toLowerCase();
-    return byAccess.filter(
+    return activeBaseProjects.filter(
       (item) =>
         item.project.name?.toLowerCase().includes(q) ||
         item.project.client_name?.toLowerCase().includes(q) ||
@@ -210,7 +320,7 @@ export function ProjectsPageClient({
         item.project.location?.toLowerCase().includes(q) ||
         getProjectAccessSearchText(item).includes(q),
     );
-  }, [accessFilter, projectItems, searchQuery]);
+  }, [activeBaseProjects, searchQuery]);
 
   const filteredSamples = useMemo(() => {
     if (!searchQuery.trim()) return sampleProjects;
@@ -224,12 +334,13 @@ export function ProjectsPageClient({
   }, [searchQuery]);
 
   const hasLiveProjects = projectItems.length > 0;
-  const displayProjects = hasLiveProjects ? filteredProjects : EMPTY_PROJECT_LIST_ITEMS;
+  const hasActiveProjects = activeBaseProjects.length > 0;
+  const displayLiveProjects = hasLiveProjects ? displayProjects : EMPTY_PROJECT_LIST_ITEMS;
   const displaySamples = filteredSamples;
   const projectLayoutClassName = getProjectGridClassName(projectViewMode);
   const selectableDisplayProjectIds = useMemo(
-    () => displayProjects.filter(canSelectProjectForDeletion).map((item) => item.project.id),
-    [displayProjects],
+    () => displayLiveProjects.filter(canSelectProjectForDeletion).map((item) => item.project.id),
+    [displayLiveProjects],
   );
   const selectedVisibleProjectIds = useMemo(
     () => selectableDisplayProjectIds.filter((id) => selectedProjectIds.has(id)),
@@ -278,6 +389,54 @@ export function ProjectsPageClient({
         .catch(() => setFavoriteOverrides((current) => ({ ...current, [projectId]: previousFavorite })))
         .finally(() => setPendingFavoriteId(null));
     });
+  }
+
+  function renderCreateProjectAction(ariaLabel: string) {
+    return (
+      <Button
+        type="button"
+        variant="primary"
+        size="sm"
+        onClick={() => setIsModalOpen(true)}
+        aria-label={ariaLabel}
+      >
+        <Plus size={12} weight="regular" aria-hidden="true" />
+        Create project
+      </Button>
+    );
+  }
+
+  function renderTabEmptyState() {
+    const hasSearch = Boolean(searchQuery.trim());
+
+    if (activeTab === "shared-to-you") {
+      return (
+        <EmptyState
+          icon={<SquaresFour size={18} weight="regular" aria-hidden="true" />}
+          title={hasSearch && hasActiveProjects ? "No shared projects match your search" : "No projects shared to you yet"}
+          description={
+            hasSearch && hasActiveProjects
+              ? "Try a project name, owner, invite code, role, or shared sheet."
+              : "When someone invites you as a viewer, editor, admin, or sheet collaborator, the project will appear here."
+          }
+          className="border-0 bg-white"
+        />
+      );
+    }
+
+    return (
+      <EmptyState
+        icon={<SquaresFour size={18} weight="regular" aria-hidden="true" />}
+        title={hasSearch && hasActiveProjects ? "No projects match your search" : "No projects created yet"}
+        description={
+          hasSearch && hasActiveProjects
+            ? "Try an owned project name, client, code, or location."
+            : "Create your first project here, or switch to shared projects to open work others invited you into."
+        }
+        action={hasSearch ? undefined : renderCreateProjectAction("Create your first project")}
+        className="border-0 bg-white"
+      />
+    );
   }
 
   function toggleProjectSelection(projectId: string) {
@@ -351,6 +510,8 @@ export function ProjectsPageClient({
     });
   }
 
+  const inactiveAccessTabs = PROJECT_ACCESS_TABS.filter((tab) => tab.id !== activeTab);
+
   return (
     <WorkshopCollectionLayout
       searchLabel="Search projects"
@@ -362,109 +523,106 @@ export function ProjectsPageClient({
       leadingActions={projectViewModeActions}
       leadingActionsLabel="Project view mode"
       addActions={projectToolbarActions}
+      toolbarPanel={
+        <ProjectAccessTabs
+          activeTab={activeTab}
+          ownedCount={ownedProjectItems.length}
+          sharedCount={sharedProjectItems.length}
+          onTabChange={setActiveTab}
+        />
+      }
     >
-      {hasSharedProjects ? (
-        <div className="mb-2 inline-flex rounded-xs border border-hairline bg-white p-0.5" role="tablist" aria-label="Project access filter">
-          {PROJECT_ACCESS_FILTER_OPTIONS.map((option) => (
-            <button
-              key={option}
-              type="button"
-              role="tab"
-              aria-selected={accessFilter === option}
-              className={cn(
-                "h-6 rounded-xs px-2 text-[10px] font-medium capitalize text-tertiary transition hover:bg-surfaceMuted hover:text-ink",
-                accessFilter === option ? "bg-surfaceMuted text-ink shadow-sm" : null,
-              )}
-              onClick={() => setAccessFilter(option)}
+      <section
+        id={getProjectAccessPanelId(activeTab)}
+        role="tabpanel"
+        aria-labelledby={getProjectAccessTabId(activeTab)}
+        aria-label={activeTab === "your-projects" ? "Your projects" : "Projects shared to you"}
+        className="space-y-2"
+      >
+        <BulkActionToolbar
+          selectedCount={selectedVisibleProjectIds.length}
+          actionLabel="Delete selected projects"
+          helperText="Project deletion blocks active shared links and runs a dependency preview first."
+          onAction={() => openProjectDeletePreview(selectedVisibleProjectIds)}
+          onClear={() => setSelectedProjectIds(new Set())}
+          onSelectVisible={() => setSelectedProjectIds(new Set(selectableDisplayProjectIds))}
+        />
+        {hasLiveProjects ? (
+          displayLiveProjects.length > 0 ? (
+            <section
+              aria-label="Live projects"
+              data-project-view-mode={projectViewMode}
+              className={projectLayoutClassName}
             >
-              {option === "all" ? "All" : option === "owned" ? "Owned" : "Shared"}
-            </button>
-          ))}
-        </div>
-      ) : null}
-      <BulkActionToolbar
-        selectedCount={selectedVisibleProjectIds.length}
-        actionLabel="Delete selected projects"
-        helperText="Project deletion blocks active shared links and runs a dependency preview first."
-        onAction={() => openProjectDeletePreview(selectedVisibleProjectIds)}
-        onClear={() => setSelectedProjectIds(new Set())}
-        onSelectVisible={() => setSelectedProjectIds(new Set(selectableDisplayProjectIds))}
-      />
-      {hasLiveProjects ? (
-        displayProjects.length > 0 ? (
-          <section
-            aria-label="Live projects"
-            data-project-view-mode={projectViewMode}
-            className={projectLayoutClassName}
-          >
-            {displayProjects.map((item) => (
-              <LiveProjectCard
-                key={item.project.id}
-                project={item.project}
-                accessKind={item.accessKind}
-                currentUserRole={item.currentUserRole}
-                ownerWorkspaceName={item.ownerWorkspaceName}
-                pendingInvite={item.pendingInvite}
-                pendingInviteCount={item.pendingInviteCount}
-                publicationSummary={item.publicationSummary}
-                sharedEstimateCount={item.sharedEstimateCount}
-                viewMode={projectViewMode}
-                isFavorite={favoriteIds.has(item.project.id)}
-                favoriteBusy={pendingFavoriteId === item.project.id}
-                selectedForDeletion={selectedProjectIds.has(item.project.id)}
-                selectionDisabledReason={getProjectDeletionDisabledReason(item)}
-                onToggleSelected={canSelectProjectForDeletion(item) ? toggleProjectSelection : undefined}
-                onToggleFavorite={toggleProjectFavorite}
-                onExpand={setExpandedProject}
-              />
-            ))}
+              {displayLiveProjects.map((item) => {
+                const canFavoriteProject = item.accessKind === "owned";
+
+                return (
+                  <LiveProjectCard
+                    key={item.project.id}
+                    project={item.project}
+                    accessKind={item.accessKind}
+                    currentUserRole={item.currentUserRole}
+                    ownerWorkspaceName={item.ownerWorkspaceName}
+                    pendingInvite={item.pendingInvite}
+                    pendingInviteCount={item.pendingInviteCount}
+                    publicationSummary={item.publicationSummary}
+                    sharedEstimateCount={item.sharedEstimateCount}
+                    viewMode={projectViewMode}
+                    isFavorite={canFavoriteProject && favoriteIds.has(item.project.id)}
+                    favoriteBusy={canFavoriteProject && pendingFavoriteId === item.project.id}
+                    selectedForDeletion={selectedProjectIds.has(item.project.id)}
+                    selectionDisabledReason={getProjectDeletionDisabledReason(item)}
+                    onToggleSelected={canSelectProjectForDeletion(item) ? toggleProjectSelection : undefined}
+                    onToggleFavorite={canFavoriteProject ? toggleProjectFavorite : undefined}
+                    onExpand={setExpandedProject}
+                  />
+                );
+              })}
+            </section>
+          ) : (
+            renderTabEmptyState()
+          )
+        ) : activeTab === "your-projects" ? (
+          <section aria-label="Sample project references" className="space-y-2">
+            <EmptyState
+              icon={<SquaresFour size={18} weight="regular" aria-hidden="true" />}
+              title={searchQuery ? "No sample references match" : "Create the first live project"}
+              description={
+                searchQuery
+                  ? "Clear search or create a live project to start estimating from your own scope."
+                  : "Sample cards below are references only. Start a project to create estimates, insert components, and export a bid workbook."
+              }
+              action={renderCreateProjectAction("Create the first project")}
+              className="bg-white"
+            />
+            <div
+              data-project-view-mode={projectViewMode}
+              className={cn(
+                projectViewMode === "large"
+                  ? "grid gap-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
+                  : projectLayoutClassName,
+              )}
+            >
+              {displaySamples.map((project) => (
+                <ProjectCard key={project.id} project={project} />
+              ))}
+            </div>
           </section>
         ) : (
-          <EmptyState
-            icon={<SquaresFour size={18} weight="regular" aria-hidden="true" />}
-            title="No projects match your search"
-            description="Try a project name, client, code, location, shared status, or owner."
-            className="border-0 bg-white"
-          />
-        )
-      ) : (
-        <section aria-label="Sample project references" className="space-y-2">
-          <EmptyState
-            icon={<SquaresFour size={18} weight="regular" aria-hidden="true" />}
-            title={searchQuery ? "No sample references match" : "Create the first live project"}
-            description={
-              searchQuery
-                ? "Clear search or create a live project to start estimating from your own scope."
-                : "Sample cards below are references only. Start a project to create estimates, insert components, and export a bid workbook."
-            }
-            action={
-              <Button
-                type="button"
-                variant="primary"
-                size="sm"
-                onClick={() => setIsModalOpen(true)}
-                aria-label="Create the first project"
-              >
-                <Plus size={12} weight="regular" aria-hidden="true" />
-                Create project
-              </Button>
-            }
-            className="bg-white"
-          />
-          <div
-            data-project-view-mode={projectViewMode}
-            className={cn(
-              projectViewMode === "large"
-                ? "grid gap-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
-                : projectLayoutClassName,
-            )}
-          >
-            {displaySamples.map((project) => (
-              <ProjectCard key={project.id} project={project} />
-            ))}
-          </div>
-        </section>
-      )}
+          renderTabEmptyState()
+        )}
+      </section>
+      {inactiveAccessTabs.map((tab) => (
+        <section
+          key={tab.id}
+          id={getProjectAccessPanelId(tab.id)}
+          role="tabpanel"
+          aria-labelledby={getProjectAccessTabId(tab.id)}
+          aria-label={tab.label}
+          hidden
+        />
+      ))}
 
       {isModalOpen && <NewProjectModal onClose={() => setIsModalOpen(false)} />}
       {expandedProject ? (

@@ -117,6 +117,7 @@ export function LiveProjectCard({
   const isPendingInvite = accessKind === "pending-invite";
   const isExpiredPendingInvite = isPendingInvite && pendingInvite?.state === "expired";
   const isSharedAccess = accessKind !== "owned" && !isPendingInvite;
+  const canToggleFavorite = Boolean(onToggleFavorite) && !isPendingInvite;
   const livePublication = publicationSummary?.status === "published" ? publicationSummary : null;
   const openLabel = accessKind === "sheet-member" && sharedEstimateCount === 1 ? "Open sheet" : "Open";
   const projectHref = `/workshop/projects/${project.id}`;
@@ -189,26 +190,28 @@ export function LiveProjectCard({
                 onChange={() => onToggleSelected?.(project.id)}
               />
             </label>
-            <Button
-              type="button"
-              variant="secondary"
-              size="icon-sm"
-              className={`absolute left-10 top-2 size-7 border-white/70 bg-white/86 shadow-sm backdrop-blur hover:bg-white disabled:cursor-wait disabled:opacity-70 ${
-                isFavorite
-                  ? "text-orange-600 hover:text-orange-700"
-                  : "text-tertiary hover:text-ink"
-              }`}
-              aria-label={
-                isFavorite
-                  ? `Remove ${project.name} from favorite projects`
-                  : `Add ${project.name} to favorite projects`
-              }
-              aria-pressed={isFavorite}
-              disabled={favoriteBusy}
-              onClick={() => onToggleFavorite?.(project.id, !isFavorite)}
-            >
-              <Star size={13} weight="regular" aria-hidden="true" />
-            </Button>
+            {canToggleFavorite ? (
+              <Button
+                type="button"
+                variant="secondary"
+                size="icon-sm"
+                className={`absolute left-10 top-2 size-7 border-white/70 bg-white/86 shadow-sm backdrop-blur hover:bg-white disabled:cursor-wait disabled:opacity-70 ${
+                  isFavorite
+                    ? "text-orange-600 hover:text-orange-700"
+                    : "text-tertiary hover:text-ink"
+                }`}
+                aria-label={
+                  isFavorite
+                    ? `Remove ${project.name} from favorite projects`
+                    : `Add ${project.name} to favorite projects`
+                }
+                aria-pressed={isFavorite}
+                disabled={favoriteBusy}
+                onClick={() => onToggleFavorite?.(project.id, !isFavorite)}
+              >
+                <Star size={13} weight="regular" aria-hidden="true" />
+              </Button>
+            ) : null}
             <Button
               type="button"
               variant="secondary"

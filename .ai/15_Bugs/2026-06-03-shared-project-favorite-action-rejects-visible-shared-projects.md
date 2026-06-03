@@ -3,7 +3,7 @@
 **Date:** 2026-06-03
 **Bug slug:** `shared-project-favorite-action-rejects-visible-shared-projects`
 **Classification:** `NON_BLOCKING_CURRENT_PLAN` if favorite controls are suppressed in the tab feature; `BLOCKING_CURRENT_PLAN` if implementation leaves favorite controls visible for shared cards.
-**Status:** `OPEN_PLANNED_FOR_SUPPRESSION_OR_FIX`
+**Status:** `RESOLVED_IN_FEATURE`
 
 ## Summary
 
@@ -101,3 +101,15 @@ bun run validate
 ## Blocks implementation?
 
 It does not block the tab feature if favorite controls are suppressed for non-owned cards. It blocks implementation if the shared tab ships while leaving the broken control visible.
+
+
+## Resolution evidence
+
+Resolved in the Projects Page Access Tabs implementation on branch `feat/projects-page-access-tabs-plan`:
+
+- `ProjectsPageClient` now passes favorite state and `onToggleFavorite` only for `accessKind === "owned"` cards.
+- `LiveProjectCard` now renders the favorite star only when a favorite handler is provided and the card is not a pending invite.
+- `tests/vitest/projects-page-access-tabs.test.tsx` asserts owned cards retain the favorite action while shared cards do not expose broken favorite controls.
+- Focused and full validation passed locally: targeted access-tabs DOM suite, focused projects-page suites, `bun run type-check`, `bun run lint`, `bun run lint:design-system`, `bun run test`, `bun run test:dom`, `bun run validate`, and `bun run build`.
+
+Shared-project favorites remain a separate future product/data-model decision; this feature intentionally suppresses the broken non-owned favorite control rather than widening server authorization or schema.
