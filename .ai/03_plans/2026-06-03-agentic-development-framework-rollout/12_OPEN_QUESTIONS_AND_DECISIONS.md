@@ -1,30 +1,27 @@
 # Open Questions and Decisions
 
-## Decisions made by this refinement
-- `.ai/12_agents` remains the canonical agent contract folder.
-- `.agents/` exists and should be treated as a skills/playbook compatibility folder, not the canonical brain.
-- A future `.agents/README.md` thin pointer is recommended because `.agents` is present.
-- Gemini remains deprecated unless Philip explicitly reapproves it.
-- Ollama remains non-agent; only approved embedding use may remain.
-- Notion is mirror-only.
-- Keep `main` as default/production branch; add `beta` only after approval; no permanent `dev` branch unless volume proves need.
-- GitHub rulesets/protections should be advisory/dry-run first.
+## Decisions made
 
-## Items requiring Philip
-1. Should Hermes get an active payload, or should Hermes be removed from active roster?
-2. Should Cursor get an active payload/rules file, or remain MCP/config-only?
-3. Should `.agents/README.md` compatibility shim be created in Phase 1? Recommendation: yes, thin pointer only.
-4. Should root `GEMINI.md` be retained with deprecated notice or archived/removed? Recommendation: retain with fail-closed notice until tool behavior is known.
-5. Which agents may edit source in production-sensitive windows? Recommendation: Codex primary, Kimi UI when isolated, Antigravity isolated, CommandCode only when assigned, Claude/DeepSeek mostly review.
-6. Which agents may touch `.github`? Recommendation: only lead/Codex with Philip approval; reviewers read-only.
-7. Which agents may prepare provider commands? Recommendation: prepare-only by lead/reviewer; execute only with Philip approval.
-8. Which agents require isolated worktrees? Recommendation: all write-capable parallel agents.
+- Phase 1A is repo-local framework implementation.
+- Phase 1B is a hard Notion mirror completion gate for the phrase `Phase 1 complete`.
+- Notion is mirror-only and must never override `.ai`/source/test/provider evidence.
+- Gemini remains deprecated unless Philip explicitly reapproves.
+- Ollama remains non-agent/embedding-only unless Philip explicitly approves and documents local chat use.
+- GitNexus cannot be claimed ready while the live CLI fails; use code-review-graph/fallback.
+- Global enforcement is not ready and is 0% implemented.
+- Closed beta remains NO-GO.
 
-## Items implementation agent may decide
-- Exact wording of payload fields if schema is preserved.
-- Whether to create `ollama.md` as non-agent prohibition or include the prohibition in README only.
-- Prompt template filenames under `.ai/08_prompts/templates`.
-- Run-log filename convention if it matches `30_AGENT_RUN_LOG_EVIDENCE_AND_MEMORY_PROTOCOL.md`.
+## Open questions requiring Philip or implementation-time fail-closed decision
 
-## No hidden ambiguity
-All open decisions above can be deferred without blocking Phase 1 docs/payload standardization if unresolved lanes are represented as conditional, deprecated, unapproved, or non-agent fail-closed payloads. Phase 1 must not silently activate Hermes, Cursor, Gemini, Ollama chat, `.github` mutation, provider prep execution, or Notion mutation without Philip approval.
+1. Hermes active payload vs remove/fail-close from active roster.
+2. Cursor active agent lane vs MCP/config-only.
+3. Root `GEMINI.md` retained with fail-closed notice vs archived/removed.
+4. `.gemini/ralph/state.json` archive/remove/leave-with-deprecation decision.
+5. Root `AGENTS.md` and `CLAUDE.md` stale facts repaired in Phase 1A vs separate root-doc sync.
+6. Exact Notion parent/database for framework mirror.
+7. Whether Philip explicitly waives/defers Phase 1B; default is it blocks `Phase 1 complete`.
+8. When GitHub rulesets become enforced; default is after dry-runs/evals and approval.
+
+## Implementation-agent decisions allowed
+
+If uncertain, choose fail-closed/conditional/unapproved/deprecated/non-agent status. Do not silently activate missing or ambiguous lanes.

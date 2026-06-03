@@ -74,3 +74,7 @@ No. The `.ai` canonical drift is resolved for this plan. Root `README.md` remain
 ## Plan reference
 
 `.ai/03_plans/2026-06-03-agentic-development-framework-rollout/02_CODEBASE_RESEARCH.md`
+
+## 2026-06-03 addendum — Notion mirror drift
+
+Read-only Notion audit found the `05 Engineering and Architecture` page also carries stale stack facts: React/React DOM `19.2.4` and Supabase JS `2.105.4`, while live `package.json` records React/React DOM `19.2.6` and Supabase JS `2.106.2`. This is now tracked in `.ai/15_Bugs/2026-06-03-notion-agent-framework-mirror-and-stack-drift.md` and must be corrected during Phase 1B Notion sync.
