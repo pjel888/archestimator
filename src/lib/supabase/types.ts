@@ -3127,6 +3127,7 @@ export type Database = {
           p_estimate_id: string | null
           p_row_id: string | null
           p_body: string
+          p_expected_snapshot_version: number
         }
         Returns: string
       }

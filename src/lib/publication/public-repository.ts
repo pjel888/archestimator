@@ -819,10 +819,15 @@ export async function loadSharedLinkRecipientDecision({
 export async function insertSharedLinkComment(params: {
   publicationToken: string;
   recipientId: string;
+  expectedSnapshotVersion: number;
   body: string;
   estimateId?: string | null;
   rowId?: string | null;
 }): Promise<{ id: string }> {
+  if (!Number.isInteger(params.expectedSnapshotVersion) || params.expectedSnapshotVersion < 1) {
+    throw new Error("Expected snapshot version is required.");
+  }
+
   const supabase = createPublicationServiceClient();
   const pubHash = readTokenHash(params.publicationToken); // uses same secret as P3/P4/P5
 
@@ -849,6 +854,7 @@ export async function insertSharedLinkComment(params: {
     p_estimate_id: params.estimateId ?? null,
     p_row_id: params.rowId ?? null,
     p_body: sanitizedBody,
+    p_expected_snapshot_version: params.expectedSnapshotVersion,
   });
 
   if (rpcErr) throw new Error(rpcErr.message);
