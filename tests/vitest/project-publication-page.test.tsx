@@ -55,6 +55,7 @@ const sharePrintSource = existsSync("src/app/share/print.css") ? readFileSync("s
 describe("shared link (receiver publication) page — Shared Link Overhaul V2", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    process.env.NEXT_PUBLIC_SUPABASE_URL = "https://example.supabase.co";
     vi.stubGlobal("fetch", vi.fn(async () => ({ ok: true })) as unknown as typeof fetch);
     mocks.cookieGet.mockReturnValue(undefined);
     mocks.resolveSharedLinkRecipientIdentity.mockResolvedValue(null);
@@ -723,6 +724,38 @@ describe("shared link (receiver publication) page — Shared Link Overhaul V2", 
       const noThumbs = c2.querySelectorAll('img[width="32"]');
       // either 0 or only non-32px (none expected for missing)
       expect(noThumbs.length).toBe(0);
+    });
+
+    it("does not render unsafe image URLs from legacy public snapshots", async () => {
+      const SharePageHero = (await import("@/components/share/SharePageHero")).default;
+      const { container: heroContainer } = render(
+        <SharePageHero
+          project={{
+            ...heroProject,
+            coverImageUrl: "https://tracker.example/cover.svg?recipient=client",
+          }}
+        />,
+      );
+      expect(heroContainer.querySelector("img")).toBeNull();
+
+      const SharePageTabs = (await import("@/components/share/SharePageTabs")).default;
+      const unsafeEstimate: PublicationSnapshotEstimate = {
+        ...estimateWithThumbRow,
+        rows: [
+          {
+            ...rowWithThumb,
+            imageUrl: "data:image/svg+xml,<svg></svg>",
+          },
+        ],
+      };
+      const { container } = render(
+        <SharePageTabs estimates={[unsafeEstimate]} currencyCode="PHP" token="unsafe-image-token" />,
+      );
+      await userEvent.click(screen.getByRole("tab", { name: /grid preview/i }));
+
+      expect(container.querySelector('img[src*="tracker.example"]')).toBeNull();
+      expect(container.querySelector('img[src^="data:"]')).toBeNull();
+      expect(container.querySelector('img[width="32"]')).toBeNull();
     });
 
     it("receiver surfaces (tabs, side panels) include responsive hooks: horizontal scroll on tabs (already), sticky decision affordance, safe-area-inset-bottom padding for mobile bars", async () => {

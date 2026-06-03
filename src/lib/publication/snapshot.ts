@@ -1,3 +1,4 @@
+import { normalizePublicationImageUrl } from "@/lib/publication/image-url";
 import type { ProjectPublicationSnapshot, PublicationSnapshotEstimate, PublicationSnapshotRow, PublicationSnapshotTreeNode } from "@/lib/publication/types";
 
 type SnapshotProjectInput = {
@@ -72,7 +73,7 @@ function buildSnapshotRow(row: SnapshotRowInput): PublicationSnapshotRow {
     contingencyPercentage: toFiniteNumber(row.contingencyPercentage),
     rowTotal: calculateRowTotal(row),
     // P9 additive (undefined/null if absent in source_snapshot at publish)
-    imageUrl: row.imageUrl ?? null,
+    imageUrl: normalizePublicationImageUrl(row.imageUrl),
     nodeId: row.nodeId ?? null,
   };
 }
@@ -129,10 +130,18 @@ export function buildProjectPublicationSnapshot({
   estimates: SnapshotEstimateInput[];
 }): ProjectPublicationSnapshot {
   const snapshotEstimates = estimates.map(buildSnapshotEstimate);
+  const snapshotProject =
+    "coverImageUrl" in project
+      ? {
+          ...project,
+          coverImageUrl: normalizePublicationImageUrl(project.coverImageUrl),
+        }
+      : project;
+
   return {
     schemaVersion: 1,
     generatedAt,
-    project,
+    project: snapshotProject,
     estimateCount: snapshotEstimates.length,
     rowCount: snapshotEstimates.reduce((total, estimate) => total + estimate.rowCount, 0),
     totalCost: snapshotEstimates.reduce((total, estimate) => total + estimate.totalCost, 0),
