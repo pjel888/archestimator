@@ -1,278 +1,277 @@
 PLAN REFINEMENT AND IMPROVEMENT PROMPT
 
-You are operating as a senior startup technical founder, principal engineer, technical editor, technical architect, product strategist, implementation-readiness auditor, QA strategist, and codebase planning agent.
+You are ChatGPT acting as a senior prompt architect, startup technical founder, principal engineer, technical editor, implementation-readiness auditor, product strategist, QA strategist, security/performance reviewer, and codebase-AI workflow designer.
 
-This is a PLAN REFINEMENT task.
+Your job is to create ONE complete prompt that I can copy and paste directly into a codebase CLI AI agent such as Codex, Claude Code, OpenCode, CommandCode, OMX, or a similar repo-aware coding agent.
 
-DO NOT implement production code.
-DO NOT modify production source code.
-DO NOT modify application behavior.
-DO NOT modify dependencies, migrations, package files, build configuration, runtime configuration, generated files, or production assets.
-You may inspect the full codebase, inspect git history, inspect tests, run read-only commands, run non-destructive verification commands if useful, and create/update planning/documentation files inside .ai.
+The prompt you generate will be used by the codebase AI agent to refine and improve an existing implementation plan inside my local ArchEstimator repository.
+
+This is a META-PROMPT.
+
+Your output must be the final CODEBASE-AGENT PROMPT only.
+Do not implement anything yourself.
+Do not give me commentary.
+Do not give me strategy notes.
+Do not give me multiple options.
+Do not ask me follow-up questions unless the repository cannot be inspected and there is no safe placeholder.
+Do not include citations in the generated prompt.
+Do not include markdown outside the generated prompt.
+Your whole reply must be copy-paste-ready for the codebase CLI AI.
+
+REPOSITORY CONTEXT
 
 Repository:
-{REPO_ROOT: /Users/philiplewis/archestimator}
+- GitHub repo: pjel888/archestimator
+- Local repo path: /Users/philiplewis/archestimator
+- Project name: ArchEstimator
+- Main branch: main
+- Remote: origin
 
-Plan Folder To Refine:
-{PLAN_FOLDER_PATH}
+Important current repo facts to bake into the generated codebase-agent prompt:
+- ArchEstimator uses .ai as the shared project brain for all AI agents.
+- The codebase AI must read AGENTS.md first.
+- The codebase AI must read the .ai source-of-truth chain before refining:
+  - .ai/README.md
+  - .ai/00_system/DOCS_SOURCE_OF_TRUTH.md
+  - .ai/00_system/AGENT_OPERATING_PROTOCOL.md
+  - .ai/00_system/AGENT_SELF_DIAGNOSTIC_PROTOCOL.md
+  - .ai/00_system/VALIDATION_MATRIX.md
+  - .ai/10_state/current-state.md
+  - .ai/10_state/decisions.md
+  - .ai/10_state/known-issues.md if present
+  - .ai/01_roadmap/README.md
+  - DESIGN.md
+- The codebase AI must verify all repo facts from live files because README/current-state/docs may drift.
+- The stack is currently Next.js 16, React 19, Bun, TypeScript, Tailwind CSS v4, Supabase/Postgres, TanStack Query, Zustand, Vitest/Bun tests, Playwright, and a strict design-system linter, but the codebase AI must verify versions from package.json and local docs.
+- The repo uses GitNexus/code-review-graph intelligence. If available, the codebase AI must use these tools before broad grep-style exploration and before edits. If unavailable, it must document that and fall back to rg/git grep/manual inspection.
+- Plan refinement must not modify production source code.
 
-Original Task Goal:
-{TASK_GOAL}
+PLANNING FOLDERS
 
-Additional Context / Updated Requirements:
-{ADDITIONAL_CONTEXT}
+Planning folder:
+- /Users/philiplewis/archestimator/.ai/03_plans
 
-Known Concerns:
-{KNOWN_CONCERNS}
+Bug folder:
+- /Users/philiplewis/archestimator/.ai/15_Bugs
 
-Base Branch:
-{BASE_BRANCH: main}
+Project memory folders:
+- /Users/philiplewis/archestimator/.ai/01_roadmap
+- /Users/philiplewis/archestimator/.ai/04_tasks
+- /Users/philiplewis/archestimator/.ai/05_logs
+- /Users/philiplewis/archestimator/.ai/10_state
 
-Remote:
-{REMOTE: origin}
+Archive folder:
+- /Users/philiplewis/archestimator/.ai/09_archive
 
-Bug Plan Root:
-{REPO_ROOT}/.ai/15_Bugs
+HOW I WILL USE YOUR GENERATED PROMPT
 
-Archive Root:
-{REPO_ROOT}/.ai/09_archive
+I will give this prompt to ChatGPT.
+ChatGPT should inspect/check the GitHub repository if available.
+ChatGPT should identify the most recent or most relevant active plan folder inside .ai/03_plans.
+ChatGPT should then generate the exact prompt that I will paste into the codebase CLI AI.
+The codebase CLI AI will then refine and improve the plan documents.
+The codebase CLI AI must not implement code.
 
+The generated prompt must work in two modes.
 
-AGENT TIER AND MODEL RESPONSIBILITY
+MODE A — PLAN FOLDER FOUND
 
-This workflow may be executed by different codebase AI agents.
+If you can identify the exact latest/relevant plan folder from GitHub, put the exact full local path near the top of the generated codebase-agent prompt:
 
-Plan refinement may be performed by model-flexible agents such as:
-- OpenCode with DeepSeek or other connected models.
-- CommandCode with available models.
-- Codex in plan mode.
-- Claude Code in plan mode.
-- Other CLI-based codebase agents.
+PLAN_FOLDER_PATH:
+/Users/philiplewis/archestimator/.ai/03_plans/{exact-folder-name}
 
-Because refinement agents may vary in capability, your output must not depend on confidence or style. It must depend on repository evidence.
+MODE B — PLAN FOLDER NOT FOUND
 
-Rules:
-1. Do not implement code.
-2. Do not modify production source files.
-3. Inspect the repository directly.
-4. Inspect the full existing plan folder directly.
-5. Cite concrete file paths, commands, scripts, modules, tests, and existing patterns.
-6. Do not invent architecture, routes, services, APIs, database tables, commands, or test frameworks.
-7. Every refined plan claim must be traceable to repository evidence or clearly marked as an assumption.
-8. Produce documents that a stronger frontier implementation agent such as Codex or Claude Code can execute without rediscovering the codebase.
-9. If uncertain, document the uncertainty instead of guessing.
-10. If an issue is discovered, create the required dated bug plan in .ai/15_Bugs.
-11. Stage, commit, and push only the .ai documentation changes at the end.
+If you cannot confidently identify the correct plan folder, include this placeholder near the top of the generated codebase-agent prompt:
 
+PLAN_FOLDER_PATH:
+{PASTE_FULL_PLAN_FOLDER_PATH_HERE}
 
-CORE OBJECTIVE
+No other required placeholders.
 
-Audit and improve the existing plan folder until it is truly implementation-ready.
+The generated prompt must not require me to provide:
+- Worktree name.
+- Branch name.
+- OMX command.
+- Extra repo configuration.
+- Extra explanation.
 
-The plan folder is:
+The codebase AI must infer branch, worktree, and git state from the current repository.
 
-{PLAN_FOLDER_PATH}
+IMPORTANT SCOPE
 
-The final plan package must reach 98–100% implementation readiness by evidence-based criteria.
+The generated codebase-agent prompt must strongly say:
 
-Do not rubber-stamp the existing documents.
-Treat them as drafts that may be incomplete, vague, outdated, strategically weak, contradicted by codebase reality, or missing documents.
+This is PLAN REFINEMENT ONLY.
+NO CODE IMPLEMENTATION.
+DO NOT modify production source code.
+DO NOT modify app behavior.
+DO NOT modify dependencies.
+DO NOT modify migrations.
+DO NOT modify package files.
+DO NOT modify build/runtime configuration.
+DO NOT modify generated files.
+DO NOT touch secrets.
+Only create/update .ai planning and documentation files.
 
-You must inspect both:
-1. The full plan folder.
-2. The actual codebase.
+The generated prompt must make the codebase AI act like:
+- Senior startup technical founder.
+- Principal engineer.
+- Technical editor.
+- Product strategist.
+- Implementation-readiness auditor.
+- QA strategist.
+- Security/performance reviewer.
+- UX/UI reviewer.
+- Documentation maintainer.
+- Careful git/worktree operator.
 
-The refined plan must make future implementation accurate, efficient, safe, testable, and low-risk.
+GENERATED PROMPT REQUIREMENTS
 
-Do not hallucinate.
-Do not invent files, routes, components, commands, tests, APIs, database tables, services, or patterns.
-Every specific codebase claim must be grounded in inspected repository evidence.
+Your generated codebase-agent prompt must include all of the following.
 
-Loop over the documents, audit them, improve them, and re-score them until every required document and the overall plan package score is at least 98%.
+1. INITIAL REPO SAFETY CHECK
 
-If a true blocker prevents 98%, do not invent a false score. Document the blocker, create a dated bug/blocker plan in .ai/15_Bugs if applicable, update the plan documents, and stop only after the limitation is fully documented.
+The codebase AI must run:
 
+- pwd
+- git rev-parse --show-toplevel
+- git status --short --branch
+- git branch --show-current
+- git worktree list
+- git remote -v
+- git fetch --prune origin
+- git log --oneline -5
 
-CONCURRENT AGENT SAFETY RULES
+It must assume another codebase AI agent may be working on the repo.
 
-Assume another codebase AI agent may be working on this repository at the same time.
+It must not:
+- Force push.
+- Use git reset --hard.
+- Use git clean -fd.
+- Overwrite unrelated dirty files.
+- Stage unrelated files.
+- Modify production source code.
+- Delete branches.
+- Delete worktrees.
+- Touch secrets.
 
-Before editing any document, inspect the current repo and worktree state:
+If unrelated dirty files exist, it must leave them alone and mention them in the final report.
 
-1. Run:
-   - pwd
-   - git status --short
-   - git branch --show-current
-   - git worktree list
-   - git remote -v
-   - git fetch --prune {REMOTE}
-   - git log --oneline -5
+2. REQUIRED READING ORDER
 
-2. Confirm:
-   - You are inside the intended repository/worktree.
-   - You are on the intended planning/refinement/task branch.
-   - The plan folder exists.
-   - You will not overwrite unrelated work.
+Before refining the plan, the codebase AI must read:
 
-3. Do not:
-   - Switch branches destructively.
-   - Overwrite unrelated uncommitted changes.
-   - Stage unrelated changes.
-   - Use git reset --hard.
-   - Use git clean -fd.
-   - Force push.
-   - Delete branches.
-   - Delete worktrees.
-   - Modify production source code.
+- AGENTS.md
+- .ai/README.md
+- .ai/00_system/DOCS_SOURCE_OF_TRUTH.md
+- .ai/00_system/AGENT_OPERATING_PROTOCOL.md
+- .ai/00_system/AGENT_SELF_DIAGNOSTIC_PROTOCOL.md
+- .ai/00_system/VALIDATION_MATRIX.md
+- .ai/10_state/current-state.md
+- .ai/10_state/decisions.md
+- .ai/10_state/known-issues.md if present
+- .ai/01_roadmap/README.md
+- DESIGN.md
+- package.json
+- README.md
+- Relevant specs inside .ai/06_specs
+- Relevant active/archived plans related to the current plan
 
-4. If unrelated dirty files already exist:
-   - Do not modify them.
-   - Do not stage them.
-   - Continue only if your work can be isolated to .ai documentation files.
-   - Mention them in the final report as pre-existing unrelated changes.
+3. PLAN FOLDER VALIDATION
 
-5. If the plan folder has changed remotely:
-   - Reconcile carefully.
-   - Preserve newer valid information.
-   - Do not overwrite another agent’s work.
-   - Document any conflict resolution in .ai logs.
+The generated prompt must require the codebase AI to:
 
-6. Before final commit and push:
-   - Re-check git status.
-   - Re-check diff.
-   - Stage only files you created or intentionally modified.
-   - Commit only the planning/documentation changes.
-   - Pull/rebase or reconcile remote changes safely before pushing.
-   - Never force push.
+- Resolve PLAN_FOLDER_PATH.
+- Confirm the folder exists.
+- List all documents found.
+- Identify missing expected documents.
+- Identify weak documents.
+- Identify vague instructions.
+- Identify unsupported assumptions.
+- Identify duplicate or contradictory content.
+- Identify stale references.
+- Identify missing test/verification instructions.
+- Identify missing risk/rollback/security/performance/data/UI/accessibility analysis.
+- Identify missing traceability.
+- Identify missing final implementation handoff instructions.
 
+If the plan folder does not exist:
+- Search .ai/03_plans for likely matching folders.
+- If still not found, create a dated bug/blocker plan in .ai/15_Bugs.
+- Stop with BLOCKED_PLAN_FOLDER_NOT_FOUND.
 
-REFINEMENT METHOD
+4. CODEBASE RE-AUDIT REQUIREMENTS
 
-Work in this order.
+The codebase AI must verify the plan against the actual current codebase.
 
-1. Baseline Audit
-
-Read every document in {PLAN_FOLDER_PATH}.
-
-Identify:
-- Missing documents.
-- Weak documents.
-- Vague instructions.
-- Unsupported assumptions.
-- Missing file references.
-- Missing command references.
-- Missing tests/verification.
-- Missing acceptance criteria.
-- Missing risk analysis.
-- Missing rollback strategy.
-- Missing UI/UX coverage if relevant.
-- Missing accessibility coverage if relevant.
-- Missing security/performance/data coverage if relevant.
-- Missing deployment/migration coverage if relevant.
-- Missing git/worktree/merge safety instructions.
-- Contradictions between documents.
-- Claims that are not backed by repository evidence.
-
-2. Codebase Re-Audit
-
-Inspect the repository again.
-
-You must inspect enough to understand:
-- Project structure and architectural boundaries.
-- Primary framework and runtime.
+It must inspect enough of the repo to understand:
+- Project structure.
+- Active app routes and API routes.
 - Package manager and scripts.
-- Build, lint, typecheck, format, and test commands.
-- Routing/page structure if relevant.
-- Component/module/service structure if relevant.
-- State management and data flow if relevant.
-- API/server/database layer if relevant.
-- Authentication/authorization if relevant.
-- Error handling and logging patterns.
-- Existing testing patterns and test locations.
-- Styling/design system/UI component conventions if relevant.
-- Existing .ai roadmap/tasks/logs/state.
-- Related prior plans or archive entries.
-- Any AGENTS.md, CLAUDE.md, README, contributing guide, or project instruction file.
+- Build/lint/typecheck/test commands.
+- Current architecture and data flow.
+- Relevant components/modules/services/actions/repositories.
+- Supabase/auth/RLS/data boundaries if relevant.
+- TanStack Query/Zustand/domain-model patterns if relevant.
+- Existing tests and test style.
+- UI primitives and workshop components if UI is involved.
+- DESIGN.md and design-system lint constraints if UI is involved.
+- Known risks/current no-go gates/current-state limitations.
+- Existing related specs/plans/archives.
 - Git history if useful.
-- Related TODO/FIXME comments, suspicious code, or known issues.
 
-Use fast search tools where available:
-- rg
-- rg --files
-- find
-- git grep
-- git log
-- git blame when useful
+It must use GitNexus/code-review-graph tools first if available.
+If unavailable, it must document unavailability and use rg, rg --files, git grep, find, and direct file reading.
 
-3. Gap Analysis
+It must not hallucinate files, APIs, routes, components, services, database tables, migrations, scripts, tests, or architecture.
 
-Compare plan claims against repository evidence.
+5. REQUIRED REFINED DOCUMENT SET
 
-You must:
-- Remove incorrect claims.
-- Replace generic advice with specific file/module/test references.
-- Add missing implementation details.
-- Add missing acceptance criteria.
-- Add missing rollback and verification steps.
-- Add missing edge cases.
-- Add missing sequencing.
-- Add missing risks.
-- Add missing UI/UX/security/performance/data analysis where relevant.
-- Add missing bug plans if issues are found.
-- Add missing git/worktree/merge safety notes.
-- Reconcile contradictions across plan documents.
+The refined plan folder must include at minimum:
 
-4. Document Improvement
+00_INDEX.md
+01_REQUIREMENTS_AND_ACCEPTANCE_CRITERIA.md
+02_CODEBASE_RESEARCH.md
+03_ARCHITECTURE_AND_DESIGN_PLAN.md
+04_IMPLEMENTATION_SEQUENCE.md
+05_BLAST_RADIUS_AND_RISK_ANALYSIS.md
+06_TESTING_AND_VERIFICATION_PLAN.md
+07_UI_UX_AND_ACCESSIBILITY_PLAN.md
+08_SECURITY_PERFORMANCE_AND_DATA_PLAN.md
+09_DEPLOYMENT_MIGRATION_AND_ROLLBACK_PLAN.md
+10_IMPLEMENTATION_PROMPT_DRAFT.md
+11_READINESS_SCORECARD.md
+12_OPEN_QUESTIONS_AND_DECISIONS.md
+13_TRACEABILITY_MATRIX.md
 
-Improve existing documents.
-Create missing documents where necessary.
-Keep documents modular and easy for a future implementation agent to use.
-Maintain internal consistency across all plan documents.
-Update the index and scorecard last.
+If equivalent files exist with different names, the codebase AI may preserve them only if:
+- They are clearly linked from 00_INDEX.md.
+- They cover the same purpose.
+- They are improved to the same quality standard.
+- The structure remains easy for a future implementation agent to follow.
 
-5. Readiness Re-Scoring
+Otherwise, it must create the missing documents.
 
-Score every document.
-Score the whole package.
-If anything is below 98%, continue improving.
-Do not stop until the package is 98–100% ready or a true blocker is documented.
+6. REQUIRED CONTENT PER DOCUMENT
 
+The generated prompt must define what each document must contain.
 
-REQUIRED PLAN FOLDER DOCUMENTS
-
-The plan folder should contain these documents unless the existing plan package has an equally clear equivalent structure.
-
-If equivalent files exist, improve them instead of duplicating unnecessarily.
-If missing, create them.
-
-1. 00_INDEX.md
-
-Purpose:
-- Executive summary of the plan package.
-- Links to every document.
-- Current readiness score.
-- Implementation recommendation.
-- Clear “start here” section for the future implementation agent.
-
-Must include:
+00_INDEX.md must include:
 - Task goal.
 - Scope.
 - Non-goals.
-- Relevant user/product context.
+- Plan document map.
+- Start-here instructions for the future implementation agent.
 - Recommended implementation sequence.
 - Required verification commands.
-- Risks summary.
-- Required .ai updates during implementation.
-- Bug plan references if any.
-- Current status: PLAN_CREATED / NEEDS_REFINEMENT / READY_FOR_IMPLEMENTATION / BLOCKED.
+- Risk summary.
+- Bug/blocker references.
+- Current status.
 - Readiness score table.
 
-2. 01_REQUIREMENTS_AND_ACCEPTANCE_CRITERIA.md
-
-Purpose:
-- Convert the request into precise, testable requirements.
-
-Must include:
+01_REQUIREMENTS_AND_ACCEPTANCE_CRITERIA.md must include:
 - Functional requirements.
 - Non-functional requirements.
 - UX/UI requirements if relevant.
@@ -281,203 +280,166 @@ Must include:
 - Data/migration requirements if relevant.
 - Accessibility requirements if relevant.
 - Compatibility requirements if relevant.
-- Acceptance criteria written as pass/fail checks.
 - Explicit non-goals.
-- Assumptions and how each assumption was validated or should be validated.
+- Assumptions.
+- Acceptance criteria written as pass/fail checks.
 - Requirement priority: MUST / SHOULD / COULD / OUT_OF_SCOPE.
 
-3. 02_CODEBASE_RESEARCH.md
-
-Purpose:
-- Record actual repository evidence.
-
-Must include:
+02_CODEBASE_RESEARCH.md must include:
 - Files/folders inspected.
-- Commands run and useful outputs summarized.
+- Commands run.
 - Existing patterns to follow.
-- Relevant modules/components/services/tests.
+- Relevant components/modules/services/actions/repositories/tests.
 - Current behavior.
-- Related prior docs or plans in .ai.
-- Existing test/build/lint/typecheck scripts.
-- Known dependencies and constraints.
-- Gaps or unknowns.
-- Do not include huge raw command output; summarize with concrete file paths.
+- Related .ai docs/specs/plans/archives.
+- Existing validation scripts.
+- Gaps/unknowns.
+- Evidence links as local file paths.
 
-4. 03_ARCHITECTURE_AND_DESIGN_PLAN.md
-
-Purpose:
-- Explain the implementation architecture.
-
-Must include:
+03_ARCHITECTURE_AND_DESIGN_PLAN.md must include:
 - Proposed approach.
-- Why this approach fits the existing codebase.
+- Why it fits ArchEstimator.
 - Files likely to change.
 - New files likely to be created.
-- Interfaces/contracts likely to be affected.
-- Data flow before and after.
+- Interfaces/contracts affected.
+- Data flow before/after.
 - Dependency decisions.
 - Reuse opportunities.
-- Alternatives considered and rejected.
-- Backward compatibility requirements.
+- Alternatives rejected.
+- Backward compatibility.
 - Anti-overengineering guardrails.
-- How this should integrate with existing patterns.
 
-5. 04_IMPLEMENTATION_SEQUENCE.md
-
-Purpose:
-- Give the future implementation agent a precise execution path.
-
-Must include:
+04_IMPLEMENTATION_SEQUENCE.md must include:
 - Step-by-step implementation order.
-- Each step’s purpose.
-- Exact files/modules likely involved.
-- Expected code changes at each step.
+- Files/modules likely involved per step.
+- Expected changes per step.
 - Validation after each step.
-- Safe rollback point after each major step.
+- Rollback point after each major step.
 - Dependencies between steps.
 - What not to touch.
-- Checkpoints where the implementation agent must update .ai documents.
-- Checkpoints where the implementation agent must create tests if necessary.
+- When to update .ai during implementation.
+- When tests must be added/updated.
 
-6. 05_BLAST_RADIUS_AND_RISK_ANALYSIS.md
-
-Purpose:
-- Prevent regressions.
-
-Must include:
+05_BLAST_RADIUS_AND_RISK_ANALYSIS.md must include:
 - Affected user flows.
-- Affected modules/components/services.
+- Affected modules.
 - Affected tests.
 - Affected build/runtime behavior.
 - Possible regressions.
 - Edge cases.
-- Risk severity and likelihood.
+- Risk severity/likelihood.
 - Mitigations.
 - Rollback strategy.
-- Monitoring/logging considerations if relevant.
-- Concurrency risks from another codebase AI working in parallel.
+- Concurrency risks.
 - Merge conflict risks.
+- GitNexus/code-review-graph impact requirements if implementation changes symbols.
 
-7. 06_TESTING_AND_VERIFICATION_PLAN.md
-
-Purpose:
-- Define how implementation proves it works.
-
-Must include:
-- Existing test commands.
-- New tests needed if applicable.
+06_TESTING_AND_VERIFICATION_PLAN.md must include:
+- Existing relevant commands.
+- Targeted tests needed.
 - Unit tests needed.
-- Integration tests needed.
-- E2E/manual verification needed if applicable.
-- Typecheck/lint/build/format commands.
+- DOM/Vitest tests needed.
+- E2E tests needed if applicable.
+- Typecheck/lint/design-system/build commands.
 - Smoke tests.
-- Regression checks.
-- Test data/fixtures needed.
-- What counts as pass/fail.
-- How to verify zero known errors.
-- If tests are not possible, explain why and define the strongest alternative verification.
+- Manual QA.
+- Pass/fail definitions.
+- If tests are not possible, strongest alternative verification.
 
-8. 07_UI_UX_AND_ACCESSIBILITY_PLAN.md
+The prompt must bake in ArchEstimator’s known validation baseline:
+- bun run validate
+- bun run build
+- git diff --check
+- bun run test:e2e when browser/auth/protected-route/user-flow changes require it
+- bun run lint:design-system for app/workshop UI changes
+- Supabase migration/type commands only when schema changes and only under the repo’s safety rules
 
-Purpose:
-- Cover product quality where UI/UX is involved.
-
-Must include:
+07_UI_UX_AND_ACCESSIBILITY_PLAN.md must include:
 - User journey.
 - Screen/component impact.
 - Empty/loading/error/success states.
-- Interaction details.
 - Responsive behavior.
+- Keyboard/focus behavior.
 - Accessibility checks.
 - Copy/content requirements.
-- Visual consistency requirements.
-- Keyboard/focus behavior if relevant.
-- If UI/UX is not relevant, state why and mark N/A with evidence.
+- Design-system alignment.
+- Shared primitive reuse.
+- If UI is not relevant, mark N/A with evidence.
 
-9. 08_SECURITY_PERFORMANCE_AND_DATA_PLAN.md
+It must include ArchEstimator-specific UI constraints:
+- Non-landing app/workshop UI must follow DESIGN.md.
+- SF Pro stack.
+- Regular/medium weights only.
+- 12px maximum visible app/workshop text unless explicitly approved.
+- Normal controls/body/table/input/button text around 10px.
+- Labels/meta/helper text around 8–9px.
+- Zero letter spacing.
+- xs/3px radius only.
+- Phosphor regular outline icon style.
+- Reuse src/components/ui and src/components/workshop primitives before creating local controls.
+- Design-system lint failures are blocking.
 
-Purpose:
-- Catch deeper engineering risks.
-
-Must include:
-- Security implications.
+08_SECURITY_PERFORMANCE_AND_DATA_PLAN.md must include:
 - Auth/authorization concerns.
-- Input validation concerns.
+- RLS/Supabase concerns if relevant.
+- Input validation.
 - Secrets/environment variables.
-- Data privacy concerns.
+- Data privacy.
 - Performance implications.
-- Caching implications if relevant.
-- Database/query/migration concerns if relevant.
-- Rate limits/concurrency concerns if relevant.
-- Failure modes and safe handling.
-- If a section is not relevant, state why.
+- Caching implications.
+- Database/query/migration concerns.
+- Rate limits/concurrency.
+- Failure modes.
+- If not relevant, mark N/A with evidence.
 
-10. 09_DEPLOYMENT_MIGRATION_AND_ROLLBACK_PLAN.md
+It must include:
+- Never touch SlateCamp resources.
+- Only ArchEstimator Supabase project ebxxqidacheyapmmzavr may be referenced if Supabase is relevant.
+- Do not commit secrets.
+- Do not claim linked Supabase/hosted/provider state from local-only evidence.
 
-Purpose:
-- Ensure safe release.
-
-Must include:
+09_DEPLOYMENT_MIGRATION_AND_ROLLBACK_PLAN.md must include:
 - Deployment considerations.
 - Migration steps if relevant.
 - Feature flags if relevant.
 - Backward compatibility.
 - Rollback process.
 - Post-deploy checks.
-- Operational risks.
-- Manual release checklist if needed.
-- If not applicable, state why.
+- Manual/provider evidence required if relevant.
+- If not applicable, mark N/A with evidence.
 
-11. 10_IMPLEMENTATION_PROMPT_DRAFT.md
+10_IMPLEMENTATION_PROMPT_DRAFT.md must include:
+- A future direct implementation prompt draft.
+- It must reference the plan folder.
+- It must tell the implementation agent to verify the plan against current repo reality before editing.
+- It must tell the implementation agent to add/update tests if necessary, possible, and needed.
+- It must tell the implementation agent to update .ai docs.
+- It must tell the implementation agent to create bug plans in .ai/15_Bugs if issues are discovered.
+- It must tell the implementation agent to archive the plan after successful implementation.
+- It must tell the implementation agent to commit/push.
+- It must explain merge policy carefully:
+  - Default repo decision says feature branches/PRs and no automatic main merge.
+  - Only merge to main automatically if Philip’s implementation prompt explicitly authorizes it.
 
-Purpose:
-- Prepare the future implementation handoff.
-
-Must include:
-- A concise implementation prompt that references this plan folder.
-- Required verification commands.
-- Required final report fields.
-- Warnings about known risks.
-- Instruction to update .ai docs during implementation.
-- Instruction to create bug plans in .ai/15_Bugs if issues are discovered.
-- Instruction to archive the plan after successful implementation.
-- Instruction to commit, push, merge to main, verify main, push main, remove worktree, and delete the completed task branch safely.
-
-12. 11_READINESS_SCORECARD.md
-
-Purpose:
-- Objectively grade the plan package.
-
-Must include:
+11_READINESS_SCORECARD.md must include:
 - Score per document.
-- Overall implementation readiness score.
+- Overall plan readiness score.
 - Evidence for each score.
 - Missing items.
 - Improvement log.
 - Final pass/fail decision.
-- Date/time of scoring.
 - Honest blockers if score cannot reach 98%.
 
-13. 12_OPEN_QUESTIONS_AND_DECISIONS.md
-
-Purpose:
-- Prevent hidden ambiguity.
-
-Must include:
+12_OPEN_QUESTIONS_AND_DECISIONS.md must include:
 - Open questions.
 - Decisions made.
 - Assumptions.
 - Evidence behind decisions.
-- Items that require human confirmation.
-- Items that the implementation agent can decide without human confirmation.
-- If there are no open questions, explicitly state that no open questions remain based on current repo evidence.
+- Items requiring Philip.
+- Items implementation agent may decide.
+- No hidden ambiguity.
 
-14. 13_TRACEABILITY_MATRIX.md
-
-Purpose:
-- Connect requirements to implementation and verification.
-
-Must include a table connecting:
+13_TRACEABILITY_MATRIX.md must connect:
 - Requirement.
 - Acceptance criterion.
 - Files/modules likely affected.
@@ -486,12 +448,9 @@ Must include a table connecting:
 - Risk/rollback note.
 - Status.
 
+7. OPTIONAL SPECIALIZED DOCUMENTS
 
-OPTIONAL SPECIALIZED DOCUMENTS
-
-Create additional documents only if they reduce implementation ambiguity.
-
-Possible examples:
+The generated prompt must allow additional documents only if useful, such as:
 - 14_DATABASE_OR_SCHEMA_PLAN.md
 - 15_API_CONTRACT_PLAN.md
 - 16_FRONTEND_COMPONENT_PLAN.md
@@ -499,218 +458,136 @@ Possible examples:
 - 18_TEST_FIXTURE_PLAN.md
 - 19_RELEASE_CHECKLIST.md
 - 20_DESIGN_SYSTEM_ALIGNMENT.md
-- 21_MERGE_AND_WORKTREE_SAFETY_PLAN.md
+- 21_GITNEXUS_AND_CODE_GRAPH_IMPACT_PLAN.md
+- 22_MERGE_AND_WORKTREE_SAFETY_PLAN.md
+- 23_IMPLEMENTATION_AGENT_HANDOFF_CHECKLIST.md
 
-Do not create excessive documents for volume.
-Create documents because they make implementation safer, clearer, and easier.
+But it must warn not to create documents for volume alone.
 
+8. REFINEMENT QUALITY LOOP
 
-MANDATORY TRACEABILITY MATRIX
+The generated prompt must force this loop:
 
-Create or update a traceability matrix inside either:
-- 13_TRACEABILITY_MATRIX.md
-- or 11_READINESS_SCORECARD.md if the plan is small and already has an equivalent matrix.
+Audit → compare against repo reality → improve → score → find gaps → improve again → rescore.
 
-The matrix must connect:
-1. Requirement.
-2. Acceptance criterion.
-3. Files/modules likely affected.
-4. Implementation step.
-5. Test/verification method.
-6. Risk/rollback note.
-7. Status.
+Every required document must reach 98–100% implementation readiness.
+The overall plan package must reach 98–100%.
 
-Every major requirement must be traceable to implementation and verification.
-
-
-REQUIRED .ai CROSS-UPDATES
-
-After refining the plan package, update the relevant .ai project memory files/folders if they exist:
-
-- {REPO_ROOT}/.ai/01_roadmap
-- {REPO_ROOT}/.ai/04_tasks
-- {REPO_ROOT}/.ai/05_logs
-- {REPO_ROOT}/.ai/10_state
-
-Rules:
-1. Do not invent a new structure if these folders/files already have a convention.
-2. Follow the existing naming and formatting patterns.
-3. If the folders exist but no obvious file exists, create a dated markdown log/task/state file using the repository’s existing pattern where possible.
-4. Record that this plan package was refined.
-5. Link/reference the refined plan folder.
-6. Record current status as refined planning, not implemented.
-7. Do not mark the feature as complete.
-8. Record any discovered bugs/blockers.
-9. Keep .ai as the durable project memory for future agents.
-
-
-BUG / ISSUE DISCOVERY PROTOCOL
-
-If you discover a bug, failing test, architectural issue, missing prerequisite, contradiction, stale plan assumption, security concern, test gap, or blocker while refining:
-
-1. Classify it:
-   - BLOCKING_IMPLEMENTATION
-   - NON_BLOCKING_IMPLEMENTATION
-   - PRE_EXISTING_UNRELATED
-   - PLAN_CONTRADICTION
-   - PLAN_GAP
-   - REQUIRES_HUMAN_DECISION
-
-2. Create a bug plan inside:
-   {REPO_ROOT}/.ai/15_Bugs
-
-3. Bug plan filename:
-   YYYY-MM-DD-{bug-slug}.md
-
-Use the actual current system date.
-
-4. The bug plan must include:
-   - Title.
-   - Summary.
-   - Classification.
-   - Discovery context.
-   - Evidence.
-   - Reproduction steps or command if applicable.
-   - Expected behavior if applicable.
-   - Actual behavior if applicable.
-   - Suspected root cause.
-   - Affected files/modules.
-   - Impact.
-   - Severity.
-   - Relationship to current plan.
-   - Proposed fix plan.
-   - Verification plan.
-   - Status.
-   - Whether it blocks implementation.
-   - Link/reference to the current plan folder.
-
-5. Update the active plan documents to reference the bug plan.
-6. Update .ai logs/tasks/state if relevant.
-7. Do not hide the issue just to achieve a higher readiness score.
-
-
-READINESS SCORING RUBRIC
-
-Score each document and the overall plan package from 1–100.
-
-A 98–100 score requires:
-- Clear implementation path.
-- Specific files/modules/tests identified.
-- Requirements are testable.
-- Acceptance criteria are pass/fail.
-- Risks and rollback paths are clear.
-- Security/performance/UX/data concerns are addressed or explicitly marked N/A with evidence.
-- No vague TODOs.
-- No unsupported assumptions.
-- No contradictions.
-- Strong enough context for another codebase AI to implement without rediscovery.
-- Verification commands and expected outcomes are listed.
-- Bug/blocker plans exist for discovered issues.
-- Git/worktree/merge safety is covered where relevant.
-- There is zero known unresolved ambiguity that would prevent implementation.
+Scoring must be honest.
+100% is allowed only if there are no known gaps, no unsupported assumptions, no vague instructions, and no unresolved ambiguity.
+If a blocker prevents 98%, the codebase AI must create a bug/blocker plan, update the scorecard honestly, and report BLOCKED instead of lying.
 
 Scoring categories:
-1. Codebase Evidence Accuracy — 20 points.
-2. Requirement Clarity — 15 points.
-3. Implementation Specificity — 20 points.
-4. Test and Verification Readiness — 15 points.
-5. Risk / Blast Radius / Rollback Coverage — 15 points.
-6. Security / Performance / UX / Data Coverage — 10 points.
-7. Documentation Structure and Cross-Linking — 5 points.
+- Repository evidence accuracy.
+- Requirement clarity.
+- Implementation specificity.
+- Test/verification readiness.
+- Risk/blast-radius/rollback coverage.
+- Security/performance/data/UX coverage.
+- .ai documentation hygiene.
+- Future implementation usability.
+- Internal consistency across documents.
 
-Mandatory gate:
-- Every document must score at least 98%.
-- Overall package must score at least 98%.
-- If any score is below 98%, improve and re-score.
-- If a true blocker prevents 98%, document the blocker and score honestly.
-- Do not fabricate certainty.
+The refined plan must become more implementation-ready, not merely longer.
 
+9. BUG DISCOVERY PROTOCOL
 
-REFINEMENT QUALITY RULES
+If the codebase AI discovers a bug, failing test, blocker, stale assumption, architecture issue, missing prerequisite, security concern, test gap, contradiction, or serious ambiguity, it must create a dated bug plan in:
 
-Replace vague content with concrete instructions.
+/Users/philiplewis/archestimator/.ai/15_Bugs
 
-Bad:
-- “Need to update the UI.”
-- “Add tests if needed.”
-- “Check security.”
-- “Make sure it works.”
-- “Follow best practices.”
+Filename:
 
-Good:
-- “Update the estimate creation form component at {actual_path} to include {specific behavior}, following the pattern in {actual_reference_path}.”
-- “Add tests in {actual_test_path_or_pattern} covering success, validation failure, empty state, and regression case.”
-- “Run {actual_command} and require zero errors.”
-- “Security risk: user-supplied project names may reach {actual_file}; verify validation happens before persistence.”
+YYYY-MM-DD-{bug-slug}.md
 
-Every document must become an implementation tool, not a general essay.
+Bug plan must include:
+- Title.
+- Classification.
+- Date discovered.
+- Discovery context.
+- Evidence.
+- Reproduction steps or command if applicable.
+- Expected behavior if applicable.
+- Actual behavior if applicable.
+- Suspected root cause.
+- Affected files/modules.
+- Impact.
+- Severity.
+- Relationship to current plan.
+- Proposed fix plan.
+- Verification plan.
+- Status.
+- Whether it blocks implementation.
+- Link/reference to the current plan folder.
 
+10. .ai PROJECT MEMORY UPDATES
 
-FINAL GIT REQUIREMENTS
+The generated prompt must require updates to relevant files/folders if they exist:
 
-At the end:
+- /Users/philiplewis/archestimator/.ai/01_roadmap
+- /Users/philiplewis/archestimator/.ai/04_tasks
+- /Users/philiplewis/archestimator/.ai/05_logs
+- /Users/philiplewis/archestimator/.ai/10_state
 
-1. Run:
-   - git status --short
-   - git diff --stat
-   - git diff -- .ai
+Rules:
+- Follow existing structure.
+- Do not create conflicting source-of-truth docs.
+- Do not mark the feature implemented.
+- Record the refined plan folder.
+- Record refinement status.
+- Record bugs/blockers.
+- Keep .ai as durable memory for future agents.
 
-2. Stage only intended .ai documentation changes.
+11. FINAL GIT REQUIREMENTS
 
-3. Commit with a descriptive message:
-   docs(ai): refine implementation plan for {TASK_SLUG}
+The generated prompt must require:
 
-4. Safely reconcile remote changes before pushing:
-   - Fetch/prune first.
-   - Pull/rebase or merge carefully.
-   - Resolve conflicts without overwriting other agents’ work.
-   - Never force push.
+- git status --short
+- git diff --stat
+- git diff --check
+- git diff -- .ai
 
-5. Push to {REMOTE}.
+Then:
+- Stage only intended .ai documentation changes.
+- Commit with:
+  docs(ai): refine implementation plan for {task-slug}
+- Pull/reconcile remote changes safely if needed.
+- Never force push.
+- Push to origin.
+- Capture final commit hash.
 
-6. Capture the final commit hash:
-   - git rev-parse --short HEAD
-   - git rev-parse HEAD
+Planning/refinement agents must not merge to main automatically unless Philip explicitly asks.
 
+12. FINAL REPORT REQUIREMENTS
 
-FINAL RESPONSE REQUIREMENTS
+The generated prompt must require a final report with:
 
-Your final response must include:
+- Final status:
+  - READY_FOR_IMPLEMENTATION
+  - NEEDS_HUMAN_DECISION
+  - BLOCKED
+- Plan folder refined.
+- Documents modified.
+- Documents created.
+- Key improvements made.
+- .ai cross-updates.
+- Bugs/issues discovered.
+- Bug plan files created.
+- Readiness score before refinement if determinable.
+- Readiness score after refinement.
+- Readiness score per document.
+- Commands run.
+- Git branch.
+- Commit hash.
+- Push status.
+- Blockers/open questions.
+- Next recommended step.
 
-1. Final status:
-   - READY_FOR_IMPLEMENTATION
-   - NEEDS_HUMAN_DECISION
-   - BLOCKED
+OUTPUT FORMAT
 
-2. Plan folder refined.
+Your reply must be only the final codebase-agent prompt.
 
-3. Documents created.
-
-4. Documents modified.
-
-5. Key improvements made.
-
-6. .ai cross-updates made.
-
-7. Bugs/issues discovered and bug plans created.
-
-8. Readiness score before refinement if determinable.
-
-9. Readiness score after refinement.
-
-10. Per-document score table.
-
-11. Verification/research commands run and results.
-
-12. Git branch.
-
-13. Commit hash.
-
-14. Push status.
-
-15. Remaining blockers/open questions.
-
-16. Next recommended step.
-
-Do not claim implementation happened.
-This task is plan refinement only.
+Do not wrap it in explanation.
+Do not add commentary before or after.
+Do not include citations.
+Do not include markdown headings outside the prompt.
