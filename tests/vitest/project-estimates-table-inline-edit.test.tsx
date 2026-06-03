@@ -12,7 +12,9 @@ const routerMock = vi.hoisted(() => ({
 
 const actionMocks = vi.hoisted(() => ({
   duplicateEstimateSheet: vi.fn(),
+  executeBulkDeleteEstimateSheets: vi.fn(),
   fetchEstimateTree: vi.fn(),
+  previewBulkDeleteEstimateSheets: vi.fn(),
   regenerateEstimateSheetCode: vi.fn(),
   updateEstimateDetails: vi.fn(),
 }));
@@ -69,11 +71,34 @@ function renderTable(estimate = makeEstimate()) {
 describe("project estimates table inline editing", () => {
   beforeEach(() => {
     actionMocks.duplicateEstimateSheet.mockReset();
+    actionMocks.executeBulkDeleteEstimateSheets.mockReset();
     actionMocks.fetchEstimateTree.mockReset();
+    actionMocks.previewBulkDeleteEstimateSheets.mockReset();
     actionMocks.regenerateEstimateSheetCode.mockReset();
     actionMocks.updateEstimateDetails.mockReset();
     repositoryMocks.getEstimateTree.mockReset();
     actionMocks.fetchEstimateTree.mockResolvedValue([]);
+    actionMocks.previewBulkDeleteEstimateSheets.mockResolvedValue({
+      ok: true,
+      targetType: "estimate_sheet",
+      ids: ["estimate-1"],
+      eligibleIds: ["estimate-1"],
+      previewHash: "preview-hash",
+      summary: { requestedCount: 1, eligibleCount: 1, blockedCount: 0 },
+      issues: [],
+      blocked: [],
+      storageTargets: [],
+    });
+    actionMocks.executeBulkDeleteEstimateSheets.mockResolvedValue({
+      ok: true,
+      targetType: "estimate_sheet",
+      ids: ["estimate-1"],
+      deletedIds: ["estimate-1"],
+      summary: { requestedCount: 1, eligibleCount: 1, blockedCount: 0 },
+      issues: [],
+      blocked: [],
+      storageTargets: [],
+    });
     repositoryMocks.getEstimateTree.mockResolvedValue(null);
     routerMock.prefetch.mockReset();
     routerMock.refresh.mockReset();

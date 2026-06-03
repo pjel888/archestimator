@@ -1,10 +1,22 @@
 "use server";
 
+import { randomUUID } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { requireCurrentUserContext } from "@/lib/auth/session";
+import {
+  buildRejectedPreviewResult,
+  coerceBulkExecutionResult,
+  coerceBulkPreviewResult,
+  normalizeBulkActionIds,
+  type BulkActionExecutionResult,
+  type BulkActionPreviewResult,
+} from "@/lib/mass-deletion/bulk-action";
+import { cleanupStorageTargets, storageCleanupReportToJson } from "@/lib/mass-deletion/storage-cleanup";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { ensureDefaultWorkspace } from "@/lib/repositories/workspace-repository";
 import type { Json } from "@/lib/supabase/types";
+import { isUuid } from "@/lib/ids";
 
 const PROJECT_IMAGE_BUCKET = "component-images";
 
@@ -14,6 +26,15 @@ type ProjectImageMetadataInput = {
   thumbnailUrl?: string;
   path?: string;
   thumbnailPath?: string;
+};
+
+export type BulkDeleteProjectsInput = {
+  projectIds: string[];
+};
+
+export type ExecuteBulkDeleteProjectsInput = BulkDeleteProjectsInput & {
+  expectedPreviewHash: string;
+  correlationId?: string;
 };
 
 function readRequiredText(formData: FormData, key: string) {
@@ -122,25 +143,108 @@ export async function createProject(formData: FormData) {
 }
 
 export async function deleteProject(formData: FormData) {
-  const supabase = await createSupabaseServerClient();
   const projectId = readRequiredText(formData, "projectId");
+  const expectedPreviewHash = readRequiredText(formData, "expectedPreviewHash");
+  const correlationId = readOptionalText(formData, "correlationId") ?? undefined;
 
-  const { data: existing, error: loadError } = await supabase
-    .from("projects")
-    .select("metadata")
-    .eq("id", projectId)
-    .single();
-
-  if (loadError) throw loadError;
-
-  const metadata = asProjectMetadata(existing.metadata);
-  const { error } = await supabase.from("projects").delete().eq("id", projectId);
-  if (error) throw error;
-
-  await removeStoredProjectImagePaths(supabase, getProjectImageStoragePaths(metadata));
-
-  revalidatePath("/workshop/projects");
+  const result = await executeBulkDeleteProjects({
+    projectIds: [projectId],
+    expectedPreviewHash,
+    correlationId,
+  });
+  if (!result.ok) throw new Error(result.issues[0]?.message ?? "Could not delete project.");
   redirect("/workshop/projects");
+}
+
+function getMassDeletionCorrelationId(correlationId: string | undefined) {
+  return correlationId && isUuid(correlationId) ? correlationId : randomUUID();
+}
+
+function revalidateProjectDeletionPaths(projectIds: string[]) {
+  revalidatePath("/workshop");
+  revalidatePath("/workshop/projects");
+  for (const projectId of projectIds) {
+    revalidatePath(`/workshop/projects/${projectId}`);
+    revalidatePath(`/workshop/projects/${projectId}/estimates`);
+    revalidatePath(`/workshop/projects/${projectId}/charts`);
+  }
+}
+
+export async function previewBulkDeleteProjects(input: BulkDeleteProjectsInput): Promise<BulkActionPreviewResult> {
+  const { ids, issues } = normalizeBulkActionIds(input.projectIds, { label: "projects", max: 50 });
+  if (issues.length > 0) return buildRejectedPreviewResult("project", ids, issues);
+
+  const [supabase, currentUser] = await Promise.all([
+    createSupabaseServerClient(),
+    requireCurrentUserContext(),
+  ]);
+  const { data, error } = await supabase.rpc("preview_bulk_delete_projects", {
+    target_project_ids: ids,
+    acting_user_id: currentUser.userId,
+  });
+
+  if (error) {
+    return buildRejectedPreviewResult("project", ids, [{
+      code: "rpc_error",
+      message: `Could not preview project deletion: ${error.message}`,
+    }]);
+  }
+
+  return coerceBulkPreviewResult(data, { targetType: "project", ids });
+}
+
+export async function executeBulkDeleteProjects(input: ExecuteBulkDeleteProjectsInput): Promise<BulkActionExecutionResult> {
+  const { ids, issues } = normalizeBulkActionIds(input.projectIds, { label: "projects", max: 50 });
+  if (issues.length > 0) {
+    return {
+      ...buildRejectedPreviewResult("project", ids, issues),
+      deletedIds: [],
+    };
+  }
+
+  const [supabase, currentUser] = await Promise.all([
+    createSupabaseServerClient(),
+    requireCurrentUserContext(),
+  ]);
+  const { data, error } = await supabase.rpc("execute_bulk_delete_projects", {
+    target_project_ids: ids,
+    expected_preview_hash: input.expectedPreviewHash,
+    acting_user_id: currentUser.userId,
+    correlation_id: getMassDeletionCorrelationId(input.correlationId),
+  });
+
+  if (error) {
+    return {
+      ok: false,
+      targetType: "project",
+      ids,
+      deletedIds: [],
+      summary: {
+        requestedCount: ids.length,
+        eligibleCount: 0,
+        blockedCount: 1,
+      },
+      issues: [{
+        code: "rpc_error",
+        message: `Could not delete projects: ${error.message}`,
+      }],
+    };
+  }
+
+  const result = coerceBulkExecutionResult(data, { targetType: "project", ids });
+  if (result.ok) {
+    const storageCleanup = await cleanupStorageTargets(supabase, result.storageTargets, { kind: "project" });
+    result.storageCleanup = storageCleanup;
+    if (result.auditEventId) {
+      await supabase.rpc("record_mass_deletion_storage_cleanup_result", {
+        target_event_id: result.auditEventId,
+        cleanup_result: storageCleanupReportToJson(storageCleanup),
+      });
+    }
+    revalidateProjectDeletionPaths(result.deletedIds?.length ? result.deletedIds : ids);
+  }
+
+  return result;
 }
 
 export async function updateProjectImageMetadata(projectId: string, image: ProjectImageMetadataInput) {
@@ -199,22 +303,23 @@ export async function updateProjectDetails(formData: FormData) {
   if (loadError) throw loadError;
 
   const metadata = asProjectMetadata(existing.metadata);
+  const nextMetadata = { ...metadata };
   const previousProjectImagePaths = getProjectImageStoragePaths(metadata);
   if (shouldUpdateProjectBudget) {
     if (projectBudget === null) {
-      delete metadata.projectBudget;
+      delete nextMetadata.projectBudget;
     } else {
-      metadata.projectBudget = projectBudget;
+      nextMetadata.projectBudget = projectBudget;
     }
   }
   if (shouldRemoveProjectImage || projectImageUrl === null) {
-    delete metadata.projectImageUrl;
-    delete metadata.projectImageThumbnailUrl;
-    delete metadata.projectImageBucket;
-    delete metadata.projectImagePath;
-    delete metadata.projectImageThumbnailPath;
+    delete nextMetadata.projectImageUrl;
+    delete nextMetadata.projectImageThumbnailUrl;
+    delete nextMetadata.projectImageBucket;
+    delete nextMetadata.projectImagePath;
+    delete nextMetadata.projectImageThumbnailPath;
   } else {
-    applyProjectImageMetadata(metadata, {
+    applyProjectImageMetadata(nextMetadata, {
       url: projectImageUrl,
       thumbnailUrl: projectImageThumbnailUrl ?? undefined,
       bucket: projectImageBucket ?? undefined,
@@ -231,7 +336,7 @@ export async function updateProjectDetails(formData: FormData) {
       location,
       project_code: projectCode,
       currency_code: currencyCode,
-      metadata,
+      metadata: nextMetadata,
       updated_at: new Date().toISOString(),
     })
     .eq("id", projectId);
@@ -240,7 +345,7 @@ export async function updateProjectDetails(formData: FormData) {
 
   const shouldRemovePreviousImage = shouldRemoveProjectImage || (projectImagePath && previousProjectImagePaths.length > 0 && !previousProjectImagePaths.includes(projectImagePath));
   if (shouldRemovePreviousImage) {
-    await removeStoredProjectImagePaths(supabase, previousProjectImagePaths);
+    await removeStoredProjectImagePaths(supabase, getProjectImageStoragePaths(metadata));
   }
 
   revalidatePath("/workshop/projects");

@@ -366,3 +366,23 @@ P12 complete (no formal 2-stage review dispatched yet per dependency chain; code
 
 ## 2026-05-29 Autopilot Update (P13 closed)
 P13 complete (no formal 2-stage review dispatched yet per dependency chain; code + red tests + impacts + design lint clean per implementer report): all 13 (effective 10+) existing publication Vitest files updated for final "Shared link" string consistency (legacy guards preserved); unit for 5 new components (polished + green); integration for 3 new API routes (expanded + green); E2E Playwright (owner create/client accept/lockout/mobile/keyboard), security pen (CSRF/XSS/decision spoof/SQL — all blocked), load (100 views/20 posts/race — all OK) written + run via documented simulations; red tests first (explicit process + impacts before edits; green post); full code-review-graph impacts (medium contained, additive only); design lint 0 violations; 100% backwards compat (only test polish + pre-existing validation alignment). Clean commit 4c93bb1 (5 P13-scoped test files only). Full testing & validation coverage for P0–P12. Autopilot continues (no human questions).
+
+## 2026-06-03 Mass deletion implementation closeout
+
+Mass deletion for projects, estimate sheets, and component library rows is repo-local implemented and verified on branch `feat/mass-project-estimate-component-deletion`.
+
+Delivered surfaces:
+- Projects: preview/execute bulk delete server actions and RPC contracts, project-card multi-select, details-modal single delete routed through the same preview-first modal, active-publication block policy in SQL.
+- Estimate sheets: preview/execute bulk sheet delete actions and RPC contracts, single-row trash wiring, selected-sheet toolbar, typed confirmation modal, estimate route/query revalidation.
+- Component library: reversible bulk archive actions and RPC contracts, component-card multi-select, archive preview modal, archived rows hidden from repository reads and sheet insertion.
+- Governance: `mass_deletion_events` audit table contract, preview hashes, correlation IDs, advisory locks, permission checks, storage cleanup allowlist/reporting, generated Supabase type surface, red-first contract tests.
+
+Verification evidence:
+- `bunx vitest run tests/vitest/bulk-action-validation.test.ts tests/vitest/storage-cleanup-allowlist.test.ts tests/vitest/mass-deletion-contract.test.ts tests/vitest/mass-deletion-action-contract.test.ts tests/vitest/mass-deletion-ui-contract.test.ts --maxWorkers=1` — 14/14 passing.
+- `bunx vitest run tests/vitest/project-estimates-table-inline-edit.test.tsx tests/vitest/component-library-manager-ui.test.tsx tests/vitest/projects-page-shared-access.test.tsx --maxWorkers=1` — 29/29 passing.
+- `bun run validate` — typecheck, lint, design-system lint, unit tests, full Vitest DOM suite; 166 files / 1295 passing / 2 skipped.
+- `bun run build` — production build passes on Next.js 16.2.6.
+- Local Playwright visual smoke reached `/workshop/components` and `/workshop/projects`; both redirected to `/login` because this worktree has no local Supabase/auth bypass credentials. Design-system lint and DOM suites are the visual fallback evidence.
+
+Remaining proof gap before production/live deletion use:
+- The SQL migration is committed as repo code but was not applied to a linked Supabase project from this worktree. Run the migration through the approved Supabase release path before exposing these controls in an environment whose database has not applied `20260603160000_mass_deletion_governance.sql`.

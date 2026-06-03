@@ -607,3 +607,18 @@ The workstreams are not 7 independent parallel tracks — they **activate at dif
 | Production telemetry | `NO-GO` until docs 64/66/68 gates have real evidence |
 
 This workstream covers PR 2 through PR 9 repo-local implementation: preflight correctness, composer module, estimate UI integration, shared-link API integration, recipient actor copy, privacy-safe access telemetry, pagination/Realtime hardening, telemetry operations hardening, and UI/accessibility/performance polish.
+
+---
+
+## Mass deletion project / estimate sheet / component cleanup — repo-local implementation complete
+
+| Field | Value |
+|---|---|
+| Status | `IMPLEMENTED LOCALLY / DB PROVIDER APPLY OPEN` |
+| Branch | `feat/mass-project-estimate-component-deletion` |
+| Archived plan | `.ai/09_archive/2026-06-03-mass-deletion-projects-estimate-sheets-library-components/` |
+| Core files | `src/lib/projects/actions.ts`, `src/lib/estimates/actions.ts`, `src/lib/component-library/actions.ts`, `supabase/migrations/20260603160000_mass_deletion_governance.sql` |
+| Verification | `bun run validate`; `bun run build`; targeted mass-deletion + affected UI suites |
+| Production gate | Apply the mass-deletion SQL migration to the target Supabase environment before using live destructive controls |
+
+This workstream adds preview-first project deletion, estimate-sheet deletion, and reversible component archive with typed confirmation, audit rows, cache revalidation, storage cleanup allowlists, and design-system compliant bulk UI.

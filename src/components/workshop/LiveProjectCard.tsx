@@ -36,6 +36,9 @@ type LiveProjectCardProps = {
   sharedEstimateCount?: number;
   isFavorite?: boolean;
   favoriteBusy?: boolean;
+  selectedForDeletion?: boolean;
+  selectionDisabledReason?: string | null;
+  onToggleSelected?: (projectId: string) => void;
   onToggleFavorite?: (projectId: string, favorite: boolean) => void;
   onExpand?: (project: Tables<"projects">) => void;
 };
@@ -103,6 +106,9 @@ export function LiveProjectCard({
   sharedEstimateCount = 0,
   isFavorite = false,
   favoriteBusy = false,
+  selectedForDeletion = false,
+  selectionDisabledReason = null,
+  onToggleSelected,
   onToggleFavorite,
   onExpand,
 }: LiveProjectCardProps) {
@@ -166,11 +172,28 @@ export function LiveProjectCard({
         )}
         {isPendingInvite ? null : (
           <>
+            <label
+              className={cn(
+                "absolute left-2 top-2 z-10 grid size-7 place-items-center rounded-xs border border-white/70 bg-white/86 text-ink shadow-sm backdrop-blur",
+                selectionDisabledReason ? "cursor-not-allowed opacity-55" : "cursor-pointer hover:bg-white",
+              )}
+              title={selectionDisabledReason ?? "Select project for deletion"}
+            >
+              <span className="sr-only">{`Select ${project.name} for deletion`}</span>
+              <input
+                type="checkbox"
+                className="size-3 rounded-xs border-hairline accent-danger"
+                aria-label={`Select ${project.name} for deletion`}
+                checked={selectedForDeletion}
+                disabled={Boolean(selectionDisabledReason)}
+                onChange={() => onToggleSelected?.(project.id)}
+              />
+            </label>
             <Button
               type="button"
               variant="secondary"
               size="icon-sm"
-              className={`absolute left-2 top-2 size-7 border-white/70 bg-white/86 shadow-sm backdrop-blur hover:bg-white disabled:cursor-wait disabled:opacity-70 ${
+              className={`absolute left-10 top-2 size-7 border-white/70 bg-white/86 shadow-sm backdrop-blur hover:bg-white disabled:cursor-wait disabled:opacity-70 ${
                 isFavorite
                   ? "text-orange-600 hover:text-orange-700"
                   : "text-tertiary hover:text-ink"

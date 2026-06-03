@@ -65,6 +65,75 @@ export type Database = {
           },
         ]
       }
+      mass_deletion_events: {
+        Row: {
+          action: string
+          actor_user_id: string | null
+          blocked: Json
+          correlation_id: string
+          created_at: string
+          id: string
+          metadata: Json
+          preview_hash: string
+          status: string
+          storage_cleanup_result: Json
+          storage_targets: Json
+          summary: Json
+          target_ids: string[]
+          target_type: string
+          workspace_id: string | null
+        }
+        Insert: {
+          action: string
+          actor_user_id?: string | null
+          blocked?: Json
+          correlation_id: string
+          created_at?: string
+          id?: string
+          metadata?: Json
+          preview_hash: string
+          status?: string
+          storage_cleanup_result?: Json
+          storage_targets?: Json
+          summary?: Json
+          target_ids?: string[]
+          target_type: string
+          workspace_id?: string | null
+        }
+        Update: {
+          action?: string
+          actor_user_id?: string | null
+          blocked?: Json
+          correlation_id?: string
+          created_at?: string
+          id?: string
+          metadata?: Json
+          preview_hash?: string
+          status?: string
+          storage_cleanup_result?: Json
+          storage_targets?: Json
+          summary?: Json
+          target_ids?: string[]
+          target_type?: string
+          workspace_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mass_deletion_events_actor_user_id_fkey"
+            columns: ["actor_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "mass_deletion_events_workspace_id_fkey"
+            columns: ["workspace_id"]
+            isOneToOne: false
+            referencedRelation: "workspaces"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       closed_beta_allowed_emails: {
         Row: {
           accepted_at: string | null
@@ -2930,6 +2999,38 @@ export type Database = {
       resolve_app_role_for_email: {
         Args: { raw_email: string }
         Returns: Database["public"]["Enums"]["app_role"]
+      }
+      can_manage_project_access: {
+        Args: { target_project_id: string }
+        Returns: boolean
+      }
+      preview_bulk_delete_projects: {
+        Args: { target_project_ids: string[]; acting_user_id?: string }
+        Returns: Json
+      }
+      execute_bulk_delete_projects: {
+        Args: { target_project_ids: string[]; expected_preview_hash: string; acting_user_id?: string; correlation_id?: string }
+        Returns: Json
+      }
+      preview_bulk_delete_estimate_sheets: {
+        Args: { target_project_id: string; target_estimate_ids: string[]; acting_user_id?: string }
+        Returns: Json
+      }
+      execute_bulk_delete_estimate_sheets: {
+        Args: { target_project_id: string; target_estimate_ids: string[]; expected_preview_hash: string; acting_user_id?: string; correlation_id?: string }
+        Returns: Json
+      }
+      preview_bulk_archive_library_components: {
+        Args: { target_workspace_id: string; target_item_ids: string[]; acting_user_id?: string }
+        Returns: Json
+      }
+      execute_bulk_archive_library_components: {
+        Args: { target_workspace_id: string; target_item_ids: string[]; expected_preview_hash: string; acting_user_id?: string; correlation_id?: string }
+        Returns: Json
+      }
+      record_mass_deletion_storage_cleanup_result: {
+        Args: { target_event_id: string; cleanup_result: Json }
+        Returns: Json
       }
       can_access_project: {
         Args: { target_project_id: string }

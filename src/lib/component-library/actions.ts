@@ -1,11 +1,21 @@
 "use server";
 
+import { randomUUID } from "node:crypto";
 import { revalidatePath } from "next/cache";
 
 import { requireCurrentUserContext } from "@/lib/auth/session";
+import {
+  buildRejectedPreviewResult,
+  coerceBulkExecutionResult,
+  coerceBulkPreviewResult,
+  normalizeBulkActionIds,
+  type BulkActionExecutionResult,
+  type BulkActionPreviewResult,
+} from "@/lib/mass-deletion/bulk-action";
 import { ensureDefaultWorkspace } from "@/lib/repositories/workspace-repository";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { Json, Tables } from "@/lib/supabase/types";
+import { isUuid } from "@/lib/ids";
 import {
   getLibraryFolderCreateSortOrder,
   planLibraryFolderDelete,
@@ -118,9 +128,22 @@ export type ReorderLibraryFoldersInput = {
   }>;
 };
 
+export type BulkArchiveLibraryComponentsInput = {
+  itemIds: string[];
+};
+
+export type ExecuteBulkArchiveLibraryComponentsInput = BulkArchiveLibraryComponentsInput & {
+  expectedPreviewHash: string;
+  correlationId?: string;
+};
+
 function revalidateLibraryRoutes() {
   revalidatePath("/workshop/library");
   revalidatePath("/workshop/components");
+}
+
+function getMassDeletionCorrelationId(correlationId: string | undefined) {
+  return correlationId && isUuid(correlationId) ? correlationId : randomUUID();
 }
 
 function readFolderName(name: string) {
@@ -394,6 +417,72 @@ export async function changeCostLibraryComponentLifecycleState(input: {
     versionNumber: getRpcNumber(data, "versionNumber"),
     lifecycleState: getRpcString(data, "lifecycleState"),
   };
+}
+
+export async function previewBulkArchiveLibraryComponents(input: BulkArchiveLibraryComponentsInput): Promise<BulkActionPreviewResult> {
+  const { ids, issues } = normalizeBulkActionIds(input.itemIds, { label: "components", max: 500 });
+  if (issues.length > 0) return buildRejectedPreviewResult("library_component", ids, issues);
+
+  const [{ workspace }, currentUser] = await Promise.all([
+    ensureDefaultWorkspace(),
+    requireCurrentUserContext(),
+  ]);
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase.rpc("preview_bulk_archive_library_components", {
+    target_workspace_id: workspace.id,
+    target_item_ids: ids,
+    acting_user_id: currentUser.userId,
+  });
+
+  if (error) {
+    return buildRejectedPreviewResult("library_component", ids, [{
+      code: "rpc_error",
+      message: `Could not preview component archive: ${error.message}`,
+    }]);
+  }
+
+  return coerceBulkPreviewResult(data, { targetType: "library_component", ids });
+}
+
+export async function executeBulkArchiveLibraryComponents(input: ExecuteBulkArchiveLibraryComponentsInput): Promise<BulkActionExecutionResult> {
+  const { ids, issues } = normalizeBulkActionIds(input.itemIds, { label: "components", max: 500 });
+  if (issues.length > 0) {
+    return {
+      ...buildRejectedPreviewResult("library_component", ids, issues),
+      archivedIds: [],
+    };
+  }
+
+  const [{ workspace }, currentUser] = await Promise.all([
+    ensureDefaultWorkspace(),
+    requireCurrentUserContext(),
+  ]);
+  const supabase = await createSupabaseServerClient();
+  const { data, error } = await supabase.rpc("execute_bulk_archive_library_components", {
+    target_workspace_id: workspace.id,
+    target_item_ids: ids,
+    expected_preview_hash: input.expectedPreviewHash,
+    acting_user_id: currentUser.userId,
+    correlation_id: getMassDeletionCorrelationId(input.correlationId),
+  });
+
+  if (error) {
+    return {
+      ok: false,
+      targetType: "library_component",
+      ids,
+      archivedIds: [],
+      summary: { requestedCount: ids.length, eligibleCount: 0, blockedCount: 1 },
+      issues: [{
+        code: "rpc_error",
+        message: `Could not archive components: ${error.message}`,
+      }],
+    };
+  }
+
+  const result = coerceBulkExecutionResult(data, { targetType: "library_component", ids });
+  if (result.ok) revalidateLibraryRoutes();
+  return result;
 }
 
 export async function createLibraryFolder(parentId: string | null, name: string, options: CreateLibraryFolderOptions = {}): Promise<LibraryFolderActionResult> {
