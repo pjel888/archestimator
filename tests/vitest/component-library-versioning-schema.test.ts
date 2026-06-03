@@ -26,6 +26,14 @@ const variantRpcGrantsMigrationPath = readdirSync(join(process.cwd(), "supabase/
 if (!variantRpcGrantsMigrationPath) throw new Error("Missing component library variant RPC grants migration.");
 
 const variantRpcGrantsMigration = readFileSync(join(process.cwd(), "supabase/migrations", variantRpcGrantsMigrationPath), "utf8");
+const priceAuditGrantMigrationPath = readdirSync(join(process.cwd(), "supabase/migrations"))
+  .filter((file) => file.endsWith("_harden_component_price_audit_grants.sql"))
+  .sort()
+  .at(-1);
+
+if (!priceAuditGrantMigrationPath) throw new Error("Missing component price audit grant hardening migration.");
+
+const priceAuditGrantMigration = readFileSync(join(process.cwd(), "supabase/migrations", priceAuditGrantMigrationPath), "utf8");
 const variantAssetsMigrationPath = readdirSync(join(process.cwd(), "supabase/migrations"))
   .filter((file) => file.endsWith("_component_variant_assets_cost_entries.sql"))
   .sort()
@@ -132,6 +140,20 @@ describe("component library item versioning schema", () => {
     expect(variantRpcGrantsMigration).toContain("revoke execute on function public.update_cost_library_component(uuid, uuid, jsonb) from public");
     expect(variantRpcGrantsMigration).toContain("revoke execute on function public.upsert_cost_library_component_price_option(uuid, uuid, jsonb) from anon");
     expect(variantRpcGrantsMigration).toContain("revoke execute on function public.sync_cost_library_item_brand_ref() from authenticated");
+  });
+
+  it("hardens direct price option mutations so price audit writes stay behind RPCs", () => {
+    expect(priceAuditGrantMigration).toContain('drop policy if exists "members can manage component price options" on public.cost_library_item_price_options');
+    expect(priceAuditGrantMigration).toContain('drop policy if exists "members can insert component price history" on public.cost_library_item_price_history');
+    expect(priceAuditGrantMigration).toContain('create policy "members can view component price options" on public.cost_library_item_price_options');
+    expect(priceAuditGrantMigration).toContain("for select to authenticated");
+    expect(priceAuditGrantMigration).toContain("revoke insert, update, delete on public.cost_library_item_price_options from authenticated");
+    expect(priceAuditGrantMigration).toContain("revoke insert, update, delete on public.cost_library_item_price_history from authenticated");
+    expect(priceAuditGrantMigration).toContain("grant select on public.cost_library_item_price_options to authenticated");
+    expect(priceAuditGrantMigration).toContain("grant select on public.cost_library_item_price_history to authenticated");
+    expect(priceAuditGrantMigration).toContain("grant execute on function public.upsert_cost_library_component_price_option(uuid, uuid, jsonb) to authenticated");
+    expect(actions).toContain('supabase.rpc("upsert_cost_library_component_price_option"');
+    expect(actions).not.toContain('.from("cost_library_item_price_options")');
   });
 
   it("adds variant-owned assets, private attachments, and selectable cost entries", () => {

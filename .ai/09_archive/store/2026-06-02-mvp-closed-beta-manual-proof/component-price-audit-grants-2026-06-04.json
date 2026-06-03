@@ -1,0 +1,80 @@
+{
+  "artifact": "component-price-audit-grants-2026-06-04",
+  "created_at_utc": "2026-06-03T23:45:49Z",
+  "created_at_local": "2026-06-04T07:45:49+08:00",
+  "finding": "Direct RLS grants bypass component price audit",
+  "status": "linked_supabase_fixed_pending_codex_security_rescan",
+  "migration": {
+    "version": "20260603234326",
+    "file": "supabase/migrations/20260603234326_harden_component_price_audit_grants.sql",
+    "apply_command": "supabase db query --linked --file supabase/migrations/20260603234326_harden_component_price_audit_grants.sql",
+    "repair_command": "supabase migration repair 20260603234326 --status applied --linked --yes",
+    "broad_db_push_used": false
+  },
+  "implemented_controls": [
+    "Dropped the direct all-action RLS policy on public.cost_library_item_price_options.",
+    "Dropped the direct insert RLS policy on public.cost_library_item_price_history.",
+    "Recreated select-only authenticated member policies for price options and price history.",
+    "Revoked direct insert, update, and delete privileges from the authenticated browser role on both price option and price history tables.",
+    "Revoked truncate, references, and trigger privileges from the authenticated browser role on both price option and price history tables.",
+    "Kept authenticated SELECT grants so component-library reads and AI read context can still validate active price options.",
+    "Preserved authenticated execute on public.upsert_cost_library_component_price_option(uuid, uuid, jsonb), so price changes still go through the security-definer RPC that appends price history."
+  ],
+  "linked_supabase_readback": {
+    "authenticated_table_grants": [
+      {
+        "grantee": "authenticated",
+        "table_name": "cost_library_item_price_history",
+        "privilege_type": "SELECT"
+      },
+      {
+        "grantee": "authenticated",
+        "table_name": "cost_library_item_price_options",
+        "privilege_type": "SELECT"
+      }
+    ],
+    "policies": [
+      {
+        "tablename": "cost_library_item_price_history",
+        "policyname": "members can view component price history",
+        "cmd": "SELECT",
+        "roles": ["authenticated"],
+        "qual": "is_workspace_member(workspace_id)",
+        "with_check": null
+      },
+      {
+        "tablename": "cost_library_item_price_options",
+        "policyname": "members can view component price options",
+        "cmd": "SELECT",
+        "roles": ["authenticated"],
+        "qual": "is_workspace_member(workspace_id)",
+        "with_check": null
+      }
+    ],
+    "rpc_execute": {
+      "function": "public.upsert_cost_library_component_price_option(target_workspace_id uuid, target_item_id uuid, price_option jsonb)",
+      "authenticated_can_execute": true,
+      "anon_can_execute": false,
+      "acl": "{postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}"
+    },
+    "migration_history": [
+      {
+        "version": "20260603234326"
+      }
+    ]
+  },
+  "local_verification": [
+    "red contract first failed with Missing component price audit grant hardening migration",
+    "bunx vitest run tests/vitest/component-library-versioning-schema.test.ts --maxWorkers=1 passed 1 file / 9 tests after migration",
+    "linked Supabase exact-file apply succeeded",
+    "linked Supabase migration repair recorded version 20260603234326",
+    "linked Supabase readback proved authenticated table privileges are SELECT-only for both price/audit tables"
+  ],
+  "deployment_notes": [
+    "No Vercel deployment was required for this migration-only hardening because existing app writes already call public.upsert_cost_library_component_price_option through src/lib/component-library/actions.ts."
+  ],
+  "proof_gaps": [
+    "Codex Security dashboard rescan/closure remains pending.",
+    "No hosted manual component price edit smoke was run with a browser session after the grant hardening."
+  ]
+}
