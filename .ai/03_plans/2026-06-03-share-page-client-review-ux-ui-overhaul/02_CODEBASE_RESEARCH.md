@@ -57,6 +57,27 @@
 | `tests/vitest/project-publication-snapshot.test.ts` | Snapshot builder |
 | `tests/vitest/project-publication-summary.test.ts` | Summary aggregation |
 | `tests/vitest/share/reconstruct-share-tree.test.ts` | Tree reconstruction |
+| `tests/vitest/project-publication-route.test.ts` | Publication route handler | (previously omitted from inventory) |
+
+### Additional Share Components (Not Modified)
+| File | Purpose |
+|------|---------|
+| `src/components/share/SharedLinkActivityFeed.tsx` | Owner-only activity feed with Realtime updates — unchanged |
+| `src/components/share/ShareFloatingTreeNav.tsx` | Sticky floating nav with IntersectionObserver — unchanged |
+
+### Additional API Routes (Not Modified)
+| Route | Purpose |
+|-------|---------|
+| `/api/share/[token]/route.ts` | Main share endpoint (GET snapshot) |
+| `/api/share/[token]/events/route.ts` | Event recording |
+| `/api/share/[token]/unsubscribe/route.ts` | Email unsubscribe |
+
+### Additional Publication Lib Files (Not Modified)
+| File | Purpose |
+|------|---------|
+| `src/lib/publication/activity-helpers.ts` | Activity/event helper functions |
+| `src/lib/publication/client-csrf.ts` | Client-side CSRF header creation |
+| `src/lib/publication/snapshot.ts` | Snapshot builder from project estimate data |
 
 ### Design System
 - `DESIGN.md` — strict SF Pro system, ≤12px, 3px radius, Phosphor regular, zero tracking

@@ -160,6 +160,8 @@ Every component must handle:
 | AC-FUNC-002 | Recipient can accept, decline, or request revision | MUST |
 | AC-FUNC-003 | Decision state is maintained on page reload | MUST |
 | AC-FUNC-004 | Duplicate decision submission returns clear message (not error) | MUST |
+| AC-FUNC-008 | Existing comments load and display on page mount (not just optimistically added comments) | SHOULD |
+| AC-FUNC-009 | Prior decision state loads and displays on page reload (recipient sees their previous decision) | SHOULD |
 | AC-FUNC-005 | Password-gated publication flow still works | MUST |
 | AC-FUNC-006 | Recipient session initialization via `?recipient=` still works | MUST |
 | AC-FUNC-007 | "Not you?" clears session and reloads page | MUST |
