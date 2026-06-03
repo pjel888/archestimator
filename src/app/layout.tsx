@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { SpeedInsights } from "@vercel/speed-insights/next";
 import { Inter, Poppins, Roboto_Mono, Source_Serif_4 } from "next/font/google";
 import { AppProviders } from "./providers";
 import "react-complex-tree/lib/style-modern.css";
@@ -30,7 +29,6 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
     <html lang="en">
       <body className={`${inter.variable} ${poppins.variable} ${robotoMono.variable} ${sourceSerif.variable}`}>
         <AppProviders>{children}</AppProviders>
-        <SpeedInsights />
       </body>
     </html>
   );
