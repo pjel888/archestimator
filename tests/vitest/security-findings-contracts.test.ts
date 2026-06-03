@@ -141,6 +141,19 @@ describe("Codex security findings hardening contracts", () => {
     expect(publicRepository).toContain("p_expected_snapshot_version: params.expectedSnapshotVersion");
   });
 
+  it("keeps password-protected share metadata generic before snapshot resolution", () => {
+    const sharePage = read("src/app/share/[token]/page.tsx");
+    const metadataFn = sharePage.slice(sharePage.indexOf("export async function generateMetadata"));
+
+    expect(sharePage).toContain("protectedPublicationMetadata");
+    expect(metadataFn.indexOf("if (access.passwordRequired)")).toBeGreaterThanOrEqual(0);
+    expect(metadataFn.indexOf("if (access.passwordRequired)")).toBeLessThan(
+      metadataFn.indexOf("resolveProjectPublicationSnapshotByToken(token)"),
+    );
+    expect(sharePage).toContain('title: "Proposal Review | Archestimator"');
+    expect(sharePage).toContain('description: "This proposal is password protected."');
+  });
+
   it("prevents sheet-only collaborators from inheriting project-wide estimate access", () => {
     const originalCollaborationMigration = read("supabase/migrations/20260526142913_project_sheet_collaboration_access.sql");
     const latestCanAccessEstimate = latestFunction("can_access_estimate");
