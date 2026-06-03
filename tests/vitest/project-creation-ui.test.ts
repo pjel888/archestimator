@@ -237,11 +237,12 @@ describe("project creation UI governance", () => {
       "await removeStoredProjectImagePaths(supabase, getProjectImageStoragePaths(metadata))",
     );
     expect(projectImageRoute).toContain(
-      'const PROJECT_IMAGE_BUCKET = "component-images"',
+      'const PROJECT_IMAGE_BUCKET = "project-images"',
     );
+    expect(projectImageRoute).toContain("createProjectImageRouteUrl(path)");
     expect(projectImageRoute).toContain('formData.get("projectId"');
     expect(projectImageRoute).toContain('eq("workspace_id", workspace.id)');
-    expect(projectImageRoute).toContain("project-images/${projectId}");
+    expect(projectImageRoute).toContain("${PROJECT_IMAGE_PATH_SEGMENT}/${projectId}");
     expect(projectImageRoute).toContain("sharp(sourceBuffer");
   });
 });

@@ -71,23 +71,26 @@ function createUnparsedFormRequest() {
 function mockStorageClient() {
   const remove = vi.fn(async () => ({ error: null }));
   const upload = vi.fn(async () => ({ error: null }));
+  const download = vi.fn(async () => ({ data: new Blob(["image"], { type: "image/webp" }), error: null }));
   const getPublicUrl = vi.fn(() => ({ data: { publicUrl: "https://cdn.example/file" } }));
-  const from = vi.fn(() => ({ remove, upload, getPublicUrl }));
+  const from = vi.fn(() => ({ remove, upload, download, getPublicUrl }));
   const client = { storage: { from } };
   supabaseJsMocks.createClient.mockReturnValue(client);
-  return { client, from, remove, upload, getPublicUrl };
+  return { client, from, remove, upload, download, getPublicUrl };
 }
 
-function mockMissingProjectLookup() {
-  const single = vi.fn(async () => ({ data: null, error: { message: "not found" } }));
+function mockProjectLookup(data: { id: string; workspace_id: string } | null = null) {
+  const maybeSingle = vi.fn(async () => ({ data, error: data ? null : { message: "not found" } }));
+  const single = vi.fn(async () => ({ data, error: data ? null : { message: "not found" } }));
   const query = {
     select: vi.fn(() => query),
     eq: vi.fn(() => query),
+    maybeSingle,
     single,
   };
   const from = vi.fn(() => query);
   supabaseServerMocks.createSupabaseServerClient.mockResolvedValue({ from });
-  return { from, single };
+  return { from, maybeSingle, single };
 }
 
 beforeEach(() => {
@@ -129,7 +132,9 @@ describe("sensitive API auth boundaries", () => {
     expect(source).toContain("ensureDefaultWorkspace()");
     expect(source).toContain('.eq("workspace_id", workspace.id)');
     expect(source).toContain("isOwnedUploadPath");
-    expect(source).toContain('path.startsWith(`${workspaceId}/${userId}/project-images/`)');
+    expect(source).toContain("parseProjectImageStoragePath(path)");
+    expect(source).toContain("parsed.workspaceId === workspaceId");
+    expect(source).toContain("parsed.ownerUserId === userId");
   });
 
   it("keeps proposal export behind the current workspace repository boundary", () => {
@@ -273,37 +278,61 @@ describe("sensitive API auth boundaries", () => {
   });
 
   it("removes only owned project image paths", async () => {
+    const workspaceId = "11111111-1111-4111-8111-111111111111";
+    const userId = "22222222-2222-4222-8222-222222222222";
+    const projectId = "33333333-3333-4333-8333-333333333333";
+    workspaceMocks.ensureDefaultWorkspace.mockResolvedValue({ workspace: { id: workspaceId } });
+    authMocks.requireCurrentUserContext.mockResolvedValue({ userId });
     const storage = mockStorageClient();
     const { DELETE } = await import("@/app/api/projects/images/route");
 
     const response = await DELETE(createJsonRequest({
       paths: [
-        "workspace-1/user-1/project-images/project-1/image.webp",
-        "workspace-1/user-1/project-images/project-1/image-thumb.webp",
-        "workspace-1/user-1/component.webp",
-        "workspace-2/user-1/project-images/project-1/image.webp",
-        "workspace-1/user-2/project-images/project-1/image.webp",
-        "workspace-1/user-1/project-images/project-1/../escape.webp",
+        `${workspaceId}/${userId}/project-images/${projectId}/image.webp`,
+        `${workspaceId}/${userId}/project-images/${projectId}/image-thumb.webp`,
+        `${workspaceId}/${userId}/component.webp`,
+        `44444444-4444-4444-8444-444444444444/${userId}/project-images/${projectId}/image.webp`,
+        `${workspaceId}/55555555-5555-4555-8555-555555555555/project-images/${projectId}/image.webp`,
+        `${workspaceId}/${userId}/project-images/${projectId}/../escape.webp`,
       ],
     }));
 
     expect(response.status).toBe(200);
     await expect(response.json()).resolves.toEqual({
       removedPaths: [
-        "workspace-1/user-1/project-images/project-1/image.webp",
-        "workspace-1/user-1/project-images/project-1/image-thumb.webp",
+        `${workspaceId}/${userId}/project-images/${projectId}/image.webp`,
+        `${workspaceId}/${userId}/project-images/${projectId}/image-thumb.webp`,
       ],
     });
-    expect(storage.from).toHaveBeenCalledWith("component-images");
+    expect(storage.from).toHaveBeenCalledWith("project-images");
     expect(storage.remove).toHaveBeenCalledWith([
-      "workspace-1/user-1/project-images/project-1/image.webp",
-      "workspace-1/user-1/project-images/project-1/image-thumb.webp",
+      `${workspaceId}/${userId}/project-images/${projectId}/image.webp`,
+      `${workspaceId}/${userId}/project-images/${projectId}/image-thumb.webp`,
     ]);
+  });
+
+  it("serves private project images only after authenticated project access resolves", async () => {
+    const workspaceId = "11111111-1111-4111-8111-111111111111";
+    const ownerUserId = "22222222-2222-4222-8222-222222222222";
+    const projectId = "33333333-3333-4333-8333-333333333333";
+    const path = `${workspaceId}/${ownerUserId}/project-images/${projectId}/image.webp`;
+    const storage = mockStorageClient();
+    const projectLookup = mockProjectLookup({ id: projectId, workspace_id: workspaceId });
+    const { GET } = await import("@/app/api/projects/images/route");
+
+    const response = await GET(new Request(`http://localhost/api/projects/images?path=${encodeURIComponent(path)}`));
+
+    expect(response.status).toBe(200);
+    expect(response.headers.get("content-type")).toBe("image/webp");
+    expect(projectLookup.from).toHaveBeenCalledWith("projects");
+    expect(projectLookup.maybeSingle).toHaveBeenCalled();
+    expect(storage.from).toHaveBeenCalledWith("project-images");
+    expect(storage.download).toHaveBeenCalledWith(path);
   });
 
   it("rejects project image uploads for projects outside the current workspace before storage writes", async () => {
     const storage = mockStorageClient();
-    const projectLookup = mockMissingProjectLookup();
+    const projectLookup = mockProjectLookup();
     const formData = new FormData();
     formData.set("projectId", "project-2");
     formData.set("file", new window.File(["not decoded"], "project.png", { type: "image/png" }));

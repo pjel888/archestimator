@@ -37,11 +37,8 @@ const supabaseImageRemotePatterns = ((): ImageRemotePattern[] => {
       port: url.port,
       search: "",
     };
-    // P9: cover both component library images and project cover images (from metadata.projectImageUrl)
-    // for Next/Image optimization on receiver hero + row thumbnails. Backwards compat.
     return [
       { ...base, pathname: "/storage/v1/object/public/component-images/**" },
-      { ...base, pathname: "/storage/v1/object/public/project-images/**" },
     ];
   } catch {
     return [];

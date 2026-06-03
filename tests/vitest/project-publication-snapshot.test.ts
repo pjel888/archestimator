@@ -78,7 +78,7 @@ describe("project publication snapshot builder (Shared Link V2)", () => {
     process.env.NEXT_PUBLIC_SUPABASE_URL = "https://example.supabase.co";
 
     try {
-      const safeSupabaseCover = "https://example.supabase.co/storage/v1/object/public/component-images/ws/user/project-images/project-1/cover.webp";
+      const safeSupabaseCover = "https://example.supabase.co/storage/v1/object/public/component-images/ws/user/components/cover.webp";
       const snapshot = buildProjectPublicationSnapshot({
         generatedAt: "2026-05-27T00:00:00.000Z",
         project: {
@@ -162,6 +162,19 @@ describe("project publication snapshot builder (Shared Link V2)", () => {
                 contingencyPercentage: 0,
                 imageUrl: "https://example.supabase.co/storage/v1/object/public/component-images/ws/user/pixel.svg",
               },
+              {
+                id: "unsafe-project-image-row",
+                description: "Private project thumbnail",
+                designation: "F",
+                discipline: "Architectural",
+                material: "Project cover",
+                quantity: 1,
+                unit: "pc",
+                unitCost: 1,
+                miscCost: 0,
+                contingencyPercentage: 0,
+                imageUrl: "https://example.supabase.co/storage/v1/object/public/component-images/ws/user/project-images/project-1/cover.webp",
+              },
             ],
           },
         ],
@@ -173,6 +186,7 @@ describe("project publication snapshot builder (Shared Link V2)", () => {
       expect(snapshot.estimates[0]?.rows[2]?.imageUrl).toBeNull();
       expect(snapshot.estimates[0]?.rows[3]?.imageUrl).toBeNull();
       expect(snapshot.estimates[0]?.rows[4]?.imageUrl).toBeNull();
+      expect(snapshot.estimates[0]?.rows[5]?.imageUrl).toBeNull();
 
       const unsafeCoverSnapshot = buildProjectPublicationSnapshot({
         generatedAt: "2026-05-27T00:00:00.000Z",
@@ -188,6 +202,20 @@ describe("project publication snapshot builder (Shared Link V2)", () => {
         estimates: [],
       });
       expect(unsafeCoverSnapshot.project.coverImageUrl).toBeNull();
+      const privateProjectCoverSnapshot = buildProjectPublicationSnapshot({
+        generatedAt: "2026-05-27T00:00:00.000Z",
+        project: {
+          id: "project-1",
+          name: "Valencia Residence",
+          projectCode: "VR-001",
+          clientName: "Client Family",
+          location: "Quezon City",
+          currencyCode: "PHP",
+          coverImageUrl: "/api/projects/images?path=workspace/user/project-images/project-1/cover.webp",
+        },
+        estimates: [],
+      });
+      expect(privateProjectCoverSnapshot.project.coverImageUrl).toBeNull();
     } finally {
       if (originalSupabaseUrl === undefined) {
         delete process.env.NEXT_PUBLIC_SUPABASE_URL;
