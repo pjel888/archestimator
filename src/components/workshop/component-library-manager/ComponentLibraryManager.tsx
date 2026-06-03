@@ -1,18 +1,23 @@
 "use client";
 
-import { useMemo, useRef, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import dynamic from "next/dynamic";
 import Image from "next/image";
 import { useNavigationRouter } from "@/hooks/use-navigation-router";
 import { CaretDown, CaretRight, FolderSimple, ImageSquare, SquaresFour } from "@phosphor-icons/react/dist/ssr";
 
+import { Button } from "@/components/ui/button";
 import { HeaderIconToolbar } from "@/components/ui/header-icon-toolbar";
 import { EmptyState } from "@/components/ui/empty-state";
+import { Modal } from "@/components/ui/modal";
 import { SearchInput } from "@/components/ui/search-input";
 import { ResizableSidePanel } from "@/components/workshop/ResizableSidePanel";
+import { TreeBulkActionBar } from "@/components/workshop/tree-row-affordances";
 import {
+  archiveCostLibraryComponentsBulk,
   createLibraryFolder,
   deleteLibraryFolder,
+  deleteLibraryFoldersBulk,
   renameLibraryFolder,
 } from "@/lib/component-library/actions";
 import {
@@ -295,7 +300,17 @@ function isNextImageSafeComponentSource(src: string) {
   }
 }
 
-function ComponentCatalogueCard({ card }: { card: CatalogueCard }) {
+function ComponentCatalogueCard({
+  card,
+  selected = false,
+  selectionMode = false,
+  onToggleSelected,
+}: {
+  card: CatalogueCard;
+  selected?: boolean;
+  selectionMode?: boolean;
+  onToggleSelected?: (itemId: string, checked: boolean) => void;
+}) {
   const item = card.item;
   const name = getComponentName(item);
   const brand = getItemBrandLabel(item);
@@ -304,12 +319,30 @@ function ComponentCatalogueCard({ card }: { card: CatalogueCard }) {
   return (
     <li
       data-component-catalogue-card-id={item.id}
+      data-component-catalogue-card-selected={selected ? "true" : undefined}
       className={cn(
         "group transition hover:border-divider hover:shadow-[0_16px_32px_-24px_rgba(17,24,39,0.65)]",
+        selected ? "border-accent bg-accentSoft" : undefined,
         CATALOGUE_CARD_SHELL_CLASS,
       )}
     >
       <div className="relative aspect-square w-full overflow-hidden border-b border-hairline bg-white">
+        <label
+          className={cn(
+            "absolute left-2 top-2 z-10 grid size-7 place-items-center rounded-xs border border-white/70 bg-white/86 shadow-sm backdrop-blur transition",
+            selectionMode ? "opacity-100" : "opacity-0 group-hover:opacity-100 group-focus-within:opacity-100",
+          )}
+          title={`Select ${name}`}
+          onClick={(event) => event.stopPropagation()}
+        >
+          <input
+            type="checkbox"
+            className="size-3 rounded-xs accent-ink"
+            aria-label={`Select ${name}`}
+            checked={selected}
+            onChange={(event) => onToggleSelected?.(item.id, event.currentTarget.checked)}
+          />
+        </label>
         {item.imageUrl && isNextImageSafeComponentSource(item.imageUrl) ? (
           <Image
             src={item.imageUrl}
@@ -372,7 +405,17 @@ function ComponentCatalogueCard({ card }: { card: CatalogueCard }) {
   );
 }
 
-function CatalogueCardGrid({ cards, label }: { cards: CatalogueCard[]; label: string }) {
+function CatalogueCardGrid({
+  cards,
+  label,
+  selectedItemIds,
+  onToggleSelected,
+}: {
+  cards: CatalogueCard[];
+  label: string;
+  selectedItemIds: Set<string>;
+  onToggleSelected: (itemId: string, checked: boolean) => void;
+}) {
   if (cards.length === 0) return null;
 
   return (
@@ -381,7 +424,13 @@ function CatalogueCardGrid({ cards, label }: { cards: CatalogueCard[]; label: st
       aria-label={`${label} component catalogue grid`}
     >
       {cards.map((card) => (
-        <ComponentCatalogueCard key={card.item.id} card={card} />
+        <ComponentCatalogueCard
+          key={card.item.id}
+          card={card}
+          selected={selectedItemIds.has(card.item.id)}
+          selectionMode={selectedItemIds.size > 0}
+          onToggleSelected={onToggleSelected}
+        />
       ))}
     </ul>
   );
@@ -409,10 +458,14 @@ function ComponentCatalogueBranch({
   branch,
   collapsedBranchIds,
   onToggleBranch,
+  selectedItemIds,
+  onToggleSelected,
 }: {
   branch: CatalogueBranch;
   collapsedBranchIds: Set<string>;
   onToggleBranch: (branchId: string) => void;
+  selectedItemIds: Set<string>;
+  onToggleSelected: (itemId: string, checked: boolean) => void;
 }) {
   const collapsed = collapsedBranchIds.has(branch.id);
   const empty = branch.totalItemCount === 0;
@@ -454,7 +507,12 @@ function ComponentCatalogueBranch({
           {empty ? (
             <CatalogueEmptyRow label={branch.pathLabel} />
           ) : null}
-          <CatalogueCardGrid cards={branch.directItems} label={branch.pathLabel} />
+          <CatalogueCardGrid
+            cards={branch.directItems}
+            label={branch.pathLabel}
+            selectedItemIds={selectedItemIds}
+            onToggleSelected={onToggleSelected}
+          />
           {branch.children.length > 0 ? (
             <div className={cn("flex flex-col gap-1", branch.directItems.length > 0 ? "mt-2" : "mt-1")}>
               {branch.children.map((child) => (
@@ -463,6 +521,8 @@ function ComponentCatalogueBranch({
                   branch={child}
                   collapsedBranchIds={collapsedBranchIds}
                   onToggleBranch={onToggleBranch}
+                  selectedItemIds={selectedItemIds}
+                  onToggleSelected={onToggleSelected}
                 />
               ))}
             </div>
@@ -544,6 +604,7 @@ function ComponentLibraryTreePanel({
   onCreateFolder,
   onRenameFolder,
   onDeleteFolder,
+  onDeleteFolders,
 }: {
   supplierNodes: LibraryTreeNode[];
   brandNodes: LibraryTreeNode[];
@@ -565,6 +626,7 @@ function ComponentLibraryTreePanel({
   onCreateFolder: CreateLibraryFolderHandler;
   onRenameFolder: (folderId: string, currentName: string) => void;
   onDeleteFolder: (folderId: string, currentName: string) => void;
+  onDeleteFolders: (folderIds: string[]) => boolean | void;
 }) {
   return (
     <ResizableSidePanel
@@ -599,6 +661,7 @@ function ComponentLibraryTreePanel({
           onCreateFolder={onCreateFolder}
           onRenameFolder={onRenameFolder}
           onDeleteFolder={onDeleteFolder}
+          onDeleteFolders={onDeleteFolders}
           searchAriaLabel="Search component library tree"
           folderSearchPlaceholder="Search Library Folders"
           supplierSearchPlaceholder="Search Library Tree"
@@ -639,8 +702,13 @@ function ComponentLibrarySheet({
   status: SheetStatus;
   onAddComponent: () => void;
 }) {
+  const router = useNavigationRouter();
   const [searchQuery, setSearchQuery] = useState("");
   const [collapsedCatalogueBranchIds, setCollapsedCatalogueBranchIds] = useState<Set<string>>(() => new Set());
+  const [selectedCatalogueItemIds, setSelectedCatalogueItemIds] = useState<Set<string>>(() => new Set());
+  const [archiveConfirmOpen, setArchiveConfirmOpen] = useState(false);
+  const [archivePending, setArchivePending] = useState(false);
+  const [archiveError, setArchiveError] = useState<string | null>(null);
   const sheetItems = useMemo(() => {
     if (viewMode === "suppliers") {
       if (!selectedSupplierNode || selectedSupplierNode.id === "all-suppliers") return getSupplierBackedItems(libraryItems);
@@ -659,6 +727,20 @@ function ComponentLibrarySheet({
     () => sheetItems.filter((item) => itemMatchesSheetQuery(item, searchQuery)),
     [searchQuery, sheetItems],
   );
+  useEffect(() => {
+    const visibleItemIds = new Set(visibleItems.map((item) => item.id));
+    let cancelled = false;
+    queueMicrotask(() => {
+      if (cancelled) return;
+      setSelectedCatalogueItemIds((current) => {
+        const next = new Set([...current].filter((itemId) => visibleItemIds.has(itemId)));
+        return next.size === current.size && [...next].every((itemId) => current.has(itemId)) ? current : next;
+      });
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [visibleItems]);
   const catalogueOutline = useMemo(
     () => buildCatalogueOutline(visibleItems, folderNodes, selectedFolderNode, searchQuery),
     [folderNodes, searchQuery, selectedFolderNode, visibleItems],
@@ -675,6 +757,29 @@ function ComponentLibrarySheet({
       }
       return next;
     });
+  };
+  const toggleCatalogueItemSelected = (itemId: string, checked: boolean) => {
+    setSelectedCatalogueItemIds((current) => {
+      const next = new Set(current);
+      if (checked) next.add(itemId);
+      else next.delete(itemId);
+      return next;
+    });
+  };
+  const clearCatalogueSelection = () => setSelectedCatalogueItemIds(new Set());
+  const confirmArchiveComponents = () => {
+    if (archivePending || selectedCatalogueItemIds.size === 0) return;
+    const itemIds = [...selectedCatalogueItemIds];
+    setArchivePending(true);
+    setArchiveError(null);
+    void archiveCostLibraryComponentsBulk(itemIds)
+      .then(() => {
+        clearCatalogueSelection();
+        setArchiveConfirmOpen(false);
+        router.refresh();
+      })
+      .catch((error: unknown) => setArchiveError(error instanceof Error ? error.message : "Could not archive selected components."))
+      .finally(() => setArchivePending(false));
   };
   const selectedLabel = viewMode === "suppliers"
     ? selectedSupplierNode?.label ?? "All Suppliers"
@@ -741,8 +846,22 @@ function ComponentLibrarySheet({
             {status.message}
           </div>
         ) : null}
+        {archiveError ? (
+          <div role="alert" className="border-b border-dangerSoft bg-dangerSoft/40 px-2 py-1 text-[10px] font-medium text-danger">
+            {archiveError}
+          </div>
+        ) : null}
       </header>
 
+      <TreeBulkActionBar
+        selectedCount={selectedCatalogueItemIds.size}
+        entityLabel="component"
+        onClearSelection={clearCatalogueSelection}
+        onDelete={() => setArchiveConfirmOpen(true)}
+        deleteLabel="Archive selected"
+        deleteDisabled={archivePending}
+        disabledReason="Finish the current component archive before archiving more components."
+      />
       <div className="min-h-0 flex-1 overflow-auto p-2">
         {hasCatalogueResults ? (
           <div className="flex flex-col gap-1" aria-label={`${selectedLabel} component catalogue`}>
@@ -752,6 +871,8 @@ function ComponentLibrarySheet({
                 branch={branch}
                 collapsedBranchIds={collapsedCatalogueBranchIds}
                 onToggleBranch={toggleCatalogueBranch}
+                selectedItemIds={selectedCatalogueItemIds}
+                onToggleSelected={toggleCatalogueItemSelected}
               />
             ))}
             {catalogueOutline.items.length > 0 ? (
@@ -767,7 +888,12 @@ function ComponentLibrarySheet({
                     </h2>
                   </div>
                 </div>
-                <CatalogueCardGrid cards={catalogueOutline.items} label={CATALOGUE_UNASSIGNED_LABEL} />
+                <CatalogueCardGrid
+                  cards={catalogueOutline.items}
+                  label={CATALOGUE_UNASSIGNED_LABEL}
+                  selectedItemIds={selectedCatalogueItemIds}
+                  onToggleSelected={toggleCatalogueItemSelected}
+                />
               </section>
             ) : null}
           </div>
@@ -780,6 +906,30 @@ function ComponentLibrarySheet({
           />
         )}
       </div>
+      <Modal
+        open={archiveConfirmOpen}
+        title={`Archive ${selectedCatalogueItemIds.size} selected ${selectedCatalogueItemIds.size === 1 ? "component" : "components"}`}
+        description="Archived components stay referenced by existing estimate rows."
+        onOpenChange={(open) => {
+          if (!open && !archivePending) setArchiveConfirmOpen(false);
+        }}
+        closeLabel="Cancel component archive"
+        className="max-w-sm"
+      >
+        <div className="space-y-3">
+          <p className="text-[10px] leading-4 text-tertiary">
+            This changes selected components to archived. Hard delete stays disabled until admin and zero-reference proof is available.
+          </p>
+          <div className="flex justify-end gap-2">
+            <Button type="button" variant="secondary" size="sm" disabled={archivePending} onClick={() => setArchiveConfirmOpen(false)}>
+              Cancel
+            </Button>
+            <Button type="button" variant="danger" size="sm" disabled={archivePending || selectedCatalogueItemIds.size === 0} onClick={confirmArchiveComponents}>
+              Archive
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </section>
   );
 }
@@ -989,6 +1139,36 @@ export function ComponentLibraryManager({
     });
   }
 
+  function deleteFolders(folderIds: string[]) {
+    const requestedFolderIds = [...new Set(folderIds)].filter((folderId) => !isAllComponentsFolderId(folderId));
+    if (requestedFolderIds.length === 0) return false;
+    const label = requestedFolderIds.length === 1 ? "folder" : "folders";
+    if (!window.confirm(`Delete ${requestedFolderIds.length} selected ${label}? Component items assigned to them will stay in the library without a folder.`)) return false;
+    startTreeMutation(async () => {
+      const previousFolders = localFolders;
+      setReorderStatus({ state: "saving", message: "Deleting selected folders..." });
+      try {
+        await deleteLibraryFoldersBulk(requestedFolderIds);
+        setLocalFolders((current) => {
+          let nextFolders = current;
+          for (const folderId of requestedFolderIds) {
+            nextFolders = planLibraryFolderDelete(nextFolders, folderId)?.nextFolders ?? nextFolders.filter((folder) => folder.id !== folderId);
+          }
+          return nextFolders;
+        });
+        if (selectedFolderId && requestedFolderIds.includes(selectedFolderId)) {
+          const deletedParentId = previousFolders.find((folder) => folder.id === selectedFolderId)?.parent_id ?? ALL_COMPONENTS_FOLDER_ID;
+          setSelectedFolderId(deletedParentId);
+        }
+        setReorderStatus({ state: "saved", message: "Selected folders deleted." });
+      } catch (error) {
+        setLocalFolders(previousFolders);
+        setReorderStatus({ state: "error", message: error instanceof Error ? error.message : "Could not delete selected folders." });
+      }
+    });
+    return true;
+  }
+
   return (
     <div className="flex h-full min-h-0 overflow-hidden rounded-xs border-r border-hairline bg-white" data-component-library-workspace="true">
       <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-canvas">
@@ -1028,6 +1208,7 @@ export function ComponentLibraryManager({
             onCreateFolder={createFolder}
             onRenameFolder={renameFolder}
             onDeleteFolder={deleteFolder}
+            onDeleteFolders={deleteFolders}
           />
         </section>
       </div>
