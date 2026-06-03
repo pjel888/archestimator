@@ -9,3 +9,4 @@
 - Recovery branches (e.g., `wip/post-shared-link-merge-recovery`) containing stashed work should be merged into main when their files are needed to resolve build errors or missing dependencies. Confidence: 0.75
 - When implementing from plan documents, create comprehensive implementation prompts that force autonomous autopilot execution with plan tracking, continuous state updates to `.ai/01_roadmap` and `.ai/10_state`, and loop until 0 errors remain. Confidence: 0.75
 - Before declaring work complete, self-audit output against established taste/plan patterns and proactively volunteer any gaps or improvements found — don't wait for the user to ask. Confidence: 0.70
+- Archive folders in `.ai/09_archive/store` must be prefixed with `YYYY-MM-DD-` date format. Confidence: 0.70
