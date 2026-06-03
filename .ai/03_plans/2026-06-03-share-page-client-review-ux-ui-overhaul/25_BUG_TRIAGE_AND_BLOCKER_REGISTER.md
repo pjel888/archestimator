@@ -62,10 +62,64 @@ The following acceptance criteria should be upgraded from `SHOULD` to `MUST`:
 
 ---
 
+## Implementation Sequencing with Bug Dependencies
+
+The bugs interact with the implementation phases. Here is the recommended bug resolution order:
+
+```
+Phase 2: B1 (hydration) → must be fixed before any visual changes
+Phase 3: B2 (debug badge) + B6 (fontWeight=600) + B7 (tracking-normal) → language/artifact cleanup
+Phase 4: Layout redesign (no specific bugs, but enables B5 fix surface)
+Phase 5: B3 (comment history) + B4 (decision persistence) + B8 (API resolved)
+Phase 6: B5 (modal a11y) → focus trap implementation
+```
+
+**Critical path:** B1 → B2 → B3/B4. B3 and B4 are gated by B8 (Philip's API approval).
+
+## Why Each Bug Matters (User Impact)
+
+| Bug | If NOT Fixed | User Experience |
+|-----|-------------|-----------------|
+| B1 | Console errors visible in DevTools | Client's technical contact sees errors → erodes trust |
+| B2 | "🍩 buckets:3 total:5000000" badge visible | Client sees emoji debug output → "Is this a toy app?" |
+| B3 | Comment section always empty on reload | Client adds comments, returns later, they're gone → "Did they see my note?" |
+| B4 | Decision buttons reappear after reload | Client accepted, comes back, sees Accept button again → "Did my acceptance go through?" |
+| B5 | Tab escapes modal, no Escape close | Keyboard user can't properly interact with decision flow → accessibility failure |
+| B6 | Bold text on callout labels | Design inconsistency → "Why is this bold?" |
+| B7 | Inconsistent letter spacing | Visual inconsistency → "This looks sloppy" |
+
+## Implementation Agent Pre-Flight Checklist
+
+Before starting implementation, verify:
+
+```bash
+# 1. Repo is clean and on main
+git status --short --branch
+# Expected: only intentional changes, no unrelated dirty files
+
+# 2. next-env.d.ts is NOT modified by the plan
+# (This file was pre-existing dirty before refinement — see final report.
+#  Do NOT commit changes to this file as part of implementation.)
+
+# 3. All bug plan files exist
+ls .ai/15_Bugs/2026-06-03-share-page-*.md
+# Expected: 5 files (B1 cost-donut-chart-hydration-mismatch,
+#                     B2 cost-donut-chart-visible-debug-badge,
+#                     B3 comments-not-loading-existing-history,
+#                     B4 decision-state-not-persisting-on-reload,
+#                     B5 decision-modal-focus-accessibility)
+
+# 4. Plan folder is complete
+ls .ai/03_plans/2026-06-03-share-page-client-review-ux-ui-overhaul/
+# Expected: 00 through 15 + 24 + 25 (18 documents)
+```
+
 ## Verification Requirements
 
 Before declaring implementation complete:
-1. All blocking bugs (B1-B5) must be resolved with passing tests
-2. B3 and B4 should have their priority upgraded to MUST
-3. B8 must be resolved via the API contract decision in 24_API_CONTRACT_PLAN.md
-4. All bug plans must have their status updated to CLOSED with evidence
+1. All blocking bugs (B1-B5) must be resolved with passing tests and manual QA evidence
+2. B3 and B4 are now MUST priority — returning clients seeing empty state is broken UX
+3. B8 is resolved by Philip's decision on API strategy (see 24_API_CONTRACT_PLAN.md)
+4. All bug plans must have their status updated to CLOSED with resolution evidence (test output, console screenshots)
+5. Design-system audit must be performed on ALL share components (not just the ones audited in second-pass — see 02_CODEBASE_RESEARCH "Not Confirmed" section for the list)
+6. `bun run lint:design-system` must pass with zero violations

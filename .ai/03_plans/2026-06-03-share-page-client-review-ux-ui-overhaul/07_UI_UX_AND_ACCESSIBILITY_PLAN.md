@@ -82,11 +82,15 @@
 
 ### Mobile (320px–767px)
 - Full-width, minimal horizontal padding (16px)
-- DecisionBar: buttons stack vertically or wrap
-- Tabs: horizontal scroll with fade masks (existing behavior)
-- Chart: full-width, may be smaller (compact mode)
-- Comments: full-width, expandable
-- Session banner: compact, single-line
+- DecisionBar: buttons stack vertically (Accept on top, then Decline, then Request Revision), full-width buttons, 12px gap between them
+- Tabs: horizontal scroll with fade masks (existing behavior), touch-swipe support
+- Chart: full-width, compact mode (520×400 viewBox), `h-[400px]` container to guarantee visibility
+- Comments: full-width below estimates, collapsible with expand/collapse toggle button (chevron icon). Collapsed by default when comments exist; expanded when composing. Toggle state persists in sessionStorage.
+- Session banner: compact single-line, wraps gracefully, "Not you?" as an X icon button on the right
+- Cover image: full-width, constrained aspect ratio, `loading="lazy"`
+- Safe area: `pb-[env(safe-area-inset-bottom)]` on all interactive bottom elements
+- Touch targets: minimum 44px height for all interactive elements (buttons, tabs, toggles)
+- Comment composer: `position: sticky; bottom: 0` with safe-area-inset to keep visible while typing
 
 ---
 
@@ -152,6 +156,18 @@
 | Known recipient | "You are reviewing as {email}" + "Not you?" button |
 | Unknown, no session | "Sign in as recipient to comment and respond" (subtle, dismissible) |
 | Dismissed | Hidden (until next page load) |
+| Session expired | "Your review session has expired" + "Request a new link from the sender" |
+| Invalid recipient token | "This recipient link is no longer valid" + "Request a new link from the sender" |
+
+### SharePageRecipientSessionInitializer (Edge Cases)
+| State | Behavior |
+|-------|----------|
+| Normal (`?recipient=valid`) | POST to session route → set cookie → reload page (existing) |
+| No `?recipient=` | No-op (existing) |
+| Session POST fails (network) | Retry once, then show "Could not verify your identity. Please try again or request a new link." |
+| Session POST fails (invalid token) | "This recipient link is invalid or has expired. Please request a new link from the sender." |
+| Session POST fails (rate limited) | "Too many attempts. Please wait a moment and try again." |
+| Session POST succeeds but cookie blocked | Show warning: "Your browser may be blocking cookies. Please enable cookies to use interactive features." |
 
 ---
 
