@@ -107,6 +107,7 @@ Archive is reversible through lifecycle state. It must:
 - leave price/version/attachment/storage rows intact;
 - hide archived components from default library and estimate insertion/search;
 - preserve existing estimate/template rows and snapshots.
+- verify runtime repository/search paths explicitly filter `archived`; current manager/tree/search paths do not provide a global default exclusion.
 
 ## Publications And Shared Links
 

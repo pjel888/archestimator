@@ -92,6 +92,7 @@ Node and row deletion are already history-aware and should not be confused with 
 - New components default to `available` when lifecycle omitted.
 - Existing rows with `source_snapshot` remain readable if a component is archived.
 - Future implementation must filter `archived` from default library catalogue and estimate-sidebar insertion/search.
+- The inspected repository/UI load paths are driven by `cost_library_items` and related joins. Do not count on synthetic fallback rows to mask missing archive filtering in runtime UI.
 
 ### Folder Delete Behavior
 
@@ -147,6 +148,8 @@ Do not reuse folder deletion semantics for component deletion.
 | Component attachments | `component-attachments` | API uses `${workspace.id}/${userId}/${safeName}-${uuid}.{ext}`. Private bucket. |
 
 Future cleanup must not remove arbitrary client-provided paths. RPC/server action must return validated stored paths derived from database rows and then delete with bucket-specific allow lists.
+
+Existing component image/attachment delete behavior is API-route-driven and path-ownership checked; it is not a SQL-transactional cleanup mechanism. Project image cleanup also uses `component-images` and `/project-images/` path allow-listing.
 
 ## Tests And Validation Infrastructure
 

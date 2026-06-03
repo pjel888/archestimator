@@ -57,7 +57,7 @@ Deleting any of these must be previewed with dependency counts, confirmed with a
 | Project delete | Hard delete after preview and typed confirmation; block active publications. | Project deletion has the widest blast radius and shared links can contain receiver decisions/comments. |
 | Estimate sheet delete | Hard delete after preview and typed confirmation; block active publications that include selected estimates unless product explicitly accepts metadata update. | Avoid silently changing live/public recipient context. |
 | Library component archive | Bulk archive only. | Existing estimate/template rows preserve snapshots; archive is reversible by lifecycle state. |
-| Library component hard delete | Optional Phase 6 only; owner/admin only; zero references required. | Hard delete touches version history, attachments, and storage. |
+| Library component hard delete | Optional Phase 6 only; workspace admin (`is_workspace_admin`) or platform admin only; zero references required. | Hard delete touches version history, attachments, and storage. |
 | Audit | Dedicated `mass_deletion_events` table recommended. | Existing audit tables are too domain-specific. |
 | Storage cleanup | Best-effort after DB commit with allow-listed bucket/path rules and retryable failure reporting. | Avoid rolling back committed database state because object deletion failed. |
 
@@ -90,7 +90,7 @@ Hard delete only when preview proves:
 
 - no `estimate_row_items.source_library_item_id` references;
 - no `estimate_template_row_items.source_library_item_id` references;
-- actor is owner/admin or platform admin;
+- actor satisfies `is_workspace_admin(workspace_id)` or platform admin authority;
 - storage paths belong to `component-images` or `component-attachments` with workspace/user prefix rules.
 
 ### Publication Handling
