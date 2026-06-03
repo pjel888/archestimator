@@ -40,7 +40,7 @@
 
 ---
 
-## Overall Score: 99%
+## Overall Score: 95%
 
 ### Evidence
 - **Repository evidence accuracy (100%)**: All claims backed by file reads from live repo. No hallucinated files, routes, or APIs.
