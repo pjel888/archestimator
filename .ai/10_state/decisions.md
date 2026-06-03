@@ -192,3 +192,4 @@ Rejected: global ADD enforcement immediately | dry-run feature and bug proof mus
 Confidence: high
 Scope-risk: moderate
 Directive: Implement Phase 1 canonical `.ai` docs first; do not enforce branch protections or Notion workflows until Philip/GitHub/Notion/provider admin decisions are recorded.
+- 2026-06-03 — Agentic-Driven Development framework refinement decision: `.ai/12_agents` remains the canonical agent contract folder; existing `.agents/` is a skills/playbook compatibility surface and should get only a thin `.ai` pointer if used. Gemini remains deprecated unless Philip explicitly reapproves it, Ollama remains non-agent/embedding-only, and Hermes/Cursor require explicit payload/status decisions before global enforcement. GitHub rulesets/protections, provider actions, and Notion sync remain approval-gated; dry-runs must pass before enforcement.

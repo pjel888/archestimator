@@ -1,32 +1,27 @@
 # Traceability Matrix
 
-**Date:** 2026-06-03
-
-| Requirement | Acceptance criterion | Files/modules likely affected | Implementation phase | Test/verification method | Risk/rollback note | Status |
+| Requirement | Acceptance criterion | Likely files | Step | Verification | Risk / rollback | Status |
 |---|---|---|---|---|---|---|
-| M-01 | Define production branch strategy | Plan chooses whether `main` remains production and records rationale | .ai/00_system, .ai/08_prompts, .github future | Phase 1-7 | Inspect `.github/workflows/ci.yml`, `git remote show origin`, branch list | Revert `.ai/00_system/BRANCH_ENVIRONMENT_STRATEGY.md` update before protection changes | Planned |
-| M-02 | Define beta/staging branch strategy | Plan names the pre-production branch and environment mapping | .ai/00_system, .ai/08_prompts, .github future | Phase 1-7 | Branch list and future GitHub environment review | Delete unapproved branch only after no PRs depend on it | Planned |
-| M-03 | Define testing/QA branch strategy | Plan says when `test/*` or temporary QA branches are allowed | .ai/00_system, .ai/08_prompts, .github future | Phase 1-7 | Branch naming table exists | Prune temporary branches after evidence is archived | Planned |
-| M-04 | Define feature branch strategy | Feature work uses short-lived `feat/*` branches with PRs | .ai/00_system, .ai/08_prompts, .github future | Phase 1-7 | PR checklist and branch table | Close stale branch and preserve evidence in `.ai/05_logs` | Planned |
-| M-05 | Define hotfix branch strategy | Hotfix starts from production branch and backmerges to beta/dev if used | .ai/00_system, .ai/08_prompts, .github future | Phase 1-7 | Hotfix workflow table | Revert hotfix or backmerge correction PR | Planned |
-| M-06 | Define release candidate strategy | Release candidates use `release/*` only for gated promotion windows | .ai/00_system, .ai/08_prompts, .github future | Phase 1-7 | Release workflow doc and tag policy | Delete RC branch after rollback or release | Planned |
-| M-07 | Define PR and merge rules | Every non-trivial change uses PR review and no automatic main merge | .ai/00_system, .ai/08_prompts, .github future | Phase 1-7 | PR template checklist | Temporarily relax template only with Philip decision log | Planned |
-| M-08 | Define branch protection requirements | Protection matrix covers main, beta, release, hotfix, and feature branches | .ai/00_system, .ai/08_prompts, .github future | Phase 1-7 | GitHub settings manual proof | Rollback protection only with explicit owner approval | Planned |
-| M-09 | Define CI/CD gates by branch type | CI table maps branch type to commands and deploy gates | .ai/00_system, .ai/08_prompts, .github future | Phase 1-7 | Workflow dry-run or PR run evidence | Revert workflow YAML change | Planned |
-| M-10 | Define required validation commands by work type | Validation matrix extends current `bun run validate`, build, design lint, e2e rules | .ai/00_system, .ai/08_prompts, .github future | Phase 1-7 | `.ai/00_system/VALIDATION_MATRIX.md` and future ADD docs | Revert doc update and restore previous matrix | Planned |
-| M-11 | Define feature implementation protocol using ADD phases | Feature workflow uses DEFINE/DISCOVER/DESIGN/SETUP/BUILD/VALIDATE/RELEASE | .ai/00_system, .ai/08_prompts, .github future | Phase 1-7 | Dry-run feature plan evidence | Mark protocol advisory until dry-run passes | Planned |
-| M-12 | Define bug investigation/fix protocol | Bug workflow requires evidence, reproduction, root cause, regression test, validation | .ai/00_system, .ai/08_prompts, .github future | Phase 1-7 | Bug plan in `.ai/15_Bugs` | Archive or revise bug plan with reason | Planned |
-| M-13 | Define hotfix protocol | Hotfix workflow is minimal, scoped, reviewed, rollback-backed | .ai/00_system, .ai/08_prompts, .github future | Phase 1-7 | Hotfix checklist | Back out hotfix branch/protection rule | Planned |
-| M-14 | Define release promotion protocol | Promotion requires beta no-go evidence, provider proof, rollback proof, post-release smoke | .ai/00_system, .ai/08_prompts, .github future | Phase 1-7 | Manual proof matrix and release checklist | Stop release; revert promotion PR | Planned |
-| M-15 | Define codebase AI operating protocol updates | Future Phase 1 names exact `.ai/00_system` docs to add/update | .ai/00_system, .ai/08_prompts, .github future | Phase 1-7 | Docs diff and agent dry-run | Revert ADD docs | Planned |
-| M-16 | Define `.ai` source-of-truth updates | `.ai` remains canonical; Notion cannot contradict it | .ai/00_system, .ai/08_prompts, .github future | Phase 1-7 | DOCS_SOURCE_OF_TRUTH update in Phase 1 | Restore previous source map | Planned |
-| M-17 | Define Notion mirror/update requirements | Notion is executive/project mirror with links back to `.ai` | .ai/00_system, .ai/08_prompts, .github future | Phase 1-7 | Paste-ready payload or connector proof | Remove stale Notion links/status | Planned |
-| M-18 | Define run log / journal requirements | Every meaningful task records a run log with command evidence and commit hash | .ai/00_system, .ai/08_prompts, .github future | Phase 1-7 | `.ai/05_logs` entry exists before merge | Correct log entry or mark superseded | Planned |
-| M-19 | Define decision log / ADR requirements | Durable branch/process decisions enter `.ai/10_state/decisions.md` or ADR home | .ai/00_system, .ai/08_prompts, .github future | Phase 1-7 | Decision entry with date and scope | Add superseded decision note | Planned |
-| M-20 | Define interface contract requirements | Boundary changes require contract artifact and validation method | .ai/00_system, .ai/08_prompts, .github future | Phase 1-7 | Contract template and traceability matrix | Revert boundary change or update contract | Planned |
-| M-21 | Define agent context file requirements | Agents must read AGENTS.md and `.ai` chain before implementation | .ai/00_system, .ai/08_prompts, .github future | Phase 1-7 | Prompt templates include required reading | Patch template and rerun dry-run | Planned |
-| M-22 | Define rollback requirements | Every branch, CI, provider, and protocol change has rollback notes | .ai/00_system, .ai/08_prompts, .github future | Phase 1-7 | Rollback table per phase | Execute documented revert path | Planned |
-| M-23 | Define security/no-secrets requirements | No secrets in `.ai`; provider settings require proof not claims | .ai/00_system, .ai/08_prompts, .github future | Phase 1-7 | Secret scan/manual review | Rotate leaked secret and remove from history under separate incident plan | Planned |
-| M-24 | Define provider-state evidence requirements | Vercel/Supabase/Resend claims need dashboard or CLI proof | .ai/00_system, .ai/08_prompts, .github future | Phase 1-7 | Manual/provider proof packet | Downgrade status to unproven | Planned |
-| M-25 | Define beta no-go gate integration | Release protocol maps current no-go blockers into promotion gates | .ai/00_system, .ai/08_prompts, .github future | Phase 1-7 | `.ai/10_state/current-state.md` and manual proof matrix | Stop beta promotion | Planned |
-| M-26 | Define adoption dry-run requirement | One real feature and one real bug must pass ADD before global enforcement | .ai/00_system, .ai/08_prompts, .github future | Phase 1-7 | Dry-run report in `22_DRY_RUN...` | Keep protocol advisory | Planned |
+| FR-001 `.ai` canonical | all adapters point to `.ai` | `.ai/00_system`, adapters | Phase 1/5 | path/link audit | revert adapter | planned |
+| FR-002 thin `AGENTS.md` | no duplicated policy | `AGENTS.md` | Phase 5 | diff review | revert | planned |
+| FR-003 payload schema | each payload has operational fields | `.ai/12_agents/payloads/*` | Phase 2 | schema checklist | revert payload | planned |
+| FR-004 Hermes/Cursor/Ollama decisions | missing/conditional/non-agent status resolved | `.ai/12_agents/*` | Phase 2 | inventory diff | rollback payload | planned |
+| FR-005 Gemini deprecated | root/payload fail closed | `GEMINI.md`, `.ai/12_agents/payloads/gemini.md` | Phase 5 | text audit | revert | planned |
+| FR-006 `.agents` compatibility | shim points to `.ai` only | `.agents/README.md` | Phase 5 | link audit | remove shim | planned |
+| FR-007 preflight | receipt format exists | `.ai/00_system`, prompts, payloads | Phase 1/4 | dry-run ADV-002 | update protocol | planned |
+| FR-008 concurrency | disjoint write/worktree rules | `.ai/00_system`, `28`, `41` | Phase 1 | dry-run dirty/conflict | stop/reassign agents | planned |
+| FR-009 evidence | run-log schema exists | `.ai/05_logs`, `.ai/11_skills`, `30`, `42` | Phase 4 | dry-run final reports | correct logs | planned |
+| FR-010 Notion mirror | Notion payload says mirror-only | `17`, `23`, `38` | Phase 8 | text audit | correct mirror | planned |
+| FR-011 GitHub staged | advisory first | `.github` future docs, `19`, `36` | Phase 7 | dry-run/advisory | disable rules | planned |
+| FR-012 provider proof | no claim without evidence | `.ai/00_system`, `37` | Phase 1/8 | provider-hallucination eval | correct report | planned |
+| Codex payload | implementation lane safe | `codex.md` | Phase 2 | payload schema | revert | planned |
+| Claude payload | planning/review lane safe | `claude.md`, `CLAUDE.md` | Phase 2/5 | payload schema | revert | planned |
+| OpenCode payload | config schema verified | `opencode.md`, optional config | Phase 2/5 | docs/local verification | do not create config | planned |
+| CommandCode payload | sentinels subordinate to `.ai` | `commandcode.md`, `.commandcode/*` | Phase 2/5 | drift audit | add pointer/revert | planned |
+| Kimi payload | UI design gates | `kimi.md` | Phase 2 | schema + DESIGN refs | revert | planned |
+| Antigravity payload | isolated terminal lane | `antigravity.md` | Phase 2 | schema | revert | planned |
+| DeepSeek payload | debug/read-only default | `deepseek.md` | Phase 2 | schema | revert | planned |
+| Hermes payload | orchestration contract | `hermes.md` | Phase 2 | owner decision | remove roster | planned |
+| Cursor payload | editor/MCP role | `cursor.md`, `.cursor` | Phase 2/5 | docs/local check | no-op | planned |
+| Gemini deprecated | no active route | `gemini.md`, `GEMINI.md` | Phase 2/5 | fail-closed eval | revert | planned |
+| Ollama non-agent | embedding-only note | `ollama.md` or README | Phase 2 | text audit | remove | planned |
