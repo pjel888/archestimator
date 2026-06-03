@@ -145,3 +145,19 @@ These concepts can be reconsidered later, but they must be reapproved through a 
 - What geography and pricing basis should v1 use?
 - Should v1 include AI generation, AI review, or no AI until the estimate sheet is strong?
 - Which additional export formats beyond industry-standard Excel and PDF are needed later?
+
+## 2026-06-03 — Mass deletion defaults
+
+Decision: Ship mass deletion as a preview-first, typed-confirmation workflow with server-side execute rechecking the preview hash and dependencies.
+
+- Projects require bulk/single delete through `previewBulkDeleteProjects` / `executeBulkDeleteProjects`; direct raw form delete is no longer the UI path.
+- Estimate sheets require `can_edit_estimate`, block active publications whose `selected_estimate_ids` include the sheet, and revalidate project estimate/charts routes after execute.
+- Component library first-release destructive UX is archive-only. Hard delete remains out of the UI until a separate zero-reference/admin proof pass is intentionally scoped.
+- Archived components are hidden from library reads and sheet insertion by default.
+- Storage deletion is best-effort after DB commit and restricted to DB-derived allowlisted paths; cleanup result is recorded back to `mass_deletion_events`.
+
+Rejected: silent project/publication mutation or snapshot editing during delete previews | would break published receiver truth and hide destructive consequences.
+Rejected: component hard delete in the first-release UI | archive satisfies reversible cleanup while references can continue to resolve historical component context.
+Confidence: high
+Scope-risk: moderate
+Directive: Apply `20260603160000_mass_deletion_governance.sql` through the approved Supabase migration path before treating provider/live deletion as complete.

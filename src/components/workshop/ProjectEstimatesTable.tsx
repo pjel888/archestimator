@@ -19,8 +19,11 @@ import {
 } from "@tanstack/react-table";
 
 import { Button } from "@/components/ui/button";
-import { duplicateEstimateSheet, fetchEstimateTree, regenerateEstimateSheetCode, updateEstimateDetails } from "@/lib/estimates/actions";
+import { BulkActionToolbar } from "@/components/workshop/BulkActionToolbar";
+import { BulkDestructivePreviewModal } from "@/components/workshop/BulkDestructivePreviewModal";
+import { duplicateEstimateSheet, executeBulkDeleteEstimateSheets, fetchEstimateTree, previewBulkDeleteEstimateSheets, regenerateEstimateSheetCode, updateEstimateDetails } from "@/lib/estimates/actions";
 import { estimateQueryKeys } from "@/hooks/use-estimate-query";
+import { createBulkActionCorrelationId, type BulkActionPreviewResult } from "@/lib/mass-deletion/bulk-action";
 import { estimateRepository } from "@/lib/repositories/estimate-repository";
 import type { Tables } from "@/lib/supabase/types";
 import { cn } from "@/lib/ui/cn";
@@ -175,6 +178,7 @@ type ProjectEstimateRowActionsProps = {
   onDuplicateError: (message: string | null) => void;
   onPrefetchCancel: (href: string) => void;
   onPrefetchStart: (href: string) => void;
+  onDeleteRequested: (estimateId: string) => void;
   onToggleSelected: (estimateId: string) => void;
   projectId: string;
 };
@@ -183,6 +187,7 @@ function ProjectEstimateRowActions({
   estimate,
   isSelected,
   onDuplicateError,
+  onDeleteRequested,
   onPrefetchCancel,
   onPrefetchStart,
   onToggleSelected,
@@ -222,8 +227,8 @@ function ProjectEstimateRowActions({
         type="button"
         className="grid size-6 place-items-center rounded-xs text-tertiary transition hover:bg-surface-muted hover:text-danger focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus disabled:cursor-not-allowed disabled:opacity-40"
         aria-label={`Delete ${estimate.name}`}
-        title="Delete action is not wired yet"
-        disabled
+        title="Delete estimate sheet"
+        onClick={() => onDeleteRequested(estimate.id)}
       >
         <Trash size={12} weight="regular" aria-hidden="true" />
       </button>
@@ -620,6 +625,11 @@ function ProjectEstimatesTableComponent({ estimates, projectId, emptyMessage = "
   const [columnSizing, setColumnSizing] = useState<ColumnSizingState>(() => readColumnSizingFromStorage(columnWidthStorageKey));
   const [selectedEstimateIds, setSelectedEstimateIds] = useState<Set<string>>(() => new Set());
   const [duplicateError, setDuplicateError] = useState<string | null>(null);
+  const [deleteEstimateTargetIds, setDeleteEstimateTargetIds] = useState<string[]>([]);
+  const [deleteEstimatePreview, setDeleteEstimatePreview] = useState<BulkActionPreviewResult | null>(null);
+  const [deleteEstimateError, setDeleteEstimateError] = useState<string | null>(null);
+  const [deleteEstimateState, setDeleteEstimateState] = useState<"idle" | "loading" | "ready" | "executing">("idle");
+  const [, startDeleteEstimateTransition] = useTransition();
   const prefetchRoutes = useMemo(
     () =>
       estimates.map((estimate) => ({
@@ -650,6 +660,14 @@ function ProjectEstimatesTableComponent({ estimates, projectId, emptyMessage = "
     writeColumnSizingToStorage(columnWidthStorageKey, columnSizing);
   }, [columnSizing, columnWidthStorageKey]);
 
+  useEffect(() => {
+    const availableIds = new Set(estimates.map((estimate) => estimate.id));
+    setSelectedEstimateIds((current) => {
+      const next = new Set([...current].filter((id) => availableIds.has(id)));
+      return next.size === current.size ? current : next;
+    });
+  }, [estimates]);
+
   const toggleEstimateSelection = useCallback((estimateId: string) => {
     setSelectedEstimateIds((current) => {
       const next = new Set(current);
@@ -658,6 +676,78 @@ function ProjectEstimatesTableComponent({ estimates, projectId, emptyMessage = "
       return next;
     });
   }, []);
+
+  const selectedVisibleEstimateIds = useMemo(
+    () => estimates.filter((estimate) => selectedEstimateIds.has(estimate.id)).map((estimate) => estimate.id),
+    [estimates, selectedEstimateIds],
+  );
+  const deleteEstimatePhrase = deleteEstimateTargetIds.length === 1 ? "DELETE SHEET" : `DELETE ${deleteEstimateTargetIds.length} SHEETS`;
+  const deleteEstimateModalTitle = deleteEstimateTargetIds.length === 1 ? "Delete estimate sheet" : `Delete ${deleteEstimateTargetIds.length} estimate sheets`;
+
+  const openDeleteEstimatePreview = useCallback((estimateIds: string[]) => {
+    const uniqueEstimateIds = Array.from(new Set(estimateIds)).filter((id) => estimates.some((estimate) => estimate.id === id));
+    if (uniqueEstimateIds.length === 0) return;
+    setDeleteEstimateTargetIds(uniqueEstimateIds);
+    setDeleteEstimatePreview(null);
+    setDeleteEstimateError(null);
+    setDeleteEstimateState("loading");
+    startDeleteEstimateTransition(() => {
+      void previewBulkDeleteEstimateSheets({ projectId, estimateIds: uniqueEstimateIds })
+        .then((preview) => {
+          setDeleteEstimatePreview(preview);
+          setDeleteEstimateState("ready");
+        })
+        .catch((error: unknown) => {
+          setDeleteEstimateError(error instanceof Error ? error.message : "Could not load delete preview.");
+          setDeleteEstimateState("ready");
+        });
+    });
+  }, [estimates, projectId, startDeleteEstimateTransition]);
+
+  const closeDeleteEstimatePreview = useCallback(() => {
+    setDeleteEstimateTargetIds([]);
+    setDeleteEstimatePreview(null);
+    setDeleteEstimateError(null);
+    setDeleteEstimateState("idle");
+  }, []);
+
+  const executeDeleteEstimatePreview = useCallback(() => {
+    if (!deleteEstimatePreview?.previewHash) return;
+    const previewHash = deleteEstimatePreview.previewHash;
+    setDeleteEstimateState("executing");
+    startDeleteEstimateTransition(() => {
+      void executeBulkDeleteEstimateSheets({
+        projectId,
+        estimateIds: deleteEstimateTargetIds,
+        expectedPreviewHash: previewHash,
+        correlationId: createBulkActionCorrelationId(),
+      })
+        .then((result) => {
+          if (!result.ok) {
+            setDeleteEstimatePreview((current) => current ? { ...current, issues: result.issues, blocked: result.blocked ?? current.blocked, ok: false } : current);
+            setDeleteEstimateError(result.issues[0]?.message ?? "Could not delete estimate sheets.");
+            setDeleteEstimateState("ready");
+            return;
+          }
+          const removedIds = result.deletedIds?.length ? result.deletedIds : deleteEstimateTargetIds;
+          setSelectedEstimateIds((current) => {
+            const next = new Set(current);
+            for (const id of removedIds) next.delete(id);
+            return next;
+          });
+          for (const id of removedIds) {
+            queryClient.removeQueries({ queryKey: estimateQueryKeys.detail(id) });
+            queryClient.removeQueries({ queryKey: estimateQueryKeys.areaTree(id) });
+          }
+          closeDeleteEstimatePreview();
+          router.refresh();
+        })
+        .catch((error: unknown) => {
+          setDeleteEstimateError(error instanceof Error ? error.message : "Could not delete estimate sheets.");
+          setDeleteEstimateState("ready");
+        });
+    });
+  }, [closeDeleteEstimatePreview, deleteEstimatePreview, deleteEstimateTargetIds, projectId, queryClient, router, startDeleteEstimateTransition]);
 
   const columns = useMemo<ColumnDef<ProjectEstimateTableRow>[]>(
     () => [
@@ -676,6 +766,7 @@ function ProjectEstimatesTableComponent({ estimates, projectId, emptyMessage = "
             <ProjectEstimateRowActions
               estimate={estimate}
               isSelected={selectedEstimateIds.has(estimate.id)}
+              onDeleteRequested={(estimateId) => openDeleteEstimatePreview([estimateId])}
               onDuplicateError={setDuplicateError}
               onPrefetchCancel={cancelEstimateRoute}
               onPrefetchStart={prefetchEstimateRoute}
@@ -784,7 +875,7 @@ function ProjectEstimatesTableComponent({ estimates, projectId, emptyMessage = "
         cell: ({ row }) => <span className="whitespace-nowrap font-medium text-tertiary">{formatDateTime(row.original.created_at)}</span>,
       },
     ],
-    [cancelEstimateRoute, prefetchEstimateRoute, projectId, selectedEstimateIds, toggleEstimateSelection],
+    [cancelEstimateRoute, openDeleteEstimatePreview, prefetchEstimateRoute, projectId, selectedEstimateIds, toggleEstimateSelection],
   );
 
   const table = useReactTable({
@@ -814,6 +905,14 @@ function ProjectEstimatesTableComponent({ estimates, projectId, emptyMessage = "
           {duplicateError}
         </p>
       ) : null}
+      <BulkActionToolbar
+        selectedCount={selectedVisibleEstimateIds.length}
+        actionLabel="Delete selected sheets"
+        helperText="Preview dependencies before deleting estimate sheets."
+        onAction={() => openDeleteEstimatePreview(selectedVisibleEstimateIds)}
+        onClear={() => setSelectedEstimateIds(new Set())}
+        onSelectVisible={() => setSelectedEstimateIds(new Set(estimates.map((estimate) => estimate.id)))}
+      />
       <div className="min-h-0 flex-1 overflow-auto [scrollbar-gutter:stable]">
         <table className="table-fixed border-collapse text-left text-[10px]" style={tableStyle}>
           <ProjectEstimatesColGroup table={table} />
@@ -879,6 +978,21 @@ function ProjectEstimatesTableComponent({ estimates, projectId, emptyMessage = "
           Reset Column Widths
         </button>
       </div>
+      <BulkDestructivePreviewModal
+        open={deleteEstimateTargetIds.length > 0}
+        title={deleteEstimateModalTitle}
+        description="Deleting estimate sheets removes their tree nodes, row items, and activity surface after a dependency preview."
+        requiredPhrase={deleteEstimatePhrase}
+        executeLabel="Delete sheets"
+        loading={deleteEstimateState === "loading"}
+        executing={deleteEstimateState === "executing"}
+        preview={deleteEstimatePreview}
+        previewError={deleteEstimateError}
+        onExecute={executeDeleteEstimatePreview}
+        onOpenChange={(open) => {
+          if (!open) closeDeleteEstimatePreview();
+        }}
+      />
     </div>
   );
 }

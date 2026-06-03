@@ -9,12 +9,17 @@ import { CaretDown, CaretRight, FolderSimple, ImageSquare, SquaresFour } from "@
 import { HeaderIconToolbar } from "@/components/ui/header-icon-toolbar";
 import { EmptyState } from "@/components/ui/empty-state";
 import { SearchInput } from "@/components/ui/search-input";
+import { BulkActionToolbar } from "@/components/workshop/BulkActionToolbar";
+import { BulkDestructivePreviewModal } from "@/components/workshop/BulkDestructivePreviewModal";
 import { ResizableSidePanel } from "@/components/workshop/ResizableSidePanel";
 import {
   createLibraryFolder,
   deleteLibraryFolder,
+  executeBulkArchiveLibraryComponents,
+  previewBulkArchiveLibraryComponents,
   renameLibraryFolder,
 } from "@/lib/component-library/actions";
+import { createBulkActionCorrelationId, type BulkActionPreviewResult } from "@/lib/mass-deletion/bulk-action";
 import {
   buildLibraryFolderTree,
   getLibraryItemsForFolderNode,
@@ -295,7 +300,15 @@ function isNextImageSafeComponentSource(src: string) {
   }
 }
 
-function ComponentCatalogueCard({ card }: { card: CatalogueCard }) {
+function ComponentCatalogueCard({
+  card,
+  selected,
+  onToggleSelected,
+}: {
+  card: CatalogueCard;
+  selected: boolean;
+  onToggleSelected: (itemId: string) => void;
+}) {
   const item = card.item;
   const name = getComponentName(item);
   const brand = getItemBrandLabel(item);
@@ -310,6 +323,16 @@ function ComponentCatalogueCard({ card }: { card: CatalogueCard }) {
       )}
     >
       <div className="relative aspect-square w-full overflow-hidden border-b border-hairline bg-white">
+        <label className="absolute left-2 top-2 z-10 grid size-7 cursor-pointer place-items-center rounded-xs border border-white/70 bg-white/86 shadow-sm backdrop-blur hover:bg-white">
+          <span className="sr-only">{`Select ${item.name ?? item.material} for archive`}</span>
+          <input
+            type="checkbox"
+            className="size-3 rounded-xs border-hairline accent-danger"
+            aria-label={`Select ${item.name ?? item.material} for archive`}
+            checked={selected}
+            onChange={() => onToggleSelected(item.id)}
+          />
+        </label>
         {item.imageUrl && isNextImageSafeComponentSource(item.imageUrl) ? (
           <Image
             src={item.imageUrl}
@@ -372,7 +395,17 @@ function ComponentCatalogueCard({ card }: { card: CatalogueCard }) {
   );
 }
 
-function CatalogueCardGrid({ cards, label }: { cards: CatalogueCard[]; label: string }) {
+function CatalogueCardGrid({
+  cards,
+  label,
+  selectedItemIds,
+  onToggleSelected,
+}: {
+  cards: CatalogueCard[];
+  label: string;
+  selectedItemIds: Set<string>;
+  onToggleSelected: (itemId: string) => void;
+}) {
   if (cards.length === 0) return null;
 
   return (
@@ -381,7 +414,12 @@ function CatalogueCardGrid({ cards, label }: { cards: CatalogueCard[]; label: st
       aria-label={`${label} component catalogue grid`}
     >
       {cards.map((card) => (
-        <ComponentCatalogueCard key={card.item.id} card={card} />
+        <ComponentCatalogueCard
+          key={card.item.id}
+          card={card}
+          selected={selectedItemIds.has(card.item.id)}
+          onToggleSelected={onToggleSelected}
+        />
       ))}
     </ul>
   );
@@ -409,10 +447,14 @@ function ComponentCatalogueBranch({
   branch,
   collapsedBranchIds,
   onToggleBranch,
+  selectedItemIds,
+  onToggleSelected,
 }: {
   branch: CatalogueBranch;
   collapsedBranchIds: Set<string>;
   onToggleBranch: (branchId: string) => void;
+  selectedItemIds: Set<string>;
+  onToggleSelected: (itemId: string) => void;
 }) {
   const collapsed = collapsedBranchIds.has(branch.id);
   const empty = branch.totalItemCount === 0;
@@ -454,7 +496,12 @@ function ComponentCatalogueBranch({
           {empty ? (
             <CatalogueEmptyRow label={branch.pathLabel} />
           ) : null}
-          <CatalogueCardGrid cards={branch.directItems} label={branch.pathLabel} />
+          <CatalogueCardGrid
+            cards={branch.directItems}
+            label={branch.pathLabel}
+            selectedItemIds={selectedItemIds}
+            onToggleSelected={onToggleSelected}
+          />
           {branch.children.length > 0 ? (
             <div className={cn("flex flex-col gap-1", branch.directItems.length > 0 ? "mt-2" : "mt-1")}>
               {branch.children.map((child) => (
@@ -463,6 +510,8 @@ function ComponentCatalogueBranch({
                   branch={child}
                   collapsedBranchIds={collapsedBranchIds}
                   onToggleBranch={onToggleBranch}
+                  selectedItemIds={selectedItemIds}
+                  onToggleSelected={onToggleSelected}
                 />
               ))}
             </div>
@@ -624,7 +673,12 @@ function ComponentLibrarySheet({
   suppliers,
   brands,
   status,
+  selectedItemIds,
   onAddComponent,
+  onArchiveSelected,
+  onClearSelected,
+  onSelectVisible,
+  onToggleSelected,
 }: {
   selectedFolderNode: LibraryFolderTreeNode | null;
   selectedFolderId: string | null;
@@ -637,7 +691,12 @@ function ComponentLibrarySheet({
   suppliers: ComponentLibrarySupplierOption[];
   brands: ComponentLibraryBrand[];
   status: SheetStatus;
+  selectedItemIds: Set<string>;
   onAddComponent: () => void;
+  onArchiveSelected: (itemIds: string[]) => void;
+  onClearSelected: () => void;
+  onSelectVisible: (itemIds: string[]) => void;
+  onToggleSelected: (itemId: string) => void;
 }) {
   const [searchQuery, setSearchQuery] = useState("");
   const [collapsedCatalogueBranchIds, setCollapsedCatalogueBranchIds] = useState<Set<string>>(() => new Set());
@@ -665,6 +724,7 @@ function ComponentLibrarySheet({
   );
   const hasCatalogueResults = catalogueOutline.branches.length > 0 || catalogueOutline.items.length > 0;
   const resultSummary = getCatalogueResultSummary(visibleItems.length, sheetItems.length);
+  const selectedVisibleItemIds = visibleItems.filter((item) => selectedItemIds.has(item.id)).map((item) => item.id);
   const toggleCatalogueBranch = (branchId: string) => {
     setCollapsedCatalogueBranchIds((current) => {
       const next = new Set(current);
@@ -741,6 +801,14 @@ function ComponentLibrarySheet({
             {status.message}
           </div>
         ) : null}
+        <BulkActionToolbar
+          selectedCount={selectedVisibleItemIds.length}
+          actionLabel="Archive selected"
+          helperText="Archive is reversible and hides components from sheet insertion."
+          onAction={() => onArchiveSelected(selectedVisibleItemIds)}
+          onClear={onClearSelected}
+          onSelectVisible={() => onSelectVisible(visibleItems.map((item) => item.id))}
+        />
       </header>
 
       <div className="min-h-0 flex-1 overflow-auto p-2">
@@ -752,6 +820,8 @@ function ComponentLibrarySheet({
                 branch={branch}
                 collapsedBranchIds={collapsedCatalogueBranchIds}
                 onToggleBranch={toggleCatalogueBranch}
+                selectedItemIds={selectedItemIds}
+                onToggleSelected={onToggleSelected}
               />
             ))}
             {catalogueOutline.items.length > 0 ? (
@@ -767,7 +837,12 @@ function ComponentLibrarySheet({
                     </h2>
                   </div>
                 </div>
-                <CatalogueCardGrid cards={catalogueOutline.items} label={CATALOGUE_UNASSIGNED_LABEL} />
+                <CatalogueCardGrid
+                  cards={catalogueOutline.items}
+                  label={CATALOGUE_UNASSIGNED_LABEL}
+                  selectedItemIds={selectedItemIds}
+                  onToggleSelected={onToggleSelected}
+                />
               </section>
             ) : null}
           </div>
@@ -796,7 +871,12 @@ function ComponentLibrarySheetPanel({
   suppliers,
   brands,
   status,
+  selectedItemIds,
   onAddComponent,
+  onArchiveSelected,
+  onClearSelected,
+  onSelectVisible,
+  onToggleSelected,
 }: {
   selectedFolderNode: LibraryFolderTreeNode | null;
   selectedFolderId: string | null;
@@ -809,7 +889,12 @@ function ComponentLibrarySheetPanel({
   suppliers: ComponentLibrarySupplierOption[];
   brands: ComponentLibraryBrand[];
   status: SheetStatus;
+  selectedItemIds: Set<string>;
   onAddComponent: () => void;
+  onArchiveSelected: (itemIds: string[]) => void;
+  onClearSelected: () => void;
+  onSelectVisible: (itemIds: string[]) => void;
+  onToggleSelected: (itemId: string) => void;
 }) {
   return (
     <div className="flex min-h-0 min-w-0 flex-1" data-component-library-sheet-panel="true">
@@ -825,7 +910,12 @@ function ComponentLibrarySheetPanel({
         suppliers={suppliers}
         brands={brands}
         status={status}
+        selectedItemIds={selectedItemIds}
         onAddComponent={onAddComponent}
+        onArchiveSelected={onArchiveSelected}
+        onClearSelected={onClearSelected}
+        onSelectVisible={onSelectVisible}
+        onToggleSelected={onToggleSelected}
       />
     </div>
   );
@@ -863,6 +953,11 @@ export function ComponentLibraryManager({
     source: libraryItems,
     items: libraryItems,
   }));
+  const [selectedItemIds, setSelectedItemIds] = useState<Set<string>>(() => new Set());
+  const [archiveComponentTargetIds, setArchiveComponentTargetIds] = useState<string[]>([]);
+  const [archiveComponentPreview, setArchiveComponentPreview] = useState<BulkActionPreviewResult | null>(null);
+  const [archiveComponentError, setArchiveComponentError] = useState<string | null>(null);
+  const [archiveComponentState, setArchiveComponentState] = useState<"idle" | "loading" | "ready" | "executing">("idle");
   const [isTreeMutationPending, startTreeMutation] = useTransition();
 
   let localLibraryItems = libraryItemState.items;
@@ -870,6 +965,9 @@ export function ComponentLibraryManager({
     localLibraryItems = libraryItems;
     setLibraryItemState({ source: libraryItems, items: libraryItems });
   }
+
+  const archiveComponentPhrase = archiveComponentTargetIds.length === 1 ? "ARCHIVE COMPONENT" : `ARCHIVE ${archiveComponentTargetIds.length} COMPONENTS`;
+  const archiveComponentTitle = archiveComponentTargetIds.length === 1 ? "Archive component" : `Archive ${archiveComponentTargetIds.length} components`;
 
   const folderNodes = useMemo(() => buildLibraryFolderTree(localFolders), [localFolders]);
   const firstFolderId = useMemo(() => getFirstFolderId(folderNodes), [folderNodes]);
@@ -933,6 +1031,89 @@ export function ComponentLibraryManager({
     if (item.brandId) setSelectedBrandNodeId(toBrandTreeNodeId(item.brandId));
     setSheetStatus({ state: "saved", message: "Component saved." });
     router.refresh();
+  }
+
+  function toggleComponentSelection(itemId: string) {
+    setSelectedItemIds((current) => {
+      const next = new Set(current);
+      if (next.has(itemId)) next.delete(itemId);
+      else next.add(itemId);
+      return next;
+    });
+  }
+
+  function selectVisibleComponents(itemIds: string[]) {
+    setSelectedItemIds(new Set(itemIds));
+  }
+
+  function clearComponentSelection() {
+    setSelectedItemIds(new Set());
+  }
+
+  function openArchiveComponentPreview(itemIds: string[]) {
+    const availableIds = new Set(localLibraryItems.map((item) => item.id));
+    const ids = Array.from(new Set(itemIds)).filter((id) => availableIds.has(id));
+    if (ids.length === 0) return;
+    setArchiveComponentTargetIds(ids);
+    setArchiveComponentPreview(null);
+    setArchiveComponentError(null);
+    setArchiveComponentState("loading");
+    startTreeMutation(() => {
+      void previewBulkArchiveLibraryComponents({ itemIds: ids })
+        .then((preview) => {
+          setArchiveComponentPreview(preview);
+          setArchiveComponentState("ready");
+        })
+        .catch((error: unknown) => {
+          setArchiveComponentError(error instanceof Error ? error.message : "Could not load archive preview.");
+          setArchiveComponentState("ready");
+        });
+    });
+  }
+
+  function closeArchiveComponentPreview() {
+    setArchiveComponentTargetIds([]);
+    setArchiveComponentPreview(null);
+    setArchiveComponentError(null);
+    setArchiveComponentState("idle");
+  }
+
+  function executeArchiveComponentPreview() {
+    if (!archiveComponentPreview?.previewHash) return;
+    const previewHash = archiveComponentPreview.previewHash;
+    setArchiveComponentState("executing");
+    startTreeMutation(() => {
+      void executeBulkArchiveLibraryComponents({
+        itemIds: archiveComponentTargetIds,
+        expectedPreviewHash: previewHash,
+        correlationId: createBulkActionCorrelationId(),
+      })
+        .then((result) => {
+          if (!result.ok) {
+            setArchiveComponentPreview((current) => current ? { ...current, issues: result.issues, blocked: result.blocked ?? current.blocked, ok: false } : current);
+            setArchiveComponentError(result.issues[0]?.message ?? "Could not archive components.");
+            setArchiveComponentState("ready");
+            return;
+          }
+          const archivedIds = result.archivedIds?.length ? result.archivedIds : archiveComponentTargetIds;
+          setLibraryItemState((current) => ({
+            ...current,
+            items: current.items.filter((item) => !archivedIds.includes(item.id)),
+          }));
+          setSelectedItemIds((current) => {
+            const next = new Set(current);
+            for (const id of archivedIds) next.delete(id);
+            return next;
+          });
+          setSheetStatus({ state: "saved", message: `${archivedIds.length} component${archivedIds.length === 1 ? "" : "s"} archived.` });
+          closeArchiveComponentPreview();
+          router.refresh();
+        })
+        .catch((error: unknown) => {
+          setArchiveComponentError(error instanceof Error ? error.message : "Could not archive components.");
+          setArchiveComponentState("ready");
+        });
+    });
   }
 
   const createFolder: CreateLibraryFolderHandler = (parentId, options) => {
@@ -1005,7 +1186,12 @@ export function ComponentLibraryManager({
             suppliers={suppliers}
             brands={brands}
             status={sheetStatus}
+            selectedItemIds={selectedItemIds}
             onAddComponent={openAddComponentModal}
+            onArchiveSelected={openArchiveComponentPreview}
+            onClearSelected={clearComponentSelection}
+            onSelectVisible={selectVisibleComponents}
+            onToggleSelected={toggleComponentSelection}
           />
           <ComponentLibraryTreePanel
             supplierNodes={supplierTree}
@@ -1051,6 +1237,21 @@ export function ComponentLibraryManager({
           treeMutationPending={isTreeMutationPending}
         />
       ) : null}
+      <BulkDestructivePreviewModal
+        open={archiveComponentTargetIds.length > 0}
+        title={archiveComponentTitle}
+        description="Archiving keeps component history intact while hiding selected components from library insertion."
+        requiredPhrase={archiveComponentPhrase}
+        executeLabel="Archive components"
+        loading={archiveComponentState === "loading"}
+        executing={archiveComponentState === "executing"}
+        preview={archiveComponentPreview}
+        previewError={archiveComponentError}
+        onExecute={executeArchiveComponentPreview}
+        onOpenChange={(open) => {
+          if (!open) closeArchiveComponentPreview();
+        }}
+      />
     </div>
   );
 }

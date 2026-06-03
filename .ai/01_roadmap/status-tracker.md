@@ -92,3 +92,9 @@
 *   **Transition Performance (UX-3):** Route-transition implementation slices and local evidence now exist, but the plan is not complete. Production-mode authenticated hover Network proof, manual Chrome bfcache proof, production-authenticated medians/Lighthouse, production Chrome React Profiler proof, and full bundle-analyzer proof remain open before this can move to DONE or be archived.
 *   **Rate Limiting & lockout persistence (SE-7):** Brute-force rate limiting is in-memory only. A server restart will wipe lockouts. Redis integration is required to secure password protection in production.
 *   **Google OAuth Verification (SE-4):** Google login works locally but the OAuth credentials live in "Testing" mode. Verification must be approved by Google to allow more than 100 signups.
+
+---
+
+## 2026-06-03 Mass deletion implementation evidence
+
+Mass deletion is repo-local implemented and verified (`bun run validate`, `bun run build`) for project bulk/single delete, estimate-sheet bulk/single delete, and component bulk archive. Status remains `IMPLEMENTED LOCALLY / DB PROVIDER APPLY OPEN` until `20260603160000_mass_deletion_governance.sql` is applied through the approved Supabase migration path.

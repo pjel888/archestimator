@@ -16,12 +16,13 @@ import {
   type ProjectImageDraft,
 } from "@/components/workshop/project-image-client";
 import { generateProjectCode } from "@/lib/projects/project-code";
-import { deleteProject, updateProjectDetails } from "@/lib/projects/actions";
+import { updateProjectDetails } from "@/lib/projects/actions";
 import type { Json, Tables } from "@/lib/supabase/types";
 
 type ProjectDetailsModalProps = {
   project: Tables<"projects">;
   onClose: () => void;
+  onDeleteProject?: (project: Tables<"projects">) => void;
 };
 
 type ProjectMetadata = {
@@ -85,7 +86,7 @@ function FieldLabel({ children }: { children: ReactNode }) {
   return <span className="text-[8px] font-medium uppercase tracking-normal text-tertiary">{children}</span>;
 }
 
-export function ProjectDetailsModal({ project, onClose }: ProjectDetailsModalProps) {
+export function ProjectDetailsModal({ project, onClose, onDeleteProject }: ProjectDetailsModalProps) {
   const metadata = readProjectMetadata(project.metadata);
   const fileInputId = useId();
   const initialCurrencyCode = normalizeCurrencyCode(project.currency_code);
@@ -349,14 +350,11 @@ export function ProjectDetailsModal({ project, onClose }: ProjectDetailsModalPro
 
           <div className="sticky bottom-0 -mx-2 mt-2 flex justify-between gap-2 border-t border-hairline bg-white/90 px-2 py-2 backdrop-blur">
             <Button
-              type="submit"
+              type="button"
               variant="danger"
               size="sm"
               className="h-8"
-              formAction={deleteProject}
-              onClick={(event) => {
-                if (!window.confirm(`Delete ${project.name}? This also removes its estimates.`)) event.preventDefault();
-              }}
+              onClick={() => onDeleteProject?.(project)}
             >
               Delete project
             </Button>

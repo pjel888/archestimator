@@ -17,6 +17,30 @@ vi.mock("@/lib/workshop/actions", () => ({
   setProjectFavorite: vi.fn(async () => undefined),
 }));
 
+vi.mock("@/lib/projects/actions", () => ({
+  previewBulkDeleteProjects: vi.fn(async (input: { projectIds: string[] }) => ({
+    ok: true,
+    targetType: "project",
+    ids: input.projectIds,
+    eligibleIds: input.projectIds,
+    previewHash: "preview-hash",
+    summary: { requestedCount: input.projectIds.length, eligibleCount: input.projectIds.length, blockedCount: 0 },
+    issues: [],
+    blocked: [],
+    storageTargets: [],
+  })),
+  executeBulkDeleteProjects: vi.fn(async (input: { projectIds: string[] }) => ({
+    ok: true,
+    targetType: "project",
+    ids: input.projectIds,
+    deletedIds: input.projectIds,
+    summary: { requestedCount: input.projectIds.length, eligibleCount: input.projectIds.length, blockedCount: 0 },
+    issues: [],
+    blocked: [],
+    storageTargets: [],
+  })),
+}));
+
 vi.mock("@/lib/collaboration/pending-invite-actions", () => ({
   acceptPendingInvitationById: vi.fn(async () => undefined),
 }));

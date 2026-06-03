@@ -27,3 +27,9 @@ Do not use this board to continue tasks related to:
 ## Next valid action
 
 Use the current-state docs and a fresh/current narrow plan. If Philip reports degraded quality or stale behavior, run `.ai/00_system/AGENT_SELF_DIAGNOSTIC_PROTOCOL.md` before creating or executing tasks.
+
+---
+
+## 2026-06-03 mass deletion task note
+
+The superseded board remains inactive, but the current mass-deletion task closed repo-local implementation on `feat/mass-project-estimate-component-deletion`: preview/execute actions, SQL migration contract, UI multi-select/typed confirmation, component archive filtering, and tests/build validation are complete. Provider DB migration apply remains an explicit release gate.

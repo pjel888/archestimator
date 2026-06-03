@@ -529,6 +529,7 @@ async function loadCurrentWorkspaceComponentRowsLibrary({
       .from("cost_library_items")
       .select("*")
       .eq("workspace_id", workspaceId)
+      .neq("lifecycle_state", "archived")
       .order("category", { ascending: true })
       .order("name", { ascending: true }),
   ]);

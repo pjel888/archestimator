@@ -7,7 +7,11 @@ import { Cards, GridFour, Plus, Rows, SquaresFour } from "@phosphor-icons/react/
 
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
+import { BulkActionToolbar } from "@/components/workshop/BulkActionToolbar";
+import { BulkDestructivePreviewModal } from "@/components/workshop/BulkDestructivePreviewModal";
 import type { HeaderIconToolbarAddAction } from "@/components/ui/header-icon-toolbar";
+import { executeBulkDeleteProjects, previewBulkDeleteProjects } from "@/lib/projects/actions";
+import { createBulkActionCorrelationId, type BulkActionPreviewResult } from "@/lib/mass-deletion/bulk-action";
 import { setProjectFavorite } from "@/lib/workshop/actions";
 import type { Tables } from "@/lib/supabase/types";
 import { cn } from "@/lib/ui/cn";
@@ -37,6 +41,7 @@ export type ProjectListItem = {
 };
 
 const EMPTY_FAVORITE_PROJECT_IDS: string[] = [];
+const EMPTY_PROJECT_LIST_ITEMS: ProjectListItem[] = [];
 const PROJECT_VIEW_MODE_STORAGE_KEY = "archestimator_projects_view_mode_v1";
 const PROJECT_VIEW_MODE_CHANGE_EVENT = "archestimator:projects-view-mode-change";
 let fallbackProjectViewMode: ProjectCardViewMode = "large";
@@ -140,6 +145,19 @@ function getProjectGridClassName(viewMode: ProjectCardViewMode) {
   return "grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5";
 }
 
+function canSelectProjectForDeletion(item: ProjectListItem) {
+  if (item.accessKind === "pending-invite" || item.accessKind === "sheet-member") return false;
+  if (item.accessKind === "owned") return true;
+  return item.currentUserRole === "owner" || item.currentUserRole === "admin";
+}
+
+function getProjectDeletionDisabledReason(item: ProjectListItem) {
+  if (canSelectProjectForDeletion(item)) return null;
+  if (item.accessKind === "sheet-member") return "Sheet-only access cannot delete the project.";
+  if (item.accessKind === "pending-invite") return "Accept the invite before managing the project.";
+  return "Only project owners and admins can delete projects.";
+}
+
 export function ProjectsPageClient({
   projects,
   favoriteProjectIds = EMPTY_FAVORITE_PROJECT_IDS,
@@ -157,6 +175,11 @@ export function ProjectsPageClient({
   );
   const [favoriteOverrides, setFavoriteOverrides] = useState<Record<string, boolean>>({});
   const [pendingFavoriteId, setPendingFavoriteId] = useState<string | null>(null);
+  const [selectedProjectIds, setSelectedProjectIds] = useState<Set<string>>(() => new Set());
+  const [deleteProjectTargetIds, setDeleteProjectTargetIds] = useState<string[]>([]);
+  const [deleteProjectPreview, setDeleteProjectPreview] = useState<BulkActionPreviewResult | null>(null);
+  const [deleteProjectError, setDeleteProjectError] = useState<string | null>(null);
+  const [deleteProjectState, setDeleteProjectState] = useState<"idle" | "loading" | "ready" | "executing">("idle");
   const [, startTransition] = useTransition();
 
   const favoriteIds = useMemo(() => {
@@ -201,9 +224,19 @@ export function ProjectsPageClient({
   }, [searchQuery]);
 
   const hasLiveProjects = projectItems.length > 0;
-  const displayProjects = hasLiveProjects ? filteredProjects : [];
+  const displayProjects = hasLiveProjects ? filteredProjects : EMPTY_PROJECT_LIST_ITEMS;
   const displaySamples = filteredSamples;
   const projectLayoutClassName = getProjectGridClassName(projectViewMode);
+  const selectableDisplayProjectIds = useMemo(
+    () => displayProjects.filter(canSelectProjectForDeletion).map((item) => item.project.id),
+    [displayProjects],
+  );
+  const selectedVisibleProjectIds = useMemo(
+    () => selectableDisplayProjectIds.filter((id) => selectedProjectIds.has(id)),
+    [selectableDisplayProjectIds, selectedProjectIds],
+  );
+  const deleteProjectPhrase = deleteProjectTargetIds.length === 1 ? "DELETE PROJECT" : `DELETE ${deleteProjectTargetIds.length} PROJECTS`;
+  const deleteProjectModalTitle = deleteProjectTargetIds.length === 1 ? "Delete project" : `Delete ${deleteProjectTargetIds.length} projects`;
 
   const projectViewModeActions = useMemo<HeaderIconToolbarAddAction[]>(() => {
     return PROJECT_VIEW_MODE_OPTIONS.map((option) => {
@@ -247,6 +280,77 @@ export function ProjectsPageClient({
     });
   }
 
+  function toggleProjectSelection(projectId: string) {
+    setSelectedProjectIds((current) => {
+      const next = new Set(current);
+      if (next.has(projectId)) next.delete(projectId);
+      else next.add(projectId);
+      return next;
+    });
+  }
+
+  function openProjectDeletePreview(projectIds: string[]) {
+    const allowedIds = new Set(projectItems.filter(canSelectProjectForDeletion).map((item) => item.project.id));
+    const ids = Array.from(new Set(projectIds)).filter((id) => allowedIds.has(id));
+    if (ids.length === 0) return;
+    setDeleteProjectTargetIds(ids);
+    setDeleteProjectPreview(null);
+    setDeleteProjectError(null);
+    setDeleteProjectState("loading");
+    startTransition(() => {
+      void previewBulkDeleteProjects({ projectIds: ids })
+        .then((preview) => {
+          setDeleteProjectPreview(preview);
+          setDeleteProjectState("ready");
+        })
+        .catch((error: unknown) => {
+          setDeleteProjectError(error instanceof Error ? error.message : "Could not load project delete preview.");
+          setDeleteProjectState("ready");
+        });
+    });
+  }
+
+  function closeProjectDeletePreview() {
+    setDeleteProjectTargetIds([]);
+    setDeleteProjectPreview(null);
+    setDeleteProjectError(null);
+    setDeleteProjectState("idle");
+  }
+
+  function executeProjectDeletePreview() {
+    if (!deleteProjectPreview?.previewHash) return;
+    const previewHash = deleteProjectPreview.previewHash;
+    setDeleteProjectState("executing");
+    startTransition(() => {
+      void executeBulkDeleteProjects({
+        projectIds: deleteProjectTargetIds,
+        expectedPreviewHash: previewHash,
+        correlationId: createBulkActionCorrelationId(),
+      })
+        .then((result) => {
+          if (!result.ok) {
+            setDeleteProjectPreview((current) => current ? { ...current, issues: result.issues, blocked: result.blocked ?? current.blocked, ok: false } : current);
+            setDeleteProjectError(result.issues[0]?.message ?? "Could not delete projects.");
+            setDeleteProjectState("ready");
+            return;
+          }
+          const removedIds = result.deletedIds?.length ? result.deletedIds : deleteProjectTargetIds;
+          setSelectedProjectIds((current) => {
+            const next = new Set(current);
+            for (const id of removedIds) next.delete(id);
+            return next;
+          });
+          if (expandedProject && removedIds.includes(expandedProject.id)) setExpandedProject(null);
+          closeProjectDeletePreview();
+          router.refresh();
+        })
+        .catch((error: unknown) => {
+          setDeleteProjectError(error instanceof Error ? error.message : "Could not delete projects.");
+          setDeleteProjectState("ready");
+        });
+    });
+  }
+
   return (
     <WorkshopCollectionLayout
       searchLabel="Search projects"
@@ -278,6 +382,14 @@ export function ProjectsPageClient({
           ))}
         </div>
       ) : null}
+      <BulkActionToolbar
+        selectedCount={selectedVisibleProjectIds.length}
+        actionLabel="Delete selected projects"
+        helperText="Project deletion blocks active shared links and runs a dependency preview first."
+        onAction={() => openProjectDeletePreview(selectedVisibleProjectIds)}
+        onClear={() => setSelectedProjectIds(new Set())}
+        onSelectVisible={() => setSelectedProjectIds(new Set(selectableDisplayProjectIds))}
+      />
       {hasLiveProjects ? (
         displayProjects.length > 0 ? (
           <section
@@ -299,6 +411,9 @@ export function ProjectsPageClient({
                 viewMode={projectViewMode}
                 isFavorite={favoriteIds.has(item.project.id)}
                 favoriteBusy={pendingFavoriteId === item.project.id}
+                selectedForDeletion={selectedProjectIds.has(item.project.id)}
+                selectionDisabledReason={getProjectDeletionDisabledReason(item)}
+                onToggleSelected={canSelectProjectForDeletion(item) ? toggleProjectSelection : undefined}
                 onToggleFavorite={toggleProjectFavorite}
                 onExpand={setExpandedProject}
               />
@@ -356,8 +471,27 @@ export function ProjectsPageClient({
         <ProjectDetailsModal
           project={expandedProject}
           onClose={() => setExpandedProject(null)}
+          onDeleteProject={(project) => {
+            setExpandedProject(null);
+            openProjectDeletePreview([project.id]);
+          }}
         />
       ) : null}
+      <BulkDestructivePreviewModal
+        open={deleteProjectTargetIds.length > 0}
+        title={deleteProjectModalTitle}
+        description="Deleting projects removes estimates and project data after active shared links and permissions are checked."
+        requiredPhrase={deleteProjectPhrase}
+        executeLabel="Delete projects"
+        loading={deleteProjectState === "loading"}
+        executing={deleteProjectState === "executing"}
+        preview={deleteProjectPreview}
+        previewError={deleteProjectError}
+        onExecute={executeProjectDeletePreview}
+        onOpenChange={(open) => {
+          if (!open) closeProjectDeletePreview();
+        }}
+      />
     </WorkshopCollectionLayout>
   );
 }

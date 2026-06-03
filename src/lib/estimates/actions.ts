@@ -14,6 +14,14 @@ import {
 } from "@/lib/estimates/tree-hierarchy";
 import { planEstimateTreeDelete } from "@/lib/estimates/estimate-tree-edit";
 import { isUuid } from "@/lib/ids";
+import {
+  buildRejectedPreviewResult,
+  coerceBulkExecutionResult,
+  coerceBulkPreviewResult,
+  normalizeBulkActionIds,
+  type BulkActionExecutionResult,
+  type BulkActionPreviewResult,
+} from "@/lib/mass-deletion/bulk-action";
 import { isMissingColumnError, normalizeEstimateRecord, type EstimateRecordWithLegacy } from "@/lib/repositories/estimate-schema-compat";
 import { getCurrentWorkspaceProject, getProjectEstimateTreeByEstimate } from "@/lib/repositories/workspace-repository";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -98,6 +106,23 @@ type DeleteEstimateRowItemInput = {
   rowId: string;
   mutationId?: string;
   expectedRowRevision?: number;
+};
+
+export type BulkDeleteEstimateSheetsInput = {
+  projectId: string;
+  estimateIds: string[];
+};
+
+export type ExecuteBulkDeleteEstimateSheetsInput = BulkDeleteEstimateSheetsInput & {
+  expectedPreviewHash: string;
+  correlationId?: string;
+};
+
+export type DeleteEstimateSheetInput = {
+  projectId: string;
+  estimateId: string;
+  expectedPreviewHash: string;
+  correlationId?: string;
 };
 
 export type EstimateSheetHistoryCursor = {
@@ -1453,6 +1478,124 @@ export async function duplicateEstimateSheet(input: DuplicateEstimateSheetInput)
     firstNodeId: duplicatedRows.length > 0 ? duplicatedRows[0]?.node_id ?? null : [...nodeIdBySourceId.values()][0] ?? null,
     sheetCode,
   };
+}
+
+export async function previewBulkDeleteEstimateSheets(input: BulkDeleteEstimateSheetsInput): Promise<BulkActionPreviewResult> {
+  if (!isUuid(input.projectId)) {
+    return buildRejectedPreviewResult("estimate_sheet", [], [{
+      code: "invalid_id",
+      id: input.projectId,
+      message: "Project id is invalid.",
+    }]);
+  }
+
+  const { ids, issues } = normalizeBulkActionIds(input.estimateIds, { label: "estimate sheets", max: 100 });
+  if (issues.length > 0) return buildRejectedPreviewResult("estimate_sheet", ids, issues);
+
+  const { project } = await getCurrentWorkspaceProject(input.projectId);
+  if (!project) {
+    return buildRejectedPreviewResult("estimate_sheet", ids, [{
+      code: "not_found",
+      id: input.projectId,
+      message: "Project not found in the current workspace.",
+    }]);
+  }
+
+  const [supabase, currentUser] = await Promise.all([
+    createSupabaseServerClient(),
+    requireCurrentUserContext(),
+  ]);
+  const { data, error } = await supabase.rpc("preview_bulk_delete_estimate_sheets", {
+    target_project_id: project.id,
+    target_estimate_ids: ids,
+    acting_user_id: currentUser.userId,
+  });
+
+  if (error) {
+    return buildRejectedPreviewResult("estimate_sheet", ids, [{
+      code: "rpc_error",
+      message: `Could not preview estimate sheet deletion: ${error.message}`,
+    }]);
+  }
+
+  return coerceBulkPreviewResult(data, { targetType: "estimate_sheet", ids });
+}
+
+export async function executeBulkDeleteEstimateSheets(input: ExecuteBulkDeleteEstimateSheetsInput): Promise<BulkActionExecutionResult> {
+  if (!isUuid(input.projectId)) {
+    return {
+      ok: false,
+      targetType: "estimate_sheet",
+      ids: [],
+      deletedIds: [],
+      summary: { requestedCount: 0, eligibleCount: 0, blockedCount: 1 },
+      issues: [{ code: "invalid_id", id: input.projectId, message: "Project id is invalid." }],
+    };
+  }
+
+  const { ids, issues } = normalizeBulkActionIds(input.estimateIds, { label: "estimate sheets", max: 100 });
+  if (issues.length > 0) {
+    return {
+      ...buildRejectedPreviewResult("estimate_sheet", ids, issues),
+      deletedIds: [],
+    };
+  }
+
+  const { project } = await getCurrentWorkspaceProject(input.projectId);
+  if (!project) {
+    return {
+      ok: false,
+      targetType: "estimate_sheet",
+      ids,
+      deletedIds: [],
+      summary: { requestedCount: ids.length, eligibleCount: 0, blockedCount: 1 },
+      issues: [{ code: "not_found", id: input.projectId, message: "Project not found in the current workspace." }],
+    };
+  }
+
+  const [supabase, currentUser] = await Promise.all([
+    createSupabaseServerClient(),
+    requireCurrentUserContext(),
+  ]);
+  const { data, error } = await supabase.rpc("execute_bulk_delete_estimate_sheets", {
+    target_project_id: project.id,
+    target_estimate_ids: ids,
+    expected_preview_hash: input.expectedPreviewHash,
+    acting_user_id: currentUser.userId,
+    correlation_id: getMutationCorrelationId(input.correlationId),
+  });
+
+  if (error) {
+    return {
+      ok: false,
+      targetType: "estimate_sheet",
+      ids,
+      deletedIds: [],
+      summary: { requestedCount: ids.length, eligibleCount: 0, blockedCount: 1 },
+      issues: [{
+        code: "rpc_error",
+        message: `Could not delete estimate sheets: ${error.message}`,
+      }],
+    };
+  }
+
+  const result = coerceBulkExecutionResult(data, { targetType: "estimate_sheet", ids });
+  if (result.ok) {
+    revalidateProjectEstimatePaths(project.id);
+    for (const estimateId of result.deletedIds?.length ? result.deletedIds : ids) {
+      revalidatePath(`/workshop/projects/${project.id}/estimates/${estimateId}`);
+    }
+  }
+  return result;
+}
+
+export async function deleteEstimateSheet(input: DeleteEstimateSheetInput): Promise<BulkActionExecutionResult> {
+  return executeBulkDeleteEstimateSheets({
+    projectId: input.projectId,
+    estimateIds: [input.estimateId],
+    expectedPreviewHash: input.expectedPreviewHash,
+    correlationId: input.correlationId,
+  });
 }
 
 export async function updateEstimateDetails(input: UpdateEstimateDetailsInput) {
