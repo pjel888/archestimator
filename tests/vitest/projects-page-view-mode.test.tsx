@@ -136,7 +136,7 @@ describe("ProjectsPageClient view modes", () => {
     await user.type(screen.getByRole("searchbox", { name: "Search projects" }), "zzzz-project");
 
     expect(screen.getByText("No projects match your search")).toBeInTheDocument();
-    expect(screen.getByText("Try a project name, client, code, location, shared status, or owner.")).toBeInTheDocument();
+    expect(screen.getByText("Try an owned project name, client, code, or location.")).toBeInTheDocument();
     expect(screen.queryByText("Try adjusting your search terms")).not.toBeInTheDocument();
   });
 
@@ -158,7 +158,7 @@ describe("ProjectsPageClient view modes", () => {
     expect(container.querySelector('[data-project-access-kind="project-member"]')).toBeInTheDocument();
     expect(screen.getByText("Shared project")).toBeInTheDocument();
     expect(screen.getByText("Viewer")).toBeInTheDocument();
-    expect(screen.getByRole("tab", { name: "Shared" })).toBeInTheDocument();
+    expect(screen.getByRole("tab", { name: /Projects shared to you/i })).toHaveAttribute("aria-selected", "true");
     expect(screen.queryByText("No live projects yet")).not.toBeInTheDocument();
   });
 });

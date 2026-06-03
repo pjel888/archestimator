@@ -33,3 +33,10 @@ Use the current-state docs and a fresh/current narrow plan. If Philip reports de
 ## 2026-06-03 mass deletion task note
 
 The superseded board remains inactive, but the current mass-deletion task closed repo-local implementation on `feat/mass-project-estimate-component-deletion`: preview/execute actions, SQL migration contract, UI multi-select/typed confirmation, component archive filtering, and tests/build validation are complete. Provider DB migration apply remains an explicit release gate.
+
+
+---
+
+## 2026-06-03 projects page access tabs task note
+
+The superseded board remains inactive, but the current projects-page access-tabs task closed repo-local implementation on `feat/projects-page-access-tabs-plan`: two always-visible tabs, owned/shared partitioning by `accessKind`, active-tab search/selection, shared-only defaulting, and shared-favorite suppression are implemented and locally validated. Plan archive: `.ai/09_archive/store/2026-06-03-projects-page-access-tabs-complete/`. Hosted/manual shared-user browser proof remains release evidence.

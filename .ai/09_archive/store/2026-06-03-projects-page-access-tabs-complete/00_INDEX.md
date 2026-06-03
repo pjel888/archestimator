@@ -5,7 +5,7 @@
 **Repo:** `pjel888/archestimator`
 **Base branch:** `main`
 **Date:** 2026-06-03
-**Current status:** `READY_FOR_IMPLEMENTATION`
+**Current status:** `IMPLEMENTED_LOCAL_VERIFIED_ARCHIVED`
 **Refinement:** Plan refined 2026-06-03 — stale refs fixed, missing docs created, code drift reconciled, bulk-delete risk addressed.
 
 ## Executive summary
@@ -156,9 +156,36 @@ During 2026-06-03 refinement, the following stale references were corrected:
 - `02_CODEBASE_RESEARCH.md`: claim about `.ai/15_Bugs` not existing corrected — folder exists with 6 files
 - `FINAL_REPORT_LOCAL_ONLY.md`: removed (stray agent report, not a plan document)
 
+## Implementation completion evidence
+
+Repo-local implementation completed on 2026-06-03 on branch `feat/projects-page-access-tabs-plan` and archived to `.ai/09_archive/store/2026-06-03-projects-page-access-tabs-complete/`.
+
+Implemented behavior:
+- `/workshop/projects` always renders exactly two access tabs: `Your Projects` and `Projects shared to you`.
+- `Your Projects` shows `accessKind === "owned"`; `Projects shared to you` shows `accessKind !== "owned"` including project-member, sheet-member, and pending-invite cards.
+- The old conditional `All / Owned / Shared` access filter was removed.
+- Tabs render through `WorkshopCollectionLayout.toolbarPanel` with tablist/tabpanel IDs, `aria-controls`, `aria-selected`, roving tab index, and Arrow/Home/End keyboard handling.
+- Search is scoped to the active tab while preserving the search query across tab changes.
+- View-mode persistence, cards, details modal, project creation, pending invite acceptance, and existing delete-preview flow are preserved.
+- Bulk selection is scoped to active visible projects while delete-preview authorization still uses the full project list.
+- Shared/non-owned favorite controls are suppressed to close the known broken action bug without schema or server-action changes.
+
+Validation evidence:
+- GitNexus impact before edits: `ProjectsPageClient` LOW risk; `LiveProjectCard` LOW risk.
+- code-review-graph review context: low risk, sparse graph with 0 impacted nodes.
+- `bun run test:dom -- tests/vitest/projects-page-access-tabs.test.tsx` passed.
+- Focused projects-page suite passed: access tabs, shared access, view mode, mass-deletion contract.
+- `bun run type-check` passed.
+- `bun run lint:design-system` passed.
+- `bun run lint` passed with the existing 14 warnings / 0 errors.
+- `bun run test` passed.
+- `bun run test:dom` passed: 173 files, 1327 passed, 2 skipped.
+- `bun run validate` passed.
+- `bun run build` passed under Next.js 16.2.6 / Turbopack.
+
 ## Notes
 
-- This is a plan package, not implemented behavior.
+- This plan package has been implemented and archived.
 - Source code was inspected but not modified during this refinement.
 - Bulk-delete reconciliation steps (4.5, 6.5) were added during refinement after local source inspection.
 - `13_TRACEABILITY_MATRIX.md`, `14_CODE_DRIFT_AND_RECONCILIATION_PLAN.md`, and `18_IMPLEMENTATION_AGENT_HANDOFF_CHECKLIST.md` were created during refinement.

@@ -22,6 +22,8 @@ describe("mass deletion UI contract", () => {
     expect(page).toContain("previewBulkDeleteProjects");
     expect(page).toContain("executeBulkDeleteProjects");
     expect(page).toContain("BulkDestructivePreviewModal");
+    expect(page).toContain("displayLiveProjects.filter(canSelectProjectForDeletion)");
+    expect(page).toContain("new Set(projectItems.filter(canSelectProjectForDeletion)");
     expect(page).toContain("DELETE PROJECT");
     expect(page).toContain("DELETE ${deleteProjectTargetIds.length} PROJECTS");
     expect(card).toContain("onToggleSelected");

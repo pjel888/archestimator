@@ -132,10 +132,13 @@ describe("ProjectsPageClient shared access", () => {
     routerMock.refresh.mockClear();
   });
 
-  it("renders owned, shared project, and sheet-only cards with text badges", () => {
+  it("renders owned, shared project, and sheet-only cards with text badges", async () => {
+    const user = userEvent.setup();
     render(<ProjectsPageClient projects={PROJECTS} />);
 
     expect(screen.getByLabelText("Lewis Residence project, owned access")).toBeInTheDocument();
+    await user.click(screen.getByRole("tab", { name: /Projects shared to you/i }));
+
     expect(screen.getByLabelText("Shared Clinic Fit-Out project, shared project, viewer access")).toBeInTheDocument();
     expect(screen.getByLabelText("Shared Sheet Project project, sheet-only access, viewer access")).toBeInTheDocument();
     expect(screen.getByText("Shared project")).toBeInTheDocument();
@@ -171,13 +174,15 @@ describe("ProjectsPageClient shared access", () => {
   it("does not show the empty sample state when only shared projects exist", () => {
     render(<ProjectsPageClient projects={[PROJECTS[1], PROJECTS[2]]} />);
 
+    expect(screen.getByRole("tab", { name: /Projects shared to you/i })).toHaveAttribute("aria-selected", "true");
     expect(screen.getByLabelText("Live projects")).toBeInTheDocument();
     expect(screen.queryByText("No live projects yet.")).not.toBeInTheDocument();
     expect(screen.getByText("Shared project")).toBeInTheDocument();
     expect(screen.getByText("Sheet-only")).toBeInTheDocument();
   });
 
-  it("renders invitee pending-invite project cards with accept actions", () => {
+  it("renders invitee pending-invite project cards with accept actions", async () => {
+    const user = userEvent.setup();
     render(
       <ProjectsPageClient
         projects={[
@@ -231,6 +236,8 @@ describe("ProjectsPageClient shared access", () => {
       />,
     );
 
+    await user.click(screen.getByRole("tab", { name: /Projects shared to you/i }));
+
     const pendingCard = screen.getByLabelText("Pending Museum Wing project, pending invite, viewer access");
     expect(pendingCard).toHaveAttribute("data-project-access-kind", "pending-invite");
     expect(within(pendingCard).getAllByText("Pending invite")).toHaveLength(2);
@@ -246,12 +253,12 @@ describe("ProjectsPageClient shared access", () => {
     expect(within(expiredCard).queryByRole("button", { name: "Accept invite for Expired Gallery Wing" })).not.toBeInTheDocument();
   });
 
-  it("search matches shared projects and exposes owned/shared filters", async () => {
+  it("search matches shared projects within the shared tab", async () => {
     const user = userEvent.setup();
     render(<ProjectsPageClient projects={PROJECTS} />);
 
-    expect(screen.getByRole("tab", { name: "All" })).toHaveAttribute("aria-selected", "true");
-    await user.click(screen.getByRole("tab", { name: "Shared" }));
+    expect(screen.getByRole("tab", { name: /Your Projects/i })).toHaveAttribute("aria-selected", "true");
+    await user.click(screen.getByRole("tab", { name: /Projects shared to you/i }));
 
     expect(screen.queryByText("Lewis Residence")).not.toBeInTheDocument();
     expect(screen.getByText("Shared Clinic Fit-Out")).toBeInTheDocument();
@@ -266,6 +273,8 @@ describe("ProjectsPageClient shared access", () => {
   it("all card density modes preserve shared badges", async () => {
     const user = userEvent.setup();
     render(<ProjectsPageClient projects={PROJECTS} />);
+
+    await user.click(screen.getByRole("tab", { name: /Projects shared to you/i }));
 
     for (const label of ["List", "Small thumbnails", "Medium thumbnails", "Large thumbnails"]) {
       await user.click(screen.getByRole("button", { name: `View projects as ${label}` }));
