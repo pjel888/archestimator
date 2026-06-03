@@ -43,6 +43,7 @@ type PublicationLocalResult = {
 
 type PublicationTabId = "link" | "sheets" | "access" | "recipients" | "activity";
 type DestructivePublicationAction = "clear-password" | "revoke" | "rotate";
+const EMPTY_ESTIMATE_IDS: string[] = [];
 const SHARED_LINK_ACTIVITY_SEEN_STORAGE_PREFIX = "archestimator_shared_link_last_seen";
 
 function formatDate(value: string | null) {
@@ -158,10 +159,15 @@ export function ProjectPublicationHeader({ summary, projectEstimateSheets = [] }
   const [isPending, startTransition] = useTransition();
 
   // P1: selected sheets for the Sheets tab picker (defaults to all when estimates provided)
-  const defaultSelectedEstimateIds = useMemo(
-    () => projectEstimateSheets.map((estimate) => estimate.id),
-    [projectEstimateSheets],
-  );
+  const summarySelectedEstimateIds = summary?.selectedEstimateIds ?? EMPTY_ESTIMATE_IDS;
+  const defaultSelectedEstimateIds = useMemo(() => {
+    const allEstimateIds = projectEstimateSheets.map((estimate) => estimate.id);
+    if (summary?.status === "published" && summarySelectedEstimateIds.length > 0) {
+      const availableEstimateIds = new Set(allEstimateIds);
+      return summarySelectedEstimateIds.filter((estimateId) => availableEstimateIds.has(estimateId));
+    }
+    return allEstimateIds;
+  }, [projectEstimateSheets, summary?.status, summarySelectedEstimateIds]);
   const [selectedEstimateOverride, setSelectedEstimateOverride] = useState<{
     ids: string[];
     summaryKey: string;

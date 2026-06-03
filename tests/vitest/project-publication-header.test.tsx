@@ -68,6 +68,7 @@ const publicationSummary: ProjectPublicationSummary = {
   expiresAt: null,
   passwordRequired: true,
   selectedEstimateCount: 2,
+  selectedEstimateIds: ["est-1", "est-2"],
   snapshotVersion: 3,
   openCount: 4,
   latestOpenedAt: "2026-05-27T01:00:00.000Z",
@@ -278,6 +279,41 @@ describe("ProjectWorkspaceHeaderRow publication control", () => {
       clearPassword: false,
     });
     expect(await within(dialog).findByDisplayValue("http://localhost:3000/share/rotated-token")).toBeInTheDocument();
+  });
+
+  it("does not widen an existing shared link to every sheet when updating without changing sheet selection", async () => {
+    publicationActions.republishProjectPublication.mockResolvedValueOnce({
+      ok: true,
+      message: "Shared page updated.",
+      clientLinkPath: "/share/client-token",
+    });
+    const subsetSummary: ProjectPublicationSummary = {
+      ...publicationSummary,
+      selectedEstimateCount: 1,
+      selectedEstimateIds: ["est-1"],
+    };
+
+    const user = userEvent.setup();
+    render(
+      <ProjectWorkspaceHeaderRow
+        projectId="project-1"
+        projectCode="PRJ-001"
+        collaborationSummary={null}
+        publicationSummary={subsetSummary}
+        projectEstimateSheets={sampleEstimateSheets}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Open shared link" }));
+    const dialog = screen.getByRole("dialog", { name: "Shared link" });
+    await user.click(within(dialog).getByRole("button", { name: "Update shared page" }));
+
+    expect(publicationActions.republishProjectPublication).toHaveBeenCalledWith({
+      projectId: "project-1",
+      selectedEstimateIds: ["est-1"],
+      password: undefined,
+      clearPassword: false,
+    });
   });
 
   it("confirms before turning off a live shared link", async () => {
