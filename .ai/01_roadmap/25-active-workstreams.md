@@ -1,6 +1,6 @@
 # Active Workstreams
 
-**Last updated:** 2026-06-02
+**Last updated:** 2026-06-03
 **Purpose:** Organizes the implementation roadmap into 8 concurrent workstream tracks. Each workstream activates at a different wave. Within a wave, workstreams can run in parallel.
 
 ## Current MVP Launch Handoff
@@ -10,6 +10,12 @@ Status: repo-local launch implementation is frozen at `6ab5b38`; the broad MVP l
 Active next workstream for the MVP launch pack: proof collection against `.ai/03_plans/mvp-launch-readiness-2026-06-01/46-manual-proof-matrix.md`.
 
 Do not schedule more local launch implementation unless a new repo-local defect is found. The remaining work is Vercel/Supabase/Resend provider proof, hosted auth/manual E2E, spreadsheet-app proof, legal/owner signoff, support/alert ownership, rollback, and demo rehearsal evidence.
+
+---
+
+## 2026-06-03 ADD operating-framework planning track
+
+Status: plan-only package created at `.ai/03_plans/2026-06-03-agentic-development-framework-rollout/`. This is not an implementation/enforcement track yet. Recommended next action is Phase 1 canonical `.ai` docs after Philip approves the branch/environment recommendation. It must not displace the current closed-beta proof collection workstream or claim provider readiness.
 
 ---
 
