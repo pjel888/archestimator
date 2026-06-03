@@ -2,6 +2,7 @@
 
 import React from "react";
 import Image from "next/image";
+import { normalizePublicationImageUrl } from "@/lib/publication/image-url";
 
 interface SharePageHeroProps {
   project: {
@@ -18,7 +19,9 @@ interface SharePageHeroProps {
  * - Additive, backwards compatible (old snapshot_json without coverImageUrl render nothing extra)
  */
 export default function SharePageHero({ project }: SharePageHeroProps) {
-  if (!project?.coverImageUrl) {
+  const coverImageUrl = normalizePublicationImageUrl(project?.coverImageUrl);
+
+  if (!coverImageUrl) {
     return null;
   }
 
@@ -26,7 +29,7 @@ export default function SharePageHero({ project }: SharePageHeroProps) {
     <div className="relative w-full overflow-hidden rounded-xs border border-hairline bg-surfaceMuted">
       <div className="relative aspect-[16/6] w-full sm:aspect-[16/5]">
         <Image
-          src={project.coverImageUrl}
+          src={coverImageUrl}
           alt={`${project.name} project cover`}
           fill
           className="object-cover"

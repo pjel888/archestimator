@@ -13,6 +13,7 @@ import {
   WORKSHOP_TREE_INDENT_STEP,
   WORKSHOP_TREE_MAX_INDENT,
 } from "@/components/workshop/tree-visual-style";
+import { normalizePublicationImageUrl } from "@/lib/publication/image-url";
 import type { ShareTreeNode } from "@/lib/share/reconstruct-share-tree";
 
 /**
@@ -90,6 +91,8 @@ function TreeNodeRenderer({
       }}
     >
       {node.rows.map((row) => {
+        const imageUrl = normalizePublicationImageUrl(row.imageUrl);
+
         // P5 mobile simplification (spec §7.2): Description + Total only (thumb retained for recognition).
         // Desktop: full desc/qty/unit/total + thumb.
         if (isMobile) {
@@ -98,10 +101,10 @@ function TreeNodeRenderer({
               key={row.id}
               className="group flex min-h-[26px] items-center gap-2 py-0.5 pr-2 text-[10px] text-secondary hover:bg-surfaceMuted/50 active:bg-surfaceMuted touch-manipulation"
             >
-              {row.imageUrl ? (
+              {imageUrl ? (
                 <div className="h-4 w-4 flex-shrink-0 overflow-hidden rounded-xs bg-surfaceMuted">
                   <Image
-                    src={row.imageUrl}
+                    src={imageUrl}
                     alt=""
                     width={16}
                     height={16}
@@ -127,10 +130,10 @@ function TreeNodeRenderer({
             className="group flex min-h-[20px] items-center gap-1.5 py-px pr-2 text-[10px] text-secondary hover:bg-surfaceMuted/60 active:bg-surfaceMuted touch-manipulation"
           >
             {/* Optional thumbnail (P9 snapshot imageUrl) — compact 16-20px for tree density */}
-            {row.imageUrl ? (
+            {imageUrl ? (
               <div className="h-4 w-4 flex-shrink-0 overflow-hidden rounded-xs bg-surfaceMuted">
                 <Image
-                  src={row.imageUrl}
+                  src={imageUrl}
                   alt=""
                   width={16}
                   height={16}
