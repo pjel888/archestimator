@@ -6,7 +6,7 @@ import type { AiRequestUserContext } from "@/lib/ai/auth";
 import type { DeepSeekAskResult } from "@/lib/ai/deepseek";
 import type { Database, Json, TablesInsert } from "@/lib/supabase/types";
 
-type AiAskAuditStatus = "completed" | "failed";
+type AiAskAuditStatus = "started" | "completed" | "failed";
 
 export type AiAskDataAccessAuditInput = {
   eventName: string;
@@ -124,7 +124,7 @@ export function buildAiAskAuditEvent(input: AiAskAuditInput): AiAskAuditEvent | 
       authMode: input.userContext.authMode,
       routeContextFields: Object.keys(input.routeContext).filter((key) => Boolean(input.routeContext[key])),
     },
-    completed_at: new Date().toISOString(),
+    completed_at: input.status === "completed" || input.status === "failed" ? new Date().toISOString() : null,
   };
 
   const dataAccessEvents = readAccessEvents
@@ -150,21 +150,18 @@ export function buildAiAskAuditEvent(input: AiAskAuditInput): AiAskAuditEvent | 
 
 export async function recordAiAskAuditEvent(input: AiAskAuditInput) {
   const event = buildAiAskAuditEvent(input);
-  if (!event) return;
+  if (!event) throw new Error("AI Ask audit requires a Supabase workspace audit context.");
   const supabase = createAiAuditSupabaseClient();
-  if (!supabase) return;
+  if (!supabase) throw new Error("AI Ask audit client is not configured.");
 
-  try {
-    const { error: runError } = await supabase.from("ai_action_runs").insert(event.actionRun);
-    if (runError) throw runError;
+  const { error: runError } = await supabase
+    .from("ai_action_runs")
+    .upsert(event.actionRun, { onConflict: "run_id" });
+  if (runError) throw runError;
 
-    if (event.dataAccessEvents.length) {
-      const { error: accessError } = await supabase.from("ai_data_access_events").insert(event.dataAccessEvents);
-      if (accessError) throw accessError;
-    }
-  } catch {
-    // Ask audit writes are best effort. The route
-    // must never leak provider or database errors to the chat response.
+  if (event.dataAccessEvents.length && (input.status === "started" || input.errorClass === "read_context_failed")) {
+    const { error: accessError } = await supabase.from("ai_data_access_events").insert(event.dataAccessEvents);
+    if (accessError) throw accessError;
   }
 }
 

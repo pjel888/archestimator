@@ -13,6 +13,7 @@ function makeRequest(body: unknown) {
 }
 
 const supabaseUserContext = { userId: "user-1", email: "user@example.com", workspaceId: "workspace-1", authMode: "supabase" as const };
+const allowQuota = async () => ({ allowed: true as const });
 
 function makeEmptyReadContext(): AiAskReadContext {
   return {
@@ -90,6 +91,49 @@ describe("AI Ask route", () => {
     await expect(response.json()).resolves.toMatchObject({ error: "AI provider is not configured." });
   });
 
+  it("enforces AI Ask quota before reading context, auditing, or calling DeepSeek", async () => {
+    const askDeepSeek = vi.fn();
+    const recordAudit = vi.fn();
+    const readContext = vi.fn();
+    const response = await handleAiAskRequest(makeRequest({ message: "Summarize this estimate." }), {
+      getUserContext: async () => supabaseUserContext,
+      askDeepSeek,
+      hasApiKey: () => true,
+      recordAudit,
+      readContext,
+      checkQuota: async () => ({ allowed: false, retryAfter: 60, message: "AI quota exceeded. Please wait 60 seconds." }),
+    });
+
+    expect(response.status).toBe(429);
+    expect(response.headers.get("Retry-After")).toBe("60");
+    expect(readContext).not.toHaveBeenCalled();
+    expect(recordAudit).not.toHaveBeenCalled();
+    expect(askDeepSeek).not.toHaveBeenCalled();
+    await expect(response.json()).resolves.toMatchObject({ error: "AI quota exceeded. Please wait 60 seconds." });
+  });
+
+  it("fails closed before DeepSeek when AI quota storage is unavailable", async () => {
+    const askDeepSeek = vi.fn();
+    const recordAudit = vi.fn();
+    const readContext = vi.fn();
+    const response = await handleAiAskRequest(makeRequest({ message: "Summarize this estimate." }), {
+      getUserContext: async () => supabaseUserContext,
+      askDeepSeek,
+      hasApiKey: () => true,
+      recordAudit,
+      readContext,
+      checkQuota: async () => {
+        throw new Error("rate limit table unavailable");
+      },
+    });
+
+    expect(response.status).toBe(503);
+    expect(readContext).not.toHaveBeenCalled();
+    expect(recordAudit).not.toHaveBeenCalled();
+    expect(askDeepSeek).not.toHaveBeenCalled();
+    await expect(response.json()).resolves.toMatchObject({ error: "AI quota is unavailable." });
+  });
+
   it("rejects unauthenticated users before calling DeepSeek or audit", async () => {
     const askDeepSeek = vi.fn();
     const recordAudit = vi.fn();
@@ -100,6 +144,7 @@ describe("AI Ask route", () => {
       hasApiKey: () => true,
       recordAudit,
       readContext,
+      checkQuota: allowQuota,
     });
 
     expect(response.status).toBe(401);
@@ -119,6 +164,7 @@ describe("AI Ask route", () => {
       hasApiKey: () => true,
       recordAudit,
       readContext,
+      checkQuota: allowQuota,
     });
 
     expect(response.status).toBe(403);
@@ -182,6 +228,7 @@ describe("AI Ask route", () => {
         hasApiKey: () => true,
         recordAudit,
         readContext,
+        checkQuota: allowQuota,
       },
     );
 
@@ -290,6 +337,7 @@ describe("AI Ask route", () => {
       askDeepSeek,
       hasApiKey: () => true,
       recordAudit,
+      checkQuota: allowQuota,
     });
 
     expect(response.status).toBe(200);
@@ -379,6 +427,7 @@ describe("AI Ask route", () => {
       askDeepSeek,
       hasApiKey: () => true,
       recordAudit,
+      checkQuota: allowQuota,
     });
 
     expect(response.status).toBe(200);
@@ -472,6 +521,7 @@ describe("AI Ask route", () => {
         askDeepSeek,
         hasApiKey: () => true,
         recordAudit,
+        checkQuota: allowQuota,
       },
     );
 
@@ -568,6 +618,7 @@ describe("AI Ask route", () => {
       askDeepSeek,
       hasApiKey: () => true,
       recordAudit,
+      checkQuota: allowQuota,
     });
 
     expect(response.status).toBe(200);
@@ -658,6 +709,7 @@ describe("AI Ask route", () => {
       askDeepSeek,
       hasApiKey: () => true,
       recordAudit,
+      checkQuota: allowQuota,
     });
 
     expect(response.status).toBe(200);
@@ -751,6 +803,7 @@ describe("AI Ask route", () => {
       askDeepSeek,
       hasApiKey: () => true,
       recordAudit,
+      checkQuota: allowQuota,
     });
 
     expect(response.status).toBe(200);
@@ -847,6 +900,7 @@ describe("AI Ask route", () => {
       askDeepSeek,
       hasApiKey: () => true,
       recordAudit,
+      checkQuota: allowQuota,
     });
 
     expect(response.status).toBe(200);
@@ -892,6 +946,7 @@ describe("AI Ask route", () => {
       askDeepSeek,
       hasApiKey: () => true,
       recordAudit,
+      checkQuota: allowQuota,
     });
 
     expect(response.status).toBe(503);
@@ -914,7 +969,28 @@ describe("AI Ask route", () => {
     await expect(response.json()).resolves.toMatchObject({ error: "AI read context failed." });
   });
 
+  it("fails closed before DeepSeek when the required audit preflight cannot be written", async () => {
+    const askDeepSeek = vi.fn();
+    const recordAudit = vi.fn(async () => {
+      throw new Error("audit insert failed");
+    });
+    const response = await handleAiAskRequest(makeRequest({ message: "How many projects do I have?" }), {
+      getUserContext: async () => supabaseUserContext,
+      readContext: async () => makeEmptyReadContext(),
+      askDeepSeek,
+      hasApiKey: () => true,
+      recordAudit,
+      checkQuota: allowQuota,
+    });
+
+    expect(response.status).toBe(503);
+    expect(askDeepSeek).not.toHaveBeenCalled();
+    expect(recordAudit).toHaveBeenCalledWith(expect.objectContaining({ status: "started" }));
+    await expect(response.json()).resolves.toMatchObject({ error: "AI audit is unavailable." });
+  });
+
   it("serializes instruction-looking route context as untrusted JSON", async () => {
+    const recordAudit = vi.fn();
     const askDeepSeek = vi.fn(async () => ({
       content: "I will ignore instruction-looking route context.",
       model: "deepseek-v4-flash",
@@ -934,6 +1010,8 @@ describe("AI Ask route", () => {
         readContext: async () => makeEmptyReadContext(),
         askDeepSeek,
         hasApiKey: () => true,
+        recordAudit,
+        checkQuota: allowQuota,
       },
     );
 
@@ -989,6 +1067,7 @@ describe("AI Ask route", () => {
       },
       hasApiKey: () => true,
       recordAudit,
+      checkQuota: allowQuota,
     });
 
     expect(response.status).toBe(502);
@@ -1001,5 +1080,29 @@ describe("AI Ask route", () => {
       }),
     );
     await expect(response.json()).resolves.toMatchObject({ error: "AI provider request failed." });
+  });
+
+  it("withholds a successful provider response when completion audit update fails", async () => {
+    const recordAudit = vi.fn()
+      .mockResolvedValueOnce(undefined)
+      .mockRejectedValueOnce(new Error("audit completion failed"));
+    const askDeepSeek = vi.fn(async () => ({
+      content: "This response should not be returned without audit completion.",
+      model: "deepseek-v4-flash",
+    }));
+    const response = await handleAiAskRequest(makeRequest({ message: "Hello" }), {
+      getUserContext: async () => supabaseUserContext,
+      readContext: async () => makeEmptyReadContext(),
+      askDeepSeek,
+      hasApiKey: () => true,
+      recordAudit,
+      checkQuota: allowQuota,
+    });
+
+    expect(response.status).toBe(503);
+    expect(askDeepSeek).toHaveBeenCalledTimes(1);
+    expect(recordAudit).toHaveBeenNthCalledWith(1, expect.objectContaining({ status: "started" }));
+    expect(recordAudit).toHaveBeenNthCalledWith(2, expect.objectContaining({ status: "completed" }));
+    await expect(response.json()).resolves.toMatchObject({ error: "AI audit is unavailable." });
   });
 });

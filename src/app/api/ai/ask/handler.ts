@@ -4,6 +4,7 @@ import { NextResponse } from "next/server";
 import { getAiRequestUserContext, type AiRequestUserContext } from "@/lib/ai/auth";
 import { recordAiAskAuditEvent, type AiAuditRecorder } from "@/lib/ai/audit";
 import { askDeepSeek, hasDeepSeekApiKey, type DeepSeekAskResult, type DeepSeekChatMessage } from "@/lib/ai/deepseek";
+import { checkAiAskQuota, type AiAskQuotaResult } from "@/lib/ai/rate-limit";
 import { readAiAskReadContext, type AiAskReadContext } from "@/lib/ai/read-context";
 
 const MAX_MESSAGE_LENGTH = 8_000;
@@ -27,6 +28,7 @@ type AiAskDependencies = {
   askDeepSeek: (messages: DeepSeekChatMessage[]) => Promise<DeepSeekAskResult>;
   hasApiKey: () => boolean;
   recordAudit: AiAuditRecorder;
+  checkQuota: (input: { request: Request; userContext: AiRequestUserContext }) => Promise<AiAskQuotaResult>;
 };
 
 const defaultDependencies: AiAskDependencies = {
@@ -35,6 +37,7 @@ const defaultDependencies: AiAskDependencies = {
   askDeepSeek,
   hasApiKey: hasDeepSeekApiKey,
   recordAudit: recordAiAskAuditEvent,
+  checkQuota: checkAiAskQuota,
 };
 
 function readBoundedString(value: unknown) {
@@ -89,6 +92,16 @@ function jsonError(error: string, status: number) {
   return NextResponse.json({ error }, { status });
 }
 
+function rateLimitedResponse(message: string, retryAfter: number) {
+  return NextResponse.json(
+    { error: message },
+    {
+      status: 429,
+      headers: { "Retry-After": String(retryAfter) },
+    },
+  );
+}
+
 export async function handleAiAskRequest(request: Request, dependencies: Partial<AiAskDependencies> = {}) {
   const resolvedDependencies = { ...defaultDependencies, ...dependencies };
   let body: AiAskRequestBody;
@@ -113,6 +126,14 @@ export async function handleAiAskRequest(request: Request, dependencies: Partial
   if (!userContext.workspaceId) return jsonError("AI request requires a workspace.", 403);
   if (!resolvedDependencies.hasApiKey()) return jsonError("AI provider is not configured.", 503);
 
+  let quota: AiAskQuotaResult;
+  try {
+    quota = await resolvedDependencies.checkQuota({ request, userContext });
+  } catch {
+    return jsonError("AI quota is unavailable.", 503);
+  }
+  if (!quota.allowed) return rateLimitedResponse(quota.message, quota.retryAfter);
+
   const routeContext = parseRouteContext(body.routeContext);
   const routeReadContext = typeof body.routeContext === "object" && body.routeContext && !Array.isArray(body.routeContext)
     ? body.routeContext as Record<string, unknown>
@@ -128,28 +149,32 @@ export async function handleAiAskRequest(request: Request, dependencies: Partial
         routeContext: routeReadContext,
       });
     } catch {
-      await resolvedDependencies.recordAudit({
-        runId,
-        userContext,
-        message,
-        routeContext,
-        status: "failed",
-        provider: "deepseek",
-        errorClass: "read_context_failed",
-        requestHost: request.headers.get("host"),
-        userAgent: request.headers.get("user-agent"),
-        dataAccessEvents: [
-          {
-            eventName: "ask_read_context_failed",
-            sourceTables: [],
-            filter: { routeContextFields: Object.keys(routeContext).filter((key) => Boolean(routeContext[key as keyof RouteContext])) },
-            rowCount: 0,
-            blockedAttempt: true,
-            blockedReason: "read_context_failed",
-            safeSummary: "Ask Flip read-only account context failed before provider request.",
-          },
-        ],
-      });
+      try {
+        await resolvedDependencies.recordAudit({
+          runId,
+          userContext,
+          message,
+          routeContext,
+          status: "failed",
+          provider: "deepseek",
+          errorClass: "read_context_failed",
+          requestHost: request.headers.get("host"),
+          userAgent: request.headers.get("user-agent"),
+          dataAccessEvents: [
+            {
+              eventName: "ask_read_context_failed",
+              sourceTables: [],
+              filter: { routeContextFields: Object.keys(routeContext).filter((key) => Boolean(routeContext[key as keyof RouteContext])) },
+              rowCount: 0,
+              blockedAttempt: true,
+              blockedReason: "read_context_failed",
+              safeSummary: "Ask Flip read-only account context failed before provider request.",
+            },
+          ],
+        });
+      } catch {
+        return jsonError("AI audit is unavailable.", 503);
+      }
       return jsonError("AI read context failed.", 503);
     }
   }
@@ -170,13 +195,28 @@ export async function handleAiAskRequest(request: Request, dependencies: Partial
   };
 
   try {
-    const result = await resolvedDependencies.askDeepSeek(messages);
     await resolvedDependencies.recordAudit({
       ...auditBase,
-      status: "completed",
-      model: result.model,
-      usage: result.usage ?? null,
+      status: "started",
+      model: "deepseek-pending",
+      usage: null,
     });
+  } catch {
+    return jsonError("AI audit is unavailable.", 503);
+  }
+
+  try {
+    const result = await resolvedDependencies.askDeepSeek(messages);
+    try {
+      await resolvedDependencies.recordAudit({
+        ...auditBase,
+        status: "completed",
+        model: result.model,
+        usage: result.usage ?? null,
+      });
+    } catch {
+      return jsonError("AI audit is unavailable.", 503);
+    }
     return NextResponse.json({
       message: result.content,
       provider: "deepseek",
@@ -184,11 +224,15 @@ export async function handleAiAskRequest(request: Request, dependencies: Partial
       usage: result.usage ?? null,
     });
   } catch {
-    await resolvedDependencies.recordAudit({
-      ...auditBase,
-      status: "failed",
-      errorClass: "provider_request_failed",
-    });
+    try {
+      await resolvedDependencies.recordAudit({
+        ...auditBase,
+        status: "failed",
+        errorClass: "provider_request_failed",
+      });
+    } catch {
+      return jsonError("AI audit is unavailable.", 503);
+    }
     return jsonError("AI provider request failed.", 502);
   }
 }
