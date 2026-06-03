@@ -94,6 +94,7 @@ export async function GET(request: NextRequest) {
         access_status: access.status,
       },
     });
+    await supabase.auth.signOut();
     return NextResponse.redirect(new URL(buildClosedBetaAccessPath(access.status), origin));
   }
 

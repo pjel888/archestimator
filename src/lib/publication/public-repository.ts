@@ -168,6 +168,8 @@ type RateLimitScope =
   | "project_publication_password"
   | "project_publication_snapshot"
   | "shared_link_comment"
+  | "shared_link_comment_read"
+  | "shared_link_decision_read"
   | "shared_link_decision";
 
 function hashRateLimitKey(scope: RateLimitScope, parts: Array<string | null | undefined>) {
@@ -412,6 +414,21 @@ export async function checkSharedLinkCommentRateLimit({
   });
 }
 
+export async function checkSharedLinkCommentReadRateLimit({
+  publicationId,
+  recipientId,
+}: {
+  publicationId: string;
+  recipientId: string;
+}): Promise<DurableRateLimitResult> {
+  return checkRecordedRateLimit({
+    scope: "shared_link_comment_read",
+    keyParts: [publicationId, recipientId],
+    metadata: { route: "comment_read" },
+    windows: [{ seconds: 60, limit: 60, message: genericRateLimitMessage }],
+  });
+}
+
 export async function checkSharedLinkDecisionRateLimit({
   publicationId,
   recipientId,
@@ -424,6 +441,21 @@ export async function checkSharedLinkDecisionRateLimit({
     keyParts: [publicationId, recipientId],
     metadata: { route: "decision" },
     windows: [{ seconds: 60, limit: 5, message: genericRateLimitMessage }],
+  });
+}
+
+export async function checkSharedLinkDecisionReadRateLimit({
+  publicationId,
+  recipientId,
+}: {
+  publicationId: string;
+  recipientId: string;
+}): Promise<DurableRateLimitResult> {
+  return checkRecordedRateLimit({
+    scope: "shared_link_decision_read",
+    keyParts: [publicationId, recipientId],
+    metadata: { route: "decision_read" },
+    windows: [{ seconds: 60, limit: 60, message: genericRateLimitMessage }],
   });
 }
 

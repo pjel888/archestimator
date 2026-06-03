@@ -1,1 +1,1 @@
-{"userId":"6244a1fb-2757-486f-99d4-b2865e85dd6c","workspaceId":"17cb6681-bac7-43d0-a9bb-a457416c3d62","storageStatePath":"/tmp/archestimator-lighthouse-followup-20260601T102000Z/storage-state.json","cookieCount":1,"cookieNames":["sb-ebxxqidacheyapmmzavr-auth-token"]}
+{"userId":"[redacted]","workspaceId":"[redacted]","storageStatePath":"[redacted-temp-path]","cookieCount":1,"cookieNames":["[redacted-supabase-auth-cookie-name]"]}

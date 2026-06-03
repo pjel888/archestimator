@@ -1,9 +1,9 @@
 {
-  "userId": "e17b7243-da75-44b6-8941-52f4e70c75ab",
-  "workspaceId": "1ef39a0d-f479-4c41-98eb-47b1f93435b3",
-  "storageStatePath": "/tmp/archestimator-lighthouse-after-project-list-trim-20260601T112341Z/storage-state.json",
+  "userId": "[redacted]",
+  "workspaceId": "[redacted]",
+  "storageStatePath": "[redacted-temp-path]",
   "cookieCount": 2,
   "cookieNames": [
-    "sb-ebxxqidacheyapmmzavr-auth-token"
+    "[redacted-supabase-auth-cookie-name]"
   ]
 }

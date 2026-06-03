@@ -5,6 +5,7 @@ import {
   verifySharedLinkSessionCookieValue,
 } from "@/lib/publication/security";
 import {
+  checkSharedLinkDecisionReadRateLimit,
   checkSharedLinkDecisionRateLimit,
   loadSharedLinkRecipientDecision,
   resolveProjectPublicationAccessByToken,
@@ -103,6 +104,17 @@ export async function GET(request: Request, { params }: { params: Promise<{ toke
     })
   ) {
     return Response.json({ error: "Valid recipient session required for decisions." }, { status: 401, headers: noStoreHeaders });
+  }
+
+  const rateCheck = await checkSharedLinkDecisionReadRateLimit({
+    publicationId: access.publicationId,
+    recipientId,
+  });
+  if (!rateCheck.allowed) {
+    return Response.json(
+      { error: rateCheck.message },
+      { status: 429, headers: { ...noStoreHeaders, "Retry-After": String(rateCheck.retryAfter) } },
+    );
   }
 
   const decision = await loadSharedLinkRecipientDecision({

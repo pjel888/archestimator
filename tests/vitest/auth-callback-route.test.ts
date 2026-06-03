@@ -99,12 +99,14 @@ describe("auth callback route", () => {
       data: { allowed: false, status: "missing", normalized_email: "outsider@example.com" },
       error: null,
     }));
+    const signOut = vi.fn(async () => ({ error: null }));
     const supabase = {
       auth: {
         exchangeCodeForSession: vi.fn(async () => ({ error: null })),
         getUser: vi.fn(async () => ({
           data: { user: { id: "user-1", email: "outsider@example.com" } },
         })),
+        signOut,
       },
       rpc,
     };
@@ -115,6 +117,7 @@ describe("auth callback route", () => {
     const response = await GET(request("http://localhost:3000/auth/callback?code=abc&next=/workshop"));
 
     expect(rpc).toHaveBeenCalledWith("check_closed_beta_access", { raw_email: "outsider@example.com" });
+    expect(signOut).toHaveBeenCalledTimes(1);
     expect(accountSetupMocks.resolvePostAuthDestination).not.toHaveBeenCalled();
     expect(response.headers.get("location")).toBe("http://localhost:3000/beta/access-required");
   });

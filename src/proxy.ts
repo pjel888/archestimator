@@ -32,6 +32,14 @@ function createRequestPathResponse(request: NextRequest) {
   return NextResponse.next({ request: { headers: requestHeaders } });
 }
 
+function redirectWithResponseCookies(url: URL, response: NextResponse) {
+  const redirectResponse = NextResponse.redirect(url);
+  response.cookies.getAll().forEach((cookie) => {
+    redirectResponse.cookies.set(cookie);
+  });
+  return redirectResponse;
+}
+
 export async function proxy(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
 
@@ -111,7 +119,8 @@ export async function proxy(request: NextRequest) {
     });
 
     if (!access.allowed) {
-      return NextResponse.redirect(new URL(buildClosedBetaAccessPath(access.status), request.url));
+      await supabase.auth.signOut();
+      return redirectWithResponseCookies(new URL(buildClosedBetaAccessPath(access.status), request.url), response);
     }
   }
 

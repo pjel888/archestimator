@@ -1,7 +1,7 @@
 {
   "seed": {
-    "userId": "6244a1fb-2757-486f-99d4-b2865e85dd6c",
-    "workspaceId": "17cb6681-bac7-43d0-a9bb-a457416c3d62"
+    "userId": "[redacted]",
+    "workspaceId": "[redacted]"
   },
   "notes": [
     {
