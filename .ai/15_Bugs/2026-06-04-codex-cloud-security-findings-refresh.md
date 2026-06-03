@@ -68,6 +68,10 @@ The cheaper closed-beta provider path is partially proven, but the current Codex
 
 ## Additional Repo Remediation Pending Rescan
 
+- Production deploy: `dpl_8ZQDQopHv95H94m1uR6xZgU8RvYD`, Ready, target `production`, URL `https://archestimator-f6dbdasoj-philipjonlewis-projects.vercel.app`.
+- Aliases verified by Vercel inspect: `https://www.archestimator.com`, `https://archestimator.com`, and `https://archestimator.vercel.app`.
+- Hosted smoke after deploy: `https://www.archestimator.com/api/health` returned HTTP 200; signed-out `HEAD /workshop` returned HTTP 307 to `/login?next=%2Fworkshop`; `HEAD /login` returned HTTP 200.
+- HTML marker scan after deploy: homepage contained no `SpeedInsights`, `speed-insights`, `/_vercel/speed-insights`, or `va.vercel-scripts.com` markers.
 - Finding: `New share review GET APIs are not rate limited`.
   - Repo fix: comment-history and decision-state GET handlers now apply durable recipient-scoped read rate limits before loading review data.
   - Verification: focused publication/auth suites passed 8 files / 106 tests.

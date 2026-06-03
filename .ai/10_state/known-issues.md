@@ -6,7 +6,7 @@
 - This blocks truthful closed-beta launch-ready language until medium findings are fixed, explicitly accepted, or proven stale/false-positive.
 - Tracker: `.ai/15_Bugs/2026-06-04-codex-cloud-security-findings-refresh.md`.
 - The Speed Insights finding has repo and production remediation evidence, but dashboard rescan/closure is pending; the overall security blocker remains open.
-- A 2026-06-04 follow-up remediation batch fixed or removed repo-local evidence for share review GET rate limits, denied/revoked beta session persistence, raw authed Lighthouse reports, share proof seed identifiers, and the client-identifying proposal sample. These remain pending Codex Security rescan/closure and do not close the overall blocker.
+- A 2026-06-04 follow-up remediation batch at `a062e56` fixed or removed repo-local evidence for share review GET rate limits, denied/revoked beta session persistence, raw authed Lighthouse reports, share proof seed identifiers, and the client-identifying proposal sample. It is deployed as Vercel production `dpl_8ZQDQopHv95H94m1uR6xZgU8RvYD` with health/login/workshop smoke proof. These remain pending Codex Security rescan/closure and do not close the overall blocker.
 
 **Last updated:** 2026-06-04
 
