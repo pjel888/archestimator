@@ -18,7 +18,7 @@ import { ensureDefaultWorkspace } from "@/lib/repositories/workspace-repository"
 import type { Json } from "@/lib/supabase/types";
 import { isUuid } from "@/lib/ids";
 
-const PROJECT_IMAGE_BUCKET = "component-images";
+const PROJECT_IMAGE_BUCKET = "project-images";
 
 type ProjectImageMetadataInput = {
   bucket?: string;

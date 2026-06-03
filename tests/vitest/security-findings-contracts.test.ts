@@ -154,6 +154,28 @@ describe("Codex security findings hardening contracts", () => {
     expect(sharePage).toContain('description: "This proposal is password protected."');
   });
 
+  it("keeps project images out of public Supabase Storage surfaces", () => {
+    const projectImageRoute = read("src/app/api/projects/images/route.ts");
+    const projectActions = read("src/lib/projects/actions.ts");
+    const storageCleanup = read("src/lib/mass-deletion/storage-cleanup.ts");
+    const publicationImageUrl = read("src/lib/publication/image-url.ts");
+    const nextConfig = read("next.config.ts");
+    const privateProjectImageMigration = read("supabase/migrations/20260603222628_private_project_image_storage.sql");
+
+    expect(projectImageRoute).toContain('const PROJECT_IMAGE_BUCKET = "project-images"');
+    expect(projectImageRoute).toContain("export async function GET(request: Request)");
+    expect(projectImageRoute).toContain("createProjectImageRouteUrl(path)");
+    expect(projectImageRoute).not.toContain(".getPublicUrl(path)");
+    expect(projectActions).toContain('const PROJECT_IMAGE_BUCKET = "project-images"');
+    expect(storageCleanup).toContain('const PROJECT_IMAGE_BUCKET = "project-images"');
+    expect(publicationImageUrl).toContain('if (imageUrl.pathname.includes("/project-images/")) return null');
+    expect(nextConfig).not.toContain("/storage/v1/object/public/project-images/**");
+    expect(privateProjectImageMigration).toContain("'project-images'");
+    expect(privateProjectImageMigration).toContain("public = false");
+    expect(privateProjectImageMigration).toContain("project images can be read by project members");
+    expect(privateProjectImageMigration).toContain("coalesce((storage.foldername(name))[3], '') <> 'project-images'");
+  });
+
   it("prevents sheet-only collaborators from inheriting project-wide estimate access", () => {
     const originalCollaborationMigration = read("supabase/migrations/20260526142913_project_sheet_collaboration_access.sql");
     const latestCanAccessEstimate = latestFunction("can_access_estimate");

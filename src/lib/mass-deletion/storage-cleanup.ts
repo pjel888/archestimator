@@ -4,7 +4,7 @@ import type { Json } from "@/lib/supabase/types";
 
 import type { StorageCleanupReport, StorageCleanupTarget } from "./bulk-action";
 
-const PROJECT_IMAGE_BUCKET = "component-images";
+const PROJECT_IMAGE_BUCKET = "project-images";
 const COMPONENT_IMAGE_BUCKET = "component-images";
 const COMPONENT_ATTACHMENT_BUCKET = "component-attachments";
 const STORAGE_REMOVE_CHUNK_SIZE = 100;

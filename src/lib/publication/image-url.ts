@@ -3,7 +3,6 @@ const LOCAL_COMPONENT_THUMBNAIL_PATTERN =
 
 const SUPABASE_PUBLIC_IMAGE_PREFIXES = [
   "/storage/v1/object/public/component-images/",
-  "/storage/v1/object/public/project-images/",
 ];
 
 const SUPABASE_PUBLIC_IMAGE_PATTERN = /\.(?:webp)$/i;
@@ -40,6 +39,7 @@ export function normalizePublicationImageUrl(value: unknown): string | null {
     if (/%(?:2e|2f|5c)/i.test(imageUrl.pathname)) return null;
     if (imageUrl.pathname.includes("..") || imageUrl.pathname.includes("\\")) return null;
     if (!SUPABASE_PUBLIC_IMAGE_PREFIXES.some((prefix) => imageUrl.pathname.startsWith(prefix))) return null;
+    if (imageUrl.pathname.includes("/project-images/")) return null;
     if (!SUPABASE_PUBLIC_IMAGE_PATTERN.test(imageUrl.pathname)) return null;
 
     return imageUrl.href;

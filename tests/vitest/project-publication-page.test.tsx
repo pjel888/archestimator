@@ -680,7 +680,7 @@ describe("shared link (receiver publication) page — Shared Link Overhaul V2", 
       location: "Site",
       currencyCode: "PHP",
       // After P9 builder update: cover captured from metadata at publish time
-      coverImageUrl: "https://example.supabase.co/storage/v1/object/public/project-images/ws/u/p1/cover.webp",
+      coverImageUrl: "https://example.supabase.co/storage/v1/object/public/component-images/ws/u/components/cover.webp",
     };
 
     const rowWithThumb = {
@@ -696,7 +696,7 @@ describe("shared link (receiver publication) page — Shared Link Overhaul V2", 
       contingencyPercentage: 10,
       rowTotal: 2300,
       // Populated from estimate_row_items.source_snapshot.imageUrl (see workspace-repository pattern)
-      imageUrl: "https://example.supabase.co/storage/v1/object/public/project-images/ws/u/p1/comp.webp",
+      imageUrl: "https://example.supabase.co/storage/v1/object/public/component-images/ws/u/components/comp.webp",
     };
 
     const estimateWithThumbRow: PublicationSnapshotEstimate = {
@@ -741,7 +741,7 @@ describe("shared link (receiver publication) page — Shared Link Overhaul V2", 
       const thumb = thumbs[0] as HTMLImageElement;
       expect(thumb).toHaveAttribute("loading", "lazy");
       // src from the imageUrl (sanitized or direct in snapshot)
-      expect(thumb.getAttribute("src")).toContain("project-images");
+      expect(thumb.getAttribute("src")).toContain("component-images");
 
       // Now test row without image: no erroneous thumbnail
       const noThumbEstimate: PublicationSnapshotEstimate = { ...estimateWithThumbRow, rows: [{ ...rowWithThumb, imageUrl: undefined }] };

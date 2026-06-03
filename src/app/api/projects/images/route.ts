@@ -5,13 +5,16 @@ import { createClient } from "@supabase/supabase-js";
 import sharp from "sharp";
 
 import { requireCurrentUserContext } from "@/lib/auth/session";
+import { isUuid } from "@/lib/ids";
 import { ensureDefaultWorkspace } from "@/lib/repositories/workspace-repository";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { Database } from "@/lib/supabase/types";
 
 export const runtime = "nodejs";
 
-const PROJECT_IMAGE_BUCKET = "component-images";
+const PROJECT_IMAGE_BUCKET = "project-images";
+const PROJECT_IMAGE_ROUTE = "/api/projects/images";
+const PROJECT_IMAGE_PATH_SEGMENT = "project-images";
 const MAX_UPLOAD_BYTES = 12 * 1024 * 1024;
 const MAX_IMAGE_PIXELS = 24_000_000;
 const MAX_IMAGE_EDGE = 1600;
@@ -87,6 +90,26 @@ function safeUploadName(name: string) {
   return stem || "project-image";
 }
 
+function createProjectImageRouteUrl(path: string) {
+  const search = new URLSearchParams({ path });
+  return `${PROJECT_IMAGE_ROUTE}?${search.toString()}`;
+}
+
+function parseProjectImageStoragePath(path: string) {
+  const normalized = path.trim();
+  if (!normalized.endsWith(".webp")) return null;
+  if (normalized.includes("..") || normalized.includes("//") || normalized.includes("\\")) return null;
+
+  const segments = normalized.split("/");
+  if (segments.length < 5) return null;
+  const [workspaceId, ownerUserId, marker, projectId] = segments;
+  if (marker !== PROJECT_IMAGE_PATH_SEGMENT) return null;
+  if (!isUuid(workspaceId) || !isUuid(ownerUserId) || !isUuid(projectId)) return null;
+  if (segments.some((segment) => segment.length === 0)) return null;
+
+  return { workspaceId, ownerUserId, projectId, path: normalized };
+}
+
 async function createStorageSupabaseClient() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
@@ -122,11 +145,12 @@ async function uploadWebp({
     upsert: false,
   });
   if (error) throw new Error(error.message);
-  return supabase.storage.from(PROJECT_IMAGE_BUCKET).getPublicUrl(path).data.publicUrl;
+  return createProjectImageRouteUrl(path);
 }
 
 function isOwnedUploadPath(path: string, workspaceId: string, userId: string) {
-  return path.startsWith(`${workspaceId}/${userId}/project-images/`) && path.endsWith(".webp") && !path.includes("..") && !path.includes("//");
+  const parsed = parseProjectImageStoragePath(path);
+  return Boolean(parsed && parsed.workspaceId === workspaceId && parsed.ownerUserId === userId);
 }
 
 function readStoragePaths(value: unknown) {
@@ -134,6 +158,38 @@ function readStoragePaths(value: unknown) {
   const rawPaths = (value as { path?: unknown; paths?: unknown }).paths ?? (value as { path?: unknown }).path;
   const paths = Array.isArray(rawPaths) ? rawPaths : [rawPaths];
   return paths.filter((path): path is string => typeof path === "string" && path.trim().length > 0).map((path) => path.trim());
+}
+
+export async function GET(request: Request) {
+  await requireCurrentUserContext();
+
+  const requestUrl = new URL(request.url);
+  const parsedPath = parseProjectImageStoragePath(requestUrl.searchParams.get("path") ?? "");
+  if (!parsedPath) return jsonError("Image could not be found.", 404);
+
+  const serverSupabase = await createSupabaseServerClient();
+  const { data: project, error: projectError } = await serverSupabase
+    .from("projects")
+    .select("id, workspace_id")
+    .eq("id", parsedPath.projectId)
+    .maybeSingle();
+
+  if (projectError) throw projectError;
+  if (!project || project.workspace_id !== parsedPath.workspaceId) {
+    return jsonError("Image could not be found.", 404);
+  }
+
+  const storageSupabase = await createStorageSupabaseClient();
+  const { data, error } = await storageSupabase.storage.from(PROJECT_IMAGE_BUCKET).download(parsedPath.path);
+  if (error || !data) return jsonError("Image could not be found.", 404);
+
+  return new Response(await data.arrayBuffer(), {
+    headers: {
+      "Cache-Control": "private, max-age=300",
+      "Content-Type": "image/webp",
+      "X-Content-Type-Options": "nosniff",
+    },
+  });
 }
 
 export async function POST(request: Request) {
@@ -195,7 +251,7 @@ export async function POST(request: Request) {
 
   const supabase = await createStorageSupabaseClient();
   const baseName = `${safeUploadName(file.name)}-${randomUUID()}`;
-  const basePath = `${workspace.id}/${currentUser.userId}/project-images/${projectId}/${baseName}`;
+  const basePath = `${workspace.id}/${currentUser.userId}/${PROJECT_IMAGE_PATH_SEGMENT}/${projectId}/${baseName}`;
   const imagePath = `${basePath}.webp`;
   const thumbnailPath = `${basePath}-thumb.webp`;
   const uploadedPaths: string[] = [];
