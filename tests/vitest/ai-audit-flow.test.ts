@@ -10,6 +10,7 @@ import {
   buildAiAskAuditEvent,
   buildAiPackageActionRun,
   hashAiAuditValue,
+  recordAiAskAuditEvent,
   recordAiPackageApplyAuthorization,
 } from "@/lib/ai/audit";
 
@@ -95,6 +96,78 @@ describe("AI audit event builder", () => {
     });
 
     expect(event).toBeNull();
+  });
+
+  it("requires Ask audit storage and upserts Ask action runs by run_id", async () => {
+    const upsert = vi.fn(async () => ({ error: null }));
+    const insert = vi.fn(async () => ({ error: null }));
+    const from = vi.fn((table: string) => {
+      if (table === "ai_action_runs") return { upsert };
+      if (table === "ai_data_access_events") return { insert };
+      return { insert: vi.fn(async () => ({ error: null })) };
+    });
+    supabaseJsMocks.createClient.mockReturnValue({ from });
+
+    await recordAiAskAuditEvent({
+      runId: "11111111-1111-4111-8111-111111111111",
+      userContext: {
+        userId: "22222222-2222-4222-8222-222222222222",
+        email: "user@example.com",
+        workspaceId: "33333333-3333-4333-8333-333333333333",
+        authMode: "supabase",
+      },
+      message: "How many projects do I have?",
+      routeContext: { projectName: "Lewis Residence" },
+      status: "started",
+      provider: "deepseek",
+      model: "deepseek-pending",
+      dataAccessEvents: [
+        {
+          eventName: "ask_count_accessible_projects",
+          sourceTables: ["projects"],
+          filter: { scope: "current_workspace", operation: "count" },
+          rowCount: 3,
+          safeSummary: "Read exact accessible project count for Ask Flip.",
+        },
+      ],
+    });
+
+    expect(from).toHaveBeenCalledWith("ai_action_runs");
+    expect(upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        run_id: "11111111-1111-4111-8111-111111111111",
+        status: "started",
+        completed_at: null,
+        provider_send_categories: ["user_message", "bounded_route_context", "server_scoped_read_context"],
+      }),
+      { onConflict: "run_id" },
+    );
+    expect(from).toHaveBeenCalledWith("ai_data_access_events");
+    expect(insert).toHaveBeenCalledWith([
+      expect.objectContaining({
+        run_id: "11111111-1111-4111-8111-111111111111",
+        event_name: "ask_count_accessible_projects",
+        row_count: 3,
+      }),
+    ]);
+  });
+
+  it("fails closed when Ask audit storage is unavailable", async () => {
+    delete process.env.NEXT_PUBLIC_SUPABASE_URL;
+    delete process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+    await expect(recordAiAskAuditEvent({
+      userContext: {
+        userId: "22222222-2222-4222-8222-222222222222",
+        email: "user@example.com",
+        workspaceId: "33333333-3333-4333-8333-333333333333",
+        authMode: "supabase",
+      },
+      message: "Hello",
+      routeContext: {},
+      status: "started",
+      provider: "deepseek",
+    })).rejects.toThrow("AI Ask audit client is not configured.");
   });
 
   it("records package Apply authorization rows through the audit client", async () => {
