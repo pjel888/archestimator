@@ -1,9 +1,13 @@
+# Preserved Original Draft
+
+This file preserves the original single-document draft. Two stale statements were corrected because the current planning task explicitly requires the active package to use the dated folder path and to state that the mass-deletion workstream is related but separate.
+
 # Tree Selection, Drag Affordance, and Bulk Delete Plan
 
 **Plan date:** 2026-06-03
 **Status:** Planning — implementation not started
 **Author:** Sisyphus (AI Agent, through OhMyOpenCode)
-**Supersedes:** `.ai/03_plans/2026-06-03-mass-deletion-projects-estimate-sheets-library-components.md` (server-side sections are incorporated; this plan adds the UX interaction layer that was missing)
+**Related plan:** Related but separate workstream. This plan does not supersede, replace, or modify `.ai/03_plans/2026-06-03-mass-deletion-projects-estimate-sheets-library-components.md`.
 
 ---
 
@@ -701,10 +705,10 @@ bunx vitest run tests/vitest/project-estimates-table.test.tsx --maxWorkers=1
 
 ## 9. Deliverable
 
-This plan document at `.ai/03_plans/tree-selection-drag-affordance-bulk-delete-plan.md`.
+This plan package at `.ai/03_plans/2026-06-03-tree-selection-drag-affordance-bulk-delete-plan/`.
 
 **Reference plans:**
-- `.ai/03_plans/2026-06-03-mass-deletion-projects-estimate-sheets-library-components.md` — detailed server-side architecture for mass deletion (incorporates Sections 2.4-2.9, 4.4 of this plan with deeper database-level detail).
+- `.ai/03_plans/2026-06-03-mass-deletion-projects-estimate-sheets-library-components.md` -- Related but separate workstream. This plan does not supersede, replace, or modify `.ai/03_plans/2026-06-03-mass-deletion-projects-estimate-sheets-library-components.md`.
 
 **Implementation order:** Phase 1 (WorkshopTreeRow) → Phase 2 (Estimate Tree) → Phase 3 (Library Trees) → Phase 4 (Estimate Sheets Table) → Phase 5 (Projects Page) → Phase 6 (Component Library) → Phase 7 (Polish).
 

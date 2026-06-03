@@ -1,31 +1,74 @@
 # Implementation Agent Prompt
 
-**Copy and paste the text below to the next implementation agent.**
+Copy this prompt into a future implementation agent when product-code work is approved.
 
----
+```text
+You are working in /Users/philiplewis/archestimator.
 
-You are an expert software engineer tasked with implementing the "Tree Selection, Drag Affordance, and Bulk Delete" feature for Archestimator. 
+Implement the tree selection, visible drag affordance, and safe bulk destructive workflow described by:
 
-**CRITICAL RULES:**
-1. **Read the planning folder first.** Start by reading all documents in `.ai/03_plans/2026-06-03-tree-selection-drag-affordance-bulk-delete-plan/`.
-2. **Do not re-litigate already-set decisions.** The planning documents contain evidence-backed decisions. Do not change them unless local code evidence definitively proves them wrong. If you find a contradiction, stop, update the plan, and ask for clarification.
-3. **Implement in phases.** Follow the exact sequence in `05-implementation-sequence.md`. Do not skip phases or combine them into a single massive PR.
-4. **Run focused tests after each phase.** After completing a phase, run `bun run type-check`, `bun run lint`, `bun run lint:design-system`, `bun run validate`, and the specific Vitest tests for that phase. Fix any failures before moving to the next phase.
-5. **Commit after coherent milestones.** Create a git commit after each successfully tested phase. Use the standard co-author trailer:
-   ```bash
-   git commit -F - <<'EOF'
-   feat(ui): implement phase X of tree selection and bulk delete
+.ai/03_plans/2026-06-03-tree-selection-drag-affordance-bulk-delete-plan/
 
-   Co-authored-by: CommandCodeBot <noreply@commandcode.ai>
-   EOF
-   ```
-6. **Avoid broad rewrites.** Modify only the files explicitly listed in the phase's "Files to change" section. Preserve existing behavior unless explicitly instructed to change it.
-7. **Preserve right-click rename/delete.** Ensure existing `WorkshopTreeContextMenu` functionality remains fully operational.
-8. **Preserve existing drag/drop reorder behavior.** React Complex Tree (RCT) handlers must continue to work. The new drag handle is a visual affordance; do not break RCT's native drag initiation.
-9. **Preserve design-system constraints.** All new UI components must use existing design tokens and pass `bun run lint:design-system`.
-10. **Avoid hard delete of referenced library components.** Enforce the zero-reference check and default to archive as specified in `04-data-permissions-and-delete-contracts.md`.
-11. **Validate all server actions by workspace/project permissions.** Every bulk server action must call `ensureDefaultWorkspace()` and validate explicit edit permissions before mutating data.
-12. **Stop and update the plan if implementation evidence contradicts planning assumptions.** If you discover that a function signature, database schema, or RCT behavior differs from the plan, halt implementation, document the discrepancy, update the planning documents, and request review before proceeding.
+Read the package first in this order:
+1. README.md
+2. 01-current-codebase-audit.md
+3. 04-data-permissions-and-delete-contracts.md
+4. 02-ux-ui-behavior-spec.md
+5. 03-technical-architecture.md
+6. 05-implementation-sequence.md
+7. 06-test-and-validation-plan.md
+8. 07-risk-register-and-open-decisions.md
+9. 10-final-planning-report-template.md
 
-**Your First Step:**
-Read `05-implementation-sequence.md` and begin **Phase 1 — Shared UX Contract (WorkshopTreeRow Extension)**. Create `src/components/workshop/tree-row-affordances.tsx` and extend `WorkshopTreeRow` as specified. Do not touch EstimateSheetTree or any other surface until Phase 1 is complete, tested, and committed.
+Scope boundary:
+Related but separate workstream. This plan does not supersede, replace, or modify .ai/03_plans/2026-06-03-mass-deletion-projects-estimate-sheets-library-components.md.
+
+Implement in phases. Do not make one broad rewrite. Use the ten phases in 05-implementation-sequence.md. Commit after coherent milestones.
+
+Non-negotiable behavior:
+1. Respect the separate mass-deletion plan boundary.
+2. Preserve existing right-click rename/delete behavior.
+3. Preserve existing React Complex Tree drag/drop reorder behavior.
+4. Preserve route/current/focused selection separately from checkbox bulk selection.
+5. Avoid invalid nested interactive markup. Rows with checkboxes/buttons must not render as native buttons containing interactive children.
+6. Keep the visible drag handle as a visual affordance unless you prove true handle-only RCT drag with tests.
+7. Do not hard-delete referenced library components. Archive is the default safe bulk operation. Hard delete requires server-side zero-reference proof and permission.
+8. Select visible/rendered filtered items by default. Do not implement global select-all across the database without a server-side preview design.
+9. Projects and estimate sheets require typed confirmation.
+10. Bulk destructive operations must be server-side. Do not loop over single-delete actions from the client.
+11. Validate all server actions by workspace/project/estimate permissions and reject cross-workspace IDs.
+12. Preserve design-system constraints from DESIGN.md and scripts/enforce-app-design-system.mjs.
+13. Stop and update the planning package if implementation evidence contradicts any planning assumption.
+
+Start with Phase 1:
+- Harden src/components/workshop/workshop-tree.tsx and src/components/workshop/tree-row-affordances.tsx.
+- Add tests/vitest/workshop-tree-row-affordances.test.tsx.
+- Run focused tests and bun run lint:design-system.
+
+Then proceed phase-by-phase:
+- Phase 2: shared pure selection utilities.
+- Phase 3: estimate tree handle/checkbox selection.
+- Phase 4: estimate tree bulk delete.
+- Phase 5: library folder tree handle/selection/delete.
+- Phase 6: estimate sheet table select-visible and bulk delete.
+- Phase 7: projects card selection and bulk delete.
+- Phase 8: component catalogue archive/default hard-delete gate.
+- Phase 9: cross-surface accessibility and design polish.
+- Phase 10: final validation and release report.
+
+Testing expectations:
+- Run focused tests after each phase, using 06-test-and-validation-plan.md.
+- Preserve existing tests listed there.
+- Add unit, DOM, server action, and Playwright tests where the phase requires them.
+- Run design-system lint after UI phases.
+- Do not claim e2e/linked-db proof if required env vars or fixtures are unavailable.
+
+Data safety:
+- Before destructive server/RPC implementation, verify current migrations and, if available, live DB schema/RLS behavior.
+- Use transactions/RPCs for bulk destructive operations where consistency/history matters.
+- Validate storage paths before deletion and report partial cleanup failures.
+
+Final report:
+- Use 10-final-planning-report-template.md.
+- Include changed files, tests run, skipped validation with reasons, git status, commit SHA, pushed status, remaining risks, and recommended next step.
+```
