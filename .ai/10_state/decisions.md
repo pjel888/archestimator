@@ -181,3 +181,14 @@ Rejected: schema migrations or Supabase/RLS changes | approved scope required li
 Confidence: high
 Scope-risk: moderate
 Directive: Future share receiver changes must preserve password and recipient-session boundaries before expanding public read APIs.
+
+## 2026-06-03 — Agentic-Driven Development rollout planning baseline
+
+Decision: Use `.ai/03_plans/2026-06-03-agentic-development-framework-rollout/` as the planning package for a future ADD operating framework. Recommended branch model is Option A: keep `main` as protected production/default branch, add `beta` as closed-beta/staging branch after approval, keep `dev` optional and not created by default, and use short-lived `feat/*`, `fix/*`, `hotfix/*`, and `release/*` branches. `.ai` remains canonical implementation truth; Notion is mirror-only.
+
+Constraint: Planning task only; no production source, dependency, migration, provider, GitHub protection, branch, or direct Notion mutation was in scope.
+Rejected: separate `production` branch with `main` as integration | too much branch/CI/provider migration risk before beta proof is stable.
+Rejected: global ADD enforcement immediately | dry-run feature and bug proof must pass first.
+Confidence: high
+Scope-risk: moderate
+Directive: Implement Phase 1 canonical `.ai` docs first; do not enforce branch protections or Notion workflows until Philip/GitHub/Notion/provider admin decisions are recorded.

@@ -40,3 +40,9 @@ The superseded board remains inactive, but the current mass-deletion task closed
 ## 2026-06-03 projects page access tabs task note
 
 The superseded board remains inactive, but the current projects-page access-tabs task closed repo-local implementation on `feat/projects-page-access-tabs-plan`: two always-visible tabs, owned/shared partitioning by `accessKind`, active-tab search/selection, shared-only defaulting, and shared-favorite suppression are implemented and locally validated. Plan archive: `.ai/09_archive/store/2026-06-03-projects-page-access-tabs-complete/`. Hosted/manual shared-user browser proof remains release evidence.
+
+---
+
+## 2026-06-03 agentic development framework plan note
+
+The superseded autopilot board remains inactive, but a current plan-only ADD rollout package exists at `.ai/03_plans/2026-06-03-agentic-development-framework-rollout/`. Future execution should start with Phase 1 canonical `.ai` docs only after branch/environment recommendations are approved. Do not treat the framework as globally enforced yet.

@@ -29,7 +29,7 @@ This folder is the project brain. It stores product thinking, implementation pla
 - Preserved: `/` landing page with active A/B testing, consent banner, and CSP Report-Only.
 - Current implemented routes: full workshop ecosystem with projects, estimates, library, templates, charts, settings, shared links, invite entry, and AI copilot.
 - Current state/data foundation: Supabase project `ebxxqidacheyapmmzavr` with 48 migrations applied. TanStack Query, Zustand, React Complex Tree, D3, shadcn/Radix context menu, and Phosphor icons are installed.
-- Stack: Next.js 16.2.6, React 19.2.4, Bun, TypeScript, Tailwind CSS v4.
+- Stack: Next.js 16.2.6, React 19.2.6, Bun, TypeScript, Tailwind CSS v4.
 - Current codebase: 279 source files, 112 test files, 23 page routes, 12 API routes, 7 domain action modules.
 - Current AI bench: Codex, Claude, OpenCode, CommandCode, Antigravity CLI (`agy`), and Kimi. Ollama is not approved for agent chat models.
 - Superseded: the deleted full prototype. Do not resume old plans without explicit reapproval.
