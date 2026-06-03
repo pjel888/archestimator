@@ -1,0 +1,97 @@
+{
+  "proof": "project-images-private-storage",
+  "capturedAt": "2026-06-04T06:53:00+08:00",
+  "scope": "Codex Security finding: Project images are uploaded to a public listable bucket",
+  "status": "repo-linked-and-production-hardened-pending-codex-security-rescan",
+  "supabaseProjectRef": "ebxxqidacheyapmmzavr",
+  "repoEvidence": {
+    "codeCommit": "ea4aa95",
+    "migrations": [
+      "20260603222628_private_project_image_storage.sql",
+      "20260603224800_qualify_project_image_storage_policies.sql"
+    ],
+    "storageBucket": "project-images",
+    "publicShareImagePolicy": "project image route URLs are stripped from public share snapshots; component thumbnails and component-images remain the public image surfaces"
+  },
+  "vercelProduction": {
+    "deploymentId": "dpl_AinsiY5f2yaS3pED1zGnfKzKumwE",
+    "deploymentUrl": "https://archestimator-dug92lyds-philipjonlewis-projects.vercel.app",
+    "ready": true,
+    "aliases": [
+      "https://www.archestimator.com",
+      "https://archestimator.com",
+      "https://archestimator.vercel.app"
+    ],
+    "health": {
+      "wwwApiHealthHttp": 200,
+      "apexApiHealthHttp": 307,
+      "apexRedirectsToWww": true
+    }
+  },
+  "linkedSupabaseReadback": {
+    "buckets": [
+      {
+        "id": "component-images",
+        "public": true,
+        "projectImageSubtreeExcludedByPolicy": true
+      },
+      {
+        "id": "project-images",
+        "public": false
+      }
+    ],
+    "objects": {
+      "componentImagesProjectSubtreeCount": 0,
+      "projectImagesBucketObjectCount": 6,
+      "sampleOldPublicObjectCount": 0,
+      "samplePrivateObjectCount": 1
+    },
+    "projectMetadata": {
+      "componentBucketProjectImageReferences": 0,
+      "privateRouteProjectImageReferences": 3
+    },
+    "policies": {
+      "projectMemberReadPolicyQualified": true,
+      "projectEditorInsertPolicyPresent": true,
+      "projectEditorUpdatePolicyPresent": true,
+      "projectEditorDeletePolicyPresent": true,
+      "componentPublicPolicyExcludesProjectImages": true
+    },
+    "migrationHistory": {
+      "20260603222628": true,
+      "20260603224800": true
+    }
+  },
+  "httpProof": {
+    "oldPublicComponentProjectImageWithCacheBust": {
+      "http": 400,
+      "bodyError": "Object not found",
+      "cacheStatus": "BYPASS"
+    },
+    "directPublicProjectImagesBucketUrl": {
+      "http": 400,
+      "bodyError": "Bucket not found"
+    },
+    "sameOriginProjectImageRouteWithoutSession": {
+      "http": 307,
+      "redirect": "/login"
+    }
+  },
+  "verification": {
+    "tests": [
+      "bunx vitest run tests/vitest/security-findings-contracts.test.ts --maxWorkers=1"
+    ],
+    "linkedApply": [
+      "supabase db query --linked --file supabase/migrations/20260603222628_private_project_image_storage.sql",
+      "supabase migration repair --linked --status applied 20260603222628 --yes",
+      "supabase db query --linked --file supabase/migrations/20260603224800_qualify_project_image_storage_policies.sql",
+      "supabase migration repair --linked --status applied 20260603224800 --yes"
+    ],
+    "supabaseAdvisor": "Security advisor still reports pre-existing broad RLS/function warnings; no new project-image public bucket proof blocker was found in the focused readback."
+  },
+  "remainingGaps": [
+    "Codex Security dashboard rescan/closure or owner acceptance",
+    "Full hosted signed-in image-view smoke with a real beta session",
+    "Separate launch blockers: hosted Google OAuth allow/deny/revoke smoke, rollback drill, Resend sending-domain proof, legal/owner signoff, support/alert monitoring proof"
+  ]
+}

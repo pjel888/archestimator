@@ -161,6 +161,7 @@ describe("Codex security findings hardening contracts", () => {
     const publicationImageUrl = read("src/lib/publication/image-url.ts");
     const nextConfig = read("next.config.ts");
     const privateProjectImageMigration = read("supabase/migrations/20260603222628_private_project_image_storage.sql");
+    const qualifiedProjectImageMigration = read("supabase/migrations/20260603224800_qualify_project_image_storage_policies.sql");
 
     expect(projectImageRoute).toContain('const PROJECT_IMAGE_BUCKET = "project-images"');
     expect(projectImageRoute).toContain("export async function GET(request: Request)");
@@ -174,6 +175,8 @@ describe("Codex security findings hardening contracts", () => {
     expect(privateProjectImageMigration).toContain("public = false");
     expect(privateProjectImageMigration).toContain("project images can be read by project members");
     expect(privateProjectImageMigration).toContain("coalesce((storage.foldername(name))[3], '') <> 'project-images'");
+    expect(qualifiedProjectImageMigration).toContain("storage.foldername(storage.objects.name)");
+    expect(qualifiedProjectImageMigration).not.toContain("storage.foldername(p.name)");
   });
 
   it("prevents sheet-only collaborators from inheriting project-wide estimate access", () => {
