@@ -60,24 +60,50 @@ git diff --check          # Whitespace validation
 
 **File:** `tests/vitest/share/cost-donut-chart-hydration.test.tsx`
 
-```typescript
-// Test: CostDonutChart produces identical SVG output from identical props
-describe("CostDonutChart hydration determinism", () => {
-  it("produces identical SVG output across multiple renders", () => {
-    const buckets = [/* test buckets */];
-    const render1 = renderToString(<CostDonutChart buckets={buckets} total={1000} currencyCode="PHP" label="Test" compact />);
-    const render2 = renderToString(<CostDonutChart buckets={buckets} total={1000} currencyCode="PHP" label="Test" compact />);
-    expect(render1).toBe(render2);
-  });
+### Test 1: Deterministic Output (Pure Function Test)
+Tests that identical props produce identical output — confirms the rounding utility is applied.
 
-  it("produces deterministic SVG path d attributes", () => {
-    const buckets = [/* test buckets */];
-    const { container } = render(<CostDonutChart buckets={buckets} total={1000} currencyCode="PHP" label="Test" compact />);
-    const paths = container.querySelectorAll("path[d]");
-    paths.forEach(path => {
-      const d = path.getAttribute("d")!;
-      // Verify all numbers in d attribute are rounded to ≤4 decimal places
-      const numbers = d.match(/[\d.]+/g) || [];
+```typescript
+it("produces identical SVG output across multiple renders", () => {
+  const buckets = [/* test buckets */];
+  const render1 = renderToString(<CostDonutChart buckets={buckets} total={1000} currencyCode="PHP" label="Test" compact />);
+  const render2 = renderToString(<CostDonutChart buckets={buckets} total={1000} currencyCode="PHP" label="Test" compact />);
+  expect(render1).toBe(render2);
+});
+```
+
+### Test 2: Precision Bounds (Path Inspection)
+Tests that all SVG numeric values are rounded to ≤4 decimal places.
+
+```typescript
+it("produces SVG path d attributes with ≤4 decimal places", () => {
+  const { container } = render(<CostDonutChart buckets={buckets} total={1000} currencyCode="PHP" label="Test" compact />);
+  const paths = container.querySelectorAll("path[d]");
+  paths.forEach(path => {
+    const d = path.getAttribute("d")!;
+    const numbers = d.match(/-?\d+\.?\d*(?:e[+-]?\d+)?/gi) || [];
+    numbers.forEach(n => {
+      const decimals = n.split(".")[1];
+      expect(decimals?.length || 0).toBeLessThanOrEqual(4);
+    });
+  });
+});
+```
+
+### Test 3: All Numeric Attributes Covered (Comprehensive)
+Tests that ALL numeric SVG attributes (not just path `d`) are rounded.
+
+```typescript
+it("produces deterministic numeric SVG attributes", () => {
+  const NUMERIC_ATTRS = ["cx", "cy", "r", "x", "y", "width", "height", "transform", "d"];
+  const { container } = render(<CostDonutChart buckets={buckets} total={1000} currencyCode="PHP" label="Test" compact />);
+  
+  // For each numeric attribute, verify all values have ≤4 decimal places
+  NUMERIC_ATTRS.forEach(attr => {
+    container.querySelectorAll(`[${attr}]`).forEach(el => {
+      const val = el.getAttribute(attr)!;
+      if (attr === "path" || attr === "d") return; // handled by Test 2
+      const numbers = val.match(/-?\d+\.?\d*(?:e[+-]?\d+)?/gi) || [];
       numbers.forEach(n => {
         const decimals = n.split(".")[1];
         expect(decimals?.length || 0).toBeLessThanOrEqual(4);
@@ -86,6 +112,46 @@ describe("CostDonutChart hydration determinism", () => {
   });
 });
 ```
+
+### Manual Hydration Verification Protocol (CRITICAL)
+
+Automated tests verify determinism and precision, but **real hydration mismatch detection requires browser testing** because the mismatch occurs between Node.js SSR and the browser's JavaScript engine at hydration time.
+
+**Protocol:**
+
+1. **Development mode verification:**
+   ```bash
+   bun run dev
+   ```
+   - Navigate to target share URL
+   - Open browser console (Cmd+Opt+J in Chrome)
+   - Check for ANY of these warning patterns:
+     - `"A tree hydrated but some attributes..."`
+     - `"Text content did not match"`
+     - `"Hydration failed because..."`
+     - `"Expected server HTML to contain..."`
+   - Refresh page 5 times — hydration warnings must be ZERO on every load
+   - **Capture console screenshot showing zero hydration warnings**
+
+2. **Production mode verification:**
+   ```bash
+   bun run build && bun run start
+   ```
+   - Repeat the same console check in production mode
+   - Production build may suppress some warnings — verify with `NODE_ENV=production`
+   - **Capture console screenshot showing zero hydration warnings**
+
+3. **Multi-tab verification:**
+   - Open the same share URL in 3 tabs simultaneously
+   - Verify zero hydration warnings in all 3 tabs
+
+4. **Different data verification:**
+   - Test with 1 bucket, 2 buckets, and 5+ buckets
+   - Test with zero-cost buckets (edge case)
+   - Test with single-slice full ring (edge case)
+   - Each variation must produce zero hydration warnings
+
+**Pass condition:** Zero hydration warnings of any kind across all 4 verification steps. Any warning = FAIL.
 
 ---
 

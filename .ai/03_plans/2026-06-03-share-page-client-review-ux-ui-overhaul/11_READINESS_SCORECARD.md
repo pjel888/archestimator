@@ -24,12 +24,12 @@
 |---|----------|--------|-------|----------|
 | 00 | INDEX | 100% | **98%** | Navigation complete. Score contradictions resolved. Second-pass notes added. Status updated to NEEDS_HUMAN_DECISION. Minor: depends on Philip's API decision. |
 | 01 | Requirements | 100% | **95%** | All MUST/SHOULD/COULD prioritized. 20 pass/fail ACs. Non-goals explicit. Minor: API non-goal ("no new API routes") needs human resolution per 24_API_CONTRACT_PLAN.md. |
-| 02 | Codebase Research | 100% | **98%** | All files inspected. Second-pass findings section added with confirmed defects, technical defects, and verification-needed items. Bug plan references added. |
+| 02 | Codebase Research | 100% | **98%** | All files inspected. Second-pass findings section added with confirmed defects, technical defects, and verification-needed items. Minor: design-system audit not systematic across all share components — implementation agent must audit non-reviewed files (listed in research doc). |
 | 03 | Architecture | 98% | **95%** | Clear approach. 6 architectural decisions. Minor: API strategy decision (D7) depends on Philip approval — see 24_API_CONTRACT_PLAN.md. GET route contracts provided in API plan. |
 | 04 | Implementation Sequence | 100% | **98%** | 20 atomic steps across 7 phases. Bug plan references added to each relevant step. Minor: API strategy decision gates Phase 5. |
 | 05 | Blast Radius | 98% | **98%** | All affected flows, modules, tests listed. GET route risks added. Edge cases covered. |
-| 06 | Testing | 98% | **95%** | New test specs written. Hydration verification protocol detailed. Minor: E2E tests gated behind env flag. Some tests require mock infrastructure for GET routes. |
-| 07 | UI/UX | 100% | **98%** | Complete visual hierarchy. All states documented. Copy replacements table. Minor: final copy language needs Philip approval (per 12_OPEN_QUESTIONS P1-P3). |
+| 06 | Testing | 98% | **95%** | New test specs written. Hydration verification protocol now includes real console-warning capture (dev + prod), multi-tab, and varied bucket counts. Minor: E2E tests gated behind env flag. Some tests require mock infrastructure for GET routes. |
+| 07 | UI/UX | 100% | **95%** | Complete visual hierarchy. All states documented including session edge cases. Copy replacements table. Minor: final copy language needs Philip approval (per 12_OPEN_QUESTIONS). Mobile layout specified with concrete dimensions and interaction patterns. |
 | 08 | Security | 100% | **98%** | All security boundaries confirmed preserved. GET route security analyzed in 24_API_CONTRACT_PLAN.md. Minor: new GET routes add minimal new surface. |
 | 09 | Deployment | 98% | **98%** | No migration needed. Pre/post deploy checklists. GET route rollback implications added. |
 | 10 | Prompt Draft | 100% | **95%** | Expanded with repo safety checks, Next.js 16 docs, GitNexus requirement, TDD expectations, bug plan references. Minor: some instructions reference decisions not yet made by Philip. |

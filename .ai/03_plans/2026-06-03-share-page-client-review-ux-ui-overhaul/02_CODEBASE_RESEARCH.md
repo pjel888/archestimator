@@ -273,3 +273,12 @@ git log --oneline -5          # e69fe0a docs(ai): fix score consistency in INDEX
 2. Whether `public-repository.ts` has existing functions supporting public comment/decision reads — implementation agent must verify
 3. Exact repository function signatures and return types for GET route implementation
 4. Whether workshop charts are affected by CostDonutChart deterministic rounding changes
+5. **Design-system violations in non-audited share components**: The second-pass audit focused on `page.tsx`, `CostDonutChart.tsx`, `SharePageComments.tsx`, and `SharePageDecision.tsx`. The following files were NOT systematically audited for design-system violations and the implementation agent should audit them at implementation time:
+   - `src/components/share/SharePageTabs.tsx`
+   - `src/components/share/SharePageHero.tsx`
+   - `src/components/share/SharePageSessionBanner.tsx`
+   - `src/components/share/SharePageRecipientSessionInitializer.tsx`
+   - `src/components/share/ShareEstimateTreeView.tsx`
+   - `src/components/share/ShareEstimateTreePanel.tsx`
+   - `src/components/share/ProjectPublicationPasswordForm.tsx`
+   - Common violations to check for: `fontWeight={600}`, `tracking-normal`, hardcoded colors (not from design tokens), `rounded` not `rounded-xs`, non-Phosphor icons, font sizes >12px
