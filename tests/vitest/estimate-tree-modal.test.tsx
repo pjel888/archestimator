@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -64,6 +64,14 @@ describe("estimate sheet tree add-node toolbar flow", () => {
     return call[2] as FormData;
   }
 
+  function getOptimisticTreeRow(kind: "group" | "area") {
+    const row = document.querySelector(`[data-estimate-tree-node-id^="optimistic-${kind}-"]`);
+    if (!(row instanceof HTMLElement)) {
+      throw new Error(`Optimistic ${kind} row was not rendered.`);
+    }
+    return row;
+  }
+
   it("cleans up the offset tree width variable when the estimate tree unmounts", () => {
     window.localStorage.setItem("estimate_sheet_tree_width", "272");
     document.documentElement.style.setProperty("--estimate-tree-panel-width", "300px");
@@ -102,7 +110,7 @@ describe("estimate sheet tree add-node toolbar flow", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Add Group" }));
 
-    expect(screen.getByRole("button", { name: "New Group" })).toBeInTheDocument();
+    expect(getOptimisticTreeRow("group")).toHaveTextContent("New Group");
     expect(screen.getByRole("status")).toHaveTextContent("Adding Group");
     expect(screen.getByRole("status").closest("[data-toast-viewport='true']")).not.toBeNull();
     const optimisticTree = queryClient.getQueryData(estimateQueryKeys.areaTree("estimate-1"));
@@ -115,9 +123,9 @@ describe("estimate sheet tree add-node toolbar flow", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Add Node" }));
 
-    expect(screen.getByRole("button", { name: "New Area Node" })).toBeInTheDocument();
+    expect(getOptimisticTreeRow("area")).toHaveTextContent("New Area Node");
     expect(await screen.findByText("Create failed")).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: "New Area Node" })).not.toBeInTheDocument();
+    await waitFor(() => expect(document.querySelector(`[data-estimate-tree-node-id^="optimistic-area-"]`)).toBeNull());
   });
 
   it("adds Group Nodes and Area Nodes inside the selected Group Node", () => {

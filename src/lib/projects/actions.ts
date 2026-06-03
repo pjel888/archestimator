@@ -143,6 +143,37 @@ export async function deleteProject(formData: FormData) {
   redirect("/workshop/projects");
 }
 
+export async function deleteProjectsBulk(projectIds: string[]): Promise<{ deletedProjectIds: string[] }> {
+  const requestedProjectIds = [...new Set(projectIds.map((projectId) => projectId.trim()).filter(Boolean))];
+  if (requestedProjectIds.length === 0) throw new Error("At least one project is required for bulk delete.");
+
+  const { workspace } = await ensureDefaultWorkspace();
+  const supabase = await createSupabaseServerClient();
+  const { data: scopedProjects, error: loadError } = await supabase
+    .from("projects")
+    .select("id, metadata")
+    .eq("workspace_id", workspace.id)
+    .in("id", requestedProjectIds);
+
+  if (loadError) throw loadError;
+  const scopedProjectIds = new Set((scopedProjects ?? []).map((project) => project.id));
+  const missingProjectId = requestedProjectIds.find((projectId) => !scopedProjectIds.has(projectId));
+  if (missingProjectId) throw new Error(`Project not found in the current workspace: ${missingProjectId}.`);
+
+  const { error: deleteError } = await supabase
+    .from("projects")
+    .delete()
+    .eq("workspace_id", workspace.id)
+    .in("id", requestedProjectIds);
+  if (deleteError) throw deleteError;
+
+  const storagePaths = (scopedProjects ?? []).flatMap((project) => getProjectImageStoragePaths(asProjectMetadata(project.metadata)));
+  await removeStoredProjectImagePaths(supabase, storagePaths);
+
+  revalidatePath("/workshop/projects");
+  return { deletedProjectIds: requestedProjectIds };
+}
+
 export async function updateProjectImageMetadata(projectId: string, image: ProjectImageMetadataInput) {
   const { workspace } = await ensureDefaultWorkspace();
   const supabase = await createSupabaseServerClient();

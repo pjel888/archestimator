@@ -22,7 +22,14 @@ import { ControlInput } from "@/components/ui/control-input";
 import { Modal } from "@/components/ui/modal";
 import { useToast } from "@/components/ui/toast";
 import { getEstimateNodeDisplayKind, getEstimateNodeKindSortRank, isEstimateGroupNodeKind } from "@/lib/estimates/tree-hierarchy";
-import { createEstimateNode, deleteEstimateNode, renameEstimateNode, reorderEstimateTreeNodes } from "@/lib/estimates/actions";
+import { createEstimateNode, deleteEstimateNode, deleteEstimateNodesBulk, renameEstimateNode, reorderEstimateTreeNodes } from "@/lib/estimates/actions";
+import {
+  dedupeSelectedRoots,
+  getSelectionState,
+  pruneSelection,
+  toggleCascadeSelection,
+  type TreeSelectionNode,
+} from "@/lib/bulk-selection/tree-selection";
 import { useEstimateAreaTreeQuery } from "@/hooks/use-estimate-query";
 import { useEstimateWorkspaceExpansion, useEstimateWorkspaceSelection } from "@/hooks/use-estimate-workspace-state";
 import { cn } from "@/lib/ui/cn";
@@ -33,6 +40,7 @@ import {
   WORKSHOP_TREE_ROW_MIN_HEIGHT_CLASS,
 } from "./tree-visual-style";
 import { WorkshopTreeRow, WorkshopTreeTabs } from "./workshop-tree";
+import { TreeBulkActionBar, TreeDragHandle, TreeSelectionCheckbox } from "./tree-row-affordances";
 import {
   ESTIMATE_TREE_ROOT_ITEM_ID,
   evaluateEstimateTreeDrop,
@@ -182,6 +190,14 @@ function buildTreeModel(nodes: EstimateTreeNode[]): EstimateTreeModel {
   return { items, folderIds };
 }
 
+function buildEstimateTreeSelectionNodes(nodes: EstimateTreeNode[]): TreeSelectionNode[] {
+  return nodes.map((node) => ({
+    id: node.id,
+    selectable: true,
+    children: node.children?.length ? buildEstimateTreeSelectionNodes(node.children) : undefined,
+  }));
+}
+
 function resolveConfirmedDeleteFallbackNodeId(tree: EstimateTreeNode[], fallbackNodeId: string | null) {
   if (fallbackNodeId && findEstimateNode(tree, fallbackNodeId)) return fallbackNodeId;
   return tree[0]?.id ?? null;
@@ -233,15 +249,39 @@ export function EstimateSheetTree({ projectId, estimateId, projectName, selected
   const [editingNodeError, setEditingNodeError] = useState<string | null>(null);
   const [deleteTargetNode, setDeleteTargetNode] = useState<EstimateTreeNode | null>(null);
   const [deletePending, setDeletePending] = useState(false);
+  const [bulkDeleteConfirmOpen, setBulkDeleteConfirmOpen] = useState(false);
+  const [bulkDeletePending, setBulkDeletePending] = useState(false);
+  const [bulkSelectedNodeIds, setBulkSelectedNodeIds] = useState<Set<string>>(() => new Set());
   const { selectedNodeId: activeSelectedNodeId, setSelectedNodeId } = useEstimateWorkspaceSelection(estimateId, selectedNodeId);
   const currentRouteNodeId = useMemo(
     () => getEstimateRouteNodeIdFromPathname(pathname, estimateId) ?? selectedNodeId,
     [estimateId, pathname, selectedNodeId],
   );
   const treeModel = useMemo(() => buildTreeModel(localNodes), [localNodes]);
+  const treeSelectionNodes = useMemo(() => buildEstimateTreeSelectionNodes(localNodes), [localNodes]);
+  const bulkSelectionCount = bulkSelectedNodeIds.size;
+  const bulkDeleteRootNodeIds = useMemo(
+    () => dedupeSelectedRoots(treeSelectionNodes, bulkSelectedNodeIds),
+    [bulkSelectedNodeIds, treeSelectionNodes],
+  );
   const allFolderItemIds = useMemo(() => Array.from(treeModel.folderIds).filter((itemId) => treeModel.items[itemId]), [treeModel.folderIds, treeModel.items]);
   const { expandedNodeIds, setExpandedNodeIds } = useEstimateWorkspaceExpansion(estimateId, allFolderItemIds);
   const [focusedOverride, setFocusedOverride] = useState<{ routeNodeId: string | null; item: TreeItemIndex } | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    queueMicrotask(() => {
+      if (cancelled) return;
+      setBulkSelectedNodeIds((current) => {
+        const next = pruneSelection(treeSelectionNodes, current);
+        if (next.size === current.size && [...next].every((id) => current.has(id))) return current;
+        return next;
+      });
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [treeSelectionNodes]);
 
   useEffect(() => {
     if (reorderStatus.state === "saving") {
@@ -374,6 +414,12 @@ export function EstimateSheetTree({ projectId, estimateId, projectName, selected
   const handleCollapseAll = useCallback(() => {
     setExpandedNodeIds([]);
   }, [setExpandedNodeIds]);
+  const clearBulkSelection = useCallback(() => {
+    setBulkSelectedNodeIds(new Set());
+  }, []);
+  const handleToggleBulkSelectedNode = useCallback((nodeId: string, checked: boolean) => {
+    setBulkSelectedNodeIds((current) => toggleCascadeSelection(treeSelectionNodes, current, nodeId, checked));
+  }, [treeSelectionNodes]);
 
   const viewState = useMemo<TreeViewState>(() => ({
     [ESTIMATE_TREE_ID]: {
@@ -383,7 +429,7 @@ export function EstimateSheetTree({ projectId, estimateId, projectName, selected
     },
   }), [expandedItems, focusedItem, routeSelectedItems]);
 
-  const isTreeMutationSaving = reorderStatus.state === "saving" || deletePending;
+  const isTreeMutationSaving = reorderStatus.state === "saving" || deletePending || bulkDeletePending;
   const canReorderNow = !isTreeMutationSaving;
   const handleCanDrag = useCallback((items: TreeItem<EstimateTreeItemData>[]) => (
     canReorderNow && !editingNodeId && items.length === 1 && Boolean(items[0]?.data.node)
@@ -817,6 +863,109 @@ export function EstimateSheetTree({ projectId, estimateId, projectName, selected
     if (!open && !deletePending) setDeleteTargetNode(null);
   }, [deletePending]);
 
+  const handleConfirmBulkDeleteNodes = useCallback(() => {
+    if (bulkDeletePending || isTreeMutationSaving || bulkDeleteRootNodeIds.length === 0) return;
+
+    const previousSelectedNodeId = activeSelectedNodeId;
+    const previousFocusedOverride = focusedOverride;
+    const previousBulkSelection = new Set(bulkSelectedNodeIds);
+    const routeNodeIdBeforeDelete = currentRouteNodeId;
+    let routeWasDeleted = false;
+
+    setBulkDeletePending(true);
+    setBulkDeleteConfirmOpen(false);
+    setReorderStatus({ state: "saving", message: "Deleting selected nodes" });
+
+    void (async () => {
+      let previousNodes = localNodes;
+      let optimisticRevision: number | null = null;
+      let optimisticRouteNodeId = routeNodeIdBeforeDelete;
+      try {
+        previousNodes = await prepareAreaTreeOptimisticUpdate();
+        let optimisticNodes = previousNodes;
+        let fallbackNodeId: string | null = routeNodeIdBeforeDelete;
+        const optimisticDeletedNodeIds = new Set<string>();
+
+        for (const rootNodeId of bulkDeleteRootNodeIds) {
+          const deletePlan = planEstimateTreeDelete(optimisticNodes, rootNodeId, fallbackNodeId);
+          deletePlan.deletedNodeIds.forEach((deletedNodeId) => optimisticDeletedNodeIds.add(deletedNodeId));
+          optimisticNodes = deletePlan.nextNodes;
+          fallbackNodeId = deletePlan.fallbackNodeId;
+        }
+
+        routeWasDeleted = routeNodeIdBeforeDelete ? optimisticDeletedNodeIds.has(routeNodeIdBeforeDelete) : false;
+        optimisticRouteNodeId = routeWasDeleted ? fallbackNodeId : routeNodeIdBeforeDelete;
+        const activeSelectionWasDeleted = activeSelectedNodeId ? optimisticDeletedNodeIds.has(activeSelectedNodeId) : false;
+
+        setLocalNodes(optimisticNodes);
+        setBulkSelectedNodeIds(new Set());
+        optimisticRevision = getLocalTreeRevision();
+        if (activeSelectionWasDeleted) {
+          setSelectedNodeId(fallbackNodeId);
+          setFocusedOverride(fallbackNodeId ? { routeNodeId: fallbackNodeId, item: fallbackNodeId } : null);
+        }
+        if (routeWasDeleted) replaceEstimateRoute(fallbackNodeId);
+
+        const confirmed = await deleteEstimateNodesBulk(projectId, estimateId, bulkDeleteRootNodeIds);
+        const confirmedDeletedNodeIds = new Set(confirmed.deletedNodeIds);
+        const confirmedFallbackNodeId = resolveConfirmedDeleteFallbackNodeId(confirmed.tree, confirmed.fallbackNodeId);
+        const confirmedActiveNodeStillExists = activeSelectedNodeId ? Boolean(findEstimateNode(confirmed.tree, activeSelectedNodeId)) : true;
+        const confirmedRouteNodeStillExists = routeNodeIdBeforeDelete ? Boolean(findEstimateNode(confirmed.tree, routeNodeIdBeforeDelete)) : true;
+        const activeSelectionWasDeletedOnServer = activeSelectedNodeId
+          ? confirmedDeletedNodeIds.has(activeSelectedNodeId) || !confirmedActiveNodeStillExists
+          : false;
+        const routeWasDeletedOnServer = routeNodeIdBeforeDelete
+          ? confirmedDeletedNodeIds.has(routeNodeIdBeforeDelete) || !confirmedRouteNodeStillExists
+          : false;
+        const serverRouteNodeId = routeWasDeletedOnServer ? confirmedFallbackNodeId : routeNodeIdBeforeDelete;
+
+        setLocalNodes(confirmed.tree);
+        if (activeSelectionWasDeletedOnServer) {
+          setSelectedNodeId(confirmedFallbackNodeId);
+          setFocusedOverride(confirmedFallbackNodeId ? { routeNodeId: confirmedFallbackNodeId, item: confirmedFallbackNodeId } : null);
+        }
+        if ((routeWasDeleted || routeWasDeletedOnServer) && optimisticRouteNodeId !== serverRouteNodeId) {
+          replaceEstimateRoute(serverRouteNodeId);
+        }
+        setReorderStatus({ state: "saved", message: "Selected nodes deleted" });
+      } catch (error) {
+        unstable_rethrow(error);
+        let didRestoreTree = true;
+        if (optimisticRevision === null) {
+          setLocalNodes(previousNodes);
+        } else {
+          didRestoreTree = restoreLocalNodes(previousNodes, optimisticRevision);
+        }
+        if (didRestoreTree) {
+          setSelectedNodeId(previousSelectedNodeId);
+          setFocusedOverride(previousFocusedOverride);
+          setBulkSelectedNodeIds(previousBulkSelection);
+          if (routeWasDeleted && routeNodeIdBeforeDelete) replaceEstimateRoute(routeNodeIdBeforeDelete);
+        }
+        setReorderStatus({ state: "error", message: error instanceof Error ? error.message : "Could not delete selected nodes." });
+      } finally {
+        setBulkDeletePending(false);
+      }
+    })();
+  }, [
+    activeSelectedNodeId,
+    bulkDeletePending,
+    bulkDeleteRootNodeIds,
+    bulkSelectedNodeIds,
+    currentRouteNodeId,
+    estimateId,
+    focusedOverride,
+    getLocalTreeRevision,
+    isTreeMutationSaving,
+    localNodes,
+    prepareAreaTreeOptimisticUpdate,
+    projectId,
+    replaceEstimateRoute,
+    restoreLocalNodes,
+    setLocalNodes,
+    setSelectedNodeId,
+  ]);
+
   const deleteTargetDisplayKind = deleteTargetNode ? getEstimateNodeDisplayKind(deleteTargetNode.kind) : null;
   const deleteConfirmationDescription = deleteTargetNode
     ? deleteTargetDisplayKind === "group"
@@ -864,6 +1013,19 @@ export function EstimateSheetTree({ projectId, estimateId, projectName, selected
           />
           <WorkshopTreeTabs tabs={ESTIMATE_TREE_TABS} activeTab="sheets" ariaLabel="Estimate tree views" />
         </div>
+
+        <TreeBulkActionBar
+          selectedCount={bulkSelectionCount}
+          entityLabel="node"
+          onClearSelection={clearBulkSelection}
+          onDelete={() => setBulkDeleteConfirmOpen(true)}
+          deleteDisabled={isTreeMutationSaving || bulkDeleteRootNodeIds.length === 0}
+          disabledReason={
+            isTreeMutationSaving
+              ? "Finish the current tree save before deleting selected nodes."
+              : "Select at least one node."
+          }
+        />
 
         <div className="min-h-0 flex-1 overflow-auto p-2">
           {localNodes.length === 0 ? (
@@ -1069,6 +1231,7 @@ export function EstimateSheetTree({ projectId, estimateId, projectName, selected
                 } = context.interactiveElementProps as ButtonHTMLAttributes<HTMLButtonElement>;
                 const isRouteSelected = activeSelectedNodeId === node.id;
                 const isEditing = editingNodeId === node.id;
+                const bulkSelectionState = getSelectionState(treeSelectionNodes, bulkSelectedNodeIds, node.id);
                 const nodeActionGroups: ActionMenuGroup[] = [
                   {
                     id: "node-actions",
@@ -1118,6 +1281,7 @@ export function EstimateSheetTree({ projectId, estimateId, projectName, selected
                 };
                 const nodeInteractiveClassName = cn(
                   "relative justify-start gap-0 focus-visible:ring-[#c8d2df] focus-visible:ring-offset-2",
+                  bulkSelectionState.checked && !isRouteSelected && "border-accent bg-accent-soft",
                   buttonClassName,
                 );
                 const nodeContextMenuContentProps = {
@@ -1192,10 +1356,22 @@ export function EstimateSheetTree({ projectId, estimateId, projectName, selected
                     type="button"
                     aria-current={isRouteSelected ? "page" : undefined}
                     data-estimate-tree-active-node={isRouteSelected ? "true" : undefined}
+                    data-estimate-tree-bulk-selected={bulkSelectionState.checked ? "true" : undefined}
                     data-estimate-tree-node-id={node.id}
                     draggable={interactiveProps.draggable}
                     depth={depth}
                     selected={isRouteSelected}
+                    selectionMode={bulkSelectionCount > 0}
+                    dragHandleSlot={<TreeDragHandle forceVisible={bulkSelectionCount > 0} />}
+                    leadingSlot={
+                      <TreeSelectionCheckbox
+                        checked={bulkSelectionState.checked}
+                        indeterminate={bulkSelectionState.indeterminate}
+                        disabled={isTreeMutationSaving}
+                        onChange={(event) => handleToggleBulkSelectedNode(node.id, event.currentTarget.checked)}
+                        aria-label={`Select ${node.name}`}
+                      />
+                    }
                     intent={isNestIntentTarget}
                     contextMenuGroups={nodeActionGroups}
                     contextMenuContentProps={nodeContextMenuContentProps}
@@ -1321,6 +1497,42 @@ export function EstimateSheetTree({ projectId, estimateId, projectName, selected
         </div>
         </div>
       </ResizableSidePanel>
+      <Modal
+        open={bulkDeleteConfirmOpen}
+        title={`Delete ${bulkSelectionCount} selected ${bulkSelectionCount === 1 ? "node" : "nodes"}`}
+        description="This removes selected nodes, descendant groups, child areas, and descendant estimate rows."
+        onOpenChange={(open) => {
+          if (!open && !bulkDeletePending) setBulkDeleteConfirmOpen(false);
+        }}
+        closeLabel="Cancel bulk delete"
+        className="max-w-sm"
+      >
+        <div className="space-y-3">
+          <p className="text-[10px] leading-4 text-tertiary">
+            {bulkSelectionCount} {bulkSelectionCount === 1 ? "node is" : "nodes are"} selected. Overlapping child selections are deduplicated before deletion.
+          </p>
+          <div className="flex justify-end gap-2">
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              disabled={bulkDeletePending}
+              onClick={() => setBulkDeleteConfirmOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              variant="danger"
+              size="sm"
+              disabled={bulkDeletePending || bulkDeleteRootNodeIds.length === 0}
+              onClick={handleConfirmBulkDeleteNodes}
+            >
+              Delete
+            </Button>
+          </div>
+        </div>
+      </Modal>
       <Modal
         open={Boolean(deleteTargetNode)}
         title={deleteTargetNode ? `Delete ${deleteTargetNode.name}` : "Delete node"}

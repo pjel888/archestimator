@@ -17,6 +17,12 @@ vi.mock("@/lib/workshop/actions", () => ({
   setProjectFavorite: vi.fn(async () => undefined),
 }));
 
+const projectActionMocks = vi.hoisted(() => ({
+  deleteProjectsBulk: vi.fn(),
+}));
+
+vi.mock("@/lib/projects/actions", () => projectActionMocks);
+
 vi.mock("@/lib/collaboration/pending-invite-actions", () => ({
   acceptPendingInvitationById: vi.fn(async () => undefined),
 }));
@@ -106,6 +112,7 @@ describe("ProjectsPageClient shared access", () => {
   beforeEach(() => {
     window.localStorage.clear();
     routerMock.refresh.mockClear();
+    projectActionMocks.deleteProjectsBulk.mockReset();
   });
 
   it("renders owned, shared project, and sheet-only cards with text badges", () => {
@@ -255,5 +262,51 @@ describe("ProjectsPageClient shared access", () => {
       expect(sharedCard).toHaveAttribute("data-project-access-kind", "project-member");
       expect(within(sharedCard).getByText("Shared project")).toBeInTheDocument();
     }
+  });
+
+  it("bulk deletes selected owned projects while shared and pending cards stay disabled", async () => {
+    projectActionMocks.deleteProjectsBulk.mockResolvedValue({ deletedProjectIds: [OWNED_PROJECT.id] });
+    const user = userEvent.setup();
+    render(
+      <ProjectsPageClient
+        projects={[
+          ...PROJECTS,
+          {
+            project: PENDING_INVITE_PROJECT,
+            accessKind: "pending-invite",
+            currentUserRole: "viewer",
+            ownerWorkspaceName: "Studio Partner",
+            pendingInvite: {
+              id: "invitation-1",
+              projectId: PENDING_INVITE_PROJECT.id,
+              estimateId: null,
+              projectName: PENDING_INVITE_PROJECT.name,
+              projectCode: PENDING_INVITE_PROJECT.project_code,
+              estimateName: null,
+              role: "viewer",
+              scope: "project",
+              inviterLabel: "Studio Partner",
+              state: "pending",
+              expiresAt: "2026-06-10T00:00:00.000Z",
+              lastOpenedAt: "2026-06-01T00:00:00.000Z",
+            },
+          },
+        ]}
+      />,
+    );
+
+    expect(screen.getByRole("checkbox", { name: "Select Shared Clinic Fit-Out" })).toBeDisabled();
+    expect(screen.getByRole("checkbox", { name: "Select Pending Museum Wing" })).toBeDisabled();
+
+    await user.click(screen.getByRole("checkbox", { name: "Select Lewis Residence" }));
+    expect(screen.getByRole("toolbar", { name: "Bulk actions" })).toHaveTextContent("1 project selected");
+
+    await user.click(screen.getByRole("button", { name: "Delete selected" }));
+    const dialog = screen.getByRole("dialog", { name: "Delete 1 selected project" });
+    await user.type(screen.getByLabelText("Project delete confirmation"), "DELETE PROJECTS");
+    await user.click(within(dialog).getByRole("button", { name: "Delete" }));
+
+    await waitFor(() => expect(projectActionMocks.deleteProjectsBulk).toHaveBeenCalledWith([OWNED_PROJECT.id]));
+    await waitFor(() => expect(routerMock.refresh).toHaveBeenCalledTimes(1));
   });
 });
