@@ -1,50 +1,47 @@
-# Implementation Prompt Draft
+# Implementation Prompt Drafts
 
-Copy/paste this only for a future implementation task. It is not authorization to implement now.
+## Full future implementation prompt
 
 ```txt
-You are a repo-aware ArchEstimator implementation agent. Implement Phase 1 of the plan at:
-/Users/philiplewis/archestimator/.ai/03_plans/2026-06-03-agentic-development-framework-rollout
+You are a repo-aware ArchEstimator implementation agent.
 
-This is a DOCS/PAYLOAD/HARNESS implementation pass only unless Philip explicitly expands scope.
+Use plan folder: /Users/philiplewis/archestimator/.ai/03_plans/2026-06-03-agentic-development-framework-rollout
 
-Required first steps:
-1. Run repo safety checks: pwd, git rev-parse --show-toplevel, git status --short --branch, git branch --show-current, git worktree list, git remote -v, git fetch --prune origin, git log --oneline -5.
-2. Read AGENTS.md, .ai/AGENTS.md, .ai/README.md, .ai/00_system/DOCS_SOURCE_OF_TRUTH.md, .ai/00_system/AGENT_OPERATING_PROTOCOL.md, .ai/00_system/AGENT_SELF_DIAGNOSTIC_PROTOCOL.md, .ai/00_system/VALIDATION_MATRIX.md, .ai/10_state/current-state.md, .ai/10_state/decisions.md, DESIGN.md, package.json, and every file in the plan folder.
-3. Verify this plan against current repo reality. If stale, correct the plan or create .ai/15_Bugs plans before editing framework files.
-4. Use code-review-graph/GitNexus first where available. If GitNexus is unavailable, document the exact failure and use code-review-graph/fallback inspection.
+Scope: implement Phase 1A repo-local framework docs/payload/prompts/skills/thin harness adapters, then after Phase 1A commit/push perform Phase 1B ArchEstimator Notion mirror sync if authorized/tooling is available.
 
-Implement only:
-- .ai/00_system framework rules needed for agent preflight/runtime/evidence/adoption.
-- .ai/12_agents payload template and standardized thin payloads, including explicit decisions for Hermes, Cursor, Gemini deprecated, and Ollama non-agent.
-- .ai/08_prompts templates and .ai/11_skills playbooks needed for Phase 1.
-- Thin harness pointers such as AGENTS.md, .agents/README.md, CLAUDE.md, GEMINI.md only if they do not fork policy.
-- .ai state/task/log/bug updates.
+Before editing, verify live repo reality: run safety commands, inspect git status, read AGENTS.md, .ai/AGENTS.md, .ai/README.md, .ai/00_system/*, .ai/10_state/*, DESIGN.md, package.json, README.md, .github/workflows/ci.yml, .ai/12_agents, .ai/08_prompts, .ai/11_skills, discovered harness surfaces, and every file in the plan folder.
 
-Do not implement:
-- production source behavior, packages, dependencies, migrations, runtime/generated files, provider changes, GitHub settings, Notion changes, or branch protection/rulesets.
+Use code-review-graph first. Try GitNexus; if it fails, record the exact failure and use code-review-graph/fallback inspection until repaired.
 
-Validation:
-- Docs-only: verify referenced paths exist, git diff --check, inspect git diff -- .ai, code-review-graph detect_changes if available.
-- If any source/config file is changed by explicit authorization, run bun run validate and bun run build; run bun run test:e2e for browser/auth/user-flow/release changes; run bun run lint:design-system for app/workshop UI.
+Phase 1A allowed writes: .ai/00_system, .ai/12_agents, .ai/08_prompts, .ai/11_skills, .ai/04_tasks, .ai/05_logs, .ai/10_state, .ai/15_Bugs, and thin harness adapters only where authorized. Strictly no production source behavior unless Philip separately authorizes source work.
 
-Bug protocol:
-- Create dated bug plans in .ai/15_Bugs for missing prerequisites, contradictions, stale assumptions, failing tests, or harness docs that cannot be verified.
+Strict non-goals: no package/dependency/lockfile changes, no migrations, no generated/runtime config, no provider mutations, no GitHub settings/branch protection mutation, no Notion mutation during Phase 1A, no secrets, no SlateCamp resources.
 
-Commit/push:
-- Commit with a Lore-style message. Default subject: docs(ai): implement agentic framework phase 1.
-- Push to origin.
-- Do not merge to main automatically unless Philip explicitly authorizes it. If already on main and repo policy allows docs-only main commits, commit/push docs-only changes safely.
+Add/update tests only if implementation introduces scripts/checkers/helpers or source behavior; use TDD for any future production behavior changes.
 
-Archive:
-- Do not archive this plan until the full planned framework implementation is complete, or until Philip explicitly scopes archive to a completed phase.
+Update .ai docs/state/logs/bugs. Create bug plans in .ai/15_Bugs for discovered blockers. Do not archive this plan after Phase 1A only.
 
-Final report:
-- Include files changed, payloads added/updated, validation evidence, bug plans, branch, commit hash, push status, remaining owner decisions, and what was not implemented.
+Commit and push Phase 1A. Default merge policy uses feature branches/PRs; do not automatically merge to main unless Philip explicitly authorizes it. If already on main and docs-only repo practice permits direct commits, confirm diff is scoped before committing.
+
+Phase 1B Notion policy: after Phase 1A commit/push, update Notion as a mirror if tools/authorization exist. Include commit hash, source .ai path, mirror date, proof boundary, anti-drift notice, and no secrets. Verify stale Notion engineering stack facts from current package.json and update them. If Notion mutation is unavailable, unauthorized, or fails, create a dated .ai/15_Bugs blocker and report PHASE_1A_COMPLETE_PHASE_1B_BLOCKED. Do not claim Phase 1 complete without Notion sync proof or explicit Philip waiver/defer decision.
+
+Final report must separate repo-local Phase 1A, Notion Phase 1B, global enforcement readiness, provider/GitHub proof, closed beta status, validation commands, branch, commit hash, push status, bugs/blockers.
 ```
 
-## Dedicated payload/harness implementation prompt
+## Dedicated payload/harness prompt
 
 ```txt
-Implement only the .ai/12_agents / .agents / harness payload standardization from docs 24-31 and 40-42 of the plan folder. Keep every payload thin, operational, and subordinate to .ai/00_system. Add _template.md. Standardize codex, claude, opencode, commandcode, kimi, antigravity/agy, deepseek, gemini deprecated, and any approved hermes/cursor/ollama-policy payloads. Add .agents/README.md as a compatibility shim only if .agents still exists. Update GЕMINI.md to fail closed if Gemini remains deprecated. Do not touch source code, packages, migrations, providers, GitHub settings, or Notion.
+Implement only the .ai/12_agents and harness payload standardization from docs 24-31 and 40-43. Add payload template, standardize existing payloads, resolve Hermes/Cursor/Ollama/Gemini/.agents/CommandCode fail-closed policy, add .agents/README.md if .agents remains, and keep tool-specific files subordinate to .ai. No source/package/migration/provider/GitHub/Notion changes. Validate with inventory rerun, schema audit, stale-string audit, graph evidence, and git diff --check.
+```
+
+## Dedicated Notion sync prompt
+
+```txt
+Perform Phase 1B only after Phase 1A commit/push. Fetch Notion target pages/databases first. Verify package versions from live package.json. Correct stale Notion stack/graph facts and update/create framework mirror, agent roster, prompt library, run logs, dry-run/eval status, GitHub guardrails, provider proof gates, release readiness, and proof boundary. Include source .ai path, commit hash, mirror date, anti-drift notice, proof boundary, no secrets. If blocked, create .ai/15_Bugs/YYYY-MM-DD-notion-sync-blocked.md and report PHASE_1A_COMPLETE_PHASE_1B_BLOCKED.
+```
+
+## Dedicated dry-run/eval prompt
+
+```txt
+Run dry-runs from docs 22 and 33: stale-doc, dirty-worktree, provider-hallucination, Notion-drift, no-code-plan-only, prompt-injection, UI/design-system, bug creation, release/hotfix, GitNexus fallback, Gemini/Ollama fail-closed. Score 1-5 and log evidence. Do not claim global enforcement until at least three representative cycles average >=4.7/5 with zero critical failures and Philip approval.
 ```

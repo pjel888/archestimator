@@ -1,26 +1,28 @@
 # Agentic Development Framework Plan Refinement Log
 
-Date: 2026-06-03
-Mode: plan refinement only; no production source/code/package/migration/provider/GitHub/Notion changes.
-Plan folder: `.ai/03_plans/2026-06-03-agentic-development-framework-rollout`
+**Date:** 2026-06-03
+**Mode:** plan refinement only
+**Plan folder:** `.ai/03_plans/2026-06-03-agentic-development-framework-rollout`
+**Status:** READY_FOR_PHASE_1A_AND_PHASE_1B_IMPLEMENTATION as plan package; no source/provider/GitHub/Notion mutation.
 
-## Evidence recorded
-- Repo safety preflight run on `main` at pre-refinement HEAD `106370a`.
-- code-review-graph architecture overview succeeded: 120 communities, 4 cross-community pairs, 0 warnings.
-- code-review-graph semantic search for agent protocol/CI/validation returned no code nodes, supporting docs/config/harness scope.
-- GitNexus CLI failed with `Cannot destructure property 'package' of 'node.target' as it is null`; use code-review-graph fallback and repair/check GitNexus before code-symbol impact claims.
-- Agent/harness inventory found `.agents`, `.claude`, `.codex`, `.cursor`, `.gemini`, `.commandcode`, `.github`, root `CLAUDE.md`, root `GEMINI.md`, and `.ai/12_agents/payloads`.
+## Evidence captured
 
-## Refinement summary
-- Required docs 00–23 were rewritten/refined for implementation specificity.
-- Required agent/harness docs 24–35 were added.
-- Optional but useful docs 36–42 were added.
-- New bug plan created: `.ai/15_Bugs/2026-06-03-agent-harness-payload-enforcement-gaps.md`.
-- Readiness rescored from an honest agent/harness ~72% before refinement to 99% plan/payload/harness readiness after refinement.
+- Initial repo safety commands completed on `main` at `34b0c3f` with clean starting status.
+- `git fetch --prune origin` completed with non-blocking git gc warning.
+- code-review-graph worked: 477 files, 4,361 nodes, 65,147 edges.
+- GitNexus CLI failed with `Cannot destructure property 'package' of 'node.target' as it is null`.
+- Package evidence: Next.js 16.2.6, React/DOM 19.2.6, Supabase JS 2.106.2.
+- CI evidence: `bun run validate`, `bun run build`, `bun run test:e2e`, `bun run test:e2e:perf` in `.github/workflows/ci.yml`.
+- Notion was inspected read-only. Stale stack/graph facts found. No Notion mutation occurred.
 
-## Status boundary
-READY_FOR_IMPLEMENTATION for future Phase 1 docs/payload/harness implementation. Framework enforcement remains not implemented.
+## Plan changes
 
-## Critic WATCH follow-up
+- Reframed plan around Phase 1A repo-local implementation and Phase 1B Notion mirror hard completion gate.
+- Updated plan docs 00-42 with a Phase 1A/1B hard-gate addendum and focused rewrites for high-risk docs.
+- Added `43_PHASE_1A_1B_IMPLEMENTATION_GATE_PLAN.md`.
+- Created `.ai/15_Bugs/2026-06-03-notion-agent-framework-mirror-and-stack-drift.md`.
+- Updated stack drift bug with Notion addendum.
 
-A read-only critic returned WATCH, not BLOCK, because the package was actionable for Phase 1 but overclaimed broader enforcement readiness. This pass tightened score/status language to Phase 1 readiness, marked global enforcement conditional, required unresolved lanes to fail closed, added a future `agent-docs-compliance` checker contract, and labeled optional appendices 36-42 as non-blocking references.
+## Boundaries
+
+No code/source, packages, migrations, generated/runtime config, providers, GitHub settings, branch protection, Notion mutation, or secrets.
