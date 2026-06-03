@@ -870,9 +870,14 @@ export async function insertSharedLinkComment(params: {
 export async function submitSharedLinkDecision(params: {
   publicationToken: string;
   recipientId: string;
+  expectedSnapshotVersion: number;
   decision: "accepted" | "declined" | "revision_requested";
   note?: string | null;
 }): Promise<{ id: string }> {
+  if (!Number.isInteger(params.expectedSnapshotVersion) || params.expectedSnapshotVersion < 1) {
+    throw new Error("Expected snapshot version is required.");
+  }
+
   const supabase = createPublicationServiceClient();
   const pubHash = readTokenHash(params.publicationToken);
 
@@ -898,6 +903,7 @@ export async function submitSharedLinkDecision(params: {
     p_recipient_token_hash: recipientTokenHash,
     p_decision: params.decision,
     p_note: trimmedNote,
+    p_expected_snapshot_version: params.expectedSnapshotVersion,
   });
 
   if (rpcErr) throw new Error(rpcErr.message);

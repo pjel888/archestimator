@@ -51,11 +51,15 @@ describe("project publication public repository (Shared Link V2 context)", () =>
       submitSharedLinkDecision({
         publicationToken: "publication-token",
         recipientId: "recipient-id",
+        expectedSnapshotVersion: 3,
         decision: "accepted",
       }),
     ).rejects.toThrow("Decision already submitted.");
 
-    expect(rpc).toHaveBeenCalledWith("submit_client_response", expect.objectContaining({ p_decision: "accepted" }));
+    expect(rpc).toHaveBeenCalledWith(
+      "submit_client_response",
+      expect.objectContaining({ p_decision: "accepted", p_expected_snapshot_version: 3 }),
+    );
   });
 
   it("wraps submit_client_response RPC error objects so duplicate decisions stay mappable to 409", async () => {
@@ -94,6 +98,7 @@ describe("project publication public repository (Shared Link V2 context)", () =>
       submitSharedLinkDecision({
         publicationToken: "publication-token",
         recipientId: "recipient-id",
+        expectedSnapshotVersion: 3,
         decision: "accepted",
       }),
     ).rejects.toThrow("Decision already submitted.");

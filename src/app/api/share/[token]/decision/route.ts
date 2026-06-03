@@ -151,18 +151,21 @@ export async function POST(request: Request, { params }: { params: Promise<{ tok
   const sessionValue = parseCookieValue(cookieHeader, sessionName);
 
   // Lightweight parse of signed P5 session payload for ids (no DB). Full crypto verify below.
-  let publicationId = "unknown-pub";
-  let snapshotVersion: string | number = "1";
   const sessionPayload = readSessionPayload(sessionValue);
-  if (sessionPayload.publicationId) publicationId = sessionPayload.publicationId;
-  if (sessionPayload.snapshotVersion) snapshotVersion = sessionPayload.snapshotVersion;
   const recipientIdFromCookie = sessionPayload.recipientId;
 
-  // Verify P5 session (crypto + expiry + match, no DB required)
+  const access = await resolveProjectPublicationAccessByToken(token);
+  if (!access) {
+    const ipHash = getIpHash(request);
+    logStructured("warn", "/api/share/[token]/decision", "PUBLICATION_NOT_FOUND", ipHash);
+    return Response.json({ error: "Publication not found." }, { status: 404, headers: { "Cache-Control": "no-store" } });
+  }
+
+  // Verify P5 session against the current DB publication snapshot, not the cookie-derived snapshot.
   const sessionOk = verifySharedLinkSessionCookieValue(sessionValue, {
     token,
-    publicationId,
-    snapshotVersion,
+    publicationId: access.publicationId,
+    snapshotVersion: access.snapshotVersion,
     recipientId: recipientIdFromCookie,
   });
   if (!sessionOk) {
@@ -178,7 +181,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ tok
     return Response.json({ error: "Recipient context missing from session." }, { status: 400, headers: { "Cache-Control": "no-store" } });
   }
 
-  const rateCheck = await checkSharedLinkDecisionRateLimit({ publicationId, recipientId });
+  const rateCheck = await checkSharedLinkDecisionRateLimit({ publicationId: access.publicationId, recipientId });
   if (!rateCheck.allowed) {
     const ipHash = getIpHash(request);
     logStructured("warn", "/api/share/[token]/decision", "RATE_LIMITED", ipHash, { status: 429 });
@@ -192,6 +195,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ tok
     const { id } = await submitSharedLinkDecision({
       publicationToken: token,
       recipientId,
+      expectedSnapshotVersion: access.snapshotVersion,
       decision,
       note,
     });
@@ -199,9 +203,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ tok
     // P8: best-effort owner email digest on decision (rate limited). Non-blocking.
     try {
       const { maybeTriggerSharedLinkActivityDigest } = await import("@/lib/publication/actions");
-      if (publicationId && publicationId !== "unknown-pub") {
-        maybeTriggerSharedLinkActivityDigest(publicationId, token, "decision");
-      }
+      maybeTriggerSharedLinkActivityDigest(access.publicationId, token, "decision");
     } catch {}
 
     return Response.json({ id, decision, created: true }, { status: 201, headers: { "Cache-Control": "no-store" } });
@@ -211,6 +213,11 @@ export async function POST(request: Request, { params }: { params: Promise<{ tok
       const ipHash = getIpHash(request);
       logStructured("warn", "/api/share/[token]/decision", "DECISION_ALREADY_SUBMITTED", ipHash);
       return Response.json({ error: "Decision already submitted." }, { status: 409, headers: { "Cache-Control": "no-store" } });
+    }
+    if (/snapshot|stale|changed/i.test(msg)) {
+      const ipHash = getIpHash(request);
+      logStructured("warn", "/api/share/[token]/decision", "SNAPSHOT_VERSION_CHANGED", ipHash);
+      return Response.json({ error: "Publication snapshot changed. Please reload before submitting a decision." }, { status: 409, headers: { "Cache-Control": "no-store" } });
     }
     const status = /not found|expired|recipient/i.test(msg) ? 403 : 500;
     const ipHash = getIpHash(request);
