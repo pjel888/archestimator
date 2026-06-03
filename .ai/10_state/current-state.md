@@ -453,3 +453,23 @@ Verification evidence:
 
 Remaining proof gap before production/live deletion use:
 - The SQL migration is committed as repo code but was not applied to a linked Supabase project from this worktree. Run the migration through the approved Supabase release path before exposing these controls in an environment whose database has not applied `20260603160000_mass_deletion_governance.sql`.
+
+## 2026-06-04 public share-image hardening
+
+The Codex Security finding `Unvalidated share image URLs enable client tracking` is repo-fixed and deployed, but still pending cloud scanner rescan/closure.
+
+Delivered:
+- `dc0aff1` adds a publication-image URL allowlist that accepts bundled local component thumbnails and same-origin Supabase public WebP images under the configured public storage paths only.
+- Publication snapshot creation now stores unsafe project cover and row image URLs as `null`.
+- Public share renderers normalize legacy snapshot image fields before passing values to `next/image`, so old snapshots cannot render `data:`, SVG, off-origin, query-tracking, or malformed image URLs.
+- Vercel production deployment `dpl_HiJpSuKpvqnHbCNxi93e89p7Ay1k` is Ready and serving the app at `https://www.archestimator.com`.
+
+Verification:
+- Red/green focused tests for snapshot sanitization and legacy public renderer defense passed, then the full focused snapshot/page suite passed 2 files / 26 tests.
+- `bun run type-check`, `bun run lint` (0 errors, 12 existing warnings), `git diff --check`, and `bun run build` passed.
+- GitNexus was refreshed during the fix pass; code-review graph reports 0 affected flows. GitNexus status is commit-hash based and will need another refresh after the final docs commit.
+- Hosted smoke after deploy: `https://www.archestimator.com/api/health` returned HTTP 200, apex `/api/health` redirected to `www`, `/login` returned HTTP 200, and signed-out `/workshop` returned HTTP 307 to `/login?next=%2Fworkshop`.
+
+Open:
+- Codex Security dashboard refresh still lists this finding against old commit `4c7c406`. Treat this as scanner-stale until a new scan closes it or reports a residual issue.
+- The overall closed-beta blocker remains open while other medium findings and provider/manual proof gaps remain unresolved.
