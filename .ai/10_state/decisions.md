@@ -166,3 +166,17 @@ Directive: Apply `20260603160000_mass_deletion_governance.sql` through the appro
 ## 2026-06-03 — Tree selection and destructive bulk action interaction baseline
 
 Decision: Tree selection and destructive bulk actions are now a shared workshop interaction pattern. Tree rows use visible, decorative drag handles plus independent native checkboxes instead of making the row itself the selection control. Bulk destructive workflows use a shared toolbar and typed confirmation where the affected entity is destructive; component catalogue bulk action is archive-first, and hard delete remains gated behind admin plus zero-reference proof. Server actions own workspace validation and cache revalidation; future work may consolidate multi-root delete loops into database transactions if stronger all-or-nothing guarantees are required. This decision is local implementation evidence, not hosted beta proof.
+
+## 2026-06-03 — Share page client review UX/UI overhaul local implementation baseline
+
+Decision: Treat the public share receiver as a proposal review portal, not a workshop-style technical viewer. The local implementation may add lightweight GET routes for existing discussion and recipient decision state while preserving existing POST/DELETE behavior, password gates, recipient-session gates, and no-migration/no-new-dependency boundaries.
+
+- Implemented receiver state reads through additive `GET /api/share/[token]/comment` and `GET /api/share/[token]/decision` using existing publication access/session security patterns.
+- Kept collaboration/provider truth separate from local implementation truth: local code/tests/build are verified, but no live provider/manual share-token proof is claimed here.
+- Validation: `bun run validate` (typecheck + ESLint + design-system + unit + 172 Vitest DOM files: 1318 passed / 2 skipped), `bun run build` (Next.js 16.2.6 production build), targeted share/publication suites (77/77), CRG detect_changes risk 0.55/no affected flows, and GitNexus detect-changes medium risk (12 files, 94 symbols, 2 GET/POST flows).
+
+Rejected: client-only D3 rendering for the hydration fix | deterministic SVG rounding preserves SSR and avoids layout shift.
+Rejected: schema migrations or Supabase/RLS changes | approved scope required lightweight additive routes only.
+Confidence: high
+Scope-risk: moderate
+Directive: Future share receiver changes must preserve password and recipient-session boundaries before expanding public read APIs.

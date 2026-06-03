@@ -54,7 +54,7 @@ No server-side comment loading is implemented in the share page comment componen
 
 ## Relationship to Current Plan
 
-Directly addressed by Phase 5 (State & Data Loading) in `.ai/03_plans/2026-06-03-share-page-client-review-ux-ui-overhaul/04_IMPLEMENTATION_SEQUENCE.md`. Acceptance criterion `AC-FUNC-008` (SHOULD priority) covers this. However, this is currently marked SHOULD not MUST — making it technically optional despite being an important UX fix.
+Directly addressed by Phase 5 (State & Data Loading) in `.ai/09_archive/store/2026-06-03-share-page-client-review-ux-ui-overhaul-complete/04_IMPLEMENTATION_SEQUENCE.md`. Acceptance criterion `AC-FUNC-008` (SHOULD priority) covers this. However, this is currently marked SHOULD not MUST — making it technically optional despite being an important UX fix.
 
 ## Proposed Fix Plan
 
@@ -76,12 +76,19 @@ Directly addressed by Phase 5 (State & Data Loading) in `.ai/03_plans/2026-06-03
 
 ## Status
 
-**Open** — requires implementation during share page overhaul (Phase 5, Step 5.1)
+**CLOSED (local implementation verified 2026-06-03) — additive `GET /api/share/[token]/comment`, `loadSharedLinkPublicComments`, and `SharePageComments` mount loading now load public discussion history. Verified by GET contract tests, focused share/publication suites, `bun run validate`, and `bun run build`.**
 
 ## References
 
-- Plan folder: `.ai/03_plans/2026-06-03-share-page-client-review-ux-ui-overhaul/`
+- Plan folder: `.ai/09_archive/store/2026-06-03-share-page-client-review-ux-ui-overhaul-complete/`
 - Acceptance criterion: `AC-FUNC-008` in `01_REQUIREMENTS_AND_ACCEPTANCE_CRITERIA.md`
 - Implementation step: Phase 5, Step 5.1 in `04_IMPLEMENTATION_SEQUENCE.md`
 - UX audit issue: UX-010 in `14_SHARE_PAGE_UX_AUDIT.md`
 - Codebase research gap: `02_CODEBASE_RESEARCH.md` line 227
+
+
+## Resolution Evidence (2026-06-03)
+
+CLOSED (local implementation verified 2026-06-03) — additive `GET /api/share/[token]/comment`, `loadSharedLinkPublicComments`, and `SharePageComments` mount loading now load public discussion history. Verified by GET contract tests, focused share/publication suites, `bun run validate`, and `bun run build`.
+
+Validation: `bun run validate` (typecheck + ESLint + design-system + unit + 172 Vitest DOM files: 1318 passed / 2 skipped), `bun run build` (Next.js 16.2.6 production build), targeted share/publication suites (77/77), CRG detect_changes risk 0.55/no affected flows, and GitNexus detect-changes medium risk (12 files, 94 symbols, 2 GET/POST flows).

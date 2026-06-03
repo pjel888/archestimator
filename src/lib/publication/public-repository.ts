@@ -31,6 +31,21 @@ export type ResolvedSharedLinkRecipientIdentity = {
   recipientDisplayName: string | null;
 };
 
+export type SharedLinkPublicComment = {
+  id: string;
+  content: string;
+  createdAt: string;
+  authorName: string;
+  authorType: "owner" | "recipient";
+};
+
+export type SharedLinkRecipientDecision = {
+  type: "accepted" | "declined" | "revision_requested";
+  note: string | null;
+  submittedAt: string;
+  final: true;
+};
+
 type PublicationLookupRow = Pick<
   Tables<"project_publications">,
   "expires_at" | "id" | "password_hash" | "revoked_at" | "snapshot_version" | "status"
@@ -696,6 +711,68 @@ export async function resolveSharedLinkRecipientIdentity({
     recipientId: data.id,
     recipientEmail: data.email,
     recipientDisplayName: data.display_name,
+  };
+}
+
+export async function loadSharedLinkPublicComments({
+  publicationId,
+}: {
+  publicationId: string;
+}): Promise<SharedLinkPublicComment[]> {
+  if (!publicationId.trim()) return [];
+
+  const supabase = createPublicationServiceClient();
+  const { data, error } = await supabase
+    .from("shared_link_comments")
+    .select("id, created_at, body, author_name, author_email, recipient_id")
+    .eq("publication_id", publicationId)
+    .eq("is_internal", false)
+    .order("created_at", { ascending: true })
+    .order("id", { ascending: true })
+    .limit(200);
+
+  if (error) throw error;
+
+  return (data ?? []).map((comment) => ({
+    id: comment.id,
+    content: comment.body,
+    createdAt: comment.created_at,
+    authorName: comment.author_name || (comment.recipient_id ? "Client" : "Project team"),
+    authorType: comment.recipient_id ? "recipient" : "owner",
+  }));
+}
+
+function isSharedLinkDecisionType(value: string): value is SharedLinkRecipientDecision["type"] {
+  return value === "accepted" || value === "declined" || value === "revision_requested";
+}
+
+export async function loadSharedLinkRecipientDecision({
+  publicationId,
+  recipientId,
+}: {
+  publicationId: string;
+  recipientId: string;
+}): Promise<SharedLinkRecipientDecision | null> {
+  if (!publicationId.trim() || !recipientId.trim()) return null;
+
+  const supabase = createPublicationServiceClient();
+  const { data, error } = await supabase
+    .from("shared_link_responses")
+    .select("decision, note, created_at")
+    .eq("publication_id", publicationId)
+    .eq("recipient_id", recipientId)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) throw error;
+  if (!data || !isSharedLinkDecisionType(data.decision)) return null;
+
+  return {
+    type: data.decision,
+    note: data.note,
+    submittedAt: data.created_at,
+    final: true,
   };
 }
 

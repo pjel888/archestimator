@@ -3,9 +3,9 @@
 **Plan ID:** `2026-06-03-share-page-client-review-ux-ui-overhaul`
 **Created:** 2026-06-03
 **Second-Pass Refinement:** 2026-06-03 (see "Second-Pass Refinement Notes" below)
-**Status:** `READY_FOR_IMPLEMENTATION` — Philip approved lightweight GET routes for comment/decision state loading on 2026-06-03 (Option 1 in `24_API_CONTRACT_PLAN.md`). All blocking decisions resolved. See `11_READINESS_SCORECARD.md` for full scores.
+**Status:** `IMPLEMENTED_LOCALLY_VALIDATED` — local implementation completed on 2026-06-03 on branch `feat/share-page-client-review-ux-ui-overhaul`. Validation: `bun run validate` (typecheck + ESLint + design-system + unit + 172 Vitest DOM files: 1318 passed / 2 skipped), `bun run build` (Next.js 16.2.6 production build), targeted share/publication suites (77/77), CRG detect_changes risk 0.55/no affected flows, and GitNexus detect-changes medium risk (12 files, 94 symbols, 2 GET/POST flows).
 **Repository:** `pjel888/archestimator`
-**Branch:** `main` (feature branch required for implementation)
+**Branch:** `feat/share-page-client-review-ux-ui-overhaul` (local implementation branch)
 
 ---
 
@@ -130,7 +130,7 @@ Manual QA: Navigate to target share URL, verify zero hydration warnings, clean v
 
 ## Current Status
 
-**READY_FOR_IMPLEMENTATION** — Philip approved lightweight GET routes for comment/decision state loading on 2026-06-03 (Option 1 in `24_API_CONTRACT_PLAN.md`). Plan is now 98% implementation-ready with all blocking decisions resolved. Implementation agent should verify plan against current repo reality before editing, then follow the implementation sequence in `04_IMPLEMENTATION_SEQUENCE.md`.
+**IMPLEMENTED_LOCALLY_VALIDATED (2026-06-03)** — The approved plan is implemented in the local repo on `feat/share-page-client-review-ux-ui-overhaul`. Delivered: deterministic donut SVG rounding, debug artifact removal, proposal review layout/copy, accessible decision flow, persisted decision loading, discussion history loading, and additive GET routes for comment/decision state. Validation: `bun run validate` (typecheck + ESLint + design-system + unit + 172 Vitest DOM files: 1318 passed / 2 skipped), `bun run build` (Next.js 16.2.6 production build), targeted share/publication suites (77/77), CRG detect_changes risk 0.55/no affected flows, and GitNexus detect-changes medium risk (12 files, 94 symbols, 2 GET/POST flows).
 
 ## Readiness Score Table
 
@@ -179,3 +179,12 @@ Manual QA: Navigate to target share URL, verify zero hydration warnings, clean v
 - Security boundaries (all preserved)
 - Blast radius analysis (expanded, not modified)
 - Test specifications (expanded, not modified)
+
+
+## Implementation Closeout (2026-06-03)
+
+- Local branch: `feat/share-page-client-review-ux-ui-overhaul`
+- Archive target: `.ai/09_archive/store/2026-06-03-share-page-client-review-ux-ui-overhaul-complete`
+- Source changes: share receiver page/components, `CostDonutChart`, public publication repository helpers, additive `GET /api/share/[token]/comment`, additive `GET /api/share/[token]/decision`, and focused regression tests.
+- Validation evidence: `bun run validate` (typecheck + ESLint + design-system + unit + 172 Vitest DOM files: 1318 passed / 2 skipped), `bun run build` (Next.js 16.2.6 production build), targeted share/publication suites (77/77), CRG detect_changes risk 0.55/no affected flows, and GitNexus detect-changes medium risk (12 files, 94 symbols, 2 GET/POST flows).
+- Known boundary: manual/browser live-token QA and provider proof are not claimed by this archive entry.

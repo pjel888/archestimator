@@ -2,15 +2,26 @@
 
 import React, { useState, useCallback, useEffect } from "react";
 import { useSharedLinkSession } from "@/hooks/use-shared-link-session";
+import { Button } from "@/components/ui/button";
 import { createPublicationCsrfHeaders } from "@/lib/publication/client-csrf";
 
 interface Comment {
   id: string;
   body: string;
   author_email?: string;
+  authorName?: string;
+  authorType?: "owner" | "recipient";
   created_at: string; // ISO for display
   isOptimistic?: boolean;
 }
+
+type LoadedComment = {
+  id: string;
+  content: string;
+  createdAt: string;
+  authorName: string;
+  authorType: "owner" | "recipient";
+};
 
 interface SharePageCommentsProps {
   token: string;
@@ -27,9 +38,12 @@ export default function SharePageComments({ token }: SharePageCommentsProps) {
   const { isValid } = useSharedLinkSession();
   const [comments, setComments] = useState<Comment[]>([]);
   const [draft, setDraft] = useState("");
+  const [isLoadingComments, setIsLoadingComments] = useState(false);
   const [isPosting, setIsPosting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [lastAnnouncement, setLastAnnouncement] = useState("");
+  const [isExpanded, setIsExpanded] = useState(true);
 
   const MAX = 1000;
   const remaining = MAX - draft.length;
@@ -69,6 +83,52 @@ export default function SharePageComments({ token }: SharePageCommentsProps) {
 
   const [retryStatus, setRetryStatus] = useState<string | null>(null);
   const [pendingCount, setPendingCount] = useState(0);
+
+  const loadComments = useCallback(async (signal?: AbortSignal) => {
+    if (!isValid) return;
+    setIsLoadingComments(true);
+    setLoadError(null);
+
+    try {
+      const res = await fetch(`/api/share/${encodeURIComponent(token)}/comment`, {
+        method: "GET",
+        headers: { Accept: "application/json" },
+        signal,
+      });
+      if (res.status === 401 || res.status === 404) return;
+      if (!res.ok) throw new Error("Could not load discussion.");
+
+      const json = (await res.json().catch(() => ({}))) as { comments?: LoadedComment[] };
+      const loadedComments = Array.isArray(json.comments) ? json.comments : [];
+      setComments(
+        loadedComments.map((comment) => ({
+          id: comment.id,
+          body: comment.content,
+          authorName: comment.authorName,
+          authorType: comment.authorType,
+          created_at: comment.createdAt,
+        })),
+      );
+    } catch (error: unknown) {
+      if (!signal?.aborted) {
+        setLoadError(readErrorMessage(error) || "Could not load discussion.");
+      }
+    } finally {
+      if (!signal?.aborted) setIsLoadingComments(false);
+    }
+  }, [isValid, token]);
+
+  useEffect(() => {
+    if (!isValid) return;
+    const controller = new AbortController();
+    const timeout = window.setTimeout(() => {
+      void loadComments(controller.signal);
+    }, 0);
+    return () => {
+      window.clearTimeout(timeout);
+      controller.abort();
+    };
+  }, [isValid, loadComments]);
 
   const flushQueue = useCallback(async () => {
     const q = loadQueue();
@@ -194,6 +254,7 @@ export default function SharePageComments({ token }: SharePageCommentsProps) {
         )
       );
       announce("Comment added successfully.");
+      void loadComments();
       // best-effort: if any pending, try flush (reconnect or post-success window)
       if (navigator.onLine) flushQueue();
     } catch (error: unknown) {
@@ -219,7 +280,7 @@ export default function SharePageComments({ token }: SharePageCommentsProps) {
       setIsPosting(false);
       setRetryStatus(null);
     }
-  }, [draft, isValid, isPosting, announce, postWithRetry, loadQueue, saveQueue, flushQueue]);
+  }, [draft, isValid, isPosting, announce, postWithRetry, loadComments, loadQueue, saveQueue, flushQueue]);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -230,9 +291,9 @@ export default function SharePageComments({ token }: SharePageCommentsProps) {
 
   if (!isValid) {
     return (
-      <section role="region" aria-label="Comments" className="w-full lg:w-80 border-l border-hairline bg-white p-3 text-[10px] text-secondary">
-        <div className="text-[9px] font-medium uppercase text-tertiary">Comments</div>
-        <p className="mt-2 text-[10px] text-secondary">Recipient session required to comment on this publication.</p>
+      <section role="region" aria-label="Discussion comments" className="share-print-hidden w-full rounded-xs border border-hairline bg-white p-3 text-[10px] leading-4 text-secondary">
+        <div className="text-[9px] font-medium uppercase leading-3 tracking-normal text-tertiary">Discussion</div>
+        <p className="mt-2 text-[10px] leading-4 text-secondary">Recipient session required to comment and respond to this proposal.</p>
       </section>
     );
   }
@@ -240,28 +301,56 @@ export default function SharePageComments({ token }: SharePageCommentsProps) {
   return (
     <section
       role="region"
-      aria-label="Comments"
-      className="flex w-full flex-col border-l border-hairline bg-white lg:w-80 lg:max-h-[calc(100dvh-120px)]"
+      aria-label="Discussion comments"
+      className="share-print-hidden flex w-full flex-col rounded-xs border border-hairline bg-white"
     >
-      <div className="border-b border-hairline px-3 py-2">
-        <div className="text-[9px] font-medium uppercase leading-3 text-tertiary">Comments</div>
-        <p className="text-[9px] text-tertiary">Visible to project team</p>
+      <div className="flex items-start justify-between gap-3 border-b border-hairline px-3 py-2">
+        <div>
+          <div className="text-[9px] font-medium uppercase leading-3 tracking-normal text-tertiary">Discussion</div>
+          <p className="text-[9px] leading-3 text-tertiary">
+            {comments.length} comment{comments.length === 1 ? "" : "s"} • visible to the project team
+          </p>
+        </div>
+        {comments.length > 0 ? (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setIsExpanded((value) => !value)}
+            aria-expanded={isExpanded}
+            aria-controls="share-page-discussion-body"
+          >
+            {isExpanded ? "Hide" : "Show"}
+          </Button>
+        ) : null}
       </div>
 
       {/* Flat chronological list + aria-live polite for SR announcements */}
       <div
+        id="share-page-discussion-body"
         aria-live="polite"
-        className="flex-1 overflow-y-auto px-3 py-2 text-[10px] leading-4 text-ink"
+        className={isExpanded ? "max-h-[420px] overflow-y-auto px-3 py-2 text-[10px] leading-4 text-ink" : "sr-only"}
         style={{ scrollbarWidth: "thin" }}
       >
-        {comments.length === 0 ? (
-          <p className="text-[9px] text-tertiary">No comments yet. Be the first to add one below.</p>
+        {isLoadingComments ? (
+          <div className="space-y-2" aria-label="Loading discussion">
+            <div className="h-3 w-3/4 rounded-xs bg-surfaceMuted" />
+            <div className="h-3 w-1/2 rounded-xs bg-surfaceMuted" />
+          </div>
+        ) : loadError ? (
+          <div className="rounded-xs border border-danger/30 bg-dangerSoft p-2 text-[9px] leading-3 text-danger" role="alert">
+            {loadError}
+            <Button variant="ghost" size="sm" className="ml-2" onClick={() => void loadComments()}>
+              Retry
+            </Button>
+          </div>
+        ) : comments.length === 0 ? (
+          <p className="text-[9px] leading-3 text-tertiary">No comments yet. Add a note or question below.</p>
         ) : (
           <ul className="space-y-3">
             {comments.map((c) => (
-              <li key={c.id} className="rounded-xs border border-hairline bg-canvas p-2">
-                <div className="text-[9px] text-tertiary">
-                  {c.author_email || "You"} • {new Date(c.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+              <li key={c.id} className="rounded-xs border border-hairline bg-white p-2">
+                <div className="text-[9px] leading-3 text-tertiary">
+                  {c.authorName || c.author_email || "You"} • {new Date(c.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                   {c.isOptimistic ? " (sending...)" : ""}
                 </div>
                 <div className="mt-0.5 whitespace-pre-wrap break-words">{c.body}</div>
@@ -274,17 +363,13 @@ export default function SharePageComments({ token }: SharePageCommentsProps) {
       </div>
 
       {/* Composer + counter */}
-      <div className="border-t border-hairline p-3">
+      <div className="border-t border-hairline p-3 pb-[env(safe-area-inset-bottom)]">
         {error && (
           <div className="mb-2 rounded-xs border border-danger/30 bg-dangerSoft p-2 text-[9px] text-danger" role="alert">
             {error}
-            <button
-              type="button"
-              className="ml-2 underline"
-              onClick={() => setError(null)}
-            >
+            <Button variant="ghost" size="sm" className="ml-2" onClick={() => setError(null)}>
               Dismiss
-            </button>
+            </Button>
           </div>
         )}
 
@@ -303,7 +388,7 @@ export default function SharePageComments({ token }: SharePageCommentsProps) {
             if (error) setError(null);
           }}
           onKeyDown={handleKeyDown}
-          placeholder="Add a comment (visible to the team)..."
+          placeholder="Add a comment, note, or question for the project team..."
           className="w-full resize-y rounded-xs border border-hairline bg-white p-2 text-[10px] leading-4 text-ink placeholder:text-tertiary focus:outline focus:outline-1 focus:outline-ink disabled:cursor-not-allowed disabled:opacity-60"
           rows={3}
           maxLength={MAX}
@@ -315,16 +400,11 @@ export default function SharePageComments({ token }: SharePageCommentsProps) {
           <span>
             {remaining} / {MAX}
           </span>
-          <button
-            type="button"
-            onClick={submitComment}
-            disabled={!draft.trim() || isPosting || !isValid}
-            className="rounded-xs border border-hairline bg-white px-3 py-0.5 text-[9px] font-medium text-ink disabled:opacity-50 hover:bg-canvas active:bg-canvas"
-          >
-            {isPosting ? "Posting..." : "Post"}
-          </button>
+          <Button variant="secondary" size="sm" onClick={submitComment} disabled={!draft.trim() || isPosting || !isValid}>
+            {isPosting ? "Sending..." : "Send"}
+          </Button>
         </div>
-        <p className="mt-1 text-[8px] text-tertiary">Comments are sent to the project team. Max 1000 characters.</p>
+        <p className="mt-1 text-[8px] leading-[10px] text-tertiary">Comments are sent to the project team. Max 1000 characters.</p>
       </div>
     </section>
   );

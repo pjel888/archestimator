@@ -119,12 +119,13 @@ describe("shared link (receiver publication) page — Shared Link Overhaul V2", 
 
     expect(mocks.resolveProjectPublicationAccessByToken).toHaveBeenCalledWith("client-token");
     expect(mocks.resolveProjectPublicationSnapshotByToken).toHaveBeenCalledWith("client-token");
-    expect(screen.getByRole("main", { name: "Client publication" })).toBeInTheDocument();
+    expect(screen.getByRole("main", { name: "Proposal review" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Valencia Residence" })).toBeInTheDocument();
-    expect(screen.getByText("View-only project page")).toBeInTheDocument();
-    expect(screen.getByText(/Visits are logged for project security and activity history/i)).toBeInTheDocument();
-    expect(screen.getByText("VR-001")).toBeInTheDocument();
-    expect(screen.getByText("Client Family")).toBeInTheDocument();
+    expect(screen.getByText("Prepared for your review")).toBeInTheDocument();
+    expect(screen.queryByText("View-only project page")).not.toBeInTheDocument();
+    expect(screen.queryByText(/Visits are logged for project security and activity history/i)).not.toBeInTheDocument();
+    expect(screen.getByText(/Project VR-001/)).toBeInTheDocument();
+    expect(screen.getByText(/Prepared for Client Family/)).toBeInTheDocument();
 
     // P2: estimate content now lives inside SharePageTabs tabpanel (no more role=region wrapper)
     // The h2 + table cells remain for content verification (backwards visual parity)
@@ -310,9 +311,9 @@ describe("shared link (receiver publication) page — Shared Link Overhaul V2", 
 
     render(await SharePage({ params: Promise.resolve({ token: "client-token" }) }));
 
-    expect(screen.getByRole("main", { name: "Client publication password" })).toBeInTheDocument();
-    expect(screen.getByText("Enter publication password")).toBeInTheDocument();
-    expect(screen.getByText(/Visits to this shared page are logged/i)).toBeInTheDocument();
+    expect(screen.getByRole("main", { name: "Proposal review password" })).toBeInTheDocument();
+    expect(screen.getByText("Enter proposal password")).toBeInTheDocument();
+    expect(screen.getByText(/Access attempts may be recorded for security/i)).toBeInTheDocument();
     expect(screen.queryByText("Valencia Residence")).not.toBeInTheDocument();
     expect(screen.queryByText("Concrete works")).not.toBeInTheDocument();
     expect(mocks.resolveProjectPublicationSnapshotByToken).not.toHaveBeenCalled();
@@ -628,7 +629,7 @@ describe("shared link (receiver publication) page — Shared Link Overhaul V2", 
       expect(meta.description).toContain("1 rows");
       // image may be undefined (no real supabase in this env) — contract is graceful
       expect(meta.openGraph?.title).toContain("Valencia Residence");
-      expect(meta.openGraph?.description).toContain("View-only");
+      expect(meta.openGraph?.description).toContain("Prepared for client review");
     });
   });
 

@@ -203,13 +203,15 @@ describe("P7 — Shared Link Decisions API & UI (red tests written FIRST before 
       // Modal should appear (implementation uses role=dialog or visible confirm UI)
       await waitFor(() => {
         // Use getAllBy + first to tolerate any transient duplicates in test env; core contract is modal appears with tailored copy
-        const matches = screen.getAllByText(/Confirm Acceptance|about to ACCEPT/i);
+        const matches = screen.getAllByText(/Accept this proposal\?|Your decision will be final/i);
         expect(matches.length).toBeGreaterThan(0);
       });
       // Cancel does not POST
       const cancel = screen.getByRole("button", { name: /cancel/i });
       await user.click(cancel);
-      expect(global.fetch).not.toHaveBeenCalled();
+      expect(
+        vi.mocked(global.fetch).mock.calls.filter(([, init]) => (init as RequestInit | undefined)?.method === "POST"),
+      ).toHaveLength(0);
     });
 
     it("on confirm in modal, POSTs to /api/share/[token]/decision with CSRF header + decision + note, then locks to read-only badge", async () => {
@@ -231,7 +233,10 @@ describe("P7 — Shared Link Decisions API & UI (red tests written FIRST before 
           expect.objectContaining({ method: "POST", headers: expect.objectContaining({ "x-archestimator-csrf": expect.any(String) }) })
         );
       });
-      const requestInit = vi.mocked(global.fetch).mock.calls[0]?.[1] as RequestInit;
+      const postCall = vi
+        .mocked(global.fetch)
+        .mock.calls.find(([, init]) => (init as RequestInit | undefined)?.method === "POST");
+      const requestInit = postCall?.[1] as RequestInit;
       const headers = requestInit.headers as Record<string, string>;
       expect(headers["x-archestimator-csrf"]).not.toBe(["client", "post"].join("-"));
       expect(document.cookie).toContain(`ae_publication_csrf=${headers["x-archestimator-csrf"]}`);

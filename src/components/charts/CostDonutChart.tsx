@@ -5,6 +5,7 @@ import { arc, pie } from "d3-shape";
 import type { PieArcDatum } from "d3-shape";
 
 import type { CostBucket } from "@/lib/charts/types";
+import { formatSvgNumber, roundSvgPath } from "@/lib/charts/svg-rounding";
 import { cn } from "@/lib/ui/cn";
 
 type CostDonutChartProps = {
@@ -208,11 +209,11 @@ function buildCallouts(
     const isRight = item.labelX > CENTER_X;
     const connectorX = isRight ? RIGHT_CONNECTOR_X : LEFT_CONNECTOR_X;
     const itemY = item.y ?? item.labelYBase;
-    const connector = `M ${item.outerX} ${item.outerY} L ${connectorX} ${itemY} L ${item.labelX} ${itemY}`;
+    const connector = roundSvgPath(`M ${item.outerX} ${item.outerY} L ${connectorX} ${itemY} L ${item.labelX} ${itemY}`);
 
     callouts.push({
-      x: item.labelX,
-      y: itemY,
+      x: Number(formatSvgNumber(item.labelX)),
+      y: Number(formatSvgNumber(itemY)),
       anchor: isRight ? "start" : "end",
       connector,
       label: truncateLabel(item.label),
@@ -260,30 +261,28 @@ export function CostDonutChart({
     [buckets]
   );
 
-  const arcs = useMemo(() => {
-    const pieGenerator = pie<PieDatum>()
-      .value((datum) => datum.value)
-      .sort(null)
-      .padAngle(0.012);
+  const pieGenerator = pie<PieDatum>()
+    .value((datum) => datum.value)
+    .sort(null)
+    .padAngle(0.012);
 
-    const arcGenerator = arc<PieArcDatum<PieDatum>>()
-      .innerRadius(INNER_RADIUS)
-      .outerRadius((datum) => (datum.data.id === activeId ? OUTER_RADIUS + 4 : OUTER_RADIUS))
-      .cornerRadius(3);
+  const arcGenerator = arc<PieArcDatum<PieDatum>>()
+    .innerRadius(INNER_RADIUS)
+    .outerRadius((datum) => (datum.data.id === activeId ? OUTER_RADIUS + 4 : OUTER_RADIUS))
+    .cornerRadius(3);
 
-    // Fallback arc without corner radius for edge cases (e.g. full-circle single slice)
-    const fallbackArcGenerator = arc<PieArcDatum<PieDatum>>()
-      .innerRadius(INNER_RADIUS)
-      .outerRadius((datum) => (datum.data.id === activeId ? OUTER_RADIUS + 4 : OUTER_RADIUS));
+  // Fallback arc without corner radius for edge cases (e.g. full-circle single slice)
+  const fallbackArcGenerator = arc<PieArcDatum<PieDatum>>()
+    .innerRadius(INNER_RADIUS)
+    .outerRadius((datum) => (datum.data.id === activeId ? OUTER_RADIUS + 4 : OUTER_RADIUS));
 
-    return pieGenerator(data).map((datum) => {
-      const path = arcGenerator(datum);
-      if (path) return { datum, path };
-      return { datum, path: fallbackArcGenerator(datum) ?? "" };
-    });
-  }, [activeId, data, INNER_RADIUS, OUTER_RADIUS]);
+  const arcs = pieGenerator(data).map((datum) => {
+    const path = arcGenerator(datum);
+    if (path) return { datum, path: roundSvgPath(path) };
+    return { datum, path: roundSvgPath(fallbackArcGenerator(datum) ?? "") };
+  });
 
-  const callouts = useMemo(() => buildCallouts(arcs, dims, currencyCode), [arcs, dims, currencyCode]);
+  const callouts = buildCallouts(arcs, dims, currencyCode);
   const activeDatum = activeId ? data.find((d) => d.id === activeId) ?? null : null;
 
   const emptyMinH = compact ? "h-[400px]" : "min-h-[520px]";
@@ -294,9 +293,6 @@ export function CostDonutChart({
     return (
       <div className={`flex ${emptyMinH} flex-col items-center justify-center gap-2 rounded-xs border border-dashed border-hairline bg-surface-muted text-[10px]`}>
         <span className="text-tertiary">No cost rows</span>
-        <span className="text-[9px] text-muted tabular-nums">
-          buckets:{buckets.length} · total:{safeTotal}
-        </span>
       </div>
     );
   }
@@ -321,10 +317,6 @@ export function CostDonutChart({
 
   return (
     <div className="relative w-full" aria-label={label}>
-      {/* Debug badge — always visible so user can report back what they see */}
-      <div className="absolute right-1 top-1 z-10 rounded-xs bg-black/70 px-1.5 py-px text-[8px] text-white tabular-nums">
-        🍩 buckets:{data.length} total:{safeTotal}
-      </div>
       <div className={cn(chartContainerClass, "bg-white")}>
         <svg
           data-testid="d3-donut-chart"
@@ -355,14 +347,14 @@ export function CostDonutChart({
         {/* Center label */}
         <text
           data-testid={activeDatum ? "donut-center-detail" : "donut-center-empty"}
-          x={CENTER_X}
-          y={CENTER_Y}
+          x={formatSvgNumber(CENTER_X)}
+          y={formatSvgNumber(CENTER_Y)}
           textAnchor="middle"
           dominantBaseline="middle"
           className={`fill-foreground font-medium ${centerFont}`}
         >
           {centerLabel.split("\n").map((line, idx) => (
-            <tspan key={idx} x={CENTER_X} dy={idx === 0 ? 0 : centerDy}>
+            <tspan key={idx} x={formatSvgNumber(CENTER_X)} dy={idx === 0 ? 0 : formatSvgNumber(centerDy)}>
               {line}
             </tspan>
           ))}
@@ -373,19 +365,19 @@ export function CostDonutChart({
           {callouts.map((c) => (
             <g key={c.id} data-testid="donut-callout">
               <path d={c.connector} fill="none" stroke="#E5E5E5" strokeWidth={1} />
-              <circle cx={c.x} cy={c.y} r={3} fill={c.color} />
+              <circle cx={formatSvgNumber(c.x)} cy={formatSvgNumber(c.y)} r={formatSvgNumber(3)} fill={c.color} />
               <text
-                x={c.x + (c.anchor === "start" ? 8 : -8)}
-                y={c.y - 2}
+                x={formatSvgNumber(c.x + (c.anchor === "start" ? 8 : -8))}
+                y={formatSvgNumber(c.y - 2)}
                 textAnchor={c.anchor}
                 className={`fill-foreground ${calloutLabelFont}`}
-                fontWeight={activeId === c.id ? 600 : 400}
+                fontWeight={activeId === c.id ? 500 : 400}
               >
                 {c.label}
               </text>
               <text
-                x={c.x + (c.anchor === "start" ? 8 : -8)}
-                y={c.y + 10}
+                x={formatSvgNumber(c.x + (c.anchor === "start" ? 8 : -8))}
+                y={formatSvgNumber(c.y + 10)}
                 textAnchor={c.anchor}
                 className={`fill-muted-foreground tabular-nums ${calloutValueFont}`}
               >

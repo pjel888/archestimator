@@ -88,10 +88,17 @@ Tradeoffs:
 
 ## Status
 
-**Open** — requires implementation during share page overhaul (Implementation Step 2 in plan sequence)
+**CLOSED (local implementation verified 2026-06-03) — deterministic SVG number/path rounding is implemented in `src/lib/charts/svg-rounding.ts` and applied in `CostDonutChart`. Verified by hydration regression test, full validation, and production build.**
 
 ## References
 
-- Plan folder: `.ai/03_plans/2026-06-03-share-page-client-review-ux-ui-overhaul/`
+- Plan folder: `.ai/09_archive/store/2026-06-03-share-page-client-review-ux-ui-overhaul-complete/`
 - Acceptance criterion: `AC-HYDRATION-001` in `01_REQUIREMENTS_AND_ACCEPTANCE_CRITERIA.md`
 - Implementation step: Phase 2 - Fix Hydration Mismatch in `04_IMPLEMENTATION_SEQUENCE.md`
+
+
+## Resolution Evidence (2026-06-03)
+
+CLOSED (local implementation verified 2026-06-03) — deterministic SVG number/path rounding is implemented in `src/lib/charts/svg-rounding.ts` and applied in `CostDonutChart`. Verified by hydration regression test, full validation, and production build.
+
+Validation: `bun run validate` (typecheck + ESLint + design-system + unit + 172 Vitest DOM files: 1318 passed / 2 skipped), `bun run build` (Next.js 16.2.6 production build), targeted share/publication suites (77/77), CRG detect_changes risk 0.55/no affected flows, and GitNexus detect-changes medium risk (12 files, 94 symbols, 2 GET/POST flows).

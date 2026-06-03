@@ -55,7 +55,7 @@ No server-side decision state loading is implemented in the share page decision 
 
 ## Relationship to Current Plan
 
-Directly addressed by Phase 5 (State & Data Loading) in `.ai/03_plans/2026-06-03-share-page-client-review-ux-ui-overhaul/04_IMPLEMENTATION_SEQUENCE.md`. Acceptance criterion `AC-FUNC-009` (SHOULD priority) covers this. However, this is currently marked SHOULD not MUST — making it technically optional despite being an important UX fix and trust concern.
+Directly addressed by Phase 5 (State & Data Loading) in `.ai/09_archive/store/2026-06-03-share-page-client-review-ux-ui-overhaul-complete/04_IMPLEMENTATION_SEQUENCE.md`. Acceptance criterion `AC-FUNC-009` (SHOULD priority) covers this. However, this is currently marked SHOULD not MUST — making it technically optional despite being an important UX fix and trust concern.
 
 Note: `AC-FUNC-003` is marked MUST ("Decision state is maintained on page reload") but this contradicts the SHOULD priority of `AC-FUNC-009` ("Prior decision state loads and displays on page reload"). These two ACs describe the same requirement at different priority levels.
 
@@ -80,12 +80,19 @@ Note: `AC-FUNC-003` is marked MUST ("Decision state is maintained on page reload
 
 ## Status
 
-**Open** — requires implementation during share page overhaul (Phase 5, Step 5.2)
+**CLOSED (local implementation verified 2026-06-03) — additive `GET /api/share/[token]/decision`, `loadSharedLinkRecipientDecision`, and `SharePageDecision` mount loading now display prior recipient decisions after reload. Verified by GET contract tests, decision tests, full validation, and production build.**
 
 ## References
 
-- Plan folder: `.ai/03_plans/2026-06-03-share-page-client-review-ux-ui-overhaul/`
+- Plan folder: `.ai/09_archive/store/2026-06-03-share-page-client-review-ux-ui-overhaul-complete/`
 - Acceptance criteria: `AC-FUNC-003` (MUST) and `AC-FUNC-009` (SHOULD) in `01_REQUIREMENTS_AND_ACCEPTANCE_CRITERIA.md`
 - Implementation step: Phase 5, Step 5.2 in `04_IMPLEMENTATION_SEQUENCE.md`
 - UX audit issue: UX-011 in `14_SHARE_PAGE_UX_AUDIT.md`
 - Codebase research gap: `02_CODEBASE_RESEARCH.md` line 227
+
+
+## Resolution Evidence (2026-06-03)
+
+CLOSED (local implementation verified 2026-06-03) — additive `GET /api/share/[token]/decision`, `loadSharedLinkRecipientDecision`, and `SharePageDecision` mount loading now display prior recipient decisions after reload. Verified by GET contract tests, decision tests, full validation, and production build.
+
+Validation: `bun run validate` (typecheck + ESLint + design-system + unit + 172 Vitest DOM files: 1318 passed / 2 skipped), `bun run build` (Next.js 16.2.6 production build), targeted share/publication suites (77/77), CRG detect_changes risk 0.55/no affected flows, and GitNexus detect-changes medium risk (12 files, 94 symbols, 2 GET/POST flows).

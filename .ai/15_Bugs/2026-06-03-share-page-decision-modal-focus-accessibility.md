@@ -82,10 +82,17 @@ The plan's Phase 6 (Accessibility & Mobile) includes Step 6.1: "Ensure confirmat
 
 ## Status
 
-**Open** — requires implementation during share page overhaul (Phase 6, Step 6.1)
+**CLOSED (local implementation verified 2026-06-03) — `SharePageDecision` now includes dialog focus trapping, Escape close, focus restoration, `aria-modal`, and first-focus handling. Verified by focused decision tests and full validation.**
 
 ## References
 
-- Plan folder: `.ai/03_plans/2026-06-03-share-page-client-review-ux-ui-overhaul/`
+- Plan folder: `.ai/09_archive/store/2026-06-03-share-page-client-review-ux-ui-overhaul-complete/`
 - UI/UX plan: `07_UI_UX_AND_ACCESSIBILITY_PLAN.md` lines 216-241
 - Implementation step: Phase 6, Step 6.1 in `04_IMPLEMENTATION_SEQUENCE.md`
+
+
+## Resolution Evidence (2026-06-03)
+
+CLOSED (local implementation verified 2026-06-03) — `SharePageDecision` now includes dialog focus trapping, Escape close, focus restoration, `aria-modal`, and first-focus handling. Verified by focused decision tests and full validation.
+
+Validation: `bun run validate` (typecheck + ESLint + design-system + unit + 172 Vitest DOM files: 1318 passed / 2 skipped), `bun run build` (Next.js 16.2.6 production build), targeted share/publication suites (77/77), CRG detect_changes risk 0.55/no affected flows, and GitNexus detect-changes medium risk (12 files, 94 symbols, 2 GET/POST flows).

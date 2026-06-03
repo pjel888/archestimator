@@ -52,7 +52,7 @@ The badge was added during development for debugging bucket computation and was 
 
 ## Relationship to Current Plan
 
-This bug is directly related to `AC-VISUAL-005` ("No visible developer/debug artifacts") in `.ai/03_plans/2026-06-03-share-page-client-review-ux-ui-overhaul/01_REQUIREMENTS_AND_ACCEPTANCE_CRITERIA.md`. It is a blocking quality issue for the share page UX/UI overhaul.
+This bug is directly related to `AC-VISUAL-005` ("No visible developer/debug artifacts") in `.ai/09_archive/store/2026-06-03-share-page-client-review-ux-ui-overhaul-complete/01_REQUIREMENTS_AND_ACCEPTANCE_CRITERIA.md`. It is a blocking quality issue for the share page UX/UI overhaul.
 
 ## Proposed Fix Plan
 
@@ -68,10 +68,17 @@ This bug is directly related to `AC-VISUAL-005` ("No visible developer/debug art
 
 ## Status
 
-**Open** — requires implementation during share page overhaul (Phase 3: Language & Artifacts in plan sequence)
+**CLOSED (local implementation verified 2026-06-03) — the visible `🍩 buckets:` debug badge was removed from `CostDonutChart`; regression tests assert the public chart output contains no debug badge text/emoji.**
 
 ## References
 
-- Plan folder: `.ai/03_plans/2026-06-03-share-page-client-review-ux-ui-overhaul/`
+- Plan folder: `.ai/09_archive/store/2026-06-03-share-page-client-review-ux-ui-overhaul-complete/`
 - Acceptance criterion: `AC-VISUAL-005` in `01_REQUIREMENTS_AND_ACCEPTANCE_CRITERIA.md`
 - Related: `.ai/15_Bugs/2026-06-03-share-page-cost-donut-chart-hydration-mismatch.md` (same component, different issue)
+
+
+## Resolution Evidence (2026-06-03)
+
+CLOSED (local implementation verified 2026-06-03) — the visible `🍩 buckets:` debug badge was removed from `CostDonutChart`; regression tests assert the public chart output contains no debug badge text/emoji.
+
+Validation: `bun run validate` (typecheck + ESLint + design-system + unit + 172 Vitest DOM files: 1318 passed / 2 skipped), `bun run build` (Next.js 16.2.6 production build), targeted share/publication suites (77/77), CRG detect_changes risk 0.55/no affected flows, and GitNexus detect-changes medium risk (12 files, 94 symbols, 2 GET/POST flows).
