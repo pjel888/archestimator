@@ -276,6 +276,18 @@ describe("reorderEstimateTreeNodes server action", () => {
   });
 });
 
+describe("estimate sheet mass deletion server action contract", () => {
+  it("keeps bulk sheet deletion behind the preview/execute RPC pair instead of a raw table delete action", () => {
+    const actions = readFileSync(join(process.cwd(), "src/lib/estimates/actions.ts"), "utf8");
+
+    expect(actions).toContain("previewBulkDeleteEstimateSheets");
+    expect(actions).toContain("executeBulkDeleteEstimateSheets");
+    expect(actions).toContain("preview_bulk_delete_estimate_sheets");
+    expect(actions).toContain("execute_bulk_delete_estimate_sheets");
+    expect(actions).not.toContain("export async function deleteEstimateSheetsBulk");
+  });
+});
+
 describe("createEstimateNode server action", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -558,6 +570,117 @@ describe("renameEstimateNode and deleteEstimateNode server actions", () => {
     ]);
   });
 
+  it("bulk deletes deduplicated selected roots and returns planned deleted ids with refreshed tree data", async () => {
+    const estimateQuery = queryResult({ data: { id: "estimate-1", project_id: "project-1" }, error: null });
+    const nodeQuery = queryResult({
+      data: [
+        { id: "ground-floor", estimate_id: "estimate-1", parent_id: "project-scope", kind: "group" },
+        { id: "kitchen", estimate_id: "estimate-1", parent_id: "ground-floor", kind: "area" },
+      ],
+      error: null,
+    });
+    const supabase = {
+      from: vi.fn((table: string) => {
+        if (table === "estimates") return estimateQuery;
+        if (table === "estimate_nodes") return nodeQuery;
+        throw new Error(`Unexpected table ${table}`);
+      }),
+      rpc: vi.fn(async () => ({ data: { eventId: "delete-event-1" }, error: null })),
+    };
+    supabaseServerMocks.createSupabaseServerClient.mockResolvedValue(supabase);
+    repositoryMocks.getProjectEstimateTreeByEstimate
+      .mockResolvedValueOnce({
+        project: { id: "project-1" },
+        estimate: { id: "estimate-1" },
+        tree: [
+          {
+            id: "project-scope",
+            name: "Project Scope",
+            kind: "group",
+            total: "₱0.00",
+            children: [
+              {
+                id: "ground-floor",
+                name: "Ground Floor",
+                kind: "group",
+                total: "₱0.00",
+                children: [
+                  { id: "kitchen", name: "Kitchen", kind: "area", total: "₱0.00", children: [] },
+                  { id: "living", name: "Living", kind: "area", total: "₱0.00", children: [] },
+                ],
+              },
+              { id: "site-works", name: "Site Works", kind: "group", total: "₱0.00", children: [] },
+            ],
+          },
+        ],
+      })
+      .mockResolvedValueOnce({
+        project: { id: "project-1" },
+        estimate: { id: "estimate-1" },
+        tree: [
+          {
+            id: "project-scope",
+            name: "Project Scope",
+            kind: "group",
+            total: "₱0.00",
+            children: [{ id: "site-works", name: "Site Works", kind: "group", total: "₱0.00", children: [] }],
+          },
+        ],
+      });
+    const { deleteEstimateNodesBulk } = await import("@/lib/estimates/actions");
+
+    const result = await deleteEstimateNodesBulk("project-1", "estimate-1", ["ground-floor", "kitchen"]);
+
+    expect(nodeQuery.in).toHaveBeenCalledWith("id", ["ground-floor", "kitchen"]);
+    expect(supabase.rpc).toHaveBeenCalledTimes(1);
+    expect(supabase.rpc).toHaveBeenCalledWith("delete_estimate_node_with_history", {
+      target_project_id: "project-1",
+      target_estimate_id: "estimate-1",
+      target_node_id: "ground-floor",
+      acting_user_id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+      correlation_id: expect.any(String),
+    });
+    expect(result.deletedNodeIds).toEqual(["ground-floor", "kitchen", "living"]);
+    expect(result.fallbackNodeId).toBe("site-works");
+    expect(result.tree).toEqual([
+      {
+        id: "project-scope",
+        name: "Project Scope",
+        kind: "group",
+        total: "₱0.00",
+        children: [{ id: "site-works", name: "Site Works", kind: "group", total: "₱0.00", children: [] }],
+      },
+    ]);
+    expect(nextCacheMocks.revalidatePath).toHaveBeenCalledWith("/workshop/projects/project-1/estimates");
+    expect(nextCacheMocks.revalidatePath).toHaveBeenCalledWith("/workshop/projects/project-1/estimates/estimate-1");
+  });
+
+  it("rejects bulk delete when any selected node is outside the scoped estimate", async () => {
+    const estimateQuery = queryResult({ data: { id: "estimate-1", project_id: "project-1" }, error: null });
+    const nodeQuery = queryResult({
+      data: [{ id: "ground-floor", estimate_id: "estimate-1", parent_id: "project-scope", kind: "group" }],
+      error: null,
+    });
+    const supabase = {
+      from: vi.fn((table: string) => {
+        if (table === "estimates") return estimateQuery;
+        if (table === "estimate_nodes") return nodeQuery;
+        throw new Error(`Unexpected table ${table}`);
+      }),
+      rpc: vi.fn(async () => ({ data: { eventId: "delete-event-1" }, error: null })),
+    };
+    supabaseServerMocks.createSupabaseServerClient.mockResolvedValue(supabase);
+    const { deleteEstimateNodesBulk } = await import("@/lib/estimates/actions");
+
+    await expect(deleteEstimateNodesBulk("project-1", "estimate-1", ["ground-floor", "other-node"])).rejects.toThrow(
+      "Estimate tree node not found in the current project: other-node.",
+    );
+
+    expect(authMocks.requireCurrentUserContext).not.toHaveBeenCalled();
+    expect(repositoryMocks.getProjectEstimateTreeByEstimate).not.toHaveBeenCalled();
+    expect(supabase.rpc).not.toHaveBeenCalled();
+  });
+
   it("does not redirect inside rename or delete server actions", () => {
     const source = readFileSync(join(process.cwd(), "src/lib/estimates/actions.ts"), "utf8");
     const renameStart = source.indexOf("export async function renameEstimateNode");
@@ -648,6 +771,8 @@ describe("insertEstimateTemplateIntoEstimate server action", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     authMocks.requireCurrentUserContext.mockResolvedValue({ userId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa" });
+    repositoryMocks.getCurrentWorkspaceProject.mockReset();
+    repositoryMocks.getProjectEstimateTreeByEstimate.mockReset();
     repositoryMocks.getCurrentWorkspaceProject.mockResolvedValue({ project: { id: "project-1" } });
     repositoryMocks.getProjectEstimateTreeByEstimate.mockResolvedValue({
       project: { id: "project-1" },

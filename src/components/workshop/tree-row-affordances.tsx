@@ -25,6 +25,8 @@ type TreeDragHandleProps = {
 export function TreeDragHandle({ forceVisible, className }: TreeDragHandleProps) {
   return (
     <span
+      aria-hidden="true"
+      title="Drag row"
       className={cn(
         "grid size-4 shrink-0 place-items-center rounded-xs",
         "cursor-grab active:cursor-grabbing",
@@ -32,6 +34,7 @@ export function TreeDragHandle({ forceVisible, className }: TreeDragHandleProps)
         className,
       )}
       onPointerDown={(e) => e.stopPropagation()}
+      onMouseDown={(e) => e.stopPropagation()}
       onClick={(e) => e.stopPropagation()}
     >
       <DotsSixVertical size={16} weight="regular" className="text-tertiary group-hover:text-ink transition-colors" />
@@ -80,12 +83,18 @@ export function TreeSelectionCheckbox({
   );
 
   return (
-    <span className="flex items-center shrink-0" onPointerDown={(e) => e.stopPropagation()}>
+    <span
+      className="flex items-center shrink-0"
+      onClick={(e) => e.stopPropagation()}
+      onKeyDown={(e) => e.stopPropagation()}
+      onPointerDown={(e) => e.stopPropagation()}
+    >
       <input
         ref={ref}
         type="checkbox"
         checked={checked}
         disabled={disabled}
+        onClick={(e) => e.stopPropagation()}
         onChange={handleChange}
         aria-label={ariaLabel}
         className="rounded-xs size-3 accent-ink cursor-pointer"
@@ -132,6 +141,8 @@ type TreeBulkActionBarProps = {
   onClearSelection: () => void;
   /** Called when the user clicks "Delete selected". */
   onDelete: () => void;
+  /** Action label for the destructive/primary bulk action. */
+  deleteLabel?: string;
   /** When true, the delete button is disabled. */
   deleteDisabled?: boolean;
   /** Tooltip / reason shown on hover when delete is disabled. */
@@ -149,6 +160,7 @@ export function TreeBulkActionBar({
   entityLabelPlural,
   onClearSelection,
   onDelete,
+  deleteLabel = "Delete selected",
   deleteDisabled,
   disabledReason,
 }: TreeBulkActionBarProps) {
@@ -156,6 +168,7 @@ export function TreeBulkActionBar({
 
   return (
     <div
+      role="toolbar"
       aria-label="Bulk actions"
       className="flex items-center gap-2 sticky top-0 z-10 bg-surface px-3 py-2 border-b border-hairline"
     >
@@ -170,7 +183,7 @@ export function TreeBulkActionBar({
         disabled={deleteDisabled}
         title={deleteDisabled ? disabledReason : undefined}
       >
-        Delete selected
+        {deleteLabel}
       </Button>
     </div>
   );

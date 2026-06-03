@@ -47,7 +47,7 @@ Archestimator currently supports right-click rename/delete and per-row drag-and-
 ```
 WorkshopTreeRowProps additions:
 - selectionSlot?: ReactNode           // rendered BEFORE indent (far left)
-- dragHandleSlot?: ReactNode          // rendered BEFORE indent (far left)  
+- dragHandleSlot?: ReactNode          // rendered BEFORE indent (far left)
 - leadingSlot?: ReactNode             // rendered AFTER indent (for checkbox)
 - selectionMode?: boolean             // when true, checkboxes visible
 - as: "div" | "button"                // must be "div" when checkboxes active

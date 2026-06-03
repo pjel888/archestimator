@@ -5,6 +5,7 @@ import {
   type HTMLAttributes,
   type ReactNode,
   useCallback,
+  useEffect,
   useMemo,
   useState,
 } from "react";
@@ -23,6 +24,7 @@ import type { ActionMenuGroup } from "@/components/ui/action-menu";
 import { HeaderIconToolbar, type HeaderIconToolbarAddAction } from "@/components/ui/header-icon-toolbar";
 import { SearchInput } from "@/components/ui/search-input";
 import { WorkshopTreeRow, WorkshopTreeTabs } from "@/components/workshop/workshop-tree";
+import { TreeBulkActionBar, TreeDragHandle, TreeSelectionCheckbox } from "@/components/workshop/tree-row-affordances";
 import {
   WORKSHOP_TREE_ICON_SLOT_CLASS,
   WORKSHOP_TREE_ROW_GAP_CLASS,
@@ -39,6 +41,12 @@ import {
 } from "@/lib/component-library/library-folder-reorder";
 import type { EstimateRowItem } from "@/lib/estimates/types";
 import { cn } from "@/lib/ui/cn";
+import {
+  getSelectionState,
+  pruneSelection,
+  toggleCascadeSelection,
+  type TreeSelectionNode,
+} from "@/lib/bulk-selection/tree-selection";
 import { buildLibraryTreeWithComponentRows, filterTree, getAllNodeIds, LibraryTree } from "../component-library/tree";
 import { getComponentName, getComponentPrice, pesoFormatter } from "../component-library/helpers";
 import type { LibraryTreeNode } from "../component-library/tree/types";
@@ -271,6 +279,14 @@ function buildFolderTreeModel(nodes: LibraryFolderTreeNode[], itemsByFolderId: M
   return { items, folderItemIds };
 }
 
+function buildFolderSelectionNodes(nodes: LibraryFolderTreeNode[]): TreeSelectionNode[] {
+  return nodes.map((node) => ({
+    id: node.folderId,
+    selectable: !isAllComponentsFolderId(node.folderId),
+    children: buildFolderSelectionNodes(node.children ?? []),
+  }));
+}
+
 export function FolderActionIcon() {
   return <FolderSimple size={12} weight="regular" aria-hidden="true" />;
 }
@@ -325,6 +341,7 @@ type LibraryFolderTreeProps = {
   enableFolderActions?: boolean;
   enableDragAndDrop?: boolean;
   selectedTitleOnly?: boolean;
+  onDeleteFolders?: (folderIds: string[]) => boolean | void;
 };
 
 export function LibraryFolderTree({
@@ -345,6 +362,7 @@ export function LibraryFolderTree({
   enableFolderActions = true,
   enableDragAndDrop = true,
   selectedTitleOnly = false,
+  onDeleteFolders,
 }: LibraryFolderTreeProps) {
   const componentItemsByFolderId = useMemo(() => buildComponentItemsByFolderId(nodes, libraryItems), [libraryItems, nodes]);
   const filteredComponentItemsByFolderId = useMemo(
@@ -377,6 +395,35 @@ export function LibraryFolderTree({
       focusedItem: selectedItems[0],
     },
   }), [expandedItemIds, selectedItems]);
+  const folderSelectionNodes = useMemo(() => buildFolderSelectionNodes(filteredNodes), [filteredNodes]);
+  const [bulkSelectedFolderIds, setBulkSelectedFolderIds] = useState<Set<string>>(() => new Set());
+  const bulkSelectionCount = bulkSelectedFolderIds.size;
+
+  useEffect(() => {
+    let cancelled = false;
+    queueMicrotask(() => {
+      if (cancelled) return;
+      setBulkSelectedFolderIds((current) => {
+        const next = pruneSelection(folderSelectionNodes, current);
+        return next.size === current.size && [...next].every((id) => current.has(id)) ? current : next;
+      });
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [folderSelectionNodes]);
+
+  const clearBulkSelection = useCallback(() => setBulkSelectedFolderIds(new Set()), []);
+
+  const handleToggleBulkFolder = useCallback((folderId: string, checked: boolean) => {
+    setBulkSelectedFolderIds((current) => toggleCascadeSelection(folderSelectionNodes, current, folderId, checked));
+  }, [folderSelectionNodes]);
+
+  const handleDeleteSelectedFolders = useCallback(() => {
+    if (!onDeleteFolders || bulkSelectedFolderIds.size === 0) return;
+    const result = onDeleteFolders([...bulkSelectedFolderIds]);
+    if (result !== false) clearBulkSelection();
+  }, [bulkSelectedFolderIds, clearBulkSelection, onDeleteFolders]);
 
   const canDrag = useCallback((items: TreeItem<LibraryFolderTreeItemData>[]) => (
     enableDragAndDrop &&
@@ -497,7 +544,16 @@ export function LibraryFolderTree({
   }
 
   return (
-    <ControlledTreeEnvironment<LibraryFolderTreeItemData>
+    <>
+      <TreeBulkActionBar
+        selectedCount={bulkSelectionCount}
+        entityLabel="folder"
+        onClearSelection={clearBulkSelection}
+        onDelete={handleDeleteSelectedFolders}
+        deleteDisabled={disabled || !onDeleteFolders}
+        disabledReason={disabled ? "Finish the current folder save before deleting selected folders." : "Bulk folder delete is not available here."}
+      />
+      <ControlledTreeEnvironment<LibraryFolderTreeItemData>
       items={treeModel.items}
       getItemTitle={(item) => item.data.label}
       viewState={viewState}
@@ -627,12 +683,13 @@ export function LibraryFolderTree({
 
         const { className: liClassName, ...liProps } = context.itemContainerWithChildrenProps as HTMLAttributes<HTMLLIElement>;
         const { className: rowClassName, style: rowStyle, ...rowProps } = context.itemContainerWithoutChildrenProps as HTMLAttributes<HTMLDivElement>;
-        const {
-          className: buttonClassName,
-          ...interactiveProps
-        } = context.interactiveElementProps as ButtonHTMLAttributes<HTMLButtonElement>;
+        const { className: buttonClassName, ...interactiveProps } = context.interactiveElementProps as ButtonHTMLAttributes<HTMLButtonElement>;
+        delete (interactiveProps as Record<string, unknown>).type;
+        delete (interactiveProps as Record<string, unknown>).disabled;
         const selected = selectedFolderId === folderId;
         const hasChildren = Boolean(item.children?.length);
+        const isSyntheticRoot = isAllComponentsFolderId(folderId);
+        const bulkState = getSelectionState(folderSelectionNodes, bulkSelectedFolderIds, folderId);
 
         return (
           <li {...liProps} className={cn("list-none", liClassName)}>
@@ -644,17 +701,35 @@ export function LibraryFolderTree({
             >
               <div className="min-w-0 flex-1">
                 <WorkshopTreeRow
-                  {...interactiveProps}
-                  type="button"
+                  {...(interactiveProps as HTMLAttributes<HTMLDivElement>)}
+                  as="div"
                   role="treeitem"
                   aria-label={item.data.label}
                   aria-selected={selected}
                   aria-expanded={hasChildren ? context.isExpanded : undefined}
                   data-library-folder-node-id={item.index}
+                  data-library-folder-bulk-selected={bulkState.checked ? "true" : undefined}
                   depth={depth}
                   selected={selected}
+                  selectionMode={bulkSelectionCount > 0}
+                  dragHandleSlot={enableDragAndDrop && !isSyntheticRoot ? <TreeDragHandle forceVisible={bulkSelectionCount > 0} /> : undefined}
+                  leadingSlot={
+                    enableFolderActions ? (
+                      <TreeSelectionCheckbox
+                        checked={bulkState.checked}
+                        indeterminate={bulkState.indeterminate}
+                        disabled={disabled || isSyntheticRoot}
+                        aria-label={isSyntheticRoot ? `Selection disabled for ${item.data.label}` : `Select ${item.data.label}`}
+                        onChange={(event) => handleToggleBulkFolder(folderId, event.currentTarget.checked)}
+                      />
+                    ) : undefined
+                  }
                   contextMenuGroups={createActionGroups(item, hasChildren, Boolean(context.isExpanded))}
-                  className={cn("relative justify-start gap-0 focus-visible:ring-[#c8d2df] focus-visible:ring-offset-2", buttonClassName)}
+                  className={cn(
+                    "relative justify-start gap-0 focus-visible:ring-[#c8d2df] focus-visible:ring-offset-2",
+                    bulkState.checked && !selected ? "border-accent bg-accentSoft" : undefined,
+                    buttonClassName,
+                  )}
                 >
                   {arrow}
                   {selectedTitleOnly ? (
@@ -678,7 +753,8 @@ export function LibraryFolderTree({
       }}
     >
       <Tree treeId={LIBRARY_FOLDER_TREE_ID} rootItem={LIBRARY_FOLDER_TREE_ROOT_ITEM_ID} treeLabel="Library folders" />
-    </ControlledTreeEnvironment>
+      </ControlledTreeEnvironment>
+    </>
   );
 }
 
@@ -702,6 +778,7 @@ type LibraryFolderTreePickerProps = {
   onCreateFolder?: CreateLibraryFolderHandler;
   onRenameFolder?: (folderId: string, currentName: string) => void;
   onDeleteFolder?: (folderId: string, currentName: string) => void;
+  onDeleteFolders?: (folderIds: string[]) => boolean | void;
   reorderStatus?: ReorderStatus;
   treeMutationPending?: boolean;
   className?: string;
@@ -722,6 +799,7 @@ type LibraryFolderTreeSurfaceProps = {
   onCreateFolder?: CreateLibraryFolderHandler;
   onRenameFolder?: (folderId: string, currentName: string) => void;
   onDeleteFolder?: (folderId: string, currentName: string) => void;
+  onDeleteFolders?: (folderIds: string[]) => boolean | void;
   supplierNodes?: LibraryTreeNode[];
   selectedSupplierNodeId?: string;
   onSelectSupplierNode?: (nodeId: string) => void;
@@ -774,6 +852,7 @@ export function LibraryFolderTreeSurface({
   onCreateFolder,
   onRenameFolder = () => undefined,
   onDeleteFolder = () => undefined,
+  onDeleteFolders,
   supplierNodes = [],
   selectedSupplierNodeId,
   onSelectSupplierNode,
@@ -1044,6 +1123,7 @@ export function LibraryFolderTreeSurface({
             onCreateFolder={onCreateFolder ?? (() => undefined)}
             onRenameFolder={onRenameFolder}
             onDeleteFolder={onDeleteFolder}
+            onDeleteFolders={onDeleteFolders}
           />
         ) : isBrandMode ? (
           brandTree
@@ -1075,6 +1155,7 @@ export function LibraryFolderTreePicker({
   onCreateFolder,
   onRenameFolder,
   onDeleteFolder,
+  onDeleteFolders,
   reorderStatus,
   treeMutationPending,
   className,
@@ -1150,6 +1231,7 @@ export function LibraryFolderTreePicker({
       onCreateFolder={onCreateFolder}
       onRenameFolder={onRenameFolder}
       onDeleteFolder={onDeleteFolder}
+      onDeleteFolders={onDeleteFolders}
       enableFolderActions
       enableFolderDragAndDrop={false}
       showAllComponentsRoot={false}
