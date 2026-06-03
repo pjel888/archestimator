@@ -129,13 +129,16 @@ Destructive E2E gating flag:
 - `ARCHESTIMATOR_DEV_AUTH_EMAIL`
 - `NEXT_PUBLIC_SUPABASE_URL`
 - `SUPABASE_SERVICE_ROLE_KEY`
+- optional `ARCHESTIMATOR_E2E_ARTIFACT_DIR` for screenshots, JSON residue reports, and storage cleanup transcripts.
 
 Each spec must:
 
 - create isolated fixtures;
+- record fixture ids and target workspace/project ids in test-local state only;
 - avoid touching seeded demo projects unless specifically allowed;
 - clean up in `afterEach`;
-- verify residue counts for target and child tables;
+- verify residue counts for target, child, retained-audit, and storage rows/objects;
+- skip by default in CI unless all destructive flags and service-role/local-dev prerequisites are present;
 - store screenshots/logs only under an env-provided artifact dir if needed.
 
 ### Design-System Lint Checks

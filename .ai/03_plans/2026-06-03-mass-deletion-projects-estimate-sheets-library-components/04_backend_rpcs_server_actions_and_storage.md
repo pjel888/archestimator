@@ -236,7 +236,7 @@ export async function executeHardDeleteLibraryComponents(input: {
 }>>;
 ```
 
-Hard delete requires workspace owner/admin or platform admin and zero references.
+Hard delete requires `is_workspace_admin(workspace_id)` or platform admin and zero references.
 
 ## Proposed Supabase RPCs
 
@@ -330,13 +330,16 @@ $$;
 
 ## Advisory Lock Strategy
 
-Use `pg_advisory_xact_lock` per workspace and target operation:
+Use `pg_advisory_xact_lock` with two canonical lock families:
 
-- project delete: `workspace_id + ':bulk-delete-projects'`;
-- estimate delete: `project_id + ':bulk-delete-estimates'`;
-- component archive/delete: `workspace_id + ':bulk-component-lifecycle'`.
+- project graph destructive lock: one key derived from the project id, used by both project hard delete and estimate sheet hard delete for any estimate under that project;
+- component lifecycle lock: one key derived from the workspace id, used by component archive and optional component hard delete.
 
-This prevents two destructive operations from racing on the same dependency graph without globally locking the app.
+Project delete must acquire the project graph lock for every target project in sorted id order. Estimate delete must acquire the project graph lock for the supplied `projectId`. This intentionally serializes project delete and estimate delete when they can touch the same project graph.
+
+Component archive/delete uses a separate workspace lifecycle lock because it does not delete project/estimate rows. It still must block hard delete when estimate/template references exist.
+
+Do not use separate project-delete and estimate-delete advisory keys for the same project graph. That would allow overlapping destructive operations against the same child tables.
 
 ## Security Definer Requirements
 

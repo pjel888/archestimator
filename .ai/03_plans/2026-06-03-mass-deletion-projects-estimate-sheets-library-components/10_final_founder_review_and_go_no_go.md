@@ -2,13 +2,13 @@
 
 ## Final Recommendation
 
-Recommendation: **Go for implementation, phased and backend-first.**
+Recommendation: **Go for future implementation, phased and backend-first, after Phase 0 drift check.**
 
-Final readiness score: **99 / 100**.
+Final readiness score: **99.1 / 100**.
 
-The document set is implementation-ready because it replaces the original broad plan with verified codebase facts, explicit deletion/retention policy, exact backend contracts, security boundaries, UX states, test names, validation commands, operational recovery steps, and phase-by-phase entry/exit gates.
+The document set is implementation-ready because it replaces the original broad plan with verified codebase facts, explicit deletion/retention policy, exact backend contracts, security boundaries, UX states, test names, validation commands, operational recovery steps, and phase-by-phase entry/exit gates. The stale monolithic source artifact in this folder is now superseded and must not be used as an implementation surface.
 
-The remaining one-point gap is intentional: a future implementation branch must make final live decisions for audit table shape, active-publication deletion blocking, and optional hard delete availability after one final schema/type drift check. Those decisions are narrow, owned, and non-blocking for preview/backend foundation work.
+The remaining gap is intentional: a future implementation branch must make final live decisions for audit table shape, active-publication deletion blocking, and optional hard delete availability after one final schema/type drift check. Those decisions are narrow, owned, and non-blocking for preview/backend foundation work.
 
 ## What Future Implementation Should Do First
 
@@ -75,6 +75,11 @@ The remaining one-point gap is intentional: a future implementation branch must 
 | `07_performance_scalability_and_operational_plan.md` | Set-based SQL, indexes, caps, storage chunking, timeout recovery, monitoring, and rollback. |
 | `08_testing_validation_and_acceptance_plan.md` | Test matrix, concrete test filenames, E2E gating, commands, manual QA, and definitions of done. |
 | `09_phase_by_phase_implementation_backlog.md` | Future PR sequence with entry criteria, tasks, files, tests, risks, exits, and rollback. |
+| `11_verified_schema_fk_index_matrix.md` | Compact schema/FK/index matrix for implementation drift checks. |
+| `12_publication_and_collaboration_deletion_policy.md` | Shared-link, publication, collaboration, invite, and audit retention policy. |
+| `13_storage_cleanup_and_audit_outbox_strategy.md` | Non-transactional storage cleanup, warning, audit, and retry policy. |
+| `14_future_implementation_agent_checklist.md` | Next-agent checklist and phase gates. |
+| `15_red_team_failure_modes_and_safeguards.md` | Hostile failure modes and required safeguards. |
 
 ## Final Open Decisions
 
@@ -82,6 +87,7 @@ The remaining one-point gap is intentional: a future implementation branch must 
 |---|---|---|---|---|
 | Mass deletion audit table shape | Add a dedicated `mass_deletion_events` table or similarly narrow governance audit table. | Technical founder / backend implementer | Blocking before Phase 2 execution | The plan should not invent a runtime table in docs-only mode; implementation must create the real migration. |
 | Active publication handling for estimate sheet deletion | Block deletion when active publications include target estimate ids; allow after unpublish/revoke. | Product + backend implementer | Blocking before Phase 2 execution | This is the safest beta default, but product may later choose snapshot-retention plus source detachment. |
+| Project delete authority | Require `can_manage_project_access(project_id)` or stricter owner/admin/platform policy; never rely on generic `can_edit_project`. | Security reviewer + backend implementer | Blocking before Phase 2 execution | Current single-project delete lacks explicit hardened authority checks, and destructive project deletion can remove broad graph state. |
 | Optional component hard delete availability | Defer UI exposure until archive is proven; allow backend only for admin/unreferenced cleanup if approved. | Product owner | Non-blocking for Phases 1-5 | Archive delivers the main value safely. Hard delete is useful but not required for MVP. |
 | Storage cleanup retry surface | Store warning in audit event first; add admin retry queue only if failures occur in beta. | Technical founder / operations | Non-blocking for Phase 2 if warning path exists | A durable queue may be overbuilt for closed beta unless object deletion failures are frequent. |
 
@@ -111,13 +117,7 @@ No-go for UI exposure when:
 
 ## Commit And Push Status
 
-This planning document intentionally keeps repository closeout metadata as a placeholder so the document remains reusable after later implementation phases.
-
-| Field | Value |
-|---|---|
-| Docs-only plan commit hash | Recorded in the external closeout report for this planning pass. |
-| Docs-only plan branch | Recorded in the external closeout report for this planning pass. |
-| Docs-only plan push status | Recorded in the external closeout report for this planning pass. |
+This file intentionally does not hardcode the final commit hash because the hash is only known after validation and commit. Immutable closeout evidence lives in git history after this audit is committed and pushed; future agents should verify it with `git log -1 --stat`, `git show --name-only <commit>`, and `git status --short`.
 
 ## Final Non-Implementation Statement
 

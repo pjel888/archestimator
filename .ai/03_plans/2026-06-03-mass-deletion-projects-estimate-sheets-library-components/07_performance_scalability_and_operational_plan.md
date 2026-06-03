@@ -123,17 +123,19 @@ Mitigations:
 
 | Risk | Strategy |
 |---|---|
-| Two bulk deletes target same project. | advisory transaction lock by workspace/project operation and idempotency. |
+| Two destructive operations touch the same project graph. | one shared project-graph advisory transaction lock used by both project delete and estimate sheet delete. |
 | User confirms preview while publication is created. | execution reruns preview and blocks. |
 | Component archive while estimate insertion reads dataset. | archive is state update; insertion RPC/server action must reject archived source ids after Phase 4 filtering. |
 | Estimate delete while row mutation is in flight. | database FK delete wins; row mutation returns not found/conflict and UI refreshes. |
 
 ## Locking Strategy
 
-- Use `pg_advisory_xact_lock` for operation-level locks.
+- Use `pg_advisory_xact_lock` for canonical project-graph and component-lifecycle locks.
 - Use `SELECT ... FOR UPDATE` on target rows during execution after eligibility resolution.
 - Do not lock entire workspace tables.
 - Keep transaction short: no storage cleanup or route revalidation inside transaction.
+- Project delete and estimate sheet delete must share the same project-id-derived lock family so they cannot overlap on the same project graph.
+- Component archive and optional component hard delete may use a workspace-id-derived component lifecycle lock because they do not delete project/estimate rows.
 
 ## Monitoring And Logging Recommendations
 

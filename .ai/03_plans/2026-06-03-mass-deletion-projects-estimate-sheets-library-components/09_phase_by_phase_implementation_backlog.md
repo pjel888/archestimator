@@ -441,7 +441,7 @@ Tasks:
 - Add execution action and RPC:
   - `executeHardDeleteLibraryComponents`;
   - `execute_hard_delete_library_components`.
-- Require workspace owner/admin or platform admin.
+- Require `is_workspace_admin(workspace_id)` or platform admin.
 - Block any item referenced by estimate rows or template rows.
 - Delete storage only from DB-derived `cost_library_items.image_path` / attachment paths and only from allowed buckets:
   - `component-images`;
