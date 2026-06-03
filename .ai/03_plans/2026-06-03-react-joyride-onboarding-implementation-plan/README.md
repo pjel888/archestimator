@@ -68,27 +68,28 @@ Every planning document in this folder must score **98+ on the quality scorecard
 
 ## Documents in This Folder
 
-1. `00_executive_summary.md` — sharp executive summary: why React Joyride, why scoped to /workshop, recommended architecture, biggest risk, first safe slice.
-2. `01_product_scope_and_non_goals.md` — detailed product scope, user jobs, tour sequencing, and explicit non-goals with reasoning.
-3. `02_react_joyride_evaluation.md` — React Joyride library evaluation: API surface, React 19/Next.js 16 compatibility analysis, alternatives considered, and selection rationale.
-4. `03_tour_registry_and_target_system.md` — tour key constants, versioning strategy, `data-tour` attribute system, target constant definitions, and route-scoped tour mapping.
-5. `04_architecture_and_component_tree.md` — feature folder layout, component hierarchy (`OnboardingRuntime`, `OnboardingProvider`, `OnboardingTooltip`), hooks, services, and types.
-6. `05_tour_definitions_and_step_sequences.md` — detailed step definitions for Workspace Orientation (MVP), project creation, estimate sheet, and component library tours.
-7. `06_persistence_and_supabase_schema.md` — `user_onboarding_tours` table design, RLS policies, Supabase client integration, and migration strategy.
-8. `07_feature_flag_and_lazy_loading.md` — `NEXT_PUBLIC_ONBOARDING_TOURS_ENABLED` flag, dynamic import strategy, client-only guard, and bundle-size impact analysis.
-9. `08_custom_tooltip_and_design_system.md` — tooltip styling specification (design-system compliant), skip/dismiss UX, progress indicators, and accessibility requirements.
-10. `09_replay_and_state_reset.md` — manual tour replay trigger, state reset flows, Settings/Help menu integration, and user-initiated restart behavior.
-11. `10_route_scoping_and_public_boundary.md` — why onboarding runtime must NOT bundle into public routes, `WorkshopPageShell` integration point, and public-route safety analysis.
-12. `11_security_and_rls_plan.md` — RLS design for `user_onboarding_tours`, server-authority over completion state, and protection against client-side state manipulation.
-13. `12_performance_and_bundle_impact.md` — lazy-load analysis, Joyride bundle size, tooltip render cost, and performance budget for onboarding runtime.
-14. `13_blast_radius_and_rollback.md` — affected source files, dependency graph analysis, risk assessment, and rollback strategy per phase.
-15. `14_test_strategy.md` — unit, DOM, and E2E test strategy. Coverage targets, test fixtures, and Playwright integration for tour flows.
-16. `15_accessibility_and_i18n_readiness.md` — WCAG compliance for tooltips, keyboard navigation, screen-reader announcements, and i18n extension points.
-17. `16_migration_and_database_plan.md` — phased database migration plan, schema evolution strategy, and backward-compatibility for tour version changes.
-18. `17_ux_edge_cases_and_error_states.md` — loading states, error boundaries, session expiry during tour, concurrent tab behavior, and mobile/tablet touch behavior.
-19. `18_stakeholder_review_and_approval.md` — review checklist, go/no-go criteria, and approval record template.
-20. `19_implementation_handoff_checklist.md` — agent-ready implementation checklist for each phase, validation gates, and verification commands.
-21. `20_quality_scorecard.md` — per-document quality scoring rubric (98+ target) and final certification checklist.
+1. `README.md` — this file: project overview, scope, non-goals, implementation sequence, and document index.
+2. `00_executive_summary.md` — sharp executive summary: what should be built, why React Joyride, scoped to /workshop, recommended architecture, biggest risk, first safe slice.
+3. `01_codebase_audit.md` — verified stack, routing model, auth model, database, app shell, all key components inspected, design system constraints, z-index layer analysis, 40-row audit evidence table.
+4. `02_onboarding_research_and_principles.md` — research-backed onboarding principles, React Joyride planning notes, anti-patterns table, ArchEstimator onboarding philosophy, principles-to-rules mapping.
+5. `03_recommended_architecture.md` — feature folder structure (`src/features/onboarding/`), provider/runtime placement, tour registry, target strategy, persistence, SSR/CSR boundary, lazy-loading, feature flag, replay mechanism.
+6. `04_implementation_matrix.md` — 14-surface matrix with columns for route, user objective, existing file, tour key, data-tour targets, source changes, risk level, and MVP/Later decisions.
+7. `05_file_change_map.md` — 48 files mapped across 7 phases: every new and modified file with path, purpose, dependencies, risk level, and test coverage needs.
+8. `06_onboarding_flow_spec.md` — 11-state machine (idle → loadingUser → ... → completed/skipped/errored), 14 behavior specs, persistence status values, versioned tour behavior.
+9. `07_tour_registry_and_targeting_plan.md` — 4 tour keys, 29 data-tour target constants with component ownership, route-aware registration, target availability rules, selector drift prevention.
+10. `08_database_and_persistence_plan.md` — `user_onboarding_tours` table schema, RLS policies, server actions, TanStack Query strategy, migration naming plan, security implications.
+11. `09_ui_ux_analysis.md` — first-run journey map, UI decision matrix (tooltip style, overlay, beacon, segmentation), z-index strategy, mobile/modal/empty-state integration, replay strategy.
+12. `10_copywriting_and_step_content.md` — 4 tour segments (Workspace Orientation, Project Creation, Estimate Sheet, Component Library), 18 steps with title, body, target selector, placement, route.
+13. `11_accessibility_plan.md` — keyboard navigation, Escape/skip behavior, focus trap/restoration, screen reader announcements, reduced motion, WCAG AA compliance, 25 acceptance criteria.
+14. `12_security_and_privacy_analysis.md` — data stored/not stored, RLS policy checklist, cross-user access prevention, server action authorization, abuse cases, public/share route exclusion.
+15. `13_performance_and_bundle_analysis.md` — React Joyride bundle impact (~20-25KB gzipped), lazy-loading strategy, client-only import, hydration, Suspense coordination, TanStack Query caching, performance acceptance criteria.
+16. `14_blast_radius_analysis.md` — all files/routes/DB/auth flows touched, severity/likelihood/mitigation table per area, 7 safe implementation slices, rollback strategy.
+17. `15_testing_and_qa_plan.md` — 8 Vitest files (~63 tests), 4 Playwright specs, 17 edge cases, manual QA checklists, accessibility/mobile/regression checklists.
+18. `16_rollout_and_readiness_plan.md` — readiness checklist, 7-phase rollout (weeks 1-4), feature flag spec, closed beta integration, monitoring, 3-tier rollback, launch criteria.
+19. `17_risks_decisions_and_open_questions.md` — 13 risks with severity/likelihood/mitigation, 6 open questions (3 blocking, 3 non-blocking), decision log.
+20. `18_phase_backlog_for_future_implementation.md` — 7 implementation phases (Phase 0-7) with entry criteria, file lists, task sequences, acceptance criteria, tests, risks, and rollback per phase.
+21. `19_quality_review_scorecard.md` — self-scoring of all 21 docs across 10 criteria (codebase specificity, implementation readiness, accuracy, strategic clarity, UX, security, performance, accessibility, testability, maintainability).
+22. `FINAL_REPORT.md` — task summary, folder path, files created, branch/commit/push status, major findings, quality score table, unresolved questions, next action.
 
 ## Recommended Next Action
 
