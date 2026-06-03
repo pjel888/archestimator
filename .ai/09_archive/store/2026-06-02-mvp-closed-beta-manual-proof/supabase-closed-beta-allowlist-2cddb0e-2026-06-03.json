@@ -1,0 +1,38 @@
+{
+  "checkedAtUtc": "2026-06-03T17:46:09.519Z",
+  "projectRef": "ebxxqidacheyapmmzavr",
+  "allowlistMutation": {
+    "targetEmail": "philipjonlewis@gmail.com",
+    "targetStatus": "active",
+    "revokedOtherActiveRows": 0
+  },
+  "currentAllowlist": {
+    "rowCount": 1,
+    "activeOrInvitedCount": 1,
+    "rows": [
+      {
+        "normalized_email": "philipjonlewis@gmail.com",
+        "status": "active"
+      }
+    ]
+  },
+  "rpcSmoke": {
+    "allowed": {
+      "email": "philipjonlewis@gmail.com",
+      "allowed": true,
+      "status": "active"
+    },
+    "deniedMissing": {
+      "email": "notallowed@example.com",
+      "allowed": false,
+      "status": "missing"
+    },
+    "revokedTransactional": {
+      "email": "revoked-smoke@example.com",
+      "allowed": false,
+      "status": "revoked",
+      "persisted": false
+    }
+  },
+  "note": "RPC smoke used transaction-local JWT claims and rolled back the revoked test row."
+}

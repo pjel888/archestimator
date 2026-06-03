@@ -38,6 +38,27 @@ Current consolidated packet: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-ma
 | Demo rehearsal | Screenshots, exported workbook, fallback script, rehearsal note | Demo can be shown without Ask Flip, payments, raw debug data, or provider dashboards; fallback artifacts are ready. | Partial/local fallback: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/demo-rehearsal-fallback-pack-2026-06-02.md` assembles seed anchors, component/template screenshots, template insertion proof, workbook artifact, and a fallback script. Live rehearsal, hosted account, spreadsheet-app workbook proof, target-environment screenshots, and owner demo sign-off remain missing. |
 | Current manual E2E smoke | Browser smoke log across login, project, estimate, library, template, unlink, export, logout | Core closed-beta journey works in target hosted environment with no local-only assumptions. | Partial/local: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/current-local-e2e-smoke-2026-06-02.md` records signed-out auth plus local dev-auth library/template/template-insert smoke with artifacts. `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/full-local-e2e-refresh-bb9006d-2026-06-02.md` records `PLAYWRIGHT_PORT=3020 bun run test:e2e -- --project=chromium` passing 9 ungated checks with 24 env-gated/live-provider specs skipped, retiring the stale local port-conflict blocker. Hosted login, allowlist, unlink/export, logout/session expiry, and target-environment journey remain missing. |
 
+## Provider Ops Mutation Update - 2026-06-03
+
+Artifact: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/provider-ops-mutation-pass-2cddb0e-2026-06-03.md`.
+
+- Vercel env moved from blocked to partial: `vercel-env-readiness-2cddb0e-2026-06-03.json` reports core closed-beta runtime and invite env-name coverage ready, but email delivery remains missing `RESEND_WEBHOOK_SECRET`, and deployment/alias/rollback proof remains open.
+- Supabase Auth URL configuration moved from unverified to partial: hosted Site URL and HTTPS redirects were repaired in Supabase, but Google Cloud dashboard proof and hosted allowed/denied/revoked smoke remain open.
+- Supabase backup/PITR remains blocked: `supabase-backup-readiness-2cddb0e-2026-06-03.json` reports zero listed backups, `pitrEnabled=false`, and no restore drill; linked migrations were not applied.
+- Linked migrations remain blocked: `supabase db push --linked --dry-run` still refuses due remote migration versions missing locally, so a deliberate repair/apply pass is required after backup/PITR proof.
+- Resend/email remains blocked: DKIM, `send.contact` SPF, and apex DMARC TXT were confirmed, but Resend remains pending, MX/webhook proof is missing, and `RESEND_WEBHOOK_SECRET` is not configured.
+- Support/monitoring remains blocked: `support-email-dns-readiness-refresh-2cddb0e-2026-06-03.json` now sees DMARC but still fails because apex SPF is absent; monitored inbox/table review and alert ownership proof remain missing.
+
+## Cheaper-Path Launch Update - 2026-06-03
+
+Artifact: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/provider-ops-mutation-pass-2cddb0e-2026-06-03.md`.
+
+- Supabase PITR intentionally remains disabled after the 7-day dashboard option showed `$100.00 / month`; cheaper-path proof uses Pro daily physical backup evidence plus an off-repo logical dump bundle. Artifact: `supabase-cheaper-backup-readiness-2cddb0e-2026-06-03.json`.
+- Exact linked migrations `20260601145000` through `20260603160000` were applied without broad `db push`, and remote migration history now includes the exact local versions. Artifact: `supabase-linked-migrations-applied-cheaper-path-2cddb0e-2026-06-03.json`.
+- Closed-beta allowlist now has exactly one active/invited email: `philipjonlewis@gmail.com`. Allowed, missing, and transaction-local revoked RPC checks behaved as expected. Artifact: `supabase-closed-beta-allowlist-2cddb0e-2026-06-03.json`.
+- Vercel production deployment `dpl_Cxeq5ATpif6Yk1zn4FmNmnX7nzhT` is `READY`; `archestimator.com` and `www.archestimator.com` alias to it; `www` serves the beta app title and `/api/health` returns app health JSON. Artifacts: `vercel-env-readiness-cheaper-path-2cddb0e-2026-06-03.json`, `vercel-health-readiness-cheaper-path-2cddb0e-2026-06-03.json`, `vercel-production-readiness-cheaper-path-2cddb0e-2026-06-03.json`, and `vercel-hosted-http-smoke-cheaper-path-2cddb0e-2026-06-03.json`.
+- Still open: real browser Google OAuth allowed/denied/revoked hosted smoke, Vercel rollback drill, Resend MX/sending-domain completion, legal/owner signoff, support/alert monitoring proof, hosted authenticated export, hosted feedback review, and full hosted beta journey.
+
 ## Minimum Evidence Packet
 
 Before changing the launch decision, add a subsection to `14-evidence-index.md` with:

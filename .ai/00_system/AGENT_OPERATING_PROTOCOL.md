@@ -24,6 +24,9 @@ Make Archestimator safe for multi-agent work from day one.
 6. Verify with evidence before claiming completion.
 7. Update `.ai` state/docs when a durable decision or project reality changes.
 
+For agent-framework, payload, harness, multi-agent, evidence, provider-proof,
+or run-log work, also follow `.ai/00_system/AGENT_FRAMEWORK_PROTOCOL.md`.
+
 ## Mandatory self-diagnostic trigger
 
 If Philip says the agent is getting worse, confused, stale, not following instructions, or repeating mistakes, stop the normal workflow and run `.ai/00_system/AGENT_SELF_DIAGNOSTIC_PROTOCOL.md` before planning or coding. This is not optional cleanup; it is the recovery path for protecting project quality.
@@ -70,6 +73,10 @@ Default roles:
 - For symbol edits, follow the repo's graph/GitNexus impact-analysis rule before modifying functions, classes, methods, or exported API boundaries.
 - Archestimator Supabase/Postgres is active only for project `ebxxqidacheyapmmzavr`; never touch SlateCamp resources.
 - AI capability is currently Ask-only unless Philip explicitly approves a wider slice. No Draft/Apply, write tools, retrieval/RAG, or stored conversation features may be added by implication.
+- Tool-specific adapter files (`CLAUDE.md`, `GEMINI.md`, `.agents/`,
+  `.claude/`, `.codex/`, `.cursor/`, `.gemini/`, `.commandcode/`) must stay
+  subordinate to `.ai/00_system` and `.ai/12_agents`. They may point to `.ai`;
+  they must not fork policy.
 
 ## UI implementation contract
 

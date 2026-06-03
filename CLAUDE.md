@@ -10,7 +10,10 @@ Primary Claude role:
 - edge-case review
 - proposal/package/spec quality review
 
-Implementation baseline is now Next.js + Bun with local-first JSON data and repository boundaries for future Supabase/Postgres migration. Keep recommendations aligned with `DESIGN.md` and `.ai/10_state/decisions.md`.
+Implementation baseline is now Next.js + Bun with Supabase/Postgres,
+TanStack Query, Zustand, and repository boundaries. Keep recommendations
+aligned with `DESIGN.md`, `.ai/00_system/AGENT_FRAMEWORK_PROTOCOL.md`, and
+`.ai/10_state/decisions.md`.
 
 <!-- gitnexus:start -->
 # GitNexus — Code Intelligence

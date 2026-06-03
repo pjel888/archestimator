@@ -4,7 +4,18 @@
 
 These are plan-readiness scores, not implementation completion. 100% is prohibited while known gaps remain.
 
-## Summary
+## 2026-06-04 Phase 1A implementation score
+
+| Area | Score/status | Evidence |
+|---|---:|---|
+| Phase 1A repo-local implementation | 98 | Framework protocol, payloads, templates, skills, adapters, state/log/bug updates implemented locally |
+| Phase 1B Notion mirror | Pending | Requires Phase 1A commit hash before mutation/mirror proof |
+| Global enforcement | Not ready | Dry-runs/evals and approval still required |
+| Closed beta launch | Partial provider proof | Cheaper path artifacts exist; hosted OAuth/legal/support/rollback gaps remain |
+
+Overall current status: `PHASE_1A_REPO_LOCAL_IMPLEMENTED_PENDING_FINAL_COMMIT_AND_PHASE_1B_NOTION`.
+
+## Original plan-readiness summary
 
 | Area | Score/status | Evidence |
 |---|---:|---|
@@ -30,4 +41,7 @@ Notion is not mutated in this task; Notion drift exists; GitNexus CLI fails; Her
 
 ## Final pass/fail decision
 
-`READY_FOR_PHASE_1A_AND_PHASE_1B_IMPLEMENTATION` as a plan package. Not Phase 1 implemented. Not Phase 1 complete. Not globally enforced. Not beta-ready.
+Original plan decision was `READY_FOR_PHASE_1A_AND_PHASE_1B_IMPLEMENTATION` as
+a plan package. The current implementation pass supersedes that plan-only
+status for Phase 1A repo-local artifacts, but not for Phase 1B Notion mirror,
+global enforcement, or beta readiness.

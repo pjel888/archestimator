@@ -1,7 +1,29 @@
 # Decisions
 
+## 2026-06-03 - Agentic framework Phase 1A/1B archived after Notion mirror
+
+**Decision:** Treat the repo-local agentic development framework rollout as complete for Phase 1A/1B after commit `539e32a`, branch push, and Notion mirror creation under Archestimator Homebase.
+
+**Rationale:** The framework is documentation/payload/playbook enforcement only; global provider/GitHub ruleset enforcement would be a separate higher-risk change.
+
+**Follow-up:** Do not claim closed-beta launch ready until hosted Google OAuth, Resend sending-domain, rollback drill, and owner/legal/support monitoring gates close.
+
 ## Confirmed active decisions
 
+- 2026-06-03 — Closed-beta backup/DR cost posture: do not enable Supabase PITR
+  for the pre-launch MVP while the dashboard price is about `$100/month`.
+  Use the cheaper beta path instead: keep PITR disabled, preserve Supabase
+  physical backups, create off-repo logical backup bundles before linked
+  migrations, record only sanitized metadata/hashes in `.ai`, and do not run
+  broad `supabase db push` while migration history has drift. This is a
+  practical MVP compromise, not enterprise DR readiness.
+- 2026-06-03 — Agentic framework Phase 1A implementation is repo-local only.
+  `.ai/00_system/AGENT_FRAMEWORK_PROTOCOL.md`, `.ai/12_agents/payloads`,
+  `.ai/08_prompts/templates`, `.ai/11_skills`, and thin adapter README files are
+  the enforcement surfaces. Hermes remains unapproved, Cursor conditional,
+  Gemini deprecated, and Ollama non-agent/embeddings-only. Phase 1B Notion
+  mirror must wait for the Phase 1A commit hash; global enforcement and GitHub
+  rulesets remain deferred.
 - 2026-06-03 — `/workshop/projects` access IA is now two first-class tabs, not the previous conditional `All / Owned / Shared` filter. `Your Projects` is defined strictly as `accessKind === "owned"`; `Projects shared to you` is defined as every non-owned access kind, including project-member, sheet-member, and pending-invite cards. Tabs should stay in `WorkshopCollectionLayout.toolbarPanel`, search should scope to the active tab, shared-only users may default to the shared tab, and delete preview authorization must continue using the full project list rather than only the visible tab. Non-owned shared favorites are intentionally suppressed until a dedicated shared-favorite data model and authorization design is approved. Local validation passed on 2026-06-03; this is not hosted/manual shared-user proof.
 - 2026-06-03 — **Share Page Client Review UX/UI Overhaul — Philip Approved:** Philip approved the lightweight GET route strategy (Option 1 in `24_API_CONTRACT_PLAN.md`) for comment/decision state loading on 2026-06-03. All blocking decisions resolved. Plan status upgraded from `NEEDS_HUMAN_DECISION` to `READY_FOR_IMPLEMENTATION` at 98% readiness. Plan folder: `.ai/03_plans/2026-06-03-share-page-client-review-ux-ui-overhaul/`. No code changes — planning only. (Supersedes the second-pass and first-pass decision entries below.)
 - 2026-06-02 — MVP closed beta repo-local implementation is frozen at `6ab5b38` for the deferred-provider scope. Do not keep adding local code for launch readiness unless a newly discovered repo-local defect appears. The next pass should continue with external/provider/manual proof gates and evidence orchestration: Vercel env/custom-domain/rollback, hosted auth allow/deny/revoke, linked Supabase migrations/RLS/storage/RPC/backup/PITR, Resend delivery/webhooks, spreadsheet-app open/print, legal/owner signoff, support/alert monitoring, and hosted/manual E2E. Closed beta remains NO-GO until those gates pass.
@@ -184,7 +206,7 @@ Directive: Future share receiver changes must preserve password and recipient-se
 
 ## 2026-06-03 — Agentic-Driven Development rollout planning baseline
 
-Decision: Use `.ai/03_plans/2026-06-03-agentic-development-framework-rollout/` as the planning package for a future ADD operating framework. Recommended branch model is Option A: keep `main` as protected production/default branch, add `beta` as closed-beta/staging branch after approval, keep `dev` optional and not created by default, and use short-lived `feat/*`, `fix/*`, `hotfix/*`, and `release/*` branches. `.ai` remains canonical implementation truth; Notion is mirror-only.
+Decision: Use `.ai/09_archive/store/2026-06-03-agentic-development-framework-rollout/` as the planning package for a future ADD operating framework. Recommended branch model is Option A: keep `main` as protected production/default branch, add `beta` as closed-beta/staging branch after approval, keep `dev` optional and not created by default, and use short-lived `feat/*`, `fix/*`, `hotfix/*`, and `release/*` branches. `.ai` remains canonical implementation truth; Notion is mirror-only.
 
 Constraint: Planning task only; no production source, dependency, migration, provider, GitHub protection, branch, or direct Notion mutation was in scope.
 Rejected: separate `production` branch with `main` as integration | too much branch/CI/provider migration risk before beta proof is stable.
