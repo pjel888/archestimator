@@ -45,6 +45,25 @@ Pass if: referenced paths exist, diffs are docs-only for this task, `git diff --
 ## Strongest alternative verification
 If a test command is blocked by environment, record exact error, use narrower checks, and create a bug/blocker plan. Do not mark implementation complete from blocked validation.
 
+## 2026-06-04 Phase 1A verification
+
+Because Phase 1A changed only docs, payloads, prompt templates, playbooks, and
+thin adapter docs, no production app tests were required. Verification performed
+before final commit:
+
+- Payload schema scan: all role payloads except README reported 15 required
+  headings.
+- New framework/payload/template/playbook files ASCII scan: no non-ASCII
+  characters.
+- `git diff --check`: passed.
+
+Remaining required before final report:
+
+- code-review-graph detect changes.
+- final `git status --short`, `git diff --stat`, and `git diff --check`.
+- Phase 1A commit/push.
+- Phase 1B Notion mirror or blocker after commit hash exists.
+
 ---
 
 ## 2026-06-03 Phase 1A/1B hard-gate refinement

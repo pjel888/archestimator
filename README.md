@@ -7,11 +7,11 @@ Contractor-first construction estimating, proposal, and collaboration workspace 
 | Layer | Technology |
 |-------|-----------|
 | Framework | Next.js 16.2.6 (App Router, RSC) |
-| UI | React 19.2.4 |
+| UI | React 19.2.6 |
 | Runtime | Bun (package manager, test runner, lockfile) |
 | Language | TypeScript (strict, ES2017 target) |
 | Styling | Tailwind CSS v4 (CSS-first config, no tailwind.config.ts) |
-| Database | Supabase/PostgreSQL 17 (48 migrations, RLS everywhere) |
+| Database | Supabase/PostgreSQL 17 (67 local migration files, RLS everywhere) |
 | Auth | Supabase Auth (Google OAuth, magic link, SSR helpers) |
 | State | TanStack Query 5, Zustand 5 |
 | Charts | D3 7 |
@@ -156,7 +156,7 @@ The app shell uses `WorkshopPageShell` and `PublicPageShell` React components ra
 
 ## Database schema
 
-40+ tables across 48 migrations, RLS on all user-data tables, 50+ RPC functions.
+40+ tables across 67 local migration files, RLS on all user-data tables, 50+ RPC functions.
 
 **Core hierarchy:** workspaces → projects → estimates → estimate_nodes (group/area tree) → estimate_row_items
 

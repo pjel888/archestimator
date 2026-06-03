@@ -1,3 +1,14 @@
+# Gemini Entry Point - Deprecated
+
+Gemini is phased out for Archestimator agent routing. Do not use Gemini for
+planning, review, implementation, or provider work unless Philip explicitly
+reapproves Gemini for a specific task.
+
+Use `.ai/00_system/AGENT_FRAMEWORK_PROTOCOL.md` and
+`.ai/12_agents/payloads/gemini.md` for the fail-closed policy. The approved
+extra terminal-agent lane is Antigravity CLI (`agy`) when it is explicitly
+scoped.
+
 <!-- code-review-graph MCP tools -->
 ## MCP Tools: code-review-graph
 

@@ -1,0 +1,55 @@
+{
+  "checkedAtUtc": "2026-06-03T17:33:20.750Z",
+  "projectRef": "ebxxqidacheyapmmzavr",
+  "decision": "cheaper_closed_beta_path_no_always_on_pitr",
+  "pitr": {
+    "enabled": false,
+    "skippedReason": "7-day PITR add-on shows $100/month in Supabase dashboard; user cannot afford it for pre-launch MVP."
+  },
+  "dailyPhysicalBackups": {
+    "region": "ap-southeast-2",
+    "walgEnabled": true,
+    "backupCount": 9,
+    "latest": {
+      "id": 818157842,
+      "insertedAt": "2026-06-03T16:58:05.191Z",
+      "status": "COMPLETED",
+      "isPhysicalBackup": true
+    }
+  },
+  "manualLogicalDump": {
+    "backupRoot": "/Users/philiplewis/archestimator-provider-backups/2026-06-03T173005Z-pre-closed-beta-2cddb0e",
+    "files": [
+      {
+        "filename": "data.sql",
+        "bytes": 3366784,
+        "sha256": "361c4eeb4c96f9d923db98295398e68704450f093aac9e5e843d50d0bb713765"
+      },
+      {
+        "filename": "migration_history_data.sql",
+        "bytes": 906250,
+        "sha256": "714faa50486e0b1eb6ba90976a4aa361a84cf237891fd130bcd9163267de77f4"
+      },
+      {
+        "filename": "migration_history_schema.sql",
+        "bytes": 1116,
+        "sha256": "ae56295c7e66a8b46ab50df6f00cf57f7866f2478a17fbe3910d9def39e836ab"
+      },
+      {
+        "filename": "roles.sql",
+        "bytes": 297,
+        "sha256": "25873cec56a2cc6514e204f420231777f85c03da818caa7090cdcdfa89776ecd"
+      },
+      {
+        "filename": "schema.sql",
+        "bytes": 405420,
+        "sha256": "8672e919989019067f0ddb58516bbeadbfa41a01efb450b262d7b782334d79ca"
+      }
+    ],
+    "pgDumpVersion": "pg_dump (PostgreSQL) 17.10 (Homebrew)",
+    "pgDumpAllVersion": "pg_dumpall (PostgreSQL) 17.10 (Homebrew)",
+    "supabaseCliVersion": "2.98.2",
+    "restoreNote": "Use roles.sql, schema.sql, SET session_replication_role = replica, data.sql, plus migration_history_*.sql as needed. Data-only dump emitted circular FK warnings; restore should disable triggers per Supabase docs."
+  },
+  "secretHandling": "No SQL dump contents or generated database credentials are stored in the repository; this artifact records only metadata, sizes, and hashes."
+}

@@ -1,8 +1,42 @@
-**Agentic-Driven Development Framework Phase 1A/1B Plan Refinement (2026-06-03):** The plan-only package at `.ai/03_plans/2026-06-03-agentic-development-framework-rollout/` has been tightened around an explicit Phase 1A repo-local framework implementation gate and Phase 1B Notion mirror hard completion gate. Notion was inspected read-only; `05 Engineering and Architecture` and `07 QA, Evidence, and Drift` contain stale stack/graph facts against live `package.json` and code-review-graph evidence, so `.ai/15_Bugs/2026-06-03-notion-agent-framework-mirror-and-stack-drift.md` is open. GitNexus CLI currently fails with `Cannot destructure property 'package' of 'node.target' as it is null`; code-review-graph is the working fallback. Status remains plan-only: no source code, packages, migrations, providers, GitHub settings, branch protection, or Notion mutation; enforcement implemented is 0%; global enforcement is not ready; closed beta remains NO-GO.
+# Current State
+
+**Cheaper Closed-Beta Provider Path Partially Proven (2026-06-03):** The paid
+Supabase PITR path was explicitly rejected for the pre-launch MVP after the
+dashboard showed the 7-day PITR add-on at about `$100/month`. The active
+cheaper path keeps PITR disabled, relies on Supabase physical backups plus an
+off-repo logical rollback bundle, and records sanitized proof in
+`.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/supabase-cheaper-backup-readiness-2cddb0e-2026-06-03.json`.
+Latest recorded backup evidence shows `walgEnabled: true`, 9 completed physical
+backups, latest backup `818157842`, and an off-repo logical dump bundle at
+`/Users/philiplewis/archestimator-provider-backups/2026-06-03T173005Z-pre-closed-beta-2cddb0e`
+with metadata/hashes only in repo. Linked launch migrations were applied
+deliberately without broad `supabase db push`, `philipjonlewis@gmail.com` is the
+only active closed-beta allowlist email, and Vercel production aliases now point
+`archestimator.com` / `www.archestimator.com` at deployment
+`dpl_Cxeq5ATpif6Yk1zn4FmNmnX7nzhT`. Fresh live HTTP smoke on
+`2026-06-03T18:01:33Z` returned app health JSON from
+`https://www.archestimator.com/api/health` and the login page title
+`Archestimator | Quote, Proposal & Estimate Workspace`. Remaining proof gaps:
+actual hosted Google OAuth allow/deny/revoke browser smoke is still blocked by
+local Chrome automation UI state; Vercel rollback drill is intentionally not run
+because it would disrupt the newly promoted production domain; Resend sending
+domain verification is still constrained by MX/support-mail tradeoffs; owner
+legal/support monitoring proof remains manual.
+
+**Agentic-Driven Development Framework Phase 1A Repo Implementation In
+Progress (2026-06-03):** Branch `codex/cheaper-beta-agentic-rollout` is
+implementing `.ai/03_plans/2026-06-03-agentic-development-framework-rollout/`
+using the approved cheaper launch constraint. Phase 1A is repo-local only:
+`.ai/00_system/AGENT_FRAMEWORK_PROTOCOL.md`, standardized `.ai/12_agents`
+payloads, prompt templates, reusable playbooks, thin tool adapters, and
+bug/run-log evidence. Phase 1B Notion mirror remains pending until the Phase 1A
+commit hash exists. Global enforcement, GitHub rulesets, provider actions, paid
+add-ons, and public launch readiness remain out of scope without separate proof
+and approval.
+
+**Agentic-Driven Development Framework Phase 1A/1B Plan Refinement (2026-06-03):** The plan-only package at `.ai/03_plans/2026-06-03-agentic-development-framework-rollout/` has been tightened around an explicit Phase 1A repo-local framework implementation gate and Phase 1B Notion mirror hard completion gate. Notion was inspected read-only; `05 Engineering and Architecture` and `07 QA, Evidence, and Drift` contain stale stack/graph facts against live `package.json` and code-review-graph evidence, so `.ai/15_Bugs/2026-06-03-notion-agent-framework-mirror-and-stack-drift.md` is open. GitNexus CLI currently fails with `Cannot destructure property 'package' of 'node.target' as it is null`; code-review-graph is the working fallback. This entry is now superseded by the in-progress Phase 1A implementation entry above for repo-local framework status; global enforcement is still not ready.
 
 **Agentic-Driven Development Framework Phase 1A/1B Plan Refined (2026-06-03):** The plan-only package at `.ai/03_plans/2026-06-03-agentic-development-framework-rollout/` is refined as `READY_FOR_PHASE_1A_AND_PHASE_1B_IMPLEMENTATION` for future agents, not as implemented. Required docs 00–42 plus `43_PHASE_1A_1B_IMPLEMENTATION_GATE_PLAN.md` now enforce the Phase 1A repo-local implementation scope and Phase 1B Notion mirror hard completion gate. Status remains plan-only: framework enforcement is not implemented, GitHub/provider/Notion settings were not changed, closed beta remains NO-GO, and 100% readiness/global enforcement must not be claimed while dry-runs, payload gaps, graph reliability, provider proof, and Notion proof remain open. Bug references: `.ai/15_Bugs/2026-06-03-agent-harness-payload-enforcement-gaps.md`, `.ai/15_Bugs/2026-06-03-stack-version-source-of-truth-drift.md`, `.ai/15_Bugs/2026-06-03-notion-agent-framework-mirror-and-stack-drift.md`.
-
-# Current State
 
 **Agentic-Driven Development Framework Rollout Plan Created (2026-06-03):** A plan-only package now exists at `.ai/03_plans/2026-06-03-agentic-development-framework-rollout/` for a slow, safe ADD operating framework rollout across branch strategy, CI/CD, GitHub governance, `.ai` protocols, feature/bug/hotfix/release workflows, and Notion mirror strategy. Status is READY_FOR_IMPLEMENTATION for Phase 1 docs only; the framework is not globally implemented or enforced, no provider/GitHub/Notion settings were changed, and closed beta remains NO-GO until existing external/manual proof gates are satisfied. A source-of-truth drift bug was opened at `.ai/15_Bugs/2026-06-03-stack-version-source-of-truth-drift.md`.
 

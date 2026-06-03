@@ -2,6 +2,26 @@
 
 **Last updated:** 2026-06-03
 
+## 2026-06-03 provider proof refresh
+
+- Supabase PITR remains disabled by decision because the 7-day PITR add-on was
+  too expensive for the pre-launch MVP. This supersedes the older "PITR must be
+  enabled" beta path for now. The current cheaper-path evidence records 9
+  completed physical backups and an off-repo logical backup bundle, but it does
+  not equal a paid PITR restore drill.
+- Linked closed-beta migrations and allowlist proof are no longer the same
+  blockers described in older 2026-06-02 provider notes: the cheaper-path
+  artifacts now show linked migrations applied and only
+  `philipjonlewis@gmail.com` active in the allowlist.
+- Vercel custom domains are no longer proving only the teaser: latest proof and
+  live smoke show `www.archestimator.com` serving the app and `/api/health`.
+  Rollback drill remains open.
+- Hosted Google OAuth allow/deny/revoke browser proof remains open because local
+  Chrome automation was blocked by an extension UI. This is still a closed-beta
+  proof gap.
+- Resend sending-domain verification and support/legal/monitoring proof remain
+  manual/provider gaps.
+
 - **Share page `CostDonutChart` SVG path hydration mismatch (2026-06-03):** The `CostDonutChart` component at `src/components/charts/CostDonutChart.tsx:375` produces a React/Next hydration warning on every `/share/[token]` page load. Server and client D3 computations differ by floating-point precision in the connector path `d` attribute (e.g., `177.28813627494236` vs `177.28813627494233`). The effect is a console warning only — no visual defect — but it erodes client trust in the application. Bug plan: `.ai/15_Bugs/2026-06-03-share-page-cost-donut-chart-hydration-mismatch.md`. Fix plan: `.ai/03_plans/2026-06-03-share-page-client-review-ux-ui-overhaul/15_HYDRATION_FIX_PLAN.md`. Proposed fix: deterministic SVG numeric rounding at 4 decimal places via `src/lib/charts/svg-rounding.ts` utility. The `CostDonutChart` is shared with workshop charts (`ProjectCostDonutChart.tsx` re-export) — fix must not break workshop chart rendering.
 7:
 8: - **Share page `CostDonutChart` visible debug badge (2026-06-03 — second-pass):** The `CostDonutChart` at `src/components/charts/CostDonutChart.tsx:325-327` renders a visible "🍩 buckets:{n} total:{n}" debug badge in production on the public client-facing share page. This is a developer artifact that should have been removed or gated behind dev-only flags. Bug plan: `.ai/15_Bugs/2026-06-03-share-page-cost-donut-chart-visible-debug-badge.md`. Fix: remove or gate behind `NODE_ENV === "development"`.

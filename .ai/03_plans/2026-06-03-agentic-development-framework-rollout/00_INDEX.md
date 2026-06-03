@@ -2,9 +2,13 @@
 
 **Plan folder:** `.ai/03_plans/2026-06-03-agentic-development-framework-rollout`
 **Absolute path:** `/Users/philiplewis/archestimator/.ai/03_plans/2026-06-03-agentic-development-framework-rollout`
-**Final plan status after this refinement:** `READY_FOR_PHASE_1A_AND_PHASE_1B_IMPLEMENTATION` as a plan package.
+**Current implementation status:** `PHASE_1A_REPO_LOCAL_IMPLEMENTED_PENDING_FINAL_COMMIT_AND_PHASE_1B_NOTION`.
 
-This is **plan refinement only**. No source code, app behavior, dependency, migration, package, generated/runtime config, provider, GitHub settings, branch protection, Notion, or secret mutation occurred.
+This was originally a plan-refinement package. The 2026-06-04 implementation
+pass has now implemented the Phase 1A repo-local framework artifacts without
+changing production source code, app behavior, dependencies, migrations,
+packages, generated/runtime config, paid add-ons, GitHub settings, branch
+protection, Notion, or secrets.
 
 ## Goal
 
@@ -14,11 +18,11 @@ Make the existing Agentic-Driven Development Framework rollout plan honest, spec
 
 | Area | Status |
 |---|---|
-| Phase 1A repo-local plan readiness | 98% |
-| Phase 1B Notion mirror plan readiness | 97% |
+| Phase 1A repo-local implementation | Implemented locally / pending commit hash |
+| Phase 1B Notion mirror plan readiness | Pending Phase 1A commit hash |
 | Global enforcement readiness | Not ready |
-| Enforcement implemented | 0% |
-| Closed beta | NO-GO; separate external/manual provider proof gates still open |
+| Enforcement implemented | Repo-local docs/payloads only |
+| Closed beta | Cheaper provider path partially proven; hosted OAuth/legal/support gaps still open |
 | 100% readiness | Not allowed while known gaps remain |
 
 ## Phase definitions
@@ -41,13 +45,13 @@ Starts only after Phase 1A commit/push. Must update Notion mirror with source `.
 
 ## Required future implementation sequence
 
-1. Preflight safety + graph/tool evidence.
-2. Phase 1A `.ai/00_system` canonical docs.
-3. Phase 1A payload schema and agent/harness gap repair/fail-close.
-4. Phase 1A prompt templates and skills/playbooks.
-5. Phase 1A thin adapters and stale root-doc repair where authorized.
-6. Phase 1A docs validation, commit, push.
-7. Phase 1B Notion sync or blocker.
+1. Preflight safety + graph/tool evidence. Done.
+2. Phase 1A `.ai/00_system` canonical docs. Done.
+3. Phase 1A payload schema and agent/harness gap repair/fail-close. Done.
+4. Phase 1A prompt templates and skills/playbooks. Done.
+5. Phase 1A thin adapters and stale root-doc repair where authorized. Done.
+6. Phase 1A docs validation, commit, push. In progress.
+7. Phase 1B Notion sync or blocker. Pending commit hash.
 8. Later dry-runs/evals and advisory enforcement.
 9. GitHub/provider/beta/global enforcement only after proof and Philip approval.
 
@@ -81,3 +85,5 @@ Notion hard gate skipped, stale Notion stack/graph facts, GitNexus failure ignor
 - `.ai/15_Bugs/2026-06-03-agent-harness-payload-enforcement-gaps.md`
 - `.ai/15_Bugs/2026-06-03-stack-version-source-of-truth-drift.md`
 - `.ai/15_Bugs/2026-06-03-notion-agent-framework-mirror-and-stack-drift.md`
+- `.ai/15_Bugs/2026-06-04-main-worktree-entry-isolated-before-implementation.md`
+- `.ai/15_Bugs/2026-06-04-git-gc-unreachable-loose-objects-warning.md`
