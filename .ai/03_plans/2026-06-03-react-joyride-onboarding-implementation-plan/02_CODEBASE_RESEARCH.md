@@ -113,11 +113,44 @@ CREATE POLICY "Users can read own rows" ON table_name
 3. **UNVERIFIED: Exact z-index values used by sidebar, modals, route overlay.** Plan assumes z-100 cap — verify during implementation.
 4. **UNVERIFIED: Supabase linked remote state.** Migration parity unknown for linked project `ebxxqidacheyapmmzavr`.
 
+## Auth & Persistence Patterns (Verified 2026-06-03)
+
+### Session Layer
+- `getCurrentUserContext()` at `src/lib/auth/session.ts` — React `cache()`-wrapped, returns `CurrentUserContext | null`
+  - Checks dev bypass → Supabase `auth.getUser()` → beta access check → profile auto-create via `ensure_current_user_profile` RPC
+- `requireCurrentUserContext()` — calls above, redirects to `/login` if null
+- User identity passed to client components as props (e.g., `WorkshopPageShell` passes `currentUser` to sidebar)
+
+### Existing User Tables
+- `public.profiles` — 1:1 with `auth.users`, stores email, display_name, role, default_workspace_id. RLS hardened.
+- `public.user_onboarding_profiles` — stores signup onboarding details (category, region, `onboarding_completed_at`). **UNRELATED to tour onboarding** — this is signup profile completion only.
+- `public.workspace_account_settings` — workspace-specific settings (org name, type, size, currency).
+
+### Server Actions Pattern (Confirmed)
+- All data mutations use `"use server"` actions in `src/lib/*/actions.ts`
+- Pattern: `requireCurrentUserContext()` → create server Supabase client → validate → mutate → `revalidatePath()` / redirect
+- API routes reserved for: public shared links, file uploads, AI endpoints, Excel exports
+- **Recommendation verified:** Onboarding persistence should follow the Server Actions pattern, adding to `src/lib/auth/account-actions.ts` or creating `src/features/onboarding/services/onboardingPersistence.ts`
+
+### Repository Pattern (Confirmed)
+- Repository interfaces with in-memory + Supabase implementations
+- Client-side repos use `createSupabaseBrowserClient()`, server-side use `createSupabaseServerClient()`
+- **Recommendation verified:** Onboarding state query can use TanStack Query with a repository or direct server action call
+
+## Librarian Research — External Verification
+
+- **React Joyride compatibility with React 19.2**: UNVERIFIED — external documentation lookup failed (billing limit). Must verify during Phase 1 skeleton.
+- **React Joyride latest version**: UNVERIFIED — check `npm view react-joyride version` during Phase 1
+- **Bundle size**: Assumed ~25-30KB gzipped based on existing plan docs. Verify with `ANALYZE=true bun run build` during Phase 1.
+- **Accessibility features**: Assumed support for ARIA, keyboard nav, focus management per Joyride docs. Verify during Phase 3+5.
+
 ## Evidence Links
 
 - Full codebase audit: `01_codebase_audit.md` (429 lines, 40-row evidence table)
 - Stack verification: `package.json` lines 1-93
-- Auth patterns: `src/lib/auth/session.ts`
+- Auth patterns: `src/lib/auth/session.ts` (verified getCurrentUserContext, requireCurrentUserContext)
+- Session/auth: `src/lib/auth/session.ts`, `src/proxy.ts`
+- User tables: `supabase/migrations/20260518100000_auth_profiles_ceo_access.sql`, `supabase/migrations/20260527072220_auth_account_data.sql`
 - Route structure: `src/app/workshop/*`
 - Design system: `DESIGN.md`, `scripts/enforce-app-design-system.mjs`
 - Current state: `.ai/10_state/current-state.md`
