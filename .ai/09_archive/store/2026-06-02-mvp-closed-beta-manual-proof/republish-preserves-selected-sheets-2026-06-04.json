@@ -1,0 +1,105 @@
+{
+  "artifact": "republish-preserves-selected-sheets-2026-06-04",
+  "createdAt": "2026-06-04T06:22:00+08:00",
+  "source": "Codex local verification plus Vercel production deployment",
+  "securityFinding": {
+    "dashboardTitle": "Republish can widen shared links to all estimate sheets",
+    "dashboardSeverity": "medium",
+    "dashboardStatus": "pending Codex Security rescan or owner closure"
+  },
+  "repoFix": {
+    "commit": "84f12e3",
+    "branch": "main",
+    "summary": "Published shared-link summaries carry persisted selectedEstimateIds, and ProjectPublicationHeader defaults live-link republish sheet selection from that persisted scope instead of all project sheets.",
+    "changedFiles": [
+      "src/components/workshop/ProjectPublicationHeader.tsx",
+      "src/lib/publication/types.ts",
+      "src/lib/repositories/workspace-repository.ts",
+      "tests/vitest/project-publication-header.test.tsx"
+    ],
+    "behavior": {
+      "before": "Opening an existing subset-scoped published shared link and clicking Update shared page without touching sheet selection could submit every project sheet.",
+      "after": "A no-op update preserves the previously persisted selected estimate IDs for live published links."
+    }
+  },
+  "localVerification": [
+    {
+      "command": "bunx vitest run tests/vitest/project-publication-header.test.tsx -t \"does not widen\" --maxWorkers=1",
+      "result": "passed after first proving the old behavior failed"
+    },
+    {
+      "command": "bunx vitest run tests/vitest/project-publication-header.test.tsx tests/vitest/project-publication-summary.test.ts tests/vitest/project-publication-actions.test.ts --maxWorkers=1",
+      "result": "passed: 3 files, 47 tests"
+    },
+    {
+      "command": "bun run type-check",
+      "result": "passed"
+    },
+    {
+      "command": "bun run lint",
+      "result": "passed with existing warnings and 0 errors"
+    },
+    {
+      "command": "bun run build",
+      "result": "passed"
+    },
+    {
+      "command": "git diff --check",
+      "result": "passed"
+    },
+    {
+      "command": "code-review-graph detect_changes / get_affected_flows / get_impact_radius",
+      "result": "detect_changes risk 0.40, affected flows 0, impact radius high due central header/repository fan-out"
+    },
+    {
+      "command": "npx gitnexus analyze && npx gitnexus status",
+      "result": "index refresh succeeded before commit; status reported up-to-date at commit 337b847 before the fix commit was created"
+    }
+  ],
+  "deployment": {
+    "deploymentId": "dpl_5MXgQGJYUr8QjEmRgvX2DhioPZ2o",
+    "target": "production",
+    "readyState": "READY",
+    "deploymentUrl": "https://archestimator-iyxsgrg5o-philipjonlewis-projects.vercel.app",
+    "inspectorUrl": "https://vercel.com/philipjonlewis-projects/archestimator/5MXgQGJYUr8QjEmRgvX2DhioPZ2o",
+    "aliases": [
+      "https://www.archestimator.com",
+      "https://archestimator.com",
+      "https://archestimator.vercel.app"
+    ]
+  },
+  "hostedSmoke": [
+    {
+      "url": "https://www.archestimator.com/api/health",
+      "status": 200,
+      "body": {
+        "ok": true,
+        "service": "archestimator"
+      },
+      "observedAtUtc": "2026-06-03T22:18:19Z"
+    },
+    {
+      "url": "https://archestimator.com/api/health",
+      "status": 307,
+      "location": "https://www.archestimator.com/api/health",
+      "observedAtUtc": "2026-06-03T22:18:18Z"
+    },
+    {
+      "url": "https://www.archestimator.com/login",
+      "status": 200,
+      "observedAtUtc": "2026-06-03T22:18:20Z"
+    },
+    {
+      "url": "https://www.archestimator.com/workshop",
+      "status": 307,
+      "location": "/login?next=%2Fworkshop",
+      "observedAtUtc": "2026-06-03T22:18:18Z"
+    }
+  ],
+  "proofGaps": [
+    "No hosted manual republish was run against a real previously subset-scoped project.",
+    "Codex Security dashboard rescan or owner acceptance is still required before treating the finding as closed.",
+    "This proof does not close the broader closed-beta launch blockers: hosted Google OAuth smoke, rollback drill, Resend sending-domain proof, legal/owner signoff, and support/alert monitoring proof."
+  ],
+  "secretHandling": "No secrets, cookies, tokens, or signed validation artifact URLs are stored in this artifact."
+}
