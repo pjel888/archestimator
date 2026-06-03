@@ -1,5 +1,11 @@
 # Known Issues / Open Risks
 
+## Codex Cloud Security Findings Refresh - OPEN
+
+- Authenticated Codex Security dashboard refresh on 2026-06-04 showed 42 open findings: 27 medium, 6 low, 9 informational.
+- This blocks truthful closed-beta launch-ready language until medium findings are fixed, explicitly accepted, or proven stale/false-positive.
+- Tracker: `.ai/15_Bugs/2026-06-04-codex-cloud-security-findings-refresh.md`.
+
 **Last updated:** 2026-06-03
 
 ## 2026-06-03 provider proof refresh
