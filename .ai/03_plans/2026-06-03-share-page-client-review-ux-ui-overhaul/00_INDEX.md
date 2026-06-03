@@ -123,10 +123,10 @@ Manual QA: Navigate to target share URL, verify zero hydration warnings, clean v
 | # | Bug | Plan File | Blocks? |
 |---|-----|-----------|---------|
 | B1 | CostDonutChart SVG hydration mismatch | `.ai/15_Bugs/2026-06-03-share-page-cost-donut-chart-hydration-mismatch.md` | ✅ Phase 2 |
-| B2 | CostDonutChart visible debug badge | `.ai/15_Bugs/2026-06-03-share-page-cost-donut-chart-debug-badge.md` | ✅ Phase 3 |
-| B3 | Comments not loading existing history | `.ai/15_Bugs/2026-06-03-share-page-comments-not-loading-history.md` | ✅ Phase 5 |
-| B4 | Decision state not persisting on reload | `.ai/15_Bugs/2026-06-03-share-page-decision-state-not-persisting.md` | ✅ Phase 5 |
-| B5 | Decision modal focus trap/keyboard a11y | `.ai/15_Bugs/2026-06-03-share-page-decision-modal-accessibility.md` | ✅ Phase 6 |
+| B2 | CostDonutChart visible debug badge | `.ai/15_Bugs/2026-06-03-share-page-cost-donut-chart-visible-debug-badge.md` | ✅ Phase 3 |
+| B3 | Comments not loading existing history | `.ai/15_Bugs/2026-06-03-share-page-comments-not-loading-existing-history.md` | ✅ Phase 5 |
+| B4 | Decision state not persisting on reload | `.ai/15_Bugs/2026-06-03-share-page-decision-state-not-persisting-on-reload.md` | ✅ Phase 5 |
+| B5 | Decision modal focus trap/keyboard a11y | `.ai/15_Bugs/2026-06-03-share-page-decision-modal-focus-accessibility.md` | ✅ Phase 6 |
 
 ## Current Status
 

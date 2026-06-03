@@ -25,10 +25,10 @@
 
 | Date | Slug | File |
 |------|------|------|
-| 2026-06-03 | `share-page-cost-donut-chart-visible-debug-badge` | `.ai/15_Bugs/2026-06-03-share-page-cost-donut-chart-visible-debug-badge.md` |
-| 2026-06-03 | `share-page-comments-not-loading-existing-history` | `.ai/15_Bugs/2026-06-03-share-page-comments-not-loading-existing-history.md` |
-| 2026-06-03 | `share-page-decision-state-not-persisting-on-reload` | `.ai/15_Bugs/2026-06-03-share-page-decision-state-not-persisting-on-reload.md` |
-| 2026-06-03 | `share-page-decision-modal-focus-accessibility` | `.ai/15_Bugs/2026-06-03-share-page-decision-modal-focus-accessibility.md` |
+| 2026-06-03 | `share-page-cost-donut-chart-debug-badge` | `.ai/15_Bugs/2026-06-03-share-page-cost-donut-chart-debug-badge.md` |
+| 2026-06-03 | `share-page-comments-not-loading-history` | `.ai/15_Bugs/2026-06-03-share-page-comments-not-loading-history.md` |
+| 2026-06-03 | `share-page-decision-state-not-persisting` | `.ai/15_Bugs/2026-06-03-share-page-decision-state-not-persisting.md` |
+| 2026-06-03 | `share-page-decision-modal-accessibility` | `.ai/15_Bugs/2026-06-03-share-page-decision-modal-accessibility.md` |
 
 ---
 
