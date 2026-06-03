@@ -110,7 +110,10 @@ describe("project invite entry schema", () => {
     expect(latestResolveFunction).toContain("insert into public.collaboration_audit_events");
     expect(latestResolveFunction).toContain("'token_id', token.token_id");
     expect(latestResolveFunction).toContain("inviter.email as inviter_email");
-    expect(latestResolveFunction).toContain("return query select 'revoked'::text, token.invitation_id");
+    expect(latestResolveFunction).toContain(
+      "return query select 'revoked'::text, null::uuid, null::uuid, null::uuid",
+    );
+    expect(latestResolveFunction).not.toContain("return query select 'revoked'::text, token.invitation_id");
     expect(migrationText).toContain("drop function if exists public.resolve_collaboration_invitation(text)");
     expect(latestResolveFunction).not.toMatch(/'raw_token'|'token_hash'|rawToken|tokenHash/);
   });
