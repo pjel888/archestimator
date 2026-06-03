@@ -13,6 +13,7 @@ import {
   type EstimateTreeNodeKind,
 } from "@/lib/estimates/tree-hierarchy";
 import { planEstimateTreeDelete } from "@/lib/estimates/estimate-tree-edit";
+import { dedupeSelectedRoots, type TreeSelectionNode } from "@/lib/bulk-selection/tree-selection";
 import { isUuid } from "@/lib/ids";
 import {
   buildRejectedPreviewResult,
@@ -1802,6 +1803,82 @@ export async function deleteEstimateNode(
     tree,
     deletedNodeIds: Array.from(deletePlan.deletedNodeIds),
     fallbackNodeId: deletePlan.fallbackNodeId,
+  };
+}
+
+export async function deleteEstimateNodesBulk(
+  projectId: string,
+  estimateId: string,
+  nodeIds: string[],
+): Promise<DeleteEstimateNodeResult> {
+  const requestedNodeIds = [...new Set(nodeIds.map((nodeId) => nodeId.trim()).filter(Boolean))];
+  if (requestedNodeIds.length === 0) throw new Error("At least one estimate tree node is required for bulk delete.");
+
+  const { project } = await getCurrentWorkspaceProject(projectId);
+  if (!project) throw new Error("Project not found in the current workspace.");
+
+  const supabase = await createSupabaseServerClient();
+  const { data: estimate, error: estimateError } = await supabase
+    .from("estimates")
+    .select("id, project_id")
+    .eq("id", estimateId)
+    .eq("project_id", project.id)
+    .maybeSingle();
+
+  if (estimateError) throw estimateError;
+  if (!estimate) throw new Error("Estimate not found in the current project.");
+
+  const { data: scopedNodes, error: nodeError } = await supabase
+    .from("estimate_nodes")
+    .select("id, estimate_id, parent_id, kind, estimates!inner(project_id)")
+    .eq("estimate_id", estimate.id)
+    .eq("estimates.project_id", project.id)
+    .in("id", requestedNodeIds);
+
+  if (nodeError) throw nodeError;
+  const scopedNodeIds = new Set(((scopedNodes ?? []) as ValidatedEstimateNodeRow[]).map((node) => node.id));
+  const missingNodeId = requestedNodeIds.find((requestedNodeId) => !scopedNodeIds.has(requestedNodeId));
+  if (missingNodeId) throw new Error(`Estimate tree node not found in the current project: ${missingNodeId}.`);
+
+  const currentUser = await requireCurrentUserContext();
+  const { project: currentProject, estimate: currentEstimate, tree: currentTree } = await getProjectEstimateTreeByEstimate(project.id, estimate.id);
+  if (!currentProject || !currentEstimate) throw new Error("Estimate not found before deleting the selected tree nodes.");
+
+  const rootNodeIds = dedupeSelectedRoots(currentTree as TreeSelectionNode[], new Set(requestedNodeIds));
+  if (rootNodeIds.length === 0) throw new Error("No selectable estimate tree nodes were found for bulk delete.");
+
+  let plannedTree = currentTree;
+  let fallbackNodeId: string | null = rootNodeIds[0] ?? null;
+  const deletedNodeIds = new Set<string>();
+  for (const rootNodeId of rootNodeIds) {
+    const deletePlan = planEstimateTreeDelete(plannedTree, rootNodeId, fallbackNodeId);
+    deletePlan.deletedNodeIds.forEach((deletedNodeId) => deletedNodeIds.add(deletedNodeId));
+    plannedTree = deletePlan.nextNodes;
+    fallbackNodeId = deletePlan.fallbackNodeId;
+  }
+
+  for (const rootNodeId of rootNodeIds) {
+    const { error } = await asEstimateHistoryRpcClient(supabase).rpc("delete_estimate_node_with_history", {
+      target_project_id: project.id,
+      target_estimate_id: estimate.id,
+      target_node_id: rootNodeId,
+      acting_user_id: currentUser.userId,
+      correlation_id: randomUUID(),
+    });
+
+    if (error) throw new Error(`Could not delete selected estimate tree nodes: ${error.message}`);
+  }
+
+  const { project: refreshedProject, estimate: refreshedEstimate, tree } = await getProjectEstimateTreeByEstimate(project.id, estimate.id);
+  if (!refreshedProject || !refreshedEstimate) throw new Error("Estimate not found after deleting the selected tree nodes.");
+
+  revalidatePath(`/workshop/projects/${project.id}/estimates`);
+  revalidatePath(`/workshop/projects/${project.id}/estimates/${estimate.id}`);
+
+  return {
+    tree,
+    deletedNodeIds: Array.from(deletedNodeIds),
+    fallbackNodeId,
   };
 }
 

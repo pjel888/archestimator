@@ -16,6 +16,11 @@ Use these active artifacts for the next pass:
 
 Archive cleanup folder: `.ai/09_archive/store/mvp-launch-readiness-2026-06-01/`.
 
+
+## Tree Selection / Bulk Delete Local Evidence
+
+Local implementation evidence for the 2026-06-03 tree selection, drag affordance, and bulk delete workstream is archived at `.ai/09_archive/2026-06-03-2026-06-03-tree-selection-drag-affordance-bulk-delete-plan/`. Validation recorded there includes focused affected DOM tests, feature regression tests, type-check, lint, design-system lint, final `bun run validate`, and final staged `bun run build` (DOM suite: 164 files / 1299 passed / 2 skipped). This evidence improves local UX readiness for tree navigation and component library workflows, but it is not beta launch evidence until hosted/manual browser proof is captured.
+
 ## Directory Structure
 
 Save all evidence under `.ai/09_archive/store/` using this pattern:

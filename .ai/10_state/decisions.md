@@ -161,3 +161,7 @@ Rejected: component hard delete in the first-release UI | archive satisfies reve
 Confidence: high
 Scope-risk: moderate
 Directive: Apply `20260603160000_mass_deletion_governance.sql` through the approved Supabase migration path before treating provider/live deletion as complete.
+
+## 2026-06-03 — Tree selection and destructive bulk action interaction baseline
+
+Decision: Tree selection and destructive bulk actions are now a shared workshop interaction pattern. Tree rows use visible, decorative drag handles plus independent native checkboxes instead of making the row itself the selection control. Bulk destructive workflows use a shared toolbar and typed confirmation where the affected entity is destructive; component catalogue bulk action is archive-first, and hard delete remains gated behind admin plus zero-reference proof. Server actions own workspace validation and cache revalidation; future work may consolidate multi-root delete loops into database transactions if stronger all-or-nothing guarantees are required. This decision is local implementation evidence, not hosted beta proof.
