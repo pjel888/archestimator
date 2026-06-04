@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 
 const actions = readFileSync("src/lib/publication/actions.ts", "utf8");
+const emailLinks = readFileSync("src/lib/publication/email-links.ts", "utf8");
 const header = readFileSync("src/components/workshop/ProjectPublicationHeader.tsx", "utf8");
 
 describe("project publication manager actions (Shared Link Overhaul V2)", () => {
@@ -99,8 +100,9 @@ describe("project publication manager actions (Shared Link Overhaul V2)", () => 
   it("recipient emails emit the same canonical query parameter that the share page accepts", () => {
     const pageSrc = readFileSync("src/app/share/[token]/page.tsx", "utf8");
 
-    expect(actions).toContain("recipient=");
-    expect(actions).not.toContain("rt=${encodeURIComponent(rawToken)}");
+    expect(actions).toContain("buildSharedLinkRecipientEmailLinks");
+    expect(emailLinks).toContain('searchParams.set("recipient", rawToken)');
+    expect(emailLinks).not.toContain("rt=");
     expect(pageSrc).toContain("searchParamsData.recipient");
     expect(pageSrc).toContain("searchParamsData.rt");
   });
@@ -121,7 +123,8 @@ describe("project publication manager actions (Shared Link Overhaul V2)", () => 
     expect(actions).toContain("buildPublicationEmailComplianceFooter");
     expect(actions).toContain("unsubscribe");
     expect(actions).toContain("mailto:");
-    expect(actions).toContain("${action}?recipient=");
+    expect(emailLinks).toContain("/unsubscribe");
+    expect(emailLinks).toContain('searchParams.set("recipient", rawToken)');
     expect(actions).toContain("complianceFooter");
   });
 
