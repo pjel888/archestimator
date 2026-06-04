@@ -1,5 +1,37 @@
 # Evidence Index
 
+## Codex Security Project-Images Finding Closure - 2026-06-04 06:32Z
+
+- Primary artifact: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/codex-security-project-images-finding-close-2026-06-04T0632Z.json`.
+- Dashboard action: authenticated Codex Security finding
+  `Project images are uploaded to a public listable bucket` was closed as
+  `Already fixed` / `Reason: Fixed`; revisiting the original finding shows a
+  `Reopen` control. The open-list first page no longer includes the
+  project-images finding and pulled
+  `Unpinned MCP tooling auto-executes external packages` into the visible page;
+  no numeric count-drop claim is made because this DOM view did not expose the
+  count line.
+- Repo proof: current `main` head
+  `8378f4dbb170e9cc7c906987bb7d6a94abafae38` keeps project cover uploads on
+  private `project-images` storage, requires `requireCurrentUserContext()` before
+  serving `/api/projects/images`, strips `/project-images/` from public share
+  image URLs, and keeps `next.config.ts` remote image patterns limited to public
+  `component-images`. The closed finding was against old commit `2df73a8`; the
+  fix was already deployed and recorded under commit `ea4aa95`.
+- Linked/provider proof:
+  `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/project-images-private-storage-2026-06-04.json`
+  records `project-images.public=false`, `0` remaining public component-bucket
+  project-image objects, direct public project-image URL denial, and signed-out
+  same-origin image route redirecting to `/login`.
+- Fresh verification:
+  `bunx vitest run tests/vitest/security-findings-contracts.test.ts tests/vitest/auth-sensitive-api-boundaries.test.ts tests/vitest/project-publication-snapshot.test.ts --maxWorkers=1 --reporter=dot`
+  passed 3 files / 34 tests.
+- GitHub queue check: no open issues or open PRs were found.
+- Still open: remaining Codex Security findings still need closure/rescan/owner
+  acceptance; hosted denied/revoked/expired beta-auth smoke, Resend domain/
+  delivery proof, rollback risk proof, legal/owner signoff, and support/alert
+  monitoring proof remain open before a fully green closed beta.
+
 ## Codex Security Republish-Scope Finding Closure - 2026-06-04 06:17Z
 
 - Primary artifact: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/codex-security-republish-scope-finding-close-2026-06-04T0617Z.json`.
