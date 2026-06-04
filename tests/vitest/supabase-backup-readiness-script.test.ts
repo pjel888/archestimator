@@ -59,6 +59,27 @@ Use --help for more information`;
     expect(result.missing).toEqual([]);
   });
 
+  it("supports a cheaper closed-beta daily-backup mode without PITR", () => {
+    const result = checkSupabaseBackupReadiness({
+      input: JSON.stringify({
+        backups: [{ id: "backup-one", status: "COMPLETED" }],
+        pitr_enabled: false,
+        walg_enabled: true,
+        region: "ap-southeast-2",
+      }),
+      source: "test",
+      restoreDrillStatus: "blocked",
+      readinessMode: "daily-backup",
+    });
+
+    expect(result.readinessMode).toBe("daily-backup");
+    expect(result.supabaseBackupReady).toBe(true);
+    expect(result.pitrEnabled).toBe(false);
+    expect(result.restoreDrillPassed).toBe(false);
+    expect(result.restoreDrillAcceptedRisk).toBe(true);
+    expect(result.missing).toEqual([]);
+  });
+
   it("does not treat invalid JSON or unknown restore statuses as ready", () => {
     const result = checkSupabaseBackupReadiness({
       input: "Supabase CLI failed before JSON output",

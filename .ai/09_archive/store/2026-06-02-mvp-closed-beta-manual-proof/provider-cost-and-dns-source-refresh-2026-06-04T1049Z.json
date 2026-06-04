@@ -1,0 +1,31 @@
+{
+  "generatedAt": "2026-06-04T10:49:00.000Z",
+  "mode": "provider-cost-and-dns-source-refresh",
+  "boundary": "Official/current docs evidence only; no provider settings changed and no secret values recorded.",
+  "sources": [
+    {
+      "provider": "Supabase",
+      "url": "https://supabase.com/pricing",
+      "evidence": "Pricing page lists Pro plan, compute pricing including Micro and Small, and PITR as a paid add-on starting around $100/month."
+    },
+    {
+      "provider": "Supabase",
+      "url": "https://supabase.com/docs/guides/platform/backups",
+      "evidence": "Backup docs state Pro projects can access 7 days of daily backups; PITR is an add-on, requires at least Small compute, replaces daily backups, and 7-day PITR is $100/month."
+    },
+    {
+      "provider": "Resend",
+      "url": "https://resend.com/docs/dashboard/domains/introduction",
+      "evidence": "Domain docs describe SPF and DKIM as required for verification, DMARC as optional trust hardening, and MX as part of custom return-path/bounce/complaint handling."
+    },
+    {
+      "provider": "Resend",
+      "url": "https://resend.com/docs/knowledge-base/what-if-my-domain-is-not-verifying",
+      "evidence": "Troubleshooting docs say to confirm required DKIM, SPF, and MX records when a domain is not verifying."
+    }
+  ],
+  "launchDecision": {
+    "supabase": "Use Pro daily physical backups plus off-repo logical dumps for the one-person closed beta; do not enable PITR unless owner accepts the add-on cost and downtime implications.",
+    "resend": "Keep sender-domain verification blocked until send.contact MX/domain verification and delivery/webhook proof exist; do not disturb apex support email forwarding."
+  }
+}

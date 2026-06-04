@@ -1,5 +1,32 @@
 # Evidence Index
 
+## Cheap Backup and Vercel Readiness Refresh - 2026-06-04 10:47Z
+
+- Official source artifact: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/provider-cost-and-dns-source-refresh-2026-06-04T1049Z.json`.
+- Supabase artifact:
+  `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/supabase-backup-readiness-daily-mode-closed-beta-2026-06-04T1047Z.json`.
+- Vercel artifact:
+  `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/vercel-production-readiness-no-spend-refresh-2026-06-04T1043Z.json`.
+- Code change proof: `scripts/check-supabase-backup-readiness.ts` now accepts
+  `SUPABASE_BACKUP_READINESS_MODE=daily-backup` for the cheaper closed-beta path
+  while keeping strict PITR as the default. `scripts/check-vercel-production-readiness.ts`
+  now counts redirected `vercel ls` URL-only output as rollback-candidate proof
+  instead of falsely reporting zero candidates.
+- Supabase proof: `bun run launch:check-supabase-backup` with
+  `SUPABASE_BACKUP_READINESS_MODE=daily-backup` passes from a fresh
+  `supabase backups list --project-ref ebxxqidacheyapmmzavr --output json`
+  transcript: 9 backups listed, `walgEnabled: true`, `pitrEnabled: false`,
+  `restoreDrillStatus: blocked`, `restoreDrillAcceptedRisk: true`, `missing: []`.
+- Vercel proof: production deployment `dpl_6xBegV7JS3WRfZYnN1mWTeY62b38` is
+  `READY`, `archestimator.com` and `www.archestimator.com` both alias to
+  `archestimator-br665yc8u-philipjonlewis-projects.vercel.app`, and 19 ready
+  rollback candidates are available. The helper still exits red because no
+  rollback drill was performed.
+- Official source basis: Supabase pricing/backups docs checked 2026-06-04
+  support the cheaper posture by distinguishing Pro daily backups from paid
+  PITR. PITR remains a later public-launch or higher-risk beta upgrade, not an
+  owner-only pre-launch blocker.
+
 ## Live Closed-Beta Refresh - 2026-06-04 10:06Z
 
 - Primary artifact: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/live-closed-beta-refresh-2026-06-04T1006Z.json`.
