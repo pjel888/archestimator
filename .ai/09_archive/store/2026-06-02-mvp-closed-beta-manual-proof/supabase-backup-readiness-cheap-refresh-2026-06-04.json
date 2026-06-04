@@ -1,0 +1,21 @@
+{
+  "generatedAt": "2026-06-04T02:07:48.599Z",
+  "mode": "supabase-backup-readiness",
+  "source": "/tmp/archestimator-launch-refresh/supabase-backups.json",
+  "projectRef": "ebxxqidacheyapmmzavr",
+  "parsedBackupList": true,
+  "parseError": null,
+  "region": "ap-southeast-2",
+  "backupCount": 9,
+  "hasListedBackups": true,
+  "pitrEnabled": false,
+  "walgEnabled": true,
+  "restoreDrillStatus": "blocked",
+  "restoreDrillPassed": false,
+  "missing": [
+    "PITR enabled",
+    "restore drill passed"
+  ],
+  "supabaseBackupReady": false,
+  "note": "Sanitized Supabase backup/PITR readiness check. It parses operator-provided `supabase backups list --output json` or Management API JSON and never performs a restore. Passing requires listed backups, PITR enabled, and an explicit restore-drill status of passed."
+}

@@ -1,0 +1,74 @@
+{
+  "source": "CHEAP_CLOSED_BETA_LAUNCH_REFRESH",
+  "generatedAtUtc": "2026-06-04T02:17:23Z",
+  "projectRef": "ebxxqidacheyapmmzavr",
+  "projectName": "Archestimator",
+  "decision": "Keep the low-cost closed-beta path: Supabase Micro compute, PITR disabled, Supabase physical backups plus off-repo logical dumps, no new paid add-ons.",
+  "supabase": {
+    "projectStatus": "ACTIVE_HEALTHY",
+    "sqlProbe": "select now() succeeded against linked project on 2026-06-04T02:00:48Z",
+    "pitrEnabled": false,
+    "walgEnabled": true,
+    "completedPhysicalBackupCount": 9,
+    "latestPhysicalBackup": {
+      "id": 818844634,
+      "insertedAt": "2026-06-03T21:26:24.268Z",
+      "status": "COMPLETED",
+      "isPhysicalBackup": true
+    },
+    "strictBackupReadinessArtifact": "supabase-backup-readiness-cheap-refresh-2026-06-04.json",
+    "strictBackupReadinessResult": "blocked_by_intentional_no_pitr_and_no_restore_drill",
+    "migrationReadinessArtifact": "supabase-migration-readiness-cheap-refresh-2026-06-04.json",
+    "migrationReadinessResult": "required_launch_migrations_present",
+    "linkedReadinessArtifact": "supabase-linked-readiness-cheap-refresh-2026-06-04.json",
+    "linkedReadinessResult": "passed_14_checks",
+    "storagePosture": {
+      "componentImages": "public for approved component thumbnails",
+      "projectImages": "private for client/project cover images"
+    },
+    "closedBetaAllowlist": {
+      "normalizedEmail": "philipjonlewis@gmail.com",
+      "status": "active"
+    },
+    "offRepoLogicalDumpBundle": "/Users/philiplewis/archestimator-provider-backups/2026-06-03T173005Z-pre-closed-beta-2cddb0e"
+  },
+  "vercel": {
+    "currentDeploymentId": "dpl_Dh8xPgZ3NQwN4CwxZQXh6d8vypcn",
+    "currentDeploymentUrl": "archestimator-pa4i1gj5p-philipjonlewis-projects.vercel.app",
+    "customDomains": [
+      "archestimator.com",
+      "www.archestimator.com"
+    ],
+    "customDomainsPointToCurrentDeployment": true,
+    "healthArtifact": "vercel-health-readiness-cheap-refresh-2026-06-04.json",
+    "envArtifact": "vercel-env-readiness-cheap-refresh-2026-06-04.json",
+    "productionArtifact": "vercel-production-readiness-cheap-refresh-2026-06-04.json",
+    "wwwHealth": {
+      "url": "https://www.archestimator.com/api/health",
+      "status": 200
+    },
+    "apexHealth": {
+      "url": "https://archestimator.com/api/health",
+      "status": 307,
+      "location": "https://www.archestimator.com/api/health"
+    },
+    "homePage": {
+      "title": "Archestimator | Quote, Proposal & Estimate Workspace",
+      "hasOrangeTeaserMarker": false
+    },
+    "coreEnvNamesPresent": true,
+    "emailEnvNamesPresent": true,
+    "rollbackCandidateCount": 19,
+    "rollbackDrillPassed": false
+  },
+  "remainingNoCostBlockers": [
+    "Hosted Google OAuth allowed/denied/revoked browser smoke for philipjonlewis@gmail.com",
+    "Codex Security dashboard rescan or owner acceptance for remaining findings",
+    "Vercel rollback drill, if owner accepts a brief production alias flip",
+    "Resend sending-domain delivery/webhook event proof",
+    "Legal/owner signoff",
+    "Support inbox, feedback table, and alert monitoring proof",
+    "Hosted authenticated export and full hosted beta journey proof"
+  ],
+  "secretsRecorded": false
+}

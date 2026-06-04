@@ -2,6 +2,21 @@
 
 Status: consolidated packet from current artifacts; external closed beta remains **NO-GO**.
 
+2026-06-04 cheap-path refresh: `cheap-launch-refresh-2026-06-04.json`
+supersedes the older expensive-provider assumptions without relabeling this
+packet as complete. The low-cost path keeps Supabase PITR disabled, uses
+Supabase physical backups plus the off-repo logical dump bundle, records
+`supabase-backup-readiness-cheap-refresh-2026-06-04.json` as intentionally
+strict/blocked on PITR and restore-drill proof, and records
+`supabase-migration-readiness-cheap-refresh-2026-06-04.json` plus
+`supabase-linked-readiness-cheap-refresh-2026-06-04.json` as current linked
+migration/RLS/grant/function/storage proof. Vercel env-name and health proof
+are current in `vercel-env-readiness-cheap-refresh-2026-06-04.json` and
+`vercel-health-readiness-cheap-refresh-2026-06-04.json`; custom domains point to
+current deployment `dpl_Dh8xPgZ3NQwN4CwxZQXh6d8vypcn`, but
+`vercel-production-readiness-cheap-refresh-2026-06-04.json` remains incomplete
+because rollback drill proof is still blocked. No secret values are recorded.
+
 This packet follows `48-manual-proof-packet-template.md` as the dated folder README shape. It consolidates current local, read-only provider, DNS, and blocked/manual proof artifacts already stored in this folder. It does not add new hosted/provider/manual proof, does not mutate production state, and does not approve launch.
 
 Current handoff artifact: `repo-local-freeze-external-proof-handoff-2026-06-02.md` records `6ab5b38` as the repo-local implementation freeze, `f2ed23c` as the docs/status freeze, and `c32540e` as the external proof handoff.
@@ -25,6 +40,7 @@ Current handoff artifact: `repo-local-freeze-external-proof-handoff-2026-06-02.m
 | --- | --- |
 | External closed beta recommendation | NO-GO |
 | Remaining blockers | Supabase backup/PITR, linked migrations/RLS/storage/RPC, hosted auth, Vercel env/custom-domain/rollback, Resend proof, spreadsheet-app compatibility, legal sign-off, monitored support/alerts, hosted/manual E2E |
+| Current cheap-path delta | Linked Supabase launch readiness, Vercel env names, custom-domain app health, and current-domain alias proof are no longer the same blockers as the 2026-06-02 baseline; strict PITR/restore-drill proof, hosted browser OAuth, rollback drill, Resend delivery/webhook, legal/owner, support/alerts, hosted export, and full hosted beta journey remain open. |
 | Follow-up owner | Philip / launch operator |
 
 ## P0 Evidence Results
