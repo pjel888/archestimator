@@ -1,5 +1,28 @@
 # Evidence Index
 
+## Mass Deletion Cleanup RPC Lock - 2026-06-04
+
+- Primary artifact: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/mass-deletion-cleanup-rpc-lock-2026-06-04.json`.
+- Finding: `Mass deletion audit records are caller-tamperable`; this follow-up closes
+  the cleanup-result RPC branch left after actor derivation was hardened.
+- Migration: `supabase/migrations/20260604031000_lock_mass_deletion_cleanup_result_rpc.sql`
+  recreates `public.record_mass_deletion_storage_cleanup_result(uuid,jsonb)` with a
+  service-role guard, project-target guard, and pending-status guard, then revokes
+  execution from `public`, `anon`, and `authenticated` and grants only
+  `service_role`.
+- Linked apply/repair: exact-file `supabase db query --linked --file` succeeded,
+  followed by targeted `supabase migration repair 20260604031000 --status applied
+  --linked --yes`. No broad `db push` was used.
+- Live readback: pre-apply proof showed `authenticated_execute=true`; post-apply
+  proof shows one cleanup RPC signature, `anon_execute=false`,
+  `authenticated_execute=false`, `service_role_execute=true`, all guard clauses
+  present, and remote migration history row `20260604031000`.
+- Repo verification: focused mass-deletion/storage/security suite passed 5 files /
+  31 tests, type-check passed, lint passed with existing warnings only, diff check
+  passed, and GitNexus reported low risk with 0 affected processes.
+- Still open: production deployment proof for the server-action service-role client
+  and Codex Security dashboard rescan/closure.
+
 ## Project Image Cleanup Targets Security Fix - 2026-06-04
 
 - Primary artifact: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/project-image-cleanup-targets-2026-06-04.json`.

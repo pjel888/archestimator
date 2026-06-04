@@ -15,6 +15,14 @@ describe("mass deletion server action contract", () => {
     expect(actions).not.toMatch(/from\\(\"projects\"\\)\\.delete\\(\\)\\.eq\\(\"id\", projectId\\)/);
   });
 
+  it("records project storage cleanup results through a server-only service-role client", () => {
+    const actions = readFileSync("src/lib/projects/actions.ts", "utf8");
+
+    expect(actions).toContain("createSupabaseServiceRoleClient");
+    expect(actions).toContain("cleanupAuditClient.rpc(\"record_mass_deletion_storage_cleanup_result\"");
+    expect(actions).not.toContain("await supabase.rpc(\"record_mass_deletion_storage_cleanup_result\"");
+  });
+
   it("adds estimate-sheet preview, execute, and single delete wrappers with cache revalidation", () => {
     const actions = readFileSync("src/lib/estimates/actions.ts", "utf8");
 
