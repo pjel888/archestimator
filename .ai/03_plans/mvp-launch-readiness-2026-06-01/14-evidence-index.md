@@ -1,5 +1,49 @@
 # Evidence Index
 
+## Live Low-Cost Closed-Beta Launch Refresh - 2026-06-04 04:29Z
+
+- Primary artifact: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/live-closed-beta-launch-refresh-2026-06-04T0429Z.json`.
+- Decision: continue the low-cost closed-beta path. No new paid provider add-ons
+  were enabled; Supabase remains on the cheaper Micro/PITR-off posture for
+  pre-launch MVP, and PITR/restore-drill proof is not required to spend money
+  before the first closed-beta user.
+- Vercel: `vercel-env-readiness-live-refresh-2026-06-04T0424Z.json` reports
+  required production env names present without recording secret values;
+  `vercel-health-readiness-live-refresh-2026-06-04T0427Z.json` reports HTTP 200
+  from both `www.archestimator.com/api/health` and
+  `archestimator.vercel.app/api/health`; and
+  `vercel-production-readiness-live-refresh-2026-06-04T0424Z.json` shows
+  `archestimator.com`, `www.archestimator.com`, and `archestimator.vercel.app`
+  mapped to current production deployment `dpl_CyfR2LA7vMLqR9sDMncgxbgVbcRj`.
+- Hosted auth: `hosted-google-allowed-browser-smoke-2026-06-04T0419Z.json`
+  proves the owner Google session reaches production
+  `/workshop/settings/profile` as `philipjonlewis@gmail.com` and sees profile
+  settings without login or beta-access-required controls. Denied, revoked, and
+  expired-session hosted browser smoke remains open.
+- Supabase: `supabase-backup-readiness-live-refresh-2026-06-04T0428Z.json`
+  reports project `ebxxqidacheyapmmzavr` / `Archestimator` healthy with 9
+  completed physical backups, `pitrEnabled: false`, and `walgEnabled: true`.
+  `supabase-linked-readiness-live-refresh-2026-06-04T0428Z.json` reports linked
+  SQL readiness green. The migration-list CLI path was blocked by a temporary
+  linked login-role auth/circuit-breaker failure, so migration-row proof is
+  carried by linked SQL readiness rather than a broad `db push`.
+- Security/GitHub: `codex-security-dashboard-refresh-2026-06-04T0421Z.json`
+  shows the authenticated Scans page last scanned `2c7ffb97`, not current repo
+  head `b9051f2`, with scan-count badges of 4 critical, 6 high, 31 medium, and 6
+  low. GitHub still has no open PRs/issues and no status contexts/check-runs on
+  latest `main`.
+- Support/legal: `support-email-dns-readiness-live-refresh-2026-06-04T0424Z.json`
+  proves support-domain MX/SPF/DMARC. `legal-owner-readiness-live-refresh-2026-06-04T0424Z.json`
+  and `support-monitoring-readiness-live-refresh-2026-06-04T0424Z.json` remain
+  red because owner/legal labels, support inbox monitoring, feedback review,
+  alert ownership, and incident-escalation proof are not yet recorded.
+- Still open before a fully green closed-beta launch: Codex Security rescan or
+  explicit owner acceptance, hosted denied/revoked/expired auth smoke, rollback
+  drill or accepted rollback-not-drilled risk, legal/owner signoff,
+  support/feedback/alert monitoring proof, Resend dashboard/delivery/webhook
+  event proof if email workflows are visible, hosted authenticated export, and a
+  full hosted beta journey.
+
 ## Cheap Closed-Beta Provider Status Refresh - 2026-06-04 03:48Z
 
 - Primary artifact: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/cheap-launch-refresh-2026-06-04.json`.

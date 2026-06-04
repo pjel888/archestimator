@@ -1,0 +1,73 @@
+{
+  "source": "LIVE_CLOSED_BETA_LAUNCH_REFRESH",
+  "generatedAtUtc": "2026-06-04T04:29:00Z",
+  "repoHead": "b9051f200845649ef3aa849e068f06cd8c9c68ac",
+  "repoHeadShort": "b9051f2",
+  "decision": "Continue the low-cost closed-beta path: no paid Supabase PITR add-on, no provider spend increase, and no launch-ready claim until remaining manual/security gates are proven or owner-accepted.",
+  "vercel": {
+    "envArtifact": "vercel-env-readiness-live-refresh-2026-06-04T0424Z.json",
+    "envReady": true,
+    "healthArtifact": "vercel-health-readiness-live-refresh-2026-06-04T0427Z.json",
+    "healthReady": true,
+    "productionArtifact": "vercel-production-readiness-live-refresh-2026-06-04T0424Z.json",
+    "currentDeploymentId": "dpl_CyfR2LA7vMLqR9sDMncgxbgVbcRj",
+    "currentDeploymentUrl": "archestimator-bssps9fmb-philipjonlewis-projects.vercel.app",
+    "customDomainsReady": true,
+    "rollbackCandidateCount": 19,
+    "rollbackDrillPassed": false
+  },
+  "hostedApp": {
+    "wwwHealthStatus": 200,
+    "vercelAppHealthStatus": 200,
+    "loginStatus": 200,
+    "signedOutWorkshopStatus": 307,
+    "signedOutWorkshopLocation": "/login?next=%2Fworkshop",
+    "ownerAllowedBrowserSmokeArtifact": "hosted-google-allowed-browser-smoke-2026-06-04T0419Z.json",
+    "ownerAllowedBrowserSmokePassed": true,
+    "deniedRevokedExpiredSmokePassed": false
+  },
+  "supabase": {
+    "projectRef": "ebxxqidacheyapmmzavr",
+    "projectName": "Archestimator",
+    "projectStatus": "ACTIVE_HEALTHY",
+    "backupArtifact": "supabase-backup-readiness-live-refresh-2026-06-04T0428Z.json",
+    "completedPhysicalBackupCount": 9,
+    "pitrEnabled": false,
+    "walgEnabled": true,
+    "restoreDrillPassed": false,
+    "linkedReadinessArtifact": "supabase-linked-readiness-live-refresh-2026-06-04T0428Z.json",
+    "linkedReadinessReady": true,
+    "migrationListCliStatus": "blocked_by_cli_login_role_auth_circuit_breaker",
+    "migrationRowsProvenByLinkedSqlReadiness": true
+  },
+  "security": {
+    "codexSecurityArtifact": "codex-security-dashboard-refresh-2026-06-04T0421Z.json",
+    "lastScannedCommitShort": "2c7ffb97",
+    "latestRepoHeadShort": "b9051f2",
+    "latestRepoHeadWasScanned": false,
+    "severityCounts": {
+      "critical": 4,
+      "high": 6,
+      "medium": 31,
+      "low": 6
+    }
+  },
+  "supportAndLegal": {
+    "supportDnsArtifact": "support-email-dns-readiness-live-refresh-2026-06-04T0424Z.json",
+    "supportDnsReady": true,
+    "legalOwnerArtifact": "legal-owner-readiness-live-refresh-2026-06-04T0424Z.json",
+    "legalOwnerReady": false,
+    "supportMonitoringArtifact": "support-monitoring-readiness-live-refresh-2026-06-04T0424Z.json",
+    "supportMonitoringReady": false
+  },
+  "remainingNoCostBlockers": [
+    "Codex Security rescan/closure or explicit owner acceptance",
+    "Hosted Google OAuth denied/revoked/expired browser smoke with real non-owner/revoked/expired sessions",
+    "Rollback drill or explicit owner acceptance of rollback-not-drilled risk",
+    "Legal/owner signoff proof",
+    "Support inbox, feedback review, uptime/error alert, and incident escalation monitoring proof",
+    "Resend sending-domain dashboard, delivery, and webhook event proof if visible email workflows are enabled",
+    "Hosted authenticated export and full hosted beta journey proof"
+  ],
+  "secretsRecorded": false
+}

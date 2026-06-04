@@ -3,11 +3,30 @@
 **Detected:** 2026-06-04 local / 2026-06-03T18:39:31.434Z UTC
 **Source:** Authenticated Chrome visit to `https://chatgpt.com/codex/cloud/security/findings`, refreshed via the Codex Security UI.
 **Status:** OPEN
-**Severity:** Launch blocker until triaged; latest refresh still shows `1-20 of 43` findings and a Scans page behind latest `main`.
+**Severity:** Launch blocker until triaged; latest refresh shows scan-count badges with critical/high findings and a Scans page behind latest `main`.
 
 ## Why This Exists
 
-The cheaper closed-beta provider path is partially proven, but the current Codex Security dashboard still lists open findings against `pjel888/archestimator`. Closed beta cannot be honestly called launch-ready until the medium findings are triaged and either fixed, accepted by owner/legal/security judgment, or proven stale/false-positive with evidence.
+The cheaper closed-beta provider path is partially proven, but the current Codex Security dashboard still lists open findings against `pjel888/archestimator`. Closed beta cannot be honestly called launch-ready until the findings are triaged and either fixed, accepted by owner/legal/security judgment, or proven stale/false-positive with evidence.
+
+## Latest Dashboard Refresh - 2026-06-04T04:21Z
+
+- Artifact: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/codex-security-dashboard-refresh-2026-06-04T0421Z.json`.
+- Scans page: authenticated Chrome refresh hydrated the scan detail page for
+  repository `pjel888/archestimator`, owner `philipjonlewis@gmail.com`,
+  environment `archestimator`, branch `main`, and status `Waiting for new
+  commits`.
+- Latest scan state: last scanned commit is `2c7ffb97` at `12:12 PM Jun 4,
+  2026`; current pushed repo head at refresh time was `b9051f2`, so the latest
+  proof commits have not been scanned.
+- Severity-count badges: 4 critical, 6 high, 31 medium, and 6 low. Treat these
+  as launch-blocking until the dashboard rescans/clears them or the owner
+  explicitly accepts the residual risk.
+- Findings route caveat: direct authenticated Findings pages rendered the app
+  shell only during this refresh, and console output included a
+  `QuotaExceededError` while ChatGPT attempted to write connector cache state.
+  The Scans detail page did hydrate and is the current proof source for the
+  counts and last-scanned commit.
 
 ## Latest Dashboard Refresh - 2026-06-04T04:05:09.942Z
 
