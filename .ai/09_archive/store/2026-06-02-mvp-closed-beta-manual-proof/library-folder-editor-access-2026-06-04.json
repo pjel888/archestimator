@@ -1,0 +1,113 @@
+{
+  "artifact": "library-folder-editor-access-2026-06-04",
+  "created_at_utc": "2026-06-03T23:56:55Z",
+  "created_at_local": "2026-06-04T07:56:55+08:00",
+  "finding": "Viewer members can mutate library folders",
+  "status": "repo_and_linked_supabase_fixed_pending_codex_security_rescan",
+  "repo_fix": {
+    "files": [
+      "src/lib/component-library/actions.ts",
+      "tests/vitest/component-library-folder-actions.test.ts",
+      "tests/vitest/security-findings-contracts.test.ts"
+    ],
+    "control": "Component library folder create, rename, delete, and reorder server actions now call public.is_workspace_editor before any library_folders table access or reorder RPC write."
+  },
+  "migration": {
+    "version": "20260603235355",
+    "file": "supabase/migrations/20260603235355_harden_library_folder_editor_access.sql",
+    "apply_command": "supabase db query --linked --file supabase/migrations/20260603235355_harden_library_folder_editor_access.sql",
+    "repair_command": "supabase migration repair 20260603235355 --status applied --linked --yes",
+    "broad_db_push_used": false
+  },
+  "implemented_controls": [
+    "Dropped the old all-action library_folders policy that allowed any workspace member to mutate folders.",
+    "Added a SELECT-only member policy so workspace viewers can still read library folders.",
+    "Added insert, update, and delete policies that require public.is_workspace_editor(workspace_id).",
+    "Replaced the reorder_library_folders RPC body so it rejects actors unless public.is_workspace_editor(target_workspace_id) is true.",
+    "Revoked all direct library_folders privileges from authenticated before granting back only SELECT, INSERT, UPDATE, and DELETE.",
+    "Kept reorder_library_folders executable by authenticated users while blocking anon execution; the RPC now performs the editor check internally."
+  ],
+  "linked_supabase_readback": {
+    "authenticated_table_grants": [
+      {
+        "grantee": "authenticated",
+        "table_name": "library_folders",
+        "privilege_type": "DELETE"
+      },
+      {
+        "grantee": "authenticated",
+        "table_name": "library_folders",
+        "privilege_type": "INSERT"
+      },
+      {
+        "grantee": "authenticated",
+        "table_name": "library_folders",
+        "privilege_type": "SELECT"
+      },
+      {
+        "grantee": "authenticated",
+        "table_name": "library_folders",
+        "privilege_type": "UPDATE"
+      }
+    ],
+    "policies": [
+      {
+        "tablename": "library_folders",
+        "policyname": "members can view library folders",
+        "cmd": "SELECT",
+        "roles": ["authenticated"],
+        "qual": "is_workspace_member(workspace_id)",
+        "with_check": null
+      },
+      {
+        "tablename": "library_folders",
+        "policyname": "workspace editors can delete library folders",
+        "cmd": "DELETE",
+        "roles": ["authenticated"],
+        "qual": "is_workspace_editor(workspace_id)",
+        "with_check": null
+      },
+      {
+        "tablename": "library_folders",
+        "policyname": "workspace editors can insert library folders",
+        "cmd": "INSERT",
+        "roles": ["authenticated"],
+        "qual": null,
+        "with_check": "is_workspace_editor(workspace_id)"
+      },
+      {
+        "tablename": "library_folders",
+        "policyname": "workspace editors can update library folders",
+        "cmd": "UPDATE",
+        "roles": ["authenticated"],
+        "qual": "is_workspace_editor(workspace_id)",
+        "with_check": "is_workspace_editor(workspace_id)"
+      }
+    ],
+    "reorder_rpc": {
+      "function": "public.reorder_library_folders(target_workspace_id uuid, folder_updates jsonb)",
+      "authenticated_can_execute": true,
+      "anon_can_execute": false,
+      "uses_editor_check": true,
+      "uses_member_only_check": false,
+      "acl": "{postgres=X/postgres,authenticated=X/postgres,service_role=X/postgres}"
+    },
+    "migration_history": [
+      {
+        "version": "20260603235355"
+      }
+    ]
+  },
+  "local_verification": [
+    "red contract first failed because viewer folder mutations reached table access before authorization",
+    "red static security contract first failed because the hardening helper and migration did not exist",
+    "bunx vitest run tests/vitest/component-library-folder-actions.test.ts tests/vitest/security-findings-contracts.test.ts --maxWorkers=1 passed 2 files / 16 tests after the fix",
+    "linked Supabase exact-file apply succeeded",
+    "linked Supabase migration repair recorded version 20260603235355",
+    "linked Supabase readback proved editor-only policies, editor-check reorder RPC, anon RPC denial, authenticated RPC execute, and migration history"
+  ],
+  "proof_gaps": [
+    "Codex Security dashboard rescan/closure remains pending.",
+    "No hosted manual viewer-account folder mutation smoke was run after the hardening."
+  ]
+}
