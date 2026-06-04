@@ -13,6 +13,7 @@ type SupabaseBackupList = {
 };
 
 type RestoreDrillStatus = "passed" | "failed" | "blocked" | "not-provided";
+type BackupReadinessMode = "pitr" | "daily-backup";
 
 export type SupabaseBackupReadinessResult = {
   generatedAt: string;
@@ -22,12 +23,14 @@ export type SupabaseBackupReadinessResult = {
   parsedBackupList: boolean;
   parseError: string | null;
   region: string | null;
+  readinessMode: BackupReadinessMode;
   backupCount: number;
   hasListedBackups: boolean;
   pitrEnabled: boolean;
   walgEnabled: boolean;
   restoreDrillStatus: RestoreDrillStatus;
   restoreDrillPassed: boolean;
+  restoreDrillAcceptedRisk: boolean;
   missing: string[];
   supabaseBackupReady: boolean;
   note: string;
@@ -81,6 +84,10 @@ export function parseRestoreDrillStatus(value: string | undefined): RestoreDrill
   return "not-provided";
 }
 
+export function parseBackupReadinessMode(value: string | undefined): BackupReadinessMode {
+  return value?.trim().toLowerCase() === "daily-backup" ? "daily-backup" : "pitr";
+}
+
 function parseBackupList(input: string): {
   parsed: SupabaseBackupList | null;
   parseError: string | null;
@@ -123,24 +130,30 @@ export function checkSupabaseBackupReadiness({
   source = "provided-input",
   projectRef,
   restoreDrillStatus,
+  readinessMode,
 }: {
   input: string;
   source?: string;
   projectRef?: string;
   restoreDrillStatus?: string;
+  readinessMode?: string;
 }): SupabaseBackupReadinessResult {
   const { parsed, parseError } = parseBackupList(input);
+  const resolvedReadinessMode = parseBackupReadinessMode(readinessMode);
   const backupCount = backupCountFrom(parsed?.backups);
   const hasListedBackups = backupCount > 0;
   const pitrEnabled = booleanFrom(parsed?.pitr_enabled ?? parsed?.pitrEnabled);
   const walgEnabled = booleanFrom(parsed?.walg_enabled ?? parsed?.walgEnabled);
   const resolvedRestoreDrillStatus = parseRestoreDrillStatus(restoreDrillStatus);
   const restoreDrillPassed = resolvedRestoreDrillStatus === "passed";
+  const restoreDrillAcceptedRisk = resolvedReadinessMode === "daily-backup" && resolvedRestoreDrillStatus === "blocked";
+  const restoreDrillReady = restoreDrillPassed || restoreDrillAcceptedRisk;
+  const pitrReady = resolvedReadinessMode === "daily-backup" || pitrEnabled;
   const missing = [
     !parsed ? "valid backup-list JSON" : null,
     !hasListedBackups ? "listed backups" : null,
-    !pitrEnabled ? "PITR enabled" : null,
-    !restoreDrillPassed ? "restore drill passed" : null,
+    !pitrReady ? "PITR enabled" : null,
+    !restoreDrillReady ? (resolvedReadinessMode === "daily-backup" ? "restore drill passed or accepted-risk blocked" : "restore drill passed") : null,
   ].filter((value): value is string => Boolean(value));
 
   return {
@@ -151,15 +164,19 @@ export function checkSupabaseBackupReadiness({
     parsedBackupList: Boolean(parsed),
     parseError,
     region: stringOrNull(parsed?.region),
+    readinessMode: resolvedReadinessMode,
     backupCount,
     hasListedBackups,
     pitrEnabled,
     walgEnabled,
     restoreDrillStatus: resolvedRestoreDrillStatus,
     restoreDrillPassed,
+    restoreDrillAcceptedRisk,
     missing,
     supabaseBackupReady: missing.length === 0,
-    note: "Sanitized Supabase backup/PITR readiness check. It parses operator-provided `supabase backups list --output json` or Management API JSON and never performs a restore. Passing requires listed backups, PITR enabled, and an explicit restore-drill status of passed.",
+    note: resolvedReadinessMode === "daily-backup"
+      ? "Sanitized Supabase backup readiness check for the cheaper closed-beta path. It parses operator-provided backup-list JSON and never performs a restore. Passing requires listed backups and either a passed restore drill or an explicit blocked restore-drill accepted-risk record; PITR remains intentionally not required in this mode."
+      : "Sanitized Supabase backup/PITR readiness check. It parses operator-provided `supabase backups list --output json` or Management API JSON and never performs a restore. Passing requires listed backups, PITR enabled, and an explicit restore-drill status of passed.",
   };
 }
 
@@ -198,6 +215,7 @@ async function main() {
     source: input.source,
     projectRef: readEnv("SUPABASE_BACKUP_PROJECT_REF"),
     restoreDrillStatus: readEnv("SUPABASE_RESTORE_DRILL_STATUS"),
+    readinessMode: readEnv("SUPABASE_BACKUP_READINESS_MODE"),
   });
   const outputFile = readEnv("OUTPUT_FILE");
   if (outputFile) writeOutput(outputFile, result);

@@ -14,6 +14,16 @@
   history-exposure findings, Resend sender-domain MX proof, rollback drill,
   denied/revoked/expired hosted auth smoke, legal/owner signoff,
   support/monitoring proof, and full hosted journey proof remain open.
+- Cheap backup/DR is no longer blocked on buying PITR for this one-person
+  closed beta: `supabase-backup-readiness-daily-mode-closed-beta-2026-06-04T1047Z.json`
+  records daily-backup mode green with 9 listed physical backups, `pitrEnabled:
+  false`, and an accepted-risk blocked restore drill. Strict PITR remains a
+  later public-launch gate.
+- Vercel rollback-candidate proof is no longer missing:
+  `vercel-production-readiness-no-spend-refresh-2026-06-04T1043Z.json` records
+  current production deployment/domain aliases green and 19 rollback candidates.
+  The remaining Vercel blocker is the deliberate no-spend/no-alias-flip
+  rollback drill gap.
 
 ## Codex Cloud Security Findings Cheap-Path Closures - OPEN RESIDUALS
 
@@ -122,11 +132,12 @@
   Artifact:
   `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/no-spend-live-launch-refresh-2026-06-04T0706Z.json`.
 - The current beta-launch path remains the cheaper path: do not enable paid
-  Supabase PITR unless Philip explicitly accepts the additional cost. The strict
-  backup checker still reports `supabaseBackupReady: false` because PITR and a
-  restore drill are missing, but the cheap-path packet now separately records 9
-  completed physical backups, `walgEnabled: true`, and the off-repo logical dump
-  bundle as the accepted pre-launch DR posture.
+  Supabase PITR unless Philip explicitly accepts the additional cost. The backup
+  checker now has explicit `daily-backup` mode for closed beta; latest artifact
+  `supabase-backup-readiness-daily-mode-closed-beta-2026-06-04T1047Z.json`
+  reports `supabaseBackupReady: true`, 9 completed physical backups,
+  `walgEnabled: true`, `pitrEnabled: false`, and
+  `restoreDrillAcceptedRisk: true`.
 - Linked Supabase launch migrations, closed-beta tables/RLS/grants/functions,
   storage posture, and the single active allowlist row have fresh linked proof:
   `supabase-migration-readiness-cheap-refresh-2026-06-04.json` and
@@ -136,8 +147,9 @@
 - Vercel production env-name, health, and custom-domain proof has refreshed:
   `vercel-env-readiness-cheap-refresh-2026-06-04.json` and
   `vercel-health-readiness-cheap-refresh-2026-06-04.json` pass, while
-  `vercel-production-readiness-cheap-refresh-2026-06-04.json` remains false only
-  because the rollback drill is still blocked.
+  `vercel-production-readiness-no-spend-refresh-2026-06-04T1043Z.json` now
+  proves current production alias mapping plus 19 rollback candidates. It
+  remains false only because the rollback drill is still blocked.
 - External closed beta remains blocked by no-cost/manual proof gaps: Codex
   Security dashboard rescan/acceptance, hosted Google OAuth denied/revoked/
   expired browser smoke, rollback drill if accepted, Resend `send.contact` MX

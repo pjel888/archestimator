@@ -1,0 +1,20 @@
+{
+  "generatedAt": "2026-06-04T10:46:16.216Z",
+  "mode": "supabase-backup-readiness",
+  "source": "/var/folders/bn/7b1mmzfj6j52jkpfny_33f840000gn/T/tmp.WgFc0NgGS7",
+  "projectRef": "ebxxqidacheyapmmzavr",
+  "parsedBackupList": true,
+  "parseError": null,
+  "region": "ap-southeast-2",
+  "readinessMode": "daily-backup",
+  "backupCount": 9,
+  "hasListedBackups": true,
+  "pitrEnabled": false,
+  "walgEnabled": true,
+  "restoreDrillStatus": "blocked",
+  "restoreDrillPassed": false,
+  "restoreDrillAcceptedRisk": true,
+  "missing": [],
+  "supabaseBackupReady": true,
+  "note": "Sanitized Supabase backup readiness check for the cheaper closed-beta path. It parses operator-provided backup-list JSON and never performs a restore. Passing requires listed backups and either a passed restore drill or an explicit blocked restore-drill accepted-risk record; PITR remains intentionally not required in this mode."
+}

@@ -61,6 +61,16 @@ describe("Vercel production readiness checker", () => {
     expect(countReadyRollbackCandidates(DEPLOYMENT_LIST_TEXT, "archestimator-current.vercel.app")).toBe(1);
   });
 
+  it("counts redirected Vercel CLI deployment URLs as rollback candidates", () => {
+    const redirectedDeploymentListText = `
+https://archestimator-current.vercel.app
+https://archestimator-previous.vercel.app
+https://archestimator-older.vercel.app
+`;
+
+    expect(countReadyRollbackCandidates(redirectedDeploymentListText, "archestimator-current.vercel.app")).toBe(2);
+  });
+
   it("fails closed when custom domains still point to an older deployment and rollback drill is missing", () => {
     const result = checkVercelProductionReadiness({
       inspectText: INSPECT_TEXT,

@@ -158,7 +158,8 @@ export function countReadyRollbackCandidates(input: string | undefined, currentD
 
   for (const line of input.split(/\r?\n/)) {
     const urls = line.match(/https:\/\/[^\s]+\.vercel\.app/g) ?? [];
-    if (urls.length === 0 || !/Ready/i.test(line)) continue;
+    const hasStatusColumn = /(?:Ready|Building|Error|Queued|Canceled|Failed)/i.test(line);
+    if (urls.length === 0 || (hasStatusColumn && !/Ready/i.test(line))) continue;
     for (const url of urls) {
       const host = normalizeHost(url);
       if (host !== current) readyDeployments.add(host);

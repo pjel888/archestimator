@@ -1,5 +1,26 @@
 # Current State
 
+**Cheap Backup and Vercel Readiness Refresh (2026-06-04 10:47Z):**
+The cheaper closed-beta path now has a first-class daily-backup readiness mode
+instead of relying on a strict PITR-only checker. `bun run
+launch:check-supabase-backup` supports `SUPABASE_BACKUP_READINESS_MODE=daily-backup`;
+strict PITR remains the default for later public launch. Fresh Supabase CLI
+proof for project `ebxxqidacheyapmmzavr` records 9 listed physical backups,
+`walgEnabled: true`, `pitrEnabled: false`, `restoreDrillStatus: blocked`,
+`restoreDrillAcceptedRisk: true`, `missing: []`, and `supabaseBackupReady:
+true` in daily-backup mode. Official Supabase docs/pricing still make the cost
+tradeoff explicit: Pro includes 7 days of daily backups; PITR is a paid add-on
+starting at about `$100/month` for 7-day retention and requires at least Small
+compute. Vercel production readiness parsing was also fixed so redirected
+`vercel ls` URL output counts ready rollback candidates correctly; fresh proof
+shows current deployment `dpl_6xBegV7JS3WRfZYnN1mWTeY62b38` is `READY`,
+`archestimator.com` and `www.archestimator.com` alias to it, and 19 rollback
+candidates exist. The Vercel gate remains red only because no production alias
+rollback drill was performed. Proof artifacts:
+`.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/supabase-backup-readiness-daily-mode-closed-beta-2026-06-04T1047Z.json`
+and
+`.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/vercel-production-readiness-no-spend-refresh-2026-06-04T1043Z.json`.
+
 **Live Closed-Beta Refresh (2026-06-04 10:06Z):**
 Fresh no-spend live proof shows the closed-beta app is on the production custom
 domains. Computer Use observed the owner Chrome session at
