@@ -1,5 +1,27 @@
 # Evidence Index
 
+## Resend Webhook Body Limit Deploy Proof - 2026-06-04 05:07Z
+
+- Primary artifact: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/resend-webhook-body-limit-2026-06-04T0507Z.json`.
+- Cost decision: keep the lower-cost closed-beta path. Supabase PITR was not
+  enabled because current Supabase docs list 7-day PITR at about `$100/month`
+  and not covered by spend cap; Pro daily backups/physical backups remain the
+  accepted owner-only pre-launch posture until paid PITR is explicitly accepted.
+- Vercel: production deployment `dpl_6xBegV7JS3WRfZYnN1mWTeY62b38` is `READY`
+  from `main` commit `c6aa6dd`, with aliases for `www.archestimator.com`,
+  `archestimator.com`, and `archestimator.vercel.app`. `.vercelignore` now
+  excludes `.omx` so Vercel CLI deploys do not package transient local runtime
+  lock files.
+- Webhook hardening: `src/app/api/webhooks/resend/route.ts` now rejects bodies
+  above 262,144 bytes before signature parsing and rechecks actual raw-body byte
+  size after read. Hosted smoke proves `/api/health` HTTP 200, oversized webhook
+  POST HTTP 413 `Webhook payload is too large.`, and normal-sized unsigned POST
+  HTTP 400 `Invalid webhook`.
+- Still open: Namecheap `send.contact` MX record, Resend domain restart/
+  verified status, delivery/webhook event proof, Codex Security rescan or owner
+  acceptance, hosted denied/revoked/expired auth smoke, rollback/export/full
+  journey proof, legal signoff, and support/alert monitoring proof.
+
 ## Live Low-Cost Closed-Beta Launch Refresh - 2026-06-04 04:29Z
 
 - Primary artifact: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/live-closed-beta-launch-refresh-2026-06-04T0429Z.json`.

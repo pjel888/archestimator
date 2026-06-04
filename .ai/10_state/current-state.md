@@ -1,5 +1,22 @@
 # Current State
 
+**Resend Webhook Body Limit Deployed (2026-06-04 05:07Z):**
+Production deployment `dpl_6xBegV7JS3WRfZYnN1mWTeY62b38` is `READY` from
+`main` commit `c6aa6dd`, and aliases include `https://www.archestimator.com`,
+`https://archestimator.com`, and `https://archestimator.vercel.app`. This deploy
+includes the Resend webhook body-size guard from `ef1c877`: production
+`/api/health` returns HTTP 200, an oversized POST to
+`/api/webhooks/resend` returns HTTP 413 `Webhook payload is too large.`, and a
+small unsigned webhook still returns HTTP 400 `Invalid webhook`, proving normal
+payloads still reach signature verification with `RESEND_WEBHOOK_SECRET`
+configured. `.vercelignore` now excludes local `.omx` runtime state so Vercel
+CLI deploys do not package transient agent lock files. The cheaper provider
+decision remains unchanged: do not enable paid Supabase PITR for owner-only
+pre-launch beta; Supabase's current docs list Pro daily backups, PITR as an
+optional add-on requiring at least Small compute, and 7-day PITR at about
+`$100/month`. Proof artifact:
+`.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/resend-webhook-body-limit-2026-06-04T0507Z.json`.
+
 **Live Low-Cost Closed-Beta Launch Refresh (2026-06-04 04:29Z):**
 The affordable closed-beta path remains the active path. No new paid provider
 add-ons were enabled: Supabase stays on the cheaper Micro/PITR-off posture for

@@ -1,0 +1,110 @@
+{
+  "source": "RESEND_WEBHOOK_BODY_LIMIT_DEPLOY_PROOF",
+  "generatedAtUtc": "2026-06-04T05:07:00Z",
+  "repoHead": "c6aa6dd3f4a912ba444469dea50b743f636c546f",
+  "repoHeadShort": "c6aa6dd",
+  "scope": "Cheaper closed-beta Resend webhook hardening and production deploy proof",
+  "decision": "Continue the lower-cost launch path: do not enable the Supabase PITR add-on for owner-only pre-launch beta; keep relying on Supabase Pro daily/physical backups plus linked SQL readiness until paid PITR is explicitly accepted.",
+  "officialSupabaseDocsReviewed": [
+    {
+      "url": "https://supabase.com/pricing",
+      "finding": "Pro starts at $25/month and paid plans include compute credits that cover one Micro instance; Small compute is listed around $15/month before credits."
+    },
+    {
+      "url": "https://supabase.com/docs/guides/platform/backups",
+      "finding": "Pro projects are automatically backed up daily with 7-day daily-backup access; PITR is an optional add-on and requires at least Small compute."
+    },
+    {
+      "url": "https://supabase.com/docs/guides/platform/manage-your-usage/point-in-time-recovery",
+      "finding": "7-day PITR is listed at about $100/month and is not covered by the spend cap."
+    }
+  ],
+  "implementation": {
+    "commit": "ef1c8779dbfe",
+    "files": [
+      "src/app/api/webhooks/resend/route.ts",
+      "tests/vitest/resend-webhook-route.test.ts"
+    ],
+    "maxBodyBytes": 262144,
+    "reason": "Codex Security threat-model text explicitly called out Resend webhook body-size limits as an abuse-reduction gap."
+  },
+  "deployment": {
+    "ignoreFixCommit": "c6aa6dd3f4a912ba444469dea50b743f636c546f",
+    "deploymentId": "dpl_6xBegV7JS3WRfZYnN1mWTeY62b38",
+    "deploymentUrl": "https://archestimator-br665yc8u-philipjonlewis-projects.vercel.app",
+    "inspectorUrl": "https://vercel.com/philipjonlewis-projects/archestimator/6xBegV7JS3WRfZYnN1mWTeY62b38",
+    "target": "production",
+    "readyState": "READY",
+    "aliases": [
+      "https://www.archestimator.com",
+      "https://archestimator.com",
+      "https://archestimator.vercel.app"
+    ],
+    "source": "vercel deploy --prod --yes --scope philipjonlewis-projects"
+  },
+  "validation": {
+    "local": [
+      {
+        "command": "bunx vitest run tests/vitest/resend-webhook-route.test.ts tests/vitest/resend-webhook-delivery.test.ts --maxWorkers=1 --reporter=dot",
+        "result": "passed: 2 files / 6 tests"
+      },
+      {
+        "command": "bun run type-check",
+        "result": "passed before deploy in source commit ef1c8779dbfe"
+      },
+      {
+        "command": "bun run lint",
+        "result": "passed before deploy with existing warnings only"
+      },
+      {
+        "command": "bun run build",
+        "result": "passed before deploy"
+      },
+      {
+        "command": "git diff --check",
+        "result": "passed"
+      },
+      {
+        "command": "npx gitnexus detect-changes -r archestimator --scope staged",
+        "result": "no source changes detected for the .vercelignore deploy-upload fix"
+      }
+    ],
+    "hosted": [
+      {
+        "url": "https://www.archestimator.com/api/health",
+        "status": 200,
+        "body": {
+          "ok": true,
+          "service": "archestimator"
+        }
+      },
+      {
+        "url": "https://www.archestimator.com/api/webhooks/resend",
+        "method": "POST",
+        "case": "oversized unsigned body with content-length above 262144 bytes",
+        "status": 413,
+        "body": {
+          "error": "Webhook payload is too large."
+        }
+      },
+      {
+        "url": "https://www.archestimator.com/api/webhooks/resend",
+        "method": "POST",
+        "case": "small unsigned webhook payload",
+        "status": 400,
+        "body": {
+          "error": "Invalid webhook."
+        },
+        "meaning": "Production still reaches Svix/Resend signature verification for normal-sized payloads, proving RESEND_WEBHOOK_SECRET remains configured."
+      }
+    ]
+  },
+  "remainingOpen": [
+    "Namecheap login/DNS access is still needed to add MX host send.contact -> feedback-smtp.ap-northeast-1.amazonses.com priority 10.",
+    "Resend sending domain contact.archestimator.com still needs restart verification and verified/sending-enabled proof after DNS propagates.",
+    "Real Resend delivery and webhook event proof is still open if visible email workflows are enabled.",
+    "Codex Security dashboard must rescan current main or the owner must explicitly accept residual findings.",
+    "Hosted denied/revoked/expired beta-auth smoke, rollback/export/full beta journey, legal signoff, and support/alert monitoring proof remain open."
+  ],
+  "secretsRecorded": false
+}
