@@ -1,0 +1,27 @@
+{
+  "generatedAt": "2026-06-04T03:59:06.144Z",
+  "mode": "resend-provider-api-readiness",
+  "source": "local .env.local RESEND_API_KEY read-only API probe",
+  "domains": {
+    "endpoint": "GET https://api.resend.com/domains",
+    "status": 401,
+    "ok": false,
+    "data": []
+  },
+  "webhooks": {
+    "endpoint": "GET https://api.resend.com/webhooks",
+    "status": 401,
+    "ok": false,
+    "data": []
+  },
+  "expectedWebhookEndpoint": "https://www.archestimator.com/api/webhooks/resend",
+  "expectedSendingDomainCandidates": [
+    "contact.archestimator.com",
+    "archestimator.com"
+  ],
+  "expectedWebhookPresent": false,
+  "anyVerifiedSendingDomain": false,
+  "secretsRecorded": false,
+  "result": "blocked_local_resend_api_key_unauthorized",
+  "note": "Vercel production env-name readiness shows Resend variable names are present, but this local read-only provider API probe could not authenticate. This artifact does not prove Vercel's production RESEND_API_KEY value is invalid because sensitive Vercel env values are write-only/not recorded here."
+}
