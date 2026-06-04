@@ -57,8 +57,10 @@
   },
   "resend": {
     "readinessArtifact": "resend-readiness-cheap-refresh-2026-06-04T0342Z.json",
+    "providerApiReadinessArtifact": "resend-provider-api-readiness-2026-06-04T0359Z.json",
     "vercelEnvNamesPresent": true,
     "localRuntimeEnvIncomplete": true,
+    "localProviderApiStatus": "blocked_http_401",
     "dashboardDomainWebhookDeliveryProof": false
   },
   "supportDns": {

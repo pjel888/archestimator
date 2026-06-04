@@ -6,7 +6,7 @@
 - Vercel: production deployment `dpl_CyfR2LA7vMLqR9sDMncgxbgVbcRj` is `READY`; `www.archestimator.com/api/health` returns HTTP 200; apex `/login` redirects to `www`; production env-name readiness is green for the required closed-beta/Supabase/publication/AI-off/invite/Resend names without recording secret values.
 - Supabase: project `ebxxqidacheyapmmzavr` stays on the cheaper Micro/PITR-off path; fresh linked migration-list parsing shows required launch migrations present remotely, and linked SQL readiness reports 14 parsed rows / 0 failures. No broad `db push` was used. Strict backup readiness is intentionally red because PITR and restore-drill proof are not part of the no-new-paid-add-ons path; physical backup listing still shows 9 backups and `walgEnabled: true`.
 - Closed beta allowlist: direct table readback shows exactly `philipjonlewis@gmail.com` with status `active`; unauthenticated `check_closed_beta_access` returns `missing` by design because it requires a matching caller JWT email.
-- DNS/Resend: support-domain MX/SPF/DMARC is green; Vercel has all Resend env names including `RESEND_WEBHOOK_SECRET`; observed sender DNS includes `send.contact` SPF and one Resend DKIM TXT record, but Resend dashboard domain/webhook/delivery proof remains open.
+- DNS/Resend: support-domain MX/SPF/DMARC is green; Vercel has all Resend env names including `RESEND_WEBHOOK_SECRET`; observed sender DNS includes `send.contact` SPF and one Resend DKIM TXT record. A local read-only Resend provider API probe returned HTTP 401 for both `/domains` and `/webhooks`, so Resend dashboard/API domain/webhook/delivery proof remains open.
 - Hosted auth: `hosted-google-allowed-browser-smoke-2026-06-04T0355Z.json`
   proves the allowed owner session in Chrome can reach production
   `/workshop/settings/profile`, render `Profile settings`, and visibly show
@@ -95,6 +95,11 @@
   confirms support-domain MX/SPF/DMARC. Neither artifact proves Resend dashboard
   domain verification, webhook registration, delivery events, inbox monitoring,
   or alert ownership.
+- Resend provider API proof:
+  `resend-provider-api-readiness-2026-06-04T0359Z.json` used the local
+  `RESEND_API_KEY` for read-only `GET /domains` and `GET /webhooks`; both
+  returned HTTP 401. This does not prove Vercel's production key value is
+  invalid, but it blocks local API proof of Resend domain/webhook readiness.
 - Hosted auth proof:
   `hosted-google-allowed-browser-smoke-2026-06-04T0355Z.json` confirms the
   allowed owner Google session can access production profile settings as

@@ -18,8 +18,10 @@ allowlist direct readback has exactly `philipjonlewis@gmail.com` with status
 allowed-user smoke now proves `philipjonlewis@gmail.com` can reach production
 `/workshop/settings/profile`, sees visible profile settings with that email, and
 does not hit login or beta-access-required controls. Support DNS
-MX/SPF/DMARC is green. Vercel has all Resend env names, but Resend still lacks
-dashboard sending-domain/webhook/delivery proof. This is still not a fully green
+MX/SPF/DMARC is green. Vercel has all Resend env names, but a local read-only
+Resend provider API probe returned HTTP 401 for both `/domains` and `/webhooks`,
+so Resend still lacks dashboard/API sending-domain, webhook, and delivery proof.
+This is still not a fully green
 beta launch: Codex Security rescan/owner acceptance, hosted Google OAuth
 denied/revoked/expired smoke, rollback drill or owner acceptance, legal/owner
 confirmations, support/feedback/alert monitoring confirmations, hosted
@@ -83,7 +85,8 @@ core/email/invite env names present in Vercel production, 19 Ready rollback
 candidates available, and rollback still undrilled. Remaining no-cost blockers
 are Codex Security rescan/owner acceptance, hosted Google OAuth
 denied/revoked/expired smoke, rollback drill if accepted, Resend
-domain/webhook/delivery proof, legal/owner signoff,
+domain/webhook/delivery proof (local provider API key currently returns HTTP
+401), legal/owner signoff,
 support/alert-monitoring proof, hosted authenticated export, and full hosted
 beta journey proof.
 
