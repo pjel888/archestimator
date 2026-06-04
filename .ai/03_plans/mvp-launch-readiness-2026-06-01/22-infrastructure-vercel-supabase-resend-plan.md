@@ -1,5 +1,21 @@
 # Infrastructure, Vercel, Supabase, and Resend Plan
 
+## Production Shared-Link Recipient Inbox Receipt - 2026-06-04 15:55Z
+
+- Chrome extension proof on the alternate Gmail account
+  `lewisphilipjonechavez@gmail.com` found exactly one invite email from
+  Archestimator with subject `Project Estimate: Tropical House shared by Philip
+  Lewis`.
+- Opening the email showed the expected view-only invitation copy and `View
+  Project Estimate` CTA. No raw email link/href, public share URL, recipient
+  token, token hash, cookie, API key, or webhook secret was recorded.
+- Read-only Supabase proof after the failed CTA click attempt still shows
+  `last_opened_at: null`, so clickthrough/open remains unproven.
+- Proof artifact:
+  `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/hosted-shared-link-recipient-inbox-receipt-2026-06-04T1555Z.json`.
+- Remaining email lifecycle proof gaps: recipient clickthrough/open and Resend
+  delivered/bounce/complaint webhook reconciliation.
+
 ## Production Shared-Link Email Guard Refresh - 2026-06-04 15:32Z
 
 - Current production deployment is `dpl_4eM4pVfRPqXfHtspTFNaKhNFDJFZ`
@@ -18,8 +34,8 @@
   redacted Resend message id.
 - Proof artifact:
   `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/hosted-shared-link-recipient-email-self-invite-guard-2026-06-04T1532Z.json`.
-- Remaining email lifecycle proof gaps: alternate recipient inbox receipt,
-  recipient clickthrough/open, and Resend delivered/bounce/complaint webhook
+- Remaining email lifecycle proof gaps after the 15:55Z inbox artifact:
+  recipient clickthrough/open and Resend delivered/bounce/complaint webhook
   reconciliation. No full public share URL, recipient token, token hash, webhook
   secret, or Resend API key was recorded.
 
@@ -96,7 +112,7 @@
   active allowlist tester `philipjonlewis@gmail.com`; broad `supabase db push`
   remains off-limits while history drift exists.
 - Resend DNS action is complete: Namecheap mail settings were changed to Custom MX, the existing apex forwarding MX rows for `support@archestimator.com` were recreated explicitly, and the Resend `send.contact` MX/TXT records were added without purchases.
-- Current launch blocker posture: GitHub has no open issue/PR queue, and Codex Security residual history-risk is owner-accepted for the single-owner beta while the dashboard remains open at `1-2 of 2`. The owner-only hosted beta journey is proven by `hosted-owner-beta-journey-smoke-2026-06-04T1328Z.json`, and owner logout is proven by `hosted-logout-session-proof-2026-06-04T1436Z.json`; external beta is still blocked from a fully green claim by hosted denied/revoked/expired auth smoke, spreadsheet-app open/print proof if required, and hosted shared-link/invite email workflow smoke if automatic email UX is part of beta. Resend sender-domain, provider delivery, owner-inbox receipt, webhook, and Vercel email-flag proof are closed by `resend-domain-verified-email-enabled-2026-06-04T1235Z.json` plus `resend-owner-inbox-receipt-2026-06-04T1348Z.json`.
+- Current launch blocker posture: GitHub has no open issue/PR queue, and Codex Security residual history-risk is owner-accepted for the single-owner beta while the dashboard remains open at `1-2 of 2`. The owner-only hosted beta journey is proven by `hosted-owner-beta-journey-smoke-2026-06-04T1328Z.json`, and owner logout is proven by `hosted-logout-session-proof-2026-06-04T1436Z.json`; external beta is still blocked from a fully green claim by hosted denied/revoked/expired auth smoke, spreadsheet-app open/print proof if required, recipient clickthrough/open, and Resend delivered/bounce/complaint webhook reconciliation if automatic email UX is part of beta. Resend sender-domain, provider delivery, owner-inbox receipt, webhook route, Vercel email-flag, shared-link self-invite/send, and alternate-recipient inbox proof are closed by `resend-domain-verified-email-enabled-2026-06-04T1235Z.json`, `resend-owner-inbox-receipt-2026-06-04T1348Z.json`, `hosted-shared-link-recipient-email-self-invite-guard-2026-06-04T1532Z.json`, and `hosted-shared-link-recipient-inbox-receipt-2026-06-04T1555Z.json`.
 - Proof artifact:
   `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/cheap-beta-launch-audit-2026-06-04T0735Z.json`.
 
@@ -113,7 +129,7 @@
 - Vercel env-name readiness is now green for core closed-beta runtime and Resend names, including `RESEND_WEBHOOK_SECRET`; secret values remain intentionally unprinted.
 - A real production-env Resend send probe failed with HTTP 403 because `contact.archestimator.com` is not verified. Resend dashboard shows DKIM verified, but `send.contact` MX `feedback-smtp.ap-northeast-1.amazonses.com` priority 10 and TXT `v=spf1 include:amazonses.com ~all` are missing/failed in Namecheap DNS.
 - Owner/legal and support/alert monitoring signoff are recorded for the owner-only beta in `legal-owner-signoff-2026-06-04T1138Z.json` and `support-monitoring-owner-signoff-2026-06-04T1138Z.json`.
-- Open proof gaps: real browser Google OAuth hosted denied/revoked/expired smoke, spreadsheet-app open/print proof if required for beta, and hosted shared-link/invite email workflow smoke if automatic email UX is part of the beta. Vercel rollback proof is closed by the 2026-06-04 11:12Z rollback/promote drill. Hosted authenticated export, hosted feedback review, owner hosted beta journey, and hosted logout have owner-session proof. Resend provider delivery/domain/webhook proof is closed by the 2026-06-04 12:35Z artifact, owner-inbox receipt is closed by the 13:48Z artifact, and `ARCHESTIMATOR_EMAIL_DELIVERY_ENABLED=true` is now set for Production and Preview(main). Codex Security history-risk is accepted only for the owner-only beta and still needs rescan closure or history remediation before wider launch language.
+- Open proof gaps: real browser Google OAuth hosted denied/revoked/expired smoke, spreadsheet-app open/print proof if required for beta, recipient clickthrough/open, and Resend delivered/bounce/complaint webhook reconciliation if automatic email UX is part of the beta. Vercel rollback proof is closed by the 2026-06-04 11:12Z rollback/promote drill. Hosted authenticated export, hosted feedback review, owner hosted beta journey, hosted logout, shared-link self-invite/send, and alternate-recipient inbox receipt have proof. Resend provider delivery/domain/webhook route proof is closed by the 2026-06-04 12:35Z artifact, owner-inbox receipt is closed by the 13:48Z artifact, and `ARCHESTIMATOR_EMAIL_DELIVERY_ENABLED=true` is now set for Production and Preview(main). Codex Security history-risk is accepted only for the owner-only beta and still needs rescan closure or history remediation before wider launch language.
 
 ## Fourth-Pass Closed Beta Infrastructure Decisions - 2026-06-02
 
