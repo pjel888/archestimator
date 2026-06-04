@@ -9,8 +9,13 @@ const massDeletionMigrationPaths = readdirSync(join(process.cwd(), "supabase/mig
 const migration = massDeletionMigrationPaths
   .map((migrationPath) => readFileSync(join(process.cwd(), "supabase/migrations", migrationPath), "utf8"))
   .join("\n");
-const latestMigration = massDeletionMigrationPaths.at(-1)
-  ? readFileSync(join(process.cwd(), "supabase/migrations", massDeletionMigrationPaths.at(-1)!), "utf8")
+const actorDerivationMigrationPath = massDeletionMigrationPaths.find((name) => name.includes("harden_mass_deletion_actor_derivation"));
+const actorDerivationMigration = actorDerivationMigrationPath
+  ? readFileSync(join(process.cwd(), "supabase/migrations", actorDerivationMigrationPath), "utf8")
+  : "";
+const cleanupResultMigrationPath = massDeletionMigrationPaths.find((name) => name.includes("lock_mass_deletion_cleanup_result_rpc"));
+const cleanupResultMigration = cleanupResultMigrationPath
+  ? readFileSync(join(process.cwd(), "supabase/migrations", cleanupResultMigrationPath), "utf8")
   : "";
 
 describe("mass deletion backend contract", () => {
@@ -37,15 +42,24 @@ describe("mass deletion backend contract", () => {
   });
 
   it("derives mass deletion audit actors from auth.uid instead of caller input", () => {
-    expect(latestMigration).toContain("actor_id uuid := auth.uid()");
-    expect(latestMigration).toContain("actor_id is null");
-    expect(latestMigration).toContain("actor_user_id, target_type");
-    expect(latestMigration).toContain("values (workspace_id, actor_id, 'project'");
-    expect(latestMigration).toContain("values (workspace_id, actor_id, 'estimate_sheet'");
-    expect(latestMigration).toContain("values (target_workspace_id, actor_id, 'library_component'");
-    expect(latestMigration).not.toContain("acting_user_id uuid default auth.uid()");
-    expect(latestMigration).not.toContain("values (workspace_id, acting_user_id");
-    expect(latestMigration).not.toContain("values (target_workspace_id, acting_user_id");
+    expect(actorDerivationMigration).toContain("actor_id uuid := auth.uid()");
+    expect(actorDerivationMigration).toContain("actor_id is null");
+    expect(actorDerivationMigration).toContain("actor_user_id, target_type");
+    expect(actorDerivationMigration).toContain("values (workspace_id, actor_id, 'project'");
+    expect(actorDerivationMigration).toContain("values (workspace_id, actor_id, 'estimate_sheet'");
+    expect(actorDerivationMigration).toContain("values (target_workspace_id, actor_id, 'library_component'");
+    expect(actorDerivationMigration).not.toContain("acting_user_id uuid default auth.uid()");
+    expect(actorDerivationMigration).not.toContain("values (workspace_id, acting_user_id");
+    expect(actorDerivationMigration).not.toContain("values (target_workspace_id, acting_user_id");
+  });
+
+  it("restricts mass deletion storage cleanup audit writes to the service role", () => {
+    expect(cleanupResultMigration).toContain("record_mass_deletion_storage_cleanup_result");
+    expect(cleanupResultMigration).toContain("auth.role() <> 'service_role'");
+    expect(cleanupResultMigration).toContain("status = 'storage_cleanup_pending'");
+    expect(cleanupResultMigration).toContain("target_type = 'project'");
+    expect(cleanupResultMigration).toContain("revoke execute on function public.record_mass_deletion_storage_cleanup_result(uuid, jsonb) from public, anon, authenticated");
+    expect(cleanupResultMigration).toContain("grant execute on function public.record_mass_deletion_storage_cleanup_result(uuid, jsonb) to service_role");
   });
 
   it("keeps generated types aware of mass deletion RPCs and project-access manager checks", () => {

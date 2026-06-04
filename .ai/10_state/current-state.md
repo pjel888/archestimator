@@ -1,5 +1,25 @@
 # Current State
 
+**Mass Deletion Cleanup Audit RPC Locked In Linked Supabase (2026-06-04):**
+The remaining cleanup-result branch of Codex Security finding `Mass deletion audit
+records are caller-tamperable` is now hardened in the linked database. Exact
+linked apply used `supabase db query --linked --file` with
+`supabase/migrations/20260604031000_lock_mass_deletion_cleanup_result_rpc.sql`,
+then repaired only version `20260604031000` as applied. Pre-apply readback
+showed `authenticated_execute=true` for
+`record_mass_deletion_storage_cleanup_result(uuid,jsonb)`; post-apply readback
+proves `anon_execute=false`, `authenticated_execute=false`,
+`service_role_execute=true`, the service-role, pending-status, and project-target
+guards are live, and migration history records `20260604031000`. Repo code now
+routes project deletion cleanup audit writes through server-only
+`createSupabaseServiceRoleClient` while keeping deletion and storage removal
+user-scoped. Focused verification passed 5 files / 31 tests, `bun run
+type-check`, `bun run lint` with 12 existing warnings / 0 errors, `git diff
+--check`, and GitNexus low-risk detect-changes. Proof artifact:
+`.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/mass-deletion-cleanup-rpc-lock-2026-06-04.json`.
+Production deployment proof for the server-action code and Codex Security
+rescan/closure remain open.
+
 **Project Image Cleanup Targets Hardened In Linked Supabase (2026-06-04):**
 Codex Security refresh showed a new medium finding, `Project deletion no longer
 cleans project image objects`, with the dashboard at `1-20 of 43`. Local red

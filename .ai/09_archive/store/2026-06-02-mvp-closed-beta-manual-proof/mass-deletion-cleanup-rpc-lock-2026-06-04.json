@@ -1,0 +1,50 @@
+{
+  "generatedAt": "2026-06-04T03:08:17.226Z",
+  "repoHeadBeforeCommit": "c0e20adc391fe3b59fb4eb97fe505748af51b1f9",
+  "finding": "Mass deletion audit records are caller-tamperable",
+  "cheaperPath": true,
+  "noPaidAddOnsEnabled": true,
+  "migration": {
+    "path": "supabase/migrations/20260604031000_lock_mass_deletion_cleanup_result_rpc.sql",
+    "version": "20260604031000",
+    "apply": "supabase db query --linked --file supabase/migrations/20260604031000_lock_mass_deletion_cleanup_result_rpc.sql",
+    "repair": "supabase migration repair 20260604031000 --status applied --linked --yes",
+    "broadDbPushUsed": false
+  },
+  "linkedSupabaseReadback": {
+    "preApplyArtifact": "/Users/philiplewis/.codex/backups/archestimator/supabase/20260604T030318Z-mass-deletion-cleanup-lock/pre-apply-function-readback.txt",
+    "postApplyArtifact": "/Users/philiplewis/.codex/backups/archestimator/supabase/20260604T030318Z-mass-deletion-cleanup-lock/post-apply-function-readback.txt",
+    "preApply": {
+      "anonExecute": false,
+      "authenticatedExecute": true,
+      "serviceRoleExecute": true
+    },
+    "postApply": {
+      "cleanupSignatureCount": 1,
+      "anonExecute": false,
+      "authenticatedExecute": false,
+      "serviceRoleExecute": true,
+      "hasServiceRoleGuard": true,
+      "hasPendingStatusGuard": true,
+      "hasProjectTargetGuard": true,
+      "migrationRecorded": true
+    }
+  },
+  "repoCodeChange": {
+    "serviceRoleHelper": "src/lib/supabase/service-role.ts",
+    "serverAction": "src/lib/projects/actions.ts",
+    "behavior": "Project storage cleanup removes objects with the user-scoped client, then records cleanup audit results through a server-only Supabase service-role client."
+  },
+  "verification": [
+    "bunx vitest run tests/vitest/mass-deletion-contract.test.ts tests/vitest/mass-deletion-action-contract.test.ts --maxWorkers=1 --reporter=dot (2 files / 8 tests passed)",
+    "bunx vitest run tests/vitest/mass-deletion-contract.test.ts tests/vitest/mass-deletion-action-contract.test.ts tests/vitest/mass-deletion-ui-contract.test.ts tests/vitest/storage-cleanup-allowlist.test.ts tests/vitest/security-findings-contracts.test.ts --maxWorkers=1 --reporter=dot (5 files / 31 tests passed)",
+    "bun run type-check passed",
+    "bun run lint passed with 12 existing warnings / 0 errors",
+    "git diff --check passed",
+    "npx gitnexus detect-changes -r archestimator --scope unstaged reported low risk / 0 affected processes"
+  ],
+  "openProofGaps": [
+    "Codex Security dashboard rescan/closure remains pending.",
+    "Production deployment proof for the server-action service-role client is pending until this repo patch is committed, pushed, and served."
+  ]
+}

@@ -13,6 +13,7 @@ import {
   type BulkActionPreviewResult,
 } from "@/lib/mass-deletion/bulk-action";
 import { cleanupStorageTargets, storageCleanupReportToJson } from "@/lib/mass-deletion/storage-cleanup";
+import { createSupabaseServiceRoleClient } from "@/lib/supabase/service-role";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { ensureDefaultWorkspace } from "@/lib/repositories/workspace-repository";
 import type { Json } from "@/lib/supabase/types";
@@ -234,7 +235,8 @@ export async function executeBulkDeleteProjects(input: ExecuteBulkDeleteProjects
     const storageCleanup = await cleanupStorageTargets(supabase, result.storageTargets, { kind: "project" });
     result.storageCleanup = storageCleanup;
     if (result.auditEventId) {
-      await supabase.rpc("record_mass_deletion_storage_cleanup_result", {
+      const cleanupAuditClient = createSupabaseServiceRoleClient("archestimator-mass-deletion-cleanup");
+      await cleanupAuditClient.rpc("record_mass_deletion_storage_cleanup_result", {
         target_event_id: result.auditEventId,
         cleanup_result: storageCleanupReportToJson(storageCleanup),
       });
