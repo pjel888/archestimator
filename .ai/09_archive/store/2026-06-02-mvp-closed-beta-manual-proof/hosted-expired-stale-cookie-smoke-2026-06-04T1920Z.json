@@ -1,0 +1,72 @@
+{
+  "artifact": "hosted-expired-stale-cookie-smoke-2026-06-04T1920Z",
+  "recordedAt": "2026-06-04T19:20:00Z",
+  "operator": "Codex",
+  "scope": "closed-beta production expired-session fail-closed route proof",
+  "baseUrl": "https://www.archestimator.com",
+  "targetRoute": "/workshop",
+  "method": "curl with synthetic stale Supabase SSR auth cookie",
+  "syntheticCookie": {
+    "cookieName": "sb-ebxxqidacheyapmmzavr-auth-token",
+    "valueRecorded": false,
+    "containsLiveAuthMaterial": false,
+    "payloadShape": {
+      "accessToken": "expired.synthetic.access-token",
+      "refreshToken": "expired.synthetic.refresh-token",
+      "expiresAt": 1,
+      "expiresIn": 0,
+      "tokenType": "bearer",
+      "user": null
+    }
+  },
+  "commands": [
+    {
+      "method": "HEAD",
+      "url": "https://www.archestimator.com/workshop",
+      "providedSyntheticCookie": true,
+      "status": 307,
+      "location": "/login?next=%2Fworkshop",
+      "bodyBytes": 0,
+      "passed": true
+    },
+    {
+      "method": "GET",
+      "url": "https://www.archestimator.com/workshop",
+      "providedSyntheticCookie": true,
+      "status": 307,
+      "location": "/login?next=%2Fworkshop",
+      "bodyBytes": 15,
+      "passed": true
+    }
+  ],
+  "result": {
+    "expiredSessionFailClosedProofReady": true,
+    "protectedWorkshopAccessGranted": false,
+    "accessRequiredLoopObserved": false,
+    "loginRedirectObserved": true,
+    "externalPurchaseOrPaidSettingChange": false,
+    "secretsRecorded": false,
+    "rawCookiesRecorded": false,
+    "liveAuthMaterialRecorded": false,
+    "remainingMissing": [
+      "spreadsheet-app open/recalc/print proof"
+    ]
+  },
+  "boundaries": {
+    "proves": [
+      "production /workshop fails closed to /login when stale/expired-shaped Supabase SSR auth cookie material is present",
+      "the expired-session route does not grant protected workshop access",
+      "the expired-session route does not loop to /beta/access-required"
+    ],
+    "doesNotProve": [
+      "a harvested real browser session expiration timestamp",
+      "Google Cloud OAuth dashboard configuration",
+      "Excel or secondary spreadsheet-app open/recalc/print behavior",
+      "public-launch authorization beyond the owner-only closed beta"
+    ],
+    "notes": [
+      "The cookie value was generated locally from synthetic placeholder token strings and was used only in the request header.",
+      "No live Supabase auth cookies, OAuth callback URLs, auth codes, access tokens, refresh tokens, service-role keys, or provider secrets are stored in this artifact."
+    ]
+  }
+}
