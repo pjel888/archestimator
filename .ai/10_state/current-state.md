@@ -1,5 +1,21 @@
 # Current State
 
+**Hosted Feedback Admin Surface Proof (2026-06-04 07:50Z):**
+Computer Use proof against the active hosted Chrome session now shows
+`https://www.archestimator.com/workshop/settings/feedback` rendering the
+authenticated `Beta feedback` review surface with status filter, `Filter`
+control, `Showing 0 latest beta feedback submissions`, and `Send beta feedback`
+link. Signed-out `curl` probes to `/workshop/settings/feedback` and
+`/workshop/feedback` both return HTTP 307 to login with the expected `next`
+target. No feedback row, status update, Vercel env, Supabase data, DNS, or
+provider setting was changed. macOS `screencapture` captured a stale profile tab,
+so no local screenshot is counted; the persisted proof is the Computer Use
+accessibility-tree observation. Proof artifact:
+`.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/hosted-feedback-admin-proof-2026-06-04T0750Z.json`.
+This proves the hosted review surface is reachable by the owner session, but it
+does not prove `support@archestimator.com`, feedback review, or alert monitoring
+cadence.
+
 **Cheap Beta Launch Audit (2026-06-04 07:35Z):**
 The affordable launch path is now the explicit current operating posture:
 Supabase stays on `MICRO`, PITR stays disabled, no new paid add-ons are enabled,

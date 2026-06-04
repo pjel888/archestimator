@@ -1,5 +1,24 @@
 # Evidence Index
 
+## Hosted Feedback Admin Surface Proof - 2026-06-04 07:50Z
+
+- Primary artifact: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/hosted-feedback-admin-proof-2026-06-04T0750Z.json`.
+- Authenticated browser proof: Computer Use observed production
+  `https://www.archestimator.com/workshop/settings/feedback` rendering `Beta
+  feedback`, breadcrumb `Settings / Beta feedback`, review copy, status filter,
+  `Filter` control, `Showing 0 latest beta feedback submissions`, empty-state
+  text, and `Send beta feedback` link.
+- Signed-out protection proof: `/workshop/settings/feedback` and
+  `/workshop/feedback` both return HTTP 307 to login with the expected `next`
+  target.
+- Boundary: no feedback submission, status update, Vercel env, Supabase data,
+  DNS, or provider setting changed. A local screenshot is not counted because
+  macOS `screencapture` captured a stale profile route while Computer Use showed
+  the feedback route.
+- Result: hosted feedback review surface is proven reachable by the owner
+  session. Support inbox monitoring, feedback queue review cadence, and alert
+  ownership proof remain open.
+
 ## Cheap Beta Launch Audit - 2026-06-04 07:35Z
 
 - Primary artifact: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/cheap-beta-launch-audit-2026-06-04T0735Z.json`.
