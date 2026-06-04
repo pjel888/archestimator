@@ -1,0 +1,162 @@
+{
+  "artifact": "hosted-shared-link-recipient-email-self-invite-guard-2026-06-04T1532Z",
+  "checkedAt": "2026-06-04T15:32:20Z",
+  "operator": "Codex",
+  "environment": "production",
+  "appOrigins": [
+    "https://www.archestimator.com",
+    "https://archestimator.com"
+  ],
+  "deployment": {
+    "id": "dpl_4eM4pVfRPqXfHtspTFNaKhNFDJFZ",
+    "url": "https://archestimator-3torz4dzn-philipjonlewis-projects.vercel.app",
+    "status": "Ready",
+    "aliases": [
+      "https://www.archestimator.com",
+      "https://archestimator.com",
+      "https://archestimator.vercel.app"
+    ],
+    "commit": "19c6b90887a2b443c60c9bf87451cdc85ad3b033"
+  },
+  "healthCheck": {
+    "url": "https://www.archestimator.com/api/health",
+    "httpStatus": 200,
+    "body": {
+      "ok": true,
+      "service": "archestimator",
+      "timestamp": "2026-06-04T15:32:20.685Z"
+    }
+  },
+  "subjectProject": {
+    "projectId": "a04459eb-cd96-4bd5-b579-15143a2491ef",
+    "projectName": "Tropical House",
+    "publicationId": "f5511219-c26e-4a9d-a42b-83649261908b",
+    "publicationStatus": "published",
+    "snapshotVersion": 1,
+    "selectedEstimateCount": 1,
+    "publicShareUrl": "not recorded",
+    "publicShareToken": "not recorded"
+  },
+  "userSession": {
+    "signedInUserEmail": "philipjonlewis@gmail.com",
+    "browserPath": "https://www.archestimator.com/workshop/projects/a04459eb-cd96-4bd5-b579-15143a2491ef",
+    "tooling": "Chrome extension tab control plus read-only Supabase MCP SQL"
+  },
+  "preFixSelfInviteReceipt": {
+    "status": "owner-reported-received-before-guard",
+    "recipientEmail": "philipjonlewis@gmail.com",
+    "subject": "Project Estimate: Tropical House shared by Philip Lewis",
+    "note": "The pre-guard send proved app-level shared-link delivery could reach the owner inbox, but it also exposed the self-invite defect that this artifact verifies as fixed."
+  },
+  "selfInviteGuardProof": {
+    "attemptedRecipientEmail": "philipjonlewis@gmail.com",
+    "uiMessageObserved": "You cannot invite your own sign-in email to this shared link.",
+    "sendButtonTextObserved": "Send to 0 recipients",
+    "sendButtonDisabled": true,
+    "result": "pass",
+    "note": "The already-existing pre-fix self-recipient row remained visible as sent, but the refreshed production client blocked a new self-invite attempt before it could become sendable."
+  },
+  "alternateRecipientSendProof": {
+    "recipientEmail": "lewisphilipjonechavez@gmail.com",
+    "beforeSend": {
+      "uiStatus": "pending",
+      "sendButtonTextObserved": "Send to 1 recipient",
+      "sendButtonDisabled": false
+    },
+    "afterSend": {
+      "uiStatus": "sent",
+      "sendButtonTextObserved": "Send to 0 recipients",
+      "sendButtonDisabled": true,
+      "uiMessageObserved": "Added 1 recipient(s). 1 email(s) dispatched (failures are non-fatal)."
+    },
+    "result": "pass"
+  },
+  "sanitizedSupabaseReadback": {
+    "queryType": "read-only select",
+    "columnsExcluded": [
+      "project_publications.token_hash",
+      "project_publications.encrypted_token",
+      "shared_link_recipients.recipient_token_hash",
+      "raw recipient token",
+      "full public share URL"
+    ],
+    "rows": [
+      {
+        "publication_id": "f5511219-c26e-4a9d-a42b-83649261908b",
+        "project_id": "a04459eb-cd96-4bd5-b579-15143a2491ef",
+        "status": "published",
+        "snapshot_version": 1,
+        "selected_estimate_count": 1,
+        "published_at": "2026-06-04 15:00:21.624379+00",
+        "expires_at": null,
+        "open_count": 0,
+        "email": "lewisphilipjonechavez@gmail.com",
+        "delivery_status": "sent",
+        "has_resend_email_id": true,
+        "resend_email_id_redacted": "7487d5e5-c...d92e69",
+        "resend_last_event_type": null,
+        "resend_last_event_at": null,
+        "email_unsubscribed_at": null,
+        "recipient_created_at": "2026-06-04 15:30:15.120116+00",
+        "recipient_updated_at": "2026-06-04 15:30:15.382+00"
+      },
+      {
+        "publication_id": "f5511219-c26e-4a9d-a42b-83649261908b",
+        "project_id": "a04459eb-cd96-4bd5-b579-15143a2491ef",
+        "status": "published",
+        "snapshot_version": 1,
+        "selected_estimate_count": 1,
+        "published_at": "2026-06-04 15:00:21.624379+00",
+        "expires_at": null,
+        "open_count": 0,
+        "email": "philipjonlewis@gmail.com",
+        "delivery_status": "sent",
+        "has_resend_email_id": true,
+        "resend_email_id_redacted": "a0a6d94d-3...9292f7",
+        "resend_last_event_type": null,
+        "resend_last_event_at": null,
+        "email_unsubscribed_at": null,
+        "recipient_created_at": "2026-06-04 15:02:12.868241+00",
+        "recipient_updated_at": "2026-06-04 15:02:13.481+00"
+      }
+    ]
+  },
+  "verification": {
+    "localTestsBeforeDeploy": [
+      "bunx vitest run tests/vitest/project-publication-actions.test.ts tests/vitest/project-publication-header.test.tsx --maxWorkers=1 --reporter=dot",
+      "bun run type-check",
+      "bunx eslint src/lib/publication/actions.ts src/components/workshop/publication/RecipientEmailComposer.tsx src/components/workshop/ProjectPublicationHeader.tsx src/components/workshop/ProjectWorkspaceHeaderRow.tsx tests/vitest/project-publication-actions.test.ts tests/vitest/project-publication-header.test.tsx",
+      "git diff --check"
+    ],
+    "productionSmoke": [
+      "vercel inspect archestimator-3torz4dzn-philipjonlewis-projects.vercel.app --scope philipjonlewis-projects",
+      "curl https://www.archestimator.com/api/health",
+      "Chrome production UI self-invite guard smoke",
+      "Chrome production UI alternate-recipient send smoke",
+      "read-only Supabase recipient delivery metadata query"
+    ]
+  },
+  "boundaries": {
+    "notProven": [
+      "recipient inbox receipt for lewisphilipjonechavez@gmail.com",
+      "recipient clickthrough/open of the unique recipient link",
+      "Resend delivered/bounce webhook reconciliation for the alternate-recipient message",
+      "removal of the pre-fix self-recipient row"
+    ],
+    "safety": [
+      "No full public share token was recorded.",
+      "No recipient token hash was selected or recorded.",
+      "No service-role key, webhook secret, Resend API key, cookie, or OAuth token was recorded."
+    ]
+  },
+  "result": {
+    "selfInviteGuardReady": true,
+    "alternateRecipientSendReady": true,
+    "hostedSharedLinkEmailSendSmoke": "partial-pass",
+    "remainingEmailProofGaps": [
+      "alternate recipient inbox receipt",
+      "recipient clickthrough/open",
+      "Resend webhook delivered/bounce/complaint reconciliation"
+    ]
+  }
+}

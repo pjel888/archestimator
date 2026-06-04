@@ -640,8 +640,10 @@ describe("closed beta readiness docs", () => {
     expect(manualProofMatrix).toContain("feedback-smtp.ap-northeast-1.amazonses.com");
     expect(manualProofMatrix).toContain("v=spf1 include:amazonses.com ~all");
     expect(manualProofMatrix).toContain("ARCHESTIMATOR_EMAIL_DELIVERY_ENABLED");
-    expect(manualProofMatrix).toContain("pass-provider-and-inbox / workflow-smoke-open");
-    expect(manualProofMatrix).toContain("Hosted shared-link/invite email workflow smoke remains open");
+    expect(manualProofMatrix).toContain("partial-pass / webhook-open");
+    expect(manualProofMatrix).toContain("hosted-shared-link-recipient-email-self-invite-guard-2026-06-04T1532Z.json");
+    expect(manualProofMatrix).toContain("dispatches an app-level invite to `lewisphilipjonechavez@gmail.com`");
+    expect(manualProofMatrix).toContain("Remaining gaps before calling automatic email UX fully green");
     expect(manualProofMatrix).toContain("first-run-workshop-local-surface-2026-06-02.md");
     expect(manualProofMatrix).toContain("empty Workshop homebase action links");
     expect(manualProofMatrix).toContain("Hosted whitelisted account proof still missing");
@@ -740,7 +742,7 @@ describe("closed beta readiness docs", () => {
     expect(manualProofMatrix).toContain("signed-out auth plus local dev-auth library/template/template-insert smoke");
     expect(manualProofMatrix).toContain("full-local-e2e-refresh-bb9006d-2026-06-02.md");
     expect(manualProofMatrix).toContain("passing 9 ungated checks with 24 env-gated/live-provider specs skipped");
-    expect(manualProofMatrix).toContain("Hosted denied/revoked/expired-session, project-specific unlink, spreadsheet-app open/print, and automatic email workflow smoke remain missing");
+    expect(manualProofMatrix).toContain("Hosted denied/revoked/expired-session, project-specific unlink, spreadsheet-app open/print, recipient clickthrough/inbox, and webhook reconciliation remain missing");
     expect(manualProofMatrix).toContain("demo-rehearsal-fallback-pack-2026-06-02.md");
     expect(manualProofMatrix).toContain("fallback script");
     expect(manualProofMatrix).toContain("owner demo sign-off remain missing");
@@ -814,8 +816,10 @@ describe("closed beta readiness docs", () => {
     expect(consolidatedManualProofPacket).toMatch(/\| Hosted auth allowlist \| partial-pass \/ logout-pass \|/);
     expect(consolidatedManualProofPacket).toContain("vercel-production-resend-enabled-hosted-auth-2026-06-04T1311Z.json");
     expect(consolidatedManualProofPacket).toContain("Hosted denied/revoked/expired-session smoke is still open.");
-    expect(consolidatedManualProofPacket).toMatch(/\| Resend\/email if visible \| pass-provider-and-inbox \/ workflow-smoke-open \|/);
+    expect(consolidatedManualProofPacket).toMatch(/\| Resend\/email if visible \| partial-pass \/ webhook-open \|/);
     expect(consolidatedManualProofPacket).toContain("resend-owner-inbox-receipt-2026-06-04T1348Z.json");
+    expect(consolidatedManualProofPacket).toContain("hosted-shared-link-recipient-email-self-invite-guard-2026-06-04T1532Z.json");
+    expect(consolidatedManualProofPacket).toContain("Remaining gaps before calling automatic email UX fully green");
     expect(consolidatedManualProofPacket).toMatch(/\| Legal\/owner review \| pass-owner-beta \|/);
     expect(consolidatedManualProofPacket).toMatch(/\| Support\/monitoring \| pass-owner-beta \/ independent-dashboard-open \|/);
   });
@@ -863,6 +867,7 @@ describe("closed beta readiness docs", () => {
     expect(artifactFilenames).toContain("resend-namecheap-dns-repair-pending-2026-06-04T1222Z.json");
     expect(artifactFilenames).toContain("resend-domain-verified-email-enabled-2026-06-04T1235Z.json");
     expect(artifactFilenames).toContain("resend-owner-inbox-receipt-2026-06-04T1348Z.json");
+    expect(artifactFilenames).toContain("hosted-shared-link-recipient-email-self-invite-guard-2026-06-04T1532Z.json");
     expect(artifactFilenames).toContain("resend-send-test-domain-unverified-2026-06-04T1151Z.json");
     expect(artifactFilenames).toContain("resend-readiness-email-flag-default-off-2026-06-04T1140Z.json");
     expect(artifactFilenames).toContain("hosted-owner-beta-journey-smoke-2026-06-04T1328Z.json");
@@ -906,9 +911,10 @@ describe("closed beta readiness docs", () => {
     expect(goalCompletionAudit).toContain("only active/invited closed-beta allowlist email is `philipjonlewis@gmail.com`");
     expect(goalCompletionAudit).toContain("Remaining completion gaps: real browser Google OAuth denied/revoked/expired smoke");
     expect(goalCompletionAudit).toContain("Vercel rollback proof is closed");
-    expect(goalCompletionAudit).toContain("Provider plus inbox proof closed; workflow smoke still conditional");
+    expect(goalCompletionAudit).toContain("Provider plus inbox proof closed; hosted send partial-pass");
     expect(goalCompletionAudit).toContain("resend-domain-verified-email-enabled-2026-06-04T1235Z.json");
     expect(goalCompletionAudit).toContain("resend-owner-inbox-receipt-2026-06-04T1348Z.json");
+    expect(goalCompletionAudit).toContain("hosted-shared-link-recipient-email-self-invite-guard-2026-06-04T1532Z.json");
     expect(goalCompletionAudit).toContain("hosted-owner-beta-journey-smoke-2026-06-04T1328Z.json");
     expect(goalCompletionAudit).toContain("Hosted logout");
     expect(goalCompletionAudit).toContain("hosted-logout-session-proof-2026-06-04T1436Z.json");
@@ -1077,7 +1083,8 @@ describe("closed beta readiness docs", () => {
     expect(knownIssues).toContain("It still does not prove `support@archestimator.com` is monitored");
     expect(knownIssues).toContain("Resend sender-domain verification is no longer blocked on the cheaper DNS path");
     expect(knownIssues).toContain("Resend domain status `Verified`");
-    expect(knownIssues).toContain("Hosted shared-link/invite email workflow smoke remains a full-journey proof gap");
+    expect(knownIssues).toContain("Hosted shared-link self-invite blocking and alternate-recipient send dispatch are proven");
+    expect(knownIssues).toContain("alternate recipient inbox receipt, recipient clickthrough/open, and Resend delivered/bounce/complaint webhook reconciliation remain full-lifecycle proof gaps");
     expect(knownIssues).toContain("Codex Security cheap-path refresh at `2026-06-04T08:44Z`");
     expect(knownIssues).toContain("repo-filtered open findings view shows `1-20 of 35`");
     expect(knownIssues).toContain("while `critical` and");
