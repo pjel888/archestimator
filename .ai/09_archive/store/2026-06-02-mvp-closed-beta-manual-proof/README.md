@@ -2,6 +2,24 @@
 
 Status: consolidated packet from current artifacts; external closed beta remains **NO-GO**.
 
+2026-06-04 19:51Z synthetic Google Sheets workbook compatibility proof:
+`synthetic-google-sheets-workbook-compatibility-2026-06-04T1951Z.json` records
+a non-sensitive 25-row synthetic proposal workbook generated through the same
+ExcelJS builder used by the app export route. Local ExcelJS readback proves the
+expected `Bid Form`, `Summary`, `Commercial Terms`, and `Source Breakdown`
+sheets, formula-backed sample line/subtotal/grand-total results, frozen header
+state, repeated print-title row, landscape layout, and fit-to-width settings.
+Computer Use uploaded only this synthetic workbook to the owner Google account
+through Google Sheets, observed the imported document saved privately to Drive,
+confirmed all four tabs were visible, inspected the Summary sheet with the
+formula-backed `149,798` grand total, and opened Google Sheets print settings
+for the current sheet. The print settings showed `Total: 1 page`, A4 paper,
+landscape orientation, fit-to-width scale, and custom margins; the flow was
+canceled before any print job. The temporary Downloads copy was removed. This
+closes secondary Google Sheets import/open/recalc/print-preview proof for a
+synthetic workbook, but it does not prove native Microsoft Excel, Apple Numbers,
+LibreOffice, or a real production/client workbook in a spreadsheet app.
+
 2026-06-04 19:20Z hosted expired synthetic stale-cookie proof:
 `hosted-expired-stale-cookie-smoke-2026-06-04T1920Z.json` records production
 `HEAD` and `GET` probes to `https://www.archestimator.com/workshop` with a

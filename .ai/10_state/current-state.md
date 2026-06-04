@@ -170,8 +170,11 @@ journey proof is now current for the single-tester beta. Residual Codex Security
 history-risk is owner-accepted for this single-owner beta by
 `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/codex-security-history-risk-owner-acceptance-2026-06-04T1414Z.json`,
 without claiming the findings are fixed or the dashboard fully green.
-Spreadsheet-app open/print proof if required for beta remains the main open proof
-gap after the later expired synthetic stale-cookie, shared-link
+Synthetic Google Sheets workbook compatibility proof is now captured by
+`.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/synthetic-google-sheets-workbook-compatibility-2026-06-04T1951Z.json`;
+project-specific unlink and native/real production workbook app proof are the
+remaining spreadsheet/export-adjacent caveats after the later expired synthetic
+stale-cookie, shared-link
 send/inbox/clickthrough smoke, and signed Resend delivered-event reconciliation;
 owner logout is proven by
 `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/hosted-logout-session-proof-2026-06-04T1436Z.json`,
@@ -292,8 +295,9 @@ env mutation, broad `supabase db push`, new Codex Security scan, or git-history
 rewrite occurred. Proof artifact:
 `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/codex-security-cheap-path-closures-2026-06-04T0934Z.json`.
 External closed beta is still not fully green: the two history-exposure findings
-remain dashboard-open but owner-accepted for the single-owner beta, and
-secondary spreadsheet-app export proof if required for beta still needs proof.
+remain dashboard-open but owner-accepted for the single-owner beta, synthetic
+Google Sheets workbook proof is captured, and native/real production workbook
+app proof remains unproven beyond the owner-only beta.
 Expired-session fail-closed route proof is closed by the later 19:20Z synthetic
 stale-cookie artifact. Resend sender-domain proof is now closed by
 the later 12:35Z verified send/webhook artifact; owner hosted beta journey proof
@@ -316,9 +320,9 @@ but external closed beta is still not fully green. Later 2026-06-04 artifacts
 close Resend sender-domain proof, rollback proof, legal/owner/support signoff,
 hosted authenticated export, the owner hosted beta journey, owner-scoped Codex
 Security history-risk acceptance, hosted logout, and hosted denied/revoked
-Google OAuth proof. The remaining current gaps are secondary spreadsheet-app
-export proof if required for beta, project-specific unlink proof if required
-before widening, and
+Google OAuth proof. The remaining current gaps are project-specific unlink proof
+if required before widening, native/real production workbook app proof if
+required beyond the owner-only beta, and
 synthetic bounce/complaint workflow proof only if the owner-only beta requires
 negative-email lifecycle coverage.
 
@@ -343,9 +347,10 @@ migration state changed. Proof artifact:
 External closed beta is still not fully green, but later 2026-06-04 artifacts
 close Resend provider proof, rollback proof, legal/owner/support signoff, owner
 hosted beta journey, logout, denied/revoked Google OAuth, and automatic-email
-delivery/webhook proof. Remaining current gaps are secondary spreadsheet-app
-open/print proof if required for beta, project-specific unlink proof if required
-before widening, residual Codex Security history-risk acceptance/remediation,
+delivery/webhook proof. Remaining current gaps are project-specific unlink proof
+if required before widening, native/real production workbook app proof if
+required beyond the owner-only beta, residual Codex Security history-risk
+acceptance/remediation,
 and any optional
 bounce/complaint negative email lifecycle proof before relying on incident-path
 email UX.
@@ -429,9 +434,9 @@ action-time confirmation. Proof artifact:
 Later 2026-06-04 artifacts close Resend MX/domain/delivery proof,
 legal/owner/support signoff, and owner hosted beta journey proof. Closed beta
 remains not fully green until remaining Codex Security history-risk,
-secondary spreadsheet-app export open/print proof if required for beta,
-project-specific unlink proof if required before widening, and any optional
-negative email lifecycle proof are complete or explicitly accepted.
+project-specific unlink proof if required before widening, native/real
+production workbook app proof if required beyond the owner-only beta, and any
+optional negative email lifecycle proof are complete or explicitly accepted.
 
 **Codex Security Chart/XLSX Finding Closed (2026-06-04 06:49Z):**
 Authenticated Codex Security closure marked
@@ -526,9 +531,10 @@ intentionally absent from the no-new-spend path; later artifacts close Resend
 dashboard/delivery/webhook proof, legal/owner/support signoff, hosted
 authenticated export, and the owner hosted beta journey. Later proof closes
 denied/revoked Google OAuth, synthetic stale-cookie expired-session routing,
-logout/session-expiry, and hosted automatic-email workflow delivery; secondary
-spreadsheet-app open/print proof if required for beta and residual Codex
-Security history-risk remain open. Codex Security is also still a
+logout/session-expiry, hosted automatic-email workflow delivery, and synthetic
+Google Sheets workbook proof; native/real production workbook app proof beyond
+the owner-only beta and residual Codex Security history-risk remain open. Codex
+Security is also still a
 launch blocker: the latest authenticated Scans page proof last scanned
 `2c7ffb97`, not current repo head `b9051f2`, and reports 4 critical, 6 high, 31
 medium, and 6 low scan-count badges. Proof artifact:
@@ -583,9 +589,10 @@ This is still not a fully green
 beta launch: later artifacts close legal/owner/support confirmations, hosted
 authenticated export, the owner hosted beta journey, logout, denied/revoked
 Google OAuth, and automatic-email delivery/webhook proof, while Codex Security
-rescan/owner acceptance, spreadsheet-app open/print proof if required for beta,
-project-specific unlink proof if required before widening, and optional negative
-email lifecycle proof remain open. Expired-session fail-closed proof is closed by
+rescan/owner acceptance, project-specific unlink proof if required before
+widening, native/real production workbook app proof if required beyond the
+owner-only beta, and optional negative email lifecycle proof remain open.
+Expired-session fail-closed proof is closed by
 the later 19:20Z synthetic stale-cookie artifact. Proof artifact:
 `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/cheap-launch-refresh-2026-06-04.json`.
 
@@ -650,8 +657,9 @@ Resend domain/webhook/delivery, legal/owner/support signoff, hosted
 authenticated export, owner journey, logout, and denied/revoked Google OAuth.
 Remaining no-cost blockers are Codex Security rescan/owner acceptance, hosted
 synthetic stale-cookie expired-session proof before the later 19:20Z artifact,
-spreadsheet-app open/print proof if required for beta, and full hosted beta
-journey closure language. Current active blockers are narrower.
+native/real production workbook app proof if required beyond the owner-only beta,
+and full hosted beta journey closure language. Current active blockers are
+narrower.
 
 **Public Proposal Rate Breakdown Stripped And Deployed (2026-06-04):** Main commit `984124b` fixes the Codex Security finding `Proposal pages now expose internal unit-rate details`. Future public publication snapshot rows no longer include `unitCost`, `miscCost`, or `contingencyPercentage`; legacy stored snapshots are sanitized through a public-read whitelist in `sanitizeProjectPublicationSnapshotForPublicRead`, and `/api/share/[token]` defensively sanitizes again before `Response.json`. Public proposal rows still expose quantity, unit, and row total so recipients can audit proposal totals without receiving internal unit-rate breakdowns. Red/green verification first failed on both future snapshot rows and dirty route JSON, then passed the focused publication snapshot/route/page suite (3 files / 38 tests), broader adjacent publication/security/share GET suite (5 files / 56 tests), `bun run type-check`, `bun run lint` with 12 existing warnings / 0 errors, `git diff --check`, `bun run build`, and GitNexus staged detect-changes LOW risk with 0 affected processes. Vercel production deploy `dpl_Dh8xPgZ3NQwN4CwxZQXh6d8vypcn` is Ready and aliased to `www.archestimator.com`, `archestimator.com`, and `archestimator.vercel.app`; hosted smoke returned HTTP 200 from `https://www.archestimator.com/api/health`, apex health redirected to `www`, `/login` returned HTTP 200, and signed-out `/workshop` returned HTTP 307 to `/login?next=%2Fworkshop`. Proof artifact: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/proposal-public-rates-stripped-2026-06-04.json`. Codex Security rescan/closure remains pending, and no hosted real published share token JSON was inspected after deployment.
 
@@ -789,8 +797,9 @@ and approval.
 **Demo Rehearsal Fallback Pack (2026-06-02):** `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/demo-rehearsal-fallback-pack-2026-06-02.md` assembles the local investor/incubator fallback packet from seed anchors, component/template screenshots, local template insertion proof, sanitized workbook readback, and a fallback script. The raw generated workbook is no longer retained in git. This improves fallback readiness only; hosted reviewer account proof, allowlist proof, target-environment screenshots, spreadsheet-app open/print proof, live rehearsal, and owner sign-off remain missing.
 **Spreadsheet Quick Look Preview Evidence (2026-06-02):** `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/spreadsheet-quicklook-preview-2026-06-02.md` records `qlmanage` thumbnail generation for the demo workbook and archives a 1200 x 892 PNG preview. This confirms local macOS preview rendering only; Excel, Numbers, LibreOffice, formula recalculation, and print proof remain missing.
 **Spreadsheet App Availability Refresh (2026-06-02):** `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/spreadsheet-app-availability-refresh-2026-06-02.md` records that Microsoft Excel, Apple Numbers, LibreOffice, `libreoffice`, and `soffice` are not available locally. `Google Sheets.app` is present as a Google Drive shortcut app (`com.google.drivefs.shortcuts.sheets`), not a native local spreadsheet engine; using it would likely require sign-in and/or workbook upload/import to Google, so it is not autonomous local compatibility proof without owner-approved manual QA.
-**Proposal Workbook Large-Fixture Benchmark (2026-06-02):** `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/proposal-workbook-large-fixture-benchmark-2026-06-02.md` records a local synthetic `createProposalWorkbookBuffer()` benchmark for 500 / 1,000 / 2,500 proposal rows using the same ExcelJS workbook builder as the export route. The 2,500-row fixture generated in 362.06ms with a 402,284 byte (0.38 MiB) buffer, 270.56 MiB local RSS, and 76.65 MiB heap used. This supports keeping synchronous export generation for closed-beta local scale, but Vercel route timing/memory proof and spreadsheet-app open/recalc/print proof remain missing.
-**Proposal Workbook Benchmark Regression Coverage (2026-06-02):** `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/proposal-workbook-benchmark-regression-coverage-2026-06-02.md` records focused Vitest coverage for the benchmark fixture helpers: row-count parsing, deterministic BOQ row/source metadata, summary/source/totals consistency, and a tiny real `createProposalWorkbookBuffer()` benchmark run. This strengthens local benchmark evidence only; hosted export-route timing/memory and spreadsheet-app open/recalc/print proof remain missing.
+**Synthetic Google Sheets Workbook Compatibility Proof (2026-06-04):** `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/synthetic-google-sheets-workbook-compatibility-2026-06-04T1951Z.json` records an owner-authorized, non-sensitive Google Sheets import/open/recalc/print-preview smoke using a synthetic 25-row Archestimator workbook. The workbook was generated by the app workbook builder, had SHA-256 `7bff7517da5e443c3beb96929efd0ceda48e423248b159fa393714e7805a84de`, imported into Google Sheets under `philipjonlewis@gmail.com`, showed the `Bid Form`, `Summary`, `Commercial Terms`, and `Source Breakdown` tabs, rendered the Summary grand total `149,798`, and opened one-page landscape fit-to-width print settings. This closes synthetic secondary Google Sheets compatibility proof only; native Microsoft Excel/Apple Numbers/LibreOffice and real production/client workbook app proof remain unproven.
+**Proposal Workbook Large-Fixture Benchmark (2026-06-02):** `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/proposal-workbook-large-fixture-benchmark-2026-06-02.md` records a local synthetic `createProposalWorkbookBuffer()` benchmark for 500 / 1,000 / 2,500 proposal rows using the same ExcelJS workbook builder as the export route. The 2,500-row fixture generated in 362.06ms with a 402,284 byte (0.38 MiB) buffer, 270.56 MiB local RSS, and 76.65 MiB heap used. This supports keeping synchronous export generation for closed-beta local scale, but Vercel route timing/memory proof and native/real production workbook app proof remain missing.
+**Proposal Workbook Benchmark Regression Coverage (2026-06-02):** `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/proposal-workbook-benchmark-regression-coverage-2026-06-02.md` records focused Vitest coverage for the benchmark fixture helpers: row-count parsing, deterministic BOQ row/source metadata, summary/source/totals consistency, and a tiny real `createProposalWorkbookBuffer()` benchmark run. This strengthens local benchmark evidence only; hosted export-route timing/memory and native/real production workbook app proof remain missing.
 **Proposal Export Route Workbook Local Proof (2026-06-02):** `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/proposal-export-route-workbook-local-2026-06-02.md` records a local route-handler integration test where `getProjectEstimateTreeByEstimate()` is mocked but the actual XLSX route calls `buildProposalExportModel()` and `createProposalWorkbookBuffer()`. The returned response has XLSX headers, content length, loadable bytes, all four workbook sheets, and formula-backed cells. This closes the local route-handler workbook gap, but hosted authenticated export smoke and Vercel timing/memory proof remain missing.
 **Provider State Refresh Evidence (2026-06-02):** `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/provider-state-refresh-2026-06-02.md` records fresh read-only Vercel and Supabase proof. Latest Vercel preview `archestimator-j29iumqi0-philipjonlewis-projects.vercel.app` is Ready and `vercel curl` reaches `/api/health`, but `vercel env ls --non-interactive` still returns no environment variables and plain health remains deployment-protected with HTTP 401. Linked Supabase still shows `20260601182522_closed_beta_allowed_emails` and `20260601184343_unlink_estimate_row_items` as local-only migrations. Hosted auth/env/provider, linked migration/RLS/RPC, production/custom-domain, rollback, and Resend proof remain missing.
 **Provider State Refresh at b33f56d (2026-06-02):** `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/provider-state-refresh-b33f56d-2026-06-02.md` records a fresh read-only provider refresh after the consolidated packet push. Vercel preview `archestimator-bk9xr4ea0-philipjonlewis-projects.vercel.app` / deployment `dpl_6psx8VnKmAgcU17jHk9xVSpavTi4` for commit `b33f56d` is Ready, and protected preview plus branch-alias `/api/health` return ok through `vercel curl`. Vercel env vars remain absent, public preview health returns HTTP 401, custom-domain `/api/health` returns 404 on the old production surface, and rollback proof is missing. `supabase migration list --linked` now succeeds instead of hitting the prior temp-role circuit breaker, but still shows launch migrations `20260601182522`, `20260601184343`, `20260602005649`, `20260602083000`, and `20260602084500` absent remotely. Closed beta remains **NO-GO**.
@@ -1194,5 +1203,7 @@ Delivered:
 
 Open:
 - Prior git history was not rewritten or force-pushed; that remains a destructive, owner-approved operation if the scanner requires full historical removal.
-- Hosted authenticated export proof and spreadsheet-app open/recalc/print proof remain open.
+- Hosted authenticated export proof is closed; synthetic Google Sheets workbook
+  proof is closed; native/real production workbook app proof remains open if
+  required beyond the owner-only beta.
 - Codex Security dashboard rescan/closure remains pending.
