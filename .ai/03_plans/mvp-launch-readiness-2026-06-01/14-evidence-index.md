@@ -1,5 +1,34 @@
 # Evidence Index
 
+## Hosted Authenticated Export Browser Proof - 2026-06-04 08:07Z
+
+- Primary artifact: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/hosted-export-browser-proof-2026-06-04T0807Z.json`.
+- Browser proof: Computer Use against the active owner Chrome session reached
+  production
+  `/workshop/projects/22222222-2222-4222-8222-222222222222/estimates/a9c512cb-d3a3-44e3-b6df-fa5a29278584`,
+  rendered the `Lewis Residence` estimate workspace, opened `Preview Excel
+  Export`, observed `55 consolidated BOQ rows` and grand total
+  `PHP 4,078,914.00`, and downloaded `AE-LR-001-ES-001-proposal.xlsx`.
+- Supabase readback: a narrow read-only selected-node mapping query resolves
+  `a9c512cb-d3a3-44e3-b6df-fa5a29278584` to estimate
+  `33333333-3333-4333-8333-333333333333`, sheet code `ES-001`, project
+  `22222222-2222-4222-8222-222222222222`.
+- Signed-out control: unauthenticated curl to the corrected export route returns
+  HTTP 307 to `/login`; the successful XLSX download required the authenticated
+  browser session.
+- Workbook validation: the downloaded file is 28,189 bytes, `file` reports
+  `Microsoft Excel 2007+`, first bytes are `PK`, `unzip -t` reports no errors,
+  SHA-256 is
+  `b1545086ebad54ffcd89d8e2f3e7b92e433eeeeff4fd06f3d28dabcd09b5db0d`, ExcelJS
+  loads creator `Archestimator` / subject `Industry-standard proposal workbook`,
+  and sheets are `Bid Form`, `Summary`, `Commercial Terms`, and
+  `Source Breakdown`.
+- Boundary: raw workbook bytes were not copied into the repository or proof
+  packet. No paid provider add-on, DNS, Vercel env, Supabase data mutation,
+  PITR, compute, migration history, or broad Supabase push changed.
+- Result: hosted authenticated export proof is closed. Secondary spreadsheet-app
+  open/print proof and full hosted beta journey proof remain open.
+
 ## Hosted Feedback Admin Surface Proof - 2026-06-04 07:50Z
 
 - Primary artifact: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/hosted-feedback-admin-proof-2026-06-04T0750Z.json`.
@@ -50,8 +79,9 @@
   closure/rescan/owner acceptance.
 - Still open: hosted denied/revoked/expired beta-auth smoke, rollback drill or
   owner risk acceptance, Resend domain/delivery proof if visible email is
-  enabled, legal/owner signoff, support/feedback/alert monitoring proof, hosted
-  authenticated export, and full hosted beta journey.
+  enabled, legal/owner signoff, support/feedback/alert monitoring proof,
+  secondary spreadsheet-app export open/print proof, and full hosted beta
+  journey.
 
 ## Supplemental Hosted Owner Profile Smoke - 2026-06-04 07:22Z
 

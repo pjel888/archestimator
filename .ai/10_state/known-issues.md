@@ -33,6 +33,18 @@
 
 ## 2026-06-04 cheap launch refresh
 
+- Hosted authenticated export proof at `2026-06-04T08:07Z` now proves the owner
+  Chrome session can render the production Lewis Residence estimate workspace,
+  open `Preview Excel Export`, and download
+  `AE-LR-001-ES-001-proposal.xlsx`. The selected browser node maps to estimate
+  `33333333-3333-4333-8333-333333333333` / `ES-001`; signed-out curl to the
+  export route redirects to `/login`; sanitized workbook validation proves XLSX
+  ZIP integrity plus the expected `Bid Form`, `Summary`, `Commercial Terms`, and
+  `Source Breakdown` sheets. Artifact:
+  `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/hosted-export-browser-proof-2026-06-04T0807Z.json`.
+  The raw workbook was not copied into the repository. This closes the hosted
+  authenticated export proof gap, but secondary spreadsheet-app open/print proof
+  and the full hosted beta journey remain open.
 - Hosted feedback admin proof at `2026-06-04T07:50Z` now shows the active owner
   Chrome session can render production
   `https://www.archestimator.com/workshop/settings/feedback` with the `Beta
@@ -58,8 +70,8 @@
   External closed beta is still not fully green because Codex Security
   dashboard state, hosted denied/revoked/expired auth smoke, Resend
   domain/delivery proof if email is visible, rollback/legal/support/alert
-  monitoring proof, hosted authenticated export, and full hosted beta journey
-  proof remain open.
+  monitoring proof, secondary spreadsheet-app export open/print proof, and full
+  hosted beta journey proof remain open.
 - Supplemental hosted owner profile proof at `2026-06-04T07:22Z` shows the
   active Chrome hosted session can render
   `https://www.archestimator.com/workshop/settings/profile` with authenticated
@@ -102,7 +114,8 @@
   Security dashboard rescan/acceptance, hosted Google OAuth denied/revoked/
   expired browser smoke, rollback drill if accepted, Resend `send.contact` MX
   plus delivery/webhook proof, legal/owner signoff, support/alert monitoring
-  proof, hosted authenticated export, and full hosted beta journey proof.
+  proof, secondary spreadsheet-app export open/print proof, and full hosted beta
+  journey proof.
   Direct RLS closure proof exists locally/provider-side, but the Codex Security
   dashboard `Close` submission remains pending action-time confirmation.
 

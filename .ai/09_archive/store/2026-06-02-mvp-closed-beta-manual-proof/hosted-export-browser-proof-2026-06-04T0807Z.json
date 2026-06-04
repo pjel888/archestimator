@@ -1,0 +1,85 @@
+{
+  "generatedAt": "2026-06-04T08:07:27Z",
+  "mode": "hosted-authenticated-export-browser-proof",
+  "costPosture": {
+    "supabaseCompute": "MICRO",
+    "pitrEnabled": false,
+    "paidAddonsEnabledDuringProof": false,
+    "broadSupabaseDbPushRun": false,
+    "providerSettingsMutated": false
+  },
+  "target": {
+    "baseUrl": "https://www.archestimator.com",
+    "projectId": "22222222-2222-4222-8222-222222222222",
+    "selectedNodeIdFromBrowserRoute": "a9c512cb-d3a3-44e3-b6df-fa5a29278584",
+    "resolvedEstimateId": "33333333-3333-4333-8333-333333333333",
+    "estimateSheetCode": "ES-001",
+    "estimateName": "Lewis Residence - 001",
+    "route": "/api/projects/22222222-2222-4222-8222-222222222222/estimates/33333333-3333-4333-8333-333333333333/export/proposal.xlsx"
+  },
+  "browserProof": {
+    "tool": "Computer Use against Google Chrome owner session",
+    "authenticatedProjectListObserved": true,
+    "authenticatedEstimateRouteObserved": true,
+    "previewOpened": true,
+    "previewRowsText": "55 consolidated BOQ rows",
+    "previewGrandTotalObserved": "PHP 4,078,914.00",
+    "downloadCompleted": true,
+    "downloadFileName": "AE-LR-001-ES-001-proposal.xlsx",
+    "rawWorkbookCopiedIntoRepository": false
+  },
+  "supabaseReadback": {
+    "queryType": "read-only selected node to estimate mapping",
+    "selectedNodeId": "a9c512cb-d3a3-44e3-b6df-fa5a29278584",
+    "estimateId": "33333333-3333-4333-8333-333333333333",
+    "sheetCode": "ES-001",
+    "projectId": "22222222-2222-4222-8222-222222222222"
+  },
+  "unauthenticatedControl": {
+    "status": 307,
+    "location": "/login",
+    "note": "Unauthenticated curl to the export route redirected to login; the successful XLSX download required the authenticated browser session."
+  },
+  "downloadValidation": {
+    "byteLength": 28189,
+    "sha256": "b1545086ebad54ffcd89d8e2f3e7b92e433eeeeff4fd06f3d28dabcd09b5db0d",
+    "fileType": "Microsoft Excel 2007+",
+    "zipMagic": "PK\\u0003\\u0004",
+    "zipIntegrity": "No errors detected in compressed data",
+    "workbookCreator": "Archestimator",
+    "workbookSubject": "Industry-standard proposal workbook",
+    "sheets": [
+      {
+        "name": "Bid Form",
+        "rowCount": 128,
+        "columnCount": 10,
+        "actualRowCount": 125
+      },
+      {
+        "name": "Summary",
+        "rowCount": 42,
+        "columnCount": 3,
+        "actualRowCount": 34
+      },
+      {
+        "name": "Commercial Terms",
+        "rowCount": 18,
+        "columnCount": 2
+      },
+      {
+        "name": "Source Breakdown",
+        "rowCount": 61,
+        "columnCount": 13,
+        "actualRowCount": 60
+      }
+    ]
+  },
+  "result": {
+    "hostedAuthenticatedExportProven": true,
+    "hostedRouteProtectedFromSignedOutCurl": true,
+    "spreadsheetAppOpenPrintProofStillOpen": true,
+    "fullHostedBetaJourneyStillOpen": true,
+    "resendMxStillOpen": true,
+    "codexSecurityStillOpen": true
+  }
+}

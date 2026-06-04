@@ -14,13 +14,15 @@
 | GitHub queue | **Clear**. No open issues or PRs found. | Same cheap audit |
 | Codex Security | **Blocked**. GitHub queue is clear, but Codex Security dashboard state still needs closure/rescan/owner acceptance; Direct RLS fix proof exists but UI close submission remains pending action-time confirmation. | `codex-security-dashboard-refresh-2026-06-04T0511Z.json`, `component-price-audit-grants-2026-06-04.json` |
 | Owner/legal/support monitoring | **Blocked, with one hosted surface now proven**. Support DNS exists for apex forwarding, and hosted owner-session access to the beta feedback review surface is now proven. Monitored inbox cadence, feedback queue review cadence, alert/incident monitoring, and legal/owner signoff are not proven. | `hosted-feedback-admin-proof-2026-06-04T0750Z.json`, same cheap audit plus support/legal artifacts |
+| Hosted authenticated export | **Proven fresh**. Owner Chrome session rendered the production Lewis Residence estimate workspace, opened `Preview Excel Export`, downloaded `AE-LR-001-ES-001-proposal.xlsx`, and sanitized validation proved XLSX ZIP integrity plus the expected workbook sheets. Signed-out curl redirects to login. | `hosted-export-browser-proof-2026-06-04T0807Z.json` |
 
 Result: the cheaper launch infrastructure posture is implemented and recorded,
 but external closed beta is still **not fully green**. Remaining no-cost/manual
 blockers are Codex Security dashboard closure/rescan or owner acceptance, hosted
 denied/revoked/expired auth smoke, Resend MX/domain/delivery proof if email is
 visible, rollback drill or accepted risk, legal/owner signoff, monitored support
-and feedback proof, hosted authenticated export, and a full hosted beta journey.
+and feedback proof, secondary spreadsheet-app export open/print proof, and a
+full hosted beta journey.
 
 ## Cheaper-Path Provider Launch Update - 2026-06-03
 
@@ -28,7 +30,7 @@ and feedback proof, hosted authenticated export, and a full hosted beta journey.
 - Supabase PITR was explicitly skipped for cost; backup safety for this one-person pre-launch beta is daily physical backup proof plus an off-repo logical dump created before applying linked migrations.
 - Linked Supabase closed-beta/security migrations through `20260603160000_mass_deletion_governance` are applied and recorded in remote migration history.
 - The only active/invited closed-beta allowlist email is `philipjonlewis@gmail.com`.
-- Remaining completion gaps: real browser Google OAuth hosted smoke, Vercel rollback drill, Resend MX/domain verification, legal/owner signoff, support/alert monitoring proof, hosted authenticated export, hosted feedback review, and full hosted beta journey.
+- Remaining completion gaps: real browser Google OAuth hosted smoke, Vercel rollback drill, Resend MX/domain verification, legal/owner signoff, support/alert monitoring proof, secondary spreadsheet-app workbook open/print proof, and full hosted beta journey.
 
 Status: Goal active; completion not proven.
 
