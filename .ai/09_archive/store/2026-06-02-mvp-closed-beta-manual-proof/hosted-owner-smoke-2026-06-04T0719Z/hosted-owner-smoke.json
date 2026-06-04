@@ -1,0 +1,66 @@
+{
+  "source": "HOSTED_OWNER_BROWSER_SMOKE_REFRESH",
+  "generatedAtUtc": "2026-06-04T07:22:10Z",
+  "repoHead": "9bbe6104785a5b1d843de7d8ce0c6a5b45b38c6d",
+  "scope": "Supplemental no-spend hosted browser proof for owner authenticated access.",
+  "costAndProviderChanges": {
+    "paidAddOnsChanged": false,
+    "dnsChanged": false,
+    "vercelEnvChanged": false,
+    "supabaseMutated": false,
+    "formsSubmitted": false
+  },
+  "browserProof": {
+    "activeChromeSessionReachedHostedApp": true,
+    "profileRoute": "https://www.archestimator.com/workshop/settings/profile",
+    "profileScreenshot": {
+      "path": ".ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/hosted-owner-smoke-2026-06-04T0719Z/profile-settings.png",
+      "sha256": "4873ed41b3b7ebef722d5bd99b5148c04536b64441c932609819072c1d986b5a",
+      "observedContent": [
+        "Profile settings",
+        "Display name Philip Lewis",
+        "User category Architect",
+        "Country / region Philippines",
+        "Save profile control visible"
+      ]
+    },
+    "emailVisibility": "The screenshot does not visibly show the Google email. It supplements earlier hosted owner allowed-smoke artifacts that recorded philipjonlewis@gmail.com.",
+    "feedbackAdminAttempt": {
+      "attemptedUrl": "https://www.archestimator.com/workshop/settings/feedback",
+      "visualResult": "inconclusive",
+      "screenshot": {
+        "path": ".ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/hosted-owner-smoke-2026-06-04T0719Z/feedback-route-inconclusive.png",
+        "sha256": "b00a375c661e950ffc0d763f80be2a8964c691fa175822c558fb8e1637d7af63"
+      },
+      "note": "AppleScript reported the active tab URL as /workshop/settings/feedback, but the rendered screenshot still appeared to show profile settings. This is not counted as feedback-admin monitoring proof."
+    }
+  },
+  "signedOutRouteProof": [
+    {
+      "url": "https://www.archestimator.com/workshop/settings/profile",
+      "status": 307,
+      "location": "/login?next=%2Fworkshop%2Fsettings%2Fprofile"
+    },
+    {
+      "url": "https://www.archestimator.com/workshop/settings/feedback",
+      "status": 307,
+      "location": "/login?next=%2Fworkshop%2Fsettings%2Ffeedback"
+    }
+  ],
+  "result": {
+    "ownerHostedProfileAccessSupplemented": true,
+    "feedbackAdminMonitoringProofClosed": false,
+    "fullClosedBetaLaunchReady": false
+  },
+  "remainingGaps": [
+    "Fresh hosted browser proof that visibly ties the session to philipjonlewis@gmail.com or another provider-visible account identifier.",
+    "Hosted beta feedback admin/review surface proof with unambiguous rendered content.",
+    "Support inbox monitoring, alert monitoring, and incident escalation proof.",
+    "Denied/revoked/expired hosted beta-auth smoke.",
+    "Codex Security remaining finding closures/rescan/owner acceptance.",
+    "Resend DNS/domain/delivery/webhook event proof.",
+    "Rollback drill or accepted rollback-not-drilled risk.",
+    "Hosted authenticated export and full hosted beta journey proof."
+  ],
+  "secretsRecorded": false
+}

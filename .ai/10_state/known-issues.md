@@ -33,6 +33,15 @@
 
 ## 2026-06-04 cheap launch refresh
 
+- Supplemental hosted owner profile proof at `2026-06-04T07:22Z` shows the
+  active Chrome hosted session can render
+  `https://www.archestimator.com/workshop/settings/profile` with authenticated
+  Profile settings, and signed-out `/workshop/settings/profile` plus
+  `/workshop/settings/feedback` both redirect to login. This is useful
+  owner-session proof, but it does not visibly show the Google email and does
+  not close support/feedback monitoring; the feedback-admin visual proof attempt
+  was inconclusive. Artifact folder:
+  `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/hosted-owner-smoke-2026-06-04T0719Z/`.
 - Fresh no-spend launch proof at `2026-06-04T07:06Z` confirms
   `www.archestimator.com` is still serving the beta app, not the teaser:
   production deployment `dpl_6xBegV7JS3WRfZYnN1mWTeY62b38` is `Ready` and

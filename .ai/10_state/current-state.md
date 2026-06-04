@@ -1,5 +1,21 @@
 # Current State
 
+**Supplemental Hosted Owner Profile Smoke (2026-06-04 07:22Z):**
+Chrome visual proof in the active hosted session shows
+`https://www.archestimator.com/workshop/settings/profile` rendering
+authenticated Profile settings with display name `Philip Lewis`, user category
+`Architect`, country/region `Philippines`, and a visible `Save profile` control.
+Signed-out `curl` probes to `/workshop/settings/profile` and
+`/workshop/settings/feedback` both return HTTP 307 to the corresponding login
+`next` target. No provider settings, DNS, Vercel env, Supabase data, or forms
+were changed. This supplements earlier hosted owner allowed-smoke proof, but it
+does not by itself visibly prove the Google email, and an attempted
+feedback-admin visual proof was inconclusive because the browser-reported URL
+and rendered screenshot did not line up cleanly. Proof folder:
+`.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/hosted-owner-smoke-2026-06-04T0719Z/`.
+Support/feedback monitoring proof and denied/revoked/expired hosted beta-auth
+smoke remain open.
+
 **No-Spend Live Closed-Beta Launch Refresh (2026-06-04 07:06Z):**
 The cheaper launch path remains the active path: no paid Supabase PITR add-on,
 no compute increase for PITR, no DNS/provider mutation, no Vercel env mutation,
