@@ -1,0 +1,62 @@
+{
+  "artifactType": "codex-security-finding-closure-proof",
+  "recordedAt": "2026-06-04T05:26:31Z",
+  "recordedBy": "Codex via authenticated Chrome dashboard session",
+  "repository": "pjel888/archestimator",
+  "finding": {
+    "id": "658e39fadd748191bcfa053b5cf3cecd",
+    "title": "Unvalidated share image URLs enable client tracking",
+    "severity": "Medium",
+    "findingUrl": "https://chatgpt.com/codex/cloud/security/findings/658e39fadd748191bcfa053b5cf3cecd?repo=https%3A%2F%2Fgithub.com%2Fpjel888%2Farchestimator&sev=",
+    "reportedCommit": "4c7c406",
+    "reportedCommitTimestamp": "2026-05-29T02:15:00"
+  },
+  "currentRepoProof": {
+    "branch": "main",
+    "head": "5931c1d74fe724a509661bdf5f5249fe71ea6f14",
+    "shortHead": "5931c1d",
+    "fixCommitPreviouslyRecorded": "dc0aff1",
+    "productionDeploymentPreviouslyRecorded": "dpl_HiJpSuKpvqnHbCNxi93e89p7Ay1k",
+    "sourceControls": [
+      "src/lib/publication/image-url.ts normalizePublicationImageUrl allows only safe local component thumbnails or same Supabase public component-images .webp URLs",
+      "src/lib/publication/snapshot.ts normalizes project cover and row image URLs during snapshot build and public-read sanitization",
+      "src/components/share/SharePageHero.tsx defensively normalizes cover image URLs before rendering",
+      "src/components/share/SharePageTabs.tsx defensively normalizes row image URLs before rendering thumbnails",
+      "src/components/share/ShareEstimateTreeView.tsx and src/components/share/ShareEstimateTreePanel.tsx defensively normalize legacy row image URLs before rendering"
+    ],
+    "freshVerification": {
+      "command": "bunx vitest run tests/vitest/project-publication-snapshot.test.ts tests/vitest/project-publication-page.test.tsx tests/vitest/security-findings-contracts.test.ts --maxWorkers=1 --reporter=dot",
+      "result": "PASS: 3 files / 45 tests",
+      "warnings": [
+        "jsdom navigation-not-implemented warning from existing tests",
+        "React non-boolean fill attribute warning from the existing Next/Image mock"
+      ]
+    }
+  },
+  "dashboardClosureProof": {
+    "preClosureFindingCount": "1-20 of 43",
+    "closeReasonSelected": "Already fixed",
+    "submittedContext": "Current main canonicalizes publication image URLs through src/lib/publication/image-url.ts before publish, public-read sanitization, and receiver rendering. It only allows safe local component thumbnails or same Supabase public component-images .webp URLs with no query/hash/credentials/path traversal and rejects project-images/private routes. Verified on 2026-06-04 with: bunx vitest run tests/vitest/project-publication-snapshot.test.ts tests/vitest/project-publication-page.test.tsx tests/vitest/security-findings-contracts.test.ts --maxWorkers=1 --reporter=dot (3 files / 45 tests). Finding was against old commit 4c7c406; current main is 5931c1d.",
+    "postSubmitBehavior": "After Submit, the dashboard navigated to the next finding, Stale share sessions can approve newer publication snapshots.",
+    "revisitedFindingStatus": "Closed by philipjonlewis@gmail.com. Reason: Fixed.",
+    "postClosureFindingCount": "1-20 of 42",
+    "postClosureControls": [
+      "Closed",
+      "Reopen"
+    ],
+    "closedFindingStillReadable": true
+  },
+  "proofBoundaries": {
+    "noSecretsRecorded": true,
+    "noBrowserCookiesOrLocalStorageInspected": true,
+    "noSignedValidationArtifactUrlsCopied": true,
+    "doesNotCloseAllCodexSecurityFindings": true,
+    "remainingLaunchBlockers": [
+      "Remaining Codex Security findings still require fix, closure, rescan, or explicit owner acceptance.",
+      "Hosted denied/revoked/expired Google OAuth beta-auth smoke remains open.",
+      "Resend sending-domain MX/verified/delivery event proof remains open.",
+      "Rollback drill or explicit accepted rollback-not-drilled risk remains open.",
+      "Owner/legal signoff and support/feedback/alert monitoring proof remain open."
+    ]
+  }
+}

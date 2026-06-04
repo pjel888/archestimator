@@ -9,6 +9,25 @@
 
 The cheaper closed-beta provider path is partially proven, but the current Codex Security dashboard still lists open findings against `pjel888/archestimator`. Closed beta cannot be honestly called launch-ready until the findings are triaged and either fixed, accepted by owner/legal/security judgment, or proven stale/false-positive with evidence.
 
+## Share Image URL Finding Closure - 2026-06-04T05:26Z
+
+- Artifact: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/codex-security-share-image-url-finding-close-2026-06-04T0526Z.json`.
+- Finding: `Unvalidated share image URLs enable client tracking`, medium,
+  originally against old commit `4c7c406`.
+- Current repo proof: `main` head `5931c1d` keeps publication image URL
+  canonicalization/sanitization in `src/lib/publication/image-url.ts`,
+  `src/lib/publication/snapshot.ts`, and the public share render components.
+- Fresh verification:
+  `bunx vitest run tests/vitest/project-publication-snapshot.test.ts tests/vitest/project-publication-page.test.tsx tests/vitest/security-findings-contracts.test.ts --maxWorkers=1 --reporter=dot`
+  passed 3 files / 45 tests.
+- Dashboard closure proof: authenticated Codex Security close submitted
+  `Already fixed`; revisiting the original finding shows `Closed by
+  philipjonlewis@gmail.com. Reason: Fixed`, a `Reopen` control, and the
+  Findings page count dropped from `1-20 of 43` to `1-20 of 42`.
+- Launch meaning: this closes only the share-image finding. The overall bug
+  remains open until the remaining findings are closed/rescanned/accepted and
+  the remaining hosted provider/manual proof gaps are handled.
+
 ## Latest Dashboard Refresh - 2026-06-04T05:11Z
 
 - Artifact: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/codex-security-dashboard-refresh-2026-06-04T0511Z.json`.
@@ -104,24 +123,24 @@ Latest first-page finding titles:
 19. `Republish can widen shared links to all estimate sheets`
 20. `Project images are uploaded to a public listable bucket`
 
-## Current Findings Snapshot
+## Current Findings Snapshot After Share-Image Closure
 
 | # | Severity | Finding |
 |---|---|---|
-| 1 | medium | Unscoped Speed Insights exposes sensitive app URLs |
-| 2 | medium | New share review GET APIs are not rate limited |
-| 3 | medium | Mass deletion audit records are caller-tamperable |
-| 4 | medium | Role demotion migration is blocked by its own trigger |
-| 5 | medium | Hosted auth smoke sends cookies to unvalidated URL |
-| 6 | medium | Beta feedback RLS allows forged cross-tenant context |
-| 7 | medium | Denied beta users keep Supabase sessions |
-| 8 | medium | Committed Lighthouse reports leak Supabase session cookies |
-| 9 | medium | Unauthenticated digest server action emails owners |
-| 10 | medium | Revoked invite RPC leaks project and email metadata |
-| 11 | medium | Committed public share token and user project data |
-| 12 | medium | Unbounded share tree parsing can DoS share renders |
-| 13 | medium | Global comment circuit breaker can be tripped by bad UUIDs |
-| 14 | medium | Unvalidated share image URLs enable client tracking |
+| 1 | medium | Project deletion no longer cleans project image objects |
+| 2 | medium | Unscoped Speed Insights exposes sensitive app URLs |
+| 3 | medium | New share review GET APIs are not rate limited |
+| 4 | medium | Mass deletion audit records are caller-tamperable |
+| 5 | medium | Role demotion migration is blocked by its own trigger |
+| 6 | medium | Hosted auth smoke sends cookies to unvalidated URL |
+| 7 | medium | Beta feedback RLS allows forged cross-tenant context |
+| 8 | medium | Denied beta users keep Supabase sessions |
+| 9 | medium | Committed Lighthouse reports leak Supabase session cookies |
+| 10 | medium | Unauthenticated digest server action emails owners |
+| 11 | medium | Revoked invite RPC leaks project and email metadata |
+| 12 | medium | Committed public share token and user project data |
+| 13 | medium | Unbounded share tree parsing can DoS share renders |
+| 14 | medium | Global comment circuit breaker can be tripped by bad UUIDs |
 | 15 | medium | Stale share sessions can approve newer publication snapshots |
 | 16 | medium | Stale recipient sessions can post share comments |
 | 17 | medium | Password-protected share metadata leaks project details |
@@ -216,7 +235,7 @@ Latest first-page finding titles:
   - Repo fix deployed in `dc0aff1` / production `dpl_HiJpSuKpvqnHbCNxi93e89p7Ay1k`: new `normalizePublicationImageUrl` allows only local `/component-thumbnails/*` raster assets and same-origin Supabase public WebP images under `/storage/v1/object/public/component-images/`, with no query strings, fragments, credentials, traversal, SVG, `data:`, `blob:`, off-origin URLs, or `/project-images/` paths. Snapshot creation normalizes project cover and row image URLs, and `SharePageHero`, `SharePageTabs`, `ShareEstimateTreeView`, and `ShareEstimateTreePanel` defensively normalize legacy snapshot values before passing them to `next/image`.
   - Verification: red/green `tests/vitest/project-publication-snapshot.test.ts` and `tests/vitest/project-publication-page.test.tsx` first failed on the old behavior (tracker/data URLs rendered or persisted), then passed after the fix. Full focused snapshot/page suite passed 2 files / 26 tests; `bun run type-check`, `bun run lint` with 12 existing warnings / 0 errors, `git diff --check`, `bun run build`, GitNexus refresh, and code-review-graph detect/flow checks passed with 0 affected flows.
   - Hosted smoke: production deploy `dpl_HiJpSuKpvqnHbCNxi93e89p7Ay1k` is Ready, target `production`, URL `https://archestimator-1qcjoesal-philipjonlewis-projects.vercel.app`, and aliased to `https://www.archestimator.com`; `https://www.archestimator.com/api/health` returned HTTP 200, apex `/api/health` redirected to `www`, `/login` returned HTTP 200, and signed-out `/workshop` returned HTTP 307 to `/login?next=%2Fworkshop`.
-  - Dashboard status: refresh after deploy still shows the share-image finding in the current Findings table against old commit `4c7c406`; pending Codex Security rescan/closure.
+  - Dashboard status: authenticated Codex Security closure on 2026-06-04T05:26Z marked the finding `Already fixed` / `Reason: Fixed`; revisiting the original finding shows `Closed by philipjonlewis@gmail.com`, a `Reopen` control, and the Findings page count dropped from `1-20 of 43` to `1-20 of 42`. Fresh proof test at current `main` head `5931c1d` passed 3 files / 45 tests.
 - Finding: `Stale share sessions can approve newer publication snapshots`.
   - Repo fix deployed in `e28a8d6` / production `dpl_ET8ZwGjxdfv7CxsXoJgUuao1eHfY`: `/api/share/[token]/decision` now resolves current publication access from the token, verifies the recipient-session cookie against current DB `publicationId` and `snapshotVersion`, passes `expectedSnapshotVersion` through the repository helper, and returns HTTP 409 when the publication snapshot changed before submission.
   - Linked Supabase proof: exact-file `db query --linked` applied `20260603210653_lock_shared_link_response_snapshot_version.sql`; `migration repair --linked --status applied 20260603210653` succeeded; readback under `/Users/philiplewis/.codex/backups/archestimator/supabase/20260603T211000Z-decision-snapshot-lock` verified old 4-arg `submit_client_response` signature count `0`, new 5-arg signature count `1`, expected-snapshot argument and mismatch guard present, `service_role` execute true, anon/authenticated execute false, and migration version recorded.
@@ -289,7 +308,9 @@ Latest first-page finding titles:
 - Finding: `Role demotion migration is blocked by its own trigger`.
   - Repo fix committed in `e5b17dc`: `20260602090000_harden_beta_allowlist_admin.sql` now disables `profiles_prevent_role_self_update` only around its controlled demotion repair and re-enables it immediately afterward. This already-applied historical migration was not re-run on linked Supabase during the follow-up pass.
   - Verification: `tests/vitest/security-findings-contracts.test.ts` passed after adding the trigger-order contract; refreshed again on 2026-06-04T03:40Z with `bunx vitest run tests/vitest/security-findings-contracts.test.ts --maxWorkers=1 --reporter=dot` (1 file / 17 tests).
-- Dashboard status: all entries in this section still require Codex cloud rescan/closure before they can be treated as closed.
+- Dashboard status: remaining entries in this section still require Codex cloud
+  rescan/closure before they can be treated as closed; the share-image finding
+  above is the only entry currently closed in the dashboard.
 
 ## Immediate Triage Order
 
