@@ -1,0 +1,73 @@
+{
+  "recordedAt": "2026-06-04T14:14:35Z",
+  "operator": "Codex",
+  "proofType": "owner-scoped residual history-risk acceptance",
+  "repository": "pjel888/archestimator",
+  "decisionOwner": {
+    "name": "Philip Lewis",
+    "role": "product owner / beta operator",
+    "signoffReference": "Codex thread owner signoff: complete signoff and approval for required launch actions except purchases"
+  },
+  "acceptedScope": {
+    "environment": "single-owner pre-launch closed beta",
+    "allowedTesterEmails": [
+      "philipjonlewis@gmail.com"
+    ],
+    "notAcceptedFor": [
+      "widened multi-tester closed beta",
+      "public launch",
+      "paid customer launch",
+      "claims that the Codex Security findings are fixed"
+    ]
+  },
+  "acceptedFindings": [
+    {
+      "title": "Committed public share token and user project data",
+      "dashboardStatus": "left open / owner-accepted for current owner-only beta",
+      "reason": "Current-tree cleanup and provider hardening reduce live exposure, but prior git history was not purged."
+    },
+    {
+      "title": "Confidential client proposal committed to repository",
+      "dashboardStatus": "left open / owner-accepted for current owner-only beta",
+      "reason": "Raw workbook and rendered preview were withdrawn from the current tree, but prior git history was not purged."
+    }
+  ],
+  "supportingEvidence": [
+    "codex-security-cheap-path-closures-2026-06-04T0934Z.json",
+    "confidential-proposal-artifact-withdrawal-2026-06-04.json",
+    ".ai/03_plans/mvp-launch-readiness-2026-06-01/47-goal-completion-audit.md",
+    ".ai/03_plans/mvp-launch-readiness-2026-06-01/14-evidence-index.md"
+  ],
+  "actionsExplicitlyNotTaken": {
+    "gitHistoryPurge": false,
+    "forcePush": false,
+    "codexSecurityRescanPurchased": false,
+    "supabasePitrEnabled": false,
+    "paidProviderChange": false
+  },
+  "launchLanguageBoundary": "For the owner-only beta, the residual history-risk is owner-accepted rather than fixed. Do not describe the Codex Security dashboard as fully green until the findings are closed by a rescan or the repository history is deliberately purged under a separate approved plan.",
+  "futureRemediationTrigger": [
+    "before widening beyond the owner-only beta if external testers will receive real project/share data",
+    "before public launch",
+    "if Codex Security or GitHub reports active exploitability beyond git-history exposure",
+    "if owner chooses remediation over acceptance"
+  ],
+  "futureRemediationPath": [
+    "freeze coordinated repo writes",
+    "back up refs and deployment rollback points",
+    "identify offending blobs without re-exposing contents",
+    "rewrite history with a deliberate filter-repo or equivalent plan",
+    "force-push only after owner-approved coordination",
+    "rotate or revoke any still-valid shared/public tokens",
+    "request or wait for Codex Security rescan",
+    "record proof that the findings are closed or newly triaged"
+  ],
+  "result": {
+    "ownerAcceptedForSingleOwnerBeta": true,
+    "currentTreeCleanupPreviouslyRecorded": true,
+    "historyPurged": false,
+    "codexSecurityDashboardFullyGreen": false,
+    "blocksOwnerOnlyBeta": false,
+    "blocksWidenedBetaOrPublicLaunchWithoutFurtherDecision": true
+  }
+}

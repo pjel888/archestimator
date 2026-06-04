@@ -1,5 +1,7 @@
-import { ArrowSquareOut } from "@phosphor-icons/react/dist/ssr";
+import { ArrowSquareOut, SignOut } from "@phosphor-icons/react/dist/ssr";
 import { WorkshopPageShell } from "@/components/workshop/WorkshopPageShell";
+import { Button } from "@/components/ui/button";
+import { signOut } from "@/lib/auth/actions";
 import { requireCurrentUserContext } from "@/lib/auth/session";
 
 const userSettings = [
@@ -88,6 +90,20 @@ export default async function WorkshopSettingsPage() {
             {userSettings.map((item) => (
               <SettingsLinkCard key={item.href} {...item} />
             ))}
+            <article className="border border-hairline bg-white p-2">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0 space-y-1">
+                  <h2 className="text-[11px] font-medium leading-4 text-ink">Sign out</h2>
+                  <p className="text-[10px] leading-4 text-tertiary">End this browser session and return to login.</p>
+                </div>
+                <form action={signOut}>
+                  <Button type="submit" variant="danger" size="sm">
+                    <SignOut className="size-3" aria-hidden="true" />
+                    Sign out
+                  </Button>
+                </form>
+              </div>
+            </article>
           </div>
         </section>
 

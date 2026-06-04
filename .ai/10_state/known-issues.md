@@ -24,11 +24,12 @@
   `philipjonlewis@gmail.com`.
 - Latest artifact:
   `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/live-closed-beta-refresh-2026-06-04T1006Z.json`.
-- External closed beta remains not fully green because residual Codex Security
-  history-exposure findings, denied/revoked/expired hosted auth smoke,
-  logout/session-expiry proof, spreadsheet-app open/print proof if required for
-  beta, and hosted shared-link/invite email workflow smoke remain open or require
-  explicit owner acceptance. Resend sender-domain,
+- External closed beta remains not fully green because denied/revoked/expired
+  hosted auth smoke, logout/session-expiry proof, spreadsheet-app open/print
+  proof if required for beta, and hosted shared-link/invite email workflow smoke
+  remain open. Residual Codex Security history-exposure findings are now
+  owner-accepted only for the current single-owner beta, not fixed or public-launch
+  green. Resend sender-domain,
   provider delivery, and webhook setup are no longer blockers; legal/owner/
   support signoff and the owner hosted beta journey are now confirmed for closed
   beta.
@@ -75,7 +76,8 @@
 
 - Authenticated Codex Security closure work on 2026-06-04 09:34Z now shows the repo-filtered actionable view at `1-2 of 2`, superseding the earlier 08:44Z `1-20 of 35` snapshot for current dashboard status.
 - The only remaining open findings are `Committed public share token and user project data` and `Confidential client proposal committed to repository`. They remain open because current-tree cleanup does not purge git history; close them only after explicit owner risk acceptance or a deliberate destructive history-purge workflow.
-- This blocks fully green closed-beta security language, but it does not justify the roughly $100/month Supabase PITR-plus-Small-compute path for owner-only pre-launch beta.
+- Owner acceptance artifact `codex-security-history-risk-owner-acceptance-2026-06-04T1414Z.json` now accepts those findings for the single-owner beta only. This still blocks fully green security language, widened-beta launch, and public launch unless a later rescan closes the findings or a deliberate history-purge workflow runs.
+- This does not justify the roughly $100/month Supabase PITR-plus-Small-compute path for owner-only pre-launch beta.
 - Latest artifact: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/codex-security-cheap-path-closures-2026-06-04T0934Z.json`.
 - Historical artifact: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/codex-security-cheap-path-refresh-2026-06-04T0844Z.json`.
 - Tracker: `.ai/15_Bugs/2026-06-04-codex-cloud-security-findings-refresh.md`.
@@ -200,12 +202,12 @@
   `vercel-production-readiness-rollback-drill-2026-06-04T1112Z.json` close the
   Vercel rollback gate with `vercelProductionReady: true`.
 - External closed beta remains blocked by narrower no-cost/manual proof gaps:
-  residual Codex Security dashboard rescan/acceptance or history-risk acceptance,
   hosted Google OAuth denied/revoked/expired browser smoke, logout/session-expiry
   proof, secondary spreadsheet-app export open/print proof if required for beta,
   and hosted shared-link/invite email workflow proof before relying on automatic
   email UX. Later artifacts close Resend provider proof, legal/owner/support
-  signoff, Vercel rollback, hosted export, and the owner hosted beta journey.
+  signoff, Vercel rollback, hosted export, the owner hosted beta journey, and
+  owner-scoped Codex Security history-risk acceptance.
   Direct RLS closure proof exists locally/provider-side, but the Codex Security
   dashboard `Close` submission remains pending action-time confirmation.
 

@@ -22,8 +22,22 @@
   open/recalc/print, or hosted shared-link/invite email workflow delivery.
 - Result: owner-only hosted beta journey proof is now captured for the current
   single-tester beta. External closed beta remains evidence-gated by the narrower
-  denied/revoked/session-expiry, residual security history-risk, spreadsheet-app,
-  and optional automatic-email workflow proof gaps.
+  denied/revoked/session-expiry, spreadsheet-app, and optional automatic-email
+  workflow proof gaps.
+
+## Codex Security History-Risk Owner Acceptance - 2026-06-04 14:14Z
+
+- Primary artifact:
+  `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/codex-security-history-risk-owner-acceptance-2026-06-04T1414Z.json`.
+- Decision: Philip's owner signoff accepts the two remaining Codex Security
+  source-control/history-exposure findings only for the current single-owner beta.
+- Boundary: this does not mark `Committed public share token and user project
+  data` or `Confidential client proposal committed to repository` fixed, does not
+  make the Codex Security dashboard fully green, and does not approve widened beta
+  or public launch without a later rescan closure, history purge, or renewed owner
+  decision.
+- Result: residual Codex Security history-risk is no longer a blocker for the
+  single-owner beta path, but remains a public/widened-beta security boundary.
 
 ## Resend Owner Inbox Receipt - 2026-06-04 13:48Z
 
@@ -80,11 +94,12 @@
   `/login?next=%2Fworkshop`; allowed/denied/revoked/expired real-session cases
   remain missing because no hosted session cookies were provided.
 - Current remaining launch blockers after the later 13:28Z owner journey smoke:
-  hosted Google OAuth denied/revoked/expired real-session smoke, residual Codex Security
-  history-risk closure or owner acceptance, spreadsheet-app open/print proof if
-  required for beta, logout/session-expiry proof, and hosted shared-link/invite
-  email workflow proof before relying on automatic email UX. Resend provider
-  setup itself is no longer blocked.
+  hosted Google OAuth denied/revoked/expired real-session smoke, spreadsheet-app
+  open/print proof if required for beta, logout/session-expiry proof, and hosted
+  shared-link/invite email workflow proof before relying on automatic email UX.
+  Resend provider setup itself is no longer blocked, and residual Codex Security
+  history-risk is owner-accepted for the owner-only beta by the later 14:14Z
+  artifact.
 
 ## Vercel Rollback Drill - 2026-06-04 11:12Z
 
@@ -165,10 +180,13 @@
 - Supabase proof: linked project `ebxxqidacheyapmmzavr` is named
   `Archestimator`; linked readback shows exactly one active allowlist tester,
   `philipjonlewis@gmail.com`.
-- Still blocked: Codex Security has the two residual history-exposure findings;
-  Resend sender-domain DNS still lacks `send.contact` MX; legal/owner signoff,
-  support/monitoring proof, denied/revoked/expired hosted auth smoke, and full
-  hosted beta journey proof remain open.
+- Historical blocker snapshot: at this point Codex Security still had two
+  residual history-exposure findings; Resend sender-domain DNS still lacked
+  `send.contact` MX; legal/owner signoff, support/monitoring proof,
+  denied/revoked/expired hosted auth smoke, and full hosted beta journey proof
+  remained open. Later same-day artifacts close Resend provider proof, owner
+  signoff/support monitoring, the owner hosted beta journey, and owner-scoped
+  security history-risk acceptance.
 
 ## Codex Security Cheap-Path Closures - 2026-06-04 09:34Z
 
@@ -187,14 +205,18 @@
   exposure findings.
 - Residual dashboard blockers: `Committed public share token and user project
   data` and `Confidential client proposal committed to repository` remain open
-  because current-tree cleanup is not a git-history purge. Close only after
-  owner risk acceptance or an explicit destructive history-purge workflow.
+  because current-tree cleanup is not a git-history purge. The later
+  `codex-security-history-risk-owner-acceptance-2026-06-04T1414Z.json` records
+  owner acceptance for the current single-owner beta only; close the dashboard
+  findings as fixed only after rescan closure or an explicit destructive
+  history-purge workflow.
 - Boundary: no paid provider add-on, Supabase PITR, compute upgrade, DNS
   mutation, Vercel env mutation, broad `supabase db push`, Codex Security rescan
   purchase, or git-history rewrite occurred.
-- Result: the cheap security path is substantially narrowed but not fully green;
-  the remaining security question is history-risk acceptance/remediation, not a
-  reason to enable the roughly $100/month PITR-plus-Small-compute path.
+- Result: the cheap security path is substantially narrowed. It is not fully
+  dashboard-green, but the later owner-acceptance artifact resolves the
+  history-risk question for the single-owner beta without enabling the roughly
+  $100/month PITR-plus-Small-compute path.
 
 ## Codex Security Cheap-Path Refresh - 2026-06-04 08:44Z
 
@@ -838,7 +860,7 @@
 - Production deployment `dpl_Cxeq5ATpif6Yk1zn4FmNmnX7nzhT` is `READY`; `archestimator.com` and `www.archestimator.com` alias to it; `www` serves the beta app instead of the teaser; `/api/health` returns app health JSON; signed-out `/workshop` redirects to login. Proof: `vercel-hosted-http-smoke-cheaper-path-2cddb0e-2026-06-03.json`, `vercel-health-readiness-cheaper-path-2cddb0e-2026-06-03.json`, and `vercel-production-readiness-cheaper-path-2cddb0e-2026-06-03.json`.
 - Latest production redeploy proof on 2026-06-04T13:11Z records deployment `dpl_2X6FytZUnK5ZaNsszVN4W8Wh6bXm` Ready on both custom domains, live Resend webhook signature-verification reachability, signed-out `/workshop/projects` redirect proof, login Google/email-link entry, and owner Chrome allowed-session access to hosted `/workshop`. Proof: `vercel-production-resend-enabled-hosted-auth-2026-06-04T1311Z.json`.
 - Latest owner journey proof on 2026-06-04T13:28Z records the owner hosted path through project entry, estimate creation, estimate workspace render, and export preview. Proof: `hosted-owner-beta-journey-smoke-2026-06-04T1328Z.json`.
-- Still open before calling the proof packet fully green: real browser Google OAuth denied/revoked/expired hosted smoke, logout/session-expiry proof, residual Codex Security history-risk acceptance or purge decision, spreadsheet-app open/print proof if required for beta, and hosted shared-link/invite email workflow smoke if automatic email UX is used. Vercel rollback proof is closed by the 11:12Z rollback/promote drill; Resend provider delivery/webhook proof is closed; owner hosted beta journey proof is closed.
+- Still open before calling the proof packet fully green: real browser Google OAuth denied/revoked/expired hosted smoke, logout/session-expiry proof, spreadsheet-app open/print proof if required for beta, and hosted shared-link/invite email workflow smoke if automatic email UX is used. Vercel rollback proof is closed by the 11:12Z rollback/promote drill; Resend provider delivery/webhook proof is closed; owner hosted beta journey proof is closed; residual Codex Security history-risk is owner-accepted for the owner-only beta by the 14:14Z artifact.
 
 ## Fourth-Pass Closed Beta Evidence - 2026-06-02
 

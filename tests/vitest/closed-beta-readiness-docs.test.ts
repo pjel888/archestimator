@@ -612,7 +612,9 @@ describe("closed beta readiness docs", () => {
     expect(manualProofMatrix).toContain("supabase-linked-readiness-f56838d-2026-06-02.json");
     expect(manualProofMatrix).toContain("supabase-linked-readiness-mcp-bc798a9-2026-06-02.json");
     expect(manualProofMatrix).toContain("all five launch migrations present locally but missing remotely");
-    expect(manualProofMatrix).toContain("36 anon executable `SECURITY DEFINER` functions, 62 authenticated executable `SECURITY DEFINER` functions");
+    expect(manualProofMatrix).toContain("Owner-accepted-for-owner-beta / dashboard-open");
+    expect(manualProofMatrix).toContain("codex-security-history-risk-owner-acceptance-2026-06-04T1414Z.json");
+    expect(manualProofMatrix).toContain("Do not call the findings fixed, the dashboard fully green, or public/widened beta approved");
     expect(manualProofMatrix).toContain("The current repeatable migration-list helper parsed 71 rows");
     expect(manualProofMatrix).toContain("the newer MCP read-only SQL refresh parsed all categories");
     expect(manualProofMatrix).toContain("`linkedSupabaseLaunchReady: false`");
@@ -875,6 +877,7 @@ describe("closed beta readiness docs", () => {
     expect(artifactFilenames).toContain("proposal-workbook-exceljs-summary-sanitized-2026-06-02.json");
     expect(artifactFilenames).toContain("confidential-proposal-artifact-withdrawal-2026-06-04.json");
     expect(artifactFilenames).toContain("codex-security-cheap-path-refresh-2026-06-04T0844Z.json");
+    expect(artifactFilenames).toContain("codex-security-history-risk-owner-acceptance-2026-06-04T1414Z.json");
     expect(artifactFilenames).not.toContain("lewis-residence-demo-proposal-2026-06-02.xlsx");
     expect(existsSync(join(manualProofPacketDir, "lewis-residence-demo-proposal-2026-06-02.xlsx"))).toBe(false);
     expect(
@@ -903,6 +906,8 @@ describe("closed beta readiness docs", () => {
     expect(goalCompletionAudit).toContain("resend-domain-verified-email-enabled-2026-06-04T1235Z.json");
     expect(goalCompletionAudit).toContain("resend-owner-inbox-receipt-2026-06-04T1348Z.json");
     expect(goalCompletionAudit).toContain("hosted-owner-beta-journey-smoke-2026-06-04T1328Z.json");
+    expect(goalCompletionAudit).toContain("Owner-accepted for the single-owner beta; dashboard not fully green");
+    expect(goalCompletionAudit).toContain("codex-security-history-risk-owner-acceptance-2026-06-04T1414Z.json");
     expect(goalCompletionAudit).toContain("## Codex Security Cheap-Path Update - 2026-06-04 08:44Z");
     expect(goalCompletionAudit).toContain("Repo-filtered open findings show `1-20 of 35`");
     expect(goalCompletionAudit).toContain("`critical` and `high` severity");
@@ -1071,7 +1076,7 @@ describe("closed beta readiness docs", () => {
     expect(knownIssues).toContain("repo-filtered open findings view shows `1-20 of 35`");
     expect(knownIssues).toContain("while `critical` and");
     expect(knownIssues).toContain("`high` filters each show `0-0 of 0`");
-    expect(knownIssues).toContain("This removes critical/high findings as the current launch blocker");
+    expect(knownIssues).toContain("owner-accepted only for the current single-owner beta");
     expect(currentState).toContain("**Codex Security Cheap-Path Refresh (2026-06-04 08:44Z):**");
     expect(currentState).toContain("the repo-filtered open findings view at the same dashboard shows");
     expect(currentState).toContain("the `critical` filter shows `0-0 of 0`");
@@ -1079,6 +1084,9 @@ describe("closed beta readiness docs", () => {
     expect(evidenceIndex).toContain("## Codex Security Cheap-Path Refresh - 2026-06-04 08:44Z");
     expect(evidenceIndex).toContain("codex-security-cheap-path-refresh-2026-06-04T0844Z.json");
     expect(evidenceIndex).toContain("Result: current filtered dashboard proof does not justify the expensive");
+    expect(evidenceIndex).toContain("## Codex Security History-Risk Owner Acceptance - 2026-06-04 14:14Z");
+    expect(evidenceIndex).toContain("codex-security-history-risk-owner-acceptance-2026-06-04T1414Z.json");
+    expect(currentState).toContain("history-risk is owner-accepted for this single-owner beta");
     expect(knownIssues).toContain("Support monitoring readiness helper evidence on 2026-06-02 is negative/blocked");
     expect(knownIssues).toContain("support-monitoring-readiness-5fa0ac1-2026-06-02.json");
     expect(knownIssues).toContain("support-monitoring-readiness-453ac68-2026-06-02.json");

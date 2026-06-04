@@ -35,6 +35,9 @@ describe("auth onboarding and settings route contracts", () => {
     expect(source).toContain("support@archestimator.com");
     expect(source).toContain('href: "/workshop/settings/beta-users"');
     expect(source).toContain('href: "/workshop/settings/feedback"');
+    expect(source).toContain('import { signOut } from "@/lib/auth/actions"');
+    expect(source).toContain("action={signOut}");
+    expect(source).toContain("Sign out");
     expect(source).toContain('context.role === "ceo" || context.role === "admin"');
     expect(source).not.toContain('redirect("/workshop/settings/profile")');
   });
