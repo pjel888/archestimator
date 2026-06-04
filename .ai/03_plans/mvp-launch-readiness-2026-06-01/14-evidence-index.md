@@ -16,8 +16,10 @@
 - Codex Security/GitHub: `codex-security-dashboard-refresh-2026-06-04T0405Z.json`
   records the authenticated dashboard still at `1-20 of 43` findings; the Scans
   page is `Waiting for new commits` and last scanned `28601375`, behind latest
-  pushed `main` head `6297cec`. GitHub has no open PRs, no open issues, no new
-  comments since June 4, and no status contexts/check-runs on latest `main`.
+  observed pushed `main` head `6297cec` at refresh time. This proof was then
+  recorded in commit `2c7ffb9`. GitHub has no open PRs, no open issues, no new
+  comments since June 4, and no status contexts/check-runs on the observed
+  latest `main`.
 - Still open before fully green closed beta: Codex Security rescan/owner acceptance, hosted Google OAuth denied/revoked/expired smoke with real sessions, Resend dashboard sending-domain/webhook/delivery proof, rollback drill or owner acceptance, legal/owner review flags, support/feedback/alert monitoring confirmations, hosted authenticated export, and full hosted beta journey.
 
 ## Mass Deletion Cleanup RPC Lock - 2026-06-04
@@ -113,8 +115,9 @@
   `codex-security-dashboard-refresh-2026-06-04T0405Z.json` confirms the
   authenticated dashboard still lists `1-20 of 43` findings, while the Scans page
   is `Waiting for new commits` with last scanned commit `28601375`, behind
-  latest pushed `main` head `6297cec`. GitHub has no open PRs/issues/comments
-  and no status contexts/check-runs for the latest commit.
+  latest observed pushed `main` head `6297cec` at refresh time. This proof was
+  then recorded in commit `2c7ffb9`. GitHub has no open PRs/issues/comments and
+  no status contexts/check-runs for the observed latest commit.
 - Still open before closed beta is fully green: Codex Security dashboard
   rescan/owner acceptance, hosted Google OAuth denied/revoked/expired browser
   smoke, rollback drill if accepted, Resend

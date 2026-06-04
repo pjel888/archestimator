@@ -6,9 +6,11 @@
   "branch": "main",
   "findingsUrl": "https://chatgpt.com/codex/cloud/security/findings/8249b6b774788191b41614c702e2a4d5?sev=",
   "scansUrl": "https://chatgpt.com/codex/cloud/security/scans/3fa110d41fb4819190222a7bf3239828?sev=",
-  "latestLocalHead": "6297cec308d4528cb7794be40a7e4a2af1f0c25a",
-  "latestLocalHeadShort": "6297cec",
-  "latestLocalHeadSubject": "Record Resend provider proof as blocked",
+  "latestObservedHeadAtRefresh": "6297cec308d4528cb7794be40a7e4a2af1f0c25a",
+  "latestObservedHeadShortAtRefresh": "6297cec",
+  "latestObservedHeadSubjectAtRefresh": "Record Resend provider proof as blocked",
+  "recordingCommit": "2c7ffb97c8ca7c54bf82289dcb6e9887f735b5e8",
+  "recordingCommitShort": "2c7ffb9",
   "github": {
     "openPullRequests": 0,
     "openIssues": 0,
@@ -57,8 +59,8 @@
       31,
       6
     ],
-    "latestHeadWasScanned": false,
-    "interpretation": "Codex Security has not yet scanned the latest pushed head, so dashboard closure cannot be inferred from repo commits alone."
+    "latestObservedHeadAtRefreshWasScanned": false,
+    "interpretation": "Codex Security had not yet scanned the latest observed pushed head at refresh time, so dashboard closure cannot be inferred from repo commits alone."
   },
   "result": "codex_security_still_open_last_scan_behind_head",
   "launchMeaning": "Closed beta remains blocked on Codex Security rescan, stale-finding closure, or explicit owner acceptance.",

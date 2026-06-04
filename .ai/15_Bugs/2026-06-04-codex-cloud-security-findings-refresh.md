@@ -16,10 +16,12 @@ The cheaper closed-beta provider path is partially proven, but the current Codex
 - Scans page: status is `Waiting for new commits`; owner is
   `philipjonlewis@gmail.com`; repository is `pjel888/archestimator`;
   environment is `archestimator`; branch is `main`; last scanned commit is
-  `28601375` at `11:52 AM Jun 4, 2026`; latest pushed repo head is `6297cec`.
+  `28601375` at `11:52 AM Jun 4, 2026`; latest observed pushed repo head at
+  refresh time was `6297cec`; this proof was then recorded in commit `2c7ffb9`.
 - GitHub: no open PRs, no open issues, no new commit/issue/PR review comments
-  since June 4, and no status contexts/check-runs for latest `main`. The combined
-  status appears pending only because GitHub reports zero contexts/check-runs.
+  since June 4, and no status contexts/check-runs for observed latest `main`.
+  The combined status appears pending only because GitHub reports zero
+  contexts/check-runs.
 - Launch meaning: Codex Security is not caught up to the latest pushed proof
   commits. Do not treat the remaining dashboard findings as closed until Codex
   Security rescans/clears them or the owner explicitly accepts the residual risk.
