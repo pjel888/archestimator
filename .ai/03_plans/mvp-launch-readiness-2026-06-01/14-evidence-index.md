@@ -1,5 +1,32 @@
 # Evidence Index
 
+## Codex Security Stale-Comment Finding Closure - 2026-06-04 05:55Z
+
+- Primary artifact: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/codex-security-stale-comment-finding-close-2026-06-04T0555Z.json`.
+- Dashboard action: authenticated Codex Security finding
+  `Stale recipient sessions can post share comments` was closed as
+  `Already fixed` / `Reason: Fixed`; revisiting the original finding shows
+  `Closed by philipjonlewis@gmail.com` and a `Reopen` control. The open-list
+  count after closure was not cleanly rehydrated, so the direct closed finding
+  page is the provider proof for this closure.
+- Repo proof: current `main` head
+  `a9fb0f39bdb47712ca8b0f6bc4c011a226615032` verifies recipient comment
+  sessions against the DB-current publication snapshot, passes
+  `expectedSnapshotVersion` through `insertSharedLinkComment`, and the
+  `insert_client_comment` RPC rejects null or mismatched expected snapshot
+  versions before inserting `shared_link_comments`. The closed finding was
+  against old commit `938c801`; the fix was already deployed and recorded
+  under commit `d4b5733`.
+- Fresh verification:
+  `bunx vitest run tests/vitest/project-publication-comments.test.tsx tests/vitest/project-publication-public-repository.test.ts tests/vitest/security-findings-contracts.test.ts --maxWorkers=1 --reporter=dot`
+  passed 3 files / 47 tests.
+- GitHub queue check: no open issues or open PRs were found; historical Codex
+  PR comments exist, but no active open GitHub queue was found for this closure.
+- Still open: remaining Codex Security findings still need closure/rescan/owner
+  acceptance; hosted denied/revoked/expired beta-auth smoke, Resend domain/
+  delivery proof, rollback risk proof, legal/owner signoff, and support/alert
+  monitoring proof remain open before a fully green closed beta.
+
 ## Supabase Cheaper-Path Cost Controls - 2026-06-04 05:46Z
 
 - Primary artifact: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/supabase-cheaper-path-cost-controls-2026-06-04T0546Z.json`.

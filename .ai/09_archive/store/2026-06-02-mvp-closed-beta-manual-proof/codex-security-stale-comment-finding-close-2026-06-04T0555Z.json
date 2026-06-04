@@ -1,0 +1,56 @@
+{
+  "artifactType": "codex-security-finding-closure-proof",
+  "recordedAt": "2026-06-04T05:55:41Z",
+  "costPosture": "no-new-paid-add-ons",
+  "finding": {
+    "id": "de78c2367cac8191b659768c0176d271",
+    "title": "Stale recipient sessions can post share comments",
+    "severity": "Medium",
+    "url": "https://chatgpt.com/codex/cloud/security/findings/de78c2367cac8191b659768c0176d271?repo=https%3A%2F%2Fgithub.com%2Fpjel888%2Farchestimator&sev=",
+    "reportedCommit": "938c801",
+    "reportedCommitFull": "938c801221fc4467b6aa18537dc2a606a9889928"
+  },
+  "currentRepoProof": {
+    "branch": "main",
+    "head": "a9fb0f39bdb47712ca8b0f6bc4c011a226615032",
+    "fixCommitPreviouslyRecorded": "d4b5733",
+    "productionDeploymentPreviouslyRecorded": "dpl_2Ne8GUjgs1TT8tjj24Z3SaZLHxQ2",
+    "sourceControls": [
+      "src/app/api/share/[token]/comment/route.ts resolves current publication access before comment insert and passes access.snapshotVersion as expectedSnapshotVersion.",
+      "The comment route verifies recipient-session cookies against the DB-current publicationId and snapshotVersion before accepting the write.",
+      "src/lib/publication/public-repository.ts requires expectedSnapshotVersion for insertSharedLinkComment and passes it to insert_client_comment as p_expected_snapshot_version.",
+      "supabase/migrations/20260603214151_lock_shared_link_comment_snapshot_version.sql rejects null or mismatched p_expected_snapshot_version before inserting shared_link_comments."
+    ],
+    "graphProof": {
+      "command": "npx gitnexus context insertSharedLinkComment -r archestimator --content",
+      "result": "insertSharedLinkComment has one incoming caller, POST in src/app/api/share/[token]/comment/route.ts, and the helper requires expectedSnapshotVersion before calling insert_client_comment."
+    }
+  },
+  "freshVerification": {
+    "command": "bunx vitest run tests/vitest/project-publication-comments.test.tsx tests/vitest/project-publication-public-repository.test.ts tests/vitest/security-findings-contracts.test.ts --maxWorkers=1 --reporter=dot",
+    "result": "PASS: 3 files / 47 tests"
+  },
+  "dashboardProof": {
+    "preClosureFindingCount": "1-20 of 41",
+    "closeReasonSelected": "Already fixed",
+    "submittedContext": "Current main resolves current publication access before comment writes, verifies the recipient session against the DB-current publicationId and snapshotVersion from resolveProjectPublicationAccessByToken, passes expectedSnapshotVersion into insertSharedLinkComment, and the insert_client_comment RPC rejects null/mismatched p_expected_snapshot_version before inserting shared_link_comments. Verified on 2026-06-04 with: bunx vitest run tests/vitest/project-publication-comments.test.tsx tests/vitest/project-publication-public-repository.test.ts tests/vitest/security-findings-contracts.test.ts --maxWorkers=1 --reporter=dot (3 files / 47 tests). Finding was against old commit 938c801; current main is a9fb0f3.",
+    "postSubmitBehavior": "Codex Security advanced to the next finding, Password-protected share metadata leaks project details.",
+    "revisitedFindingStatus": "Closed by philipjonlewis@gmail.com. Reason: Fixed.",
+    "postClosureControls": [
+      "Reopen"
+    ],
+    "postClosureFindingCount": "not captured",
+    "openFindingsListRehydration": "not captured after retry; direct closed finding status was used as proof."
+  },
+  "githubProof": {
+    "openIssues": 0,
+    "openPullRequests": 0,
+    "historicalCodexPullRequestComments": "present in gh api repos/pjel888/archestimator/pulls/comments, but no active open PR or issue queue was found."
+  },
+  "proofBoundaries": [
+    "No secrets, cookies, localStorage values, or signed validation-artifact URLs were copied into this artifact.",
+    "This closes one Codex Security finding only and does not prove all remaining findings are closed.",
+    "No provider billing, DNS, Supabase, or Vercel configuration writes were made for this proof artifact.",
+    "Closed-beta launch remains blocked by remaining Codex Security findings plus hosted OAuth denied/revoked/expired smoke, Resend provider proof, rollback risk proof, legal/owner signoff, and support/alert monitoring proof."
+  ]
+}
