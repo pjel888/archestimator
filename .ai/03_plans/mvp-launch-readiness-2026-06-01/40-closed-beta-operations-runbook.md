@@ -12,7 +12,12 @@ Status: operator procedures are documented and locally reviewed in `.ai/09_archi
 - Keep `ARCHESTIMATOR_AI_ENABLED=false` and `NEXT_PUBLIC_ASK_FLIP_UI_ENABLED=false` unless a later AI readiness ADR explicitly reactivates Ask Flip.
 - Keep `PROJECT_INVITE_ENTRY_ENABLED=false` until invite email/token proof is complete.
 - Manual beta invites can continue through Philip's email if Resend is unavailable or deliberately deferred.
-- Configure `RESEND_API_KEY`, `RESEND_FROM`, `RESEND_REPLY_TO`, and `RESEND_WEBHOOK_SECRET` before treating any in-app share/invite email workflow as launch-ready.
+- Configure `ARCHESTIMATOR_EMAIL_DELIVERY_ENABLED=true`, `RESEND_API_KEY`, `RESEND_FROM`, `RESEND_REPLY_TO`, and `RESEND_WEBHOOK_SECRET` before treating any in-app share/invite email workflow as launch-ready.
+- Current Resend DNS repair needed before that flag can be enabled:
+  Namecheap Host Records must include MX `send.contact` ->
+  `feedback-smtp.ap-northeast-1.amazonses.com` with priority `10`, and TXT
+  `send.contact` -> `v=spf1 include:amazonses.com ~all`; then restart Resend
+  verification and rerun a hosted send probe.
 - Until those values and provider proofs exist, shared-link recipient entry/send/resend controls should remain disabled and manual link sharing should be used.
 
 ## Add A Beta User
@@ -131,7 +136,7 @@ Options:
 
 - Manual beta invites can continue through Philip's email if Resend is unavailable.
 - If share/invite email workflows are re-enabled, Resend domain and webhook health become launch blockers for those workflows.
-- Check `RESEND_API_KEY`, `RESEND_FROM`, `RESEND_WEBHOOK_SECRET`, DNS/domain verification, and webhook signature events.
+- Check `ARCHESTIMATOR_EMAIL_DELIVERY_ENABLED`, `RESEND_API_KEY`, `RESEND_FROM`, `RESEND_WEBHOOK_SECRET`, DNS/domain verification, a real sent-email probe, and webhook signature events.
 - If recipient controls appear enabled while readiness is false, treat that as a P0 launch regression and disable the workflow before more beta use.
 
 ## Export Failures

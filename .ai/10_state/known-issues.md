@@ -11,9 +11,11 @@
 - Latest artifact:
   `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/live-closed-beta-refresh-2026-06-04T1006Z.json`.
 - External closed beta remains not fully green because residual Codex Security
-  history-exposure findings, Resend sender-domain MX proof, denied/revoked/
-  expired hosted auth smoke, legal/owner signoff, support/monitoring proof, and
-  full hosted journey proof remain open.
+  history-exposure findings, denied/revoked/expired hosted auth smoke, and full
+  hosted journey proof remain open. Resend sender-domain MX proof remains open
+  only as a re-enable gate because in-app email delivery is explicitly
+  default-off; legal/owner/support signoff is now owner-confirmed for closed
+  beta.
 - Cheap backup/DR is no longer blocked on buying PITR for this one-person
   closed beta: `supabase-backup-readiness-daily-mode-closed-beta-2026-06-04T1047Z.json`
   records daily-backup mode green with 9 listed physical backups, `pitrEnabled:
@@ -26,6 +28,23 @@
   HTTP 200 custom-domain health after restore. The helper artifact
   `vercel-production-readiness-rollback-drill-2026-06-04T1112Z.json` reports
   `vercelProductionReady: true`.
+- Owner/legal/support proof is no longer blank for the owner-only beta:
+  `legal-owner-signoff-2026-06-04T1138Z.json` reports `legalOwnerReady: true`,
+  and `support-monitoring-owner-signoff-2026-06-04T1138Z.json` reports
+  `supportMonitoringReady: true`. These are operator-confirmed closed-beta
+  signoff artifacts, not legal advice or independent alert-dashboard proof.
+- Email automation remains deliberately off until provider proof:
+  `resend-readiness-email-flag-default-off-2026-06-04T1140Z.json` reports Vercel
+  has encrypted Resend env names but is missing
+  `ARCHESTIMATOR_EMAIL_DELIVERY_ENABLED`; the app now requires that flag before
+  visible email delivery is configured. Follow-up proof
+  `resend-send-test-domain-unverified-2026-06-04T1151Z.json` shows a real
+  production-env Resend send probe failed with HTTP 403 because
+  `contact.archestimator.com` is not verified. Resend dashboard shows DKIM
+  verified, but Namecheap still needs `send.contact` MX
+  `feedback-smtp.ap-northeast-1.amazonses.com` priority 10 and TXT
+  `v=spf1 include:amazonses.com ~all`; Vercel DNS cannot repair this because
+  `archestimator.com` uses Namecheap registrar nameservers.
 
 ## Codex Cloud Security Findings Cheap-Path Closures - OPEN RESIDUALS
 

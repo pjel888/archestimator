@@ -1,0 +1,67 @@
+{
+  "generatedAt": "2026-06-04T11:36:31.853Z",
+  "mode": "resend-readiness",
+  "localRuntimeEnv": {
+    "source": "process.env + .env.local",
+    "required": [
+      "ARCHESTIMATOR_EMAIL_DELIVERY_ENABLED",
+      "RESEND_API_KEY",
+      "RESEND_FROM",
+      "RESEND_REPLY_TO",
+      "RESEND_WEBHOOK_SECRET"
+    ],
+    "present": [
+      "RESEND_API_KEY"
+    ],
+    "missing": [
+      "ARCHESTIMATOR_EMAIL_DELIVERY_ENABLED",
+      "RESEND_FROM",
+      "RESEND_REPLY_TO",
+      "RESEND_WEBHOOK_SECRET"
+    ],
+    "ready": false
+  },
+  "vercelEnv": {
+    "source": "/tmp/archestimator-resend-flag-2026-06-04T1140Z/vercel-env-production.txt",
+    "required": [
+      "ARCHESTIMATOR_EMAIL_DELIVERY_ENABLED",
+      "RESEND_API_KEY",
+      "RESEND_FROM",
+      "RESEND_REPLY_TO",
+      "RESEND_WEBHOOK_SECRET"
+    ],
+    "present": [
+      "RESEND_API_KEY",
+      "RESEND_FROM",
+      "RESEND_REPLY_TO",
+      "RESEND_WEBHOOK_SECRET"
+    ],
+    "missing": [
+      "ARCHESTIMATOR_EMAIL_DELIVERY_ENABLED"
+    ],
+    "ready": false,
+    "checked": true,
+    "discoveredNames": [
+      "ARCHESTIMATOR_AI_ENABLED",
+      "ARCHESTIMATOR_ALLOWED_APP_ORIGINS",
+      "ARCHESTIMATOR_INVITE_TOKEN_PEPPER",
+      "CLOSED_BETA_ACCESS_ENABLED",
+      "NEXT_PUBLIC_APP_URL",
+      "NEXT_PUBLIC_ASK_FLIP_UI_ENABLED",
+      "NEXT_PUBLIC_SITE_URL",
+      "NEXT_PUBLIC_SUPABASE_ANON_KEY",
+      "NEXT_PUBLIC_SUPABASE_URL",
+      "PROJECT_INVITE_ENTRY_ENABLED",
+      "PUBLICATION_ACCESS_COOKIE_SECRET",
+      "PUBLICATION_TOKEN_ENCRYPTION_SECRET",
+      "PUBLICATION_TOKEN_HASH_SECRET",
+      "RESEND_API_KEY",
+      "RESEND_FROM",
+      "RESEND_REPLY_TO",
+      "RESEND_WEBHOOK_SECRET",
+      "SUPABASE_SERVICE_ROLE_KEY"
+    ]
+  },
+  "resendReady": false,
+  "note": "Resend readiness checks required variable presence only. It never writes secret values and does not prove sender/domain verification, DNS, webhook registration, delivery, bounce, complaint, or open events."
+}

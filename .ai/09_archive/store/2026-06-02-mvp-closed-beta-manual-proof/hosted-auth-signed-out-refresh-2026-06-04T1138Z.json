@@ -1,0 +1,74 @@
+{
+  "generatedAt": "2026-06-04T11:30:27.341Z",
+  "mode": "hosted-auth-route-smoke",
+  "baseUrl": "https://www.archestimator.com",
+  "cases": [
+    {
+      "name": "signedOut",
+      "route": "/workshop",
+      "expected": "signed-out or expired session redirects to /login with a safe next path",
+      "providedAuthMaterial": false,
+      "status": 307,
+      "location": "/login?next=%2Fworkshop",
+      "normalizedLocationPath": "/login?next=%2Fworkshop",
+      "ok": false,
+      "durationMs": 1102,
+      "passed": true,
+      "error": null
+    },
+    {
+      "name": "allowed",
+      "route": "/workshop",
+      "expected": "allowed session reaches the protected workshop without beta-access redirect",
+      "providedAuthMaterial": false,
+      "status": null,
+      "location": null,
+      "normalizedLocationPath": null,
+      "ok": false,
+      "durationMs": null,
+      "passed": false,
+      "error": "Missing HOSTED_AUTH_ALLOWED_COOKIE."
+    },
+    {
+      "name": "denied",
+      "route": "/workshop",
+      "expected": "denied session redirects to /beta/access-required",
+      "providedAuthMaterial": false,
+      "status": null,
+      "location": null,
+      "normalizedLocationPath": null,
+      "ok": false,
+      "durationMs": null,
+      "passed": false,
+      "error": "Missing HOSTED_AUTH_DENIED_COOKIE."
+    },
+    {
+      "name": "revoked",
+      "route": "/workshop",
+      "expected": "revoked session redirects to /beta/access-required?status=revoked",
+      "providedAuthMaterial": false,
+      "status": null,
+      "location": null,
+      "normalizedLocationPath": null,
+      "ok": false,
+      "durationMs": null,
+      "passed": false,
+      "error": "Missing HOSTED_AUTH_REVOKED_COOKIE."
+    },
+    {
+      "name": "expired",
+      "route": "/workshop",
+      "expected": "signed-out or expired session redirects to /login with a safe next path",
+      "providedAuthMaterial": false,
+      "status": null,
+      "location": null,
+      "normalizedLocationPath": null,
+      "ok": false,
+      "durationMs": null,
+      "passed": false,
+      "error": "Missing HOSTED_AUTH_EXPIRED_COOKIE."
+    }
+  ],
+  "passed": false,
+  "note": "Sanitized hosted auth smoke. Session cookies and platform bypass headers are used only for requests and are never written to this report."
+}

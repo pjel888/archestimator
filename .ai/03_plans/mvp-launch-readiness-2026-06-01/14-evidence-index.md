@@ -1,5 +1,48 @@
 # Evidence Index
 
+## Owner Signoff And Email Default-Off Refresh - 2026-06-04 11:40Z
+
+- Resend send-test blocker artifact:
+  `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/resend-send-test-domain-unverified-2026-06-04T1151Z.json`.
+  A real production-env Resend send probe to `philipjonlewis@gmail.com` failed
+  with HTTP 403 because `contact.archestimator.com` is not verified. Resend
+  dashboard proof shows DKIM verified, but `send.contact` MX
+  `feedback-smtp.ap-northeast-1.amazonses.com` priority 10 and `send.contact`
+  TXT `v=spf1 include:amazonses.com ~all` are missing/failed in Namecheap DNS.
+  `archestimator.com` uses Namecheap registrar nameservers, so Vercel DNS cannot
+  repair this record set.
+- Legal/owner signoff artifact:
+  `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/legal-owner-signoff-2026-06-04T1138Z.json`.
+  It records owner-provided beta signoff from Philip Lewis on 2026-06-04 with
+  `legalOwnerReady: true`. It remains a closed-beta owner signoff artifact, not
+  legal advice or public-launch counsel proof.
+- Support/monitoring artifact:
+  `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/support-monitoring-owner-signoff-2026-06-04T1138Z.json`.
+  It records owner-confirmed inbox, feedback review, uptime/error alert, and
+  escalation responsibility with Philip Lewis as support/alert/review owner and
+  `supportMonitoringReady: true`. The helper records operator-confirmed flags
+  and owner labels; it does not independently verify alert dashboards.
+- Resend/email artifact:
+  `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/resend-readiness-email-flag-default-off-2026-06-04T1140Z.json`.
+  Vercel Production has encrypted `RESEND_API_KEY`, `RESEND_FROM`,
+  `RESEND_REPLY_TO`, and `RESEND_WEBHOOK_SECRET` names, but it does not have
+  `ARCHESTIMATOR_EMAIL_DELIVERY_ENABLED`. Code now requires that explicit flag
+  before non-test email delivery is considered configured, and Teamspaces/shared
+  link email controls remain disabled/manual while it is absent. Result:
+  `resendReady: false` by design; Resend domain/MX/delivery/webhook proof is
+  deferred until email workflows are intentionally re-enabled.
+- Hosted signed-out auth artifact:
+  `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/hosted-auth-signed-out-refresh-2026-06-04T1138Z.json`.
+  `https://www.archestimator.com/workshop` signed out returns HTTP 307 to
+  `/login?next=%2Fworkshop`; allowed/denied/revoked/expired real-session cases
+  remain missing because no hosted session cookies were provided.
+- Current remaining launch blockers after this refresh: hosted Google OAuth
+  allowed/denied/revoked/expired real-session smoke, residual Codex Security
+  history-risk closure or owner acceptance, spreadsheet-app open/print proof if
+  required for beta, and full hosted beta journey proof. Resend remains a
+  re-enable gate for automatic email workflows; it is not a blocker for a
+  manual-invite closed beta while email delivery is explicitly default-off.
+
 ## Vercel Rollback Drill - 2026-06-04 11:12Z
 
 - Rollback artifact:
