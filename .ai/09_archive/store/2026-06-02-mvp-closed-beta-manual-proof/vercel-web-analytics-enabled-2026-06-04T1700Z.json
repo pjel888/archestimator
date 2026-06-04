@@ -1,0 +1,114 @@
+{
+  "artifact": "vercel-web-analytics-enabled-2026-06-04T1700Z",
+  "capturedAt": "2026-06-04T17:00:00Z",
+  "scope": "closed-beta Vercel Web Analytics integration and dashboard proof",
+  "sensitiveDataPolicy": {
+    "recorded": [
+      "public deployment id",
+      "public custom-domain health result",
+      "package/component integration facts",
+      "token-free dashboard counters"
+    ],
+    "notRecorded": [
+      "cookies",
+      "browser session values",
+      "API tokens",
+      "Vercel auth headers",
+      "private dashboard request payloads"
+    ]
+  },
+  "codeIntegration": {
+    "commit": "2d49b6b",
+    "package": "@vercel/analytics",
+    "installedVersion": "2.0.1",
+    "rootLayoutImport": "import { Analytics } from \"@vercel/analytics/next\";",
+    "rootLayoutComponent": "<Analytics />",
+    "speedInsightsBoundary": {
+      "speedInsightsDependencyPresent": false,
+      "speedInsightsComponentPresent": false,
+      "note": "Web Analytics was added without re-adding @vercel/speed-insights or <SpeedInsights />."
+    }
+  },
+  "officialDocsCheck": {
+    "source": "Vercel documentation connector",
+    "summary": "Next.js App Router projects install @vercel/analytics and render Analytics from @vercel/analytics/next in the root layout."
+  },
+  "deployment": {
+    "deploymentId": "dpl_3sCC5PTPe94sYSngTd6oo5KFY8ci",
+    "deploymentUrl": "https://archestimator-2oid4rslf-philipjonlewis-projects.vercel.app",
+    "target": "production",
+    "readyState": "READY",
+    "aliasedDomains": [
+      "https://www.archestimator.com"
+    ],
+    "vercelBuildEvidence": {
+      "installedAnalyticsPackage": true,
+      "routeBuildCompleted": true,
+      "staticPagesGenerated": 32
+    }
+  },
+  "liveHttpProof": {
+    "healthUrl": "https://www.archestimator.com/api/health",
+    "healthStatus": 200,
+    "healthBodyShape": {
+      "ok": true,
+      "service": "archestimator"
+    },
+    "homeStatus": 200,
+    "homeTitle": "Archestimator | Quote, Proposal & Estimate Workspace"
+  },
+  "runtimeAnalyticsProof": {
+    "headlessProbeNote": "The Vercel analytics script intentionally skips navigator.webdriver, so headless Playwright cannot be used as the dashboard event source.",
+    "scriptRequestUrlPath": "/a388b7482f1a867e/script.js",
+    "scriptResponseStatus": 200,
+    "scriptResponseContentType": "application/javascript; charset=utf-8",
+    "queuedPageviewObserved": {
+      "route": "/",
+      "path": "/"
+    },
+    "realChromeSmoke": {
+      "visitedUrl": "https://archestimator.com/?analytics_smoke=20260605",
+      "pageTitle": "Archestimator | Quote, Proposal & Estimate Workspace"
+    }
+  },
+  "dashboardProof": {
+    "dashboardUrl": "https://vercel.com/philipjonlewis-projects/archestimator/analytics?environment=all",
+    "environment": "all",
+    "dateRange": "Last 7 Days",
+    "observedAfterRealChromeVisit": {
+      "online": 1,
+      "visitors": 1,
+      "pageViews": 1,
+      "bounceRate": "100%",
+      "pages": [
+        {
+          "path": "/",
+          "visitors": 1
+        }
+      ],
+      "countries": [
+        {
+          "country": "Philippines",
+          "share": "100%"
+        }
+      ],
+      "devices": [
+        {
+          "device": "Desktop",
+          "share": "100%"
+        }
+      ],
+      "operatingSystems": [
+        {
+          "os": "Mac",
+          "share": "100%"
+        }
+      ]
+    }
+  },
+  "currentAssessment": {
+    "vercelWebAnalyticsReady": true,
+    "customEventsConfigured": false,
+    "launchMeaning": "Web Analytics pageview collection is enabled and proven for the production beta app. This does not close Resend lifecycle proof, hosted denied/revoked/expired auth proof, spreadsheet-app proof, or recipient clickthrough/open proof."
+  }
+}

@@ -1,13 +1,19 @@
 # Current State
 
-**Vercel Web Analytics Local Integration Added (2026-06-05):**
-The root Next.js app shell now renders Vercel Web Analytics via
-`@vercel/analytics/next` in `src/app/layout.tsx`, and `@vercel/analytics` is
-recorded in `package.json` / `bun.lock`. This intentionally does not re-add
-`@vercel/speed-insights` or `<SpeedInsights />`, which were removed for the
-Codex Security finding. This is local integration proof only until the change is
-deployed and the Vercel Analytics dashboard for the project shows production
-data.
+**Vercel Web Analytics Deployed And Dashboard-Proven (2026-06-04 17:00Z):**
+Main commit `2d49b6b` adds `@vercel/analytics@2.0.1` and renders
+`<Analytics />` from `@vercel/analytics/next` in `src/app/layout.tsx` without
+re-adding `@vercel/speed-insights` or `<SpeedInsights />`. Production deployment
+`dpl_3sCC5PTPe94sYSngTd6oo5KFY8ci` is Ready and aliased to
+`https://www.archestimator.com`; live health returned HTTP 200. Runtime proof
+showed the deployed page loading the rewritten Vercel Analytics script at
+`/a388b7482f1a867e/script.js`; real Chrome production traffic then made the
+Vercel Analytics dashboard show `Visitors 1`, `Page Views 1`, page `/`,
+Philippines, Desktop, Mac, and `1 online` for all environments / last 7 days.
+Proof artifact:
+`.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/vercel-web-analytics-enabled-2026-06-04T1700Z.json`.
+This closes Web Analytics enablement only; custom analytics events are not
+configured, and the remaining closed-beta blockers are unchanged.
 
 **Agentic Framework Active-Path Pointer Resolved (2026-06-05):**
 The stale closed-beta goal path
