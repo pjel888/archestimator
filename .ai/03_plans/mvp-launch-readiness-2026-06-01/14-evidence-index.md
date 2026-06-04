@@ -17,6 +17,10 @@
   size after read. Hosted smoke proves `/api/health` HTTP 200, oversized webhook
   POST HTTP 413 `Webhook payload is too large.`, and normal-sized unsigned POST
   HTTP 400 `Invalid webhook`.
+- Codex Security: `codex-security-dashboard-refresh-2026-06-04T0511Z.json`
+  shows the authenticated Scans page caught up to last scanned commit
+  `c6aa6dd3` with 578 scanned commits, but not latest repo head `6840512`; scan
+  badges remain 4 critical, 6 high, 31 medium, and 6 low.
 - Still open: Namecheap `send.contact` MX record, Resend domain restart/
   verified status, delivery/webhook event proof, Codex Security rescan or owner
   acceptance, hosted denied/revoked/expired auth smoke, rollback/export/full
