@@ -1,0 +1,94 @@
+{
+  "artifact": "hosted-shared-link-recipient-clickthrough-open-2026-06-04T1731Z",
+  "status": "pass_recipient_clickthrough_open_webhook_lifecycle_still_open",
+  "recordedAt": "2026-06-04T17:31:46.879Z",
+  "scope": "Closed-beta hosted shared-link recipient clickthrough and open tracking proof",
+  "productionDeployment": {
+    "commit": "14e0a61",
+    "vercelDeploymentId": "dpl_9b5SK6x1qBhrG9sMX3XvsdBoLbVR",
+    "readyState": "READY",
+    "target": "production",
+    "productionUrl": "https://archestimator-p66mgz1mc-philipjonlewis-projects.vercel.app",
+    "customDomainObserved": "https://www.archestimator.com",
+    "wwwHealthStatus": 200,
+    "apexBehavior": "HTTP 307 redirect to www"
+  },
+  "codeFix": {
+    "problemObserved": "The earlier invite email CTA used a relative share href. Gmail rewrote it through a Google redirect notice as an invalid http:///share URL.",
+    "fixCommit": "14e0a61",
+    "fixSummary": "Recipient email CTA and unsubscribe links now build absolute HTTP(S) URLs from existing app-origin env when the app supplies a relative /share path.",
+    "localValidation": [
+      "bunx vitest run tests/vitest/project-publication-email-links.test.ts tests/vitest/project-publication-actions.test.ts --maxWorkers=1 --reporter=dot",
+      "bunx eslint src/lib/publication/actions.ts src/lib/publication/email-links.ts tests/vitest/project-publication-actions.test.ts tests/vitest/project-publication-email-links.test.ts",
+      "bun run type-check",
+      "bun run build",
+      "git diff --check"
+    ]
+  },
+  "browserProof": {
+    "tool": "Computer Use against the existing Google Chrome profile",
+    "ownerSession": "Production Tropical House workspace loaded with the existing owner session.",
+    "sharedLinkModal": "The hosted shared-link modal showed an absolute https://www.archestimator.com/share/[redacted] base link.",
+    "resendAction": "The Recipients tab resent only the user-provided alternate recipient address.",
+    "recipientInbox": "A recent Gmail search in lewisphilipjonechavez@gmail.com found the new Archestimator invite at about 1:28 AM local time.",
+    "freshEmailLinkDisplay": "The fresh email body displayed archestimator.com/share/[redacted] for the CTA and archestimator.com/api/share/[redacted]/unsubscribe for unsubscribe.",
+    "clickthroughResult": "Clicking the fresh View Project Estimate CTA opened the hosted proposal review page instead of the old Google invalid-redirect notice.",
+    "renderedReceiverPage": {
+      "title": "Tropical House (YJBXSRED) - Proposal Review",
+      "pathPattern": "/share/[redacted-token]",
+      "reviewerBanner": "YOU ARE REVIEWING AS LEWISPHILIPJONECHAVEZ@GMAIL.COM",
+      "visibleControls": [
+        "Accept proposal",
+        "Decline proposal",
+        "Request revision",
+        "Discussion comments"
+      ]
+    }
+  },
+  "supabaseReadOnlyProof": {
+    "recipientEmail": "lewisphilipjonechavez@gmail.com",
+    "recipientIdPrefix": "527305fa...",
+    "publicationIdPrefix": "f5511219...",
+    "beforeClick": {
+      "delivery_status": "sent",
+      "last_opened_at": null,
+      "resend_last_event_type": null,
+      "updated_at": "2026-06-04T17:28:40.992+00:00"
+    },
+    "afterClick": {
+      "delivery_status": "opened",
+      "last_opened_at": "2026-06-04T17:31:45.691+00:00",
+      "resend_last_event_type": null,
+      "resend_email_id": "redacted-present",
+      "updated_at": "2026-06-04T17:31:45.691+00:00"
+    },
+    "recentRecipientEvent": {
+      "eventIdPrefix": "62e8b5bb...",
+      "event_type": "open",
+      "recipientIdPrefix": "527305fa...",
+      "created_at": "2026-06-04T17:31:46.879176+00:00"
+    }
+  },
+  "closedByThisArtifact": [
+    "Hosted shared-link recipient clickthrough proof",
+    "Hosted shared-link recipient open tracking proof"
+  ],
+  "stillOpen": [
+    "Signed Resend delivered/bounce/complaint webhook reconciliation",
+    "Any broader automatic email lifecycle claim that requires provider event proof"
+  ],
+  "redactionPolicy": {
+    "notRecorded": [
+      "raw email href",
+      "public share URL",
+      "recipient token",
+      "token hash",
+      "cookies",
+      "API keys",
+      "webhook secrets",
+      "raw email HTML/text",
+      "full Resend provider message id",
+      "full database UUIDs"
+    ]
+  }
+}
