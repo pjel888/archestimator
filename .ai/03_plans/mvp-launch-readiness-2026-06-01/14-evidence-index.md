@@ -182,6 +182,38 @@
 - Result: owner logout and protected-route gating after logout are proven on the
   current production deployment.
 
+## Synthetic Google Sheets Workbook Compatibility Proof - 2026-06-04 19:51Z
+
+- Primary artifact:
+  `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/synthetic-google-sheets-workbook-compatibility-2026-06-04T1951Z.json`.
+- Workbook proof: a synthetic 25-row proposal workbook was generated from
+  `makeBenchmarkModel(25)` and `createProposalWorkbookBuffer()` with synthetic
+  project/estimate metadata only. The generated XLSX was 17,853 bytes with
+  SHA-256
+  `7bff7517da5e443c3beb96929efd0ceda48e423248b159fa393714e7805a84de`; the
+  local ExcelJS readback loaded `Bid Form`, `Summary`, `Commercial Terms`, and
+  `Source Breakdown`, found frozen `A18`, print-title row `17:17`, landscape
+  fit-to-width setup, sample line-total result `700`, sample subtotal result
+  `20960`, and Summary grand-total formula/result `B27+B28+B29` / `149798`.
+- Browser proof: Computer Use uploaded only the synthetic workbook through the
+  owner Google Sheets session for `philipjonlewis@gmail.com`, observed the
+  imported document titled `archestimator-synthetic-25-row-proposal` saved
+  privately to Drive, confirmed all four workbook tabs were visible, and
+  inspected the Summary sheet with visible section totals and `Grand Total`
+  `149,798`.
+- Print proof: Google Sheets print settings opened for the current sheet and
+  showed `Total: 1 page`, A4 paper, landscape orientation, fit-to-width scale,
+  and custom margins of 0.5 / 0.25 / 0.5 / 0.25 inches. The flow was canceled;
+  no print job was submitted.
+- Boundary: no raw workbook bytes, screenshot, Google document id, client data,
+  proposal data, cookie, token, or secret was committed. The temporary Downloads
+  copy was removed. A private synthetic Google Sheets import may remain in the
+  owner Drive because cloud deletion requires explicit action-time confirmation.
+- Result: secondary Google Sheets import/open/recalc/print-preview proof is now
+  captured for a synthetic Archestimator workbook. Native Microsoft Excel,
+  Apple Numbers, LibreOffice, and real production/client workbook spreadsheet
+  app proof remain unproven.
+
 ## Hosted Owner Beta Journey Smoke - 2026-06-04 13:28Z
 
 - Primary artifact:
@@ -445,9 +477,11 @@
 - Boundary: raw workbook bytes were not copied into the repository or proof
   packet. No paid provider add-on, DNS, Vercel env, Supabase data mutation,
   PITR, compute, migration history, or broad Supabase push changed.
-- Result: hosted authenticated export proof is closed. Secondary spreadsheet-app
-  open/print proof remains open; the later 13:28Z artifact closes the owner
-  hosted beta journey path for the single-tester beta.
+- Result: hosted authenticated export proof is closed. The later 19:51Z
+  synthetic Google Sheets artifact closes secondary app open/recalc/print-preview
+  proof for a synthetic workbook; native spreadsheet-app and real production
+  workbook proof remain open. The later 13:28Z artifact closes the owner hosted
+  beta journey path for the single-tester beta.
 
 ## Hosted Feedback Admin Surface Proof - 2026-06-04 07:50Z
 
@@ -564,11 +598,14 @@
   and a `Close` control. The linked fix proof artifact exists, but live
   dashboard closure submission remains pending action-time confirmation.
 - Later 2026-06-04 artifacts close Resend provider proof, legal/owner/support
-  signoff, hosted authenticated export, and the owner hosted beta journey. Still
-  open: residual Codex Security history-risk acceptance/remediation, hosted
-  Google OAuth denied/revoked/expired smoke, logout/session-expiry proof,
-  spreadsheet-app open/print proof if required for beta, and hosted
-  shared-link/invite email workflow proof before relying on automatic email UX.
+  signoff, hosted authenticated export, the owner hosted beta journey, hosted
+  Google OAuth denied/revoked proof, logout/session-expiry proof, synthetic
+  stale-cookie proof, hosted shared-link/invite email proof, and synthetic
+  Google Sheets workbook proof. Still open: residual Codex Security history-risk
+  acceptance/remediation, project-specific unlink proof if required before
+  widening, native/real production workbook app proof if required beyond the
+  owner-only beta, and optional negative email lifecycle proof before relying on
+  incident-path email UX.
 
 ## Codex Security Chart/XLSX Finding Closure - 2026-06-04 06:49Z
 
@@ -869,12 +906,15 @@
   alert ownership, and incident-escalation proof are not yet recorded.
 - Later 2026-06-04 artifacts close rollback, legal/owner/support signoff, Resend
   provider delivery/webhook proof, hosted authenticated export, the owner hosted
-  beta journey, logout, denied/revoked Google OAuth, shared-link self-invite/send,
-  recipient inbox/clickthrough/open, and signed delivered-event webhook
-  reconciliation. Still open before a fully green widened closed beta: residual
-  Codex Security history-risk acceptance/remediation, hosted expired-session
-  auth smoke, spreadsheet-app open/print proof if required for beta, and optional
-  negative email lifecycle proof before relying on incident-path email UX.
+  beta journey, logout, denied/revoked Google OAuth, synthetic stale-cookie
+  expired-session routing, shared-link self-invite/send, recipient
+  inbox/clickthrough/open, signed delivered-event webhook reconciliation, and
+  synthetic Google Sheets workbook proof. Still open before a fully green widened
+  closed beta: residual Codex Security history-risk acceptance/remediation,
+  project-specific unlink proof if required before widening, native/real
+  production workbook app proof if required beyond the owner-only beta, and
+  optional negative email lifecycle proof before relying on incident-path email
+  UX.
 
 ## Resend Dashboard DNS/Webhook Refresh - 2026-06-04 04:46Z
 
@@ -925,12 +965,15 @@
   comments since June 4, and no status contexts/check-runs on the observed
   latest `main`.
 - Later 2026-06-04 artifacts close Vercel rollback, Resend provider proof,
-  legal/owner/support signoff, hosted authenticated export, and the owner hosted
-  beta journey. Still open before fully green closed beta: residual Codex
-  Security history-risk acceptance/remediation, hosted Google OAuth
-  denied/revoked/expired smoke with real sessions, logout/session-expiry proof,
-  spreadsheet-app open/print proof if required for beta, and hosted
-  shared-link/invite email workflow proof before relying on automatic email UX.
+  legal/owner/support signoff, hosted authenticated export, the owner hosted
+  beta journey, hosted Google OAuth denied/revoked proof, logout/session-expiry
+  proof, synthetic stale-cookie expired-session routing, hosted shared-link/
+  invite email proof, and synthetic Google Sheets workbook proof. Still open
+  before fully green widened beta: residual Codex Security history-risk
+  acceptance/remediation, project-specific unlink proof if required before
+  widening, native/real production workbook app proof if required beyond the
+  owner-only beta, and optional negative email lifecycle proof before relying on
+  incident-path email UX.
 
 ## Mass Deletion Cleanup RPC Lock - 2026-06-04
 
@@ -1047,7 +1090,7 @@
 - Production deployment `dpl_Cxeq5ATpif6Yk1zn4FmNmnX7nzhT` is `READY`; `archestimator.com` and `www.archestimator.com` alias to it; `www` serves the beta app instead of the teaser; `/api/health` returns app health JSON; signed-out `/workshop` redirects to login. Proof: `vercel-hosted-http-smoke-cheaper-path-2cddb0e-2026-06-03.json`, `vercel-health-readiness-cheaper-path-2cddb0e-2026-06-03.json`, and `vercel-production-readiness-cheaper-path-2cddb0e-2026-06-03.json`.
 - Latest production redeploy proof on 2026-06-04T13:11Z records deployment `dpl_2X6FytZUnK5ZaNsszVN4W8Wh6bXm` Ready on both custom domains, live Resend webhook signature-verification reachability, signed-out `/workshop/projects` redirect proof, login Google/email-link entry, and owner Chrome allowed-session access to hosted `/workshop`. Proof: `vercel-production-resend-enabled-hosted-auth-2026-06-04T1311Z.json`.
 - Latest owner journey proof on 2026-06-04T13:28Z records the owner hosted path through project entry, estimate creation, estimate workspace render, and export preview. Proof: `hosted-owner-beta-journey-smoke-2026-06-04T1328Z.json`.
-- Still open before calling the proof packet fully green: spreadsheet-app open/print proof if required for beta and bounce/complaint webhook reconciliation if the owner-only beta requires synthetic negative-email events. Real browser Google OAuth denied/revoked hosted smoke is closed by `hosted-google-denied-revoked-browser-smoke-2026-06-04T1851Z.json`; synthetic stale-cookie expired-session fail-closed proof is closed by `hosted-expired-stale-cookie-smoke-2026-06-04T1920Z.json`. Vercel rollback proof is closed by the 11:12Z rollback/promote drill; Resend provider delivery/webhook route proof is closed; owner hosted beta journey proof is closed; residual Codex Security history-risk is owner-accepted for the owner-only beta by the 14:14Z artifact; owner logout is closed by the 14:36Z artifact; shared-link self-invite/send/inbox proof is closed by the 15:32Z and 15:55Z artifacts; the 17:31Z artifact closes recipient clickthrough/open; and the 18:09Z artifact closes signed delivered-event webhook reconciliation for the real shared-link email.
+- Still open before calling the proof packet fully green: project-specific unlink proof if required before widening, native Excel or real production/client workbook app proof if required beyond the owner-only beta, and bounce/complaint webhook reconciliation if the owner-only beta requires synthetic negative-email events. Real browser Google OAuth denied/revoked hosted smoke is closed by `hosted-google-denied-revoked-browser-smoke-2026-06-04T1851Z.json`; synthetic stale-cookie expired-session fail-closed proof is closed by `hosted-expired-stale-cookie-smoke-2026-06-04T1920Z.json`; synthetic secondary Google Sheets workbook compatibility proof is closed by `synthetic-google-sheets-workbook-compatibility-2026-06-04T1951Z.json`. Vercel rollback proof is closed by the 11:12Z rollback/promote drill; Resend provider delivery/webhook route proof is closed; owner hosted beta journey proof is closed; residual Codex Security history-risk is owner-accepted for the owner-only beta by the 14:14Z artifact; owner logout is closed by the 14:36Z artifact; shared-link self-invite/send/inbox proof is closed by the 15:32Z and 15:55Z artifacts; the 17:31Z artifact closes recipient clickthrough/open; and the 18:09Z artifact closes signed delivered-event webhook reconciliation for the real shared-link email.
 
 ## Fourth-Pass Closed Beta Evidence - 2026-06-02
 

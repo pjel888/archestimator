@@ -1,0 +1,119 @@
+{
+  "artifactType": "synthetic_secondary_spreadsheet_compatibility",
+  "capturedAt": "2026-06-04T19:51:45Z",
+  "commit": "244b8bcf4ea262f02c47d012c8c7e29c879bff73",
+  "environment": {
+    "spreadsheetApp": "Google Sheets web via /Applications/Google Sheets.app shortcut",
+    "browser": "Google Chrome owner profile",
+    "googleAccount": "philipjonlewis@gmail.com",
+    "productionDomainUnderTest": "https://www.archestimator.com",
+    "localWorkbookPath": "/tmp/archestimator-synthetic-spreadsheet-proof/archestimator-synthetic-25-row-proposal.xlsx"
+  },
+  "workbookInput": {
+    "source": "Synthetic benchmark fixture generated from scripts/benchmark-proposal-workbook.ts makeBenchmarkModel(25) and createProposalWorkbookBuffer()",
+    "filename": "archestimator-synthetic-25-row-proposal.xlsx",
+    "bytes": 17853,
+    "sha256": "7bff7517da5e443c3beb96929efd0ceda48e423248b159fa393714e7805a84de",
+    "syntheticOnly": true,
+    "containsClientData": false,
+    "syntheticMetadata": {
+      "projectName": "Archestimator Synthetic Spreadsheet QA",
+      "projectCode": "SYN-QA",
+      "projectAddress": "Synthetic local fixture",
+      "estimateName": "25 Row Spreadsheet Compatibility Fixture",
+      "estimateSheetCode": "SYN-025",
+      "versionLabel": "Closed beta QA",
+      "generatedAt": "2026-06-04T19:45:00.000Z"
+    }
+  },
+  "localExcelJsReadback": {
+    "sheets": [
+      "Bid Form",
+      "Summary",
+      "Commercial Terms",
+      "Source Breakdown"
+    ],
+    "bidForm": {
+      "rowCount": 62,
+      "columnCount": 10,
+      "frozenTopLeftCell": "A18",
+      "printTitlesRow": "17:17",
+      "orientation": "landscape",
+      "fitToWidth": 1,
+      "fitToHeight": 0,
+      "sampleLineTotalFormula": "IF(OR(I19=\"EXCLUDED\",I19=\"BY OTHERS\",I19=\"OWNER SUPPLIED\",I19=\"OSM\",I19=\"OFCI\",I19=\"OSCI\",I19=\"OMITTED\",I19=\"NOT APPLICABLE\"),0,D19*G19+250)",
+      "sampleLineTotalResult": 700,
+      "sampleSubtotalFormula": "SUM(H19:H21)",
+      "sampleSubtotalResult": 20960
+    },
+    "summary": {
+      "grandTotalFormula": "B27+B28+B29",
+      "grandTotalResult": 149798,
+      "orientation": "landscape",
+      "fitToWidth": 1
+    }
+  },
+  "googleSheetsProof": {
+    "uploadedTo": "docs.google.com/spreadsheets/d/[redacted]/edit",
+    "documentTitle": "archestimator-synthetic-25-row-proposal",
+    "documentStatus": "Saved to Drive",
+    "shareState": "Private to only me",
+    "tabsVisibleAfterImport": [
+      "Bid Form",
+      "Summary",
+      "Commercial Terms",
+      "Source Breakdown"
+    ],
+    "bidFormVisibleMarkers": [
+      "BID FORM / BILL OF QUANTITIES",
+      "Archestimator Synthetic Spreadsheet QA",
+      "Synthetic local fixture",
+      "25 Row Spreadsheet Compatibility Fixture",
+      "SYN-025",
+      "General Preliminaries subtotal",
+      "Included/excluded scope labels"
+    ],
+    "summaryVisibleMarkers": [
+      "SUMMARY OF BID",
+      "General Preliminaries",
+      "Site Works",
+      "Direct Cost",
+      "Grand Total",
+      "149,798"
+    ],
+    "printPreview": {
+      "opened": true,
+      "printed": false,
+      "scope": "Current sheet",
+      "totalPages": 1,
+      "paperSize": "A4 (8.27 x 11.69)",
+      "orientation": "Landscape",
+      "scale": "Fit to width",
+      "margins": "Custom numbers",
+      "topMarginInches": 0.5,
+      "rightMarginInches": 0.25,
+      "bottomMarginInches": 0.5,
+      "leftMarginInches": 0.25,
+      "actionAfterProof": "Canceled out of print settings; no printer job was submitted."
+    }
+  },
+  "cleanupAndResidue": {
+    "downloadsCopyRemoved": true,
+    "repoWorkbookCommitted": false,
+    "repoScreenshotCommitted": false,
+    "cloudResidue": "A private synthetic Google Sheets import may remain in the owner Google Drive. It contains no client/proposal data. It was not deleted because cloud deletion requires explicit action-time confirmation."
+  },
+  "result": {
+    "secondaryGoogleSheetsImportOpenRecalcPrintPreview": "pass",
+    "nativeExcelDesktopOpenRecalcPrintPreview": "not_run",
+    "appleNumbersOpenRecalcPrintPreview": "not_run",
+    "libreOfficeOpenRecalcPrintPreview": "not_run",
+    "realProductionWorkbookAppCompatibility": "not_run"
+  },
+  "boundaries": [
+    "This proof used a synthetic 25-row workbook, not the hosted Lewis Residence proposal workbook or any client-identifying export.",
+    "This proves Google Sheets web import/open, visible formula-backed totals, preserved tabs, and current-sheet print-preview availability for a synthetic Archestimator workbook.",
+    "This does not prove Microsoft Excel, Apple Numbers, LibreOffice, or a real production workbook opened in a native spreadsheet app.",
+    "This does not change Supabase, Vercel, Resend, DNS, purchases, production data, migration history, or provider billing."
+  ]
+}
