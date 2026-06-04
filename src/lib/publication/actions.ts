@@ -673,6 +673,16 @@ function normalizeEmail(e: string): string {
   return e.trim().toLowerCase();
 }
 
+function readSelfInviteBlockedMessage() {
+  return "You cannot invite your own sign-in email to this shared link.";
+}
+
+function isSelfRecipientEmail(recipientEmail: string, currentUserEmail: string) {
+  const normalizedRecipientEmail = normalizeEmail(recipientEmail);
+  const normalizedCurrentUserEmail = normalizeEmail(currentUserEmail);
+  return Boolean(normalizedRecipientEmail && normalizedCurrentUserEmail && normalizedRecipientEmail === normalizedCurrentUserEmail);
+}
+
 function isValidEmail(email: string): boolean {
   // Simple RFC-ish check sufficient for MVP (no external dep)
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
@@ -881,9 +891,29 @@ export async function addSharedLinkRecipients({
     return { ok: false, message: "No valid email addresses.", added: 0, failedEmails: inputs.map((i) => i.email), emailResults: [] };
   }
 
-  const emailResults: Array<{ email: string; ok: boolean; error?: string }> = [];
+  const blockedSelfEmails = normalized
+    .filter((r) => isSelfRecipientEmail(r.email, context.currentUserEmail))
+    .map((r) => r.email);
+  const allowedRecipients = normalized.filter((r) => !isSelfRecipientEmail(r.email, context.currentUserEmail));
+  const selfInviteMessage = readSelfInviteBlockedMessage();
+
+  if (allowedRecipients.length === 0) {
+    return {
+      ok: false,
+      message: selfInviteMessage,
+      added: 0,
+      failedEmails: blockedSelfEmails,
+      emailResults: blockedSelfEmails.map((email) => ({ email, ok: false, error: selfInviteMessage })),
+    };
+  }
+
+  const emailResults: Array<{ email: string; ok: boolean; error?: string }> = blockedSelfEmails.map((email) => ({
+    email,
+    ok: false,
+    error: selfInviteMessage,
+  }));
   let added = 0;
-  const failedEmails: string[] = [];
+  const failedEmails: string[] = [...blockedSelfEmails];
   const secret = readPublicationTokenHashSecret();
   const senderIdentity = readPublicationSenderIdentity(context);
 
@@ -894,7 +924,7 @@ export async function addSharedLinkRecipients({
     if (proj?.name) projectName = proj.name;
   } catch { /* non-fatal */ }
 
-  for (const r of normalized) {
+  for (const r of allowedRecipients) {
     try {
       // Generate unique raw token for this recipient (never stored; only hash)
       const rawToken = createPublicationToken();
@@ -961,9 +991,12 @@ export async function addSharedLinkRecipients({
   }
 
   const successCount = emailResults.filter((e) => e.ok).length;
-  const message = added > 0
+  const baseMessage = added > 0
     ? `Added ${added} recipient(s). ${successCount} email(s) dispatched (failures are non-fatal).`
     : "No new recipients added (duplicates or invalid).";
+  const message = blockedSelfEmails.length > 0
+    ? `${baseMessage} ${selfInviteMessage}`
+    : baseMessage;
 
   return { ok: added > 0 || successCount > 0, message, added, failedEmails, emailResults };
 }
@@ -1000,6 +1033,9 @@ export async function resendSharedLinkRecipientEmail({
     .maybeSingle();
   if (recipientError) throw recipientError;
   if (!recipient?.email) return { ok: false, message: "Recipient not found." };
+  if (isSelfRecipientEmail(recipient.email, context.currentUserEmail)) {
+    return { ok: false, message: readSelfInviteBlockedMessage() };
+  }
   if (recipient.email_unsubscribed_at) {
     return { ok: false, message: "Recipient has unsubscribed from follow-up emails for this shared link." };
   }

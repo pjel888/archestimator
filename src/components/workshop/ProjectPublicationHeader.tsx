@@ -25,6 +25,7 @@ import type { ProjectEstimateSheet, ProjectPublicationStatus, ProjectPublication
 
 type ProjectPublicationHeaderProps = {
   summary: ProjectPublicationSummary | null;
+  currentUserEmail?: string | null;
   projectEstimateSheets?: ProjectEstimateSheet[];
 };
 
@@ -140,7 +141,7 @@ function readServerOrigin() {
   return "";
 }
 
-export function ProjectPublicationHeader({ summary, projectEstimateSheets = [] }: ProjectPublicationHeaderProps) {
+export function ProjectPublicationHeader({ summary, currentUserEmail = null, projectEstimateSheets = [] }: ProjectPublicationHeaderProps) {
   const summaryKey = readSummaryKey(summary);
   const activitySeenStorageKey = readActivitySeenStorageKey(summary, summaryKey);
   const [open, setOpen] = useState(false);
@@ -538,6 +539,7 @@ export function ProjectPublicationHeader({ summary, projectEstimateSheets = [] }
                 <RecipientEmailComposer
                   publicationId={summary.publicationId}
                   baseClientLink={clientLinkPath}
+                  currentUserEmail={currentUserEmail}
                   projectName={null}
                   onMessage={(m) => setActionMessage(m)}
                 />

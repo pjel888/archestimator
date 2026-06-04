@@ -78,6 +78,14 @@ describe("project publication manager actions (Shared Link Overhaul V2)", () => 
     expect(actions).toContain("invited_by");
   });
 
+  it("blocks project managers from inviting their own sign-in email as a shared-link recipient", () => {
+    expect(actions).toContain("readSelfInviteBlockedMessage");
+    expect(actions).toContain("context.currentUserEmail");
+    expect(actions).toContain("You cannot invite your own sign-in email to this shared link.");
+    expect(actions).toMatch(/blockedSelfEmails\.length[\s\S]*emailResults/);
+    expect(actions).toMatch(/normalized\.filter[\s\S]*!isSelfRecipientEmail/);
+  });
+
   it("supports per-recipient resend with a fresh secure recipient token and a 5 minute rate limit", () => {
     expect(actions).toContain("resendSharedLinkRecipientEmail");
     expect(actions).toContain("shared_link_recipient_resend");
