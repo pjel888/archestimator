@@ -1,0 +1,143 @@
+{
+  "checkedAt": "2026-06-04T12:22:10.288Z",
+  "operator": "Codex",
+  "scope": "Resend sender-domain DNS repair for the owner-only closed beta",
+  "domain": "contact.archestimator.com",
+  "resendDashboardDomainId": "b5aedc46-c817-48e7-b69c-2399e7edd2a5",
+  "constraints": {
+    "noPurchasesMade": true,
+    "namecheapAlreadyAuthenticatedByOwner": true,
+    "secretsRecorded": false,
+    "automaticAppEmailDeliveryRemainsOff": true
+  },
+  "namecheapActions": {
+    "dnsProvider": "Namecheap registrar nameservers",
+    "initialProblem": "Resend dashboard showed DKIM verified but Enable Sending failed because send.contact MX/TXT records were not verified.",
+    "hostRecords": [
+      {
+        "type": "TXT",
+        "host": "send.contact",
+        "value": "v=spf1 include:amazonses.com ~all",
+        "status": "present_before_final_mx_save"
+      }
+    ],
+    "mailSettingsChange": {
+      "from": "Email Forwarding",
+      "to": "Custom MX",
+      "reason": "Namecheap hides MX rows from Host Records while Email Forwarding is selected. Custom MX was required to add the Resend return-path MX record.",
+      "supportMailPreservation": "The pre-existing Namecheap forwarding MX set for archestimator.com was recreated explicitly before adding the Resend subdomain MX."
+    },
+    "customMxRowsSaved": [
+      {
+        "host": "@",
+        "value": "eforward1.registrar-servers.com",
+        "priority": 10
+      },
+      {
+        "host": "@",
+        "value": "eforward2.registrar-servers.com",
+        "priority": 10
+      },
+      {
+        "host": "@",
+        "value": "eforward3.registrar-servers.com",
+        "priority": 10
+      },
+      {
+        "host": "@",
+        "value": "eforward4.registrar-servers.com",
+        "priority": 15
+      },
+      {
+        "host": "@",
+        "value": "eforward5.registrar-servers.com",
+        "priority": 20
+      },
+      {
+        "host": "send.contact",
+        "value": "feedback-smtp.ap-northeast-1.amazonses.com",
+        "priority": 10
+      }
+    ]
+  },
+  "authoritativeDnsProof": {
+    "command": "dig @dns1.registrar-servers.com +short MX archestimator.com && dig @dns1.registrar-servers.com +short MX send.contact.archestimator.com && dig @dns1.registrar-servers.com +short TXT send.contact.archestimator.com",
+    "apexMx": [
+      "10 eforward1.registrar-servers.com.",
+      "10 eforward2.registrar-servers.com.",
+      "10 eforward3.registrar-servers.com.",
+      "15 eforward4.registrar-servers.com.",
+      "20 eforward5.registrar-servers.com."
+    ],
+    "resendMx": [
+      "10 feedback-smtp.ap-northeast-1.amazonses.com."
+    ],
+    "resendSpfTxt": [
+      "\"v=spf1 include:amazonses.com ~all\""
+    ],
+    "authoritativeDnsReady": true
+  },
+  "recursiveDnsObservation": {
+    "command": "dig +short MX send.contact.archestimator.com && dig +short MX archestimator.com",
+    "observedAt": "2026-06-04T12:21:00Z",
+    "sendContactMx": [],
+    "apexMx": [
+      "10 eforward1.registrar-servers.com.",
+      "10 eforward2.registrar-servers.com.",
+      "10 eforward3.registrar-servers.com."
+    ],
+    "interpretation": "Recursive DNS still had stale cached answers. Namecheap authoritative DNS already had all required rows."
+  },
+  "resendDashboardAfterRestart": {
+    "observedAtLocal": "2026-06-04T20:20:00+08:00",
+    "status": "Pending",
+    "events": [
+      "DNS verified - Jun 04, 8:20 PM",
+      "Verifying domain - Jun 04, 8:20 PM"
+    ],
+    "records": [
+      {
+        "section": "DKIM",
+        "type": "TXT",
+        "host": "resend._domainkey.contact",
+        "status": "Verified"
+      },
+      {
+        "section": "SPF",
+        "type": "MX",
+        "host": "send.contact",
+        "value": "feedback-smtp.ap-northeast-1.amazonses.com",
+        "priority": 10,
+        "status": "Pending"
+      },
+      {
+        "section": "SPF",
+        "type": "TXT",
+        "host": "send.contact",
+        "value": "v=spf1 include:amazonses.com ~all",
+        "status": "Pending"
+      }
+    ]
+  },
+  "sendProbeAfterDnsRepair": {
+    "command": "vercel env run -e production --scope philipjonlewis-projects -- node <sanitized Resend send probe>",
+    "to": "philipjonlewis@gmail.com",
+    "hasApiKey": true,
+    "hasFrom": true,
+    "status": 403,
+    "sent": false,
+    "error": "The contact.archestimator.com domain is not verified. Please, add and verify your domain on https://resend.com/domains"
+  },
+  "currentAssessment": {
+    "namecheapAuthoritativeDnsReady": true,
+    "resendVerificationStatus": "pending",
+    "automaticEmailReady": false,
+    "manualInviteFallbackReady": true,
+    "remainingBeforeEnablingEmailDelivery": [
+      "Wait for Resend verification to move from Pending to Verified.",
+      "Rerun the production-env Resend send probe and capture a success response.",
+      "Configure and prove the Resend webhook URL /api/webhooks/resend with RESEND_WEBHOOK_SECRET before relying on delivery/open/bounce state.",
+      "Only then set ARCHESTIMATOR_EMAIL_DELIVERY_ENABLED=true in Vercel for visible app email workflows."
+    ]
+  }
+}

@@ -1,0 +1,101 @@
+{
+  "checkedAt": "2026-06-04T12:35:21.453Z",
+  "operator": "Codex",
+  "scope": "Resend sender-domain verification, production send proof, webhook proof, and Vercel email/closed-beta flag enablement",
+  "noPurchasesMade": true,
+  "secretsRecorded": false,
+  "domain": "contact.archestimator.com",
+  "resendDashboardDomainId": "b5aedc46-c817-48e7-b69c-2399e7edd2a5",
+  "resendDomainVerification": {
+    "observedAtLocal": "2026-06-04T20:24:00+08:00",
+    "status": "Verified",
+    "dashboardCopy": "Domain verified: Your domain is ready to send emails.",
+    "events": [
+      "Domain added - Jun 03, 11:02 PM",
+      "DNS verified - Jun 04, 8:20 PM",
+      "Domain verified - Jun 04, 8:24 PM"
+    ]
+  },
+  "dnsProof": {
+    "authoritativeCommand": "dig @dns1.registrar-servers.com +short MX send.contact.archestimator.com && dig @dns1.registrar-servers.com +short MX archestimator.com",
+    "authoritativeResendMx": [
+      "10 feedback-smtp.ap-northeast-1.amazonses.com."
+    ],
+    "authoritativeApexMx": [
+      "10 eforward1.registrar-servers.com.",
+      "10 eforward2.registrar-servers.com.",
+      "10 eforward3.registrar-servers.com.",
+      "15 eforward4.registrar-servers.com.",
+      "20 eforward5.registrar-servers.com."
+    ],
+    "recursiveObservationAt": "2026-06-04T12:32:57Z",
+    "recursiveMxStillPropagating": true,
+    "recursiveTxtReady": true,
+    "recursiveTxt": [
+      "\"v=spf1 include:amazonses.com ~all\""
+    ],
+    "recursiveDkimTxtPresent": true
+  },
+  "productionSendProbe": {
+    "checkedAt": "2026-06-04T12:28:05.608Z",
+    "command": "vercel env run -e production --scope philipjonlewis-projects -- node <sanitized Resend send probe>",
+    "to": "philipjonlewis@gmail.com",
+    "subjectPrefix": "Archestimator Resend verified smoke",
+    "hasApiKey": true,
+    "status": 200,
+    "ok": true,
+    "idPresent": true,
+    "idPrefix": "d214"
+  },
+  "webhookProof": {
+    "dashboardEndpoint": "https://www.archestimator.com/api/webhooks/resend",
+    "dashboardStatus": "Enabled",
+    "routeProbeCommand": "curl -X POST https://www.archestimator.com/api/webhooks/resend <unsigned sanitized payload>",
+    "routeProbeStatus": 400,
+    "routeProbeBody": {
+      "error": "Invalid webhook."
+    },
+    "meaning": "The production route reached signature verification; when RESEND_WEBHOOK_SECRET is absent this route returns HTTP 503 before verification."
+  },
+  "vercelEnvProof": {
+    "command": "vercel env pull <tmp> --environment=production/preview --git-branch=main --yes --scope philipjonlewis-projects; grep only non-secret flag lines",
+    "production": {
+      "CLOSED_BETA_ACCESS_ENABLED": "true",
+      "ARCHESTIMATOR_EMAIL_DELIVERY_ENABLED": "true",
+      "hasResendApiKey": true,
+      "hasResendFrom": true,
+      "hasResendReplyTo": true,
+      "hasResendWebhookSecret": true,
+      "askFlipUiEnabled": false,
+      "aiEnabled": false,
+      "inviteEntryEnabled": false
+    },
+    "previewMain": {
+      "CLOSED_BETA_ACCESS_ENABLED": "true",
+      "ARCHESTIMATOR_EMAIL_DELIVERY_ENABLED": "true",
+      "hasResendApiKey": true,
+      "hasResendFrom": true,
+      "hasResendReplyTo": true,
+      "hasResendWebhookSecret": true,
+      "askFlipUiEnabled": false,
+      "aiEnabled": false,
+      "inviteEntryEnabled": false
+    },
+    "note": "Boolean launch flags were converted to non-sensitive readable env vars so pull proof can show true; Resend API and webhook secret remain secret values and are not recorded."
+  },
+  "currentAssessment": {
+    "namecheapAuthoritativeDnsReady": true,
+    "resendVerificationStatus": "verified",
+    "productionSendReady": true,
+    "webhookConfigured": true,
+    "vercelEmailDeliveryFlagEnabled": true,
+    "closedBetaFlagEnabled": true,
+    "appEmailDeliveryReadyForNextDeployment": true,
+    "remainingProofBeforeFullyGreenClosedBeta": [
+      "Wait for the pushed main deployment to finish so the new explicit email flag guard is live with these env values.",
+      "Run a hosted shared-link or invite email workflow smoke if automatic email UX is part of the beta journey.",
+      "Run hosted denied/revoked/expired Google OAuth smoke and full hosted beta journey proof.",
+      "Resolve or explicitly accept the two residual Codex Security history-exposure findings."
+    ]
+  }
+}
