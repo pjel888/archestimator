@@ -4,6 +4,19 @@
   "created_at_local": "2026-06-04T07:56:55+08:00",
   "finding": "Viewer members can mutate library folders",
   "status": "repo_and_linked_supabase_fixed_pending_codex_security_rescan",
+  "production_deployment": {
+    "id": "dpl_4HyXChaBFaaYa2EBTDzKMwneFkya",
+    "url": "https://archestimator-3hlx74cyh-philipjonlewis-projects.vercel.app",
+    "ready_state": "READY",
+    "target": "production",
+    "aliases": [
+      "https://www.archestimator.com",
+      "https://archestimator.com",
+      "https://archestimator.vercel.app",
+      "https://archestimator-philipjonlewis-projects.vercel.app",
+      "https://archestimator-philipjonlewis-philipjonlewis-projects.vercel.app"
+    ]
+  },
   "repo_fix": {
     "files": [
       "src/lib/component-library/actions.ts",
@@ -106,6 +119,32 @@
     "linked Supabase migration repair recorded version 20260603235355",
     "linked Supabase readback proved editor-only policies, editor-check reorder RPC, anon RPC denial, authenticated RPC execute, and migration history"
   ],
+  "hosted_smoke": {
+    "www_health": {
+      "url": "https://www.archestimator.com/api/health",
+      "status": 200,
+      "cache_control": "no-store",
+      "body": {
+        "ok": true,
+        "service": "archestimator"
+      }
+    },
+    "apex_health": {
+      "url": "https://archestimator.com/api/health",
+      "status": 307,
+      "location": "https://www.archestimator.com/api/health"
+    },
+    "login": {
+      "url": "https://www.archestimator.com/login",
+      "status": 200,
+      "title": "Archestimator | Quote, Proposal & Estimate Workspace"
+    },
+    "signed_out_workshop": {
+      "url": "https://www.archestimator.com/workshop",
+      "status": 307,
+      "location": "/login?next=%2Fworkshop"
+    }
+  },
   "proof_gaps": [
     "Codex Security dashboard rescan/closure remains pending.",
     "No hosted manual viewer-account folder mutation smoke was run after the hardening."
