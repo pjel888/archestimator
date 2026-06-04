@@ -26,6 +26,7 @@ import {
 export type RecipientEmailComposerProps = {
   publicationId: string;
   baseClientLink?: string | null;
+  currentUserEmail?: string | null;
   projectName?: string | null;
   onMessage?: (msg: string | null) => void;
 };
@@ -41,7 +42,15 @@ type LocalRecipient = {
 type SharedLinkRecipient = Awaited<ReturnType<typeof listSharedLinkRecipients>>[number];
 type RecipientEmailResult = Awaited<ReturnType<typeof addSharedLinkRecipients>>["emailResults"][number];
 
-export function RecipientEmailComposer({ publicationId, baseClientLink, projectName, onMessage }: RecipientEmailComposerProps) {
+function normalizeEmail(value: string) {
+  return value.trim().toLowerCase();
+}
+
+function readSelfInviteBlockedMessage() {
+  return "You cannot invite your own sign-in email to this shared link.";
+}
+
+export function RecipientEmailComposer({ publicationId, baseClientLink, currentUserEmail, projectName, onMessage }: RecipientEmailComposerProps) {
   const [input, setInput] = useState("");
   const [chips, setChips] = useState<LocalRecipient[]>([]);
   const [isSending, setIsSending] = useState(false);
@@ -51,6 +60,7 @@ export function RecipientEmailComposer({ publicationId, baseClientLink, projectN
   const [emailDeliveryConfigured, setEmailDeliveryConfigured] = useState<boolean | null>(null);
   const [emailDeliveryMessage, setEmailDeliveryMessage] = useState<string | null>(null);
   const projectLabel = projectName?.trim() || "this project";
+  const normalizedCurrentUserEmail = normalizeEmail(currentUserEmail ?? "");
 
   // Load existing recipients for this publication (status chips)
   useEffect(() => {
@@ -96,7 +106,12 @@ export function RecipientEmailComposer({ publicationId, baseClientLink, projectN
     let added = 0;
     for (const p of parts) {
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(p)) continue;
-      const lower = p.toLowerCase();
+      const lower = normalizeEmail(p);
+      if (normalizedCurrentUserEmail && lower === normalizedCurrentUserEmail) {
+        setLocalMessage(readSelfInviteBlockedMessage());
+        if (onMessage) onMessage(readSelfInviteBlockedMessage());
+        continue;
+      }
       if (next.some((c) => c.email.toLowerCase() === lower)) continue;
       next.push({ email: lower, delivery_status: "pending" });
       added++;
@@ -283,7 +298,7 @@ export function RecipientEmailComposer({ publicationId, baseClientLink, projectN
           onKeyDown={(e) => {
             if (e.key === "Enter" || e.key === ",") {
               e.preventDefault();
-              parseAndAddEmails(input);
+              parseAndAddEmails(e.currentTarget.value);
             }
             if (e.key === "Backspace" && !input && chips.length > 0) {
               // remove last

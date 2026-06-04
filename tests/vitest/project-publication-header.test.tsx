@@ -1,5 +1,5 @@
 import { readFileSync } from "node:fs";
-import { render, screen, within } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -662,5 +662,30 @@ describe("P4 — RecipientEmailComposer and Recipients tab (RED until implementa
     expect(within(dialog).getByPlaceholderText("name@company.com, another@...")).toBeDisabled();
     expect(within(dialog).getByRole("button", { name: "Resend client@example.com" })).toBeDisabled();
     expect(within(dialog).getByRole("button", { name: /Send to 1 recipient/ })).toBeDisabled();
+  });
+
+  it("rejects adding the signed-in user's own email as a recipient before send", async () => {
+    const user = userEvent.setup();
+    publicationActions.readSharedLinkEmailDeliveryReadiness.mockResolvedValue({
+      configured: true,
+      message: "Email delivery is configured.",
+    });
+    publicationActions.listSharedLinkRecipients.mockResolvedValue([]);
+
+    render(<ProjectPublicationHeader summary={publicationSummary} projectEstimateSheets={sampleEstimateSheets} currentUserEmail="philip@example.com" />);
+
+    await user.click(screen.getByRole("button", { name: "Open shared link" }));
+    const dialog = screen.getByRole("dialog", { name: "Shared link" });
+    await user.click(within(dialog).getByRole("tab", { name: "Recipients" }));
+
+    const emailInput = within(dialog).getByPlaceholderText("name@company.com, another@...");
+    await waitFor(() => expect(emailInput).not.toBeDisabled());
+    await user.type(emailInput, "philip@example.com,");
+
+    await waitFor(() => {
+      expect(within(dialog).getAllByText("You cannot invite your own sign-in email to this shared link.").length).toBeGreaterThan(0);
+    });
+    expect(within(dialog).getByRole("button", { name: /Send to 0 recipients/ })).toBeDisabled();
+    expect(publicationActions.addSharedLinkRecipients).not.toHaveBeenCalled();
   });
 });

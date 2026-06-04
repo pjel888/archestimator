@@ -28,6 +28,10 @@ export function ProjectWorkspaceHeaderRow({
 }: ProjectWorkspaceHeaderRowProps) {
   const pathname = usePathname();
   const isEstimateSheetRoute = Boolean(pathname?.startsWith(`/workshop/projects/${projectId}/estimates/`));
+  const currentCollaborator = collaborationSummary?.collaborators.find(
+    (collaborator) => collaborator.id === collaborationSummary.currentUserId,
+  );
+  const currentUserEmail = currentCollaborator?.email ?? null;
   const projectCodeHeader = isEstimateSheetRoute ? null : (
     <ProjectWorkspaceProjectCode
       projectCode={projectCode}
@@ -44,7 +48,7 @@ export function ProjectWorkspaceHeaderRow({
       centerDataColumn="metadata-strip"
       rightContent={
         <div className="flex h-full min-w-0 items-center justify-end">
-          <ProjectPublicationHeader summary={publicationSummary} projectEstimateSheets={projectEstimateSheets} />
+          <ProjectPublicationHeader summary={publicationSummary} currentUserEmail={currentUserEmail} projectEstimateSheets={projectEstimateSheets} />
           <span className="h-4 w-px bg-hairline" aria-hidden="true" />
           <ProjectTeamspaceHeader summary={collaborationSummary} />
         </div>
