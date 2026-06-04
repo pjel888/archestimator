@@ -1,0 +1,89 @@
+{
+  "artifact": "hosted-google-denied-revoked-browser-smoke-2026-06-04T1851Z",
+  "recordedAt": "2026-06-04T18:51:00Z",
+  "operator": "Codex",
+  "scope": "owner-only closed beta production denied and revoked Google OAuth proof",
+  "baseUrl": "https://www.archestimator.com",
+  "browserProfile": "Philip Chrome profile via Computer Use",
+  "accounts": {
+    "allowedOwnerEmail": "philipjonlewis@gmail.com",
+    "alternateGoogleEmail": "lewisphilipjonechavez@gmail.com"
+  },
+  "preconditions": {
+    "linkedSupabaseProjectRef": "ebxxqidacheyapmmzavr",
+    "allowlistReadbackBeforeProof": {
+      "ownerActive": true,
+      "alternateHasAllowlistRow": false,
+      "enabledBetaEmailCount": 1
+    },
+    "alternateAuthUserExists": true
+  },
+  "deniedCase": {
+    "method": "Browser Google OAuth account chooser",
+    "setup": [
+      "Signed out the owner browser session through /workshop/settings Sign out.",
+      "Opened /login?next=/workshop on the production custom domain.",
+      "Selected the alternate Google account while it had no closed_beta_allowed_emails row."
+    ],
+    "observedRoute": "/beta/access-required",
+    "observedCopy": [
+      "Invite-only beta access",
+      "This account is signed in, but it is not currently enabled for the closed beta.",
+      "Beta access is granted manually while the product is in closed testing."
+    ],
+    "passed": true
+  },
+  "revokedCase": {
+    "method": "Browser Google OAuth account chooser plus temporary linked Supabase revoked row",
+    "temporaryRow": {
+      "normalizedEmail": "lewisphilipjonechavez@gmail.com",
+      "status": "revoked",
+      "metadataSource": "codex_hosted_auth_revoked_smoke",
+      "createdForProofOnly": true
+    },
+    "observedRoute": "/beta/access-required?status=revoked",
+    "observedCopy": [
+      "Invite-only beta access",
+      "Access for this account has been paused.",
+      "Email support@archestimator.com if this looks wrong."
+    ],
+    "passed": true
+  },
+  "cleanupAndResidue": {
+    "temporaryRevokedAllowlistRowDeleted": true,
+    "allowlistReadbackAfterCleanup": {
+      "ownerActive": true,
+      "alternateHasAllowlistRow": false,
+      "enabledBetaEmailCount": 1,
+      "totalAllowlistRows": 1
+    },
+    "ownerBrowserRestoredToWorkshop": true,
+    "alternateAuthUserResidue": "A Supabase Auth user exists for the alternate Google account because a real hosted OAuth sign-in occurred. It is not an allowlisted beta tester, no allowlist row remains, and protected-route access signed it out before redirecting to /beta/access-required."
+  },
+  "result": {
+    "deniedGoogleOAuthProofReady": true,
+    "revokedGoogleOAuthProofReady": true,
+    "allowlistStillOwnerOnly": true,
+    "externalPurchaseOrPaidSettingChange": false,
+    "secretsRecorded": false,
+    "rawCookiesRecorded": false,
+    "rawOAuthUrlsRecorded": false,
+    "missing": [
+      "expired hosted session smoke",
+      "spreadsheet-app open/recalc/print proof"
+    ]
+  },
+  "boundaries": {
+    "doesNotProve": [
+      "expired hosted session behavior",
+      "fresh allowed first-run workspace behavior for a second beta tester",
+      "Excel or secondary spreadsheet-app open/recalc/print behavior",
+      "public-launch authorization beyond the owner-only closed beta"
+    ],
+    "notes": [
+      "The temporary revoked allowlist row was removed after the browser proof.",
+      "The browser was returned to the owner account at /workshop after proof capture.",
+      "No cookies, OAuth callback URLs, auth codes, tokens, or provider secrets are stored in this artifact."
+    ]
+  }
+}

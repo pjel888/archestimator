@@ -155,10 +155,13 @@ journey proof is now current for the single-tester beta. Residual Codex Security
 history-risk is owner-accepted for this single-owner beta by
 `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/codex-security-history-risk-owner-acceptance-2026-06-04T1414Z.json`,
 without claiming the findings are fixed or the dashboard fully green. Hosted
-denied/revoked/expired auth, spreadsheet-app open/print proof if required for
-beta, and signed Resend webhook proof remain the main open proof gaps after the
-later shared-link send/inbox/clickthrough smoke; owner logout is proven by
-`.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/hosted-logout-session-proof-2026-06-04T1436Z.json`.
+expired-session auth and spreadsheet-app open/print proof if required for beta
+remain the main open proof gaps after the later shared-link
+send/inbox/clickthrough smoke and signed Resend delivered-event reconciliation;
+owner logout is proven by
+`.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/hosted-logout-session-proof-2026-06-04T1436Z.json`,
+and hosted denied/revoked Google OAuth proof is proven by
+`.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/hosted-google-denied-revoked-browser-smoke-2026-06-04T1851Z.json`.
 
 **Owner Signoff And Resend Email Enablement (2026-06-04 12:35Z):**
 Philip Lewis provided explicit closed-beta owner signoff in-thread with the
@@ -185,8 +188,9 @@ values remain unrecorded. Hosted signed-out `/workshop` still redirects to
 `/login?next=%2Fworkshop` via
 `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/hosted-auth-signed-out-refresh-2026-06-04T1138Z.json`;
 hosted allowed-owner access was refreshed by the later 13:11Z production
-deploy/auth artifact, while denied/revoked/expired real-session smoke remains
-open. Hosted shared-link send, alternate-recipient inbox receipt, recipient
+deploy/auth artifact, and denied/revoked real-session smoke is proven by
+`.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/hosted-google-denied-revoked-browser-smoke-2026-06-04T1851Z.json`.
+Expired-session smoke remains open. Hosted shared-link send, alternate-recipient inbox receipt, recipient
 clickthrough/open, and signed delivered-event webhook reconciliation are proven
 by the 15:32Z, 15:55Z, 17:31Z, and 18:09Z artifacts; bounce/complaint events were
 not manufactured for the owner-only beta proof.
@@ -270,7 +274,7 @@ rewrite occurred. Proof artifact:
 `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/codex-security-cheap-path-closures-2026-06-04T0934Z.json`.
 External closed beta is still not fully green: the two history-exposure findings
 remain dashboard-open but owner-accepted for the single-owner beta, and hosted
-denied/revoked/expired auth smoke plus secondary spreadsheet-app export proof if
+expired-session auth smoke plus secondary spreadsheet-app export proof if
 required for beta still need proof. Resend sender-domain proof is now closed by
 the later 12:35Z verified send/webhook artifact; owner hosted beta journey proof
 is closed by the later 13:28Z artifact; hosted logout is closed by the later
@@ -291,10 +295,11 @@ This means critical/high Codex Security findings are not the current blocker,
 but external closed beta is still not fully green. Later 2026-06-04 artifacts
 close Resend sender-domain proof, rollback proof, legal/owner/support signoff,
 hosted authenticated export, the owner hosted beta journey, owner-scoped Codex
-Security history-risk acceptance, and hosted logout. The remaining current gaps
-are denied/revoked/expired hosted auth smoke, secondary spreadsheet-app export
-proof if required for beta, and hosted automatic-email workflow smoke before
-relying on automatic email UX.
+Security history-risk acceptance, hosted logout, and hosted denied/revoked
+Google OAuth proof. The remaining current gaps are expired-session hosted auth
+smoke, secondary spreadsheet-app export proof if required for beta, and
+synthetic bounce/complaint workflow proof only if the owner-only beta requires
+negative-email lifecycle coverage.
 
 **Hosted Authenticated Export Proof (2026-06-04 08:07Z):**
 The no-extra-spend closed-beta path now has hosted authenticated XLSX export
@@ -315,12 +320,13 @@ Vercel env, DNS, Supabase data, provider setting, paid add-on, PITR, compute, or
 migration state changed. Proof artifact:
 `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/hosted-export-browser-proof-2026-06-04T0807Z.json`.
 External closed beta is still not fully green, but later 2026-06-04 artifacts
-close Resend provider proof, rollback proof, legal/owner/support signoff, and
-the owner hosted beta journey. Remaining current gaps are secondary
-spreadsheet-app open/print proof if required for beta, denied/revoked/expired
-auth smoke, logout/session-expiry proof, residual Codex Security
-history-risk acceptance/remediation, and hosted automatic-email workflow proof
-before relying on automatic email UX.
+close Resend provider proof, rollback proof, legal/owner/support signoff, owner
+hosted beta journey, logout, denied/revoked Google OAuth, and automatic-email
+delivery/webhook proof. Remaining current gaps are secondary spreadsheet-app
+open/print proof if required for beta, expired-session auth smoke, residual
+Codex Security history-risk acceptance/remediation, and any optional
+bounce/complaint negative email lifecycle proof before relying on incident-path
+email UX.
 
 **Hosted Feedback Admin Surface Proof (2026-06-04 07:50Z):**
 Computer Use proof against the active hosted Chrome session now shows
@@ -369,8 +375,8 @@ does not by itself visibly prove the Google email, and an attempted
 feedback-admin visual proof was inconclusive because the browser-reported URL
 and rendered screenshot did not line up cleanly. Proof folder:
 `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/hosted-owner-smoke-2026-06-04T0719Z/`.
-Support/feedback monitoring proof and denied/revoked/expired hosted beta-auth
-smoke remain open.
+Support/feedback monitoring proof and expired-session hosted beta-auth smoke
+remain open.
 
 **No-Spend Live Closed-Beta Launch Refresh (2026-06-04 07:06Z):**
 The cheaper launch path remains the active path: no paid Supabase PITR add-on,
@@ -400,9 +406,9 @@ action-time confirmation. Proof artifact:
 Later 2026-06-04 artifacts close Resend MX/domain/delivery proof,
 legal/owner/support signoff, and owner hosted beta journey proof. Closed beta
 remains not fully green until remaining Codex Security history-risk,
-denied/revoked/expired hosted auth smoke, logout/session-expiry proof, secondary
-spreadsheet-app export open/print proof if required for beta, and hosted
-automatic-email workflow proof are complete or explicitly accepted.
+expired-session hosted auth smoke, secondary spreadsheet-app export open/print
+proof if required for beta, and any optional negative email lifecycle proof are
+complete or explicitly accepted.
 
 **Codex Security Chart/XLSX Finding Closed (2026-06-04 06:49Z):**
 Authenticated Codex Security closure marked
@@ -551,10 +557,11 @@ refresh time, `6297cec`; this proof update was later recorded in commit
 `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/codex-security-dashboard-refresh-2026-06-04T0405Z.json`.
 This is still not a fully green
 beta launch: later artifacts close legal/owner/support confirmations, hosted
-authenticated export, and the owner hosted beta journey, while Codex Security
-rescan/owner acceptance, hosted Google OAuth denied/revoked/expired smoke,
-logout/session-expiry proof, spreadsheet-app open/print proof if required for
-beta, and hosted automatic-email workflow proof remain open. Proof artifact:
+authenticated export, the owner hosted beta journey, logout, denied/revoked
+Google OAuth, and automatic-email delivery/webhook proof, while Codex Security
+rescan/owner acceptance, hosted expired-session smoke, spreadsheet-app open/print
+proof if required for beta, and optional negative email lifecycle proof remain
+open. Proof artifact:
 `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/cheap-launch-refresh-2026-06-04.json`.
 
 **Mass Deletion Cleanup Audit RPC Locked In Linked Supabase (2026-06-04):**
@@ -613,11 +620,12 @@ deployment `dpl_CyfR2LA7vMLqR9sDMncgxbgVbcRj` serving
 core/email/invite env names present in Vercel production, 19 Ready rollback
 candidates available, rollback then still undrilled, and Codex Security still open
 with `1-20 of 43` findings while Scans last scanned `28601375`, not latest
-observed pushed head `6297cec` at refresh time. Remaining no-cost blockers are Codex Security rescan/owner
-acceptance, hosted Google OAuth denied/revoked/expired smoke, Resend domain/webhook/delivery proof (local provider API key currently
-returns HTTP 401), legal/owner signoff,
-support/alert-monitoring proof, hosted authenticated export, and full hosted
-beta journey proof.
+observed pushed head `6297cec` at refresh time. Later 2026-06-04 proof closes
+Resend domain/webhook/delivery, legal/owner/support signoff, hosted
+authenticated export, owner journey, logout, and denied/revoked Google OAuth.
+Remaining no-cost blockers are Codex Security rescan/owner acceptance, hosted
+expired-session smoke, spreadsheet-app open/print proof if required for beta,
+and full hosted beta journey closure language.
 
 **Public Proposal Rate Breakdown Stripped And Deployed (2026-06-04):** Main commit `984124b` fixes the Codex Security finding `Proposal pages now expose internal unit-rate details`. Future public publication snapshot rows no longer include `unitCost`, `miscCost`, or `contingencyPercentage`; legacy stored snapshots are sanitized through a public-read whitelist in `sanitizeProjectPublicationSnapshotForPublicRead`, and `/api/share/[token]` defensively sanitizes again before `Response.json`. Public proposal rows still expose quantity, unit, and row total so recipients can audit proposal totals without receiving internal unit-rate breakdowns. Red/green verification first failed on both future snapshot rows and dirty route JSON, then passed the focused publication snapshot/route/page suite (3 files / 38 tests), broader adjacent publication/security/share GET suite (5 files / 56 tests), `bun run type-check`, `bun run lint` with 12 existing warnings / 0 errors, `git diff --check`, `bun run build`, and GitNexus staged detect-changes LOW risk with 0 affected processes. Vercel production deploy `dpl_Dh8xPgZ3NQwN4CwxZQXh6d8vypcn` is Ready and aliased to `www.archestimator.com`, `archestimator.com`, and `archestimator.vercel.app`; hosted smoke returned HTTP 200 from `https://www.archestimator.com/api/health`, apex health redirected to `www`, `/login` returned HTTP 200, and signed-out `/workshop` returned HTTP 307 to `/login?next=%2Fworkshop`. Proof artifact: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/proposal-public-rates-stripped-2026-06-04.json`. Codex Security rescan/closure remains pending, and no hosted real published share token JSON was inspected after deployment.
 
@@ -765,7 +773,7 @@ and approval.
 **Provider State Refresh at 4fdf0de (2026-06-02):** `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/provider-state-refresh-4fdf0de-2026-06-02.md` records a fresh read-only provider refresh after the local validation/build proof push. Vercel preview `archestimator-lr6t14h58-philipjonlewis-projects.vercel.app` / deployment `dpl_Fj4vLSMVm9iUqUFxcYe7fjsYmT4G` for current `HEAD` is `READY`, and protected preview plus branch-alias `/api/health` return app health JSON through `vercel curl`. Vercel env vars remain absent, public preview and branch-alias health return HTTP 401, custom-domain `/api/health` still returns 404/307/404 on the old production surface, and rollback proof is missing. `supabase migration list --linked` succeeds and parses 71 rows, but all five launch migrations remain present locally and missing remotely; the later MCP linked readiness refresh at `bc798a9` parses the deeper SQL readiness rows and confirms `linkedSupabaseLaunchReady: false` with 13 total checks / 13 failed rows. Closed beta remains **NO-GO**.
 **Vercel Public Health Readiness Helper (2026-06-02):** `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/vercel-health-readiness-4fdf0de-2026-06-02.json`, `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/vercel-health-readiness-02f3a9c-2026-06-02.json`, `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/vercel-health-readiness-b6873b4-2026-06-02.json`, and latest `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/vercel-health-readiness-6685d78-2026-06-02.json` record repeatable `bun run launch:check-vercel-health` public/custom-domain health checks. Public branch-alias `/api/health` returns HTTP `401`; `www.archestimator.com/api/health` and `archestimator.vercel.app/api/health` return HTTP `404`; apex `archestimator.com/api/health` returns HTTP `307` to `www`; no checked URL returns the app health JSON; `vercelHealthReady` is `false`; and the latest refresh again has zero ready URLs. This is sanitized public-health evidence only and does not replace protected `vercel curl` proof, env proof, production promotion, rollback, or hosted auth proof.
 **Vercel Production Alias/Rollback Readiness Helper (2026-06-02):** `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/vercel-production-readiness-4fdf0de-2026-06-02.json`, `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/vercel-production-readiness-9e253e7-2026-06-02.json`, `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/vercel-production-readiness-79ecf99-2026-06-02.json`, and latest `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/vercel-production-readiness-a537ae3-2026-06-02.json` record repeatable `bun run launch:check-vercel-production` custom-domain/rollback parser checks from fresh read-only Vercel inspect, alias, and deployment-list output. The latest sanitized artifact reports preview deployment `dpl_H3CBHKaBWCJqHVhiVe4e3cadQwyw` at `archestimator-9scmhyv5g-philipjonlewis-projects.vercel.app` is `READY`, but `archestimator.com`, `www.archestimator.com`, and `archestimator.vercel.app` still alias to `archestimator-3ser9ty2w-philipjonlewis-projects.vercel.app`; 19 ready rollback candidates exist; rollback drill is not provided; and `vercelProductionReady` is `false`. This does not promote deployments, change aliases, run health checks, verify env values, exercise hosted auth, or perform a rollback.
-**Hosted Auth Route Proof Helper (2026-06-02):** `scripts/verify-hosted-auth-routes.ts` / `bun run launch:verify-hosted-auth` now provides a sanitized operator helper for hosted `/workshop` route proof across signed-out, allowed, denied, revoked, and expired-session cases. It accepts real hosted session cookies plus optional deployment-protection bypass material only as runtime request inputs and does not write cookies or authorization headers to the JSON report. This is helper readiness only; no hosted Google OAuth, callback, allowlist, first-run workspace, logout/session-expiry, or passing route-proof artifact exists yet.
+**Hosted Auth Route Proof Helper (2026-06-02):** `scripts/verify-hosted-auth-routes.ts` / `bun run launch:verify-hosted-auth` now provides a sanitized operator helper for hosted `/workshop` route proof across signed-out, allowed, denied, revoked, and expired-session cases. It accepts real hosted session cookies plus optional deployment-protection bypass material only as runtime request inputs and does not write cookies or authorization headers to the JSON report. Separate real browser artifacts now prove hosted owner allowed, denied, revoked, and logout paths; expired-session proof remains open.
 **Hosted Auth Env Fail-Closed Fix (2026-06-02):** `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/hosted-auth-env-fail-closed-fix-6cc9f03-2026-06-02.md` records a pre-fix hosted failure at `6cc9f03`: Vercel preview `archestimator-lsv22sg4z-philipjonlewis-projects.vercel.app` / deployment `dpl_3T35FnYXNspPUP3QL43tCASC4CMF` was `READY` and `/api/health` passed through `vercel curl`, but protected `/workshop` returned HTTP `500` because `getCurrentUserContext()` constructed the Supabase server client before failing closed and the Vercel Supabase env was absent. `src/lib/auth/session.ts` now checks for required Supabase server env before constructing the server client so missing env returns `null` and `requireCurrentUserContext()` redirects to `/login`. Focused auth/proxy/callback tests, typecheck, and focused ESLint pass locally. The later `b2a0a03` proxy postdeploy recheck proves signed-out hosted `/workshop` now redirects instead of returning 500 when Supabase env is absent; allowed/denied/revoked/expired hosted session proof remains missing and closed beta remains **NO-GO**.
 **Vercel Preview Deploy Blocked at c8e25e2 (2026-06-02):** `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/vercel-preview-deploy-blocked-c8e25e2-2026-06-02.md` records that the fail-closed auth fix commit `c8e25e2` was pushed to `origin/main`, but `vercel ls --non-interactive` still showed pre-fix preview `dpl_3T35FnYXNspPUP3QL43tCASC4CMF` as the newest Ready deployment/branch-alias target. A clean detached preview deployment from `/tmp/archestimator-c8e25e2` first hit Vercel's upload file-size limit because non-runtime evidence/deck folders were in the worktree; after a temporary deploy-only `.vercelignore`, the retry failed before deployment with `api-deployments-free-per-day`. Hosted `/workshop` recheck remains blocked until Vercel creates a fresh `c8e25e2` or later deployment.
 **Vercel CLI Upload Scope Mitigation (2026-06-02):** `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/vercel-cli-upload-scope-mitigation-6a26759-2026-06-02.md` records a repo-level `.vercelignore` mitigation after the clean preview deploy showed non-runtime folders in the upload path. `.vercelignore` now excludes `.ai`, agent/plugin state, docs/guidance, `archestimator_pitch deck`, tests/E2E specs, local reports, local generated state, logs, and `.env*` files while keeping runtime source/assets/config and `.env.example`. This removes a known CLI-upload obstacle for future preview retries, but it is not hosted proof until a fresh Vercel deployment is created and checked.
