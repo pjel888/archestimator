@@ -1,5 +1,27 @@
 # Current State
 
+**Live Low-Cost Closed-Beta Launch Refresh (2026-06-04 04:29Z):**
+The affordable closed-beta path remains the active path. No new paid provider
+add-ons were enabled: Supabase stays on the cheaper Micro/PITR-off posture for
+pre-launch MVP, with 9 completed physical backups listed, `walgEnabled=true`,
+and linked SQL readiness green. The Supabase project is healthy as
+`ebxxqidacheyapmmzavr` / `Archestimator`; project-ref renaming is not treated as
+a launch blocker. Vercel production env-name readiness, `/api/health`, and custom
+domains are green for current deployment `dpl_CyfR2LA7vMLqR9sDMncgxbgVbcRj`
+(`archestimator.com`, `www.archestimator.com`, and `archestimator.vercel.app`).
+Hosted Chrome proof now shows the owner Google session can reach production
+`/workshop/settings/profile` as `philipjonlewis@gmail.com` without hitting login
+or beta-access-required controls. Support-domain DNS is green for MX/SPF/DMARC.
+This is still not a fully green beta launch: PITR and restore drill remain
+intentionally absent from the no-new-spend path; rollback drill, denied/revoked/
+expired hosted auth smoke, Resend dashboard/delivery/webhook proof, legal/owner
+signoff, support/feedback/alert monitoring proof, hosted authenticated export,
+and full hosted beta journey proof remain open. Codex Security is also still a
+launch blocker: the latest authenticated Scans page proof last scanned
+`2c7ffb97`, not current repo head `b9051f2`, and reports 4 critical, 6 high, 31
+medium, and 6 low scan-count badges. Proof artifact:
+`.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/live-closed-beta-launch-refresh-2026-06-04T0429Z.json`.
+
 **Cheap Closed-Beta Provider Status Refresh (2026-06-04 03:48Z):**
 The cheap launch path has fresher provider proof after production deploy
 `dpl_CyfR2LA7vMLqR9sDMncgxbgVbcRj`: `www.archestimator.com/api/health`

@@ -1,0 +1,27 @@
+{
+  "generatedAt": "2026-06-04T04:23:20.593Z",
+  "mode": "support-email-dns-readiness",
+  "domain": "archestimator.com",
+  "dmarcDomain": "_dmarc.archestimator.com",
+  "mxHosts": [
+    "10 eforward1.registrar-servers.com",
+    "10 eforward2.registrar-servers.com",
+    "10 eforward3.registrar-servers.com",
+    "15 eforward4.registrar-servers.com",
+    "20 eforward5.registrar-servers.com"
+  ],
+  "spfRecords": [
+    "v=spf1 include:spf.efwd.registrar-servers.com ~all"
+  ],
+  "dmarcRecords": [
+    "v=DMARC1; p=none;"
+  ],
+  "aRecords": [
+    "216.198.79.1"
+  ],
+  "hasMx": true,
+  "hasSpf": true,
+  "hasDmarc": true,
+  "dnsReady": true,
+  "note": "Public DNS readiness only. This does not prove inbox monitoring, form delivery, alert routing, or incident ownership."
+}

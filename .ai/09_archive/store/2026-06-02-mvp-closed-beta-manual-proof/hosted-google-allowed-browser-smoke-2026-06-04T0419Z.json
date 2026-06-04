@@ -1,0 +1,25 @@
+{
+  "source": "HOSTED_GOOGLE_ALLOWED_BROWSER_SMOKE",
+  "generatedAtUtc": "2026-06-04T04:19:22Z",
+  "baseUrl": "https://www.archestimator.com",
+  "profileUrl": "https://www.archestimator.com/workshop/settings/profile",
+  "browserProfile": "Philip",
+  "allowedEmail": "philipjonlewis@gmail.com",
+  "result": {
+    "title": "Archestimator | Quote, Proposal & Estimate Workspace",
+    "hasProfileSettings": true,
+    "hasOwnerEmail": true,
+    "hasLoginControl": false,
+    "hasBetaAccessRequired": false,
+    "passed": true
+  },
+  "visibleTextEvidence": [
+    "Philip Lewis",
+    "philipjonlewis@gmail.com",
+    "Workshop",
+    "Profile settings",
+    "Send beta feedback"
+  ],
+  "proofBoundary": "Authenticated browser UI proof only. This does not inspect cookies, local storage, raw session tokens, denied users, revoked users, expired sessions, export downloads, or full beta workflows.",
+  "secretsRecorded": false
+}
