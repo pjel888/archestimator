@@ -1,5 +1,14 @@
 # Evidence Index
 
+## Cheap Closed-Beta Provider Status Refresh - 2026-06-04 03:31Z
+
+- Primary artifact: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/cheap-closed-beta-provider-status-refresh-2026-06-04T0331Z.json`.
+- Vercel: production deployment `dpl_CyfR2LA7vMLqR9sDMncgxbgVbcRj` is `READY`; `www.archestimator.com/api/health` returns HTTP 200; apex `/login` redirects to `www`; production env-name readiness is green for the required closed-beta/Supabase/publication/AI-off/invite/Resend names without recording secret values.
+- Supabase: project `ebxxqidacheyapmmzavr` stays on the cheaper Micro/PITR-off path; fresh linked migration-list parsing shows required launch migrations present remotely, and linked SQL readiness reports 14 checks / 0 failures. No broad `db push` was used.
+- Closed beta allowlist: direct table readback shows exactly `philipjonlewis@gmail.com` with status `active`; unauthenticated `check_closed_beta_access` returns `missing` by design because it requires a matching caller JWT email.
+- DNS/Resend: support-domain MX/SPF/DMARC is green; Vercel has all Resend env names including `RESEND_WEBHOOK_SECRET`; observed sender DNS includes `send.contact` SPF and one Resend DKIM TXT record, but Resend dashboard domain/webhook/delivery proof remains open.
+- Still open before fully green closed beta: Codex Security rescan/owner acceptance, hosted Google OAuth allowed/denied/revoked smoke with real sessions, Resend dashboard sending-domain/webhook/delivery proof, rollback drill or owner acceptance, legal/owner review flags, support/feedback/alert monitoring confirmations, hosted authenticated export, and full hosted beta journey.
+
 ## Mass Deletion Cleanup RPC Lock - 2026-06-04
 
 - Primary artifact: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/mass-deletion-cleanup-rpc-lock-2026-06-04.json`.

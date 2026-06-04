@@ -1,5 +1,24 @@
 # Current State
 
+**Cheap Closed-Beta Provider Status Refresh (2026-06-04 03:31Z):**
+The cheap launch path has fresher provider proof after production deploy
+`dpl_CyfR2LA7vMLqR9sDMncgxbgVbcRj`: `www.archestimator.com/api/health`
+returns HTTP 200, apex `/login` redirects to `www`, and the required
+production Vercel env names are present for closed beta, Supabase, publication
+secrets, AI-off flags, invite tokens, and Resend without recording secret
+values. Linked Supabase migration-list parsing shows required launch migrations
+remote, and linked SQL readiness reports 14 checks / 0 failures. The beta
+allowlist direct readback has exactly `philipjonlewis@gmail.com` with status
+`active`; unauthenticated access checks return `missing` by design because
+`check_closed_beta_access` requires a matching caller JWT email. Support DNS
+MX/SPF/DMARC is green. This is still not a fully green beta launch: Codex
+Security rescan/owner acceptance, hosted Google OAuth allowed/denied/revoked
+smoke, Resend dashboard/domain/webhook/delivery proof, rollback drill or owner
+acceptance, legal/owner confirmations, support/feedback/alert monitoring
+confirmations, hosted authenticated export, and full hosted beta journey remain
+open. Proof artifact:
+`.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/cheap-closed-beta-provider-status-refresh-2026-06-04T0331Z.json`.
+
 **Mass Deletion Cleanup Audit RPC Locked In Linked Supabase (2026-06-04):**
 The remaining cleanup-result branch of Codex Security finding `Mass deletion audit
 records are caller-tamperable` is now hardened in the linked database. Exact
