@@ -1,0 +1,47 @@
+{
+  "source": "CODEX_SECURITY_PROJECT_IMAGE_CLEANUP_TARGETS",
+  "generatedAtUtc": "2026-06-04T02:38:57Z",
+  "projectRef": "ebxxqidacheyapmmzavr",
+  "finding": {
+    "title": "Project deletion no longer cleans project image objects",
+    "severity": "medium",
+    "dashboardObservedAtUtc": "2026-06-04T02:31:00Z",
+    "dashboardCount": "1-20 of 43",
+    "reportedCommit": "ea4aa95"
+  },
+  "fix": {
+    "migrationVersion": "20260604023101",
+    "migrationFile": "supabase/migrations/20260604023101_harden_project_image_cleanup_targets.sql",
+    "strategy": "Recreate public.preview_bulk_delete_projects so project deletion storageTargets use the private project-images bucket accepted by cleanupStorageTargets, while keeping component-images project cleanup rejected in TypeScript.",
+    "typeScriptCleanupAllowlistChanged": false
+  },
+  "linkedApply": {
+    "applyCommand": "supabase db query --linked --file supabase/migrations/20260604023101_harden_project_image_cleanup_targets.sql",
+    "applyResult": "success",
+    "repairCommand": "supabase migration repair 20260604023101 --status applied --linked --yes",
+    "repairResult": "success"
+  },
+  "linkedReadback": {
+    "source": "Supabase connector _execute_sql after temp-role pooler readback hit ECIRCUITBREAKER",
+    "emitsComponentImages": false,
+    "emitsProjectImages": true,
+    "filtersWebp": true,
+    "rejectsDotDot": true,
+    "rejectsDoubleSlash": true,
+    "migrationHistoryVersion": "20260604023101"
+  },
+  "verification": {
+    "red": "bunx vitest run tests/vitest/security-findings-contracts.test.ts --maxWorkers=1 --reporter=dot failed before migration body existed",
+    "green": "bunx vitest run tests/vitest/security-findings-contracts.test.ts --maxWorkers=1 --reporter=dot passed 1 file / 17 tests after migration",
+    "remotePreReadback": {
+      "emitsComponentImages": true,
+      "emitsProjectImages": false
+    }
+  },
+  "remainingProofGaps": [
+    "Codex Security dashboard rescan/closure",
+    "Hosted manual project deletion against a real project with project image cleanup observation",
+    "Supabase temp-role pooler broad linked reads were intermittently blocked by ECIRCUITBREAKER after apply"
+  ],
+  "secretsRecorded": false
+}
