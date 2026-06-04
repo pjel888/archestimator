@@ -66,8 +66,14 @@
     "dnsReady": true,
     "monitoringProof": false
   },
+  "hostedAuth": {
+    "allowedBrowserSmokeArtifact": "hosted-google-allowed-browser-smoke-2026-06-04T0355Z.json",
+    "allowedEmail": "philipjonlewis@gmail.com",
+    "allowedGoogleSessionPassed": true,
+    "deniedRevokedExpiredSmokePassed": false
+  },
   "remainingNoCostBlockers": [
-    "Hosted Google OAuth allowed/denied/revoked browser smoke for philipjonlewis@gmail.com",
+    "Hosted Google OAuth denied/revoked/expired browser smoke",
     "Codex Security dashboard rescan or owner acceptance for remaining findings",
     "Vercel rollback drill, if owner accepts a brief production alias flip",
     "Resend sending-domain delivery/webhook event proof",

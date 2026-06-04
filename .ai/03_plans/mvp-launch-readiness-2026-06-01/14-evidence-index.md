@@ -7,7 +7,13 @@
 - Supabase: project `ebxxqidacheyapmmzavr` stays on the cheaper Micro/PITR-off path; fresh linked migration-list parsing shows required launch migrations present remotely, and linked SQL readiness reports 14 parsed rows / 0 failures. No broad `db push` was used. Strict backup readiness is intentionally red because PITR and restore-drill proof are not part of the no-new-paid-add-ons path; physical backup listing still shows 9 backups and `walgEnabled: true`.
 - Closed beta allowlist: direct table readback shows exactly `philipjonlewis@gmail.com` with status `active`; unauthenticated `check_closed_beta_access` returns `missing` by design because it requires a matching caller JWT email.
 - DNS/Resend: support-domain MX/SPF/DMARC is green; Vercel has all Resend env names including `RESEND_WEBHOOK_SECRET`; observed sender DNS includes `send.contact` SPF and one Resend DKIM TXT record, but Resend dashboard domain/webhook/delivery proof remains open.
-- Still open before fully green closed beta: Codex Security rescan/owner acceptance, hosted Google OAuth allowed/denied/revoked smoke with real sessions, Resend dashboard sending-domain/webhook/delivery proof, rollback drill or owner acceptance, legal/owner review flags, support/feedback/alert monitoring confirmations, hosted authenticated export, and full hosted beta journey.
+- Hosted auth: `hosted-google-allowed-browser-smoke-2026-06-04T0355Z.json`
+  proves the allowed owner session in Chrome can reach production
+  `/workshop/settings/profile`, render `Profile settings`, and visibly show
+  `philipjonlewis@gmail.com` without login or beta-access-required controls. This
+  does not inspect cookies/local storage and does not prove denied, revoked, or
+  expired-session behavior.
+- Still open before fully green closed beta: Codex Security rescan/owner acceptance, hosted Google OAuth denied/revoked/expired smoke with real sessions, Resend dashboard sending-domain/webhook/delivery proof, rollback drill or owner acceptance, legal/owner review flags, support/feedback/alert monitoring confirmations, hosted authenticated export, and full hosted beta journey.
 
 ## Mass Deletion Cleanup RPC Lock - 2026-06-04
 
@@ -89,9 +95,13 @@
   confirms support-domain MX/SPF/DMARC. Neither artifact proves Resend dashboard
   domain verification, webhook registration, delivery events, inbox monitoring,
   or alert ownership.
+- Hosted auth proof:
+  `hosted-google-allowed-browser-smoke-2026-06-04T0355Z.json` confirms the
+  allowed owner Google session can access production profile settings as
+  `philipjonlewis@gmail.com`; denied/revoked/expired session smoke remains open.
 - Still open before closed beta is fully green: Codex Security dashboard
-  rescan/owner acceptance, hosted Google OAuth allowed/denied/revoked browser
-  smoke for `philipjonlewis@gmail.com`, rollback drill if accepted, Resend
+  rescan/owner acceptance, hosted Google OAuth denied/revoked/expired browser
+  smoke, rollback drill if accepted, Resend
   delivery/webhook event proof, legal/owner signoff, support inbox/feedback/alert
   monitoring proof, hosted authenticated export, and full hosted beta journey.
 

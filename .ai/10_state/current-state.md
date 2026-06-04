@@ -14,11 +14,14 @@ and a restore drill are intentionally not part of the no-new-paid-add-ons path.
 The beta
 allowlist direct readback has exactly `philipjonlewis@gmail.com` with status
 `active`; unauthenticated access checks return `missing` by design because
-`check_closed_beta_access` requires a matching caller JWT email. Support DNS
+`check_closed_beta_access` requires a matching caller JWT email. Hosted Chrome
+allowed-user smoke now proves `philipjonlewis@gmail.com` can reach production
+`/workshop/settings/profile`, sees visible profile settings with that email, and
+does not hit login or beta-access-required controls. Support DNS
 MX/SPF/DMARC is green. Vercel has all Resend env names, but Resend still lacks
 dashboard sending-domain/webhook/delivery proof. This is still not a fully green
 beta launch: Codex Security rescan/owner acceptance, hosted Google OAuth
-allowed/denied/revoked smoke, rollback drill or owner acceptance, legal/owner
+denied/revoked/expired smoke, rollback drill or owner acceptance, legal/owner
 confirmations, support/feedback/alert monitoring confirmations, hosted
 authenticated export, and full hosted beta journey remain open. Proof artifact:
 `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/cheap-launch-refresh-2026-06-04.json`.
@@ -71,13 +74,15 @@ Fresh proof artifact
 `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/cheap-launch-refresh-2026-06-04.json`
 records 9 completed physical backups, `pitrEnabled: false`, `walgEnabled: true`,
 required linked launch migrations present, linked SQL readiness passing 14
-checks, `philipjonlewis@gmail.com` active in the allowlist, Vercel production
+checks, `philipjonlewis@gmail.com` active in the allowlist, allowed hosted
+Google session proof in
+`hosted-google-allowed-browser-smoke-2026-06-04T0355Z.json`, Vercel production
 deployment `dpl_CyfR2LA7vMLqR9sDMncgxbgVbcRj` serving
 `archestimator.com` / `www.archestimator.com`, `www` health returning HTTP 200,
 core/email/invite env names present in Vercel production, 19 Ready rollback
 candidates available, and rollback still undrilled. Remaining no-cost blockers
 are Codex Security rescan/owner acceptance, hosted Google OAuth
-allowed/denied/revoked smoke, rollback drill if accepted, Resend
+denied/revoked/expired smoke, rollback drill if accepted, Resend
 domain/webhook/delivery proof, legal/owner signoff,
 support/alert-monitoring proof, hosted authenticated export, and full hosted
 beta journey proof.

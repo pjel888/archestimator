@@ -1,0 +1,33 @@
+{
+  "source": "HOSTED_GOOGLE_ALLOWED_BROWSER_SMOKE",
+  "generatedAtUtc": "2026-06-04T03:55:00Z",
+  "baseUrl": "https://www.archestimator.com",
+  "browserProfile": "Chrome profile Philip via Codex Chrome extension",
+  "allowedEmail": "philipjonlewis@gmail.com",
+  "checks": {
+    "protectedWorkshopEstimate": {
+      "routePattern": "/workshop/projects/[projectId]/estimates/[estimateId]",
+      "title": "Archestimator | Quote, Proposal & Estimate Workspace",
+      "hasWorkshopNav": true,
+      "hasEstimateSurface": true,
+      "hasLoginControls": false,
+      "hasAccessRequired": false
+    },
+    "profileSettings": {
+      "route": "/workshop/settings/profile",
+      "title": "Archestimator | Quote, Proposal & Estimate Workspace",
+      "visibleHeading": "Profile settings",
+      "containsAllowedEmail": true,
+      "hasProfileSurface": true,
+      "hasLoginControls": false,
+      "hasAccessRequired": false
+    }
+  },
+  "result": "passed_allowed_owner_google_session",
+  "limitations": [
+    "Does not prove denied, revoked, or expired-session behavior.",
+    "Does not inspect browser cookies, local storage, profile files, passwords, or session stores.",
+    "Does not prove Google provider dashboard settings beyond the successful hosted session observed in Chrome.",
+    "No screenshots, cookies, tokens, or secret values are stored in this artifact."
+  ]
+}
