@@ -17,8 +17,11 @@ user-scoped. Focused verification passed 5 files / 31 tests, `bun run
 type-check`, `bun run lint` with 12 existing warnings / 0 errors, `git diff
 --check`, and GitNexus low-risk detect-changes. Proof artifact:
 `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/mass-deletion-cleanup-rpc-lock-2026-06-04.json`.
-Production deployment proof for the server-action code and Codex Security
-rescan/closure remain open.
+Production deployment `dpl_CyfR2LA7vMLqR9sDMncgxbgVbcRj` now serves the
+server-action code at `https://www.archestimator.com` and
+`https://archestimator.com`; `https://www.archestimator.com/api/health`
+returned HTTP 200, and apex `/login` redirects to `www`. Codex Security
+rescan/closure and hosted manual destructive-cleanup smoke remain open.
 
 **Project Image Cleanup Targets Hardened In Linked Supabase (2026-06-04):**
 Codex Security refresh showed a new medium finding, `Project deletion no longer

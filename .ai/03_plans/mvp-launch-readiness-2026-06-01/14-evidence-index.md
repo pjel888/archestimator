@@ -20,8 +20,13 @@
 - Repo verification: focused mass-deletion/storage/security suite passed 5 files /
   31 tests, type-check passed, lint passed with existing warnings only, diff check
   passed, and GitNexus reported low risk with 0 affected processes.
-- Still open: production deployment proof for the server-action service-role client
-  and Codex Security dashboard rescan/closure.
+- Production deployment proof: clean `main` commit `9fed643` was deployed with
+  `vercel deploy --prod --yes`; deployment `dpl_CyfR2LA7vMLqR9sDMncgxbgVbcRj`
+  is `READY`, aliases include `archestimator.com` and
+  `www.archestimator.com`, `https://www.archestimator.com/api/health`
+  returned HTTP 200, and apex `/login` redirects to `www`.
+- Still open: Codex Security dashboard rescan/closure and hosted manual
+  destructive-cleanup smoke against a disposable project.
 
 ## Project Image Cleanup Targets Security Fix - 2026-06-04
 
