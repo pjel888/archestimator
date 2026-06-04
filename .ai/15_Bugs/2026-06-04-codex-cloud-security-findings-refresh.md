@@ -9,6 +9,34 @@
 
 The cheaper closed-beta provider path is partially proven, but the current Codex Security dashboard still lists open findings against `pjel888/archestimator`. Closed beta cannot be honestly called launch-ready until the findings are triaged and either fixed, accepted by owner/legal/security judgment, or proven stale/false-positive with evidence.
 
+## Chart/XLSX Finding Closure - 2026-06-04T06:49Z
+
+- Artifact: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/codex-security-chart-xlsx-finding-close-2026-06-04T0649Z.json`.
+- Finding: `Unbounded chart and XLSX export loading can exhaust server resources`,
+  medium, originally against old commit `87c2ffa`.
+- Current repo proof: `main` head
+  `bc19695b8b830cb10c94d9e04e01074913352d76` keeps chart estimate/row/node/
+  category/supplier reads bounded with query-level sentinel limits, keeps large
+  chart projects to selected/default estimates instead of every estimate, and
+  makes the XLSX route return HTTP 413 before proposal model or ExcelJS workbook
+  creation when export-only tree limits overflow.
+- Hosted/proof artifact: the existing chart/XLSX proof artifact records
+  production deployment `dpl_3zUJ5kvqkT9QUA75boNcGA75Ref8`, production
+  `/api/health` HTTP 200, apex redirect, and AI-off regression proof.
+- Fresh verification:
+  `bunx vitest run tests/vitest/proposal-export-route.test.ts tests/vitest/proposal-export-route-workbook.test.ts tests/vitest/proposal-export-model.test.ts tests/vitest/project-charts-aggregation.test.ts tests/vitest/project-charts-ui.test.tsx tests/vitest/workspace-repository-estimate-tree.test.ts --maxWorkers=1 --reporter=dot`
+  passed 6 files / 31 tests; `bun run type-check` passed.
+- Dashboard closure proof: authenticated Codex Security close submitted
+  `Already fixed`; revisiting the original finding shows a `Reopen` control.
+  The open-list first page no longer includes the chart/XLSX finding, now shows
+  `1-20 of 35`, and pulled
+  `Confidential client proposal committed to repository` into the visible page.
+- GitHub queue check: no open issues or open PRs were found.
+- Cost posture: no new paid provider add-on or provider setting was changed;
+  this stays on the cheaper Micro/PITR-off closed-beta path.
+- Launch meaning: this closes only the chart/XLSX finding. The overall bug
+  remains open until the remaining findings are closed/rescanned/accepted and
+  the remaining hosted provider/manual proof gaps are handled.
 
 ## AI Ask Finding Closure - 2026-06-04T06:38Z
 
@@ -416,9 +444,9 @@ closure:
   - Dashboard status: authenticated Codex Security closure on 2026-06-04T06:38Z marked the finding `Already fixed` / `Reason: Fixed`; revisiting the original finding shows a `Reopen` control. Fresh proof test at current `main` head `fbd6d38` passed 5 files / 66 tests. AI remains intentionally disabled for the cheaper closed beta, so no enabled-AI provider call or linked live audit/quota row insertion was run.
 - Finding: `Unbounded chart and XLSX export loading can exhaust server resources`.
   - Repo fix deployed in `0e5dfff` / production `dpl_3zUJ5kvqkT9QUA75boNcGA75Ref8`: project chart repository reads now cap estimate options, row facts, node facts, category facts, and supplier facts with query-level sentinel limits; large chart projects load selected/default estimates instead of every estimate; the XLSX route passes export-only node/row limits into `getProjectEstimateTreeByEstimate` and returns HTTP 413 before `buildProposalExportModel` or ExcelJS workbook allocation when a sentinel limit is exceeded.
-  - Verification: red/green focused export/chart/auth suite passed 4 files / 29 tests; broader export/chart/tree suite passed 9 files / 51 tests; estimate-action regression suite passed 3 files / 53 tests; `bun run type-check`, `bun run lint` with 12 existing warnings / 0 errors, `bun run build`, `git diff --check`, code-review graph checks, and GitNexus staged detect-changes high risk from expected shared-loader fan-out all ran. Proof artifact: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/chart-xlsx-load-bounds-2026-06-04.json`.
+  - Verification: red/green focused export/chart/auth suite passed 4 files / 29 tests; broader export/chart/tree suite passed 9 files / 51 tests; estimate-action regression suite passed 3 files / 53 tests; `bun run type-check`, `bun run lint` with 12 existing warnings / 0 errors, `bun run build`, `git diff --check`, code-review graph checks, and GitNexus staged detect-changes high risk from expected shared-loader fan-out all ran. Fresh closure proof at current `main` head `bc19695` passed 6 files / 31 tests plus `bun run type-check`. Proof artifacts: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/chart-xlsx-load-bounds-2026-06-04.json` and `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/codex-security-chart-xlsx-finding-close-2026-06-04T0649Z.json`.
   - Hosted smoke: production deploy `dpl_3zUJ5kvqkT9QUA75boNcGA75Ref8` is Ready and aliased to `https://www.archestimator.com`, `https://archestimator.com`, and `https://archestimator.vercel.app`; `https://www.archestimator.com/api/health` returned HTTP 200, apex `/api/health` redirected to `www`, and `POST /api/ai/ask` still returned the closed-beta disabled HTTP 404.
-  - Proof gap: no hosted authenticated oversized XLSX export or chart page smoke with real beta data was run; dashboard status remains pending Codex Security rescan/closure.
+  - Dashboard status: authenticated Codex Security closure on 2026-06-04T06:49Z marked the finding `Already fixed` / `Reason: Fixed`; revisiting the original finding shows a `Reopen` control, the visible list shows `1-20 of 35`, and the list no longer includes this finding. No hosted authenticated oversized XLSX export or chart page smoke with real beta data was run.
 - Finding: `Direct RLS grants bypass component price audit`.
   - Linked Supabase fix applied in exact migration `20260603234326_harden_component_price_audit_grants.sql`: direct authenticated access to `cost_library_item_price_options` and `cost_library_item_price_history` is now SELECT-only, the old all-action price-option policy and price-history insert policy are gone, select-only member policies remain, and authenticated execute on `public.upsert_cost_library_component_price_option(uuid, uuid, jsonb)` is preserved so price mutations still append audit history through the security-definer RPC.
   - Linked proof: `supabase db query --linked --file supabase/migrations/20260603234326_harden_component_price_audit_grants.sql` succeeded; `supabase migration repair 20260603234326 --status applied --linked --yes` succeeded; readback verified authenticated table grants are only `SELECT` on both tables, the only policies on those tables are `members can view component price history` and `members can view component price options`, anon cannot execute the RPC, authenticated can execute the RPC, and remote migration history records `20260603234326`.
