@@ -1,10 +1,10 @@
 # Evidence Index
 
-## Cheap Closed-Beta Provider Status Refresh - 2026-06-04 03:31Z
+## Cheap Closed-Beta Provider Status Refresh - 2026-06-04 03:48Z
 
-- Primary artifact: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/cheap-closed-beta-provider-status-refresh-2026-06-04T0331Z.json`.
+- Primary artifact: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/cheap-launch-refresh-2026-06-04.json`.
 - Vercel: production deployment `dpl_CyfR2LA7vMLqR9sDMncgxbgVbcRj` is `READY`; `www.archestimator.com/api/health` returns HTTP 200; apex `/login` redirects to `www`; production env-name readiness is green for the required closed-beta/Supabase/publication/AI-off/invite/Resend names without recording secret values.
-- Supabase: project `ebxxqidacheyapmmzavr` stays on the cheaper Micro/PITR-off path; fresh linked migration-list parsing shows required launch migrations present remotely, and linked SQL readiness reports 14 checks / 0 failures. No broad `db push` was used.
+- Supabase: project `ebxxqidacheyapmmzavr` stays on the cheaper Micro/PITR-off path; fresh linked migration-list parsing shows required launch migrations present remotely, and linked SQL readiness reports 14 parsed rows / 0 failures. No broad `db push` was used. Strict backup readiness is intentionally red because PITR and restore-drill proof are not part of the no-new-paid-add-ons path; physical backup listing still shows 9 backups and `walgEnabled: true`.
 - Closed beta allowlist: direct table readback shows exactly `philipjonlewis@gmail.com` with status `active`; unauthenticated `check_closed_beta_access` returns `missing` by design because it requires a matching caller JWT email.
 - DNS/Resend: support-domain MX/SPF/DMARC is green; Vercel has all Resend env names including `RESEND_WEBHOOK_SECRET`; observed sender DNS includes `send.contact` SPF and one Resend DKIM TXT record, but Resend dashboard domain/webhook/delivery proof remains open.
 - Still open before fully green closed beta: Codex Security rescan/owner acceptance, hosted Google OAuth allowed/denied/revoked smoke with real sessions, Resend dashboard sending-domain/webhook/delivery proof, rollback drill or owner acceptance, legal/owner review flags, support/feedback/alert monitoring confirmations, hosted authenticated export, and full hosted beta journey.
@@ -65,24 +65,30 @@
   `ebxxqidacheyapmmzavr` / `Archestimator` remains on Micro compute, PITR stays
   disabled, and the accepted pre-launch DR posture is Supabase physical backups
   plus the off-repo logical dump bundle; no new paid add-ons were enabled.
-- Supabase backup proof: `supabase-backup-readiness-cheap-refresh-2026-06-04.json`
+- Supabase backup proof: `supabase-backup-readiness-cheap-refresh-2026-06-04T0344Z.json`
   lists 9 completed physical backups with `pitrEnabled: false` and
   `walgEnabled: true`; the strict checker remains incomplete because PITR and a
   restore drill are intentionally absent from the cheap path.
 - Supabase migration/object proof:
-  `supabase-migration-readiness-cheap-refresh-2026-06-04.json` reports required
+  `supabase-migration-readiness-cheap-refresh-2026-06-04T0342Z.json` reports required
   launch migrations present remotely, and
-  `supabase-linked-readiness-cheap-refresh-2026-06-04.json` reports 14 linked
+  `supabase-linked-readiness-cheap-refresh-2026-06-04T0348Z.json` reports 14 linked
   SQL readiness checks passing. The linked readiness probe now treats public
   `component-images` as the approved component-thumbnail bucket and private
   `project-images` as the required client/project-image bucket.
-- Vercel proof: `vercel-env-readiness-cheap-refresh-2026-06-04.json` reports
-  core closed-beta, Resend, and invite env names present; `vercel-health-readiness-cheap-refresh-2026-06-04.json`
+- Vercel proof: `vercel-env-readiness-cheap-refresh-2026-06-04T0348Z.json` reports
+  core closed-beta, Resend, and invite env names present; `vercel-health-readiness-cheap-refresh-2026-06-04T0342Z.json`
   returns HTTP 200 from `https://www.archestimator.com/api/health`; and
-  `vercel-production-readiness-cheap-refresh-2026-06-04.json` shows
+  `vercel-production-readiness-cheap-refresh-2026-06-04T0347Z.json` shows
   `archestimator.com` / `www.archestimator.com` mapped to current production
-  deployment `dpl_Dh8xPgZ3NQwN4CwxZQXh6d8vypcn` with 19 rollback candidates but
+  deployment `dpl_CyfR2LA7vMLqR9sDMncgxbgVbcRj` with 19 rollback candidates but
   no rollback drill.
+- Resend/support proof: `resend-readiness-cheap-refresh-2026-06-04T0342Z.json`
+  confirms all Resend env names are present in Vercel production but local
+  runtime env remains incomplete; `support-email-dns-readiness-cheap-refresh-2026-06-04T0348Z.json`
+  confirms support-domain MX/SPF/DMARC. Neither artifact proves Resend dashboard
+  domain verification, webhook registration, delivery events, inbox monitoring,
+  or alert ownership.
 - Still open before closed beta is fully green: Codex Security dashboard
   rescan/owner acceptance, hosted Google OAuth allowed/denied/revoked browser
   smoke for `philipjonlewis@gmail.com`, rollback drill if accepted, Resend

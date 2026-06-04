@@ -1,23 +1,27 @@
 # Current State
 
-**Cheap Closed-Beta Provider Status Refresh (2026-06-04 03:31Z):**
+**Cheap Closed-Beta Provider Status Refresh (2026-06-04 03:48Z):**
 The cheap launch path has fresher provider proof after production deploy
 `dpl_CyfR2LA7vMLqR9sDMncgxbgVbcRj`: `www.archestimator.com/api/health`
 returns HTTP 200, apex `/login` redirects to `www`, and the required
 production Vercel env names are present for closed beta, Supabase, publication
 secrets, AI-off flags, invite tokens, and Resend without recording secret
 values. Linked Supabase migration-list parsing shows required launch migrations
-remote, and linked SQL readiness reports 14 checks / 0 failures. The beta
+remote, and linked SQL readiness reports 14 parsed rows / 0 failures. Supabase
+stays on the cheaper `MICRO` / PITR-off path: 9 physical backups are listed,
+`walgEnabled=true`, and the strict backup checker remains red only because PITR
+and a restore drill are intentionally not part of the no-new-paid-add-ons path.
+The beta
 allowlist direct readback has exactly `philipjonlewis@gmail.com` with status
 `active`; unauthenticated access checks return `missing` by design because
 `check_closed_beta_access` requires a matching caller JWT email. Support DNS
-MX/SPF/DMARC is green. This is still not a fully green beta launch: Codex
-Security rescan/owner acceptance, hosted Google OAuth allowed/denied/revoked
-smoke, Resend dashboard/domain/webhook/delivery proof, rollback drill or owner
-acceptance, legal/owner confirmations, support/feedback/alert monitoring
-confirmations, hosted authenticated export, and full hosted beta journey remain
-open. Proof artifact:
-`.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/cheap-closed-beta-provider-status-refresh-2026-06-04T0331Z.json`.
+MX/SPF/DMARC is green. Vercel has all Resend env names, but Resend still lacks
+dashboard sending-domain/webhook/delivery proof. This is still not a fully green
+beta launch: Codex Security rescan/owner acceptance, hosted Google OAuth
+allowed/denied/revoked smoke, rollback drill or owner acceptance, legal/owner
+confirmations, support/feedback/alert monitoring confirmations, hosted
+authenticated export, and full hosted beta journey remain open. Proof artifact:
+`.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/cheap-launch-refresh-2026-06-04.json`.
 
 **Mass Deletion Cleanup Audit RPC Locked In Linked Supabase (2026-06-04):**
 The remaining cleanup-result branch of Codex Security finding `Mass deletion audit
@@ -68,12 +72,13 @@ Fresh proof artifact
 records 9 completed physical backups, `pitrEnabled: false`, `walgEnabled: true`,
 required linked launch migrations present, linked SQL readiness passing 14
 checks, `philipjonlewis@gmail.com` active in the allowlist, Vercel production
-deployment `dpl_Dh8xPgZ3NQwN4CwxZQXh6d8vypcn` serving
+deployment `dpl_CyfR2LA7vMLqR9sDMncgxbgVbcRj` serving
 `archestimator.com` / `www.archestimator.com`, `www` health returning HTTP 200,
-core/email/invite env names present in Vercel production, and rollback still
-undrilled. Remaining no-cost blockers are Codex Security rescan/owner
-acceptance, hosted Google OAuth allowed/denied/revoked smoke, rollback drill if
-accepted, Resend delivery/webhook proof, legal/owner signoff,
+core/email/invite env names present in Vercel production, 19 Ready rollback
+candidates available, and rollback still undrilled. Remaining no-cost blockers
+are Codex Security rescan/owner acceptance, hosted Google OAuth
+allowed/denied/revoked smoke, rollback drill if accepted, Resend
+domain/webhook/delivery proof, legal/owner signoff,
 support/alert-monitoring proof, hosted authenticated export, and full hosted
 beta journey proof.
 
