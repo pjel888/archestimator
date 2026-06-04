@@ -1,5 +1,27 @@
 # Evidence Index
 
+## Supplemental Hosted Owner Profile Smoke - 2026-06-04 07:22Z
+
+- Proof folder: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/hosted-owner-smoke-2026-06-04T0719Z/`.
+- Primary artifact: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/hosted-owner-smoke-2026-06-04T0719Z/hosted-owner-smoke.json`.
+- Browser proof: active Chrome session reached
+  `https://www.archestimator.com/workshop/settings/profile` and rendered
+  authenticated Profile settings with display name `Philip Lewis`, user category
+  `Architect`, country/region `Philippines`, and a visible `Save profile`
+  control.
+- Screenshot: `profile-settings.png`, SHA-256
+  `4873ed41b3b7ebef722d5bd99b5148c04536b64441c932609819072c1d986b5a`.
+- Signed-out route proof: `/workshop/settings/profile` and
+  `/workshop/settings/feedback` both return HTTP 307 to login with the expected
+  `next` target.
+- Boundary: this does not by itself visibly prove the Google email; it
+  supplements earlier hosted owner allowed-smoke artifacts that recorded
+  `philipjonlewis@gmail.com`. Feedback-admin monitoring visual proof was
+  inconclusive because the browser-reported URL and rendered screenshot did not
+  line up cleanly, so support/feedback monitoring remains open.
+- Cost posture: no paid add-on, DNS, Vercel env, Supabase mutation, or form
+  submission occurred.
+
 ## No-Spend Live Closed-Beta Launch Refresh - 2026-06-04 07:06Z
 
 - Primary artifact: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/no-spend-live-launch-refresh-2026-06-04T0706Z.json`.
