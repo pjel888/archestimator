@@ -1,0 +1,19 @@
+{
+  "generatedAt": "2026-06-04T03:29:00Z",
+  "mode": "closed-beta-allowlist-direct-readback",
+  "projectRef": "ebxxqidacheyapmmzavr",
+  "proofMethod": "Supabase connector direct table readback plus function-definition review; unauthenticated check_closed_beta_access returns missing by design because caller JWT email is empty.",
+  "rows": [
+    {
+      "normalizedEmail": "philipjonlewis@gmail.com",
+      "status": "active",
+      "hasInvitedAt": true,
+      "hasAcceptedAt": false
+    }
+  ],
+  "onlyTesterEmailConfirmed": true,
+  "caveats": [
+    "Hosted allowed Google OAuth smoke still requires a real browser session cookie for philipjonlewis@gmail.com.",
+    "Denied/revoked hosted smoke cookies were not available in this session."
+  ]
+}

@@ -1,0 +1,29 @@
+{
+  "generatedAt": "2026-06-04T03:31:07.831Z",
+  "mode": "vercel-health-readiness",
+  "urls": [
+    "https://www.archestimator.com/api/health"
+  ],
+  "usedAuthMaterial": false,
+  "probes": [
+    {
+      "url": "https://www.archestimator.com/api/health",
+      "status": 200,
+      "ok": true,
+      "durationMs": 507,
+      "contentType": "application/json",
+      "location": null,
+      "bodySummary": "{\"ok\":true,\"service\":\"archestimator\",\"timestamp\":\"2026-06-04T03:31:07.798Z\"}",
+      "healthJsonOk": true,
+      "healthService": "archestimator",
+      "passed": true,
+      "error": null
+    }
+  ],
+  "readyUrls": [
+    "https://www.archestimator.com/api/health"
+  ],
+  "blockedUrls": [],
+  "vercelHealthReady": true,
+  "note": "Sanitized Vercel health readiness check. Optional auth headers/cookies are used only for requests and are never written to this report. Passing /api/health does not prove environment values, rollback, custom-domain alias correctness beyond the probed URLs, or hosted auth."
+}

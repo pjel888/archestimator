@@ -1,0 +1,103 @@
+{
+  "generatedAt": "2026-06-04T03:31:00Z",
+  "mode": "cheap-closed-beta-provider-status-refresh",
+  "cheapPath": true,
+  "noPaidAddOnsEnabled": true,
+  "productionDeployment": {
+    "commit": "9fed643a745324e7b733ffe725f726b74e9eca99",
+    "proofCommit": "621ee38",
+    "id": "dpl_CyfR2LA7vMLqR9sDMncgxbgVbcRj",
+    "readyState": "READY",
+    "aliases": [
+      "archestimator.com",
+      "www.archestimator.com",
+      "archestimator.vercel.app"
+    ],
+    "health": {
+      "url": "https://www.archestimator.com/api/health",
+      "status": 200,
+      "service": "archestimator"
+    },
+    "apexRedirect": {
+      "url": "https://archestimator.com/login",
+      "status": 307,
+      "location": "https://www.archestimator.com/login"
+    }
+  },
+  "vercelEnv": {
+    "productionRequiredNamesReady": true,
+    "namesPresent": [
+      "NEXT_PUBLIC_APP_URL",
+      "NEXT_PUBLIC_SITE_URL",
+      "ARCHESTIMATOR_ALLOWED_APP_ORIGINS",
+      "NEXT_PUBLIC_SUPABASE_URL",
+      "NEXT_PUBLIC_SUPABASE_ANON_KEY",
+      "SUPABASE_SERVICE_ROLE_KEY",
+      "CLOSED_BETA_ACCESS_ENABLED",
+      "PUBLICATION_TOKEN_ENCRYPTION_SECRET",
+      "PUBLICATION_TOKEN_HASH_SECRET",
+      "PUBLICATION_ACCESS_COOKIE_SECRET",
+      "ARCHESTIMATOR_AI_ENABLED",
+      "NEXT_PUBLIC_ASK_FLIP_UI_ENABLED",
+      "PROJECT_INVITE_ENTRY_ENABLED",
+      "ARCHESTIMATOR_INVITE_TOKEN_PEPPER",
+      "RESEND_API_KEY",
+      "RESEND_FROM",
+      "RESEND_REPLY_TO",
+      "RESEND_WEBHOOK_SECRET"
+    ],
+    "secretValuesRecorded": false
+  },
+  "supabase": {
+    "projectRef": "ebxxqidacheyapmmzavr",
+    "computePath": "Micro / cheaper path",
+    "pitrEnabled": false,
+    "physicalBackupsPreviouslyListed": 9,
+    "linkedMigrationsReady": true,
+    "linkedSqlReadiness": {
+      "totalChecks": 14,
+      "failedChecks": 0
+    },
+    "broadDbPushUsed": false
+  },
+  "closedBetaAllowlist": {
+    "onlyTesterEmail": "philipjonlewis@gmail.com",
+    "status": "active",
+    "directReadbackArtifact": "closed-beta-allowlist-direct-readback-2026-06-04T0329Z.json"
+  },
+  "resendAndDns": {
+    "supportDnsReady": true,
+    "resendEnvNamesPresentInVercel": true,
+    "resendRuntimePullMissingSensitiveWebhookSecret": true,
+    "observedDns": {
+      "sendContactSpf": "v=spf1 include:amazonses.com ~all",
+      "apexDmarc": "v=DMARC1; p=none;",
+      "dkimRecordObserved": "resend._domainkey.contact.archestimator.com TXT present",
+      "resend2DkimObserved": false,
+      "resend3DkimObserved": false
+    }
+  },
+  "hostedAuth": {
+    "signedOutWorkshopRedirectPassed": true,
+    "allowedDeniedRevokedCookiesAvailable": false,
+    "googleOAuthDashboardProofAvailable": false
+  },
+  "strictOpenBlockers": [
+    "Codex Security dashboard rescan/closure or explicit owner acceptance of stale findings.",
+    "Hosted Google OAuth allowed/denied/revoked smoke with real sessions.",
+    "Resend dashboard sending-domain/webhook verification and delivery/webhook event proof.",
+    "Rollback drill or explicit owner acceptance to launch without it.",
+    "Legal/owner review flags for terms, privacy, beta copy, data retention, and support comms.",
+    "Support inbox, feedback review, uptime/error alert, and incident escalation monitoring confirmations.",
+    "Hosted authenticated export/full beta journey smoke."
+  ],
+  "artifacts": [
+    "vercel-health-readiness-www-production-refresh-2026-06-04T0331Z.json",
+    "vercel-production-readiness-production-refresh-2026-06-04T0330Z.json",
+    "supabase-migration-list-refresh-2026-06-04T0324Z.txt",
+    "supabase-linked-readiness-refresh-2026-06-04T0324Z.json",
+    "resend-readiness-production-refresh-2026-06-04T0324Z.json",
+    "hosted-auth-signedout-refresh-2026-06-04T0325Z.json",
+    "closed-beta-allowlist-direct-readback-2026-06-04T0329Z.json"
+  ]
+}
