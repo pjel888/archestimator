@@ -25,9 +25,10 @@
 - Latest artifact:
   `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/live-closed-beta-refresh-2026-06-04T1006Z.json`.
 - External closed beta remains not fully green because denied/revoked/expired
-  hosted auth smoke, logout/session-expiry proof, spreadsheet-app open/print
-  proof if required for beta, and hosted shared-link/invite email workflow smoke
-  remain open. Residual Codex Security history-exposure findings are now
+  hosted auth smoke, spreadsheet-app open/print proof if required for beta, and
+  hosted shared-link/invite email workflow smoke remain open. Owner logout is
+  proven by `hosted-logout-session-proof-2026-06-04T1436Z.json`; expired-session
+  proof remains a separate auth edge case. Residual Codex Security history-exposure findings are now
   owner-accepted only for the current single-owner beta, not fixed or public-launch
   green. Resend sender-domain,
   provider delivery, and webhook setup are no longer blockers; legal/owner/
@@ -121,8 +122,9 @@
   `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/hosted-export-browser-proof-2026-06-04T0807Z.json`.
   The raw workbook was not copied into the repository. This closes the hosted
   authenticated export proof gap, while the later 13:28Z artifact closes the
-  owner hosted beta journey. Secondary spreadsheet-app open/print proof,
-  denied/revoked/expired auth smoke, and logout/session-expiry proof remain open.
+  owner hosted beta journey and the later 14:36Z artifact closes owner logout.
+  Secondary spreadsheet-app open/print proof and denied/revoked/expired auth
+  smoke remain open.
 - Hosted feedback admin proof at `2026-06-04T07:50Z` now shows the active owner
   Chrome session can render production
   `https://www.archestimator.com/workshop/settings/feedback` with the `Beta
@@ -202,12 +204,12 @@
   `vercel-production-readiness-rollback-drill-2026-06-04T1112Z.json` close the
   Vercel rollback gate with `vercelProductionReady: true`.
 - External closed beta remains blocked by narrower no-cost/manual proof gaps:
-  hosted Google OAuth denied/revoked/expired browser smoke, logout/session-expiry
-  proof, secondary spreadsheet-app export open/print proof if required for beta,
+  hosted Google OAuth denied/revoked/expired browser smoke, secondary
+  spreadsheet-app export open/print proof if required for beta,
   and hosted shared-link/invite email workflow proof before relying on automatic
   email UX. Later artifacts close Resend provider proof, legal/owner/support
   signoff, Vercel rollback, hosted export, the owner hosted beta journey, and
-  owner-scoped Codex Security history-risk acceptance.
+  owner-scoped Codex Security history-risk acceptance plus owner logout proof.
   Direct RLS closure proof exists locally/provider-side, but the Codex Security
   dashboard `Close` submission remains pending action-time confirmation.
 

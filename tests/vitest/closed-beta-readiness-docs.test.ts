@@ -509,6 +509,8 @@ describe("closed beta readiness docs", () => {
     expect(evidenceIndex).toContain("PLAYWRIGHT_PORT=3037 bun run test:e2e -- e2e/auth.spec.ts --project=chromium");
     expect(evidenceIndex).toContain("Result: pass, 2 Playwright tests in 9.9s.");
     expect(evidenceIndex).toContain("Hosted Google auth, allowed/denied/revoked allowlist smoke, first-run workspace entry, and session expiry/logout proof remain external/manual gates.");
+    expect(evidenceIndex).toContain("## Hosted Logout Session Proof - 2026-06-04 14:36Z");
+    expect(evidenceIndex).toContain("hosted-logout-session-proof-2026-06-04T1436Z.json");
     expect(evidenceIndex).toContain("### Full Local E2E Refresh at bb9006d");
     expect(evidenceIndex).toContain("full-local-e2e-refresh-bb9006d-2026-06-02.md");
     expect(evidenceIndex).toContain("PLAYWRIGHT_PORT=3020 bun run test:e2e -- --project=chromium");
@@ -738,7 +740,7 @@ describe("closed beta readiness docs", () => {
     expect(manualProofMatrix).toContain("signed-out auth plus local dev-auth library/template/template-insert smoke");
     expect(manualProofMatrix).toContain("full-local-e2e-refresh-bb9006d-2026-06-02.md");
     expect(manualProofMatrix).toContain("passing 9 ungated checks with 24 env-gated/live-provider specs skipped");
-    expect(manualProofMatrix).toContain("Hosted denied/revoked/logout/session-expiry, project-specific unlink, spreadsheet-app open/print, and automatic email workflow smoke remain missing");
+    expect(manualProofMatrix).toContain("Hosted denied/revoked/expired-session, project-specific unlink, spreadsheet-app open/print, and automatic email workflow smoke remain missing");
     expect(manualProofMatrix).toContain("demo-rehearsal-fallback-pack-2026-06-02.md");
     expect(manualProofMatrix).toContain("fallback script");
     expect(manualProofMatrix).toContain("owner demo sign-off remain missing");
@@ -794,10 +796,11 @@ describe("closed beta readiness docs", () => {
     expect(consolidatedManualProofPacket).toContain("not legal advice or public-launch counsel proof");
     expect(consolidatedManualProofPacket).toContain("Spreadsheet compatibility | partial-local");
     expect(consolidatedManualProofPacket).toContain("current-head-local-validation-build-353dd48-2026-06-02.md");
-    expect(consolidatedManualProofPacket).toContain("Current manual E2E smoke | partial-hosted-owner");
+    expect(consolidatedManualProofPacket).toContain("Current manual E2E smoke | partial-hosted-owner / logout-pass");
     expect(consolidatedManualProofPacket).toContain("full-local-e2e-refresh-bb9006d-2026-06-02.md");
     expect(consolidatedManualProofPacket).toContain("full local E2E command now passes 9 ungated checks with 24 env-gated/live-provider specs skipped");
     expect(consolidatedManualProofPacket).toContain("hosted-owner-beta-journey-smoke-2026-06-04T1328Z.json");
+    expect(consolidatedManualProofPacket).toContain("hosted-logout-session-proof-2026-06-04T1436Z.json");
     expect(consolidatedManualProofPacket).toContain("production beta sheet `ES-001`");
     expect(consolidatedManualProofPacket).toContain("support-email-dns-readiness-refresh-ec31121-2026-06-02.json");
     expect(consolidatedManualProofPacket).toContain("support-email-dns-readiness-refresh-c72f9fb-2026-06-02.json");
@@ -808,9 +811,9 @@ describe("closed beta readiness docs", () => {
     expect(consolidatedManualProofPacket).toContain("`supportMonitoringReady: true`");
     expect(consolidatedManualProofPacket).toContain("Do not change the launch decision until `47-goal-completion-audit.md` is rerun");
     expect(consolidatedManualProofPacket).toMatch(/\| Vercel deploy\/env\/health \| pass \|/);
-    expect(consolidatedManualProofPacket).toMatch(/\| Hosted auth allowlist \| partial-pass \|/);
+    expect(consolidatedManualProofPacket).toMatch(/\| Hosted auth allowlist \| partial-pass \/ logout-pass \|/);
     expect(consolidatedManualProofPacket).toContain("vercel-production-resend-enabled-hosted-auth-2026-06-04T1311Z.json");
-    expect(consolidatedManualProofPacket).toContain("Hosted denied/revoked/logout/session-expiry smoke is still open.");
+    expect(consolidatedManualProofPacket).toContain("Hosted denied/revoked/expired-session smoke is still open.");
     expect(consolidatedManualProofPacket).toMatch(/\| Resend\/email if visible \| pass-provider-and-inbox \/ workflow-smoke-open \|/);
     expect(consolidatedManualProofPacket).toContain("resend-owner-inbox-receipt-2026-06-04T1348Z.json");
     expect(consolidatedManualProofPacket).toMatch(/\| Legal\/owner review \| pass-owner-beta \|/);
@@ -878,6 +881,7 @@ describe("closed beta readiness docs", () => {
     expect(artifactFilenames).toContain("confidential-proposal-artifact-withdrawal-2026-06-04.json");
     expect(artifactFilenames).toContain("codex-security-cheap-path-refresh-2026-06-04T0844Z.json");
     expect(artifactFilenames).toContain("codex-security-history-risk-owner-acceptance-2026-06-04T1414Z.json");
+    expect(artifactFilenames).toContain("hosted-logout-session-proof-2026-06-04T1436Z.json");
     expect(artifactFilenames).not.toContain("lewis-residence-demo-proposal-2026-06-02.xlsx");
     expect(existsSync(join(manualProofPacketDir, "lewis-residence-demo-proposal-2026-06-02.xlsx"))).toBe(false);
     expect(
@@ -906,6 +910,8 @@ describe("closed beta readiness docs", () => {
     expect(goalCompletionAudit).toContain("resend-domain-verified-email-enabled-2026-06-04T1235Z.json");
     expect(goalCompletionAudit).toContain("resend-owner-inbox-receipt-2026-06-04T1348Z.json");
     expect(goalCompletionAudit).toContain("hosted-owner-beta-journey-smoke-2026-06-04T1328Z.json");
+    expect(goalCompletionAudit).toContain("Hosted logout");
+    expect(goalCompletionAudit).toContain("hosted-logout-session-proof-2026-06-04T1436Z.json");
     expect(goalCompletionAudit).toContain("Owner-accepted for the single-owner beta; dashboard not fully green");
     expect(goalCompletionAudit).toContain("codex-security-history-risk-owner-acceptance-2026-06-04T1414Z.json");
     expect(goalCompletionAudit).toContain("## Codex Security Cheap-Path Update - 2026-06-04 08:44Z");
@@ -919,10 +925,10 @@ describe("closed beta readiness docs", () => {
     expect(goalCompletionAudit).toContain("raw workbook and raw Quick Look PNG were removed from git on 2026-06-04");
     expect(goalCompletionAudit).toContain("Synthetic 500 / 1,000 / 2,500 row workbook buffers generate locally under the 15s threshold");
     expect(goalCompletionAudit).toContain("Hosted auth allowlist smoke");
-    expect(goalCompletionAudit).toContain("Current production artifacts prove signed-out redirects, hosted owner allowed access, and the owner journey");
+    expect(goalCompletionAudit).toContain("Current production artifacts prove signed-out redirects, hosted owner allowed access, the owner journey, and logout back to the protected login gate");
     expect(goalCompletionAudit).toContain("Excel plus one secondary spreadsheet app open/recalc/print proof");
     expect(goalCompletionAudit).toContain("Hosted shared-link/invite email workflow proof");
-    expect(goalCompletionAudit).toContain("The 13:28Z owner hosted journey proves project entry, estimate creation, estimate workspace render, and export preview");
+    expect(goalCompletionAudit).toContain("The 13:28Z owner hosted journey proves project entry, estimate creation, estimate workspace render, and export preview on the target domain, and the 14:36Z proof closes owner logout");
     expect(goalCompletionAudit).toContain("Current decision: **DO NOT MARK GOAL COMPLETE**.");
     expect(goalCompletionAudit).toContain("48-manual-proof-packet-template.md");
     expect(goalCompletionAudit).not.toMatch(/Current decision: \*\*COMPLETE\*\*/);
@@ -1087,6 +1093,8 @@ describe("closed beta readiness docs", () => {
     expect(evidenceIndex).toContain("## Codex Security History-Risk Owner Acceptance - 2026-06-04 14:14Z");
     expect(evidenceIndex).toContain("codex-security-history-risk-owner-acceptance-2026-06-04T1414Z.json");
     expect(currentState).toContain("history-risk is owner-accepted for this single-owner beta");
+    expect(currentState).toContain("owner logout is proven by");
+    expect(knownIssues).toContain("Owner logout is");
     expect(knownIssues).toContain("Support monitoring readiness helper evidence on 2026-06-02 is negative/blocked");
     expect(knownIssues).toContain("support-monitoring-readiness-5fa0ac1-2026-06-02.json");
     expect(knownIssues).toContain("support-monitoring-readiness-453ac68-2026-06-02.json");
