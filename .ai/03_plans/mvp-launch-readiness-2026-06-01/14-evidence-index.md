@@ -1,5 +1,39 @@
 # Evidence Index
 
+## Cheap Beta Launch Audit - 2026-06-04 07:35Z
+
+- Primary artifact: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/cheap-beta-launch-audit-2026-06-04T0735Z.json`.
+- Cost posture: Supabase stays on `MICRO`, PITR stays disabled by decision, no
+  Small-compute bump for PITR, no new paid provider add-ons, no DNS/env/provider
+  mutation, no production rollback/promote action, no broad Supabase `db push`,
+  and no Codex Security dashboard close submission occurred during this audit.
+- Vercel proof: production deployment `dpl_6xBegV7JS3WRfZYnN1mWTeY62b38` remains
+  aliased to `www.archestimator.com`, `archestimator.com`, and
+  `archestimator.vercel.app`; `www` `/api/health` returns HTTP 200 with
+  Archestimator health JSON, apex `/api/health` redirects to `www`, `/login`
+  returns the app title, and signed-out `/workshop` redirects to login.
+- Vercel env proof: Production env names are present for app URLs/origins,
+  Supabase public/server keys, closed-beta flags, publication secrets, Resend,
+  and AI-off flags. Secret values are intentionally not recorded.
+- Supabase proof: CLI lists project `ebxxqidacheyapmmzavr` as `Archestimator`,
+  `ACTIVE_HEALTHY`, Postgres `17.6.1.121`, region `ap-southeast-2`. Existing
+  cheap-path artifacts remain the canonical linked migration/readiness,
+  allowlist, physical backup, and off-repo logical dump proof; the project ref is
+  treated as immutable and not a launch blocker.
+- Resend/DNS proof: webhook endpoint/secret proof remains available, but public
+  DNS still has no `send.contact.archestimator.com` MX. The remaining no-cost DNS
+  action is Namecheap `MX` host `send.contact`, value
+  `feedback-smtp.ap-northeast-1.amazonses.com`, priority `10`, without changing
+  apex forwarding MX for `support@archestimator.com`.
+- GitHub/Codex Security proof: GitHub has no open issues or PRs. Codex Security
+  remains open; Direct RLS fix proof exists, but dashboard closure submission is
+  still pending action-time confirmation and other findings still need
+  closure/rescan/owner acceptance.
+- Still open: hosted denied/revoked/expired beta-auth smoke, rollback drill or
+  owner risk acceptance, Resend domain/delivery proof if visible email is
+  enabled, legal/owner signoff, support/feedback/alert monitoring proof, hosted
+  authenticated export, and full hosted beta journey.
+
 ## Supplemental Hosted Owner Profile Smoke - 2026-06-04 07:22Z
 
 - Proof folder: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/hosted-owner-smoke-2026-06-04T0719Z/`.

@@ -33,6 +33,23 @@
 
 ## 2026-06-04 cheap launch refresh
 
+- Cheap beta launch audit at `2026-06-04T07:35Z` records the current no-surprise
+  spend posture as the active plan: Supabase `MICRO`, PITR disabled by decision,
+  Pro physical backups plus off-repo logical dumps, no new paid provider add-ons,
+  no DNS/env/provider mutation, no production rollback/promote action, no broad
+  `supabase db push`, and no Codex Security dashboard close submission. Fresh
+  proof shows `www.archestimator.com` still serves the beta app, Vercel
+  Production has the required env-name set, Supabase project
+  `ebxxqidacheyapmmzavr` is healthy as `Archestimator`, the single active
+  allowlist tester remains `philipjonlewis@gmail.com`, GitHub has no open
+  issue/PR queue, and public DNS still lacks the Resend `send.contact` MX record.
+  Artifact:
+  `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/cheap-beta-launch-audit-2026-06-04T0735Z.json`.
+  External closed beta is still not fully green because Codex Security
+  dashboard state, hosted denied/revoked/expired auth smoke, Resend
+  domain/delivery proof if email is visible, rollback/legal/support/alert
+  monitoring proof, hosted authenticated export, and full hosted beta journey
+  proof remain open.
 - Supplemental hosted owner profile proof at `2026-06-04T07:22Z` shows the
   active Chrome hosted session can render
   `https://www.archestimator.com/workshop/settings/profile` with authenticated

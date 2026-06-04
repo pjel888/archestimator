@@ -1,5 +1,27 @@
 # Goal Completion Audit
 
+## Cheap Beta Launch Audit - 2026-06-04 07:35Z
+
+| Requirement | Current status | Evidence |
+| --- | --- | --- |
+| Use the cheaper launch path | **Active / accepted for owner-only pre-launch beta**. Supabase stays on `MICRO`, PITR stays disabled, no Small-compute PITR bump or new paid provider add-on was enabled. | `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/cheap-beta-launch-audit-2026-06-04T0735Z.json` |
+| Production domain proves beta app, not teaser | **Proven fresh**. `www` health returns HTTP 200 with Archestimator health JSON; apex health redirects to `www`; `/login` returns the app title; signed-out `/workshop` redirects to login. | Same artifact; Vercel deployment `dpl_6xBegV7JS3WRfZYnN1mWTeY62b38` |
+| Required Vercel env names | **Proven by name, not by secret value**. Production has app URL/origin, Supabase public/server, closed-beta, publication, Resend, and AI-off env names. | Same artifact; secret values intentionally not recorded |
+| Supabase project identity and cost posture | **Proven fresh**. Project `ebxxqidacheyapmmzavr` is already named `Archestimator`, `ACTIVE_HEALTHY`, Postgres `17.6.1.121`, region `ap-southeast-2`; ref is immutable and not renamed. | Same artifact plus earlier compute/backups proof |
+| Supabase migration/readiness and allowlist | **Previously proven on cheap path; not broadly pushed**. Required launch migrations/readiness and the one active tester `philipjonlewis@gmail.com` are recorded in existing artifacts. No broad `supabase db push` ran. | `supabase-migration-readiness-cheap-refresh-2026-06-04.json`, `supabase-linked-readiness-cheap-refresh-2026-06-04.json`, `closed-beta-allowlist-direct-readback-2026-06-04T0329Z.json` |
+| Backup/DR | **Cheaper-path accepted, strict PITR gate still false**. Daily physical backups and off-repo logical dump proof exist; PITR and restore drill remain absent by decision. | `supabase-backup-readiness-live-refresh-2026-06-04T0428Z.json`, `supabase-compute-cheaper-path-2026-06-04.json` |
+| Resend/email | **Blocked by no-cost DNS/provider proof**. Webhook endpoint/secret proof exists, but `send.contact.archestimator.com` has no MX. | `resend-dashboard-dns-webhook-refresh-2026-06-04T0446Z.json`; fresh DNS in cheap audit |
+| GitHub queue | **Clear**. No open issues or PRs found. | Same cheap audit |
+| Codex Security | **Blocked**. GitHub queue is clear, but Codex Security dashboard state still needs closure/rescan/owner acceptance; Direct RLS fix proof exists but UI close submission remains pending action-time confirmation. | `codex-security-dashboard-refresh-2026-06-04T0511Z.json`, `component-price-audit-grants-2026-06-04.json` |
+| Owner/legal/support monitoring | **Blocked**. Support DNS exists for apex forwarding, but monitored inbox, feedback review, alert/incident monitoring, and legal/owner signoff are not proven. | Same cheap audit plus support/legal artifacts |
+
+Result: the cheaper launch infrastructure posture is implemented and recorded,
+but external closed beta is still **not fully green**. Remaining no-cost/manual
+blockers are Codex Security dashboard closure/rescan or owner acceptance, hosted
+denied/revoked/expired auth smoke, Resend MX/domain/delivery proof if email is
+visible, rollback drill or accepted risk, legal/owner signoff, monitored support
+and feedback proof, hosted authenticated export, and a full hosted beta journey.
+
 ## Cheaper-Path Provider Launch Update - 2026-06-03
 
 - The production beta app is now live on `https://www.archestimator.com` via Vercel deployment `dpl_Cxeq5ATpif6Yk1zn4FmNmnX7nzhT`; apex `https://archestimator.com` redirects to `www`.

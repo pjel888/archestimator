@@ -1,5 +1,41 @@
 # Infrastructure, Vercel, Supabase, and Resend Plan
 
+## Cheap Beta Launch Audit - 2026-06-04 07:35Z
+
+- Current launch-cost decision: stay on Supabase `MICRO`, keep PITR disabled, do
+  not add Small compute only for PITR, and do not enable new paid provider
+  add-ons unless Philip explicitly accepts the cost.
+- Current backup/DR decision: the strict PITR checker remains false by design
+  because PITR and a restore drill are absent; for the owner-only pre-launch MVP,
+  the accepted cheaper evidence is Pro daily physical backups plus a fresh
+  off-repo logical dump before risky migrations.
+- Fresh production proof: Vercel deployment `dpl_6xBegV7JS3WRfZYnN1mWTeY62b38`
+  is still the production app stream behind `www.archestimator.com`,
+  `archestimator.com`, and `archestimator.vercel.app`; `www` health returns HTTP
+  200, apex health redirects to `www`, `/login` returns the app title, and
+  signed-out `/workshop` redirects to login.
+- Fresh env proof: Vercel Production still has env names for every required
+  runtime group in this plan: app URLs/origins, Supabase public/server keys,
+  closed-beta flags, publication secrets, Resend vars, and AI-off flags. Secret
+  values remain intentionally unrecorded.
+- Fresh Supabase proof: project `ebxxqidacheyapmmzavr` is already named
+  `Archestimator`, is `ACTIVE_HEALTHY`, runs Postgres `17.6.1.121` in
+  `ap-southeast-2`, and the ref is treated as immutable rather than renamed.
+  Existing cheap-path artifacts prove linked migration/readiness and the single
+  active allowlist tester `philipjonlewis@gmail.com`; broad `supabase db push`
+  remains off-limits while history drift exists.
+- Remaining no-cost DNS action: add only the Namecheap MX record for
+  `send.contact.archestimator.com` (`host=send.contact`,
+  `value=feedback-smtp.ap-northeast-1.amazonses.com`, `priority=10`) and do not
+  touch apex MX forwarding for `support@archestimator.com`.
+- Current launch blocker posture: GitHub has no open issue/PR queue, but Codex
+  Security remains open pending closure/rescan/owner acceptance. External beta is
+  also still blocked by hosted denied/revoked/expired auth smoke, Resend
+  verification/delivery proof if email is visible, rollback/legal/support/alert
+  monitoring proof, hosted authenticated export, and full hosted beta journey.
+- Proof artifact:
+  `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/cheap-beta-launch-audit-2026-06-04T0735Z.json`.
+
 ## Cheaper-Path Provider Launch Update - 2026-06-03
 
 - Supabase PITR remains intentionally disabled after the dashboard showed 7-day PITR at `$100.00 / month`; for the pre-launch one-person MVP beta, the accepted safety path is Pro daily physical backup proof plus a fresh off-repo logical dump before migrations.

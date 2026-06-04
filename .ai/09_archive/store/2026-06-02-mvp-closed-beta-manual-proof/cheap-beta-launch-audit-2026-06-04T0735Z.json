@@ -1,0 +1,223 @@
+{
+  "source": "CHEAP_BETA_LAUNCH_AUDIT",
+  "generatedAtUtc": "2026-06-04T07:35:16Z",
+  "repoHead": "8957e194dabd8e6a07eacfd4049bd867cedff373",
+  "branchAtCapture": "codex/closed-beta-cheap-launch-audit-20260604",
+  "decision": "Keep the closed-beta launch path on the cheaper no-surprise-spend posture: Supabase Micro, PITR disabled, Pro daily physical backups plus off-repo logical dumps, no new paid add-ons, no broad Supabase db push, and no beta-ready overclaim.",
+  "officialDocsChecked": {
+    "supabaseBackups": "https://supabase.com/docs/guides/platform/backups",
+    "supabasePitrUsage": "https://supabase.com/docs/guides/platform/manage-your-usage/point-in-time-recovery",
+    "currentMeaning": "Supabase Pro projects include daily backups; PITR is an optional add-on, currently listed at $100/month for 7-day retention and requiring at least Small compute. Daily backups plus manual logical dumps are the accepted pre-launch MVP path unless Philip explicitly approves the PITR cost."
+  },
+  "expensiveActionsNotTaken": {
+    "enabledSupabasePitr": false,
+    "increasedSupabaseComputeForPitr": false,
+    "enabledAdditionalPaidProviderAddons": false,
+    "ranVercelRollbackOrProductionPromotion": false,
+    "ranBroadSupabaseDbPush": false,
+    "changedDnsRecords": false,
+    "submittedCodexSecurityCloseForm": false
+  },
+  "vercel": {
+    "cliVersion": "54.6.1",
+    "productionDeployment": {
+      "id": "dpl_6xBegV7JS3WRfZYnN1mWTeY62b38",
+      "name": "archestimator",
+      "url": "archestimator-br665yc8u-philipjonlewis-projects.vercel.app",
+      "target": "production",
+      "aliases": [
+        "www.archestimator.com",
+        "archestimator.com",
+        "archestimator.vercel.app",
+        "archestimator-philipjonlewis-projects.vercel.app",
+        "archestimator-philipjonlewis-philipjonlewis-projects.vercel.app"
+      ]
+    },
+    "liveHttpProof": {
+      "wwwHealth": {
+        "url": "https://www.archestimator.com/api/health",
+        "status": 200,
+        "bodySummary": "{\"ok\":true,\"service\":\"archestimator\"}"
+      },
+      "apexHealth": {
+        "url": "https://archestimator.com/api/health",
+        "status": 307,
+        "location": "https://www.archestimator.com/api/health",
+        "followedStatus": 200
+      },
+      "login": {
+        "url": "https://www.archestimator.com/login",
+        "status": 200,
+        "title": "Archestimator | Quote, Proposal & Estimate Workspace"
+      },
+      "signedOutWorkshop": {
+        "url": "https://www.archestimator.com/workshop",
+        "status": 307,
+        "location": "https://www.archestimator.com/login?next=%2Fworkshop"
+      }
+    },
+    "productionEnvNamesPresent": [
+      "NEXT_PUBLIC_APP_URL",
+      "NEXT_PUBLIC_SITE_URL",
+      "NEXT_PUBLIC_SUPABASE_URL",
+      "NEXT_PUBLIC_SUPABASE_ANON_KEY",
+      "SUPABASE_SERVICE_ROLE_KEY",
+      "ARCHESTIMATOR_ALLOWED_APP_ORIGINS",
+      "CLOSED_BETA_ACCESS_ENABLED",
+      "PROJECT_INVITE_ENTRY_ENABLED",
+      "ARCHESTIMATOR_INVITE_TOKEN_PEPPER",
+      "PUBLICATION_TOKEN_ENCRYPTION_SECRET",
+      "PUBLICATION_TOKEN_HASH_SECRET",
+      "PUBLICATION_ACCESS_COOKIE_SECRET",
+      "RESEND_API_KEY",
+      "RESEND_FROM",
+      "RESEND_REPLY_TO",
+      "RESEND_WEBHOOK_SECRET",
+      "ARCHESTIMATOR_AI_ENABLED",
+      "NEXT_PUBLIC_ASK_FLIP_UI_ENABLED"
+    ],
+    "githubQueue": {
+      "openIssues": 0,
+      "openPullRequests": 0
+    },
+    "remainingGaps": [
+      "Rollback drill or explicit owner acceptance that rollback was not rehearsed.",
+      "Hosted authenticated export proof.",
+      "Full hosted beta journey proof."
+    ]
+  },
+  "supabase": {
+    "cliVersion": "2.98.2",
+    "cliUpdateAvailable": "2.104.0",
+    "project": {
+      "id": "ebxxqidacheyapmmzavr",
+      "name": "Archestimator",
+      "status": "ACTIVE_HEALTHY",
+      "region": "ap-southeast-2",
+      "databaseVersion": "17.6.1.121",
+      "databaseHost": "db.ebxxqidacheyapmmzavr.supabase.co"
+    },
+    "computeAndBackupPosture": {
+      "compute": "MICRO",
+      "pitrEnabled": false,
+      "walgEnabled": true,
+      "completedPhysicalBackupCount": 9,
+      "offRepoLogicalDumpBundle": "/Users/philiplewis/archestimator-provider-backups/2026-06-03T173005Z-pre-closed-beta-2cddb0e",
+      "strictBackupCheckerReady": false,
+      "strictBackupCheckerMissing": [
+        "PITR enabled",
+        "restore drill passed"
+      ],
+      "acceptedCheapPathMeaning": "The strict PITR/restore-drill checker remains false by design. For this owner-only pre-launch beta, the accepted cheaper evidence is daily physical backup availability plus an off-repo logical dump before risky migration work."
+    },
+    "linkedMigrationAndReadinessProof": {
+      "migrationReadinessArtifact": "supabase-migration-readiness-cheap-refresh-2026-06-04.json",
+      "linkedReadinessArtifact": "supabase-linked-readiness-cheap-refresh-2026-06-04.json",
+      "linkedMigrationsReady": true,
+      "linkedSupabaseLaunchReady": true,
+      "broadDbPushRun": false,
+      "note": "Required launch migrations and linked readiness passed in existing cheap-path artifacts; this audit did not rerun linked SQL while the temp-role pooler had recently returned ECIRCUITBREAKER."
+    },
+    "closedBetaAllowlist": {
+      "artifact": "closed-beta-allowlist-direct-readback-2026-06-04T0329Z.json",
+      "onlyTesterEmailConfirmed": true,
+      "rows": [
+        {
+          "normalizedEmail": "philipjonlewis@gmail.com",
+          "status": "active"
+        }
+      ]
+    },
+    "remainingGaps": [
+      "Denied/revoked/expired hosted beta-auth smoke with real sessions.",
+      "Hosted provider dashboard proof for Google OAuth callback/consent behavior.",
+      "Do not casually run broad db push while local/remote migration history drift remains."
+    ]
+  },
+  "resendAndDns": {
+    "webhookEndpoint": "https://www.archestimator.com/api/webhooks/resend",
+    "webhookSecretConfiguredByUnsignedPost": true,
+    "sendingDomain": "contact.archestimator.com",
+    "sendingDomainVerified": false,
+    "publicDnsAtCapture": {
+      "sendContactMxRecords": [],
+      "sendContactTxtRecords": [
+        "v=spf1 include:amazonses.com ~all"
+      ],
+      "apexDmarcTxtRecords": [
+        "v=DMARC1; p=none;"
+      ],
+      "apexSupportMxRecords": [
+        "10 eforward1.registrar-servers.com.",
+        "10 eforward2.registrar-servers.com.",
+        "10 eforward3.registrar-servers.com.",
+        "15 eforward4.registrar-servers.com.",
+        "20 eforward5.registrar-servers.com."
+      ]
+    },
+    "remainingNoCostDnsAction": {
+      "provider": "Namecheap",
+      "type": "MX",
+      "host": "send.contact",
+      "value": "feedback-smtp.ap-northeast-1.amazonses.com",
+      "priority": 10,
+      "ttl": "Automatic",
+      "warning": "Add this only at the send.contact subdomain; do not alter apex archestimator.com MX forwarding records for support@archestimator.com."
+    },
+    "remainingGaps": [
+      "Add missing send.contact MX.",
+      "Restart Resend domain verification after DNS propagation.",
+      "Run delivery and webhook event proof, or keep visible email workflows disabled for first owner-only beta."
+    ]
+  },
+  "codexSecurity": {
+    "dashboardBlockerOpen": true,
+    "latestKnownScanArtifact": "codex-security-dashboard-refresh-2026-06-04T0511Z.json",
+    "latestKnownSeverityBadges": {
+      "critical": 4,
+      "high": 6,
+      "medium": 31,
+      "low": 6
+    },
+    "directRlsFinding": {
+      "id": "1991e62ea7488191a1e48bbf1446b133",
+      "title": "Direct RLS grants bypass component price audit",
+      "fixProofArtifact": "component-price-audit-grants-2026-06-04.json",
+      "dashboardCloseSubmitted": false,
+      "reasonNotSubmitted": "Closing the finding in the UI is a live external dashboard state change requiring action-time confirmation."
+    },
+    "githubOpenIssues": 0,
+    "githubOpenPullRequests": 0,
+    "remainingGaps": [
+      "Codex Security rescan/closure or owner-accepted residual risk.",
+      "Dashboard close submission for already-fixed findings when action-time confirmation is available."
+    ]
+  },
+  "ownerSupportLegal": {
+    "supportEmailDns": "Apex Namecheap forwarding MX and DMARC are present; this does not prove monitored inbox review.",
+    "legalOwnerSignoff": false,
+    "supportMonitoringProof": false,
+    "feedbackMonitoringProof": false,
+    "remainingGaps": [
+      "Owner/legal signoff proof.",
+      "Support inbox monitored proof.",
+      "Feedback review queue monitored proof.",
+      "Alert/incident escalation monitored proof."
+    ]
+  },
+  "launchStatus": {
+    "cheapPathImplemented": true,
+    "domainServesBetaApp": true,
+    "ownerOnlyHostedSmokePartiallyProven": true,
+    "publicOrExternalClosedBetaGreen": false,
+    "reasonNotGreen": "The product can remain on the affordable Micro/PITR-off path, but external closed beta is still blocked by security dashboard state, hosted auth edge-case smoke, Resend domain/delivery proof if email is visible, rollback/legal/support monitoring proof, hosted export, and full hosted beta journey proof.",
+    "nextNoCostActions": [
+      "Add the Namecheap send.contact MX record and restart Resend verification.",
+      "Close/rescan already-fixed Codex Security findings after action-time confirmation or owner risk acceptance.",
+      "Run hosted denied/revoked/expired beta-auth smoke.",
+      "Run hosted authenticated export and full owner beta journey smoke.",
+      "Collect owner/legal/support/alert monitoring proof."
+    ]
+  },
+  "secretsRecorded": false
+}

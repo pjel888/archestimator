@@ -1,5 +1,22 @@
 # Current State
 
+**Cheap Beta Launch Audit (2026-06-04 07:35Z):**
+The affordable launch path is now the explicit current operating posture:
+Supabase stays on `MICRO`, PITR stays disabled, no new paid add-ons are enabled,
+and risky database work continues to avoid broad `supabase db push` while
+local/remote migration history has drift. Fresh read-only proof shows
+`https://www.archestimator.com/api/health` returns HTTP 200 with the
+Archestimator health JSON, apex health redirects to `www`, `/login` returns the
+app title, signed-out `/workshop` redirects to login, and Vercel Production still
+has the canonical env names for app URLs/origins, Supabase public/server keys,
+closed-beta flags, publication secrets, Resend, and AI-off flags. Supabase CLI
+lists project `ebxxqidacheyapmmzavr` as `Archestimator`, `ACTIVE_HEALTHY`,
+Postgres `17.6.1.121`, region `ap-southeast-2`; the immutable ref is not a
+launch blocker. Public DNS still lacks the required Resend `send.contact` MX,
+GitHub has no open issues/PRs, and Codex Security remains a launch blocker until
+dashboard findings are closed/rescanned or explicitly accepted. Proof artifact:
+`.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/cheap-beta-launch-audit-2026-06-04T0735Z.json`.
+
 **Supplemental Hosted Owner Profile Smoke (2026-06-04 07:22Z):**
 Chrome visual proof in the active hosted session shows
 `https://www.archestimator.com/workshop/settings/profile` rendering
