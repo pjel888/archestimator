@@ -104,6 +104,22 @@
           "share": "100%"
         }
       ]
+    },
+    "followUpObservedAt2026-06-04T1823Z": {
+      "source": "Computer Use on Vercel Analytics dashboard",
+      "environment": "all",
+      "dateRange": "Last 7 Days",
+      "online": 0,
+      "visitors": 2,
+      "pageViews": 6,
+      "bounceRate": "0%",
+      "countriesObserved": [
+        "Philippines",
+        "United States of America"
+      ],
+      "deviceClassObserved": "Desktop",
+      "routeDetailsRecorded": false,
+      "note": "The dashboard listed route rows, including share/workshop paths, but tokenized or private route details were intentionally not recorded."
     }
   },
   "currentAssessment": {

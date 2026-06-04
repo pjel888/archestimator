@@ -75,7 +75,7 @@ Current decision: **NO-GO**.
 | Component unlink cannot mutate library data | Yes | RPC/action/UI tests and manual library unchanged proof. | Local code/tests pass; linked/manual proof pending. | No-go |
 | Detached rows are clear to users | Yes | Row details copy/screenshot/manual QA. | Local UI coverage exists; screenshot/manual QA pending. | No-go |
 | Excel export is professional bid/BOQ workbook | Yes | Formula tests, reference contract, route-handler proof, large-fixture benchmark, Excel + secondary app open proof, hosted route timing. | Local ExcelJS/workbook tests, local route-handler workbook proof, and synthetic 2,500-row benchmark pass; cross-app open and hosted route proof pending. | No-go |
-| Resend delivery/webhook verified before visible email workflows are re-enabled | Yes | Domain DNS, delivery, webhook, bounce/complaint test. | Missing; recipient email controls now disable while server readiness is false, and Teamspaces invite delivery controls now disable while invite delivery readiness is false. | No-go |
+| Resend delivery/webhook verified before visible email workflows are re-enabled | Yes | Domain DNS, delivery, webhook, bounce/complaint test. | Provider DNS/domain/send/inbox/clickthrough and signed delivered-event webhook reconciliation now pass for the real shared-link email; bounce/complaint events were not manufactured for the owner-only beta proof. | Partial-go |
 | Legal pages accurate | Yes | Reviewed or closed-beta approved copy. | Local beta copy pass; owner/counsel sign-off pending. | No-go |
 | Support/feedback path exists | Yes | Contact/support inbox and beta bug report route. | Protected `/workshop/feedback` exists and can persist to `beta_feedback_submissions` after migration apply; public contact form opens a structured support email draft; monitored inbox/table proof pending. | No-go |
 | Observability/alerts configured | Yes | Error tracking, uptime, alert owner, export/auth/email alerts. | Local `/api/health` and runbook exist; deployed monitor/alert proof pending. | No-go |
@@ -99,7 +99,7 @@ Rules: below 90 cannot be called beta-ready; P0 below 95 blocks launch; 100 requ
 | Excel export | 92 | Professional workbook tests, generated XLSX artifact, ZIP integrity, no-blank-total scan, local route-handler workbook proof, and synthetic 2,500-row benchmark pass; cross-app open and hosted route proof remain. |
 | Auth/onboarding | 78 | Local beta gate coverage and signed-out redirect/login UI E2E pass; Vercel env is empty, so hosted callback and first-run smoke are blocked. |
 | Infrastructure/deployment | 76 | Latest app-runtime preview deploy `dpl_8cpgQgEtrAgo6P5gX1fn3LwBJzdS` is Ready and protected health works through `vercel curl`; env, public health, custom-domain app health, rollback, and linked Supabase proof remain blocked. |
-| Email/Resend | 70 | Code fails closed when unconfigured, shared-link recipient email controls disable while readiness is false, and Teamspaces invite controls disable while invite delivery readiness is false; DNS/delivery/webhook/provider proof still missing. |
+| Email/Resend | 88 | Code fails closed when unconfigured; provider DNS/domain/send/inbox/clickthrough and signed delivered-event webhook reconciliation now pass for the real shared-link email. Bounce/complaint events were not manufactured for the owner-only beta proof. |
 | Security/RLS | 70 | Local RLS/allowlist model exists; linked security advisor warns and linked denial/storage tests are missing. |
 | Legal/privacy | 82 | Local beta terms/privacy copy exists; owner/counsel review missing. |
 | Performance/caching | 65 | Current architecture plausible; export/route/load proof missing. |
@@ -121,7 +121,7 @@ Do not launch beta if:
 - Export cannot open cleanly in Excel and at least one secondary spreadsheet app.
 - Auth fails in production.
 - RLS/migrations are not verified.
-- Resend email delivery/webhook is unverified before invite/share email workflows are re-enabled.
+- Resend email delivery/webhook is unverified before invite/share email workflows are re-enabled, except the current owner-only beta proof now covers provider DNS/domain/send/inbox/clickthrough and signed delivered-event webhook reconciliation for the real shared-link email.
 - Legal pages are misleading.
 - No monitored support/feedback path exists. Local contact/support links, protected `/workshop/feedback`, and structured email draft handoff are not enough without linked migration, hosted smoke, inbox/table monitoring, and alert-owner proof.
 - No rollback plan exists.
@@ -154,7 +154,7 @@ Do not launch beta if:
 | --- | --- |
 | Vercel | Env vars, custom domain/SSL, preview/prod separation, rollback tested. |
 | Supabase | Auth callback URLs, migrations, RLS/storage proof, backup/PITR plan. |
-| Resend | Domain DNS, DKIM/SPF/DMARC, webhook secret, delivery proof. |
+| Resend | Domain DNS, DKIM/SPF/DMARC, webhook secret, delivery proof, and unforced bounce/complaint incident-path handling. |
 | Observability | Error tracking, uptime, slow route/export/auth/email alerts. |
 | CI | Release branch cannot pass while critical E2E specs silently skip. |
 
