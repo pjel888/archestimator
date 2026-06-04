@@ -45,6 +45,31 @@
   ],
   "openProofGaps": [
     "Codex Security dashboard rescan/closure remains pending.",
-    "Production deployment proof for the server-action service-role client is pending until this repo patch is committed, pushed, and served."
-  ]
+    "Hosted manual destructive-cleanup smoke against a disposable project remains pending."
+  ],
+  "repoCommit": "9fed643a745324e7b733ffe725f726b74e9eca99",
+  "productionDeployment": {
+    "verifiedAt": "2026-06-04T03:17:37Z",
+    "command": "vercel deploy --prod --yes",
+    "id": "dpl_CyfR2LA7vMLqR9sDMncgxbgVbcRj",
+    "url": "https://archestimator-bssps9fmb-philipjonlewis-projects.vercel.app",
+    "readyState": "READY",
+    "target": "production",
+    "aliases": [
+      "https://www.archestimator.com",
+      "https://archestimator.com",
+      "https://archestimator.vercel.app"
+    ],
+    "healthCheck": {
+      "url": "https://www.archestimator.com/api/health",
+      "httpStatus": 200,
+      "bodyOk": true,
+      "service": "archestimator"
+    },
+    "apexRedirect": {
+      "checkedUrl": "https://archestimator.com/login",
+      "httpStatus": 307,
+      "location": "https://www.archestimator.com/login"
+    }
+  }
 }
