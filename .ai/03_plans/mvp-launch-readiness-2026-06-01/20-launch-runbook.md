@@ -51,7 +51,7 @@ All of these must be complete before beta/investor launch:
 2. `14-evidence-index.md` contains current command results and manual proof artifacts.
 3. `AI-001` proves Ask Flip hidden and AI routes fail closed by default.
 4. `SEC-001` proves RLS/storage/API route boundaries.
-5. `EXP-001` produces a verified bid/BOQ workbook artifact.
+5. `EXP-001` produces a verified fresh bid/BOQ workbook export.
 6. `LEGAL-001`, `OBS-001`, and `DATA-001` have owner sign-off.
 
 ## Local Validation Baseline

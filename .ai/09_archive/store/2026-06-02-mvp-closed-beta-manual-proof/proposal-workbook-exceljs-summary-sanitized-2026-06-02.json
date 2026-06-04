@@ -1,7 +1,10 @@
 {
   "generatedAt": "2026-06-02T05:30:00.000Z",
-  "workbookPath": ".ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/lewis-residence-demo-proposal-2026-06-02.xlsx",
-  "byteLength": 13234,
+  "sanitizedAt": "2026-06-04T01:05:00.000Z",
+  "rawWorkbookRetained": false,
+  "rawPreviewRetained": false,
+  "redactionReason": "Raw workbook and Quick Look preview were removed from the repository because committed proposal artifacts can contain client-identifying estimate data.",
+  "originalByteLength": 13234,
   "worksheets": [
     "Bid Form",
     "Summary",
@@ -37,16 +40,16 @@
     "copies": 1,
     "printTitlesRow": "17:17"
   },
-  "firstDataLineTotal": {
+  "firstDataLineTotalFormulaReadback": {
     "formula": "IF(OR(I19=\"EXCLUDED\",I19=\"BY OTHERS\",I19=\"OWNER SUPPLIED\",I19=\"OSM\",I19=\"OFCI\",I19=\"OSCI\",I19=\"OMITTED\",I19=\"NOT APPLICABLE\"),0,D19*G19+0)",
-    "result": 25000
+    "hadCachedResult": true
   },
-  "firstSectionSubtotal": {
+  "firstSectionSubtotalFormulaReadback": {
     "formula": "IF(OR(I23=\"EXCLUDED\",I23=\"BY OTHERS\",I23=\"OWNER SUPPLIED\",I23=\"OSM\",I23=\"OFCI\",I23=\"OSCI\",I23=\"OMITTED\",I23=\"NOT APPLICABLE\"),0,D23*G23+250)",
-    "result": 6730
+    "hadCachedResult": true
   },
-  "summaryGrandTotal": {
+  "summaryGrandTotalFormulaReadback": {
     "formula": "B27+B28+B29",
-    "result": 55230
+    "hadCachedResult": true
   }
 }

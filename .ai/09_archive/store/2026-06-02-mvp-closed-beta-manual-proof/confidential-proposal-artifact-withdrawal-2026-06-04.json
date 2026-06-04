@@ -1,0 +1,40 @@
+{
+  "generatedAt": "2026-06-04T00:54:07Z",
+  "status": "partial_repo_remediation_pending_cloud_rescan",
+  "finding": "Confidential client proposal committed to repository",
+  "actions": [
+    {
+      "action": "removed_raw_workbook_from_current_tree",
+      "path": ".ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/lewis-residence-demo-proposal-2026-06-02.xlsx"
+    },
+    {
+      "action": "removed_rendered_quicklook_preview_from_current_tree",
+      "path": ".ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/spreadsheet-quicklook-preview-2026-06-02/lewis-residence-demo-proposal-2026-06-02.xlsx.png"
+    },
+    {
+      "action": "renamed_and_sanitized_readback_summary",
+      "path": ".ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/proposal-workbook-exceljs-summary-sanitized-2026-06-02.json"
+    },
+    {
+      "action": "updated_launch_docs_to_require_fresh_authorized_exports_instead_of_committed_raw_workbooks",
+      "paths": [
+        ".ai/03_plans/mvp-launch-readiness-2026-06-01/14-evidence-index.md",
+        ".ai/03_plans/mvp-launch-readiness-2026-06-01/46-manual-proof-matrix.md",
+        ".ai/03_plans/mvp-launch-readiness-2026-06-01/47-goal-completion-audit.md",
+        ".ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/README.md"
+      ]
+    }
+  ],
+  "retainedEvidence": [
+    "sanitized ExcelJS worksheet and print setup readback",
+    "historical formula readback without exact cached totals",
+    "route-handler and benchmark tests for current workbook generation"
+  ],
+  "notPerformed": [
+    "git history purge or force-push",
+    "Codex Security cloud rescan",
+    "fresh hosted authenticated export proof",
+    "Excel or secondary spreadsheet open/print proof"
+  ],
+  "historyPurgeNote": "The current tree no longer contains the raw workbook or rendered preview. Removing the artifact from prior git history would require a deliberate destructive history rewrite and coordinated force-push, so it was not performed autonomously."
+}

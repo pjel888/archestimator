@@ -93,7 +93,7 @@ Hosted auth/RLS/Resend/deployment proof missing, E2E/manual smoke unproven, spre
 4. Spreadsheet open/print QA for the workbook.
 5. Resend delivery/webhook proof before email-dependent workflows are re-enabled.
 6. Owner/counsel review of beta legal copy and monitored support inbox/table proof.
-7. Demo workspace/script rehearsal, hosted screenshots, and spreadsheet-app validated workbook fallback artifact. Local component/template screenshots, workbook artifact, and template insertion smoke proof now exist, but they do not prove the hosted demo.
+7. Demo workspace/script rehearsal, hosted screenshots, and spreadsheet-app validated fresh workbook export. Local component/template screenshots, sanitized workbook readback, and template insertion smoke proof now exist, but they do not prove the hosted demo.
 
 ## Readiness Scorecard
 

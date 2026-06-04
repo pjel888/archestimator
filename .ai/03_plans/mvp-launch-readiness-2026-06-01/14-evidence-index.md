@@ -605,7 +605,7 @@
 - `supabase/seed.sql` now seeds five estimate row items for the local `Archestimator Demo Workspace` / `Lewis Residence` / `Lewis Residence Baseline Estimate`.
 - Seed rows include manual `unlinked` rows, one `linked-clean` tile row tied to the demo library item, and one `detached` project-specific paint row with preserved `source_snapshot`.
 - `28-investor-incubator-demo-readiness-plan.md` now names exact local seed anchors, the linked row, the detached row, and a rehearsal checklist that keeps Ask Flip, billing, provider dashboards, and real customer data out of the demo.
-- `12-final-mvp-launch-gate.md`, `36-final-executive-launch-brief.md`, and `43-closed-beta-readiness-scorecard.md` now credit demo seed anchors while preserving no-go status until live rehearsal, screenshots, and workbook artifact proof exist.
+- `12-final-mvp-launch-gate.md`, `36-final-executive-launch-brief.md`, and `43-closed-beta-readiness-scorecard.md` now credit demo seed anchors while preserving no-go status until live rehearsal, screenshots, and fresh authorized workbook proof exist.
 - Focused evidence: `bun run test:dom tests/vitest/demo-seed-readiness.test.ts` passed 1 file / 3 tests.
 - Adjacent docs evidence: `bun run test:dom tests/vitest/demo-seed-readiness.test.ts tests/vitest/closed-beta-readiness-docs.test.ts` passed 2 files / 7 tests.
 - `bun run type-check` passed.
@@ -615,7 +615,7 @@
 - `git diff --check` passed.
 - Post-edit code-review-graph `detect_changes` against `HEAD` analyzed 8 staged changed files, 4 changed functions/classes from the source-contract tests, 0 affected flows, 0 test gaps, and overall risk score 0.30.
 - Post-edit GitNexus `detect-changes --repo archestimator --scope staged` reported no code changes detected for this seed/docs/test staged set.
-- Live demo account, allowlist entry, hosted auth smoke, screenshots, and validated workbook artifact remain external/manual gates.
+- Live demo account, allowlist entry, hosted auth smoke, screenshots, and validated fresh workbook export remain external/manual gates.
 
 ### BASELINE-REFRESH After DEMO-001 Seed Evidence
 
@@ -799,25 +799,25 @@
 ### Demo Rehearsal Fallback Pack
 
 - Artifact: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/demo-rehearsal-fallback-pack-2026-06-02.md`.
-- Scope: local fallback packet assembled from existing seed anchors, screenshots, template insertion proof, and workbook artifact.
-- Assets referenced: `lewis-residence-demo-proposal-2026-06-02.xlsx`, `component-library-demo-smoke-2026-06-02.png`, `template-library-demo-smoke-2026-06-02.png`, and `template-insert-local-smoke-2026-06-02.png`.
+- Scope: local fallback packet assembled from existing seed anchors, screenshots, template insertion proof, and sanitized workbook readback evidence.
+- Assets referenced: `proposal-workbook-exceljs-summary-sanitized-2026-06-02.json`, `component-library-demo-smoke-2026-06-02.png`, `template-library-demo-smoke-2026-06-02.png`, and `template-insert-local-smoke-2026-06-02.png`.
 - Script coverage: fallback narrative, component trust fields, template preview, template insertion proof, workbook readback, project-specific safety caveat, and closed-beta posture.
 - Launch meaning: this improves the investor/incubator fallback packet, but it is not a live hosted rehearsal. Hosted reviewer account, allowlist proof, target-environment screenshots, spreadsheet-app open/print proof, and owner demo sign-off remain required.
 
 ### Spreadsheet Artifact Local Evidence
 
 - Artifact note: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/spreadsheet-artifact-local-2026-06-02.md`.
-- Workbook artifact: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/lewis-residence-demo-proposal-2026-06-02.xlsx`.
-- ExcelJS summary: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/lewis-residence-demo-proposal-2026-06-02.exceljs-summary.json`.
-- Quick Look preview artifact: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/spreadsheet-quicklook-preview-2026-06-02.md` plus `spreadsheet-quicklook-preview-2026-06-02/lewis-residence-demo-proposal-2026-06-02.xlsx.png`.
+- Raw workbook artifact: withdrawn from git on 2026-06-04 because committed proposal workbooks can contain client-identifying estimate data.
+- ExcelJS summary: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/proposal-workbook-exceljs-summary-sanitized-2026-06-02.json`.
+- Quick Look preview artifact: historical note only at `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/spreadsheet-quicklook-preview-2026-06-02.md`; raw preview PNG withdrawn from git on 2026-06-04.
 - App availability refresh: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/spreadsheet-app-availability-refresh-2026-06-02.md`.
 - Large-fixture benchmark: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/proposal-workbook-large-fixture-benchmark-2026-06-02.md` plus `proposal-workbook-large-fixture-benchmark-2026-06-02.json`.
 - Benchmark regression coverage: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/proposal-workbook-benchmark-regression-coverage-2026-06-02.md`.
 - Local route-handler workbook proof: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/proposal-export-route-workbook-local-2026-06-02.md`.
 - SHA-256: `1b7625fedbcc1855ace1e07add53aa4d90c2a9dd9ff3a1347f11cb0018ab7b48`.
-- Generation path: `buildProposalExportModel()` plus `createProposalWorkbookBuffer()` using a local Lewis Residence demo payload.
+- Generation path: `buildProposalExportModel()` plus `createProposalWorkbookBuffer()` using a local demo payload.
 - Integrity checks: `file` reported `Microsoft Excel 2007+`; `unzip -t` found no compressed-data errors; ExcelJS loaded `Bid Form`, `Summary`, `Commercial Terms`, and `Source Breakdown`.
-- Formula/blank-total checks: ExcelJS readback found `blankLineTotalRows: []` and summary grand total formula `B27+B28+B29` with result `55230`.
+- Formula/blank-total checks: ExcelJS readback found `blankLineTotalRows: []` and summary grand total formula `B27+B28+B29`; exact cached totals were removed from the retained sanitized summary.
 - Focused export tests: `bun run test:dom tests/vitest/proposal-workbook.test.ts tests/vitest/proposal-export-model.test.ts tests/vitest/proposal-export-route.test.ts tests/vitest/proposal-export-preview.test.tsx` passed 4 files / 15 tests.
 - Local route-handler proof: `bunx vitest run tests/vitest/proposal-export-route-workbook.test.ts tests/vitest/proposal-export-route.test.ts tests/vitest/proposal-workbook.test.ts --maxWorkers=1` passed 3 files / 9 tests; the new route test mocks only the repository and verifies the actual route returns loadable XLSX bytes with formulas and all four workbook sheets.
 - Large-fixture benchmark result: synthetic 500 / 1,000 / 2,500 row proposal models generated buffers in 148.12ms / 165.56ms / 362.06ms, with the 2,500-row buffer at 402,284 bytes (0.38 MiB), local RSS at 270.56 MiB, and local heap used at 76.65 MiB.

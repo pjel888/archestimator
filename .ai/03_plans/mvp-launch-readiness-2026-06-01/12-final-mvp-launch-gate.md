@@ -80,7 +80,7 @@ Current decision: **NO-GO**.
 | Support/feedback path exists | Yes | Contact/support inbox and beta bug report route. | Protected `/workshop/feedback` exists and can persist to `beta_feedback_submissions` after migration apply; public contact form opens a structured support email draft; monitored inbox/table proof pending. | No-go |
 | Observability/alerts configured | Yes | Error tracking, uptime, alert owner, export/auth/email alerts. | Local `/api/health` and runbook exist; deployed monitor/alert proof pending. | No-go |
 | Backup/rollback plan proven | Yes | Backup proof, migration rollback, Vercel rollback, restore plan. | Backup/restore checklist exists; provider proof pending. | No-go |
-| Investor demo pack ready | Yes for demo | Demo workspace, script, screenshots, export artifact, fallback. | Local seed/demo script anchors, component/template screenshots, workbook artifact, and template insertion proof exist; rehearsal and hosted proof pending. | No-go |
+| Investor demo pack ready | Yes for demo | Demo workspace, script, screenshots, sanitized export readback, fallback. | Local seed/demo script anchors, component/template screenshots, sanitized workbook readback, and template insertion proof exist; raw workbook artifacts are not retained in git; rehearsal and hosted proof pending. | No-go |
 | Beta program ready | Yes for beta | Cohort, onboarding email, SLA, feedback loop, known limits. | Partial/docs: `40-closed-beta-operations-runbook.md` and `29-beta-program-readiness-plan.md` document add/revoke/manual invite/access verification/feedback triage/pause/rollback/24-72h monitoring procedures; hosted ops proof, monitoring ownership, legal sign-off, and live beta evidence remain missing. | No-go |
 
 Local update 2026-06-02: visible pricing/payment copy is no longer a local no-go. `/pricing`, landing pricing, and FAQ now state closed beta / invite-only / no payment required / pricing after beta, with `closed-beta-pricing-copy` test coverage. Overall launch remains **NO-GO** because the other P0 rows above are still unproven.
@@ -105,7 +105,7 @@ Rules: below 90 cannot be called beta-ready; P0 below 95 blocks launch; 100 requ
 | Performance/caching | 65 | Current architecture plausible; export/route/load proof missing. |
 | Observability/support | 82 | Local health route, support runbook, and protected feedback-table path exist; external alert/monitoring proof missing. |
 | QA/test coverage | 82 | Local type/lint/unit/DOM/build pass; hosted/manual E2E proof missing. |
-| Investor demo readiness | 82 | Local seed/demo plan anchors, fallback workbook artifact, library/template screenshots, and insertion smoke proof exist; rehearsal proof remains missing. |
+| Investor demo readiness | 82 | Local seed/demo plan anchors, sanitized fallback workbook readback, library/template screenshots, and insertion smoke proof exist; rehearsal proof remains missing. |
 | Beta readiness | 40 | P0 legal/security/ops/product gates are unproven. |
 
 ## Explicit Launch No-Go Rules
