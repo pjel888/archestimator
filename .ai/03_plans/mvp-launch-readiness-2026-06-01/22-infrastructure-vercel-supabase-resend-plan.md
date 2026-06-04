@@ -1,5 +1,28 @@
 # Infrastructure, Vercel, Supabase, and Resend Plan
 
+## Production Shared-Link Email Guard Refresh - 2026-06-04 15:32Z
+
+- Current production deployment is `dpl_4eM4pVfRPqXfHtspTFNaKhNFDJFZ`
+  (`archestimator-3torz4dzn-philipjonlewis-projects.vercel.app`), Ready, and
+  aliased to both `www.archestimator.com` and `archestimator.com`.
+- The deployment contains commit `19c6b90`, which prevents project owners from
+  sending shared-link recipient emails to the same email used for their signed-in
+  account.
+- Hosted Chrome proof on the production `Tropical House` shared-link modal showed
+  a self-invite attempt for `philipjonlewis@gmail.com` blocked with
+  `You cannot invite your own sign-in email to this shared link.` while `Send to
+  0 recipients` stayed disabled.
+- The same hosted modal accepted `lewisphilipjonechavez@gmail.com`, sent the
+  invite, and showed `Added 1 recipient(s). 1 email(s) dispatched (failures are
+  non-fatal).` Read-only Supabase proof shows a `sent` recipient row with a
+  redacted Resend message id.
+- Proof artifact:
+  `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/hosted-shared-link-recipient-email-self-invite-guard-2026-06-04T1532Z.json`.
+- Remaining email lifecycle proof gaps: alternate recipient inbox receipt,
+  recipient clickthrough/open, and Resend delivered/bounce/complaint webhook
+  reconciliation. No full public share URL, recipient token, token hash, webhook
+  secret, or Resend API key was recorded.
+
 ## Production Resend-Enabled Deploy / Hosted Auth Refresh - 2026-06-04 13:11Z
 
 - Current production deployment is `dpl_2X6FytZUnK5ZaNsszVN4W8Wh6bXm`
@@ -118,7 +141,7 @@ Commit audited: `681c95e64864f283950a88dba304eaffe8f2f8b3`
 | Supabase RLS | Migrations enable policies. | Linked/staging allow/deny proof missing. |
 | Storage | Component images remain the public bucket surface while project covers now upload to private `project-images` and serve through authenticated `/api/projects/images`; linked readback proves private bucket policy, 6 migrated objects, 0 remaining public project-image objects, 3 project metadata rows rewritten to private route URLs, and old public object access returning `Object not found`. | Component attachment bucket handling and hosted signed-in image-view smoke remain useful follow-up proof. |
 | Realtime | No launch-critical realtime dependency identified. | If enabled later, document channels and rate limits. |
-| Resend | Client and Svix webhook route exist; unconfigured production-like sends fail closed, shared-link recipient controls disable while server readiness is false, and Teamspaces invite controls disable while invite delivery readiness is false. Vercel now has `RESEND_API_KEY`, `RESEND_FROM`, `RESEND_REPLY_TO`, `RESEND_WEBHOOK_SECRET`, and `ARCHESTIMATOR_EMAIL_DELIVERY_ENABLED` for Production and Preview(main). `resend-domain-verified-email-enabled-2026-06-04T1235Z.json` records Namecheap DNS repair, Resend domain `Verified`, a successful production-env send probe, webhook dashboard endpoint enabled, and live webhook signature-verification reachability. `resend-owner-inbox-receipt-2026-06-04T1348Z.json` records owner-reported receipt of the verified smoke email in `philipjonlewis@gmail.com`. | Full hosted shared-link/invite email workflow smoke remains open before relying on automatic email UX. |
+| Resend | Client and Svix webhook route exist; unconfigured production-like sends fail closed, shared-link recipient controls disable while server readiness is false, and Teamspaces invite controls disable while invite delivery readiness is false. Vercel now has `RESEND_API_KEY`, `RESEND_FROM`, `RESEND_REPLY_TO`, `RESEND_WEBHOOK_SECRET`, and `ARCHESTIMATOR_EMAIL_DELIVERY_ENABLED` for Production and Preview(main). `resend-domain-verified-email-enabled-2026-06-04T1235Z.json` records Namecheap DNS repair, Resend domain `Verified`, a successful production-env send probe, webhook dashboard endpoint enabled, and live webhook signature-verification reachability. `resend-owner-inbox-receipt-2026-06-04T1348Z.json` records owner-reported receipt of the verified smoke email in `philipjonlewis@gmail.com`. `hosted-shared-link-recipient-email-self-invite-guard-2026-06-04T1532Z.json` records production shared-link self-invite blocking and alternate-recipient app-level send dispatch. | Alternate recipient inbox receipt, recipient clickthrough/open, and delivered/bounce/complaint webhook reconciliation remain open before calling the full automatic email lifecycle green. |
 | Env separation | CI exists; Production and Preview(`main`) have the current closed-beta env-name set. | Staging/non-main preview matrix, secret value proof by provider UI, redeploy proof, and rollback proof still missing. |
 
 ## Required Vercel Env Vars

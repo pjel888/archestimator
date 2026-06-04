@@ -1,5 +1,31 @@
 # Evidence Index
 
+## Hosted Shared-Link Email Self-Invite Guard - 2026-06-04 15:32Z
+
+- Primary artifact:
+  `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/hosted-shared-link-recipient-email-self-invite-guard-2026-06-04T1532Z.json`.
+- Deployment proof: Vercel production deployment
+  `dpl_4eM4pVfRPqXfHtspTFNaKhNFDJFZ` was Ready and aliased to
+  `www.archestimator.com`, `archestimator.com`, and `archestimator.vercel.app`
+  after commit `19c6b90`; `https://www.archestimator.com/api/health` returned
+  HTTP 200.
+- Browser proof: Chrome extension control against the owner session opened the
+  hosted `Tropical House` shared-link modal. Attempting to add the signed-in
+  owner email `philipjonlewis@gmail.com` showed `You cannot invite your own
+  sign-in email to this shared link.` and kept `Send to 0 recipients` disabled.
+- Send proof: the same hosted modal accepted `lewisphilipjonechavez@gmail.com`,
+  changed `Send to 1 recipient` to a completed `sent` row, and displayed
+  `Added 1 recipient(s). 1 email(s) dispatched (failures are non-fatal).`
+  Supabase read-only SQL confirmed a `sent` recipient row with a redacted Resend
+  message id; token/hash/encrypted-token columns were intentionally excluded.
+- Boundary: this proves the self-invite guard and app-level shared-link email
+  dispatch. It does not prove inbox receipt for
+  `lewisphilipjonechavez@gmail.com`, recipient clickthrough/open, or Resend
+  delivered/bounce webhook reconciliation.
+- Result: the self-invite defect is closed and the hosted shared-link send smoke
+  is a partial pass. The full automatic email lifecycle still needs the recipient
+  receipt/clickthrough/webhook evidence above before it can be called fully green.
+
 ## Hosted Logout Session Proof - 2026-06-04 14:36Z
 
 - Primary artifact:

@@ -26,7 +26,11 @@
   `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/live-closed-beta-refresh-2026-06-04T1006Z.json`.
 - External closed beta remains not fully green because denied/revoked/expired
   hosted auth smoke, spreadsheet-app open/print proof if required for beta, and
-  hosted shared-link/invite email workflow smoke remain open. Owner logout is
+  full shared-link recipient inbox/clickthrough/webhook proof remain open. The
+  hosted shared-link self-invite guard and alternate-recipient send dispatch are
+  proven by
+  `hosted-shared-link-recipient-email-self-invite-guard-2026-06-04T1532Z.json`.
+  Owner logout is
   proven by `hosted-logout-session-proof-2026-06-04T1436Z.json`; expired-session
   proof remains a separate auth edge case. Residual Codex Security history-exposure findings are now
   owner-accepted only for the current single-owner beta, not fixed or public-launch
@@ -70,8 +74,12 @@
   `philipjonlewis@gmail.com` received the smoke email with subject
   `Archestimator Resend verified smoke 2026-06-04T12:28:05.608Z`. Resend is now
   ready at domain, provider-send, webhook-route, Vercel-flag, and owner-inbox
-  receipt level; only the app-level shared-link/invite email workflow smoke
-  remains open before relying on automatic email UX.
+  receipt level. The app-level shared-link email dispatch smoke is partially
+  proven by
+  `hosted-shared-link-recipient-email-self-invite-guard-2026-06-04T1532Z.json`;
+  remaining automatic-email proof gaps are alternate-recipient inbox receipt,
+  recipient clickthrough/open, and Resend delivered/bounce/complaint webhook
+  reconciliation.
 
 ## Codex Cloud Security Findings Cheap-Path Closures - OPEN RESIDUALS
 
@@ -274,7 +282,7 @@
 - Demo rehearsal fallback evidence on 2026-06-02 assembles seed anchors, local screenshots, local template insertion proof, sanitized workbook readback, and a fallback script, but it is not a live rehearsal pass. The raw generated workbook is no longer retained in git. Hosted reviewer account proof, allowlist proof, target-environment screenshots, spreadsheet-app open/print proof, live rehearsal timing, and owner sign-off remain missing.
 - Legal/owner readiness helper evidence on 2026-06-02 is negative/blocked: `legal-owner-readiness-ede0f32-2026-06-02.json`, `legal-owner-readiness-5fa0ac1-2026-06-02.json`, `legal-owner-readiness-b74baea-2026-06-02.json`, `legal-owner-readiness-6556584-2026-06-02.json`, and latest `legal-owner-readiness-874e645-2026-06-02.json` report `legalOwnerReady: false`, all proof flags false, product owner / legal reviewer / approval date / approval reference missing, and 9 missing checks. This is repeatable parser/operator-label proof only; owner/counsel sign-off, legal review, contract inspection, and public launch approval remain unproven.
 - Support email DNS evidence is partially updated. Historical 2026-06-02 refreshes proved `archestimator.com` had registrar email-forwarding MX records and SPF forwarding TXT but no DMARC; fresh 2026-06-04 evidence in `resend-sender-dns-cheap-path-2026-06-04T0826Z.json` now sees apex `_dmarc` TXT `v=DMARC1; p=none;`, the same five `eforward*.registrar-servers.com` MX hosts, and Resend SPF/DKIM TXT records for the sender path. It still does not prove `support@archestimator.com` is monitored, that a support form delivers messages, or that alerts/incidents have an owner.
-- Resend sender-domain verification is no longer blocked on the cheaper DNS path. Fresh 2026-06-04 proof in `resend-domain-verified-email-enabled-2026-06-04T1235Z.json` records Namecheap authoritative MX/TXT readiness, Resend domain status `Verified`, a successful production-env send probe, Vercel `ARCHESTIMATOR_EMAIL_DELIVERY_ENABLED="true"` / `CLOSED_BETA_ACCESS_ENABLED="true"` flags for Production and Preview(main), and webhook signature-verification reachability. Hosted shared-link/invite email workflow smoke remains a full-journey proof gap, not a DNS/provider setup blocker.
+- Resend sender-domain verification is no longer blocked on the cheaper DNS path. Fresh 2026-06-04 proof in `resend-domain-verified-email-enabled-2026-06-04T1235Z.json` records Namecheap authoritative MX/TXT readiness, Resend domain status `Verified`, a successful production-env send probe, Vercel `ARCHESTIMATOR_EMAIL_DELIVERY_ENABLED="true"` / `CLOSED_BETA_ACCESS_ENABLED="true"` flags for Production and Preview(main), and webhook signature-verification reachability. Hosted shared-link self-invite blocking and alternate-recipient send dispatch are proven in `hosted-shared-link-recipient-email-self-invite-guard-2026-06-04T1532Z.json`; alternate recipient inbox receipt, recipient clickthrough/open, and Resend delivered/bounce/complaint webhook reconciliation remain full-lifecycle proof gaps, not DNS/provider setup blockers.
 - Support monitoring readiness helper evidence on 2026-06-02 is negative/blocked: `support-monitoring-readiness-c9c1141-2026-06-02.json`, `support-monitoring-readiness-5fa0ac1-2026-06-02.json`, `support-monitoring-readiness-453ac68-2026-06-02.json`, `support-monitoring-readiness-8f9b11d-2026-06-02.json`, and latest `support-monitoring-readiness-0acf1d1-2026-06-02.json` report `supportMonitoringReady: false`, all proof flags false, all owner labels missing, and 9 missing checks. This is repeatable parser/operator-label proof only; monitored inbox access, linked feedback review cadence, alert dashboards, incident escalation delivery, hosted auth, and real support operations remain unproven.
 - Beta operations runbook evidence on 2026-06-02 proves add/revoke/manual invite/access verification/feedback triage/pause/rollback/24-72h monitoring procedures are documented, but it does not prove hosted ops smoke, linked migration availability, monitored support/feedback ownership, alert ownership, rollback rehearsal, legal sign-off, or live beta operation readiness.
 - **Collaboration invite system is config-blocked / non-functional.** Supabase Auth email provider not configured. Fresh env check on 2026-05-31 found `.env.local` has Supabase URL/anon/service-role entries but no `PROJECT_INVITE_ENTRY_ENABLED` or `ARCHESTIMATOR_INVITE_TOKEN_PEPPER`; the current shell environment also lacks the invite flag and pepper. `.env.example` now documents safe disabled/empty defaults, local config parsing fail-closes unless the pepper is a 64-character hex secret, disabled invite-entry actions report direct grants/new-user disabled-link states honestly, and the Teamspaces modal now disables project/sheet invite plus pending resend/copy controls while invite delivery readiness is false. Invite acceptance is POST-only locally, but live readiness still requires provider/env proof and fail-closed production smoke. Old auto-grant RPC deliberately disabled. See `.ai/03_plans/share-and-collaboration-implementation/`.

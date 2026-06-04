@@ -1,5 +1,22 @@
 # Current State
 
+**Hosted Shared-Link Email Guard And Alternate Send (2026-06-04 15:32Z):**
+Production is redeployed from `main` at commit `19c6b90` as Vercel deployment
+`dpl_4eM4pVfRPqXfHtspTFNaKhNFDJFZ`
+(`archestimator-3torz4dzn-philipjonlewis-projects.vercel.app`) and is Ready.
+Vercel aliases include both `https://www.archestimator.com` and
+`https://archestimator.com`; `https://www.archestimator.com/api/health` returns
+HTTP 200. Chrome proof against the hosted `Tropical House` shared-link modal
+shows the signed-in owner email `philipjonlewis@gmail.com` is blocked with
+`You cannot invite your own sign-in email to this shared link.` and `Send to 0
+recipients` stays disabled. The same hosted modal sent an alternate shared-link
+recipient invite to `lewisphilipjonechavez@gmail.com`, and read-only Supabase
+proof shows the row as `sent` with a redacted Resend message id. Proof artifact:
+`.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/hosted-shared-link-recipient-email-self-invite-guard-2026-06-04T1532Z.json`.
+This closes the self-invite defect and proves app-level shared-link send
+dispatch. It does not prove alternate-recipient inbox receipt, recipient
+clickthrough/open, or Resend delivered/bounce/complaint webhook reconciliation.
+
 **Production Resend-Enabled Deploy And Hosted Owner Journey (2026-06-04 13:28Z):**
 Production is now redeployed from `main` at commit `083bf97` as Vercel
 deployment `dpl_2X6FytZUnK5ZaNsszVN4W8Wh6bXm`
@@ -28,8 +45,8 @@ history-risk is owner-accepted for this single-owner beta by
 `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/codex-security-history-risk-owner-acceptance-2026-06-04T1414Z.json`,
 without claiming the findings are fixed or the dashboard fully green. Hosted
 denied/revoked/expired auth, spreadsheet-app open/print proof if required for
-beta, and hosted shared-link/invite email workflow smoke remain the main open
-proof gaps; owner logout is proven by
+beta, and full recipient inbox/clickthrough/webhook proof remain the main open
+proof gaps after the later shared-link send smoke; owner logout is proven by
 `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/hosted-logout-session-proof-2026-06-04T1436Z.json`.
 
 **Owner Signoff And Resend Email Enablement (2026-06-04 12:35Z):**
