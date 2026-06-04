@@ -74,6 +74,18 @@
     "allowedGoogleSessionPassed": true,
     "deniedRevokedExpiredSmokePassed": false
   },
+  "security": {
+    "codexSecurityDashboardArtifact": "codex-security-dashboard-refresh-2026-06-04T0405Z.json",
+    "findingsCountLine": "1-20 of 43",
+    "scansStatus": "Waiting for new commits",
+    "lastScannedCommitShort": "28601375",
+    "latestLocalHeadShort": "6297cec",
+    "latestHeadWasScanned": false,
+    "githubOpenPullRequests": 0,
+    "githubOpenIssues": 0,
+    "githubNewCommentsSince2026-06-04": 0,
+    "result": "codex_security_still_open_last_scan_behind_head"
+  },
   "remainingNoCostBlockers": [
     "Hosted Google OAuth denied/revoked/expired browser smoke",
     "Codex Security dashboard rescan or owner acceptance for remaining findings",

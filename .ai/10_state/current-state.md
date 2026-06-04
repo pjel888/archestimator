@@ -21,6 +21,12 @@ does not hit login or beta-access-required controls. Support DNS
 MX/SPF/DMARC is green. Vercel has all Resend env names, but a local read-only
 Resend provider API probe returned HTTP 401 for both `/domains` and `/webhooks`,
 so Resend still lacks dashboard/API sending-domain, webhook, and delivery proof.
+Codex Security browser refresh at `2026-06-04T04:05:09.942Z` still shows
+`1-20 of 43` findings; the Scans page says `Waiting for new commits` and last
+scanned commit `28601375`, behind latest pushed `main` head `6297cec`. GitHub
+shows no open PRs, no open issues, no new comments since June 4, and no
+check-runs/status contexts on the latest commit. Proof artifact:
+`.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/codex-security-dashboard-refresh-2026-06-04T0405Z.json`.
 This is still not a fully green
 beta launch: Codex Security rescan/owner acceptance, hosted Google OAuth
 denied/revoked/expired smoke, rollback drill or owner acceptance, legal/owner
@@ -82,11 +88,12 @@ Google session proof in
 deployment `dpl_CyfR2LA7vMLqR9sDMncgxbgVbcRj` serving
 `archestimator.com` / `www.archestimator.com`, `www` health returning HTTP 200,
 core/email/invite env names present in Vercel production, 19 Ready rollback
-candidates available, and rollback still undrilled. Remaining no-cost blockers
-are Codex Security rescan/owner acceptance, hosted Google OAuth
-denied/revoked/expired smoke, rollback drill if accepted, Resend
-domain/webhook/delivery proof (local provider API key currently returns HTTP
-401), legal/owner signoff,
+candidates available, rollback still undrilled, and Codex Security still open
+with `1-20 of 43` findings while Scans last scanned `28601375`, not latest
+`6297cec`. Remaining no-cost blockers are Codex Security rescan/owner
+acceptance, hosted Google OAuth denied/revoked/expired smoke, rollback drill if
+accepted, Resend domain/webhook/delivery proof (local provider API key currently
+returns HTTP 401), legal/owner signoff,
 support/alert-monitoring proof, hosted authenticated export, and full hosted
 beta journey proof.
 
