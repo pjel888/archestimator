@@ -1,0 +1,75 @@
+{
+  "artifact": "codex-security-chart-xlsx-finding-close-2026-06-04T0649Z",
+  "created_at_utc": "2026-06-04T06:49:28Z",
+  "created_at_local": "2026-06-04T14:49:28+08:00",
+  "finding": {
+    "title": "Unbounded chart and XLSX export loading can exhaust server resources",
+    "id": "bea3b0866e44819193f3da54b6124e16",
+    "severity": "medium",
+    "old_commit": "87c2ffa8949d654315cbd812e5b713fe8e38e98e",
+    "repository": "pjel888/archestimator"
+  },
+  "dashboard_action": {
+    "status": "closed",
+    "reason": "Already fixed",
+    "closed_by": "philipjonlewis@gmail.com",
+    "closure_url": "https://chatgpt.com/codex/cloud/security/findings/bea3b0866e44819193f3da54b6124e16?repo=pjel888%2Farchestimator",
+    "direct_revisit_result": "Revisiting the original finding shows a Reopen control.",
+    "open_list_after": "The first page no longer includes the chart/XLSX finding, still shows 1-20 of 35, and pulled Confidential client proposal committed to repository into the visible page.",
+    "submitted_context_summary": [
+      "Current main bc19695b8b830cb10c94d9e04e01074913352d76 was ahead of the old vulnerable commit.",
+      "Fix commit 0e5dfff added bounded chart and XLSX loading and had production deployment dpl_3zUJ5kvqkT9QUA75boNcGA75Ref8 recorded.",
+      "The XLSX route now passes maxNodeCount=1200 and maxRowItemCount=3000 into getProjectEstimateTreeByEstimate before model/workbook creation.",
+      "The XLSX route returns HTTP 413 on node/row sentinel overflow before buildProposalExportModel or createProposalWorkbookBuffer runs.",
+      "The shared tree loader applies limit(max+1) sentinel reads only for callers that pass explicit limits.",
+      "The chart repository bounds estimate options, row facts, node facts, category facts, and supplier facts with query-level sentinel limits.",
+      "Large projects use selected-pair mode and fall back to the newest two estimates instead of every estimate when no left/right selection is supplied."
+    ]
+  },
+  "repo_evidence": {
+    "current_main_at_closure": "bc19695b8b830cb10c94d9e04e01074913352d76",
+    "fix_commit": "0e5dfff",
+    "production_deployment": "dpl_3zUJ5kvqkT9QUA75boNcGA75Ref8",
+    "files_checked": [
+      "src/app/api/projects/[projectId]/estimates/[estimateId]/export/proposal.xlsx/route.ts",
+      "src/lib/repositories/workspace-repository.ts",
+      "src/lib/repositories/project-charts-repository.ts",
+      "tests/vitest/proposal-export-route.test.ts",
+      "tests/vitest/project-charts-aggregation.test.ts"
+    ],
+    "prior_provider_artifact": ".ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/chart-xlsx-load-bounds-2026-06-04.json"
+  },
+  "fresh_verification": [
+    {
+      "command": "bunx vitest run tests/vitest/proposal-export-route.test.ts tests/vitest/project-charts-aggregation.test.ts tests/vitest/estimate-actions.test.ts --maxWorkers=1 --reporter=dot",
+      "result": "passed",
+      "summary": "2 files / 14 tests"
+    },
+    {
+      "command": "bunx vitest run tests/vitest/proposal-export-route.test.ts tests/vitest/proposal-export-route-workbook.test.ts tests/vitest/proposal-export-model.test.ts tests/vitest/project-charts-aggregation.test.ts tests/vitest/project-charts-ui.test.tsx tests/vitest/workspace-repository-estimate-tree.test.ts --maxWorkers=1 --reporter=dot",
+      "result": "passed",
+      "summary": "6 files / 31 tests"
+    },
+    {
+      "command": "bun run type-check",
+      "result": "passed"
+    },
+    {
+      "command": "gh issue list --state open --json number,title,url --limit 20 && gh pr list --state open --json number,title,url --limit 20",
+      "result": "passed",
+      "summary": "no open GitHub issues or pull requests"
+    }
+  ],
+  "cost_posture": {
+    "new_paid_provider_addons_enabled": false,
+    "pitr_enabled": false,
+    "note": "This closure was performed under the cheaper closed-beta path; no PITR, compute, Vercel, Resend, or other paid provider setting was changed."
+  },
+  "remaining_launch_blockers": [
+    "Remaining Codex Security findings still need closure, rescan, or owner acceptance.",
+    "Hosted denied/revoked/expired beta-auth smoke remains open.",
+    "Resend domain/delivery/webhook proof remains open.",
+    "Rollback risk proof remains open.",
+    "Legal/owner signoff and support/alert monitoring proof remain open."
+  ]
+}

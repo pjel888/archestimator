@@ -1,5 +1,28 @@
 # Current State
 
+**Codex Security Chart/XLSX Finding Closed (2026-06-04 06:49Z):**
+Authenticated Codex Security closure marked
+`Unbounded chart and XLSX export loading can exhaust server resources` as
+`Already fixed`.
+Revisiting finding `bea3b0866e44819193f3da54b6124e16` shows a `Reopen`
+control, the visible finding list shows `1-20 of 35`, and the first page no
+longer includes the chart/XLSX finding.
+Current `main` head `bc19695b8b830cb10c94d9e04e01074913352d76` keeps chart
+estimate/row/node/category/supplier reads bounded with sentinel limits, keeps
+large chart projects on selected/default estimates instead of every estimate,
+and makes the XLSX route return HTTP 413 before proposal model or ExcelJS
+workbook creation when export-only node/row limits overflow.
+Proof:
+`.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/codex-security-chart-xlsx-finding-close-2026-06-04T0649Z.json`
+and prior deployed proof
+`.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/chart-xlsx-load-bounds-2026-06-04.json`.
+Fresh verification passed 6 files / 31 tests for export/chart/tree coverage and
+`bun run type-check`.
+No paid provider add-on or provider setting changed; this stays on the cheaper
+Micro/PITR-off closed-beta path. Closed beta remains not fully green until the
+remaining Codex Security findings, hosted beta-auth smoke, Resend proof,
+rollback/legal/support/alert-monitoring proof, and owner signoff are complete.
+
 **Codex Security AI Ask Finding Closed (2026-06-04 06:38Z):**
 Authenticated Codex Security closure marked
 `AI Ask endpoint lacks quota and fails open on audit` as `Already fixed`.

@@ -1,5 +1,37 @@
 # Evidence Index
 
+## Codex Security Chart/XLSX Finding Closure - 2026-06-04 06:49Z
+
+- Primary artifact: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/codex-security-chart-xlsx-finding-close-2026-06-04T0649Z.json`.
+- Dashboard action: authenticated Codex Security finding
+  `Unbounded chart and XLSX export loading can exhaust server resources` was
+  closed as `Already fixed` / `Reason: Fixed`; revisiting the original finding
+  shows a `Reopen` control. The open-list first page no longer includes the
+  chart/XLSX finding, now shows `1-20 of 35`, and pulled
+  `Confidential client proposal committed to repository` into the visible page.
+- Repo proof: current `main` head
+  `bc19695b8b830cb10c94d9e04e01074913352d76` keeps chart repository reads
+  bounded with query-level sentinel limits, keeps large-project chart loading to
+  selected/default estimates instead of every estimate, and returns HTTP 413
+  from the XLSX route before proposal model or ExcelJS workbook allocation when
+  export-only node/row limits are exceeded. The closed finding was against old
+  commit `87c2ffa`; the fix was already deployed and recorded under commit
+  `0e5dfff`.
+- Hosted/proof artifact:
+  `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/chart-xlsx-load-bounds-2026-06-04.json`
+  records production deployment `dpl_3zUJ5kvqkT9QUA75boNcGA75Ref8`,
+  production `/api/health` HTTP 200, apex redirect, and AI-off regression proof.
+- Fresh verification:
+  `bunx vitest run tests/vitest/proposal-export-route.test.ts tests/vitest/proposal-export-route-workbook.test.ts tests/vitest/proposal-export-model.test.ts tests/vitest/project-charts-aggregation.test.ts tests/vitest/project-charts-ui.test.tsx tests/vitest/workspace-repository-estimate-tree.test.ts --maxWorkers=1 --reporter=dot`
+  passed 6 files / 31 tests; `bun run type-check` passed.
+- GitHub queue check: no open issues or open PRs were found.
+- Cost posture: no new paid provider add-on or provider setting was changed;
+  this stays on the cheaper Micro/PITR-off closed-beta path.
+- Still open: remaining Codex Security findings still need closure/rescan/owner
+  acceptance; hosted denied/revoked/expired beta-auth smoke, Resend domain/
+  delivery proof, rollback risk proof, legal/owner signoff, and support/alert
+  monitoring proof remain open before a fully green closed beta.
+
 ## Codex Security AI Ask Finding Closure - 2026-06-04 06:38Z
 
 - Primary artifact: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/codex-security-ai-ask-finding-close-2026-06-04T0638Z.json`.
