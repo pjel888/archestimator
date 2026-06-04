@@ -1,0 +1,33 @@
+{
+  "artifact": "mcp-tooling-pinned-2026-06-04",
+  "created_at_utc": "2026-06-04T00:25:10Z",
+  "created_at_local": "2026-06-04T08:25:10+0800",
+  "finding": "Unpinned MCP tooling auto-executes external packages",
+  "status": "repo_fixed_pending_codex_security_rescan",
+  "repo_fix_commit": "d351daa",
+  "production_deployment": {
+    "required": false,
+    "reason": "The affected surface is repository MCP/tooling configuration, not production app runtime code."
+  },
+  "implemented_controls": [
+    ".mcp.json pins the code-review-graph MCP package as code-review-graph==2.3.5.",
+    ".cursor/mcp.json pins the code-review-graph MCP package as code-review-graph==2.3.5.",
+    ".codex/config.toml pins the code-review-graph MCP package as code-review-graph==2.3.5.",
+    "A security contract fails if these MCP configs regress to the floating uvx code-review-graph package spec."
+  ],
+  "local_verification": [
+    "Red regression first failed on floating args [code-review-graph, serve].",
+    "uvx code-review-graph==2.3.5 --version returned code-review-graph 2.3.5.",
+    "uvx code-review-graph==999.999.999 --version failed closed with an unsatisfiable requirement.",
+    "bunx vitest run tests/vitest/security-findings-contracts.test.ts -t \"pins MCP tooling\" --maxWorkers=1 passed.",
+    "bunx vitest run tests/vitest/security-findings-contracts.test.ts --maxWorkers=1 passed 1 file / 16 tests.",
+    "bun run type-check passed.",
+    "bun run lint passed with 12 existing warnings and 0 errors.",
+    "git diff --cached --check passed.",
+    "npx gitnexus detect-changes -r archestimator --scope staged reported low risk with 0 affected processes."
+  ],
+  "proof_gaps": [
+    "Codex Security dashboard rescan/closure remains pending.",
+    "Codex and Cursor MCP clients were not restarted through their full UI startup paths after the config pin."
+  ]
+}
