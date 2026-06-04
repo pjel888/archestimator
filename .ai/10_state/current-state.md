@@ -1,5 +1,29 @@
 # Current State
 
+**Vercel Web Analytics Local Integration Added (2026-06-05):**
+The root Next.js app shell now renders Vercel Web Analytics via
+`@vercel/analytics/next` in `src/app/layout.tsx`, and `@vercel/analytics` is
+recorded in `package.json` / `bun.lock`. This intentionally does not re-add
+`@vercel/speed-insights` or `<SpeedInsights />`, which were removed for the
+Codex Security finding. This is local integration proof only until the change is
+deployed and the Vercel Analytics dashboard for the project shows production
+data.
+
+**Agentic Framework Active-Path Pointer Resolved (2026-06-05):**
+The stale closed-beta goal path
+`.ai/03_plans/2026-06-03-agentic-development-framework-rollout/` now exists as
+an archived-completion pointer, not as a reopened implementation target. The
+pointer routes agents to
+`.ai/09_archive/store/2026-06-03-agentic-development-framework-rollout/`, whose
+completion reports record final status
+`PHASE_1A_COMPLETE_PHASE_1B_MIRRORED_ARCHIVED`, Phase 1A commit `539e32a`, and
+the Notion mirror at
+https://app.notion.com/p/3748e5dd822b8156a7f5f61da243579c. The routing bug
+`.ai/15_Bugs/2026-06-04-agentic-framework-active-plan-path-archived.md` is
+resolved by this pointer. Global enforcement, GitHub rulesets, provider changes,
+hosted OAuth proof, Resend lifecycle proof, and owner/legal/support monitoring
+remain separate launch/workflow gates.
+
 **Resend Alternate-Recipient Lifecycle Refresh (2026-06-04 16:22Z):**
 The automatic email lifecycle is still not green. New artifact
 `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/resend-alternate-recipient-lifecycle-blocked-2026-06-04T1622Z.json`
