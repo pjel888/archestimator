@@ -1,5 +1,23 @@
 # Current State
 
+**Codex Security Cheap-Path Refresh (2026-06-04 08:44Z):**
+Authenticated Codex Security proof now narrows the security blocker without
+changing the cheaper provider posture. The scan detail for
+`pjel888/archestimator` is still stale/conflicting: status `Waiting for new
+commits`, scanned commits `591`, last scanned commit `8957e194` at `3:24 PM Jun
+4, 2026`, and summary badges `4` critical / `6` high / `31` medium / `6` low.
+However, the repo-filtered open findings view at the same dashboard shows
+`1-20 of 35`, the `critical` filter shows `0-0 of 0`, and the `high` filter
+shows `0-0 of 0`. No scan was started, no finding was closed, and no paid
+provider/DNS/Vercel/Supabase setting changed. Proof artifact:
+`.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/codex-security-cheap-path-refresh-2026-06-04T0844Z.json`.
+This means critical/high Codex Security findings are not the current blocker,
+but external closed beta is still not fully green: 35 visible open findings
+remain to rescan, close, or explicitly accept, alongside denied/revoked/expired
+hosted auth smoke, Resend sender-domain proof, rollback risk proof,
+legal/owner signoff, support/feedback/alert monitoring proof, secondary
+spreadsheet-app export proof, and the full hosted beta journey.
+
 **Hosted Authenticated Export Proof (2026-06-04 08:07Z):**
 The no-extra-spend closed-beta path now has hosted authenticated XLSX export
 proof. Computer Use against the owner Chrome session reached production
@@ -53,7 +71,8 @@ lists project `ebxxqidacheyapmmzavr` as `Archestimator`, `ACTIVE_HEALTHY`,
 Postgres `17.6.1.121`, region `ap-southeast-2`; the immutable ref is not a
 launch blocker. Public DNS still lacks the required Resend `send.contact` MX,
 GitHub has no open issues/PRs, and Codex Security remains a launch blocker until
-dashboard findings are closed/rescanned or explicitly accepted. Proof artifact:
+the remaining visible medium/low findings are closed/rescanned or explicitly
+accepted. Proof artifact:
 `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/cheap-beta-launch-audit-2026-06-04T0735Z.json`.
 
 **Supplemental Hosted Owner Profile Smoke (2026-06-04 07:22Z):**

@@ -2,8 +2,10 @@
 
 ## Codex Cloud Security Findings Refresh - OPEN
 
-- Authenticated Codex Security dashboard refresh on 2026-06-04 showed 42 open findings: 27 medium, 6 low, 9 informational.
-- This blocks truthful closed-beta launch-ready language until medium findings are fixed, explicitly accepted, or proven stale/false-positive.
+- Authenticated Codex Security dashboard refresh on 2026-06-04 08:44Z shows the repo-filtered open findings view at `1-20 of 35`; the `critical` and `high` filtered findings views both show `0-0 of 0`.
+- The Scans detail is stale/conflicting relative to repo head `d3d7f74`: it still reports summary badges of 4 critical, 6 high, 31 medium, and 6 low against last scanned commit `8957e194`, while the live filtered open-finding views show no critical/high findings.
+- This blocks truthful closed-beta launch-ready language until the remaining medium/low findings are fixed, rescanned, explicitly accepted, or proven stale/false-positive.
+- Latest artifact: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/codex-security-cheap-path-refresh-2026-06-04T0844Z.json`.
 - Tracker: `.ai/15_Bugs/2026-06-04-codex-cloud-security-findings-refresh.md`.
 - The Speed Insights finding has repo and production remediation evidence, but dashboard rescan/closure is pending; the overall security blocker remains open.
 - A 2026-06-04 follow-up remediation batch at `a062e56` fixed or removed repo-local evidence for share review GET rate limits, denied/revoked beta session persistence, raw authed Lighthouse reports, share proof seed identifiers, and the client-identifying proposal sample. It is deployed as Vercel production `dpl_8ZQDQopHv95H94m1uR6xZgU8RvYD` with health/login/workshop smoke proof. These remain pending Codex Security rescan/closure and do not close the overall blocker.
@@ -27,7 +29,7 @@
 - A 2026-06-04 repo/docs batch removes the raw generated proposal workbook and rendered Quick Look preview from the current tree, renames the retained readback to `proposal-workbook-exceljs-summary-sanitized-2026-06-02.json`, strips raw workbook path and exact cached totals from that summary, and updates the launch docs to require fresh authorized exports instead of committed raw proposal artifacts. Proof artifact: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/confidential-proposal-artifact-withdrawal-2026-06-04.json`. This remains pending Codex Security rescan/closure and does not purge prior git history; any history rewrite would be a separate destructive owner-approved operation.
 - A 2026-06-04 linked Supabase batch at migration `20260604023101` addresses the new Codex Security finding `Project deletion no longer cleans project image objects` by recreating `preview_bulk_delete_projects` so project deletion storage cleanup targets use private bucket `project-images` instead of public `component-images`. Red/green security contract proof passed after the migration, exact-file linked apply succeeded, remote migration history records `20260604023101`, and Supabase connector readback proves the live RPC has `emitsComponentImages=false`, `emitsProjectImages=true`, and WebP/path-traversal filters. Proof artifact: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/project-image-cleanup-targets-2026-06-04.json`. This remains pending Codex Security rescan/closure and no hosted manual project-deletion image cleanup smoke was run.
 - A 2026-06-04 linked/repo batch at migration `20260604031000` completes the cleanup-result branch of `Mass deletion audit records are caller-tamperable`: `record_mass_deletion_storage_cleanup_result(uuid,jsonb)` is now service-role-only, rejects anon/authenticated browser RPC calls, updates only pending project cleanup events, and the project deletion server action records cleanup results through a server-only service-role client. Exact-file linked apply/repair succeeded and readback proves `anon_execute=false`, `authenticated_execute=false`, `service_role_execute=true`, guard clauses present, and migration history records `20260604031000`. Proof artifact: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/mass-deletion-cleanup-rpc-lock-2026-06-04.json`. Production deployment proof for the server-action code and Codex Security rescan/closure remain open.
-- Post-deploy Codex Security refresh is still stale: Findings now shows `1-20 of 43`, the newly selected `Project deletion no longer cleans project image objects` finding pointed at old commit `ea4aa95`, earlier findings still point at old commits, and dashboard rescan/closure remains pending.
+- Post-deploy Codex Security refresh is still stale: Findings now shows `1-20 of 35`, `critical` and `high` filters show `0-0 of 0`, the newly selected `Project deletion no longer cleans project image objects` finding pointed at old commit `ea4aa95`, earlier findings still point at old commits, and dashboard rescan/closure remains pending.
 
 **Last updated:** 2026-06-04
 
@@ -72,6 +74,15 @@
   domain/delivery proof if email is visible, rollback/legal/support/alert
   monitoring proof, secondary spreadsheet-app export open/print proof, and full
   hosted beta journey proof remain open.
+- Codex Security cheap-path refresh at `2026-06-04T08:44Z` proves the
+  repo-filtered open findings view shows `1-20 of 35`, while `critical` and
+  `high` filters each show `0-0 of 0`. The Scans page still has
+  stale/conflicting badges of 4 critical, 6 high, 31 medium, and 6 low against
+  last scanned commit `8957e194`, not current repo head `d3d7f74`. Artifact:
+  `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/codex-security-cheap-path-refresh-2026-06-04T0844Z.json`.
+  This removes critical/high findings as the current launch blocker, but the
+  remaining 35 visible findings still need rescan, closure, or explicit owner
+  acceptance before a fully green closed-beta claim.
 - Supplemental hosted owner profile proof at `2026-06-04T07:22Z` shows the
   active Chrome hosted session can render
   `https://www.archestimator.com/workshop/settings/profile` with authenticated

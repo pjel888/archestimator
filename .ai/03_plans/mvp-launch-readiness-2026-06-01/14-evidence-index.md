@@ -1,5 +1,24 @@
 # Evidence Index
 
+## Codex Security Cheap-Path Refresh - 2026-06-04 08:44Z
+
+- Primary artifact: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/codex-security-cheap-path-refresh-2026-06-04T0844Z.json`.
+- Browser proof: authenticated Codex Security scan detail for
+  `pjel888/archestimator` remains stale/conflicting, with status `Waiting for new
+  commits`, last scanned commit `8957e194`, and scan-summary badges of `4`
+  critical / `6` high / `31` medium / `6` low.
+- Repo-filtered findings proof: the open findings list shows `1-20 of 35`, the
+  first visible finding is `Project deletion no longer cleans project image
+  objects` at old commit `ea4aa95`, the `critical` filter shows `0-0 of 0`, and
+  the `high` filter shows `0-0 of 0`.
+- Boundary: no new scan was started, no finding was closed, and no paid provider
+  add-on, Supabase PITR/compute, DNS, Vercel env, or Supabase data setting
+  changed.
+- Result: current filtered dashboard proof does not justify the expensive
+  PITR-plus-Small-compute path for owner-only pre-launch beta. Security still
+  remains not fully green until the 35 visible open findings are rescanned,
+  closed, or explicitly accepted.
+
 ## Hosted Authenticated Export Browser Proof - 2026-06-04 08:07Z
 
 - Primary artifact: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/hosted-export-browser-proof-2026-06-04T0807Z.json`.
@@ -73,10 +92,10 @@
   action is Namecheap `MX` host `send.contact`, value
   `feedback-smtp.ap-northeast-1.amazonses.com`, priority `10`, without changing
   apex forwarding MX for `support@archestimator.com`.
-- GitHub/Codex Security proof: GitHub has no open issues or PRs. Codex Security
-  remains open; Direct RLS fix proof exists, but dashboard closure submission is
-  still pending action-time confirmation and other findings still need
-  closure/rescan/owner acceptance.
+- GitHub/Codex Security proof: GitHub has no open issues or PRs. A later
+  authenticated Codex Security refresh shows no visible open critical/high
+  findings in severity-filtered views, but the repo-filtered list still shows
+  `1-20 of 35`; those findings still need closure/rescan/owner acceptance.
 - Still open: hosted denied/revoked/expired beta-auth smoke, rollback drill or
   owner risk acceptance, Resend domain/delivery proof if visible email is
   enabled, legal/owner signoff, support/feedback/alert monitoring proof,
