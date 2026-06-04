@@ -1,0 +1,58 @@
+{
+  "artifact": "resend-signed-delivered-webhook-reconciliation-2026-06-04T1809Z",
+  "recordedAt": "2026-06-04T18:09:01Z",
+  "scope": "Correct and prove signed Resend delivered-event webhook reconciliation for the hosted shared-link alternate-recipient email.",
+  "result": "delivered_webhook_reconciliation_pass",
+  "providerActions": [
+    "Resend dashboard showed the configured endpoint https://www.archestimator.com/api/webhooks/resend as Enabled.",
+    "Resend dashboard showed signed email.sent and email.delivered events for the alternate-recipient shared-link email attempting against the endpoint, with the selected pre-fix delivered event returning HTTP 400 Invalid webhook.",
+    "Copied the existing masked Resend signing secret without showing or recording the value; local validation recorded only the whsec_ prefix shape and character count.",
+    "Updated Vercel RESEND_WEBHOOK_SECRET for Production and Preview(main) from stdin, then cleared the clipboard.",
+    "Forced a fresh Vercel production deployment so the live webhook function used the corrected secret.",
+    "Replayed or retried the existing Resend delivered event after the new deployment was Ready.",
+    "A later Resend dashboard readback showed the delivered event as Success with HTTP 200 OK."
+  ],
+  "vercelProof": {
+    "deploymentId": "dpl_4bMoArwC32Tup4dKK67wtKoBf2jv",
+    "deploymentUrl": "https://archestimator-lz829v0ad-philipjonlewis-projects.vercel.app",
+    "target": "production",
+    "readyState": "READY",
+    "aliases": [
+      "https://www.archestimator.com",
+      "https://archestimator.com",
+      "https://archestimator.vercel.app"
+    ],
+    "healthUrl": "https://www.archestimator.com/api/health",
+    "healthStatus": 200,
+    "secretValuesRecorded": false
+  },
+  "supabaseReadback": {
+    "queryMode": "linked read-only SQL via Supabase CLI",
+    "recipientEmail": "lewisphilipjonechavez@gmail.com",
+    "deliveryStatus": "sent",
+    "hasLastOpenedAt": true,
+    "hasResendEmailId": true,
+    "hasResendEventId": true,
+    "resendLastEventType": "email.delivered",
+    "resendLastEventAt": "2026-06-04 17:28:43.097+00",
+    "metadataHasEventType": true,
+    "metadataEventType": "email.delivered"
+  },
+  "resendDashboardReadback": {
+    "eventType": "email.delivered",
+    "eventStatus": "Success",
+    "httpStatus": 200,
+    "attempts": 5,
+    "responseBodyShape": {
+      "ok": true,
+      "matched": true,
+      "deliveryStatus": "sent"
+    },
+    "payloadDetailsRecorded": false
+  },
+  "boundaries": [
+    "No raw email href, public share URL, recipient token, token hash, cookie, API key, webhook secret, raw email body, full Resend id, full event id, full recipient id, or full database UUID was recorded.",
+    "The proof closes signed delivered-event webhook reconciliation for the real hosted shared-link email.",
+    "Bounce and complaint events were not manufactured for the owner-only beta; those remain unforced incident-path coverage rather than evidence from this run."
+  ]
+}

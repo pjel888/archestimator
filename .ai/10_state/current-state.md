@@ -1,5 +1,32 @@
 # Current State
 
+**Resend Signed Delivered Webhook Reconciliation Closed (2026-06-04 18:09Z):**
+The Resend webhook signing-secret mismatch is repaired for the production app.
+Computer Use opened the Resend dashboard and found the endpoint
+`https://www.archestimator.com/api/webhooks/resend` enabled with signed
+`email.sent` / `email.delivered` events attempting against the endpoint. The
+selected pre-fix `email.delivered` event returned HTTP 400 `Invalid webhook`,
+which identified the live Vercel `RESEND_WEBHOOK_SECRET` as mismatched. The
+existing masked Resend signing secret was copied without showing or recording the
+value, validated only by `whsec_` shape/length, piped into `vercel env update
+RESEND_WEBHOOK_SECRET` for Production and Preview(main), and the clipboard was
+cleared. A forced production redeploy created Ready deployment
+`dpl_4bMoArwC32Tup4dKK67wtKoBf2jv`, aliased to
+`https://www.archestimator.com`, `https://archestimator.com`, and
+`https://archestimator.vercel.app`; `www` health returned HTTP 200. After
+Resend replay/retry, linked read-only Supabase proof for
+`lewisphilipjonechavez@gmail.com` shows `resend_last_event_type:
+"email.delivered"`, non-null Resend message/event-id presence, and delivery
+metadata `event_type: "email.delivered"`. A later Resend dashboard readback shows
+the delivered event as `Success` with HTTP 200 and response body shape
+`{ ok: true, matched: true, deliveryStatus: "sent" }`. Proof artifact:
+`.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/resend-signed-delivered-webhook-reconciliation-2026-06-04T1809Z.json`.
+No raw email href, public share URL, recipient token, token hash, cookie, API
+key, webhook secret, raw email body, full Resend id, full event id, full
+recipient id, or full database UUID was recorded. This closes signed delivered
+webhook reconciliation for the real hosted shared-link email; bounce/complaint
+events were not manufactured and remain unforced incident-path coverage.
+
 **Hosted Shared-Link Recipient Clickthrough/Open Closed (2026-06-04 17:31Z):**
 Commit `14e0a61` fixes recipient email CTA/unsubscribe generation so relative
 `/share/...` paths become absolute HTTP(S) email URLs. Production deployment
@@ -19,9 +46,8 @@ now shows the alternate row as `opened` with
 `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/hosted-shared-link-recipient-clickthrough-open-2026-06-04T1731Z.json`.
 No raw email href, public share URL, recipient token, token hash, cookie, API
 key, webhook secret, raw email body, full Resend id, or full database UUID was
-recorded. This closes recipient clickthrough/open only; signed Resend
-delivered/bounce/complaint webhook reconciliation remains open because
-`resend_last_event_type` is still null.
+recorded. This closes recipient clickthrough/open; the later 18:09Z artifact
+closes signed delivered-event webhook reconciliation for the same real email.
 
 **Vercel Web Analytics Deployed And Dashboard-Proven (2026-06-04 17:00Z):**
 Main commit `2d49b6b` adds `@vercel/analytics@2.0.1` and renders
@@ -31,8 +57,11 @@ re-adding `@vercel/speed-insights` or `<SpeedInsights />`. Production deployment
 `https://www.archestimator.com`; live health returned HTTP 200. Runtime proof
 showed the deployed page loading the rewritten Vercel Analytics script at
 `/a388b7482f1a867e/script.js`; real Chrome production traffic then made the
-Vercel Analytics dashboard show `Visitors 1`, `Page Views 1`, page `/`,
-Philippines, Desktop, Mac, and `1 online` for all environments / last 7 days.
+Vercel Analytics dashboard show pageview traffic. A later Computer Use refresh
+of the same dashboard showed all environments / last 7 days at `Visitors 2`,
+`Page Views 6`, bounce rate `0%`, and desktop traffic from the Philippines and
+United States; tokenized share/workshop route details were intentionally not
+recorded.
 Proof artifact:
 `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/vercel-web-analytics-enabled-2026-06-04T1700Z.json`.
 This closes Web Analytics enablement only; custom analytics events are not
@@ -78,9 +107,8 @@ CTA. Proof artifact:
 `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/hosted-shared-link-recipient-inbox-receipt-2026-06-04T1555Z.json`.
 No raw email href, public share URL, recipient token, token hash, cookie, API
 key, or webhook secret was recorded. This artifact alone did not prove
-clickthrough/open, but the later 17:31Z artifact closes that path. The remaining
-email lifecycle proof gap is signed Resend delivered/bounce/complaint webhook
-reconciliation.
+clickthrough/open, but the later 17:31Z artifact closes that path, and the later
+18:09Z artifact closes signed delivered-event webhook reconciliation.
 
 **Hosted Shared-Link Email Guard And Alternate Send (2026-06-04 15:32Z):**
 Production is redeployed from `main` at commit `19c6b90` as Vercel deployment
@@ -158,9 +186,10 @@ values remain unrecorded. Hosted signed-out `/workshop` still redirects to
 `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/hosted-auth-signed-out-refresh-2026-06-04T1138Z.json`;
 hosted allowed-owner access was refreshed by the later 13:11Z production
 deploy/auth artifact, while denied/revoked/expired real-session smoke remains
-open. Hosted shared-link send, alternate-recipient inbox receipt, and recipient
-clickthrough/open are proven by the 15:32Z, 15:55Z, and 17:31Z artifacts; signed
-webhook lifecycle proof remains open before relying on fully automatic email UX.
+open. Hosted shared-link send, alternate-recipient inbox receipt, recipient
+clickthrough/open, and signed delivered-event webhook reconciliation are proven
+by the 15:32Z, 15:55Z, 17:31Z, and 18:09Z artifacts; bounce/complaint events were
+not manufactured for the owner-only beta proof.
 
 **Vercel Rollback Drill Closed (2026-06-04 11:12Z):**
 The production rollback gate now has real no-spend provider proof. Vercel CLI

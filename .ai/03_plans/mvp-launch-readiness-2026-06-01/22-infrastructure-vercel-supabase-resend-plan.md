@@ -1,5 +1,18 @@
 # Infrastructure, Vercel, Supabase, and Resend Plan
 
+## Resend Signed Delivered Webhook Reconciliation - 2026-06-04 18:09Z
+
+- Proof artifact:
+  `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/resend-signed-delivered-webhook-reconciliation-2026-06-04T1809Z.json`.
+- Resend dashboard showed the configured endpoint enabled, then after the
+  Vercel signing-secret correction and production redeploy, the delivered event
+  showed `Success`, HTTP 200, and response body shape `{ ok: true, matched:
+  true, deliveryStatus: "sent" }`.
+- Linked read-only Supabase proof shows `resend_last_event_type:
+  "email.delivered"` with message/event-id presence and matching delivery
+  metadata for the alternate-recipient shared-link email.
+- Bounce/complaint events were not manufactured for this owner-only beta proof.
+
 ## Production Shared-Link Recipient Clickthrough/Open - 2026-06-04 17:31Z
 
 - Proof artifact:
@@ -12,8 +25,8 @@
   opened the hosted proposal review page with the expected recipient banner.
 - Read-only Supabase proof now shows `delivery_status: "opened"`,
   `last_opened_at`, and a redacted `shared_link_events` `open` row.
-- Remaining email lifecycle proof gap: signed Resend delivered/bounce/complaint
-  webhook reconciliation.
+- The later 18:09Z artifact closes signed delivered-event webhook
+  reconciliation for the same real email.
 
 ## Resend Alternate-Recipient Lifecycle Blocker Refresh - 2026-06-04 16:22Z
 

@@ -1,5 +1,31 @@
 # Evidence Index
 
+## Resend Signed Delivered Webhook Reconciliation - 2026-06-04 18:09Z
+
+- Primary artifact:
+  `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/resend-signed-delivered-webhook-reconciliation-2026-06-04T1809Z.json`.
+- Provider proof: Resend dashboard showed
+  `https://www.archestimator.com/api/webhooks/resend` enabled and signed
+  `email.sent` / `email.delivered` events attempting against it. The selected
+  pre-fix delivered event returned HTTP 400 `Invalid webhook`; after the secret
+  correction and replay/retry, the delivered event showed `Success`, HTTP 200,
+  and response body shape `{ ok: true, matched: true, deliveryStatus: "sent" }`.
+- Vercel proof: the existing masked Resend signing secret was copied without
+  showing or recording the value, updated into Vercel Production and Preview(main)
+  `RESEND_WEBHOOK_SECRET` from stdin, and the clipboard was cleared. Forced
+  production redeploy `dpl_4bMoArwC32Tup4dKK67wtKoBf2jv` reached Ready and was
+  aliased to `www.archestimator.com`, `archestimator.com`, and
+  `archestimator.vercel.app`; `www` health returned HTTP 200.
+- Supabase proof: linked read-only SQL for the alternate recipient shows
+  `resend_last_event_type: "email.delivered"`, non-null Resend message/event-id
+  presence, and delivery metadata `event_type: "email.delivered"`.
+- Boundary: no raw email href, public share URL, recipient token, token hash,
+  cookie, API key, webhook secret, raw email body, full Resend id, full event id,
+  full recipient id, or full database UUID was recorded. Bounce/complaint events
+  were not manufactured for this owner-only beta proof.
+- Result: signed delivered-event webhook reconciliation is closed for the real
+  hosted shared-link email.
+
 ## Hosted Shared-Link Recipient Clickthrough/Open - 2026-06-04 17:31Z
 
 - Primary artifact:
@@ -17,9 +43,9 @@
 - Supabase proof: the alternate recipient row is now `opened` with
   `last_opened_at`, and a redacted `shared_link_events` row records
   `event_type: "open"`.
-- Result: recipient clickthrough/open tracking is closed. Signed Resend
-  delivered/bounce/complaint webhook reconciliation remains open because
-  `resend_last_event_type` is still null.
+- Result: recipient clickthrough/open tracking is closed. The later 18:09Z
+  artifact closes signed delivered-event webhook reconciliation for the same real
+  hosted shared-link email.
 
 ## Resend Alternate-Recipient Lifecycle Blocker Refresh - 2026-06-04 16:22Z
 
@@ -56,9 +82,9 @@
   token, token hash, cookies, API keys, and webhook secrets were not recorded.
 - Boundary: this artifact did not prove recipient clickthrough/open at 15:55Z;
   the later 17:31Z artifact closes that app-level path.
-- Result: alternate-recipient inbox receipt is proven; full automatic email
-  lifecycle remains partial until signed Resend delivered/bounce/complaint
-  webhook reconciliation is proven.
+- Result: alternate-recipient inbox receipt is proven; the later 17:31Z artifact
+  closes recipient clickthrough/open and the later 18:09Z artifact closes signed
+  delivered-event webhook reconciliation.
 
 ## Hosted Shared-Link Email Self-Invite Guard - 2026-06-04 15:32Z
 
