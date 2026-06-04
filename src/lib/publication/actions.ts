@@ -22,6 +22,7 @@ import { readEmailDeliveryConfig, sendEmail } from "@/lib/email/resend-client";
 import { normalizeEstimateTreeNodeKind } from "@/lib/estimates/tree-hierarchy";
 import { composeSharedLinkActivity, type ActivityViewModel, type SharedLinkActivityInput } from "@/lib/activity";
 import { compareSharedLinkActivityDesc, createSharedLinkTargetLabelMap, decodeSharedLinkActivityCursor, encodeSharedLinkActivityCursor, isBeforeSharedLinkActivityCursor, readSharedLinkRecipientDisplayName, resolveSharedLinkTargetLabel, sharedLinkActivityCursorFilter } from "@/lib/publication/activity-helpers";
+import { buildSharedLinkRecipientEmailLinks } from "@/lib/publication/email-links";
 
 type PublicationActionResult = {
   ok: boolean;
@@ -240,21 +241,6 @@ function buildPublicationEmailComplianceFooter({
   const html = `<hr style="border:0;border-top:1px solid #e5e5e5;margin:20px 0;" /><p style="color:#666;font-size:12px;line-height:1.5;">You received this email because ${escapePublicationEmailHtml(sender)} shared an Archestimator project link${escapePublicationEmailHtml(recipientContext)}. To <a href="${escapePublicationEmailHtml(directUnsubscribeHref)}" style="color:#292929;">unsubscribe</a> from follow-up emails for this shared link, email <a href="mailto:${escapePublicationEmailHtml(complianceEmail)}" style="color:#292929;">${escapePublicationEmailHtml(complianceEmail)}</a>.</p>`;
 
   return { text, html };
-}
-
-function buildSharedLinkRecipientActionHref(linkBase: string, action: "unsubscribe", rawToken: string) {
-  try {
-    const parsed = new URL(linkBase, "https://archestimator.local");
-    const [surface, shareToken] = parsed.pathname.split("/").filter(Boolean);
-    if (surface !== "share" || !shareToken) return null;
-
-    const href = `/api/share/${encodeURIComponent(shareToken)}/${action}?recipient=${encodeURIComponent(rawToken)}`;
-    return linkBase.startsWith("http://") || linkBase.startsWith("https://")
-      ? `${parsed.origin}${href}`
-      : href;
-  } catch {
-    return null;
-  }
 }
 
 async function resolvePublicationDigestOwner(
@@ -798,8 +784,7 @@ async function sendSharedLinkRecipientInvitationEmail({
   recipientId: string;
   senderIdentity: PublicationEmailIdentity;
 }) {
-  const recipientLink = `${linkBase}${linkBase.includes("?") ? "&" : "?"}recipient=${encodeURIComponent(rawToken)}`;
-  const unsubscribeHref = buildSharedLinkRecipientActionHref(linkBase, "unsubscribe", rawToken);
+  const { recipientLink, unsubscribeHref } = buildSharedLinkRecipientEmailLinks({ linkBase, rawToken });
   const sender = senderIdentity.label;
   const subject = `Project Estimate: ${projectName} shared by ${sender}`;
   const complianceFooter = buildPublicationEmailComplianceFooter({
