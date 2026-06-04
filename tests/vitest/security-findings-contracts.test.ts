@@ -22,6 +22,11 @@ function latestFunction(functionName: string) {
   return matches.at(-1) ?? "";
 }
 
+function latestMigrationBySuffix(suffix: string) {
+  const file = migrations.filter((migration) => migration.endsWith(suffix)).at(-1);
+  return file ? read(`supabase/migrations/${file}`) : "";
+}
+
 describe("Codex security findings hardening contracts", () => {
   it("requires a non-default shared secret before local dev auth/admin DB bypass can activate", () => {
     const devGate = read("src/lib/auth/dev-auth-gate.ts");
@@ -80,6 +85,24 @@ describe("Codex security findings hardening contracts", () => {
   it("requires estimate edit access for row detach in both RPC and server action paths", () => {
     expect(read("supabase/migrations/20260601184343_unlink_estimate_row_items.sql")).toContain("public.can_edit_estimate(target_estimate_id)");
     expect(read("src/lib/estimates/actions.ts")).toContain("assertCanEditEstimate");
+  });
+
+  it("keeps library folder mutations limited to workspace editors", () => {
+    const folderActions = read("src/lib/component-library/actions.ts");
+    const libraryFolderHardening = latestMigrationBySuffix("_harden_library_folder_editor_access.sql");
+    const latestReorderRpc = latestFunction("reorder_library_folders");
+
+    expect(folderActions).toContain("assertCanManageLibraryFolders");
+    expect(folderActions).toContain('supabase.rpc("is_workspace_editor"');
+    expect(libraryFolderHardening).toContain('drop policy if exists "members can manage library folders" on public.library_folders');
+    expect(libraryFolderHardening).toContain('create policy "members can view library folders" on public.library_folders');
+    expect(libraryFolderHardening).toContain('create policy "workspace editors can insert library folders" on public.library_folders');
+    expect(libraryFolderHardening).toContain('create policy "workspace editors can update library folders" on public.library_folders');
+    expect(libraryFolderHardening).toContain('create policy "workspace editors can delete library folders" on public.library_folders');
+    expect(libraryFolderHardening).toContain("revoke all on public.library_folders from authenticated");
+    expect(libraryFolderHardening).toContain("grant select, insert, update, delete on public.library_folders to authenticated");
+    expect(latestReorderRpc).toContain("public.is_workspace_editor(target_workspace_id) is not true");
+    expect(latestReorderRpc).not.toContain("not public.is_workspace_member(target_workspace_id)");
   });
 
   it("enforces publication password access before creating recipient sessions", () => {

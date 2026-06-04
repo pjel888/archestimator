@@ -152,6 +152,15 @@ function readFolderName(name: string) {
   return value;
 }
 
+async function assertCanManageLibraryFolders(
+  supabase: Awaited<ReturnType<typeof createSupabaseServerClient>>,
+  workspaceId: string,
+) {
+  const { data, error } = await supabase.rpc("is_workspace_editor", { target_workspace_id: workspaceId });
+  if (error) throw new Error(`Could not verify library folder access: ${error.message}`);
+  if (data !== true) throw new Error("Only workspace editors/admins can manage library folders.");
+}
+
 function readRequiredComponentText(value: string | undefined | null, label: string) {
   const text = String(value ?? "").trim();
   if (!text) throw new Error(`${label} is required.`);
@@ -486,6 +495,7 @@ export async function executeBulkArchiveLibraryComponents(input: ExecuteBulkArch
 export async function createLibraryFolder(parentId: string | null, name: string, options: CreateLibraryFolderOptions = {}): Promise<LibraryFolderActionResult> {
   const [{ workspace }, currentUser] = await Promise.all([ensureDefaultWorkspace(), requireCurrentUserContext()]);
   const supabase = await createSupabaseServerClient();
+  await assertCanManageLibraryFolders(supabase, workspace.id);
   const parentResult = parentId
     ? await supabase
         .from("library_folders")
@@ -528,6 +538,7 @@ export async function createLibraryFolder(parentId: string | null, name: string,
 export async function renameLibraryFolder(folderId: string, name: string): Promise<LibraryFolderActionResult> {
   const { workspace } = await ensureDefaultWorkspace();
   const supabase = await createSupabaseServerClient();
+  await assertCanManageLibraryFolders(supabase, workspace.id);
   const { data, error } = await supabase
     .from("library_folders")
     .update({ name: readFolderName(name) })
@@ -544,6 +555,7 @@ export async function renameLibraryFolder(folderId: string, name: string): Promi
 export async function deleteLibraryFolder(folderId: string): Promise<void> {
   const { workspace } = await ensureDefaultWorkspace();
   const supabase = await createSupabaseServerClient();
+  await assertCanManageLibraryFolders(supabase, workspace.id);
   const { data: folder, error: folderError } = await supabase
     .from("library_folders")
     .select("id, workspace_id, parent_id, name, sort_order, source_category_node_id, folder_kind")
@@ -608,6 +620,7 @@ export async function reorderLibraryFolders(input: ReorderLibraryFoldersInput): 
 
   const { workspace } = await ensureDefaultWorkspace();
   const supabase = await createSupabaseServerClient();
+  await assertCanManageLibraryFolders(supabase, workspace.id);
   const folderUpdates = input.updates.map((update) => ({
     id: update.id,
     parent_id: update.parentId,

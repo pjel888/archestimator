@@ -6,7 +6,7 @@
 - Supabase compute has been reduced from `SMALL` to `MICRO` for the one-person closed beta. Dashboard proof showed `$14.83/month -> $9.68/month` (`-$5.15/month`), then post-resize proof showed `MICRO` selected, project status `ACTIVE_HEALTHY`, linked SQL connectivity, and live app health still green.
 - Backup proof now records 9 completed physical backups, `walg_enabled=true`, `pitr_enabled=false`, and manual dump files under `/Users/philiplewis/archestimator-provider-backups/2026-06-03T173005Z-pre-closed-beta-2cddb0e`.
 - Linked migrations `20260601145000` through `20260603160000` were applied exactly and recorded in remote history without broad `db push`.
-- Later exact-file linked security migrations through `20260603234326` are also recorded remotely; broad `supabase db push` is still intentionally avoided while local/remote history drift remains.
+- Later exact-file linked security migrations through `20260603235355` are also recorded remotely; broad `supabase db push` is still intentionally avoided while local/remote history drift remains.
 - `closed_beta_allowed_emails` exists remotely and currently has exactly one active/invited tester: `philipjonlewis@gmail.com` with status `active`.
 - Vercel Production currently points the custom domains at the beta app deployment stream; latest verified production deployment is `dpl_3zUJ5kvqkT9QUA75boNcGA75Ref8`, and both `archestimator.com` and `www.archestimator.com` reach app health (`apex` redirects to `www`).
 - Vercel env-name readiness is now green for core closed-beta runtime and Resend names, including `RESEND_WEBHOOK_SECRET`.
