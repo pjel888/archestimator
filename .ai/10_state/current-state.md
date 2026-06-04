@@ -1,5 +1,20 @@
 # Current State
 
+**Hosted Shared-Link Alternate Inbox Receipt (2026-06-04 15:55Z):**
+Chrome extension proof opened a targeted Gmail exact-subject search in
+`lewisphilipjonechavez@gmail.com` and found `1-1 of 1` Archestimator invite with
+subject `Project Estimate: Tropical House shared by Philip Lewis`. Opening the
+email showed the expected view-only invitation copy and `View Project Estimate`
+CTA. Proof artifact:
+`.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/hosted-shared-link-recipient-inbox-receipt-2026-06-04T1555Z.json`.
+No raw email href, public share URL, recipient token, token hash, cookie, API
+key, or webhook secret was recorded. The CTA clickthrough/open is still not
+proven: the Chrome extension-backed click timed out, the supported Chrome health
+check then reported Google Chrome not running, and read-only Supabase proof still
+shows `last_opened_at: null` for the alternate recipient. Remaining email
+lifecycle proof gaps are recipient clickthrough/open and Resend
+delivered/bounce/complaint webhook reconciliation.
+
 **Hosted Shared-Link Email Guard And Alternate Send (2026-06-04 15:32Z):**
 Production is redeployed from `main` at commit `19c6b90` as Vercel deployment
 `dpl_4eM4pVfRPqXfHtspTFNaKhNFDJFZ`
@@ -14,8 +29,9 @@ recipient invite to `lewisphilipjonechavez@gmail.com`, and read-only Supabase
 proof shows the row as `sent` with a redacted Resend message id. Proof artifact:
 `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/hosted-shared-link-recipient-email-self-invite-guard-2026-06-04T1532Z.json`.
 This closes the self-invite defect and proves app-level shared-link send
-dispatch. It does not prove alternate-recipient inbox receipt, recipient
-clickthrough/open, or Resend delivered/bounce/complaint webhook reconciliation.
+dispatch. The later 15:55Z artifact proves alternate-recipient inbox receipt; it
+does not prove recipient clickthrough/open or Resend delivered/bounce/complaint
+webhook reconciliation.
 
 **Production Resend-Enabled Deploy And Hosted Owner Journey (2026-06-04 13:28Z):**
 Production is now redeployed from `main` at commit `083bf97` as Vercel
@@ -45,8 +61,8 @@ history-risk is owner-accepted for this single-owner beta by
 `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/codex-security-history-risk-owner-acceptance-2026-06-04T1414Z.json`,
 without claiming the findings are fixed or the dashboard fully green. Hosted
 denied/revoked/expired auth, spreadsheet-app open/print proof if required for
-beta, and full recipient inbox/clickthrough/webhook proof remain the main open
-proof gaps after the later shared-link send smoke; owner logout is proven by
+beta, and recipient clickthrough/webhook proof remain the main open proof gaps
+after the later shared-link send/inbox smoke; owner logout is proven by
 `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/hosted-logout-session-proof-2026-06-04T1436Z.json`.
 
 **Owner Signoff And Resend Email Enablement (2026-06-04 12:35Z):**
@@ -57,7 +73,7 @@ standing no-purchases boundary. Sanitized helper artifacts now record
 and `supportMonitoringReady: true` in
 `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/support-monitoring-owner-signoff-2026-06-04T1138Z.json`.
 Those are owner/operator closed-beta signoff artifacts, not legal advice or
-independent alert-dashboard verification. Email automation was first made explicitly default-off in code, then Resend provider proof closed later in the same launch pass. `resend-domain-verified-email-enabled-2026-06-04T1235Z.json` records Namecheap authoritative DNS readiness, Resend domain status `Verified`, a production-env send probe to `philipjonlewis@gmail.com` returning HTTP 200 with a provider message id, an enabled Resend dashboard webhook endpoint at `https://www.archestimator.com/api/webhooks/resend`, and a live unsigned webhook route probe returning HTTP 400 `Invalid webhook` instead of HTTP 503. `resend-owner-inbox-receipt-2026-06-04T1348Z.json` records Philip's owner-reported receipt of the verified smoke email in `philipjonlewis@gmail.com`. Vercel Production and Preview(main) now pull non-secret launch flags `CLOSED_BETA_ACCESS_ENABLED="true"` and `ARCHESTIMATOR_EMAIL_DELIVERY_ENABLED="true"`; Resend API key and webhook secret values remain unrecorded. Hosted signed-out `/workshop` still redirects to `/login?next=%2Fworkshop` via `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/hosted-auth-signed-out-refresh-2026-06-04T1138Z.json`; hosted allowed-owner access was refreshed by the later 13:11Z production deploy/auth artifact, while denied/revoked/expired real-session smoke remains open. A hosted shared-link/invite email workflow smoke is still open before relying on automatic email UX.
+independent alert-dashboard verification. Email automation was first made explicitly default-off in code, then Resend provider proof closed later in the same launch pass. `resend-domain-verified-email-enabled-2026-06-04T1235Z.json` records Namecheap authoritative DNS readiness, Resend domain status `Verified`, a production-env send probe to `philipjonlewis@gmail.com` returning HTTP 200 with a provider message id, an enabled Resend dashboard webhook endpoint at `https://www.archestimator.com/api/webhooks/resend`, and a live unsigned webhook route probe returning HTTP 400 `Invalid webhook` instead of HTTP 503. `resend-owner-inbox-receipt-2026-06-04T1348Z.json` records Philip's owner-reported receipt of the verified smoke email in `philipjonlewis@gmail.com`. Vercel Production and Preview(main) now pull non-secret launch flags `CLOSED_BETA_ACCESS_ENABLED="true"` and `ARCHESTIMATOR_EMAIL_DELIVERY_ENABLED="true"`; Resend API key and webhook secret values remain unrecorded. Hosted signed-out `/workshop` still redirects to `/login?next=%2Fworkshop` via `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/hosted-auth-signed-out-refresh-2026-06-04T1138Z.json`; hosted allowed-owner access was refreshed by the later 13:11Z production deploy/auth artifact, while denied/revoked/expired real-session smoke remains open. Hosted shared-link send and alternate-recipient inbox receipt are proven by the 15:32Z and 15:55Z artifacts; recipient clickthrough/open and webhook lifecycle proof remain open before relying on automatic email UX.
 
 **Vercel Rollback Drill Closed (2026-06-04 11:12Z):**
 The production rollback gate now has real no-spend provider proof. Vercel CLI
