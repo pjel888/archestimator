@@ -873,6 +873,7 @@ describe("closed beta readiness docs", () => {
     expect(artifactFilenames).toContain("support-monitoring-readiness-0acf1d1-2026-06-02.json");
     expect(artifactFilenames).toContain("proposal-workbook-exceljs-summary-sanitized-2026-06-02.json");
     expect(artifactFilenames).toContain("confidential-proposal-artifact-withdrawal-2026-06-04.json");
+    expect(artifactFilenames).toContain("codex-security-cheap-path-refresh-2026-06-04T0844Z.json");
     expect(artifactFilenames).not.toContain("lewis-residence-demo-proposal-2026-06-02.xlsx");
     expect(existsSync(join(manualProofPacketDir, "lewis-residence-demo-proposal-2026-06-02.xlsx"))).toBe(false);
     expect(
@@ -898,6 +899,11 @@ describe("closed beta readiness docs", () => {
     expect(goalCompletionAudit).toContain("Remaining completion gaps: real browser Google OAuth hosted smoke");
     expect(goalCompletionAudit).toContain("Vercel rollback drill");
     expect(goalCompletionAudit).toContain("Resend MX/domain verification");
+    expect(goalCompletionAudit).toContain("## Codex Security Cheap-Path Update - 2026-06-04 08:44Z");
+    expect(goalCompletionAudit).toContain("Repo-filtered open findings show `1-20 of 35`");
+    expect(goalCompletionAudit).toContain("`critical` and `high` severity");
+    expect(goalCompletionAudit).toContain("not current repo head `d3d7f74`");
+    expect(goalCompletionAudit).toContain("No scan was started, no finding was closed");
     expect(goalCompletionAudit).toContain("legal/owner signoff");
     expect(goalCompletionAudit).toContain("support/alert monitoring proof");
     expect(goalCompletionAudit).toContain("historical generated-workbook evidence is loadable, ZIP-valid, formula-backed, and has no blank line totals");
@@ -1057,6 +1063,18 @@ describe("closed beta readiness docs", () => {
     expect(knownIssues).toContain("Resend sender-domain verification remains blocked on the cheaper DNS path");
     expect(knownIssues).toContain("`send.contact.archestimator.com` has no MX answer");
     expect(knownIssues).toContain("switching Mail Settings to `Custom MX` would risk interrupting `support@archestimator.com` forwarding");
+    expect(knownIssues).toContain("Codex Security cheap-path refresh at `2026-06-04T08:44Z`");
+    expect(knownIssues).toContain("repo-filtered open findings view shows `1-20 of 35`");
+    expect(knownIssues).toContain("while `critical` and");
+    expect(knownIssues).toContain("`high` filters each show `0-0 of 0`");
+    expect(knownIssues).toContain("This removes critical/high findings as the current launch blocker");
+    expect(currentState).toContain("**Codex Security Cheap-Path Refresh (2026-06-04 08:44Z):**");
+    expect(currentState).toContain("the repo-filtered open findings view at the same dashboard shows");
+    expect(currentState).toContain("the `critical` filter shows `0-0 of 0`");
+    expect(currentState).toContain("the `high` filter");
+    expect(evidenceIndex).toContain("## Codex Security Cheap-Path Refresh - 2026-06-04 08:44Z");
+    expect(evidenceIndex).toContain("codex-security-cheap-path-refresh-2026-06-04T0844Z.json");
+    expect(evidenceIndex).toContain("Result: current filtered dashboard proof does not justify the expensive");
     expect(knownIssues).toContain("Support monitoring readiness helper evidence on 2026-06-02 is negative/blocked");
     expect(knownIssues).toContain("support-monitoring-readiness-5fa0ac1-2026-06-02.json");
     expect(knownIssues).toContain("support-monitoring-readiness-453ac68-2026-06-02.json");

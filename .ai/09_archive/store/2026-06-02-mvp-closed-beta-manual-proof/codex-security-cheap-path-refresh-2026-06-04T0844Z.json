@@ -1,0 +1,82 @@
+{
+  "artifact": "codex-security-cheap-path-refresh",
+  "observed_at": "2026-06-04T08:44:01Z",
+  "environment": "Authenticated Chrome session, Codex Security dashboard",
+  "operator": "Codex",
+  "repository": "pjel888/archestimator",
+  "repo_head_at_observation": {
+    "branch": "main",
+    "short_sha": "d3d7f74",
+    "sha": "d3d7f7445133e6c2046d40eeff284564403458d7"
+  },
+  "cost_boundary": {
+    "paid_provider_changes": false,
+    "supabase_pitr_enabled": false,
+    "supabase_compute_changed": false,
+    "dns_changed": false,
+    "vercel_env_changed": false,
+    "codex_security_findings_closed": false,
+    "new_scan_started": false
+  },
+  "browser_observations": {
+    "findings_all_repos_view": {
+      "url": "https://chatgpt.com/codex/cloud/security/findings?sev=",
+      "visible_count": "0-0 of 0",
+      "note": "Not treated as canonical because repo-filtered findings immediately showed open findings."
+    },
+    "scan_detail_view": {
+      "url": "https://chatgpt.com/codex/cloud/security/scans/3fa110d41fb4819190222a7bf3239828?sev=",
+      "status": "Waiting for new commits",
+      "scanned_commits": 591,
+      "branch": "main",
+      "environment": "archestimator",
+      "owner": "philipjonlewis@gmail.com",
+      "last_scanned_commit": "8957e194",
+      "last_scanned_commit_time": "3:24 PM Jun 4, 2026",
+      "scan_commit_history_from": "2 months ago",
+      "summary_badges": {
+        "critical": 4,
+        "high": 6,
+        "medium": 31,
+        "low": 6
+      },
+      "note": "Scan-summary severity badges conflict with the live filtered open-finding view and appear stale relative to repo head d3d7f74."
+    },
+    "repo_filtered_open_findings": {
+      "url": "https://chatgpt.com/codex/cloud/security/findings?repo=https%3A%2F%2Fgithub.com%2Fpjel888%2Farchestimator&sev=",
+      "visible_count": "1-20 of 35",
+      "visible_first_page_severity": "Medium",
+      "first_visible_finding": "Project deletion no longer cleans project image objects",
+      "first_visible_finding_commit": "ea4aa95",
+      "first_visible_finding_commit_time": "6:40 AM Jun 4, 2026",
+      "first_visible_finding_status": "Open",
+      "note": "This is the current actionable open-list evidence for launch truth."
+    },
+    "critical_filter": {
+      "url": "https://chatgpt.com/codex/cloud/security/findings?repo=https%3A%2F%2Fgithub.com%2Fpjel888%2Farchestimator&sev=critical",
+      "visible_count": "0-0 of 0",
+      "visible_message": "No findings match your current filters"
+    },
+    "high_filter": {
+      "url": "https://chatgpt.com/codex/cloud/security/findings?repo=https%3A%2F%2Fgithub.com%2Fpjel888%2Farchestimator&sev=high",
+      "visible_count": "0-0 of 0",
+      "visible_message": "No findings match your current filters"
+    },
+    "medium_filter": {
+      "url": "https://chatgpt.com/codex/cloud/security/findings?repo=https%3A%2F%2Fgithub.com%2Fpjel888%2Farchestimator&sev=medium",
+      "result": "Page spinner did not settle during this pass after the high-filter check."
+    }
+  },
+  "launch_interpretation": {
+    "critical_or_high_open_findings_visible": false,
+    "open_findings_count_visible": 35,
+    "closed_beta_launch_ready": false,
+    "reason": "No open critical/high findings were visible in filtered findings, but 35 repo-filtered findings remain open and need rescan, closure, or explicit owner acceptance before a fully green closed-beta claim.",
+    "cheap_path_decision": "Continue the cheaper Supabase MICRO/PITR-off path; this dashboard state does not justify the $100/month PITR-plus-Small-compute spend for owner-only pre-launch beta."
+  },
+  "remaining_security_work": [
+    "Trigger or wait for a fresh Codex Security rescan against current main if available without paid surprise.",
+    "Close findings only when repo/provider proof supports Already fixed, or document explicit owner acceptance.",
+    "Keep the launch docs as NO-GO until the remaining medium/low findings are resolved, rescanned, or accepted."
+  ]
+}

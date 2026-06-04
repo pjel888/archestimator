@@ -132,4 +132,19 @@ These are required before the active goal can be marked complete:
 
 Current decision: **DO NOT MARK GOAL COMPLETE**.
 
+## Codex Security Cheap-Path Update - 2026-06-04 08:44Z
+
+- Authenticated Codex Security proof artifact:
+  `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/codex-security-cheap-path-refresh-2026-06-04T0844Z.json`.
+- Repo-filtered open findings show `1-20 of 35`; `critical` and `high` severity
+  filters each show `0-0 of 0`.
+- The scan detail remains stale/conflicting: summary badges still show 4
+  critical, 6 high, 31 medium, and 6 low against last scanned commit `8957e194`,
+  not current repo head `d3d7f74`.
+- No scan was started, no finding was closed, and no paid provider setting,
+  Supabase PITR/compute, DNS, Vercel env, or Supabase data was changed.
+- Current decision remains: **DO NOT MARK GOAL COMPLETE**. The cheap path can
+  continue, but the remaining visible findings require rescan, closure, or
+  explicit owner acceptance before a fully green closed-beta claim.
+
 Reason: Local-safe implementation, validation, build, and documentation evidence are strong, but the external/manual proof gates above are still missing. The correct next step is to fill the evidence packet from `48-manual-proof-packet-template.md`, link it through `46-manual-proof-matrix.md` / `14-evidence-index.md`, then rerun this audit against the actual artifacts.
