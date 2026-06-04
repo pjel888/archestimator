@@ -1,0 +1,63 @@
+{
+  "artifact": "csv-formula-escape-2026-06-04",
+  "created_at_utc": "2026-06-04T00:17:27Z",
+  "created_at_local": "2026-06-04T08:17:27+0800",
+  "finding": "CSV export allows spreadsheet formula injection",
+  "status": "repo_fixed_and_deployed_pending_codex_security_rescan",
+  "repo_fix_commit": "6121d68",
+  "production_deployment": {
+    "id": "dpl_5VF7nLnJYsyvKZexWQwzmH6unAC9",
+    "url": "https://archestimator-p6124ss9p-philipjonlewis-projects.vercel.app",
+    "target": "production",
+    "status": "Ready",
+    "aliases": [
+      "https://www.archestimator.com",
+      "https://archestimator.com",
+      "https://archestimator.vercel.app"
+    ]
+  },
+  "implemented_controls": [
+    "Component library CSV export now prefixes formula-leading cell text with an apostrophe before CSV quoting.",
+    "Formula detection covers leading spaces, tabs, CR, and LF before =, +, -, and @.",
+    "Existing CSV quote escaping remains in place for commas, quotes, CR, and LF."
+  ],
+  "hosted_smoke": {
+    "www_health": {
+      "url": "https://www.archestimator.com/api/health",
+      "status": 200,
+      "body": {
+        "ok": true,
+        "service": "archestimator",
+        "timestamp": "2026-06-04T00:16:19.243Z"
+      }
+    },
+    "apex_health": {
+      "url": "https://archestimator.com/api/health",
+      "status": 307,
+      "location": "https://www.archestimator.com/api/health"
+    },
+    "login": {
+      "url": "https://www.archestimator.com/login",
+      "status": 200
+    },
+    "signed_out_workshop": {
+      "url": "https://www.archestimator.com/workshop",
+      "status": 307,
+      "location": "/login?next=%2Fworkshop"
+    }
+  },
+  "local_verification": [
+    "Red regression first failed on raw formula-leading CSV cells.",
+    "bunx vitest run tests/vitest/component-library-helpers.test.ts --maxWorkers=1 passed 1 file / 14 tests.",
+    "bunx vitest run tests/vitest/component-library-helpers.test.ts tests/vitest/component-library-ui.test.tsx --maxWorkers=1 passed 2 files / 37 tests.",
+    "bun run type-check passed.",
+    "bun run lint passed with 12 existing warnings and 0 errors.",
+    "git diff --check passed.",
+    "bun run build passed.",
+    "npx gitnexus detect-changes -r archestimator --scope staged reported LOW risk with 0 affected processes."
+  ],
+  "proof_gaps": [
+    "Codex Security dashboard rescan/closure remains pending.",
+    "No hosted authenticated CSV export/download was opened in Excel or Google Sheets after the fix."
+  ]
+}
