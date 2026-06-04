@@ -1,0 +1,65 @@
+{
+  "artifact": "proposal-public-rates-stripped-2026-06-04",
+  "created_at_utc": "2026-06-04T00:42:33Z",
+  "created_at_local": "2026-06-04T08:42:33+0800",
+  "finding": "Proposal pages now expose internal unit-rate details",
+  "status": "repo_fixed_and_deployed_pending_codex_security_rescan",
+  "repo_fix_commit": "984124b",
+  "production_deployment": {
+    "id": "dpl_Dh8xPgZ3NQwN4CwxZQXh6d8vypcn",
+    "url": "https://archestimator-pa4i1gj5p-philipjonlewis-projects.vercel.app",
+    "target": "production",
+    "status": "Ready",
+    "aliases": [
+      "https://www.archestimator.com",
+      "https://archestimator.com",
+      "https://archestimator.vercel.app"
+    ]
+  },
+  "implemented_controls": [
+    "Future public publication snapshot rows no longer include unitCost, miscCost, or contingencyPercentage.",
+    "Legacy stored snapshot rows are sanitized through a public-read whitelist before repository results are returned.",
+    "The /api/share/[token] JSON route also sanitizes the snapshot immediately before Response.json.",
+    "Public proposal rows continue to expose quantity, unit, and rowTotal so totals stay auditable without leaking internal rate breakdowns."
+  ],
+  "hosted_smoke": {
+    "www_health": {
+      "url": "https://www.archestimator.com/api/health",
+      "status": 200,
+      "body": {
+        "ok": true,
+        "service": "archestimator",
+        "timestamp": "2026-06-04T00:41:48.948Z"
+      }
+    },
+    "apex_health": {
+      "url": "https://archestimator.com/api/health",
+      "status": 307,
+      "location": "https://www.archestimator.com/api/health"
+    },
+    "login": {
+      "url": "https://www.archestimator.com/login",
+      "status": 200
+    },
+    "signed_out_workshop": {
+      "url": "https://www.archestimator.com/workshop",
+      "status": 307,
+      "location": "/login?next=%2Fworkshop"
+    }
+  },
+  "local_verification": [
+    "Red snapshot test first failed because unitCost, miscCost, and contingencyPercentage were present.",
+    "Red route test first failed because dirty resolver output was echoed by /api/share/[token].",
+    "bunx vitest run tests/vitest/project-publication-snapshot.test.ts tests/vitest/project-publication-route.test.ts tests/vitest/project-publication-page.test.tsx --maxWorkers=1 passed 3 files / 38 tests.",
+    "bunx vitest run tests/vitest/project-publication-snapshot.test.ts tests/vitest/project-publication-route.test.ts tests/vitest/project-publication-page.test.tsx tests/vitest/project-publication-security.test.ts tests/vitest/share/share-page-get-routes-contract.test.ts --maxWorkers=1 passed 5 files / 56 tests.",
+    "bun run type-check passed.",
+    "bun run lint passed with 12 existing warnings and 0 errors.",
+    "git diff --check passed.",
+    "bun run build passed.",
+    "npx gitnexus detect-changes -r archestimator --scope staged reported low risk with 0 affected processes."
+  ],
+  "proof_gaps": [
+    "Codex Security dashboard rescan/closure remains pending.",
+    "No hosted real published share token JSON was inspected after deployment."
+  ]
+}
