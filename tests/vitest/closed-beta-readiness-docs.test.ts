@@ -806,7 +806,9 @@ describe("closed beta readiness docs", () => {
     expect(consolidatedManualProofPacket).toContain("`supportMonitoringReady: false`");
     expect(consolidatedManualProofPacket).toContain("Do not change the launch decision until `47-goal-completion-audit.md` is rerun");
     expect(consolidatedManualProofPacket).toMatch(/\| Vercel deploy\/env\/health \| pass \|/);
-    expect(consolidatedManualProofPacket).toMatch(/\| Hosted auth allowlist \| blocked \|/);
+    expect(consolidatedManualProofPacket).toMatch(/\| Hosted auth allowlist \| partial-pass \|/);
+    expect(consolidatedManualProofPacket).toContain("vercel-production-resend-enabled-hosted-auth-2026-06-04T1311Z.json");
+    expect(consolidatedManualProofPacket).toContain("Hosted denied/revoked/logout/session-expiry smoke is still open.");
     expect(consolidatedManualProofPacket).toMatch(/\| Resend\/email if visible \| pass-provider \/ workflow-smoke-open \|/);
     expect(consolidatedManualProofPacket).toMatch(/\| Legal\/owner review \| pass-owner-beta \|/);
     expect(consolidatedManualProofPacket).toMatch(/\| Support\/monitoring \| partial-local \|/);

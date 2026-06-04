@@ -1,5 +1,33 @@
 # Infrastructure, Vercel, Supabase, and Resend Plan
 
+## Production Resend-Enabled Deploy / Hosted Auth Refresh - 2026-06-04 13:11Z
+
+- Current production deployment is `dpl_2X6FytZUnK5ZaNsszVN4W8Wh6bXm`
+  (`archestimator-e2l5q2tc7-philipjonlewis-projects.vercel.app`), Ready, and
+  aliased to both `www.archestimator.com` and `archestimator.com`.
+- A direct CLI deploy initially tried to upload a stale 312.5 MB payload. The
+  partial upload was cancelled before changing production, `.vercelignore` was
+  tightened for local `.gitnexus`/agent state and non-runtime root collateral,
+  commit `083bf97` was pushed, and the successful production deploy uploaded
+  769 bytes and built in 52s.
+- `www.archestimator.com` returns HTTP 200 with beta app markers, apex redirects
+  to `www`, signed-out `/workshop/projects` redirects to
+  `/login?next=%2Fworkshop%2Fprojects`, and `/login?next=/workshop/projects`
+  exposes `Continue with Google` plus email-link controls.
+- The production unsigned Resend webhook probe returns HTTP 400
+  `Invalid webhook`, proving the route reaches signature verification on the
+  current deployment.
+- Computer Use against the owner Chrome session observed hosted
+  `archestimator.com/workshop` rendering the authenticated Workshop shell with
+  Projects, Components, Templates, Settings, Favorites, a real favorite project,
+  and `Send beta feedback`.
+- Proof artifact:
+  `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/vercel-production-resend-enabled-hosted-auth-2026-06-04T1311Z.json`.
+- Open proof gaps: hosted denied/revoked/expired auth smoke, residual Codex
+  Security history-risk acceptance or purge decision, full hosted beta journey,
+  and hosted shared-link/invite email workflow smoke if automatic email UX is
+  used beyond the owner-only beta.
+
 ## Cheap Beta Launch Audit - 2026-06-04 07:35Z
 
 - Current launch-cost decision: stay on Supabase `MICRO`, keep PITR disabled, do
@@ -72,8 +100,8 @@ Commit audited: `681c95e64864f283950a88dba304eaffe8f2f8b3`
 | --- | --- | --- |
 | Vercel build/runtime | Local `bun run build` passes; export route declares `runtime = "nodejs"` and `dynamic = "force-dynamic"`; Vercel core closed-beta env-name coverage is recorded; production deploy/custom-domain health proof exists; `vercel-production-readiness-no-spend-refresh-2026-06-04T1043Z.json` proves the current production deployment, both custom-domain aliases, and 19 rollback candidates; `vercel-rollback-drill-2026-06-04T1112Z.json` proves actual rollback/promote recovery; `vercel-production-readiness-rollback-drill-2026-06-04T1112Z.json` reports `vercelProductionReady: true`. | Vercel rollback proof is closed; full hosted beta journey proof remains open. |
 | Next.js routes | App Router route handlers include AI, export, share/invite, webhook. | API timeouts/large export limits not proven on Vercel. |
-| Supabase/env manifest | `.env.example` now lists app origins, Supabase public/server vars, closed-beta flags, publication secrets, Resend vars, AI disable vars, optional analytics, release toggles, and `DATABASE_URL`; Vercel env-name coverage exists for Production and Preview(`main`); Supabase compute is now `MICRO`, PITR is off by cost decision, `daily-backup` readiness passes, backups are present, and linked SQL works after resize. | Secret values are intentionally not recorded; hosted denied/revoked auth, Resend sending-domain proof, and provider/manual smoke proof still missing. |
-| Supabase Auth | Login/callback code exists; Supabase Auth Site URL and HTTPS redirect allowlist have been repaired for `www`, apex, and the `git-main` Vercel branch alias. | Google Cloud consent/callback dashboard proof and hosted allowed/denied/revoked smoke still missing. |
+| Supabase/env manifest | `.env.example` now lists app origins, Supabase public/server vars, closed-beta flags, publication secrets, Resend vars, AI disable vars, optional analytics, release toggles, and `DATABASE_URL`; Vercel env-name coverage exists for Production and Preview(`main`); Supabase compute is now `MICRO`, PITR is off by cost decision, `daily-backup` readiness passes, backups are present, and linked SQL works after resize. | Secret values are intentionally not recorded; hosted denied/revoked auth and full provider/manual journey smoke still missing. |
+| Supabase Auth | Login/callback code exists; Supabase Auth Site URL and HTTPS redirect allowlist have been repaired for `www`, apex, and the `git-main` Vercel branch alias. Current Chrome proof shows the allowed owner session can enter hosted `/workshop` on the production custom domain. | Google Cloud consent/callback dashboard proof and hosted denied/revoked/expired smoke still missing. |
 | Supabase RLS | Migrations enable policies. | Linked/staging allow/deny proof missing. |
 | Storage | Component images remain the public bucket surface while project covers now upload to private `project-images` and serve through authenticated `/api/projects/images`; linked readback proves private bucket policy, 6 migrated objects, 0 remaining public project-image objects, 3 project metadata rows rewritten to private route URLs, and old public object access returning `Object not found`. | Component attachment bucket handling and hosted signed-in image-view smoke remain useful follow-up proof. |
 | Realtime | No launch-critical realtime dependency identified. | If enabled later, document channels and rate limits. |
