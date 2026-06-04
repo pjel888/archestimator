@@ -45,4 +45,10 @@ The superseded board remains inactive, but the current projects-page access-tabs
 
 ## 2026-06-03 agentic development framework plan note
 
-The superseded autopilot board remains inactive, but a current plan-only ADD rollout package exists at `.ai/03_plans/2026-06-03-agentic-development-framework-rollout/`. Future execution should start with Phase 1 canonical `.ai` docs only after branch/environment recommendations are approved. Do not treat the framework as globally enforced yet.
+The superseded autopilot board remains inactive. The old ADD rollout path
+`.ai/03_plans/2026-06-03-agentic-development-framework-rollout/` now exists
+only as an archive pointer to
+`.ai/09_archive/store/2026-06-03-agentic-development-framework-rollout/`, where
+Phase 1A/1B are recorded complete and mirrored. Do not schedule this as a new
+implementation task unless Philip explicitly reopens a later enforcement phase,
+and do not treat the framework as globally enforced yet.

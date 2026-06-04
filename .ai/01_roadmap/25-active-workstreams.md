@@ -17,10 +17,12 @@ Do not schedule more local launch implementation unless a new repo-local defect 
 
 Status: Phase 1A/1B repo-local framework rollout is complete, mirrored, and
 archived at `.ai/09_archive/store/2026-06-03-agentic-development-framework-rollout/`.
-The old active plan path under `.ai/03_plans` is no longer present. Do not
-schedule this as a new implementation task unless Philip explicitly reopens a
-later enforcement phase. It must not displace the current closed-beta proof
-collection workstream or claim provider readiness.
+The old active plan path under `.ai/03_plans` now exists only as an
+archive-pointer README so stale goal references resolve to completion proof
+instead of a missing-folder blocker. Do not schedule this as a new
+implementation task unless Philip explicitly reopens a later enforcement phase.
+It must not displace the current closed-beta proof collection workstream or
+claim provider readiness.
 
 ---
 

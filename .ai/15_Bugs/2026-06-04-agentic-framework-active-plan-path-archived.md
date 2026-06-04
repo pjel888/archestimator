@@ -1,6 +1,6 @@
 # Agentic Framework Active Plan Path Is Archived
 
-**Status:** Open documentation/routing cleanup  
+**Status:** Resolved by archive pointer
 **Detected:** 2026-06-04T10:06Z  
 **Detected by:** Codex
 
@@ -39,3 +39,14 @@ Update any active roadmap, goal, or handoff text that still points to the old
 `.ai/03_plans/...` location as an implementation target. Treat the archived
 folder as historical/completion proof, not as a new implementation task, unless
 a later owner instruction explicitly reopens Phase 1C/global enforcement work.
+
+## Resolution
+
+2026-06-05 cleanup added
+`.ai/03_plans/2026-06-03-agentic-development-framework-rollout/README.md` as an
+explicit archived-completion pointer to
+`.ai/09_archive/store/2026-06-03-agentic-development-framework-rollout/` and
+updated `.ai/03_plans/README.md` so the old active-plan entry no longer says
+the framework is unimplemented. Future automation following the stale objective
+path should now land on archive proof instead of reporting
+`BLOCKED_PLAN_FOLDER_NOT_FOUND`.
