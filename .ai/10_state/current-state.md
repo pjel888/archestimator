@@ -1,5 +1,21 @@
 # Current State
 
+**Project Image Cleanup Targets Hardened In Linked Supabase (2026-06-04):**
+Codex Security refresh showed a new medium finding, `Project deletion no longer
+cleans project image objects`, with the dashboard at `1-20 of 43`. Local red
+contract first failed because the new cleanup-target migration was empty; green
+contract now proves the latest `preview_bulk_delete_projects` migration emits
+`project-images` cleanup targets and not `component-images`. Exact linked apply
+used `supabase db query --linked --file` with
+`supabase/migrations/20260604023101_harden_project_image_cleanup_targets.sql`,
+then repaired only version `20260604023101` as applied. Supabase connector
+readback proves the live RPC now has
+`emitsComponentImages=false`, `emitsProjectImages=true`, WebP/path traversal
+filters present, and migration history row `20260604023101`. Proof artifact:
+`.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/project-image-cleanup-targets-2026-06-04.json`.
+Codex Security dashboard rescan/closure and hosted manual project-deletion
+cleanup proof remain open.
+
 **Cheap Closed-Beta Launch Refresh (2026-06-04):** The active launch path is
 now explicitly the cheaper no-new-paid-add-ons path: Supabase project
 `ebxxqidacheyapmmzavr` / `Archestimator` stays on `MICRO` compute, PITR stays

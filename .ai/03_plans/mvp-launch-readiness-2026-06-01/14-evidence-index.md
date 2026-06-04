@@ -1,5 +1,26 @@
 # Evidence Index
 
+## Project Image Cleanup Targets Security Fix - 2026-06-04
+
+- Primary artifact: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/project-image-cleanup-targets-2026-06-04.json`.
+- Codex Security refresh showed `1-20 of 43` findings and selected the new
+  medium finding `Project deletion no longer cleans project image objects`
+  against commit `ea4aa95`.
+- Migration: `supabase/migrations/20260604023101_harden_project_image_cleanup_targets.sql`
+  recreates `public.preview_bulk_delete_projects` so project deletion cleanup
+  targets use private bucket `project-images` and no longer emit public
+  `component-images` targets for project images.
+- Linked apply/repair: `supabase db query --linked --file` succeeded with
+  `supabase/migrations/20260604023101_harden_project_image_cleanup_targets.sql`,
+  followed by a targeted repair of version `20260604023101` as applied. Remote
+  migration history readback returned version `20260604023101`.
+- Live readback: Supabase connector SQL reports `emitsComponentImages=false`,
+  `emitsProjectImages=true`, `filtersWebp=true`, `rejectsDotDot=true`, and
+  `rejectsDoubleSlash=true` for the live
+  `public.preview_bulk_delete_projects(uuid[], uuid)` function.
+- Still open: Codex Security dashboard rescan/closure and hosted manual
+  project-deletion image cleanup smoke.
+
 ## Cheap Closed-Beta Launch Refresh - 2026-06-04
 
 - Primary artifact: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/cheap-launch-refresh-2026-06-04.json`.

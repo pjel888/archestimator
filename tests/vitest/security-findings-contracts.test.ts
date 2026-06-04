@@ -201,6 +201,8 @@ describe("Codex security findings hardening contracts", () => {
     const nextConfig = read("next.config.ts");
     const privateProjectImageMigration = read("supabase/migrations/20260603222628_private_project_image_storage.sql");
     const qualifiedProjectImageMigration = read("supabase/migrations/20260603224800_qualify_project_image_storage_policies.sql");
+    const cleanupTargetsMigration = latestMigrationBySuffix("_harden_project_image_cleanup_targets.sql");
+    const latestProjectDeletePreview = latestFunction("preview_bulk_delete_projects");
 
     expect(projectImageRoute).toContain('const PROJECT_IMAGE_BUCKET = "project-images"');
     expect(projectImageRoute).toContain("export async function GET(request: Request)");
@@ -216,6 +218,9 @@ describe("Codex security findings hardening contracts", () => {
     expect(privateProjectImageMigration).toContain("coalesce((storage.foldername(name))[3], '') <> 'project-images'");
     expect(qualifiedProjectImageMigration).toContain("storage.foldername(storage.objects.name)");
     expect(qualifiedProjectImageMigration).not.toContain("storage.foldername(p.name)");
+    expect(cleanupTargetsMigration).toContain("create or replace function public.preview_bulk_delete_projects");
+    expect(latestProjectDeletePreview).toContain("jsonb_build_object('bucket', 'project-images'");
+    expect(latestProjectDeletePreview).not.toContain("jsonb_build_object('bucket', 'component-images'");
   });
 
   it("prevents sheet-only collaborators from inheriting project-wide estimate access", () => {
