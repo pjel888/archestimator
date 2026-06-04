@@ -25,12 +25,13 @@ describe("linked Supabase launch readiness SQL", () => {
     expect(sql).toContain("unlink_estimate_row_item_from_library_with_history");
   });
 
-  it("checks private table grants, RLS, and storage bucket posture", () => {
+  it("checks private table grants, RLS, and approved storage bucket posture", () => {
     expect(sql).toContain("relrowsecurity");
     expect(sql).toContain("has_table_privilege('anon'");
     expect(sql).toContain("has_function_privilege('anon'");
     expect(sql).toContain("storage.buckets");
-    expect(sql).toContain("component-images");
+    expect(sql).toContain("('component-images', true)");
+    expect(sql).toContain("('project-images', false)");
     expect(sql).toContain("launch_readiness_passed");
   });
 });

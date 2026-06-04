@@ -1,5 +1,24 @@
 # Current State
 
+**Cheap Closed-Beta Launch Refresh (2026-06-04):** The active launch path is
+now explicitly the cheaper no-new-paid-add-ons path: Supabase project
+`ebxxqidacheyapmmzavr` / `Archestimator` stays on `MICRO` compute, PITR stays
+disabled, and closed-beta DR relies on Supabase physical backups plus the
+off-repo logical dump bundle instead of the about `$100/month` PITR add-on.
+Fresh proof artifact
+`.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/cheap-launch-refresh-2026-06-04.json`
+records 9 completed physical backups, `pitrEnabled: false`, `walgEnabled: true`,
+required linked launch migrations present, linked SQL readiness passing 14
+checks, `philipjonlewis@gmail.com` active in the allowlist, Vercel production
+deployment `dpl_Dh8xPgZ3NQwN4CwxZQXh6d8vypcn` serving
+`archestimator.com` / `www.archestimator.com`, `www` health returning HTTP 200,
+core/email/invite env names present in Vercel production, and rollback still
+undrilled. Remaining no-cost blockers are Codex Security rescan/owner
+acceptance, hosted Google OAuth allowed/denied/revoked smoke, rollback drill if
+accepted, Resend delivery/webhook proof, legal/owner signoff,
+support/alert-monitoring proof, hosted authenticated export, and full hosted
+beta journey proof.
+
 **Public Proposal Rate Breakdown Stripped And Deployed (2026-06-04):** Main commit `984124b` fixes the Codex Security finding `Proposal pages now expose internal unit-rate details`. Future public publication snapshot rows no longer include `unitCost`, `miscCost`, or `contingencyPercentage`; legacy stored snapshots are sanitized through a public-read whitelist in `sanitizeProjectPublicationSnapshotForPublicRead`, and `/api/share/[token]` defensively sanitizes again before `Response.json`. Public proposal rows still expose quantity, unit, and row total so recipients can audit proposal totals without receiving internal unit-rate breakdowns. Red/green verification first failed on both future snapshot rows and dirty route JSON, then passed the focused publication snapshot/route/page suite (3 files / 38 tests), broader adjacent publication/security/share GET suite (5 files / 56 tests), `bun run type-check`, `bun run lint` with 12 existing warnings / 0 errors, `git diff --check`, `bun run build`, and GitNexus staged detect-changes LOW risk with 0 affected processes. Vercel production deploy `dpl_Dh8xPgZ3NQwN4CwxZQXh6d8vypcn` is Ready and aliased to `www.archestimator.com`, `archestimator.com`, and `archestimator.vercel.app`; hosted smoke returned HTTP 200 from `https://www.archestimator.com/api/health`, apex health redirected to `www`, `/login` returned HTTP 200, and signed-out `/workshop` returned HTTP 307 to `/login?next=%2Fworkshop`. Proof artifact: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/proposal-public-rates-stripped-2026-06-04.json`. Codex Security rescan/closure remains pending, and no hosted real published share token JSON was inspected after deployment.
 
 **MCP Tooling Package Resolution Pinned (2026-06-04):** Main commit `d351daa` fixes the Codex Security finding `Unpinned MCP tooling auto-executes external packages` by replacing floating `uvx code-review-graph serve` specs in `.mcp.json`, `.cursor/mcp.json`, and `.codex/config.toml` with `code-review-graph==2.3.5`. A new static security contract in `tests/vitest/security-findings-contracts.test.ts` fails if the MCP configs regress to the floating package arg. Red/green verification first failed on the unpinned config, then passed the focused MCP pin contract, the full security findings contract suite (1 file / 16 tests), `uvx code-review-graph==2.3.5 --version`, `bun run type-check`, `bun run lint` with 12 existing warnings / 0 errors, `git diff --cached --check`, and GitNexus staged detect-changes LOW risk with 0 affected processes. No Vercel deployment was required because the affected surface is repo-local MCP/tooling configuration, not production app runtime code. Proof artifact: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/mcp-tooling-pinned-2026-06-04.json`. Codex Security rescan/closure remains pending, and full Codex/Cursor UI MCP startup proof was not rerun after the config pin.

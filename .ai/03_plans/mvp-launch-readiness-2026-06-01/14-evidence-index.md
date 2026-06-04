@@ -1,5 +1,36 @@
 # Evidence Index
 
+## Cheap Closed-Beta Launch Refresh - 2026-06-04
+
+- Primary artifact: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/cheap-launch-refresh-2026-06-04.json`.
+- Decision: keep the lower-cost closed-beta provider path. Supabase project
+  `ebxxqidacheyapmmzavr` / `Archestimator` remains on Micro compute, PITR stays
+  disabled, and the accepted pre-launch DR posture is Supabase physical backups
+  plus the off-repo logical dump bundle; no new paid add-ons were enabled.
+- Supabase backup proof: `supabase-backup-readiness-cheap-refresh-2026-06-04.json`
+  lists 9 completed physical backups with `pitrEnabled: false` and
+  `walgEnabled: true`; the strict checker remains incomplete because PITR and a
+  restore drill are intentionally absent from the cheap path.
+- Supabase migration/object proof:
+  `supabase-migration-readiness-cheap-refresh-2026-06-04.json` reports required
+  launch migrations present remotely, and
+  `supabase-linked-readiness-cheap-refresh-2026-06-04.json` reports 14 linked
+  SQL readiness checks passing. The linked readiness probe now treats public
+  `component-images` as the approved component-thumbnail bucket and private
+  `project-images` as the required client/project-image bucket.
+- Vercel proof: `vercel-env-readiness-cheap-refresh-2026-06-04.json` reports
+  core closed-beta, Resend, and invite env names present; `vercel-health-readiness-cheap-refresh-2026-06-04.json`
+  returns HTTP 200 from `https://www.archestimator.com/api/health`; and
+  `vercel-production-readiness-cheap-refresh-2026-06-04.json` shows
+  `archestimator.com` / `www.archestimator.com` mapped to current production
+  deployment `dpl_Dh8xPgZ3NQwN4CwxZQXh6d8vypcn` with 19 rollback candidates but
+  no rollback drill.
+- Still open before closed beta is fully green: Codex Security dashboard
+  rescan/owner acceptance, hosted Google OAuth allowed/denied/revoked browser
+  smoke for `philipjonlewis@gmail.com`, rollback drill if accepted, Resend
+  delivery/webhook event proof, legal/owner signoff, support inbox/feedback/alert
+  monitoring proof, hosted authenticated export, and full hosted beta journey.
+
 ## Cheaper-Path Provider Launch Update - 2026-06-03
 
 - Primary artifact: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/provider-ops-mutation-pass-2cddb0e-2026-06-03.md`.

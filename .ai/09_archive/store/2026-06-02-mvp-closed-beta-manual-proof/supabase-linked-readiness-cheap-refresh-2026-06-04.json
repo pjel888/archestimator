@@ -1,0 +1,41 @@
+{
+  "generatedAt": "2026-06-04T02:10:43.270Z",
+  "mode": "supabase-linked-readiness",
+  "source": "/tmp/archestimator-launch-refresh/linked-supabase-readiness-corrected.json",
+  "projectRef": "ebxxqidacheyapmmzavr",
+  "parsedLinkedReadiness": true,
+  "parseError": null,
+  "blockedReason": null,
+  "totalChecks": 14,
+  "failedChecks": [],
+  "missingCategories": [],
+  "categorySummary": {
+    "summary": {
+      "total": 1,
+      "failed": 0
+    },
+    "migration": {
+      "total": 5,
+      "failed": 0
+    },
+    "table": {
+      "total": 2,
+      "failed": 0
+    },
+    "grant": {
+      "total": 2,
+      "failed": 0
+    },
+    "function": {
+      "total": 2,
+      "failed": 0
+    },
+    "storage": {
+      "total": 2,
+      "failed": 0
+    }
+  },
+  "summaryPassed": true,
+  "linkedSupabaseLaunchReady": true,
+  "note": "Sanitized linked Supabase readiness parser. It parses output from the read-only `scripts/sql/linked-supabase-launch-readiness.sql` query and does not connect to Supabase, apply migrations, repair migration history, mutate storage, or perform RLS/browser allow-deny proof."
+}

@@ -29,6 +29,31 @@
 
 **Last updated:** 2026-06-04
 
+## 2026-06-04 cheap launch refresh
+
+- The current beta-launch path remains the cheaper path: do not enable paid
+  Supabase PITR unless Philip explicitly accepts the additional cost. The strict
+  backup checker still reports `supabaseBackupReady: false` because PITR and a
+  restore drill are missing, but the cheap-path packet now separately records 9
+  completed physical backups, `walgEnabled: true`, and the off-repo logical dump
+  bundle as the accepted pre-launch DR posture.
+- Linked Supabase launch migrations, closed-beta tables/RLS/grants/functions,
+  storage posture, and the single active allowlist row have fresh linked proof:
+  `supabase-migration-readiness-cheap-refresh-2026-06-04.json` and
+  `supabase-linked-readiness-cheap-refresh-2026-06-04.json` pass, with the linked
+  SQL probe updated so public `component-images` thumbnails are allowed while
+  private `project-images` remains enforced.
+- Vercel production env-name, health, and custom-domain proof has refreshed:
+  `vercel-env-readiness-cheap-refresh-2026-06-04.json` and
+  `vercel-health-readiness-cheap-refresh-2026-06-04.json` pass, while
+  `vercel-production-readiness-cheap-refresh-2026-06-04.json` remains false only
+  because the rollback drill is still blocked.
+- External closed beta remains blocked by no-cost/manual proof gaps: Codex
+  Security dashboard rescan/acceptance, hosted Google OAuth allow/deny/revoke
+  browser smoke, rollback drill if accepted, Resend delivery/webhook proof,
+  legal/owner signoff, support/alert monitoring proof, hosted authenticated
+  export, and full hosted beta journey proof.
+
 ## 2026-06-03 provider proof refresh
 
 - Supabase PITR remains disabled by decision because the 7-day PITR add-on was
