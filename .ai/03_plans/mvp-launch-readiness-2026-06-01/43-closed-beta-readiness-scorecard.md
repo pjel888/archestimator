@@ -16,8 +16,8 @@ Closed beta can launch only if all P0 domains are 95+ or have a documented no-go
 
 | Domain | P0? | Score | Status | Reason |
 | --- | --- | ---: | --- | --- |
-| Closed beta access control | Yes | 84 | Local pass plus admin queue; linked proof pending | Allowlist migration/helper/proxy/callback/session/access-required UX and platform-admin `/workshop/settings/beta-users` management exist locally; linked Supabase apply and hosted allowed/denied/revoked smoke are missing. |
-| Auth/onboarding | Yes | 78 | Needs env and hosted smoke | Google Sign-In and workspace flow exist with local beta gate coverage; local signed-out redirect/login UI E2E passes; Vercel env list is empty, so hosted callback, allowed/denied/revoked, and first-run smoke are blocked. |
+| Closed beta access control | Yes | 84 | Local pass plus hosted owner/edge proof; expired-session pending | Allowlist migration/helper/proxy/callback/session/access-required UX and platform-admin `/workshop/settings/beta-users` management exist locally; linked owner-only allowlist readback plus hosted owner, denied, revoked, and logout proof exist; expired-session smoke remains missing. |
+| Auth/onboarding | Yes | 78 | Needs expired-session smoke | Google Sign-In and workspace flow exist with local beta gate coverage; local signed-out redirect/login UI E2E passes; hosted owner callback, denied/revoked access-required paths, and logout proof exist; expired-session and first-run smoke remain blocked. |
 | Core estimating workflow | Yes | 84 | Needs smoke proof | Core app exists and local DOM baseline is green; protected route/manual smoke remains required. |
 | Component library | Yes | 90 | Local screenshot pass; hosted proof pending | Search/count/trust fields are locally tested and screenshot-smoked; hosted/manual E2E remains required. |
 | Templates | Yes | 91 | Local insertion pass; hosted proof pending | Preview/count/sample rows are locally tested and screenshot-smoked; local insertion into a throwaway estimate is proven; hosted/manual core journey proof remains required. |

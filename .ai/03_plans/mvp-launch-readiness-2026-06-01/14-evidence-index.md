@@ -1,5 +1,28 @@
 # Evidence Index
 
+## Hosted Google Denied/Revoked Browser Smoke - 2026-06-04 18:51Z
+
+- Primary artifact:
+  `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/hosted-google-denied-revoked-browser-smoke-2026-06-04T1851Z.json`.
+- Denied proof: Computer Use signed out the owner browser session through
+  `/workshop/settings`, opened `/login?next=/workshop`, selected the alternate
+  Google account `lewisphilipjonechavez@gmail.com`, and observed
+  `/beta/access-required` with the closed-beta not-enabled copy while linked
+  Supabase readback showed that alternate email had no allowlist row.
+- Revoked proof: Codex created a temporary `revoked` allowlist row for the same
+  alternate account, repeated the Google account chooser flow, and observed
+  `/beta/access-required?status=revoked` with paused-access copy.
+- Cleanup proof: the temporary revoked row was deleted. Linked Supabase readback
+  then showed owner active, no alternate allowlist row, one enabled beta email,
+  and one total allowlist row. The browser was restored to the owner account at
+  `/workshop`.
+- Boundary: no cookies, raw OAuth callback URLs, auth codes, provider secrets,
+  database UUIDs, or paid provider changes were recorded. A Supabase Auth user
+  exists for the alternate account because real hosted OAuth occurred; it is not
+  an allowlisted beta tester.
+- Result: hosted denied and revoked Google OAuth proof is closed for the
+  owner-only closed beta. Hosted expired-session smoke remains open.
+
 ## Resend Signed Delivered Webhook Reconciliation - 2026-06-04 18:09Z
 
 - Primary artifact:
@@ -154,11 +177,11 @@
 - Boundary: the run used the existing owner session and deliberately created a
   small owner beta smoke sheet in production. It does not record secrets,
   cookies, OAuth tokens, service-role keys, or webhook secrets, and it does not
-  prove denied/revoked/expired sessions, spreadsheet-app
+  prove expired sessions, spreadsheet-app
   open/recalc/print, or hosted shared-link/invite email workflow delivery.
 - Result: owner-only hosted beta journey proof is now captured for the current
   single-tester beta. External closed beta remains evidence-gated by the narrower
-  denied/revoked/expired-session, spreadsheet-app, and optional automatic-email
+  expired-session, spreadsheet-app, and optional automatic-email
   workflow proof gaps.
 
 ## Codex Security History-Risk Owner Acceptance - 2026-06-04 14:14Z
@@ -822,12 +845,13 @@
   red because owner/legal labels, support inbox monitoring, feedback review,
   alert ownership, and incident-escalation proof are not yet recorded.
 - Later 2026-06-04 artifacts close rollback, legal/owner/support signoff, Resend
-  provider delivery/webhook proof, hosted authenticated export, and the owner
-  hosted beta journey. Still open before a fully green widened closed beta:
-  residual Codex Security history-risk acceptance/remediation, hosted
-  denied/revoked/expired auth smoke, spreadsheet-app open/print proof if
-  required for beta, logout/session-expiry proof, and hosted shared-link/invite
-  email workflow proof before relying on automatic email UX.
+  provider delivery/webhook proof, hosted authenticated export, the owner hosted
+  beta journey, logout, denied/revoked Google OAuth, shared-link self-invite/send,
+  recipient inbox/clickthrough/open, and signed delivered-event webhook
+  reconciliation. Still open before a fully green widened closed beta: residual
+  Codex Security history-risk acceptance/remediation, hosted expired-session
+  auth smoke, spreadsheet-app open/print proof if required for beta, and optional
+  negative email lifecycle proof before relying on incident-path email UX.
 
 ## Resend Dashboard DNS/Webhook Refresh - 2026-06-04 04:46Z
 
@@ -973,7 +997,9 @@
 - Hosted auth proof:
   `hosted-google-allowed-browser-smoke-2026-06-04T0355Z.json` confirms the
   allowed owner Google session can access production profile settings as
-  `philipjonlewis@gmail.com`; denied/revoked/expired session smoke remains open.
+  `philipjonlewis@gmail.com`; `hosted-google-denied-revoked-browser-smoke-2026-06-04T1851Z.json`
+  later closes real alternate-account denied and revoked browser smoke.
+  Expired-session smoke remains open.
 - Codex Security proof:
   `codex-security-dashboard-refresh-2026-06-04T0405Z.json` confirms the
   authenticated dashboard still lists `1-20 of 43` findings, while the Scans page
@@ -984,8 +1010,7 @@
 - Later 2026-06-04 artifacts close Resend provider delivery/webhook proof,
   legal/owner/support signoff, hosted authenticated export, and the owner hosted
   beta journey. Still open before closed beta is fully green: residual Codex
-  Security history-risk acceptance/remediation, hosted Google OAuth
-  denied/revoked/expired browser smoke, logout/session-expiry proof,
+  Security history-risk acceptance/remediation, hosted expired-session smoke,
   spreadsheet-app open/print proof if required for beta, and hosted
   shared-link/invite email workflow proof before relying on automatic email UX.
 
@@ -998,7 +1023,7 @@
 - Production deployment `dpl_Cxeq5ATpif6Yk1zn4FmNmnX7nzhT` is `READY`; `archestimator.com` and `www.archestimator.com` alias to it; `www` serves the beta app instead of the teaser; `/api/health` returns app health JSON; signed-out `/workshop` redirects to login. Proof: `vercel-hosted-http-smoke-cheaper-path-2cddb0e-2026-06-03.json`, `vercel-health-readiness-cheaper-path-2cddb0e-2026-06-03.json`, and `vercel-production-readiness-cheaper-path-2cddb0e-2026-06-03.json`.
 - Latest production redeploy proof on 2026-06-04T13:11Z records deployment `dpl_2X6FytZUnK5ZaNsszVN4W8Wh6bXm` Ready on both custom domains, live Resend webhook signature-verification reachability, signed-out `/workshop/projects` redirect proof, login Google/email-link entry, and owner Chrome allowed-session access to hosted `/workshop`. Proof: `vercel-production-resend-enabled-hosted-auth-2026-06-04T1311Z.json`.
 - Latest owner journey proof on 2026-06-04T13:28Z records the owner hosted path through project entry, estimate creation, estimate workspace render, and export preview. Proof: `hosted-owner-beta-journey-smoke-2026-06-04T1328Z.json`.
-- Still open before calling the proof packet fully green: real browser Google OAuth denied/revoked/expired hosted smoke, spreadsheet-app open/print proof if required for beta, and Resend delivered/bounce/complaint webhook reconciliation if automatic email UX is used. Vercel rollback proof is closed by the 11:12Z rollback/promote drill; Resend provider delivery/webhook route proof is closed; owner hosted beta journey proof is closed; residual Codex Security history-risk is owner-accepted for the owner-only beta by the 14:14Z artifact; owner logout is closed by the 14:36Z artifact; shared-link self-invite/send/inbox proof is closed by the 15:32Z and 15:55Z artifacts; the 17:31Z artifact closes recipient clickthrough/open; the 16:22Z lifecycle refresh records that the current send-only key/log path cannot prove signed webhook reconciliation.
+- Still open before calling the proof packet fully green: hosted expired-session smoke, spreadsheet-app open/print proof if required for beta, and bounce/complaint webhook reconciliation if the owner-only beta requires synthetic negative-email events. Real browser Google OAuth denied/revoked hosted smoke is closed by `hosted-google-denied-revoked-browser-smoke-2026-06-04T1851Z.json`. Vercel rollback proof is closed by the 11:12Z rollback/promote drill; Resend provider delivery/webhook route proof is closed; owner hosted beta journey proof is closed; residual Codex Security history-risk is owner-accepted for the owner-only beta by the 14:14Z artifact; owner logout is closed by the 14:36Z artifact; shared-link self-invite/send/inbox proof is closed by the 15:32Z and 15:55Z artifacts; the 17:31Z artifact closes recipient clickthrough/open; and the 18:09Z artifact closes signed delivered-event webhook reconciliation for the real shared-link email.
 
 ## Fourth-Pass Closed Beta Evidence - 2026-06-02
 
@@ -1189,7 +1214,7 @@
 - Required operator inputs for a complete pass: `HOSTED_AUTH_BASE_URL`, `HOSTED_AUTH_ALLOWED_COOKIE`, `HOSTED_AUTH_DENIED_COOKIE`, `HOSTED_AUTH_REVOKED_COOKIE`, and `HOSTED_AUTH_EXPIRED_COOKIE`, with optional `HOSTED_AUTH_PLATFORM_COOKIE` / `HOSTED_AUTH_PLATFORM_AUTH_HEADER` for deployment-protection bypass. Store only sanitized JSON via `OUTPUT_FILE`.
 - Scope: probes `/workshop` for signed-out, allowed, denied, revoked, and expired-session cases. Expected results are signed-out/expired redirecting to `/login?next=%2Fworkshop`, allowed reaching the protected workshop, denied redirecting to `/beta/access-required`, and revoked redirecting to `/beta/access-required?status=revoked`.
 - Guardrail evidence: `bunx vitest run tests/vitest/hosted-auth-route-smoke-script.test.ts --maxWorkers=1` covers base URL refusal, request-only cookie/header handling, redirect classification, missing-session fail-closed behavior, and proof-report redaction.
-- Launch meaning: this makes hosted auth allowlist proof operator-ready and sanitized, but it does not prove Google OAuth, hosted cookies, callback URLs, linked allowlist data, or first-run workspace behavior until a real hosted run writes a passing artifact. Hosted auth remains **NO-GO**.
+- Launch meaning: this makes complete hosted auth route proof operator-ready and sanitized. Separate real browser proof now covers hosted owner allowed, denied, revoked, and logout paths; this helper row still does not prove expired-session behavior, Google Cloud dashboard callback configuration, or first-run workspace behavior.
 
 ### Hosted Auth Env Fail-Closed Fix at 6cc9f03
 
@@ -1707,7 +1732,7 @@
 
 - Artifact: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/provider-ops-mutation-pass-2cddb0e-2026-06-03.md`.
 - Vercel env result: Production and Preview(`main`) now have the required core closed-beta runtime env names plus invite token env names. Latest sanitized helper artifact `vercel-env-readiness-2cddb0e-2026-06-03.json` reports `coreClosedBetaRuntime.ready=true`, `inviteDelivery.ready=true`, and `vercelEnvReady=true`. Email delivery remains incomplete because `RESEND_WEBHOOK_SECRET` is not set.
-- Supabase Auth result: hosted Site URL and HTTPS redirect allowlist were repaired for `www`, apex, and the `git-main` Vercel branch alias. Google provider is enabled in Supabase, but Google Cloud consent/callback proof and hosted allowed/denied/revoked smoke remain open.
+- Supabase Auth result: hosted Site URL and HTTPS redirect allowlist were repaired for `www`, apex, and the `git-main` Vercel branch alias. Google provider is enabled in Supabase, and hosted denied/revoked Google OAuth smoke is now proven by `hosted-google-denied-revoked-browser-smoke-2026-06-04T1851Z.json`; Google Cloud consent/callback proof and hosted expired-session smoke remain open.
 - Supabase backup/migration result: `supabase-backup-readiness-2cddb0e-2026-06-03.json` still reports zero listed backups, `pitrEnabled=false`, and no restore drill. `supabase db push --linked --dry-run` still refuses due remote migration versions missing locally, so no linked migrations were applied.
 - Resend/DNS result: Resend domain `contact.archestimator.com` is pending; DKIM, `send.contact` SPF, and apex DMARC TXT records were confirmed. `resend-readiness-2cddb0e-2026-06-03.json` still reports `resendReady=false` because local runtime and Vercel are missing `RESEND_WEBHOOK_SECRET`; `support-email-dns-readiness-refresh-2cddb0e-2026-06-03.json` still reports `dnsReady=false` because the support DNS helper requires apex SPF.
 - Custom-domain/deploy result: no production alias switch was performed. `archestimator.com` / `www.archestimator.com` remain **NO-GO** for beta-app promotion until backup/PITR, migration repair/apply, hosted auth, and rollback proof are complete.

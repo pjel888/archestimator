@@ -24,8 +24,8 @@
   `philipjonlewis@gmail.com`.
 - Latest artifact:
   `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/live-closed-beta-refresh-2026-06-04T1006Z.json`.
-- External closed beta remains not fully green because denied/revoked/expired
-  hosted auth smoke and spreadsheet-app open/print proof if required for beta
+- External closed beta remains not fully green because expired-session hosted
+  auth smoke and spreadsheet-app open/print proof if required for beta
   remain open. The hosted
   shared-link self-invite guard, alternate-recipient send dispatch,
   alternate-recipient inbox receipt, and recipient clickthrough/open are
@@ -34,7 +34,9 @@
   and
   `hosted-shared-link-recipient-inbox-receipt-2026-06-04T1555Z.json`.
   Owner logout is
-  proven by `hosted-logout-session-proof-2026-06-04T1436Z.json`; expired-session
+  proven by `hosted-logout-session-proof-2026-06-04T1436Z.json`; hosted
+  denied/revoked Google OAuth proof is proven by
+  `hosted-google-denied-revoked-browser-smoke-2026-06-04T1851Z.json`; expired-session
   proof remains a separate auth edge case. Residual Codex Security history-exposure findings are now
   owner-accepted only for the current single-owner beta, not fixed or public-launch
   green. Resend sender-domain,
@@ -148,8 +150,8 @@
   The raw workbook was not copied into the repository. This closes the hosted
   authenticated export proof gap, while the later 13:28Z artifact closes the
   owner hosted beta journey and the later 14:36Z artifact closes owner logout.
-  Secondary spreadsheet-app open/print proof and denied/revoked/expired auth
-  smoke remain open.
+  Secondary spreadsheet-app open/print proof and expired-session auth smoke
+  remain open.
 - Hosted feedback admin proof at `2026-06-04T07:50Z` now shows the active owner
   Chrome session can render production
   `https://www.archestimator.com/workshop/settings/feedback` with the `Beta
@@ -172,11 +174,11 @@
   issue/PR queue, and public DNS still lacks the Resend `send.contact` MX record.
   Artifact:
   `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/cheap-beta-launch-audit-2026-06-04T0735Z.json`.
-  External closed beta is still not fully green because Codex Security
-  dashboard state, hosted denied/revoked/expired auth smoke, Resend
-  domain/delivery proof if email is visible, rollback/legal/support/alert
-  monitoring proof, secondary spreadsheet-app export open/print proof, and full
-  hosted beta journey proof remain open.
+  Later 2026-06-04 proof closes Resend domain/delivery, rollback/legal/support
+  signoff, the owner hosted beta journey, logout, and denied/revoked Google
+  OAuth. External closed beta is still not fully green because Codex Security
+  dashboard state, hosted expired-session auth smoke, secondary spreadsheet-app
+  export open/print proof, and final launch-language reconciliation remain open.
 - Codex Security cheap-path refresh at `2026-06-04T08:44Z` proves the
   repo-filtered open findings view shows `1-20 of 35`, while `critical` and
   `high` filters each show `0-0 of 0`. The Scans page still has
@@ -229,14 +231,14 @@
   `vercel-production-readiness-rollback-drill-2026-06-04T1112Z.json` close the
   Vercel rollback gate with `vercelProductionReady: true`.
 - External closed beta remains blocked by narrower no-cost/manual proof gaps:
-  hosted Google OAuth denied/revoked/expired browser smoke, secondary
-  spreadsheet-app export open/print proof if required for beta, and Resend
-  delivered/bounce/complaint webhook reconciliation before relying on automatic
-  email UX. Later artifacts close
+  hosted expired-session browser smoke, secondary spreadsheet-app export
+  open/print proof if required for beta, and bounce/complaint webhook
+  reconciliation only if the owner-only beta requires synthetic negative-email
+  lifecycle coverage. Later artifacts close
   Resend provider proof, legal/owner/support signoff, Vercel rollback, hosted
   export, the owner hosted beta journey, owner-scoped Codex Security history-risk
-  acceptance, owner logout proof, shared-link self-invite/send proof, and
-  alternate-recipient inbox receipt.
+  acceptance, owner logout proof, hosted denied/revoked Google OAuth proof,
+  shared-link self-invite/send proof, and alternate-recipient inbox receipt.
   Direct RLS closure proof exists locally/provider-side, but the Codex Security
   dashboard `Close` submission remains pending action-time confirmation.
 
@@ -276,7 +278,7 @@
 
 ## Current blockers
 
-- Public/private launch remains NO-GO until provider, legal, Vercel deploy/rollback, hosted/manual QA, support, owner, and storage/security evidence is complete (see Roadmap Phase 7). Local validation/build evidence is now current for the closed-beta launch pack: `353dd48` passed `bun run validate` and `bun run build`, with DOM at 151 files / 1119 passed / 2 skipped and 32 static pages generated. Read-only Supabase CLI evidence on 2026-06-02 is negative/blocked: PITR is disabled, no backups were listed, security advisor returned WARN findings, and migration/performance reads hit the linked temp-role pooler circuit breaker. Linked Supabase schema parity evidence on 2026-06-02 is negative/blocked: Management API SQL readback found `20260601182522_closed_beta_allowed_emails` and `20260601184343_unlink_estimate_row_items` missing from linked migration history, `closed_beta_allowed_emails`, `check_closed_beta_access`, and `unlink_estimate_row_item_from_library_with_history` absent, and `component-images` public. Read-only Vercel CLI evidence on 2026-06-02 is partial/blocked: preview deploy reached READY and protected `/api/health` works through `vercel curl`, but Vercel env list is empty, public health is deployment-protected, rollback proof is missing, and one env-var-backed automation bypass entry needs owner review. Resend email readiness evidence on 2026-06-02 is negative/blocked: Vercel env list is empty; `resend-readiness-b0e04f4-2026-06-02.json`, `resend-readiness-eb0aef5-2026-06-02.json`, `resend-readiness-ce7a4e5-2026-06-02.json`, `resend-readiness-8b0929f-2026-06-02.json`, and latest `resend-readiness-cdb9fdc-2026-06-02.json` report only `RESEND_API_KEY` present locally, `RESEND_FROM`, `RESEND_REPLY_TO`, and `RESEND_WEBHOOK_SECRET` missing locally, all four Resend names missing from Vercel, and `resendReady: false`; shared-link recipient entry/send/resend controls disable while server email readiness is false; and unconfigured production-like sends now fail closed instead of fake-succeeding. First-run Workshop local evidence on 2026-06-02 proves fallback workspace coverage and an empty Workshop homebase with Projects, Components, Templates, and empty favorite states, but hosted fresh-account Google auth and allowlist proof remain missing. Current local E2E smoke evidence on 2026-06-02 proves signed-out auth plus local dev-auth component library, template preview, and template insertion with linked cleanup, but hosted/manual target-environment proof remains missing. Spreadsheet artifact evidence on 2026-06-02 is partial: generated XLSX is valid, loadable, formula-backed, and has no blank line totals, but Excel/secondary-app open and print proof is blocked by missing local spreadsheet apps. Local component/template demo evidence on 2026-06-02 proves screenshots/JSON for component search/trust fields and template preview, and local template insertion evidence proves throwaway-estimate insertion with zero residue. Support/feedback local evidence now proves `/contact`, protected `/workshop/feedback`, platform-admin `/workshop/settings/feedback`, terms, and privacy point to `support@archestimator.com`; the public contact form prepares a structured support email draft instead of fake-submitting; local code can persist authenticated feedback to `beta_feedback_submissions` after its migration is applied and locally triage status after the review migration is applied. Settings hub local evidence on 2026-06-02 makes `/workshop/settings` a discoverable protected hub for profile, workspace, beta-user, and beta-feedback tools, but hosted admin smoke and linked migrations remain missing. Linked feedback/review migration apply, hosted feedback/admin smoke, monitored inbox/table ownership, and alert ownership proof remain missing. Project-specific unlink linked smoke evidence is negative/blocked because linked Supabase returned `PGRST202` for missing `unlink_estimate_row_item_from_library_with_history`; hosted auth, Resend delivery/webhooks, unlink detach/edit/library-unchanged/export, monitored support/alerts, and current hosted E2E proof remain missing.
+- Public/private launch remains NO-GO until provider, legal, Vercel deploy/rollback, hosted/manual QA, support, owner, and storage/security evidence is complete (see Roadmap Phase 7). Local validation/build evidence is now current for the closed-beta launch pack: `353dd48` passed `bun run validate` and `bun run build`, with DOM at 151 files / 1119 passed / 2 skipped and 32 static pages generated. Read-only Supabase CLI evidence on 2026-06-02 is negative/blocked: PITR is disabled, no backups were listed, security advisor returned WARN findings, and migration/performance reads hit the linked temp-role pooler circuit breaker. Linked Supabase schema parity evidence on 2026-06-02 is negative/blocked: Management API SQL readback found `20260601182522_closed_beta_allowed_emails` and `20260601184343_unlink_estimate_row_items` missing from linked migration history, `closed_beta_allowed_emails`, `check_closed_beta_access`, and `unlink_estimate_row_item_from_library_with_history` absent, and `component-images` public. Read-only Vercel CLI evidence on 2026-06-02 is partial/blocked: preview deploy reached READY and protected `/api/health` works through `vercel curl`, but Vercel env list is empty, public health is deployment-protected, rollback proof is missing, and one env-var-backed automation bypass entry needs owner review. Resend email readiness evidence on 2026-06-02 is negative/blocked: Vercel env list is empty; `resend-readiness-b0e04f4-2026-06-02.json`, `resend-readiness-eb0aef5-2026-06-02.json`, `resend-readiness-ce7a4e5-2026-06-02.json`, `resend-readiness-8b0929f-2026-06-02.json`, and latest `resend-readiness-cdb9fdc-2026-06-02.json` report only `RESEND_API_KEY` present locally, `RESEND_FROM`, `RESEND_REPLY_TO`, and `RESEND_WEBHOOK_SECRET` missing locally, all four Resend names missing from Vercel, and `resendReady: false`; shared-link recipient entry/send/resend controls disable while server email readiness is false; and unconfigured production-like sends now fail closed instead of fake-succeeding. First-run Workshop local evidence on 2026-06-02 proves fallback workspace coverage and an empty Workshop homebase with Projects, Components, Templates, and empty favorite states, but hosted fresh-account Google auth and allowlist proof remain missing. Current local E2E smoke evidence on 2026-06-02 proves signed-out auth plus local dev-auth component library, template preview, and template insertion with linked cleanup, but hosted/manual target-environment proof remains missing. Spreadsheet artifact evidence on 2026-06-02 is partial: generated XLSX is valid, loadable, formula-backed, and has no blank line totals, but Excel/secondary-app open and print proof is blocked by missing local spreadsheet apps. Local component/template demo evidence on 2026-06-02 proves screenshots/JSON for component search/trust fields and template preview, and local template insertion evidence proves throwaway-estimate insertion with zero residue. Support/feedback local evidence now proves `/contact`, protected `/workshop/feedback`, platform-admin `/workshop/settings/feedback`, terms, and privacy point to `support@archestimator.com`; the public contact form prepares a structured support email draft instead of fake-submitting; local code can persist authenticated feedback to `beta_feedback_submissions` after its migration is applied and locally triage status after the review migration is applied. Settings hub local evidence on 2026-06-02 makes `/workshop/settings` a discoverable protected hub for profile, workspace, beta-user, and beta-feedback tools, but hosted admin smoke and linked migrations remain missing. Linked feedback/review migration apply, hosted feedback/admin smoke, monitored inbox/table ownership, and alert ownership proof remain missing. Project-specific unlink linked smoke evidence is negative/blocked because linked Supabase returned `PGRST202` for missing `unlink_estimate_row_item_from_library_with_history`; hosted expired-session auth, unlink detach/edit/library-unchanged/export, and current hosted E2E proof remain missing.
 - Full local E2E refresh on 2026-06-02 at `bb9006d` proves `PLAYWRIGHT_PORT=3020 bun run test:e2e -- --project=chromium` passes 9 ungated Playwright checks with 24 env-gated/live-provider specs skipped. This retires the stale local port-conflict blocker, but it does not prove hosted OAuth, closed-beta allowlist, linked Supabase RLS/storage/RPC readiness, production Vercel env/custom-domain/rollback, project-specific unlink, spreadsheet-app behavior, support monitoring, legal approval, or hosted/manual E2E.
 - Supabase backup readiness evidence on 2026-06-02 remains blocked: `supabase-backup-readiness-b77245a-2026-06-02.json` reports region `ap-southeast-2`, zero listed backups, `pitrEnabled: false`, `walgEnabled: true`, restore drill not provided, missing `listed backups`, `PITR enabled`, and `restore drill passed`, and `supabaseBackupReady: false`. This makes backup/PITR proof repeatable but does not enable PITR, create backups, perform a restore, or prove linked migration safety.
 - Supabase migration-list readiness evidence on 2026-06-02 remains blocked: `supabase-migration-readiness-28f7a2a-2026-06-02.json` parsed 71 rows from a successful linked migration-list transcript, but all five required launch migrations are present locally and missing remotely, with `linkedMigrationsReady: false`. This is repeatable migration-history proof only; RLS, grants, storage, object existence, backup/PITR, restore safety, and deeper linked SQL readiness remain unproven.

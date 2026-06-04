@@ -70,7 +70,7 @@ Current decision: **NO-GO**.
 | --- | --- | --- | --- | --- |
 | Ask Flip hidden and AI routes disabled by default | Yes | UI test, route test, no provider-call test, production env false. | Local pass; production env proof pending. | No-go |
 | Core commands green | Yes | Install, typecheck, lint, design lint, unit, DOM, build, E2E. | Local type/lint/unit/DOM/build pass; hosted/manual E2E not current. | No-go |
-| Auth works in production | Yes | Hosted Google and magic-link callback smoke, logout/session expiry. | Local signed-out redirect/login UI E2E pass; hosted allowed/denied/revoked proof missing. | No-go |
+| Auth works in production | Yes | Hosted Google and magic-link callback smoke, logout/session expiry. | Local signed-out redirect/login UI E2E pass; hosted owner allowed, denied, revoked, and logout proof captured. Expired-session proof remains missing. | No-go |
 | RLS/migrations verified | Yes | Linked/staging SQL denial/allow queries, migration history, generated types. | Local migrations/types only. | No-go |
 | Component unlink cannot mutate library data | Yes | RPC/action/UI tests and manual library unchanged proof. | Local code/tests pass; linked/manual proof pending. | No-go |
 | Detached rows are clear to users | Yes | Row details copy/screenshot/manual QA. | Local UI coverage exists; screenshot/manual QA pending. | No-go |
