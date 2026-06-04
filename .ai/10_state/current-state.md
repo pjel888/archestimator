@@ -1,5 +1,27 @@
 # Current State
 
+**Production Resend-Enabled Deploy And Hosted Allowed Auth (2026-06-04 13:11Z):**
+Production is now redeployed from `main` at commit `083bf97` as Vercel
+deployment `dpl_2X6FytZUnK5ZaNsszVN4W8Wh6bXm`
+(`archestimator-e2l5q2tc7-philipjonlewis-projects.vercel.app`) and is Ready.
+Vercel aliases include both `https://www.archestimator.com` and
+`https://archestimator.com`; `www` returns HTTP 200 with the beta app title and
+closed-beta markers, while apex redirects to `www`. Signed-out
+`/workshop/projects` returns HTTP 307 to
+`/login?next=%2Fworkshop%2Fprojects`, and `/login?next=/workshop/projects`
+returns HTTP 200 with `Continue with Google` and email-link controls. The live
+unsigned Resend webhook probe returns HTTP 400 `{"error":"Invalid webhook."}`,
+which proves production reaches signature verification instead of missing the
+webhook secret. Computer Use against the owner Chrome session observed
+`https://archestimator.com/workshop` rendering the authenticated Workshop shell
+with Projects, Components, Templates, Settings, Favorites, a real favorite
+project, and `Send beta feedback`. Proof artifact:
+`.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/vercel-production-resend-enabled-hosted-auth-2026-06-04T1311Z.json`.
+Hosted allowed-owner access is now current for this deployment; hosted
+denied/revoked/expired auth, residual Codex Security history-risk acceptance,
+full hosted beta journey, and hosted shared-link/invite email workflow smoke
+remain the main open proof gaps.
+
 **Owner Signoff And Resend Email Enablement (2026-06-04 12:35Z):**
 Philip Lewis provided explicit closed-beta owner signoff in-thread with the
 standing no-purchases boundary. Sanitized helper artifacts now record
@@ -8,7 +30,7 @@ standing no-purchases boundary. Sanitized helper artifacts now record
 and `supportMonitoringReady: true` in
 `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/support-monitoring-owner-signoff-2026-06-04T1138Z.json`.
 Those are owner/operator closed-beta signoff artifacts, not legal advice or
-independent alert-dashboard verification. Email automation was first made explicitly default-off in code, then Resend provider proof closed later in the same launch pass. `resend-domain-verified-email-enabled-2026-06-04T1235Z.json` records Namecheap authoritative DNS readiness, Resend domain status `Verified`, a production-env send probe to `philipjonlewis@gmail.com` returning HTTP 200 with a provider message id, an enabled Resend dashboard webhook endpoint at `https://www.archestimator.com/api/webhooks/resend`, and a live unsigned webhook route probe returning HTTP 400 `Invalid webhook` instead of HTTP 503. Vercel Production and Preview(main) now pull non-secret launch flags `CLOSED_BETA_ACCESS_ENABLED="true"` and `ARCHESTIMATOR_EMAIL_DELIVERY_ENABLED="true"`; Resend API key and webhook secret values remain unrecorded. Hosted signed-out `/workshop` still redirects to `/login?next=%2Fworkshop` via `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/hosted-auth-signed-out-refresh-2026-06-04T1138Z.json`; hosted allowed/denied/revoked/expired real-session smoke remains open. A hosted shared-link/invite email workflow smoke is still open before relying on automatic email UX as part of the full beta journey.
+independent alert-dashboard verification. Email automation was first made explicitly default-off in code, then Resend provider proof closed later in the same launch pass. `resend-domain-verified-email-enabled-2026-06-04T1235Z.json` records Namecheap authoritative DNS readiness, Resend domain status `Verified`, a production-env send probe to `philipjonlewis@gmail.com` returning HTTP 200 with a provider message id, an enabled Resend dashboard webhook endpoint at `https://www.archestimator.com/api/webhooks/resend`, and a live unsigned webhook route probe returning HTTP 400 `Invalid webhook` instead of HTTP 503. Vercel Production and Preview(main) now pull non-secret launch flags `CLOSED_BETA_ACCESS_ENABLED="true"` and `ARCHESTIMATOR_EMAIL_DELIVERY_ENABLED="true"`; Resend API key and webhook secret values remain unrecorded. Hosted signed-out `/workshop` still redirects to `/login?next=%2Fworkshop` via `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/hosted-auth-signed-out-refresh-2026-06-04T1138Z.json`; hosted allowed-owner access was refreshed by the later 13:11Z production deploy/auth artifact, while denied/revoked/expired real-session smoke remains open. A hosted shared-link/invite email workflow smoke is still open before relying on automatic email UX as part of the full beta journey.
 
 **Vercel Rollback Drill Closed (2026-06-04 11:12Z):**
 The production rollback gate now has real no-spend provider proof. Vercel CLI

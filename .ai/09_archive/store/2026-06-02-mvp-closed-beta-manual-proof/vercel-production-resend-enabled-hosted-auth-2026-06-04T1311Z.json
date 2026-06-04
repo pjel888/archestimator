@@ -1,0 +1,107 @@
+{
+  "checkedAt": "2026-06-04T13:11:18Z",
+  "operator": "Codex",
+  "scope": "production Vercel deployment, custom-domain smoke, Resend webhook reachability, and hosted allowed-owner auth smoke",
+  "vercel": {
+    "project": "archestimator",
+    "teamScope": "philipjonlewis-projects",
+    "deploymentId": "dpl_2X6FytZUnK5ZaNsszVN4W8Wh6bXm",
+    "deploymentUrl": "https://archestimator-e2l5q2tc7-philipjonlewis-projects.vercel.app",
+    "target": "production",
+    "status": "Ready",
+    "createdAtLocal": "Thu Jun 04 2026 21:03:27 GMT+0800 (Philippine Standard Time)",
+    "buildResult": "Ready in 52s",
+    "uploadBeforeIgnoreFix": "75.0MB/312.5MB before cancellation",
+    "uploadAfterIgnoreFix": "769.0B/769B",
+    "aliases": [
+      "https://www.archestimator.com",
+      "https://archestimator.com",
+      "https://archestimator.vercel.app",
+      "https://archestimator-philipjonlewis-projects.vercel.app",
+      "https://archestimator-philipjonlewis-philipjonlewis-projects.vercel.app"
+    ]
+  },
+  "repo": {
+    "head": "083bf97",
+    "headSubject": "Keep production deploy payload lean",
+    "previousProofCommit": "8d45ed4",
+    "packagingFix": ".vercelignore now excludes local .gitnexus/.codex/.cursor plus non-runtime root collateral from direct Vercel CLI deploys."
+  },
+  "customDomainSmoke": {
+    "www": {
+      "url": "https://www.archestimator.com",
+      "httpStatus": 200,
+      "matchedPath": "/",
+      "title": "Archestimator | Quote, Proposal & Estimate Workspace",
+      "bodyMarkers": [
+        "Try Workspace",
+        "Closed beta workspace preview",
+        "See the workspace"
+      ],
+      "dplId": "dpl_2X6FytZUnK5ZaNsszVN4W8Wh6bXm"
+    },
+    "apex": {
+      "url": "https://archestimator.com",
+      "httpStatus": 307,
+      "location": "https://www.archestimator.com/",
+      "followedHttpStatus": 200,
+      "matchedPath": "/",
+      "dplId": "dpl_2X6FytZUnK5ZaNsszVN4W8Wh6bXm"
+    },
+    "signedOutWorkshop": {
+      "url": "https://www.archestimator.com/workshop/projects",
+      "httpStatus": 307,
+      "location": "/login?next=%2Fworkshop%2Fprojects"
+    },
+    "login": {
+      "url": "https://www.archestimator.com/login?next=/workshop/projects",
+      "httpStatus": 200,
+      "matchedPath": "/login",
+      "bodyMarkers": [
+        "Sign in to Archestimator",
+        "Continue with Google",
+        "Send sign-in link",
+        "closed beta terms"
+      ]
+    }
+  },
+  "resendWebhookSmoke": {
+    "url": "https://www.archestimator.com/api/webhooks/resend",
+    "method": "POST",
+    "payloadKind": "unsigned synthetic email.sent probe",
+    "httpStatus": 400,
+    "body": {
+      "error": "Invalid webhook."
+    },
+    "meaning": "Production route reaches Resend signature verification; it is not missing RESEND_WEBHOOK_SECRET."
+  },
+  "hostedAllowedOwnerAuthSmoke": {
+    "tool": "Computer Use against Google Chrome user profile Philip",
+    "observedUrl": "https://archestimator.com/workshop",
+    "browserTitle": "Archestimator | Quote, Proposal & Estimate Workspace",
+    "result": "allowed owner session can access the hosted Workshop shell",
+    "visibleMarkers": [
+      "Workshop",
+      "Projects",
+      "Components",
+      "Templates",
+      "Settings",
+      "Favorites",
+      "Tropical House",
+      "Send beta feedback"
+    ],
+    "notes": "The browser was already authenticated as the owner session; no password, MFA, or provider setting was changed during this smoke."
+  },
+  "supabaseAllowlistReadback": {
+    "status": "not rerun in this artifact",
+    "reason": "The first linked schema query hit Supabase CLI temporary-role pooler ECIRCUITBREAKER after a column-name correction pass; no further linked queries were launched during cooldown.",
+    "currentCanonicalProof": "Existing launch packet evidence records exactly one active allowlist tester, philipjonlewis@gmail.com."
+  },
+  "remainingGaps": [
+    "Hosted denied/revoked/expired Google-auth smoke still needs real-session proof or explicit closed-beta acceptance.",
+    "Codex Security residual history-exposure findings still need owner risk acceptance or a deliberate history-purge workflow.",
+    "Full hosted beta journey smoke remains useful before widening beyond owner-only beta.",
+    "Hosted shared-link/invite email workflow smoke remains open before relying on automatic email UX beyond the successful Resend provider send/webhook proof."
+  ],
+  "secretHandling": "No API keys, webhook secrets, Supabase service keys, cookies, or OAuth tokens are recorded."
+}

@@ -2,6 +2,15 @@
 
 ## Live Closed-Beta Launch Gates - OPEN
 
+- Fresh 2026-06-04T13:11Z proof shows production deployment
+  `dpl_2X6FytZUnK5ZaNsszVN4W8Wh6bXm` Ready on both custom domains after a small
+  `.vercelignore` packaging fix, with `www` serving the beta app, apex
+  redirecting to `www`, signed-out `/workshop/projects` redirecting to login,
+  `/login` showing Google/email-link entry, the Resend webhook route returning
+  expected unsigned HTTP 400 `Invalid webhook`, and the owner Chrome session
+  entering the hosted Workshop shell with real workspace content.
+- Latest production/auth artifact:
+  `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/vercel-production-resend-enabled-hosted-auth-2026-06-04T1311Z.json`.
 - Fresh 2026-06-04T10:06Z proof shows `archestimator.com` and
   `www.archestimator.com` now serve the closed-beta app deployment for the owner
   Chrome session, with `Continue with Google` visible on `/login`, signed-out
@@ -11,11 +20,11 @@
 - Latest artifact:
   `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/live-closed-beta-refresh-2026-06-04T1006Z.json`.
 - External closed beta remains not fully green because residual Codex Security
-  history-exposure findings, denied/revoked/expired hosted auth smoke, and full
-  hosted journey proof remain open. Resend sender-domain MX proof remains open
-  only as a re-enable gate because in-app email delivery is explicitly
-  default-off; legal/owner/support signoff is now owner-confirmed for closed
-  beta.
+  history-exposure findings, denied/revoked/expired hosted auth smoke, full
+  hosted journey proof, and hosted shared-link/invite email workflow smoke
+  remain open or require explicit owner acceptance. Resend sender-domain,
+  provider delivery, and webhook setup are no longer blockers; legal/owner/
+  support signoff is now owner-confirmed for closed beta.
 - Cheap backup/DR is no longer blocked on buying PITR for this one-person
   closed beta: `supabase-backup-readiness-daily-mode-closed-beta-2026-06-04T1047Z.json`
   records daily-backup mode green with 9 listed physical backups, `pitrEnabled:
