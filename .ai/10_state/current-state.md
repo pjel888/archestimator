@@ -1,5 +1,21 @@
 # Current State
 
+**Resend Alternate-Recipient Lifecycle Refresh (2026-06-04 16:22Z):**
+The automatic email lifecycle is still not green. New artifact
+`.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/resend-alternate-recipient-lifecycle-blocked-2026-06-04T1622Z.json`
+records a token-safe follow-up on the alternate recipient invite. Supabase still
+shows the alternate recipient row as `sent` with `last_opened_at: null` and no
+Resend webhook event fields. A Resend message-lifecycle API read using the
+currently available local key failed with `restricted_api_key` because that key
+is send-only; no broader key was created or requested. Vercel production log
+searches did not produce usable route/status/request proof that a signed Resend
+event hit `/api/webhooks/resend` and updated the recipient row. Chrome is
+running and extension/native-host/profile checks pass, but the extension backend
+is unavailable after the required retry; the next browser-proof recovery step is
+opening a fresh selected-profile Chrome window and retrying. This narrows but
+does not close the blocker: recipient clickthrough/open and Resend delivered/
+bounce/complaint webhook reconciliation remain open.
+
 **Hosted Shared-Link Alternate Inbox Receipt (2026-06-04 15:55Z):**
 Chrome extension proof opened a targeted Gmail exact-subject search in
 `lewisphilipjonechavez@gmail.com` and found `1-1 of 1` Archestimator invite with

@@ -643,8 +643,11 @@ describe("closed beta readiness docs", () => {
     expect(manualProofMatrix).toContain("partial-pass / webhook-open");
     expect(manualProofMatrix).toContain("hosted-shared-link-recipient-email-self-invite-guard-2026-06-04T1532Z.json");
     expect(manualProofMatrix).toContain("hosted-shared-link-recipient-inbox-receipt-2026-06-04T1555Z.json");
+    expect(manualProofMatrix).toContain("resend-alternate-recipient-lifecycle-blocked-2026-06-04T1622Z.json");
     expect(manualProofMatrix).toContain("dispatches an app-level invite to `lewisphilipjonechavez@gmail.com`");
     expect(manualProofMatrix).toContain("proves the alternate Gmail inbox received the expected Archestimator invite");
+    expect(manualProofMatrix).toContain("the current Resend key is send-only");
+    expect(manualProofMatrix).toContain("Vercel log searches do not prove a signed webhook event reached/applied");
     expect(manualProofMatrix).toContain("Remaining gaps before calling automatic email UX fully green: recipient clickthrough/open");
     expect(manualProofMatrix).toContain("first-run-workshop-local-surface-2026-06-02.md");
     expect(manualProofMatrix).toContain("empty Workshop homebase action links");
@@ -822,7 +825,9 @@ describe("closed beta readiness docs", () => {
     expect(consolidatedManualProofPacket).toContain("resend-owner-inbox-receipt-2026-06-04T1348Z.json");
     expect(consolidatedManualProofPacket).toContain("hosted-shared-link-recipient-email-self-invite-guard-2026-06-04T1532Z.json");
     expect(consolidatedManualProofPacket).toContain("hosted-shared-link-recipient-inbox-receipt-2026-06-04T1555Z.json");
+    expect(consolidatedManualProofPacket).toContain("resend-alternate-recipient-lifecycle-blocked-2026-06-04T1622Z.json");
     expect(consolidatedManualProofPacket).toContain("alternate Gmail inbox shows the expected Archestimator invite");
+    expect(consolidatedManualProofPacket).toContain("the current Resend key is send-only");
     expect(consolidatedManualProofPacket).toContain("Remaining gaps before calling automatic email UX fully green: recipient clickthrough/open");
     expect(consolidatedManualProofPacket).toMatch(/\| Legal\/owner review \| pass-owner-beta \|/);
     expect(consolidatedManualProofPacket).toMatch(/\| Support\/monitoring \| pass-owner-beta \/ independent-dashboard-open \|/);
@@ -873,6 +878,7 @@ describe("closed beta readiness docs", () => {
     expect(artifactFilenames).toContain("resend-owner-inbox-receipt-2026-06-04T1348Z.json");
     expect(artifactFilenames).toContain("hosted-shared-link-recipient-email-self-invite-guard-2026-06-04T1532Z.json");
     expect(artifactFilenames).toContain("hosted-shared-link-recipient-inbox-receipt-2026-06-04T1555Z.json");
+    expect(artifactFilenames).toContain("resend-alternate-recipient-lifecycle-blocked-2026-06-04T1622Z.json");
     expect(artifactFilenames).toContain("resend-send-test-domain-unverified-2026-06-04T1151Z.json");
     expect(artifactFilenames).toContain("resend-readiness-email-flag-default-off-2026-06-04T1140Z.json");
     expect(artifactFilenames).toContain("hosted-owner-beta-journey-smoke-2026-06-04T1328Z.json");
@@ -921,6 +927,8 @@ describe("closed beta readiness docs", () => {
     expect(goalCompletionAudit).toContain("resend-owner-inbox-receipt-2026-06-04T1348Z.json");
     expect(goalCompletionAudit).toContain("hosted-shared-link-recipient-email-self-invite-guard-2026-06-04T1532Z.json");
     expect(goalCompletionAudit).toContain("hosted-shared-link-recipient-inbox-receipt-2026-06-04T1555Z.json");
+    expect(goalCompletionAudit).toContain("resend-alternate-recipient-lifecycle-blocked-2026-06-04T1622Z.json");
+    expect(goalCompletionAudit).toContain("the available Resend key is send-only");
     expect(goalCompletionAudit).toContain("hosted-owner-beta-journey-smoke-2026-06-04T1328Z.json");
     expect(goalCompletionAudit).toContain("Hosted logout");
     expect(goalCompletionAudit).toContain("hosted-logout-session-proof-2026-06-04T1436Z.json");
@@ -940,7 +948,7 @@ describe("closed beta readiness docs", () => {
     expect(goalCompletionAudit).toContain("Current production artifacts prove signed-out redirects, hosted owner allowed access, the owner journey, and logout back to the protected login gate");
     expect(goalCompletionAudit).toContain("Excel plus one secondary spreadsheet app open/recalc/print proof");
     expect(goalCompletionAudit).toContain("Hosted shared-link recipient clickthrough/open and Resend lifecycle webhook proof");
-    expect(goalCompletionAudit).toContain("The 13:28Z owner hosted journey proves project entry, estimate creation, estimate workspace render, and export preview on the target domain, the 14:36Z proof closes owner logout, and the 15:32Z/15:55Z proofs close shared-link self-invite/send/inbox receipt");
+    expect(goalCompletionAudit).toContain("The 13:28Z owner hosted journey proves project entry, estimate creation, estimate workspace render, and export preview on the target domain, the 14:36Z proof closes owner logout, the 15:32Z/15:55Z proofs close shared-link self-invite/send/inbox receipt, and the 16:22Z proof explains why lifecycle proof remains open");
     expect(goalCompletionAudit).toContain("Current decision: **DO NOT MARK GOAL COMPLETE**.");
     expect(goalCompletionAudit).toContain("48-manual-proof-packet-template.md");
     expect(goalCompletionAudit).not.toMatch(/Current decision: \*\*COMPLETE\*\*/);
@@ -1092,6 +1100,9 @@ describe("closed beta readiness docs", () => {
     expect(knownIssues).toContain("Hosted shared-link self-invite blocking and alternate-recipient send dispatch are proven");
     expect(knownIssues).toContain("alternate-recipient inbox receipt is proven in `hosted-shared-link-recipient-inbox-receipt-2026-06-04T1555Z.json`");
     expect(knownIssues).toContain("recipient clickthrough/open and Resend delivered/bounce/complaint webhook reconciliation remain full-lifecycle proof gaps");
+    expect(knownIssues).toContain("resend-alternate-recipient-lifecycle-blocked-2026-06-04T1622Z.json");
+    expect(knownIssues).toContain("the current local Resend key is send-only and cannot retrieve");
+    expect(knownIssues).toContain("message lifecycle data");
     expect(knownIssues).toContain("Codex Security cheap-path refresh at `2026-06-04T08:44Z`");
     expect(knownIssues).toContain("repo-filtered open findings view shows `1-20 of 35`");
     expect(knownIssues).toContain("while `critical` and");
