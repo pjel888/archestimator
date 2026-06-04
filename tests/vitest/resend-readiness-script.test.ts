@@ -10,17 +10,23 @@ import {
 describe("Resend readiness checker", () => {
   it("parses dotenv presence without exposing values", () => {
     const present = parseDotenvPresence(`
+      ARCHESTIMATOR_EMAIL_DELIVERY_ENABLED=true
       RESEND_API_KEY=re_secret
       RESEND_FROM="Archestimator <support@archestimator.com>"
       RESEND_REPLY_TO=
       # RESEND_WEBHOOK_SECRET=commented-out
     `);
 
-    expect(Array.from(present).sort()).toEqual(["RESEND_API_KEY", "RESEND_FROM"]);
+    expect(Array.from(present).sort()).toEqual([
+      "ARCHESTIMATOR_EMAIL_DELIVERY_ENABLED",
+      "RESEND_API_KEY",
+      "RESEND_FROM",
+    ]);
   });
 
   it("extracts Resend env names from sanitized Vercel transcripts", () => {
-    expect(extractVercelEnvNames("RESEND_API_KEY Production\nRESEND_FROM Preview\nNo secret values")).toEqual([
+    expect(extractVercelEnvNames("ARCHESTIMATOR_EMAIL_DELIVERY_ENABLED Production\nRESEND_API_KEY Production\nRESEND_FROM Preview\nNo secret values")).toEqual([
+      "ARCHESTIMATOR_EMAIL_DELIVERY_ENABLED",
       "RESEND_API_KEY",
       "RESEND_FROM",
     ]);
@@ -30,9 +36,20 @@ describe("Resend readiness checker", () => {
     const result = checkResendReadiness({
       localRuntimeEnv: {
         source: "test",
-        required: ["RESEND_API_KEY", "RESEND_FROM", "RESEND_REPLY_TO", "RESEND_WEBHOOK_SECRET"],
+        required: [
+          "ARCHESTIMATOR_EMAIL_DELIVERY_ENABLED",
+          "RESEND_API_KEY",
+          "RESEND_FROM",
+          "RESEND_REPLY_TO",
+          "RESEND_WEBHOOK_SECRET",
+        ],
         present: ["RESEND_API_KEY"],
-        missing: ["RESEND_FROM", "RESEND_REPLY_TO", "RESEND_WEBHOOK_SECRET"],
+        missing: [
+          "ARCHESTIMATOR_EMAIL_DELIVERY_ENABLED",
+          "RESEND_FROM",
+          "RESEND_REPLY_TO",
+          "RESEND_WEBHOOK_SECRET",
+        ],
         ready: false,
       },
       vercelEnvText: "No Environment Variables found",
@@ -40,6 +57,7 @@ describe("Resend readiness checker", () => {
     });
 
     expect(result.resendReady).toBe(false);
+    expect(result.localRuntimeEnv.missing).toContain("ARCHESTIMATOR_EMAIL_DELIVERY_ENABLED");
     expect(result.localRuntimeEnv.missing).toContain("RESEND_FROM");
     expect(result.vercelEnv.checked).toBe(true);
     expect(result.vercelEnv.missing).toContain("RESEND_WEBHOOK_SECRET");
@@ -47,7 +65,13 @@ describe("Resend readiness checker", () => {
   });
 
   it("passes only when local runtime and Vercel env-name proof both include all Resend names", () => {
-    const required = ["RESEND_API_KEY", "RESEND_FROM", "RESEND_REPLY_TO", "RESEND_WEBHOOK_SECRET"];
+    const required = [
+      "ARCHESTIMATOR_EMAIL_DELIVERY_ENABLED",
+      "RESEND_API_KEY",
+      "RESEND_FROM",
+      "RESEND_REPLY_TO",
+      "RESEND_WEBHOOK_SECRET",
+    ];
     const result = checkResendReadiness({
       localRuntimeEnv: {
         source: "test",

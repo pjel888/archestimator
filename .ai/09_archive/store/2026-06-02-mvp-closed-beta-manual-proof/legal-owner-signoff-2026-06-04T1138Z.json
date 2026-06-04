@@ -1,0 +1,18 @@
+{
+  "generatedAt": "2026-06-04T11:30:26.161Z",
+  "mode": "legal-owner-readiness",
+  "proofFlags": {
+    "LEGAL_OWNER_TERMS_CONFIRMED": true,
+    "LEGAL_OWNER_PRIVACY_CONFIRMED": true,
+    "LEGAL_OWNER_BETA_COPY_CONFIRMED": true,
+    "LEGAL_OWNER_DATA_RETENTION_CONFIRMED": true,
+    "LEGAL_OWNER_SUPPORT_COMMS_CONFIRMED": true
+  },
+  "productOwner": "Philip Lewis",
+  "legalReviewer": "Owner beta signoff by Philip Lewis",
+  "approvalDate": "2026-06-04",
+  "approvalReference": "Codex thread owner signoff: complete signoff; no purchases",
+  "missing": [],
+  "legalOwnerReady": true,
+  "note": "Sanitized legal/owner readiness check. It records operator-confirmed proof flags and labels only; it does not provide legal advice, verify counsel review, inspect contracts, or approve public launch by itself."
+}

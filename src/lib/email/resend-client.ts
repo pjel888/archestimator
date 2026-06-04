@@ -2,7 +2,8 @@
  * Resend email client wrapper for Shared Link Overhaul (V2).
  *
  * - Thin, typed wrapper around the Resend SDK.
- * - Production-like runtime: requires RESEND_API_KEY plus an explicit sender.
+ * - Production-like runtime: requires an explicit enable flag, RESEND_API_KEY,
+ *   and an explicit sender.
  * - Test runtime: automatic mock fallback (no network, always succeeds for tests).
  * - Never throws on send failure in normal paths; returns structured result.
  * - No secrets or keys in source.
@@ -33,17 +34,25 @@ let resendInstanceApiKey: string | null = null;
 
 export type EmailDeliveryConfig = {
   apiKey: string;
+  enabled: boolean;
   from: string;
   configured: boolean;
 };
 
+export function isEmailDeliveryEnabled(env: NodeJS.ProcessEnv = process.env) {
+  const normalized = env.ARCHESTIMATOR_EMAIL_DELIVERY_ENABLED?.trim().toLowerCase();
+  return normalized === "1" || normalized === "true" || normalized === "yes" || normalized === "enabled";
+}
+
 export function readEmailDeliveryConfig(env: NodeJS.ProcessEnv = process.env): EmailDeliveryConfig {
   const apiKey = env.RESEND_API_KEY?.trim() ?? "";
   const from = env.RESEND_FROM?.trim() ?? "";
+  const enabled = isEmailDeliveryEnabled(env);
   return {
     apiKey,
+    enabled,
     from,
-    configured: Boolean(apiKey && from),
+    configured: enabled && Boolean(apiKey && from),
   };
 }
 
@@ -119,7 +128,7 @@ export async function sendEmail(input: SendEmailInput): Promise<SendEmailResult>
 
   const config = readEmailDeliveryConfig();
   const from = input.from?.trim() || config.from;
-  const client = getResendClient(config.apiKey);
+  const client = config.enabled ? getResendClient(config.apiKey) : null;
 
   if (!client) {
     if (!isTestEnv) {
@@ -131,6 +140,7 @@ export async function sendEmail(input: SendEmailInput): Promise<SendEmailResult>
         ts: new Date().toISOString(),
         subject: input.subject.slice(0, 60),
         missing: {
+          emailDeliveryEnabled: !config.enabled,
           resendApiKey: !config.apiKey,
           resendFrom: !from,
         },

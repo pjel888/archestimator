@@ -62,6 +62,8 @@ describe("project collaboration management actions", () => {
   it("returns honest invite messages when app-owned invite links are disabled", () => {
     expect(actions).toContain("readProjectInviteDeliveryReadiness");
     expect(actions).toContain("Teamspace invite delivery is disabled until project invite entry and token settings are configured.");
+    expect(actions).toContain("Teamspace invite delivery is disabled until email delivery is explicitly enabled.");
+    expect(actions).toContain("readEmailDeliveryConfig");
     expect(header).toContain("readProjectInviteDeliveryReadiness");
     expect(header).toContain("inviteControlsDisabled");
     expect(actions).toContain("Invitation created. Share the invite link manually.");
@@ -72,6 +74,7 @@ describe("project collaboration management actions", () => {
     expect(actions).toContain("Link-based sheet invites are unavailable. Enable project invite entry before inviting new users.");
     expect(actions).toContain("const inviteEntryEnabled = isProjectInviteEntryEnabled()");
     expect(actions).toContain("if (!inviteEntryEnabled || !invitation || !inviteLink)");
+    expect(actions).toContain("Invite email resend is disabled until email delivery is explicitly enabled.");
   });
 
   it("writes best-effort collaboration audit events without raw token metadata", () => {

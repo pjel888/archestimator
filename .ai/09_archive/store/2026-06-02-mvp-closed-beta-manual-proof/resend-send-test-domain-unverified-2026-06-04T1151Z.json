@@ -1,0 +1,73 @@
+{
+  "mode": "resend-send-test-domain-unverified",
+  "timestampUtc": "2026-06-04T11:51:00Z",
+  "scope": "Closed-beta Resend outbound email readiness",
+  "changedProviderState": false,
+  "secretValuesLogged": false,
+  "targetRecipient": "philipjonlewis@gmail.com",
+  "vercelProductionEnvObserved": {
+    "RESEND_API_KEY": true,
+    "RESEND_FROM": true,
+    "RESEND_REPLY_TO": true,
+    "ARCHESTIMATOR_EMAIL_DELIVERY_ENABLED": false
+  },
+  "resendManagementApiObserved": {
+    "domainsStatus": 401,
+    "webhooksStatus": 401,
+    "message": "The configured API key is restricted to sending emails, so domain and webhook management state must be proven from the Resend dashboard or a management-scoped key."
+  },
+  "sendAttempt": {
+    "commandSurface": "vercel env run -e production with a one-off Node send probe",
+    "sent": false,
+    "status": 403,
+    "error": "The contact.archestimator.com domain is not verified. Please, add and verify your domain on https://resend.com/domains"
+  },
+  "resendDashboardObserved": {
+    "domain": "contact.archestimator.com",
+    "provider": "Namecheap",
+    "region": "Tokyo (ap-northeast-1)",
+    "status": "Failed",
+    "dkimStatus": "Verified",
+    "missingRecords": [
+      {
+        "type": "MX",
+        "host": "send.contact",
+        "value": "feedback-smtp.ap-northeast-1.amazonses.com",
+        "ttl": "Auto",
+        "priority": 10,
+        "status": "Failed"
+      },
+      {
+        "type": "TXT",
+        "host": "send.contact",
+        "value": "v=spf1 include:amazonses.com ~all",
+        "ttl": "Auto",
+        "status": "Failed"
+      }
+    ]
+  },
+  "publicDnsObserved": {
+    "contact.archestimator.com TXT": [],
+    "contact.archestimator.com MX": [],
+    "resend._domainkey.contact.archestimator.com TXT": [
+      "p=MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDA1FZmhtvwN9fzdzp7TSo9CHlkqB59tz4uaLgN+Hq1OQyiNjqI1F+1vRZyXXYNlSeoEMoltRI77lk7/hzyLgOqxBLH6+T7GPjiVF51Z/nIDssrcUG5RvCwMBcT+4gg7q7B3Oa2BWuAaJOY8iXKkeqz0FoZZXOsCFqPjBTlPvgJhQIDAQAB"
+    ],
+    "_dmarc.archestimator.com TXT": [
+      "v=DMARC1; p=none;"
+    ],
+    "archestimator.com NS": [
+      "dns1.registrar-servers.com.",
+      "dns2.registrar-servers.com."
+    ]
+  },
+  "namecheapObserved": {
+    "advancedDnsUrl": "https://ap.www.namecheap.com/Domains/DomainControlPanel/archestimator.com/advancedns",
+    "status": "login-required",
+    "note": "DNS cannot be repaired through Vercel because archestimator.com uses Namecheap registrar nameservers."
+  },
+  "betaImpact": {
+    "automaticEmailReady": false,
+    "manualInviteFallbackReady": true,
+    "recommendedPosture": "Keep automatic Resend delivery disabled until the two Namecheap DNS records are added, Resend verification is restarted, and a hosted send test succeeds."
+  }
+}

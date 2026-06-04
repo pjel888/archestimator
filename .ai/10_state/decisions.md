@@ -8,6 +8,23 @@
 
 **Follow-up:** Do not claim closed-beta launch ready until hosted Google OAuth, Resend sending-domain, owner/legal/support monitoring, and residual security/history-risk gates close. Vercel rollback proof was closed by the 2026-06-04 11:12Z rollback/promote drill.
 
+## Owner Closed-Beta Signoff And Email Default-Off - 2026-06-04
+
+**Decision:** Treat owner/legal/support monitoring signoff as recorded for the
+owner-only closed beta after Philip Lewis provided complete signoff in-thread,
+while keeping in-app email delivery disabled unless
+`ARCHESTIMATOR_EMAIL_DELIVERY_ENABLED=true` is explicitly configured.
+
+**Rationale:** This avoids the risky Namecheap MX/support-mail tradeoff and keeps
+Resend sender-domain delivery proof as a future re-enable gate rather than a
+blocker for the one-person beta.
+
+**Follow-up:** Do not enable `ARCHESTIMATOR_EMAIL_DELIVERY_ENABLED` until
+Namecheap DNS has `send.contact` MX
+`feedback-smtp.ap-northeast-1.amazonses.com` priority 10 and TXT
+`v=spf1 include:amazonses.com ~all`, Resend verification is restarted, a hosted
+send probe succeeds, and webhook proof is captured.
+
 ## Confirmed active decisions
 
 - 2026-06-03 — Closed-beta backup/DR cost posture: do not enable Supabase PITR

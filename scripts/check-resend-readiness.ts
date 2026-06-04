@@ -4,6 +4,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 
 const RESEND_ENV_NAMES = [
+  "ARCHESTIMATOR_EMAIL_DELIVERY_ENABLED",
   "RESEND_API_KEY",
   "RESEND_FROM",
   "RESEND_REPLY_TO",

@@ -31,15 +31,17 @@
   Existing cheap-path artifacts prove linked migration/readiness and the single
   active allowlist tester `philipjonlewis@gmail.com`; broad `supabase db push`
   remains off-limits while history drift exists.
-- Remaining no-cost DNS action: add only the Namecheap MX record for
-  `send.contact.archestimator.com` (`host=send.contact`,
-  `value=feedback-smtp.ap-northeast-1.amazonses.com`, `priority=10`) and do not
-  touch apex MX forwarding for `support@archestimator.com`.
+- Remaining no-cost DNS action: add only the Resend sender records in Namecheap
+  Host Records: MX `host=send.contact`,
+  `value=feedback-smtp.ap-northeast-1.amazonses.com`, `priority=10`, and TXT
+  `host=send.contact`, `value=v=spf1 include:amazonses.com ~all`. Do not touch
+  apex MX forwarding for `support@archestimator.com`.
 - Current launch blocker posture: GitHub has no open issue/PR queue, but Codex
   Security remains open pending closure/rescan/owner acceptance. External beta is
-  also still blocked by hosted denied/revoked/expired auth smoke, Resend
-  verification/delivery proof if email is visible, rollback/legal/support/alert
-  monitoring proof, hosted authenticated export, and full hosted beta journey.
+  also still blocked by hosted denied/revoked/expired auth smoke and full hosted
+  beta journey proof. Resend verification/delivery proof is a re-enable blocker
+  for automatic email workflows, not a blocker for manual-invite beta while
+  `ARCHESTIMATOR_EMAIL_DELIVERY_ENABLED` is absent.
 - Proof artifact:
   `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/cheap-beta-launch-audit-2026-06-04T0735Z.json`.
 
@@ -53,9 +55,10 @@
 - `closed_beta_allowed_emails` exists remotely and currently has exactly one active/invited tester: `philipjonlewis@gmail.com` with status `active`.
 - Vercel Production currently points the custom domains at the beta app deployment stream; latest verified production deployment is `dpl_Dh8xPgZ3NQwN4CwxZQXh6d8vypcn`, and both `archestimator.com` and `www.archestimator.com` reach app health (`apex` redirects to `www`).
 - Repo MCP tooling now pins `code-review-graph==2.3.5` in `.mcp.json`, `.cursor/mcp.json`, and `.codex/config.toml`; no Vercel deployment was required for this repo-local tooling fix.
-- Vercel env-name readiness is now green for core closed-beta runtime and Resend names, including `RESEND_WEBHOOK_SECRET`.
-- Resend webhook exists and its secret is configured in Vercel, but the sending domain remains pending until the `send.contact.archestimator.com` MX record is added without breaking apex Email Forwarding/support mail.
-- Open proof gaps: Codex Security rescan/remaining-finding closure or owner acceptance, real browser Google OAuth hosted denied/revoked/expired smoke, Resend MX/domain verification, legal/owner signoff, support/alert monitoring proof, and full hosted beta journey. Vercel rollback proof is closed by the 2026-06-04 11:12Z rollback/promote drill. Hosted authenticated export and hosted feedback review have owner-session proof; monitoring cadence remains separate.
+- Vercel env-name readiness is now green for core closed-beta runtime and Resend names, including `RESEND_WEBHOOK_SECRET`; secret values remain intentionally unprinted.
+- A real production-env Resend send probe failed with HTTP 403 because `contact.archestimator.com` is not verified. Resend dashboard shows DKIM verified, but `send.contact` MX `feedback-smtp.ap-northeast-1.amazonses.com` priority 10 and TXT `v=spf1 include:amazonses.com ~all` are missing/failed in Namecheap DNS.
+- Owner/legal and support/alert monitoring signoff are recorded for the owner-only beta in `legal-owner-signoff-2026-06-04T1138Z.json` and `support-monitoring-owner-signoff-2026-06-04T1138Z.json`.
+- Open proof gaps: Codex Security rescan/remaining-finding closure or owner acceptance, real browser Google OAuth hosted denied/revoked/expired smoke, and full hosted beta journey. Vercel rollback proof is closed by the 2026-06-04 11:12Z rollback/promote drill. Hosted authenticated export and hosted feedback review have owner-session proof. Resend provider delivery/domain proof remains required before setting `ARCHESTIMATOR_EMAIL_DELIVERY_ENABLED=true`, but in-app email delivery is explicitly default-off for the current closed beta.
 
 ## Fourth-Pass Closed Beta Infrastructure Decisions - 2026-06-02
 
@@ -67,7 +70,7 @@
 - Confirm Supabase RLS remains active for profiles, workspaces, projects, estimates, publications, and new allowlist table.
 - Confirm Supabase storage buckets used by beta flows have production-safe policies.
 - Manual beta invites can proceed without Resend by using Philip's email and the allowlist. Resend is optional/P1 for manual beta invites, but P0 for any visible email-dependent share/invite workflow. Teamspaces app invite controls must stay disabled until invite-entry token settings and Supabase Auth/provider proof exist.
-- Required Resend env if visible: `RESEND_API_KEY`, `RESEND_FROM`, `RESEND_WEBHOOK_SECRET`, and verified sending domain/DNS.
+- Required Resend env if visible: `ARCHESTIMATOR_EMAIL_DELIVERY_ENABLED=true`, `RESEND_API_KEY`, `RESEND_FROM`, `RESEND_WEBHOOK_SECRET`, and verified sending domain/DNS.
 - Production smoke: allowed login, denied login, revoked login, public share, project/estimate, export, feedback link.
 
 Commit audited: `681c95e64864f283950a88dba304eaffe8f2f8b3`
@@ -83,7 +86,7 @@ Commit audited: `681c95e64864f283950a88dba304eaffe8f2f8b3`
 | Supabase RLS | Migrations enable policies. | Linked/staging allow/deny proof missing. |
 | Storage | Component images remain the public bucket surface while project covers now upload to private `project-images` and serve through authenticated `/api/projects/images`; linked readback proves private bucket policy, 6 migrated objects, 0 remaining public project-image objects, 3 project metadata rows rewritten to private route URLs, and old public object access returning `Object not found`. | Component attachment bucket handling and hosted signed-in image-view smoke remain useful follow-up proof. |
 | Realtime | No launch-critical realtime dependency identified. | If enabled later, document channels and rate limits. |
-| Resend | Client and Svix webhook route exist; unconfigured production-like sends fail closed, shared-link recipient controls disable while server readiness is false, and Teamspaces invite controls disable while invite delivery readiness is false; Vercel now has `RESEND_API_KEY`, `RESEND_FROM`, `RESEND_REPLY_TO`, and `RESEND_WEBHOOK_SECRET` env names. | Resend sending-domain DNS/MX verification and delivery/webhook event proof remain pending before email workflows can be re-enabled. |
+| Resend | Client and Svix webhook route exist; unconfigured production-like sends fail closed, shared-link recipient controls disable while server readiness is false, and Teamspaces invite controls disable while invite delivery readiness is false. Vercel now has `RESEND_API_KEY`, `RESEND_FROM`, `RESEND_REPLY_TO`, and `RESEND_WEBHOOK_SECRET` env names, but does not have `ARCHESTIMATOR_EMAIL_DELIVERY_ENABLED`; `resend-readiness-email-flag-default-off-2026-06-04T1140Z.json` reports `resendReady: false` with email delivery default-off. `resend-send-test-domain-unverified-2026-06-04T1151Z.json` proves a real send is rejected until the sender domain verifies. | Add Namecheap `send.contact` MX/TXT records, restart Resend verification, rerun a hosted send probe, then capture webhook event proof before `ARCHESTIMATOR_EMAIL_DELIVERY_ENABLED=true` can be set and email workflows can be re-enabled. |
 | Env separation | CI exists; Production and Preview(`main`) have the current closed-beta env-name set. | Staging/non-main preview matrix, secret value proof by provider UI, redeploy proof, and rollback proof still missing. |
 
 ## Required Vercel Env Vars
@@ -102,6 +105,7 @@ Commit audited: `681c95e64864f283950a88dba304eaffe8f2f8b3`
 | `PUBLICATION_TOKEN_ENCRYPTION_SECRET` | server-only | secret | Required if publication tokens are visible. |
 | `PUBLICATION_TOKEN_HASH_SECRET` | server-only | secret | Required if publication tokens are visible. |
 | `PUBLICATION_ACCESS_COOKIE_SECRET` | server-only | secret | Required for recipient sessions. |
+| `ARCHESTIMATOR_EMAIL_DELIVERY_ENABLED` | server-only | `true` only after provider proof | Defaults off so encrypted Resend env names do not accidentally enable visible email sends. |
 | `RESEND_API_KEY` | server-only | secret if email visible | Do not rely on mock success. |
 | `RESEND_FROM` | server-only | verified sender | Must match verified domain. |
 | `RESEND_REPLY_TO` | server-only | support inbox | Required for replies. |
@@ -130,7 +134,10 @@ Commit audited: `681c95e64864f283950a88dba304eaffe8f2f8b3`
 ## Required Resend / DNS Config
 
 - Verified sender domain.
-- DKIM/SPF/DMARC records active.
+- DKIM/SPF/DMARC records active. Current Resend dashboard proof shows DKIM
+  verified and `send.contact` MX/TXT failed; required records are MX
+  `send.contact -> feedback-smtp.ap-northeast-1.amazonses.com` priority 10 and
+  TXT `send.contact -> v=spf1 include:amazonses.com ~all`.
 - `RESEND_FROM` and `RESEND_REPLY_TO` set to approved addresses.
 - Webhook URL points to `/api/webhooks/resend`.
 - Webhook secret configured in Resend and Vercel.

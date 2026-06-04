@@ -13,7 +13,7 @@ import {
   createInviteToken,
   isProjectInviteEntryEnabled,
 } from "@/lib/collaboration/invite-entry";
-import { sendEmail } from "@/lib/email/resend-client";
+import { readEmailDeliveryConfig, sendEmail } from "@/lib/email/resend-client";
 import { isUuid } from "@/lib/ids";
 import type { CollaborationRole } from "@/lib/collaboration/types";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
@@ -441,12 +441,19 @@ function revalidateCollaborationRoutes(projectId: string) {
 export async function readProjectInviteDeliveryReadiness(): Promise<ProjectInviteDeliveryReadiness> {
   await requireCurrentUserContext();
 
-  const configured = isProjectInviteEntryEnabled();
+  const inviteEntryEnabled = isProjectInviteEntryEnabled();
+  const emailDeliveryConfig = readEmailDeliveryConfig();
+  const configured = inviteEntryEnabled && emailDeliveryConfig.configured;
+  const disabledMessage = !inviteEntryEnabled
+    ? "Teamspace invite delivery is disabled until project invite entry and token settings are configured. Send beta invites manually outside the app."
+    : !emailDeliveryConfig.enabled
+      ? "Teamspace invite delivery is disabled until email delivery is explicitly enabled. Send beta invites manually outside the app."
+      : "Teamspace invite delivery is disabled until Resend sender settings are configured. Send beta invites manually outside the app.";
   return {
     configured,
     message: configured
       ? "Teamspace invite delivery is configured."
-      : "Teamspace invite delivery is disabled until project invite entry and token settings are configured. Send beta invites manually outside the app.",
+      : disabledMessage,
   };
 }
 
@@ -532,6 +539,15 @@ export async function inviteProjectCollaborator({
     return {
       ok: false,
       message: "Link-based invites are unavailable. Enable project invite entry before inviting new users.",
+    };
+  }
+
+  if (!readEmailDeliveryConfig().configured) {
+    revalidateCollaborationRoutes(context.project.id);
+    return {
+      ok: true,
+      message: "Invitation created. Share the invite link manually.",
+      invitePath: inviteLink.invitePath,
     };
   }
 
@@ -667,6 +683,15 @@ export async function inviteEstimateSheetCollaborator({
     };
   }
 
+  if (!readEmailDeliveryConfig().configured) {
+    revalidateCollaborationRoutes(context.project.id);
+    return {
+      ok: true,
+      message: "Invitation created. Share the invite link manually.",
+      invitePath: inviteLink.invitePath,
+    };
+  }
+
   await recordCollaborationAuditEvent({
     context,
     estimateId: context.estimate.id,
@@ -778,6 +803,9 @@ export async function resendProjectInviteEmail({
   const context = await assertProjectAccessManager(invitation.project_id);
   if (!isProjectInviteEntryEnabled()) {
     return { ok: false, message: "Invite email resend requires invite links to be enabled." };
+  }
+  if (!readEmailDeliveryConfig().configured) {
+    return { ok: false, message: "Invite email resend is disabled until email delivery is explicitly enabled." };
   }
 
   const rateLimit = await checkInviteResendRateLimit({

@@ -1,5 +1,34 @@
 # Current State
 
+**Owner Signoff And Email Default-Off Guard (2026-06-04 11:40Z):**
+Philip Lewis provided explicit closed-beta owner signoff in-thread with the
+standing no-purchases boundary. Sanitized helper artifacts now record
+`legalOwnerReady: true` in
+`.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/legal-owner-signoff-2026-06-04T1138Z.json`
+and `supportMonitoringReady: true` in
+`.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/support-monitoring-owner-signoff-2026-06-04T1138Z.json`.
+Those are owner/operator closed-beta signoff artifacts, not legal advice or
+independent alert-dashboard verification. Email automation is now explicitly
+default-off: `src/lib/email/resend-client.ts` requires
+`ARCHESTIMATOR_EMAIL_DELIVERY_ENABLED=true` before non-test email delivery is
+configured, `src/lib/collaboration/actions.ts` keeps Teamspaces invite delivery
+manual/disabled while the flag is absent, and
+`.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/resend-readiness-email-flag-default-off-2026-06-04T1140Z.json`
+shows Vercel Production has encrypted Resend env names but not the enable flag.
+Follow-up send proof in
+`.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/resend-send-test-domain-unverified-2026-06-04T1151Z.json`
+confirms the exact automatic-email blocker: a real production-env Resend send
+probe failed with HTTP 403 because `contact.archestimator.com` is not verified.
+Resend dashboard shows DKIM verified, but `send.contact` MX
+`feedback-smtp.ap-northeast-1.amazonses.com` priority 10 and `send.contact` TXT
+`v=spf1 include:amazonses.com ~all` are missing/failed in Namecheap DNS.
+`archestimator.com` uses Namecheap registrar nameservers, so Vercel DNS cannot
+repair the records. Automatic email remains off; manual beta invites/links
+remain the current no-spend path.
+Hosted signed-out `/workshop` still redirects to `/login?next=%2Fworkshop` via
+`.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/hosted-auth-signed-out-refresh-2026-06-04T1138Z.json`;
+hosted allowed/denied/revoked/expired real-session smoke remains open.
+
 **Vercel Rollback Drill Closed (2026-06-04 11:12Z):**
 The production rollback gate now has real no-spend provider proof. Vercel CLI
 reported no rollback in progress, then rolled production back from current
@@ -60,8 +89,8 @@ names are ready for closed-beta runtime, Supabase, publication secrets, Resend,
 invite delivery, and AI-off flags. Linked Supabase readback shows exactly one
 active allowlist row: `philipjonlewis@gmail.com`. GitHub has no open issues or
 PRs. Codex Security still shows `1-2 of 2`, both history-exposure findings; the
-Resend sender path still lacks `send.contact.archestimator.com` MX; rollback,
-legal/owner, support/monitoring, denied/revoked hosted auth, and full hosted
+Resend sender path still lacks `send.contact.archestimator.com` MX, but email
+automation is explicitly default-off; denied/revoked hosted auth and full hosted
 journey proof remain open. Proof artifact:
 `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/live-closed-beta-refresh-2026-06-04T1006Z.json`.
 
@@ -78,10 +107,11 @@ env mutation, broad `supabase db push`, new Codex Security scan, or git-history
 rewrite occurred. Proof artifact:
 `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/codex-security-cheap-path-closures-2026-06-04T0934Z.json`.
 External closed beta is still not fully green: the two history-exposure findings
-remain open, and hosted denied/revoked/expired auth smoke, Resend sender-domain
-proof, rollback risk proof, legal/owner signoff, support/feedback/alert
-monitoring proof, secondary spreadsheet-app export proof, and the full hosted
-beta journey still need proof or explicit owner acceptance.
+remain open, and hosted denied/revoked/expired auth smoke, secondary
+spreadsheet-app export proof if required for beta, and the full hosted beta
+journey still need proof or explicit owner acceptance. Resend sender-domain
+proof remains a re-enable gate for email automation, not a current launch
+blocker while `ARCHESTIMATOR_EMAIL_DELIVERY_ENABLED` is absent.
 
 **Codex Security Cheap-Path Refresh (2026-06-04 08:44Z):**
 Authenticated Codex Security proof now narrows the security blocker without
