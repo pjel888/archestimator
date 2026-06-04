@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import { createClient } from "@supabase/supabase-js";
 
 import { getClientIp, hashPublicationToken, readPublicationTokenHashSecret, verifyPublicationPassword } from "@/lib/publication/security";
+import { sanitizeProjectPublicationSnapshotForPublicRead } from "@/lib/publication/snapshot";
 import type { ProjectPublicationSnapshot } from "@/lib/publication/types";
 import type { Database, Json, Tables } from "@/lib/supabase/types";
 
@@ -499,7 +500,7 @@ export async function resolveProjectPublicationSnapshotByToken(token: string): P
 
   return {
     ...toResolvedAccess(data),
-    snapshot: data.snapshot_json as ProjectPublicationSnapshot,
+    snapshot: sanitizeProjectPublicationSnapshotForPublicRead(data.snapshot_json as ProjectPublicationSnapshot),
   };
 }
 

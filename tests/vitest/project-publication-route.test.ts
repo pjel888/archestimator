@@ -34,7 +34,56 @@ const snapshot = {
   estimateCount: 1,
   rowCount: 1,
   totalCost: 2300,
-  estimates: [],
+  estimates: [
+    {
+      id: "estimate-1",
+      name: "Main Estimate",
+      sheetCode: "ES-001",
+      updatedAt: "2026-05-26T00:00:00.000Z",
+      rowCount: 1,
+      totalCost: 2300,
+      rows: [
+        {
+          id: "row-1",
+          description: "Concrete works",
+          designation: "CW-01",
+          discipline: "Structural",
+          material: "Concrete",
+          quantity: 2,
+          unit: "cu.m",
+          unitCost: 1000,
+          miscCost: 100,
+          contingencyPercentage: 10,
+          rowTotal: 2300,
+          imageUrl: null,
+          nodeId: null,
+        },
+      ],
+    },
+  ],
+};
+
+const publicSnapshot = {
+  ...snapshot,
+  estimates: [
+    {
+      ...snapshot.estimates[0],
+      rows: [
+        {
+          id: "row-1",
+          description: "Concrete works",
+          designation: "CW-01",
+          discipline: "Structural",
+          material: "Concrete",
+          quantity: 2,
+          unit: "cu.m",
+          rowTotal: 2300,
+          imageUrl: null,
+          nodeId: null,
+        },
+      ],
+    },
+  ],
 };
 
 function params(token = "client-token") {
@@ -78,7 +127,7 @@ describe("shared link publication route handlers (Shared Link V2 audit)", () => 
     expect(await response.json()).toEqual({
       publicationId: "publication-1",
       passwordRequired: false,
-      snapshot,
+      snapshot: publicSnapshot,
     });
     expect(mocks.recordProjectPublicationEvent).toHaveBeenCalledWith({
       token: "client-token",
@@ -150,7 +199,7 @@ describe("shared link publication route handlers (Shared Link V2 audit)", () => 
       params(),
     );
     expect(unlockedResponse.status).toBe(200);
-    expect((await unlockedResponse.json()).snapshot).toEqual(snapshot);
+    expect((await unlockedResponse.json()).snapshot).toEqual(publicSnapshot);
   });
 
   it("records public events only after same-origin CSRF verification", async () => {

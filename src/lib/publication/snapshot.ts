@@ -68,13 +68,50 @@ function buildSnapshotRow(row: SnapshotRowInput): PublicationSnapshotRow {
     material: row.material,
     quantity: toFiniteNumber(row.quantity),
     unit: row.unit,
-    unitCost: toFiniteNumber(row.unitCost),
-    miscCost: toFiniteNumber(row.miscCost),
-    contingencyPercentage: toFiniteNumber(row.contingencyPercentage),
     rowTotal: calculateRowTotal(row),
     // P9 additive (undefined/null if absent in source_snapshot at publish)
     imageUrl: normalizePublicationImageUrl(row.imageUrl),
     nodeId: row.nodeId ?? null,
+  };
+}
+
+type LegacyPublicationSnapshotRow = PublicationSnapshotRow & {
+  unitCost?: unknown;
+  miscCost?: unknown;
+  contingencyPercentage?: unknown;
+};
+
+function sanitizeSnapshotRow(row: LegacyPublicationSnapshotRow): PublicationSnapshotRow {
+  return {
+    id: row.id,
+    description: row.description,
+    designation: row.designation,
+    discipline: row.discipline,
+    material: row.material,
+    quantity: toFiniteNumber(Number(row.quantity)),
+    unit: row.unit,
+    rowTotal: toFiniteNumber(Number(row.rowTotal)),
+    imageUrl: normalizePublicationImageUrl(row.imageUrl),
+    nodeId: row.nodeId ?? null,
+  };
+}
+
+export function sanitizeProjectPublicationSnapshotForPublicRead(snapshot: ProjectPublicationSnapshot): ProjectPublicationSnapshot {
+  const project =
+    "coverImageUrl" in snapshot.project
+      ? {
+          ...snapshot.project,
+          coverImageUrl: normalizePublicationImageUrl(snapshot.project.coverImageUrl),
+        }
+      : snapshot.project;
+
+  return {
+    ...snapshot,
+    project,
+    estimates: (snapshot.estimates ?? []).map((estimate) => ({
+      ...estimate,
+      rows: (estimate.rows ?? []).map((row) => sanitizeSnapshotRow(row as LegacyPublicationSnapshotRow)),
+    })),
   };
 }
 
@@ -138,7 +175,7 @@ export function buildProjectPublicationSnapshot({
         }
       : project;
 
-  return {
+  return sanitizeProjectPublicationSnapshotForPublicRead({
     schemaVersion: 1,
     generatedAt,
     project: snapshotProject,
@@ -146,5 +183,5 @@ export function buildProjectPublicationSnapshot({
     rowCount: snapshotEstimates.reduce((total, estimate) => total + estimate.rowCount, 0),
     totalCost: snapshotEstimates.reduce((total, estimate) => total + estimate.totalCost, 0),
     estimates: snapshotEstimates,
-  };
+  });
 }
