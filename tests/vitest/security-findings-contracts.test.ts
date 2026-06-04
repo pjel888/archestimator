@@ -105,6 +105,22 @@ describe("Codex security findings hardening contracts", () => {
     expect(latestReorderRpc).not.toContain("not public.is_workspace_member(target_workspace_id)");
   });
 
+  it("pins MCP tooling package specs instead of auto-resolving floating uvx packages", () => {
+    const expectedPackage = "code-review-graph==2.3.5";
+    const rootMcp = JSON.parse(read(".mcp.json"));
+    const cursorMcp = JSON.parse(read(".cursor/mcp.json"));
+    const codexConfig = read(".codex/config.toml");
+
+    for (const server of [rootMcp.mcpServers["code-review-graph"], cursorMcp.mcpServers["code-review-graph"]]) {
+      expect(server.command).toBe("uvx");
+      expect(server.args).toEqual([expectedPackage, "serve"]);
+      expect(server.args).not.toContain("code-review-graph");
+    }
+
+    expect(codexConfig).toContain(`"${expectedPackage}"`);
+    expect(codexConfig).not.toMatch(/^\s*"code-review-graph",\s*$/m);
+  });
+
   it("enforces publication password access before creating recipient sessions", () => {
     const sessionRoute = read("src/app/api/share/[token]/session/route.ts");
     const handlerBody = sessionRoute.slice(sessionRoute.indexOf("export async function POST"));
