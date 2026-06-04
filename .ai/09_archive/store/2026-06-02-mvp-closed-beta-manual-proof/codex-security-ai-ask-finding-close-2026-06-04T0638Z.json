@@ -1,0 +1,45 @@
+{
+  "artifactType": "codex-security-finding-closure-proof",
+  "recordedAtUtc": "2026-06-04T06:38:44Z",
+  "recordedBy": "Codex via authenticated Codex Security browser session",
+  "finding": {
+    "id": "448a1ac762cc81918ff66ed2dd8bd3db",
+    "title": "AI Ask endpoint lacks quota and fails open on audit",
+    "severity": "medium",
+    "repository": "pjel888/archestimator",
+    "oldCommit": "385c08c9c5f076bf40b12f19cf63363da3db1dfd",
+    "oldCommitShort": "385c08c"
+  },
+  "currentRepoProof": {
+    "head": "fbd6d382289d07595df2332a5aa166be0747e83d",
+    "headShort": "fbd6d38",
+    "fixCommitRecordedPreviously": "e48eb0f",
+    "productionDeploymentRecordedPreviously": "dpl_GbaEYo8NPmFVS6MQCirpqRBs5RF3",
+    "closedBetaGate": "src/app/api/ai/ask/route.ts returns the closed-beta disabled 404 before handler import unless ARCHESTIMATOR_AI_ENABLED=true.",
+    "quotaProof": "src/app/api/ai/ask/handler.ts checks checkAiAskQuota before workspace context reads or provider calls; src/lib/ai/rate-limit.ts persists quota events in security_rate_limit_events and throws when audit storage is unavailable.",
+    "auditProof": "src/lib/ai/audit.ts recordAiAskAuditEvent throws when audit event or Supabase audit storage is unavailable; the handler requires started/completed/failed audit persistence at the provider boundary.",
+    "priorProofArtifact": ".ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/ai-ask-quota-audit-fail-closed-2026-06-04.json"
+  },
+  "freshVerification": {
+    "command": "bunx vitest run tests/vitest/ai-ask-route.test.ts tests/vitest/ai-audit-flow.test.ts tests/vitest/ai-audit-schema.test.ts tests/vitest/ai-auth-guard.test.ts tests/vitest/ai-package-builder-route.test.ts --maxWorkers=1 --reporter=dot",
+    "result": "passed",
+    "testFiles": 5,
+    "tests": 66
+  },
+  "dashboardAction": {
+    "url": "https://chatgpt.com/codex/cloud/security/findings/448a1ac762cc81918ff66ed2dd8bd3db?repo=pjel888%2Farchestimator",
+    "reason": "Already fixed",
+    "submittedContext": "Current main fixes this and keeps AI disabled for the cheaper closed beta. /api/ai/ask returns the disabled 404 before handler import unless ARCHESTIMATOR_AI_ENABLED=true. If AI is later enabled, handleAiAskRequest now checks durable quota via checkAiAskQuota before workspace context reads or provider calls, returns 503 when quota storage is unavailable, requires a started audit upsert before DeepSeek is called, withholds successful output unless the completed audit update succeeds, and requires failed audit persistence for read-context/provider failures. Quota uses security_rate_limit_events and recordAiAskAuditEvent throws when Supabase audit storage is unavailable instead of swallowing failures. Hosted proof artifact ai-ask-quota-audit-fail-closed-2026-06-04.json records production /api/health 200 and signed-out POST /api/ai/ask returning 404 {\"error\":\"AI is disabled for closed beta.\"}. Fresh verification on 2026-06-04: bunx vitest run tests/vitest/ai-ask-route.test.ts tests/vitest/ai-audit-flow.test.ts tests/vitest/ai-audit-schema.test.ts tests/vitest/ai-auth-guard.test.ts tests/vitest/ai-package-builder-route.test.ts --maxWorkers=1 --reporter=dot (5 files / 66 tests). Finding was against old commit 385c08c; current main is fbd6d38.",
+    "postSubmitBehavior": "Codex Security advanced to the next finding, Unbounded chart and XLSX export loading can exhaust server resources.",
+    "directRevisitProof": "Revisiting the original finding showed a Reopen control, proving it is closed.",
+    "openListProof": "The open-list first page no longer included AI Ask endpoint lacks quota and fails open on audit and pulled Proposal pages now expose internal unit-rate details into the visible page.",
+    "countDropClaimed": false
+  },
+  "boundaries": [
+    "This closes one Codex Security finding only and does not prove all remaining findings are closed.",
+    "AI remains intentionally disabled for closed beta.",
+    "No paid AI/provider path was enabled.",
+    "No browser cookies, secrets, or localStorage values were recorded.",
+    "Closed-beta launch remains blocked by remaining Codex Security findings plus hosted OAuth denied/revoked/expired smoke, Resend provider proof, rollback risk proof, legal/owner signoff, and support/alert monitoring proof."
+  ]
+}

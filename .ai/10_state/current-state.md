@@ -1,5 +1,21 @@
 # Current State
 
+**Codex Security AI Ask Finding Closed (2026-06-04 06:38Z):**
+Authenticated Codex Security closure marked
+`AI Ask endpoint lacks quota and fails open on audit` as `Already fixed`.
+Revisiting finding `448a1ac762cc81918ff66ed2dd8bd3db` shows a `Reopen`
+control, and the open-list first page no longer includes the AI Ask finding.
+Current `main` head `fbd6d38` keeps `/api/ai/ask` disabled by default for
+closed beta, checks durable quota in `security_rate_limit_events` before any
+enabled-mode context reads or provider calls, and fails closed when quota/audit
+storage is unavailable. Fresh verification passed 5 files / 66 tests:
+`bunx vitest run tests/vitest/ai-ask-route.test.ts tests/vitest/ai-audit-flow.test.ts tests/vitest/ai-audit-schema.test.ts tests/vitest/ai-auth-guard.test.ts tests/vitest/ai-package-builder-route.test.ts --maxWorkers=1 --reporter=dot`.
+Proof artifact:
+`.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/codex-security-ai-ask-finding-close-2026-06-04T0638Z.json`.
+AI remains intentionally disabled for closed beta. This closes one Codex
+Security finding only; remaining Codex Security findings and hosted/manual/
+provider gates still block a fully green closed beta.
+
 **Codex Security Project-Images Finding Closed (2026-06-04 06:32Z):**
 Authenticated Codex Security closure marked
 `Project images are uploaded to a public listable bucket` as `Already fixed`.
