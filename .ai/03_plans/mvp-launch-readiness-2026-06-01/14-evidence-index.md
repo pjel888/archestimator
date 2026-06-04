@@ -1,5 +1,28 @@
 # Evidence Index
 
+## Codex Security Stale-Decision Finding Closure - 2026-06-04 05:37Z
+
+- Primary artifact: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/codex-security-stale-decision-finding-close-2026-06-04T0537Z.json`.
+- Dashboard action: authenticated Codex Security finding
+  `Stale share sessions can approve newer publication snapshots` was closed as
+  `Already fixed` / `Reason: Fixed`; revisiting the original finding shows
+  `Closed by philipjonlewis@gmail.com`, a `Reopen` control, and the Findings
+  page count dropped from `1-20 of 42` to `1-20 of 41`.
+- Repo proof: current `main` head `4c2b30f` verifies recipient decision
+  sessions against the DB-current publication snapshot, passes
+  `expectedSnapshotVersion` through the decision repository helper, and the
+  `submit_client_response` RPC rejects null or mismatched expected snapshot
+  versions before recording a response. The closed finding was against old
+  commit `45673c8`; the fix was already deployed and recorded under commit
+  `e28a8d6`.
+- Fresh verification:
+  `bunx vitest run tests/vitest/project-publication-decision.test.tsx tests/vitest/project-publication-public-repository.test.ts tests/vitest/security-findings-contracts.test.ts --maxWorkers=1 --reporter=dot`
+  passed 3 files / 39 tests.
+- Still open: remaining Codex Security findings still need closure/rescan/owner
+  acceptance; hosted denied/revoked/expired beta-auth smoke, Resend domain/
+  delivery proof, rollback risk proof, legal/owner signoff, and support/alert
+  monitoring proof remain open before a fully green closed beta.
+
 ## Codex Security Share-Image Finding Closure - 2026-06-04 05:26Z
 
 - Primary artifact: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/codex-security-share-image-url-finding-close-2026-06-04T0526Z.json`.

@@ -1,0 +1,66 @@
+{
+  "artifactType": "codex-security-finding-closure-proof",
+  "recordedAt": "2026-06-04T05:37:52Z",
+  "recordedBy": "Codex via authenticated Chrome dashboard session",
+  "repository": "pjel888/archestimator",
+  "finding": {
+    "id": "a4246a78881881918b80e5758ce122f1",
+    "title": "Stale share sessions can approve newer publication snapshots",
+    "severity": "Medium",
+    "findingUrl": "https://chatgpt.com/codex/cloud/security/findings/a4246a78881881918b80e5758ce122f1?repo=https%3A%2F%2Fgithub.com%2Fpjel888%2Farchestimator&sev=",
+    "reportedCommit": "45673c8",
+    "reportedCommitTimestamp": "2026-05-29T01:59:00"
+  },
+  "currentRepoProof": {
+    "branch": "main",
+    "head": "4c2b30f936dd22b6ec7eb9e6939c462d9e5a2b9c",
+    "shortHead": "4c2b30f",
+    "fixCommitPreviouslyRecorded": "e28a8d6",
+    "productionDeploymentPreviouslyRecorded": "dpl_ET8ZwGjxdfv7CxsXoJgUuao1eHfY",
+    "sourceControls": [
+      "src/app/api/share/[token]/decision/route.ts resolves current publication access from the token before decision writes",
+      "src/app/api/share/[token]/decision/route.ts verifies the recipient session against the DB-current publicationId and snapshotVersion instead of cookie-derived publication fields",
+      "src/app/api/share/[token]/decision/route.ts passes access.snapshotVersion as expectedSnapshotVersion into submitSharedLinkDecision",
+      "src/lib/publication/public-repository.ts submitSharedLinkDecision requires expectedSnapshotVersion and passes p_expected_snapshot_version into submit_client_response",
+      "supabase/migrations/20260603210653_lock_shared_link_response_snapshot_version.sql recreates submit_client_response with p_expected_snapshot_version and rejects null or mismatched snapshot versions before inserting shared_link_responses"
+    ],
+    "freshVerification": {
+      "command": "bunx vitest run tests/vitest/project-publication-decision.test.tsx tests/vitest/project-publication-public-repository.test.ts tests/vitest/security-findings-contracts.test.ts --maxWorkers=1 --reporter=dot",
+      "result": "PASS: 3 files / 39 tests",
+      "notes": [
+        "The suite includes the stale recipient-session rejection path for decision submissions.",
+        "Expected structured stderr logs were emitted by negative-path route tests."
+      ]
+    },
+    "graphProof": {
+      "command": "npx gitnexus context submitSharedLinkDecision -r archestimator --content",
+      "result": "submitSharedLinkDecision found in src/lib/publication/public-repository.ts with expectedSnapshotVersion required and only POST /api/share/[token]/decision as an incoming caller"
+    }
+  },
+  "dashboardClosureProof": {
+    "preClosureFindingCount": "1-20 of 42",
+    "closeReasonSelected": "Already fixed",
+    "submittedContext": "Current main verifies the recipient session against the DB-current publicationId and snapshotVersion from resolveProjectPublicationAccessByToken, passes expectedSnapshotVersion into submitSharedLinkDecision, and the submit_client_response RPC now rejects null/mismatched p_expected_snapshot_version before inserting shared_link_responses. Verified on 2026-06-04 with: bunx vitest run tests/vitest/project-publication-decision.test.tsx tests/vitest/project-publication-public-repository.test.ts tests/vitest/security-findings-contracts.test.ts --maxWorkers=1 --reporter=dot (3 files / 39 tests). Finding was against old commit 45673c8; current main is 4c2b30f.",
+    "postSubmitBehavior": "After Submit, the dashboard navigated to the next finding, Stale recipient sessions can post share comments.",
+    "revisitedFindingStatus": "Closed by philipjonlewis@gmail.com. Reason: Fixed.",
+    "postClosureFindingCount": "1-20 of 41",
+    "postClosureControls": [
+      "Closed",
+      "Reopen"
+    ],
+    "closedFindingStillReadable": true
+  },
+  "proofBoundaries": {
+    "noSecretsRecorded": true,
+    "noBrowserCookiesOrLocalStorageInspected": true,
+    "noSignedValidationArtifactUrlsCopied": true,
+    "doesNotCloseAllCodexSecurityFindings": true,
+    "remainingLaunchBlockers": [
+      "Remaining Codex Security findings still require fix, closure, rescan, or explicit owner acceptance.",
+      "Hosted denied/revoked/expired Google OAuth beta-auth smoke remains open.",
+      "Resend sending-domain MX/verified/delivery event proof remains open.",
+      "Rollback drill or explicit accepted rollback-not-drilled risk remains open.",
+      "Owner/legal signoff and support/feedback/alert monitoring proof remain open."
+    ]
+  }
+}
