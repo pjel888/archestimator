@@ -33,6 +33,18 @@
 
 ## 2026-06-04 cheap launch refresh
 
+- Fresh no-spend launch proof at `2026-06-04T07:06Z` confirms
+  `www.archestimator.com` is still serving the beta app, not the teaser:
+  production deployment `dpl_6xBegV7JS3WRfZYnN1mWTeY62b38` is `Ready` and
+  aliased to `www`, apex, and `archestimator.vercel.app`; `www` health returns
+  HTTP 200, `/login` returns the app title, signed-out `/workshop` redirects to
+  login, and apex health redirects to `www`. Production env names are present
+  for app URLs/origins, Supabase public/server keys, closed-beta flags,
+  publication secrets, Resend vars, and AI-off flags. The refresh changed no
+  paid provider setting, did not enable PITR, did not change DNS/env/aliases,
+  did not run a rollback flip, and did not run broad `supabase db push`.
+  Artifact:
+  `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/no-spend-live-launch-refresh-2026-06-04T0706Z.json`.
 - The current beta-launch path remains the cheaper path: do not enable paid
   Supabase PITR unless Philip explicitly accepts the additional cost. The strict
   backup checker still reports `supabaseBackupReady: false` because PITR and a
@@ -51,10 +63,12 @@
   `vercel-production-readiness-cheap-refresh-2026-06-04.json` remains false only
   because the rollback drill is still blocked.
 - External closed beta remains blocked by no-cost/manual proof gaps: Codex
-  Security dashboard rescan/acceptance, hosted Google OAuth allow/deny/revoke
-  browser smoke, rollback drill if accepted, Resend delivery/webhook proof,
-  legal/owner signoff, support/alert monitoring proof, hosted authenticated
-  export, and full hosted beta journey proof.
+  Security dashboard rescan/acceptance, hosted Google OAuth denied/revoked/
+  expired browser smoke, rollback drill if accepted, Resend `send.contact` MX
+  plus delivery/webhook proof, legal/owner signoff, support/alert monitoring
+  proof, hosted authenticated export, and full hosted beta journey proof.
+  Direct RLS closure proof exists locally/provider-side, but the Codex Security
+  dashboard `Close` submission remains pending action-time confirmation.
 
 ## 2026-06-03 provider proof refresh
 

@@ -1,5 +1,44 @@
 # Evidence Index
 
+## No-Spend Live Closed-Beta Launch Refresh - 2026-06-04 07:06Z
+
+- Primary artifact: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/no-spend-live-launch-refresh-2026-06-04T0706Z.json`.
+- Cost posture: no Supabase PITR add-on, no compute increase for PITR, no DNS or
+  provider mutation, no Vercel env mutation, no production rollback/promote
+  action, and no broad Supabase `db push` occurred during this refresh.
+- Vercel proof: production deployment `dpl_6xBegV7JS3WRfZYnN1mWTeY62b38` is
+  `Ready` and aliased to `www.archestimator.com`, `archestimator.com`, and
+  `archestimator.vercel.app`. Live HTTP probes show `www` `/api/health` HTTP 200
+  with Archestimator health JSON, `/login` HTTP 200 with the app title,
+  signed-out `/workshop` HTTP 307 to `/login?next=%2Fworkshop`, and apex
+  `/api/health` HTTP 307 to `www`.
+- Vercel env proof: Production env names are present for app URLs/origins,
+  Supabase public/server keys, closed-beta flags, publication secrets, Resend
+  vars, and AI-off flags. Secret values are not recorded.
+- Supabase proof: Management API lists linked project `ebxxqidacheyapmmzavr` as
+  `Archestimator`, `ACTIVE_HEALTHY`, Postgres 17, region `ap-southeast-2`;
+  Supabase ref renaming was not attempted because the human project name is
+  already correct and refs are immutable identifiers. Existing cheap-path
+  artifacts still prove 9 physical backups, `walgEnabled=true`, PITR off,
+  off-repo logical dump bundle, linked readiness, and owner allowlist proof.
+- Supabase SQL refresh gap: this pass did not re-prove linked SQL because the
+  Supabase CLI temp-role pooler returned `ECIRCUITBREAKER`; the hung retry was
+  stopped and no broad `db push` was attempted.
+- Resend/DNS proof: production webhook endpoint/secret proof remains from the
+  prior dashboard artifact, apex support forwarding MX and DMARC are present,
+  but public DNS still has no `send.contact.archestimator.com` MX. Add only the
+  no-cost Namecheap MX `send.contact` ->
+  `feedback-smtp.ap-northeast-1.amazonses.com`, priority `10`, without changing
+  apex support forwarding MX.
+- Codex Security proof: Direct RLS finding
+  `1991e62ea7488191a1e48bbf1446b133` is still visible/open with `1-20 of 35`
+  and a `Close` control. The linked fix proof artifact exists, but live
+  dashboard closure submission remains pending action-time confirmation.
+- Still open: remaining Codex Security findings, hosted Google OAuth
+  denied/revoked/expired smoke, rollback drill or owner risk acceptance, Resend
+  MX/domain/delivery proof, legal/owner signoff, support/feedback/alert
+  monitoring proof, hosted authenticated export, and full hosted beta journey.
+
 ## Codex Security Chart/XLSX Finding Closure - 2026-06-04 06:49Z
 
 - Primary artifact: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/codex-security-chart-xlsx-finding-close-2026-06-04T0649Z.json`.
