@@ -1,0 +1,248 @@
+{
+  "artifact": "codex-security-cheap-path-closures-2026-06-04T0934Z",
+  "observed_at": "2026-06-04T09:34:00Z",
+  "environment": "Authenticated Chrome session, Codex Security dashboard",
+  "operator": "Codex",
+  "repository": "pjel888/archestimator",
+  "repo_head_at_observation": {
+    "branch": "main",
+    "short_sha": "d69774c",
+    "sha": "d69774c1f7b692e9cb82d62fce82eb46b6233882"
+  },
+  "cost_boundary": {
+    "paid_provider_changes": false,
+    "supabase_pitr_enabled": false,
+    "supabase_compute_changed": false,
+    "supabase_project_rename_attempted": false,
+    "dns_changed": false,
+    "vercel_env_changed": false,
+    "new_codex_security_scan_started": false,
+    "codex_security_rescan_purchased": false,
+    "broad_supabase_db_push_ran": false,
+    "git_history_rewrite_ran": false,
+    "notes": [
+      "This pass stayed on the cheaper owner-only pre-launch beta path.",
+      "Findings were closed only where existing repo, linked Supabase, deployment, or dashboard proof supported Already fixed.",
+      "History-exposure findings were intentionally left open because current-tree cleanup does not purge prior git history."
+    ]
+  },
+  "dashboard_observations": {
+    "url": "https://chatgpt.com/codex/cloud/security/findings/087efcc9d04c81918d13c27c718da2fb?repo=https%3A%2F%2Fgithub.com%2Fpjel888%2Farchestimator&sev=medium",
+    "final_visible_count": "1-2 of 2",
+    "current_batch_count_path": [
+      "1-9 of 9",
+      "1-8 of 8",
+      "1-7 of 7",
+      "1-6 of 6",
+      "1-5 of 5",
+      "1-4 of 4",
+      "1-3 of 3",
+      "1-2 of 2"
+    ],
+    "broader_same_day_count_path": [
+      "1-20 of 20",
+      "1-19 of 19",
+      "1-18 of 18",
+      "1-17 of 17",
+      "1-16 of 16",
+      "1-15 of 15",
+      "1-14 of 14",
+      "1-13 of 13",
+      "1-12 of 12",
+      "1-11 of 11",
+      "1-10 of 10",
+      "1-9 of 9",
+      "1-8 of 8",
+      "1-7 of 7",
+      "1-6 of 6",
+      "1-5 of 5",
+      "1-4 of 4",
+      "1-3 of 3",
+      "1-2 of 2"
+    ],
+    "remaining_open_findings": [
+      {
+        "title": "Committed public share token and user project data",
+        "status": "left_open",
+        "reason": "Requires owner risk acceptance or an explicit destructive git-history purge decision; current-tree cleanup alone does not erase prior history exposure."
+      },
+      {
+        "title": "Confidential client proposal committed to repository",
+        "status": "left_open",
+        "reason": "Current-tree artifacts were withdrawn/sanitized, but the finding is history-exposure shaped and was not closed without owner acceptance or history purge approval."
+      }
+    ]
+  },
+  "closed_findings": [
+    {
+      "title": "Project deletion no longer cleans project image objects",
+      "dashboard_result": "closed_as_already_fixed",
+      "submitted_context": "Fixed by linked migration 20260604023101_harden_project_image_cleanup_targets.sql. Live readback proves preview_bulk_delete_projects emits project-images and no component-images for project image cleanup targets; focused security contract passes.",
+      "proof": [
+        ".ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/project-image-cleanup-targets-2026-06-04.json"
+      ]
+    },
+    {
+      "title": "Unscoped Speed Insights exposes sensitive app URLs",
+      "dashboard_result": "closed_as_already_fixed",
+      "submitted_context": "Fixed by commit 5b9c3cb, which removes @vercel/speed-insights, the root-layout import, and <SpeedInsights />. Fresh production marker scan of https://www.archestimator.com/ and apex returned 0 SpeedInsights, speed-insights, /_vercel/speed-insights, and va.vercel-scripts.com markers.",
+      "proof": [
+        "package.json",
+        "src/app/layout.tsx",
+        "dashboard closure context records production marker scan result"
+      ]
+    },
+    {
+      "title": "New share review GET APIs are not rate limited",
+      "dashboard_result": "closed_as_already_fixed",
+      "submitted_context": "Already fixed in current main: comment GET calls checkSharedLinkCommentReadRateLimit before loadSharedLinkPublicComments, and decision GET calls checkSharedLinkDecisionReadRateLimit before loadSharedLinkRecipientDecision. Fresh focused proof: bunx vitest run tests/vitest/share/share-page-get-routes-contract.test.ts --maxWorkers=1 --reporter=dot passed 1 file / 7 tests.",
+      "proof": [
+        "tests/vitest/share/share-page-get-routes-contract.test.ts"
+      ]
+    },
+    {
+      "title": "Mass deletion audit records are caller-tamperable",
+      "dashboard_result": "closed_as_already_fixed",
+      "submitted_context": "Fixed by linked migrations 20260603191903_harden_mass_deletion_actor_derivation.sql and 20260604031000_lock_mass_deletion_cleanup_result_rpc.sql. Linked readback proves 3 actor-derived execute RPCs, 0 legacy acting_user_id execute args, cleanup RPC authenticated_execute=false/service_role_execute=true, guard clauses present, and fresh security contract passes.",
+      "proof": [
+        ".ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/mass-deletion-cleanup-rpc-lock-2026-06-04.json"
+      ]
+    },
+    {
+      "title": "Role demotion migration is blocked by its own trigger",
+      "dashboard_result": "closed_as_already_fixed",
+      "submitted_context": "Fixed in main commit e5b17dc: the beta allowlist hardening migration now disables/re-enables the profile role trigger around the controlled demotion repair. Linked apply/repair proof is recorded, and fresh security regression passed 18 files / 233 tests.",
+      "proof": [
+        "supabase/migrations/20260603160000_harden_closed_beta_allowlist.sql"
+      ]
+    },
+    {
+      "title": "Hosted auth smoke sends cookies to unvalidated URL",
+      "dashboard_result": "closed_as_already_fixed",
+      "submitted_context": "Fixed in main commit e5b17dc: scripts/verify-hosted-auth-routes.ts validates HOSTED_AUTH_BASE_URL against allowed HTTPS origins before attaching hosted cookies or auth headers. Fresh regression passed tests/vitest/hosted-auth-route-smoke-script.test.ts within 18 files / 233 tests.",
+      "proof": [
+        "scripts/verify-hosted-auth-routes.ts",
+        "tests/vitest/hosted-auth-route-smoke-script.test.ts"
+      ]
+    },
+    {
+      "title": "Beta feedback RLS allows forged cross-tenant context",
+      "dashboard_result": "closed_as_already_fixed",
+      "submitted_context": "Fixed by linked migration 20260603191535_harden_beta_feedback_context.sql. Linked readback proves the beta feedback insert policy now requires auth.uid(), JWT email, workspace membership, project access, and project/workspace consistency; fresh beta-feedback/security regression is green.",
+      "proof": [
+        "supabase/migrations/20260603191535_harden_beta_feedback_context.sql"
+      ]
+    },
+    {
+      "title": "Denied beta users keep Supabase sessions",
+      "dashboard_result": "closed_as_already_fixed",
+      "submitted_context": "Fixed in current main: denied/revoked beta access in /auth/callback and src/proxy.ts now signs out Supabase sessions before redirecting to /beta/access-required and preserves cookie-clearing redirect cookies. Fresh auth callback/proxy/session regression is green.",
+      "proof": [
+        "src/app/auth/callback/route.ts",
+        "src/proxy.ts"
+      ]
+    },
+    {
+      "title": "Committed Lighthouse reports leak Supabase session cookies",
+      "dashboard_result": "closed_as_already_fixed",
+      "submitted_context": "Fixed for the current tree: raw authenticated Lighthouse .report.html/.report.json artifacts containing Supabase session material were removed/redacted, cleanup evidence shows the seeded users absent/deleted and expired tokens, and targeted repo scans no longer find the leaked cookie patterns in current archive paths. No git-history rewrite was performed.",
+      "proof": [
+        "dashboard closure context records targeted current-tree leak scans and cleanup evidence"
+      ]
+    },
+    {
+      "title": "Unauthenticated digest server action emails owners",
+      "dashboard_result": "closed_as_already_fixed",
+      "submitted_context": "Fixed in main commit e5b17dc: maybeTriggerSharedLinkActivityDigest now returns digest-auth-required before sending when invoked without an authenticated current-user context. Fresh project-publication-activity regression passed in the 18-file / 233-test suite.",
+      "proof": [
+        "src/lib/actions/project-publication-actions.ts",
+        "tests/vitest/project-publication-activity.test.ts"
+      ]
+    },
+    {
+      "title": "Revoked invite RPC leaks project and email metadata",
+      "dashboard_result": "closed_as_already_fixed",
+      "submitted_context": "Fixed by linked migration 20260603195154_harden_revoked_invite_resolution.sql. Linked readback proves revoked-token resolution returns state=revoked with null invitation/project/contact metadata while preserving anon/authenticated execute grants; fresh invite regression is green.",
+      "proof": [
+        "supabase/migrations/20260603195154_harden_revoked_invite_resolution.sql"
+      ]
+    },
+    {
+      "title": "Unbounded share tree parsing can DoS share renders",
+      "dashboard_result": "closed_as_already_fixed",
+      "submitted_context": "Fixed in commit d5e2f72: share-tree reconstruction caps designation bytes, split depth, and labels before allocation while preserving hostile rows. Fresh reconstruct-share-tree and publication regressions passed in the 18-file / 233-test suite.",
+      "proof": [
+        "src/lib/sharing/reconstruct-share-tree.ts",
+        "tests/vitest/reconstruct-share-tree.test.ts"
+      ]
+    },
+    {
+      "title": "Global comment circuit breaker can be tripped by bad UUIDs",
+      "dashboard_result": "closed_as_already_fixed",
+      "submitted_context": "Fixed in commit e6f3191: /api/share/[token]/comment validates optional estimateId/rowId UUIDs before durable rate limits, circuit accounting, or RPC calls, returning HTTP 400 instead of 500. Fresh comment route regression passed in the 18-file / 233-test suite.",
+      "proof": [
+        "src/app/api/share/[token]/comment/route.ts"
+      ]
+    },
+    {
+      "title": "Direct RLS grants bypass component price audit",
+      "dashboard_result": "closed_as_already_fixed",
+      "submitted_context": "Fixed by linked migration 20260603234326: cost_library_item_price_options/history direct authenticated grants are SELECT-only, write policies were removed, and price edits stay behind the audit-writing RPC. Linked readback and fresh component schema regression are green.",
+      "proof": [
+        "supabase/migrations/20260603234326_harden_component_price_audit_grants.sql"
+      ]
+    },
+    {
+      "title": "Viewer members can mutate library folders",
+      "dashboard_result": "closed_as_already_fixed",
+      "submitted_context": "Fixed by commit 04c3304 and linked migration 20260603235355: folder server actions and reorder RPC require workspace editor access; write RLS policies require is_workspace_editor. Linked readback and fresh folder-action regression are green.",
+      "proof": [
+        "supabase/migrations/20260603235355_harden_component_library_folder_editor_access.sql"
+      ]
+    },
+    {
+      "title": "CSV export allows spreadsheet formula injection",
+      "dashboard_result": "closed_as_already_fixed",
+      "submitted_context": "Fixed in commit 6121d68: component-library CSV export now prefixes formula-leading cells after whitespace/control trimming before CSV escaping. Fresh component-library helper/UI regression passed in the 18-file / 233-test suite.",
+      "proof": [
+        "tests/vitest/component-library-actions.test.ts"
+      ]
+    },
+    {
+      "title": "Unpinned MCP tooling auto-executes external packages",
+      "dashboard_result": "closed_as_already_fixed",
+      "submitted_context": "Fixed in commit d351daa: code-review-graph MCP is pinned to code-review-graph==2.3.5 in .mcp.json, .cursor/mcp.json, and .codex/config.toml, with a security contract preventing floating uvx code-review-graph regressions. Fresh security contract is green.",
+      "proof": [
+        ".mcp.json",
+        ".cursor/mcp.json",
+        ".codex/config.toml"
+      ]
+    },
+    {
+      "title": "Proposal pages now expose internal unit-rate details",
+      "dashboard_result": "closed_as_already_fixed",
+      "submitted_context": "Fixed in commit 984124b: public publication snapshots omit unitCost/miscCost/contingencyPercentage and public share repository/JSON route sanitizes legacy snapshots. Fresh publication snapshot/route/page regression is green.",
+      "proof": [
+        "src/lib/repositories/project-publication-repository.ts",
+        "src/app/api/share/[token]/route.ts"
+      ]
+    }
+  ],
+  "same_day_prior_closure_artifacts": [
+    ".ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/codex-security-project-images-finding-close-2026-06-04T0632Z.json",
+    ".ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/codex-security-ai-ask-finding-close-2026-06-04T0638Z.json",
+    ".ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/codex-security-chart-xlsx-finding-close-2026-06-04T0649Z.json"
+  ],
+  "launch_interpretation": {
+    "critical_or_high_open_findings_visible": false,
+    "repo_filtered_medium_open_count_visible": 2,
+    "closed_beta_launch_ready": false,
+    "reason": "The actionable Codex Security dashboard view is now narrowed to two history-exposure findings. Those are intentionally not closed under the cheap path because they require owner risk acceptance or a deliberate history purge decision.",
+    "cheap_path_decision": "Continue Supabase MICRO with PITR disabled for owner-only pre-launch beta; this closure batch did not justify or enable the roughly $100/month PITR-plus-Small-compute path."
+  },
+  "remaining_security_work": [
+    "Owner must decide whether the two remaining history-exposure findings are accepted for closed beta or should be addressed through a deliberate destructive history rewrite/purge workflow.",
+    "Do not close the two residual findings merely because the current tree is clean; current-tree cleanup is not equivalent to history purge.",
+    "Keep legal, support/monitoring, Resend sender-domain, rollback, and hosted beta-auth proof separate from this Codex Security dashboard narrowing."
+  ]
+}

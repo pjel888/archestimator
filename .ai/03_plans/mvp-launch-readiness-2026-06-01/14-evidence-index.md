@@ -1,5 +1,31 @@
 # Evidence Index
 
+## Codex Security Cheap-Path Closures - 2026-06-04 09:34Z
+
+- Primary artifact: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/codex-security-cheap-path-closures-2026-06-04T0934Z.json`.
+- Dashboard proof: authenticated Codex Security closure work reduced the
+  repo-filtered actionable view to `1-2 of 2`; the same-day count path recorded
+  `1-20 of 20` down to `1-2 of 2`, with the final current batch moving
+  `1-9 of 9` through `1-2 of 2`.
+- Closed findings: already-fixed submissions covered the stale/remediated
+  project-image cleanup, Speed Insights, share GET rate-limit, mass-deletion
+  audit, beta allowlist demotion, hosted-auth-smoke URL validation, beta
+  feedback RLS, denied/revoked session clearing, Lighthouse cookie artifact,
+  unauthenticated digest, revoked invite metadata, share-tree bounds, comment
+  UUID circuit-breaker, component price audit grants, library folder editor
+  access, CSV formula injection, pinned MCP tooling, and public unit-rate
+  exposure findings.
+- Residual dashboard blockers: `Committed public share token and user project
+  data` and `Confidential client proposal committed to repository` remain open
+  because current-tree cleanup is not a git-history purge. Close only after
+  owner risk acceptance or an explicit destructive history-purge workflow.
+- Boundary: no paid provider add-on, Supabase PITR, compute upgrade, DNS
+  mutation, Vercel env mutation, broad `supabase db push`, Codex Security rescan
+  purchase, or git-history rewrite occurred.
+- Result: the cheap security path is substantially narrowed but not fully green;
+  the remaining security question is history-risk acceptance/remediation, not a
+  reason to enable the roughly $100/month PITR-plus-Small-compute path.
+
 ## Codex Security Cheap-Path Refresh - 2026-06-04 08:44Z
 
 - Primary artifact: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/codex-security-cheap-path-refresh-2026-06-04T0844Z.json`.
