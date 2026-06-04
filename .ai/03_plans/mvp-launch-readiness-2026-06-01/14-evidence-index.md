@@ -1,5 +1,26 @@
 # Evidence Index
 
+## Codex Security Share-Image Finding Closure - 2026-06-04 05:26Z
+
+- Primary artifact: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/codex-security-share-image-url-finding-close-2026-06-04T0526Z.json`.
+- Dashboard action: authenticated Codex Security finding
+  `Unvalidated share image URLs enable client tracking` was closed as
+  `Already fixed` / `Reason: Fixed`; revisiting the original finding shows
+  `Closed by philipjonlewis@gmail.com`, a `Reopen` control, and the Findings
+  page count dropped from `1-20 of 43` to `1-20 of 42`.
+- Repo proof: current `main` head `5931c1d` keeps the publication image URL
+  allowlist/sanitization path in `src/lib/publication/image-url.ts`,
+  `src/lib/publication/snapshot.ts`, and the public share render components.
+  The closed finding was against old commit `4c7c406`; the fix was already
+  deployed and recorded under commit `dc0aff1`.
+- Fresh verification:
+  `bunx vitest run tests/vitest/project-publication-snapshot.test.ts tests/vitest/project-publication-page.test.tsx tests/vitest/security-findings-contracts.test.ts --maxWorkers=1 --reporter=dot`
+  passed 3 files / 45 tests.
+- Still open: remaining Codex Security findings still need closure/rescan/owner
+  acceptance; hosted denied/revoked/expired beta-auth smoke, Resend domain/
+  delivery proof, rollback risk proof, legal/owner signoff, and support/alert
+  monitoring proof remain open before a fully green closed beta.
+
 ## Resend Webhook Body Limit Deploy Proof - 2026-06-04 05:07Z
 
 - Primary artifact: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/resend-webhook-body-limit-2026-06-04T0507Z.json`.
