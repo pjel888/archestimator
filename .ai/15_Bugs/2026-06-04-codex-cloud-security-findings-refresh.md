@@ -9,6 +9,20 @@
 
 The cheaper closed-beta provider path is partially proven, but the current Codex Security dashboard still lists open findings against `pjel888/archestimator`. Closed beta cannot be honestly called launch-ready until the findings are triaged and either fixed, accepted by owner/legal/security judgment, or proven stale/false-positive with evidence.
 
+## Latest Dashboard Refresh - 2026-06-04T05:11Z
+
+- Artifact: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/codex-security-dashboard-refresh-2026-06-04T0511Z.json`.
+- Scans page: authenticated Chrome refresh hydrated the scan detail page for
+  repository `pjel888/archestimator`, owner `philipjonlewis@gmail.com`,
+  environment `archestimator`, branch `main`, and status `Waiting for new
+  commits`.
+- Latest scan state: last scanned commit is `c6aa6dd3` at `1:02 PM Jun 4,
+  2026`; current pushed repo head at refresh time was `6840512`, so the latest
+  docs/evidence proof commit has not been scanned.
+- Severity-count badges: 4 critical, 6 high, 31 medium, and 6 low. Treat these
+  as launch-blocking until the dashboard rescans/clears them or the owner
+  explicitly accepts the residual risk.
+
 ## Latest Dashboard Refresh - 2026-06-04T04:21Z
 
 - Artifact: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/codex-security-dashboard-refresh-2026-06-04T0421Z.json`.

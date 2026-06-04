@@ -1,0 +1,40 @@
+{
+  "source": "CODEX_SECURITY_DASHBOARD_BROWSER_REFRESH",
+  "generatedAtUtc": "2026-06-04T05:11:27Z",
+  "dashboardUrl": "https://chatgpt.com/codex/cloud/security/scans/3fa110d41fb4819190222a7bf3239828?sev=",
+  "repository": "pjel888/archestimator",
+  "owner": "philipjonlewis@gmail.com",
+  "environment": "archestimator",
+  "branch": "main",
+  "status": "Waiting for new commits",
+  "findings": {
+    "critical": 4,
+    "high": 6,
+    "medium": 31,
+    "low": 6
+  },
+  "scannedCommits": 578,
+  "lastScannedCommit": "c6aa6dd3f4a912ba444469dea50b743f636c546f",
+  "lastScannedCommitShort": "c6aa6dd3",
+  "lastScannedCommitTime": "1:02 PM Jun 4, 2026",
+  "latestRepoHead": "68405120f363bc461809a737768f5c88058a00f6",
+  "latestRepoHeadShort": "6840512",
+  "latestRepoHeadWasScanned": false,
+  "meaning": "Codex Security has scanned through the Vercel upload-ignore commit but not the latest docs/evidence commit. The severity badges remain launch-blocking until rescanned/cleared or explicitly owner-accepted.",
+  "browserProof": {
+    "authenticatedShellHydrated": true,
+    "visibleTextIncluded": [
+      "Waiting for new commits",
+      "Critical severity 4",
+      "High severity 6",
+      "Medium severity 31",
+      "Low severity 6",
+      "Scanned commits 578",
+      "Owner philipjonlewis@gmail.com",
+      "Environment archestimator",
+      "Branch main",
+      "Last scanned commit c6aa6dd3"
+    ]
+  },
+  "secretsRecorded": false
+}

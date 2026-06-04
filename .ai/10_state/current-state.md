@@ -14,8 +14,12 @@ CLI deploys do not package transient agent lock files. The cheaper provider
 decision remains unchanged: do not enable paid Supabase PITR for owner-only
 pre-launch beta; Supabase's current docs list Pro daily backups, PITR as an
 optional add-on requiring at least Small compute, and 7-day PITR at about
-`$100/month`. Proof artifact:
+`$100/month`. A later authenticated Codex Security browser refresh shows the
+scanner has caught up to `c6aa6dd3` but not the docs/evidence commit `6840512`;
+scan badges remain 4 critical, 6 high, 31 medium, and 6 low. Proof artifact:
 `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/resend-webhook-body-limit-2026-06-04T0507Z.json`.
+Security refresh artifact:
+`.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/codex-security-dashboard-refresh-2026-06-04T0511Z.json`.
 
 **Live Low-Cost Closed-Beta Launch Refresh (2026-06-04 04:29Z):**
 The affordable closed-beta path remains the active path. No new paid provider
