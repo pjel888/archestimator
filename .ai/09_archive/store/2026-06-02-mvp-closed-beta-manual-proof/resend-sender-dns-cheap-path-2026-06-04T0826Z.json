@@ -1,0 +1,149 @@
+{
+  "artifact": "resend-sender-dns-cheap-path-2026-06-04T0826Z",
+  "capturedAt": "2026-06-04T08:26:56Z",
+  "scope": "closed beta cheap launch provider proof",
+  "spendDecision": {
+    "supabaseCompute": "keep on cheaper launch compute path; do not enable PITR or larger compute for prelaunch MVP without fresh approval",
+    "namecheap": "no paid DNS or email add-on purchased",
+    "resend": "no paid change made",
+    "vercel": "existing paid Pro plan used; no new paid feature enabled"
+  },
+  "productionHealth": {
+    "command": "curl -fsS -w '\\nHTTP_STATUS:%{http_code}\\n' https://www.archestimator.com/api/health",
+    "httpStatus": 200,
+    "response": {
+      "ok": true,
+      "service": "archestimator",
+      "timestamp": "2026-06-04T08:25:14.206Z"
+    }
+  },
+  "vercelEnvReadiness": {
+    "command": "vercel env ls",
+    "status": "configured",
+    "environmentsSeen": [
+      "Production",
+      "Preview (main)"
+    ],
+    "namesSeen": [
+      "NEXT_PUBLIC_APP_URL",
+      "NEXT_PUBLIC_ASK_FLIP_UI_ENABLED",
+      "ARCHESTIMATOR_AI_ENABLED",
+      "RESEND_REPLY_TO",
+      "RESEND_FROM",
+      "RESEND_API_KEY",
+      "RESEND_WEBHOOK_SECRET",
+      "PUBLICATION_ACCESS_COOKIE_SECRET",
+      "PUBLICATION_TOKEN_HASH_SECRET",
+      "PUBLICATION_TOKEN_ENCRYPTION_SECRET",
+      "ARCHESTIMATOR_INVITE_TOKEN_PEPPER",
+      "PROJECT_INVITE_ENTRY_ENABLED",
+      "CLOSED_BETA_ACCESS_ENABLED",
+      "ARCHESTIMATOR_ALLOWED_APP_ORIGINS",
+      "SUPABASE_SERVICE_ROLE_KEY",
+      "NEXT_PUBLIC_SUPABASE_ANON_KEY",
+      "NEXT_PUBLIC_SUPABASE_URL",
+      "NEXT_PUBLIC_SITE_URL"
+    ],
+    "redaction": "Vercel prints encrypted values only; no raw secret values were recorded."
+  },
+  "namecheapObservedState": {
+    "page": "https://ap.www.namecheap.com/Domains/DomainControlPanel/archestimator.com/advancedns",
+    "hostRecordsObserved": [
+      {
+        "type": "A Record",
+        "host": "@",
+        "value": "216.198.79.1",
+        "ttl": "Automatic"
+      },
+      {
+        "type": "CNAME Record",
+        "host": "www",
+        "value": "bb7ab57cfa50fcad.vercel-dns-017.com.",
+        "ttl": "Automatic"
+      },
+      {
+        "type": "TXT Record",
+        "host": "@",
+        "value": "v=spf1 include:spf.efwd.registrar-servers.com ~all",
+        "ttl": "Automatic"
+      },
+      {
+        "type": "TXT Record",
+        "host": "_dmarc",
+        "value": "v=DMARC1; p=none;",
+        "ttl": "Automatic"
+      },
+      {
+        "type": "TXT Record",
+        "host": "resend._domainkey.contact",
+        "value": "DKIM public key present; long value omitted from this summary",
+        "ttl": "Automatic"
+      },
+      {
+        "type": "TXT Record",
+        "host": "send.contact",
+        "value": "v=spf1 include:amazonses.com ~all",
+        "ttl": "Automatic"
+      }
+    ],
+    "mailSettingsObserved": "Email Forwarding",
+    "mailSettingsChoicesObserved": [
+      "No Email Service",
+      "Email Forwarding",
+      "MXE Record",
+      "Custom MX",
+      "Private Email",
+      "Gmail"
+    ],
+    "hostRecordTypeChoicesObserved": [
+      "A Record",
+      "A + Dynamic DNS Record",
+      "AAAA Record",
+      "ALIAS Record",
+      "CAA Record",
+      "CNAME Record",
+      "NS Record",
+      "SRV Record",
+      "TXT Record",
+      "URL Redirect Record"
+    ],
+    "unsavedChanges": "A temporary test host-record row was opened to inspect the picker, then canceled. No Namecheap DNS record was saved or deleted."
+  },
+  "dnsReadback": {
+    "command": "dig +short MX send.contact.archestimator.com; dig +short TXT send.contact.archestimator.com; dig +short TXT resend._domainkey.contact.archestimator.com; dig +short TXT _dmarc.archestimator.com; dig +short MX archestimator.com",
+    "sendContactMx": [],
+    "sendContactTxt": [
+      "v=spf1 include:amazonses.com ~all"
+    ],
+    "resendDkimTxt": [
+      "DKIM public key present; long value omitted from this summary"
+    ],
+    "apexDmarcTxt": [
+      "v=DMARC1; p=none;"
+    ],
+    "apexMx": [
+      "10 eforward1.registrar-servers.com.",
+      "10 eforward2.registrar-servers.com.",
+      "10 eforward3.registrar-servers.com.",
+      "15 eforward4.registrar-servers.com.",
+      "20 eforward5.registrar-servers.com."
+    ]
+  },
+  "officialProviderReferences": [
+    {
+      "provider": "Namecheap",
+      "url": "https://www.namecheap.com/support/knowledgebase/article.aspx/10058/10/namecheap-dns-limits/",
+      "use": "Namecheap documents MX as a supported DNS host record type."
+    },
+    {
+      "provider": "Namecheap",
+      "url": "https://www.namecheap.com/support/knowledgebase/article.aspx/322/2237/how-can-i-set-up-mx-records-required-for-mail-service",
+      "use": "Namecheap documents the Mail Settings modes, including Email Forwarding and Custom MX."
+    }
+  ],
+  "decision": {
+    "result": "Resend sender-domain MX remains open.",
+    "reason": "The required subdomain MX record for send.contact.archestimator.com was not available in the visible Host Records picker, and switching Mail Settings from Email Forwarding to Custom MX would risk interrupting support@archestimator.com forwarding.",
+    "safeNextStep": "Ask Namecheap support whether a subdomain MX can be added while keeping domain Email Forwarding, use a DNS provider that supports independent subdomain MX records without breaking apex forwarding, or move support mail to the same custom MX provider deliberately."
+  }
+}

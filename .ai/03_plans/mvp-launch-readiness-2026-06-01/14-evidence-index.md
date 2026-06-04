@@ -1678,6 +1678,16 @@ The workbook plan incorporates provided bid/quotation patterns:
 | Resend | Client/webhook code inspected. | API key, sender domain, DKIM/SPF/DMARC, webhook delivery proof. |
 | AI provider | AI handler inspected. | Deferred for MVP; route must fail closed before provider calls. |
 
+## Resend Sender DNS Cheap-Path Evidence - 2026-06-04
+
+- Artifact: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/resend-sender-dns-cheap-path-2026-06-04T0826Z.json`.
+- Production health proof: `curl -fsS -w '\nHTTP_STATUS:%{http_code}\n' https://www.archestimator.com/api/health` returned HTTP 200 with `ok: true`.
+- Vercel env proof: `vercel env ls` shows encrypted Production and Preview `(main)` entries for Supabase public/server keys, site/app URLs, closed-beta and invite flags, publication secrets, AI-off flags, Resend API/from/reply-to, and `RESEND_WEBHOOK_SECRET`.
+- Namecheap UI proof: Host Records show Vercel A/CNAME, apex forwarding SPF, apex `_dmarc`, Resend DKIM at `resend._domainkey.contact`, and Resend SPF at `send.contact`; Mail Settings remains `Email Forwarding`.
+- DNS proof: `dig +short TXT send.contact.archestimator.com` returns `v=spf1 include:amazonses.com ~all`; `dig +short TXT resend._domainkey.contact.archestimator.com` returns the DKIM public key; `dig +short TXT _dmarc.archestimator.com` returns `v=DMARC1; p=none;`; `dig +short MX archestimator.com` returns the five registrar email-forwarding MX hosts.
+- Resend blocker: `dig +short MX send.contact.archestimator.com` returns no MX answer. The missing MX was not added because the visible Namecheap Host Records picker did not expose MX/MXE while Mail Settings stayed on `Email Forwarding`, and switching Mail Settings to `Custom MX` would risk interrupting `support@archestimator.com` forwarding.
+- Cheap-path decision: leave support forwarding intact; do not buy add-ons or switch paid DNS/mail services without explicit approval. Safe next path is Namecheap support confirmation for subdomain MX, a deliberate DNS-provider migration, or a deliberate support-mail migration.
+
 ## Manual QA Still Required
 
 - Hosted auth: Google, magic link, callback, logout/session expiry.
