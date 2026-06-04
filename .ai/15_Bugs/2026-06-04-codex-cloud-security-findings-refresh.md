@@ -10,6 +10,29 @@
 The cheaper closed-beta provider path is partially proven, but the current Codex Security dashboard still lists open findings against `pjel888/archestimator`. Closed beta cannot be honestly called launch-ready until the findings are triaged and either fixed, accepted by owner/legal/security judgment, or proven stale/false-positive with evidence.
 
 
+## Password Metadata Finding Closure - 2026-06-04T06:10Z
+
+- Artifact: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/codex-security-password-metadata-finding-close-2026-06-04T0610Z.json`.
+- Finding: `Password-protected share metadata leaks project details`, medium,
+  originally against old commit `56dbd00`.
+- Current repo proof: `main` head
+  `8af2af8fcd088a564cf6af4a0e703039042fc349` resolves publication access
+  before share metadata snapshot reads, returns `protectedPublicationMetadata`
+  when `access.passwordRequired` is true, and does so before
+  `resolveProjectPublicationSnapshotByToken(token)`.
+- Fresh verification:
+  `bunx vitest run tests/vitest/project-publication-page.test.tsx tests/vitest/security-findings-contracts.test.ts --maxWorkers=1 --reporter=dot`
+  passed 2 files / 42 tests.
+- Dashboard closure proof: authenticated Codex Security close submitted
+  `Already fixed`; revisiting the original finding shows `Closed by
+  philipjonlewis@gmail.com. Reason: Fixed`, a `Reopen` control, and the
+  Findings page count dropped from `1-20 of 40` to `1-20 of 39`.
+- GitHub queue check: no open issues or open PRs were found; historical Codex
+  PR comments exist, but no active open GitHub queue was found for this closure.
+- Launch meaning: this closes only the password-metadata finding. The overall
+  bug remains open until the remaining findings are closed/rescanned/accepted
+  and the remaining hosted provider/manual proof gaps are handled.
+
 ## Stale Comment Finding Closure - 2026-06-04T05:55Z
 
 - Artifact: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/codex-security-stale-comment-finding-close-2026-06-04T0555Z.json`.
@@ -147,7 +170,8 @@ The cheaper closed-beta provider path is partially proven, but the current Codex
   commits. Do not treat the remaining dashboard findings as closed until Codex
   Security rescans/clears them or the owner explicitly accepts the residual risk.
 
-Latest first-page finding titles:
+Latest first-page finding titles after the 2026-06-04T06:10Z password-metadata
+closure:
 
 1. `Project deletion no longer cleans project image objects`
 2. `Unscoped Speed Insights exposes sensitive app URLs`
@@ -163,14 +187,14 @@ Latest first-page finding titles:
 12. `Committed public share token and user project data`
 13. `Unbounded share tree parsing can DoS share renders`
 14. `Global comment circuit breaker can be tripped by bad UUIDs`
-15. `Unvalidated share image URLs enable client tracking`
-16. `Stale share sessions can approve newer publication snapshots`
-17. `Stale recipient sessions can post share comments`
-18. `Password-protected share metadata leaks project details`
-19. `Republish can widen shared links to all estimate sheets`
-20. `Project images are uploaded to a public listable bucket`
+15. `Republish can widen shared links to all estimate sheets`
+16. `Project images are uploaded to a public listable bucket`
+17. `AI Ask endpoint lacks quota and fails open on audit`
+18. `Unbounded chart and XLSX export loading can exhaust server resources`
+19. `Direct RLS grants bypass component price audit`
+20. `Viewer members can mutate library folders`
 
-## Current Findings Snapshot After Share-Image, Stale-Decision, And Stale-Comment Closures
+## Current Findings Snapshot After Share-Image, Stale-Decision, Stale-Comment, And Password-Metadata Closures
 
 | # | Severity | Finding |
 |---|---|---|
@@ -188,32 +212,31 @@ Latest first-page finding titles:
 | 12 | medium | Committed public share token and user project data |
 | 13 | medium | Unbounded share tree parsing can DoS share renders |
 | 14 | medium | Global comment circuit breaker can be tripped by bad UUIDs |
-| 15 | medium | Password-protected share metadata leaks project details |
-| 16 | medium | Republish can widen shared links to all estimate sheets |
-| 17 | medium | Project images are uploaded to a public listable bucket |
-| 18 | medium | AI Ask endpoint lacks quota and fails open on audit |
-| 19 | medium | Unbounded chart and XLSX export loading can exhaust server resources |
-| 20 | medium | Direct RLS grants bypass component price audit |
-| 21 | medium | Viewer members can mutate library folders |
-| 22 | medium | CSV export allows spreadsheet formula injection |
-| 23 | medium | Unpinned MCP tooling auto-executes external packages |
-| 24 | medium | Proposal pages now expose internal unit-rate details |
-| 25 | medium | Confidential client proposal committed to repository |
-| 26 | low | Public activity cursors leak raw database IDs |
-| 27 | low | Client activity view models leak raw UUID identifiers |
-| 28 | low | Hosted export proof leaks project names in artifacts |
-| 29 | low | Unescaped tree node IDs can crash share-page navigation |
-| 30 | low | Persisted row image URLs can track estimate viewers |
-| 31 | low | Unvalidated component source URLs allow script links |
-| 32 | informational | Prompt overrides no-auto-merge policy and pushes main |
-| 33 | informational | Bid workbook formulas omit contingency costs |
-| 34 | informational | Shared-link recipient email exposed to project viewers |
-| 35 | informational | Codex config auto-runs unpinned external tooling |
-| 36 | informational | Folder delete can fail from sort-order collision |
-| 37 | informational | Workspace seed migration reuses global item UUIDs |
-| 38 | informational | Optimistic tree IDs can be submitted as parents |
-| 39 | informational | Luna Heights seed estimate is rebuilt then deleted |
-| 40 | informational | Production grid accepts negative estimate numbers |
+| 15 | medium | Republish can widen shared links to all estimate sheets |
+| 16 | medium | Project images are uploaded to a public listable bucket |
+| 17 | medium | AI Ask endpoint lacks quota and fails open on audit |
+| 18 | medium | Unbounded chart and XLSX export loading can exhaust server resources |
+| 19 | medium | Direct RLS grants bypass component price audit |
+| 20 | medium | Viewer members can mutate library folders |
+| 21 | medium | CSV export allows spreadsheet formula injection |
+| 22 | medium | Unpinned MCP tooling auto-executes external packages |
+| 23 | medium | Proposal pages now expose internal unit-rate details |
+| 24 | medium | Confidential client proposal committed to repository |
+| 25 | low | Public activity cursors leak raw database IDs |
+| 26 | low | Client activity view models leak raw UUID identifiers |
+| 27 | low | Hosted export proof leaks project names in artifacts |
+| 28 | low | Unescaped tree node IDs can crash share-page navigation |
+| 29 | low | Persisted row image URLs can track estimate viewers |
+| 30 | low | Unvalidated component source URLs allow script links |
+| 31 | informational | Prompt overrides no-auto-merge policy and pushes main |
+| 32 | informational | Bid workbook formulas omit contingency costs |
+| 33 | informational | Shared-link recipient email exposed to project viewers |
+| 34 | informational | Codex config auto-runs unpinned external tooling |
+| 35 | informational | Folder delete can fail from sort-order collision |
+| 36 | informational | Workspace seed migration reuses global item UUIDs |
+| 37 | informational | Optimistic tree IDs can be submitted as parents |
+| 38 | informational | Luna Heights seed estimate is rebuilt then deleted |
+| 39 | informational | Production grid accepts negative estimate numbers |
 
 ## Speed Insights Finding Remediation
 
@@ -297,7 +320,7 @@ Latest first-page finding titles:
   - Repo fix deployed in `25025d3` / production `dpl_FsPnWZiVEtZGGKMuDQAWHUXULyp4`: `/share/[token]` `generateMetadata` now checks `resolveProjectPublicationAccessByToken(token)` and returns generic locked-proposal metadata before calling `resolveProjectPublicationSnapshotByToken(token)` when `passwordRequired` is true.
   - Verification: red/green `tests/vitest/project-publication-page.test.tsx -t "password-protected share metadata"` first failed on old snapshot resolution, then passed after the fix; full affected share/security suite passed 3 files / 48 tests; `bun run type-check`, `bun run lint` with 12 existing warnings / 0 errors, `git diff --check`, `bun run build`, and graph checks passed.
   - Hosted smoke: production deploy `dpl_FsPnWZiVEtZGGKMuDQAWHUXULyp4` is Ready and aliased to `https://www.archestimator.com` and `https://archestimator.com`; `https://www.archestimator.com/api/health` returned HTTP 200, apex `/api/health` redirected to `www`, `/login` returned HTTP 200, and signed-out `/workshop` returned HTTP 307 to `/login?next=%2Fworkshop`.
-  - Proof gap: no real locked hosted share token was available for crawler-level HTML/OpenGraph proof; dashboard status remains pending Codex Security rescan/closure.
+  - Dashboard status: authenticated Codex Security closure on 2026-06-04T06:10Z marked the finding `Already fixed` / `Reason: Fixed`; revisiting the original finding shows `Closed by philipjonlewis@gmail.com`, a `Reopen` control, and the Findings page count dropped from `1-20 of 40` to `1-20 of 39`. Fresh proof test at current `main` head `8af2af8` passed 2 files / 42 tests.
 - Finding: `Republish can widen shared links to all estimate sheets`.
   - Repo fix deployed in `84f12e3` / production `dpl_5MXgQGJYUr8QjEmRgvX2DhioPZ2o`: `getProjectPublicationSummary()` now returns persisted `selectedEstimateIds`, and `ProjectPublicationHeader` defaults the live-link sheet picker from that persisted scope instead of every project sheet when `summary.status === "published"`.
   - Verification: red/green `tests/vitest/project-publication-header.test.tsx -t "does not widen" --maxWorkers=1` first failed on the old all-sheet default, then passed after the fix; full affected publication header/summary/actions suite passed 3 files / 47 tests; `bun run type-check`, `bun run lint` with 12 existing warnings / 0 errors, `git diff --check`, `bun run build`, code-review-graph detect/affected-flow/impact checks, and `npx gitnexus analyze` / status passed.
@@ -354,9 +377,9 @@ Latest first-page finding titles:
   - Repo fix committed in `e5b17dc`: `20260602090000_harden_beta_allowlist_admin.sql` now disables `profiles_prevent_role_self_update` only around its controlled demotion repair and re-enables it immediately afterward. This already-applied historical migration was not re-run on linked Supabase during the follow-up pass.
   - Verification: `tests/vitest/security-findings-contracts.test.ts` passed after adding the trigger-order contract; refreshed again on 2026-06-04T03:40Z with `bunx vitest run tests/vitest/security-findings-contracts.test.ts --maxWorkers=1 --reporter=dot` (1 file / 17 tests).
 - Dashboard status: remaining entries in this section still require Codex cloud
-  rescan/closure before they can be treated as closed; the share-image, stale-decision, and
-  stale-comment findings above are the entries currently closed in the
-  dashboard.
+  rescan/closure before they can be treated as closed; the share-image,
+  stale-decision, stale-comment, and password-metadata findings above are the
+  entries currently closed in the dashboard.
 
 ## Immediate Triage Order
 
