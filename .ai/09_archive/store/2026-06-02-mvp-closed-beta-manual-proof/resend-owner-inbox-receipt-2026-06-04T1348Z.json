@@ -1,0 +1,28 @@
+{
+  "reportedAt": "2026-06-04T13:48:00Z",
+  "operator": "Codex",
+  "proofType": "owner-reported inbox receipt",
+  "source": {
+    "reporter": "Philip Lewis",
+    "recipient": "philipjonlewis@gmail.com",
+    "reportChannel": "Codex thread"
+  },
+  "message": {
+    "subject": "Archestimator Resend verified smoke 2026-06-04T12:28:05.608Z",
+    "body": "Archestimator closed-beta Resend verified smoke test. If you received this, the sending domain is verified and delivery is working."
+  },
+  "linkedProviderProof": [
+    "resend-domain-verified-email-enabled-2026-06-04T1235Z.json",
+    "vercel-production-resend-enabled-hosted-auth-2026-06-04T1311Z.json"
+  ],
+  "result": {
+    "ownerInboxReceiptProven": true,
+    "resendProviderSendPreviouslyProven": true,
+    "resendWebhookRouteReachabilityPreviouslyProven": true,
+    "hostedSharedLinkInviteEmailWorkflowSmoke": false
+  },
+  "boundaries": [
+    "This artifact records owner-reported receipt text; it does not scrape or store mailbox headers, raw MIME, tracking pixels, webhook event payloads, or provider secrets.",
+    "This proves delivery of the verified smoke email to the owner inbox, not the full app-level shared-link/invite email workflow."
+  ]
+}

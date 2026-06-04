@@ -1,5 +1,48 @@
 # Evidence Index
 
+## Hosted Owner Beta Journey Smoke - 2026-06-04 13:28Z
+
+- Primary artifact:
+  `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/hosted-owner-beta-journey-smoke-2026-06-04T1328Z.json`.
+- Browser proof: Computer Use against the authenticated owner Chrome profile
+  opened production `https://archestimator.com/workshop`, entered the existing
+  `Tropical House` project, created the first hosted estimate sheet
+  `ES-001 Estimate Sheet`, opened the estimate workspace at
+  `/workshop/projects/a04459eb-cd96-4bd5-b579-15143a2491ef/estimates/57b7f3e2-4fea-43e0-a9a9-a971a00f4ec9`,
+  and opened `Preview Excel Export`.
+- Visible production markers included project navigation, `Shared link`,
+  `Teamspaces`, `1 project collaborators`, the estimate tree, `Project Scope`,
+  `General Requirements`, `Site Works`, `Ground Floor`, `Project-wide`, library
+  templates (`Roof Deck Lounge`, `Condo Fit-Out Starter`, `Powder Room Basic`),
+  sheet running totals, `Read-only Excel preview`, and `Download editable XLSX`.
+- Boundary: the run used the existing owner session and deliberately created a
+  small owner beta smoke sheet in production. It does not record secrets,
+  cookies, OAuth tokens, service-role keys, or webhook secrets, and it does not
+  prove denied/revoked/expired sessions, logout, spreadsheet-app
+  open/recalc/print, or hosted shared-link/invite email workflow delivery.
+- Result: owner-only hosted beta journey proof is now captured for the current
+  single-tester beta. External closed beta remains evidence-gated by the narrower
+  denied/revoked/session-expiry, residual security history-risk, spreadsheet-app,
+  and optional automatic-email workflow proof gaps.
+
+## Resend Owner Inbox Receipt - 2026-06-04 13:48Z
+
+- Primary artifact:
+  `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/resend-owner-inbox-receipt-2026-06-04T1348Z.json`.
+- Owner-reported receipt: Philip reported that `philipjonlewis@gmail.com`
+  received the message with subject
+  `Archestimator Resend verified smoke 2026-06-04T12:28:05.608Z` and body
+  `Archestimator closed-beta Resend verified smoke test. If you received this,
+  the sending domain is verified and delivery is working.`
+- Linked proof: this receipt complements
+  `resend-domain-verified-email-enabled-2026-06-04T1235Z.json`, which already
+  records Resend domain `Verified`, production-env HTTP 200 send success,
+  webhook endpoint enablement, and live webhook signature-verification
+  reachability.
+- Result: Resend is now proven at provider-send plus owner-inbox-receipt level.
+  The remaining email proof gap is the app-level hosted shared-link/invite email
+  workflow smoke before relying on automatic email UX.
+
 ## Owner Signoff And Email Default-Off Refresh - 2026-06-04 11:40Z
 
 - Resend send-test blocker artifact:
@@ -36,12 +79,12 @@
   `https://www.archestimator.com/workshop` signed out returns HTTP 307 to
   `/login?next=%2Fworkshop`; allowed/denied/revoked/expired real-session cases
   remain missing because no hosted session cookies were provided.
-- Current remaining launch blockers after this refresh: hosted Google OAuth
-  allowed/denied/revoked/expired real-session smoke, residual Codex Security
+- Current remaining launch blockers after the later 13:28Z owner journey smoke:
+  hosted Google OAuth denied/revoked/expired real-session smoke, residual Codex Security
   history-risk closure or owner acceptance, spreadsheet-app open/print proof if
-  required for beta, and full hosted beta journey proof. Resend remains a
-  re-enable gate for automatic email workflows; it is not a blocker for a
-  manual-invite closed beta while email delivery is explicitly default-off.
+  required for beta, logout/session-expiry proof, and hosted shared-link/invite
+  email workflow proof before relying on automatic email UX. Resend provider
+  setup itself is no longer blocked.
 
 ## Vercel Rollback Drill - 2026-06-04 11:12Z
 
@@ -199,7 +242,8 @@
   packet. No paid provider add-on, DNS, Vercel env, Supabase data mutation,
   PITR, compute, migration history, or broad Supabase push changed.
 - Result: hosted authenticated export proof is closed. Secondary spreadsheet-app
-  open/print proof and full hosted beta journey proof remain open.
+  open/print proof remains open; the later 13:28Z artifact closes the owner
+  hosted beta journey path for the single-tester beta.
 
 ## Hosted Feedback Admin Surface Proof - 2026-06-04 07:50Z
 
@@ -249,11 +293,13 @@
   authenticated Codex Security refresh shows no visible open critical/high
   findings in severity-filtered views, but the repo-filtered list still shows
   `1-20 of 35`; those findings still need closure/rescan/owner acceptance.
-- Still open: hosted denied/revoked/expired beta-auth smoke, Resend
-  domain/delivery proof if visible email is enabled, legal/owner signoff,
-  support/feedback/alert monitoring proof, secondary spreadsheet-app export
-  open/print proof, and full hosted beta journey. Vercel rollback proof is
-  closed by the 11:12Z rollback/promote drill.
+- Still open after later proof refreshes: hosted denied/revoked/expired
+  beta-auth smoke, residual security history-risk acceptance/remediation,
+  secondary spreadsheet-app export open/print proof, logout/session-expiry proof,
+  and hosted shared-link/invite email workflow proof before relying on automatic
+  email UX. Resend provider proof, legal/owner/support signoff, Vercel rollback,
+  hosted export, and the owner hosted beta journey are now closed by later
+  2026-06-04 artifacts.
 
 ## Supplemental Hosted Owner Profile Smoke - 2026-06-04 07:22Z
 
@@ -311,10 +357,12 @@
   `1991e62ea7488191a1e48bbf1446b133` is still visible/open with `1-20 of 35`
   and a `Close` control. The linked fix proof artifact exists, but live
   dashboard closure submission remains pending action-time confirmation.
-- Still open: remaining Codex Security findings, hosted Google OAuth
-  denied/revoked/expired smoke, Resend MX/domain/delivery proof,
-  legal/owner signoff, support/feedback/alert monitoring proof, hosted
-  authenticated export, and full hosted beta journey.
+- Later 2026-06-04 artifacts close Resend provider proof, legal/owner/support
+  signoff, hosted authenticated export, and the owner hosted beta journey. Still
+  open: residual Codex Security history-risk acceptance/remediation, hosted
+  Google OAuth denied/revoked/expired smoke, logout/session-expiry proof,
+  spreadsheet-app open/print proof if required for beta, and hosted
+  shared-link/invite email workflow proof before relying on automatic email UX.
 
 ## Codex Security Chart/XLSX Finding Closure - 2026-06-04 06:49Z
 
@@ -613,12 +661,13 @@
   and `support-monitoring-readiness-live-refresh-2026-06-04T0424Z.json` remain
   red because owner/legal labels, support inbox monitoring, feedback review,
   alert ownership, and incident-escalation proof are not yet recorded.
-- Still open before a fully green closed-beta launch: Codex Security rescan or
-  explicit owner acceptance, hosted denied/revoked/expired auth smoke, rollback
-  drill or accepted rollback-not-drilled risk, legal/owner signoff,
-  support/feedback/alert monitoring proof, Resend dashboard/delivery/webhook
-  event proof if email workflows are visible, hosted authenticated export, and a
-  full hosted beta journey.
+- Later 2026-06-04 artifacts close rollback, legal/owner/support signoff, Resend
+  provider delivery/webhook proof, hosted authenticated export, and the owner
+  hosted beta journey. Still open before a fully green widened closed beta:
+  residual Codex Security history-risk acceptance/remediation, hosted
+  denied/revoked/expired auth smoke, spreadsheet-app open/print proof if
+  required for beta, logout/session-expiry proof, and hosted shared-link/invite
+  email workflow proof before relying on automatic email UX.
 
 ## Resend Dashboard DNS/Webhook Refresh - 2026-06-04 04:46Z
 
@@ -668,7 +717,13 @@
   recorded in commit `2c7ffb9`. GitHub has no open PRs, no open issues, no new
   comments since June 4, and no status contexts/check-runs on the observed
   latest `main`.
-- Still open before fully green closed beta: Codex Security rescan/owner acceptance, hosted Google OAuth denied/revoked/expired smoke with real sessions, Resend dashboard sending-domain/webhook/delivery proof, legal/owner review flags, support/feedback/alert monitoring confirmations, hosted authenticated export, and full hosted beta journey. Vercel rollback proof is now closed by the 11:12Z rollback/promote drill.
+- Later 2026-06-04 artifacts close Vercel rollback, Resend provider proof,
+  legal/owner/support signoff, hosted authenticated export, and the owner hosted
+  beta journey. Still open before fully green closed beta: residual Codex
+  Security history-risk acceptance/remediation, hosted Google OAuth
+  denied/revoked/expired smoke with real sessions, logout/session-expiry proof,
+  spreadsheet-app open/print proof if required for beta, and hosted
+  shared-link/invite email workflow proof before relying on automatic email UX.
 
 ## Mass Deletion Cleanup RPC Lock - 2026-06-04
 
@@ -766,11 +821,13 @@
   latest observed pushed `main` head `6297cec` at refresh time. This proof was
   then recorded in commit `2c7ffb9`. GitHub has no open PRs/issues/comments and
   no status contexts/check-runs for the observed latest commit.
-- Still open before closed beta is fully green: Codex Security dashboard
-  rescan/owner acceptance, hosted Google OAuth denied/revoked/expired browser
-  smoke, Resend delivery/webhook event proof, legal/owner signoff,
-  support inbox/feedback/alert
-  monitoring proof, hosted authenticated export, and full hosted beta journey.
+- Later 2026-06-04 artifacts close Resend provider delivery/webhook proof,
+  legal/owner/support signoff, hosted authenticated export, and the owner hosted
+  beta journey. Still open before closed beta is fully green: residual Codex
+  Security history-risk acceptance/remediation, hosted Google OAuth
+  denied/revoked/expired browser smoke, logout/session-expiry proof,
+  spreadsheet-app open/print proof if required for beta, and hosted
+  shared-link/invite email workflow proof before relying on automatic email UX.
 
 ## Cheaper-Path Provider Launch Update - 2026-06-03
 
@@ -780,7 +837,8 @@
 - Closed-beta allowlist now contains exactly `philipjonlewis@gmail.com` as the one active/invited email; allowed, missing, and transaction-local revoked RPC checks passed. Proof: `supabase-closed-beta-allowlist-2cddb0e-2026-06-03.json`.
 - Production deployment `dpl_Cxeq5ATpif6Yk1zn4FmNmnX7nzhT` is `READY`; `archestimator.com` and `www.archestimator.com` alias to it; `www` serves the beta app instead of the teaser; `/api/health` returns app health JSON; signed-out `/workshop` redirects to login. Proof: `vercel-hosted-http-smoke-cheaper-path-2cddb0e-2026-06-03.json`, `vercel-health-readiness-cheaper-path-2cddb0e-2026-06-03.json`, and `vercel-production-readiness-cheaper-path-2cddb0e-2026-06-03.json`.
 - Latest production redeploy proof on 2026-06-04T13:11Z records deployment `dpl_2X6FytZUnK5ZaNsszVN4W8Wh6bXm` Ready on both custom domains, live Resend webhook signature-verification reachability, signed-out `/workshop/projects` redirect proof, login Google/email-link entry, and owner Chrome allowed-session access to hosted `/workshop`. Proof: `vercel-production-resend-enabled-hosted-auth-2026-06-04T1311Z.json`.
-- Still open before calling the proof packet fully green: real browser Google OAuth denied/revoked/expired hosted smoke, residual Codex Security history-risk acceptance or purge decision, hosted shared-link/invite email workflow smoke if automatic email UX is used, and full hosted beta journey. Vercel rollback proof is now closed by the 11:12Z rollback/promote drill; Resend provider delivery/webhook proof is now closed.
+- Latest owner journey proof on 2026-06-04T13:28Z records the owner hosted path through project entry, estimate creation, estimate workspace render, and export preview. Proof: `hosted-owner-beta-journey-smoke-2026-06-04T1328Z.json`.
+- Still open before calling the proof packet fully green: real browser Google OAuth denied/revoked/expired hosted smoke, logout/session-expiry proof, residual Codex Security history-risk acceptance or purge decision, spreadsheet-app open/print proof if required for beta, and hosted shared-link/invite email workflow smoke if automatic email UX is used. Vercel rollback proof is closed by the 11:12Z rollback/promote drill; Resend provider delivery/webhook proof is closed; owner hosted beta journey proof is closed.
 
 ## Fourth-Pass Closed Beta Evidence - 2026-06-02
 
