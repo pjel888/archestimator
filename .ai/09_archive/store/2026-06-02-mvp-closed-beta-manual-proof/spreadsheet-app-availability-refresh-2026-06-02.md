@@ -6,7 +6,7 @@ Status: Blocked. No native local spreadsheet application is available for Excel/
 
 - Repository: `/Users/philiplewis/archestimator`
 - Current head at capture time: `6c22c3f`
-- Workbook artifact: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/lewis-residence-demo-proposal-2026-06-02.xlsx`
+- Workbook artifact: raw workbook withdrawn from git on 2026-06-04; sanitized readback remains at `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/proposal-workbook-exceljs-summary-sanitized-2026-06-02.json`.
 - Posture: local read-only environment inspection. The workbook was not opened, uploaded, or transmitted to a third party.
 
 ## Commands
@@ -48,7 +48,7 @@ osascript bundle id       = "com.google.drivefs.shortcuts.sheets"
 
 Spreadsheet compatibility remains **NO-GO**.
 
-The existing workbook artifact, ExcelJS readback, ZIP integrity proof, no-blank-total scan, and Quick Look thumbnail remain useful local evidence. They still do not prove:
+The sanitized ExcelJS readback, historical ZIP integrity proof, and no-blank-total scan remain useful local evidence. The raw workbook artifact and Quick Look thumbnail are no longer retained in git. They still do not prove:
 
 - Microsoft Excel open/recalculation/print preview.
 - A secondary spreadsheet app open/recalculation/print preview.
@@ -56,6 +56,6 @@ The existing workbook artifact, ExcelJS readback, ZIP integrity proof, no-blank-
 
 Next acceptable proof options:
 
-1. Owner/manual QA opens the workbook in Microsoft Excel plus a secondary app and archives sanitized screenshots/notes.
+1. Owner/manual QA regenerates or downloads a fresh authorized workbook, opens it in Microsoft Excel plus a secondary app, and archives sanitized screenshots/notes.
 2. A native local spreadsheet app such as Numbers or LibreOffice is installed and used for read-only local proof.
 3. Owner explicitly approves uploading/importing the sanitized workbook to Google Sheets for secondary-app proof.

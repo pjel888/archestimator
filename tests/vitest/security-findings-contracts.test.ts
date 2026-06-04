@@ -1,4 +1,4 @@
-import { readFileSync, readdirSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
@@ -226,5 +226,24 @@ describe("Codex security findings hardening contracts", () => {
     expect(originalCollaborationMigration).not.toContain("public.can_access_project(e.project_id)");
     expect(latestCanAccessEstimate).toContain("public.current_project_access_rank(e.project_id) > 0");
     expect(latestCanAccessEstimate).not.toContain("public.can_access_project(e.project_id)");
+  });
+
+  it("keeps raw proposal workbook artifacts out of the manual proof packet", () => {
+    const proofDir = ".ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof";
+    const removedWorkbook = join(proofDir, "lewis-residence-demo-proposal-2026-06-02.xlsx");
+    const removedQuicklookPreview = join(
+      proofDir,
+      "spreadsheet-quicklook-preview-2026-06-02/lewis-residence-demo-proposal-2026-06-02.xlsx.png",
+    );
+    const sanitizedSummary = JSON.parse(read(`${proofDir}/proposal-workbook-exceljs-summary-sanitized-2026-06-02.json`));
+    const packetReadme = read(`${proofDir}/README.md`);
+
+    expect(existsSync(join(repo, removedWorkbook))).toBe(false);
+    expect(existsSync(join(repo, removedQuicklookPreview))).toBe(false);
+    expect(packetReadme).not.toContain("lewis-residence-demo-proposal-2026-06-02.xlsx");
+    expect(sanitizedSummary.rawWorkbookRetained).toBe(false);
+    expect(sanitizedSummary.rawPreviewRetained).toBe(false);
+    expect(JSON.stringify(sanitizedSummary)).not.toContain("workbookPath");
+    expect(JSON.stringify(sanitizedSummary)).not.toContain("55230");
   });
 });

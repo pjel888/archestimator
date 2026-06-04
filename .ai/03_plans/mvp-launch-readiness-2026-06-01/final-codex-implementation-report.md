@@ -181,10 +181,10 @@ Build, type-check, design lint, unit tests, and full DOM tests are green locally
 - Vercel env, public `/api/health`, production/custom-domain app health, and rollback proof. Latest app-runtime `638f681` preview is Ready and protected health works through `vercel curl`, but env vars are absent and public/custom-domain/rollback proof remains blocked.
 - Resend DNS/delivery/webhook proof if share/invite email workflows remain visible.
 - Resend DNS/delivery/webhook proof before share/invite email workflows are re-enabled; current local guardrails disable recipient email controls and fail unconfigured sends closed.
-- Excel/secondary spreadsheet app open, formula, and print proof. Local workbook artifact, route-handler, large-fixture benchmark, and benchmark-regression proof now exist, but app compatibility remains unproven.
+- Excel/secondary spreadsheet app open, formula, and print proof. Local workbook generation/readback, route-handler, large-fixture benchmark, and benchmark-regression proof now exist, but raw workbooks are not retained in git and app compatibility remains unproven.
 - Owner/counsel legal review of beta terms/privacy/support/data deletion copy.
 - Monitored support inbox/table review proof.
-- Demo rehearsal screenshots and validated exported workbook artifact.
+- Demo rehearsal screenshots and validated fresh exported workbook proof.
 - Current Playwright/manual E2E smoke for the protected happy path.
 
 ## 7. Remaining P1 Risks
@@ -208,7 +208,7 @@ Build, type-check, design lint, unit tests, and full DOM tests are green locally
 - Hosted allowed/denied/revoked auth and first-run workshop smoke.
 - First project, first estimate, component insert, template insert, project-specific detach/edit, and export smoke.
 - Excel workbook open/print/formula verification in at least Excel plus one secondary spreadsheet app.
-- Demo rehearsal using seeded data with screenshots and exported workbook artifact.
+- Demo rehearsal using seeded data with screenshots and fresh exported workbook proof.
 - Support/feedback link plus inbox/table monitoring proof.
 - Provider dashboard screenshots/checklists for Supabase, Vercel, and Resend where applicable.
 

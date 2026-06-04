@@ -31,7 +31,7 @@ Archestimator helps design/construction teams move from messy estimating inputs 
 | Seed templates | Trade-realistic templates with sections/rows. |
 | Sample estimate | Enough rows to show tree, grid, totals, Activity/history. Local seed anchor: `Lewis Residence Baseline Estimate`, `Rev 0`, with seeded row items across site works, architectural finishes, roof, and plumbing. |
 | Detached row demo | Linked row detached/project-specific with library unchanged. Local seed includes one `linked-clean` tile row and one `detached` paint row with preserved `source_snapshot`. |
-| Excel export | Prevalidated workbook artifact. |
+| Excel export | Fresh authorized workbook export plus sanitized readback evidence. |
 | Screenshots/fallback | Landing, workshop, estimate, library, templates, export preview, final workbook. |
 
 ## Local Seed Anchors
@@ -57,7 +57,7 @@ Use `supabase db reset` only against local/staging disposable data, never produc
 6. Show the linked tile row, then demonstrate a project-specific row using the detached paint row.
 7. Insert one component and one template if using a writable rehearsal environment.
 8. Export the workbook and open the validated artifact.
-9. Keep screenshots and the workbook artifact ready as fallback if live auth/deploy fails.
+9. Keep screenshots and sanitized workbook readback ready as fallback if live auth/deploy fails. Regenerate a fresh workbook only when needed; do not commit raw proposal exports.
 10. Do not show provider dashboards, real customer data, Ask Flip, billing, or unfinished post-MVP pages.
 
 ## Demo Path
@@ -121,7 +121,7 @@ Use `supabase db reset` only against local/staging disposable data, never produc
 
 ## Demo Failure Fallback
 
-Use screenshots and the prevalidated workbook artifact. Do not debug live during investor/incubator meeting.
+Use screenshots and the sanitized workbook readback. Do not debug live during investor/incubator meeting, and do not use a committed raw workbook as demo proof.
 
 Current local fallback packet: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/demo-rehearsal-fallback-pack-2026-06-02.md`.
 

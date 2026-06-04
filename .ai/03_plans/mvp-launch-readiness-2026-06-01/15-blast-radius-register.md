@@ -213,7 +213,7 @@ This slice edits local Supabase seed data, demo readiness docs, score/gate docs,
 
 - code-review-graph pre-edit impact for `supabase/seed.sql` reported medium risk with 11 impacted files through migration/schema relationships.
 - Runtime product risk is limited to local/staging disposable seed quality; `supabase/seed.sql` is not a production migration.
-- Demo risk is improved but not closed: live demo account, allowlist row, hosted auth smoke, screenshots, and workbook artifact proof remain manual gates.
+- Demo risk is improved but not closed: live demo account, allowlist row, hosted auth smoke, screenshots, and fresh authorized workbook proof remain manual gates.
 - `demo-seed-readiness.test.ts` locks the local seed workspace/project/estimate anchors and requires linked, detached, and manual row coverage.
 - Post-edit code-review-graph reports 0 affected flows, 0 test gaps, and overall risk score 0.30.
 - Post-edit GitNexus staged detection reports no indexed code changes for the seed/docs/test set.

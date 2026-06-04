@@ -1,33 +1,28 @@
 # Spreadsheet Quick Look Preview Evidence - 2026-06-02
 
-Scope: local macOS Quick Look thumbnail render of the existing demo workbook artifact.
+Scope: local macOS Quick Look thumbnail render of the previously generated demo workbook.
 
 Result: partial/local preview render passed; Excel, Numbers, LibreOffice, open/recalc, and print proof remain missing.
 
+2026-06-04 security update: the raw workbook and generated Quick Look PNG were removed from the repository because rendered proposal previews can contain client-identifying estimate data. This note remains as historical process evidence only.
+
 ## Command
 
-```bash
-qlmanage -t -s 1200 -o .ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/spreadsheet-quicklook-preview-2026-06-02 .ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/lewis-residence-demo-proposal-2026-06-02.xlsx
-```
+The original `qlmanage` command rendered the now-withdrawn workbook into the now-withdrawn preview folder under this proof packet.
 
 ## Output
 
-```text
-Testing Quick Look thumbnails with files:
-	.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/lewis-residence-demo-proposal-2026-06-02.xlsx
-* /Users/philiplewis/archestimator/.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/lewis-residence-demo-proposal-2026-06-02.xlsx produced one thumbnail
-Done producing thumbnails
-```
+The original command produced one thumbnail and exited successfully.
 
 ## Artifact
 
-- `spreadsheet-quicklook-preview-2026-06-02/lewis-residence-demo-proposal-2026-06-02.xlsx.png`
-- `file` result: `PNG image data, 1200 x 892, 8-bit/color RGBA, non-interlaced`.
+- Raw preview PNG: withdrawn from git on 2026-06-04.
+- Historical `file` result before withdrawal: `PNG image data, 1200 x 892, 8-bit/color RGBA, non-interlaced`.
 
 ## Visual Check
 
-The thumbnail shows the `BID FORM / BILL OF QUANTITIES` header, project/location/date fields, general notes, item table header, General Preliminaries and Finishes rows, and subtotal bands.
+The thumbnail showed the bid form header, project/location/date fields, general notes, item table header, section rows, and subtotal bands. Because that visual can reveal proposal details, it is no longer retained in the repository.
 
 ## Launch Meaning
 
-This is useful fallback preview evidence and confirms macOS Quick Look can render a thumbnail for the workbook. It does not prove Microsoft Excel, Apple Numbers, LibreOffice, formula recalculation, print preview, or secondary spreadsheet compatibility. The spreadsheet compatibility gate remains **NO-GO** until spreadsheet-app open/recalc/print screenshots or notes are archived.
+This is historical fallback preview evidence and confirms macOS Quick Look rendered a thumbnail for the workbook before the raw preview was withdrawn. It does not prove Microsoft Excel, Apple Numbers, LibreOffice, formula recalculation, print preview, or secondary spreadsheet compatibility. The spreadsheet compatibility gate remains **NO-GO** until fresh authorized spreadsheet-app open/recalc/print screenshots or notes are archived without raw client data.
