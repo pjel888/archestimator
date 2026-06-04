@@ -12,7 +12,7 @@
 | Backup/DR | **Cheaper-path accepted, strict PITR gate still false**. Daily physical backups and off-repo logical dump proof exist; PITR and restore drill remain absent by decision. | `supabase-backup-readiness-live-refresh-2026-06-04T0428Z.json`, `supabase-compute-cheaper-path-2026-06-04.json` |
 | Resend/email | **Blocked by no-cost DNS/provider proof**. Webhook endpoint/secret proof exists, but `send.contact.archestimator.com` has no MX. | `resend-dashboard-dns-webhook-refresh-2026-06-04T0446Z.json`; fresh DNS in cheap audit |
 | GitHub queue | **Clear**. No open issues or PRs found. | Same cheap audit |
-| Codex Security | **Blocked**. GitHub queue is clear, but Codex Security dashboard state still needs closure/rescan/owner acceptance; Direct RLS fix proof exists but UI close submission remains pending action-time confirmation. | `codex-security-dashboard-refresh-2026-06-04T0511Z.json`, `component-price-audit-grants-2026-06-04.json` |
+| Codex Security | **Blocked on residual history-risk acceptance/remediation**. GitHub queue is clear, and the cheap-path Codex Security closure batch reduced the repo-filtered actionable view to `1-2 of 2`. The remaining open findings are source-control/history-exposure risks that require owner acceptance or an explicit history-purge workflow; no paid scan, PITR, compute bump, or history rewrite occurred. | `codex-security-cheap-path-closures-2026-06-04T0934Z.json`, `codex-security-cheap-path-refresh-2026-06-04T0844Z.json` |
 | Owner/legal/support monitoring | **Blocked, with one hosted surface now proven**. Support DNS exists for apex forwarding, and hosted owner-session access to the beta feedback review surface is now proven. Monitored inbox cadence, feedback queue review cadence, alert/incident monitoring, and legal/owner signoff are not proven. | `hosted-feedback-admin-proof-2026-06-04T0750Z.json`, same cheap audit plus support/legal artifacts |
 | Hosted authenticated export | **Proven fresh**. Owner Chrome session rendered the production Lewis Residence estimate workspace, opened `Preview Excel Export`, downloaded `AE-LR-001-ES-001-proposal.xlsx`, and sanitized validation proved XLSX ZIP integrity plus the expected workbook sheets. Signed-out curl redirects to login. | `hosted-export-browser-proof-2026-06-04T0807Z.json` |
 
@@ -133,6 +133,24 @@ These are required before the active goal can be marked complete:
 Current decision: **DO NOT MARK GOAL COMPLETE**.
 
 ## Codex Security Cheap-Path Update - 2026-06-04 08:44Z
+
+Follow-up 09:34Z closure batch:
+
+- Authenticated Codex Security proof artifact:
+  `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/codex-security-cheap-path-closures-2026-06-04T0934Z.json`.
+- Repo-filtered actionable dashboard view is now `1-2 of 2`. The two remaining
+  findings are `Committed public share token and user project data` and
+  `Confidential client proposal committed to repository`.
+- Those two findings were intentionally left open because current-tree cleanup
+  is not a git-history purge. Closing them requires explicit owner risk
+  acceptance or a deliberate destructive history-purge workflow.
+- No paid provider add-on, Supabase PITR, compute upgrade, DNS mutation, Vercel
+  env mutation, broad `supabase db push`, Codex Security rescan purchase, or
+  git-history rewrite occurred.
+- Current decision remains: **DO NOT MARK GOAL COMPLETE**. The cheap path can
+  continue, but external closed beta remains blocked until residual
+  history-risk, hosted auth, Resend, rollback, legal/owner, support/monitoring,
+  and full hosted journey proof are complete or explicitly accepted.
 
 - Authenticated Codex Security proof artifact:
   `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/codex-security-cheap-path-refresh-2026-06-04T0844Z.json`.

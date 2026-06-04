@@ -1,5 +1,23 @@
 # Current State
 
+**Codex Security Cheap-Path Closure Batch (2026-06-04 09:34Z):**
+Authenticated Codex Security closure work under the no-new-spend path reduced
+the actionable repo-filtered dashboard view to `1-2 of 2`. The remaining open
+findings are `Committed public share token and user project data` and
+`Confidential client proposal committed to repository`; both are intentionally
+left open because they are source-control/history-exposure risks that require
+owner risk acceptance or an explicit destructive history-purge decision. This
+supersedes the 08:44Z `1-20 of 35` snapshot below for current dashboard status.
+No paid provider add-on, Supabase PITR, compute upgrade, DNS mutation, Vercel
+env mutation, broad `supabase db push`, new Codex Security scan, or git-history
+rewrite occurred. Proof artifact:
+`.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/codex-security-cheap-path-closures-2026-06-04T0934Z.json`.
+External closed beta is still not fully green: the two history-exposure findings
+remain open, and hosted denied/revoked/expired auth smoke, Resend sender-domain
+proof, rollback risk proof, legal/owner signoff, support/feedback/alert
+monitoring proof, secondary spreadsheet-app export proof, and the full hosted
+beta journey still need proof or explicit owner acceptance.
+
 **Codex Security Cheap-Path Refresh (2026-06-04 08:44Z):**
 Authenticated Codex Security proof now narrows the security blocker without
 changing the cheaper provider posture. The scan detail for
