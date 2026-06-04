@@ -161,6 +161,31 @@ describe("component library helpers", () => {
     expect(csv).toContain("\"Needs \"\"supplier\"\" check\"");
   });
 
+  it("escapes spreadsheet formula-leading CSV cells", () => {
+    const csv = exportLibraryItemsToCsv([{
+      ...items[0],
+      material: "=HYPERLINK(\"https://example.invalid\")",
+      category: "+SUM(A1:A2)",
+      supplier: "-cmd|' /C calc'!A0",
+      discipline: "@malicious",
+      designation: "  =2+2",
+      tags: ["=tag", "safe"],
+      sku: "\t=tabbed",
+      sourceUrl: "\r=carriage",
+      notes: "\n=linebreak",
+    }]);
+
+    expect(csv).toContain("'=HYPERLINK");
+    expect(csv).toContain("'+SUM(A1:A2)");
+    expect(csv).toContain("'-cmd|' /C calc'!A0");
+    expect(csv).toContain("'@malicious");
+    expect(csv).toContain("'  =2+2");
+    expect(csv).toContain("\"'=tag, safe\"");
+    expect(csv).toContain("'\t=tabbed");
+    expect(csv).toContain("\"'\r=carriage\"");
+    expect(csv).toContain("\"'\n=linebreak\"");
+  });
+
   it("creates and expands default assemblies/templates from library items", () => {
     const bundles = createDefaultLibraryBundles(items);
     const bundle = bundles[0];

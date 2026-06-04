@@ -474,8 +474,14 @@ export function exportLibraryItemsToJson(items: EstimateRowItem[], bundles: Libr
   );
 }
 
+const CSV_FORMULA_PREFIX_PATTERN = /^[\t\n\r ]*[=+\-@]/;
+
+function escapeCsvFormulaCell(text: string) {
+  return CSV_FORMULA_PREFIX_PATTERN.test(text) ? `'${text}` : text;
+}
+
 function csvCell(value: unknown) {
-  const text = Array.isArray(value) ? value.join(", ") : String(value ?? "");
+  const text = escapeCsvFormulaCell(Array.isArray(value) ? value.join(", ") : String(value ?? ""));
   return /[",\n\r]/.test(text) ? `"${text.replace(/"/g, "\"\"")}"` : text;
 }
 
