@@ -8,7 +8,7 @@
 - Linked migrations `20260601145000` through `20260603160000` were applied exactly and recorded in remote history without broad `db push`.
 - Later exact-file linked security migrations through `20260603235355` are also recorded remotely; broad `supabase db push` is still intentionally avoided while local/remote history drift remains.
 - `closed_beta_allowed_emails` exists remotely and currently has exactly one active/invited tester: `philipjonlewis@gmail.com` with status `active`.
-- Vercel Production currently points the custom domains at the beta app deployment stream; latest verified production deployment is `dpl_5VF7nLnJYsyvKZexWQwzmH6unAC9`, and both `archestimator.com` and `www.archestimator.com` reach app health (`apex` redirects to `www`).
+- Vercel Production currently points the custom domains at the beta app deployment stream; latest verified production deployment is `dpl_Dh8xPgZ3NQwN4CwxZQXh6d8vypcn`, and both `archestimator.com` and `www.archestimator.com` reach app health (`apex` redirects to `www`).
 - Repo MCP tooling now pins `code-review-graph==2.3.5` in `.mcp.json`, `.cursor/mcp.json`, and `.codex/config.toml`; no Vercel deployment was required for this repo-local tooling fix.
 - Vercel env-name readiness is now green for core closed-beta runtime and Resend names, including `RESEND_WEBHOOK_SECRET`.
 - Resend webhook exists and its secret is configured in Vercel, but the sending domain remains pending until the `send.contact.archestimator.com` MX record is added without breaking apex Email Forwarding/support mail.
