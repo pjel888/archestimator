@@ -193,7 +193,7 @@ The cheaper closed-beta provider path is partially proven, but the current Codex
   - Proof gap: prior git history was not rewritten or force-pushed; that would be a separate destructive owner-approved operation. Dashboard status remains pending Codex Security rescan/closure.
 - Finding: `Role demotion migration is blocked by its own trigger`.
   - Repo fix committed in `e5b17dc`: `20260602090000_harden_beta_allowlist_admin.sql` now disables `profiles_prevent_role_self_update` only around its controlled demotion repair and re-enables it immediately afterward. This already-applied historical migration was not re-run on linked Supabase during the follow-up pass.
-  - Verification: `tests/vitest/security-findings-contracts.test.ts` passed after adding the trigger-order contract.
+  - Verification: `tests/vitest/security-findings-contracts.test.ts` passed after adding the trigger-order contract; refreshed again on 2026-06-04T03:40Z with `bunx vitest run tests/vitest/security-findings-contracts.test.ts --maxWorkers=1 --reporter=dot` (1 file / 17 tests).
 - Dashboard status: all entries in this section still require Codex cloud rescan/closure before they can be treated as closed.
 
 ## Immediate Triage Order
