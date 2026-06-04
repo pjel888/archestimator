@@ -16,6 +16,14 @@ const sendTestArtifact = JSON.parse(readFileSync(
   ".ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/resend-send-test-domain-unverified-2026-06-04T1151Z.json",
   "utf8",
 ));
+const dnsRepairArtifact = JSON.parse(readFileSync(
+  ".ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/resend-namecheap-dns-repair-pending-2026-06-04T1222Z.json",
+  "utf8",
+));
+const verifiedArtifact = JSON.parse(readFileSync(
+  ".ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/resend-domain-verified-email-enabled-2026-06-04T1235Z.json",
+  "utf8",
+));
 const envExample = readFileSync(".env.example", "utf8");
 const emailClient = readFileSync("src/lib/email/resend-client.ts", "utf8");
 const resendWebhookRoute = readFileSync("src/app/api/webhooks/resend/route.ts", "utf8");
@@ -74,7 +82,7 @@ describe("Resend launch readiness docs", () => {
     ).toBe(true);
   });
 
-  it("keeps the launch meaning blocked until delivery and webhook proof exist", () => {
+  it("keeps historical blocked evidence while recording the verified delivery/webhook proof", () => {
     expect(artifact).toContain("negative/blocked provider readiness evidence");
     expect(artifact).toContain("recipient email controls are disabled");
     expect(artifact).toContain("must not be considered launch-ready or re-enabled");
@@ -102,5 +110,26 @@ describe("Resend launch readiness docs", () => {
       },
     ]);
     expect(sendTestArtifact.betaImpact.manualInviteFallbackReady).toBe(true);
+    expect(dnsRepairArtifact.authoritativeDnsProof.authoritativeDnsReady).toBe(true);
+    expect(dnsRepairArtifact.resendDashboardAfterRestart.status).toBe("Pending");
+    expect(dnsRepairArtifact.sendProbeAfterDnsRepair.status).toBe(403);
+    expect(dnsRepairArtifact.currentAssessment.automaticEmailReady).toBe(false);
+    expect(dnsRepairArtifact.currentAssessment.remainingBeforeEnablingEmailDelivery).toContain(
+      "Only then set ARCHESTIMATOR_EMAIL_DELIVERY_ENABLED=true in Vercel for visible app email workflows.",
+    );
+    expect(verifiedArtifact.resendDomainVerification.status).toBe("Verified");
+    expect(verifiedArtifact.productionSendProbe.status).toBe(200);
+    expect(verifiedArtifact.productionSendProbe.ok).toBe(true);
+    expect(verifiedArtifact.productionSendProbe.idPresent).toBe(true);
+    expect(verifiedArtifact.webhookProof.dashboardStatus).toBe("Enabled");
+    expect(verifiedArtifact.webhookProof.routeProbeStatus).toBe(400);
+    expect(verifiedArtifact.webhookProof.routeProbeBody.error).toBe("Invalid webhook.");
+    expect(verifiedArtifact.vercelEnvProof.production.CLOSED_BETA_ACCESS_ENABLED).toBe("true");
+    expect(verifiedArtifact.vercelEnvProof.production.ARCHESTIMATOR_EMAIL_DELIVERY_ENABLED).toBe("true");
+    expect(verifiedArtifact.vercelEnvProof.previewMain.CLOSED_BETA_ACCESS_ENABLED).toBe("true");
+    expect(verifiedArtifact.vercelEnvProof.previewMain.ARCHESTIMATOR_EMAIL_DELIVERY_ENABLED).toBe("true");
+    expect(verifiedArtifact.currentAssessment.appEmailDeliveryReadyForNextDeployment).toBe(true);
+    expect(JSON.stringify(verifiedArtifact)).not.toMatch(/re_/);
+    expect(JSON.stringify(verifiedArtifact)).not.toMatch(/whsec_/);
   });
 });

@@ -629,12 +629,13 @@ describe("closed beta readiness docs", () => {
     expect(manualProofMatrix).toContain("`rollbackDrillPassed: true`");
     expect(manualProofMatrix).toContain("`vercelProductionReady: true`");
     expect(manualProofMatrix).toContain("resend-send-test-domain-unverified-2026-06-04T1151Z.json");
-    expect(manualProofMatrix).toContain("real production-env send failed with Resend HTTP 403");
+    expect(manualProofMatrix).toContain("resend-domain-verified-email-enabled-2026-06-04T1235Z.json");
+    expect(manualProofMatrix).toContain("production-env send probe to `philipjonlewis@gmail.com` returned HTTP 200");
     expect(manualProofMatrix).toContain("feedback-smtp.ap-northeast-1.amazonses.com");
     expect(manualProofMatrix).toContain("v=spf1 include:amazonses.com ~all");
     expect(manualProofMatrix).toContain("ARCHESTIMATOR_EMAIL_DELIVERY_ENABLED");
-    expect(manualProofMatrix).toContain("manual-email mode pass");
-    expect(manualProofMatrix).toContain("delivery, and webhook proof are captured");
+    expect(manualProofMatrix).toContain("pass-provider / workflow-smoke-open");
+    expect(manualProofMatrix).toContain("Hosted shared-link/invite email workflow smoke remains open");
     expect(manualProofMatrix).toContain("first-run-workshop-local-surface-2026-06-02.md");
     expect(manualProofMatrix).toContain("empty Workshop homebase action links");
     expect(manualProofMatrix).toContain("Hosted whitelisted account proof still missing");
@@ -806,7 +807,7 @@ describe("closed beta readiness docs", () => {
     expect(consolidatedManualProofPacket).toContain("Do not change the launch decision until `47-goal-completion-audit.md` is rerun");
     expect(consolidatedManualProofPacket).toMatch(/\| Vercel deploy\/env\/health \| pass \|/);
     expect(consolidatedManualProofPacket).toMatch(/\| Hosted auth allowlist \| blocked \|/);
-    expect(consolidatedManualProofPacket).toMatch(/\| Resend\/email if visible \| blocked-for-auto-email \/ manual-email-mode \|/);
+    expect(consolidatedManualProofPacket).toMatch(/\| Resend\/email if visible \| pass-provider \/ workflow-smoke-open \|/);
     expect(consolidatedManualProofPacket).toMatch(/\| Legal\/owner review \| pass-owner-beta \|/);
     expect(consolidatedManualProofPacket).toMatch(/\| Support\/monitoring \| partial-local \|/);
   });
@@ -851,6 +852,8 @@ describe("closed beta readiness docs", () => {
     expect(artifactFilenames).toContain("vercel-rollback-drill-2026-06-04T1112Z.json");
     expect(artifactFilenames).toContain("vercel-production-readiness-rollback-drill-2026-06-04T1112Z.json");
     expect(artifactFilenames).toContain("live-closed-beta-refresh-2026-06-04T1006Z.json");
+    expect(artifactFilenames).toContain("resend-namecheap-dns-repair-pending-2026-06-04T1222Z.json");
+    expect(artifactFilenames).toContain("resend-domain-verified-email-enabled-2026-06-04T1235Z.json");
     expect(artifactFilenames).toContain("resend-send-test-domain-unverified-2026-06-04T1151Z.json");
     expect(artifactFilenames).toContain("resend-readiness-email-flag-default-off-2026-06-04T1140Z.json");
     expect(artifactFilenames).toContain("provider-state-refresh-b33f56d-2026-06-02.md");
@@ -1059,9 +1062,9 @@ describe("closed beta readiness docs", () => {
     expect(knownIssues).toContain("apex `_dmarc` TXT `v=DMARC1; p=none;`");
     expect(knownIssues).toContain("the same five `eforward*.registrar-servers.com` MX hosts");
     expect(knownIssues).toContain("It still does not prove `support@archestimator.com` is monitored");
-    expect(knownIssues).toContain("Resend sender-domain verification remains blocked on the cheaper DNS path");
-    expect(knownIssues).toContain("`send.contact.archestimator.com` has no MX answer");
-    expect(knownIssues).toContain("switching Mail Settings to `Custom MX` would risk interrupting `support@archestimator.com` forwarding");
+    expect(knownIssues).toContain("Resend sender-domain verification is no longer blocked on the cheaper DNS path");
+    expect(knownIssues).toContain("Resend domain status `Verified`");
+    expect(knownIssues).toContain("Hosted shared-link/invite email workflow smoke remains a full-journey proof gap");
     expect(knownIssues).toContain("Codex Security cheap-path refresh at `2026-06-04T08:44Z`");
     expect(knownIssues).toContain("repo-filtered open findings view shows `1-20 of 35`");
     expect(knownIssues).toContain("while `critical` and");
