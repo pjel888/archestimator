@@ -1,5 +1,36 @@
 # Evidence Index
 
+## Codex Security AI Ask Finding Closure - 2026-06-04 06:38Z
+
+- Primary artifact: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/codex-security-ai-ask-finding-close-2026-06-04T0638Z.json`.
+- Dashboard action: authenticated Codex Security finding
+  `AI Ask endpoint lacks quota and fails open on audit` was closed as
+  `Already fixed` / `Reason: Fixed`; revisiting the original finding shows a
+  `Reopen` control. The open-list first page no longer includes the AI Ask
+  finding and pulled
+  `Proposal pages now expose internal unit-rate details` into the visible page;
+  no numeric count-drop claim is made because this DOM view did not expose the
+  count line.
+- Repo proof: current `main` head
+  `fbd6d382289d07595df2332a5aa166be0747e83d` keeps `/api/ai/ask` disabled by
+  default for closed beta, checks durable quota before enabled-mode context
+  reads or provider calls, fails closed on quota/audit storage unavailability,
+  and requires started/completed/failed audit persistence around provider
+  boundaries. The closed finding was against old commit `385c08c`; the fix was
+  already deployed and recorded under commit `e48eb0f`.
+- Hosted/proof artifact:
+  `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/ai-ask-quota-audit-fail-closed-2026-06-04.json`
+  records production `/api/health` HTTP 200 and signed-out
+  `POST /api/ai/ask` HTTP 404 with `{"error":"AI is disabled for closed beta."}`.
+- Fresh verification:
+  `bunx vitest run tests/vitest/ai-ask-route.test.ts tests/vitest/ai-audit-flow.test.ts tests/vitest/ai-audit-schema.test.ts tests/vitest/ai-auth-guard.test.ts tests/vitest/ai-package-builder-route.test.ts --maxWorkers=1 --reporter=dot`
+  passed 5 files / 66 tests.
+- GitHub queue check: no open issues or open PRs were found.
+- Still open: remaining Codex Security findings still need closure/rescan/owner
+  acceptance; hosted denied/revoked/expired beta-auth smoke, Resend domain/
+  delivery proof, rollback risk proof, legal/owner signoff, and support/alert
+  monitoring proof remain open before a fully green closed beta.
+
 ## Codex Security Project-Images Finding Closure - 2026-06-04 06:32Z
 
 - Primary artifact: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/codex-security-project-images-finding-close-2026-06-04T0632Z.json`.

@@ -10,6 +10,35 @@
 The cheaper closed-beta provider path is partially proven, but the current Codex Security dashboard still lists open findings against `pjel888/archestimator`. Closed beta cannot be honestly called launch-ready until the findings are triaged and either fixed, accepted by owner/legal/security judgment, or proven stale/false-positive with evidence.
 
 
+## AI Ask Finding Closure - 2026-06-04T06:38Z
+
+- Artifact: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/codex-security-ai-ask-finding-close-2026-06-04T0638Z.json`.
+- Finding: `AI Ask endpoint lacks quota and fails open on audit`, medium,
+  originally against old commit `385c08c`.
+- Current repo proof: `main` head
+  `fbd6d382289d07595df2332a5aa166be0747e83d` keeps `/api/ai/ask` disabled by
+  default for closed beta, checks durable quota in `security_rate_limit_events`
+  before enabled-mode context reads or provider calls, fails closed on quota/
+  audit storage unavailability, and requires started/completed/failed audit
+  persistence around provider boundaries.
+- Hosted/proof artifact: the existing AI proof artifact records production
+  `/api/health` HTTP 200 and signed-out `POST /api/ai/ask` HTTP 404 with
+  `{"error":"AI is disabled for closed beta."}`.
+- Fresh verification:
+  `bunx vitest run tests/vitest/ai-ask-route.test.ts tests/vitest/ai-audit-flow.test.ts tests/vitest/ai-audit-schema.test.ts tests/vitest/ai-auth-guard.test.ts tests/vitest/ai-package-builder-route.test.ts --maxWorkers=1 --reporter=dot`
+  passed 5 files / 66 tests.
+- Dashboard closure proof: authenticated Codex Security close submitted
+  `Already fixed`; revisiting the original finding shows a `Reopen` control.
+  The open-list first page no longer includes the AI Ask finding and pulled
+  `Proposal pages now expose internal unit-rate details` into the visible page;
+  no numeric count-drop claim is made because this DOM view did not expose the
+  count line.
+- GitHub queue check: no open issues or open PRs were found.
+- Launch meaning: this closes only the AI Ask finding. AI remains intentionally
+  disabled for closed beta, and the overall bug remains open until the remaining
+  findings are closed/rescanned/accepted and the remaining hosted provider/
+  manual proof gaps are handled.
+
 ## Project Images Finding Closure - 2026-06-04T06:32Z
 
 - Artifact: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/codex-security-project-images-finding-close-2026-06-04T0632Z.json`.
@@ -221,7 +250,7 @@ The cheaper closed-beta provider path is partially proven, but the current Codex
   commits. Do not treat the remaining dashboard findings as closed until Codex
   Security rescans/clears them or the owner explicitly accepts the residual risk.
 
-Latest first-page finding titles after the 2026-06-04T06:32Z project-images
+Latest first-page finding titles after the 2026-06-04T06:38Z AI Ask
 closure:
 
 1. `Project deletion no longer cleans project image objects`
@@ -238,14 +267,14 @@ closure:
 12. `Committed public share token and user project data`
 13. `Unbounded share tree parsing can DoS share renders`
 14. `Global comment circuit breaker can be tripped by bad UUIDs`
-15. `AI Ask endpoint lacks quota and fails open on audit`
-16. `Unbounded chart and XLSX export loading can exhaust server resources`
-17. `Direct RLS grants bypass component price audit`
-18. `Viewer members can mutate library folders`
-19. `CSV export allows spreadsheet formula injection`
-20. `Unpinned MCP tooling auto-executes external packages`
+15. `Unbounded chart and XLSX export loading can exhaust server resources`
+16. `Direct RLS grants bypass component price audit`
+17. `Viewer members can mutate library folders`
+18. `CSV export allows spreadsheet formula injection`
+19. `Unpinned MCP tooling auto-executes external packages`
+20. `Proposal pages now expose internal unit-rate details`
 
-## Current Findings Snapshot After Share-Image, Stale-Decision, Stale-Comment, Password-Metadata, Republish-Scope, And Project-Images Closures
+## Current Findings Snapshot After Share-Image, Stale-Decision, Stale-Comment, Password-Metadata, Republish-Scope, Project-Images, And AI Ask Closures
 
 | # | Severity | Finding |
 |---|---|---|
@@ -263,29 +292,28 @@ closure:
 | 12 | medium | Committed public share token and user project data |
 | 13 | medium | Unbounded share tree parsing can DoS share renders |
 | 14 | medium | Global comment circuit breaker can be tripped by bad UUIDs |
-| 15 | medium | AI Ask endpoint lacks quota and fails open on audit |
-| 16 | medium | Unbounded chart and XLSX export loading can exhaust server resources |
-| 17 | medium | Direct RLS grants bypass component price audit |
-| 18 | medium | Viewer members can mutate library folders |
-| 19 | medium | CSV export allows spreadsheet formula injection |
-| 20 | medium | Unpinned MCP tooling auto-executes external packages |
-| 21 | medium | Proposal pages now expose internal unit-rate details |
-| 22 | medium | Confidential client proposal committed to repository |
-| 23 | low | Public activity cursors leak raw database IDs |
-| 24 | low | Client activity view models leak raw UUID identifiers |
-| 25 | low | Hosted export proof leaks project names in artifacts |
-| 26 | low | Unescaped tree node IDs can crash share-page navigation |
-| 27 | low | Persisted row image URLs can track estimate viewers |
-| 28 | low | Unvalidated component source URLs allow script links |
-| 29 | informational | Prompt overrides no-auto-merge policy and pushes main |
-| 30 | informational | Bid workbook formulas omit contingency costs |
-| 31 | informational | Shared-link recipient email exposed to project viewers |
-| 32 | informational | Codex config auto-runs unpinned external tooling |
-| 33 | informational | Folder delete can fail from sort-order collision |
-| 34 | informational | Workspace seed migration reuses global item UUIDs |
-| 35 | informational | Optimistic tree IDs can be submitted as parents |
-| 36 | informational | Luna Heights seed estimate is rebuilt then deleted |
-| 37 | informational | Production grid accepts negative estimate numbers |
+| 15 | medium | Unbounded chart and XLSX export loading can exhaust server resources |
+| 16 | medium | Direct RLS grants bypass component price audit |
+| 17 | medium | Viewer members can mutate library folders |
+| 18 | medium | CSV export allows spreadsheet formula injection |
+| 19 | medium | Unpinned MCP tooling auto-executes external packages |
+| 20 | medium | Proposal pages now expose internal unit-rate details |
+| 21 | medium | Confidential client proposal committed to repository |
+| 22 | low | Public activity cursors leak raw database IDs |
+| 23 | low | Client activity view models leak raw UUID identifiers |
+| 24 | low | Hosted export proof leaks project names in artifacts |
+| 25 | low | Unescaped tree node IDs can crash share-page navigation |
+| 26 | low | Persisted row image URLs can track estimate viewers |
+| 27 | low | Unvalidated component source URLs allow script links |
+| 28 | informational | Prompt overrides no-auto-merge policy and pushes main |
+| 29 | informational | Bid workbook formulas omit contingency costs |
+| 30 | informational | Shared-link recipient email exposed to project viewers |
+| 31 | informational | Codex config auto-runs unpinned external tooling |
+| 32 | informational | Folder delete can fail from sort-order collision |
+| 33 | informational | Workspace seed migration reuses global item UUIDs |
+| 34 | informational | Optimistic tree IDs can be submitted as parents |
+| 35 | informational | Luna Heights seed estimate is rebuilt then deleted |
+| 36 | informational | Production grid accepts negative estimate numbers |
 
 ## Speed Insights Finding Remediation
 
@@ -385,7 +413,7 @@ closure:
   - Repo fix deployed in `e48eb0f` / production `dpl_GbaEYo8NPmFVS6MQCirpqRBs5RF3`: `/api/ai/ask` now checks durable quota in `security_rate_limit_events` before workspace context reads or provider calls, returns HTTP 429 with `Retry-After` on quota denial, returns HTTP 503 when quota storage is unavailable, requires a `started` Ask audit upsert before DeepSeek is called, withholds successful provider output unless the `completed` audit update succeeds, and requires failed audit persistence for read-context/provider failures before returning their normal error response.
   - Verification: red/green AI Ask route coverage first failed on the old behavior, then focused AI route/audit verification passed 5 files / 66 tests; `bun run type-check`, `bun run lint` with 12 existing warnings / 0 errors, `bun run build`, `git diff --check`, GitNexus staged detect-changes LOW risk with 0 affected processes, and production Vercel build/deploy all passed. Proof artifact: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/ai-ask-quota-audit-fail-closed-2026-06-04.json`.
   - Hosted smoke: production deploy `dpl_GbaEYo8NPmFVS6MQCirpqRBs5RF3` is Ready and aliased to `https://www.archestimator.com`, `https://archestimator.com`, and `https://archestimator.vercel.app`; `https://www.archestimator.com/api/health` returned HTTP 200, apex `/api/health` redirected to `www`, and signed-out `POST https://www.archestimator.com/api/ai/ask` returned HTTP 404 with `{"error":"AI is disabled for closed beta."}`.
-  - Proof gap: no hosted enabled-AI provider call or linked live audit/quota row insertion was run because AI remains intentionally disabled for the cheaper closed beta; dashboard status remains pending Codex Security rescan/closure.
+  - Dashboard status: authenticated Codex Security closure on 2026-06-04T06:38Z marked the finding `Already fixed` / `Reason: Fixed`; revisiting the original finding shows a `Reopen` control. Fresh proof test at current `main` head `fbd6d38` passed 5 files / 66 tests. AI remains intentionally disabled for the cheaper closed beta, so no enabled-AI provider call or linked live audit/quota row insertion was run.
 - Finding: `Unbounded chart and XLSX export loading can exhaust server resources`.
   - Repo fix deployed in `0e5dfff` / production `dpl_3zUJ5kvqkT9QUA75boNcGA75Ref8`: project chart repository reads now cap estimate options, row facts, node facts, category facts, and supplier facts with query-level sentinel limits; large chart projects load selected/default estimates instead of every estimate; the XLSX route passes export-only node/row limits into `getProjectEstimateTreeByEstimate` and returns HTTP 413 before `buildProposalExportModel` or ExcelJS workbook allocation when a sentinel limit is exceeded.
   - Verification: red/green focused export/chart/auth suite passed 4 files / 29 tests; broader export/chart/tree suite passed 9 files / 51 tests; estimate-action regression suite passed 3 files / 53 tests; `bun run type-check`, `bun run lint` with 12 existing warnings / 0 errors, `bun run build`, `git diff --check`, code-review graph checks, and GitNexus staged detect-changes high risk from expected shared-loader fan-out all ran. Proof artifact: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/chart-xlsx-load-bounds-2026-06-04.json`.
