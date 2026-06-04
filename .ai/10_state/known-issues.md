@@ -33,6 +33,16 @@
 
 ## 2026-06-04 cheap launch refresh
 
+- Hosted feedback admin proof at `2026-06-04T07:50Z` now shows the active owner
+  Chrome session can render production
+  `https://www.archestimator.com/workshop/settings/feedback` with the `Beta
+  feedback` review surface, status filter, empty-state count, and `Send beta
+  feedback` link. Signed-out `/workshop/settings/feedback` and
+  `/workshop/feedback` both redirect to login. Artifact:
+  `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/hosted-feedback-admin-proof-2026-06-04T0750Z.json`.
+  This retires the earlier inconclusive feedback-admin visual attempt, but
+  support inbox monitoring, feedback queue monitoring cadence, and alert
+  ownership proof remain open.
 - Cheap beta launch audit at `2026-06-04T07:35Z` records the current no-surprise
   spend posture as the active plan: Supabase `MICRO`, PITR disabled by decision,
   Pro physical backups plus off-repo logical dumps, no new paid provider add-ons,

@@ -1,0 +1,62 @@
+{
+  "source": "COMPUTER_USE_HOSTED_FEEDBACK_ADMIN_PROOF",
+  "generatedAtUtc": "2026-06-04T07:50:42Z",
+  "repoHead": "5ed6654ab07b4f138a250440913f6ade93eab7e9",
+  "branchAtCapture": "codex/hosted-feedback-admin-proof-20260604",
+  "scope": "Hosted beta feedback review/admin surface proof without creating feedback records or changing provider state.",
+  "authenticatedBrowserProof": {
+    "tool": "Computer Use get_app_state",
+    "app": "Google Chrome",
+    "activeTabUrl": "https://www.archestimator.com/workshop/settings/feedback",
+    "title": "Archestimator | Quote, Proposal & Estimate Workspace",
+    "observedContent": [
+      "Beta feedback heading",
+      "Settings / Beta feedback breadcrumb",
+      "Review authenticated beta feedback and keep triage status current.",
+      "Status filter with All statuses selected",
+      "Filter button",
+      "Showing 0 latest beta feedback submissions. No beta feedback matches this view.",
+      "Send beta feedback link"
+    ],
+    "meaning": "The owner-authenticated hosted session can render the beta feedback review queue at the production app domain."
+  },
+  "signedOutRouteProof": [
+    {
+      "url": "https://www.archestimator.com/workshop/settings/feedback",
+      "status": 307,
+      "location": "/login?next=%2Fworkshop%2Fsettings%2Ffeedback"
+    },
+    {
+      "url": "https://www.archestimator.com/workshop/feedback",
+      "status": 307,
+      "location": "/login?next=%2Fworkshop%2Ffeedback"
+    }
+  ],
+  "screenshotStatus": {
+    "persistedScreenshotAvailable": false,
+    "reason": "macOS screencapture repeatedly captured a stale profile route while Computer Use accessibility state showed the feedback route. The stale image was deleted and is not counted as proof.",
+    "transcriptScreenshotVisible": true,
+    "transcriptScreenshotNote": "The Computer Use get_app_state response rendered a live screenshot of the feedback route in the Codex transcript, but no stable local image file was available to commit."
+  },
+  "mutations": {
+    "createdFeedbackSubmission": false,
+    "changedFeedbackStatus": false,
+    "changedVercelEnv": false,
+    "changedSupabaseData": false,
+    "changedDnsOrProviderSettings": false
+  },
+  "result": {
+    "hostedFeedbackReviewSurfaceProven": true,
+    "signedOutFeedbackRoutesProtected": true,
+    "supportInboxMonitoringProven": false,
+    "feedbackQueueMonitoringProven": false,
+    "fullClosedBetaLaunchReady": false
+  },
+  "remainingGaps": [
+    "Proof that support@archestimator.com is monitored.",
+    "Proof that a human/owner reviews the beta feedback queue on an operational cadence.",
+    "Proof that alerts/errors route to a monitored owner channel.",
+    "Optional future smoke that submits a harmless feedback record and then triages it, if Philip accepts a production feedback-row write."
+  ],
+  "secretsRecorded": false
+}

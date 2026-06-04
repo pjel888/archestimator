@@ -13,7 +13,7 @@
 | Resend/email | **Blocked by no-cost DNS/provider proof**. Webhook endpoint/secret proof exists, but `send.contact.archestimator.com` has no MX. | `resend-dashboard-dns-webhook-refresh-2026-06-04T0446Z.json`; fresh DNS in cheap audit |
 | GitHub queue | **Clear**. No open issues or PRs found. | Same cheap audit |
 | Codex Security | **Blocked**. GitHub queue is clear, but Codex Security dashboard state still needs closure/rescan/owner acceptance; Direct RLS fix proof exists but UI close submission remains pending action-time confirmation. | `codex-security-dashboard-refresh-2026-06-04T0511Z.json`, `component-price-audit-grants-2026-06-04.json` |
-| Owner/legal/support monitoring | **Blocked**. Support DNS exists for apex forwarding, but monitored inbox, feedback review, alert/incident monitoring, and legal/owner signoff are not proven. | Same cheap audit plus support/legal artifacts |
+| Owner/legal/support monitoring | **Blocked, with one hosted surface now proven**. Support DNS exists for apex forwarding, and hosted owner-session access to the beta feedback review surface is now proven. Monitored inbox cadence, feedback queue review cadence, alert/incident monitoring, and legal/owner signoff are not proven. | `hosted-feedback-admin-proof-2026-06-04T0750Z.json`, same cheap audit plus support/legal artifacts |
 
 Result: the cheaper launch infrastructure posture is implemented and recorded,
 but external closed beta is still **not fully green**. Remaining no-cost/manual
