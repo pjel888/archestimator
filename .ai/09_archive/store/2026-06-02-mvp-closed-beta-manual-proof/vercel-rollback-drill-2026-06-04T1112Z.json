@@ -1,0 +1,68 @@
+{
+  "generatedAt": "2026-06-04T11:12:22.386Z",
+  "mode": "vercel-rollback-drill",
+  "scope": "philipjonlewis-projects/archestimator",
+  "boundary": "No paid provider changes, no DNS changes, no Vercel env changes, and no database changes. Production was rolled back to the immediate previous Ready deployment, custom-domain health was checked, then the current deployment was promoted back and health was checked again.",
+  "preRollback": {
+    "currentDeployment": {
+      "url": "archestimator-br665yc8u-philipjonlewis-projects.vercel.app",
+      "id": "dpl_6xBegV7JS3WRfZYnN1mWTeY62b38"
+    },
+    "rollbackTarget": {
+      "url": "archestimator-bssps9fmb-philipjonlewis-projects.vercel.app",
+      "id": "dpl_CyfR2LA7vMLqR9sDMncgxbgVbcRj"
+    },
+    "rollbackStatus": "No deployment rollback in progress",
+    "targetPreflight": {
+      "apiHealth": "passed via vercel curl",
+      "loginPage": "passed via vercel curl"
+    }
+  },
+  "rollback": {
+    "command": "vercel rollback https://archestimator-bssps9fmb-philipjonlewis-projects.vercel.app --scope philipjonlewis-projects --yes --timeout 3m",
+    "result": "success",
+    "status": "archestimator was rolled back to archestimator-bssps9fmb-philipjonlewis-projects.vercel.app (dpl_CyfR2LA7vMLqR9sDMncgxbgVbcRj)",
+    "customDomainHealth": {
+      "url": "https://www.archestimator.com/api/health",
+      "httpStatus": 200,
+      "contentType": "application/json",
+      "bodyShape": {
+        "ok": true,
+        "service": "archestimator"
+      }
+    },
+    "aliases": {
+      "archestimator.com": "archestimator-bssps9fmb-philipjonlewis-projects.vercel.app",
+      "www.archestimator.com": "archestimator-bssps9fmb-philipjonlewis-projects.vercel.app",
+      "archestimator.vercel.app": "archestimator-bssps9fmb-philipjonlewis-projects.vercel.app"
+    }
+  },
+  "restore": {
+    "command": "vercel promote https://archestimator-br665yc8u-philipjonlewis-projects.vercel.app --scope philipjonlewis-projects --yes --timeout 3m",
+    "result": "success",
+    "status": "archestimator was promoted to archestimator-br665yc8u-philipjonlewis-projects.vercel.app (dpl_6xBegV7JS3WRfZYnN1mWTeY62b38)",
+    "customDomainHealth": {
+      "url": "https://www.archestimator.com/api/health",
+      "httpStatus": 200,
+      "contentType": "application/json",
+      "bodyShape": {
+        "ok": true,
+        "service": "archestimator"
+      }
+    },
+    "aliases": {
+      "archestimator.com": "archestimator-br665yc8u-philipjonlewis-projects.vercel.app",
+      "www.archestimator.com": "archestimator-br665yc8u-philipjonlewis-projects.vercel.app",
+      "archestimator.vercel.app": "archestimator-br665yc8u-philipjonlewis-projects.vercel.app"
+    }
+  },
+  "readinessArtifact": "vercel-production-readiness-rollback-drill-2026-06-04T1112Z.json",
+  "vercelProductionReadyAfterRestore": true,
+  "residualGaps": [
+    "Hosted denied/revoked/expired Google OAuth smoke",
+    "Resend sender-domain MX/domain/delivery proof if visible email workflows are enabled",
+    "Legal/owner signoff",
+    "Support/alert monitoring proof",
+    "Codex Security history-risk owner acceptance or history purge"
+  ]
+}

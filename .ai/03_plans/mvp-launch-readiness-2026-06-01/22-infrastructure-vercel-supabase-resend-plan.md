@@ -55,7 +55,7 @@
 - Repo MCP tooling now pins `code-review-graph==2.3.5` in `.mcp.json`, `.cursor/mcp.json`, and `.codex/config.toml`; no Vercel deployment was required for this repo-local tooling fix.
 - Vercel env-name readiness is now green for core closed-beta runtime and Resend names, including `RESEND_WEBHOOK_SECRET`.
 - Resend webhook exists and its secret is configured in Vercel, but the sending domain remains pending until the `send.contact.archestimator.com` MX record is added without breaking apex Email Forwarding/support mail.
-- Open proof gaps: Codex Security rescan/remaining-finding closure or owner acceptance, real browser Google OAuth hosted denied/revoked/expired smoke, Vercel rollback drill, Resend MX/domain verification, legal/owner signoff, support/alert monitoring proof, and full hosted beta journey. Hosted authenticated export and hosted feedback review have owner-session proof; monitoring cadence remains separate.
+- Open proof gaps: Codex Security rescan/remaining-finding closure or owner acceptance, real browser Google OAuth hosted denied/revoked/expired smoke, Resend MX/domain verification, legal/owner signoff, support/alert monitoring proof, and full hosted beta journey. Vercel rollback proof is closed by the 2026-06-04 11:12Z rollback/promote drill. Hosted authenticated export and hosted feedback review have owner-session proof; monitoring cadence remains separate.
 
 ## Fourth-Pass Closed Beta Infrastructure Decisions - 2026-06-02
 
@@ -76,9 +76,9 @@ Commit audited: `681c95e64864f283950a88dba304eaffe8f2f8b3`
 
 | Area | Current evidence | Gap |
 | --- | --- | --- |
-| Vercel build/runtime | Local `bun run build` passes; export route declares `runtime = "nodejs"` and `dynamic = "force-dynamic"`; Vercel core closed-beta env-name coverage is recorded; production deploy/custom-domain health proof exists; `vercel-production-readiness-no-spend-refresh-2026-06-04T1043Z.json` proves the current production deployment, both custom-domain aliases, and 19 rollback candidates. | Actual rollback drill remains open because no alias flip/rollback was performed; full hosted beta journey proof remains open. |
+| Vercel build/runtime | Local `bun run build` passes; export route declares `runtime = "nodejs"` and `dynamic = "force-dynamic"`; Vercel core closed-beta env-name coverage is recorded; production deploy/custom-domain health proof exists; `vercel-production-readiness-no-spend-refresh-2026-06-04T1043Z.json` proves the current production deployment, both custom-domain aliases, and 19 rollback candidates; `vercel-rollback-drill-2026-06-04T1112Z.json` proves actual rollback/promote recovery; `vercel-production-readiness-rollback-drill-2026-06-04T1112Z.json` reports `vercelProductionReady: true`. | Vercel rollback proof is closed; full hosted beta journey proof remains open. |
 | Next.js routes | App Router route handlers include AI, export, share/invite, webhook. | API timeouts/large export limits not proven on Vercel. |
-| Supabase/env manifest | `.env.example` now lists app origins, Supabase public/server vars, closed-beta flags, publication secrets, Resend vars, AI disable vars, optional analytics, release toggles, and `DATABASE_URL`; Vercel env-name coverage exists for Production and Preview(`main`); Supabase compute is now `MICRO`, PITR is off by cost decision, `daily-backup` readiness passes, backups are present, and linked SQL works after resize. | Secret values are intentionally not recorded; hosted denied/revoked auth, rollback drill, Resend sending-domain proof, and provider/manual smoke proof still missing. |
+| Supabase/env manifest | `.env.example` now lists app origins, Supabase public/server vars, closed-beta flags, publication secrets, Resend vars, AI disable vars, optional analytics, release toggles, and `DATABASE_URL`; Vercel env-name coverage exists for Production and Preview(`main`); Supabase compute is now `MICRO`, PITR is off by cost decision, `daily-backup` readiness passes, backups are present, and linked SQL works after resize. | Secret values are intentionally not recorded; hosted denied/revoked auth, Resend sending-domain proof, and provider/manual smoke proof still missing. |
 | Supabase Auth | Login/callback code exists; Supabase Auth Site URL and HTTPS redirect allowlist have been repaired for `www`, apex, and the `git-main` Vercel branch alias. | Google Cloud consent/callback dashboard proof and hosted allowed/denied/revoked smoke still missing. |
 | Supabase RLS | Migrations enable policies. | Linked/staging allow/deny proof missing. |
 | Storage | Component images remain the public bucket surface while project covers now upload to private `project-images` and serve through authenticated `/api/projects/images`; linked readback proves private bucket policy, 6 migrated objects, 0 remaining public project-image objects, 3 project metadata rows rewritten to private route URLs, and old public object access returning `Object not found`. | Component attachment bucket handling and hosted signed-in image-view smoke remain useful follow-up proof. |
@@ -164,7 +164,7 @@ Commit audited: `681c95e64864f283950a88dba304eaffe8f2f8b3`
 ## Evidence Checklist
 
 - Vercel env export/redacted checklist.
-- Vercel preview/prod deployment URLs and rollback drill note.
+- Vercel preview/prod deployment URLs plus rollback/promote drill artifact.
 - Supabase auth callback screenshot/config note.
 - RLS/storage SQL output.
 - Resend domain DNS screenshot and webhook event log.

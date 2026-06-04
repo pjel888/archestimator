@@ -1,5 +1,35 @@
 # Evidence Index
 
+## Vercel Rollback Drill - 2026-06-04 11:12Z
+
+- Rollback artifact:
+  `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/vercel-rollback-drill-2026-06-04T1112Z.json`.
+- Green production-readiness artifact:
+  `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/vercel-production-readiness-rollback-drill-2026-06-04T1112Z.json`.
+- Preflight: `vercel rollback status archestimator --scope philipjonlewis-projects`
+  reported no rollback in progress. `vercel curl` confirmed the immediate
+  previous production deployment `archestimator-bssps9fmb...` returned app
+  health JSON and rendered `/login`; current deployment `archestimator-br665yc8u...`
+  also returned app health JSON.
+- Drill: `vercel rollback https://archestimator-bssps9fmb-philipjonlewis-projects.vercel.app --scope philipjonlewis-projects --yes --timeout 3m`
+  succeeded and rolled production back to deployment
+  `dpl_CyfR2LA7vMLqR9sDMncgxbgVbcRj`. While rolled back,
+  `https://www.archestimator.com/api/health` returned HTTP 200 app health JSON,
+  and Vercel aliases mapped `archestimator.com`, `www.archestimator.com`, and
+  `archestimator.vercel.app` to the rollback target.
+- Restore: `vercel promote https://archestimator-br665yc8u-philipjonlewis-projects.vercel.app --scope philipjonlewis-projects --yes --timeout 3m`
+  succeeded and restored production to deployment
+  `dpl_6xBegV7JS3WRfZYnN1mWTeY62b38`. After restore,
+  `https://www.archestimator.com/api/health` again returned HTTP 200 app health
+  JSON, and Vercel aliases mapped the custom domains back to
+  `archestimator-br665yc8u...`.
+- Result: `bun run launch:check-vercel-production` with
+  `VERCEL_ROLLBACK_DRILL_STATUS=passed` reports `deploymentReady: true`,
+  `customDomainsReady: true`, `rollbackCandidateAvailable: true`,
+  `rollbackDrillPassed: true`, `missing: []`, and `vercelProductionReady:
+  true`. No DNS, Vercel env, Supabase, paid provider, or repo source setting was
+  changed.
+
 ## Cheap Backup and Vercel Readiness Refresh - 2026-06-04 10:47Z
 
 - Official source artifact: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/provider-cost-and-dns-source-refresh-2026-06-04T1049Z.json`.
@@ -20,8 +50,8 @@
 - Vercel proof: production deployment `dpl_6xBegV7JS3WRfZYnN1mWTeY62b38` is
   `READY`, `archestimator.com` and `www.archestimator.com` both alias to
   `archestimator-br665yc8u-philipjonlewis-projects.vercel.app`, and 19 ready
-  rollback candidates are available. The helper still exits red because no
-  rollback drill was performed.
+  rollback candidates are available. This was later closed by the 11:12Z
+  rollback drill above.
 - Official source basis: Supabase pricing/backups docs checked 2026-06-04
   support the cheaper posture by distinguishing Pro daily backups from paid
   PITR. PITR remains a later public-launch or higher-risk beta upgrade, not an
@@ -50,9 +80,9 @@
   `Archestimator`; linked readback shows exactly one active allowlist tester,
   `philipjonlewis@gmail.com`.
 - Still blocked: Codex Security has the two residual history-exposure findings;
-  Resend sender-domain DNS still lacks `send.contact` MX; rollback drill,
-  legal/owner signoff, support/monitoring proof, denied/revoked/expired hosted
-  auth smoke, and full hosted beta journey proof remain open.
+  Resend sender-domain DNS still lacks `send.contact` MX; legal/owner signoff,
+  support/monitoring proof, denied/revoked/expired hosted auth smoke, and full
+  hosted beta journey proof remain open.
 
 ## Codex Security Cheap-Path Closures - 2026-06-04 09:34Z
 
@@ -176,11 +206,11 @@
   authenticated Codex Security refresh shows no visible open critical/high
   findings in severity-filtered views, but the repo-filtered list still shows
   `1-20 of 35`; those findings still need closure/rescan/owner acceptance.
-- Still open: hosted denied/revoked/expired beta-auth smoke, rollback drill or
-  owner risk acceptance, Resend domain/delivery proof if visible email is
-  enabled, legal/owner signoff, support/feedback/alert monitoring proof,
-  secondary spreadsheet-app export open/print proof, and full hosted beta
-  journey.
+- Still open: hosted denied/revoked/expired beta-auth smoke, Resend
+  domain/delivery proof if visible email is enabled, legal/owner signoff,
+  support/feedback/alert monitoring proof, secondary spreadsheet-app export
+  open/print proof, and full hosted beta journey. Vercel rollback proof is
+  closed by the 11:12Z rollback/promote drill.
 
 ## Supplemental Hosted Owner Profile Smoke - 2026-06-04 07:22Z
 
@@ -239,9 +269,9 @@
   and a `Close` control. The linked fix proof artifact exists, but live
   dashboard closure submission remains pending action-time confirmation.
 - Still open: remaining Codex Security findings, hosted Google OAuth
-  denied/revoked/expired smoke, rollback drill or owner risk acceptance, Resend
-  MX/domain/delivery proof, legal/owner signoff, support/feedback/alert
-  monitoring proof, hosted authenticated export, and full hosted beta journey.
+  denied/revoked/expired smoke, Resend MX/domain/delivery proof,
+  legal/owner signoff, support/feedback/alert monitoring proof, hosted
+  authenticated export, and full hosted beta journey.
 
 ## Codex Security Chart/XLSX Finding Closure - 2026-06-04 06:49Z
 
@@ -595,7 +625,7 @@
   recorded in commit `2c7ffb9`. GitHub has no open PRs, no open issues, no new
   comments since June 4, and no status contexts/check-runs on the observed
   latest `main`.
-- Still open before fully green closed beta: Codex Security rescan/owner acceptance, hosted Google OAuth denied/revoked/expired smoke with real sessions, Resend dashboard sending-domain/webhook/delivery proof, rollback drill or owner acceptance, legal/owner review flags, support/feedback/alert monitoring confirmations, hosted authenticated export, and full hosted beta journey.
+- Still open before fully green closed beta: Codex Security rescan/owner acceptance, hosted Google OAuth denied/revoked/expired smoke with real sessions, Resend dashboard sending-domain/webhook/delivery proof, legal/owner review flags, support/feedback/alert monitoring confirmations, hosted authenticated export, and full hosted beta journey. Vercel rollback proof is now closed by the 11:12Z rollback/promote drill.
 
 ## Mass Deletion Cleanup RPC Lock - 2026-06-04
 
@@ -695,8 +725,8 @@
   no status contexts/check-runs for the observed latest commit.
 - Still open before closed beta is fully green: Codex Security dashboard
   rescan/owner acceptance, hosted Google OAuth denied/revoked/expired browser
-  smoke, rollback drill if accepted, Resend
-  delivery/webhook event proof, legal/owner signoff, support inbox/feedback/alert
+  smoke, Resend delivery/webhook event proof, legal/owner signoff,
+  support inbox/feedback/alert
   monitoring proof, hosted authenticated export, and full hosted beta journey.
 
 ## Cheaper-Path Provider Launch Update - 2026-06-03
@@ -706,7 +736,7 @@
 - Linked Supabase migrations `20260601145000` through `20260603160000` were applied exactly and recorded in remote migration history without broad `db push`. Proof: `supabase-linked-migrations-applied-cheaper-path-2cddb0e-2026-06-03.json`.
 - Closed-beta allowlist now contains exactly `philipjonlewis@gmail.com` as the one active/invited email; allowed, missing, and transaction-local revoked RPC checks passed. Proof: `supabase-closed-beta-allowlist-2cddb0e-2026-06-03.json`.
 - Production deployment `dpl_Cxeq5ATpif6Yk1zn4FmNmnX7nzhT` is `READY`; `archestimator.com` and `www.archestimator.com` alias to it; `www` serves the beta app instead of the teaser; `/api/health` returns app health JSON; signed-out `/workshop` redirects to login. Proof: `vercel-hosted-http-smoke-cheaper-path-2cddb0e-2026-06-03.json`, `vercel-health-readiness-cheaper-path-2cddb0e-2026-06-03.json`, and `vercel-production-readiness-cheaper-path-2cddb0e-2026-06-03.json`.
-- Still open before calling the proof packet fully green: real browser Google OAuth allowed/denied/revoked hosted smoke, Vercel rollback drill, Resend MX/sending-domain completion, legal/owner signoff, support/alert monitoring proof, hosted authenticated export, hosted feedback review, and full hosted beta journey.
+- Still open before calling the proof packet fully green: real browser Google OAuth allowed/denied/revoked hosted smoke, Resend MX/sending-domain completion, legal/owner signoff, support/alert monitoring proof, hosted authenticated export, hosted feedback review, and full hosted beta journey. Vercel rollback proof is now closed by the 11:12Z rollback/promote drill.
 
 ## Fourth-Pass Closed Beta Evidence - 2026-06-02
 
@@ -850,7 +880,7 @@
 - Scope: parses sanitized `vercel inspect --format=json`, `vercel alias ls`, and optional `vercel ls` transcripts to check current deployment readiness, whether custom domains alias to that deployment, ready rollback-candidate availability, and explicit rollback-drill status.
 - Current refreshes: `VERCEL_INSPECT_TEXT="$(vercel inspect archestimator-lr6t14h58-philipjonlewis-projects.vercel.app --format=json --non-interactive 2>&1)" VERCEL_ALIAS_LIST_TEXT="$(vercel alias ls --non-interactive 2>&1)" VERCEL_DEPLOYMENT_LIST_TEXT="$(vercel ls --non-interactive 2>&1)" VERCEL_EXPECTED_CUSTOM_DOMAINS='archestimator.com,www.archestimator.com,archestimator.vercel.app' OUTPUT_FILE=.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/vercel-production-readiness-4fdf0de-2026-06-02.json bun run launch:check-vercel-production`, later `VERCEL_INSPECT_TEXT="$(vercel inspect archestimator-git-main-philipjonlewis-projects.vercel.app --format=json --non-interactive 2>&1)" VERCEL_ALIAS_LIST_TEXT="$(vercel alias ls --non-interactive 2>&1)" VERCEL_DEPLOYMENT_LIST_TEXT="$(vercel ls --non-interactive 2>&1)" VERCEL_EXPECTED_CUSTOM_DOMAINS='archestimator.com,www.archestimator.com,archestimator.vercel.app' OUTPUT_FILE=.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/vercel-production-readiness-9e253e7-2026-06-02.json bun run launch:check-vercel-production`, later `CURRENT_DEPLOYMENT="$(vercel ls --scope philipjonlewis-projects 2>/dev/null | grep -m1 -o 'https://[^ ]*vercel.app')" VERCEL_INSPECT_TEXT="$(vercel inspect "$CURRENT_DEPLOYMENT" --scope philipjonlewis-projects --json 2>&1)" VERCEL_ALIAS_LIST_TEXT="$(vercel alias ls --scope philipjonlewis-projects 2>&1)" VERCEL_DEPLOYMENT_LIST_TEXT="$(vercel ls --scope philipjonlewis-projects 2>&1)" VERCEL_EXPECTED_CUSTOM_DOMAINS='archestimator.com,www.archestimator.com,archestimator.vercel.app' OUTPUT_FILE=.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/vercel-production-readiness-79ecf99-2026-06-02.json bun run launch:check-vercel-production`, and latest `CURRENT_DEPLOYMENT="$(vercel ls --scope philipjonlewis-projects 2>/dev/null | grep -m1 -o 'https://[^ ]*vercel.app')" VERCEL_INSPECT_TEXT="$(vercel inspect "$CURRENT_DEPLOYMENT" --scope philipjonlewis-projects --json 2>&1)" VERCEL_ALIAS_LIST_TEXT="$(vercel alias ls --scope philipjonlewis-projects 2>&1)" VERCEL_DEPLOYMENT_LIST_TEXT="$(vercel ls --scope philipjonlewis-projects 2>&1)" VERCEL_EXPECTED_CUSTOM_DOMAINS='archestimator.com,www.archestimator.com,archestimator.vercel.app' OUTPUT_FILE=.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/vercel-production-readiness-a537ae3-2026-06-02.json bun run launch:check-vercel-production` wrote sanitized JSON and exited `1`.
 - Result: latest preview deployment `dpl_H3CBHKaBWCJqHVhiVe4e3cadQwyw` at `archestimator-9scmhyv5g-philipjonlewis-projects.vercel.app` is `READY`; `archestimator.com`, `www.archestimator.com`, and `archestimator.vercel.app` still alias to `archestimator-3ser9ty2w-philipjonlewis-projects.vercel.app`; 19 ready rollback candidates were found; rollback drill was not provided; `vercelProductionReady: false`.
-- Launch meaning: this makes custom-domain/rollback proof repeatable, but it does not promote deployments, change aliases, run health checks, verify env values, exercise hosted auth, or perform a rollback. Production/custom-domain and rollback readiness remains **NO-GO**.
+- Historical launch meaning: this made custom-domain/rollback proof repeatable at the time, but it did not promote deployments, change aliases, run health checks, verify env values, exercise hosted auth, or perform a rollback. This older helper result is superseded for Vercel rollback by the 2026-06-04 11:12Z drill and green production-readiness artifact.
 
 ### Supabase Backup/PITR Readiness Helper
 

@@ -39,7 +39,7 @@ This checklist is now for closed beta, not public paid launch.
 - [ ] Runbook, rollback, and backup evidence exist. Cheaper-path backup/compute
   proof exists with PITR intentionally off, 9 physical backups, off-repo logical
   dump, Supabase `MICRO` compute, and linked SQL/app health passing after the
-  resize; rollback drill remains open.
+  resize; Vercel rollback/promote drill proof is captured.
 
 Commit audited: `681c95e64864f283950a88dba304eaffe8f2f8b3`
 Current release state: **NO-GO**.
