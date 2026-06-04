@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { buildProjectPublicationSnapshot } from "@/lib/publication/snapshot";
+import { buildProjectPublicationSnapshot, sanitizeProjectPublicationSnapshotForPublicRead } from "@/lib/publication/snapshot";
 
 describe("project publication snapshot builder (Shared Link V2)", () => {
   it("returns a client-safe immutable DTO with computed totals and no internal supplier/library metadata", () => {
@@ -60,17 +60,78 @@ describe("project publication snapshot builder (Shared Link V2)", () => {
       material: "Concrete",
       quantity: 2,
       unit: "cu.m",
-      unitCost: 1000,
-      miscCost: 100,
-      contingencyPercentage: 10,
       rowTotal: 2300,
       imageUrl: null,
       nodeId: null,
     });
     expect(snapshot.totalCost).toBe(2300);
+    expect(JSON.stringify(snapshot)).not.toContain("unitCost");
+    expect(JSON.stringify(snapshot)).not.toContain("miscCost");
+    expect(JSON.stringify(snapshot)).not.toContain("contingencyPercentage");
     expect(JSON.stringify(snapshot)).not.toContain("Internal supplier");
     expect(JSON.stringify(snapshot)).not.toContain("library-item-1");
     expect(JSON.stringify(snapshot)).not.toContain("internalNote");
+  });
+
+  it("strips legacy internal rate fields before public snapshot reads", () => {
+    const sanitized = sanitizeProjectPublicationSnapshotForPublicRead({
+      schemaVersion: 1,
+      generatedAt: "2026-05-27T00:00:00.000Z",
+      project: {
+        id: "project-1",
+        name: "Valencia Residence",
+        projectCode: "VR-001",
+        clientName: "Client Family",
+        location: "Quezon City",
+        currencyCode: "PHP",
+      },
+      estimateCount: 1,
+      rowCount: 1,
+      totalCost: 2300,
+      estimates: [
+        {
+          id: "estimate-1",
+          name: "Main Estimate",
+          sheetCode: "ES-001",
+          updatedAt: "2026-05-26T00:00:00.000Z",
+          rowCount: 1,
+          totalCost: 2300,
+          rows: [
+            {
+              id: "row-1",
+              description: "Concrete works",
+              designation: "CW-01",
+              discipline: "Structural",
+              material: "Concrete",
+              quantity: 2,
+              unit: "cu.m",
+              unitCost: 1000,
+              miscCost: 100,
+              contingencyPercentage: 10,
+              rowTotal: 2300,
+              imageUrl: null,
+              nodeId: null,
+            },
+          ],
+        },
+      ],
+    } as unknown as Parameters<typeof sanitizeProjectPublicationSnapshotForPublicRead>[0]);
+
+    expect(sanitized.estimates[0]?.rows[0]).toEqual({
+      id: "row-1",
+      description: "Concrete works",
+      designation: "CW-01",
+      discipline: "Structural",
+      material: "Concrete",
+      quantity: 2,
+      unit: "cu.m",
+      rowTotal: 2300,
+      imageUrl: null,
+      nodeId: null,
+    });
+    expect(JSON.stringify(sanitized)).not.toContain("unitCost");
+    expect(JSON.stringify(sanitized)).not.toContain("miscCost");
+    expect(JSON.stringify(sanitized)).not.toContain("contingencyPercentage");
   });
 
   it("keeps only safe public share image URLs in snapshots", () => {

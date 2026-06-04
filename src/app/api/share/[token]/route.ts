@@ -5,6 +5,7 @@ import {
   resolveProjectPublicationSnapshotByToken,
 } from "@/lib/publication/public-repository";
 import { hasPublicationAccessCookie } from "@/lib/publication/security";
+import { sanitizeProjectPublicationSnapshotForPublicRead } from "@/lib/publication/snapshot";
 
 export const dynamic = "force-dynamic";
 
@@ -64,7 +65,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ toke
     {
       publicationId: publication.publicationId,
       passwordRequired: publication.passwordRequired,
-      snapshot: publication.snapshot,
+      snapshot: sanitizeProjectPublicationSnapshotForPublicRead(publication.snapshot),
     },
     { headers: noStoreHeaders },
   );

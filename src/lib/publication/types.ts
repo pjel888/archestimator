@@ -55,9 +55,6 @@ export type PublicationSnapshotRow = {
   material: string;
   quantity: number;
   unit: string;
-  unitCost: number;
-  miscCost: number;
-  contingencyPercentage: number;
   rowTotal: number;
   // P9: optional thumbnail from estimate_row_items.source_snapshot.imageUrl (additive; old snapshots omit)
   imageUrl?: string | null;
