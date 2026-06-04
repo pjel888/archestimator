@@ -23,11 +23,13 @@ Computer Use journey artifact,
 records the owner session entering the hosted `Tropical House` project, creating
 the first estimate sheet (`ES-001 Estimate Sheet`), opening the estimate
 workspace, and opening the read-only Excel export preview. Owner-only hosted beta
-journey proof is now current for the single-tester beta; hosted
-denied/revoked/expired auth, logout/session-expiry proof, residual Codex
-Security history-risk acceptance, spreadsheet-app open/print proof if required
-for beta, and hosted shared-link/invite email workflow smoke remain the main
-open proof gaps.
+journey proof is now current for the single-tester beta. Residual Codex Security
+history-risk is owner-accepted for this single-owner beta by
+`.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/codex-security-history-risk-owner-acceptance-2026-06-04T1414Z.json`,
+without claiming the findings are fixed or the dashboard fully green. Hosted
+denied/revoked/expired auth, logout/session-expiry proof, spreadsheet-app
+open/print proof if required for beta, and hosted shared-link/invite email
+workflow smoke remain the main open proof gaps.
 
 **Owner Signoff And Resend Email Enablement (2026-06-04 12:35Z):**
 Philip Lewis provided explicit closed-beta owner signoff in-thread with the

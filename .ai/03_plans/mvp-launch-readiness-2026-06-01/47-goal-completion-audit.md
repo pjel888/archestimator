@@ -12,14 +12,15 @@
 | Backup/DR | **Cheaper-path daily-backup mode proven; strict PITR remains deferred**. Daily-backup closed-beta mode now passes with 9 listed physical backups, `pitrEnabled: false`, `walgEnabled: true`, and `restoreDrillAcceptedRisk: true`; strict PITR mode remains a later public-launch or higher-risk beta gate. | `supabase-backup-readiness-daily-mode-closed-beta-2026-06-04T1047Z.json`, `supabase-compute-cheaper-path-2026-06-04.json` |
 | Resend/email | **Provider plus inbox proof closed; workflow smoke still conditional**. Namecheap now has the Resend `send.contact` MX/TXT records, Resend domain status is `Verified`, a production-env send probe to `philipjonlewis@gmail.com` returned HTTP 200, Philip reported receipt of the verified smoke email in the owner inbox, the Resend webhook endpoint is enabled, and the production unsigned webhook probe reaches signature verification with HTTP 400. Hosted shared-link/invite email workflow smoke remains required before relying on automatic email UX. | `resend-domain-verified-email-enabled-2026-06-04T1235Z.json`, `resend-owner-inbox-receipt-2026-06-04T1348Z.json`, `vercel-production-resend-enabled-hosted-auth-2026-06-04T1311Z.json` |
 | GitHub queue | **Clear**. No open issues or PRs found. | Same cheap audit |
-| Codex Security | **Blocked on residual history-risk acceptance/remediation**. GitHub queue is clear, and fresh Computer Use proof still shows the repo-filtered actionable view at `1-2 of 2`. The remaining open findings are source-control/history-exposure risks that require owner acceptance or an explicit history-purge workflow; no paid scan, PITR, compute bump, or history rewrite occurred. | `live-closed-beta-refresh-2026-06-04T1006Z.json`, `codex-security-cheap-path-closures-2026-06-04T0934Z.json` |
+| Codex Security | **Owner-accepted for the single-owner beta; dashboard not fully green**. GitHub queue is clear, and fresh Computer Use proof still shows the repo-filtered actionable view at `1-2 of 2`. Philip's owner signoff now explicitly accepts those residual source-control/history-exposure findings for the current owner-only beta without claiming they are fixed. History purge, force-push, paid rescan, PITR, and compute bump remain unperformed. | `live-closed-beta-refresh-2026-06-04T1006Z.json`, `codex-security-cheap-path-closures-2026-06-04T0934Z.json`, `codex-security-history-risk-owner-acceptance-2026-06-04T1414Z.json` |
 | Owner/legal/support monitoring | **Pass for owner-only closed beta**. Support DNS exists for apex forwarding, hosted owner-session access to the beta feedback review surface is proven, and the owner provided explicit closed-beta signoff for legal/support monitoring. | `hosted-feedback-admin-proof-2026-06-04T0750Z.json`, `legal-owner-signoff-2026-06-04T1138Z.json`, `support-monitoring-owner-signoff-2026-06-04T1138Z.json` |
 | Hosted authenticated export | **Proven fresh**. Owner Chrome session rendered the production Lewis Residence estimate workspace, opened `Preview Excel Export`, downloaded `AE-LR-001-ES-001-proposal.xlsx`, and sanitized validation proved XLSX ZIP integrity plus the expected workbook sheets. Signed-out curl redirects to login. | `hosted-export-browser-proof-2026-06-04T0807Z.json` |
 | Hosted owner beta journey | **Proven fresh for the single-tester owner beta**. Owner Chrome session entered the hosted `Tropical House` project, created `ES-001 Estimate Sheet`, opened the estimate workspace, and opened the read-only Excel export preview. | `hosted-owner-beta-journey-smoke-2026-06-04T1328Z.json` |
 
 Result: the cheaper launch infrastructure posture is implemented and recorded,
-but external closed beta is still **not fully green**. Remaining no-cost/manual
-blockers are Codex Security dashboard closure/rescan or owner acceptance, hosted
+and the residual Codex Security history-risk is owner-accepted for the
+single-owner beta without being called fixed. External closed beta is still
+**not fully green** because remaining no-cost/manual blockers are hosted
 denied/revoked/expired auth smoke, logout/session-expiry proof, secondary
 spreadsheet-app export open/print proof if required for beta, and hosted
 shared-link/invite email workflow proof before relying on automatic email UX.
@@ -30,7 +31,7 @@ shared-link/invite email workflow proof before relying on automatic email UX.
 - Supabase PITR was explicitly skipped for cost; backup safety for this one-person pre-launch beta is daily physical backup proof plus an off-repo logical dump created before applying linked migrations.
 - Linked Supabase closed-beta/security migrations through `20260603160000_mass_deletion_governance` are applied and recorded in remote migration history.
 - The only active/invited closed-beta allowlist email is `philipjonlewis@gmail.com`.
-- Remaining completion gaps: real browser Google OAuth denied/revoked/expired smoke, logout/session-expiry proof, residual Codex Security history-risk closure/acceptance, secondary spreadsheet-app workbook open/print proof if required for beta, and hosted shared-link/invite email workflow smoke before relying on automatic email UX. Vercel rollback proof is closed by the 2026-06-04 11:12Z rollback/promote drill; legal/owner/support monitoring signoff is closed by the 11:38Z owner-signoff artifacts; Resend provider proof is closed by the 12:35Z artifact; owner hosted beta journey proof is closed by the 13:28Z artifact.
+- Remaining completion gaps: real browser Google OAuth denied/revoked/expired smoke, logout/session-expiry proof, secondary spreadsheet-app workbook open/print proof if required for beta, and hosted shared-link/invite email workflow smoke before relying on automatic email UX. Vercel rollback proof is closed by the 2026-06-04 11:12Z rollback/promote drill; legal/owner/support monitoring signoff is closed by the 11:38Z owner-signoff artifacts; Resend provider proof is closed by the 12:35Z artifact; owner hosted beta journey proof is closed by the 13:28Z artifact; residual Codex Security history-risk is owner-accepted for the owner-only beta by `codex-security-history-risk-owner-acceptance-2026-06-04T1414Z.json`.
 
 Status: Goal active; completion not proven.
 
@@ -145,9 +146,11 @@ Current decision: **DO NOT MARK GOAL COMPLETE**.
 - Vercel Production env-name readiness passes; `www` health and login pass;
   signed-out `/workshop` redirects to login; linked Supabase allowlist contains
   only active tester `philipjonlewis@gmail.com`; GitHub issues/PRs are empty.
-- Still not complete: residual Codex Security history findings,
-  denied/revoked/expired hosted auth smoke, secondary spreadsheet-app proof if
-  required for beta, and full hosted journey proof remain open. Resend
+- Still not complete: denied/revoked/expired hosted auth smoke,
+  logout/session-expiry proof, secondary spreadsheet-app proof if required for
+  beta, and app-level email workflow proof remain open. The residual Codex
+  Security history findings are owner-accepted only for the owner-only beta, not
+  fixed or public-launch green. Resend
   `send.contact` MX/delivery/webhook proof remains a re-enable gate for email
   automation, not a blocker while `ARCHESTIMATOR_EMAIL_DELIVERY_ENABLED` is
   absent. Vercel rollback proof and owner/legal/support signoff are closed by
