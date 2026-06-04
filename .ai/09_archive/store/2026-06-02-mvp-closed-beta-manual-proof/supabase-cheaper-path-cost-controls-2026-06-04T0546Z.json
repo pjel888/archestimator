@@ -1,0 +1,57 @@
+{
+  "artifactType": "supabase-cheaper-path-cost-controls-proof",
+  "recordedAt": "2026-06-04T05:46:43Z",
+  "recordedBy": "Codex via Supabase connector and authenticated Chrome dashboard session",
+  "project": {
+    "ref": "ebxxqidacheyapmmzavr",
+    "displayName": "Archestimator",
+    "organizationSlug": "unfair-black-sb5unhb",
+    "region": "ap-southeast-2",
+    "status": "ACTIVE_HEALTHY",
+    "postgresVersion": "17.6.1.121"
+  },
+  "dashboardProof": {
+    "addonsPage": {
+      "url": "https://supabase.com/dashboard/project/ebxxqidacheyapmmzavr/settings/addons",
+      "pointInTimeRecovery": "Disabled",
+      "dedicatedIpv4": "Disabled",
+      "customDomain": "Disabled"
+    },
+    "computeAndDiskPage": {
+      "url": "https://supabase.com/dashboard/project/ebxxqidacheyapmmzavr/settings/compute-and-disk",
+      "selectedComputeSize": "Micro",
+      "selectedComputePrice": "$0.01344 / hour",
+      "smallComputeVisibleButNotSelected": true,
+      "smallComputePrice": "$0.0206 / hour",
+      "nanoVisibleButLocked": true,
+      "diskSizeGb": 2,
+      "diskUsedGb": 0.33,
+      "spendCapNotice": "Spend cap limits disk size to 8 GB"
+    }
+  },
+  "costDecision": {
+    "providerChangeMade": false,
+    "reason": "The project was already on the cheaper selectable Micro compute size and PITR was disabled. No paid add-on or downgrade action was needed.",
+    "launchPath": "Use the no-new-spend closed-beta path: keep PITR disabled, keep Micro compute, rely on low-traffic beta controls plus explicit rollback-risk acceptance or a manual backup/restore proof instead of enabling the $100/month PITR add-on."
+  },
+  "proofBoundaries": {
+    "noSecretsRecorded": true,
+    "noBrowserCookiesOrLocalStorageInspected": true,
+    "noBillingPurchaseSubmitted": true,
+    "noProviderWriteSubmitted": true,
+    "doesNotProveRestoreDrill": true,
+    "remainingLaunchBlockers": [
+      "Remaining Codex Security findings still require fix, closure, rescan, or explicit owner acceptance.",
+      "Hosted denied/revoked/expired Google OAuth beta-auth smoke remains open.",
+      "Resend sending-domain MX/verified/delivery event proof remains open.",
+      "Rollback drill or explicit accepted rollback-not-drilled risk remains open.",
+      "Owner/legal signoff and support/feedback/alert monitoring proof remain open."
+    ]
+  },
+  "officialPricingReferenceChecked": {
+    "supabasePricingPage": "https://supabase.com/pricing",
+    "supabasePricingDocs": "https://supabase.com/docs/pricing",
+    "supabaseBackupDocs": "https://supabase.com/docs/guides/platform/backups",
+    "note": "Official pricing/docs checked on 2026-06-04: PITR is a paid add-on, with docs listing $100/month per 7 days retention."
+  }
+}

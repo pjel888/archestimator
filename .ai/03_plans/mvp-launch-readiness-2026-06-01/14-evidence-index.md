@@ -1,5 +1,23 @@
 # Evidence Index
 
+## Supabase Cheaper-Path Cost Controls - 2026-06-04 05:46Z
+
+- Primary artifact: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/supabase-cheaper-path-cost-controls-2026-06-04T0546Z.json`.
+- Supabase connector proof: project ref `ebxxqidacheyapmmzavr` is already named
+  `Archestimator`, is `ACTIVE_HEALTHY`, and is in `ap-southeast-2`.
+- Authenticated dashboard proof: Add-ons shows Point in time recovery, Dedicated
+  IPv4, and Custom domain all `Disabled`; Compute and Disk shows `Micro`
+  selected at `$0.01344 / hour`, while `Small` is visible but not selected at
+  `$0.0206 / hour`; `Nano` is visible but locked.
+- Cost decision: no provider write was submitted because the cheaper selectable
+  compute size is already active and PITR is already disabled. The no-new-spend
+  closed-beta path keeps PITR off and treats rollback safety as either a manual
+  backup/restore-drill proof or an explicit owner-accepted risk, not a $100/mo
+  PITR add-on.
+- Still open: this proves cost controls only. It does not prove a restore drill,
+  remaining Codex Security closures, hosted denied/revoked/expired auth smoke,
+  Resend delivery proof, or owner/legal/support monitoring signoff.
+
 ## Codex Security Stale-Decision Finding Closure - 2026-06-04 05:37Z
 
 - Primary artifact: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/codex-security-stale-decision-finding-close-2026-06-04T0537Z.json`.
