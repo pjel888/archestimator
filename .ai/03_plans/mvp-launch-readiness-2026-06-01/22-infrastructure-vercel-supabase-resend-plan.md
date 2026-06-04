@@ -23,10 +23,15 @@
   and `Send beta feedback`.
 - Proof artifact:
   `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/vercel-production-resend-enabled-hosted-auth-2026-06-04T1311Z.json`.
-- Open proof gaps: hosted denied/revoked/expired auth smoke, residual Codex
-  Security history-risk acceptance or purge decision, full hosted beta journey,
-  and hosted shared-link/invite email workflow smoke if automatic email UX is
-  used beyond the owner-only beta.
+- Follow-up hosted owner journey proof:
+  `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/hosted-owner-beta-journey-smoke-2026-06-04T1328Z.json`
+  proves the current owner-only path through project entry, estimate creation,
+  estimate workspace render, and export preview.
+- Open proof gaps: hosted denied/revoked/expired auth smoke, logout/session-expiry
+  proof, residual Codex Security history-risk acceptance or purge decision,
+  spreadsheet-app open/print proof if required for beta, and hosted
+  shared-link/invite email workflow smoke if automatic email UX is used beyond
+  the owner-only beta.
 
 ## Cheap Beta Launch Audit - 2026-06-04 07:35Z
 
@@ -60,7 +65,7 @@
   active allowlist tester `philipjonlewis@gmail.com`; broad `supabase db push`
   remains off-limits while history drift exists.
 - Resend DNS action is complete: Namecheap mail settings were changed to Custom MX, the existing apex forwarding MX rows for `support@archestimator.com` were recreated explicitly, and the Resend `send.contact` MX/TXT records were added without purchases.
-- Current launch blocker posture: GitHub has no open issue/PR queue, but Codex Security remains open pending closure/rescan/owner acceptance. External beta is also still blocked by hosted denied/revoked/expired auth smoke and full hosted beta journey proof. Resend sender-domain, delivery, webhook, and Vercel email-flag proof are closed by `resend-domain-verified-email-enabled-2026-06-04T1235Z.json`; hosted shared-link/invite email workflow smoke remains a journey proof gap if automatic email UX is part of beta.
+- Current launch blocker posture: GitHub has no open issue/PR queue, but Codex Security remains open pending closure/rescan/owner acceptance. The owner-only hosted beta journey is proven by `hosted-owner-beta-journey-smoke-2026-06-04T1328Z.json`; external beta is still blocked from a fully green claim by hosted denied/revoked/expired auth smoke, logout/session-expiry proof, and residual security history-risk acceptance/remediation. Resend sender-domain, provider delivery, owner-inbox receipt, webhook, and Vercel email-flag proof are closed by `resend-domain-verified-email-enabled-2026-06-04T1235Z.json` plus `resend-owner-inbox-receipt-2026-06-04T1348Z.json`; hosted shared-link/invite email workflow smoke remains a journey proof gap if automatic email UX is part of beta.
 - Proof artifact:
   `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/cheap-beta-launch-audit-2026-06-04T0735Z.json`.
 
@@ -77,7 +82,7 @@
 - Vercel env-name readiness is now green for core closed-beta runtime and Resend names, including `RESEND_WEBHOOK_SECRET`; secret values remain intentionally unprinted.
 - A real production-env Resend send probe failed with HTTP 403 because `contact.archestimator.com` is not verified. Resend dashboard shows DKIM verified, but `send.contact` MX `feedback-smtp.ap-northeast-1.amazonses.com` priority 10 and TXT `v=spf1 include:amazonses.com ~all` are missing/failed in Namecheap DNS.
 - Owner/legal and support/alert monitoring signoff are recorded for the owner-only beta in `legal-owner-signoff-2026-06-04T1138Z.json` and `support-monitoring-owner-signoff-2026-06-04T1138Z.json`.
-- Open proof gaps: Codex Security rescan/remaining-finding closure or owner acceptance, real browser Google OAuth hosted denied/revoked/expired smoke, full hosted beta journey, and hosted shared-link/invite email workflow smoke if automatic email UX is part of the beta. Vercel rollback proof is closed by the 2026-06-04 11:12Z rollback/promote drill. Hosted authenticated export and hosted feedback review have owner-session proof. Resend provider delivery/domain/webhook proof is closed by the 2026-06-04 12:35Z artifact, and `ARCHESTIMATOR_EMAIL_DELIVERY_ENABLED=true` is now set for Production and Preview(main).
+- Open proof gaps: Codex Security rescan/remaining-finding closure or owner acceptance, real browser Google OAuth hosted denied/revoked/expired smoke, logout/session-expiry proof, spreadsheet-app open/print proof if required for beta, and hosted shared-link/invite email workflow smoke if automatic email UX is part of the beta. Vercel rollback proof is closed by the 2026-06-04 11:12Z rollback/promote drill. Hosted authenticated export, hosted feedback review, and the owner hosted beta journey have owner-session proof. Resend provider delivery/domain/webhook proof is closed by the 2026-06-04 12:35Z artifact, owner-inbox receipt is closed by the 13:48Z artifact, and `ARCHESTIMATOR_EMAIL_DELIVERY_ENABLED=true` is now set for Production and Preview(main).
 
 ## Fourth-Pass Closed Beta Infrastructure Decisions - 2026-06-02
 
@@ -98,14 +103,14 @@ Commit audited: `681c95e64864f283950a88dba304eaffe8f2f8b3`
 
 | Area | Current evidence | Gap |
 | --- | --- | --- |
-| Vercel build/runtime | Local `bun run build` passes; export route declares `runtime = "nodejs"` and `dynamic = "force-dynamic"`; Vercel core closed-beta env-name coverage is recorded; production deploy/custom-domain health proof exists; `vercel-production-readiness-no-spend-refresh-2026-06-04T1043Z.json` proves the current production deployment, both custom-domain aliases, and 19 rollback candidates; `vercel-rollback-drill-2026-06-04T1112Z.json` proves actual rollback/promote recovery; `vercel-production-readiness-rollback-drill-2026-06-04T1112Z.json` reports `vercelProductionReady: true`. | Vercel rollback proof is closed; full hosted beta journey proof remains open. |
+| Vercel build/runtime | Local `bun run build` passes; export route declares `runtime = "nodejs"` and `dynamic = "force-dynamic"`; Vercel core closed-beta env-name coverage is recorded; production deploy/custom-domain health proof exists; `vercel-production-readiness-no-spend-refresh-2026-06-04T1043Z.json` proves the current production deployment, both custom-domain aliases, and 19 rollback candidates; `vercel-rollback-drill-2026-06-04T1112Z.json` proves actual rollback/promote recovery; `vercel-production-readiness-rollback-drill-2026-06-04T1112Z.json` reports `vercelProductionReady: true`; `hosted-owner-beta-journey-smoke-2026-06-04T1328Z.json` proves the owner hosted beta journey. | Vercel rollback and owner hosted beta journey proof are closed; denied/revoked/session-expiry and non-owner edge-case proof remain open. |
 | Next.js routes | App Router route handlers include AI, export, share/invite, webhook. | API timeouts/large export limits not proven on Vercel. |
-| Supabase/env manifest | `.env.example` now lists app origins, Supabase public/server vars, closed-beta flags, publication secrets, Resend vars, AI disable vars, optional analytics, release toggles, and `DATABASE_URL`; Vercel env-name coverage exists for Production and Preview(`main`); Supabase compute is now `MICRO`, PITR is off by cost decision, `daily-backup` readiness passes, backups are present, and linked SQL works after resize. | Secret values are intentionally not recorded; hosted denied/revoked auth and full provider/manual journey smoke still missing. |
+| Supabase/env manifest | `.env.example` now lists app origins, Supabase public/server vars, closed-beta flags, publication secrets, Resend vars, AI disable vars, optional analytics, release toggles, and `DATABASE_URL`; Vercel env-name coverage exists for Production and Preview(`main`); Supabase compute is now `MICRO`, PITR is off by cost decision, `daily-backup` readiness passes, backups are present, and linked SQL works after resize. | Secret values are intentionally not recorded; hosted denied/revoked auth and logout/session-expiry proof still missing. |
 | Supabase Auth | Login/callback code exists; Supabase Auth Site URL and HTTPS redirect allowlist have been repaired for `www`, apex, and the `git-main` Vercel branch alias. Current Chrome proof shows the allowed owner session can enter hosted `/workshop` on the production custom domain. | Google Cloud consent/callback dashboard proof and hosted denied/revoked/expired smoke still missing. |
 | Supabase RLS | Migrations enable policies. | Linked/staging allow/deny proof missing. |
 | Storage | Component images remain the public bucket surface while project covers now upload to private `project-images` and serve through authenticated `/api/projects/images`; linked readback proves private bucket policy, 6 migrated objects, 0 remaining public project-image objects, 3 project metadata rows rewritten to private route URLs, and old public object access returning `Object not found`. | Component attachment bucket handling and hosted signed-in image-view smoke remain useful follow-up proof. |
 | Realtime | No launch-critical realtime dependency identified. | If enabled later, document channels and rate limits. |
-| Resend | Client and Svix webhook route exist; unconfigured production-like sends fail closed, shared-link recipient controls disable while server readiness is false, and Teamspaces invite controls disable while invite delivery readiness is false. Vercel now has `RESEND_API_KEY`, `RESEND_FROM`, `RESEND_REPLY_TO`, `RESEND_WEBHOOK_SECRET`, and `ARCHESTIMATOR_EMAIL_DELIVERY_ENABLED` for Production and Preview(main). `resend-domain-verified-email-enabled-2026-06-04T1235Z.json` records Namecheap DNS repair, Resend domain `Verified`, a successful production-env send probe, webhook dashboard endpoint enabled, and live webhook signature-verification reachability. | Full hosted shared-link/invite email workflow smoke remains open before relying on automatic email UX in the beta journey. |
+| Resend | Client and Svix webhook route exist; unconfigured production-like sends fail closed, shared-link recipient controls disable while server readiness is false, and Teamspaces invite controls disable while invite delivery readiness is false. Vercel now has `RESEND_API_KEY`, `RESEND_FROM`, `RESEND_REPLY_TO`, `RESEND_WEBHOOK_SECRET`, and `ARCHESTIMATOR_EMAIL_DELIVERY_ENABLED` for Production and Preview(main). `resend-domain-verified-email-enabled-2026-06-04T1235Z.json` records Namecheap DNS repair, Resend domain `Verified`, a successful production-env send probe, webhook dashboard endpoint enabled, and live webhook signature-verification reachability. `resend-owner-inbox-receipt-2026-06-04T1348Z.json` records owner-reported receipt of the verified smoke email in `philipjonlewis@gmail.com`. | Full hosted shared-link/invite email workflow smoke remains open before relying on automatic email UX. |
 | Env separation | CI exists; Production and Preview(`main`) have the current closed-beta env-name set. | Staging/non-main preview matrix, secret value proof by provider UI, redeploy proof, and rollback proof still missing. |
 
 ## Required Vercel Env Vars

@@ -1,6 +1,6 @@
 # Current State
 
-**Production Resend-Enabled Deploy And Hosted Allowed Auth (2026-06-04 13:11Z):**
+**Production Resend-Enabled Deploy And Hosted Owner Journey (2026-06-04 13:28Z):**
 Production is now redeployed from `main` at commit `083bf97` as Vercel
 deployment `dpl_2X6FytZUnK5ZaNsszVN4W8Wh6bXm`
 (`archestimator-e2l5q2tc7-philipjonlewis-projects.vercel.app`) and is Ready.
@@ -17,10 +17,17 @@ webhook secret. Computer Use against the owner Chrome session observed
 with Projects, Components, Templates, Settings, Favorites, a real favorite
 project, and `Send beta feedback`. Proof artifact:
 `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/vercel-production-resend-enabled-hosted-auth-2026-06-04T1311Z.json`.
-Hosted allowed-owner access is now current for this deployment; hosted
-denied/revoked/expired auth, residual Codex Security history-risk acceptance,
-full hosted beta journey, and hosted shared-link/invite email workflow smoke
-remain the main open proof gaps.
+Hosted allowed-owner access is now current for this deployment. A follow-up
+Computer Use journey artifact,
+`.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/hosted-owner-beta-journey-smoke-2026-06-04T1328Z.json`,
+records the owner session entering the hosted `Tropical House` project, creating
+the first estimate sheet (`ES-001 Estimate Sheet`), opening the estimate
+workspace, and opening the read-only Excel export preview. Owner-only hosted beta
+journey proof is now current for the single-tester beta; hosted
+denied/revoked/expired auth, logout/session-expiry proof, residual Codex
+Security history-risk acceptance, spreadsheet-app open/print proof if required
+for beta, and hosted shared-link/invite email workflow smoke remain the main
+open proof gaps.
 
 **Owner Signoff And Resend Email Enablement (2026-06-04 12:35Z):**
 Philip Lewis provided explicit closed-beta owner signoff in-thread with the
@@ -30,7 +37,7 @@ standing no-purchases boundary. Sanitized helper artifacts now record
 and `supportMonitoringReady: true` in
 `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/support-monitoring-owner-signoff-2026-06-04T1138Z.json`.
 Those are owner/operator closed-beta signoff artifacts, not legal advice or
-independent alert-dashboard verification. Email automation was first made explicitly default-off in code, then Resend provider proof closed later in the same launch pass. `resend-domain-verified-email-enabled-2026-06-04T1235Z.json` records Namecheap authoritative DNS readiness, Resend domain status `Verified`, a production-env send probe to `philipjonlewis@gmail.com` returning HTTP 200 with a provider message id, an enabled Resend dashboard webhook endpoint at `https://www.archestimator.com/api/webhooks/resend`, and a live unsigned webhook route probe returning HTTP 400 `Invalid webhook` instead of HTTP 503. Vercel Production and Preview(main) now pull non-secret launch flags `CLOSED_BETA_ACCESS_ENABLED="true"` and `ARCHESTIMATOR_EMAIL_DELIVERY_ENABLED="true"`; Resend API key and webhook secret values remain unrecorded. Hosted signed-out `/workshop` still redirects to `/login?next=%2Fworkshop` via `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/hosted-auth-signed-out-refresh-2026-06-04T1138Z.json`; hosted allowed-owner access was refreshed by the later 13:11Z production deploy/auth artifact, while denied/revoked/expired real-session smoke remains open. A hosted shared-link/invite email workflow smoke is still open before relying on automatic email UX as part of the full beta journey.
+independent alert-dashboard verification. Email automation was first made explicitly default-off in code, then Resend provider proof closed later in the same launch pass. `resend-domain-verified-email-enabled-2026-06-04T1235Z.json` records Namecheap authoritative DNS readiness, Resend domain status `Verified`, a production-env send probe to `philipjonlewis@gmail.com` returning HTTP 200 with a provider message id, an enabled Resend dashboard webhook endpoint at `https://www.archestimator.com/api/webhooks/resend`, and a live unsigned webhook route probe returning HTTP 400 `Invalid webhook` instead of HTTP 503. `resend-owner-inbox-receipt-2026-06-04T1348Z.json` records Philip's owner-reported receipt of the verified smoke email in `philipjonlewis@gmail.com`. Vercel Production and Preview(main) now pull non-secret launch flags `CLOSED_BETA_ACCESS_ENABLED="true"` and `ARCHESTIMATOR_EMAIL_DELIVERY_ENABLED="true"`; Resend API key and webhook secret values remain unrecorded. Hosted signed-out `/workshop` still redirects to `/login?next=%2Fworkshop` via `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/hosted-auth-signed-out-refresh-2026-06-04T1138Z.json`; hosted allowed-owner access was refreshed by the later 13:11Z production deploy/auth artifact, while denied/revoked/expired real-session smoke remains open. A hosted shared-link/invite email workflow smoke is still open before relying on automatic email UX.
 
 **Vercel Rollback Drill Closed (2026-06-04 11:12Z):**
 The production rollback gate now has real no-spend provider proof. Vercel CLI
@@ -110,9 +117,12 @@ env mutation, broad `supabase db push`, new Codex Security scan, or git-history
 rewrite occurred. Proof artifact:
 `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/codex-security-cheap-path-closures-2026-06-04T0934Z.json`.
 External closed beta is still not fully green: the two history-exposure findings
-remain open, and hosted denied/revoked/expired auth smoke, secondary
-spreadsheet-app export proof if required for beta, and the full hosted beta
-journey still need proof or explicit owner acceptance. Resend sender-domain proof is now closed by the later 12:35Z verified send/webhook artifact; hosted automatic-email workflow smoke remains open.
+remain open, and hosted denied/revoked/expired auth smoke, logout/session-expiry
+proof, and secondary spreadsheet-app export proof if required for beta still need
+proof or explicit owner acceptance. Resend sender-domain proof is now closed by
+the later 12:35Z verified send/webhook artifact; owner hosted beta journey proof
+is closed by the later 13:28Z artifact; hosted automatic-email workflow smoke
+remains open.
 
 **Codex Security Cheap-Path Refresh (2026-06-04 08:44Z):**
 Authenticated Codex Security proof now narrows the security blocker without
@@ -126,11 +136,13 @@ shows `0-0 of 0`. No scan was started, no finding was closed, and no paid
 provider/DNS/Vercel/Supabase setting changed. Proof artifact:
 `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/codex-security-cheap-path-refresh-2026-06-04T0844Z.json`.
 This means critical/high Codex Security findings are not the current blocker,
-but external closed beta is still not fully green: 35 visible open findings
-remain to rescan, close, or explicitly accept, alongside denied/revoked/expired
-hosted auth smoke, Resend sender-domain proof, rollback risk proof,
-legal/owner signoff, support/feedback/alert monitoring proof, secondary
-spreadsheet-app export proof, and the full hosted beta journey.
+but external closed beta is still not fully green. Later 2026-06-04 artifacts
+close Resend sender-domain proof, rollback proof, legal/owner/support signoff,
+hosted authenticated export, and the owner hosted beta journey. The remaining
+current gaps are residual Codex Security history-risk acceptance/remediation,
+denied/revoked/expired hosted auth smoke, logout/session-expiry proof, secondary
+spreadsheet-app export proof if required for beta, and hosted automatic-email
+workflow smoke before relying on automatic email UX.
 
 **Hosted Authenticated Export Proof (2026-06-04 08:07Z):**
 The no-extra-spend closed-beta path now has hosted authenticated XLSX export
@@ -150,10 +162,13 @@ records 28,189 bytes, ZIP magic `PK`, `unzip -t` success, SHA-256
 Vercel env, DNS, Supabase data, provider setting, paid add-on, PITR, compute, or
 migration state changed. Proof artifact:
 `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/hosted-export-browser-proof-2026-06-04T0807Z.json`.
-External closed beta is still not fully green: secondary spreadsheet-app
-open/print proof, full hosted beta journey proof, Codex Security
-rescan/acceptance, Resend MX/domain/delivery proof, rollback risk proof,
-legal/owner signoff, and support/feedback/alert monitoring proof remain open.
+External closed beta is still not fully green, but later 2026-06-04 artifacts
+close Resend provider proof, rollback proof, legal/owner/support signoff, and
+the owner hosted beta journey. Remaining current gaps are secondary
+spreadsheet-app open/print proof if required for beta, denied/revoked/expired
+auth smoke, logout/session-expiry proof, residual Codex Security
+history-risk acceptance/remediation, and hosted automatic-email workflow proof
+before relying on automatic email UX.
 
 **Hosted Feedback Admin Surface Proof (2026-06-04 07:50Z):**
 Computer Use proof against the active hosted Chrome session now shows
@@ -230,12 +245,12 @@ still open in the dashboard with a visible `Close` control; closure proof exists
 locally/provider-side, but the live dashboard close submission remains pending
 action-time confirmation. Proof artifact:
 `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/no-spend-live-launch-refresh-2026-06-04T0706Z.json`.
-Closed beta remains not fully green until remaining Codex Security findings,
-denied/revoked/expired hosted auth smoke, Resend MX/domain/delivery proof,
-legal/owner signoff,
-support/feedback/alert monitoring proof, secondary spreadsheet-app export
-open/print proof, and full hosted beta journey proof are complete or explicitly
-accepted.
+Later 2026-06-04 artifacts close Resend MX/domain/delivery proof,
+legal/owner/support signoff, and owner hosted beta journey proof. Closed beta
+remains not fully green until remaining Codex Security history-risk,
+denied/revoked/expired hosted auth smoke, logout/session-expiry proof, secondary
+spreadsheet-app export open/print proof if required for beta, and hosted
+automatic-email workflow proof are complete or explicitly accepted.
 
 **Codex Security Chart/XLSX Finding Closed (2026-06-04 06:49Z):**
 Authenticated Codex Security closure marked
@@ -326,10 +341,12 @@ Hosted Chrome proof now shows the owner Google session can reach production
 `/workshop/settings/profile` as `philipjonlewis@gmail.com` without hitting login
 or beta-access-required controls. Support-domain DNS is green for MX/SPF/DMARC.
 This is still not a fully green beta launch: PITR and restore drill remain
-intentionally absent from the no-new-spend path; denied/revoked/expired hosted
-auth smoke, Resend dashboard/delivery/webhook proof, legal/owner
-signoff, support/feedback/alert monitoring proof, hosted authenticated export,
-and full hosted beta journey proof remain open. Codex Security is also still a
+intentionally absent from the no-new-spend path; later artifacts close Resend
+dashboard/delivery/webhook proof, legal/owner/support signoff, hosted
+authenticated export, and the owner hosted beta journey. Denied/revoked/expired
+hosted auth smoke, logout/session-expiry proof, secondary spreadsheet-app
+open/print proof if required for beta, hosted automatic-email workflow proof,
+and residual Codex Security history-risk remain open. Codex Security is also still a
 launch blocker: the latest authenticated Scans page proof last scanned
 `2c7ffb97`, not current repo head `b9051f2`, and reports 4 critical, 6 high, 31
 medium, and 6 low scan-count badges. Proof artifact:
@@ -381,10 +398,11 @@ refresh time, `6297cec`; this proof update was later recorded in commit
 4, and no check-runs/status contexts on the observed latest commit. Proof artifact:
 `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/codex-security-dashboard-refresh-2026-06-04T0405Z.json`.
 This is still not a fully green
-beta launch: Codex Security rescan/owner acceptance, hosted Google OAuth
-denied/revoked/expired smoke, legal/owner confirmations, support/feedback/alert
-monitoring confirmations, hosted
-authenticated export, and full hosted beta journey remain open. Proof artifact:
+beta launch: later artifacts close legal/owner/support confirmations, hosted
+authenticated export, and the owner hosted beta journey, while Codex Security
+rescan/owner acceptance, hosted Google OAuth denied/revoked/expired smoke,
+logout/session-expiry proof, spreadsheet-app open/print proof if required for
+beta, and hosted automatic-email workflow proof remain open. Proof artifact:
 `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/cheap-launch-refresh-2026-06-04.json`.
 
 **Mass Deletion Cleanup Audit RPC Locked In Linked Supabase (2026-06-04):**
