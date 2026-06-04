@@ -1,0 +1,55 @@
+{
+  "artifactType": "codex-security-finding-closure-proof",
+  "recordedAt": "2026-06-04T06:17:05Z",
+  "costPosture": "no-new-paid-add-ons",
+  "finding": {
+    "id": "dffa059df9c88191a6caf46078089de5",
+    "title": "Republish can widen shared links to all estimate sheets",
+    "severity": "Medium",
+    "url": "https://chatgpt.com/codex/cloud/security/findings/dffa059df9c88191a6caf46078089de5?repo=https%3A%2F%2Fgithub.com%2Fpjel888%2Farchestimator&sev=",
+    "reportedCommit": "95b2142"
+  },
+  "currentRepoProof": {
+    "branch": "main",
+    "head": "668f79cb3f41c5d731f47de22219807974dd3665",
+    "fixCommitPreviouslyRecorded": "84f12e3",
+    "productionDeploymentPreviouslyRecorded": "dpl_5MXgQGJYUr8QjEmRgvX2DhioPZ2o",
+    "sourceControls": [
+      "src/lib/repositories/workspace-repository.ts getProjectPublicationSummary returns publication.selected_estimate_ids as selectedEstimateIds.",
+      "src/components/workshop/ProjectPublicationHeader.tsx defaults the sheet picker from summary.selectedEstimateIds for already-published links.",
+      "The default selected sheet set is filtered to available estimate ids instead of being widened to every project sheet.",
+      "The no-change Update shared page path calls republishProjectPublication with the existing selectedEstimateIds subset."
+    ],
+    "graphProof": {
+      "command": "/Users/philiplewis/.nvm/versions/node/v25.8.0/bin/gitnexus context ProjectPublicationHeader -r archestimator --content",
+      "result": "ProjectPublicationHeader content shows summarySelectedEstimateIds feeding defaultSelectedEstimateIds for published links and only falling back to all estimate ids when there is no persisted published subset."
+    }
+  },
+  "freshVerification": {
+    "command": "bunx vitest run tests/vitest/project-publication-header.test.tsx tests/vitest/project-publication-summary.test.ts tests/vitest/project-publication-actions.test.ts --maxWorkers=1 --reporter=dot",
+    "result": "PASS: 3 files / 47 tests"
+  },
+  "dashboardProof": {
+    "preClosureFindingCount": "1-20 of 39",
+    "closeReasonSelected": "Already fixed",
+    "submittedContext": "Current main preserves persisted publication sheet scope during republish. getProjectPublicationSummary now returns selectedEstimateIds from selected_estimate_ids, and ProjectPublicationHeader defaults the sheet picker from summary.selectedEstimateIds for published links instead of every project sheet. The no-change Update shared page path therefore calls republishProjectPublication with the existing subset rather than widening to all sheets. Verified on 2026-06-04 with: bunx vitest run tests/vitest/project-publication-header.test.tsx tests/vitest/project-publication-summary.test.ts tests/vitest/project-publication-actions.test.ts --maxWorkers=1 --reporter=dot (3 files / 47 tests). Finding was against old commit 95b2142; current main is 668f79c.",
+    "postSubmitBehavior": "Codex Security advanced to the next finding, Project images are uploaded to a public listable bucket.",
+    "revisitedFindingStatus": "Closed by philipjonlewis@gmail.com. Reason: Fixed.",
+    "postClosureControls": [
+      "Reopen"
+    ],
+    "postClosureFindingCount": "1-20 of 38",
+    "hydrationNotes": "The first direct revisit attempt timed out during navigation; a bounded retry hydrated the closed finding page."
+  },
+  "githubProof": {
+    "openIssues": 0,
+    "openPullRequests": 0,
+    "historicalCodexPullRequestComments": "present in gh api repos/pjel888/archestimator/pulls/comments, but no active open PR or issue queue was found."
+  },
+  "proofBoundaries": [
+    "No secrets, cookies, localStorage values, or signed validation-artifact URLs were copied into this artifact.",
+    "This closes one Codex Security finding only and does not prove all remaining findings are closed.",
+    "No provider billing, DNS, Supabase, or Vercel configuration writes were made for this proof artifact.",
+    "Closed-beta launch remains blocked by remaining Codex Security findings plus hosted OAuth denied/revoked/expired smoke, Resend provider proof, rollback risk proof, legal/owner signoff, and support/alert monitoring proof."
+  ]
+}

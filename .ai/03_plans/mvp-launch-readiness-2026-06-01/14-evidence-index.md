@@ -1,5 +1,30 @@
 # Evidence Index
 
+## Codex Security Republish-Scope Finding Closure - 2026-06-04 06:17Z
+
+- Primary artifact: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/codex-security-republish-scope-finding-close-2026-06-04T0617Z.json`.
+- Dashboard action: authenticated Codex Security finding
+  `Republish can widen shared links to all estimate sheets` was closed as
+  `Already fixed` / `Reason: Fixed`; revisiting the original finding shows
+  `Closed by philipjonlewis@gmail.com`, a `Reopen` control, and the Findings
+  page count dropped from `1-20 of 39` to `1-20 of 38`.
+- Repo proof: current `main` head
+  `668f79cb3f41c5d731f47de22219807974dd3665` keeps persisted
+  `selected_estimate_ids` in the publication summary and defaults
+  `ProjectPublicationHeader` published-link sheet selection from that persisted
+  subset instead of every project sheet. The closed finding was against old
+  commit `95b2142`; the fix was already deployed and recorded under commit
+  `84f12e3`.
+- Fresh verification:
+  `bunx vitest run tests/vitest/project-publication-header.test.tsx tests/vitest/project-publication-summary.test.ts tests/vitest/project-publication-actions.test.ts --maxWorkers=1 --reporter=dot`
+  passed 3 files / 47 tests.
+- GitHub queue check: no open issues or open PRs were found; historical Codex
+  PR comments exist, but no active open GitHub queue was found for this closure.
+- Still open: remaining Codex Security findings still need closure/rescan/owner
+  acceptance; hosted denied/revoked/expired beta-auth smoke, Resend domain/
+  delivery proof, rollback risk proof, legal/owner signoff, and support/alert
+  monitoring proof remain open before a fully green closed beta.
+
 ## Codex Security Password-Metadata Finding Closure - 2026-06-04 06:10Z
 
 - Primary artifact: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/codex-security-password-metadata-finding-close-2026-06-04T0610Z.json`.

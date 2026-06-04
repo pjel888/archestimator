@@ -10,6 +10,29 @@
 The cheaper closed-beta provider path is partially proven, but the current Codex Security dashboard still lists open findings against `pjel888/archestimator`. Closed beta cannot be honestly called launch-ready until the findings are triaged and either fixed, accepted by owner/legal/security judgment, or proven stale/false-positive with evidence.
 
 
+## Republish Scope Finding Closure - 2026-06-04T06:17Z
+
+- Artifact: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/codex-security-republish-scope-finding-close-2026-06-04T0617Z.json`.
+- Finding: `Republish can widen shared links to all estimate sheets`, medium,
+  originally against old commit `95b2142`.
+- Current repo proof: `main` head
+  `668f79cb3f41c5d731f47de22219807974dd3665` returns persisted
+  `selectedEstimateIds` from `getProjectPublicationSummary`, and
+  `ProjectPublicationHeader` defaults published-link sheet selection from that
+  persisted subset instead of every project sheet.
+- Fresh verification:
+  `bunx vitest run tests/vitest/project-publication-header.test.tsx tests/vitest/project-publication-summary.test.ts tests/vitest/project-publication-actions.test.ts --maxWorkers=1 --reporter=dot`
+  passed 3 files / 47 tests.
+- Dashboard closure proof: authenticated Codex Security close submitted
+  `Already fixed`; revisiting the original finding shows `Closed by
+  philipjonlewis@gmail.com. Reason: Fixed`, a `Reopen` control, and the
+  Findings page count dropped from `1-20 of 39` to `1-20 of 38`.
+- GitHub queue check: no open issues or open PRs were found; historical Codex
+  PR comments exist, but no active open GitHub queue was found for this closure.
+- Launch meaning: this closes only the republish-scope finding. The overall bug
+  remains open until the remaining findings are closed/rescanned/accepted and
+  the remaining hosted provider/manual proof gaps are handled.
+
 ## Password Metadata Finding Closure - 2026-06-04T06:10Z
 
 - Artifact: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/codex-security-password-metadata-finding-close-2026-06-04T0610Z.json`.
@@ -170,7 +193,7 @@ The cheaper closed-beta provider path is partially proven, but the current Codex
   commits. Do not treat the remaining dashboard findings as closed until Codex
   Security rescans/clears them or the owner explicitly accepts the residual risk.
 
-Latest first-page finding titles after the 2026-06-04T06:10Z password-metadata
+Latest first-page finding titles after the 2026-06-04T06:17Z republish-scope
 closure:
 
 1. `Project deletion no longer cleans project image objects`
@@ -187,14 +210,14 @@ closure:
 12. `Committed public share token and user project data`
 13. `Unbounded share tree parsing can DoS share renders`
 14. `Global comment circuit breaker can be tripped by bad UUIDs`
-15. `Republish can widen shared links to all estimate sheets`
-16. `Project images are uploaded to a public listable bucket`
-17. `AI Ask endpoint lacks quota and fails open on audit`
-18. `Unbounded chart and XLSX export loading can exhaust server resources`
-19. `Direct RLS grants bypass component price audit`
-20. `Viewer members can mutate library folders`
+15. `Project images are uploaded to a public listable bucket`
+16. `AI Ask endpoint lacks quota and fails open on audit`
+17. `Unbounded chart and XLSX export loading can exhaust server resources`
+18. `Direct RLS grants bypass component price audit`
+19. `Viewer members can mutate library folders`
+20. `CSV export allows spreadsheet formula injection`
 
-## Current Findings Snapshot After Share-Image, Stale-Decision, Stale-Comment, And Password-Metadata Closures
+## Current Findings Snapshot After Share-Image, Stale-Decision, Stale-Comment, Password-Metadata, And Republish-Scope Closures
 
 | # | Severity | Finding |
 |---|---|---|
@@ -212,31 +235,30 @@ closure:
 | 12 | medium | Committed public share token and user project data |
 | 13 | medium | Unbounded share tree parsing can DoS share renders |
 | 14 | medium | Global comment circuit breaker can be tripped by bad UUIDs |
-| 15 | medium | Republish can widen shared links to all estimate sheets |
-| 16 | medium | Project images are uploaded to a public listable bucket |
-| 17 | medium | AI Ask endpoint lacks quota and fails open on audit |
-| 18 | medium | Unbounded chart and XLSX export loading can exhaust server resources |
-| 19 | medium | Direct RLS grants bypass component price audit |
-| 20 | medium | Viewer members can mutate library folders |
-| 21 | medium | CSV export allows spreadsheet formula injection |
-| 22 | medium | Unpinned MCP tooling auto-executes external packages |
-| 23 | medium | Proposal pages now expose internal unit-rate details |
-| 24 | medium | Confidential client proposal committed to repository |
-| 25 | low | Public activity cursors leak raw database IDs |
-| 26 | low | Client activity view models leak raw UUID identifiers |
-| 27 | low | Hosted export proof leaks project names in artifacts |
-| 28 | low | Unescaped tree node IDs can crash share-page navigation |
-| 29 | low | Persisted row image URLs can track estimate viewers |
-| 30 | low | Unvalidated component source URLs allow script links |
-| 31 | informational | Prompt overrides no-auto-merge policy and pushes main |
-| 32 | informational | Bid workbook formulas omit contingency costs |
-| 33 | informational | Shared-link recipient email exposed to project viewers |
-| 34 | informational | Codex config auto-runs unpinned external tooling |
-| 35 | informational | Folder delete can fail from sort-order collision |
-| 36 | informational | Workspace seed migration reuses global item UUIDs |
-| 37 | informational | Optimistic tree IDs can be submitted as parents |
-| 38 | informational | Luna Heights seed estimate is rebuilt then deleted |
-| 39 | informational | Production grid accepts negative estimate numbers |
+| 15 | medium | Project images are uploaded to a public listable bucket |
+| 16 | medium | AI Ask endpoint lacks quota and fails open on audit |
+| 17 | medium | Unbounded chart and XLSX export loading can exhaust server resources |
+| 18 | medium | Direct RLS grants bypass component price audit |
+| 19 | medium | Viewer members can mutate library folders |
+| 20 | medium | CSV export allows spreadsheet formula injection |
+| 21 | medium | Unpinned MCP tooling auto-executes external packages |
+| 22 | medium | Proposal pages now expose internal unit-rate details |
+| 23 | medium | Confidential client proposal committed to repository |
+| 24 | low | Public activity cursors leak raw database IDs |
+| 25 | low | Client activity view models leak raw UUID identifiers |
+| 26 | low | Hosted export proof leaks project names in artifacts |
+| 27 | low | Unescaped tree node IDs can crash share-page navigation |
+| 28 | low | Persisted row image URLs can track estimate viewers |
+| 29 | low | Unvalidated component source URLs allow script links |
+| 30 | informational | Prompt overrides no-auto-merge policy and pushes main |
+| 31 | informational | Bid workbook formulas omit contingency costs |
+| 32 | informational | Shared-link recipient email exposed to project viewers |
+| 33 | informational | Codex config auto-runs unpinned external tooling |
+| 34 | informational | Folder delete can fail from sort-order collision |
+| 35 | informational | Workspace seed migration reuses global item UUIDs |
+| 36 | informational | Optimistic tree IDs can be submitted as parents |
+| 37 | informational | Luna Heights seed estimate is rebuilt then deleted |
+| 38 | informational | Production grid accepts negative estimate numbers |
 
 ## Speed Insights Finding Remediation
 
@@ -325,7 +347,7 @@ closure:
   - Repo fix deployed in `84f12e3` / production `dpl_5MXgQGJYUr8QjEmRgvX2DhioPZ2o`: `getProjectPublicationSummary()` now returns persisted `selectedEstimateIds`, and `ProjectPublicationHeader` defaults the live-link sheet picker from that persisted scope instead of every project sheet when `summary.status === "published"`.
   - Verification: red/green `tests/vitest/project-publication-header.test.tsx -t "does not widen" --maxWorkers=1` first failed on the old all-sheet default, then passed after the fix; full affected publication header/summary/actions suite passed 3 files / 47 tests; `bun run type-check`, `bun run lint` with 12 existing warnings / 0 errors, `git diff --check`, `bun run build`, code-review-graph detect/affected-flow/impact checks, and `npx gitnexus analyze` / status passed.
   - Hosted smoke: production deploy `dpl_5MXgQGJYUr8QjEmRgvX2DhioPZ2o` is Ready and aliased to `https://www.archestimator.com`, `https://archestimator.com`, and `https://archestimator.vercel.app`; `https://www.archestimator.com/api/health` returned HTTP 200, apex `/api/health` redirected to `www`, `/login` returned HTTP 200, and signed-out `/workshop` returned HTTP 307 to `/login?next=%2Fworkshop`.
-  - Proof gap: no hosted manual republish against a real previously subset-scoped project was run; dashboard status remains pending Codex Security rescan/closure.
+  - Dashboard status: authenticated Codex Security closure on 2026-06-04T06:17Z marked the finding `Already fixed` / `Reason: Fixed`; revisiting the original finding shows `Closed by philipjonlewis@gmail.com`, a `Reopen` control, and the Findings page count dropped from `1-20 of 39` to `1-20 of 38`. Fresh proof test at current `main` head `668f79c` passed 3 files / 47 tests.
 - Finding: `Project images are uploaded to a public listable bucket`.
   - Repo fix deployed in `ea4aa95` / production `dpl_AinsiY5f2yaS3pED1zGnfKzKumwE`: project cover uploads now use the private `project-images` bucket, return same-origin `/api/projects/images?path=...` URLs, and serve only after authenticated project access resolves. Public share snapshot image normalization strips project-image route/storage URLs, `next.config.ts` no longer allows public `project-images` remotes, project cleanup targets the private bucket, and existing project metadata was rewritten to private route URLs.
   - Linked Supabase proof: exact-file `db query --linked` applied `20260603222628_private_project_image_storage.sql`; `migration repair --linked --status applied 20260603222628` succeeded; follow-up exact-file apply of `20260603224800_qualify_project_image_storage_policies.sql` repaired policy predicates with explicit `storage.objects.name` qualification and full UUID checks, with version `20260603224800` recorded remotely. Readback verified `project-images.public=false`, `component-images` public policy excludes `/project-images/`, old public component-bucket project-image object count `0`, private project-image object count `6`, project metadata public references `0`, private route references `3`, and project-image read/insert/update/delete policies present.
@@ -378,8 +400,8 @@ closure:
   - Verification: `tests/vitest/security-findings-contracts.test.ts` passed after adding the trigger-order contract; refreshed again on 2026-06-04T03:40Z with `bunx vitest run tests/vitest/security-findings-contracts.test.ts --maxWorkers=1 --reporter=dot` (1 file / 17 tests).
 - Dashboard status: remaining entries in this section still require Codex cloud
   rescan/closure before they can be treated as closed; the share-image,
-  stale-decision, stale-comment, and password-metadata findings above are the
-  entries currently closed in the dashboard.
+  stale-decision, stale-comment, password-metadata, and republish-scope findings
+  above are the entries currently closed in the dashboard.
 
 ## Immediate Triage Order
 
