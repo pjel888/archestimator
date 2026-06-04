@@ -10,6 +10,34 @@
 The cheaper closed-beta provider path is partially proven, but the current Codex Security dashboard still lists open findings against `pjel888/archestimator`. Closed beta cannot be honestly called launch-ready until the findings are triaged and either fixed, accepted by owner/legal/security judgment, or proven stale/false-positive with evidence.
 
 
+## Project Images Finding Closure - 2026-06-04T06:32Z
+
+- Artifact: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/codex-security-project-images-finding-close-2026-06-04T0632Z.json`.
+- Finding: `Project images are uploaded to a public listable bucket`, medium,
+  originally against old commit `2df73a8`.
+- Current repo proof: `main` head
+  `8378f4dbb170e9cc7c906987bb7d6a94abafae38` serves project covers through
+  authenticated `/api/projects/images`, uses private `project-images` storage,
+  rejects `/project-images/` from public share image normalization, and does not
+  allow public `project-images` remotes in `next.config.ts`.
+- Linked/provider proof: the existing project-images proof artifact records
+  `project-images.public=false`, `0` remaining public component-bucket
+  project-image objects, direct public project-image URL denial, and signed-out
+  same-origin `/api/projects/images?path=...` redirect to `/login`.
+- Fresh verification:
+  `bunx vitest run tests/vitest/security-findings-contracts.test.ts tests/vitest/auth-sensitive-api-boundaries.test.ts tests/vitest/project-publication-snapshot.test.ts --maxWorkers=1 --reporter=dot`
+  passed 3 files / 34 tests.
+- Dashboard closure proof: authenticated Codex Security close submitted
+  `Already fixed`; revisiting the original finding shows a `Reopen` control.
+  The open-list first page no longer includes the project-images finding and
+  pulled `Unpinned MCP tooling auto-executes external packages` into the visible
+  page; no numeric count-drop claim is made because this DOM view did not expose
+  the count line.
+- GitHub queue check: no open issues or open PRs were found.
+- Launch meaning: this closes only the project-images finding. The overall bug
+  remains open until the remaining findings are closed/rescanned/accepted and
+  the remaining hosted provider/manual proof gaps are handled.
+
 ## Republish Scope Finding Closure - 2026-06-04T06:17Z
 
 - Artifact: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/codex-security-republish-scope-finding-close-2026-06-04T0617Z.json`.
@@ -193,7 +221,7 @@ The cheaper closed-beta provider path is partially proven, but the current Codex
   commits. Do not treat the remaining dashboard findings as closed until Codex
   Security rescans/clears them or the owner explicitly accepts the residual risk.
 
-Latest first-page finding titles after the 2026-06-04T06:17Z republish-scope
+Latest first-page finding titles after the 2026-06-04T06:32Z project-images
 closure:
 
 1. `Project deletion no longer cleans project image objects`
@@ -210,14 +238,14 @@ closure:
 12. `Committed public share token and user project data`
 13. `Unbounded share tree parsing can DoS share renders`
 14. `Global comment circuit breaker can be tripped by bad UUIDs`
-15. `Project images are uploaded to a public listable bucket`
-16. `AI Ask endpoint lacks quota and fails open on audit`
-17. `Unbounded chart and XLSX export loading can exhaust server resources`
-18. `Direct RLS grants bypass component price audit`
-19. `Viewer members can mutate library folders`
-20. `CSV export allows spreadsheet formula injection`
+15. `AI Ask endpoint lacks quota and fails open on audit`
+16. `Unbounded chart and XLSX export loading can exhaust server resources`
+17. `Direct RLS grants bypass component price audit`
+18. `Viewer members can mutate library folders`
+19. `CSV export allows spreadsheet formula injection`
+20. `Unpinned MCP tooling auto-executes external packages`
 
-## Current Findings Snapshot After Share-Image, Stale-Decision, Stale-Comment, Password-Metadata, And Republish-Scope Closures
+## Current Findings Snapshot After Share-Image, Stale-Decision, Stale-Comment, Password-Metadata, Republish-Scope, And Project-Images Closures
 
 | # | Severity | Finding |
 |---|---|---|
@@ -235,30 +263,29 @@ closure:
 | 12 | medium | Committed public share token and user project data |
 | 13 | medium | Unbounded share tree parsing can DoS share renders |
 | 14 | medium | Global comment circuit breaker can be tripped by bad UUIDs |
-| 15 | medium | Project images are uploaded to a public listable bucket |
-| 16 | medium | AI Ask endpoint lacks quota and fails open on audit |
-| 17 | medium | Unbounded chart and XLSX export loading can exhaust server resources |
-| 18 | medium | Direct RLS grants bypass component price audit |
-| 19 | medium | Viewer members can mutate library folders |
-| 20 | medium | CSV export allows spreadsheet formula injection |
-| 21 | medium | Unpinned MCP tooling auto-executes external packages |
-| 22 | medium | Proposal pages now expose internal unit-rate details |
-| 23 | medium | Confidential client proposal committed to repository |
-| 24 | low | Public activity cursors leak raw database IDs |
-| 25 | low | Client activity view models leak raw UUID identifiers |
-| 26 | low | Hosted export proof leaks project names in artifacts |
-| 27 | low | Unescaped tree node IDs can crash share-page navigation |
-| 28 | low | Persisted row image URLs can track estimate viewers |
-| 29 | low | Unvalidated component source URLs allow script links |
-| 30 | informational | Prompt overrides no-auto-merge policy and pushes main |
-| 31 | informational | Bid workbook formulas omit contingency costs |
-| 32 | informational | Shared-link recipient email exposed to project viewers |
-| 33 | informational | Codex config auto-runs unpinned external tooling |
-| 34 | informational | Folder delete can fail from sort-order collision |
-| 35 | informational | Workspace seed migration reuses global item UUIDs |
-| 36 | informational | Optimistic tree IDs can be submitted as parents |
-| 37 | informational | Luna Heights seed estimate is rebuilt then deleted |
-| 38 | informational | Production grid accepts negative estimate numbers |
+| 15 | medium | AI Ask endpoint lacks quota and fails open on audit |
+| 16 | medium | Unbounded chart and XLSX export loading can exhaust server resources |
+| 17 | medium | Direct RLS grants bypass component price audit |
+| 18 | medium | Viewer members can mutate library folders |
+| 19 | medium | CSV export allows spreadsheet formula injection |
+| 20 | medium | Unpinned MCP tooling auto-executes external packages |
+| 21 | medium | Proposal pages now expose internal unit-rate details |
+| 22 | medium | Confidential client proposal committed to repository |
+| 23 | low | Public activity cursors leak raw database IDs |
+| 24 | low | Client activity view models leak raw UUID identifiers |
+| 25 | low | Hosted export proof leaks project names in artifacts |
+| 26 | low | Unescaped tree node IDs can crash share-page navigation |
+| 27 | low | Persisted row image URLs can track estimate viewers |
+| 28 | low | Unvalidated component source URLs allow script links |
+| 29 | informational | Prompt overrides no-auto-merge policy and pushes main |
+| 30 | informational | Bid workbook formulas omit contingency costs |
+| 31 | informational | Shared-link recipient email exposed to project viewers |
+| 32 | informational | Codex config auto-runs unpinned external tooling |
+| 33 | informational | Folder delete can fail from sort-order collision |
+| 34 | informational | Workspace seed migration reuses global item UUIDs |
+| 35 | informational | Optimistic tree IDs can be submitted as parents |
+| 36 | informational | Luna Heights seed estimate is rebuilt then deleted |
+| 37 | informational | Production grid accepts negative estimate numbers |
 
 ## Speed Insights Finding Remediation
 
@@ -353,7 +380,7 @@ closure:
   - Linked Supabase proof: exact-file `db query --linked` applied `20260603222628_private_project_image_storage.sql`; `migration repair --linked --status applied 20260603222628` succeeded; follow-up exact-file apply of `20260603224800_qualify_project_image_storage_policies.sql` repaired policy predicates with explicit `storage.objects.name` qualification and full UUID checks, with version `20260603224800` recorded remotely. Readback verified `project-images.public=false`, `component-images` public policy excludes `/project-images/`, old public component-bucket project-image object count `0`, private project-image object count `6`, project metadata public references `0`, private route references `3`, and project-image read/insert/update/delete policies present.
   - HTTP proof: cache-busted old public component-image project object returned HTTP 400 `Object not found`; direct public `project-images` bucket URL returned HTTP 400; unauthenticated same-origin `/api/projects/images?path=...` returned HTTP 307 to `/login`.
   - Verification: focused storage/security contract passed `tests/vitest/security-findings-contracts.test.ts` after the policy repair; earlier affected suite for the code change passed 6 files / 69 tests, `bun run type-check`, `bun run lint` with existing warnings / 0 errors, `git diff --check`, and `bun run build`. Proof artifact: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/project-images-private-storage-2026-06-04.json`.
-  - Dashboard status: pending Codex Security rescan/closure; hosted signed-in image-view proof with a real beta browser session remains useful but is not required to prove the public/listable bucket exposure is removed.
+  - Dashboard status: authenticated Codex Security closure on 2026-06-04T06:32Z marked the finding `Already fixed` / `Reason: Fixed`; revisiting the original finding shows a `Reopen` control. Fresh proof test at current `main` head `8378f4d` passed 3 files / 34 tests.
 - Finding: `AI Ask endpoint lacks quota and fails open on audit`.
   - Repo fix deployed in `e48eb0f` / production `dpl_GbaEYo8NPmFVS6MQCirpqRBs5RF3`: `/api/ai/ask` now checks durable quota in `security_rate_limit_events` before workspace context reads or provider calls, returns HTTP 429 with `Retry-After` on quota denial, returns HTTP 503 when quota storage is unavailable, requires a `started` Ask audit upsert before DeepSeek is called, withholds successful provider output unless the `completed` audit update succeeds, and requires failed audit persistence for read-context/provider failures before returning their normal error response.
   - Verification: red/green AI Ask route coverage first failed on the old behavior, then focused AI route/audit verification passed 5 files / 66 tests; `bun run type-check`, `bun run lint` with 12 existing warnings / 0 errors, `bun run build`, `git diff --check`, GitNexus staged detect-changes LOW risk with 0 affected processes, and production Vercel build/deploy all passed. Proof artifact: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/ai-ask-quota-audit-fail-closed-2026-06-04.json`.

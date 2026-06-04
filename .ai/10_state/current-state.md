@@ -1,5 +1,21 @@
 # Current State
 
+**Codex Security Project-Images Finding Closed (2026-06-04 06:32Z):**
+Authenticated Codex Security closure marked
+`Project images are uploaded to a public listable bucket` as `Already fixed`.
+Revisiting finding `ef28fcd51ca48191b1359319cad1a3b2` shows a `Reopen`
+control, and the open-list first page no longer includes the project-images
+finding. Current `main` head `8378f4d` keeps project cover uploads on private
+`project-images` storage, requires an authenticated project-image route before
+serving covers, strips `/project-images/` from public share image URLs, and does
+not allow public `project-images` remotes. Fresh verification passed 3 files /
+34 tests:
+`bunx vitest run tests/vitest/security-findings-contracts.test.ts tests/vitest/auth-sensitive-api-boundaries.test.ts tests/vitest/project-publication-snapshot.test.ts --maxWorkers=1 --reporter=dot`.
+Proof artifact:
+`.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/codex-security-project-images-finding-close-2026-06-04T0632Z.json`.
+This closes one Codex Security finding only; remaining Codex Security findings
+and hosted/manual/provider gates still block a fully green closed beta.
+
 **Resend Webhook Body Limit Deployed (2026-06-04 05:07Z):**
 Production deployment `dpl_6xBegV7JS3WRfZYnN1mWTeY62b38` is `READY` from
 `main` commit `c6aa6dd`, and aliases include `https://www.archestimator.com`,
