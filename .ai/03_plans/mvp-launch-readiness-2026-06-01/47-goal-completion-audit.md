@@ -5,14 +5,14 @@
 | Requirement | Current status | Evidence |
 | --- | --- | --- |
 | Use the cheaper launch path | **Active / accepted for owner-only pre-launch beta**. Supabase stays on `MICRO`, PITR stays disabled, no Small-compute PITR bump or new paid provider add-on was enabled. | `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/cheap-beta-launch-audit-2026-06-04T0735Z.json` |
-| Production domain proves beta app, not teaser | **Proven fresh**. `www` health returns HTTP 200 with Archestimator health JSON; apex health redirects to `www`; `/login` returns the app title; signed-out `/workshop` redirects to login. | Same artifact; Vercel deployment `dpl_6xBegV7JS3WRfZYnN1mWTeY62b38` |
+| Production domain proves beta app, not teaser | **Proven fresh**. Computer Use shows the owner Chrome session inside the workshop Profile settings surface on `archestimator.com`; Vercel inspect/alias proof shows `archestimator.com`, `www.archestimator.com`, and `archestimator.vercel.app` all on production deployment `dpl_6xBegV7JS3WRfZYnN1mWTeY62b38`; `www` health, login Google sign-in copy, and signed-out workshop redirect pass. | `live-closed-beta-refresh-2026-06-04T1006Z.json` |
 | Required Vercel env names | **Proven by name, not by secret value**. Production has app URL/origin, Supabase public/server, closed-beta, publication, Resend, and AI-off env names. | Same artifact; secret values intentionally not recorded |
 | Supabase project identity and cost posture | **Proven fresh**. Project `ebxxqidacheyapmmzavr` is already named `Archestimator`, `ACTIVE_HEALTHY`, Postgres `17.6.1.121`, region `ap-southeast-2`; ref is immutable and not renamed. | Same artifact plus earlier compute/backups proof |
-| Supabase migration/readiness and allowlist | **Previously proven on cheap path; not broadly pushed**. Required launch migrations/readiness and the one active tester `philipjonlewis@gmail.com` are recorded in existing artifacts. No broad `supabase db push` ran. | `supabase-migration-readiness-cheap-refresh-2026-06-04.json`, `supabase-linked-readiness-cheap-refresh-2026-06-04.json`, `closed-beta-allowlist-direct-readback-2026-06-04T0329Z.json` |
+| Supabase migration/readiness and allowlist | **Previously proven on cheap path; refreshed allowlist readback green**. Required launch migrations/readiness and the one active tester `philipjonlewis@gmail.com` are recorded in existing artifacts and re-read from linked Supabase at 10:06Z. No broad `supabase db push` ran. | `live-closed-beta-refresh-2026-06-04T1006Z.json`, `supabase-migration-readiness-cheap-refresh-2026-06-04.json`, `supabase-linked-readiness-cheap-refresh-2026-06-04.json`, `closed-beta-allowlist-direct-readback-2026-06-04T0329Z.json` |
 | Backup/DR | **Cheaper-path accepted, strict PITR gate still false**. Daily physical backups and off-repo logical dump proof exist; PITR and restore drill remain absent by decision. | `supabase-backup-readiness-live-refresh-2026-06-04T0428Z.json`, `supabase-compute-cheaper-path-2026-06-04.json` |
 | Resend/email | **Blocked by no-cost DNS/provider proof**. Webhook endpoint/secret proof exists, but `send.contact.archestimator.com` has no MX. | `resend-dashboard-dns-webhook-refresh-2026-06-04T0446Z.json`; fresh DNS in cheap audit |
 | GitHub queue | **Clear**. No open issues or PRs found. | Same cheap audit |
-| Codex Security | **Blocked on residual history-risk acceptance/remediation**. GitHub queue is clear, and the cheap-path Codex Security closure batch reduced the repo-filtered actionable view to `1-2 of 2`. The remaining open findings are source-control/history-exposure risks that require owner acceptance or an explicit history-purge workflow; no paid scan, PITR, compute bump, or history rewrite occurred. | `codex-security-cheap-path-closures-2026-06-04T0934Z.json`, `codex-security-cheap-path-refresh-2026-06-04T0844Z.json` |
+| Codex Security | **Blocked on residual history-risk acceptance/remediation**. GitHub queue is clear, and fresh Computer Use proof still shows the repo-filtered actionable view at `1-2 of 2`. The remaining open findings are source-control/history-exposure risks that require owner acceptance or an explicit history-purge workflow; no paid scan, PITR, compute bump, or history rewrite occurred. | `live-closed-beta-refresh-2026-06-04T1006Z.json`, `codex-security-cheap-path-closures-2026-06-04T0934Z.json` |
 | Owner/legal/support monitoring | **Blocked, with one hosted surface now proven**. Support DNS exists for apex forwarding, and hosted owner-session access to the beta feedback review surface is now proven. Monitored inbox cadence, feedback queue review cadence, alert/incident monitoring, and legal/owner signoff are not proven. | `hosted-feedback-admin-proof-2026-06-04T0750Z.json`, same cheap audit plus support/legal artifacts |
 | Hosted authenticated export | **Proven fresh**. Owner Chrome session rendered the production Lewis Residence estimate workspace, opened `Preview Excel Export`, downloaded `AE-LR-001-ES-001-proposal.xlsx`, and sanitized validation proved XLSX ZIP integrity plus the expected workbook sheets. Signed-out curl redirects to login. | `hosted-export-browser-proof-2026-06-04T0807Z.json` |
 
@@ -131,6 +131,23 @@ These are required before the active goal can be marked complete:
 ## Completion Decision
 
 Current decision: **DO NOT MARK GOAL COMPLETE**.
+
+## Live Closed-Beta Refresh - 2026-06-04 10:06Z
+
+- Proof artifact:
+  `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/live-closed-beta-refresh-2026-06-04T1006Z.json`.
+- `archestimator.com` / `www.archestimator.com` are now proven to serve the
+  beta app deployment, not only the teaser branch. Computer Use observed the
+  owner Chrome session inside the workshop Profile settings surface; Vercel
+  inspect and alias table show custom domains attached to production deployment
+  `dpl_6xBegV7JS3WRfZYnN1mWTeY62b38`.
+- Vercel Production env-name readiness passes; `www` health and login pass;
+  signed-out `/workshop` redirects to login; linked Supabase allowlist contains
+  only active tester `philipjonlewis@gmail.com`; GitHub issues/PRs are empty.
+- Still not complete: residual Codex Security history findings, missing Resend
+  `send.contact` MX, rollback drill, legal/owner signoff, support/monitoring
+  proof, denied/revoked/expired hosted auth smoke, and full hosted journey
+  proof remain open.
 
 ## Codex Security Cheap-Path Update - 2026-06-04 08:44Z
 

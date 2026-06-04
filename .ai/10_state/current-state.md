@@ -1,5 +1,29 @@
 # Current State
 
+**Live Closed-Beta Refresh (2026-06-04 10:06Z):**
+Fresh no-spend live proof shows the closed-beta app is on the production custom
+domains. Computer Use observed the owner Chrome session at
+`https://archestimator.com/workshop/settings/profile` rendering the
+Archestimator workshop shell, `Profile settings`, display name `Philip Lewis`,
+category `Architect`, country/region `Philippines`, a `Save profile` button,
+and a `Send beta feedback` link. CLI proof shows
+`https://www.archestimator.com/api/health` returns HTTP 200 app health JSON,
+`/login` returns HTTP 200 with `Continue with Google` and closed-beta copy, and
+signed-out `/workshop` returns HTTP 307 to `/login?next=%2Fworkshop`. Vercel
+inspect shows production deployment `dpl_6xBegV7JS3WRfZYnN1mWTeY62b38` is
+`READY` and aliased to `www.archestimator.com`, `archestimator.com`, and
+`archestimator.vercel.app`; the alias table confirms both custom domains now
+source from `archestimator-br665yc8u-philipjonlewis-projects.vercel.app`, while
+the old teaser branch remains only on its branch alias. Vercel Production env
+names are ready for closed-beta runtime, Supabase, publication secrets, Resend,
+invite delivery, and AI-off flags. Linked Supabase readback shows exactly one
+active allowlist row: `philipjonlewis@gmail.com`. GitHub has no open issues or
+PRs. Codex Security still shows `1-2 of 2`, both history-exposure findings; the
+Resend sender path still lacks `send.contact.archestimator.com` MX; rollback,
+legal/owner, support/monitoring, denied/revoked hosted auth, and full hosted
+journey proof remain open. Proof artifact:
+`.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/live-closed-beta-refresh-2026-06-04T1006Z.json`.
+
 **Codex Security Cheap-Path Closure Batch (2026-06-04 09:34Z):**
 Authenticated Codex Security closure work under the no-new-spend path reduced
 the actionable repo-filtered dashboard view to `1-2 of 2`. The remaining open

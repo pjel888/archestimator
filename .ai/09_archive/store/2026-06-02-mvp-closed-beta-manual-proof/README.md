@@ -2,6 +2,19 @@
 
 Status: consolidated packet from current artifacts; external closed beta remains **NO-GO**.
 
+2026-06-04 10:06Z live closed-beta refresh:
+`live-closed-beta-refresh-2026-06-04T1006Z.json` records that
+`archestimator.com` / `www.archestimator.com` are on the beta app deployment,
+not the teaser branch. Computer Use observed the owner Chrome session rendering
+Profile settings in the workshop shell; Vercel inspect and alias proof show
+deployment `dpl_6xBegV7JS3WRfZYnN1mWTeY62b38` Ready with custom domains attached;
+`www` health, login Google sign-in copy, signed-out workshop redirect, Vercel
+Production env-name readiness, Supabase single-tester allowlist, GitHub empty
+queue, and Codex Security `1-2 of 2` residual status were refreshed. The packet
+remains **NO-GO** because residual security history-risk, Resend MX, rollback,
+legal/owner, support/monitoring, denied/revoked hosted auth, and full hosted
+journey proof remain open.
+
 2026-06-04 09:34Z security closure batch:
 `codex-security-cheap-path-closures-2026-06-04T0934Z.json` records the
 authenticated Codex Security cheap-path closure pass. The actionable

@@ -1,6 +1,6 @@
 # Active Workstreams
 
-**Last updated:** 2026-06-03
+**Last updated:** 2026-06-04
 **Purpose:** Organizes the implementation roadmap into 8 concurrent workstream tracks. Each workstream activates at a different wave. Within a wave, workstreams can run in parallel.
 
 ## Current MVP Launch Handoff
@@ -13,9 +13,14 @@ Do not schedule more local launch implementation unless a new repo-local defect 
 
 ---
 
-## 2026-06-03 ADD operating-framework planning track
+## 2026-06-03 ADD operating-framework track
 
-Status: plan-only package created at `.ai/03_plans/2026-06-03-agentic-development-framework-rollout/`. This is not an implementation/enforcement track yet. Recommended next action is Phase 1 canonical `.ai` docs after Philip approves the branch/environment recommendation. It must not displace the current closed-beta proof collection workstream or claim provider readiness.
+Status: Phase 1A/1B repo-local framework rollout is complete, mirrored, and
+archived at `.ai/09_archive/store/2026-06-03-agentic-development-framework-rollout/`.
+The old active plan path under `.ai/03_plans` is no longer present. Do not
+schedule this as a new implementation task unless Philip explicitly reopens a
+later enforcement phase. It must not displace the current closed-beta proof
+collection workstream or claim provider readiness.
 
 ---
 

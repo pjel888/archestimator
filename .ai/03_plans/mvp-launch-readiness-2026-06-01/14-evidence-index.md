@@ -1,5 +1,32 @@
 # Evidence Index
 
+## Live Closed-Beta Refresh - 2026-06-04 10:06Z
+
+- Primary artifact: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/live-closed-beta-refresh-2026-06-04T1006Z.json`.
+- Browser proof: Computer Use observed the owner Chrome session on
+  `archestimator.com/workshop/settings/profile` rendering the closed-beta app
+  shell and Profile settings for `Philip Lewis`; this proves the production
+  custom domain is no longer showing only the orange teaser for the owner
+  session.
+- Vercel proof: production deployment `dpl_6xBegV7JS3WRfZYnN1mWTeY62b38` is
+  `READY`; `archestimator.com`, `www.archestimator.com`, and
+  `archestimator.vercel.app` all alias to
+  `archestimator-br665yc8u-philipjonlewis-projects.vercel.app`. The old teaser
+  deployment remains isolated to its branch alias.
+- Hosted HTTP proof: `www` `/api/health` returns HTTP 200 app health JSON,
+  `/login` returns HTTP 200 with Google sign-in and closed-beta copy, and
+  signed-out `/workshop` redirects to login.
+- Vercel env proof: `bun run launch:check-vercel-env` passes from a sanitized
+  `vercel env ls production` transcript with all closed-beta runtime,
+  Supabase, publication, Resend, invite, and AI-off env names present.
+- Supabase proof: linked project `ebxxqidacheyapmmzavr` is named
+  `Archestimator`; linked readback shows exactly one active allowlist tester,
+  `philipjonlewis@gmail.com`.
+- Still blocked: Codex Security has the two residual history-exposure findings;
+  Resend sender-domain DNS still lacks `send.contact` MX; rollback drill,
+  legal/owner signoff, support/monitoring proof, denied/revoked/expired hosted
+  auth smoke, and full hosted beta journey proof remain open.
+
 ## Codex Security Cheap-Path Closures - 2026-06-04 09:34Z
 
 - Primary artifact: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/codex-security-cheap-path-closures-2026-06-04T0934Z.json`.
