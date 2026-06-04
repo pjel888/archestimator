@@ -1,5 +1,36 @@
 # Current State
 
+**No-Spend Live Closed-Beta Launch Refresh (2026-06-04 07:06Z):**
+The cheaper launch path remains the active path: no paid Supabase PITR add-on,
+no compute increase for PITR, no DNS/provider mutation, no Vercel env mutation,
+no production rollback/promote action, and no broad Supabase `db push` occurred.
+Fresh Vercel CLI/live HTTP proof shows production deployment
+`dpl_6xBegV7JS3WRfZYnN1mWTeY62b38` is `Ready` and aliased to
+`www.archestimator.com`, `archestimator.com`, and `archestimator.vercel.app`;
+`https://www.archestimator.com/api/health` returns HTTP 200 with the
+Archestimator health JSON, `/login` returns the app title, signed-out
+`/workshop` redirects to `/login?next=%2Fworkshop`, and apex health redirects to
+`www`. Vercel Production env names remain present for core closed-beta runtime,
+Supabase public/server keys, publication secrets, Resend, and AI-off flags. The
+Supabase Management API still shows linked project `ebxxqidacheyapmmzavr` named
+`Archestimator`, `ACTIVE_HEALTHY`, Postgres 17, region `ap-southeast-2`; the ref
+is treated as immutable and is not renamed. This refresh did not re-prove linked
+SQL because the Supabase CLI temp-role pooler returned `ECIRCUITBREAKER`; the
+hung retry process was stopped instead of retrying. Existing cheap-path proof
+still carries 9 physical backups, `walgEnabled=true`, PITR off, the off-repo
+logical dump bundle, linked readiness, and owner allowlist proof. Public DNS
+still lacks the Resend `send.contact.archestimator.com` MX record; apex support
+forwarding MX and DMARC remain present. The Direct RLS Codex Security finding is
+still open in the dashboard with a visible `Close` control; closure proof exists
+locally/provider-side, but the live dashboard close submission remains pending
+action-time confirmation. Proof artifact:
+`.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/no-spend-live-launch-refresh-2026-06-04T0706Z.json`.
+Closed beta remains not fully green until remaining Codex Security findings,
+denied/revoked/expired hosted auth smoke, rollback drill or owner risk
+acceptance, Resend MX/domain/delivery proof, legal/owner signoff,
+support/feedback/alert monitoring proof, hosted authenticated export, and full
+hosted beta journey proof are complete or explicitly accepted.
+
 **Codex Security Chart/XLSX Finding Closed (2026-06-04 06:49Z):**
 Authenticated Codex Security closure marked
 `Unbounded chart and XLSX export loading can exhaust server resources` as
