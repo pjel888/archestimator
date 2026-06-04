@@ -1,5 +1,28 @@
 # Evidence Index
 
+## Resend Alternate-Recipient Lifecycle Blocker Refresh - 2026-06-04 16:22Z
+
+- Primary artifact:
+  `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/resend-alternate-recipient-lifecycle-blocked-2026-06-04T1622Z.json`.
+- Supabase proof: the alternate recipient row remains `sent`, but
+  `last_opened_at`, `resend_last_event_type`, `resend_last_event_at`, and
+  `resend_last_event_id` are still null/absent. The Resend message id is recorded
+  only in redacted form.
+- Resend API proof: using the currently available local `RESEND_API_KEY` to
+  retrieve the message lifecycle returned `restricted_api_key` because the key is
+  send-only. No broader API key was created or requested.
+- Vercel logs proof: branch-scoped and no-branch production log searches for the
+  Resend webhook route did not yield usable route/status/request evidence that a
+  signed provider event reached and updated the app.
+- Chrome recovery proof: Google Chrome is running and the Codex extension plus
+  native-host checks pass, but the extension backend remains unavailable after
+  the required lightweight retry. Opening a fresh selected-profile Chrome window
+  is the required next recovery step before browser clickthrough proof can
+  continue.
+- Result: this does not close the email lifecycle. It narrows the blocker to
+  recipient clickthrough/open plus signed delivered/bounce/complaint webhook
+  reconciliation, with current API/log proof insufficient.
+
 ## Hosted Shared-Link Recipient Inbox Receipt - 2026-06-04 15:55Z
 
 - Primary artifact:
@@ -40,7 +63,7 @@
 - Boundary: this proves the self-invite guard and app-level shared-link email
   dispatch. The 15:55Z artifact proves inbox receipt for
   `lewisphilipjonechavez@gmail.com`; recipient clickthrough/open and Resend
-  delivered/bounce webhook reconciliation remain open.
+  delivered/bounce/complaint webhook reconciliation remain open.
 - Result: the self-invite defect is closed and the hosted shared-link send smoke
   is a partial pass. The full automatic email lifecycle still needs the recipient
   receipt/clickthrough/webhook evidence above before it can be called fully green.
@@ -928,7 +951,7 @@
 - Production deployment `dpl_Cxeq5ATpif6Yk1zn4FmNmnX7nzhT` is `READY`; `archestimator.com` and `www.archestimator.com` alias to it; `www` serves the beta app instead of the teaser; `/api/health` returns app health JSON; signed-out `/workshop` redirects to login. Proof: `vercel-hosted-http-smoke-cheaper-path-2cddb0e-2026-06-03.json`, `vercel-health-readiness-cheaper-path-2cddb0e-2026-06-03.json`, and `vercel-production-readiness-cheaper-path-2cddb0e-2026-06-03.json`.
 - Latest production redeploy proof on 2026-06-04T13:11Z records deployment `dpl_2X6FytZUnK5ZaNsszVN4W8Wh6bXm` Ready on both custom domains, live Resend webhook signature-verification reachability, signed-out `/workshop/projects` redirect proof, login Google/email-link entry, and owner Chrome allowed-session access to hosted `/workshop`. Proof: `vercel-production-resend-enabled-hosted-auth-2026-06-04T1311Z.json`.
 - Latest owner journey proof on 2026-06-04T13:28Z records the owner hosted path through project entry, estimate creation, estimate workspace render, and export preview. Proof: `hosted-owner-beta-journey-smoke-2026-06-04T1328Z.json`.
-- Still open before calling the proof packet fully green: real browser Google OAuth denied/revoked/expired hosted smoke, spreadsheet-app open/print proof if required for beta, recipient clickthrough/open, and Resend delivered/bounce/complaint webhook reconciliation if automatic email UX is used. Vercel rollback proof is closed by the 11:12Z rollback/promote drill; Resend provider delivery/webhook route proof is closed; owner hosted beta journey proof is closed; residual Codex Security history-risk is owner-accepted for the owner-only beta by the 14:14Z artifact; owner logout is closed by the 14:36Z artifact; shared-link self-invite/send/inbox proof is closed by the 15:32Z and 15:55Z artifacts.
+- Still open before calling the proof packet fully green: real browser Google OAuth denied/revoked/expired hosted smoke, spreadsheet-app open/print proof if required for beta, recipient clickthrough/open, and Resend delivered/bounce/complaint webhook reconciliation if automatic email UX is used. Vercel rollback proof is closed by the 11:12Z rollback/promote drill; Resend provider delivery/webhook route proof is closed; owner hosted beta journey proof is closed; residual Codex Security history-risk is owner-accepted for the owner-only beta by the 14:14Z artifact; owner logout is closed by the 14:36Z artifact; shared-link self-invite/send/inbox proof is closed by the 15:32Z and 15:55Z artifacts; the 16:22Z lifecycle refresh records that the current send-only key/log path cannot prove message lifecycle.
 
 ## Fourth-Pass Closed Beta Evidence - 2026-06-02
 

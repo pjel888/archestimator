@@ -41,6 +41,14 @@
   provider delivery, and webhook setup are no longer blockers; legal/owner/
   support signoff and the owner hosted beta journey are now confirmed for closed
   beta.
+- A 2026-06-04T16:22Z lifecycle refresh narrows the remaining email blocker:
+  `resend-alternate-recipient-lifecycle-blocked-2026-06-04T1622Z.json` shows the
+  alternate recipient row is still `sent` but has no `last_opened_at` or Resend
+  event fields, the current local Resend key is send-only and cannot retrieve
+  message lifecycle data, Vercel log searches do not prove a signed webhook
+  event reached the app, and Chrome extension control needs a fresh-window retry
+  before Gmail clickthrough can continue. This does not close recipient
+  clickthrough/open or delivered/bounce/complaint webhook reconciliation.
 - Cheap backup/DR is no longer blocked on buying PITR for this one-person
   closed beta: `supabase-backup-readiness-daily-mode-closed-beta-2026-06-04T1047Z.json`
   records daily-backup mode green with 9 listed physical backups, `pitrEnabled:
@@ -84,7 +92,9 @@
   alternate-recipient inbox receipt is proven by
   `hosted-shared-link-recipient-inbox-receipt-2026-06-04T1555Z.json`; remaining
   automatic-email proof gaps are recipient clickthrough/open and Resend
-  delivered/bounce/complaint webhook reconciliation.
+  delivered/bounce/complaint webhook reconciliation. The latest lifecycle blocker
+  artifact is
+  `resend-alternate-recipient-lifecycle-blocked-2026-06-04T1622Z.json`.
 
 ## Codex Cloud Security Findings Cheap-Path Closures - OPEN RESIDUALS
 

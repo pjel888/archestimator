@@ -1,0 +1,93 @@
+{
+  "checkedAt": "2026-06-04T16:22:32Z",
+  "mode": "resend-alternate-recipient-lifecycle-blocker-refresh",
+  "scope": {
+    "project": "Tropical House",
+    "recipientEmail": "lewisphilipjonechavez@gmail.com",
+    "sourceInboxReceiptArtifact": "hosted-shared-link-recipient-inbox-receipt-2026-06-04T1555Z.json",
+    "sourceSendArtifact": "hosted-shared-link-recipient-email-self-invite-guard-2026-06-04T1532Z.json"
+  },
+  "redactionPolicy": {
+    "recorded": [
+      "non-secret command names",
+      "redacted recipient id",
+      "redacted publication id",
+      "redacted Resend email id",
+      "delivery/open/webhook status booleans",
+      "safe high-level CLI outcomes"
+    ],
+    "notRecorded": [
+      "full Resend message id",
+      "raw email href",
+      "email html",
+      "email text body",
+      "public share URL",
+      "recipient token",
+      "recipient token hash",
+      "encrypted token material",
+      "browser cookies",
+      "Supabase service-role key",
+      "Resend API key",
+      "Resend webhook secret",
+      "webhook payload body"
+    ]
+  },
+  "supabaseReadback": {
+    "table": "public.shared_link_recipients",
+    "recipientIdRedacted": "527305fa...ee5ea4",
+    "resendEmailIdRedacted": "7487d5e5...d92e69",
+    "deliveryStatus": "sent",
+    "lastOpenedAt": null,
+    "resendLastEventType": null,
+    "resendLastEventAt": null,
+    "hasResendLastEventId": false,
+    "result": "no recipient open or Resend webhook reconciliation is recorded on the app row"
+  },
+  "resendApiReadback": {
+    "attempted": true,
+    "localEnvNamesPresent": [
+      "NEXT_PUBLIC_SUPABASE_URL",
+      "SUPABASE_SERVICE_ROLE_KEY",
+      "RESEND_API_KEY"
+    ],
+    "apiOperation": "retrieve email by provider message id",
+    "result": "blocked",
+    "errorName": "restricted_api_key",
+    "errorMessage": "This API key is restricted to only send emails",
+    "interpretation": "The current local Resend key can send mail but cannot retrieve message lifecycle details. No broader key was created or requested."
+  },
+  "vercelRuntimeLogs": {
+    "attempted": true,
+    "commands": [
+      "vercel logs --environment production --since 24h --query /api/webhooks/resend --json --limit 50",
+      "vercel logs --environment production --since 24h --query resend --json --limit 50",
+      "vercel logs --environment production --since 24h --query Invalid webhook --json --limit 20",
+      "vercel logs --environment production --no-branch --since 48h --query /api/webhooks/resend --json --limit 100",
+      "vercel logs --environment production --no-branch --since 48h --query webhooks/resend --json --limit 100",
+      "vercel logs --environment production --no-branch --since 48h --query invalid webhook --json --limit 50"
+    ],
+    "result": "not-sufficient",
+    "notes": [
+      "Initial branch-scoped searches returned no matching route/status rows.",
+      "No-branch searches returned Vercel log rows with empty message fields and null path/status/request identifiers, which are not sufficient webhook reconciliation proof.",
+      "The previously recorded unsigned webhook route probe remains useful for route reachability only; it does not prove a signed provider event was received or applied."
+    ]
+  },
+  "chromeExtensionStatus": {
+    "attempted": true,
+    "chromeRunning": true,
+    "extensionInstalled": true,
+    "extensionEnabled": true,
+    "nativeHostManifestCorrect": true,
+    "browserClientResult": "extension backend unavailable after the required lightweight retry",
+    "nextRecoveryStep": "Chrome skill requires user confirmation before opening a fresh selected-profile Chrome window and retrying the extension connection.",
+    "result": "recipient Gmail clickthrough remains unproven in this pass"
+  },
+  "result": {
+    "providerDeliveryApiReady": false,
+    "recipientClickthroughReady": false,
+    "recipientOpenRecordedInSupabase": false,
+    "resendWebhookReconciliationReady": false,
+    "launchGateImpact": "Resend sender/domain/send/inbox proof remains closed, but the full automatic email lifecycle remains open until recipient clickthrough/open and signed Resend delivered/bounce/complaint webhook reconciliation are proven."
+  }
+}
