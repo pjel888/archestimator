@@ -1,0 +1,42 @@
+{
+  "generatedAt": "2026-06-04T11:13:11.296Z",
+  "mode": "vercel-production-readiness",
+  "currentDeployment": {
+    "id": "dpl_6xBegV7JS3WRfZYnN1mWTeY62b38",
+    "url": "archestimator-br665yc8u-philipjonlewis-projects.vercel.app",
+    "target": "production",
+    "readyState": "READY",
+    "aliases": [
+      "archestimator-philipjonlewis-philipjonlewis-projects.vercel.app",
+      "archestimator-philipjonlewis-projects.vercel.app",
+      "archestimator.com",
+      "archestimator.vercel.app",
+      "www.archestimator.com"
+    ]
+  },
+  "expectedCustomDomains": [
+    "archestimator.com",
+    "www.archestimator.com"
+  ],
+  "aliasMappings": [
+    {
+      "domain": "archestimator.com",
+      "source": "archestimator-br665yc8u-philipjonlewis-projects.vercel.app",
+      "matchesCurrentDeployment": true
+    },
+    {
+      "domain": "www.archestimator.com",
+      "source": "archestimator-br665yc8u-philipjonlewis-projects.vercel.app",
+      "matchesCurrentDeployment": true
+    }
+  ],
+  "deploymentReady": true,
+  "customDomainsReady": true,
+  "rollbackCandidateCount": 19,
+  "rollbackCandidateAvailable": true,
+  "rollbackDrillStatus": "passed",
+  "rollbackDrillPassed": true,
+  "missing": [],
+  "vercelProductionReady": true,
+  "note": "Sanitized Vercel production readiness check. It parses inspect, alias, and optional deployment-list transcripts only; it does not promote deployments, change aliases, run health checks, verify env values, exercise hosted auth, or perform a rollback."
+}

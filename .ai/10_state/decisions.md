@@ -6,7 +6,7 @@
 
 **Rationale:** The framework is documentation/payload/playbook enforcement only; global provider/GitHub ruleset enforcement would be a separate higher-risk change.
 
-**Follow-up:** Do not claim closed-beta launch ready until hosted Google OAuth, Resend sending-domain, rollback drill, and owner/legal/support monitoring gates close.
+**Follow-up:** Do not claim closed-beta launch ready until hosted Google OAuth, Resend sending-domain, owner/legal/support monitoring, and residual security/history-risk gates close. Vercel rollback proof was closed by the 2026-06-04 11:12Z rollback/promote drill.
 
 ## Confirmed active decisions
 

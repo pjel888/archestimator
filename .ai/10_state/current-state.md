@@ -1,5 +1,22 @@
 # Current State
 
+**Vercel Rollback Drill Closed (2026-06-04 11:12Z):**
+The production rollback gate now has real no-spend provider proof. Vercel CLI
+reported no rollback in progress, then rolled production back from current
+deployment `dpl_6xBegV7JS3WRfZYnN1mWTeY62b38`
+(`archestimator-br665yc8u-philipjonlewis-projects.vercel.app`) to the immediate
+previous Ready production deployment `dpl_CyfR2LA7vMLqR9sDMncgxbgVbcRj`
+(`archestimator-bssps9fmb-philipjonlewis-projects.vercel.app`). During the
+rollback, `https://www.archestimator.com/api/health` returned HTTP 200 app
+health JSON. Vercel then promoted the original current deployment back to
+production; `www` health again returned HTTP 200, and the alias table again
+mapped `archestimator.com`, `www.archestimator.com`, and
+`archestimator.vercel.app` to `archestimator-br665yc8u...`. Fresh production
+readiness artifact `vercel-production-readiness-rollback-drill-2026-06-04T1112Z.json`
+now reports `rollbackDrillStatus: passed`, `missing: []`, and
+`vercelProductionReady: true`. No paid provider setting, DNS record, Vercel env
+value, or database state changed.
+
 **Cheap Backup and Vercel Readiness Refresh (2026-06-04 10:47Z):**
 The cheaper closed-beta path now has a first-class daily-backup readiness mode
 instead of relying on a strict PITR-only checker. `bun run
@@ -15,11 +32,14 @@ compute. Vercel production readiness parsing was also fixed so redirected
 `vercel ls` URL output counts ready rollback candidates correctly; fresh proof
 shows current deployment `dpl_6xBegV7JS3WRfZYnN1mWTeY62b38` is `READY`,
 `archestimator.com` and `www.archestimator.com` alias to it, and 19 rollback
-candidates exist. The Vercel gate remains red only because no production alias
-rollback drill was performed. Proof artifacts:
+candidates exist. Vercel rollback proof is now closed by the 11:12Z
+rollback/promote drill. Proof artifacts:
 `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/supabase-backup-readiness-daily-mode-closed-beta-2026-06-04T1047Z.json`
+,
+`.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/vercel-production-readiness-no-spend-refresh-2026-06-04T1043Z.json`,
+`.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/vercel-rollback-drill-2026-06-04T1112Z.json`,
 and
-`.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/vercel-production-readiness-no-spend-refresh-2026-06-04T1043Z.json`.
+`.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/vercel-production-readiness-rollback-drill-2026-06-04T1112Z.json`.
 
 **Live Closed-Beta Refresh (2026-06-04 10:06Z):**
 Fresh no-spend live proof shows the closed-beta app is on the production custom
@@ -180,8 +200,8 @@ locally/provider-side, but the live dashboard close submission remains pending
 action-time confirmation. Proof artifact:
 `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/no-spend-live-launch-refresh-2026-06-04T0706Z.json`.
 Closed beta remains not fully green until remaining Codex Security findings,
-denied/revoked/expired hosted auth smoke, rollback drill or owner risk
-acceptance, Resend MX/domain/delivery proof, legal/owner signoff,
+denied/revoked/expired hosted auth smoke, Resend MX/domain/delivery proof,
+legal/owner signoff,
 support/feedback/alert monitoring proof, secondary spreadsheet-app export
 open/print proof, and full hosted beta journey proof are complete or explicitly
 accepted.
@@ -275,8 +295,8 @@ Hosted Chrome proof now shows the owner Google session can reach production
 `/workshop/settings/profile` as `philipjonlewis@gmail.com` without hitting login
 or beta-access-required controls. Support-domain DNS is green for MX/SPF/DMARC.
 This is still not a fully green beta launch: PITR and restore drill remain
-intentionally absent from the no-new-spend path; rollback drill, denied/revoked/
-expired hosted auth smoke, Resend dashboard/delivery/webhook proof, legal/owner
+intentionally absent from the no-new-spend path; denied/revoked/expired hosted
+auth smoke, Resend dashboard/delivery/webhook proof, legal/owner
 signoff, support/feedback/alert monitoring proof, hosted authenticated export,
 and full hosted beta journey proof remain open. Codex Security is also still a
 launch blocker: the latest authenticated Scans page proof last scanned
@@ -331,8 +351,8 @@ refresh time, `6297cec`; this proof update was later recorded in commit
 `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/codex-security-dashboard-refresh-2026-06-04T0405Z.json`.
 This is still not a fully green
 beta launch: Codex Security rescan/owner acceptance, hosted Google OAuth
-denied/revoked/expired smoke, rollback drill or owner acceptance, legal/owner
-confirmations, support/feedback/alert monitoring confirmations, hosted
+denied/revoked/expired smoke, legal/owner confirmations, support/feedback/alert
+monitoring confirmations, hosted
 authenticated export, and full hosted beta journey remain open. Proof artifact:
 `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/cheap-launch-refresh-2026-06-04.json`.
 
@@ -390,11 +410,10 @@ Google session proof in
 deployment `dpl_CyfR2LA7vMLqR9sDMncgxbgVbcRj` serving
 `archestimator.com` / `www.archestimator.com`, `www` health returning HTTP 200,
 core/email/invite env names present in Vercel production, 19 Ready rollback
-candidates available, rollback still undrilled, and Codex Security still open
+candidates available, rollback then still undrilled, and Codex Security still open
 with `1-20 of 43` findings while Scans last scanned `28601375`, not latest
 observed pushed head `6297cec` at refresh time. Remaining no-cost blockers are Codex Security rescan/owner
-acceptance, hosted Google OAuth denied/revoked/expired smoke, rollback drill if
-accepted, Resend domain/webhook/delivery proof (local provider API key currently
+acceptance, hosted Google OAuth denied/revoked/expired smoke, Resend domain/webhook/delivery proof (local provider API key currently
 returns HTTP 401), legal/owner signoff,
 support/alert-monitoring proof, hosted authenticated export, and full hosted
 beta journey proof.
@@ -448,7 +467,7 @@ listed, `https://www.archestimator.com/api/health` returned HTTP 200, apex
 active/invited tester row: `philipjonlewis@gmail.com` with status `active`.
 This reduces provider spend but does not remove the remaining launch blockers:
 Codex Security rescan/remaining findings, hosted Google OAuth allow/deny/revoke
-smoke, rollback drill, Resend sending-domain proof, legal/owner signoff, and
+smoke, Resend sending-domain proof, legal/owner signoff, and
 support/alert monitoring proof.
 
 **Shared-Link Decision Snapshot Lock Hardened In Linked Supabase And Deployed (2026-06-04):** Main commit `e28a8d6` fixes the Codex Security finding `Stale share sessions can approve newer publication snapshots`. The public decision POST now resolves current publication access from the token, verifies the recipient session cookie against the current DB `publicationId` and `snapshotVersion`, passes `expectedSnapshotVersion` through `submitSharedLinkDecision`, and maps stale snapshot writes to HTTP 409. Linked Supabase migration `20260603210653_lock_shared_link_response_snapshot_version.sql` replaced `public.submit_client_response(text,text,text,text)` with the 5-arg expected-snapshot version and stores `snapshot_version_at_decision` only after the expected version matches the current publication. Apply proof used exact-file `supabase db query --linked --file ...` plus `supabase migration repair --linked --status applied 20260603210653`; readback verified old signature count `0`, new signature count `1`, expected arg/guard present, `service_role` execute true, anon/authenticated execute false, and migration history recorded. Verification passed the focused red/green route/repository/security-contract suite (3 files / 32 tests), `bun run type-check`, `bun run lint` with existing warnings / 0 errors, `git diff --check`, `bun run build`, and graph checks. Vercel production deploy `dpl_ET8ZwGjxdfv7CxsXoJgUuao1eHfY` is Ready and aliased to `www.archestimator.com`; post-deploy smoke returned HTTP 200 from `https://www.archestimator.com/api/health`, apex health redirected to `www`, `/login` returned HTTP 200, and signed-out `/workshop` returned HTTP 307 to `/login?next=%2Fworkshop`. Codex Security refresh after deploy remained stale against old commit `45673c8`; closure still depends on Codex Security rescan/owner acceptance plus the remaining launch proof gaps.
@@ -467,7 +486,7 @@ support/alert monitoring proof.
 
 **Codex Cloud Security Findings Refresh Blocks Beta (2026-06-04):** Authenticated Chrome refresh of `https://chatgpt.com/codex/cloud/security/findings` showed 42 open findings for `pjel888/archestimator`: 27 medium, 6 low, and 9 informational. The cheaper closed-beta provider path remains useful, but beta launch cannot be honestly called ready until the medium findings are fixed, owner-accepted, or proven stale/false-positive. Tracking bug: `.ai/15_Bugs/2026-06-04-codex-cloud-security-findings-refresh.md`.
 
-**Agentic Framework Phase 1A/1B Complete And Archived (2026-06-03):** Branch `codex/cheaper-beta-agentic-rollout` committed Phase 1A repo-local framework/proof docs at `539e32a`, pushed to `origin/codex/cheaper-beta-agentic-rollout`, created the Phase 1B Notion mirror at https://app.notion.com/p/3748e5dd822b8156a7f5f61da243579c, and archived the rollout packet under `.ai/09_archive/store/2026-06-03-agentic-development-framework-rollout/`. Global enforcement, GitHub rulesets, hosted OAuth smoke, Resend sending-domain proof, rollback drill, and owner/legal/support-monitoring gates remain separate open launch gates.
+**Agentic Framework Phase 1A/1B Complete And Archived (2026-06-03):** Branch `codex/cheaper-beta-agentic-rollout` committed Phase 1A repo-local framework/proof docs at `539e32a`, pushed to `origin/codex/cheaper-beta-agentic-rollout`, created the Phase 1B Notion mirror at https://app.notion.com/p/3748e5dd822b8156a7f5f61da243579c, and archived the rollout packet under `.ai/09_archive/store/2026-06-03-agentic-development-framework-rollout/`. Global enforcement, GitHub rulesets, hosted OAuth smoke, Resend sending-domain proof, and owner/legal/support-monitoring gates remain separate open launch gates. Vercel rollback proof closed later on 2026-06-04.
 
 **Cheaper Closed-Beta Provider Path Partially Proven (2026-06-03):** The paid
 Supabase PITR path was explicitly rejected for the pre-launch MVP after the
@@ -487,8 +506,8 @@ only active closed-beta allowlist email, and Vercel production aliases now point
 `https://www.archestimator.com/api/health` and the login page title
 `Archestimator | Quote, Proposal & Estimate Workspace`. Remaining proof gaps:
 actual hosted Google OAuth allow/deny/revoke browser smoke is still blocked by
-local Chrome automation UI state; Vercel rollback drill is intentionally not run
-because it would disrupt the newly promoted production domain; Resend sending
+local Chrome automation UI state; Vercel rollback drill was later performed and
+restored production without changing DNS/env/database state; Resend sending
 domain verification is still constrained by MX/support-mail tradeoffs; owner
 legal/support monitoring proof remains manual.
 

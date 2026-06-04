@@ -223,6 +223,13 @@ describe("closed beta readiness docs", () => {
     expect(evidenceIndex).toContain("36 `anon_security_definer_function_executable`, 62 `authenticated_security_definer_function_executable`, 3 `function_search_path_mutable`");
     expect(evidenceIndex).toContain("linked Supabase remains **NO-GO**");
     expect(evidenceIndex).toContain("### Vercel Current-Head Read-Only Evidence");
+    expect(evidenceIndex).toContain("## Vercel Rollback Drill - 2026-06-04 11:12Z");
+    expect(evidenceIndex).toContain("vercel-rollback-drill-2026-06-04T1112Z.json");
+    expect(evidenceIndex).toContain("vercel-production-readiness-rollback-drill-2026-06-04T1112Z.json");
+    expect(evidenceIndex).toContain("dpl_CyfR2LA7vMLqR9sDMncgxbgVbcRj");
+    expect(evidenceIndex).toContain("`rollbackDrillPassed: true`");
+    expect(evidenceIndex).toContain("vercelProductionReady:");
+    expect(evidenceIndex).toContain("true`. No DNS, Vercel env, Supabase, paid provider");
     expect(evidenceIndex).toContain("vercel-current-head-read-only-638f681-2026-06-02.md");
     expect(evidenceIndex).toContain("runtime-proof-anchor-policy-2026-06-02.md");
     expect(evidenceIndex).toContain("later docs/evidence-only commits do not invalidate this app-runtime proof");
@@ -617,8 +624,10 @@ describe("closed beta readiness docs", () => {
     expect(manualProofMatrix).toContain("dpl_6xBegV7JS3WRfZYnN1mWTeY62b38");
     expect(manualProofMatrix).toContain("both `archestimator.com` and `www.archestimator.com` aliased to it");
     expect(manualProofMatrix).toContain("19 rollback candidates");
-    expect(manualProofMatrix).toContain("actual rollback drill");
-    expect(manualProofMatrix).toContain("owner-accepted no-alias-flip decision");
+    expect(manualProofMatrix).toContain("vercel-rollback-drill-2026-06-04T1112Z.json");
+    expect(manualProofMatrix).toContain("actual rollback to `dpl_CyfR2LA7vMLqR9sDMncgxbgVbcRj`");
+    expect(manualProofMatrix).toContain("`rollbackDrillPassed: true`");
+    expect(manualProofMatrix).toContain("`vercelProductionReady: true`");
     expect(manualProofMatrix).toContain("resend-email-readiness-blocked-2026-06-02.md");
     expect(manualProofMatrix).toContain("resend-readiness-b0e04f4-2026-06-02.json");
     expect(manualProofMatrix).toContain("resend-readiness-eb0aef5-2026-06-02.json");
@@ -777,9 +786,11 @@ describe("closed beta readiness docs", () => {
     expect(consolidatedManualProofPacket).toContain("vercel-production-readiness-9e253e7-2026-06-02.json");
     expect(consolidatedManualProofPacket).toContain("vercel-production-readiness-79ecf99-2026-06-02.json");
     expect(consolidatedManualProofPacket).toContain("vercel-production-readiness-no-spend-refresh-2026-06-04T1043Z.json");
+    expect(consolidatedManualProofPacket).toContain("vercel-rollback-drill-2026-06-04T1112Z.json");
+    expect(consolidatedManualProofPacket).toContain("vercel-production-readiness-rollback-drill-2026-06-04T1112Z.json");
     expect(consolidatedManualProofPacket).toContain("dpl_6xBegV7JS3WRfZYnN1mWTeY62b38");
     expect(consolidatedManualProofPacket).toContain("19 rollback candidates");
-    expect(consolidatedManualProofPacket).toContain("`vercelProductionReady: false`");
+    expect(consolidatedManualProofPacket).toContain("`vercelProductionReady: true`");
     expect(consolidatedManualProofPacket).toContain("legal-owner-readiness-ede0f32-2026-06-02.json");
     expect(consolidatedManualProofPacket).toContain("legal-owner-readiness-5fa0ac1-2026-06-02.json");
     expect(consolidatedManualProofPacket).toContain("legal-owner-readiness-b74baea-2026-06-02.json");
@@ -803,7 +814,11 @@ describe("closed beta readiness docs", () => {
     expect(consolidatedManualProofPacket).toContain("support-monitoring-readiness-0acf1d1-2026-06-02.json");
     expect(consolidatedManualProofPacket).toContain("`supportMonitoringReady: false`");
     expect(consolidatedManualProofPacket).toContain("Do not change the launch decision until `47-goal-completion-audit.md` is rerun");
-    expect(consolidatedManualProofPacket).not.toMatch(/\| .* \| pass \|/i);
+    expect(consolidatedManualProofPacket).toMatch(/\| Vercel deploy\/env\/health \| pass \|/);
+    expect(consolidatedManualProofPacket).toMatch(/\| Hosted auth allowlist \| blocked \|/);
+    expect(consolidatedManualProofPacket).toMatch(/\| Resend\/email if visible \| blocked \|/);
+    expect(consolidatedManualProofPacket).toMatch(/\| Legal\/owner review \| blocked \|/);
+    expect(consolidatedManualProofPacket).toMatch(/\| Support\/monitoring \| partial-local \|/);
   });
 
   it("locks the repo-local freeze handoff as external-proof-only", () => {
@@ -843,6 +858,8 @@ describe("closed beta readiness docs", () => {
     expect(artifactFilenames).toContain("vercel-production-readiness-79ecf99-2026-06-02.json");
     expect(artifactFilenames).toContain("vercel-production-readiness-a537ae3-2026-06-02.json");
     expect(artifactFilenames).toContain("vercel-production-readiness-no-spend-refresh-2026-06-04T1043Z.json");
+    expect(artifactFilenames).toContain("vercel-rollback-drill-2026-06-04T1112Z.json");
+    expect(artifactFilenames).toContain("vercel-production-readiness-rollback-drill-2026-06-04T1112Z.json");
     expect(artifactFilenames).toContain("live-closed-beta-refresh-2026-06-04T1006Z.json");
     expect(artifactFilenames).toContain("resend-readiness-eb0aef5-2026-06-02.json");
     expect(artifactFilenames).toContain("resend-readiness-ce7a4e5-2026-06-02.json");
@@ -892,7 +909,7 @@ describe("closed beta readiness docs", () => {
     expect(goalCompletionAudit).toContain("Supabase PITR was explicitly skipped for cost");
     expect(goalCompletionAudit).toContain("only active/invited closed-beta allowlist email is `philipjonlewis@gmail.com`");
     expect(goalCompletionAudit).toContain("Remaining completion gaps: real browser Google OAuth hosted smoke");
-    expect(goalCompletionAudit).toContain("Vercel rollback drill");
+    expect(goalCompletionAudit).toContain("Vercel rollback proof is now closed");
     expect(goalCompletionAudit).toContain("Resend MX/domain verification");
     expect(goalCompletionAudit).toContain("## Codex Security Cheap-Path Update - 2026-06-04 08:44Z");
     expect(goalCompletionAudit).toContain("Repo-filtered open findings show `1-20 of 35`");

@@ -11,19 +11,21 @@
 - Latest artifact:
   `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/live-closed-beta-refresh-2026-06-04T1006Z.json`.
 - External closed beta remains not fully green because residual Codex Security
-  history-exposure findings, Resend sender-domain MX proof, rollback drill,
-  denied/revoked/expired hosted auth smoke, legal/owner signoff,
-  support/monitoring proof, and full hosted journey proof remain open.
+  history-exposure findings, Resend sender-domain MX proof, denied/revoked/
+  expired hosted auth smoke, legal/owner signoff, support/monitoring proof, and
+  full hosted journey proof remain open.
 - Cheap backup/DR is no longer blocked on buying PITR for this one-person
   closed beta: `supabase-backup-readiness-daily-mode-closed-beta-2026-06-04T1047Z.json`
   records daily-backup mode green with 9 listed physical backups, `pitrEnabled:
   false`, and an accepted-risk blocked restore drill. Strict PITR remains a
   later public-launch gate.
-- Vercel rollback-candidate proof is no longer missing:
-  `vercel-production-readiness-no-spend-refresh-2026-06-04T1043Z.json` records
-  current production deployment/domain aliases green and 19 rollback candidates.
-  The remaining Vercel blocker is the deliberate no-spend/no-alias-flip
-  rollback drill gap.
+- Vercel rollback proof is no longer missing:
+  `vercel-rollback-drill-2026-06-04T1112Z.json` records an actual production
+  rollback to `dpl_CyfR2LA7vMLqR9sDMncgxbgVbcRj`, HTTP 200 custom-domain health
+  while rolled back, promotion back to `dpl_6xBegV7JS3WRfZYnN1mWTeY62b38`, and
+  HTTP 200 custom-domain health after restore. The helper artifact
+  `vercel-production-readiness-rollback-drill-2026-06-04T1112Z.json` reports
+  `vercelProductionReady: true`.
 
 ## Codex Cloud Security Findings Cheap-Path Closures - OPEN RESIDUALS
 
@@ -148,14 +150,15 @@
   `vercel-env-readiness-cheap-refresh-2026-06-04.json` and
   `vercel-health-readiness-cheap-refresh-2026-06-04.json` pass, while
   `vercel-production-readiness-no-spend-refresh-2026-06-04T1043Z.json` now
-  proves current production alias mapping plus 19 rollback candidates. It
-  remains false only because the rollback drill is still blocked.
+  proves current production alias mapping plus 19 rollback candidates. The
+  later `vercel-rollback-drill-2026-06-04T1112Z.json` and
+  `vercel-production-readiness-rollback-drill-2026-06-04T1112Z.json` close the
+  Vercel rollback gate with `vercelProductionReady: true`.
 - External closed beta remains blocked by no-cost/manual proof gaps: Codex
   Security dashboard rescan/acceptance, hosted Google OAuth denied/revoked/
-  expired browser smoke, rollback drill if accepted, Resend `send.contact` MX
-  plus delivery/webhook proof, legal/owner signoff, support/alert monitoring
-  proof, secondary spreadsheet-app export open/print proof, and full hosted beta
-  journey proof.
+  expired browser smoke, Resend `send.contact` MX plus delivery/webhook proof,
+  legal/owner signoff, support/alert monitoring proof, secondary spreadsheet-app
+  export open/print proof, and full hosted beta journey proof.
   Direct RLS closure proof exists locally/provider-side, but the Codex Security
   dashboard `Close` submission remains pending action-time confirmation.
 
