@@ -9,6 +9,26 @@
 
 The cheaper closed-beta provider path is partially proven, but the current Codex Security dashboard still lists open findings against `pjel888/archestimator`. Closed beta cannot be honestly called launch-ready until the findings are triaged and either fixed, accepted by owner/legal/security judgment, or proven stale/false-positive with evidence.
 
+## Stale Decision Finding Closure - 2026-06-04T05:37Z
+
+- Artifact: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/codex-security-stale-decision-finding-close-2026-06-04T0537Z.json`.
+- Finding: `Stale share sessions can approve newer publication snapshots`,
+  medium, originally against old commit `45673c8`.
+- Current repo proof: `main` head `4c2b30f` verifies recipient sessions against
+  the DB-current publication snapshot, passes `expectedSnapshotVersion` through
+  `submitSharedLinkDecision`, and the live migration path gives
+  `submit_client_response` a `p_expected_snapshot_version` mismatch guard.
+- Fresh verification:
+  `bunx vitest run tests/vitest/project-publication-decision.test.tsx tests/vitest/project-publication-public-repository.test.ts tests/vitest/security-findings-contracts.test.ts --maxWorkers=1 --reporter=dot`
+  passed 3 files / 39 tests.
+- Dashboard closure proof: authenticated Codex Security close submitted
+  `Already fixed`; revisiting the original finding shows `Closed by
+  philipjonlewis@gmail.com. Reason: Fixed`, a `Reopen` control, and the
+  Findings page count dropped from `1-20 of 42` to `1-20 of 41`.
+- Launch meaning: this closes only the stale-decision finding. The overall bug
+  remains open until the remaining findings are closed/rescanned/accepted and
+  the remaining hosted provider/manual proof gaps are handled.
+
 ## Share Image URL Finding Closure - 2026-06-04T05:26Z
 
 - Artifact: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/codex-security-share-image-url-finding-close-2026-06-04T0526Z.json`.
@@ -123,7 +143,7 @@ Latest first-page finding titles:
 19. `Republish can widen shared links to all estimate sheets`
 20. `Project images are uploaded to a public listable bucket`
 
-## Current Findings Snapshot After Share-Image Closure
+## Current Findings Snapshot After Share-Image And Stale-Decision Closures
 
 | # | Severity | Finding |
 |---|---|---|
@@ -141,34 +161,33 @@ Latest first-page finding titles:
 | 12 | medium | Committed public share token and user project data |
 | 13 | medium | Unbounded share tree parsing can DoS share renders |
 | 14 | medium | Global comment circuit breaker can be tripped by bad UUIDs |
-| 15 | medium | Stale share sessions can approve newer publication snapshots |
-| 16 | medium | Stale recipient sessions can post share comments |
-| 17 | medium | Password-protected share metadata leaks project details |
-| 18 | medium | Republish can widen shared links to all estimate sheets |
-| 19 | medium | Project images are uploaded to a public listable bucket |
-| 20 | medium | AI Ask endpoint lacks quota and fails open on audit |
-| 21 | medium | Unbounded chart and XLSX export loading can exhaust server resources |
-| 22 | medium | Direct RLS grants bypass component price audit |
-| 23 | medium | Viewer members can mutate library folders |
-| 24 | medium | CSV export allows spreadsheet formula injection |
-| 25 | medium | Unpinned MCP tooling auto-executes external packages |
-| 26 | medium | Proposal pages now expose internal unit-rate details |
-| 27 | medium | Confidential client proposal committed to repository |
-| 28 | low | Public activity cursors leak raw database IDs |
-| 29 | low | Client activity view models leak raw UUID identifiers |
-| 30 | low | Hosted export proof leaks project names in artifacts |
-| 31 | low | Unescaped tree node IDs can crash share-page navigation |
-| 32 | low | Persisted row image URLs can track estimate viewers |
-| 33 | low | Unvalidated component source URLs allow script links |
-| 34 | informational | Prompt overrides no-auto-merge policy and pushes main |
-| 35 | informational | Bid workbook formulas omit contingency costs |
-| 36 | informational | Shared-link recipient email exposed to project viewers |
-| 37 | informational | Codex config auto-runs unpinned external tooling |
-| 38 | informational | Folder delete can fail from sort-order collision |
-| 39 | informational | Workspace seed migration reuses global item UUIDs |
-| 40 | informational | Optimistic tree IDs can be submitted as parents |
-| 41 | informational | Luna Heights seed estimate is rebuilt then deleted |
-| 42 | informational | Production grid accepts negative estimate numbers |
+| 15 | medium | Stale recipient sessions can post share comments |
+| 16 | medium | Password-protected share metadata leaks project details |
+| 17 | medium | Republish can widen shared links to all estimate sheets |
+| 18 | medium | Project images are uploaded to a public listable bucket |
+| 19 | medium | AI Ask endpoint lacks quota and fails open on audit |
+| 20 | medium | Unbounded chart and XLSX export loading can exhaust server resources |
+| 21 | medium | Direct RLS grants bypass component price audit |
+| 22 | medium | Viewer members can mutate library folders |
+| 23 | medium | CSV export allows spreadsheet formula injection |
+| 24 | medium | Unpinned MCP tooling auto-executes external packages |
+| 25 | medium | Proposal pages now expose internal unit-rate details |
+| 26 | medium | Confidential client proposal committed to repository |
+| 27 | low | Public activity cursors leak raw database IDs |
+| 28 | low | Client activity view models leak raw UUID identifiers |
+| 29 | low | Hosted export proof leaks project names in artifacts |
+| 30 | low | Unescaped tree node IDs can crash share-page navigation |
+| 31 | low | Persisted row image URLs can track estimate viewers |
+| 32 | low | Unvalidated component source URLs allow script links |
+| 33 | informational | Prompt overrides no-auto-merge policy and pushes main |
+| 34 | informational | Bid workbook formulas omit contingency costs |
+| 35 | informational | Shared-link recipient email exposed to project viewers |
+| 36 | informational | Codex config auto-runs unpinned external tooling |
+| 37 | informational | Folder delete can fail from sort-order collision |
+| 38 | informational | Workspace seed migration reuses global item UUIDs |
+| 39 | informational | Optimistic tree IDs can be submitted as parents |
+| 40 | informational | Luna Heights seed estimate is rebuilt then deleted |
+| 41 | informational | Production grid accepts negative estimate numbers |
 
 ## Speed Insights Finding Remediation
 
@@ -241,7 +260,7 @@ Latest first-page finding titles:
   - Linked Supabase proof: exact-file `db query --linked` applied `20260603210653_lock_shared_link_response_snapshot_version.sql`; `migration repair --linked --status applied 20260603210653` succeeded; readback under `/Users/philiplewis/.codex/backups/archestimator/supabase/20260603T211000Z-decision-snapshot-lock` verified old 4-arg `submit_client_response` signature count `0`, new 5-arg signature count `1`, expected-snapshot argument and mismatch guard present, `service_role` execute true, anon/authenticated execute false, and migration version recorded.
   - Verification: red/green focused route/repository/security-contract suite passed 3 files / 32 tests; `bun run type-check`, `bun run lint` with 12 existing warnings / 0 errors, `git diff --check`, `bun run build`, and graph checks passed.
   - Hosted smoke: production deploy `dpl_ET8ZwGjxdfv7CxsXoJgUuao1eHfY` is Ready and aliased to `https://www.archestimator.com`; `https://www.archestimator.com/api/health` returned HTTP 200, apex `/api/health` redirected to `www`, `/login` returned HTTP 200, and signed-out `/workshop` returned HTTP 307 to `/login?next=%2Fworkshop`.
-  - Dashboard status: refresh after deploy still showed the stale-decision finding in the current Findings table against old commit `45673c8`; pending Codex Security rescan/closure.
+  - Dashboard status: authenticated Codex Security closure on 2026-06-04T05:37Z marked the finding `Already fixed` / `Reason: Fixed`; revisiting the original finding shows `Closed by philipjonlewis@gmail.com`, a `Reopen` control, and the Findings page count dropped from `1-20 of 42` to `1-20 of 41`. Fresh proof test at current `main` head `4c2b30f` passed 3 files / 39 tests.
 - Finding: `Stale recipient sessions can post share comments`.
   - Repo fix deployed in `d4b5733` / production `dpl_2Ne8GUjgs1TT8tjj24Z3SaZLHxQ2`: `/api/share/[token]/comment` now resolves current publication access from the token, verifies the recipient-session cookie against current DB `publicationId` and `snapshotVersion`, passes `expectedSnapshotVersion` through the repository helper, and returns HTTP 409 when the publication snapshot changed before comment insert.
   - Linked Supabase proof: exact-file `db query --linked` applied `20260603214151_lock_shared_link_comment_snapshot_version.sql`; `migration repair --linked --status applied 20260603214151` succeeded; readback under `/Users/philiplewis/.codex/backups/archestimator/supabase/20260603-214151-comment-snapshot-lock` verified old 5-arg `insert_client_comment` signature count `0`, new 6-arg signature count `1`, expected-snapshot argument and mismatch guard present, `service_role` execute true, anon/authenticated execute false, and migration version recorded.
@@ -309,8 +328,9 @@ Latest first-page finding titles:
   - Repo fix committed in `e5b17dc`: `20260602090000_harden_beta_allowlist_admin.sql` now disables `profiles_prevent_role_self_update` only around its controlled demotion repair and re-enables it immediately afterward. This already-applied historical migration was not re-run on linked Supabase during the follow-up pass.
   - Verification: `tests/vitest/security-findings-contracts.test.ts` passed after adding the trigger-order contract; refreshed again on 2026-06-04T03:40Z with `bunx vitest run tests/vitest/security-findings-contracts.test.ts --maxWorkers=1 --reporter=dot` (1 file / 17 tests).
 - Dashboard status: remaining entries in this section still require Codex cloud
-  rescan/closure before they can be treated as closed; the share-image finding
-  above is the only entry currently closed in the dashboard.
+  rescan/closure before they can be treated as closed; the share-image and
+  stale-decision findings above are the entries currently closed in the
+  dashboard.
 
 ## Immediate Triage Order
 
