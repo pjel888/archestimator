@@ -28,6 +28,28 @@ The cheaper closed-beta provider path is partially proven, but the current Codex
   The Scans detail page did hydrate and is the current proof source for the
   counts and last-scanned commit.
 
+## Resend Webhook Body-Size Follow-Up - 2026-06-04T05:07Z
+
+- Artifact: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/resend-webhook-body-limit-2026-06-04T0507Z.json`.
+- Finding context: the authenticated Codex Security threat model explicitly
+  called for Resend webhook body-size limits as a webhook abuse-reduction
+  control.
+- Repo fix: `src/app/api/webhooks/resend/route.ts` now caps raw Resend webhook
+  payloads at 262,144 bytes using the declared `content-length` before reading
+  the body and the actual UTF-8 byte length after reading the raw body.
+- Production deploy: `dpl_6xBegV7JS3WRfZYnN1mWTeY62b38`, Ready, target
+  `production`, URL
+  `https://archestimator-br665yc8u-philipjonlewis-projects.vercel.app`, aliased
+  to `https://www.archestimator.com`, `https://archestimator.com`, and
+  `https://archestimator.vercel.app`.
+- Hosted smoke: `https://www.archestimator.com/api/health` returned HTTP 200;
+  oversized unsigned POST to `/api/webhooks/resend` returned HTTP 413
+  `Webhook payload is too large.`; normal-sized unsigned POST still returned
+  HTTP 400 `Invalid webhook`, proving normal requests continue to reach
+  signature verification.
+- Dashboard status: pending Codex Security rescan/closure; this deployed fix
+  does not close the overall security blocker by itself.
+
 ## Latest Dashboard Refresh - 2026-06-04T04:05:09.942Z
 
 - Artifact: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/codex-security-dashboard-refresh-2026-06-04T0405Z.json`.
