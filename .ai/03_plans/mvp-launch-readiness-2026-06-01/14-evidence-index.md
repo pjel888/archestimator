@@ -44,6 +44,34 @@
   event proof if email workflows are visible, hosted authenticated export, and a
   full hosted beta journey.
 
+## Resend Dashboard DNS/Webhook Refresh - 2026-06-04 04:46Z
+
+- Primary artifact: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/resend-dashboard-dns-webhook-refresh-2026-06-04T0446Z.json`.
+- Official docs checked: Resend API uses `https://api.resend.com` with bearer
+  API keys; `GET /domains` lists domains, and the Webhooks docs cover registered
+  webhook endpoints. The local key is send-only, so the dashboard is the current
+  provider source for domain/webhook state.
+- Resend dashboard: account `philipjonlewis@gmail.com`; domain
+  `contact.archestimator.com`; status `Failed`; provider `Namecheap`; region
+  `Tokyo (ap-northeast-1)`. Domain events show `Domain added` and then
+  `Missing records`.
+- Domain DNS: DKIM host `resend._domainkey.contact` is verified. Public DNS
+  confirms that DKIM TXT exists, `send.contact` SPF TXT exists as
+  `v=spf1 include:amazonses.com ~all`, and apex DMARC exists as
+  `v=DMARC1; p=none;`. Public DNS does **not** have an MX record for
+  `send.contact.archestimator.com`.
+- Required no-cost DNS fix: add Namecheap `MX` host `send.contact`, value
+  `feedback-smtp.ap-northeast-1.amazonses.com`, priority `10`, TTL automatic,
+  then restart verification in Resend.
+- Webhook proof: Resend dashboard lists
+  `https://www.archestimator.com/api/webhooks/resend` as `Enabled`. A production
+  unsigned POST to that endpoint returns HTTP 400 `Invalid webhook`; this proves
+  `RESEND_WEBHOOK_SECRET` is configured because the route returns HTTP 503 before
+  signature verification when that secret is missing.
+- Still open: Namecheap MX add, Resend restart/verified status, delivery proof,
+  webhook event proof, and a decision to keep visible email workflows disabled
+  until those proofs are green.
+
 ## Cheap Closed-Beta Provider Status Refresh - 2026-06-04 03:48Z
 
 - Primary artifact: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/cheap-launch-refresh-2026-06-04.json`.

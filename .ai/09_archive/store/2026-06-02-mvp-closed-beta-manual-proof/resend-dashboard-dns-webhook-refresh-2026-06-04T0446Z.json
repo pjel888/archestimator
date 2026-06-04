@@ -1,0 +1,113 @@
+{
+  "source": "RESEND_DASHBOARD_DNS_WEBHOOK_REFRESH",
+  "generatedAtUtc": "2026-06-04T04:46:00Z",
+  "repoHead": "526a9897cb1b",
+  "scope": "Closed-beta Resend sending-domain and webhook provider proof",
+  "resendDashboard": {
+    "accountEmail": "philipjonlewis@gmail.com",
+    "domain": {
+      "name": "contact.archestimator.com",
+      "status": "Failed",
+      "provider": "Namecheap",
+      "region": "Tokyo (ap-northeast-1)",
+      "events": [
+        {
+          "label": "Domain added",
+          "observedAt": "Jun 03, 11:02 PM"
+        },
+        {
+          "label": "Missing records",
+          "observedAt": "Jun 04, 4:21 AM"
+        }
+      ],
+      "records": [
+        {
+          "purpose": "Domain Verification DKIM",
+          "type": "TXT",
+          "host": "resend._domainkey.contact",
+          "valuePresent": true,
+          "status": "Verified"
+        },
+        {
+          "purpose": "Enable Sending MX",
+          "type": "MX",
+          "host": "send.contact",
+          "value": "feedback-smtp.ap-northeast-1.amazonses.com",
+          "priority": 10,
+          "status": "Failed",
+          "failure": "Missing MX record: This record wasn't found. Add it to enable sending. Once fixed, restart verification."
+        },
+        {
+          "purpose": "Enable Sending SPF",
+          "type": "TXT",
+          "host": "send.contact",
+          "value": "v=spf1 include:amazonses.com ~all",
+          "status": "Failed"
+        },
+        {
+          "purpose": "Enable Receiving MX",
+          "type": "MX",
+          "host": "contact",
+          "value": "inbound-smtp.ap-northeast-1.amazonaws.com",
+          "priority": 10,
+          "status": "Not started"
+        }
+      ]
+    },
+    "webhook": {
+      "endpoint": "https://www.archestimator.com/api/webhooks/resend",
+      "status": "Enabled",
+      "created": "about 12 hours ago"
+    }
+  },
+  "publicDns": {
+    "dkimTxtPresent": true,
+    "dkimHost": "resend._domainkey.contact.archestimator.com",
+    "sendContactMxRecords": [],
+    "sendContactTxtRecords": [
+      "v=spf1 include:amazonses.com ~all"
+    ],
+    "apexDmarcTxtRecords": [
+      "v=DMARC1; p=none;"
+    ],
+    "contactMxRecords": []
+  },
+  "apiProof": {
+    "localResendApiKeyPresent": true,
+    "localResendApiKeyCanListDomains": false,
+    "localResendApiKeyCanListWebhooks": false,
+    "localResendApiKeyRestriction": "restricted_api_key: This API key is restricted to only send emails",
+    "vercelProductionEnvPullSensitiveValuesAvailable": false,
+    "vercelProductionEnvPullNote": "Vercel env pull produced empty/masked values for sensitive encrypted variables, so it cannot be used as provider API proof.",
+    "productionUnsignedWebhookPost": {
+      "url": "https://www.archestimator.com/api/webhooks/resend",
+      "status": 400,
+      "body": {
+        "error": "Invalid webhook."
+      },
+      "meaning": "Production RESEND_WEBHOOK_SECRET is configured; this route returns 503 before signature verification when the secret is missing."
+    }
+  },
+  "readiness": {
+    "webhookRegistered": true,
+    "productionWebhookSecretConfigured": true,
+    "sendingDomainVerified": false,
+    "missingNoCostDnsRecords": [
+      {
+        "provider": "Namecheap",
+        "type": "MX",
+        "host": "send.contact",
+        "value": "feedback-smtp.ap-northeast-1.amazonses.com",
+        "priority": 10,
+        "ttl": "Automatic"
+      }
+    ],
+    "remainingActions": [
+      "Add the missing Namecheap MX record for send.contact.archestimator.com.",
+      "Restart verification for contact.archestimator.com in Resend after DNS propagates.",
+      "Confirm Resend domain status becomes verified/sending-enabled.",
+      "Run delivery proof and webhook event proof for the visible email workflows, or keep visible email workflows disabled for the first owner-only beta."
+    ]
+  },
+  "secretsRecorded": false
+}

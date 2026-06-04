@@ -22,6 +22,23 @@ launch blocker: the latest authenticated Scans page proof last scanned
 medium, and 6 low scan-count badges. Proof artifact:
 `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/live-closed-beta-launch-refresh-2026-06-04T0429Z.json`.
 
+**Resend Dashboard DNS/Webhook Refresh (2026-06-04 04:46Z):**
+Authenticated Resend dashboard proof narrows the email blocker. The webhook
+endpoint `https://www.archestimator.com/api/webhooks/resend` exists and is
+`Enabled`, and a production unsigned POST to that route returns HTTP 400
+`Invalid webhook`, proving `RESEND_WEBHOOK_SECRET` is configured in production
+because the route would return HTTP 503 before signature verification if the
+secret were missing. The sending domain `contact.archestimator.com` is still
+`Failed` in Resend, with provider `Namecheap` and region `Tokyo (ap-northeast-1)`.
+DKIM is verified and public DNS has the expected `send.contact` SPF TXT plus
+apex DMARC, but public DNS has no `MX` record for
+`send.contact.archestimator.com`. Resend's exact missing no-cost DNS record is
+Namecheap `MX` host `send.contact`, value
+`feedback-smtp.ap-northeast-1.amazonses.com`, priority `10`, TTL automatic.
+The local Resend API key is send-only and cannot list domains/webhooks, so
+dashboard proof remains the provider source. Proof artifact:
+`.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/resend-dashboard-dns-webhook-refresh-2026-06-04T0446Z.json`.
+
 **Cheap Closed-Beta Provider Status Refresh (2026-06-04 03:48Z):**
 The cheap launch path has fresher provider proof after production deploy
 `dpl_CyfR2LA7vMLqR9sDMncgxbgVbcRj`: `www.archestimator.com/api/health`
