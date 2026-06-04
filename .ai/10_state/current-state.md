@@ -1,5 +1,28 @@
 # Current State
 
+**Hosted Authenticated Export Proof (2026-06-04 08:07Z):**
+The no-extra-spend closed-beta path now has hosted authenticated XLSX export
+proof. Computer Use against the owner Chrome session reached production
+`/workshop/projects/22222222-2222-4222-8222-222222222222/estimates/a9c512cb-d3a3-44e3-b6df-fa5a29278584`,
+rendered the `Lewis Residence` estimate workspace, opened `Preview Excel
+Export`, and downloaded `AE-LR-001-ES-001-proposal.xlsx` through the
+authenticated browser session. A narrow read-only Supabase query mapped the
+visible selected node to estimate
+`33333333-3333-4333-8333-333333333333` / `ES-001`; an unauthenticated curl to
+the export route redirected to `/login`, proving the route remains protected.
+The downloaded workbook was not copied into the repo; sanitized validation only
+records 28,189 bytes, ZIP magic `PK`, `unzip -t` success, SHA-256
+`b1545086ebad54ffcd89d8e2f3e7b92e433eeeeff4fd06f3d28dabcd09b5db0d`, creator
+`Archestimator`, subject `Industry-standard proposal workbook`, and the expected
+`Bid Form`, `Summary`, `Commercial Terms`, and `Source Breakdown` sheets. No
+Vercel env, DNS, Supabase data, provider setting, paid add-on, PITR, compute, or
+migration state changed. Proof artifact:
+`.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/hosted-export-browser-proof-2026-06-04T0807Z.json`.
+External closed beta is still not fully green: secondary spreadsheet-app
+open/print proof, full hosted beta journey proof, Codex Security
+rescan/acceptance, Resend MX/domain/delivery proof, rollback risk proof,
+legal/owner signoff, and support/feedback/alert monitoring proof remain open.
+
 **Hosted Feedback Admin Surface Proof (2026-06-04 07:50Z):**
 Computer Use proof against the active hosted Chrome session now shows
 `https://www.archestimator.com/workshop/settings/feedback` rendering the
@@ -77,8 +100,9 @@ action-time confirmation. Proof artifact:
 Closed beta remains not fully green until remaining Codex Security findings,
 denied/revoked/expired hosted auth smoke, rollback drill or owner risk
 acceptance, Resend MX/domain/delivery proof, legal/owner signoff,
-support/feedback/alert monitoring proof, hosted authenticated export, and full
-hosted beta journey proof are complete or explicitly accepted.
+support/feedback/alert monitoring proof, secondary spreadsheet-app export
+open/print proof, and full hosted beta journey proof are complete or explicitly
+accepted.
 
 **Codex Security Chart/XLSX Finding Closed (2026-06-04 06:49Z):**
 Authenticated Codex Security closure marked
