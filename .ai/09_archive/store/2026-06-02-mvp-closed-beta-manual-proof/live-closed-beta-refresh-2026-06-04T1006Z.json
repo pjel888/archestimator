@@ -1,0 +1,196 @@
+{
+  "artifact": "live-closed-beta-refresh-2026-06-04T1006Z",
+  "observed_at": "2026-06-04T10:06:25Z",
+  "environment": "Local CLI plus authenticated Chrome/Computer Use",
+  "operator": "Codex",
+  "repository": "pjel888/archestimator",
+  "repo_head_at_observation": {
+    "branch": "main",
+    "short_sha": "0d52568",
+    "sha_prefix": "0d52568f4374"
+  },
+  "cost_boundary": {
+    "paid_provider_changes": false,
+    "supabase_pitr_enabled": false,
+    "supabase_compute_changed": false,
+    "dns_changed": false,
+    "vercel_env_changed": false,
+    "new_codex_security_scan_started": false,
+    "codex_security_rescan_purchased": false,
+    "broad_supabase_db_push_ran": false,
+    "git_history_rewrite_ran": false
+  },
+  "agentic_framework_rollout": {
+    "requested_plan_path": ".ai/03_plans/2026-06-03-agentic-development-framework-rollout",
+    "requested_plan_path_exists": false,
+    "archived_plan_path": ".ai/09_archive/store/2026-06-03-agentic-development-framework-rollout",
+    "archived_status": "PHASE_1A_COMPLETE_PHASE_1B_MIRRORED_ARCHIVED",
+    "evidence": [
+      ".ai/09_archive/store/2026-06-03-agentic-development-framework-rollout/IMPLEMENTATION_COMPLETION_REPORT.md",
+      ".ai/09_archive/store/2026-06-03-agentic-development-framework-rollout/44_PHASE_1A_IMPLEMENTATION_REPORT.md",
+      ".ai/10_state/current-state.md"
+    ],
+    "implementation_prompt_boundary": "The implementation prompt says not to implement from main. No source implementation was attempted from this main checkout."
+  },
+  "browser_observations": {
+    "production_app_session": {
+      "tool": "Computer Use",
+      "url": "https://archestimator.com/workshop/settings/profile",
+      "title": "Archestimator | Quote, Proposal & Estimate Workspace",
+      "observed_authenticated_surface": "Profile settings",
+      "visible_fields": {
+        "display_name": "Philip Lewis",
+        "user_category": "Architect",
+        "country_region": "Philippines",
+        "save_profile_button": true,
+        "send_beta_feedback_link": true
+      },
+      "interpretation": "archestimator.com is serving the closed-beta app/workshop shell for the owner Chrome session, not the orange teaser/prelaunch page."
+    },
+    "codex_security_dashboard": {
+      "tool": "Computer Use",
+      "url": "https://chatgpt.com/codex/cloud/security/findings/84a7582785d48191ab0ae0a2d141151f?repo=https%3A%2F%2Fgithub.com%2Fpjel888%2Farchestimator&sev=medium",
+      "visible_count": "1-2 of 2",
+      "remaining_findings": [
+        "Committed public share token and user project data",
+        "Confidential client proposal committed to repository"
+      ],
+      "interpretation": "Only the two source-control/history-exposure findings remain open; both still require owner acceptance or a deliberate history-purge workflow before green security language."
+    }
+  },
+  "live_http": {
+    "www_health": {
+      "url": "https://www.archestimator.com/api/health",
+      "status": 200,
+      "body_summary": "{\"ok\":true,\"service\":\"archestimator\"}"
+    },
+    "login": {
+      "url": "https://www.archestimator.com/login",
+      "status": 200,
+      "observed_markers": [
+        "Archestimator",
+        "Sign in",
+        "Continue with Google",
+        "closed beta"
+      ]
+    },
+    "signed_out_workshop": {
+      "url": "https://www.archestimator.com/workshop",
+      "status": 307,
+      "location": "/login?next=%2Fworkshop"
+    }
+  },
+  "vercel": {
+    "inspect": {
+      "deployment_id": "dpl_6xBegV7JS3WRfZYnN1mWTeY62b38",
+      "deployment_url": "archestimator-br665yc8u-philipjonlewis-projects.vercel.app",
+      "target": "production",
+      "ready_state": "READY",
+      "aliases": [
+        "www.archestimator.com",
+        "archestimator.com",
+        "archestimator.vercel.app",
+        "archestimator-philipjonlewis-projects.vercel.app",
+        "archestimator-philipjonlewis-philipjonlewis-projects.vercel.app"
+      ]
+    },
+    "alias_table": {
+      "archestimator.com": "archestimator-br665yc8u-philipjonlewis-projects.vercel.app",
+      "www.archestimator.com": "archestimator-br665yc8u-philipjonlewis-projects.vercel.app",
+      "archestimator.vercel.app": "archestimator-br665yc8u-philipjonlewis-projects.vercel.app",
+      "teaser_branch_alias": "archestimator-git-teaser-prelaunch-philipjonlewis-projects.vercel.app -> archestimator-3ser9ty2w-philipjonlewis-projects.vercel.app"
+    },
+    "env_readiness": {
+      "command": "VERCEL_ENV_LIST_TEXT=\"$(vercel env ls production)\" bun run launch:check-vercel-env",
+      "vercel_env_ready": true,
+      "core_closed_beta_runtime_ready": true,
+      "email_delivery_env_names_ready": true,
+      "invite_delivery_env_names_ready": true,
+      "secret_values_recorded": false
+    },
+    "health_readiness_helper": {
+      "command": "VERCEL_HEALTH_URLS='https://www.archestimator.com/api/health,https://archestimator.com/api/health,https://archestimator.vercel.app/api/health' bun run launch:check-vercel-health",
+      "vercel_health_ready": false,
+      "ready_urls": [
+        "https://www.archestimator.com/api/health",
+        "https://archestimator.vercel.app/api/health"
+      ],
+      "blocked_urls": [
+        "https://archestimator.com/api/health"
+      ],
+      "blocked_reason": "The helper treats apex HTTP 307 redirect to www as a blocked URL. Direct www/custom app health is green."
+    },
+    "production_readiness_helper": {
+      "command": "VERCEL_INSPECT_FILE=/tmp/vercel-inspect-www.json VERCEL_ALIAS_LIST_FILE=/tmp/vercel-alias-ls.txt VERCEL_DEPLOYMENT_LIST_FILE=/tmp/vercel-prod-ls.txt VERCEL_EXPECTED_CUSTOM_DOMAINS='archestimator.com,www.archestimator.com,archestimator.vercel.app' VERCEL_ROLLBACK_DRILL_STATUS=blocked bun run launch:check-vercel-production",
+      "deployment_ready": true,
+      "custom_domains_ready": true,
+      "vercel_production_ready": false,
+      "missing": [
+        "ready rollback candidate",
+        "rollback drill passed"
+      ]
+    }
+  },
+  "supabase": {
+    "project": {
+      "reference_id": "ebxxqidacheyapmmzavr",
+      "name": "Archestimator",
+      "region": "Oceania (Sydney)",
+      "linked": true,
+      "note": "The human project name is Archestimator; the reference id is immutable and was not renamed."
+    },
+    "allowlist_readback": {
+      "command": "supabase db query --linked --output json \"select normalized_email, status, invited_at is not null as has_invited_at, accepted_at is not null as has_accepted_at from public.closed_beta_allowed_emails order by normalized_email;\"",
+      "rows": [
+        {
+          "normalized_email": "philipjonlewis@gmail.com",
+          "status": "active",
+          "has_invited_at": true,
+          "has_accepted_at": false
+        }
+      ],
+      "failed_precheck": "An earlier read using stale column name email failed with ERROR 42703; schema readback confirmed normalized_email is canonical."
+    }
+  },
+  "github": {
+    "open_issues": [],
+    "open_pull_requests": []
+  },
+  "dns_resend": {
+    "send_contact_mx": [],
+    "send_contact_spf_txt": [
+      "v=spf1 include:amazonses.com ~all"
+    ],
+    "resend_dkim_txt_present": true,
+    "apex_dmarc_txt": [
+      "v=DMARC1; p=none;"
+    ],
+    "interpretation": "Resend sender-domain verification remains blocked on the missing send.contact MX. Apex support forwarding DNS was not changed."
+  },
+  "negative_readiness_checks": {
+    "legal_owner": {
+      "command": "bun run launch:check-legal-owner",
+      "ready": false,
+      "missing_count": 9
+    },
+    "support_monitoring": {
+      "command": "bun run launch:check-support-monitoring",
+      "ready": false,
+      "missing_count": 9
+    },
+    "resend_local_readiness": {
+      "command": "bun run launch:check-resend-readiness",
+      "ready": false,
+      "reason": "Local runtime env lacks RESEND_FROM, RESEND_REPLY_TO, and RESEND_WEBHOOK_SECRET; Vercel env-name readiness is proven separately."
+    }
+  },
+  "launch_interpretation": {
+    "closed_beta_app_on_custom_domains": true,
+    "owner_chrome_session_can_access_beta_app": true,
+    "github_queue_clear": true,
+    "single_allowlist_tester_active": true,
+    "security_dashboard_green": false,
+    "external_closed_beta_ready": false,
+    "reason": "The production website and owner session are live for the beta app, but residual history-exposure findings, Resend MX/domain proof, rollback drill, legal/owner signoff, support/monitoring proof, denied/revoked hosted auth smoke, and full hosted beta journey proof remain open."
+  }
+}

@@ -1,5 +1,20 @@
 # Known Issues / Open Risks
 
+## Live Closed-Beta Launch Gates - OPEN
+
+- Fresh 2026-06-04T10:06Z proof shows `archestimator.com` and
+  `www.archestimator.com` now serve the closed-beta app deployment for the owner
+  Chrome session, with `Continue with Google` visible on `/login`, signed-out
+  `/workshop` redirecting to login, Vercel Production env names present, GitHub
+  queue empty, and linked Supabase allowlist containing only
+  `philipjonlewis@gmail.com`.
+- Latest artifact:
+  `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/live-closed-beta-refresh-2026-06-04T1006Z.json`.
+- External closed beta remains not fully green because residual Codex Security
+  history-exposure findings, Resend sender-domain MX proof, rollback drill,
+  denied/revoked/expired hosted auth smoke, legal/owner signoff,
+  support/monitoring proof, and full hosted journey proof remain open.
+
 ## Codex Cloud Security Findings Cheap-Path Closures - OPEN RESIDUALS
 
 - Authenticated Codex Security closure work on 2026-06-04 09:34Z now shows the repo-filtered actionable view at `1-2 of 2`, superseding the earlier 08:44Z `1-20 of 35` snapshot for current dashboard status.
