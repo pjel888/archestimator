@@ -13,6 +13,11 @@
   `philipjonlewis@gmail.com` without login or beta-access-required controls. This
   does not inspect cookies/local storage and does not prove denied, revoked, or
   expired-session behavior.
+- Codex Security/GitHub: `codex-security-dashboard-refresh-2026-06-04T0405Z.json`
+  records the authenticated dashboard still at `1-20 of 43` findings; the Scans
+  page is `Waiting for new commits` and last scanned `28601375`, behind latest
+  pushed `main` head `6297cec`. GitHub has no open PRs, no open issues, no new
+  comments since June 4, and no status contexts/check-runs on latest `main`.
 - Still open before fully green closed beta: Codex Security rescan/owner acceptance, hosted Google OAuth denied/revoked/expired smoke with real sessions, Resend dashboard sending-domain/webhook/delivery proof, rollback drill or owner acceptance, legal/owner review flags, support/feedback/alert monitoring confirmations, hosted authenticated export, and full hosted beta journey.
 
 ## Mass Deletion Cleanup RPC Lock - 2026-06-04
@@ -104,6 +109,12 @@
   `hosted-google-allowed-browser-smoke-2026-06-04T0355Z.json` confirms the
   allowed owner Google session can access production profile settings as
   `philipjonlewis@gmail.com`; denied/revoked/expired session smoke remains open.
+- Codex Security proof:
+  `codex-security-dashboard-refresh-2026-06-04T0405Z.json` confirms the
+  authenticated dashboard still lists `1-20 of 43` findings, while the Scans page
+  is `Waiting for new commits` with last scanned commit `28601375`, behind
+  latest pushed `main` head `6297cec`. GitHub has no open PRs/issues/comments
+  and no status contexts/check-runs for the latest commit.
 - Still open before closed beta is fully green: Codex Security dashboard
   rescan/owner acceptance, hosted Google OAuth denied/revoked/expired browser
   smoke, rollback drill if accepted, Resend

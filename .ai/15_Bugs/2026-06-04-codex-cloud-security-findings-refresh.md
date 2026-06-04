@@ -3,11 +3,49 @@
 **Detected:** 2026-06-04 local / 2026-06-03T18:39:31.434Z UTC
 **Source:** Authenticated Chrome visit to `https://chatgpt.com/codex/cloud/security/findings`, refreshed via the Codex Security UI.
 **Status:** OPEN
-**Severity:** Launch blocker until triaged; current dashboard contains 27 medium, 6 low, and 9 informational findings.
+**Severity:** Launch blocker until triaged; latest refresh still shows `1-20 of 43` findings and a Scans page behind latest `main`.
 
 ## Why This Exists
 
 The cheaper closed-beta provider path is partially proven, but the current Codex Security dashboard still lists open findings against `pjel888/archestimator`. Closed beta cannot be honestly called launch-ready until the medium findings are triaged and either fixed, accepted by owner/legal/security judgment, or proven stale/false-positive with evidence.
+
+## Latest Dashboard Refresh - 2026-06-04T04:05:09.942Z
+
+- Artifact: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/codex-security-dashboard-refresh-2026-06-04T0405Z.json`.
+- Findings page: authenticated Chrome refresh still reports `1-20 of 43`.
+- Scans page: status is `Waiting for new commits`; owner is
+  `philipjonlewis@gmail.com`; repository is `pjel888/archestimator`;
+  environment is `archestimator`; branch is `main`; last scanned commit is
+  `28601375` at `11:52 AM Jun 4, 2026`; latest pushed repo head is `6297cec`.
+- GitHub: no open PRs, no open issues, no new commit/issue/PR review comments
+  since June 4, and no status contexts/check-runs for latest `main`. The combined
+  status appears pending only because GitHub reports zero contexts/check-runs.
+- Launch meaning: Codex Security is not caught up to the latest pushed proof
+  commits. Do not treat the remaining dashboard findings as closed until Codex
+  Security rescans/clears them or the owner explicitly accepts the residual risk.
+
+Latest first-page finding titles:
+
+1. `Project deletion no longer cleans project image objects`
+2. `Unscoped Speed Insights exposes sensitive app URLs`
+3. `New share review GET APIs are not rate limited`
+4. `Mass deletion audit records are caller-tamperable`
+5. `Role demotion migration is blocked by its own trigger`
+6. `Hosted auth smoke sends cookies to unvalidated URL`
+7. `Beta feedback RLS allows forged cross-tenant context`
+8. `Denied beta users keep Supabase sessions`
+9. `Committed Lighthouse reports leak Supabase session cookies`
+10. `Unauthenticated digest server action emails owners`
+11. `Revoked invite RPC leaks project and email metadata`
+12. `Committed public share token and user project data`
+13. `Unbounded share tree parsing can DoS share renders`
+14. `Global comment circuit breaker can be tripped by bad UUIDs`
+15. `Unvalidated share image URLs enable client tracking`
+16. `Stale share sessions can approve newer publication snapshots`
+17. `Stale recipient sessions can post share comments`
+18. `Password-protected share metadata leaks project details`
+19. `Republish can widen shared links to all estimate sheets`
+20. `Project images are uploaded to a public listable bucket`
 
 ## Current Findings Snapshot
 

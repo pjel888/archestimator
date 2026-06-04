@@ -1,0 +1,66 @@
+{
+  "source": "CODEX_SECURITY_DASHBOARD_BROWSER_REFRESH",
+  "generatedAtUtc": "2026-06-04T04:05:09.942Z",
+  "repository": "pjel888/archestimator",
+  "environment": "archestimator",
+  "branch": "main",
+  "findingsUrl": "https://chatgpt.com/codex/cloud/security/findings/8249b6b774788191b41614c702e2a4d5?sev=",
+  "scansUrl": "https://chatgpt.com/codex/cloud/security/scans/3fa110d41fb4819190222a7bf3239828?sev=",
+  "latestLocalHead": "6297cec308d4528cb7794be40a7e4a2af1f0c25a",
+  "latestLocalHeadShort": "6297cec",
+  "latestLocalHeadSubject": "Record Resend provider proof as blocked",
+  "github": {
+    "openPullRequests": 0,
+    "openIssues": 0,
+    "newCommitCommentsSince2026-06-04": 0,
+    "newIssueOrPrCommentsSince2026-06-04": 0,
+    "newPullRequestReviewCommentsSince2026-06-04": 0,
+    "latestCommitCombinedStatus": "pending",
+    "latestCommitStatusContexts": 0,
+    "latestCommitCheckRuns": 0,
+    "statusInterpretation": "pending because GitHub reported no status contexts or check runs for the latest commit"
+  },
+  "findings": {
+    "countLine": "1-20 of 43",
+    "firstPageTitles": [
+      "Project deletion no longer cleans project image objects",
+      "Unscoped Speed Insights exposes sensitive app URLs",
+      "New share review GET APIs are not rate limited",
+      "Mass deletion audit records are caller-tamperable",
+      "Role demotion migration is blocked by its own trigger",
+      "Hosted auth smoke sends cookies to unvalidated URL",
+      "Beta feedback RLS allows forged cross-tenant context",
+      "Denied beta users keep Supabase sessions",
+      "Committed Lighthouse reports leak Supabase session cookies",
+      "Unauthenticated digest server action emails owners",
+      "Revoked invite RPC leaks project and email metadata",
+      "Committed public share token and user project data",
+      "Unbounded share tree parsing can DoS share renders",
+      "Global comment circuit breaker can be tripped by bad UUIDs",
+      "Unvalidated share image URLs enable client tracking",
+      "Stale share sessions can approve newer publication snapshots",
+      "Stale recipient sessions can post share comments",
+      "Password-protected share metadata leaks project details",
+      "Republish can widen shared links to all estimate sheets",
+      "Project images are uploaded to a public listable bucket"
+    ]
+  },
+  "scans": {
+    "status": "Waiting for new commits",
+    "owner": "philipjonlewis@gmail.com",
+    "lastScannedCommitShort": "28601375",
+    "lastScannedCommitTime": "11:52 AM Jun 4, 2026",
+    "scannedCommitCount": 570,
+    "aggregateBadgesObserved": [
+      4,
+      6,
+      31,
+      6
+    ],
+    "latestHeadWasScanned": false,
+    "interpretation": "Codex Security has not yet scanned the latest pushed head, so dashboard closure cannot be inferred from repo commits alone."
+  },
+  "result": "codex_security_still_open_last_scan_behind_head",
+  "launchMeaning": "Closed beta remains blocked on Codex Security rescan, stale-finding closure, or explicit owner acceptance.",
+  "secretsRecorded": false
+}
