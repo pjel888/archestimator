@@ -1,5 +1,30 @@
 # Evidence Index
 
+## Codex Security Password-Metadata Finding Closure - 2026-06-04 06:10Z
+
+- Primary artifact: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/codex-security-password-metadata-finding-close-2026-06-04T0610Z.json`.
+- Dashboard action: authenticated Codex Security finding
+  `Password-protected share metadata leaks project details` was closed as
+  `Already fixed` / `Reason: Fixed`; revisiting the original finding shows
+  `Closed by philipjonlewis@gmail.com`, a `Reopen` control, and the Findings
+  page count dropped from `1-20 of 40` to `1-20 of 39`.
+- Repo proof: current `main` head
+  `8af2af8fcd088a564cf6af4a0e703039042fc349` returns generic locked
+  proposal metadata from `/share/[token]` `generateMetadata` when
+  `access.passwordRequired` is true, before
+  `resolveProjectPublicationSnapshotByToken(token)` can read project/client/
+  estimate summary data. The closed finding was against old commit `56dbd00`;
+  the fix was already deployed and recorded under commit `25025d3`.
+- Fresh verification:
+  `bunx vitest run tests/vitest/project-publication-page.test.tsx tests/vitest/security-findings-contracts.test.ts --maxWorkers=1 --reporter=dot`
+  passed 2 files / 42 tests.
+- GitHub queue check: no open issues or open PRs were found; historical Codex
+  PR comments exist, but no active open GitHub queue was found for this closure.
+- Still open: remaining Codex Security findings still need closure/rescan/owner
+  acceptance; hosted denied/revoked/expired beta-auth smoke, Resend domain/
+  delivery proof, rollback risk proof, legal/owner signoff, and support/alert
+  monitoring proof remain open before a fully green closed beta.
+
 ## Codex Security Stale-Comment Finding Closure - 2026-06-04 05:55Z
 
 - Primary artifact: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/codex-security-stale-comment-finding-close-2026-06-04T0555Z.json`.
