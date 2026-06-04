@@ -27,9 +27,10 @@ journey proof is now current for the single-tester beta. Residual Codex Security
 history-risk is owner-accepted for this single-owner beta by
 `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/codex-security-history-risk-owner-acceptance-2026-06-04T1414Z.json`,
 without claiming the findings are fixed or the dashboard fully green. Hosted
-denied/revoked/expired auth, logout/session-expiry proof, spreadsheet-app
-open/print proof if required for beta, and hosted shared-link/invite email
-workflow smoke remain the main open proof gaps.
+denied/revoked/expired auth, spreadsheet-app open/print proof if required for
+beta, and hosted shared-link/invite email workflow smoke remain the main open
+proof gaps; owner logout is proven by
+`.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/hosted-logout-session-proof-2026-06-04T1436Z.json`.
 
 **Owner Signoff And Resend Email Enablement (2026-06-04 12:35Z):**
 Philip Lewis provided explicit closed-beta owner signoff in-thread with the
@@ -119,12 +120,12 @@ env mutation, broad `supabase db push`, new Codex Security scan, or git-history
 rewrite occurred. Proof artifact:
 `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/codex-security-cheap-path-closures-2026-06-04T0934Z.json`.
 External closed beta is still not fully green: the two history-exposure findings
-remain open, and hosted denied/revoked/expired auth smoke, logout/session-expiry
-proof, and secondary spreadsheet-app export proof if required for beta still need
-proof or explicit owner acceptance. Resend sender-domain proof is now closed by
+remain dashboard-open but owner-accepted for the single-owner beta, and hosted
+denied/revoked/expired auth smoke plus secondary spreadsheet-app export proof if
+required for beta still need proof. Resend sender-domain proof is now closed by
 the later 12:35Z verified send/webhook artifact; owner hosted beta journey proof
-is closed by the later 13:28Z artifact; hosted automatic-email workflow smoke
-remains open.
+is closed by the later 13:28Z artifact; hosted logout is closed by the later
+14:36Z artifact; hosted automatic-email workflow smoke remains open.
 
 **Codex Security Cheap-Path Refresh (2026-06-04 08:44Z):**
 Authenticated Codex Security proof now narrows the security blocker without
@@ -140,11 +141,11 @@ provider/DNS/Vercel/Supabase setting changed. Proof artifact:
 This means critical/high Codex Security findings are not the current blocker,
 but external closed beta is still not fully green. Later 2026-06-04 artifacts
 close Resend sender-domain proof, rollback proof, legal/owner/support signoff,
-hosted authenticated export, and the owner hosted beta journey. The remaining
-current gaps are residual Codex Security history-risk acceptance/remediation,
-denied/revoked/expired hosted auth smoke, logout/session-expiry proof, secondary
-spreadsheet-app export proof if required for beta, and hosted automatic-email
-workflow smoke before relying on automatic email UX.
+hosted authenticated export, the owner hosted beta journey, owner-scoped Codex
+Security history-risk acceptance, and hosted logout. The remaining current gaps
+are denied/revoked/expired hosted auth smoke, secondary spreadsheet-app export
+proof if required for beta, and hosted automatic-email workflow smoke before
+relying on automatic email UX.
 
 **Hosted Authenticated Export Proof (2026-06-04 08:07Z):**
 The no-extra-spend closed-beta path now has hosted authenticated XLSX export

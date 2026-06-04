@@ -1,5 +1,27 @@
 # Evidence Index
 
+## Hosted Logout Session Proof - 2026-06-04 14:36Z
+
+- Primary artifact:
+  `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/hosted-logout-session-proof-2026-06-04T1436Z.json`.
+- Deployment proof: Vercel production deployment
+  `dpl_5HDqM8FkSxdYQDAUXtNFTJ6s5f3P` was Ready and aliased to
+  `www.archestimator.com`, `archestimator.com`, and `archestimator.vercel.app`
+  after commit `535b68c`; `https://www.archestimator.com/api/health` returned
+  HTTP 200.
+- Browser proof: Computer Use against the owner Chrome profile observed
+  `https://www.archestimator.com/workshop/settings` with a visible `Sign out`
+  heading and button, clicked the button, observed `/login` with `Continue with
+  Google`, `EMAIL LINK`, and `Send sign-in link`, then probed
+  `https://www.archestimator.com/workshop/projects` and saw the login
+  experience remain gated.
+- Boundary: this closes logout proof only. It does not prove denied Google
+  account behavior, revoked allowlist behavior, expired hosted session behavior,
+  second-account OAuth callback behavior, spreadsheet-app open/recalc/print, or
+  hosted shared-link/invite email workflow delivery.
+- Result: owner logout and protected-route gating after logout are proven on the
+  current production deployment.
+
 ## Hosted Owner Beta Journey Smoke - 2026-06-04 13:28Z
 
 - Primary artifact:
@@ -18,11 +40,11 @@
 - Boundary: the run used the existing owner session and deliberately created a
   small owner beta smoke sheet in production. It does not record secrets,
   cookies, OAuth tokens, service-role keys, or webhook secrets, and it does not
-  prove denied/revoked/expired sessions, logout, spreadsheet-app
+  prove denied/revoked/expired sessions, spreadsheet-app
   open/recalc/print, or hosted shared-link/invite email workflow delivery.
 - Result: owner-only hosted beta journey proof is now captured for the current
   single-tester beta. External closed beta remains evidence-gated by the narrower
-  denied/revoked/session-expiry, spreadsheet-app, and optional automatic-email
+  denied/revoked/expired-session, spreadsheet-app, and optional automatic-email
   workflow proof gaps.
 
 ## Codex Security History-Risk Owner Acceptance - 2026-06-04 14:14Z
@@ -93,13 +115,13 @@
   `https://www.archestimator.com/workshop` signed out returns HTTP 307 to
   `/login?next=%2Fworkshop`; allowed/denied/revoked/expired real-session cases
   remain missing because no hosted session cookies were provided.
-- Current remaining launch blockers after the later 13:28Z owner journey smoke:
+- Current remaining launch blockers after the later 14:36Z hosted logout proof:
   hosted Google OAuth denied/revoked/expired real-session smoke, spreadsheet-app
-  open/print proof if required for beta, logout/session-expiry proof, and hosted
-  shared-link/invite email workflow proof before relying on automatic email UX.
-  Resend provider setup itself is no longer blocked, and residual Codex Security
-  history-risk is owner-accepted for the owner-only beta by the later 14:14Z
-  artifact.
+  open/print proof if required for beta, and hosted shared-link/invite email
+  workflow proof before relying on automatic email UX. Resend provider setup
+  itself is no longer blocked, residual Codex Security history-risk is
+  owner-accepted for the owner-only beta by the later 14:14Z artifact, and owner
+  logout is closed by the 14:36Z artifact.
 
 ## Vercel Rollback Drill - 2026-06-04 11:12Z
 
@@ -860,7 +882,7 @@
 - Production deployment `dpl_Cxeq5ATpif6Yk1zn4FmNmnX7nzhT` is `READY`; `archestimator.com` and `www.archestimator.com` alias to it; `www` serves the beta app instead of the teaser; `/api/health` returns app health JSON; signed-out `/workshop` redirects to login. Proof: `vercel-hosted-http-smoke-cheaper-path-2cddb0e-2026-06-03.json`, `vercel-health-readiness-cheaper-path-2cddb0e-2026-06-03.json`, and `vercel-production-readiness-cheaper-path-2cddb0e-2026-06-03.json`.
 - Latest production redeploy proof on 2026-06-04T13:11Z records deployment `dpl_2X6FytZUnK5ZaNsszVN4W8Wh6bXm` Ready on both custom domains, live Resend webhook signature-verification reachability, signed-out `/workshop/projects` redirect proof, login Google/email-link entry, and owner Chrome allowed-session access to hosted `/workshop`. Proof: `vercel-production-resend-enabled-hosted-auth-2026-06-04T1311Z.json`.
 - Latest owner journey proof on 2026-06-04T13:28Z records the owner hosted path through project entry, estimate creation, estimate workspace render, and export preview. Proof: `hosted-owner-beta-journey-smoke-2026-06-04T1328Z.json`.
-- Still open before calling the proof packet fully green: real browser Google OAuth denied/revoked/expired hosted smoke, logout/session-expiry proof, spreadsheet-app open/print proof if required for beta, and hosted shared-link/invite email workflow smoke if automatic email UX is used. Vercel rollback proof is closed by the 11:12Z rollback/promote drill; Resend provider delivery/webhook proof is closed; owner hosted beta journey proof is closed; residual Codex Security history-risk is owner-accepted for the owner-only beta by the 14:14Z artifact.
+- Still open before calling the proof packet fully green: real browser Google OAuth denied/revoked/expired hosted smoke, spreadsheet-app open/print proof if required for beta, and hosted shared-link/invite email workflow smoke if automatic email UX is used. Vercel rollback proof is closed by the 11:12Z rollback/promote drill; Resend provider delivery/webhook proof is closed; owner hosted beta journey proof is closed; residual Codex Security history-risk is owner-accepted for the owner-only beta by the 14:14Z artifact; owner logout is closed by the 14:36Z artifact.
 
 ## Fourth-Pass Closed Beta Evidence - 2026-06-02
 

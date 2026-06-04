@@ -1,0 +1,72 @@
+{
+  "artifact": "hosted-logout-session-proof-2026-06-04T1436Z",
+  "recordedAt": "2026-06-04T14:36:46Z",
+  "operator": "Codex",
+  "ownerSession": "Philip Lewis Chrome profile",
+  "scope": "owner-only closed beta production logout proof",
+  "deployment": {
+    "id": "dpl_5HDqM8FkSxdYQDAUXtNFTJ6s5f3P",
+    "url": "https://archestimator-bni1ukxvs-philipjonlewis-projects.vercel.app",
+    "target": "production",
+    "readyState": "READY",
+    "aliases": [
+      "https://www.archestimator.com",
+      "https://archestimator.com",
+      "https://archestimator.vercel.app"
+    ],
+    "sourceCommit": "535b68c"
+  },
+  "preLogoutProof": {
+    "url": "https://www.archestimator.com/workshop/settings",
+    "computerUseObserved": [
+      "authenticated Workshop settings page rendered",
+      "Account section contained Sign out heading",
+      "Sign out button was visible",
+      "button copy stated End this browser session and return to login"
+    ]
+  },
+  "action": {
+    "method": "Computer Use click",
+    "clickedAccessibleElement": "button Sign out",
+    "externalPurchaseOrPaidSettingChange": false,
+    "secretsRecorded": false
+  },
+  "postLogoutProof": {
+    "loginUrlObserved": "https://www.archestimator.com/login",
+    "loginCopyObserved": [
+      "Sign in to Archestimator",
+      "Continue with Google",
+      "EMAIL LINK",
+      "Send sign-in link"
+    ],
+    "protectedRouteProbe": {
+      "attemptedUrl": "https://www.archestimator.com/workshop/projects",
+      "result": "login experience rendered after logout",
+      "resultCopyObserved": [
+        "Sign in to Archestimator",
+        "Continue with Google",
+        "Send sign-in link"
+      ]
+    }
+  },
+  "result": {
+    "logoutProofReady": true,
+    "sessionEndedForOwnerBrowser": true,
+    "protectedRouteRemainedGatedAfterLogout": true,
+    "missing": []
+  },
+  "boundaries": {
+    "doesNotProve": [
+      "denied Google account smoke",
+      "revoked allowlist user smoke",
+      "expired hosted session smoke",
+      "second-account Google OAuth callback behavior",
+      "spreadsheet-app open/recalc/print",
+      "hosted shared-link or invite email workflow"
+    ],
+    "notes": [
+      "This closes logout proof only. Expired-session proof remains a separate auth edge case.",
+      "The browser was intentionally left signed out after proof capture."
+    ]
+  }
+}
