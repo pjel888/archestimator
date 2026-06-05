@@ -1297,7 +1297,7 @@ export async function getProjectPublicationSummary(projectId: string): Promise<P
   const [latestEstimateUpdatedAt, latestRecipientOpen] = publication
     ? await Promise.all([
         readLatestEstimateUpdatedAt(supabase, project.id, publication.selected_estimate_ids ?? []),
-        readLatestSharedLinkRecipientOpen(supabase, publication.id),
+        canManagePublication ? readLatestSharedLinkRecipientOpen(supabase, publication.id) : Promise.resolve(null),
       ])
     : [null, null];
   const staleSnapshotWarning = readPublicationSnapshotStaleness({
