@@ -80,3 +80,17 @@ Verification after second pass:
 
 Superseding inventory after final readiness pass: root markdown files = 36; evidence files = 4. `30-pack-manifest-and-completion-audit.md` is the authoritative inventory.
 - Computer Use retry for Speed Insights dashboard timed out after 120s; recorded in evidence/2026-06-05-computer-use-speed-insights-attempt.md.
+
+## PR-0B cache-safety implementation packet — 2026-06-06
+
+- Active implementation worktree audited: `/Users/philiplewis/archestimator.omx-worktrees/impl-performance-and-speed-pr-0b-cache-safety` on `feat/performance-and-speed-pr-0b-cache-safety`.
+- `code-review-graph` was checked first and returned `0 nodes / 0 edges`; this worktree graph was unavailable, so the implementation fell back to direct repo inspection and bounded read-only sidecar audits.
+- No production symbol was edited. The packet added a test and script harness only, plus evidence/docs updates.
+- TDD evidence:
+  - RED: `bun run test:dom -- tests/vitest/public-cache-safety-harness.test.tsx` failed because `scripts/check-public-cache-safety` did not exist.
+  - GREEN: the same command passed after adding the harness (`5 passed`).
+- Hosted harness evidence:
+  - `PUBLIC_CACHE_SAFETY_OUTPUT=.ai/03_plans/2026-06-05-performance-and-speed/evidence/2026-06-06-public-cache-safety-harness.md bun run scripts/check-public-cache-safety.ts` exited `0`.
+  - The report covered `/`, `/about`, `/features`, `/pricing`, `/contact`, `/privacy`, and `/terms` across anonymous, synthetic logged-in-cookie, consent rejected, consent accepted + A/B A, consent accepted + A/B B, and anonymous mobile scenarios.
+  - Result: all seven routes remain incompatible with broad shared HTML cache today; hosted headers are private/no-cache/no-store with `x-vercel-cache: MISS`, `/` body varies under consent/A-B scenarios, and logged-in CTA output is source-proven to vary.
+- Completion language for this packet: **IMPLEMENTATION PACKET COMPLETE / OPTIMIZATION NOT YET SHIPPED**.

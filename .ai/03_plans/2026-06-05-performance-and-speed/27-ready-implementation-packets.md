@@ -13,7 +13,7 @@ This document is the handoff that makes code implementation readiness 100% for t
 
 ## PR-0B — Public personalization/cache-safety proof harness
 
-**Status:** READY FOR IMPLEMENTATION.
+**Status:** IMPLEMENTATION PACKET COMPLETE / OPTIMIZATION NOT YET SHIPPED as of 2026-06-06 in branch `feat/performance-and-speed-pr-0b-cache-safety`.
 
 **Why this is first:** Hosted evidence captured on 2026-06-05 shows public marketing routes return `private, no-cache, no-store` and `x-vercel-cache: MISS`, with `time_starttransfer` roughly 467–544ms from the test location. This is a plausible high-impact public TTFB lever. But source audit shows all marketing pages call `getLandingAuthState()`, and the home page reads consent/A-B cookies and can set `ab_test`, so direct cache relaxation is unsafe until output variance is proven.
 
@@ -69,6 +69,14 @@ If adding a script instead of vitest-only coverage, run it against public routes
 
 - Use `IMPLEMENTATION PACKET COMPLETE / OPTIMIZATION NOT YET SHIPPED`.
 - Do not use `COMPLETE` for performance improvement.
+
+**PR-0B implementation result (2026-06-06):**
+
+- Added `scripts/check-public-cache-safety.ts` to fetch hosted public marketing routes with controlled anonymous, synthetic logged-in-cookie, consent rejected, consent accepted + A/B A, consent accepted + A/B B, and anonymous mobile request states.
+- Added `tests/vitest/public-cache-safety-harness.test.tsx` to lock the route/scenario matrix, header/body classification, report language, and source-level logged-in CTA variance via `LandingHeader`.
+- Captured hosted evidence at `evidence/2026-06-06-public-cache-safety-harness.md`.
+- Result: all seven public marketing routes are **not** compatible with broad shared HTML cache today. Hosted responses remain `private, no-cache, no-store, max-age=0, must-revalidate` with `x-vercel-cache: MISS`; `/` body varies across consent/A-B scenarios; and logged-in CTA markup can vary when `getLandingAuthState()` resolves true.
+- Runtime behavior, `src/proxy.ts`, route cache headers, auth, provider settings, and Supabase resources were not changed.
 
 ## PR-0A — Speed Insights baseline evidence capture
 

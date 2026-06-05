@@ -49,7 +49,8 @@ This manifest is generated from the current folder inventory. It exists to preve
 2. `evidence/2026-06-05-hosted-public-header-timing-baseline.md`
 3. `evidence/2026-06-05-vercel-httpstat-attempt.md`
 4. `evidence/2026-06-05-vercel-httpstat-production-baseline.md`
-5. `evidence/README.md`
+5. `evidence/2026-06-06-public-cache-safety-harness.md`
+6. `evidence/README.md`
 
 ## Completion audit
 
@@ -58,9 +59,10 @@ This manifest is generated from the current folder inventory. It exists to preve
 | Document quality 100% | Complete manifest, canonical pointer, scorecard, decision tree, packets, UltraQA audit, source map, risk/rollback, evidence index | PASS |
 | First safe code implementation readiness 100% | `27-ready-implementation-packets.md` PR-0B has scope, allowed/forbidden files, tests, evidence, rollback, completion language | PASS |
 | Provider proof honesty | `28-captured-baseline-and-remaining-provider-gap.md` and evidence files record exact Speed Insights gap and captured substitute evidence | PASS |
-| No app code changed in this planning turn | git status only shows new plan folder in main checkout; worktree branch is clean | PASS |
+| No app code changed in the original planning turn | git status only showed the new plan folder in main checkout during planning | PASS |
+| PR-0B proof-harness implementation packet | `scripts/check-public-cache-safety.ts`, `tests/vitest/public-cache-safety-harness.test.tsx`, and `evidence/2026-06-06-public-cache-safety-harness.md` prove current public marketing routes are not shared-cache compatible without changing runtime behavior | PASS |
 | No hidden workflow state | OMX active modes scan returns empty | PASS |
 
 ## Final interpretation
 
-The pack is complete for handoff. Future implementation should begin with PR-0B unless the owner first supplies Speed Insights dashboard evidence for PR-0A.
+The planning pack remains complete for handoff. PR-0B is now implemented as a proof harness only: **IMPLEMENTATION PACKET COMPLETE / OPTIMIZATION NOT YET SHIPPED**. Future implementation should run PR-0A if dashboard evidence is available, or begin a new approved packet to isolate/cache-key public personalization before any cache-header relaxation.

@@ -3,7 +3,7 @@
 
 # 2026-06-05 Performance and Speed Planning Pack
 
-**Status:** planning-only / no application code implementation.
+**Status:** planning pack plus PR-0B proof-harness implementation packet / optimization not yet shipped.
 **Branch/worktree used for audit:** `plan/performance-and-speed` at `/Users/philiplewis/archestimator.omx-worktrees/launch-plan-performance-and-speed`.
 **Canonical docs target requested by owner:** `/Users/philiplewis/archestimator/.ai/03_plans/2026-06-05-performance-and-speed`.
 
@@ -58,7 +58,8 @@ Create an implementation-ready plan to improve Archestimator speed and Core Web 
 2. `evidence/2026-06-05-hosted-public-header-timing-baseline.md`
 3. `evidence/2026-06-05-vercel-httpstat-attempt.md`
 4. `evidence/2026-06-05-vercel-httpstat-production-baseline.md`
-5. `evidence/README.md`
+5. `evidence/2026-06-06-public-cache-safety-harness.md`
+6. `evidence/README.md`
 
 ## Non-goals
 
@@ -71,6 +72,10 @@ Create an implementation-ready plan to improve Archestimator speed and Core Web 
 
 The pack is now document-quality complete and implementation-ready for the first safe code-bearing performance story. The recommended first packet is `PR-0B` in `27-ready-implementation-packets.md`: public personalization/cache-safety proof before any cache-header relaxation. The pack still does not claim performance gains until Vercel Speed Insights/provider evidence proves them.
 
+## PR-0B implementation result
+
+`PR-0B` in `27-ready-implementation-packets.md` has now been executed in branch `feat/performance-and-speed-pr-0b-cache-safety`. The harness/test result is **IMPLEMENTATION PACKET COMPLETE / OPTIMIZATION NOT YET SHIPPED**: public marketing routes are still not safe for broad shared HTML caching today, so `MARKETING_PAGE_CACHE_CONTROL` must remain unchanged until auth-specific CTA output, A/B variants, consent behavior, and hosted cache headers are isolated or otherwise proven safe.
+
 ## Recommended next step
 
-Start implementation with `PR-0B` in `27-ready-implementation-packets.md`, or run `PR-0A` first if Speed Insights dashboard access is available. Do not implement cache-header relaxation, telemetry package changes, root-provider splitting, or estimate/workshop optimization until the matching packet gates are satisfied.
+Run `PR-0A` if Speed Insights dashboard access is available, or plan the next cache-safety follow-up that splits/static-isolates public personalized output before any cache-header relaxation. Do not implement cache-header relaxation, telemetry package changes, root-provider splitting, or estimate/workshop optimization until the matching packet gates are satisfied.
