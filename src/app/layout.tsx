@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
-import { Analytics } from "@vercel/analytics/next";
 import { Inter, Poppins, Roboto_Mono, Source_Serif_4 } from "next/font/google";
+import { VercelWebAnalytics } from "@/components/analytics/VercelWebAnalytics";
 import { AppProviders } from "./providers";
 import "react-complex-tree/lib/style-modern.css";
 import "lenis/dist/lenis.css";
@@ -30,7 +30,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
     <html lang="en">
       <body className={`${inter.variable} ${poppins.variable} ${robotoMono.variable} ${sourceSerif.variable}`}>
         <AppProviders>{children}</AppProviders>
-        <Analytics />
+        <VercelWebAnalytics />
       </body>
     </html>
   );
