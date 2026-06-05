@@ -1,5 +1,25 @@
 # Current State
 
+**Advisory Staging Branch Created (2026-06-05 08:47Z):**
+`origin/staging` now exists as the shared closed-beta/pre-production
+integration branch baseline for agentic development. It was bootstrapped from
+the then-current `origin/main` SHA
+`07110b9fd5bd8a41890f5e4eaa2fdc14d0aefd1a`; branch-bootstrap closeout keeps
+`origin/staging` fast-forwarded with `origin/main` and should be re-verified
+live with `git rev-list --left-right --count origin/main...origin/staging`.
+GitHub API proof reports `staging protected:false`, so this is an advisory-only
+branch creation, not platform-enforced governance. No CI workflow, required
+checks, branch protection, Vercel deployment settings, Supabase, Resend, DNS,
+or production aliases were changed. Both Mac mini and MacBook Pro agent
+sessions should work from scoped task branches such as `codex/*`, `feat/*`,
+`fix/*`, or `docs/*`, then use PRs toward `staging` once a PR workflow is open;
+do not direct-edit `main` or `staging` except for explicit
+branch-bootstrap/provider-proof tasks. Remaining required gates are still:
+re-enable/prove current GitHub CI, add PR/CODEOWNERS/advisory governance
+checks, resolve the private-repo GitHub protection/ruleset capability blocker,
+protect `main` and `staging`, then add controlled Vercel staging/production
+release proof.
+
 **Agentic Development And CI/CD Standardization Plan Created (2026-06-05):**
 New docs-only pack `.ai/03_plans/2026-06-05-agentic-development-cicd-standardization/`
 records the current repo/provider audit and future implementation plan for
