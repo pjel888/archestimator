@@ -208,6 +208,23 @@ describe("landing page company proof and Lenis integration", () => {
     expect(globals).toContain("scroll-margin-top: 68px");
   });
 
+  it("keeps the Neat hero canvas off the mobile/reduced-motion critical path", () => {
+    const neat = readProjectFile(
+      "src/components/landing/NeatWireframeBackground.tsx",
+    );
+
+    expect(neat).toContain("shouldUseStaticNeatFallback");
+    expect(neat).toContain("(prefers-reduced-motion: reduce)");
+    expect(neat).toContain("(pointer: coarse)");
+    expect(neat).toContain("(max-width: 767px)");
+    expect(neat).toContain("requestIdleCallback");
+    expect(neat).toContain("cancelIdleCallback");
+    expect(neat).toContain("setTimeout");
+    expect(neat).toContain("await import('@firecms/neat')");
+    expect(neat).toContain("data-neat-static-fallback");
+    expect(neat).toContain("gradient?.destroy()");
+  });
+
   it("does not import the landing Lenis provider from workshop surfaces", () => {
     const workshopSource = [
       ...readTextFilesRecursively(join(root, "src/app/workshop")),

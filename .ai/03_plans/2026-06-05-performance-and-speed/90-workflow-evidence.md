@@ -174,3 +174,13 @@ Superseding inventory after final readiness pass: root markdown files = 36; evid
 - Summary: home scored 80 consent-off and 88 consent-on; features 89/91; pricing 88/89; contact 88/89. Home consent-off was the local outlier with TBT 378.48ms.
 - Local limitation: accepted-consent traces do not prove production GA/Clarity or Vercel provider behavior; Speed Insights p75 and hosted analytics proof remain open.
 - Completion language: **LOCAL PUBLIC MOBILE LIGHTHOUSE BASELINE CAPTURED / SPEED INSIGHTS AND HOSTED ANALYTICS PROOF OPEN**.
+
+## Neat mobile fallback after-trace — 2026-06-06
+
+- Implemented a static fallback for mobile, coarse-pointer, and reduced-motion clients in `NeatWireframeBackground`; eligible desktop clients dynamically import and activate `@firecms/neat` after idle/timeout instead of on the initial client critical path.
+- Ran focused DOM coverage for the fallback and idle-load path plus existing landing tests: `bun run test:dom -- tests/vitest/neat-wireframe-background.test.tsx tests/vitest/landing-company-proof.test.ts tests/vitest/landing-interactivity.test.tsx` passed 3 files / 15 tests.
+- Ran `bun run type-check` and `bun run build`; both passed.
+- Ran focused local mobile Lighthouse after-traces for `/` consent off/on under `next start` on port 3045; evidence lives in `evidence/neat-mobile-fallback-2026-06-06/`.
+- Result: consent-off TBT improved 378.48ms -> 52.00ms and score 80 -> 85, while consent-off LCP/Speed Index worsened in this single local run; consent-on score/TBT/LCP/Speed Index all improved in this run.
+- Extracted Lighthouse final screenshots into `evidence/neat-mobile-fallback-2026-06-06/visual-comparison/`; manual review confirms the mobile hero layout remains intact with an intentional static orange gradient instead of the animated grid.
+- Completion language: **IMPLEMENTED LOCALLY / PROVIDER PROOF OPEN**.

@@ -101,9 +101,10 @@ A future worker must not start with broad refactors, generic memoization, depend
   - Expected: compare LCP/INP with analytics consent false vs true.
   - 2026-06-06 local evidence: `evidence/public-lighthouse-2026-06-06/public-lighthouse-mobile-baseline.md` plus JSON/HTML/trace/devtools assets. Home is weakest locally (score 80 consent-off, TBT 378.48ms); provider Speed Insights p75 and hosted analytics proof remain open.
 
-- [ ] **Step 2.2: Evaluate Neat canvas fallback**
+- [x] **Step 2.2: Evaluate Neat canvas fallback**
   - Candidate: static fallback for mobile/reduced-motion/low-end devices or lazy activation after LCP.
   - Guardrails: visual screenshot comparison and no broken hero layout.
+  - 2026-06-06 local implementation: `NeatWireframeBackground` now keeps a static fallback for mobile, coarse-pointer, and reduced-motion clients and dynamically imports/activates `@firecms/neat` after idle for eligible desktop clients. Evidence: `evidence/neat-mobile-fallback-2026-06-06/neat-mobile-fallback-summary.md`. Local TBT improved in both home mobile Lighthouse after-runs, but consent-off LCP/Speed Index regressed in this single local run; provider p75 and hosted proof remain open before claiming production improvement.
 
 - [ ] **Step 2.3: Evaluate Lenis scope**
   - Candidate: remove from non-home pages or lazy-load after interaction.
