@@ -623,7 +623,7 @@ describe("closed beta readiness docs", () => {
     expect(manualProofMatrix).toContain("Do not call the findings fixed, the dashboard fully green, or public/widened beta approved");
     expect(manualProofMatrix).toContain("Current read-only pass");
     expect(manualProofMatrix).toContain("does not equal PITR restore proof");
-    expect(manualProofMatrix).toContain("does not rerun browser/manual project-specific unlink smoke");
+    expect(manualProofMatrix).toContain("browser project-specific unlink proof is covered separately by the 2026-06-05 owner-session smoke");
     expect(manualProofMatrix).toContain("Hosted auth allowlist");
     expect(manualProofMatrix).toContain("Vercel deploy/env/health");
     expect(manualProofMatrix).toContain("vercel-production-readiness-no-spend-refresh-2026-06-04T1043Z.json");
@@ -668,6 +668,8 @@ describe("closed beta readiness docs", () => {
     expect(manualProofMatrix).toContain("Native Microsoft Excel, Apple Numbers, LibreOffice, real production/client workbook app proof");
     expect(manualProofMatrix).toContain("Project-specific unlink manual smoke");
     expect(manualProofMatrix).toContain("project-specific-unlink-linked-smoke-blocked-2026-06-02.md");
+    expect(manualProofMatrix).toContain("project-specific-unlink-smoke-2026-06-05T0125Z/project-specific-unlink-local-smoke-2026-06-02.json");
+    expect(manualProofMatrix).toContain("linked-local-owner-session-pass / hosted-production-not-separate");
     expect(manualProofMatrix).toContain("Linked RPC prerequisite now passes");
     expect(manualProofMatrix).toContain("supabase-linked-readiness-pass-2026-06-05T0033Z.json");
     expect(manualProofMatrix).toContain("`unlink_estimate_row_item_from_library_with_history` exists and anon cannot execute it");
@@ -762,7 +764,7 @@ describe("closed beta readiness docs", () => {
     expect(manualProofMatrix).toContain("passing 9 ungated checks with 24 env-gated/live-provider specs skipped");
     expect(manualProofMatrix).toContain("Partial hosted-owner / denied-revoked-pass / logout-pass / synthetic-expired-pass / email-clickthrough-pass / delivered-webhook-pass / synthetic-Google-Sheets-pass");
     expect(manualProofMatrix).toContain("hosted-expired-stale-cookie-smoke-2026-06-04T1920Z.json");
-    expect(manualProofMatrix).toContain("Project-specific unlink browser/manual smoke remains missing; native Excel and real production/client workbook spreadsheet-app proof remain unproven.");
+    expect(manualProofMatrix).toContain("Project-specific unlink now has linked/local owner-session browser proof; native Excel and real production/client workbook spreadsheet-app proof remain unproven.");
     expect(manualProofMatrix).toContain("demo-rehearsal-fallback-pack-2026-06-02.md");
     expect(manualProofMatrix).toContain("fallback script");
     expect(manualProofMatrix).toContain("owner demo sign-off remain missing");
@@ -938,7 +940,7 @@ describe("closed beta readiness docs", () => {
     expect(goalCompletionAudit).toContain("production beta app is now live on `https://www.archestimator.com`");
     expect(goalCompletionAudit).toContain("Supabase PITR was explicitly skipped for cost");
     expect(goalCompletionAudit).toContain("only active/invited closed-beta allowlist email is `philipjonlewis@gmail.com`");
-    expect(goalCompletionAudit).toContain("Remaining completion gaps: project-specific unlink proof if required before widening");
+    expect(goalCompletionAudit).toContain("Project-specific unlink now has linked/local owner-session browser proof but not separate hosted production proof");
     expect(goalCompletionAudit).toContain("synthetic Google Sheets import/open/recalc/print-preview proof is captured");
     expect(goalCompletionAudit).toContain("synthetic stale-cookie expired-session fail-closed proof is closed");
     expect(goalCompletionAudit).toContain("Vercel rollback proof is closed");
@@ -998,7 +1000,7 @@ describe("closed beta readiness docs", () => {
     expect(currentState).toContain("13 total checks / 13 failed rows");
     expect(knownIssues).toContain("supabase-linked-readiness-pass-2026-06-05T0033Z.json");
     expect(knownIssues).toContain("passes 14 rows / 0 failures");
-    expect(knownIssues).toContain("did not apply migrations, mutate storage, run a restore, or rerun browser/manual unlink smoke");
+    expect(knownIssues).toContain("browser unlink proof is now covered separately by the 2026-06-05 linked/local owner-session smoke");
     expect(currentState).toContain("**Linked Supabase Readiness And Public-Domain Smoke Refreshed (2026-06-05 00:33Z):**");
     expect(currentState).toContain("supabase-linked-readiness-pass-2026-06-05T0033Z.json");
     expect(currentState).toContain("14 rows / 0 failures");
@@ -1077,9 +1079,9 @@ describe("closed beta readiness docs", () => {
     expect(currentState).toContain("`supportMonitoringReady: false`");
     expect(currentState).toContain("all proof flags false, all owner labels missing, and 9 missing checks");
     expect(currentState).toContain("monitored review workflow, and alert ownership remain open");
-    expect(currentState).toContain("Project-specific unlink linked smoke evidence");
+    expect(currentState).toContain("Project-specific unlink linked/local owner-session browser proof");
     expect(currentState).toContain("linked Supabase returned `PGRST202`");
-    expect(currentState).toContain("do not prove hosted auth, linked RLS/security, Resend delivery/webhooks, project-specific unlink, monitored support/alerts, or current hosted E2E/manual smoke");
+    expect(currentState).toContain("do not prove hosted auth, linked RLS/security, Resend delivery/webhooks, monitored support/alerts, native/real workbook app proof, or a separate hosted production unlink smoke");
     expect(currentState).toMatch(/Do not archive the MVP launch goal or claim launch readiness from local tests alone/i);
     expect(decisions).toMatch(/This is not a launch approval/);
     expect(knownIssues).toContain("Local validation/build evidence is now current");
@@ -1102,7 +1104,7 @@ describe("closed beta readiness docs", () => {
     expect(knownIssues).toContain("Current local E2E smoke evidence on 2026-06-02 proves signed-out auth plus local dev-auth component library");
     expect(knownIssues).toContain("Full local E2E refresh on 2026-06-02 at `bb9006d` proves");
     expect(knownIssues).toContain("9 ungated Playwright checks with 24 env-gated/live-provider specs skipped");
-    expect(knownIssues).toContain("project-specific unlink browser/manual smoke and native/real spreadsheet-app behavior remain separate open gaps");
+    expect(knownIssues).toContain("project-specific unlink now has linked/local owner-session browser proof; native/real spreadsheet-app behavior remains a separate open gap");
     expect(knownIssues).toContain("Local component/template demo evidence on 2026-06-02 proves screenshots/JSON");
     expect(knownIssues).toContain("local template insertion evidence proves throwaway-estimate insertion with zero residue");
     expect(knownIssues).toContain("Legal/owner readiness helper evidence on 2026-06-02 is negative/blocked");
@@ -1158,7 +1160,7 @@ describe("closed beta readiness docs", () => {
     expect(knownIssues).toContain("`supportMonitoringReady: false`");
     expect(knownIssues).toContain("all proof flags false, all owner labels missing, and 9 missing checks");
     expect(knownIssues).toContain("Linked feedback/review migration apply, hosted feedback/admin smoke, monitored inbox/table ownership, and alert ownership proof remain missing");
-    expect(knownIssues).toContain("Project-specific unlink browser/manual smoke remains open even though 2026-06-05 linked readiness now proves");
+    expect(knownIssues).toContain("Project-specific unlink linked/local owner-session browser smoke is now passed by `project-specific-unlink-smoke-2026-06-05T0125Z/`");
     expect(knownIssues).toContain("`unlink_estimate_row_item_from_library_with_history` exists and anon cannot execute it");
     expect(knownIssues).toContain("unlink detach/edit/library-unchanged/export");
     expect(knownIssues).toContain("current hosted E2E now proves owner, denied/revoked, logout, synthetic expired-session");

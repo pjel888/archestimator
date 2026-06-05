@@ -1,0 +1,51 @@
+{
+  "route": "/workshop/projects/22222222-2222-4222-8222-222222222222/estimates/db48a68a-b73f-4d09-9b29-a9f5c5184781",
+  "material": "600x600 Porcelain Floor Tile",
+  "sourceLibraryItemId": "44444444-4444-4444-8444-444444444441",
+  "beforeLibraryItem": {
+    "id": "44444444-4444-4444-8444-444444444441",
+    "name": "600x600 Porcelain Floor Tile",
+    "description": "Editable allowance for PH-available porcelain tile.",
+    "supplier": "Supplier quote required",
+    "unit": "sqm",
+    "unit_cost": 950,
+    "misc_cost": 300,
+    "category": "Tile Flooring",
+    "current_version_number": 1,
+    "active_price_option_id": "bc95d7ab-c2fb-4e15-94cf-4653b1c6825c"
+  },
+  "afterLibraryItem": {
+    "id": "44444444-4444-4444-8444-444444444441",
+    "name": "600x600 Porcelain Floor Tile",
+    "description": "Editable allowance for PH-available porcelain tile.",
+    "supplier": "Supplier quote required",
+    "unit": "sqm",
+    "unit_cost": 950,
+    "misc_cost": 300,
+    "category": "Tile Flooring",
+    "current_version_number": 1,
+    "active_price_option_id": "bc95d7ab-c2fb-4e15-94cf-4653b1c6825c"
+  },
+  "detachedRow": {
+    "id": "f2efa23e-a535-4623-9e07-2e3984179ccf",
+    "source_library_item_id": null,
+    "source_snapshot": {
+      "unit": "sqm",
+      "category": "Tile Flooring",
+      "material": "600x600 Porcelain Floor Tile",
+      "miscCost": 300,
+      "supplier": "Supplier quote required",
+      "unitCost": 950,
+      "sourceLibraryItemId": "44444444-4444-4444-8444-444444444441",
+      "componentVersionNumber": 1
+    },
+    "quantity": 7,
+    "row_revision": 3,
+    "link_state": "detached"
+  },
+  "rowUnlinkedEventCount": 1,
+  "exportContainsMaterial": true,
+  "exportContainsEditedQuantity": true,
+  "cleanup": "Estimate fixture deletion and residue verification run in finally block.",
+  "capturedAt": "2026-06-05T01:21:09.158Z"
+}
