@@ -1,3 +1,6 @@
+import { mkdtempSync, readFileSync } from "node:fs";
+import { join } from "node:path";
+import { tmpdir } from "node:os";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
@@ -87,6 +90,57 @@ describe("hosted export route smoke script", () => {
     expect(result.status).toBe(404);
     expect(result.xlsxZipMagic).toBe(false);
     expect(JSON.stringify(result)).not.toContain("secret");
+  });
+
+
+  it("captures multiple sanitized duration samples for benchmark mode", async () => {
+    const fetchMock = vi.fn(async () => new Response(new Uint8Array([0x50, 0x4b, 0x03, 0x04, 1, 2, 3, 4, 5, 6]), {
+      status: 200,
+      headers: {
+        "content-type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        "content-disposition": 'attachment; filename="Customer-Residence-EST-42-proposal.xlsx"',
+        "cache-control": "private, no-store",
+      },
+    }));
+
+    const result = await verifyHostedExportRoute(
+      {
+        baseUrl: "https://preview.example",
+        projectId: "project-1",
+        estimateId: "estimate-1",
+        authHeader: "Bearer secret-token",
+        minBytes: 4,
+        runs: 3,
+      },
+      fetchMock as unknown as typeof fetch,
+    );
+
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+    expect(result.runs).toBe(3);
+    expect(result.samples).toHaveLength(3);
+    expect(result.averageDurationMs).toBeGreaterThanOrEqual(0);
+    expect(result.passed).toBe(true);
+    expect(JSON.stringify(result)).not.toContain("secret-token");
+    expect(JSON.stringify(result)).not.toContain("Customer-Residence");
+  });
+
+  it("parses benchmark run count and markdown output env", () => {
+    const dir = mkdtempSync(join(tmpdir(), "hosted-export-proof-"));
+    process.env = {
+      HOSTED_EXPORT_BASE_URL: "https://preview.example/",
+      HOSTED_EXPORT_PROJECT_ID: "project-1",
+      HOSTED_EXPORT_ESTIMATE_ID: "estimate-1",
+      HOSTED_EXPORT_AUTH_HEADER: "Bearer secret",
+      HOSTED_EXPORT_RUNS: "3",
+      MARKDOWN_FILE: join(dir, "proof.md"),
+    };
+
+    const inputs = parseInputsFromEnv();
+
+    expect(inputs.baseUrl).toBe("https://preview.example");
+    expect(inputs.runs).toBe(3);
+    expect(inputs.markdownFile).toMatch(/proof\.md$/);
+    expect(() => readFileSync(inputs.markdownFile!, "utf8")).toThrow();
   });
 
   it("recognizes XLSX ZIP magic and builds request headers", () => {
