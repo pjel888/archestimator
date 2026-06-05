@@ -18,7 +18,7 @@ PR checks pass
   ↓
 merge to staging
   ↓
-staging/preview deployment + smoke proof
+manual preview/staging deployment from approved staging SHA + smoke proof
   ↓
 PR staging → main
   ↓
@@ -36,6 +36,12 @@ post-promote smoke + rollback evidence
 ## Required future workflow
 
 Future `release-production.yml` should use `workflow_dispatch`, production environment approval, verify target SHA is on `main`, verify CI checks, run staged deployment (`vercel --prod --skip-domain --yes`), store deployment URL, run staged smoke, then require explicit promote (`vercel promote <deployment-url> --yes`).
+
+## Manual staging/preview deployment contract
+
+While Vercel Git deployments remain disabled, the staging surface is manual, not automatic. A future staging proof packet must record the approved `staging` SHA, the Vercel CLI deployment URL/id, the environment/target used, smoke results, and error-log review. It must also say whether the deployment is a preview deployment or a production-target deployment without aliases.
+
+Do not treat `staging` branch creation as hosted staging proof until either manual CLI deployment evidence exists or Vercel Git deployment rules are re-enabled behind protected branches.
 
 ## Minimum hosted smoke
 

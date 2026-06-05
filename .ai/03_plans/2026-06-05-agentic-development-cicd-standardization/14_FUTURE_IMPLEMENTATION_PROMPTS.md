@@ -14,6 +14,10 @@ Implement Phase A from `.ai/03_plans/2026-06-05-agentic-development-cicd-standar
 Scope: re-audit GitHub workflow state, then with explicit owner authorization re-enable/replace disabled CI and prove a current run. Non-goals: no branch protection, no Vercel deploy, no provider mutation. Validation: workflow list, run view URL, and changed-file diff check if workflow code changes.
 ```
 
+## Prompt selection rule
+
+Use one prompt at a time. Do not paste the generic `.ai/08_prompts/003-PLAN-IMPLEMENTATION-PROMPT.MD` with this entire folder unless the owner also names the exact phase bundle and provider authority for that run. Without that authority, the safe default is Prompt 1 only.
+
 ## Prompt 2 — CI hardening
 
 ```txt
