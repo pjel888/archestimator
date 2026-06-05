@@ -1,5 +1,12 @@
 # Current State
 
+**Linked Supabase Readiness And Public-Domain Smoke Refreshed (2026-06-05 00:33Z):**
+A fresh read-only linked Supabase SQL readiness probe now passes. Artifact
+`.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/supabase-linked-readiness-pass-2026-06-05T0033Z.json`
+records 14 rows / 0 failures from `scripts/sql/linked-supabase-launch-readiness.sql`: all five launch migrations are present, `closed_beta_allowed_emails` and `beta_feedback_submissions` exist with RLS enabled, anon cannot select those private beta tables, `check_closed_beta_access` and `unlink_estimate_row_item_from_library_with_history` exist and anon cannot execute them, `component-images` remains intentionally public, and `project-images` is private. A companion no-login public smoke artifact,
+`.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/production-public-smoke-2026-06-05T0025Z.json`,
+records `https://www.archestimator.com` HTTP 200 with closed-beta markers, apex redirecting to `www`, `/login?next=/workshop/projects` rendering `Continue with Google`, and signed-out `/workshop/projects` failing closed to login. No provider settings, DNS, paid add-ons, aliases, cookies, or secrets were changed or recorded. External closed beta remains not fully green: project-specific unlink browser/manual smoke, native/real production workbook spreadsheet-app proof, and residual Codex Security history-risk remain open unless explicitly waived for the current owner-only beta.
+
 **Hosted Expired Synthetic Stale-Cookie Smoke Closed (2026-06-04 19:20Z):**
 Production `/workshop` now has sanitized expired-session fail-closed proof for
 the owner-only beta. Codex generated a synthetic Supabase SSR auth cookie shape
@@ -296,8 +303,9 @@ rewrite occurred. Proof artifact:
 `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/codex-security-cheap-path-closures-2026-06-04T0934Z.json`.
 External closed beta is still not fully green: the two history-exposure findings
 remain dashboard-open but owner-accepted for the single-owner beta, synthetic
-Google Sheets workbook proof is captured, and native/real production workbook
-app proof remains unproven beyond the owner-only beta.
+Google Sheets workbook proof is captured, project-specific unlink browser/manual
+smoke remains unproven if required before widening, and native/real production
+workbook app proof remains unproven beyond the owner-only beta.
 Expired-session fail-closed route proof is closed by the later 19:20Z synthetic
 stale-cookie artifact. Resend sender-domain proof is now closed by
 the later 12:35Z verified send/webhook artifact; owner hosted beta journey proof
@@ -532,8 +540,8 @@ dashboard/delivery/webhook proof, legal/owner/support signoff, hosted
 authenticated export, and the owner hosted beta journey. Later proof closes
 denied/revoked Google OAuth, synthetic stale-cookie expired-session routing,
 logout/session-expiry, hosted automatic-email workflow delivery, and synthetic
-Google Sheets workbook proof; native/real production workbook app proof beyond
-the owner-only beta and residual Codex Security history-risk remain open. Codex
+Google Sheets workbook proof; project-specific unlink browser/manual smoke, native/real production workbook app proof beyond
+the owner-only beta, and residual Codex Security history-risk remain open. Codex
 Security is also still a
 launch blocker: the latest authenticated Scans page proof last scanned
 `2c7ffb97`, not current repo head `b9051f2`, and reports 4 critical, 6 high, 31
