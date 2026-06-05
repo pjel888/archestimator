@@ -230,3 +230,12 @@ Superseding inventory after final readiness pass: root markdown files = 36; evid
 - Ran `bun run test:dom -- tests/vitest/share-no-store-invariants.test.ts tests/vitest/project-publication-security.test.ts tests/vitest/project-publication-route.test.ts tests/vitest/project-publication-page.test.tsx`: 4 files / 56 tests passed.
 - Evidence: `evidence/2026-06-06-share-no-store-invariants.md`.
 - Completion language: **LOCAL INVARIANTS LOCKED / HOSTED PROOF OPEN**.
+
+## Per-route query inventory — 2026-06-06
+
+- Added `scripts/build-performance-query-inventory.ts` to produce a repo-static per-route query map before Supabase/RPC/index changes.
+- Added `tests/vitest/performance-query-inventory.test.ts` to lock bucket classification, table/RPC extraction, count-style `.select("id", { count: "exact" })` parsing, and payload-shape summaries.
+- Ran `OUTPUT_FILE=.ai/03_plans/2026-06-05-performance-and-speed/evidence/2026-06-06-per-route-query-inventory.json MARKDOWN_FILE=.ai/03_plans/2026-06-05-performance-and-speed/evidence/2026-06-06-per-route-query-inventory.md bun run scripts/build-performance-query-inventory.ts`.
+- Result: 262 repo-static table/RPC references grouped into 7 buckets: ai/package-builder 76, collaboration/invite 36, component-library 18, media-upload 2, project-charts 5, public-share/publication 68, workshop projects/estimates 57.
+- Payload-size proxy is selected-column shape/count from source; live bytes, row counts, RLS cost, Supabase EXPLAIN, and hosted route timings remain open.
+- Completion language: **REPO-STATIC QUERY INVENTORY CAPTURED / LIVE PROVIDER PROOF OPEN**.
