@@ -467,7 +467,7 @@
   `/workshop/projects/PROJECT_ID_PLACEHOLDER/estimates/ESTIMATE_ID_PLACEHOLDER`,
   rendered the `DEMO_PROJECT_PLACEHOLDER` estimate workspace, opened `Preview Excel
   Export`, observed `55 consolidated BOQ rows` and grand total
-  `PHP 4,078,914.00`, and downloaded `DEMO_PROJECT_CODE_PLACEHOLDER-ESTIMATE_CODE_PLACEHOLDER-proposal.xlsx`.
+  `PHP 4,078,914.00`, and downloaded `HOSTED_EXPORT_FILENAME_REDACTED.xlsx`.
 - Supabase readback: a narrow read-only selected-node mapping query resolves
   `ESTIMATE_ID_PLACEHOLDER` to estimate
   `PROJECT_ID_PLACEHOLDER`, sheet code `ESTIMATE_CODE_PLACEHOLDER`, project

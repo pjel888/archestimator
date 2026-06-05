@@ -1,4 +1,4 @@
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 
 import { describe, expect, it } from "vitest";
@@ -108,6 +108,16 @@ const closedBetaOperationsRunbook = readFileSync(
 );
 const vercelIgnore = readFileSync(".vercelignore", "utf8");
 const manualProofPacketDir = ".ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof";
+const hostedExportProofDocuments = [
+  currentState,
+  knownIssues,
+  evidenceIndex,
+  manualProofMatrix,
+  goalCompletionAudit,
+  consolidatedManualProofPacket,
+  readFileSync(join(manualProofPacketDir, "hosted-export-browser-proof-2026-06-04T0807Z.json"), "utf8"),
+  readFileSync(join(manualProofPacketDir, "real-downloaded-workbook-quicklook-2026-06-05T0150Z.json"), "utf8"),
+];
 
 function extractManualProofArtifactFilenames(packet: string) {
   return Array.from(packet.matchAll(/`([^`]+)`/g), (match) => match[1])
@@ -921,20 +931,20 @@ describe("closed beta readiness docs", () => {
     expect(artifactFilenames).toContain("codex-security-history-risk-owner-acceptance-2026-06-04T1414Z.json");
     expect(artifactFilenames).toContain("hosted-logout-session-proof-2026-06-04T1436Z.json");
     expect(artifactFilenames).toContain("hosted-google-denied-revoked-browser-smoke-2026-06-04T1851Z.json");
-    expect(artifactFilenames).not.toContain("lewis-residence-demo-proposal-2026-06-02.xlsx");
-    expect(existsSync(join(manualProofPacketDir, "lewis-residence-demo-proposal-2026-06-02.xlsx"))).toBe(false);
-    expect(
-      existsSync(
-        join(
-          manualProofPacketDir,
-          "spreadsheet-quicklook-preview-2026-06-02/lewis-residence-demo-proposal-2026-06-02.xlsx.png",
-        ),
-      ),
-    ).toBe(false);
+    expect(artifactFilenames.some((filename) => filename.endsWith(".xlsx"))).toBe(false);
+    expect(artifactFilenames.some((filename) => filename.endsWith(".xlsx.png"))).toBe(false);
     expect(artifactFilenames.length).toBeGreaterThanOrEqual(30);
 
     const missingArtifacts = artifactFilenames.filter((filename) => !existsSync(join(manualProofPacketDir, filename)));
     expect(missingArtifacts).toEqual([]);
+  });
+
+  it("redacts hosted export proof filenames derived from project or estimate names", () => {
+    const artifactFilenames = readdirSync(manualProofPacketDir);
+
+    expect(artifactFilenames.some((filename) => filename.endsWith(".xlsx"))).toBe(false);
+    expect(hostedExportProofDocuments.join("\n")).not.toMatch(/[A-Z0-9_-]+-[A-Z0-9_-]+-proposal(?: \(\d+\))?\.xlsx/);
+    expect(hostedExportProofDocuments.join("\n")).toContain("HOSTED_EXPORT_FILENAME_REDACTED.xlsx");
   });
 
   it("keeps the active goal completion audit evidence-gated", () => {

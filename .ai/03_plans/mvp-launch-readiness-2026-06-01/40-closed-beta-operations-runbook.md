@@ -144,7 +144,7 @@ Options:
 - Treat failed Excel export as P0 if no workaround exists.
 - Capture project/estimate ID, browser, timestamp, and Vercel function logs.
 - Confirm formulas and workbook open correctly after fix.
-- Hosted export proof helper: run `bun run launch:verify-hosted-export` only with `HOSTED_EXPORT_BASE_URL`, `HOSTED_EXPORT_PROJECT_ID`, `HOSTED_EXPORT_ESTIMATE_ID`, and either `HOSTED_EXPORT_AUTH_COOKIE` or `HOSTED_EXPORT_AUTH_HEADER`. Use `OUTPUT_FILE=.ai/09_archive/store/<date>-mvp-closed-beta-manual-proof/hosted-export-route-smoke.json` to save sanitized proof. The helper refuses missing auth inputs and never writes cookie/header values to the report.
+- Hosted export proof helper: run `bun run launch:verify-hosted-export` only with `HOSTED_EXPORT_BASE_URL`, `HOSTED_EXPORT_PROJECT_ID`, `HOSTED_EXPORT_ESTIMATE_ID`, and either `HOSTED_EXPORT_AUTH_COOKIE` or `HOSTED_EXPORT_AUTH_HEADER`. Use `OUTPUT_FILE=.ai/09_archive/store/<date>-mvp-closed-beta-manual-proof/hosted-export-route-smoke.json` to save sanitized proof. The helper refuses missing auth inputs and never writes cookie/header values or production-derived `Content-Disposition` filenames to the report; stored proof should use `HOSTED_EXPORT_FILENAME_REDACTED.xlsx`.
 
 ## First 24-Hour Checklist
 

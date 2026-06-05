@@ -5,11 +5,11 @@
   "actions": [
     {
       "action": "removed_raw_workbook_from_current_tree",
-      "path": ".ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/lewis-residence-demo-proposal-2026-06-02.xlsx"
+      "path": ".ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/CONFIDENTIAL_PROPOSAL_WORKBOOK_REDACTED.xlsx"
     },
     {
       "action": "removed_rendered_quicklook_preview_from_current_tree",
-      "path": ".ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/spreadsheet-quicklook-preview-2026-06-02/lewis-residence-demo-proposal-2026-06-02.xlsx.png"
+      "path": ".ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/spreadsheet-quicklook-preview-2026-06-02/CONFIDENTIAL_PROPOSAL_WORKBOOK_REDACTED.xlsx.png"
     },
     {
       "action": "renamed_and_sanitized_readback_summary",
