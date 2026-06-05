@@ -239,3 +239,12 @@ Superseding inventory after final readiness pass: root markdown files = 36; evid
 - Result: 262 repo-static table/RPC references grouped into 7 buckets: ai/package-builder 76, collaboration/invite 36, component-library 18, media-upload 2, project-charts 5, public-share/publication 68, workshop projects/estimates 57.
 - Payload-size proxy is selected-column shape/count from source; live bytes, row counts, RLS cost, Supabase EXPLAIN, and hosted route timings remain open.
 - Completion language: **REPO-STATIC QUERY INVENTORY CAPTURED / LIVE PROVIDER PROOF OPEN**.
+
+## Estimate cursor broadcast pressure guard — 2026-06-06
+
+- Edited `src/hooks/use-estimate-cursor-broadcast.ts` after GitNexus impact reported LOW risk for `useEstimateCursorCollaboration`: 2 direct callers, 0 affected processes.
+- Added `CURSOR_BROADCAST_MIN_DISTANCE_PX` and `shouldQueueCursorBroadcast` so same-cell pointer moves under 6px are ignored before the existing timed broadcast throttle; row/column target changes still queue immediately.
+- Added `tests/vitest/estimate-cursor-broadcast-throttle.test.ts` and `scripts/benchmark-estimate-cursor-broadcast.ts`.
+- Ran `OUTPUT_FILE=.ai/03_plans/2026-06-05-performance-and-speed/evidence/2026-06-06-estimate-cursor-broadcast-pressure.json MARKDOWN_FILE=.ai/03_plans/2026-06-05-performance-and-speed/evidence/2026-06-06-estimate-cursor-broadcast-pressure.md bun run scripts/benchmark-estimate-cursor-broadcast.ts`.
+- Result: synthetic same-cell movement queued 20 broadcasts from 120 moves (83% reduction), while row target changes queued all 120 moves.
+- Completion language: **LOCAL CURSOR PRESSURE GUARD IMPLEMENTED / PROVIDER PROOF OPEN**.

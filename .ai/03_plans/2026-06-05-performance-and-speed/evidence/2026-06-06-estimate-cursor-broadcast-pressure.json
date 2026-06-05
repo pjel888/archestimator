@@ -1,0 +1,10 @@
+{
+  "generatedAt": "2026-06-05T20:12:30.304Z",
+  "mode": "local-estimate-cursor-broadcast-pressure",
+  "minDistancePx": 6,
+  "tinySameCellMoves": 120,
+  "tinySameCellQueued": 20,
+  "rowChangeMoves": 120,
+  "rowChangeQueued": 120,
+  "note": "Synthetic local guard benchmark. The runtime hook also keeps its existing time throttle; this report only measures the new distance/target queue gate before Supabase broadcast send."
+}
