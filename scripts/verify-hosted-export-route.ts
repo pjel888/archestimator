@@ -10,7 +10,23 @@ type VerifyInputs = {
   authCookie?: string;
   authHeader?: string;
   outputFile?: string;
+  markdownFile?: string;
   minBytes: number;
+  runs?: number;
+};
+
+type VerifySample = {
+  status: number;
+  ok: boolean;
+  durationMs: number;
+  byteLength: number;
+  contentType: string | null;
+  contentDisposition: string | null;
+  cacheControl: string | null;
+  xlsxZipMagic: boolean;
+  hasWorkbookContentType: boolean;
+  hasAttachmentDisposition: boolean;
+  passed: boolean;
 };
 
 type VerifyResult = {
@@ -29,12 +45,18 @@ type VerifyResult = {
   hasWorkbookContentType: boolean;
   hasAttachmentDisposition: boolean;
   minBytes: number;
+  runs: number;
+  samples: VerifySample[];
+  minDurationMs: number;
+  maxDurationMs: number;
+  averageDurationMs: number;
   passed: boolean;
   note: string;
 };
 
 const WORKBOOK_CONTENT_TYPE = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
 const DEFAULT_MIN_BYTES = 5_000;
+const DEFAULT_RUNS = 1;
 const REDACTED_WORKBOOK_CONTENT_DISPOSITION = 'attachment; filename="HOSTED_EXPORT_FILENAME_REDACTED.xlsx"';
 
 function readEnv(name: string) {
@@ -50,13 +72,21 @@ export function buildExportRoute(projectId: string, estimateId: string) {
   return `/api/projects/${encodeURIComponent(projectId)}/estimates/${encodeURIComponent(estimateId)}/export/proposal.xlsx`;
 }
 
-export function parseMinBytes(value: string | undefined) {
-  if (!value) return DEFAULT_MIN_BYTES;
+export function parsePositiveIntegerEnv(value: string | undefined, envName: string, fallback: number) {
+  if (!value) return fallback;
   const parsed = Number.parseInt(value, 10);
   if (!Number.isFinite(parsed) || parsed <= 0) {
-    throw new Error("HOSTED_EXPORT_MIN_BYTES must be a positive integer.");
+    throw new Error(`${envName} must be a positive integer.`);
   }
   return parsed;
+}
+
+export function parseMinBytes(value: string | undefined) {
+  return parsePositiveIntegerEnv(value, "HOSTED_EXPORT_MIN_BYTES", DEFAULT_MIN_BYTES);
+}
+
+export function parseRuns(value: string | undefined) {
+  return Math.min(parsePositiveIntegerEnv(value, "HOSTED_EXPORT_RUNS", DEFAULT_RUNS), 10);
 }
 
 export function parseInputsFromEnv(): VerifyInputs {
@@ -89,7 +119,9 @@ export function parseInputsFromEnv(): VerifyInputs {
     authCookie,
     authHeader,
     outputFile: readEnv("OUTPUT_FILE"),
+    markdownFile: readEnv("MARKDOWN_FILE"),
     minBytes: parseMinBytes(readEnv("HOSTED_EXPORT_MIN_BYTES")),
+    runs: parseRuns(readEnv("HOSTED_EXPORT_RUNS")),
   };
 }
 
@@ -110,13 +142,12 @@ export function sanitizeContentDispositionForProof(value: string | null) {
   return REDACTED_WORKBOOK_CONTENT_DISPOSITION;
 }
 
-export function summarizeResponse(params: {
+function sampleFromResponse(params: {
   inputs: VerifyInputs;
-  route: string;
   response: Response;
   bytes: Uint8Array;
   durationMs: number;
-}): VerifyResult {
+}): VerifySample {
   const contentType = params.response.headers.get("content-type");
   const rawContentDisposition = params.response.headers.get("content-disposition");
   const contentDisposition = sanitizeContentDispositionForProof(rawContentDisposition);
@@ -133,10 +164,6 @@ export function summarizeResponse(params: {
   );
 
   return {
-    generatedAt: new Date().toISOString(),
-    mode: "hosted-proposal-export-route-smoke",
-    baseUrl: params.inputs.baseUrl,
-    route: params.route,
     status: params.response.status,
     ok: params.response.ok,
     durationMs: Math.round(params.durationMs),
@@ -147,24 +174,73 @@ export function summarizeResponse(params: {
     xlsxZipMagic,
     hasWorkbookContentType,
     hasAttachmentDisposition,
-    minBytes: params.inputs.minBytes,
     passed,
-    note: "Sanitized hosted export route smoke. Auth cookies, headers, and production-derived export filenames are required for the request but are never written to this report.",
   };
+}
+
+export function summarizeSamples(params: { inputs: VerifyInputs; route: string; samples: VerifySample[] }): VerifyResult {
+  const durations = params.samples.map((sample) => sample.durationMs);
+  const latest = params.samples[params.samples.length - 1];
+  if (!latest) throw new Error("At least one hosted export sample is required.");
+  const averageDurationMs = Math.round(durations.reduce((sum, duration) => sum + duration, 0) / durations.length);
+
+  return {
+    generatedAt: new Date().toISOString(),
+    mode: "hosted-proposal-export-route-smoke",
+    baseUrl: params.inputs.baseUrl,
+    route: params.route,
+    status: latest.status,
+    ok: latest.ok,
+    durationMs: latest.durationMs,
+    byteLength: latest.byteLength,
+    contentType: latest.contentType,
+    contentDisposition: latest.contentDisposition,
+    cacheControl: latest.cacheControl,
+    xlsxZipMagic: latest.xlsxZipMagic,
+    hasWorkbookContentType: latest.hasWorkbookContentType,
+    hasAttachmentDisposition: latest.hasAttachmentDisposition,
+    minBytes: params.inputs.minBytes,
+    runs: params.samples.length,
+    samples: params.samples,
+    minDurationMs: Math.min(...durations),
+    maxDurationMs: Math.max(...durations),
+    averageDurationMs,
+    passed: params.samples.every((sample) => sample.passed),
+    note: "Sanitized hosted export route smoke/benchmark. Auth cookies, headers, and production-derived export filenames are required for the request but are never written to this report.",
+  };
+}
+
+export function summarizeResponse(params: {
+  inputs: VerifyInputs;
+  route: string;
+  response: Response;
+  bytes: Uint8Array;
+  durationMs: number;
+}): VerifyResult {
+  return summarizeSamples({
+    inputs: params.inputs,
+    route: params.route,
+    samples: [sampleFromResponse({ inputs: params.inputs, response: params.response, bytes: params.bytes, durationMs: params.durationMs })],
+  });
 }
 
 export async function verifyHostedExportRoute(inputs: VerifyInputs, fetchImpl: typeof fetch = fetch): Promise<VerifyResult> {
   const route = buildExportRoute(inputs.projectId, inputs.estimateId);
   const url = `${inputs.baseUrl}${route}`;
-  const startedAt = performance.now();
-  const response = await fetchImpl(url, {
-    method: "GET",
-    headers: buildHeaders(inputs),
-    redirect: "manual",
-  });
-  const bytes = new Uint8Array(await response.arrayBuffer());
-  const durationMs = performance.now() - startedAt;
-  return summarizeResponse({ inputs, route, response, bytes, durationMs });
+  const samples: VerifySample[] = [];
+  const runs = inputs.runs ?? DEFAULT_RUNS;
+  for (let index = 0; index < runs; index += 1) {
+    const startedAt = performance.now();
+    const response = await fetchImpl(url, {
+      method: "GET",
+      headers: buildHeaders(inputs),
+      redirect: "manual",
+    });
+    const bytes = new Uint8Array(await response.arrayBuffer());
+    const durationMs = performance.now() - startedAt;
+    samples.push(sampleFromResponse({ inputs, response, bytes, durationMs }));
+  }
+  return summarizeSamples({ inputs, route, samples });
 }
 
 function writeOutput(outputFile: string, result: VerifyResult) {
@@ -177,6 +253,7 @@ async function main() {
   const inputs = parseInputsFromEnv();
   const result = await verifyHostedExportRoute(inputs);
   if (inputs.outputFile) writeOutput(inputs.outputFile, result);
+  if (inputs.markdownFile) writeMarkdown(inputs.markdownFile, result);
   console.log(JSON.stringify(result, null, 2));
 
   if (!result.passed) {

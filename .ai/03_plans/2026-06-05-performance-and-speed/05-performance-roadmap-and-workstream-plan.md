@@ -191,6 +191,7 @@ Treat `cacheComponents`, `inlineCss`, `cssChunking`, and React Compiler changes 
   - Use `scripts/benchmark-proposal-workbook.ts` and hosted export route script.
   - Candidate: streaming/worker queue only if current Node route exceeds latency/memory budgets.
   - 2026-06-06 local evidence: `evidence/2026-06-06-proposal-workbook-benchmark.md` and `.json` from `bun run scripts/benchmark-proposal-workbook.ts`; hosted export route latency/memory proof remains open.
+  - 2026-06-06 hosted benchmark harness readiness: `scripts/verify-hosted-export-route.ts` now supports repeated sanitized benchmark samples via `HOSTED_EXPORT_RUNS` and `MARKDOWN_FILE`; evidence at `evidence/2026-06-06-hosted-proposal-export-benchmark-readiness.md` records that a safe authenticated hosted fixture/cookie/header is still required before proof can be captured.
 
 ## Workstream 7: Release, monitoring, and rollback
 

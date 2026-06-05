@@ -248,3 +248,12 @@ Superseding inventory after final readiness pass: root markdown files = 36; evid
 - Ran `OUTPUT_FILE=.ai/03_plans/2026-06-05-performance-and-speed/evidence/2026-06-06-estimate-cursor-broadcast-pressure.json MARKDOWN_FILE=.ai/03_plans/2026-06-05-performance-and-speed/evidence/2026-06-06-estimate-cursor-broadcast-pressure.md bun run scripts/benchmark-estimate-cursor-broadcast.ts`.
 - Result: synthetic same-cell movement queued 20 broadcasts from 120 moves (83% reduction), while row target changes queued all 120 moves.
 - Completion language: **LOCAL CURSOR PRESSURE GUARD IMPLEMENTED / PROVIDER PROOF OPEN**.
+
+## Hosted proposal export benchmark harness readiness — 2026-06-06
+
+- Extended `scripts/verify-hosted-export-route.ts` from one-shot smoke to sanitized benchmark mode with `HOSTED_EXPORT_RUNS`, JSON `samples`, min/average/max duration fields, and optional `MARKDOWN_FILE` output.
+- Preserved redaction of auth cookies, auth headers, and production-derived workbook filenames.
+- Added tests in `tests/vitest/hosted-export-route-smoke-script.test.ts` for multi-run benchmark output and Markdown env parsing.
+- Ran the script without hosted fixture env to prove it fails closed instead of fabricating proof; log: `evidence/2026-06-06-hosted-proposal-export-benchmark-input-gap.log`.
+- Evidence: `evidence/2026-06-06-hosted-proposal-export-benchmark-readiness.md`.
+- Completion language: **BENCHMARK HARNESS READY / AUTHENTICATED HOSTED FIXTURE OPEN**.
