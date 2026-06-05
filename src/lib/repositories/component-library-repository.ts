@@ -10,6 +10,7 @@ import type {
   EstimateTreeNode,
 } from "@/lib/estimates/types";
 import { estimateTemplates, type EstimateTemplate } from "@/lib/component-library/estimate-templates";
+import { sanitizeComponentSourceUrl } from "@/lib/component-library/source-url";
 import {
   buildComponentCategoryTreeFromRows,
   componentCategoryTree,
@@ -152,7 +153,7 @@ function normalizeComponentLibraryItem(
     designation: readString(metadata.designation),
     tags: readStringArray(metadata.tags),
     sku: defaultPriceOption?.sku ?? undefined,
-    sourceUrl: readString(metadata.sourceUrl),
+    sourceUrl: sanitizeComponentSourceUrl(readString(metadata.sourceUrl)) ?? undefined,
     sourceLibraryItemId: row.id,
     componentVersionId: latestVersion?.id ?? undefined,
     componentVersionNumber: row.current_version_number,
@@ -181,7 +182,7 @@ function normalizeCostEntry(row: ComponentVariantCostEntryRow): ComponentVariant
     pricingSource: row.pricing_source,
     pricingDate: row.pricing_date,
     confidence: row.confidence,
-    sourceUrl: row.source_url,
+    sourceUrl: sanitizeComponentSourceUrl(row.source_url) ?? null,
     notes: row.notes,
     isCurrent: row.is_current,
     createdAt: row.created_at,
@@ -222,7 +223,7 @@ function normalizePriceOption(
     pricingSource: currentCostEntry?.pricingSource ?? row.pricing_source,
     pricingDate: currentCostEntry?.pricingDate ?? row.pricing_date,
     confidence: currentCostEntry?.confidence ?? row.confidence,
-    sourceUrl: currentCostEntry?.sourceUrl ?? row.source_url,
+    sourceUrl: sanitizeComponentSourceUrl(currentCostEntry?.sourceUrl ?? row.source_url) ?? null,
     notes: currentCostEntry?.notes ?? row.notes,
     supplierId: row.supplier_id,
     activeCostEntryId: row.active_cost_entry_id,
@@ -416,7 +417,7 @@ function normalizeTemplateRowItem(row: EstimateTemplateRowItemRow): EstimateRowI
     designation: row.designation || readString(sourceSnapshot.designation),
     tags: readStringArray(metadata.tags) ?? readStringArray(sourceSnapshot.tags),
     sku: readString(sourceSnapshot.sku),
-    sourceUrl: readString(sourceSnapshot.sourceUrl),
+    sourceUrl: sanitizeComponentSourceUrl(readString(sourceSnapshot.sourceUrl)) ?? undefined,
     sourceLibraryItemId: row.source_library_item_id,
     componentVersionId: readString(sourceSnapshot.componentVersionId),
     componentVersionNumber: readNumber(sourceSnapshot.componentVersionNumber),

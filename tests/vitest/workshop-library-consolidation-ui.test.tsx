@@ -618,6 +618,14 @@ describe("workshop library consolidation UI", () => {
     expect(within(dialog).getByLabelText("Computed footprint area")).toHaveValue("0.36 m2");
     expect(within(dialog).getByLabelText("Computed package area")).toHaveValue("4.32 m2");
     expect(within(dialog).getByLabelText("Computed volume")).toHaveValue("0.0036 m3");
+    fireEvent.click(within(dialog).getByRole("button", { name: "Open cost manager" }));
+    const costManager = await screen.findByRole("dialog", { name: "Cost Manager" });
+    const sourceUrlInput = within(costManager).getByLabelText("Cost manager source URL");
+    fireEvent.change(sourceUrlInput, { target: { value: "javascript:alert(1)" } });
+    expect(within(dialog).getByRole("button", { name: "Add Component" })).toBeDisabled();
+    fireEvent.change(sourceUrlInput, { target: { value: "https://supplier.example/quote" } });
+    expect(within(dialog).getByRole("button", { name: "Add Component" })).not.toBeDisabled();
+    fireEvent.click(within(costManager).getByRole("button", { name: "Close cost manager" }));
     fireEvent.click(within(variantTabs).getByRole("button", { name: "Add variant" }));
     const updatedVariantTabs = within(dialog).getByRole("tablist", { name: "Component variants" });
     expect(within(updatedVariantTabs).getByRole("tab", { name: "Variant 2" })).toHaveAttribute("aria-selected", "true");

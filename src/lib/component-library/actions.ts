@@ -22,6 +22,7 @@ import {
   type LibraryFolderCreatePlacement,
   type LibraryFolderRecord,
 } from "./library-folder-reorder";
+import { readComponentSourceUrlInput } from "./source-url";
 
 export type ComponentLifecycleState = "draft" | "in_production" | "available" | "discontinued" | "archived";
 
@@ -231,6 +232,7 @@ function normalizeComponentInput(input: CostLibraryComponentInput) {
 }
 
 function normalizePriceOptionInput(input: ComponentPriceOptionInput) {
+  const sourceUrl = readComponentSourceUrlInput(input.sourceUrl);
   const costEntries = input.costEntries?.length
     ? input.costEntries.map((entry) => ({
         ...entry,
@@ -240,7 +242,7 @@ function normalizePriceOptionInput(input: ComponentPriceOptionInput) {
         pricingSource: entry.pricingSource?.trim() || null,
         pricingDate: entry.pricingDate || input.pricingDate || new Date().toISOString().slice(0, 10),
         confidence: entry.confidence?.trim() || null,
-        sourceUrl: entry.sourceUrl?.trim() || null,
+        sourceUrl: readComponentSourceUrlInput(entry.sourceUrl, "Cost entry source URL"),
         notes: entry.notes ?? "",
         deletedAt: entry.deletedAt ?? null,
         isCurrent: entry.isCurrent ?? false,
@@ -253,7 +255,7 @@ function normalizePriceOptionInput(input: ComponentPriceOptionInput) {
         pricingSource: input.pricingSource?.trim() || null,
         pricingDate: input.pricingDate || new Date().toISOString().slice(0, 10),
         confidence: input.confidence?.trim() || null,
-        sourceUrl: input.sourceUrl?.trim() || null,
+        sourceUrl,
         notes: input.notes ?? "",
         isCurrent: true,
         deletedAt: null,
@@ -280,7 +282,7 @@ function normalizePriceOptionInput(input: ComponentPriceOptionInput) {
     pricingSource: input.pricingSource?.trim() || null,
     pricingDate: input.pricingDate || null,
     confidence: input.confidence?.trim() || null,
-    sourceUrl: input.sourceUrl?.trim() || null,
+    sourceUrl,
     notes: input.notes ?? "",
     supplierId: input.supplierId ?? null,
     activeCostEntryId: input.activeCostEntryId?.trim() || costEntries.find((entry) => entry.isCurrent)?.clientId || null,
