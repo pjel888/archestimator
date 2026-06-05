@@ -1,5 +1,23 @@
 # Decisions
 
+## 2026-06-05 - Agentic development and CI/CD governance target
+
+**Decision:** Keep GitHub Actions as the CI control plane and Vercel as the
+deployment platform for Archestimator. Future AI work should use scoped
+`codex/*` branches with PR evidence, flow through a planned `staging` integration
+branch, and treat protected `main` as the production source of truth once CI and
+GitHub protection capabilities are restored.
+
+**Rationale:** The audited bottleneck is disabled/advisory enforcement, not CI
+vendor selection. `vercel.json` currently keeps Git-triggered deployments
+disabled, which is safer until `main` is protected, required checks are enforced,
+and release promotion has provider proof.
+
+**Follow-up:** Re-enable/prove the GitHub `CI` workflow, add PR template,
+CODEOWNERS, and governance checks, resolve GitHub private-repo protection/ruleset
+capability, then implement a controlled Vercel staged deploy/promote workflow.
+Do not claim implemented enforcement until GitHub/Vercel provider proof exists.
+
 ## 2026-06-03 - Agentic framework Phase 1A/1B archived after Notion mirror
 
 **Decision:** Treat the repo-local agentic development framework rollout as complete for Phase 1A/1B after commit `539e32a`, branch push, and Notion mirror creation under Archestimator Homebase.
