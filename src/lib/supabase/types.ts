@@ -2996,6 +2996,10 @@ export type Database = {
         Args: { target_workspace_id: string; folder_updates: Json }
         Returns: number
       }
+      delete_library_folder: {
+        Args: { target_workspace_id: string; target_folder_id: string }
+        Returns: undefined
+      }
       resolve_app_role_for_email: {
         Args: { raw_email: string }
         Returns: Database["public"]["Enums"]["app_role"]

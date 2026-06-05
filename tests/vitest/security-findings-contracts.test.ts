@@ -90,10 +90,14 @@ describe("Codex security findings hardening contracts", () => {
   it("keeps library folder mutations limited to workspace editors", () => {
     const folderActions = read("src/lib/component-library/actions.ts");
     const libraryFolderHardening = latestMigrationBySuffix("_harden_library_folder_editor_access.sql");
+    const transactionalDeleteMigration = latestMigrationBySuffix("_transactional_library_folder_delete.sql");
     const latestReorderRpc = latestFunction("reorder_library_folders");
+    const latestDeleteRpc = latestFunction("delete_library_folder");
 
     expect(folderActions).toContain("assertCanManageLibraryFolders");
     expect(folderActions).toContain('supabase.rpc("is_workspace_editor"');
+    expect(folderActions).toContain('supabase.rpc("delete_library_folder"');
+    expect(folderActions).not.toContain(".update({ parent_id: update.parentId, sort_order: update.sortOrder })");
     expect(libraryFolderHardening).toContain('drop policy if exists "members can manage library folders" on public.library_folders');
     expect(libraryFolderHardening).toContain('create policy "members can view library folders" on public.library_folders');
     expect(libraryFolderHardening).toContain('create policy "workspace editors can insert library folders" on public.library_folders');
@@ -103,6 +107,15 @@ describe("Codex security findings hardening contracts", () => {
     expect(libraryFolderHardening).toContain("grant select, insert, update, delete on public.library_folders to authenticated");
     expect(latestReorderRpc).toContain("public.is_workspace_editor(target_workspace_id) is not true");
     expect(latestReorderRpc).not.toContain("not public.is_workspace_member(target_workspace_id)");
+    expect(transactionalDeleteMigration).toContain("grant execute on function public.delete_library_folder(uuid, uuid) to authenticated");
+    expect(latestDeleteRpc).toContain("public.is_workspace_editor(target_workspace_id) is not true");
+    expect(latestDeleteRpc).toContain("for update");
+    expect(latestDeleteRpc).toContain("set constraints library_folders_workspace_parent_sort_key deferred");
+    expect(latestDeleteRpc).toContain("max_sibling_sort_order + (child_order.child_rank * 10)");
+    expect(latestDeleteRpc.indexOf("update public.library_folders folder")).toBeGreaterThanOrEqual(0);
+    expect(latestDeleteRpc.indexOf("delete from public.library_folders folder")).toBeGreaterThan(
+      latestDeleteRpc.indexOf("update public.library_folders folder"),
+    );
   });
 
   it("pins MCP tooling package specs instead of auto-resolving floating uvx packages", () => {
