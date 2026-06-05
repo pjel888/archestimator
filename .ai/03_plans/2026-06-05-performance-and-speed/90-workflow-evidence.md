@@ -140,3 +140,12 @@ Superseding inventory after final readiness pass: root markdown files = 36; evid
 - Captured local jsdom profile metrics: 50 project estimates initial render 171.01ms; 200 estimate rows initial render 355.56ms.
 - Evidence summary: `evidence/2026-06-06-estimate-peak-load-profile.md`.
 - Completion language: **LOCAL ESTIMATE PEAK-LOAD BASELINE CAPTURED / BROWSER PROFILER AND PROVIDER INP PROOF OPEN**.
+
+
+## Proposal workbook benchmark baseline — 2026-06-06
+
+- Ran `OUTPUT_FILE=.ai/03_plans/2026-06-05-performance-and-speed/evidence/2026-06-06-proposal-workbook-benchmark.json bun run scripts/benchmark-proposal-workbook.ts`.
+- Result: benchmark command passed and wrote JSON evidence.
+- Captured local synthetic workbook generation metrics: 500 rows in 170.17ms, 1000 rows in 172.6ms, and 2500 rows in 393.39ms.
+- Evidence summary: `evidence/2026-06-06-proposal-workbook-benchmark.md`.
+- Completion language: **LOCAL PROPOSAL WORKBOOK BENCHMARK CAPTURED / HOSTED EXPORT ROUTE PROOF OPEN**.
