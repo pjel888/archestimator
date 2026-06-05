@@ -204,3 +204,11 @@ Superseding inventory after final readiness pass: root markdown files = 36; evid
 - Result: built CSS contains Inter and Roboto Mono only (`containsPoppins=false`, `containsSourceSerif=false`); `/features` improved locally (score 89 -> 92, LCP 3782.31ms -> 3322.06ms) and `/` improved score/TBT with roughly stable LCP in this sample.
 - No image preload/Next Image change was made because current public evidence did not identify an image LCP candidate; the measured image request is the small logo SVG.
 - Completion language: **LOCAL FONT SURFACE REDUCED / PROVIDER PROOF OPEN**.
+
+## PR-1B root provider split decision — 2026-06-06
+
+- Reconciled Workstream 1.2 after analyzer/root-shell evidence and the targeted public route mitigations.
+- Decision: do not split `AppProviders`, move global CSS, or restructure root providers from the current evidence.
+- Rationale: analyzer evidence did not attribute material public-route cost to the root provider stack; safer local wins were Neat mobile fallback, non-home Lenis scoping, and unused root font removal.
+- Reopen condition: hosted Speed Insights, manual trace, or analyzer evidence must attribute a material public-route regression to the root provider stack.
+- Completion language: **ROOT PROVIDER SPLIT NOT JUSTIFIED / PROVIDER PROOF OPEN**.

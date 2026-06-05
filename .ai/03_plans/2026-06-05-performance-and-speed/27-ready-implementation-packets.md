@@ -150,7 +150,7 @@ bun run perf:check-routes
 
 **Completion language:** `IMPLEMENTED LOCALLY / PROVIDER PROOF OPEN` until hosted/Speed Insights evidence proves gains.
 
-**Current decision:** Do not split providers, move global CSS, or alter fonts in this packet. Analyzer evidence shows candidates, but PR-0A route/device p75 data is still missing and PR-0B proves cache/header changes are unsafe today.
+**Current decision:** Do not split providers or move global CSS in PR-1B. Analyzer evidence shows candidates, but PR-0A route/device p75 data is still missing and PR-0B proves cache/header changes are unsafe today. A separate Workstream 2.4 local audit removed unused root `Poppins` and `Source Serif 4` font registrations because source and Lighthouse evidence showed no usage and no image LCP candidate; that does not justify a broader root provider split.
 
 ## Packet discipline
 
