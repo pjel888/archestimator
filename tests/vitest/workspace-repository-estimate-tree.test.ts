@@ -17,7 +17,7 @@ function node(input: Pick<Tables<"estimate_nodes">, "id" | "parent_id" | "kind" 
 
 function row(
   input: Pick<Tables<"estimate_row_items">, "id" | "node_id" | "material" | "quantity" | "unit_cost" | "misc_cost" | "sort_order"> &
-    Partial<Pick<Tables<"estimate_row_items">, "link_state" | "source_library_item_id">>,
+    Partial<Pick<Tables<"estimate_row_items">, "link_state" | "source_library_item_id" | "source_snapshot">>,
 ): Tables<"estimate_row_items"> {
   return {
     estimate_id: "estimate-1",
@@ -103,6 +103,86 @@ describe("workspace repository estimate tree projection", () => {
       linkState: "detached",
       sourceLibraryItemId: null,
     });
+  });
+
+  it("strips unsafe legacy source snapshot image URLs while preserving safe internal thumbnails", () => {
+    const originalSupabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    process.env.NEXT_PUBLIC_SUPABASE_URL = "https://example.supabase.co";
+
+    try {
+      const safeSupabaseImage = "https://example.supabase.co/storage/v1/object/public/component-images/ws/user/components/fixture.webp";
+      const tree = buildEstimateTree(
+        [
+          node({ id: "scope", parent_id: null, kind: "group", name: "Project Scope", sort_order: 0 }),
+          node({ id: "kitchen", parent_id: "scope", kind: "area", name: "Kitchen", sort_order: 10 }),
+        ],
+        [
+          row({
+            id: "safe-local",
+            node_id: "kitchen",
+            material: "Sofa",
+            quantity: 1,
+            unit_cost: 100,
+            misc_cost: 0,
+            sort_order: 0,
+            source_snapshot: { category: "Furniture", imageUrl: "/component-thumbnails/lib-sofa.jpg" },
+          }),
+          row({
+            id: "safe-supabase",
+            node_id: "kitchen",
+            material: "Cabinet",
+            quantity: 1,
+            unit_cost: 100,
+            misc_cost: 0,
+            sort_order: 1,
+            source_snapshot: { category: "Cabinetry", imageUrl: safeSupabaseImage },
+          }),
+          row({
+            id: "unsafe-external",
+            node_id: "kitchen",
+            material: "Tracker",
+            quantity: 1,
+            unit_cost: 100,
+            misc_cost: 0,
+            sort_order: 2,
+            source_snapshot: { category: "General", imageUrl: "https://tracker.example/pixel.svg?viewer=1" },
+          }),
+          row({
+            id: "unsafe-data",
+            node_id: "kitchen",
+            material: "Data URL",
+            quantity: 1,
+            unit_cost: 100,
+            misc_cost: 0,
+            sort_order: 3,
+            source_snapshot: { category: "General", imageUrl: "data:image/svg+xml,<svg></svg>" },
+          }),
+          row({
+            id: "unsafe-javascript",
+            node_id: "kitchen",
+            material: "Script URL",
+            quantity: 1,
+            unit_cost: 100,
+            misc_cost: 0,
+            sort_order: 4,
+            source_snapshot: { category: "General", imageUrl: "javascript:alert(1)" },
+          }),
+        ],
+      );
+
+      const rows = tree[0]?.children?.[0]?.estimateRowItems ?? [];
+      expect(rows.find((item) => item.id === "safe-local")?.imageUrl).toBe("/component-thumbnails/lib-sofa.jpg");
+      expect(rows.find((item) => item.id === "safe-supabase")?.imageUrl).toBe(safeSupabaseImage);
+      expect(rows.find((item) => item.id === "unsafe-external")?.imageUrl).toBeUndefined();
+      expect(rows.find((item) => item.id === "unsafe-data")?.imageUrl).toBeUndefined();
+      expect(rows.find((item) => item.id === "unsafe-javascript")?.imageUrl).toBeUndefined();
+    } finally {
+      if (originalSupabaseUrl === undefined) {
+        delete process.env.NEXT_PUBLIC_SUPABASE_URL;
+      } else {
+        process.env.NEXT_PUBLIC_SUPABASE_URL = originalSupabaseUrl;
+      }
+    }
   });
 
   it("normalizes legacy organizing node kinds to visible group nodes while preserving nesting", () => {

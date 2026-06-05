@@ -16,6 +16,7 @@ import { resolveEstimateWorkspaceSelection, useEstimateWorkspaceSelection } from
 import { fetchEstimateSheetVersionControl, insertEstimateTemplateIntoEstimate, type EstimateSheetHistoryEvent, type EstimateSheetVersionControlData } from "@/lib/estimates/actions";
 import { composeEstimateActivity, formatActivityActor, formatActivityFieldLabel, formatActivityValue } from "@/lib/activity";
 import { getCollaborationColorForUser } from "@/lib/collaboration/colors";
+import { normalizeEstimateRowImageUrl } from "@/lib/estimates/image-url";
 import { getEstimateNodeDisplayKind } from "@/lib/estimates/tree-hierarchy";
 import { buildProposalExportModel } from "@/lib/proposal-export/build-proposal-export-model";
 import type { ProposalExportMetadata, ProposalExportModel } from "@/lib/proposal-export/types";
@@ -1847,7 +1848,7 @@ function getRowHistoryMaterialItem(snapshot: Record<string, unknown>): EstimateM
     itemCost: getAuditSnapshotUnitCost(snapshot) ?? 0,
     description: readStringValue(snapshot.description, readStringValue(sourceSnapshot.description, "")),
     unit: getAuditSnapshotUnit(snapshot),
-    imageUrl: readStringValue(sourceSnapshot.imageUrl),
+    imageUrl: normalizeEstimateRowImageUrl(sourceSnapshot.imageUrl) ?? undefined,
     category: getAuditSnapshotCategory(snapshot),
   };
 }

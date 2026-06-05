@@ -1,5 +1,6 @@
 import { moveEstimateRowItem as moveTreeRowItem, type MoveEstimateRowItemInput } from "@/lib/domain/estimate-mutations";
 import type { EstimateNode, EstimateNodeKind, EstimateRowItem, EstimateTree } from "@/lib/domain/estimate-tree";
+import { sanitizeEstimateRowSourceSnapshot } from "@/lib/estimates/image-url";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { hasSupabaseBrowserEnv, type Json, type Tables, type TablesInsert } from "@/lib/supabase/types";
 
@@ -70,7 +71,7 @@ function toEstimateRowItem(row: EstimateRowItemRow): EstimateRowItem {
     nodeId: row.node_id,
     sortOrder: row.sort_order,
     sourceLibraryItemId: row.source_library_item_id,
-    sourceSnapshot: row.source_snapshot && typeof row.source_snapshot === "object" && !Array.isArray(row.source_snapshot) ? row.source_snapshot : null,
+    sourceSnapshot: sanitizeEstimateRowSourceSnapshot(row.source_snapshot),
     material: row.material,
     description: row.description,
     supplier: row.supplier,
@@ -93,7 +94,7 @@ function toEstimateRowItemUpdate(row: EstimateRowItem): TablesInsert<"estimate_r
     node_id: row.nodeId,
     sort_order: row.sortOrder,
     source_library_item_id: row.sourceLibraryItemId,
-    source_snapshot: row.sourceSnapshot as Json | null,
+    source_snapshot: sanitizeEstimateRowSourceSnapshot(row.sourceSnapshot) as Json | null,
     material: row.material,
     description: row.description,
     supplier: row.supplier,
