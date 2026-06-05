@@ -266,27 +266,16 @@ and
 `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/vercel-production-readiness-rollback-drill-2026-06-04T1112Z.json`.
 
 **Live Closed-Beta Refresh (2026-06-04 10:06Z):**
-Fresh no-spend live proof shows the closed-beta app is on the production custom
-domains. Computer Use observed the owner Chrome session at
-`https://archestimator.com/workshop/settings/profile` rendering the
-Archestimator workshop shell, `Profile settings`, display name `OWNER_NAME_PLACEHOLDER`,
-category `Architect`, country/region `Philippines`, a `Save profile` button,
-and a `Send beta feedback` link. CLI proof shows
-`https://www.archestimator.com/api/health` returns HTTP 200 app health JSON,
-`/login` returns HTTP 200 with `Continue with Google` and closed-beta copy, and
-signed-out `/workshop` returns HTTP 307 to `/login?next=%2Fworkshop`. Vercel
-inspect shows production deployment `DEPLOYMENT_ID_PLACEHOLDER` is
-`READY` and aliased to `www.archestimator.com`, `archestimator.com`, and
-`archestimator.vercel.app`; the alias table confirms both custom domains now
-source from `VERCEL_DEPLOYMENT_URL_PLACEHOLDER`, while
-the old teaser branch remains only on its branch alias. Vercel Production env
-names are ready for closed-beta runtime, Supabase, publication secrets, Resend,
-invite delivery, and AI-off flags. Linked Supabase readback shows exactly one
-active allowlist row: `OWNER_EMAIL_PLACEHOLDER`. GitHub has no open issues or
-PRs. Codex Security still shows `1-2 of 2`, both history-exposure findings; the
-Resend sender path still lacks `send.contact.archestimator.com` MX, but email
-automation is explicitly default-off; denied/revoked hosted auth and full hosted
-journey proof remain open. Proof artifact:
+Fresh no-spend live proof shows the closed-beta app on the production custom
+domains without recording raw private beta user, provider dashboard, project,
+allowlist, DNS, or queue details in the repository. The sanitized artifact keeps
+role-placeholder proof that an owner-role browser session reached the hosted
+Workshop shell, login rendered the closed-beta Google entry, signed-out Workshop
+failed closed to login, production health returned OK, provider env names were
+present without secret values, and Codex Security history-exposure findings
+remained open. Email sender-domain/provider proof, denied/revoked hosted auth,
+and full hosted beta journey proof remained open at this observation. Proof
+artifact:
 `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/live-closed-beta-refresh-2026-06-04T1006Z.json`.
 
 **Codex Security Cheap-Path Closure Batch (2026-06-04 09:34Z):**
