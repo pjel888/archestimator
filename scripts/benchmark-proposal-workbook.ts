@@ -96,6 +96,7 @@ export function makeProposalRow(index: number): ProposalExportRow {
     laborUnitCost: 0,
     materialSubtotal: quantity * materialUnitCost,
     laborSubtotal: 0,
+    contingencySubtotal: 0,
     miscSubtotal,
     costAmount,
     remarks: "Synthetic benchmark row for local export timing only.",
@@ -114,6 +115,7 @@ export function makeProposalRow(index: number): ProposalExportRow {
         quantity,
         materialSubtotal: quantity * materialUnitCost,
         laborSubtotal: 0,
+        contingencySubtotal: 0,
         miscSubtotal,
         costAmount,
       },
@@ -134,6 +136,7 @@ export function makeBenchmarkModel(rowCount: number): ProposalExportModel {
       totalQuantity: rows.reduce((sum, row) => sum + row.quantity, 0),
       materialSubtotal: rows.reduce((sum, row) => sum + row.materialSubtotal, 0),
       laborSubtotal: 0,
+      contingencySubtotal: rows.reduce((sum, row) => sum + row.contingencySubtotal, 0),
       miscSubtotal: rows.reduce((sum, row) => sum + row.miscSubtotal, 0),
       costAmount: rows.reduce((sum, row) => sum + row.costAmount, 0),
     };
@@ -153,6 +156,7 @@ export function makeBenchmarkModel(rowCount: number): ProposalExportModel {
     laborUnitCost: row.laborUnitCost,
     materialSubtotal: row.materialSubtotal,
     laborSubtotal: row.laborSubtotal,
+    contingencySubtotal: row.contingencySubtotal,
     miscSubtotal: row.miscSubtotal,
     costAmount: row.costAmount,
   }));
@@ -192,6 +196,7 @@ export function makeBenchmarkModel(rowCount: number): ProposalExportModel {
     totals: {
       materialSubtotal: proposalRows.reduce((sum, row) => sum + row.materialSubtotal, 0),
       laborSubtotal: 0,
+      contingencySubtotal: proposalRows.reduce((sum, row) => sum + row.contingencySubtotal, 0),
       miscSubtotal: proposalRows.reduce((sum, row) => sum + row.miscSubtotal, 0),
       grandTotal: proposalRows.reduce((sum, row) => sum + row.costAmount, 0),
     },

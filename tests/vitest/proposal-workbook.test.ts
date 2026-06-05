@@ -26,6 +26,9 @@ function row(overrides: Partial<EstimateRowItem> = {}): EstimateRowItem {
   const itemCost = overrides.itemCost ?? 950;
   const quantity = overrides.quantity ?? 1;
   const miscCost = overrides.miscCost ?? 0;
+  const subTotal = itemCost * quantity;
+  const contingencyPercentage = overrides.contingencyPercentage ?? 0;
+  const contingencyValue = overrides.contingencyValue ?? (subTotal * contingencyPercentage) / 100;
 
   return {
     id: overrides.id ?? "row-1",
@@ -36,9 +39,11 @@ function row(overrides: Partial<EstimateRowItem> = {}): EstimateRowItem {
     unit: overrides.unit ?? "sqm",
     itemCost,
     quantity,
-    subTotal: itemCost * quantity,
+    subTotal,
+    contingencyPercentage,
+    contingencyValue,
     miscCost,
-    totalItemCosts: itemCost * quantity + miscCost,
+    totalItemCosts: subTotal + contingencyValue + miscCost,
     category: overrides.category ?? "Finishes",
     discipline: overrides.discipline ?? "Architectural",
     designation: overrides.designation ?? "Floor Finish",
@@ -134,6 +139,47 @@ describe("proposal workbook generation", () => {
     expect(bidForm?.getCell("H20").value).toEqual({ formula: "SUM(H19:H19)", result: 21_700 });
   });
 
+  it("includes row contingency in bid-form recalculation formulas", () => {
+    const nodes: EstimateTreeNode[] = [
+      {
+        id: "main-house",
+        name: "Main House",
+        kind: "group",
+        total: "₱0.00",
+        children: [
+          {
+            id: "bedroom-a",
+            name: "Bedroom A",
+            kind: "area",
+            total: "₱0.00",
+            estimateRowItems: [
+              row({
+                id: "bed-a-tile",
+                quantity: 2,
+                itemCost: 1_000,
+                contingencyPercentage: 10,
+                miscCost: 100,
+              }),
+            ],
+          },
+        ],
+      },
+    ];
+    const model = buildProposalExportModel({ metadata, nodes, generatedAt: "2026-05-23T00:00:00.000Z" });
+
+    const workbook = createProposalWorkbook(model);
+    const bidForm = workbook.getWorksheet("Bid Form");
+
+    expect(model.proposalRows[0].contingencySubtotal).toBe(200);
+    expect(bidForm?.getCell("H19").value).toEqual({
+      formula:
+        'IF(OR(I19="EXCLUDED",I19="BY OTHERS",I19="OWNER SUPPLIED",I19="OSM",I19="OFCI",I19="OSCI",I19="OMITTED",I19="NOT APPLICABLE"),0,D19*G19+200+100)',
+      result: 2_300,
+    });
+    expect(bidForm?.getCell("J19").value).toContain("Contingency: ₱200.00");
+    expect(bidForm?.getCell("J19").value).toContain("Misc / other: ₱100.00");
+  });
+
   it("writes formula-backed summary, commercial terms, and source breakdown traceability sheets", () => {
     const model = buildProposalExportModel({ metadata, nodes: modelTree(), generatedAt: "2026-05-23T00:00:00.000Z" });
 
@@ -162,6 +208,7 @@ describe("proposal workbook generation", () => {
       950,
       0,
       11_400,
+      0,
       0,
       500,
       11_900,

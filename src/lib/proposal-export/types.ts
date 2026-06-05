@@ -65,6 +65,7 @@ export type ProposalNormalizedSourceRow = {
   laborUnitCost: number;
   materialSubtotal: number;
   laborSubtotal: number;
+  contingencySubtotal: number;
   miscSubtotal: number;
   costAmount: number;
   remarks: string;
@@ -82,6 +83,7 @@ export type ProposalExportSourceReference = {
   quantity: number;
   materialSubtotal: number;
   laborSubtotal: number;
+  contingencySubtotal: number;
   miscSubtotal: number;
   costAmount: number;
 };
@@ -99,6 +101,7 @@ export type ProposalExportRow = {
   laborUnitCost: number;
   materialSubtotal: number;
   laborSubtotal: number;
+  contingencySubtotal: number;
   miscSubtotal: number;
   costAmount: number;
   remarks: string;
@@ -116,6 +119,7 @@ export type ProposalSummaryRow = {
   totalQuantity: number;
   materialSubtotal: number;
   laborSubtotal: number;
+  contingencySubtotal: number;
   miscSubtotal: number;
   costAmount: number;
 };
@@ -134,6 +138,7 @@ export type ProposalSourceBreakdownRow = {
   laborUnitCost: number;
   materialSubtotal: number;
   laborSubtotal: number;
+  contingencySubtotal: number;
   miscSubtotal: number;
   costAmount: number;
 };
@@ -141,6 +146,7 @@ export type ProposalSourceBreakdownRow = {
 export type ProposalExportTotals = {
   materialSubtotal: number;
   laborSubtotal: number;
+  contingencySubtotal: number;
   miscSubtotal: number;
   grandTotal: number;
 };

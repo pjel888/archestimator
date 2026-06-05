@@ -24,6 +24,9 @@ function row(overrides: Partial<EstimateRowItem> = {}): EstimateRowItem {
   const itemCost = overrides.itemCost ?? 950;
   const quantity = overrides.quantity ?? 1;
   const miscCost = overrides.miscCost ?? 0;
+  const subTotal = itemCost * quantity;
+  const contingencyPercentage = overrides.contingencyPercentage ?? 0;
+  const contingencyValue = overrides.contingencyValue ?? (subTotal * contingencyPercentage) / 100;
 
   return {
     id: overrides.id ?? "row-1",
@@ -34,9 +37,11 @@ function row(overrides: Partial<EstimateRowItem> = {}): EstimateRowItem {
     unit: overrides.unit ?? "sqm",
     itemCost,
     quantity,
-    subTotal: itemCost * quantity,
+    subTotal,
+    contingencyPercentage,
+    contingencyValue,
     miscCost,
-    totalItemCosts: itemCost * quantity + miscCost,
+    totalItemCosts: subTotal + contingencyValue + miscCost,
     category: overrides.category ?? "Finishes",
     categoryNodeId: overrides.categoryNodeId,
     categoryPath: overrides.categoryPath,
@@ -117,6 +122,7 @@ describe("proposal export model", () => {
       laborUnitCost: 0,
       materialSubtotal: 20_900,
       laborSubtotal: 0,
+      contingencySubtotal: 0,
       miscSubtotal: 0,
       costAmount: 20_900,
       includedInTotal: true,
@@ -160,8 +166,10 @@ describe("proposal export model", () => {
     expect(model.proposalRows).toHaveLength(1);
     expect(model.proposalRows[0].quantity).toBe(22);
     expect(model.proposalRows[0].materialSubtotal).toBe(20_900);
+    expect(model.proposalRows[0].contingencySubtotal).toBe(0);
     expect(model.proposalRows[0].miscSubtotal).toBe(800);
     expect(model.proposalRows[0].costAmount).toBe(21_700);
+    expect(model.totals.contingencySubtotal).toBe(0);
     expect(model.totals.grandTotal).toBe(21_700);
     expect(model.summaryRows).toEqual([
       {
@@ -171,6 +179,7 @@ describe("proposal export model", () => {
         totalQuantity: 22,
         materialSubtotal: 20_900,
         laborSubtotal: 0,
+        contingencySubtotal: 0,
         miscSubtotal: 800,
         costAmount: 21_700,
       },
@@ -186,6 +195,41 @@ describe("proposal export model", () => {
         code: "cost_split_compatibility_mode",
       }),
     );
+  });
+
+  it("carries row contingency through model totals and source breakdown rows", () => {
+    const nodes = treeWithBedrooms(
+      [row({ id: "bed-a-tile", quantity: 2, itemCost: 1_000, contingencyPercentage: 12.5, miscCost: 75 })],
+      [],
+    );
+
+    const model = buildProposalExportModel({ metadata, nodes, generatedAt: "2026-05-23T00:00:00.000Z" });
+
+    expect(model.proposalRows[0]).toMatchObject({
+      materialSubtotal: 2_000,
+      laborSubtotal: 0,
+      contingencySubtotal: 250,
+      miscSubtotal: 75,
+      costAmount: 2_325,
+    });
+    expect(model.summaryRows[0]).toMatchObject({
+      materialSubtotal: 2_000,
+      contingencySubtotal: 250,
+      miscSubtotal: 75,
+      costAmount: 2_325,
+    });
+    expect(model.sourceBreakdownRows[0]).toMatchObject({
+      materialSubtotal: 2_000,
+      contingencySubtotal: 250,
+      miscSubtotal: 75,
+      costAmount: 2_325,
+    });
+    expect(model.totals).toMatchObject({
+      materialSubtotal: 2_000,
+      contingencySubtotal: 250,
+      miscSubtotal: 75,
+      grandTotal: 2_325,
+    });
   });
 
   it("returns an empty export model with validation notes instead of crashing", () => {
