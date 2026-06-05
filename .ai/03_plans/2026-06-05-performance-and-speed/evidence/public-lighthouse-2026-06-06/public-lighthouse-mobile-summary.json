@@ -1,0 +1,103 @@
+{
+  "generatedAt": "2026-06-06T00:00:00.000+08:00",
+  "mode": "local-next-start-lighthouse-mobile",
+  "baseUrl": "http://127.0.0.1:3044",
+  "rows": [
+    {
+      "file": "contact-mobile-consent-off.report.json",
+      "url": "http://127.0.0.1:3044/contact",
+      "score": 88,
+      "fcpMs": 1208.972,
+      "lcpMs": 3856.402,
+      "tbtMs": 26,
+      "cls": 0,
+      "siMs": 1208.972,
+      "ttiMs": 3886.216,
+      "serverResponseMs": 8
+    },
+    {
+      "file": "contact-mobile-consent-on.report.json",
+      "url": "http://127.0.0.1:3044/contact",
+      "score": 89,
+      "fcpMs": 1209.2179,
+      "lcpMs": 3689.4358,
+      "tbtMs": 10.5,
+      "cls": 0,
+      "siMs": 1209.2179,
+      "ttiMs": 3774.9316175,
+      "serverResponseMs": 26
+    },
+    {
+      "file": "features-mobile-consent-off.report.json",
+      "url": "http://127.0.0.1:3044/features",
+      "score": 89,
+      "fcpMs": 1208.6159,
+      "lcpMs": 3782.309625,
+      "tbtMs": 25,
+      "cls": 0,
+      "siMs": 1208.6159,
+      "ttiMs": 3782.309625,
+      "serverResponseMs": 21
+    },
+    {
+      "file": "features-mobile-consent-on.report.json",
+      "url": "http://127.0.0.1:3044/features",
+      "score": 91,
+      "fcpMs": 1210.106,
+      "lcpMs": 3477.7914999999994,
+      "tbtMs": 11,
+      "cls": 0,
+      "siMs": 1210.106,
+      "ttiMs": 3600.1441499999996,
+      "serverResponseMs": 10
+    },
+    {
+      "file": "home-mobile-consent-off.report.json",
+      "url": "http://127.0.0.1:3044/",
+      "score": 80,
+      "fcpMs": 1216.4427,
+      "lcpMs": 3802.4045,
+      "tbtMs": 378.4809,
+      "cls": 0,
+      "siMs": 2007.0742541119316,
+      "ttiMs": 4751.81821,
+      "serverResponseMs": 34
+    },
+    {
+      "file": "home-mobile-consent-on.report.json",
+      "url": "http://127.0.0.1:3044/",
+      "score": 88,
+      "fcpMs": 1216.671,
+      "lcpMs": 3954.5634999999993,
+      "tbtMs": 42,
+      "cls": 0,
+      "siMs": 1628.0019733278984,
+      "ttiMs": 4010.7477,
+      "serverResponseMs": 16
+    },
+    {
+      "file": "pricing-mobile-consent-off.report.json",
+      "url": "http://127.0.0.1:3044/pricing",
+      "score": 88,
+      "fcpMs": 1211.0954,
+      "lcpMs": 3938.8339000000005,
+      "tbtMs": 25,
+      "cls": 0,
+      "siMs": 1211.0954,
+      "ttiMs": 3939.388670000001,
+      "serverResponseMs": 15
+    },
+    {
+      "file": "pricing-mobile-consent-on.report.json",
+      "url": "http://127.0.0.1:3044/pricing",
+      "score": 89,
+      "fcpMs": 1209.661,
+      "lcpMs": 3783.8135,
+      "tbtMs": 11,
+      "cls": 0,
+      "siMs": 1209.661,
+      "ttiMs": 3818.5830000000005,
+      "serverResponseMs": 12
+    }
+  ]
+}

@@ -165,3 +165,12 @@ Superseding inventory after final readiness pass: root markdown files = 36; evid
 - Marked Workstream 1.3 complete for the local PR-1A telemetry privacy decision: dashboard/provider-only Speed Insights, no package change, sensitive Web Analytics redaction preserved.
 - Marked Workstream 3.2 complete for the local public-route cache review: PR-0B evidence keeps `MARKETING_PAGE_CACHE_CONTROL` unchanged because public marketing HTML is not broad shared-cache-safe today.
 - Updated open-gate decision checkboxes for telemetry/cache guardrails only; Vercel Speed Insights p75 provider proof, live EXPLAIN/provider proof, browser traces, and hosted route proofs remain open.
+
+
+## Public mobile Lighthouse baseline — 2026-06-06
+
+- Ran `bun run build`, then `PORT=3044 bun run start -- -p 3044`, then `bunx lighthouse` mobile performance traces for `/`, `/features`, `/pricing`, and `/contact` with landing consent off and accepted-consent cookie.
+- Saved JSON/HTML reports plus compressed trace/devtools assets under `evidence/public-lighthouse-2026-06-06/`.
+- Summary: home scored 80 consent-off and 88 consent-on; features 89/91; pricing 88/89; contact 88/89. Home consent-off was the local outlier with TBT 378.48ms.
+- Local limitation: accepted-consent traces do not prove production GA/Clarity or Vercel provider behavior; Speed Insights p75 and hosted analytics proof remain open.
+- Completion language: **LOCAL PUBLIC MOBILE LIGHTHOUSE BASELINE CAPTURED / SPEED INSIGHTS AND HOSTED ANALYTICS PROOF OPEN**.
