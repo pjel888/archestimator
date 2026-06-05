@@ -109,7 +109,9 @@ If adding a script instead of vitest-only coverage, run it against public routes
 
 ## PR-1A — Telemetry privacy implementation
 
-**Status:** BLOCKED UNTIL OWNER DECISION.
+**Status:** TELEMETRY DECISION IMPLEMENTED / PROVIDER PROOF OPEN.
+
+**2026-06-06 result:** Chose the safest Option A in `20-telemetry-privacy-decision-record.md`: dashboard/provider-only Speed Insights with no package change. `tests/vitest/vercel-web-analytics-integration.test.ts` now locks the decision record, Speed Insights absence, Web Analytics redaction, tokenized share/invite drops, authenticated workshop drops, and public-query/hash stripping.
 
 **Unblock by filling:** `20-telemetry-privacy-decision-record.md`.
 

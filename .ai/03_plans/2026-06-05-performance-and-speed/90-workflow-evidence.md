@@ -114,3 +114,11 @@ Superseding inventory after final readiness pass: root markdown files = 36; evid
 - Result: timed out after 120s.
 - Evidence: `evidence/2026-06-06-speed-insights-chrome-retry.md`.
 - Decision: Speed Insights dashboard/export p75 metrics remain provider-open; no runtime optimization or telemetry package change is justified from this attempt.
+
+## PR-1A telemetry privacy decision — 2026-06-06
+
+- Closed `20-telemetry-privacy-decision-record.md` for PR-1A with Option A: dashboard/provider-only Speed Insights, no package change.
+- Preserved existing Web Analytics with `beforeSend={redactVercelAnalyticsEvent}`.
+- Kept `@vercel/speed-insights` absent from `package.json` and `<SpeedInsights />` absent from the root layout/component surface.
+- Added regression coverage in `tests/vitest/vercel-web-analytics-integration.test.ts` to lock the no-package decision record alongside existing sensitive-route redaction/drop tests.
+- Completion language: **TELEMETRY DECISION IMPLEMENTED / PROVIDER PROOF OPEN**.

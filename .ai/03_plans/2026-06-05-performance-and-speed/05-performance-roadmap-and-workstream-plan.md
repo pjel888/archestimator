@@ -91,6 +91,7 @@ A future worker must not start with broad refactors, generic memoization, depend
 - [ ] **Step 1.3: Preserve analytics privacy**
   - If adding `@vercel/speed-insights`, update `tests/vitest/vercel-web-analytics-integration.test.ts:24-30` intentionally and add privacy tests for tokenized/share/auth routes.
   - If keeping Web Analytics-only, document that Speed Insights dashboard data is provider-side and code remains unchanged.
+  - 2026-06-06 status: PR-1A chose dashboard/provider-only Speed Insights with no package change. `tests/vitest/vercel-web-analytics-integration.test.ts` locks Speed Insights absence, Web Analytics redaction, sensitive-route drops, and the no-package decision record.
 
 ## Workstream 2: Public/landing LCP and INP
 
