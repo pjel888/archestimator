@@ -158,6 +158,7 @@ Treat `cacheComponents`, `inlineCss`, `cssChunking`, and React Compiler changes 
 - [ ] **Step 5.1: Build per-route query inventory**
   - For each route bucket, count Supabase reads/writes and payload size.
   - Start from `workspace-repository.ts`, `component-library-repository.ts`, `project-charts-repository.ts`, and publication repositories.
+  - 2026-06-06 local evidence: `evidence/2026-06-06-query-inventory-repo-only.md` from `bun run dbidx:audit-repo` captured 262 repo query references and 103 migration index statements; per-route payload sizing and live/provider metrics remain open.
 
 - [ ] **Step 5.2: Run live EXPLAIN/provider proof before migration proposals**
   - Use the existing database-indexing plan as canonical input.
