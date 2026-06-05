@@ -1,0 +1,22 @@
+{
+  "generatedAt": "2026-06-05T18:32:51.630Z",
+  "note": "Local jsdom render profile for route-transition Phase 6. This is not a production Chrome profiler trace.",
+  "metrics": [
+    {
+      "scenario": "project-estimates-table",
+      "projectCount": 50,
+      "initialRenderMs": 171.01,
+      "renderedElementCount": 50,
+      "virtualizationDecision": "defer-until-browser-profiler-proves-jank",
+      "memoizationDecision": "defer-broad-memo-until-profiler-proves-re-render-cost"
+    },
+    {
+      "scenario": "estimate-sheet-content",
+      "estimateRowCount": 200,
+      "initialRenderMs": 355.56,
+      "renderedElementCount": 200,
+      "virtualizationDecision": "defer-until-browser-profiler-proves-jank",
+      "memoizationDecision": "defer-broad-memo-until-profiler-proves-re-render-cost"
+    }
+  ]
+}

@@ -131,3 +131,12 @@ Superseding inventory after final readiness pass: root markdown files = 36; evid
 - Ran `bun run perf:check-routes`, producing `evidence/2026-06-06-route-transition-public-readiness.json` with `routeTransitionReady: true`.
 - Summary evidence lives in `evidence/2026-06-06-route-transition-public-baseline.md`.
 - Completion language: **LOCAL ROUTE-TRANSITION BASELINE CAPTURED / AUTHENTICATED AND PROVIDER PROOF OPEN**.
+
+
+## Estimate peak-load profile baseline — 2026-06-06
+
+- Ran `ROUTE_PERF_PROFILE_OUTPUT=.ai/03_plans/2026-06-05-performance-and-speed/evidence/2026-06-06-estimate-peak-load-profile.json bun run perf:profile-peak-load`.
+- Result: 1 test file / 1 test passed.
+- Captured local jsdom profile metrics: 50 project estimates initial render 171.01ms; 200 estimate rows initial render 355.56ms.
+- Evidence summary: `evidence/2026-06-06-estimate-peak-load-profile.md`.
+- Completion language: **LOCAL ESTIMATE PEAK-LOAD BASELINE CAPTURED / BROWSER PROFILER AND PROVIDER INP PROOF OPEN**.
