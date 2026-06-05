@@ -67,13 +67,11 @@ yarn-error.log*
 
 # Ralph Loop session data
 /.omo/
+
+# local agent/runtime state is machine-specific
 /.omx/
 /.gitnexus/
-.codex/*
-!.codex/agents/
-!.codex/agents/**
-!.codex/skills/
-!.codex/skills/**
-.codex/skills/.system/**
-!.codex/prompts/
-!.codex/prompts/**
+/.codex/*
+!/.codex/README.md
+!/.codex/config.toml
+!/.codex/hooks.json
