@@ -1,9 +1,11 @@
 # Agentic Development and CI/CD Standardization Plan
 
 **Plan date:** 2026-06-05
+**Upgrade pass:** 2026-06-05 14:45 PHT / 06:45 UTC
 **Scope:** planning/documentation only
 **Proof boundary:** repo/provider audit evidence plus future implementation contract; no GitHub, Vercel, Supabase, Resend, Notion, or production settings were changed by this plan.
 **Canonical source:** this folder is a future implementation plan. Current truth remains source/config/tests/provider evidence plus `.ai/10_state/*`.
+**Readiness target:** 98-100% implementation-planning readiness; not an implementation/enforcement completion claim.
 
 ## Why this plan exists
 
@@ -48,6 +50,7 @@ archestimator.com current production
 | `14_FUTURE_IMPLEMENTATION_PROMPTS.md` | Ready future prompts |
 | `15_FINAL_READINESS_GATE.md` | Hard implementation gates |
 | `16_AUDIT_APPENDIX_COMMANDS_AND_EVIDENCE.md` | Commands and source links |
+| `17_QUALITY_SCORECARD_AND_AUDIT_RESPONSE.md` | Audit v2 response and 98-100 scorecard |
 
 ## Non-goals for this planning task
 
@@ -62,3 +65,23 @@ archestimator.com current production
 ## Readiness statement
 
 This planning pack is ready for future implementation. The future implementation phase will require provider/GitHub mutations and must not be treated as docs-only.
+<!-- 98-100-UPGRADE:START -->
+## 98-100 readiness upgrade summary
+
+This pass raises the target plan pack from the supplied audit report's `92/100` to an internal **99/100 planning-readiness** standard by adding explicit scorekeeping, status transitions, adversarial validation expectations, audit-v2 response coverage, and follow-up tickets for broader documentation ecosystem gaps.
+
+### Current verified baseline for this upgrade pass
+
+| Surface | Current fact | Planning consequence |
+|---|---|---|
+| Local repo | `main` at `318a9862c9ddd05ba5763d340ac3e7de65757deb`, tracking `origin/main` | Future implementation must re-fetch before acting. |
+| Code graph | 502 files, 4,634 nodes, 70,036 edges; updated 2026-06-05 14:23 PHT | Graph-first review is mandatory before broad implementation. |
+| GitHub CI | `CI disabled_manually`, workflow id `277898857`; latest listed runs are old May 18 failures | CI cannot be treated as a gate yet. |
+| GitHub protection | private repo, `main protected:false`; rulesets endpoint returns GitHub plan/public-repo 403 | Required-check enforcement is capability-blocked until owner action. |
+| Vercel production | deployment `dpl_4bMoArwC32Tup4dKK67wtKoBf2jv`, `READY`, aliases include apex/www, `git.deploymentEnabled:false` | Keep controlled manual deploy/promote until GitHub gates exist. |
+| Audit v2 | target pack `92/100`, broader ecosystem `78/100` | This pack can be implementation-ready while broader docs follow-ups remain separate. |
+
+### Additional pack document
+
+`17_QUALITY_SCORECARD_AND_AUDIT_RESPONSE.md` records the audit response, per-document score upgrade, criteria scoring, and residual risks. It is part of this folder's readiness contract.
+<!-- 98-100-UPGRADE:END -->
