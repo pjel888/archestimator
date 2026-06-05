@@ -198,7 +198,7 @@ export function ProjectPublicationHeader({ summary, currentUserEmail = null, pro
     ? activitySeenState.value
     : readStoredActivitySeenAt(activitySeenStorageKey);
   const hasHeaderActivity = hasLiveClientLink && isPublicationActivityUnseen(latestActivityAt, activitySeenAt);
-  const latestRecipientOpen = summary?.latestRecipientOpen ?? null;
+  const latestRecipientOpen = canManagePublication ? summary?.latestRecipientOpen ?? null : null;
   const statusLabel = readPublicationStatusLabel(effectiveStatus);
   const absoluteClientLink = clientLinkPath && browserOrigin ? `${browserOrigin}${clientLinkPath}` : clientLinkPath;
   const passwordStateLabel = requirePassword ? "Password on" : "Open access";

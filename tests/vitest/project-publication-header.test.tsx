@@ -416,6 +416,7 @@ describe("ProjectWorkspaceHeaderRow publication control", () => {
     expect(workspaceRepositorySource).toContain("readLatestSharedLinkRecipientOpen");
     expect(workspaceRepositorySource).toContain("last_opened_at");
     expect(workspaceRepositorySource).toContain("latestRecipientOpen");
+    expect(workspaceRepositorySource).toContain("canManagePublication ? readLatestSharedLinkRecipientOpen");
   });
 
   it("shows stale snapshot warning in the shared-link modal sidebar", async () => {
@@ -436,7 +437,7 @@ describe("ProjectWorkspaceHeaderRow publication control", () => {
     expect(screen.getByText("Snapshot is 9 days behind current data. Update shared page.")).toBeInTheDocument();
   });
 
-  it("shows the latest recipient open email in the shared-link modal sidebar", async () => {
+  it("shows the latest recipient open email in the shared-link modal sidebar for publication managers", async () => {
     const user = userEvent.setup();
     const recipientOpenSummary = {
       ...publicationSummary,
@@ -454,6 +455,28 @@ describe("ProjectWorkspaceHeaderRow publication control", () => {
     expect(screen.getByText("Last opened by")).toBeInTheDocument();
     expect(screen.getByText(/Client Receiver/)).toBeInTheDocument();
     expect(screen.getByText(/client@example.com/)).toBeInTheDocument();
+  });
+
+  it("hides latest recipient open email from project viewers", async () => {
+    const user = userEvent.setup();
+    const viewerSummary = {
+      ...publicationSummary,
+      canManagePublication: false,
+      latestRecipientOpen: {
+        email: "client@example.com",
+        displayName: "Client Receiver",
+        openedAt: "2026-05-27T01:00:00.000Z",
+      },
+    } as ProjectPublicationSummary;
+
+    render(<ProjectPublicationHeader summary={viewerSummary} projectEstimateSheets={sampleEstimateSheets} />);
+
+    await user.click(screen.getByRole("button", { name: "Open shared link" }));
+
+    expect(screen.getByText("Latest open")).toBeInTheDocument();
+    expect(screen.queryByText("Last opened by")).not.toBeInTheDocument();
+    expect(screen.queryByText(/Client Receiver/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/client@example.com/)).not.toBeInTheDocument();
   });
 
   // Historical red placeholder (P0/P2): "Tab rendering on receiver — red until P2 SharePageTabs"
