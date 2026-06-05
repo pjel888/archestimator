@@ -145,6 +145,7 @@ describe("Codex security findings hardening contracts", () => {
 
   it("keeps component-library taxonomy seed IDs scoped per workspace", () => {
     const taxonomySeed = read("supabase/migrations/20260522064018_component_library_taxonomy_source.sql");
+    const identityMigration = read("supabase/migrations/20260524141347_component_library_identity_variant_sku_brand_view.sql");
     const seedIdRepair = latestMigrationBySuffix("_workspace_scoped_component_seed_ids.sql");
 
     expect(taxonomySeed).toContain("create or replace function public.component_library_seed_uuid");
@@ -159,6 +160,10 @@ describe("Codex security findings hardening contracts", () => {
     expect(seedIdRepair).toContain("update public.estimate_row_items row_item");
     expect(seedIdRepair).toContain("to_jsonb(relink_targets.replacement_item_id::text)");
     expect(seedIdRepair).toContain("lifecycle_state = 'archived'::public.component_lifecycle_state");
+    expect(identityMigration).toContain("drop column if exists kind");
+    expect(seedIdRepair).not.toContain("legacy.kind");
+    expect(seedIdRepair).not.toMatch(/^\s*kind,\s*$/m);
+    expect(seedIdRepair).not.toContain("kind = excluded.kind");
   });
 
   it("enforces publication password access before creating recipient sessions", () => {
@@ -315,17 +320,14 @@ describe("Codex security findings hardening contracts", () => {
     const currentLow07Summary = currentState.slice(currentStart, currentEnd);
     const knownLow07Summary = knownIssues.slice(knownStart, knownEnd);
     const low07Surface = [proofText, currentLow07Summary, knownLow07Summary].join("\n");
-    const forbiddenProofDetails = [
-      "philipjonlewis",
-      "Philip Lewis",
-      "gmail.com",
-      "ebxxqidacheyapmmzavr",
-      "Oceania (Sydney)",
-      "Philippines",
-      "chatgpt.com/codex/cloud/security/findings",
-      "send.contact.archestimator.com",
-      "GitHub has no open",
-      "queue empty",
+    const privateDetailPatterns = [
+      { label: "email-like value", pattern: /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i },
+      { label: "raw URL", pattern: /https?:\/\//i },
+      { label: "Codex finding route", pattern: /codex\/cloud\/security\/findings/i },
+      { label: "Supabase project reference shape", pattern: /\b[a-z]{20}\b/ },
+      { label: "private support DNS host shape", pattern: /\b[a-z0-9-]+\.contact\.[a-z0-9.-]+\b/i },
+      { label: "queue-state prose", pattern: /\bqueue\s+empty\b/i },
+      { label: "open-queue prose", pattern: /\bhas\s+no\s+open\b/i },
     ];
 
     expect(proof.repository).toBe("REPOSITORY_PLACEHOLDER");
@@ -340,8 +342,8 @@ describe("Codex security findings hardening contracts", () => {
     expect(knownEnd).toBeGreaterThan(knownStart);
     expect(currentLow07Summary).toContain("without recording raw private beta user");
     expect(knownLow07Summary).toContain("raw private beta user, allowlist, project");
-    for (const detail of forbiddenProofDetails) {
-      expect(low07Surface).not.toContain(detail);
+    for (const { label, pattern } of privateDetailPatterns) {
+      expect(low07Surface, label).not.toMatch(pattern);
     }
   });
 
