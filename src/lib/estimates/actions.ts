@@ -250,6 +250,10 @@ function getMutationCorrelationId(mutationId: string | undefined) {
   return mutationId && isUuid(mutationId) ? mutationId : randomUUID();
 }
 
+function assertNotOptimisticEstimateNodeId(nodeId: string, label: string) {
+  if (nodeId.startsWith("optimistic-")) throw new Error(`${label} id is invalid.`);
+}
+
 function readNumber(value: unknown, fallback = 0) {
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : fallback;
@@ -1253,6 +1257,8 @@ export async function reorderEstimateTreeNodes(
   for (const update of input.updates) {
     if (updateIds.has(update.id)) throw new Error(`Duplicate estimate tree node update: ${update.id}.`);
     updateIds.add(update.id);
+    assertNotOptimisticEstimateNodeId(update.id, "Estimate tree update node");
+    if (update.parentId) assertNotOptimisticEstimateNodeId(update.parentId, "Estimate tree update parent");
     if (!Number.isInteger(update.sortOrder) || update.sortOrder < 0) throw new Error("Estimate tree node sort order must be a non-negative integer.");
   }
 
@@ -1676,6 +1682,7 @@ export async function createEstimateNode(projectId: string, estimateId: string, 
   const name = readRequiredText(formData, "name");
   const kind = readEstimateNodeKind(formData);
   const parentId = readOptionalText(formData, "parentId");
+  if (parentId) assertNotOptimisticEstimateNodeId(parentId, "Parent estimate node");
   let parentKind: EstimateTreeNodeKind | null = null;
 
   const { data: estimate, error: estimateError } = await supabase

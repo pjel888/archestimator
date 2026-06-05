@@ -205,6 +205,38 @@ describe("estimate sheet version control server actions", () => {
     authMocks.requireCurrentUserContext.mockResolvedValue({ userId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa" });
   });
 
+  it("rejects optimistic tree parent ids before creating estimate nodes", async () => {
+    const supabase = {
+      from: vi.fn(),
+      rpc: vi.fn(),
+    };
+    supabaseServerMocks.createSupabaseServerClient.mockResolvedValue(supabase);
+    const formData = new FormData();
+    formData.set("kind", "area");
+    formData.set("name", "New Area Node");
+    formData.set("parentId", "optimistic-group-mijv3k-l1a2b3");
+    const { createEstimateNode } = await import("@/lib/estimates/actions");
+
+    await expect(createEstimateNode("project-1", "estimate-1", formData)).rejects.toThrow("Parent estimate node id is invalid.");
+    expect(supabase.from).not.toHaveBeenCalled();
+    expect(supabase.rpc).not.toHaveBeenCalled();
+  });
+
+  it("rejects optimistic tree parent ids before reordering estimate nodes", async () => {
+    const { reorderEstimateTreeNodes } = await import("@/lib/estimates/actions");
+
+    await expect(reorderEstimateTreeNodes("project-1", "estimate-1", {
+      updates: [{
+        id: "11111111-1111-4111-8111-111111111111",
+        parentId: "optimistic-group-mijv3k-l1a2b3",
+        sortOrder: 10,
+      }],
+    })).rejects.toThrow("Estimate tree update parent id is invalid.");
+
+    expect(repositoryMocks.getCurrentWorkspaceProject).not.toHaveBeenCalled();
+    expect(supabaseServerMocks.createSupabaseServerClient).not.toHaveBeenCalled();
+  });
+
   it("updates row scalar fields through the history RPC with row revision and mutation id", async () => {
     const supabase = makeSupabase();
     supabaseServerMocks.createSupabaseServerClient.mockResolvedValue(supabase);
