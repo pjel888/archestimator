@@ -297,3 +297,10 @@ Superseding inventory after final readiness pass: root markdown files = 36; evid
 - Inputs: fresh GitNexus impact (`getClosedBetaAccessForEmail` CRITICAL), current proxy tests, Supabase beta RPC EXPLAIN, hosted unauthenticated `/workshop` redirect timing.
 - Decision: no auth/proxy production change is justified; keep `getUser()`, do not cache allowlist decisions, and require safe authenticated hosted waterfall proof before reopening.
 - Completion language: **SPIKE COMPLETE / NO AUTH CODE CHANGE JUSTIFIED**.
+
+## Speed Insights provider access retry — 2026-06-06
+
+- Attempted Vercel connector, Vercel documentation search, protected Vercel fetch, and Computer Use Chrome state capture for Speed Insights.
+- Evidence: `evidence/2026-06-06-speed-insights-provider-access-retry.md`.
+- Result: dashboard p75/export values remain inaccessible from this session; Workstream 0.1 and 7.2 stay open.
+- Completion language: **SPEED INSIGHTS PROVIDER ACCESS BLOCKED / P75 METRICS OPEN**.
