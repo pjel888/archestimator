@@ -48,6 +48,17 @@ Evidence: `evidence/2026-06-06-pr0a-vercel-connector-and-public-route-timing.md`
 
 Evidence: `evidence/2026-06-06-speed-insights-chrome-retry.md`. Computer Use `get_app_state` for `Google Chrome` timed out after 120s again, so exact dashboard values remain provider-open.
 
+
+## Speed Insights provider access retry — 2026-06-06
+
+Evidence: `evidence/2026-06-06-speed-insights-provider-access-retry.md`.
+
+- Vercel connector refreshed team/project/deployment context but did not expose Speed Insights p75 dashboard/export metrics.
+- Vercel documentation search surfaced Speed Insights ingestion/drain/package references, not a dashboard p75 read API for this session.
+- Vercel protected fetch helper returned `Unable to create shareable URL` for the Speed Insights dashboard.
+- Computer Use `Google Chrome` state capture timed out after 120s again.
+- Exact Speed Insights values remain provider-open; do not substitute connector/curl/local Lighthouse values for p75 dashboard proof.
+
 ## Captured baseline record
 
 Status: **open / provider proof required**. Fill this table before implementation.
