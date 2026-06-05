@@ -1,0 +1,93 @@
+{
+  "artifactType": "sanitized-real-downloaded-workbook-proof",
+  "capturedAt": "2026-06-05T01:50:00Z",
+  "source": {
+    "localDownloadsBasename": "AE-LR-001-ES-001-proposal (1).xlsx",
+    "rawWorkbookCommitted": false,
+    "rawPreviewCommitted": false,
+    "rawSourceUrlsCommitted": false,
+    "originRouteShapes": [
+      "https://www.archestimator.com/api/projects/[projectId]/estimates/[estimateId]/export/proposal.xlsx",
+      "https://www.archestimator.com/workshop/projects/[projectId]/estimates/[nodeId]"
+    ]
+  },
+  "fileChecks": {
+    "fileType": "Microsoft Excel 2007+ XLSX",
+    "sizeBytes": 28187,
+    "sha256": "84209f63f859939977aff4147761b80fa41ce6af6eb7dfec244e2c272fd63c8b",
+    "zipIntegrity": "pass"
+  },
+  "workbookChecks": {
+    "creator": "Archestimator",
+    "lastModifiedBy": "Archestimator",
+    "created": "2026-06-05T01:13:58.000Z",
+    "modified": "2026-06-05T01:13:58.000Z",
+    "sheetNames": [
+      "Bid Form",
+      "Summary",
+      "Commercial Terms",
+      "Source Breakdown"
+    ],
+    "sheets": [
+      {
+        "name": "Bid Form",
+        "rows": 128,
+        "actualRows": 125,
+        "columns": 10,
+        "actualColumns": 10
+      },
+      {
+        "name": "Summary",
+        "rows": 42,
+        "actualRows": 34,
+        "columns": 3,
+        "actualColumns": 3
+      },
+      {
+        "name": "Commercial Terms",
+        "rows": 18,
+        "actualRows": 9,
+        "columns": 2,
+        "actualColumns": 2
+      },
+      {
+        "name": "Source Breakdown",
+        "rows": 61,
+        "actualRows": 60,
+        "columns": 13,
+        "actualColumns": 13
+      }
+    ],
+    "projectLabel": "Lewis Residence",
+    "locationLabelPresent": true,
+    "estimateRevisionLabelPresent": true,
+    "dateSubmitted": "2026-06-05",
+    "bidNumberedRows": 55,
+    "sourceNumberedRows": 55,
+    "formulaCount": 170,
+    "formulaErrorCount": 0,
+    "blankLineTotalCount": 0,
+    "grandTotalFormulaPresent": true,
+    "grandTotalCachedResultPresent": true
+  },
+  "quickLookPreview": {
+    "qlmanageThumbnailProduced": true,
+    "pixelWidth": 1205,
+    "pixelHeight": 1600,
+    "visualPreviewObserved": "nonblank Bid Form preview with title, project metadata, item rows, line totals, scope, and notes visible",
+    "rawPreviewCommitted": false,
+    "rawPreviewOmittedReason": "proposal preview contains client-identifying estimate data"
+  },
+  "nativeAppAvailability": {
+    "microsoftExcelApp": false,
+    "appleNumbersApp": false,
+    "libreOfficeApp": false,
+    "libreOfficeCli": false,
+    "googleSheetsShortcutApp": true
+  },
+  "conclusion": {
+    "realDownloadedWorkbookStructuralAndQuickLookProof": "pass",
+    "nativeExcelNumbersLibreOfficeProof": "not_available_on_this_machine",
+    "notes": "This strengthens real downloaded workbook proof without committing raw proposal workbook/preview. It does not prove native app open/recalc/print in Excel, Numbers, or LibreOffice."
+  }
+}

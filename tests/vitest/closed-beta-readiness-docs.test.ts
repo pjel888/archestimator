@@ -394,7 +394,7 @@ describe("closed beta readiness docs", () => {
     expect(currentState).toContain("local macOS preview rendering only");
     expect(knownIssues).toContain("Spreadsheet Quick Look preview evidence on 2026-06-02");
     expect(knownIssues).toContain("Google Sheets.app` exists only as a Google Drive shortcut app");
-    expect(knownIssues).toContain("Spreadsheet compatibility remains blocked");
+    expect(knownIssues).toContain("Real downloaded workbook structural/Quick Look proof is now captured in `real-downloaded-workbook-quicklook-2026-06-05T0150Z.json`");
     expect(evidenceIndex).toContain("### Component/Template Demo Local Smoke Evidence");
     expect(evidenceIndex).toContain("library-demo-smoke-local-2026-06-02.md");
     expect(evidenceIndex).toContain("component-library-demo-smoke-2026-06-02.png");
@@ -665,7 +665,7 @@ describe("closed beta readiness docs", () => {
     expect(manualProofMatrix).toContain("synthetic-google-sheets-workbook-compatibility-2026-06-04T1951Z.json");
     expect(manualProofMatrix).toContain("Partial secondary Google Sheets pass / native proof pending");
     expect(manualProofMatrix).toContain("visible formula-backed Summary grand total `149,798`");
-    expect(manualProofMatrix).toContain("Native Microsoft Excel, Apple Numbers, LibreOffice, real production/client workbook app proof");
+    expect(manualProofMatrix).toContain("Native Microsoft Excel, Apple Numbers, LibreOffice, native Excel/Numbers/LibreOffice workbook app proof");
     expect(manualProofMatrix).toContain("Project-specific unlink manual smoke");
     expect(manualProofMatrix).toContain("project-specific-unlink-linked-smoke-blocked-2026-06-02.md");
     expect(manualProofMatrix).toContain("project-specific-unlink-smoke-2026-06-05T0125Z/project-specific-unlink-local-smoke-2026-06-02.json");
@@ -764,7 +764,7 @@ describe("closed beta readiness docs", () => {
     expect(manualProofMatrix).toContain("passing 9 ungated checks with 24 env-gated/live-provider specs skipped");
     expect(manualProofMatrix).toContain("Partial hosted-owner / denied-revoked-pass / logout-pass / synthetic-expired-pass / email-clickthrough-pass / delivered-webhook-pass / synthetic-Google-Sheets-pass");
     expect(manualProofMatrix).toContain("hosted-expired-stale-cookie-smoke-2026-06-04T1920Z.json");
-    expect(manualProofMatrix).toContain("Project-specific unlink now has linked/local owner-session browser proof; native Excel and real production/client workbook spreadsheet-app proof remain unproven.");
+    expect(manualProofMatrix).toContain("Project-specific unlink now has linked/local owner-session browser proof; native Excel and native Excel/Numbers/LibreOffice spreadsheet-app proof remain unproven.");
     expect(manualProofMatrix).toContain("demo-rehearsal-fallback-pack-2026-06-02.md");
     expect(manualProofMatrix).toContain("fallback script");
     expect(manualProofMatrix).toContain("owner demo sign-off remain missing");
@@ -816,6 +816,7 @@ describe("closed beta readiness docs", () => {
     expect(consolidatedManualProofPacket).toContain("legalOwnerReady: true");
     expect(consolidatedManualProofPacket).toContain("not legal advice or public-launch counsel proof");
     expect(consolidatedManualProofPacket).toContain("Spreadsheet compatibility | partial-local");
+    expect(consolidatedManualProofPacket).toContain("real-downloaded-workbook-quicklook-2026-06-05T0150Z.json");
     expect(consolidatedManualProofPacket).toContain("current-head-local-validation-build-353dd48-2026-06-02.md");
     expect(consolidatedManualProofPacket).toContain("Current manual E2E smoke | partial-hosted-owner / denied-revoked-pass / logout-pass / synthetic-expired-pass");
     expect(consolidatedManualProofPacket).toContain("full-local-e2e-refresh-bb9006d-2026-06-02.md");
@@ -974,7 +975,7 @@ describe("closed beta readiness docs", () => {
     expect(goalCompletionAudit).toContain("Synthetic 500 / 1,000 / 2,500 row workbook buffers generate locally under the 15s threshold");
     expect(goalCompletionAudit).toContain("Hosted auth allowlist smoke");
     expect(goalCompletionAudit).toContain("proves production `/workshop` redirects synthetic stale Supabase SSR auth material to `/login?next=%2Fworkshop`");
-    expect(goalCompletionAudit).toContain("Native Excel plus real production/client workbook spreadsheet app proof");
+    expect(goalCompletionAudit).toContain("Native Excel/Numbers/LibreOffice workbook app proof");
     expect(goalCompletionAudit).toContain("bounce/complaint events were not manufactured");
     expect(goalCompletionAudit).toContain("The 13:28Z owner hosted journey proves project entry, estimate creation, estimate workspace render, and export preview on the target domain, the 14:36Z proof closes owner logout, the 18:51Z proof closes denied/revoked Google OAuth");
     expect(goalCompletionAudit).toContain("Current decision: **DO NOT MARK GOAL COMPLETE**.");
@@ -1034,7 +1035,7 @@ describe("closed beta readiness docs", () => {
     expect(currentState).toContain("Spreadsheet artifact evidence");
     expect(currentState).toContain("**Synthetic Google Sheets Workbook Compatibility Proof (2026-06-04):**");
     expect(currentState).toContain("rendered the Summary grand total `149,798`");
-    expect(currentState).toContain("native Microsoft Excel/Apple Numbers/LibreOffice and real production/client workbook app proof remain unproven");
+    expect(currentState).toContain("native Microsoft Excel/Apple Numbers/LibreOffice app proof remains unproven");
     expect(currentState).toContain("**Proposal Workbook Large-Fixture Benchmark (2026-06-02):**");
     expect(currentState).toContain("The 2,500-row fixture generated in 362.06ms");
     expect(currentState).toContain("**Proposal Workbook Benchmark Regression Coverage (2026-06-02):**");
@@ -1081,7 +1082,7 @@ describe("closed beta readiness docs", () => {
     expect(currentState).toContain("monitored review workflow, and alert ownership remain open");
     expect(currentState).toContain("Project-specific unlink linked/local owner-session browser proof");
     expect(currentState).toContain("linked Supabase returned `PGRST202`");
-    expect(currentState).toContain("do not prove hosted auth, linked RLS/security, Resend delivery/webhooks, monitored support/alerts, native/real workbook app proof, or a separate hosted production unlink smoke");
+    expect(currentState).toContain("do not prove hosted auth, linked RLS/security, Resend delivery/webhooks, monitored support/alerts, native Excel/Numbers/LibreOffice workbook app proof, or a separate hosted production unlink smoke");
     expect(currentState).toMatch(/Do not archive the MVP launch goal or claim launch readiness from local tests alone/i);
     expect(decisions).toMatch(/This is not a launch approval/);
     expect(knownIssues).toContain("Local validation/build evidence is now current");
@@ -1104,7 +1105,7 @@ describe("closed beta readiness docs", () => {
     expect(knownIssues).toContain("Current local E2E smoke evidence on 2026-06-02 proves signed-out auth plus local dev-auth component library");
     expect(knownIssues).toContain("Full local E2E refresh on 2026-06-02 at `bb9006d` proves");
     expect(knownIssues).toContain("9 ungated Playwright checks with 24 env-gated/live-provider specs skipped");
-    expect(knownIssues).toContain("project-specific unlink now has linked/local owner-session browser proof; native/real spreadsheet-app behavior remains a separate open gap");
+    expect(knownIssues).toContain("project-specific unlink now has linked/local owner-session browser proof; real downloaded workbook structural/Quick Look proof is captured; native Excel/Numbers/LibreOffice spreadsheet-app behavior remains a separate open gap");
     expect(knownIssues).toContain("Local component/template demo evidence on 2026-06-02 proves screenshots/JSON");
     expect(knownIssues).toContain("local template insertion evidence proves throwaway-estimate insertion with zero residue");
     expect(knownIssues).toContain("Legal/owner readiness helper evidence on 2026-06-02 is negative/blocked");
