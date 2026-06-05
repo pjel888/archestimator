@@ -109,7 +109,12 @@ describe("Codex security findings hardening contracts", () => {
     const expectedPackage = "code-review-graph==2.3.5";
     const rootMcp = JSON.parse(read(".mcp.json"));
     const cursorMcp = JSON.parse(read(".cursor/mcp.json"));
+    const codexHooks = JSON.parse(read(".codex/hooks.json"));
     const codexConfig = read(".codex/config.toml");
+    const hookCommands = Object.values(codexHooks.hooks)
+      .flatMap((entries) => entries as Array<{ hooks?: Array<{ command?: string }> }>)
+      .flatMap((entry) => entry.hooks ?? [])
+      .map((hook) => hook.command ?? "");
 
     for (const server of [rootMcp.mcpServers["code-review-graph"], cursorMcp.mcpServers["code-review-graph"]]) {
       expect(server.command).toBe("uvx");
@@ -119,6 +124,10 @@ describe("Codex security findings hardening contracts", () => {
 
     expect(codexConfig).toContain(`"${expectedPackage}"`);
     expect(codexConfig).not.toMatch(/^\s*"code-review-graph",\s*$/m);
+    expect(hookCommands).toContain(`uvx --from ${expectedPackage} code-review-graph update --skip-flows`);
+    expect(hookCommands).toContain(`uvx --from ${expectedPackage} code-review-graph status`);
+    expect(hookCommands).not.toContain("code-review-graph update --skip-flows");
+    expect(hookCommands).not.toContain("code-review-graph status");
   });
 
   it("enforces publication password access before creating recipient sessions", () => {
