@@ -289,3 +289,11 @@ Superseding inventory after final readiness pass: root markdown files = 36; evid
 - Inputs: aggregate table/index stats, `pg_stat_statements`, focused `EXPLAIN (ANALYZE, BUFFERS)`, and Supabase performance advisor output.
 - Decision: no index, RPC, or query-consolidation migration is justified from current closed-beta row counts and plans; advisor/RLS findings require separate security-reviewed, owner-approved migration planning.
 - Completion language: **LIVE PROVIDER PROOF CAPTURED / NO MIGRATION PROPOSAL JUSTIFIED**.
+
+## Beta access optimization spike — 2026-06-06
+
+- Captured Workstream 3.3 beta-access optimization spike.
+- Evidence: `evidence/2026-06-06-beta-access-optimization-spike.md` and `evidence/2026-06-06-auth-proxy-hosted-unauth-timing.json`.
+- Inputs: fresh GitNexus impact (`getClosedBetaAccessForEmail` CRITICAL), current proxy tests, Supabase beta RPC EXPLAIN, hosted unauthenticated `/workshop` redirect timing.
+- Decision: no auth/proxy production change is justified; keep `getUser()`, do not cache allowlist decisions, and require safe authenticated hosted waterfall proof before reopening.
+- Completion language: **SPIKE COMPLETE / NO AUTH CODE CHANGE JUSTIFIED**.
