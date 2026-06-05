@@ -1,4 +1,4 @@
-import { existsSync, readFileSync, readdirSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
@@ -246,17 +246,15 @@ describe("Codex security findings hardening contracts", () => {
 
   it("keeps raw proposal workbook artifacts out of the manual proof packet", () => {
     const proofDir = ".ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof";
-    const removedWorkbook = join(proofDir, "lewis-residence-demo-proposal-2026-06-02.xlsx");
-    const removedQuicklookPreview = join(
-      proofDir,
-      "spreadsheet-quicklook-preview-2026-06-02/lewis-residence-demo-proposal-2026-06-02.xlsx.png",
-    );
+    const proofFilenames = readdirSync(join(repo, proofDir));
     const sanitizedSummary = JSON.parse(read(`${proofDir}/proposal-workbook-exceljs-summary-sanitized-2026-06-02.json`));
     const packetReadme = read(`${proofDir}/README.md`);
+    const withdrawalArtifact = read(`${proofDir}/confidential-proposal-artifact-withdrawal-2026-06-04.json`);
 
-    expect(existsSync(join(repo, removedWorkbook))).toBe(false);
-    expect(existsSync(join(repo, removedQuicklookPreview))).toBe(false);
-    expect(packetReadme).not.toContain("lewis-residence-demo-proposal-2026-06-02.xlsx");
+    expect(proofFilenames.some((filename) => filename.endsWith(".xlsx"))).toBe(false);
+    expect(packetReadme).not.toMatch(/[a-z0-9-]+-proposal-\d{4}-\d{2}-\d{2}\.xlsx/i);
+    expect(withdrawalArtifact).not.toMatch(/[a-z0-9-]+-proposal-\d{4}-\d{2}-\d{2}\.xlsx/i);
+    expect(withdrawalArtifact).toContain("CONFIDENTIAL_PROPOSAL_WORKBOOK_REDACTED.xlsx");
     expect(sanitizedSummary.rawWorkbookRetained).toBe(false);
     expect(sanitizedSummary.rawPreviewRetained).toBe(false);
     expect(JSON.stringify(sanitizedSummary)).not.toContain("workbookPath");

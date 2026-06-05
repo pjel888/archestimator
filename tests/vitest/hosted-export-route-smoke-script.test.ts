@@ -35,7 +35,7 @@ describe("hosted export route smoke script", () => {
       status: 200,
       headers: {
         "content-type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        "content-disposition": 'attachment; filename="demo-proposal.xlsx"',
+        "content-disposition": 'attachment; filename="Customer-Residence-EST-42-proposal.xlsx"',
         "cache-control": "private, no-store",
       },
     }));
@@ -60,6 +60,9 @@ describe("hosted export route smoke script", () => {
     );
     expect(result.passed).toBe(true);
     expect(JSON.stringify(result)).not.toContain("secret-cookie");
+    expect(JSON.stringify(result)).not.toContain("Customer-Residence");
+    expect(JSON.stringify(result)).not.toContain("EST-42");
+    expect(result.contentDisposition).toBe('attachment; filename="HOSTED_EXPORT_FILENAME_REDACTED.xlsx"');
   });
 
   it("fails the proof when the hosted route returns a non-workbook response", () => {

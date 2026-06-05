@@ -155,7 +155,7 @@
 - Hosted authenticated export proof at `2026-06-04T08:07Z` now proves the owner
   Chrome session can render the production DEMO_PROJECT_PLACEHOLDER estimate workspace,
   open `Preview Excel Export`, and download
-  `DEMO_PROJECT_CODE_PLACEHOLDER-ESTIMATE_CODE_PLACEHOLDER-proposal.xlsx`. The selected browser node maps to estimate
+  `HOSTED_EXPORT_FILENAME_REDACTED.xlsx`. The selected browser node maps to estimate
   `PROJECT_ID_PLACEHOLDER` / `ESTIMATE_CODE_PLACEHOLDER`; signed-out curl to the
   export route redirects to `/login`; sanitized workbook validation proves XLSX
   ZIP integrity plus the expected `Bid Form`, `Summary`, `Commercial Terms`, and

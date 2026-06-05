@@ -37,10 +37,10 @@ hosted production unlink smoke.
 
 2026-06-05 01:50Z real downloaded DEMO_PROJECT_PLACEHOLDER workbook proof:
 `real-downloaded-workbook-quicklook-2026-06-05T0150Z.json` records a sanitized
-check of the owner-downloaded `DEMO_PROJECT_CODE_PLACEHOLDER-ESTIMATE_CODE_PLACEHOLDER-proposal (1).xlsx` from the
-production export route. The raw workbook, raw Quick Look PNG, and raw source
-URLs were intentionally not committed because proposal artifacts can contain
-client-identifying estimate data. The downloaded file is a valid Microsoft Excel
+check of the owner-downloaded HOSTED_EXPORT_FILENAME_REDACTED.xlsx from the
+production export route. The raw workbook, raw production-derived filename, raw
+Quick Look PNG, and raw source URLs were intentionally not committed because
+proposal artifacts can contain client-identifying estimate data. The downloaded file is a valid Microsoft Excel
 2007+ XLSX, ZIP integrity passes, SHA-256 is recorded, the workbook has the
 expected `Bid Form`, `Summary`, `Commercial Terms`, and `Source Breakdown`
 sheets, the DEMO_PROJECT_PLACEHOLDER metadata is present, 55 bid/source rows are present,

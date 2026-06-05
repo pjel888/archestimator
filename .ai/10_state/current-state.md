@@ -326,7 +326,7 @@ The no-extra-spend closed-beta path now has hosted authenticated XLSX export
 proof. Computer Use against the owner Chrome session reached production
 `/workshop/projects/PROJECT_ID_PLACEHOLDER/estimates/ESTIMATE_ID_PLACEHOLDER`,
 rendered the `DEMO_PROJECT_PLACEHOLDER` estimate workspace, opened `Preview Excel
-Export`, and downloaded `DEMO_PROJECT_CODE_PLACEHOLDER-ESTIMATE_CODE_PLACEHOLDER-proposal.xlsx` through the
+Export`, and downloaded `HOSTED_EXPORT_FILENAME_REDACTED.xlsx` through the
 authenticated browser session. A narrow read-only Supabase query mapped the
 visible selected node to estimate
 `PROJECT_ID_PLACEHOLDER` / `ESTIMATE_CODE_PLACEHOLDER`; an unauthenticated curl to

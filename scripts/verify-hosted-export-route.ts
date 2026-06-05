@@ -35,6 +35,7 @@ type VerifyResult = {
 
 const WORKBOOK_CONTENT_TYPE = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
 const DEFAULT_MIN_BYTES = 5_000;
+const REDACTED_WORKBOOK_CONTENT_DISPOSITION = 'attachment; filename="HOSTED_EXPORT_FILENAME_REDACTED.xlsx"';
 
 function readEnv(name: string) {
   const value = process.env[name];
@@ -103,6 +104,12 @@ export function hasXlsxZipMagic(bytes: Uint8Array) {
   return bytes.length >= 4 && bytes[0] === 0x50 && bytes[1] === 0x4b && bytes[2] === 0x03 && bytes[3] === 0x04;
 }
 
+export function sanitizeContentDispositionForProof(value: string | null) {
+  if (!value) return null;
+  if (!value.toLowerCase().includes("attachment")) return "CONTENT_DISPOSITION_REDACTED";
+  return REDACTED_WORKBOOK_CONTENT_DISPOSITION;
+}
+
 export function summarizeResponse(params: {
   inputs: VerifyInputs;
   route: string;
@@ -111,11 +118,12 @@ export function summarizeResponse(params: {
   durationMs: number;
 }): VerifyResult {
   const contentType = params.response.headers.get("content-type");
-  const contentDisposition = params.response.headers.get("content-disposition");
+  const rawContentDisposition = params.response.headers.get("content-disposition");
+  const contentDisposition = sanitizeContentDispositionForProof(rawContentDisposition);
   const cacheControl = params.response.headers.get("cache-control");
   const xlsxZipMagic = hasXlsxZipMagic(params.bytes);
   const hasWorkbookContentType = contentType === WORKBOOK_CONTENT_TYPE;
-  const hasAttachmentDisposition = Boolean(contentDisposition?.toLowerCase().includes("attachment"));
+  const hasAttachmentDisposition = Boolean(rawContentDisposition?.toLowerCase().includes("attachment"));
   const passed = (
     params.response.ok
     && hasWorkbookContentType
@@ -141,7 +149,7 @@ export function summarizeResponse(params: {
     hasAttachmentDisposition,
     minBytes: params.inputs.minBytes,
     passed,
-    note: "Sanitized hosted export route smoke. Auth cookies/headers are required for the request but are never written to this report.",
+    note: "Sanitized hosted export route smoke. Auth cookies, headers, and production-derived export filenames are required for the request but are never written to this report.",
   };
 }
 
