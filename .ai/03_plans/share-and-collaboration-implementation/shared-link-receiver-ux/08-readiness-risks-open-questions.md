@@ -29,7 +29,7 @@ Not ready:
 | Hiding response controls too much | Medium | Accept/comment must stay discoverable for session recipients |
 | Adding advanced proposal features prematurely | Medium | The product should not imply issued/legal proposal maturity |
 | Confusing Shared Link with Teamspaces | High | Public receiver must not grant membership |
-| Over-optimizing for one Lewis Residence snapshot | Medium | Validate with multiple sheet/row densities |
+| Over-optimizing for one DEMO_PROJECT_PLACEHOLDER snapshot | Medium | Validate with multiple sheet/row densities |
 
 ## Technical Risks
 

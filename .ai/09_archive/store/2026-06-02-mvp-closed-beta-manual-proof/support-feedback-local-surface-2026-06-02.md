@@ -2,15 +2,15 @@
 
 Scope: local source and DOM-regression proof for the closed-beta support/feedback path.
 
-This evidence does not verify that `support@archestimator.com` is monitored, that an external form provider is configured, or that uptime/error alerts reach an owner. Those remain manual/provider proof gates.
+This evidence does not verify that `SUPPORT_INBOX_PLACEHOLDER` is monitored, that an external form provider is configured, or that uptime/error alerts reach an owner. Those remain manual/provider proof gates.
 
 ## Verified Surfaces
 
 | Surface | Evidence | Launch meaning |
 | --- | --- | --- |
-| Public contact route | `src/app/contact/page.tsx` renders `Direct Support`, `support@archestimator.com`, and privacy copy for quote workflow support and access inquiries. | Public beta applicants and blocked users have a visible support destination. |
-| Authenticated workshop footer | `src/components/workshop/WorkshopPageShell.tsx` includes `Send beta feedback` with `mailto:support@archestimator.com?subject=Archestimator%20beta%20feedback`. | Signed-in beta users can start feedback from the main workspace shell. |
-| Legal/deletion copy | `/terms` and `/privacy` source copy both name `support@archestimator.com`; privacy copy covers beta account/workspace deletion requests. | Legal/contact copy points to the same support address. |
+| Public contact route | `src/app/contact/page.tsx` renders `Direct Support`, `SUPPORT_INBOX_PLACEHOLDER`, and privacy copy for quote workflow support and access inquiries. | Public beta applicants and blocked users have a visible support destination. |
+| Authenticated workshop footer | `src/components/workshop/WorkshopPageShell.tsx` includes `Send beta feedback` with `mailto:SUPPORT_INBOX_PLACEHOLDER?subject=Archestimator%20beta%20feedback`. | Signed-in beta users can start feedback from the main workspace shell. |
+| Legal/deletion copy | `/terms` and `/privacy` source copy both name `SUPPORT_INBOX_PLACEHOLDER`; privacy copy covers beta account/workspace deletion requests. | Legal/contact copy points to the same support address. |
 
 ## Command Evidence
 

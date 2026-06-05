@@ -29,7 +29,7 @@ This is not legal advice. It is an operational product/legal readiness plan and 
 | `src/app/privacy/page.tsx` | Pending-review placeholder; says public self-serve launch is blocked. | Replace with reviewed Privacy Notice or keep launch closed/no-go. |
 | `src/app/login/page.tsx` | Links to terms/privacy status. | Update link labels/copy after legal copy lands. |
 | `src/app/pricing/page.tsx` | MVP preview/free positioning. | Ensure no unavailable paid promises. |
-| `src/app/contact/page.tsx`, settings | Public contact route and protected Settings hub now expose beta support, terms/privacy, and `support@archestimator.com` data request paths. | Hosted screenshot, monitored inbox proof, and legal owner sign-off still required. |
+| `src/app/contact/page.tsx`, settings | Public contact route and protected Settings hub now expose beta support, terms/privacy, and `SUPPORT_INBOX_PLACEHOLDER` data request paths. | Hosted screenshot, monitored inbox proof, and legal owner sign-off still required. |
 
 ## Required Outlines
 

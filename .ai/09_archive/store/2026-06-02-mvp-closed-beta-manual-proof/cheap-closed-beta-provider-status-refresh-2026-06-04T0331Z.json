@@ -6,7 +6,7 @@
   "productionDeployment": {
     "commit": "9fed643a745324e7b733ffe725f726b74e9eca99",
     "proofCommit": "621ee38",
-    "id": "dpl_CyfR2LA7vMLqR9sDMncgxbgVbcRj",
+    "id": "DEPLOYMENT_ID_PLACEHOLDER",
     "readyState": "READY",
     "aliases": [
       "archestimator.com",
@@ -61,7 +61,7 @@
     "broadDbPushUsed": false
   },
   "closedBetaAllowlist": {
-    "onlyTesterEmail": "philipjonlewis@gmail.com",
+    "onlyTesterEmail": "OWNER_EMAIL_PLACEHOLDER",
     "status": "active",
     "directReadbackArtifact": "closed-beta-allowlist-direct-readback-2026-06-04T0329Z.json"
   },

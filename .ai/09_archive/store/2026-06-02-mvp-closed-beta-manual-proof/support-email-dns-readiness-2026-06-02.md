@@ -4,7 +4,7 @@ Date: 2026-06-02
 Scope: public DNS lookup for `archestimator.com` support email deliverability path.
 Result: partial/provider-adjacent pass for DNS only.
 
-This evidence does not prove that `support@archestimator.com` is monitored, that an inbox receives messages, that a support form is configured, or that uptime/error alerts reach an owner.
+This evidence does not prove that `SUPPORT_INBOX_PLACEHOLDER` is monitored, that an inbox receives messages, that a support form is configured, or that uptime/error alerts reach an owner.
 
 ## Commands
 

@@ -20,7 +20,7 @@ The visible local UI opened the throwaway linked row and submitted the `Make pro
 PGRST202: Could not find the function public.unlink_estimate_row_item_from_library_with_history(acting_user_id, correlation_id, expected_row_revision, reason, target_estimate_id, target_project_id, target_row_id) in the schema cache
 ```
 
-The row remained `linked-clean`, `row_revision=1`, and `source_library_item_id='44444444-4444-4444-8444-444444444441'`.
+The row remained `linked-clean`, `row_revision=1`, and `source_library_item_id='UUID_PLACEHOLDER'`.
 
 ## Cleanup
 

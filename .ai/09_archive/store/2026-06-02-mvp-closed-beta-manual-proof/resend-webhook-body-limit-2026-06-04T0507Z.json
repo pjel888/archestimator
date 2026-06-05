@@ -30,9 +30,9 @@
   },
   "deployment": {
     "ignoreFixCommit": "c6aa6dd3f4a912ba444469dea50b743f636c546f",
-    "deploymentId": "dpl_6xBegV7JS3WRfZYnN1mWTeY62b38",
-    "deploymentUrl": "https://archestimator-br665yc8u-philipjonlewis-projects.vercel.app",
-    "inspectorUrl": "https://vercel.com/philipjonlewis-projects/archestimator/6xBegV7JS3WRfZYnN1mWTeY62b38",
+    "deploymentId": "DEPLOYMENT_ID_PLACEHOLDER",
+    "deploymentUrl": "https://VERCEL_DEPLOYMENT_URL_PLACEHOLDER",
+    "inspectorUrl": "https://vercel.com/VERCEL_SCOPE_PLACEHOLDER/archestimator/6xBegV7JS3WRfZYnN1mWTeY62b38",
     "target": "production",
     "readyState": "READY",
     "aliases": [
@@ -40,7 +40,7 @@
       "https://archestimator.com",
       "https://archestimator.vercel.app"
     ],
-    "source": "vercel deploy --prod --yes --scope philipjonlewis-projects"
+    "source": "vercel deploy --prod --yes --scope VERCEL_SCOPE_PLACEHOLDER"
   },
   "validation": {
     "local": [

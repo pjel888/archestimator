@@ -255,8 +255,8 @@ Refreshed captured values:
 - `/workshop` to `/workshop/projects` authenticated transition: 572 ms.
 - Hover-before-click sidebar `_rsc` requests: 0 observed in the local dev-auth environment.
 - Click-transition `_rsc` request: `http://127.0.0.1:3034/workshop/projects?_rsc=...`
-- Live project-card href observed: `/workshop/projects/2fd7ae61-e60e-4a2d-a3d3-e33ab65999f1`.
-- Live estimate-row href observed: `/workshop/projects/2fd7ae61-e60e-4a2d-a3d3-e33ab65999f1/estimates/6737eb2a-0e6a-443d-98c9-3375696429fc`.
+- Live project-card href observed: `/workshop/projects/UUID_PLACEHOLDER`.
+- Live estimate-row href observed: `/workshop/projects/UUID_PLACEHOLDER/estimates/UUID_PLACEHOLDER`.
 - Project-card hover-before-click `_rsc` requests: 0 observed in the local dev-auth environment.
 - Estimate-row hover-before-click `_rsc` requests: 0 observed in the local dev-auth environment.
 

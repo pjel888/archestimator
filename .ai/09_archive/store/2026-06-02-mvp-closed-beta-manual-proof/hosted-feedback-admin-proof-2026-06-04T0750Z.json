@@ -53,10 +53,10 @@
     "fullClosedBetaLaunchReady": false
   },
   "remainingGaps": [
-    "Proof that support@archestimator.com is monitored.",
+    "Proof that SUPPORT_INBOX_PLACEHOLDER is monitored.",
     "Proof that a human/owner reviews the beta feedback queue on an operational cadence.",
     "Proof that alerts/errors route to a monitored owner channel.",
-    "Optional future smoke that submits a harmless feedback record and then triages it, if Philip accepts a production feedback-row write."
+    "Optional future smoke that submits a harmless feedback record and then triages it, if OWNER_NAME_PLACEHOLDER accepts a production feedback-row write."
   ],
   "secretsRecorded": false
 }

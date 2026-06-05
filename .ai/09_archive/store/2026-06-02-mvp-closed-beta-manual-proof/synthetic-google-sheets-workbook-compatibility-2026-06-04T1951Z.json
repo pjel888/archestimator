@@ -5,7 +5,7 @@
   "environment": {
     "spreadsheetApp": "Google Sheets web via /Applications/Google Sheets.app shortcut",
     "browser": "Google Chrome owner profile",
-    "googleAccount": "philipjonlewis@gmail.com",
+    "googleAccount": "OWNER_EMAIL_PLACEHOLDER",
     "productionDomainUnderTest": "https://www.archestimator.com",
     "localWorkbookPath": "/tmp/archestimator-synthetic-spreadsheet-proof/archestimator-synthetic-25-row-proposal.xlsx"
   },
@@ -111,7 +111,7 @@
     "realProductionWorkbookAppCompatibility": "not_run"
   },
   "boundaries": [
-    "This proof used a synthetic 25-row workbook, not the hosted Lewis Residence proposal workbook or any client-identifying export.",
+    "This proof used a synthetic 25-row workbook, not the hosted DEMO_PROJECT_PLACEHOLDER proposal workbook or any client-identifying export.",
     "This proves Google Sheets web import/open, visible formula-backed totals, preserved tabs, and current-sheet print-preview availability for a synthetic Archestimator workbook.",
     "This does not prove Microsoft Excel, Apple Numbers, LibreOffice, or a real production workbook opened in a native spreadsheet app.",
     "This does not change Supabase, Vercel, Resend, DNS, purchases, production data, migration history, or provider billing."

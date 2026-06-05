@@ -1,11 +1,11 @@
 # Founder Ops & Bus-Factor Plan
 
 **Last updated:** 2026-05-30
-**Purpose:** Reduce Philip bottleneck during beta. Define operating model for solo founder.
+**Purpose:** Reduce OWNER_NAME_PLACEHOLDER bottleneck during beta. Define operating model for solo founder.
 
 ---
 
-## 1. Philip's Roles During Beta
+## 1. the owner's Roles During Beta
 
 | Role | Responsibility |
 |------|---------------|
@@ -35,7 +35,7 @@
 ## 3. Support Triage Workflow
 
 ```
-Incoming (support@archestimator.com)
+Incoming (SUPPORT_INBOX_PLACEHOLDER)
     │
     ├── Security / data-loss / auth-blocking → IMMEDIATE response
     │
@@ -64,7 +64,7 @@ Incident detected (Sentry alert, user report, or manual observation)
     │   ├── Diagnose root cause
     │   ├── Implement fix or rollback
     │   ├── Verify fix in staging
-    │   └── Deploy with Philip approval
+    │   └── Deploy with OWNER_NAME_PLACEHOLDER approval
     │
     └── Post-incident
         ├── Document in incident log
@@ -77,7 +77,7 @@ Incident detected (Sentry alert, user report, or manual observation)
 ```
 Weekly: collect all feedback from:
   - Participant weekly check-ins
-  - support@archestimator.com
+  - SUPPORT_INBOX_PLACEHOLDER
   - Direct messages / Slack / chat
   - .ai feedback log
     │
@@ -138,31 +138,31 @@ Pause controlled beta if:
 - Support/incident load exceeds 10 hours in a single week
 - A participant reports data they cannot afford to lose and recovery is uncertain
 - Supabase or Vercel has an extended outage (> 4 hours) affecting all users
-- Philip is unavailable for > 3 consecutive business days without coverage
+- OWNER_NAME_PLACEHOLDER is unavailable for > 3 consecutive business days without coverage
 - 2+ participants drop out and replacements cannot be recruited
 
 **Pause procedure:**
 1. Notify all participants: "Beta is temporarily paused while we address [reason]"
 2. Stop new feature development
 3. Focus exclusively on stabilization
-4. Resume only when root cause is resolved and Philip approves
+4. Resume only when root cause is resolved and OWNER_NAME_PLACEHOLDER approves
 
 ## 10. Bus-Factor Risks
 
 | Risk | Current State | Mitigation |
 |------|--------------|------------|
-| Philip is sole developer | No backup developer | Document architecture in DESIGN.md and .ai/ docs. Code is in GitHub. |
-| Philip is sole incident responder | No escalation path | Document runbooks. Sentry alerts go to Philip only. |
-| Philip controls all credentials | No shared access | Credentials in password manager (1Password or equivalent). No sharing for beta. |
-| Philip is sole domain/DNS admin | No backup admin | Domain registered in Philip's name. DNS documented. |
-| Philip is sole Supabase admin | No backup admin | Supabase project owner is Philip. No sharing for beta. |
-| Philip is sole code owner | Code is on GitHub | Private repo. No other collaborators with write access for beta. |
+| OWNER_NAME_PLACEHOLDER is sole developer | No backup developer | Document architecture in DESIGN.md and .ai/ docs. Code is in GitHub. |
+| OWNER_NAME_PLACEHOLDER is sole incident responder | No escalation path | Document runbooks. Sentry alerts go to OWNER_NAME_PLACEHOLDER only. |
+| OWNER_NAME_PLACEHOLDER controls all credentials | No shared access | Credentials in password manager (1Password or equivalent). No sharing for beta. |
+| OWNER_NAME_PLACEHOLDER is sole domain/DNS admin | No backup admin | Domain registered in the owner's name. DNS documented. |
+| OWNER_NAME_PLACEHOLDER is sole Supabase admin | No backup admin | Supabase project owner is Philip. No sharing for beta. |
+| OWNER_NAME_PLACEHOLDER is sole code owner | Code is on GitHub | Private repo. No other collaborators with write access for beta. |
 
 **Beta posture:** Accept bus-factor risk for beta (solo founder is the reality). For public launch, create emergency access procedure with trusted delegate.
 
 ## 11. Minimum Operating Dashboard
 
-Philip should check these weekly:
+OWNER_NAME_PLACEHOLDER should check these weekly:
 
 | Metric | Source | Target |
 |--------|--------|--------|
@@ -181,9 +181,9 @@ Philip should check these weekly:
 
 | Decision | Status |
 |----------|--------|
-| Philip is incident owner for beta | `DECIDED / PHILIP` |
-| Philip is rollback authority for beta | `DECIDED / PHILIP` |
-| No deploy without Philip approval | `PERMANENT` |
+| OWNER_NAME_PLACEHOLDER is incident owner for beta | `DECIDED / PHILIP` |
+| OWNER_NAME_PLACEHOLDER is rollback authority for beta | `DECIDED / PHILIP` |
+| No deploy without OWNER_NAME_PLACEHOLDER approval | `PERMANENT` |
 | Beta pauses if support/incident load exceeds capacity | `DECIDED` |
 
 ---

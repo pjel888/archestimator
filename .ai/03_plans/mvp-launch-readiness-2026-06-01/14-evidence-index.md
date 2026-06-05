@@ -37,7 +37,7 @@
   `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/hosted-google-denied-revoked-browser-smoke-2026-06-04T1851Z.json`.
 - Denied proof: Computer Use signed out the owner browser session through
   `/workshop/settings`, opened `/login?next=/workshop`, selected the alternate
-  Google account `lewisphilipjonechavez@gmail.com`, and observed
+  Google account `RECIPIENT_EMAIL_PLACEHOLDER`, and observed
   `/beta/access-required` with the closed-beta not-enabled copy while linked
   Supabase readback showed that alternate email had no allowlist row.
 - Revoked proof: Codex created a temporary `revoked` allowlist row for the same
@@ -68,7 +68,7 @@
 - Vercel proof: the existing masked Resend signing secret was copied without
   showing or recording the value, updated into Vercel Production and Preview(main)
   `RESEND_WEBHOOK_SECRET` from stdin, and the clipboard was cleared. Forced
-  production redeploy `dpl_4bMoArwC32Tup4dKK67wtKoBf2jv` reached Ready and was
+  production redeploy `DEPLOYMENT_ID_PLACEHOLDER` reached Ready and was
   aliased to `www.archestimator.com`, `archestimator.com`, and
   `archestimator.vercel.app`; `www` health returned HTTP 200.
 - Supabase proof: linked read-only SQL for the alternate recipient shows
@@ -86,13 +86,13 @@
 - Primary artifact:
   `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/hosted-shared-link-recipient-clickthrough-open-2026-06-04T1731Z.json`.
 - Deployment proof: commit `14e0a61` was deployed as production deployment
-  `dpl_9b5SK6x1qBhrG9sMX3XvsdBoLbVR`, `www.archestimator.com` health returned
+  `DEPLOYMENT_ID_PLACEHOLDER`, `www.archestimator.com` health returned
   HTTP 200, and apex redirected to `www`.
 - Bug proof: the earlier Gmail invite CTA used a relative `share/...` href that
   Gmail rewrote to an invalid `http:///share/...` redirect notice. The fix now
   emits absolute recipient CTA and unsubscribe URLs from the configured app
   origin.
-- Browser proof: a fresh resend to `lewisphilipjonechavez@gmail.com` displayed
+- Browser proof: a fresh resend to `RECIPIENT_EMAIL_PLACEHOLDER` displayed
   an `archestimator.com/share/[redacted]` CTA in Gmail and opened the hosted
   proposal review page with the expected recipient review banner.
 - Supabase proof: the alternate recipient row is now `opened` with
@@ -129,9 +129,9 @@
 - Primary artifact:
   `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/hosted-shared-link-recipient-inbox-receipt-2026-06-04T1555Z.json`.
 - Browser proof: Chrome extension control opened a targeted Gmail exact-subject
-  search in `lewisphilipjonechavez@gmail.com`; the result count was `1-1 of 1`
-  with sender `Archestimator` and subject `Project Estimate: Tropical House
-  shared by Philip Lewis`.
+  search in `RECIPIENT_EMAIL_PLACEHOLDER`; the result count was `1-1 of 1`
+  with sender `Archestimator` and subject `Project Estimate: OWNER_BETA_PROJECT_PLACEHOLDER
+  shared by OWNER_NAME_PLACEHOLDER`.
 - Email proof: opening the email body showed the expected view-only invitation
   copy and `View Project Estimate` CTA. The raw href/link, share URL, recipient
   token, token hash, cookies, API keys, and webhook secrets were not recorded.
@@ -146,22 +146,22 @@
 - Primary artifact:
   `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/hosted-shared-link-recipient-email-self-invite-guard-2026-06-04T1532Z.json`.
 - Deployment proof: Vercel production deployment
-  `dpl_4eM4pVfRPqXfHtspTFNaKhNFDJFZ` was Ready and aliased to
+  `DEPLOYMENT_ID_PLACEHOLDER` was Ready and aliased to
   `www.archestimator.com`, `archestimator.com`, and `archestimator.vercel.app`
   after commit `19c6b90`; `https://www.archestimator.com/api/health` returned
   HTTP 200.
 - Browser proof: Chrome extension control against the owner session opened the
-  hosted `Tropical House` shared-link modal. Attempting to add the signed-in
-  owner email `philipjonlewis@gmail.com` showed `You cannot invite your own
+  hosted `OWNER_BETA_PROJECT_PLACEHOLDER` shared-link modal. Attempting to add the signed-in
+  owner email `OWNER_EMAIL_PLACEHOLDER` showed `You cannot invite your own
   sign-in email to this shared link.` and kept `Send to 0 recipients` disabled.
-- Send proof: the same hosted modal accepted `lewisphilipjonechavez@gmail.com`,
+- Send proof: the same hosted modal accepted `RECIPIENT_EMAIL_PLACEHOLDER`,
   changed `Send to 1 recipient` to a completed `sent` row, and displayed
   `Added 1 recipient(s). 1 email(s) dispatched (failures are non-fatal).`
   Supabase read-only SQL confirmed a `sent` recipient row with a redacted Resend
   message id; token/hash/encrypted-token columns were intentionally excluded.
 - Boundary: this proves the self-invite guard and app-level shared-link email
   dispatch. The 15:55Z artifact proves inbox receipt for
-  `lewisphilipjonechavez@gmail.com`; the 17:31Z artifact proves
+  `RECIPIENT_EMAIL_PLACEHOLDER`; the 17:31Z artifact proves
   recipient clickthrough/open. Resend delivered/bounce/complaint webhook
   reconciliation remains open.
 - Result: the self-invite defect is closed and the hosted shared-link send smoke
@@ -174,7 +174,7 @@
 - Primary artifact:
   `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/hosted-logout-session-proof-2026-06-04T1436Z.json`.
 - Deployment proof: Vercel production deployment
-  `dpl_5HDqM8FkSxdYQDAUXtNFTJ6s5f3P` was Ready and aliased to
+  `DEPLOYMENT_ID_PLACEHOLDER` was Ready and aliased to
   `www.archestimator.com`, `archestimator.com`, and `archestimator.vercel.app`
   after commit `535b68c`; `https://www.archestimator.com/api/health` returned
   HTTP 200.
@@ -205,7 +205,7 @@
   fit-to-width setup, sample line-total result `700`, sample subtotal result
   `20960`, and Summary grand-total formula/result `B27+B28+B29` / `149798`.
 - Browser proof: Computer Use uploaded only the synthetic workbook through the
-  owner Google Sheets session for `philipjonlewis@gmail.com`, observed the
+  owner Google Sheets session for `OWNER_EMAIL_PLACEHOLDER`, observed the
   imported document titled `archestimator-synthetic-25-row-proposal` saved
   privately to Drive, confirmed all four workbook tabs were visible, and
   inspected the Summary sheet with visible section totals and `Grand Total`
@@ -228,9 +228,9 @@
   `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/hosted-owner-beta-journey-smoke-2026-06-04T1328Z.json`.
 - Browser proof: Computer Use against the authenticated owner Chrome profile
   opened production `https://archestimator.com/workshop`, entered the existing
-  `Tropical House` project, created the first hosted estimate sheet
-  `ES-001 Estimate Sheet`, opened the estimate workspace at
-  `/workshop/projects/a04459eb-cd96-4bd5-b579-15143a2491ef/estimates/57b7f3e2-4fea-43e0-a9a9-a971a00f4ec9`,
+  `OWNER_BETA_PROJECT_PLACEHOLDER` project, created the first hosted estimate sheet
+  `ESTIMATE_SHEET_PLACEHOLDER`, opened the estimate workspace at
+  `/workshop/projects/PROJECT_ID_PLACEHOLDER/estimates/ESTIMATE_ID_PLACEHOLDER`,
   and opened `Preview Excel Export`.
 - Visible production markers included project navigation, `Shared link`,
   `Teamspaces`, `1 project collaborators`, the estimate tree, `Project Scope`,
@@ -251,7 +251,7 @@
 
 - Primary artifact:
   `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/codex-security-history-risk-owner-acceptance-2026-06-04T1414Z.json`.
-- Decision: Philip's owner signoff accepts the two remaining Codex Security
+- Decision: the owner's owner signoff accepts the two remaining Codex Security
   source-control/history-exposure findings only for the current single-owner beta.
 - Boundary: this does not mark `Committed public share token and user project
   data` or `Confidential client proposal committed to repository` fixed, does not
@@ -265,7 +265,7 @@
 
 - Primary artifact:
   `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/resend-owner-inbox-receipt-2026-06-04T1348Z.json`.
-- Owner-reported receipt: Philip reported that `philipjonlewis@gmail.com`
+- Owner-reported receipt: OWNER_NAME_PLACEHOLDER reported that `OWNER_EMAIL_PLACEHOLDER`
   received the message with subject
   `Archestimator Resend verified smoke 2026-06-04T12:28:05.608Z` and body
   `Archestimator closed-beta Resend verified smoke test. If you received this,
@@ -283,7 +283,7 @@
 
 - Resend send-test blocker artifact:
   `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/resend-send-test-domain-unverified-2026-06-04T1151Z.json`.
-  A real production-env Resend send probe to `philipjonlewis@gmail.com` failed
+  A real production-env Resend send probe to `OWNER_EMAIL_PLACEHOLDER` failed
   with HTTP 403 because `contact.archestimator.com` is not verified. Resend
   dashboard proof shows DKIM verified, but `send.contact` MX
   `feedback-smtp.ap-northeast-1.amazonses.com` priority 10 and `send.contact`
@@ -292,13 +292,13 @@
   repair this record set.
 - Legal/owner signoff artifact:
   `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/legal-owner-signoff-2026-06-04T1138Z.json`.
-  It records owner-provided beta signoff from Philip Lewis on 2026-06-04 with
+  It records owner-provided beta signoff from OWNER_NAME_PLACEHOLDER on 2026-06-04 with
   `legalOwnerReady: true`. It remains a closed-beta owner signoff artifact, not
   legal advice or public-launch counsel proof.
 - Support/monitoring artifact:
   `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/support-monitoring-owner-signoff-2026-06-04T1138Z.json`.
   It records owner-confirmed inbox, feedback review, uptime/error alert, and
-  escalation responsibility with Philip Lewis as support/alert/review owner and
+  escalation responsibility with OWNER_NAME_PLACEHOLDER as support/alert/review owner and
   `supportMonitoringReady: true`. The helper records operator-confirmed flags
   and owner labels; it does not independently verify alert dashboards.
 - Resend/email artifact:
@@ -329,20 +329,20 @@
   `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/vercel-rollback-drill-2026-06-04T1112Z.json`.
 - Green production-readiness artifact:
   `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/vercel-production-readiness-rollback-drill-2026-06-04T1112Z.json`.
-- Preflight: `vercel rollback status archestimator --scope philipjonlewis-projects`
+- Preflight: `vercel rollback status archestimator --scope VERCEL_SCOPE_PLACEHOLDER`
   reported no rollback in progress. `vercel curl` confirmed the immediate
   previous production deployment `archestimator-bssps9fmb...` returned app
   health JSON and rendered `/login`; current deployment `archestimator-br665yc8u...`
   also returned app health JSON.
-- Drill: `vercel rollback https://archestimator-bssps9fmb-philipjonlewis-projects.vercel.app --scope philipjonlewis-projects --yes --timeout 3m`
+- Drill: `vercel rollback https://VERCEL_DEPLOYMENT_URL_PLACEHOLDER --scope VERCEL_SCOPE_PLACEHOLDER --yes --timeout 3m`
   succeeded and rolled production back to deployment
-  `dpl_CyfR2LA7vMLqR9sDMncgxbgVbcRj`. While rolled back,
+  `DEPLOYMENT_ID_PLACEHOLDER`. While rolled back,
   `https://www.archestimator.com/api/health` returned HTTP 200 app health JSON,
   and Vercel aliases mapped `archestimator.com`, `www.archestimator.com`, and
   `archestimator.vercel.app` to the rollback target.
-- Restore: `vercel promote https://archestimator-br665yc8u-philipjonlewis-projects.vercel.app --scope philipjonlewis-projects --yes --timeout 3m`
+- Restore: `vercel promote https://VERCEL_DEPLOYMENT_URL_PLACEHOLDER --scope VERCEL_SCOPE_PLACEHOLDER --yes --timeout 3m`
   succeeded and restored production to deployment
-  `dpl_6xBegV7JS3WRfZYnN1mWTeY62b38`. After restore,
+  `DEPLOYMENT_ID_PLACEHOLDER`. After restore,
   `https://www.archestimator.com/api/health` again returned HTTP 200 app health
   JSON, and Vercel aliases mapped the custom domains back to
   `archestimator-br665yc8u...`.
@@ -370,9 +370,9 @@
   `supabase backups list --project-ref ebxxqidacheyapmmzavr --output json`
   transcript: 9 backups listed, `walgEnabled: true`, `pitrEnabled: false`,
   `restoreDrillStatus: blocked`, `restoreDrillAcceptedRisk: true`, `missing: []`.
-- Vercel proof: production deployment `dpl_6xBegV7JS3WRfZYnN1mWTeY62b38` is
+- Vercel proof: production deployment `DEPLOYMENT_ID_PLACEHOLDER` is
   `READY`, `archestimator.com` and `www.archestimator.com` both alias to
-  `archestimator-br665yc8u-philipjonlewis-projects.vercel.app`, and 19 ready
+  `VERCEL_DEPLOYMENT_URL_PLACEHOLDER`, and 19 ready
   rollback candidates are available. This was later closed by the 11:12Z
   rollback drill above.
 - Official source basis: Supabase pricing/backups docs checked 2026-06-04
@@ -385,13 +385,13 @@
 - Primary artifact: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/live-closed-beta-refresh-2026-06-04T1006Z.json`.
 - Browser proof: Computer Use observed the owner Chrome session on
   `archestimator.com/workshop/settings/profile` rendering the closed-beta app
-  shell and Profile settings for `Philip Lewis`; this proves the production
+  shell and Profile settings for `OWNER_NAME_PLACEHOLDER`; this proves the production
   custom domain is no longer showing only the orange teaser for the owner
   session.
-- Vercel proof: production deployment `dpl_6xBegV7JS3WRfZYnN1mWTeY62b38` is
+- Vercel proof: production deployment `DEPLOYMENT_ID_PLACEHOLDER` is
   `READY`; `archestimator.com`, `www.archestimator.com`, and
   `archestimator.vercel.app` all alias to
-  `archestimator-br665yc8u-philipjonlewis-projects.vercel.app`. The old teaser
+  `VERCEL_DEPLOYMENT_URL_PLACEHOLDER`. The old teaser
   deployment remains isolated to its branch alias.
 - Hosted HTTP proof: `www` `/api/health` returns HTTP 200 app health JSON,
   `/login` returns HTTP 200 with Google sign-in and closed-beta copy, and
@@ -401,7 +401,7 @@
   Supabase, publication, Resend, invite, and AI-off env names present.
 - Supabase proof: linked project `ebxxqidacheyapmmzavr` is named
   `Archestimator`; linked readback shows exactly one active allowlist tester,
-  `philipjonlewis@gmail.com`.
+  `OWNER_EMAIL_PLACEHOLDER`.
 - Historical blocker snapshot: at this point Codex Security still had two
   residual history-exposure findings; Resend sender-domain DNS still lacked
   `send.contact` MX; legal/owner signoff, support/monitoring proof,
@@ -464,14 +464,14 @@
 - Primary artifact: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/hosted-export-browser-proof-2026-06-04T0807Z.json`.
 - Browser proof: Computer Use against the active owner Chrome session reached
   production
-  `/workshop/projects/22222222-2222-4222-8222-222222222222/estimates/a9c512cb-d3a3-44e3-b6df-fa5a29278584`,
-  rendered the `Lewis Residence` estimate workspace, opened `Preview Excel
+  `/workshop/projects/PROJECT_ID_PLACEHOLDER/estimates/ESTIMATE_ID_PLACEHOLDER`,
+  rendered the `DEMO_PROJECT_PLACEHOLDER` estimate workspace, opened `Preview Excel
   Export`, observed `55 consolidated BOQ rows` and grand total
-  `PHP 4,078,914.00`, and downloaded `AE-LR-001-ES-001-proposal.xlsx`.
+  `PHP 4,078,914.00`, and downloaded `DEMO_PROJECT_CODE_PLACEHOLDER-ESTIMATE_CODE_PLACEHOLDER-proposal.xlsx`.
 - Supabase readback: a narrow read-only selected-node mapping query resolves
-  `a9c512cb-d3a3-44e3-b6df-fa5a29278584` to estimate
-  `33333333-3333-4333-8333-333333333333`, sheet code `ES-001`, project
-  `22222222-2222-4222-8222-222222222222`.
+  `ESTIMATE_ID_PLACEHOLDER` to estimate
+  `PROJECT_ID_PLACEHOLDER`, sheet code `ESTIMATE_CODE_PLACEHOLDER`, project
+  `PROJECT_ID_PLACEHOLDER`.
 - Signed-out control: unauthenticated curl to the corrected export route returns
   HTTP 307 to `/login`; the successful XLSX download required the authenticated
   browser session.
@@ -516,7 +516,7 @@
   Small-compute bump for PITR, no new paid provider add-ons, no DNS/env/provider
   mutation, no production rollback/promote action, no broad Supabase `db push`,
   and no Codex Security dashboard close submission occurred during this audit.
-- Vercel proof: production deployment `dpl_6xBegV7JS3WRfZYnN1mWTeY62b38` remains
+- Vercel proof: production deployment `DEPLOYMENT_ID_PLACEHOLDER` remains
   aliased to `www.archestimator.com`, `archestimator.com`, and
   `archestimator.vercel.app`; `www` `/api/health` returns HTTP 200 with
   Archestimator health JSON, apex `/api/health` redirects to `www`, `/login`
@@ -533,7 +533,7 @@
   DNS still has no `send.contact.archestimator.com` MX. The remaining no-cost DNS
   action is Namecheap `MX` host `send.contact`, value
   `feedback-smtp.ap-northeast-1.amazonses.com`, priority `10`, without changing
-  apex forwarding MX for `support@archestimator.com`.
+  apex forwarding MX for `SUPPORT_INBOX_PLACEHOLDER`.
 - GitHub/Codex Security proof: GitHub has no open issues or PRs. A later
   authenticated Codex Security refresh shows no visible open critical/high
   findings in severity-filtered views, but the repo-filtered list still shows
@@ -554,7 +554,7 @@
 - Primary artifact: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/hosted-owner-smoke-2026-06-04T0719Z/hosted-owner-smoke.json`.
 - Browser proof: active Chrome session reached
   `https://www.archestimator.com/workshop/settings/profile` and rendered
-  authenticated Profile settings with display name `Philip Lewis`, user category
+  authenticated Profile settings with display name `OWNER_NAME_PLACEHOLDER`, user category
   `Architect`, country/region `Philippines`, and a visible `Save profile`
   control.
 - Screenshot: `profile-settings.png`, SHA-256
@@ -564,7 +564,7 @@
   `next` target.
 - Boundary: this does not by itself visibly prove the Google email; it
   supplements earlier hosted owner allowed-smoke artifacts that recorded
-  `philipjonlewis@gmail.com`. Feedback-admin monitoring visual proof was
+  `OWNER_EMAIL_PLACEHOLDER`. Feedback-admin monitoring visual proof was
   inconclusive because the browser-reported URL and rendered screenshot did not
   line up cleanly, so support/feedback monitoring remains open.
 - Cost posture: no paid add-on, DNS, Vercel env, Supabase mutation, or form
@@ -576,7 +576,7 @@
 - Cost posture: no Supabase PITR add-on, no compute increase for PITR, no DNS or
   provider mutation, no Vercel env mutation, no production rollback/promote
   action, and no broad Supabase `db push` occurred during this refresh.
-- Vercel proof: production deployment `dpl_6xBegV7JS3WRfZYnN1mWTeY62b38` is
+- Vercel proof: production deployment `DEPLOYMENT_ID_PLACEHOLDER` is
   `Ready` and aliased to `www.archestimator.com`, `archestimator.com`, and
   `archestimator.vercel.app`. Live HTTP probes show `www` `/api/health` HTTP 200
   with Archestimator health JSON, `/login` HTTP 200 with the app title,
@@ -633,7 +633,7 @@
   `0e5dfff`.
 - Hosted/proof artifact:
   `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/chart-xlsx-load-bounds-2026-06-04.json`
-  records production deployment `dpl_3zUJ5kvqkT9QUA75boNcGA75Ref8`,
+  records production deployment `DEPLOYMENT_ID_PLACEHOLDER`,
   production `/api/health` HTTP 200, apex redirect, and AI-off regression proof.
 - Fresh verification:
   `bunx vitest run tests/vitest/proposal-export-route.test.ts tests/vitest/proposal-export-route-workbook.test.ts tests/vitest/proposal-export-model.test.ts tests/vitest/project-charts-aggregation.test.ts tests/vitest/project-charts-ui.test.tsx tests/vitest/workspace-repository-estimate-tree.test.ts --maxWorkers=1 --reporter=dot`
@@ -715,7 +715,7 @@
 - Dashboard action: authenticated Codex Security finding
   `Republish can widen shared links to all estimate sheets` was closed as
   `Already fixed` / `Reason: Fixed`; revisiting the original finding shows
-  `Closed by philipjonlewis@gmail.com`, a `Reopen` control, and the Findings
+  `Closed by OWNER_EMAIL_PLACEHOLDER`, a `Reopen` control, and the Findings
   page count dropped from `1-20 of 39` to `1-20 of 38`.
 - Repo proof: current `main` head
   `668f79cb3f41c5d731f47de22219807974dd3665` keeps persisted
@@ -740,7 +740,7 @@
 - Dashboard action: authenticated Codex Security finding
   `Password-protected share metadata leaks project details` was closed as
   `Already fixed` / `Reason: Fixed`; revisiting the original finding shows
-  `Closed by philipjonlewis@gmail.com`, a `Reopen` control, and the Findings
+  `Closed by OWNER_EMAIL_PLACEHOLDER`, a `Reopen` control, and the Findings
   page count dropped from `1-20 of 40` to `1-20 of 39`.
 - Repo proof: current `main` head
   `8af2af8fcd088a564cf6af4a0e703039042fc349` returns generic locked
@@ -765,7 +765,7 @@
 - Dashboard action: authenticated Codex Security finding
   `Stale recipient sessions can post share comments` was closed as
   `Already fixed` / `Reason: Fixed`; revisiting the original finding shows
-  `Closed by philipjonlewis@gmail.com` and a `Reopen` control. The open-list
+  `Closed by OWNER_EMAIL_PLACEHOLDER` and a `Reopen` control. The open-list
   count after closure was not cleanly rehydrated, so the direct closed finding
   page is the provider proof for this closure.
 - Repo proof: current `main` head
@@ -810,7 +810,7 @@
 - Dashboard action: authenticated Codex Security finding
   `Stale share sessions can approve newer publication snapshots` was closed as
   `Already fixed` / `Reason: Fixed`; revisiting the original finding shows
-  `Closed by philipjonlewis@gmail.com`, a `Reopen` control, and the Findings
+  `Closed by OWNER_EMAIL_PLACEHOLDER`, a `Reopen` control, and the Findings
   page count dropped from `1-20 of 42` to `1-20 of 41`.
 - Repo proof: current `main` head `4c2b30f` verifies recipient decision
   sessions against the DB-current publication snapshot, passes
@@ -833,7 +833,7 @@
 - Dashboard action: authenticated Codex Security finding
   `Unvalidated share image URLs enable client tracking` was closed as
   `Already fixed` / `Reason: Fixed`; revisiting the original finding shows
-  `Closed by philipjonlewis@gmail.com`, a `Reopen` control, and the Findings
+  `Closed by OWNER_EMAIL_PLACEHOLDER`, a `Reopen` control, and the Findings
   page count dropped from `1-20 of 43` to `1-20 of 42`.
 - Repo proof: current `main` head `5931c1d` keeps the publication image URL
   allowlist/sanitization path in `src/lib/publication/image-url.ts`,
@@ -855,7 +855,7 @@
   enabled because current Supabase docs list 7-day PITR at about `$100/month`
   and not covered by spend cap; Pro daily backups/physical backups remain the
   accepted owner-only pre-launch posture until paid PITR is explicitly accepted.
-- Vercel: production deployment `dpl_6xBegV7JS3WRfZYnN1mWTeY62b38` is `READY`
+- Vercel: production deployment `DEPLOYMENT_ID_PLACEHOLDER` is `READY`
   from `main` commit `c6aa6dd`, with aliases for `www.archestimator.com`,
   `archestimator.com`, and `archestimator.vercel.app`. `.vercelignore` now
   excludes `.omx` so Vercel CLI deploys do not package transient local runtime
@@ -888,10 +888,10 @@
   `archestimator.vercel.app/api/health`; and
   `vercel-production-readiness-live-refresh-2026-06-04T0424Z.json` shows
   `archestimator.com`, `www.archestimator.com`, and `archestimator.vercel.app`
-  mapped to current production deployment `dpl_CyfR2LA7vMLqR9sDMncgxbgVbcRj`.
+  mapped to current production deployment `DEPLOYMENT_ID_PLACEHOLDER`.
 - Hosted auth: `hosted-google-allowed-browser-smoke-2026-06-04T0419Z.json`
   proves the owner Google session reaches production
-  `/workshop/settings/profile` as `philipjonlewis@gmail.com` and sees profile
+  `/workshop/settings/profile` as `OWNER_EMAIL_PLACEHOLDER` and sees profile
   settings without login or beta-access-required controls. Denied, revoked, and
   expired-session hosted browser smoke remains open.
 - Supabase: `supabase-backup-readiness-live-refresh-2026-06-04T0428Z.json`
@@ -930,7 +930,7 @@
   API keys; `GET /domains` lists domains, and the Webhooks docs cover registered
   webhook endpoints. The local key is send-only, so the dashboard is the current
   provider source for domain/webhook state.
-- Resend dashboard: account `philipjonlewis@gmail.com`; domain
+- Resend dashboard: account `OWNER_EMAIL_PLACEHOLDER`; domain
   `contact.archestimator.com`; status `Failed`; provider `Namecheap`; region
   `Tokyo (ap-northeast-1)`. Domain events show `Domain added` and then
   `Missing records`.
@@ -954,14 +954,14 @@
 ## Cheap Closed-Beta Provider Status Refresh - 2026-06-04 03:48Z
 
 - Primary artifact: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/cheap-launch-refresh-2026-06-04.json`.
-- Vercel: production deployment `dpl_CyfR2LA7vMLqR9sDMncgxbgVbcRj` is `READY`; `www.archestimator.com/api/health` returns HTTP 200; apex `/login` redirects to `www`; production env-name readiness is green for the required closed-beta/Supabase/publication/AI-off/invite/Resend names without recording secret values.
+- Vercel: production deployment `DEPLOYMENT_ID_PLACEHOLDER` is `READY`; `www.archestimator.com/api/health` returns HTTP 200; apex `/login` redirects to `www`; production env-name readiness is green for the required closed-beta/Supabase/publication/AI-off/invite/Resend names without recording secret values.
 - Supabase: project `ebxxqidacheyapmmzavr` stays on the cheaper Micro/PITR-off path; fresh linked migration-list parsing shows required launch migrations present remotely, and linked SQL readiness reports 14 parsed rows / 0 failures. No broad `db push` was used. Strict backup readiness is intentionally red because PITR and restore-drill proof are not part of the no-new-paid-add-ons path; physical backup listing still shows 9 backups and `walgEnabled: true`.
-- Closed beta allowlist: direct table readback shows exactly `philipjonlewis@gmail.com` with status `active`; unauthenticated `check_closed_beta_access` returns `missing` by design because it requires a matching caller JWT email.
+- Closed beta allowlist: direct table readback shows exactly `OWNER_EMAIL_PLACEHOLDER` with status `active`; unauthenticated `check_closed_beta_access` returns `missing` by design because it requires a matching caller JWT email.
 - DNS/Resend: support-domain MX/SPF/DMARC is green; Vercel has all Resend env names including `RESEND_WEBHOOK_SECRET`; observed sender DNS includes `send.contact` SPF and one Resend DKIM TXT record. A local read-only Resend provider API probe returned HTTP 401 for both `/domains` and `/webhooks`, so Resend dashboard/API domain/webhook/delivery proof remains open.
 - Hosted auth: `hosted-google-allowed-browser-smoke-2026-06-04T0355Z.json`
   proves the allowed owner session in Chrome can reach production
   `/workshop/settings/profile`, render `Profile settings`, and visibly show
-  `philipjonlewis@gmail.com` without login or beta-access-required controls. This
+  `OWNER_EMAIL_PLACEHOLDER` without login or beta-access-required controls. This
   does not inspect cookies/local storage and does not prove denied, revoked, or
   expired-session behavior.
 - Codex Security/GitHub: `codex-security-dashboard-refresh-2026-06-04T0405Z.json`
@@ -1003,7 +1003,7 @@
   31 tests, type-check passed, lint passed with existing warnings only, diff check
   passed, and GitNexus reported low risk with 0 affected processes.
 - Production deployment proof: clean `main` commit `9fed643` was deployed with
-  `vercel deploy --prod --yes`; deployment `dpl_CyfR2LA7vMLqR9sDMncgxbgVbcRj`
+  `vercel deploy --prod --yes`; deployment `DEPLOYMENT_ID_PLACEHOLDER`
   is `READY`, aliases include `archestimator.com` and
   `www.archestimator.com`, `https://www.archestimator.com/api/health`
   returned HTTP 200, and apex `/login` redirects to `www`.
@@ -1054,7 +1054,7 @@
   returns HTTP 200 from `https://www.archestimator.com/api/health`; and
   `vercel-production-readiness-cheap-refresh-2026-06-04T0347Z.json` shows
   `archestimator.com` / `www.archestimator.com` mapped to current production
-  deployment `dpl_CyfR2LA7vMLqR9sDMncgxbgVbcRj` with 19 rollback candidates but
+  deployment `DEPLOYMENT_ID_PLACEHOLDER` with 19 rollback candidates but
   no rollback drill.
 - Resend/support proof: `resend-readiness-cheap-refresh-2026-06-04T0342Z.json`
   confirms all Resend env names are present in Vercel production but local
@@ -1070,7 +1070,7 @@
 - Hosted auth proof:
   `hosted-google-allowed-browser-smoke-2026-06-04T0355Z.json` confirms the
   allowed owner Google session can access production profile settings as
-  `philipjonlewis@gmail.com`; `hosted-google-denied-revoked-browser-smoke-2026-06-04T1851Z.json`
+  `OWNER_EMAIL_PLACEHOLDER`; `hosted-google-denied-revoked-browser-smoke-2026-06-04T1851Z.json`
   later closes real alternate-account denied and revoked browser smoke, and
   `hosted-expired-stale-cookie-smoke-2026-06-04T1920Z.json` closes synthetic
   stale-cookie expired-session fail-closed route proof.
@@ -1093,9 +1093,9 @@
 - Primary artifact: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/provider-ops-mutation-pass-2cddb0e-2026-06-03.md`.
 - Supabase PITR was not enabled after the dashboard showed the 7-day add-on at `$100.00 / month`; the accepted pre-launch-MVP safety path is daily physical backup proof plus a fresh off-repo logical dump. Proof: `supabase-cheaper-backup-readiness-2cddb0e-2026-06-03.json`.
 - Linked Supabase migrations `20260601145000` through `20260603160000` were applied exactly and recorded in remote migration history without broad `db push`. Proof: `supabase-linked-migrations-applied-cheaper-path-2cddb0e-2026-06-03.json`.
-- Closed-beta allowlist now contains exactly `philipjonlewis@gmail.com` as the one active/invited email; allowed, missing, and transaction-local revoked RPC checks passed. Proof: `supabase-closed-beta-allowlist-2cddb0e-2026-06-03.json`.
-- Production deployment `dpl_Cxeq5ATpif6Yk1zn4FmNmnX7nzhT` is `READY`; `archestimator.com` and `www.archestimator.com` alias to it; `www` serves the beta app instead of the teaser; `/api/health` returns app health JSON; signed-out `/workshop` redirects to login. Proof: `vercel-hosted-http-smoke-cheaper-path-2cddb0e-2026-06-03.json`, `vercel-health-readiness-cheaper-path-2cddb0e-2026-06-03.json`, and `vercel-production-readiness-cheaper-path-2cddb0e-2026-06-03.json`.
-- Latest production redeploy proof on 2026-06-04T13:11Z records deployment `dpl_2X6FytZUnK5ZaNsszVN4W8Wh6bXm` Ready on both custom domains, live Resend webhook signature-verification reachability, signed-out `/workshop/projects` redirect proof, login Google/email-link entry, and owner Chrome allowed-session access to hosted `/workshop`. Proof: `vercel-production-resend-enabled-hosted-auth-2026-06-04T1311Z.json`.
+- Closed-beta allowlist now contains exactly `OWNER_EMAIL_PLACEHOLDER` as the one active/invited email; allowed, missing, and transaction-local revoked RPC checks passed. Proof: `supabase-closed-beta-allowlist-2cddb0e-2026-06-03.json`.
+- Production deployment `DEPLOYMENT_ID_PLACEHOLDER` is `READY`; `archestimator.com` and `www.archestimator.com` alias to it; `www` serves the beta app instead of the teaser; `/api/health` returns app health JSON; signed-out `/workshop` redirects to login. Proof: `vercel-hosted-http-smoke-cheaper-path-2cddb0e-2026-06-03.json`, `vercel-health-readiness-cheaper-path-2cddb0e-2026-06-03.json`, and `vercel-production-readiness-cheaper-path-2cddb0e-2026-06-03.json`.
+- Latest production redeploy proof on 2026-06-04T13:11Z records deployment `DEPLOYMENT_ID_PLACEHOLDER` Ready on both custom domains, live Resend webhook signature-verification reachability, signed-out `/workshop/projects` redirect proof, login Google/email-link entry, and owner Chrome allowed-session access to hosted `/workshop`. Proof: `vercel-production-resend-enabled-hosted-auth-2026-06-04T1311Z.json`.
 - Latest owner journey proof on 2026-06-04T13:28Z records the owner hosted path through project entry, estimate creation, estimate workspace render, and export preview. Proof: `hosted-owner-beta-journey-smoke-2026-06-04T1328Z.json`.
 - Still open before calling the proof packet fully green: native Excel/Numbers/LibreOffice workbook app proof if required beyond the owner-only beta, and bounce/complaint webhook reconciliation if the owner-only beta requires synthetic negative-email events. Project-specific unlink now has linked/local owner-session browser proof, but not separate hosted production unlink proof. Real downloaded workbook structural/Quick Look proof is captured in `real-downloaded-workbook-quicklook-2026-06-05T0150Z.json`. Fresh 2026-06-05 linked-readiness proof is current-pass via `supabase-linked-readiness-pass-2026-06-05T0033Z.json`, and fresh public-domain smoke is recorded in `production-public-smoke-2026-06-05T0025Z.json`. Real browser Google OAuth denied/revoked hosted smoke is closed by `hosted-google-denied-revoked-browser-smoke-2026-06-04T1851Z.json`; synthetic stale-cookie expired-session fail-closed proof is closed by `hosted-expired-stale-cookie-smoke-2026-06-04T1920Z.json`; synthetic secondary Google Sheets workbook compatibility proof is closed and real downloaded workbook structural/Quick Look proof is captured by `synthetic-google-sheets-workbook-compatibility-2026-06-04T1951Z.json`. Vercel rollback proof is closed by the 11:12Z rollback/promote drill; Resend provider delivery/webhook route proof is closed; owner hosted beta journey proof is closed; residual Codex Security history-risk is owner-accepted for the owner-only beta by the 14:14Z artifact; owner logout is closed by the 14:36Z artifact; shared-link self-invite/send/inbox proof is closed by the 15:32Z and 15:55Z artifacts; the 17:31Z artifact closes recipient clickthrough/open; and the 18:09Z artifact closes signed delivered-event webhook reconciliation for the real shared-link email.
 
@@ -1110,7 +1110,7 @@
 
 ### Local Access-Required Support Contact Slice
 
-- Scope: `/beta/access-required` now routes denied or revoked beta users to `support@archestimator.com` instead of a personal inbox, keeping the auth/onboarding support surface aligned with the public contact, legal, and Settings support copy.
+- Scope: `/beta/access-required` now routes denied or revoked beta users to `SUPPORT_INBOX_PLACEHOLDER` instead of a personal inbox, keeping the auth/onboarding support surface aligned with the public contact, legal, and Settings support copy.
 - Guardrail evidence: `bunx vitest run tests/vitest/beta-access-required-page.test.ts tests/vitest/auth-callback-route.test.ts tests/vitest/auth-entry-ui-contract.test.ts --maxWorkers=1` passed 3 files / 9 tests.
 - Launch meaning: this closes a local support-copy mismatch only. It does not prove hosted OAuth callbacks, allowlist behavior, email monitoring, or expired-link manual QA; those gates remain **NO-GO**.
 
@@ -1180,7 +1180,7 @@
 ### Provider State Refresh at b33f56d
 
 - Artifact: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/provider-state-refresh-b33f56d-2026-06-02.md`.
-- Vercel: latest `main` preview `archestimator-bk9xr4ea0-philipjonlewis-projects.vercel.app`, deployment `dpl_6psx8VnKmAgcU17jHk9xVSpavTi4`, commit `b33f56df19cc3d74540fb71369c3da1461ffb61b`, status Ready.
+- Vercel: latest `main` preview `VERCEL_DEPLOYMENT_URL_PLACEHOLDER`, deployment `DEPLOYMENT_ID_PLACEHOLDER`, commit `b33f56df19cc3d74540fb71369c3da1461ffb61b`, status Ready.
 - Health: `vercel curl` returns `{"ok":true,"service":"archestimator"}` for the latest preview and branch alias `/api/health`; plain public preview health still returns HTTP `401`.
 - Env/custom domains: `vercel env ls --non-interactive` still returns no env vars; `www.archestimator.com/api/health` and redirected `archestimator.com/api/health` still return HTTP `404`.
 - Supabase: `supabase migration list --linked` now succeeds and still shows launch migrations `20260601182522`, `20260601184343`, `20260602005649`, `20260602083000`, and `20260602084500` absent remotely.
@@ -1189,7 +1189,7 @@
 ### Provider State Refresh at d78686f
 
 - Artifact: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/provider-state-refresh-d78686f-2026-06-02.md`.
-- Vercel: latest `main` preview `archestimator-ll6yo0r97-philipjonlewis-projects.vercel.app`, deployment `dpl_BxmQY4ufymmGUxAEJyK9fyRcGvmh`, commit `d78686f259b07349220aefd9eb64f5a86c752456`, status Ready.
+- Vercel: latest `main` preview `VERCEL_DEPLOYMENT_URL_PLACEHOLDER`, deployment `DEPLOYMENT_ID_PLACEHOLDER`, commit `d78686f259b07349220aefd9eb64f5a86c752456`, status Ready.
 - Health: `vercel curl` returns `{"ok":true,"service":"archestimator"}` for the latest preview and branch alias `/api/health`; plain public preview and branch-alias health still return HTTP `401`.
 - Env/custom domains: `vercel env ls --non-interactive` still returns no env vars; `www.archestimator.com/api/health` and redirected `archestimator.com/api/health` still return HTTP `404`.
 - Supabase: CLI `2.98.2` is linked to project `Archestimator` / `ebxxqidacheyapmmzavr`; `supabase migration list --linked` succeeds and still shows launch migrations `20260601182522`, `20260601184343`, `20260602005649`, `20260602083000`, and `20260602084500` absent remotely.
@@ -1198,18 +1198,18 @@
 ### Provider State Refresh at 0b4628d
 
 - Artifact: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/provider-state-refresh-0b4628d-2026-06-02.md`.
-- Vercel: latest `main` preview `archestimator-44evue0nd-philipjonlewis-projects.vercel.app`, deployment `dpl_4nTom5BnUZMyeAPDx4ZPMEhcHpSp`, commit `0b4628d413e0c17725e7a092af2fdec17de5ee84`, status Ready.
+- Vercel: latest `main` preview `VERCEL_DEPLOYMENT_URL_PLACEHOLDER`, deployment `DEPLOYMENT_ID_PLACEHOLDER`, commit `0b4628d413e0c17725e7a092af2fdec17de5ee84`, status Ready.
 - Health: `vercel curl` returns `{"ok":true,"service":"archestimator"}` for the latest preview and branch alias `/api/health`; plain public preview and branch-alias health still return HTTP `401`.
-- Env/custom domains: `vercel env ls --non-interactive` still returns no env vars; `www.archestimator.com/api/health`, redirected `archestimator.com/api/health`, and `archestimator.vercel.app/api/health` still return HTTP `404` on production deployment `dpl_FwfHexBsB1xSHDqHqFwHSYpCYTVH`.
+- Env/custom domains: `vercel env ls --non-interactive` still returns no env vars; `www.archestimator.com/api/health`, redirected `archestimator.com/api/health`, and `archestimator.vercel.app/api/health` still return HTTP `404` on production deployment `DEPLOYMENT_ID_PLACEHOLDER`.
 - Supabase: CLI `2.98.2` is linked to project `Archestimator` / `ebxxqidacheyapmmzavr`; `supabase migration list --linked` succeeds and still shows launch migrations `20260601182522`, `20260601184343`, `20260602005649`, `20260602083000`, and `20260602084500` absent remotely; `bun run launch:supabase-readiness` fails on the linked temp-role pooler `ECIRCUITBREAKER` / `SUPABASE_DB_PASSWORD` path.
 - Launch meaning: this refresh confirms the latest pushed `main` commit has a Ready protected preview, but it does not close Vercel env/public/custom-domain/rollback, hosted auth, linked Supabase migration/RLS/RPC/storage, Resend, spreadsheet-app, legal, support, or hosted/manual E2E gates.
 
 ### Provider State Refresh at 4fdf0de
 
 - Artifact: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/provider-state-refresh-4fdf0de-2026-06-02.md`.
-- Vercel: latest `main` preview `archestimator-lr6t14h58-philipjonlewis-projects.vercel.app`, deployment `dpl_Fj4vLSMVm9iUqUFxcYe7fjsYmT4G`, status `READY`.
+- Vercel: latest `main` preview `VERCEL_DEPLOYMENT_URL_PLACEHOLDER`, deployment `DEPLOYMENT_ID_PLACEHOLDER`, status `READY`.
 - Health: `vercel curl` returns app health JSON for the latest preview and branch alias `/api/health`; plain public preview and branch-alias health still return HTTP `401`.
-- Env/custom domains: `vercel env ls --non-interactive` still returns no env vars; custom-domain `/api/health` still returns HTTP `404` for `www` and `archestimator.vercel.app`, with apex redirecting `307` to `www`; custom domains still alias to `archestimator-3ser9ty2w-philipjonlewis-projects.vercel.app`.
+- Env/custom domains: `vercel env ls --non-interactive` still returns no env vars; custom-domain `/api/health` still returns HTTP `404` for `www` and `archestimator.vercel.app`, with apex redirecting `307` to `www`; custom domains still alias to `VERCEL_DEPLOYMENT_URL_PLACEHOLDER`.
 - Supabase: `supabase migration list --linked` succeeds, the repeatable migration parser reads 71 rows, and all five launch migrations remain local-only / missing remotely. A later Supabase MCP read-only execution of `scripts/sql/linked-supabase-launch-readiness.sql` parsed all readiness categories and reported `linkedSupabaseLaunchReady: false` with 13 total checks / 13 failed rows.
 - Launch meaning: this refresh confirms current `HEAD` has a Ready protected preview, but it does not close Vercel env/public/custom-domain/rollback, hosted auth, linked Supabase migration/RLS/RPC/storage, Resend, spreadsheet-app, legal, support, or hosted/manual E2E gates.
 
@@ -1229,7 +1229,7 @@
 - Package command: `bun run launch:check-vercel-health`.
 - Proof artifacts: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/vercel-health-readiness-4fdf0de-2026-06-02.json`, `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/vercel-health-readiness-02f3a9c-2026-06-02.json`, `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/vercel-health-readiness-b6873b4-2026-06-02.json`, and `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/vercel-health-readiness-6685d78-2026-06-02.json`.
 - Scope: probes configured `/api/health` URLs and passes only when every URL returns HTTP `200` with JSON `{ "ok": true, "service": "archestimator" }`. Optional auth header/cookie inputs are request-only and never written to the report.
-- Current refreshes: `VERCEL_HEALTH_URLS='https://archestimator-git-main-philipjonlewis-projects.vercel.app/api/health,https://www.archestimator.com/api/health,https://archestimator.com/api/health,https://archestimator.vercel.app/api/health' OUTPUT_FILE=.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/vercel-health-readiness-4fdf0de-2026-06-02.json bun run launch:check-vercel-health`, later `VERCEL_HEALTH_URLS='https://archestimator-git-main-philipjonlewis-projects.vercel.app/api/health,https://www.archestimator.com/api/health,https://archestimator.com/api/health,https://archestimator.vercel.app/api/health' OUTPUT_FILE=.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/vercel-health-readiness-02f3a9c-2026-06-02.json bun run launch:check-vercel-health`, later `VERCEL_HEALTH_URLS='https://archestimator-git-main-philipjonlewis-projects.vercel.app/api/health,https://www.archestimator.com/api/health,https://archestimator.com/api/health,https://archestimator.vercel.app/api/health' OUTPUT_FILE=.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/vercel-health-readiness-b6873b4-2026-06-02.json bun run launch:check-vercel-health`, and latest `VERCEL_HEALTH_URLS='https://archestimator-git-main-philipjonlewis-projects.vercel.app/api/health,https://www.archestimator.com/api/health,https://archestimator.com/api/health,https://archestimator.vercel.app/api/health' OUTPUT_FILE=.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/vercel-health-readiness-6685d78-2026-06-02.json bun run launch:check-vercel-health` wrote sanitized JSON and exited `1`.
+- Current refreshes: `VERCEL_HEALTH_URLS='https://VERCEL_DEPLOYMENT_URL_PLACEHOLDER/api/health,https://www.archestimator.com/api/health,https://archestimator.com/api/health,https://archestimator.vercel.app/api/health' OUTPUT_FILE=.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/vercel-health-readiness-4fdf0de-2026-06-02.json bun run launch:check-vercel-health`, later `VERCEL_HEALTH_URLS='https://VERCEL_DEPLOYMENT_URL_PLACEHOLDER/api/health,https://www.archestimator.com/api/health,https://archestimator.com/api/health,https://archestimator.vercel.app/api/health' OUTPUT_FILE=.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/vercel-health-readiness-02f3a9c-2026-06-02.json bun run launch:check-vercel-health`, later `VERCEL_HEALTH_URLS='https://VERCEL_DEPLOYMENT_URL_PLACEHOLDER/api/health,https://www.archestimator.com/api/health,https://archestimator.com/api/health,https://archestimator.vercel.app/api/health' OUTPUT_FILE=.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/vercel-health-readiness-b6873b4-2026-06-02.json bun run launch:check-vercel-health`, and latest `VERCEL_HEALTH_URLS='https://VERCEL_DEPLOYMENT_URL_PLACEHOLDER/api/health,https://www.archestimator.com/api/health,https://archestimator.com/api/health,https://archestimator.vercel.app/api/health' OUTPUT_FILE=.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/vercel-health-readiness-6685d78-2026-06-02.json bun run launch:check-vercel-health` wrote sanitized JSON and exited `1`.
 - Result: repeatable public health refreshes report branch-alias public health HTTP `401`; `www.archestimator.com/api/health` and `archestimator.vercel.app/api/health` HTTP `404`; apex `archestimator.com/api/health` HTTP `307` to `www`; no URL returned the app health JSON; `vercelHealthReady: false`. The latest `6685d78` refresh again has zero ready URLs.
 - Launch meaning: this makes public/custom-domain health proof repeatable, but it does not prove Vercel env values, protected preview health through `vercel curl`, production promotion, rollback, hosted auth, or app behavior behind deployment protection. Public/custom-domain health remains **NO-GO**.
 
@@ -1239,8 +1239,8 @@
 - Package command: `bun run launch:check-vercel-production`.
 - Proof artifacts: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/vercel-production-readiness-4fdf0de-2026-06-02.json`, `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/vercel-production-readiness-9e253e7-2026-06-02.json`, `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/vercel-production-readiness-79ecf99-2026-06-02.json`, and `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/vercel-production-readiness-a537ae3-2026-06-02.json`.
 - Scope: parses sanitized `vercel inspect --format=json`, `vercel alias ls`, and optional `vercel ls` transcripts to check current deployment readiness, whether custom domains alias to that deployment, ready rollback-candidate availability, and explicit rollback-drill status.
-- Current refreshes: `VERCEL_INSPECT_TEXT="$(vercel inspect archestimator-lr6t14h58-philipjonlewis-projects.vercel.app --format=json --non-interactive 2>&1)" VERCEL_ALIAS_LIST_TEXT="$(vercel alias ls --non-interactive 2>&1)" VERCEL_DEPLOYMENT_LIST_TEXT="$(vercel ls --non-interactive 2>&1)" VERCEL_EXPECTED_CUSTOM_DOMAINS='archestimator.com,www.archestimator.com,archestimator.vercel.app' OUTPUT_FILE=.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/vercel-production-readiness-4fdf0de-2026-06-02.json bun run launch:check-vercel-production`, later `VERCEL_INSPECT_TEXT="$(vercel inspect archestimator-git-main-philipjonlewis-projects.vercel.app --format=json --non-interactive 2>&1)" VERCEL_ALIAS_LIST_TEXT="$(vercel alias ls --non-interactive 2>&1)" VERCEL_DEPLOYMENT_LIST_TEXT="$(vercel ls --non-interactive 2>&1)" VERCEL_EXPECTED_CUSTOM_DOMAINS='archestimator.com,www.archestimator.com,archestimator.vercel.app' OUTPUT_FILE=.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/vercel-production-readiness-9e253e7-2026-06-02.json bun run launch:check-vercel-production`, later `CURRENT_DEPLOYMENT="$(vercel ls --scope philipjonlewis-projects 2>/dev/null | grep -m1 -o 'https://[^ ]*vercel.app')" VERCEL_INSPECT_TEXT="$(vercel inspect "$CURRENT_DEPLOYMENT" --scope philipjonlewis-projects --json 2>&1)" VERCEL_ALIAS_LIST_TEXT="$(vercel alias ls --scope philipjonlewis-projects 2>&1)" VERCEL_DEPLOYMENT_LIST_TEXT="$(vercel ls --scope philipjonlewis-projects 2>&1)" VERCEL_EXPECTED_CUSTOM_DOMAINS='archestimator.com,www.archestimator.com,archestimator.vercel.app' OUTPUT_FILE=.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/vercel-production-readiness-79ecf99-2026-06-02.json bun run launch:check-vercel-production`, and latest `CURRENT_DEPLOYMENT="$(vercel ls --scope philipjonlewis-projects 2>/dev/null | grep -m1 -o 'https://[^ ]*vercel.app')" VERCEL_INSPECT_TEXT="$(vercel inspect "$CURRENT_DEPLOYMENT" --scope philipjonlewis-projects --json 2>&1)" VERCEL_ALIAS_LIST_TEXT="$(vercel alias ls --scope philipjonlewis-projects 2>&1)" VERCEL_DEPLOYMENT_LIST_TEXT="$(vercel ls --scope philipjonlewis-projects 2>&1)" VERCEL_EXPECTED_CUSTOM_DOMAINS='archestimator.com,www.archestimator.com,archestimator.vercel.app' OUTPUT_FILE=.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/vercel-production-readiness-a537ae3-2026-06-02.json bun run launch:check-vercel-production` wrote sanitized JSON and exited `1`.
-- Result: latest preview deployment `dpl_H3CBHKaBWCJqHVhiVe4e3cadQwyw` at `archestimator-9scmhyv5g-philipjonlewis-projects.vercel.app` is `READY`; `archestimator.com`, `www.archestimator.com`, and `archestimator.vercel.app` still alias to `archestimator-3ser9ty2w-philipjonlewis-projects.vercel.app`; 19 ready rollback candidates were found; rollback drill was not provided; `vercelProductionReady: false`.
+- Current refreshes: `VERCEL_INSPECT_TEXT="$(vercel inspect VERCEL_DEPLOYMENT_URL_PLACEHOLDER --format=json --non-interactive 2>&1)" VERCEL_ALIAS_LIST_TEXT="$(vercel alias ls --non-interactive 2>&1)" VERCEL_DEPLOYMENT_LIST_TEXT="$(vercel ls --non-interactive 2>&1)" VERCEL_EXPECTED_CUSTOM_DOMAINS='archestimator.com,www.archestimator.com,archestimator.vercel.app' OUTPUT_FILE=.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/vercel-production-readiness-4fdf0de-2026-06-02.json bun run launch:check-vercel-production`, later `VERCEL_INSPECT_TEXT="$(vercel inspect VERCEL_DEPLOYMENT_URL_PLACEHOLDER --format=json --non-interactive 2>&1)" VERCEL_ALIAS_LIST_TEXT="$(vercel alias ls --non-interactive 2>&1)" VERCEL_DEPLOYMENT_LIST_TEXT="$(vercel ls --non-interactive 2>&1)" VERCEL_EXPECTED_CUSTOM_DOMAINS='archestimator.com,www.archestimator.com,archestimator.vercel.app' OUTPUT_FILE=.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/vercel-production-readiness-9e253e7-2026-06-02.json bun run launch:check-vercel-production`, later `CURRENT_DEPLOYMENT="$(vercel ls --scope VERCEL_SCOPE_PLACEHOLDER 2>/dev/null | grep -m1 -o 'https://[^ ]*vercel.app')" VERCEL_INSPECT_TEXT="$(vercel inspect "$CURRENT_DEPLOYMENT" --scope VERCEL_SCOPE_PLACEHOLDER --json 2>&1)" VERCEL_ALIAS_LIST_TEXT="$(vercel alias ls --scope VERCEL_SCOPE_PLACEHOLDER 2>&1)" VERCEL_DEPLOYMENT_LIST_TEXT="$(vercel ls --scope VERCEL_SCOPE_PLACEHOLDER 2>&1)" VERCEL_EXPECTED_CUSTOM_DOMAINS='archestimator.com,www.archestimator.com,archestimator.vercel.app' OUTPUT_FILE=.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/vercel-production-readiness-79ecf99-2026-06-02.json bun run launch:check-vercel-production`, and latest `CURRENT_DEPLOYMENT="$(vercel ls --scope VERCEL_SCOPE_PLACEHOLDER 2>/dev/null | grep -m1 -o 'https://[^ ]*vercel.app')" VERCEL_INSPECT_TEXT="$(vercel inspect "$CURRENT_DEPLOYMENT" --scope VERCEL_SCOPE_PLACEHOLDER --json 2>&1)" VERCEL_ALIAS_LIST_TEXT="$(vercel alias ls --scope VERCEL_SCOPE_PLACEHOLDER 2>&1)" VERCEL_DEPLOYMENT_LIST_TEXT="$(vercel ls --scope VERCEL_SCOPE_PLACEHOLDER 2>&1)" VERCEL_EXPECTED_CUSTOM_DOMAINS='archestimator.com,www.archestimator.com,archestimator.vercel.app' OUTPUT_FILE=.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/vercel-production-readiness-a537ae3-2026-06-02.json bun run launch:check-vercel-production` wrote sanitized JSON and exited `1`.
+- Result: latest preview deployment `DEPLOYMENT_ID_PLACEHOLDER` at `VERCEL_DEPLOYMENT_URL_PLACEHOLDER` is `READY`; `archestimator.com`, `www.archestimator.com`, and `archestimator.vercel.app` still alias to `VERCEL_DEPLOYMENT_URL_PLACEHOLDER`; 19 ready rollback candidates were found; rollback drill was not provided; `vercelProductionReady: false`.
 - Historical launch meaning: this made custom-domain/rollback proof repeatable at the time, but it did not promote deployments, change aliases, run health checks, verify env values, exercise hosted auth, or perform a rollback. This older helper result is superseded for Vercel rollback by the 2026-06-04 11:12Z drill and green production-readiness artifact.
 
 ### Supabase Backup/PITR Readiness Helper
@@ -1293,7 +1293,7 @@
 ### Hosted Auth Env Fail-Closed Fix at 6cc9f03
 
 - Artifact: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/hosted-auth-env-fail-closed-fix-6cc9f03-2026-06-02.md`.
-- Hosted finding: latest observed preview `archestimator-lsv22sg4z-philipjonlewis-projects.vercel.app` / deployment `dpl_3T35FnYXNspPUP3QL43tCASC4CMF` was `READY` and `/api/health` passed through `vercel curl`, but protected `/workshop` returned HTTP `500`.
+- Hosted finding: latest observed preview `VERCEL_DEPLOYMENT_URL_PLACEHOLDER` / deployment `DEPLOYMENT_ID_PLACEHOLDER` was `READY` and `/api/health` passed through `vercel curl`, but protected `/workshop` returned HTTP `500`.
 - Root cause: `getCurrentUserContext()` created the Supabase server client before determining signed-out state; missing Vercel Supabase env caused `createSupabaseServerClient()` to throw.
 - Local fix: `src/lib/auth/session.ts` now checks for required Supabase server env before constructing the server client and returns `null` so `requireCurrentUserContext()` redirects to `/login` instead of surfacing a 500.
 - Verification: graph impact flagged high auth-session blast radius; `bunx vitest run tests/vitest/auth-session-closed-beta.test.ts tests/vitest/auth-callback-route.test.ts tests/vitest/auth-proxy.test.ts --maxWorkers=1` passed 3 files / 25 tests; `bun run type-check` passed; focused ESLint passed.
@@ -1302,7 +1302,7 @@
 ### Vercel Preview Deploy Blocked at c8e25e2
 
 - Artifact: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/vercel-preview-deploy-blocked-c8e25e2-2026-06-02.md`.
-- Scope: commit `c8e25e2ce63dd3004db8085480432ba847900e10` was pushed to `origin/main`, but `vercel ls --non-interactive` still showed the pre-fix `dpl_3T35FnYXNspPUP3QL43tCASC4CMF` preview as newest/branch-alias target during the polling window.
+- Scope: commit `c8e25e2ce63dd3004db8085480432ba847900e10` was pushed to `origin/main`, but `vercel ls --non-interactive` still showed the pre-fix `DEPLOYMENT_ID_PLACEHOLDER` preview as newest/branch-alias target during the polling window.
 - Clean deploy attempt: a detached clean worktree at `c8e25e2` was used to avoid unrelated dirty checkout files. The first CLI preview deploy hit Vercel's upload file-size limit; after a temporary deploy-only `.vercelignore` excluded non-runtime evidence/deck folders, the retry failed before deployment with `api-deployments-free-per-day`.
 - Launch meaning: the fail-closed auth fix is committed and pushed, but hosted `/workshop` proof remains blocked until Vercel can create a fresh `c8e25e2` or later deployment and `vercel curl <deployment>/workshop -I` proves it no longer returns HTTP `500`.
 
@@ -1316,7 +1316,7 @@
 ### Hosted Auth Proxy Env Fail-Closed Fix at 8e11d36
 
 - Artifact: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/hosted-auth-proxy-env-fail-closed-fix-8e11d36-2026-06-02.md`.
-- Hosted finding: preview `archestimator-r92lz7qug-philipjonlewis-projects.vercel.app` / deployment `dpl_8kYE4UfAiGCwSXoWp7648buPX4YL` was `READY` and `/api/health` passed through `vercel curl`, but both `HEAD /workshop` and `GET /workshop` returned HTTP `500`.
+- Hosted finding: preview `VERCEL_DEPLOYMENT_URL_PLACEHOLDER` / deployment `DEPLOYMENT_ID_PLACEHOLDER` was `READY` and `/api/health` passed through `vercel curl`, but both `HEAD /workshop` and `GET /workshop` returned HTTP `500`.
 - Root cause: `src/proxy.ts` constructed the Supabase SSR client with non-null asserted env values before it could redirect signed-out protected routes.
 - Local fix: proxy now checks for required Supabase env before calling `createServerClient()`; missing env redirects protected `/workshop` routes to `/login?next=...` and leaves `/login` renderable without constructing the Supabase client.
 - Verification: GitNexus impact for `Function:src/proxy.ts:proxy` reported low risk / zero upstream affected processes; focused auth proxy/session tests passed 2 files / 23 tests; `bun run type-check` and `bun run build` passed.
@@ -1325,15 +1325,15 @@
 ### Hosted Auth Proxy Env Postdeploy Recheck at b2a0a03
 
 - Artifact: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/hosted-auth-proxy-env-postdeploy-b2a0a03-2026-06-02.md`.
-- Vercel: preview `archestimator-opxqsyo4t-philipjonlewis-projects.vercel.app` reached `READY` after commit `b2a0a03`.
-- Health: `vercel curl https://archestimator-opxqsyo4t-philipjonlewis-projects.vercel.app/api/health` returned app health JSON with `"ok": true` and `"service": "archestimator"`.
-- Protected-route result: `vercel curl https://archestimator-opxqsyo4t-philipjonlewis-projects.vercel.app/workshop -I` returned HTTP `307` with `location: /login?next=%2Fworkshop`.
+- Vercel: preview `VERCEL_DEPLOYMENT_URL_PLACEHOLDER` reached `READY` after commit `b2a0a03`.
+- Health: `vercel curl https://VERCEL_DEPLOYMENT_URL_PLACEHOLDER/api/health` returned app health JSON with `"ok": true` and `"service": "archestimator"`.
+- Protected-route result: `vercel curl https://VERCEL_DEPLOYMENT_URL_PLACEHOLDER/workshop -I` returned HTTP `307` with `location: /login?next=%2Fworkshop`.
 - Launch meaning: this closes only the signed-out missing-env protected-route recheck that previously returned HTTP `500`. It does not prove hosted Google OAuth, allowed/denied/revoked/expired hosted sessions, callback URLs, linked allowlist data, Vercel env values, custom-domain health, rollback, first-run workspace, or hosted manual E2E.
 
 ### Hosted Export Route Auth-Blocked Probe at 231c27e
 
 - Artifact: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/hosted-export-route-auth-blocked-231c27e-2026-06-02.md`.
-- Vercel: preview `archestimator-41fhr533d-philipjonlewis-projects.vercel.app`, deployment `dpl_HUvjmre3YPya25GVDir18qHxmfSN`, commit `231c27e2b95291b8c9770e327344ba3809f03f9d`, status Ready.
+- Vercel: preview `VERCEL_DEPLOYMENT_URL_PLACEHOLDER`, deployment `DEPLOYMENT_ID_PLACEHOLDER`, commit `231c27e2b95291b8c9770e327344ba3809f03f9d`, status Ready.
 - Health: protected `/api/health` returned `{"ok":true,"service":"archestimator"}` through `vercel curl`.
 - Route map: the XLSX export route calls `getProjectEstimateTreeByEstimate(...)`, which resolves workspace context through `requireCurrentUserContext()`; `/api` is bypassed by proxy, so the auth boundary is inside the route's repository chain.
 - Probe result: anonymous/fake-ID `vercel curl` did not produce XLSX bytes. One raw probe surfaced a Next.js 404 not-found page, and a clean rerun returned zero captured response bytes after roughly 3 seconds.
@@ -1392,9 +1392,9 @@
 
 ### SUPPORT-001 Honest Contact Handoff Evidence
 
-- `src/components/landing/ContactForm.tsx` opens a structured `mailto:support@archestimator.com` draft containing name, email, organization, inquiry type, and message instead of simulating backend receipt.
+- `src/components/landing/ContactForm.tsx` opens a structured `mailto:SUPPORT_INBOX_PLACEHOLDER` draft containing name, email, organization, inquiry type, and message instead of simulating backend receipt.
 - The confirmation state says the support email draft was prepared and includes fallback instructions if the user's email app does not open.
-- `src/components/workshop/WorkshopPageShell.tsx` keeps the authenticated workshop footer one click from `support@archestimator.com` beta feedback.
+- `src/components/workshop/WorkshopPageShell.tsx` keeps the authenticated workshop footer one click from `SUPPORT_INBOX_PLACEHOLDER` beta feedback.
 - Focused verification: `bunx vitest run tests/vitest/contact-form-mailto.test.tsx tests/vitest/support-contact-readiness.test.ts tests/vitest/closed-beta-readiness-docs.test.ts --maxWorkers=1` passed 3 files / 15 tests.
 - Scope limit: this proves an honest local support handoff only. It does not prove inbox monitoring, form delivery, alert owner, or incident response.
 
@@ -1508,7 +1508,7 @@
 - `ComponentLibraryManager` sheet search now includes `pricingSource`, `pricingDate`, and `confidence`.
 - 2026-06-02 local parity refresh: component tree search now also matches component `brand`, `pricingSource`, `pricingDate`, and `confidence`, and shared supplier/brand tree filtering now searches the same component trust fields.
 - 2026-06-02 focused UI coverage now asserts both the component tree search and component sheet search find a component by `quote ledger` pricing source and `database brand` brand text while hiding non-matching component rows.
-- 2026-06-02 local seed-quality refresh: `supabase/seed.sql` replaces placeholder component-library supplier/pricing trust text with concrete demo supplier labels and dated supplier-canvas pricing sources for the Lewis Residence seed.
+- 2026-06-02 local seed-quality refresh: `supabase/seed.sql` replaces placeholder component-library supplier/pricing trust text with concrete demo supplier labels and dated supplier-canvas pricing sources for the DEMO_PROJECT_PLACEHOLDER seed.
 - 2026-06-02 local seed-quality refresh: `tests/vitest/demo-seed-readiness.test.ts` now rejects `Supplier quote required`, `editable allowance`, and `requires-quote-verification` in local seed trust fields.
 - Component sheet tabs now show a visible result count such as `3 of 3 components` or `1 of 3 components`.
 - Catalogue cards now show compact pricing trust fields without adding dependencies or changing the folder/tree model.
@@ -1572,7 +1572,7 @@
 
 ### BETA-FEEDBACK-001 In-App Feedback Link Evidence
 
-- `WorkshopPageShell` footer now shows a quiet `Send beta feedback` mailto link to `support@archestimator.com` for authenticated workshop users.
+- `WorkshopPageShell` footer now shows a quiet `Send beta feedback` mailto link to `SUPPORT_INBOX_PLACEHOLDER` for authenticated workshop users.
 - The link is intentionally lightweight and external-email based, matching the closed-beta plan recommendation to avoid building a custom feedback system before launch.
 - Focused red/green evidence: `bun run test:dom tests/vitest/workshop-reset.test.tsx` first failed on the missing `Send beta feedback` link, then passed 1 file / 3 tests after the shell footer update.
 - `bun run type-check` passed.
@@ -1692,7 +1692,7 @@
 
 ### DEMO-001 Local Demo Seed Evidence
 
-- `supabase/seed.sql` now seeds five estimate row items for the local `Archestimator Demo Workspace` / `Lewis Residence` / `Lewis Residence Baseline Estimate`.
+- `supabase/seed.sql` now seeds five estimate row items for the local `Archestimator Demo Workspace` / `DEMO_PROJECT_PLACEHOLDER` / `DEMO_PROJECT_PLACEHOLDER Baseline Estimate`.
 - Seed rows include manual `unlinked` rows, one `linked-clean` tile row tied to the demo library item, and one `detached` project-specific paint row with preserved `source_snapshot`.
 - `28-investor-incubator-demo-readiness-plan.md` now names exact local seed anchors, the linked row, the detached row, and a rehearsal checklist that keeps Ask Flip, billing, provider dashboards, and real customer data out of the demo.
 - `12-final-mvp-launch-gate.md`, `36-final-executive-launch-brief.md`, and `43-closed-beta-readiness-scorecard.md` now credit demo seed anchors while preserving no-go status until live rehearsal, screenshots, and fresh authorized workbook proof exist.
@@ -1779,10 +1779,10 @@
 ### Vercel Read-Only Provider Evidence
 
 - Artifact: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/vercel-read-only-cli-2026-06-02.md`.
-- Scope: linked Vercel project `philipjonlewis-projects/archestimator`, CLI/provider reads plus health requests only.
-- Project/link proof: `.vercel/project.json` points to `archestimator`; `vercel whoami` authenticated as `philipjonlewis`; `vercel project inspect archestimator --non-interactive` found a Next.js project with root `.` and Node.js `24.x`.
+- Scope: linked Vercel project `VERCEL_SCOPE_PLACEHOLDER/archestimator`, CLI/provider reads plus health requests only.
+- Project/link proof: `.vercel/project.json` points to `archestimator`; `vercel whoami` authenticated as `OWNER_HANDLE_PLACEHOLDER`; `vercel project inspect archestimator --non-interactive` found a Next.js project with root `.` and Node.js `24.x`.
 - Deployment proof: latest preview for commit `2e5b38d` reached `READY`; previous `db9b224` preview was also `READY`.
-- Env proof: `vercel env ls --non-interactive` returned `No Environment Variables found for philipjonlewis-projects/archestimator`.
+- Env proof: `vercel env ls --non-interactive` returned `No Environment Variables found for VERCEL_SCOPE_PLACEHOLDER/archestimator`.
 - Health proof: plain curl to the branch alias and ready preview returned Vercel `401 Authentication Required`; authenticated `vercel curl` returned `{"ok":true,"service":"archestimator"}` on the latest preview and branch alias.
 - Protection proof: Vercel reports SSO protection for `all_except_custom_domains`, Git fork protection enabled, and one env-var-backed automation bypass entry remaining after cleanup of the non-env bypass entry generated during this run.
 - Launch meaning: this is partial/blocked Vercel evidence. Preview deploy and protected health route are proven, but env, production/custom-domain behavior, public monitoring path, hosted auth smoke, and rollback proof remain **NO-GO** rows.
@@ -1797,7 +1797,7 @@
 ### Provider State Refresh Evidence
 
 - Artifact: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/provider-state-refresh-2026-06-02.md`.
-- Vercel refresh: `vercel env ls --non-interactive` still returned `No Environment Variables found`; latest preview `https://archestimator-j29iumqi0-philipjonlewis-projects.vercel.app` is `Ready`; `vercel inspect` reported deployment id `dpl_3UUiMA7Tc6ubJSgckDKBdjGMmnSp`; `vercel curl` to `/api/health` returned `{"ok":true,"service":"archestimator"}`; plain curl returned HTTP `401`.
+- Vercel refresh: `vercel env ls --non-interactive` still returned `No Environment Variables found`; latest preview `https://VERCEL_DEPLOYMENT_URL_PLACEHOLDER` is `Ready`; `vercel inspect` reported deployment id `DEPLOYMENT_ID_PLACEHOLDER`; `vercel curl` to `/api/health` returned `{"ok":true,"service":"archestimator"}`; plain curl returned HTTP `401`.
 - Supabase refresh: linked project remains `Archestimator` / `ebxxqidacheyapmmzavr`; this earlier refresh showed `20260601182522_closed_beta_allowed_emails` and `20260601184343_unlink_estimate_row_items` as local-only. The later Supabase linked readiness refresh below supersedes this with a broader five-migration absence check.
 - Local env refresh: current shell printed no matching `RESEND_`, closed-beta, AI, dev-auth, or Supabase env variables.
 - Launch meaning: this refresh confirms the previous provider blockers are still current. Hosted auth, env-backed Supabase/Resend behavior, production/custom-domain health, rollback, backup/PITR, linked allowlist, and linked unlink proof remain **NO-GO** rows.
@@ -1834,19 +1834,19 @@
 - Superseded artifacts: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/vercel-current-head-read-only-165e4a3-2026-06-02.md` and `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/vercel-current-head-read-only-567f3c5-2026-06-02.md`.
 - Current artifact: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/vercel-current-head-read-only-638f681-2026-06-02.md`.
 - Runtime-proof policy: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/runtime-proof-anchor-policy-2026-06-02.md` records that later docs/evidence-only commits do not invalidate this app-runtime proof unless app/runtime inputs change.
-- Latest app-runtime preview: `archestimator-4s6wzqt08-philipjonlewis-projects.vercel.app`, commit `638f6813017fd3460c35fcf5917b3049ff7403cf`, deployment id `dpl_8cpgQgEtrAgo6P5gX1fn3LwBJzdS`, target `preview`, status `Ready`.
-- Current branch alias: `archestimator-git-main-philipjonlewis-projects.vercel.app` maps to the current deployment and `vercel curl` returns `{"ok":true,"service":"archestimator"}` for `/api/health`.
-- Env proof: `vercel env ls --non-interactive` still returned `No Environment Variables found for philipjonlewis-projects/archestimator`.
+- Latest app-runtime preview: `VERCEL_DEPLOYMENT_URL_PLACEHOLDER`, commit `638f6813017fd3460c35fcf5917b3049ff7403cf`, deployment id `DEPLOYMENT_ID_PLACEHOLDER`, target `preview`, status `Ready`.
+- Current branch alias: `VERCEL_DEPLOYMENT_URL_PLACEHOLDER` maps to the current deployment and `vercel curl` returns `{"ok":true,"service":"archestimator"}` for `/api/health`.
+- Env proof: `vercel env ls --non-interactive` still returned `No Environment Variables found for VERCEL_SCOPE_PLACEHOLDER/archestimator`.
 - Public preview proof: plain `curl -I` to the preview and `git-main` health routes still returns HTTP `401` due to Vercel authentication.
-- Custom-domain proof: `vercel alias ls --non-interactive` still maps `archestimator.com`, `www.archestimator.com`, and `archestimator.vercel.app` to older production deployment `dpl_FwfHexBsB1xSHDqHqFwHSYpCYTVH`; `/api/health` on those domains returns `404`.
+- Custom-domain proof: `vercel alias ls --non-interactive` still maps `archestimator.com`, `www.archestimator.com`, and `archestimator.vercel.app` to older production deployment `DEPLOYMENT_ID_PLACEHOLDER`; `/api/health` on those domains returns `404`.
 - Scope limit: this improves current-preview proof only. Hosted env/auth, production/custom-domain app health, rollback rehearsal, linked Supabase launch migrations, and hosted manual E2E remain **NO-GO**.
 
 ### Vercel Custom Domain Readiness Evidence
 
 - Artifact: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/vercel-custom-domain-readiness-blocked-2026-06-02.md`.
 - Domain proof: `vercel domains ls --non-interactive` found `archestimator.com`; DNS returns apex `A` `216.198.79.1` and `www` CNAME `bb7ab57cfa50fcad.vercel-dns-017.com`.
-- Alias proof: `vercel alias ls --non-interactive` maps `archestimator.com`, `www.archestimator.com`, and `archestimator.vercel.app` to `archestimator-3ser9ty2w-philipjonlewis-projects.vercel.app`.
-- Production deployment proof: `vercel inspect archestimator-3ser9ty2w-philipjonlewis-projects.vercel.app --non-interactive` reported production deployment id `dpl_FwfHexBsB1xSHDqHqFwHSYpCYTVH`, status `Ready`, created `Sat May 30 2026 21:09:26 GMT+0800`.
+- Alias proof: `vercel alias ls --non-interactive` maps `archestimator.com`, `www.archestimator.com`, and `archestimator.vercel.app` to `VERCEL_DEPLOYMENT_URL_PLACEHOLDER`.
+- Production deployment proof: `vercel inspect VERCEL_DEPLOYMENT_URL_PLACEHOLDER --non-interactive` reported production deployment id `DEPLOYMENT_ID_PLACEHOLDER`, status `Ready`, created `Sat May 30 2026 21:09:26 GMT+0800`.
 - Public route proof: `https://archestimator.com/api/health` redirects to `www`; `https://www.archestimator.com/api/health` and `https://archestimator.vercel.app/api/health` return HTTP `404`; `https://www.archestimator.com/` returns HTTP `200` with metadata `Archestimator — Coming Soon`.
 - Launch meaning: custom domains are attached and resolving, but they serve the older coming-soon production deployment, not the current closed-beta app deployment with `/api/health`. Production/custom-domain health remains **NO-GO**.
 
@@ -1943,16 +1943,16 @@
 - Screenshot/JSON: `template-insert-local-smoke-2026-06-02.png` and `template-insert-local-smoke-2026-06-02.json`.
 - Command: `ARCHESTIMATOR_E2E_TEMPLATE_INSERT_SMOKE=1 ARCHESTIMATOR_DEV_AUTH_BYPASS=1 ARCHESTIMATOR_DEV_AUTH_ADMIN_DB=1 ARCHESTIMATOR_TEMPLATE_INSERT_SMOKE_DIR=.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof PLAYWRIGHT_PORT=3039 bun run test:e2e e2e/workshop-template-insert-smoke.spec.ts --project=chromium`.
 - Result: pass, 1 Playwright test in 46.1s.
-- Covered behavior: created a throwaway user-owned estimate under Lewis Residence, opened the protected estimate workspace through local dev auth, selected the right-sidebar `Templates` tab, inserted `Condo Fit-Out Starter` into `Second Floor`, verified linked Supabase counts changed from 51 nodes / 0 rows to 56 nodes / 8 rows, verified one `template_inserted` event for the target group, then deleted the throwaway estimate.
+- Covered behavior: created a throwaway user-owned estimate under DEMO_PROJECT_PLACEHOLDER, opened the protected estimate workspace through local dev auth, selected the right-sidebar `Templates` tab, inserted `Condo Fit-Out Starter` into `Second Floor`, verified linked Supabase counts changed from 51 nodes / 0 rows to 56 nodes / 8 rows, verified one `template_inserted` event for the target group, then deleted the throwaway estimate.
 - Cleanup proof: post-run residue check found no `E2E Template Insert%` estimates.
 - Scope limit: this is local dev-auth plus linked-Supabase fixture proof. It does not prove hosted auth, production Vercel, RLS allow/deny, provider dashboards, or project-specific unlink. Closed beta remains **NO-GO**.
 
 ### Support/Feedback Local Surface Evidence
 
 - Artifact note: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/support-feedback-local-surface-2026-06-02.md`.
-- Public contact route: `/contact` source renders `Direct Support`, `support@archestimator.com`, and privacy copy for quote workflow support and access inquiries.
+- Public contact route: `/contact` source renders `Direct Support`, `SUPPORT_INBOX_PLACEHOLDER`, and privacy copy for quote workflow support and access inquiries.
 - Workshop feedback path: `WorkshopPageShell` renders `Send beta feedback`.
-- Legal/deletion copy: `/terms` and `/privacy` both point support, access, beta feedback, and data deletion requests to `support@archestimator.com`.
+- Legal/deletion copy: `/terms` and `/privacy` both point support, access, beta feedback, and data deletion requests to `SUPPORT_INBOX_PLACEHOLDER`.
 - Test coverage: `tests/vitest/support-contact-readiness.test.ts` guards those source contracts, and `tests/vitest/workshop-reset.test.tsx` already renders the workshop feedback link.
 - Launch meaning: this proves a local visible support/feedback surface, not monitored inbox/table review, uptime/error alerts, or incident ownership. Support/monitoring remains a **NO-GO** row until manual/provider proof exists.
 
@@ -1960,7 +1960,7 @@
 
 - Artifact note: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/beta-feedback-in-app-local-2026-06-02.md`.
 - Local schema/action/UI: `20260602083000_beta_feedback_submissions.sql` adds an insert-only authenticated feedback table, `/workshop/feedback` renders a protected feedback form, and `submitBetaFeedback()` persists validated type/severity/message/page/project context when the table exists.
-- Fallback behavior: persistence failure does not fake success; the feedback page shows an email fallback to `support@archestimator.com`.
+- Fallback behavior: persistence failure does not fake success; the feedback page shows an email fallback to `SUPPORT_INBOX_PLACEHOLDER`.
 - Focused evidence: `bunx vitest run tests/vitest/beta-feedback.test.ts tests/vitest/support-contact-readiness.test.ts tests/vitest/workshop-reset.test.tsx --maxWorkers=1` passed 3 files / 12 tests.
 - Launch meaning: this proves local in-app feedback code and RLS intent only. Linked Supabase migration apply, hosted browser smoke, monitored review workflow, alert ownership, and incident escalation remain **NO-GO** evidence gaps.
 
@@ -1977,7 +1977,7 @@
 - Artifact note: `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/settings-hub-local-2026-06-02.md`.
 - Local source proof: `/workshop/settings` is now a protected hub instead of an immediate profile redirect.
 - Covered links: Profile, Workspace, Beta support/legal/data request paths, Beta users, and Beta feedback cards are discoverable from one Settings entry.
-- 2026-06-02 local refresh: non-admin beta users now see Settings cards for `/workshop/feedback`, `/terms`, and `support@archestimator.com` data request copy without needing platform-admin access.
+- 2026-06-02 local refresh: non-admin beta users now see Settings cards for `/workshop/feedback`, `/terms`, and `SUPPORT_INBOX_PLACEHOLDER` data request copy without needing platform-admin access.
 - Focused evidence: `bunx vitest run tests/vitest/auth-settings-ui-contract.test.ts tests/vitest/beta-feedback.test.ts --maxWorkers=1` passed 2 files / 12 tests.
 - Role boundary: platform-operation cards render only for `ceo` or `admin` roles.
 - Launch meaning: this improves local support/legal discoverability only. Hosted platform-admin smoke, linked beta migrations, monitored feedback operations, inbox ownership, legal sign-off, and owner launch sign-off remain open.
@@ -2004,7 +2004,7 @@
 - Command: `ARCHESTIMATOR_E2E_UNLINK_SMOKE=1 ARCHESTIMATOR_DEV_AUTH_BYPASS=1 ARCHESTIMATOR_DEV_AUTH_ADMIN_DB=1 ARCHESTIMATOR_UNLINK_SMOKE_DIR=.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof PLAYWRIGHT_PORT=3040 bun run test:e2e e2e/workshop-project-specific-unlink-smoke.spec.ts --project=chromium`.
 - Result: blocked/fail at the linked detach step.
 - Blocking error: linked Supabase returned `PGRST202` because `public.unlink_estimate_row_item_from_library_with_history(acting_user_id, correlation_id, expected_row_revision, reason, target_estimate_id, target_project_id, target_row_id)` is absent from the schema cache.
-- Observed state: the throwaway row remained `linked-clean`, `row_revision=1`, and `source_library_item_id='44444444-4444-4444-8444-444444444441'`.
+- Observed state: the throwaway row remained `linked-clean`, `row_revision=1`, and `source_library_item_id='UUID_PLACEHOLDER'`.
 - Cleanup proof: post-run residue check found no `E2E Project Specific%` estimates.
 - Scope limit: this is negative linked-provider evidence. The local unlink implementation remains code/test covered, but linked/manual unlink proof cannot pass until backup/PITR and linked migration/RPC proof are resolved. Closed beta remains **NO-GO**.
 
@@ -2175,7 +2175,7 @@ The workbook plan incorporates provided bid/quotation patterns:
 - Vercel env proof: `vercel env ls` shows encrypted Production and Preview `(main)` entries for Supabase public/server keys, site/app URLs, closed-beta and invite flags, publication secrets, AI-off flags, Resend API/from/reply-to, and `RESEND_WEBHOOK_SECRET`.
 - Namecheap UI proof: Host Records show Vercel A/CNAME, apex forwarding SPF, apex `_dmarc`, Resend DKIM at `resend._domainkey.contact`, and Resend SPF at `send.contact`; Mail Settings remains `Email Forwarding`.
 - DNS proof: `dig +short TXT send.contact.archestimator.com` returns `v=spf1 include:amazonses.com ~all`; `dig +short TXT resend._domainkey.contact.archestimator.com` returns the DKIM public key; `dig +short TXT _dmarc.archestimator.com` returns `v=DMARC1; p=none;`; `dig +short MX archestimator.com` returns the five registrar email-forwarding MX hosts.
-- Resend blocker: `dig +short MX send.contact.archestimator.com` returns no MX answer. The missing MX was not added because the visible Namecheap Host Records picker did not expose MX/MXE while Mail Settings stayed on `Email Forwarding`, and switching Mail Settings to `Custom MX` would risk interrupting `support@archestimator.com` forwarding.
+- Resend blocker: `dig +short MX send.contact.archestimator.com` returns no MX answer. The missing MX was not added because the visible Namecheap Host Records picker did not expose MX/MXE while Mail Settings stayed on `Email Forwarding`, and switching Mail Settings to `Custom MX` would risk interrupting `SUPPORT_INBOX_PLACEHOLDER` forwarding.
 - Cheap-path decision: leave support forwarding intact; do not buy add-ons or switch paid DNS/mail services without explicit approval. Safe next path is Namecheap support confirmation for subdomain MX, a deliberate DNS-provider migration, or a deliberate support-mail migration.
 
 ## Manual QA Still Required

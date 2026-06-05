@@ -55,24 +55,24 @@ Archestimator targets Vercel for hosting (Next.js 16, Bun runtime). No Vercel pr
 
 | Item | Status | Evidence Required | Owner | Target Phase |
 |---|---|---|---|---|
-| Production URL configured | `LEFT TO DO` | Domain registered, DNS configured, Vercel project linked | Philip | Beta |
-| Staging URL configured | `LEFT TO DO` | Separate Vercel project or preview branch, staging subdomain | Philip | Beta |
-| Preview URL policy | `LEFT TO DO` | Documented policy: which branches get preview deploys, whether previews are public or protected | Philip | Beta |
-| Preview deployment protection (Vercel auth) | `LEFT TO DO` | Vercel Authentication configured on preview deployments | Philip | Beta |
-| Environment variable inventory (all env vars documented) | `PARTIAL` | Complete per-environment env var map (see Section C) — local is known, staging/production values missing | Philip | Beta |
-| Secret rotation procedure | `LEFT TO DO` | Documented procedure for rotating SUPABASE_SERVICE_ROLE_KEY, RESEND_API_KEY, DEEPSEEK_API_KEY, and publication secrets without downtime | Philip | Production |
-| Build command verified | `IMPLEMENTED / NEEDS EVIDENCE` | `bun run build` succeeds in CI; must be verified on Vercel's Bun runtime | Philip | Beta |
-| Runtime compatibility (Next.js 16 on Vercel) | `UNKNOWN` | Next.js 16.2.6 on Vercel with Bun runtime must be confirmed — Vercel's Bun support is newer and less battle-tested than Node.js | Philip | Beta |
-| Edge/runtime assumptions | `PARTIAL` | `src/proxy.ts` (middleware) runs at the Edge; server actions and API routes use Node.js runtime — this split must be confirmed compatible with Vercel's Bun offering | Philip | Beta |
-| Branch/deploy policy | `LEFT TO DO` | Documented policy: which branches deploy where, whether `main` auto-deploys to production | Philip | Beta |
-| Rollback procedure documented | `LEFT TO DO` | Step-by-step Vercel rollback procedure, including database migration rollback plan if needed | Philip | Beta |
-| Deployment approval rule (no deploy without Philip) | `DECIDED / PHILIP ONLY` | Vercel deployment protection or GitHub branch protection rules to enforce Philip-approval gate | Philip | Beta |
-| Domain/DNS readiness | `LEFT TO DO` | Domain purchased, DNS records configured (A/AAAA/CNAME for Vercel, MX/SPF/DKIM/DMARC for Resend) | Philip | Beta |
-| HTTPS/certificate readiness | `LEFT TO DO` | Vercel auto-provisions SSL; must verify after domain linking | Philip | Beta |
-| Cache/header behavior | `PARTIAL` | Cache-Control headers on static assets and API routes; CDN cache policy for public vs authenticated pages | Philip | Beta |
-| CSP/report-only vs strict CSP plan | `PARTIAL` | Current: Report-Only on public pages, enforced on /share/*, none on /workshop/*. Plan: strict CSP on workshop blocked by `unsafe-inline`/`unsafe-eval` dependencies (react-complex-tree, @firecms/neat) | Philip | Production |
-| Release tagging/versioning | `LEFT TO DO` | Git tag strategy, changelog generation, version number scheme | Philip | Beta |
-| Resend domain verification (SPF/DKIM/DMARC) | `LEFT TO DO` | DNS TXT records for SPF, DKIM CNAME records, DMARC policy published | Philip | Beta |
+| Production URL configured | `LEFT TO DO` | Domain registered, DNS configured, Vercel project linked | OWNER_NAME_PLACEHOLDER | Beta |
+| Staging URL configured | `LEFT TO DO` | Separate Vercel project or preview branch, staging subdomain | OWNER_NAME_PLACEHOLDER | Beta |
+| Preview URL policy | `LEFT TO DO` | Documented policy: which branches get preview deploys, whether previews are public or protected | OWNER_NAME_PLACEHOLDER | Beta |
+| Preview deployment protection (Vercel auth) | `LEFT TO DO` | Vercel Authentication configured on preview deployments | OWNER_NAME_PLACEHOLDER | Beta |
+| Environment variable inventory (all env vars documented) | `PARTIAL` | Complete per-environment env var map (see Section C) — local is known, staging/production values missing | OWNER_NAME_PLACEHOLDER | Beta |
+| Secret rotation procedure | `LEFT TO DO` | Documented procedure for rotating SUPABASE_SERVICE_ROLE_KEY, RESEND_API_KEY, DEEPSEEK_API_KEY, and publication secrets without downtime | OWNER_NAME_PLACEHOLDER | Production |
+| Build command verified | `IMPLEMENTED / NEEDS EVIDENCE` | `bun run build` succeeds in CI; must be verified on Vercel's Bun runtime | OWNER_NAME_PLACEHOLDER | Beta |
+| Runtime compatibility (Next.js 16 on Vercel) | `UNKNOWN` | Next.js 16.2.6 on Vercel with Bun runtime must be confirmed — Vercel's Bun support is newer and less battle-tested than Node.js | OWNER_NAME_PLACEHOLDER | Beta |
+| Edge/runtime assumptions | `PARTIAL` | `src/proxy.ts` (middleware) runs at the Edge; server actions and API routes use Node.js runtime — this split must be confirmed compatible with Vercel's Bun offering | OWNER_NAME_PLACEHOLDER | Beta |
+| Branch/deploy policy | `LEFT TO DO` | Documented policy: which branches deploy where, whether `main` auto-deploys to production | OWNER_NAME_PLACEHOLDER | Beta |
+| Rollback procedure documented | `LEFT TO DO` | Step-by-step Vercel rollback procedure, including database migration rollback plan if needed | OWNER_NAME_PLACEHOLDER | Beta |
+| Deployment approval rule (no deploy without Philip) | `DECIDED / PHILIP ONLY` | Vercel deployment protection or GitHub branch protection rules to enforce Philip-approval gate | OWNER_NAME_PLACEHOLDER | Beta |
+| Domain/DNS readiness | `LEFT TO DO` | Domain purchased, DNS records configured (A/AAAA/CNAME for Vercel, MX/SPF/DKIM/DMARC for Resend) | OWNER_NAME_PLACEHOLDER | Beta |
+| HTTPS/certificate readiness | `LEFT TO DO` | Vercel auto-provisions SSL; must verify after domain linking | OWNER_NAME_PLACEHOLDER | Beta |
+| Cache/header behavior | `PARTIAL` | Cache-Control headers on static assets and API routes; CDN cache policy for public vs authenticated pages | OWNER_NAME_PLACEHOLDER | Beta |
+| CSP/report-only vs strict CSP plan | `PARTIAL` | Current: Report-Only on public pages, enforced on /share/*, none on /workshop/*. Plan: strict CSP on workshop blocked by `unsafe-inline`/`unsafe-eval` dependencies (react-complex-tree, @firecms/neat) | OWNER_NAME_PLACEHOLDER | Production |
+| Release tagging/versioning | `LEFT TO DO` | Git tag strategy, changelog generation, version number scheme | OWNER_NAME_PLACEHOLDER | Beta |
+| Resend domain verification (SPF/DKIM/DMARC) | `LEFT TO DO` | DNS TXT records for SPF, DKIM CNAME records, DMARC policy published | OWNER_NAME_PLACEHOLDER | Beta |
 
 ### Key findings
 
@@ -110,7 +110,7 @@ All variables referenced in code or configuration, grouped by category. Values a
 | Variable | Purpose | Local | Staging | Production |
 |---|---|---|---|---|
 | `RESEND_API_KEY` | Resend API key for transactional email delivery | Present | Missing | Missing |
-| `RESEND_FROM` | Optional sender override (defaults to `Archestimator <no-reply@archestimator.com>`) | Absent (uses default) | Missing | Must be verified domain |
+| `RESEND_FROM` | Optional sender override (defaults to `Archestimator <EMAIL_PLACEHOLDER>`) | Absent (uses default) | Missing | Must be verified domain |
 
 ### AI (DeepSeek)
 

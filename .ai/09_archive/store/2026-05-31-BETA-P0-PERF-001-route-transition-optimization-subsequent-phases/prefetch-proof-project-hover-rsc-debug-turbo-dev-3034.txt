@@ -1,3 +1,3 @@
-projectHref /workshop/projects/2fd7ae61-e60e-4a2d-a3d3-e33ab65999f1 box { x: 295.171875, y: 566, width: 54.828125, height: 28 }
+projectHref /workshop/projects/UUID_PLACEHOLDER box { x: 295.171875, y: 566, width: 54.828125, height: 28 }
 allRequests []
 resources []

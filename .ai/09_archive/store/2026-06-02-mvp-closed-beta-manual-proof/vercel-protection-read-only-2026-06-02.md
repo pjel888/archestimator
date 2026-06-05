@@ -7,7 +7,7 @@ Status: Partial/blocked. Deployment protection is enabled, and one env-var-backe
 - Repository: `/Users/philiplewis/archestimator`
 - Local/remote head at capture time: `c93ae7a99096`
 - Vercel CLI: `54.6.1`
-- Vercel project: `philipjonlewis-projects/archestimator`
+- Vercel project: `VERCEL_SCOPE_PLACEHOLDER/archestimator`
 - Provider posture: read-only. No deploy, promote, alias, env, rollback, bypass create/remove, or protection mutation was run.
 
 ## Command
@@ -20,7 +20,7 @@ vercel project protection archestimator --format json --non-interactive
 
 ```json
 {
-  "projectId": "prj_QTjX1WrMb7b0ZxmMIRAL96ILRY9E",
+  "projectId": "VERCEL_PROJECT_ID_PLACEHOLDER",
   "name": "archestimator",
   "ssoProtection": {
     "deploymentType": "all_except_custom_domains"

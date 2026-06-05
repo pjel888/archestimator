@@ -4,7 +4,7 @@
 
 Title: Closed beta access is invite-only
 
-Body: Archestimator is currently available to a small group of invited beta testers. Sign in with the Google account Philip approved for this beta.
+Body: Archestimator is currently available to a small group of invited beta testers. Sign in with the Google account OWNER_NAME_PLACEHOLDER approved for this beta.
 
 Actions:
 
@@ -15,7 +15,7 @@ Actions:
 
 Title: Closed beta access required
 
-Body: This Google account is not on the Archestimator closed beta allowlist. If you expected access, contact Philip and include the Google email you used to sign in.
+Body: This Google account is not on the Archestimator closed beta allowlist. If you expected access, contact OWNER_NAME_PLACEHOLDER and include the Google email you used to sign in.
 
 Actions:
 
@@ -26,7 +26,7 @@ Actions:
 
 Title: Access request received
 
-Body: Archestimator is invite-only during closed beta. Philip will confirm access before your account can enter the workspace.
+Body: Archestimator is invite-only during closed beta. OWNER_NAME_PLACEHOLDER will confirm access before your account can enter the workspace.
 
 ## Onboarding Welcome Copy
 
@@ -34,7 +34,7 @@ Welcome to the Archestimator closed beta. This build is focused on validating re
 
 ## Feedback Request Copy
 
-Help improve the beta. Tell Philip what worked, what blocked you, and what would make the estimating workflow more useful on a real project.
+Help improve the beta. Tell OWNER_NAME_PLACEHOLDER what worked, what blocked you, and what would make the estimating workflow more useful on a real project.
 
 ## Pricing Page Replacement Copy
 
@@ -76,7 +76,7 @@ Actions:
 - Beta may contain defects.
 - Users should avoid entering highly sensitive client data unless they accept beta risk.
 - Feedback is expected.
-- Philip may contact users for follow-up.
+- OWNER_NAME_PLACEHOLDER may contact users for follow-up.
 - No payment is collected.
 
 ## Acceptable Use Policy Outline
@@ -100,11 +100,11 @@ Closed beta access is free and invite-only. No checkout, subscription, paid plan
 
 ## Data Deletion Request Copy
 
-To request deletion of beta account or workspace data, contact Philip at the listed support email with the Google email used for beta access.
+To request deletion of beta account or workspace data, contact OWNER_NAME_PLACEHOLDER at the listed support email with the Google email used for beta access.
 
 ## Support/Contact Copy
 
-For access issues, export problems, data concerns, or beta feedback, contact Philip at `support@archestimator.com` or the configured beta feedback form.
+For access issues, export problems, data concerns, or beta feedback, contact OWNER_NAME_PLACEHOLDER at `SUPPORT_INBOX_PLACEHOLDER` or the configured beta feedback form.
 
 ## Investor Demo Disclaimer
 
@@ -112,6 +112,6 @@ Investor and incubator access is provided for product review during closed beta.
 
 ## Required Legal Review Notes
 
-- Philip should review beta terms and privacy copy with counsel before inviting external testers.
+- OWNER_NAME_PLACEHOLDER should review beta terms and privacy copy with counsel before inviting external testers.
 - Paid SaaS billing terms should not be published as active beta terms.
 - If analytics, external forms, Resend, or file storage are used, privacy copy must name those processors accurately.

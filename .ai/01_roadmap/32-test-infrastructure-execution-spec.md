@@ -84,10 +84,10 @@ ARCHESTIMATOR_TEST_WORKSPACE_PREFIX=ae_test_
 ### Test Accounts:
 
 Create dedicated test accounts in staging:
-- `test-workspace-a@archestimator-test.local` — Workspace A owner
-- `test-workspace-b@archestimator-test.local` — Workspace B owner
-- `test-collaborator@archestimator-test.local` — Invited collaborator
-- `test-readonly@archestimator-test.local` — Read-only access
+- `EMAIL_PLACEHOLDER` — Workspace A owner
+- `EMAIL_PLACEHOLDER` — Workspace B owner
+- `EMAIL_PLACEHOLDER` — Invited collaborator
+- `EMAIL_PLACEHOLDER` — Read-only access
 
 Do NOT use real user accounts for testing.
 
@@ -345,7 +345,7 @@ export async function cleanupTestData(supabase: SupabaseClient, workspaceId: str
 2. **Setup must create two independent users/workspaces/projects/estimates** — one for Workspace A, one for Workspace B — to exercise cross-tenant RLS boundaries.
 3. **Teardown must remove all test-created rows and storage objects.** Delete in reverse dependency order (leaf tables first, then parents).
 4. **Tests must fail closed if teardown fails** — log the failure, mark the test suite as incomplete, do NOT silently pass.
-5. **Tests must never use Philip's real workspace** as a test target. All test data is isolated to dedicated staging test accounts.
+5. **Tests must never use the owner's real workspace** as a test target. All test data is isolated to dedicated staging test accounts.
 6. **Tests must never use production Supabase** (`ebxxqidacheyapmmzavr`). Staging only.
 7. **Tests must skip cleanly when staging env vars are missing**, but **skipped tests do NOT count as evidence.** A skipped test suite is not a passing test suite.
 

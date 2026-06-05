@@ -19,9 +19,9 @@
   `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/hosted-shared-link-recipient-clickthrough-open-2026-06-04T1731Z.json`.
 - Commit `14e0a61` fixes recipient email CTA/unsubscribe generation so relative
   `/share/...` paths become absolute HTTP(S) URLs from the configured app origin.
-- Production deployment `dpl_9b5SK6x1qBhrG9sMX3XvsdBoLbVR` was Ready; `www`
+- Production deployment `DEPLOYMENT_ID_PLACEHOLDER` was Ready; `www`
   health returned HTTP 200 and apex redirected to `www`.
-- A fresh resend to `lewisphilipjonechavez@gmail.com` produced a Gmail CTA that
+- A fresh resend to `RECIPIENT_EMAIL_PLACEHOLDER` produced a Gmail CTA that
   opened the hosted proposal review page with the expected recipient banner.
 - Read-only Supabase proof now shows `delivery_status: "opened"`,
   `last_opened_at`, and a redacted `shared_link_events` `open` row.
@@ -50,8 +50,8 @@
 ## Production Shared-Link Recipient Inbox Receipt - 2026-06-04 15:55Z
 
 - Chrome extension proof on the alternate Gmail account
-  `lewisphilipjonechavez@gmail.com` found exactly one invite email from
-  Archestimator with subject `Project Estimate: Tropical House shared by Philip
+  `RECIPIENT_EMAIL_PLACEHOLDER` found exactly one invite email from
+  Archestimator with subject `Project Estimate: OWNER_BETA_PROJECT_PLACEHOLDER shared by Philip
   Lewis`.
 - Opening the email showed the expected view-only invitation copy and `View
   Project Estimate` CTA. No raw email link/href, public share URL, recipient
@@ -65,17 +65,17 @@
 
 ## Production Shared-Link Email Guard Refresh - 2026-06-04 15:32Z
 
-- Current production deployment is `dpl_4eM4pVfRPqXfHtspTFNaKhNFDJFZ`
-  (`archestimator-3torz4dzn-philipjonlewis-projects.vercel.app`), Ready, and
+- Current production deployment is `DEPLOYMENT_ID_PLACEHOLDER`
+  (`VERCEL_DEPLOYMENT_URL_PLACEHOLDER`), Ready, and
   aliased to both `www.archestimator.com` and `archestimator.com`.
 - The deployment contains commit `19c6b90`, which prevents project owners from
   sending shared-link recipient emails to the same email used for their signed-in
   account.
-- Hosted Chrome proof on the production `Tropical House` shared-link modal showed
-  a self-invite attempt for `philipjonlewis@gmail.com` blocked with
+- Hosted Chrome proof on the production `OWNER_BETA_PROJECT_PLACEHOLDER` shared-link modal showed
+  a self-invite attempt for `OWNER_EMAIL_PLACEHOLDER` blocked with
   `You cannot invite your own sign-in email to this shared link.` while `Send to
   0 recipients` stayed disabled.
-- The same hosted modal accepted `lewisphilipjonechavez@gmail.com`, sent the
+- The same hosted modal accepted `RECIPIENT_EMAIL_PLACEHOLDER`, sent the
   invite, and showed `Added 1 recipient(s). 1 email(s) dispatched (failures are
   non-fatal).` Read-only Supabase proof shows a `sent` recipient row with a
   redacted Resend message id.
@@ -88,8 +88,8 @@
 
 ## Production Resend-Enabled Deploy / Hosted Auth Refresh - 2026-06-04 13:11Z
 
-- Current production deployment is `dpl_2X6FytZUnK5ZaNsszVN4W8Wh6bXm`
-  (`archestimator-e2l5q2tc7-philipjonlewis-projects.vercel.app`), Ready, and
+- Current production deployment is `DEPLOYMENT_ID_PLACEHOLDER`
+  (`VERCEL_DEPLOYMENT_URL_PLACEHOLDER`), Ready, and
   aliased to both `www.archestimator.com` and `archestimator.com`.
 - A direct CLI deploy initially tried to upload a stale 312.5 MB payload. The
   partial upload was cancelled before changing production, `.vercelignore` was
@@ -115,7 +115,7 @@
   estimate workspace render, and export preview.
 - Follow-up hosted logout proof:
   `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/hosted-logout-session-proof-2026-06-04T1436Z.json`
-  proves production deployment `dpl_5HDqM8FkSxdYQDAUXtNFTJ6s5f3P` served the
+  proves production deployment `DEPLOYMENT_ID_PLACEHOLDER` served the
   new `Sign out` button on `/workshop/settings`, returned the owner session to
   `/login`, and kept `/workshop/projects` behind the login experience afterward.
 - Open proof gaps: project-specific unlink proof if required before widening and
@@ -133,7 +133,7 @@
 
 - Current launch-cost decision: stay on Supabase `MICRO`, keep PITR disabled, do
   not add Small compute only for PITR, and do not enable new paid provider
-  add-ons unless Philip explicitly accepts the cost.
+  add-ons unless OWNER_NAME_PLACEHOLDER explicitly accepts the cost.
 - Current backup/DR decision: strict PITR mode remains a later public-launch
   gate, but the closed-beta checker now has explicit `daily-backup` mode. For
   the owner-only pre-launch MVP, the accepted cheaper evidence is Pro daily
@@ -145,7 +145,7 @@
   backups with 7-day retention, Micro compute at `$10/month`, Small compute at
   `$15/month`, and PITR 7-day retention at about `$100/month`; Supabase docs
   also state PITR requires at least Small compute and replaces daily backups.
-- Fresh production proof: Vercel deployment `dpl_6xBegV7JS3WRfZYnN1mWTeY62b38`
+- Fresh production proof: Vercel deployment `DEPLOYMENT_ID_PLACEHOLDER`
   is still the production app stream behind `www.archestimator.com`,
   `archestimator.com`, and `archestimator.vercel.app`; `www` health returns HTTP
   200, apex health redirects to `www`, `/login` returns the app title, and
@@ -158,9 +158,9 @@
   `Archestimator`, is `ACTIVE_HEALTHY`, runs Postgres `17.6.1.121` in
   `ap-southeast-2`, and the ref is treated as immutable rather than renamed.
   Existing cheap-path artifacts prove linked migration/readiness and the single
-  active allowlist tester `philipjonlewis@gmail.com`; broad `supabase db push`
+  active allowlist tester `OWNER_EMAIL_PLACEHOLDER`; broad `supabase db push`
   remains off-limits while history drift exists.
-- Resend DNS action is complete: Namecheap mail settings were changed to Custom MX, the existing apex forwarding MX rows for `support@archestimator.com` were recreated explicitly, and the Resend `send.contact` MX/TXT records were added without purchases.
+- Resend DNS action is complete: Namecheap mail settings were changed to Custom MX, the existing apex forwarding MX rows for `SUPPORT_INBOX_PLACEHOLDER` were recreated explicitly, and the Resend `send.contact` MX/TXT records were added without purchases.
 - Current launch blocker posture: GitHub has no open issue/PR queue, and Codex Security residual history-risk is owner-accepted for the single-owner beta while the dashboard remains open at `1-2 of 2`. The owner-only hosted beta journey is proven by `hosted-owner-beta-journey-smoke-2026-06-04T1328Z.json`, owner logout is proven by `hosted-logout-session-proof-2026-06-04T1436Z.json`, real denied/revoked Google OAuth hosted smoke is proven by `hosted-google-denied-revoked-browser-smoke-2026-06-04T1851Z.json`, synthetic stale-cookie expired-session fail-closed proof is proven by `hosted-expired-stale-cookie-smoke-2026-06-04T1920Z.json`, and synthetic Google Sheets workbook compatibility and real downloaded workbook structural/Quick Look proof are proven by `synthetic-google-sheets-workbook-compatibility-2026-06-04T1951Z.json`; external beta is still blocked from a fully green widened-beta claim by separate hosted-production unlink proof if required before widening and native Excel/Numbers/LibreOffice workbook app proof if required beyond the owner-only beta. Resend sender-domain, provider delivery, owner-inbox receipt, webhook route, Vercel email-flag, shared-link self-invite/send, alternate-recipient inbox proof, recipient clickthrough/open, and signed delivered-event webhook reconciliation are closed by `resend-domain-verified-email-enabled-2026-06-04T1235Z.json`, `resend-owner-inbox-receipt-2026-06-04T1348Z.json`, `hosted-shared-link-recipient-email-self-invite-guard-2026-06-04T1532Z.json`, `hosted-shared-link-recipient-inbox-receipt-2026-06-04T1555Z.json`, `hosted-shared-link-recipient-clickthrough-open-2026-06-04T1731Z.json`, and `resend-signed-delivered-webhook-reconciliation-2026-06-04T1809Z.json`.
 - Proof artifact:
   `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/cheap-beta-launch-audit-2026-06-04T0735Z.json`.
@@ -172,8 +172,8 @@
 - Backup proof now records 9 completed physical backups, `walg_enabled=true`, `pitr_enabled=false`, and manual dump files under `/Users/philiplewis/archestimator-provider-backups/2026-06-03T173005Z-pre-closed-beta-2cddb0e`.
 - Linked migrations `20260601145000` through `20260603160000` were applied exactly and recorded in remote history without broad `db push`.
 - Later exact-file linked security migrations through `20260603235355` are also recorded remotely; broad `supabase db push` is still intentionally avoided while local/remote history drift remains.
-- `closed_beta_allowed_emails` exists remotely and currently has exactly one active/invited tester: `philipjonlewis@gmail.com` with status `active`.
-- Vercel Production currently points the custom domains at the beta app deployment stream; latest verified production deployment is `dpl_Dh8xPgZ3NQwN4CwxZQXh6d8vypcn`, and both `archestimator.com` and `www.archestimator.com` reach app health (`apex` redirects to `www`).
+- `closed_beta_allowed_emails` exists remotely and currently has exactly one active/invited tester: `OWNER_EMAIL_PLACEHOLDER` with status `active`.
+- Vercel Production currently points the custom domains at the beta app deployment stream; latest verified production deployment is `DEPLOYMENT_ID_PLACEHOLDER`, and both `archestimator.com` and `www.archestimator.com` reach app health (`apex` redirects to `www`).
 - Repo MCP tooling now pins `code-review-graph==2.3.5` in `.mcp.json`, `.cursor/mcp.json`, and `.codex/config.toml`; no Vercel deployment was required for this repo-local tooling fix.
 - Vercel env-name readiness is now green for core closed-beta runtime and Resend names, including `RESEND_WEBHOOK_SECRET`; secret values remain intentionally unprinted.
 - A real production-env Resend send probe failed with HTTP 403 because `contact.archestimator.com` is not verified. Resend dashboard shows DKIM verified, but `send.contact` MX `feedback-smtp.ap-northeast-1.amazonses.com` priority 10 and TXT `v=spf1 include:amazonses.com ~all` are missing/failed in Namecheap DNS.
@@ -189,7 +189,7 @@
 - Keep production/preview allowlists separate or clearly environment-scoped.
 - Confirm Supabase RLS remains active for profiles, workspaces, projects, estimates, publications, and new allowlist table.
 - Confirm Supabase storage buckets used by beta flows have production-safe policies.
-- Manual beta invites can proceed without Resend by using Philip's email and the allowlist. Resend is optional/P1 for manual beta invites, but P0 for any visible email-dependent share/invite workflow. Teamspaces app invite controls must stay disabled until invite-entry token settings and Supabase Auth/provider proof exist.
+- Manual beta invites can proceed without Resend by using the owner's email and the allowlist. Resend is optional/P1 for manual beta invites, but P0 for any visible email-dependent share/invite workflow. Teamspaces app invite controls must stay disabled until invite-entry token settings and Supabase Auth/provider proof exist.
 - Required Resend env if visible: `ARCHESTIMATOR_EMAIL_DELIVERY_ENABLED=true`, `RESEND_API_KEY`, `RESEND_FROM`, `RESEND_WEBHOOK_SECRET`, and verified sending domain/DNS.
 - Production smoke: allowed login, denied login, revoked login, public share, project/estimate, export, feedback link.
 
@@ -206,7 +206,7 @@ Commit audited: `681c95e64864f283950a88dba304eaffe8f2f8b3`
 | Supabase RLS | Migrations enable policies. | Linked/staging allow/deny proof missing. |
 | Storage | Component images remain the public bucket surface while project covers now upload to private `project-images` and serve through authenticated `/api/projects/images`; linked readback proves private bucket policy, 6 migrated objects, 0 remaining public project-image objects, 3 project metadata rows rewritten to private route URLs, and old public object access returning `Object not found`. | Component attachment bucket handling and hosted signed-in image-view smoke remain useful follow-up proof. |
 | Realtime | No launch-critical realtime dependency identified. | If enabled later, document channels and rate limits. |
-| Resend | Client and Svix webhook route exist; unconfigured production-like sends fail closed, shared-link recipient controls disable while server readiness is false, and Teamspaces invite controls disable while invite delivery readiness is false. Vercel now has `RESEND_API_KEY`, `RESEND_FROM`, `RESEND_REPLY_TO`, `RESEND_WEBHOOK_SECRET`, and `ARCHESTIMATOR_EMAIL_DELIVERY_ENABLED` for Production and Preview(main). `resend-domain-verified-email-enabled-2026-06-04T1235Z.json` records Namecheap DNS repair, Resend domain `Verified`, a successful production-env send probe, webhook dashboard endpoint enabled, and live webhook signature-verification reachability. `resend-owner-inbox-receipt-2026-06-04T1348Z.json` records owner-reported receipt of the verified smoke email in `philipjonlewis@gmail.com`. `hosted-shared-link-recipient-email-self-invite-guard-2026-06-04T1532Z.json` records production shared-link self-invite blocking and alternate-recipient app-level send dispatch; `hosted-shared-link-recipient-inbox-receipt-2026-06-04T1555Z.json` proves alternate inbox receipt; `resend-alternate-recipient-lifecycle-blocked-2026-06-04T1622Z.json` proves the current send-only key/log path cannot retrieve lifecycle evidence. | Recipient clickthrough/open and delivered/bounce/complaint webhook reconciliation remain open before calling the full automatic email lifecycle green. |
+| Resend | Client and Svix webhook route exist; unconfigured production-like sends fail closed, shared-link recipient controls disable while server readiness is false, and Teamspaces invite controls disable while invite delivery readiness is false. Vercel now has `RESEND_API_KEY`, `RESEND_FROM`, `RESEND_REPLY_TO`, `RESEND_WEBHOOK_SECRET`, and `ARCHESTIMATOR_EMAIL_DELIVERY_ENABLED` for Production and Preview(main). `resend-domain-verified-email-enabled-2026-06-04T1235Z.json` records Namecheap DNS repair, Resend domain `Verified`, a successful production-env send probe, webhook dashboard endpoint enabled, and live webhook signature-verification reachability. `resend-owner-inbox-receipt-2026-06-04T1348Z.json` records owner-reported receipt of the verified smoke email in `OWNER_EMAIL_PLACEHOLDER`. `hosted-shared-link-recipient-email-self-invite-guard-2026-06-04T1532Z.json` records production shared-link self-invite blocking and alternate-recipient app-level send dispatch; `hosted-shared-link-recipient-inbox-receipt-2026-06-04T1555Z.json` proves alternate inbox receipt; `resend-alternate-recipient-lifecycle-blocked-2026-06-04T1622Z.json` proves the current send-only key/log path cannot retrieve lifecycle evidence. | Recipient clickthrough/open and delivered/bounce/complaint webhook reconciliation remain open before calling the full automatic email lifecycle green. |
 | Env separation | CI exists; Production and Preview(`main`) have the current closed-beta env-name set. | Staging/non-main preview matrix, secret value proof by provider UI, redeploy proof, and rollback proof still missing. |
 
 ## Required Vercel Env Vars

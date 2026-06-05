@@ -8,8 +8,8 @@
     "LEGAL_OWNER_DATA_RETENTION_CONFIRMED": true,
     "LEGAL_OWNER_SUPPORT_COMMS_CONFIRMED": true
   },
-  "productOwner": "Philip Lewis",
-  "legalReviewer": "Owner beta signoff by Philip Lewis",
+  "productOwner": "OWNER_NAME_PLACEHOLDER",
+  "legalReviewer": "Owner beta signoff by OWNER_NAME_PLACEHOLDER",
   "approvalDate": "2026-06-04",
   "approvalReference": "Codex thread owner signoff: complete signoff; no purchases",
   "missing": [],

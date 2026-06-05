@@ -2,8 +2,8 @@
   "checkedAt": "2026-06-04T16:22:32Z",
   "mode": "resend-alternate-recipient-lifecycle-blocker-refresh",
   "scope": {
-    "project": "Tropical House",
-    "recipientEmail": "lewisphilipjonechavez@gmail.com",
+    "project": "OWNER_BETA_PROJECT_PLACEHOLDER",
+    "recipientEmail": "RECIPIENT_EMAIL_PLACEHOLDER",
     "sourceInboxReceiptArtifact": "hosted-shared-link-recipient-inbox-receipt-2026-06-04T1555Z.json",
     "sourceSendArtifact": "hosted-shared-link-recipient-email-self-invite-guard-2026-06-04T1532Z.json"
   },

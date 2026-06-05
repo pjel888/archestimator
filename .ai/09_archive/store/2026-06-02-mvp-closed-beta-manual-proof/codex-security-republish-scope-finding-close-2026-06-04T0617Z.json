@@ -13,7 +13,7 @@
     "branch": "main",
     "head": "668f79cb3f41c5d731f47de22219807974dd3665",
     "fixCommitPreviouslyRecorded": "84f12e3",
-    "productionDeploymentPreviouslyRecorded": "dpl_5MXgQGJYUr8QjEmRgvX2DhioPZ2o",
+    "productionDeploymentPreviouslyRecorded": "DEPLOYMENT_ID_PLACEHOLDER",
     "sourceControls": [
       "src/lib/repositories/workspace-repository.ts getProjectPublicationSummary returns publication.selected_estimate_ids as selectedEstimateIds.",
       "src/components/workshop/ProjectPublicationHeader.tsx defaults the sheet picker from summary.selectedEstimateIds for already-published links.",
@@ -34,7 +34,7 @@
     "closeReasonSelected": "Already fixed",
     "submittedContext": "Current main preserves persisted publication sheet scope during republish. getProjectPublicationSummary now returns selectedEstimateIds from selected_estimate_ids, and ProjectPublicationHeader defaults the sheet picker from summary.selectedEstimateIds for published links instead of every project sheet. The no-change Update shared page path therefore calls republishProjectPublication with the existing subset rather than widening to all sheets. Verified on 2026-06-04 with: bunx vitest run tests/vitest/project-publication-header.test.tsx tests/vitest/project-publication-summary.test.ts tests/vitest/project-publication-actions.test.ts --maxWorkers=1 --reporter=dot (3 files / 47 tests). Finding was against old commit 95b2142; current main is 668f79c.",
     "postSubmitBehavior": "Codex Security advanced to the next finding, Project images are uploaded to a public listable bucket.",
-    "revisitedFindingStatus": "Closed by philipjonlewis@gmail.com. Reason: Fixed.",
+    "revisitedFindingStatus": "Closed by OWNER_EMAIL_PLACEHOLDER. Reason: Fixed.",
     "postClosureControls": [
       "Reopen"
     ],

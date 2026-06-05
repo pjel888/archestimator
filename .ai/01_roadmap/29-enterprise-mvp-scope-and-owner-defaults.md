@@ -7,15 +7,15 @@
 
 ## 1. Purpose
 
-This document codifies Philip's approved provisional owner defaults, defines the 4-layer launch model, and draws bright lines between controlled beta, enterprise MVP, and public launch scope. It is the single source of truth for what is IN and OUT of each launch layer.
+This document codifies the owner's approved provisional owner defaults, defines the 4-layer launch model, and draws bright lines between controlled beta, enterprise MVP, and public launch scope. It is the single source of truth for what is IN and OUT of each launch layer.
 
 After this pass, no goal card should remain blocked solely by an unresolved owner decision. Remaining blocks are either external setup (human action required) or implementation (Codex work required).
 
 ---
 
-## 2. Philip's Approved Provisional Defaults
+## 2. the owner's Approved Provisional Defaults
 
-All 21 decisions below were approved as Philip's provisional defaults on 2026-05-30 via the roadmap improvement pass. These replace all prior `OWNER DECISION REQUIRED` statuses across the roadmap.
+All 21 decisions below were approved as the owner's provisional defaults on 2026-05-30 via the roadmap improvement pass. These replace all prior `OWNER DECISION REQUIRED` statuses across the roadmap.
 
 | # | Decision ID | Decision | Approved Default | Status |
 |---|---|---|---|---|
@@ -29,9 +29,9 @@ All 21 decisions below were approved as Philip's provisional defaults on 2026-05
 | 8 | D-028 | Package-builder beta scope | Optional feature-flagged beta capability. Not core activation. Confirmation-gated. Requires AI safety and rollback evidence before beta enablement. | `DECIDED / OPTIONAL FEATURE-FLAGGED BETA` |
 | 9 | D-014 | Legal before beta | Minimum beta legal pack required before external beta (limitations disclosure, privacy notice MVP, beta terms, subprocessor list, data retention draft, manual DSAR, support contact, pre-production acknowledgment). Full legal review before public/paid launch. | `DECIDED / MINIMUM BETA LEGAL PACK REQUIRED` |
 | 10 | D-031 | Analytics / instrumentation | First-party product events for beta. Store in Supabase or app-owned event table. Do not rely on GA4/Clarity/PostHog. Error tracking via Sentry. Marketing analytics after legal review. | `DECIDED / FIRST-PARTY PRODUCT EVENTS FOR BETA` |
-| 11 | D-011 | Support channel and SLA | support@archestimator.com. Founder-led during beta. No SLA. Best-effort: 1 business day for non-critical, immediate for security/data-loss/auth-blocking. Lightweight tracker or .ai feedback log. | `DECIDED / SUPPORT EMAIL + LIGHTWEIGHT TRACKER` |
-| 12 | D-012 | Incident owner | Philip is incident owner for beta. | `DECIDED / PHILIP` |
-| 13 | D-013 | Rollback authority | Philip is rollback authority. No deploy without Philip approval (permanent). | `DECIDED / PHILIP` |
+| 11 | D-011 | Support channel and SLA | SUPPORT_INBOX_PLACEHOLDER. Founder-led during beta. No SLA. Best-effort: 1 business day for non-critical, immediate for security/data-loss/auth-blocking. Lightweight tracker or .ai feedback log. | `DECIDED / SUPPORT EMAIL + LIGHTWEIGHT TRACKER` |
+| 12 | D-012 | Incident owner | OWNER_NAME_PLACEHOLDER is incident owner for beta. | `DECIDED / PHILIP` |
+| 13 | D-013 | Rollback authority | OWNER_NAME_PLACEHOLDER is rollback authority. No deploy without OWNER_NAME_PLACEHOLDER approval (permanent). | `DECIDED / PHILIP` |
 | 14 | — | Launch jurisdiction | Invite-only non-public beta. No EU/UK, minors, schools, or regulated procurement. Philippines-first / English-speaking contractor posture. Public launch jurisdiction: LEGAL REVIEW REQUIRED. | `DECIDED / INVITE-ONLY NON-PUBLIC BETA` |
 | 15 | — | Browser support | Beta: latest Chrome and Edge desktop. Safari and Firefox P1 validation. Mobile workshop unsupported; shared receiver mobile supported. Public launch: Chrome, Edge, Safari, Firefox latest two versions. | `DECIDED / CHROME + EDGE DESKTOP FOR BETA` |
 | 16 | D-010 | Payments / pricing | No paid beta. No billing before beta. Pricing page marked as beta/waitlist/non-binding. Billing post-beta. | `DECIDED / NO PAID BETA` |
@@ -62,7 +62,7 @@ All 21 decisions below were approved as Philip's provisional defaults on 2026-05
 - core onboarding/happy path
 - desktop guard for workshop
 - beta participants selected
-- Philip beta approval
+- OWNER_NAME_PLACEHOLDER beta approval
 
 ### Not Required for Beta:
 - PDF
@@ -196,9 +196,9 @@ All 21 decisions below were approved as Philip's provisional defaults on 2026-05
 | D-028 | Package-builder beta | Optional feature-flagged | `DECIDED / OPTIONAL FEATURE-FLAGGED` | Package-builder no longer blocks core beta | BETA-P0-AI-001 |
 | D-014 | Legal before beta | Minimum beta legal pack | `DECIDED / MINIMUM BETA LEGAL PACK` | Full legal → public launch | BETA-P0-LEGAL-001 (new), PUBLIC-P0-LEGAL-001 |
 | D-031 | Analytics | First-party product events | `DECIDED / FIRST-PARTY EVENTS` | Analytics → BETA P0 | BETA-P0-ANA-001 (new) |
-| D-011 | Support channel | support@archestimator.com | `DECIDED / SUPPORT EMAIL` | Support → BETA P0 | BETA-P0-OPS-001 (new) |
-| D-012 | Incident owner | Philip | `DECIDED / PHILIP` | Runbook authority clarified | All runbook cards |
-| D-013 | Rollback authority | Philip | `DECIDED / PHILIP` | Deployment safety clarified | BETA-P0-INF-001 |
+| D-011 | Support channel | SUPPORT_INBOX_PLACEHOLDER | `DECIDED / SUPPORT EMAIL` | Support → BETA P0 | BETA-P0-OPS-001 (new) |
+| D-012 | Incident owner | OWNER_NAME_PLACEHOLDER | `DECIDED / PHILIP` | Runbook authority clarified | All runbook cards |
+| D-013 | Rollback authority | OWNER_NAME_PLACEHOLDER | `DECIDED / PHILIP` | Deployment safety clarified | BETA-P0-INF-001 |
 | — | Launch jurisdiction | Invite-only non-public beta | `DECIDED / INVITE-ONLY` | Jurisdiction not blocking beta | PUBLIC-P0-LEGAL-001 (public only) |
 | — | Browser support | Chrome + Edge desktop | `DECIDED / CHROME + EDGE` | QA scope clarified | BETA-P0-UX-001, UX-002 |
 | D-010 | Payments/pricing | No paid beta | `DECIDED / NO PAID BETA` | Stripe/billing out of beta | No beta cards |

@@ -3,7 +3,7 @@
   "generatedAtUtc": "2026-06-04T05:11:27Z",
   "dashboardUrl": "https://chatgpt.com/codex/cloud/security/scans/3fa110d41fb4819190222a7bf3239828?sev=",
   "repository": "pjel888/archestimator",
-  "owner": "philipjonlewis@gmail.com",
+  "owner": "OWNER_EMAIL_PLACEHOLDER",
   "environment": "archestimator",
   "branch": "main",
   "status": "Waiting for new commits",
@@ -30,7 +30,7 @@
       "Medium severity 31",
       "Low severity 6",
       "Scanned commits 578",
-      "Owner philipjonlewis@gmail.com",
+      "Owner OWNER_EMAIL_PLACEHOLDER",
       "Environment archestimator",
       "Branch main",
       "Last scanned commit c6aa6dd3"

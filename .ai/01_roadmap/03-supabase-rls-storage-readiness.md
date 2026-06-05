@@ -101,7 +101,7 @@
 
 | Table | RLS Enabled? | Policy Description | Access Model | Denial Tested? | Notes |
 |---|---|---|---|---|---|
-| `profiles` | Yes | Users can view own; platform admins manage all | `id = auth.uid() or is_platform_admin()` | **No** | CEO role resolver: `philipjonlewis@gmail.com` |
+| `profiles` | Yes | Users can view own; platform admins manage all | `id = auth.uid() or is_platform_admin()` | **No** | CEO role resolver: `OWNER_EMAIL_PLACEHOLDER` |
 | `user_onboarding_profiles` | Yes (via auth account migration) | Users can view/manage own; admins can view all | `can_access_workspace_account_scope()` or ownership | **No** | Added by `20260527072220` |
 | `workspace_account_settings` | Yes (via auth account migration) | Workspace members can view; owners/admins can update | `can_access_workspace_account_scope()` scope check | **No** | Organization-level settings |
 | `account_security_events` | Yes (via auth account migration) | Users can view own events; workspace admins can view | `user_id = auth.uid() or is_workspace_admin(workspace_id)` | **No** | Metadata-only; `ip_hash`, `user_agent_hash` |
@@ -196,7 +196,7 @@
 |---|---|---|---|---|---|
 | `handle_new_auth_user` | `security definer` | Trigger-only on `auth.users` insert | Service-owned trigger | **No** | Creates profile + resolves CEO role |
 | `current_user_profile` | `security definer` | Authenticated user | Yes (auth) | **No** | Returns own profile row |
-| `resolve_app_role_for_email` | `sql` (stable) | Internal only | N/A | N/A | CEO resolver for `philipjonlewis@gmail.com` |
+| `resolve_app_role_for_email` | `sql` (stable) | Internal only | N/A | N/A | CEO resolver for `OWNER_EMAIL_PLACEHOLDER` |
 | `is_platform_admin` | `security definer` | Internal gate check | Yes (auth) | **No** | Checks CEO/admin role or email JWT fallback |
 | `is_workspace_member` | `security definer` | Internal gate check | Yes (auth) | **No** | Core workspace membership check |
 | `is_workspace_admin` | `security definer` | Internal gate check | Yes (auth) | **No** | Core admin/owner check |
@@ -270,8 +270,8 @@
 | Trigger/Flow | Status | Verification |
 |---|---|---|
 | `handle_new_auth_user()` trigger | Active on linked remote | Creates `profiles` row on `auth.users` insert |
-| CEO role resolution | Active | `philipjonlewis@gmail.com` resolves to `ceo` role; other emails → `member` |
-| Profile UUID | `4e23801d-6fc2-4886-b980-d15ca2b164b8` | Philip's authenticated profile UUID |
+| CEO role resolution | Active | `OWNER_EMAIL_PLACEHOLDER` resolves to `ceo` role; other emails → `member` |
+| Profile UUID | `UUID_PLACEHOLDER` | the owner's authenticated profile UUID |
 | Default workspace creation | Not automatic | Workspaces created explicitly; no auto-create on signup |
 | `add_workspace_owner_membership()` trigger | Active | Auto-adds workspace creator as owner on insert |
 | `apply_pending_collaboration_invitations()` | Active (overridden) | No longer auto-accepts invites before app-owned route verification |
@@ -424,10 +424,10 @@ All AI audit tables store metadata only; no raw prompts, hidden prompts, full re
 
 | Seed | Source Migration | Contents | Cleanup Approach |
 |---|---|---|---|
-| Philip's CEO profile | `20260518100000` | Profile UUID `4e23801d-6fc2-4886-b980-d15ca2b164b8`, CEO role | Permanent bootstrap data |
-| Lewis Residence estimate | `20260519173857` | Demo estimate with General Requirements, Site Works, Lot (House, Services House) nodes | Demo data; can be deleted |
+| the owner's CEO profile | `20260518100000` | Profile UUID `UUID_PLACEHOLDER`, CEO role | Permanent bootstrap data |
+| DEMO_PROJECT_PLACEHOLDER estimate | `20260519173857` | Demo estimate with General Requirements, Site Works, Lot (House, Services House) nodes | Demo data; can be deleted |
 | Luna Heights estimate | `20260518111000`, `20260518151743` | Seed data refresh + contents reset | Demo data; can be deleted |
-| Philip seed data | `20260518110000` | Attaches Philip's profile to demo workspace | Bootstrap; tied to CEO profile |
+| OWNER_NAME_PLACEHOLDER seed data | `20260518110000` | Attaches the owner's profile to demo workspace | Bootstrap; tied to CEO profile |
 | V3 taxonomy seed | `20260522064018` | `component_category_nodes` global taxonomy | Permanent reference data |
 | PH-context suppliers | `20260522070956` | Philippine supplier list | Config data; can be updated |
 | Variant cost entry backfill | `20260524131204` | Initial cost entries for existing price options | Transient; naturally replaced by new entries |
@@ -435,7 +435,7 @@ All AI audit tables store metadata only; no raw prompts, hidden prompts, full re
 ### 12.2 Cleanup Approach
 
 - Delete demo projects/estimates via workspace-level cascade (no special tools needed)
-- Philip's CEO profile and default workspace must survive cleanup
+- the owner's CEO profile and default workspace must survive cleanup
 - Taxonomy and supplier data should survive as reference data
 - Variant cost entries regenerate naturally on component creation
 - **No automated seed-reset script exists**; cleanup is manual

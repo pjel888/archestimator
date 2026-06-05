@@ -5,10 +5,10 @@
   "scope": "Closed-beta hosted shared-link recipient clickthrough and open tracking proof",
   "productionDeployment": {
     "commit": "14e0a61",
-    "vercelDeploymentId": "dpl_9b5SK6x1qBhrG9sMX3XvsdBoLbVR",
+    "vercelDeploymentId": "DEPLOYMENT_ID_PLACEHOLDER",
     "readyState": "READY",
     "target": "production",
-    "productionUrl": "https://archestimator-p66mgz1mc-philipjonlewis-projects.vercel.app",
+    "productionUrl": "https://VERCEL_DEPLOYMENT_URL_PLACEHOLDER",
     "customDomainObserved": "https://www.archestimator.com",
     "wwwHealthStatus": 200,
     "apexBehavior": "HTTP 307 redirect to www"
@@ -27,16 +27,16 @@
   },
   "browserProof": {
     "tool": "Computer Use against the existing Google Chrome profile",
-    "ownerSession": "Production Tropical House workspace loaded with the existing owner session.",
+    "ownerSession": "Production OWNER_BETA_PROJECT_PLACEHOLDER workspace loaded with the existing owner session.",
     "sharedLinkModal": "The hosted shared-link modal showed an absolute https://www.archestimator.com/share/[redacted] base link.",
     "resendAction": "The Recipients tab resent only the user-provided alternate recipient address.",
-    "recipientInbox": "A recent Gmail search in lewisphilipjonechavez@gmail.com found the new Archestimator invite at about 1:28 AM local time.",
+    "recipientInbox": "A recent Gmail search in RECIPIENT_EMAIL_PLACEHOLDER found the new Archestimator invite at about 1:28 AM local time.",
     "freshEmailLinkDisplay": "The fresh email body displayed archestimator.com/share/[redacted] for the CTA and archestimator.com/api/share/[redacted]/unsubscribe for unsubscribe.",
     "clickthroughResult": "Clicking the fresh View Project Estimate CTA opened the hosted proposal review page instead of the old Google invalid-redirect notice.",
     "renderedReceiverPage": {
-      "title": "Tropical House (YJBXSRED) - Proposal Review",
+      "title": "OWNER_BETA_PROJECT_PLACEHOLDER (PROJECT_CODE_PLACEHOLDER) - Proposal Review",
       "pathPattern": "/share/[redacted-token]",
-      "reviewerBanner": "YOU ARE REVIEWING AS LEWISPHILIPJONECHAVEZ@GMAIL.COM",
+      "reviewerBanner": "YOU ARE REVIEWING AS EMAIL_PLACEHOLDER",
       "visibleControls": [
         "Accept proposal",
         "Decline proposal",
@@ -46,7 +46,7 @@
     }
   },
   "supabaseReadOnlyProof": {
-    "recipientEmail": "lewisphilipjonechavez@gmail.com",
+    "recipientEmail": "RECIPIENT_EMAIL_PLACEHOLDER",
     "recipientIdPrefix": "527305fa...",
     "publicationIdPrefix": "f5511219...",
     "beforeClick": {

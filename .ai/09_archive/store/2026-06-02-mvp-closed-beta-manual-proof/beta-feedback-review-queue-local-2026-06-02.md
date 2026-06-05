@@ -16,4 +16,4 @@ Status: partial local proof only; closed beta remains NO-GO.
 
 ## Scope Limit
 
-This proves only local code, tests, and migration intent. It does not prove the linked Supabase migration has been applied, that hosted admins can access the page, that feedback is reviewed daily, that `support@archestimator.com` is monitored, or that alerts have an owner/escalation path.
+This proves only local code, tests, and migration intent. It does not prove the linked Supabase migration has been applied, that hosted admins can access the page, that feedback is reviewed daily, that `SUPPORT_INBOX_PLACEHOLDER` is monitored, or that alerts have an owner/escalation path.

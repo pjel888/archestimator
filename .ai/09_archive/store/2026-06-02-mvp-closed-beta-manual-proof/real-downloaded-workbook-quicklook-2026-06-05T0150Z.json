@@ -2,7 +2,7 @@
   "artifactType": "sanitized-real-downloaded-workbook-proof",
   "capturedAt": "2026-06-05T01:50:00Z",
   "source": {
-    "localDownloadsBasename": "AE-LR-001-ES-001-proposal (1).xlsx",
+    "localDownloadsBasename": "DEMO_PROJECT_CODE_PLACEHOLDER-ES-001-proposal (1).xlsx",
     "rawWorkbookCommitted": false,
     "rawPreviewCommitted": false,
     "rawSourceUrlsCommitted": false,
@@ -58,7 +58,7 @@
         "actualColumns": 13
       }
     ],
-    "projectLabel": "Lewis Residence",
+    "projectLabel": "DEMO_PROJECT_PLACEHOLDER",
     "locationLabelPresent": true,
     "estimateRevisionLabelPresent": true,
     "dateSubmitted": "2026-06-05",

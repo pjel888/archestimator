@@ -19,20 +19,20 @@
     "ranBroadSupabaseDbPush": false
   },
   "vercel": {
-    "cliUser": "philipjonlewis",
-    "projectId": "prj_QTjX1WrMb7b0ZxmMIRAL96ILRY9E",
+    "cliUser": "OWNER_HANDLE_PLACEHOLDER",
+    "projectId": "VERCEL_PROJECT_ID_PLACEHOLDER",
     "projectName": "archestimator",
     "productionDeployment": {
-      "id": "dpl_6xBegV7JS3WRfZYnN1mWTeY62b38",
-      "url": "archestimator-br665yc8u-philipjonlewis-projects.vercel.app",
+      "id": "DEPLOYMENT_ID_PLACEHOLDER",
+      "url": "VERCEL_DEPLOYMENT_URL_PLACEHOLDER",
       "target": "production",
       "status": "Ready",
       "aliases": [
         "https://www.archestimator.com",
         "https://archestimator.com",
         "https://archestimator.vercel.app",
-        "https://archestimator-philipjonlewis-projects.vercel.app",
-        "https://archestimator-philipjonlewis-philipjonlewis-projects.vercel.app"
+        "https://archestimator-VERCEL_SCOPE_PLACEHOLDER.vercel.app",
+        "https://VERCEL_DEPLOYMENT_URL_PLACEHOLDER"
       ]
     },
     "liveHttpProof": {
@@ -103,7 +103,7 @@
       "manualLogicalDumpBundle": "/Users/philiplewis/archestimator-provider-backups/2026-06-03T173005Z-pre-closed-beta-2cddb0e",
       "linkedReadinessArtifact": "supabase-linked-readiness-live-refresh-2026-06-04T0428Z.json",
       "linkedReadinessReady": true,
-      "allowlistEmail": "philipjonlewis@gmail.com",
+      "allowlistEmail": "OWNER_EMAIL_PLACEHOLDER",
       "allowlistStatus": "active"
     },
     "thisRefreshLinkedSql": {
@@ -142,12 +142,12 @@
       "value": "feedback-smtp.ap-northeast-1.amazonses.com",
       "priority": 10,
       "ttl": "Automatic",
-      "warning": "Do not alter apex archestimator.com MX forwarding records for support@archestimator.com while adding the send.contact subdomain MX."
+      "warning": "Do not alter apex archestimator.com MX forwarding records for SUPPORT_INBOX_PLACEHOLDER while adding the send.contact subdomain MX."
     }
   },
   "hostedAuthAndApp": {
     "latestAllowedOwnerSmokeArtifact": "hosted-google-allowed-browser-smoke-2026-06-04T0419Z.json",
-    "ownerEmail": "philipjonlewis@gmail.com",
+    "ownerEmail": "OWNER_EMAIL_PLACEHOLDER",
     "ownerAllowedSmokePreviouslyPassed": true,
     "deniedRevokedExpiredSmokePassed": false,
     "fullHostedBetaJourneyPassed": false,

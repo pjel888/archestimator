@@ -10,13 +10,13 @@ Result: partial/blocked. The latest `main` preview deployment is Ready and prote
 vercel whoami
 vercel env ls --non-interactive
 vercel list --status READY --format json
-vercel inspect archestimator-7wb28vtv2-philipjonlewis-projects.vercel.app
-vercel curl https://archestimator-7wb28vtv2-philipjonlewis-projects.vercel.app/api/health
-vercel curl https://archestimator-git-main-philipjonlewis-projects.vercel.app/api/health
-curl -I -sS https://archestimator-7wb28vtv2-philipjonlewis-projects.vercel.app/api/health
-curl -I -sS https://archestimator-git-main-philipjonlewis-projects.vercel.app/api/health
+vercel inspect VERCEL_DEPLOYMENT_URL_PLACEHOLDER
+vercel curl https://VERCEL_DEPLOYMENT_URL_PLACEHOLDER/api/health
+vercel curl https://VERCEL_DEPLOYMENT_URL_PLACEHOLDER/api/health
+curl -I -sS https://VERCEL_DEPLOYMENT_URL_PLACEHOLDER/api/health
+curl -I -sS https://VERCEL_DEPLOYMENT_URL_PLACEHOLDER/api/health
 vercel alias ls --non-interactive
-vercel inspect archestimator-3ser9ty2w-philipjonlewis-projects.vercel.app
+vercel inspect VERCEL_DEPLOYMENT_URL_PLACEHOLDER
 curl -L -I -sS https://archestimator.com/api/health
 curl -L -I -sS https://www.archestimator.com/api/health
 curl -L -I -sS https://archestimator.vercel.app/api/health
@@ -26,27 +26,27 @@ curl -L -sS https://www.archestimator.com/
 ## Deployment Evidence
 
 - Vercel CLI: `54.6.1`.
-- `vercel whoami` returned `philipjonlewis`.
-- Latest listed Ready deployment for `main`: `archestimator-7wb28vtv2-philipjonlewis-projects.vercel.app`.
+- `vercel whoami` returned `OWNER_HANDLE_PLACEHOLDER`.
+- Latest listed Ready deployment for `main`: `VERCEL_DEPLOYMENT_URL_PLACEHOLDER`.
 - Deployment commit: `165e4a3ecf612c6196e4f2bfd1bd4d459fbea9fc`.
-- Deployment id: `dpl_BebUf77ozLLxqpNYHroCErRZwBf9`.
+- Deployment id: `DEPLOYMENT_ID_PLACEHOLDER`.
 - Deployment target/status: `preview`, `Ready`.
 - Created: `Tue Jun 02 2026 09:35:59 GMT+0800`.
-- Branch alias: `archestimator-git-main-philipjonlewis-projects.vercel.app`.
+- Branch alias: `VERCEL_DEPLOYMENT_URL_PLACEHOLDER`.
 
 ## Environment And Health Evidence
 
-- `vercel env ls --non-interactive` returned `No Environment Variables found for philipjonlewis-projects/archestimator`.
-- `vercel curl https://archestimator-7wb28vtv2-philipjonlewis-projects.vercel.app/api/health` returned `{"ok":true,"service":"archestimator"}`.
-- `vercel curl https://archestimator-git-main-philipjonlewis-projects.vercel.app/api/health` returned `{"ok":true,"service":"archestimator"}`.
+- `vercel env ls --non-interactive` returned `No Environment Variables found for VERCEL_SCOPE_PLACEHOLDER/archestimator`.
+- `vercel curl https://VERCEL_DEPLOYMENT_URL_PLACEHOLDER/api/health` returned `{"ok":true,"service":"archestimator"}`.
+- `vercel curl https://VERCEL_DEPLOYMENT_URL_PLACEHOLDER/api/health` returned `{"ok":true,"service":"archestimator"}`.
 - Plain public `curl -I` to the preview health route returned HTTP `401` with Vercel authentication required.
 - Plain public `curl -I` to the `git-main` branch alias health route returned HTTP `401` with Vercel authentication required.
 
 ## Domain And Alias Evidence
 
-- `vercel alias ls --non-interactive` maps `archestimator-git-main-philipjonlewis-projects.vercel.app` to the current `archestimator-7wb28vtv2-philipjonlewis-projects.vercel.app` deployment.
-- `vercel alias ls --non-interactive` still maps `archestimator.com`, `www.archestimator.com`, `archestimator.vercel.app`, `archestimator-philipjonlewis-projects.vercel.app`, and `archestimator-git-teaser-prelaunch-philipjonlewis-projects.vercel.app` to `archestimator-3ser9ty2w-philipjonlewis-projects.vercel.app`.
-- `vercel inspect archestimator-3ser9ty2w-philipjonlewis-projects.vercel.app` reported production deployment id `dpl_FwfHexBsB1xSHDqHqFwHSYpCYTVH`, target `production`, status `Ready`, created `Sat May 30 2026 21:09:26 GMT+0800`.
+- `vercel alias ls --non-interactive` maps `VERCEL_DEPLOYMENT_URL_PLACEHOLDER` to the current `VERCEL_DEPLOYMENT_URL_PLACEHOLDER` deployment.
+- `vercel alias ls --non-interactive` still maps `archestimator.com`, `www.archestimator.com`, `archestimator.vercel.app`, `archestimator-VERCEL_SCOPE_PLACEHOLDER.vercel.app`, and `VERCEL_DEPLOYMENT_URL_PLACEHOLDER` to `VERCEL_DEPLOYMENT_URL_PLACEHOLDER`.
+- `vercel inspect VERCEL_DEPLOYMENT_URL_PLACEHOLDER` reported production deployment id `DEPLOYMENT_ID_PLACEHOLDER`, target `production`, status `Ready`, created `Sat May 30 2026 21:09:26 GMT+0800`.
 
 ## Public Custom-Domain Evidence
 

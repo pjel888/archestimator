@@ -11,17 +11,17 @@ Commands:
 ```bash
 vercel env ls --non-interactive
 vercel ls --non-interactive
-vercel inspect https://archestimator-j29iumqi0-philipjonlewis-projects.vercel.app --non-interactive
-vercel curl https://archestimator-j29iumqi0-philipjonlewis-projects.vercel.app/api/health
-curl -sS -i https://archestimator-j29iumqi0-philipjonlewis-projects.vercel.app/api/health
+vercel inspect https://VERCEL_DEPLOYMENT_URL_PLACEHOLDER --non-interactive
+vercel curl https://VERCEL_DEPLOYMENT_URL_PLACEHOLDER/api/health
+curl -sS -i https://VERCEL_DEPLOYMENT_URL_PLACEHOLDER/api/health
 ```
 
 Evidence:
 
 - Vercel CLI: `54.6.1`.
-- `vercel env ls --non-interactive` returned `No Environment Variables found for philipjonlewis-projects/archestimator`.
-- Latest listed preview: `https://archestimator-j29iumqi0-philipjonlewis-projects.vercel.app`, status `Ready`, environment `Preview`.
-- `vercel inspect` reported deployment id `dpl_3UUiMA7Tc6ubJSgckDKBdjGMmnSp`, target `preview`, status `Ready`, created `Tue Jun 02 2026 07:07:46 GMT+0800`.
+- `vercel env ls --non-interactive` returned `No Environment Variables found for VERCEL_SCOPE_PLACEHOLDER/archestimator`.
+- Latest listed preview: `https://VERCEL_DEPLOYMENT_URL_PLACEHOLDER`, status `Ready`, environment `Preview`.
+- `vercel inspect` reported deployment id `DEPLOYMENT_ID_PLACEHOLDER`, target `preview`, status `Ready`, created `Tue Jun 02 2026 07:07:46 GMT+0800`.
 - `vercel curl` to `/api/health` returned `{"ok":true,"service":"archestimator","timestamp":"2026-06-01T23:09:24.738Z"}`.
 - Plain `curl` to `/api/health` returned HTTP `401` with Vercel `Authentication Required`, confirming deployment protection still blocks unauthenticated public health access.
 

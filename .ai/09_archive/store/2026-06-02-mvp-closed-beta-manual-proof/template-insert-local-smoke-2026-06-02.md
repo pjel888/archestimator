@@ -19,7 +19,7 @@ Playwright result: 1 passed in 46.1s.
 
 ## Covered Checks
 
-- Created a throwaway user-owned estimate under the seeded Lewis Residence project.
+- Created a throwaway user-owned estimate under the seeded DEMO_PROJECT_PLACEHOLDER project.
 - Opened the protected estimate workspace through local dev auth.
 - Selected the right-sidebar `Templates` tab.
 - Inserted `Condo Fit-Out Starter` into the `Second Floor` group through the visible `Add` button.

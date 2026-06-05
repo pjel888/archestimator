@@ -5,16 +5,16 @@
   "finding": "Viewer members can mutate library folders",
   "status": "repo_and_linked_supabase_fixed_pending_codex_security_rescan",
   "production_deployment": {
-    "id": "dpl_4HyXChaBFaaYa2EBTDzKMwneFkya",
-    "url": "https://archestimator-3hlx74cyh-philipjonlewis-projects.vercel.app",
+    "id": "DEPLOYMENT_ID_PLACEHOLDER",
+    "url": "https://VERCEL_DEPLOYMENT_URL_PLACEHOLDER",
     "ready_state": "READY",
     "target": "production",
     "aliases": [
       "https://www.archestimator.com",
       "https://archestimator.com",
       "https://archestimator.vercel.app",
-      "https://archestimator-philipjonlewis-projects.vercel.app",
-      "https://archestimator-philipjonlewis-philipjonlewis-projects.vercel.app"
+      "https://archestimator-VERCEL_SCOPE_PLACEHOLDER.vercel.app",
+      "https://VERCEL_DEPLOYMENT_URL_PLACEHOLDER"
     ]
   },
   "repo_fix": {

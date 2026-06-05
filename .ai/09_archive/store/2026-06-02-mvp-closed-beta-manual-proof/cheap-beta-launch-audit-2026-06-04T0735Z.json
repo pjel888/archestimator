@@ -7,7 +7,7 @@
   "officialDocsChecked": {
     "supabaseBackups": "https://supabase.com/docs/guides/platform/backups",
     "supabasePitrUsage": "https://supabase.com/docs/guides/platform/manage-your-usage/point-in-time-recovery",
-    "currentMeaning": "Supabase Pro projects include daily backups; PITR is an optional add-on, currently listed at $100/month for 7-day retention and requiring at least Small compute. Daily backups plus manual logical dumps are the accepted pre-launch MVP path unless Philip explicitly approves the PITR cost."
+    "currentMeaning": "Supabase Pro projects include daily backups; PITR is an optional add-on, currently listed at $100/month for 7-day retention and requiring at least Small compute. Daily backups plus manual logical dumps are the accepted pre-launch MVP path unless OWNER_NAME_PLACEHOLDER explicitly approves the PITR cost."
   },
   "expensiveActionsNotTaken": {
     "enabledSupabasePitr": false,
@@ -21,16 +21,16 @@
   "vercel": {
     "cliVersion": "54.6.1",
     "productionDeployment": {
-      "id": "dpl_6xBegV7JS3WRfZYnN1mWTeY62b38",
+      "id": "DEPLOYMENT_ID_PLACEHOLDER",
       "name": "archestimator",
-      "url": "archestimator-br665yc8u-philipjonlewis-projects.vercel.app",
+      "url": "VERCEL_DEPLOYMENT_URL_PLACEHOLDER",
       "target": "production",
       "aliases": [
         "www.archestimator.com",
         "archestimator.com",
         "archestimator.vercel.app",
-        "archestimator-philipjonlewis-projects.vercel.app",
-        "archestimator-philipjonlewis-philipjonlewis-projects.vercel.app"
+        "archestimator-VERCEL_SCOPE_PLACEHOLDER.vercel.app",
+        "VERCEL_DEPLOYMENT_URL_PLACEHOLDER"
       ]
     },
     "liveHttpProof": {
@@ -123,7 +123,7 @@
       "onlyTesterEmailConfirmed": true,
       "rows": [
         {
-          "normalizedEmail": "philipjonlewis@gmail.com",
+          "normalizedEmail": "OWNER_EMAIL_PLACEHOLDER",
           "status": "active"
         }
       ]
@@ -162,7 +162,7 @@
       "value": "feedback-smtp.ap-northeast-1.amazonses.com",
       "priority": 10,
       "ttl": "Automatic",
-      "warning": "Add this only at the send.contact subdomain; do not alter apex archestimator.com MX forwarding records for support@archestimator.com."
+      "warning": "Add this only at the send.contact subdomain; do not alter apex archestimator.com MX forwarding records for SUPPORT_INBOX_PLACEHOLDER."
     },
     "remainingGaps": [
       "Add missing send.contact MX.",

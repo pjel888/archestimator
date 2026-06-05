@@ -14,7 +14,7 @@
     "head": "8378f4dbb170e9cc7c906987bb7d6a94abafae38",
     "headShort": "8378f4d",
     "fixCommitRecordedPreviously": "ea4aa95",
-    "productionDeploymentRecordedPreviously": "dpl_AinsiY5f2yaS3pED1zGnfKzKumwE",
+    "productionDeploymentRecordedPreviously": "DEPLOYMENT_ID_PLACEHOLDER",
     "projectImageRoute": "src/app/api/projects/images/route.ts uses PROJECT_IMAGE_BUCKET = \"project-images\" and GET requires requireCurrentUserContext() before downloading from private storage.",
     "storageMigrations": [
       "supabase/migrations/20260603222628_private_project_image_storage.sql",

@@ -5,8 +5,8 @@ Status: blocked; no hosted workbook generation proof.
 ## Scope
 
 - Commit inspected: `231c27e2b95291b8c9770e327344ba3809f03f9d`
-- Preview deployment: `dpl_HUvjmre3YPya25GVDir18qHxmfSN`
-- Preview URL: `https://archestimator-41fhr533d-philipjonlewis-projects.vercel.app`
+- Preview deployment: `DEPLOYMENT_ID_PLACEHOLDER`
+- Preview URL: `https://VERCEL_DEPLOYMENT_URL_PLACEHOLDER`
 - Route probed: `/api/projects/[projectId]/estimates/[estimateId]/export/proposal.xlsx`
 - Provider mutation: none
 - Data mutation: none
@@ -28,17 +28,17 @@ Conclusion: a meaningful hosted workbook timing/memory proof requires a logged-i
 Authenticated provider health was already available for this deployment:
 
 ```text
-vercel inspect archestimator-41fhr533d-philipjonlewis-projects.vercel.app --non-interactive
+vercel inspect VERCEL_DEPLOYMENT_URL_PLACEHOLDER --non-interactive
 status: Ready
 
-vercel curl https://archestimator-41fhr533d-philipjonlewis-projects.vercel.app/api/health
+vercel curl https://VERCEL_DEPLOYMENT_URL_PLACEHOLDER/api/health
 {"ok":true,"service":"archestimator","timestamp":"2026-06-02T03:55:59.068Z"}
 ```
 
 Fake-ID export probe:
 
 ```text
-vercel curl https://archestimator-41fhr533d-philipjonlewis-projects.vercel.app/api/projects/00000000-0000-4000-8000-000000000001/estimates/00000000-0000-4000-8000-000000000002/export/proposal.xlsx
+vercel curl https://VERCEL_DEPLOYMENT_URL_PLACEHOLDER/api/projects/UUID_PLACEHOLDER/estimates/UUID_PLACEHOLDER/export/proposal.xlsx
 ```
 
 Observed result:

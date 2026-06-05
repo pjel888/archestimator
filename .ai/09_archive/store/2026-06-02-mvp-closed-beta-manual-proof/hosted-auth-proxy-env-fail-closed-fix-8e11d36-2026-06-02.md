@@ -5,15 +5,15 @@ Status: local proxy fix and verification before redeploy; external closed beta r
 ## Scope
 
 - Baseline commit before fix: `8e11d369b74b953c42591ee241c1e9725ef1e051`.
-- Latest observed Vercel preview before fix: `archestimator-r92lz7qug-philipjonlewis-projects.vercel.app`, deployment `dpl_8kYE4UfAiGCwSXoWp7648buPX4YL`, `READY`.
+- Latest observed Vercel preview before fix: `VERCEL_DEPLOYMENT_URL_PLACEHOLDER`, deployment `DEPLOYMENT_ID_PLACEHOLDER`, `READY`.
 - Production mutations: none.
 
 ## Hosted Finding
 
-- `vercel curl https://archestimator-r92lz7qug-philipjonlewis-projects.vercel.app/api/health` returned app health JSON with `"ok": true`.
-- `vercel curl https://archestimator-r92lz7qug-philipjonlewis-projects.vercel.app/workshop -I` returned HTTP `500`.
-- `vercel curl https://archestimator-r92lz7qug-philipjonlewis-projects.vercel.app/workshop` also returned HTTP `500` with `Internal Server Error`, so the failure was not HEAD-only.
-- `vercel logs archestimator-r92lz7qug-philipjonlewis-projects.vercel.app --since 30m --non-interactive` showed `HEAD /workshop 500` and `GET /api/health 200`, but no stack trace.
+- `vercel curl https://VERCEL_DEPLOYMENT_URL_PLACEHOLDER/api/health` returned app health JSON with `"ok": true`.
+- `vercel curl https://VERCEL_DEPLOYMENT_URL_PLACEHOLDER/workshop -I` returned HTTP `500`.
+- `vercel curl https://VERCEL_DEPLOYMENT_URL_PLACEHOLDER/workshop` also returned HTTP `500` with `Internal Server Error`, so the failure was not HEAD-only.
+- `vercel logs VERCEL_DEPLOYMENT_URL_PLACEHOLDER --since 30m --non-interactive` showed `HEAD /workshop 500` and `GET /api/health 200`, but no stack trace.
 
 ## Root Cause
 

@@ -3,8 +3,8 @@
   "operator": "Codex",
   "proofType": "owner-reported inbox receipt",
   "source": {
-    "reporter": "Philip Lewis",
-    "recipient": "philipjonlewis@gmail.com",
+    "reporter": "OWNER_NAME_PLACEHOLDER",
+    "recipient": "OWNER_EMAIL_PLACEHOLDER",
     "reportChannel": "Codex thread"
   },
   "message": {

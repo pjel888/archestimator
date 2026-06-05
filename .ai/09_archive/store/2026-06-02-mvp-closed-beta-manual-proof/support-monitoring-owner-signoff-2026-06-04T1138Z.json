@@ -8,10 +8,10 @@
     "SUPPORT_MONITORING_ERROR_ALERT_CONFIRMED": true,
     "SUPPORT_MONITORING_INCIDENT_ESCALATION_CONFIRMED": true
   },
-  "supportOwner": "Philip Lewis",
-  "alertOwner": "Philip Lewis",
-  "first24HourReviewOwner": "Philip Lewis",
-  "first72HourReviewOwner": "Philip Lewis",
+  "supportOwner": "OWNER_NAME_PLACEHOLDER",
+  "alertOwner": "OWNER_NAME_PLACEHOLDER",
+  "first24HourReviewOwner": "OWNER_NAME_PLACEHOLDER",
+  "first72HourReviewOwner": "OWNER_NAME_PLACEHOLDER",
   "missing": [],
   "supportMonitoringReady": true,
   "note": "Sanitized support monitoring readiness check. It records operator-confirmed proof flags and owner labels only; it does not verify inbox access, alert dashboards, linked feedback rows, hosted auth, or incident delivery by itself."

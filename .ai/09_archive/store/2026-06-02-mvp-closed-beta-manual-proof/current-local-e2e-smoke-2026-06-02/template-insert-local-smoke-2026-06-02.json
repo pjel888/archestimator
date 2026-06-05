@@ -1,5 +1,5 @@
 {
-  "route": "/workshop/projects/22222222-2222-4222-8222-222222222222/estimates/ec085f78-d585-441f-b444-5d9f877cd027",
+  "route": "/workshop/projects/PROJECT_ID_PLACEHOLDER/estimates/UUID_PLACEHOLDER",
   "templateName": "Condo Fit-Out Starter",
   "targetGroupName": "Second Floor",
   "before": {

@@ -6,16 +6,16 @@
     "url": "https://www.archestimator.com",
     "browser": "Google Chrome profile Philip",
     "authState": "already-authenticated owner session",
-    "testerEmail": "philipjonlewis@gmail.com"
+    "testerEmail": "OWNER_EMAIL_PLACEHOLDER"
   },
   "journey": {
     "startUrl": "https://archestimator.com/workshop",
     "project": {
-      "name": "Tropical House",
-      "projectId": "a04459eb-cd96-4bd5-b579-15143a2491ef",
-      "observedCode": "YJBXSRED",
-      "observedClient": "Developer",
-      "observedAddress": "Metro Manila",
+      "name": "OWNER_BETA_PROJECT_PLACEHOLDER",
+      "projectId": "PROJECT_ID_PLACEHOLDER",
+      "observedCode": "PROJECT_CODE_PLACEHOLDER",
+      "observedClient": "CUSTOMER_LABEL_PLACEHOLDER",
+      "observedAddress": "PROJECT_ADDRESS_PLACEHOLDER",
       "markers": [
         "Project navigation",
         "Dashboard",
@@ -27,11 +27,11 @@
       ]
     },
     "estimateList": {
-      "url": "https://www.archestimator.com/workshop/projects/a04459eb-cd96-4bd5-b579-15143a2491ef/estimates",
+      "url": "https://www.archestimator.com/workshop/projects/PROJECT_ID_PLACEHOLDER/estimates",
       "mutation": "Created first estimate sheet from the hosted production UI",
-      "createdSheetCode": "ES-001",
-      "createdSheetName": "ES-001 Estimate Sheet",
-      "createdSheetId": "57b7f3e2-4fea-43e0-a9a9-a971a00f4ec9",
+      "createdSheetCode": "ESTIMATE_CODE_PLACEHOLDER",
+      "createdSheetName": "ESTIMATE_SHEET_PLACEHOLDER",
+      "createdSheetId": "ESTIMATE_ID_PLACEHOLDER",
       "visibleMarkers": [
         "Search Estimate Sheets",
         "Create Estimate Sheet",
@@ -42,14 +42,14 @@
       ]
     },
     "estimateWorkspace": {
-      "url": "https://www.archestimator.com/workshop/projects/a04459eb-cd96-4bd5-b579-15143a2491ef/estimates/57b7f3e2-4fea-43e0-a9a9-a971a00f4ec9",
+      "url": "https://www.archestimator.com/workshop/projects/PROJECT_ID_PLACEHOLDER/estimates/ESTIMATE_ID_PLACEHOLDER",
       "visibleMarkers": [
-        "ES-001 TROPICAL HOUSE ES-001 ESTIMATE SHEET",
+        "ESTIMATE_CODE_PLACEHOLDER TROPICAL HOUSE ESTIMATE_CODE_PLACEHOLDER ESTIMATE SHEET",
         "Tree",
         "Project Scope",
         "General Requirements",
         "Site Works",
-        "Tropical House",
+        "OWNER_BETA_PROJECT_PLACEHOLDER",
         "Ground Floor",
         "Project-wide",
         "Main estimate sheet",
@@ -66,13 +66,13 @@
       "visibleMarkers": [
         "Read-only Excel preview",
         "Download editable XLSX",
-        "Tropical House",
-        "ES-001 - ES-001 Estimate Sheet",
+        "OWNER_BETA_PROJECT_PLACEHOLDER",
+        "ESTIMATE_CODE_PLACEHOLDER - ESTIMATE_SHEET_PLACEHOLDER",
         "0 consolidated BOQ rows",
         "GRAND TOTAL",
         "PHP 0.00"
       ],
-      "downloadLinkObserved": "https://www.archestimator.com/api/projects/a04459eb-cd96-4bd5-b579-15143a2491ef/estimates/b297083d-9492-400e-baf8-038b2efeed1f/export/proposal.xlsx"
+      "downloadLinkObserved": "https://www.archestimator.com/api/projects/PROJECT_ID_PLACEHOLDER/estimates/EXPORT_ESTIMATE_ID_PLACEHOLDER/export/proposal.xlsx"
     }
   },
   "result": {
@@ -88,7 +88,7 @@
   "boundaries": [
     "No API keys, OAuth tokens, cookies, service-role keys, webhook secrets, or email message bodies are recorded.",
     "This artifact uses the existing owner Chrome session and does not prove a second Google account, denied user, revoked user, expired session, or logout path.",
-    "Creating ES-001 was a deliberate hosted production beta smoke mutation in the owner project.",
+    "Creating ESTIMATE_CODE_PLACEHOLDER was a deliberate hosted production beta smoke mutation in the owner project.",
     "The export preview was opened, but no XLSX app open/recalc/print proof was collected in this artifact.",
     "Automatic shared-link/invite email workflow smoke remains separate even though Resend provider delivery and webhook proof exist."
   ]

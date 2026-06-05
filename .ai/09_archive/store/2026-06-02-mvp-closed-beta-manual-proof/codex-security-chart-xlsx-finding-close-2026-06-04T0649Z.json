@@ -12,13 +12,13 @@
   "dashboard_action": {
     "status": "closed",
     "reason": "Already fixed",
-    "closed_by": "philipjonlewis@gmail.com",
+    "closed_by": "OWNER_EMAIL_PLACEHOLDER",
     "closure_url": "https://chatgpt.com/codex/cloud/security/findings/bea3b0866e44819193f3da54b6124e16?repo=pjel888%2Farchestimator",
     "direct_revisit_result": "Revisiting the original finding shows a Reopen control.",
     "open_list_after": "The first page no longer includes the chart/XLSX finding, still shows 1-20 of 35, and pulled Confidential client proposal committed to repository into the visible page.",
     "submitted_context_summary": [
       "Current main bc19695b8b830cb10c94d9e04e01074913352d76 was ahead of the old vulnerable commit.",
-      "Fix commit 0e5dfff added bounded chart and XLSX loading and had production deployment dpl_3zUJ5kvqkT9QUA75boNcGA75Ref8 recorded.",
+      "Fix commit 0e5dfff added bounded chart and XLSX loading and had production deployment DEPLOYMENT_ID_PLACEHOLDER recorded.",
       "The XLSX route now passes maxNodeCount=1200 and maxRowItemCount=3000 into getProjectEstimateTreeByEstimate before model/workbook creation.",
       "The XLSX route returns HTTP 413 on node/row sentinel overflow before buildProposalExportModel or createProposalWorkbookBuffer runs.",
       "The shared tree loader applies limit(max+1) sentinel reads only for callers that pass explicit limits.",
@@ -29,7 +29,7 @@
   "repo_evidence": {
     "current_main_at_closure": "bc19695b8b830cb10c94d9e04e01074913352d76",
     "fix_commit": "0e5dfff",
-    "production_deployment": "dpl_3zUJ5kvqkT9QUA75boNcGA75Ref8",
+    "production_deployment": "DEPLOYMENT_ID_PLACEHOLDER",
     "files_checked": [
       "src/app/api/projects/[projectId]/estimates/[estimateId]/export/proposal.xlsx/route.ts",
       "src/lib/repositories/workspace-repository.ts",

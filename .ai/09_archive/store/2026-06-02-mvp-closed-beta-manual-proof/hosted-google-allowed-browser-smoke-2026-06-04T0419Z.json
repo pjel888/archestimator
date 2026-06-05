@@ -4,7 +4,7 @@
   "baseUrl": "https://www.archestimator.com",
   "profileUrl": "https://www.archestimator.com/workshop/settings/profile",
   "browserProfile": "Philip",
-  "allowedEmail": "philipjonlewis@gmail.com",
+  "allowedEmail": "OWNER_EMAIL_PLACEHOLDER",
   "result": {
     "title": "Archestimator | Quote, Proposal & Estimate Workspace",
     "hasProfileSettings": true,
@@ -14,8 +14,8 @@
     "passed": true
   },
   "visibleTextEvidence": [
-    "Philip Lewis",
-    "philipjonlewis@gmail.com",
+    "OWNER_NAME_PLACEHOLDER",
+    "OWNER_EMAIL_PLACEHOLDER",
     "Workshop",
     "Profile settings",
     "Send beta feedback"

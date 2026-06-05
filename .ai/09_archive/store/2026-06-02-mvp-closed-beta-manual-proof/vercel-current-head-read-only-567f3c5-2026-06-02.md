@@ -7,8 +7,8 @@ Status: Partial/blocked. Current `main` preview is Ready, but this is not produc
 - Repository: `/Users/philiplewis/archestimator`
 - Local/remote head: `567f3c5ad3547fdd349c5c14ef255e691e1f16a3`
 - Vercel CLI: `54.6.1`
-- Vercel user: `philipjonlewis`
-- Linked project: `.vercel/project.json` points to project `archestimator`, project id `prj_QTjX1WrMb7b0ZxmMIRAL96ILRY9E`, org id `team_eRuwqQwhMbYYDmvgIgpQW1GS`
+- Vercel user: `OWNER_HANDLE_PLACEHOLDER`
+- Linked project: `.vercel/project.json` points to project `archestimator`, project id `VERCEL_PROJECT_ID_PLACEHOLDER`, org id `VERCEL_TEAM_ID_PLACEHOLDER`
 - Provider posture: read-only. No `vercel deploy`, `promote`, `alias set`, `env add`, `rollback`, or protection change was run.
 
 ## Commands And Results
@@ -24,8 +24,8 @@ vercel list --format json --non-interactive
 Current top deployments:
 
 ```text
-READY  archestimator-phs8e66w1-philipjonlewis-projects.vercel.app  567f3c5ad3547fdd349c5c14ef255e691e1f16a3  main  archestimator-git-main-philipjonlewis-projects.vercel.app
-READY  archestimator-ezkkovv41-philipjonlewis-projects.vercel.app  08a58dd1b0496e30fd0a0583f59aa80be39b5467  main  archestimator-git-main-philipjonlewis-projects.vercel.app
+READY  VERCEL_DEPLOYMENT_URL_PLACEHOLDER  567f3c5ad3547fdd349c5c14ef255e691e1f16a3  main  VERCEL_DEPLOYMENT_URL_PLACEHOLDER
+READY  VERCEL_DEPLOYMENT_URL_PLACEHOLDER  08a58dd1b0496e30fd0a0583f59aa80be39b5467  main  VERCEL_DEPLOYMENT_URL_PLACEHOLDER
 ```
 
 ### Current preview inspect
@@ -33,25 +33,25 @@ READY  archestimator-ezkkovv41-philipjonlewis-projects.vercel.app  08a58dd1b0496
 Command:
 
 ```bash
-vercel inspect archestimator-phs8e66w1-philipjonlewis-projects.vercel.app
+vercel inspect VERCEL_DEPLOYMENT_URL_PLACEHOLDER
 ```
 
 Result:
 
-- Deployment id: `dpl_3Q8s2oTgL1KDDi5Z131BwiCRgQ5P`
+- Deployment id: `DEPLOYMENT_ID_PLACEHOLDER`
 - Target: `preview`
 - Status: `Ready`
-- URL: `https://archestimator-phs8e66w1-philipjonlewis-projects.vercel.app`
+- URL: `https://VERCEL_DEPLOYMENT_URL_PLACEHOLDER`
 - Created: `Tue Jun 02 2026 10:07:49 GMT+0800`
-- Branch alias: `https://archestimator-git-main-philipjonlewis-projects.vercel.app`
+- Branch alias: `https://VERCEL_DEPLOYMENT_URL_PLACEHOLDER`
 
 ### Protected health proof
 
 Commands:
 
 ```bash
-vercel curl https://archestimator-phs8e66w1-philipjonlewis-projects.vercel.app/api/health
-vercel curl https://archestimator-git-main-philipjonlewis-projects.vercel.app/api/health
+vercel curl https://VERCEL_DEPLOYMENT_URL_PLACEHOLDER/api/health
+vercel curl https://VERCEL_DEPLOYMENT_URL_PLACEHOLDER/api/health
 ```
 
 Result:
@@ -66,8 +66,8 @@ Result:
 Command:
 
 ```bash
-curl -I -sS https://archestimator-phs8e66w1-philipjonlewis-projects.vercel.app/api/health
-curl -I -sS https://archestimator-git-main-philipjonlewis-projects.vercel.app/api/health
+curl -I -sS https://VERCEL_DEPLOYMENT_URL_PLACEHOLDER/api/health
+curl -I -sS https://VERCEL_DEPLOYMENT_URL_PLACEHOLDER/api/health
 ```
 
 Result:
@@ -88,7 +88,7 @@ vercel env ls --non-interactive
 Result:
 
 ```text
-No Environment Variables found for philipjonlewis-projects/archestimator
+No Environment Variables found for VERCEL_SCOPE_PLACEHOLDER/archestimator
 ```
 
 ### Custom domains and production deployment
@@ -98,7 +98,7 @@ Commands:
 ```bash
 vercel alias ls --non-interactive
 vercel domains ls --non-interactive
-vercel inspect archestimator-3ser9ty2w-philipjonlewis-projects.vercel.app
+vercel inspect VERCEL_DEPLOYMENT_URL_PLACEHOLDER
 curl -I -sS https://archestimator.com/api/health
 curl -I -sS https://www.archestimator.com/api/health
 curl -I -sS https://archestimator.vercel.app/api/health
@@ -106,8 +106,8 @@ curl -I -sS https://archestimator.vercel.app/api/health
 
 Result:
 
-- `archestimator.com`, `www.archestimator.com`, and `archestimator.vercel.app` are still aliased to `archestimator-3ser9ty2w-philipjonlewis-projects.vercel.app`.
-- That deployment is production deployment `dpl_FwfHexBsB1xSHDqHqFwHSYpCYTVH`, created `Sat May 30 2026 21:09:26 GMT+0800`.
+- `archestimator.com`, `www.archestimator.com`, and `archestimator.vercel.app` are still aliased to `VERCEL_DEPLOYMENT_URL_PLACEHOLDER`.
+- That deployment is production deployment `DEPLOYMENT_ID_PLACEHOLDER`, created `Sat May 30 2026 21:09:26 GMT+0800`.
 - `https://archestimator.com/api/health` redirects to `https://www.archestimator.com/api/health`.
 - `https://www.archestimator.com/api/health` returns HTTP `404`.
 - `https://archestimator.vercel.app/api/health` returns HTTP `404`.

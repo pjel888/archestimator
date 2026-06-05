@@ -48,6 +48,6 @@ This lane can be strengthened beyond synthetic Google Sheets without client-data
 ## Delegation / Integration Notes
 
 - Subagents spawned: 3 review probes before further serial repo search, per Task 3 delegation contract.
-- Completed workbook-relevant probes integrated: `019e952a-dfab-7952-9537-4d4f4c11c039` and `019e952a-e8ed-74c2-a149-2a3d45680e39`.
-- Non-workbook sidecar closed after the leader lane override: `019e952a-e4e5-7912-a781-0cf1f691d35b`.
+- Completed workbook-relevant probes integrated: `UUID_PLACEHOLDER` and `UUID_PLACEHOLDER`.
+- Non-workbook sidecar closed after the leader lane override: `UUID_PLACEHOLDER`.
 - Findings integrated: current gate is partial-go; hosted bytes and synthetic Google Sheets are proven; native/real workbook app proof plus hosted timing/deeper workbook assertions remain the safe next proof targets.

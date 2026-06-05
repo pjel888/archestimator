@@ -10,12 +10,12 @@
   },
   "target": {
     "baseUrl": "https://www.archestimator.com",
-    "projectId": "22222222-2222-4222-8222-222222222222",
-    "selectedNodeIdFromBrowserRoute": "a9c512cb-d3a3-44e3-b6df-fa5a29278584",
-    "resolvedEstimateId": "33333333-3333-4333-8333-333333333333",
-    "estimateSheetCode": "ES-001",
-    "estimateName": "Lewis Residence - 001",
-    "route": "/api/projects/22222222-2222-4222-8222-222222222222/estimates/33333333-3333-4333-8333-333333333333/export/proposal.xlsx"
+    "projectId": "PROJECT_ID_PLACEHOLDER",
+    "selectedNodeIdFromBrowserRoute": "ESTIMATE_ID_PLACEHOLDER",
+    "resolvedEstimateId": "PROJECT_ID_PLACEHOLDER",
+    "estimateSheetCode": "ESTIMATE_CODE_PLACEHOLDER",
+    "estimateName": "DEMO_PROJECT_PLACEHOLDER - 001",
+    "route": "/api/projects/PROJECT_ID_PLACEHOLDER/estimates/PROJECT_ID_PLACEHOLDER/export/proposal.xlsx"
   },
   "browserProof": {
     "tool": "Computer Use against Google Chrome owner session",
@@ -25,15 +25,15 @@
     "previewRowsText": "55 consolidated BOQ rows",
     "previewGrandTotalObserved": "PHP 4,078,914.00",
     "downloadCompleted": true,
-    "downloadFileName": "AE-LR-001-ES-001-proposal.xlsx",
+    "downloadFileName": "DEMO_PROJECT_CODE_PLACEHOLDER-ESTIMATE_CODE_PLACEHOLDER-proposal.xlsx",
     "rawWorkbookCopiedIntoRepository": false
   },
   "supabaseReadback": {
     "queryType": "read-only selected node to estimate mapping",
-    "selectedNodeId": "a9c512cb-d3a3-44e3-b6df-fa5a29278584",
-    "estimateId": "33333333-3333-4333-8333-333333333333",
-    "sheetCode": "ES-001",
-    "projectId": "22222222-2222-4222-8222-222222222222"
+    "selectedNodeId": "ESTIMATE_ID_PLACEHOLDER",
+    "estimateId": "PROJECT_ID_PLACEHOLDER",
+    "sheetCode": "ESTIMATE_CODE_PLACEHOLDER",
+    "projectId": "PROJECT_ID_PLACEHOLDER"
   },
   "unauthenticatedControl": {
     "status": 307,

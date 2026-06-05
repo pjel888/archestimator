@@ -51,8 +51,8 @@
   "productionDeployment": {
     "verifiedAt": "2026-06-04T03:17:37Z",
     "command": "vercel deploy --prod --yes",
-    "id": "dpl_CyfR2LA7vMLqR9sDMncgxbgVbcRj",
-    "url": "https://archestimator-bssps9fmb-philipjonlewis-projects.vercel.app",
+    "id": "DEPLOYMENT_ID_PLACEHOLDER",
+    "url": "https://VERCEL_DEPLOYMENT_URL_PLACEHOLDER",
     "readyState": "READY",
     "target": "production",
     "aliases": [

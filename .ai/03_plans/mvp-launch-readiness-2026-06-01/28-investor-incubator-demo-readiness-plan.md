@@ -26,10 +26,10 @@ Archestimator helps design/construction teams move from messy estimating inputs 
 | --- | --- |
 | Demo account | Dedicated account, no real client data, credentials stored outside repo. |
 | Demo workspace | Resettable, named clearly as sample/demo. Local seed anchor: `Archestimator Demo Workspace` in `supabase/seed.sql`. |
-| Seed project | Realistic residential/commercial sample with location, client/owner, scope notes. Local seed anchor: `Lewis Residence`, project code `AE-LR-001`, Quezon City, PHP. |
+| Seed project | Realistic residential/commercial sample with location, client/owner, scope notes. Local seed anchor: `DEMO_PROJECT_PLACEHOLDER`, project code `DEMO_PROJECT_CODE_PLACEHOLDER`, PROJECT_CITY_PLACEHOLDER, PHP. |
 | Seed component library | Image-backed, category/supplier/unit/cost fields realistic. |
 | Seed templates | Trade-realistic templates with sections/rows. |
-| Sample estimate | Enough rows to show tree, grid, totals, Activity/history. Local seed anchor: `Lewis Residence Baseline Estimate`, `Rev 0`, with seeded row items across site works, architectural finishes, roof, and plumbing. |
+| Sample estimate | Enough rows to show tree, grid, totals, Activity/history. Local seed anchor: `DEMO_PROJECT_PLACEHOLDER Baseline Estimate`, `Rev 0`, with seeded row items across site works, architectural finishes, roof, and plumbing. |
 | Detached row demo | Linked row detached/project-specific with library unchanged. Local seed includes one `linked-clean` tile row and one `detached` paint row with preserved `source_snapshot`. |
 | Excel export | Fresh authorized workbook export plus sanitized readback evidence. |
 | Screenshots/fallback | Landing, workshop, estimate, library, templates, export preview, final workbook. |
@@ -40,11 +40,11 @@ Use `supabase db reset` only against local/staging disposable data, never produc
 
 | Anchor | Value |
 | --- | --- |
-| Workspace | `11111111-1111-4111-8111-111111111111` / `Archestimator Demo Workspace` |
-| Project | `22222222-2222-4222-8222-222222222222` / `Lewis Residence` |
-| Estimate | `33333333-3333-4333-8333-333333333333` / `Lewis Residence Baseline Estimate` |
-| Linked row | `66666666-6666-4666-8666-666666666662` / `600x600 Porcelain Floor Tile` / `linked-clean` |
-| Project-specific row | `66666666-6666-4666-8666-666666666663` / `Master bedroom low-VOC paint system` / `detached` |
+| Workspace | `UUID_PLACEHOLDER` / `Archestimator Demo Workspace` |
+| Project | `PROJECT_ID_PLACEHOLDER` / `DEMO_PROJECT_PLACEHOLDER` |
+| Estimate | `PROJECT_ID_PLACEHOLDER` / `DEMO_PROJECT_PLACEHOLDER Baseline Estimate` |
+| Linked row | `UUID_PLACEHOLDER` / `600x600 Porcelain Floor Tile` / `linked-clean` |
+| Project-specific row | `UUID_PLACEHOLDER` / `Master bedroom low-VOC paint system` / `detached` |
 | Manual rows | Site grading, roof framing/waterproofing, and plumbing fixture allowance rows |
 
 ## Demo Rehearsal Checklist
@@ -52,7 +52,7 @@ Use `supabase db reset` only against local/staging disposable data, never produc
 1. Add reviewer email to `closed_beta_allowed_emails` in the target environment.
 2. Confirm `CLOSED_BETA_ACCESS_ENABLED=true`, `ARCHESTIMATOR_AI_ENABLED=false`, and `NEXT_PUBLIC_ASK_FLIP_UI_ENABLED=false`.
 3. Load or recreate the demo workspace from `supabase/seed.sql` in a disposable environment.
-4. Open `Lewis Residence` and `Lewis Residence Baseline Estimate`.
+4. Open `DEMO_PROJECT_PLACEHOLDER` and `DEMO_PROJECT_PLACEHOLDER Baseline Estimate`.
 5. Show the estimate tree with seeded rows and totals.
 6. Show the linked tile row, then demonstrate a project-specific row using the detached paint row.
 7. Insert one component and one template if using a writable rehearsal environment.

@@ -22,7 +22,7 @@ Result: partial/local documentation pass. The runbook gives operators concrete p
 - Manual invite template: subject, login URL, invited Google email, beta scope, feedback link, support email, legal links, and no-payment note.
 - Feedback operations: protected `/workshop/feedback`, platform-admin `/workshop/settings/feedback`, `beta_feedback_submissions`, and support email review.
 - Bug triage: P0/P1/P2/P3 severity definitions with response expectations.
-- Pause controls: stop new invites, revoke non-Philip rows when needed, disable request-access CTAs if load is too high, and avoid weakening access enforcement as a normal pause path.
+- Pause controls: stop new invites, revoke non-OWNER_NAME_PLACEHOLDER rows when needed, disable request-access CTAs if load is too high, and avoid weakening access enforcement as a normal pause path.
 - Rollback: Vercel rollback first for deployment failures; no destructive database rollback without backup/export and reviewed migration rollback.
 - First 24/72-hour checks: health, auth, workspace/project/estimate smoke, export, feedback review, support inbox, Vercel logs, Supabase logs, and pricing/payment surface check.
 

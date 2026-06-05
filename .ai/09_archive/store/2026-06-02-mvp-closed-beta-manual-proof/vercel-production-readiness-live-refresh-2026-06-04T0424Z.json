@@ -2,13 +2,13 @@
   "generatedAt": "2026-06-04T04:23:20.547Z",
   "mode": "vercel-production-readiness",
   "currentDeployment": {
-    "id": "dpl_CyfR2LA7vMLqR9sDMncgxbgVbcRj",
-    "url": "archestimator-bssps9fmb-philipjonlewis-projects.vercel.app",
+    "id": "DEPLOYMENT_ID_PLACEHOLDER",
+    "url": "VERCEL_DEPLOYMENT_URL_PLACEHOLDER",
     "target": "production",
     "readyState": "READY",
     "aliases": [
-      "archestimator-philipjonlewis-philipjonlewis-projects.vercel.app",
-      "archestimator-philipjonlewis-projects.vercel.app",
+      "VERCEL_DEPLOYMENT_URL_PLACEHOLDER",
+      "archestimator-VERCEL_SCOPE_PLACEHOLDER.vercel.app",
       "archestimator.com",
       "archestimator.vercel.app",
       "www.archestimator.com"
@@ -22,17 +22,17 @@
   "aliasMappings": [
     {
       "domain": "archestimator.com",
-      "source": "archestimator-bssps9fmb-philipjonlewis-projects.vercel.app",
+      "source": "VERCEL_DEPLOYMENT_URL_PLACEHOLDER",
       "matchesCurrentDeployment": true
     },
     {
       "domain": "archestimator.vercel.app",
-      "source": "archestimator-bssps9fmb-philipjonlewis-projects.vercel.app",
+      "source": "VERCEL_DEPLOYMENT_URL_PLACEHOLDER",
       "matchesCurrentDeployment": true
     },
     {
       "domain": "www.archestimator.com",
-      "source": "archestimator-bssps9fmb-philipjonlewis-projects.vercel.app",
+      "source": "VERCEL_DEPLOYMENT_URL_PLACEHOLDER",
       "matchesCurrentDeployment": true
     }
   ],

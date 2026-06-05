@@ -6,16 +6,16 @@
   "status": "repo_fixed_and_deployed_pending_codex_security_rescan",
   "repo_fix_commit": "0e5dfff",
   "production_deployment": {
-    "id": "dpl_3zUJ5kvqkT9QUA75boNcGA75Ref8",
-    "url": "https://archestimator-7ixkqkx7m-philipjonlewis-projects.vercel.app",
+    "id": "DEPLOYMENT_ID_PLACEHOLDER",
+    "url": "https://VERCEL_DEPLOYMENT_URL_PLACEHOLDER",
     "ready_state": "READY",
     "target": "production",
     "aliases": [
       "https://www.archestimator.com",
       "https://archestimator.com",
       "https://archestimator.vercel.app",
-      "https://archestimator-philipjonlewis-projects.vercel.app",
-      "https://archestimator-philipjonlewis-philipjonlewis-projects.vercel.app"
+      "https://archestimator-VERCEL_SCOPE_PLACEHOLDER.vercel.app",
+      "https://VERCEL_DEPLOYMENT_URL_PLACEHOLDER"
     ]
   },
   "implemented_controls": [
