@@ -52,6 +52,20 @@ Accepted staging proof must include: source SHA, deployment URL/id, environment 
 ## Staging creation prerequisite
 
 Do not create/protect `staging` until CI is re-enabled and at least one current CI run is green or a temporary advisory-only exception is explicitly accepted.
+
+## Current advisory staging status
+
+On 2026-06-05 08:47Z, `origin/staging` was created from the then-current
+`origin/main` SHA `07110b9fd5bd8a41890f5e4eaa2fdc14d0aefd1a` under the
+temporary advisory-only exception. Branch-bootstrap closeout keeps
+`origin/staging` fast-forwarded with `origin/main`; verify live with
+`git rev-list --left-right --count origin/main...origin/staging`. GitHub API
+proof reported `staging protected:false`.
+
+This does **not** satisfy Phase D protection, required checks, hosted staging,
+or release proof. It only gives Mac mini and MacBook Pro agents a shared
+integration branch name to target by PR once the PR workflow is active. Agents
+still must not direct-edit `main` or `staging`; use scoped task branches first.
 <!-- 98-100-UPGRADE:START -->
 ## Branch protection invariants
 

@@ -79,3 +79,39 @@ OMX Team `read-only-audit-only-b6760d5e` completed 3/3 read-only tasks, then shu
 - This addendum narrows future execution to phase-specific prompts, documents manual preview/staging deployment evidence while Vercel Git deploys remain disabled, and requires always-present/aggregator check topology before branch-protection enforcement.
 - Official reference refresh: Vercel CLI docs describe `--prod` deployment and `vercel promote <deployment-url>`; GitHub Actions docs require careful handling of always-present required contexts and `always()`/conditional semantics before making checks blocking.
 <!-- REVIEW-FIX-2026-06-05:END -->
+<!-- STAGING-ADVISORY-2026-06-05:START -->
+## 2026-06-05 08:47Z advisory staging branch evidence
+
+The owner asked whether the agentic-development docs require a staging/testing
+branch and to implement the safe required change. Fresh audit found:
+
+- `git fetch --prune origin`: completed; Git still reports a non-blocking
+  `.git/gc.log` loose-object maintenance warning.
+- `gh workflow list --repo pjel888/archestimator --all`:
+  `CI disabled_manually 277898857`.
+- `gh run list --repo pjel888/archestimator --limit 20`: latest listed CI runs
+  are May 18 failures; no current green June 5 CI proof exists.
+- `gh api repos/pjel888/archestimator/branches/main --jq '{name,protected,commit:{sha:.commit.sha}}'`:
+  `main protected:false` at
+  `07110b9fd5bd8a41890f5e4eaa2fdc14d0aefd1a`.
+- `gh api repos/pjel888/archestimator/branches/staging`: initially `404 Branch
+  not found`.
+- `gh api repos/pjel888/archestimator/rulesets` and
+  `.../branches/main/protection`: 403 GitHub Pro/public-repo capability
+  blocker.
+- `git push origin origin/main:refs/heads/staging`: created `staging` from
+  current `origin/main`.
+- `git rev-parse origin/main` and `git rev-parse origin/staging`: both returned
+  `07110b9fd5bd8a41890f5e4eaa2fdc14d0aefd1a`.
+- `git rev-list --left-right --count origin/main...origin/staging`: `0 0`.
+- `gh api repos/pjel888/archestimator/branches/staging --jq '{name,protected,commit:{sha:.commit.sha}}'`:
+  `staging protected:false` at the same SHA.
+
+Conclusion: `origin/staging` now exists as an advisory-only integration branch.
+Branch-bootstrap closeout keeps it fast-forwarded with `origin/main`; future
+agents must verify live branch parity rather than trusting this timestamped
+appendix. No required checks, branch protection, hosted staging deployment, CI
+reactivation, Vercel setting, Supabase, Resend, DNS, or production alias changed
+in this branch-bootstrap pass. Phase A CI restoration and Phase D protection
+remain open.
+<!-- STAGING-ADVISORY-2026-06-05:END -->
