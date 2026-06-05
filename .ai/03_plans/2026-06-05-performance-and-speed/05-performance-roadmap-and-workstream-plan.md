@@ -169,9 +169,10 @@ Treat `cacheComponents`, `inlineCss`, `cssChunking`, and React Compiler changes 
   - Start from `workspace-repository.ts`, `component-library-repository.ts`, `project-charts-repository.ts`, and publication repositories.
   - 2026-06-06 local evidence: `evidence/2026-06-06-query-inventory-repo-only.md` from `bun run dbidx:audit-repo` captured 262 repo query references and 103 migration index statements. Follow-up per-route inventory evidence at `evidence/2026-06-06-per-route-query-inventory.md` / `.json` groups the same 262 table/RPC references into 7 route buckets and records selected-column payload shape/counts. Live/provider metrics, row counts, RLS cost, and EXPLAIN remain open for Step 5.2.
 
-- [ ] **Step 5.2: Run live EXPLAIN/provider proof before migration proposals**
+- [x] **Step 5.2: Run live EXPLAIN/provider proof before migration proposals**
   - Use the existing database-indexing plan as canonical input.
   - Do not add indexes or RPC rewrites without staging/live EXPLAIN and owner-approved migration plan.
+  - 2026-06-06 live provider evidence: `evidence/2026-06-06-live-supabase-explain-provider-proof.md` captures Supabase table stats, `pg_stat_statements`, focused EXPLAIN plans, and advisor findings. Decision: no indexes, RPC rewrites, or query-consolidation migrations are justified for current closed-beta data; RLS/advisor optimization requires separate security/owner-approved migration review.
 
 - [x] **Step 5.3: Consolidate only proven query fan-out**
   - Candidate: project publication summary helper reads, share activity recipient display-name lookup, estimate tree load limits.
