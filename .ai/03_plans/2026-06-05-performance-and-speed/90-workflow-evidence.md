@@ -194,3 +194,13 @@ Superseding inventory after final readiness pass: root markdown files = 36; evid
 - Ran a Playwright non-home navigation smoke under `next start` on port 3047; `/features` direct load and header navigation to `/pricing` and `/contact` passed, with only the known local `/_vercel/insights/script.js` 404 ignored.
 - Result: `/features` improved to 92/92, `/pricing` improved to 89/92, and `/contact` stayed score-stable at 89/89 in this local run; TBT was 12-14.5ms across all non-home after-traces and CLS stayed 0.
 - Completion language: **IMPLEMENTED LOCALLY / PROVIDER PROOF OPEN**.
+
+## Public image/font LCP audit — 2026-06-06
+
+- Removed unused root `next/font` families from `src/app/layout.tsx`: public routes now register only `Inter` and `Roboto_Mono` variables.
+- Removed unused global font aliases for Poppins and Source Serif from `src/app/globals.css`.
+- Added `tests/vitest/public-font-lcp-audit.test.ts` to lock the no-unused-root-font/no-image-preload decision against the captured public Lighthouse baseline.
+- Ran local mobile Lighthouse after-traces for `/` and `/features` consent-off under `next start` on port 3048; evidence lives in `evidence/public-image-font-lcp-audit-2026-06-06/`.
+- Result: built CSS contains Inter and Roboto Mono only (`containsPoppins=false`, `containsSourceSerif=false`); `/features` improved locally (score 89 -> 92, LCP 3782.31ms -> 3322.06ms) and `/` improved score/TBT with roughly stable LCP in this sample.
+- No image preload/Next Image change was made because current public evidence did not identify an image LCP candidate; the measured image request is the small logo SVG.
+- Completion language: **LOCAL FONT SURFACE REDUCED / PROVIDER PROOF OPEN**.
