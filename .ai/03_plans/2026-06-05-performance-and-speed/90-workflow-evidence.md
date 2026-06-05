@@ -312,3 +312,12 @@ Superseding inventory after final readiness pass: root markdown files = 36; evid
 - Closed locally: marketing visual graceful degradation, GA/Clarity post-consent loading decision, no global Next/React experimental toggles, auth/proxy no-change review, and tokenized/share cache-header invariants.
 - Still open: Speed Insights p75/dashboard route-device metrics, Speed Insights-window comparison, signed-in auth fixture waterfall, and hosted authenticated export benchmark.
 - Completion language: **LOCAL DECISION GATES RECONCILED / PROVIDER GATES STILL OPEN**.
+
+## Hosted auth route smoke benchmark harness — 2026-06-06
+
+- Extended `scripts/verify-hosted-auth-routes.ts` from one-shot smoke to sanitized benchmark mode with `HOSTED_AUTH_RUNS`, JSON `samples`, min/average/max duration fields, and optional `MARKDOWN_FILE` output.
+- Preserved failure-closed behavior when allowed/denied/revoked/expired session cookies are missing; auth cookies and platform bypass headers are still never written to reports.
+- Added focused coverage in `tests/vitest/hosted-auth-route-smoke-script.test.ts` for bounded run parsing and repeated sanitized sample aggregation.
+- Ran `HOSTED_AUTH_BASE_URL=https://www.archestimator.com HOSTED_AUTH_RUNS=3 OUTPUT_FILE=.../2026-06-06-auth-proxy-hosted-smoke-benchmark.json MARKDOWN_FILE=.../2026-06-06-auth-proxy-hosted-smoke-benchmark.md bun run launch:verify-hosted-auth`; expected exit 1 because signed-in fixture cookies were absent.
+- Evidence: `evidence/2026-06-06-auth-proxy-hosted-smoke-benchmark.md` / `.json` captures production signed-out `/workshop` redirect timing: 3 samples, 60ms min, 115ms avg, 217ms max, latest status 307 to `/login?next=%2Fworkshop`.
+- Completion language: **SIGNED-OUT HOSTED AUTH TIMING CAPTURED / SIGNED-IN FIXTURE WATERFALL OPEN**.

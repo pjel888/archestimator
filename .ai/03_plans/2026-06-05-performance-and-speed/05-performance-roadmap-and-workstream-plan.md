@@ -129,6 +129,7 @@ Treat `cacheComponents`, `inlineCss`, `cssChunking`, and React Compiler changes 
   - Use production/preview request timing and local logs to separate proxy, auth, route server render, and Supabase query time.
   - Do not replace `supabase.auth.getUser()` with `getSession()` in proxy auth.
   - 2026-06-06 partial evidence: `evidence/2026-06-06-beta-access-optimization-spike.md` and `evidence/2026-06-06-auth-proxy-hosted-unauth-timing.json` capture unauthenticated `/workshop` redirect timing plus beta RPC provider proof. The signed-in hosted auth waterfall remains open until a safe authenticated fixture/storage state is available.
+  - 2026-06-06 harness/evidence update: `scripts/verify-hosted-auth-routes.ts` now supports repeated sanitized samples via `HOSTED_AUTH_RUNS`, JSON `samples`/min/avg/max duration fields, and optional `MARKDOWN_FILE`. Evidence at `evidence/2026-06-06-auth-proxy-hosted-smoke-benchmark.md` / `.json` captured production signed-out `/workshop` redirect timing (3 samples, avg 115ms) and failed closed for missing allowed/denied/revoked/expired session cookies. Step 3.1 remains open for signed-in waterfall proof.
 
 - [x] **Step 3.2: Public-route cache review**
   - Review `MARKETING_PAGE_CACHE_CONTROL = "private, no-cache, max-age=0, must-revalidate"` in `src/proxy.ts`.

@@ -5,6 +5,7 @@ import {
   evaluateCase,
   normalizeLocationPath,
   parseInputsFromEnv,
+  parseRuns,
   validateHostedAuthBaseUrl,
   verifyHostedAuthRoutes,
 } from "@/../scripts/verify-hosted-auth-routes";
@@ -21,6 +22,34 @@ describe("hosted auth route smoke script", () => {
     process.env = {};
 
     expect(() => parseInputsFromEnv()).toThrow(/HOSTED_AUTH_BASE_URL/);
+  });
+
+  it("caps hosted auth benchmark runs to a safe bounded count", () => {
+    expect(parseRuns(undefined)).toBe(1);
+    expect(parseRuns("3")).toBe(3);
+    expect(parseRuns("99")).toBe(10);
+    expect(() => parseRuns("0")).toThrow(/HOSTED_AUTH_RUNS/);
+  });
+
+  it("parses optional hosted auth benchmark output settings from env", () => {
+    process.env = {
+      HOSTED_AUTH_BASE_URL: "https://www.archestimator.com",
+      HOSTED_AUTH_RUNS: "4",
+      OUTPUT_FILE: "/tmp/auth.json",
+      MARKDOWN_FILE: "/tmp/auth.md",
+      HOSTED_AUTH_ALLOWED_COOKIE: "allowed-session-secret",
+      HOSTED_AUTH_DENIED_COOKIE: "denied-session-secret",
+      HOSTED_AUTH_REVOKED_COOKIE: "revoked-session-secret",
+      HOSTED_AUTH_EXPIRED_COOKIE: "expired-session-secret",
+    };
+
+    const inputs = parseInputsFromEnv();
+
+    expect(inputs.runs).toBe(4);
+    expect(inputs.outputFile).toBe("/tmp/auth.json");
+    expect(inputs.markdownFile).toBe("/tmp/auth.md");
+    expect(inputs.baseUrl).toBe("https://www.archestimator.com");
+    expect(inputs.cases.find((authCase) => authCase.name === "allowed")?.cookie).toBe("allowed-session-secret");
   });
 
   it("merges platform and session cookies only into request headers", () => {
@@ -159,6 +188,31 @@ describe("hosted auth route smoke script", () => {
         },
       }),
     );
+    expect(JSON.stringify(result)).not.toContain("secret");
+  });
+
+  it("records repeated sanitized timing samples for provided cases", async () => {
+    const fetchMock = vi.fn(async () => new Response(null, {
+      status: 307,
+      headers: { location: "https://preview.example/login?next=%2Fworkshop" },
+    }));
+
+    const result = await verifyHostedAuthRoutes({
+      baseUrl: "https://preview.example",
+      allowedOrigins: ["https://preview.example"],
+      runs: 3,
+      cases: [
+        { name: "signedOut", required: true },
+      ],
+    }, fetchMock as unknown as typeof fetch);
+
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+    expect(result.runs).toBe(3);
+    expect(result.passed).toBe(true);
+    expect(result.cases[0]?.samples).toHaveLength(3);
+    expect(result.cases[0]?.minDurationMs).not.toBeNull();
+    expect(result.cases[0]?.averageDurationMs).not.toBeNull();
+    expect(result.cases[0]?.maxDurationMs).not.toBeNull();
     expect(JSON.stringify(result)).not.toContain("secret");
   });
 });
