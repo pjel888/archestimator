@@ -180,6 +180,7 @@ Treat `cacheComponents`, `inlineCss`, `cssChunking`, and React Compiler changes 
 - [ ] **Step 6.3: Benchmark proposal export**
   - Use `scripts/benchmark-proposal-workbook.ts` and hosted export route script.
   - Candidate: streaming/worker queue only if current Node route exceeds latency/memory budgets.
+  - 2026-06-06 local evidence: `evidence/2026-06-06-proposal-workbook-benchmark.md` and `.json` from `bun run scripts/benchmark-proposal-workbook.ts`; hosted export route latency/memory proof remains open.
 
 ## Workstream 7: Release, monitoring, and rollback
 
