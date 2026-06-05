@@ -45,6 +45,7 @@ const BREAKDOWN_COLUMNS = [
   { key: "laborUnitCost", header: "LABOR UNIT COST", width: 16, style: { numFmt: PHP_FORMAT } },
   { key: "materialSubtotal", header: "MATERIAL SUBTOTAL", width: 18, style: { numFmt: PHP_FORMAT } },
   { key: "laborSubtotal", header: "LABOR SUBTOTAL", width: 16, style: { numFmt: PHP_FORMAT } },
+  { key: "contingencySubtotal", header: "CONTINGENCY / DISCOUNT", width: 20, style: { numFmt: PHP_FORMAT } },
   { key: "miscSubtotal", header: "MISC / OTHER", width: 16, style: { numFmt: PHP_FORMAT } },
   { key: "costAmount", header: "COST AMOUNT", width: 18, style: { numFmt: PHP_FORMAT } },
 ] as const satisfies ProposalWorkbookColumn[];
@@ -101,6 +102,11 @@ function styleTotalRow(row: ExcelJS.Row) {
 
 function formatPeso(value: number) {
   return `₱${value.toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
+
+function formulaAmountSuffix(value: number) {
+  if (!value) return "";
+  return value > 0 ? `+${value}` : String(value);
 }
 
 function scopeLabel(status: string) {
@@ -201,9 +207,13 @@ function createBidFormWorksheet(workbook: ExcelJS.Workbook, model: ProposalExpor
     const firstDetailRow = sectionRow.number + 1;
     for (const proposalRow of sectionRows) {
       const rowNumber = worksheet.rowCount + 1;
-      const miscFormulaSuffix = proposalRow.miscSubtotal ? `+${proposalRow.miscSubtotal}` : "+0";
-      const lineFormula = `IF(OR(I${rowNumber}="EXCLUDED",I${rowNumber}="BY OTHERS",I${rowNumber}="OWNER SUPPLIED",I${rowNumber}="OSM",I${rowNumber}="OFCI",I${rowNumber}="OSCI",I${rowNumber}="OMITTED",I${rowNumber}="NOT APPLICABLE"),0,D${rowNumber}*G${rowNumber}${miscFormulaSuffix})`;
+      const directCostAdjustments = [
+        formulaAmountSuffix(proposalRow.contingencySubtotal),
+        formulaAmountSuffix(proposalRow.miscSubtotal),
+      ].join("") || "+0";
+      const lineFormula = `IF(OR(I${rowNumber}="EXCLUDED",I${rowNumber}="BY OTHERS",I${rowNumber}="OWNER SUPPLIED",I${rowNumber}="OSM",I${rowNumber}="OFCI",I${rowNumber}="OSCI",I${rowNumber}="OMITTED",I${rowNumber}="NOT APPLICABLE"),0,D${rowNumber}*G${rowNumber}${directCostAdjustments})`;
       const remarks = [
+        proposalRow.contingencySubtotal ? `Contingency: ${formatPeso(proposalRow.contingencySubtotal)}` : null,
         proposalRow.miscSubtotal ? `Misc / other: ${formatPeso(proposalRow.miscSubtotal)}` : null,
         proposalRow.remarks,
       ]
@@ -359,6 +369,7 @@ function createSourceBreakdownWorksheet(workbook: ExcelJS.Workbook, model: Propo
       breakdownRow.laborUnitCost,
       breakdownRow.materialSubtotal,
       breakdownRow.laborSubtotal,
+      breakdownRow.contingencySubtotal,
       breakdownRow.miscSubtotal,
       breakdownRow.costAmount,
     ]);

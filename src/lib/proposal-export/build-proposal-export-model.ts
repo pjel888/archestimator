@@ -113,6 +113,7 @@ function normalizeSourceRow(flatRow: ProposalFlatSourceRow<EstimateRowItem>, set
     laborUnitCost,
     materialSubtotal,
     laborSubtotal,
+    contingencySubtotal,
     miscSubtotal,
     costAmount,
     remarks: buildRemarks(sourceRow, settings),
@@ -147,6 +148,7 @@ function createSourceReference(row: ProposalNormalizedSourceRow): ProposalExport
     quantity: row.quantity,
     materialSubtotal: row.materialSubtotal,
     laborSubtotal: row.laborSubtotal,
+    contingencySubtotal: row.contingencySubtotal,
     miscSubtotal: row.miscSubtotal,
     costAmount: row.costAmount,
   };
@@ -175,6 +177,7 @@ function buildSourceBreakdownRows(proposalRows: ProposalExportRow[]): ProposalSo
       laborUnitCost: proposalRow.laborUnitCost,
       materialSubtotal: source.materialSubtotal,
       laborSubtotal: source.laborSubtotal,
+      contingencySubtotal: source.contingencySubtotal,
       miscSubtotal: source.miscSubtotal,
       costAmount: source.costAmount,
     })),
@@ -192,6 +195,7 @@ function buildSummaryRows(proposalRows: ProposalExportRow[]): ProposalSummaryRow
       totalQuantity: 0,
       materialSubtotal: 0,
       laborSubtotal: 0,
+      contingencySubtotal: 0,
       miscSubtotal: 0,
       costAmount: 0,
     };
@@ -200,6 +204,7 @@ function buildSummaryRows(proposalRows: ProposalExportRow[]): ProposalSummaryRow
     current.totalQuantity = roundQuantity(current.totalQuantity + row.quantity);
     current.materialSubtotal = roundMoney(current.materialSubtotal + row.materialSubtotal);
     current.laborSubtotal = roundMoney(current.laborSubtotal + row.laborSubtotal);
+    current.contingencySubtotal = roundMoney(current.contingencySubtotal + row.contingencySubtotal);
     current.miscSubtotal = roundMoney(current.miscSubtotal + row.miscSubtotal);
     current.costAmount = roundMoney(current.costAmount + row.costAmount);
     sections.set(row.sectionKey, current);
@@ -215,6 +220,7 @@ function buildTotals(proposalRows: ProposalExportRow[]): ProposalExportTotals {
       return {
         materialSubtotal: roundMoney(totals.materialSubtotal + row.materialSubtotal),
         laborSubtotal: roundMoney(totals.laborSubtotal + row.laborSubtotal),
+        contingencySubtotal: roundMoney(totals.contingencySubtotal + row.contingencySubtotal),
         miscSubtotal: roundMoney(totals.miscSubtotal + row.miscSubtotal),
         grandTotal: roundMoney(totals.grandTotal + row.costAmount),
       };
@@ -222,6 +228,7 @@ function buildTotals(proposalRows: ProposalExportRow[]): ProposalExportTotals {
     {
       materialSubtotal: 0,
       laborSubtotal: 0,
+      contingencySubtotal: 0,
       miscSubtotal: 0,
       grandTotal: 0,
     },
@@ -307,6 +314,7 @@ export function consolidateProposalRows(
         laborUnitCost: normalizedRow.laborUnitCost,
         materialSubtotal: normalizedRow.materialSubtotal,
         laborSubtotal: normalizedRow.laborSubtotal,
+        contingencySubtotal: normalizedRow.contingencySubtotal,
         miscSubtotal: normalizedRow.miscSubtotal,
         costAmount: normalizedRow.costAmount,
         remarks: normalizedRow.remarks,
@@ -322,6 +330,7 @@ export function consolidateProposalRows(
     current.quantity = roundQuantity(current.quantity + normalizedRow.quantity);
     current.materialSubtotal = roundMoney(current.materialSubtotal + normalizedRow.materialSubtotal);
     current.laborSubtotal = roundMoney(current.laborSubtotal + normalizedRow.laborSubtotal);
+    current.contingencySubtotal = roundMoney(current.contingencySubtotal + normalizedRow.contingencySubtotal);
     current.miscSubtotal = roundMoney(current.miscSubtotal + normalizedRow.miscSubtotal);
     current.costAmount = roundMoney(current.costAmount + normalizedRow.costAmount);
     current.sourceRowIds.push(normalizedRow.sourceRowId);
