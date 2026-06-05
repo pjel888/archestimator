@@ -122,3 +122,12 @@ Superseding inventory after final readiness pass: root markdown files = 36; evid
 - Kept `@vercel/speed-insights` absent from `package.json` and `<SpeedInsights />` absent from the root layout/component surface.
 - Added regression coverage in `tests/vitest/vercel-web-analytics-integration.test.ts` to lock the no-package decision record alongside existing sensitive-route redaction/drop tests.
 - Completion language: **TELEMETRY DECISION IMPLEMENTED / PROVIDER PROOF OPEN**.
+
+
+## Route-transition public baseline — 2026-06-06
+
+- Ran `bun run test:e2e:perf`: 6 passed, 2 authenticated checks skipped because no authenticated fixture/storage state was enabled.
+- Ran `bun run perf:measure-routes` against local dev server `http://127.0.0.1:3039` with `SKIP_AUTHENTICATED=1`, producing `evidence/2026-06-06-route-transition-public-baseline.json`.
+- Ran `bun run perf:check-routes`, producing `evidence/2026-06-06-route-transition-public-readiness.json` with `routeTransitionReady: true`.
+- Summary evidence lives in `evidence/2026-06-06-route-transition-public-baseline.md`.
+- Completion language: **LOCAL ROUTE-TRANSITION BASELINE CAPTURED / AUTHENTICATED AND PROVIDER PROOF OPEN**.

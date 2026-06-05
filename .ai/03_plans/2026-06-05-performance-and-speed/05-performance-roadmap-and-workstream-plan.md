@@ -63,13 +63,14 @@ A future worker must not start with broad refactors, generic memoization, depend
   - Evidence: save analyzer screenshots or HTML summaries under a future `evidence/` subfolder.
   - 2026-06-06 evidence: `evidence/2026-06-06-bundle-analyzer-baseline.md`; clean `ANALYZE=true bunx next build --webpack` emitted `client.html`, `nodejs.html`, and `edge.html`.
 
-- [ ] **Step 0.4: Run route-transition baseline**
+- [x] **Step 0.4: Run route-transition baseline**
   - Commands after dependencies and auth fixtures are available:
     ```bash
     bun run test:e2e:perf
     bun run perf:check-routes
     ```
   - Expected: route-transition budget results are attached, with skipped auth scenarios clearly explained.
+  - 2026-06-06 evidence: `evidence/2026-06-06-route-transition-public-baseline.md`, `evidence/2026-06-06-route-transition-public-baseline.json`, and `evidence/2026-06-06-route-transition-public-readiness.json`. Public route-transition baseline passed; authenticated scenarios remain fixture-open.
 
 ## Workstream 1: Root shell and global bundle containment
 

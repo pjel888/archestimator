@@ -24,7 +24,8 @@ This file is the registry for future baseline and before/after artifacts. Eviden
 | EVID-SHARE-001 | Redacted share timing/security | `evidence/YYYY-MM-DD-share-redacted-before.md` | open | no raw tokens. |
 | EVID-EXPORT-001 | Proposal export benchmark | `evidence/YYYY-MM-DD-proposal-export-benchmark-before.md` | open | representative + near-limit fixtures. |
 | EVID-IMAGE-001 | Image/attachment waterfall | `evidence/YYYY-MM-DD-image-attachment-waterfall-before.md` | open | project/component/share media routes; no raw private media. |
-| EVID-ROUTE-001 | Authenticated route transition | `evidence/YYYY-MM-DD-route-transition-auth.json` | open | links to existing route-transition plan. |
+| EVID-ROUTE-001 | Route-transition public baseline | `evidence/2026-06-06-route-transition-public-baseline.md`, `evidence/2026-06-06-route-transition-public-baseline.json`, `evidence/2026-06-06-route-transition-public-readiness.json` | captured | `test:e2e:perf` passed 6 with 2 authenticated skips; public `perf:measure-routes` and `perf:check-routes` passed. |
+| EVID-ROUTE-AUTH-001 | Authenticated route transition | `evidence/YYYY-MM-DD-route-transition-auth.json` | open | requires safe authenticated fixture/storage state; links to existing route-transition plan. |
 
 ## Evidence status values
 
