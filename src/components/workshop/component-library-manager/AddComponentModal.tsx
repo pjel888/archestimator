@@ -20,6 +20,7 @@ import {
   type CreateCostLibraryComponentInput,
 } from "@/lib/component-library/actions";
 import { buildLibraryFolderTree, type LibraryFolderRecord } from "@/lib/component-library/library-folder-reorder";
+import { sanitizeComponentSourceUrl } from "@/lib/component-library/source-url";
 import { findComponentCategoryPath, type ComponentLibraryTaxonomyNode } from "@/lib/component-library/taxonomy";
 import {
   COMPONENT_UNIT_OPTIONS,
@@ -792,6 +793,14 @@ export function AddComponentModal({
       if (Number.isNaN(readOptionalNonNegativeNumber(variant.dimensionLength))) messages.push(`${label} length must be a non-negative number when provided.`);
       if (Number.isNaN(readOptionalNonNegativeNumber(variant.dimensionWidth))) messages.push(`${label} width must be a non-negative number when provided.`);
       if (Number.isNaN(readOptionalNonNegativeNumber(variant.dimensionHeight))) messages.push(`${label} height must be a non-negative number when provided.`);
+      if (variant.sourceUrl.trim() && !sanitizeComponentSourceUrl(variant.sourceUrl)) {
+        messages.push(`${label} source URL must use http, https, or an internal path.`);
+      }
+      for (const entry of variant.costEntries.filter((candidate) => !candidate.deletedAt)) {
+        if (entry.sourceUrl.trim() && !sanitizeComponentSourceUrl(entry.sourceUrl)) {
+          messages.push(`${label} cost entry source URL must use http, https, or an internal path.`);
+        }
+      }
     }
     return messages;
   }, [draft]);

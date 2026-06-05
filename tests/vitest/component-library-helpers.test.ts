@@ -23,6 +23,7 @@ import {
   sortComponents,
 } from "@/components/workshop/EstimateSheetContent";
 import { estimateLibraryItems, type EstimateRowItem } from "@/components/workshop/estimate-tree-data";
+import { sanitizeComponentSourceUrl } from "@/lib/component-library/source-url";
 
 const base = {
   source: "library" as const,
@@ -70,6 +71,16 @@ describe("component library helpers", () => {
     expect(result.component?.miscCost).toBe(2000);
     expect(result.component?.tags).toEqual(["counter", "custom"]);
     expect(result.component?.imageUrl).toMatch(/^https:\/\//);
+  });
+
+  it("allows safe component source URLs and rejects unsafe schemes during custom component creation", () => {
+    expect(createComponent({ material: "HTTPS Source", category: "Finishes", supplier: "", unit: "pc", itemCost: "10", currency: "PHP", discipline: "Architectural", designation: "Floor", description: "", tags: "", imageUrl: "", miscCost: "0", sku: "", sourceUrl: " https://supplier.example/item ", notes: "" }).component?.sourceUrl).toBe("https://supplier.example/item");
+    expect(createComponent({ material: "HTTP Source", category: "Finishes", supplier: "", unit: "pc", itemCost: "10", currency: "PHP", discipline: "Architectural", designation: "Floor", description: "", tags: "", imageUrl: "", miscCost: "0", sku: "", sourceUrl: "http://supplier.example/item", notes: "" }).component?.sourceUrl).toBe("http://supplier.example/item");
+    expect(createComponent({ material: "Internal Source", category: "Finishes", supplier: "", unit: "pc", itemCost: "10", currency: "PHP", discipline: "Architectural", designation: "Floor", description: "", tags: "", imageUrl: "", miscCost: "0", sku: "", sourceUrl: "/workshop/components/component-id", notes: "" }).component?.sourceUrl).toBe("/workshop/components/component-id");
+
+    for (const unsafeSourceUrl of ["javascript:alert(1)", "data:text/html,<script>alert(1)</script>", "mailto:supplier@example.com", "file:///etc/passwd"]) {
+      expect(createComponent({ material: "Unsafe Source", category: "Finishes", supplier: "", unit: "pc", itemCost: "10", currency: "PHP", discipline: "Architectural", designation: "Floor", description: "", tags: "", imageUrl: "", miscCost: "0", sku: "", sourceUrl: unsafeSourceUrl, notes: "" }).error).toMatch(/source url/i);
+    }
   });
 
   it("infers disciplines, designations, and staleness consistently", () => {
@@ -127,6 +138,37 @@ describe("component library helpers", () => {
     expect(jsonResult.items[0].id).toBe("json-sink");
     expect(jsonResult.bundles[0]).toMatchObject({ id: "json-bath", kind: "assembly", name: "JSON bath" });
     expect(jsonResult.bundles[0].items).toEqual([{ itemId: "json-sink", quantity: 2 }]);
+  });
+
+  it("sanitizes legacy component source URLs before rendering hrefs", () => {
+    expect(sanitizeComponentSourceUrl("https://supplier.example/quote")).toBe("https://supplier.example/quote");
+    expect(sanitizeComponentSourceUrl("/workshop/components/component-id")).toBe("/workshop/components/component-id");
+    expect(sanitizeComponentSourceUrl("javascript:alert(1)")).toBeNull();
+    expect(sanitizeComponentSourceUrl("data:text/html,<script>alert(1)</script>")).toBeNull();
+    expect(sanitizeComponentSourceUrl("mailto:supplier@example.com")).toBeNull();
+    expect(sanitizeComponentSourceUrl("file:///etc/passwd")).toBeNull();
+  });
+
+  it("drops unsafe imported component source URLs while preserving safe imported URLs", () => {
+    const csv = [
+      "name,category,unit,price,source url",
+      "Safe Supplier,Finishes,pc,10,https://supplier.example/quote",
+      "Safe Internal,Finishes,pc,10,/workshop/components/component-id",
+      "Unsafe Script,Finishes,pc,10,javascript:alert(1)",
+    ].join("\n");
+
+    expect(parseLibraryCsv(csv).items.map((item) => item.sourceUrl)).toEqual([
+      "https://supplier.example/quote",
+      "/workshop/components/component-id",
+      undefined,
+    ]);
+
+    const json = JSON.stringify({
+      items: [
+        { material: "Unsafe Data", category: "Finishes", unit: "pc", itemCost: 10, sourceUrl: "data:text/html,<script>alert(1)</script>" },
+      ],
+    });
+    expect(parseLibraryJson(json).items[0].sourceUrl).toBeUndefined();
   });
 
   it("does not treat retired split cost import columns as misc cost", () => {

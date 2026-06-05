@@ -46,6 +46,7 @@ import {
   pesoFormatter,
   readJsonStorage,
   safeSetJsonStorage,
+  sanitizeComponentSourceUrl,
 } from "./helpers";
 
 const LIBRARY_TREE_TABS = [
@@ -90,6 +91,7 @@ function PreviewPanel({
 }) {
   const stalenessTone = getStalenessTone(item.pricingDate);
   const stalenessLabel = getStalenessLabel(item.pricingDate);
+  const sourceHref = sanitizeComponentSourceUrl(item.sourceUrl);
   const stalenessClass =
     stalenessTone === "danger"
       ? "text-danger"
@@ -176,9 +178,9 @@ function PreviewPanel({
             Delete
           </Button>
         </div>
-        {item.notes || item.sourceUrl ? (
+        {item.notes || sourceHref ? (
           <p className="mt-1.5 text-[9px] leading-3 text-tertiary">
-            {item.notes} {item.sourceUrl ? <a href={item.sourceUrl} target="_blank" rel="noreferrer" className="text-accent hover:underline">Source</a> : null}
+            {item.notes} {sourceHref ? <a href={sourceHref} target="_blank" rel="noreferrer" className="text-accent hover:underline">Source</a> : null}
           </p>
         ) : null}
       </div>

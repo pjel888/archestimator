@@ -1,4 +1,5 @@
 import type { EstimateRowItem } from "../estimate-tree-data";
+import { readComponentSourceUrlInput, sanitizeComponentSourceUrl } from "@/lib/component-library/source-url";
 import type {
   ComponentFilters,
   LibraryBundle,
@@ -9,6 +10,8 @@ import type {
   NewComponentForm,
   SearchResult,
 } from "./types";
+
+export { sanitizeComponentSourceUrl };
 
 export const pesoFormatter = new Intl.NumberFormat("en-PH", {
   style: "currency",
@@ -223,6 +226,12 @@ export function createComponent(form: NewComponentForm): { component?: EstimateR
   if (itemCostResult.error) return { error: itemCostResult.error };
   const miscCostResult = parseOptionalNonNegative(form.miscCost, "Misc cost default");
   if (miscCostResult.error) return { error: miscCostResult.error };
+  let sourceUrl: string | null = null;
+  try {
+    sourceUrl = readComponentSourceUrlInput(form.sourceUrl);
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : "Source URL must use http, https, or an internal path." };
+  }
   const itemCost = itemCostResult.value ?? 0;
   const miscCost = miscCostResult.value ?? 0;
   const subTotal = itemCost;
@@ -272,12 +281,12 @@ export function createComponent(form: NewComponentForm): { component?: EstimateR
         pricingDate: now.slice(0, 10),
       }),
       sku: form.sku.trim() || undefined,
-      sourceUrl: form.sourceUrl.trim() || undefined,
+      sourceUrl: sourceUrl ?? undefined,
       notes: form.notes.trim() || undefined,
       isCustom: true,
       createdAt: now,
       updatedAt: now,
-      pricingSource: form.sourceUrl.trim() || "User-created component",
+      pricingSource: sourceUrl ?? "User-created component",
       pricingDate: now.slice(0, 10),
     },
   };
@@ -366,7 +375,7 @@ function normalizeImportRecord(record: Record<string, unknown>, index: number, s
     designation: firstString(record, ["designation", "room", "location"]) || undefined,
     tags,
     sku: firstString(record, ["sku", "code"]) || undefined,
-    sourceUrl: firstString(record, ["sourceUrl", "source url", "url"]) || undefined,
+    sourceUrl: sanitizeComponentSourceUrl(firstString(record, ["sourceUrl", "source url", "url"])) ?? undefined,
     notes: firstString(record, ["notes"]) || undefined,
     isCustom: true,
     createdAt: now,

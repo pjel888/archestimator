@@ -261,6 +261,50 @@ describe("component library UI", () => {
     expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument();
   });
 
+  it("renders only sanitized component source URLs as preview links", () => {
+    const safeItem: EstimateRowItem = {
+      ...sharedLibraryItems[0],
+      id: "safe-source-component",
+      material: "Safe Source Component",
+      name: "Safe Source Component",
+      sourceUrl: "https://supplier.example/quote",
+      notes: "Supplier quote",
+    };
+    renderSidebar({
+      initialLibraryItems: [safeItem],
+      categoryTree: sharedCategoryTree,
+      suppliers: [{ id: "db-supplier", name: "Database Supplier", sort_order: 1 }],
+      brands: sharedBrands,
+    });
+
+    fireEvent.click(screen.getByRole("treeitem", { name: "Safe Source Component" }));
+
+    expect(screen.getByRole("link", { name: "Source" })).toHaveAttribute("href", "https://supplier.example/quote");
+
+    cleanup();
+    window.localStorage.clear();
+
+    const unsafeItem: EstimateRowItem = {
+      ...safeItem,
+      id: "unsafe-source-component",
+      material: "Unsafe Source Component",
+      name: "Unsafe Source Component",
+      sourceUrl: "javascript:alert(1)",
+      notes: "Legacy supplier note",
+    };
+    renderSidebar({
+      initialLibraryItems: [unsafeItem],
+      categoryTree: sharedCategoryTree,
+      suppliers: [{ id: "db-supplier", name: "Database Supplier", sort_order: 1 }],
+      brands: sharedBrands,
+    });
+
+    fireEvent.click(screen.getByRole("treeitem", { name: "Unsafe Source Component" }));
+
+    expect(screen.queryByRole("link", { name: "Source" })).not.toBeInTheDocument();
+    expect(screen.getByText("Legacy supplier note")).toBeInTheDocument();
+  });
+
   it("keeps slash shortcut from focusing search behind the component modal", () => {
     renderSidebar();
     const search = screen.getByLabelText("Search Library Tree");
