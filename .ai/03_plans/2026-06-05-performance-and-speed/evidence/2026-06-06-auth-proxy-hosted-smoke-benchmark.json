@@ -1,0 +1,123 @@
+{
+  "generatedAt": "2026-06-05T20:59:41.697Z",
+  "mode": "hosted-auth-route-smoke",
+  "baseUrl": "https://www.archestimator.com",
+  "runs": 3,
+  "cases": [
+    {
+      "name": "signedOut",
+      "route": "/workshop",
+      "expected": "signed-out or expired session redirects to /login with a safe next path",
+      "providedAuthMaterial": false,
+      "status": 307,
+      "location": "/login?next=%2Fworkshop",
+      "normalizedLocationPath": "/login?next=%2Fworkshop",
+      "ok": false,
+      "durationMs": 69,
+      "passed": true,
+      "error": null,
+      "samples": [
+        {
+          "status": 307,
+          "location": "/login?next=%2Fworkshop",
+          "normalizedLocationPath": "/login?next=%2Fworkshop",
+          "ok": false,
+          "durationMs": 217,
+          "passed": true,
+          "error": null
+        },
+        {
+          "status": 307,
+          "location": "/login?next=%2Fworkshop",
+          "normalizedLocationPath": "/login?next=%2Fworkshop",
+          "ok": false,
+          "durationMs": 60,
+          "passed": true,
+          "error": null
+        },
+        {
+          "status": 307,
+          "location": "/login?next=%2Fworkshop",
+          "normalizedLocationPath": "/login?next=%2Fworkshop",
+          "ok": false,
+          "durationMs": 69,
+          "passed": true,
+          "error": null
+        }
+      ],
+      "minDurationMs": 60,
+      "maxDurationMs": 217,
+      "averageDurationMs": 115
+    },
+    {
+      "name": "allowed",
+      "route": "/workshop",
+      "expected": "allowed session reaches the protected workshop without beta-access redirect",
+      "providedAuthMaterial": false,
+      "status": null,
+      "location": null,
+      "normalizedLocationPath": null,
+      "ok": false,
+      "durationMs": null,
+      "passed": false,
+      "error": "Missing HOSTED_AUTH_ALLOWED_COOKIE.",
+      "samples": [],
+      "minDurationMs": null,
+      "maxDurationMs": null,
+      "averageDurationMs": null
+    },
+    {
+      "name": "denied",
+      "route": "/workshop",
+      "expected": "denied session redirects to /beta/access-required",
+      "providedAuthMaterial": false,
+      "status": null,
+      "location": null,
+      "normalizedLocationPath": null,
+      "ok": false,
+      "durationMs": null,
+      "passed": false,
+      "error": "Missing HOSTED_AUTH_DENIED_COOKIE.",
+      "samples": [],
+      "minDurationMs": null,
+      "maxDurationMs": null,
+      "averageDurationMs": null
+    },
+    {
+      "name": "revoked",
+      "route": "/workshop",
+      "expected": "revoked session redirects to /beta/access-required?status=revoked",
+      "providedAuthMaterial": false,
+      "status": null,
+      "location": null,
+      "normalizedLocationPath": null,
+      "ok": false,
+      "durationMs": null,
+      "passed": false,
+      "error": "Missing HOSTED_AUTH_REVOKED_COOKIE.",
+      "samples": [],
+      "minDurationMs": null,
+      "maxDurationMs": null,
+      "averageDurationMs": null
+    },
+    {
+      "name": "expired",
+      "route": "/workshop",
+      "expected": "signed-out or expired session redirects to /login with a safe next path",
+      "providedAuthMaterial": false,
+      "status": null,
+      "location": null,
+      "normalizedLocationPath": null,
+      "ok": false,
+      "durationMs": null,
+      "passed": false,
+      "error": "Missing HOSTED_AUTH_EXPIRED_COOKIE.",
+      "samples": [],
+      "minDurationMs": null,
+      "maxDurationMs": null,
+      "averageDurationMs": null
+    }
+  ],
+  "passed": false,
+  "note": "Sanitized hosted auth smoke/benchmark. Session cookies and platform bypass headers are used only for requests and are never written to this report."
+}

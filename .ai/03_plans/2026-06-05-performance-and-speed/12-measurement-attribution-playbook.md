@@ -68,6 +68,8 @@ bun run perf:profile-peak-load
 ANALYZE=true bun run build
 
 # Hosted/export verification when credentials/env are available
+HOSTED_AUTH_RUNS=3 \
+MARKDOWN_FILE=.ai/03_plans/2026-06-05-performance-and-speed/evidence/YYYY-MM-DD-auth-hosted-before.md \
 bun run launch:verify-hosted-auth
 bun run launch:verify-hosted-export
 
