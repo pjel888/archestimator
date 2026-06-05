@@ -45,6 +45,19 @@ If rulesets are available, create rulesets such as `protect-production-main`, `p
 
 Do not rename required jobs casually. Use stable names: `governance`, `quality-validate`, `quality-build`, `e2e-smoke`, `perf-smoke`, `release-staged-deploy`, `release-hosted-smoke`.
 
+## Required-check topology decision before enforcement
+
+Before enabling required checks, decide which jobs are always-present blockers and which jobs are advisory or release-only. Required branch-protection checks must not depend on path filters or event filters that leave a required context missing.
+
+Recommended lean topology:
+
+- Always-present PR blockers after dry-run: `governance`, `quality-validate`, `quality-build`.
+- Always-present aggregator/no-op gate before requiring route-specific checks: `quality-gate` summarizes optional/advisory jobs and fails only when a required-for-this-PR job failed or was expected but missing.
+- Advisory until stable: `docs-health`, `e2e-smoke`, `perf-smoke`.
+- Release workflow only: `release-staged-deploy`, `release-hosted-smoke`.
+
+If GitHub branch protection can require only individual job names, require only the always-present blockers until the aggregator/no-op pattern is implemented and proven on docs-only, source, route, and release PR fixtures.
+
 ## Emergency bypass record
 
 ```txt
