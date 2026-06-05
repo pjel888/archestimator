@@ -111,8 +111,9 @@ A future worker must not start with broad refactors, generic memoization, depend
   - Guardrails: anchor scrolling, reduced-motion, and navigation behavior tests.
   - 2026-06-06 local implementation: `PublicPageShell` no longer wraps non-home marketing pages in `LandingSmoothScrollProvider`; home still uses the reduced-motion-aware provider. Evidence: `evidence/lenis-non-home-scope-2026-06-06/lenis-non-home-scope-summary.md`. Local Lighthouse after-traces are improved for `/features` and `/pricing` and mixed/stable for `/contact`; provider p75 and hosted proof remain open before claiming production improvement.
 
-- [ ] **Step 2.4: Audit image/font LCP**
+- [x] **Step 2.4: Audit image/font LCP**
   - Ensure hero/marketing media use optimized dimensions, priority only where measured, and no unnecessary font family on first paint.
+  - 2026-06-06 local implementation: source and Lighthouse evidence did not justify image preload/media changes; public image requests remain tiny logo SVGs while LCP is text-based. `RootLayout` now imports only `Inter` and `Roboto_Mono`, with unused `Poppins` and `Source Serif 4` root aliases removed. Evidence: `evidence/public-image-font-lcp-audit-2026-06-06/public-image-font-lcp-summary.md`. Local `/features` consent-off score improved 89 -> 92 and LCP 3782.31ms -> 3322.06ms; `/` score improved 80 -> 89 with LCP roughly stable (3802.40ms -> 3752.86ms). Provider p75 and hosted waterfall proof remain open.
 
 
 ## Cache-safety matrix for public-route work

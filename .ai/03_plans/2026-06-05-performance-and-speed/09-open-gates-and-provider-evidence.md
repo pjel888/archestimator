@@ -26,7 +26,7 @@ If only local proof exists, use `IMPLEMENTED LOCALLY / PROVIDER PROOF OPEN`, not
 ## Product decision gates
 
 - [x] Decide whether to keep `@vercel/speed-insights` absent or intentionally add Speed Insights package instrumentation. Decision: keep absent for PR-1A; provider proof remains open.
-- [ ] Decide if marketing visual effects can degrade gracefully on mobile/reduced-motion. 2026-06-06 partial local decisions: Neat hero canvas degrades to a static gradient on mobile/coarse-pointer/reduced-motion, and Lenis is removed from non-home public pages. Hosted third-party script timing and any home Lenis lazy/idle follow-up remain open.
+- [ ] Decide if marketing visual effects can degrade gracefully on mobile/reduced-motion. 2026-06-06 partial local decisions: Neat hero canvas degrades to a static gradient on mobile/coarse-pointer/reduced-motion, Lenis is removed from non-home public pages, and the public image/font LCP audit found no image preload candidate while removing unused root fonts. Hosted third-party script timing and any home Lenis lazy/idle follow-up remain open.
 - [x] Decide acceptable privacy posture for Speed Insights route labels on share/invite/auth paths. Decision: no package/custom telemetry for PR-1A; existing Web Analytics drops/redacts sensitive routes.
 - [x] Decide whether public marketing pages can have cache headers less restrictive than `private, no-cache`. Decision: not yet; keep current private/no-cache posture until personalization is isolated/proven.
 - [ ] Decide acceptable delay/sampling for Clarity/GA post-consent scripts.
@@ -38,7 +38,7 @@ If only local proof exists, use `IMPLEMENTED LOCALLY / PROVIDER PROOF OPEN`, not
 - [x] No cache-header relaxation while auth state, consent state, or A/B variant output can vary in shared marketing HTML. PR-0B harness preserves this guardrail.
 - [x] No broad caching for protected, tokenized, share, invite, password/session, or auth-dependent responses. PR-0B cache-safety matrix preserves this guardrail.
 - [ ] No `cacheComponents`, `inlineCss`, `cssChunking`, or React Compiler global toggle without route-by-route proof and rollback.
-- [ ] No Next/Image preload/private-image change without media route waterfall and access-policy proof.
+- [x] No Next/Image preload/private-image change without media route waterfall and access-policy proof. 2026-06-06 image/font audit made no image/preload/private-media change because public LCP evidence did not identify an image candidate.
 
 ## Security and data gates
 
