@@ -67,3 +67,5 @@ yarn-error.log*
 
 # Ralph Loop session data
 /.omo/
+/.omx/
+/.gitnexus/
