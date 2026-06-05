@@ -4,7 +4,7 @@
 
 **Type:** destructive pre-MVP cleanup, docs rebaseline, validation
 
-**Decision context:** Philip stated the current Archestimator UI/UX is badly wrong and the best path is to start over. Only the landing page should remain acceptable. `/workshop` should become an empty page.
+**Decision context:** OWNER_NAME_PLACEHOLDER stated the current Archestimator UI/UX is badly wrong and the best path is to start over. Only the landing page should remain acceptable. `/workshop` should become an empty page.
 
 **Actions:**
 
@@ -39,7 +39,7 @@ Latest results:
 
 **Type:** architecture decision, schema migration, auth setup
 
-**Decision context:** Philip approved Supabase/Postgres as the canonical data layer. Archestimator's own Supabase project `ebxxqidacheyapmmzavr` linked. RLS, migrations, and auth activated.
+**Decision context:** OWNER_NAME_PLACEHOLDER approved Supabase/Postgres as the canonical data layer. Archestimator's own Supabase project `ebxxqidacheyapmmzavr` linked. RLS, migrations, and auth activated.
 
 **Deliverables:**
 - Initial schema foundation (workspaces, projects, estimates, cost library, estimate nodes, estimate row items)
@@ -57,7 +57,7 @@ Latest results:
 - `/workshop/projects/[projectId]` — project dashboard
 - `/workshop/projects/[projectId]/estimates` — estimate list/create
 - `/workshop/projects/[projectId]/estimates/[nodeId]` — estimate workspace
-- Lewis Residence deterministic demo seed
+- DEMO_PROJECT_PLACEHOLDER deterministic demo seed
 - Two-node estimate tree model (Group + Area)
 
 ## 2026-05-21 — Estimate Tree DnD & shadcn Integration (Phase 3 partial)
@@ -90,7 +90,7 @@ Latest results:
 **Deliverables:**
 - `/workshop/projects/[projectId]/charts` — D3 donut/bubble charts
 - Proposal XLSX export (mutable current-estimate only)
-- Lewis Residence chart demo seed (83 library items, 83 rows)
+- DEMO_PROJECT_PLACEHOLDER chart demo seed (83 library items, 83 rows)
 - Template insertion into estimates
 
 ## 2026-05-26 — Teamspaces Collaboration

@@ -2,7 +2,7 @@
 
 ## Fourth-Pass Decision
 
-Archestimator's MVP launch is a closed beta, not a public paid launch. Access is limited to Google-authenticated users whose email is present in a Supabase allowlist managed manually by Philip for MVP.
+Archestimator's MVP launch is a closed beta, not a public paid launch. Access is limited to Google-authenticated users whose email is present in a Supabase allowlist managed manually by OWNER_NAME_PLACEHOLDER for MVP.
 
 ## Access Goals
 
@@ -34,7 +34,7 @@ Archestimator's MVP launch is a closed beta, not a public paid launch. Access is
 6. If allowed, the callback proceeds to `/workshop` or a safe `next` path.
 7. If denied or revoked, callback redirects to `/beta/access-required` or `/beta/access-revoked`.
 
-Magic link should be hidden or disabled for closed beta unless Philip explicitly needs it as a support fallback. If retained, it must pass the same allowlist check before any workshop access.
+Magic link should be hidden or disabled for closed beta unless OWNER_NAME_PLACEHOLDER explicitly needs it as a support fallback. If retained, it must pass the same allowlist check before any workshop access.
 
 ## Final Table Choice
 
@@ -70,7 +70,7 @@ Implemented local migration file: `supabase/migrations/20260601182522_closed_bet
 
 - Enable RLS on `closed_beta_allowed_emails`.
 - Do not grant normal users list access to the table.
-- Philip manages rows through Supabase Table Editor or SQL using admin/service-role access.
+- OWNER_NAME_PLACEHOLDER manages rows through Supabase Table Editor or SQL using admin/service-role access.
 - Provide a security-definer function for server-side checks. Implemented local function: `public.check_closed_beta_access(raw_email text) returns table(allowed boolean, status text, normalized_email text)`.
 - The function must match `lower(btrim(raw_email))` to `normalized_email`.
 - The function must ensure the requested email equals the authenticated caller email from Supabase Auth before returning row status, so normal authenticated users cannot probe arbitrary allowlist addresses.
@@ -82,7 +82,7 @@ Normal users do not need to see the allowlist table for MVP. The access-denied p
 ## Email Normalization Rules
 
 - Use case-insensitive matching with `lower(btrim(email))`.
-- Do not strip plus addressing for MVP. `philip+demo@example.com` and `philip@example.com` are separate beta identities.
+- Do not strip plus addressing for MVP. `EMAIL_PLACEHOLDER` and `EMAIL_PLACEHOLDER` are separate beta identities.
 - Do not apply Gmail dot normalization. Match the email supplied by Google/Supabase exactly after lower/trim.
 - Require Supabase's authenticated user email. Prefer Google provider users for beta; if provider metadata exposes `email_verified`, require it to be true.
 
@@ -126,8 +126,8 @@ Route: `/beta/access-required`.
 Required copy:
 
 - "Closed beta access is required."
-- "Archestimator is currently invite-only. Philip personally approves each beta account."
-- "Sign in with the Google account that was invited, or contact Philip to request access."
+- "Archestimator is currently invite-only. OWNER_NAME_PLACEHOLDER personally approves each beta account."
+- "Sign in with the Google account that was invited, or contact OWNER_NAME_PLACEHOLDER to request access."
 - Actions: contact/request access, sign out.
 
 Do not show pricing, checkout, or upgrade language.
@@ -148,7 +148,7 @@ Do not show pricing, checkout, or upgrade language.
 1. Backup production Supabase before migration.
 2. Apply `closed_beta_allowed_emails` migration.
 3. Apply the platform-admin allowlist management migration if app-owned admin edits are desired.
-4. Insert Philip and test allowlisted accounts through `/workshop/settings/beta-users` or Supabase Studio.
+4. Insert OWNER_NAME_PLACEHOLDER and test allowlisted accounts through `/workshop/settings/beta-users` or Supabase Studio.
 5. Deploy code with `CLOSED_BETA_ACCESS_ENABLED=false` first if a staged rollout is needed.
 6. Verify callback and workshop access with allowed and denied users.
 7. Enable `CLOSED_BETA_ACCESS_ENABLED=true`.
@@ -178,5 +178,5 @@ Do not show pricing, checkout, or upgrade language.
 - Revoked users retain workshop access.
 - Blocking creates redirect loops.
 - Public share links break.
-- Philip cannot manage allowlist entries through Supabase Studio or the platform-admin beta users page.
+- OWNER_NAME_PLACEHOLDER cannot manage allowlist entries through Supabase Studio or the platform-admin beta users page.
 - Allowlist lookup is client-side only or exposes the full allowlist.

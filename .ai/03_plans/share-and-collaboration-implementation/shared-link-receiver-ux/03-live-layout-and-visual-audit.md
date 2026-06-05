@@ -5,7 +5,7 @@
 The target URL was reachable locally and returned HTTP 200:
 
 ```text
-http://localhost:3000/share/vTePfd5eq4ZbBFzHNae0JYOCLfPd_QcrW4F3cnf9Y_E
+http://localhost:3000/share/SHARE_TOKEN_PLACEHOLDER
 ```
 
 Screenshots captured:

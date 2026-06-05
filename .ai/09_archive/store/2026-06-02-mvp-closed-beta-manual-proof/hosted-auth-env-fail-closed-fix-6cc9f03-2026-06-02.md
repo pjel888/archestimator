@@ -5,15 +5,15 @@ Status: local code fix and verification before redeploy; external closed beta re
 ## Scope
 
 - Repository HEAD before fix: `6cc9f03fbfe92dfcfeea79de3610682630a4068f`.
-- Latest Vercel preview observed: `archestimator-lsv22sg4z-philipjonlewis-projects.vercel.app`, deployment `dpl_3T35FnYXNspPUP3QL43tCASC4CMF`, `READY`.
+- Latest Vercel preview observed: `VERCEL_DEPLOYMENT_URL_PLACEHOLDER`, deployment `DEPLOYMENT_ID_PLACEHOLDER`, `READY`.
 - Production mutations: none.
 
 ## Hosted Finding
 
-- `vercel curl https://archestimator-lsv22sg4z-philipjonlewis-projects.vercel.app/api/health` returned app health JSON with `"ok": true`.
-- `vercel curl https://archestimator-lsv22sg4z-philipjonlewis-projects.vercel.app/workshop -I` returned HTTP `500`.
-- `HOSTED_AUTH_BASE_URL=https://archestimator-lr6t14h58-philipjonlewis-projects.vercel.app OUTPUT_FILE=/tmp/hosted-auth-no-cookies-6cc9f03.json bun run launch:verify-hosted-auth` wrote sanitized fail-closed JSON and exited `1`: plain hosted fetch hit Vercel HTTP `401`, and allowed/denied/revoked/expired session cookies were missing.
-- `vercel logs archestimator-lsv22sg4z-philipjonlewis-projects.vercel.app --since 30m --non-interactive` returned no log rows.
+- `vercel curl https://VERCEL_DEPLOYMENT_URL_PLACEHOLDER/api/health` returned app health JSON with `"ok": true`.
+- `vercel curl https://VERCEL_DEPLOYMENT_URL_PLACEHOLDER/workshop -I` returned HTTP `500`.
+- `HOSTED_AUTH_BASE_URL=https://VERCEL_DEPLOYMENT_URL_PLACEHOLDER OUTPUT_FILE=/tmp/hosted-auth-no-cookies-6cc9f03.json bun run launch:verify-hosted-auth` wrote sanitized fail-closed JSON and exited `1`: plain hosted fetch hit Vercel HTTP `401`, and allowed/denied/revoked/expired session cookies were missing.
+- `vercel logs VERCEL_DEPLOYMENT_URL_PLACEHOLDER --since 30m --non-interactive` returned no log rows.
 
 ## Root Cause
 

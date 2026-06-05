@@ -11,8 +11,8 @@ This packet is for investor/incubator fallback use if a live demo route fails. I
 Source: `supabase/seed.sql` and `.ai/03_plans/mvp-launch-readiness-2026-06-01/28-investor-incubator-demo-readiness-plan.md`.
 
 - Workspace: `Archestimator Demo Workspace`.
-- Project: `Lewis Residence`, project code `AE-LR-001`, Quezon City.
-- Estimate: `Lewis Residence Baseline Estimate`.
+- Project: `DEMO_PROJECT_PLACEHOLDER`, project code `DEMO_PROJECT_CODE_PLACEHOLDER`, PROJECT_CITY_PLACEHOLDER.
+- Estimate: `DEMO_PROJECT_PLACEHOLDER Baseline Estimate`.
 - Linked row demo: `600x600 Porcelain Floor Tile`, `linked-clean`.
 - Project-specific row demo: `Master bedroom low-VOC paint system`, `detached`.
 - Manual rows: site grading, roof framing/waterproofing, and plumbing fixture allowance rows.
@@ -44,7 +44,7 @@ Source: `supabase/seed.sql` and `.ai/03_plans/mvp-launch-readiness-2026-06-01/28
 5. Show the template insertion screenshot/JSON summary: 5 inserted nodes, 8 inserted rows, and one `template_inserted` event with cleanup verified.
 6. Show the sanitized workbook readback summary: `Bid Form`, `Summary`, `Commercial Terms`, and `Source Breakdown`; no blank line-total rows; grand total formula `B27+B28+B29`.
 7. Explain project-specific safety using the seeded linked-clean tile row and detached paint row, without claiming the linked environment unlink smoke has passed.
-8. State the closed-beta posture: invite-only, no payment, Ask Flip hidden, support via `support@archestimator.com`, and launch remains proof-gated.
+8. State the closed-beta posture: invite-only, no payment, Ask Flip hidden, support via `SUPPORT_INBOX_PLACEHOLDER`, and launch remains proof-gated.
 
 ## Do Not Show
 

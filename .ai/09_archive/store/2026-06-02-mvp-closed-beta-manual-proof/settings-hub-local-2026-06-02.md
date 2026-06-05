@@ -21,7 +21,7 @@
 - `bun run lint:design-system` passed.
 - `bun run lint` passed with the existing 14-warning baseline.
 - `bun run build` passed and lists `/workshop/settings`, `/workshop/settings/beta-users`, `/workshop/settings/feedback`, `/workshop/settings/profile`, and `/workshop/settings/workspace` as dynamic app routes where appropriate.
-- Local browser smoke with `ARCHESTIMATOR_DEV_AUTH_BYPASS=1`, `ARCHESTIMATOR_DEV_AUTH_ADMIN_DB=1`, and `ARCHESTIMATOR_DEV_AUTH_EMAIL=philipjonlewis@gmail.com` loaded `http://localhost:3059/workshop/settings` and verified visible Settings, Profile settings, Workspace settings, Beta users, Beta feedback, plus 4 Open links.
+- Local browser smoke with `ARCHESTIMATOR_DEV_AUTH_BYPASS=1`, `ARCHESTIMATOR_DEV_AUTH_ADMIN_DB=1`, and `ARCHESTIMATOR_DEV_AUTH_EMAIL=OWNER_EMAIL_PLACEHOLDER` loaded `http://localhost:3059/workshop/settings` and verified visible Settings, Profile settings, Workspace settings, Beta users, Beta feedback, plus 4 Open links.
 
 ## Scope Limit
 

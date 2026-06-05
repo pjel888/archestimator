@@ -4,10 +4,10 @@
   "operator": "Codex",
   "scope": "owner-only closed beta production denied and revoked Google OAuth proof",
   "baseUrl": "https://www.archestimator.com",
-  "browserProfile": "Philip Chrome profile via Computer Use",
+  "browserProfile": "OWNER_NAME_PLACEHOLDER Chrome profile via Computer Use",
   "accounts": {
-    "allowedOwnerEmail": "philipjonlewis@gmail.com",
-    "alternateGoogleEmail": "lewisphilipjonechavez@gmail.com"
+    "allowedOwnerEmail": "OWNER_EMAIL_PLACEHOLDER",
+    "alternateGoogleEmail": "RECIPIENT_EMAIL_PLACEHOLDER"
   },
   "preconditions": {
     "linkedSupabaseProjectRef": "ebxxqidacheyapmmzavr",
@@ -36,7 +36,7 @@
   "revokedCase": {
     "method": "Browser Google OAuth account chooser plus temporary linked Supabase revoked row",
     "temporaryRow": {
-      "normalizedEmail": "lewisphilipjonechavez@gmail.com",
+      "normalizedEmail": "RECIPIENT_EMAIL_PLACEHOLDER",
       "status": "revoked",
       "metadataSource": "codex_hosted_auth_revoked_smoke",
       "createdForProofOnly": true
@@ -45,7 +45,7 @@
     "observedCopy": [
       "Invite-only beta access",
       "Access for this account has been paused.",
-      "Email support@archestimator.com if this looks wrong."
+      "Email SUPPORT_INBOX_PLACEHOLDER if this looks wrong."
     ],
     "passed": true
   },

@@ -2,7 +2,7 @@
   "generatedAt": "2026-06-02T08:21:53.475Z",
   "mode": "vercel-health-readiness",
   "urls": [
-    "https://archestimator-git-main-philipjonlewis-projects.vercel.app/api/health",
+    "https://VERCEL_DEPLOYMENT_URL_PLACEHOLDER/api/health",
     "https://www.archestimator.com/api/health",
     "https://archestimator.com/api/health",
     "https://archestimator.vercel.app/api/health"
@@ -10,7 +10,7 @@
   "usedAuthMaterial": false,
   "probes": [
     {
-      "url": "https://archestimator-git-main-philipjonlewis-projects.vercel.app/api/health",
+      "url": "https://VERCEL_DEPLOYMENT_URL_PLACEHOLDER/api/health",
       "status": 401,
       "ok": false,
       "durationMs": 566,
@@ -64,7 +64,7 @@
   ],
   "readyUrls": [],
   "blockedUrls": [
-    "https://archestimator-git-main-philipjonlewis-projects.vercel.app/api/health",
+    "https://VERCEL_DEPLOYMENT_URL_PLACEHOLDER/api/health",
     "https://www.archestimator.com/api/health",
     "https://archestimator.com/api/health",
     "https://archestimator.vercel.app/api/health"

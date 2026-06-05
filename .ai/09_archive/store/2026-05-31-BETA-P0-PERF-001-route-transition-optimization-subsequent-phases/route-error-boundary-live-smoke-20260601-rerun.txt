@@ -107,7 +107,7 @@ Running 2 tests using 1 worker
     Locator: getByRole('alert')
     Expected substring: [32m"Project charts"[39m
     Error: strict mode violation: getByRole('alert') resolved to 2 elements:
-        1) <section role="alert" class="flex h-full min-h-[320px] items-center justify-center bg-white p-2 text-ink">…</section> aka getByRole('region', { name: 'Lighting Project Proposal' }).getByRole('alert')
+        1) <section role="alert" class="flex h-full min-h-[320px] items-center justify-center bg-white p-2 text-ink">…</section> aka getByRole('region', { name: 'PROJECT_NAME_PLACEHOLDER' }).getByRole('alert')
         2) <div role="alert" aria-live="assertive" id="__next-route-announcer__"></div> aka locator('[id="__next-route-announcer__"]')
 
     Call log:

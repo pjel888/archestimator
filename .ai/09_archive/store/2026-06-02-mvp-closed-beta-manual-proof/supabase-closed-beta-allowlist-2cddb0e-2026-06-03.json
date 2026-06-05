@@ -2,7 +2,7 @@
   "checkedAtUtc": "2026-06-03T17:46:09.519Z",
   "projectRef": "ebxxqidacheyapmmzavr",
   "allowlistMutation": {
-    "targetEmail": "philipjonlewis@gmail.com",
+    "targetEmail": "OWNER_EMAIL_PLACEHOLDER",
     "targetStatus": "active",
     "revokedOtherActiveRows": 0
   },
@@ -11,24 +11,24 @@
     "activeOrInvitedCount": 1,
     "rows": [
       {
-        "normalized_email": "philipjonlewis@gmail.com",
+        "normalized_email": "OWNER_EMAIL_PLACEHOLDER",
         "status": "active"
       }
     ]
   },
   "rpcSmoke": {
     "allowed": {
-      "email": "philipjonlewis@gmail.com",
+      "email": "OWNER_EMAIL_PLACEHOLDER",
       "allowed": true,
       "status": "active"
     },
     "deniedMissing": {
-      "email": "notallowed@example.com",
+      "email": "EMAIL_PLACEHOLDER",
       "allowed": false,
       "status": "missing"
     },
     "revokedTransactional": {
-      "email": "revoked-smoke@example.com",
+      "email": "EMAIL_PLACEHOLDER",
       "allowed": false,
       "status": "revoked",
       "persisted": false

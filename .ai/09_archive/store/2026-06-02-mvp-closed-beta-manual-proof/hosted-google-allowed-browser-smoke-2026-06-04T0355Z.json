@@ -2,8 +2,8 @@
   "source": "HOSTED_GOOGLE_ALLOWED_BROWSER_SMOKE",
   "generatedAtUtc": "2026-06-04T03:55:00Z",
   "baseUrl": "https://www.archestimator.com",
-  "browserProfile": "Chrome profile Philip via Codex Chrome extension",
-  "allowedEmail": "philipjonlewis@gmail.com",
+  "browserProfile": "Chrome profile OWNER_NAME_PLACEHOLDER via Codex Chrome extension",
+  "allowedEmail": "OWNER_EMAIL_PLACEHOLDER",
   "checks": {
     "protectedWorkshopEstimate": {
       "routePattern": "/workshop/projects/[projectId]/estimates/[estimateId]",

@@ -9,11 +9,11 @@ Read-only Vercel and linked Supabase checks only. No deploy, promote, alias, rol
 ## Git / Deployment Anchor
 
 - Local `main` / `origin/main`: `d78686f`
-- Latest Vercel preview inspected: `archestimator-ll6yo0r97-philipjonlewis-projects.vercel.app`
-- Vercel deployment id: `dpl_BxmQY4ufymmGUxAEJyK9fyRcGvmh`
+- Latest Vercel preview inspected: `VERCEL_DEPLOYMENT_URL_PLACEHOLDER`
+- Vercel deployment id: `DEPLOYMENT_ID_PLACEHOLDER`
 - Vercel deployment commit: `d78686f259b07349220aefd9eb64f5a86c752456`
 - Vercel deployment status: Ready
-- Vercel branch alias: `archestimator-git-main-philipjonlewis-projects.vercel.app`
+- Vercel branch alias: `VERCEL_DEPLOYMENT_URL_PLACEHOLDER`
 
 ## Commands
 
@@ -21,11 +21,11 @@ Read-only Vercel and linked Supabase checks only. No deploy, promote, alias, rol
 vercel list --format json --non-interactive
 vercel env ls --non-interactive
 vercel project ls --non-interactive
-vercel inspect archestimator-ll6yo0r97-philipjonlewis-projects.vercel.app --non-interactive
-vercel curl https://archestimator-ll6yo0r97-philipjonlewis-projects.vercel.app/api/health
-vercel curl https://archestimator-git-main-philipjonlewis-projects.vercel.app/api/health
-curl -I -L --max-time 20 https://archestimator-ll6yo0r97-philipjonlewis-projects.vercel.app/api/health
-curl -I -L --max-time 20 https://archestimator-git-main-philipjonlewis-projects.vercel.app/api/health
+vercel inspect VERCEL_DEPLOYMENT_URL_PLACEHOLDER --non-interactive
+vercel curl https://VERCEL_DEPLOYMENT_URL_PLACEHOLDER/api/health
+vercel curl https://VERCEL_DEPLOYMENT_URL_PLACEHOLDER/api/health
+curl -I -L --max-time 20 https://VERCEL_DEPLOYMENT_URL_PLACEHOLDER/api/health
+curl -I -L --max-time 20 https://VERCEL_DEPLOYMENT_URL_PLACEHOLDER/api/health
 curl -I -L --max-time 20 https://www.archestimator.com/api/health
 curl -I -L --max-time 20 https://archestimator.com/api/health
 supabase --version
@@ -36,8 +36,8 @@ supabase migration list --linked
 ## Vercel Result
 
 - `vercel list --format json --non-interactive` reported the latest `main` deployment for commit `d78686f259b07349220aefd9eb64f5a86c752456` as `READY`.
-- `vercel inspect archestimator-ll6yo0r97-philipjonlewis-projects.vercel.app --non-interactive` reported deployment id `dpl_BxmQY4ufymmGUxAEJyK9fyRcGvmh`, target `preview`, status Ready, and branch alias `archestimator-git-main-philipjonlewis-projects.vercel.app`.
-- `vercel env ls --non-interactive` still returned `No Environment Variables found for philipjonlewis-projects/archestimator`.
+- `vercel inspect VERCEL_DEPLOYMENT_URL_PLACEHOLDER --non-interactive` reported deployment id `DEPLOYMENT_ID_PLACEHOLDER`, target `preview`, status Ready, and branch alias `VERCEL_DEPLOYMENT_URL_PLACEHOLDER`.
+- `vercel env ls --non-interactive` still returned `No Environment Variables found for VERCEL_SCOPE_PLACEHOLDER/archestimator`.
 - `vercel project ls --non-interactive` listed `archestimator` with latest production URL `https://www.archestimator.com` and Node version `24.x`.
 - Authenticated `vercel curl` returned `{"ok":true,"service":"archestimator"}` for both the latest preview and the branch alias `/api/health`.
 - Plain public `curl -I -L` to the latest preview and branch alias `/api/health` returned HTTP `401` with Vercel SSO protection headers.

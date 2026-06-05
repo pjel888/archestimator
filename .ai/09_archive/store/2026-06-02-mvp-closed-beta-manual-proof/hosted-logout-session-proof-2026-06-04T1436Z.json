@@ -2,11 +2,11 @@
   "artifact": "hosted-logout-session-proof-2026-06-04T1436Z",
   "recordedAt": "2026-06-04T14:36:46Z",
   "operator": "Codex",
-  "ownerSession": "Philip Lewis Chrome profile",
+  "ownerSession": "OWNER_NAME_PLACEHOLDER Chrome profile",
   "scope": "owner-only closed beta production logout proof",
   "deployment": {
-    "id": "dpl_5HDqM8FkSxdYQDAUXtNFTJ6s5f3P",
-    "url": "https://archestimator-bni1ukxvs-philipjonlewis-projects.vercel.app",
+    "id": "DEPLOYMENT_ID_PLACEHOLDER",
+    "url": "https://VERCEL_DEPLOYMENT_URL_PLACEHOLDER",
     "target": "production",
     "readyState": "READY",
     "aliases": [

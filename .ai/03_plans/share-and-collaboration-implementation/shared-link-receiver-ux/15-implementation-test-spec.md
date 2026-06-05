@@ -113,7 +113,7 @@ At minimum, future implementation should test or manually smoke:
 
 | Fixture | Required evidence |
 | --- | --- |
-| Lewis Residence current fixture | continuity against existing screenshot evidence |
+| DEMO_PROJECT_PLACEHOLDER current fixture | continuity against existing screenshot evidence |
 | one selected sheet | sheet toolbar does not overbuild |
 | many selected sheets | tabs/select does not overflow |
 | long sheet names | labels truncate/wrap correctly |

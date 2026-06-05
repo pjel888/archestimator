@@ -34,8 +34,8 @@
     "summary": "Next.js App Router projects install @vercel/analytics and render Analytics from @vercel/analytics/next in the root layout."
   },
   "deployment": {
-    "deploymentId": "dpl_3sCC5PTPe94sYSngTd6oo5KFY8ci",
-    "deploymentUrl": "https://archestimator-2oid4rslf-philipjonlewis-projects.vercel.app",
+    "deploymentId": "DEPLOYMENT_ID_PLACEHOLDER",
+    "deploymentUrl": "https://VERCEL_DEPLOYMENT_URL_PLACEHOLDER",
     "target": "production",
     "readyState": "READY",
     "aliasedDomains": [
@@ -72,7 +72,7 @@
     }
   },
   "dashboardProof": {
-    "dashboardUrl": "https://vercel.com/philipjonlewis-projects/archestimator/analytics?environment=all",
+    "dashboardUrl": "https://vercel.com/VERCEL_SCOPE_PLACEHOLDER/archestimator/analytics?environment=all",
     "environment": "all",
     "dateRange": "Last 7 Days",
     "observedAfterRealChromeVisit": {

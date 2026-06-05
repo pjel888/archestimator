@@ -156,7 +156,7 @@
 |------|---|
 | **Current Evidence** | Invite tokens use app-owned pepper-hashed tokens exposed through a narrow RPC surface (`accept_invite`, `verify_invite`). The RPC functions handle token lookup and validation server-side. |
 | **Missing Evidence** | No automated test for each lifecycle state: unexpired token works, expired token is rejected, revoked token is rejected, already-used token cannot be replayed, token claimed by wrong email/account is rejected. No pepper rotation or compromise recovery plan. |
-| **Required Test/Proof** | Comprehensive lifecycle test suite: (1) valid invite → accept succeeds, (2) expired invite → rejected with clear error, (3) revoked invite → rejected, (4) already-accepted invite → replay rejected, (5) invite sent to alice@example.com attempted by bob@example.com → rejected, (6) manipulated/forged token → rejected. |
+| **Required Test/Proof** | Comprehensive lifecycle test suite: (1) valid invite → accept succeeds, (2) expired invite → rejected with clear error, (3) revoked invite → rejected, (4) already-accepted invite → replay rejected, (5) invite sent to EMAIL_PLACEHOLDER attempted by EMAIL_PLACEHOLDER → rejected, (6) manipulated/forged token → rejected. |
 | **Severity** | **Critical** |
 | **Launch Gate Status** | **LAUNCH BLOCKER** |
 | **Owner Decision Needed** | Allocate time for invite lifecycle test suite. Define expiry window. Document pepper rotation procedure. |

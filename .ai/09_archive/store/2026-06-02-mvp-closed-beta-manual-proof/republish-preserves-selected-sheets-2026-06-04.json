@@ -57,11 +57,11 @@
     }
   ],
   "deployment": {
-    "deploymentId": "dpl_5MXgQGJYUr8QjEmRgvX2DhioPZ2o",
+    "deploymentId": "DEPLOYMENT_ID_PLACEHOLDER",
     "target": "production",
     "readyState": "READY",
-    "deploymentUrl": "https://archestimator-iyxsgrg5o-philipjonlewis-projects.vercel.app",
-    "inspectorUrl": "https://vercel.com/philipjonlewis-projects/archestimator/5MXgQGJYUr8QjEmRgvX2DhioPZ2o",
+    "deploymentUrl": "https://VERCEL_DEPLOYMENT_URL_PLACEHOLDER",
+    "inspectorUrl": "https://vercel.com/VERCEL_SCOPE_PLACEHOLDER/archestimator/5MXgQGJYUr8QjEmRgvX2DhioPZ2o",
     "aliases": [
       "https://www.archestimator.com",
       "https://archestimator.com",

@@ -21,14 +21,14 @@
       "projectImages": "private for client/project cover images"
     },
     "closedBetaAllowlist": {
-      "normalizedEmail": "philipjonlewis@gmail.com",
+      "normalizedEmail": "OWNER_EMAIL_PLACEHOLDER",
       "status": "active"
     },
     "offRepoLogicalDumpBundle": "/Users/philiplewis/archestimator-provider-backups/2026-06-03T173005Z-pre-closed-beta-2cddb0e"
   },
   "vercel": {
-    "currentDeploymentId": "dpl_CyfR2LA7vMLqR9sDMncgxbgVbcRj",
-    "currentDeploymentUrl": "archestimator-bssps9fmb-philipjonlewis-projects.vercel.app",
+    "currentDeploymentId": "DEPLOYMENT_ID_PLACEHOLDER",
+    "currentDeploymentUrl": "VERCEL_DEPLOYMENT_URL_PLACEHOLDER",
     "customDomains": [
       "archestimator.com",
       "www.archestimator.com"
@@ -70,7 +70,7 @@
   },
   "hostedAuth": {
     "allowedBrowserSmokeArtifact": "hosted-google-allowed-browser-smoke-2026-06-04T0355Z.json",
-    "allowedEmail": "philipjonlewis@gmail.com",
+    "allowedEmail": "OWNER_EMAIL_PLACEHOLDER",
     "allowedGoogleSessionPassed": true,
     "deniedRevokedExpiredSmokePassed": false
   },

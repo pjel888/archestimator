@@ -143,7 +143,7 @@
   ],
   "decision": {
     "result": "Resend sender-domain MX remains open.",
-    "reason": "The required subdomain MX record for send.contact.archestimator.com was not available in the visible Host Records picker, and switching Mail Settings from Email Forwarding to Custom MX would risk interrupting support@archestimator.com forwarding.",
+    "reason": "The required subdomain MX record for send.contact.archestimator.com was not available in the visible Host Records picker, and switching Mail Settings from Email Forwarding to Custom MX would risk interrupting SUPPORT_INBOX_PLACEHOLDER forwarding.",
     "safeNextStep": "Ask Namecheap support whether a subdomain MX can be added while keeping domain Email Forwarding, use a DNS provider that supports independent subdomain MX records without breaking apex forwarding, or move support mail to the same custom MX provider deliberately."
   }
 }

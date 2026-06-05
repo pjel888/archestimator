@@ -5,15 +5,15 @@ Status: signed-out missing-env fail-closed behavior passes on the protected Verc
 ## Scope
 
 - Commit tested: `b2a0a03`.
-- Vercel preview: `archestimator-opxqsyo4t-philipjonlewis-projects.vercel.app`.
+- Vercel preview: `VERCEL_DEPLOYMENT_URL_PLACEHOLDER`.
 - Deployment state: `READY` in `vercel ls --non-interactive`.
 - Production mutations: none.
 
 ## Commands
 
 - `vercel ls --non-interactive`
-- `vercel curl https://archestimator-opxqsyo4t-philipjonlewis-projects.vercel.app/api/health`
-- `vercel curl https://archestimator-opxqsyo4t-philipjonlewis-projects.vercel.app/workshop -I`
+- `vercel curl https://VERCEL_DEPLOYMENT_URL_PLACEHOLDER/api/health`
+- `vercel curl https://VERCEL_DEPLOYMENT_URL_PLACEHOLDER/workshop -I`
 
 ## Results
 

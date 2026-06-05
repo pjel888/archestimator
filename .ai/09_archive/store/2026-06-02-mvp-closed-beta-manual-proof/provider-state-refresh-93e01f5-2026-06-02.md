@@ -10,12 +10,12 @@ Status: read-only provider refresh; external closed beta remains **NO-GO**.
 
 ## Vercel
 
-- `vercel ls --non-interactive` showed latest preview `https://archestimator-irjs5qb0z-philipjonlewis-projects.vercel.app` as `Ready`.
-- `vercel inspect archestimator-irjs5qb0z-philipjonlewis-projects.vercel.app --format=json --non-interactive` reported deployment `dpl_AV1RHNmGMptbRkEW6X8P2UGBv21x`, target `preview`, ready state `READY`, and alias `archestimator-git-main-philipjonlewis-projects.vercel.app`.
-- `vercel curl https://archestimator-irjs5qb0z-philipjonlewis-projects.vercel.app/api/health` returned `{"ok":true,"service":"archestimator","timestamp":"2026-06-02T06:43:09.468Z"}`.
-- `vercel curl https://archestimator-git-main-philipjonlewis-projects.vercel.app/api/health` returned `{"ok":true,"service":"archestimator","timestamp":"2026-06-02T06:43:09.508Z"}`.
-- `vercel env ls --non-interactive` returned no environment variables for `philipjonlewis-projects/archestimator`.
-- `vercel alias ls --non-interactive` showed the branch alias points to the latest preview, while `archestimator.com`, `www.archestimator.com`, and `archestimator.vercel.app` still point to `archestimator-3ser9ty2w-philipjonlewis-projects.vercel.app`.
+- `vercel ls --non-interactive` showed latest preview `https://VERCEL_DEPLOYMENT_URL_PLACEHOLDER` as `Ready`.
+- `vercel inspect VERCEL_DEPLOYMENT_URL_PLACEHOLDER --format=json --non-interactive` reported deployment `DEPLOYMENT_ID_PLACEHOLDER`, target `preview`, ready state `READY`, and alias `VERCEL_DEPLOYMENT_URL_PLACEHOLDER`.
+- `vercel curl https://VERCEL_DEPLOYMENT_URL_PLACEHOLDER/api/health` returned `{"ok":true,"service":"archestimator","timestamp":"2026-06-02T06:43:09.468Z"}`.
+- `vercel curl https://VERCEL_DEPLOYMENT_URL_PLACEHOLDER/api/health` returned `{"ok":true,"service":"archestimator","timestamp":"2026-06-02T06:43:09.508Z"}`.
+- `vercel env ls --non-interactive` returned no environment variables for `VERCEL_SCOPE_PLACEHOLDER/archestimator`.
+- `vercel alias ls --non-interactive` showed the branch alias points to the latest preview, while `archestimator.com`, `www.archestimator.com`, and `archestimator.vercel.app` still point to `VERCEL_DEPLOYMENT_URL_PLACEHOLDER`.
 
 ## Repeatable Vercel Readiness Artifacts
 

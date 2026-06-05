@@ -10,8 +10,8 @@
     "healthArtifact": "vercel-health-readiness-live-refresh-2026-06-04T0427Z.json",
     "healthReady": true,
     "productionArtifact": "vercel-production-readiness-live-refresh-2026-06-04T0424Z.json",
-    "currentDeploymentId": "dpl_CyfR2LA7vMLqR9sDMncgxbgVbcRj",
-    "currentDeploymentUrl": "archestimator-bssps9fmb-philipjonlewis-projects.vercel.app",
+    "currentDeploymentId": "DEPLOYMENT_ID_PLACEHOLDER",
+    "currentDeploymentUrl": "VERCEL_DEPLOYMENT_URL_PLACEHOLDER",
     "customDomainsReady": true,
     "rollbackCandidateCount": 19,
     "rollbackDrillPassed": false

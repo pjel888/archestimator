@@ -7,7 +7,7 @@ This artifact records provider-side launch operations performed with owner-autho
 | Field | Value |
 | --- | --- |
 | Repo commit when recorded | `2cddb0e` |
-| Vercel project | `philipjonlewis-projects/archestimator` |
+| Vercel project | `VERCEL_SCOPE_PLACEHOLDER/archestimator` |
 | Supabase project | `Archestimator` / `ebxxqidacheyapmmzavr` |
 | Supabase region | `ap-southeast-2` |
 | Resend sending domain | `contact.archestimator.com` |
@@ -20,7 +20,7 @@ This artifact records provider-side launch operations performed with owner-autho
 
 - Added the required closed-beta runtime env names for Vercel Production and Preview on the `main` branch: `NEXT_PUBLIC_APP_URL`, `NEXT_PUBLIC_SITE_URL`, `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `ARCHESTIMATOR_ALLOWED_APP_ORIGINS`, `CLOSED_BETA_ACCESS_ENABLED`, publication token/cookie secrets, invite token pepper, invite-entry flag, AI-off flags, and Resend sender/reply vars.
 - Kept `CLOSED_BETA_ACCESS_ENABLED=true`, `PROJECT_INVITE_ENTRY_ENABLED=false`, `ARCHESTIMATOR_AI_ENABLED=false`, and `NEXT_PUBLIC_ASK_FLIP_UI_ENABLED=false`.
-- Set production app URL to `https://www.archestimator.com`; Preview(`main`) app URL remains the `archestimator-git-main-philipjonlewis-projects.vercel.app` branch alias.
+- Set production app URL to `https://www.archestimator.com`; Preview(`main`) app URL remains the `VERCEL_DEPLOYMENT_URL_PLACEHOLDER` branch alias.
 - Verification artifact: `vercel-env-readiness-2cddb0e-2026-06-03.json`.
 - Result: `coreClosedBetaRuntime.ready=true`, `inviteDelivery.ready=true`, and `vercelEnvReady=true` by env-name coverage. Email delivery remains incomplete because `RESEND_WEBHOOK_SECRET` is missing.
 
@@ -29,7 +29,7 @@ This artifact records provider-side launch operations performed with owner-autho
 - Confirmed Google provider is enabled in Supabase Auth with a configured Google client id and hidden client secret.
 - Repaired Supabase Auth URL configuration from local/http-oriented settings to hosted closed-beta settings:
   - Site URL: `https://www.archestimator.com`.
-  - Added redirect URLs for `https://www.archestimator.com/auth/callback`, `https://www.archestimator.com/**`, `https://archestimator.com/auth/callback`, `https://archestimator.com/**`, `https://archestimator-git-main-philipjonlewis-projects.vercel.app/auth/callback`, and `https://archestimator-git-main-philipjonlewis-projects.vercel.app/**`.
+  - Added redirect URLs for `https://www.archestimator.com/auth/callback`, `https://www.archestimator.com/**`, `https://archestimator.com/auth/callback`, `https://archestimator.com/**`, `https://VERCEL_DEPLOYMENT_URL_PLACEHOLDER/auth/callback`, and `https://VERCEL_DEPLOYMENT_URL_PLACEHOLDER/**`.
 - This is provider configuration proof only. It does not prove Google Cloud OAuth consent-screen/callback configuration or hosted allowed/denied/revoked auth behavior.
 
 ### Resend And Namecheap DNS
@@ -61,7 +61,7 @@ This artifact records provider-side launch operations performed with owner-autho
 
 - Resend webhook URL `/api/webhooks/resend` was not configured to completion.
 - The available Resend API key returned a restricted-key authorization error for management endpoints, and the dashboard webhook signing secret was not available to set `RESEND_WEBHOOK_SECRET` in Vercel.
-- The Resend-required MX record for `send.contact.archestimator.com` was not added because Namecheap's current mail posture is Email Forwarding for the apex domain and the Host Records UI did not expose MX entry without changing mail handling. Changing mail handling could affect `support@archestimator.com` and was left for an explicit owner mail-routing decision.
+- The Resend-required MX record for `send.contact.archestimator.com` was not added because Namecheap's current mail posture is Email Forwarding for the apex domain and the Host Records UI did not expose MX entry without changing mail handling. Changing mail handling could affect `SUPPORT_INBOX_PLACEHOLDER` and was left for an explicit owner mail-routing decision.
 
 ### Production Alias, Hosted Smoke, Testers, Legal, And Monitoring
 
@@ -94,14 +94,14 @@ This follow-up intentionally did **not** enable Supabase PITR after the dashboar
 - Exact remote migration history rows were recorded for all applied versions through `20260603160000_mass_deletion_governance`.
 - Verification confirmed required closed-beta and launch objects exist: `closed_beta_allowed_emails`, `beta_feedback_submissions`, `mass_deletion_events`, `check_closed_beta_access(text)`, allowlist admin RPCs, unlink RPC, and mass-deletion preview/execute RPCs.
 - Proof artifact: `supabase-linked-migrations-applied-cheaper-path-2cddb0e-2026-06-03.json`.
-- Beta allowlist now has exactly one active/invited row: `philipjonlewis@gmail.com` with status `active`.
+- Beta allowlist now has exactly one active/invited row: `OWNER_EMAIL_PLACEHOLDER` with status `active`.
 - RPC smoke: allowed email returns `allowed=true/status=active`; unlisted email returns `allowed=false/status=missing`; transaction-local revoked row returns `allowed=false/status=revoked`.
 - Proof artifact: `supabase-closed-beta-allowlist-2cddb0e-2026-06-03.json`.
 
 ### Vercel Production App Promotion
 
 - Local `bun run build` passed on Next.js `16.2.6`.
-- Vercel production deployment `dpl_Cxeq5ATpif6Yk1zn4FmNmnX7nzhT` completed successfully at `https://archestimator-ra4uriydo-philipjonlewis-projects.vercel.app`.
+- Vercel production deployment `DEPLOYMENT_ID_PLACEHOLDER` completed successfully at `https://VERCEL_DEPLOYMENT_URL_PLACEHOLDER`.
 - `vercel inspect --format=json` reports target `production`, ready state `READY`, and aliases for `archestimator.com` and `www.archestimator.com`.
 - `www.archestimator.com` now serves the beta app title `Archestimator | Quote, Proposal & Estimate Workspace`; teaser copy is not detected.
 - `archestimator.com` redirects to `https://www.archestimator.com/`.

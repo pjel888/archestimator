@@ -16,7 +16,7 @@
     "head": "4c2b30f936dd22b6ec7eb9e6939c462d9e5a2b9c",
     "shortHead": "4c2b30f",
     "fixCommitPreviouslyRecorded": "e28a8d6",
-    "productionDeploymentPreviouslyRecorded": "dpl_ET8ZwGjxdfv7CxsXoJgUuao1eHfY",
+    "productionDeploymentPreviouslyRecorded": "DEPLOYMENT_ID_PLACEHOLDER",
     "sourceControls": [
       "src/app/api/share/[token]/decision/route.ts resolves current publication access from the token before decision writes",
       "src/app/api/share/[token]/decision/route.ts verifies the recipient session against the DB-current publicationId and snapshotVersion instead of cookie-derived publication fields",
@@ -42,7 +42,7 @@
     "closeReasonSelected": "Already fixed",
     "submittedContext": "Current main verifies the recipient session against the DB-current publicationId and snapshotVersion from resolveProjectPublicationAccessByToken, passes expectedSnapshotVersion into submitSharedLinkDecision, and the submit_client_response RPC now rejects null/mismatched p_expected_snapshot_version before inserting shared_link_responses. Verified on 2026-06-04 with: bunx vitest run tests/vitest/project-publication-decision.test.tsx tests/vitest/project-publication-public-repository.test.ts tests/vitest/security-findings-contracts.test.ts --maxWorkers=1 --reporter=dot (3 files / 39 tests). Finding was against old commit 45673c8; current main is 4c2b30f.",
     "postSubmitBehavior": "After Submit, the dashboard navigated to the next finding, Stale recipient sessions can post share comments.",
-    "revisitedFindingStatus": "Closed by philipjonlewis@gmail.com. Reason: Fixed.",
+    "revisitedFindingStatus": "Closed by OWNER_EMAIL_PLACEHOLDER. Reason: Fixed.",
     "postClosureFindingCount": "1-20 of 41",
     "postClosureControls": [
       "Closed",

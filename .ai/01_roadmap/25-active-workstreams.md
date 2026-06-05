@@ -20,7 +20,7 @@ archived at `.ai/09_archive/store/2026-06-03-agentic-development-framework-rollo
 The old active plan path under `.ai/03_plans` now exists only as an
 archive-pointer README so stale goal references resolve to completion proof
 instead of a missing-folder blocker. Do not schedule this as a new
-implementation task unless Philip explicitly reopens a later enforcement phase.
+implementation task unless OWNER_NAME_PLACEHOLDER explicitly reopens a later enforcement phase.
 It must not displace the current closed-beta proof collection workstream or
 claim provider readiness.
 
@@ -37,7 +37,7 @@ claim provider readiness.
 
 **Owner Decisions Required:** None (all resolved in Wave 0 — see `29-enterprise-mvp-scope-and-owner-defaults.md`)
 
-**External Setup Required (Philip executes, agent prepares):**
+**External Setup Required (OWNER_NAME_PLACEHOLDER executes, agent prepares):**
 - Supabase staging project creation (`supabase project create`)
 - Vercel staging preview project configuration
 - Preview deployment protection (auth gate or equivalent)
@@ -63,7 +63,7 @@ claim provider readiness.
 
 **UX Gate:** N/A (infrastructure work)
 
-**First Ralph Loop Target:** BETA-P0-INF-001 — prepare staging plan, configuration files, and Philip execution checklist. Verify staging is operational and smoke-tested.
+**First Ralph Loop Target:** BETA-P0-INF-001 — prepare staging plan, configuration files, and OWNER_NAME_PLACEHOLDER execution checklist. Verify staging is operational and smoke-tested.
 
 **Dependencies:** Wave 0 (owner defaults — DONE). This workstream activates first and unblocks all others.
 
@@ -92,9 +92,9 @@ claim provider readiness.
 
 **Owner Decisions Required:** None (all resolved in Wave 0)
 
-**External Setup Required (Philip executes, agent prepares):**
+**External Setup Required (OWNER_NAME_PLACEHOLDER executes, agent prepares):**
 - Rate limiting: Redis or equivalent durable store provisioning (if Redis-backed approach chosen)
-- Turnstile: Cloudflare account and site key (if Philip opts for BETA-P1-SEC-006)
+- Turnstile: Cloudflare account and site key (if OWNER_NAME_PLACEHOLDER opts for BETA-P1-SEC-006)
 
 **Implementation Required (agent can execute):**
 - RLS denial test suite for all user-data tables (against staging Supabase)
@@ -103,7 +103,7 @@ claim provider readiness.
 - Secrets scanning CI configuration (gitleaks or equivalent)
 - Service-role bundle audit (verify key never in client JS)
 - Persistent rate limiting implementation (survives restart, enforces lockout)
-- Turnstile integration (if Philip activates BETA-P1-SEC-006)
+- Turnstile integration (if OWNER_NAME_PLACEHOLDER activates BETA-P1-SEC-006)
 
 **Evidence Required:**
 - RLS denial test output (`.ai/09_archive/store/YYYY-MM-DD-BETA-P0-SEC-001/`)
@@ -152,7 +152,7 @@ claim provider readiness.
 
 **Owner Decisions Required:** None (all resolved in Wave 0)
 
-**External Setup Required (Philip executes, agent prepares):**
+**External Setup Required (OWNER_NAME_PLACEHOLDER executes, agent prepares):**
 - Sentry account creation and project setup
 - Sentry DSN provisioning for staging environment
 
@@ -355,7 +355,7 @@ claim provider readiness.
 
 **Owner Decisions Required:** None (all resolved in Wave 0)
 
-**External Setup Required (Philip executes, agent prepares):**
+**External Setup Required (OWNER_NAME_PLACEHOLDER executes, agent prepares):**
 - Legal counsel engagement for ToS/Privacy Notice/subprocessor review
 - PITR/backup configuration in Supabase
 - CSP enforcement switch from Report-Only to strict
@@ -415,10 +415,10 @@ claim provider readiness.
 - ENTERPRISE-P1-PROD-001 — PDF/immutable proposals (Workstream 6)
 - ENTERPRISE-P1-MOBILE-001 — Full mobile editing (Workstream 6)
 
-**Owner Decisions Required:** Philip beta signoff (all other decisions resolved in Wave 0)
+**Owner Decisions Required:** OWNER_NAME_PLACEHOLDER beta signoff (all other decisions resolved in Wave 0)
 
-**External Setup Required (Philip executes, agent prepares):**
-- Support email configuration (support@archestimator.com with auto-responder)
+**External Setup Required (OWNER_NAME_PLACEHOLDER executes, agent prepares):**
+- Support email configuration (SUPPORT_INBOX_PLACEHOLDER with auto-responder)
 - Beta partner outreach and commitment confirmation
 
 **Implementation Required (agent can execute):**
@@ -427,7 +427,7 @@ claim provider readiness.
 - Beta partner list (3-5 named design partners with contact info and use cases)
 - Beta kickoff script (30-min facilitated session outline)
 - Known limitations disclosure document (published, shareable)
-- Feedback intake workflow (how users report, how Philip triages)
+- Feedback intake workflow (how users report, how OWNER_NAME_PLACEHOLDER triages)
 - Weekly review ritual template (30-min agenda)
 - Support email auto-responder content
 
@@ -441,7 +441,7 @@ claim provider readiness.
 - Feedback intake workflow documentation
 - Weekly review ritual template
 - Support email configuration proof + test
-- Philip beta approval (written signoff with date and scope)
+- OWNER_NAME_PLACEHOLDER beta approval (written signoff with date and scope)
 
 **Performance Gate:** Beta operations are manual (Philip-led). No performance impact from this workstream. Support email should be lightweight (no ticketing system for <10 users).
 
@@ -449,7 +449,7 @@ claim provider readiness.
 
 **UX Gate:** Beta kickoff script must guide users to first value in <30 minutes. Support email auto-responder must set clear expectations (response time, scope).
 
-**First Ralph Loop Target:** BETA-P0-OPS-001 — support email configuration. Configure and test support@archestimator.com with auto-responder, prepare support intake template.
+**First Ralph Loop Target:** BETA-P0-OPS-001 — support email configuration. Configure and test SUPPORT_INBOX_PLACEHOLDER with auto-responder, prepare support intake template.
 
 **Dependencies:** Waves 1-5 must complete before beta go/no-go. Enterprise MVP features (Workstream 6) are NOT prerequisites for beta. Beta operations can run in parallel with Workstream 6.
 
@@ -483,7 +483,7 @@ claim provider readiness.
 
 **Owner Decisions Required:** None (all resolved in Wave 0)
 
-**External Setup Required (Philip executes, agent prepares):**
+**External Setup Required (OWNER_NAME_PLACEHOLDER executes, agent prepares):**
 - Supabase Auth email/SMTP provider configuration
 - `PROJECT_INVITE_ENTRY_ENABLED` and `ARCHESTIMATOR_INVITE_TOKEN_PEPPER` env var provisioning
 
@@ -514,7 +514,7 @@ claim provider readiness.
 
 **UX Gate:** Invite states must be visible in project/sidebar/homebase surfaces. Shared-link badges and one-click copy must use design-system tokens. Destructive actions must require confirmation.
 
-**First Ralph Loop Target:** HUMAN-P0-COLLAB-001A — Philip configures Supabase Auth email provider. Then CODEX-P0-COLLAB-001B — document invite env vars.
+**First Ralph Loop Target:** HUMAN-P0-COLLAB-001A — OWNER_NAME_PLACEHOLDER configures Supabase Auth email provider. Then CODEX-P0-COLLAB-001B — document invite env vars.
 
 **Dependencies:** Wave 1 (staging, human email provider setup). P0 invite cards align with Wave 2 (security evidence). P1 cards can run in parallel with Waves 4-5.
 
@@ -535,7 +535,7 @@ claim provider readiness.
 | 4. Core UX & Onboarding | Wave 4 | 4 | 0 | 0 | No (needs Waves 1-3) | **QUEUED — unblocks after Wave 3** |
 | 5. Share/Export/AI | Wave 5 | 2 | 0 | 0 | No (needs Waves 1-4) | **QUEUED — unblocks after Wave 4** |
 | 6. Enterprise MVP | Wave 6 | 5 | 0 | 0 | No (needs Waves 1-5) | **QUEUED — unblocks after Wave 5** |
-| 7. Beta Operations | Wave 7 | 3 | 3 | Philip signoff | No (needs Waves 1-5) | **QUEUED — unblocks after Wave 5** |
+| 7. Beta Operations | Wave 7 | 3 | 3 | OWNER_NAME_PLACEHOLDER signoff | No (needs Waves 1-5) | **QUEUED — unblocks after Wave 5** |
 | 8. Collaboration & Sharing Hardening | Waves 1-5 | 10 | 0 | 0 (human setup for invite config) | Partial (needs Wave 1 staging + Supabase email provider) | **P0: READY for human setup. P1: QUEUED — unblocks after Wave 4** |
 
 **All 8 workstreams are unblocked for planning.** Owner decisions are codified (Wave 0 is DONE). Workstream 1 (Environment & Deployment) can begin immediately. Workstream 8 (Collaboration & Sharing) has P0 human external setup ready now. Subsequent workstreams activate in wave order as dependencies are satisfied.
@@ -602,7 +602,7 @@ The workstreams are not 7 independent parallel tracks — they **activate at dif
 ## Next Action
 
 1. **Start with Wave 1: BETA-P0-INF-001.** Owner defaults are codified (Wave 0 DONE). Staging/environment foundation is the first implementation workstream.
-2. Agent prepares staging plan, configuration files, and Philip execution checklist for Supabase staging project + Vercel staging preview.
+2. Agent prepares staging plan, configuration files, and OWNER_NAME_PLACEHOLDER execution checklist for Supabase staging project + Vercel staging preview.
 3. Once staging is operational and smoke-tested, proceed to Wave 2 (Security Evidence).
 4. Follow wave sequence as defined in `23-codex-goal-execution-plan.md`.
 

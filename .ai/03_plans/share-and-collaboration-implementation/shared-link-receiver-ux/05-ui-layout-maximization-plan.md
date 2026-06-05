@@ -119,7 +119,7 @@ The key difference is that chart and response state should no longer sit above o
 --------------------------------------------------------------------------------
 Header: mark | project/share status | view-only/session cue
 --------------------------------------------------------------------------------
-Project strip: Lewis Residence | AE-LR-001 | client | location | published timestamp
+Project strip: DEMO_PROJECT_PLACEHOLDER | DEMO_PROJECT_CODE_PLACEHOLDER | client | location | published timestamp
 --------------------------------------------------------------------------------
 Workspace
   Left rail (240-280)       Main estimate canvas                  Context rail

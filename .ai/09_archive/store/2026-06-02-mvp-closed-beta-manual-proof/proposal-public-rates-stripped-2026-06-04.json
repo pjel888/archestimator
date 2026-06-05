@@ -6,8 +6,8 @@
   "status": "repo_fixed_and_deployed_pending_codex_security_rescan",
   "repo_fix_commit": "984124b",
   "production_deployment": {
-    "id": "dpl_Dh8xPgZ3NQwN4CwxZQXh6d8vypcn",
-    "url": "https://archestimator-pa4i1gj5p-philipjonlewis-projects.vercel.app",
+    "id": "DEPLOYMENT_ID_PLACEHOLDER",
+    "url": "https://VERCEL_DEPLOYMENT_URL_PLACEHOLDER",
     "target": "production",
     "status": "Ready",
     "aliases": [

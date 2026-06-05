@@ -1,7 +1,7 @@
 # Design Partner Beta Recruiting Plan
 
 **Last updated:** 2026-05-30
-**Status:** Recruiting matrix created. 8 slots open. Philip must fill candidate names.
+**Status:** Recruiting matrix created. 8 slots open. OWNER_NAME_PLACEHOLDER must fill candidate names.
 
 ---
 
@@ -16,7 +16,7 @@
 | Communication | Willing to give weekly feedback for 4–6 weeks (15–30 min per week) |
 | Language | English-speaking |
 | Geography | Philippines-first or remote English-speaking; no EU/UK targeting for beta |
-| Relationship | Known to Philip directly or through trusted referral |
+| Relationship | Known to OWNER_NAME_PLACEHOLDER directly or through trusted referral |
 | Reliance | Understands Archestimator is pre-production and must not rely on it as only mission-critical system |
 
 ## 2. Exclusion Criteria
@@ -61,7 +61,7 @@
 | 7 | TBD-07 | — | — | — | — | NOT CONTACTED | — | NO |
 | 8 | TBD-08 | — | — | — | — | NOT CONTACTED | — | NO |
 
-*Philip fills names when candidates are identified. Approval required for final named participant list only — beta model is approved.*
+*OWNER_NAME_PLACEHOLDER fills names when candidates are identified. Approval required for final named participant list only — beta model is approved.*
 
 ## 5. Selection Scoring Rubric
 
@@ -139,7 +139,7 @@ Beta is complete when:
 - At least 2 participants have shared estimates with real clients
 - At least 10 feedback sessions have been conducted and synthesized
 - All critical bugs reported during beta are resolved or documented as accepted risk
-- Philip conducts a beta retrospective with documented learnings
+- OWNER_NAME_PLACEHOLDER conducts a beta retrospective with documented learnings
 - Enterprise MVP scope is updated based on beta learnings
 
 ## 10. Participant Risk Disclosure
@@ -156,7 +156,7 @@ ARCHEStimator BETA PARTICIPANT ACKNOWLEDGMENT
 - Your data is stored on Supabase (US region). Your AI interactions go to
   DeepSeek. See the subprocessor list.
 - There is no SLA, no uptime guarantee, and no paid support during beta.
-- Support is best-effort via support@archestimator.com.
+- Support is best-effort via SUPPORT_INBOX_PLACEHOLDER.
 - You may request a copy or deletion of your data at any time.
 - Your feedback will be used to improve the product but will not be
   publicly attributed without your permission.
@@ -184,4 +184,4 @@ Date: ____________________
 
 ---
 
-*Philip fills candidate names when identified. This plan is approved and ready for execution alongside beta preparation goal cards.*
+*OWNER_NAME_PLACEHOLDER fills candidate names when identified. This plan is approved and ready for execution alongside beta preparation goal cards.*

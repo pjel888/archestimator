@@ -13,8 +13,8 @@
     "A later Resend dashboard readback showed the delivered event as Success with HTTP 200 OK."
   ],
   "vercelProof": {
-    "deploymentId": "dpl_4bMoArwC32Tup4dKK67wtKoBf2jv",
-    "deploymentUrl": "https://archestimator-lz829v0ad-philipjonlewis-projects.vercel.app",
+    "deploymentId": "DEPLOYMENT_ID_PLACEHOLDER",
+    "deploymentUrl": "https://VERCEL_DEPLOYMENT_URL_PLACEHOLDER",
     "target": "production",
     "readyState": "READY",
     "aliases": [
@@ -28,7 +28,7 @@
   },
   "supabaseReadback": {
     "queryMode": "linked read-only SQL via Supabase CLI",
-    "recipientEmail": "lewisphilipjonechavez@gmail.com",
+    "recipientEmail": "RECIPIENT_EMAIL_PLACEHOLDER",
     "deliveryStatus": "sent",
     "hasLastOpenedAt": true,
     "hasResendEmailId": true,

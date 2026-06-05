@@ -39,7 +39,7 @@
       "title": "Archestimator | Quote, Proposal & Estimate Workspace",
       "observed_authenticated_surface": "Profile settings",
       "visible_fields": {
-        "display_name": "Philip Lewis",
+        "display_name": "OWNER_NAME_PLACEHOLDER",
         "user_category": "Architect",
         "country_region": "Philippines",
         "save_profile_button": true,
@@ -82,23 +82,23 @@
   },
   "vercel": {
     "inspect": {
-      "deployment_id": "dpl_6xBegV7JS3WRfZYnN1mWTeY62b38",
-      "deployment_url": "archestimator-br665yc8u-philipjonlewis-projects.vercel.app",
+      "deployment_id": "DEPLOYMENT_ID_PLACEHOLDER",
+      "deployment_url": "VERCEL_DEPLOYMENT_URL_PLACEHOLDER",
       "target": "production",
       "ready_state": "READY",
       "aliases": [
         "www.archestimator.com",
         "archestimator.com",
         "archestimator.vercel.app",
-        "archestimator-philipjonlewis-projects.vercel.app",
-        "archestimator-philipjonlewis-philipjonlewis-projects.vercel.app"
+        "archestimator-VERCEL_SCOPE_PLACEHOLDER.vercel.app",
+        "VERCEL_DEPLOYMENT_URL_PLACEHOLDER"
       ]
     },
     "alias_table": {
-      "archestimator.com": "archestimator-br665yc8u-philipjonlewis-projects.vercel.app",
-      "www.archestimator.com": "archestimator-br665yc8u-philipjonlewis-projects.vercel.app",
-      "archestimator.vercel.app": "archestimator-br665yc8u-philipjonlewis-projects.vercel.app",
-      "teaser_branch_alias": "archestimator-git-teaser-prelaunch-philipjonlewis-projects.vercel.app -> archestimator-3ser9ty2w-philipjonlewis-projects.vercel.app"
+      "archestimator.com": "VERCEL_DEPLOYMENT_URL_PLACEHOLDER",
+      "www.archestimator.com": "VERCEL_DEPLOYMENT_URL_PLACEHOLDER",
+      "archestimator.vercel.app": "VERCEL_DEPLOYMENT_URL_PLACEHOLDER",
+      "teaser_branch_alias": "VERCEL_DEPLOYMENT_URL_PLACEHOLDER -> VERCEL_DEPLOYMENT_URL_PLACEHOLDER"
     },
     "env_readiness": {
       "command": "VERCEL_ENV_LIST_TEXT=\"$(vercel env ls production)\" bun run launch:check-vercel-env",
@@ -143,7 +143,7 @@
       "command": "supabase db query --linked --output json \"select normalized_email, status, invited_at is not null as has_invited_at, accepted_at is not null as has_accepted_at from public.closed_beta_allowed_emails order by normalized_email;\"",
       "rows": [
         {
-          "normalized_email": "philipjonlewis@gmail.com",
+          "normalized_email": "OWNER_EMAIL_PLACEHOLDER",
           "status": "active",
           "has_invited_at": true,
           "has_accepted_at": false

@@ -2,7 +2,7 @@
 
 **Date:** 2026-05-31
 **Status:** Planning and audit pack created and second/third-pass hardened. No app code changed.
-**Target route:** `http://localhost:3000/share/vTePfd5eq4ZbBFzHNae0JYOCLfPd_QcrW4F3cnf9Y_E`
+**Target route:** `http://localhost:3000/share/SHARE_TOKEN_PLACEHOLDER`
 **Primary source files:** `src/app/share/[token]/page.tsx`, `src/components/share/*`, `src/lib/publication/*`, `src/lib/share/*`
 
 ## Purpose
@@ -78,5 +78,5 @@ Future coding work must treat these as required gates, not optional guidance:
 2. Per-slice entry and exit gates before moving to the next slice.
 3. Slice-specific test spec in `15-implementation-test-spec.md`.
 4. State truth table for sheet/view/search/rail/decision/comments behavior.
-5. Fixture-backed browser evidence beyond the Lewis Residence snapshot.
+5. Fixture-backed browser evidence beyond the DEMO_PROJECT_PLACEHOLDER snapshot.
 6. Explicit file ownership and merge order if multiple agents implement the work.

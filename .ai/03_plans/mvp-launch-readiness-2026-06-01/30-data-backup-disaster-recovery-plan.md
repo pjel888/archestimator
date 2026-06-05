@@ -23,7 +23,7 @@ passes `bun run launch:check-supabase-backup` with
 `restoreDrillAcceptedRisk=true`, off-repo dump bundle
 `/Users/philiplewis/archestimator-provider-backups/2026-06-03T173005Z-pre-closed-beta-2cddb0e`,
 linked SQL connectivity after compute resize, and allowlist readback showing
-only `philipjonlewis@gmail.com` active. This is sufficient for the cheaper beta
+only `OWNER_EMAIL_PLACEHOLDER` active. This is sufficient for the cheaper beta
 path but is not equivalent to a PITR restore drill. Run the same checker without
 `SUPABASE_BACKUP_READINESS_MODE=daily-backup` when the launch posture changes
 back to strict PITR/public launch.

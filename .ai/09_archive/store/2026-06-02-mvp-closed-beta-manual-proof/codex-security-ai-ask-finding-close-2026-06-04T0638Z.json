@@ -14,7 +14,7 @@
     "head": "fbd6d382289d07595df2332a5aa166be0747e83d",
     "headShort": "fbd6d38",
     "fixCommitRecordedPreviously": "e48eb0f",
-    "productionDeploymentRecordedPreviously": "dpl_GbaEYo8NPmFVS6MQCirpqRBs5RF3",
+    "productionDeploymentRecordedPreviously": "DEPLOYMENT_ID_PLACEHOLDER",
     "closedBetaGate": "src/app/api/ai/ask/route.ts returns the closed-beta disabled 404 before handler import unless ARCHESTIMATOR_AI_ENABLED=true.",
     "quotaProof": "src/app/api/ai/ask/handler.ts checks checkAiAskQuota before workspace context reads or provider calls; src/lib/ai/rate-limit.ts persists quota events in security_rate_limit_events and throws when audit storage is unavailable.",
     "auditProof": "src/lib/ai/audit.ts recordAiAskAuditEvent throws when audit event or Supabase audit storage is unavailable; the handler requires started/completed/failed audit persistence at the provider boundary.",

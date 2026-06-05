@@ -3,7 +3,7 @@
   "operator": "Codex",
   "scope": "Resend sender-domain DNS repair for the owner-only closed beta",
   "domain": "contact.archestimator.com",
-  "resendDashboardDomainId": "b5aedc46-c817-48e7-b69c-2399e7edd2a5",
+  "resendDashboardDomainId": "UUID_PLACEHOLDER",
   "constraints": {
     "noPurchasesMade": true,
     "namecheapAlreadyAuthenticatedByOwner": true,
@@ -120,8 +120,8 @@
     ]
   },
   "sendProbeAfterDnsRepair": {
-    "command": "vercel env run -e production --scope philipjonlewis-projects -- node <sanitized Resend send probe>",
-    "to": "philipjonlewis@gmail.com",
+    "command": "vercel env run -e production --scope VERCEL_SCOPE_PLACEHOLDER -- node <sanitized Resend send probe>",
+    "to": "OWNER_EMAIL_PLACEHOLDER",
     "hasApiKey": true,
     "hasFrom": true,
     "status": 403,

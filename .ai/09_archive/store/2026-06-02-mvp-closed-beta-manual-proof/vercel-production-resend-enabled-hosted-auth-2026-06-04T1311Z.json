@@ -4,9 +4,9 @@
   "scope": "production Vercel deployment, custom-domain smoke, Resend webhook reachability, and hosted allowed-owner auth smoke",
   "vercel": {
     "project": "archestimator",
-    "teamScope": "philipjonlewis-projects",
-    "deploymentId": "dpl_2X6FytZUnK5ZaNsszVN4W8Wh6bXm",
-    "deploymentUrl": "https://archestimator-e2l5q2tc7-philipjonlewis-projects.vercel.app",
+    "teamScope": "VERCEL_SCOPE_PLACEHOLDER",
+    "deploymentId": "DEPLOYMENT_ID_PLACEHOLDER",
+    "deploymentUrl": "https://VERCEL_DEPLOYMENT_URL_PLACEHOLDER",
     "target": "production",
     "status": "Ready",
     "createdAtLocal": "Thu Jun 04 2026 21:03:27 GMT+0800 (Philippine Standard Time)",
@@ -17,8 +17,8 @@
       "https://www.archestimator.com",
       "https://archestimator.com",
       "https://archestimator.vercel.app",
-      "https://archestimator-philipjonlewis-projects.vercel.app",
-      "https://archestimator-philipjonlewis-philipjonlewis-projects.vercel.app"
+      "https://archestimator-VERCEL_SCOPE_PLACEHOLDER.vercel.app",
+      "https://VERCEL_DEPLOYMENT_URL_PLACEHOLDER"
     ]
   },
   "repo": {
@@ -38,7 +38,7 @@
         "Closed beta workspace preview",
         "See the workspace"
       ],
-      "dplId": "dpl_2X6FytZUnK5ZaNsszVN4W8Wh6bXm"
+      "dplId": "DEPLOYMENT_ID_PLACEHOLDER"
     },
     "apex": {
       "url": "https://archestimator.com",
@@ -46,7 +46,7 @@
       "location": "https://www.archestimator.com/",
       "followedHttpStatus": 200,
       "matchedPath": "/",
-      "dplId": "dpl_2X6FytZUnK5ZaNsszVN4W8Wh6bXm"
+      "dplId": "DEPLOYMENT_ID_PLACEHOLDER"
     },
     "signedOutWorkshop": {
       "url": "https://www.archestimator.com/workshop/projects",
@@ -87,7 +87,7 @@
       "Templates",
       "Settings",
       "Favorites",
-      "Tropical House",
+      "OWNER_BETA_PROJECT_PLACEHOLDER",
       "Send beta feedback"
     ],
     "notes": "The browser was already authenticated as the owner session; no password, MFA, or provider setting was changed during this smoke."
@@ -95,7 +95,7 @@
   "supabaseAllowlistReadback": {
     "status": "not rerun in this artifact",
     "reason": "The first linked schema query hit Supabase CLI temporary-role pooler ECIRCUITBREAKER after a column-name correction pass; no further linked queries were launched during cooldown.",
-    "currentCanonicalProof": "Existing launch packet evidence records exactly one active allowlist tester, philipjonlewis@gmail.com."
+    "currentCanonicalProof": "Existing launch packet evidence records exactly one active allowlist tester, OWNER_EMAIL_PLACEHOLDER."
   },
   "remainingGaps": [
     "Hosted denied/revoked/expired Google-auth smoke still needs real-session proof or explicit closed-beta acceptance.",

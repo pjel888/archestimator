@@ -10,8 +10,8 @@ Status: read-only provider evidence; closed beta remains **NO-GO**.
 
 ## Vercel Deployment
 
-- Latest deployment URL parsed from `vercel ls --non-interactive`: `https://archestimator-bssvp0rrd-philipjonlewis-projects.vercel.app`.
-- Deployment id from `vercel inspect`: `dpl_GdDjZoaGocCpAVVEa3oaSm9nCody`.
+- Latest deployment URL parsed from `vercel ls --non-interactive`: `https://VERCEL_DEPLOYMENT_URL_PLACEHOLDER`.
+- Deployment id from `vercel inspect`: `DEPLOYMENT_ID_PLACEHOLDER`.
 - Deployment state from `vercel inspect`: `READY`.
 - Inspected GitHub commit metadata: `not-parsed`.
 - Protected preview health via `vercel curl`: returned `{"ok":true,"service":"archestimator",...}`.
@@ -21,8 +21,8 @@ Status: read-only provider evidence; closed beta remains **NO-GO**.
 
 ## Vercel Env, Alias, And Custom Domain Reads
 
-- `vercel env ls --non-interactive`: `Vercel CLI 54.6.1 (Node.js 25.8.0) Retrieving project… > No Environment Variables found for philipjonlewis-projects/archestimator [258ms] Common next commands: - 'vercel env add' - 'vercel env rm' - 'vercel env pull'`.
-- Custom-domain alias summary from `vercel alias ls --non-interactive`: ` archestimator-3ser9ty2w-philipjonlewis-projects.vercel.app archestimator.com 3d ; archestimator-3ser9ty2w-philipjonlewis-projects.vercel.app www.archestimator.com 3d   archestimator-3ser9ty2w-philipjonlewis-projects.vercel.app archestimator.vercel.app 3d `.
+- `vercel env ls --non-interactive`: `Vercel CLI 54.6.1 (Node.js 25.8.0) Retrieving project… > No Environment Variables found for VERCEL_SCOPE_PLACEHOLDER/archestimator [258ms] Common next commands: - 'vercel env add' - 'vercel env rm' - 'vercel env pull'`.
+- Custom-domain alias summary from `vercel alias ls --non-interactive`: ` VERCEL_DEPLOYMENT_URL_PLACEHOLDER archestimator.com 3d ; VERCEL_DEPLOYMENT_URL_PLACEHOLDER www.archestimator.com 3d   VERCEL_DEPLOYMENT_URL_PLACEHOLDER archestimator.vercel.app 3d `.
 - Custom-domain health HTTP codes: `www.archestimator.com/api/health=404`, `archestimator.com/api/health=307`, `archestimator.vercel.app/api/health=404`.
 - This does not prove env secret values, production promotion, alias parity to the current deployment, rollback rehearsal, hosted auth, or public/custom-domain app health.
 

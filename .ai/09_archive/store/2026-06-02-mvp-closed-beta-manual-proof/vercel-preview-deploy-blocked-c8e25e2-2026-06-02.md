@@ -10,7 +10,7 @@ Status: deployment blocked before hosted recheck; external closed beta remains *
 
 ## Finding
 
-After pushing `c8e25e2`, `vercel ls --non-interactive` still showed the pre-fix preview `archestimator-lsv22sg4z-philipjonlewis-projects.vercel.app` / `dpl_3T35FnYXNspPUP3QL43tCASC4CMF` as the newest Ready deployment and branch alias target. No new Git-triggered preview for `c8e25e2` appeared during the polling window.
+After pushing `c8e25e2`, `vercel ls --non-interactive` still showed the pre-fix preview `VERCEL_DEPLOYMENT_URL_PLACEHOLDER` / `DEPLOYMENT_ID_PLACEHOLDER` as the newest Ready deployment and branch alias target. No new Git-triggered preview for `c8e25e2` appeared during the polling window.
 
 ## Clean Preview Deploy Attempt
 

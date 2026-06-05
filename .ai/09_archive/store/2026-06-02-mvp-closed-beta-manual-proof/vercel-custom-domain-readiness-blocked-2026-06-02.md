@@ -9,7 +9,7 @@ Result: blocked/negative for MVP closed-beta production/custom-domain readiness.
 ```bash
 vercel domains ls --non-interactive
 vercel alias ls --non-interactive
-vercel inspect archestimator-3ser9ty2w-philipjonlewis-projects.vercel.app --non-interactive
+vercel inspect VERCEL_DEPLOYMENT_URL_PLACEHOLDER --non-interactive
 curl -sS -i --max-time 20 https://archestimator.com/api/health
 curl -sS -i --max-time 20 https://www.archestimator.com/api/health
 curl -sS -i --max-time 20 https://www.archestimator.com/
@@ -21,9 +21,9 @@ dig +short www.archestimator.com A
 
 ## Vercel Domain And Alias Evidence
 
-- `vercel domains ls --non-interactive` found `archestimator.com` under `philipjonlewis-projects`, registrar `Third Party`, nameservers `Third Party`, creator `philipjonlewis`.
-- `vercel alias ls --non-interactive` maps `archestimator.com`, `www.archestimator.com`, `archestimator.vercel.app`, `archestimator-philipjonlewis-projects.vercel.app`, and `archestimator-git-teaser-prelaunch-philipjonlewis-projects.vercel.app` to `archestimator-3ser9ty2w-philipjonlewis-projects.vercel.app`.
-- `vercel inspect archestimator-3ser9ty2w-philipjonlewis-projects.vercel.app --non-interactive` reported deployment id `dpl_FwfHexBsB1xSHDqHqFwHSYpCYTVH`, target `production`, status `Ready`, created `Sat May 30 2026 21:09:26 GMT+0800`.
+- `vercel domains ls --non-interactive` found `archestimator.com` under `VERCEL_SCOPE_PLACEHOLDER`, registrar `Third Party`, nameservers `Third Party`, creator `OWNER_HANDLE_PLACEHOLDER`.
+- `vercel alias ls --non-interactive` maps `archestimator.com`, `www.archestimator.com`, `archestimator.vercel.app`, `archestimator-VERCEL_SCOPE_PLACEHOLDER.vercel.app`, and `VERCEL_DEPLOYMENT_URL_PLACEHOLDER` to `VERCEL_DEPLOYMENT_URL_PLACEHOLDER`.
+- `vercel inspect VERCEL_DEPLOYMENT_URL_PLACEHOLDER --non-interactive` reported deployment id `DEPLOYMENT_ID_PLACEHOLDER`, target `production`, status `Ready`, created `Sat May 30 2026 21:09:26 GMT+0800`.
 
 ## Public Route Evidence
 

@@ -4,7 +4,7 @@
   "repoHead": "526a9897cb1b",
   "scope": "Closed-beta Resend sending-domain and webhook provider proof",
   "resendDashboard": {
-    "accountEmail": "philipjonlewis@gmail.com",
+    "accountEmail": "OWNER_EMAIL_PLACEHOLDER",
     "domain": {
       "name": "contact.archestimator.com",
       "status": "Failed",

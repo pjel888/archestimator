@@ -19,8 +19,8 @@
     "authenticatedExecute": false
   },
   "vercel": {
-    "deploymentId": "dpl_2Ne8GUjgs1TT8tjj24Z3SaZLHxQ2",
-    "deploymentUrl": "https://archestimator-qu89kzlz6-philipjonlewis-projects.vercel.app",
+    "deploymentId": "DEPLOYMENT_ID_PLACEHOLDER",
+    "deploymentUrl": "https://VERCEL_DEPLOYMENT_URL_PLACEHOLDER",
     "target": "production",
     "readyState": "READY",
     "aliases": [

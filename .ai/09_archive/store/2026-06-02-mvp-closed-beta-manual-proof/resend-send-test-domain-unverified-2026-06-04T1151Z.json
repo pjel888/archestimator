@@ -4,7 +4,7 @@
   "scope": "Closed-beta Resend outbound email readiness",
   "changedProviderState": false,
   "secretValuesLogged": false,
-  "targetRecipient": "philipjonlewis@gmail.com",
+  "targetRecipient": "OWNER_EMAIL_PLACEHOLDER",
   "vercelProductionEnvObserved": {
     "RESEND_API_KEY": true,
     "RESEND_FROM": true,

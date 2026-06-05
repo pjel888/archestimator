@@ -2,13 +2,13 @@
 
 ## Purpose
 
-Closed beta users must reach value quickly and Philip must receive useful feedback without building a heavy feedback platform before launch.
+Closed beta users must reach value quickly and OWNER_NAME_PLACEHOLDER must receive useful feedback without building a heavy feedback platform before launch.
 
 ## Closed Beta Invite Path
 
-1. Philip selects a beta tester.
-2. Philip adds the tester's Google account email to `closed_beta_allowed_emails`.
-3. Philip sends a manual invite email with the beta link, support contact, and beta expectations.
+1. OWNER_NAME_PLACEHOLDER selects a beta tester.
+2. OWNER_NAME_PLACEHOLDER adds the tester's Google account email to `closed_beta_allowed_emails`.
+3. OWNER_NAME_PLACEHOLDER sends a manual invite email with the beta link, support contact, and beta expectations.
 4. Tester signs in with Google.
 5. Allowlist check grants or denies `/workshop` access.
 
@@ -61,8 +61,8 @@ Recommended MVP path:
 - Add a visible "Send feedback" link in the app shell or support/contact surface.
 - Current local code routes authenticated users to `/workshop/feedback` and writes to `beta_feedback_submissions` when the local migration is applied.
 - Keep an external email fallback because linked/hosted persistence and monitoring proof are still missing.
-- Keep `support@archestimator.com` visible.
-- Custom in-app feedback remains launch-blocked until the migration is applied remotely and Philip proves the table/inbox is monitored.
+- Keep `SUPPORT_INBOX_PLACEHOLDER` visible.
+- Custom in-app feedback remains launch-blocked until the migration is applied remotely and OWNER_NAME_PLACEHOLDER proves the table/inbox is monitored.
 
 ## Minimum Feedback Fields
 

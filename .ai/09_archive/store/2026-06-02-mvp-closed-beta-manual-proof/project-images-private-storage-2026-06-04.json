@@ -14,8 +14,8 @@
     "publicShareImagePolicy": "project image route URLs are stripped from public share snapshots; component thumbnails and component-images remain the public image surfaces"
   },
   "vercelProduction": {
-    "deploymentId": "dpl_AinsiY5f2yaS3pED1zGnfKzKumwE",
-    "deploymentUrl": "https://archestimator-dug92lyds-philipjonlewis-projects.vercel.app",
+    "deploymentId": "DEPLOYMENT_ID_PLACEHOLDER",
+    "deploymentUrl": "https://VERCEL_DEPLOYMENT_URL_PLACEHOLDER",
     "ready": true,
     "aliases": [
       "https://www.archestimator.com",

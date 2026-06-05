@@ -168,7 +168,7 @@ The topic is valid, but Codex must not execute it directly. It must be split int
 | Lane | BETA P0 |
 | Status | DONE / DECISIONS CODED INTO ROADMAP |
 | Primary risk reduced | Product |
-| Owner | Philip |
+| Owner | OWNER_NAME_PLACEHOLDER |
 | Estimated blast radius | Low |
 | Dependencies | None |
 | Explicit non-goals | Implementing anything, running commands |
@@ -183,12 +183,12 @@ Decisions block all other waves. Without answers, every other goal card is BLOCK
 .ai/01_roadmap/24-owner-decision-packet.md, .ai/01_roadmap/14-owner-decisions.md
 
 ### Acceptance criteria
-1. All 10 decisions have Philip answers or accepted defaults
+1. All 10 decisions have OWNER_NAME_PLACEHOLDER answers or accepted defaults
 2. 24-owner-decision-packet.md updated with answers
 3. Blocked goal cards updated to reflect unblocked status
 
 ### Validation commands or evidence
-Philip review of decision packet.
+OWNER_NAME_PLACEHOLDER review of decision packet.
 
 ### Performance budget
 N/A (docs only).
@@ -220,7 +220,7 @@ List of 10 decisions with answers, count of now-unblocked goal cards.
 | Lane | BETA P0 |
 | Status | EPIC / SPLIT REQUIRED |
 | Primary risk reduced | Deployment |
-| Owner | Philip |
+| Owner | OWNER_NAME_PLACEHOLDER |
 | Estimated blast radius | Medium |
 | Dependencies | Wave 0 decisions |
 | Explicit non-goals | Production CD pipeline, multi-region, PITR, domain/DNS |
@@ -245,7 +245,7 @@ Separate staging Supabase project + Vercel staging preview exist, isolated from 
 | Lane | BETA P0 |
 | Status | READY FOR HUMAN EXTERNAL SETUP |
 | Primary risk reduced | Deployment |
-| Owner | Philip (manual) |
+| Owner | OWNER_NAME_PLACEHOLDER (manual) |
 | Dependencies | None |
 | Explicit non-goals | Applying migrations, configuring env vars, creating seed data |
 
@@ -283,7 +283,7 @@ Staging Supabase URL, confirmation keys differ from dev.
 | Lane | BETA P0 |
 | Status | READY FOR HUMAN EXTERNAL SETUP |
 | Primary risk reduced | Deployment |
-| Owner | Philip (manual) |
+| Owner | OWNER_NAME_PLACEHOLDER (manual) |
 | Dependencies | None |
 | Explicit non-goals | Configuring deploy hooks, setting env vars, domain/DNS |
 
@@ -437,7 +437,7 @@ Migration count applied, seed script path, smoke test result, staging isolation 
 | Lane | BETA P0 |
 | Status | EPIC / SPLIT REQUIRED |
 | Primary risk reduced | Security |
-| Owner | Philip |
+| Owner | OWNER_NAME_PLACEHOLDER |
 | Estimated blast radius | High |
 | Dependencies | Staging environment (Wave 2) |
 | Explicit non-goals | Fixing RLS policy gaps (report only), penetration testing, modifying RLS policies |
@@ -724,7 +724,7 @@ RPC inventory count, test count, any unguarded RPCs discovered.
 | Lane | BETA P0 |
 | Status | EPIC / SPLIT REQUIRED |
 | Primary risk reduced | Security |
-| Owner | Philip |
+| Owner | OWNER_NAME_PLACEHOLDER |
 | Estimated blast radius | Medium |
 | Dependencies | Staging |
 | Explicit non-goals | Fixing storage policy gaps, storage RLS rewrite |
@@ -899,7 +899,7 @@ Bucket inventory, path-prefix convention per bucket, orphan risk assessment.
 | Lane | BETA P0 |
 | Status | EPIC / SPLIT REQUIRED |
 | Primary risk reduced | Security |
-| Owner | Philip |
+| Owner | OWNER_NAME_PLACEHOLDER |
 | Estimated blast radius | High |
 | Dependencies | Staging |
 | Explicit non-goals | Rewriting auth middleware, refactoring auth system |
@@ -1110,7 +1110,7 @@ Action count tested, denial evidence, any unauthenticated mutations discovered.
 | Lane | BETA P0 |
 | Status | READY FOR CODEX |
 | Primary risk reduced | Security |
-| Owner | Philip |
+| Owner | OWNER_NAME_PLACEHOLDER |
 | Estimated blast radius | Low |
 | Dependencies | CI pipeline |
 | Explicit non-goals | Rotational secret management, vault integration |
@@ -1163,7 +1163,7 @@ Secrets scanning tool chosen, CI pass/fail evidence, service-role grep results, 
 | Lane | BETA P0 |
 | Status | EPIC / SPLIT REQUIRED |
 | Primary risk reduced | Security |
-| Owner | Philip |
+| Owner | OWNER_NAME_PLACEHOLDER |
 | Estimated blast radius | Medium |
 | Dependencies | BETA-P0-INF-001 (staging), Upstash Redis or equivalent |
 | Explicit non-goals | Full DDoS protection, WAF, CAPTCHA (separate card) |
@@ -1428,7 +1428,7 @@ Screenshot per rate-limited surface, Retry-After header evidence.
 | Lane | BETA P1 |
 | Status | READY FOR CODEX |
 | Primary risk reduced | Security |
-| Owner | Philip |
+| Owner | OWNER_NAME_PLACEHOLDER |
 | Estimated blast radius | Low |
 | Dependencies | BETA-P0-SEC-005 (rate limiting) |
 | Explicit non-goals | Adding Turnstile to authenticated editing flows, replacing rate limiting |
@@ -1481,7 +1481,7 @@ Turnstile site key / secret key configuration proof, screenshot of Turnstile on 
 | Lane | BETA P0 |
 | Status | EPIC / SPLIT REQUIRED |
 | Primary risk reduced | Deployment |
-| Owner | Philip |
+| Owner | OWNER_NAME_PLACEHOLDER |
 | Estimated blast radius | Medium |
 | Dependencies | Staging, analytics decision (D-031) |
 | Explicit non-goals | Complex dashboards, custom metrics, log aggregation |
@@ -1522,7 +1522,7 @@ Sentry integration is in the dependency chain. Must scope setup before SDK integ
 1. Sentry project name/structure documented
 2. DSN retrieval steps documented
 3. Organization/permission setup documented
-4. Checklist saved for Philip to execute
+4. Checklist saved for OWNER_NAME_PLACEHOLDER to execute
 
 ### Validation
 Checklist review.
@@ -1703,7 +1703,7 @@ Health endpoint URL, curl evidence, uptime check plan.
 | Lane | BETA P0 |
 | Status | EPIC / SPLIT REQUIRED |
 | Primary risk reduced | Performance |
-| Owner | Philip |
+| Owner | OWNER_NAME_PLACEHOLDER |
 | Estimated blast radius | Medium |
 | Dependencies | Staging |
 | Explicit non-goals | Achieving all public-launch targets, optimizing everything |
@@ -1972,7 +1972,7 @@ FMP by estimate size, tab switch timings.
 | Lane | BETA P0 |
 | Status | EPIC / SPLIT REQUIRED |
 | Primary risk reduced | Performance |
-| Owner | Philip |
+| Owner | OWNER_NAME_PLACEHOLDER |
 | Estimated blast radius | Medium |
 | Dependencies | None (analysis first) |
 | Explicit non-goals | Rewriting modules, removing dependencies, achieving all targets |
@@ -2207,7 +2207,7 @@ Budget config, CI pass/fail evidence, current bundle size.
 | Lane | BETA P0 |
 | Status | EPIC / SPLIT REQUIRED |
 | Primary risk reduced | UX |
-| Owner | Philip |
+| Owner | OWNER_NAME_PLACEHOLDER |
 | Estimated blast radius | High |
 | Dependencies | Error boundaries (Wave 3) |
 | Explicit non-goals | Product-led self-serve, accessibility audit, mobile editing |
@@ -2435,7 +2435,7 @@ Screenshots per tab, non-technical user test results.
 | Lane | BETA P0 |
 | Status | EPIC / SPLIT REQUIRED |
 | Primary risk reduced | UX |
-| Owner | Philip |
+| Owner | OWNER_NAME_PLACEHOLDER |
 | Estimated blast radius | Medium |
 | Dependencies | Onboarding (UX-001), error boundaries (Wave 3) |
 | Explicit non-goals | New features, redesign, PDF export |
@@ -2627,7 +2627,7 @@ Export flow screenshots, any UX issues.
 | Lane | BETA P0 |
 | Status | READY FOR CODEX |
 | Primary risk reduced | UX |
-| Owner | Philip |
+| Owner | OWNER_NAME_PLACEHOLDER |
 | Estimated blast radius | Medium |
 | Dependencies | Wave 1 (shared link security) |
 | Explicit non-goals | Redesigning share page, PDF export, immutable proposals |
@@ -2680,7 +2680,7 @@ Non-technical user test results, FMP measurement, screenshot of each tab.
 | Lane | BETA P0 |
 | Status | READY FOR CODEX |
 | Primary risk reduced | UX |
-| Owner | Philip |
+| Owner | OWNER_NAME_PLACEHOLDER |
 | Estimated blast radius | Medium |
 | Dependencies | None (standalone) |
 | Explicit non-goals | Full offline mode, circuit breakers, complex degraded UI |
@@ -2733,7 +2733,7 @@ Screenshot of custom 404, custom 500, error boundary fallback, mobile guard; lis
 | Lane | BETA P0 |
 | Status | READY FOR CODEX |
 | Primary risk reduced | Security |
-| Owner | Philip |
+| Owner | OWNER_NAME_PLACEHOLDER |
 | Estimated blast radius | Medium |
 | Dependencies | Wave 1 (API auth audit) |
 | Explicit non-goals | AI memory, vector/RAG, autonomous features, AI conversation history |
@@ -2786,7 +2786,7 @@ Cross-workspace denial evidence, confirmation prompt screenshot, disclaimer scre
 | Lane | BETA P0 |
 | Status | READY FOR CODEX |
 | Primary risk reduced | UX |
-| Owner | Philip |
+| Owner | OWNER_NAME_PLACEHOLDER |
 | Estimated blast radius | Low |
 | Dependencies | None (standalone) |
 | Explicit non-goals | Responsive workshop layout, mobile estimate editing, tablet optimization |
@@ -2838,7 +2838,7 @@ Screenshot of overlay on /workshop at 375px, screenshot of /share/[token] at 375
 | Lane | BETA P0 |
 | Status | READY FOR CODEX |
 | Primary risk reduced | Product |
-| Owner | Philip |
+| Owner | OWNER_NAME_PLACEHOLDER |
 | Estimated blast radius | Low |
 | Dependencies | None |
 | Explicit non-goals | GA4/PostHog/Clarity, marketing analytics, cookie consent for analytics (first-party only) |
@@ -2892,7 +2892,7 @@ Events table schema, event inventory with counts after test session, PII audit r
 | Lane | BETA P0 |
 | Status | EPIC / SPLIT REQUIRED |
 | Primary risk reduced | Legal |
-| Owner | Philip |
+| Owner | OWNER_NAME_PLACEHOLDER |
 | Estimated blast radius | Medium |
 | Dependencies | None |
 | Explicit non-goals | Full lawyer-reviewed Privacy/Terms/DPA (public launch), self-serve DSAR |
@@ -3076,13 +3076,13 @@ DSAR process document path, response template path.
 | Lane | BETA P0 |
 | Status | EPIC / SPLIT REQUIRED |
 | Primary risk reduced | Operations |
-| Owner | Philip |
+| Owner | OWNER_NAME_PLACEHOLDER |
 | Estimated blast radius | Low |
 | Dependencies | None |
 | Explicit non-goals | Ticketing system, help desk software, SLA guarantees |
 
 ### Outcome
-support@archestimator.com configured with auto-responder. Triage workflow documented.
+SUPPORT_INBOX_PLACEHOLDER configured with auto-responder. Triage workflow documented.
 
 ### Sub-cards
 - BETA-P0-OPS-001A — support@ setup checklist
@@ -3103,7 +3103,7 @@ support@archestimator.com configured with auto-responder. Triage workflow docume
 | Explicit non-goals | Configuring email DNS (human task), setting up help desk |
 
 ### Outcome
-Documented checklist for support@archestimator.com setup including auto-responder template.
+Documented checklist for SUPPORT_INBOX_PLACEHOLDER setup including auto-responder template.
 
 ### Why now
 Beta users need a support channel. Setup must be documented before configuration.
@@ -3115,7 +3115,7 @@ Beta users need a support channel. Setup must be documented before configuration
 1. Checklist: email creation, forwarding, auto-responder configuration
 2. Auto-responder template drafted (acknowledges receipt, sets expectations)
 3. Support link added to app footer
-4. Checklist saved for Philip to execute human steps
+4. Checklist saved for OWNER_NAME_PLACEHOLDER to execute human steps
 
 ### Validation
 Checklist review; footer link verification.
@@ -3215,13 +3215,13 @@ Runbook inventory, drill checklist path, schedule recommendation.
 | Lane | BETA P0 |
 | Status | EPIC / SPLIT REQUIRED |
 | Primary risk reduced | Product |
-| Owner | Philip |
+| Owner | OWNER_NAME_PLACEHOLDER |
 | Estimated blast radius | Low |
 | Dependencies | All previous waves |
 | Explicit non-goals | Public launch, payment, automated onboarding |
 
 ### Outcome
-Everything needed for Philip to start controlled beta with 3-5 design partners.
+Everything needed for OWNER_NAME_PLACEHOLDER to start controlled beta with 3-5 design partners.
 
 ### Sub-cards
 - BETA-P0-BETA-001A — Design-partner list
@@ -3238,7 +3238,7 @@ Everything needed for Philip to start controlled beta with 3-5 design partners.
 | Lane | BETA P0 |
 | Status | READY FOR CODEX AFTER DESIGN PARTNER LIST FILLED |
 | Owner | Codex |
-| Dependencies | Philip fills list (human task) |
+| Dependencies | OWNER_NAME_PLACEHOLDER fills list (human task) |
 | Explicit non-goals | Recruiting partners, sending invites |
 
 ### Outcome
@@ -3257,13 +3257,13 @@ Must know who the beta users are before kickoff. Gates beta kickoff script.
 4. Document saved
 
 ### Validation
-Philip reviews and approves list.
+OWNER_NAME_PLACEHOLDER reviews and approves list.
 
 ### Evidence artifact
 .ai/09_archive/store/YYYY-MM-DD-BETA-P0-BETA-001A/
 
 ### Completion report
-Partner count, list path, Philip approval.
+Partner count, list path, OWNER_NAME_PLACEHOLDER approval.
 
 ---
 
@@ -3294,13 +3294,13 @@ Consistent kickoff experience ensures every design partner gets the same informa
 4. Document saved
 
 ### Validation
-Philip reviews kickoff script for accuracy.
+OWNER_NAME_PLACEHOLDER reviews kickoff script for accuracy.
 
 ### Evidence artifact
 .ai/09_archive/store/YYYY-MM-DD-BETA-P0-BETA-001B/
 
 ### Completion report
-Kickoff script path, section count, Philip review status.
+Kickoff script path, section count, OWNER_NAME_PLACEHOLDER review status.
 
 ---
 
@@ -3316,7 +3316,7 @@ Kickoff script path, section count, Philip review status.
 | Explicit non-goals | Making the go/no-go decision (Philip), launching beta |
 
 ### Outcome
-Go/no-go checklist compiled: all BETA P0 evidence aggregated, risk register reviewed, Philip signoff template.
+Go/no-go checklist compiled: all BETA P0 evidence aggregated, risk register reviewed, OWNER_NAME_PLACEHOLDER signoff template.
 
 ### Why now
 Final gate before beta. Must have structured decision framework, not gut feel.
@@ -3326,7 +3326,7 @@ Final gate before beta. Must have structured decision framework, not gut feel.
 
 ### Acceptance criteria
 1. Checklist: every BETA P0 card with evidence link
-2. Risk acceptance register with Philip signoff line
+2. Risk acceptance register with OWNER_NAME_PLACEHOLDER signoff line
 3. Known limitations disclosure compiled
 4. Go/no-go decision template
 
@@ -3337,7 +3337,7 @@ Cross-reference checklist against Card Readiness Summary; verify all evidence pa
 .ai/09_archive/store/YYYY-MM-DD-BETA-P0-BETA-001C/
 
 ### Completion report
-Checklist with evidence links, risk register, limitations disclosure, Philip signoff template.
+Checklist with evidence links, risk register, limitations disclosure, OWNER_NAME_PLACEHOLDER signoff template.
 
 ---
 
@@ -3349,7 +3349,7 @@ Checklist with evidence links, risk register, limitations disclosure, Philip sig
 | Lane | PUBLIC LAUNCH |
 | Status | PUBLIC LAUNCH / LEGAL REVIEW REQUIRED |
 | Primary risk reduced | Legal |
-| Owner | Philip |
+| Owner | OWNER_NAME_PLACEHOLDER |
 | Estimated blast radius | Medium |
 | Dependencies | Jurisdiction (D-001), legal path (D-002) |
 | Explicit non-goals | Beta legal (separate path), implementing DSAR UI (other cards) |
@@ -3371,7 +3371,7 @@ src/app/privacy/, src/app/terms/
 5. All "pending review" stubs replaced
 
 ### Validation commands or evidence
-Philip legal review; deploy and verify /privacy and /terms render.
+OWNER_NAME_PLACEHOLDER legal review; deploy and verify /privacy and /terms render.
 
 ### Performance budget
 N/A (static pages).
@@ -3401,7 +3401,7 @@ Review status of each document, subprocessor inventory, jurisdiction statement.
 | Lane | POST-BETA |
 | Status | SPLIT into ENTERPRISE-P1-PROD-001 and ENTERPRISE-P1-PROD-002 |
 | Primary risk reduced | Product |
-| Owner | Philip |
+| Owner | OWNER_NAME_PLACEHOLDER |
 | Estimated blast radius | High |
 | Dependencies | Beta feedback on export needs |
 | Explicit non-goals | Implementing PDF or immutable proposals now |
@@ -3450,7 +3450,7 @@ Beta feedback summary, confirmation that cards ENTERPRISE-P1-PROD-001 and ENTERP
 | Lane | POST-BETA |
 | Status | POST-MVP / FULL MOBILE EDITING |
 | Primary risk reduced | Product |
-| Owner | Philip |
+| Owner | OWNER_NAME_PLACEHOLDER |
 | Estimated blast radius | High |
 | Dependencies | Beta feedback on mobile needs |
 | Explicit non-goals | Implementing responsive workshop now |
@@ -3502,7 +3502,7 @@ Beta feedback summary, mobile strategy decision, spec if responsive approved.
 | Lane | ENTERPRISE MVP P1 |
 | Status | EPIC / SPLIT REQUIRED |
 | Primary risk reduced | Product |
-| Owner | Philip |
+| Owner | OWNER_NAME_PLACEHOLDER |
 | Estimated blast radius | High |
 | Dependencies | Beta feedback, POST-BETA-PROD-001 split |
 | Explicit non-goals | Implementing now (enterprise MVP), PDF generation (separate card), billing |
@@ -3638,7 +3638,7 @@ Read model doc path, audit policy doc path.
 | Lane | ENTERPRISE MVP P1 |
 | Status | EPIC / SPLIT REQUIRED |
 | Primary risk reduced | Product |
-| Owner | Philip |
+| Owner | OWNER_NAME_PLACEHOLDER |
 | Estimated blast radius | Medium |
 | Dependencies | ENTERPRISE-P1-PROD-001 (immutable snapshots) |
 | Explicit non-goals | Implementing now (enterprise MVP), PDF from mutable estimates (must use snapshots) |
@@ -3773,7 +3773,7 @@ PDF performance budget doc, async strategy doc, UX wireframe for progress.
 | Lane | BETA P0 |
 | Status | BLOCKED — SUPABASE AUTH PROVIDER/DASHBOARD PROOF NEEDED |
 | Primary risk reduced | Collaboration |
-| Owner | Philip (manual, provider dashboard) |
+| Owner | OWNER_NAME_PLACEHOLDER (manual, provider dashboard) |
 | Dependencies | None |
 | Explicit non-goals | Code changes, Resend shared-link email setup, generating invite env var secrets, applying migrations |
 
@@ -4015,7 +4015,7 @@ Messaging audit results, before/after string comparison, screenshot of truthful 
 Pending, sent, opened, accepted, expired, and revoked invite states are visible in project sidebar, homebase, and modal surfaces.
 
 ### Why now
-The audit pack identifies that invite state visibility is almost non-existent in current UI. For beta, Philip manages invites manually, but visibility improves the collaboration experience. BETA P1 — can be deferred if P0 invite work is incomplete.
+The audit pack identifies that invite state visibility is almost non-existent in current UI. For beta, OWNER_NAME_PLACEHOLDER manages invites manually, but visibility improves the collaboration experience. BETA P1 — can be deferred if P0 invite work is incomplete.
 
 ### Likely files touched
 src/components/workshop/teamspaces/, src/components/sidebar/, src/app/workshop/page.tsx
@@ -4433,8 +4433,8 @@ Search use case inventory, technology decision, candidate index list.
 ## Strict Rules
 
 1. **No production launch claim** may be added unless there is matching evidence in `.ai`, tests, provider screenshots/checklists, or owner decision logs.
-2. **No merge to `main`** without Philip approval.
-3. **No deploy** without Philip approval.
+2. **No merge to `main`** without OWNER_NAME_PLACEHOLDER approval.
+3. **No deploy** without OWNER_NAME_PLACEHOLDER approval.
 4. **Public copy** must claim only currently shipped, verified capability.
 5. **Proposal export copy** must distinguish mutable XLSX export from future immutable issued snapshots.
 6. **AI copy** must describe scoped Ask and confirmation-gated package-builder — not autonomous estimation.

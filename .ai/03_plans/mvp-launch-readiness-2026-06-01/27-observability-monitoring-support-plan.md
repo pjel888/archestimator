@@ -31,7 +31,7 @@ Commit audited: `681c95e64864f283950a88dba304eaffe8f2f8b3`
 | Resend webhook logs | Route can record delivery state. | Delivery/webhook proof missing. |
 | Health endpoint | `/api/health` returns `200` JSON with `Cache-Control: no-store` and no auth/data dependency. | Production uptime monitor proof missing. |
 | Performance monitor | Dev-only monitor exists. | No production RUM/APM. |
-| Support | Public contact route exists, workshop footer and Settings hub link to protected `/workshop/feedback`, Settings also links beta users to terms/privacy and the `support@archestimator.com` data request path, local code can persist authenticated feedback to `beta_feedback_submissions`, platform admins have a local `/workshop/settings/feedback` status queue, and the public contact form prepares a structured support email draft instead of fake-submitting. | Linked migration apply, hosted feedback/review smoke, monitored inbox/table review proof, SLA owner proof, and bug triage workflow proof remain missing. |
+| Support | Public contact route exists, workshop footer and Settings hub link to protected `/workshop/feedback`, Settings also links beta users to terms/privacy and the `SUPPORT_INBOX_PLACEHOLDER` data request path, local code can persist authenticated feedback to `beta_feedback_submissions`, platform admins have a local `/workshop/settings/feedback` status queue, and the public contact form prepares a structured support email draft instead of fake-submitting. | Linked migration apply, hosted feedback/review smoke, monitored inbox/table review proof, SLA owner proof, and bug triage workflow proof remain missing. |
 
 ## MVP Stack Decision
 

@@ -16,7 +16,7 @@
     "head": "5931c1d74fe724a509661bdf5f5249fe71ea6f14",
     "shortHead": "5931c1d",
     "fixCommitPreviouslyRecorded": "dc0aff1",
-    "productionDeploymentPreviouslyRecorded": "dpl_HiJpSuKpvqnHbCNxi93e89p7Ay1k",
+    "productionDeploymentPreviouslyRecorded": "DEPLOYMENT_ID_PLACEHOLDER",
     "sourceControls": [
       "src/lib/publication/image-url.ts normalizePublicationImageUrl allows only safe local component thumbnails or same Supabase public component-images .webp URLs",
       "src/lib/publication/snapshot.ts normalizes project cover and row image URLs during snapshot build and public-read sanitization",
@@ -38,7 +38,7 @@
     "closeReasonSelected": "Already fixed",
     "submittedContext": "Current main canonicalizes publication image URLs through src/lib/publication/image-url.ts before publish, public-read sanitization, and receiver rendering. It only allows safe local component thumbnails or same Supabase public component-images .webp URLs with no query/hash/credentials/path traversal and rejects project-images/private routes. Verified on 2026-06-04 with: bunx vitest run tests/vitest/project-publication-snapshot.test.ts tests/vitest/project-publication-page.test.tsx tests/vitest/security-findings-contracts.test.ts --maxWorkers=1 --reporter=dot (3 files / 45 tests). Finding was against old commit 4c7c406; current main is 5931c1d.",
     "postSubmitBehavior": "After Submit, the dashboard navigated to the next finding, Stale share sessions can approve newer publication snapshots.",
-    "revisitedFindingStatus": "Closed by philipjonlewis@gmail.com. Reason: Fixed.",
+    "revisitedFindingStatus": "Closed by OWNER_EMAIL_PLACEHOLDER. Reason: Fixed.",
     "postClosureFindingCount": "1-20 of 42",
     "postClosureControls": [
       "Closed",

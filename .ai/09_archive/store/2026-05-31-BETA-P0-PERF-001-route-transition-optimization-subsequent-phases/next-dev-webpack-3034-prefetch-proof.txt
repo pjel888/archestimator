@@ -14,7 +14,7 @@ $ next dev --port "3034" --webpack
  GET /workshop/projects 200 in 1220ms (next.js: 13ms, proxy.ts: 27ms, application-code: 1180ms)
 ○ Compiling /workshop/projects/[projectId]/estimates ...
  GET /workshop/projects 200 in 458ms (next.js: 62ms, proxy.ts: 49ms, application-code: 347ms)
- GET /workshop/projects/2fd7ae61-e60e-4a2d-a3d3-e33ab65999f1/estimates 200 in 9.9s (next.js: 6.8s, proxy.ts: 10ms, application-code: 3.0s)
+ GET /workshop/projects/UUID_PLACEHOLDER/estimates 200 in 9.9s (next.js: 6.8s, proxy.ts: 10ms, application-code: 3.0s)
  GET /workshop/projects 200 in 1872ms (next.js: 27ms, proxy.ts: 20ms, application-code: 1825ms)
 ○ Compiling /workshop ...
  GET /workshop 200 in 5.4s (next.js: 3.2s, proxy.ts: 21ms, application-code: 2.2s)

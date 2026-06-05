@@ -18,13 +18,13 @@
       "sha256": "4873ed41b3b7ebef722d5bd99b5148c04536b64441c932609819072c1d986b5a",
       "observedContent": [
         "Profile settings",
-        "Display name Philip Lewis",
+        "Display name OWNER_NAME_PLACEHOLDER",
         "User category Architect",
         "Country / region Philippines",
         "Save profile control visible"
       ]
     },
-    "emailVisibility": "The screenshot does not visibly show the Google email. It supplements earlier hosted owner allowed-smoke artifacts that recorded philipjonlewis@gmail.com.",
+    "emailVisibility": "The screenshot does not visibly show the Google email. It supplements earlier hosted owner allowed-smoke artifacts that recorded OWNER_EMAIL_PLACEHOLDER.",
     "feedbackAdminAttempt": {
       "attemptedUrl": "https://www.archestimator.com/workshop/settings/feedback",
       "visualResult": "inconclusive",
@@ -53,7 +53,7 @@
     "fullClosedBetaLaunchReady": false
   },
   "remainingGaps": [
-    "Fresh hosted browser proof that visibly ties the session to philipjonlewis@gmail.com or another provider-visible account identifier.",
+    "Fresh hosted browser proof that visibly ties the session to OWNER_EMAIL_PLACEHOLDER or another provider-visible account identifier.",
     "Hosted beta feedback admin/review surface proof with unambiguous rendered content.",
     "Support inbox monitoring, alert monitoring, and incident escalation proof.",
     "Denied/revoked/expired hosted beta-auth smoke.",

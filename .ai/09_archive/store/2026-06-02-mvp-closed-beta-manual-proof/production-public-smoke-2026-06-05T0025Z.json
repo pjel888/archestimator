@@ -7,7 +7,7 @@
     {
       "url": "https://www.archestimator.com",
       "httpStatus": 200,
-      "vercelDeploymentMarker": "dpl_4bMoArwC32Tup4dKK67wtKoBf2jv",
+      "vercelDeploymentMarker": "DEPLOYMENT_ID_PLACEHOLDER",
       "markers": {
         "Archestimator": 16,
         "Closed beta": 2,
@@ -21,7 +21,7 @@
       "url": "https://archestimator.com",
       "httpStatusSequence": [307, 200],
       "redirectLocation": "https://www.archestimator.com/",
-      "vercelDeploymentMarker": "dpl_4bMoArwC32Tup4dKK67wtKoBf2jv",
+      "vercelDeploymentMarker": "DEPLOYMENT_ID_PLACEHOLDER",
       "interpretation": "Apex redirects to www and then serves the same beta surface."
     },
     {

@@ -266,7 +266,7 @@ After each batch of sessions (ideally weekly), produce a synthesis document stor
 
 5. **Go/no-go assessment.** A single paragraph answering: if we opened beta to 10 more participants today, would the experience be productive or harmful? Cite specific severity-1 and severity-2 items that drive the assessment. Use one of: CONTINUE (keep recruiting and running sessions), PAUSE (stop recruiting, fix severity-1 and severity-2 issues first), or STOP (beta is not viable in current form, reassess product direction).
 
-6. **Decisions made.** Bullet list of decisions Philip made this week based on the research. Each entry references the observation or synthesis that prompted the decision and links to the decision log in `14-owner-decisions.md`.
+6. **Decisions made.** Bullet list of decisions OWNER_NAME_PLACEHOLDER made this week based on the research. Each entry references the observation or synthesis that prompted the decision and links to the decision log in `14-owner-decisions.md`.
 
 7. **Action items.** Specific, assigned tasks with deadlines. Format: `[Owner] Action by YYYY-MM-DD.` No item without an owner and a date.
 
@@ -282,7 +282,7 @@ Feedback captured (observation template, Section 5)
     → Severity scored (rubric, Section 7)
       → Mapped to roadmap item (existing gate item or new proposed item)
         → Prioritized (within severity band, by recurrence and impact)
-          → Philip decides (go, no-go, or defer, logged in 14-owner-decisions.md)
+          → OWNER_NAME_PLACEHOLDER decides (go, no-go, or defer, logged in 14-owner-decisions.md)
             → Updated in checklist (01-launch-gates-master-checklist.md)
               → Implementation (if approved)
                 → Validation (next session confirms the fix resolved the issue)
@@ -294,12 +294,12 @@ If validation fails (the fix did not resolve the issue), the observation re-ente
 
 ## 10. Decision-Making
 
-**Philip Lewis is the sole decision-maker for all product, scope, priority, and launch questions arising from usability research.** The AI assistant may propose, analyze, score, rank, and recommend. It does not decide.
+**OWNER_NAME_PLACEHOLDER is the sole decision-maker for all product, scope, priority, and launch questions arising from usability research.** The AI assistant may propose, analyze, score, rank, and recommend. It does not decide.
 
-- **Severity-1 findings trigger immediate review.** Philip is notified within 24 hours of a critical observation. The finding cannot wait for the weekly synthesis.
+- **Severity-1 findings trigger immediate review.** OWNER_NAME_PLACEHOLDER is notified within 24 hours of a critical observation. The finding cannot wait for the weekly synthesis.
 - **All decisions are logged** in `.ai/01_roadmap/14-owner-decisions.md` with the date, the observation reference, the decision, and the rationale.
-- **Disagreement is documented.** If the AI recommendation differs from Philip's decision, both positions are recorded. This preserves the reasoning trail.
-- **Deferred decisions get a follow-up date.** If Philip chooses to revisit an issue after more data, the calendar date for revisit is recorded immediately.
+- **Disagreement is documented.** If the AI recommendation differs from the owner's decision, both positions are recorded. This preserves the reasoning trail.
+- **Deferred decisions get a follow-up date.** If OWNER_NAME_PLACEHOLDER chooses to revisit an issue after more data, the calendar date for revisit is recorded immediately.
 - **No decision by default.** If an issue is not explicitly decided, it remains open and appears in every subsequent weekly synthesis until resolved.
 
 ---

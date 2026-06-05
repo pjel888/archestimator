@@ -4,14 +4,14 @@
   "proofType": "owner-scoped residual history-risk acceptance",
   "repository": "pjel888/archestimator",
   "decisionOwner": {
-    "name": "Philip Lewis",
+    "name": "OWNER_NAME_PLACEHOLDER",
     "role": "product owner / beta operator",
     "signoffReference": "Codex thread owner signoff: complete signoff and approval for required launch actions except purchases"
   },
   "acceptedScope": {
     "environment": "single-owner pre-launch closed beta",
     "allowedTesterEmails": [
-      "philipjonlewis@gmail.com"
+      "OWNER_EMAIL_PLACEHOLDER"
     ],
     "notAcceptedFor": [
       "widened multi-tester closed beta",
