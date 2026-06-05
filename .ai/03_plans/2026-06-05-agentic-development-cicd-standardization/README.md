@@ -74,7 +74,7 @@ This pass raises the target plan pack from the supplied audit report's `92/100` 
 
 | Surface | Current fact | Planning consequence |
 |---|---|---|
-| Local repo | `main` at `318a9862c9ddd05ba5763d340ac3e7de65757deb`, tracking `origin/main` | Future implementation must re-fetch before acting. |
+| Local repo | pre-upgrade `main` at `318a9862c9ddd05ba5763d340ac3e7de65757deb`, tracking `origin/main`; later docs-only commits moved `main` forward | Future implementation must re-fetch before acting and must not treat the pre-upgrade hash as current. |
 | Code graph | 502 files, 4,634 nodes, 70,036 edges; updated 2026-06-05 14:23 PHT | Graph-first review is mandatory before broad implementation. |
 | GitHub CI | `CI disabled_manually`, workflow id `277898857`; latest listed runs are old May 18 failures | CI cannot be treated as a gate yet. |
 | GitHub protection | private repo, `main protected:false`; rulesets endpoint returns GitHub plan/public-repo 403 | Required-check enforcement is capability-blocked until owner action. |
@@ -85,3 +85,10 @@ This pass raises the target plan pack from the supplied audit report's `92/100` 
 
 `17_QUALITY_SCORECARD_AND_AUDIT_RESPONSE.md` records the audit response, per-document score upgrade, criteria scoring, and residual risks. It is part of this folder's readiness contract.
 <!-- 98-100-UPGRADE:END -->
+<!-- REVIEW-FIX-2026-06-05:START -->
+## Review-fix addendum
+
+A follow-up independent architecture review approved the pack as a planning artifact with a WATCH caveat: future implementation must be phase-scoped. This addendum closes that caveat inside the plan by adding the whole-pack handoff guard, manual preview/staging deploy rule, and required-check topology decision before enforcement.
+
+Use `14_FUTURE_IMPLEMENTATION_PROMPTS.md` one phase at a time unless a later owner prompt explicitly authorizes a broader phase bundle with provider authority.
+<!-- REVIEW-FIX-2026-06-05:END -->

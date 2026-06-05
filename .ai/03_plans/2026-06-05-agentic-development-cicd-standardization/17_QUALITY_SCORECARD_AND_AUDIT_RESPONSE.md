@@ -82,3 +82,16 @@ Post-pass criteria minimum: **99/100**.
 ## Final statement
 
 This folder is ready to hand to a future implementation agent at 98-100% planning readiness. It is not a substitute for provider mutations, GitHub settings changes, active CI proof, protected branches, or Vercel release/rollback proof.
+
+<!-- REVIEW-FIX-2026-06-05:START -->
+## Independent review response
+
+| Review watch item | Response in this pass | Status |
+|---|---|---|
+| Generic implementation prompt could trigger whole-folder execution | Added whole-pack handoff guard in `00`, phase slice order in `11`, and prompt selection rule in `14` | Closed for planning handoff |
+| Staging/preview deployment under-specified while Vercel Git deploys are disabled | Added manual preview/staging deployment rule in `03` and deployment evidence contract in `07` | Closed for planning handoff |
+| Required-check topology needs a pre-enforcement decision | Added always-present blocker/aggregator/no-op topology in `06` and fixtures in `09` | Closed for planning handoff |
+| Audit baseline hash stale after commits | Reworded baseline as pre-upgrade evidence in `00`, `README`, and `16` | Closed for planning handoff |
+
+Post-review planning readiness remains **99/100+**. The review fixes reduce future execution ambiguity without changing the proof boundary: no source, provider, CI, branch-protection, or Vercel setting was changed.
+<!-- REVIEW-FIX-2026-06-05:END -->

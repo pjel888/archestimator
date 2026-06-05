@@ -29,10 +29,16 @@ The current repo already has many local Codex branches. Governance must recogniz
 | Environment | Source | Gate |
 |---|---|---|
 | Local | worktree branch | targeted validation |
-| Preview | PR branch | CI + smoke as applicable |
-| Staging/closed beta | `staging` | full CI + staging smoke + provider packet |
+| Preview | PR branch or manual Vercel CLI preview deployment | CI + smoke as applicable |
+| Staging/closed beta | `staging` plus an explicit manual preview/staging deployment while Git deploys remain disabled | full CI + staging smoke + provider packet |
 | Production staged | `main` deploy with no domain assignment | GitHub environment approval + smoke |
 | Production current | promoted Vercel deployment | post-promote smoke + rollback proof |
+
+## Manual preview/staging deploy rule while Vercel Git deploys are disabled
+
+Because `vercel.json` currently keeps `git.deploymentEnabled:false`, a `staging` branch by itself will not create a trustworthy hosted staging surface. Until branch-specific Vercel Git deployment is explicitly re-enabled after protected-branch proof, staging proof must use a manual Vercel CLI deployment from the approved `staging` SHA or a clearly named preview deployment URL recorded in the PR/provider packet.
+
+Accepted staging proof must include: source SHA, deployment URL/id, environment used, smoke commands/results, Vercel error-log check, and the statement that it is not production alias promotion.
 
 ## Rules
 

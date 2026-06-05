@@ -39,6 +39,12 @@ This planning task is docs-only. Future behavior/governance scripts must use tes
 
 Do not make every Playwright test block every docs-only PR. Always run full e2e before production release and run route-specific e2e for auth/share/workshop/publication changes.
 
+## Required-check fixture matrix
+
+Before `e2e-smoke`, `perf-smoke`, or release jobs become branch-protection requirements, add fixtures proving that required contexts are present for docs-only, source, route, and release PRs. If a job is intentionally not applicable, the future workflow must still produce an explicit success/no-op context or an aggregator `quality-gate` context that explains why it was not required.
+
+This prevents a docs-only PR from being blocked by a missing route-only required check while preserving stricter release gates when the change class warrants them.
+
 ## Flake policy
 
 Classify failures before rerun. Do not claim green from a lucky rerun if a prior failure is unexplained.
