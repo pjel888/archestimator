@@ -43,6 +43,11 @@ Evidence: `evidence/2026-06-06-pr0a-vercel-connector-and-public-route-timing.md`
 - All checked public routes still returned `private, no-cache, no-store, max-age=0, must-revalidate` and `x-vercel-cache: MISS`.
 - This is **not** Speed Insights/Core Web Vitals proof. The p75 dashboard/export values below remain provider-open.
 
+
+## Speed Insights Chrome retry — 2026-06-06
+
+Evidence: `evidence/2026-06-06-speed-insights-chrome-retry.md`. Computer Use `get_app_state` for `Google Chrome` timed out after 120s again, so exact dashboard values remain provider-open.
+
 ## Captured baseline record
 
 Status: **open / provider proof required**. Fill this table before implementation.

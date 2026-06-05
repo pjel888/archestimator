@@ -106,3 +106,11 @@ Superseding inventory after final readiness pass: root markdown files = 36; evid
 - First `ANALYZE=true bunx next build --webpack` emitted analyzer reports but exposed an existing invalid route export in `src/app/api/webhooks/resend/route.ts`.
 - Moved `RESEND_WEBHOOK_MAX_BODY_BYTES` to `src/lib/email/resend-webhook-route-constants.ts` and updated `tests/vitest/resend-webhook-route.test.ts`; focused route test passed.
 - Clean `ANALYZE=true bunx next build --webpack` then exited 0 and emitted `.next/analyze/client.html`, `.next/analyze/nodejs.html`, and `.next/analyze/edge.html`; summarized in `evidence/2026-06-06-bundle-analyzer-baseline.md`.
+
+
+## Speed Insights Chrome retry — 2026-06-06
+
+- Attempted read-only Computer Use `get_app_state` against `Google Chrome` to access the Vercel Speed Insights dashboard.
+- Result: timed out after 120s.
+- Evidence: `evidence/2026-06-06-speed-insights-chrome-retry.md`.
+- Decision: Speed Insights dashboard/export p75 metrics remain provider-open; no runtime optimization or telemetry package change is justified from this attempt.
