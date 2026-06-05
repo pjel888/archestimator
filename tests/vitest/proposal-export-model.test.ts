@@ -11,9 +11,9 @@ import type { EstimateRowItem, EstimateTreeNode } from "@/lib/estimates/types";
 const metadata: ProposalExportMetadata = {
   projectId: "project-1",
   estimateId: "estimate-1",
-  projectName: "Grand Hyatt Fit-Out Study",
-  projectCode: "GH-001",
-  projectAddress: "Taguig City",
+  projectName: "Synthetic Hotel Fit-Out Study",
+  projectCode: "SYN-001",
+  projectAddress: "Metro City",
   estimateName: "Interior Fit-Out Estimate",
   estimateSheetCode: "EST-001",
   versionLabel: "Draft v1",
@@ -27,9 +27,9 @@ function row(overrides: Partial<EstimateRowItem> = {}): EstimateRowItem {
 
   return {
     id: overrides.id ?? "row-1",
-    material: overrides.material ?? "Mariwasa 600 × 600 Porcelain Tile",
+    material: overrides.material ?? "Sample 600 × 600 Porcelain Tile",
     description: overrides.description ?? "Supply and install porcelain floor tile",
-    supplier: overrides.supplier ?? "Wilcon Depot / Mariwasa",
+    supplier: overrides.supplier ?? "Sample Supplier",
     source: overrides.source ?? "supplier",
     unit: overrides.unit ?? "sqm",
     itemCost,
@@ -110,7 +110,7 @@ describe("proposal export model", () => {
       rowNumber: "1",
       sectionLabel: "Finishes",
       tag: "Floor Finish",
-      particulars: "Mariwasa 600 × 600 Porcelain Tile — Supply and install porcelain floor tile",
+      particulars: "Sample 600 × 600 Porcelain Tile — Supply and install porcelain floor tile",
       quantity: 22,
       unit: "sqm",
       materialUnitCost: 950,

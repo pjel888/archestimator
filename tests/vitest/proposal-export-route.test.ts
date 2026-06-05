@@ -31,7 +31,7 @@ const tree: EstimateTreeNode[] = [
         id: "row-1",
         material: "Porcelain Tile",
         description: "Supply and install porcelain floor tile",
-        supplier: "Wilcon Depot",
+        supplier: "Sample Supplier",
         source: "supplier",
         unit: "sqm",
         itemCost: 950,
@@ -61,9 +61,9 @@ describe("proposal xlsx export route", () => {
       workspace: { id: "workspace-1" },
       project: {
         id: "project-1",
-        name: "Grand Hyatt Fit-Out Study",
-        project_code: "GH-001",
-        location: "Taguig City",
+        name: "Synthetic Hotel Fit-Out Study",
+        project_code: "SYN-001",
+        location: "Metro City",
         currency_code: "PHP",
       },
       estimate: {
@@ -96,9 +96,9 @@ describe("proposal xlsx export route", () => {
         metadata: expect.objectContaining({
           projectId: "project-1",
           estimateId: "estimate-1",
-          projectName: "Grand Hyatt Fit-Out Study",
-          projectCode: "GH-001",
-          projectAddress: "Taguig City",
+          projectName: "Synthetic Hotel Fit-Out Study",
+          projectCode: "SYN-001",
+          projectAddress: "Metro City",
           estimateName: "Interior Fit-Out Estimate",
           estimateSheetCode: "EST-001",
           versionLabel: "V3",
@@ -110,7 +110,7 @@ describe("proposal xlsx export route", () => {
     expect(response.status).toBe(200);
     expect(response.headers.get("content-type")).toBe("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
     expect(response.headers.get("content-disposition")).toContain("attachment");
-    expect(response.headers.get("content-disposition")).toContain("GH-001-EST-001-proposal.xlsx");
+    expect(response.headers.get("content-disposition")).toContain("SYN-001-EST-001-proposal.xlsx");
     expect(await response.text()).toBe("xlsx-bytes");
   });
 
@@ -156,9 +156,9 @@ describe("proposal xlsx export route", () => {
       workspace: { id: "workspace-1" },
       project: {
         id: "project-1",
-        name: "Grand Hyatt Fit-Out Study",
-        project_code: "GH-001",
-        location: "Taguig City",
+        name: "Synthetic Hotel Fit-Out Study",
+        project_code: "SYN-001",
+        location: "Metro City",
         currency_code: "PHP",
       },
       estimate: {
@@ -196,7 +196,9 @@ describe("proposal xlsx export route", () => {
   });
 
   it("sanitizes workbook filenames for content-disposition", () => {
-    expect(buildProposalWorkbookFilename("Grand Hyatt / Tower?", "EST:001")).toBe("Grand-Hyatt-Tower-EST-001-proposal.xlsx");
+    expect(buildProposalWorkbookFilename("Synthetic Hotel / Tower?", "EST:001")).toBe(
+      "Synthetic-Hotel-Tower-EST-001-proposal.xlsx",
+    );
     expect(buildProposalWorkbookFilename("", "")).toBe("estimate-proposal.xlsx");
   });
 });

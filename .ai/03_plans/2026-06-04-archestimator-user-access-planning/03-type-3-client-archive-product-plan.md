@@ -151,7 +151,7 @@ Client signs up for archive subscription
 ├──────────────────────────────────────────────┤
 │  Archived Proposals (12)                      │
 │  ┌────────────────────────────────────────┐   │
-│  │ Grand Hyatt — Lobby Renovation         │   │
+│  │ Synthetic Hotel — Lobby Renovation     │   │
 │  │ From: Philip Lewis · Mar 15, 2026      │   │
 │  │ Status: Approved  ·  ₱8.2M              │   │
 │  │ [View Archive] [Download PDF] [XLSX]   │   │
