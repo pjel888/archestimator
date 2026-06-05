@@ -1,0 +1,91 @@
+{
+  "generatedAt": "2026-06-06T00:00:00.000+08:00",
+  "mode": "local-next-start-lighthouse-mobile-after-lenis-non-home-scope",
+  "baseUrl": "http://127.0.0.1:3046",
+  "rows": [
+    {
+      "file": "contact-mobile-consent-off-after.report.json",
+      "url": "http://127.0.0.1:3046/contact",
+      "score": 89,
+      "fcpMs": 1210.7288,
+      "lcpMs": 3695.4575999999997,
+      "tbtMs": 12,
+      "cls": 0,
+      "siMs": 1210.7288,
+      "ttiMs": 3781.4444599999997,
+      "serverResponseMs": 9,
+      "formFactor": "mobile",
+      "throttlingMethod": "simulate"
+    },
+    {
+      "file": "contact-mobile-consent-on-after.report.json",
+      "url": "http://127.0.0.1:3046/contact",
+      "score": 89,
+      "fcpMs": 1210.0408,
+      "lcpMs": 3785.1427999999996,
+      "tbtMs": 12.5,
+      "cls": 0,
+      "siMs": 1210.0408,
+      "ttiMs": 3821.3724,
+      "serverResponseMs": 14,
+      "formFactor": "mobile",
+      "throttlingMethod": "simulate"
+    },
+    {
+      "file": "features-mobile-consent-off-after.report.json",
+      "url": "http://127.0.0.1:3046/features",
+      "score": 92,
+      "fcpMs": 1209.754,
+      "lcpMs": 3395.9465,
+      "tbtMs": 12,
+      "cls": 0,
+      "siMs": 1209.754,
+      "ttiMs": 3563.8727,
+      "serverResponseMs": 32,
+      "formFactor": "mobile",
+      "throttlingMethod": "simulate"
+    },
+    {
+      "file": "features-mobile-consent-on-after.report.json",
+      "url": "http://127.0.0.1:3046/features",
+      "score": 92,
+      "fcpMs": 1208.556,
+      "lcpMs": 3396.251000000001,
+      "tbtMs": 13.5,
+      "cls": 0,
+      "siMs": 1208.556,
+      "ttiMs": 3565.7429000000006,
+      "serverResponseMs": 10,
+      "formFactor": "mobile",
+      "throttlingMethod": "simulate"
+    },
+    {
+      "file": "pricing-mobile-consent-off-after.report.json",
+      "url": "http://127.0.0.1:3046/pricing",
+      "score": 89,
+      "fcpMs": 1211.744,
+      "lcpMs": 3711.232,
+      "tbtMs": 13,
+      "cls": 0,
+      "siMs": 1211.744,
+      "ttiMs": 3791.0895999999993,
+      "serverResponseMs": 8,
+      "formFactor": "mobile",
+      "throttlingMethod": "simulate"
+    },
+    {
+      "file": "pricing-mobile-consent-on-after.report.json",
+      "url": "http://127.0.0.1:3046/pricing",
+      "score": 92,
+      "fcpMs": 1209.868,
+      "lcpMs": 3401.2030000000004,
+      "tbtMs": 14.5,
+      "cls": 0,
+      "siMs": 1209.868,
+      "ttiMs": 3486.6633999999995,
+      "serverResponseMs": 23,
+      "formFactor": "mobile",
+      "throttlingMethod": "simulate"
+    }
+  ]
+}
