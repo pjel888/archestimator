@@ -35,6 +35,23 @@ tokens, refresh tokens, raw magic links, service-role keys, or provider secrets
 were recorded. This is linked/local owner-session browser proof, not a separate
 hosted production unlink smoke.
 
+2026-06-05 01:50Z real downloaded Lewis Residence workbook proof:
+`real-downloaded-workbook-quicklook-2026-06-05T0150Z.json` records a sanitized
+check of the owner-downloaded `AE-LR-001-ES-001-proposal (1).xlsx` from the
+production export route. The raw workbook, raw Quick Look PNG, and raw source
+URLs were intentionally not committed because proposal artifacts can contain
+client-identifying estimate data. The downloaded file is a valid Microsoft Excel
+2007+ XLSX, ZIP integrity passes, SHA-256 is recorded, the workbook has the
+expected `Bid Form`, `Summary`, `Commercial Terms`, and `Source Breakdown`
+sheets, the Lewis Residence metadata is present, 55 bid/source rows are present,
+170 formulas were found with zero cached formula errors, no blank line-total
+cells were found, and Summary `B30` keeps `B27+B28+B29` with cached result
+`4,078,914`. macOS Quick Look produced a nonblank 1205 × 1600 thumbnail showing
+the bid form title, project metadata, item rows, line totals, scope, and notes.
+This closes real downloaded workbook structural/Quick Look proof only; native
+Excel, Apple Numbers, or LibreOffice app open/recalc/print proof remains
+unavailable on this machine because those apps are not installed.
+
 2026-06-04 19:51Z synthetic Google Sheets workbook compatibility proof:
 `synthetic-google-sheets-workbook-compatibility-2026-06-04T1951Z.json` records
 a non-sensitive 25-row synthetic proposal workbook generated through the same
@@ -51,7 +68,9 @@ landscape orientation, fit-to-width scale, and custom margins; the flow was
 canceled before any print job. The temporary Downloads copy was removed. This
 closes secondary Google Sheets import/open/recalc/print-preview proof for a
 synthetic workbook, but it does not prove native Microsoft Excel, Apple Numbers,
-LibreOffice, or a real production/client workbook in a spreadsheet app.
+or LibreOffice app open/recalc/print behavior. The 2026-06-05 Lewis Residence
+proof below closes structural and macOS Quick Look proof for one real downloaded
+workbook without committing raw proposal data.
 
 2026-06-04 19:20Z hosted expired synthetic stale-cookie proof:
 `hosted-expired-stale-cookie-smoke-2026-06-04T1920Z.json` records production
