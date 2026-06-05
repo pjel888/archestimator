@@ -221,3 +221,12 @@ Superseding inventory after final readiness pass: root markdown files = 36; evid
 - Result: public anonymous path = 3 activity/publication queries, public recipient-session path = 5, owner include-telemetry path = 6 activity-table queries before auth/RBAC overhead. Synthetic 2500-row local composition in this run: owner 11.44ms, public anonymous 9.97ms, public recipient-session 7.84ms.
 - No production endpoint, RLS, SQL, cache, or Supabase provider state changed.
 - Completion language: **LOCAL BENCHMARK CAPTURED / HOSTED SUPABASE PROOF OPEN**.
+
+## Share/publication no-store invariants — 2026-06-06
+
+- Added `tests/vitest/share-no-store-invariants.test.ts` to lock tokenized share API cache/security boundaries before future endpoint optimization.
+- Covered all `/api/share/[token]` route handlers for `force-dynamic`, `Cache-Control: no-store`, and absence of public cache/revalidate/s-maxage opt-ins.
+- Covered `/share/[token]/page.tsx` for force-dynamic behavior and absence of numeric `revalidate` / `unstable_cache`.
+- Ran `bun run test:dom -- tests/vitest/share-no-store-invariants.test.ts tests/vitest/project-publication-security.test.ts tests/vitest/project-publication-route.test.ts tests/vitest/project-publication-page.test.tsx`: 4 files / 56 tests passed.
+- Evidence: `evidence/2026-06-06-share-no-store-invariants.md`.
+- Completion language: **LOCAL INVARIANTS LOCKED / HOSTED PROOF OPEN**.
