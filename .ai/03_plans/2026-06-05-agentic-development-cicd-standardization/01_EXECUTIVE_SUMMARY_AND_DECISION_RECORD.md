@@ -1,9 +1,11 @@
 # 01 — Executive Summary and Decision Record
 
 **Plan date:** 2026-06-05
+**Upgrade pass:** 2026-06-05 14:45 PHT / 06:45 UTC
 **Scope:** planning/documentation only
 **Proof boundary:** repo/provider audit evidence plus future implementation contract; no GitHub, Vercel, Supabase, Resend, Notion, or production settings were changed by this plan.
 **Canonical source:** this folder is a future implementation plan. Current truth remains source/config/tests/provider evidence plus `.ai/10_state/*`.
+**Readiness target:** 98-100% implementation-planning readiness; not an implementation/enforcement completion claim.
 
 ## Decision
 
@@ -41,3 +43,21 @@ GitHub Actions is closest to PRs, checks, branch protection, PR templates, and c
 ## Success definition
 
 A future AI task cannot update production by accident: it must branch, PR, pass CI, gather staging proof, merge through protected branch rules, create a staged production deployment, pass smoke checks, and receive explicit owner promotion authority.
+<!-- 98-100-UPGRADE:START -->
+## Adopt / defer / reject matrix
+
+| Decision | Verdict | Rationale | Evidence dependency |
+|---|---|---|---|
+| GitHub Actions as CI control plane | Adopt | Native required checks, branch protection, CODEOWNERS, PR receipts | current disabled workflow id `277898857` |
+| Vercel as deployment platform | Adopt | Current production and aliases already live on Vercel | `dpl_4bMoArwC32Tup4dKK67wtKoBf2jv` inspect proof |
+| Separate `production` branch | Reject now | Adds drift/backmerge risk while `main` is already default/production source | GitHub default branch and Vercel production alignment |
+| `staging` branch | Defer until CI visible | Staging without CI is theater | CI currently disabled |
+| Direct AI pushes to `main` | Reject after this plan | Production changes need PR/check/proof path | `main protected:false` makes current state unsafe |
+| Advisory governance first | Adopt | Lean beta velocity; avoid brittle blockers until dry-runs pass | audit's plan-action-gap warning |
+| CI vendor migration | Reject now | Would add status/secrets/billing surface without fixing GitHub enforcement | bottleneck is disabled CI + protection capability |
+| Full Vercel Git auto-deploy | Defer | Unsafe while `main` unprotected | `git.deploymentEnabled:false` current config |
+
+## Failure definition
+
+This plan fails if a future report claims `IMPLEMENTED_AND_ENFORCED` while any of these remain true: CI disabled, current-SHA CI missing, `main` unprotected, rulesets/protection 403, PR template/CODEOWNERS absent, governance only advisory, Vercel promotion lacks owner approval/smoke, or provider proof is missing.
+<!-- 98-100-UPGRADE:END -->

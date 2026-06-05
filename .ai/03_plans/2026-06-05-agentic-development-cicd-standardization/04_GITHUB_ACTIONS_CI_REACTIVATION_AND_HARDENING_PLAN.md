@@ -1,9 +1,11 @@
 # 04 — GitHub Actions CI Reactivation and Hardening Plan
 
 **Plan date:** 2026-06-05
+**Upgrade pass:** 2026-06-05 14:45 PHT / 06:45 UTC
 **Scope:** planning/documentation only
 **Proof boundary:** repo/provider audit evidence plus future implementation contract; no GitHub, Vercel, Supabase, Resend, Notion, or production settings were changed by this plan.
 **Canonical source:** this folder is a future implementation plan. Current truth remains source/config/tests/provider evidence plus `.ai/10_state/*`.
+**Readiness target:** 98-100% implementation-planning readiness; not an implementation/enforcement completion claim.
 
 ## P0 problem
 
@@ -80,3 +82,27 @@ Add manual `.github/workflows/release-production.yml` only after CI is green. It
 ## Hard stops
 
 Stop if CI cannot be re-enabled, current validation/build fails for unrelated reasons, GitHub protection remains unavailable but implementation tries to require checks, or a workflow would require committing secrets.
+<!-- 98-100-UPGRADE:START -->
+## 98-100 hardening additions
+
+### Stable target jobs
+
+| Job | Purpose | Blocking phase | Artifact |
+|---|---|---|---|
+| `governance` | branch/base/PR body/proof-boundary/docs-only checks | after dry-run | governance report |
+| `quality-validate` | `bun run validate` | after baseline green | test/lint summary |
+| `quality-build` | `bun run build` | after baseline green | build summary |
+| `docs-health` | canonical `.ai` dirs, root docs, version sync, migration/comment convention | advisory first | docs-health report |
+| `e2e-smoke` | Playwright route smoke | route/release dependent | Playwright report/traces |
+| `perf-smoke` | route-transition smoke | release/perf dependent | Playwright report |
+| `release-staged-deploy` | future manual release workflow | release only | staged URL |
+| `release-hosted-smoke` | future manual release workflow | release only | smoke transcript |
+
+### Docs-health checks from audit v2
+
+Add advisory checks for: top-level `.ai` canonicality; stack-version sync between docs and `package.json`; root `SECURITY.md`/`CONTRIBUTING.md`/`CHANGELOG.md`/`LICENSE` presence or explicit deferral; migration description convention for new migrations; TSDoc/JSDoc convention for exported public APIs in high-risk libraries.
+
+### Supply-chain posture
+
+Move away from `allowed_actions: all` and unpinned actions through a documented allowlist/pinning policy. Keep `GITHUB_TOKEN` job-scoped and avoid `write-all`.
+<!-- 98-100-UPGRADE:END -->

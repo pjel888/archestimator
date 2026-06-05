@@ -1,9 +1,11 @@
 # 10 — Security, Secrets, and Provider Proof Plan
 
 **Plan date:** 2026-06-05
+**Upgrade pass:** 2026-06-05 14:45 PHT / 06:45 UTC
 **Scope:** planning/documentation only
 **Proof boundary:** repo/provider audit evidence plus future implementation contract; no GitHub, Vercel, Supabase, Resend, Notion, or production settings were changed by this plan.
 **Canonical source:** this folder is a future implementation plan. Current truth remains source/config/tests/provider evidence plus `.ai/10_state/*`.
+**Readiness target:** 98-100% implementation-planning readiness; not an implementation/enforcement completion claim.
 
 ## Security posture
 
@@ -55,3 +57,12 @@ Remaining risks:
 ## Hard stops
 
 Stop if proof would expose secrets, workflow permissions are broad without justification, an agent bypasses branch protection for normal work, or production deploy is requested without owner-approved release path.
+<!-- 98-100-UPGRADE:START -->
+## Provider secret handling rules
+
+Vercel tokens, Supabase keys, Resend keys, OAuth secrets, service-role keys, raw cookies, raw share URLs, and raw recipient tokens must never be stored in this pack, PR bodies, CI artifacts, or screenshots. Docs may name required variables but not values.
+
+## CI/CD security checks
+
+Before implementation closeout: workflow permissions are reviewed; actions are pinned or exception-recorded; artifacts contain no secrets; provider proof is redacted; branch-protection bypass has owner approval/restoration time; release workflow cannot promote without approval and smoke proof.
+<!-- 98-100-UPGRADE:END -->

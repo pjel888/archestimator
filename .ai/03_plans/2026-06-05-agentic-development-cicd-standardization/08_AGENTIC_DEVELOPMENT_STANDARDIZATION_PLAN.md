@@ -1,9 +1,11 @@
 # 08 — Agentic Development Standardization Plan
 
 **Plan date:** 2026-06-05
+**Upgrade pass:** 2026-06-05 14:45 PHT / 06:45 UTC
 **Scope:** planning/documentation only
 **Proof boundary:** repo/provider audit evidence plus future implementation contract; no GitHub, Vercel, Supabase, Resend, Notion, or production settings were changed by this plan.
 **Canonical source:** this folder is a future implementation plan. Current truth remains source/config/tests/provider evidence plus `.ai/10_state/*`.
+**Readiness target:** 98-100% implementation-planning readiness; not an implementation/enforcement completion claim.
 
 ## Existing foundation
 
@@ -55,3 +57,12 @@ Use code-review-graph before broad exploration and impact analysis before symbol
 ## Anti-overclaim terms
 
 Use `planned`, `advisory`, `locally implemented`, `ci-proven`, `provider-proven`, and `production-promoted` precisely. Do not say “complete” for global workflow while any gate is advisory or blocked.
+<!-- 98-100-UPGRADE:START -->
+## CI integration for agent standards
+
+Future governance/docs-health checks should verify that every non-trivial PR contains an agent receipt, a proof boundary, validation evidence, provider authority status, and no false docs-only claim. Agent framework docs/payloads must point back to `.ai/00_system/AGENT_FRAMEWORK_PROTOCOL.md` and `.ai/12_agents/`.
+
+## Adoption proof
+
+Agentic standardization is adopted only after representative dry-runs exist for read-only audit, docs-only plan, source change, Supabase migration, provider-proof evidence, release workflow, and emergency bypass. Until then this pack is implementation-ready but not enforced.
+<!-- 98-100-UPGRADE:END -->

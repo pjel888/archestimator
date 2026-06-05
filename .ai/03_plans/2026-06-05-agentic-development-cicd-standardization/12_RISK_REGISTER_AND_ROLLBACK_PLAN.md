@@ -1,9 +1,11 @@
 # 12 — Risk Register and Rollback Plan
 
 **Plan date:** 2026-06-05
+**Upgrade pass:** 2026-06-05 14:45 PHT / 06:45 UTC
 **Scope:** planning/documentation only
 **Proof boundary:** repo/provider audit evidence plus future implementation contract; no GitHub, Vercel, Supabase, Resend, Notion, or production settings were changed by this plan.
 **Canonical source:** this folder is a future implementation plan. Current truth remains source/config/tests/provider evidence plus `.ai/10_state/*`.
+**Readiness target:** 98-100% implementation-planning readiness; not an implementation/enforcement completion claim.
 
 ## Risk register
 
@@ -42,3 +44,18 @@ production impact=
 rollback/restoration time=
 follow-up issue=
 ```
+<!-- 98-100-UPGRADE:START -->
+## Added audit-response risks
+
+| ID | Risk | Severity | Mitigation |
+|---|---|---:|---|
+| R11 | Docs-health gate becomes enterprise theater | Medium | advisory first, only block high-signal checks |
+| R12 | Broader audit gaps expand CI/CD scope uncontrollably | Medium | Phase G separates follow-ups from enforcement work |
+| R13 | Solo-founder CODEOWNERS overclaimed as independent review | Medium | preserve caveat and require evidence |
+| R14 | Provider/GitHub paid feature needed | High | explicit owner re-approval before cost change |
+| R15 | Stale provider proof reused | High | proof must match current SHA/date before status transition |
+
+## Risk review cadence
+
+Before implementation refresh R1/R2/R5/R14 with live provider/API evidence. Before blocking checks review R3/R4/R11 with dry-run results. Before release use review R5/R6/R7/R14 with staged proof.
+<!-- 98-100-UPGRADE:END -->
