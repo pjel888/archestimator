@@ -106,9 +106,10 @@ A future worker must not start with broad refactors, generic memoization, depend
   - Guardrails: visual screenshot comparison and no broken hero layout.
   - 2026-06-06 local implementation: `NeatWireframeBackground` now keeps a static fallback for mobile, coarse-pointer, and reduced-motion clients and dynamically imports/activates `@firecms/neat` after idle for eligible desktop clients. Evidence: `evidence/neat-mobile-fallback-2026-06-06/neat-mobile-fallback-summary.md`. Local TBT improved in both home mobile Lighthouse after-runs, but consent-off LCP/Speed Index regressed in this single local run; provider p75 and hosted proof remain open before claiming production improvement.
 
-- [ ] **Step 2.3: Evaluate Lenis scope**
+- [x] **Step 2.3: Evaluate Lenis scope**
   - Candidate: remove from non-home pages or lazy-load after interaction.
   - Guardrails: anchor scrolling, reduced-motion, and navigation behavior tests.
+  - 2026-06-06 local implementation: `PublicPageShell` no longer wraps non-home marketing pages in `LandingSmoothScrollProvider`; home still uses the reduced-motion-aware provider. Evidence: `evidence/lenis-non-home-scope-2026-06-06/lenis-non-home-scope-summary.md`. Local Lighthouse after-traces are improved for `/features` and `/pricing` and mixed/stable for `/contact`; provider p75 and hosted proof remain open before claiming production improvement.
 
 - [ ] **Step 2.4: Audit image/font LCP**
   - Ensure hero/marketing media use optimized dimensions, priority only where measured, and no unnecessary font family on first paint.

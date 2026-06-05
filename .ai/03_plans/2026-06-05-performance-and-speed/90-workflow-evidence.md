@@ -184,3 +184,13 @@ Superseding inventory after final readiness pass: root markdown files = 36; evid
 - Result: consent-off TBT improved 378.48ms -> 52.00ms and score 80 -> 85, while consent-off LCP/Speed Index worsened in this single local run; consent-on score/TBT/LCP/Speed Index all improved in this run.
 - Extracted Lighthouse final screenshots into `evidence/neat-mobile-fallback-2026-06-06/visual-comparison/`; manual review confirms the mobile hero layout remains intact with an intentional static orange gradient instead of the animated grid.
 - Completion language: **IMPLEMENTED LOCALLY / PROVIDER PROOF OPEN**.
+
+## Lenis non-home scope after-trace — 2026-06-06
+
+- Removed `LandingSmoothScrollProvider` from `PublicPageShell`, preserving it only on the home page where the full landing section stack still uses reduced-motion-aware smooth scrolling.
+- Ran focused landing regression coverage: `bun run test:dom -- tests/vitest/public-page-shell.test.tsx tests/vitest/landing-company-proof.test.ts tests/vitest/landing-interactivity.test.tsx tests/vitest/neat-wireframe-background.test.tsx` passed 4 files / 17 tests.
+- Ran `bun run type-check` and `bun run build`; both passed.
+- Ran local mobile Lighthouse after-traces for `/features`, `/pricing`, and `/contact` with consent off/on under `next start` on port 3046; evidence lives in `evidence/lenis-non-home-scope-2026-06-06/`.
+- Ran a Playwright non-home navigation smoke under `next start` on port 3047; `/features` direct load and header navigation to `/pricing` and `/contact` passed, with only the known local `/_vercel/insights/script.js` 404 ignored.
+- Result: `/features` improved to 92/92, `/pricing` improved to 89/92, and `/contact` stayed score-stable at 89/89 in this local run; TBT was 12-14.5ms across all non-home after-traces and CLS stayed 0.
+- Completion language: **IMPLEMENTED LOCALLY / PROVIDER PROOF OPEN**.

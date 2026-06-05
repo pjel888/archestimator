@@ -2,7 +2,6 @@ import { ReactNode } from "react";
 import { CookieConsentBanner } from "./CookieConsentBanner";
 import { LandingHeader } from "./LandingHeader";
 import { LandingFooter } from "./LandingFooter";
-import { LandingSmoothScrollProvider } from "./LandingSmoothScrollProvider";
 import { LandingAnalyticsLoader } from "./LandingAnalyticsLoader";
 
 
@@ -32,11 +31,9 @@ export function PublicPageShell({
         <>
           <LandingHeader isLoggedIn={isLoggedIn} isHomePage={isHomePage} />
 
-          <LandingSmoothScrollProvider>
-            <main data-landing-page-root="true">
-              {children}
-            </main>
-          </LandingSmoothScrollProvider>
+          <main data-landing-page-root="true">
+            {children}
+          </main>
 
           <LandingFooter isHomePage={isHomePage} />
         </>

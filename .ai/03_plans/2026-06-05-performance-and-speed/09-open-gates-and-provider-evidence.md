@@ -26,7 +26,7 @@ If only local proof exists, use `IMPLEMENTED LOCALLY / PROVIDER PROOF OPEN`, not
 ## Product decision gates
 
 - [x] Decide whether to keep `@vercel/speed-insights` absent or intentionally add Speed Insights package instrumentation. Decision: keep absent for PR-1A; provider proof remains open.
-- [ ] Decide if marketing visual effects can degrade gracefully on mobile/reduced-motion. 2026-06-06 partial local decision: Neat hero canvas degrades to a static gradient on mobile/coarse-pointer/reduced-motion; broader landing effects such as Lenis and third-party script timing remain open.
+- [ ] Decide if marketing visual effects can degrade gracefully on mobile/reduced-motion. 2026-06-06 partial local decisions: Neat hero canvas degrades to a static gradient on mobile/coarse-pointer/reduced-motion, and Lenis is removed from non-home public pages. Hosted third-party script timing and any home Lenis lazy/idle follow-up remain open.
 - [x] Decide acceptable privacy posture for Speed Insights route labels on share/invite/auth paths. Decision: no package/custom telemetry for PR-1A; existing Web Analytics drops/redacts sensitive routes.
 - [x] Decide whether public marketing pages can have cache headers less restrictive than `private, no-cache`. Decision: not yet; keep current private/no-cache posture until personalization is isolated/proven.
 - [ ] Decide acceptable delay/sampling for Clarity/GA post-consent scripts.
