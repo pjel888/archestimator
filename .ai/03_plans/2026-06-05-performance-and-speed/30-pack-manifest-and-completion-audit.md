@@ -1,0 +1,66 @@
+<!-- Docs-only performance planning pack. Added 2026-06-05. No application code implementation in this folder. -->
+
+# Pack Manifest and Completion Audit
+
+This manifest is generated from the current folder inventory. It exists to prevent stale file counts or incomplete canonical pointers.
+
+## Root markdown files
+
+1. `00-executive-brief-and-evidence-boundaries.md`
+2. `01-vercel-speed-insights-and-metrics-intake.md`
+3. `02-codebase-performance-audit.md`
+4. `03-blast-radius-and-risk-map.md`
+5. `04-current-official-research.md`
+6. `05-performance-roadmap-and-workstream-plan.md`
+7. `06-test-spec-and-validation-protocol.md`
+8. `07-ultraqa-scenario-matrix.md`
+9. `08-worker-handoff-prompts.md`
+10. `09-open-gates-and-provider-evidence.md`
+11. `10-quality-verdict-and-gap-audit.md`
+12. `11-performance-hypothesis-scorecard.md`
+13. `12-measurement-attribution-playbook.md`
+14. `13-route-by-route-optimization-blueprints.md`
+15. `14-safe-implementation-and-rollback-plan.md`
+16. `15-ultraqa-doc-quality-gate.md`
+17. `16-metric-decision-tree-and-sequencing-gates.md`
+18. `17-per-surface-acceptance-criteria.md`
+19. `18-test-fixtures-and-data-volume-spec.md`
+20. `19-risk-register-and-rollback-runbook.md`
+21. `20-telemetry-privacy-decision-record.md`
+22. `21-evidence-index.md`
+23. `22-roadmap-truth-sync-and-status-gates.md`
+24. `23-linked-existing-performance-plans.md`
+25. `24-cache-safety-and-public-personalization-matrix.md`
+26. `25-next-react-vercel-research-addendum.md`
+27. `26-readiness-scorecard-and-100-percent-gate.md`
+28. `27-ready-implementation-packets.md`
+29. `28-captured-baseline-and-remaining-provider-gap.md`
+30. `29-final-ultraqa-readiness-audit.md`
+31. `30-pack-manifest-and-completion-audit.md`
+32. `90-workflow-evidence.md`
+33. `CURRENT_CANONICAL_PLAN.md`
+34. `README.md`
+35. `prd-performance-and-speed.md`
+36. `test-spec-performance-and-speed.md`
+
+## Evidence files
+
+1. `evidence/2026-06-05-computer-use-speed-insights-attempt.md`
+2. `evidence/2026-06-05-hosted-public-header-timing-baseline.md`
+3. `evidence/2026-06-05-vercel-httpstat-attempt.md`
+4. `evidence/2026-06-05-vercel-httpstat-production-baseline.md`
+5. `evidence/README.md`
+
+## Completion audit
+
+| Requirement | Evidence | Status |
+| --- | --- | --- |
+| Document quality 100% | Complete manifest, canonical pointer, scorecard, decision tree, packets, UltraQA audit, source map, risk/rollback, evidence index | PASS |
+| First safe code implementation readiness 100% | `27-ready-implementation-packets.md` PR-0B has scope, allowed/forbidden files, tests, evidence, rollback, completion language | PASS |
+| Provider proof honesty | `28-captured-baseline-and-remaining-provider-gap.md` and evidence files record exact Speed Insights gap and captured substitute evidence | PASS |
+| No app code changed in this planning turn | git status only shows new plan folder in main checkout; worktree branch is clean | PASS |
+| No hidden workflow state | OMX active modes scan returns empty | PASS |
+
+## Final interpretation
+
+The pack is complete for handoff. Future implementation should begin with PR-0B unless the owner first supplies Speed Insights dashboard evidence for PR-0A.
