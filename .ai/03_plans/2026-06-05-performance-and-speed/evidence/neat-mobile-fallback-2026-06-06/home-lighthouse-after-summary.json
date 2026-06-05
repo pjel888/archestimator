@@ -1,0 +1,31 @@
+{
+  "generatedAt": "2026-06-06T00:00:00.000+08:00",
+  "mode": "local-next-start-lighthouse-mobile-after-neat-fallback",
+  "baseUrl": "http://127.0.0.1:3045",
+  "rows": [
+    {
+      "file": "home-mobile-consent-off-after.report.json",
+      "url": "http://127.0.0.1:3045/",
+      "score": 85,
+      "fcpMs": 1219.3146000000002,
+      "lcpMs": 4218.410100000001,
+      "tbtMs": 52,
+      "cls": 0,
+      "siMs": 3284.2717787130578,
+      "ttiMs": 4218.7320100000015,
+      "serverResponseMs": 33
+    },
+    {
+      "file": "home-mobile-consent-on-after.report.json",
+      "url": "http://127.0.0.1:3045/",
+      "score": 89,
+      "fcpMs": 1214.118,
+      "lcpMs": 3805.8830000000007,
+      "tbtMs": 32,
+      "cls": 0,
+      "siMs": 1214.118,
+      "ttiMs": 3813.618300000001,
+      "serverResponseMs": 16
+    }
+  ]
+}
