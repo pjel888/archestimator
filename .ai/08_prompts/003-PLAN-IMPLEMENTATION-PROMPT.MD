@@ -39,27 +39,27 @@ You must:
 11. Create dated bug plans in .ai/15_Bugs for any issue discovered.
 12. Archive the completed plan into .ai/09_archive.
 13. Stage, commit, and push the task branch.
-14. Merge the task branch into main from the main worktree.
-15. Verify main after merge.
-16. Push main.
-17. Remove the completed worktree.
-18. Delete the completed local task branch.
-19. Delete the completed remote task branch.
+14. If current-run authority permits it, merge the task branch into main from the main worktree.
+15. If main was merged, verify main after merge.
+16. If current-run authority permits it, push main.
+17. Remove the completed worktree when cleanup is safe.
+18. Delete the completed local task branch when cleanup is safe.
+19. Delete the completed remote task branch only when current-run authority permits it.
 20. Return a complete final report.
 
 Do not stop after code edits.
 Do not stop after tests.
 Do not stop after commit.
-Continue until merge, main verification, main push, worktree cleanup, and branch cleanup are complete unless a true blocker prevents it.
+Continue until the current-run completion contract is satisfied. For direct-main tasks, that includes merge, main verification, main push, worktree cleanup, and branch cleanup. For PR/handoff tasks, that includes a pushed task branch, verification evidence, and explicit pending merge/push steps.
 
-EXPLICIT MERGE AUTHORIZATION FOR THIS SESSION
+MERGE/PUSH AUTHORITY GATE
 
 The ArchEstimator repo may contain an older durable decision saying to use feature branches/PRs and not merge to main automatically.
 
-For this specific task only, this prompt is Philip’s explicit instruction to merge the completed task branch into main after all implementation, validation, archive, and safety gates pass.
+This template is not authorization by itself. Merge or push main only when the current user prompt or an owner-approved plan explicitly authorizes direct main integration for this run.
 
-This instruction does not authorize reckless merging.
-It authorizes automatic merge only if:
+Current-run direct-main authority does not authorize reckless merging.
+It permits automatic merge only if:
 - The current branch is not main.
 - The task branch contains only intended changes.
 - Relevant tests/checks pass.
@@ -70,7 +70,7 @@ It authorizes automatic merge only if:
 - No other active worktree is using the task branch.
 - Cleanup is safe.
 
-If a repo policy, branch protection, uncommitted main-worktree change, unresolved conflict, failing check, or active worktree makes merge unsafe, do not force it. Create a dated bug/blocker plan in .ai/15_Bugs, update .ai logs/state, and final status must be COMPLETED_BUT_MERGE_BLOCKED or BLOCKED as appropriate.
+If direct-main authority is missing, stop at the pushed task branch or PR-ready handoff and report exactly what remains for an owner to merge or push. If direct-main authority exists but repo policy, branch protection, uncommitted main-worktree change, unresolved conflict, failing check, or active worktree makes merge unsafe, do not force it. Create a dated bug/blocker plan in .ai/15_Bugs, update .ai logs/state, and final status must be COMPLETED_BUT_MERGE_BLOCKED or BLOCKED as appropriate.
 
 
 CORE STANDARD
@@ -772,9 +772,15 @@ In the current task worktree:
    - Never force push.
 
 
-PHASE 15 — MERGE TASK BRANCH INTO MAIN FROM MAIN WORKTREE
+PHASE 15 — MERGE TASK BRANCH INTO MAIN FROM MAIN WORKTREE IF AUTHORIZED
 
-After the task branch is committed and pushed, merge it into main from the main worktree.
+After the task branch is committed and pushed, merge it into main from the main worktree only when the current user prompt or owner-approved plan explicitly authorizes direct main integration for this run.
+
+If direct-main authority is missing:
+- Do not merge main.
+- Do not push main.
+- Preserve the task branch and report the PR-ready or handoff state.
+- Record any remaining owner action in the final status.
 
 Use:
 
@@ -822,7 +828,7 @@ From MAIN_WORKTREE_PATH:
 
 7. Fix merge-introduced issues.
 8. Commit conflict resolutions if git requires it.
-9. Push main:
+9. Push main only when direct main push is authorized for the current run:
    - git push origin main
 
 10. Capture final main merge/head commit hash:
@@ -830,9 +836,9 @@ From MAIN_WORKTREE_PATH:
     - git rev-parse HEAD
 
 
-PHASE 16 — FINALIZE PERSISTENT EVIDENCE ON MAIN IF SAFE
+PHASE 16 — FINALIZE PERSISTENT EVIDENCE ON MAIN IF AUTHORIZED AND SAFE
 
-After main is merged and pushed, update persistent .ai evidence on main if needed.
+After main is merged and pushed under current-run authority, update persistent .ai evidence on main if needed.
 
 Do this only for documentation/evidence files, never production code.
 
@@ -854,7 +860,7 @@ If this creates changes on main:
 1. Stage only evidence/documentation changes.
 2. Commit with:
    docs(ai): finalize implementation evidence for {PLAN_BASENAME}
-3. Push main again.
+3. Push main again only when direct main push is authorized for the current run.
 4. Capture final main HEAD hash.
 
 If branch protection or repo policy blocks this direct evidence commit:
@@ -866,13 +872,13 @@ If branch protection or repo policy blocks this direct evidence commit:
 PHASE 17 — WORKTREE AND BRANCH CLEANUP
 
 Only after all are true:
-- Current task branch has been merged into main.
-- Main verification has passed or any external/pre-existing blocker is documented.
-- Main has been pushed to origin.
+- Current-run authority either allowed direct main integration and the task branch has been merged into main, or direct-main authority was missing and the task branch remains available for PR/handoff.
+- Main verification has passed or any external/pre-existing blocker is documented when main was merged.
+- Main has been pushed to origin when direct main push was authorized.
 - No other active worktree is using CURRENT_BRANCH.
 - The task worktree has no uncommitted changes.
 - The task branch is not needed by another active agent.
-- Remote task branch is safe to delete.
+- Remote task branch is safe to delete and current-run authority permits remote branch deletion.
 
 From outside the task worktree, preferably from MAIN_WORKTREE_PATH:
 

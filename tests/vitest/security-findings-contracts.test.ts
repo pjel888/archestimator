@@ -304,4 +304,17 @@ describe("Codex security findings hardening contracts", () => {
       expect(low07Surface).not.toContain(detail);
     }
   });
+
+  it("keeps implementation prompt templates from self-authorizing direct main pushes", () => {
+    const implementationPrompt = read(".ai/08_prompts/003-PLAN-IMPLEMENTATION-PROMPT.MD");
+
+    expect(implementationPrompt).toContain("This template is not authorization by itself");
+    expect(implementationPrompt).toContain("current user prompt or an owner-approved plan");
+    expect(implementationPrompt).toContain("If direct-main authority is missing");
+    expect(implementationPrompt).toContain(
+      "Push main again only when direct main push is authorized for the current run.",
+    );
+    expect(implementationPrompt).not.toContain("this prompt is Philip");
+    expect(implementationPrompt).not.toContain("explicit instruction to merge the completed task branch into main");
+  });
 });
