@@ -20,7 +20,7 @@ import Image from "next/image";
 import { normalizePublicationImageUrl } from "@/lib/publication/image-url";
 import { aggregateRowsByDiscipline } from "@/lib/share/aggregate-share-chart-buckets";
 import { CostDonutChart } from "@/components/charts/CostDonutChart";
-import { reconstructTreeFromRows, wrapTreeWithRoot } from "@/lib/share/reconstruct-share-tree";
+import { getBestShareTree, wrapTreeWithRoot } from "@/lib/share/reconstruct-share-tree";
 import { ShareEstimateTreePanel } from "@/components/share/ShareEstimateTreePanel";
 import { ShareEstimateTreeView } from "@/components/share/ShareEstimateTreeView";
 
@@ -45,6 +45,12 @@ function readStoredActiveEstimateId(storageKey: string, estimates: PublicationSn
   } catch {
     return null;
   }
+}
+
+function findShareTreeNodeElement(root: HTMLElement | null, nodeId: string) {
+  if (!root) return null;
+  const nodes = root.querySelectorAll<HTMLElement>("[data-share-tree-node-id]");
+  return [...nodes].find((node) => node.getAttribute("data-share-tree-node-id") === nodeId) ?? null;
 }
 
 export default function SharePageTabs({
@@ -76,7 +82,7 @@ export default function SharePageTabs({
   };
 
   const handleTreeNavigate = useCallback((nodeId: string) => {
-    const el = contentRef.current?.querySelector(`[data-share-tree-node-id="${nodeId}"]`);
+    const el = findShareTreeNodeElement(contentRef.current, nodeId);
     if (el) {
       el.scrollIntoView({ behavior: "smooth", block: "start" });
     }
@@ -183,7 +189,7 @@ export default function SharePageTabs({
 
   const treeNodes = useMemo(() => {
     if (!wouldBeActive) return [];
-    const raw = reconstructTreeFromRows(wouldBeActive.rows);
+    const raw = getBestShareTree(wouldBeActive.rows, wouldBeActive.treeNodes);
     if (raw.length === 0) return raw;
     // Virtual root (per clarified target A): provides "complete hierarchy" context in Tree View + floating nav
     // even when designation data in snapshot is relative/shallow (e.g. starts at "Balcony" for some Lewis publishes).

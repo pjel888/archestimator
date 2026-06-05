@@ -500,6 +500,46 @@ describe("shared link (receiver publication) page — Shared Link Overhaul V2", 
       expect(screen.getByText('No rows match "zzz"')).toBeInTheDocument();
     });
 
+    it("navigates to tree nodes with CSS selector metacharacters in their snapshot ids without throwing", async () => {
+      const SharePageTabs = (await import("@/components/share/SharePageTabs")).default;
+      const user = userEvent.setup();
+      const hostileNodeId = `quote" [hash#colon:/ space]`;
+      const scrollIntoView = vi.fn();
+      const originalScrollIntoView = Element.prototype.scrollIntoView;
+      Element.prototype.scrollIntoView = scrollIntoView;
+
+      const estimateWithHostileTreeId: PublicationSnapshotEstimate = {
+        ...baseEstimate,
+        rows: [
+          {
+            ...baseEstimate.rows[0],
+            id: "row-hostile-node-id",
+            designation: hostileNodeId,
+            nodeId: hostileNodeId,
+          },
+        ],
+        treeNodes: [
+          {
+            id: hostileNodeId,
+            name: "Problem Area",
+            kind: "area",
+            children: [],
+          },
+        ],
+      };
+
+      try {
+        render(<SharePageTabs estimates={[estimateWithHostileTreeId]} currencyCode="PHP" token="hostile-node-id" />);
+
+        const sidebarNodeLabel = screen.getAllByText("Problem Area")[0];
+        await expect(user.click(sidebarNodeLabel)).resolves.toBeUndefined();
+
+        expect(scrollIntoView).toHaveBeenCalled();
+      } finally {
+        Element.prototype.scrollIntoView = originalScrollIntoView;
+      }
+    });
+
     it("supports full keyboard navigation: ArrowRight/Left cycle, Home/End, Enter/Space activation with roving focus", async () => {
       const SharePageTabs = (await import("@/components/share/SharePageTabs")).default;
       const user = userEvent.setup();
