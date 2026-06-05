@@ -128,6 +128,7 @@ Treat `cacheComponents`, `inlineCss`, `cssChunking`, and React Compiler changes 
 - [ ] **Step 3.1: Measure proxy/auth waterfall**
   - Use production/preview request timing and local logs to separate proxy, auth, route server render, and Supabase query time.
   - Do not replace `supabase.auth.getUser()` with `getSession()` in proxy auth.
+  - 2026-06-06 partial evidence: `evidence/2026-06-06-beta-access-optimization-spike.md` and `evidence/2026-06-06-auth-proxy-hosted-unauth-timing.json` capture unauthenticated `/workshop` redirect timing plus beta RPC provider proof. The signed-in hosted auth waterfall remains open until a safe authenticated fixture/storage state is available.
 
 - [x] **Step 3.2: Public-route cache review**
   - Review `MARKETING_PAGE_CACHE_CONTROL = "private, no-cache, max-age=0, must-revalidate"` in `src/proxy.ts`.
@@ -135,9 +136,10 @@ Treat `cacheComponents`, `inlineCss`, `cssChunking`, and React Compiler changes 
   - Guardrails: closed-beta access behavior, public pages, and CSP tests.
   - 2026-06-06 evidence: `evidence/2026-06-06-public-cache-safety-harness.md` and `24-cache-safety-and-public-personalization-matrix.md` conclude public marketing routes are not safe for broad shared HTML caching today; keep `MARKETING_PAGE_CACHE_CONTROL` unchanged until personalization is isolated/proven.
 
-- [ ] **Step 3.3: Beta access optimization spike**
+- [x] **Step 3.3: Beta access optimization spike**
   - Because `getClosedBetaAccessForEmail` is CRITICAL blast radius, any caching/optimization needs auth/security review.
   - Required tests: auth proxy, beta allowlist, hosted auth verification, invite-entry proof.
+  - 2026-06-06 decision: `evidence/2026-06-06-beta-access-optimization-spike.md` records CRITICAL GitNexus blast radius, existing public-fast-path coverage, live beta RPC EXPLAIN at ~0.914ms for a synthetic probe, and hosted unauthenticated `/workshop` redirect timings around 190-200ms. No auth/proxy production code change, allowlist caching, or `getUser()` replacement is justified without safe authenticated hosted waterfall proof and security/architecture approval.
 
 ## Workstream 4: Estimate workspace INP and render cost
 

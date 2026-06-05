@@ -1,0 +1,186 @@
+{
+  "captured_at_utc": "2026-06-05T20:42:27Z",
+  "method": "curl -sS -o /dev/null -w timing fields; 3 samples per route; no cookies",
+  "results": [
+    {
+      "label": "home",
+      "url": "https://www.archestimator.com/",
+      "samples": [
+        {
+          "run": 1,
+          "returncode": 0,
+          "http_code": "200",
+          "redirect_url": "",
+          "time_namelookup": "0.164278",
+          "time_connect": "0.208010",
+          "time_appconnect": "0.270006",
+          "time_pretransfer": "0.270237",
+          "time_starttransfer": "1.298067",
+          "time_total": "1.483324",
+          "size_download": "133076"
+        },
+        {
+          "run": 2,
+          "returncode": 0,
+          "http_code": "200",
+          "redirect_url": "",
+          "time_namelookup": "0.002156",
+          "time_connect": "0.032765",
+          "time_appconnect": "0.122441",
+          "time_pretransfer": "0.122501",
+          "time_starttransfer": "0.538233",
+          "time_total": "0.720695",
+          "size_download": "133076"
+        },
+        {
+          "run": 3,
+          "returncode": 0,
+          "http_code": "200",
+          "redirect_url": "",
+          "time_namelookup": "0.002756",
+          "time_connect": "0.038087",
+          "time_appconnect": "0.114481",
+          "time_pretransfer": "0.114540",
+          "time_starttransfer": "0.484675",
+          "time_total": "0.519569",
+          "size_download": "133076"
+        }
+      ]
+    },
+    {
+      "label": "login",
+      "url": "https://www.archestimator.com/login",
+      "samples": [
+        {
+          "run": 1,
+          "returncode": 0,
+          "http_code": "200",
+          "redirect_url": "",
+          "time_namelookup": "0.002567",
+          "time_connect": "0.021374",
+          "time_appconnect": "0.097650",
+          "time_pretransfer": "0.097706",
+          "time_starttransfer": "0.446924",
+          "time_total": "0.447224",
+          "size_download": "19026"
+        },
+        {
+          "run": 2,
+          "returncode": 0,
+          "http_code": "200",
+          "redirect_url": "",
+          "time_namelookup": "0.002987",
+          "time_connect": "0.029872",
+          "time_appconnect": "0.110836",
+          "time_pretransfer": "0.110895",
+          "time_starttransfer": "0.575143",
+          "time_total": "0.575750",
+          "size_download": "19026"
+        },
+        {
+          "run": 3,
+          "returncode": 0,
+          "http_code": "200",
+          "redirect_url": "",
+          "time_namelookup": "0.002433",
+          "time_connect": "0.020875",
+          "time_appconnect": "0.098473",
+          "time_pretransfer": "0.098532",
+          "time_starttransfer": "0.460981",
+          "time_total": "0.461912",
+          "size_download": "19026"
+        }
+      ]
+    },
+    {
+      "label": "workshop_unauth",
+      "url": "https://www.archestimator.com/workshop",
+      "samples": [
+        {
+          "run": 1,
+          "returncode": 0,
+          "http_code": "307",
+          "redirect_url": "https://www.archestimator.com/login?next=%2Fworkshop",
+          "time_namelookup": "0.002808",
+          "time_connect": "0.027383",
+          "time_appconnect": "0.114287",
+          "time_pretransfer": "0.114342",
+          "time_starttransfer": "0.200068",
+          "time_total": "0.200146",
+          "size_download": "15"
+        },
+        {
+          "run": 2,
+          "returncode": 0,
+          "http_code": "307",
+          "redirect_url": "https://www.archestimator.com/login?next=%2Fworkshop",
+          "time_namelookup": "0.002441",
+          "time_connect": "0.031644",
+          "time_appconnect": "0.114566",
+          "time_pretransfer": "0.114630",
+          "time_starttransfer": "0.189838",
+          "time_total": "0.189964",
+          "size_download": "15"
+        },
+        {
+          "run": 3,
+          "returncode": 0,
+          "http_code": "307",
+          "redirect_url": "https://www.archestimator.com/login?next=%2Fworkshop",
+          "time_namelookup": "0.002665",
+          "time_connect": "0.020355",
+          "time_appconnect": "0.108016",
+          "time_pretransfer": "0.108071",
+          "time_starttransfer": "0.195365",
+          "time_total": "0.195440",
+          "size_download": "15"
+        }
+      ]
+    },
+    {
+      "label": "beta_access_required",
+      "url": "https://www.archestimator.com/beta/access-required",
+      "samples": [
+        {
+          "run": 1,
+          "returncode": 0,
+          "http_code": "200",
+          "redirect_url": "",
+          "time_namelookup": "0.002806",
+          "time_connect": "0.027916",
+          "time_appconnect": "0.119368",
+          "time_pretransfer": "0.119453",
+          "time_starttransfer": "0.559515",
+          "time_total": "0.559709",
+          "size_download": "16103"
+        },
+        {
+          "run": 2,
+          "returncode": 0,
+          "http_code": "200",
+          "redirect_url": "",
+          "time_namelookup": "0.002185",
+          "time_connect": "0.021958",
+          "time_appconnect": "0.109896",
+          "time_pretransfer": "0.109952",
+          "time_starttransfer": "0.427074",
+          "time_total": "0.427464",
+          "size_download": "16103"
+        },
+        {
+          "run": 3,
+          "returncode": 0,
+          "http_code": "200",
+          "redirect_url": "",
+          "time_namelookup": "0.002117",
+          "time_connect": "0.021546",
+          "time_appconnect": "0.105636",
+          "time_pretransfer": "0.105750",
+          "time_starttransfer": "0.613024",
+          "time_total": "0.613240",
+          "size_download": "16103"
+        }
+      ]
+    }
+  ]
+}
