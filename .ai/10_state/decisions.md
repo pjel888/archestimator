@@ -26,6 +26,17 @@ governance/validate/build blockers or an explicit aggregator/no-op topology;
 route/release jobs stay advisory or release-only until fixtures prove they will
 not strand docs-only PRs.
 
+**Implementation note (2026-06-05 08:47Z):** `origin/staging` was created from
+the then-current `origin/main` SHA
+`07110b9fd5bd8a41890f5e4eaa2fdc14d0aefd1a` as the temporary advisory-only
+exception allowed by the branch model. Branch-bootstrap closeout keeps
+`origin/staging` fast-forwarded with `origin/main`, but GitHub reports the
+branch is still `protected:false`; this is not required-check enforcement, not
+hosted staging proof, and not permission for agents to direct-edit `staging`.
+Mac mini and MacBook Pro agents should fetch/prune before work, branch from the
+current remote baseline, push scoped task branches, and use PRs rather than
+parallel direct edits to shared branches.
+
 ## 2026-06-03 - Agentic framework Phase 1A/1B archived after Notion mirror
 
 **Decision:** Treat the repo-local agentic development framework rollout as complete for Phase 1A/1B after commit `539e32a`, branch push, and Notion mirror creation under Archestimator Homebase.
