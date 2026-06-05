@@ -19,7 +19,7 @@ This file is the registry for future baseline and before/after artifacts. Eviden
 | EVID-HTTPSTAT-001 | Vercel httpstat tool attempt | `evidence/2026-06-05-vercel-httpstat-attempt.md`, `evidence/2026-06-05-vercel-httpstat-production-baseline.md` | blocked | CLI available but child invocation could not find node; curl timing used as substitute. |
 | EVID-COMPUTER-001 | Computer Use Speed Insights attempts | `evidence/2026-06-05-computer-use-speed-insights-attempt.md`, `evidence/2026-06-06-speed-insights-chrome-retry.md` | blocked | Google Chrome state capture timed out after 120s on both attempts; dashboard metrics remain UI/provider gap. |
 | EVID-AUTH-001 | Auth/proxy hosted proof | `evidence/YYYY-MM-DD-auth-hosted-before.md` | open | requires safe auth fixture. |
-| EVID-ESTIMATE-001 | Large estimate profiler | `evidence/YYYY-MM-DD-estimate-profiler-before.*` | open | requires fixture spec. |
+| EVID-ESTIMATE-001 | Local estimate peak-load profiler | `evidence/2026-06-06-estimate-peak-load-profile.md`, `evidence/2026-06-06-estimate-peak-load-profile.json` | captured | jsdom profile only: 50 project estimates and 200 estimate rows; browser React Profiler and provider INP proof remain open. |
 | EVID-QUERY-001 | Supabase EXPLAIN/query inventory | `evidence/YYYY-MM-DD-query-inventory-before.md` | open | no unrelated provider projects. |
 | EVID-SHARE-001 | Redacted share timing/security | `evidence/YYYY-MM-DD-share-redacted-before.md` | open | no raw tokens. |
 | EVID-EXPORT-001 | Proposal export benchmark | `evidence/YYYY-MM-DD-proposal-export-benchmark-before.md` | open | representative + near-limit fixtures. |

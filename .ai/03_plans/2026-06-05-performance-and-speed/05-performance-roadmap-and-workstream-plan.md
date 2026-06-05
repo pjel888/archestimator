@@ -135,9 +135,11 @@ Treat `cacheComponents`, `inlineCss`, `cssChunking`, and React Compiler changes 
 
 ## Workstream 4: Estimate workspace INP and render cost
 
-- [ ] **Step 4.1: Run React Profiler on large seeded estimate**
+- [x] **Step 4.1: Run local peak-load profile for large estimate fixture**
   - Measure selecting nodes, editing costs, opening history, opening proposal preview, dragging tree nodes, and cursor movement.
   - Expected: top render stacks identify exact components/functions.
+
+  - 2026-06-06 local evidence: `evidence/2026-06-06-estimate-peak-load-profile.md` and `.json` from `bun run perf:profile-peak-load`; browser React Profiler and provider INP proof remain open.
 
 - [ ] **Step 4.2: Split lazy UI boundaries only where measured**
   - Candidate boundaries: activity history modal, row details modal, proposal preview dialog, command palette/right sidebar, chart-heavy panels.
