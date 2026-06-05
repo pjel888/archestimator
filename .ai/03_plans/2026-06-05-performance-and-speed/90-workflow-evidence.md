@@ -265,3 +265,11 @@ Superseding inventory after final readiness pass: root markdown files = 36; evid
 - Rationale: selected-column counts are only payload proxies; no live EXPLAIN, provider metrics, row counts, RLS cost, `pg_stat_statements`, or hosted route timings prove a bottleneck yet.
 - Evidence: `evidence/2026-06-06-query-consolidation-decision.md`.
 - Completion language: **CONSOLIDATION NOT JUSTIFIED / LIVE PROVIDER PROOF OPEN**.
+
+## Estimate lazy-boundary / virtualization decision — 2026-06-06
+
+- Reviewed local Workstream 4 peak-load evidence and the cursor broadcast pressure guard evidence.
+- Decision: do not split lazy UI boundaries or implement tree virtualization/windowing from the current jsdom-only baseline.
+- Rationale: current evidence does not attribute a browser INP bottleneck to specific modal/sidebar/preview/chart boundaries or tree row rendering; speculative splitting/virtualization would risk editing, DnD, keyboard, context menu, search, accessibility, and collaboration regressions.
+- Evidence: `evidence/2026-06-06-estimate-lazy-boundary-virtualization-decision.md`.
+- Completion language: **NOT JUSTIFIED FROM LOCAL BASELINE / BROWSER PROFILER PROOF OPEN**.
