@@ -94,3 +94,15 @@ Superseding inventory after final readiness pass: root markdown files = 36; evid
   - The report covered `/`, `/about`, `/features`, `/pricing`, `/contact`, `/privacy`, and `/terms` across anonymous, synthetic logged-in-cookie, consent rejected, consent accepted + A/B A, consent accepted + A/B B, and anonymous mobile scenarios.
   - Result: all seven routes remain incompatible with broad shared HTML cache today; hosted headers are private/no-cache/no-store with `x-vercel-cache: MISS`, `/` body varies under consent/A-B scenarios, and logged-in CTA output is source-proven to vary.
 - Completion language for this packet: **IMPLEMENTATION PACKET COMPLETE / OPTIMIZATION NOT YET SHIPPED**.
+
+## PR-0A/PR-1B evidence reconciliation — 2026-06-06
+
+- `$team` run `read-only-evidence-te-54927f7e` reached phase `complete`: 2 workers, 2 completed tasks, 0 pending/blocked/in-progress/failed.
+- Worker-1 confirmed PR-0A remains Speed Insights provider/UI blocked and recommended only read-only connector/curl substitutes until dashboard/export data is available.
+- Worker-2 confirmed PR-1B must stay analyzer-baseline-first and flagged root provider/global CSS hazards before runtime shell edits.
+- Leader-side read-only Vercel connector refresh confirmed production deployment `dpl_4bMoArwC32Tup4dKK67wtKoBf2jv` at commit `2d9e12d4d8b3f08a6da686bcb06f753474590511`; evidence captured in `evidence/2026-06-06-pr0a-vercel-connector-and-public-route-timing.md`.
+- Hosted public-route curl timing/header refresh covered `/`, `/about`, `/features`, `/pricing`, `/contact`, `/privacy`, and `/terms`; all still returned private/no-store cache headers with `x-vercel-cache: MISS`.
+- `ANALYZE=true bun run build` passed under Turbopack but did not emit `@next/bundle-analyzer` reports because Next requires the webpack build path for that analyzer.
+- First `ANALYZE=true bunx next build --webpack` emitted analyzer reports but exposed an existing invalid route export in `src/app/api/webhooks/resend/route.ts`.
+- Moved `RESEND_WEBHOOK_MAX_BODY_BYTES` to `src/lib/email/resend-webhook-route-constants.ts` and updated `tests/vitest/resend-webhook-route.test.ts`; focused route test passed.
+- Clean `ANALYZE=true bunx next build --webpack` then exited 0 and emitted `.next/analyze/client.html`, `.next/analyze/nodejs.html`, and `.next/analyze/edge.html`; summarized in `evidence/2026-06-06-bundle-analyzer-baseline.md`.

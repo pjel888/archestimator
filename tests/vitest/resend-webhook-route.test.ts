@@ -1,5 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import { RESEND_WEBHOOK_MAX_BODY_BYTES } from "@/lib/email/resend-webhook-route-constants";
+
 const webhookMocks = vi.hoisted(() => ({
   recordResendEmailWebhookEvent: vi.fn(async () => ({ ok: true, matched: true })),
   verifyResendWebhookPayload: vi.fn(() => ({
@@ -40,7 +42,7 @@ describe("Resend webhook route", () => {
   });
 
   it("rejects oversized webhook payloads before signature verification or persistence", async () => {
-    const { POST, RESEND_WEBHOOK_MAX_BODY_BYTES } = await import("@/app/api/webhooks/resend/route");
+    const { POST } = await import("@/app/api/webhooks/resend/route");
     const body = "x".repeat(RESEND_WEBHOOK_MAX_BODY_BYTES + 1);
 
     const response = await POST(request(body, { "content-length": String(body.length) }));

@@ -80,7 +80,9 @@ If adding a script instead of vitest-only coverage, run it against public routes
 
 ## PR-0A — Speed Insights baseline evidence capture
 
-**Status:** READY WHEN DASHBOARD ACCESS IS AVAILABLE.
+**Status:** SUBSTITUTE EVIDENCE CAPTURED / SPEED INSIGHTS PROVIDER METRICS OPEN.
+
+**2026-06-06 result:** Captured Vercel connector deployment context and hosted public-route curl timing/header refresh at `evidence/2026-06-06-pr0a-vercel-connector-and-public-route-timing.md`. The required Speed Insights dashboard/export fields remain open because the current connector exposes no Speed Insights metrics endpoint and prior UI attempts timed out.
 
 **Goal:** Fill `01-vercel-speed-insights-and-metrics-intake.md` with exact dashboard/export values and attach evidence files.
 
@@ -122,7 +124,9 @@ If adding a script instead of vitest-only coverage, run it against public routes
 
 ## PR-1B — Bundle attribution and root-shell containment spike
 
-**Status:** READY AFTER BUNDLE ANALYZER BASELINE.
+**Status:** BUNDLE BASELINE CAPTURED / CODE OPTIMIZATION NOT YET JUSTIFIED.
+
+**2026-06-06 result:** Captured `ANALYZE=true bun run build` Turbopack behavior and a clean `ANALYZE=true bunx next build --webpack` analyzer pass at `evidence/2026-06-06-bundle-analyzer-baseline.md`. The webpack analyzer first exposed an invalid extra route export in `src/app/api/webhooks/resend/route.ts`; the max-body constant now lives in `src/lib/email/resend-webhook-route-constants.ts`, preserving webhook behavior while allowing Next route type validation to pass.
 
 **Unblock by capturing:** `ANALYZE=true bun run build` or `ANALYZE=true bunx next build --webpack` artifacts.
 
@@ -143,6 +147,8 @@ bun run perf:check-routes
 ```
 
 **Completion language:** `IMPLEMENTED LOCALLY / PROVIDER PROOF OPEN` until hosted/Speed Insights evidence proves gains.
+
+**Current decision:** Do not split providers, move global CSS, or alter fonts in this packet. Analyzer evidence shows candidates, but PR-0A route/device p75 data is still missing and PR-0B proves cache/header changes are unsafe today.
 
 ## Packet discipline
 
