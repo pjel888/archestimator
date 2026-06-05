@@ -12,6 +12,14 @@ current inspected Vercel production deployment was Ready. This is a plan only:
 no GitHub, Vercel, Supabase, Resend, DNS, environment, production-code, or
 provider settings were changed.
 
+Review-fix addendum: independent review approved the docs-only plan as a
+planning artifact but flagged a WATCH caveat for whole-folder execution. The
+pack now explicitly requires phase-scoped future implementation prompts, manual
+preview/staging deployment proof while Vercel Git deployments remain disabled,
+and an always-present/aggregator required-check topology before GitHub
+protection enforcement. No source/provider/GitHub/Vercel settings changed;
+implementation remains future work.
+
 **Linked Supabase Readiness And Public-Domain Smoke Refreshed (2026-06-05 00:33Z):**
 A fresh read-only linked Supabase SQL readiness probe now passes. Artifact
 `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/supabase-linked-readiness-pass-2026-06-05T0033Z.json`

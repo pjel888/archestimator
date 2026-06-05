@@ -18,6 +18,14 @@ CODEOWNERS, and governance checks, resolve GitHub private-repo protection/rulese
 capability, then implement a controlled Vercel staged deploy/promote workflow.
 Do not claim implemented enforcement until GitHub/Vercel provider proof exists.
 
+**Review-fix decision:** Future execution of the 2026-06-05 CI/CD pack must be
+phase-scoped. Do not run the generic plan implementation prompt across the whole
+folder unless a later owner prompt explicitly authorizes the exact phase bundle
+and provider authority. Required checks should start with always-present
+governance/validate/build blockers or an explicit aggregator/no-op topology;
+route/release jobs stay advisory or release-only until fixtures prove they will
+not strand docs-only PRs.
+
 ## 2026-06-03 - Agentic framework Phase 1A/1B archived after Notion mirror
 
 **Decision:** Treat the repo-local agentic development framework rollout as complete for Phase 1A/1B after commit `539e32a`, branch push, and Notion mirror creation under Archestimator Homebase.

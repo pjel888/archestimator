@@ -60,6 +60,20 @@ Do not enable enforcement before the checks it depends on are stable.
 ## Minimal first implementation PR
 
 Limit first PR to CI restoration/hardening, PR template, CODEOWNERS, and status docs. Do not combine branch protection and release automation in the first PR.
+
+## Whole-folder prompt guard
+
+The generic implementation prompt at `.ai/08_prompts/003-PLAN-IMPLEMENTATION-PROMPT.MD` is a closeout template, not permission to implement every phase in this folder in one run. Future agents must select exactly one phase or explicitly owner-approved phase bundle, then stop at that phase's acceptance proof.
+
+Default slice order:
+
+1. Phase A only until CI is visible on the current SHA.
+2. Phase B/C advisory governance only after Phase A is green or honestly blocked.
+3. Phase D only after GitHub protection/ruleset capability is resolved.
+4. Phase E only after required checks and branch protection are stable.
+5. Phase F/G as separate adoption/docs-health follow-ups.
+
+If a future run is accidentally started with the whole folder plus the generic implementation prompt, narrow the run to Prompt 1 from `14_FUTURE_IMPLEMENTATION_PROMPTS.md` unless the owner explicitly authorizes a broader slice in the same prompt.
 <!-- 98-100-UPGRADE:START -->
 ## Acceptance criteria by phase
 

@@ -11,13 +11,13 @@
 
 `PLAN_PACK_READY_FOR_IMPLEMENTATION` for this docs-only plan pack.
 
-This means the target model is planned, audited, traceable, and ready for a future implementation owner. It does **not** mean GitHub Actions has been re-enabled, `main` is protected, Vercel Git auto-deploy has changed from its current disabled state, or closed beta is generally ready.
+This means the target model is planned, audited, traceable, and ready for a future implementation owner. It does **not** mean CI reactivation is complete, `main` is protected, Vercel Git auto-deploy has changed from its current disabled state, or closed beta is generally ready.
 
 ## Audited baseline
 
 | Surface | Current fact | Plan consequence |
 |---|---|---|
-| Git baseline | local `main` at `318a9862c9ddd05ba5763d340ac3e7de65757deb`, tracking `origin/main` | Future implementation must re-fetch before acting. |
+| Git baseline | pre-upgrade local `main` at `318a9862c9ddd05ba5763d340ac3e7de65757deb`, tracking `origin/main`; post-upgrade commits later moved `main` forward | Future implementation must re-fetch before acting and must not treat the pre-upgrade hash as current. |
 | Working branch | docs-only upgrade pass on `main`; read-only Team used detached worktrees | Future implementation must use a scoped branch/worktree before mutating source/provider settings. |
 | Code graph | 502 files, 4,634 nodes, 70,036 edges, updated 2026-06-05 14:23 PHT | Repo is large enough for graph-first impact review. |
 | GitHub CI | Workflow `CI` exists but GitHub reports `disabled_manually` | P0: re-enable/replace and prove current run. |
@@ -66,3 +66,10 @@ Pack-level readiness score after this pass: **99/100**. This score applies to im
 
 Add `PLAN_PACK_READY_FOR_IMPLEMENTATION` and `DOCS_HEALTH_FOLLOW_UP_SCOPED` to the allowed vocabulary for this folder.
 <!-- 98-100-UPGRADE:END -->
+<!-- REVIEW-FIX-2026-06-05:START -->
+## Whole-pack handoff guard
+
+Do **not** run the generic `.ai/08_prompts/003-PLAN-IMPLEMENTATION-PROMPT.MD` against this whole folder as a single all-at-once implementation. This pack is ready for implementation because the phases, gates, and proof boundaries are explicit; execution must use the phase-specific prompts in `14_FUTURE_IMPLEMENTATION_PROMPTS.md` or an equivalent owner-approved slice.
+
+Whole-folder implementation is unsafe because Phase A/B/C advisory work, Phase D branch protection, Phase E Vercel release automation, and Phase G docs-health cleanup have different authorities, provider proof needs, and rollback scopes.
+<!-- REVIEW-FIX-2026-06-05:END -->
