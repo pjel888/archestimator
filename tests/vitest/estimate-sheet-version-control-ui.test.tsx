@@ -300,6 +300,83 @@ describe("estimate sheet version control UI", () => {
     expect(within(snapshot).getByText("₱ 13,500.00")).toBeInTheDocument();
   });
 
+  it("does not render unsafe legacy source snapshot image URLs in row history", async () => {
+    const user = userEvent.setup();
+    actionMocks.fetchEstimateSheetVersionControl.mockResolvedValue({
+      events: [],
+      rowEvents: [
+        {
+          id: "row-event-unsafe-image",
+          eventType: "row_added",
+          eventSource: "server_action",
+          createdAt: "2026-05-24T03:15:00.000Z",
+          actorUserId: null,
+          targetRowId: "living-hardwood-oak-flooring",
+          estimateNodeId: "living-area",
+          rowContext: { material: "Tracked Component" },
+          oldSnapshot: null,
+          newSnapshot: {
+            material: "Tracked Component",
+            description: "Legacy imported row.",
+            supplier: "Unknown supplier",
+            unit: "pc",
+            quantity: 1,
+            unitCost: 4500,
+            lineTotal: 4500,
+            sourceLibraryItemId: "11111111-1111-4111-8111-111111111111",
+            sourceSnapshot: { category: "Finishes", imageUrl: "https://tracker.example/pixel.svg?viewer=client" },
+          },
+          changedFields: ["row"],
+          totalDelta: 4500,
+          payload: {},
+          correlationId: "row-history-unsafe-image",
+        },
+        {
+          id: "row-event-data-image",
+          eventType: "row_added",
+          eventSource: "server_action",
+          createdAt: "2026-05-24T03:16:00.000Z",
+          actorUserId: null,
+          targetRowId: "living-hardwood-oak-flooring",
+          estimateNodeId: "living-area",
+          rowContext: { material: "Data URL Component" },
+          oldSnapshot: null,
+          newSnapshot: {
+            material: "Data URL Component",
+            description: "Legacy imported row.",
+            supplier: "Unknown supplier",
+            unit: "pc",
+            quantity: 1,
+            unitCost: 5000,
+            lineTotal: 5000,
+            sourceLibraryItemId: "11111111-1111-4111-8111-111111111111",
+            sourceSnapshot: { category: "Finishes", imageUrl: "data:image/svg+xml,<svg></svg>" },
+          },
+          changedFields: ["row"],
+          totalDelta: 5000,
+          payload: {},
+          correlationId: "row-history-data-image",
+        },
+      ],
+      nextCursor: null,
+      rowNextCursor: null,
+      nodeEvents: [],
+      nodeNextCursor: null,
+    });
+
+    renderEstimateSheet();
+
+    await user.click(screen.getByRole("button", { name: "Open row activity for Hardwood Oak Flooring" }));
+    const rowDialog = await screen.findByRole("dialog", { name: "Row item details" });
+
+    const trackerSnapshot = await within(rowDialog).findByLabelText("Component added snapshot for Tracked Component");
+    const dataSnapshot = await within(rowDialog).findByLabelText("Component added snapshot for Data URL Component");
+    expect(within(trackerSnapshot).getByText("No image in snapshot")).toBeInTheDocument();
+    expect(within(dataSnapshot).getByText("No image in snapshot")).toBeInTheDocument();
+    expect(rowDialog.innerHTML).not.toContain("tracker.example");
+    expect(rowDialog.innerHTML).not.toContain("data:image");
+  });
+
   it("shows sheet activity audit cards with old-to-new details by default", async () => {
     const user = userEvent.setup();
     actionMocks.fetchEstimateSheetVersionControl.mockResolvedValue({

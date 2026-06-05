@@ -3,6 +3,7 @@ import { cache } from "react";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { readFirstAccountWorkspaceMembership } from "@/lib/auth/account-membership";
 import type { EstimateRowItem, EstimateTreeNode } from "@/lib/estimates/types";
+import { normalizeEstimateRowImageUrl } from "@/lib/estimates/image-url";
 import type { Tables } from "@/lib/supabase/types";
 import { requireCurrentUserContext } from "@/lib/auth/session";
 import { isUuid } from "@/lib/ids";
@@ -1500,7 +1501,7 @@ function toUiRow(row: EstimateRowItemRow): EstimateRowItem {
     discipline: row.discipline ?? undefined,
     designation: row.designation ?? undefined,
     tags,
-    imageUrl: typeof sourceSnapshot.imageUrl === "string" ? sourceSnapshot.imageUrl : undefined,
+    imageUrl: normalizeEstimateRowImageUrl(sourceSnapshot.imageUrl) ?? undefined,
     sourceLibraryItemId: row.source_library_item_id,
     linkState: row.link_state,
     componentVersionId: typeof sourceSnapshot.componentVersionId === "string" ? sourceSnapshot.componentVersionId : undefined,

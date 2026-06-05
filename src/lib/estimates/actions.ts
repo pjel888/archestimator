@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 
 import { requireCurrentUserContext } from "@/lib/auth/session";
 import type { EstimateTreeNode, EstimateRowItem } from "@/lib/estimates/types";
+import { sanitizeEstimateRowSourceSnapshot } from "@/lib/estimates/image-url";
 import {
   canNestEstimateNodeKind,
   getEstimateNodeNestingError,
@@ -698,7 +699,7 @@ function readEstimateNodeName(input: FormData | string) {
 }
 
 function getSourceSnapshot(libraryItem: EstimateRowItem) {
-  return {
+  return sanitizeEstimateRowSourceSnapshot({
     category: libraryItem.category,
     categoryNodeId: libraryItem.categoryNodeId ?? null,
     categoryPath: libraryItem.categoryPath ?? [],
@@ -723,7 +724,7 @@ function getSourceSnapshot(libraryItem: EstimateRowItem) {
     contingency_percentage: libraryItem.contingencyPercentage ?? 0,
     misc_cost: libraryItem.miscCost,
     currency: libraryItem.currency ?? "PHP",
-  };
+  });
 }
 
 function getEstimateRowMetadata(libraryItem: EstimateRowItem) {
@@ -1459,7 +1460,7 @@ export async function duplicateEstimateSheet(input: DuplicateEstimateSheetInput)
       quantity: row.quantity,
       sort_order: row.sort_order,
       source_library_item_id: row.source_library_item_id,
-      source_snapshot: row.source_snapshot,
+      source_snapshot: sanitizeEstimateRowSourceSnapshot(row.source_snapshot) as Json | null,
       supplier: row.supplier,
       supplier_id: row.supplier_id,
       unit: row.unit,
