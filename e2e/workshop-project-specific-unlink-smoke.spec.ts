@@ -4,13 +4,14 @@ import { join } from "node:path";
 
 import ExcelJS from "exceljs";
 import { expect, test, type Page, type TestInfo } from "@playwright/test";
-import { createClient } from "@supabase/supabase-js";
+import { createClient, type Session } from "@supabase/supabase-js";
 
 const projectId = "22222222-2222-4222-8222-222222222222";
 const linkedLibraryItemId = "44444444-4444-4444-8444-444444444441";
+const cookieChunkSize = 3_180;
 
 const unlinkSmokeEnabled = process.env.ARCHESTIMATOR_E2E_UNLINK_SMOKE === "1";
-const devAuthEnabled = process.env.ARCHESTIMATOR_DEV_AUTH_BYPASS === "1";
+const ownerAuthEmail = process.env.ARCHESTIMATOR_DEV_AUTH_EMAIL?.trim().toLowerCase();
 const artifactDir = process.env.ARCHESTIMATOR_UNLINK_SMOKE_DIR;
 
 type LibraryItemSnapshot = {
@@ -38,9 +39,9 @@ type UnlinkFixture = {
 function hasPrerequisites() {
   return Boolean(
     unlinkSmokeEnabled &&
-      devAuthEnabled &&
-      process.env.ARCHESTIMATOR_DEV_AUTH_EMAIL &&
+      ownerAuthEmail &&
       process.env.NEXT_PUBLIC_SUPABASE_URL &&
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY &&
       process.env.SUPABASE_SERVICE_ROLE_KEY,
   );
 }
@@ -54,8 +55,91 @@ function createAdminClient() {
   });
 }
 
+function createAnonClient() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  if (!url || !key) throw new Error("Supabase anon test client is not configured.");
+  return createClient(url, key, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  });
+}
+
+function readAuthCookieName() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  if (!url) throw new Error("NEXT_PUBLIC_SUPABASE_URL is required.");
+  const host = new URL(url).hostname;
+  const projectRef = host.split(".")[0];
+  if (!projectRef) throw new Error("Could not derive Supabase project ref for auth cookies.");
+  return `sb-${projectRef}-auth-token`;
+}
+
+function base64Url(value: string) {
+  return Buffer.from(value, "utf8").toString("base64").replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/g, "");
+}
+
+function getCookieUrls(baseURL: string) {
+  const urls = [baseURL];
+  const parsed = new URL(baseURL);
+  if (parsed.hostname === "127.0.0.1") {
+    urls.push(`${parsed.protocol}//localhost${parsed.port ? `:${parsed.port}` : ""}`);
+  }
+  if (parsed.hostname === "localhost") {
+    urls.push(`${parsed.protocol}//127.0.0.1${parsed.port ? `:${parsed.port}` : ""}`);
+  }
+  return Array.from(new Set(urls));
+}
+
+function createAuthCookies(session: Session, baseURL: string) {
+  const encoded = `base64-${base64Url(JSON.stringify(session))}`;
+  const cookieName = readAuthCookieName();
+  const chunks = encoded.length <= cookieChunkSize
+    ? [{ name: cookieName, value: encoded }]
+    : Array.from({ length: Math.ceil(encoded.length / cookieChunkSize) }, (_, index) => ({
+        name: `${cookieName}.${index}`,
+        value: encoded.slice(index * cookieChunkSize, (index + 1) * cookieChunkSize),
+      }));
+
+  return getCookieUrls(baseURL).flatMap((url) =>
+    chunks.map((cookie) => ({
+      ...cookie,
+      url,
+      httpOnly: false,
+      sameSite: "Lax" as const,
+      expires: Math.floor(Date.now() / 1000) + 60 * 60,
+    })),
+  );
+}
+
+async function createOwnerSession(): Promise<Session> {
+  if (!ownerAuthEmail) throw new Error("ARCHESTIMATOR_DEV_AUTH_EMAIL is required.");
+  const { data, error } = await createAdminClient().auth.admin.generateLink({
+    type: "magiclink",
+    email: ownerAuthEmail,
+  });
+  if (error) throw error;
+
+  const properties = data.properties ?? {};
+  const emailToken = properties.email_otp;
+  const hashedToken = properties.hashed_token;
+  const token = emailToken ?? hashedToken;
+  if (!token) throw new Error("Supabase did not return a magic-link token for the owner session.");
+
+  const { data: verified, error: verifyError } = await createAnonClient().auth.verifyOtp({
+    email: ownerAuthEmail,
+    token,
+    type: emailToken ? "email" : "magiclink",
+  });
+  if (verifyError) throw verifyError;
+  if (!verified.session) throw new Error("Supabase did not return an owner E2E session.");
+  return verified.session;
+}
+
+async function createAuthenticatedContext(page: Page, baseURL: string, session: Session) {
+  await page.context().addCookies(createAuthCookies(session, baseURL));
+}
+
 async function getDevAuthUserId() {
-  const email = process.env.ARCHESTIMATOR_DEV_AUTH_EMAIL;
+  const email = ownerAuthEmail;
   if (!email) throw new Error("ARCHESTIMATOR_DEV_AUTH_EMAIL is required.");
   const { data, error } = await createAdminClient().auth.admin.listUsers({ page: 1, perPage: 1000 });
   if (error) throw error;
@@ -94,6 +178,15 @@ async function createLinkedRowFixture(): Promise<UnlinkFixture> {
       metadata: { e2e: true, source: "workshop-project-specific-unlink-smoke" },
     });
     if (estimateInsertError) throw estimateInsertError;
+
+    const { error: memberInsertError } = await admin.from("estimate_sheet_members").insert({
+      estimate_id: estimateId,
+      project_id: projectId,
+      user_id: userId,
+      role: "owner",
+      added_by: userId,
+    });
+    if (memberInsertError) throw memberInsertError;
 
     const { error: nodesInsertError } = await admin.from("estimate_nodes").insert([
       {
@@ -174,17 +267,20 @@ async function deleteLinkedRowFixture(fixture: UnlinkFixture | null) {
     { count: nodeCount, error: nodeError },
     { count: rowCount, error: rowError },
     { count: eventCount, error: eventError },
+    { count: memberCount, error: memberError },
   ] = await Promise.all([
     admin.from("estimates").select("id", { count: "exact", head: true }).eq("id", fixture.estimateId),
     admin.from("estimate_nodes").select("id", { count: "exact", head: true }).eq("estimate_id", fixture.estimateId),
     admin.from("estimate_row_items").select("id", { count: "exact", head: true }).eq("estimate_id", fixture.estimateId),
     admin.from("estimate_sheet_events").select("id", { count: "exact", head: true }).eq("estimate_id", fixture.estimateId),
+    admin.from("estimate_sheet_members").select("estimate_id", { count: "exact", head: true }).eq("estimate_id", fixture.estimateId),
   ]);
   if (estimateError) throw estimateError;
   if (nodeError) throw nodeError;
   if (rowError) throw rowError;
   if (eventError) throw eventError;
-  if ((estimateCount ?? 0) + (nodeCount ?? 0) + (rowCount ?? 0) + (eventCount ?? 0) > 0) {
+  if (memberError) throw memberError;
+  if ((estimateCount ?? 0) + (nodeCount ?? 0) + (rowCount ?? 0) + (eventCount ?? 0) + (memberCount ?? 0) > 0) {
     throw new Error(`Project-specific unlink fixture cleanup left residue for estimate ${fixture.estimateId}.`);
   }
 }
@@ -253,15 +349,21 @@ async function captureProof(page: Page, testInfo: TestInfo, name: string, proof:
 
 test.describe("workshop project-specific unlink smoke", () => {
   test.setTimeout(90_000);
-  test.skip(!hasPrerequisites(), "Requires ARCHESTIMATOR_E2E_UNLINK_SMOKE=1, dev auth, and service-role Supabase env.");
+  test.skip(
+    !hasPrerequisites(),
+    "Requires ARCHESTIMATOR_E2E_UNLINK_SMOKE=1, owner email, and Supabase anon/service-role env.",
+  );
 
-  test("detaches a linked row, edits it, preserves the library item, exports, and cleans up", async ({ page }, testInfo) => {
+  test("detaches a linked row, edits it, preserves the library item, exports, and cleans up", async ({ page, baseURL }, testInfo) => {
     let fixture: UnlinkFixture | null = null;
     try {
+      if (!baseURL) throw new Error("Playwright baseURL is required.");
+      const ownerSession = await createOwnerSession();
       const beforeLibraryItem = await getLibraryItemSnapshot();
       fixture = await createLinkedRowFixture();
       const editedQuantity = fixture.originalQuantity + 3;
 
+      await createAuthenticatedContext(page, baseURL, ownerSession);
       await openFixtureEstimate(page, fixture);
       await page.getByRole("button", { name: `Make ${fixture.material} project-specific` }).click();
       const dialog = page.getByRole("dialog", { name: "Make component project-specific" });
