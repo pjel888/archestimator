@@ -51,3 +51,4 @@ This file is the registry for future baseline and before/after artifacts. Eviden
 - Prefer markdown summaries plus redacted screenshots/JSON.
 - Large trace files can be stored outside git if linked with path and retention note.
 - Every future performance PR should update this index.
+| EVID-RELEASE-001 | Release/rollback and readiness-language audit | `evidence/2026-06-06-release-rollback-readiness-language.md` | local captured | Workstream 7.1 and 7.3 local release/readiness requirements captured; Speed Insights window comparison remains provider-open. |

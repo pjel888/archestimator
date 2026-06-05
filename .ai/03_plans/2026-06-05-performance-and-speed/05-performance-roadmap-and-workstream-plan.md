@@ -198,11 +198,13 @@ Treat `cacheComponents`, `inlineCss`, `cssChunking`, and React Compiler changes 
 
 ## Workstream 7: Release, monitoring, and rollback
 
-- [ ] **Step 7.1: Ship one performance surface at a time**
+- [x] **Step 7.1: Ship one performance surface at a time**
   - Each PR should include before/after metrics, focused tests, and rollback notes.
+  - 2026-06-06 evidence: `evidence/2026-06-06-release-rollback-readiness-language.md` captures the surface-by-surface status, evidence, focused verification, and rollback/reopen notes for this branch. Provider comparison gates remain open.
 
 - [ ] **Step 7.2: Compare Speed Insights windows**
   - Do not judge immediately after deploy if traffic is too low; compare consistent windows and route cohorts.
 
-- [ ] **Step 7.3: Preserve closed-beta readiness language**
+- [x] **Step 7.3: Preserve closed-beta readiness language**
   - Mark improvements as `IMPLEMENTED LOCALLY` until production Speed Insights/provider proof confirms impact.
+  - 2026-06-06 evidence: `evidence/2026-06-06-release-rollback-readiness-language.md` audits current wording and keeps provider-dependent gates explicit. Production Speed Insights, hosted auth route timing, Supabase EXPLAIN/provider metrics, and Speed Insights window comparison remain open.
