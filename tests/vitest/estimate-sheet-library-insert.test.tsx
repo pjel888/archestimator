@@ -392,6 +392,37 @@ describe("estimate sheet library insertion persistence", () => {
     expect(within(row as HTMLElement).getByText("₱ 710.00")).toBeInTheDocument();
   });
 
+  it("clamps negative quantity edits to zero before saving", async () => {
+    actionMocks.updateEstimateRowItem.mockResolvedValueOnce({
+      rowId: cabinetRowId,
+      nodeId: targetNodeId,
+      quantity: 0,
+      itemCost: 100,
+      contingencyPercentage: 0,
+      contingencyValue: 0,
+      miscCost: 10,
+      linkState: "linked-overridden",
+      rowRevision: 8,
+    });
+    renderPersistedEstimateSheet(nodesWithRow);
+
+    const kitchenSection = screen.getByLabelText("Kitchen");
+    const quantityInput = within(kitchenSection).getByLabelText("Kitchen Cabinet quantity") as HTMLInputElement;
+    const row = quantityInput.closest("tr");
+    expect(row).not.toBeNull();
+
+    fireEvent.change(quantityInput, { target: { value: "-7" } });
+    fireEvent.blur(quantityInput);
+
+    await waitFor(() => expect(actionMocks.updateEstimateRowItem).toHaveBeenCalledTimes(1));
+    expect(actionMocks.updateEstimateRowItem).toHaveBeenCalledWith(expect.objectContaining({
+      rowId: cabinetRowId,
+      quantity: 0,
+      expectedRowRevision: 7,
+    }));
+    expect(within(row as HTMLElement).getByText("₱ 10.00")).toBeInTheDocument();
+  });
+
   it("makes a linked component project-specific without clearing row values", async () => {
     const user = userEvent.setup();
     renderPersistedEstimateSheet(nodesWithLinkedRow);

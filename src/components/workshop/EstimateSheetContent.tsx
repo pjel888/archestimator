@@ -351,6 +351,10 @@ function parseEditableNumber(value: string) {
   return Number.isFinite(parsed) ? parsed : 0;
 }
 
+function parseNonNegativeEditableNumber(value: string) {
+  return Math.max(0, parseEditableNumber(value));
+}
+
 function clampContingencyPercentage(value: number) {
   if (!Number.isFinite(value)) return 0;
   return Math.min(100, Math.max(-100, value));
@@ -384,7 +388,7 @@ function formatCostAdjustmentPercentage(value: number) {
 }
 
 function formatEditableMoney(value: string) {
-  return pesoFormatter.format(parseEditableNumber(value)).replace("₱", "₱ ");
+  return pesoFormatter.format(parseNonNegativeEditableNumber(value)).replace("₱", "₱ ");
 }
 
 function getInitialEditableRow(item: EstimateRowItem): EditableRowValue {
@@ -473,9 +477,9 @@ function collectEditableRows(nodes: EstimateTreeNode[]) {
 
 function computeRowTotal(item: EstimateRowItem, editableRows: Record<string, EditableRowValue>) {
   const editableRow = editableRows[item.id] ?? getInitialEditableRow(item);
-  const quantity = parseEditableNumber(editableRow.quantity);
+  const quantity = parseNonNegativeEditableNumber(editableRow.quantity);
   const contingencyPercentage = parseEditableContingencyPercentage(editableRow);
-  const miscCost = parseEditableNumber(editableRow.miscCost);
+  const miscCost = parseNonNegativeEditableNumber(editableRow.miscCost);
   const subTotal = item.itemCost * quantity;
   return calculateRowTotal(subTotal, miscCost, contingencyPercentage);
 }
@@ -493,9 +497,9 @@ function materializeEditableEstimateTree(nodes: EstimateTreeNode[], editableRows
       const editableRow = editableRows[item.id];
       if (!editableRow) return item;
 
-      const quantity = parseEditableNumber(editableRow.quantity);
+      const quantity = parseNonNegativeEditableNumber(editableRow.quantity);
       const contingencyPercentage = parseEditableContingencyPercentage(editableRow);
-      const miscCost = parseEditableNumber(editableRow.miscCost);
+      const miscCost = parseNonNegativeEditableNumber(editableRow.miscCost);
       const subTotal = item.itemCost * quantity;
       const contingencyValue = calculateContingencyValue(subTotal, contingencyPercentage);
 
@@ -560,9 +564,9 @@ function flattenEstimateRows(nodes: EstimateTreeNode[], editableRows: Record<str
     const nodePath = [...path, node.name];
     node.estimateRowItems?.forEach((item) => {
       const editableRow = editableRows[item.id] ?? getInitialEditableRow(item);
-      const quantity = parseEditableNumber(editableRow.quantity);
+      const quantity = parseNonNegativeEditableNumber(editableRow.quantity);
       const contingencyPercentage = parseEditableContingencyPercentage(editableRow);
-      const miscCost = parseEditableNumber(editableRow.miscCost);
+      const miscCost = parseNonNegativeEditableNumber(editableRow.miscCost);
       const subTotal = item.itemCost * quantity;
       const contingencyValue = calculateContingencyValue(subTotal, contingencyPercentage);
       rows.push({
@@ -1048,9 +1052,9 @@ function EstimateRowItemsTable({
     () =>
       items.map((item) => {
         const editableRow = editableRows[item.id] ?? getInitialEditableRow(item);
-        const quantity = parseEditableNumber(editableRow.quantity);
+        const quantity = parseNonNegativeEditableNumber(editableRow.quantity);
         const contingencyPercentage = parseEditableContingencyPercentage(editableRow);
-        const miscCost = parseEditableNumber(editableRow.miscCost);
+        const miscCost = parseNonNegativeEditableNumber(editableRow.miscCost);
         const subTotal = item.itemCost * quantity;
         const contingencyValue = calculateContingencyValue(subTotal, contingencyPercentage);
         return {
@@ -1629,9 +1633,9 @@ function appendTemplateNodesToParent(nodes: EstimateTreeNode[], targetParentNode
 function applyEditableValuesToLibraryItem(libraryItem: EstimateRowItem, editableRow?: EditableRowValue): EstimateRowItem {
   if (!editableRow) return libraryItem;
 
-  const quantity = parseEditableNumber(editableRow.quantity);
+  const quantity = parseNonNegativeEditableNumber(editableRow.quantity);
   const contingencyPercentage = parseEditableContingencyPercentage(editableRow);
-  const miscCost = parseEditableNumber(editableRow.miscCost);
+  const miscCost = parseNonNegativeEditableNumber(editableRow.miscCost);
   const subTotal = libraryItem.itemCost * quantity;
   const contingencyValue = calculateContingencyValue(subTotal, contingencyPercentage);
 
@@ -3670,9 +3674,9 @@ export function EstimateSheetContent({
       projectId,
       estimateId,
       rowId: rowItemId,
-      ...(values.quantity !== undefined ? { quantity: parseEditableNumber(values.quantity) } : {}),
+      ...(values.quantity !== undefined ? { quantity: parseNonNegativeEditableNumber(values.quantity) } : {}),
       ...(values.contingencyPercentage !== undefined || values.contingencyMode !== undefined ? { contingencyPercentage: parseEditableContingencyPercentage(nextEditableRow) } : {}),
-      ...(values.miscCost !== undefined ? { miscCost: parseEditableNumber(values.miscCost) } : {}),
+      ...(values.miscCost !== undefined ? { miscCost: parseNonNegativeEditableNumber(values.miscCost) } : {}),
       rollback: () => restoreEstimateState(previousTree, previousRows, rollbackRevision),
     });
   }
