@@ -41,7 +41,7 @@ describe("demo seed readiness", () => {
 
   it("keeps the investor demo plan pointed at the concrete seed anchors without exposing unfinished surfaces", () => {
     expect(demoPlan).toContain("supabase/seed.sql");
-    expect(demoPlan).toContain("Lewis Residence Baseline Estimate");
+    expect(demoPlan).toContain("DEMO_PROJECT_PLACEHOLDER Baseline Estimate");
     expect(demoPlan).toContain("600x600 Porcelain Floor Tile");
     expect(demoPlan).toContain("Master bedroom low-VOC paint system");
     expect(demoPlan).toMatch(/Do not show provider dashboards, real customer data, Ask Flip, billing/i);

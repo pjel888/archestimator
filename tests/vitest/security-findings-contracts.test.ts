@@ -143,6 +143,24 @@ describe("Codex security findings hardening contracts", () => {
     expect(hookCommands).not.toContain("code-review-graph status");
   });
 
+  it("keeps component-library taxonomy seed IDs scoped per workspace", () => {
+    const taxonomySeed = read("supabase/migrations/20260522064018_component_library_taxonomy_source.sql");
+    const seedIdRepair = latestMigrationBySuffix("_workspace_scoped_component_seed_ids.sql");
+
+    expect(taxonomySeed).toContain("create or replace function public.component_library_seed_uuid");
+    expect(taxonomySeed).toContain("target_workspace_id::text || ':component-library:' || source_key");
+    expect(taxonomySeed).toContain('public.component_library_seed_uuid(w.id, item."sourceId")');
+    expect(taxonomySeed).toContain("item.metadata || jsonb_build_object('workspaceScopedSeed', true)");
+    expect(taxonomySeed).not.toMatch(/select\s+item\.id,\s+w\.id/i);
+
+    expect(seedIdRepair).toContain("select distinct on (legacy.metadata->>'sourceFixtureId')");
+    expect(seedIdRepair).toContain("cross join legacy_seed_items");
+    expect(seedIdRepair).toContain("public.component_library_seed_uuid(workspace.id, legacy.metadata->>'sourceFixtureId')");
+    expect(seedIdRepair).toContain("update public.estimate_row_items row_item");
+    expect(seedIdRepair).toContain("to_jsonb(relink_targets.replacement_item_id::text)");
+    expect(seedIdRepair).toContain("lifecycle_state = 'archived'::public.component_lifecycle_state");
+  });
+
   it("enforces publication password access before creating recipient sessions", () => {
     const sessionRoute = read("src/app/api/share/[token]/session/route.ts");
     const handlerBody = sessionRoute.slice(sessionRoute.indexOf("export async function POST"));
