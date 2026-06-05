@@ -321,3 +321,13 @@ Superseding inventory after final readiness pass: root markdown files = 36; evid
 - Ran `HOSTED_AUTH_BASE_URL=https://www.archestimator.com HOSTED_AUTH_RUNS=3 OUTPUT_FILE=.../2026-06-06-auth-proxy-hosted-smoke-benchmark.json MARKDOWN_FILE=.../2026-06-06-auth-proxy-hosted-smoke-benchmark.md bun run launch:verify-hosted-auth`; expected exit 1 because signed-in fixture cookies were absent.
 - Evidence: `evidence/2026-06-06-auth-proxy-hosted-smoke-benchmark.md` / `.json` captures production signed-out `/workshop` redirect timing: 3 samples, 60ms min, 115ms avg, 217ms max, latest status 307 to `/login?next=%2Fworkshop`.
 - Completion language: **SIGNED-OUT HOSTED AUTH TIMING CAPTURED / SIGNED-IN FIXTURE WATERFALL OPEN**.
+
+## Remaining provider/fixture blocker audit — 2026-06-06
+
+- Re-audited the remaining open gates after `23db6aa`.
+- Evidence: `evidence/2026-06-06-remaining-provider-fixture-blocker-audit.md`.
+- Vercel connector still reaches Archestimator project/deployment metadata, but does not expose Speed Insights p75, route/device breakdown, or export values.
+- Protected fetch for `https://vercel.com/philipjonlewis-projects/archestimator/speed-insights` still fails with `Unable to create shareable URL...`.
+- Process env and repo env files contain no safe `HOSTED_AUTH_*`, `HOSTED_EXPORT_*`, app-specific `PLAYWRIGHT_STORAGE_STATE`, or equivalent fixture inputs.
+- Remaining gates require external inputs: Speed Insights dashboard/export, signed-in hosted auth fixtures, hosted export fixture IDs/auth, and comparable Speed Insights windows.
+- Completion language: **IMPLEMENTED LOCALLY / PROVIDER PROOF OPEN — EXTERNAL INPUTS REQUIRED**.

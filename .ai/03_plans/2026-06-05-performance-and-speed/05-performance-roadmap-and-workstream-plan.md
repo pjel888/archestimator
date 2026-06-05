@@ -48,6 +48,7 @@ A future worker must not start with broad refactors, generic memoization, depend
   - Save screenshots or summarized values into `01-vercel-speed-insights-and-metrics-intake.md`.
   - Expected: the table has numeric values instead of `provider-open`.
   - 2026-06-06 status: still provider-open. Read-only Vercel connector and hosted curl timing substitutes are captured in `evidence/2026-06-06-pr0a-vercel-connector-and-public-route-timing.md`, but they are not p75 Core Web Vitals proof.
+  - 2026-06-06 blocker audit: `evidence/2026-06-06-remaining-provider-fixture-blocker-audit.md` confirms the Vercel connector still exposes deployment/project metadata but not Speed Insights p75/route/device/export values, and protected dashboard fetch still cannot create a shareable URL.
 
 - [x] **Step 0.2: Confirm production deployment context**
   - Run or record Vercel connector output for project `archestimator` and latest production deployment.
@@ -130,6 +131,7 @@ Treat `cacheComponents`, `inlineCss`, `cssChunking`, and React Compiler changes 
   - Do not replace `supabase.auth.getUser()` with `getSession()` in proxy auth.
   - 2026-06-06 partial evidence: `evidence/2026-06-06-beta-access-optimization-spike.md` and `evidence/2026-06-06-auth-proxy-hosted-unauth-timing.json` capture unauthenticated `/workshop` redirect timing plus beta RPC provider proof. The signed-in hosted auth waterfall remains open until a safe authenticated fixture/storage state is available.
   - 2026-06-06 harness/evidence update: `scripts/verify-hosted-auth-routes.ts` now supports repeated sanitized samples via `HOSTED_AUTH_RUNS`, JSON `samples`/min/avg/max duration fields, and optional `MARKDOWN_FILE`. Evidence at `evidence/2026-06-06-auth-proxy-hosted-smoke-benchmark.md` / `.json` captured production signed-out `/workshop` redirect timing (3 samples, avg 115ms) and failed closed for missing allowed/denied/revoked/expired session cookies. Step 3.1 remains open for signed-in waterfall proof.
+  - 2026-06-06 blocker audit: `evidence/2026-06-06-remaining-provider-fixture-blocker-audit.md` confirms no `HOSTED_AUTH_*` variables or app-specific Playwright storage state are available in the current session/worktree.
 
 - [x] **Step 3.2: Public-route cache review**
   - Review `MARKETING_PAGE_CACHE_CONTROL = "private, no-cache, max-age=0, must-revalidate"` in `src/proxy.ts`.
@@ -199,6 +201,7 @@ Treat `cacheComponents`, `inlineCss`, `cssChunking`, and React Compiler changes 
   - Candidate: streaming/worker queue only if current Node route exceeds latency/memory budgets.
   - 2026-06-06 local evidence: `evidence/2026-06-06-proposal-workbook-benchmark.md` and `.json` from `bun run scripts/benchmark-proposal-workbook.ts`; hosted export route latency/memory proof remains open.
   - 2026-06-06 hosted benchmark harness readiness: `scripts/verify-hosted-export-route.ts` now supports repeated sanitized benchmark samples via `HOSTED_EXPORT_RUNS` and `MARKDOWN_FILE`; evidence at `evidence/2026-06-06-hosted-proposal-export-benchmark-readiness.md` records that a safe authenticated hosted fixture/cookie/header is still required before proof can be captured.
+  - 2026-06-06 blocker audit: `evidence/2026-06-06-remaining-provider-fixture-blocker-audit.md` confirms no `HOSTED_EXPORT_*` base URL, project ID, estimate ID, cookie, or auth header is available in the current session/worktree.
 
 ## Workstream 7: Release, monitoring, and rollback
 
@@ -208,6 +211,7 @@ Treat `cacheComponents`, `inlineCss`, `cssChunking`, and React Compiler changes 
 
 - [ ] **Step 7.2: Compare Speed Insights windows**
   - Do not judge immediately after deploy if traffic is too low; compare consistent windows and route cohorts.
+  - 2026-06-06 blocker audit: this remains dependent on Step 0.1 because no Speed Insights p75 route/device/window data is accessible from the current connector/fetch/browser surfaces.
 
 - [x] **Step 7.3: Preserve closed-beta readiness language**
   - Mark improvements as `IMPLEMENTED LOCALLY` until production Speed Insights/provider proof confirms impact.
