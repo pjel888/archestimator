@@ -34,14 +34,23 @@ The Vercel connector returned:
 
 See `28-captured-baseline-and-remaining-provider-gap.md` for verified Vercel project/deployment context and public hosted header/timing evidence. Exact Speed Insights p75 dashboard metrics remain provider-open because the exposed connector has no Speed Insights metrics endpoint and Computer Use timed out.
 
+## PR-0A substitute evidence refresh — 2026-06-06
+
+Evidence: `evidence/2026-06-06-pr0a-vercel-connector-and-public-route-timing.md`.
+
+- Read-only Vercel connector refresh confirmed latest production deployment `dpl_4bMoArwC32Tup4dKK67wtKoBf2jv`, created `2026-06-04T18:04:02.727Z`, at commit `2d9e12d4d8b3f08a6da686bcb06f753474590511`.
+- Hosted public-route curl timing/header refresh covered `/`, `/about`, `/features`, `/pricing`, `/contact`, `/privacy`, and `/terms`.
+- All checked public routes still returned `private, no-cache, no-store, max-age=0, must-revalidate` and `x-vercel-cache: MISS`.
+- This is **not** Speed Insights/Core Web Vitals proof. The p75 dashboard/export values below remain provider-open.
+
 ## Captured baseline record
 
 Status: **open / provider proof required**. Fill this table before implementation.
 
 | Field | Value | Evidence file/link | Notes |
 | --- | --- | --- | --- |
-| Capture date/time | provider-open |  |  |
-| Vercel project/deployment | provider-open |  | deployment id + commit required |
+| Capture date/time | provider-open for Speed Insights; connector/timing refresh on 2026-06-06 | `evidence/2026-06-06-pr0a-vercel-connector-and-public-route-timing.md` | substitute timing only |
+| Vercel project/deployment | `dpl_4bMoArwC32Tup4dKK67wtKoBf2jv` / `2d9e12d4d8b3f08a6da686bcb06f753474590511` | `evidence/2026-06-06-pr0a-vercel-connector-and-public-route-timing.md` | deployment context captured; Speed Insights time-window inclusion still needs dashboard |
 | Time window | provider-open |  | use comparable future window |
 | Device split | provider-open |  | mobile/desktop p75 required |
 | Worst route bucket | provider-open |  | public / protected / estimate / share / export |

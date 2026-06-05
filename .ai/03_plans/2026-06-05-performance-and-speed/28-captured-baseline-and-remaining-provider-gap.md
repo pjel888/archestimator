@@ -61,3 +61,17 @@ The exposed Vercel connector supports project/deployment/docs/fetch, but no Spee
 - time window.
 
 This gap blocks proof of final performance impact, but does not block PR-0B because PR-0B is a safety/measurement-enabling implementation packet.
+
+## 2026-06-06 refresh
+
+Additional evidence files:
+
+- `evidence/2026-06-06-pr0a-vercel-connector-and-public-route-timing.md`
+- `evidence/2026-06-06-bundle-analyzer-baseline.md`
+
+Current status:
+
+- Deployment context is refreshed and still points to production deployment `dpl_4bMoArwC32Tup4dKK67wtKoBf2jv`.
+- Public hosted route timing/header evidence now includes `/about`, `/privacy`, and `/terms` in addition to the earlier public routes.
+- Bundle analyzer baseline is captured through a clean webpack analyzer build.
+- Speed Insights dashboard/export p75 metrics remain the blocking provider gap.

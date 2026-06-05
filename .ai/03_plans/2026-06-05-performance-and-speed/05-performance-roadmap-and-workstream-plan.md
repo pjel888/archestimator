@@ -47,18 +47,21 @@ A future worker must not start with broad refactors, generic memoization, depend
   - Capture overall score, p75 LCP, INP, CLS, FCP, TTFB, device split, route/path breakdown, and time window.
   - Save screenshots or summarized values into `01-vercel-speed-insights-and-metrics-intake.md`.
   - Expected: the table has numeric values instead of `provider-open`.
+  - 2026-06-06 status: still provider-open. Read-only Vercel connector and hosted curl timing substitutes are captured in `evidence/2026-06-06-pr0a-vercel-connector-and-public-route-timing.md`, but they are not p75 Core Web Vitals proof.
 
-- [ ] **Step 0.2: Confirm production deployment context**
+- [x] **Step 0.2: Confirm production deployment context**
   - Run or record Vercel connector output for project `archestimator` and latest production deployment.
   - Expected: deployment id, URL, commit, and time window are documented.
+  - 2026-06-06 evidence: `dpl_4bMoArwC32Tup4dKK67wtKoBf2jv` / commit `2d9e12d4d8b3f08a6da686bcb06f753474590511` captured in `evidence/2026-06-06-pr0a-vercel-connector-and-public-route-timing.md`.
 
-- [ ] **Step 0.3: Run bundle attribution**
+- [x] **Step 0.3: Run bundle attribution**
   - Command after dependencies are available:
     ```bash
     ANALYZE=true bun run build
     ```
   - Expected: bundle analyzer artifacts identify first-load JS, route chunks, and large dependencies.
   - Evidence: save analyzer screenshots or HTML summaries under a future `evidence/` subfolder.
+  - 2026-06-06 evidence: `evidence/2026-06-06-bundle-analyzer-baseline.md`; clean `ANALYZE=true bunx next build --webpack` emitted `client.html`, `nodejs.html`, and `edge.html`.
 
 - [ ] **Step 0.4: Run route-transition baseline**
   - Commands after dependencies and auth fixtures are available:
@@ -70,9 +73,10 @@ A future worker must not start with broad refactors, generic memoization, depend
 
 ## Workstream 1: Root shell and global bundle containment
 
-- [ ] **Step 1.1: Prove whether global CSS/fonts dominate first load**
+- [x] **Step 1.1: Prove whether global CSS/fonts dominate first load**
   - Inspect analyzer output for font CSS, `react-complex-tree`, Lenis, root providers, and analytics chunks.
   - Expected: a before/after hypothesis names a specific chunk or route, not a generic “reduce JS” claim.
+  - 2026-06-06 result: analyzer names candidates but does not justify a root-shell/provider split yet. Root provider code is small; larger candidates include public Lenis/Neat chunks, icon footprint, `d3`, and workshop estimate surfaces. Route/device p75 evidence is still needed before selecting a runtime optimization.
 
 - [ ] **Step 1.2: Plan root provider split only if analyzer shows public-route cost**
   - Candidate change: separate public-only providers from workshop-only QueryClient/navigation/overlay providers.
