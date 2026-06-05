@@ -1,5 +1,17 @@
 # Current State
 
+**Agentic Development And CI/CD Standardization Plan Created (2026-06-05):**
+New docs-only pack `.ai/03_plans/2026-06-05-agentic-development-cicd-standardization/`
+records the current repo/provider audit and future implementation plan for
+agentic branch governance, GitHub Actions hardening, PR/CODEOWNERS controls,
+GitHub protection/ruleset prerequisites, and controlled Vercel deployment
+promotion. Read-only checks found the GitHub `CI` workflow disabled manually,
+`main` unprotected with private-repo protection/rulesets blocked by GitHub
+capability, and `vercel.json` still disabling Git-triggered deployments; the
+current inspected Vercel production deployment was Ready. This is a plan only:
+no GitHub, Vercel, Supabase, Resend, DNS, environment, production-code, or
+provider settings were changed.
+
 **Linked Supabase Readiness And Public-Domain Smoke Refreshed (2026-06-05 00:33Z):**
 A fresh read-only linked Supabase SQL readiness probe now passes. Artifact
 `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/supabase-linked-readiness-pass-2026-06-05T0033Z.json`
