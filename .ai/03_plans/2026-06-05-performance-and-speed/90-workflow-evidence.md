@@ -281,3 +281,11 @@ Superseding inventory after final readiness pass: root markdown files = 36; evid
 - Closed locally: 7.1 one-surface-at-a-time release evidence and 7.3 conservative closed-beta/provider-open language.
 - Still open: 7.2 Speed Insights window comparison and all provider/manual gates that require Vercel dashboard/export, hosted auth fixtures, or Supabase provider metrics.
 - Completion language: **LOCAL RELEASE MATRIX CAPTURED / SPEED INSIGHTS WINDOW PROOF OPEN**.
+
+## Live Supabase EXPLAIN/provider proof — 2026-06-06
+
+- Captured live provider proof for Workstream 5.2 against Supabase project `ebxxqidacheyapmmzavr`.
+- Evidence: `evidence/2026-06-06-live-supabase-explain-provider-proof.md`.
+- Inputs: aggregate table/index stats, `pg_stat_statements`, focused `EXPLAIN (ANALYZE, BUFFERS)`, and Supabase performance advisor output.
+- Decision: no index, RPC, or query-consolidation migration is justified from current closed-beta row counts and plans; advisor/RLS findings require separate security-reviewed, owner-approved migration planning.
+- Completion language: **LIVE PROVIDER PROOF CAPTURED / NO MIGRATION PROPOSAL JUSTIFIED**.

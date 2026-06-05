@@ -17,10 +17,10 @@ If only local proof exists, use `IMPLEMENTED LOCALLY / PROVIDER PROOF OPEN`, not
 ## Provider/dashboard gates
 
 - [ ] Vercel Speed Insights exact metrics captured from dashboard or export.
-- [ ] Vercel latest deployment and commit matched to metric window.
-- [ ] Production or preview route timing captured with `vercel httpstat` or comparable Vercel evidence.
+- [x] Vercel latest deployment and commit matched to metric window. Evidence: `evidence/2026-06-06-pr0a-vercel-connector-and-public-route-timing.md` plus 2026-06-06 Vercel connector refresh (`dpl_4bMoArwC32Tup4dKK67wtKoBf2jv`, commit `2d9e12d4d8b3f08a6da686bcb06f753474590511`).
+- [x] Production or preview public-route timing captured with `vercel httpstat` or comparable Vercel evidence. Evidence: `evidence/2026-06-06-pr0a-vercel-connector-and-public-route-timing.md`; authenticated route timing remains open under the auth/proxy gate.
 - [ ] Speed Insights route/device breakdown attached.
-- [ ] Supabase EXPLAIN/provider query evidence captured before DB/index work.
+- [x] Supabase EXPLAIN/provider query evidence captured before DB/index work. Evidence: `evidence/2026-06-06-live-supabase-explain-provider-proof.md`; no DB/index work is justified from current beta proof.
 - [ ] Manual Chrome/Lighthouse traces captured for the route(s) Speed Insights flags.
 
 ## Product decision gates
@@ -45,8 +45,8 @@ If only local proof exists, use `IMPLEMENTED LOCALLY / PROVIDER PROOF OPEN`, not
 - [ ] Auth/proxy changes reviewed with `getClosedBetaAccessForEmail` CRITICAL blast radius noted.
 - [ ] No change to `getUser()` proxy security without explicit architecture/security approval.
 - [ ] No cache headers on tokenized/protected/share APIs unless proven non-sensitive.
-- [ ] No Supabase mutations against unrelated provider projects; Archestimator project id remains `ebxxqidacheyapmmzavr`.
-- [ ] No database index migrations without staging/live EXPLAIN proof and rollback plan.
+- [x] No Supabase mutations against unrelated provider projects; Archestimator project id remains `ebxxqidacheyapmmzavr`. 2026-06-06 proof used read-only SQL/advisor calls against Archestimator only; SlateCamp remained untouched.
+- [x] No database index migrations without staging/live EXPLAIN proof and rollback plan. 2026-06-06 live EXPLAIN/provider proof captured and concluded no migration proposal is justified for current beta rows.
 
 ## Completion language gate
 
