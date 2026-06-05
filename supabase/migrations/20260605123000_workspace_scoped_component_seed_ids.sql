@@ -29,7 +29,6 @@ workspace_seed_items as (
   select
     public.component_library_seed_uuid(workspace.id, legacy.metadata->>'sourceFixtureId') as id,
     workspace.id as workspace_id,
-    legacy.kind,
     legacy.name,
     legacy.description,
     legacy.category,
@@ -53,7 +52,6 @@ workspace_seed_items as (
 insert into public.cost_library_items (
   id,
   workspace_id,
-  kind,
   name,
   description,
   category,
@@ -72,7 +70,6 @@ insert into public.cost_library_items (
 select
   id,
   workspace_id,
-  kind,
   name,
   description,
   category,
@@ -90,7 +87,6 @@ select
 from workspace_seed_items
 on conflict (id) do update
   set workspace_id = excluded.workspace_id,
-      kind = excluded.kind,
       name = excluded.name,
       description = excluded.description,
       category = excluded.category,
