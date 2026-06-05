@@ -304,3 +304,11 @@ Superseding inventory after final readiness pass: root markdown files = 36; evid
 - Evidence: `evidence/2026-06-06-speed-insights-provider-access-retry.md`.
 - Result: dashboard p75/export values remain inaccessible from this session; Workstream 0.1 and 7.2 stay open.
 - Completion language: **SPEED INSIGHTS PROVIDER ACCESS BLOCKED / P75 METRICS OPEN**.
+
+## Open gate reconciliation — 2026-06-06
+
+- Reconciled local decision/security gates that had stale open checkboxes after implementation packets.
+- Evidence: `evidence/2026-06-06-open-gate-reconciliation.md`.
+- Closed locally: marketing visual graceful degradation, GA/Clarity post-consent loading decision, no global Next/React experimental toggles, auth/proxy no-change review, and tokenized/share cache-header invariants.
+- Still open: Speed Insights p75/dashboard route-device metrics, Speed Insights-window comparison, signed-in auth fixture waterfall, and hosted authenticated export benchmark.
+- Completion language: **LOCAL DECISION GATES RECONCILED / PROVIDER GATES STILL OPEN**.
