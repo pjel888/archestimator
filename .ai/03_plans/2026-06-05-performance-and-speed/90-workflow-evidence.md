@@ -273,3 +273,11 @@ Superseding inventory after final readiness pass: root markdown files = 36; evid
 - Rationale: current evidence does not attribute a browser INP bottleneck to specific modal/sidebar/preview/chart boundaries or tree row rendering; speculative splitting/virtualization would risk editing, DnD, keyboard, context menu, search, accessibility, and collaboration regressions.
 - Evidence: `evidence/2026-06-06-estimate-lazy-boundary-virtualization-decision.md`.
 - Completion language: **NOT JUSTIFIED FROM LOCAL BASELINE / BROWSER PROFILER PROOF OPEN**.
+
+## Release/rollback and readiness-language audit — 2026-06-06
+
+- Captured Workstream 7 local release matrix for each performance surface shipped, deferred, or held behind provider proof.
+- Evidence: `evidence/2026-06-06-release-rollback-readiness-language.md`.
+- Closed locally: 7.1 one-surface-at-a-time release evidence and 7.3 conservative closed-beta/provider-open language.
+- Still open: 7.2 Speed Insights window comparison and all provider/manual gates that require Vercel dashboard/export, hosted auth fixtures, or Supabase provider metrics.
+- Completion language: **LOCAL RELEASE MATRIX CAPTURED / SPEED INSIGHTS WINDOW PROOF OPEN**.
