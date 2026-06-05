@@ -149,3 +149,12 @@ Superseding inventory after final readiness pass: root markdown files = 36; evid
 - Captured local synthetic workbook generation metrics: 500 rows in 170.17ms, 1000 rows in 172.6ms, and 2500 rows in 393.39ms.
 - Evidence summary: `evidence/2026-06-06-proposal-workbook-benchmark.md`.
 - Completion language: **LOCAL PROPOSAL WORKBOOK BENCHMARK CAPTURED / HOSTED EXPORT ROUTE PROOF OPEN**.
+
+
+## Repo-only query inventory baseline — 2026-06-06
+
+- Ran `OUTPUT_FILE=.ai/03_plans/2026-06-05-performance-and-speed/evidence/2026-06-06-query-inventory-repo-only.md bun run dbidx:audit-repo`.
+- Result: repo-only scanner passed with 262 Supabase query references and 103 migration index statements.
+- No Supabase provider connection, live metrics, DDL, migration apply, EXPLAIN, or unrelated provider project access occurred.
+- Evidence: `evidence/2026-06-06-query-inventory-repo-only.md`.
+- Completion language: **REPO-ONLY QUERY INVENTORY CAPTURED / LIVE EXPLAIN AND PROVIDER METRICS OPEN**.
