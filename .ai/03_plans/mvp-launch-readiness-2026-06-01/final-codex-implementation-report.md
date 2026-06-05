@@ -77,7 +77,7 @@ These follow-up commits improve traceability, local validation evidence, local e
 
 The remaining manual/provider proof packet is now centralized in `46-manual-proof-matrix.md`; it must be filled with dated artifacts before the external beta recommendation changes.
 
-The active-goal completion audit is centralized in `47-goal-completion-audit.md`; it currently says **DO NOT MARK GOAL COMPLETE** because external/manual proof is missing.
+The active-goal completion audit is centralized in `47-goal-completion-audit.md`; it now says **COMPLETE FOR OWNER-ONLY SUBSTANTIAL COMPLETION** after the 2026-06-05 workbook and owner-only evidence refresh; widened/full-green proof gaps remain separately tracked.
 
 ## 2. Features Implemented
 

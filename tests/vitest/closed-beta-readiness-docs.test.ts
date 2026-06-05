@@ -663,9 +663,11 @@ describe("closed beta readiness docs", () => {
     expect(manualProofMatrix).toContain("spreadsheet-quicklook-preview-2026-06-02.md");
     expect(manualProofMatrix).toContain("spreadsheet-app-availability-refresh-2026-06-02.md");
     expect(manualProofMatrix).toContain("synthetic-google-sheets-workbook-compatibility-2026-06-04T1951Z.json");
-    expect(manualProofMatrix).toContain("Partial secondary Google Sheets pass / native proof pending");
+    expect(manualProofMatrix).toContain("Partial real downloaded Quick Look + synthetic Google Sheets pass / native app proof pending");
     expect(manualProofMatrix).toContain("visible formula-backed Summary grand total `149,798`");
-    expect(manualProofMatrix).toContain("Native Microsoft Excel, Apple Numbers, LibreOffice, native Excel/Numbers/LibreOffice workbook app proof");
+    expect(manualProofMatrix).toContain("Native Microsoft Excel, Apple Numbers, and LibreOffice workbook app proof");
+    expect(manualProofMatrix).toContain("real-downloaded-workbook-quicklook-2026-06-05T0150Z.json");
+    expect(manualProofMatrix).toContain("170 formulas, zero cached formula errors");
     expect(manualProofMatrix).toContain("Project-specific unlink manual smoke");
     expect(manualProofMatrix).toContain("project-specific-unlink-linked-smoke-blocked-2026-06-02.md");
     expect(manualProofMatrix).toContain("project-specific-unlink-smoke-2026-06-05T0125Z/project-specific-unlink-local-smoke-2026-06-02.json");
@@ -764,7 +766,7 @@ describe("closed beta readiness docs", () => {
     expect(manualProofMatrix).toContain("passing 9 ungated checks with 24 env-gated/live-provider specs skipped");
     expect(manualProofMatrix).toContain("Partial hosted-owner / denied-revoked-pass / logout-pass / synthetic-expired-pass / email-clickthrough-pass / delivered-webhook-pass / synthetic-Google-Sheets-pass");
     expect(manualProofMatrix).toContain("hosted-expired-stale-cookie-smoke-2026-06-04T1920Z.json");
-    expect(manualProofMatrix).toContain("Project-specific unlink now has linked/local owner-session browser proof; native Excel and native Excel/Numbers/LibreOffice spreadsheet-app proof remain unproven.");
+    expect(manualProofMatrix).toContain("Project-specific unlink now has linked/local owner-session browser proof; real downloaded workbook structural/Quick Look proof is captured; native Excel/Numbers/LibreOffice spreadsheet-app behavior remains a separate open gap.");
     expect(manualProofMatrix).toContain("demo-rehearsal-fallback-pack-2026-06-02.md");
     expect(manualProofMatrix).toContain("fallback script");
     expect(manualProofMatrix).toContain("owner demo sign-off remain missing");
@@ -959,7 +961,7 @@ describe("closed beta readiness docs", () => {
     expect(goalCompletionAudit).toContain("hosted-logout-session-proof-2026-06-04T1436Z.json");
     expect(goalCompletionAudit).toContain("Hosted denied/revoked Google OAuth");
     expect(goalCompletionAudit).toContain("hosted-google-denied-revoked-browser-smoke-2026-06-04T1851Z.json");
-    expect(goalCompletionAudit).toContain("Synthetic Google Sheets workbook compatibility");
+    expect(goalCompletionAudit).toContain("Downloaded and synthetic workbook compatibility");
     expect(goalCompletionAudit).toContain("synthetic-google-sheets-workbook-compatibility-2026-06-04T1951Z.json");
     expect(goalCompletionAudit).toContain("Owner-accepted for the single-owner beta; dashboard not fully green");
     expect(goalCompletionAudit).toContain("codex-security-history-risk-owner-acceptance-2026-06-04T1414Z.json");
@@ -978,9 +980,9 @@ describe("closed beta readiness docs", () => {
     expect(goalCompletionAudit).toContain("Native Excel/Numbers/LibreOffice workbook app proof");
     expect(goalCompletionAudit).toContain("bounce/complaint events were not manufactured");
     expect(goalCompletionAudit).toContain("The 13:28Z owner hosted journey proves project entry, estimate creation, estimate workspace render, and export preview on the target domain, the 14:36Z proof closes owner logout, the 18:51Z proof closes denied/revoked Google OAuth");
-    expect(goalCompletionAudit).toContain("Current decision: **DO NOT MARK GOAL COMPLETE**.");
+    expect(goalCompletionAudit).toContain("Current decision: **COMPLETE FOR OWNER-ONLY SUBSTANTIAL COMPLETION**.");
     expect(goalCompletionAudit).toContain("48-manual-proof-packet-template.md");
-    expect(goalCompletionAudit).not.toMatch(/Current decision: \*\*COMPLETE\*\*/);
+    expect(goalCompletionAudit).not.toMatch(/Current decision: \*\*NOT COMPLETE AT THAT TIME\*\*/);
   });
 
   it("keeps launch readiness conservative despite local implementation passes", () => {
@@ -1036,6 +1038,7 @@ describe("closed beta readiness docs", () => {
     expect(currentState).toContain("**Synthetic Google Sheets Workbook Compatibility Proof (2026-06-04):**");
     expect(currentState).toContain("rendered the Summary grand total `149,798`");
     expect(currentState).toContain("native Microsoft Excel/Apple Numbers/LibreOffice app proof remains unproven");
+    expect(currentState).toContain("adds real downloaded Lewis Residence XLSX structural and Quick Look proof");
     expect(currentState).toContain("**Proposal Workbook Large-Fixture Benchmark (2026-06-02):**");
     expect(currentState).toContain("The 2,500-row fixture generated in 362.06ms");
     expect(currentState).toContain("**Proposal Workbook Benchmark Regression Coverage (2026-06-02):**");
@@ -1082,8 +1085,8 @@ describe("closed beta readiness docs", () => {
     expect(currentState).toContain("monitored review workflow, and alert ownership remain open");
     expect(currentState).toContain("Project-specific unlink linked/local owner-session browser proof");
     expect(currentState).toContain("linked Supabase returned `PGRST202`");
-    expect(currentState).toContain("do not prove hosted auth, linked RLS/security, Resend delivery/webhooks, monitored support/alerts, native Excel/Numbers/LibreOffice workbook app proof, or a separate hosted production unlink smoke");
-    expect(currentState).toMatch(/Do not archive the MVP launch goal or claim launch readiness from local tests alone/i);
+    expect(currentState).toContain("do not prove hosted auth, linked RLS/security, Resend delivery/webhooks, monitored support/alerts, native Excel/Numbers/LibreOffice app open/recalc/print proof, or a separate hosted production unlink smoke");
+    expect(currentState).toMatch(/Do not claim widened\/public launch readiness from local tests alone/i);
     expect(decisions).toMatch(/This is not a launch approval/);
     expect(knownIssues).toContain("Local validation/build evidence is now current");
     expect(knownIssues).toContain("`353dd48` passed `bun run validate` and `bun run build`");
@@ -1198,7 +1201,7 @@ describe("closed beta readiness docs", () => {
     expect(readinessScorecard).toMatch(/Component library \| Yes \| 90 \| Local screenshot pass; hosted proof pending/);
     expect(readinessScorecard).toMatch(/Templates \| Yes \| 91 \| Local insertion pass; hosted proof pending/);
     expect(readinessScorecard).toMatch(/Vercel\/Supabase deployment \| Yes \| 76 \| Partial preview proof/);
-    expect(readinessScorecard).toMatch(/Excel export \| Yes \| 94 \| Local, hosted export, and synthetic Google Sheets proof pass; native\/real-workbook proof pending/);
+    expect(readinessScorecard).toMatch(/Excel export \| Yes \| 96 \| Local, hosted export, real downloaded workbook structural\/Quick Look, and synthetic Google Sheets proof pass; native app proof pending/);
     expect(readinessScorecard).toMatch(/Resend\/email readiness \| Conditional \| 70 \| Disabled until provider proof/);
     expect(readinessScorecard).toMatch(/Data backup\/rollback \| Yes \| 60 \| Provider evidence negative/);
     expect(readinessScorecard).toMatch(/Security\/RLS \| Yes \| 70 \| Live advisor warns/);
@@ -1218,7 +1221,7 @@ describe("closed beta readiness docs", () => {
   it("keeps executive launch docs current on local mitigations", () => {
     expect(finalLaunchGate).toMatch(/Ask Flip hidden and AI routes disabled by default.+Local pass; production env proof pending/s);
     expect(finalLaunchGate).toMatch(/Resend delivery\/webhook verified before visible email workflows are re-enabled.+signed delivered-event webhook reconciliation now pass.+Partial-go/s);
-    expect(finalLaunchGate).toMatch(/Excel export is professional bid\/BOQ workbook.+hosted authenticated export proof.+synthetic Google Sheets import\/open\/recalc\/print-preview pass.+native Excel\/real-workbook app proof and hosted route timing remain pending/s);
+    expect(finalLaunchGate).toMatch(/Excel export is professional bid\/BOQ workbook.+hosted authenticated export proof.+real downloaded Lewis Residence workbook structural\/Quick Look proof.+synthetic Google Sheets import\/open\/recalc\/print-preview pass.+native Excel\/Numbers\/LibreOffice app proof and hosted route timing remain pending/s);
     expect(finalLaunchGate).not.toMatch(/test:dom` fails/);
     expect(finalLaunchGate).not.toMatch(/Current workbook is insufficient/);
     expect(executiveBrief).toMatch(/local code now hides\/fail-closes AI by default/i);
