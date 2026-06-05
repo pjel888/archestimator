@@ -1,0 +1,55 @@
+{
+  "capturedAt": "2026-06-05T00:25:19Z",
+  "mode": "leader_no_login_public_smoke",
+  "paidProviderMutation": false,
+  "secretsRecorded": false,
+  "results": [
+    {
+      "url": "https://www.archestimator.com",
+      "httpStatus": 200,
+      "vercelDeploymentMarker": "dpl_4bMoArwC32Tup4dKK67wtKoBf2jv",
+      "markers": {
+        "Archestimator": 16,
+        "Closed beta": 2,
+        "closed beta": 4,
+        "loginNext": 7,
+        "logo": 5
+      },
+      "interpretation": "Custom domain serves the beta app/landing surface rather than only the old teaser."
+    },
+    {
+      "url": "https://archestimator.com",
+      "httpStatusSequence": [307, 200],
+      "redirectLocation": "https://www.archestimator.com/",
+      "vercelDeploymentMarker": "dpl_4bMoArwC32Tup4dKK67wtKoBf2jv",
+      "interpretation": "Apex redirects to www and then serves the same beta surface."
+    },
+    {
+      "url": "https://www.archestimator.com/login?next=/workshop/projects",
+      "httpStatus": 200,
+      "markers": {
+        "Archestimator": 6,
+        "Continue with Google": 4,
+        "closed beta": 2,
+        "loginNext": 1
+      },
+      "interpretation": "Login page exposes Google sign-in entry for the closed-beta route."
+    },
+    {
+      "url": "https://www.archestimator.com/workshop/projects",
+      "httpStatusSequence": [307, 200],
+      "redirectLocation": "/login?next=%2Fworkshop%2Fprojects",
+      "markersAfterRedirect": {
+        "Archestimator": 6,
+        "Continue with Google": 4,
+        "closed beta": 2,
+        "loginNext": 1
+      },
+      "interpretation": "Signed-out protected route fails closed to the Google-capable login page."
+    }
+  ],
+  "limits": [
+    "No authenticated Google OAuth browser journey was rerun in this smoke; it relies on prior owner-session proof for authenticated Workshop access.",
+    "No provider dashboard settings, paid add-ons, DNS, aliases, or secrets were changed."
+  ]
+}
