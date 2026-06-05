@@ -54,3 +54,4 @@ This file is the registry for future baseline and before/after artifacts. Eviden
 - Large trace files can be stored outside git if linked with path and retention note.
 - Every future performance PR should update this index.
 | EVID-RELEASE-001 | Release/rollback and readiness-language audit | `evidence/2026-06-06-release-rollback-readiness-language.md` | local captured | Workstream 7.1 and 7.3 local release/readiness requirements captured; Speed Insights window comparison remains provider-open. |
+| EVID-GATE-RECON-001 | Open gate reconciliation | `evidence/2026-06-06-open-gate-reconciliation.md` | local captured | Reconciles local decision/security gates for visual degradation, GA/Clarity consent loading, global Next/React toggles, auth/proxy no-change review, and tokenized/share cache invariants; provider gates remain open. |
