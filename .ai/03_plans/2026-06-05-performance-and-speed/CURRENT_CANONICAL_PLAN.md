@@ -49,8 +49,9 @@ The canonical performance-and-speed pack is the complete current inventory below
 2. `evidence/2026-06-05-hosted-public-header-timing-baseline.md`
 3. `evidence/2026-06-05-vercel-httpstat-attempt.md`
 4. `evidence/2026-06-05-vercel-httpstat-production-baseline.md`
-5. `evidence/README.md`
+5. `evidence/2026-06-06-public-cache-safety-harness.md`
+6. `evidence/README.md`
 
 ## Implementation pointer
 
-Implementation is authorized only for a packet in `27-ready-implementation-packets.md`. The recommended first code-bearing packet is PR-0B, public personalization/cache-safety proof. Capture Speed Insights dashboard evidence via PR-0A if available, but do not block PR-0B on that provider UI gap. Do not claim performance completion until provider/manual evidence proves the target metric.
+Implementation is authorized only for a packet in `27-ready-implementation-packets.md`. PR-0B, public personalization/cache-safety proof, is implemented as **IMPLEMENTATION PACKET COMPLETE / OPTIMIZATION NOT YET SHIPPED** in branch `feat/performance-and-speed-pr-0b-cache-safety`; evidence is `evidence/2026-06-06-public-cache-safety-harness.md`. Capture Speed Insights dashboard evidence via PR-0A if available, and do not claim performance completion until provider/manual evidence proves the target metric. Do not relax public cache headers until personalized/auth/A-B output is isolated or proven cache-safe.
