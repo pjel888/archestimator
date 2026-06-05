@@ -171,9 +171,10 @@ Treat `cacheComponents`, `inlineCss`, `cssChunking`, and React Compiler changes 
   - Use the existing database-indexing plan as canonical input.
   - Do not add indexes or RPC rewrites without staging/live EXPLAIN and owner-approved migration plan.
 
-- [ ] **Step 5.3: Consolidate only proven query fan-out**
+- [x] **Step 5.3: Consolidate only proven query fan-out**
   - Candidate: project publication summary helper reads, share activity recipient display-name lookup, estimate tree load limits.
   - Guardrails: RLS, role checks, collaboration/publication tests.
+  - 2026-06-06 decision: do not consolidate query fan-out, add RPCs, or add database indexes from repo-static evidence alone. Evidence: `evidence/2026-06-06-query-consolidation-decision.md`. Static query inventory and local share activity benchmarks identify surfaces for Workstream 5.2, but live EXPLAIN/provider metrics/hosted timing are still required before any DB/RPC rewrite.
 
 ## Workstream 6: Share/publication and proposal export
 

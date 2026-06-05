@@ -257,3 +257,11 @@ Superseding inventory after final readiness pass: root markdown files = 36; evid
 - Ran the script without hosted fixture env to prove it fails closed instead of fabricating proof; log: `evidence/2026-06-06-hosted-proposal-export-benchmark-input-gap.log`.
 - Evidence: `evidence/2026-06-06-hosted-proposal-export-benchmark-readiness.md`.
 - Completion language: **BENCHMARK HARNESS READY / AUTHENTICATED HOSTED FIXTURE OPEN**.
+
+## Query consolidation decision — 2026-06-06
+
+- Reviewed repo-only query/index audit, per-route static query inventory, and shared-link activity local benchmark evidence.
+- Decision: do not consolidate query fan-out, add RPCs, or add database indexes from the current local/static evidence.
+- Rationale: selected-column counts are only payload proxies; no live EXPLAIN, provider metrics, row counts, RLS cost, `pg_stat_statements`, or hosted route timings prove a bottleneck yet.
+- Evidence: `evidence/2026-06-06-query-consolidation-decision.md`.
+- Completion language: **CONSOLIDATION NOT JUSTIFIED / LIVE PROVIDER PROOF OPEN**.
