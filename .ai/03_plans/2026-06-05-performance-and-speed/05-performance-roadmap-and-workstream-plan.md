@@ -180,9 +180,10 @@ Treat `cacheComponents`, `inlineCss`, `cssChunking`, and React Compiler changes 
   - Public share APIs must keep token/password/session/rate-limit protections.
   - Cache only public, non-sensitive, non-tokenized assets.
 
-- [ ] **Step 6.2: Benchmark share activity endpoint**
+- [x] **Step 6.2: Benchmark share activity endpoint**
   - Measure query count and latency for comments/responses/events/recipient-name lookup.
   - Candidate: tighter pagination/cursors or server-side RPC only with security proof.
+  - 2026-06-06 local evidence: `evidence/2026-06-06-shared-link-activity-benchmark.md` and `.json` from `bun run scripts/benchmark-shared-link-activity.ts`; current fan-out is 3 public anonymous queries, 5 public recipient-session queries, and 6 owner/include-telemetry activity-table queries before auth/RBAC overhead. Synthetic local composition stayed under 12ms for 2500 activity rows in this run; hosted Supabase latency, EXPLAIN, RLS cost, and function duration proof remain open before RPC/index/pagination rewrites.
 
 - [ ] **Step 6.3: Benchmark proposal export**
   - Use `scripts/benchmark-proposal-workbook.ts` and hosted export route script.

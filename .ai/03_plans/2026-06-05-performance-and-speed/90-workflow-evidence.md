@@ -212,3 +212,12 @@ Superseding inventory after final readiness pass: root markdown files = 36; evid
 - Rationale: analyzer evidence did not attribute material public-route cost to the root provider stack; safer local wins were Neat mobile fallback, non-home Lenis scoping, and unused root font removal.
 - Reopen condition: hosted Speed Insights, manual trace, or analyzer evidence must attribute a material public-route regression to the root provider stack.
 - Completion language: **ROOT PROVIDER SPLIT NOT JUSTIFIED / PROVIDER PROOF OPEN**.
+
+## Shared-link activity benchmark — 2026-06-06
+
+- Added `scripts/benchmark-shared-link-activity.ts` as a synthetic local benchmark for current shared-link activity fan-out and merge/sort/compose cost.
+- Added `tests/vitest/shared-link-activity-benchmark.test.ts` to lock the current static query plan and public/internal visibility assumptions.
+- Ran `OUTPUT_FILE=.ai/03_plans/2026-06-05-performance-and-speed/evidence/2026-06-06-shared-link-activity-benchmark.json MARKDOWN_FILE=.ai/03_plans/2026-06-05-performance-and-speed/evidence/2026-06-06-shared-link-activity-benchmark.md bun run scripts/benchmark-shared-link-activity.ts`.
+- Result: public anonymous path = 3 activity/publication queries, public recipient-session path = 5, owner include-telemetry path = 6 activity-table queries before auth/RBAC overhead. Synthetic 2500-row local composition in this run: owner 11.44ms, public anonymous 9.97ms, public recipient-session 7.84ms.
+- No production endpoint, RLS, SQL, cache, or Supabase provider state changed.
+- Completion language: **LOCAL BENCHMARK CAPTURED / HOSTED SUPABASE PROOF OPEN**.
