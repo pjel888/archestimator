@@ -18,7 +18,7 @@ aligned with `DESIGN.md`, `.ai/00_system/AGENT_FRAMEWORK_PROTOCOL.md`, and
 <!-- gitnexus:start -->
 # GitNexus — Code Intelligence
 
-This project is indexed by GitNexus as **archestimator** (12354 symbols, 22426 relationships, 300 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
+This project is indexed by GitNexus as **archestimator** (12559 symbols, 22762 relationships, 300 execution flows). Use the GitNexus MCP tools to understand code, assess impact, and navigate safely.
 
 > If any GitNexus tool warns the index is stale, run `npx gitnexus analyze` in terminal first.
 

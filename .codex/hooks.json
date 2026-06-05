@@ -10,6 +10,14 @@
             "timeout": 30
           }
         ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$(npm root -g)/oh-my-codex/dist/scripts/codex-native-hook.js\""
+          }
+        ]
       }
     ],
     "SessionStart": [
@@ -20,6 +28,66 @@
             "type": "command",
             "command": "uvx --from code-review-graph==2.3.5 code-review-graph status",
             "timeout": 10
+          }
+        ]
+      },
+      {
+        "matcher": "startup|resume|clear",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$(npm root -g)/oh-my-codex/dist/scripts/codex-native-hook.js\""
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$(npm root -g)/oh-my-codex/dist/scripts/codex-native-hook.js\""
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$(npm root -g)/oh-my-codex/dist/scripts/codex-native-hook.js\""
+          }
+        ]
+      }
+    ],
+    "PreCompact": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$(npm root -g)/oh-my-codex/dist/scripts/codex-native-hook.js\""
+          }
+        ]
+      }
+    ],
+    "PostCompact": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$(npm root -g)/oh-my-codex/dist/scripts/codex-native-hook.js\""
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$(npm root -g)/oh-my-codex/dist/scripts/codex-native-hook.js\"",
+            "timeout": 30
           }
         ]
       }
