@@ -251,4 +251,48 @@ describe("Codex security findings hardening contracts", () => {
     expect(JSON.stringify(sanitizedSummary)).not.toContain("workbookPath");
     expect(JSON.stringify(sanitizedSummary)).not.toContain("55230");
   });
+
+  it("keeps live closed-beta proof sanitized to role placeholders", () => {
+    const proofPath =
+      ".ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/live-closed-beta-refresh-2026-06-04T1006Z.json";
+    const proof = JSON.parse(read(proofPath));
+    const proofText = JSON.stringify(proof);
+    const currentState = read(".ai/10_state/current-state.md");
+    const knownIssues = read(".ai/10_state/known-issues.md");
+    const currentStart = currentState.indexOf("**Live Closed-Beta Refresh (2026-06-04 10:06Z):**");
+    const currentEnd = currentState.indexOf("**Codex Security Cheap-Path Closure Batch", currentStart);
+    const knownStart = knownIssues.indexOf("- Fresh 2026-06-04T10:06Z proof");
+    const knownEnd = knownIssues.indexOf("- Latest artifact:", knownStart);
+    const currentLow07Summary = currentState.slice(currentStart, currentEnd);
+    const knownLow07Summary = knownIssues.slice(knownStart, knownEnd);
+    const low07Surface = [proofText, currentLow07Summary, knownLow07Summary].join("\n");
+    const forbiddenProofDetails = [
+      "philipjonlewis",
+      "Philip Lewis",
+      "gmail.com",
+      "ebxxqidacheyapmmzavr",
+      "Oceania (Sydney)",
+      "Philippines",
+      "chatgpt.com/codex/cloud/security/findings",
+      "send.contact.archestimator.com",
+      "GitHub has no open",
+      "queue empty",
+    ];
+
+    expect(proof.repository).toBe("REPOSITORY_PLACEHOLDER");
+    expect(proof.raw_operational_proof).toBe("not committed");
+    expect(proof.sanitized_provider_readiness.supabase.project).toBe("SUPABASE_PROJECT_PLACEHOLDER");
+    expect(proof.sanitized_provider_readiness.supabase.allowlist_readback).toBe(
+      "OWNER_ROLE_ACTIVE_PLACEHOLDER",
+    );
+    expect(currentStart).toBeGreaterThanOrEqual(0);
+    expect(currentEnd).toBeGreaterThan(currentStart);
+    expect(knownStart).toBeGreaterThanOrEqual(0);
+    expect(knownEnd).toBeGreaterThan(knownStart);
+    expect(currentLow07Summary).toContain("without recording raw private beta user");
+    expect(knownLow07Summary).toContain("raw private beta user, allowlist, project");
+    for (const detail of forbiddenProofDetails) {
+      expect(low07Surface).not.toContain(detail);
+    }
+  });
 });

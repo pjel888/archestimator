@@ -17,11 +17,12 @@
   `ESTIMATE_SHEET_PLACEHOLDER`, opening the estimate workspace, and opening the
   read-only Excel export preview.
 - Fresh 2026-06-04T10:06Z proof shows `archestimator.com` and
-  `www.archestimator.com` now serve the closed-beta app deployment for the owner
-  Chrome session, with `Continue with Google` visible on `/login`, signed-out
-  `/workshop` redirecting to login, Vercel Production env names present, GitHub
-  queue empty, and linked Supabase allowlist containing only
-  `OWNER_EMAIL_PLACEHOLDER`.
+  `www.archestimator.com` now serve the closed-beta app deployment. The committed
+  proof is sanitized to role placeholders: it records owner-role Workshop
+  access, login entry, signed-out fail-closed routing, provider env-name
+  readiness without secret values, and open history-exposure findings without
+  raw private beta user, allowlist, project, provider dashboard, DNS, or queue
+  details.
 - Latest artifact:
   `.ai/09_archive/store/2026-06-02-mvp-closed-beta-manual-proof/live-closed-beta-refresh-2026-06-04T1006Z.json`.
 - External closed beta remains not fully green because native Excel/Numbers/LibreOffice
