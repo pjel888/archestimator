@@ -9,11 +9,27 @@ function clientSafeTarget(target: ActivityTarget): ActivityTarget {
   };
 }
 
+function toBase36Hash(value: string, seed: number) {
+  let hash = seed;
+  for (let index = 0; index < value.length; index += 1) {
+    hash ^= value.charCodeAt(index);
+    hash = Math.imul(hash, 16777619) >>> 0;
+  }
+  return hash.toString(36).padStart(7, "0");
+}
+
+function clientSafeActivityId(activity: ActivityViewModel) {
+  const seed = `activity:${activity.source}:${activity.id}:${activity.occurredAt}`;
+  const digest = `${toBase36Hash(seed, 2166136261)}${toBase36Hash(seed, 2166136261 ^ 0x9e3779b9)}`;
+  return `activity_${activity.source}_${digest}`;
+}
+
 export function toClientSafeActivity(activity: ActivityViewModel): ActivityViewModel {
   const withoutRaw: Omit<ActivityViewModel, "raw"> = { ...activity };
   delete (withoutRaw as Partial<ActivityViewModel>).raw;
   return {
     ...withoutRaw,
+    id: clientSafeActivityId(activity),
     audience: "client",
     visibility: activity.visibility === "internal" ? "owner" : activity.visibility,
     actor: {
