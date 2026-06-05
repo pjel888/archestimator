@@ -79,7 +79,7 @@ A future worker must not start with broad refactors, generic memoization, depend
   - Expected: a before/after hypothesis names a specific chunk or route, not a generic “reduce JS” claim.
   - 2026-06-06 result: analyzer names candidates but does not justify a root-shell/provider split yet. Root provider code is small; larger candidates include public Lenis/Neat chunks, icon footprint, `d3`, and workshop estimate surfaces. Route/device p75 evidence is still needed before selecting a runtime optimization.
 
-- [ ] **Step 1.2: Plan root provider split only if analyzer shows public-route cost**
+- [x] **Step 1.2: Plan root provider split only if analyzer shows public-route cost**
   - Candidate change: separate public-only providers from workshop-only QueryClient/navigation/overlay providers.
   - Required tests before implementation:
     ```bash
@@ -88,6 +88,7 @@ A future worker must not start with broad refactors, generic memoization, depend
     bun run test:e2e:perf
     ```
   - Acceptance: public pages keep consent/analytics behavior; workshop keeps route overlay/query/bfcache behavior.
+  - 2026-06-06 decision: analyzer and local public-route evidence did **not** justify a root provider split. Keep `AppProviders` unchanged and prefer narrower route-local mitigations already captured for Neat, non-home Lenis, and unused root fonts. Reopen only if Speed Insights/hosted traces or analyzer evidence attributes material public-route cost to the root provider stack.
 
 - [x] **Step 1.3: Preserve analytics privacy**
   - If adding `@vercel/speed-insights`, update `tests/vitest/vercel-web-analytics-integration.test.ts:24-30` intentionally and add privacy tests for tokenized/share/auth routes.
