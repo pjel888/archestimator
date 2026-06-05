@@ -372,8 +372,8 @@ closure:
   - Repo fix: denied or revoked beta access in both `/auth/callback` and `src/proxy.ts` now calls Supabase `signOut()` before redirecting to `/beta/access-required`; proxy redirects preserve cookie-clearing response cookies.
   - Verification: focused auth suites passed 3 files / 27 tests, then passed again inside the 8-file focused suite.
 - Findings: `Committed Lighthouse reports leak Supabase session cookies`, `Committed public share token and user project data`, and `Confidential client proposal committed to repository`.
-  - Repo fix: raw authenticated Lighthouse `.report.html` / `.report.json` artifacts were deleted, old auth/share seed evidence was redacted or removed, and the client-identifying Grand Hyatt proposal extraction was replaced with a redacted README.
-  - Verification: targeted repository scan no longer finds the raw Supabase auth cookie value patterns, raw access/refresh tokens, or the removed Grand Hyatt client-identifying terms in the cleaned archive paths.
+  - Repo fix: raw authenticated Lighthouse `.report.html` / `.report.json` artifacts were deleted, old auth/share seed evidence was redacted or removed, and the client-identifying proposal extraction was replaced with a synthetic redacted placeholder.
+  - Verification: targeted repository scan no longer finds the raw Supabase auth cookie value patterns, raw access/refresh tokens, or the removed client-identifying proposal terms in the cleaned archive paths.
 - Finding: `Hosted auth smoke sends cookies to unvalidated URL`.
   - Repo fix deployed in `e5b17dc` / production `dpl_4pGbs2jq95XDaXJotdc84D2QMy4n`: `scripts/verify-hosted-auth-routes.ts` now validates `HOSTED_AUTH_BASE_URL` against `HOSTED_AUTH_ALLOWED_ORIGINS` (or safe production defaults) and refuses to send hosted cookies to unapproved or non-HTTPS origins.
   - Verification: `tests/vitest/hosted-auth-route-smoke-script.test.ts` passed inside the 12-file / 127-test security-focused suite.
