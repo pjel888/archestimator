@@ -12,6 +12,34 @@ describe("activity security", () => {
     expect(activity.actor.displayName).not.toMatch(/User\s+[0-9a-f-]{8}/i);
   });
 
+  it("rewrites top-level raw database IDs for client activity view models", () => {
+    const rawEstimateId = "aaaaaaaa-1111-4aaa-8aaa-aaaaaaaa1111";
+    const rawSharedId = "bbbbbbbb-2222-4bbb-8bbb-bbbbbbbb2222";
+
+    const estimateActivity = composeEstimateActivity(
+      makeEstimateEvent("row_updated", { id: rawEstimateId }),
+      { audience: "client", visibility: "public" },
+    );
+    const sharedActivity = composeSharedLinkActivity(
+      {
+        id: rawSharedId,
+        type: "comment",
+        created_at: "2026-06-02T00:00:00.000Z",
+        author: "Maria",
+        body: "Looks good.",
+        metadata: { targetLabel: "Proposal" },
+      },
+      { audience: "client", visibility: "public" },
+    );
+
+    expect(estimateActivity.id).not.toBe(rawEstimateId);
+    expect(sharedActivity.id).not.toBe(rawSharedId);
+    expect(estimateActivity.id).toBe(composeEstimateActivity(makeEstimateEvent("row_updated", { id: rawEstimateId }), { audience: "client", visibility: "public" }).id);
+    expect(sharedActivity.id).toBe(composeSharedLinkActivity({ id: rawSharedId, type: "comment", created_at: "2026-06-02T00:00:00.000Z" }, { audience: "client", visibility: "public" }).id);
+    expect(JSON.stringify([estimateActivity, sharedActivity])).not.toContain(rawEstimateId);
+    expect(JSON.stringify([estimateActivity, sharedActivity])).not.toContain(rawSharedId);
+  });
+
   it("removes internal activity from client visibility", () => {
     const activities = sharedLinkFixtures.map((item) => composeSharedLinkActivity(item));
     const client = filterActivityForVisibility(activities, "client");
