@@ -6,6 +6,7 @@ import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
 export const ESTIMATE_COLLABORATION_CHANNEL_PREFIX = "estimate:";
 export const CURSOR_BROADCAST_EVENT = "cursor";
+export const CURSOR_BROADCAST_MIN_DISTANCE_PX = 6;
 
 export type EstimateCursorBroadcastPayload = {
   userId: string;
@@ -30,7 +31,22 @@ type UseEstimateCursorBroadcastInput = {
   displayName?: string | null;
   enabled?: boolean;
   throttleMs?: number;
+  minDistancePx?: number;
 };
+
+type CursorBroadcastPosition = Pick<EstimateCursorBroadcastPayload, "x" | "y" | "rowId" | "columnId">;
+
+export function shouldQueueCursorBroadcast(
+  previous: CursorBroadcastPosition | null,
+  next: CursorBroadcastPosition,
+  minDistancePx = CURSOR_BROADCAST_MIN_DISTANCE_PX,
+) {
+  if (!previous) return true;
+  if (previous.rowId !== next.rowId || previous.columnId !== next.columnId) return true;
+  const deltaX = next.x - previous.x;
+  const deltaY = next.y - previous.y;
+  return Math.hypot(deltaX, deltaY) >= minDistancePx;
+}
 
 export function useEstimateCursorCollaboration({
   estimateId,
@@ -38,9 +54,11 @@ export function useEstimateCursorCollaboration({
   displayName = null,
   enabled = true,
   throttleMs = 80,
+  minDistancePx = CURSOR_BROADCAST_MIN_DISTANCE_PX,
 }: UseEstimateCursorBroadcastInput) {
   const channelRef = useRef<ReturnType<ReturnType<typeof createSupabaseBrowserClient>["channel"]> | null>(null);
   const pendingPayloadRef = useRef<EstimateCursorBroadcastPayload | null>(null);
+  const lastQueuedCursorRef = useRef<CursorBroadcastPosition | null>(null);
   const throttleTimerRef = useRef<number | null>(null);
   const [remoteCursorMap, setRemoteCursorMap] = useState<Map<string, RemoteEstimateCursor>>(() => new Map());
   const [channelStatus, setChannelStatus] = useState<EstimateCursorChannelStatus>("idle");
@@ -94,6 +112,7 @@ export function useEstimateCursorCollaboration({
       if (throttleTimerRef.current) window.clearTimeout(throttleTimerRef.current);
       throttleTimerRef.current = null;
       pendingPayloadRef.current = null;
+      lastQueuedCursorRef.current = null;
       channelRef.current = null;
       setChannelStatus("idle");
       setLastSendStatus("idle");
@@ -119,6 +138,9 @@ export function useEstimateCursorCollaboration({
     (cursor: Omit<EstimateCursorBroadcastPayload, "displayName" | "sentAt" | "userId">) => {
       if (!enabled || !userId || !channelRef.current) return;
 
+      if (!shouldQueueCursorBroadcast(lastQueuedCursorRef.current, cursor, minDistancePx)) return;
+
+      lastQueuedCursorRef.current = cursor;
       pendingPayloadRef.current = {
         ...cursor,
         userId,
@@ -144,7 +166,7 @@ export function useEstimateCursorCollaboration({
           .catch(() => setLastSendStatus("error"));
       }, throttleMs);
     },
-    [displayName, enabled, throttleMs, userId],
+    [displayName, enabled, minDistancePx, throttleMs, userId],
   );
 
   const remoteCursors = useMemo(() => Array.from(remoteCursorMap.values()), [remoteCursorMap]);

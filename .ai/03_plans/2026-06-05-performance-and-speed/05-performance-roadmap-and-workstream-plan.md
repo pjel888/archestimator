@@ -151,9 +151,10 @@ Treat `cacheComponents`, `inlineCss`, `cssChunking`, and React Compiler changes 
   - Candidate boundaries: activity history modal, row details modal, proposal preview dialog, command palette/right sidebar, chart-heavy panels.
   - Guardrails: tests for cost inputs, version control UI, library insert, context menu, DnD, proposal preview.
 
-- [ ] **Step 4.3: Reduce pointer-move/collaboration pressure**
+- [x] **Step 4.3: Reduce pointer-move/collaboration pressure**
   - Candidate: throttle `handleSheetPointerMove` broadcasts in `EstimateSheetContent` after measuring cursor update cost.
   - Guardrails: collaboration cursor behavior and no stale cursor indicators.
+  - 2026-06-06 local implementation: `useEstimateCursorCollaboration` now keeps the existing timed throttle and adds a 6px same-cell distance gate before queueing cursor broadcasts; row/column target changes still queue immediately. Evidence: `evidence/2026-06-06-estimate-cursor-broadcast-pressure.md` / `.json` and `tests/vitest/estimate-cursor-broadcast-throttle.test.ts`. Synthetic same-cell pointer queue events dropped 120 -> 20 (83%) in the local guard benchmark; provider Realtime throughput and multi-user INP proof remain open.
 
 - [ ] **Step 4.4: Tree virtualization/windowing spike**
   - Only after profiler shows tree row render as a bottleneck.
