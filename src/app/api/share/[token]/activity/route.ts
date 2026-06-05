@@ -9,7 +9,16 @@ import {
   hashPublicationToken,
   readPublicationTokenHashSecret,
 } from "@/lib/publication/security";
-import { compareSharedLinkActivityDesc, createSharedLinkTargetLabelMap, decodeSharedLinkActivityCursor, encodeSharedLinkActivityCursor, isBeforeSharedLinkActivityCursor, readSharedLinkRecipientDisplayName, resolveSharedLinkTargetLabel, sharedLinkActivityCursorFilter } from "@/lib/publication/activity-helpers";
+import {
+  compareSharedLinkActivityDesc,
+  createSharedLinkTargetLabelMap,
+  encodeSharedLinkActivityCursor,
+  isBeforeSharedLinkActivityCursor,
+  parseSharedLinkActivityCursor,
+  readSharedLinkRecipientDisplayName,
+  resolveSharedLinkTargetLabel,
+  sharedLinkActivityCursorFilter,
+} from "@/lib/publication/activity-helpers";
 import { checkProjectPublicationActivityRateLimit, createPublicationServiceClient } from "@/lib/publication/public-repository";
 import type { Tables } from "@/lib/supabase/types";
 import type { NextRequest } from "next/server";
@@ -85,6 +94,16 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     );
   }
 
+  const url = new URL(request.url);
+  const limitParam = Number(url.searchParams.get("limit"));
+  const limit = Math.min(Math.max(Number.isFinite(limitParam) && limitParam > 0 ? Math.floor(limitParam) : 100, 1), 100);
+  const parsedCursor = parseSharedLinkActivityCursor(url.searchParams.get("cursor"));
+  if (!parsedCursor.ok) {
+    return Response.json({ error: parsedCursor.error }, { status: 400, headers: { "Cache-Control": "no-store" } });
+  }
+  const cursor = parsedCursor.cursor;
+  const cursorFilter = sharedLinkActivityCursorFilter(cursor);
+
   const supabase = createPublicationServiceClient();
   const pubHash = hashPublicationToken(token, readPublicationTokenHashSecret());
 
@@ -99,11 +118,6 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     return Response.json({ error: "Publication not found or inactive." }, { status: 404, headers: { "Cache-Control": "no-store" } });
   }
 
-  const url = new URL(request.url);
-  const limitParam = Number(url.searchParams.get("limit"));
-  const limit = Math.min(Math.max(Number.isFinite(limitParam) && limitParam > 0 ? Math.floor(limitParam) : 100, 1), 100);
-  const cursor = decodeSharedLinkActivityCursor(url.searchParams.get("cursor"));
-  const cursorFilter = sharedLinkActivityCursorFilter(cursor);
   const pubId = pub.id;
   const cookieHeader = request.headers.get("cookie") || "";
 

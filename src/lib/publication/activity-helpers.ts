@@ -1,3 +1,6 @@
+import { createCipheriv, createDecipheriv, createHash, randomBytes } from "node:crypto";
+
+import { readPublicationTokenEncryptionSecret } from "@/lib/publication/security";
 import type { Json } from "@/lib/supabase/types";
 
 type RecipientIdentityRow = {
@@ -84,20 +87,77 @@ export type SharedLinkActivitySortable = {
   id: string;
 };
 
+const activityCursorPrefix = "shared-link-activity-cursor-v2";
+
+type SharedLinkActivityCursorParseResult =
+  | { ok: true; cursor: SharedLinkActivityCursor | null }
+  | { ok: false; error: string };
+
+function deriveActivityCursorKey() {
+  return createHash("sha256")
+    .update(`${readPublicationTokenEncryptionSecret()}:shared-link-activity-cursor`)
+    .digest();
+}
+
+function toBase64Url(buffer: Buffer) {
+  return buffer.toString("base64url");
+}
+
+function fromBase64Url(value: string) {
+  return Buffer.from(value, "base64url");
+}
+
+function normalizeSharedLinkActivityCursor(value: Partial<SharedLinkActivityCursor>): SharedLinkActivityCursor | null {
+  if (typeof value.createdAt !== "string" || typeof value.id !== "string") return null;
+  if (Number.isNaN(new Date(value.createdAt).getTime()) || !value.id.trim()) return null;
+  return { createdAt: value.createdAt, id: value.id };
+}
+
+function decodeLegacySharedLinkActivityCursor(value: string): SharedLinkActivityCursor | null {
+  const parsed = JSON.parse(Buffer.from(value, "base64url").toString("utf8")) as Partial<SharedLinkActivityCursor>;
+  return normalizeSharedLinkActivityCursor(parsed);
+}
+
 export function encodeSharedLinkActivityCursor(item: SharedLinkActivitySortable): string {
-  return Buffer.from(JSON.stringify({ createdAt: item.created_at, id: item.id }), "utf8").toString("base64url");
+  const iv = randomBytes(12);
+  const cipher = createCipheriv("aes-256-gcm", deriveActivityCursorKey(), iv);
+  const encrypted = Buffer.concat([
+    cipher.update(JSON.stringify({ createdAt: item.created_at, id: item.id }), "utf8"),
+    cipher.final(),
+  ]);
+  return `${activityCursorPrefix}:${toBase64Url(iv)}:${toBase64Url(cipher.getAuthTag())}:${toBase64Url(encrypted)}`;
+}
+
+export function parseSharedLinkActivityCursor(value: string | null | undefined): SharedLinkActivityCursorParseResult {
+  if (!value) return { ok: true, cursor: null };
+  if (!value.startsWith(`${activityCursorPrefix}:`)) {
+    try {
+      const cursor = decodeLegacySharedLinkActivityCursor(value);
+      return cursor ? { ok: true, cursor } : { ok: false, error: "Activity cursor is invalid." };
+    } catch {
+      return { ok: false, error: "Activity cursor is invalid." };
+    }
+  }
+
+  const parts = value.split(":");
+  if (parts.length !== 4) return { ok: false, error: "Activity cursor is invalid." };
+  const [, iv, tag, encrypted] = parts;
+  if (!iv || !tag || !encrypted) return { ok: false, error: "Activity cursor is invalid." };
+
+  try {
+    const decipher = createDecipheriv("aes-256-gcm", deriveActivityCursorKey(), fromBase64Url(iv));
+    decipher.setAuthTag(fromBase64Url(tag));
+    const payload = Buffer.concat([decipher.update(fromBase64Url(encrypted)), decipher.final()]).toString("utf8");
+    const cursor = normalizeSharedLinkActivityCursor(JSON.parse(payload) as Partial<SharedLinkActivityCursor>);
+    return cursor ? { ok: true, cursor } : { ok: false, error: "Activity cursor is invalid." };
+  } catch {
+    return { ok: false, error: "Activity cursor is invalid." };
+  }
 }
 
 export function decodeSharedLinkActivityCursor(value: string | null | undefined): SharedLinkActivityCursor | null {
-  if (!value) return null;
-  try {
-    const parsed = JSON.parse(Buffer.from(value, "base64url").toString("utf8")) as Partial<SharedLinkActivityCursor>;
-    if (typeof parsed.createdAt !== "string" || typeof parsed.id !== "string") return null;
-    if (Number.isNaN(new Date(parsed.createdAt).getTime()) || !parsed.id.trim()) return null;
-    return { createdAt: parsed.createdAt, id: parsed.id };
-  } catch {
-    return null;
-  }
+  const parsed = parseSharedLinkActivityCursor(value);
+  return parsed.ok ? parsed.cursor : null;
 }
 
 export function compareSharedLinkActivityDesc(a: SharedLinkActivitySortable, b: SharedLinkActivitySortable) {
