@@ -29,6 +29,19 @@ function mockViewerSupabaseClient() {
   return { from, rpc };
 }
 
+function mockEditorSupabaseClient() {
+  const rpc = vi.fn(async (name: string) => {
+    if (name === "is_workspace_editor") return { data: true, error: null };
+    if (name === "delete_library_folder") return { data: null, error: null };
+    return { data: null, error: null };
+  });
+  const from = vi.fn(() => {
+    throw new Error("editor folder delete must use the transactional RPC");
+  });
+  supabaseServerMocks.createSupabaseServerClient.mockResolvedValue({ from, rpc });
+  return { from, rpc };
+}
+
 beforeEach(() => {
   vi.resetModules();
   vi.clearAllMocks();
@@ -56,6 +69,21 @@ describe("component library folder server actions", () => {
 
     expect(supabase.rpc).toHaveBeenCalledTimes(4);
     expect(supabase.rpc).toHaveBeenCalledWith("is_workspace_editor", { target_workspace_id: "workspace-1" });
+    expect(supabase.from).not.toHaveBeenCalled();
+  });
+
+  it("deletes folders through the transactional delete RPC", async () => {
+    const supabase = mockEditorSupabaseClient();
+    const actions = await import("@/lib/component-library/actions");
+    const folderId = "00000000-0000-4000-8000-000000000001";
+
+    await expect(actions.deleteLibraryFolder(folderId)).resolves.toBeUndefined();
+
+    expect(supabase.rpc).toHaveBeenCalledWith("is_workspace_editor", { target_workspace_id: "workspace-1" });
+    expect(supabase.rpc).toHaveBeenCalledWith("delete_library_folder", {
+      target_workspace_id: "workspace-1",
+      target_folder_id: folderId,
+    });
     expect(supabase.from).not.toHaveBeenCalled();
   });
 });

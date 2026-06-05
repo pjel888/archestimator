@@ -18,9 +18,7 @@ import type { Json, Tables } from "@/lib/supabase/types";
 import { isUuid } from "@/lib/ids";
 import {
   getLibraryFolderCreateSortOrder,
-  planLibraryFolderDelete,
   type LibraryFolderCreatePlacement,
-  type LibraryFolderRecord,
 } from "./library-folder-reorder";
 import { readComponentSourceUrlInput } from "./source-url";
 
@@ -558,61 +556,13 @@ export async function deleteLibraryFolder(folderId: string): Promise<void> {
   const { workspace } = await ensureDefaultWorkspace();
   const supabase = await createSupabaseServerClient();
   await assertCanManageLibraryFolders(supabase, workspace.id);
-  const { data: folder, error: folderError } = await supabase
-    .from("library_folders")
-    .select("id, workspace_id, parent_id, name, sort_order, source_category_node_id, folder_kind")
-    .eq("id", folderId)
-    .eq("workspace_id", workspace.id)
-    .maybeSingle();
+  if (!isUuid(folderId)) throw new Error("Library folder not found in the current workspace.");
 
-  if (folderError) throw folderError;
-  if (!folder) throw new Error("Library folder not found in the current workspace.");
-
-  const targetSiblingsQuery = supabase
-    .from("library_folders")
-    .select("id, workspace_id, parent_id, name, sort_order, source_category_node_id, folder_kind")
-    .eq("workspace_id", workspace.id)
-    .neq("id", folder.id)
-    .order("sort_order", { ascending: true });
-  const targetSiblings = folder.parent_id
-    ? targetSiblingsQuery.eq("parent_id", folder.parent_id)
-    : targetSiblingsQuery.is("parent_id", null);
-  const children = supabase
-    .from("library_folders")
-    .select("id, workspace_id, parent_id, name, sort_order, source_category_node_id, folder_kind")
-    .eq("workspace_id", workspace.id)
-    .eq("parent_id", folder.id)
-    .order("sort_order", { ascending: true });
-  const [{ data: siblingFolders, error: siblingError }, { data: childFolders, error: childError }] = await Promise.all([targetSiblings, children]);
-  if (siblingError) throw siblingError;
-  if (childError) throw childError;
-
-  const deletePlan = planLibraryFolderDelete(
-    [folder, ...(siblingFolders ?? []), ...(childFolders ?? [])] as LibraryFolderRecord[],
-    folder.id,
-  );
-  for (const update of deletePlan?.liftedChildUpdates ?? []) {
-    const { error: liftError } = await supabase
-      .from("library_folders")
-      .update({ parent_id: update.parentId, sort_order: update.sortOrder })
-      .eq("workspace_id", workspace.id)
-      .eq("id", update.id);
-    if (liftError) throw liftError;
-  }
-
-  const { error: itemError } = await supabase
-    .from("cost_library_items")
-    .update({ library_folder_id: null })
-    .eq("workspace_id", workspace.id)
-    .eq("library_folder_id", folder.id);
-  if (itemError) throw itemError;
-
-  const { error: deleteError } = await supabase
-    .from("library_folders")
-    .delete()
-    .eq("workspace_id", workspace.id)
-    .eq("id", folder.id);
-  if (deleteError) throw deleteError;
+  const { error } = await supabase.rpc("delete_library_folder", {
+    target_workspace_id: workspace.id,
+    target_folder_id: folderId,
+  });
+  if (error) throw new Error(`Could not delete library folder: ${error.message}`);
 
   revalidateLibraryRoutes();
 }
