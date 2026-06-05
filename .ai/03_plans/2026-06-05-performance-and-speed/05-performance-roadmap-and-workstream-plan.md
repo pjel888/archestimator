@@ -176,9 +176,10 @@ Treat `cacheComponents`, `inlineCss`, `cssChunking`, and React Compiler changes 
 
 ## Workstream 6: Share/publication and proposal export
 
-- [ ] **Step 6.1: Keep no-store/security invariants**
+- [x] **Step 6.1: Keep no-store/security invariants**
   - Public share APIs must keep token/password/session/rate-limit protections.
   - Cache only public, non-sensitive, non-tokenized assets.
+  - 2026-06-06 local coverage: `tests/vitest/share-no-store-invariants.test.ts` locks `force-dynamic` plus `Cache-Control: no-store` across all `/api/share/[token]` routes and keeps `/share/[token]` force-dynamic with no numeric `revalidate`/`unstable_cache`. Evidence: `evidence/2026-06-06-share-no-store-invariants.md`.
 
 - [x] **Step 6.2: Benchmark share activity endpoint**
   - Measure query count and latency for comments/responses/events/recipient-name lookup.
