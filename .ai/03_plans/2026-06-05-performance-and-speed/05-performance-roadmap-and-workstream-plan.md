@@ -89,10 +89,10 @@ A future worker must not start with broad refactors, generic memoization, depend
     ```
   - Acceptance: public pages keep consent/analytics behavior; workshop keeps route overlay/query/bfcache behavior.
 
-- [ ] **Step 1.3: Preserve analytics privacy**
+- [x] **Step 1.3: Preserve analytics privacy**
   - If adding `@vercel/speed-insights`, update `tests/vitest/vercel-web-analytics-integration.test.ts:24-30` intentionally and add privacy tests for tokenized/share/auth routes.
   - If keeping Web Analytics-only, document that Speed Insights dashboard data is provider-side and code remains unchanged.
-  - 2026-06-06 status: PR-1A chose dashboard/provider-only Speed Insights with no package change. `tests/vitest/vercel-web-analytics-integration.test.ts` locks Speed Insights absence, Web Analytics redaction, sensitive-route drops, and the no-package decision record.
+  - 2026-06-06 status: PR-1A chose dashboard/provider-only Speed Insights with no package change. `tests/vitest/vercel-web-analytics-integration.test.ts` locks Speed Insights absence, Web Analytics redaction, sensitive-route drops, and the no-package decision record. Provider p75 proof remains open.
 
 ## Workstream 2: Public/landing LCP and INP
 
@@ -124,10 +124,11 @@ Treat `cacheComponents`, `inlineCss`, `cssChunking`, and React Compiler changes 
   - Use production/preview request timing and local logs to separate proxy, auth, route server render, and Supabase query time.
   - Do not replace `supabase.auth.getUser()` with `getSession()` in proxy auth.
 
-- [ ] **Step 3.2: Public-route cache review**
+- [x] **Step 3.2: Public-route cache review**
   - Review `MARKETING_PAGE_CACHE_CONTROL = "private, no-cache, max-age=0, must-revalidate"` in `src/proxy.ts`.
   - Candidate: public marketing cache policy only, not protected/share routes.
   - Guardrails: closed-beta access behavior, public pages, and CSP tests.
+  - 2026-06-06 evidence: `evidence/2026-06-06-public-cache-safety-harness.md` and `24-cache-safety-and-public-personalization-matrix.md` conclude public marketing routes are not safe for broad shared HTML caching today; keep `MARKETING_PAGE_CACHE_CONTROL` unchanged until personalization is isolated/proven.
 
 - [ ] **Step 3.3: Beta access optimization spike**
   - Because `getClosedBetaAccessForEmail` is CRITICAL blast radius, any caching/optimization needs auth/security review.

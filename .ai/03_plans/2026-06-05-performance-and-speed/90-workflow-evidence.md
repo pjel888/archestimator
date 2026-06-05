@@ -158,3 +158,10 @@ Superseding inventory after final readiness pass: root markdown files = 36; evid
 - No Supabase provider connection, live metrics, DDL, migration apply, EXPLAIN, or unrelated provider project access occurred.
 - Evidence: `evidence/2026-06-06-query-inventory-repo-only.md`.
 - Completion language: **REPO-ONLY QUERY INVENTORY CAPTURED / LIVE EXPLAIN AND PROVIDER METRICS OPEN**.
+
+
+## Roadmap decision truth-sync — 2026-06-06
+
+- Marked Workstream 1.3 complete for the local PR-1A telemetry privacy decision: dashboard/provider-only Speed Insights, no package change, sensitive Web Analytics redaction preserved.
+- Marked Workstream 3.2 complete for the local public-route cache review: PR-0B evidence keeps `MARKETING_PAGE_CACHE_CONTROL` unchanged because public marketing HTML is not broad shared-cache-safe today.
+- Updated open-gate decision checkboxes for telemetry/cache guardrails only; Vercel Speed Insights p75 provider proof, live EXPLAIN/provider proof, browser traces, and hosted route proofs remain open.
