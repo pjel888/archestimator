@@ -1,9 +1,11 @@
 # 02 — Current Repo and Provider Audit
 
 **Plan date:** 2026-06-05
+**Upgrade pass:** 2026-06-05 14:45 PHT / 06:45 UTC
 **Scope:** planning/documentation only
 **Proof boundary:** repo/provider audit evidence plus future implementation contract; no GitHub, Vercel, Supabase, Resend, Notion, or production settings were changed by this plan.
 **Canonical source:** this folder is a future implementation plan. Current truth remains source/config/tests/provider evidence plus `.ai/10_state/*`.
+**Readiness target:** 98-100% implementation-planning readiness; not an implementation/enforcement completion claim.
 
 ## Audit method
 
@@ -14,8 +16,8 @@ The audit used code-review graph MCP, `.ai` source-of-truth docs, `.github/workf
 | Item | Count / fact |
 |---|---:|
 | Code graph files | 502 |
-| Code graph nodes | 4,630 |
-| Code graph edges | 69,902 |
+| Code graph nodes | 4,634 |
+| Code graph edges | 70,036 |
 | Source TS/TSX files under `src` | 338 |
 | App page/route/handler/layout files | 52 |
 | API route files | 16 |
@@ -84,3 +86,29 @@ Current `.github` contains only `.github/workflows/ci.yml`. Missing: PR template
 | Vercel Git auto-deploy disabled but manual release proof not standardized | Medium |
 | Actions allowed all and no SHA pinning requirement | Medium |
 | Many active local `codex/*` worktrees | Medium |
+<!-- 98-100-UPGRADE:START -->
+## 2026-06-05 14:45 PHT refresh
+
+| Surface | Fresh finding | Command/source |
+|---|---|---|
+| Git | local `main` at `318a9862c9ddd05ba5763d340ac3e7de65757deb` | `git status`, `git log` |
+| Code graph | 502 files, 4,634 nodes, 70,036 edges | `code-review-graph list_graph_stats` |
+| GitHub CI | `CI disabled_manually 277898857`; old May 18 failures only | `gh workflow list`, `gh run list` |
+| GitHub protection | `protected:false`; rulesets 403 capability blocker | `gh api repos/.../branches/main`, `gh api .../rulesets` |
+| Actions settings | enabled, `allowed_actions: all`, `sha_pinning_required:false`, default token `read` | Actions permissions APIs |
+| Vercel | production `dpl_4bMoArwC32Tup4dKK67wtKoBf2jv` `READY`, `git.deploymentEnabled:false`, Node `24.x` | `vercel inspect archestimator.com --format=json` |
+| `.github` hygiene | `.github/workflows/ci.yml` and `.github/.DS_Store`; no PR template/CODEOWNERS/release workflow | `find .github` |
+| Root docs | `CONTRIBUTING.md`, `SECURITY.md`, `CHANGELOG.md`, `LICENSE` missing | repo scan |
+| `.ai` taxonomy | non-canonical `05_decisions`, `07_design`, `14_code_intelligence`, `15_Bugs`, `99_scratch` present | repo scan + audit v2 |
+
+## Audit report v2 deltas now covered
+
+| Audit v2 finding | Plan response | Boundary |
+|---|---|---|
+| Non-canonical `.ai` dirs | docs-health advisory + Phase G triage ticket | no folder moves in this pack |
+| `current-state.md` bloat | separate docs-state follow-up in Phase G | no state rewrite here |
+| Missing root standard docs | Phase G root-doc ticket | outside requested folder |
+| Source/migration docs weak | docs-health convention/check ticket | no source/migration edits here |
+| Skills/agents thin | agent receipt + payload canonicality checks | no payload edits here |
+| Plan-action gap | final no-go gates and status transitions | prevents overclaim |
+<!-- 98-100-UPGRADE:END -->

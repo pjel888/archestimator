@@ -1,9 +1,11 @@
 # 14 — Future Implementation Prompts
 
 **Plan date:** 2026-06-05
+**Upgrade pass:** 2026-06-05 14:45 PHT / 06:45 UTC
 **Scope:** planning/documentation only
 **Proof boundary:** repo/provider audit evidence plus future implementation contract; no GitHub, Vercel, Supabase, Resend, Notion, or production settings were changed by this plan.
 **Canonical source:** this folder is a future implementation plan. Current truth remains source/config/tests/provider evidence plus `.ai/10_state/*`.
+**Readiness target:** 98-100% implementation-planning readiness; not an implementation/enforcement completion claim.
 
 ## Prompt 1 — CI restoration
 
@@ -41,3 +43,14 @@ Only after GitHub capability exists, configure `main` protection and create/prot
 ```txt
 Implement manual production release workflow with GitHub Environment approval, staged Vercel production deployment (`--prod --skip-domain`), hosted smoke, and explicit promote. Do not re-enable Vercel Git auto-deploy unless separately approved.
 ```
+<!-- 98-100-UPGRADE:START -->
+## Prompt 7 — audit v2 docs-health follow-up
+
+```txt
+Implement Phase G as a separate docs-governance PR. Triage non-canonical `.ai` dirs, root standard docs, package/docs version sync, and source/migration documentation conventions. Non-goals: no app feature work, no provider mutation, no pretending existing source/migration docs are fixed. Validate with docs-health advisory output, canonical map/decision updates, `git diff --check`, and traceability update.
+```
+
+## Prompt discipline for every future implementation run
+
+Start by reading `README.md`, `00_INDEX.md`, `11_IMPLEMENTATION_SEQUENCE_AND_TICKETS.md`, `15_FINAL_READINESS_GATE.md`, and the specific phase doc. Reconfirm live GitHub/Vercel facts before acting. Preserve proof boundaries/redactions. Use branch/worktree isolation. Do not claim enforcement until `15` is satisfied with fresh evidence.
+<!-- 98-100-UPGRADE:END -->

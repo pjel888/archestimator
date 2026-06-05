@@ -1,9 +1,11 @@
 # 06 — GitHub Protection, Rulesets, and Required Checks Plan
 
 **Plan date:** 2026-06-05
+**Upgrade pass:** 2026-06-05 14:45 PHT / 06:45 UTC
 **Scope:** planning/documentation only
 **Proof boundary:** repo/provider audit evidence plus future implementation contract; no GitHub, Vercel, Supabase, Resend, Notion, or production settings were changed by this plan.
 **Canonical source:** this folder is a future implementation plan. Current truth remains source/config/tests/provider evidence plus `.ai/10_state/*`.
+**Readiness target:** 98-100% implementation-planning readiness; not an implementation/enforcement completion claim.
 
 ## Current blocker
 
@@ -58,3 +60,20 @@ owner approval=
 ```
 
 Do not claim `main` is protected unless fresh API/UI evidence proves it.
+<!-- 98-100-UPGRADE:START -->
+## API/UI proof checklist
+
+Capture fresh evidence after configuration:
+
+```bash
+gh api repos/pjel888/archestimator/branches/main --jq '{protected,protection}'
+gh api repos/pjel888/archestimator/rulesets --jq '.[] | {name,enforcement,conditions}'
+gh run list --repo pjel888/archestimator --limit 10 --json workflowName,headBranch,headSha,status,conclusion,url
+```
+
+If API proof is incomplete, record a redacted UI transcript/screenshot. Do not include tokens or private provider payloads.
+
+## Advisory-only fallback
+
+If GitHub capability remains blocked, permitted statuses are only `CI_RESTORED_ADVISORY_GOVERNANCE` or `PROTECTION_BLOCKED_BY_GITHUB_PLAN_CAPABILITY`. Do not claim required checks are platform-enforced.
+<!-- 98-100-UPGRADE:END -->

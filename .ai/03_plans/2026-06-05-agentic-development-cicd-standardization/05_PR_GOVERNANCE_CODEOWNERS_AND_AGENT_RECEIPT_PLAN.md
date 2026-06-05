@@ -1,9 +1,11 @@
 # 05 — PR Governance, CODEOWNERS, and Agent Receipt Plan
 
 **Plan date:** 2026-06-05
+**Upgrade pass:** 2026-06-05 14:45 PHT / 06:45 UTC
 **Scope:** planning/documentation only
 **Proof boundary:** repo/provider audit evidence plus future implementation contract; no GitHub, Vercel, Supabase, Resend, Notion, or production settings were changed by this plan.
 **Canonical source:** this folder is a future implementation plan. Current truth remains source/config/tests/provider evidence plus `.ai/10_state/*`.
+**Readiness target:** 98-100% implementation-planning readiness; not an implementation/enforcement completion claim.
 
 ## Current gap
 
@@ -84,3 +86,20 @@ Future `governance` CI should validate:
 | Provider-proof claim cites evidence | unsupported provider claim |
 
 Roll out advisory first, then blocking after dry-runs.
+<!-- 98-100-UPGRADE:START -->
+## 98-100 agent receipt acceptance criteria
+
+A PR receipt is acceptable only if it includes mode, scope, non-goals, branch/base, changed-file class, validation commands, proof boundary, provider authority state, unrelated dirty-file/worktree handling, and remaining risks.
+
+## Governance rollout
+
+1. Add PR template and CODEOWNERS.
+2. Add advisory governance job with report artifact.
+3. Dry-run at least three representative PRs: docs-only, source change, release/provider-proof change.
+4. Fix false positives/negatives.
+5. Promote to blocking only after required-check names are stable and branch protection is available.
+
+## Solo-founder caveat
+
+CODEOWNERS with only `@pjel888` improves review routing but does not create independent review capacity. Do not overclaim it as independent review proof.
+<!-- 98-100-UPGRADE:END -->
