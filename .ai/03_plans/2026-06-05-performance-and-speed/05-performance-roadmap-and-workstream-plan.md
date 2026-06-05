@@ -96,9 +96,10 @@ A future worker must not start with broad refactors, generic memoization, depend
 
 ## Workstream 2: Public/landing LCP and INP
 
-- [ ] **Step 2.1: Profile public routes with consent off and on**
+- [x] **Step 2.1: Profile public routes with consent off and on**
   - Test `/`, `/features`, `/pricing`, `/contact` in mobile throttle.
   - Expected: compare LCP/INP with analytics consent false vs true.
+  - 2026-06-06 local evidence: `evidence/public-lighthouse-2026-06-06/public-lighthouse-mobile-baseline.md` plus JSON/HTML/trace/devtools assets. Home is weakest locally (score 80 consent-off, TBT 378.48ms); provider Speed Insights p75 and hosted analytics proof remain open.
 
 - [ ] **Step 2.2: Evaluate Neat canvas fallback**
   - Candidate: static fallback for mobile/reduced-motion/low-end devices or lazy activation after LCP.
