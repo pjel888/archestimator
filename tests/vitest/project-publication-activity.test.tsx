@@ -544,14 +544,50 @@ describe("P8 — Shared Link Activity Feed & Notifications (red tests written FI
     });
 
 
-    it("supports stable composite cursor pagination without raw cursor fields", async () => {
-      const res = await GET(new Request("http://localhost/api/share/client-pub-token-123/activity?limit=2"), params());
+    it("supports stable opaque cursor pagination without raw cursor fields", async () => {
+      mocks.verifySharedLinkSessionCookieValue.mockReturnValue(true);
+      const parsableSession = "shared-link-session-v1:eyJyZWNpcGllbnRJZCI6InJlY2lwaWVudC0xIn0:dummy";
+
+      const res = await GET(
+        new Request("http://localhost/api/share/client-pub-token-123/activity?limit=2", {
+          headers: { cookie: `shared_link_session_abc123=${encodeURIComponent(parsableSession)}` },
+        }),
+        params(),
+      );
       expect(res.status).toBe(200);
       const firstPage = await res.json();
       expect(firstPage.activities).toHaveLength(2);
-      expect(firstPage.hasMore).toBe(false);
-      expect(firstPage.nextCursor).toBeUndefined();
+      expect(firstPage.hasMore).toBe(true);
+      expect(firstPage.nextCursor).toEqual(expect.stringMatching(/^shared-link-activity-cursor-v2:/));
+
+      expect(() => JSON.parse(Buffer.from(firstPage.nextCursor, "base64url").toString("utf8"))).toThrow();
+      expect(firstPage.nextCursor).not.toContain("createdAt");
+      expect(firstPage.nextCursor).not.toContain("created_at");
+      expect(firstPage.nextCursor).not.toMatch(/[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}/i);
       expect(JSON.stringify(firstPage)).not.toContain("created_at");
+
+      const secondPageRes = await GET(
+        new Request(`http://localhost/api/share/client-pub-token-123/activity?limit=20&cursor=${encodeURIComponent(firstPage.nextCursor)}`, {
+          headers: { cookie: `shared_link_session_abc123=${encodeURIComponent(parsableSession)}` },
+        }),
+        params(),
+      );
+      expect(secondPageRes.status).toBe(200);
+      const secondPage = await secondPageRes.json();
+      expect(secondPage.activities.map((activity: { id: string }) => activity.id)).not.toContain(firstPage.activities[0].id);
+      expect(secondPage.activities.map((activity: { id: string }) => activity.id)).not.toContain(firstPage.activities[1].id);
+      expect(secondPage.activities.some((activity: { title?: string }) => activity.title === "Maria commented on Living Area.")).toBe(true);
+    });
+
+    it("rejects malformed public activity cursors without loading publication rows", async () => {
+      const res = await GET(
+        new Request("http://localhost/api/share/client-pub-token-123/activity?cursor=not-a-valid-cursor"),
+        params(),
+      );
+
+      expect(res.status).toBe(400);
+      expect(await res.json()).toEqual({ error: "Activity cursor is invalid." });
+      expect(mocks.createPublicationServiceClient).not.toHaveBeenCalled();
     });
 
     it("returns full activity (including internal) when owner/manager context via session or server action path", async () => {
