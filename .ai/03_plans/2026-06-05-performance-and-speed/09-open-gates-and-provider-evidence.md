@@ -66,3 +66,12 @@ Use these labels:
 - `COMPLETE`: Speed Insights/provider/manual evidence confirms the target metric and regression gates pass.
 
 Do not use `COMPLETE` for route-transition or Speed Insights improvements without production/manual evidence files.
+
+## 2026-06-06 current-provider refresh and stale-INP attribution
+
+- [x] Owner-linked Vercel Speed Insights scoring docs reviewed. Evidence: `evidence/2026-06-06-vercel-speed-insights-scoring-doc-review.md`.
+- [x] Fresh Vercel CLI Speed Insights refresh captured for 1h/6h/24h/7d windows. Evidence: `evidence/vercel-speed-insights-refresh-2026-06-06-post-closeout/vercel-speed-insights-refresh-summary.md` plus raw JSON.
+- [x] Anomalous `/` desktop INP `59,404,496ms` attributed to old deployment `dpl_Cxeq5ATpif6Yk1zn4FmNmnX7nzhT` (main commit `2cddb0e0d23b21b013c66d0a1c086d129cfbd499`), not current production `dpl_3F9cagsB27x8iuEjYQ5nkCCfqecR`. Evidence: `evidence/vercel-speed-insights-inp-attribution-2026-06-06/inp-attribution-summary.md`.
+- [x] Current production lab Lighthouse captured: mobile score 94, desktop score 100. Evidence: `evidence/current-production-lighthouse-2026-06-06/current-production-lighthouse-summary.md`.
+- [x] Roboto Mono preload micro-optimization spike tested and reverted because mobile Lighthouse LCP worsened. Evidence: `evidence/mono-font-preload-scope-2026-06-06/mono-font-preload-scope-spike.md`.
+- [ ] Current production deployment Speed Insights rows / dashboard RES remain open because filtered current-deployment metrics are empty for all Speed Insights metrics as of the refresh.

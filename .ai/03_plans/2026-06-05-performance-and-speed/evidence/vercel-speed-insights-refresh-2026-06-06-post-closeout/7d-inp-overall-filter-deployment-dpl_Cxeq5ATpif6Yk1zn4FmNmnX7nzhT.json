@@ -1,0 +1,26 @@
+{
+  "query": {
+    "metric": "vercel.speed_insights_metric.inp",
+    "aggregation": "p75",
+    "groupBy": [],
+    "filter": "deployment_id eq 'dpl_Cxeq5ATpif6Yk1zn4FmNmnX7nzhT'",
+    "startTime": "2026-05-30T00:00:00.000Z",
+    "endTime": "2026-06-06T04:00:00.000Z",
+    "granularity": {
+      "hours": 4
+    }
+  },
+  "summary": [
+    {
+      "vercel_speed_insights_metric_inp_p75": 59404496
+    }
+  ],
+  "statistics": {
+    "bytesRead": 8078245,
+    "rowsRead": 208329,
+    "dbTimeSeconds": 0
+  },
+  "dataPointCount": 43,
+  "dataOmittedFromCommittedEvidence": true,
+  "omissionReason": "Time-series buckets were omitted to keep repository evidence compact; query, summary, statistics, and dataPointCount are retained."
+}

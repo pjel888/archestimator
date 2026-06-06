@@ -112,3 +112,24 @@ Remaining provider gaps after this refresh are dashboard overview/recommendation
 ## 2026-06-06 valid share-token fixture proof refresh
 
 A headless production UI flow generated a temporary shared link through the real `createProjectPublication` server action, then sanitized the raw token before writing evidence. The valid share page, snapshot API, and activity API all returned `200` with no-store/private no-store cache policy and no `Set-Cookie`. Cleanup removed all run-scoped auth/database/publication rows. Evidence: `evidence/2026-06-06-valid-share-production-synthetic-fixture-smoke-benchmark.md` / `.json` and `evidence/2026-06-06-valid-share-synthetic-fixture-cleanup-verification.md` / `.json`.
+
+## 2026-06-06 post-closeout provider refresh and current-production lab proof
+
+Evidence added:
+
+- `evidence/2026-06-06-vercel-speed-insights-scoring-doc-review.md`
+- `evidence/vercel-speed-insights-refresh-2026-06-06-post-closeout/vercel-speed-insights-refresh-summary.md`
+- `evidence/vercel-speed-insights-inp-attribution-2026-06-06/inp-attribution-summary.md`
+- `evidence/current-production-lighthouse-2026-06-06/current-production-lighthouse-summary.md`
+- `evidence/mono-font-preload-scope-2026-06-06/mono-font-preload-scope-spike.md`
+
+Findings:
+
+- Vercel docs confirm RES is a weighted real-user score over FCP, LCP, INP, and CLS; local Lighthouse cannot prove RES completion.
+- Current production deployment: `dpl_3F9cagsB27x8iuEjYQ5nkCCfqecR`, commit `207babf7343d2d2508e1d0fb6bc98b1313522224`.
+- Current-deployment filtered Speed Insights summaries are empty for LCP, INP, CLS, FCP, and TTFB.
+- The existing 7-day Speed Insights rows, including `/` desktop INP `59,404,496ms`, are attributed to old production deployment `dpl_Cxeq5ATpif6Yk1zn4FmNmnX7nzhT`, main commit `2cddb0e0d23b21b013c66d0a1c086d129cfbd499`.
+- Current live production Lighthouse: mobile score 94 (FCP 1,396ms, LCP 2,598ms, CLS 0, TBT 37ms), desktop score 100 (FCP 346ms, LCP 632ms, CLS 0, TBT 0ms).
+- A narrow Roboto Mono preload/display spike was tried and reverted because three mobile Lighthouse runs remained score 91 with LCP around 3.46s-3.49s.
+
+Remaining gap: current production needs real-user Speed Insights rows / dashboard RES before the owner-requested 95-100 RES target can be claimed.

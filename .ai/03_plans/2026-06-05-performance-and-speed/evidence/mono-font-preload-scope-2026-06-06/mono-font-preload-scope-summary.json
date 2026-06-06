@@ -1,0 +1,27 @@
+{
+  "mobile": {
+    "score": 0.91,
+    "fcp": 1365.3535499999998,
+    "lcp": 3493.3535500000007,
+    "cls": 0,
+    "tbt": 26.5,
+    "speedIndex": 1365.3535499999998
+  },
+  "desktop": {
+    "score": 1,
+    "fcp": 376.8585,
+    "lcp": 697.6682500000001,
+    "cls": 0,
+    "tbt": 0,
+    "speedIndex": 376.8585
+  },
+  "html": {
+    "fontMediaPaths": [
+      "/_next/static/media/83afe278b6a6bb3c-s.p.0q-301v4kxxnr.woff2\\"
+    ],
+    "preloadLinks": [
+      "<link rel=\"preload\" as=\"script\" fetchPriority=\"low\" href=\"/_next/static/chunks/0t1et0tty8o9s.js\"/>"
+    ],
+    "fontMediaPathCount": 1
+  }
+}
