@@ -5,12 +5,30 @@ import { dirname, resolve } from "node:path";
 
 type VerifyInputs = {
   baseUrl: string;
+  allowedOrigins?: string[];
   projectId: string;
   estimateId: string;
   authCookie?: string;
   authHeader?: string;
   outputFile?: string;
+  markdownFile?: string;
   minBytes: number;
+  runs?: number;
+};
+
+type VerifySample = {
+  status: number;
+  ok: boolean;
+  durationMs: number;
+  byteLength: number;
+  contentType: string | null;
+  contentDisposition: string | null;
+  cacheControl: string | null;
+  hasPrivateNoStoreCacheControl: boolean;
+  xlsxZipMagic: boolean;
+  hasWorkbookContentType: boolean;
+  hasAttachmentDisposition: boolean;
+  passed: boolean;
 };
 
 type VerifyResult = {
@@ -25,17 +43,29 @@ type VerifyResult = {
   contentType: string | null;
   contentDisposition: string | null;
   cacheControl: string | null;
+  hasPrivateNoStoreCacheControl: boolean;
   xlsxZipMagic: boolean;
   hasWorkbookContentType: boolean;
   hasAttachmentDisposition: boolean;
   minBytes: number;
+  runs: number;
+  samples: VerifySample[];
+  minDurationMs: number;
+  maxDurationMs: number;
+  averageDurationMs: number;
   passed: boolean;
   note: string;
 };
 
 const WORKBOOK_CONTENT_TYPE = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
 const DEFAULT_MIN_BYTES = 5_000;
+const DEFAULT_RUNS = 1;
 const REDACTED_WORKBOOK_CONTENT_DISPOSITION = 'attachment; filename="HOSTED_EXPORT_FILENAME_REDACTED.xlsx"';
+const DEFAULT_ALLOWED_ORIGINS = [
+  "https://archestimator.com",
+  "https://www.archestimator.com",
+  "https://archestimator.vercel.app",
+];
 
 function readEnv(name: string) {
   const value = process.env[name];
@@ -46,17 +76,61 @@ export function normalizeBaseUrl(value: string) {
   return value.replace(/\/+$/, "");
 }
 
+export function parseAllowedOrigins(value?: string) {
+  const origins = (value ?? "")
+    .split(",")
+    .map((origin) => origin.trim())
+    .filter(Boolean);
+  return origins.length ? origins : DEFAULT_ALLOWED_ORIGINS;
+}
+
+function normalizeOrigin(value: string, label: string) {
+  let parsed: URL;
+  try {
+    parsed = new URL(value);
+  } catch {
+    throw new Error(`${label} must be an absolute URL origin.`);
+  }
+
+  if (parsed.protocol !== "https:") {
+    throw new Error(`${label} must use https before hosted export auth material is sent.`);
+  }
+
+  return parsed.origin;
+}
+
+export function validateHostedExportBaseUrl(baseUrl: string, allowedOrigins: string[] = DEFAULT_ALLOWED_ORIGINS) {
+  const normalizedBaseOrigin = normalizeOrigin(baseUrl, "HOSTED_EXPORT_BASE_URL");
+  const normalizedAllowedOrigins = allowedOrigins.map((origin) => normalizeOrigin(origin, "HOSTED_EXPORT_ALLOWED_ORIGINS"));
+
+  if (!normalizedAllowedOrigins.includes(normalizedBaseOrigin)) {
+    throw new Error(
+      `HOSTED_EXPORT_BASE_URL origin ${normalizedBaseOrigin} is not in HOSTED_EXPORT_ALLOWED_ORIGINS. Refusing to send hosted export auth material.`,
+    );
+  }
+
+  return normalizedBaseOrigin;
+}
+
 export function buildExportRoute(projectId: string, estimateId: string) {
   return `/api/projects/${encodeURIComponent(projectId)}/estimates/${encodeURIComponent(estimateId)}/export/proposal.xlsx`;
 }
 
-export function parseMinBytes(value: string | undefined) {
-  if (!value) return DEFAULT_MIN_BYTES;
+export function parsePositiveIntegerEnv(value: string | undefined, envName: string, fallback: number) {
+  if (!value) return fallback;
   const parsed = Number.parseInt(value, 10);
   if (!Number.isFinite(parsed) || parsed <= 0) {
-    throw new Error("HOSTED_EXPORT_MIN_BYTES must be a positive integer.");
+    throw new Error(`${envName} must be a positive integer.`);
   }
   return parsed;
+}
+
+export function parseMinBytes(value: string | undefined) {
+  return parsePositiveIntegerEnv(value, "HOSTED_EXPORT_MIN_BYTES", DEFAULT_MIN_BYTES);
+}
+
+export function parseRuns(value: string | undefined) {
+  return Math.min(parsePositiveIntegerEnv(value, "HOSTED_EXPORT_RUNS", DEFAULT_RUNS), 10);
 }
 
 export function parseInputsFromEnv(): VerifyInputs {
@@ -65,6 +139,7 @@ export function parseInputsFromEnv(): VerifyInputs {
   const estimateId = readEnv("HOSTED_EXPORT_ESTIMATE_ID");
   const authCookie = readEnv("HOSTED_EXPORT_AUTH_COOKIE");
   const authHeader = readEnv("HOSTED_EXPORT_AUTH_HEADER");
+  const allowedOrigins = parseAllowedOrigins(readEnv("HOSTED_EXPORT_ALLOWED_ORIGINS"));
 
   const missing = [
     ["HOSTED_EXPORT_BASE_URL", baseUrl],
@@ -83,13 +158,16 @@ export function parseInputsFromEnv(): VerifyInputs {
   }
 
   return {
-    baseUrl: normalizeBaseUrl(baseUrl!),
+    baseUrl: validateHostedExportBaseUrl(normalizeBaseUrl(baseUrl!), allowedOrigins),
+    allowedOrigins,
     projectId: projectId!,
     estimateId: estimateId!,
     authCookie,
     authHeader,
     outputFile: readEnv("OUTPUT_FILE"),
+    markdownFile: readEnv("MARKDOWN_FILE"),
     minBytes: parseMinBytes(readEnv("HOSTED_EXPORT_MIN_BYTES")),
+    runs: parseRuns(readEnv("HOSTED_EXPORT_RUNS")),
   };
 }
 
@@ -110,17 +188,26 @@ export function sanitizeContentDispositionForProof(value: string | null) {
   return REDACTED_WORKBOOK_CONTENT_DISPOSITION;
 }
 
-export function summarizeResponse(params: {
+export function hasPrivateNoStoreCacheControl(value: string | null) {
+  if (!value) return false;
+  const directives = value
+    .toLowerCase()
+    .split(",")
+    .map((directive) => directive.trim());
+  return directives.includes("private") && directives.includes("no-store");
+}
+
+function sampleFromResponse(params: {
   inputs: VerifyInputs;
-  route: string;
   response: Response;
   bytes: Uint8Array;
   durationMs: number;
-}): VerifyResult {
+}): VerifySample {
   const contentType = params.response.headers.get("content-type");
   const rawContentDisposition = params.response.headers.get("content-disposition");
   const contentDisposition = sanitizeContentDispositionForProof(rawContentDisposition);
   const cacheControl = params.response.headers.get("cache-control");
+  const privateNoStore = hasPrivateNoStoreCacheControl(cacheControl);
   const xlsxZipMagic = hasXlsxZipMagic(params.bytes);
   const hasWorkbookContentType = contentType === WORKBOOK_CONTENT_TYPE;
   const hasAttachmentDisposition = Boolean(rawContentDisposition?.toLowerCase().includes("attachment"));
@@ -130,13 +217,10 @@ export function summarizeResponse(params: {
     && hasAttachmentDisposition
     && xlsxZipMagic
     && params.bytes.byteLength >= params.inputs.minBytes
+    && privateNoStore
   );
 
   return {
-    generatedAt: new Date().toISOString(),
-    mode: "hosted-proposal-export-route-smoke",
-    baseUrl: params.inputs.baseUrl,
-    route: params.route,
     status: params.response.status,
     ok: params.response.ok,
     durationMs: Math.round(params.durationMs),
@@ -144,27 +228,80 @@ export function summarizeResponse(params: {
     contentType,
     contentDisposition,
     cacheControl,
+    hasPrivateNoStoreCacheControl: privateNoStore,
     xlsxZipMagic,
     hasWorkbookContentType,
     hasAttachmentDisposition,
-    minBytes: params.inputs.minBytes,
     passed,
-    note: "Sanitized hosted export route smoke. Auth cookies, headers, and production-derived export filenames are required for the request but are never written to this report.",
   };
 }
 
-export async function verifyHostedExportRoute(inputs: VerifyInputs, fetchImpl: typeof fetch = fetch): Promise<VerifyResult> {
-  const route = buildExportRoute(inputs.projectId, inputs.estimateId);
-  const url = `${inputs.baseUrl}${route}`;
-  const startedAt = performance.now();
-  const response = await fetchImpl(url, {
-    method: "GET",
-    headers: buildHeaders(inputs),
-    redirect: "manual",
+export function summarizeSamples(params: { inputs: VerifyInputs; route: string; samples: VerifySample[] }): VerifyResult {
+  const durations = params.samples.map((sample) => sample.durationMs);
+  const latest = params.samples[params.samples.length - 1];
+  if (!latest) throw new Error("At least one hosted export sample is required.");
+  const averageDurationMs = Math.round(durations.reduce((sum, duration) => sum + duration, 0) / durations.length);
+
+  return {
+    generatedAt: new Date().toISOString(),
+    mode: "hosted-proposal-export-route-smoke",
+    baseUrl: params.inputs.baseUrl,
+    route: params.route,
+    status: latest.status,
+    ok: latest.ok,
+    durationMs: latest.durationMs,
+    byteLength: latest.byteLength,
+    contentType: latest.contentType,
+    contentDisposition: latest.contentDisposition,
+    cacheControl: latest.cacheControl,
+    hasPrivateNoStoreCacheControl: latest.hasPrivateNoStoreCacheControl,
+    xlsxZipMagic: latest.xlsxZipMagic,
+    hasWorkbookContentType: latest.hasWorkbookContentType,
+    hasAttachmentDisposition: latest.hasAttachmentDisposition,
+    minBytes: params.inputs.minBytes,
+    runs: params.samples.length,
+    samples: params.samples,
+    minDurationMs: Math.min(...durations),
+    maxDurationMs: Math.max(...durations),
+    averageDurationMs,
+    passed: params.samples.every((sample) => sample.passed),
+    note: "Sanitized hosted export route smoke/benchmark. Auth cookies, headers, and production-derived export filenames are required for the request but are never written to this report.",
+  };
+}
+
+export function summarizeResponse(params: {
+  inputs: VerifyInputs;
+  route: string;
+  response: Response;
+  bytes: Uint8Array;
+  durationMs: number;
+}): VerifyResult {
+  return summarizeSamples({
+    inputs: params.inputs,
+    route: params.route,
+    samples: [sampleFromResponse({ inputs: params.inputs, response: params.response, bytes: params.bytes, durationMs: params.durationMs })],
   });
-  const bytes = new Uint8Array(await response.arrayBuffer());
-  const durationMs = performance.now() - startedAt;
-  return summarizeResponse({ inputs, route, response, bytes, durationMs });
+}
+
+export async function verifyHostedExportRoute(inputs: VerifyInputs, fetchImpl: typeof fetch = fetch): Promise<VerifyResult> {
+  const baseUrl = validateHostedExportBaseUrl(normalizeBaseUrl(inputs.baseUrl), inputs.allowedOrigins);
+  const route = buildExportRoute(inputs.projectId, inputs.estimateId);
+  const url = `${baseUrl}${route}`;
+  const safeInputs = { ...inputs, baseUrl };
+  const samples: VerifySample[] = [];
+  const runs = inputs.runs ?? DEFAULT_RUNS;
+  for (let index = 0; index < runs; index += 1) {
+    const startedAt = performance.now();
+    const response = await fetchImpl(url, {
+      method: "GET",
+      headers: buildHeaders(inputs),
+      redirect: "manual",
+    });
+    const bytes = new Uint8Array(await response.arrayBuffer());
+    const durationMs = performance.now() - startedAt;
+    samples.push(sampleFromResponse({ inputs: safeInputs, response, bytes, durationMs }));
+  }
+  return summarizeSamples({ inputs: safeInputs, route, samples });
 }
 
 function writeOutput(outputFile: string, result: VerifyResult) {
@@ -173,10 +310,77 @@ function writeOutput(outputFile: string, result: VerifyResult) {
   writeFileSync(resolved, `${JSON.stringify(result, null, 2)}\n`);
 }
 
+function formatDuration(value: number) {
+  return `${value}ms`;
+}
+
+export function writeMarkdown(markdownFile: string, result: VerifyResult) {
+  const resolved = resolve(markdownFile);
+  mkdirSync(dirname(resolved), { recursive: true });
+  const sampleRows = result.samples
+    .map((sample, index) => `| ${[
+      String(index + 1),
+      sample.passed ? "pass" : "fail",
+      String(sample.status),
+      formatDuration(sample.durationMs),
+      String(sample.byteLength),
+      sample.contentType ?? "n/a",
+      sample.contentDisposition ?? "n/a",
+      sample.cacheControl ?? "n/a",
+      sample.hasPrivateNoStoreCacheControl ? "yes" : "no",
+      sample.xlsxZipMagic ? "yes" : "no",
+      sample.hasWorkbookContentType ? "yes" : "no",
+      sample.hasAttachmentDisposition ? "yes" : "no",
+    ].join(" | ")} |`)
+    .join("\n");
+
+  writeFileSync(resolved, `# Hosted proposal export smoke — ${result.generatedAt}
+
+Status: **${result.passed ? "PASSED" : "OPEN / NOT FULLY PROVEN"}**.
+
+Mode: \`${result.mode}\`
+
+Base URL: \`${result.baseUrl}\`
+
+Route: \`${result.route}\`
+
+Runs: ${result.runs}
+
+Latest status: ${result.status}
+
+Latest byte length: ${result.byteLength}
+
+Minimum expected bytes: ${result.minBytes}
+
+Duration: min ${formatDuration(result.minDurationMs)}, avg ${formatDuration(result.averageDurationMs)}, max ${formatDuration(result.maxDurationMs)}
+
+Content type: \`${result.contentType ?? "n/a"}\`
+
+Content disposition: \`${result.contentDisposition ?? "n/a"}\`
+
+Cache-Control: \`${result.cacheControl ?? "n/a"}\`
+
+Private/no-store cache policy: ${result.hasPrivateNoStoreCacheControl ? "yes" : "no"}
+
+Workbook ZIP magic: ${result.xlsxZipMagic ? "yes" : "no"}
+
+Workbook content type: ${result.hasWorkbookContentType ? "yes" : "no"}
+
+Attachment disposition: ${result.hasAttachmentDisposition ? "yes" : "no"}
+
+| Sample | Result | Status | Duration | Bytes | Content type | Content disposition | Cache-Control | Private/no-store | ZIP magic | Workbook type | Attachment |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+${sampleRows}
+
+Note: ${result.note}
+\n`);
+}
+
 async function main() {
   const inputs = parseInputsFromEnv();
   const result = await verifyHostedExportRoute(inputs);
   if (inputs.outputFile) writeOutput(inputs.outputFile, result);
+  if (inputs.markdownFile) writeMarkdown(inputs.markdownFile, result);
   console.log(JSON.stringify(result, null, 2));
 
   if (!result.passed) {

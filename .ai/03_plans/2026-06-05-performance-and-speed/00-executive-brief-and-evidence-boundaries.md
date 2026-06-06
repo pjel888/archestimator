@@ -11,7 +11,7 @@ Archestimator likely has a mixed performance problem: root-level client provider
 
 ### Verified in this planning pass
 
-- Vercel connector confirms project `archestimator` on team `philipjonlewis-projects`, framework `nextjs`, Node `24.x`, latest production deployment `dpl_4bMoArwC32Tup4dKK67wtKoBf2jv`, deployment URL `archestimator-lz829v0ad-philipjonlewis-projects.vercel.app`, and domains including `www.archestimator.com` and `archestimator.com`.
+- Vercel connector confirmed project `archestimator` on team `philipjonlewis-projects`, framework `nextjs`, Node `24.x`, baseline production deployment `dpl_4bMoArwC32Tup4dKK67wtKoBf2jv`, deployment URL `archestimator-lz829v0ad-philipjonlewis-projects.vercel.app`, and domains including `www.archestimator.com` and `archestimator.com`; later owner-authorized production deployment `dpl_3F9cagsB27x8iuEjYQ5nkCCfqecR` now serves the branch for post-fix cache proof.
 - Computer Use was attempted against Chrome twice and timed out after 120s each; live Speed Insights UI values were not captured by tool.
 - User-reported source of truth for the problem statement: “we are scoring so low” on Vercel Speed Insights.
 - Current repo does not include `@vercel/speed-insights` and explicitly tests that `SpeedInsights` remains absent: `tests/vitest/vercel-web-analytics-integration.test.ts:24-30`.
@@ -28,10 +28,10 @@ Archestimator likely has a mixed performance problem: root-level client provider
 
 ### Blocked / not verified in this planning pass
 
-- Exact current Speed Insights score, p75 values, route breakdown, device distribution, geography, and time window were not captured because Computer Use timed out.
-- No live Supabase EXPLAIN, `pg_stat_statements`, or provider advisor proof was run.
-- No local build/typecheck/test was run because this worktree lacks `node_modules`.
-- No production Lighthouse/Chrome trace was captured in this turn.
+- Speed Insights dashboard overview score/screenshot, recommendation cards, geography, and comparable before/after provider windows remain unavailable. Numeric p75 values, route/device breakdown, and the current 7-day window were later captured via Vercel CLI.
+- Live Supabase EXPLAIN, `pg_stat_statements`, and provider advisor proof were later captured; no DB migration is justified from current beta rows.
+- Local build/typecheck/test evidence was later captured in the implementation worktree.
+- Production Lighthouse/Chrome trace for the `/` desktop Speed Insights outlier was later captured; broader provider/dashboard comparison remains open.
 
 ## Planning posture
 

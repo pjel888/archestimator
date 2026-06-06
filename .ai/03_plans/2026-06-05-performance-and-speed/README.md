@@ -3,7 +3,7 @@
 
 # 2026-06-05 Performance and Speed Planning Pack
 
-**Status:** planning-only / no application code implementation.
+**Status:** planning pack plus PR-0B proof-harness implementation packet / optimization not yet shipped.
 **Branch/worktree used for audit:** `plan/performance-and-speed` at `/Users/philiplewis/archestimator.omx-worktrees/launch-plan-performance-and-speed`.
 **Canonical docs target requested by owner:** `/Users/philiplewis/archestimator/.ai/03_plans/2026-06-05-performance-and-speed`.
 
@@ -58,19 +58,27 @@ Create an implementation-ready plan to improve Archestimator speed and Core Web 
 2. `evidence/2026-06-05-hosted-public-header-timing-baseline.md`
 3. `evidence/2026-06-05-vercel-httpstat-attempt.md`
 4. `evidence/2026-06-05-vercel-httpstat-production-baseline.md`
-5. `evidence/README.md`
+5. `evidence/2026-06-06-public-cache-safety-harness.md`
+6. `evidence/README.md`
+7. `evidence/vercel-speed-insights-readiness-check-2026-06-06/vercel-speed-insights-readiness.md`
+8. `evidence/vercel-speed-insights-readiness-check-2026-06-06-rerun-041348/vercel-speed-insights-readiness.md`
+9. `evidence/vercel-api-speed-insights-endpoint-check-2026-06-06/vercel-api-speed-insights-endpoint-check.md`
 
 ## Non-goals
 
-- No code implementation in this turn.
-- No dependency changes in this turn.
-- No provider/dashboard mutation.
-- No claim that Speed Insights is fixed or that route-transition performance is complete.
+- Code-bearing mitigation and proof slices now exist on `feat/performance-and-speed-pr-0b-cache-safety`; this plan pack still separates implementation proof from Speed Insights completion proof.
+- No dependency changes are introduced by the synthetic hosted fixture proof.
+- Temporary provider fixtures were created only under owner-granted authority and cleaned up to zero recorded residue, with raw tokens/cookies/passwords redacted from committed evidence.
+- No claim that Speed Insights/RES is fixed or that route-transition performance is complete.
 
 ## Quality gate verdict
 
-The pack is now document-quality complete and implementation-ready for the first safe code-bearing performance story. The recommended first packet is `PR-0B` in `27-ready-implementation-packets.md`: public personalization/cache-safety proof before any cache-header relaxation. The pack still does not claim performance gains until Vercel Speed Insights/provider evidence proves them.
+The pack is document-quality complete and implementation-ready for future bounded performance stories. The first safe packet, `PR-0B`, has been executed; later synthetic hosted fixtures also closed signed-in auth, hosted export, valid private media, and valid private share-token evidence blockers. The pack still does not claim RES/performance gains until comparable Vercel Speed Insights/provider evidence proves them.
+
+## PR-0B implementation result
+
+`PR-0B` in `27-ready-implementation-packets.md` has now been executed in branch `feat/performance-and-speed-pr-0b-cache-safety`. The harness/test result is **IMPLEMENTATION PACKET COMPLETE / OPTIMIZATION NOT YET SHIPPED**: public marketing routes are still not safe for broad shared HTML caching today, so `MARKETING_PAGE_CACHE_CONTROL` must remain unchanged until auth-specific CTA output, A/B variants, consent behavior, and hosted cache headers are isolated or otherwise proven safe.
 
 ## Recommended next step
 
-Start implementation with `PR-0B` in `27-ready-implementation-packets.md`, or run `PR-0A` first if Speed Insights dashboard access is available. Do not implement cache-header relaxation, telemetry package changes, root-provider splitting, or estimate/workshop optimization until the matching packet gates are satisfied.
+Fresh 2026-06-06 provider refresh attributes the anomalous 59,404,496ms desktop home INP to old production deployment `dpl_Cxeq5ATpif6Yk1zn4FmNmnX7nzhT`; current production deployment `dpl_3F9cagsB27x8iuEjYQ5nkCCfqecR` has no filtered Speed Insights rows yet. Use `bun run perf:check-speed-insights` as the repeatable read-only provider gate; the latest rerun at `evidence/vercel-speed-insights-readiness-check-2026-06-06-rerun-041348/vercel-speed-insights-readiness.md` still reports zero current-deployment rows and no dashboard RES. The Vercel API inventory check at `evidence/vercel-api-speed-insights-endpoint-check-2026-06-06/vercel-api-speed-insights-endpoint-check.md` found no official documented Speed Insights RES read/export endpoint, so capture dashboard overview/recommendation cards if access becomes available, wait for current-deployment comparable Speed Insights windows/RES after real-user hard-navigation data exists, and do not implement speculative cache/header, telemetry package, root-provider, or font-preload changes without matching proof. The mono-font preload spike was tested and reverted because it worsened mobile Lighthouse LCP.

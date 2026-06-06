@@ -1,10 +1,9 @@
 import { NextResponse } from "next/server";
 
+import { RESEND_WEBHOOK_MAX_BODY_BYTES } from "@/lib/email/resend-webhook-route-constants";
 import { recordResendEmailWebhookEvent, verifyResendWebhookPayload } from "@/lib/email/resend-webhooks";
 
 export const runtime = "nodejs";
-
-export const RESEND_WEBHOOK_MAX_BODY_BYTES = 256 * 1024;
 
 function readContentLength(headers: Headers) {
   const raw = headers.get("content-length")?.trim();

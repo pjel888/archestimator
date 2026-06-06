@@ -1,0 +1,19 @@
+# Vercel metrics CLI schema: speed insights prefix
+
+```text
+Vercel CLI 54.6.1 (Node.js 25.8.0)
+> Metric: vercel.speed_insights_metric
+
+
+  Metric                                     Description                                 Unit                Aggregations
+  vercel.speed_insights_metric.cls           Speed Insights Cumulative Layout Shift      ratio               sum, persecond, percent, avg (default), min, max, p50, p75, p90, p95, p99, stddev
+  vercel.speed_insights_metric.fcp           Speed Insights First Contentful Paint       milliseconds        sum, persecond, percent, avg (default), min, max, p50, p75, p90, p95, p99, stddev
+  vercel.speed_insights_metric.fid           Speed Insights First Input Delay            milliseconds        sum, persecond, percent, avg (default), min, max, p50, p75, p90, p95, p99, stddev
+  vercel.speed_insights_metric.inp           Speed Insights Interaction to Next Paint    milliseconds        sum, persecond, percent, avg (default), min, max, p50, p75, p90, p95, p99, stddev
+  vercel.speed_insights_metric.lcp           Speed Insights Largest Contentful Paint     milliseconds        sum, persecond, percent, avg (default), min, max, p50, p75, p90, p95, p99, stddev
+  vercel.speed_insights_metric.ttfb_ms       Speed Insights Time to First Byte           milliseconds        sum, persecond, percent, avg (default), min, max, p50, p75, p90, p95, p99, stddev
+
+
+Shared dimensions:
+  browser_name, country, deployment_id, device_type, environment, os_name, project_id, project_name, request_hostname, request_path, route
+```

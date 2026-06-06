@@ -13,7 +13,7 @@ This document is the handoff that makes code implementation readiness 100% for t
 
 ## PR-0B — Public personalization/cache-safety proof harness
 
-**Status:** READY FOR IMPLEMENTATION.
+**Status:** IMPLEMENTATION PACKET COMPLETE / OPTIMIZATION NOT YET SHIPPED as of 2026-06-06 in branch `feat/performance-and-speed-pr-0b-cache-safety`.
 
 **Why this is first:** Hosted evidence captured on 2026-06-05 shows public marketing routes return `private, no-cache, no-store` and `x-vercel-cache: MISS`, with `time_starttransfer` roughly 467–544ms from the test location. This is a plausible high-impact public TTFB lever. But source audit shows all marketing pages call `getLandingAuthState()`, and the home page reads consent/A-B cookies and can set `ab_test`, so direct cache relaxation is unsafe until output variance is proven.
 
@@ -70,9 +70,19 @@ If adding a script instead of vitest-only coverage, run it against public routes
 - Use `IMPLEMENTATION PACKET COMPLETE / OPTIMIZATION NOT YET SHIPPED`.
 - Do not use `COMPLETE` for performance improvement.
 
+**PR-0B implementation result (2026-06-06):**
+
+- Added `scripts/check-public-cache-safety.ts` to fetch hosted public marketing routes with controlled anonymous, synthetic logged-in-cookie, consent rejected, consent accepted + A/B A, consent accepted + A/B B, and anonymous mobile request states.
+- Added `tests/vitest/public-cache-safety-harness.test.tsx` to lock the route/scenario matrix, header/body classification, report language, and source-level logged-in CTA variance via `LandingHeader`.
+- Captured hosted evidence at `evidence/2026-06-06-public-cache-safety-harness.md`.
+- Result: all seven public marketing routes are **not** compatible with broad shared HTML cache today. Hosted responses remain `private, no-cache, no-store, max-age=0, must-revalidate` with `x-vercel-cache: MISS`; `/` body varies across consent/A-B scenarios; and logged-in CTA markup can vary when `getLandingAuthState()` resolves true.
+- Runtime behavior, `src/proxy.ts`, route cache headers, auth, provider settings, and Supabase resources were not changed.
+
 ## PR-0A — Speed Insights baseline evidence capture
 
-**Status:** READY WHEN DASHBOARD ACCESS IS AVAILABLE.
+**Status:** SUBSTITUTE EVIDENCE CAPTURED / SPEED INSIGHTS PROVIDER METRICS OPEN.
+
+**2026-06-06 result:** Captured Vercel connector deployment context and hosted public-route curl timing/header refresh at `evidence/2026-06-06-pr0a-vercel-connector-and-public-route-timing.md`. The required Speed Insights dashboard/export fields remain open because the current connector exposes no Speed Insights metrics endpoint and prior UI attempts timed out.
 
 **Goal:** Fill `01-vercel-speed-insights-and-metrics-intake.md` with exact dashboard/export values and attach evidence files.
 
@@ -99,7 +109,9 @@ If adding a script instead of vitest-only coverage, run it against public routes
 
 ## PR-1A — Telemetry privacy implementation
 
-**Status:** BLOCKED UNTIL OWNER DECISION.
+**Status:** TELEMETRY DECISION IMPLEMENTED / PROVIDER PROOF OPEN.
+
+**2026-06-06 result:** Chose the safest Option A in `20-telemetry-privacy-decision-record.md`: dashboard/provider-only Speed Insights with no package change. `tests/vitest/vercel-web-analytics-integration.test.ts` now locks the decision record, Speed Insights absence, Web Analytics redaction, tokenized share/invite drops, authenticated workshop drops, and public-query/hash stripping.
 
 **Unblock by filling:** `20-telemetry-privacy-decision-record.md`.
 
@@ -114,7 +126,9 @@ If adding a script instead of vitest-only coverage, run it against public routes
 
 ## PR-1B — Bundle attribution and root-shell containment spike
 
-**Status:** READY AFTER BUNDLE ANALYZER BASELINE.
+**Status:** BUNDLE BASELINE CAPTURED / CODE OPTIMIZATION NOT YET JUSTIFIED.
+
+**2026-06-06 result:** Captured `ANALYZE=true bun run build` Turbopack behavior and a clean `ANALYZE=true bunx next build --webpack` analyzer pass at `evidence/2026-06-06-bundle-analyzer-baseline.md`. The webpack analyzer first exposed an invalid extra route export in `src/app/api/webhooks/resend/route.ts`; the max-body constant now lives in `src/lib/email/resend-webhook-route-constants.ts`, preserving webhook behavior while allowing Next route type validation to pass.
 
 **Unblock by capturing:** `ANALYZE=true bun run build` or `ANALYZE=true bunx next build --webpack` artifacts.
 
@@ -135,6 +149,8 @@ bun run perf:check-routes
 ```
 
 **Completion language:** `IMPLEMENTED LOCALLY / PROVIDER PROOF OPEN` until hosted/Speed Insights evidence proves gains.
+
+**Current decision:** Do not split providers or move global CSS in PR-1B. Analyzer evidence shows candidates, but PR-0A route/device p75 data is still missing and PR-0B proves cache/header changes are unsafe today. A separate Workstream 2.4 local audit removed unused root `Poppins` and `Source Serif 4` font registrations because source and Lighthouse evidence showed no usage and no image LCP candidate; that does not justify a broader root provider split.
 
 ## Packet discipline
 

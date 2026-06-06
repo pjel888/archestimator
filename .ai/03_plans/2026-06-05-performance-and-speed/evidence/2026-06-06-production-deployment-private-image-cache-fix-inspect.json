@@ -1,0 +1,2609 @@
+{
+  "id": "dpl_3F9cagsB27x8iuEjYQ5nkCCfqecR",
+  "name": "archestimator",
+  "url": "archestimator-6mwjrwhnk-philipjonlewis-projects.vercel.app",
+  "target": "production",
+  "readyState": "READY",
+  "createdAt": 1780713662750,
+  "aliases": [
+    "www.archestimator.com",
+    "archestimator.vercel.app",
+    "archestimator-philipjonlewis-projects.vercel.app",
+    "archestimator-philipjonlewis-philipjonlewis-projects.vercel.app",
+    "archestimator.com"
+  ],
+  "builds": [
+    {
+      "id": "bld_kmr5em1kt",
+      "deploymentId": "dpl_3F9cagsB27x8iuEjYQ5nkCCfqecR",
+      "entrypoint": ".",
+      "readyState": "READY",
+      "readyStateAt": 1780713662784,
+      "createdAt": 1780713662784,
+      "createdIn": "sfo1",
+      "use": "@vercel/vc-build",
+      "config": {
+        "framework": "nextjs",
+        "nodeVersion": "24.x",
+        "projectCreatedAt": 1780143204391,
+        "vercelConfig": {
+          "git": {
+            "deploymentEnabled": false
+          },
+          "name": "archestimator",
+          "version": 2
+        }
+      },
+      "middleware": [
+        {
+          "id": "team_eRuwqQwhMbYYDmvgIgpQW1GS-36ded09a19ddd31578bc40cbc473f9364c",
+          "name": "_middleware",
+          "type": "lambda"
+        }
+      ],
+      "output": [
+        {
+          "prerender": {},
+          "type": "lambda",
+          "path": "_global-error",
+          "digest": "prj_QTjX1WrMb7b0ZxmMIRAL96ILRY9E/ee7ec8c75a4eac1f490dbd299a808fef9fdccc98989fbaba64f891de170cf404",
+          "mode": 49590,
+          "size": 18521846,
+          "lambda": {
+            "functionName": "team_eRuwqQwhMbYYDmvgIgpQW1GS-1ea33305c8b02eb7385fbe021f1c7fb751",
+            "deployedTo": [
+              "iad1"
+            ],
+            "runtime": "nodejs24.x",
+            "memorySize": 2048,
+            "timeout": 300,
+            "layers": [
+              "arn:aws:lambda:AWS_REGION_PLACEHOLDER:977805900156:layer:vercel-rusty-runtime-nodejs-1_44_5-production-f3d48228c9-AWS_ARCH_PLACEHOLDER:1"
+            ]
+          },
+          "edge": null
+        },
+        {
+          "prerender": {},
+          "type": "lambda",
+          "path": "_global-error.rsc",
+          "digest": "prj_QTjX1WrMb7b0ZxmMIRAL96ILRY9E/ee7ec8c75a4eac1f490dbd299a808fef9fdccc98989fbaba64f891de170cf404",
+          "mode": 49590,
+          "size": 18521846,
+          "lambda": {
+            "functionName": "team_eRuwqQwhMbYYDmvgIgpQW1GS-1ea33305c8b02eb7385fbe021f1c7fb751",
+            "deployedTo": [
+              "iad1"
+            ],
+            "runtime": "nodejs24.x",
+            "memorySize": 2048,
+            "timeout": 300,
+            "layers": [
+              "arn:aws:lambda:AWS_REGION_PLACEHOLDER:977805900156:layer:vercel-rusty-runtime-nodejs-1_44_5-production-f3d48228c9-AWS_ARCH_PLACEHOLDER:1"
+            ]
+          },
+          "edge": null
+        },
+        {
+          "prerender": {},
+          "type": "lambda",
+          "path": "_global-error.segments/__PAGE__.segment.rsc",
+          "digest": "prj_QTjX1WrMb7b0ZxmMIRAL96ILRY9E/ee7ec8c75a4eac1f490dbd299a808fef9fdccc98989fbaba64f891de170cf404",
+          "mode": 49590,
+          "size": 18521846,
+          "lambda": {
+            "functionName": "team_eRuwqQwhMbYYDmvgIgpQW1GS-1ea33305c8b02eb7385fbe021f1c7fb751",
+            "deployedTo": [
+              "iad1"
+            ],
+            "runtime": "nodejs24.x",
+            "memorySize": 2048,
+            "timeout": 300,
+            "layers": [
+              "arn:aws:lambda:AWS_REGION_PLACEHOLDER:977805900156:layer:vercel-rusty-runtime-nodejs-1_44_5-production-f3d48228c9-AWS_ARCH_PLACEHOLDER:1"
+            ]
+          },
+          "edge": null
+        },
+        {
+          "prerender": {},
+          "type": "lambda",
+          "path": "_global-error.segments/_full.segment.rsc",
+          "digest": "prj_QTjX1WrMb7b0ZxmMIRAL96ILRY9E/ee7ec8c75a4eac1f490dbd299a808fef9fdccc98989fbaba64f891de170cf404",
+          "mode": 49590,
+          "size": 18521846,
+          "lambda": {
+            "functionName": "team_eRuwqQwhMbYYDmvgIgpQW1GS-1ea33305c8b02eb7385fbe021f1c7fb751",
+            "deployedTo": [
+              "iad1"
+            ],
+            "runtime": "nodejs24.x",
+            "memorySize": 2048,
+            "timeout": 300,
+            "layers": [
+              "arn:aws:lambda:AWS_REGION_PLACEHOLDER:977805900156:layer:vercel-rusty-runtime-nodejs-1_44_5-production-f3d48228c9-AWS_ARCH_PLACEHOLDER:1"
+            ]
+          },
+          "edge": null
+        },
+        {
+          "prerender": {},
+          "type": "lambda",
+          "path": "_global-error.segments/_head.segment.rsc",
+          "digest": "prj_QTjX1WrMb7b0ZxmMIRAL96ILRY9E/ee7ec8c75a4eac1f490dbd299a808fef9fdccc98989fbaba64f891de170cf404",
+          "mode": 49590,
+          "size": 18521846,
+          "lambda": {
+            "functionName": "team_eRuwqQwhMbYYDmvgIgpQW1GS-1ea33305c8b02eb7385fbe021f1c7fb751",
+            "deployedTo": [
+              "iad1"
+            ],
+            "runtime": "nodejs24.x",
+            "memorySize": 2048,
+            "timeout": 300,
+            "layers": [
+              "arn:aws:lambda:AWS_REGION_PLACEHOLDER:977805900156:layer:vercel-rusty-runtime-nodejs-1_44_5-production-f3d48228c9-AWS_ARCH_PLACEHOLDER:1"
+            ]
+          },
+          "edge": null
+        },
+        {
+          "prerender": {},
+          "type": "lambda",
+          "path": "_global-error.segments/_index.segment.rsc",
+          "digest": "prj_QTjX1WrMb7b0ZxmMIRAL96ILRY9E/ee7ec8c75a4eac1f490dbd299a808fef9fdccc98989fbaba64f891de170cf404",
+          "mode": 49590,
+          "size": 18521846,
+          "lambda": {
+            "functionName": "team_eRuwqQwhMbYYDmvgIgpQW1GS-1ea33305c8b02eb7385fbe021f1c7fb751",
+            "deployedTo": [
+              "iad1"
+            ],
+            "runtime": "nodejs24.x",
+            "memorySize": 2048,
+            "timeout": 300,
+            "layers": [
+              "arn:aws:lambda:AWS_REGION_PLACEHOLDER:977805900156:layer:vercel-rusty-runtime-nodejs-1_44_5-production-f3d48228c9-AWS_ARCH_PLACEHOLDER:1"
+            ]
+          },
+          "edge": null
+        },
+        {
+          "prerender": {},
+          "type": "lambda",
+          "path": "_global-error.segments/_tree.segment.rsc",
+          "digest": "prj_QTjX1WrMb7b0ZxmMIRAL96ILRY9E/ee7ec8c75a4eac1f490dbd299a808fef9fdccc98989fbaba64f891de170cf404",
+          "mode": 49590,
+          "size": 18521846,
+          "lambda": {
+            "functionName": "team_eRuwqQwhMbYYDmvgIgpQW1GS-1ea33305c8b02eb7385fbe021f1c7fb751",
+            "deployedTo": [
+              "iad1"
+            ],
+            "runtime": "nodejs24.x",
+            "memorySize": 2048,
+            "timeout": 300,
+            "layers": [
+              "arn:aws:lambda:AWS_REGION_PLACEHOLDER:977805900156:layer:vercel-rusty-runtime-nodejs-1_44_5-production-f3d48228c9-AWS_ARCH_PLACEHOLDER:1"
+            ]
+          },
+          "edge": null
+        },
+        {
+          "prerender": {},
+          "type": "lambda",
+          "path": "workshop/components",
+          "digest": "prj_QTjX1WrMb7b0ZxmMIRAL96ILRY9E/ee7ec8c75a4eac1f490dbd299a808fef9fdccc98989fbaba64f891de170cf404",
+          "mode": 49590,
+          "size": 18521846,
+          "lambda": {
+            "functionName": "team_eRuwqQwhMbYYDmvgIgpQW1GS-1ea33305c8b02eb7385fbe021f1c7fb751",
+            "deployedTo": [
+              "iad1"
+            ],
+            "runtime": "nodejs24.x",
+            "memorySize": 2048,
+            "timeout": 300,
+            "layers": [
+              "arn:aws:lambda:AWS_REGION_PLACEHOLDER:977805900156:layer:vercel-rusty-runtime-nodejs-1_44_5-production-f3d48228c9-AWS_ARCH_PLACEHOLDER:1"
+            ]
+          },
+          "edge": null
+        },
+        {
+          "prerender": {},
+          "type": "lambda",
+          "path": "workshop/components.rsc",
+          "digest": "prj_QTjX1WrMb7b0ZxmMIRAL96ILRY9E/ee7ec8c75a4eac1f490dbd299a808fef9fdccc98989fbaba64f891de170cf404",
+          "mode": 49590,
+          "size": 18521846,
+          "lambda": {
+            "functionName": "team_eRuwqQwhMbYYDmvgIgpQW1GS-1ea33305c8b02eb7385fbe021f1c7fb751",
+            "deployedTo": [
+              "iad1"
+            ],
+            "runtime": "nodejs24.x",
+            "memorySize": 2048,
+            "timeout": 300,
+            "layers": [
+              "arn:aws:lambda:AWS_REGION_PLACEHOLDER:977805900156:layer:vercel-rusty-runtime-nodejs-1_44_5-production-f3d48228c9-AWS_ARCH_PLACEHOLDER:1"
+            ]
+          },
+          "edge": null
+        },
+        {
+          "prerender": {},
+          "type": "lambda",
+          "path": "workshop/components.segments/_full.segment.rsc",
+          "digest": "prj_QTjX1WrMb7b0ZxmMIRAL96ILRY9E/ee7ec8c75a4eac1f490dbd299a808fef9fdccc98989fbaba64f891de170cf404",
+          "mode": 49590,
+          "size": 18521846,
+          "lambda": {
+            "functionName": "team_eRuwqQwhMbYYDmvgIgpQW1GS-1ea33305c8b02eb7385fbe021f1c7fb751",
+            "deployedTo": [
+              "iad1"
+            ],
+            "runtime": "nodejs24.x",
+            "memorySize": 2048,
+            "timeout": 300,
+            "layers": [
+              "arn:aws:lambda:AWS_REGION_PLACEHOLDER:977805900156:layer:vercel-rusty-runtime-nodejs-1_44_5-production-f3d48228c9-AWS_ARCH_PLACEHOLDER:1"
+            ]
+          },
+          "edge": null
+        },
+        {
+          "prerender": {},
+          "type": "lambda",
+          "path": "workshop/components.segments/_head.segment.rsc",
+          "digest": "prj_QTjX1WrMb7b0ZxmMIRAL96ILRY9E/ee7ec8c75a4eac1f490dbd299a808fef9fdccc98989fbaba64f891de170cf404",
+          "mode": 49590,
+          "size": 18521846,
+          "lambda": {
+            "functionName": "team_eRuwqQwhMbYYDmvgIgpQW1GS-1ea33305c8b02eb7385fbe021f1c7fb751",
+            "deployedTo": [
+              "iad1"
+            ],
+            "runtime": "nodejs24.x",
+            "memorySize": 2048,
+            "timeout": 300,
+            "layers": [
+              "arn:aws:lambda:AWS_REGION_PLACEHOLDER:977805900156:layer:vercel-rusty-runtime-nodejs-1_44_5-production-f3d48228c9-AWS_ARCH_PLACEHOLDER:1"
+            ]
+          },
+          "edge": null
+        },
+        {
+          "prerender": {},
+          "type": "lambda",
+          "path": "workshop/components.segments/_index.segment.rsc",
+          "digest": "prj_QTjX1WrMb7b0ZxmMIRAL96ILRY9E/ee7ec8c75a4eac1f490dbd299a808fef9fdccc98989fbaba64f891de170cf404",
+          "mode": 49590,
+          "size": 18521846,
+          "lambda": {
+            "functionName": "team_eRuwqQwhMbYYDmvgIgpQW1GS-1ea33305c8b02eb7385fbe021f1c7fb751",
+            "deployedTo": [
+              "iad1"
+            ],
+            "runtime": "nodejs24.x",
+            "memorySize": 2048,
+            "timeout": 300,
+            "layers": [
+              "arn:aws:lambda:AWS_REGION_PLACEHOLDER:977805900156:layer:vercel-rusty-runtime-nodejs-1_44_5-production-f3d48228c9-AWS_ARCH_PLACEHOLDER:1"
+            ]
+          },
+          "edge": null
+        },
+        {
+          "prerender": {},
+          "type": "lambda",
+          "path": "workshop/components.segments/_tree.segment.rsc",
+          "digest": "prj_QTjX1WrMb7b0ZxmMIRAL96ILRY9E/ee7ec8c75a4eac1f490dbd299a808fef9fdccc98989fbaba64f891de170cf404",
+          "mode": 49590,
+          "size": 18521846,
+          "lambda": {
+            "functionName": "team_eRuwqQwhMbYYDmvgIgpQW1GS-1ea33305c8b02eb7385fbe021f1c7fb751",
+            "deployedTo": [
+              "iad1"
+            ],
+            "runtime": "nodejs24.x",
+            "memorySize": 2048,
+            "timeout": 300,
+            "layers": [
+              "arn:aws:lambda:AWS_REGION_PLACEHOLDER:977805900156:layer:vercel-rusty-runtime-nodejs-1_44_5-production-f3d48228c9-AWS_ARCH_PLACEHOLDER:1"
+            ]
+          },
+          "edge": null
+        },
+        {
+          "prerender": {},
+          "type": "lambda",
+          "path": "workshop/components.segments/workshop.segment.rsc",
+          "digest": "prj_QTjX1WrMb7b0ZxmMIRAL96ILRY9E/ee7ec8c75a4eac1f490dbd299a808fef9fdccc98989fbaba64f891de170cf404",
+          "mode": 49590,
+          "size": 18521846,
+          "lambda": {
+            "functionName": "team_eRuwqQwhMbYYDmvgIgpQW1GS-1ea33305c8b02eb7385fbe021f1c7fb751",
+            "deployedTo": [
+              "iad1"
+            ],
+            "runtime": "nodejs24.x",
+            "memorySize": 2048,
+            "timeout": 300,
+            "layers": [
+              "arn:aws:lambda:AWS_REGION_PLACEHOLDER:977805900156:layer:vercel-rusty-runtime-nodejs-1_44_5-production-f3d48228c9-AWS_ARCH_PLACEHOLDER:1"
+            ]
+          },
+          "edge": null
+        },
+        {
+          "prerender": {},
+          "type": "lambda",
+          "path": "workshop/components.segments/workshop/components.segment.rsc",
+          "digest": "prj_QTjX1WrMb7b0ZxmMIRAL96ILRY9E/ee7ec8c75a4eac1f490dbd299a808fef9fdccc98989fbaba64f891de170cf404",
+          "mode": 49590,
+          "size": 18521846,
+          "lambda": {
+            "functionName": "team_eRuwqQwhMbYYDmvgIgpQW1GS-1ea33305c8b02eb7385fbe021f1c7fb751",
+            "deployedTo": [
+              "iad1"
+            ],
+            "runtime": "nodejs24.x",
+            "memorySize": 2048,
+            "timeout": 300,
+            "layers": [
+              "arn:aws:lambda:AWS_REGION_PLACEHOLDER:977805900156:layer:vercel-rusty-runtime-nodejs-1_44_5-production-f3d48228c9-AWS_ARCH_PLACEHOLDER:1"
+            ]
+          },
+          "edge": null
+        },
+        {
+          "prerender": {},
+          "type": "lambda",
+          "path": "workshop/components.segments/workshop/components/__PAGE__.segment.rsc",
+          "digest": "prj_QTjX1WrMb7b0ZxmMIRAL96ILRY9E/ee7ec8c75a4eac1f490dbd299a808fef9fdccc98989fbaba64f891de170cf404",
+          "mode": 49590,
+          "size": 18521846,
+          "lambda": {
+            "functionName": "team_eRuwqQwhMbYYDmvgIgpQW1GS-1ea33305c8b02eb7385fbe021f1c7fb751",
+            "deployedTo": [
+              "iad1"
+            ],
+            "runtime": "nodejs24.x",
+            "memorySize": 2048,
+            "timeout": 300,
+            "layers": [
+              "arn:aws:lambda:AWS_REGION_PLACEHOLDER:977805900156:layer:vercel-rusty-runtime-nodejs-1_44_5-production-f3d48228c9-AWS_ARCH_PLACEHOLDER:1"
+            ]
+          },
+          "edge": null
+        },
+        {
+          "prerender": {},
+          "type": "lambda",
+          "path": "workshop/onboarding",
+          "digest": "prj_QTjX1WrMb7b0ZxmMIRAL96ILRY9E/ee7ec8c75a4eac1f490dbd299a808fef9fdccc98989fbaba64f891de170cf404",
+          "mode": 49590,
+          "size": 18521846,
+          "lambda": {
+            "functionName": "team_eRuwqQwhMbYYDmvgIgpQW1GS-1ea33305c8b02eb7385fbe021f1c7fb751",
+            "deployedTo": [
+              "iad1"
+            ],
+            "runtime": "nodejs24.x",
+            "memorySize": 2048,
+            "timeout": 300,
+            "layers": [
+              "arn:aws:lambda:AWS_REGION_PLACEHOLDER:977805900156:layer:vercel-rusty-runtime-nodejs-1_44_5-production-f3d48228c9-AWS_ARCH_PLACEHOLDER:1"
+            ]
+          },
+          "edge": null
+        },
+        {
+          "prerender": {},
+          "type": "lambda",
+          "path": "workshop/onboarding.rsc",
+          "digest": "prj_QTjX1WrMb7b0ZxmMIRAL96ILRY9E/ee7ec8c75a4eac1f490dbd299a808fef9fdccc98989fbaba64f891de170cf404",
+          "mode": 49590,
+          "size": 18521846,
+          "lambda": {
+            "functionName": "team_eRuwqQwhMbYYDmvgIgpQW1GS-1ea33305c8b02eb7385fbe021f1c7fb751",
+            "deployedTo": [
+              "iad1"
+            ],
+            "runtime": "nodejs24.x",
+            "memorySize": 2048,
+            "timeout": 300,
+            "layers": [
+              "arn:aws:lambda:AWS_REGION_PLACEHOLDER:977805900156:layer:vercel-rusty-runtime-nodejs-1_44_5-production-f3d48228c9-AWS_ARCH_PLACEHOLDER:1"
+            ]
+          },
+          "edge": null
+        },
+        {
+          "prerender": {},
+          "type": "lambda",
+          "path": "workshop/onboarding.segments/_full.segment.rsc",
+          "digest": "prj_QTjX1WrMb7b0ZxmMIRAL96ILRY9E/ee7ec8c75a4eac1f490dbd299a808fef9fdccc98989fbaba64f891de170cf404",
+          "mode": 49590,
+          "size": 18521846,
+          "lambda": {
+            "functionName": "team_eRuwqQwhMbYYDmvgIgpQW1GS-1ea33305c8b02eb7385fbe021f1c7fb751",
+            "deployedTo": [
+              "iad1"
+            ],
+            "runtime": "nodejs24.x",
+            "memorySize": 2048,
+            "timeout": 300,
+            "layers": [
+              "arn:aws:lambda:AWS_REGION_PLACEHOLDER:977805900156:layer:vercel-rusty-runtime-nodejs-1_44_5-production-f3d48228c9-AWS_ARCH_PLACEHOLDER:1"
+            ]
+          },
+          "edge": null
+        },
+        {
+          "prerender": {},
+          "type": "lambda",
+          "path": "workshop/onboarding.segments/_head.segment.rsc",
+          "digest": "prj_QTjX1WrMb7b0ZxmMIRAL96ILRY9E/ee7ec8c75a4eac1f490dbd299a808fef9fdccc98989fbaba64f891de170cf404",
+          "mode": 49590,
+          "size": 18521846,
+          "lambda": {
+            "functionName": "team_eRuwqQwhMbYYDmvgIgpQW1GS-1ea33305c8b02eb7385fbe021f1c7fb751",
+            "deployedTo": [
+              "iad1"
+            ],
+            "runtime": "nodejs24.x",
+            "memorySize": 2048,
+            "timeout": 300,
+            "layers": [
+              "arn:aws:lambda:AWS_REGION_PLACEHOLDER:977805900156:layer:vercel-rusty-runtime-nodejs-1_44_5-production-f3d48228c9-AWS_ARCH_PLACEHOLDER:1"
+            ]
+          },
+          "edge": null
+        },
+        {
+          "prerender": {},
+          "type": "lambda",
+          "path": "workshop/onboarding.segments/_index.segment.rsc",
+          "digest": "prj_QTjX1WrMb7b0ZxmMIRAL96ILRY9E/ee7ec8c75a4eac1f490dbd299a808fef9fdccc98989fbaba64f891de170cf404",
+          "mode": 49590,
+          "size": 18521846,
+          "lambda": {
+            "functionName": "team_eRuwqQwhMbYYDmvgIgpQW1GS-1ea33305c8b02eb7385fbe021f1c7fb751",
+            "deployedTo": [
+              "iad1"
+            ],
+            "runtime": "nodejs24.x",
+            "memorySize": 2048,
+            "timeout": 300,
+            "layers": [
+              "arn:aws:lambda:AWS_REGION_PLACEHOLDER:977805900156:layer:vercel-rusty-runtime-nodejs-1_44_5-production-f3d48228c9-AWS_ARCH_PLACEHOLDER:1"
+            ]
+          },
+          "edge": null
+        },
+        {
+          "prerender": {},
+          "type": "lambda",
+          "path": "workshop/onboarding.segments/_tree.segment.rsc",
+          "digest": "prj_QTjX1WrMb7b0ZxmMIRAL96ILRY9E/ee7ec8c75a4eac1f490dbd299a808fef9fdccc98989fbaba64f891de170cf404",
+          "mode": 49590,
+          "size": 18521846,
+          "lambda": {
+            "functionName": "team_eRuwqQwhMbYYDmvgIgpQW1GS-1ea33305c8b02eb7385fbe021f1c7fb751",
+            "deployedTo": [
+              "iad1"
+            ],
+            "runtime": "nodejs24.x",
+            "memorySize": 2048,
+            "timeout": 300,
+            "layers": [
+              "arn:aws:lambda:AWS_REGION_PLACEHOLDER:977805900156:layer:vercel-rusty-runtime-nodejs-1_44_5-production-f3d48228c9-AWS_ARCH_PLACEHOLDER:1"
+            ]
+          },
+          "edge": null
+        },
+        {
+          "prerender": {},
+          "type": "lambda",
+          "path": "workshop/onboarding.segments/workshop.segment.rsc",
+          "digest": "prj_QTjX1WrMb7b0ZxmMIRAL96ILRY9E/ee7ec8c75a4eac1f490dbd299a808fef9fdccc98989fbaba64f891de170cf404",
+          "mode": 49590,
+          "size": 18521846,
+          "lambda": {
+            "functionName": "team_eRuwqQwhMbYYDmvgIgpQW1GS-1ea33305c8b02eb7385fbe021f1c7fb751",
+            "deployedTo": [
+              "iad1"
+            ],
+            "runtime": "nodejs24.x",
+            "memorySize": 2048,
+            "timeout": 300,
+            "layers": [
+              "arn:aws:lambda:AWS_REGION_PLACEHOLDER:977805900156:layer:vercel-rusty-runtime-nodejs-1_44_5-production-f3d48228c9-AWS_ARCH_PLACEHOLDER:1"
+            ]
+          },
+          "edge": null
+        },
+        {
+          "prerender": {},
+          "type": "lambda",
+          "path": "workshop/onboarding.segments/workshop/onboarding.segment.rsc",
+          "digest": "prj_QTjX1WrMb7b0ZxmMIRAL96ILRY9E/ee7ec8c75a4eac1f490dbd299a808fef9fdccc98989fbaba64f891de170cf404",
+          "mode": 49590,
+          "size": 18521846,
+          "lambda": {
+            "functionName": "team_eRuwqQwhMbYYDmvgIgpQW1GS-1ea33305c8b02eb7385fbe021f1c7fb751",
+            "deployedTo": [
+              "iad1"
+            ],
+            "runtime": "nodejs24.x",
+            "memorySize": 2048,
+            "timeout": 300,
+            "layers": [
+              "arn:aws:lambda:AWS_REGION_PLACEHOLDER:977805900156:layer:vercel-rusty-runtime-nodejs-1_44_5-production-f3d48228c9-AWS_ARCH_PLACEHOLDER:1"
+            ]
+          },
+          "edge": null
+        },
+        {
+          "prerender": {},
+          "type": "lambda",
+          "path": "workshop/onboarding.segments/workshop/onboarding/__PAGE__.segment.rsc",
+          "digest": "prj_QTjX1WrMb7b0ZxmMIRAL96ILRY9E/ee7ec8c75a4eac1f490dbd299a808fef9fdccc98989fbaba64f891de170cf404",
+          "mode": 49590,
+          "size": 18521846,
+          "lambda": {
+            "functionName": "team_eRuwqQwhMbYYDmvgIgpQW1GS-1ea33305c8b02eb7385fbe021f1c7fb751",
+            "deployedTo": [
+              "iad1"
+            ],
+            "runtime": "nodejs24.x",
+            "memorySize": 2048,
+            "timeout": 300,
+            "layers": [
+              "arn:aws:lambda:AWS_REGION_PLACEHOLDER:977805900156:layer:vercel-rusty-runtime-nodejs-1_44_5-production-f3d48228c9-AWS_ARCH_PLACEHOLDER:1"
+            ]
+          },
+          "edge": null
+        },
+        {
+          "prerender": null,
+          "type": "lambda",
+          "path": "_middleware",
+          "digest": "prj_QTjX1WrMb7b0ZxmMIRAL96ILRY9E/f5991bc03e1e93337d49bd1350982758898c1040c9ca68ca2d1637977bc7d1ef",
+          "mode": 49590,
+          "size": 516056,
+          "lambda": {
+            "functionName": "team_eRuwqQwhMbYYDmvgIgpQW1GS-36ded09a19ddd31578bc40cbc473f9364c",
+            "deployedTo": [
+              "arn1",
+              "bom1",
+              "cdg1",
+              "cle1",
+              "cpt1",
+              "dub1",
+              "fra1",
+              "gru1",
+              "hkg1",
+              "hnd1",
+              "iad1",
+              "icn1",
+              "kix1",
+              "lhr1",
+              "pdx1",
+              "sfo1",
+              "sin1",
+              "syd1",
+              "yul1"
+            ],
+            "runtime": "nodejs24.x",
+            "memorySize": 2048,
+            "timeout": 300,
+            "layers": [
+              "arn:aws:lambda:AWS_REGION_PLACEHOLDER:977805900156:layer:vercel-rusty-runtime-nodejs-1_44_5-production-f3d48228c9-AWS_ARCH_PLACEHOLDER:1"
+            ]
+          },
+          "edge": null
+        },
+        {
+          "prerender": null,
+          "type": "lambda",
+          "path": "_not-found",
+          "digest": "prj_QTjX1WrMb7b0ZxmMIRAL96ILRY9E/ee7ec8c75a4eac1f490dbd299a808fef9fdccc98989fbaba64f891de170cf404",
+          "mode": 49590,
+          "size": 18521846,
+          "lambda": {
+            "functionName": "team_eRuwqQwhMbYYDmvgIgpQW1GS-1ea33305c8b02eb7385fbe021f1c7fb751",
+            "deployedTo": [
+              "iad1"
+            ],
+            "runtime": "nodejs24.x",
+            "memorySize": 2048,
+            "timeout": 300,
+            "layers": [
+              "arn:aws:lambda:AWS_REGION_PLACEHOLDER:977805900156:layer:vercel-rusty-runtime-nodejs-1_44_5-production-f3d48228c9-AWS_ARCH_PLACEHOLDER:1"
+            ]
+          },
+          "edge": null
+        },
+        {
+          "prerender": null,
+          "type": "lambda",
+          "path": "_not-found.rsc",
+          "digest": "prj_QTjX1WrMb7b0ZxmMIRAL96ILRY9E/ee7ec8c75a4eac1f490dbd299a808fef9fdccc98989fbaba64f891de170cf404",
+          "mode": 49590,
+          "size": 18521846,
+          "lambda": {
+            "functionName": "team_eRuwqQwhMbYYDmvgIgpQW1GS-1ea33305c8b02eb7385fbe021f1c7fb751",
+            "deployedTo": [
+              "iad1"
+            ],
+            "runtime": "nodejs24.x",
+            "memorySize": 2048,
+            "timeout": 300,
+            "layers": [
+              "arn:aws:lambda:AWS_REGION_PLACEHOLDER:977805900156:layer:vercel-rusty-runtime-nodejs-1_44_5-production-f3d48228c9-AWS_ARCH_PLACEHOLDER:1"
+            ]
+          },
+          "edge": null
+        },
+        {
+          "prerender": null,
+          "type": "lambda",
+          "path": "about",
+          "digest": "prj_QTjX1WrMb7b0ZxmMIRAL96ILRY9E/ee7ec8c75a4eac1f490dbd299a808fef9fdccc98989fbaba64f891de170cf404",
+          "mode": 49590,
+          "size": 18521846,
+          "lambda": {
+            "functionName": "team_eRuwqQwhMbYYDmvgIgpQW1GS-1ea33305c8b02eb7385fbe021f1c7fb751",
+            "deployedTo": [
+              "iad1"
+            ],
+            "runtime": "nodejs24.x",
+            "memorySize": 2048,
+            "timeout": 300,
+            "layers": [
+              "arn:aws:lambda:AWS_REGION_PLACEHOLDER:977805900156:layer:vercel-rusty-runtime-nodejs-1_44_5-production-f3d48228c9-AWS_ARCH_PLACEHOLDER:1"
+            ]
+          },
+          "edge": null
+        },
+        {
+          "prerender": null,
+          "type": "lambda",
+          "path": "about.rsc",
+          "digest": "prj_QTjX1WrMb7b0ZxmMIRAL96ILRY9E/ee7ec8c75a4eac1f490dbd299a808fef9fdccc98989fbaba64f891de170cf404",
+          "mode": 49590,
+          "size": 18521846,
+          "lambda": {
+            "functionName": "team_eRuwqQwhMbYYDmvgIgpQW1GS-1ea33305c8b02eb7385fbe021f1c7fb751",
+            "deployedTo": [
+              "iad1"
+            ],
+            "runtime": "nodejs24.x",
+            "memorySize": 2048,
+            "timeout": 300,
+            "layers": [
+              "arn:aws:lambda:AWS_REGION_PLACEHOLDER:977805900156:layer:vercel-rusty-runtime-nodejs-1_44_5-production-f3d48228c9-AWS_ARCH_PLACEHOLDER:1"
+            ]
+          },
+          "edge": null
+        },
+        {
+          "prerender": null,
+          "type": "lambda",
+          "path": "api/ai/ask",
+          "digest": "prj_QTjX1WrMb7b0ZxmMIRAL96ILRY9E/ee7ec8c75a4eac1f490dbd299a808fef9fdccc98989fbaba64f891de170cf404",
+          "mode": 49590,
+          "size": 18521846,
+          "lambda": {
+            "functionName": "team_eRuwqQwhMbYYDmvgIgpQW1GS-1ea33305c8b02eb7385fbe021f1c7fb751",
+            "deployedTo": [
+              "iad1"
+            ],
+            "runtime": "nodejs24.x",
+            "memorySize": 2048,
+            "timeout": 300,
+            "layers": [
+              "arn:aws:lambda:AWS_REGION_PLACEHOLDER:977805900156:layer:vercel-rusty-runtime-nodejs-1_44_5-production-f3d48228c9-AWS_ARCH_PLACEHOLDER:1"
+            ]
+          },
+          "edge": null
+        },
+        {
+          "prerender": null,
+          "type": "lambda",
+          "path": "api/ai/ask.rsc",
+          "digest": "prj_QTjX1WrMb7b0ZxmMIRAL96ILRY9E/ee7ec8c75a4eac1f490dbd299a808fef9fdccc98989fbaba64f891de170cf404",
+          "mode": 49590,
+          "size": 18521846,
+          "lambda": {
+            "functionName": "team_eRuwqQwhMbYYDmvgIgpQW1GS-1ea33305c8b02eb7385fbe021f1c7fb751",
+            "deployedTo": [
+              "iad1"
+            ],
+            "runtime": "nodejs24.x",
+            "memorySize": 2048,
+            "timeout": 300,
+            "layers": [
+              "arn:aws:lambda:AWS_REGION_PLACEHOLDER:977805900156:layer:vercel-rusty-runtime-nodejs-1_44_5-production-f3d48228c9-AWS_ARCH_PLACEHOLDER:1"
+            ]
+          },
+          "edge": null
+        },
+        {
+          "prerender": null,
+          "type": "lambda",
+          "path": "api/ai/package-builder",
+          "digest": "prj_QTjX1WrMb7b0ZxmMIRAL96ILRY9E/ee7ec8c75a4eac1f490dbd299a808fef9fdccc98989fbaba64f891de170cf404",
+          "mode": 49590,
+          "size": 18521846,
+          "lambda": {
+            "functionName": "team_eRuwqQwhMbYYDmvgIgpQW1GS-1ea33305c8b02eb7385fbe021f1c7fb751",
+            "deployedTo": [
+              "iad1"
+            ],
+            "runtime": "nodejs24.x",
+            "memorySize": 2048,
+            "timeout": 300,
+            "layers": [
+              "arn:aws:lambda:AWS_REGION_PLACEHOLDER:977805900156:layer:vercel-rusty-runtime-nodejs-1_44_5-production-f3d48228c9-AWS_ARCH_PLACEHOLDER:1"
+            ]
+          },
+          "edge": null
+        },
+        {
+          "prerender": null,
+          "type": "lambda",
+          "path": "api/ai/package-builder.rsc",
+          "digest": "prj_QTjX1WrMb7b0ZxmMIRAL96ILRY9E/ee7ec8c75a4eac1f490dbd299a808fef9fdccc98989fbaba64f891de170cf404",
+          "mode": 49590,
+          "size": 18521846,
+          "lambda": {
+            "functionName": "team_eRuwqQwhMbYYDmvgIgpQW1GS-1ea33305c8b02eb7385fbe021f1c7fb751",
+            "deployedTo": [
+              "iad1"
+            ],
+            "runtime": "nodejs24.x",
+            "memorySize": 2048,
+            "timeout": 300,
+            "layers": [
+              "arn:aws:lambda:AWS_REGION_PLACEHOLDER:977805900156:layer:vercel-rusty-runtime-nodejs-1_44_5-production-f3d48228c9-AWS_ARCH_PLACEHOLDER:1"
+            ]
+          },
+          "edge": null
+        },
+        {
+          "prerender": null,
+          "type": "lambda",
+          "path": "api/component-library/attachments",
+          "digest": "prj_QTjX1WrMb7b0ZxmMIRAL96ILRY9E/ee7ec8c75a4eac1f490dbd299a808fef9fdccc98989fbaba64f891de170cf404",
+          "mode": 49590,
+          "size": 18521846,
+          "lambda": {
+            "functionName": "team_eRuwqQwhMbYYDmvgIgpQW1GS-1ea33305c8b02eb7385fbe021f1c7fb751",
+            "deployedTo": [
+              "iad1"
+            ],
+            "runtime": "nodejs24.x",
+            "memorySize": 2048,
+            "timeout": 300,
+            "layers": [
+              "arn:aws:lambda:AWS_REGION_PLACEHOLDER:977805900156:layer:vercel-rusty-runtime-nodejs-1_44_5-production-f3d48228c9-AWS_ARCH_PLACEHOLDER:1"
+            ]
+          },
+          "edge": null
+        },
+        {
+          "prerender": null,
+          "type": "lambda",
+          "path": "api/component-library/attachments.rsc",
+          "digest": "prj_QTjX1WrMb7b0ZxmMIRAL96ILRY9E/ee7ec8c75a4eac1f490dbd299a808fef9fdccc98989fbaba64f891de170cf404",
+          "mode": 49590,
+          "size": 18521846,
+          "lambda": {
+            "functionName": "team_eRuwqQwhMbYYDmvgIgpQW1GS-1ea33305c8b02eb7385fbe021f1c7fb751",
+            "deployedTo": [
+              "iad1"
+            ],
+            "runtime": "nodejs24.x",
+            "memorySize": 2048,
+            "timeout": 300,
+            "layers": [
+              "arn:aws:lambda:AWS_REGION_PLACEHOLDER:977805900156:layer:vercel-rusty-runtime-nodejs-1_44_5-production-f3d48228c9-AWS_ARCH_PLACEHOLDER:1"
+            ]
+          },
+          "edge": null
+        },
+        {
+          "prerender": null,
+          "type": "lambda",
+          "path": "api/component-library/images",
+          "digest": "prj_QTjX1WrMb7b0ZxmMIRAL96ILRY9E/ee7ec8c75a4eac1f490dbd299a808fef9fdccc98989fbaba64f891de170cf404",
+          "mode": 49590,
+          "size": 18521846,
+          "lambda": {
+            "functionName": "team_eRuwqQwhMbYYDmvgIgpQW1GS-1ea33305c8b02eb7385fbe021f1c7fb751",
+            "deployedTo": [
+              "iad1"
+            ],
+            "runtime": "nodejs24.x",
+            "memorySize": 2048,
+            "timeout": 300,
+            "layers": [
+              "arn:aws:lambda:AWS_REGION_PLACEHOLDER:977805900156:layer:vercel-rusty-runtime-nodejs-1_44_5-production-f3d48228c9-AWS_ARCH_PLACEHOLDER:1"
+            ]
+          },
+          "edge": null
+        },
+        {
+          "prerender": null,
+          "type": "lambda",
+          "path": "api/component-library/images.rsc",
+          "digest": "prj_QTjX1WrMb7b0ZxmMIRAL96ILRY9E/ee7ec8c75a4eac1f490dbd299a808fef9fdccc98989fbaba64f891de170cf404",
+          "mode": 49590,
+          "size": 18521846,
+          "lambda": {
+            "functionName": "team_eRuwqQwhMbYYDmvgIgpQW1GS-1ea33305c8b02eb7385fbe021f1c7fb751",
+            "deployedTo": [
+              "iad1"
+            ],
+            "runtime": "nodejs24.x",
+            "memorySize": 2048,
+            "timeout": 300,
+            "layers": [
+              "arn:aws:lambda:AWS_REGION_PLACEHOLDER:977805900156:layer:vercel-rusty-runtime-nodejs-1_44_5-production-f3d48228c9-AWS_ARCH_PLACEHOLDER:1"
+            ]
+          },
+          "edge": null
+        },
+        {
+          "prerender": null,
+          "type": "lambda",
+          "path": "api/health",
+          "digest": "prj_QTjX1WrMb7b0ZxmMIRAL96ILRY9E/ee7ec8c75a4eac1f490dbd299a808fef9fdccc98989fbaba64f891de170cf404",
+          "mode": 49590,
+          "size": 18521846,
+          "lambda": {
+            "functionName": "team_eRuwqQwhMbYYDmvgIgpQW1GS-1ea33305c8b02eb7385fbe021f1c7fb751",
+            "deployedTo": [
+              "iad1"
+            ],
+            "runtime": "nodejs24.x",
+            "memorySize": 2048,
+            "timeout": 300,
+            "layers": [
+              "arn:aws:lambda:AWS_REGION_PLACEHOLDER:977805900156:layer:vercel-rusty-runtime-nodejs-1_44_5-production-f3d48228c9-AWS_ARCH_PLACEHOLDER:1"
+            ]
+          },
+          "edge": null
+        },
+        {
+          "prerender": null,
+          "type": "lambda",
+          "path": "api/health.rsc",
+          "digest": "prj_QTjX1WrMb7b0ZxmMIRAL96ILRY9E/ee7ec8c75a4eac1f490dbd299a808fef9fdccc98989fbaba64f891de170cf404",
+          "mode": 49590,
+          "size": 18521846,
+          "lambda": {
+            "functionName": "team_eRuwqQwhMbYYDmvgIgpQW1GS-1ea33305c8b02eb7385fbe021f1c7fb751",
+            "deployedTo": [
+              "iad1"
+            ],
+            "runtime": "nodejs24.x",
+            "memorySize": 2048,
+            "timeout": 300,
+            "layers": [
+              "arn:aws:lambda:AWS_REGION_PLACEHOLDER:977805900156:layer:vercel-rusty-runtime-nodejs-1_44_5-production-f3d48228c9-AWS_ARCH_PLACEHOLDER:1"
+            ]
+          },
+          "edge": null
+        },
+        {
+          "prerender": null,
+          "type": "lambda",
+          "path": "api/projects/[projectId]/estimates/[estimateId]/export/proposal.xlsx",
+          "digest": "prj_QTjX1WrMb7b0ZxmMIRAL96ILRY9E/ee7ec8c75a4eac1f490dbd299a808fef9fdccc98989fbaba64f891de170cf404",
+          "mode": 49590,
+          "size": 18521846,
+          "lambda": {
+            "functionName": "team_eRuwqQwhMbYYDmvgIgpQW1GS-1ea33305c8b02eb7385fbe021f1c7fb751",
+            "deployedTo": [
+              "iad1"
+            ],
+            "runtime": "nodejs24.x",
+            "memorySize": 2048,
+            "timeout": 300,
+            "layers": [
+              "arn:aws:lambda:AWS_REGION_PLACEHOLDER:977805900156:layer:vercel-rusty-runtime-nodejs-1_44_5-production-f3d48228c9-AWS_ARCH_PLACEHOLDER:1"
+            ]
+          },
+          "edge": null
+        },
+        {
+          "prerender": null,
+          "type": "lambda",
+          "path": "api/projects/[projectId]/estimates/[estimateId]/export/proposal.xlsx.rsc",
+          "digest": "prj_QTjX1WrMb7b0ZxmMIRAL96ILRY9E/ee7ec8c75a4eac1f490dbd299a808fef9fdccc98989fbaba64f891de170cf404",
+          "mode": 49590,
+          "size": 18521846,
+          "lambda": {
+            "functionName": "team_eRuwqQwhMbYYDmvgIgpQW1GS-1ea33305c8b02eb7385fbe021f1c7fb751",
+            "deployedTo": [
+              "iad1"
+            ],
+            "runtime": "nodejs24.x",
+            "memorySize": 2048,
+            "timeout": 300,
+            "layers": [
+              "arn:aws:lambda:AWS_REGION_PLACEHOLDER:977805900156:layer:vercel-rusty-runtime-nodejs-1_44_5-production-f3d48228c9-AWS_ARCH_PLACEHOLDER:1"
+            ]
+          },
+          "edge": null
+        },
+        {
+          "prerender": null,
+          "type": "lambda",
+          "path": "api/projects/images",
+          "digest": "prj_QTjX1WrMb7b0ZxmMIRAL96ILRY9E/ee7ec8c75a4eac1f490dbd299a808fef9fdccc98989fbaba64f891de170cf404",
+          "mode": 49590,
+          "size": 18521846,
+          "lambda": {
+            "functionName": "team_eRuwqQwhMbYYDmvgIgpQW1GS-1ea33305c8b02eb7385fbe021f1c7fb751",
+            "deployedTo": [
+              "iad1"
+            ],
+            "runtime": "nodejs24.x",
+            "memorySize": 2048,
+            "timeout": 300,
+            "layers": [
+              "arn:aws:lambda:AWS_REGION_PLACEHOLDER:977805900156:layer:vercel-rusty-runtime-nodejs-1_44_5-production-f3d48228c9-AWS_ARCH_PLACEHOLDER:1"
+            ]
+          },
+          "edge": null
+        },
+        {
+          "prerender": null,
+          "type": "lambda",
+          "path": "api/projects/images.rsc",
+          "digest": "prj_QTjX1WrMb7b0ZxmMIRAL96ILRY9E/ee7ec8c75a4eac1f490dbd299a808fef9fdccc98989fbaba64f891de170cf404",
+          "mode": 49590,
+          "size": 18521846,
+          "lambda": {
+            "functionName": "team_eRuwqQwhMbYYDmvgIgpQW1GS-1ea33305c8b02eb7385fbe021f1c7fb751",
+            "deployedTo": [
+              "iad1"
+            ],
+            "runtime": "nodejs24.x",
+            "memorySize": 2048,
+            "timeout": 300,
+            "layers": [
+              "arn:aws:lambda:AWS_REGION_PLACEHOLDER:977805900156:layer:vercel-rusty-runtime-nodejs-1_44_5-production-f3d48228c9-AWS_ARCH_PLACEHOLDER:1"
+            ]
+          },
+          "edge": null
+        },
+        {
+          "prerender": null,
+          "type": "lambda",
+          "path": "api/share/[token]",
+          "digest": "prj_QTjX1WrMb7b0ZxmMIRAL96ILRY9E/ee7ec8c75a4eac1f490dbd299a808fef9fdccc98989fbaba64f891de170cf404",
+          "mode": 49590,
+          "size": 18521846,
+          "lambda": {
+            "functionName": "team_eRuwqQwhMbYYDmvgIgpQW1GS-1ea33305c8b02eb7385fbe021f1c7fb751",
+            "deployedTo": [
+              "iad1"
+            ],
+            "runtime": "nodejs24.x",
+            "memorySize": 2048,
+            "timeout": 300,
+            "layers": [
+              "arn:aws:lambda:AWS_REGION_PLACEHOLDER:977805900156:layer:vercel-rusty-runtime-nodejs-1_44_5-production-f3d48228c9-AWS_ARCH_PLACEHOLDER:1"
+            ]
+          },
+          "edge": null
+        },
+        {
+          "prerender": null,
+          "type": "lambda",
+          "path": "api/share/[token].rsc",
+          "digest": "prj_QTjX1WrMb7b0ZxmMIRAL96ILRY9E/ee7ec8c75a4eac1f490dbd299a808fef9fdccc98989fbaba64f891de170cf404",
+          "mode": 49590,
+          "size": 18521846,
+          "lambda": {
+            "functionName": "team_eRuwqQwhMbYYDmvgIgpQW1GS-1ea33305c8b02eb7385fbe021f1c7fb751",
+            "deployedTo": [
+              "iad1"
+            ],
+            "runtime": "nodejs24.x",
+            "memorySize": 2048,
+            "timeout": 300,
+            "layers": [
+              "arn:aws:lambda:AWS_REGION_PLACEHOLDER:977805900156:layer:vercel-rusty-runtime-nodejs-1_44_5-production-f3d48228c9-AWS_ARCH_PLACEHOLDER:1"
+            ]
+          },
+          "edge": null
+        },
+        {
+          "prerender": null,
+          "type": "lambda",
+          "path": "api/share/[token]/activity",
+          "digest": "prj_QTjX1WrMb7b0ZxmMIRAL96ILRY9E/ee7ec8c75a4eac1f490dbd299a808fef9fdccc98989fbaba64f891de170cf404",
+          "mode": 49590,
+          "size": 18521846,
+          "lambda": {
+            "functionName": "team_eRuwqQwhMbYYDmvgIgpQW1GS-1ea33305c8b02eb7385fbe021f1c7fb751",
+            "deployedTo": [
+              "iad1"
+            ],
+            "runtime": "nodejs24.x",
+            "memorySize": 2048,
+            "timeout": 300,
+            "layers": [
+              "arn:aws:lambda:AWS_REGION_PLACEHOLDER:977805900156:layer:vercel-rusty-runtime-nodejs-1_44_5-production-f3d48228c9-AWS_ARCH_PLACEHOLDER:1"
+            ]
+          },
+          "edge": null
+        },
+        {
+          "prerender": null,
+          "type": "lambda",
+          "path": "api/share/[token]/activity.rsc",
+          "digest": "prj_QTjX1WrMb7b0ZxmMIRAL96ILRY9E/ee7ec8c75a4eac1f490dbd299a808fef9fdccc98989fbaba64f891de170cf404",
+          "mode": 49590,
+          "size": 18521846,
+          "lambda": {
+            "functionName": "team_eRuwqQwhMbYYDmvgIgpQW1GS-1ea33305c8b02eb7385fbe021f1c7fb751",
+            "deployedTo": [
+              "iad1"
+            ],
+            "runtime": "nodejs24.x",
+            "memorySize": 2048,
+            "timeout": 300,
+            "layers": [
+              "arn:aws:lambda:AWS_REGION_PLACEHOLDER:977805900156:layer:vercel-rusty-runtime-nodejs-1_44_5-production-f3d48228c9-AWS_ARCH_PLACEHOLDER:1"
+            ]
+          },
+          "edge": null
+        },
+        {
+          "prerender": null,
+          "type": "lambda",
+          "path": "api/share/[token]/comment",
+          "digest": "prj_QTjX1WrMb7b0ZxmMIRAL96ILRY9E/ee7ec8c75a4eac1f490dbd299a808fef9fdccc98989fbaba64f891de170cf404",
+          "mode": 49590,
+          "size": 18521846,
+          "lambda": {
+            "functionName": "team_eRuwqQwhMbYYDmvgIgpQW1GS-1ea33305c8b02eb7385fbe021f1c7fb751",
+            "deployedTo": [
+              "iad1"
+            ],
+            "runtime": "nodejs24.x",
+            "memorySize": 2048,
+            "timeout": 300,
+            "layers": [
+              "arn:aws:lambda:AWS_REGION_PLACEHOLDER:977805900156:layer:vercel-rusty-runtime-nodejs-1_44_5-production-f3d48228c9-AWS_ARCH_PLACEHOLDER:1"
+            ]
+          },
+          "edge": null
+        },
+        {
+          "prerender": null,
+          "type": "lambda",
+          "path": "api/share/[token]/comment.rsc",
+          "digest": "prj_QTjX1WrMb7b0ZxmMIRAL96ILRY9E/ee7ec8c75a4eac1f490dbd299a808fef9fdccc98989fbaba64f891de170cf404",
+          "mode": 49590,
+          "size": 18521846,
+          "lambda": {
+            "functionName": "team_eRuwqQwhMbYYDmvgIgpQW1GS-1ea33305c8b02eb7385fbe021f1c7fb751",
+            "deployedTo": [
+              "iad1"
+            ],
+            "runtime": "nodejs24.x",
+            "memorySize": 2048,
+            "timeout": 300,
+            "layers": [
+              "arn:aws:lambda:AWS_REGION_PLACEHOLDER:977805900156:layer:vercel-rusty-runtime-nodejs-1_44_5-production-f3d48228c9-AWS_ARCH_PLACEHOLDER:1"
+            ]
+          },
+          "edge": null
+        },
+        {
+          "prerender": null,
+          "type": "lambda",
+          "path": "api/share/[token]/decision",
+          "digest": "prj_QTjX1WrMb7b0ZxmMIRAL96ILRY9E/ee7ec8c75a4eac1f490dbd299a808fef9fdccc98989fbaba64f891de170cf404",
+          "mode": 49590,
+          "size": 18521846,
+          "lambda": {
+            "functionName": "team_eRuwqQwhMbYYDmvgIgpQW1GS-1ea33305c8b02eb7385fbe021f1c7fb751",
+            "deployedTo": [
+              "iad1"
+            ],
+            "runtime": "nodejs24.x",
+            "memorySize": 2048,
+            "timeout": 300,
+            "layers": [
+              "arn:aws:lambda:AWS_REGION_PLACEHOLDER:977805900156:layer:vercel-rusty-runtime-nodejs-1_44_5-production-f3d48228c9-AWS_ARCH_PLACEHOLDER:1"
+            ]
+          },
+          "edge": null
+        },
+        {
+          "prerender": null,
+          "type": "lambda",
+          "path": "api/share/[token]/decision.rsc",
+          "digest": "prj_QTjX1WrMb7b0ZxmMIRAL96ILRY9E/ee7ec8c75a4eac1f490dbd299a808fef9fdccc98989fbaba64f891de170cf404",
+          "mode": 49590,
+          "size": 18521846,
+          "lambda": {
+            "functionName": "team_eRuwqQwhMbYYDmvgIgpQW1GS-1ea33305c8b02eb7385fbe021f1c7fb751",
+            "deployedTo": [
+              "iad1"
+            ],
+            "runtime": "nodejs24.x",
+            "memorySize": 2048,
+            "timeout": 300,
+            "layers": [
+              "arn:aws:lambda:AWS_REGION_PLACEHOLDER:977805900156:layer:vercel-rusty-runtime-nodejs-1_44_5-production-f3d48228c9-AWS_ARCH_PLACEHOLDER:1"
+            ]
+          },
+          "edge": null
+        },
+        {
+          "prerender": null,
+          "type": "lambda",
+          "path": "api/share/[token]/events",
+          "digest": "prj_QTjX1WrMb7b0ZxmMIRAL96ILRY9E/ee7ec8c75a4eac1f490dbd299a808fef9fdccc98989fbaba64f891de170cf404",
+          "mode": 49590,
+          "size": 18521846,
+          "lambda": {
+            "functionName": "team_eRuwqQwhMbYYDmvgIgpQW1GS-1ea33305c8b02eb7385fbe021f1c7fb751",
+            "deployedTo": [
+              "iad1"
+            ],
+            "runtime": "nodejs24.x",
+            "memorySize": 2048,
+            "timeout": 300,
+            "layers": [
+              "arn:aws:lambda:AWS_REGION_PLACEHOLDER:977805900156:layer:vercel-rusty-runtime-nodejs-1_44_5-production-f3d48228c9-AWS_ARCH_PLACEHOLDER:1"
+            ]
+          },
+          "edge": null
+        },
+        {
+          "prerender": null,
+          "type": "lambda",
+          "path": "api/share/[token]/events.rsc",
+          "digest": "prj_QTjX1WrMb7b0ZxmMIRAL96ILRY9E/ee7ec8c75a4eac1f490dbd299a808fef9fdccc98989fbaba64f891de170cf404",
+          "mode": 49590,
+          "size": 18521846,
+          "lambda": {
+            "functionName": "team_eRuwqQwhMbYYDmvgIgpQW1GS-1ea33305c8b02eb7385fbe021f1c7fb751",
+            "deployedTo": [
+              "iad1"
+            ],
+            "runtime": "nodejs24.x",
+            "memorySize": 2048,
+            "timeout": 300,
+            "layers": [
+              "arn:aws:lambda:AWS_REGION_PLACEHOLDER:977805900156:layer:vercel-rusty-runtime-nodejs-1_44_5-production-f3d48228c9-AWS_ARCH_PLACEHOLDER:1"
+            ]
+          },
+          "edge": null
+        },
+        {
+          "prerender": null,
+          "type": "lambda",
+          "path": "api/share/[token]/password",
+          "digest": "prj_QTjX1WrMb7b0ZxmMIRAL96ILRY9E/ee7ec8c75a4eac1f490dbd299a808fef9fdccc98989fbaba64f891de170cf404",
+          "mode": 49590,
+          "size": 18521846,
+          "lambda": {
+            "functionName": "team_eRuwqQwhMbYYDmvgIgpQW1GS-1ea33305c8b02eb7385fbe021f1c7fb751",
+            "deployedTo": [
+              "iad1"
+            ],
+            "runtime": "nodejs24.x",
+            "memorySize": 2048,
+            "timeout": 300,
+            "layers": [
+              "arn:aws:lambda:AWS_REGION_PLACEHOLDER:977805900156:layer:vercel-rusty-runtime-nodejs-1_44_5-production-f3d48228c9-AWS_ARCH_PLACEHOLDER:1"
+            ]
+          },
+          "edge": null
+        },
+        {
+          "prerender": null,
+          "type": "lambda",
+          "path": "api/share/[token]/password.rsc",
+          "digest": "prj_QTjX1WrMb7b0ZxmMIRAL96ILRY9E/ee7ec8c75a4eac1f490dbd299a808fef9fdccc98989fbaba64f891de170cf404",
+          "mode": 49590,
+          "size": 18521846,
+          "lambda": {
+            "functionName": "team_eRuwqQwhMbYYDmvgIgpQW1GS-1ea33305c8b02eb7385fbe021f1c7fb751",
+            "deployedTo": [
+              "iad1"
+            ],
+            "runtime": "nodejs24.x",
+            "memorySize": 2048,
+            "timeout": 300,
+            "layers": [
+              "arn:aws:lambda:AWS_REGION_PLACEHOLDER:977805900156:layer:vercel-rusty-runtime-nodejs-1_44_5-production-f3d48228c9-AWS_ARCH_PLACEHOLDER:1"
+            ]
+          },
+          "edge": null
+        },
+        {
+          "prerender": null,
+          "type": "lambda",
+          "path": "api/share/[token]/session",
+          "digest": "prj_QTjX1WrMb7b0ZxmMIRAL96ILRY9E/ee7ec8c75a4eac1f490dbd299a808fef9fdccc98989fbaba64f891de170cf404",
+          "mode": 49590,
+          "size": 18521846,
+          "lambda": {
+            "functionName": "team_eRuwqQwhMbYYDmvgIgpQW1GS-1ea33305c8b02eb7385fbe021f1c7fb751",
+            "deployedTo": [
+              "iad1"
+            ],
+            "runtime": "nodejs24.x",
+            "memorySize": 2048,
+            "timeout": 300,
+            "layers": [
+              "arn:aws:lambda:AWS_REGION_PLACEHOLDER:977805900156:layer:vercel-rusty-runtime-nodejs-1_44_5-production-f3d48228c9-AWS_ARCH_PLACEHOLDER:1"
+            ]
+          },
+          "edge": null
+        },
+        {
+          "prerender": null,
+          "type": "lambda",
+          "path": "api/share/[token]/session.rsc",
+          "digest": "prj_QTjX1WrMb7b0ZxmMIRAL96ILRY9E/ee7ec8c75a4eac1f490dbd299a808fef9fdccc98989fbaba64f891de170cf404",
+          "mode": 49590,
+          "size": 18521846,
+          "lambda": {
+            "functionName": "team_eRuwqQwhMbYYDmvgIgpQW1GS-1ea33305c8b02eb7385fbe021f1c7fb751",
+            "deployedTo": [
+              "iad1"
+            ],
+            "runtime": "nodejs24.x",
+            "memorySize": 2048,
+            "timeout": 300,
+            "layers": [
+              "arn:aws:lambda:AWS_REGION_PLACEHOLDER:977805900156:layer:vercel-rusty-runtime-nodejs-1_44_5-production-f3d48228c9-AWS_ARCH_PLACEHOLDER:1"
+            ]
+          },
+          "edge": null
+        },
+        {
+          "prerender": null,
+          "type": "lambda",
+          "path": "api/share/[token]/unsubscribe",
+          "digest": "prj_QTjX1WrMb7b0ZxmMIRAL96ILRY9E/ee7ec8c75a4eac1f490dbd299a808fef9fdccc98989fbaba64f891de170cf404",
+          "mode": 49590,
+          "size": 18521846,
+          "lambda": {
+            "functionName": "team_eRuwqQwhMbYYDmvgIgpQW1GS-1ea33305c8b02eb7385fbe021f1c7fb751",
+            "deployedTo": [
+              "iad1"
+            ],
+            "runtime": "nodejs24.x",
+            "memorySize": 2048,
+            "timeout": 300,
+            "layers": [
+              "arn:aws:lambda:AWS_REGION_PLACEHOLDER:977805900156:layer:vercel-rusty-runtime-nodejs-1_44_5-production-f3d48228c9-AWS_ARCH_PLACEHOLDER:1"
+            ]
+          },
+          "edge": null
+        },
+        {
+          "prerender": null,
+          "type": "lambda",
+          "path": "api/share/[token]/unsubscribe.rsc",
+          "digest": "prj_QTjX1WrMb7b0ZxmMIRAL96ILRY9E/ee7ec8c75a4eac1f490dbd299a808fef9fdccc98989fbaba64f891de170cf404",
+          "mode": 49590,
+          "size": 18521846,
+          "lambda": {
+            "functionName": "team_eRuwqQwhMbYYDmvgIgpQW1GS-1ea33305c8b02eb7385fbe021f1c7fb751",
+            "deployedTo": [
+              "iad1"
+            ],
+            "runtime": "nodejs24.x",
+            "memorySize": 2048,
+            "timeout": 300,
+            "layers": [
+              "arn:aws:lambda:AWS_REGION_PLACEHOLDER:977805900156:layer:vercel-rusty-runtime-nodejs-1_44_5-production-f3d48228c9-AWS_ARCH_PLACEHOLDER:1"
+            ]
+          },
+          "edge": null
+        },
+        {
+          "prerender": null,
+          "type": "lambda",
+          "path": "api/webhooks/resend",
+          "digest": "prj_QTjX1WrMb7b0ZxmMIRAL96ILRY9E/ee7ec8c75a4eac1f490dbd299a808fef9fdccc98989fbaba64f891de170cf404",
+          "mode": 49590,
+          "size": 18521846,
+          "lambda": {
+            "functionName": "team_eRuwqQwhMbYYDmvgIgpQW1GS-1ea33305c8b02eb7385fbe021f1c7fb751",
+            "deployedTo": [
+              "iad1"
+            ],
+            "runtime": "nodejs24.x",
+            "memorySize": 2048,
+            "timeout": 300,
+            "layers": [
+              "arn:aws:lambda:AWS_REGION_PLACEHOLDER:977805900156:layer:vercel-rusty-runtime-nodejs-1_44_5-production-f3d48228c9-AWS_ARCH_PLACEHOLDER:1"
+            ]
+          },
+          "edge": null
+        },
+        {
+          "prerender": null,
+          "type": "lambda",
+          "path": "api/webhooks/resend.rsc",
+          "digest": "prj_QTjX1WrMb7b0ZxmMIRAL96ILRY9E/ee7ec8c75a4eac1f490dbd299a808fef9fdccc98989fbaba64f891de170cf404",
+          "mode": 49590,
+          "size": 18521846,
+          "lambda": {
+            "functionName": "team_eRuwqQwhMbYYDmvgIgpQW1GS-1ea33305c8b02eb7385fbe021f1c7fb751",
+            "deployedTo": [
+              "iad1"
+            ],
+            "runtime": "nodejs24.x",
+            "memorySize": 2048,
+            "timeout": 300,
+            "layers": [
+              "arn:aws:lambda:AWS_REGION_PLACEHOLDER:977805900156:layer:vercel-rusty-runtime-nodejs-1_44_5-production-f3d48228c9-AWS_ARCH_PLACEHOLDER:1"
+            ]
+          },
+          "edge": null
+        },
+        {
+          "prerender": null,
+          "type": "lambda",
+          "path": "auth/callback",
+          "digest": "prj_QTjX1WrMb7b0ZxmMIRAL96ILRY9E/ee7ec8c75a4eac1f490dbd299a808fef9fdccc98989fbaba64f891de170cf404",
+          "mode": 49590,
+          "size": 18521846,
+          "lambda": {
+            "functionName": "team_eRuwqQwhMbYYDmvgIgpQW1GS-1ea33305c8b02eb7385fbe021f1c7fb751",
+            "deployedTo": [
+              "iad1"
+            ],
+            "runtime": "nodejs24.x",
+            "memorySize": 2048,
+            "timeout": 300,
+            "layers": [
+              "arn:aws:lambda:AWS_REGION_PLACEHOLDER:977805900156:layer:vercel-rusty-runtime-nodejs-1_44_5-production-f3d48228c9-AWS_ARCH_PLACEHOLDER:1"
+            ]
+          },
+          "edge": null
+        },
+        {
+          "prerender": null,
+          "type": "lambda",
+          "path": "auth/callback.rsc",
+          "digest": "prj_QTjX1WrMb7b0ZxmMIRAL96ILRY9E/ee7ec8c75a4eac1f490dbd299a808fef9fdccc98989fbaba64f891de170cf404",
+          "mode": 49590,
+          "size": 18521846,
+          "lambda": {
+            "functionName": "team_eRuwqQwhMbYYDmvgIgpQW1GS-1ea33305c8b02eb7385fbe021f1c7fb751",
+            "deployedTo": [
+              "iad1"
+            ],
+            "runtime": "nodejs24.x",
+            "memorySize": 2048,
+            "timeout": 300,
+            "layers": [
+              "arn:aws:lambda:AWS_REGION_PLACEHOLDER:977805900156:layer:vercel-rusty-runtime-nodejs-1_44_5-production-f3d48228c9-AWS_ARCH_PLACEHOLDER:1"
+            ]
+          },
+          "edge": null
+        },
+        {
+          "prerender": null,
+          "type": "lambda",
+          "path": "beta/access-required",
+          "digest": "prj_QTjX1WrMb7b0ZxmMIRAL96ILRY9E/ee7ec8c75a4eac1f490dbd299a808fef9fdccc98989fbaba64f891de170cf404",
+          "mode": 49590,
+          "size": 18521846,
+          "lambda": {
+            "functionName": "team_eRuwqQwhMbYYDmvgIgpQW1GS-1ea33305c8b02eb7385fbe021f1c7fb751",
+            "deployedTo": [
+              "iad1"
+            ],
+            "runtime": "nodejs24.x",
+            "memorySize": 2048,
+            "timeout": 300,
+            "layers": [
+              "arn:aws:lambda:AWS_REGION_PLACEHOLDER:977805900156:layer:vercel-rusty-runtime-nodejs-1_44_5-production-f3d48228c9-AWS_ARCH_PLACEHOLDER:1"
+            ]
+          },
+          "edge": null
+        },
+        {
+          "prerender": null,
+          "type": "lambda",
+          "path": "beta/access-required.rsc",
+          "digest": "prj_QTjX1WrMb7b0ZxmMIRAL96ILRY9E/ee7ec8c75a4eac1f490dbd299a808fef9fdccc98989fbaba64f891de170cf404",
+          "mode": 49590,
+          "size": 18521846,
+          "lambda": {
+            "functionName": "team_eRuwqQwhMbYYDmvgIgpQW1GS-1ea33305c8b02eb7385fbe021f1c7fb751",
+            "deployedTo": [
+              "iad1"
+            ],
+            "runtime": "nodejs24.x",
+            "memorySize": 2048,
+            "timeout": 300,
+            "layers": [
+              "arn:aws:lambda:AWS_REGION_PLACEHOLDER:977805900156:layer:vercel-rusty-runtime-nodejs-1_44_5-production-f3d48228c9-AWS_ARCH_PLACEHOLDER:1"
+            ]
+          },
+          "edge": null
+        },
+        {
+          "prerender": null,
+          "type": "lambda",
+          "path": "contact",
+          "digest": "prj_QTjX1WrMb7b0ZxmMIRAL96ILRY9E/ee7ec8c75a4eac1f490dbd299a808fef9fdccc98989fbaba64f891de170cf404",
+          "mode": 49590,
+          "size": 18521846,
+          "lambda": {
+            "functionName": "team_eRuwqQwhMbYYDmvgIgpQW1GS-1ea33305c8b02eb7385fbe021f1c7fb751",
+            "deployedTo": [
+              "iad1"
+            ],
+            "runtime": "nodejs24.x",
+            "memorySize": 2048,
+            "timeout": 300,
+            "layers": [
+              "arn:aws:lambda:AWS_REGION_PLACEHOLDER:977805900156:layer:vercel-rusty-runtime-nodejs-1_44_5-production-f3d48228c9-AWS_ARCH_PLACEHOLDER:1"
+            ]
+          },
+          "edge": null
+        },
+        {
+          "prerender": null,
+          "type": "lambda",
+          "path": "contact.rsc",
+          "digest": "prj_QTjX1WrMb7b0ZxmMIRAL96ILRY9E/ee7ec8c75a4eac1f490dbd299a808fef9fdccc98989fbaba64f891de170cf404",
+          "mode": 49590,
+          "size": 18521846,
+          "lambda": {
+            "functionName": "team_eRuwqQwhMbYYDmvgIgpQW1GS-1ea33305c8b02eb7385fbe021f1c7fb751",
+            "deployedTo": [
+              "iad1"
+            ],
+            "runtime": "nodejs24.x",
+            "memorySize": 2048,
+            "timeout": 300,
+            "layers": [
+              "arn:aws:lambda:AWS_REGION_PLACEHOLDER:977805900156:layer:vercel-rusty-runtime-nodejs-1_44_5-production-f3d48228c9-AWS_ARCH_PLACEHOLDER:1"
+            ]
+          },
+          "edge": null
+        },
+        {
+          "prerender": null,
+          "type": "lambda",
+          "path": "features",
+          "digest": "prj_QTjX1WrMb7b0ZxmMIRAL96ILRY9E/ee7ec8c75a4eac1f490dbd299a808fef9fdccc98989fbaba64f891de170cf404",
+          "mode": 49590,
+          "size": 18521846,
+          "lambda": {
+            "functionName": "team_eRuwqQwhMbYYDmvgIgpQW1GS-1ea33305c8b02eb7385fbe021f1c7fb751",
+            "deployedTo": [
+              "iad1"
+            ],
+            "runtime": "nodejs24.x",
+            "memorySize": 2048,
+            "timeout": 300,
+            "layers": [
+              "arn:aws:lambda:AWS_REGION_PLACEHOLDER:977805900156:layer:vercel-rusty-runtime-nodejs-1_44_5-production-f3d48228c9-AWS_ARCH_PLACEHOLDER:1"
+            ]
+          },
+          "edge": null
+        },
+        {
+          "prerender": null,
+          "type": "lambda",
+          "path": "features.rsc",
+          "digest": "prj_QTjX1WrMb7b0ZxmMIRAL96ILRY9E/ee7ec8c75a4eac1f490dbd299a808fef9fdccc98989fbaba64f891de170cf404",
+          "mode": 49590,
+          "size": 18521846,
+          "lambda": {
+            "functionName": "team_eRuwqQwhMbYYDmvgIgpQW1GS-1ea33305c8b02eb7385fbe021f1c7fb751",
+            "deployedTo": [
+              "iad1"
+            ],
+            "runtime": "nodejs24.x",
+            "memorySize": 2048,
+            "timeout": 300,
+            "layers": [
+              "arn:aws:lambda:AWS_REGION_PLACEHOLDER:977805900156:layer:vercel-rusty-runtime-nodejs-1_44_5-production-f3d48228c9-AWS_ARCH_PLACEHOLDER:1"
+            ]
+          },
+          "edge": null
+        },
+        {
+          "prerender": null,
+          "type": "lambda",
+          "path": "index",
+          "digest": "prj_QTjX1WrMb7b0ZxmMIRAL96ILRY9E/ee7ec8c75a4eac1f490dbd299a808fef9fdccc98989fbaba64f891de170cf404",
+          "mode": 49590,
+          "size": 18521846,
+          "lambda": {
+            "functionName": "team_eRuwqQwhMbYYDmvgIgpQW1GS-1ea33305c8b02eb7385fbe021f1c7fb751",
+            "deployedTo": [
+              "iad1"
+            ],
+            "runtime": "nodejs24.x",
+            "memorySize": 2048,
+            "timeout": 300,
+            "layers": [
+              "arn:aws:lambda:AWS_REGION_PLACEHOLDER:977805900156:layer:vercel-rusty-runtime-nodejs-1_44_5-production-f3d48228c9-AWS_ARCH_PLACEHOLDER:1"
+            ]
+          },
+          "edge": null
+        },
+        {
+          "prerender": null,
+          "type": "lambda",
+          "path": "index",
+          "digest": "prj_QTjX1WrMb7b0ZxmMIRAL96ILRY9E/ee7ec8c75a4eac1f490dbd299a808fef9fdccc98989fbaba64f891de170cf404",
+          "mode": 49590,
+          "size": 18521846,
+          "lambda": {
+            "functionName": "team_eRuwqQwhMbYYDmvgIgpQW1GS-1ea33305c8b02eb7385fbe021f1c7fb751",
+            "deployedTo": [
+              "iad1"
+            ],
+            "runtime": "nodejs24.x",
+            "memorySize": 2048,
+            "timeout": 300,
+            "layers": [
+              "arn:aws:lambda:AWS_REGION_PLACEHOLDER:977805900156:layer:vercel-rusty-runtime-nodejs-1_44_5-production-f3d48228c9-AWS_ARCH_PLACEHOLDER:1"
+            ]
+          },
+          "edge": null
+        },
+        {
+          "prerender": null,
+          "type": "lambda",
+          "path": "index.rsc",
+          "digest": "prj_QTjX1WrMb7b0ZxmMIRAL96ILRY9E/ee7ec8c75a4eac1f490dbd299a808fef9fdccc98989fbaba64f891de170cf404",
+          "mode": 49590,
+          "size": 18521846,
+          "lambda": {
+            "functionName": "team_eRuwqQwhMbYYDmvgIgpQW1GS-1ea33305c8b02eb7385fbe021f1c7fb751",
+            "deployedTo": [
+              "iad1"
+            ],
+            "runtime": "nodejs24.x",
+            "memorySize": 2048,
+            "timeout": 300,
+            "layers": [
+              "arn:aws:lambda:AWS_REGION_PLACEHOLDER:977805900156:layer:vercel-rusty-runtime-nodejs-1_44_5-production-f3d48228c9-AWS_ARCH_PLACEHOLDER:1"
+            ]
+          },
+          "edge": null
+        },
+        {
+          "prerender": null,
+          "type": "lambda",
+          "path": "invite/[token]",
+          "digest": "prj_QTjX1WrMb7b0ZxmMIRAL96ILRY9E/ee7ec8c75a4eac1f490dbd299a808fef9fdccc98989fbaba64f891de170cf404",
+          "mode": 49590,
+          "size": 18521846,
+          "lambda": {
+            "functionName": "team_eRuwqQwhMbYYDmvgIgpQW1GS-1ea33305c8b02eb7385fbe021f1c7fb751",
+            "deployedTo": [
+              "iad1"
+            ],
+            "runtime": "nodejs24.x",
+            "memorySize": 2048,
+            "timeout": 300,
+            "layers": [
+              "arn:aws:lambda:AWS_REGION_PLACEHOLDER:977805900156:layer:vercel-rusty-runtime-nodejs-1_44_5-production-f3d48228c9-AWS_ARCH_PLACEHOLDER:1"
+            ]
+          },
+          "edge": null
+        },
+        {
+          "prerender": null,
+          "type": "lambda",
+          "path": "invite/[token].rsc",
+          "digest": "prj_QTjX1WrMb7b0ZxmMIRAL96ILRY9E/ee7ec8c75a4eac1f490dbd299a808fef9fdccc98989fbaba64f891de170cf404",
+          "mode": 49590,
+          "size": 18521846,
+          "lambda": {
+            "functionName": "team_eRuwqQwhMbYYDmvgIgpQW1GS-1ea33305c8b02eb7385fbe021f1c7fb751",
+            "deployedTo": [
+              "iad1"
+            ],
+            "runtime": "nodejs24.x",
+            "memorySize": 2048,
+            "timeout": 300,
+            "layers": [
+              "arn:aws:lambda:AWS_REGION_PLACEHOLDER:977805900156:layer:vercel-rusty-runtime-nodejs-1_44_5-production-f3d48228c9-AWS_ARCH_PLACEHOLDER:1"
+            ]
+          },
+          "edge": null
+        },
+        {
+          "prerender": null,
+          "type": "lambda",
+          "path": "invite/[token]/accept",
+          "digest": "prj_QTjX1WrMb7b0ZxmMIRAL96ILRY9E/ee7ec8c75a4eac1f490dbd299a808fef9fdccc98989fbaba64f891de170cf404",
+          "mode": 49590,
+          "size": 18521846,
+          "lambda": {
+            "functionName": "team_eRuwqQwhMbYYDmvgIgpQW1GS-1ea33305c8b02eb7385fbe021f1c7fb751",
+            "deployedTo": [
+              "iad1"
+            ],
+            "runtime": "nodejs24.x",
+            "memorySize": 2048,
+            "timeout": 300,
+            "layers": [
+              "arn:aws:lambda:AWS_REGION_PLACEHOLDER:977805900156:layer:vercel-rusty-runtime-nodejs-1_44_5-production-f3d48228c9-AWS_ARCH_PLACEHOLDER:1"
+            ]
+          },
+          "edge": null
+        },
+        {
+          "prerender": null,
+          "type": "lambda",
+          "path": "invite/[token]/accept.rsc",
+          "digest": "prj_QTjX1WrMb7b0ZxmMIRAL96ILRY9E/ee7ec8c75a4eac1f490dbd299a808fef9fdccc98989fbaba64f891de170cf404",
+          "mode": 49590,
+          "size": 18521846,
+          "lambda": {
+            "functionName": "team_eRuwqQwhMbYYDmvgIgpQW1GS-1ea33305c8b02eb7385fbe021f1c7fb751",
+            "deployedTo": [
+              "iad1"
+            ],
+            "runtime": "nodejs24.x",
+            "memorySize": 2048,
+            "timeout": 300,
+            "layers": [
+              "arn:aws:lambda:AWS_REGION_PLACEHOLDER:977805900156:layer:vercel-rusty-runtime-nodejs-1_44_5-production-f3d48228c9-AWS_ARCH_PLACEHOLDER:1"
+            ]
+          },
+          "edge": null
+        },
+        {
+          "prerender": null,
+          "type": "lambda",
+          "path": "invite/[token]/continue",
+          "digest": "prj_QTjX1WrMb7b0ZxmMIRAL96ILRY9E/ee7ec8c75a4eac1f490dbd299a808fef9fdccc98989fbaba64f891de170cf404",
+          "mode": 49590,
+          "size": 18521846,
+          "lambda": {
+            "functionName": "team_eRuwqQwhMbYYDmvgIgpQW1GS-1ea33305c8b02eb7385fbe021f1c7fb751",
+            "deployedTo": [
+              "iad1"
+            ],
+            "runtime": "nodejs24.x",
+            "memorySize": 2048,
+            "timeout": 300,
+            "layers": [
+              "arn:aws:lambda:AWS_REGION_PLACEHOLDER:977805900156:layer:vercel-rusty-runtime-nodejs-1_44_5-production-f3d48228c9-AWS_ARCH_PLACEHOLDER:1"
+            ]
+          },
+          "edge": null
+        },
+        {
+          "prerender": null,
+          "type": "lambda",
+          "path": "invite/[token]/continue.rsc",
+          "digest": "prj_QTjX1WrMb7b0ZxmMIRAL96ILRY9E/ee7ec8c75a4eac1f490dbd299a808fef9fdccc98989fbaba64f891de170cf404",
+          "mode": 49590,
+          "size": 18521846,
+          "lambda": {
+            "functionName": "team_eRuwqQwhMbYYDmvgIgpQW1GS-1ea33305c8b02eb7385fbe021f1c7fb751",
+            "deployedTo": [
+              "iad1"
+            ],
+            "runtime": "nodejs24.x",
+            "memorySize": 2048,
+            "timeout": 300,
+            "layers": [
+              "arn:aws:lambda:AWS_REGION_PLACEHOLDER:977805900156:layer:vercel-rusty-runtime-nodejs-1_44_5-production-f3d48228c9-AWS_ARCH_PLACEHOLDER:1"
+            ]
+          },
+          "edge": null
+        },
+        {
+          "prerender": null,
+          "type": "lambda",
+          "path": "invite/[token]/sign-out",
+          "digest": "prj_QTjX1WrMb7b0ZxmMIRAL96ILRY9E/ee7ec8c75a4eac1f490dbd299a808fef9fdccc98989fbaba64f891de170cf404",
+          "mode": 49590,
+          "size": 18521846,
+          "lambda": {
+            "functionName": "team_eRuwqQwhMbYYDmvgIgpQW1GS-1ea33305c8b02eb7385fbe021f1c7fb751",
+            "deployedTo": [
+              "iad1"
+            ],
+            "runtime": "nodejs24.x",
+            "memorySize": 2048,
+            "timeout": 300,
+            "layers": [
+              "arn:aws:lambda:AWS_REGION_PLACEHOLDER:977805900156:layer:vercel-rusty-runtime-nodejs-1_44_5-production-f3d48228c9-AWS_ARCH_PLACEHOLDER:1"
+            ]
+          },
+          "edge": null
+        },
+        {
+          "prerender": null,
+          "type": "lambda",
+          "path": "invite/[token]/sign-out.rsc",
+          "digest": "prj_QTjX1WrMb7b0ZxmMIRAL96ILRY9E/ee7ec8c75a4eac1f490dbd299a808fef9fdccc98989fbaba64f891de170cf404",
+          "mode": 49590,
+          "size": 18521846,
+          "lambda": {
+            "functionName": "team_eRuwqQwhMbYYDmvgIgpQW1GS-1ea33305c8b02eb7385fbe021f1c7fb751",
+            "deployedTo": [
+              "iad1"
+            ],
+            "runtime": "nodejs24.x",
+            "memorySize": 2048,
+            "timeout": 300,
+            "layers": [
+              "arn:aws:lambda:AWS_REGION_PLACEHOLDER:977805900156:layer:vercel-rusty-runtime-nodejs-1_44_5-production-f3d48228c9-AWS_ARCH_PLACEHOLDER:1"
+            ]
+          },
+          "edge": null
+        },
+        {
+          "prerender": null,
+          "type": "lambda",
+          "path": "login",
+          "digest": "prj_QTjX1WrMb7b0ZxmMIRAL96ILRY9E/ee7ec8c75a4eac1f490dbd299a808fef9fdccc98989fbaba64f891de170cf404",
+          "mode": 49590,
+          "size": 18521846,
+          "lambda": {
+            "functionName": "team_eRuwqQwhMbYYDmvgIgpQW1GS-1ea33305c8b02eb7385fbe021f1c7fb751",
+            "deployedTo": [
+              "iad1"
+            ],
+            "runtime": "nodejs24.x",
+            "memorySize": 2048,
+            "timeout": 300,
+            "layers": [
+              "arn:aws:lambda:AWS_REGION_PLACEHOLDER:977805900156:layer:vercel-rusty-runtime-nodejs-1_44_5-production-f3d48228c9-AWS_ARCH_PLACEHOLDER:1"
+            ]
+          },
+          "edge": null
+        },
+        {
+          "prerender": null,
+          "type": "lambda",
+          "path": "login.rsc",
+          "digest": "prj_QTjX1WrMb7b0ZxmMIRAL96ILRY9E/ee7ec8c75a4eac1f490dbd299a808fef9fdccc98989fbaba64f891de170cf404",
+          "mode": 49590,
+          "size": 18521846,
+          "lambda": {
+            "functionName": "team_eRuwqQwhMbYYDmvgIgpQW1GS-1ea33305c8b02eb7385fbe021f1c7fb751",
+            "deployedTo": [
+              "iad1"
+            ],
+            "runtime": "nodejs24.x",
+            "memorySize": 2048,
+            "timeout": 300,
+            "layers": [
+              "arn:aws:lambda:AWS_REGION_PLACEHOLDER:977805900156:layer:vercel-rusty-runtime-nodejs-1_44_5-production-f3d48228c9-AWS_ARCH_PLACEHOLDER:1"
+            ]
+          },
+          "edge": null
+        },
+        {
+          "prerender": null,
+          "type": "lambda",
+          "path": "pricing",
+          "digest": "prj_QTjX1WrMb7b0ZxmMIRAL96ILRY9E/ee7ec8c75a4eac1f490dbd299a808fef9fdccc98989fbaba64f891de170cf404",
+          "mode": 49590,
+          "size": 18521846,
+          "lambda": {
+            "functionName": "team_eRuwqQwhMbYYDmvgIgpQW1GS-1ea33305c8b02eb7385fbe021f1c7fb751",
+            "deployedTo": [
+              "iad1"
+            ],
+            "runtime": "nodejs24.x",
+            "memorySize": 2048,
+            "timeout": 300,
+            "layers": [
+              "arn:aws:lambda:AWS_REGION_PLACEHOLDER:977805900156:layer:vercel-rusty-runtime-nodejs-1_44_5-production-f3d48228c9-AWS_ARCH_PLACEHOLDER:1"
+            ]
+          },
+          "edge": null
+        },
+        {
+          "prerender": null,
+          "type": "lambda",
+          "path": "pricing.rsc",
+          "digest": "prj_QTjX1WrMb7b0ZxmMIRAL96ILRY9E/ee7ec8c75a4eac1f490dbd299a808fef9fdccc98989fbaba64f891de170cf404",
+          "mode": 49590,
+          "size": 18521846,
+          "lambda": {
+            "functionName": "team_eRuwqQwhMbYYDmvgIgpQW1GS-1ea33305c8b02eb7385fbe021f1c7fb751",
+            "deployedTo": [
+              "iad1"
+            ],
+            "runtime": "nodejs24.x",
+            "memorySize": 2048,
+            "timeout": 300,
+            "layers": [
+              "arn:aws:lambda:AWS_REGION_PLACEHOLDER:977805900156:layer:vercel-rusty-runtime-nodejs-1_44_5-production-f3d48228c9-AWS_ARCH_PLACEHOLDER:1"
+            ]
+          },
+          "edge": null
+        },
+        {
+          "prerender": null,
+          "type": "lambda",
+          "path": "privacy",
+          "digest": "prj_QTjX1WrMb7b0ZxmMIRAL96ILRY9E/ee7ec8c75a4eac1f490dbd299a808fef9fdccc98989fbaba64f891de170cf404",
+          "mode": 49590,
+          "size": 18521846,
+          "lambda": {
+            "functionName": "team_eRuwqQwhMbYYDmvgIgpQW1GS-1ea33305c8b02eb7385fbe021f1c7fb751",
+            "deployedTo": [
+              "iad1"
+            ],
+            "runtime": "nodejs24.x",
+            "memorySize": 2048,
+            "timeout": 300,
+            "layers": [
+              "arn:aws:lambda:AWS_REGION_PLACEHOLDER:977805900156:layer:vercel-rusty-runtime-nodejs-1_44_5-production-f3d48228c9-AWS_ARCH_PLACEHOLDER:1"
+            ]
+          },
+          "edge": null
+        },
+        {
+          "prerender": null,
+          "type": "lambda",
+          "path": "privacy.rsc",
+          "digest": "prj_QTjX1WrMb7b0ZxmMIRAL96ILRY9E/ee7ec8c75a4eac1f490dbd299a808fef9fdccc98989fbaba64f891de170cf404",
+          "mode": 49590,
+          "size": 18521846,
+          "lambda": {
+            "functionName": "team_eRuwqQwhMbYYDmvgIgpQW1GS-1ea33305c8b02eb7385fbe021f1c7fb751",
+            "deployedTo": [
+              "iad1"
+            ],
+            "runtime": "nodejs24.x",
+            "memorySize": 2048,
+            "timeout": 300,
+            "layers": [
+              "arn:aws:lambda:AWS_REGION_PLACEHOLDER:977805900156:layer:vercel-rusty-runtime-nodejs-1_44_5-production-f3d48228c9-AWS_ARCH_PLACEHOLDER:1"
+            ]
+          },
+          "edge": null
+        },
+        {
+          "prerender": null,
+          "type": "lambda",
+          "path": "share/[token]",
+          "digest": "prj_QTjX1WrMb7b0ZxmMIRAL96ILRY9E/ee7ec8c75a4eac1f490dbd299a808fef9fdccc98989fbaba64f891de170cf404",
+          "mode": 49590,
+          "size": 18521846,
+          "lambda": {
+            "functionName": "team_eRuwqQwhMbYYDmvgIgpQW1GS-1ea33305c8b02eb7385fbe021f1c7fb751",
+            "deployedTo": [
+              "iad1"
+            ],
+            "runtime": "nodejs24.x",
+            "memorySize": 2048,
+            "timeout": 300,
+            "layers": [
+              "arn:aws:lambda:AWS_REGION_PLACEHOLDER:977805900156:layer:vercel-rusty-runtime-nodejs-1_44_5-production-f3d48228c9-AWS_ARCH_PLACEHOLDER:1"
+            ]
+          },
+          "edge": null
+        },
+        {
+          "prerender": null,
+          "type": "lambda",
+          "path": "share/[token].rsc",
+          "digest": "prj_QTjX1WrMb7b0ZxmMIRAL96ILRY9E/ee7ec8c75a4eac1f490dbd299a808fef9fdccc98989fbaba64f891de170cf404",
+          "mode": 49590,
+          "size": 18521846,
+          "lambda": {
+            "functionName": "team_eRuwqQwhMbYYDmvgIgpQW1GS-1ea33305c8b02eb7385fbe021f1c7fb751",
+            "deployedTo": [
+              "iad1"
+            ],
+            "runtime": "nodejs24.x",
+            "memorySize": 2048,
+            "timeout": 300,
+            "layers": [
+              "arn:aws:lambda:AWS_REGION_PLACEHOLDER:977805900156:layer:vercel-rusty-runtime-nodejs-1_44_5-production-f3d48228c9-AWS_ARCH_PLACEHOLDER:1"
+            ]
+          },
+          "edge": null
+        },
+        {
+          "prerender": null,
+          "type": "lambda",
+          "path": "terms",
+          "digest": "prj_QTjX1WrMb7b0ZxmMIRAL96ILRY9E/ee7ec8c75a4eac1f490dbd299a808fef9fdccc98989fbaba64f891de170cf404",
+          "mode": 49590,
+          "size": 18521846,
+          "lambda": {
+            "functionName": "team_eRuwqQwhMbYYDmvgIgpQW1GS-1ea33305c8b02eb7385fbe021f1c7fb751",
+            "deployedTo": [
+              "iad1"
+            ],
+            "runtime": "nodejs24.x",
+            "memorySize": 2048,
+            "timeout": 300,
+            "layers": [
+              "arn:aws:lambda:AWS_REGION_PLACEHOLDER:977805900156:layer:vercel-rusty-runtime-nodejs-1_44_5-production-f3d48228c9-AWS_ARCH_PLACEHOLDER:1"
+            ]
+          },
+          "edge": null
+        },
+        {
+          "prerender": null,
+          "type": "lambda",
+          "path": "terms.rsc",
+          "digest": "prj_QTjX1WrMb7b0ZxmMIRAL96ILRY9E/ee7ec8c75a4eac1f490dbd299a808fef9fdccc98989fbaba64f891de170cf404",
+          "mode": 49590,
+          "size": 18521846,
+          "lambda": {
+            "functionName": "team_eRuwqQwhMbYYDmvgIgpQW1GS-1ea33305c8b02eb7385fbe021f1c7fb751",
+            "deployedTo": [
+              "iad1"
+            ],
+            "runtime": "nodejs24.x",
+            "memorySize": 2048,
+            "timeout": 300,
+            "layers": [
+              "arn:aws:lambda:AWS_REGION_PLACEHOLDER:977805900156:layer:vercel-rusty-runtime-nodejs-1_44_5-production-f3d48228c9-AWS_ARCH_PLACEHOLDER:1"
+            ]
+          },
+          "edge": null
+        },
+        {
+          "prerender": null,
+          "type": "lambda",
+          "path": "workshop",
+          "digest": "prj_QTjX1WrMb7b0ZxmMIRAL96ILRY9E/ee7ec8c75a4eac1f490dbd299a808fef9fdccc98989fbaba64f891de170cf404",
+          "mode": 49590,
+          "size": 18521846,
+          "lambda": {
+            "functionName": "team_eRuwqQwhMbYYDmvgIgpQW1GS-1ea33305c8b02eb7385fbe021f1c7fb751",
+            "deployedTo": [
+              "iad1"
+            ],
+            "runtime": "nodejs24.x",
+            "memorySize": 2048,
+            "timeout": 300,
+            "layers": [
+              "arn:aws:lambda:AWS_REGION_PLACEHOLDER:977805900156:layer:vercel-rusty-runtime-nodejs-1_44_5-production-f3d48228c9-AWS_ARCH_PLACEHOLDER:1"
+            ]
+          },
+          "edge": null
+        },
+        {
+          "prerender": null,
+          "type": "lambda",
+          "path": "workshop.rsc",
+          "digest": "prj_QTjX1WrMb7b0ZxmMIRAL96ILRY9E/ee7ec8c75a4eac1f490dbd299a808fef9fdccc98989fbaba64f891de170cf404",
+          "mode": 49590,
+          "size": 18521846,
+          "lambda": {
+            "functionName": "team_eRuwqQwhMbYYDmvgIgpQW1GS-1ea33305c8b02eb7385fbe021f1c7fb751",
+            "deployedTo": [
+              "iad1"
+            ],
+            "runtime": "nodejs24.x",
+            "memorySize": 2048,
+            "timeout": 300,
+            "layers": [
+              "arn:aws:lambda:AWS_REGION_PLACEHOLDER:977805900156:layer:vercel-rusty-runtime-nodejs-1_44_5-production-f3d48228c9-AWS_ARCH_PLACEHOLDER:1"
+            ]
+          },
+          "edge": null
+        },
+        {
+          "prerender": null,
+          "type": "lambda",
+          "path": "workshop/feedback",
+          "digest": "prj_QTjX1WrMb7b0ZxmMIRAL96ILRY9E/ee7ec8c75a4eac1f490dbd299a808fef9fdccc98989fbaba64f891de170cf404",
+          "mode": 49590,
+          "size": 18521846,
+          "lambda": {
+            "functionName": "team_eRuwqQwhMbYYDmvgIgpQW1GS-1ea33305c8b02eb7385fbe021f1c7fb751",
+            "deployedTo": [
+              "iad1"
+            ],
+            "runtime": "nodejs24.x",
+            "memorySize": 2048,
+            "timeout": 300,
+            "layers": [
+              "arn:aws:lambda:AWS_REGION_PLACEHOLDER:977805900156:layer:vercel-rusty-runtime-nodejs-1_44_5-production-f3d48228c9-AWS_ARCH_PLACEHOLDER:1"
+            ]
+          },
+          "edge": null
+        },
+        {
+          "prerender": null,
+          "type": "lambda",
+          "path": "workshop/feedback.rsc",
+          "digest": "prj_QTjX1WrMb7b0ZxmMIRAL96ILRY9E/ee7ec8c75a4eac1f490dbd299a808fef9fdccc98989fbaba64f891de170cf404",
+          "mode": 49590,
+          "size": 18521846,
+          "lambda": {
+            "functionName": "team_eRuwqQwhMbYYDmvgIgpQW1GS-1ea33305c8b02eb7385fbe021f1c7fb751",
+            "deployedTo": [
+              "iad1"
+            ],
+            "runtime": "nodejs24.x",
+            "memorySize": 2048,
+            "timeout": 300,
+            "layers": [
+              "arn:aws:lambda:AWS_REGION_PLACEHOLDER:977805900156:layer:vercel-rusty-runtime-nodejs-1_44_5-production-f3d48228c9-AWS_ARCH_PLACEHOLDER:1"
+            ]
+          },
+          "edge": null
+        },
+        {
+          "prerender": null,
+          "type": "lambda",
+          "path": "workshop/library",
+          "digest": "prj_QTjX1WrMb7b0ZxmMIRAL96ILRY9E/ee7ec8c75a4eac1f490dbd299a808fef9fdccc98989fbaba64f891de170cf404",
+          "mode": 49590,
+          "size": 18521846,
+          "lambda": {
+            "functionName": "team_eRuwqQwhMbYYDmvgIgpQW1GS-1ea33305c8b02eb7385fbe021f1c7fb751",
+            "deployedTo": [
+              "iad1"
+            ],
+            "runtime": "nodejs24.x",
+            "memorySize": 2048,
+            "timeout": 300,
+            "layers": [
+              "arn:aws:lambda:AWS_REGION_PLACEHOLDER:977805900156:layer:vercel-rusty-runtime-nodejs-1_44_5-production-f3d48228c9-AWS_ARCH_PLACEHOLDER:1"
+            ]
+          },
+          "edge": null
+        },
+        {
+          "prerender": null,
+          "type": "lambda",
+          "path": "workshop/library.rsc",
+          "digest": "prj_QTjX1WrMb7b0ZxmMIRAL96ILRY9E/ee7ec8c75a4eac1f490dbd299a808fef9fdccc98989fbaba64f891de170cf404",
+          "mode": 49590,
+          "size": 18521846,
+          "lambda": {
+            "functionName": "team_eRuwqQwhMbYYDmvgIgpQW1GS-1ea33305c8b02eb7385fbe021f1c7fb751",
+            "deployedTo": [
+              "iad1"
+            ],
+            "runtime": "nodejs24.x",
+            "memorySize": 2048,
+            "timeout": 300,
+            "layers": [
+              "arn:aws:lambda:AWS_REGION_PLACEHOLDER:977805900156:layer:vercel-rusty-runtime-nodejs-1_44_5-production-f3d48228c9-AWS_ARCH_PLACEHOLDER:1"
+            ]
+          },
+          "edge": null
+        },
+        {
+          "prerender": null,
+          "type": "lambda",
+          "path": "workshop/pending-invite",
+          "digest": "prj_QTjX1WrMb7b0ZxmMIRAL96ILRY9E/ee7ec8c75a4eac1f490dbd299a808fef9fdccc98989fbaba64f891de170cf404",
+          "mode": 49590,
+          "size": 18521846,
+          "lambda": {
+            "functionName": "team_eRuwqQwhMbYYDmvgIgpQW1GS-1ea33305c8b02eb7385fbe021f1c7fb751",
+            "deployedTo": [
+              "iad1"
+            ],
+            "runtime": "nodejs24.x",
+            "memorySize": 2048,
+            "timeout": 300,
+            "layers": [
+              "arn:aws:lambda:AWS_REGION_PLACEHOLDER:977805900156:layer:vercel-rusty-runtime-nodejs-1_44_5-production-f3d48228c9-AWS_ARCH_PLACEHOLDER:1"
+            ]
+          },
+          "edge": null
+        },
+        {
+          "prerender": null,
+          "type": "lambda",
+          "path": "workshop/pending-invite.rsc",
+          "digest": "prj_QTjX1WrMb7b0ZxmMIRAL96ILRY9E/ee7ec8c75a4eac1f490dbd299a808fef9fdccc98989fbaba64f891de170cf404",
+          "mode": 49590,
+          "size": 18521846,
+          "lambda": {
+            "functionName": "team_eRuwqQwhMbYYDmvgIgpQW1GS-1ea33305c8b02eb7385fbe021f1c7fb751",
+            "deployedTo": [
+              "iad1"
+            ],
+            "runtime": "nodejs24.x",
+            "memorySize": 2048,
+            "timeout": 300,
+            "layers": [
+              "arn:aws:lambda:AWS_REGION_PLACEHOLDER:977805900156:layer:vercel-rusty-runtime-nodejs-1_44_5-production-f3d48228c9-AWS_ARCH_PLACEHOLDER:1"
+            ]
+          },
+          "edge": null
+        },
+        {
+          "prerender": null,
+          "type": "lambda",
+          "path": "workshop/projects",
+          "digest": "prj_QTjX1WrMb7b0ZxmMIRAL96ILRY9E/ee7ec8c75a4eac1f490dbd299a808fef9fdccc98989fbaba64f891de170cf404",
+          "mode": 49590,
+          "size": 18521846,
+          "lambda": {
+            "functionName": "team_eRuwqQwhMbYYDmvgIgpQW1GS-1ea33305c8b02eb7385fbe021f1c7fb751",
+            "deployedTo": [
+              "iad1"
+            ],
+            "runtime": "nodejs24.x",
+            "memorySize": 2048,
+            "timeout": 300,
+            "layers": [
+              "arn:aws:lambda:AWS_REGION_PLACEHOLDER:977805900156:layer:vercel-rusty-runtime-nodejs-1_44_5-production-f3d48228c9-AWS_ARCH_PLACEHOLDER:1"
+            ]
+          },
+          "edge": null
+        },
+        {
+          "prerender": null,
+          "type": "lambda",
+          "path": "workshop/projects.rsc",
+          "digest": "prj_QTjX1WrMb7b0ZxmMIRAL96ILRY9E/ee7ec8c75a4eac1f490dbd299a808fef9fdccc98989fbaba64f891de170cf404",
+          "mode": 49590,
+          "size": 18521846,
+          "lambda": {
+            "functionName": "team_eRuwqQwhMbYYDmvgIgpQW1GS-1ea33305c8b02eb7385fbe021f1c7fb751",
+            "deployedTo": [
+              "iad1"
+            ],
+            "runtime": "nodejs24.x",
+            "memorySize": 2048,
+            "timeout": 300,
+            "layers": [
+              "arn:aws:lambda:AWS_REGION_PLACEHOLDER:977805900156:layer:vercel-rusty-runtime-nodejs-1_44_5-production-f3d48228c9-AWS_ARCH_PLACEHOLDER:1"
+            ]
+          },
+          "edge": null
+        },
+        {
+          "prerender": null,
+          "type": "lambda",
+          "path": "workshop/projects/[projectId]",
+          "digest": "prj_QTjX1WrMb7b0ZxmMIRAL96ILRY9E/ee7ec8c75a4eac1f490dbd299a808fef9fdccc98989fbaba64f891de170cf404",
+          "mode": 49590,
+          "size": 18521846,
+          "lambda": {
+            "functionName": "team_eRuwqQwhMbYYDmvgIgpQW1GS-1ea33305c8b02eb7385fbe021f1c7fb751",
+            "deployedTo": [
+              "iad1"
+            ],
+            "runtime": "nodejs24.x",
+            "memorySize": 2048,
+            "timeout": 300,
+            "layers": [
+              "arn:aws:lambda:AWS_REGION_PLACEHOLDER:977805900156:layer:vercel-rusty-runtime-nodejs-1_44_5-production-f3d48228c9-AWS_ARCH_PLACEHOLDER:1"
+            ]
+          },
+          "edge": null
+        },
+        {
+          "prerender": null,
+          "type": "lambda",
+          "path": "workshop/projects/[projectId].rsc",
+          "digest": "prj_QTjX1WrMb7b0ZxmMIRAL96ILRY9E/ee7ec8c75a4eac1f490dbd299a808fef9fdccc98989fbaba64f891de170cf404",
+          "mode": 49590,
+          "size": 18521846,
+          "lambda": {
+            "functionName": "team_eRuwqQwhMbYYDmvgIgpQW1GS-1ea33305c8b02eb7385fbe021f1c7fb751",
+            "deployedTo": [
+              "iad1"
+            ],
+            "runtime": "nodejs24.x",
+            "memorySize": 2048,
+            "timeout": 300,
+            "layers": [
+              "arn:aws:lambda:AWS_REGION_PLACEHOLDER:977805900156:layer:vercel-rusty-runtime-nodejs-1_44_5-production-f3d48228c9-AWS_ARCH_PLACEHOLDER:1"
+            ]
+          },
+          "edge": null
+        },
+        {
+          "prerender": null,
+          "type": "lambda",
+          "path": "workshop/projects/[projectId]/charts",
+          "digest": "prj_QTjX1WrMb7b0ZxmMIRAL96ILRY9E/ee7ec8c75a4eac1f490dbd299a808fef9fdccc98989fbaba64f891de170cf404",
+          "mode": 49590,
+          "size": 18521846,
+          "lambda": {
+            "functionName": "team_eRuwqQwhMbYYDmvgIgpQW1GS-1ea33305c8b02eb7385fbe021f1c7fb751",
+            "deployedTo": [
+              "iad1"
+            ],
+            "runtime": "nodejs24.x",
+            "memorySize": 2048,
+            "timeout": 300,
+            "layers": [
+              "arn:aws:lambda:AWS_REGION_PLACEHOLDER:977805900156:layer:vercel-rusty-runtime-nodejs-1_44_5-production-f3d48228c9-AWS_ARCH_PLACEHOLDER:1"
+            ]
+          },
+          "edge": null
+        },
+        {
+          "prerender": null,
+          "type": "lambda",
+          "path": "workshop/projects/[projectId]/charts.rsc",
+          "digest": "prj_QTjX1WrMb7b0ZxmMIRAL96ILRY9E/ee7ec8c75a4eac1f490dbd299a808fef9fdccc98989fbaba64f891de170cf404",
+          "mode": 49590,
+          "size": 18521846,
+          "lambda": {
+            "functionName": "team_eRuwqQwhMbYYDmvgIgpQW1GS-1ea33305c8b02eb7385fbe021f1c7fb751",
+            "deployedTo": [
+              "iad1"
+            ],
+            "runtime": "nodejs24.x",
+            "memorySize": 2048,
+            "timeout": 300,
+            "layers": [
+              "arn:aws:lambda:AWS_REGION_PLACEHOLDER:977805900156:layer:vercel-rusty-runtime-nodejs-1_44_5-production-f3d48228c9-AWS_ARCH_PLACEHOLDER:1"
+            ]
+          },
+          "edge": null
+        },
+        {
+          "prerender": null,
+          "type": "lambda",
+          "path": "workshop/projects/[projectId]/estimates",
+          "digest": "prj_QTjX1WrMb7b0ZxmMIRAL96ILRY9E/ee7ec8c75a4eac1f490dbd299a808fef9fdccc98989fbaba64f891de170cf404",
+          "mode": 49590,
+          "size": 18521846,
+          "lambda": {
+            "functionName": "team_eRuwqQwhMbYYDmvgIgpQW1GS-1ea33305c8b02eb7385fbe021f1c7fb751",
+            "deployedTo": [
+              "iad1"
+            ],
+            "runtime": "nodejs24.x",
+            "memorySize": 2048,
+            "timeout": 300,
+            "layers": [
+              "arn:aws:lambda:AWS_REGION_PLACEHOLDER:977805900156:layer:vercel-rusty-runtime-nodejs-1_44_5-production-f3d48228c9-AWS_ARCH_PLACEHOLDER:1"
+            ]
+          },
+          "edge": null
+        },
+        {
+          "prerender": null,
+          "type": "lambda",
+          "path": "workshop/projects/[projectId]/estimates.rsc",
+          "digest": "prj_QTjX1WrMb7b0ZxmMIRAL96ILRY9E/ee7ec8c75a4eac1f490dbd299a808fef9fdccc98989fbaba64f891de170cf404",
+          "mode": 49590,
+          "size": 18521846,
+          "lambda": {
+            "functionName": "team_eRuwqQwhMbYYDmvgIgpQW1GS-1ea33305c8b02eb7385fbe021f1c7fb751",
+            "deployedTo": [
+              "iad1"
+            ],
+            "runtime": "nodejs24.x",
+            "memorySize": 2048,
+            "timeout": 300,
+            "layers": [
+              "arn:aws:lambda:AWS_REGION_PLACEHOLDER:977805900156:layer:vercel-rusty-runtime-nodejs-1_44_5-production-f3d48228c9-AWS_ARCH_PLACEHOLDER:1"
+            ]
+          },
+          "edge": null
+        },
+        {
+          "prerender": null,
+          "type": "lambda",
+          "path": "workshop/projects/[projectId]/estimates/[nodeId]",
+          "digest": "prj_QTjX1WrMb7b0ZxmMIRAL96ILRY9E/ee7ec8c75a4eac1f490dbd299a808fef9fdccc98989fbaba64f891de170cf404",
+          "mode": 49590,
+          "size": 18521846,
+          "lambda": {
+            "functionName": "team_eRuwqQwhMbYYDmvgIgpQW1GS-1ea33305c8b02eb7385fbe021f1c7fb751",
+            "deployedTo": [
+              "iad1"
+            ],
+            "runtime": "nodejs24.x",
+            "memorySize": 2048,
+            "timeout": 300,
+            "layers": [
+              "arn:aws:lambda:AWS_REGION_PLACEHOLDER:977805900156:layer:vercel-rusty-runtime-nodejs-1_44_5-production-f3d48228c9-AWS_ARCH_PLACEHOLDER:1"
+            ]
+          },
+          "edge": null
+        },
+        {
+          "prerender": null,
+          "type": "lambda",
+          "path": "workshop/projects/[projectId]/estimates/[nodeId].rsc",
+          "digest": "prj_QTjX1WrMb7b0ZxmMIRAL96ILRY9E/ee7ec8c75a4eac1f490dbd299a808fef9fdccc98989fbaba64f891de170cf404",
+          "mode": 49590,
+          "size": 18521846,
+          "lambda": {
+            "functionName": "team_eRuwqQwhMbYYDmvgIgpQW1GS-1ea33305c8b02eb7385fbe021f1c7fb751",
+            "deployedTo": [
+              "iad1"
+            ],
+            "runtime": "nodejs24.x",
+            "memorySize": 2048,
+            "timeout": 300,
+            "layers": [
+              "arn:aws:lambda:AWS_REGION_PLACEHOLDER:977805900156:layer:vercel-rusty-runtime-nodejs-1_44_5-production-f3d48228c9-AWS_ARCH_PLACEHOLDER:1"
+            ]
+          },
+          "edge": null
+        },
+        {
+          "prerender": null,
+          "type": "lambda",
+          "path": "workshop/settings",
+          "digest": "prj_QTjX1WrMb7b0ZxmMIRAL96ILRY9E/ee7ec8c75a4eac1f490dbd299a808fef9fdccc98989fbaba64f891de170cf404",
+          "mode": 49590,
+          "size": 18521846,
+          "lambda": {
+            "functionName": "team_eRuwqQwhMbYYDmvgIgpQW1GS-1ea33305c8b02eb7385fbe021f1c7fb751",
+            "deployedTo": [
+              "iad1"
+            ],
+            "runtime": "nodejs24.x",
+            "memorySize": 2048,
+            "timeout": 300,
+            "layers": [
+              "arn:aws:lambda:AWS_REGION_PLACEHOLDER:977805900156:layer:vercel-rusty-runtime-nodejs-1_44_5-production-f3d48228c9-AWS_ARCH_PLACEHOLDER:1"
+            ]
+          },
+          "edge": null
+        },
+        {
+          "prerender": null,
+          "type": "lambda",
+          "path": "workshop/settings.rsc",
+          "digest": "prj_QTjX1WrMb7b0ZxmMIRAL96ILRY9E/ee7ec8c75a4eac1f490dbd299a808fef9fdccc98989fbaba64f891de170cf404",
+          "mode": 49590,
+          "size": 18521846,
+          "lambda": {
+            "functionName": "team_eRuwqQwhMbYYDmvgIgpQW1GS-1ea33305c8b02eb7385fbe021f1c7fb751",
+            "deployedTo": [
+              "iad1"
+            ],
+            "runtime": "nodejs24.x",
+            "memorySize": 2048,
+            "timeout": 300,
+            "layers": [
+              "arn:aws:lambda:AWS_REGION_PLACEHOLDER:977805900156:layer:vercel-rusty-runtime-nodejs-1_44_5-production-f3d48228c9-AWS_ARCH_PLACEHOLDER:1"
+            ]
+          },
+          "edge": null
+        },
+        {
+          "prerender": null,
+          "type": "lambda",
+          "path": "workshop/settings/beta-users",
+          "digest": "prj_QTjX1WrMb7b0ZxmMIRAL96ILRY9E/ee7ec8c75a4eac1f490dbd299a808fef9fdccc98989fbaba64f891de170cf404",
+          "mode": 49590,
+          "size": 18521846,
+          "lambda": {
+            "functionName": "team_eRuwqQwhMbYYDmvgIgpQW1GS-1ea33305c8b02eb7385fbe021f1c7fb751",
+            "deployedTo": [
+              "iad1"
+            ],
+            "runtime": "nodejs24.x",
+            "memorySize": 2048,
+            "timeout": 300,
+            "layers": [
+              "arn:aws:lambda:AWS_REGION_PLACEHOLDER:977805900156:layer:vercel-rusty-runtime-nodejs-1_44_5-production-f3d48228c9-AWS_ARCH_PLACEHOLDER:1"
+            ]
+          },
+          "edge": null
+        },
+        {
+          "prerender": null,
+          "type": "lambda",
+          "path": "workshop/settings/beta-users.rsc",
+          "digest": "prj_QTjX1WrMb7b0ZxmMIRAL96ILRY9E/ee7ec8c75a4eac1f490dbd299a808fef9fdccc98989fbaba64f891de170cf404",
+          "mode": 49590,
+          "size": 18521846,
+          "lambda": {
+            "functionName": "team_eRuwqQwhMbYYDmvgIgpQW1GS-1ea33305c8b02eb7385fbe021f1c7fb751",
+            "deployedTo": [
+              "iad1"
+            ],
+            "runtime": "nodejs24.x",
+            "memorySize": 2048,
+            "timeout": 300,
+            "layers": [
+              "arn:aws:lambda:AWS_REGION_PLACEHOLDER:977805900156:layer:vercel-rusty-runtime-nodejs-1_44_5-production-f3d48228c9-AWS_ARCH_PLACEHOLDER:1"
+            ]
+          },
+          "edge": null
+        },
+        {
+          "prerender": null,
+          "type": "lambda",
+          "path": "workshop/settings/feedback",
+          "digest": "prj_QTjX1WrMb7b0ZxmMIRAL96ILRY9E/ee7ec8c75a4eac1f490dbd299a808fef9fdccc98989fbaba64f891de170cf404",
+          "mode": 49590,
+          "size": 18521846,
+          "lambda": {
+            "functionName": "team_eRuwqQwhMbYYDmvgIgpQW1GS-1ea33305c8b02eb7385fbe021f1c7fb751",
+            "deployedTo": [
+              "iad1"
+            ],
+            "runtime": "nodejs24.x",
+            "memorySize": 2048,
+            "timeout": 300,
+            "layers": [
+              "arn:aws:lambda:AWS_REGION_PLACEHOLDER:977805900156:layer:vercel-rusty-runtime-nodejs-1_44_5-production-f3d48228c9-AWS_ARCH_PLACEHOLDER:1"
+            ]
+          },
+          "edge": null
+        },
+        {
+          "prerender": null,
+          "type": "lambda",
+          "path": "workshop/settings/feedback.rsc",
+          "digest": "prj_QTjX1WrMb7b0ZxmMIRAL96ILRY9E/ee7ec8c75a4eac1f490dbd299a808fef9fdccc98989fbaba64f891de170cf404",
+          "mode": 49590,
+          "size": 18521846,
+          "lambda": {
+            "functionName": "team_eRuwqQwhMbYYDmvgIgpQW1GS-1ea33305c8b02eb7385fbe021f1c7fb751",
+            "deployedTo": [
+              "iad1"
+            ],
+            "runtime": "nodejs24.x",
+            "memorySize": 2048,
+            "timeout": 300,
+            "layers": [
+              "arn:aws:lambda:AWS_REGION_PLACEHOLDER:977805900156:layer:vercel-rusty-runtime-nodejs-1_44_5-production-f3d48228c9-AWS_ARCH_PLACEHOLDER:1"
+            ]
+          },
+          "edge": null
+        },
+        {
+          "prerender": null,
+          "type": "lambda",
+          "path": "workshop/settings/profile",
+          "digest": "prj_QTjX1WrMb7b0ZxmMIRAL96ILRY9E/ee7ec8c75a4eac1f490dbd299a808fef9fdccc98989fbaba64f891de170cf404",
+          "mode": 49590,
+          "size": 18521846,
+          "lambda": {
+            "functionName": "team_eRuwqQwhMbYYDmvgIgpQW1GS-1ea33305c8b02eb7385fbe021f1c7fb751",
+            "deployedTo": [
+              "iad1"
+            ],
+            "runtime": "nodejs24.x",
+            "memorySize": 2048,
+            "timeout": 300,
+            "layers": [
+              "arn:aws:lambda:AWS_REGION_PLACEHOLDER:977805900156:layer:vercel-rusty-runtime-nodejs-1_44_5-production-f3d48228c9-AWS_ARCH_PLACEHOLDER:1"
+            ]
+          },
+          "edge": null
+        },
+        {
+          "prerender": null,
+          "type": "lambda",
+          "path": "workshop/settings/profile.rsc",
+          "digest": "prj_QTjX1WrMb7b0ZxmMIRAL96ILRY9E/ee7ec8c75a4eac1f490dbd299a808fef9fdccc98989fbaba64f891de170cf404",
+          "mode": 49590,
+          "size": 18521846,
+          "lambda": {
+            "functionName": "team_eRuwqQwhMbYYDmvgIgpQW1GS-1ea33305c8b02eb7385fbe021f1c7fb751",
+            "deployedTo": [
+              "iad1"
+            ],
+            "runtime": "nodejs24.x",
+            "memorySize": 2048,
+            "timeout": 300,
+            "layers": [
+              "arn:aws:lambda:AWS_REGION_PLACEHOLDER:977805900156:layer:vercel-rusty-runtime-nodejs-1_44_5-production-f3d48228c9-AWS_ARCH_PLACEHOLDER:1"
+            ]
+          },
+          "edge": null
+        },
+        {
+          "prerender": null,
+          "type": "lambda",
+          "path": "workshop/settings/workspace",
+          "digest": "prj_QTjX1WrMb7b0ZxmMIRAL96ILRY9E/ee7ec8c75a4eac1f490dbd299a808fef9fdccc98989fbaba64f891de170cf404",
+          "mode": 49590,
+          "size": 18521846,
+          "lambda": {
+            "functionName": "team_eRuwqQwhMbYYDmvgIgpQW1GS-1ea33305c8b02eb7385fbe021f1c7fb751",
+            "deployedTo": [
+              "iad1"
+            ],
+            "runtime": "nodejs24.x",
+            "memorySize": 2048,
+            "timeout": 300,
+            "layers": [
+              "arn:aws:lambda:AWS_REGION_PLACEHOLDER:977805900156:layer:vercel-rusty-runtime-nodejs-1_44_5-production-f3d48228c9-AWS_ARCH_PLACEHOLDER:1"
+            ]
+          },
+          "edge": null
+        },
+        {
+          "prerender": null,
+          "type": "lambda",
+          "path": "workshop/settings/workspace.rsc",
+          "digest": "prj_QTjX1WrMb7b0ZxmMIRAL96ILRY9E/ee7ec8c75a4eac1f490dbd299a808fef9fdccc98989fbaba64f891de170cf404",
+          "mode": 49590,
+          "size": 18521846,
+          "lambda": {
+            "functionName": "team_eRuwqQwhMbYYDmvgIgpQW1GS-1ea33305c8b02eb7385fbe021f1c7fb751",
+            "deployedTo": [
+              "iad1"
+            ],
+            "runtime": "nodejs24.x",
+            "memorySize": 2048,
+            "timeout": 300,
+            "layers": [
+              "arn:aws:lambda:AWS_REGION_PLACEHOLDER:977805900156:layer:vercel-rusty-runtime-nodejs-1_44_5-production-f3d48228c9-AWS_ARCH_PLACEHOLDER:1"
+            ]
+          },
+          "edge": null
+        },
+        {
+          "prerender": null,
+          "type": "lambda",
+          "path": "workshop/templates",
+          "digest": "prj_QTjX1WrMb7b0ZxmMIRAL96ILRY9E/ee7ec8c75a4eac1f490dbd299a808fef9fdccc98989fbaba64f891de170cf404",
+          "mode": 49590,
+          "size": 18521846,
+          "lambda": {
+            "functionName": "team_eRuwqQwhMbYYDmvgIgpQW1GS-1ea33305c8b02eb7385fbe021f1c7fb751",
+            "deployedTo": [
+              "iad1"
+            ],
+            "runtime": "nodejs24.x",
+            "memorySize": 2048,
+            "timeout": 300,
+            "layers": [
+              "arn:aws:lambda:AWS_REGION_PLACEHOLDER:977805900156:layer:vercel-rusty-runtime-nodejs-1_44_5-production-f3d48228c9-AWS_ARCH_PLACEHOLDER:1"
+            ]
+          },
+          "edge": null
+        },
+        {
+          "prerender": null,
+          "type": "lambda",
+          "path": "workshop/templates.rsc",
+          "digest": "prj_QTjX1WrMb7b0ZxmMIRAL96ILRY9E/ee7ec8c75a4eac1f490dbd299a808fef9fdccc98989fbaba64f891de170cf404",
+          "mode": 49590,
+          "size": 18521846,
+          "lambda": {
+            "functionName": "team_eRuwqQwhMbYYDmvgIgpQW1GS-1ea33305c8b02eb7385fbe021f1c7fb751",
+            "deployedTo": [
+              "iad1"
+            ],
+            "runtime": "nodejs24.x",
+            "memorySize": 2048,
+            "timeout": 300,
+            "layers": [
+              "arn:aws:lambda:AWS_REGION_PLACEHOLDER:977805900156:layer:vercel-rusty-runtime-nodejs-1_44_5-production-f3d48228c9-AWS_ARCH_PLACEHOLDER:1"
+            ]
+          },
+          "edge": null
+        }
+      ],
+      "fingerprint": null
+    }
+  ],
+  "contextName": "philipjonlewis-projects"
+}

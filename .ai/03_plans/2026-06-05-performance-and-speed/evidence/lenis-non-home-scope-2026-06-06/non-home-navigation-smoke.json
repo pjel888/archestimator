@@ -1,0 +1,39 @@
+{
+  "generatedAt": "2026-06-05T19:38:29.672Z",
+  "base": "http://127.0.0.1:3047",
+  "checks": [
+    {
+      "label": "/features direct",
+      "url": "http://127.0.0.1:3047/features",
+      "mainHasRoot": 1,
+      "lenisPreventCount": 0
+    },
+    {
+      "label": "/pricing via header nav",
+      "url": "http://127.0.0.1:3047/pricing",
+      "mainHasRoot": 1,
+      "lenisPreventCount": 0
+    },
+    {
+      "label": "/contact via header nav",
+      "url": "http://127.0.0.1:3047/contact",
+      "mainHasRoot": 1,
+      "lenisPreventCount": 0
+    }
+  ],
+  "failedResponses": [
+    {
+      "status": 404,
+      "url": "http://127.0.0.1:3047/_vercel/insights/script.js"
+    }
+  ],
+  "ignoredMessages": [
+    {
+      "type": "error",
+      "text": "Failed to load resource: the server responded with a status of 404 (Not Found)",
+      "reason": "local next start does not serve /_vercel/insights/script.js"
+    }
+  ],
+  "consoleMessages": [],
+  "passed": true
+}

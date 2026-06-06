@@ -10,6 +10,7 @@ const AUTH_ROUTES = [LOGIN_PATH];
 const PUBLIC_ROUTE_PREFIXES = ["/about", "/features", "/pricing", "/contact", "/privacy", "/terms", "/invite", "/share", "/beta"];
 const MARKETING_PAGE_PATHS = new Set(["/", "/about", "/features", "/pricing", "/contact", "/privacy", "/terms"]);
 const MARKETING_PAGE_CACHE_CONTROL = "private, no-cache, max-age=0, must-revalidate";
+const SENSITIVE_ROUTE_CACHE_CONTROL = "private, no-cache, no-store, max-age=0, must-revalidate";
 
 function hasSupabaseProxyEnv() {
   return Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL?.trim() && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim());
@@ -32,8 +33,17 @@ function createRequestPathResponse(request: NextRequest) {
   return NextResponse.next({ request: { headers: requestHeaders } });
 }
 
+function withSensitiveRouteCacheControl(response: NextResponse) {
+  response.headers.set("Cache-Control", SENSITIVE_ROUTE_CACHE_CONTROL);
+  return response;
+}
+
+function redirectWithSensitiveRouteCacheControl(url: URL) {
+  return withSensitiveRouteCacheControl(NextResponse.redirect(url));
+}
+
 function redirectWithResponseCookies(url: URL, response: NextResponse) {
-  const redirectResponse = NextResponse.redirect(url);
+  const redirectResponse = redirectWithSensitiveRouteCacheControl(url);
   response.cookies.getAll().forEach((cookie) => {
     redirectResponse.cookies.set(cookie);
   });
@@ -54,7 +64,7 @@ export async function proxy(request: NextRequest) {
 
   if (isDevAuthBypassRequest(request.nextUrl.hostname, devAuthBypassCredential)) {
     if (isAuthRoute) {
-      return NextResponse.redirect(new URL(DEFAULT_AUTH_DESTINATION, request.url));
+      return redirectWithSensitiveRouteCacheControl(new URL(DEFAULT_AUTH_DESTINATION, request.url));
     }
 
     return createRequestPathResponse(request);
@@ -76,7 +86,7 @@ export async function proxy(request: NextRequest) {
         "next",
         sanitizeNextPath(`${pathname}${request.nextUrl.search}`),
       );
-      return NextResponse.redirect(loginUrl);
+      return redirectWithSensitiveRouteCacheControl(loginUrl);
     }
 
     return response;
@@ -105,11 +115,11 @@ export async function proxy(request: NextRequest) {
 
   if (!user && isProtected) {
     const loginUrl = new URL(LOGIN_PATH, request.url);
-    loginUrl.searchParams.set(
-      "next",
-      sanitizeNextPath(`${pathname}${request.nextUrl.search}`),
-    );
-    return NextResponse.redirect(loginUrl);
+      loginUrl.searchParams.set(
+        "next",
+        sanitizeNextPath(`${pathname}${request.nextUrl.search}`),
+      );
+    return redirectWithSensitiveRouteCacheControl(loginUrl);
   }
 
   if (user && (isProtected || isAuthRoute)) {
@@ -125,7 +135,7 @@ export async function proxy(request: NextRequest) {
   }
 
   if (user && isAuthRoute) {
-    return NextResponse.redirect(new URL(DEFAULT_AUTH_DESTINATION, request.url));
+    return redirectWithSensitiveRouteCacheControl(new URL(DEFAULT_AUTH_DESTINATION, request.url));
   }
 
   return response;
